@@ -79,6 +79,31 @@ function trackedTextFiles() {
   });
 }
 
+/**
+ * ⛔ A NAME SPLIT ACROSS TWO JSX ELEMENTS IS STILL THE NAME, AND THIS GUARD COULD NOT SEE IT.
+ *
+ * client/src/components/TopBar.jsx rendered the app's primary mark as:
+ *
+ *     <span …>R</span>
+ *     <span …>esume Master</span>
+ *
+ * — split so the tail could collapse in the animation. Neither half matches a contiguous
+ * /resume ?master/, so this guard passed while **production's app nav read "RESUME MASTER" on
+ * every page**, for days after P4 declared the sweep complete. It was found on 2026-09-26 by
+ * SCREENSHOTTING the real board, not by any test.
+ *
+ * So the scan now also looks at each markup file with its tags removed and whitespace collapsed
+ * out, which rejoins text that is only separated by elements. Measured on the tree when this was
+ * added: 133 markup files, ZERO additional hits beyond the real one — so it is not noisy, which
+ * matters here more than usual, because a guard that cries wolf is how the other six went inert.
+ *
+ * ⚠ Markup only (.jsx/.html/.svg). Applying it to prose would join an ordinary "…your resume\n
+ * Master the…" into a false positive, and a false positive in a guard is more expensive than the
+ * narrower scan.
+ */
+const MARKUP_EXT = /\.(jsx|html|svg)$/i;
+const stripMarkup = (text) => text.replace(/<[^>]*>/g, "").replace(/\s+/g, "");
+
 function offenders() {
   const hits = [];
   for (const f of trackedTextFiles()) {
@@ -86,6 +111,16 @@ function offenders() {
     try { text = fs.readFileSync(f, "utf8"); } catch { continue; }
     if (text.includes("\u0000")) continue;               // a binary we did not list
     const matched = FORBIDDEN.filter(p => p.re.test(text)).map(p => p.label);
+
+    // The split-across-elements pass. `Resume Master` becomes `ResumeMaster` once tags and
+    // whitespace are gone, which the `resume[ ]master` pattern matches with its optional space.
+    if (MARKUP_EXT.test(f)) {
+      const joined = stripMarkup(text);
+      for (const p of FORBIDDEN) {
+        if (p.re.test(joined) && !matched.includes(p.label)) matched.push(`${p.label} (split across elements)`);
+      }
+    }
+
     if (matched.length) hits.push({ file: f.replace(/\\/g, "/"), matched });
   }
   return hits;

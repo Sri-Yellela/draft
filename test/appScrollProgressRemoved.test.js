@@ -30,6 +30,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { at } from "../test-support/sourceAnchors.js";
+import { LEGACY_BRAND } from "../shared/brand.js";
 
 const read = (p) => fs.readFileSync(p, "utf8");
 const code = (src) => src
@@ -101,7 +102,19 @@ test("the logo takes no progress prop and does not interpolate", () => {
   const logo = topBarCode.slice(at(topBarCode, "function AnimatedLucyLogo"),
                                at(topBarCode, "function useNotifications"));
   assert.ok(!/textMaxW|textOpacity/.test(logo));
-  assert.match(logo, /esume Master/, "the wordmark must still render in full");
+  // ⛔ THIS ASSERTION USED TO PIN THE LEGACY NAME, AND THAT IS HOW THE OLD MARK SURVIVED P4.
+  //
+  // It read `assert.match(logo, /esume Master/)` — a literal, because the mark is split across two
+  // spans so the tail can collapse. The rebrand guard cannot see a name split that way either, so
+  // between them the app nav shipped the OLD brand to production for days after the sweep was
+  // declared complete. Found on 2026-09-26 by screenshotting the real board.
+  //
+  // The INTENT was "the mark renders in full, not collapsed to its initial". That is what it says
+  // now, against the single source, so the test survives a future rename instead of blocking one.
+  assert.ok(logo.includes("MARK_TAIL"),
+    "the mark must still render its full tail, not just the initial");
+  assert.ok(!new RegExp(LEGACY_BRAND.slice(1)).test(logo),
+    "and it must not spell the legacy name as a literal again");
 });
 
 test("JobsPanel keeps only the scroll-to-top ref, and its toolbar guard is gone", () => {
