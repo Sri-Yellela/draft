@@ -124,6 +124,7 @@ import {
   FACET_DIMENSIONS,
 } from "./services/jobs/jobQuery.js";
 import { mapJobRow } from "./services/jobs/mapJobRow.js";
+import { describeEmptyBoard, activeFilterNames } from "./services/jobs/emptyBoardReason.js";
 // Board ordering AND keyset pagination, generated from one key-list declaration so the ORDER BY
 // and the cursor's resume predicate cannot disagree. See services/jobs/jobCursor.js.
 import {
@@ -7333,6 +7334,12 @@ app.get("/api/jobs", requireAuth, async (req, res) => {
         totalPages:        0,
         needsProfileSetup: true,
         reason:            'no_active_profile',
+        // The same shape every other empty board now uses, so a client reads ONE field rather than
+        // special-casing this branch. `reason` above is kept for the clients already reading it.
+        emptyReason: {
+          code:    'no_active_profile',
+          message: 'Create a job profile to see jobs — results are scoped to a profile.',
+        },
       });
     }
 
@@ -7768,9 +7775,42 @@ app.get("/api/jobs", requireAuth, async (req, res) => {
       // Issued from the LAST ROW ACTUALLY RETURNED, so it is valid whether the caller paged by
       // cursor or by offset — an offset-paging client can adopt cursors mid-feed without a reset.
       const nextCursor = hasMore && rows.length ? encodeCursor(orderKeys, rows[rows.length - 1]) : null;
+      // ⛔ THE COUNT AND THE LIST MUST BE THE SAME QUESTION, ASKED TWICE.
+      //
+      // `joinClause`, `whereClause` and `baseArgs` are the SAME VALUES the list statement above
+      // used — not a re-derivation, the identical bindings. That is the whole guarantee: a count
+      // that reports rows the list cannot return is unfalsifiable from the UI, and this project
+      // has already shipped one pair of queries that counted different things (the source-health
+      // false critical, where `written` and `unchanged` came from different predicates and "the
+      // board didn't change" read as "the source stopped working").
+      //
+      // ⚠ THE ONE DELIBERATE ASYMMETRY IS `cursorSql`, AND IT IS NOT A DIVERGENCE. `total` means
+      // "rows matching the filters", not "rows still ahead of this cursor" — a feed that counted
+      // only the remainder would show the number shrinking as you scroll. So the cursor predicate
+      // belongs on the list and must NOT be added here. describeEmptyBoard() below is what keeps
+      // that honest, by naming the end-of-feed case instead of letting it look like an empty board.
+      //
+      // test/boardCountMatchesList.test.js asserts the two statements are built from these same
+      // three variables, so a future edit cannot fork one without failing.
       const total = db.prepare(`SELECT COUNT(*) as n ${joinClause} ${whereClause}`).get(...baseArgs)?.n || 0;
+      const totalPages = Math.ceil(total / ps);
 
-      console.log(JSON.stringify({ msg: '[jobs]', profile: sessionActiveProfile.profile_name, sort, total, returned: rows.length }));
+      // WHY THE PAGE IS EMPTY, WHEN IT IS. Absent whenever rows came back, so a healthy response is
+      // byte-identical to before and no client has to learn a new field to keep working.
+      const emptyReason = describeEmptyBoard({
+        total, returned: rows.length, page: pg, totalPages,
+        usedCursor: !!rawCursor, activeFilters: activeFilterNames(req.query),
+      });
+
+      console.log(JSON.stringify({ msg: '[jobs]', profile: sessionActiveProfile.profile_name, sort, total, returned: rows.length,
+        ...(emptyReason ? { emptyReason: emptyReason.code } : {}) }));
+      // ⛔ A COUNT/LIST DISAGREEMENT IS A DEFECT AND GETS ITS OWN LINE, at error level. Every other
+      // empty-board code is an ordinary state a user can cause; this one cannot be reached by any
+      // input and means the two statements above stopped asking the same question.
+      if (emptyReason?.diagnostic) {
+        console.error(`[jobs] ⛔ COUNT/LIST MISMATCH — total=${total} returned=0 page=${pg}/${totalPages} `
+          + `profile=${sessionActiveProfile.id} sort="${sort}" — the count and the list have diverged`);
+      }
 
       const responseBody = {
         success:    true,
@@ -7778,9 +7818,12 @@ app.get("/api/jobs", requireAuth, async (req, res) => {
         total,
         page:       pg,
         pageSize:   ps,
-        totalPages: Math.ceil(total / ps),
+        totalPages,
         sources:    ['scraped_jobs'],
         fromCache:  true,
+        // Only present when the page came back empty — see describeEmptyBoard. An empty board that
+        // cannot say why is how two NULL-propagation bugs in this project stayed invisible.
+        ...(emptyReason ? { emptyReason } : {}),
         // ALWAYS emitted, on both paging modes. A client that never sends `cursor` simply ignores
         // it, and one that wants to switch to keyset paging can adopt the cursor from any page it
         // already has rather than restarting the feed.
