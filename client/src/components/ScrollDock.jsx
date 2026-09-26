@@ -9,44 +9,19 @@ import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import { useScrollCollapsed } from "../hooks/useScrollCollapsed.js";
 import { useMonetisationEnabled } from "../lib/monetisation.jsx";
-import { WORDMARK } from "../../../shared/brand.js";
+import { StampLogo } from "./StampLogo.jsx";
 
-// ── Logo (nested-box Lucy brand mark) ────────────────────────
+// ── Logo ─────────────────────────────────────────────────────
+// One call, not a third copy of the mark. This file used to draw its own stamp — see the header of
+// StampLogo.jsx for why three copies of one mark is the mechanism a rename half-ships through.
+//
+// `accent` is the one thing the dock genuinely wants and the app bar does not: the rotated colour
+// rect behind the stamp. It is passed as a COLOUR so the shared component stays theme-free.
+//
+// ⚠ THE FIXED width: 158 IS GONE. It was tuned to the old, much longer wordmark; against a short
+// one it left the accent rect floating well past the mark. The stamp sizes itself now.
 function LucyLogo({ theme, mini = false }) {
-  if (mini) {
-    return (
-      <div style={{ position: "relative", width: 36, height: 26, display: "flex",
-                    alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        <div style={{ position: "absolute", inset: 0, background: theme.accent,
-                      transform: "rotate(-3deg)", borderRadius: 2 }}/>
-        <div style={{ position: "relative", zIndex: 1, padding: "2px 5px",
-                      background: "#ffffff", border: "2px solid #0f0f0f",
-                      transform: "rotate(-2deg)", borderRadius: 2,
-                      display: "flex", alignItems: "center" }}>
-          <span style={{ fontFamily: "'Barlow Condensed','DM Sans',system-ui,sans-serif",
-                          fontWeight: 800, fontSize: 11, letterSpacing: "0.06em",
-                          textTransform: "uppercase", color: "#0f0f0f", fontStyle: "italic",
-                          lineHeight: 1, whiteSpace: "nowrap" }}>{WORDMARK.slice(0, 1)}</span>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div style={{ position: "relative", display: "inline-flex", alignItems: "center",
-                  justifyContent: "center", flexShrink: 0, height: 36, width: 158 }}>
-      <div style={{ position: "absolute", inset: 0, background: theme.accent,
-                    transform: "rotate(-3deg)", borderRadius: 2 }}/>
-      <div style={{ position: "relative", zIndex: 1, padding: "3px 10px",
-                    background: "#ffffff", border: "2.5px solid #0f0f0f",
-                    transform: "rotate(-2deg)", borderRadius: 2,
-                    display: "flex", alignItems: "center" }}>
-        <span style={{ fontFamily: "'Barlow Condensed','DM Sans',system-ui,sans-serif",
-                        fontWeight: 800, fontSize: 15, letterSpacing: "0.06em",
-                        textTransform: "uppercase", color: "#0f0f0f", fontStyle: "italic",
-                        lineHeight: 1, whiteSpace: "nowrap" }}>{WORDMARK}</span>
-      </div>
-    </div>
-  );
+  return <StampLogo size={mini ? "mini" : "sm"} progress={mini ? 1 : 0} accent={theme.accent}/>;
 }
 
 // ── Dock divider ─────────────────────────────────────────────

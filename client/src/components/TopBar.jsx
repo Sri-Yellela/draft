@@ -12,21 +12,7 @@ import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import { useSyncEvents } from "../hooks/useSyncEvents.js";
 import { api } from "../lib/api.js";
-import { WORDMARK } from "../../../shared/brand.js";
-
-// ⛔ THIS MARK WAS HARDCODED AND SHIPPED THE OLD BRAND TO PRODUCTION AFTER P4.
-//
-// The two spans below spelled the legacy name as literals — one initial, one tail — split that
-// way so the tail could collapse. Splitting it is also why the rebrand guard never saw it: test/
-// brandAndOriginGuard.test.js searches for the name as a CONTIGUOUS string, and neither half is
-// one. It was found on 2026-09-26 by screenshotting the real production board, not by any test —
-// the app nav still read the old name on every page while the docs called the sweep complete.
-//
-// Derived now, like StampLogo.jsx and ScrollDock.jsx. ⚠ There are THREE implementations of this
-// one mark; they were supposed to be one component and are not. Collapsing them is worth doing
-// and is not this change.
-const MARK_INITIAL = WORDMARK.slice(0, 1);
-const MARK_TAIL    = WORDMARK.slice(1);
+import { StampLogo } from "./StampLogo.jsx";
 import { DockPortal } from "./DockPortal.jsx";
 import ProfileSelectorDropdown from "./ProfileSelectorDropdown.jsx";
 import { Z } from "../styles/zLayers.js";
@@ -41,79 +27,29 @@ import { Z } from "../styles/zLayers.js";
 //
 // ── Parse hex → [r,g,b] ──────────────────────────────────────
 
-// ── Animated logo — "R" persists, "esume Master" collapses ───
+// ── The brand mark ───────────────────────────────────────────
 //
-// THE MARK IS WHITE. W6 made it translucent — `rgba(255,255,255,0.06)` behind a
-// `--border-glass` hairline with muted text — on the reasoning that a solid stamp was "the one
-// element on the surface that did not belong to it". That was a regression, not an improvement:
-// the top bar is fully transparent (see the Geometry note below), so a 6%-white fill on a dark
-// starfield left the mark with almost no edge of its own. It is white again, and matched to
-// components/StampLogo.jsx VERBATIM — same #ffffff fill, same 2.5px #0f0f0f border, same
-// borderRadius 2, same #0f0f0f italic text — because that is the marketing rendering of the same
-// mark and the two must not be two different logos.
+// ⛔ THIS USED TO BE A SECOND IMPLEMENTATION OF THE MARK, AND IT SHIPPED THE OLD BRAND.
 //
-// Two things W6 added are gone with the translucency, and neither is a feature being dropped:
-// `backdropFilter: blur(8px)`, which has nothing to blur behind an opaque fill; and
-// `transition: "background 0.15s, border-color 0.15s"`, which was for a hover lift that was never
-// wired — there is no mouse handler on this element, so the transition could not fire.
+// It drew its own stamp and spelled the legacy name as two hardcoded spans — split so the tail
+// could collapse, which is also why test/brandAndOriginGuard.test.js could not see it: that guard
+// searched for the name as a CONTIGUOUS string. P4 swept the other two copies and missed this one,
+// so production's app nav showed the old brand for days with the suite green. Found by
+// screenshotting the real board on 2026-09-26.
 //
-// NOTHING ELSE ABOUT THIS MARK CHANGES. The rotation, the size, the placement, the collapse
-// animation and its timings are the mark's character and are deliberately untouched.
-// THE COLLAPSE IS GONE, and with it this component's only prop.
+// It is one call now. See StampLogo.jsx's header for the full account, including which of the
+// three copies' disagreements survived and why.
 //
-// It took `progress` from AppScrollContext and interpolated "esume Master" to zero width and zero
-// opacity. That progress value was permanently 0 — its only writer is JobsPanel's PullToRefresh
-// onScroll, on a container that never scrolls (the WINDOW is what scrolls) — so the collapse never
-// ran once, in any session, and `textMaxW` was always 130 against a natural width of 93px and
-// `textOpacity` always 1. Removing it changes no pixel; verified by diffing screenshots before and
-// after.
+// ⚠ THE 33-PIXEL CLIPPING FINDING LIVES ON IN StampLogo.jsx AND IS NOT LOST. This copy was the one
+// that had it right — no `overflow` on the stamp box, established by A/B'ing the running app at
+// deviceScaleFactor 6 and differencing. The shared component adopted that, so unifying applied
+// this file's measurement to every other caller rather than discarding it.
 //
-// Y1 forbade altering the logo and this changes its signature, so it was confirmed with the owner
-// before removal rather than assumed. The reason it is a removal and not a repair: the collapse
-// targets a 400px bar, and Y4 moved the app's primary navigation INTO the bar — the tab row alone
-// measures 498px, plus this mark at ~183px and the avatar. There is no collapsed layout for the
-// contents to collapse into.
+// The wrapper is kept rather than inlined at the call site: it is referenced by name in
+// test/topBarChrome.test.js and test/appScrollProgressRemoved.test.js, which slice the file
+// between this function and the next to assert the mark's chrome.
 function AnimatedLucyLogo() {
-  return (
-    <div style={{
-      position: "relative", display: "inline-flex", alignItems: "center",
-      justifyContent: "center", flexShrink: 0, height: 36, minWidth: 50,
-    }}>
-      {/* NO `overflow: hidden` HERE — that is the clipping, and it was measurable. A/B'd on the
-          running app at 1440x900, deviceScaleFactor 6, by forcing this one property to `visible`
-          and differencing the two screenshots: 33 device pixels changed. The box is
-          `transform: rotate(-2deg)` with a border radius, so clipping to its own padding box
-          shaves the mark's own corner and the italic glyph bearings, which sit flush against the
-          content edge (the trailing "R" of MASTER has 0.12px of slack).
-
-          It is also redundant, which is why removing it is safe rather than a trade: the ONLY
-          thing that needs clipping is the collapsing "esume Master" span, and that span carries
-          its own `overflow: hidden` below — the same split StampLogo.jsx already uses, where the
-          clip lives on `collapseStyle` and not on the box. So the collapse animation is
-          unaffected and the mark is no longer cropped by its own container. */}
-      <div style={{
-        position: "relative", zIndex: 1, padding: "3px 10px",
-        background: "#ffffff", border: "2.5px solid #0f0f0f",
-        transform: "rotate(-2deg)", borderRadius: 2,
-        display: "flex", alignItems: "center",
-      }}>
-        <span style={{
-          fontFamily: "'Barlow Condensed','DM Sans',system-ui,sans-serif",
-          fontWeight: 800, fontSize: 15, letterSpacing: "0.06em",
-          textTransform: "uppercase", color: "#0f0f0f", fontStyle: "italic",
-          lineHeight: 1, whiteSpace: "nowrap",
-        }}>{MARK_INITIAL}</span>
-        <span style={{
-          fontFamily: "'Barlow Condensed','DM Sans',system-ui,sans-serif",
-          fontWeight: 800, fontSize: 15, letterSpacing: "0.06em",
-          textTransform: "uppercase", color: "#0f0f0f", fontStyle: "italic",
-          lineHeight: 1, whiteSpace: "nowrap",
-          display: "inline-block",
-          verticalAlign: "bottom",
-        }}>{MARK_TAIL}</span>
-      </div>
-    </div>
-  );
+  return <StampLogo size="sm"/>;
 }
 
 
