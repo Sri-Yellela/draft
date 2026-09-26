@@ -1302,6 +1302,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     selectedJob, setSelectedJob, setSelectedJobMeta,
     barFilters, liveSearchTick,
     filterPanelOpen, setFilterPanelOpen, setActiveFilterCount,
+    setAtsSortAvailable,
   } = useJobBoard();
 
   // Open / close sandbox — panel size rebalancing handled by useEffect below.
@@ -3184,6 +3185,19 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   }, [handlePullRefresh, handleSetRole, roleIsSet, searchInput, searchPhase]);
   const buttonLabel = scraping ? "Searching…" : searchPhase === "local" && roleIsSet ? "Search New" : "Set Role";
   const buttonIcon = scraping ? "…" : searchPhase === "local" && roleIsSet ? "↻" : "⌕";
+  // ⛔ ONLY A MISSING PROFILE REPLACES THE BOARD. A MISSING RESUME NO LONGER DOES.
+  //
+  // This used to have a second branch: no base resume -> replace the entire board with "Upload a
+  // profile resume". That is how an account with 688 ranked jobs waiting showed a reviewer a blank
+  // screen. The server never needed the resume to build a board — /api/jobs ranks by target title
+  // and role key, and returned a full page throughout — so hiding the rows was hiding working
+  // product behind a setup step for a feature the user had not asked for yet.
+  //
+  // A profile is different and the gate stays: the board is SCOPED to one, and without it the
+  // server has nothing to scope to (it answers `no_active_profile` and zero rows).
+  //
+  // What the missing resume gates now is the ATS sort, and only that — see `atsSortAvailable`
+  // below. Decided 2026-09-26.
   const setupBlock = !activeDomainProfile
     ? {
         title: "Create a job profile",
@@ -3191,21 +3205,14 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         actionLabel: "Add Profile",
         onAction: () => setProfileWizardOpen(true),
       }
-    : !resumeText.trim()
-      ? {
-          title: "Upload a profile resume",
-          // ⛔ SAY THAT THE JOBS EXIST. This gate hides a board that the server has already filled
-          // — /api/jobs returns a full ranked page without a resume; only the ATS sorting and the
-          // search defaults need the extracted signals. Saying nothing about the rows left a blank
-          // screen beside a "688 jobs" chip, which reads as "the board is broken" rather than
-          // "one step remains". Measured on production as CWS_test_user, 2026-09-26.
-          body: totalJobs > 0
-            ? `${totalJobs} jobs are ready for this profile. Add a base resume to rank them by fit — ATS sorting and search defaults use signals extracted from it. Manage it from the Job Profiles section.`
-            : "Search defaults and ATS sorting use extracted signals from this profile's own base resume. Manage it from the Job Profiles section.",
-          actionLabel: "Open Job Profiles",
-          onAction: () => navigate("/app/job-profiles"),
-        }
-      : null;
+    : null;
+
+  // The board ranks by fit only when there are signals to rank with. Published to the context
+  // because the sort control lives in App.jsx, a different tree — see JobBoardContext.
+  const canRankByFit = !!activeDomainProfile && !!resumeText.trim();
+  useEffect(() => {
+    setAtsSortAvailable?.(canRankByFit);
+  }, [canRankByFit, setAtsSortAvailable]);
 
   // Panel sizing: the board is the only react-resizable-panels column. The JD, PDF and ATS panels
   // are popups mounted at the end of this component and sized by PanelShell (drag + persisted
@@ -3370,15 +3377,13 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
                            border:`2px solid ${theme.border}`, borderTop:`2px solid ${theme.accent}`,
                            borderRadius:"50%", animation:"spin 0.7s linear infinite" }}/>
           )}
-          {/* ⛔ THE COUNT MUST NOT OUTLIVE THE LIST IT DESCRIBES.
-              `setupBlock` REPLACES the entire board below (both the wide and the mobile branch),
-              but this chip lives in the header above it and kept rendering `totalJobs` from a
-              perfectly successful /api/jobs response. That is how CWS_test_user's board read
-              "688 jobs" over a blank screen on production: the server returned total 688 and 20
-              rows, and the client hid the rows because the profile had no base resume.
-              Measured 2026-09-26, signed in as that account. Not a server bug, and not the
-              count/list divergence it was first reported as — the API was healthy throughout.
-              A number beside a screen that shows none of it asserts data the user cannot reach. */}
+          {/* ⛔ THE COUNT MUST NOT OUTLIVE THE LIST IT DESCRIBES. `setupBlock` still replaces the
+              board when there is no PROFILE, and this chip sits in the header above it — so it
+              would otherwise report rows that are not on screen. That is exactly what shipped:
+              CWS_test_user's board read "688 jobs" over a blank screen, because a missing resume
+              hid the list while the count kept coming from a successful /api/jobs response.
+              The resume no longer hides anything (see setupBlock), so this case is now only the
+              genuinely empty no-profile state. Measured 2026-09-26 on production. */}
           {setupBlock
             ? "setup required"
             : <>{boardTab === "pending" ? `${displayJobs.length}` : `${totalJobs}`} job{totalJobs !== 1 ? "s" : ""}
@@ -3582,6 +3587,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               searchActive={!!localSearch.trim()}
               profileName={activeDomainProfile?.profile_name || null}
               curation={curation}
+              canRankByFit={canRankByFit}
+              onAddResume={() => navigate("/app/job-profiles")}
               curateOff={curateOff}
               onToggleCurate={toggleCuration}
               boardReason={boardReason}
@@ -3662,6 +3669,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               searchActive={!!localSearch.trim()}
               profileName={activeDomainProfile?.profile_name || null}
               curation={curation}
+              canRankByFit={canRankByFit}
+              onAddResume={() => navigate("/app/job-profiles")}
               curateOff={curateOff}
               onToggleCurate={toggleCuration}
               boardReason={boardReason}
@@ -3780,7 +3789,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       activeFilterCount = 0, onClearFilters,
                       searchActive = false, profileName = null,
                       curation = null, curateOff = false, onToggleCurate, boardReason = null,
-                      emptyReason = null,
+                      emptyReason = null, canRankByFit = true, onAddResume,
                       cardTier = 1, containerRef }) {
   const [pageInput, setPageInput] = useState("");
   const shouldShowEmptyState = jobs.length === 0 && !scraping;
@@ -3832,6 +3841,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
           short list or to nothing at all, and both need to say so. Left inside the non-empty branch
           it would go silent in the very case where the user has least to go on. */}
       <CurationNotice theme={theme} curation={curation} curateOff={curateOff} onToggleCurate={onToggleCurate}/>
+      <FitRankingNotice theme={theme} show={!canRankByFit} onAddResume={onAddResume}/>
       {shouldShowEmptyState ? (
         pagingProblem
           ? <PagingEmptyState theme={theme} reason={pagingProblem} onFirstPage={() => goPage(1)}/>
@@ -4158,6 +4168,39 @@ function PagingEmptyState({ theme, reason, onFirstPage }) {
           style={{ border:"none", borderRadius:6, padding:"8px 16px", background:th.accent,
                    color:"#0f0f0f", fontWeight:800, fontSize:12, cursor:"pointer" }}>
           Go to the first page
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── Fit ranking is unavailable, said once and quietly ───────────────────────────────────────
+//
+// ⛔ THIS REPLACES A GATE THAT HID THE ENTIRE BOARD. Until 2026-09-26 a missing base resume
+// swapped the whole list for a setup prompt, which is how an account with 688 ranked jobs showed a
+// reviewer a blank screen. The board never needed the resume; only ranking by FIT does.
+//
+// So the resume now gates one control — the ATS sort — and this is the line that says so. It
+// exists because the alternative is silence: the sort option simply disappears from a dropdown,
+// and a feature that vanishes without explanation is the same class of quiet wrongness this whole
+// pass has been about, just smaller.
+//
+// ⚠ DELIBERATELY NOT A BLOCKER AND NOT A MODAL. One line, above a board that works. The old gate's
+// mistake was treating an optional refinement as a prerequisite.
+function FitRankingNotice({ theme, show, onAddResume }) {
+  const { theme: t } = useTheme();
+  const th = theme || t;
+  if (!show) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+                  padding: "6px 14px", fontSize: 11, color: th.textDim,
+                  borderBottom: `1px solid ${th.border}` }}>
+      <span>Sorting by fit needs this profile's base resume — the rest of the board works without it.</span>
+      {onAddResume && (
+        <button type="button" onClick={onAddResume}
+          style={{ background: "none", border: "none", padding: 0, cursor: "pointer",
+                   color: th.accent, fontSize: 11, fontWeight: 700, textDecoration: "underline" }}>
+          Add one
         </button>
       )}
     </div>

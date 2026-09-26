@@ -40,7 +40,7 @@ feature returns 502 even with a valid key. That is expected, not a broken instal
 ## Testing
 
 ```bash
-npm test                 # node --test — 2673 tests, 2673 pass, 0 failures
+npm test                 # node --test — 2675 tests, 2675 pass, 0 failures
 npm run verify:harness   # real-browser harnesses; REQUIRES the app already on :3001
 ```
 

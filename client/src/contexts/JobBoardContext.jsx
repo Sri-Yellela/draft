@@ -31,6 +31,16 @@ export function JobBoardProvider({ children }) {
   // — so there is one vocabulary between the two consumers rather than a second one invented here.
   // JobsPanel maps it onto its own committed filter state, which feeds buildParams; nothing bypasses
   // buildParams, so there is still exactly one param builder.
+  // ⛔ WHETHER FIT RANKING IS POSSIBLE, published here because the SORT CONTROL and the RESUME
+  // live in different trees. App.jsx renders the sort icon; JobsPanel owns the active profile's
+  // base resume. Without a channel between them the sort offered "ATS Sort" to accounts that have
+  // no signals to rank by, which sorts by a column that is null for every row.
+  //
+  // Decided 2026-09-26: a missing resume gates the ATS SORT ONLY. It used to replace the whole
+  // board with a setup prompt, which is how a reviewer signed in to 688 ranked jobs and saw a
+  // blank screen. The board does not need a resume — the server ranks it by target title and role
+  // key — so hiding it was always too strong.
+  const [atsSortAvailable, setAtsSortAvailable] = useState(true);
   const [barFilters, setBarFilters] = useState(EMPTY_BAR_FILTERS);
   // Bumped only by the SECOND click (the live half of the double-click local->live pattern). It is a
   // counter rather than a boolean because two consecutive live searches for the same terms must both
@@ -87,6 +97,7 @@ export function JobBoardProvider({ children }) {
       activeProfileId, setActiveProfileId, getProfileCache, setProfileCache, deleteProfileCache,
       selectedJob, setSelectedJob, selectedJobMeta, setSelectedJobMeta,
       barFilters, applyBarFilters, liveSearchTick,
+      atsSortAvailable, setAtsSortAvailable,
       filterPanelOpen, setFilterPanelOpen, activeFilterCount, setActiveFilterCount,
     }}>
       {children}
