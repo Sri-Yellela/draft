@@ -26,7 +26,7 @@ function LucyLogo({ theme, mini = false }) {
           <span style={{ fontFamily: "'Barlow Condensed','DM Sans',system-ui,sans-serif",
                           fontWeight: 800, fontSize: 11, letterSpacing: "0.06em",
                           textTransform: "uppercase", color: "#0f0f0f", fontStyle: "italic",
-                          lineHeight: 1, whiteSpace: "nowrap" }}>RM</span>
+                          lineHeight: 1, whiteSpace: "nowrap" }}>{WORDMARK.slice(0, 1)}</span>
         </div>
       </div>
     );

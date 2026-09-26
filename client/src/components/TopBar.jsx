@@ -12,6 +12,21 @@ import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import { useSyncEvents } from "../hooks/useSyncEvents.js";
 import { api } from "../lib/api.js";
+import { WORDMARK } from "../../../shared/brand.js";
+
+// ⛔ THIS MARK WAS HARDCODED AND SHIPPED THE OLD BRAND TO PRODUCTION AFTER P4.
+//
+// The two spans below spelled the legacy name as literals — one initial, one tail — split that
+// way so the tail could collapse. Splitting it is also why the rebrand guard never saw it: test/
+// brandAndOriginGuard.test.js searches for the name as a CONTIGUOUS string, and neither half is
+// one. It was found on 2026-09-26 by screenshotting the real production board, not by any test —
+// the app nav still read the old name on every page while the docs called the sweep complete.
+//
+// Derived now, like StampLogo.jsx and ScrollDock.jsx. ⚠ There are THREE implementations of this
+// one mark; they were supposed to be one component and are not. Collapsing them is worth doing
+// and is not this change.
+const MARK_INITIAL = WORDMARK.slice(0, 1);
+const MARK_TAIL    = WORDMARK.slice(1);
 import { DockPortal } from "./DockPortal.jsx";
 import ProfileSelectorDropdown from "./ProfileSelectorDropdown.jsx";
 import { Z } from "../styles/zLayers.js";
@@ -87,7 +102,7 @@ function AnimatedLucyLogo() {
           fontWeight: 800, fontSize: 15, letterSpacing: "0.06em",
           textTransform: "uppercase", color: "#0f0f0f", fontStyle: "italic",
           lineHeight: 1, whiteSpace: "nowrap",
-        }}>R</span>
+        }}>{MARK_INITIAL}</span>
         <span style={{
           fontFamily: "'Barlow Condensed','DM Sans',system-ui,sans-serif",
           fontWeight: 800, fontSize: 15, letterSpacing: "0.06em",
@@ -95,7 +110,7 @@ function AnimatedLucyLogo() {
           lineHeight: 1, whiteSpace: "nowrap",
           display: "inline-block",
           verticalAlign: "bottom",
-        }}>esume Master</span>
+        }}>{MARK_TAIL}</span>
       </div>
     </div>
   );

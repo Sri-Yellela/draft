@@ -7,6 +7,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { at } from "../test-support/sourceAnchors.js";
+import { LEGACY_BRAND } from "../shared/brand.js";
 
 const read = (p) => fs.readFileSync(p, "utf8");
 const topBar = read("client/src/components/TopBar.jsx");
@@ -150,7 +151,19 @@ test("the logo's own container does not clip it", () => {
   assert.ok(!/textMaxW|textOpacity/.test(logo),
     "the collapse interpolation is back — it needs a live scroll progress first, or it is dead again");
   assert.ok(!/transition: "max-width/.test(logo), "the collapse transition is back");
-  assert.match(logo, /esume Master/, "the wordmark itself must still render, in full");
+  // ⛔ THIS ASSERTION USED TO PIN THE LEGACY NAME, AND THAT IS HOW THE OLD MARK SURVIVED P4.
+  //
+  // It read `assert.match(logo, /esume Master/)` — a literal, because the mark is split across two
+  // spans so the tail can collapse. The rebrand guard cannot see a name split that way either, so
+  // between them the app nav shipped the OLD brand to production for days after the sweep was
+  // declared complete. Found on 2026-09-26 by screenshotting the real board.
+  //
+  // The INTENT was "the mark renders in full, not collapsed to its initial". That is what it says
+  // now, against the single source, so the test survives a future rename instead of blocking one.
+  assert.ok(logo.includes("MARK_TAIL"),
+    "the mark must still render its full tail, not just the initial");
+  assert.ok(!new RegExp(LEGACY_BRAND.slice(1)).test(logo),
+    "and it must not spell the legacy name as a literal again");
 });
 
 test("the app mark and the marketing mark are the same mark", () => {
