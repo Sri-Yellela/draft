@@ -1275,6 +1275,10 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // client has to guess, and it guessed wrong: an empty pool rendered as "nothing matches your
   // profile's role", sending the user to change a profile that was never the problem.
   const [boardReason, setBoardReason] = useState(null);
+  // The server's structured account of WHY a page came back empty (services/jobs/emptyBoardReason.js).
+  // Richer than `boardReason`, which is the older single-string field and is kept for the branches
+  // already reading it. Null whenever the board has rows.
+  const [emptyReason, setEmptyReason] = useState(null);
 
   // UI state
   const [scraping,    setScraping]    = useState(false);  // Apify live scrape
@@ -2291,6 +2295,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       // as the board stops being narrowed — the notice can never outlive the condition it describes.
       setCuration(d.curation || null);
       setBoardReason(d.reason || null);
+      setEmptyReason(d.emptyReason || null);
       console.log(`[board] profile:${requestProfileKey} sort:${buildParams(page).match(/sort=([^&]+)/)?.[1]||"?"} page:${page} total:${d.total||0} returned:${incoming.length} source:${mergeMode?"merge":"replace"}`);
       setProfileCache?.(requestProfileKey, makeProfileSnapshot({
         jobs: mergeMode
@@ -3562,6 +3567,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               curateOff={curateOff}
               onToggleCurate={toggleCuration}
               boardReason={boardReason}
+              emptyReason={emptyReason}
               cardTier={1}
             />
             {/* The mobile "editor" pane is gone: the PDF sandbox is a popup panel now and renders
@@ -3641,6 +3647,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               curateOff={curateOff}
               onToggleCurate={toggleCuration}
               boardReason={boardReason}
+              emptyReason={emptyReason}
               cardTier={effectiveTier}
               containerRef={jobsPanelElementRef}
             />
@@ -3755,6 +3762,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       activeFilterCount = 0, onClearFilters,
                       searchActive = false, profileName = null,
                       curation = null, curateOff = false, onToggleCurate, boardReason = null,
+                      emptyReason = null,
                       cardTier = 1, containerRef }) {
   const [pageInput, setPageInput] = useState("");
   const shouldShowEmptyState = jobs.length === 0 && !scraping;
@@ -3777,9 +3785,16 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
   // profile's role — advice to go and edit a profile that was never the cause. Worse, this is the
   // case that used to silently serve a global Adzuna feed instead (see server.js), so an empty pool
   // has a history of showing the user anything except the truth.
-  const emptyBecauseNoPool   = shouldShowEmptyState && boardReason === "cache_empty";
+  // ⛔ TWO CODES THE USER CANNOT CAUSE AND MUST NOT BE BLAMED FOR, checked FIRST so neither can
+  // fall through to "your filters exclude all jobs" — which would be advice to go and change
+  // something that was never the cause. `page_out_of_range` is recoverable in one click;
+  // `count_list_mismatch` is a server defect and says so rather than dressing itself as a filter.
+  const pagingProblem = shouldShowEmptyState
+    && (emptyReason?.code === "page_out_of_range" || emptyReason?.code === "count_list_mismatch")
+    ? emptyReason : null;
+  const emptyBecauseNoPool   = shouldShowEmptyState && !pagingProblem && boardReason === "cache_empty";
   // Third case: nothing is narrowing the board and it is still empty. See RoleScopedEmptyState.
-  const emptyBecauseRole     = shouldShowEmptyState && !emptyBecauseNoPool && narrowingCount === 0 && !!profileName;
+  const emptyBecauseRole     = shouldShowEmptyState && !pagingProblem && !emptyBecauseNoPool && narrowingCount === 0 && !!profileName;
   const visiblePages = buildVisiblePageItems(currentPage, totalPages);
   useEffect(() => {
     setPageInput(String(currentPage || ""));
@@ -3800,7 +3815,9 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
           it would go silent in the very case where the user has least to go on. */}
       <CurationNotice theme={theme} curation={curation} curateOff={curateOff} onToggleCurate={onToggleCurate}/>
       {shouldShowEmptyState ? (
-        emptyBecauseNoPool
+        pagingProblem
+          ? <PagingEmptyState theme={theme} reason={pagingProblem} onFirstPage={() => goPage(1)}/>
+          : emptyBecauseNoPool
           ? <NoPoolEmptyState theme={theme}/>
           : emptyBecauseFiltered
             ? <FilteredEmptyState theme={theme} count={narrowingCount} onClearFilters={onClearFilters}/>
@@ -4089,6 +4106,46 @@ function EmptyState({ theme }) {
 }
 
 // ── Empty state, filtered variant ────────────────────────────
+// ── Empty state, PAGING variant ─────────────────────────────────────────────────────────────
+//
+// ⛔ THE ONE THIS WHOLE PAIR OF CHANGES EXISTS FOR: a count that says 600 beside a list that shows
+// nothing. It was reported from production as "the board is empty", and the board was not empty —
+// the response carried a full total and zero rows, and nothing on this screen said so.
+//
+// Two codes land here and they are NOT the same severity, so they do not get the same words:
+//
+//   page_out_of_range   — ordinary, recoverable, the user's position is simply past the end.
+//   count_list_mismatch — a SERVER DEFECT. The page is inside the range and still came back
+//                         empty, which the count and list cannot both be right about. Saying
+//                         "adjust your filters" here would send someone to fix something that is
+//                         not broken, which is exactly what the old fall-through did.
+function PagingEmptyState({ theme, reason, onFirstPage }) {
+  const { theme: t } = useTheme();
+  const th = theme || t;
+  const isBug = reason?.code === "count_list_mismatch";
+  return (
+    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
+                  justifyContent:"center", gap:14, padding:40, color:th.textDim }}>
+      <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
+                    fontSize:22, letterSpacing:"0.06em", textTransform:"uppercase", color:th.text,
+                    textAlign:"center" }}>
+        {isBug ? "Something went wrong loading this page" : "You are past the end of the list"}
+      </div>
+      <div style={{ fontSize:12, textAlign:"center", color:th.textDim, maxWidth:380, lineHeight:1.8 }}>
+        {reason?.message}
+        {!isBug && reason?.total ? ` There ${reason.total === 1 ? "is" : "are"} ${reason.total} job${reason.total === 1 ? "" : "s"} on this board.` : ""}
+      </div>
+      {onFirstPage && (
+        <button type="button" onClick={onFirstPage}
+          style={{ border:"none", borderRadius:6, padding:"8px 16px", background:th.accent,
+                   color:"#0f0f0f", fontWeight:800, fontSize:12, cursor:"pointer" }}>
+          Go to the first page
+        </button>
+      )}
+    </div>
+  );
+}
+
 // Says WHICH empty this is and gives the one action that resolves it. Never "no jobs available" —
 // the jobs are there, the filter set is hiding them, and those are different problems with
 // different fixes. Excluding every provider or every tier lands here.
