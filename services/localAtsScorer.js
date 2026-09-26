@@ -960,9 +960,13 @@ function experienceRatio(requiredYears, candidateYears) {
  * EVERY MEASUREMENT HARNESS GOT IT WRONG.
  *
  * `loadTermWeights()` returns `{ weights: Map, stale, computedAt, corpusSize }`. server.js unwraps
- * it — `loaded.weights.size ? loaded.weights : null` — and scores correctly. FOUR harnesses did
- * not: al3SynonymRhoEffect, am1GradedCorpusVerify, ak2AtsGradingSet and am3RestoreBoard all passed
- * the envelope straight through as `termWeights`.
+ * it — `loaded.weights.size ? loaded.weights : null` — and scores correctly. THREE harnesses did
+ * not: al3SynonymRhoEffect, am1GradedCorpusVerify and am3RestoreBoard all passed the envelope
+ * straight through as `termWeights`.
+ *
+ * ⚠ CORRECTED 2026-09-26: this said FOUR and named ak2AtsGradingSet. It was wrong — that harness
+ * unwraps the envelope AND honours `stale`, mirroring server.js exactly, so it was never
+ * affected. Counting a healthy caller among the broken ones overstates a defect's blast radius.
  *
  * `weightedRatio` then tested `termWeights.size`, which is `undefined` on a plain object, so it
  * took the unweighted branch. No error, no warning, a perfectly plausible score — and every
