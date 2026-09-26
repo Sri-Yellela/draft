@@ -208,8 +208,27 @@ const SORT_OPTIONS = SORTS.options.map(o => ({ v: o.value, l: o.label }));
 // same dropdown the search bar uses, so the board has one dropdown implementation rather than one
 // per surface.
 function BoardControlIcons() {
-  const { filterPanelOpen, setFilterPanelOpen, activeFilterCount, sortBy, setSortBy } = useJobBoard();
+  const { filterPanelOpen, setFilterPanelOpen, activeFilterCount, sortBy, setSortBy,
+          atsSortAvailable } = useJobBoard();
   const on = activeFilterCount > 0;
+
+  // ⛔ THE RESUME GATES THIS CONTROL AND NOTHING ELSE. Decided 2026-09-26, replacing a gate that
+  // hid the entire board: /api/jobs ranks fine without a resume (by target title and role key), so
+  // the only thing a missing one actually prevents is ranking by FIT — this option, which would
+  // otherwise sort every row by an ats_score that is null for all of them.
+  //
+  // Removed from the list rather than shown disabled: a disabled entry in a six-item dropdown
+  // invites a click that does nothing, and the reason lives on the board where the resume is
+  // actually uploaded (JobsPanel's notice), not in a tooltip on a menu item.
+  const sortOptions = atsSortAvailable
+    ? SORT_OPTIONS
+    : SORT_OPTIONS.filter(o => o.v !== "atsScore");
+
+  // And if the board was already sorted by fit when the resume went away, fall back rather than
+  // leaving the control displaying a value it no longer offers.
+  useEffect(() => {
+    if (!atsSortAvailable && sortBy === "atsScore") setSortBy("dateDesc");
+  }, [atsSortAvailable, sortBy, setSortBy]);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
       <button
@@ -249,7 +268,7 @@ function BoardControlIcons() {
         ariaLabel="Sort"
         value={sortBy || "dateDesc"}
         onChange={setSortBy}
-        options={SORT_OPTIONS}
+        options={sortOptions}
       />
     </div>
   );

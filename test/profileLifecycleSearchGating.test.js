@@ -131,5 +131,48 @@ test("domain profile API repairs zero-active profile state and marks empty profi
 test("jobs UI does not keep a stale active profile id when there are no profiles", () => {
   assert.match(jobsPanel, /const activeProfileKey = activeDomainProfile\?\.id \|\| null/);
   assert.match(jobsPanel, /Create a job profile/);
-  assert.match(jobsPanel, /Upload a profile resume/);
+});
+
+test("⛔ A MISSING RESUME GATES THE ATS SORT, NOT THE BOARD", () => {
+  // This test used to assert the opposite — that JobsPanel contained "Upload a profile resume",
+  // the title of a setup block that REPLACED the entire board when the active profile had no base
+  // resume. It passed, and the behaviour it pinned is how CWS_test_user signed in to 688 ranked
+  // jobs on production and saw a blank screen: the server returned a full page every time and the
+  // client hid it. Measured 2026-09-26.
+  //
+  // The board does not need a resume. /api/jobs ranks by target title and role key and answers
+  // normally without one; the only thing a resume actually enables is ranking by FIT. So the gate
+  // is now scoped to that one control, and this asserts the scoping rather than the old blanket.
+
+  // ONE setup block remains, and it is the profile — the board is scoped to one, and without it
+  // the server has nothing to scope to.
+  assert.match(jobsPanel, /const setupBlock = !activeDomainProfile/,
+    "the profile gate stays: an unscoped board is not a board");
+  assert.ok(!/!resumeText\.trim\(\)\s*\n?\s*\?\s*\{/.test(jobsPanel),
+    "the resume must not open a second setup block — that is the gate that hid the board");
+
+  // The resume's actual effect, published to the sort control in the other tree.
+  assert.match(jobsPanel, /const canRankByFit = !!activeDomainProfile && !!resumeText\.trim\(\)/,
+    "fit ranking needs both a profile and a resume, and must say so in one place");
+  assert.match(jobsPanel, /setAtsSortAvailable\?\.\(canRankByFit\)/,
+    "and must publish it, because App.jsx owns the sort and JobsPanel owns the resume");
+
+  // ⚠ AND IT MUST NOT BE SILENT. A control that disappears without explanation is the same class
+  // of quiet wrongness, just smaller than a blank board.
+  assert.match(jobsPanel, /function FitRankingNotice/,
+    "removing the sort option without saying why trades one silent state for another");
+  assert.match(jobsPanel, /the rest of the board works without it/,
+    "the notice must say the board still works — that is the correction being made");
+});
+
+test("the ATS sort is removed from the options when there is nothing to rank by", () => {
+  const app = fs.readFileSync("client/src/App.jsx", "utf8");
+  assert.match(app, /atsSortAvailable/,
+    "the sort control must read whether fit ranking is possible");
+  assert.match(app, /SORT_OPTIONS\.filter\(o => o\.v !== "atsScore"\)/,
+    "the option is REMOVED rather than shown disabled — a disabled row in a dropdown invites a " +
+    "click that does nothing, and the reason lives on the board, not in a tooltip");
+  // Falling back matters: the control must not keep displaying a value it no longer offers.
+  assert.match(app, /if \(!atsSortAvailable && sortBy === "atsScore"\) setSortBy\("dateDesc"\)/,
+    "a board already sorted by fit must fall back when the resume goes away");
 });
