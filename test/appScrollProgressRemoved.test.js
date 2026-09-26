@@ -95,26 +95,34 @@ test("both dividers and the Divider component are gone", () => {
   assert.ok(!/function Divider\b/.test(topBarCode), "the Divider component is back with no caller");
 });
 
-test("the logo takes no progress prop and does not interpolate", () => {
-  assert.match(topBarCode, /function AnimatedLucyLogo\(\)/,
-    "AnimatedLucyLogo took a prop again");
+test("the app bar's mark takes no progress and does not interpolate", () => {
+  // The collapse was driven by AppScrollContext's `progress`, which was permanently 0, so the
+  // animation never ran in any session. The prop and the interpolated values are gone from the
+  // APP bar; the machinery still exists in the shared component for the marketing surfaces, which
+  // do drive it.
+  assert.match(topBarCode, /function AnimatedLucyLogo\(\)/, "AnimatedLucyLogo took a prop again");
   assert.ok(!/AnimatedLucyLogo\s+progress=/.test(topBarCode));
+
   const logo = topBarCode.slice(at(topBarCode, "function AnimatedLucyLogo"),
-                               at(topBarCode, "function useNotifications"));
+                                at(topBarCode, "function useNotifications"));
   assert.ok(!/textMaxW|textOpacity/.test(logo));
-  // ⛔ THIS ASSERTION USED TO PIN THE LEGACY NAME, AND THAT IS HOW THE OLD MARK SURVIVED P4.
+  assert.ok(!/progress=/.test(logo),
+    "the app bar is driving the collapse again — it needs a live scroll progress first");
+
+  // ⛔ THIS TEST USED TO PIN THE LEGACY NAME, WHICH IS HOW THE OLD MARK SURVIVED P4.
   //
-  // It read `assert.match(logo, /esume Master/)` — a literal, because the mark is split across two
-  // spans so the tail can collapse. The rebrand guard cannot see a name split that way either, so
-  // between them the app nav shipped the OLD brand to production for days after the sweep was
-  // declared complete. Found on 2026-09-26 by screenshotting the real board.
+  // It read `assert.match(logo, /<the old tail>/, "the wordmark must still render in full")` — a
+  // literal, because the mark was drawn here across two spans so the tail could collapse. The
+  // rebrand guard could not see a name split that way either, so between them the app nav showed
+  // the OLD brand on production for days after the sweep was declared complete, with this suite
+  // green. Found on 2026-09-26 by screenshotting the real board.
   //
-  // The INTENT was "the mark renders in full, not collapsed to its initial". That is what it says
-  // now, against the single source, so the test survives a future rename instead of blocking one.
-  assert.ok(logo.includes("MARK_TAIL"),
-    "the mark must still render its full tail, not just the initial");
-  assert.ok(!new RegExp(LEGACY_BRAND.slice(1)).test(logo),
-    "and it must not spell the legacy name as a literal again");
+  // The mark is now ONE component and this file no longer draws it, so the honest assertion is
+  // that the app bar renders the shared one — not that it contains any particular string.
+  assert.match(logo, /<StampLogo\b/,
+    "the app bar must render the shared mark rather than drawing its own");
+  assert.ok(!new RegExp(LEGACY_BRAND.slice(1)).test(topBarCode),
+    "the legacy name must not be spelled as a literal anywhere in the top bar again");
 });
 
 test("JobsPanel keeps only the scroll-to-top ref, and its toolbar guard is gone", () => {
