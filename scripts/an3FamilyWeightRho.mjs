@@ -52,7 +52,24 @@ import { loadSimpleApplyProfile } from "../services/simpleApplyProfile.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLISHED = { rho: 0.746 };
-const CONTROL_TOLERANCE = 0.02;
+/**
+ * ⛔ TIGHTENED FROM 0.02 TO 0.005 ON 2026-09-26, AND THE OLD VALUE IS WHY.
+ *
+ * This control drifted 0.009 from the published rho for weeks and printed "CONTROL OK" every time,
+ * because 0.009 < 0.02. The drift was not float noise — it was the scorer running UNWEIGHTED,
+ * because this harness passed loadTermWeights' envelope where a Map was expected and
+ * `weightedRatio` silently took the unweighted branch. A tolerance wide enough to absorb a real
+ * defect is not a tolerance, it is a blindfold.
+ *
+ * With that fixed, both this harness and am1GradedCorpusVerify reproduce the published figure to
+ * EXACTLY 0.000. 0.005 is still loose enough for genuine float and tie-ranking noise and now far
+ * too tight to hide a mode change.
+ *
+ * ⚠ AND A PASSING RUN WITH NON-ZERO DRIFT IS NOW CALLED OUT rather than blessed. The number was
+ * always printed; it was read as noise because the line beside it said OK. "OK" and "OK, but it
+ * moved" are different facts and they now read differently.
+ */
+const CONTROL_TOLERANCE = 0.005;
 
 const val = (flag) => {
   const i = process.argv.indexOf(flag);
@@ -212,7 +229,13 @@ for (const [key, b] of Object.entries(BUCKETINGS)) {
 console.log(`\n${bar("═")}`);
 const drift = Math.abs(results.narrow.rho - PUBLISHED.rho);
 if (drift <= CONTROL_TOLERANCE) {
-  console.log(`CONTROL OK — the previous bucketing reproduces the published rho ${PUBLISHED.rho} (drift ${drift.toFixed(3)}).`);
+  // ⛔ NOT `drift === 0`. Spearman over 30 ranks lands on 4.44e-16, which prints as 0.000 and
+  // is not zero — so the strict test fired the DRIFTING branch on a perfect reproduction. Caught by
+  // reading the harness output rather than trusting the change. The threshold is "rounds to 0.000".
+  console.log(drift < 0.0005
+    ? `CONTROL OK — the shipped bucketing reproduces the published rho ${PUBLISHED.rho} EXACTLY (drift 0.000).`
+    : `⚠ CONTROL OK BUT DRIFTING — ${drift.toFixed(3)} from the published ${PUBLISHED.rho}. Inside tolerance, ` +
+      `but this reproduced exactly on 2026-09-26; a non-zero drift means something changed.`);
 } else {
   console.log(`⛔ CONTROL FAILED — previous bucketing gives ${results.narrow.rho.toFixed(4)} against a published `
     + `${PUBLISHED.rho} (drift ${drift.toFixed(3)} > ${CONTROL_TOLERANCE}). The "after" below means nothing.`);

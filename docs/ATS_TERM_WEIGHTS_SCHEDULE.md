@@ -252,10 +252,15 @@ weightedRatio(...)            // -> if (!termWeights.size) return unweighted    
 ```
 
 `server.js` unwraps it (`loaded.weights.size ? loaded.weights : null`) and has always scored
-correctly. **Four harnesses did not:** `al3SynonymRhoEffect`, `am1GradedCorpusVerify`,
-`ak2AtsGradingSet` and `am3RestoreBoard` all passed the envelope straight through. `.size` is
-`undefined` on a plain object, so every one of them silently took the **unweighted** branch —
-no error, no warning, a perfectly plausible score.
+correctly. **Three harnesses did not:** `al3SynonymRhoEffect`, `am1GradedCorpusVerify` and
+`am3RestoreBoard` all passed the envelope straight through. `.size` is `undefined` on a plain
+object, so every one of them silently took the **unweighted** branch — no error, no warning, a
+perfectly plausible score.
+
+⚠ **Corrected 2026-09-26: this said FOUR and named `ak2AtsGradingSet`.** That harness unwraps the
+envelope and honours `stale`, mirroring `server.js` exactly — it was never affected. Counting a
+healthy caller among the broken ones overstates a defect's blast radius, which is its own kind of
+wrong, and it was found by re-checking each caller rather than trusting the earlier write-up.
 
 **Measured on the graded 30: passing the envelope moves 0 of 30 scores off unweighted; passing the
 Map moves 24 of 30.**

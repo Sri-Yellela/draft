@@ -50,7 +50,24 @@ const val = (f, d = null) => { const i = args.indexOf(f); return i >= 0 && args[
 
 // ── The published control. From shared/atsBands.js; if these move, that file moved with them. ──
 const PUBLISHED = { rho: 0.746, tau: 0.594, misordered: 0.122 };
-const CONTROL_TOLERANCE = 0.02;
+/**
+ * ⛔ TIGHTENED FROM 0.02 TO 0.005 ON 2026-09-26, AND THE OLD VALUE IS WHY.
+ *
+ * This control drifted 0.009 from the published rho for weeks and printed "CONTROL OK" every time,
+ * because 0.009 < 0.02. The drift was not float noise — it was the scorer running UNWEIGHTED,
+ * because this harness passed loadTermWeights' envelope where a Map was expected and
+ * `weightedRatio` silently took the unweighted branch. A tolerance wide enough to absorb a real
+ * defect is not a tolerance, it is a blindfold.
+ *
+ * With that fixed, both this harness and am1GradedCorpusVerify reproduce the published figure to
+ * EXACTLY 0.000. 0.005 is still loose enough for genuine float and tie-ranking noise and now far
+ * too tight to hide a mode change.
+ *
+ * ⚠ AND A PASSING RUN WITH NON-ZERO DRIFT IS NOW CALLED OUT rather than blessed. The number was
+ * always printed; it was read as noise because the line beside it said OK. "OK" and "OK, but it
+ * moved" are different facts and they now read differently.
+ */
+const CONTROL_TOLERANCE = 0.005;
 
 function defaultCorpus() {
   const dir = path.join(ROOT, "data", "backups");
@@ -181,7 +198,14 @@ console.log(line("AFTER  (confirmed)", after));
 const drift = Math.abs(before.rho - PUBLISHED.rho);
 console.log("─".repeat(84));
 if (drift <= CONTROL_TOLERANCE) {
-  console.log(`CONTROL OK — the no-synonym run reproduces the published rho ${PUBLISHED.rho} (drift ${drift.toFixed(3)}).`);
+  // ⛔ NOT `drift === 0`. Spearman over 30 ranks lands on 4.44e-16, which prints as 0.000 and
+  // is not zero — so the strict test fired the DRIFTING branch on a perfect reproduction. Caught by
+  // reading the harness output rather than trusting the change. The threshold is "rounds to 0.000".
+  console.log(drift < 0.0005
+    ? `CONTROL OK — the no-synonym run reproduces the published rho ${PUBLISHED.rho} EXACTLY (drift 0.000).`
+    : `⚠ CONTROL OK BUT DRIFTING — ${drift.toFixed(3)} from the published ${PUBLISHED.rho}. Inside tolerance, ` +
+      `but the engine reproduced this figure exactly on 2026-09-26, so a non-zero drift means something ` +
+      `changed. Find out what before trusting the comparison below.`);
 } else {
   console.log(
     `⛔ CONTROL FAILED — no-synonym rho is ${before.rho.toFixed(3)}, published is ${PUBLISHED.rho} ` +

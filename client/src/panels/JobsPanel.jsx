@@ -3194,7 +3194,14 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     : !resumeText.trim()
       ? {
           title: "Upload a profile resume",
-          body: "Search defaults and ATS sorting use extracted signals from this profile's own base resume. Manage it from the Job Profiles section.",
+          // ⛔ SAY THAT THE JOBS EXIST. This gate hides a board that the server has already filled
+          // — /api/jobs returns a full ranked page without a resume; only the ATS sorting and the
+          // search defaults need the extracted signals. Saying nothing about the rows left a blank
+          // screen beside a "688 jobs" chip, which reads as "the board is broken" rather than
+          // "one step remains". Measured on production as CWS_test_user, 2026-09-26.
+          body: totalJobs > 0
+            ? `${totalJobs} jobs are ready for this profile. Add a base resume to rank them by fit — ATS sorting and search defaults use signals extracted from it. Manage it from the Job Profiles section.`
+            : "Search defaults and ATS sorting use extracted signals from this profile's own base resume. Manage it from the Job Profiles section.",
           actionLabel: "Open Job Profiles",
           onAction: () => navigate("/app/job-profiles"),
         }
@@ -3363,8 +3370,19 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
                            border:`2px solid ${theme.border}`, borderTop:`2px solid ${theme.accent}`,
                            borderRadius:"50%", animation:"spin 0.7s linear infinite" }}/>
           )}
-          {boardTab === "pending" ? `${displayJobs.length}` : `${totalJobs}`} job{totalJobs !== 1 ? "s" : ""}
-          {localSearch && !bgLoading ? " matched" : ""}
+          {/* ⛔ THE COUNT MUST NOT OUTLIVE THE LIST IT DESCRIBES.
+              `setupBlock` REPLACES the entire board below (both the wide and the mobile branch),
+              but this chip lives in the header above it and kept rendering `totalJobs` from a
+              perfectly successful /api/jobs response. That is how CWS_test_user's board read
+              "688 jobs" over a blank screen on production: the server returned total 688 and 20
+              rows, and the client hid the rows because the profile had no base resume.
+              Measured 2026-09-26, signed in as that account. Not a server bug, and not the
+              count/list divergence it was first reported as — the API was healthy throughout.
+              A number beside a screen that shows none of it asserts data the user cannot reach. */}
+          {setupBlock
+            ? "setup required"
+            : <>{boardTab === "pending" ? `${displayJobs.length}` : `${totalJobs}`} job{totalJobs !== 1 ? "s" : ""}
+                {localSearch && !bgLoading ? " matched" : ""}</>}
         </span>
 
         {/* ATS role search + trigger — superseded by UnifiedSearchBar */}

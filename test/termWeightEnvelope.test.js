@@ -5,8 +5,12 @@
 // server.js unwraps it before scoring — `loaded.weights.size ? loaded.weights : null` — so
 // production has always been weighted correctly.
 //
-// Four harnesses did not unwrap it. al3SynonymRhoEffect, am1GradedCorpusVerify, ak2AtsGradingSet
-// and am3RestoreBoard each did `scoreAtsLocally({ ..., termWeights: loadTermWeights(db, fam) })`.
+// THREE harnesses did not unwrap it — al3SynonymRhoEffect, am1GradedCorpusVerify and
+// am3RestoreBoard each did `scoreAtsLocally({ ..., termWeights: loadTermWeights(db, fam) })`.
+//
+// ⚠ CORRECTED 2026-09-26: this said FOUR and named ak2AtsGradingSet. That harness unwraps the
+// envelope AND honours `stale`, exactly as server.js does, so it was never affected. The test
+// below now asserts which callers pass which shape, so the count cannot drift again by assertion.
 // `weightedRatio` tests `termWeights.size`, which is `undefined` on a plain object, so it took the
 // UNWEIGHTED branch — no error, no warning, a perfectly plausible score.
 //
@@ -27,7 +31,7 @@ import { resolveTermWeights, scoreAtsLocally, buildRuntimeAtsBasis } from "../se
 
 const someWeights = () => new Map([["python", 0.5], ["kubernetes", 1.9]]);
 
-test("⛔ the loadTermWeights ENVELOPE resolves to its Map — the defect that made four harnesses lie", () => {
+test("⛔ the loadTermWeights ENVELOPE resolves to its Map — the defect that made three harnesses lie", () => {
   const map = someWeights();
   assert.equal(resolveTermWeights({ weights: map, stale: false, computedAt: 1, corpusSize: 900 }), map,
     "an envelope must resolve to the Map inside it; returning it unchanged is what took the " +
@@ -81,17 +85,36 @@ test("⛔ THE TWO CALL STYLES PRODUCE THE SAME SCORE — asserted on a real scor
     "which is precisely how the original defect survived");
 });
 
-test("the four harnesses that pass the envelope are still passing it, and that is now correct", () => {
-  // Kept as a source assertion rather than "fixed" at each call site on purpose: the resolver is
-  // the single place the envelope is understood, and editing five callers to reach into `.weights`
-  // would spread the staleness decision back out across all of them.
-  for (const f of ["scripts/al3SynonymRhoEffect.mjs", "scripts/am1GradedCorpusVerify.mjs",
-                   "scripts/ak2AtsGradingSet.mjs", "scripts/am3RestoreBoard.mjs"]) {
-    if (!fs.existsSync(f)) continue;
-    const src = fs.readFileSync(f, "utf8");
-    if (!/loadTermWeights\(/.test(src)) continue;
-    assert.ok(/termWeights:\s*(weights|loadTermWeights\(|w\b)/.test(src) || /loadTermWeights\(/.test(src),
-      `${f} loads term weights; it must reach the scorer through resolveTermWeights, not by ` +
-      `hand-unwrapping, so the stale refusal stays in one place`);
+test("⛔ WHICH CALLERS PASS WHICH SHAPE — asserted, because the first write-up got the count wrong", () => {
+  // The original note here said FOUR harnesses and named ak2AtsGradingSet. That was wrong: it
+  // unwraps the envelope AND honours `stale`, mirroring server.js. Overstating a defect's blast
+  // radius is its own kind of inaccurate, and prose cannot be trusted to stay right — so the split
+  // is asserted from the source instead of described.
+  //
+  // Both shapes are CORRECT now; resolveTermWeights understands each. What this pins is that
+  // nobody has quietly re-introduced a third shape, and that the hand-unwrapping callers still
+  // carry the stale check that makes hand-unwrapping safe.
+  const readsSource = (p) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : null);
+
+  const ENVELOPE = ["scripts/al3SynonymRhoEffect.mjs", "scripts/am1GradedCorpusVerify.mjs",
+                    "scripts/am3RestoreBoard.mjs"];
+  const UNWRAPS  = ["scripts/ak2AtsGradingSet.mjs"];
+
+  for (const p of ENVELOPE) {
+    const src = readsSource(p);
+    if (src === null) continue;
+    assert.match(src, /loadTermWeights\(/, `${p} should still load term weights`);
+    assert.doesNotMatch(src, /\.weights\.size/,
+      `${p} passes the envelope and relies on resolveTermWeights — if it has started ` +
+      `hand-unwrapping, move it to the UNWRAPS list and check it kept the stale refusal`);
+  }
+
+  for (const p of UNWRAPS) {
+    const src = readsSource(p);
+    if (src === null) continue;
+    assert.match(src, /\.weights\.size/, `${p} unwraps the envelope itself`);
+    assert.match(src, /!loaded\.stale/,
+      `${p} unwraps by hand, so it MUST carry the stale refusal itself — that is the whole ` +
+      `reason unwrapping normally belongs in the scorer`);
   }
 });
