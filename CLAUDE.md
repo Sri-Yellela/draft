@@ -71,7 +71,23 @@ this is why.
 
 ## Deliberate test failures — currently 0
 
-`npm test` is **2675 tests, 2675 pass, 0 fail**.
+`npm test` is **2675 tests, 2675 pass, 0 fail** — in the existing working tree, re-measured at
+`3813434` on 2026-09-27.
+
+⚠ **A fresh Windows clone is 2671 pass, 4 fail**, same commit (measured in a clean `git worktree`).
+None of the four is deliberate: they are the *accidentally* line-ending-sensitive kind described
+above. With `core.autocrlf=true` a fresh checkout materialises CRLF, and these source-string
+regexes expect `\n`. The existing tree passes only because its copies happen to sit LF.
+
+| Test | Reads |
+|---|---|
+| `test/ashbySpaFixture.test.js:95` — checkboxes named with their own question text | `scripts/fakeAts.js` |
+| `test/campaignRecord.test.js:87` — terminal return reports `fieldsDiscovered` | `services/applyAutomation.js` |
+| `test/manifestMinimumPermission.test.js:153` — extractor still knows the named job boards | `extension/extractor.js` |
+| `test/summaryOptIn.test.js:332` — `--from-file` verifies external artifacts | `scripts/ai1SummaryVerify.mjs` |
+
+Per the table above these are **fix-the-test** cases (normalise on read), not fix-the-file.
+Unfixed as of this note.
 
 **There are no deliberate failures right now.** From 2026-09-24 to 2026-09-26 there were two, both
 in `test/extensionSubmission.test.js`, reporting that `extension/` had moved ahead of the published
