@@ -17,7 +17,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { at } from "../test-support/sourceAnchors.js";
 
-const fake = fs.readFileSync("scripts/fakeAts.js", "utf8");
+// Normalised on read: the assertions below match source text across line breaks with "\n", which a
+// fresh Windows clone (core.autocrlf=true) materialises as "\r\n". See CLAUDE.md, line endings.
+const fake = fs.readFileSync("scripts/fakeAts.js", "utf8").replace(/\r\n/g, "\n");
 const spa  = fake.slice(at(fake, "function ashbySpaForm("), at(fake, "function ashbySpaThanks("));
 
 // ── The measurement ──────────────────────────────────────────────────────────
