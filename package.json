@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@draft/ats-scorer": "file:packages/ats-scorer",
     "@sparticuz/chromium": "^143.0.4",
     "apify-client": "^2.22.3",
     "axios": "^1.19.0",

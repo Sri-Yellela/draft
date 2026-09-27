@@ -42,8 +42,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
-# Server dependencies
+# Server dependencies. packages/ comes first: @draft/ats-scorer is a file: dependency, so npm
+# install needs its directory present — including packages/ats-scorer/data, the scorer's registries.
 COPY package*.json ./
+COPY packages/ ./packages/
 RUN npm install
 
 # Client dependencies and build

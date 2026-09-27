@@ -25,7 +25,7 @@ documents what exists. Owner decisions recorded 2026-09-25.
 
 **The seniority guard is now backwards.** It exists because a Figma intern posting scored 60 against
 an experienced-engineer profile and the owner graded it 2; removing that inversion moved ρ from
-0.643 to 0.732. **For a student audience, intern and new-grad postings are the product.** That guard
+0.643 to 0.732 (⚠ corrected 2026-09-27: **0.645 → 0.746**, re-measured in A1; see `CORRECTIONS_REGISTER.md`). **For a student audience, intern and new-grad postings are the product.** That guard
 must be inverted or made profile-relative.
 
 **The graded corpus is historical.** `docs/am1-ats-graded-corpus.json` is 30 senior engineering

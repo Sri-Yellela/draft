@@ -175,7 +175,7 @@ test("the flat rate for an unknown experience requirement is deliberate, and doc
   // Renormalising over the components that carry information is the obvious alternative and it was
   // MEASURED WORSE (rho 0.448 -> 0.242). The comment carrying that result is the thing stopping the
   // next person from re-introducing it, so it is asserted.
-  const src = fs.readFileSync("services/localAtsScorer.js", "utf8");
+  const src = fs.readFileSync("packages/ats-scorer/src/scorer.js", "utf8");
   assert.match(src, /RENORMALIS/i, "the measured-and-rejected alternative must stay recorded");
   assert.match(src, /0\.448/, "with the number that rejected it");
   assert.match(src, /expRatio == null \? 0\.85/, "and the flat rate it was rejected in favour of");

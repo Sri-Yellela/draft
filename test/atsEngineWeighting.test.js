@@ -166,7 +166,7 @@ test("the points still sum to 100, and hard constraints only ever subtract", () 
   assert.equal(SKILL_POINTS + VERB_POINTS + EXPERIENCE_POINTS, 100,
     "the three earnable components are the whole scale");
   assert.ok(HARD_MISS_PENALTY > 0, "a constraint miss is a penalty");
-  const src = fs.readFileSync("services/localAtsScorer.js", "utf8");
+  const src = fs.readFileSync("packages/ats-scorer/src/scorer.js", "utf8");
   assert.match(src, /- hardPenalty/, "constraints are subtracted, never added");
   assert.doesNotMatch(src, /HARD_POINTS/,
     "the v3 budget that PAID for having no clearance problem must be gone");

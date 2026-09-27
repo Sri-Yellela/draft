@@ -37,7 +37,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { scoreAtsLocally, buildRuntimeAtsBasis } from "../services/localAtsScorer.js";
+// The PACKAGE, not draft's wrapper — A1's acceptance test is that the extracted scorer reproduces
+// the published figure, so this must measure the thing that was extracted. (The wrapper only adds
+// resume_depth, which does not touch the score.)
+import { scoreAtsLocally, buildRuntimeAtsBasis } from "@draft/ats-scorer";
 import { loadTermWeights } from "../services/atsTermWeights.js";
 import { roleFamilyForTitle } from "../services/searchQueryBuilder.js";
 // loadSimpleApplyProfile, NOT loadOrCreate — the "create" half writes a row when none exists, which
@@ -50,7 +53,10 @@ const args = process.argv.slice(2);
 const val = (f, d = null) => { const i = args.indexOf(f); return i >= 0 && args[i + 1] && !args[i + 1].startsWith("--") ? args[i + 1] : d; };
 
 const FIXTURE = path.join(ROOT, "docs", "am1-ats-graded-corpus.json");
-const TOLERANCE = 0.02;
+// ⛔ 0.005, matching al3SynonymRhoEffect and an3FamilyWeightRho. Those two were tightened from 0.02
+// on 2026-09-26 because 0.02 absorbed a 0.009 drift for weeks while printing CONTROL OK — and this
+// script, the one the published figure rests on, was missed and sat at 0.02 until A1 (2026-09-27).
+const TOLERANCE = 0.005;
 
 /** Spearman rho over ranks, average ranks for ties. */
 function spearman(xs, ys) {
