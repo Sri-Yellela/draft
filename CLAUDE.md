@@ -71,8 +71,12 @@ this is why.
 
 ## Deliberate test failures — currently 0
 
-`npm test` is **2675 tests, 2675 pass, 0 fail** — measured 2026-09-27 BOTH in the existing working
-tree AND in a fresh `git worktree` (CRLF, `core.autocrlf=true`). Measure both when you re-count:
+`npm test` is **2696 tests, 2696 pass, 0 fail** — re-measured 2026-09-27 after A1 (`3c3fd1d`, which
+added the `@draft/ats-scorer` suites) in a fresh `git worktree` (CRLF, `core.autocrlf=true`) with
+BOTH root and `client/` dependencies installed — a worktree without `client/node_modules` fails
+`syncEventsSingleConnection` on a missing `react`, which is setup, not rot. The existing working
+tree read 2694 / 2 at the same commit, both `extensionSubmission` zip checks, caused by uncommitted
+icon edits in `extension/icons/`; that is the case described below, not a regression. Measure both when you re-count:
 the existing tree can pass on files that merely happen to sit LF.
 
 ⚠ **Until 2026-09-27 a fresh Windows clone was 2671 / 4 fail** while the existing tree read 2675 / 0.
