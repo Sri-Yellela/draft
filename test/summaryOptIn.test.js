@@ -333,7 +333,9 @@ test("--from-file verifies externally-produced artifacts, and says what it canno
   // The mode exists so the two documents can be produced without spending on a billed key — but a
   // verification path that quietly reports a weaker result as a full pass is worse than no path.
   // What is asserted here is the honesty, not the plumbing.
-  const h = fs.readFileSync("scripts/ai1SummaryVerify.mjs", "utf8");
+  // Normalised on read: two assertions below span lines with "\n", which a fresh Windows clone
+  // materialises as "\r\n". See CLAUDE.md, line endings.
+  const h = fs.readFileSync("scripts/ai1SummaryVerify.mjs", "utf8").replace(/\r\n/g, "\n");
   assert.match(h, /const FROM_FILE = process\.argv\.includes\("--from-file"\);/);
   // It goes through the SAME normaliser, guard and PDF as a real run — only the HTML's origin differs.
   assert.match(h, /html = normalizeResumeHtml\(raw\);\n    console\.log\(`  --from-file:/);

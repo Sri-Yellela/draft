@@ -14,7 +14,10 @@ import { CORRECTION_WATCH_SRC, installCorrectionWatcher } from "../services/appl
 import { at } from "../test-support/sourceAnchors.js";
 
 const applySrc = fs.readFileSync("routes/apply.js", "utf8");
-const autoSrc = fs.readFileSync("services/applyAutomation.js", "utf8");
+// Normalised on read: source-text regexes below span lines with "\n", which a fresh Windows clone
+// materialises as "\r\n". NOT applied to server.js / scripts/migrations.js in the 088 test — byte
+// identity between those two is the invariant under test there. See CLAUDE.md, line endings.
+const autoSrc = fs.readFileSync("services/applyAutomation.js", "utf8").replace(/\r\n/g, "\n");
 
 // ── Migration 088 ────────────────────────────────────────────────────────────
 

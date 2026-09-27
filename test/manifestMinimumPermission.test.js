@@ -151,7 +151,10 @@ test("the injected extractor is self-contained", () => {
 });
 
 test("the extractor still knows the named job boards, and still works without them", () => {
-  const src = fs.readFileSync(path.join(SRC, "extractor.js"), "utf8");
+  // Normalised on read, for the same reason as MANIFEST_RATIONALE.md above. On CRLF, `//.*$` below
+  // stops at the "\r" rather than the line end, so comments survive the strip and an apostrophe in
+  // prose is read as a hashed class name — the exact false positive that stripping exists to prevent.
+  const src = fs.readFileSync(path.join(SRC, "extractor.js"), "utf8").replace(/\r\n/g, "\n");
   for (const board of ["linkedin.com", "indeed.com", "glassdoor.com", "lever.co", "greenhouse.io",
                        "workable.com", "ashbyhq.com", "myworkdayjobs.com"]) {
     assert.match(src, new RegExp(`'${board.replace(".", "\\.")}'`),
