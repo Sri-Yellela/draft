@@ -86,7 +86,7 @@ The current deployment target is Railway (single Node.js instance + persistent v
 ## 3. File Structure
 
 ```
-resume-master/
+draft/
 ├── server.js                        # All backend logic — single file
 ├── prompts/                         # Active layered prompt architecture
 ├── package.json                     # Server dependencies + npm scripts
@@ -630,7 +630,7 @@ Any file in `client/src/` can have its JSX structure and style objects changed f
 
 ## 11. Environment Variables
 
-File location: `C:\Users\sriye\resume-master\.env` (local) or Railway Variables (production).
+File location: `.env` in the repo root (local) or Railway Variables (production).
 
 | Variable | Required | Description |
 |---|---|---|
@@ -700,7 +700,7 @@ Provider secrets must never be committed. The UI only shows connected status, ac
 
 ## 12. npm Scripts
 
-Run from `C:\Users\sriye\resume-master\`:
+Run from the repo root:
 
 | Script | Command | What it does |
 |---|---|---|
@@ -771,7 +771,7 @@ curl -s "https://resumemaster.one$B" | grep -c "some string you just added"
 
 1. `npm run backup` — snapshot the current local DB
 2. `git push origin main`
-3. Railway → New Project → Deploy from GitHub → select `resume-master`
+3. Railway → New Project → Deploy from GitHub → select `draft`
 4. Set all environment variables (see Section 11) — add `NODE_ENV=production`
 5. Build command: `npm install && cd client && npm install && npm run build && cd ..`
 6. Start command: `node server.js`

@@ -7,8 +7,8 @@
 >
 > | Repo | Contains |
 > |---|---|
-> | `../resume-master-android` | Kotlin / Jetpack Compose app, Gradle version catalog, `PHASE_2A.md` |
-> | `../resume-master-ios` | SwiftUI app, `ResumeMaster.xcodeproj`, `PHASE_1_AUDIT.md` |
+> | `../draft-android` | Kotlin / Jetpack Compose app, Gradle version catalog, `PHASE_2A.md` |
+> | `../draft-ios` | SwiftUI app, `ResumeMaster.xcodeproj`, `PHASE_1_AUDIT.md` |
 >
 > The section below concludes "no mobile project has ever existed in any commit, on any branch."
 > That sentence is scoped to this repository's history and nothing else. Read without this header
