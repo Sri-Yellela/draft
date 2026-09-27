@@ -28,6 +28,8 @@ anyone measured them, and a wrong figure in a brief becomes a wrong premise in t
 | **Scoring costs ~5.5ms/job, 279ms a page, 13.4s a board** | comments an earlier CC5 pass left in `server.js` and `jobCursor.js` | **6.67ms mean** (median 6.32, p95 9.99, n = 300 real postings, weights and synonyms warm) — 0.33s a page, **16.4s** for all 2,458 | ~20% optimistic. Conclusion unchanged and slightly stronger: the board must read a cache |
 | **`ran_at` column missing in production** | reported as prod/dev schema drift | **Typo.** The column is `run_at`, and `SELECT ran_at` fails identically locally. Migration `011_cleanup_log` is byte-identical in both dual paths | Invented a schema-divergence investigation |
 | **Screenshots ≈ 186 KB** | a commit estimate | **5.8 MB** — 31× | — |
+| **The seniority guard moved ρ 0.643 → 0.732** | `PRODUCT_MODEL.md`, `AUDIT_AND_REPLAN.md`, the Phase A brief | **0.645 → 0.746**, re-measured in A1 2026-09-27 by clearing the profile's seniority on the graded 30 (one posting capped, Figma intern 59 → 20). The source comment at `SENIORITY_CAP` already said 0.746 | Understates the guard by 0.014 — the single largest ranking lever measured |
+| **`am1GradedCorpusVerify` tolerance tightened 0.02 → 0.005** | the Phase A brief | Only `al3SynonymRhoEffect` and `an3FamilyWeightRho` were tightened on 2026-09-26. **The script the published ρ rests on was still 0.02** until A1 | The one check the brief called THE acceptance test was the one still loose enough to absorb the drift that motivated tightening |
 | **`requireToolEntitlement` at ~:4067** | the monetisation brief | **:5530** | — |
 
 ---
@@ -182,6 +184,8 @@ driving real Chrome, and measuring field coverage on written rows.
 | **`logo.clearbit.com` dead** — no A record. Its fallback for "provider unreachable" **was Clearbit** | unknown | 1,290/1,296 dead rows |
 | **The cleanup brake committed, documented, undeployed** | 1 day | — |
 | **`/api/standalone/generate`** Sonnet 8192, unauthenticated, quota keyed on a cookie the caller controls | until `857fa32` | — |
+| ⛔ **Production scored against an EMPTY vocabulary.** `.dockerignore` excludes `data/` (all but `ROLE_ALIAS_MAP.json`) since 2026-04-23; Railway builds that Dockerfile; `skillVocabulary.js` fell back to empty by design, citing "Railway filesystem restrictions" that were this repo's own ignore file. `routes/domainProfiles.js` grew a `BUILTIN_REGISTRY` copy for the same symptom. **Structural finding** (A1, 2026-09-27) — from the ignore rules and the documented builder, not from a production read; confirm with `[domain-registry] JSON file not found` in Railway logs | ~5 months | none — and the fallback *raises* graded ρ (0.746 → 0.791) while moving 27 of 30 scores, so no metric would ever have flagged it. Fixed for the SCORER by A1 (registries ship inside `@draft/ats-scorer` and a missing one throws); the picker, `qualificationResolver` and `searchQueryBuilder` still read the excluded `data/` |
+| **`.gitignore`'s unanchored `data/` swallowed `packages/ats-scorer/data`** | caught before the first commit | only by staging and reading `git status` — every test passed on the machine that had the files. Now guarded by `atsScorerPackage.test.js` (manifest files must be TRACKED) |
 
 **`AC`'s health check would have caught the first four.** It has been scoped and deferred roughly
 fifteen times.

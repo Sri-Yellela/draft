@@ -219,11 +219,15 @@ test("the scorer does not import the KB, and the KB makes no model call", async 
   // Requirement 6. One-way dependency, exactly as with atsTermWeights: the scorer takes a prepared
   // Map and never touches a database, which is what keeps it usable on a swipe card.
   const fs = await import("node:fs");
-  const scorer = fs.readFileSync("services/localAtsScorer.js", "utf8");
-  // An IMPORT, not a mention: the scorer's own comment names the KB module to say where the Map
-  // comes from, and matching that would fail on the documentation rather than on the dependency.
-  assert.ok(!/^\s*import[^\n]*skillSynonyms/m.test(scorer),
-    "localAtsScorer must not import the KB — loading is the caller's job, or scoring needs a DB");
+  // BOTH files since A1: the scorer moved into packages/ats-scorer and services/localAtsScorer.js
+  // is draft's wrapper around it. Reading only the wrapper would pass vacuously on the scorer.
+  for (const file of ["packages/ats-scorer/src/scorer.js", "services/localAtsScorer.js"]) {
+    const scorer = fs.readFileSync(file, "utf8");
+    // An IMPORT, not a mention: the scorer's own comment names the KB module to say where the Map
+    // comes from, and matching that would fail on the documentation rather than on the dependency.
+    assert.ok(!/^\s*import[^\n]*skillSynonyms/m.test(scorer),
+      `${file} must not import the KB — loading is the caller's job, or scoring needs a DB`);
+  }
   const kb = fs.readFileSync("services/kb/skillSynonyms.js", "utf8");
   assert.ok(!/callModel|messages\.create|fetch\s*\(/.test(kb),
     "the KB layer is pure SQL — a model call here would put a model in the scoring path");

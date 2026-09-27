@@ -118,7 +118,7 @@ test("the generic set is stemmed the same way the verb index is keyed", () => {
   // Spelled as raw infinitives, eleven of the twelve entries matched nothing: the stemmer turns
   // "Managed" into "manag" and "Coordinated" into "coordinat". A set whose keys are produced by a
   // different rule than the keys it is tested against is not a set.
-  const src = fs.readFileSync("services/localAtsScorer.js", "utf8");
+  const src = fs.readFileSync("packages/ats-scorer/src/scorer.js", "utf8");
   assert.match(src, /GENERIC_ACTION_VERB_WORDS\.map\(normaliseActionVerb\)/);
   const r = scoreAtsLocally({ job: NOTION, runtimeBasis: basis() });
   assert.ok(r.action_verbs_generic.length >= 3, r.action_verbs_generic.join(" | "));
@@ -172,7 +172,7 @@ test("near-duplicate competencies collapse onto the posting's own wording", () =
 // ── 4. the split must not silently re-weight the score ───────────────────────────────────────
 
 test("the score is computed over the union, so splitting the report does not move every gate", () => {
-  const src = fs.readFileSync("services/localAtsScorer.js", "utf8");
+  const src = fs.readFileSync("packages/ats-scorer/src/scorer.js", "utf8");
   // AK1 renamed the locals when the score became weighted; the property under test is unchanged —
   // the denominator is still the UNION of both buckets, not one of them.
   assert.match(src, /const allScored = \[\.\.\.jobTerms, \.\.\.jobCompetencies\]/);

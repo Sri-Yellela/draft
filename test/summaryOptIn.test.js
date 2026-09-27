@@ -250,7 +250,7 @@ test("the ATS scorer has no structural dependency on a summary section", () => {
   // having a summary? It does not — the scorer never looks for the section. It reads keyword
   // coverage over the whole document, so a resume with no summary is scored on the same terms as
   // one with a summary, and identical text scores identically whichever section carries it.
-  const scorer = fs.readFileSync("services/localAtsScorer.js", "utf8");
+  const scorer = fs.readFileSync("packages/ats-scorer/src/scorer.js", "utf8");
   assert.doesNotMatch(scorer, /SUMMARY|section_title|hasSummary/,
     "the scorer must not read, require or reward a summary section");
 

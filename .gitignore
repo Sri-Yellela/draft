@@ -4,5 +4,8 @@ client/node_modules/
 client/dist/
 data/
 !data/*.json
+# `data/` above is unanchored, so it also swallowed packages/ats-scorer/data — the scorer's
+# registries — and the package would have committed without them (A1, 2026-09-27).
+!packages/ats-scorer/data/
 env.sh
 

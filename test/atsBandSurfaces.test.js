@@ -157,7 +157,7 @@ test("the guard is keyed on profile seniority, not on years parsed from the resu
   // is dead code. Repairing the extractor to make it fire was tried and makes ranking WORSE —
   // rho 0.643 -> 0.552 — because it lifts every non-engineering posting that states a satisfied
   // year requirement. That is the same failure AK1 recorded when it reverted renormalisation.
-  const src = fs.readFileSync("services/localAtsScorer.js", "utf8");
+  const src = fs.readFileSync("packages/ats-scorer/src/scorer.js", "utf8");
   const guard = src.slice(at(src, "export function seniorityCapFor"), at(src, "function hardConstraintMisses"));
   assert.doesNotMatch(guard, /yearsExperience/,
     "the guard reads years again — it would never fire, and repairing the extractor to make it " +

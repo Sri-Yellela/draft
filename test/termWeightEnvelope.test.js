@@ -51,13 +51,22 @@ test("⛔ a STALE envelope resolves to null, because that refusal must not be lo
   assert.equal(resolveTermWeights({ weights: someWeights(), stale: true, computedAt: 1 }), null);
 });
 
-test("empty, absent and malformed all resolve to null rather than half-weighting", () => {
+test("empty and absent resolve to null rather than half-weighting", () => {
   assert.equal(resolveTermWeights(null), null);
   assert.equal(resolveTermWeights(undefined), null);
   assert.equal(resolveTermWeights(new Map()), null, "an empty Map means unweighted, not weighted-by-nothing");
   assert.equal(resolveTermWeights({ weights: new Map(), stale: false }), null);
-  assert.equal(resolveTermWeights({ nope: 1 }), null);
-  assert.equal(resolveTermWeights("weights"), null);
+});
+
+test("⛔ MALFORMED throws — it used to resolve to null, which was the original defect in miniature", () => {
+  // This test previously asserted `{ nope: 1 }` and "weights" resolve to null. That is exactly the
+  // shape of the envelope bug: a wrong argument quietly becoming "unweighted". A1 (2026-09-27) made
+  // the package signature refuse it, as the brief required — "design it so the wrong shape cannot
+  // be passed quietly". null/undefined stay the explicit way to ask for unweighted scoring.
+  assert.throws(() => resolveTermWeights({ nope: 1 }), TypeError);
+  assert.throws(() => resolveTermWeights("weights"), TypeError);
+  assert.throws(() => resolveTermWeights({ weights: { python: 2 }, stale: false }), TypeError,
+    "an envelope carrying a plain object instead of a Map is the same defect one level down");
 });
 
 test("⛔ THE TWO CALL STYLES PRODUCE THE SAME SCORE — asserted on a real scoring run", () => {
