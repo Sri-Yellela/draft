@@ -76,7 +76,9 @@ added the `@draft/ats-scorer` suites) in a fresh `git worktree` (CRLF, `core.aut
 BOTH root and `client/` dependencies installed — a worktree without `client/node_modules` fails
 `syncEventsSingleConnection` on a missing `react`, which is setup, not rot. The existing working
 tree read 2694 / 2 at the same commit, both `extensionSubmission` zip checks, caused by uncommitted
-icon edits in `extension/icons/`; that is the case described below, not a regression. Measure both when you re-count:
+icon edits in `extension/icons/`; that is the case described below, not a regression. **Cleared
+2026-09-28** by committing those icons and rebuilding the zip as v1.1.1 — 2696 / 2696 / 0 in the
+working tree too. Measure both when you re-count:
 the existing tree can pass on files that merely happen to sit LF.
 
 ⚠ **Until 2026-09-27 a fresh Windows clone was 2671 / 4 fail** while the existing tree read 2675 / 0.
