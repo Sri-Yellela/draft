@@ -1,13 +1,20 @@
-# Chrome Web Store listing — draft v1.1.0
+# Chrome Web Store listing — draft v1.1.1
 
 Copy for the Web Store developer dashboard. Every justification below was written against the
 actual code and cites the file that uses the permission, because the dashboard rejects
 justifications that don't match observable behaviour.
 
-Upload artifact: `extension/submission/resume-master-extension-v1.1.0.zip`
+Upload artifact: `extension/submission/resume-master-extension-v1.1.1.zip`
 (build with `npm run build:extension` — never hand-assemble it; see extension/README.md).
 
-> **THIS REPLACES v1.0.0, WHICH IS IN REVIEW AND WAS NEVER PUBLISHED.** There are still zero
+> **v1.1.1 REPLACES v1.1.0, WHICH IS IN REVIEW AND WAS NEVER PUBLISHED.** The only change is the
+> **icon**: the v1.1.0 package still carried the old brand's "RM" mark in all three sizes
+> (`icons/icon16.png`, `icon48.png`, `icon128.png`) while its name, title and listing said
+> **draft**. v1.1.1 ships the `/d` monogram at every size. No code, permission, host, storage key
+> or disclosure changed — every justification and disclosure below is exactly as written for
+> v1.1.0, and the delta against v1.0.0 that follows still describes this package.
+>
+> **v1.1.0 REPLACED v1.0.0, WHICH WAS IN REVIEW AND WAS NEVER PUBLISHED.** There are still zero
 > installed users, so nothing below is a change description against anything a user has. Earlier
 > version numbers exist in this repo's history (v0.1.0 through v1.3.0); none was ever published and
 > the zips are gone. What changed since the v1.0.0 package, and every one of these is a field a
@@ -303,5 +310,5 @@ could not be established from here.
       justifications on this page. Every row complete; an orphan in any column is a rejection
 - [ ] Fill the **Privacy practices** tab with the disclosures above
 - [ ] Fill the **single purpose** field with the statement above
-- [ ] Upload `resume-master-extension-v1.1.0.zip` — and ⛔ check the version in the dashboard is
-      higher than the v1.0.0 still sitting in review, or the upload is refused
+- [ ] Upload `resume-master-extension-v1.1.1.zip` — and ⛔ check the version in the dashboard is
+      higher than the v1.1.0 still sitting in review, or the upload is refused
