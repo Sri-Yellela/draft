@@ -14,8 +14,10 @@ Upload artifact: `extension/submission/resume-master-extension-v1.1.1.zip`
 > or disclosure changed — every justification and disclosure below is exactly as written for
 > v1.1.0, and the delta against v1.0.0 that follows still describes this package.
 >
-> **v1.1.0 REPLACED v1.0.0, WHICH WAS IN REVIEW AND WAS NEVER PUBLISHED.** There are still zero
-> installed users, so nothing below is a change description against anything a user has. Earlier
+> **v1.1.0 REPLACED v1.0.0.** ⚠ Corrected 2026-09-28 (owner): this used to say v1.0.0 "was in
+> review and was never published". **v1.0.0 IS PUBLISHED — UNLISTED, link-only.** It posts to the
+> former address, which since Phase B step 4 (09-28) serves the separate résumé tools service, so its
+> captures are no longer received. No public installs; the delta below is still against it. Earlier
 > version numbers exist in this repo's history (v0.1.0 through v1.3.0); none was ever published and
 > the zips are gone. What changed since the v1.0.0 package, and every one of these is a field a
 > reviewer re-reads:
