@@ -143,6 +143,14 @@ const ALLOWED_PREFIXES = [
       "time; rewriting them would falsify the archive. Never cleaned.",
   },
   {
+    prefix: "contract/resume-master/",
+    reason:
+      "docs/BRAND.md vendor rule (A4). The second product's GENERATED API contract, vendored with a " +
+      "checksum test. `Resume Master` is that product's NAME, as `Anthropic` is a vendor's. It cannot " +
+      "be edited here — test/toolsService.test.js fails on a hand-edit. Removed if that product is " +
+      "discontinued or renamed.",
+  },
+  {
     prefix: "docs/",
     reason:
       "P5 owns the documentation reset, and it runs LAST so that it documents the end state. " +
@@ -173,6 +181,22 @@ const FROZEN_EXTENSION_FILES = [];
 
 /** Individual files, each with its own reason. */
 const ALLOWED_FILES = {
+  // ── docs/BRAND.md vendor rule (A4): the ONLY draft code that names the second product ──────
+  // server.js deliberately does not: it calls the client `toolsService` and every message a user
+  // can see says "the résumé tools service". Scoped to these files — never an exemption on the word.
+  "services/toolsService.js":
+    "The API client for the second product, Resume Master — named here as a vendor, the way " +
+    "Anthropic is. Removed if that product is discontinued or renamed.",
+  "services/toolsServiceRequests.js":
+    "The request mapping for the same client; names the vendor in its provenance notes. Removed with it.",
+  "client/src/pages/marketing/PrivacyPage.jsx":
+    "The privacy policy must NAME the processor résumé data is sent to — a vague name is a weaker " +
+    "disclosure. ⛔ Scoped further than a file entry can say: the literal may appear ONLY inside the " +
+    "Third-Party Services section, asserted by the test below, so every other sentence on the page " +
+    "stays under this guard. Removed if that product is discontinued or renamed.",
+  "extension/submission/PRIVACY_RECONCILIATION.md":
+    "The join that proves the policy's disclosures are real; it must list the same recipients the " +
+    "policy names, which test/privacyReconciliation.test.js enforces. Removed with the policy's entry.",
   "shared/brand.js":
     "THE SINGLE SOURCE. It has to hold the legacy values in order to be the place they are held.",
   [SELF]:
@@ -257,6 +281,24 @@ test("the allowlist prunes itself — no entry outlives the reason it was added 
       `the "${prefix}" prefix is allowlisted (${reason}) but nothing under it matches any more — ` +
       `delete the entry`);
   }
+});
+
+test("⛔ the privacy policy names the second product ONLY in its Third-Party Services section", () => {
+  // The file-level allowlist entry above cannot express this, so it is asserted here: a sentence
+  // anywhere else on the page naming the old brand would be this product calling itself by it —
+  // the regression the guard exists for — and the file entry would otherwise let it through.
+  const page = fs.readFileSync("client/src/pages/marketing/PrivacyPage.jsx", "utf8");
+  const start = page.indexOf('<Section title="Third-Party Services">');
+  assert.ok(start > 0, "the Third-Party Services section was not found");
+  const end = page.indexOf("</Section>", start);
+  assert.ok(end > start);
+  const outside = (page.slice(0, start) + page.slice(end))
+    .replace(/^\s*\/\/.*$/gm, "");                       // the effective-date history comments
+  for (const { label, re } of FORBIDDEN) {
+    assert.ok(!re.test(outside), `PrivacyPage.jsx names ${label} outside Third-Party Services`);
+  }
+  assert.ok(FORBIDDEN.some(({ re }) => re.test(page.slice(start, end))),
+    "and it IS named inside it — otherwise the allowlist entry above is dead permission");
 });
 
 test("extension/ carries no legacy brand or origin — P4 cleaned it and it stays clean", () => {

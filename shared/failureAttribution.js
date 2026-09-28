@@ -55,7 +55,11 @@ export function classifyGenerationError(e) {
   const requestId = e?.request_id ?? e?.requestID ?? null;
 
   let permanent;
-  if (status != null && PERMANENT_HTTP.has(status)) permanent = true;
+  // An EXPLICIT verdict from the service wins over inference from the status. The tools service reports
+  // an exhausted balance as 502 with permanent:true; 502 is in TRANSIENT_HTTP, so inferring would
+  // tell the user to retry a billing failure — the message that can never be true (A4).
+  if (typeof e?.permanent === "boolean") permanent = e.permanent;
+  else if (status != null && PERMANENT_HTTP.has(status)) permanent = true;
   else if (status != null && TRANSIENT_HTTP.has(status)) permanent = false;
   else if (lower.includes("timeout") || lower.includes("econnreset") || lower.includes("enotfound")) permanent = false;
   // Unknown failures are treated as transient: assuming "permanent" would let a blip

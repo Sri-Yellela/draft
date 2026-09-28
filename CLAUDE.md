@@ -71,7 +71,9 @@ this is why.
 
 ## Deliberate test failures — currently 0
 
-`npm test` is **2696 tests, 2696 pass, 0 fail** — re-measured 2026-09-27 after A1 (`3c3fd1d`, which
+`npm test` is **2691 tests, 2691 pass, 0 fail** — re-measured 2026-09-28 after A4, which moved the
+prompt's tests to resume-master with the prompt (the count FELL by moving them, not by losing them —
+the per-test accounting is in A4's commit message). Before that: 2696 / 2696 / 0 after A1 (`3c3fd1d`, which
 added the `@draft/ats-scorer` suites) in a fresh `git worktree` (CRLF, `core.autocrlf=true`) with
 BOTH root and `client/` dependencies installed — a worktree without `client/node_modules` fails
 `syncEventsSingleConnection` on a missing `react`, which is setup, not rot. The existing working

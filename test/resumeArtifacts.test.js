@@ -41,41 +41,18 @@ test("download/export marks the selected artifact as kept for downstream use", (
   assert.match(jobsPanel, /applyMode: current\?\.tool === A_PLUS_TOOL \? "CUSTOM_SAMPLER" : applyMode/);
 });
 
-test("A+ prompt overlay requires stronger honest ATS coverage", () => {
-  const layered = fs.readFileSync("prompts/layer3_modes/a_plus.md", "utf8");
-
-  assert.match(layered, /A\+ Coverage Mandate/);
-  assert.match(layered, /missing-keyword ledger/);
-  assert.match(layered, /Semantic bridge/);
-  assert.match(layered, /A\+ Resume is more aggressive than Generate/);
-  assert.match(layered, /Technical Skills placement/);
-});
-
-test("cached artifacts reuse stored ATS reports and deterministic formatting by default", () => {
+test("cached artifacts reuse stored ATS reports; the formatting is the tools service's deterministic render", () => {
   const server = fs.readFileSync("server.js", "utf8");
   assert.match(server, /041_resume_ats_cache_metadata/);
   assert.match(server, /ATS_SCORE_PROMPT_VERSION/);
   assert.match(server, /buildAtsCacheKey/);
   assert.match(server, /atsCached:true/);
-  assert.match(server, /normalizeResumeHtml\(html\)/);
-  assert.match(server, /RESUME_MASTER_LLM_FORMAT === "1"/);
-  assert.doesNotMatch(server, /let formattedHtml = html;\s*try \{/);
-});
-
-test("prompt assembler caches stable mode overlays", () => {
-  const assembler = fs.readFileSync("services/promptAssembler.js", "utf8");
-  // Reads layer3Resolved, not layer3Text: AI1 resolves the prompt-file conditionals before the
-  // block is built, so the text that is cached is the text that is SENT. Asserting against the
-  // raw file variable would pass while a resolved-but-uncached block went out on every call.
-  //
-  // ASSERTED ON THE VARIABLE, NOT ON THE WHOLE EXPRESSION. This used to pin the literal
-  // `...(layer3Resolved ? { cache_control: { type: "ephemeral" } } : {})`, which broke when AL6
-  // hoisted the breakpoint into a `breakpoint` const so callers could switch caching off — a
-  // change that did not touch the property this test is named after. The behavioural half is in
-  // test/cacheBreakpoints.test.js.
-  assert.match(assembler, /\.\.\.\(layer3Resolved \? breakpoint : \{\}\)/);
-  assert.ok(!/layer3Text\s*\?\s*breakpoint/.test(assembler),
-    "the cached block must key off the RESOLVED text, not the raw file text");
+  // A4: the document draft persists is the tools service's deterministic render, returned only after
+  // its claim guard passed; the optional LLM formatting pass and its lever (RESUME_MASTER_LLM_FORMAT)
+  // live there too, and are tested there (resume-master test/generate.test.js, test/formattingSystem.test.js).
+  assert.match(server, /const formattedHtml = generated\.html;/);
+  assert.doesNotMatch(server, /RESUME_MASTER_LLM_FORMAT|FORMATTING_SYSTEM/,
+    "a second formatting pass in draft would be a second design the renderer does not know about");
 });
 
 test("admin job review remains narrow to classification reassignment", () => {

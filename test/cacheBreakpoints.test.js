@@ -14,40 +14,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { assemblePrompt, loadAllPrompts } from "../services/promptAssembler.js";
 import { ANTHROPIC_PRICING } from "../shared/anthropicModels.js";
 
-await loadAllPrompts();
 
-const blocks = (opts) => assemblePrompt("general", "GENERATE", "runtime inputs", { SUMMARY: false }, opts).systemBlocks;
-
-test("breakpoints are ON by default — the measured-best status quo", () => {
-  const s = blocks(undefined);
-  assert.ok(s.length >= 2);
-  assert.ok(s.every(b => b.cache_control?.type === "ephemeral" || !b.text),
-    "every non-empty system block should carry a breakpoint by default");
-});
-
-test("a caller that knows it is one-shot can turn them off", () => {
-  // This is the -8.1% the assessment identified, made available rather than forced on everyone.
-  const s = blocks({ cache: false });
-  assert.ok(s.every(b => b.cache_control === undefined),
-    "cache:false must remove every breakpoint, or the lever does nothing");
-  // And the prompt text itself is untouched — this is a billing decision, not a content one.
-  assert.deepEqual(s.map(b => b.text), blocks(undefined).map(b => b.text));
-});
-
-test("the measurement is recorded where the decision is made", () => {
-  // A number in a commit message is unfindable six months later. The reasoning has to sit beside
-  // the line it justifies, or the next person reads "unconditional -8.1%" in the queue doc and
-  // deletes the breakpoints without re-measuring.
-  const src = fs.readFileSync("services/promptAssembler.js", "utf8");
-  assert.match(src, /caching has SAVED/, "the net result must be stated");
-  assert.match(src, /ag2_claims_verify/, "the callers that DO read cache must be named");
-  assert.match(src, /resume_generate/, "and the one that does not");
-  assert.match(src, /TASK D JUST CHANGED THE INTERACTIVE PATH/i,
-    "the reason the 0-read caller is about to start reading must be recorded");
-});
+// A4: the three BREAKPOINT tests (on by default, the one-shot lever, the measurement recorded
+// beside the decision) moved with the prompt assembler — resume-master test/cacheBreakpoints.test.js.
+// What stays is draft's: its pricing table, which costs usage_events, and its own model use.
 
 test("the arithmetic behind the decision, from the live pricing table", () => {
   // Re-derived here so the numbers in the comment are checkable rather than asserted. A cache
@@ -106,7 +78,10 @@ test("there is still no 1-hour cache price key, and nothing selects one", () => 
   // 2x base input ($4/MTok on Sonnet 5 — confirmed live), and pricing one at 2.5 would under-report
   // every batched write by 37.5% SILENTLY, because the model ID still resolves and the loud
   // unknown-key branch never fires. The guard is that nothing sets a ttl.
-  for (const f of ["services/promptAssembler.js", "server.js"]) {
+  // A4: the generation breakpoints live in the tools service now, and draft PRICES that service's
+  // cache writes from its usage records at the 5-minute rate — so the same guard runs there
+  // (resume-master test/cacheBreakpoints.test.js). Here it covers draft's own model calls.
+  for (const f of ["server.js", "services/modelCall.js", "services/classifier.js"]) {
     const src = fs.readFileSync(f, "utf8");
     assert.ok(!/ttl:\s*["']1h["']/.test(src),
       `${f} sets a 1-hour cache TTL, but calculateCost has no 1h key — it would under-report by 37.5%`);

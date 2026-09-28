@@ -214,9 +214,16 @@ test("classifier tracking is wired into generation classifier call sites", () =>
     "the onUsage callback is the two-paths-to-one-table shape that let a caller go untracked");
   assert.match(server, /eventSubtype,/);
   assert.match(server, /eventSubtype:\s*"profile_setup"/);
-  // All three callers must pass a db, or their spend is not recorded at all.
+  // Every draft caller must pass a db, or its spend is not recorded at all. A4: there were three;
+  // the two GENERATION callers (coreGenerateResume, /api/standalone/generate) now classify inside
+  // the tools service, and that spend comes back as a `classifier` usage record, stored under the
+  // same purpose by recordToolsServiceUsage — asserted below. The one left is smart-search.
   const callers = [...server.matchAll(/await classify\(anthropic,[\s\S]{0,260}?\}\);/g)];
-  assert.equal(callers.length, 3, `expected 3 classify() callers, found ${callers.length}`);
+  assert.equal(callers.length, 1, `expected 1 classify() caller (smart-search), found ${callers.length}`);
+  assert.match(callers[0][0], /eventSubtype:\s*"profile_setup"/);
+  const tools = fs.readFileSync("services/toolsService.js", "utf8");
+  assert.match(tools, /const purpose = renamePurpose\[u\.purpose\] \|\| u\.purpose;/,
+    "the tools service's classifier spend must be stored under its own purpose, as draft's was");
   for (const c of callers) {
     assert.match(c[0], /\bdb\b/,
       `a classify() caller passes no db, so its spend goes unrecorded: ${c[0].slice(0, 80)}`);

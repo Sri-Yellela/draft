@@ -7,7 +7,7 @@ import {
   checkResumeClaims, assertResumeClaims, ResumeClaimError, profileContradictionFindings,
   extractSummaryText,
 } from "../services/resumeClaimGuard.js";
-import { at } from "../test-support/sourceAnchors.js";
+import { at, lastAt } from "../test-support/sourceAnchors.js";
 
 // The real base resume's shape: two SDE roles, no seniority word anywhere, summary says 4 years.
 const BASE_RESUME = `SRI BALAJI YELLELA
@@ -385,163 +385,58 @@ test("extractSeniorityClaims reports the phrase it matched, for a reviewable mes
   assert.match(top.phrase, /principal software engineer/i);
 });
 
-// ── The wiring (AF2 requirements 2, 3, 4) ────────────────────────────────────
-
-test("the prompt names the profile as the authority and forbids the JD setting a quantity", () => {
-  const rules = fs.readFileSync("prompts/layer1_global_rules.md", "utf8");
-  assert.match(rules, /The years figure comes from `Candidate years of experience`/,
-    "the summary rule must name its source");
-  assert.match(rules, /Never from the JD\./);
-  assert.match(rules, /It never sets a QUANTITY or a LEVEL/,
-    "the truthfulness section must state the emphasis-vs-quantity distinction");
-  assert.match(rules, /do not rewrite an implausible claim in the base resume into a plausible one/i,
-    "§7 forbids correction in both directions");
-  // The pre-fix wording is what let the JD supply the figure.
-  assert.doesNotMatch(rules, /Open with target role title and total relevant years/,
-    "'total RELEVANT years' left the source of the number to the JD");
-
-  // The level rule names the candidate's declaration, not just the base resume. Without this the
-  // prompt tells the model to open with the unqualified role even when the candidate has chosen
-  // "Senior" on their profile — which the guard now allows, so the two would disagree.
-  assert.match(rules, /Seniority the candidate states they are` in the runtime inputs, or what the base resume evidences — take whichever is higher/);
-});
-
-// ── The rule lives in ONE layer ─────────────────────────────────────────────────────────────────
+// ── The wiring, since A4 ────────────────────────────────────────────────────────────────────────
 //
-// AF2 corrected the SUMMARY opening rule in layer 1 and left layer 2 alone, where eleven domain
-// modules restated it loosely and two stated the opposite outright — general.md said "the role
-// title from the JD and total years of relevant experience", engineering.md said "the exact target
-// role title". Layer 2 is appended AFTER layer 1 in the system blocks, so the contradicting copy
-// was the later and more specific instruction.
-//
-// engineering.md's own header already says why this is wrong: "Do NOT add global rules here — those
-// belong in layer1_global_rules.md." A directory-wide check is the part that was missing, and it is
-// what stops the next domain module from reintroducing it.
-test("no domain module sources the summary's title or years from the JD", () => {
-  const dir = "prompts/layer2_domains";
-  const files = fs.readdirSync(dir).filter(f => f.endsWith(".md"));
-  assert.ok(files.length >= 13, `expected the domain modules, found ${files.length}`);
+// The guard now runs in the tools service, on EVERY document it returns, and a violation there
+// returns 422 with NO document (resume-master docs/API.md; its test/generate.test.js). The prompt
+// rules and the runtime-inputs wording these tests used to pin moved with the prompt and are tested
+// there (test/resumeClaimGuard.test.js, test/runtimeInputs.test.js). What is draft's to guarantee:
+// no résumé is built any other way, and a refusal is never persisted.
 
-  for (const file of files) {
-    const text = fs.readFileSync(`${dir}/${file}`, "utf8");
-    const opening = text.split(/\r?\n/).find(line => line.startsWith("Open "));
-    assert.ok(opening, `${file} has no SUMMARY opening rule`);
-
-    // The two wordings that contradicted layer 1 outright.
-    assert.doesNotMatch(opening, /role title from the JD|target role title/i,
-      `${file} takes the summary's title from the JD`);
-    // And the loose restatement, which left whose title and which years unsaid in a paragraph
-    // otherwise full of "from the JD".
-    assert.doesNotMatch(opening, /^Open with role title, years,/,
-      `${file} restates the title/years rule instead of deferring to Layer 1`);
-    assert.match(opening, /Open as Layer 1 requires — the candidate's own role title/,
-      `${file} must defer to Layer 1 for the title and years`);
-  }
-
-  // Layer 2 must not name a years quantity at all — that is Layer 1's, sourced from the profile.
-  for (const file of files) {
-    const text = fs.readFileSync(`${dir}/${file}`, "utf8");
-    assert.doesNotMatch(text, /total years of relevant experience|a specific year count/i,
-      `${file} still describes how many years to state`);
-  }
-});
-
-test("the prompt tells the model to keep the honest figure rather than blur or omit it", () => {
-  const rules = fs.readFileSync("prompts/layer1_global_rules.md", "utf8");
-  // Dodging the gap is the other way to mislead: a vague summary reads as compliance.
-  assert.match(rules, /Do not write a range, "N\+", or a vaguer phrasing to blur the gap/);
-  assert.match(rules, /do not omit the figure to avoid stating it/);
-});
-
-test("the runtime inputs carry the profile's years, marked authoritative", () => {
-  const server = fs.readFileSync("server.js", "utf8");
-  assert.match(server, /Candidate years of experience \(AUTHORITATIVE — the JD may not change this\)/,
-    "without this the JD's demand is the only quantity in context");
-  assert.match(server, /derive from the base resume dates only, never from the JD/,
-    "and the unset case must say where to look instead");
-  // The seniority line is the candidate's own declaration now, not a target — and the guard's
-  // ceiling is that declaration. The old wording ("an aspiration, not a level to claim") matched a
-  // guard that took the base resume as the only authority and therefore refused every seniority
-  // word in the output.
-  //
-  // ASSERTED AGAINST THE PROMPT STRING, not the file. The previous version of this test searched
-  // all of server.js for the old label, and kept passing after the label changed because the
-  // sentence explaining the change quotes it in a comment — a test matching its own changelog.
-  const block = server.slice(at(server, "let domainProfileBlock"), at(server, "**Target role / job title:**"));
-  assert.match(block, /Seniority the candidate states they are \(their own declaration — you may use it, and may not exceed it\)/);
-  assert.doesNotMatch(block, /\*\*Target seniority:\*\*/);
-  assert.doesNotMatch(block, /aspiration, not a level to claim/,
-    "the prompt must not still tell the model the level is unclaimable");
-});
-
-test("the assertion runs in coreGenerateResume, BEFORE the artifact is persisted", () => {
-  const server = fs.readFileSync("server.js", "utf8");
-  const start = server.indexOf("async function coreGenerateResume");
-  assert.ok(start > 0);
-  const body = server.slice(start, at(server, "\n// ", at(server, "return { html: formattedHtml")));
-  const assertAt = body.indexOf("assertResumeClaims(");
-  assert.ok(assertAt > 0, "coreGenerateResume must assert its own output");
-
-  // Ordering is the whole point: after the assertion throws, nothing may write the artifact.
-  const insertAt = body.indexOf("INSERT INTO resume_versions");
-  const returnAt = body.indexOf("return { html: formattedHtml");
-  assert.ok(insertAt === -1 || assertAt < insertAt, "the assertion must precede persistence");
-  assert.ok(assertAt < returnAt, "the assertion must precede the return");
-
-  // It must be the shared kernel, so BOTH the HTTP handler and the apply worker are covered — under
-  // full-auto no human reads the resume, so a check only on the HTTP path protects nobody.
-  // The domainProfile argument is load-bearing, not decoration: it carries the seniority the
-  // candidate chose, and without it the guard falls back to the base resume's wording and refuses
-  // every seniority word in the output.
-  assert.match(body, /assertResumeClaims\(\{\s*html: formattedHtml, profile, baseResumeText: authoritativeResumeText,\s*domainProfile: activeDomainProfile,\s*\}\)/);
-});
-
-// ── AG3 item 1: no generation path reaches persistence without the guard ────────────────────────
-
-test("AG3: every resume-generating path funnels through the guarded coreGenerateResume", () => {
+test("⛔ no draft code builds a résumé with its own model call — every path goes through the guarded service", () => {
   const server = fs.readFileSync("server.js", "utf8");
   const apply = fs.readFileSync("routes/apply.js", "utf8");
-
-  // The UNATTENDED path. The apply worker never calls a model itself — it asks
-  // generateResumeForApply, which is a thin wrapper over the same guarded function the HTTP route
-  // uses. If that ever stops being true, a resume can be submitted to an employer unread and
-  // unchecked, which is the exact failure this guard exists for.
-  assert.match(apply, /generateResumeForApply\(userId, jobId, toolType\)/,
-    "the apply worker must go through generateResumeForApply");
-  const wrapper = server.slice(
-    at(server, "function generateResumeForApply"),
-    at(server, "app.post(\"/api/resumes/:jobId/html\""),
-  );
-  assert.match(wrapper, /coreGenerateResume\(/,
-    "generateResumeForApply must delegate to coreGenerateResume rather than call a model itself");
-
-  // And nothing else calls a model to build a resume. Exactly two callers, both accounted for.
-  const callers = server.split("coreGenerateResume(").length - 1;
-  assert.equal(callers, 3, `expected the definition plus two callers, found ${callers} occurrences`);
+  // The earlier version of this test counted coreGenerateResume's callers and concluded every path
+  // was guarded. /api/standalone/generate assembled its own prompt and called the model directly,
+  // with no claim guard at all, and that count could not see it. So assert the CAUSE instead: there
+  // is no prompt assembly and no generation call left in draft.
+  assert.doesNotMatch(server, /assemblePrompt\(|buildRuntimeInputs\(|purpose: "resume_generate"|purpose: "standalone_generate"/,
+    "draft must not build a résumé itself — that path would bypass the claim guard");
+  assert.equal(fs.existsSync("services/promptAssembler.js"), false);
+  assert.equal(fs.existsSync("prompts"), false, "a second copy of the prompt is how the CSS drifted three ways");
+  // Both résumé-producing routes call the service.
+  const kernel = server.slice(at(server, "async function coreGenerateResume("), at(server, "function scoreBaseResumeForApply("));
+  assert.match(kernel, /await toolsService\.generate\(generateBody\)/);
+  const standalone = server.slice(at(server, 'app.post("/api/standalone/generate"'), at(server, 'app.post("/api/standalone/apply"'));
+  assert.match(standalone, /await toolsService\.generate\(\{/);
+  // The UNATTENDED path still funnels through the kernel.
+  assert.match(apply, /generateResumeForApply\(userId, jobId, toolType\)/);
+  const wrapper = server.slice(at(server, "function generateResumeForApply"), at(server, 'app.post("/api/resumes/:jobId/html"'));
+  assert.match(wrapper, /coreGenerateResume\(/);
 });
 
-test("AG3: a withheld resume is never persisted, and the refusal reaches the caller", () => {
+test("⛔ a withheld résumé is never persisted, and the refusal reaches the caller", () => {
   const server = fs.readFileSync("server.js", "utf8");
-  const body = server.slice(
-    at(server, "async function coreGenerateResume"),
-    at(server, "function generateResumeForApply"),
-  );
-  const assertAt = body.indexOf("assertResumeClaims(");
-  const insertVersion = body.indexOf("INSERT INTO resume_versions");
-  const insertResume = body.indexOf("INSERT INTO resumes");
-  assert.ok(assertAt > 0, "coreGenerateResume must assert its own output");
-  assert.ok(assertAt < insertVersion && assertAt < insertResume,
-    "the assertion must run BEFORE either write — a warning after the write is not a refusal");
-
-  // The throw is not swallowed into a generic failure: it is attributed to us and explained.
-  const wrapper = server.slice(
-    at(server, "function generateResumeForApply"),
-    at(server, "app.post(\"/api/resumes/:jobId/html\""),
-  );
+  const body = server.slice(at(server, "async function coreGenerateResume("), at(server, "function generateResumeForApply"));
+  const callAt = body.indexOf("await toolsService.generate(generateBody)");
+  assert.ok(callAt > 0);
+  // The service call precedes every write, so a 422 (thrown as code "resume_claim_violation") leaves
+  // nothing behind.
+  for (const write of ["INSERT INTO resume_versions", "INSERT INTO resumes", "INSERT INTO user_jobs", "emitToUser(", "insertNotification("]) {
+    const at_ = body.indexOf(write);
+    assert.ok(at_ > callAt, `${write} must come after the guarded call`);
+  }
+  // The only catch around the call meters spend and RETHROWS — it must not swallow the refusal.
+  const guarded = body.slice(lastAt(body, "try {", callAt), at(body, "usageEventId = ", callAt));
+  assert.match(guarded, /catch \(e\) \{[\s\S]*?throw e;\s*\}/, "the catch must rethrow");
+  // Attributed to US, not to the provider, with its own code.
+  const wrapper = server.slice(at(server, "function generateResumeForApply"), at(server, 'app.post("/api/resumes/:jobId/html"'));
   assert.match(wrapper, /classifyGenerationError\(e\)/);
   const attribution = fs.readFileSync("shared/failureAttribution.js", "utf8");
-  assert.match(attribution, /e\?\.code === "resume_claim_violation"/,
-    "the refusal must keep its own code rather than becoming an upstream error");
+  assert.match(attribution, /e\?\.code === "resume_claim_violation"/);
+  // The interactive route answers 422 with the reasons — not 500.
+  const route = server.slice(at(server, 'app.post("/api/generate"'), at(server, "// SANDBOX + PDF"));
+  assert.match(route, /httpErrorFor\(e, "Resume generation failed"\)/);
 });
 
 test("kbFindings reports a profile contradiction alongside a company-KB one", () => {

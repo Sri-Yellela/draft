@@ -77,14 +77,15 @@ because the claim would stop being true the moment one is.
 Not every disclosure hangs off a permission. These are the flows a reviewer will see in the code,
 and each still needs a policy paragraph.
 
-| Flow | Code | Policy paragraph | Retained server-side? |
-|---|---|---|---|
-| Captured job posting → the user's account | `background.js` `captureActiveTab()` then `importCapturedJob()`, which posts `/api/import/job`; the page is read by `extractor.js` `extractJobPayload()` | *Job Listings*, *Browser Extension* | Yes — title, company, location, description, URL, in `scraped_jobs`, linked to the account |
-| ATS Score page text → `/ats-score?jd=…` | `popup.js` ATS button collects via `chrome.scripting` → `background.js` `OPEN_ATS_SCORE` opens the tab | *Browser Extension*, ATS bullet — states plainly that the text travels in the URL and may appear in server logs | Only as ordinary request logs; not stored as a record |
-| The capture confirmation shown in the page | `extractor.js` `showCaptureToast()`, injected by `background.js` `reportCapture()` after a capture the user asked for | *Browser Extension*, ATS bullet — "no longer changes the appearance of any page except to show you a confirmation message after a capture you asked for" | Not a data flow; disclosed because it is the only thing the extension puts on a page |
-| Job description → Anthropic | server-side ATS scoring / enrichment | *Browser Extension*, fifth bullet, cross-referencing *Third-Party Services* | Per Anthropic's API terms; not used for training |
-| Profile answers → employer's form | `gated-handoff.js` fill | *Filling an Application* | Not retained by us; released into the page the user opened |
-| Form **structure** → our server (opt-in, default OFF) | `gated-handoff.js` schema capture, server-enforced consent | *Learning an Application Form* | Yes, as a fact about the employer's form; not linked to the user |
+| Flow | Code | Policy paragraph | Retained server-side? | Crosses to the tools service? |
+|---|---|---|---|---|
+| Captured job posting → the user's account | `background.js` `captureActiveTab()` then `importCapturedJob()`, which posts `/api/import/job`; the page is read by `extractor.js` `extractJobPayload()` | *Job Listings*, *Browser Extension* | Yes — title, company, location, description, URL, in `scraped_jobs`, linked to the account | No — capture never reaches it |
+| ATS Score page text → `/ats-score?jd=…` | `popup.js` ATS button collects via `chrome.scripting` → `background.js` `OPEN_ATS_SCORE` opens the tab | *Browser Extension*, ATS bullet — states plainly that the text travels in the URL and may appear in server logs | Only as ordinary request logs; not stored as a record | No — draft scores locally with `@draft/ats-scorer`; there is no network hop to score |
+| The capture confirmation shown in the page | `extractor.js` `showCaptureToast()`, injected by `background.js` `reportCapture()` after a capture the user asked for | *Browser Extension*, ATS bullet — "no longer changes the appearance of any page except to show you a confirmation message after a capture you asked for" | Not a data flow; disclosed because it is the only thing the extension puts on a page | No |
+| Job description → Anthropic | server-side ATS scoring / enrichment | *Browser Extension*, fifth bullet, cross-referencing *Third-Party Services* | Per Anthropic's API terms; not used for training | No — enrichment calls Anthropic from draft directly. Only generation goes through the tools service (next row) |
+| Profile answers → employer's form | `gated-handoff.js` fill | *Filling an Application* | Not retained by us; released into the page the user opened | No |
+| Form **structure** → our server (opt-in, default OFF) | `gated-handoff.js` schema capture, server-enforced consent | *Learning an Application Form* | Yes, as a fact about the employer's form; not linked to the user | No |
+| Résumé + the profile details it draws on + the job description → the tools service → Anthropic (A4) | `server.js` `coreGenerateResume()`, `enhanceProfileResume()`, the `/api/parse-pdf` and `/api/standalone/generate` routes — each through `services/toolsService.js` `createToolsServiceClient()`; the body is built by `services/toolsServiceRequests.js` `generateRequest()` | *Third-Party Services* — **Resume Master** and **Anthropic** | **Not by the tools service** — it has no database and logs no content, only token counts. draft stores the RESULT, as before, in `resumes` / `resume_versions` | **Yes — this is the cross-service flow.** Sent over TLS with draft's own service token, as any third-party client would; every field is declared in the vendored, generated contract `contract/resume-master/`, which a checksum test pins |
 
 ## Negative disclosures, and the code that makes them true
 
@@ -108,7 +109,8 @@ disclosure in the same way an undisclosed one is a gap, so each entry now carrie
 | Named in the policy | What reaches it | Code | Live status |
 |---|---|---|---|
 | **Railway** | hosting; everything | the deployment itself | **live** |
-| **Anthropic** | job descriptions, résumé content | `services/jobs/enrichJob.js` and generation, via `resolveProvider()` | **live** — `ANTHROPIC_KEY` set, Haiku per A2 |
+| **Resume Master** | résumé text or PDF, the profile details it draws on (name, contact details, stated years, job profile, claimed skills), the job description — for generation, A+ and PDF reading | `services/toolsService.js` `createToolsServiceClient()`, configured by `RESUME_MASTER_URL` + `RESUME_MASTER_TOKEN` | ⚠ **NOT YET LIVE** — Phase B deploys it. Until then draft's generation and A+ answer 503 and PDF reading degrades to local extraction. Processes, does not retain — its `docs/API.md`, enforced there by `test/http.test.js` (sentinel PII must appear in no log line) and `test/stateless.test.js` |
+| **Anthropic** | job descriptions, résumé content | `services/jobs/enrichJob.js` via `resolveProvider()`; generation since A4 via **Resume Master**, which is its only provider | **live** — `ANTHROPIC_KEY` set, Haiku per A2 |
 | **SerpApi** | search terms and filters | `services/jobs/aggregator.js` `searchJobs()`; reached by `POST /api/jobs/search` | **live in production** (`SERPAPI_KEY` set). Absent from `cacheJobs` by design — `ATS_SOURCE_NAMES` only. ⚠ Not set locally, which is the only reason a local boot logs `Inactive (not configured): adzuna, serpapi`; that line describes the dev box, not production |
 | **Apify** | job titles, locations, filters for one refresh | per-user `apify_token` set via `/api/settings/apify-token`; reached only by `adminDb.js` `scrapeJobs()` behind an admin force-scrape | **conditional, and the policy says so** — "if you have not connected a token, nothing is ever sent". True whether or not any user has |
 | **Adzuna** | search terms and filters | `services/jobs/sources/adzuna.js` `isConfigured()` requires **both** `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` | ⚠ **OVER-DISCLOSED.** Neither variable is in the Railway inventory, so in production Adzuna is inactive and receives **nothing**. Both are set locally. The policy states flatly that search terms "are sent to Adzuna when you search" — true on a dev box, not true of the deployed product |
@@ -161,6 +163,15 @@ answers) and *Website content* (job posting text, ATS Score page text, and opt-i
 
 Declared **not collected**: authentication information, web history, user activity, health,
 financial, personal communications, location.
+
+**Re-checked 2026-09-28 for A4 — no dashboard change needed.** The extension's own data types and
+flows are unchanged: it never talks to the tools service, and nothing it sends to our server moved.
+What changed is server-side — a captured job description, when the user later generates a résumé
+with it, now reaches Anthropic *through* the tools service instead of directly. That flow already
+existed and was already disclosed; the tools service is a processor for the same flow, run by the
+same operator, and retains nothing. The three certifications still hold: nothing is sold, the use is
+the item's single purpose (helping the user complete an application they chose to make), and none is
+creditworthiness. The policy names the new recipient, and the third-party table below does too.
 
 ## Before submitting
 
