@@ -37,6 +37,11 @@ import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL } from "../..
 // goes, which is the kind of change the advance-notice commitment exists for. It is not triggered
 // in practice only because there are no users to notify yet (docs/WORKLOG.md: users — none); from
 // the first user on, a change of this shape needs the notice, not just a date.
+// Same day, B step 4: the former address stopped serving this application and moved to the tools
+// service. The Overview and the extension paragraph said both addresses reached the same servers,
+// which the move made false; both now say where each address goes. v1.0.0 was published UNLISTED
+// (owner, 09-28) and posts to the former address, so the policy says its captures are no longer
+// received rather than implying they are.
 const EFFECTIVE_DATE = 'September 28, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
@@ -135,9 +140,9 @@ export function PrivacyPage() {
         <Section title="Overview">
           <P>
             {BRAND} ("we", "us", "our") operates {CANONICAL_HOST} and the {BRAND} browser
-            extension. The service is also reachable at {LEGACY_HOST}, our former address, which
-            serves the same application from the same servers while we complete the move. This
-            policy explains what data we collect, how we use it, and your rights over your
+            extension. Our former address, {LEGACY_HOST}, no longer serves this application: it now
+            hosts our separate résumé tools service, described under Third-Party Services below.
+            This policy explains what data we collect, how we use it, and your rights over your
             information.
           </P>
           <P>
@@ -214,9 +219,11 @@ export function PrivacyPage() {
               confirmation message after a capture you asked for.
             </LI>
             <LI>
-              Data extracted by the extension is sent to {LEGACY_HOST} or {CANONICAL_HOST} —
-              both are ours and both reach the same servers — and associated with the account you
-              connected the extension to. Because it is attached to your account, captured job data
+              Data extracted by the extension is sent to {CANONICAL_HOST}, our server, and
+              associated with the account you connected the extension to. (An earlier, unlisted
+              build, version 1.0.0, sent it to our former address, {LEGACY_HOST}; that address no
+              longer reaches this application, so captures from that build are not received or
+              stored.) Because it is attached to your account, captured job data
               is personal information, and we treat it as such. The extension identifies itself with
               an access token of its own rather than with your website session: it asks for that
               token once, when you connect it, and from then on it sends the token and not the
