@@ -376,8 +376,11 @@ test("the generation path measures the lift with the SAME scorer on both sides",
   assert.match(src, /let atsScoreBefore = null;[\s\S]{0,900}?termWeights: atsTermWeightsForJob\(job\)/,
     "the before-score must use the same weights the after-score uses");
 
-  // The id is captured at call time and the after-score written once it exists.
-  assert.match(src, /atsScoreBefore,\s*\n\s*onTracked: \(id\) => \{ usageEventId = id; \}/,
+  // The id is captured when the generation's usage is recorded and the after-score written once it
+  // exists. A4: generation runs in the tools service, so the row is written from its returned usage
+  // record (recordToolsServiceUsage returns the resume_generate row's id) rather than by callModel's
+  // onTracked hook. Same row, same two halves.
+  assert.match(src, /usageEventId = recordToolsServiceUsage\(db, generated\.usage, \{[\s\S]{0,200}?atsScoreBefore, idFor: "resume_generate",/,
     "the usage row id must be captured so the after-score can be filled in");
   assert.match(src, /recordAtsOutcome\(db, usageEventId, \{ scoreBefore: atsScoreBefore, scoreAfter: atsScore \}\)/,
     "both halves of the lift must reach the row");

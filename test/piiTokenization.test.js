@@ -248,13 +248,18 @@ test("a token surviving substitution is caught separately", () => {
 // ── REQUIREMENTS 5 AND 6 ────────────────────────────────────────────────────────────────────────
 
 test("requirement 5: A+ / enhanceProfileResume stays on Claude, untokenized", () => {
+  // A4: the A+ rewrite runs in the tools service, which has ONE model provider — Anthropic — and no
+  // routing (resume-master src/model/anthropicCall.js). So "stays on Claude" now holds by that
+  // service's construction; what draft must still guarantee is that it sends the ORIGINAL text,
+  // never a tokenized one, since the A+ prompt is the experimental path and changes.
   const server = fs.readFileSync("server.js", "utf8");
-  const i = server.indexOf('purpose: "resume_enhance"');
+  const i = server.indexOf("toolsService.enhance({");
   assert.ok(i > 0, "the A+ call site was not found");
-  const site = server.slice(i, i + 400);
-  assert.match(site, /dataClass: DATA_CLASS\.CANDIDATE/,
-    "A+ is the experimental path and its prompt changes; it must not be routed or tokenized");
-  assert.ok(!/dataClass: DATA_CLASS\.TOKENIZED/.test(site));
+  const site = server.slice(i, i + 300);
+  assert.match(site, /resumeText: originalText/, "A+ must send the base résumé as written");
+  assert.doesNotMatch(site, /tokeni[sz]e|TOKENIZED/i);
+  const client = fs.readFileSync("services/toolsService.js", "utf8");
+  assert.doesNotMatch(client, /from\s+["'][^"']*pii\//, "the tools-service client must not tokenize anything");
 });
 
 test("requirement 6: AF2's years assertion inspects the OUTPUT, so a tokenized payload cannot make it vacuous", () => {

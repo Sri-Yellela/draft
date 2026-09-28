@@ -191,11 +191,25 @@ test("the scan does not fire on unrelated code", () => {
   }
 });
 
-test("the wrapper is the only thing importing trackApiCall", () => {
+// A4 — ONE LOGGED PATH PER CALLER. The rule was "only callModel records usage", and it stands for
+// every model call DRAFT makes. The tools service's calls are made by ANOTHER service; draft learns
+// of them only from the usage records in its response, and callModel cannot record a call it did
+// not make. So services/toolsService.js is the one second path — and only on the condition asserted
+// below, that it never makes a model call of its own.
+const TOOLS_CLIENT = "services/toolsService.js";
+
+test("the tools-service client records only calls it did not make — it makes none itself", () => {
+  const src = fs.readFileSync(TOOLS_CLIENT, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  assert.doesNotMatch(src, /messages\.(create|batches)|callModel\s*\(|@anthropic-ai\/sdk/,
+    "services/toolsService.js reaches for a model — that call must go through callModel, not be recorded here");
+  assert.match(src, /trackApiCall\(db,/, "and it is the path the tools service's usage records reach usage_events by");
+});
+
+test("the wrapper is the only thing importing trackApiCall (plus the tools-service client, for calls it did not make)", () => {
   // Two paths to the same table is how the four 'tracked' sites drifted from the other ten.
   const offenders = [];
   for (const file of sourceFiles()) {
-    if (file === WRAPPER || file.startsWith("test/")) continue;
+    if (file === WRAPPER || file === TOOLS_CLIENT || file.startsWith("test/")) continue;
     const src = fs.readFileSync(file, "utf8");
     if (/import\s*\{[^}]*\btrackApiCall\b[^}]*\}\s*from/.test(src)) offenders.push(file);
   }

@@ -43,15 +43,17 @@ import { callModel, SYSTEM_USER_ID } from "./services/modelCall.js";
 // has already written. It cannot create a usage_events row, so the reason the note above exists
 // (call sites that recorded spend independently, and went unrecorded) does not apply to it.
 import { recordAtsOutcome } from "./services/usageTracker.js";
+// A4 — generation, the A+ rewrite and PDF parsing belong to the résumé tools service; draft calls it as a client.
+import { createToolsServiceClient, recordToolsServiceUsage, httpErrorFor, ToolsServiceError } from "./services/toolsService.js";
+import { generateRequest as toolsGenerateRequest } from "./services/toolsServiceRequests.js";
 import { drainInto as drainTrackingFailureSink } from "./services/trackingFailureSink.js";
 import { MODEL_SONNET, MODEL_HAIKU } from "./shared/anthropicModels.js";
 import { assertPinnedModelsLive } from "./services/modelCatalogue.js";
 import { classifyGenerationError } from "./shared/failureAttribution.js";
 import { checkLimit } from "./services/limitEnforcer.js";
-import { loadAllPrompts, assemblePrompt } from "./services/promptAssembler.js";
 import { classify } from "./services/classifier.js";
 import { DATA_CLASS } from "./shared/modelProviders.js";
-import { resolveFromClassifier, getDomainModuleKey, getSearchQueryTemplates } from "./services/qualificationResolver.js";
+import { resolveFromClassifier, getSearchQueryTemplates } from "./services/qualificationResolver.js";
 // buildApifyQueriesFromProfile and buildProfileSearchTerms dropped from this import in cleanup
 // 5.1: both were imported here and never called. The functions themselves are KEPT — unlike
 // 5.7's module they still have real callers, in scripts/tracePipeline.js, scripts/rawTrace.js and
@@ -72,10 +74,7 @@ import { sendPasswordResetEmail } from "./services/emailService.js";
 import { allowedModesForTier, canUseAPlusResume, canUseGenerate, canUseMode, hasPlanAtLeast, nextPlan, normalisePlanTier, planForMode } from "./services/entitlements.js";
 import { monetisationEnabledFromEnv } from "./shared/monetisation.js";
 import { fullAutoState, setSetting, clearSetting, FULL_AUTO_KEY } from "./services/appSettings.js";
-import {
-  normalizeResumeHtml as formatterNormalizeResumeHtml,
-  stripResumeHtml as formatterStripResumeHtml,
-} from "./services/resumeFormatter.js";
+import { stripResumeHtml as formatterStripResumeHtml } from "./services/resumeFormatter.js";
 import {
   buildAtsResumeBasis,
   extractUserYearsExperience,
@@ -154,7 +153,9 @@ import { logoUrlForDomain } from "./shared/companyLogos.js";
 import { BRAND } from "./shared/brand.js";
 import { isExtensionRequest, mayActAsAdmin } from "./shared/authPolicy.js";
 import { validateResumeClaims, checkCandidateConsistency } from "./services/kb/failsafe.js";
-import { assertResumeClaims, profileContradictionFindings } from "./services/resumeClaimGuard.js";
+// The generation-time assertion (assertResumeClaims) runs in the tools service since A4; draft keeps the
+// guard's finding form for the kbFindings review surface.
+import { profileContradictionFindings } from "./services/resumeClaimGuard.js";
 import { getCompanyProfile } from "./services/kb/companyProfile.js";
 import { artifactCurrency, currencySentence, modeForTool } from "./services/resumeCurrency.js";
 
@@ -268,52 +269,8 @@ function sanitiseEmployers(employers) {
 
 const ATS_SCORE_PROMPT_VERSION = "local-ats-v1";
 
-const RESUME_STYLE_BLOCK = `<style>
-:root {
-  --color-bg: #ffffff;
-  --color-text: #1a1a1a;
-  --color-muted: #3d3d3d;
-  --color-rule: #6b6b6b;
-  --fs-body: 8.5pt;
-  --fs-name: 9pt;
-  --fs-section: 8pt;
-  --page-w: 8.5in;
-  --margin-x: 0.55in;
-  --margin-top: 0.45in;
-  --margin-bot: 0.45in;
-  --gap-section: 9pt;
-  --gap-entry: 6pt;
-  --gap-inline: 2pt;
-  --lh-body: 1.42;
-  --lh-bullets: 1.38;
-}
-body { background: var(--color-bg); color: var(--color-text); font-family: 'Garamond','EB Garamond',Georgia,serif; font-size: var(--fs-body); line-height: var(--lh-body); margin: var(--margin-top) var(--margin-x) var(--margin-bot); max-width: var(--page-w); }
-.header { text-align: center; margin-bottom: 6pt; }
-.header .name { font-size: var(--fs-name); font-weight: bold; text-transform: uppercase; letter-spacing: 0.22em; line-height: 1.1; }
-.header .tagline { color: var(--color-muted); letter-spacing: 0.04em; font-size: var(--fs-body); }
-.header .contact { font-size: var(--fs-body); }
-.header .contact a { color: inherit; text-decoration: none; }
-.section-title { font-size: var(--fs-section); font-weight: bold; text-transform: uppercase; letter-spacing: 0.18em; color: var(--color-text); border-bottom: 0.5pt solid var(--color-rule); padding-bottom: 1pt; margin-top: var(--gap-section); margin-bottom: 4pt; }
-.entry { margin-bottom: var(--gap-entry); page-break-inside: avoid; }
-.entry-header { display: flex; justify-content: space-between; align-items: baseline; }
-.entry-org { font-weight: bold; }
-.entry-meta { font-style: italic; color: var(--color-muted); font-weight: normal; }
-.sep { font-style: normal; font-weight: normal; color: var(--color-muted); }
-.entry-date { color: var(--color-muted); white-space: nowrap; margin-left: 8pt; flex-shrink: 0; font-size: var(--fs-body); }
-.entry-role { font-style: italic; color: var(--color-muted); margin-bottom: var(--gap-inline); }
-.tech-line { font-size: calc(var(--fs-body) - 0.4pt); color: var(--color-muted); margin-bottom: var(--gap-inline); }
-ul.bullets { list-style: none; padding-left: 0.9em; margin: var(--gap-inline) 0 0 0; }
-ul.bullets li { position: relative; font-size: var(--fs-body); line-height: var(--lh-bullets); margin-bottom: 1.6pt; text-align: justify; }
-ul.bullets li::before { content: "•"; position: absolute; left: -0.85em; }
-.skills-table { width: 100%; border-collapse: collapse; font-size: var(--fs-body); }
-.skill-label { font-weight: bold; white-space: nowrap; padding-right: 12pt; width: 1%; vertical-align: top; padding: 1.2pt 12pt 1.2pt 0; }
-.skill-values { color: var(--color-text); padding: 1.2pt 0; }
-@media print {
-  body { margin: var(--margin-top) var(--margin-x) var(--margin-bot); }
-  .entry { page-break-inside: avoid; }
-  .section-title { page-break-after: avoid; }
-}
-</style>`;
+// RESUME_STYLE_BLOCK lived here unused — a stale copy of the renderer's old design, one of three that
+// had drifted apart. The stylesheet is services/resumeFormatter.js's (and the tools service's) since A4.
 
 function hashText(value) {
   return crypto.createHash("sha256").update(String(value || "")).digest("hex");
@@ -359,15 +316,7 @@ function eventSubtypeForTool(tool) {
   return tool === "a_plus_resume" ? "A_PLUS" : "GENERATE";
 }
 
-function displayModeForPrompt(mode) {
-  const key = String(mode || "").toUpperCase();
-  if (key === "CUSTOM_SAMPLER" || key === "A_PLUS") return "A+";
-  return "Generate";
-}
 
-function normalizeResumeHtml(html) {
-  return formatterNormalizeResumeHtml(html);
-}
 
 const INDUSTRY_CATEGORIES = [
   "Fintech / Banking","E-commerce / Retail","Healthcare / Health Tech",
@@ -3905,10 +3854,7 @@ try {
 }
 }
 
-// Load layered prompt system at startup
-console.log("[boot] loading prompts");
-loadAllPrompts();
-console.log("[boot] prompts loaded");
+// The layered prompt system moved to the tools service in A4; draft loads no prompts.
 
 // ── Backfill: split full_name into first_name / last_name ─────
 {
@@ -3958,6 +3904,10 @@ if (!ANTHROPIC_KEY) {
   console.error("[startup] WARNING: ANTHROPIC_KEY is not set in .env — PDF parsing and resume generation will fail.");
 }
 const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
+// RESUME_MASTER_URL + RESUME_MASTER_TOKEN. Unset is a supported state: every route that needs the
+// service answers 503 with retryable:false and says which setting is missing (see the client).
+const toolsService = createToolsServiceClient();
+console.log(`[boot] tools service client: ${toolsService.configured ? "configured" : "NOT configured (set RESUME_MASTER_URL and RESUME_MASTER_TOKEN) — generation and A+ will answer 503, PDF parsing degrades to local extraction"}`);
 
 // ── PINNED-MODEL LIVENESS (task AD, requirement 2) ────────────────────────────────────────────
 //
@@ -4891,115 +4841,9 @@ cron.schedule("0 2 * * *", () => {
 // it is still a working HarvestAPI crawl. Removing that is a product decision, not cleanup.
 // See docs/PIPELINE_DIAGNOSIS.md §5.12.
 
-// ── Prompt injection ──────────────────────────────────────────
-// domainProfile is the active domain_profiles row (or null).
-// When supplied, profile keywords/verbs/tools are injected as Tier 1 signal.
-function buildRuntimeInputs(profile, job, resumeText, mode, employers, domainProfile = null, claims = null) {
-  const isAPlus = mode === "CUSTOM_SAMPLER" || mode === "A_PLUS";
-  const isGenerate = mode === "TAILORED" || mode === "GENERATE";
-  const userLocation = isAPlus ? "" : (profile?.location||"");
-  let employerBlock  = "";
-  // Apply exclusion list before injecting employer names into prompt
-  const safeEmployers = sanitiseEmployers(employers);
-  if (isGenerate && safeEmployers?.length >= 2)
-    employerBlock = `**Employer 1 (fixed):** ${safeEmployers[0]}\n**Employer 2 (fixed):** ${safeEmployers[1]}\n`;
-
-  const candidateName = profile?.full_name ||
-    [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "";
-
-  // AF2. The summary is required to state total years, and before this the ONLY number in context
-  // asking for a quantity was the JD's own "8+ years required" — so the prompt was being asked for
-  // a figure while being shown nothing but the employer's demand. The profile's own figure is the
-  // authority; when it is unset the base resume is, and the prompt is told so explicitly rather
-  // than left to infer a ceiling.
-  const profileYears = Number(profile?.years_of_experience);
-  const yearsBlock = Number.isFinite(profileYears) && profileYears > 0
-    ? `**Candidate years of experience (AUTHORITATIVE — the JD may not change this):** ${profileYears}\n`
-    : `**Candidate years of experience:** not stated — derive from the base resume dates only, never from the JD\n`;
-
-  // Domain profile block — injected when user has an active profile
-  //
-  // THE SENIORITY LINE CHANGED MEANING, ON PURPOSE.
-  // It used to read "Seniority the user is TARGETING (an aspiration, not a level to claim)", which
-  // matched a guard that took the BASE RESUME's wording as the only authority on level. Most base
-  // resumes never write a level down, so that combination refused every seniority word in the
-  // output — a candidate who had chosen "Senior" in their own profile could not have "Senior" on
-  // their resume. The level is theirs to declare, so the prompt now says so, and the guard's
-  // ceiling is the declaration. What neither permits is going ABOVE it because a JD asked.
-  let domainProfileBlock = "";
-  if (domainProfile) {
-    const kw    = JSON.parse(domainProfile.selected_keywords || "[]").join(", ");
-    const tools = JSON.parse(domainProfile.selected_tools    || "[]").join(", ");
-    const verbs = JSON.parse(domainProfile.selected_verbs    || "[]").join(", ");
-    domainProfileBlock = `
-**User domain profile:** ${domainProfile.profile_name}
-**Seniority the candidate states they are (their own declaration — you may use it, and may not exceed it):** ${domainProfile.seniority}
-**Profile keywords:** ${kw || "—"}
-**Profile tools:** ${tools || "—"}
-**Profile action verbs:** ${verbs || "—"}
-`;
-  }
-
-  // AG2. Terms the CANDIDATE has claimed from an ATS report — "yes, I have this".
-  //
-  // These are candidate-supplied facts, and the distinction from the block above matters: profile
-  // keywords are a targeting preference, whereas a claim is an assertion about the person, made by
-  // the person, which they will have to defend at interview. So they are named as such.
-  //
-  // The qualifier is not decoration. A claimed skill says the candidate HAS the skill; it says
-  // nothing about where they used it, for how long, or to what result — and a model handed a bare
-  // list will happily invent a bullet that supplies all three. The base resume remains the only
-  // source for what they actually did, which is the same rule §7 and the AF2 years guard enforce.
-  //
-  // THE TITLE CARVE-OUT IS LOAD-BEARING, AND WAS ADDED AFTER MEASURING.
-  // The first version of this block said the claims "license WORDING, never HISTORY". Against a JD
-  // titled "Senior Platform Engineer", 6 of 8 real generations then put SENIOR PLATFORM ENGINEER in
-  // the header tagline of a candidate whose base resume supports no seniority at all — and the AF2
-  // guard refused all six. The same prompt with this block removed did it 0 times in 6. "Wording"
-  // was read as licence to adopt the JD's language generally, including its title. So the scope is
-  // now stated as skills and verbs, and titles are ruled out by name.
-  let claimsBlock = "";
-  const claimedSkills = (claims?.skills || []).join(", ");
-  const claimedVerbs = (claims?.actionVerbs || []).join(", ");
-  if (claimedSkills || claimedVerbs) {
-    claimsBlock = `
-**Skills the CANDIDATE has claimed (candidate-supplied — they assert these are true of them):** ${claimedSkills || "—"}
-**Action verbs the CANDIDATE has claimed:** ${claimedVerbs || "—"}
-**How to use the claims above:** they are SKILLS AND VERBS ONLY. They may change which technologies
-a bullet names and which verb opens it, where the base resume already supports the work being
-described. They are NOT a title, a level or a headline: never change the candidate's tagline, role
-titles or seniority because of a claim — those come from the base resume alone. You may NOT invent
-an employer, a project, a duration, a metric or a responsibility to justify a claim, and you may
-NOT add a claimed term to a role that did not involve it. A claim the base resume cannot carry is
-simply not used.
-`;
-  }
-
-  return `## RUNTIME INPUTS
-
-**Mode:** ${displayModeForPrompt(mode)}
-**Candidate full name:** ${candidateName}
-**Phone:** ${profile?.phone||""}
-**Email:** ${profile?.email||""}
-**LinkedIn URL:** ${profile?.linkedin_url||""}
-**GitHub URL:** ${profile?.github_url||""}
-**User location (City, State):** ${userLocation}
-${yearsBlock}${employerBlock}${domainProfileBlock}${claimsBlock}
-**Target role / job title:** ${job.title}
-**Target industry / domain:** ${job.category && job.category !== "Other" ? job.category : job.title || "Technology"}
-**Target company:** ${job.company}
-**Known tech stack of target company:** ${job.stack||"unknown"}
-
----
-
-**TARGET JOB DESCRIPTION**
-${job.description||job.title}
-
----
-
-**BASE RESUME TEXT**
-${resumeText}`;
-}
+/// ── Prompt injection ──────────────────────────────────────────
+// buildRuntimeInputs moved to the tools service in A4 (src/generation/runtimeInputs.js), byte-identical
+// over 324 cases. draft maps its rows onto the request in services/toolsServiceRequests.js.
 
 // ── PDF generation ─────────────────────────────────────────────
 //
@@ -8791,7 +8635,11 @@ async function enhanceProfileResume(req, res) {
   const profile = getResumeRouteProfile(req, res);
   if (!profile) return;
   if (!requirePlan(req, res, "PLUS")) return;
-  if (!ANTHROPIC_KEY) return res.status(500).json({ error: "ANTHROPIC_KEY not configured" });
+  if (!toolsService.configured) {
+    const { status, body } = httpErrorFor(new ToolsServiceError("The résumé tools service is not configured on this server",
+      { code: "tools_service_unconfigured", retryable: false, permanent: true }));
+    return res.status(status).json(body);
+  }
 
   const baseResumeRow = getBaseResumeRecord(db, { userId: req.user.id, profileId: profile.id });
   if (!baseResumeRow?.content) return res.status(400).json({ error: "No base resume uploaded for this profile" });
@@ -8812,46 +8660,22 @@ async function enhanceProfileResume(req, res) {
   const selectedLabels = selectedAdditions.map(item => item.label);
 
   try {
-    const ENHANCE_SYSTEM = `You are a professional resume writer specialising in ATS optimisation.
-Rewrite the provided resume to significantly improve its ATS score by:
-- Strengthening action verbs (replace weak verbs with domain-specific strong ones)
-- Improving keyword density and placement without keyword stuffing
-- Selectively incorporating the highest-value ATS additions only when they are realistic for the candidate
-- Restructuring bullet points to lead with impact (action -> outcome -> metric)
-- Removing filler adjectives and generic phrases
-- Ensuring consistent past tense and clean formatting
-- Keeping all facts, dates, companies, job titles, and metrics exactly as provided
-Do NOT fabricate any information. Do NOT change employment dates, company names, or job titles.
-Do NOT keyword-dump. Omit low-value or duplicative additions.
-Return ONLY the improved resume text with no commentary, preamble, or explanation.`;
+    // A4 — the rewrite runs in the tools service (same system prompt, same user message; its
+    // src/generation/enhance.js). Scoring the two versions and persisting stay here.
+    let enhanced;
+    try {
+      enhanced = await toolsService.enhance({
+        resumeText: originalText,
+        profile: { name: profile.profile_name, roleFamily: profile.role_family, domain: profile.domain },
+        selectedAdditions: selectedLabels,
+      });
+    } catch (e) {
+      recordToolsServiceUsage(db, e?.usage, { userId: req.user.id, eventSubtype: "enhance" });
+      throw e;
+    }
+    recordToolsServiceUsage(db, enhanced.usage, { userId: req.user.id, eventSubtype: "enhance" });
+    const enhancedText = enhanced.text;
 
-    const t0 = Date.now();
-    const enhanceMsg = await callModel({
-      anthropic, db, purpose: "resume_enhance", userId: req.user.id,
-      // CANDIDATE: the candidate's full resume text (A+ path; owner keeps this on Claude regardless). Never routed off Anthropic.
-      dataClass: DATA_CLASS.CANDIDATE,
-      eventType: "resume_enhance", eventSubtype: "enhance",
-      model: MODEL_SONNET,
-      // thinking is explicit: Sonnet 5 runs ADAPTIVE thinking when the field is omitted, and
-      // max_tokens caps thinking + response text together — so an omitted field would silently
-      // spend this budget on reasoning and truncate the resume. This is a deterministic rewrite
-      // task that ran with no thinking on Sonnet 4; keep that behaviour.
-      thinking: { type: "disabled" },
-      // 4000 -> 8000: Sonnet 5's tokenizer emits ~30% more tokens for the same text, so a
-      // resume that fit in 4000 output tokens on Sonnet 4 can now overrun and truncate.
-      max_tokens: 8000,
-      system: ENHANCE_SYSTEM,
-      messages: [{ role: "user", content: `PROFILE NAME: ${profile.profile_name}
-ROLE FAMILY: ${profile.role_family}
-DOMAIN: ${profile.domain}
-SELECTED ATS ADDITIONS TO CONSIDER:
-${selectedLabels.map((label, idx) => `${idx + 1}. ${label}`).join("\n")}
-
-RESUME TO ENHANCE:
-
-${originalText}` }],
-    });
-    const enhancedText = enhanceMsg.content.map(b => b.text || "").join("").trim();
     const templateJd = "Software Engineer, Product Manager, Data Scientist, Data Engineer, Machine Learning Engineer";
     const scoreSignalProfile = loadOrCreateSimpleApplyProfile(db, {
       userId: req.user.id,
@@ -8900,8 +8724,9 @@ ${originalText}` }],
       improvements: enhReport?.improvements || [],
     });
   } catch(e) {
-    console.error("[enhance]", e.message);
-    res.status(500).json({ error: "Enhancement failed: " + e.message });
+    console.error("[enhance]", e.code || e.name, e.message);
+    const { status, body } = httpErrorFor(e, "Enhancement failed");
+    res.status(status).json(body);
   }
 }
 
@@ -9036,28 +8861,43 @@ app.patch("/api/domain-profiles/:id/adopt-enhanced", requireAuth, async (req, re
 
 app.post("/api/parse-pdf", requireAuth, upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).json({ error:"No file" });
-  if (!ANTHROPIC_KEY) return res.status(500).json({ error:"ANTHROPIC_KEY not configured on server. Set it in your .env file." });
+  // A4 — the tools service extracts with the model, preserving section structure. ⛔ If it cannot — not
+  // configured, unreachable, overloaded, unfunded — this DEGRADES to local text extraction rather
+  // than failing: reduced quality, never zero, and the response says which one ran. Capture learned
+  // this the hard way: /api/import/job had a hard model dependency, and an unfunded balance took it
+  // to nothing instead of to a reduced mode.
+  let modelFailure = null;
+  if (toolsService.configured) {
+    try {
+      const out = await toolsService.parsePdf({ pdfBase64: req.file.buffer.toString("base64") });
+      recordToolsServiceUsage(db, out.usage, { userId: req.user.id });
+      return res.json({ text: out.text, chars: out.chars, source: "resume_master", degraded: false });
+    } catch (e) {
+      recordToolsServiceUsage(db, e?.usage, { userId: req.user.id });
+      // Refused as not-a-PDF or too large: the file is the problem, and extracting it locally
+      // would not make it a valid résumé.
+      if (e?.code === "invalid_request" || e?.code === "payload_too_large") {
+        const { status, body } = httpErrorFor(e);
+        return res.status(status).json(body);
+      }
+      modelFailure = e;
+      console.warn(`[parse-pdf] tools service failed (${e?.code || e?.name}); degrading to local extraction`);
+    }
+  }
   try {
-    const base64 = req.file.buffer.toString("base64");
-    const msg = await callModel({
-      anthropic, db, purpose: "parse_pdf", userId: req.user.id,
-      // CANDIDATE: the raw bytes/text of an uploaded resume PDF — name, address, phone, employment history. Never routed off Anthropic.
-      dataClass: DATA_CLASS.CANDIDATE,
-      model: MODEL_SONNET,
-      // See the enhance call site: explicit thinking:disabled + doubled budget, because Sonnet 5
-      // thinks by default and its tokenizer is denser. A truncated extraction here silently
-      // yields a partial resume, which is why this must not be left implicit.
-      thinking: { type: "disabled" },
-      max_tokens: 8000,
-      messages:[{ role:"user", content:[
-        { type:"document", source:{ type:"base64", media_type:"application/pdf", data:base64 } },
-        { type:"text", text:"Extract all text from this resume PDF preserving section structure. Return plain text only, no commentary." },
-      ]}],
-    });
-    const text = msg.content.map(b=>b.text||"").join("").trim();
-    res.json({ text, chars:text.length });
-  } catch(e) { res.status(500).json({ error:e.message }); }
+    const { default: pdfParse } = await import("pdf-parse/lib/pdf-parse.js");
+    const text = ((await pdfParse(req.file.buffer)).text || "").trim();
+    if (text.length < 50) {
+      return res.status(422).json({ error: "Could not extract text from this PDF", retryable: false,
+        detail: modelFailure ? `Model extraction was unavailable: ${modelFailure.message}` : "Model extraction is not configured on this server" });
+    }
+    res.json({ text, chars: text.length, source: "local", degraded: true,
+      degradedReason: modelFailure ? modelFailure.message : "The résumé tools service is not configured on this server" });
+  } catch (e) {
+    res.status(422).json({ error: "Could not read this PDF", retryable: false, detail: String(e?.message || e).slice(0, 200) });
+  }
 });
+
 
 // ═══════════════════════════════════════════════════════════════
 // GENERATE
@@ -9084,21 +8924,11 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
     : null;
   const authoritativeResumeText = storedResume?.content || resumeText;
 
-  let domainModuleKey = "general";
-  if (activeDomainProfile) {
-    domainModuleKey = getDomainModuleKey(null, activeDomainProfile.role_family, activeDomainProfile.domain);
-    console.log(`[generate] domain from profile: ${activeDomainProfile.profile_name} → ${domainModuleKey}`);
-  } else {
-    try {
-      const classifierResult = await classify(anthropic, authoritativeResumeText, job.description || "", {
-        db, userId, eventSubtype, jobId: String(jobId), company: job.company,
-      });
-      const qualKey = resolveFromClassifier(classifierResult, profile?.qualification_key);
-      domainModuleKey = getDomainModuleKey(qualKey, classifierResult.roleFamily, classifierResult.domain);
-    } catch(e) {
-      console.warn("[generate] classifier failed, using general domain:", e.message);
-    }
-  }
+  // A4. Domain resolution, prompt assembly, the model call, formatting and the claim guard now run
+  // in the tools service (services/toolsService.js). With an active profile draft sends its role
+  // family and domain and the tools service resolves the module exactly as qualificationResolver did;
+  // without one, the tools service classifies. What stays here is everything that is draft's: the
+  // database reads and writes, scoring with draft's own weights, notifications.
 
   // AG2. Read fresh on every generation, so a claim made after an earlier resume was produced
   // affects the NEXT one and never reaches back into an artifact already saved.
@@ -9112,8 +8942,10 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   // off the SUMMARY rules are absent from the assembled prompt, so no summary is generated to
   // strip. Both tools route through here, so A+ and Generate honour it identically.
   const includeSummary = activeDomainProfile?.include_summary === 1;
-  const runtimeInputs = buildRuntimeInputs(profile, job, authoritativeResumeText, promptMode, employers, activeDomainProfile, profileClaims);
-  const { systemBlocks } = assemblePrompt(domainModuleKey, promptMode, runtimeInputs, { SUMMARY: includeSummary });
+  const generateBody = toolsGenerateRequest({
+    profile, job, baseResumeText: authoritativeResumeText, mode: promptMode, employers,
+    domainProfile: activeDomainProfile, claims: profileClaims, includeSummary,
+  });
 
   // ── AK1: measure the LIFT, not just the spend ────────────────────────────────────────────────
   //
@@ -9153,139 +8985,30 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   let usageEventId = null;
 
   const genStart = Date.now();
-  const resumeMsg = await callModel({
-    anthropic, db, purpose: "resume_generate", userId,
-    // CANDIDATE: the candidate's profile and resume, tailored against a JD. Never routed off Anthropic.
-    dataClass: DATA_CLASS.CANDIDATE,
-    eventType: "resume_generate", eventSubtype,
-    atsScoreBefore,
-    onTracked: (id) => { usageEventId = id; },
-    jobId: String(jobId), company: job.company, domainModule: domainModuleKey,
-    model: MODEL_SONNET,
-    // See the enhance call site: Sonnet 5 thinks by default and max_tokens covers thinking +
-    // output, so leaving this implicit would eat the HTML budget. Truncated HTML is especially
-    // bad here — downstream code parses this into the submitted resume.
-    thinking: { type: "disabled" },
-    max_tokens: 8192,
-    system: systemBlocks,
-    messages: [{ role: "user", content: runtimeInputs }],
-  });
-  const html = resumeMsg.content.map(b => b.text || "").join("").replace(/```html|```/g, "").trim();
-
-  let formattedHtml = normalizeResumeHtml(html);
-  if (process.env.RESUME_MASTER_LLM_FORMAT === "1") {
-    try {
-      const FORMATTING_SYSTEM = `You are a resume HTML formatter. You receive a resume in any HTML format and reformat it to exactly match the design specification below. You output ONLY the final HTML — no commentary, no markdown fences, no explanation.
-
-DESIGN SPECIFICATION:
-
-All CSS lives in a <style> block in <head>. No inline styles. No external fonts, CDN links, or JavaScript. Include @media print block.
-
-CSS variables (use these — no hardcoded hex):
-:root {
-  --color-bg: #ffffff;
-  --color-text: #1a1a1a;
-  --color-muted: #3d3d3d;
-  --color-rule: #6b6b6b;
-  --fs-body: 8.5pt;
-  --fs-name: 9pt;
-  --fs-section: 8pt;
-  --page-w: 8.5in;
-  --margin-x: 0.55in;
-  --margin-top: 0.45in;
-  --margin-bot: 0.45in;
-  --gap-section: 9pt;
-  --gap-entry: 6pt;
-  --gap-inline: 2pt;
-  --lh-body: 1.42;
-  --lh-bullets: 1.38;
-}
-
-Font: font-family: 'Garamond','EB Garamond',Georgia,serif — all text, no exceptions.
-
-body { background: var(--color-bg); color: var(--color-text); font-family: 'Garamond','EB Garamond',Georgia,serif; font-size: var(--fs-body); line-height: var(--lh-body); margin: var(--margin-top) var(--margin-x) var(--margin-bot); max-width: var(--page-w); }
-
-.header { text-align: center; margin-bottom: 6pt; }
-.header .name { font-size: var(--fs-name); font-weight: bold; text-transform: uppercase; letter-spacing: 0.22em; line-height: 1.1; }
-.header .tagline { color: var(--color-muted); letter-spacing: 0.04em; font-size: var(--fs-body); }
-.header .contact { font-size: var(--fs-body); }
-.header .contact a { color: inherit; text-decoration: none; }
-
-.section-title { font-size: var(--fs-section); font-weight: bold; text-transform: uppercase; letter-spacing: 0.18em; color: var(--color-text); border-bottom: 0.5pt solid var(--color-rule); padding-bottom: 1pt; margin-top: var(--gap-section); margin-bottom: 4pt; }
-
-.entry { margin-bottom: var(--gap-entry); page-break-inside: avoid; }
-.entry-header { display: flex; justify-content: space-between; align-items: baseline; }
-.entry-org { font-weight: bold; }
-.entry-meta { font-style: italic; color: var(--color-muted); font-weight: normal; }
-.sep { font-style: normal; font-weight: normal; color: var(--color-muted); }
-.entry-date { color: var(--color-muted); white-space: nowrap; margin-left: 8pt; flex-shrink: 0; font-size: var(--fs-body); }
-.entry-role { font-style: italic; color: var(--color-muted); margin-bottom: var(--gap-inline); }
-.tech-line { font-size: calc(var(--fs-body) - 0.4pt); color: var(--color-muted); margin-bottom: var(--gap-inline); }
-
-ul.bullets { list-style: none; padding-left: 0.9em; margin: var(--gap-inline) 0 0 0; }
-ul.bullets li { position: relative; font-size: var(--fs-body); line-height: var(--lh-bullets); margin-bottom: 1.6pt; text-align: justify; }
-ul.bullets li::before { content: "•"; position: absolute; left: -0.85em; }
-
-.skills-table { width: 100%; border-collapse: collapse; font-size: var(--fs-body); }
-.skill-label { font-weight: bold; white-space: nowrap; padding-right: 12pt; width: 1%; vertical-align: top; padding: 1.2pt 12pt 1.2pt 0; }
-.skill-values { color: var(--color-text); padding: 1.2pt 0; }
-
-@media print {
-  body { margin: var(--margin-top) var(--margin-x) var(--margin-bot); }
-  .entry { page-break-inside: avoid; }
-  .section-title { page-break-after: avoid; }
-}
-
-RULES:
-- Preserve ALL content exactly — every word, number, company name, date, bullet, skill
-- Only restructure the HTML and CSS — never change the text content
-- Apply the class names above to the correct elements
-- Entry headers must be a single flex row — company on left, date on right
-- Output only the complete HTML file, nothing else`;
-
-      const fmtStart = Date.now();
-      const formatMsg = await callModel({
-        anthropic, db, purpose: "resume_format", userId,
-        // CANDIDATE: the generated resume's full HTML, content preserved verbatim. Never routed off Anthropic.
-        dataClass: DATA_CLASS.CANDIDATE,
-        eventType: "resume_format", eventSubtype,
-        jobId: String(jobId), company: job.company, domainModule: domainModuleKey,
-        model: MODEL_HAIKU,
-        max_tokens: 4096,
-        system: [{ type: "text", text: FORMATTING_SYSTEM, cache_control: { type: "ephemeral" } }],
-        messages: [{ role: "user", content: `Reformat this resume HTML to match the design specification exactly. Preserve all content:\n\n${html}` }],
-      });
-      const formatted = formatMsg.content.map(b => b.text || "").join("").replace(/```html|```/g, "").trim();
-      if (formatted) formattedHtml = normalizeResumeHtml(formatted);
-    } catch(e) {
-      console.warn("[format] Formatting pass failed, using raw generation output:", e.message);
-    }
+  // ⛔ the tools service runs the claim guard (AF2) on this document BEFORE returning it, and on a
+  // violation returns 422 with the violations and NO document — which the client throws as
+  // code "resume_claim_violation", the same code failureAttribution has always classified. So a
+  // withheld résumé still never reaches the writes below: nothing is persisted, scored or sent.
+  let generated;
+  try {
+    generated = await toolsService.generate(generateBody);
+  } catch (e) {
+    // Spend the tools service reports on a failed request is still spend — meter it, then rethrow.
+    recordToolsServiceUsage(db, e?.usage, { userId, eventSubtype, jobId: String(jobId), company: job.company });
+    throw e;
   }
-
-  // ── AF2: the JD may steer emphasis, never a quantity ───────────────────────────────────────────
-  // Asserted HERE, before the artifact is persisted, scored or returned, so it covers BOTH callers:
-  // the /api/generate handler where a human reads the result, and the apply worker where under
-  // full-auto nobody does. A violation throws — see services/resumeClaimGuard.js on why this is a
-  // failure and not a warning. The artifact is never written, so no later step can pick it up.
-  // activeDomainProfile carries the seniority the candidate chose for this profile, which is the
-  // authority on their level — without it the guard falls back to the base resume's wording, which
-  // most resumes never state, and refuses every seniority word in the output.
-  //
-  // AI1. With the summary opt-in, the shape of the document this reads is no longer fixed, so what
-  // the guard INSPECTED is logged next to what it found. The inflation check reads the whole
-  // document and is unaffected by the summary's absence; the under-claim check reads the headline
-  // region, which is the summary when there is one and the header block when there is not.
-  // assertResumeClaims itself throws when the document text is empty, so "no violation" can never
-  // mean "nothing was read".
-  const claimCheck = assertResumeClaims({
-    html: formattedHtml, profile, baseResumeText: authoritativeResumeText,
-    domainProfile: activeDomainProfile,
+  const domainModuleKey = generated.domainModuleKey;
+  usageEventId = recordToolsServiceUsage(db, generated.usage, {
+    userId, eventSubtype, jobId: String(jobId), company: job.company, domainModule: domainModuleKey,
+    atsScoreBefore, idFor: "resume_generate",
   });
+  const formattedHtml = generated.html;
   console.log(
-    `[generate] claim guard: inspected ${claimCheck.checked.inspected.documentChars} chars, ` +
-    `headline region "${claimCheck.checked.inspected.headlineRegion}" ` +
-    `(${claimCheck.checked.inspected.headlineChars} chars), summary ${includeSummary ? "on" : "off"}`
+    `[generate] via the tools service in ${Date.now() - genStart}ms, module ${domainModuleKey}; claim guard inspected ` +
+    `${generated.claimCheck.inspected.documentChars} chars, headline region "${generated.claimCheck.inspected.headlineRegion}", ` +
+    `summary ${includeSummary ? "on" : "off"}`
   );
+
 
   const resumeStripped = stripResumeHtml(formattedHtml);
   const activeProfile = getOrRepairActiveProfile(userId);
@@ -9733,7 +9456,13 @@ app.post("/api/generate", requireAuth, async (req, res) => {
   try {
     const result = await coreGenerateResume({ userId: req.user.id, jobId: String(jobId), job, tool, resumeText, employers });
     res.json({ html: result.html, atsScore: result.atsScore, atsReport: result.atsReport, cached:false, version: result.version, tool, toolLabel: tool === "a_plus_resume" ? "A+ Resume" : "Generate", kbFindings: kbFindingsFor(result.html) });
-  } catch(e) { res.status(500).json({ error:e.message }); }
+  } catch(e) {
+    // ⛔ Was `500 { error: e.message }` for everything — an exhausted balance, an overload and a
+    // withheld résumé looked identical and none said whether retrying could help.
+    console.error("[generate]", e?.code || e?.name, e?.message);
+    const { status, body } = httpErrorFor(e, "Resume generation failed");
+    res.status(status).json(body);
+  }
   finally { generationInFlight.delete(inFlightKey); }
 });
 
@@ -10251,7 +9980,11 @@ app.post("/api/standalone/ats", standaloneRateLimit("ats", 1, 3), standaloneUplo
 app.post("/api/standalone/generate", requireStandaloneAuth, standaloneRateLimit("generate", 0, 2), standaloneUpload.single("resume"), async (req, res) => {
   const jdText = req.body?.jd_text || "";
   if (!req.file || !jdText.trim()) return res.status(400).json({ error: "resume PDF and jd_text required" });
-  if (!ANTHROPIC_KEY) return res.status(500).json({ error: "ANTHROPIC_KEY not configured" });
+  if (!toolsService.configured) {
+    const { status, body } = httpErrorFor(new ToolsServiceError("The résumé tools service is not configured on this server",
+      { code: "tools_service_unconfigured", retryable: false, permanent: true }));
+    return res.status(status).json(body);
+  }
 
   try {
     const { default: pdfParse } = await import("pdf-parse/lib/pdf-parse.js");
@@ -10259,40 +9992,29 @@ app.post("/api/standalone/generate", requireStandaloneAuth, standaloneRateLimit(
     const resumeText = parsed.text?.trim();
     if (!resumeText || resumeText.length < 50) return res.status(400).json({ error: "Could not extract text from PDF" });
 
-    // No domain profile for standalone users — use classifier
-    let domainModuleKey = "general";
-    try {
-      // Was the third classify() caller and the only one that passed no tracking context, so
-      // its spend was invisible. Unauthenticated route — attributed to the system sentinel.
-      const cr = await classify(anthropic, resumeText, jdText, {
-        db, userId: SYSTEM_USER_ID, eventSubtype: "standalone",
-      });
-      const qk = resolveFromClassifier(cr, null);
-      domainModuleKey = getDomainModuleKey(qk, cr.roleFamily, cr.domain);
-    } catch {}
-
-    const fakeJob = { title: "Role", company: "Company", description: jdText, category: "", stack: "" };
-    // AI1. Standalone has no account and therefore no job profile to hold the preference, so the
-    // request carries it and the DEFAULT IS THE SAME as the per-profile column's: off. Anything
-    // else would give the two entry points different resumes for the same candidate. The value is
-    // read strictly — only an explicit true turns the section on, so a client that omits the field
-    // or sends something unexpected lands on the documented default rather than on a guess.
+    // A4 — through the tools service, which classifies (no job profile here) and — ⛔ NEW FOR THIS
+    // ROUTE — runs the claim guard. This path used to assemble its own prompt and call the model
+    // directly, so its résumés never passed the guard: the AG3 test that "every resume-generating
+    // path funnels through coreGenerateResume" counted that function's callers and could not see it.
+    // With no profile, the years check is skipped and the seniority ceiling is the base résumé's.
+    // It also now returns the deterministic render rather than the model's raw HTML.
     const includeSummary = req.body?.include_summary === true || req.body?.include_summary === "true";
-    const runtimeInputs = buildRuntimeInputs({}, fakeJob, resumeText, "GENERATE", []);
-    const { systemBlocks } = assemblePrompt(domainModuleKey, "GENERATE", runtimeInputs, { SUMMARY: includeSummary });
+    const fakeJob = { title: "Role", company: "Company", description: jdText, category: "", stack: "" };
+    let generated;
+    const meter = { userId: SYSTEM_USER_ID, eventSubtype: "standalone",
+      renamePurpose: { resume_generate: "standalone_generate" } };
+    try {
+      generated = await toolsService.generate({
+        mode: "GENERATE", candidate: {}, profile: null, claims: null, employers: [],
+        job: fakeJob, baseResumeText: resumeText, options: { includeSummary },
+      });
+    } catch (e) {
+      recordToolsServiceUsage(db, e?.usage, meter);
+      throw e;
+    }
+    recordToolsServiceUsage(db, generated.usage, meter);
+    const html = generated.html;
 
-    const resumeMsg = await callModel({
-      anthropic, db, purpose: "standalone_generate", userId: SYSTEM_USER_ID,
-      // CANDIDATE: an uploaded resume, rewritten. Never routed off Anthropic.
-      dataClass: DATA_CLASS.CANDIDATE,
-      model: MODEL_SONNET,
-      // See the enhance call site: explicit thinking:disabled + denser-tokenizer headroom.
-      thinking: { type: "disabled" },
-      max_tokens: 8192,
-      system: systemBlocks,
-      messages: [{ role: "user", content: runtimeInputs }],
-    });
-    const html = resumeMsg.content.map(b => b.text || "").join("").trim();
 
     // Quick ATS score
     const cachedText = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -10311,7 +10033,10 @@ app.post("/api/standalone/generate", requireStandaloneAuth, standaloneRateLimit(
     } catch {}
 
     res.json({ html, atsScore });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    const { status, body } = httpErrorFor(e, "Resume generation failed");
+    res.status(status).json(body);
+  }
 });
 
 // POST /api/standalone/apply — auto-apply (requires standalone auth)

@@ -2,9 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "fs";
-import {
-  applyPromptConditionals, assemblePrompt, loadAllPrompts,
-} from "../services/promptAssembler.js";
+// A4: the prompt-conditional and assembler tests moved to resume-master with the prompt.
 import {
   checkResumeClaims, assertResumeClaims, ResumeClaimError, ResumeClaimNotInspectedError,
   extractHeadlineRegion,
@@ -12,112 +10,8 @@ import {
 import { normalizeResumeHtml, renderStructuredResume } from "../services/resumeFormatter.js";
 import { scoreAtsLocally } from "../services/localAtsScorer.js";
 import { at } from "../test-support/sourceAnchors.js";
+import { generateRequest } from "../services/toolsServiceRequests.js";
 
-loadAllPrompts();
-
-// ── The conditional mechanism ───────────────────────────────────────────────────────────────────
-
-test("a conditional span is kept when its flag is on and removed when it is off", () => {
-  const text = "keep<!--IF:SUMMARY-->A<!--ENDIF--><!--IFNOT:SUMMARY-->B<!--ENDIF-->keep";
-  assert.equal(applyPromptConditionals(text, { SUMMARY: true }),  "keepAkeep");
-  assert.equal(applyPromptConditionals(text, { SUMMARY: false }), "keepBkeep");
-});
-
-test("an unknown or missing flag resolves OFF, so a typo cannot silently keep a rule", () => {
-  const text = "<!--IF:SUMMRY-->typo<!--ENDIF--><!--IFNOT:SUMMRY-->fallback<!--ENDIF-->";
-  assert.equal(applyPromptConditionals(text, {}), "fallback");
-  // Only an explicit true counts — a truthy string or 1 is not a flag being set.
-  assert.equal(applyPromptConditionals("<!--IF:SUMMARY-->on<!--ENDIF-->", { SUMMARY: "yes" }), "");
-  assert.equal(applyPromptConditionals("<!--IF:SUMMARY-->on<!--ENDIF-->", { SUMMARY: 1 }), "");
-});
-
-test("a multi-line span is removed whole, and does not leave a hole in the prose", () => {
-  const text = "before\n\n<!--IFNOT:SUMMARY-->## GONE\n\nbody\n<!--ENDIF-->\n\nafter";
-  const off = applyPromptConditionals(text, { SUMMARY: true });
-  assert.doesNotMatch(off, /GONE|body/);
-  assert.doesNotMatch(off, /\n{3,}/, "a removed block must not leave three blank lines behind");
-});
-
-// ── THE RULE COMES OUT OF THE PROMPT (requirement 3) ────────────────────────────────────────────
-//
-// Not "the summary is removed after generation". The assertion is on the assembled system blocks,
-// because that is the only place the difference between the two designs is visible: a stripping
-// implementation would produce IDENTICAL prompts here and differ only downstream.
-
-test("with the summary OFF the model is never told to write one", () => {
-  const off = assemblePrompt("engineering", "GENERATE", "inputs", { SUMMARY: false });
-  const text = off.systemBlocks.map(b => b.text).join("\n");
-
-  assert.doesNotMatch(text, /## SUMMARY/, "the SUMMARY rules block must be absent");
-  assert.doesNotMatch(text, /SUMMARY appears immediately after header/);
-  assert.doesNotMatch(text, /430-480 rendered characters/, "the length rule is the summary's");
-  assert.doesNotMatch(text, /### E\. SUMMARY FRAMING GUIDANCE/,
-    "layer 2 restates the rule in every domain module; that copy must go too");
-  assert.doesNotMatch(text, /Open as Layer 1 requires/);
-  assert.doesNotMatch(text, /Summary \/ Professional Summary \/ Profile \/ About/,
-    "the label-normalisation line would reintroduce the section by another name");
-  assert.doesNotMatch(text, /Order: SUMMARY ->/);
-  assert.doesNotMatch(text, /summary length/, "the final silent check must not ask for one either");
-
-  // And it is told, positively, not to produce one — silence is not an instruction.
-  assert.match(text, /## NO SUMMARY SECTION/);
-  assert.match(text, /Do not emit a SUMMARY, PROFESSIONAL SUMMARY, PROFILE, OBJECTIVE or ABOUT section/);
-  assert.match(text, /a summary without its heading is still a summary/,
-    "an unlabelled opening paragraph is the obvious way to comply with the letter and not the rule");
-  assert.match(text, /Order: TECHNICAL SKILLS -> EXPERIENCE/);
-});
-
-test("with the summary ON the prompt is what it was before AI1", () => {
-  const on  = assemblePrompt("engineering", "GENERATE", "inputs", { SUMMARY: true });
-  const text = on.systemBlocks.map(b => b.text).join("\n");
-  assert.match(text, /## SUMMARY/);
-  assert.match(text, /SUMMARY appears immediately after header/);
-  assert.match(text, /430-480 rendered characters/);
-  assert.match(text, /### E\. SUMMARY FRAMING GUIDANCE/);
-  assert.match(text, /Order: SUMMARY -> TECHNICAL SKILLS/);
-  assert.doesNotMatch(text, /## NO SUMMARY SECTION/);
-  // AF2's rules are inside the block that is now conditional — confirm they survived the move.
-  assert.match(text, /The years figure comes from `Candidate years of experience`/);
-  assert.match(text, /Never from the JD\./);
-});
-
-test("no marker syntax ever reaches the model, under either setting", () => {
-  for (const SUMMARY of [true, false]) {
-    for (const mode of ["GENERATE", "A_PLUS"]) {
-      for (const domain of fs.readdirSync("prompts/layer2_domains").map(f => f.replace(/\.md$/, ""))) {
-        const text = assemblePrompt(domain, mode, "inputs", { SUMMARY }).systemBlocks.map(b => b.text).join("\n");
-        assert.doesNotMatch(text, /<!--\s*(IF|IFNOT|ENDIF)/,
-          `${domain}/${mode}/SUMMARY=${SUMMARY} leaked a conditional marker`);
-      }
-    }
-  }
-});
-
-test("the default is OFF when no flag is passed at all", () => {
-  const text = assemblePrompt("general", "GENERATE", "inputs").systemBlocks.map(b => b.text).join("\n");
-  assert.match(text, /## NO SUMMARY SECTION/,
-    "a caller that forgets the flag must get the product default, not yesterday's behaviour");
-});
-
-test("both variants are still cacheable — every block carries cache_control", () => {
-  for (const SUMMARY of [true, false]) {
-    const blocks = assemblePrompt("general", "GENERATE", "inputs", { SUMMARY }).systemBlocks;
-    for (const b of blocks) {
-      if (!b.text) continue;
-      assert.deepEqual(b.cache_control, { type: "ephemeral" });
-    }
-  }
-});
-
-test("resolving does not mutate the cache — the two settings stay independent across calls", () => {
-  const a = assemblePrompt("general", "GENERATE", "x", { SUMMARY: false }).systemBlocks[0].text;
-  const b = assemblePrompt("general", "GENERATE", "x", { SUMMARY: true  }).systemBlocks[0].text;
-  const c = assemblePrompt("general", "GENERATE", "x", { SUMMARY: false }).systemBlocks[0].text;
-  assert.notEqual(a, b);
-  assert.equal(a, c, "the OFF variant must be identical before and after an ON call");
-});
-
-// ── OFF MEANS ABSENT, NOT EMPTY (requirement 2) ─────────────────────────────────────────────────
 
 test("a resume with no summary renders no heading and no rule line for one", () => {
   const html = normalizeResumeHtml(`<html><body>
@@ -267,31 +161,6 @@ test("the ATS scorer has no structural dependency on a summary section", () => {
     "the same terms must score the same wherever in the document they sit");
 });
 
-test("a term the summary was the ONLY carrier of is lost with it — which is why the prompt says so", () => {
-  // Measured on the real artifact in docs/ai1-summary: dropping its summary cost 12 points,
-  // because "distributed systems" appeared in the summary and nowhere else. That is not the
-  // scorer penalising an absent section — it is a keyword that had one home. The no-summary prompt
-  // rule exists precisely for this, so the assertion is on the rule.
-  const rules = fs.readFileSync("prompts/layer1_global_rules.md", "utf8");
-  const noSummaryBlock = rules.slice(at(rules, "## NO SUMMARY SECTION"), at(rules, "<!--ENDIF--><!--IF:SUMMARY-->"));
-  assert.match(noSummaryBlock, /Every honestly claimable Tier 1 term still appears verbatim in TECHNICAL SKILLS or in a bullet/,
-    "with no summary, the terms it used to carry must be required somewhere that remains");
-
-  // AK1: the scorer declines below MIN_SCORABLE_TERMS rather than fabricating a number, and a
-  // two-term posting is below it. The posting now names four skills so the pair below is a
-  // comparison of two SCORES, as it always was, and not of two nulls. "distributed systems" is
-  // still the term the summary alone carried, which is the thing under test.
-  const job = {
-    title: "Backend Engineer", company: "N",
-    description: "Java, distributed systems, Kubernetes, PostgreSQL.",
-  };
-  const basis = t => ({ resumeText: t, skills: [], titles: [], actionVerbs: [] });
-  const carried = scoreAtsLocally({ job, runtimeBasis: basis("TECHNICAL SKILLS Java, distributed systems EXPERIENCE Acme") }).score;
-  const dropped = scoreAtsLocally({ job, runtimeBasis: basis("TECHNICAL SKILLS Java EXPERIENCE Acme") }).score;
-  assert.ok(carried > dropped,
-    "the cost is the missing TERM, not the missing section — this is what the rule prevents");
-});
-
 // ── The wiring (requirements 1, 5, 6) ───────────────────────────────────────────────────────────
 
 test("the migration is byte-identical in both runners, and defaults to OFF", () => {
@@ -309,46 +178,25 @@ test("the migration is byte-identical in both runners, and defaults to OFF", () 
   assert.doesNotMatch(a, /DROP|DELETE FROM|UPDATE domain_profiles/);
 });
 
-test("coreGenerateResume reads the per-profile preference and passes it to the PROMPT", () => {
+test("coreGenerateResume reads the per-profile preference and passes it to the tools service", () => {
+  // A4: the flag reaches the PROMPT inside the tools service now (its promptAssembler resolves the
+  // conditionals; its test/summaryOptIn.test.js pins that). draft's half is that the per-profile
+  // column is read and sent, with the documented default.
   const server = fs.readFileSync("server.js", "utf8");
-  // The end anchor read "async function generateResumeForApply" and that function is not async —
-  // it is declared `function generateResumeForApply(userId, jobId, toolType)`. indexOf returned -1,
-  // slice read -1 as "one from the end", and this body was 63,521 characters instead of 15,948:
-  // four times too wide, running past coreGenerateResume through most of the rest of server.js.
-  // The `body.length > 500` line below looks like it guards that and does not — it only catches a
-  // slice that came out too SMALL, which is the failure that does not happen here.
   const body = server.slice(at(server, "async function coreGenerateResume"),
                             at(server, "function generateResumeForApply(userId, jobId, toolType)"));
   assert.ok(body.length > 500, "coreGenerateResume was not located");
   assert.match(body, /const includeSummary = activeDomainProfile\?\.include_summary === 1;/);
-  assert.match(body, /assemblePrompt\(domainModuleKey, promptMode, runtimeInputs, \{ SUMMARY: includeSummary \}\)/);
-  // The assertion still runs, and what it inspected is recorded next to it.
-  assert.match(body, /const claimCheck = assertResumeClaims\(\{/);
-  assert.match(body, /claimCheck\.checked\.inspected\.documentChars/);
+  assert.match(body, /toolsGenerateRequest\(\{[\s\S]{0,300}?includeSummary,/);
+  // What the guard inspected is still recorded next to the generation.
+  assert.match(body, /generated\.claimCheck\.inspected\.documentChars/);
   // Requirement 3, asserted structurally: nothing removes a summary after the fact.
   assert.doesNotMatch(body, /stripSummary|removeSummary/);
-});
-
-test("--from-file verifies externally-produced artifacts, and says what it cannot know", () => {
-  // The mode exists so the two documents can be produced without spending on a billed key — but a
-  // verification path that quietly reports a weaker result as a full pass is worse than no path.
-  // What is asserted here is the honesty, not the plumbing.
-  // Normalised on read: two assertions below span lines with "\n", which a fresh Windows clone
-  // materialises as "\r\n". See CLAUDE.md, line endings.
-  const h = fs.readFileSync("scripts/ai1SummaryVerify.mjs", "utf8").replace(/\r\n/g, "\n");
-  assert.match(h, /const FROM_FILE = process\.argv\.includes\("--from-file"\);/);
-  // It goes through the SAME normaliser, guard and PDF as a real run — only the HTML's origin differs.
-  assert.match(h, /html = normalizeResumeHtml\(raw\);\n    console\.log\(`  --from-file:/);
-  // The two sources are mutually exclusive; silently preferring one would misreport provenance.
-  assert.match(h, /--from-file and --render-only are different sources; pick one/);
-  // A missing or wrong path fails loudly rather than falling back to a model call.
-  assert.match(h, /--from-file needs AI1_\$\{label\.toUpperCase\(\)\}_HTML to point at an existing file/);
-  // And the closing report refuses to claim model obedience.
-  assert.match(h, /PARTLY verified/);
-  assert.match(h, /cannot know whether their author was blind to what/);
-  assert.match(h, /For evidence about MODEL OBEDIENCE, re-run with no flag/);
-  // The AF2 inflation check must RUN in this mode — those artifacts face the 8-year JD.
-  assert.match(h, /It runs under --from-file, because those\n  \/\/ artifacts were produced against this JD/);
+  // And the mapping carries it strictly: only an explicit true turns the section on.
+  const on = generateRequest({ profile: {}, job: { title: "E" }, baseResumeText: "x", mode: "GENERATE", includeSummary: true });
+  const off = generateRequest({ profile: {}, job: { title: "E" }, baseResumeText: "x", mode: "GENERATE", includeSummary: 1 });
+  assert.deepEqual(on.options, { includeSummary: true });
+  assert.deepEqual(off.options, { includeSummary: false }, "a truthy non-boolean must land on the default");
 });
 
 test("the standalone path honours it, with the same default", () => {
@@ -357,7 +205,7 @@ test("the standalone path honours it, with the same default", () => {
                             at(server, 'app.post("/api/standalone/apply"'));
   assert.ok(body.length > 500, "the standalone generate route was not located");
   assert.match(body, /req\.body\?\.include_summary === true/);
-  assert.match(body, /assemblePrompt\(domainModuleKey, "GENERATE", runtimeInputs, \{ SUMMARY: includeSummary \}\)/);
+  assert.match(body, /options: \{ includeSummary \}/);
 });
 
 test("the API accepts the field, coerces it, and returns it as a boolean", () => {

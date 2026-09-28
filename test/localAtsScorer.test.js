@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { buildRuntimeAtsBasis, LOCAL_ATS_SOURCE, normaliseAtsTerm, scoreAtsLocally } from "../services/localAtsScorer.js";
 import { at } from "../test-support/sourceAnchors.js";
+import * as requestsModule from "../services/toolsServiceRequests.js";
 
 test("local ATS normalization catches common wording variations", () => {
   assert.equal(normaliseAtsTerm("REST APIs"), normaliseAtsTerm("REST API"));
@@ -343,30 +344,19 @@ test("AG2: a claim informs FUTURE generation and never rewrites an existing resu
   // Read per generation, from the live table — so a claim made today cannot reach yesterday's
   // artifact, and tomorrow's generation sees it without anything being replayed.
   assert.match(server, /listProfileClaims\(db, \{ userId, profileId: activeDomainProfile\.id \}\)/);
-  // Asserted before slicing: indexOf yields -1 for a missing anchor and slice reads that as
-  // "one from the end", so a moved anchor widens the slice instead of failing, and the matches
-  // below then pass over the whole file.
-  const buildStart = server.indexOf("function buildRuntimeInputs");
-  const buildEnd   = server.indexOf("// ── PDF generation");
-  assert.ok(buildStart !== -1, "anchor moved: function buildRuntimeInputs");
-  assert.ok(buildEnd   !== -1, "anchor moved: // ── PDF generation");
-  const build = server.slice(buildStart, buildEnd);
-  assert.match(build, /Skills the CANDIDATE has claimed \(candidate-supplied/);
-  assert.match(build, /they are SKILLS AND VERBS ONLY/,
-    "the prompt must bound what a claim authorises");
-  assert.match(build, /an employer, a project, a duration, a metric or a responsibility/);
-
-  // MEASURED, not stylistic. The block first said claims "license WORDING", and against a JD titled
-  // "Senior Platform Engineer" 6 of 8 real generations put that title in the tagline of a candidate
-  // with no seniority in their base resume — 0 of 6 did so with the block removed. The carve-out is
-  // what closed that, so it is pinned by name.
-  assert.match(build, /They are NOT a title, a level or a headline/);
-  // `\r?\n`, NOT `\n`. This is the only assertion in the suite anchored to a line break inside a
-  // prompt string, and with a CRLF working tree — which is what `.gitattributes`' `* text=auto`
-  // plus core.autocrlf=true produce on a Windows checkout — the source reads `role\r\ntitles` and a
-  // bare `\n` never matches. The test then fails on a fresh clone, having found nothing wrong with
-  // the code. A test whose result depends on how a file was last written is not testing the code.
-  assert.match(build, /never change the candidate's tagline, role\r?\ntitles or seniority because of a claim/);
+  // A4: the claims block the model reads is rendered by the tools service now
+  // (resume-master src/generation/runtimeInputs.js), and ITS test pins the measured wording by name —
+  // "SKILLS AND VERBS ONLY", "NOT a title, a level or a headline" (6 of 8 real generations adopted a
+  // JD's title under the looser wording). What is draft's is that the fresh claims REACH the request.
+  const kernel = server.slice(at(server, "async function coreGenerateResume("), at(server, "function scoreBaseResumeForApply("));
+  assert.match(kernel, /toolsGenerateRequest\(\{[\s\S]{0,300}?claims: profileClaims/,
+    "the claims read for this generation must be the ones sent");
+  const { generateRequest } = requestsModule;
+  const body = generateRequest({ profile: {}, job: { title: "E" }, baseResumeText: "x", mode: "GENERATE",
+    claims: { skills: ["Terraform"], actionVerbs: ["Led"] } });
+  assert.deepEqual(body.claims, { skills: ["Terraform"], actionVerbs: ["Led"] });
+  assert.equal(generateRequest({ profile: {}, job: { title: "E" }, baseResumeText: "x", mode: "GENERATE",
+    claims: { skills: [], actionVerbs: [] } }).claims, null, "no claims means no claims block, as before");
 
   // The claim store is separate from the profile's own term lists, which are what the ATS scorer
   // reads. Writing claims there would let a claim inflate its own score.

@@ -30,7 +30,14 @@ import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL } from "../..
 // reader could falsify it by watching one request. It now says which single value is transmitted
 // and to whom. Advance notice is not triggered — no new data leaves, and one recipient path closed
 // — but this is the bump to point at if anyone asks when the token was first disclosed.
-const EFFECTIVE_DATE = 'September 26, 2026';
+// 2026-09-28: bumped for A4, and unlike every bump above this one ADDS a recipient. Résumé
+// generation, enhancement and PDF reading moved to the résumé tools service (Resume Master), so the
+// résumé, the profile details it draws on and the job description now pass through it on their way
+// to Anthropic. Same operator, and it processes without storing — but it is a new place the data
+// goes, which is the kind of change the advance-notice commitment exists for. It is not triggered
+// in practice only because there are no users to notify yet (docs/WORKLOG.md: users — none); from
+// the first user on, a change of this shape needs the notice, not just a date.
+const EFFECTIVE_DATE = 'September 28, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 function Section({ title, children }) {
@@ -219,7 +226,8 @@ export function PrivacyPage() {
             </LI>
             <LI>
               Job descriptions you capture may be sent to Anthropic's API when you use them for
-              ATS scoring or resume generation, as described under Third-Party Services below.
+              ATS scoring or resume generation — for generation, through our résumé tools service —
+              as described under Third-Party Services below.
             </LI>
             <LI>
               It does <Strong>not</Strong> read, store, or transmit your session cookies, login
@@ -417,9 +425,22 @@ export function PrivacyPage() {
               privacy policy.
             </LI>
             <LI>
+              <Strong>Resume Master</Strong> (resumemaster.one) — our résumé tools service. It is a
+              separate service that we operate, and it is what generates, enhances and formats
+              résumés and reads uploaded résumé PDFs. When you use one of those features, the
+              material it needs is sent to it: your résumé text or PDF, the profile details the
+              résumé draws on (your name, contact details, stated years of experience, job profile
+              and any skills you have claimed) and the job description. It{" "}
+              <Strong>processes that and returns the result; it does not store it</Strong> — it has
+              no database, and it records only token counts for each request, never its content.
+              It sends the material to Anthropic for the model step, below. If it is unavailable,
+              reading an uploaded PDF falls back to extraction on our own server.
+            </LI>
+            <LI>
               <Strong>Anthropic</Strong> — AI resume generation and ATS analysis.
-              Job descriptions and resume content are sent to Anthropic's API. Anthropic does
-              not use API inputs to train models.
+              Job descriptions and resume content are sent to Anthropic's API — for résumé
+              generation, through our résumé tools service above. Anthropic does not use API inputs
+              to train models.
             </LI>
             <LI>
               <Strong>SerpApi</Strong> — job search results. Search queries are

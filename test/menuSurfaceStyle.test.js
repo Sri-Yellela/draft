@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { SORTS } from "../shared/jobFilterOptions.js";
+import { normalizeResumeHtml } from "../services/resumeFormatter.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 // The four theme.jsx token assertions that stood here named light AND dark rgba values for
 // --bg-menu plus light/dark --popover pairs. Both are gone: there is one theme now
@@ -294,9 +296,20 @@ test("shipping source is UTF-8, BOM-free and free of double-encoded text", () =>
 
 // The resume bullet is asserted on its own because it is the one corrupt sequence that reached a
 // user: it is rendered into every generated resume, and no test covered it.
-test("the generated resume bullet is a real bullet character", () => {
-  const server = fs.readFileSync("server.js", "utf8");
-  const rules = server.match(/ul\.bullets li::before \{ content: "(.)"/gu) ?? [];
-  assert.equal(rules.length, 2, "expected the style block and the formatter prompt to both set it");
-  for (const rule of rules) assert.match(rule, /content: "•"/u, rule);
+// ⛔ THIS TEST WAS GUARDING DEAD CODE until A4. It counted `content: "•"` rules in server.js — an
+// UNUSED stylesheet copy and the FORMATTING_SYSTEM prompt — and never looked at the renderer that
+// produces every résumé, which had already moved to `list-style: disc` with no hand-drawn bullet.
+// Green, and protecting nothing a user sees. Both copies it counted are gone; this reads the LIVE
+// renderer (services/resumeFormatter.js — the tools service holds the identical file).
+test("the generated resume bullet is a real bullet — asserted on the renderer that actually runs", () => {
+  const renderer = fs.readFileSync("services/resumeFormatter.js", "utf8");
+  const start = at(renderer, "export const RESUME_STYLE_BLOCK");
+  const block = renderer.slice(start, at(renderer, "</style>`", start));
+  assert.ok(block.length > 200, "the renderer's stylesheet was not found");
+  assert.match(block, /ul\.bullets \{[^}]*list-style: disc/, "bullets must be the browser's own disc");
+  // A hand-drawn bullet is how one corrupt character reached every PDF; none may come back.
+  assert.doesNotMatch(block, /::before\s*\{[^}]*content:/, "no pseudo-element may draw a bullet character");
+  const html = normalizeResumeHtml("JANE DOE\nEXPERIENCE\nAcme — Engineer\n- Built services\n- Shipped features");
+  assert.match(html, /<ul class="bullets">\s*<li>Built services<\/li>/, "bullet items reach the document as list items");
+  assert.doesNotMatch(html, /[�â\u0080¢]/, "no mojibake in the rendered document");
 });
