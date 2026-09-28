@@ -31,8 +31,8 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 | | |
 |---|---|
-| Production (draft) | `jobsviadraft.com` — **`e046b7c`**, deployed 09-28 15:00Z (B step 3). Boot log: `tools service client: configured`; 0 migrations applied. A1 and A4 are LIVE. ⚠ The worklog commits after it are local only — a doc-only push would restart production for nothing |
-| Production (Resume Master) | **LIVE at `https://resume-master-production-d960.up.railway.app`**, commit **`814356d`**, service `resume-master` in draft's Railway project `resume-master` (owner's choice: kept there). Boot log: `model=true clients=["draft"]`. ⛔ `resumemaster.one` still points at draft (B step 4 not done) — it answers draft's SPA shell |
+| Production (draft) | `jobsviadraft.com` ONLY — **`a7a9c7f`**, deployed 09-28 18:20Z (B step 4's policy fix). A1 and A4 are LIVE. Verified: `/api/auth/me` JSON, Google sign-in redirects to the `jobsviadraft.com` callback, the capture endpoint answers JSON; the BUILT bundle carries the new policy sentences and not the old one |
+| Production (Resume Master) | **LIVE at `https://resumemaster.one`** (since B step 4, 09-28 — verifier 21/21 ON THE DOMAIN; ⛔ certificate `VALIDATING_OWNERSHIP` until the owner's DNS edit) and `https://resume-master-production-d960.up.railway.app`, commit **`814356d`**, service `resume-master` in draft's Railway project `resume-master` (owner's choice: kept there). Boot log: `model=true clients=["draft"]`. ⛔ `resumemaster.one` still points at draft (B step 4 not done) — it answers draft's SPA shell |
 | Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`814356d`**, auto-deploys on push. **197 tests, 197 pass** |
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (OWNER 2) |
 | Resume Master contract | **v1.0.0**, generated; vendored in draft. **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
@@ -51,13 +51,14 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
-**B — steps 1–3 done; ⛔ stopped before step 4 (the domain move).** Resume Master is live on its
-Railway URL and verified 24/24; draft `e046b7c` is live and calls it; the first real generations ran.
+**B — steps 1–4 done; ⛔ one owner DNS edit left, then step 5.** `resumemaster.one` now serves
+Resume Master (verified 21/21 on the domain itself); draft `a7a9c7f` serves only `jobsviadraft.com`,
+signs in, and its deployed policy says where each address goes.
 
-Step 4 moves `resumemaster.one` off the draft service onto Resume Master — a new certificate, so a
-quiet hour, and the owner's go-ahead. ⚠ Before it: `resumemaster.one` is still one of draft's two
-domains. Confirm no live client still reaches draft through it (the reviewed extension build posts to
-`jobsviadraft.com` since P4), or moving it breaks that client silently — no 301 may cover it.
+⛔ **The DNS edit is not optional.** The domain works today only because Railway's edge routes by
+hostname and the OLD A record still reaches the same edge. The certificate for Resume Master's copy of
+the domain is `VALIDATING_OWNERSHIP` and cannot issue or renew until DNS points at the NEW target —
+see OWNER QUEUE 1.
 
 ---
 
@@ -65,12 +66,13 @@ domains. Confirm no live client still reaches draft through it (the reviewed ext
 
 | | Task | Why it is here |
 |---|---|---|
-| 1 | **Generate ONE résumé in the app** (signed in, any job) and tell the agent | Closes B step 3's last gap: the HTTP route, the `usage_events` row and the lift measurement have not run on the new path. ⚠ READ the result — see *Fabrication* in CURRENT STATE |
-| 2 | ⛔ **B step 4 go-ahead** — move `resumemaster.one` from draft to Resume Master | New certificate; a quiet hour. See NOW for the pre-check |
+| 1 | ⛔ **At name.com, point `resumemaster.one` at the new target:** change the apex record from `b8h66npc.up.railway.app` to **`hhdv8gnd.up.railway.app`** (ANAME/CNAME-flattened at `@`, as today). Then tell the agent, who checks `railway domain status a2ac6249-2c0d-4450-9352-ba915c6b9b41` for a VALID certificate | The certificate cannot issue or renew until this is done; today's working state is an edge-routing coincidence |
+| 1b | ~~Generate ONE résumé in the app~~ ✅ done 09-28 — recorded end to end (see G2 answer) | Closes B step 3's last gap: the HTTP route, the `usage_events` row and the lift measurement have not run on the new path. ⚠ READ the result — see *Fabrication* in CURRENT STATE |
+| 2 | ~~B step 4 go-ahead~~ ✅ given and done 09-28 — domain moved, except the DNS edit in row 1 | New certificate; a quiet hour. See NOW for the pre-check |
 | 3 | At a quiet moment: delete the stray `RESUME_MASTER_CLIENT_TOKENS` from the **draft** service | Inert (draft never reads it), but Railway's `variable delete` cannot skip the redeploy, so it restarts production |
-| 4 | **Replace the store icon in the dashboard** | Uploaded separately from the zip — the package upload does not carry it |
-| 5 | After step 4: remove the stale `resumemaster.one` OAuth redirect URI from Google Cloud Console | B step 5 |
-| 6 | **AF5 — 30 supervised applications** | ⛔ LAST, and ⛔ **not before agent queue 2** — generation currently invents content. Run ONE first and confirm `job_applications` gets a row with `ats_score_at_apply` populated |
+| 4 | ~~Replace the store icon in the dashboard~~ ✅ done by the owner, 09-28 | Uploaded separately from the zip — the package upload does not carry it |
+| 5 | **B step 5: remove the stale `resumemaster.one` OAuth redirect URI** from Google Cloud Console | ✅ Unblocked — draft's live redirect is `https://jobsviadraft.com/auth/google/callback` (read from the redirect Google receives). The old URI now points at a service with no `/auth` route |
+| 6 | **AF5 — 30 supervised applications** | ⛔ LAST. The résumé-guard work (G1) is **deferred to post-migration by the owner (09-28)** — AF5 itself is post-migration, and every generated document still needs reading before it is sent. Run ONE first and confirm `job_applications` gets a row with `ats_score_at_apply` populated |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
 committed and reuploaded · `marketing.md` deferred — **the pilot is gated to CS anyway** · **service
@@ -86,8 +88,8 @@ Run top to bottom. One commit per task. Report into *SESSION LOG* between each.
 
 | | Task | Prompt lives in | Blocked on |
 |---|---|---|---|
-| 1 | **B step 4** — move `resumemaster.one` to Resume Master, then `npm run verify:live -- --base https://resumemaster.one` must give 24/24 (it fails every check today) and draft must still sign in and capture on `jobsviadraft.com` | `PHASE_A_B_EXECUTION.md` §B | ⛔ owner go-ahead (OWNER 2) |
-| 2 | ⛔ **An unsupported-content check for generation — BLOCKS AF5.** 2 of 2 real generations stated things the candidate never did. Measure first: generate against real base résumés (thin and full) and count unsupported bullets and skills — the rate decides the design (withhold vs flag vs mark for review). Then a mechanical check beside the claim guard, same contract (a violation withholds or flags; never silently passes) | Resume Master `docs/API.md` promise 3 | — |
+| 1 | **B step 4 close-out** — after the owner's DNS edit, confirm `railway domain status a2ac6249-…` shows a VALID certificate and re-run `verify:live -- --base https://resumemaster.one` | `PHASE_A_B_EXECUTION.md` §B | ⛔ owner DNS edit (OWNER 1) |
+| 2 | ⏸ **DEFERRED to post-migration by the owner (09-28)** — "a work in progress". An unsupported-content check for generation. 2 of 2 real generations stated things the candidate never did. Measure first: generate against real base résumés (thin and full) and count unsupported bullets and skills — the rate decides the design (withhold vs flag vs mark for review). Then a mechanical check beside the claim guard, same contract (a violation withholds or flags; never silently passes) | Resume Master `docs/API.md` promise 3 | — |
 | 3 | Delete draft's two dead `getDomainModuleKey` copies — the disagreement is **resolved** (one definition in Resume Master, `5112249`); since A4 neither draft copy has a caller that reads its result | below | — |
 | 4 | `.dockerignore` excludes `data/` from the production image — **wider than QUALIFICATION_ROLE_MAP** | below | — |
 | 5 | ⭐ **Reconcile `DONE` against `git log`** | below | — |
@@ -128,6 +130,122 @@ the volume. It excludes FOUR tracked files, not one:
 
 ---
 
+## ⛔ OBSERVED IN PRODUCTION — 2026-09-29, first real generations
+
+The first time anyone read real output end to end. **Seven findings, none blocking the domain move,
+several blocking AF5.** Recorded so they are not lost in the split's momentum.
+
+### ⛔ G1 · Generation invents content — BLOCKS AF5
+
+Agent-found. Two real documents said things the candidate never did: **Kafka, lifted from the job
+ad**, and two unsourced responsibility bullets ("Collaborated with risk and infrastructure
+teams…", "Instrumented service-level metrics…") plus an unsourced skill.
+
+⛔ **The prompt forbids this. The claim guard only checks YEARS and SENIORITY, so both passed.**
+Not new with the split — the same prompt draft always used. An unsupported-content check is queued.
+
+⚠ Two samples on a deliberately thin test résumé show the problem exists; they do not give a rate.
+
+### G2 · The generated résumé looks barely changed — owner-observed
+
+Against the owner's real (thick) résumé, output reads close to the input. ⚠ **In tension with G1**,
+which was measured on a thin one — a thin résumé may invite padding while a thick one gets almost
+nothing. **Neither the change rate nor the invention rate is measured.** Both need a real sample,
+not two anecdotes.
+
+⛔ Open and unverified: **is generation even being triggered on the web route?** The usage record
+from the owner's run is the check, and the agent is waiting to read it.
+
+✅ **Answered, agent-measured 09-28 from both services' logs: YES.** The owner's run went
+`/api/generate` → the tools service in 28.6 s, module `engineering`; the claim guard inspected 5,678
+chars; `usage_events` got a `resume_generate` row (user 3, Sonnet 5, 3,979 in / 3,798 out,
+**$0.0635**, a cold 7,009-token cache write); and the lift was recorded **42 → 58 (+16)**. Resume
+Master's metering line matches to the token. So the model ran and the scorer saw a 16-point change —
+"barely changed" is then a question about WHAT changed, which still needs the real sample above.
+
+### ⛔ G3 · AG4's duplication defect is LIVE AGAIN
+
+The generated résumé shows a role stated three times:
+
+```
+Stripe | Software Development Engineer, Payments Infrastructure Bangalore
+Software Development Engineer, Payments Infrastructure        ← italic restatement
+Bangalore
+```
+
+⛔ This is **exactly** AG4's shape, and AG4's tests pass: *"a model's plain-text restatement of the
+header and bullets is read, not reprinted"* · *"a nested entry-header does not leak its date into
+the body"*. **Green tests, live defect** — the eighth instance of that pattern. The tests assert
+something narrower than the behaviour, or the path has changed under them.
+
+Corroborated independently, agent 09-28: the agent's own second real generation (synthetic résumé,
+Stripe role) extracted as `Stripe | Software Engineer 2021 - 2025 Software Engineer 2021 - 2025` and
+`B.S. Computer Science 2021 B.S. Computer Science 2021` — the same role-restatement shape, on a
+different résumé. Two independent documents, so it is not a one-off input.
+
+### G4 · Formatting need not be a model call at all — and mostly already is not
+
+⭐ **The owner is right, and it is closer to true than it looks.** Formatting is deterministic
+(`resumeFormatter.js`). The LLM formatting pass is behind `RESUME_MASTER_LLM_FORMAT=1` and A2 found
+**zero `resume_format` events ever** — it has never run.
+
+⛔ But the stale artifact remains: `FORMATTING_SYSTEM` still carries **35 of the renderer's 43 CSS
+lines describing a design the renderer ABANDONED**. So the prompt spends tokens on, and could
+instruct a model toward, a layout that no longer exists.
+
+⚠ **Correction, agent 09-28: that artifact is already gone.** A2 rebuilt `FORMATTING_SYSTEM` in Resume
+Master FROM `RESUME_STYLE_BLOCK` (a test fails if its source restates any CSS), and A4 deleted
+draft's copy along with the unused `server.js` stylesheet. What is left is only the decision below —
+and it is now a decision about Resume Master's code, off by default and never run.
+
+**Decide:** delete the LLM format path outright, or rebuild its prompt from the renderer's CSS.
+Deleting is cheaper and nothing uses it.
+
+### ⛔ G5 · The ATS panel shows a NUMBER and a BAND, and they read as contradictory
+
+The panel shows **"ATS Score 58"** beside **"Strong match"**.
+
+⛔ **The band is CORRECT** — the Strong cutpoint is 44 at 100% precision, and v4's median is 28, so
+58 is comfortably Strong. **The defect is showing the number at all.** 58/100 reads as a failing
+grade to a human; ρ = 0.746 supports coarse ordering and not a displayed figure; and the mobile
+contract already marks `matchScore` **INTERNAL — DO NOT DISPLAY**. The desktop panel never got the
+same treatment.
+
+**Fix: show the band, drop the number.** `UI_REDESIGN.md` already says this; it is live today and
+does not need to wait for the redesign.
+
+### G6 · The generic-language classifier has gaps
+
+A "Generic language" section exists and correctly holds *Managed, Partnered, Coordinated, Grew* —
+but **"Defined" and "Created" are listed as MISSING VERBS**, and **"collaboration" as a MISSING
+COMPETENCY**.
+
+All three are things almost any candidate could claim, so surfacing them as gaps implies a
+deficiency that is not real. ⛔ AH3 built exactly this suppression and set a specificity threshold;
+these three sit the wrong side of it. Note the corpus head is **soft skills, not technologies** —
+*collaboration* appears 199 times — so the threshold is under-tuned rather than absent.
+
+### G7 · Resume Master's Railway URL errors in a browser — ⚠ CHECK BEFORE THE DOMAIN MOVE
+
+`resume-master-production-d960.up.railway.app` returns an error when opened directly, while the
+agent's live verifier passes **24 of 24 scenarios** against it.
+
+⚠ **Most likely benign** — an API-only service has no route at `/`, so a bare visit 404s. But
+⛔ **confirm what the root returns and that it is intentional BEFORE moving `resumemaster.one` onto
+it.** A domain move onto a service that genuinely errors makes the failure public, and this project
+has five precedents of a status code being read as evidence in the wrong direction.
+
+✅ **Confirmed before the move, agent 09-28, with a browser's own request** (Chrome user-agent,
+`Accept: text/html…`): `/` → **404 `application/json` `{"error":"not_found"}`**, and `/favicon.ico` and
+`/robots.txt` the same. INTENTIONAL: the service has no root route, its catch-all answers every
+unknown path with a JSON 404 by design (the opposite of draft's SPA catch-all), and that is declared
+in the contract (`x-not-found`) and pinned by two envelope-harness scenarios. A browser renders it as
+raw JSON on a 404 — which reads as an error, and is not one. ⚠ Consequence accepted: since step 4,
+anyone opening `resumemaster.one` sees that JSON. A human-facing root is a contract change (a route,
+so a version bump) if ever wanted.
+
+---
+
 ## DONE
 
 Newest first. One line each; detail lives in `SESSION LOG` or the named doc.
@@ -142,6 +260,7 @@ it against `git log` and correct it** — that reconciliation is itself a queued
 |---|---|
 | **A1** (`3c3fd1d`, 09-27) | `@draft/ats-scorer` extracted as a package. ✅ **Confirmed: ρ = 0.746, drift 0.000, at tolerance 0.005** against the package, plus 1,065 full reports deep-equal before/after. The wrong weights shape is now a TypeError. ⚠ Unpushed — carries the scorer registries into the production image, so **production ATS scores change on deploy** |
 | **A2** (`5112249` in resume-master, `083ad39` BRAND rule in draft, 09-27) | Tools moved. ⛔ Only the STATELESS part crossed — `coreGenerateResume` mixes draft's DB reads and writes, notifications and weighted scoring with prompt assembly, the model call, formatting and the claim guard. Runtime-inputs text byte-identical to draft's over 324 cases |
+| **B step 4** (09-28) | `resumemaster.one` moved to Resume Master and verified 21/21 on the domain; the policy's two now-false sentences fixed and verified in the built bundle (`a7a9c7f`). ⛔ Certificate waits on the owner's DNS edit |
 | **B steps 1–3** (09-28) | Resume Master live on Railway (`814356d`), verified 24/24 incl. metered; draft `e046b7c` live and calling it; first real generations and first cache read. Found and fixed: a rejected request reported retryable (`fc5ed5c`). ⛔ Found: generation invents content (2/2) — blocks AF5 |
 | **A4** (`8a3eb53` draft, deployed at B step 3 · `1fbb9bb` resume-master, 09-28) | draft calls the tools service for generation, A+ and PDF reading, as a third-party client with its own token; contract vendored and checksum-pinned. ⛔ **`/api/standalone/generate` had never passed the claim guard** — fixed by routing it through the service. PDF reading degrades to local extraction. Every error says whether retrying helps. draft's prompt copy and its assembler deleted. Privacy: policy + reconciliation's fifth column; Web Store declaration re-checked, unchanged |
 | **A3 · contract** (`a76074f`, 09-28, resume-master) | Generated OpenAPI 3.1 + TypeScript, v1.0.0, LF-normalised checksums, append-only version → shape-hash ledger. Four shapes **derived by execution**; envelopes declared. ⛔ The envelope harness boots the real app on every `npm test` — 47 scenarios, every declared (route, status) covered, keys AND types checked. Live verifier for Phase B |
@@ -212,6 +331,35 @@ it against `git log` and correct it** — that reconciliation is itself a queued
 ## SESSION LOG
 
 Newest first. ⛔ Agents append here rather than creating a new file.
+
+### 2026-09-28 · B step 3 close-out + step 4 — the owner's generation, and the domain move
+
+**The owner's web-route generation, read from both services' logs** (the production database is not
+reachable without an SSH key): `/api/generate` → tools service in 28.6 s; claim guard inspected
+5,678 chars; `usage_events` row written ($0.0635, 3,979 in / 3,798 out, cold 7,009 cache write);
+lift **42 → 58**. Resume Master's metering line matches to the token. Step 3 is closed.
+
+**The root URL, before the move — confirmed, not assumed:** a browser's own request (Chrome UA,
+`Accept: text/html`) gets `404 application/json {"error":"not_found"}` at `/`, `/favicon.ico` and
+`/robots.txt`. Intentional and contract-pinned; it only LOOKS like an error. See G7.
+
+**Pre-check that changed the move:**
+- draft's config referenced the old domain nowhere; but ⛔ **two privacy-policy sentences would have
+  gone false the moment it moved** ("reachable at the former address… the same servers"; "sent to
+  either address… both reach the same servers"). Rewritten and deployed in the same window (`a7a9c7f`)
+  — verified by grepping the BUILT bundle, the page URL being a 2,029-byte shell.
+- ⛔ **The repo contradicted itself about v1.0.0** — tests called it "published… on users' machines",
+  the listing "never published". The owner: **published UNLISTED**. It posts to the former address, so
+  its captures stop being received — accepted, and now said in the policy and the listing.
+
+**The move:** `resumemaster.one` detached from draft and attached to Resume Master on port 8080.
+Railway issued a new DNS target (`hhdv8gnd` replacing `b8h66npc`). ⭐ The domain served Resume Master
+immediately — `verify:live --base https://resumemaster.one`: **21/21**, where this morning every check
+failed there. ⛔ That is Railway's edge routing by hostname while the OLD A record still reaches it —
+**not** the DNS being right. The certificate is `VALIDATING_OWNERSHIP` until the owner's name.com edit.
+
+**draft after:** `jobsviadraft.com` only; sign-in redirects to the `jobsviadraft.com` callback; the
+capture endpoint answers JSON; 2691/2691.
 
 ### 2026-09-28 · B steps 1–3 — Resume Master live; draft calls it; the first real generations
 
@@ -486,6 +634,9 @@ Confirmed and applied. ⛔ Do not re-litigate; if one is wrong, measure and reco
 
 | Date | Decision |
 |---|---|
+| 09-28 | **The résumé guards (G1) are deferred to post-migration** — "a work in progress". Resume Master's `docs/API.md` states what is enforced and what is not in the meantime |
+| 09-28 | **Resume Master stays in draft's Railway project**, as its own service; its model key is a reference to draft's (`${{draft.ANTHROPIC_KEY}}`) |
+| 09-28 | **`resumemaster.one` belongs to Resume Master** (B step 4). Its root answers a JSON 404 by design. **v1.0.0 of the extension is published UNLISTED** and posts there — accepted: its captures are no longer received |
 | 09-28 | **`marketing.md` deferred** — the pilot is gated to CS. Resume Master carries today's behaviour (no mapping selects it) |
 | 09-28 | Extension icon is the **`/d` monogram** at every size; v1.1.1 |
 | 09-27 | **Bands stay in draft, the score travels.** The score is a fact about a résumé and a JD; the band is a product decision. Cutpoints were calibrated on draft's board. ✅ **Checked in A1: the seniority guard was never in `atsBands.js`** — it is in the scorer and travels with it. `resume_depth` was the part that had to be lifted out |
