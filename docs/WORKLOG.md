@@ -33,9 +33,10 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 |---|---|
 | Production (draft) | `jobsviadraft.com` — `/api/version` 09-28: commit **`e2e732f`**, contract 1.1.1, weighted scoring on (493 terms, 9.2 days old). ⚠ **Local commits not pushed**, A1 onward — see OWNER QUEUE 3 |
 | Production (Resume Master) | **not deployed.** ⛔ `resumemaster.one/v1/version` answers **200** — it is draft's 2,029-byte SPA shell (`text/html`), because the domain still points at draft. Asserting the JSON key catches this; a 200 does not |
-| Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`0b84a5d`**. **171 tests, 171 pass** — also on a fresh CRLF clone |
+| Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`1fbb9bb`**. **195 tests, 195 pass** (A4 moved draft's prompt tests here) |
+| draft ↔ Resume Master | draft calls it through `services/toolsService.js` (A4, `8a3eb53`, **unpushed**). Contract v1.0.0 vendored in `contract/resume-master/`, checksum-pinned. ⚠ Unconfigured in production until Phase B sets `RESUME_MASTER_URL` — until then generation and A+ answer 503 `retryable:false`, and PDF reading degrades to local extraction |
 | Resume Master contract | **v1.0.0**, generated — `contract/resume-master-api.v1.json` + `.d.ts`, shape hash `VERSIONS.json`. Envelope harness: 47 scenarios, every declared (route, status) covered. Live verifier: 21/21 against a local boot; **fails every check against `resumemaster.one` today**, as it must |
-| Test baseline (draft) | **2696 / 2696 / 0** — measured 09-28 in the working tree, and 09-27 on a fresh CRLF worktree. No deliberate failures |
+| Test baseline (draft) | **2691 / 2691 / 0** — measured 09-28 after A4 in the working tree AND on a fresh CRLF worktree (root + `client/` dependencies installed). Fell from 2696 because the prompt's tests MOVED to resume-master; nothing was dropped. No deliberate failures |
 | Migration high-water | **109** (`109_restore_stripped_seniority_titles`) in both runners, 110 entries each; production reports 116 applied, latest 109 |
 | Contract | v1.1.1 (mobile) · v1.0.0 (Resume Master, above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
@@ -49,14 +50,19 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
-**A4 — draft calls the Resume Master API.** A1–A3 are done; Resume Master is on GitHub at
-`0b84a5d` with a generated contract (v1.0.0) and its envelope harness. A4 vendors `contract/` into
-draft with a checksum test, builds the client, and replaces draft's direct generation calls.
-⛔ Needs draft's real token (OWNER 1) before it can be exercised against anything live.
+**B — deploy Resume Master and move the domain. ⛔ STOPPED FOR THE OWNER'S GO-AHEAD** (the original
+brief: "stopping for my go-ahead before B"). A1–A4 are done. Resume Master is on GitHub at `1fbb9bb`;
+draft's A4 is committed locally as `8a3eb53`. B is the first step that touches production.
+
+⛔ **B's order matters, and so does draft's push.** draft's unpushed commits include A4, so pushing
+draft BEFORE Resume Master is reachable makes production generation answer 503 (by design, and
+retryable:false — but it is an outage of that feature). B step 3 — point draft's client at the new
+service — is the moment to push, not before.
 
 ⚠ **draft has unpushed local commits** (`git log origin/main..main`): A1 and its test-count update,
-the BRAND rule, the icons, and these worklog updates. ⛔ **Pushing deploys draft, and A1 carries the scorer registries into the production image,
-so production ATS scores will change.** Deliberate owner decision, not an incidental push.
+the BRAND rule, the icons, the worklog updates, and A4. ⛔ **Pushing deploys draft: A1 carries the
+scorer registries into the production image, so production ATS scores will change; and A4 moves
+generation to a service that is not deployed yet.** Deliberate owner decision, not an incidental push.
 
 ---
 
@@ -64,14 +70,17 @@ so production ATS scores will change.** Deliberate owner decision, not an incide
 
 | | Task | Why it is here |
 |---|---|---|
-| 1 | ⛔ **Mint draft's service token** — `node scripts/mintClientToken.mjs draft` in `resume-master/` | **Blocks Phase B.** It prints the token ONCE, which is why the agent did not run it. The token goes into draft's Railway env as `RESUME_MASTER_TOKEN`; the printed entry goes into Resume Master's `RESUME_MASTER_CLIENT_TOKENS` |
-| 2 | **Replace the store icon in the dashboard** | Uploaded separately from the zip — the package upload does not carry it |
-| 3 | **Decide when to push draft's unpushed commits** (`git log origin/main..main` — A1 onward) | ⛔ Production ATS scores change when A1 lands. Not a side effect of a routine push |
-| 4 | **Phase B go-ahead**, then remove the stale `resumemaster.one` OAuth redirect URI from Google Cloud Console | After A4 |
+| 1 | ⛔ **Phase B go-ahead** | A4 is done; B is the first step that touches production. The agent is stopped here |
+| 2 | **At B step 3: set draft's `RESUME_MASTER_URL`** to the new service's URL (the token is already set) | Until then production generation answers 503. ⚠ Push draft at this step, not before — see NOW |
+| 3 | **Replace the store icon in the dashboard** | Uploaded separately from the zip — the package upload does not carry it |
+| 4 | After B: remove the stale `resumemaster.one` OAuth redirect URI from Google Cloud Console | B step 5 |
 | 5 | **AF5 — 30 supervised applications** | ⛔ LAST. Run ONE first and confirm `job_applications` gets a row with `ats_score_at_apply` populated |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
-committed and reuploaded · `marketing.md` deferred — **the pilot is gated to CS anyway**.
+committed and reuploaded · `marketing.md` deferred — **the pilot is gated to CS anyway** · **service
+tokens minted and live** (09-28) — draft's in its Railway env as `RESUME_MASTER_TOKEN`, the entry in
+Resume Master's `RESUME_MASTER_CLIENT_TOKENS`. ⚠ Owner-reported; the agent never saw the token, by
+design.
 
 ---
 
@@ -81,26 +90,26 @@ Run top to bottom. One commit per task. Report into *SESSION LOG* between each.
 
 | | Task | Prompt lives in | Blocked on |
 |---|---|---|---|
-| 1 | **A4** — draft calls the API. Vendor `../resume-master/contract/` into draft with a checksum test (the mobile-contract pattern, reversed); the vendor-naming carve-out lands with the client (`BRAND.md`) | `PHASE_A_B_EXECUTION.md` §A4 | owner token (OWNER 1) for any live run |
-| 2 | **B** — deploy Resume Master, move the domain. Verify with `npm run verify:live -- --base <url>` in resume-master, never a 200 | `PHASE_A_B_EXECUTION.md` §B | A4, ⛔ owner go-ahead |
-| 3 | Fix the two disagreeing `getDomainModuleKey` functions — ⚠ **half done:** collapsed to one in Resume Master (`5112249`, the resolver's, which is the one generation used — behaviour preserved). draft's two copies retire when A4 removes draft's generation path | below | A4 |
-| 4 | `.dockerignore` excludes `data/` from the production image — **wider than QUALIFICATION_ROLE_MAP** | below | — |
-| 5 | ⭐ **Reconcile `DONE` against `git log`** | below | — |
-| 6 | Mobile corruption sweep (Android) | `CORRUPTION_SWEEP.md` | — |
-| 7 | iOS Phase 1 audit | `../draft-ios/IOS.md` | ⛔ needs a Mac |
+| 1 | **B** — deploy Resume Master, move the domain. Verify with `npm run verify:live -- --base <url>` in resume-master, never a 200. ⭐ B step 3's end-to-end test is also **the first real generation** — the verification the funded balance is still waiting for | `PHASE_A_B_EXECUTION.md` §B | ⛔ owner go-ahead (OWNER 1) |
+| 2 | Delete draft's two dead `getDomainModuleKey` copies — the disagreement is **resolved** (one definition in Resume Master, `5112249`); since A4 neither draft copy has a caller that reads its result | below | — |
+| 3 | `.dockerignore` excludes `data/` from the production image — **wider than QUALIFICATION_ROLE_MAP** | below | — |
+| 4 | ⭐ **Reconcile `DONE` against `git log`** | below | — |
+| 5 | Mobile corruption sweep (Android) | `CORRUPTION_SWEEP.md` | — |
+| 6 | iOS Phase 1 audit | `../draft-ios/IOS.md` | ⛔ needs a Mac |
 
-**5 · Reconcile the `DONE` section.** It was written from the chat record, not from `git log`, so it
+**4 · Reconcile the `DONE` section.** It was written from the chat record, not from `git log`, so it
 is incomplete and possibly mis-dated. Walk the log, add what is missing, correct what is wrong, and
 remove anything that never actually landed. ⛔ **Both directions matter** — this project has found
 tasks marked open that were done *and* tasks marked done that were not, in the same audit.
 
-**3 · Two `getDomainModuleKey` functions disagree.** A project-manager role in an unmatched domain
-gets `pm_general` from one and `general` from the other. Shape 1. **Won in Resume Master:
-`services/qualificationResolver.js`'s** — it is the one `coreGenerateResume` called, so every
-existing résumé was produced by it; the classifier's private copy only fed `parsed.domainModuleKey`,
-which generation overwrote. What remains is draft's side, which goes away with A4.
+**2 · Two `getDomainModuleKey` functions disagreed.** A project-manager role in an unmatched domain
+got `pm_general` from one and `general` from the other. Shape 1. **Resolved in Resume Master:
+`services/qualificationResolver.js`'s won** — it is the one `coreGenerateResume` called, so every
+existing résumé was produced by it. ✅ Since A4 both draft copies are dead: `qualificationResolver`'s
+export has no caller, and `classifier.js`'s private copy only sets `parsed.domainModuleKey`, which
+smart-search (its one remaining caller) never reads. Deleting them is cleanup, not a behaviour change.
 
-**4 · `.dockerignore` keeps `data/` out of the production image** (`data` + `data/`, re-including
+**3 · `.dockerignore` keeps `data/` out of the production image** (`data` + `data/`, re-including
 only `ROLE_ALIAS_MAP.json`, since 2026-04-23; Railway's builder is Docker). Measured from the rule,
 not from a production read — ⛔ confirm first with `[domain-registry] JSON file not found` in Railway
 logs. It excludes FOUR tracked files, not one:
@@ -131,6 +140,7 @@ it against `git log` and correct it** — that reconciliation is itself a queued
 |---|---|
 | **A1** (`3c3fd1d`, 09-27) | `@draft/ats-scorer` extracted as a package. ✅ **Confirmed: ρ = 0.746, drift 0.000, at tolerance 0.005** against the package, plus 1,065 full reports deep-equal before/after. The wrong weights shape is now a TypeError. ⚠ Unpushed — carries the scorer registries into the production image, so **production ATS scores change on deploy** |
 | **A2** (`5112249` in resume-master, `083ad39` BRAND rule in draft, 09-27) | Tools moved. ⛔ Only the STATELESS part crossed — `coreGenerateResume` mixes draft's DB reads and writes, notifications and weighted scoring with prompt assembly, the model call, formatting and the claim guard. Runtime-inputs text byte-identical to draft's over 324 cases |
+| **A4** (`8a3eb53` draft, unpushed · `1fbb9bb` resume-master, 09-28) | draft calls the tools service for generation, A+ and PDF reading, as a third-party client with its own token; contract vendored and checksum-pinned. ⛔ **`/api/standalone/generate` had never passed the claim guard** — fixed by routing it through the service. PDF reading degrades to local extraction. Every error says whether retrying helps. draft's prompt copy and its assembler deleted. Privacy: policy + reconciliation's fifth column; Web Store declaration re-checked, unchanged |
 | **A3 · contract** (`a76074f`, 09-28, resume-master) | Generated OpenAPI 3.1 + TypeScript, v1.0.0, LF-normalised checksums, append-only version → shape-hash ledger. Four shapes **derived by execution**; envelopes declared. ⛔ The envelope harness boots the real app on every `npm test` — 47 scenarios, every declared (route, status) covered, keys AND types checked. Live verifier for Phase B |
 | **A3 · service token** (`1ad17a3`, 09-28) | Filed under A2 before; it is A3's auth half. `rmk_<client>.<secret>`; Resume Master stores only the hash in `RESUME_MASTER_CLIENT_TOKENS`. Rejected before the body is read · **503 with no clients configured rather than open** · a malformed token list stops boot · rotate by adding the new hash beside the old. Per-client accounting logs token counts only, failed calls included, limits off. 122/122, **each new check seen to fail when deliberately broken**; the token and its hash appear in no log |
 | **Extension v1.1.1** (`5e7f72e`, 09-28) | ⛔ **v1.1.0 shipped with the old "RM" icon in all three sizes** while its name and listing said draft. Shipped the `/d` monogram — the only set consistent across sizes, since the full wordmark is illegible at 16px. ⛔ The manifest had carried **no top-level `icons` entry since May**, so the install and extensions-page surfaces showed a generic icon. Version bumped because the store refuses an upload at or below the version under review. Rebuilt, committed, **reuploaded by the owner** |
@@ -199,6 +209,72 @@ it against `git log` and correct it** — that reconciliation is itself a queued
 ## SESSION LOG
 
 Newest first. ⛔ Agents append here rather than creating a new file.
+
+### 2026-09-28 · A4 — draft calls the tools service (`8a3eb53` draft · `1fbb9bb` resume-master)
+
+**What moved.** `coreGenerateResume`, `enhanceProfileResume`, `/api/parse-pdf` and
+`/api/standalone/generate` now call `services/toolsService.js`; the request body is built by
+`services/toolsServiceRequests.js` with the exact mapping the 324-case prompt-parity check used.
+draft keeps its database work, scoring with its own weights, the lift measurement and notifications.
+
+**Premises that did not hold:**
+1. ⛔ **Not every résumé passed the claim guard.** `/api/standalone/generate` assembled its own prompt
+   and called the model directly, with no guard and no deterministic render. AG3's test "every path
+   funnels through `coreGenerateResume`" counted that function's callers and could not see it. Now
+   routed through the service; the test asserts the cause instead — no prompt assembly or generation
+   call left in draft.
+2. ⛔ **The brief's "four-column join" is the PERMISSIONS table, but the cross-service flow has no
+   permission** — résumé data reaches the service server-side. So the fifth column went on the
+   data-flow join, where the flow is, plus its own row; the third-party table gained the recipient.
+3. ⛔ **`menuSurfaceStyle`'s "real bullet" test was guarding dead code** — it counted `content: "•"` in
+   `server.js`'s unused stylesheet copy and the formatting prompt, never the renderer, which uses
+   `list-style: disc`. Rewritten against the renderer.
+4. **"One logged path" (modelCallGuard) could not survive two services** — the service's calls are
+   made elsewhere. Restated as one path per CALLER; the client may record calls it did not make and
+   is asserted to make none itself.
+
+**Decided and stated:**
+- **Degradation:** generation / A+ fail fast, retryable, not queued (the apply pipeline already holds
+  a failed generation for review). **PDF reading degrades** to local `pdf-parse` and says so
+  (`source`, `degraded`, `degradedReason`). Board, scoring, capture, autofill never touch the service.
+- **Non-retryable says so:** the four routes answered `500 {error: e.message}` for everything; now a
+  real status and `retryable`. ⛔ And `failureAttribution` honours an explicit `permanent` — the
+  service reports an exhausted balance as 502 permanent:true, and 502 is in TRANSIENT_HTTP.
+- **Usage:** records land in `usage_events` under the same purpose/event_type, so limits and the cost
+  panel are unchanged; the standalone surface keeps its own attribution.
+- **Brand (vendor rule):** only the client, its mapping, the vendored contract, the policy's
+  Third-Party section and the reconciliation name the product. `server.js` says `toolsService`. ⛔ The
+  client's first draft leaked "Resume Master" and the env-var names into USER-FACING errors — caught
+  by a test. A new guard pins the policy's literal to its Third-Party section.
+- **Privacy:** the policy names the recipient ("processes, does not retain"), effective 09-28 — the
+  first bump that ADDS a recipient; advance notice would apply from the first user on. Resume Master
+  has `docs/PRIVACY.md`. **Web Store declaration re-checked: unchanged** — the extension's own flows
+  did not move.
+
+**Deleted from draft:** `services/promptAssembler.js`, `prompts/`, `buildRuntimeInputs`, the dead
+`RESUME_STYLE_BLOCK` copy, and four live-generation harnesses that would now measure a prompt
+production no longer runs.
+
+**Tests — every failure given a verdict, nothing lost.** Moved to resume-master: 9 prompt tests +
+the only-carrier rule from `summaryOptIn`, 2 from `resumeArtifacts`, the claims wording, the 1h-TTL
+guard (the risk now spans the boundary: draft prices the service's cache writes). Rewritten for the
+new wiring: withheld-never-persisted, claims reach the request, the lift row id, A+ untokenized, the
+classifier count. Removed: one test of a deleted script. draft 2696 → **2691** by moving, not dropping.
+
+⚠ **Incident:** a stray `sed -i` converted `server.js` to LF mid-work. Caught by the line-ending count
+immediately, restored to CRLF (10,288 lines, 0 bare LF, byte-identity tests green) before anything
+else ran. Afterwards `server.js` was touched only by the Edit tool and a byte-checked splice.
+⚠ Also: scripts piped to `node -` through this shell's heredoc **lose backslashes** — two generated
+test rewrites lost their regex escapes (one silently loosened a match). Found, fixed with the Edit
+tool; moved tests were diffed against `HEAD` to confirm they were copied as data, intact.
+
+**Verified:** draft 2691/2691, resume-master 195/195. Eight injected violations each caught. **A real
+cross-service run** — draft's client against resume-master's real server, no fakes: the draft-built
+body passes the service's validation; wrong token, invalid body and a non-PDF are refused before any
+spend; no model key answers 503 `retryable:false` through every layer; unreachable is the only
+retryable case; the service log held neither the token nor the résumé.
+⛔ **NOT A RUN:** no generation has been exercised end to end — that is Phase B step 3, and it is also
+the first real check of the funded balance.
 
 ### 2026-09-28 · A3 — the API contract (`a76074f`, `0b84a5d` resume-master)
 
@@ -418,6 +494,17 @@ reports · `auto-apply-*` · `GATED_HANDOFF_*` · `ATS_TERM_WEIGHTS_SCHEDULE` ·
 **Prompt collections** — `EXECUTION_PROMPTS.md` · `QUEUED_PROMPTS.md` · `AUTOAPPLY_PROMPTS.md` ·
 `GATED_HANDOFF_PROMPTS.md`. ⚠ Superseded as a queue by this file; not yet classified by a retirement
 pass.
+
+**Design documents — ⛔ NOTHING IN THESE IS BUILT.** Do not write any of them into
+`ARCHITECTURE.md`, which documents what exists.
+
+| File | For | Gated on |
+|---|---|---|
+| `UI_REDESIGN.md` | ⭐ The deck model replacing listings-into-cards, the cream/orange/glass palette, the transition inventory. Keyboard is acceleration, never the only path — mobile has none, and the gestures must mean the same things | Phase B. ⛔ **Its one blocking decision: does position encode fit?** If yes, the board's ordering problem becomes a hard dependency, and the board still ranks by `discovered_at DESC` |
+| `POST_MIGRATION_DESIGN.md` | ⭐ MCP connectors (the **deterministic** tools — scoring, parsing, formatting; generation is the weakest candidate) and remote browser profiles for the gated tier | MCP: Phase B. ⛔ Profiles: AF5, proven full-auto, **and a security design as the first task** |
+
+⚠ Both are experimental and may be reverted or absorbed. They are kept because the reasoning is
+expensive to rebuild, not because either is committed.
 
 **Directories** — `ai1-summary/` · `migration/` · `monetisation-lever/` · `privacy/` ·
 `store-screenshots/`
