@@ -142,6 +142,23 @@ possible to prepare the ground, and that is the mechanism working rather than ge
 > "The second product's own source. `Resume Master` is its NAME, not a legacy mention of this
 > one's. Removed if that product is discontinued or renamed."
 
+### ⛔ Corrected 2026-09-27 (A2): the second product's code is NOT in this repository
+
+The section above assumed the service would be a directory here (`resume-master/`). It is its own
+repository — `github.com/Sri-Yellela/resume-master` — so **this repository's guard never scans its
+files, and A2 needed no carve-out here at all.** The prefix entry described above would have been
+an allowlist entry for a directory that will never exist in this tree, which is exactly what the
+self-pruning allowlist is built to reject.
+
+**The rule that replaces it.** A file in THIS repository may name the other product only when it is
+about **calling that product as a vendor** — the API client, its configuration, and the privacy and
+data-flow documents that describe what is sent to it (A4). There it is the name of a third party,
+the same way `Anthropic` is. It is never this product's name, in any surface a user sees.
+
+⛔ **When A4 adds the client, the carve-out is written as this rule** — scoped to the client module,
+its config and the named cross-service documents — **not as a blanket exemption on the word.** The
+two failure modes below still apply to it.
+
 ⚠ **Two things to get right when that commit lands**, both of which this project has already been
 bitten by:
 
