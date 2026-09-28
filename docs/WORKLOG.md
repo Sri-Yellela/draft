@@ -31,17 +31,18 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 | | |
 |---|---|
-| Production (draft) | `jobsviadraft.com` — `/api/version` 09-28: commit **`e2e732f`**, contract 1.1.1, weighted scoring on (493 terms, 9.2 days old). ⚠ **Local commits not pushed**, A1 onward — see OWNER QUEUE 3 |
-| Production (Resume Master) | **not deployed.** ⛔ `resumemaster.one/v1/version` answers **200** — it is draft's 2,029-byte SPA shell (`text/html`), because the domain still points at draft. Asserting the JSON key catches this; a 200 does not |
-| Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`1fbb9bb`**. **195 tests, 195 pass** (A4 moved draft's prompt tests here) |
-| draft ↔ Resume Master | draft calls it through `services/toolsService.js` (A4, `8a3eb53`, **unpushed**). Contract v1.0.0 vendored in `contract/resume-master/`, checksum-pinned. ⚠ Unconfigured in production until Phase B sets `RESUME_MASTER_URL` — until then generation and A+ answer 503 `retryable:false`, and PDF reading degrades to local extraction |
-| Resume Master contract | **v1.0.0**, generated — `contract/resume-master-api.v1.json` + `.d.ts`, shape hash `VERSIONS.json`. Envelope harness: 47 scenarios, every declared (route, status) covered. Live verifier: 21/21 against a local boot; **fails every check against `resumemaster.one` today**, as it must |
+| Production (draft) | `jobsviadraft.com` — **`e046b7c`**, deployed 09-28 15:00Z (B step 3). Boot log: `tools service client: configured`; 0 migrations applied. A1 and A4 are LIVE. ⚠ The worklog commits after it are local only — a doc-only push would restart production for nothing |
+| Production (Resume Master) | **LIVE at `https://resume-master-production-d960.up.railway.app`**, commit **`814356d`**, service `resume-master` in draft's Railway project `resume-master` (owner's choice: kept there). Boot log: `model=true clients=["draft"]`. ⛔ `resumemaster.one` still points at draft (B step 4 not done) — it answers draft's SPA shell |
+| Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`814356d`**, auto-deploys on push. **197 tests, 197 pass** |
+| draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (OWNER 2) |
+| Resume Master contract | **v1.0.0**, generated; vendored in draft. **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
 | Test baseline (draft) | **2691 / 2691 / 0** — measured 09-28 after A4 in the working tree AND on a fresh CRLF worktree (root + `client/` dependencies installed). Fell from 2696 because the prompt's tests MOVED to resume-master; nothing was dropped. No deliberate failures |
 | Migration high-water | **109** (`109_restore_stripped_seniority_titles`) in both runners, 110 entries each; production reports 116 applied, latest 109 |
 | Contract | v1.1.1 (mobile) · v1.0.0 (Resume Master, above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
 | ATS ρ | **0.746**, drift 0.000, against the extracted package (`am1GradedCorpusVerify`, tolerance now 0.005). Seniority guard is worth 0.645 → 0.746 |
-| Anthropic balance | **Funded — owner-reported 09-28.** ⚠ Not yet verified by a real call: no generation has been exercised end to end since, and every A1/A2 model-backed test used a fake client. The first real generation is the verification |
+| Anthropic balance | **Funded — VERIFIED 09-28** by real generation, A+ and PDF calls (Resume Master references draft's `ANTHROPIC_KEY`, owner's choice) |
+| ⛔ Fabrication | **2 of 2 real generations contained material the candidate never stated** (a JD skill; two invented responsibility bullets and an unsourced skill). The claim guard enforces years and seniority only. Resume Master's `docs/API.md` now says so. ⛔ **Blocks AF5** — agent queue 2 |
 | Users | **none** |
 | `job_applications` | **empty** — nothing has ever validated the product against an employer |
 | Board | ~2,663 active per `STUDENT_BOARD_FINDING.md` (not re-measured against production this session; local `scraped_jobs` = 2,616). **80 (3.0%) are entry or intern** |
@@ -50,19 +51,13 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
-**B — deploy Resume Master and move the domain. ⛔ STOPPED FOR THE OWNER'S GO-AHEAD** (the original
-brief: "stopping for my go-ahead before B"). A1–A4 are done. Resume Master is on GitHub at `1fbb9bb`;
-draft's A4 is committed locally as `8a3eb53`. B is the first step that touches production.
+**B — steps 1–3 done; ⛔ stopped before step 4 (the domain move).** Resume Master is live on its
+Railway URL and verified 24/24; draft `e046b7c` is live and calls it; the first real generations ran.
 
-⛔ **B's order matters, and so does draft's push.** draft's unpushed commits include A4, so pushing
-draft BEFORE Resume Master is reachable makes production generation answer 503 (by design, and
-retryable:false — but it is an outage of that feature). B step 3 — point draft's client at the new
-service — is the moment to push, not before.
-
-⚠ **draft has unpushed local commits** (`git log origin/main..main`): A1 and its test-count update,
-the BRAND rule, the icons, the worklog updates, and A4. ⛔ **Pushing deploys draft: A1 carries the
-scorer registries into the production image, so production ATS scores will change; and A4 moves
-generation to a service that is not deployed yet.** Deliberate owner decision, not an incidental push.
+Step 4 moves `resumemaster.one` off the draft service onto Resume Master — a new certificate, so a
+quiet hour, and the owner's go-ahead. ⚠ Before it: `resumemaster.one` is still one of draft's two
+domains. Confirm no live client still reaches draft through it (the reviewed extension build posts to
+`jobsviadraft.com` since P4), or moving it breaks that client silently — no 301 may cover it.
 
 ---
 
@@ -70,11 +65,12 @@ generation to a service that is not deployed yet.** Deliberate owner decision, n
 
 | | Task | Why it is here |
 |---|---|---|
-| 1 | ⛔ **Phase B go-ahead** | A4 is done; B is the first step that touches production. The agent is stopped here |
-| 2 | **At B step 3: set draft's `RESUME_MASTER_URL`** to the new service's URL (the token is already set) | Until then production generation answers 503. ⚠ Push draft at this step, not before — see NOW |
-| 3 | **Replace the store icon in the dashboard** | Uploaded separately from the zip — the package upload does not carry it |
-| 4 | After B: remove the stale `resumemaster.one` OAuth redirect URI from Google Cloud Console | B step 5 |
-| 5 | **AF5 — 30 supervised applications** | ⛔ LAST. Run ONE first and confirm `job_applications` gets a row with `ats_score_at_apply` populated |
+| 1 | **Generate ONE résumé in the app** (signed in, any job) and tell the agent | Closes B step 3's last gap: the HTTP route, the `usage_events` row and the lift measurement have not run on the new path. ⚠ READ the result — see *Fabrication* in CURRENT STATE |
+| 2 | ⛔ **B step 4 go-ahead** — move `resumemaster.one` from draft to Resume Master | New certificate; a quiet hour. See NOW for the pre-check |
+| 3 | At a quiet moment: delete the stray `RESUME_MASTER_CLIENT_TOKENS` from the **draft** service | Inert (draft never reads it), but Railway's `variable delete` cannot skip the redeploy, so it restarts production |
+| 4 | **Replace the store icon in the dashboard** | Uploaded separately from the zip — the package upload does not carry it |
+| 5 | After step 4: remove the stale `resumemaster.one` OAuth redirect URI from Google Cloud Console | B step 5 |
+| 6 | **AF5 — 30 supervised applications** | ⛔ LAST, and ⛔ **not before agent queue 2** — generation currently invents content. Run ONE first and confirm `job_applications` gets a row with `ats_score_at_apply` populated |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
 committed and reuploaded · `marketing.md` deferred — **the pilot is gated to CS anyway** · **service
@@ -90,29 +86,35 @@ Run top to bottom. One commit per task. Report into *SESSION LOG* between each.
 
 | | Task | Prompt lives in | Blocked on |
 |---|---|---|---|
-| 1 | **B** — deploy Resume Master, move the domain. Verify with `npm run verify:live -- --base <url>` in resume-master, never a 200. ⭐ B step 3's end-to-end test is also **the first real generation** — the verification the funded balance is still waiting for | `PHASE_A_B_EXECUTION.md` §B | ⛔ owner go-ahead (OWNER 1) |
-| 2 | Delete draft's two dead `getDomainModuleKey` copies — the disagreement is **resolved** (one definition in Resume Master, `5112249`); since A4 neither draft copy has a caller that reads its result | below | — |
-| 3 | `.dockerignore` excludes `data/` from the production image — **wider than QUALIFICATION_ROLE_MAP** | below | — |
-| 4 | ⭐ **Reconcile `DONE` against `git log`** | below | — |
-| 5 | Mobile corruption sweep (Android) | `CORRUPTION_SWEEP.md` | — |
-| 6 | iOS Phase 1 audit | `../draft-ios/IOS.md` | ⛔ needs a Mac |
+| 1 | **B step 4** — move `resumemaster.one` to Resume Master, then `npm run verify:live -- --base https://resumemaster.one` must give 24/24 (it fails every check today) and draft must still sign in and capture on `jobsviadraft.com` | `PHASE_A_B_EXECUTION.md` §B | ⛔ owner go-ahead (OWNER 2) |
+| 2 | ⛔ **An unsupported-content check for generation — BLOCKS AF5.** 2 of 2 real generations stated things the candidate never did. Measure first: generate against real base résumés (thin and full) and count unsupported bullets and skills — the rate decides the design (withhold vs flag vs mark for review). Then a mechanical check beside the claim guard, same contract (a violation withholds or flags; never silently passes) | Resume Master `docs/API.md` promise 3 | — |
+| 3 | Delete draft's two dead `getDomainModuleKey` copies — the disagreement is **resolved** (one definition in Resume Master, `5112249`); since A4 neither draft copy has a caller that reads its result | below | — |
+| 4 | `.dockerignore` excludes `data/` from the production image — **wider than QUALIFICATION_ROLE_MAP** | below | — |
+| 5 | ⭐ **Reconcile `DONE` against `git log`** | below | — |
+| 6 | Mobile corruption sweep (Android) | `CORRUPTION_SWEEP.md` | — |
+| 7 | iOS Phase 1 audit | `../draft-ios/IOS.md` | ⛔ needs a Mac |
 
-**4 · Reconcile the `DONE` section.** It was written from the chat record, not from `git log`, so it
+**5 · Reconcile the `DONE` section.** It was written from the chat record, not from `git log`, so it
 is incomplete and possibly mis-dated. Walk the log, add what is missing, correct what is wrong, and
 remove anything that never actually landed. ⛔ **Both directions matter** — this project has found
 tasks marked open that were done *and* tasks marked done that were not, in the same audit.
 
-**2 · Two `getDomainModuleKey` functions disagreed.** A project-manager role in an unmatched domain
+**3 · Two `getDomainModuleKey` functions disagreed.** A project-manager role in an unmatched domain
 got `pm_general` from one and `general` from the other. Shape 1. **Resolved in Resume Master:
 `services/qualificationResolver.js`'s won** — it is the one `coreGenerateResume` called, so every
 existing résumé was produced by it. ✅ Since A4 both draft copies are dead: `qualificationResolver`'s
 export has no caller, and `classifier.js`'s private copy only sets `parsed.domainModuleKey`, which
 smart-search (its one remaining caller) never reads. Deleting them is cleanup, not a behaviour change.
 
-**3 · `.dockerignore` keeps `data/` out of the production image** (`data` + `data/`, re-including
+**4 · `.dockerignore` keeps `data/` out of the production image** (`data` + `data/`, re-including
 only `ROLE_ALIAS_MAP.json`, since 2026-04-23; Railway's builder is Docker). Measured from the rule,
-not from a production read — ⛔ confirm first with `[domain-registry] JSON file not found` in Railway
-logs. It excludes FOUR tracked files, not one:
+not from a production read. ⚠ **B found a second layer:** production's `/app/data` is a Railway
+VOLUME (`resume-master-volume`, where the database lives), and a volume mounted there hides whatever
+the image put at that path — so what production reads from `data/` is whatever the volume holds, not
+the image. The 409 retained log lines carried no `[domain-registry] JSON file not found`, which only
+fires when that route is hit; a container listing needs an SSH key on the Railway account (not set
+up). Still unobserved either way. Scorer: unaffected since A1, which reads from the package, outside
+the volume. It excludes FOUR tracked files, not one:
  · `DOMAIN_METADATA_REGISTRY.json` + `DOMAIN_TOOL_REGISTRY.json` — the scorer's vocabulary. **Fixed
    for the scorer by A1**: they now ship inside `packages/ats-scorer/data`. ⛔ Deploying A1 therefore
    changes production ATS scores (an empty vocabulary moved 27 of 30 graded scores). Still missing
@@ -140,7 +142,8 @@ it against `git log` and correct it** — that reconciliation is itself a queued
 |---|---|
 | **A1** (`3c3fd1d`, 09-27) | `@draft/ats-scorer` extracted as a package. ✅ **Confirmed: ρ = 0.746, drift 0.000, at tolerance 0.005** against the package, plus 1,065 full reports deep-equal before/after. The wrong weights shape is now a TypeError. ⚠ Unpushed — carries the scorer registries into the production image, so **production ATS scores change on deploy** |
 | **A2** (`5112249` in resume-master, `083ad39` BRAND rule in draft, 09-27) | Tools moved. ⛔ Only the STATELESS part crossed — `coreGenerateResume` mixes draft's DB reads and writes, notifications and weighted scoring with prompt assembly, the model call, formatting and the claim guard. Runtime-inputs text byte-identical to draft's over 324 cases |
-| **A4** (`8a3eb53` draft, unpushed · `1fbb9bb` resume-master, 09-28) | draft calls the tools service for generation, A+ and PDF reading, as a third-party client with its own token; contract vendored and checksum-pinned. ⛔ **`/api/standalone/generate` had never passed the claim guard** — fixed by routing it through the service. PDF reading degrades to local extraction. Every error says whether retrying helps. draft's prompt copy and its assembler deleted. Privacy: policy + reconciliation's fifth column; Web Store declaration re-checked, unchanged |
+| **B steps 1–3** (09-28) | Resume Master live on Railway (`814356d`), verified 24/24 incl. metered; draft `e046b7c` live and calling it; first real generations and first cache read. Found and fixed: a rejected request reported retryable (`fc5ed5c`). ⛔ Found: generation invents content (2/2) — blocks AF5 |
+| **A4** (`8a3eb53` draft, deployed at B step 3 · `1fbb9bb` resume-master, 09-28) | draft calls the tools service for generation, A+ and PDF reading, as a third-party client with its own token; contract vendored and checksum-pinned. ⛔ **`/api/standalone/generate` had never passed the claim guard** — fixed by routing it through the service. PDF reading degrades to local extraction. Every error says whether retrying helps. draft's prompt copy and its assembler deleted. Privacy: policy + reconciliation's fifth column; Web Store declaration re-checked, unchanged |
 | **A3 · contract** (`a76074f`, 09-28, resume-master) | Generated OpenAPI 3.1 + TypeScript, v1.0.0, LF-normalised checksums, append-only version → shape-hash ledger. Four shapes **derived by execution**; envelopes declared. ⛔ The envelope harness boots the real app on every `npm test` — 47 scenarios, every declared (route, status) covered, keys AND types checked. Live verifier for Phase B |
 | **A3 · service token** (`1ad17a3`, 09-28) | Filed under A2 before; it is A3's auth half. `rmk_<client>.<secret>`; Resume Master stores only the hash in `RESUME_MASTER_CLIENT_TOKENS`. Rejected before the body is read · **503 with no clients configured rather than open** · a malformed token list stops boot · rotate by adding the new hash beside the old. Per-client accounting logs token counts only, failed calls included, limits off. 122/122, **each new check seen to fail when deliberately broken**; the token and its hash appear in no log |
 | **Extension v1.1.1** (`5e7f72e`, 09-28) | ⛔ **v1.1.0 shipped with the old "RM" icon in all three sizes** while its name and listing said draft. Shipped the `/d` monogram — the only set consistent across sizes, since the full wordmark is illegible at 16px. ⛔ The manifest had carried **no top-level `icons` entry since May**, so the install and extensions-page surfaces showed a generic icon. Version bumped because the store refuses an upload at or below the version under review. Rebuilt, committed, **reuploaded by the owner** |
@@ -209,6 +212,57 @@ it against `git log` and correct it** — that reconciliation is itself a queued
 ## SESSION LOG
 
 Newest first. ⛔ Agents append here rather than creating a new file.
+
+### 2026-09-28 · B steps 1–3 — Resume Master live; draft calls it; the first real generations
+
+**Step 1 — the service existed, and was half-configured.** The owner had created `resume-master` as a
+service INSIDE draft's Railway project (kept there, owner's choice; an empty `vibrant-tenderness`
+project also exists). It auto-deploys from GitHub. ⛔ "Tokens are live" held for draft only: the
+client list `RESUME_MASTER_CLIENT_TOKENS` was on the **draft** service, and Resume Master had **no
+model key** (it reads `ANTHROPIC_API_KEY`; draft's is `ANTHROPIC_KEY`). Fixed: the hash entry copied
+across (format-checked; hashes only), and `ANTHROPIC_API_KEY = ${{draft.ANTHROPIC_KEY}}` as a Railway
+reference (owner's choice) — no secret passed through the agent. ⚠ Agent slip: `railway domain` with
+no arguments CREATES a domain; it generated the `*.up.railway.app` URL step 1 needed, unintended.
+
+**Step 2 — verified by JSON key.** `/v1/version` → `service: "resume-master"` at the deployed
+commit; JSON 404s; auth fails closed until the list is set, then `model=true clients=["draft"]` in the
+boot log. `verify:live` via `railway run --service draft` (draft's real token, never seen): 21/21.
+
+**Step 3 — draft pointed at it and pushed.** `RESUME_MASTER_URL` set with `--skip-deploys`, so draft
+restarted once — on the push of A1…A4 (`e046b7c`). Boot: `tools service client: configured`. The
+stray client list on draft is left (inert; `variable delete` cannot skip a redeploy).
+
+**The first real generations this project has run end to end:**
+- `verify:live --metered`: generation and A+ passed; **parse-pdf failed** — two findings:
+  1. ⛔ **A request the provider REJECTED was reported retryable.** An invalid PDF → provider 400
+     `invalid_request_error` → service `502 retryable:true`. Retrying an invalid document fails
+     identically forever. Fixed in resume-master `fc5ed5c`: 400/401/403/404/413/422 are permanent
+     (draft's `failureAttribution` set). No contract change.
+  2. The fixture was a zero-page stub whose comment called it "well-formed" — green in every
+     in-process test, rejected on first contact. Replaced with a real one-page PDF with a computed
+     xref, read back by all four bundled `pdf.js` versions.
+  → re-run after the fix: **24/24 conform against the live service**.
+- **Through draft's own client on draft's production env** (synthetic candidate, JD asking 8+ years,
+  profile 4): the claim guard passed a real document that claims no years figure and keeps the
+  candidate's own level ("Backend Engineer", not the JD's "Senior…"). ⭐ **First cache READ ever on
+  generation: 7,009 read, 0 written** — two requests inside five minutes, which confirms A2's finding
+  that placement was right and arrival rate was the constraint.
+- ⛔ **FABRICATION, the most important finding of B:** 2 of 2 real documents stated things the
+  candidate never did — one listed Kafka from the JD; the other added two bullets describing
+  responsibilities with no source ("Collaborated with risk and infrastructure teams…",
+  "Instrumented service-level metrics…") and an unsourced skill. The prompt forbids exactly this
+  ("Never fabricate … responsibilities"; "Generate bullets ONLY from the candidate's real
+  experience"); the claim guard enforces years and seniority only, so both passed. Not a regression
+  — the same prompt draft always used; the first time real output was read. The base résumé was
+  deliberately thin, which may invite padding; 2 samples is a finding, not a rate. Resume Master's
+  `docs/API.md` (`814356d`) now separates what is ENFORCED from what is only INSTRUCTED. Queued as
+  agent task 2, ⛔ blocking AF5.
+- ⚠ Also seen, unconfirmed: the role and education lines appeared twice in the extracted text —
+  possibly an entry-header/entry-role render duplication, possibly the extraction; needs a render.
+
+**Not verified:** the HTTP route, `usage_events` row and lift measurement on the new path need a
+signed-in user (OWNER 1). The empty-vocabulary claim about production stays structural — and the
+listing showed `/app/data` is a volume, which changes the mechanism (agent task 4).
 
 ### 2026-09-28 · A4 — draft calls the tools service (`8a3eb53` draft · `1fbb9bb` resume-master)
 
