@@ -129,6 +129,9 @@ import { describeEmptyBoard, activeFilterNames } from "./services/jobs/emptyBoar
 import {
   buildOrderKeys, orderByClause, cursorProjection, cursorPredicate, encodeCursor, decodeCursor,
 } from "./services/jobs/jobCursor.js";
+// The board's fit precompute. It holds no scoring code — server.js injects the panel's own
+// basis builder and scorer call (atsBasisForProfile / scoreJobForBasis).
+import { createBoardFitPrecompute, atsBasisHash } from "./services/jobs/boardFitPrecompute.js";
 import { deriveAutomationTier } from "./services/jobs/automationTier.js";
 import { backfillAutomationTier } from "./services/jobs/backfillAutomationTier.js";
 import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
@@ -4513,6 +4516,12 @@ async function scrapeJobs(query, apifyToken, scrapeParams = {}, domainProfileId 
           domainProfile,
           claims: atsClaims(domainProfile),
         });
+        // Migration 110: the row records which basis produced it. ⚠ This basis prefers an
+        // UNADOPTED enhanced draft over the base résumé, which the ATS panel and the board's fit
+        // precompute do not — so these rows hash differently and the precompute (scheduled below)
+        // re-scores them against the base résumé. Stated rather than silently reconciled: which of
+        // the two texts a pre-adoption score should use is a product question, not a cache one.
+        const scrapeBasisHash = atsBasisHash(runtimeBasis, { scorerVersion: LOCAL_ATS_SOURCE });
 
         // ⛔ CC5 · SCORED FOR THIS USER AND PROFILE, NOT ONTO THE POSTING.
         //
@@ -4553,7 +4562,7 @@ async function scrapeJobs(query, apifyToken, scrapeParams = {}, domainProfileId 
                 synonyms: atsSynonyms(),
               });
               storeAtsReportForProfile({
-                userId, profileId: domainProfile?.id ?? null, jobId: item.jobId, report,
+                userId, profileId: domainProfile?.id ?? null, jobId: item.jobId, report, basisHash: scrapeBasisHash,
               });
               if (domainProfile?.id) {
                 const aggregation = aggregateAtsMissingSignals(db, {
@@ -4587,6 +4596,11 @@ async function scrapeJobs(query, apifyToken, scrapeParams = {}, domainProfileId 
         }
       } catch(e) {
         console.warn("[scrape] local ATS batch scoring failed:", e.message);
+      } finally {
+        // A crawl added postings: bring this user's board fit up to date. Incremental, so it scores
+        // only what this crawl added (plus anything stale). Other users pick the new rows up at the
+        // next crawl-wide pass or the next time their board loads.
+        scheduleBoardFit(userId, "scrape");
       }
     });
   }
@@ -4837,6 +4851,14 @@ cron.schedule("0 4 * * *", async () => {
   } catch(e) {
     console.error('[Cron] Jobo feed sync error:', e.message);
   }
+  // ── The board's fit, brought up to date with what the crawl just added ─────────────────────
+  //
+  // After BOTH crawls, so one pass covers every new posting. Incremental: each (user, active
+  // profile) scores only the postings it has no fresh row for — on a quiet night that is the day's
+  // arrivals, not the board. Sequential across users and yielding inside each, so it shares the
+  // event loop with live requests rather than taking it. Its summary line says how many profiles
+  // had nothing to do versus how many scored, so "0 scored" is never ambiguous.
+  scheduleBoardFitForAll("crawl");
   // Company KB rollups (Tasks 9.5/9.7) — reuse this same cron tick, no new scheduler. Both are
   // read-only aggregations over scraped_jobs/its enrichment columns; org_unit_raw fills in via
   // runEnrichment's own background pass (fired above, inside cacheJobs/cacheJoboFeed), which can
@@ -6133,6 +6155,43 @@ function atsTermWeightsForJob(job) {
 }
 
 /**
+ * THE SCORING PATH, AS ONE DEFINITION — the basis a profile is scored against, and the call that
+ * scores one posting against it.
+ *
+ * These two lines were written out inline at every call site: the ATS panel, the apply worker's
+ * base-résumé score, and now the board's fit precompute. The board RANKS by the precomputed score
+ * and the panel SHOWS the panel's, so if those were two copies of the call they could come apart
+ * — a card sorted as Strong whose report reads Weak. One function each is what makes them the same
+ * computation rather than two that agree today.
+ *
+ * `resumeText` may be passed (the panel receives it from the client, which loaded the same base
+ * résumé); otherwise the profile's stored base résumé is read. Returns null when there is none —
+ * there is nothing to score against, and a basis built from "" would score every posting Weak.
+ *
+ * `basisHash` identifies the candidate-side inputs (migration 110). It is computed from the BASIS
+ * ITSELF, not from where it came from, so the panel and the precompute agree on a hash whenever
+ * they scored against the same text — which is what lets a report the panel wrote count as fresh.
+ */
+function atsBasisForProfile(userId, profile, { resumeText = null } = {}) {
+  const text = resumeText ?? (profile?.id ? getBaseResumeRecord(db, { userId, profileId: profile.id })?.content : null);
+  if (!text) return null;
+  const runtimeBasis = buildRuntimeAtsBasis({
+    resumeText: text,
+    signalProfile: profile?.id ? loadOrCreateSimpleApplyProfile(db, { userId, profileId: profile.id }) : null,
+    // undefined, not null, when there is no profile: the package defaults an absent domainProfile
+    // to {} and dereferences a null one.
+    domainProfile: profile ?? undefined,
+    claims: atsClaims(profile),
+  });
+  return { runtimeBasis, basisHash: atsBasisHash(runtimeBasis, { scorerVersion: LOCAL_ATS_SOURCE }) };
+}
+
+/** Score one posting against a basis. Local and deterministic: no model call, no network. */
+function scoreJobForBasis(job, runtimeBasis) {
+  return scoreAtsLocally({ job, runtimeBasis, termWeights: atsTermWeightsForJob(job), synonyms: atsSynonyms() });
+}
+
+/**
  * CC5 · THE ONE PLACE A COMPUTED ATS REPORT IS STORED, and it is keyed by whose résumé produced it.
  *
  * Every writer in this file used to `UPDATE scraped_jobs SET ats_score=?, ats_report=?` — one cell
@@ -6153,30 +6212,100 @@ function atsTermWeightsForJob(job) {
  * stale cache and a changed scorer were indistinguishable. The version comes off the REPORT's own
  * `source`, never today's constant, for the same reason capturedAtsAtApply reads it that way.
  */
+//
+// `basisHash` (migration 110) records WHICH candidate basis produced the report — see
+// atsBasisForProfile. The board's fit precompute re-scores any row whose hash does not match the
+// profile's current basis, so a writer that omits it (NULL) is treated as "basis unknown" and its
+// row gets re-scored, never trusted as fresh.
 let _storeAtsReportTxn = null;
-function storeAtsReportForProfile({ userId, profileId = null, jobId, report }) {
+function storeAtsReportForProfile({ userId, profileId = null, jobId, report, basisHash = null }) {
   if (!userId || !jobId || !report) return;
   // A declaration rather than a `const` holding db.transaction(...), because the scrape scorer 1,500
   // lines above calls this: a const would sit in its temporal dead zone for any caller that ran
   // during module evaluation, and "it happens to be called from a callback" is not a property worth
   // depending on. The transaction is built once, on first use.
   if (!_storeAtsReportTxn) {
-    _storeAtsReportTxn = db.transaction((args) => {
-      db.prepare(
-        "DELETE FROM ats_only_reports WHERE user_id=? AND job_id=? AND domain_profile_id IS ?"
-      ).run(args.userId, args.jobId, args.profileId);
-      db.prepare(`
+    // Prepared once with the transaction, not per call: the board's fit precompute stores a whole
+    // board through this writer, and re-preparing two statements per row was measured as ~30% of
+    // that commit.
+    const del = db.prepare(
+      "DELETE FROM ats_only_reports WHERE user_id=? AND job_id=? AND domain_profile_id IS ?"
+    );
+    const ins = db.prepare(`
         INSERT INTO ats_only_reports
-          (user_id, domain_profile_id, job_id, ats_report, ats_score, scorer_version, scored_at)
-        VALUES (?, ?, ?, ?, ?, ?, unixepoch())
-      `).run(
+          (user_id, domain_profile_id, job_id, ats_report, ats_score, scorer_version, scored_at, basis_hash)
+        VALUES (?, ?, ?, ?, ?, ?, unixepoch(), ?)
+      `);
+    _storeAtsReportTxn = db.transaction((args) => {
+      del.run(args.userId, args.jobId, args.profileId);
+      ins.run(
         args.userId, args.profileId, args.jobId,
         JSON.stringify(args.report), args.report.score ?? null,
         args.report.source || LOCAL_ATS_SOURCE,
+        args.basisHash,
       );
     });
   }
-  _storeAtsReportTxn({ userId, profileId: profileId ?? null, jobId: String(jobId), report });
+  _storeAtsReportTxn({ userId, profileId: profileId ?? null, jobId: String(jobId), report, basisHash: basisHash ?? null });
+}
+
+// ── THE BOARD'S FIT PRECOMPUTE ──────────────────────────────────────────────────────────────────
+//
+// The board ranks by fit (services/jobs/jobCursor.js FIT_KEYS), which needs a score on every row,
+// and scoring the whole board per request costs seconds. So this fills ats_only_reports ahead of
+// time — incrementally, bounded, yielding — and the board reads it. See
+// services/jobs/boardFitPrecompute.js.
+//
+// ⛔ WIRED TO THE PANEL'S OWN FUNCTIONS. basisFor/scoreJob/store are the three the ATS panel and the
+// apply worker call; the module has no scoring code of its own.
+//
+// Lazy for the reason _storeAtsReportTxn is: callers include callbacks declared far above this line.
+//
+// BOARD_FIT_PRECOMPUTE=off stops every AUTOMATIC trigger (boot, crawl, résumé change, board load).
+// The admin route still runs on request — an operator who turned the automation off still needs a
+// way to run it once, on purpose.
+let _boardFit = null;
+function boardFit() {
+  if (!_boardFit) {
+    _boardFit = createBoardFitPrecompute({
+      db, basisFor: atsBasisForProfile, scoreJob: scoreJobForBasis, store: storeAtsReportForProfile,
+    });
+  }
+  return _boardFit;
+}
+function boardFitAutomationEnabled() {
+  return String(process.env.BOARD_FIT_PRECOMPUTE || "").toLowerCase() !== "off";
+}
+/**
+ * The trigger every automatic path calls. Never throws and never awaits: a scoring pass must not be
+ * the reason a résumé save or a crawl fails. `profile` defaults to the user's active profile, the
+ * one the board is ranked for.
+ */
+const _boardFitBoardTriggerAt = new Map();   // "user:profile" -> ms of the last board-load trigger
+const BOARD_FIT_BOARD_TRIGGER_EVERY_MS = 60_000;
+function scheduleBoardFit(userId, reason, profile = null) {
+  if (!boardFitAutomationEnabled() || !userId) return;
+  try {
+    const p = profile || getOrRepairActiveProfile(userId);
+    if (!p?.id) return;
+    // The board-load trigger is a catch-all, not an event, so it is rate-limited: once a minute per
+    // (user, profile). Every explicit trigger (résumé saved, crawl finished, profile edited) is not.
+    if (reason === "board") {
+      const key = `${userId}:${p.id}`;
+      const last = _boardFitBoardTriggerAt.get(key) || 0;
+      if (Date.now() - last < BOARD_FIT_BOARD_TRIGGER_EVERY_MS) return;
+      _boardFitBoardTriggerAt.set(key, Date.now());
+    }
+    boardFit().schedule({ userId, profile: p, reason })
+      .catch(e => console.error(`[board-fit] ${reason} pass threw for user ${userId}:`, e.message));
+  } catch (e) {
+    console.error(`[board-fit] could not schedule (${reason}) for user ${userId}:`, e.message);
+  }
+}
+function scheduleBoardFitForAll(reason) {
+  if (!boardFitAutomationEnabled()) return;
+  boardFit().runAll({ reason })
+    .catch(e => console.error(`[board-fit] ${reason} pass threw:`, e.message));
 }
 
 /**
@@ -6731,7 +6860,17 @@ app.get("/api/auth/active-profile", requireAuth, (req, res) => {
 // /api/domain-profiles        — CRUD + activate
 // /api/domain-profiles/metadata[/:domain]  — registry (no auth)
 // /api/domain-profiles/generate-chips      — AI chip generation
-app.use("/api/domain-profiles", requireAuth, createDomainProfilesRouter(db, anthropic, emitToUser));
+app.use("/api/domain-profiles", requireAuth, createDomainProfilesRouter(db, anthropic, emitToUser, {
+  // Résumé, signals, claims, profile fields, activation: any of them can change the basis the
+  // board's fit is scored against. Only the ACTIVE profile is re-scored — it is the one the board
+  // is ranked for; a background profile catches up when it is activated (activation is a write
+  // here too).
+  onProfileWrite: (userId, profileId, what) => {
+    const p = db.prepare("SELECT * FROM domain_profiles WHERE id = ? AND user_id = ? AND is_active = 1")
+      .get(profileId, userId);
+    if (p) scheduleBoardFit(userId, `profile ${what}`, p);
+  },
+}));
 app.use("/api/import", requireAuth, createImportJobRouter(db, anthropic));
 app.use("/api/company-kb", requireAuth, createCompanyKbRouter(db, requireAdmin));
 // RETIRED (E2). imported_jobs had exactly one writer — save-job, above — and zero rows. Its reading
@@ -6807,6 +6946,34 @@ function insertNotification(userId, type, message, payload = null) {
     console.warn("[notification] insert failed:", e.message);
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN · BOARD FIT PRECOMPUTE
+// ═══════════════════════════════════════════════════════════════
+// POST /api/admin/board-fit/precompute   { dryRun?: boolean = true, userId?: number, force?: boolean }
+//
+// DRY RUN BY DEFAULT: the plan per active profile — active / fresh / missing / stale / todo — with
+// nothing scored and nothing written. `dryRun: false` runs the same incremental pass the automatic
+// triggers run and returns each profile's status (scored / nothing_to_do / failed / no_basis) with
+// its counts and timing. `force: true` re-scores fresh rows too — the way to pick up a term-weight
+// refresh, which is deliberately not part of the basis hash.
+//
+// Works when BOARD_FIT_PRECOMPUTE=off: that switch stops the AUTOMATIC triggers, and an operator
+// who turned them off still needs a way to run a pass on purpose.
+//
+// Awaited, because an admin asking "what happened" wants the answer: ~7 ms per posting per profile
+// on an idle machine, so a single profile over a 2,600-posting board answers in well under a minute.
+app.post("/api/admin/board-fit/precompute", requireAdmin, async (req, res) => {
+  try {
+    const dryRun = req.body?.dryRun !== false;
+    const userId = req.body?.userId != null ? Number(req.body.userId) : null;
+    const out = await boardFit().runAll({ dryRun, force: !!req.body?.force, reason: "admin", userId });
+    res.json({ success: true, dryRun, ...out });
+  } catch (e) {
+    console.error("[board-fit] admin run failed:", e.message);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
 
 // ═══════════════════════════════════════════════════════════════
 // ADMIN BACKUP / RESTORE
@@ -8384,13 +8551,28 @@ app.post("/api/jobs/:id/keywords", requireAuth, async (req, res) => {
   //
   // CC5 · keyed on the profile too, as of migration 108. Same reasoning as priority 1, and the same
   // NULL fallback for rows cached before profiles were distinguished.
+  //
+  // ⛔ AND ON THE BASIS, as of migration 110. The board's fit precompute now fills this table for
+  // every active posting, so a cached row is no longer "a report this user opened" — it is "a
+  // report computed against SOME résumé of theirs". Serving it without checking which would show a
+  // report for last week's résumé to a user who has since edited it. The basis is built first (a
+  // few ms, no scoring) so the read can ask for THIS basis; a row written before 110 carries NULL
+  // and is re-scored rather than served, which costs one local score.
+  let panelBasis = null;
+  try {
+    panelBasis = atsBasisForProfile(userId, keywordsProfile, { resumeText });
+  } catch (e) {
+    console.error("[keywords] basis", e.message);
+    return res.status(500).json({ error: "Keyword analysis failed" });
+  }
   const cached = db.prepare(`
     SELECT ats_report FROM ats_only_reports
     WHERE user_id = ? AND job_id = ?
       AND (domain_profile_id IS NULL OR domain_profile_id = ?)
+      AND basis_hash IS ?
     ORDER BY (domain_profile_id IS NULL) ASC
     LIMIT 1
-  `).get(userId, jobId, keywordsProfileId);
+  `).get(userId, jobId, keywordsProfileId, panelBasis?.basisHash ?? null);
   if (cached?.ats_report) {
     try {
       const parsed = JSON.parse(cached.ats_report);
@@ -8402,20 +8584,14 @@ app.post("/api/jobs/:id/keywords", requireAuth, async (req, res) => {
   const job = db.prepare("SELECT * FROM scraped_jobs WHERE job_id=?").get(jobId);
   if (!job) return res.status(404).json({ error: "Job not found" });
 
-  // Resolved once at the top of the route now (keywordsProfile), because the two cache reads above
+  // Resolved once at the top of the route now (keywordsProfile), because the cache reads above
   // need it too and resolving it twice is two chances to disagree about which profile is active.
-  const activeProfile = keywordsProfile;
-  const signalProfile = activeProfile
-    ? loadOrCreateSimpleApplyProfile(db, { userId, profileId: activeProfile.id })
-    : null;
+  // The basis and the scorer call are the SAME two functions the board's fit precompute runs
+  // (atsBasisForProfile / scoreJobForBasis), so the report opened here and the score the board
+  // sorted this card by are one computation.
   try {
-    const runtimeBasis = buildRuntimeAtsBasis({
-      resumeText,
-      signalProfile,
-      domainProfile: activeProfile,
-      claims: atsClaims(activeProfile),
-    });
-    const result = scoreAtsLocally({ job, runtimeBasis, termWeights: atsTermWeightsForJob(job), synonyms: atsSynonyms() });
+    const runtimeBasis = panelBasis.runtimeBasis;
+    const result = scoreJobForBasis(job, runtimeBasis);
 
     // Save to cache, through the one writer every scoring path in this file shares.
     //
@@ -8428,7 +8604,7 @@ app.post("/api/jobs/:id/keywords", requireAuth, async (req, res) => {
     // of this table for (caller, active profile, job), so opening a report is what scores a row for
     // the user who opened it — per profile, and visible to nobody else.
     storeAtsReportForProfile({
-      userId, profileId: keywordsProfileId, jobId, report: result,
+      userId, profileId: keywordsProfileId, jobId, report: result, basisHash: panelBasis.basisHash,
     });
 
     res.json(result);
@@ -8607,6 +8783,8 @@ app.post("/api/base-resume", requireAuth, (req, res) => {
     try { return JSON.parse(activeProfile.target_titles || "[]"); } catch { return []; }
   })();
   upsertSimpleApplyProfile(db, { userId: req.user.id, profileId: activeProfile.id }, content, roleTitles);
+  // A new résumé is a new scoring basis: every precomputed board score for this profile is stale.
+  scheduleBoardFit(req.user.id, "base-resume", activeProfile);
   res.json({ ok:true, profileId: activeProfile.id });
 });
 app.get("/api/simple-apply/profile", requireAuth, (req, res) => {
@@ -8816,18 +8994,20 @@ async function adoptEnhancedProfileResume(req, res) {
   const profileId = profile.id;
   enqueueAtsScoreWork(`adopt-enhanced:${userId}:${profileId}`, async () => {
     try {
-      const newContent = getBaseResumeRecord(db, { userId, profileId })?.content;
-      if (!newContent) return;
-      const signalProfile = loadOrCreateSimpleApplyProfile(db, { userId, profileId });
-      const runtimeBasis = buildRuntimeAtsBasis({
-        resumeText: newContent,
-        signalProfile,
-        domainProfile: profile,
-        claims: atsClaims(profile),
-      });
+      // The panel's basis builder and scorer call (atsBasisForProfile / scoreJobForBasis): the
+      // adopted text IS the base résumé now, so this is exactly the basis the panel and the board's
+      // fit precompute will use, and the rows written here carry a hash they will accept as fresh.
+      const basis = atsBasisForProfile(userId, profile);
+      if (!basis) return;
+      const { runtimeBasis, basisHash } = basis;
 
+      // ⛔ `sj.*`, NOT the four columns this used to select (job_id, description, title, company).
+      // The scorer also reads skills_json, normalized_title, experience_level and more, so a
+      // four-column row scored differently from the full row the panel scores — and with migration
+      // 110 that lower-fidelity score would have carried the same basis hash as a real one and been
+      // accepted as fresh by the board's precompute.
       const jobsToRescore = db.prepare(`
-        SELECT sj.job_id, sj.description, sj.title, sj.company FROM scraped_jobs sj
+        SELECT sj.* FROM scraped_jobs sj
         JOIN user_jobs uj ON uj.job_id = sj.job_id AND uj.user_id = ? AND uj.domain_profile_id = ?
         WHERE sj.description IS NOT NULL
       `).all(userId, profileId);
@@ -8845,8 +9025,8 @@ async function adoptEnhancedProfileResume(req, res) {
         const batch = jobsToRescore.slice(i, i + 25);
         await Promise.all(batch.map(async job => {
           try {
-            const report = scoreAtsLocally({ job, runtimeBasis, termWeights: atsTermWeightsForJob(job), synonyms: atsSynonyms() });
-            storeAtsReportForProfile({ userId, profileId, jobId: job.job_id, report });
+            const report = scoreJobForBasis(job, runtimeBasis);
+            storeAtsReportForProfile({ userId, profileId, jobId: job.job_id, report, basisHash });
           } catch(e) {
             console.warn(`[adopt-enhanced] rescore failed for ${job.job_id}:`, e.message);
           }
@@ -8855,6 +9035,10 @@ async function adoptEnhancedProfileResume(req, res) {
       console.log(`[adopt-enhanced] Re-scored ${jobsToRescore.length} jobs for user ${userId}, profile ${profileId}`);
     } catch(e) {
       console.warn("[adopt-enhanced] background rescore failed:", e.message);
+    } finally {
+      // The résumé changed, so every precomputed board score for this profile is now stale. The
+      // rows above are the user's own saved postings; this re-scores the rest of the board.
+      scheduleBoardFit(userId, "adopt-enhanced", profile);
     }
   });
 
@@ -9127,16 +9311,11 @@ function scoreBaseResumeForApply(userId, jobId) {
     if (!job) return null;
     const activeProfile = getOrRepairActiveProfile(userId);
     if (!activeProfile) return null;
-    const resumeText = getBaseResumeRecord(db, { userId, profileId: activeProfile.id })?.content;
-    if (!resumeText) return null;
-
-    const runtimeBasis = buildRuntimeAtsBasis({
-      resumeText,
-      signalProfile: loadOrCreateSimpleApplyProfile(db, { userId, profileId: activeProfile.id }),
-      domainProfile: activeProfile,
-      claims: atsClaims(activeProfile),
-    });
-    const report = scoreAtsLocally({ job, runtimeBasis, termWeights: atsTermWeightsForJob(job), synonyms: atsSynonyms() });
+    // The same basis and scorer call as the ATS panel and the board's fit precompute — so the
+    // approval screen's band is the band the board sorted this posting by.
+    const basis = atsBasisForProfile(userId, activeProfile);
+    if (!basis) return null;
+    const report = scoreJobForBasis(job, basis.runtimeBasis);
     return {
       score: report.score,
       band: atsBandFor(report),
@@ -10312,6 +10491,18 @@ app.listen(PORT, () => {
     try { runExpiredJobsCleanup(); }
     catch(e) { console.warn("[cleanup] startup cleanup failed:", e.message); }
   });
+  // The board's fit, reconciled once after boot. Incremental, so on every boot after the first it
+  // is one plan query per active profile and "nothing to do". It is what backfills a deployment
+  // that gained migration 110 with users already on it — without it their boards would sit on
+  // "not established" until the 04:00 crawl. Delayed so it never competes with the boot itself;
+  // BOARD_FIT_PRECOMPUTE=off disables it with every other automatic trigger.
+  setTimeout(() => {
+    if (!boardFitAutomationEnabled()) {
+      console.log("[board-fit] boot pass: DISABLED by BOARD_FIT_PRECOMPUTE=off");
+      return;
+    }
+    scheduleBoardFitForAll("boot");
+  }, Number(process.env.BOARD_FIT_BOOT_DELAY_MS ?? 30000)).unref?.();
 });
 
 

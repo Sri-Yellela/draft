@@ -97,8 +97,31 @@ function parseProfileRow(row) {
   };
 }
 
-export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {}) {
+export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {}, { onProfileWrite = null } = {}) {
   const router = Router();
+
+  // ── THE BOARD'S FIT SCORES DEPEND ON WHAT THESE ROUTES WRITE ─────────────────────────────────
+  //
+  // The board ranks by a precomputed score whose basis is built from this profile's base résumé,
+  // its extracted signals, its claims and its own fields (seniority, target titles, selected
+  // terms). Nearly every write route below changes one of those, and naming each one would mean the
+  // next route added here silently leaves the board ranked against a basis that no longer exists.
+  //
+  // So it is one hook, on every successful non-GET under /:id, fired AFTER the response. The
+  // receiver (server.js) decides whether anything is stale — the precompute is incremental and
+  // answers "nothing to do" in a few ms when a write did not touch the basis — so over-notifying
+  // costs a plan query and under-notifying costs a stale board.
+  if (typeof onProfileWrite === "function") {
+    router.use("/:id", (req, res, next) => {
+      if (req.method !== "GET") {
+        res.on("finish", () => {
+          if (res.statusCode >= 400 || !req.user?.id) return;
+          try { onProfileWrite(req.user.id, req.params.id, `${req.method} ${req.path}`); } catch {}
+        });
+      }
+      next();
+    });
+  }
 
   // ── GET /api/domain-profiles ──────────────────────────────────
   // Returns all profiles for the authenticated user.

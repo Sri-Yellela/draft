@@ -33,7 +33,11 @@ test("ATS scoring reuses stored signal basis through the queue", () => {
   assert.match(server, /signalProfile: simpleProfile/);
   assert.match(server, /scoreAtsLocally\(\{/);
   assert.match(server, /enqueueAtsScoreWork\(`adopt-enhanced:\$\{userId\}:\$\{profileId\}`/);
-  assert.match(server, /buildRuntimeAtsBasis\(\{\s*resumeText: newContent,\s*signalProfile,\s*domainProfile: profile/);
+  // adopt-enhanced builds its basis through atsBasisForProfile — the panel's and the board fit
+  // precompute's builder — which reads the (now adopted) base résumé and the stored signal profile.
+  assert.match(server, /const basis = atsBasisForProfile\(userId, profile\);/);
+  assert.match(server, /function atsBasisForProfile\(userId, profile, \{ resumeText = null \} = \{\}\) \{[\s\S]{0,400}?getBaseResumeRecord\(db, \{ userId, profileId: profile\.id \}\)\?\.content/);
+  assert.match(server, /buildRuntimeAtsBasis\(\{\s*resumeText: text,\s*signalProfile: profile\?\.id \? loadOrCreateSimpleApplyProfile\(db, \{ userId, profileId: profile\.id \}\)/);
 });
 
 // "structured search thread logging includes outbound payload and filter summary" was removed
