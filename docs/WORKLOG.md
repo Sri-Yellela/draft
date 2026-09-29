@@ -83,7 +83,7 @@ locally or waiting on the owner:
 | 13 | Check that `COOKIE_ENCRYPTION_KEY` is SET in draft's production env (name only — do not paste the value) | Found writing E3: when unset, `server.js` silently generates a random key per boot, so every secret `routes/account.js` stores with it is unreadable after each deploy. If it is unset, the fix is to set it AND make a missing key fail boot |
 | 14 | ~~Android: what does a left swipe mean?~~ ✅ **Decided 09-29 by the owner: a SAVED pass** (a persisted dislike; the card never returns). Being wired in agent queue 14 | — |
 | 15 | Android store readiness — no signing config, no Data Safety form, `versionCode 1`, launcher icon, and `com.draft.android` availability on Play unchecked; plus the admin flavour (hardcoded "Sri Yellela / Admin • Pro", literal dashboard counts) — ship it, hide it, or delete it? | Owner-only: the Play console, the keystore, and the product call |
-| 16 | **E1 decisions** (resume-master `6e1837d`): (a) push = deploy `/mcp`, then the agent runs `verify:live` (needs your token) · (b) metering: keep ATS free and unlimited as "distribution", or a per-client cap now that loops are possible? · (c) who gets `rmk_` tokens — a public free connector needs a token policy (no OAuth/anonymous today) · (d) the contract-hash gap: accept, or fix in a new version (changes the recorded 1.0.0 hash) · (e) build a local PDF extractor so parsing can ship deterministic? | Nothing deploys until (a) |
+| 16 | **E1 decisions** (resume-master `6e1837d`): ~~(a) push = deploy~~ ✅ pushed 09-29 on the owner's go; `verify:live` still needs your token (OWNER 8) · ~~(b) metering~~ ✅ **decided 09-29: ATS stays FREE and UNLIMITED** (distribution, not revenue) · (c) who gets `rmk_` tokens — a public free connector needs a token policy (no OAuth/anonymous today) · (d) the contract-hash gap: accept, or fix in a new version (changes the recorded 1.0.0 hash) · (e) build a local PDF extractor so parsing can ship deterministic? | Nothing deploys until (a) |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
 committed and reuploaded · `marketing.md` deferred — **the pilot is gated to CS anyway** · **service
@@ -765,6 +765,7 @@ Confirmed and applied. ⛔ Do not re-litigate; if one is wrong, measure and reco
 
 | Date | Decision |
 |---|---|
+| 2026-09-29 | **ATS scoring stays free and unlimited** (owner), over HTTP and MCP — it costs no model call, and the doc's framing holds: distribution, not revenue. Metering still RECORDS every call per client; it just never refuses one for ATS. Generation, when it ships as a tool, is a separate decision |
 | 2026-09-29 | **A left swipe is a saved pass** (owner). Persisted as a dislike, so the card never returns — on any client. Right = draft (queue). ⛔ No gesture ever submits |
 | 2026-09-29 | **Position encodes fit** (owner). The deck orders by fit, so the board ranks by fit: the ordering work scoped out of CC1–CC5 is now a hard dependency of UI step 3. A declined score ("Not enough signal") ranks as NOT ESTABLISHED — never as a low score |
 | 09-29 | **Resume Master's root stays a JSON 404** — it is an API; no human-facing root |
