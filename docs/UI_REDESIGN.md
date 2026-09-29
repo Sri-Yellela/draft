@@ -209,3 +209,32 @@ Specific to this work:
 ⛔ **Decide before step 3:** does position encode fit? If yes, **the ordering problem is a hard
 dependency** and the board must rank by fit first. If no, the deck is chronological and the band is
 shown some other way. That is the one decision this design cannot proceed without.
+
+---
+
+## Step 2 status — tokens and the paper substrate (2026-09-29, `1fd46dc` + `0b76191`, local, not pushed)
+
+**Built:** `client/src/styles/colorTokens.js` is the one named token file (mirrors `zLayers.js`:
+one object `C`, published once as `--c-*` custom properties). The video background and the
+per-session random accent (and its four-swatch picker in the profile menu) are gone; the substrate
+is `PaperBackground.jsx`, a still, generated feTurbulence grain on `CANVAS #F3ECE0`.
+`themes/cinematic.js` maps every long-lived `theme.*` / `--bg-*` / `--color-*` name onto a token,
+which is what moved ~1,600 `theme.*` reads and ~550 `var(--…)` reads with no edit.
+
+**Measured:** colour literals in `client/src` 887 (60 files) before → 554 in 22 not-yet-migrated
+files after, plus 3 decided exemptions (StampLogo, DockPortal, the vendored chart). Ratcheted by
+`test/colorLiteralGuard.test.js` (self-pruning budget; seen to fail by injection three ways).
+Darkest rendered substrate pixel `#EDE5D9`, lighter than the `CANVAS_SHADE #E6DDCF` floor every
+contrast pair is computed against.
+
+**Contrast findings** (`test/colorTokens.test.js`, all declared pairs pass AA):
+⛔ the logo orange `#FD4600` is **2.96:1** on the cream — fails body text AND the 3:1 UI bar, so
+it is a FILL only; orange text/icons/focus rings are `ACCENT_INK #A33200` (5.18:1 worst case).
+⛔ White on the orange is **3.47:1** — text on the fill is ink (`ON_ACCENT`, 5.0:1). Google's
+`#4285F4` carries white at 3.56:1; the sign-in button uses `#1A73E8` (4.51:1).
+
+**Not done / open:** the 22 budgeted files are the signed-in app (board, panels, admin). Their
+dark-era literals (e.g. `#0a1f0a` fills, `#22c55e` text) now sit on cream and were NOT
+screenshotted — step 2 photographed only what renders without a backend. Band/score colours
+(`#16a34a` 2.81:1, `#d97706` 2.71:1 on cream) FAIL AA as text and are in that remainder. The grain
+is deliberately faint (measured spread 6 levels); how much texture glass needs is an owner call.
