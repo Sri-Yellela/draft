@@ -44,8 +44,13 @@ test("1. right-anchored overlay, inset from the viewport edges, with rounded cor
     "stopped being a group in the first place");
 });
 
-test("2. the scrim dims but does not hide, and there is exactly one for the group", () => {
-  assert.match(shell, /background: "rgba\(0,0,0,0\.45\)"/);
+test("2. the scrim dims but does not hide, and there is exactly one for the group", async () => {
+  // Was the literal rgba(0,0,0,0.45) — a black scrim for a dark UI. On the paper substrate it is
+  // the SCRIM token (ink at low alpha), and "dims but does not hide" is asserted on its alpha.
+  assert.match(shell, /background: "var\(--c-scrim\)"/);
+  const { C } = await import("../client/src/styles/colorTokens.js");
+  const scrimAlpha = Number(/,\s*([0-9.]+)\)$/.exec(C.SCRIM)[1]);
+  assert.ok(scrimAlpha > 0.1 && scrimAlpha < 0.5, `scrim alpha ${scrimAlpha} either hides the board or does not dim it`);
   assert.match(shell, /backdropFilter: "blur\(4px\)"/);
   // One scrim, rendered by the host — two stacked 45% scrims compound to ~70% and the board stops
   // being visible behind them, which would break this property exactly when a second panel opens.
@@ -57,7 +62,9 @@ test("3. backdrop blur on the panel surface itself (dark glass), not a flat fill
   assert.match(shell, /className="liquid-panel"/);
   const css = read("client/src/index.css");
   assert.match(css, /\.liquid-panel \{[\s\S]*?backdrop-filter: blur\(14px\)/);
-  assert.match(css, /\.liquid-panel \{[\s\S]*?background: rgba\(255, 255, 255, 0\.03\)/);
+  // Was `rgba(255, 255, 255, 0.03)`: a white wash that reads as glass only over a dark video. Over
+  // the paper it is the SURFACE_2 glass token. The blur above — the glass itself — is unchanged.
+  assert.match(css, /\.liquid-panel \{[\s\S]*?background: var\(--c-surface-2\)/);
 });
 
 test("4. TWO sticky regions — identity header AND action bar — and only the body scrolls", () => {

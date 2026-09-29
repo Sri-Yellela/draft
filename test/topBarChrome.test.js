@@ -69,10 +69,15 @@ test("the unread count stays OUTSIDE the menu, on the avatar", () => {
 test("the profile menu kept everything it already had", () => {
   // Notifications were inserted into this menu, not swapped in for something.
   const menu = topBar.slice(at(topBar, "function UserAvatarMenu"));
+  // "Accent Color" WAS in this list. docs/UI_REDESIGN.md step 2 removed it on purpose — the
+  // per-session accent and the picker that chose among four were killed by the owner (2026-09-27),
+  // and the accent is the logo orange, always. So it is asserted GONE, not merely dropped from here:
+  // test/colorTokens.test.js pins the picker's absence from comment-stripped source.
   for (const kept of [/PROFILE/, /Job Profile/, /Manage Job Profiles/, /<ProfileSelectorDropdown/,
-                      /Accent Color/, /Sign Out|onLogout/]) {
+                      /Sign Out|onLogout/]) {
     assert.match(menu, kept, `the profile menu lost ${kept}`);
   }
+  assert.doesNotMatch(menu, /Accent Color/, "the killed accent picker is back in the profile menu");
 });
 
 // THE LOGO IS WHITE, AND THIS TEST USED TO ASSERT THE OPPOSITE.

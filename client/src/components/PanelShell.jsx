@@ -82,7 +82,7 @@ export function PanelScrim({ show, onClick }) {
           transition={{ duration: 0.18 }}
           onClick={onClick}
           style={{ position: "fixed", inset: 0, zIndex: Z.MODAL_SCRIM,
-                   background: "rgba(0,0,0,0.45)",
+                   background: "var(--c-scrim)",
                    backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}/>
       )}
     </AnimatePresence>,

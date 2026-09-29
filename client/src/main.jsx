@@ -29,6 +29,7 @@ import "@fontsource/instrument-serif/400-italic.css";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 
+import "./styles/colorTokens.js";   // publishes --c-* before anything paints
 import "./index.css";
 import { ThemeProvider } from "./styles/theme.jsx";
 import App from "./App.jsx";
