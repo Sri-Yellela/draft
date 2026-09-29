@@ -3,7 +3,7 @@
 **This file is the only place work is tracked.** Every other doc is reference material for a task
 named here. If a task is not in this file, it is not being worked on.
 
-**Last updated:** 2026-09-28
+**Last updated:** 2026-09-29
 
 ---
 
@@ -31,16 +31,16 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 | | |
 |---|---|
-| Production (draft) | `jobsviadraft.com` ONLY — **`a7a9c7f`**, deployed 09-28 18:20Z (B step 4's policy fix). A1 and A4 are LIVE. Verified: `/api/auth/me` JSON, Google sign-in redirects to the `jobsviadraft.com` callback, the capture endpoint answers JSON; the BUILT bundle carries the new policy sentences and not the old one |
-| Production (Resume Master) | **LIVE at `https://resumemaster.one`** (since B step 4, 09-28 — verifier 21/21 ON THE DOMAIN; certificate **VALID**, `DETAILED_COMPLETE`, re-read 09-29; DNS Railway-managed and already repointed — see the correction in the step-4 session entry) and `https://resume-master-production-d960.up.railway.app`, commit **`814356d`**, service `resume-master` in draft's Railway project `resume-master` (owner's choice: kept there). Boot log: `model=true clients=["draft"]`. ⛔ `resumemaster.one` still points at draft (B step 4 not done) — it answers draft's SPA shell |
+| Production (draft) | `jobsviadraft.com` ONLY — **`a7a9c7f`** (⚠ local `main` is 5 commits ahead, unpushed — OWNER 7), deployed 09-28 18:20Z (B step 4's policy fix). A1 and A4 are LIVE. Verified: `/api/auth/me` JSON, Google sign-in redirects to the `jobsviadraft.com` callback, the capture endpoint answers JSON; the BUILT bundle carries the new policy sentences and not the old one |
+| Production (Resume Master) | **LIVE at `https://resumemaster.one`** (since B step 4, 09-28 — verifier 21/21 ON THE DOMAIN; certificate **VALID**, `DETAILED_COMPLETE`, re-read 09-29; DNS Railway-managed and already repointed — see the correction in the step-4 session entry) and `https://resume-master-production-d960.up.railway.app`, commit **`814356d`**, service `resume-master` in draft's Railway project `resume-master` (owner's choice: kept there). Boot log: `model=true clients=["draft"]`. Certificate re-read by the agent 09-29 over TLS: Let's Encrypt, CN=resumemaster.one, valid to 12-27 |
 | Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`814356d`**, auto-deploys on push. **197 tests, 197 pass** |
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (OWNER 2) |
 | Resume Master contract | **v1.0.0**, generated; vendored in draft. **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
-| Test baseline (draft) | **2691 / 2691 / 0** — measured 09-28 after A4 in the working tree AND on a fresh CRLF worktree (root + `client/` dependencies installed). Fell from 2696 because the prompt's tests MOVED to resume-master; nothing was dropped. No deliberate failures |
+| Test baseline (draft) | **2702 / 2702 / 0** — measured 09-29 in the working tree at `3b9dbe9` (+5 `registryPlacement` in `983a0ed`, +6 backup-disk tests in `3b9dbe9`, over 2691). ⚠ Not yet re-measured on a fresh CRLF worktree. No deliberate failures |
 | Migration high-water | **109** (`109_restore_stripped_seniority_titles`) in both runners, 110 entries each; production reports 116 applied, latest 109 |
 | Contract | v1.1.1 (mobile) · v1.0.0 (Resume Master, above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
-| draft volume | `resume-master-volume` (draft's DB, `/app/data`) — **481 / 1,000 MB** after the owner grew it 09-29. It was 481/500 and the 09-29 02:00 backup failed with ENOSPC. ⚠ The backup policy still allows ~640 MB steady; pruning + policy fix are agent queue 8, LAST |
+| draft volume | `resume-master-volume` (draft's DB, `/app/data`) — **481 / 1,000 MB** after the owner grew it 09-29. It was 481/500 and the 09-29 02:00 backup failed with ENOSPC. ⚠ The backup policy still allows ~640 MB steady; policy fixed locally in `3b9dbe9` (budget from the volume, refuse before the copy — NOT deployed); pruning is agent queue 8(b), waiting on OWNER 9 |
 | ATS ρ | **0.746**, drift 0.000, against the extracted package (`am1GradedCorpusVerify`, tolerance now 0.005). Seniority guard is worth 0.645 → 0.746 |
 | Anthropic balance | **Funded — VERIFIED 09-28** by real generation, A+ and PDF calls (Resume Master references draft's `ANTHROPIC_KEY`, owner's choice) |
 | ⛔ Fabrication | **2 of 2 real generations contained material the candidate never stated** (a JD skill; two invented responsibility bullets and an unsourced skill). The claim guard enforces years and seniority only. Resume Master's `docs/API.md` now says so. ⛔ **Blocks AF5** — agent queue 2 |
@@ -52,14 +52,14 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
-**B — steps 1–4 DONE; step 5 is the owner's** (the stale OAuth redirect URI). `resumemaster.one`
-serves Resume Master (21/21 on the domain, certificate VALID, DNS repointed by Railway itself); draft
-`a7a9c7f` serves only `jobsviadraft.com`, signs in, and its deployed policy says where each address
-goes. After step 5, Phase A+B is complete; the agent queue continues from its top.
+**09-29: the agent queue was run to its end** (see the session entry). Every item is either done
+locally or waiting on the owner:
 
-⛔ **Found during step 4, outside B, now relieved:** draft's production volume was **481/500 MB** and
-the 09-29 02:00 backup had **already failed with ENOSPC**. The owner grew it to 1,000 MB. The backup
-policy that caused it is queued LAST, with the pruning — see agent queue.
+- **Owner, in order:** OWNER 7 (push → deploy the five local commits; ⛔ ATS scores move) → OWNER 5
+  (B step 5, the stale OAuth URI — closes Phase A+B) → OWNER 9 (approve the production prune list)
+  → OWNER 10 (iOS branch + a Mac).
+- **Agent, after OWNER 7:** verify the `[boot] registries:` line and the next 02:00 backup log; then
+  agent queue 8(b). Queue 2 (G1) stays deferred by the owner; queue 7 needs a Mac.
 
 ---
 
@@ -74,6 +74,10 @@ policy that caused it is queued LAST, with the pruning — see agent queue.
 | 4 | ~~Replace the store icon in the dashboard~~ ✅ done by the owner, 09-28 | Uploaded separately from the zip — the package upload does not carry it |
 | 5 | **B step 5: remove the stale `resumemaster.one` OAuth redirect URI** from Google Cloud Console | ✅ Unblocked — draft's live redirect is `https://jobsviadraft.com/auth/google/callback` (read from the redirect Google receives). The old URI now points at a service with no `/auth` route |
 | 6 | **AF5 — 30 supervised applications** | ⛔ LAST. The résumé-guard work (G1) is **deferred to post-migration by the owner (09-28)** — AF5 itself is post-migration, and every generated document still needs reading before it is sent. Run ONE first and confirm `job_applications` gets a row with `ats_score_at_apply` populated |
+| 7 | ⭐ **Go-ahead to push draft `main`** — 5 local commits ahead of `origin/main` (`a7a9c7f`): `617fdd0` `cfa63ff` (docs), `f29f273` (dead code), `983a0ed` (registries), `3b9dbe9` (backup policy), plus this WORKLOG commit. Push = auto-deploy | ⛔ `983a0ed` **changes production ATS scores** at the next term-weight recompute (per-family weights start forming). After deploy the agent checks the `[boot] registries:` line for non-zero counts and the first 02:00 backup log |
+| 8 | Optional: re-run `RESUME_MASTER_TOKEN=… npm run verify:live -- --base https://resumemaster.one` in `resume-master` | Only the owner holds the token. The 09-28 run was already 21/21 on the domain; agent queue 1 is closed without it |
+| 9 | **Approve the exact file list for pruning production `/app/data/backups`** (agent queue 8b) — the agent lists it first; also add an SSH key to the Railway account so the agent can list the volume | Irreversible. Only after OWNER 7's deploy, so the new policy is what runs next |
+| 10 | Decide which iOS branch is canonical: `main` (`f8be63c`, 05-09) or `feat/api-layer-feed-review-queue` (`aad5a3a` + the P3 sweep) — and a Mac for agent queue 7 | The rebrand's "three repos" is only true on the branch |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
 committed and reuploaded · `marketing.md` deferred — **the pilot is gated to CS anyway** · **service
@@ -86,49 +90,19 @@ design.
 ## AGENT QUEUE
 
 Run top to bottom. One commit per task. Report into *SESSION LOG* between each.
+**09-29 pass:** the queue was run to the end without stopping; each row says where it landed. Rows
+marked ✅ move to *DONE* at the next tidy; ⏸/⛔ rows are what is left, and why.
 
-| | Task | Prompt lives in | Blocked on |
+| | Task | Status 09-29 | Blocked on |
 |---|---|---|---|
-| 1 | **B step 4 close-out** — after the owner's DNS edit, confirm `railway domain status a2ac6249-…` shows a VALID certificate and re-run `verify:live -- --base https://resumemaster.one` | `PHASE_A_B_EXECUTION.md` §B | ⛔ owner DNS edit (OWNER 1) |
-| 2 | ⏸ **DEFERRED to post-migration by the owner (09-28)** — "a work in progress". An unsupported-content check for generation. 2 of 2 real generations stated things the candidate never did. Measure first: generate against real base résumés (thin and full) and count unsupported bullets and skills — the rate decides the design (withhold vs flag vs mark for review). Then a mechanical check beside the claim guard, same contract (a violation withholds or flags; never silently passes) | Resume Master `docs/API.md` promise 3 | — |
-| 3 | Delete draft's two dead `getDomainModuleKey` copies — the disagreement is **resolved** (one definition in Resume Master, `5112249`); since A4 neither draft copy has a caller that reads its result | below | — |
-| 4 | `.dockerignore` excludes `data/` from the production image — **wider than QUALIFICATION_ROLE_MAP** | below | — |
-| 5 | ⭐ **Reconcile `DONE` against `git log`** | below | — |
-| 6 | Mobile corruption sweep (Android) | `CORRUPTION_SWEEP.md` | — |
-| 7 | iOS Phase 1 audit | `../draft-ios/IOS.md` | ⛔ needs a Mac |
-| 8 | ⛔ **LAST, by owner decision (09-29): prune draft's volume and fix the backup policy** — "we are charged by the space we use". (a) Fix `scripts/backup.js` so it cannot outgrow the disk: a budget derived from the volume, not a 512 MB constant larger than the whole 500 MB volume it lived on; check free space BEFORE the copy and refuse loudly rather than ENOSPC mid-copy; the `MIN_KEEP` floor must not override the disk. (b) Then prune `/app/data/backups` to the new budget — ⛔ irreversible, so list the files and get the owner's go on the exact set first; needs an SSH key on the Railway account. Verify first that the 09-30 02:00 backup succeeded on the 1,000 MB volume | below (step-4 session entry) | everything above it |
-
-**5 · Reconcile the `DONE` section.** It was written from the chat record, not from `git log`, so it
-is incomplete and possibly mis-dated. Walk the log, add what is missing, correct what is wrong, and
-remove anything that never actually landed. ⛔ **Both directions matter** — this project has found
-tasks marked open that were done *and* tasks marked done that were not, in the same audit.
-
-**3 · Two `getDomainModuleKey` functions disagreed.** A project-manager role in an unmatched domain
-got `pm_general` from one and `general` from the other. Shape 1. **Resolved in Resume Master:
-`services/qualificationResolver.js`'s won** — it is the one `coreGenerateResume` called, so every
-existing résumé was produced by it. ✅ Since A4 both draft copies are dead: `qualificationResolver`'s
-export has no caller, and `classifier.js`'s private copy only sets `parsed.domainModuleKey`, which
-smart-search (its one remaining caller) never reads. Deleting them is cleanup, not a behaviour change.
-
-**4 · `.dockerignore` keeps `data/` out of the production image** (`data` + `data/`, re-including
-only `ROLE_ALIAS_MAP.json`, since 2026-04-23; Railway's builder is Docker). Measured from the rule,
-not from a production read. ⚠ **B found a second layer:** production's `/app/data` is a Railway
-VOLUME (`resume-master-volume`, where the database lives), and a volume mounted there hides whatever
-the image put at that path — so what production reads from `data/` is whatever the volume holds, not
-the image. The 409 retained log lines carried no `[domain-registry] JSON file not found`, which only
-fires when that route is hit; a container listing needs an SSH key on the Railway account (not set
-up). Still unobserved either way. Scorer: unaffected since A1, which reads from the package, outside
-the volume. It excludes FOUR tracked files, not one:
- · `DOMAIN_METADATA_REGISTRY.json` + `DOMAIN_TOOL_REGISTRY.json` — the scorer's vocabulary. **Fixed
-   for the scorer by A1**: they now ship inside `packages/ats-scorer/data`. ⛔ Deploying A1 therefore
-   changes production ATS scores (an empty vocabulary moved 27 of 30 graded scores). Still missing
-   for `routes/domainProfiles.js`, masked by its `BUILTIN_REGISTRY` copy — compare the two before
-   un-masking, or the picker changes too
- · `QUALIFICATION_ROLE_MAP.json` — `services/qualificationResolver.js`'s fallback, empty in prod.
-   (`searchQueryBuilder.js` names it in its header but reads only `ROLE_ALIAS_MAP.json`, the one
-   re-included file — checked, not affected)
- · the fix is probably `!data/*.json` — but it changes the domain picker in production, so it is a
-   measured change with its own before/after, not a one-line tidy-up
+| 1 | B step 4 close-out — VALID certificate + `verify:live` on the domain | ✅ **Closed.** The DNS edit it waited on never existed (OWNER 1, withdrawn). Re-read 09-29: `resumemaster.one` presents a Let's Encrypt cert, CN=resumemaster.one, 09-28 17:19Z → 12-27; `/health` = `{"ok":true,"service":"resume-master"}`. The 21/21 domain run is 09-28's; a re-run needs `RESUME_MASTER_TOKEN`, which the agent never holds by design — optional, OWNER 8 | — |
+| 2 | ⏸ Unsupported-content check for generation (G1) | ⏸ **DEFERRED to post-migration by the owner (09-28).** Measure first against thin and full base résumés; the rate decides withhold vs flag vs review | owner deferral |
+| 3 | Delete draft's two dead `getDomainModuleKey` copies | ✅ `f29f273` (09-29). ⚠ local, unpushed | — |
+| 4 | Static registries out of `data/` (was: `.dockerignore` excludes `data/`) | ✅ `983a0ed` (09-29) — the premise was one layer short: the VOLUME hides `/app/data`. ⚠ local, unpushed; ⛔ ATS scores move on deploy (per-family weights). Verify after deploy: `[boot] registries:` shows non-zero counts | deploy = OWNER 7 |
+| 5 | Reconcile `DONE` against `git log` | ✅ 09-29 — DONE rewritten from all four repos' logs: 15 rows corrected, 1 removed, 5 flagged, 46 added. Findings outside DONE are in the session entry | — |
+| 6 | Mobile corruption sweep (Android) | 🔄 see the 09-29 session entry — Part 1 re-run CLEAN; Part 2 report `draft-android/docs/CORRUPTION_SWEEP_ANDROID.md` | — |
+| 7 | iOS Phase 1 audit | ⛔ **Needs a Mac** — skipped. ⚠ Reconciliation found the iOS work (`aad5a3a`, the P3 sweep) sits on the unmerged branch `feat/api-layer-feed-review-queue`; `main` is still `f8be63c` (05-09). The audit should start by deciding which branch it audits | Mac |
+| 8 | Volume pruning + backup policy | (a) ✅ `3b9dbe9` — budget from the volume, refuse before the copy, see DONE. ⚠ local, unpushed. (b) ⛔ **Prune production `/app/data/backups`** — irreversible: list the files, get the owner's go on the exact set (OWNER 9), needs an SSH key on the Railway account. First verify the 09-30 02:00 backup succeeded on the 1,000 MB volume | OWNER 7, 9 |
 
 ---
 
@@ -255,89 +229,200 @@ domain renders 200 with `service: "resume-master"`. **Owner decision: keep the J
 
 ## DONE
 
-Newest first. One line each; detail lives in `SESSION LOG` or the named doc.
+Newest first. One line each; detail lives in `SESSION LOG`, the named doc, or the commit message.
+Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on 2026-09-29; every hash was checked there.
 
-⚠ **This list was written from the chat record, not from `git log`.** It is almost certainly
-incomplete and some items may be mis-dated. ⛔ **The next agent to touch this file should reconcile
-it against `git log` and correct it** — that reconciliation is itself a queued task.
-
-### The split (in progress)
+### The split (Phase A + B)
 
 | | |
 |---|---|
-| **A1** (`3c3fd1d`, 09-27) | `@draft/ats-scorer` extracted as a package. ✅ **Confirmed: ρ = 0.746, drift 0.000, at tolerance 0.005** against the package, plus 1,065 full reports deep-equal before/after. The wrong weights shape is now a TypeError. ⚠ Unpushed — carries the scorer registries into the production image, so **production ATS scores change on deploy** |
-| **A2** (`5112249` in resume-master, `083ad39` BRAND rule in draft, 09-27) | Tools moved. ⛔ Only the STATELESS part crossed — `coreGenerateResume` mixes draft's DB reads and writes, notifications and weighted scoring with prompt assembly, the model call, formatting and the claim guard. Runtime-inputs text byte-identical to draft's over 324 cases |
-| **B step 4** (09-28) | `resumemaster.one` moved to Resume Master and verified 21/21 on the domain; the policy's two now-false sentences fixed and verified in the built bundle (`a7a9c7f`). ⛔ Certificate waits on the owner's DNS edit |
-| **B steps 1–3** (09-28) | Resume Master live on Railway (`814356d`), verified 24/24 incl. metered; draft `e046b7c` live and calling it; first real generations and first cache read. Found and fixed: a rejected request reported retryable (`fc5ed5c`). ⛔ Found: generation invents content (2/2) — blocks AF5 |
-| **A4** (`8a3eb53` draft, deployed at B step 3 · `1fbb9bb` resume-master, 09-28) | draft calls the tools service for generation, A+ and PDF reading, as a third-party client with its own token; contract vendored and checksum-pinned. ⛔ **`/api/standalone/generate` had never passed the claim guard** — fixed by routing it through the service. PDF reading degrades to local extraction. Every error says whether retrying helps. draft's prompt copy and its assembler deleted. Privacy: policy + reconciliation's fifth column; Web Store declaration re-checked, unchanged |
-| **A3 · contract** (`a76074f`, 09-28, resume-master) | Generated OpenAPI 3.1 + TypeScript, v1.0.0, LF-normalised checksums, append-only version → shape-hash ledger. Four shapes **derived by execution**; envelopes declared. ⛔ The envelope harness boots the real app on every `npm test` — 47 scenarios, every declared (route, status) covered, keys AND types checked. Live verifier for Phase B |
-| **A3 · service token** (`1ad17a3`, 09-28) | Filed under A2 before; it is A3's auth half. `rmk_<client>.<secret>`; Resume Master stores only the hash in `RESUME_MASTER_CLIENT_TOKENS`. Rejected before the body is read · **503 with no clients configured rather than open** · a malformed token list stops boot · rotate by adding the new hash beside the old. Per-client accounting logs token counts only, failed calls included, limits off. 122/122, **each new check seen to fail when deliberately broken**; the token and its hash appear in no log |
-| **Extension v1.1.1** (`5e7f72e`, 09-28) | ⛔ **v1.1.0 shipped with the old "RM" icon in all three sizes** while its name and listing said draft. Shipped the `/d` monogram — the only set consistent across sizes, since the full wordmark is illegible at 16px. ⛔ The manifest had carried **no top-level `icons` entry since May**, so the install and extensions-page surfaces showed a generic icon. Version bumped because the store refuses an upload at or below the version under review. Rebuilt, committed, **reuploaded by the owner** |
+| **Backup policy fix** (`3b9dbe9`, 09-29) | Queue item 8(a). Budget = 40% of the volume via statfs (was a 512 MB constant > the 500 MB volume); a disk ceiling binds MIN_KEEP and the newest; room is PROVEN from on-disk sizes, then pruned, before the copy — or `BackupRefused` with nothing deleted. Restore's safety copy obeys the same rule. ⛔ Its first test deleted two LOCAL dev backups (production untouched) — which exposed the prune-then-refuse bug it now pins. 2702/2702. ⚠ Local only. 8(b), pruning production, waits on the owner |
+| **Registries out of `data/`** (`983a0ed`, 09-29) | Queue item 4, done. The four static JSON registries move `data/` → `registry/`, because production's `/app/data` is a VOLUME that hides whatever the image put there — `ROLE_ALIAS_MAP.json` included, so production's term weights formed for `__global__` only. The domain picker's fallback measured identical to the file (17 domains), so the picker does not change. New boot line `[boot] registries: N role aliases…`. ⚠ **Local only, not pushed** (`origin/main` = `a7a9c7f`). ⛔ On deploy, role families start resolving and ATS scores move at the next weight recompute |
+| **`getDomainModuleKey` copies deleted** (`f29f273`, 09-29) | Queue item 3, done. Both draft copies were dead since A4; one definition lives in Resume Master. No behaviour change, 2691/2691. ⚠ **Local only, not pushed** |
+| **B step 4** (`a7a9c7f`, 09-28; corrected `cfa63ff`, 09-29) | `resumemaster.one` moved to Resume Master, verified 21/21 on the domain; the policy's two now-false sentences fixed and checked in the built bundle. Certificate **VALID**: there was no DNS edit to make, since the domain was bought through Railway and Railway repointed it (`cfa63ff` corrects `617fdd0`). Root is an intentional JSON 404 (G7, owner keeps it). Step 5, the stale OAuth URI, is the owner's |
+| **B steps 1–3** (RM `1bb6694` `fc5ed5c` `814356d`; draft `6b8b2a5`, 09-28) | Resume Master live on Railway at `814356d`, verified 24/24 including the metered scenarios; draft deployed at `e046b7c` (the A4 tree) and calling it; first real generations and the first cache read. Found and fixed: a provider-rejected request reported retryable (`fc5ed5c`). ⛔ Found: generation invents content (2/2) — `814356d` makes `docs/API.md` say the guard enforces years and seniority only. Blocks AF5 |
+| **A4** (draft `8a3eb53`, RM `1fbb9bb`, 09-28) | draft calls the tools service for generation, A+ and PDF reading, as a third-party client with its own token; contract vendored and checksum-pinned. ⛔ **`/api/standalone/generate` had never passed the claim guard** — fixed by routing it through the service. PDF reading degrades to local extraction. Every error says whether retrying helps. draft's prompt copy and its assembler deleted; the prompt's tests moved to resume-master (195/195 there). Privacy: policy + reconciliation's fifth column; Web Store declaration re-checked, unchanged |
+| **A3 · contract** (RM `a76074f`, 09-28) | Generated OpenAPI 3.1 + TypeScript, v1.0.0, LF-normalised checksums, append-only version → shape-hash ledger. Four shapes **derived by execution**; envelopes declared. ⛔ The envelope harness boots the real app on every `npm test` — 47 scenarios, every declared (route, status) covered, keys AND types checked. Live verifier for Phase B |
+| **A3 · service token** (RM `1ad17a3`, 09-28) | `rmk_<client>.<secret>`; Resume Master stores only the hash in `RESUME_MASTER_CLIENT_TOKENS`. Rejected before the body is read · **503 with no clients configured rather than open** · a malformed token list stops boot · rotate by adding the new hash beside the old. Per-client accounting logs token counts only, failed calls included, limits off. 122/122, **each new check seen to fail when deliberately broken**; the token and its hash appear in no log |
+| **Extension v1.1.1** (`5e7f72e`, 09-28) | ⛔ **v1.1.0 shipped with the old "RM" icon in all three sizes** while its name and listing said draft. Shipped the `/d` monogram, the only set that stayed consistent across sizes. ⛔ The manifest had carried **no top-level `icons` key since `c818b9c` (05-08)**. Version bumped because the store refuses an upload at or below the version under review. The two red `extensionSubmission` tests went green. Rebuilt and committed; ⚠ **reupload is owner-reported** |
+| **A2** (RM `5112249`, 09-27; draft `083ad39` BRAND rule) | Tools moved, copied byte-for-byte from draft at `85570d4`. ⛔ Only the STATELESS part crossed — `coreGenerateResume` mixes draft's DB reads and writes, notifications and weighted scoring with prompt assembly, the model call, formatting and the claim guard. Runtime-inputs text byte-identical to draft's over 324 cases. The drifted `FORMATTING_SYSTEM` CSS is rebuilt from `RESUME_STYLE_BLOCK` |
+| **A1** (`3c3fd1d`, 09-27) | `@draft/ats-scorer` extracted as a package. ✅ ρ = 0.746, drift 0.000, at tolerance 0.005 against the package, plus 1,065 full reports deep-equal before and after; the seniority guard re-measured at 0.645 → 0.746. The wrong weights shape is now a TypeError. Carries the scorer registries into the image. ✅ Pushed and deployed (an ancestor of `origin/main` `a7a9c7f`) — **production ATS scores changed on that deploy** |
+| **Fresh-clone test fix** (`e2e732f`, 09-27) | Four source-string tests failed on a fresh Windows (CRLF) clone and passed locally only by accident. Fixed on the test side; the `server.js` ↔ `migrations.js` byte-identity reads are deliberately left alone |
 
-### Migration and rebrand — complete
-
-| | |
-|---|---|
-| Domain | `resumemaster.one` → `jobsviadraft.com`. DNS moved to Cloudflare (GoDaddy cannot `CNAME` at an apex), certificate live, both hosts serving |
-| Brand | Resume Master → **draft**. 79 files across three repos. `shared/brand.js` is the single source; a guard fails on any legacy literal outside an allowlist that **self-prunes** |
-| Repo | `resume-master` → `draft` on GitHub and locally. Sibling paths fixed in both mobile repos. ⛔ Creating the new empty `resume-master` repo silently stopped GitHub redirecting the old name — caught before a push sent draft's history to the wrong repo |
-| OAuth | Google and LinkedIn redirect URIs moved; `APP_BASE_URL`, `FRONTEND_URL`, `GOOGLE_CALLBACK_URL` updated |
-| Email | Cloudflare Email Routing for `privacy@`; Resend verified for `noreply@` |
-| The logo | Three implementations of one mark collapsed into one `StampLogo`. ⛔ The rebrand guard had been **blind to the most visible instance in the product** — `TopBar` split the name across two spans, and two tests *required* the legacy name to render |
-
-### Extension — the v1.1.0 work (superseded in review by v1.1.1, above)
+### Migration and rebrand — complete (09-23 → 09-27)
 
 | | |
 |---|---|
-| Privilege escalation | ⛔ A fetch from the extension origin reached **7 of 7 admin routes**. Closed server-side, so already-published builds are protected too. Three separate `requireAdmin` definitions collapsed into `shared/authPolicy.js` |
-| Identity | Own `sessionLess` token instead of the ambient cookie; the popup now names the account it acts as |
-| Capture | Degrades instead of failing — parses the labelled block the published build already posts, so users benefit with no store update. ⛔ "Localhost" was filed as a company before the registrable-domain check landed |
-| Dead routes | `/resume` and `/ats-score` did not exist and the SPA catch-all sent admins to `/admin`. Both tool pages also threw `ReferenceError` on render — **they had never worked**, and `vite build` exits 0 on that |
-| Fill path | Read-back after set. A value the page reverts is now reported skipped, not filled. Comboboxes, multi-selects, dates, contenteditable added |
-| Non-retryable errors | "Please try again" for a billing failure is a message that can never be true |
-| Icons | ✅ Committed and shipped in **v1.1.1** — see the split section above. The two red `extensionSubmission` tests went green with the rebuild |
+| **Repo rename** (`69bc240` draft, `a6ea57a` android, `4bb321f` ios, 09-27) | `resume-master` → `draft` on GitHub and locally; sibling paths fixed. ⛔ Creating the new empty `resume-master` repo silently stopped GitHub's rename redirect, and `origin` still pointed at it. Caught before a push sent draft's history to the wrong repo |
+| **The logo** (`123af31`, `d8d16ef`, 09-26) | Three implementations of one mark collapsed into one `StampLogo`. ⛔ The rebrand guard had been **blind to the most visible instance in the product**: `TopBar` split the name across two spans, and two tests *required* the legacy name to render. Found by screenshotting production |
+| **P4 — extension to `jobsviadraft.com`** (`bde7d24`, `fec9cd6`, 09-26) | Extension v1.1.0, named draft, pointed at the new origin; the two deliberate `extensionSubmission` failures cleared by the rebuild. ⛔ The policy said the extension keeps four things (it keeps six) and that nothing is sent (its token is). `fec9cd6`: `resumemaster.one` is a product, not a former address, so a 301 is never safe |
+| **Brand — P2/P3** (`11728e4` draft, `e195f40` android, `42224d1` ios, 09-23) | Resume Master → **draft** across 84 changed files (53 + 16 + 15). `shared/brand.js` is the single source; a guard fails on any legacy literal outside an allowlist that **self-prunes**, and it was seen to fail four ways. ⛔ **The iOS sweep is on the unmerged branch `feat/api-layer-feed-review-queue`**; iOS `main` is still `f8be63c` (05-09) |
+| **Domain** (owner action; no commit) | `jobsviadraft.com` became the app's address: DNS on Cloudflare (GoDaddy cannot `CNAME` at an apex), certificate live. `resumemaster.one` has served Resume Master since B step 4 (above) |
+| **OAuth** (owner action; no commit) | Google and LinkedIn redirect URIs moved; `APP_BASE_URL`, `FRONTEND_URL`, `GOOGLE_CALLBACK_URL` updated. ⚠ The stale `resumemaster.one` URI is still registered (OWNER 5) |
+| **Email** (owner action; no commit) | Cloudflare Email Routing for `privacy@`, Resend verified for `noreply@`. ⚠ Owner-reported: `11728e4` recorded that neither mailbox was yet known to route |
 
-### Curation — CC1 to CC5
-
-| | |
-|---|---|
-| CC1 / CC1b | `target_titles` stopped deciding board membership and became rank keys; the `job_role_map` INNER JOIN became LEFT with soft-null. Graded-corpus reachability **8/30 → 30/30**, 277 permanently invisible postings restored |
-| CC2 | The bridge matches a term inside a phrase; `'[]'` stopped meaning mismatch. Multi-word match rate 53% → 75.5% |
-| CC3 | `skill_synonyms` wired into all 8 scorer call sites. ⛔ The earlier "+0.000" was never a weak effect — **there was no effect path at all** |
-| CC4 | A claimed term now reaches the band and the board, not only generation |
-| CC5 | Every stored score keyed `(user_id, domain_profile_id, job_id)`. ⛔ The brief named one cross-user read; there were **seven**, and the two it missed were worse |
-| ⛔ **Still true** | **The board ranks by `discovered_at DESC`, not by fit.** Explicitly scoped out; the highest-leverage item left |
-
-### Pipeline, enrichment, infrastructure
+### Extension — the v1.1.0 work (09-24 → 09-25; superseded in review by v1.1.1)
 
 | | |
 |---|---|
-| Enrichment control | Freshness gate on `scraped_at` (⛔ not `discovered_at` — same rows, opposite answers), manual trigger with dry run, export/import with five guards, batch provenance and revert |
-| Provider routing | Built and guarded. ⛔ Verdict: **keep Haiku** — Groq scored 30.5% Jaccard, and its pinned model had been **deleted entirely** |
-| Sources | Four more ATS providers enabled, +141 rows. Four companies seeded inactive at 0% description coverage. ⛔ Live search had been **structurally capped at three of seven sources** |
-| Monetisation lever | One flag, off. `/pricing` had claimed paid upgrades against a **non-trader** declaration |
-| Anonymous spend | `/api/standalone/generate` was Sonnet at 8192 tokens, unauthenticated, quota keyed on a cookie the caller controls. Bounded three ways |
-| Version endpoint | `/api/version` — "what is deployed" went from git archaeology to one curl |
-| Migrations | Now transactional. ⛔ Migration 108 was the first to destroy anything; a failure mid-way would have been a **boot loop with no way in** |
-| Cleanup brake | `cleanup_log` id 85 deleted 1,288 rows locally. ⛔ The brake was committed, documented, and **not deployed** for a day |
-| Board restore | 5 → 1,296 rows from a pinned evidence DB. ρ reproduces from the table, not only from a fixture |
-| Logos | Clearbit is dead — no A record. ⛔ Its fallback for "provider unreachable" **was Clearbit**, and a silent Google-favicon fallback was sending browsing to an undisclosed third party |
-| Docs | P5 reset: `README`, `HANDOFF`, `ARCHITECTURE` written from measured state, plus a doc guard |
+| **Capture degrades** (`e602a5f`, 09-25) | Parses the labelled block the published build already posts, so users benefit with no store update. ⛔ "Localhost" was filed as a company before the registrable-domain check landed |
+| **Privilege escalation + identity** (`ccdbf7b`, 09-24) | ⛔ A fetch from the extension origin reached **7 of 7 admin routes**. Closed on the server, which protects already-published builds too (0/7 against v1.0.0). Three separate `requireAdmin` definitions collapsed into `shared/authPolicy.js`. The extension has its own `sessionLess` token, and the popup names the account it acts as |
+| **Dead routes, fill path, non-retryable errors** (`a8f4f6f`, 09-24) | `/resume` and `/ats-score` never existed, and the catch-all sent admins to `/admin`. Both tool pages threw `ReferenceError` on render and **had never worked** (`vite build` exits 0 on that). A fill now reads back what it set, and a reverted value is reported skipped. Comboboxes, multi-selects, dates and contenteditable are supported. "Please try again" is no longer the answer to a billing failure |
+| **Diagnosis** (`73952df`, 09-24) | Five reported symptoms turned out to be four defects, and one of them was not a bug. `docs/EXTENSION_DIAGNOSIS.md` |
+
+### Board and measurement fixes (09-24 → 09-26)
+
+| | |
+|---|---|
+| **The "empty board"** (`6e34a26`, `df69815`, `5209289`, 09-26) | Diagnosed on production as CWS_test_user: the server returned 688 rows while the client replaced the board with a setup block and kept showing the count. A missing résumé now gates the ATS sort, not the board, and an empty page says which kind of empty |
+| **Harnesses scored unweighted** (`b417b54`, 09-26) | Four measurement harnesses passed the weights ENVELOPE as `termWeights`, took the unweighted branch and reported themselves weighted |
+| **Reproducible submission bundle** (`dd41f1e`, `00b37fd`, 09-26) | The zip is a function of the commit, not of the machine that built it. A markdown parser that broke on CRLF was fixed on the test side |
+| **Weight refresh visible** (`d64b046`, 09-26) | A nightly failing recompute is now distinguishable from one that is not yet due; verified by moving `computed_at` into the future state |
+| **Student board measured** (`6158b1d`, 09-26) | 29 interns in 2,663: the sources genuinely do not carry them (not the classifier, not the discard path) |
+| **Docs — P5 reset** (`25c1be1`, 09-24) | `README`, `HANDOFF`, `ARCHITECTURE` written from measured state, plus a doc guard. ⛔ Measured: **the apply pipeline has never submitted an application** (9 production attempts, 0 submitted) |
+
+### Curation — CC1 to CC5 (09-17 → 09-18)
+
+| | |
+|---|---|
+| **CC5** (`690bc1f`, 09-18) | Every stored score keyed `(user_id, domain_profile_id, job_id)` (migration 108). ⛔ The brief named one cross-user read; there were **seven**, and the two it missed were worse |
+| **Role-map backfill** (`1a59296`, `a110365`, 09-18) | The 277 unclassified postings, which CC1b put on every board, classified the way ingest would classify them. Every board shrinks, as intended. Runs at boot, loudly |
+| **CC4** (`a1fe3c7`, 09-17) | A claimed term now reaches the band and the board, not only generation. Anything matched only by a claim is named in `claimed_matches` |
+| **CC3** (`586b840`, 09-17) | `skill_synonyms` wired into all 8 scorer call sites. ⛔ The earlier "+0.000" was never a weak effect — **there was no effect path at all**. ρ delta after wiring: +0.0000 |
+| **CC2** (`03cedb6`, 09-17) | The bridge matches a term inside a phrase; `'[]'` stopped meaning mismatch. Multi-word match rate 53.0% → 75.5% |
+| **CC1 / CC1b** (`d3a79c3`, `727f5dd`, 09-17) | `target_titles` stopped deciding board membership and became rank keys; the `job_role_map` INNER JOIN became LEFT with soft-null. Graded-corpus reachability **8/30 → 30/30**, 277 permanently invisible postings restored |
+| ⛔ **Still true** (`25c1be1`) | **The board does not rank by fit.** The CC1 rank keys apply, but each is three-valued: about 700 rows tie at MATCH for an engineering profile, so what a candidate sees is recency inside that band, and an explicit sort drops ranking entirely |
+
+### Pipeline, enrichment, infrastructure (09-04 → 09-21)
+
+| | |
+|---|---|
+| **Pipeline alerts delivered** (`260e656` 09-09, `2e4429e` 09-18, `b65d813` 09-18, `75ce355` 09-21) | Health is read from `written`, not `status`, per company slug. Alerts are delivered edge-triggered instead of being filed. A run that wrote nothing no longer calls itself ok, and a source with nothing new is not an outage |
+| **Term weights in production** (`f45f983`, `700e7c0`, 09-18) | Weights on a schedule, with all three states visible. Production was weighted for the first time: 493 terms, **global family only** (the cause is fixed in `983a0ed`, above) |
+| **`normalized_title` + migration 109** (`ccfef0f`, `2494629`, 09-18) | Enrichment stopped rewriting a column it shortened in 469 of 475 rewrites. Only the 54 stripped seniority titles were restored, and the commit corrects the audit's own "lossy" claim |
+| **Migrations** (`87b2bfb`, 09-18) | Now transactional, with the bookkeeping row inside the transaction. ⛔ Migration 108 was the first to destroy anything; a failure partway would have been a **boot loop with no way in** |
+| **Crawl throughput** (`0de67c8` 09-09, `1e1f91a` 09-13, `eecbe09` `e71a602` 09-16/17) | ⛔ All seven ATS plugins capped the CONCATENATION at 900, so **1,551 postings a crawl** went nowhere while runs reported ok. Enrichment drains on a budget instead of 25 rows a day. The SmartRecruiters/Workday N+1 was probed and moved out of the crawl |
+| **Provider routing** (`e683df3` 09-04, `1212cd1` 09-07, `34bb047` 09-13) | Public-data calls can route to a free tier; the guard covering 14 sites was seen to fail first. ⛔ Verdict: **keep Haiku** — Groq scored 30.5% Jaccard, and its pinned model had been **deleted entirely**. Pacing uses the token limit, and boot is refused on a retired model |
+| **Enrichment control** (`339c9d1`, `54d43da`, 09-08) | Freshness gate on `scraped_at` (⛔ not `discovered_at` — same rows, opposite answers), a manual trigger with dry run by default, export/import, batch provenance and revert; the import side got a UI |
+| **Sources** (`a0b0fcc`, 09-08) | Lever's three slugs were dead and moved or deactivated; +141 rows. Four companies seeded inactive at 0% description coverage. ⛔ Live search had been **structurally capped at three of seven sources** |
+| **Logos** (`8abd5a4`, 09-08) | Clearbit is dead — no A record. ⛔ Its fallback for "provider unreachable" **was Clearbit**, and a silent Google-favicon fallback was sending browsing to an undisclosed third party. Web fonts were self-hosted for the same reason (`16484c5`, 09-15) |
+| **Board restore** (`cae5442`, 09-07) | 5 → 1,296 rows from a pinned evidence DB. ρ reproduces from the table (0.737), not only from a fixture |
+| **Cleanup brake** (`bd95d20` 09-06, `cae5442` 09-07, `b0129f4` 09-07) | `cleanup_log` id 85 deleted 1,288 rows **locally** — production was never affected (`b0129f4`). The graded corpus is committed as evidence. ⛔ The brake was committed, documented and **not deployed** for a day |
+| **Monetisation lever** (`c4320e1`, 09-16) | One flag, off. `/pricing` had claimed paid upgrades against a **non-trader** declaration |
+| **Anonymous spend** (`857fa32`, 09-16) | `/api/standalone/generate` was Sonnet at 8192 tokens, unauthenticated, with its quota keyed on a cookie the caller controls. Bounded three ways |
+| **Version endpoint + hygiene** (`2cd5653`, `d8a124f`, `1bb2a29`, 09-16) | `/api/version` — "what is deployed" went from git archaeology to one curl. Extension-token credential residue dropped. The full-auto kill switch is reachable in a hurry |
+| **Apply spend** (`0510a27` 09-04, `abea2c9` 09-06) | Generation fires on approval, not on queueing (it was ~$2.40 per five minutes of swiping). Approvals are capped, because that is where the money went |
+| **Company facts (G1–G4)** (`7ecb867`, `ac25de2`, `39c4e73`, `b7ddcaa`, 09-04/05) | Skill synonym table (does not move ρ), LCA identity resolution, canonical company stack, derived label mappings. ⛔ G4 found that AH4's fix had silently reverted |
+
+### ATS engine and generation integrity (08-24 → 09-01)
+
+| | |
+|---|---|
+| **Bands + seniority guard** (`7494289`, 08-31) | Bands set from the owner's graded 30; a seniority guard worth 0.10 of ρ (0.643 at the time; 0.746 today per `3c3fd1d`) |
+| **Outcome loop** (`33c5136`, `82800ff`, `9edb91a`, 08-30) | The generation lift is recorded (it had been NULL on every row), the auto-apply gate is back on the new scale, and employer outcomes are recorded beside the score |
+| **AK1 — honest ranking** (`d56b0ad`, `e07948d`, `89173bd`, 08-28/29) | Audit: the score was 96% one binary flag. It is now ordinally honest and stopped crediting skills a résumé does not have; ρ 0.504 proved on 30 graded postings. ⛔ "The number should not be shown" (G5 is still open) |
+| **ATS report quality** (`815e4f4`, `4c168f8`, `eee62e9`, 08-24/25) | ⛔ 26 of 26 "missing skills" were sentence fragments mined from prose. The fix reaches cached reports too, and skills are separated from qualities |
+| **Generation integrity** (`f9e527b`, `d997a07`, `8943c5d`, `2c07029`, `8847163`, `21cd16e`, 08-24/25) | The JD steers emphasis, never a quantity, and this is proven before save. The claims block stopped inflating seniority, and the candidate decides their level. A withheld résumé is our refusal, not a provider failure. The summary rule is consistent across 14 prompt files, and SUMMARY is opt-in |
+| **Formatter duplicate** (`6781372`, 08-24) | The formatter was manufacturing a repeated role line (three regexes that could not count). ⛔ The same shape is **live again** in real output — see G3 |
+
+### Repository hygiene (08-12 → 09-01)
+
+| | |
+|---|---|
+| **matchScore** (`54eb06e`, 09-01) | Null on every row of every response since it was written — the column is `ats_score` |
+| **History rewrite** (`dfde303`, 08-31) | AI co-author trailers stripped: 292 commits, 320 SHAs changed (everything from 05-23 on), tree byte-identical. Doc references repointed |
+| **Encoding + line endings** (`82a5f74`, `d199f6e`, 08-30) | ⛔ A mojibake bullet had painted into **every generated résumé**. LF normalisation became the repository's guarantee (`.gitattributes`) |
+| **Suite green** (`543c3dc`, 08-12) | 593/593, 0 failing, for the first time. Every earlier commit had carried "44 unique failures (baseline unchanged)" |
+
+### Auto-apply, handoff and capture (08-12 → 08-25)
+
+| | |
+|---|---|
+| **Auto Apply UI** (`5274713` 08-20, `fb51256`, `0e32fe1` 08-23, `614fedc` 08-25) | Auto Apply is its own tab: a dated run history in three outcome groups, company → application → problems. Search-bar controls had all been wired to no-ops (`e74d504`) |
+| **Session + transport** (`33347ce`, `f491d1b` 08-22, `3a8ec58` 08-25) | ⛔ SSE connections starved the board of a socket (one stream per tab still did). Signing out did not sign you out: the cookie outlived it |
+| **Backups** (`cd47110`, `563f3a2`, `9c34935`, 08-22) | ⛔ Importing `backup.js` wrote a full DB copy on every boot (27 of 30 "backups"), and backups skipped the WAL, so every live copy could be stale. ⚠ The budget and floor that filled the volume on 09-29 are still open — AGENT QUEUE 8 |
+| **H-1B as a company fact** (`e3200dc`, `743f0f1`, 08-22) | 0 of 1,261 postings mention H-1B; sponsorship now comes from 21 quarters of DOL LCA filings |
+| **Extension capture v2** (`6554473`, `456dfa0`, `23f8bbf`, `43fffed`, 08-18) | Captures any job page via `activeTab`, with the six host permissions and the content script gone; Ashby/Workday selectors; a policy that describes the shipped extension |
+| **Gated handoff** (`378298a`, `7d744f6`, `583304e`, `cfac820`, `acd4fb1`, 08-17) | A portal that wants an account parks what it prepared; the candidate signs in, presses a key, and the form fills. It never submits. Portal learning is shared |
+| **Observability** (`a8e3cac` 08-13, `33537fb` `bc44396` `7d65405` `e766ebc` `ef9e8f1` 08-14) | ⛔ Four features were calling a retired model. One logged path for every model call (coverage was 4 of 14 sites), with a guard; the failure sink survives an unreachable DB |
+| **Submit safety** (`ad931ad`, `b23e3cd`, `92bf293`, `6a3fa42`, `ca1f329`, `39405ad`, 08-12) | Idempotency, cap, audit trail and kill switch (migration 072). Queue-then-approve made full-auto opt-in. Pending-approval surface, validation-correction loop, cross-frame submission. ⛔ One payload mismatch on `/api/apply/runs` was auto-submitting |
+
+### Pipeline rebuild (07-23 → 08-11)
+
+| | |
+|---|---|
+| **Pipeline diagnosis** (`6daf9f2`, `e1bbac1`, `cae0d7f`, `448d2b9`, `a8bc438` 08-10; `95830f5`, `3f6c4d8` 08-11) | ⛔ **No job description had ever been stored** (Greenhouse and Ashby wrote NULL). Enrichment overwrote good data with NULL and stamped rows complete. Jobo's 402 was swallowed as success. Four wrong ATS rows meant 8 of 10 companies were crawled (migration 070). `discovered_at` reset on every re-crawl |
+| **Enriched board** (`8ffa59b`, `4241e98`, `6d9ed04`, `ccf27f7`, `11087db` 08-05; `2beda44` 08-06) | Jobo feed; bring-your-own-job import and hotkey capture (the saved-jobs scraper removed); profile→board bridge; company KB; FE-1 to FE-6 filters, company and recruiter views |
+| **Ingestion** (`4c4ce74`, `8b780e0`, `72777b8`, `7748ddb`, 07-23) | Incremental ATS sync with expiry, cross-source dedup (the ATS listing wins), LLM description enrichment + technographics, Workday/SmartRecruiters/Workable/Recruitee adapters |
 
 ### Mobile
 
 | | |
 |---|---|
-| Android Phase 1 + 2a | Toolchain, auth via `/api/auth/mobile-token`, contract-typed API layer, Room persistence. ⛔ Builder and preview held **separate repositories**, so "Export as PDF" shipped the mock résumé |
-| Android constraint fix | "Hard throw right: apply" was implemented in **five places** and reached a badge reading **"Application sent"** — having sent nothing |
-| iOS | ⛔ **No session has ever run.** 30 of 32 Swift files are in the build target; the two omitted are the entire network and auth surface |
+| **Android base URL** (`c40b343`, 09-09) | The LinkedIn import used a `YOUR_DOMAIN.com` template placeholder, so it **could never have worked** on Android |
+| **Android Phase 2a** (`d8e0611`, `01c1221` 09-01, `6cb7a91` 09-02, `2bbd242` 09-03) | First verified assemble (four failures deep). Auth via `/api/auth/mobile-token`, a board parser generated from the contract, contract 1.1.1 vendored, Room persistence. ⛔ Builder and preview held **separate repositories**, so "Export as PDF" shipped the mock résumé |
+| **Android constraint fix** (`e35b6f8`, 09-01) | "Hard throw right: apply" was implemented in **five places** and reached a badge reading **"Application sent"** — having sent nothing. Found by the Phase 1 audit, which had no commit of its own |
+| **Mobile API contract** (draft `12ad1eb`, `1dcf4d7`, `5d11da7`, 08-28) | Generated from `mapJobRow`, vendored to both apps; `/api/jobs` pages by cursor, since offset paging silently skipped jobs |
+| **iOS** (`aad5a3a`, 08-30, branch only) | ⛔ **Never compiled — no Mac session has ever run.** `aad5a3a` repaired the pbxproj, deleted the duplicate `JobRepository.swift`, added the auth service to the target and wired an API layer, feed and review queue — written on Windows. ⛔ It and the P3 sweep sit on the unmerged `feat/api-layer-feed-review-queue`; iOS `main` (`f8be63c`) still has the 30-of-32 build-target defect |
 
+### Before August — the original build (04-06 → 06-05)
+
+| | |
+|---|---|
+| **Apply pipeline v1** (`3ffc66a` 05-30 → `ad7e36a` 06-05) | Async apply queue, field discovery, cover letters, completeness gate, production browser readiness |
+| **Jobs taxonomy** (`2078445` 05-29 → `dca838b` 05-30) | Unified taxonomy, collar classifier, blue-collar ejected at ingest, board queried by `job_role_map` |
+| **Cinematic redesign** (`6887ac9` 05-23, `567ad2c` 05-28) | Theme framework and unified app shell, Steps 0–19 |
+| **Sources + OIDC** (`c818b9c` 05-08, `d8b4629` 05-09, `2d93807` 05-11) | Apify scraping removed, LinkedIn OIDC, extension rebuilt as MV3. Plugin aggregator (Adzuna, then Greenhouse/Lever/Ashby) |
+| **Local ATS scorer** (`499c4e5`, 04-23) | Deterministic in-house scorer replaced LLM ATS scoring. ⛔ The same day's `.dockerignore` (`a81830e`) is what kept `data/` out of the image until `983a0ed` |
+| **v5** (`a780d91` 04-06, `8418ea3` 04-13) | Initial commit; domain-profile system with profile-driven search and generation |
+```
 
 ---
 
 ## SESSION LOG
 
 Newest first. ⛔ Agents append here rather than creating a new file.
+
+### 2026-09-29 · The agent queue run to its end — 1, 3, 4, 5, 8(a) done; 6 in progress; 2, 7, 8(b) wait
+
+The owner's instruction: run the queue without stopping; log anything needing a manual step or an
+approval and move on. The previous session ran out of context mid-queue (after 4, during 5 and 6);
+this one audited where it stopped and carried on. Nothing is pushed — see OWNER 7.
+
+- **1 · B step 4 close-out — closed.** Its blocker (the owner's DNS edit) was withdrawn: Railway
+  repointed the domain itself. Measured 09-29 over TLS, not from a dashboard: Let's Encrypt,
+  CN=resumemaster.one, issued 09-28 17:19Z, expires 12-27; `/health` → `{"ok":true,
+  "service":"resume-master"}` (a JSON key, not a 200). `verify:live` needs `RESUME_MASTER_TOKEN`,
+  which the agent never holds — 09-28's 21/21 on the domain stands; a re-run is optional (OWNER 8).
+  The Railway CLI is not on this shell's PATH, so `railway domain status` was not re-run.
+- **3, 4** were already committed by the previous session (`f29f273`, `983a0ed`) and still listed
+  as open — the reconciliation caught it.
+- **5 · DONE reconciled** against all four repos' logs (by a sub-agent, read-only; merged here):
+  15 corrected, 1 removed, 5 flagged, 46 added, every row now carries hashes. The ones that matter:
+  - ⛔ **The iOS work is not on iOS `main`.** `aad5a3a` and the P3 rebrand sweep sit on the
+    unmerged `feat/api-layer-feed-review-queue`; `main` is `f8be63c` (05-09). "The rebrand covered
+    three repos" is only true on that branch → OWNER 10
+  - A1's "⚠ Unpushed" was stale — `3c3fd1d` is deployed. B step 4's "certificate waits on the DNS
+    edit" was never true. The CC "still true" row was outdated (`25c1be1`: rank keys apply, ~700
+    rows tie). "79 files across three repos" is 84 by git
+  - CURRENT STATE's Resume Master row contradicted itself ("still points at draft") — removed
+  - Extension version history is non-monotonic: 1.2.0 (`4d12fb9`) → 1.3.0 listing (`67e61b1`) →
+    back to 1.0.0 (`456dfa0`) before 1.1.0/1.1.1. Recorded, not changed
+- **8(a) · backup policy fixed** (`3b9dbe9`) — budget from the volume, a disk ceiling that MIN_KEEP
+  cannot override, room proven then made before the copy, the same rule for a restore's safety copy.
+  Injected violations caught; 2702/2702.
+  - ⛔ **Incident, my fault:** the first draft of its refusal test faked a full disk IN-PROCESS
+    against the real `data/` and **permanently deleted two local backups** —
+    `resume_master_2026-08-24T06-20-39-928Z_manual.db` and
+    `resume_master_2026-09-17T06-00-01-052Z_auto-daily.db` (+ sidecars). Local dev only;
+    production, the live local DB (127 MB) and the two untracked `pre-*` snapshots are untouched;
+    no copy exists elsewhere. It exposed a real bug (prune, then refuse anyway, trusting manifest
+    sizes), which is now pinned — and the test runs in a child process against a scratch
+    `BACKUP_DATA_DIR`, so a test cannot reach `data/` again
+- **8(b) · prune production — not done, needs approval** (OWNER 9): irreversible, needs an SSH key on
+  the Railway account, and should follow the deploy so the new policy is what runs next.
+- **2** stays deferred (owner, 09-28). **7** needs a Mac — skipped.
+- **6 · Android sweep** — see the entry below when it lands.
 
 ### 2026-09-28 · B step 3 close-out + step 4 — the owner's generation, and the domain move
 

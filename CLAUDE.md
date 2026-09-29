@@ -71,7 +71,9 @@ this is why.
 
 ## Deliberate test failures — currently 0
 
-`npm test` is **2691 tests, 2691 pass, 0 fail** — re-measured 2026-09-28 after A4, which moved the
+`npm test` is **2702 tests, 2702 pass, 0 fail** — re-measured 2026-09-29 in the working tree at
+`3b9dbe9` (+5 `registryPlacement` in `983a0ed`, +6 backup-disk tests in `3b9dbe9`; not yet on a
+fresh CRLF worktree). Before that, 2691 / 2691 / 0 — re-measured 2026-09-28 after A4, which moved the
 prompt's tests to resume-master with the prompt (the count FELL by moving them, not by losing them —
 the per-test accounting is in A4's commit message). Before that: 2696 / 2696 / 0 after A1 (`3c3fd1d`, which
 added the `@draft/ats-scorer` suites) in a fresh `git worktree` (CRLF, `core.autocrlf=true`) with
