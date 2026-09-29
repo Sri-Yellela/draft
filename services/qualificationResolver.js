@@ -4,12 +4,12 @@
 // What this file does:
 //   Resolves a raw qualification string (from resume or classifier)
 //   to a standardised key in QUALIFICATION_ROLE_MAP.json.
-//   Also provides hybrid domain module key selection logic.
+//   Domain-module selection moved to the résumé tools service in A2/A4, which holds the one
+//   definition; draft's copy here had no caller after A4 and was removed.
 //
 // What to change here if intent changes:
 //   - To add new qualification types: add to QUALIFICATION_ROLE_MAP.json
 //     (do not add aliases here directly)
-//   - To change key priority logic: edit getDomainModuleKey() below
 //   - To change normalization patterns: edit normaliseQualification()
 //
 // Depends on: data/QUALIFICATION_ROLE_MAP.json
@@ -91,36 +91,6 @@ export function resolveFromClassifier(classifierResult, userProfileQualification
     if (resolved) return resolved;
   }
   return null;
-}
-
-// PRIMARY KEY SELECTION: roleFamily+domain wins when domain is specific.
-// Falls back to qualification when domain resolves to general.
-// Change this function if the key priority logic needs to be revised.
-export function getDomainModuleKey(qualKey, roleFamily, domain) {
-  // Direct role+domain keys take priority when domain is specific
-  if (roleFamily === "pm") {
-    if (domain === "construction")                          return "pm_construction";
-    if (domain === "healthcare")                            return "pm_healthcare";
-    if (domain === "it_digital" || domain === "pmo")        return "pm_it";
-  }
-  const directMap = {
-    engineering: "engineering",
-    finance:     "finance",
-    hr:          "hr",
-    design:      "design",
-    data:        "data",
-    legal:       "legal",
-    operations:  "operations",
-  };
-  if (directMap[roleFamily]) return directMap[roleFamily];
-
-  // Fallback: use qualification to derive domain module
-  if (qualKey) {
-    const map = getMap();
-    const entry = map[qualKey];
-    if (entry?.domainModule) return entry.domainModule;
-  }
-  return "general";
 }
 
 // Get ATS boost keywords for a qualification key
