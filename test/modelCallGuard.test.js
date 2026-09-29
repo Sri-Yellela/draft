@@ -68,7 +68,9 @@ function providerCallIn(code) {
 /** Every tracked .js/.jsx file, excluding deps, build output and the wrapper itself. */
 function sourceFiles(dir = ".", acc = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (/^(node_modules|\.git|dist|build|coverage|\.cinematic)$/.test(entry.name)) continue;
+    // .claude holds agent git WORKTREES — whole second copies of this repo. Walking into one reported
+    // every model call in the codebase twice, from a path no deploy ever ships (09-29).
+    if (/^(node_modules|\.git|\.claude|dist|build|coverage|\.cinematic)$/.test(entry.name)) continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) sourceFiles(full, acc);
     else if (/\.(js|mjs|jsx)$/.test(entry.name)) acc.push(full.split(path.sep).join("/"));
