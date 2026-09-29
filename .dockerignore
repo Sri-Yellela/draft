@@ -6,6 +6,5 @@ client/node_modules
 client/dist
 data
 data/
-!data/ROLE_ALIAS_MAP.json
 test-output.txt
 *.log

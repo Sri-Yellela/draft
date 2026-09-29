@@ -53,7 +53,7 @@ import { classifyGenerationError } from "./shared/failureAttribution.js";
 import { checkLimit } from "./services/limitEnforcer.js";
 import { classify } from "./services/classifier.js";
 import { DATA_CLASS } from "./shared/modelProviders.js";
-import { resolveFromClassifier, getSearchQueryTemplates } from "./services/qualificationResolver.js";
+import { resolveFromClassifier, getSearchQueryTemplates, qualificationKeyCount } from "./services/qualificationResolver.js";
 // buildApifyQueriesFromProfile and buildProfileSearchTerms dropped from this import in cleanup
 // 5.1: both were imported here and never called. The functions themselves are KEPT — unlike
 // 5.7's module they still have real callers, in scripts/tracePipeline.js, scripts/rawTrace.js and
@@ -106,7 +106,7 @@ import {
 } from "./services/atsTermWeights.js";
 // The band, not the number, is what a user is shown — see the header of shared/atsBands.js.
 import { atsBandFor } from "./shared/atsBands.js";
-import { roleFamilyForTitle } from "./services/searchQueryBuilder.js";
+import { roleFamilyForTitle, roleAliasCount } from "./services/searchQueryBuilder.js";
 import {
   INTEGRATION_PROVIDERS,
   getAutomationReadiness,
@@ -3908,6 +3908,10 @@ const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
 // service answers 503 with retryable:false and says which setting is missing (see the client).
 const toolsService = createToolsServiceClient();
 console.log(`[boot] tools service client: ${toolsService.configured ? "configured" : "NOT configured (set RESUME_MASTER_URL and RESUME_MASTER_TOKEN) — generation and A+ will answer 503, PDF parsing degrades to local extraction"}`);
+// The static registries, COUNTED, so "does production read them?" is one log line and not an
+// inference. Until 09-29 they lived in data/, the runtime volume that hides image files; a 0 here
+// means every title resolves to no role family and the ATS weights form for __global__ only.
+console.log(`[boot] registries: ${roleAliasCount()} role aliases, ${qualificationKeyCount()} qualification keys`);
 
 // ── PINNED-MODEL LIVENESS (task AD, requirement 2) ────────────────────────────────────────────
 //

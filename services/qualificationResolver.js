@@ -12,7 +12,7 @@
 //     (do not add aliases here directly)
 //   - To change normalization patterns: edit normaliseQualification()
 //
-// Depends on: data/QUALIFICATION_ROLE_MAP.json
+// Depends on: registry/QUALIFICATION_ROLE_MAP.json
 // ============================================================
 
 import fs   from "fs";
@@ -20,15 +20,25 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const MAP_PATH  = path.join(__dirname, "..", "data", "QUALIFICATION_ROLE_MAP.json");
+// registry/, NOT data/ — data/ is production's runtime VOLUME, which hides image files mounted under
+// it, so from data/ this map was almost certainly {} in production (see searchQueryBuilder.js).
+export const QUALIFICATION_MAP_PATH = path.join(__dirname, "..", "registry", "QUALIFICATION_ROLE_MAP.json");
 
 let _map = null;
 function getMap() {
   if (!_map) {
-    try { _map = JSON.parse(fs.readFileSync(MAP_PATH, "utf8")); }
-    catch { _map = {}; console.warn("[qualificationResolver] QUALIFICATION_ROLE_MAP.json not found"); }
+    try { _map = JSON.parse(fs.readFileSync(QUALIFICATION_MAP_PATH, "utf8")); }
+    catch (e) {
+      _map = {};
+      console.error(`[qualificationResolver] QUALIFICATION_ROLE_MAP.json unreadable at ${QUALIFICATION_MAP_PATH}: ${e.message}`);
+    }
   }
   return _map;
+}
+
+/** For the boot log: how many qualification keys were actually loaded. */
+export function qualificationKeyCount() {
+  return Object.keys(getMap()).length;
 }
 
 // Normalise a raw degree string to a known key.
