@@ -13,7 +13,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
-import { selectRetained } from "../scripts/backup.js";
+import { selectRetained, backupLimits } from "../scripts/backup.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 const MB = 1024 * 1024;
 const BACKUP_SRC = fs.readFileSync(new URL("../scripts/backup.js", import.meta.url), "utf8");
@@ -276,7 +277,105 @@ test("the caps are configurable, so a deploy is not stuck with this machine's bu
   for (const name of ["BACKUP_MAX_BYTES", "BACKUP_MAX_COUNT", "BACKUP_MIN_KEEP"]) {
     assert.ok(BACKUP_SRC.includes(name), `${name} must be readable from the environment`);
   }
-  assert.match(BACKUP_SRC, /envInt\("BACKUP_MAX_BYTES", 512 \* 1024 \* 1024\)/);
+  // The env var may only LOWER the disk-derived budget. It used to default to a 512 MB constant —
+  // larger than the 500 MB volume it lived on — and that pin went with the constant.
+  assert.doesNotMatch(BACKUP_SRC, /512 \* 1024 \* 1024/);
+  assert.equal(backupLimits({ total: 1000 * MB, free: 900 * MB }, 0, { maxBytes: 100 * MB }).budget,
+    100 * MB, "BACKUP_MAX_BYTES lowers the budget");
+  assert.equal(backupLimits({ total: 1000 * MB, free: 900 * MB }, 0, { maxBytes: 5000 * MB }).budget,
+    400 * MB, "...and cannot raise it past the volume's share");
+});
+
+// ── The disk (2026-09-29: the 02:00 backup died with ENOSPC at 481/500 MB) ─────────────────────
+
+test("the budget is derived from the volume, not a constant bigger than the volume", () => {
+  const small = backupLimits({ total: 500 * MB, free: 19 * MB }, 300 * MB);
+  assert.equal(small.budget, 200 * MB, "40% of a 500 MB volume");
+  const big = backupLimits({ total: 1000 * MB, free: 519 * MB }, 300 * MB);
+  assert.equal(big.budget, 400 * MB, "the same code on the grown volume gets a bigger budget");
+  // Ceiling: what backups may occupy = held + free − reserve (64 MB floor, else 5% of the volume).
+  assert.equal(small.reserve, 64 * MB);
+  assert.equal(small.ceiling, 300 * MB + 19 * MB - 64 * MB);
+});
+
+test("MIN_KEEP overrides the budget but NEVER the disk", () => {
+  const entries = Array.from({ length: 5 }, (_, i) => entry(i, "manual", 116 * MB));
+  const { keep, keptBytes } = selectRetained(entries,
+    { maxBytes: 100 * MB, ceiling: 300 * MB, maxCount: 30, minKeep: 3 });
+  assert.equal(keep.length, 2, "3 × 116 MB passes the floor and overruns a 300 MB disk ceiling");
+  assert.ok(keptBytes <= 300 * MB);
+});
+
+test("even the newest is not kept past the disk — the caller refuses instead", () => {
+  const { keep } = selectRetained([entry(0, "manual", 200 * MB), entry(1)],
+    { maxBytes: 1000 * MB, ceiling: 150 * MB, maxCount: 30, minKeep: 3 });
+  assert.ok(!keep.some(e => e.filename === "b0.db"));
+});
+
+// createBackup is run in a CHILD PROCESS against a scratch BACKUP_DATA_DIR, never against data/. A
+// first version of the test below faked the disk in-process against the real data/ and deleted two
+// local backups for good — which is also how the prune-then-refuse bug it now pins was found.
+import { spawnSync } from "node:child_process";
+const BACKUP_URL = new URL("../scripts/backup.js", import.meta.url).href;
+
+/** Scratch data dir: a small real DB, plus backups whose manifest sizes may LIE. */
+function scratch(backups) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bak-"));
+  fs.mkdirSync(path.join(dir, "backups"));
+  const db = new Database(path.join(dir, "resume_master.db"));
+  db.exec("CREATE TABLE t(x); INSERT INTO t VALUES (randomblob(200000));");
+  db.close();
+  const manifest = backups.map(([name, claimed], i) => {
+    fs.writeFileSync(path.join(dir, "backups", name), Buffer.alloc(50 * 1024));
+    return { filename: name, label: i ? "manual" : "auto-daily", size: claimed };
+  });
+  fs.writeFileSync(path.join(dir, "backups", "manifest.json"), JSON.stringify(manifest));
+  return dir;
+}
+
+function runBackup(dir, fakeDisk) {
+  const patch = fakeDisk ? `fs.statfsSync = () => ({ bsize: 4096, ` +
+    `blocks: ${Math.floor(fakeDisk.total / 4096)}, bavail: ${Math.floor(fakeDisk.free / 4096)} });` : "";
+  const code = `import fs from "node:fs"; ${patch}
+    const { createBackup } = await import(${JSON.stringify(BACKUP_URL)});
+    try { createBackup("test"); console.log("OK"); } catch (e) { console.log(e.message); }`;
+  const r = spawnSync(process.execPath, ["--input-type=module", "-e", code],
+    { env: { ...process.env, BACKUP_DATA_DIR: dir }, encoding: "utf8" });
+  return r.stdout + r.stderr;
+}
+
+test("createBackup refuses BEFORE copying, and deletes NOTHING, when the disk cannot hold the copy", () => {
+  // The incident shape: a 500 MB volume with 19 MB free. The manifest CLAIMS 300 MB of backups —
+  // trusting that, the first version planned to free them, pruned both, then refused anyway.
+  const dir = scratch([["old-a.db", 150 * MB], ["old-b.db", 150 * MB]]);
+  const before = fs.readdirSync(path.join(dir, "backups")).sort();
+  const manifestBefore = fs.readFileSync(path.join(dir, "backups", "manifest.json"), "utf8");
+  const out = runBackup(dir, { total: 500 * MB, free: 19 * MB });
+  assert.match(out, /BACKUP REFUSED/);
+  assert.deepEqual(fs.readdirSync(path.join(dir, "backups")).sort(), before, "nothing copied, nothing pruned");
+  assert.equal(fs.readFileSync(path.join(dir, "backups", "manifest.json"), "utf8"), manifestBefore);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("with room, createBackup still copies and records the backup", () => {
+  const dir = scratch([["old-a.db", 50 * 1024]]);
+  const out = runBackup(dir, null);
+  assert.match(out, /OK/, out);
+  const manifest = JSON.parse(fs.readFileSync(path.join(dir, "backups", "manifest.json"), "utf8"));
+  assert.equal(manifest[0].label, "test");
+  assert.ok(fs.existsSync(path.join(dir, "backups", manifest[0].filename)));
+  assert.equal(manifest.length, 2, "the old backup is kept — there is room for it");
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("the refusal and the pruning both come before the copy — in backup and in restore", () => {
+  const room = BACKUP_SRC.slice(at(BACKUP_SRC, "function makeRoom"));
+  assert.ok(at(room, "throw new BackupRefused(msg)") < at(room, "removeBackupFile(e.filename)"),
+    "makeRoom must refuse before it deletes anything");
+  const body = BACKUP_SRC.slice(at(BACKUP_SRC, "export function createBackup"));
+  assert.ok(at(body, "makeRoom(") < at(body, "fs.copyFileSync(DB_PATH, dest);"));
+  const restore = BACKUP_SRC.slice(at(BACKUP_SRC, "export function restoreBackup"));
+  assert.ok(at(restore, "makeRoom(") < at(restore, "fs.copyFileSync(DB_PATH, safePath)"));
 });
 
 test("an empty manifest is not an error", () => {

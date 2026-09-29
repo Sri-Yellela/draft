@@ -22,8 +22,11 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DB_PATH   = path.join(__dirname, "..", "data", "resume_master.db");
-const BAK_DIR   = path.join(__dirname, "..", "data", "backups");
+// BACKUP_DATA_DIR exists for the tests, which run createBackup against a scratch directory. One run
+// against the real data/ with a faked disk once deleted two local backups for good.
+const DATA_DIR  = process.env.BACKUP_DATA_DIR || path.join(__dirname, "..", "data");
+const DB_PATH   = path.join(DATA_DIR, "resume_master.db");
+const BAK_DIR   = path.join(DATA_DIR, "backups");
 const MANIFEST  = path.join(BAK_DIR, "manifest.json");
 
 const envInt = (name, dflt) => {
@@ -31,14 +34,54 @@ const envInt = (name, dflt) => {
   return Number.isFinite(n) && n > 0 ? n : dflt;
 };
 
-// Budget, overridable per deploy. 512 MB holds the current 116 MB DB plus a few generations; a
-// bigger DB keeps fewer copies rather than silently using more disk, which is the whole point.
-const MAX_BYTES = envInt("BACKUP_MAX_BYTES", 512 * 1024 * 1024);
+// THE BUDGET IS DERIVED FROM THE VOLUME, not a constant. It used to be a flat 512 MB — larger than
+// the whole 500 MB production volume it lived on — and on 2026-09-29 the 02:00 backup died with
+// ENOSPC at 481/500 MB. A constant cannot know what disk it is on; statfs can. BACKUP_MAX_BYTES
+// still exists, but it can only LOWER the derived budget, never raise it past the disk.
+const MAX_BYTES_ENV = envInt("BACKUP_MAX_BYTES", Infinity);
+// The share of the volume backups may occupy. The rest is the live database, its WAL, and growth.
+const DISK_SHARE = (() => {
+  const f = parseFloat(process.env.BACKUP_DISK_SHARE ?? "");
+  return f > 0 && f < 1 ? f : 0.4;
+})();
 const MAX_COUNT = envInt("BACKUP_MAX_COUNT", 30);
 // One backup is not a backup — if it is corrupt there is nothing behind it. The floor overrides the
-// byte budget on purpose, so a DB that grows past the budget on its own degrades to "few copies"
-// instead of "no history".
+// byte BUDGET on purpose, so a DB that grows past the budget degrades to "few copies" instead of "no
+// history". It does NOT override the disk: see the ceiling in backupLimits.
 const MIN_KEEP  = envInt("BACKUP_MIN_KEEP", 3);
+
+/**
+ * The two limits a backup must respect, from the volume's own numbers. PURE, so it is testable.
+ *
+ *   budget  — the policy: DISK_SHARE of the volume, lowered by BACKUP_MAX_BYTES if set. MIN_KEEP
+ *             may exceed it.
+ *   ceiling — the physics: what backups can occupy without eating the reserve kept free for the
+ *             live database. Nothing may exceed it — not MIN_KEEP, not even the newest backup.
+ *             Existing backups count as reclaimable, because pruning them is how room is made.
+ *
+ * @param {{total:number, free:number}} disk  bytes, from statfs
+ * @param {number} backupBytes  bytes the manifest's backups occupy now
+ */
+export function backupLimits(disk, backupBytes, opts = {}) {
+  const share   = opts.share ?? DISK_SHARE;
+  const envMax  = opts.maxBytes ?? MAX_BYTES_ENV;
+  const reserve = Math.max(64 * 1024 * 1024, Math.floor(disk.total * 0.05));
+  const budget  = Math.min(envMax, Math.floor(disk.total * share));
+  const ceiling = Math.max(0, backupBytes + disk.free - reserve);
+  return { budget, ceiling, reserve };
+}
+
+function readDisk(dir) {
+  const s = fs.statfsSync(dir);
+  return { total: s.blocks * s.bsize, free: s.bavail * s.bsize };
+}
+
+const fileSize = (p) => { try { return fs.statSync(p).size; } catch { return 0; } };
+
+/** Thrown, not logged: both callers (the 02:00 cron and the admin route) surface a throw. */
+class BackupRefused extends Error {
+  constructor(msg) { super(`BACKUP REFUSED — ${msg}`); this.name = "BackupRefused"; }
+}
 
 fs.mkdirSync(BAK_DIR, { recursive: true });
 
@@ -66,11 +109,16 @@ function saveManifest(entries) {
  * MIN_KEEP is a floor applied after the caps, because the alternative — obeying a byte budget
  * smaller than one backup — leaves zero backups.
  *
+ * `ceiling` is the DISK, and it binds everything, rule 1 included: a backup that does not fit is not
+ * kept, and createBackup refuses before copying rather than dying mid-copy with ENOSPC. The old
+ * floor overrode the budget with nothing above it, which is how 3 × a large DB outgrew the volume.
+ *
  * @param {{filename:string,label:string,size:number}[]} entries newest-first, as the manifest stores them
  * @returns {{keep:object[], drop:object[], keptBytes:number}} `keep` in the input's order
  */
 export function selectRetained(entries, opts = {}) {
-  const maxBytes = opts.maxBytes ?? MAX_BYTES;
+  const maxBytes = opts.maxBytes ?? MAX_BYTES_ENV;
+  const ceiling  = opts.ceiling  ?? Infinity;
   const maxCount = opts.maxCount ?? MAX_COUNT;
   const minKeep  = opts.minKeep  ?? MIN_KEEP;
   if (!entries.length) return { keep: [], drop: [], keptBytes: 0 };
@@ -91,9 +139,15 @@ export function selectRetained(entries, opts = {}) {
   for (const e of priority) {
     const withinCount = kept.size < maxCount;
     const withinBytes = bytes + sizeOf(e) <= maxBytes;
+    const withinDisk  = bytes + sizeOf(e) <= ceiling;
     const belowFloor  = kept.size < minKeep;
-    // The floor ignores the byte budget but never the count cap — a maxCount of 1 must mean 1.
-    if (withinCount && (withinBytes || belowFloor)) { kept.add(e.filename); bytes += sizeOf(e); }
+    // The floor ignores the byte budget but never the count cap — a maxCount of 1 must mean 1 — and
+    // never the disk. The newest is exempt from the budget (it is always first, so bytes is 0 and
+    // only an over-budget newest fails withinBytes) but not from the disk.
+    const first = kept.size === 0;
+    if (withinCount && withinDisk && (withinBytes || belowFloor || first)) {
+      kept.add(e.filename); bytes += sizeOf(e);
+    }
   }
 
   return {
@@ -161,6 +215,42 @@ function checkpointWal() {
   }
 }
 
+/**
+ * Makes room for one new backup, or throws BackupRefused having deleted NOTHING.
+ *
+ * The order is the point. Copy-then-prune needed room for one backup more than the policy allowed —
+ * the exact moment the disk ran out on 09-29. So pruning comes first; but a prune followed by a
+ * refusal would destroy history and still fail, so the room is PROVEN before anything is deleted:
+ * sizes are read from the files on disk, sidecars included, not trusted from the manifest. What is
+ * dropped is only what the plan would drop after a successful copy anyway.
+ */
+function makeRoom(newEntry, onRefuse = "backup not taken") {
+  let disk;
+  try { disk = readDisk(BAK_DIR); }
+  catch (e) { throw new BackupRefused(`cannot read free space on ${BAK_DIR} (${e.message}); ${onRefuse}`); }
+  const onDisk = (e) => ["", "-wal", "-shm"].reduce((n, x) => n + fileSize(path.join(BAK_DIR, e.filename) + x), 0);
+  const before = loadManifest().map(e => ({ ...e, size: onDisk(e) }));
+  const held = before.reduce((n, e) => n + e.size, 0);
+  const { budget, ceiling, reserve } = backupLimits(disk, held);
+  const plan = selectRetained([newEntry, ...before], { maxBytes: budget, ceiling });
+  const freed = plan.drop.reduce((n, e) => n + e.size, 0);
+  const fits = plan.keep.some(e => e.filename === newEntry.filename) &&
+    disk.free + freed - reserve >= newEntry.size;
+  if (!fits) {
+    const msg = `a ${mb(newEntry.size)} copy does not fit: ${mb(disk.free)} free of ${mb(disk.total)}, ` +
+      `${mb(held)} in backups, ${mb(reserve)} reserved for the live database; ${onRefuse}`;
+    console.error(`[backup] ${msg}`);
+    throw new BackupRefused(msg);
+  }
+  for (const e of plan.drop) removeBackupFile(e.filename);
+  sweepOrphanSidecars();
+  if (plan.drop.length) console.log(`[backup] Pruned ${plan.drop.length} older backup(s) to make room, ` +
+    `freeing ${mb(freed)}`);
+  const kept = new Set(plan.keep.map(e => e.filename));
+  saveManifest(loadManifest().filter(e => kept.has(e.filename)));
+  return { budget, ceiling, disk };
+}
+
 export function createBackup(label = "manual") {
   if (!fs.existsSync(DB_PATH)) {
     console.warn("[backup] No DB found at", DB_PATH);
@@ -172,6 +262,11 @@ export function createBackup(label = "manual") {
 
   // Merge the WAL first — see checkpointWal. The copy is only a complete database afterwards.
   const cp = checkpointWal();
+
+  // ROOM IS PROVEN, THEN MADE, BEFORE THE COPY — see makeRoom. Measured after the checkpoint, which
+  // moves the WAL into the main file; a WAL that could not drain is copied too, so it is counted.
+  const need = fileSize(DB_PATH) + (cp.ok ? 0 : fileSize(`${DB_PATH}-wal`));
+  const { budget, ceiling, disk } = makeRoom({ filename, label, size: need });
 
   // fs.copyFileSync is safe, synchronous, and works regardless of connection state.
   // db.backup() is NOT used here: it is SQLite's online-backup API and would be defensible, but a
@@ -206,15 +301,13 @@ export function createBackup(label = "manual") {
     ...(walCopied ? { walSidecar: true } : {}),
   });
 
-  const { keep, drop, keptBytes } = selectRetained(manifest);
+  // Re-run against the real size — normally a no-op, since the plan above already made room.
+  const { keep, drop, keptBytes } = selectRetained(manifest, { maxBytes: budget, ceiling });
   for (const e of drop) removeBackupFile(e.filename);
   sweepOrphanSidecars();
   saveManifest(keep);
-  if (drop.length) {
-    const freed = drop.reduce((n, e) => n + (e.size || 0), 0);
-    console.log(`[backup] Pruned ${drop.length} older backup(s), freed ${mb(freed)}; ` +
-                `retaining ${keep.length} (${mb(keptBytes)} of ${mb(MAX_BYTES)} budget)`);
-  }
+  console.log(`[backup] Retaining ${keep.length} (${mb(keptBytes)} of ${mb(budget)} budget, ` +
+              `${mb(disk.total)} volume)${drop.length ? `; pruned ${drop.length} more after the copy` : ""}`);
   return { filename, path: dest, created: new Date().toISOString() };
 }
 
@@ -292,6 +385,10 @@ export function restoreBackup(filename) {
     const safeTs   = new Date().toISOString().replace(/[:.]/g,"-");
     const safeName = `resume_master_${safeTs}_pre-restore.db`;
     const safePath = path.join(BAK_DIR, safeName);
+    // Same disk rule as createBackup. A restore with no safety copy would overwrite the only copy of
+    // the current state, so no room means no restore — never "restore anyway".
+    const { budget, ceiling } = makeRoom(
+      { filename: safeName, label: "pre-restore", size: fileSize(DB_PATH) }, "restore not attempted");
     fs.copyFileSync(DB_PATH, safePath);
     // RECORDED IN THE MANIFEST, which it was not before. An untracked file is never pruned and never
     // listed, so pre-restore snapshots accumulated forever and invisibly — and the one file you most
@@ -303,7 +400,7 @@ export function restoreBackup(filename) {
       created: new Date().toISOString(),
       size: fs.statSync(safePath).size,
     });
-    const { keep, drop } = selectRetained(manifest);
+    const { keep, drop } = selectRetained(manifest, { maxBytes: budget, ceiling });
     for (const e of drop) removeBackupFile(e.filename);
     saveManifest(keep);
     console.log(`[restore] Current DB backed up as ${safeName} before restore`);
