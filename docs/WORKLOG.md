@@ -78,7 +78,7 @@ locally or waiting on the owner:
 | 8 | Optional: re-run `RESUME_MASTER_TOKEN=… npm run verify:live -- --base https://resumemaster.one` in `resume-master` | Only the owner holds the token. The 09-28 run was already 21/21 on the domain; agent queue 1 is closed without it |
 | 9 | **Approve the exact file list for pruning production `/app/data/backups`** (agent queue 8b) — the agent lists it first; also add an SSH key to the Railway account so the agent can list the volume | Irreversible. Only after OWNER 7's deploy, so the new policy is what runs next |
 | 10 | Decide which iOS branch is canonical: `main` (`f8be63c`, 05-09) or `feat/api-layer-feed-review-queue` (`aad5a3a` + the P3 sweep) — and a Mac for agent queue 7 | The rebrand's "three repos" is only true on the branch |
-| 11 | ⛔ **UI redesign: does POSITION encode fit?** (`UI_REDESIGN.md`, "Decide before step 3") — if yes, ranking the board by fit becomes a hard dependency (today: `discovered_at DESC`, ~700 rows tie on the rank keys); if no, the deck is chronological and the band is shown another way | The one decision the deck cannot proceed without. Step 2 (tokens) does not need it |
+| 11 | ~~UI redesign: does POSITION encode fit?~~ ✅ **Decided 09-29 by the owner: YES — rank the board by fit.** Ranking by fit is now a hard dependency of the deck (agent queue 13) | Unblocks UI step 3 once 13 lands |
 | 12 | Review `docs/E3_SECURITY_DESIGN.md` — its §9 checklist. ⛔ It corrects the parent doc: a streamed sign-in passes the password through our workers, so it recommends device sign-in + session upload | Review is prerequisite 4; building stays behind AF5 regardless |
 | 13 | Check that `COOKIE_ENCRYPTION_KEY` is SET in draft's production env (name only — do not paste the value) | Found writing E3: when unset, `server.js` silently generates a random key per boot, so every secret `routes/account.js` stores with it is unreadable after each deploy. If it is unset, the fix is to set it AND make a missing key fail boot |
 
@@ -107,9 +107,10 @@ marked ✅ move to *DONE* at the next tidy; ⏸/⛔ rows are what is left, and w
 | 7 | iOS Phase 1 audit | ⛔ **Needs a Mac** — skipped. ⚠ Reconciliation found the iOS work (`aad5a3a`, the P3 sweep) sits on the unmerged branch `feat/api-layer-feed-review-queue`; `main` is still `f8be63c` (05-09). The audit should start by deciding which branch it audits | Mac |
 | 8 | Volume pruning + backup policy | (a) ✅ `3b9dbe9` — budget from the volume, refuse before the copy, see DONE. ⚠ local, unpushed. (b) ⛔ **Prune production `/app/data/backups`** — irreversible: list the files, get the owner's go on the exact set (OWNER 9), needs an SSH key on the Railway account. First verify the 09-30 02:00 backup succeeded on the 1,000 MB volume | OWNER 7, 9 |
 | 9 | **UI redesign, step 2** — tokens + paper substrate; kill the dynamic background and the per-session accent; AA contrast test; literal guard | 🔄 started 09-29 (`docs/UI_REDESIGN.md`, committed `6b36336`) | — |
-| 10 | UI redesign, step 3+ — the deck, transitions, mobile, dark mode | ⛔ waits on OWNER 11 (does position encode fit?) | OWNER 11 |
+| 10 | UI redesign, step 3+ — the deck, transitions, mobile, dark mode | ⛔ waits on 13 (the owner decided position = fit, 09-29) and on 9 (tokens) | 9, 13 |
 | 11 | **E1 · MCP connectors** in Resume Master — ATS scoring (zero model calls), deterministic parsing, print-ready HTML; generation deferred; same token auth; schemas generated from the contract | 🔄 started 09-29 (`docs/POST_MIGRATION_DESIGN.md` §E1). Local only — RM auto-deploys on push | deploy = owner |
 | 12 | E3 · Remote browser profiles — the **security design** only | ✅ written 09-29, `docs/E3_SECURITY_DESIGN.md`; nothing built. ⛔ Building waits on AF5, full-auto proven on the direct tier, the kill switch verified mid-batch, and the design reviewed | AF5 · OWNER 12 |
+| 13 | ⭐ **Rank the board by fit** — a precomputed per-(user, profile, job) fit cache (scoring is 6.67 ms/posting, so per-request is ruled out); default order = rank keys → band (Strong, Moderate, NOT ESTABLISHED incl. "Not enough signal", Weak) → score → recency; cursor generated from the same key list | 🔄 started 09-29 in its own worktree | — |
 
 ---
 
@@ -758,6 +759,7 @@ Confirmed and applied. ⛔ Do not re-litigate; if one is wrong, measure and reco
 
 | Date | Decision |
 |---|---|
+| 2026-09-29 | **Position encodes fit** (owner). The deck orders by fit, so the board ranks by fit: the ordering work scoped out of CC1–CC5 is now a hard dependency of UI step 3. A declined score ("Not enough signal") ranks as NOT ESTABLISHED — never as a low score |
 | 09-29 | **Resume Master's root stays a JSON 404** — it is an API; no human-facing root |
 | 09-29 | **draft's volume grown to 1,000 MB; pruning and the backup-policy fix run LAST** — storage is billed by use |
 | 09-29 | **`resumemaster.one` DNS is Railway-managed** (bought through Railway) — no registrar account, no editable records; Railway repoints it when the domain moves between services |
