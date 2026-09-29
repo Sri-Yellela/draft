@@ -9,7 +9,7 @@
 //
 // What to change here if intent changes:
 //   - TO CHANGE WHAT COLLAPSES TOGETHER: SENIORITY_PREFIX / the trimming in baseTitle().
-//     Canonical role names themselves live in data/ROLE_ALIAS_MAP.json — add aliases there, not
+//     Canonical role names themselves live in registry/ROLE_ALIAS_MAP.json — add aliases there, not
 //     here, exactly as services/searchQueryBuilder.js instructs.
 //   - TO CHANGE FRESHNESS: TTL_MS.
 //

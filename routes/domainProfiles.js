@@ -30,10 +30,12 @@ import { callModel } from "../services/modelCall.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Inline fallback — always available even when the JSON file can't be read
-// (e.g. Railway container filesystem restrictions). Update this when the
-// DOMAIN_METADATA_REGISTRY.json file changes.
-const BUILTIN_REGISTRY = {
+// Inline fallback. ⛔ The reason it was added ("Railway container filesystem restrictions") was
+// wrong: the file lived in data/, which is production's runtime VOLUME and hides image files mounted
+// under it. The file now lives in registry/ and should always load; this copy is kept as a last
+// resort only, and test/registryPlacement.test.js asserts it is IDENTICAL to the file, so the two
+// cannot drift (they were identical when this was checked, 09-29 — 17 domains, 0 differing fields).
+export const BUILTIN_REGISTRY = {
   engineering: { label:"Software Engineering", roleFamily:"engineering", suggestedTitles:["Software Engineer","Backend Engineer","Frontend Engineer","Full Stack Engineer","Software Developer","Site Reliability Engineer","Platform Engineer","Systems Software Engineer","Staff Engineer","Performance Engineer"], keywords:["distributed systems","microservices","REST APIs","system design","cloud infrastructure","CI/CD","kubernetes","docker","scalability","reliability","performance optimisation","code review","technical leadership","agile","object oriented","concurrency","multithreading","test automation","database internals","security engineering"], actionVerbs:["Built","Designed","Deployed","Migrated","Refactored","Optimised","Implemented","Automated","Architected","Scaled","Shipped","Debugged","Instrumented","Integrated","Reduced"], tools:["Python","Java","Go","TypeScript","React","Node.js","PostgreSQL","Redis","Kafka","AWS","GCP","Azure","Terraform","Git","Kubernetes","Docker","Spark","Airflow","Linux","gdb","C++"] },
   engineering_embedded_firmware: { label:"Firmware, Embedded & Device Software", roleFamily:"engineering", suggestedTitles:["Firmware Engineer","Embedded Software Engineer","Embedded Systems Engineer","Device Driver Engineer","BSP Engineer","Board Support Package Engineer","RTOS Engineer","Hardware Debug Engineer","Firmware Debug Engineer","SoC Bring-Up Engineer","Chip Bring-Up Engineer","Post-Silicon Validation Engineer"], keywords:["embedded software","firmware development","embedded C","embedded C++","RTOS","device drivers","kernel drivers","board bring-up","BSP","hardware software co-debug","registers and memory","peripherals","JTAG debugging","Lauterbach TRACE32 debugging","T32 debugging","PCIe debugging","protocol debugging","SPI protocol","I2C protocol","low-level diagnostics","real-time systems","bootloaders","silicon validation","post-silicon validation","SoC bring-up"], actionVerbs:["Developed","Debugged","Validated","Brought Up","Instrumented","Integrated","Diagnosed","Optimised","Verified","Traced","Automated","Tested","Ported","Profiled","Resolved"], tools:["C","C++","Python","RTOS","Linux kernel","Zephyr","FreeRTOS","JTAG","OpenOCD","TRACE32","T32","Lauterbach","LTB","gdb","LLDB","Oscilloscope","Logic analyzer","UART","SPI","I2C","PCIe","CAN","Git"] },
   engineering_systems_low_level: { label:"Systems, Platform & Performance Engineering", roleFamily:"engineering", suggestedTitles:["Systems Software Engineer","Platform Software Engineer","Operating Systems Engineer","Kernel Engineer","Compiler Engineer","Software Tools Engineer","Performance Engineer","Systems Performance Engineer","Infrastructure Engineer","Distributed Systems Engineer"], keywords:["operating systems","kernel development","compiler engineering","software tools","distributed systems","database internals","concurrency","multithreading","synchronization","memory management","performance profiling","latency optimisation","runtime systems","debug tooling","systems performance","load testing","observability","networking"], actionVerbs:["Architected","Built","Optimised","Profiled","Instrumented","Debugged","Scaled","Reduced","Benchmarked","Implemented","Automated","Refactored","Stabilised","Diagnosed","Shipped"], tools:["C","C++","Rust","Go","Python","Linux","gdb","perf","eBPF","Valgrind","LLVM","GCC","Kubernetes","Docker","Kafka","PostgreSQL","Redis","Prometheus","Grafana","Git"] },
@@ -59,8 +61,7 @@ let _registry = null;
 function getRegistry() {
   if (_registry) return _registry;
   const candidates = [
-    path.join(__dirname, "..", "data", "DOMAIN_METADATA_REGISTRY.json"),
-    path.join(process.cwd(), "data", "DOMAIN_METADATA_REGISTRY.json"),
+    path.join(__dirname, "..", "registry", "DOMAIN_METADATA_REGISTRY.json"),
   ];
   for (const p of candidates) {
     try {
@@ -68,7 +69,8 @@ function getRegistry() {
       if (Object.keys(parsed).length > 0) { _registry = parsed; return _registry; }
     } catch { /* try next */ }
   }
-  console.warn("[domain-registry] JSON file not found — using built-in registry");
+  console.error("[domain-registry] registry/DOMAIN_METADATA_REGISTRY.json unreadable — using the built-in copy. " +
+                "It should always ship in the image; this is a packaging defect");
   _registry = BUILTIN_REGISTRY;
   return _registry;
 }

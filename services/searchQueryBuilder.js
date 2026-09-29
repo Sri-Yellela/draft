@@ -7,7 +7,7 @@
 //   result, and qualification resolver result.
 //
 // What to change here if intent changes:
-//   - TO EXPAND ROLE COVERAGE: add entries to data/ROLE_ALIAS_MAP.json.
+//   - TO EXPAND ROLE COVERAGE: add entries to registry/ROLE_ALIAS_MAP.json.
 //     Do not add aliases directly in this file.
 //   - QUERY PRIORITY: canonical role first, then variants, then qual
 //     templates, then classifier suggestions. To change priority,
@@ -15,7 +15,7 @@
 //   - TITLE RELEVANCE: roleKeywords is derived from ROLE_ALIAS_MAP canonical
 //     titles. To add new role families, add entries to ROLE_ALIAS_MAP.json.
 //
-// Depends on: data/ROLE_ALIAS_MAP.json, data/QUALIFICATION_ROLE_MAP.json
+// Depends on: registry/ROLE_ALIAS_MAP.json (the qualification map is read by qualificationResolver.js)
 // ============================================================
 
 import fs   from "fs";
@@ -24,15 +24,32 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// ⛔ registry/, NOT data/. data/ is runtime state, and in production it is a Railway VOLUME mounted at
+// /app/data — which hides whatever the image put there. This file used to live in data/, so
+// production almost certainly read `{}` here: roleFamilyForTitle returned nothing for every title,
+// and the ATS term weights formed for `__global__` only (production reported exactly that over a
+// 1,179-posting corpus, while the local database formed four families). Found 09-29.
+export const ROLE_ALIAS_MAP_PATH = path.join(__dirname, "..", "registry", "ROLE_ALIAS_MAP.json");
+
 let _aliasMap = null;
 function getAliasMap() {
   if (!_aliasMap) {
     try {
-      const p = path.join(__dirname, "..", "data", "ROLE_ALIAS_MAP.json");
-      _aliasMap = JSON.parse(fs.readFileSync(p, "utf8"));
-    } catch { _aliasMap = {}; }
+      _aliasMap = JSON.parse(fs.readFileSync(ROLE_ALIAS_MAP_PATH, "utf8"));
+    } catch (e) {
+      // Still degrades rather than crashing the board — but LOUDLY. An empty map is silent damage to
+      // every role family and every per-family weight, which is how it went unseen.
+      console.error(`[searchQueryBuilder] ROLE_ALIAS_MAP.json unreadable at ${ROLE_ALIAS_MAP_PATH}: ${e.message} — ` +
+                    "every title will resolve to NO role family");
+      _aliasMap = {};
+    }
   }
   return _aliasMap;
+}
+
+/** For the boot log: how many role aliases were actually loaded. */
+export function roleAliasCount() {
+  return Object.keys(getAliasMap()).length;
 }
 
 /**
@@ -99,7 +116,7 @@ export function roleFamilyForTitle(rawTitle) {
 }
 
 // Normalise raw user input to a canonical role title.
-// TO EXPAND ROLE COVERAGE: add entries to data/ROLE_ALIAS_MAP.json.
+// TO EXPAND ROLE COVERAGE: add entries to registry/ROLE_ALIAS_MAP.json.
 // Do not add aliases here directly.
 export function normaliseRole(rawInput) {
   if (!rawInput) return "";

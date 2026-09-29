@@ -53,7 +53,9 @@ COPY client/package*.json ./client/
 RUN cd client && npm install
 COPY client/ ./client/
 COPY shared/ ./shared/
-COPY data/ROLE_ALIAS_MAP.json ./data/ROLE_ALIAS_MAP.json
+# Static registries: the client bundles ROLE_ALIAS_MAP.json. They live in registry/, NOT data/ —
+# data/ is the runtime volume in production and hides anything the image puts under it.
+COPY registry/ ./registry/
 RUN cd client && npm run build
 
 # Copy remaining server source

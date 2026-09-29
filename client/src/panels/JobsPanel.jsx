@@ -26,7 +26,7 @@ import { useAppScroll } from "../contexts/AppScrollContext.jsx";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import { Z } from "../styles/zLayers.js";
 import { toast } from "../hooks/use-toast.js";
-import ROLE_ALIAS_MAP from "../../../data/ROLE_ALIAS_MAP.json";
+import ROLE_ALIAS_MAP from "../../../registry/ROLE_ALIAS_MAP.json";
 // The filter option contract. Every option list below renders FROM these tables — see
 // shared/jobFilterOptions.js for why they are not literals here any more.
 import {

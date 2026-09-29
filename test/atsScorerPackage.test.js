@@ -10,13 +10,14 @@ import * as pkg from "@draft/ats-scorer";
 
 const lf = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 
-test("⛔ the package's registries are the same bytes as draft's data/ copies (LF-normalised)", () => {
-  // Two copies exist on purpose: data/ still feeds the domain picker (routes/domainProfiles.js),
-  // the qualification resolver and the query builder, and A1 did not move those. A copy with no
-  // drift check is how the scorer and the picker would start disagreeing about what a skill is.
+test("⛔ the package's registries are the same bytes as draft's registry/ copies (LF-normalised)", () => {
+  // Two copies exist on purpose: registry/ still feeds the domain picker (routes/domainProfiles.js),
+  // and A1 did not move that. A copy with no drift check is how the scorer and the picker would
+  // start disagreeing about what a skill is. (Moved from data/ on 09-29 — data/ is production's
+  // runtime volume, which hides image files mounted under it.)
   for (const f of pkg.REGISTRY_FILES) {
-    assert.equal(lf(path.join(pkg.REGISTRY_DIR, f)), lf(path.join("data", f)),
-      `packages/ats-scorer/data/${f} and data/${f} have drifted — copy the changed one over the ` +
+    assert.equal(lf(path.join(pkg.REGISTRY_DIR, f)), lf(path.join("registry", f)),
+      `packages/ats-scorer/data/${f} and registry/${f} have drifted — copy the changed one over the ` +
       `other, then run \`npm run checksums\` in packages/ats-scorer`);
   }
 });

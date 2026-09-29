@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { normaliseRole, buildApifyQueries, buildApifyQueriesFromProfile, buildProfileSearchTerms, isTitleRelevantToProfile } from "../services/searchQueryBuilder.js";
 
-const registry = JSON.parse(fs.readFileSync("data/DOMAIN_METADATA_REGISTRY.json", "utf8"));
-const aliases = JSON.parse(fs.readFileSync("data/ROLE_ALIAS_MAP.json", "utf8"));
+const registry = JSON.parse(fs.readFileSync("registry/DOMAIN_METADATA_REGISTRY.json", "utf8"));
+const aliases = JSON.parse(fs.readFileSync("registry/ROLE_ALIAS_MAP.json", "utf8"));
 const serverSource = fs.readFileSync("server.js", "utf8");
 const routeSource = fs.readFileSync("routes/domainProfiles.js", "utf8");
 
