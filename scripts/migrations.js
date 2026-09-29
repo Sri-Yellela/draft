@@ -3326,4 +3326,31 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // 110 — EVERY STORED ATS REPORT SAYS WHICH CANDIDATE BASIS PRODUCED IT.
+      //
+      // The board now ranks by fit, read from ats_only_reports, and a precompute fills that table
+      // for every active posting ahead of time (services/jobs/boardFitPrecompute.js). A precomputed
+      // score is only reusable while the résumé, claims and profile it was computed from are
+      // unchanged — so each row records a hash of those inputs, and a row whose hash no longer
+      // matches is re-scored instead of served.
+      //
+      // ⛔ REUSED ats_only_reports RATHER THAN A NEW board_fit_scores TABLE, deliberately. The card's
+      // badge (matchScore), the ATS panel's cached report and the apply stamp already read this row.
+      // A second table holding the same score would be two stores of one fact, free to disagree —
+      // a card sorted as Strong while its badge and its report say Weak. Cost, measured: ~850 bytes
+      // of report per row, ~2.2 MB per profile over a 2,616-posting board.
+      //
+      // Additive: one nullable column. Existing rows read NULL, which the precompute treats as
+      // "basis unknown" (stale), never as fresh. The existing 108 index on
+      // (user_id, domain_profile_id, job_id) already serves the board's join and the plan's scan.
+      id: "110_ats_reports_basis_hash",
+      sql: `
+        -- The hash of the candidate-side inputs a stored report was scored against: the runtime
+        -- basis (résumé text, signal profile, domain profile, claims) plus the scorer version.
+        -- NULL on rows written before this migration, which reads as "basis unknown" — stale,
+        -- never fresh — so nothing written without a hash can be mistaken for a current score.
+        ALTER TABLE ats_only_reports ADD COLUMN basis_hash TEXT;
+      `,
+    },
   ];
