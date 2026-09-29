@@ -82,6 +82,9 @@ const ADMIN = new Set([
   "GET /api/admin/backups",
   "POST /api/admin/backups",
   "POST /api/admin/backups/restore",
+  // The board's fit precompute, run on purpose (dry-run by default). Admin-only: it scores every
+  // user's active profile, which is an operator's decision, not a candidate's.
+  "POST /api/admin/board-fit/precompute",
   "GET /api/admin/users",
   "POST /api/admin/users",
   "DELETE /api/admin/users/:id",
