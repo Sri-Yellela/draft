@@ -81,7 +81,7 @@ locally or waiting on the owner:
 | 11 | ~~UI redesign: does POSITION encode fit?~~ ✅ **Decided 09-29 by the owner: YES — rank the board by fit.** Ranking by fit is now a hard dependency of the deck (agent queue 13) | Unblocks UI step 3 once 13 lands |
 | 12 | Review `docs/E3_SECURITY_DESIGN.md` — its §9 checklist. ⛔ It corrects the parent doc: a streamed sign-in passes the password through our workers, so it recommends device sign-in + session upload | Review is prerequisite 4; building stays behind AF5 regardless |
 | 13 | Check that `COOKIE_ENCRYPTION_KEY` is SET in draft's production env (name only — do not paste the value) | Found writing E3: when unset, `server.js` silently generates a random key per boot, so every secret `routes/account.js` stores with it is unreadable after each deploy. If it is unset, the fix is to set it AND make a missing key fail boot |
-| 14 | Android: **what does a left swipe mean?** `SwipeAction.Dislike` has no gesture. `UI_REDESIGN.md` already says left = pass and "a passed card does not return" — which reads as a SAVED pass (dislike), not a local skip. Confirm | Blocks the Android swipe model; the redesign revises it anyway (UI step 5) |
+| 14 | ~~Android: what does a left swipe mean?~~ ✅ **Decided 09-29 by the owner: a SAVED pass** (a persisted dislike; the card never returns). Being wired in agent queue 14 | — |
 | 15 | Android store readiness — no signing config, no Data Safety form, `versionCode 1`, launcher icon, and `com.draft.android` availability on Play unchecked; plus the admin flavour (hardcoded "Sri Yellela / Admin • Pro", literal dashboard counts) — ship it, hide it, or delete it? | Owner-only: the Play console, the keystore, and the product call |
 | 16 | **E1 decisions** (resume-master `6e1837d`): (a) push = deploy `/mcp`, then the agent runs `verify:live` (needs your token) · (b) metering: keep ATS free and unlimited as "distribution", or a per-client cap now that loops are possible? · (c) who gets `rmk_` tokens — a public free connector needs a token policy (no OAuth/anonymous today) · (d) the contract-hash gap: accept, or fix in a new version (changes the recorded 1.0.0 hash) · (e) build a local PDF extractor so parsing can ship deterministic? | Nothing deploys until (a) |
 
@@ -765,6 +765,7 @@ Confirmed and applied. ⛔ Do not re-litigate; if one is wrong, measure and reco
 
 | Date | Decision |
 |---|---|
+| 2026-09-29 | **A left swipe is a saved pass** (owner). Persisted as a dislike, so the card never returns — on any client. Right = draft (queue). ⛔ No gesture ever submits |
 | 2026-09-29 | **Position encodes fit** (owner). The deck orders by fit, so the board ranks by fit: the ordering work scoped out of CC1–CC5 is now a hard dependency of UI step 3. A declined score ("Not enough signal") ranks as NOT ESTABLISHED — never as a low score |
 | 09-29 | **Resume Master's root stays a JSON 404** — it is an API; no human-facing root |
 | 09-29 | **draft's volume grown to 1,000 MB; pruning and the backup-policy fix run LAST** — storage is billed by use |
