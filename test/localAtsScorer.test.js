@@ -78,7 +78,13 @@ test("server precomputed and generated ATS paths use local scorer instead of LLM
 
   assert.match(scrapeBlock, /scoreAtsLocally/);
   assert.doesNotMatch(scrapeBlock, /anthropic\.messages\.create|ATS_SYSTEM_PROMPT|claude-haiku/);
-  assert.match(keywordBlock, /scoreAtsLocally/);
+  // The panel now scores through scoreJobForBasis — the one scorer call it shares with the board's
+  // fit precompute — so the local-scorer property is asserted on that function's body, and the
+  // route is asserted to use it.
+  assert.match(keywordBlock, /scoreJobForBasis\(job, runtimeBasis\)/);
+  const helper = server.slice(at(server, "function scoreJobForBasis("), at(server, "\n}", at(server, "function scoreJobForBasis(")));
+  assert.match(helper, /scoreAtsLocally\(\{ job, runtimeBasis, termWeights: atsTermWeightsForJob\(job\), synonyms: atsSynonyms\(\) \}\)/);
+  assert.doesNotMatch(helper, /anthropic|callModel|ATS_SYSTEM_PROMPT|claude-haiku/);
   assert.doesNotMatch(keywordBlock, /checkLimit\(db, userId, "ats_score"\)|anthropic\.messages\.create|ATS_SYSTEM_PROMPT/);
   assert.match(generateBlock, /scoreAtsLocally/);
   assert.doesNotMatch(generateBlock, /anthropic\.messages\.create|ATS_SYSTEM_PROMPT/);

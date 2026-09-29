@@ -376,7 +376,9 @@ test("the ORDER BY and the cursor predicate are generated from ONE declaration",
     "server.js still declares its own RECENCY — the ordering must come from jobCursor.js alone");
   assert.ok(!/const chosenSort\s*=/.test(server),
     "server.js still builds its own ORDER BY chain");
-  assert.match(server, /buildOrderKeys\(sort, richFilters\.rank\.keys\)/,
+  // The third argument is the fit opt-in (position encodes fit, 2026-09-29) — still the shared key
+  // lists, with FIT_KEYS declared beside RECENCY in jobCursor.js rather than in the handler.
+  assert.match(server, /buildOrderKeys\(sort, richFilters\.rank\.keys, \{ fit: fitRequested \}\)/,
     "the handler must derive its ordering from the shared key lists");
   assert.match(server, /orderByClause\(orderKeys\)/);
   assert.match(server, /cursorProjection\(orderKeys\)/);

@@ -70,7 +70,11 @@ test("all three scoring paths write through the one per-profile writer", () => {
   // The scrape scorer, adopt-enhanced and the keywords route. One writer means the next mistake
   // gets made once rather than three times — which is how this defect survived: it was three
   // copies of the same UPDATE, and fixing any one of them looked complete.
-  assert.match(SERVER, /function storeAtsReportForProfile\(\{ userId, profileId = null, jobId, report \}\)/);
+  // `basisHash` (migration 110) records which candidate basis produced the report.
+  assert.match(SERVER, /function storeAtsReportForProfile\(\{ userId, profileId = null, jobId, report, basisHash = null \}\)/);
+  // The board's fit precompute is a fourth scoring path, and it stores through the SAME writer —
+  // by reference, injected, so it adds no call site of its own below.
+  assert.match(SERVER, /createBoardFitPrecompute\(\{\s*db, basisFor: atsBasisForProfile, scoreJob: scoreJobForBasis, store: storeAtsReportForProfile,/);
   // Minus the declaration the previous line just matched: three call sites, no more and no fewer.
   // A fourth would mean a new scoring path nobody reviewed; a second would mean one of the three
   // went back to writing its own SQL, which is the shape the defect had.

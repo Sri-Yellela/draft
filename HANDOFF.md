@@ -10,7 +10,7 @@ something you read elsewhere in `docs/`, re-measure before you believe either.
 |---|---|
 | deployed commit | **read it from `/api/version`** — any value written here is stale by the next push, which is why the doc guard deliberately does not assert one |
 | contract | `1.1.1` (source and production agree) |
-| migration high-water | `109_restore_stripped_seniority_titles`, in **both** runners and production |
+| migration high-water | `110_ats_reports_basis_hash` in **both** runners (⚠ not yet deployed — production is at `109_restore_stripped_seniority_titles`) |
 | test baseline | **2675 tests, 2675 pass, 0 fail** — no deliberate failures since P4; see `CLAUDE.md` |
 | monetisation | **disabled** — the product presents as free and untiered |
 | Anthropic balance | **exhausted.** Model-backed paths return 502 — except capture, which degrades (see below) |
