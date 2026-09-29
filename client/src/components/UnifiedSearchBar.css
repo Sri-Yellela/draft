@@ -36,7 +36,7 @@
   -webkit-backdrop-filter: var(--bg-blur);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-xl, 1rem);
-  box-shadow: 0 12px 40px rgba(0,0,0,.4), 0 0 0 1px var(--border-glass);
+  box-shadow: var(--c-shadow-lg), 0 0 0 1px var(--border-glass);
 }
 
 .usb--dock {
@@ -51,7 +51,7 @@
   -webkit-backdrop-filter: var(--bg-blur-sm);
   border-radius: 0 0 12px 12px; /* rounded bottom corners — floating dock feel */
   border-bottom: 1px solid var(--border-glass);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.10);
+  box-shadow: var(--c-shadow-md);
 }
 
 /* ── App-dashboard inline variant ──────────────────────────────────────────
@@ -125,21 +125,21 @@
 .usb__div {
   width: 1px;
   height: 26px;
-  background: var(--color-divider, #262523);
+  background: var(--color-divider);
   flex-shrink: 0;
 }
-.usb__icon  { color: var(--color-text-faint, #5a5957); flex-shrink: 0; }
-.usb__chev  { color: var(--color-text-faint, #5a5957); pointer-events: none; flex-shrink: 0; }
+.usb__icon  { color: var(--color-text-faint); flex-shrink: 0; }
+.usb__chev  { color: var(--color-text-faint); pointer-events: none; flex-shrink: 0; }
 .usb__input {
   border: none;
   background: transparent;
   font-size: .875rem;
-  color: var(--color-text, #cdccca);
+  color: var(--color-text);
   width: 100%;
   outline: none;
   min-width: 0;
 }
-.usb__input::placeholder { color: var(--color-text-faint, #5a5957); }
+.usb__input::placeholder { color: var(--color-text-faint); }
 /* .usb__sel is now a <button> (components/UsbSelect.jsx), not a native <select>. The closed
    control is deliberately unchanged to the pixel — same font size, same text colour, same
    transparent background on the glass bar — because only the OPEN list was ever wrong. See the
@@ -152,7 +152,7 @@
   background: transparent;
   font-family: inherit;
   font-size: .875rem;
-  color: var(--color-text, #cdccca);
+  color: var(--color-text);
   appearance: none;
   -webkit-appearance: none;
   cursor: pointer;
@@ -165,17 +165,17 @@
 
 /* Hover and open both read as "this control is live" without moving anything: a tint of the
    accent, never the OS highlight. */
-.usb__sel--btn:hover    { color: var(--color-primary, #4f98a3); }
-.usb__sel--open         { color: var(--color-primary, #4f98a3); }
+.usb__sel--btn:hover    { color: var(--color-primary-text); }
+.usb__sel--open         { color: var(--color-primary-text); }
 .usb__sel--btn:hover .usb__chev,
-.usb__sel--open .usb__chev { color: var(--color-primary, #4f98a3); }
+.usb__sel--open .usb__chev { color: var(--color-primary-text); }
 .usb__sel--open .usb__chev { transform: rotate(180deg); }
 .usb__chev { transition: transform 150ms ease, color 150ms ease; }
 
 /* Keyboard focus must be visible — the native select had a UA focus ring and this replaces it.
    :focus-visible only, so a mouse user does not get a ring they did not ask for. */
 .usb__sel--btn:focus-visible {
-  outline: 2px solid var(--color-primary, #4f98a3);
+  outline: 2px solid var(--color-primary-text);
   outline-offset: 3px;
 }
 
@@ -194,7 +194,7 @@
   /* Muted by default, full-strength when selected — the same emphasis ladder the drawer uses, and
      the reason this is legible: the row now paints its OWN surface, so the text colour is chosen
      against a background we control rather than against whatever the OS drew. */
-  color: var(--color-text-muted, #c0c0c0);
+  color: var(--color-text-muted);
   cursor: pointer;
   white-space: nowrap;
   user-select: none;
@@ -202,15 +202,15 @@
 /* One highlight, driven by the same class whether it was reached by mouse or by arrow key, so the
    pointer and the keyboard cursor can never disagree and show two. */
 .usb__opt--active {
-  background: color-mix(in srgb, var(--color-primary, #4f98a3) 16%, transparent);
-  color: var(--color-text, #f5f5f5);
+  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
+  color: var(--color-text);
 }
-.usb__opt--selected { color: var(--color-text, #f5f5f5); font-weight: 600; }
+.usb__opt--selected { color: var(--color-text); font-weight: 600; }
 .usb__opt-check {
   width: 12px;
   flex-shrink: 0;
   font-size: .75rem;
-  color: var(--color-primary, #4f98a3);
+  color: var(--color-primary-text);
 }
 .usb__opt-label { flex: 1; }
 
@@ -233,7 +233,7 @@
   border-radius: 6px;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: .8125rem;
-  color: var(--color-text-muted, #c0c0c0);
+  color: var(--color-text-muted);
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -241,20 +241,20 @@
 }
 /* One highlight class for both the pointer and the arrow keys, so they cannot disagree. */
 .usb__suggest-item--active {
-  background: color-mix(in srgb, var(--color-primary, #4f98a3) 16%, transparent);
-  color: var(--color-text, #f5f5f5);
+  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
+  color: var(--color-text);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .usb__chev { transition: none; }
 }
 .usb__clear {
-  background: var(--color-surface-offset, #1d1c1a);
+  background: var(--color-surface-offset);
   border: none;
   border-radius: 9999px;
   padding: 2px 4px;
   cursor: pointer;
-  color: var(--color-text-faint, #5a5957);
+  color: var(--color-text-faint);
   display: flex;
   align-items: center;
   flex-shrink: 0;
@@ -266,8 +266,8 @@
   gap: .5rem;
   margin-left: .5rem;
   padding: .625rem 1.25rem;
-  background: var(--color-primary, #4f98a3);
-  color: var(--color-on-primary, #fff);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   border: none;
   border-radius: var(--radius-md, .5rem);
   font-size: .875rem;
@@ -277,13 +277,13 @@
   transition: background 180ms ease;
   white-space: nowrap;
 }
-.usb__btn:hover        { background: var(--color-primary-hover, #227f8b); }
-.usb__btn--live        { background: var(--color-warning, #bb653b); }
-.usb__btn--loading     { background: var(--color-primary-hover, #227f8b); cursor: wait; }
+.usb__btn:hover        { background: var(--color-primary-hover); }
+.usb__btn--live        { background: var(--color-warning); }
+.usb__btn--loading     { background: var(--color-primary-hover); cursor: wait; }
 .usb__cdw {
   font-size: .75rem;
   font-weight: 700;
-  background: color-mix(in srgb, var(--color-on-primary, #fff) 22%, transparent);
+  background: color-mix(in srgb, var(--color-on-primary) 22%, transparent);
   border-radius: 9999px;
   padding: 1px 6px;
   min-width: 24px;
@@ -293,8 +293,8 @@
   display: inline-block;
   width: 16px;
   height: 16px;
-  border: 2px solid color-mix(in srgb, var(--color-on-primary, #fff) 30%, transparent);
-  border-top-color: var(--color-on-primary, #fff);
+  border: 2px solid color-mix(in srgb, var(--color-on-primary) 30%, transparent);
+  border-top-color: var(--color-on-primary);
   border-radius: 50%;
   animation: usb-spin 600ms linear infinite;
 }
@@ -302,12 +302,12 @@
 
 .usb__hint {
   font-size: .75rem;
-  color: var(--color-text-muted, #797876);
+  color: var(--color-text-muted);
   text-align: center;
   margin-top: .75rem;
   animation: usb-fade 200ms ease;
 }
-.usb__hint--live { color: var(--color-primary, #4f98a3); font-weight: 600; }
+.usb__hint--live { color: var(--color-primary-text); font-weight: 600; }
 @keyframes usb-fade { from { opacity: 0; } to { opacity: 1; } }
 
 @keyframes card-up {

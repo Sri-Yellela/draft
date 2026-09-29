@@ -42,10 +42,10 @@ import { Z } from "../styles/zLayers.js";
 // token names keeps this component on the same palette as the stylesheet beside it and avoids
 // threading a theme prop through UnifiedSearchBar — which the marketing landing page renders too.
 const PORTAL_THEME = {
-  menuSurface: "var(--bg-card, #14110f)",
-  surface:     "var(--bg-card, #14110f)",
-  border:      "var(--border-glass, rgba(255,255,255,0.08))",
-  shadowLg:    "0 12px 40px rgba(0,0,0,0.45), 0 0 0 1px var(--border-glass, rgba(255,255,255,0.08))",
+  menuSurface: "var(--bg-card)",
+  surface:     "var(--bg-card)",
+  border:      "var(--border-glass)",
+  shadowLg:    "var(--c-shadow-lg), 0 0 0 1px var(--border-glass)",
 };
 
 export default function UsbSelect({

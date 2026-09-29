@@ -120,7 +120,9 @@ test("the closed control is unchanged — only the open list was ever wrong", ()
   assert.match(css, /\.usb__field--sel\s*\{ flex: 0 0 auto; \}/);
   const closed = css.slice(at(css, ".usb__sel {"), at(css, ".usb__sel-label"));
   assert.match(closed, /font-size: \.875rem;/);
-  assert.match(closed, /color: var\(--color-text, #cdccca\);/);
+  // The `#cdccca` fallback was dropped at docs/UI_REDESIGN.md step 2: the variable is always
+  // defined by the theme bridge, and a literal fallback is a second copy of a retired palette.
+  assert.match(closed, /color: var\(--color-text\);/);
   assert.match(closed, /background: transparent;/);
 });
 

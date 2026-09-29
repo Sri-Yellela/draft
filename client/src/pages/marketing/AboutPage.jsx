@@ -33,7 +33,7 @@ export function AboutPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 40, marginTop: 48 }}>
           {SECTIONS.map((s, i) => (
             <div key={i}>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--color-primary)",
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--color-primary-text)",
                             marginBottom: 12, letterSpacing: "-0.3px" }}>
                 {s.title}
               </h2>

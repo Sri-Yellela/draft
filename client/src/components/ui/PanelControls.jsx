@@ -45,7 +45,7 @@ import { DateCalendar } from "./DateCalendar.jsx";
 export function PanelSubTabs({ tabs, active, onSelect, theme, layoutId, right = null, style = {} }) {
   return (
     <div data-rm-subtabs={layoutId} style={{
-      background: "rgba(17,17,17,0.92)",
+      background: "var(--c-surface-menu)",
       backdropFilter: "blur(16px)",
       borderBottom: `1px solid ${theme.border}`,
       display: "flex", alignItems: "stretch", flexShrink: 0,

@@ -579,7 +579,7 @@ export function PrivacyPage() {
           <a href={`mailto:${CONTACT_EMAIL}`} style={{
             display: "inline-block",
             fontSize: 14, fontWeight: 600,
-            color: "var(--color-primary)", textDecoration: "none",
+            color: "var(--color-primary-text)", textDecoration: "none",
             borderBottom: "1px solid transparent",
             transition: "border-color 180ms ease",
           }}

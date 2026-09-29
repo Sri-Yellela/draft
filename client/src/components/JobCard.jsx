@@ -250,9 +250,9 @@ function AtsSlot({ score, onClick }) {
   return (
     <span title="Score this job against your resume and see which terms match"
       onClick={e => { e.stopPropagation(); onClick(); }}
-      style={{ background:"transparent", color:"var(--color-text-muted, #6b7280)",
+      style={{ background:"transparent", color:"var(--color-text-muted)",
                padding:"1px 7px", borderRadius:999, fontSize:10, fontWeight:600,
-               cursor:"pointer", border:"1px dashed var(--color-border, #d1d5db)",
+               cursor:"pointer", border:"1px dashed var(--color-border)",
                whiteSpace:"nowrap", flexShrink:0 }}>
       Check match
     </span>

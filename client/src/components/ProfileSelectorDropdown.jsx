@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { DockPortal } from "./DockPortal.jsx";
+import { C } from "../styles/colorTokens.js";
 
 export default function ProfileSelectorDropdown({
   theme,
@@ -129,9 +130,9 @@ export default function ProfileSelectorDropdown({
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      border: `1px solid ${canDelete ? "#dc262644" : theme.border}`,
-                      background: canDelete ? "#fef2f2" : theme.surfaceHigh,
-                      color: canDelete ? "#dc2626" : theme.textDim,
+                      border: `1px solid ${canDelete ? C.DANGER + "44" : theme.border}`,
+                      background: canDelete ? C.DANGER_QUIET : theme.surfaceHigh,
+                      color: canDelete ? C.DANGER : theme.textDim,
                       cursor: canDelete ? "pointer" : "not-allowed",
                       fontSize: 13,
                       fontWeight: 900,
@@ -168,7 +169,7 @@ export default function ProfileSelectorDropdown({
                 onClick={() => { if (canAdd) { setOpen(false); onAdd?.(); } }}
                 style={{
                   background: canAdd ? theme.accent : theme.surfaceHigh,
-                  color: canAdd ? "#0f0f0f" : theme.textDim,
+                  color: canAdd ? C.ON_ACCENT : theme.textDim,
                   border: "none",
                   borderRadius: 6,
                   padding: "6px 10px",

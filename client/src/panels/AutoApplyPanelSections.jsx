@@ -890,7 +890,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
       {job.applyUrl && (
         <a href={job.applyUrl} target="_blank" rel="noopener noreferrer"
           onClick={e => e.stopPropagation()}
-          style={{ fontSize: 10, color: theme.accent, textDecoration: "none", wordBreak: "break-all" }}>
+          style={{ fontSize: 10, color: theme.accentText, textDecoration: "none", wordBreak: "break-all" }}>
           {job.applyUrl.length > 90 ? job.applyUrl.slice(0, 90) + "…" : job.applyUrl}
         </a>
       )}

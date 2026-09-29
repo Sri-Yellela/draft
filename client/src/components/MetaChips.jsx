@@ -10,7 +10,7 @@ export function MetaChips({
   const { theme } = useTheme();
 
   const lBg    = leftBg    || theme.colorText;
-  const lColor = leftColor || "#000";
+  const lColor = leftColor || "var(--c-surface-solid)";
   const rBg    = rightBg   || "transparent";
   const rColor = rightColor || theme.colorText;
 

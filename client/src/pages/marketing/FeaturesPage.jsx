@@ -124,7 +124,7 @@ export function FeaturesPage() {
                 <Link to={t.path}>
                   <button style={{
                     width: "100%", padding: "8px", borderRadius: 6, border: "none",
-                    background: "var(--color-primary)", color: "#0f0f0f",
+                    background: "var(--color-primary)", color: "var(--color-on-primary)",
                     fontWeight: 700, fontSize: 13, cursor: "pointer",
                   }}>
                     Try free →

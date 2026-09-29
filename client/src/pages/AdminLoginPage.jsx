@@ -74,14 +74,14 @@ export default function AdminLoginPage({ onLogin }) {
           {error && (
             <div style={{ fontSize:12, color:theme.danger, padding:"8px 12px",
                           background:theme.surfaceHigh, borderRadius:8,
-                          border:`1px solid ${theme.dangerMuted||"rgba(220,38,38,0.2)"}`,
+                          border:`1px solid ${theme.dangerMuted}`,
                           lineHeight:1.5 }}>
               {error}
             </div>
           )}
           <button type="submit" disabled={loading}
             style={{ width:"100%", padding:"12px 0", borderRadius:999, border:"none",
-                     background:theme.gradAccent, color:"white", fontWeight:800,
+                     background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
                      fontSize:14, cursor:"pointer", marginTop:4,
                      opacity:loading?0.7:1, transition:"opacity 0.2s" }}>
             {loading ? "Signing in…" : "Sign In →"}

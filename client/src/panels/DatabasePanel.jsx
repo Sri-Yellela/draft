@@ -109,7 +109,7 @@ function AtsReportDisplay({ report, score, theme }) {
         <div key={i} style={{ background:theme.surfaceHigh, borderRadius:12, padding:16 }}>
           <div style={{ fontWeight:700, fontSize:13, color:theme.text, marginBottom:8 }}>{s.section || s.name || s.title || "Section"}</div>
           <div style={{ fontSize:12, color:theme.textMuted, lineHeight:1.7 }}>{s.feedback || s.comment || s.description || JSON.stringify(s)}</div>
-          {s.score != null && <div style={{ fontSize:11, color:theme.accent, marginTop:4, fontWeight:700 }}>Score: {s.score}</div>}
+          {s.score != null && <div style={{ fontSize:11, color:theme.accentText, marginTop:4, fontWeight:700 }}>Score: {s.score}</div>}
         </div>
       ))}
     </div>
@@ -767,7 +767,7 @@ export function DatabasePanel({ user }) {
                                                   width:c.width, color:theme.text }}>
                           {raw ? (
                             <a href={raw} target="_blank" rel="noreferrer"
-                              style={{ color:theme.accent, fontSize:11,
+                              style={{ color:theme.accentText, fontSize:11,
                                        textDecoration:"none" }}>
                               ↗ Open
                             </a>

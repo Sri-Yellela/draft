@@ -45,9 +45,9 @@ export function ContactPage() {
         </p>
 
         {status === "ok" ? (
-          <div style={{ padding: "24px 28px", background: "rgba(34, 197, 94, 0.12)",
-                         border: "1px solid rgba(34, 197, 94, 0.25)", borderRadius: 16,
-                         color: "#22c55e", fontSize: 15, fontWeight: 600 }}>
+          <div style={{ padding: "24px 28px", background: "var(--c-success-quiet)",
+                         border: "1px solid var(--c-success)", borderRadius: 16,
+                         color: "var(--c-success)", fontSize: 15, fontWeight: 600 }}>
             ✓ Message sent. We'll be in touch soon.
           </div>
         ) : (
@@ -75,7 +75,7 @@ export function ContactPage() {
             )}
             <button type="submit" disabled={status === "sending"}
               style={{ padding: "12px 0", borderRadius: 999, border: "none",
-                        background: "var(--color-primary)", color: "var(--color-primary-text)",
+                        background: "var(--color-primary)", color: "var(--color-on-primary)",
                         fontWeight: 800, fontSize: 14, cursor: "pointer",
                         opacity: status === "sending" ? 0.7 : 1 }}>
               {status === "sending" ? "Sending…" : "Send message"}

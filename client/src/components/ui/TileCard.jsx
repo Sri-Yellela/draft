@@ -148,7 +148,7 @@ export function TilePill({ children, tone = null }) {
       fontWeight: 800,
       textTransform: "uppercase",
       letterSpacing: "0.04em",
-      color: tone ? "#ffffff" : "var(--color-primary-text)",
+      color: tone ? "var(--c-surface-solid)" : "var(--color-primary-text)",
       background: tone || "var(--color-primary-muted)",
       borderRadius: 999,
       padding: "3px 8px",

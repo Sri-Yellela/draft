@@ -137,7 +137,7 @@ function AppTopBar({ tabs, ...props }) {
                 title={`${needsAttentionCount} need${needsAttentionCount === 1 ? "s" : ""} your attention`}
                 style={{
                   minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999,
-                  background: "var(--color-primary)", color: "var(--color-on-primary, #0f0f0f)",
+                  background: "var(--color-primary)", color: "var(--color-on-primary)",
                   fontSize: 10, fontWeight: 800, lineHeight: "16px", textAlign: "center",
                 }}>
                 {needsAttentionCount}
@@ -182,8 +182,8 @@ function BoardTabs() {
               fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
               fontSize: 12, letterSpacing: "0.06em", textTransform: "uppercase",
               borderRadius: 9999, flexShrink: 0,
-              background: on ? "var(--color-primary)" : "rgba(255,255,255,0.06)",
-              color: on ? "var(--color-on-primary, #0f0f0f)" : "var(--color-text-muted)",
+              background: on ? "var(--color-primary)" : "var(--c-hover)",
+              color: on ? "var(--color-on-primary)" : "var(--color-text-muted)",
               transition: "background 0.15s, color 0.15s",
             }}>
             {label}
@@ -240,7 +240,7 @@ function BoardControlIcons() {
         style={{
           position: "relative", display: "flex", alignItems: "center", gap: 6,
           padding: "6px 10px", borderRadius: 999,
-          background: filterPanelOpen ? "rgba(255,255,255,0.06)" : "transparent",
+          background: filterPanelOpen ? "var(--c-hover)" : "transparent",
           border: `1px solid ${on || filterPanelOpen ? "var(--color-primary)" : "var(--border-glass)"}`,
           color: on || filterPanelOpen ? "var(--color-primary)" : "var(--color-text-muted)",
           cursor: "pointer",
@@ -254,7 +254,7 @@ function BoardControlIcons() {
             aria-hidden="true"
             style={{
               minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999,
-              background: "var(--color-primary)", color: "var(--color-on-primary, #0f0f0f)",
+              background: "var(--color-primary)", color: "var(--color-on-primary)",
               fontSize: 10, fontWeight: 800, lineHeight: "16px", textAlign: "center",
             }}>
             {activeFilterCount}
