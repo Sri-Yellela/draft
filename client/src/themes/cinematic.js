@@ -1,4 +1,10 @@
-import CinematicBackground from "../components/CinematicBackground.jsx";
+// The one registered theme. Its id stays "cinematic" because that string is persisted in
+// localStorage.rm_theme_id and read back by ThemeProvider; the theme itself is the paper one now —
+// cream substrate, glass surfaces, the logo orange. Every value is a token from
+// styles/colorTokens.js: this file maps the long-lived theme.* / --bg-* names onto them, so the
+// ~1,600 theme.* reads and ~550 var(--bg-*/--color-*) reads moved with no edit.
+import PaperBackground from "../components/PaperBackground.jsx";
+import { C } from "../styles/colorTokens.js";
 
 export const baseTheme = {
   bg:           "var(--bg-page)",
@@ -8,70 +14,76 @@ export const baseTheme = {
   modalSurface: "var(--bg-modal)",
   backdrop:     "var(--bg-blur)",
   backdropCard: "var(--bg-blur-sm)",
-  bgBase:       "#1c1c1e",
-  surfaceBase:  "#1c1c1e",
-  overlay:      "rgba(255,255,255,0.04)",
-  border:       "#2a2a2a",
-  borderStrong: "#3a3a3a",
-  text:         "#f5f5f5",
-  textMuted:    "#c0c0c0",
-  textDim:      "#9CA3AF",
-  accent:       "#A8D8EA",
-  accentMuted:  "#0a1f2a",
-  accentText:   "#A8D8EA",
-  success:      "#22c55e",
-  successMuted: "#0a1f0a",
-  danger:       "#ef4444",
-  dangerMuted:  "#1f0a0a",
-  warning:      "#f59e0b",
-  warningMuted: "#1f1500",
-  info:         "#38bdf8",
-  infoMuted:    "#0a1525",
-  shadowSm:     "0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3)",
-  shadowMd:     "0 4px 12px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3)",
-  shadowLg:     "0 20px 40px rgba(0,0,0,0.6), 0 8px 16px rgba(0,0,0,0.4)",
-  shadowXl:     "0 40px 80px rgba(0,0,0,0.7), 0 16px 32px rgba(0,0,0,0.5)",
-  gradAccent:   "#A8D8EA",
+  bgBase:       C.CANVAS,
+  surfaceBase:  C.SURFACE_SOLID,
+  overlay:      C.HOVER,
+  border:       C.BORDER,
+  borderStrong: C.BORDER_STRONG,
+  text:         C.INK,
+  textMuted:    C.INK_MUTED,
+  textDim:      C.INK_FAINT,
+  // accent is the orange FILL; accentText is orange TEXT. They are different colours on purpose —
+  // the fill fails AA as text on paper (2.96:1). See colorTokens.js.
+  accent:       C.ACCENT,
+  accentMuted:  C.ACCENT_QUIET,
+  accentText:   C.ACCENT_INK,
+  onAccent:     C.ON_ACCENT,
+  success:      C.SUCCESS,
+  successMuted: C.SUCCESS_QUIET,
+  danger:       C.DANGER,
+  dangerMuted:  C.DANGER_QUIET,
+  warning:      C.WARNING,
+  warningMuted: C.WARNING_QUIET,
+  info:         C.INFO,
+  infoMuted:    C.INFO_QUIET,
+  shadowSm:     C.SHADOW_SM,
+  shadowMd:     C.SHADOW_MD,
+  shadowLg:     C.SHADOW_LG,
+  shadowXl:     C.SHADOW_XL,
+  gradAccent:   C.ACCENT,
   gradSubtle:   "linear-gradient(135deg, var(--bg-page) 0%, var(--bg-panel) 100%)",
   fontDisplay:  "'Barlow Condensed', 'DM Sans', system-ui, sans-serif",
   fontBody:     "'DM Sans', system-ui, sans-serif",
   fontMono:     "'JetBrains Mono', monospace",
-  adminAccent:      "#F5E642",
-  adminAccentText:  "#5a5000",
-  adminAccentMuted: "#2a2800",
-  colorPrimary:   "#A8D8EA",
-  colorSecondary: "#A8D8EA",
-  colorAccent:    "#A8D8EA",
+  // The admin surface had its own citrus accent. One product, one accent: it is the orange too.
+  adminAccent:      C.ACCENT,
+  adminAccentText:  C.ACCENT_INK,
+  adminAccentMuted: C.ACCENT_QUIET,
+  colorPrimary:   C.ACCENT,
+  colorSecondary: C.ACCENT_INK,
+  colorAccent:    C.ACCENT_INK,
   colorSurface:   "var(--bg-card)",
-  colorBorder:    "#2a2a2a",
-  colorText:      "#f5f5f5",
-  colorMuted:     "#c0c0c0",
-  colorDim:       "#9CA3AF",
+  colorBorder:    C.BORDER,
+  colorText:      C.INK,
+  colorMuted:     C.INK_MUTED,
+  colorDim:       C.INK_FAINT,
   colorCard:      "var(--bg-panel)",
   colorInputBg:   "var(--bg-input)",
-  colorTag:       "#0a1f2a",
+  colorTag:       C.ACCENT_QUIET,
   gradBg:         "var(--bg-page)",
   gradPanel:      "var(--bg-card)",
-  gradHover:      "rgba(255,255,255,0.04)",
-  glowPrimary:    "0 0 0 3px #A8D8EA33",
-  shimmer1:       "rgba(44,44,46,0.65)",
-  shimmer2:       "#2a2a2a",
+  gradHover:      C.HOVER,
+  glowPrimary:    `0 0 0 3px ${C.ACCENT_INK}33`,
+  shimmer1:       C.HOVER,
+  shimmer2:       C.BORDER,
   radiusPill:     "999px",
   radiusCard:     "16px",
   radiusInput:    "10px",
 };
 
+// The glass. Values are the SURFACE tokens; blur is unchanged — glass over the paper grain is the
+// whole reason the substrate is textured (docs/UI_REDESIGN.md, "the palette problem").
 export const cssVars = {
-  "--bg-page":      "hsl(201 100% 13% / 0.64)",
-  "--bg-card":      "hsl(201 60% 16% / 0.68)",
-  "--bg-panel":     "hsl(201 50% 18% / 0.72)",
-  "--bg-menu":      "hsl(201 70% 10% / 0.98)",
-  "--bg-modal":     "hsl(201 70% 10% / 0.97)",
-  "--bg-input":     "hsl(0 0% 100% / 0.04)",
-  "--bg-hover":     "hsl(0 0% 100% / 0.04)",
+  "--bg-page":      C.SURFACE,
+  "--bg-card":      C.SURFACE,
+  "--bg-panel":     C.SURFACE_2,
+  "--bg-menu":      C.SURFACE_MENU,
+  "--bg-modal":     C.SURFACE_MODAL,
+  "--bg-input":     C.SURFACE_INPUT,
+  "--bg-hover":     C.HOVER,
   "--bg-blur":      "blur(40px) saturate(180%)",
   "--bg-blur-sm":   "blur(20px) saturate(160%)",
-  "--border-glass": "hsl(0 0% 100% / 0.08)",
+  "--border-glass": C.GLASS_EDGE,
 };
 
 export function styles(t) {
@@ -146,13 +158,13 @@ export function styles(t) {
           font-family: 'Barlow Condensed', 'DM Sans', system-ui, sans-serif;
           font-weight: 800; font-size: 13px; letter-spacing: 0.1em;
           text-transform: uppercase; cursor: pointer;
-          border: 2.5px solid #0f0f0f;
+          border: 2.5px solid ${t.text};
           background-color: transparent;
           background-image: linear-gradient(to top, transparent, transparent);
           background-size: 100% 0%;
           background-repeat: no-repeat;
           background-position: bottom;
-          color: #0f0f0f;
+          color: ${t.text};
           transition: background-size 1s ease, border-radius 1s ease, border-color 1s ease;
           white-space: nowrap; text-decoration: none; box-sizing: border-box;
         }
@@ -161,7 +173,7 @@ export function styles(t) {
         .rm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .rm-btn-primary:hover:not(:disabled) {
           background-image: linear-gradient(to top, ${t.accent}, ${t.accent});
-          background-size: 100% 100%; border-color: ${t.accent};
+          background-size: 100% 100%; border-color: ${t.accent}; color: ${t.onAccent};
         }
         .rm-btn-secondary:hover:not(:disabled) {
           background-image: linear-gradient(to top, var(--bg-panel), var(--bg-panel));
@@ -178,14 +190,14 @@ export function styles(t) {
         .rm-btn-icon.sm { width: 28px; height: 28px; font-size: 13px; }
         .rm-input {
           width: 100%; height: 40px; padding: 0 14px;
-          border-radius: 10px; border: 1px solid ${t.border};
+          border-radius: 10px; border: 1px solid ${C.BORDER_CONTROL};
           background: ${t.colorInputBg}; color: ${t.text};
           backdrop-filter: ${t.backdropCard};
           -webkit-backdrop-filter: ${t.backdropCard};
           font-family: 'DM Sans', system-ui, sans-serif; font-size: 13px;
           outline: none; transition: border-color 0.15s, box-shadow 0.15s;
         }
-        .rm-input:focus { border-color: ${t.accent}; box-shadow: 0 0 0 3px ${t.accent}22; }
+        .rm-input:focus { border-color: ${t.accentText}; box-shadow: 0 0 0 3px ${t.accentText}22; }
         .rm-input::placeholder { color: ${t.textDim}; }
         .rm-badge {
           display: inline-flex; align-items: center; padding: 3px 10px;
@@ -214,7 +226,7 @@ export function styles(t) {
           background: ${t.overlay} !important;
         }
         .rm-skeleton {
-          background: linear-gradient(90deg, rgba(44,44,46,0.65) 25%, ${t.border} 50%, rgba(44,44,46,0.65) 75%);
+          background: linear-gradient(90deg, ${t.overlay} 25%, ${t.border} 50%, ${t.overlay} 75%);
           background-size: 200% 100%;
           animation: shimmer 1.5s ease infinite;
           border-radius: 8px;
@@ -224,12 +236,12 @@ export function styles(t) {
 
 export default {
   id: "cinematic",
-  label: "Cinematic",
-  description: "Immersive dark glass with video background",
+  label: "Paper",
+  description: "Glass over a paper-grain substrate, in the logo's cream and orange",
   baseTheme,
   cssVars,
   styles,
-  Wrapper: CinematicBackground,
+  Wrapper: PaperBackground,
   fonts: {
     display: "'Instrument Serif', serif",
     body: "'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'",

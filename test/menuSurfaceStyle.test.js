@@ -50,7 +50,9 @@ test("top-right account controls are consolidated into avatar menu", () => {
   assert.match(topBar, /ProfileSelectorDropdown/);
   assert.match(topBar, /onActivateProfile/);
   assert.match(profileSelector, /\+ Add Profile/);
-  assert.match(topBar, /Accent Color/);
+  // The accent picker was here. Removed by docs/UI_REDESIGN.md step 2 (one accent, the logo
+  // orange); its absence is pinned in test/colorTokens.test.js.
+  assert.doesNotMatch(topBar, /Accent Color/);
   // `assert.match(topBar, /Background/)` WAS HERE, and it never verified anything. There is no
   // Background control in TopBar and there never was — `git log -S` finds no quoted "Background" in
   // this file's history, and styles/theme.jsx exports `THEMES = { dark: cinematicBase }`, one theme,
@@ -173,11 +175,15 @@ test("legacy light/dark mode toggle is removed and theming is registry-driven", 
   assert.doesNotMatch(theme, /toggleMode|themeName/);
   assert.doesNotMatch(topBar, /Light Mode|Dark Mode|toggleMode/);
 
-  // What replaced it: a theme registry selected by id, persisted under rm_theme_id, plus accents.
-  assert.match(theme, /rm_theme_id/);
-  assert.match(theme, /setThemeId/);
-  assert.match(theme, /ACCENT_OPTIONS/);
-  assert.match(theme, /AVAILABLE_THEMES/);
+  // What replaced it: a theme registry selected by id, persisted under rm_theme_id. It USED to be
+  // "plus accents" and asserted /ACCENT_OPTIONS/ — docs/UI_REDESIGN.md step 2 removed the accent
+  // list, and after the removal that assertion still PASSED, on theme.jsx's own comment describing
+  // what was removed. Read comment-stripped source, and assert the list is gone.
+  const themeCode = theme.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  assert.match(themeCode, /rm_theme_id/);
+  assert.match(themeCode, /setThemeId/);
+  assert.match(themeCode, /AVAILABLE_THEMES/);
+  assert.doesNotMatch(themeCode, /ACCENT_OPTIONS|rm_session_accent/);
 });
 
 // Was "light theme surfaces and text tokens are readable", asserting a light palette
@@ -189,11 +195,16 @@ test("legacy light/dark mode toggle is removed and theming is registry-driven", 
 // stated as the property that actually matters. This is not academic: ScrollDock was rendering
 // with no background at all because `${theme.surface}f2` is invalid CSS, and that is the class of
 // bug this test should catch.
-test("floating surface tokens are near-opaque enough to read over content", () => {
+test("floating surface tokens are near-opaque enough to read over content", async () => {
   const cinematic = fs.readFileSync("client/src/themes/cinematic.js", "utf8");
 
+  // The surface VALUES moved into styles/colorTokens.js at docs/UI_REDESIGN.md step 2; cinematic.js
+  // now maps --bg-menu onto a token by name. So resolve the mapping, then read the token's real
+  // alpha — the property under test is still the number, not where it is spelled.
+  const { C } = await import("../client/src/styles/colorTokens.js");
   const alphaOf = (token) => {
-    const m = cinematic.match(new RegExp('"' + token + '":\\s*"[^"]*?/\\s*([0-9.]+)\\s*\\)"'));
+    const ref = cinematic.match(new RegExp('"' + token + '":\\s*C\\.([A-Z_0-9]+)'));
+    const m = ref && /,\s*([0-9.]+)\)$/.exec(C[ref[1]] || "");
     return m ? Number(m[1]) : null;
   };
 

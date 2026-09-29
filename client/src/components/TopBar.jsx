@@ -170,7 +170,7 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
   // Notifications moved in here from their own bell in the bar. The COUNT stays outside, on the
   // avatar — see the badge below.
   const { notifs, unread, load: loadNotifs, markAll } = useNotifications();
-  const { accentId, setAccentId, ACCENT_OPTIONS, themeId, setThemeId, availableThemes } = useTheme();
+  const { themeId, setThemeId, availableThemes } = useTheme();
   const planTier = user?.planTier || "BASIC";
   const planLabel = planTier === "PRO" ? "Pro" : planTier === "PLUS" ? "Plus" : "Basic";
   const toolLabel = planTier === "PRO" ? "Generate + A+ Resume"
@@ -200,7 +200,7 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
           : "Account menu"}
         style={{
           width: 30, height: 30, borderRadius: "50%", border: "none", cursor: "pointer",
-          background: theme.accent, color: "#0f0f0f",
+          background: theme.accent, color: "var(--c-on-accent)",
           fontWeight: 800, fontSize: 12, position: "relative",
           display: "flex", alignItems: "center", justifyContent: "center",
           outline: open ? `2px solid ${theme.accent}` : "none",
@@ -219,7 +219,7 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
             style={{
               position: "absolute", top: -3, right: -3,
               minWidth: 16, height: 16, padding: "0 3px",
-              background: theme.warning || "#dc2626", color: "#fff",
+              background: "var(--c-danger)", color: "var(--c-surface-solid)",
               border: `2px solid ${theme.surfaceBase || theme.surface}`,
               borderRadius: 999,
               fontSize: 9, fontWeight: 800, lineHeight: "12px", textAlign: "center",
@@ -282,28 +282,6 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
             )}
           </div>
 
-          {/* Accent color */}
-          <div style={{ padding: "10px 16px 8px", borderBottom: `1px solid ${theme.border}` }}>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-                           letterSpacing: "0.08em", color: theme.textDim, marginBottom: 8 }}>
-              Accent Color
-            </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {ACCENT_OPTIONS.map(opt => (
-                <button key={opt.id} title={opt.label} onClick={() => setAccentId(opt.id)}
-                  style={{
-                    width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-                    background: opt.color,
-                    border: accentId === opt.id ? `2px solid ${theme.text}` : "2px solid transparent",
-                    outline: accentId === opt.id ? `1.5px solid ${opt.color}` : "none",
-                    outlineOffset: "1px", cursor: "pointer",
-                    transform: accentId === opt.id ? "scale(1.25)" : "scale(1)",
-                    transition: "transform 0.15s", padding: 0,
-                  }}/>
-              ))}
-            </div>
-          </div>
-
           {/* Theme picker — hidden until more than one theme is registered */}
           {availableThemes.length > 1 && (
             <div style={{ padding: "10px 16px 8px", borderBottom: `1px solid ${theme.border}` }}>
@@ -313,7 +291,7 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
                   style={{
                     display: "flex", alignItems: "center", gap: 8,
                     padding: "8px 12px", marginBottom: 4, width: "100%",
-                    background: themeId === t.id ? "rgba(255,255,255,0.06)" : "transparent",
+                    background: themeId === t.id ? "var(--c-hover)" : "transparent",
                     border: themeId === t.id ? `1px solid var(--color-primary)` : "1px solid var(--border-glass)",
                     borderRadius: 8, cursor: "pointer", color: "var(--color-text)",
                     fontSize: 12, textAlign: "left",
@@ -355,9 +333,9 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
           {/* Sign out */}
           <button
             onClick={() => { setOpen(false); onLogout?.(); }}
-            onMouseEnter={e => e.currentTarget.style.background = "#fef2f2"}
+            onMouseEnter={e => e.currentTarget.style.background = "var(--c-danger-quiet)"}
             onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-            style={{ ...menuItemStyle, color: "#dc2626", fontWeight: 600 }}>
+            style={{ ...menuItemStyle, color: "var(--c-danger)", fontWeight: 600 }}>
             Sign Out
           </button>
         </DockPortal>
@@ -567,7 +545,7 @@ export default function TopBar({
                 style={{
                   display: "inline-block", textDecoration: "none",
                   padding: "8px 14px",
-                  background: activeTab === t.id ? "rgba(255,255,255,0.06)" : "transparent",
+                  background: activeTab === t.id ? "var(--c-hover)" : "transparent",
                   border: activeTab === t.id ? "1px solid var(--color-primary)" : "1px solid transparent",
                   borderRadius: 999,
                   color: activeTab === t.id ? "var(--color-text)" : "var(--color-text-muted)",

@@ -1,22 +1,19 @@
 // client/src/styles/theme.jsx — Design System v6 (theme registry)
+//
+// Every colour below resolves to a token in styles/colorTokens.js. This file used to own an
+// ACCENT_OPTIONS list of four accents (sky, lemon, green, sunset) and pick one AT RANDOM per
+// session into sessionStorage.rm_session_accent. docs/UI_REDESIGN.md killed that (owner decision,
+// 2026-09-27): it fought a two-colour identity, and it meant two screenshots of the same page
+// differed by accent, so a visual diff needed a same-origin control to tell a change from noise.
+// The accent is now the logo orange, always. The menu that let a user pick one of the four went
+// with it (TopBar's "Accent Color" row).
 import { useState, createContext, useContext } from "react";
 import { getTheme, DEFAULT_THEME_ID, AVAILABLE_THEMES } from "../themes/index.js";
 import { baseTheme as cinematicBase } from "../themes/cinematic.js";
+import "./colorTokens.js";
 
-// Lucy brand accent colors:
-//   User board (JobsPanel, main UI) = soft sky blue #A8D8EA
-//   Admin panel                     = citrus yellow #F5E642
-export const LUCY_USER_ACCENT  = "#A8D8EA";
-export const LUCY_ADMIN_ACCENT = "#F5E642";
-
-export const ACCENT_OPTIONS = [
-  { id:"sky",    label:"Sky Blue",      color:"#A8D8EA", mutedLight:"#e8f6fb", mutedDark:"#0a1f2a", textLight:"#1a6a8a", textDark:"#A8D8EA" },
-  { id:"lemon",  label:"Lemon Yellow",  color:"#F0EF8A", mutedLight:"#fafad0", mutedDark:"#2a2800", textLight:"#5a5000", textDark:"#F0EF8A" },
-  { id:"green",  label:"Celtic Green",  color:"#88C87A", mutedLight:"#e4f5e0", mutedDark:"#0a200a", textLight:"#1a5a14", textDark:"#88C87A" },
-  { id:"sunset", label:"Sunset Orange", color:"#FFB07A", mutedLight:"#fff0e2", mutedDark:"#2a1400", textLight:"#8a3600", textDark:"#FFB07A" },
-];
-
-// Preserved for backward-compat consumers (e.g. TopBar pillBg uses THEMES.dark.surfaceBase)
+// Preserved for backward-compat consumers (e.g. TopBar pillBg uses THEMES.dark.surfaceBase). The
+// key says `dark` for those callers; the theme is the paper one.
 export const THEMES = { dark: cinematicBase };
 
 export const ThemeContext = createContext(null);
@@ -35,35 +32,10 @@ export function ThemeProvider({ children }) {
     try { localStorage.setItem("rm_theme_id", id); } catch {}
   };
 
-  const [accentId, setAccentIdRaw] = useState(() => {
-    const saved = sessionStorage.getItem("rm_session_accent");
-    if (saved && ACCENT_OPTIONS.find(a => a.id === saved)) return saved;
-    const random = ACCENT_OPTIONS[Math.floor(Math.random() * ACCENT_OPTIONS.length)].id;
-    sessionStorage.setItem("rm_session_accent", random);
-    return random;
-  });
-
-  const setAccentId = (id) => {
-    setAccentIdRaw(id);
-    sessionStorage.setItem("rm_session_accent", id);
-  };
-
   const activeTheme = getTheme(themeId);
-  const accentOpt = ACCENT_OPTIONS.find(a => a.id === accentId) || ACCENT_OPTIONS[0];
-  const isDark = true;
-
-  const theme = {
-    ...activeTheme.baseTheme,
-    accent:      accentOpt.color,
-    accentMuted: accentOpt.mutedDark,
-    accentText:  accentOpt.textDark,
-    gradAccent:  accentOpt.color,
-    glowPrimary: `0 0 0 3px ${accentOpt.color}44`,
-    colorPrimary:   accentOpt.color,
-    colorSecondary: accentOpt.textDark,
-    colorAccent:    accentOpt.textDark,
-    colorTag:       accentOpt.mutedDark,
-  };
+  // The paper substrate is a LIGHT surface. Callers that branch on isDark pick their light value.
+  const isDark = false;
+  const theme = activeTheme.baseTheme;
 
   const cssVarEntries = Object.entries(activeTheme.cssVars || {})
     .map(([k, v]) => `${k}: ${v};`)
@@ -81,36 +53,39 @@ export function ThemeProvider({ children }) {
       themeId,
       setThemeId,
       availableThemes: AVAILABLE_THEMES,
-      accentId,
-      setAccentId,
-      ACCENT_OPTIONS,
     }}>
       <style>{`
-        /* ── Color token bridge: --color-* → live theme ── */
+        /* ── Color token bridge: --color-* → styles/colorTokens.js ──
+           ⛔ --color-primary-text is orange TEXT (ACCENT_INK) and must never sit on a
+           --color-primary fill: that is the /pricing card that shipped invisible. Text on the
+           orange fill is --color-on-primary. */
         :root {
-          --color-primary:         ${theme.accent};
-          --color-primary-hover:   color-mix(in srgb, ${theme.accent} 75%, black);
-          --color-primary-muted:   ${theme.accentMuted};
-          --color-primary-text:    ${theme.accentText};
-          --color-on-primary:      #0f0f0f;
-          --shadow-sm:             ${theme.shadowSm};
-          --color-warning:         ${theme.warning};
-          --color-text:            ${theme.text};
-          --color-text-muted:      ${theme.textMuted};
-          --color-text-faint:      ${theme.textDim};
+          --color-primary:         var(--c-accent);
+          --color-primary-hover:   var(--c-accent-hover);
+          --color-primary-muted:   var(--c-accent-quiet);
+          --color-primary-text:    var(--c-accent-ink);
+          --color-on-primary:      var(--c-on-accent);
+          --shadow-sm:             var(--c-shadow-sm);
+          --color-warning:         var(--c-warning);
+          --color-text:            var(--c-ink);
+          --color-text-muted:      var(--c-ink-muted);
+          --color-text-faint:      var(--c-ink-faint);
           --color-bg:              var(--bg-page);
           --color-surface:         var(--bg-card);
           --color-surface-offset:  var(--bg-panel);
           --color-surface-2:       var(--bg-panel);
           --color-border:          var(--border-glass);
           --color-divider:         var(--border-glass);
-          --color-surface-dynamic: rgba(255,255,255,0.88);
+          --color-surface-dynamic: var(--c-surface-menu);
         }
 
         /* ══ Theme CSS vars ══ */
         html {
-          color-scheme: dark;
+          color-scheme: light;
           min-height: 100vh;
+          /* Transparent so body's background propagates to the canvas and PaperBackground's
+             fixed, negative-z layer paints ABOVE it. An html background would put body's own
+             background above the substrate and hide the grain. */
           background: transparent;
           ${cssVarEntries}
         }
