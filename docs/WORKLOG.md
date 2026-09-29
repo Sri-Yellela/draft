@@ -32,7 +32,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | | |
 |---|---|
 | Production (draft) | `jobsviadraft.com` ONLY — **`a7a9c7f`**, deployed 09-28 18:20Z (B step 4's policy fix). A1 and A4 are LIVE. Verified: `/api/auth/me` JSON, Google sign-in redirects to the `jobsviadraft.com` callback, the capture endpoint answers JSON; the BUILT bundle carries the new policy sentences and not the old one |
-| Production (Resume Master) | **LIVE at `https://resumemaster.one`** (since B step 4, 09-28 — verifier 21/21 ON THE DOMAIN; ⛔ certificate `VALIDATING_OWNERSHIP` until the owner's DNS edit) and `https://resume-master-production-d960.up.railway.app`, commit **`814356d`**, service `resume-master` in draft's Railway project `resume-master` (owner's choice: kept there). Boot log: `model=true clients=["draft"]`. ⛔ `resumemaster.one` still points at draft (B step 4 not done) — it answers draft's SPA shell |
+| Production (Resume Master) | **LIVE at `https://resumemaster.one`** (since B step 4, 09-28 — verifier 21/21 ON THE DOMAIN; certificate **VALID**, `DETAILED_COMPLETE`, re-read 09-29; DNS Railway-managed and already repointed — see the correction in the step-4 session entry) and `https://resume-master-production-d960.up.railway.app`, commit **`814356d`**, service `resume-master` in draft's Railway project `resume-master` (owner's choice: kept there). Boot log: `model=true clients=["draft"]`. ⛔ `resumemaster.one` still points at draft (B step 4 not done) — it answers draft's SPA shell |
 | Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`814356d`**, auto-deploys on push. **197 tests, 197 pass** |
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (OWNER 2) |
 | Resume Master contract | **v1.0.0**, generated; vendored in draft. **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
@@ -40,6 +40,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | Migration high-water | **109** (`109_restore_stripped_seniority_titles`) in both runners, 110 entries each; production reports 116 applied, latest 109 |
 | Contract | v1.1.1 (mobile) · v1.0.0 (Resume Master, above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
+| draft volume | `resume-master-volume` (draft's DB, `/app/data`) — **481 / 1,000 MB** after the owner grew it 09-29. It was 481/500 and the 09-29 02:00 backup failed with ENOSPC. ⚠ The backup policy still allows ~640 MB steady; pruning + policy fix are agent queue 8, LAST |
 | ATS ρ | **0.746**, drift 0.000, against the extracted package (`am1GradedCorpusVerify`, tolerance now 0.005). Seniority guard is worth 0.645 → 0.746 |
 | Anthropic balance | **Funded — VERIFIED 09-28** by real generation, A+ and PDF calls (Resume Master references draft's `ANTHROPIC_KEY`, owner's choice) |
 | ⛔ Fabrication | **2 of 2 real generations contained material the candidate never stated** (a JD skill; two invented responsibility bullets and an unsourced skill). The claim guard enforces years and seniority only. Resume Master's `docs/API.md` now says so. ⛔ **Blocks AF5** — agent queue 2 |
@@ -51,14 +52,14 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
-**B — steps 1–4 done; ⛔ one owner DNS edit left, then step 5.** `resumemaster.one` now serves
-Resume Master (verified 21/21 on the domain itself); draft `a7a9c7f` serves only `jobsviadraft.com`,
-signs in, and its deployed policy says where each address goes.
+**B — steps 1–4 DONE; step 5 is the owner's** (the stale OAuth redirect URI). `resumemaster.one`
+serves Resume Master (21/21 on the domain, certificate VALID, DNS repointed by Railway itself); draft
+`a7a9c7f` serves only `jobsviadraft.com`, signs in, and its deployed policy says where each address
+goes. After step 5, Phase A+B is complete; the agent queue continues from its top.
 
-⛔ **The DNS edit is not optional.** The domain works today only because Railway's edge routes by
-hostname and the OLD A record still reaches the same edge. The certificate for Resume Master's copy of
-the domain is `VALIDATING_OWNERSHIP` and cannot issue or renew until DNS points at the NEW target —
-see OWNER QUEUE 1.
+⛔ **Found during step 4, outside B, now relieved:** draft's production volume was **481/500 MB** and
+the 09-29 02:00 backup had **already failed with ENOSPC**. The owner grew it to 1,000 MB. The backup
+policy that caused it is queued LAST, with the pruning — see agent queue.
 
 ---
 
@@ -66,7 +67,7 @@ see OWNER QUEUE 1.
 
 | | Task | Why it is here |
 |---|---|---|
-| 1 | ⛔ **At name.com, point `resumemaster.one` at the new target:** change the apex record from `b8h66npc.up.railway.app` to **`hhdv8gnd.up.railway.app`** (ANAME/CNAME-flattened at `@`, as today). Then tell the agent, who checks `railway domain status a2ac6249-2c0d-4450-9352-ba915c6b9b41` for a VALID certificate | The certificate cannot issue or renew until this is done; today's working state is an edge-routing coincidence |
+| 1 | ~~At name.com, point `resumemaster.one` at the new target~~ ⛔ **WITHDRAWN — the agent was wrong.** The domain was bought THROUGH Railway; the name.com nameservers are Railway's registrar partner, the owner has no account there, and Railway exposes no editable records. Railway repointed it itself: 09-29 it resolves to `69.46.46.41`, the same address as the new target `hhdv8gnd.up.railway.app`. Nothing to do. (Original text kept below for the record:) change the apex record from `b8h66npc.up.railway.app` to **`hhdv8gnd.up.railway.app`** (ANAME/CNAME-flattened at `@`, as today). Then tell the agent, who checks `railway domain status a2ac6249-2c0d-4450-9352-ba915c6b9b41` for a VALID certificate | The certificate cannot issue or renew until this is done; today's working state is an edge-routing coincidence |
 | 1b | ~~Generate ONE résumé in the app~~ ✅ done 09-28 — recorded end to end (see G2 answer) | Closes B step 3's last gap: the HTTP route, the `usage_events` row and the lift measurement have not run on the new path. ⚠ READ the result — see *Fabrication* in CURRENT STATE |
 | 2 | ~~B step 4 go-ahead~~ ✅ given and done 09-28 — domain moved, except the DNS edit in row 1 | New certificate; a quiet hour. See NOW for the pre-check |
 | 3 | At a quiet moment: delete the stray `RESUME_MASTER_CLIENT_TOKENS` from the **draft** service | Inert (draft never reads it), but Railway's `variable delete` cannot skip the redeploy, so it restarts production |
@@ -95,6 +96,7 @@ Run top to bottom. One commit per task. Report into *SESSION LOG* between each.
 | 5 | ⭐ **Reconcile `DONE` against `git log`** | below | — |
 | 6 | Mobile corruption sweep (Android) | `CORRUPTION_SWEEP.md` | — |
 | 7 | iOS Phase 1 audit | `../draft-ios/IOS.md` | ⛔ needs a Mac |
+| 8 | ⛔ **LAST, by owner decision (09-29): prune draft's volume and fix the backup policy** — "we are charged by the space we use". (a) Fix `scripts/backup.js` so it cannot outgrow the disk: a budget derived from the volume, not a 512 MB constant larger than the whole 500 MB volume it lived on; check free space BEFORE the copy and refuse loudly rather than ENOSPC mid-copy; the `MIN_KEEP` floor must not override the disk. (b) Then prune `/app/data/backups` to the new budget — ⛔ irreversible, so list the files and get the owner's go on the exact set first; needs an SSH key on the Railway account. Verify first that the 09-30 02:00 backup succeeded on the 1,000 MB volume | below (step-4 session entry) | everything above it |
 
 **5 · Reconcile the `DONE` section.** It was written from the chat record, not from `git log`, so it
 is incomplete and possibly mis-dated. Walk the log, add what is missing, correct what is wrong, and
@@ -244,6 +246,11 @@ raw JSON on a 404 — which reads as an error, and is not one. ⚠ Consequence a
 anyone opening `resumemaster.one` sees that JSON. A human-facing root is a contract change (a route,
 so a version bump) if ever wanted.
 
+✅ **Re-confirmed 09-29 by SCREENSHOT in real Chrome** (headless, driven by puppeteer): both
+`https://resumemaster.one/` and the Railway URL render Chrome's JSON viewer showing
+`{"error":"not_found"}`, HTTP 404, no page title, no failed sub-requests; `/v1/version` on the same
+domain renders 200 with `service: "resume-master"`. **Owner decision: keep the JSON 404.** Closed.
+
 ---
 
 ## DONE
@@ -357,6 +364,31 @@ Railway issued a new DNS target (`hhdv8gnd` replacing `b8h66npc`). ⭐ The domai
 immediately — `verify:live --base https://resumemaster.one`: **21/21**, where this morning every check
 failed there. ⛔ That is Railway's edge routing by hostname while the OLD A record still reaches it —
 **not** the DNS being right. The certificate is `VALIDATING_OWNERSHIP` until the owner's name.com edit.
+
+⛔ **CORRECTED 09-29 — two claims in this entry were wrong, the owner caught both:**
+1. **There was no name.com edit to make.** `resumemaster.one` was bought through Railway; the
+   name.com nameservers are Railway's registrar partner, the owner has no account there, and the
+   records are not editable. Railway repointed the domain itself — it resolves to `69.46.46.41`, the
+   new target's address. The agent read the nameservers and inferred an owner-held registrar account.
+2. **The certificate was never stuck.** The same domain ID (`a2ac6249…`, the right one) read
+   `VALIDATING_OWNERSHIP` ONE SECOND after creation; on 09-29 it reads **VALID, `DETAILED_COMPLETE`**.
+   A snapshot taken at creation was reported as a state. Re-read before calling a thing pending.
+
+**Root URL, rendered in real Chrome (headless, the owner's screenshot concern):** both
+`resumemaster.one/` and the Railway URL show Chrome's JSON viewer with `{"error":"not_found"}` on a
+404 — reads as an error, is the intentional contract answer; `/v1/version` on the same domain answers
+200. Owner decision: **keep the JSON 404.**
+
+**The "volume warning" — real, and not Resume Master's.** The project's only volume,
+`resume-master-volume` (a pre-rebrand name), is **draft's** database volume at `/app/data`; Resume
+Master has none, correctly. It was **481/500 MB**, and ⛔ **the 09-29 02:00 backup had already failed:**
+`ENOSPC: no space left on device, copyfile … resume_master_2026-09-29T02-00-00-095Z_auto-daily.db`.
+The cause is the policy, by construction: `BACKUP_MAX_BYTES` defaults to **512 MB — larger than the
+whole volume** — backups share the volume with the live DB (~125 MB), a `BACKUP_MIN_KEEP` floor of 3
+overrides the budget, and the job COPIES BEFORE IT PRUNES, so each night needs a full extra copy of
+headroom first. No `SQLITE_FULL` in the 39 retained log lines, so writes had not yet failed. The
+owner grew the volume to **1,000 MB** (481 used). File contents are unobserved — listing the volume
+needs an SSH key on the Railway account.
 
 **draft after:** `jobsviadraft.com` only; sign-in redirects to the `jobsviadraft.com` callback; the
 capture endpoint answers JSON; 2691/2691.
@@ -634,6 +666,9 @@ Confirmed and applied. ⛔ Do not re-litigate; if one is wrong, measure and reco
 
 | Date | Decision |
 |---|---|
+| 09-29 | **Resume Master's root stays a JSON 404** — it is an API; no human-facing root |
+| 09-29 | **draft's volume grown to 1,000 MB; pruning and the backup-policy fix run LAST** — storage is billed by use |
+| 09-29 | **`resumemaster.one` DNS is Railway-managed** (bought through Railway) — no registrar account, no editable records; Railway repoints it when the domain moves between services |
 | 09-28 | **The résumé guards (G1) are deferred to post-migration** — "a work in progress". Resume Master's `docs/API.md` states what is enforced and what is not in the meantime |
 | 09-28 | **Resume Master stays in draft's Railway project**, as its own service; its model key is a reference to draft's (`${{draft.ANTHROPIC_KEY}}`) |
 | 09-28 | **`resumemaster.one` belongs to Resume Master** (B step 4). Its root answers a JSON 404 by design. **v1.0.0 of the extension is published UNLISTED** and posts there — accepted: its captures are no longer received |
