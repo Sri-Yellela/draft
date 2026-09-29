@@ -71,9 +71,10 @@ this is why.
 
 ## Deliberate test failures — currently 0
 
-`npm test` is **2712 tests, 2712 pass, 0 fail** — re-measured 2026-09-29 in the working tree at
-`76cc044` (+10 UI step 2 tests: colour-token contrast and the colour-literal ratchet; not yet on a
-fresh CRLF worktree). Before that 2702 at `3b9dbe9` (+5 `registryPlacement` in `983a0ed`, +6
+`npm test` is **2738 tests, 2738 pass, 0 fail** — re-measured 2026-09-29 in the working tree at
+`28b8a33` (+26 `boardFitRanking` from the fit-ranking merge; not yet on a fresh CRLF worktree).
+Before that 2712 at `76cc044` (+10 UI step 2 tests: colour-token contrast and the colour-literal
+ratchet), and before that 2702 at `3b9dbe9` (+5 `registryPlacement` in `983a0ed`, +6
 backup-disk tests in `3b9dbe9`), and before that, 2691 / 2691 / 0 — re-measured 2026-09-28 after A4, which moved the
 prompt's tests to resume-master with the prompt (the count FELL by moving them, not by losing them —
 the per-test accounting is in A4's commit message). Before that: 2696 / 2696 / 0 after A1 (`3c3fd1d`, which
