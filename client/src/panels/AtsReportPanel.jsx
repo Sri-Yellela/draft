@@ -40,7 +40,7 @@ export default function AtsReportPanel({
         {activeAts?.title || "Match analysis"}
       </div>
       <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 5, marginTop: 5 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-primary)" }}>ATS</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-primary-text)" }}>ATS</span>
         {activeAts?.score != null && (
           <span style={{ fontSize: 10, fontWeight: 700,
                          color: activeAts.score >= 80 ? "#16a34a"

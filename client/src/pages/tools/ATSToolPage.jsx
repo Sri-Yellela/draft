@@ -9,13 +9,14 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useTheme } from "../../styles/theme.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import ScrollDock from "../../components/ScrollDock.jsx";
+import { C } from "../../styles/colorTokens.js";
 
 function ScoreDonut({ score }) {
   const { theme } = useTheme();
   const r = 44, cx = 56, cy = 56;
   const circ = 2 * Math.PI * r;
   const fill = ((score || 0) / 100) * circ;
-  const color = score >= 75 ? "#16a34a" : score >= 50 ? "#d97706" : "#dc2626";
+  const color = score >= 75 ? C.SUCCESS : score >= 50 ? C.WARNING : C.DANGER;
   return (
     <svg width={112} height={112} viewBox="0 0 112 112">
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={theme.surfaceHigh} strokeWidth={10}/>
@@ -113,12 +114,12 @@ export function ATSToolPage() {
             }}
           />
 
-          {error && <div style={{ fontSize: 12, color: "#dc2626", fontWeight: 600 }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: C.DANGER, fontWeight: 600 }}>{error}</div>}
 
           <button onClick={submit} disabled={loading} style={{
             padding: "12px", borderRadius: 8, border: "none",
             background: loading ? theme.surfaceHigh : theme.accent,
-            color: loading ? theme.textMuted : "#0f0f0f",
+            color: loading ? theme.textMuted : C.ON_ACCENT,
             fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
           }}>
             {loading ? "Scoring…" : "Score My Resume"}
@@ -139,8 +140,8 @@ export function ATSToolPage() {
             </div>
 
             {/* Matched / Missing keywords */}
-            {[["Matched keywords", result.matched_keywords, "#16a34a"],
-              ["Missing keywords", result.missing_keywords, "#dc2626"]].map(([lbl, chips, col]) =>
+            {[["Matched keywords", result.matched_keywords, C.SUCCESS],
+              ["Missing keywords", result.missing_keywords, C.DANGER]].map(([lbl, chips, col]) =>
               chips?.length ? (
                 <div key={lbl}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: theme.textMuted,
@@ -165,7 +166,7 @@ export function ATSToolPage() {
               border: `1px solid ${theme.border}`,
             }}>
               Want to fix these gaps?{" "}
-              <Link to="/tools/generate" style={{ color: theme.accent, fontWeight: 700, textDecoration: "none" }}>
+              <Link to="/tools/generate" style={{ color: theme.accentText, fontWeight: 700, textDecoration: "none" }}>
                 Generate a focused resume →
               </Link>
             </div>
@@ -196,7 +197,7 @@ export function ATSToolPage() {
           </div>
           <Link to="/login">
             <button style={{ padding: "10px 28px", borderRadius: 6, border: "none",
-                             background: theme.accent, color: "#0f0f0f", fontWeight: 700, cursor: "pointer" }}>
+                             background: theme.accent, color: C.ON_ACCENT, fontWeight: 700, cursor: "pointer" }}>
               Get full access →
             </button>
           </Link>

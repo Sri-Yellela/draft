@@ -9,7 +9,7 @@ export default function ProductsPage() {
         fontFamily: 'var(--font-display, sans-serif)',
         fontSize: 'clamp(2rem, 4vw, 3.5rem)',
         fontWeight: 700,
-        color: 'var(--color-text, #cdccca)',
+        color: 'var(--color-text)',
         letterSpacing: '-0.025em',
         marginBottom: '1rem',
       }}>
@@ -17,7 +17,7 @@ export default function ProductsPage() {
       </h1>
       <p style={{
         fontSize: '1.125rem',
-        color: 'var(--color-text-muted, #797876)',
+        color: 'var(--color-text-muted)',
         maxWidth: '52ch', lineHeight: 1.7,
       }}>
         Resume scoring, cover letter generation, job tracking,
@@ -25,10 +25,10 @@ export default function ProductsPage() {
       </p>
       <div style={{
         marginTop: '3rem', padding: '2rem',
-        background: 'var(--color-surface, #1c1b19)',
+        background: 'var(--color-surface)',
         borderRadius: '1rem',
-        border: '1px solid var(--color-border, #393836)',
-        color: 'var(--color-text-muted, #797876)',
+        border: '1px solid var(--color-border)',
+        color: 'var(--color-text-muted)',
         fontSize: '.875rem',
       }}>
         🚧 This page is coming soon.

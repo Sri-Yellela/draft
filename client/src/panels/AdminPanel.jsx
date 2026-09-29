@@ -460,7 +460,7 @@ function UsersTab({ theme }) {
                 <div style={{ color:theme.textMuted }}>{fmtNum(u.totalTokens)}</div>
                 <div style={{ color:"#dc2626" }}>{fmtUsd(u.totalCost)}</div>
                 <div style={{ color:theme.textMuted }}>{fmtPct(u.cacheHitRate)}</div>
-                <div style={{ color:theme.accent }}>
+                <div style={{ color:theme.accentText }}>
                   {u.avgAtsScoreAfter != null && u.avgAtsScoreBefore != null
                     ? `+${(u.avgAtsScoreAfter - u.avgAtsScoreBefore).toFixed(0)}`
                     : "—"}
@@ -650,7 +650,7 @@ function ContactMessagesSection({ theme }) {
           Contact Messages
         </h2>
         {unreadCount > 0 && (
-          <span style={{ background: theme.danger, color: "white", fontSize: 11,
+          <span style={{ background: theme.danger, color: "var(--c-surface-solid)", fontSize: 11,
                           fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>
             {unreadCount} unread
           </span>

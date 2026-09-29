@@ -75,7 +75,7 @@ export default function CompanyViewModal({ company, onClose }) {
           <button
             onClick={() => { onClose(); navigate(`/app/recruiter?company=${encodeURIComponent(company)}`); }}
             style={{ background: "none", border: "none", cursor: "pointer", padding: 0,
-                     color: theme.accent, fontSize: 12, fontWeight: 700 }}>
+                     color: theme.accentText, fontSize: 12, fontWeight: 700 }}>
             Open in Recruiter view →
           </button>
         </div>

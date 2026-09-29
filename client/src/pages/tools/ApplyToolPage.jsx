@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useTheme } from "../../styles/theme.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import ScrollDock from "../../components/ScrollDock.jsx";
+import { C } from "../../styles/colorTokens.js";
 
 export function ApplyToolPage() {
   const { theme } = useTheme();
@@ -39,7 +40,7 @@ export function ApplyToolPage() {
     finally { setLoading(false); }
   };
 
-  const STATUS_COLOR = { submitted: "#16a34a", failed: "#dc2626", skipped: "#d97706", pending: "#6b7280" };
+  const STATUS_COLOR = { submitted: C.SUCCESS, failed: C.DANGER, skipped: C.WARNING, pending: C.INK_FAINT };
 
   if (authNeeded) {
     return (
@@ -56,7 +57,7 @@ export function ApplyToolPage() {
           </div>
           <Link to="/login">
             <button style={{ padding: "10px 28px", borderRadius: 6, border: "none",
-                             background: theme.accent, color: "#0f0f0f", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>
+                             background: theme.accent, color: C.ON_ACCENT, fontWeight: 700, cursor: "pointer", fontSize: 14 }}>
               Sign in or register free →
             </button>
           </Link>
@@ -126,12 +127,12 @@ export function ApplyToolPage() {
                      fontFamily: "monospace" }}
           />
 
-          {error && <div style={{ fontSize: 12, color: "#dc2626", fontWeight: 600 }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: C.DANGER, fontWeight: 600 }}>{error}</div>}
 
           <button onClick={submit} disabled={loading} style={{
             padding: "12px", borderRadius: 8, border: "none",
             background: loading ? theme.surfaceHigh : theme.accent,
-            color: loading ? theme.textMuted : "#0f0f0f",
+            color: loading ? theme.textMuted : C.ON_ACCENT,
             fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
           }}>
             {loading ? "Applying…" : "Apply to All"}
@@ -151,8 +152,8 @@ export function ApplyToolPage() {
                 }}>
                   <span style={{
                     fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                    background: (STATUS_COLOR[r.status] || "#6b7280") + "20",
-                    color: STATUS_COLOR[r.status] || "#6b7280",
+                    background: (STATUS_COLOR[r.status] || C.INK_FAINT) + "20",
+                    color: STATUS_COLOR[r.status] || C.INK_FAINT,
                     flexShrink: 0,
                   }}>
                     {r.status}
@@ -161,7 +162,7 @@ export function ApplyToolPage() {
                                  textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {r.company || r.url}
                   </span>
-                  {r.error && <span style={{ fontSize: 11, color: "#dc2626" }}>{r.error}</span>}
+                  {r.error && <span style={{ fontSize: 11, color: C.DANGER }}>{r.error}</span>}
                 </div>
               ))}
             </div>
@@ -192,7 +193,7 @@ export function ApplyToolPage() {
           </div>
           <Link to="/login">
             <button style={{ padding: "10px 28px", borderRadius: 6, border: "none",
-                             background: theme.accent, color: "#0f0f0f", fontWeight: 700, cursor: "pointer" }}>
+                             background: theme.accent, color: C.ON_ACCENT, fontWeight: 700, cursor: "pointer" }}>
               Get full access →
             </button>
           </Link>

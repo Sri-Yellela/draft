@@ -1,8 +1,9 @@
 // CTAButton.jsx — adapted from EventRegistration.tsx (no supabase/auth logic)
 // Expand-on-hover + arrow-reveal CTA pattern
 import { useState } from "react";
+import { C } from "../styles/colorTokens.js";
 
-export function CTAButton({ label, onClick, disabled, loading, accent = "#ff6b35" }) {
+export function CTAButton({ label, onClick, disabled, loading, accent = C.ACCENT }) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -18,7 +19,7 @@ export function CTAButton({ label, onClick, disabled, loading, accent = "#ff6b35
       <div style={{
         position:"relative", overflow:"hidden",
         borderRadius:8,
-        background: disabled || loading ? "rgba(255,255,255,0.1)" : accent,
+        background: disabled || loading ? C.HOVER : accent,
         opacity: disabled || loading ? 0.5 : 1,
         transition:"all 0.3s ease",
         display:"flex", alignItems:"center",
@@ -27,7 +28,7 @@ export function CTAButton({ label, onClick, disabled, loading, accent = "#ff6b35
         minWidth:120,
       }}>
         <span style={{
-          fontWeight:700, fontSize:13, color:"#000",
+          fontWeight:700, fontSize:13, color:C.ON_ACCENT,
           whiteSpace:"nowrap",
           transition:"opacity 0.2s",
           opacity: loading ? 0.7 : 1,
@@ -48,7 +49,7 @@ export function CTAButton({ label, onClick, disabled, loading, accent = "#ff6b35
         flexShrink:0,
       }}>
         <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-          <path d="M3 8h10M9 4l4 4-4 4" stroke="#000" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M3 8h10M9 4l4 4-4 4" stroke={C.ON_ACCENT} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
     </div>

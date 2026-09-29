@@ -278,7 +278,7 @@ function CustomAnswerRow({ question, answer, overrides, onRename, onAnswer, onDe
 
       <div style={{ display:"flex", gap:6, marginTop:6, flexWrap:"wrap", alignItems:"center" }}>
         {templated ? (
-          <span style={{ ...CA_CHIP, background:`${theme.accent}1f`, color:theme.accent }}>
+          <span style={{ ...CA_CHIP, background:`${theme.accent}1f`, color:theme.accentText }}>
             Per-company template
           </span>
         ) : null}
@@ -321,7 +321,7 @@ function CustomAnswerRow({ question, answer, overrides, onRename, onAnswer, onDe
             theme={theme} needsOwnWords={ownWords}/>
         ) : (
           <button type="button" onClick={() => setOpen(true)}
-            style={{ marginTop:8, border:"none", background:"transparent", color:theme.accent,
+            style={{ marginTop:8, border:"none", background:"transparent", color:theme.accentText,
                      cursor:"pointer", fontSize:11, fontWeight:600, padding:0 }}>
             + Per-company answer
           </button>

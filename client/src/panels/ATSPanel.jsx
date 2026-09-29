@@ -178,7 +178,7 @@ export function ATSPanel({ report, score, jobId, resumeText, activeProfileId }) 
         <div>Could not analyse keywords — retry</div>
         <button onClick={() => { setKwError(false); setLocalReport(null); }}
           style={{ marginTop:8, padding:"6px 16px", borderRadius:6, border:"none",
-                   background:"var(--color-primary)", color:"var(--color-primary-text)", cursor:"pointer",
+                   background:"var(--color-primary)", color:"var(--color-on-primary)", cursor:"pointer",
                    fontWeight:600, fontSize:12 }}>
           Retry
         </button>

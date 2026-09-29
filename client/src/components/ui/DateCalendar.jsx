@@ -137,7 +137,7 @@ export function DateCalendar({ value, onChange, onClose, theme, markers = {}, on
               style={{
                 textAlign:"center", fontSize:11, padding:"6px 2px", borderRadius:6,
                 cursor:day ? "pointer" : "default", userSelect:"none",
-                color:sel ? "#fff" : tod ? theme.accent : day ? theme.text : "transparent",
+                color:sel ? "var(--c-on-accent)" : tod ? theme.accentText : day ? theme.text : "transparent",
                 background:sel ? theme.accent : "transparent",
                 border:tod && !sel ? `1px solid ${theme.accent}` : "1px solid transparent",
                 fontWeight:sel || tod || mark ? 700 : 400,

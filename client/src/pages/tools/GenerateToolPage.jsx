@@ -8,6 +8,7 @@ import { useTheme } from "../../styles/theme.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { atsBandFor, atsBandLabel } from "../../../../shared/atsBands.js";
+import { C } from "../../styles/colorTokens.js";
 
 const RESUME_PAGE_WIDTH  = 794;
 const RESUME_PAGE_HEIGHT = 1123;
@@ -89,12 +90,12 @@ export function GenerateToolPage() {
                      outline: "none", boxSizing: "border-box", lineHeight: 1.6 }}
           />
 
-          {error && <div style={{ fontSize: 12, color: "#dc2626", fontWeight: 600 }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: C.DANGER, fontWeight: 600 }}>{error}</div>}
 
           <button onClick={submit} disabled={loading} style={{
             padding: "12px", borderRadius: 8, border: "none",
             background: loading ? theme.surfaceHigh : theme.accent,
-            color: loading ? theme.textMuted : "#0f0f0f",
+            color: loading ? theme.textMuted : C.ON_ACCENT,
             fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
           }}>
             {loading ? "Generating…" : "Generate My Resume"}
@@ -111,7 +112,7 @@ export function GenerateToolPage() {
                 <span style={{ fontWeight: 700, color: theme.text }}>Resume generated</span>
                 {result.atsScore != null && (
                   <span style={{ marginLeft: 12, fontSize: 12, color: theme.textMuted }}>
-                    Fit: <strong style={{ color: theme.accent }}>{atsBandLabel(atsBandFor(result.atsScore)).label}</strong>
+                    Fit: <strong style={{ color: theme.accentText }}>{atsBandLabel(atsBandFor(result.atsScore)).label}</strong>
                   </span>
                 )}
               </div>
@@ -124,7 +125,7 @@ export function GenerateToolPage() {
                 </button>
                 <button onClick={() => window.print()} style={{
                   padding: "5px 14px", borderRadius: 6, border: "none",
-                  background: theme.accent, color: "#0f0f0f", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  background: theme.accent, color: C.ON_ACCENT, fontSize: 12, fontWeight: 600, cursor: "pointer",
                 }}>
                   Export PDF
                 </button>
@@ -175,7 +176,7 @@ export function GenerateToolPage() {
           </div>
           <Link to="/login">
             <button style={{ padding: "10px 28px", borderRadius: 6, border: "none",
-                             background: theme.accent, color: "#0f0f0f", fontWeight: 700, cursor: "pointer" }}>
+                             background: theme.accent, color: C.ON_ACCENT, fontWeight: 700, cursor: "pointer" }}>
               Get full access →
             </button>
           </Link>

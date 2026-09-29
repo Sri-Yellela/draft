@@ -85,7 +85,7 @@ function HamburgerOverlay({ open, onClose, theme, links, ctaLinks }) {
                 padding: "12px 24px", borderRadius: 8,
                 fontSize: 15, fontWeight: 700, textDecoration: "none",
                 background: primary ? theme.accent : "transparent",
-                color: primary ? "#0f0f0f" : theme.text,
+                color: primary ? "var(--c-on-accent)" : theme.text,
                 border: primary ? "none" : `1px solid ${theme.border}`,
               }}>
               {label}
@@ -182,7 +182,7 @@ function MarketingToolsDock({ variant }) {
     WebkitBackdropFilter: "blur(20px)",
     border: `1px solid ${theme.border}`,
     borderRadius: 9999,
-    boxShadow: "0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08)",
+    boxShadow: "var(--c-shadow-md)",
     maxWidth: "min(720px, calc(100vw - 24px))",
     width: "auto",
   };
@@ -221,7 +221,7 @@ function MarketingToolsDock({ variant }) {
                 padding: collapsed ? "5px 14px" : "7px 18px",
                 borderRadius: 999,
                 background: primary ? theme.accent : "transparent",
-                color: primary ? "#0f0f0f" : theme.accentText,
+                color: primary ? "var(--c-on-accent)" : theme.accentText,
                 border: primary ? "none" : `1px solid ${theme.accent}55`,
                 transition: "all 0.15s",
                 whiteSpace: "nowrap",

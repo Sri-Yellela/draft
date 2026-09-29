@@ -73,7 +73,7 @@ export default function InlineLoginPopover({ trigger, onLogin, align = "end", si
                 borderRadius: 8, color: "var(--color-text)", fontSize: 13, outline: "none",
                 boxSizing: "border-box" }}/>
             {error && (
-              <div style={{ color: "var(--color-warning, #f59e0b)", fontSize: 11, marginBottom: 8 }}>
+              <div style={{ color: "var(--color-warning)", fontSize: 11, marginBottom: 8 }}>
                 {error}
               </div>
             )}
@@ -106,7 +106,7 @@ export default function InlineLoginPopover({ trigger, onLogin, align = "end", si
           )}
           <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 12, textAlign: "center" }}>
             No account?{" "}
-            <a href="/register" style={{ color: "var(--color-primary)", textDecoration: "none" }}>
+            <a href="/register" style={{ color: "var(--color-primary-text)", textDecoration: "none" }}>
               Create one
             </a>
           </div>

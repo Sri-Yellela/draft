@@ -7,6 +7,7 @@ import { WORDMARK } from "../../../shared/brand.js";
 import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import { Footer } from "./Footer.jsx";
+import { C } from "../styles/colorTokens.js";
 
 // ── AtomEmblem — keep this exported, TopBar imports it ────────
 function tiltedEllipsePath(cx, cy, rx, ry, angleDeg) {
@@ -137,10 +138,10 @@ function AuthModal({ onLogin, initialTab = "login" }) {
     const readiness = oauthStatus?.[provider];
     if (oauthStatus !== null && !readiness?.configured) return null;
     const label = oauthLabel(provider);
-    const brand = provider === "linkedin" ? "#0A66C2" : provider === "github" ? "#24292e" : "#4285F4";
+    const brand = provider === "linkedin" ? C.PROVIDER_LINKEDIN : provider === "github" ? C.PROVIDER_GITHUB : C.PROVIDER_GOOGLE;
     return (
       <a href={`/auth/${provider}`} title={`Continue with ${label}`}
-        style={{ ...providerButtonStyle, background:brand, color:"#fff", border:"none", textDecoration:"none" }}>
+        style={{ ...providerButtonStyle, background:brand, color:C.ON_PROVIDER, border:"none", textDecoration:"none" }}>
         Continue with {label}
       </a>
     );
@@ -236,14 +237,14 @@ function AuthModal({ onLogin, initialTab = "login" }) {
 
       {/* Tab switcher */}
       <div style={{ display:"flex", gap:4, marginBottom:28,
-                    background:"rgba(255,255,255,0.06)",
+                    background:"var(--c-surface)",
                     borderRadius:999, padding:4 }}>
         {["login","register"].map(t => (
           <button key={t} onClick={() => { setTab(t); setRegStep(1); setError(""); setNotice(""); }}
             style={{ flex:1, padding:"7px 0", borderRadius:999, border:"none",
                      fontWeight:700, fontSize:12, cursor:"pointer",
                      background: tab===t ? theme.accent : "transparent",
-                     color: tab===t ? "#0f0f0f" : theme.textMuted,
+                     color: tab===t ? "var(--c-on-accent)" : theme.textMuted,
                      transition:"all 0.2s" }}>
             {t === "login" ? "Sign In" : "Create Account"}
           </button>
@@ -260,7 +261,7 @@ function AuthModal({ onLogin, initialTab = "login" }) {
           {notice && <div style={{ color:theme.success, fontSize:12 }}>{notice}</div>}
           <button type="submit" disabled={loading}
             style={{ width:"100%", padding:"12px 0", borderRadius:999, border:"none",
-                     background:theme.gradAccent, color:"white", fontWeight:800,
+                     background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
                      fontSize:14, cursor:"pointer", marginTop:4,
                      opacity:loading?0.7:1, transition:"opacity 0.2s" }}>
             {loading ? "Signing in…" : "Sign In →"}
@@ -317,7 +318,7 @@ function AuthModal({ onLogin, initialTab = "login" }) {
           {(!resetSent || reset.token) && (
             <button type="submit" disabled={loading}
               style={{ width:"100%", padding:"12px 0", borderRadius:999, border:"none",
-                       background:theme.gradAccent, color:"white", fontWeight:800,
+                       background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
                        fontSize:14, cursor:"pointer", marginTop:4,
                        opacity:loading?0.7:1, transition:"opacity 0.2s" }}>
               {loading ? "Working..." : (reset.token ? "Reset Password" : "Send Reset Email")}
@@ -358,7 +359,7 @@ function AuthModal({ onLogin, initialTab = "login" }) {
           {error && <div style={{ color:theme.danger, fontSize:12 }}>{error}</div>}
           <button type="submit"
             style={{ width:"100%", padding:"12px 0", borderRadius:999, border:"none",
-                     background:theme.gradAccent, color:"white", fontWeight:800,
+                     background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
                      fontSize:14, cursor:"pointer", marginTop:4 }}>
             Continue →
           </button>
@@ -403,7 +404,7 @@ function AuthModal({ onLogin, initialTab = "login" }) {
             </button>
             <button type="submit" disabled={loading}
               style={{ flex:1, padding:"12px 0", borderRadius:999, border:"none",
-                       background:theme.gradAccent, color:"white", fontWeight:800,
+                       background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
                        fontSize:14, cursor:"pointer",
                        opacity:loading?0.7:1, transition:"opacity 0.2s" }}>
               {loading ? "Creating account…" : "Create Account →"}
@@ -467,7 +468,7 @@ export default function AuthScreen({ onLogin, initialTab = "login" }) {
                 padding:"14px 28px", borderRadius:999,
                 background:theme.gradAccent,
                 fontSize:"clamp(36px,4.5vw,60px)", fontWeight:900,
-                letterSpacing:"-3px", color:"white", lineHeight:1,
+                letterSpacing:"-3px", color:"var(--c-on-accent)", lineHeight:1,
               }}>your next</div>
             </div>
             {/* Row 2 */}

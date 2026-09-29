@@ -11,7 +11,7 @@ export default function NotFoundPage() {
         fontFamily: 'var(--font-display, sans-serif)',
         fontSize: 'clamp(2rem, 4vw, 3.5rem)',
         fontWeight: 700,
-        color: 'var(--color-text, #cdccca)',
+        color: 'var(--color-text)',
         letterSpacing: '-0.025em',
         marginBottom: '1rem',
       }}>
@@ -19,7 +19,7 @@ export default function NotFoundPage() {
       </h1>
       <p style={{
         fontSize: '1.125rem',
-        color: 'var(--color-text-muted, #797876)',
+        color: 'var(--color-text-muted)',
         maxWidth: '52ch', lineHeight: 1.7,
       }}>
         The page you&apos;re looking for doesn&apos;t exist.
@@ -27,8 +27,8 @@ export default function NotFoundPage() {
       <Link to="/" style={{
         display: 'inline-block', marginTop: '2rem',
         padding: '.625rem 1.5rem',
-        background: 'var(--color-primary, #4f98a3)',
-        color: '#0f0f0f', borderRadius: '.5rem',
+        background: 'var(--color-primary)',
+        color: 'var(--color-on-primary)', borderRadius: '.5rem',
         fontWeight: 700, fontSize: '.875rem',
         textDecoration: 'none',
       }}>

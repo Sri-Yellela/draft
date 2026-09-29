@@ -339,7 +339,7 @@ function IconBtn({ bg, onClick, title, children, disabled = false, size = 28 }) 
         border:`1px solid ${disabled ? theme.border : hov ? bg+"44" : theme.border}`,
         display:"flex", alignItems:"center", justifyContent:"center",
         cursor: disabled ? "not-allowed" : "pointer",
-        fontSize:12, color: hov && !disabled ? "white" : theme.textMuted,
+        fontSize:12, color: hov && !disabled ? "var(--c-surface-solid)" : theme.textMuted,
         opacity: disabled ? 0.4 : 1,
         transition:"all 0.15s ease", flexShrink:0,
         transform: hov && !disabled ? "scale(1.1)" : "scale(1)",
@@ -3510,7 +3510,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
                 <button onClick={handleAdoptEnhanced}
                   style={{
                     padding:"10px 24px", borderRadius:4, fontWeight:800, fontSize:13,
-                    background:theme.accent, color:"#fff", border:"none", cursor:"pointer",
+                    background:theme.accent, color:"var(--c-on-accent)", border:"none", cursor:"pointer",
                     fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:"0.06em",
                     textTransform:"uppercase",
                   }}>

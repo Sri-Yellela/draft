@@ -41,8 +41,8 @@ export default function AdminLayout({ user, onLogout, children }) {
             fontFamily:"'DM Sans',system-ui", transition:"all 0.15s",
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.color = "#dc2626";
-            e.currentTarget.style.borderColor = "#dc2626";
+            e.currentTarget.style.color = "var(--c-danger)";
+            e.currentTarget.style.borderColor = "var(--c-danger)";
           }}
           onMouseLeave={e => {
             e.currentTarget.style.color = theme.textMuted;

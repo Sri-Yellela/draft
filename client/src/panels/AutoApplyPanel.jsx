@@ -657,7 +657,7 @@ export function AutoApplyPanel() {
               {" "}
               <button onClick={() => loadHistory(todayIso(), historyGroup)}
                 style={{ background: "none", border: "none", padding: 0, cursor: "pointer",
-                         color: theme.accent, font: "inherit", textDecoration: "underline" }}>
+                         color: theme.accentText, font: "inherit", textDecoration: "underline" }}>
                 Show today instead
               </button>
             </>

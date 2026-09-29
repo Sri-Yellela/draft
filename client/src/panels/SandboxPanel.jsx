@@ -273,7 +273,7 @@ export default function SandboxPanel({
         {activeEntry?.title || "Resume preview"}
       </div>
       <div style={{ display:"flex", alignItems:"center", flexWrap:"wrap", gap:5, marginTop:5 }}>
-        <span style={{ fontSize:10, fontWeight:700, color:"var(--color-primary)" }}>PDF SANDBOX</span>
+        <span style={{ fontSize:10, fontWeight:700, color:"var(--color-primary-text)" }}>PDF SANDBOX</span>
         {viewMode === "page" && (
           <span style={{ fontSize:10, color:"var(--color-text-faint)" }}>
             {pageCount} page{pageCount === 1 ? "" : "s"} · A4
@@ -299,7 +299,7 @@ export default function SandboxPanel({
               : "Reflow to panel width for legibility — does not show real pagination"}
             style={{ ...btnStyle(), padding:"3px 10px", borderRadius:999, border:"none",
                      background: viewMode===id ? "var(--color-primary)" : "transparent",
-                     color: viewMode===id ? "var(--color-on-primary,#fff)" : "var(--color-text-muted)" }}>
+                     color: viewMode===id ? "var(--color-on-primary)" : "var(--color-text-muted)" }}>
             {lbl}
           </button>
         ))}
@@ -339,7 +339,7 @@ export default function SandboxPanel({
       {/* Generating skeleton */}
       {activeEntry?.generating && (
         <div style={{ flex:1, padding:"24px 20px", display:"flex", flexDirection:"column", gap:12 }}>
-          <div style={{ fontSize:11, fontWeight:700, color:"var(--color-primary)",
+          <div style={{ fontSize:11, fontWeight:700, color:"var(--color-primary-text)",
                         display:"flex", alignItems:"center", gap:8 }}>
             <span style={{ display:"inline-block", animation:"spin 0.8s linear infinite" }}>↻</span>
             {activeEntry?.stage || "Generating…"}

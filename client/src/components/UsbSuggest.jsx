@@ -21,10 +21,10 @@ import { Z } from "../styles/zLayers.js";
 // because the ancestor two levels up cut it off. That is precisely what DockPortal's own header
 // says it exists to prevent.
 const PORTAL_THEME = {
-  menuSurface: "var(--bg-card, #14110f)",
-  surface:     "var(--bg-card, #14110f)",
-  border:      "var(--border-glass, rgba(255,255,255,0.08))",
-  shadowLg:    "0 12px 40px rgba(0,0,0,0.45), 0 0 0 1px var(--border-glass, rgba(255,255,255,0.08))",
+  menuSurface: "var(--bg-card)",
+  surface:     "var(--bg-card)",
+  border:      "var(--border-glass)",
+  shadowLg:    "var(--c-shadow-lg), 0 0 0 1px var(--border-glass)",
 };
 
 // Long enough that a fast typist makes one request for a word rather than one per letter, short

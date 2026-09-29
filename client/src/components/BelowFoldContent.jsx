@@ -54,7 +54,7 @@ export default function BelowFoldContent() {
             <div style={{
               fontFamily: "var(--font-display, 'Instrument Serif', serif)",
               fontSize: 28, fontWeight: 400,
-              color: "var(--color-primary)",
+              color: "var(--color-primary-text)",
               letterSpacing: "-0.02em", lineHeight: 1, marginBottom: 4,
             }}>{String(i + 1).padStart(2, "0")}</div>
             <div style={{
@@ -72,7 +72,7 @@ export default function BelowFoldContent() {
         <Link to="/register" style={{
           display: "inline-block",
           background: "var(--color-primary)",
-          color: "#0f0f0f",
+          color: "var(--color-on-primary)",
           padding: "12px 32px",
           borderRadius: 8,
           fontWeight: 800,

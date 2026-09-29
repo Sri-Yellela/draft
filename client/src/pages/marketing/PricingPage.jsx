@@ -90,7 +90,7 @@ export function PricingPage() {
                   // so on a --color-primary fill it painted orange on orange and the badge read as
                   // empty. --color-on-primary is the token that exists for exactly this pairing,
                   // and is what every other primary-filled control in the app already uses.
-                  color: t.recommended ? "var(--color-on-primary, #0f0f0f)" : "var(--color-text-muted)",
+                  color: t.recommended ? "var(--color-on-primary)" : "var(--color-text-muted)",
                   fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 999,
                   border: "1px solid var(--color-border)", whiteSpace: "nowrap",
                 }}>
@@ -110,7 +110,7 @@ export function PricingPage() {
                 {t.features.map((f, j) => (
                   <li key={j} style={{ display: "flex", gap: 8, fontSize: 13, color: "var(--color-text-muted)",
                                         lineHeight: 1.6, marginBottom: 8 }}>
-                    <span style={{ color: "#22c55e", flexShrink: 0 }}>✓</span>
+                    <span style={{ color: "var(--c-success)", flexShrink: 0 }}>✓</span>
                     {f}
                   </li>
                 ))}
@@ -128,7 +128,7 @@ export function PricingPage() {
                   // Same defect, and worse here because it is the call to action on the card the
                   // page is steering people to. Unrecommended cards keep the accent-on-transparent
                   // pairing, which is legible; only the filled one needs the contrasting token.
-                  color: t.recommended ? "var(--color-on-primary, #0f0f0f)" : "var(--color-primary-text)",
+                  color: t.recommended ? "var(--color-on-primary)" : "var(--color-primary-text)",
                   border: "1.5px solid var(--color-primary)",
                 }}>
                   {t.cta}
