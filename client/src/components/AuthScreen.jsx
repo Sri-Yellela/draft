@@ -495,8 +495,7 @@ export default function AuthScreen({ onLogin, initialTab = "login" }) {
           {/* Subtitle */}
           <p style={{ fontSize: isMobile ? 13 : 15, color:theme.textMuted, lineHeight:1.6,
                       marginBottom: isMobile ? 24 : 36, maxWidth:420, textAlign:"center" }}>
-            Start with the shared jobs console, ATS Search, and Simple Apply.<br/>
-            Upgrade from Plans when you need Generate or A+ Resume.
+            Start with the shared jobs console, ATS Search, and Simple Apply.
           </p>
 
           {/* Auth modal */}
