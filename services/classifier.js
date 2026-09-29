@@ -4,14 +4,16 @@
 // What this file does:
 //   Makes a Haiku call with both resume text and JD text to classify
 //   the role family, domain, seniority, qualification, and generate
-//   search queries. Returns a structured result used by:
-//   - promptAssembler.js (to select the correct domain module)
+//   search queries. Returns a structured result used by smart-search (server.js):
 //   - searchQueryBuilder.js (to build Apify query variants)
 //   - qualificationResolver.js (to resolve qualification key)
+//   Domain-module selection for GENERATION is not here any more: it moved to the résumé tools
+//   service in A2/A4, which holds the one definition. The private copy that used to live at the
+//   bottom of this file set a field no caller read, and disagreed with that definition.
 //
 // What to change here if intent changes:
 //   - To add a new role family or domain: add to the enum strings in
-//     the Haiku prompt below and update domainModuleKey derivation
+//     the Haiku prompt below
 //   - To change the Haiku model: update MODEL_HAIKU in shared/anthropicModels.js
 //   - To change classification output fields: update the schema below
 //     AND update all callers in server.js
@@ -35,8 +37,6 @@ const SENIORITY_ENUM = values(PROFILE_SENIORITY).join(" | ");
 // Model IDs come from shared/anthropicModels.js so a bump cannot land in only some files.
 const MODEL_ID = MODEL_HAIKU;
 
-// TO CHANGE DOMAIN MAPPING: edit the derivation logic in getDomainModuleKey()
-// below AND add/remove a corresponding file in prompts/layer2_domains/
 export async function classify(anthropic, resumeText, jdText, options = {}) {
   const prompt = `Classify this resume and job description combination.
 
@@ -92,30 +92,5 @@ Reply ONLY with valid JSON matching this exact schema. No markdown fences, no ex
   });
 
   const raw = msg.content.map(b => b.text || "").join("").replace(/```json|```/g, "").trim();
-  const parsed = JSON.parse(raw);
-
-  // Derive the domain module key from roleFamily + domain
-  parsed.domainModuleKey = getDomainModuleKey(parsed.roleFamily, parsed.domain);
-  return parsed;
-}
-
-// TO CHANGE DOMAIN MAPPING: edit the derivation logic below and
-// add/remove a corresponding file in prompts/layer2_domains/
-function getDomainModuleKey(roleFamily, domain) {
-  if (roleFamily === "pm") {
-    if (domain === "construction")                          return "pm_construction";
-    if (domain === "healthcare")                            return "pm_healthcare";
-    if (domain === "it_digital" || domain === "pmo")        return "pm_it";
-    return "pm_general";
-  }
-  const directMap = {
-    engineering: "engineering",
-    finance:     "finance",
-    hr:          "hr",
-    design:      "design",
-    data:        "data",
-    legal:       "legal",
-    operations:  "operations",
-  };
-  return directMap[roleFamily] || "general";
+  return JSON.parse(raw);
 }
