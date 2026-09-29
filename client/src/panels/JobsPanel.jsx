@@ -4070,6 +4070,8 @@ const CURATION_KEY_LABELS = {
   experience_levels:    "experience level",
   sponsorship_friendly: "sponsorship",
   company_sponsorship:  "company H-1B filings",
+  // The board ranks by the caller's own résumé fit inside what the keys above leave tied.
+  fit:                  "fit to your résumé",
 };
 
 function CurationNotice({ theme, curation, curateOff, onToggleCurate }) {

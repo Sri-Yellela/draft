@@ -41,6 +41,10 @@
  */
 "use strict";
 
+// The band cutpoints, imported rather than restated: the fit keys below turn them into SQL, and a
+// second copy of "Strong is 44" here would be free to disagree with the badge the card renders.
+import { ATS_BAND_CUTPOINTS } from "../../shared/atsBands.js";
+
 /** One ORDER BY term. `sql` may be any expression; `params` binds placeholders inside it. */
 const KEY = (sql, dir = "ASC", params = []) => ({ sql, dir, params });
 
@@ -153,9 +157,64 @@ function assertTotalOrder(keys, label) {
 }
 for (const [name, keys] of Object.entries(SORT_KEYS)) assertTotalOrder(keys, name);
 
+// ── FIT: position encodes fit (owner decision 2026-09-29) ─────────────────────────────────────
+//
+// The default board ranked by the derived rank keys and then by RECENCY, and on a real profile the
+// rank keys leave hundreds of rows tied at MATCH — so inside the band a user actually reads, the
+// order was "newest first" and said nothing about fit. The UI redesign makes position the primary
+// fit signal ("band as position, not badge"), which is only true if the board sorts by it.
+//
+// Two keys, in this order, inserted between the rank keys and RECENCY:
+//
+//   1. the BAND ORDINAL — Strong 0, Moderate 1, NOT ESTABLISHED 2, Weak 3.
+//   2. the score, DESC, so rows inside a band are ordered by the number the band was cut from.
+//
+// ⛔ NOT ESTABLISHED IS 2, BETWEEN MODERATE AND WEAK — NEVER LAST, AND NEVER COERCED TO A SCORE.
+// A NULL `aor.ats_score` is either the scorer DECLINING (not enough signal in the posting — a
+// correctness state, shared/atsBands.js) or a row not scored yet. Neither is a claim that the job
+// is a poor fit, so neither may sort as one. This is the same rule the rank keys follow
+// (jobQuery.js: "NOT ESTABLISHED ranks between, never at the bottom"): "we have not judged this"
+// is not the same statement as "this does not match".
+//
+// THE BAND KEY IS ALSO THE NULL PARTITION, which is what keeps the cursor NULL-safe. Every NULL
+// score lands in band 2 and no non-NULL score does, so inside any one band `aor.ats_score` is
+// either entirely NULL or entirely non-NULL. Within band 2 the score comparison `<` yields NULL and
+// the `IS` equality yields true, so the cursor falls through to RECENCY exactly as NULLS_LAST's
+// partition makes it do on every other keyed sort. No `=` and no `IN` appears anywhere in the
+// chain — cursorPredicate emits only `<`/`>` and `IS`.
+//
+// ⛔ THE CUTPOINTS ARE READ FROM shared/atsBands.js, the one definition the card's badge renders
+// from. The CASE below is GENERATED from them, so a recalibrated cutpoint moves the order and the
+// badge together; test/boardFitRanking.test.js sweeps every integer score and asserts this SQL and
+// atsBandFor() agree.
+//
+// `aor` is the board query's LEFT JOIN of ats_only_reports for (caller, active profile) — the same
+// alias SORT_KEYS.atsScore already sorts on, and the same row the card's matchScore is read from,
+// so the band a card displays and the band it is sorted by are the same cell.
+const FIT_SCORE_SQL = "aor.ats_score";
+const FIT_BAND_ORDINAL = Object.freeze({ strong: 0, moderate: 1, not_established: 2, weak: 3 });
+const FIT_BAND_SQL =
+  `(CASE WHEN ${FIT_SCORE_SQL} IS NULL THEN ${FIT_BAND_ORDINAL.not_established}` +
+  ` WHEN ${FIT_SCORE_SQL} >= ${Number(ATS_BAND_CUTPOINTS.strong)} THEN ${FIT_BAND_ORDINAL.strong}` +
+  ` WHEN ${FIT_SCORE_SQL} >= ${Number(ATS_BAND_CUTPOINTS.moderate)} THEN ${FIT_BAND_ORDINAL.moderate}` +
+  ` ELSE ${FIT_BAND_ORDINAL.weak} END)`;
+const FIT_KEYS = Object.freeze([
+  KEY(FIT_BAND_SQL, "ASC"),
+  KEY(FIT_SCORE_SQL, "DESC"),
+]);
+
 /**
- * The full key list for a request: the derived profile-relevance prefix (default sort only) then
- * the chosen sort.
+ * The full key list for a request: the derived profile-relevance prefix (default sort only), then
+ * — when `fit` is asked for, default sort only — the fit keys, then the chosen sort.
+ *
+ * WHY THE RANK KEYS LEAD FIT, AND NOT THE OTHER WAY ROUND. The rank keys are CC1's scope-shaped
+ * ordering: `role_key` (in your declared bucket vs. not classified yet), `q`, target titles, the
+ * bridge's skills and level windows. Putting fit first would let a Strong-scoring posting from an
+ * explicitly mismatched window (say a skills MISS) jump above every in-window row, which undoes
+ * the ordering CC1 bought and makes the "N further down" disclosure describe nothing. Fit resolves
+ * what the rank keys leave TIED — which on a real profile is almost all of it. Measured, not
+ * assumed: see the commit that introduced this block for the tie-group sizes and the graded-5
+ * positions under both precedences.
  *
  * `rankKeys` are the INDIVIDUAL relevance expressions, not the pre-joined ORDER BY fragment. The
  * cursor has to compare them one at a time, so it needs them separately — which is why
@@ -166,14 +225,28 @@ for (const [name, keys] of Object.entries(SORT_KEYS)) assertTotalOrder(keys, nam
  * about ORDER, so it wins outright; leaving the sort alone is not an instruction, so a derived key
  * may lead there. The client always sends a sort and its initial value is 'dateDesc', so absence
  * and 'dateDesc' are the same state.
+ *
+ * Fit follows the same rule for the same reason: it is derived, so it may lead only where the user
+ * has not chosen an order. "Best match" (atsScore) is the explicit way to ask for score order
+ * across the whole board.
+ *
+ * `fit` is opt-in per call because only the caller knows whether the `aor` join exists (the board
+ * defines it; nothing else calls this) and whether ranking by the profile is wanted at all — the
+ * Saved tab and `?curate=off` both say it is not.
  */
-function buildOrderKeys(sort, rankKeys = []) {
+function buildOrderKeys(sort, rankKeys = [], { fit = false } = {}) {
   const chosen = SORT_KEYS[sort] || SORT_KEYS.dateDesc;
   const sortIsDefault = !sort || sort === "dateDesc";
   const prefix = sortIsDefault
     ? rankKeys.map(k => KEY(`(${k.sql})`, "ASC", k.params || []))
     : [];
-  return [...prefix, ...chosen];
+  const fitKeys = sortIsDefault && fit ? FIT_KEYS : [];
+  return assertTotalOrder([...prefix, ...fitKeys, ...chosen], sort || "dateDesc");
+}
+
+/** Did this key list order by fit? The board discloses it as `curation.rankedKeys` 'fit'. */
+function ordersByFit(keys) {
+  return keys.some(k => k.sql === FIT_BAND_SQL);
 }
 
 /** `expr DIR, expr DIR, ...` plus the params bound inside those expressions, in text order. */
@@ -256,13 +329,24 @@ function cursorPredicate(keys, values) {
  * otherwise resume against a different ordering and return an arbitrary slice with no error. The
  * signature turns that into a 400 the client can act on: re-request the first page.
  */
-function orderSignature(keys) {
-  return keys.map(k => `${k.sql}|${k.dir}`).join("~~");
+//
+// ⛔ THE FIT EPOCH. Every other key a cursor resumes on is effectively immutable while a user pages
+// (discovered_at, the rank keys' inputs, job_id). The fit keys are not: a precompute pass rewrites
+// the scores they sort on. A keyset cursor over a key that moves under it silently skips a row
+// that moved from ahead of the anchor to behind it, and repeats one that moved the other way —
+// measured, one row lost in a 681-row walk. So when the ordering includes fit, the signature also
+// carries `epoch`, a value that changes whenever the caller's scores do (server.js passes the
+// newest ats_only_reports row id for (user, profile)). A cursor that straddles a score change then
+// fails loudly as `cursor_sort_mismatch` — the documented "request the first page again" — rather
+// than returning a plausible feed with a hole in it.
+function orderSignature(keys, epoch = null) {
+  const base = keys.map(k => `${k.sql}|${k.dir}`).join("~~");
+  return epoch == null ? base : `${base}~~epoch:${epoch}`;
 }
 
-function encodeCursor(keys, row) {
+function encodeCursor(keys, row, { epoch = null } = {}) {
   const values = keys.map((_, i) => row[cursorColumn(i)]);
-  const payload = { v: 1, s: hashSignature(orderSignature(keys)), k: values };
+  const payload = { v: 1, s: hashSignature(orderSignature(keys, epoch)), k: values };
   return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
 }
 
@@ -270,7 +354,7 @@ function encodeCursor(keys, row) {
  * @returns {{ ok: true, values: any[] } | { ok: false, error: string }}
  * Never throws on client input: a malformed cursor is a 400, not a 500.
  */
-function decodeCursor(token, keys) {
+function decodeCursor(token, keys, { epoch = null } = {}) {
   let payload;
   try {
     payload = JSON.parse(Buffer.from(String(token), "base64url").toString("utf8"));
@@ -280,7 +364,7 @@ function decodeCursor(token, keys) {
   if (!payload || payload.v !== 1 || !Array.isArray(payload.k)) {
     return { ok: false, error: "cursor_malformed" };
   }
-  if (payload.s !== hashSignature(orderSignature(keys))) {
+  if (payload.s !== hashSignature(orderSignature(keys, epoch))) {
     return { ok: false, error: "cursor_sort_mismatch" };
   }
   if (payload.k.length !== keys.length) {
@@ -301,4 +385,5 @@ export {
   buildOrderKeys, orderByClause, cursorProjection, cursorPredicate,
   encodeCursor, decodeCursor, cursorColumn, orderSignature, assertTotalOrder,
   KEY, NULLS_LAST,
+  FIT_KEYS, FIT_BAND_SQL, FIT_SCORE_SQL, FIT_BAND_ORDINAL, ordersByFit,
 };

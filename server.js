@@ -128,6 +128,7 @@ import { describeEmptyBoard, activeFilterNames } from "./services/jobs/emptyBoar
 // and the cursor's resume predicate cannot disagree. See services/jobs/jobCursor.js.
 import {
   buildOrderKeys, orderByClause, cursorProjection, cursorPredicate, encodeCursor, decodeCursor,
+  ordersByFit,
 } from "./services/jobs/jobCursor.js";
 // The board's fit precompute. It holds no scoring code — server.js injects the panel's own
 // basis builder and scorer call (atsBasisForProfile / scoreJobForBasis).
@@ -7639,7 +7640,27 @@ app.get("/api/jobs", requireAuth, async (req, res) => {
       // buildOrderKeys decides for itself whether the relevance prefix applies — "relevance leads
       // the DEFAULT order only" is one rule, and it lives with the keys it governs rather than
       // being re-decided at each call site.
-      const orderKeys = buildOrderKeys(sort, richFilters.rank.keys);
+      //
+      // ── FIT · POSITION ENCODES FIT (owner decision 2026-09-29) ─────────────────────────────────
+      //
+      // On the default order the board now ranks by the caller's own precomputed fit, between the
+      // rank keys and recency (jobCursor.js FIT_KEYS: band ordinal, then score). Off on the Saved
+      // tab (a record of what the user chose, ordered as they chose it) and under ?curate=off,
+      // which is the user saying "don't sort for me" — fit is sorting for them, so it obeys that.
+      const fitRequested = !savedTab && req.query.curate !== 'off';
+      const orderKeys = buildOrderKeys(sort, richFilters.rank.keys, { fit: fitRequested });
+      const fitApplied = ordersByFit(orderKeys);
+      // The fit keys sort on scores a precompute pass can rewrite while this user pages, so the
+      // cursor is signed with an EPOCH that moves whenever their scores do: the newest report row
+      // id for (user, profile) — every write is a DELETE + INSERT through storeAtsReportForProfile,
+      // so any write produces a new, larger id. A cursor issued before a pass commit is then
+      // refused as cursor_sort_mismatch instead of resuming over rows that moved. One index-only
+      // MAX over the 108 index; only when fit is actually ordering.
+      const fitEpoch = fitApplied
+        ? (db.prepare(
+            "SELECT COALESCE(MAX(id), 0) AS e FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ?"
+          ).get(req.user.id, sessionActiveProfile.id)?.e ?? 0)
+        : null;
       const order     = orderByClause(orderKeys);
       // Projects each sort key into the SELECT as __cursor_kN, so the DATABASE computes the values
       // the cursor carries. Re-deriving COALESCE(discovered_at, scraped_at) or the experience-level
@@ -7658,7 +7679,7 @@ app.get("/api/jobs", requireAuth, async (req, res) => {
       // behind the anchor cannot move it.
       let cursorClause = { sql: "", params: [] };
       if (rawCursor) {
-        const decoded = decodeCursor(rawCursor, orderKeys);
+        const decoded = decodeCursor(rawCursor, orderKeys, { epoch: fitEpoch });
         if (!decoded.ok) {
           // A cursor issued under a different ordering (the user changed the sort, or their
           // profile's derived relevance changed) would otherwise resume against keys that no longer
@@ -7816,7 +7837,7 @@ app.get("/api/jobs", requireAuth, async (req, res) => {
       const rows    = hasMore ? fetched.slice(0, ps) : fetched;
       // Issued from the LAST ROW ACTUALLY RETURNED, so it is valid whether the caller paged by
       // cursor or by offset — an offset-paging client can adopt cursors mid-feed without a reset.
-      const nextCursor = hasMore && rows.length ? encodeCursor(orderKeys, rows[rows.length - 1]) : null;
+      const nextCursor = hasMore && rows.length ? encodeCursor(orderKeys, rows[rows.length - 1], { epoch: fitEpoch }) : null;
       // ⛔ THE COUNT AND THE LIST MUST BE THE SAME QUESTION, ASKED TWICE.
       //
       // `joinClause`, `whereClause` and `baseArgs` are the SAME VALUES the list statement above
@@ -7892,20 +7913,32 @@ app.get("/api/jobs", requireAuth, async (req, res) => {
       //
       // Only emitted when something actually ranked AND something is actually demoted, so a profile
       // with no signals still gets a byte-identical response to before.
-      if (rankApplied) {
-        const demotedRows = db.prepare(
+      //
+      // FIT is disclosed the same way, as `rankedKeys: [..., 'fit']`, and it LAST because it is the
+      // last derived key applied: it orders what the rank keys leave tied. It does not add to
+      // `demoted` — a Weak row is lower, not outside a window the user was told about — and it is
+      // disclosed even when nothing is demoted, because an ordering the user cannot account for is
+      // exactly what this block exists to prevent. Same Curation shape: rankedKeys was always a
+      // string list, so no client has to learn a field.
+      if (rankApplied || fitApplied) {
+        const demotedRows = rankApplied ? (db.prepare(
           `SELECT COUNT(*) as n ${joinClause} ${whereClause} AND ${richFilters.rank.demotedSql}`
-        ).get(...baseArgs, ...richFilters.rank.demotedParams)?.n || 0;
-        if (demotedRows > 0) {
+        ).get(...baseArgs, ...richFilters.rank.demotedParams)?.n || 0) : 0;
+        if (demotedRows > 0 || fitApplied) {
           responseBody.curation = {
             applied:    true,
             ranked:     true,
-            rankedKeys: richFilters.rankedKeys,
+            rankedKeys: fitApplied ? [...richFilters.rankedKeys, 'fit'] : richFilters.rankedKeys,
             total,
             demoted:    demotedRows,
           };
         }
       }
+      // The board loading is itself a trigger: it covers every basis change no hook named (and a
+      // user whose rows were never scored at all). First page only, and the precompute coalesces,
+      // so paging or re-rendering costs nothing; when the cache is complete this is one plan query
+      // that answers "nothing to do", off the request path.
+      if (fitApplied && !rawCursor && pg === 1) scheduleBoardFit(req.user.id, "board", sessionActiveProfile);
 
       // include_facets (optional, default-off): facet counts over the SAME filtered result
       // set, using the identical joinClause/whereClause/baseArgs as the main query.
