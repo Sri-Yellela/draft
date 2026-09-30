@@ -389,3 +389,25 @@ test("a missing size does not let an entry escape the budget as free", () => {
   const { keep } = selectRetained(entries, { maxBytes: 500 * MB, maxCount: 30, minKeep: 1 });
   assert.deepEqual(keep.map(e => e.filename), ["b0.db"], "the oversized one is still dropped");
 });
+
+test("retention keeps a CONTIGUOUS newest run — it never drops a newer backup to keep an older one", () => {
+  // Production, 09-30: the loop skipped past a backup that did not fit and kept going, so as the
+  // database grew every recent (large) backup was dropped and the small old ones behind it were
+  // kept. 09-17..09-29 were gone; 08-22..09-16 survived. Sizes here are that shape: newest large.
+  const sizes = [28, 60, 60, 60, 60, 22, 14, 14, 14, 14, 13, 13, 13, 13];
+  const entries = sizes.map((mb, i) => entry(i, "auto-daily", mb * MB));
+  const { keep } = selectRetained(entries, { maxBytes: 200 * MB, maxCount: 30, minKeep: 3 });
+  const idx = keep.map(e => Number(e.filename.slice(1, -3)));
+  // b0 (28) + b1..b3 (180) is over 200, so the floor of 3 keeps b0..b2 and the run stops at b3.
+  // Before the fix it went on to keep b5..b13 — every small OLD backup — behind the dropped b3/b4.
+  assert.deepEqual(idx, [0, 1, 2], `kept ${idx.join(",")}`);
+  for (let i = 1; i < idx.length; i++) assert.equal(idx[i], idx[i - 1] + 1, "a hole in the kept run");
+});
+
+test("a protected label still survives the contiguous rule", () => {
+  // The newest of each label is kept even when it is old — that is the head, and it is intentional.
+  const entries = [entry(0, "auto-daily", 50 * MB), entry(1, "auto-daily", 50 * MB),
+                   entry(2, "auto-daily", 50 * MB), entry(3, "pre-migration", 10 * MB)];
+  const { keep } = selectRetained(entries, { maxBytes: 70 * MB, maxCount: 30, minKeep: 1 });
+  assert.deepEqual(keep.map(e => e.filename), ["b0.db", "b3.db"]);
+});
