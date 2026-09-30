@@ -19,7 +19,10 @@ export * from "@draft/ats-scorer";
 export function scoreAtsLocally(args = {}) {
   // Built exactly as the package builds it when no basis is passed — the same three fields and no
   // more. Passing `args` whole would start honouring `claims` on this path, a scoring change.
-  const { resumeText = "", signalProfile = null, domainProfile = null } = args;
+  // No `= null` defaults: an explicit null overrides the package's own `= {}` and crashed
+  // buildRuntimeAtsBasis ("reading 'selected_keywords' of null") for any caller without a basis —
+  // found 09-30 by the public ATS tool, the first such caller. Undefined keeps parity.
+  const { resumeText = "", signalProfile, domainProfile } = args;
   const basis = args.runtimeBasis || scorer.buildRuntimeAtsBasis({ resumeText, signalProfile, domainProfile });
   const report = scorer.scoreAtsLocally({ ...args, runtimeBasis: basis });
   return { ...report, resume_depth: resumeDepthWarning(basis) };
