@@ -1,7 +1,9 @@
 # draft — UI redesign
 
-**Design document. Nothing here is built.** ⛔ Do not write any of it into `ARCHITECTURE.md`, which
-documents what exists. Owner decisions recorded 2026-09-27.
+**Design document.** Steps 2 and 2b are BUILT (tokens, the paper substrate, the signed-in app on it —
+see their status sections at the end); steps 3–6 are designed in full below and NOT built. ⛔ Do not
+write the unbuilt parts into `ARCHITECTURE.md`, which documents what exists. Owner decisions recorded
+2026-09-27, 09-29 (position encodes fit) and 09-30 (the grain; the deck unblocked).
 
 This is a **UX model change**, not a reskin. The current UI was built for a full board that a user
 scans; the product is becoming a daily draft of ten that a user considers. Those need different
@@ -86,10 +88,11 @@ Let fit be **spatial** — stronger matches earlier in the deck, or occupying mo
 implies a precision the engine does not have; sequence does not. The band label can still appear on
 demand, but the primary signal should be where the card sits.
 
-⛔ **This depends on the board actually ranking by fit, and today it does NOT** — it ranks by
-`discovered_at DESC`. CC1–CC5 bought reachability and correctness, and the ordering problem was
-explicitly scoped out each time. **If position encodes fit, the ordering work becomes a hard
-dependency of this design.** Name it before building.
+✅ **The dependency is met.** The owner decided position encodes fit (09-29), and the board ranks by
+it since `28b8a33` (deployed 09-30 in `9108a15`; the boot pass scored all 2,688 active jobs):
+rank keys → band (Strong, Moderate, *not established*, Weak) → score → recency. *Not established*
+— a declined score or one not yet computed — sorts between Moderate and Weak and is never coerced to
+a number. The deck deals from exactly this order; see §Step 3.
 
 ---
 
@@ -170,7 +173,7 @@ adding a theme means finding every one of them.
 
 Notes for when it happens:
 - The paper grain is a light-mode substrate. Dark mode needs its own, or glass loses its refraction
-  again
+  again — designed in §Step 6
 - The orange works on both but needs different luminance against dark
 - ⛔ Contrast must be re-checked per theme; passing AA on cream says nothing about dark
 
@@ -206,13 +209,11 @@ Specific to this work:
 5. **Mobile** — `ANDROID.md` 2c/2d revised for the deck, not the board
 6. **Dark mode**
 
-⛔ **Decide before step 3:** does position encode fit? If yes, **the ordering problem is a hard
-dependency** and the board must rank by fit first. If no, the deck is chronological and the band is
-shown some other way. That is the one decision this design cannot proceed without.
+✅ **Decided 09-29: position encodes fit**, and the ranking landed (`28b8a33`). Step 3 is unblocked.
 
 ---
 
-## Step 2 status — tokens and the paper substrate (2026-09-29, `1fd46dc` + `0b76191`, local, not pushed)
+## Step 2 status — tokens and the paper substrate (2026-09-29, `1fd46dc` + `0b76191`; LIVE since `9108a15`, 09-30)
 
 **Built:** `client/src/styles/colorTokens.js` is the one named token file (mirrors `zLayers.js`:
 one object `C`, published once as `--c-*` custom properties). The video background and the
@@ -239,7 +240,7 @@ screenshotted — step 2 photographed only what renders without a backend. Band/
 (`#16a34a` 2.81:1, `#d97706` 2.71:1 on cream) FAIL AA as text and are in that remainder. The grain
 is deliberately faint (measured spread 6 levels); how much texture glass needs is an owner call.
 
-## Step 2b status — the signed-in app (2026-09-30, local, not pushed)
+## Step 2b status — the signed-in app (2026-09-30, `2356153`; LIVE since `9108a15`)
 
 **Built:** the 22 budgeted files are migrated — **549 literals, 0 left**; `BUDGET` in
 `test/colorLiteralGuard.test.js` is empty and the 22 files (plus `styles/bandStyle.js`) are pinned
@@ -274,3 +275,311 @@ board, job detail, ATS Strong / Weak / Not enough signal, auto-apply, admin, mob
 errors. Pre-existing, not from this pass, present in the "before" log too: a Rules-of-Hooks order
 warning on every signed-in route, a forwardRef warning in JobsPanel, and a missing list key in
 ContactMessagesSection.
+
+**Grain, 09-30 (owner: "fairly coarse … like a leather, not too coarse").** The fine paper tooth
+measured a luminance sd of 0.95 — flat. Six candidates were rendered and measured side by side
+(`draft-screenshots/grain/bench-2.png`); chosen: pebble frequency 0.28 × 2 octaves (0.14 was
+blotchy), with a white SHEEN layer for the lit side of each pebble — the contrast floor caps the
+shadow, not the light. sd 0.95 → 3.6; darkest substrate pixel `#E6DED2`, still above
+`CANVAS_SHADE`, and the floor is now a test computed from the component's constants (`0d67462`).
+
+---
+
+# Steps 3–6 — the full design (2026-09-30)
+
+⭐ **Unblocked:** fit ranking landed and is live. Everything below is designed against code that
+exists — each backing call is named with its route — and NOTHING below is built.
+
+**Rules this design inherits, restated because each is load-bearing:**
+
+1. ⛔ **No gesture, key or click on the deck submits an application.** Draft queues for REVIEW;
+   `POST /api/apply/approve` is the only release, and it takes a human request.
+2. ⛔ **Never pad the deck.** Fewer honest cards beats ten with filler.
+3. ⛔ **No ATS number anywhere.** The band, on demand; position carries the rest (G5).
+4. ⛔ **Not enough signal is not a low grade.** It is drawn as the absence of one (step 2b).
+5. ⛔ **Every colour is a token; every motion honours `prefers-reduced-motion`; no animation gates
+   input.**
+
+---
+
+## Step 3 — the deck
+
+### 3.0 The four product questions (`PRODUCT_MODEL.md` left them open)
+
+⚠ **Proposed by the agent, 09-30 — owner to confirm.** The design is built so each answer is ONE
+constant or ONE branch; none of them is structural.
+
+| Question | Proposal | Why |
+|---|---|---|
+| **How many per day?** | **Up to 10** (`DECK_SIZE = 10`, server-side) | Ten decisions is one sitting. The number is a ceiling, not a target — see thin day |
+| **Thin day?** | **Deal only Strong and Moderate.** Fewer than 10 → deal fewer; 0 → the honest empty state (§3.6) | Weak is a poor fit and *not established* is no judgement; dealing either as "today's pick" is padding. They stay reachable on the board |
+| **Does an undrafted card return?** | **Yes, if it still ranks.** An UNDECIDED card is simply eligible again tomorrow; a DECIDED one (drafted, passed, saved) never re-deals | A one-time offer punishes a user for not opening the app on a Tuesday. Ranking already decides what is best; the deck should not add scarcity the data does not have |
+| **Is the full board reachable?** | **Yes — as "All jobs", one level down,** fit-ranked as today | AF5, power users and the extension's capture flow all need it. It stops being the landing page, not a capability |
+
+### 3.1 What a "draft" is, in data
+
+The deck is **dealt once per user, per profile, per local day, and then frozen.** Re-ranking during
+the day (a new crawl, a rescore) must not reshuffle cards the user has already seen — a card that
+moves is a card the user cannot find again.
+
+**Migration (next number) — `daily_drafts`:**
+
+```sql
+CREATE TABLE daily_drafts (
+  user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  profile_id  INTEGER NOT NULL REFERENCES domain_profiles(id) ON DELETE CASCADE,
+  draft_date  TEXT    NOT NULL,              -- the user's LOCAL date, YYYY-MM-DD, sent by the client
+  position    INTEGER NOT NULL,              -- 0-based, the deal order
+  job_id      TEXT    NOT NULL,
+  band        TEXT    NOT NULL,              -- the band AT DEAL TIME (strong | moderate)
+  basis_hash  TEXT,                          -- ats_only_reports.basis_hash that produced the band
+  dealt_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+  PRIMARY KEY (user_id, profile_id, draft_date, position),
+  UNIQUE (user_id, profile_id, draft_date, job_id)
+);
+```
+
+**Decisions are NOT stored here.** They already have homes, and a second copy is how two tables come
+to disagree: *drafted* = an `apply_run_jobs` row for the job; *passed* = `user_jobs.disliked = 1`;
+*saved* = `user_jobs.starred = 1`. The deck READS them to show state and to exclude decided jobs from
+tomorrow's deal.
+
+**The deal**, run on the first `GET` of the day and never again for that key:
+
+1. The profile's board in the **default order** (`FIT_KEYS`, `jobCursor.js`) — the same query, not a
+   copy of it — excluding decided jobs (the default board already excludes `disliked`; add
+   *drafted* and *starred*).
+2. Keep rows whose band is Strong or Moderate. ⛔ The band comes from the stored report
+   (`ats_only_reports`, `basis_hash` current), never recomputed inline — one scoring definition.
+3. Take the first `DECK_SIZE`. Insert them in one transaction. A concurrent second `GET` loses the
+   insert on the primary key and reads the winner's deal.
+
+⚠ **The local date is the client's.** The server validates it is within ±1 day of its own UTC date
+(a clock-skew guard, not a timezone model) and refuses anything else. A user who flies east gets a
+new deck at their new midnight; that is correct.
+
+### 3.2 The API (contract v1.2.0, additive — generated and guarded like the rest)
+
+```
+GET  /api/draft/today?profileId=&date=YYYY-MM-DD
+     -> { date, profileId, size, cards: [DeckCard], thin: boolean, reason?: "thin" | "empty" }
+     DeckCard = the board's job shape (mapJobRow) + { position, band, decision }
+     decision = null | "drafted" | "passed" | "saved"      -- read live from the three homes
+```
+
+**No decision endpoint is added.** The deck uses the existing calls, which are already idempotent
+and already safe:
+
+| Action | Call | Why this one |
+|---|---|---|
+| **Draft** | `POST /api/apply/runs` `{ jobIds:[id], mode:"auto", tool }` — ⛔ **`approvalMode` omitted** | The server's default is `"required"`: the job is previewed and held `awaiting_approval`. It physically cannot submit (SWIPE_FEED_DESIGN §Finding 1) |
+| **Pass** | `PATCH /api/jobs/interact` `{ jobId, disliked:true }` | Explicit value, not the toggle — a retried pass cannot un-pass |
+| **Save** | `PATCH /api/jobs/interact` `{ jobId, starred:true }` | Same |
+| **Undo draft** | `POST /api/apply/run-jobs/:id/abort` | Claims only from PENDING; 409 `not_abortable` says what it reached |
+| **Undo pass/save** | `interact` with `false` | Cheap, no expiry |
+
+⛔ **Hardening, required before the deck ships** (SWIPE_FEED_DESIGN's "real gap"): `POST
+/api/apply/runs` still ACCEPTS `approvalMode:"auto"` from any client. The deck sends a surface marker
+(`surface:"deck"`), and the route refuses `approvalMode` from that surface exactly as it refuses
+`"approved"` today. The trigger that cannot review is not permitted to ask for no review. A test
+posts the forbidden combination and expects the refusal.
+
+Generation is **deferred to approval** (AL2, verified 09-30 in `routes/apply.js` — the tailored
+résumé and cover letter are written when the user approves), so a Draft costs nothing — ⚠ unless the
+profile has opted into `generate_at_queue` (default off; the deck should say so on the card when it
+is on); the §2.6 volume ceiling in SWIPE_FEED_DESIGN still applies to
+runs.
+
+### 3.3 The card — one job, full viewport
+
+The card IS the page (the decision: "listings → cards is dropped"). Top to bottom:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  ◢ 4 / 10                                   today · profile ▾ │  ← the slash as progress (§4)
+│                                                              │
+│  [logo]  Stripe                                              │
+│  Senior Backend Engineer, Payments                           │  ← display serif, the decision
+│  Boston, MA · Remote-friendly · $120k–$160k · 2d             │
+│                                                              │
+│  Why it's here   Go · PostgreSQL · Kubernetes · +4 you show  │  ← matched skills, from the report
+│  What's missing  Kafka · gRPC                                │  ← honest, never "you need"
+│                                                              │
+│  ─────────────── scroll for the posting, the company ──────  │
+│                                                              │
+│   [ Pass  X ]        [ Save  S ]        [ Draft  D ]         │  ← thumb zone on phones
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **Earns its place** (SWIPE_FEED_DESIGN §2.2, kept): title, company + logo, location + work model,
+  salary (omitted when null, never one bound), freshness, the apply platform (derived from the apply
+  URL, never `sourcePlatform`).
+- ⭐ **New: "Why it's here"** — the report's matched skills, capped at 3 + a count. Position says
+  *how good*; this says *why*, which position cannot. It is evidence the user can check against
+  their own résumé, and it makes a bad pick visibly bad instead of mysteriously ranked.
+- **The band label is on demand**, not on the card: in the detail header and on hover/long-press of
+  the progress mark. ⛔ Never a number.
+- **Scrolling down is detail** — the posting, the matched/missing sections (the ATS panel's own
+  component, reused), the company. No panel opens over the card: the JD, ATS and PDF panels stop
+  competing for one z-tier because there is no tier.
+
+### 3.4 Actions, keys and gestures — one vocabulary on every client
+
+| Intent | Button | Key | Web touch / Android gesture |
+|---|---|---|---|
+| **Draft** (queue for review) | "Draft" | `D` or `→` | swipe right |
+| **Pass** (saved; never returns) | "Pass" | `X` or `←` | swipe left |
+| **Save** for later | "Save" | `S` | ⛔ **button only** — no gesture |
+| Detail | tap / scroll | `Enter` | tap |
+| Next / previous card | — | `J` / `K` | vertical swipe between cards is NOT used (it fights scroll-for-detail) |
+| Undo last | toast action | `U` | toast |
+| Legend | "?" | `?` | — |
+
+⛔ **Changes to Android (2c revised, see ANDROID.md):** right is **Draft on the server**, not the
+local `Queue` it is today (the Android right-swipe records local intent only — it reaches no server
+and is lost on restart; see finding below). The **diagonal Star and the hard-right "Queue first" are
+removed**: two of the most accident-prone motions on a phone were bound to two different intents, and
+"Queue first" has no server meaning. Save becomes a button, as on the web.
+
+**Undo is a toast, not a gate.** Five seconds, then it folds into the queue indicator's own undo.
+It is a convenience: the gate is the approval step, and nothing expires into a submission.
+
+### 3.5 Components — what the deck replaces, and what it keeps
+
+| Today | In the deck |
+|---|---|
+| `JobsPanel` listing + `JobCard` grid | `DeckView` (new) — one `DeckCard` at a time. The board survives as `/app/jobs` ("All jobs") unchanged |
+| `JobDetailPanel` (slide-over) | The card's lower half — no overlay |
+| `AtsReportPanel` (peer drawer) | Its body (`ATSPanel`) rendered inline in detail; the drawer stays for the board |
+| `usePanelHost` / `useBoardLock` / panel geometry | Not used by the deck (they keep serving the board) |
+| **Kept, unchanged:** `StampLogo`, `DockPortal`, the z-scale, `PanelControls`, glass, `bandStyle.js`, `colorTokens.js` | — |
+
+**Routes:** `/app` lands on `/app/today` (the deck); `/app/jobs` is "All jobs". The top bar gains
+"Today" before "Jobs". Deep links to a job (`?job=`) keep opening the board's detail, not the deck.
+
+### 3.6 States — every one designed, because an undesigned state ships as a blank
+
+| State | What the user sees |
+|---|---|
+| Dealing (first open of the day) | The deal-in (§4). Skeleton only if the `GET` exceeds 300 ms |
+| Mid-deck | Card *n* of *size*; the slash fills |
+| ⭐ **Thin day** (`size < 10`) | "Four good ones today." — the count stated plainly, as a fact about the day, not an apology. No filler |
+| ⭐ **Empty day** (`size = 0`) | "Nothing strong enough today." + why (the profile's board is small, or everything good is decided) + two exits: **All jobs** and **Improve your profile** (the resume-depth note when it applies) |
+| Deck finished | "That's today's draft." The queue count + **Review your drafts** (the Auto Apply pending tab — the product's promise, per ANDROID 2d). ⛔ Not "come back tomorrow for more" — no engagement bait |
+| A drafted job the server refused (409 prerequisite, 429 cap, duplicate) | The card stays, marked with the server's own sentence and its fix (the 409 names what is missing). ⛔ Never a success toast for a refused call (the Android "Application sent" precedent) |
+| Offline / 5xx | The card stays undecided; the action retries idempotently. Undecided is always the safe state |
+| Profile has no base résumé | The deck does not deal; the empty state points to the upload (Draft would 409 on every card) |
+
+### 3.7 Accessibility
+
+- The card is a `<article>` with the title as its heading; the three actions are real buttons with
+  their keys in `aria-keyshortcuts`.
+- After an action, focus moves to the NEXT card's heading, and a polite live region says what
+  happened ("Drafted. 5 of 10."). Undo is reachable by keyboard from the live message.
+- Keys never fire while focus is in a text field or a menu (the dock precedent).
+- Touch targets ≥ 44 px; the action bar sits in the bottom 25% on phones (thumb reach).
+
+---
+
+## Step 4 — transitions
+
+**framer-motion** (already a dependency, v11), not the View Transitions API: `layoutId` gives the
+shared element across React mounts in every browser the audience uses, and `MotionConfig
+reducedMotion="user"` applies the OS setting to every animation from ONE place — so a new transition
+cannot forget it.
+
+| Transition | Motion | Duration | Reduced motion |
+|---|---|---|---|
+| **Deal-in** (first open of the day) | cards fan in from a stack, staggered 40 ms, the first lands in front | ≤ 600 ms total | the first card simply appears |
+| **Draft** | the card lifts and flies to the queue indicator; the indicator's count ticks | 280 ms | crossfade to the next card, count updates |
+| **Pass** | slides left and fades — direction encodes finality | 220 ms | crossfade |
+| **Save** | shrinks toward the Save indicator | 240 ms | crossfade |
+| ⭐ **Title → detail heading** | `layoutId` on the title; scrolling to detail pins it as the heading | continuous | static |
+| **The slash as progress** | the `/` of the mark fills along its diagonal, *drafted ÷ size* — passed cards do not fill it | 200 ms per step | the fill steps without easing |
+
+⛔ **No transition gates input.** Each action commits its call and advances the index IMMEDIATELY;
+the animation plays on a detached copy of the card. Pressing `D` twice fast drafts two cards. A test
+fires two actions inside one animation frame and asserts two calls.
+
+⛔ A test per transition asserts the reduced-motion branch renders the end state with no animation
+(the chevron test is the precedent).
+
+---
+
+## Step 5 — mobile
+
+### 5.1 Mobile web (the deck is phone-first; the audience skews mobile)
+
+- **One breakpoint model for the deck**, not per component: `compact < 640 ≤ regular < 1100 ≤ wide`.
+  Compact: the card is the viewport, action bar pinned to the bottom (safe-area inset), detail
+  scrolls under a collapsing header. Regular: the card is a centred sheet, max 720 px. Wide: the card
+  plus a right rail for detail on demand (never both collapsed and expanded content).
+- **Swipe on the web too** (pointer events, horizontal only, with the same 80 px commit threshold
+  as Android's `SOFT_OFFSET`) — the same meanings, so a user switching devices keeps one habit.
+- ⚠ The current client has 13 media queries in total. The deck is a new surface; it does not
+  retrofit the board's layout.
+
+### 5.2 Android (2c and 2d revised — see `draft-android/ANDROID.md`)
+
+- **2c becomes the deck,** fed by `GET /api/draft/today`, not the paged board: the same frozen deal
+  as the web, so a card drafted on the phone is decided on the laptop.
+- Gestures per §3.4. ⛔ Right = server Draft (`POST /api/apply/runs`, `approvalMode` omitted, surface
+  `deck`); the local-only `Queue` goes.
+- **2d (review) is unchanged in model** — it is the product's promise. The deck's finished state
+  links to it.
+
+⚠ **Finding (09-30), for the Android queue:** `JobsViewModel` records a right swipe (`Queue`,
+`QueuePriority`) in an in-memory list and **never calls the server**. The header says so ("Queue and
+QueuePriority record local intent"), but the user-facing badge says "Queued for review" — and
+nothing is queued anywhere a review screen could find, and it is gone on restart. Until 2c lands the
+badge should say what is true.
+
+---
+
+## Step 6 — dark mode
+
+**Mechanism.** `colorTokens.js` gains a second object, `C_DARK`, with the SAME keys; `installColorVars`
+publishes both, under `:root` and `:root[data-theme="dark"]` (and `prefers-color-scheme: dark` when
+the user has not chosen). Components read `var(--c-*)` or `C.*` exactly as now — ⭐ step 2's token
+work is what makes this a data change and not a hunt.
+
+⛔ **The key sets must be identical** — a test asserts `Object.keys(C) ≡ Object.keys(C_DARK)`, so a
+token added to one theme cannot be missing from the other.
+
+**The substrate.** Not black: a deep warm charcoal leather, `CANVAS ≈ #1C1815`, with the SAME pebble
+generator — the grain in near-black and the sheen in a warm grey at low opacity. ⛔ The floor inverts:
+in dark mode the SHEEN is the dangerous layer (it lightens toward the text), so the test's bound is
+computed on the light side for `C_DARK` — the lightest substrate pixel must stay darker than
+`CANVAS_SHADE_DARK`, the worst case every dark pair is measured against.
+
+**The orange.** `#FD4600` on charcoal is ~5:1 — usable as TEXT in dark mode, where on cream it is
+fill-only. `ACCENT_INK` in dark becomes the orange itself or a lighter `#FF6A2B`; `ON_ACCENT` stays
+ink (black on orange ~4.3:1 fails for small text — so the dark CTA label uses `#1E1915` at bold 15 px+
+or the button uses the darker orange fill). Decided by the contrast test, not by eye.
+
+**Bands in dark.** Each `BAND_*` tone gets a dark counterpart that passes 4.5:1 on the dark glass, and
+its quiet fill; Not enough signal keeps its identity (no fill, dashed, no hue) — the step 2b test
+runs against both themes.
+
+⛔ **`CONTRAST_PAIRS` runs once per theme.** Passing AA on cream says nothing about charcoal. The
+pair list is shared; the values are per theme.
+
+**Theme choice** is per user, stored with the dock settings (`/api/account` dock items), defaulting
+to the OS. The logo (`StampLogo`) does not recolour — it is artwork (its PERMANENT exemption stands).
+
+---
+
+## Build sequence for steps 3–6 — each slice ships alone and is screenshotted before the next
+
+| Slice | Content | Done when |
+|---|---|---|
+| **3a** | Migration `daily_drafts`; the deal (§3.1) as a service with tests: frozen per day, Strong/Moderate only, decided excluded, thin and empty days, concurrent deal, the ±1-day date guard | the deal is deterministic on a fixture board and a second GET returns the identical deck |
+| **3b** | `GET /api/draft/today`; contract 1.2.0 generated; the `surface:"deck"` refusal on `/api/apply/runs` | contract drift test green; the forbidden `approvalMode` is refused by test |
+| **3c** | `DeckView` + `DeckCard` (web), the three actions on the existing calls, keys, live region, states §3.6 | every state screenshotted at 390/1440 on stubbed `/api/*` |
+| **3d** | `/app` → `/app/today`; "Today" in the top bar; "All jobs" | old deep links still open the board's detail |
+| **4** | the transitions, `MotionConfig reducedMotion="user"`, the no-gating test | reduced-motion shots show end states |
+| **5a / 5b** | mobile web breakpoints + web swipe; Android 2c on the deck | the same deal drafted on phone shows decided on web |
+| **6** | `C_DARK`, the dark substrate, per-theme contrast | every pair passes in both themes; both themes screenshotted |
+
+**Open, owner:** the four §3.0 proposals. Nothing in 3a–3b depends on the answers beyond
+`DECK_SIZE` and the band filter, both one constant each.

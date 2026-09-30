@@ -109,6 +109,11 @@ and it makes the name literal.
 
 ### Open design questions — decide before building
 
+⚠ **Proposals written 09-30** in `UI_REDESIGN.md` §3.0 — up to 10; deal only Strong and Moderate
+(fewer on a thin day, an honest empty state at zero); an undecided card is eligible again tomorrow
+while a decided one never re-deals; the full board stays reachable as "All jobs". **Owner to
+confirm.** Each is one constant or one branch in the design.
+
 - **How many per day?** Ten is a guess.
 - **What happens on a thin day?** Fewer honest picks, or pad the set? ⛔ Padding is fabrication in a
   different costume.
