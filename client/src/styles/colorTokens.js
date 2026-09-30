@@ -35,7 +35,10 @@ export const C = {
   // The DARKEST tone the grain can produce. Not painted anywhere: it is the worst case that every
   // contrast check below is computed against, so a pair that passes here passes over any grain
   // pixel. PaperBackground's grain is tuned to stay lighter than this.
-  CANVAS_SHADE:  "#E6DDCF",
+  // Moved 09-30 (#E6DDCF → #DFD6C9) for the crisp leather grain the owner chose, which reaches 12%
+  // toward GRAIN. Every declared pair was re-proved against the darker floor; one failed and moved
+  // (WARNING #8F5200 → #855000). The floor follows the substrate, never the reverse.
+  CANVAS_SHADE:  "#DFD6C9",
   GRAIN:         "#5A4632",   // the fibre tone the noise is tinted with (drawn at low alpha)
 
   // ── SURFACE — glass over the paper. Cards, panels, the dock. ──────────────────────────────
@@ -50,6 +53,15 @@ export const C = {
   SCRIM:         "rgba(30,25,21,0.28)",      // dims the page under a modal
   GLASS_EDGE:    "rgba(30,25,21,0.10)",      // the glass hairline
   GLASS_HIGHLIGHT: "rgba(255,255,255,0.70)", // the inset top highlight on glass
+  // ── THE GLASS MATERIAL (09-30: "the glossy effect can be more apparent"). Consumed only through
+  //    styles/glass.js. Every text colour is proved against CANVAS_SHADE, and the body below is
+  //    CLEARER than SURFACE, so text on it sits between the two proven cases.
+  GLASS_SPECULAR:  "rgba(255,255,255,0.95)",   // the 1px lit top edge
+  GLASS_SHEEN:     "rgba(255,255,255,0.55)",   // the radial highlight from the upper left
+  GLASS_BODY_TOP:  "rgba(255,253,249,0.70)",   // body gradient, top
+  GLASS_BODY:      "rgba(255,251,245,0.36)",   // body gradient, bottom — the leather shows through
+  GLASS_RIM:       "rgba(255,255,255,0.50)",   // the hairline all round
+  GLASS_UNDERSIDE: "rgba(60,40,20,0.10)",      // the darker bottom edge
 
   // ── INK — text. ⛔ NOT pure black on cream; it vibrates. ─────────────────────────────────
   INK:           "#1E1915",
@@ -71,7 +83,7 @@ export const C = {
   // ── State. Each has a text tone that passes on paper and a quiet fill it also passes on. ──────
   SUCCESS:       "#1A6B33",
   SUCCESS_QUIET: "#D5E8D8",
-  WARNING:       "#8F5200",
+  WARNING:       "#855000",   // was #8F5200: 4.33:1 on the 09-30 floor
   WARNING_QUIET: "#F2E2C4",
   DANGER:        "#B3261E",
   DANGER_QUIET:  "#F5D9D3",
@@ -124,6 +136,9 @@ export const C = {
   SHADOW_MD: "0 4px 12px rgba(30,25,21,0.10), 0 2px 4px rgba(30,25,21,0.06)",
   SHADOW_LG: "0 18px 40px rgba(30,25,21,0.14), 0 6px 14px rgba(30,25,21,0.08)",
   SHADOW_XL: "0 36px 80px rgba(30,25,21,0.18), 0 14px 30px rgba(30,25,21,0.10)",
+  // Warm, soft, offset down: a glass object resting ON the leather, lit from above.
+  SHADOW_GLASS:       "0 1px 1px rgba(60,40,20,0.05), 0 12px 28px -10px rgba(90,55,25,0.28)",
+  SHADOW_GLASS_HOVER: "0 2px 2px rgba(60,40,20,0.06), 0 22px 40px -14px rgba(90,55,25,0.36)",
 };
 
 // The custom-property name for a token: ACCENT_QUIET -> --c-accent-quiet. The same rule zLayers.js

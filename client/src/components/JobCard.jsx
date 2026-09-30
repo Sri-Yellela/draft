@@ -12,6 +12,7 @@ import CompanyIcon from "./ui/CompanyIcon.jsx";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { bandChipStyle } from "../styles/bandStyle.js";
 import { C } from "../styles/colorTokens.js";
+import { glass } from "../styles/glass.js";
 
 // AH2: a job's title is a LINK to that job's own address.
 //
@@ -487,9 +488,8 @@ export default function JobCard({
   const canQueue = !!(job.applyUrl || job.url) && !!queueKey;
   const handleQueue = () => { if (!queued) addToApplyQueue?.({ ...job, jobId: queueKey }); };
 
-  const frostedBg = hov ? C.SURFACE_2 : C.SURFACE;
-  const frostedBlur = hov ? "blur(20px) saturate(2)" : "blur(12px) saturate(1.6)";
-  const frostedOverlay = `linear-gradient(135deg, ${C.HOVER} 0%, ${C.HOVER} 100%)`;
+  // The glass material (styles/glass.js) — a lit surface, not a pale rectangle (owner, 09-30).
+  const material = glass({ hover: hov, radius: 14 });
 
   const hasDesc    = !!(job.description || job.descriptionHtml);
   // Only `generate` needs its own flag here. There is no dedicated A+ Resume button on this card —
@@ -541,42 +541,25 @@ export default function JobCard({
       aria-label={isLoggedOut ? `${job.title} at ${job.company} — view job` : undefined}
       onKeyDown={isLoggedOut ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); const url = job.url || job.applyUrl; if (url) window.open(url, "_blank", "noreferrer"); } } : undefined}
       style={{
-        background: frostedBg,
-        backdropFilter: frostedBlur,
-        WebkitBackdropFilter: frostedBlur,
-        border: selected
-          ? "1px solid var(--color-primary)"
-          : hov
-            ? "1px solid color-mix(in srgb, var(--color-primary) 40%, transparent)"
-            : "1px solid var(--border-glass)",
-        borderRadius: 4,
+        ...material,
+        // Selection is the one state the orange marks; the rim is the material's otherwise. The
+        // ring is ACCENT_INK, not the orange fill (2.96:1 on the paper fails the 3:1 UI bar).
+        ...(selected ? { border: `1px solid ${C.ACCENT_INK}` } : null),
         // AE5: the 16px side margin moved onto the listing GRID. Inside a grid cell a per-card
         // margin insets each cell separately, so the two columns ended up with 32px of nothing
         // between them on top of the gap. The bottom margin went too — the grid owns the gap now,
         // and keeping both stacked them.
         margin: 0,
-        boxShadow: hov
-          ? "0 0 0 2px var(--color-primary), 0 8px 24px color-mix(in srgb, var(--color-primary) 27%, transparent)"
-          : "var(--shadow-sm)",
-        transform: hov ? "translateY(-3px) scale(1.008)" : "translateY(0) scale(1)",
-        transition: "all 0.2s ease", position: "relative",
+        position: "relative",
         opacity: job.disliked ? 0.3 : job.visited ? 0.75 : 1,
         filter: job.disliked ? "grayscale(0.7)" : "none",
         overflow: "hidden",
         cursor: isLoggedOut ? "pointer" : undefined,
       }}>
 
-      {/* ── Frosted glass overlay (gradient + noise texture) ── */}
-      <div aria-hidden style={{
-        position:"absolute", inset:0, pointerEvents:"none", borderRadius:"inherit", zIndex:0,
-        background: frostedOverlay,
-      }}/>
-      <div aria-hidden style={{
-        position:"absolute", inset:0, pointerEvents:"none", borderRadius:"inherit", zIndex:2,
-        opacity: 0.12, mixBlendMode: "overlay",
-        backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
-        backgroundSize:"160px 160px",
-      }}/>
+      {/* The per-card grey noise overlay (fractalNoise 0.75, "overlay" at 0.12) is gone: it laid a
+          static grain over the leather the glass is meant to show through, which is most of what
+          read as dated. The substrate is the texture now. */}
 
       {/* ── TIER_3_CONTENT: condensed narrow mode (< 180px) ── */}
       {tier === 3 && (

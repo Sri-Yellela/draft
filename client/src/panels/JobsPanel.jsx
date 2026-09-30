@@ -3220,7 +3220,10 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // per-type width), not by percentage redistribution.
 
   return (
-    <div style={{ flex:1, minHeight:0, minWidth:0, display:"flex", flexDirection:"column", overflow:"hidden", background:theme.bg }}>
+    <div style={{ flex:1, minHeight:0, minWidth:0, display:"flex", flexDirection:"column", overflow:"hidden", background:"transparent" }}>
+      {/* TRANSPARENT, not theme.bg (09-30). theme.bg is --bg-page, which is mapped to SURFACE — the
+          GLASS — so the whole board sat under a 58% cream sheet, the cards were glass on glass, and
+          the leather never reached them. The page is the substrate; only the cards are glass. */}
 
       {/* Domain profile wizard modal (non-blocking "+ New Profile") */}
       {profileWizardOpen && (
@@ -3837,7 +3840,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
   };
   return (
     <div ref={containerRef} style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden",
-                  background: `linear-gradient(160deg, ${theme.accentMuted}55 0%, ${theme.bg} 55%)` }}>
+                  background: `linear-gradient(160deg, ${theme.accentMuted}40 0%, transparent 45%)` }}>  {/* fades to the leather, not to theme.bg (the glass) — 09-30 */}
       {/* Rendered OUTSIDE the empty/non-empty branch on purpose: the bridge can narrow a board to a
           short list or to nothing at all, and both need to say so. Left inside the non-empty branch
           it would go silent in the very case where the user has least to go on. */}
