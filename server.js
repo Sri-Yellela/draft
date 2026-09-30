@@ -108,6 +108,7 @@ import {
 // The band, not the number, is what a user is shown — see the header of shared/atsBands.js.
 import { atsBandFor } from "./shared/atsBands.js";
 import { standaloneAtsResult } from "./services/standaloneAts.js";
+import { todaysDeck, validDraftDate } from "./services/dailyDraft.js";
 import { roleFamilyForTitle, roleAliasCount } from "./services/searchQueryBuilder.js";
 import {
   INTEGRATION_PROVIDERS,
@@ -8042,6 +8043,32 @@ async function boardPageResponse(req) {
   }
 }
 
+
+// GET /api/draft/today — today's deck (UI step 3b; docs/UI_REDESIGN.md §3.2, services/dailyDraft.js).
+//
+// Dealt on the first call of the user's LOCAL day from the board's own default order (the same
+// boardPageResponse the board route answers with — one ordering), then frozen. Decisions are the
+// existing calls, not new ones: Draft = POST /api/apply/runs with surface:"deck" and NO approvalMode
+// (the route refuses one from that surface); Pass/Save = PATCH /api/jobs/interact.
+app.get("/api/draft/today", requireAuth, async (req, res) => {
+  const date = String(req.query.date || "");
+  if (!validDraftDate(date)) {
+    return res.status(400).json({ error: "invalid_date",
+      message: "Send your local date as ?date=YYYY-MM-DD (within a day of the server's)." });
+  }
+  try {
+    const profile = getOrRepairActiveProfile(req.user.id);
+    if (!profile) return res.status(404).json({ error: "no_active_profile" });
+    const fetchBoardPage = async (cursor) => {
+      const { status, body } = await boardPageResponse({ ...req, query: { pageSize: "50", ...(cursor ? { cursor } : {}) } });
+      return { ok: status === 200 && body?.success !== false, jobs: body?.jobs || [], nextCursor: body?.nextCursor || null, error: body?.error };
+    };
+    res.json(await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage }));
+  } catch (e) {
+    console.error("[GET /api/draft/today]", e.message);
+    res.status(500).json({ error: "The deck could not be dealt. Try again." });
+  }
+});
 
 // GET /api/jobs/generic -- public cached feed (no auth, no personalization)
 app.get("/api/jobs/generic", async (req, res) => {

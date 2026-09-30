@@ -138,6 +138,25 @@ test("a client cannot claim 'approved' and skip the preview entirely", async () 
   } finally { t.close(); }
 });
 
+test("the deck cannot ask for no review — any approvalMode from surface:'deck' is refused", async () => {
+  // UI step 3b (09-30). A Draft from the deck is one keystroke or one swipe; the review step is all
+  // that stands between it and an employer. The default makes it safe; this makes the default the
+  // only option from that surface.
+  const t = setup();
+  try {
+    for (const approvalMode of ["auto", "required", "approved", ""]) {
+      const r = await t.post("/api/apply/runs", { jobIds: ["gh1"], surface: "deck", approvalMode });
+      assert.equal(r.status, 400, `approvalMode ${JSON.stringify(approvalMode)} from the deck was accepted`);
+      assert.equal((await r.json()).error, "approval_mode_forbidden_for_surface");
+    }
+    // …and a deck draft WITHOUT one queues, parked for review like every default run.
+    const ok = await t.post("/api/apply/runs", { jobIds: ["gh1"], surface: "deck" });
+    assert.equal(ok.status, 202);
+    assert.equal(runRow(t, (await ok.json()).runId).approval_mode, "required",
+      "a deck draft must wait for the user's review");
+  } finally { t.close(); }
+});
+
 // ── approving ────────────────────────────────────────────────────────────────
 
 test("approving supersedes the preview and starts a run that carries the approval", async () => {

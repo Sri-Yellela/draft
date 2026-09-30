@@ -1,6 +1,6 @@
 /**
  * Draft — Mobile API types.
- * Contract version 1.1.1.
+ * Contract version 1.2.0.
  *
  * GENERATED — DO NOT EDIT. Regenerate with `node scripts/generateMobileContract.mjs`.
  *
@@ -12,6 +12,7 @@
 
 export type ApplyOutcome = "aborted" | "completed" | "pending";
 export type ApplyStatus = "cancelled" | "dismissed" | "failed" | "held_gate" | "held_review" | "queued" | "running" | "submitted" | "superseded";
+export type AtsBand = "moderate" | "not_enough_signal" | "strong" | "weak";
 export type AutomationTier = "direct" | "guest" | "account" | "gated" | "unknown";
 export type EmploymentType = "full-time" | "contract" | "internship" | "part-time";
 export type ExperienceLevel = "intern" | "entry" | "mid" | "senior" | "lead" | "executive";
@@ -195,6 +196,27 @@ export interface DailyCap {
   limit: number;
   remaining: number;
   submittedLast24h: number;
+}
+
+/** One card, in deal order (position IS the fit signal). The band is shown; the score is not. */
+export interface DeckCard {
+  band: ("moderate" | "not_enough_signal" | "strong" | "weak");
+  /** null (undecided) | 'drafted' | 'passed' | 'saved' — read live, so it changes when you act. */
+  decision: string | null;
+  /** The board's $Job shape with matchScore null. */
+  job: Job;
+  position: number;
+}
+
+/** Today's frozen deal. Fewer than 10 is a thin day and 0 an empty one — never padded. */
+export interface DeckResponse {
+  cards: DeckCard[];
+  date: string;
+  dealtNow: boolean;
+  profileId: number;
+  reason: string | null;
+  size: number;
+  thin: boolean;
 }
 
 /** SNAKE_CASE — the handler spreads the whole domain_profiles row, so every column is listed here rather than a chosen subset. Listing a subset was tried and rejected: the contract would then be silent about keys the server really sends, and a strict decoder rejects an undeclared key. */

@@ -155,6 +155,21 @@ export const MOBILE_ENDPOINTS = Object.freeze([
       "matched nothing — a client must not render 'no results, try widening' for it.",
   },
   {
+    group: "feed", method: "GET", path: "/api/draft/today", auth: AUTH.BEARER,
+    summary: "Today's deck: up to 10 Strong or Moderate jobs, dealt once per local day and frozen.",
+    query: { date: "string" },
+    response: "DeckResponse",
+    errors: ["BadRequest", "Unauthorized", "NotFound", "ServerError"],
+    mobileNotes:
+      "SEND YOUR LOCAL DATE (?date=YYYY-MM-DD); the server accepts it within a day of its own, and " +
+      "the same date returns the same deck on every client — a card drafted on the phone reads as " +
+      "decided on the web. The deck is dealt from the board's own default order and is NEVER " +
+      "padded: `size` may be below 10 (reason 'thin') or 0 (reason 'empty'). Decide with the " +
+      "existing calls: Draft = POST /api/apply/runs with surface:'deck' and no approvalMode; " +
+      "Pass = PATCH /api/jobs/interact {disliked:true}; Save = {starred:true}. `decision` is read " +
+      "live from those. A card carries its band and never a score (job.matchScore is null).",
+  },
+  {
     group: "feed", method: "GET", path: "/api/jobs/by-id/{jobId}", auth: AUTH.BEARER,
     summary: "One posting in full, with this caller's own starred/visited/disliked flags.",
     params: { jobId: "string" },
@@ -198,7 +213,7 @@ export const MOBILE_ENDPOINTS = Object.freeze([
   {
     group: "apply", method: "POST", path: "/api/apply/runs", auth: AUTH.BEARER,
     summary: "Queue jobs for an apply run. Max 25 per call.",
-    body: { jobIds: "string[]", mode: "string", tool: "string", approvalMode: "string|null" },
+    body: { jobIds: "string[]", mode: "string", tool: "string", approvalMode: "string|null", surface: "string|null" },
     response: "RunQueuedResponse",
     errors: ["BadRequest", "Unauthorized", "Conflict"],
     mobileNotes:
@@ -210,7 +225,9 @@ export const MOBILE_ENDPOINTS = Object.freeze([
       "report queued.length, never jobIds.length. " +
       "Send Idempotency-Key: a retry on a flaky connection otherwise queues the run twice. " +
       "approvalMode:'approved' is REJECTED with 400 — it is reserved for the approve endpoint, so " +
-      "no client can submit without previewing. Gate on automationTier before queueing at all " +
+      "no client can submit without previewing. A DRAFT FROM THE DECK sends surface:'deck' and NO " +
+      "approvalMode; any approvalMode from that surface is a 400 approval_mode_forbidden_for_surface. " +
+      " Gate on automationTier before queueing at all " +
       "(x-mobile-tier-gating).",
     headers: { "Idempotency-Key": "string" },
   },

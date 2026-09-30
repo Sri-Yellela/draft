@@ -1878,7 +1878,15 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     withIdempotency("/api/apply/runs", req, res, (out) => {
       // approvalMode:'auto' is how a caller opts OUT of review and back into full-auto. Anything
       // else — including omitting it — previews and parks for approval.
-      const { jobIds = [], mode = "auto", tool, toolType, approvalMode = null } = req.body || {};
+      const { jobIds = [], mode = "auto", tool, toolType, approvalMode = null, surface = null } = req.body || {};
+      // ⛔ THE DECK MAY NOT ASK FOR NO REVIEW (UI step 3b, 09-30; SWIPE_FEED_DESIGN's "real gap").
+      // A Draft from the deck is one keystroke or one swipe, and the review step is the only thing
+      // between it and an employer. The server's default (approvalMode omitted → "required") is
+      // what makes it safe; this makes the default the ONLY option from that surface, so a second
+      // caller cannot drift into sending approvalMode:'auto'. Any value is refused, not only 'auto'.
+      if (surface === "deck" && approvalMode != null)
+        return out.status(400).json({ error: "approval_mode_forbidden_for_surface",
+          message: "A draft from the deck always waits for your review. Remove approvalMode." });
       if (!Array.isArray(jobIds) || jobIds.length === 0)
         return out.status(400).json({ error: "jobIds array required" });
       if (jobIds.length > 25)

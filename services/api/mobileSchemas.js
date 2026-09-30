@@ -153,6 +153,23 @@ export const RESPONSE_SCHEMAS = Object.freeze({
     fields: { success: "boolean", jobId: "string", starred: "boolean", disliked: "boolean" },
   },
 
+  // ── The deck (UI step 3) ───────────────────────────────────────────────────────────────────
+  DeckResponse: {
+    description: "Today's frozen deal. Fewer than 10 is a thin day and 0 an empty one — never padded.",
+    fields: {
+      date: "string", profileId: "number", size: "number", dealtNow: "boolean", thin: "boolean",
+      reason: "string|null", cards: "$DeckCard[]",
+    },
+  },
+  DeckCard: {
+    description: "One card, in deal order (position IS the fit signal). The band is shown; the score is not.",
+    fields: { position: "number", band: "enum:atsBand", decision: "string|null", job: "$Job" },
+    fieldNotes: {
+      decision: "null (undecided) | 'drafted' | 'passed' | 'saved' — read live, so it changes when you act.",
+      job: "The board's $Job shape with matchScore null.",
+    },
+  },
+
   // ── Apply ──────────────────────────────────────────────────────────────────────────────────
   ReadinessResponse: {
     fields: { available: "boolean", reason: "string|null" },

@@ -32,10 +32,14 @@ export function validDraftDate(date, now = new Date()) {
   return Math.abs(t - today) <= 86400000;
 }
 
-/** The card as the deck shows it: the board's job shape, its band, and no score. */
+/**
+ * The job as the deck stores it: the board's $Job shape UNCHANGED except that the score is nulled —
+ * the contract marks matchScore INTERNAL, and a deck card is a display surface (G5). The shape stays
+ * whole so the published $Job schema describes it.
+ */
 export function deckSnapshot(job) {
-  const { matchScore, atsScore, baseAtsScore, ...rest } = job;
-  return { ...rest, band: atsBandFor(matchScore ?? null) };
+  const { atsScore, baseAtsScore, ...rest } = job;
+  return { ...rest, matchScore: null };
 }
 
 /**
@@ -52,7 +56,7 @@ export function selectDeal(boardJobs, { decided = new Set(), size = DECK_SIZE } 
     seen.add(id);
     const band = atsBandFor(job.matchScore ?? null);
     if (!DEAL_BANDS.includes(band)) continue;
-    out.push(deckSnapshot(job));
+    out.push({ band, job: deckSnapshot(job) });
   }
   return out;
 }
@@ -106,7 +110,7 @@ export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, 
     for (let page = 0; page < MAX_PAGES && picked.length < size; page++) {
       const r = await fetchBoardPage(cursor);
       if (!r?.ok) throw new Error(r?.error || "the board could not be read");
-      const already = new Set(picked.map(c => c.id));
+      const already = new Set(picked.map(c => c.job.id));
       for (const card of selectDeal(r.jobs || [], { decided: new Set([...decided, ...already]), size: size - picked.length })) {
         picked.push(card);
       }
@@ -118,12 +122,12 @@ export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, 
       `INSERT OR IGNORE INTO daily_drafts (user_id, profile_id, draft_date, position, job_id, band, card_json)
        VALUES (?, ?, ?, ?, ?, ?, ?)`);
     db.transaction(() => picked.forEach((c, i) =>
-      insert.run(userId, profileId, date, i, c.id, c.band, JSON.stringify(c))))();
+      insert.run(userId, profileId, date, i, c.job.id, c.band, JSON.stringify(c.job))))();
     rows = readDeal(db, userId, profileId, date);
     dealtNow = true;
   }
   const decisions = decisionsFor(db, userId, rows.map(r => r.job_id));
-  const cards = rows.map(r => ({ ...JSON.parse(r.card_json), position: r.position, band: r.band, decision: decisions[r.job_id] }));
+  const cards = rows.map(r => ({ position: r.position, band: r.band, decision: decisions[r.job_id], job: JSON.parse(r.card_json) }));
   return {
     date, profileId, size: cards.length, dealtNow, cards,
     thin: cards.length > 0 && cards.length < size,
