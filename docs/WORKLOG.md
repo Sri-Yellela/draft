@@ -3,7 +3,7 @@
 **This file is the only place work is tracked.** Every other doc is reference material for a task
 named here. If a task is not in this file, it is not being worked on.
 
-**Last updated:** 2026-09-29
+**Last updated:** 2026-09-30
 
 ---
 
@@ -31,12 +31,12 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 | | |
 |---|---|
-| Production (draft) | `jobsviadraft.com` ONLY — **`dad1114`**, deployed 09-29 14:30:48Z on the owner's go (OWNER 7) — carries `f29f273`, `983a0ed` (registries), `3b9dbe9` (backup policy). `/api/version` JSON: migrations 109, `atsWeights.families = ["__global__"]` (per-family weights form at the next recompute, ~10-02, at 14 days). ⚠ The `[boot] registries:` log line is unread — no Railway CLI on this machine. Before that: `a7a9c7f`, 09-28 18:20Z (B step 4's policy fix). A1 and A4 are LIVE. Verified: `/api/auth/me` JSON, Google sign-in redirects to the `jobsviadraft.com` callback, the capture endpoint answers JSON; the BUILT bundle carries the new policy sentences and not the old one |
+| Production (draft) | `jobsviadraft.com` ONLY — **`dad1114`**, deployed 09-29 14:30:48Z on the owner's go (OWNER 7) — carries `f29f273`, `983a0ed` (registries), `3b9dbe9` (backup policy). `/api/version` JSON: migrations 109, `atsWeights.families = ["__global__"]` (per-family weights form at the next recompute, ~10-02, at 14 days). ✅ **Boot log read by the agent 09-30** (Railway CLI via `npx @railway/cli`): `[boot] registries: 148 role aliases, 28 qualification keys` — the scorer's vocabulary IS in the production image, so production ATS scores are not computed against an empty registry (carried as an unverified worry for two weeks; closed). `[oauth:google] configured`, **`[oauth:linkedin]` and `[oauth:github]` missing**. ⛔ **No line for the secret key — it boots silently without `COOKIE_ENCRYPTION_KEY`** (absent, owner-confirmed). ⛔ **Every OAuth sign-in throws at its last step** (see the 09-30 session entry; fixed locally in `ef6071f`, not deployed). Before that: `a7a9c7f`, 09-28 18:20Z. A1 and A4 are LIVE |
 | Production (Resume Master) | **LIVE at `https://resumemaster.one`** (since B step 4, 09-28 — verifier 21/21 ON THE DOMAIN; certificate **VALID**, `DETAILED_COMPLETE`, re-read 09-29; DNS Railway-managed and already repointed — see the correction in the step-4 session entry) and `https://resume-master-production-d960.up.railway.app`, commit **`814356d`**, service `resume-master` in draft's Railway project `resume-master` (owner's choice: kept there). Boot log: `model=true clients=["draft"]`. Certificate re-read by the agent 09-29 over TLS: Let's Encrypt, CN=resumemaster.one, valid to 12-27 |
 | Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`6e1837d`** (E1, live 09-29 15:48Z), auto-deploys on push. **232 tests, 232 pass** |
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (OWNER 2) |
 | Resume Master contract | **v1.1.0** (E1, additive; live 09-29), generated; vendored in draft at 1.1.0 (`8472416`). **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
-| Test baseline (draft) | **2738 / 2738 / 0** — measured 09-29 in the working tree at `28b8a33` (+26 fit ranking); before that 2712 at `76cc044` (+10 UI step 2); before that 2702 at `3b9dbe9` (+5 `registryPlacement` in `983a0ed`, +6 backup-disk tests in `3b9dbe9`, over 2691). ⚠ Not yet re-measured on a fresh CRLF worktree. No deliberate failures |
+| Test baseline (draft) | **2745 / 2745 / 0** — measured 09-30 in the working tree at `2356153`, the suite run ALONE (+7 `secretBox`). Before that 2738 at `28b8a33` (+26 fit ranking); 2712 at `76cc044`. ⚠ Not yet re-measured on a fresh CRLF worktree. No deliberate failures |
 | Migration high-water | **110** defined (`110_ats_reports_basis_hash`, merged `28b8a33`, not deployed); production reports 116 applied, latest **109** |
 | Contract | v1.1.1 (mobile) · v1.0.0 (Resume Master, above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
@@ -45,6 +45,8 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | Anthropic balance | **Funded — VERIFIED 09-28** by real generation, A+ and PDF calls (Resume Master references draft's `ANTHROPIC_KEY`, owner's choice) |
 | ⛔ Fabrication | **2 of 2 real generations contained material the candidate never stated** (a JD skill; two invented responsibility bullets and an unsourced skill). The claim guard enforces years and seniority only. Resume Master's `docs/API.md` now says so. ⛔ **Blocks AF5** — agent queue 2 |
 | Users | **none** |
+| draft volume backups | ✅ **09-30 02:00 backup SUCCEEDED** on the new policy: `Pruned 5 older backup(s) to make room, freeing 61 MB` · `Saved … (27 MB)` · `Retaining 26 (350 MB of 351 MB budget, 879 MB volume)` — read from the deploy log. The policy is pruning by itself; agent queue 8(b)'s manual prune is probably moot (OWNER 9) |
+| Android (draft-android) | `main` = `b94a0e0`, **10 commits ahead of origin** (local). 55/55 JVM tests; **15/15 instrumented on the `rm_api36` emulator** (09-30, the first run ever) |
 | `job_applications` | **empty** — nothing has ever validated the product against an employer |
 | Board | ~2,663 active per `STUDENT_BOARD_FINDING.md` (not re-measured against production this session; local `scraped_jobs` = 2,616). **80 (3.0%) are entry or intern** |
 
@@ -52,16 +54,19 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
-**09-29: the agent queue was run to its end** (see the session entry). Every item is either done
-locally or waiting on the owner:
+**09-30: the three agents that died on the session limit were audited, then their work resumed ONE
+AT A TIME** (see the session entry). Nothing was half-applied: UI 2b's band layer was complete and
+its literal rewriter never ran; fit ranking had already merged (`28b8a33`); Android 14's 401 route
+was coherent and uncommitted. All three are now done.
 
-- **Owner, in order:** OWNER 7 (push → deploy the five local commits; ⛔ ATS scores move) → OWNER 5
-  (B step 5, the stale OAuth URI — closes Phase A+B) → OWNER 9 (approve the production prune list)
-  → OWNER 10 (iOS branch + a Mac).
-- **Agent, after OWNER 7:** verify the `[boot] registries:` line and the next 02:00 backup log; then
-  agent queue 8(b). Queue 2 (G1) stays deferred by the owner; queue 7 needs a Mac.
+- ⛔ **Owner, first: set `COOKIE_ENCRYPTION_KEY` in draft's production env (OWNER 20), THEN push
+  (OWNER 7b).** The push carries the OAuth sign-in fix, and production refuses to boot without the
+  key once it lands. Setting the key alone redeploys `dad1114` and changes nothing else.
+- Owner, when convenient: OWNER 21 (two production reads the agent was not permitted), 9 (probably
+  close), 22–24 (small calls), 17 (grain), 19 (fit-ranking calls), 10 and 15.
+- Agent: nothing runnable is left. 2 is deferred by the owner, 7 needs a Mac, 15 needs LinkedIn
+  OAuth configured in production (OWNER 24).
 
----
 
 ## OWNER QUEUE
 
@@ -72,21 +77,27 @@ locally or waiting on the owner:
 | 2 | ~~B step 4 go-ahead~~ ✅ given and done 09-28 — domain moved, except the DNS edit in row 1 | New certificate; a quiet hour. See NOW for the pre-check |
 | 3 | At a quiet moment: delete the stray `RESUME_MASTER_CLIENT_TOKENS` from the **draft** service | Inert (draft never reads it), but Railway's `variable delete` cannot skip the redeploy, so it restarts production |
 | 4 | ~~Replace the store icon in the dashboard~~ ✅ done by the owner, 09-28 | Uploaded separately from the zip — the package upload does not carry it |
-| 5 | **B step 5: remove the stale `resumemaster.one` OAuth redirect URI** from Google Cloud Console | ✅ Unblocked — draft's live redirect is `https://jobsviadraft.com/auth/google/callback` (read from the redirect Google receives). The old URI now points at a service with no `/auth` route |
+| 5 | ~~B step 5: remove the stale `resumemaster.one` OAuth redirect URI~~ ✅ **done by the owner, 09-29. ⭐ PHASE A+B IS CLOSED** | — |
 | 6 | **AF5 — 30 supervised applications** | ⛔ LAST. The résumé-guard work (G1) is **deferred to post-migration by the owner (09-28)** — AF5 itself is post-migration, and every generated document still needs reading before it is sent. Run ONE first and confirm `job_applications` gets a row with `ats_score_at_apply` populated |
-| 7 | ~~Go-ahead to push draft `main`~~ ✅ given 09-29; `dad1114` live 14:30Z. Still open: read the `[boot] registries:` line in Railway's deploy log (agent has no CLI) — — 5 local commits ahead of `origin/main` (`a7a9c7f`): `617fdd0` `cfa63ff` (docs), `f29f273` (dead code), `983a0ed` (registries), `3b9dbe9` (backup policy), plus this WORKLOG commit. Push = auto-deploy | ⛔ `983a0ed` **changes production ATS scores** at the next term-weight recompute (per-family weights start forming). After deploy the agent checks the `[boot] registries:` line for non-zero counts and the first 02:00 backup log |
-| 8 | Optional: re-run `RESUME_MASTER_TOKEN=… npm run verify:live -- --base https://resumemaster.one` in `resume-master` | Only the owner holds the token. The 09-28 run was already 21/21 on the domain; agent queue 1 is closed without it |
-| 9 | **Approve the exact file list for pruning production `/app/data/backups`** (agent queue 8b) — the agent lists it first; also add an SSH key to the Railway account so the agent can list the volume | Irreversible. Only after OWNER 7's deploy, so the new policy is what runs next |
+| 7 | ~~Go-ahead to push draft `main`~~ ✅ given 09-29; `dad1114` live 14:30Z. ✅ The `[boot] registries:` line is read (148 / 28, non-zero) and the first 02:00 backup on the new policy succeeded — both by the agent, 09-30 | — |
+| 7b | **Push draft `main` — there is now a reason to.** 27 commits ahead of `origin/main` (`a897443` … this WORKLOG commit — `git log origin/main..main`). ⭐ The reason: **`ef6071f` fixes OAuth sign-in, which is broken in production for every user** — Google is the only provider configured there, and it throws after the user row is written. ⛔ **Set the key first (OWNER 20)** or production will not start. Also carried, each a known effect: migration **110** (`basis_hash`, additive) · the fit precompute's boot backfill (OWNER 19d; no users, so near-instant) · UI steps 2 and 2b (the paper, the bands, no ATS number) · contract 1.1.0 vendored · the copy sweep | Push = auto-deploy. After it the agent reads the boot log for `[boot] secret key: configured` and one completed Google sign-in |
+| 8 | ~~Optional: re-run `verify:live` on the domain~~ ✅ **run by the owner with the token, 09-29** | — |
+| 9 | Pruning production `/app/data/backups` (agent queue 8b). SSH key ✅ added by the owner. ⭐ **Probably close it:** the 09-30 02:00 run pruned 5 by itself under the new policy and holds 26 files at 350 of a 351 MB budget on a 1,000 MB volume (879 MB free as Railway reports it). ⚠ The agent's attempt to list/read production over `railway ssh` was refused by this session's permission guard ("production reads"), so the file list is not agent-observed. Say "close" or "list them" | Irreversible if pruned by hand; the policy now does it within budget |
 | 10 | Decide which iOS branch is canonical: `main` (`f8be63c`, 05-09) or `feat/api-layer-feed-review-queue` (`aad5a3a` + the P3 sweep) — and a Mac for agent queue 7 | The rebrand's "three repos" is only true on the branch |
 | 11 | ~~UI redesign: does POSITION encode fit?~~ ✅ **Decided 09-29 by the owner: YES — rank the board by fit.** Ranking by fit is now a hard dependency of the deck (agent queue 13) | Unblocks UI step 3 once 13 lands |
 | 12 | Review `docs/E3_SECURITY_DESIGN.md` — its §9 checklist. ⛔ It corrects the parent doc: a streamed sign-in passes the password through our workers, so it recommends device sign-in + session upload | Review is prerequisite 4; building stays behind AF5 regardless |
-| 13 | Check that `COOKIE_ENCRYPTION_KEY` is SET in draft's production env (name only — do not paste the value) | Found writing E3: when unset, `server.js` silently generates a random key per boot, so every secret `routes/account.js` stores with it is unreadable after each deploy. If it is unset, the fix is to set it AND make a missing key fail boot |
+| 13 | ~~Check that `COOKIE_ENCRYPTION_KEY` is SET~~ ✅ **checked by the owner 09-29: ABSENT.** Answered by the agent 09-30 — see OWNER 20 and the session entry. ⛔ **Not a plaintext exposure:** nothing is stored unencrypted because of it. ⛔ **But two defects:** (1) the key was silently random per boot, so any secret sealed with it died at the next deploy — nothing noticed, because nothing ever decrypts (`decryptCookies` had no caller); (2) looking at who seals with it found that **every OAuth sign-in throws a ReferenceError** — `server.js` called `saveIntegrationSecret`, which existed only inside `routes/account.js`. Both fixed in `ef6071f` | — |
 | 14 | ~~Android: what does a left swipe mean?~~ ✅ **Decided 09-29 by the owner: a SAVED pass** (a persisted dislike; the card never returns). Being wired in agent queue 14 | — |
 | 15 | Android store readiness — no signing config, no Data Safety form, `versionCode 1`, launcher icon, and `com.draft.android` availability on Play unchecked; plus the admin flavour (hardcoded "Sri Yellela / Admin • Pro", literal dashboard counts) — ship it, hide it, or delete it? | Owner-only: the Play console, the keystore, and the product call |
 | 16 | **E1 decisions** (resume-master `6e1837d`): ~~(a) push = deploy~~ ✅ pushed 09-29 on the owner's go and **LIVE 15:48:54Z** (GitHub status "Success - resumemaster.one"; `POST /mcp` 404 → 401 `{"error":"unauthenticated"}` unauthenticated and with a bogus token; `/health` ok); `verify:live` still needs your token (OWNER 8) · ~~(b) metering~~ ✅ **decided 09-29: ATS stays FREE and UNLIMITED** (distribution, not revenue) · (c) who gets `rmk_` tokens — a public free connector needs a token policy (no OAuth/anonymous today) · (d) the contract-hash gap: accept, or fix in a new version (changes the recorded 1.0.0 hash) · (e) build a local PDF extractor so parsing can ship deterministic? | Nothing deploys until (a) |
-| 17 | UI: **paper-grain strength** — deliberately faint (darkest paper pixel `#EDE5D9`, ~6 levels of spread); one constant, `GRAIN_OPACITY` in `client/src/components/PaperBackground.jsx`. Look at `scratchpad/ui-shots/after-*` and say stronger/fine | Taste, not measurement |
+| 17 | UI: **paper-grain strength** — ⏸ **the owner is looking at the screenshots; `GRAIN_OPACITY` left as it is** (`client/src/components/PaperBackground.jsx`). Signed-in shots now exist too: `scratchpad/…09a376ce…/shots/after-*` (09-30) | Taste, not measurement |
 | 18 | ~~Copy: the login page's "Upgrade from Plans…" line~~ ✅ **removed on the owner's call, 09-29** (`4e0f96d`, screenshotted) | — |
 | 19 | **Fit-ranking calls** (`28b8a33`): (a) should a `skills_include` MISS still outrank fit? 4 of the 9 reachable graded-5 postings sit at 499–644 because of that key, not their score (e.g. "Full Stack Engineer, Link" scores Strong 54 and lands at 499) · (b) a pre-adoption score: base résumé or the unadopted enhanced draft? (the crawl scorer uses the draft; panel and precompute use the base) · (c) should the nightly term-weight refresh force a rescore? (weights are deliberately outside the hash) · (d) on deploy, the boot pass backfills automatically (~2.5 min per active profile at local speed; production has no users) — fine, or set `BOARD_FIT_PRECOMPUTE=off` and run it by hand? | (a) is the biggest remaining lever on where good jobs land |
+| 20 | ⛔ **Set `COOKIE_ENCRYPTION_KEY` in draft's production env — BEFORE the push.** Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` — exactly 64 hex characters; paste into Railway → draft service → Variables; do not share it. **Signs nobody out**: it is not the session secret (`SESSION_SECRET` is, and it is set). Nothing readable is lost: the only ciphertext it could invalidate was already unreadable after every past deploy. Setting it redeploys `dad1114` (a restart) | After `ef6071f` deploys, a missing or malformed key FAILS BOOT, like `SESSION_SECRET` — the "unconfigured provider reports success" shape, closed |
+| 21 | **Two production checks the agent was not permitted to make** (permission guard: production reads): (a) ⚠ `ADMIN_PASSWORD` — if it was unset when this database first booted, an `admin` account was seeded with the password **`changeme`** (`server.js` seeds it once, then never again). Try signing in as admin/changeme at `jobsviadraft.com`; if it works, change it at once. (b) Optional: whether `user_integrations` holds any rows (the OAuth fix says it could not have from a sign-in) | (a) is a security question with a one-minute answer |
+| 22 | The public **`/tools/ats` shows a score donut** — a **Haiku model's** number on its own scale (≥75 green / ≥50 amber), not the v4 deterministic scorer. The panel's number was removed (G5); this one cannot take v4's bands. Route it through the deterministic scorer (then band it), or leave it? | Found in the G5 sweep |
+| 23 | ATS "stays FREE and UNLIMITED" (OWNER 16b) — but draft's own `/api/standalone/ats` is rate-limited at 1 anonymous / 3 signed-in a month (`standaloneRateLimit("ats", 1, 3)`). Does 16b cover draft's public tool, or only Resume Master's MCP tool? | The FeaturesPage copy states the enforced numbers; it changes if the limit does |
+| 24 | Android LinkedIn import (agent queue 15) needs **LinkedIn OAuth configured in production** — the boot log says `[oauth:linkedin] missing; missing client_id, client_secret, redirect_uri_or_app_base_url`. And note: LinkedIn's OIDC gives name, email and picture — the app's "import" can never be more than that | Blocks queue 15 |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
 committed and reuploaded · `marketing.md` deferred — **the pilot is gated to CS anyway** · **service
@@ -111,16 +122,16 @@ marked ✅ move to *DONE* at the next tidy; ⏸/⛔ rows are what is left, and w
 | 5 | Reconcile `DONE` against `git log` | ✅ 09-29 — DONE rewritten from all four repos' logs: 15 rows corrected, 1 removed, 5 flagged, 46 added. Findings outside DONE are in the session entry | — |
 | 6 | Mobile corruption sweep (Android) | ✅ 09-29 — `cd814f1`..`af98492` in draft-android (7 commits, local). Report: `draft-android/docs/CORRUPTION_SWEEP_ANDROID.md`. Unit tests 40 → **49 / 0 fail**; the 13 instrumented tests not run (no device). ⭐ Worst find: every swiped card came BACK when the next page loaded. Also: the template picker selected nothing; the expanded card appended an invented "Requirements include strong Kotlin…" to every employer; SYNC.md's Android column rewritten to the truth (LinkedIn import and application tracking ✅ → ❌). Follow-ups → 14 | — |
 | 7 | iOS Phase 1 audit | ⛔ **Needs a Mac** — skipped. ⚠ Reconciliation found the iOS work (`aad5a3a`, the P3 sweep) sits on the unmerged branch `feat/api-layer-feed-review-queue`; `main` is still `f8be63c` (05-09). The audit should start by deciding which branch it audits | Mac |
-| 8 | Volume pruning + backup policy | (a) ✅ `3b9dbe9` — budget from the volume, refuse before the copy, see DONE. ⚠ local, unpushed. (b) ⛔ **Prune production `/app/data/backups`** — irreversible: list the files, get the owner's go on the exact set (OWNER 9), needs an SSH key on the Railway account. First verify the 09-30 02:00 backup succeeded on the 1,000 MB volume | OWNER 7, 9 |
+| 8 | Volume pruning + backup policy | (a) ✅ `3b9dbe9` — deployed in `dad1114`; ✅ the 09-30 02:00 backup succeeded under it (pruned 5, 26 kept, 350/351 MB). (b) ⏸ probably moot — OWNER 9 | OWNER 9 |
 | 9 | **UI redesign, step 2** — tokens + paper substrate | ✅ `1fd46dc` `0b76191` `76cc044` (09-29, local). One token file (`client/src/styles/colorTokens.js`, published as `--c-*`, the `zLayers` pattern); a still SVG paper grain; the night-sky VIDEO background and the per-session random accent (and its picker) deleted. ⛔ The premise was bigger than a reskin — the old UI was fully DARK, so every text colour flipped. Literals 887 → 554 (22 budgeted files + 3 permanent exemptions), ratchet `colorLiteralGuard` seen to fail 3 ways. **44 contrast pairs pass AA** — ⛔ the logo orange is 2.96:1 on cream, so it is a FILL only; orange text uses `#A33200`; text on orange is ink, not white (3.47:1). Two more /pricing-shaped invisible buttons fixed. 2712/2712; 18 routes screenshotted at 1440/390, looked at (agent and me) | — |
-| 9b | UI step 2b — **the signed-in app**: its 22 budgeted files sit on cream with dark-era literals (e.g. `#0a1f0a` fills, `#22c55e` text); band colours fail AA as text on cream (`#16a34a` 2.81:1, `#d97706` 2.71:1). Never screenshotted — needs a backend | 🔄 started 09-29 | — |
+| 9b | UI step 2b — **the signed-in app** | ✅ `2356153` (09-30, local) + copy sweep `b8882f8`. **549 literals → 0**, budget EMPTY, rewritten by AST position choosing the token by CSS role (the interrupted run's regex rewriter was not used). Bands on `BAND_*` tokens, all ≥ 4.5:1 as text; ⛔ **Not enough signal = no fill, no hue, dashed outline, "no judgement"** — not a paler Weak. ⭐ **G5 done: no ATS number shown** — the header's "Score {n}", "Best possible: {n}", and DatabasePanel's "ATS {n}" on a 4th copy of the v3 ramp. 21 signed-in scenes screenshotted at 1440/390 on stubbed `/api/*`, compared with the 09-29 before set. 2745/2745 | — |
 | 10 | UI redesign, step 3+ — the deck, transitions, mobile, dark mode | ⛔ waits on 13 (the owner decided position = fit, 09-29) and on 9 (tokens) | 9, 13 |
 | 11 | **E1 · MCP connectors** in Resume Master | ✅ `6e1837d` in resume-master (09-29, **local — RM auto-deploys on push**). `POST /mcp`, stateless Streamable HTTP, same token auth before the body is read (401 / 503 `auth_unconfigured`), metered per call with `via:"mcp"`. Tools: `score_ats_fit` (0 model calls; a decline is `outcome:"not_enough_signal"`, `score:null`, "NOT a low score") and `format_resume_print_html` (HTML, not PDF). Schemas GENERATED from the HTTP contract (`x-mcp`), drift-tested; contract **1.0.0 → 1.1.0**, additive. 197 → **232/232**, 22 injected violations caught. ⛔ Premise corrected: parsing has NO deterministic path (it is a Sonnet call) — left out. Generation deferred per the design. Found: the formatter reorders/renames sections and folds unknown headings into the previous one (described in the tool); the contract hash ignores every key named `description` (not fixed) | deploy = OWNER 16 |
 | 16 | Re-vendor Resume Master contract 1.1.0 into draft | ✅ `8472416` (09-29, local) — 14/14 contract tests. Also: two root scanners (`modelCallGuard`, `dropImportExtensionTokens`) walked into agent worktrees under `.claude/` and reported the repo twice; both now skip it | — |
 | 12 | E3 · Remote browser profiles — the **security design** only | ✅ written 09-29, `docs/E3_SECURITY_DESIGN.md`; nothing built. ⛔ Building waits on AF5, full-auto proven on the direct tier, the kill switch verified mid-batch, and the design reviewed | AF5 · OWNER 12 |
 | 13 | ⭐ **Rank the board by fit** | ✅ merged `28b8a33` (09-29, local; commits `269e7e3` `0cfb427` `52b1261`). Migration **110** adds `basis_hash` to `ats_only_reports` (REUSED rather than a second score table — the card, panel and apply stamp already read it). ONE scoring definition (`atsBasisForProfile`/`scoreJobForBasis`); precompute incremental, chunked writes, explicit status per run, kill switch `BOARD_FIT_PRECOMPUTE=off`, admin `POST /api/admin/board-fit/precompute` (dry run by default). Default order = rank keys → band (Strong, Moderate, not established, Weak) → score → recency; a cursor spanning a score write is refused and restarts (a 681-row walk had returned 680). Measured on a local copy: graded-5 in the top 50 **2 → 3**; top 20 **20 unscored → 20 Strong**; fit-FIRST was worse (1). 2738/2738 | — |
-| 14 | Android open defects from the sweep — ⛔ **no sign-out anywhere in the UI** (the credential can never be removed), 401 gives no way back to sign-in, a dead filter button, unconfirmed section delete, a decorative drag handle, an invisible failed star, leftovers | 🔄 started 09-29, on the emulator, instrumented tests included | — |
-| 15 | Android: LinkedIn import — the server's `/auth/:provider/callback` never sends the `linkedin_import`/`data` params the app parses and ignores `source=android`; needs a mobile import endpoint in draft | 🔄 started 09-29 in its own worktree (13 is done) | — |
+| 14 | Android open defects from the sweep | ✅ `8445e88` + `b94a0e0` (09-30, draft-android, local), verified on the emulator: 401 → sign-in with a notice, credential cleared (relaunch lands on sign-in); **left swipe and X = saved pass** (PATCH `disliked:true` seen; Skip deleted); dead Filter button removed; failed Star → snackbar; section delete confirmed — ⛔ and found: the delete arm was UNREACHABLE (a stale swipe lambda painted "Delete" and un-hid); drag handle removed. 55/55 JVM, **15/15 instrumented**. Open: the optimistic "Saved to starred" badge shows before a failed write's snackbar; admin `AssistChip(onClick={})` left with 2b1 (OWNER 15) | — |
+| 15 | Android: LinkedIn import — needs a mobile import endpoint in draft | ⏸ **Blocked, 09-30.** The interrupted run "started" it and left nothing (no worktree, no branch). ⛔ LinkedIn OAuth is not configured in production at all (OWNER 24), so an endpoint could not be exercised end to end — not built | OWNER 24 |
 
 ---
 
@@ -400,6 +411,82 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 ## SESSION LOG
 
 Newest first. ⛔ Agents append here rather than creating a new file.
+
+### 2026-09-30 · Three dead agents audited; UI 2b, Android 14 done; OAuth sign-in found broken in production
+
+**The audit, before anything resumed.** The session limit killed "UI step 2b", "Rank the board by
+fit" and "Fix Android open UI defects" mid-flight. What each left:
+
+- **Fit ranking** had FINISHED — merged `28b8a33` (2738/2738) and recorded before the limit. Nothing
+  to redo. `docs/UI_REDESIGN.md` was read first as asked: position encodes fit (OWNER 11), so ranking
+  was the deck's hard dependency, and it is met.
+- **UI 2b** (draft, uncommitted): the band layer was complete and consistent — `bandStyle.js`, the
+  `BAND_*` tokens, six band surfaces, the re-pinned test; the only red was the ratchet asking for a
+  LOWER budget. Its 22-file literal rewriter (`migrate2b.py`) was written and **never run**. Not
+  half-applied.
+- **Android 14** (draft-android, uncommitted): the 401 → sign-in route, coherent. Sign-out was
+  already committed (`3d51f77`).
+- **Queue 15** had been marked started: no worktree, no branch, nothing.
+- ⚠ **The interference is explained:** the Android agent and the UI 2b agent shared ONE stub server
+  on port 3001 (its log mixes the app's feed calls with the web client's `/api/apply/runs`). This
+  session ran everything sequentially — one tree, one test run, one stub at a time — and saw no
+  flakiness: the full suite twice, clean.
+
+**Owner steps 1–5, answered.**
+1. `[boot] registries: 148 role aliases, 28 qualification keys` — read by the agent from the deploy
+   log. The `.dockerignore` concern is **closed, and moot rather than fixed**: `983a0ed` moved the
+   registries out of `data/`, so neither `.dockerignore`'s `data/` rule nor the volume mounted on
+   `/app/data` can hide them now; the boot line on `dad1114` is the proof. (A local read of
+   `.dockerignore` this session was refused by the permission guard, so its current text is not
+   re-quoted here.)
+2. **`COOKIE_ENCRYPTION_KEY`, absent.** Readers: one — `server.js`'s `encryptCookies`, used to seal
+   `user_integrations.secret_enc` (OAuth token sets on sign-in; session state posted to
+   `/api/integrations/:provider`). Missing ⇒ a random key per boot, **no warning**. ⛔ **Nothing is
+   stored unencrypted** — every writer seals with AES-256-GCM. What IS true: anything sealed died at
+   the next restart, unnoticed, because **`decryptCookies` has no caller**. Setting it signs nobody
+   out (it is not the session secret). ⛔ **And the finding under it:** `upsertAuthIntegration` called
+   `saveIntegrationSecret`, which existed only inside `routes/account.js` — no binding in
+   `server.js`. `findOrCreateOAuthUser` reaches it unconditionally, so **every Google, LinkedIn and
+   GitHub sign-in throws a ReferenceError after the user row is written**, before the session exists.
+   Tests matched source text and stayed green. Static finding — the users table was not readable
+   this session — but the path has no branch around it. **Fixed in `ef6071f`**: `services/secretBox.js`
+   owns key + box + helper, both modules import it, production refuses to boot without a valid
+   64-hex key, dev gets a per-boot key and says so. 7 tests, seen to fail on HEAD. → OWNER 20, 7b.
+   Also found: `ADMIN_PASSWORD` falls back to `changeme` at the first seed → OWNER 21a.
+3. SSH key: the Railway CLI works (`npx @railway/cli`) — logs read. `railway ssh` to list the volume
+   was refused by the session's permission guard, and not retried.
+4. Phase A+B closed. 5. Noted.
+
+**Owner decisions applied.** Login line: removed in `4e0f96d` (before the limit). The **sweep** was
+not done then; done now (`b8882f8`): all tier copy was already gated on the lever EXCEPT
+FeaturesPage's metered "1 free score / month…" lines (numbers kept — the server enforces them) and
+JobsPanel's "one-time free enhancement". Also found: ApplyToolPage said resume generation needs no
+account — false since the spend controls. Grain: untouched.
+
+**UI 2b** — `2356153`. 549 literals by AST position (`@babel/parser`), the token chosen by the CSS
+role, because dark → light inverts neutrals (dark-era `#fff` text on a button → paper-white, or ink
+on the accent; `#0f0f0f` fill → paper). The interrupted run's regex rewriter was NOT used: its string
+pattern spans apostrophes in JSX text, and it mapped `#fff` the same as background and as text. Two
+old-yellow constants were fill AND text; each gained an `ACCENT_INK` twin. Every pair the migration
+created was computed: all ≥ 4.5:1 but LinkedIn blue as text on the canvas (4.23) — used only as a
+fill. Bands per the brief, with No-signal drawn as the absence of a grade. **G5**: "Score {n}" → band;
+also "Best possible: {n}" and DatabasePanel's "ATS {n}" on a **fourth** copy of the v3 ≥80/≥60 ramp —
+the test now catches the ramp in any paint. The public `/tools/ats` number stays (a Haiku score;
+OWNER 22). Screens looked at: board (before: dark-grey cards, illegible chips), job detail, ATS
+Strong/Weak/No-signal, auto-apply, admin, mobile. Pre-existing warnings noted, not caused: a
+Rules-of-Hooks order warning on every signed-in route, a forwardRef warning in JobsPanel, a missing
+key in ContactMessagesSection.
+
+**Android 14** — `8445e88`, on the emulator. See the agent-queue row. The one to remember: the
+section delete arm was **unreachable** — Material's swipe state keeps the first composition's
+lambda, so a hidden row painted "Delete" and the gesture un-hid it. A control whose paint and action
+disagree, found only by doing it on a device.
+
+**Push:** there is now a reason — OWNER 7b, after OWNER 20.
+
+**Measured:** draft 2745 / 2745 / 0 (run alone, twice); build OK; android 55/55 JVM, 15/15
+instrumented. Nothing pushed.
+
 
 ### 2026-09-29 · The agent queue run to its end — 1, 3, 4, 5, 8(a) done; 6 in progress; 2, 7, 8(b) wait
 
