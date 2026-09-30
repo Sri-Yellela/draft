@@ -94,8 +94,11 @@ test("the public page states the quota the server actually enforces", () => {
   // "3 free scores / month" sat under a "no account required" heading while anonymous callers got
   // one, and "2 free resumes / month" is now a promise the route refuses outright.
   const features = fs.readFileSync("client/src/pages/marketing/FeaturesPage.jsx", "utf8");
-  assert.match(features, /1 free score \/ month, 3 with an account/);
-  assert.match(features, /2 free resumes \/ month \(sign in required\)/);
+  // Re-pinned 09-30: the word "free" went (it implies a paid tier, and monetisation is off);
+  // the numbers are unchanged and still the ones standaloneRateLimit enforces.
+  assert.match(features, /1 score a month without an account, 3 with one/);
+  assert.match(features, /2 resumes a month \(sign in required\)/);
+  assert.doesNotMatch(features, /limit: "[^"]*\bfree\b[^"]*"/, "a quota line names a free tier again");
   assert.doesNotMatch(features, /limit: "3 free scores \/ month"/);
   assert.doesNotMatch(features, /limit: "2 free resumes \/ month"/);
 });

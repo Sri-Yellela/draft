@@ -53,7 +53,7 @@ export function ApplyToolPage() {
           <div style={{ fontSize: 48 }}>🔒</div>
           <div style={{ fontWeight: 800, fontSize: 22, color: theme.text }}>Sign in to use Auto Apply</div>
           <div style={{ fontSize: 14, color: theme.textMuted, maxWidth: 360 }}>
-            Auto Apply requires a free account. ATS scoring and resume generation are available without signing in.
+            Auto Apply and resume generation need a free account. ATS scoring does not.
           </div>
           <Link to="/login">
             <button style={{ padding: "10px 28px", borderRadius: 6, border: "none",
