@@ -114,7 +114,9 @@ export function FeaturesPage() {
               // NO "FREE" (09-30). With monetisation off there is no paid tier, and "free" names one by
               // implication — the login page's "Upgrade from Plans" line was the same shape and the
               // owner had it removed. The numbers stay: the server enforces them lever or no lever.
-              { path: "/tools/ats",      title: "ATS Scorer",       desc: "Score your resume against any job description.", limit: "1 score a month without an account, 3 with one" },
+              // ATS has no quota since 09-30 — the deterministic scorer replaced the Haiku call, and the
+              // owner keeps it free and unlimited — so its line says so.
+              { path: "/tools/ats",      title: "ATS Match",        desc: "See how well your resume fits any job description.", limit: "Unlimited, no account" },
               { path: "/tools/generate", title: "Resume Generator", desc: "Generate a focused resume for any job in 30 seconds.", limit: "2 resumes a month (sign in required)" },
               { path: "/tools/apply",    title: "Auto Apply",       desc: "Fill applications at any job portal automatically.", limit: "2 runs a month (sign in required)" },
             ].map(t => (

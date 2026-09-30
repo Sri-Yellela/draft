@@ -11,7 +11,8 @@
 //   2. Auth on generate — removes the expensive surface from anonymous reach entirely.
 //   3. A daily ceiling — bounds the bill even against someone rotating addresses.
 //
-// /api/standalone/ats stays anonymous on purpose: Haiku at 900 max_tokens, and it is the hook.
+// /api/standalone/ats stays anonymous on purpose, and since 09-30 it is unmetered too: the v4
+// deterministic scorer replaced the Haiku call, so a score costs a PDF parse, not a model request.
 
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -50,8 +51,16 @@ test("generate requires a standalone account; ats stays anonymous", () => {
     "generate must be behind the guard, with the anonymous allowance set to 0");
   // ⛔ The cheap one stays open on purpose. If this flips, the tools funnel loses its hook and the
   // change should be a deliberate decision rather than a copy-paste of the line above.
-  assert.match(SERVER, /app\.post\("\/api\/standalone\/ats", standaloneRateLimit\("ats", 1, 3\)/,
-    "ats must remain anonymous — it is Haiku, and it is the hook");
+  // 09-30: anonymous AND unmetered — no auth guard, no rate limit, no model call (owner: free and
+  // unlimited; the deterministic scorer costs a PDF parse).
+  assert.match(SERVER, /app\.post\("\/api\/standalone\/ats", standaloneUpload\.single\("resume"\)/,
+    "ats must remain anonymous and unmetered — it is the hook");
+  const ats = SERVER.slice(at(SERVER, 'app.post("/api/standalone/ats"', 0, "ats route"),
+                           at(SERVER, "// POST /api/standalone/generate", 0, "generate route"));
+  assert.doesNotMatch(ats, /callModel|ATS_SYSTEM_PROMPT/, "the public tool calls a model again");
+  // Its result shape (a band, no number) is tested behaviourally in test/standaloneAts.test.js.
+  assert.match(ats, /standaloneAtsResult\(\{[^}]*termWeightsFor: atsTermWeightsForJob, synonyms: atsSynonyms\(\) \}\)/,
+    "the public tool must score with the panel's weights and synonyms");
 
   const start = at(SERVER, "function requireStandaloneAuth", 0, "guard");
   const guard = SERVER.slice(start, start + 400);
@@ -96,7 +105,7 @@ test("the public page states the quota the server actually enforces", () => {
   const features = fs.readFileSync("client/src/pages/marketing/FeaturesPage.jsx", "utf8");
   // Re-pinned 09-30: the word "free" went (it implies a paid tier, and monetisation is off);
   // the numbers are unchanged and still the ones standaloneRateLimit enforces.
-  assert.match(features, /1 score a month without an account, 3 with one/);
+  assert.match(features, /limit: "Unlimited, no account"/, "ATS is free and unlimited (owner, 09-30)");
   assert.match(features, /2 resumes a month \(sign in required\)/);
   assert.doesNotMatch(features, /limit: "[^"]*\bfree\b[^"]*"/, "a quota line names a free tier again");
   assert.doesNotMatch(features, /limit: "3 free scores \/ month"/);

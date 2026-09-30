@@ -10,24 +10,38 @@ import { useTheme } from "../../styles/theme.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { C } from "../../styles/colorTokens.js";
+import { bandChipStyle } from "../../styles/bandStyle.js";
+import { atsBandLabel, ATS_BAND } from "../../../../shared/atsBands.js";
 
-function ScoreDonut({ score }) {
+// ⛔ NO SCORE DONUT (09-30). It printed a Haiku model's own 0–100 on a ≥75/≥50 ramp — a different
+// number, on a different scale, from the one the product ranks by. The route now runs the same v4
+// scorer as the board and answers with a BAND; see server.js /api/standalone/ats.
+function BandResult({ result }) {
   const { theme } = useTheme();
-  const r = 44, cx = 56, cy = 56;
-  const circ = 2 * Math.PI * r;
-  const fill = ((score || 0) / 100) * circ;
-  const color = score >= 75 ? C.SUCCESS : score >= 50 ? C.WARNING : C.DANGER;
+  const band = result.band;
+  const meta = atsBandLabel(band);
+  const unknown = band === ATS_BAND.NOT_ENOUGH_SIGNAL;
   return (
-    <svg width={112} height={112} viewBox="0 0 112 112">
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke={theme.surfaceHigh} strokeWidth={10}/>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={10}
-        strokeDasharray={`${fill} ${circ}`} strokeLinecap="round"
-        transform={`rotate(-90 ${cx} ${cy})`}/>
-      <text x={cx} y={cy+1} textAnchor="middle" dominantBaseline="middle"
-        fontSize={20} fontWeight={900} fill={color}>{score}</text>
-      <text x={cx} y={cy+18} textAnchor="middle" dominantBaseline="middle"
-        fontSize={10} fill={theme.textMuted}>/ 100</text>
-    </svg>
+    <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap",
+                  padding: 24, borderRadius: 10, background: theme.surface, border: `1px solid ${theme.border}` }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 140 }}>
+        <div style={{ ...bandChipStyle(band), padding: "10px 16px", borderRadius: 12,
+                      fontWeight: 900, fontSize: 17, textAlign: "center" }}>
+          {meta.label}
+        </div>
+        <div style={{ fontSize: 10, color: theme.textMuted }}>{unknown ? "no judgement" : "fit band"}</div>
+      </div>
+      <div style={{ flex: 1, minWidth: 220 }}>
+        <div style={{ fontSize: 14, color: theme.text, lineHeight: 1.6 }}>{meta.blurb}</div>
+        {result.decline_reasons?.length > 0 && (
+          <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12.5, color: theme.textMuted, lineHeight: 1.6 }}>
+            {result.decline_reasons.map((r, i) => <li key={i}>{r}</li>)}
+          </ul>
+        )}
+        {result.seniority && <div style={{ fontSize: 12.5, color: theme.textMuted, marginTop: 8 }}>{result.seniority}</div>}
+        {result.experience && <div style={{ fontSize: 12.5, color: theme.textMuted, marginTop: 8, fontStyle: "italic" }}>{result.experience}</div>}
+      </div>
+    </div>
   );
 }
 
@@ -45,6 +59,7 @@ export function ATSToolPage() {
   const [searchParams] = useSearchParams();
   const [pdfFile,   setPdfFile]   = useState(null);
   const [jdText,    setJdText]    = useState(() => searchParams.get("jd") || "");
+  const [jobTitle,  setJobTitle]  = useState("");
   const [loading,   setLoading]   = useState(false);
   const [result,    setResult]    = useState(null);
   const [error,     setError]     = useState("");
@@ -57,6 +72,7 @@ export function ATSToolPage() {
       const fd = new FormData();
       fd.append("resume", pdfFile);
       fd.append("jd_text", jdText);
+      if (jobTitle.trim()) fd.append("job_title", jobTitle.trim());
       const r = await fetch("/api/standalone/ats", { method: "POST", credentials: "include", body: fd });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Scoring failed");
@@ -75,10 +91,10 @@ export function ATSToolPage() {
         <h1 style={{ fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 900,
                      fontFamily: "'Barlow Condensed', sans-serif",
                      letterSpacing: "-1px", marginBottom: 10, color: theme.text }}>
-          See how your resume scores against any job
+          See how well your resume matches any job
         </h1>
         <p style={{ fontSize: 15, color: theme.textMuted, marginBottom: 36, lineHeight: 1.6 }}>
-          Upload your resume and paste a job description. Get an instant ATS score with matched and missing keywords.
+          Upload your resume and paste a job description. See how well they match — the same fit bands the job board ranks by — with the skills the posting asks for that your resume shows, and the ones it does not. Free, no account.
         </p>
 
         {/* Upload + JD */}
@@ -101,6 +117,13 @@ export function ATSToolPage() {
             <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 4 }}>PDF only · max 5 MB</div>
           </div>
 
+          {/* The title is optional: the scorer reads it (seniority, and which term weights apply), and
+              a pasted posting may not start with one. */}
+          <input value={jobTitle} onChange={e => setJobTitle(e.target.value)}
+            placeholder="Job title (optional — e.g. Backend Engineer)"
+            style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: `1.5px solid ${theme.border}`,
+                     background: theme.surface, color: theme.text, fontSize: 13, outline: "none", boxSizing: "border-box" }}/>
+
           {/* JD text area */}
           <textarea
             value={jdText} onChange={e => setJdText(e.target.value)}
@@ -122,26 +145,25 @@ export function ATSToolPage() {
             color: loading ? theme.textMuted : C.ON_ACCENT,
             fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
           }}>
-            {loading ? "Scoring…" : "Score My Resume"}
+            {loading ? "Matching…" : "Check my match"}
           </button>
         </div>
 
         {/* Results */}
         {result && (
           <div style={{ marginTop: 40, display: "flex", flexDirection: "column", gap: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 24,
-                          padding: 24, borderRadius: 10, background: theme.surface,
-                          border: `1px solid ${theme.border}` }}>
-              <ScoreDonut score={result.score}/>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 20, color: theme.text }}>{result.verdict}</div>
-                <div style={{ fontSize: 13, color: theme.textMuted, marginTop: 4 }}>{result.summary}</div>
+            <BandResult result={result}/>
+            {result.resume_depth && (
+              <div style={{ padding: "12px 16px", borderRadius: 8, background: theme.surface,
+                            border: `1px solid ${theme.border}`, fontSize: 12.5, color: theme.textMuted, lineHeight: 1.6 }}>
+                <strong style={{ color: theme.text }}>{result.resume_depth.headline}</strong> {result.resume_depth.detail}
               </div>
-            </div>
+            )}
 
             {/* Matched / Missing keywords */}
-            {[["Matched keywords", result.matched_keywords, C.SUCCESS],
-              ["Missing keywords", result.missing_keywords, C.DANGER]].map(([lbl, chips, col]) =>
+            {[["Skills this posting asks for that your resume shows", result.matched_skills, C.SUCCESS, C.SUCCESS_QUIET],
+              ["Skills it asks for that your resume does not show", result.missing_skills, C.DANGER, C.DANGER_QUIET],
+              ["Its language your resume does not use yet", result.missing_verbs, C.WARNING, C.WARNING_QUIET]].map(([lbl, chips, col, quiet]) =>
               chips?.length ? (
                 <div key={lbl}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: theme.textMuted,
@@ -151,7 +173,7 @@ export function ATSToolPage() {
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {chips.map(c => (
                       <span key={c} style={{ padding: "3px 10px", borderRadius: 999, fontSize: 12,
-                                              background: col + "18", color: col, fontWeight: 600 }}>
+                                              background: quiet, color: col, fontWeight: 600 }}>
                         {c}
                       </span>
                     ))}
@@ -165,7 +187,7 @@ export function ATSToolPage() {
               background: theme.surfaceHigh, fontSize: 13, color: theme.text,
               border: `1px solid ${theme.border}`,
             }}>
-              Want to fix these gaps?{" "}
+              Want a version of your resume written for this job?{" "}
               <Link to="/tools/generate" style={{ color: theme.accentText, fontWeight: 700, textDecoration: "none" }}>
                 Generate a focused resume →
               </Link>
@@ -178,15 +200,15 @@ export function ATSToolPage() {
       <section style={{ borderTop: `1px solid ${theme.border}`, padding: "48px 24px", background: theme.surface }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
           <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6, color: theme.text }}>
-            You just found your gaps. Now fix them.
+            You know where you stand. Here is what else Draft does.
           </h2>
           <p style={{ color: theme.textMuted, marginBottom: 28 }}>
             The full platform rewrites your resume, discovers matching jobs, and applies automatically.
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
             {[
-              { title: "AI Resume Generator", desc: "Rewrites your resume to hit every missing keyword" },
-              { title: "Job Discovery",        desc: "Find roles where your score is already high" },
+              { title: "AI Resume Generator", desc: "Rewrites your resume around this job, from what you have actually done" },
+              { title: "Job Discovery",        desc: "A board ranked by how well each job fits you" },
               { title: "Auto Apply",            desc: "Apply to matched roles in one click" },
             ].map(f => (
               <div key={f.title} style={{ padding: 20, borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.bg }}>

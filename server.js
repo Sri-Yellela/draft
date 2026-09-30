@@ -107,6 +107,7 @@ import {
 } from "./services/atsTermWeights.js";
 // The band, not the number, is what a user is shown — see the header of shared/atsBands.js.
 import { atsBandFor } from "./shared/atsBands.js";
+import { standaloneAtsResult } from "./services/standaloneAts.js";
 import { roleFamilyForTitle, roleAliasCount } from "./services/searchQueryBuilder.js";
 import {
   INTEGRATION_PROVIDERS,
@@ -10174,34 +10175,31 @@ const standaloneUpload = multer({ storage: multer.memoryStorage(), limits: { fil
 // STANDALONE TOOL API ROUTES (Phase 5C)
 // ═══════════════════════════════════════════════════════════════
 
-// POST /api/standalone/ats — ATS scoring (no main-app auth required)
-// Uses same ATS_SYSTEM_PROMPT and Haiku call as main app.
-app.post("/api/standalone/ats", standaloneRateLimit("ats", 1, 3), standaloneUpload.single("resume"), async (req, res) => {
-  const jdText = req.body?.jd_text || "";
+// POST /api/standalone/ats — the public ATS tool. No account, no quota, no model call.
+//
+// ⛔ SAME SCORER AS THE BOARD (owner, 09-30). This used to send the résumé and the JD to Haiku with
+// ATS_SYSTEM_PROMPT and print the model's own 0–100 on a ≥75/≥50 donut — a different number on a
+// different scale from the one the board, the panel and the tools service's score_ats_fit use, so the
+// public tool and the product could disagree about the same pair. It is now the deterministic v4
+// scorer, with the same term weights and confirmed synonyms the panel uses.
+//
+// A BAND, NOT THE NUMBER. The response carries the band and the evidence, and no score: ρ = 0.746
+// supports coarse ordering, not a printed figure (G5), and the mobile contract already marks the
+// number INTERNAL. A decline is `band: "not_enough_signal"` with its reasons — never a low score.
+//
+// FREE AND UNLIMITED (owner, 09-30): the monthly quota (1 anonymous / 3 signed-in) existed because
+// each call cost a Haiku request. It costs a PDF parse now. The 5 MB upload cap still applies.
+app.post("/api/standalone/ats", standaloneUpload.single("resume"), async (req, res) => {
+  const jdText = String(req.body?.jd_text || "");
   if (!req.file || !jdText.trim()) return res.status(400).json({ error: "resume PDF and jd_text required" });
-  if (!ANTHROPIC_KEY) return res.status(500).json({ error: "ANTHROPIC_KEY not configured" });
-
   try {
-    // Parse PDF text using pdf-parse (same path as /api/parse-pdf)
     const { default: pdfParse } = await import("pdf-parse/lib/pdf-parse.js");
     const parsed = await pdfParse(req.file.buffer);
     const resumeText = parsed.text?.trim();
     if (!resumeText || resumeText.length < 50) return res.status(400).json({ error: "Could not extract text from PDF" });
-
-    const atsDynamic = `JOB DESCRIPTION (extract keywords ONLY from this text):\n${jdText}\n\nRESUME TEXT (check which JD keywords appear here):\n${resumeText}`;
-    const msg = await callModel({
-      anthropic, db, purpose: "standalone_ats", userId: SYSTEM_USER_ID,
-      // CANDIDATE: an uploaded resume scored against a pasted JD. Never routed off Anthropic.
-      dataClass: DATA_CLASS.CANDIDATE,
-      model: MODEL_HAIKU,
-      max_tokens: 900,
-      system: ATS_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: atsDynamic }],
-    });
-    const raw = msg.content.map(b => b.text || "").join("").replace(/```json|```/g, "").trim();
-    const report = JSON.parse(raw);
-    res.json(report);
-  } catch(e) { res.status(500).json({ error: e.message }); }
+    res.json(standaloneAtsResult({ resumeText, jdText, jobTitle: req.body?.job_title,
+                                   termWeightsFor: atsTermWeightsForJob, synonyms: atsSynonyms() }));
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // POST /api/standalone/generate — Generate resume (requires STANDALONE auth, not main-app auth)
