@@ -3,6 +3,8 @@ import { monetisationEnabledFromEnv } from "../shared/monetisation.js";
 import { SPONSORSHIP_NEEDS } from "../services/applyAutomation.js";
 
 import { readAnswerStore } from "../services/customAnswers.js";
+// Shared with server.js's OAuth upsert, which called it without a binding until 09-30.
+import { saveIntegrationSecret } from "../services/secretBox.js";
 
 // One lever, live read through the one shared parser. ⛔ See shared/monetisation.js before
 // flipping it: ON obliges a Chrome Web Store trader-declaration update in the same change.
@@ -10,11 +12,6 @@ const monetisationEnabled = () => monetisationEnabledFromEnv(process.env);
 
 const DEFAULT_DOCK_ITEMS = ["profile_switcher", "notifications", "quick_actions", "settings", "user_avatar"];
 
-function saveIntegrationSecret(encryptSecret, value) {
-  const text = typeof value === "string" ? value : JSON.stringify(value || {});
-  if (!text || text === "{}") return { enc: null, iv: null, tag: null };
-  return encryptSecret(text);
-}
 
 export function createAccountRouter({
   db,

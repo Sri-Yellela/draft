@@ -25,6 +25,7 @@ import { createBackup, listBackups, restoreBackup } from "./scripts/backup.js";
 import { applyPendingMigrations } from "./scripts/applyMigrations.js";
 import applyRoutes, { capturedAtsAtApply } from "./routes/apply.js";
 import { createAccountRouter } from "./routes/account.js";
+import { loadSecretKey, createSecretBox, saveIntegrationSecret } from "./services/secretBox.js";
 import { createAdminRouter } from "./routes/admin.js";
 import { createAdminDbRouter } from "./routes/adminDb.js";
 import { createEnrichmentRouter } from "./routes/enrichment.js";
@@ -216,14 +217,18 @@ const OAUTH_PROVIDER_CONFIG = {
 const OAUTH_PROVIDERS = ["google", "linkedin", "github"];
 const CACHE_TTL_MS        = 12 * 60 * 60 * 1000;
 const MAX_JOBS_PER_REFRESH= 50;
-// 64-char hex → 32-byte AES-256 key.  Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-// If not set, a random key is generated at startup (LinkedIn sessions won't survive restarts — acceptable for dev).
-const COOKIE_ENCRYPTION_KEY = Buffer.from(
-  process.env.COOKIE_ENCRYPTION_KEY
-    ? process.env.COOKIE_ENCRYPTION_KEY.replace(/\s/g,"").slice(0,64)
-    : crypto.randomBytes(32).toString("hex"),
-  "hex"
-);
+// The key that seals stored integration secrets — services/secretBox.js. ⛔ Production refuses to
+// boot without a valid one, as it does without SESSION_SECRET: until 09-30 an unset key silently
+// became a random per-boot key, and production ran that way.
+let SECRET_BOX;
+try {
+  const { key, source } = loadSecretKey(process.env, { isProduction: IS_PRODUCTION });
+  SECRET_BOX = createSecretBox(key);
+  console.log(`[boot] secret key: ${source === "env" ? "configured" : "EPHEMERAL (development)"}`);
+} catch (e) {
+  console.error(`[auth] FATAL: ${e.message}`);
+  process.exit(1);
+}
 
 // ── Scaling notes ─────────────────────────────────────────────
 // Current: single Node.js process + SQLite + @sparticuz/chromium.
@@ -4052,18 +4057,8 @@ Use this exact schema:
 // isEmploymentTypeWanted, parseYearsExperience, ghostJobScoreNorm,
 // isReposted are now imported from services/jobNormalization.js
 
-function encryptCookies(plaintext) {
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv("aes-256-gcm", COOKIE_ENCRYPTION_KEY, iv);
-  const enc = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
-  return { enc: enc.toString("base64"), iv: iv.toString("base64"), tag: cipher.getAuthTag().toString("base64") };
-}
-
-function decryptCookies(enc, iv, tag) {
-  const decipher = crypto.createDecipheriv("aes-256-gcm", COOKIE_ENCRYPTION_KEY, Buffer.from(iv, "base64"));
-  decipher.setAuthTag(Buffer.from(tag, "base64"));
-  return Buffer.concat([decipher.update(Buffer.from(enc, "base64")), decipher.final()]).toString("utf8");
-}
+// encryptCookies/decryptCookies were defined here over the key above. They are SECRET_BOX now
+// (services/secretBox.js); decrypt had no caller then and has none now.
 
 async function classifyJob(title, description = "") {
   try {
@@ -5528,7 +5523,9 @@ function findUserByAuthProvider(provider, providerUserId, email, { allowEmailMat
 }
 
 function upsertAuthIntegration(userId, provider, { providerUserId, email, displayName, sessionState, scopes = [], expiresAt = null, metadata = {} }) {
-  const encrypted = saveIntegrationSecret(sessionState || null);
+  // ⛔ This call had no binding in this module until 09-30 — saveIntegrationSecret was defined only
+  // inside routes/account.js — so every OAuth sign-in threw a ReferenceError here.
+  const encrypted = saveIntegrationSecret(SECRET_BOX.encrypt, sessionState || null);
   const mergedMetadata = { authLinked: true, displayName: displayName || null, ...metadata };
   db.prepare(`
     INSERT INTO user_integrations
@@ -7185,7 +7182,7 @@ app.use(createAccountRouter({
   getAutomationReadiness,
   oauthReadiness,
   probeBrowserAvailability,
-  encryptSecret: encryptCookies,
+  encryptSecret: SECRET_BOX.encrypt,
   INTEGRATION_PROVIDERS,
   publicIntegrationRow,
   providerColumnFor,
