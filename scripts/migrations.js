@@ -3353,4 +3353,25 @@ export const MIGRATIONS = [
         ALTER TABLE ats_only_reports ADD COLUMN basis_hash TEXT;
       `,
     },
+    {
+      // UI step 3a (09-30) — the daily draft. docs/UI_REDESIGN.md §3.1, services/dailyDraft.js.
+      // Stores the DEAL — which cards, in what order, what they looked like at deal time — and NOT
+      // the decisions, which already live in apply_run_jobs and user_jobs. The PRIMARY KEY makes a
+      // concurrent first deal lose cleanly; UNIQUE(job) keeps a job to one slot per day.
+      id: "111_daily_drafts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS daily_drafts (
+          user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          profile_id  INTEGER NOT NULL,
+          draft_date  TEXT    NOT NULL,
+          position    INTEGER NOT NULL,
+          job_id      TEXT    NOT NULL,
+          band        TEXT    NOT NULL,
+          card_json   TEXT    NOT NULL,
+          dealt_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, profile_id, draft_date, position),
+          UNIQUE (user_id, profile_id, draft_date, job_id)
+        );
+      `,
+    },
   ];

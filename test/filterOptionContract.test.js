@@ -372,8 +372,12 @@ test("GET /api/jobs validates every enumerated dimension, under every param it a
   const buildAt = handler.indexOf("buildJobFilters(filterParams,");
   assert.ok(guardAt > 0 && buildAt > guardAt,
     "the filter guard does not run before the query is built");
-  assert.match(handler.slice(guardAt, guardAt + 400), /res\.status\(400\)/,
+  // The board is a function since 09-30 (boardPageResponse, so the daily deal shares its query): the
+  // 400 is RETURNED as boardReply(400, …) and the route sends whatever status it returns.
+  assert.match(handler.slice(guardAt, guardAt + 400), /res\.status\(400\)|boardReply\(400,/,
     "an unknown filter value does not produce a 400");
+  assert.match(handler.slice(0, 300), /const \{ status, body \} = await boardPageResponse\(req\);\s*res\.status\(status\)\.json\(body\)/,
+    "the route no longer forwards the board's status — a 400 would go out as 200");
   // Every param name, including the exclude and legacy aliases — sources_exclude=LinkedIn has to
   // be caught as surely as sources_include=LinkedIn.
   assert.match(server, /\[dim\.param, dim\.excludeParam, dim\.legacyParam\]/,
