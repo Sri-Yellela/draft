@@ -132,11 +132,21 @@ export function selectRetained(entries, opts = {}) {
   for (const label of new Set(entries.map(e => e.label))) {
     push(entries.find(e => e.label === label));
   }
+  // The protected head: the newest, and the newest of each label. Everything after it is the plain
+  // history, which must be kept as a CONTIGUOUS newest run — see `stopped` below.
+  const head = priority.length;
   for (const e of entries) push(e);
 
   const kept = new Set();
   let bytes = 0;
-  for (const e of priority) {
+  // ⛔ STOP AT THE FIRST MISFIT; NEVER SKIP OVER IT. This loop used to `continue` past a backup that
+  // did not fit and keep going, so a large RECENT backup was dropped while smaller OLDER ones behind
+  // it were kept — a knapsack, not a retention policy. Production, 09-30: the database had grown from
+  // 14 MB to 28 MB+, every backup from 09-17 to 09-29 was gone, and 08-22..09-16 survived — the
+  // newest restorable state before the latest one was two weeks old. Uniform-size tests never saw it.
+  let stopped = false;
+  for (const [i, e] of priority.entries()) {
+    if (i >= head && stopped) continue;
     const withinCount = kept.size < maxCount;
     const withinBytes = bytes + sizeOf(e) <= maxBytes;
     const withinDisk  = bytes + sizeOf(e) <= ceiling;
@@ -147,6 +157,8 @@ export function selectRetained(entries, opts = {}) {
     const first = kept.size === 0;
     if (withinCount && withinDisk && (withinBytes || belowFloor || first)) {
       kept.add(e.filename); bytes += sizeOf(e);
+    } else if (i >= head) {
+      stopped = true;
     }
   }
 
