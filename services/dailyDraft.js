@@ -88,6 +88,18 @@ export function decisionsFor(db, userId, jobIds) {
   return out;
 }
 
+/**
+ * "Why it's here" — the evidence behind a card, from the SAME stored report its band came from:
+ * the skills the posting asks for that the résumé shows, and the ones it does not. Frozen with the
+ * card. Position says how good; this says why, which position cannot (UI_REDESIGN §3.3).
+ */
+export function whyFromReport(report) {
+  const r = report && typeof report === "object" ? report : {};
+  const list = (v, n) => (Array.isArray(v) ? v.filter(x => typeof x === "string" && x.trim()).slice(0, n) : []);
+  return { matched: list(r.tier1_matched, 6), missing: list(r.tier1_missing, 4),
+           matchedTotal: Array.isArray(r.tier1_matched) ? r.tier1_matched.length : 0 };
+}
+
 function readDeal(db, userId, profileId, date) {
   return db.prepare(
     `SELECT position, job_id, band, card_json FROM daily_drafts
@@ -100,7 +112,7 @@ function readDeal(db, userId, profileId, date) {
  * `fetchBoardPage(cursor)` returns one page of the board in its default order:
  * `{ ok, jobs, nextCursor }`. The deal pages until the deck is full or the board ends.
  */
-export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, size = DECK_SIZE }) {
+export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, reportFor = () => null, size = DECK_SIZE }) {
   let rows = readDeal(db, userId, profileId, date);
   let dealtNow = false;
   if (!rows.length) {
@@ -122,12 +134,16 @@ export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, 
       `INSERT OR IGNORE INTO daily_drafts (user_id, profile_id, draft_date, position, job_id, band, card_json)
        VALUES (?, ?, ?, ?, ?, ?, ?)`);
     db.transaction(() => picked.forEach((c, i) =>
-      insert.run(userId, profileId, date, i, c.job.id, c.band, JSON.stringify(c.job))))();
+      insert.run(userId, profileId, date, i, c.job.id, c.band,
+                 JSON.stringify({ job: c.job, why: whyFromReport(reportFor(c.job.id)) }))))();
     rows = readDeal(db, userId, profileId, date);
     dealtNow = true;
   }
   const decisions = decisionsFor(db, userId, rows.map(r => r.job_id));
-  const cards = rows.map(r => ({ position: r.position, band: r.band, decision: decisions[r.job_id], job: JSON.parse(r.card_json) }));
+  const cards = rows.map(r => {
+    const snap = JSON.parse(r.card_json);
+    return { position: r.position, band: r.band, decision: decisions[r.job_id], job: snap.job, why: snap.why };
+  });
   return {
     date, profileId, size: cards.length, dealtNow, cards,
     thin: cards.length > 0 && cards.length < size,

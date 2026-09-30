@@ -8063,7 +8063,13 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
       const { status, body } = await boardPageResponse({ ...req, query: { pageSize: "50", ...(cursor ? { cursor } : {}) } });
       return { ok: status === 200 && body?.success !== false, jobs: body?.jobs || [], nextCursor: body?.nextCursor || null, error: body?.error };
     };
-    res.json(await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage }));
+    const reportStmt = db.prepare(
+      "SELECT ats_report FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ?");
+    const reportFor = (jobId) => {
+      try { return JSON.parse(reportStmt.get(req.user.id, profile.id, jobId)?.ats_report || "null"); }
+      catch { return null; }
+    };
+    res.json(await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor }));
   } catch (e) {
     console.error("[GET /api/draft/today]", e.message);
     res.status(500).json({ error: "The deck could not be dealt. Try again." });

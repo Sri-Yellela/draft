@@ -129,3 +129,16 @@ test("the date is the client's local day, within one day of the server's — and
   for (const ok of ["2026-09-29", "2026-09-30", "2026-10-01"]) assert.equal(validDraftDate(ok, now), true, ok);
   for (const bad of ["2026-09-27", "2026-10-03", "2026-02-30", "30-09-2026", "", null, "2026-9-30"]) assert.equal(validDraftDate(bad, now), false, String(bad));
 });
+
+test("each card carries its evidence, frozen from the same report as its band", async () => {
+  const d = db();
+  const reports = { a: { tier1_matched: ["Go", "SQL", "AWS", "Docker", "K8s", "gRPC", "Redis"], tier1_missing: ["Kafka"] } };
+  const deck = await todaysDeck(d, { userId: 1, profileId: 7, date: TODAY, reportFor: (id) => reports[id] || null,
+    fetchBoardPage: board([[job("a", STRONG), job("b", STRONG)]]).fetchBoardPage });
+  assert.deepEqual(deck.cards[0].why, { matched: ["Go", "SQL", "AWS", "Docker", "K8s", "gRPC"], missing: ["Kafka"], matchedTotal: 7 });
+  assert.deepEqual(deck.cards[1].why, { matched: [], missing: [], matchedTotal: 0 }, "no report is empty evidence, not an error");
+  reports.a.tier1_matched = ["changed"];
+  const again = await todaysDeck(d, { userId: 1, profileId: 7, date: TODAY, reportFor: (id) => reports[id],
+    fetchBoardPage: board([]).fetchBoardPage });
+  assert.equal(again.cards[0].why.matched[0], "Go", "the evidence is frozen with the deal");
+});

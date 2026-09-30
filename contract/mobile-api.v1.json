@@ -2474,6 +2474,10 @@
           },
           "position": {
             "type": "number"
+          },
+          "why": {
+            "$ref": "#/components/schemas/DeckWhy",
+            "description": "The evidence behind the card, frozen at deal time from the same report as its band."
           }
         },
         "description": "One card, in deal order (position IS the fit signal). The band is shown; the score is not."
@@ -2510,6 +2514,27 @@
           }
         },
         "description": "Today's frozen deal. Fewer than 10 is a thin day and 0 an empty one — never padded."
+      },
+      "DeckWhy": {
+        "type": "object",
+        "properties": {
+          "matched": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "matchedTotal": {
+            "type": "number"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Skills the posting asks for that the résumé shows (up to 6) and does not (up to 4)."
       },
       "DomainProfile": {
         "type": "object",
