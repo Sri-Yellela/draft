@@ -3,11 +3,12 @@ import { useLocation } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { StackSection, OrgSection, HiringSection, SponsorshipSection } from "../components/CompanyKbSections.jsx";
+import { C } from "../styles/colorTokens.js";
 
 const STATUS_COPY = {
-  consistent: { label: "Consistent", color: "#16a34a", bg: "#dcfce7" },
-  flagged:    { label: "Flagged inconsistency", color: "#991b1b", bg: "#fee2e2" },
-  no_claim:   { label: "No claim to check", color: "#6b7280", bg: "var(--color-surface-offset)" },
+  consistent: { label: "Consistent", color: C.SUCCESS, bg: C.SUCCESS_QUIET },
+  flagged:    { label: "Flagged inconsistency", color: C.DANGER, bg: C.DANGER_QUIET },
+  no_claim:   { label: "No claim to check", color: C.INK_FAINT, bg: "var(--color-surface-offset)" },
 };
 
 function CompanyKbCard({ company, theme }) {
@@ -36,7 +37,7 @@ function CompanyKbCard({ company, theme }) {
       </div>
       {loading && <div style={{ fontSize: 12, color: theme.textMuted }}>Loading…</div>}
       {error && !loading && (
-        <div style={{ background: "#fee2e2", color: "#991b1b", borderRadius: 6, padding: "8px 12px", fontSize: 12 }}>
+        <div style={{ background: C.DANGER_QUIET, color: C.DANGER, borderRadius: 6, padding: "8px 12px", fontSize: 12 }}>
           {error}
         </div>
       )}
@@ -108,11 +109,11 @@ function ConsistencyCheckCard({ company, theme }) {
         style={{ border: "none", borderRadius: 6, padding: "9px 14px", fontWeight: 800, fontSize: 12,
                  cursor: checking || !resumeText.trim() ? "not-allowed" : "pointer",
                  opacity: checking || !resumeText.trim() ? 0.6 : 1,
-                 background: theme.accent, color: "#0f0f0f", alignSelf: "flex-start" }}>
+                 background: theme.accent, color: C.ON_ACCENT, alignSelf: "flex-start" }}>
         {checking ? "Checking…" : "Check consistency"}
       </button>
       {error && (
-        <div style={{ background: "#fee2e2", color: "#991b1b", borderRadius: 6, padding: "8px 12px", fontSize: 12 }}>
+        <div style={{ background: C.DANGER_QUIET, color: C.DANGER, borderRadius: 6, padding: "8px 12px", fontSize: 12 }}>
           {error}
         </div>
       )}
@@ -182,7 +183,7 @@ export function RecruiterPanel() {
             style={{ border: "none", borderRadius: 6, padding: "9px 16px", fontWeight: 800, fontSize: 12,
                      cursor: companyInput.trim() ? "pointer" : "not-allowed",
                      opacity: companyInput.trim() ? 1 : 0.6,
-                     background: theme.accent, color: "#0f0f0f" }}>
+                     background: theme.accent, color: C.ON_ACCENT }}>
             Load
           </button>
         </div>

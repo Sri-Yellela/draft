@@ -91,34 +91,12 @@ const PERMANENT = {
     "with tokens would make the selectors stop matching.",
 };
 
-/** Not yet migrated — the authenticated app, which step 2 could not screenshot without a backend. */
-// Measured 2026-09-29 at step 2: 554 literals in 22 files (from 887 in 60 before step 2; the token
-// file's own values and the three PERMANENT files are not in either number). Largest first — the
-// order is also a reasonable migration order, weighted by how often a user sees the surface.
-const BUDGET = {
-  "client/src/pages/admin/DBInspector.jsx": 172,   // admin-only raw table browser
-  "client/src/panels/AutoApplyPanel.jsx": 57,
-  "client/src/panels/JobsPanel.jsx": 56,
-  "client/src/panels/AutoApplyPanelSections.jsx": 49,
-  "client/src/components/JobCard.jsx": 39,
-  "client/src/panels/AdminPanel.jsx": 32,
-  "client/src/components/JobDetailPanel.jsx": 27,
-  "client/src/panels/ATSPanel.jsx": 27,
-  "client/src/lib/applyObstacles.js": 13,
-  "client/src/panels/RecruiterPanel.jsx": 11,
-  "client/src/panels/IntegrationsPanel.jsx": 10,
-  "client/src/components/CompanyKbSections.jsx": 9,
-  "client/src/panels/SandboxPanel.jsx": 9,
-  "client/src/components/ImportJobModal.jsx": 8,
-  "client/src/components/ui/CompanyIcon.jsx": 8,
-  "client/src/components/DomainProfileWizard.jsx": 6,
-  "client/src/components/CoverLetterModal.jsx": 5,
-  "client/src/components/CompanyViewModal.jsx": 4,
-  "client/src/panels/AtsReportPanel.jsx": 4,
-  "client/src/panels/DatabasePanel.jsx": 4,
-  "client/src/panels/JobProfilesPanel.jsx": 3,
-  "client/src/panels/PlansPanel.jsx": 1,
-};
+/** Not yet migrated. EMPTY since UI step 2b (09-30) — kept as the place a new exception would be argued. */
+// Measured 2026-09-29 at step 2: 554 literals in 22 files (from 887 in 60 before step 2). Step 2b
+// (09-30) migrated all 22 — 549 literals by AST position, the token chosen by the CSS role each
+// literal played, because the dark -> light flip inverts the neutrals (dark-era "#fff" text is ink
+// now, a "#0f0f0f" fill is paper). ⛔ Adding an entry here is adding a literal. Add a token instead.
+const BUDGET = {};
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
 
@@ -185,6 +163,19 @@ test("the shell, the public pages and the shared surfaces are literal-free", () 
     "client/src/components/ProfileSelectorDropdown.jsx", "client/src/components/MetaChips.jsx",
     "client/src/components/CountdownDisplay.jsx", "client/src/components/AdminLayout.jsx",
     "client/src/components/ui/TileCard.jsx", "client/src/components/ui/DateCalendar.jsx",
+    // Step 2b (09-30): the signed-in app — the 22 files the budget held.
+    "client/src/pages/admin/DBInspector.jsx", "client/src/panels/AutoApplyPanel.jsx",
+    "client/src/panels/JobsPanel.jsx", "client/src/panels/AutoApplyPanelSections.jsx",
+    "client/src/components/JobCard.jsx", "client/src/panels/AdminPanel.jsx",
+    "client/src/components/JobDetailPanel.jsx", "client/src/panels/ATSPanel.jsx",
+    "client/src/lib/applyObstacles.js", "client/src/panels/RecruiterPanel.jsx",
+    "client/src/panels/IntegrationsPanel.jsx", "client/src/components/CompanyKbSections.jsx",
+    "client/src/panels/SandboxPanel.jsx", "client/src/components/ImportJobModal.jsx",
+    "client/src/components/ui/CompanyIcon.jsx", "client/src/components/DomainProfileWizard.jsx",
+    "client/src/components/CoverLetterModal.jsx", "client/src/components/CompanyViewModal.jsx",
+    "client/src/panels/AtsReportPanel.jsx", "client/src/panels/DatabasePanel.jsx",
+    "client/src/panels/JobProfilesPanel.jsx", "client/src/panels/PlansPanel.jsx",
+    "client/src/styles/bandStyle.js",
   ];
   for (const f of MIGRATED) {
     assert.ok(fs.existsSync(f), `${f} moved — re-point this list`);

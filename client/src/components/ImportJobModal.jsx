@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { api } from "../lib/api.js";
 import { BRAND } from "../../../shared/brand.js";
 import { useTheme } from "../styles/theme.jsx";
+import { C } from "../styles/colorTokens.js";
 
 // ─── BYO-1 site-side front door ──────────────────────────────────────────────
 // POST /api/import/job has existed since BYO-1 but had no UI: it was reachable
@@ -63,7 +64,7 @@ export default function ImportJobModal({ onClose, onImported }) {
   }
 
   const overlay = {
-    position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9000,
+    position: "fixed", inset: 0, background: C.SCRIM, zIndex: 9000,
     display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
   };
   // OPAQUE, not theme.surface. theme.surface resolves to var(--bg-card), which is a translucent
@@ -72,11 +73,11 @@ export default function ImportJobModal({ onClose, onImported }) {
   // same fix and the same fallback pair the filter panel already uses in JobsPanel.jsx, which
   // test/jobsUiProfileFilters.test.js pins as the project's modal-surface convention.
   const modal = {
-    background: theme.modalSurface || (isDark ? "#111827" : "#ffffff"),
+    background: theme.modalSurface || (isDark ? C.SURFACE_MODAL : C.SURFACE_SOLID),
     border: `1px solid ${theme.border}`,
     borderRadius: 12, width: "100%", maxWidth: 480, maxHeight: "85vh",
     display: "flex", flexDirection: "column", overflow: "hidden",
-    boxShadow: theme.shadowXl || "0 24px 80px rgba(0,0,0,0.35)",
+    boxShadow: theme.shadowXl || C.SHADOW_SM,
   };
   const hdr = {
     display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -109,7 +110,7 @@ export default function ImportJobModal({ onClose, onImported }) {
 
           {imported ? (
             <>
-              <div style={{ background: "#dcfce7", color: "#166534", borderRadius: 6,
+              <div style={{ background: C.SUCCESS_QUIET, color: C.SUCCESS, borderRadius: 6,
                             padding: "8px 12px", fontSize: 12, fontWeight: 700 }}>
                 Imported into your board.
               </div>
@@ -140,7 +141,7 @@ export default function ImportJobModal({ onClose, onImported }) {
                 </div>
               )}
               {error && (
-                <div style={{ background: "#fee2e2", color: "#991b1b", borderRadius: 6,
+                <div style={{ background: C.DANGER_QUIET, color: C.DANGER, borderRadius: 6,
                               padding: "8px 12px", fontSize: 12 }}>
                   {error}
                 </div>

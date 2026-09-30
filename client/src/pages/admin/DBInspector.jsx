@@ -3,13 +3,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api, authHeaders, authContextQuery } from "../../lib/api.js";
 import { useTheme } from "../../styles/theme.jsx";
+import { C } from "../../styles/colorTokens.js";
 
-const ACCENT = "#F5E642";
+const ACCENT = C.ACCENT;
+// ACCENT is the orange, which is 2.96:1 on the paper: a FILL only. Text, edges and strokes use the
+// darker ink twin (4.5:1+), the rule UI step 2 set for the logo orange.
+const ACCENT_TEXT = C.ACCENT_INK;
 // Row-striping tint. Must be a literal color, not `theme.surface + "80"`: theme.surface is the
 // STRING "var(--bg-card)", so appending a hex alpha yields "var(--bg-card)80" — invalid CSS that
 // browsers drop, meaning the stripe silently never rendered. (I reintroduced that same bug in the
 // pipeline-health table by copying the surrounding idiom before spotting it.)
-const ROW_STRIPE = "rgba(255,255,255,0.03)";
+const ROW_STRIPE = C.HOVER;
 const TABS = [
   { id: "scrape",   label: "Pipeline Health" },
   { id: "schema",   label: "Schema Explorer" },
@@ -66,7 +70,7 @@ function Spinner({ theme }) {
       <div style={{
         width:20, height:20,
         border:`2px solid ${theme.border}`,
-        borderTop:`2px solid ${ACCENT}`,
+        borderTop:`2px solid ${ACCENT_TEXT}`,
         borderRadius:"50%", animation:"spin 0.7s linear infinite",
       }}/>
       <span style={{ color:theme.textMuted, fontSize:12 }}>Loading…</span>
@@ -77,8 +81,8 @@ function Spinner({ theme }) {
 function ErrBox({ msg, theme }) {
   if (!msg) return null;
   return (
-    <div style={{ background:"#dc262620", border:"1px solid #dc262644", borderRadius:8,
-                  padding:"10px 14px", color:"#dc2626", fontSize:12, margin:"8px 0" }}>
+    <div style={{ background:C.DANGER_QUIET, border:`1px solid ${C.DANGER}44`, borderRadius:8,
+                  padding:"10px 14px", color:C.DANGER, fontSize:12, margin:"8px 0" }}>
       {msg}
     </div>
   );
@@ -91,9 +95,9 @@ function KeyValueGrid({ data, theme, highlight }) {
       {Object.entries(data).map(([k, v]) => (
         <div key={k} style={{ display:"contents" }}>
           <div style={{ fontWeight:700, padding:"3px 0",
-                        color: highlight?.includes(k) ? ACCENT : theme.textMuted }}>{k}</div>
+                        color: highlight?.includes(k) ? ACCENT_TEXT : theme.textMuted }}>{k}</div>
           <div style={{ padding:"3px 0", wordBreak:"break-all",
-                        color: highlight?.includes(k) ? ACCENT : theme.text }}>
+                        color: highlight?.includes(k) ? ACCENT_TEXT : theme.text }}>
             {v == null ? <span style={{color:theme.textMuted}}>NULL</span>
                        : String(v).length > 200 ? String(v).slice(0,200)+"…" : String(v)}
           </div>
@@ -187,7 +191,7 @@ function SchemaMapView({ theme }) {
               <line key={r.id}
                 x1={a.x + nodeW} y1={a.y + 48}
                 x2={b.x} y2={b.y + 48}
-                stroke={active ? ACCENT : theme.border}
+                stroke={active ? ACCENT_TEXT : theme.border}
                 strokeWidth={active ? 2 : 1}
                 opacity={active ? 0.75 : 0.25}
               />
@@ -204,9 +208,9 @@ function SchemaMapView({ theme }) {
               onClick={() => setSelected(selected === t.name ? null : t.name)}
               style={{
                 position:"absolute", left:p.x, top:p.y, width:nodeW,
-                border:`1px solid ${selected === t.name ? ACCENT : theme.border}`,
+                border:`1px solid ${selected === t.name ? ACCENT_TEXT : theme.border}`,
                 borderRadius:8, background:theme.bg, opacity:active ? 1 : 0.35,
-                boxShadow:selected === t.name ? `0 0 0 2px ${ACCENT}33` : "none",
+                boxShadow:selected === t.name ? `0 0 0 2px ${ACCENT_TEXT}33` : "none",
                 overflow:"hidden", cursor:"pointer",
               }}
             >
@@ -224,8 +228,8 @@ function SchemaMapView({ theme }) {
                     display:"grid", gridTemplateColumns:"16px 1fr auto",
                     gap:5, padding:"2px 10px", fontSize:10,
                   }}>
-                    <span style={{ color:c.primaryKey ? ACCENT : theme.textMuted }}>{c.primaryKey ? "PK" : ""}</span>
-                    <span style={{ color:c.primaryKey ? ACCENT : theme.text }}>{c.name}</span>
+                    <span style={{ color:c.primaryKey ? ACCENT_TEXT : theme.textMuted }}>{c.primaryKey ? "PK" : ""}</span>
+                    <span style={{ color:c.primaryKey ? ACCENT_TEXT : theme.text }}>{c.name}</span>
                     <span style={{ color:theme.textMuted }}>{c.type || ""}</span>
                   </div>
                 ))}
@@ -252,43 +256,43 @@ function SchemaMapView({ theme }) {
 
 // Health severity ordering is decided server-side; this is only the presentation.
 const HEALTH_STYLE = {
-  ok:              { color:"#16a34a", label:"OK" },
-  stale:           { color:"#d97706", label:"STALE" },
-  no_results:      { color:"#d97706", label:"NO RESULTS" },
-  no_rows:         { color:"#d97706", label:"NO ROWS" },
-  never_ran:       { color:"#d97706", label:"NEVER RAN" },
-  failed:          { color:"#dc2626", label:"FAILED" },
+  ok:              { color:C.SUCCESS, label:"OK" },
+  stale:           { color:C.WARNING, label:"STALE" },
+  no_results:      { color:C.WARNING, label:"NO RESULTS" },
+  no_rows:         { color:C.WARNING, label:"NO ROWS" },
+  never_ran:       { color:C.WARNING, label:"NEVER RAN" },
+  failed:          { color:C.DANGER, label:"FAILED" },
   // Deliberately red, not grey: an unconfigured provider reading as a benign "off" is exactly
   // how Jobo went unnoticed for its entire lifetime.
-  not_configured:  { color:"#dc2626", label:"NOT CONFIGURED" },
+  not_configured:  { color:C.DANGER, label:"NOT CONFIGURED" },
   // A run that reported success and put NOTHING on the board. Red, and ABOVE stale in the route's
   // ordering, because production logged three consecutive days of `status: 'ok'` with `written: 0`.
   // ⛔ Not the same as `written: 0` — a crawl that finds every posting unchanged writes 0 rows and
   // is healthy. That conflation raised two false criticals; the route classifies on
   // written + unchanged + merged now.
-  wrote_nothing:   { color:"#dc2626", label:"WROTE NOTHING" },
+  wrote_nothing:   { color:C.DANGER, label:"WROTE NOTHING" },
   // Fetched rows, boarded none, and the classifier refused all of them. Amber, not red: the fetch
   // works and the judgement to make is about the source's yield, not an outage.
-  all_rejected:    { color:"#d97706", label:"ALL REJECTED" },
+  all_rejected:    { color:C.WARNING, label:"ALL REJECTED" },
   // An ACTIVE company slug at zero rows — a dead slug, or postings dropped before the write.
-  no_rows_company: { color:"#dc2626", label:"NO ROWS" },
+  no_rows_company: { color:C.DANGER, label:"NO ROWS" },
   // Rows exist but none has a description, so enrichJob skips every one of them forever.
-  no_descriptions: { color:"#dc2626", label:"NO DESCRIPTIONS" },
+  no_descriptions: { color:C.DANGER, label:"NO DESCRIPTIONS" },
   // The one genuinely benign state, and the only grey one. adzuna and serpapi are configured,
   // correct, and outside the crawl — reading them as NEVER RAN put two warnings on the panel that
   // could never be cleared, and a permanent warning is one nobody reads.
-  live_search_only:{ color:"#6b7280", label:"LIVE SEARCH ONLY" },
+  live_search_only:{ color:C.INK_FAINT, label:"LIVE SEARCH ONLY" },
   // Also benign, and also grey. A company seeded after its source's last successful crawl has not
   // had a chance to produce yet; migration 103 added ten at once, and calling those ten failures
   // would have put ten false positives at the top of the alert list on the day it shipped.
-  awaiting_first_crawl:{ color:"#6b7280", label:"AWAITING CRAWL" },
+  awaiting_first_crawl:{ color:C.INK_FAINT, label:"AWAITING CRAWL" },
 };
 
 // 0% must be visually alarming — skills_json sat at 0/684 while nothing surfaced it.
 function coverageColor(pct, theme) {
-  if (pct === 0)  return "#dc2626";
-  if (pct < 25)   return "#d97706";
-  if (pct >= 75)  return "#16a34a";
+  if (pct === 0)  return C.DANGER;
+  if (pct < 25)   return C.WARNING;
+  if (pct >= 75)  return C.SUCCESS;
   return theme.text;
 }
 
@@ -335,9 +339,9 @@ function ScrapeMonitorTab({ theme }) {
   const statusLabel = (job) => {
     // The single most important per-row fact post-pivot: a row with no description can never be
     // enriched, so it will never gain skills, summary, salary or visa signals.
-    if (!job.has_description) return { label:"NO DESC", color:"#dc2626" };
-    if (!job.enriched_at)     return { label:"UNENRICHED", color:"#d97706" };
-    return { label:"ENRICHED", color:"#16a34a" };
+    if (!job.has_description) return { label:"NO DESC", color:C.DANGER };
+    if (!job.enriched_at)     return { label:"UNENRICHED", color:C.WARNING };
+    return { label:"ENRICHED", color:C.SUCCESS };
   };
 
   // `live_search_only` is a healthy resting state, not a problem: adzuna and serpapi are
@@ -368,7 +372,7 @@ function ScrapeMonitorTab({ theme }) {
           ))}
         </select>
         <button onClick={load}
-          style={{ background:ACCENT, color:"#0f0f0f", border:"none", borderRadius:6,
+          style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
                    padding:"5px 14px", fontWeight:700, fontSize:11, cursor:"pointer" }}>
           Refresh
         </button>
@@ -386,9 +390,9 @@ function ScrapeMonitorTab({ theme }) {
       */}
       {health && (
         alerts.length > 0 ? (
-          <div style={{ border:`1px solid #dc2626`, borderRadius:10, overflow:"hidden", marginBottom:16 }}>
-            <div style={{ padding:"8px 14px", background:"rgba(220,38,38,0.12)", fontSize:11,
-                          fontWeight:800, color:"#dc2626", textTransform:"uppercase",
+          <div style={{ border:`1px solid ${C.DANGER}`, borderRadius:10, overflow:"hidden", marginBottom:16 }}>
+            <div style={{ padding:"8px 14px", background:C.DANGER_QUIET, fontSize:11,
+                          fontWeight:800, color:C.DANGER, textTransform:"uppercase",
                           letterSpacing:0.4 }}>
               {health.alertCounts.critical} critical
               {health.alertCounts.warn > 0 && ` · ${health.alertCounts.warn} warning`}
@@ -402,7 +406,7 @@ function ScrapeMonitorTab({ theme }) {
               }}>
                 <span style={{ fontWeight:800, fontSize:9, letterSpacing:0.5,
                                textTransform:"uppercase",
-                               color: a.severity === "critical" ? "#dc2626" : "#d97706" }}>
+                               color: a.severity === "critical" ? C.DANGER : C.WARNING }}>
                   {a.severity}
                 </span>
                 <span style={{ fontFamily:"monospace", color:theme.text }}>
@@ -413,8 +417,8 @@ function ScrapeMonitorTab({ theme }) {
             ))}
           </div>
         ) : (
-          <div style={{ border:`1px solid #16a34a`, borderRadius:10, marginBottom:16,
-                        padding:"8px 14px", fontSize:11, fontWeight:700, color:"#16a34a" }}>
+          <div style={{ border:`1px solid ${C.SUCCESS}`, borderRadius:10, marginBottom:16,
+                        padding:"8px 14px", fontSize:11, fontWeight:700, color:C.SUCCESS }}>
             No alerts — every configured source wrote rows, every active company produced them,
             and no enrichment column is empty.
           </div>
@@ -427,13 +431,13 @@ function ScrapeMonitorTab({ theme }) {
           <StatCard
             label="Sources Healthy"
             value={`${health.sources.length - problemSources.length}/${health.sources.length}`}
-            accent={problemSources.length ? "#d97706" : "#16a34a"}
+            accent={problemSources.length ? C.WARNING : C.SUCCESS}
             sub={problemSources.length ? problemSources.map(s => s.name).join(", ") : "all reporting"}
             theme={theme}/>
           <StatCard
             label="Missing Description"
             value={fmt(health.enrichment.noDescription)}
-            accent={health.enrichment.noDescription > 0 ? "#dc2626" : "#16a34a"}
+            accent={health.enrichment.noDescription > 0 ? C.DANGER : C.SUCCESS}
             sub={health.enrichment.activeTotal
               ? `${Math.round((health.enrichment.noDescription / health.enrichment.activeTotal) * 100)}% can never enrich`
               : null}
@@ -441,7 +445,7 @@ function ScrapeMonitorTab({ theme }) {
           <StatCard
             label="Empty Signals"
             value={`${worstCoverage}/${health.enrichment.coverage.length}`}
-            accent={worstCoverage ? "#dc2626" : "#16a34a"}
+            accent={worstCoverage ? C.DANGER : C.SUCCESS}
             sub="enrichment columns at 0%"
             theme={theme}/>
           <StatCard label="Deduped" value={fmt(health.dedup.multiSource)} sub="rows folded from 2+ sources" theme={theme}/>
@@ -472,10 +476,10 @@ function ScrapeMonitorTab({ theme }) {
                 <div style={{ fontWeight:600 }}>{s.name}</div>
                 <div><Pill color={hs.color}>{hs.label}</Pill></div>
                 <div style={{ color:theme.textMuted }}>{fmt(s.active)}</div>
-                <div style={{ color: s.noDescription > 0 ? "#dc2626" : theme.textMuted }}>
+                <div style={{ color: s.noDescription > 0 ? C.DANGER : theme.textMuted }}>
                   {s.active ? fmt(s.noDescription) : "—"}
                 </div>
-                <div style={{ color: s.health === "stale" ? "#d97706" : theme.textMuted, fontSize:11 }}>
+                <div style={{ color: s.health === "stale" ? C.WARNING : theme.textMuted, fontSize:11 }}>
                   {ago(s.lastSuccessAt || s.lastActivityAt)}
                 </div>
                 <div style={{ color:theme.textMuted, fontSize:11 }}>
@@ -488,7 +492,7 @@ function ScrapeMonitorTab({ theme }) {
                         {s.lastRun.unchanged > 0 && <> · {fmt(s.lastRun.unchanged)} unchanged</>}
                         {(s.lastRun.dropped + s.lastRun.ejected) > 0 &&
                           <> · {fmt(s.lastRun.dropped + s.lastRun.ejected)} refused</>}
-                        {s.lastRun.error && <span style={{ color:"#dc2626" }}> · {truncate(s.lastRun.error, 60)}</span>}
+                        {s.lastRun.error && <span style={{ color:C.DANGER }}> · {truncate(s.lastRun.error, 60)}</span>}
                       </span>
                     : <span style={{ color:theme.textDim, fontStyle:"italic" }}>no run recorded yet</span>}
                 </div>
@@ -537,12 +541,12 @@ function ScrapeMonitorTab({ theme }) {
                   {c.source}/{c.slug}
                 </div>
                 <div><Pill color={hs.color}>{hs.label}</Pill></div>
-                <div style={{ color: c.active === 0 ? "#dc2626" : theme.textMuted }}>{fmt(c.active)}</div>
-                <div style={{ color: c.noDescription > 0 ? "#dc2626" : theme.textMuted }}>
+                <div style={{ color: c.active === 0 ? C.DANGER : theme.textMuted }}>{fmt(c.active)}</div>
+                <div style={{ color: c.noDescription > 0 ? C.DANGER : theme.textMuted }}>
                   {c.active ? fmt(c.noDescription) : "—"}
                 </div>
                 <div style={{ color:theme.textMuted }}>{c.active ? fmt(c.enriched) : "—"}</div>
-                <div style={{ color: c.health === "stale" ? "#d97706" : theme.textMuted, fontSize:11 }}>
+                <div style={{ color: c.health === "stale" ? C.WARNING : theme.textMuted, fontSize:11 }}>
                   {ago(c.lastRowAt)}
                 </div>
               </div>
@@ -570,24 +574,24 @@ function ScrapeMonitorTab({ theme }) {
                 // recorded status is evidence and must not be hidden — it is what read 'ok' for
                 // three consecutive days while every one of 25 rows failed.
                 const rs = HEALTH_STYLE[r.health]?.color
-                  ?? (r.health === "failed" ? "#dc2626" : r.health === "degraded" ? "#d97706" : "#16a34a");
+                  ?? (r.health === "failed" ? C.DANGER : r.health === "degraded" ? C.WARNING : C.SUCCESS);
                 return (
                   <span>
                     {ago(r.started_at)} ·{" "}
                     <span style={{ color:rs, fontWeight:700 }}>{String(r.health).toUpperCase()}</span>
                     {r.health === "failed" && r.status === "ok" &&
-                      <span style={{ color:"#dc2626" }}> (recorded as “{r.status}”)</span>}
+                      <span style={{ color:C.DANGER }}> (recorded as “{r.status}”)</span>}
                     {" "}· {fmt(r.written)} enriched, {fmt(r.failed)} failed,
                     {" "}{fmt(r.details?.noSignal ?? 0)} no-signal, {fmt(r.skipped)} skipped (no description)
                     {r.details?.remainingCandidates ? ` · ${fmt(r.details.remainingCandidates)} still queued` : ""}
-                    {r.error_text && <span style={{ color:"#dc2626" }}> · {truncate(r.error_text, 80)}</span>}
+                    {r.error_text && <span style={{ color:C.DANGER }}> · {truncate(r.error_text, 80)}</span>}
                   </span>
                 );
               })()}
             </div>
           )}
           {!health.hasRunLog && (
-            <div style={{ marginTop:12, fontSize:11, color:"#d97706" }}>
+            <div style={{ marginTop:12, fontSize:11, color:C.WARNING }}>
               pipeline_runs table not present — run migrations to record per-run outcomes.
             </div>
           )}
@@ -635,7 +639,7 @@ function ScrapeMonitorTab({ theme }) {
                   <div style={{ color:theme.textMuted, fontSize:11 }}>{job.source || "—"}</div>
                   {/* Description length, not a boolean: a 40-char "description" is technically
                       present but useless to enrichment, and only the number shows that. */}
-                  <div style={{ color: job.has_description ? theme.textMuted : "#dc2626", fontSize:11 }}>
+                  <div style={{ color: job.has_description ? theme.textMuted : C.DANGER, fontSize:11 }}>
                     {job.has_description ? fmt(job.description_len) : "none"}
                   </div>
                   <div style={{ color: job.skills_json ? theme.textMuted : theme.textDim, fontSize:11 }}>
@@ -684,8 +688,8 @@ function ScrapeMonitorTab({ theme }) {
                             style={{
                               fontSize:11, padding:"3px 10px", borderRadius:6,
                               border:`1px solid ${theme.border}`,
-                              background: copied === "text" ? "#4ade8022" : theme.surface,
-                              color: copied === "text" ? "#4ade80" : theme.textMuted,
+                              background: copied === "text" ? C.SUCCESS_QUIET : theme.surface,
+                              color: copied === "text" ? C.SUCCESS : theme.textMuted,
                               cursor:"pointer",
                             }}>
                             {copied === "text" ? "✓ Copied" : "Copy Text"}
@@ -710,7 +714,7 @@ function ScrapeMonitorTab({ theme }) {
                       </div>
 
                       {job.description_truncated && (
-                        <div style={{ fontSize:11, color:"#d97706", marginTop:4 }}>
+                        <div style={{ fontSize:11, color:C.WARNING, marginTop:4 }}>
                           Description truncated at 10,000 chars. Copy button copies full text.
                         </div>
                       )}
@@ -884,7 +888,7 @@ function EnrichmentTransferPanel({ theme }) {
             <input type="checkbox" checked={allRows} onChange={e => setAllRows(e.target.checked)}/>
             all rows (not just candidates)
           </label>
-          <a href={exportHref()} style={{ ...btn({ textDecoration: "none", color: ACCENT }), display: "inline-block" }}>
+          <a href={exportHref()} style={{ ...btn({ textDecoration: "none", color: ACCENT_TEXT }), display: "inline-block" }}>
             ⬇ Export JSONL
           </a>
         </div>
@@ -911,7 +915,7 @@ function EnrichmentTransferPanel({ theme }) {
           style={{ fontSize: 11, color: theme.textMuted, marginBottom: 8, display: "block" }}/>
         <textarea value={text} onChange={e => setFile(e.target.value)} rows={6}
           placeholder='{"job_id":"…","content_hash":"…","enrichment":{"summary":"…","skills_json":[{"skill":"Python","type":"hard"}]}}'
-          style={{ width: "100%", boxSizing: "border-box", background: "#0f0f0f", color: "#e5e7eb",
+          style={{ width: "100%", boxSizing: "border-box", background: C.SURFACE_SOLID, color: C.INK,
                    border: `1px solid ${theme.border}`, borderRadius: 8, padding: "8px 10px",
                    fontSize: 11, fontFamily: "monospace", lineHeight: 1.5, resize: "vertical" }}/>
         <div style={{ fontSize: 10, color: theme.textMuted, marginTop: 4 }}>
@@ -944,14 +948,14 @@ function EnrichmentTransferPanel({ theme }) {
       {/* Step 4 — dry run, then apply */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
         <button type="button" onClick={runDry} disabled={!text || !!busy}
-          style={btn({ background: ACCENT, color: "#0f0f0f", border: "none", fontWeight: 700,
+          style={btn({ background: ACCENT, color: C.ON_ACCENT, border: "none", fontWeight: 700,
                        opacity: !text || busy ? 0.5 : 1 })}>
           {busy === "dry" ? "Planning…" : "Dry Run"}
         </button>
         <button type="button" onClick={runApply} disabled={!canApply}
-          style={btn({ background: canApply ? "#dc2626" : "transparent",
-                       color: canApply ? "#fff" : theme.textMuted,
-                       border: `1px solid ${canApply ? "#dc2626" : theme.border}`,
+          style={btn({ background: canApply ? C.DANGER : "transparent",
+                       color: canApply ? C.SURFACE_SOLID : theme.textMuted,
+                       border: `1px solid ${canApply ? C.DANGER : theme.border}`,
                        fontWeight: 700, cursor: canApply ? "pointer" : "not-allowed" })}>
           {busy === "apply" ? "Applying…" : "Apply Import"}
         </button>
@@ -980,11 +984,11 @@ function ArmedSwitch({ theme, armed, onToggle, disarmedLabel, armedLabel, hint }
       // Capped rather than flex:1 — stretched across a 1300px admin panel these read as two lines
       // of prose, and a control that does not look like a control does not get treated as a choice.
       style={{ flex: "1 1 300px", maxWidth: 460, textAlign: "left", padding: "8px 12px", borderRadius: 8,
-               border: `1px solid ${armed ? "#dc2626" : theme.border}`,
-               background: armed ? "#dc262618" : theme.surface,
-               color: armed ? "#f87171" : theme.text, cursor: "pointer" }}>
+               border: `1px solid ${armed ? C.DANGER : theme.border}`,
+               background: armed ? C.DANGER_QUIET : theme.surface,
+               color: armed ? C.DANGER : theme.text, cursor: "pointer" }}>
       <div style={{ fontSize: 11, fontWeight: 700 }}>{armed ? armedLabel : disarmedLabel}</div>
-      <div style={{ fontSize: 10, color: armed ? "#f8717199" : theme.textMuted, marginTop: 2 }}>{hint}</div>
+      <div style={{ fontSize: 10, color: armed ? `${C.DANGER}99` : theme.textMuted, marginTop: 2 }}>{hint}</div>
     </button>
   );
 }
@@ -1001,17 +1005,17 @@ function ImportPlanView({ body, theme }) {
         DRY RUN — nothing was written
       </div>
       {body.warning && (
-        <div style={{ background: "#dc262618", border: "1px solid #dc262655", borderRadius: 6,
-                      padding: "8px 10px", fontSize: 11, color: "#f87171", marginBottom: 10 }}>
+        <div style={{ background: C.DANGER_QUIET, border: `1px solid ${C.DANGER}55`, borderRadius: 6,
+                      padding: "8px 10px", fontSize: 11, color: C.DANGER, marginBottom: 10 }}>
           {body.warning}
         </div>
       )}
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 11, marginBottom: 10 }}>
         <span>rows in file <b>{fmt(p.rowsInFile)}</b></span>
         <span>matched <b>{fmt(p.matched)}</b></span>
-        <span>would write <b style={{ color: ACCENT }}>{fmt(p.wouldWrite)}</b></span>
+        <span>would write <b style={{ color: ACCENT_TEXT }}>{fmt(p.wouldWrite)}</b></span>
         <span>nothing to write <b>{fmt(p.unchanged)}</b></span>
-        <span>rejected <b style={{ color: p.rejected.length ? "#f87171" : theme.text }}>{fmt(p.rejected.length)}</b></span>
+        <span>rejected <b style={{ color: p.rejected.length ? C.DANGER : theme.text }}>{fmt(p.rejected.length)}</b></span>
         <span style={{ color: theme.textMuted }}>{p.mode}</span>
       </div>
 
@@ -1021,7 +1025,7 @@ function ImportPlanView({ body, theme }) {
         <div style={{ marginBottom: 10 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: theme.textMuted, marginBottom: 4 }}>
             PROJECTED FILL RATE over the {fmt(p.matched)} matched row(s) — columns would climb:{" "}
-            <b style={{ color: body.columnsWouldClimb ? "#4ade80" : "#f87171" }}>{body.columnsWouldClimb}</b>
+            <b style={{ color: body.columnsWouldClimb ? C.SUCCESS : C.DANGER }}>{body.columnsWouldClimb}</b>
           </div>
           <table style={{ borderCollapse: "collapse" }}>
             <tbody>
@@ -1029,7 +1033,7 @@ function ImportPlanView({ body, theme }) {
                 <tr key={c.column}>
                   <td style={{ ...cell, color: theme.textMuted }}>{c.column}</td>
                   <td style={cell}>{c.before} → <b>{c.after}</b></td>
-                  <td style={{ ...cell, color: c.delta > 0 ? "#4ade80" : "#f87171" }}>
+                  <td style={{ ...cell, color: c.delta > 0 ? C.SUCCESS : C.DANGER }}>
                     {c.delta > 0 ? `+${c.delta}` : c.delta}
                   </td>
                 </tr>
@@ -1048,12 +1052,12 @@ function ImportPlanView({ body, theme }) {
 
       {p.rejected.length > 0 && (
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#f87171", marginBottom: 4 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: C.DANGER, marginBottom: 4 }}>
             REJECTED — the file is applied as a whole or not at all
           </div>
           <div style={{ maxHeight: 180, overflowY: "auto" }}>
             {p.rejected.slice(0, 50).map((r, i) => (
-              <div key={i} style={{ fontSize: 10, fontFamily: "monospace", color: "#f87171", padding: "1px 0" }}>
+              <div key={i} style={{ fontSize: 10, fontFamily: "monospace", color: C.DANGER, padding: "1px 0" }}>
                 line {r.line}{r.jobId ? ` (${r.jobId})` : ""} [{r.kind}]: {r.error}
               </div>
             ))}
@@ -1071,15 +1075,15 @@ function ImportResultView({ result, theme, onRevert, reverting }) {
   const cell = { padding: "3px 8px", fontSize: 11 };
   return (
     <div style={{ marginTop: 12, padding: 12, borderRadius: 8,
-                  border: `1px solid ${result.warning ? "#dc262655" : "#4ade8055"}`,
-                  background: result.warning ? "#dc26260d" : "#4ade800d" }}>
+                  border: `1px solid ${result.warning ? `${C.DANGER}55` : `${C.SUCCESS}55`}`,
+                  background: result.warning ? C.DANGER_QUIET : C.SUCCESS_QUIET }}>
       <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 8 }}>
         IMPORTED — {fmt(result.written)} row(s) written
         {result.batchId != null && <span style={{ color: theme.textMuted, fontWeight: 400 }}> · batch #{result.batchId}</span>}
       </div>
       {result.warning && (
-        <div style={{ background: "#dc262618", border: "1px solid #dc262655", borderRadius: 6,
-                      padding: "8px 10px", fontSize: 11, color: "#f87171", marginBottom: 10 }}>
+        <div style={{ background: C.DANGER_QUIET, border: `1px solid ${C.DANGER}55`, borderRadius: 6,
+                      padding: "8px 10px", fontSize: 11, color: C.DANGER, marginBottom: 10 }}>
           {result.warning}
         </div>
       )}
@@ -1090,7 +1094,7 @@ function ImportResultView({ result, theme, onRevert, reverting }) {
               <tr key={c.column}>
                 <td style={{ ...cell, color: theme.textMuted }}>{c.column}</td>
                 <td style={cell}>{c.before} → <b>{c.after}</b></td>
-                <td style={{ ...cell, color: c.delta > 0 ? "#4ade80" : "#f87171" }}>
+                <td style={{ ...cell, color: c.delta > 0 ? C.SUCCESS : C.DANGER }}>
                   {c.delta > 0 ? `+${c.delta}` : c.delta}
                 </td>
               </tr>
@@ -1100,7 +1104,7 @@ function ImportResultView({ result, theme, onRevert, reverting }) {
       )}
       {result.batchId != null && (
         result.reverted
-          ? <span style={{ fontSize: 11, color: "#4ade80" }}>✓ Batch #{result.batchId} reverted to its before-image.</span>
+          ? <span style={{ fontSize: 11, color: C.SUCCESS }}>✓ Batch #{result.batchId} reverted to its before-image.</span>
           : <button type="button" onClick={() => onRevert(result.batchId)} disabled={reverting}
               style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${theme.border}`,
                        background: "transparent", color: theme.text, cursor: "pointer", fontSize: 11 }}>
@@ -1166,9 +1170,9 @@ function SchemaExplorerTab({ theme }) {
         <button key={v} type="button" onClick={() => setSchemaView(v)}
           style={{
             padding:"6px 14px", borderRadius:8,
-            border:`1px solid ${schemaView === v ? ACCENT : theme.border}`,
+            border:`1px solid ${schemaView === v ? ACCENT_TEXT : theme.border}`,
             background:schemaView === v ? ACCENT : theme.surfaceHigh,
-            color:schemaView === v ? "#0f0f0f" : theme.text,
+            color:schemaView === v ? C.ON_ACCENT : theme.text,
             cursor:"pointer", fontSize:12, fontWeight:700,
           }}>
           {v === "tables" ? "Tables" : "Map View"}
@@ -1187,9 +1191,9 @@ function SchemaExplorerTab({ theme }) {
         style={{
           display:"flex", alignItems:"center", gap:6,
           padding:"6px 14px", borderRadius:8,
-          border:`1px solid ${schemaCopied ? "#4ade8066" : theme.border}`,
-          background: schemaCopied ? "#4ade8018" : theme.surfaceHigh,
-          color: schemaCopied ? "#4ade80" : theme.text,
+          border:`1px solid ${schemaCopied ? `${C.SUCCESS}66` : theme.border}`,
+          background: schemaCopied ? C.SUCCESS_QUIET : theme.surfaceHigh,
+          color: schemaCopied ? C.SUCCESS : theme.text,
           cursor:"pointer", fontSize:12, fontWeight:600, transition:"all 0.2s",
         }}>
         {schemaCopied ? "✓ Schema Copied!" : "📋 Copy Full Schema"}
@@ -1238,7 +1242,7 @@ function SchemaExplorerTab({ theme }) {
               display:"flex", justifyContent:"space-between", alignItems:"center",
               padding:"8px 14px", cursor:"pointer",
               background: selected?.name === t.name ? ACCENT+"22" : "transparent",
-              borderLeft: selected?.name === t.name ? `3px solid ${ACCENT}` : "3px solid transparent",
+              borderLeft: selected?.name === t.name ? `3px solid ${ACCENT_TEXT}` : "3px solid transparent",
               fontSize:12, transition:"all 0.1s",
             }}
             onMouseEnter={e => { if (selected?.name !== t.name) e.currentTarget.style.background = theme.surfaceHigh; }}
@@ -1277,7 +1281,7 @@ function SchemaExplorerTab({ theme }) {
                   to a non-admin. The token goes in the query string, which bindAuthContext accepts
                   for exactly this case. */}
               <a href={`/api/admin/db/export/${selected.name}${authContextQuery() ? `?${authContextQuery()}` : ""}`}
-                style={{ fontSize:11, color:ACCENT, textDecoration:"none", fontWeight:700 }}>
+                style={{ fontSize:11, color:ACCENT_TEXT, textDecoration:"none", fontWeight:700 }}>
                 Export CSV ↓
               </a>
             </div>
@@ -1303,13 +1307,13 @@ function SchemaExplorerTab({ theme }) {
                     background: fkCols.has(col.name) ? ACCENT+"11" : "transparent",
                   }}>
                     <div style={{ color:theme.textMuted }}>{col.cid}</div>
-                    <div style={{ fontWeight:600, color: col.pk ? ACCENT : fkCols.has(col.name) ? "#7c3aed" : theme.text }}>
+                    <div style={{ fontWeight:600, color: col.pk ? ACCENT_TEXT : fkCols.has(col.name) ? C.VIOLET : theme.text }}>
                       {col.name} {col.pk ? "🔑" : ""} {fkCols.has(col.name) ? "🔗" : ""}
                     </div>
                     <div style={{ color:theme.textMuted }}>{col.type || "—"}</div>
-                    <div style={{ color: col.notnull ? "#16a34a" : theme.textMuted }}>{col.notnull ? "✓" : "—"}</div>
+                    <div style={{ color: col.notnull ? C.SUCCESS : theme.textMuted }}>{col.notnull ? "✓" : "—"}</div>
                     <div style={{ color:theme.textMuted, fontSize:10 }}>{col.dflt_value ?? "—"}</div>
-                    <div style={{ color: col.pk ? ACCENT : theme.textMuted }}>{col.pk || "—"}</div>
+                    <div style={{ color: col.pk ? ACCENT_TEXT : theme.textMuted }}>{col.pk || "—"}</div>
                   </div>
                 ))}
               </div>
@@ -1328,7 +1332,7 @@ function SchemaExplorerTab({ theme }) {
                       display:"flex", gap:10, alignItems:"center", fontSize:11,
                       padding:"5px 10px", background:theme.surfaceHigh, borderRadius:6,
                     }}>
-                      {idx.unique && <span style={{ color:ACCENT, fontWeight:700 }}>⚡</span>}
+                      {idx.unique && <span style={{ color:ACCENT_TEXT, fontWeight:700 }}>⚡</span>}
                       <span style={{ fontWeight:600 }}>{idx.name}</span>
                       <span style={{ color:theme.textMuted }}>→ ({idx.columns.join(", ")})</span>
                     </div>
@@ -1348,7 +1352,7 @@ function SchemaExplorerTab({ theme }) {
                   {selected.foreignKeys.map((fk, i) => (
                     <div key={i} style={{ fontSize:11, padding:"5px 10px",
                                           background:theme.surfaceHigh, borderRadius:6 }}>
-                      <span style={{ color:"#7c3aed", fontWeight:600 }}>{fk.from}</span>
+                      <span style={{ color:C.VIOLET, fontWeight:600 }}>{fk.from}</span>
                       {" → "}
                       <span style={{ fontWeight:600 }}>{fk.table}.{fk.to}</span>
                     </div>
@@ -1410,7 +1414,7 @@ function SchemaExplorerTab({ theme }) {
                   {data.migrations.map(m => (
                     <div key={m.id} style={{ display:"flex", gap:12, fontSize:11,
                                              padding:"4px 10px", background:theme.surfaceHigh, borderRadius:5 }}>
-                      <span style={{ color:"#16a34a", fontWeight:700 }}>✓</span>
+                      <span style={{ color:C.SUCCESS, fontWeight:700 }}>✓</span>
                       <span style={{ fontWeight:600 }}>{m.id}</span>
                       <span style={{ color:theme.textMuted }}>{m.applied_at ? new Date(m.applied_at*1000).toISOString().slice(0,19).replace("T"," ") : "—"}</span>
                     </div>
@@ -1494,7 +1498,7 @@ function UserPoolTab({ theme }) {
           ))}
         </select>
         <button onClick={() => loadPool(selectedUser)} disabled={!selectedUser || loading}
-          style={{ background:ACCENT, color:"#0f0f0f", border:"none", borderRadius:6,
+          style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
                    padding:"6px 16px", fontWeight:700, fontSize:11, cursor:"pointer", opacity:!selectedUser?0.5:1 }}>
           Load
         </button>
@@ -1508,9 +1512,9 @@ function UserPoolTab({ theme }) {
           {/* Left: Profile Summary */}
           <div>
             {data.activeProfile ? (
-              <div style={{ border:`1px solid ${ACCENT}44`, borderRadius:10, padding:14, marginBottom:14 }}>
+              <div style={{ border:`1px solid ${ACCENT_TEXT}44`, borderRadius:10, padding:14, marginBottom:14 }}>
                 <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase",
-                              letterSpacing:"0.07em", color:ACCENT, marginBottom:8 }}>Active Profile</div>
+                              letterSpacing:"0.07em", color:ACCENT_TEXT, marginBottom:8 }}>Active Profile</div>
                 <div style={{ fontWeight:800, fontSize:13, marginBottom:4 }}>{data.activeProfile.profile_name}</div>
                 <div style={{ fontSize:11, color:theme.textMuted }}>{data.activeProfile.role_family}</div>
                 <div style={{ fontSize:11, color:theme.textMuted }}>{data.activeProfile.domain}</div>
@@ -1518,15 +1522,15 @@ function UserPoolTab({ theme }) {
                   <div style={{ marginTop:8, display:"flex", flexWrap:"wrap", gap:4 }}>
                     {(() => {
                       try { return JSON.parse(data.activeProfile.target_titles).slice(0,6).map(t => (
-                        <Pill key={t} color={ACCENT}>{t}</Pill>
+                        <Pill key={t} color={ACCENT_TEXT}>{t}</Pill>
                       )); } catch { return null; }
                     })()}
                   </div>
                 )}
               </div>
             ) : (
-              <div style={{ border:`1px solid #dc262644`, borderRadius:10, padding:14, marginBottom:14,
-                            color:"#dc2626", fontSize:12 }}>No active profile</div>
+              <div style={{ border:`1px solid ${C.DANGER}44`, borderRadius:10, padding:14, marginBottom:14,
+                            color:C.DANGER, fontSize:12 }}>No active profile</div>
             )}
 
             <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
@@ -1536,7 +1540,7 @@ function UserPoolTab({ theme }) {
                                        background: p.is_active ? ACCENT+"22" : theme.surfaceHigh,
                                        fontSize:11 }}>
                 <span style={{ fontWeight:600 }}>{p.profile_name}</span>
-                {p.is_active && <span style={{ marginLeft:6, color:ACCENT, fontSize:10, fontWeight:700 }}>ACTIVE</span>}
+                {p.is_active && <span style={{ marginLeft:6, color:ACCENT_TEXT, fontSize:10, fontWeight:700 }}>ACTIVE</span>}
                 <br/>
                 <span style={{ color:theme.textMuted }}>{p.role_family}</span>
               </div>
@@ -1563,8 +1567,8 @@ function UserPoolTab({ theme }) {
           <div>
             <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
               <StatCard label="Total in Pool" value={fmt(totalJobs)} theme={theme}/>
-              <StatCard label="Correct" value={fmt(correctJobs)} accent="#16a34a" theme={theme}/>
-              <StatCard label="Wrong / NULL" value={fmt(wrongJobs)} accent={wrongJobs > 0 ? "#dc2626" : theme.text} theme={theme}/>
+              <StatCard label="Correct" value={fmt(correctJobs)} accent={C.SUCCESS} theme={theme}/>
+              <StatCard label="Wrong / NULL" value={fmt(wrongJobs)} accent={wrongJobs > 0 ? C.DANGER : theme.text} theme={theme}/>
             </div>
 
             {/* Filter pills */}
@@ -1572,9 +1576,9 @@ function UserPoolTab({ theme }) {
               {["All","Correct","Wrong","NULL"].map(f => (
                 <button key={f} onClick={() => setPoolFilter(f)}
                   style={{
-                    padding:"3px 12px", borderRadius:999, border:`1px solid ${poolFilter===f ? ACCENT : theme.border}`,
+                    padding:"3px 12px", borderRadius:999, border:`1px solid ${poolFilter===f ? ACCENT_TEXT : theme.border}`,
                     background: poolFilter===f ? ACCENT : "transparent",
-                    color: poolFilter===f ? "#0f0f0f" : theme.text,
+                    color: poolFilter===f ? C.ON_ACCENT : theme.text,
                     fontSize:11, fontWeight:700, cursor:"pointer",
                   }}>{f}</button>
               ))}
@@ -1590,8 +1594,8 @@ function UserPoolTab({ theme }) {
                 <div>Title</div><div>Company</div><div>Tagged Profile</div><div>Status</div>
               </div>
               {filteredJobs.slice(0,50).map((job, i) => {
-                const statusColor = job.status === "CORRECT" ? "#16a34a"
-                  : job.status === "NULL_TAG" ? "#d97706" : "#dc2626";
+                const statusColor = job.status === "CORRECT" ? C.SUCCESS
+                  : job.status === "NULL_TAG" ? C.WARNING : C.DANGER;
                 const statusLabel = job.status === "CORRECT" ? "✓ Correct"
                   : job.status === "NULL_TAG" ? "⚠ NULL" : "✗ Wrong";
                 return (
@@ -1616,25 +1620,25 @@ function UserPoolTab({ theme }) {
             {/* Utility buttons */}
             <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
               <button onClick={cleanPool} disabled={!selectedUser || actionLoading === "clean"}
-                style={{ background:"#dc262620", color:"#dc2626", border:"1px solid #dc262644",
+                style={{ background:C.DANGER_QUIET, color:C.DANGER, border:`1px solid ${C.DANGER}44`,
                          borderRadius:6, padding:"7px 16px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
                 {actionLoading==="clean" ? "Cleaning…" : "🧹 Clean Pool"}
               </button>
               <button onClick={retagPool} disabled={!selectedUser || actionLoading === "retag"}
-                style={{ background:ACCENT+"22", color:ACCENT, border:`1px solid ${ACCENT}44`,
+                style={{ background:ACCENT+"22", color:ACCENT_TEXT, border:`1px solid ${ACCENT_TEXT}44`,
                          borderRadius:6, padding:"7px 16px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
                 {actionLoading==="retag" ? "Retagging…" : "🏷 Re-tag Pool"}
               </button>
             </div>
             {cleanResult && (
-              <div style={{ marginTop:8, fontSize:11, color:"#16a34a" }}>
-                {cleanResult.error ? <span style={{color:"#dc2626"}}>{cleanResult.error}</span>
+              <div style={{ marginTop:8, fontSize:11, color:C.SUCCESS }}>
+                {cleanResult.error ? <span style={{color:C.DANGER}}>{cleanResult.error}</span>
                 : `Removed ${cleanResult.removed} jobs, preserved ${cleanResult.preserved} applied.`}
               </div>
             )}
             {retagResult && (
-              <div style={{ marginTop:8, fontSize:11, color:"#16a34a" }}>
-                {retagResult.error ? <span style={{color:"#dc2626"}}>{retagResult.error}</span>
+              <div style={{ marginTop:8, fontSize:11, color:C.SUCCESS }}>
+                {retagResult.error ? <span style={{color:C.DANGER}}>{retagResult.error}</span>
                 : `Tagged ${retagResult.tagged} jobs, ${retagResult.stillNull} still untagged.`}
               </div>
             )}
@@ -1672,7 +1676,7 @@ function JobTraceTab({ theme, initialJobId }) {
                    borderRadius:6, padding:"7px 12px", color:theme.text, fontSize:12, width:360 }}
         />
         <button onClick={trace} disabled={!jobId.trim() || loading}
-          style={{ background:ACCENT, color:"#0f0f0f", border:"none", borderRadius:6,
+          style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
                    padding:"7px 20px", fontWeight:700, fontSize:12, cursor:"pointer" }}>
           {loading ? "Tracing…" : "Trace"}
         </button>
@@ -1692,10 +1696,10 @@ function JobTraceTab({ theme, initialJobId }) {
                 {data.scraped_job.company} · {data.scraped_job.location}
               </div>
               <div style={{ display:"flex", gap:8, marginTop:8, flexWrap:"wrap" }}>
-                {data.scraped_job.employment_type && <Pill color="#7c3aed">{data.scraped_job.employment_type}</Pill>}
-                {data.scraped_job.work_type && <Pill color="#0ea5e9">{data.scraped_job.work_type}</Pill>}
+                {data.scraped_job.employment_type && <Pill color={C.VIOLET}>{data.scraped_job.employment_type}</Pill>}
+                {data.scraped_job.work_type && <Pill color={C.INFO}>{data.scraped_job.work_type}</Pill>}
                 {data.scraped_job.ats_score != null && (
-                  <Pill color={data.scraped_job.ats_score>=70?"#16a34a":data.scraped_job.ats_score>=50?"#d97706":"#dc2626"}>
+                  <Pill color={data.scraped_job.ats_score>=70?C.SUCCESS:data.scraped_job.ats_score>=50?C.WARNING:C.DANGER}>
                     ATS {data.scraped_job.ats_score}%
                   </Pill>
                 )}
@@ -1714,14 +1718,14 @@ function JobTraceTab({ theme, initialJobId }) {
               </div>
               <div style={{ marginBottom:8 }}>
                 <span style={{ fontSize:10, color:theme.textMuted }}>domain_profile_id: </span>
-                <Pill color={data.scraped_job.domain_profile_id ? "#16a34a" : "#dc2626"}>
+                <Pill color={data.scraped_job.domain_profile_id ? C.SUCCESS : C.DANGER}>
                   {data.scraped_job.domain_profile_id ?? "NULL"}
                 </Pill>
               </div>
               {data.role_mappings?.length > 0 && (
                 <div style={{ marginBottom:8, display:"flex", gap:5, flexWrap:"wrap" }}>
                   {data.role_mappings.map(r => (
-                    <Pill key={r.role_key} color={ACCENT}>{r.role_key}</Pill>
+                    <Pill key={r.role_key} color={ACCENT_TEXT}>{r.role_key}</Pill>
                   ))}
                 </div>
               )}
@@ -1756,10 +1760,10 @@ function JobTraceTab({ theme, initialJobId }) {
                                        marginBottom:6, fontSize:11 }}>
                   <div style={{ fontWeight:700, marginBottom:4 }}>@{uj.username}</div>
                   <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                    <Pill color={uj.applied?"#16a34a":"#6b7280"}>{uj.applied?"Applied":"Not applied"}</Pill>
-                    {uj.disliked ? <Pill color="#dc2626">Disliked</Pill> : null}
-                    {uj.starred ? <Pill color={ACCENT}>Starred</Pill> : null}
-                    <Pill color={uj.domain_profile_id===data.scraped_job.domain_profile_id?"#16a34a":"#dc2626"}>
+                    <Pill color={uj.applied?C.SUCCESS:C.INK_FAINT}>{uj.applied?"Applied":"Not applied"}</Pill>
+                    {uj.disliked ? <Pill color={C.DANGER}>Disliked</Pill> : null}
+                    {uj.starred ? <Pill color={ACCENT_TEXT}>Starred</Pill> : null}
+                    <Pill color={uj.domain_profile_id===data.scraped_job.domain_profile_id?C.SUCCESS:C.DANGER}>
                       profile:{uj.domain_profile_id ?? "NULL"}
                     </Pill>
                   </div>
@@ -1783,7 +1787,7 @@ function JobTraceTab({ theme, initialJobId }) {
                 </div>
               ))}
               {data.applications.map((a, i) => (
-                <div key={i} style={{ background:"#16a34a11", border:"1px solid #16a34a33",
+                <div key={i} style={{ background:C.SUCCESS_QUIET, border:`1px solid ${C.SUCCESS}33`,
                                        borderRadius:6, padding:"6px 10px", marginBottom:4, fontSize:11 }}>
                   Applied by @{a.username} — {a.applied_at ? new Date(a.applied_at*1000).toISOString().slice(0,10) : "—"}
                 </div>
@@ -1792,8 +1796,8 @@ function JobTraceTab({ theme, initialJobId }) {
 
             {/* Card 4: Diagnosis */}
             <div style={{
-              border:`1px solid ${d?.isCorrectlyIsolated ? "#16a34a" : "#dc2626"}44`,
-              background: d?.isCorrectlyIsolated ? "#16a34a08" : "#dc262608",
+              border:`1px solid ${d?.isCorrectlyIsolated ? C.SUCCESS : C.DANGER}44`,
+              background: d?.isCorrectlyIsolated ? C.SUCCESS_QUIET : C.DANGER_QUIET,
               borderRadius:10, padding:14,
             }}>
               <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
@@ -1801,11 +1805,11 @@ function JobTraceTab({ theme, initialJobId }) {
                 Diagnosis
               </div>
               {d?.isCorrectlyIsolated ? (
-                <div style={{ color:"#16a34a", fontWeight:700, marginBottom:8 }}>
+                <div style={{ color:C.SUCCESS, fontWeight:700, marginBottom:8 }}>
                   ✓ Correctly tagged to "{data.domain_profile?.profile_name}" owned by @{d.profileOwner}
                 </div>
               ) : (
-                <div style={{ color:"#dc2626", fontWeight:700, marginBottom:8 }}>
+                <div style={{ color:C.DANGER, fontWeight:700, marginBottom:8 }}>
                   ✗ {d?.hasProfile ? "Profile isolation issue" : "No domain profile tag"}
                 </div>
               )}
@@ -1818,10 +1822,10 @@ function JobTraceTab({ theme, initialJobId }) {
 
               {d?.issues?.length > 0 && (
                 <div>
-                  <div style={{ fontSize:11, fontWeight:700, color:"#dc2626", marginBottom:4 }}>Issues:</div>
+                  <div style={{ fontSize:11, fontWeight:700, color:C.DANGER, marginBottom:4 }}>Issues:</div>
                   {d.issues.map((issue, i) => (
-                    <div key={i} style={{ fontSize:11, color:"#dc2626", padding:"3px 0",
-                                          borderLeft:"2px solid #dc2626", paddingLeft:8, marginBottom:4 }}>
+                    <div key={i} style={{ fontSize:11, color:C.DANGER, padding:"3px 0",
+                                          borderLeft:`2px solid ${C.DANGER}`, paddingLeft:8, marginBottom:4 }}>
                       {issue}
                     </div>
                   ))}
@@ -1876,8 +1880,8 @@ function QuerySimulatorTab({ theme }) {
   };
 
   const REASON_COLORS = {
-    wrong_profile:"#dc2626", applied:"#16a34a",
-    disliked:"#d97706", too_old:"#6b7280", resume_generated:"#7c3aed",
+    wrong_profile:C.DANGER, applied:C.SUCCESS,
+    disliked:C.WARNING, too_old:C.INK_FAINT, resume_generated:C.VIOLET,
   };
 
   return (
@@ -1893,7 +1897,7 @@ function QuerySimulatorTab({ theme }) {
           ))}
         </select>
         <button onClick={simulate} disabled={!selectedUser || loading}
-          style={{ background:ACCENT, color:"#0f0f0f", border:"none", borderRadius:6,
+          style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
                    padding:"6px 20px", fontWeight:700, fontSize:12, cursor:"pointer",
                    opacity:!selectedUser?0.5:1 }}>
           {loading ? "Simulating…" : "Simulate"}
@@ -1908,10 +1912,10 @@ function QuerySimulatorTab({ theme }) {
           {/* Summary cards */}
           <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
             <StatCard label="Active Profile" value={data.activeProfile?.profile_name || "None"}
-              theme={theme} accent={data.activeProfile ? ACCENT : "#dc2626"}/>
+              theme={theme} accent={data.activeProfile ? ACCENT_TEXT : C.DANGER}/>
             <StatCard label="Jobs in Pool" value={fmt(data.totalJobsInPool)} theme={theme}/>
             <StatCard label="Would Show" value={fmt(data.jobsPassingAllFilters)}
-              accent="#16a34a" theme={theme}/>
+              accent={C.SUCCESS} theme={theme}/>
             {/* "Session Sync Adds" removed with the endpoint's 7-day cutoff — session sync was
                 the pre-pivot per-user pool top-up and no longer exists. Replaced with the
                 profile-derived filter set, which is what actually narrows the board now and is
@@ -1919,10 +1923,10 @@ function QuerySimulatorTab({ theme }) {
             <StatCard label="Derived Filters"
               value={fmt(Object.keys(data.derivedFilters || {}).length)}
               sub="from profile signals"
-              accent="#7c3aed" theme={theme}/>
+              accent={C.VIOLET} theme={theme}/>
             <StatCard label="Filtered Out"
               value={fmt(data.totalJobsInPool - data.jobsPassingAllFilters)}
-              accent="#dc2626" theme={theme}/>
+              accent={C.DANGER} theme={theme}/>
           </div>
 
           {/* Conditions */}
@@ -1935,7 +1939,7 @@ function QuerySimulatorTab({ theme }) {
               {data.conditions.map((c, i) => (
                 <span key={i} style={{
                   padding:"3px 10px", borderRadius:999, fontSize:10, fontWeight:700,
-                  background:ACCENT+"22", color:ACCENT, border:`1px solid ${ACCENT}44`,
+                  background:ACCENT+"22", color:ACCENT_TEXT, border:`1px solid ${ACCENT_TEXT}44`,
                 }}>
                   {c}
                 </span>
@@ -1950,7 +1954,7 @@ function QuerySimulatorTab({ theme }) {
                 Filtered reasons:
               </div>
               {Object.entries(data.filterReasonCounts).map(([reason, count]) => (
-                <Pill key={reason} color={REASON_COLORS[reason] || "#6b7280"}>
+                <Pill key={reason} color={REASON_COLORS[reason] || C.INK_FAINT}>
                   {reason}: {count}
                 </Pill>
               ))}
@@ -1961,12 +1965,12 @@ function QuerySimulatorTab({ theme }) {
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:16 }}>
             {/* Would Show */}
             <div>
-              <div style={{ fontSize:11, fontWeight:700, color:"#16a34a", marginBottom:8 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:C.SUCCESS, marginBottom:8 }}>
                 Would Show ({data.jobsPassingAllFilters})
               </div>
-              <div style={{ border:"1px solid #16a34a44", borderRadius:8, overflow:"hidden" }}>
+              <div style={{ border:`1px solid ${C.SUCCESS}44`, borderRadius:8, overflow:"hidden" }}>
                 <div style={{ display:"grid", gridTemplateColumns:"2fr 1.5fr 50px",
-                              padding:"6px 10px", background:"#16a34a11",
+                              padding:"6px 10px", background:C.SUCCESS_QUIET,
                               fontSize:10, fontWeight:700, color:theme.textMuted,
                               textTransform:"uppercase", letterSpacing:"0.06em" }}>
                   <div>Title</div><div>Company</div><div>ATS</div>
@@ -1974,17 +1978,17 @@ function QuerySimulatorTab({ theme }) {
                 {data.sampleResults.map((job, i) => (
                   <div key={i} style={{
                     display:"grid", gridTemplateColumns:"2fr 1.5fr 50px",
-                    padding:"6px 10px", borderTop:"1px solid #16a34a22", fontSize:11,
+                    padding:"6px 10px", borderTop:`1px solid ${C.SUCCESS}22`, fontSize:11,
                   }}>
                     <div style={{ fontWeight:600 }}>{truncate(job.title,28)}</div>
                     <div style={{ color:theme.textMuted }}>{truncate(job.company,20)}</div>
-                    <div style={{ color:job.ats_score>=70?"#16a34a":job.ats_score>=50?"#d97706":"#dc2626" }}>
+                    <div style={{ color:job.ats_score>=70?C.SUCCESS:job.ats_score>=50?C.WARNING:C.DANGER }}>
                       {job.ats_score != null ? job.ats_score+"%" : "—"}
                     </div>
                   </div>
                 ))}
                 {data.sampleResults.length === 0 && (
-                  <div style={{ padding:"16px", textAlign:"center", color:"#16a34a", fontSize:12 }}>
+                  <div style={{ padding:"16px", textAlign:"center", color:C.SUCCESS, fontSize:12 }}>
                     No jobs would show.
                   </div>
                 )}
@@ -1993,12 +1997,12 @@ function QuerySimulatorTab({ theme }) {
 
             {/* Filtered Out */}
             <div>
-              <div style={{ fontSize:11, fontWeight:700, color:"#dc2626", marginBottom:8 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:C.DANGER, marginBottom:8 }}>
                 Filtered Out (sample)
               </div>
-              <div style={{ border:"1px solid #dc262644", borderRadius:8, overflow:"hidden" }}>
+              <div style={{ border:`1px solid ${C.DANGER}44`, borderRadius:8, overflow:"hidden" }}>
                 <div style={{ display:"grid", gridTemplateColumns:"2fr 1.5fr 90px",
-                              padding:"6px 10px", background:"#dc262611",
+                              padding:"6px 10px", background:C.DANGER_QUIET,
                               fontSize:10, fontWeight:700, color:theme.textMuted,
                               textTransform:"uppercase", letterSpacing:"0.06em" }}>
                   <div>Title</div><div>Company</div><div>Reason</div>
@@ -2006,11 +2010,11 @@ function QuerySimulatorTab({ theme }) {
                 {data.sampleFiltered.map((job, i) => (
                   <div key={i} style={{
                     display:"grid", gridTemplateColumns:"2fr 1.5fr 90px",
-                    padding:"6px 10px", borderTop:"1px solid #dc262622", fontSize:11,
+                    padding:"6px 10px", borderTop:`1px solid ${C.DANGER}22`, fontSize:11,
                   }}>
                     <div style={{ fontWeight:600 }}>{truncate(job.title,28)}</div>
                     <div style={{ color:theme.textMuted }}>{truncate(job.company,20)}</div>
-                    <Pill color={REASON_COLORS[job.filterReason]||"#6b7280"}>{job.filterReason}</Pill>
+                    <Pill color={REASON_COLORS[job.filterReason]||C.INK_FAINT}>{job.filterReason}</Pill>
                   </div>
                 ))}
                 {data.sampleFiltered.length === 0 && (
@@ -2033,13 +2037,13 @@ function QuerySimulatorTab({ theme }) {
             </button>
             {showSql && (
               <div style={{ padding:14 }}>
-                <pre style={{ background:"#0f0f0f", color:"#e5e7eb", padding:14, borderRadius:8,
+                <pre style={{ background:C.SURFACE_SOLID, color:C.INK, padding:14, borderRadius:8,
                               fontSize:11, overflowX:"auto", margin:0, lineHeight:1.5 }}>
                   {data.rawSql}
                 </pre>
                 <button
                   onClick={() => navigator.clipboard.writeText(data.rawSql)}
-                  style={{ marginTop:8, background:ACCENT, color:"#0f0f0f", border:"none",
+                  style={{ marginTop:8, background:ACCENT, color:C.ON_ACCENT, border:"none",
                            borderRadius:6, padding:"4px 14px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
                   Copy SQL
                 </button>
@@ -2052,7 +2056,7 @@ function QuerySimulatorTab({ theme }) {
       {/* Raw Query Sandbox — always visible */}
       <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, padding:16 }}>
         <div style={{ fontSize:12, fontWeight:800, marginBottom:4 }}>Raw Query Sandbox</div>
-        <div style={{ fontSize:11, color:"#d97706", marginBottom:10 }}>
+        <div style={{ fontSize:11, color:C.WARNING, marginBottom:10 }}>
           SELECT queries only — max 200 rows returned
         </div>
         <textarea
@@ -2061,7 +2065,7 @@ function QuerySimulatorTab({ theme }) {
           rows={4}
           style={{
             width:"100%", boxSizing:"border-box",
-            background:"#0f0f0f", color:"#e5e7eb",
+            background:C.SURFACE_SOLID, color:C.INK,
             border:`1px solid ${theme.border}`, borderRadius:8,
             padding:"10px 12px", fontSize:12, fontFamily:"monospace",
             lineHeight:1.5, resize:"vertical", marginBottom:8,
@@ -2069,7 +2073,7 @@ function QuerySimulatorTab({ theme }) {
         />
         <div style={{ display:"flex", gap:8, marginBottom:12 }}>
           <button onClick={runRawQuery} disabled={rawLoading}
-            style={{ background:ACCENT, color:"#0f0f0f", border:"none", borderRadius:6,
+            style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
                      padding:"6px 18px", fontWeight:700, fontSize:11, cursor:"pointer" }}>
             {rawLoading ? "Running…" : "Run"}
           </button>
@@ -2087,7 +2091,7 @@ function QuerySimulatorTab({ theme }) {
               Object.assign(document.createElement("a"), { href:url, download:"query_results.csv" }).click();
               URL.revokeObjectURL(url);
             }}
-              style={{ background:"transparent", color:ACCENT, border:`1px solid ${ACCENT}44`,
+              style={{ background:"transparent", color:ACCENT_TEXT, border:`1px solid ${ACCENT_TEXT}44`,
                        borderRadius:6, padding:"6px 18px", fontWeight:700, fontSize:11, cursor:"pointer" }}>
               Export CSV
             </button>
@@ -2305,7 +2309,7 @@ function JobReviewTab({ theme }) {
           {roleOptions.map(r => <option key={r || "all"} value={r}>{r || "all roles"}</option>)}
         </select>
         <button onClick={load}
-          style={{ background:ACCENT, color:"#0f0f0f", border:"none", borderRadius:6,
+          style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
                    padding:"7px 14px", fontWeight:800, cursor:"pointer" }}>
           Refresh
         </button>
@@ -2333,11 +2337,11 @@ function JobReviewTab({ theme }) {
                     <div style={{ color:theme.textMuted }}>{job.company} - {job.search_query || "no query"}</div>
                   </td>
                   <td style={{ padding:"8px 10px" }}>
-                    <Pill color={currentRole === "unclassified" ? "#dc2626" : ACCENT}>{currentRole}</Pill>
+                    <Pill color={currentRole === "unclassified" ? C.DANGER : ACCENT_TEXT}>{currentRole}</Pill>
                     {job.profile_name && <div style={{ marginTop:4, color:theme.textMuted }}>{job.profile_name}</div>}
                   </td>
                   <td style={{ padding:"8px 10px" }}>
-                    <Pill color={job.suggestedRoleKey === "data" ? "#16a34a" : "#0ea5e9"}>{job.suggestedRoleKey}</Pill>
+                    <Pill color={job.suggestedRoleKey === "data" ? C.SUCCESS : C.INFO}>{job.suggestedRoleKey}</Pill>
                   </td>
                   <td style={{ padding:"8px 10px" }}>
                     <select defaultValue={job.suggestedRoleKey}
@@ -2361,14 +2365,14 @@ function JobReviewTab({ theme }) {
                   <td style={{ padding:"8px 10px", whiteSpace:"nowrap" }}>
                     <button disabled={saving === job.job_id}
                       onClick={() => reassign(job, job._nextRoleKey || job.suggestedRoleKey, job._nextProfileId ?? selectedId)}
-                      style={{ background:ACCENT, color:"#0f0f0f", border:"none", borderRadius:6,
+                      style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
                                padding:"5px 10px", fontWeight:800, cursor:"pointer", opacity:saving === job.job_id ? 0.5 : 1 }}>
                       Save
                     </button>
                     <button disabled={saving === job.job_id}
                       onClick={() => reassign(job, "unclassified", "")}
-                      style={{ marginLeft:6, background:"transparent", color:"#dc2626",
-                               border:"1px solid #dc262666", borderRadius:6,
+                      style={{ marginLeft:6, background:"transparent", color:C.DANGER,
+                               border:`1px solid ${C.DANGER}66`, borderRadius:6,
                                padding:"5px 10px", fontWeight:800, cursor:"pointer" }}>
                       Hide
                     </button>
@@ -2432,14 +2436,14 @@ export default function DBInspector() {
             <button key={v} onClick={() => setAutoRefresh(v)}
               style={{
                 padding:"3px 10px", borderRadius:999, fontSize:10, fontWeight:700, cursor:"pointer",
-                border:`1px solid ${autoRefresh===v ? ACCENT : theme.border}`,
+                border:`1px solid ${autoRefresh===v ? ACCENT_TEXT : theme.border}`,
                 background: autoRefresh===v ? ACCENT : "transparent",
-                color: autoRefresh===v ? "#0f0f0f" : theme.textMuted,
+                color: autoRefresh===v ? C.ON_ACCENT : theme.textMuted,
               }}>{l}</button>
           ))}
         </div>
         <button onClick={doRefresh}
-          style={{ background:ACCENT, color:"#0f0f0f", border:"none", borderRadius:6,
+          style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
                    padding:"5px 14px", fontWeight:700, fontSize:11, cursor:"pointer" }}>
           Refresh
         </button>
@@ -2455,7 +2459,7 @@ export default function DBInspector() {
               background:"transparent", border:"none", cursor:"pointer",
               padding:"10px 18px", fontSize:12, fontWeight:800, letterSpacing:"0.05em",
               textTransform:"uppercase", color: activeTab===t.id ? theme.text : theme.textMuted,
-              borderBottom: activeTab===t.id ? `2px solid ${ACCENT}` : "2px solid transparent",
+              borderBottom: activeTab===t.id ? `2px solid ${ACCENT_TEXT}` : "2px solid transparent",
               transition:"all 0.15s", position:"relative", top:1,
             }}>
             {t.label}

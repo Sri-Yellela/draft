@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
+import { C } from "../styles/colorTokens.js";
 
 const TONES = [
   { value: "professional",   label: "Professional" },
@@ -52,14 +53,14 @@ export default function CoverLetterModal({ resumeText, jobDescription, jobTitle,
   };
 
   const overlay = {
-    position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:9000,
+    position:"fixed", inset:0, background:C.SCRIM, zIndex:9000,
     display:"flex", alignItems:"center", justifyContent:"center", padding:16,
   };
   const modal = {
     background: theme.surface, border:`1px solid ${theme.border}`,
     borderRadius:12, width:"100%", maxWidth:680, maxHeight:"90vh",
     display:"flex", flexDirection:"column", overflow:"hidden",
-    boxShadow:"0 24px 80px rgba(0,0,0,0.35)",
+    boxShadow:C.SHADOW_SM,
   };
   const hdr = {
     display:"flex", alignItems:"center", justifyContent:"space-between",
@@ -69,7 +70,7 @@ export default function CoverLetterModal({ resumeText, jobDescription, jobTitle,
     border: secondary ? `1px solid ${theme.border}` : "none",
     borderRadius:6, padding:"8px 14px", fontWeight:700, fontSize:12,
     cursor:"pointer", background: secondary ? theme.surfaceHigh : accent,
-    color: secondary ? theme.text : "#fff",
+    color: secondary ? theme.text : C.ON_ACCENT,
   });
 
   return (
@@ -130,7 +131,7 @@ export default function CoverLetterModal({ resumeText, jobDescription, jobTitle,
           </div>
 
           {error && (
-            <div style={{ background:"#fee2e2", color:"#991b1b", borderRadius:6,
+            <div style={{ background:C.DANGER_QUIET, color:C.DANGER, borderRadius:6,
                           padding:"8px 12px", fontSize:12 }}>{error}</div>
           )}
 

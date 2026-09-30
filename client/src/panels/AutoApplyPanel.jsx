@@ -29,6 +29,7 @@ import { PanelSubTabs, PanelSearch, DateFilterButton } from "../components/ui/Pa
 import { OUTCOME, OUTCOME_LABELS } from "../../../shared/applyOutcomeGroups.js";
 import { companyLabel, UNKNOWN_COMPANY } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
+import { C } from "../styles/colorTokens.js";
 
 // ============================================================
 // AutoApplyPanel — the auto-apply pipeline, on its own tab
@@ -498,14 +499,14 @@ export function AutoApplyPanel() {
                 <span style={{ flexBasis: "100%", fontSize: 11, color: theme.textMuted, lineHeight: 1.6 }}>
                   {needsAuth.length > 0 && (
                     <>
-                      <strong style={{ color: "#854d0e" }}>{needsAuth.length}</strong> of these need
+                      <strong style={{ color: C.WARNING }}>{needsAuth.length}</strong> of these need
                       you to sign in to the employer&rsquo;s account first — autofill fills the form once
                       you have.{" "}
                     </>
                   )}
                   {cannotAuto.length > 0 && (
                     <>
-                      <strong style={{ color: "#991b1b" }}>{cannotAuto.length}</strong> sit behind a
+                      <strong style={{ color: C.DANGER }}>{cannotAuto.length}</strong> sit behind a
                       CAPTCHA or identity check and cannot be automated at all; you will need to
                       apply to {cannotAuto.length === 1 ? "that one" : "those"} yourself.
                     </>
@@ -520,8 +521,8 @@ export function AutoApplyPanel() {
                 ? `Autofill unavailable: ${applyReadiness.reason}`
                 : "Fills each application and holds it for your approval. Nothing is submitted until you approve it."}
               style={{ border: "none", borderRadius: 6, padding: "8px 14px",
-                       background: applyReadiness && !applyReadiness.available ? (theme.surfaceHigh || "#555") : theme.accent,
-                       color: "#0f0f0f", fontWeight: 800,
+                       background: applyReadiness && !applyReadiness.available ? (theme.surfaceHigh || C.BORDER_STRONG) : theme.accent,
+                       color: C.ON_ACCENT, fontWeight: 800,
                        cursor: applyReadiness && !applyReadiness.available ? "not-allowed" : "pointer",
                        fontSize: 12, opacity: applyReadiness && !applyReadiness.available ? 0.5 : 1 }}>
               Autofill for Review
@@ -779,7 +780,7 @@ export function AutoApplyPanel() {
                   key={p.origin}
                   theme={theme}
                   hero={!isCaptcha}
-                  tone={isCaptcha ? "#dc2626" : "#2563eb"}
+                  tone={isCaptcha ? C.DANGER : C.INFO}
                   kicker={isCaptcha ? "cannot be automated" : "one sign-in clears all of these"}
                   headline={isCaptcha
                     ? `${p.host} is behind a CAPTCHA or identity check`
@@ -798,7 +799,7 @@ export function AutoApplyPanel() {
             {/* Low-confidence answers: the resolver HAS a value and would not send it. */}
             {confirmQuestions.length > 0 && (
               <ObstacleCard
-                theme={theme} tone="#d97706"
+                theme={theme} tone={C.WARNING}
                 kicker="we guessed, and would not send a guess"
                 headline={`${confirmQuestions.length} answer${confirmQuestions.length === 1 ? "" : "s"} need${confirmQuestions.length === 1 ? "s" : ""} confirmation`}
                 detail={applyQuestionMeta.blockedJobs > 0
@@ -815,7 +816,7 @@ export function AutoApplyPanel() {
                 inferred from the profile, so never grouped with the guesses above. */}
             {attestQuestions.length > 0 && (
               <ObstacleCard
-                theme={theme} tone="#dc2626"
+                theme={theme} tone={C.DANGER}
                 kicker="only you can state these"
                 headline={`${attestQuestions.length} question${attestQuestions.length === 1 ? "" : "s"} you must answer yourself`}
                 detail="These are statements to the employer — work authorisation, sponsorship, disability status. We never answer them from your profile."
@@ -828,7 +829,7 @@ export function AutoApplyPanel() {
 
             {otherQuestions.length > 0 && (
               <ObstacleCard
-                theme={theme} tone="#d97706"
+                theme={theme} tone={C.WARNING}
                 kicker="the form asked for something we do not have"
                 headline={`${otherQuestions.length} field${otherQuestions.length === 1 ? "" : "s"} we would not fill without you`}
                 detail="Answering these turns the hold into a completed application. Saved answers are reused verbatim, never re-inferred."
@@ -842,7 +843,7 @@ export function AutoApplyPanel() {
             {/* Filled and one click from a real employer — the highest-stakes item on the panel. */}
             {applyPending.length > 0 && (
               <ObstacleCard
-                theme={theme} tone="#2563eb" hero
+                theme={theme} tone={C.INFO} hero
                 kicker="filled, checked, and not sent"
                 headline={`${applyPending.length} application${applyPending.length === 1 ? "" : "s"} waiting for your approval`}
                 /* TASK Q — THE BUDGET IS ON THE SCREEN WHERE IT IS SPENT.
@@ -871,8 +872,8 @@ export function AutoApplyPanel() {
                 the alternative is a click that appears to do nothing. */}
             {handoffMsg && (
               <div style={{ display: "flex", alignItems: "flex-start", gap: 10,
-                            border: `1px solid ${handoffMsg.kind === "open" ? "#2563eb" : theme.border}`,
-                            borderLeft: `3px solid ${handoffMsg.kind === "open" ? "#2563eb" : "#d97706"}`,
+                            border: `1px solid ${handoffMsg.kind === "open" ? C.INFO : theme.border}`,
+                            borderLeft: `3px solid ${handoffMsg.kind === "open" ? C.INFO : C.WARNING}`,
                             borderRadius: 8, padding: "10px 14px", background: theme.surfaceHigh }}>
                 <span style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.6, flex: 1 }}>
                   {handoffMsg.text}
@@ -953,7 +954,7 @@ export function AutoApplyPanel() {
             // rule groupByApplication uses within one application, one tier up.
             const allProtective = items.every(a => a.protective);
             const allGone = items.every(a => a.postingGone);
-            const tone = allGone ? "#6b7280" : allProtective ? "#d97706" : "#dc2626";
+            const tone = allGone ? C.INK_FAINT : allProtective ? C.WARNING : C.DANGER;
             return (
               <CompanyTile
                 key={`pending-${company}`}
@@ -1028,7 +1029,7 @@ export function AutoApplyPanel() {
               company={company}
               count={items.length}
               section="submitted"
-              tone="#16a34a"
+              tone={C.SUCCESS}
               theme={theme}
               pillText="sent"
               meta={`${items.length} application${items.length === 1 ? "" : "s"} · ${items.filter(j => j.submitVerified).length} confirmed by the site`}
@@ -1055,7 +1056,7 @@ export function AutoApplyPanel() {
           {listedBrokeByCompany.length > 0 && (
             <>
               <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em",
-                            textTransform: "uppercase", color: "#dc2626", marginTop: 4 }}>
+                            textTransform: "uppercase", color: C.DANGER, marginTop: 4 }}>
                 These broke — {listedSplit.broke.length} application{listedSplit.broke.length === 1 ? "" : "s"}
               </div>
               <TileGrid min={430} gap={14}>
@@ -1065,7 +1066,7 @@ export function AutoApplyPanel() {
                     company={company}
                     count={items.length}
                     section="broke"
-                    tone="#dc2626"
+                    tone={C.DANGER}
                     theme={theme}
                     pillText="did not complete"
                     meta={`${items.length} application${items.length === 1 ? "" : "s"} · nothing was sent`}
@@ -1087,7 +1088,7 @@ export function AutoApplyPanel() {
           {listedHeldByCompany.length > 0 && (
             <>
               <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em",
-                            textTransform: "uppercase", color: "#d97706", marginTop: 8 }}>
+                            textTransform: "uppercase", color: C.WARNING, marginTop: 8 }}>
                 Held on purpose — {listedSplit.held.length} application{listedSplit.held.length === 1 ? "" : "s"}
               </div>
               <div style={{ fontSize: 11, color: theme.textMuted, marginTop: -2 }}>
@@ -1107,7 +1108,7 @@ export function AutoApplyPanel() {
                     company={company}
                     count={items.length}
                     section="heldOnPurpose"
-                    tone={allGone ? "#6b7280" : "#d97706"}
+                    tone={allGone ? C.INK_FAINT : C.WARNING}
                     theme={theme}
                     pillText={allGone ? "posting gone" : "held on purpose"}
                     meta={allGone
@@ -1137,7 +1138,7 @@ export function AutoApplyPanel() {
             // Named tier rather than the literal 700 it carried. Same class as JobsPanel's
             // resume-enhance modal: a focused takeover over the app, above the filters drawer.
             position:"fixed", inset:0, zIndex:Z.MODAL_SCRIM,
-            background:"rgba(0,0,0,0.55)", display:"flex",
+            background:C.SCRIM, display:"flex",
             alignItems:"flex-start", justifyContent:"center",
             paddingTop:48, overflowY:"auto",
           }}
@@ -1147,7 +1148,7 @@ export function AutoApplyPanel() {
             borderRadius:8, width:"min(96vw, 820px)",
             maxHeight:"82vh", display:"flex", flexDirection:"column",
             border:`1px solid ${theme.border}`,
-            boxShadow:"0 24px 64px rgba(0,0,0,0.4)",
+            boxShadow:C.SHADOW_SM,
           }}>
             {/* Header */}
             <div style={{
@@ -1173,22 +1174,22 @@ export function AutoApplyPanel() {
                       is the first thing to know when reading one. */}
                   <span style={{ fontWeight:700, padding:"1px 7px", borderRadius:999,
                                  whiteSpace:"nowrap",
-                                 background: applyRunDetail.run.status === "completed" ? "#16a34a22"
+                                 background: applyRunDetail.run.status === "completed" ? C.SUCCESS_QUIET
                                    : applyRunDetail.run.status === "running" ? `${theme.accent}22`
-                                   : applyRunDetail.run.status === "queued" ? "#d9770622" : "#6b728022",
-                                 color: applyRunDetail.run.status === "completed" ? "#16a34a"
+                                   : applyRunDetail.run.status === "queued" ? C.WARNING_QUIET : C.HOVER,
+                                 color: applyRunDetail.run.status === "completed" ? C.SUCCESS
                                    : applyRunDetail.run.status === "running" ? theme.accent
-                                   : applyRunDetail.run.status === "queued" ? "#d97706" : theme.textMuted }}>
+                                   : applyRunDetail.run.status === "queued" ? C.WARNING : theme.textMuted }}>
                     {applyRunDetail.run.status || "—"}
                   </span>
                   {applyRunDetail.run.submittedCount > 0 && (
-                    <span style={{ color:"#16a34a", fontWeight:700 }}>✓ {applyRunDetail.run.submittedCount} submitted</span>
+                    <span style={{ color:C.SUCCESS, fontWeight:700 }}>✓ {applyRunDetail.run.submittedCount} submitted</span>
                   )}
                   {applyRunDetail.run.heldCount > 0 && (
-                    <span style={{ color:"#d97706", fontWeight:700 }}>⏸ {applyRunDetail.run.heldCount} held</span>
+                    <span style={{ color:C.WARNING, fontWeight:700 }}>⏸ {applyRunDetail.run.heldCount} held</span>
                   )}
                   {applyRunDetail.run.failedCount > 0 && (
-                    <span style={{ color:"#dc2626", fontWeight:700 }}>✗ {applyRunDetail.run.failedCount} failed</span>
+                    <span style={{ color:C.DANGER, fontWeight:700 }}>✗ {applyRunDetail.run.failedCount} failed</span>
                   )}
                   {applyRunDetail.run.startedAt && (
                     <span style={{ color:theme.textDim }}>
@@ -1216,7 +1217,7 @@ export function AutoApplyPanel() {
                   the detail view shows every answer with the rule that produced it, plus the exact
                   resume that will be attached. */}
               {!applyRunDetail && scopedPending.length > 0 && (
-                <div style={{ border:"1px solid #2563eb", borderRadius:6, padding:"12px 14px",
+                <div style={{ border:`1px solid ${C.INFO}`, borderRadius:6, padding:"12px 14px",
                               background:theme.surfaceHigh, display:"flex", flexDirection:"column", gap:10 }}>
                   <div>
                     <div style={{ fontWeight:800, fontSize:13, color:theme.text }}>
@@ -1247,7 +1248,7 @@ export function AutoApplyPanel() {
                           {p.guessCount > 0 && (
                             <span title="Answers matched by a fuzzy label match rather than an exact mapping. Read these."
                               style={{ fontSize:9, fontWeight:800, padding:"2px 7px", borderRadius:999,
-                                       background:"#d9770622", color:"#d97706", whiteSpace:"nowrap", flexShrink:0 }}>
+                                       background:C.WARNING_QUIET, color:C.WARNING, whiteSpace:"nowrap", flexShrink:0 }}>
                               {p.guessCount} GUESSED
                             </span>
                           )}
@@ -1314,11 +1315,11 @@ export function AutoApplyPanel() {
                           )}
                           <span style={{ flex:1 }}/>
                           <button onClick={() => decidePending([p.runJobId], false)} disabled={pendingBusy}
-                            style={btn(theme.surface, "#dc2626", "#dc262655")}>
+                            style={btn(theme.surface, C.DANGER, `${C.DANGER}55`)}>
                             Reject
                           </button>
                           <button onClick={() => decidePending([p.runJobId], true)} disabled={pendingBusy}
-                            style={btn("#2563eb", "#ffffff", "#2563eb")}>
+                            style={btn(C.INFO, C.SURFACE_SOLID, C.INFO)}>
                             Approve &amp; send
                           </button>
                         </div>
@@ -1352,8 +1353,8 @@ export function AutoApplyPanel() {
                                         </span>
                                         <span style={{ fontSize:9, fontWeight:800, padding:"1px 6px", borderRadius:999,
                                                        whiteSpace:"nowrap",
-                                                       background: guess ? "#d9770622" : `${theme.border}66`,
-                                                       color: guess ? "#d97706" : theme.textDim }}>
+                                                       background: guess ? C.WARNING_QUIET : `${theme.border}66`,
+                                                       color: guess ? C.WARNING : theme.textDim }}>
                                           {guess ? "GUESS" : (a.provenance || "").replace(/_/g, " ") || "—"}
                                         </span>
                                       </div>
@@ -1376,13 +1377,13 @@ export function AutoApplyPanel() {
                     {scopedPending.length > 1 && (
                       confirmApproveAll ? (
                         <>
-                          <span style={{ fontSize:11, color:"#dc2626", fontWeight:700 }}>
+                          <span style={{ fontSize:11, color:C.DANGER, fontWeight:700 }}>
                             Send all {scopedPending.length} to their employers?
                           </span>
                           <button onClick={() => decidePending(scopedPending.map(p => p.runJobId), true)}
                             disabled={pendingBusy}
-                            style={{ border:"none", borderRadius:6, padding:"6px 12px", background:"#dc2626",
-                                     color:"#fff", fontWeight:800, fontSize:12,
+                            style={{ border:"none", borderRadius:6, padding:"6px 12px", background:C.DANGER,
+                                     color:C.SURFACE_SOLID, fontWeight:800, fontSize:12,
                                      cursor: pendingBusy ? "wait" : "pointer" }}>
                             Yes, send all
                           </button>
@@ -1448,20 +1449,20 @@ export function AutoApplyPanel() {
                           {isEligibility && (
                             <span title="Submitted to the employer as your own statement. Never inferred from your profile."
                               style={{ fontSize:9, fontWeight:800, padding:"2px 7px", borderRadius:999,
-                                       background:"#dc262622", color:"#dc2626", whiteSpace:"nowrap", flexShrink:0 }}>
+                                       background:C.DANGER_QUIET, color:C.DANGER, whiteSpace:"nowrap", flexShrink:0 }}>
                               ATTESTATION
                             </span>
                           )}
                           {q.answered && (
                             <span style={{ fontSize:9, fontWeight:700, padding:"2px 7px", borderRadius:999,
-                                           background:"#16a34a22", color:"#16a34a", whiteSpace:"nowrap", flexShrink:0 }}>
+                                           background:C.SUCCESS_QUIET, color:C.SUCCESS, whiteSpace:"nowrap", flexShrink:0 }}>
                               SAVED
                             </span>
                           )}
                         </div>
 
                         {isEligibility && (
-                          <div style={{ fontSize:10, color:"#dc2626" }}>
+                          <div style={{ fontSize:10, color:C.DANGER }}>
                             You are stating this to the employer yourself. We never answer it from your profile.
                           </div>
                         )}
@@ -1504,7 +1505,7 @@ export function AutoApplyPanel() {
                   <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", paddingTop:4 }}>
                     <button onClick={() => submitApplyAnswers(true)} disabled={answersSaving}
                       style={{ border:"none", borderRadius:6, padding:"6px 12px", background:theme.accent,
-                               color:"#0f0f0f", fontWeight:800, fontSize:12,
+                               color:C.ON_ACCENT, fontWeight:800, fontSize:12,
                                cursor: answersSaving ? "wait" : "pointer", opacity: answersSaving ? 0.6 : 1 }}>
                       {answersSaving ? "Saving…" : "Save & retry"}
                     </button>
@@ -1534,7 +1535,7 @@ export function AutoApplyPanel() {
                       border:`1px solid ${theme.border}`, borderRadius:8, padding:"10px 14px",
                       background:theme.surfaceHigh, display:"flex", alignItems:"center", gap:10 }}>
                       <span style={{ fontSize:9, fontWeight:700, padding:"1px 7px", borderRadius:999,
-                                     background:"#dbeafe", color:"#1e40af", whiteSpace:"nowrap" }}>
+                                     background:C.INFO_QUIET, color:C.INFO, whiteSpace:"nowrap" }}>
                         {p.gateReasons?.includes("captcha_required") ? "verify" : "sign in"}
                       </span>
                       <div style={{ flex:1, minWidth:0 }}>
@@ -1649,13 +1650,13 @@ export function AutoApplyPanel() {
                 }}>
                   {applyRunDetail.logs.map(log => (
                     <div key={log.id} style={{
-                      color: log.level === "error" ? "#dc2626" : log.level === "warn" ? "#d97706" : theme.textMuted,
+                      color: log.level === "error" ? C.DANGER : log.level === "warn" ? C.WARNING : theme.textMuted,
                     }}>
                       <span style={{ color:theme.textDim, marginRight:6 }}>
                         {log.createdAt ? new Date(log.createdAt).toLocaleTimeString() : ""}
                       </span>
                       <span style={{
-                        color: log.level === "error" ? "#dc2626" : log.level === "warn" ? "#d97706" : theme.accent,
+                        color: log.level === "error" ? C.DANGER : log.level === "warn" ? C.WARNING : theme.accent,
                         marginRight:6, fontWeight:700,
                       }}>
                         [{log.event || log.level}]

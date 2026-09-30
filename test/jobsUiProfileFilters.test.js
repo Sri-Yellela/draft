@@ -22,9 +22,10 @@ test("filter panel uses an opaque modal surface", () => {
   const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
 
   // A real dim behind the drawer.
-  assert.match(jobsPanel, /background:"rgba\(0,0,0,0\.42\)"/);
+  // Re-pinned at UI step 2b (09-30): the scrim and the modal fallback are tokens now.
+  assert.match(jobsPanel, /background:C\.SCRIM/);
   // The drawer itself uses the dedicated modal token, never theme.surface (var(--bg-card), 0.68).
-  assert.match(jobsPanel, /background:theme\.modalSurface \|\| "#111827"/);
+  assert.match(jobsPanel, /background:theme\.modalSurface \|\| C\.SURFACE_MODAL/);
   assert.match(jobsPanel, /boxShadow:theme\.shadowXl/);
 });
 

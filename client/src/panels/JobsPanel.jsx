@@ -37,6 +37,8 @@ import CompanyIcon from "../components/ui/CompanyIcon.jsx";
 // AH2: the job-detail address, shared with JobCard so the href and the param cannot disagree.
 import { JOB_URL_PARAM, jobIdFromSearch } from "../lib/jobUrl.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
+import { bandChipStyle } from "../styles/bandStyle.js";
+import { C } from "../styles/colorTokens.js";
 
 // The three extension-bridge stubs that stood here (getLinkedInExtensionInstallUrl,
 // isLinkedInExtensionInstalled, sendExtensionRequest) are gone with cleanup 5.3. They returned
@@ -83,7 +85,7 @@ function normalizeApiJob(job) {
   };
 }
 
-const USER_TEXT   = "#0f0f0f";   // black text on accent
+const USER_TEXT   = C.ON_ACCENT;   // black text on accent
 const PROFILE_UI_CACHE_KEY = "rm_jobs_profile_ui_v1";
 
 // AH2: this snapshot is PER TAB, not per origin.
@@ -204,8 +206,8 @@ function buildArtifact(job, data, tool) {
 function LinkedInLogo({ size = 20 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 20 20" aria-label="LinkedIn" role="img">
-      <rect width="20" height="20" rx="3" fill="#0A66C2"/>
-      <text x="4" y="15" fontFamily="Georgia,serif" fontWeight="900" fontSize="13" fill="#fff">in</text>
+      <rect width="20" height="20" rx="3" fill={C.PROVIDER_LINKEDIN}/>
+      <text x="4" y="15" fontFamily="Georgia,serif" fontWeight="900" fontSize="13" fill={C.ON_PROVIDER}>in</text>
     </svg>
   );
 }
@@ -214,9 +216,9 @@ function LinkedInLogo({ size = 20 }) {
 function IndeedLogo({ size = 20 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 20 20" aria-label="Indeed" role="img">
-      <rect width="20" height="20" rx="3" fill="#003A9B"/>
-      <circle cx="10" cy="8" r="3" fill="#fff"/>
-      <rect x="7.5" y="11" width="5" height="6" rx="1" fill="#fff"/>
+      <rect width="20" height="20" rx="3" fill={C.PROVIDER_INDEED}/>
+      <circle cx="10" cy="8" r="3" fill={C.ON_PROVIDER}/>
+      <rect x="7.5" y="11" width="5" height="6" rx="1" fill={C.ON_PROVIDER}/>
     </svg>
   );
 }
@@ -226,7 +228,7 @@ function PlatformLogo({ platform, size = 20, theme }) {
   const p = (platform || "").toLowerCase();
   if (p === "linkedin") return <LinkedInLogo size={size}/>;
   if (p === "indeed")   return <IndeedLogo size={size}/>;
-  return <span style={{ fontSize:size*0.5, color:theme?.textMuted||"#888" }}>◆</span>;
+  return <span style={{ fontSize:size*0.5, color:theme?.textMuted||C.INK_FAINT }}>◆</span>;
 }
 
 // ── Company icon with monogram fallback ───────────────────────
@@ -235,8 +237,8 @@ function PlatformLogo({ platform, size = 20, theme }) {
 function WorkBadge({ t, theme }) {
   // Use semantic colors that work in both light/dark — the fg/bg are theme tokens
   const map = {
-    Remote: { bg:"#e8f6fb", fg:"#1a6a8a" },
-    Hybrid: { bg:"#f0f9ff", fg:"#0284c7" },
+    Remote: { bg:C.INFO_QUIET, fg:C.INFO },
+    Hybrid: { bg:C.INFO_QUIET, fg:C.INFO },
   };
   const s = map[t] || null;
   if (s) {
@@ -266,10 +268,9 @@ function ATSBadge({ score, onClick }) {
     <span
       title={meta.blurb}
       onClick={onClick ? e => { e.stopPropagation(); onClick(); } : undefined}
-      style={{ background:meta.bg, color:meta.fg, padding:"2px 8px",
+      style={{ ...bandChipStyle(band), padding:"2px 8px",
                borderRadius:999, fontSize:10, fontWeight:700,
-               cursor: onClick ? "pointer" : "default",
-               border: onClick ? `1px solid ${meta.fg}33` : "none" }}>
+               cursor: onClick ? "pointer" : "default" }}>
       {meta.short}
     </span>
   );
@@ -280,9 +281,9 @@ function ResumeBadge({ onClick, loading }) {
   return (
     <span
       onClick={onClick ? e => { e.stopPropagation(); onClick(); } : undefined}
-      style={{ background:"#e8f6fb", color:"#1a6a8a", padding:"2px 8px",
+      style={{ background:C.INFO_QUIET, color:C.INFO, padding:"2px 8px",
                borderRadius:999, fontSize:10, fontWeight:700,
-               cursor:"pointer", border:"1px solid #A8D8EA44",
+               cursor:"pointer", border:`1px solid ${C.INFO}44`,
                display:"inline-flex", alignItems:"center", gap:3 }}>
       {loading ? "Loading" : "Resume"}
     </span>
@@ -505,9 +506,9 @@ function FiltersPanel({
             setIncluded([...included, opt.value]);
           }
         };
-        const border = isIn ? theme.accent : isOut ? "#dc2626" : theme.border;
-        const bg     = isIn ? theme.accentMuted : isOut ? "#fee2e2" : "transparent";
-        const fg     = isIn ? theme.accentText : isOut ? "#991b1b" : theme.textMuted;
+        const border = isIn ? theme.accent : isOut ? C.DANGER : theme.border;
+        const bg     = isIn ? theme.accentMuted : isOut ? C.DANGER_QUIET : "transparent";
+        const fg     = isIn ? theme.accentText : isOut ? C.DANGER : theme.textMuted;
         return (
           <button key={opt.value} type="button" onClick={cycle}
             title={[opt.hint, isIn ? "Included — click to exclude" : isOut ? "Excluded — click to clear" : "Click to include"]
@@ -550,7 +551,7 @@ function FiltersPanel({
       // — including behind the top bar — while the panel inside it starts below the nav. A scrim
       // that stopped at the nav would leave an undimmed strip across the top of a modal surface.
       padding:`${FILTER_DRAWER_TOP} 0 ${FILTER_DRAWER_BOTTOM}px`,
-      background:"rgba(0,0,0,0.42)",
+      background:C.SCRIM,
       isolation:"isolate",
     }}
     onClick={e => { if(e.target===e.currentTarget) onClose(); }}>
@@ -559,11 +560,11 @@ function FiltersPanel({
         transition={{ type:"tween", duration:0.22 }}
         style={{
           width:320, height:"100%", zIndex:Z.DRAWER,
-          background:theme.modalSurface || "#111827",
+          background:theme.modalSurface || C.SURFACE_MODAL,
           borderLeft:`3px solid ${theme.accent}`,
           padding:"24px 20px", overflowY:"auto",
           display:"flex", flexDirection:"column", gap:16,
-          boxShadow:theme.shadowXl || "-12px 0 36px rgba(0,0,0,0.24)",
+          boxShadow:theme.shadowXl || C.SHADOW_SM,
         }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
@@ -580,7 +581,7 @@ function FiltersPanel({
                      background:"none", border:"none",
                      cursor:"pointer", fontSize:18, lineHeight:1, color:theme.textMuted,
                      transition:"background 0.15s, color 0.15s" }}
-            onMouseEnter={e => { e.currentTarget.style.background = theme.surfaceHigh || "rgba(255,255,255,0.08)";
+            onMouseEnter={e => { e.currentTarget.style.background = theme.surfaceHigh || C.HOVER;
                                  e.currentTarget.style.color = theme.text; }}
             onMouseLeave={e => { e.currentTarget.style.background = "none";
                                  e.currentTarget.style.color = theme.textMuted; }}>x</button>
@@ -3329,7 +3330,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
                 fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
                 fontSize:13, letterSpacing:"0.08em", textTransform:"uppercase",
                 background: boardTab===id ? theme.accent : theme.surface,
-                color: boardTab===id ? "#0f0f0f" : theme.text,
+                color: boardTab===id ? C.ON_ACCENT : theme.text,
                 transition:"background 0.15s",
                 borderRight: idx === boardTabs.length - 1 ? "none" : `2px solid ${theme.borderStrong}`,
               }}>
@@ -3424,16 +3425,16 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         </LucyBtn>
         </>)}
         {smartSearchError && (
-          <div style={{ flexBasis:"100%", padding:"4px 0", fontSize:11, color:"#991b1b" }}>
+          <div style={{ flexBasis:"100%", padding:"4px 0", fontSize:11, color:C.DANGER }}>
             Error: {smartSearchError}
-            <button onClick={() => setSmartSearchError("")} style={{ marginLeft:6, background:"none", border:"none", cursor:"pointer", fontSize:11, color:"#991b1b" }}>Dismiss</button>
+            <button onClick={() => setSmartSearchError("")} style={{ marginLeft:6, background:"none", border:"none", cursor:"pointer", fontSize:11, color:C.DANGER }}>Dismiss</button>
           </div>
         )}
 
         {uploadError && (
-          <div style={{ flexBasis:"100%", padding:"4px 0", fontSize:11, color:"#991b1b" }}>
+          <div style={{ flexBasis:"100%", padding:"4px 0", fontSize:11, color:C.DANGER }}>
             Error: {uploadError}
-            <button onClick={() => setUploadError("")} style={{ marginLeft:6, background:"none", border:"none", cursor:"pointer", fontSize:11, color:"#991b1b" }}>Dismiss</button>
+            <button onClick={() => setUploadError("")} style={{ marginLeft:6, background:"none", border:"none", cursor:"pointer", fontSize:11, color:C.DANGER }}>Dismiss</button>
           </div>
         )}
 
@@ -3454,12 +3455,12 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       {enhanceModalOpen && enhanceResult && (
         <div style={{
           position:"fixed", inset:0, zIndex:Z.MODAL_SCRIM,
-          background:"rgba(0,0,0,0.6)", display:"flex", alignItems:"center", justifyContent:"center",
+          background:C.SCRIM, display:"flex", alignItems:"center", justifyContent:"center",
         }}>
           <div style={{
             background:theme.modalSurface || theme.surface, borderRadius:8, width:"min(92vw, 760px)",
             maxHeight:"85vh", overflowY:"auto", padding:0,
-            border:`1px solid ${theme.border}`, boxShadow:"0 24px 64px rgba(0,0,0,0.35)",
+            border:`1px solid ${theme.border}`, boxShadow:C.SHADOW_SM,
           }}>
             {/* Header */}
             <div style={{ padding:"20px 24px 16px", borderBottom:`1px solid ${theme.border}` }}>
@@ -3470,7 +3471,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               {enhanceResult.delta != null && (
                 <div style={{ fontSize:12, color:theme.textMuted, marginTop:4 }}>
                   ATS score improved by
-                  <span style={{ color: enhanceResult.delta > 0 ? "#16a34a" : "#dc2626",
+                  <span style={{ color: enhanceResult.delta > 0 ? C.SUCCESS : C.DANGER,
                                   fontWeight:700, marginLeft:4 }}>
                     {enhanceResult.delta > 0 ? "+" : ""}{enhanceResult.delta} points
                   </span>
@@ -3493,7 +3494,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               </div>
               <div style={{ padding:"16px 20px" }}>
                 <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
-                               letterSpacing:"0.06em", color:"#16a34a", marginBottom:8 }}>
+                               letterSpacing:"0.06em", color:C.SUCCESS, marginBottom:8 }}>
                   Enhanced
                 </div>
                 <pre style={{ fontSize:11, color:theme.text, whiteSpace:"pre-wrap",
@@ -3528,7 +3529,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
                 </button>
               </div>
               <div style={{ fontSize:10, color:theme.textDim, textAlign:"center", maxWidth:480 }}>
-                This is your one-time free enhancement. Your choice here does not affect whether it has been used.
+                This is your one-time enhancement. Your choice here does not affect whether it has been used.
               </div>
             </div>
           </div>
@@ -3858,22 +3859,22 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
           {/* Scrape error banner */}
           {scrapeError && (
             <div style={{ margin:"8px 16px 0", padding:"10px 14px", borderRadius:4,
-                          background:"#fee2e2", border:"1px solid #fca5a5",
+                          background:C.DANGER_QUIET, border:`1px solid ${C.DANGER}`,
                           display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-              <span style={{ fontSize:12, color:"#991b1b" }}>
+              <span style={{ fontSize:12, color:C.DANGER }}>
                 Error: {scrapeError}
               </span>
               <div style={{ display:"flex", gap:8, alignItems:"center" }}>
                 {pollStatus === "error" && onRetryPoll && (
                   <button onClick={onRetryPoll}
-                    style={{ background:"none", border:`1px solid #991b1b`, borderRadius:4,
-                             cursor:"pointer", color:"#991b1b", fontSize:11, padding:"2px 8px",
+                    style={{ background:"none", border:`1px solid ${C.DANGER}`, borderRadius:4,
+                             cursor:"pointer", color:C.DANGER, fontSize:11, padding:"2px 8px",
                              fontWeight:700 }}>
                     Retry
                   </button>
                 )}
                 <button onClick={onClearScrapeError} style={{ background:"none", border:"none",
-                  cursor:"pointer", color:"#991b1b", fontSize:14 }}>x</button>
+                  cursor:"pointer", color:C.DANGER, fontSize:14 }}>x</button>
               </div>
             </div>
           )}
@@ -4168,7 +4169,7 @@ function PagingEmptyState({ theme, reason, onFirstPage }) {
       {onFirstPage && (
         <button type="button" onClick={onFirstPage}
           style={{ border:"none", borderRadius:6, padding:"8px 16px", background:th.accent,
-                   color:"#0f0f0f", fontWeight:800, fontSize:12, cursor:"pointer" }}>
+                   color:C.ON_ACCENT, fontWeight:800, fontSize:12, cursor:"pointer" }}>
           Go to the first page
         </button>
       )}
@@ -4230,7 +4231,7 @@ function FilteredEmptyState({ theme, count, onClearFilters }) {
       {onClearFilters && (
         <button type="button" onClick={onClearFilters}
           style={{ border:"none", borderRadius:6, padding:"8px 16px", background:th.accent,
-                   color:"#0f0f0f", fontWeight:800, fontSize:12, cursor:"pointer" }}>
+                   color:C.ON_ACCENT, fontWeight:800, fontSize:12, cursor:"pointer" }}>
           Clear all filters
         </button>
       )}
@@ -4305,7 +4306,7 @@ function SetupGateNotice({ theme, title, body, actionLabel, onAction }) {
                   padding:32, background:theme.bg }}>
       <div style={{ width:"min(92vw, 520px)", border:`1px solid ${theme.border}`,
                     background:theme.surface, borderRadius:8, padding:24,
-                    boxShadow:"0 16px 40px rgba(0,0,0,0.12)" }}>
+                    boxShadow:C.SHADOW_SM }}>
         <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
                       fontSize:22, letterSpacing:"0.06em", textTransform:"uppercase",
                       color:theme.text, marginBottom:8 }}>
@@ -4316,7 +4317,7 @@ function SetupGateNotice({ theme, title, body, actionLabel, onAction }) {
         </div>
         <button onClick={onAction}
           style={{ border:"none", borderRadius:6, padding:"10px 16px",
-                   background:theme.accent, color:"#0f0f0f", fontWeight:800,
+                   background:theme.accent, color:C.ON_ACCENT, fontWeight:800,
                    cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif",
                    letterSpacing:"0.06em", textTransform:"uppercase" }}>
           {actionLabel}
@@ -4328,11 +4329,11 @@ function SetupGateNotice({ theme, title, body, actionLabel, onAction }) {
 
 function SearchIntentDialog({ theme, prompt, onConfirm, onCancel }) {
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:750, background:"rgba(0,0,0,0.48)",
+    <div style={{ position:"fixed", inset:0, zIndex:750, background:C.SCRIM,
                   display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
       <div role="dialog" aria-modal="true" style={{ width:"min(92vw, 460px)",
         background:theme.modalSurface || theme.surface, border:`1px solid ${theme.border}`,
-        borderRadius:8, boxShadow:"0 24px 72px rgba(0,0,0,0.32)", padding:22 }}>
+        borderRadius:8, boxShadow:C.SHADOW_SM, padding:22 }}>
         <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
                       fontSize:20, letterSpacing:"0.06em", textTransform:"uppercase",
                       color:theme.text, marginBottom:8 }}>
@@ -4349,7 +4350,7 @@ function SearchIntentDialog({ theme, prompt, onConfirm, onCancel }) {
           </button>
           <button onClick={onConfirm}
             style={{ border:"none", borderRadius:6, padding:"8px 12px",
-                     background:theme.accent, color:"#0f0f0f", cursor:"pointer", fontWeight:800 }}>
+                     background:theme.accent, color:C.ON_ACCENT, cursor:"pointer", fontWeight:800 }}>
             {prompt.confirmLabel || "Continue"}
           </button>
         </div>
@@ -4377,7 +4378,7 @@ function HistoryList({ generated, onOpen, onExport, theme: themeProp }) {
     <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
       {entries.map(([jid,v]) => {
         const letter = (v.company||"?")[0].toUpperCase();
-        const colors = ["#0A66C2","#7c3aed","#0891b2","#16a34a","#dc2626","#d97706","#9333ea"];
+        const colors = [C.PROVIDER_LINKEDIN,C.VIOLET,C.TEAL,C.SUCCESS,C.DANGER,C.WARNING,C.VIOLET];
         let hash = 0;
         for (const c of v.company||"") hash = (hash*31+c.charCodeAt(0))&0xffff;
         const bg = colors[hash%colors.length];
@@ -4386,7 +4387,7 @@ function HistoryList({ generated, onOpen, onExport, theme: themeProp }) {
                                    display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:32, height:32, borderRadius:8, background:bg,
                            display:"flex", alignItems:"center", justifyContent:"center",
-                           fontWeight:800, fontSize:11, color:"#fff", flexShrink:0 }}>
+                           fontWeight:800, fontSize:11, color:C.SURFACE_SOLID, flexShrink:0 }}>
               {letter}
             </div>
             <div style={{ flex:1, minWidth:0 }}>
@@ -4401,8 +4402,8 @@ function HistoryList({ generated, onOpen, onExport, theme: themeProp }) {
               <ATSBadge score={v.atsScore}/>
             </div>
             <div style={{ display:"flex", gap:5, flexShrink:0 }}>
-              <IconBtn bg="#0284c7" size={26} title="Open in sandbox" onClick={() => onOpen(v)}>👁</IconBtn>
-              <IconBtn bg="#16a34a" size={26} title="Export PDF" onClick={() => onExport(null,v.html,v.company)}>📥</IconBtn>
+              <IconBtn bg={C.INFO} size={26} title="Open in sandbox" onClick={() => onOpen(v)}>👁</IconBtn>
+              <IconBtn bg={C.SUCCESS} size={26} title="Export PDF" onClick={() => onExport(null,v.html,v.company)}>📥</IconBtn>
             </div>
           </div>
         );
@@ -4417,7 +4418,7 @@ function CompanyReuseModal({ company, onUseExisting, onGenerateNew, onCancel, th
     <div style={{
       position:"fixed", inset:0, zIndex:1000, display:"flex",
       alignItems:"center", justifyContent:"center",
-      background:"rgba(0,0,0,0.45)", backdropFilter:"blur(3px)",
+      background:C.SCRIM, backdropFilter:"blur(3px)",
     }}
     onClick={e => { if (e.target === e.currentTarget) onCancel(); }}>
       <div style={{
@@ -4436,7 +4437,7 @@ function CompanyReuseModal({ company, onUseExisting, onGenerateNew, onCancel, th
         <div style={{ display:"flex", gap:10, flexDirection:"column" }}>
           <button onClick={onUseExisting} style={{
             padding:"10px 0", borderRadius:999, border:`2px solid ${theme.accent}`,
-            background:theme.accent, color:"#0f0f0f", fontWeight:800, fontSize:13,
+            background:theme.accent, color:C.ON_ACCENT, fontWeight:800, fontSize:13,
             cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif",
             letterSpacing:"0.06em", textTransform:"uppercase",
           }}>

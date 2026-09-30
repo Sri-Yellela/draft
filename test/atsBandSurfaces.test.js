@@ -13,6 +13,7 @@ import {
 } from "../shared/atsBands.js";
 import { scoreAtsLocally, buildRuntimeAtsBasis, isJuniorPosting, seniorityCapFor } from "../services/localAtsScorer.js";
 import { at } from "../test-support/sourceAnchors.js";
+const { bandStyle } = await import("../client/src/styles/bandStyle.js");
 
 test("a null score is NOT_ENOUGH_SIGNAL, never Weak and never zero", () => {
   // The single most important line in this file. scoreAtsLocally returns null when it declines, and
@@ -79,13 +80,27 @@ test("no user-facing surface prints the raw ATS number", () => {
     "client/src/panels/AutoApplyPanelSections.jsx",
     "client/src/panels/ATSPanel.jsx",
     "client/src/pages/tools/GenerateToolPage.jsx",
+    // Added at UI step 2b: its header printed "Score {activeAts.score}" on the v3 ramp, and the
+    // pattern below could not see it — it looks for `ATS {…atsScore`, and this read `.score`.
+    "client/src/panels/AtsReportPanel.jsx",
+    // Added at UI step 2b (09-30): the saved-resume modal printed "ATS {modal.atsScore}" on a fourth
+    // copy of the v3 ramp. The pattern below always matched it; the file was simply not listed.
+    "client/src/panels/DatabasePanel.jsx",
   ];
   for (const file of files) {
     const src = fs.readFileSync(file, "utf8");
     assert.doesNotMatch(src, /ATS \{[a-zA-Z.?\s]*[aA]tsScore/,
       `${file} renders the raw ATS number. Render a band from shared/atsBands.js instead.`);
+    assert.doesNotMatch(src, />\s*Score \{[a-zA-Z?.]*[sS]core\}/,
+      `${file} renders "Score {n}" — the raw ATS number under another label.`);
     assert.doesNotMatch(src, />= *80 *\? *"#dcfce7"/,
       `${file} still carries the v3 colour ramp, which paints the whole v4 board red.`);
+    // The ramp in ANY paint, not only the one hex string the first pin knew — DatabasePanel's copy
+    // used theme.success/warning/danger and passed the line above.
+    assert.doesNotMatch(src, /[sS]core *>= *80 *\?[^:]*: *[a-zA-Z.]*[sS]core *>= *60/,
+      `${file} carries a v3 >=80/>=60 ramp. Use atsBandFor from shared/atsBands.js.`);
+    assert.doesNotMatch(src, /Best possible[^{]*\{[a-zA-Z.?]*best_possible_score\}/,
+      `${file} prints the best-possible NUMBER. Band it.`);
   }
 });
 
@@ -94,8 +109,24 @@ test("every band has distinct copy, and NOT_ENOUGH_SIGNAL is not on the fit scal
   assert.equal(new Set(labels).size, labels.length, "two bands share a label");
   const unknown = atsBandLabel(ATS_BAND.NOT_ENOUGH_SIGNAL);
   const weak = atsBandLabel(ATS_BAND.WEAK);
-  assert.notEqual(unknown.bg, weak.bg, "'Not enough signal' must not look like 'Weak'");
-  assert.notEqual(unknown.fg, weak.fg);
+  // RE-PINNED at UI step 2b: the colours moved out of shared/atsBands.js into the client's
+  // styles/bandStyle.js (on the colour tokens), so this reads them there. It is also STRONGER than
+  // what it replaces: the old pin compared two hex strings, and a grey fill against a pink fill
+  // passed it while drawing Not enough signal as the same filled chip as Weak — a fourth grade.
+  // Now the fill, the text AND the edge style must differ, and the decline state must carry no fill.
+  const unknownPaint = bandStyle(ATS_BAND.NOT_ENOUGH_SIGNAL);
+  const weakPaint = bandStyle(ATS_BAND.WEAK);
+  assert.notEqual(unknownPaint.bg, weakPaint.bg, "'Not enough signal' must not look like 'Weak'");
+  assert.notEqual(unknownPaint.fg, weakPaint.fg);
+  assert.notEqual(unknownPaint.edgeStyle, weakPaint.edgeStyle,
+    "'Not enough signal' is drawn in the same chip shape as 'Weak' — it reads as a worse grade");
+  assert.equal(unknownPaint.bg, "transparent", "'Not enough signal' has a fill — a fill puts it on the fit axis");
+  for (const b of [ATS_BAND.STRONG, ATS_BAND.MODERATE, ATS_BAND.WEAK]) {
+    assert.notEqual(bandStyle(b).bg, "transparent", `${b} lost its fill`);
+    assert.equal(bandStyle(b).edgeStyle, "solid");
+  }
+  assert.equal("bg" in unknown || "fg" in unknown, false,
+    "raw colours are back in shared/atsBands.js — paint belongs in client/src/styles/bandStyle.js");
   assert.doesNotMatch(unknown.label, /match/i,
     "'Not enough signal' must not be worded as a degree of fit — it is the absence of a judgement");
   assert.match(unknown.blurb, /not a poor match/i);

@@ -1,3 +1,4 @@
+import { C } from "../styles/colorTokens.js";
 // Shared KB-reference rendering (stack / org / hiring signal) — used by both the seeker-facing
 // CompanyViewModal (FE-4) and the RecruiterPanel (FE-6) so the two surfaces render the exact
 // same evidence-labeled blocks instead of maintaining two copies.
@@ -34,7 +35,7 @@ export function StackSection({ stack, postings, theme }) {
   return (
     <div>
       <SectionLabel theme={theme}>Stack</SectionLabel>
-      <div style={{ fontSize: 11, color: thin ? "#d97706" : theme.textMuted, marginBottom: 8 }}>
+      <div style={{ fontSize: 11, color: thin ? C.WARNING : theme.textMuted, marginBottom: 8 }}>
         Based on {postings} recent posting{postings === 1 ? "" : "s"} — evidence, not confirmation.
         {thin && " Too thin to generalise from."}
       </div>
@@ -66,7 +67,7 @@ export function ConfidenceBar({ confidence, theme }) {
   return (
     <div style={{ width: 48, height: 5, borderRadius: 999, background: theme.border, overflow: "hidden", flexShrink: 0 }}
       title={`${pct}% confidence`}>
-      <div style={{ width: `${pct}%`, height: "100%", background: pct >= 60 ? "#16a34a" : "#d97706" }} />
+      <div style={{ width: `${pct}%`, height: "100%", background: pct >= 60 ? C.SUCCESS : C.WARNING }} />
     </div>
   );
 }
@@ -98,8 +99,8 @@ export function OrgSection({ orgUnits, total, theme }) {
                 {u.orgUnit}
               </span>
               <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 999,
-                             background: verified ? "#dcfce7" : theme.surfaceHigh,
-                             color: verified ? "#166534" : theme.textMuted, whiteSpace: "nowrap" }}>
+                             background: verified ? C.SUCCESS_QUIET : theme.surfaceHigh,
+                             color: verified ? C.SUCCESS : theme.textMuted, whiteSpace: "nowrap" }}>
                 {verified ? "verified" : "inferred"}
               </span>
             </div>
@@ -195,7 +196,7 @@ export function SponsorshipSection({ lca, theme }) {
         </div>
       )}
       {/* The caveat, immediately under the claim it qualifies — never at the foot of the panel. */}
-      <div style={{ fontSize: 11, color: "#d97706", marginBottom: 8 }}>
+      <div style={{ fontSize: 11, color: C.WARNING, marginBottom: 8 }}>
         {hasFilings
           ? "Evidence about the employer — not confirmation that this role sponsors."
           : "Absence of a filing is evidence, not proof this employer will not sponsor."}
@@ -236,7 +237,7 @@ export function SponsorshipSection({ lca, theme }) {
           turns green at exactly 60 and 0.60 is the LOWEST tier we will render at all. A green bar
           beside "verify the employer" reads as reassurance next to a warning; the colour has to
           agree with the words. The bar itself is left alone — it is OrgSection's too. */}
-      <div style={{ fontSize: 10, color: nameMatched ? "#d97706" : theme.textMuted,
+      <div style={{ fontSize: 10, color: nameMatched ? C.WARNING : theme.textMuted,
                     display: "flex", alignItems: "center", gap: 6 }}>
         <ConfidenceBar confidence={lca.matchConfidence} theme={theme} />
         <span>
@@ -260,8 +261,8 @@ export function HiringSection({ signal, theme }) {
       <div style={{ fontSize: 12, color: theme.text, marginBottom: 8 }}>{line}</div>
       <div style={{ display: "flex", gap: 14, fontSize: 11, color: theme.textMuted }}>
         <span><strong style={{ color: theme.text }}>{signal.openCount}</strong> open</span>
-        <span><strong style={{ color: "#16a34a" }}>{signal.newCount}</strong> new</span>
-        <span><strong style={{ color: "#dc2626" }}>{signal.expiredCount}</strong> expired</span>
+        <span><strong style={{ color: C.SUCCESS }}>{signal.newCount}</strong> new</span>
+        <span><strong style={{ color: C.DANGER }}>{signal.expiredCount}</strong> expired</span>
         <span style={{ marginLeft: "auto" }}>30d window</span>
       </div>
       {/* The domain breakdown was fetched and then used only to name a single top domain inside

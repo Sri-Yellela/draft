@@ -78,12 +78,45 @@ export const C = {
   INFO:          "#1E5E94",
   INFO_QUIET:    "#D7E4F0",
 
+  // ── Two categorical tones for things that are neither a state nor the brand: competencies in
+  //    the ATS report, the cover-letter action, a foreign-key column, a company avatar. Same rule
+  //    as the states: a text tone that passes on paper, and a quiet fill it also passes on.
+  VIOLET:        "#6A3DB0",
+  VIOLET_QUIET:  "#E6DCF2",
+  TEAL:          "#0E6470",
+
+  // ── FIT BANDS — Strong / Moderate / Weak / Not enough signal (shared/atsBands.js). ───────────
+  //
+  // Their own names rather than SUCCESS / WARNING / DANGER, although Strong and Weak sit near
+  // those hues: a band is a statement about fit, a state is a statement about an operation, and a
+  // later palette change to one must not silently move the other. The dark-era values these
+  // replace failed on the cream as text (#16a34a 2.81:1, #d97706 2.71:1, measured at step 2).
+  //
+  // Each fit band has a TEXT tone (≥ 4.5:1 on paper and on glass) and a QUIET fill it passes on,
+  // which also carries INK at ≥ 4.5:1 — so a chip reads with either text colour.
+  BAND_STRONG:         "#17663A",
+  BAND_STRONG_QUIET:   "#D3E8D9",
+  BAND_MODERATE:       "#7A5300",
+  BAND_MODERATE_QUIET: "#F2E3C0",
+  BAND_WEAK:           "#A3281E",
+  BAND_WEAK_QUIET:     "#F6D9D2",
+  // ⛔ NOT ENOUGH SIGNAL IS NOT A FOURTH, WORSE GRADE. It is the scorer declining for want of
+  // evidence — a correctness state — so it deliberately has NO FILL and NO HUE: muted ink inside a
+  // DASHED outline, on whatever surface it sits on. A paler red (or any tint on the green-amber-red
+  // axis) would read as "below Weak", which is the one thing it must never say. The edge is a UI
+  // boundary and reaches 3:1; the text reaches 4.5:1. See client/src/styles/bandStyle.js.
+  BAND_UNKNOWN:        "#4A423B",
+  BAND_UNKNOWN_EDGE:   "#7F7263",
+
   // ── Third-party sign-in buttons. Their owners' brand colours, so they are tokens too — and
   //    checked like every other pair. ⛔ Google's #4285F4 carries white text at 3.56:1, which FAILS
   //    AA; the button uses Google's darker #1A73E8 (4.51:1) instead.
   PROVIDER_LINKEDIN: "#0A66C2",
   PROVIDER_GITHUB:   "#24292E",
   PROVIDER_GOOGLE:   "#1A73E8",
+  // Not a sign-in button: the two source marks the board draws beside a posting (LinkedIn's "in"
+  // square reuses PROVIDER_LINKEDIN). Same pairing rule — ON_PROVIDER on the fill.
+  PROVIDER_INDEED:   "#003A9B",
   ON_PROVIDER:       "#FFFFFF",
 
   // Shadows are ink at low alpha — a warm shadow on paper, not a grey one.
@@ -154,9 +187,28 @@ export const CONTRAST_PAIRS = [
   ["SURFACE_SOLID", "DANGER",  "normal"], ["SURFACE_SOLID", "SUCCESS", "normal"],
   ["SURFACE_SOLID", "WARNING", "normal"], ["SURFACE_SOLID", "INFO",    "normal"],
   ["SURFACE_SOLID", "INK",     "normal"],   // an inverted chip
-  // third-party sign-in
+  // third-party sign-in, and the source marks
   ["ON_PROVIDER", "PROVIDER_LINKEDIN", "normal"], ["ON_PROVIDER", "PROVIDER_GITHUB", "normal"],
-  ["ON_PROVIDER", "PROVIDER_GOOGLE",   "normal"],
+  ["ON_PROVIDER", "PROVIDER_GOOGLE",   "normal"], ["ON_PROVIDER", "PROVIDER_INDEED", "normal"],
+  // the categorical tones: text on paper/glass/own quiet fill, and paper-white on the tone (an avatar)
+  ["VIOLET", "CANVAS_SHADE", "normal"], ["VIOLET", "SURFACE", "normal"], ["VIOLET", "VIOLET_QUIET", "normal"],
+  ["TEAL",   "CANVAS_SHADE", "normal"], ["TEAL",   "SURFACE", "normal"],
+  ["SURFACE_SOLID", "VIOLET", "normal"], ["SURFACE_SOLID", "TEAL", "normal"],
+  ["ON_PROVIDER", "INFO", "normal"],   // a company avatar's initial on the blue
+  // ── the fit bands ─────────────────────────────────────────────────────────────────────────
+  // as TEXT on paper and on every glass the band appears on (card, panel, menu)
+  ["BAND_STRONG",   "CANVAS_SHADE", "normal"], ["BAND_STRONG",   "SURFACE", "normal"], ["BAND_STRONG",   "SURFACE_2", "normal"],
+  ["BAND_MODERATE", "CANVAS_SHADE", "normal"], ["BAND_MODERATE", "SURFACE", "normal"], ["BAND_MODERATE", "SURFACE_2", "normal"],
+  ["BAND_WEAK",     "CANVAS_SHADE", "normal"], ["BAND_WEAK",     "SURFACE", "normal"], ["BAND_WEAK",     "SURFACE_2", "normal"],
+  ["BAND_UNKNOWN",  "CANVAS_SHADE", "normal"], ["BAND_UNKNOWN",  "SURFACE", "normal"], ["BAND_UNKNOWN",  "SURFACE_2", "normal"],
+  ["BAND_UNKNOWN",  "SURFACE_MENU", "normal"],
+  // as FILLS: the band's own text on its quiet fill (the chip), and ink on it
+  ["BAND_STRONG",   "BAND_STRONG_QUIET",   "normal"], ["INK", "BAND_STRONG_QUIET",   "normal"],
+  ["BAND_MODERATE", "BAND_MODERATE_QUIET", "normal"], ["INK", "BAND_MODERATE_QUIET", "normal"],
+  ["BAND_WEAK",     "BAND_WEAK_QUIET",     "normal"], ["INK", "BAND_WEAK_QUIET",     "normal"],
+  // Not enough signal has no fill; its dashed edge is a UI boundary on paper and on glass
+  ["BAND_UNKNOWN_EDGE", "CANVAS_SHADE", "ui"], ["BAND_UNKNOWN_EDGE", "SURFACE", "ui"],
+  ["BAND_UNKNOWN_EDGE", "SURFACE_2", "ui"],
 ];
 
 // Pairs that are FORBIDDEN, asserted to fail so nobody "fixes" the test by adding them above.

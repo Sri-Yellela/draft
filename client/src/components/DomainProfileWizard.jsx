@@ -13,6 +13,7 @@ import { api } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { mergeUniqueSignalLabels } from "../../../shared/profileSignals.js";
 import { PROFILE_SENIORITY } from "../../../shared/jobFilterOptions.js";
+import { C } from "../styles/colorTokens.js";
 
 const STEPS = ["Domain", "Level", "Titles", "Keywords", "Save"];
 
@@ -33,7 +34,7 @@ function Chip({ label, selected, onToggle }) {
         padding: "4px 12px", borderRadius: 999, border: "none",
         fontSize: 12, fontWeight: 600, cursor: "pointer",
         background: selected ? theme.accent : theme.surfaceHigh,
-        color:      selected ? "#0f0f0f"    : theme.textMuted,
+        color:      selected ? C.ON_ACCENT    : theme.textMuted,
         transition: "all 0.12s",
         userSelect: "none",
       }}
@@ -65,7 +66,7 @@ function ChipAddInput({ placeholder, onAdd }) {
       />
       <button type="button" onClick={submit} style={{
         padding: "4px 12px", borderRadius: 6, border: "none",
-        background: theme.accent, color: "#0f0f0f",
+        background: theme.accent, color: C.ON_ACCENT,
         fontSize: 12, fontWeight: 700, cursor: "pointer",
       }}>+</button>
     </div>
@@ -287,7 +288,7 @@ export default function DomainProfileWizard({
     <div style={{
       position: "fixed",
       inset: 0,
-      backgroundColor: "rgba(0,0,0,0.65)",
+      backgroundColor: C.SCRIM,
       backdropFilter: "blur(4px)",
       WebkitBackdropFilter: "blur(4px)",
       display: "flex",
@@ -670,7 +671,7 @@ export default function DomainProfileWizard({
                 </div>
               </div>
               {error && (
-                <div style={{ marginTop: 12, fontSize: 12, color: "#dc2626", fontWeight: 600 }}>{error}</div>
+                <div style={{ marginTop: 12, fontSize: 12, color: C.DANGER, fontWeight: 600 }}>{error}</div>
               )}
             </div>
           )}
@@ -712,7 +713,7 @@ export default function DomainProfileWizard({
               style={{
                 padding: "8px 28px", borderRadius: 6, border: "none",
                 background: canNext() ? theme.accent : theme.surfaceHigh,
-                color: canNext() ? "#0f0f0f" : theme.textMuted,
+                color: canNext() ? C.ON_ACCENT : theme.textMuted,
                 fontSize: 13, fontWeight: 700,
                 cursor: canNext() ? "pointer" : "default",
               }}
@@ -727,7 +728,7 @@ export default function DomainProfileWizard({
               style={{
                 padding: "8px 28px", borderRadius: 6, border: "none",
                 background: (saving || !profileName.trim() || (isOtherProfile && !otherRoleTitle.trim())) ? theme.surfaceHigh : theme.accent,
-                color: (saving || !profileName.trim() || (isOtherProfile && !otherRoleTitle.trim())) ? theme.textMuted : "#0f0f0f",
+                color: (saving || !profileName.trim() || (isOtherProfile && !otherRoleTitle.trim())) ? theme.textMuted : C.ON_ACCENT,
                 fontSize: 13, fontWeight: 700,
                 cursor: (saving || !profileName.trim() || (isOtherProfile && !otherRoleTitle.trim())) ? "default" : "pointer",
               }}

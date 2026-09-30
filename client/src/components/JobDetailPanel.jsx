@@ -8,6 +8,8 @@ import CompanyViewModal from "./CompanyViewModal.jsx";
 import PanelShell from "./PanelShell.jsx";
 import CompanyIcon from "./ui/CompanyIcon.jsx";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
+import { bandChipStyle } from "../styles/bandStyle.js";
+import { C } from "../styles/colorTokens.js";
 
 function ago(postedAt, scrapedAt) {
   let ms = postedAt ? new Date(postedAt).getTime() : NaN;
@@ -23,7 +25,7 @@ function ago(postedAt, scrapedAt) {
 }
 
 function WorkBadge({ t }) {
-  const map = { Remote:{ bg:"#e8f6fb", fg:"#1a6a8a" }, Hybrid:{ bg:"#f0f9ff", fg:"#0284c7" } };
+  const map = { Remote:{ bg:C.INFO_QUIET, fg:C.INFO }, Hybrid:{ bg:C.INFO_QUIET, fg:C.INFO } };
   const s = map[t] || null;
   if (s) return <span style={{ background:s.bg, color:s.fg, padding:"2px 8px", borderRadius:999, fontSize:10, fontWeight:700 }}>{t}</span>;
   return <span style={{ background:"var(--color-surface-offset)", color:"var(--color-text-muted)", padding:"2px 8px", borderRadius:999, fontSize:10, fontWeight:700 }}>{t || "Onsite"}</span>;
@@ -34,7 +36,7 @@ function WorkBadge({ t }) {
 function VisaBadge({ isH1bSponsor, requiresWorkAuth }) {
   if (isH1bSponsor === 1 || isH1bSponsor === true) {
     return (
-      <span style={{ background:"#dcfce7", color:"#166534", padding:"2px 8px",
+      <span style={{ background:C.SUCCESS_QUIET, color:C.SUCCESS, padding:"2px 8px",
                      borderRadius:999, fontSize:10, fontWeight:700, whiteSpace:"nowrap" }}>
         Sponsors H-1B
       </span>
@@ -59,7 +61,7 @@ function isNewJob(discoveredAt) {
 
 function NewPill() {
   return (
-    <span style={{ fontSize:9, fontWeight:800, color:"#16a34a", background:"#dcfce733",
+    <span style={{ fontSize:9, fontWeight:800, color:C.SUCCESS, background:C.SUCCESS_QUIET,
                    padding:"1px 6px", borderRadius:999, whiteSpace:"nowrap", letterSpacing:"0.03em" }}>
       NEW
     </span>
@@ -81,7 +83,7 @@ function SkillChips({ skills, max = 5 }) {
   );
 }
 
-function ActionBtn({ onClick, title, children, accent = "#0284c7", active, disabled = false }) {
+function ActionBtn({ onClick, title, children, accent = C.INFO, active, disabled = false }) {
   const [hov, setHov] = useState(false);
   return (
     <button title={title} onClick={disabled ? undefined : onClick} disabled={disabled}
@@ -258,7 +260,8 @@ export default function JobDetailPanel({
                   // Band, not number — cutpoints and copy from shared/atsBands.js. This was the
                   // third of five copies of the same >=80/>=60 ramp, all of which painted the whole
                   // board red under v4 (median 27, max 64).
-                  const atsMeta = atsBandLabel(atsBandFor(atsScore));
+                  const atsBand = atsBandFor(atsScore);
+                  const atsMeta = atsBandLabel(atsBand);
                   const done = selectedJobMeta?.done;
                   const st = selectedJobMeta?.st;
                   return (
@@ -268,16 +271,16 @@ export default function JobDetailPanel({
                       <VisaBadge isH1bSponsor={job.isH1bSponsor} requiresWorkAuth={job.requiresWorkAuth}/>
                       {job.location && <span style={{ fontSize:10, color:"var(--color-text-faint)" }}>{job.location}</span>}
                       {yoeStr && <span style={{ fontSize:10, color:"var(--color-text-faint)" }}>{yoeStr} exp</span>}
-                      {salaryStr && <span style={{ fontSize:10, color:"#16a34a", fontWeight:700 }}>{salaryStr}</span>}
-                      {!salaryStr && job.compensation && <span style={{ fontSize:10, color:"#16a34a", fontWeight:700 }}>{job.compensation}</span>}
-                      <span style={{ fontSize:10, color:"#16a34a", fontWeight:600 }}>{ago(job.postedAt, job.scrapedAt)}</span>
+                      {salaryStr && <span style={{ fontSize:10, color:C.SUCCESS, fontWeight:700 }}>{salaryStr}</span>}
+                      {!salaryStr && job.compensation && <span style={{ fontSize:10, color:C.SUCCESS, fontWeight:700 }}>{job.compensation}</span>}
+                      <span style={{ fontSize:10, color:C.SUCCESS, fontWeight:600 }}>{ago(job.postedAt, job.scrapedAt)}</span>
                       <span onClick={() => selectedJobMeta?.onAts?.()} title={atsMeta.blurb}
-                        style={{ background:atsMeta.bg, color:atsMeta.fg, padding:"2px 8px", borderRadius:999,
-                                  fontSize:10, fontWeight:700, cursor:"pointer", border:`1px solid ${atsMeta.fg}33` }}>
+                        style={{ ...bandChipStyle(atsBand), padding:"2px 8px", borderRadius:999,
+                                  fontSize:10, fontWeight:700, cursor:"pointer" }}>
                         {atsMeta.short}
                       </span>
                       {done && (
-                        <span onClick={() => selectedJobMeta?.onResume?.()} style={{ background:"#e8f6fb", color:"#1a6a8a",
+                        <span onClick={() => selectedJobMeta?.onResume?.()} style={{ background:C.INFO_QUIET, color:C.INFO,
                           padding:"2px 8px", borderRadius:999, fontSize:10, fontWeight:700, cursor:"pointer" }}>
                           {st==="loading" ? "⏳" : "📄"} Resume
                         </span>
@@ -305,12 +308,12 @@ export default function JobDetailPanel({
                     </ActionBtn>
                   )}
                   {done && g?.html !== "__exists__" && (
-                    <ActionBtn onClick={() => onViewSandbox?.()} title="View in sandbox" accent="#0284c7">
+                    <ActionBtn onClick={() => onViewSandbox?.()} title="View in sandbox" accent={C.INFO}>
                       👁 Preview
                     </ActionBtn>
                   )}
                   {done && g?.html !== "__exists__" && (
-                    <ActionBtn onClick={() => onExport?.()} title="Export PDF" accent="#16a34a">
+                    <ActionBtn onClick={() => onExport?.()} title="Export PDF" accent={C.SUCCESS}>
                       📥 PDF
                     </ActionBtn>
                   )}
@@ -321,22 +324,22 @@ export default function JobDetailPanel({
                     </ActionBtn>
                   )}
                   {(selectedJob.applyUrl || selectedJob.url) && onQueueApply && (
-                    <ActionBtn onClick={() => onQueueApply(selectedJob)} title="Add to auto-apply queue" accent="#16a34a">
+                    <ActionBtn onClick={() => onQueueApply(selectedJob)} title="Add to auto-apply queue" accent={C.SUCCESS}>
                       Queue Auto
                     </ActionBtn>
                   )}
                   {semiActive && (
-                    <ActionBtn onClick={closeSemi} title="Close automation browser" accent="#dc2626">
+                    <ActionBtn onClick={closeSemi} title="Close automation browser" accent={C.DANGER}>
                       ⏹ Close Browser
                     </ActionBtn>
                   )}
                   {onStar && (
-                    <ActionBtn onClick={() => onStar?.()} title={selectedJob.starred ? "Remove saved" : "Save"} accent="#f59e0b" active={selectedJob.starred}>
+                    <ActionBtn onClick={() => onStar?.()} title={selectedJob.starred ? "Remove saved" : "Save"} accent={C.WARNING} active={selectedJob.starred}>
                       {selectedJob.starred ? "★ Saved" : "☆ Save"}
                     </ActionBtn>
                   )}
                   {onDislike && (
-                    <ActionBtn onClick={() => onDislike?.()} title="Not interested" accent="#dc2626" active={selectedJob.disliked}>
+                    <ActionBtn onClick={() => onDislike?.()} title="Not interested" accent={C.DANGER} active={selectedJob.disliked}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/>
                         <path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/>
@@ -344,7 +347,7 @@ export default function JobDetailPanel({
                       Pass
                     </ActionBtn>
                   )}
-                  <ActionBtn onClick={() => setShowCoverLetter(true)} title="Write a cover letter" accent="#7c3aed">
+                  <ActionBtn onClick={() => setShowCoverLetter(true)} title="Write a cover letter" accent={C.VIOLET}>
                     ✉ Cover Letter
                   </ActionBtn>
                 </>
@@ -377,14 +380,14 @@ export default function JobDetailPanel({
             {applyResult && (
               <div style={{
                 margin:"0 14px 0", padding:"8px 12px",
-                background: applyResult.status === "success" ? "#dcfce7"
-                          : applyResult.status === "error"   ? "#fee2e2"
+                background: applyResult.status === "success" ? C.SUCCESS_QUIET
+                          : applyResult.status === "error"   ? C.DANGER_QUIET
                           : applyResult.status === "semi"    ? "var(--color-primary-muted)"
-                          : "#fef9c3",
-                color: applyResult.status === "success" ? "#166534"
-                     : applyResult.status === "error"   ? "#991b1b"
+                          : C.WARNING_QUIET,
+                color: applyResult.status === "success" ? C.SUCCESS
+                     : applyResult.status === "error"   ? C.DANGER
                      : applyResult.status === "semi"    ? "var(--color-primary-text)"
-                     : "#854d0e",
+                     : C.WARNING,
                 borderRadius:6, fontSize:11, fontWeight:600,
                 display:"flex", alignItems:"center", justifyContent:"space-between",
                 flexShrink:0,

@@ -10,6 +10,8 @@ import { api } from "../lib/api.js";
 import { jobDetailHref } from "../lib/jobUrl.js";
 import CompanyIcon from "./ui/CompanyIcon.jsx";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
+import { bandChipStyle } from "../styles/bandStyle.js";
+import { C } from "../styles/colorTokens.js";
 
 // AH2: a job's title is a LINK to that job's own address.
 //
@@ -61,8 +63,8 @@ function ago(postedAt, scrapedAt) {
 function LinkedInLogo({ size = 16 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 20 20" aria-label="LinkedIn" role="img">
-      <rect width="20" height="20" rx="3" fill="#0A66C2"/>
-      <text x="4" y="15" fontFamily="Georgia,serif" fontWeight="900" fontSize="13" fill="#fff">in</text>
+      <rect width="20" height="20" rx="3" fill={C.PROVIDER_LINKEDIN}/>
+      <text x="4" y="15" fontFamily="Georgia,serif" fontWeight="900" fontSize="13" fill={C.ON_PROVIDER}>in</text>
     </svg>
   );
 }
@@ -78,8 +80,8 @@ function PlatformLogo({ platform, size = 16, theme }) {
 // ── Work badge ──────────────────────────────────────────────────
 function WorkBadge({ t, theme }) {
   const map = {
-    Remote: { bg:"#e8f6fb", fg:"#1a6a8a" },
-    Hybrid: { bg:"#f0f9ff", fg:"#0284c7" },
+    Remote: { bg:C.INFO_QUIET, fg:C.INFO },
+    Hybrid: { bg:C.INFO_QUIET, fg:C.INFO },
   };
   const s = map[t] || null;
   if (s) {
@@ -103,7 +105,7 @@ function WorkBadge({ t, theme }) {
 function VisaBadge({ isH1bSponsor, requiresWorkAuth }) {
   if (isH1bSponsor === 1 || isH1bSponsor === true) {
     return (
-      <span style={{ background:"#dcfce7", color:"#166534", padding:"2px 8px",
+      <span style={{ background:C.SUCCESS_QUIET, color:C.SUCCESS, padding:"2px 8px",
                      borderRadius:999, fontSize:10, fontWeight:700, whiteSpace:"nowrap" }}>
         Sponsors H-1B
       </span>
@@ -154,11 +156,11 @@ function ApplyStateChip({ jobId }) {
 // Sizes match the badges it sits beside in this row (WorkBadge/VisaBadge/NewPill: radius 999,
 // 10px, 700) rather than MetaChips' own 11px, so the row reads as one set.
 const TIER_CHIP = {
-  guest:   { label:"Guest apply",  bg:"#f0f9ff", fg:"#0284c7",
+  guest:   { label:"Guest apply",  bg:C.INFO_QUIET, fg:C.INFO,
              title:"An account is offered but a guest path exists — autofill can usually complete this." },
-  account: { label:"Account req.", bg:"#fef9c3", fg:"#854d0e",
+  account: { label:"Account req.", bg:C.WARNING_QUIET, fg:C.WARNING,
              title:"This employer requires a self-service account. You sign in once; the resolver fills the form." },
-  gated:   { label:"Login + check", bg:"#fee2e2", fg:"#991b1b",
+  gated:   { label:"Login + check", bg:C.DANGER_QUIET, fg:C.DANGER,
              title:"Account plus a CAPTCHA or identity check — this one cannot be automated. Apply here yourself." },
   unknown: { label:"Apply path?",  bg:"var(--color-surface-offset)", fg:"var(--color-text-muted)",
              title:"We have not established what this destination asks for. It may apply cleanly, or may need an account." },
@@ -185,7 +187,7 @@ function isNewJob(discoveredAt) {
 
 function NewPill() {
   return (
-    <span style={{ fontSize:9, fontWeight:800, color:"#16a34a", background:"#dcfce733",
+    <span style={{ fontSize:9, fontWeight:800, color:C.SUCCESS, background:C.SUCCESS_QUIET,
                    padding:"1px 6px", borderRadius:999, whiteSpace:"nowrap", letterSpacing:"0.03em" }}>
       NEW
     </span>
@@ -201,7 +203,7 @@ function NewPill() {
 function ClosedPill() {
   return (
     <span title="This listing was not seen again for 7 days, so it is probably filled or withdrawn. Kept here because you saved it."
-          style={{ fontSize:9, fontWeight:800, color:"#b45309", background:"#fef3c733",
+          style={{ fontSize:9, fontWeight:800, color:C.WARNING, background:C.WARNING_QUIET,
                    padding:"1px 6px", borderRadius:999, whiteSpace:"nowrap", letterSpacing:"0.03em" }}>
       NO LONGER LISTED
     </span>
@@ -292,9 +294,8 @@ function ATSBadge({ score, onClick }) {
   return (
     <span title={meta.blurb}
       onClick={onClick ? e => { e.stopPropagation(); onClick(); } : undefined}
-      style={{ background:meta.bg, color:meta.fg, padding:"2px 8px", borderRadius:999,
-               fontSize:10, fontWeight:700, cursor:onClick?"pointer":"default",
-               border:onClick?`1px solid ${meta.fg}33`:"none" }}>
+      style={{ ...bandChipStyle(band), padding:"2px 8px", borderRadius:999,
+               fontSize:10, fontWeight:700, cursor:onClick?"pointer":"default" }}>
       {meta.short}
     </span>
   );
@@ -486,9 +487,9 @@ export default function JobCard({
   const canQueue = !!(job.applyUrl || job.url) && !!queueKey;
   const handleQueue = () => { if (!queued) addToApplyQueue?.({ ...job, jobId: queueKey }); };
 
-  const frostedBg = hov ? "rgba(28,28,28,0.88)" : "rgba(17,17,17,0.55)";
+  const frostedBg = hov ? C.SURFACE_2 : C.SURFACE;
   const frostedBlur = hov ? "blur(20px) saturate(2)" : "blur(12px) saturate(1.6)";
-  const frostedOverlay = "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(200,200,200,0.02) 100%)";
+  const frostedOverlay = `linear-gradient(135deg, ${C.HOVER} 0%, ${C.HOVER} 100%)`;
 
   const hasDesc    = !!(job.description || job.descriptionHtml);
   // Only `generate` needs its own flag here. There is no dedicated A+ Resume button on this card —
@@ -623,7 +624,7 @@ export default function JobCard({
                               overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, minWidth:0 }}>
                 {job.company}
               </span>
-              <span style={{ fontSize:10, color:"#16a34a", fontWeight:600, flexShrink:0 }}>{ago(job.postedAt, job.scrapedAt)}</span>
+              <span style={{ fontSize:10, color:C.SUCCESS, fontWeight:600, flexShrink:0 }}>{ago(job.postedAt, job.scrapedAt)}</span>
               {/* The null guard that used to live here, then was removed, now lives INSIDE
                   the badge — one copy rather than one per call site, so the two rows on this card
                   cannot disagree about when a badge appears. See its note for why a card treats
@@ -632,7 +633,7 @@ export default function JobCard({
               {!isLoggedOut && <AtsSlot score={g?.atsScore ?? job?.baseAtsScore ?? null} onClick={onAts}/>}
               {!isLoggedOut && (
                 <ToggleIconBtn
-                  bg="#f59e0b"
+                  bg={C.WARNING}
                   size={28}
                   theme={theme}
                   active={starred}
@@ -644,7 +645,7 @@ export default function JobCard({
                 />
               )}
               {!isLoggedOut && canQueue && (
-                <IconBtn bg="#16a34a" theme={theme} active={queued} size={28}
+                <IconBtn bg={C.SUCCESS} theme={theme} active={queued} size={28}
                   title={queued ? "Already in the auto-apply queue" : "Add to auto-apply queue"}
                   disabled={queued}
                   onClick={e => { e.stopPropagation(); handleQueue(); }}>
@@ -680,10 +681,10 @@ export default function JobCard({
                 {job.company}
               </span>
               {job.alreadyApplied && (
-                <span title="Applied" style={{ fontSize:10, color:"#16a34a", fontWeight:700 }}>✓APPLIED</span>
+                <span title="Applied" style={{ fontSize:10, color:C.SUCCESS, fontWeight:700 }}>✓APPLIED</span>
               )}
               {!job.alreadyApplied && job.companyAppliedBefore && (
-                <span title="Applied to this company before" style={{ fontSize:10, color:"#d97706" }}>↩prev</span>
+                <span title="Applied to this company before" style={{ fontSize:10, color:C.WARNING }}>↩prev</span>
               )}
               {job.visited && (
                 <span style={{ fontSize:9, color:"var(--color-text-faint)", background:"var(--color-surface-offset)",
@@ -722,10 +723,10 @@ export default function JobCard({
                 <span style={{ fontSize:10, color:"var(--color-text-faint)" }}>{yoeStr} exp</span>
               )}
               {salaryStr && (
-                <span style={{ fontSize:10, color:"#16a34a", fontWeight:700 }}>{salaryStr}</span>
+                <span style={{ fontSize:10, color:C.SUCCESS, fontWeight:700 }}>{salaryStr}</span>
               )}
               {!salaryStr && job.compensation && (
-                <span style={{ fontSize:10, color:"#16a34a", fontWeight:700 }}>{job.compensation}</span>
+                <span style={{ fontSize:10, color:C.SUCCESS, fontWeight:700 }}>{job.compensation}</span>
               )}
               {job.applicantCount != null && (
                 <span style={{ fontSize:10, color:"var(--color-text-faint)" }}>
@@ -756,16 +757,16 @@ export default function JobCard({
             {isLoggedOut && hov && (
               <span style={{ fontSize:13, color:"var(--color-primary-text)", fontWeight:700, opacity:0.85 }}>↗</span>
             )}
-            <span style={{ fontSize:11, color:"#16a34a", fontWeight:600 }}>{ago(job.postedAt, job.scrapedAt)}</span>
+            <span style={{ fontSize:11, color:C.SUCCESS, fontWeight:600 }}>{ago(job.postedAt, job.scrapedAt)}</span>
 
             {!isLoggedOut && (
               <AtsSlot score={g?.atsScore ?? job?.baseAtsScore ?? null} onClick={onAts}/>
             )}
             {!isLoggedOut && done && (
               <span onClick={onResume ? e => { e.stopPropagation(); onResume(); } : undefined}
-                style={{ background:"#e8f6fb", color:"#1a6a8a", padding:"2px 8px",
+                style={{ background:C.INFO_QUIET, color:C.INFO, padding:"2px 8px",
                          borderRadius:999, fontSize:10, fontWeight:700, cursor:"pointer",
-                         border:"1px solid #A8D8EA44", display:"inline-flex", alignItems:"center", gap:3 }}>
+                         border:`1px solid ${C.INFO}44`, display:"inline-flex", alignItems:"center", gap:3 }}>
                 {st==="loading" ? "⏳" : "📄"} Resume
               </span>
             )}
@@ -773,7 +774,7 @@ export default function JobCard({
             {/* Star */}
             {!isLoggedOut && (
               <ToggleIconBtn
-                bg="#f59e0b"
+                bg={C.WARNING}
                 size={30}
                 theme={theme}
                 active={starred}
@@ -790,7 +791,7 @@ export default function JobCard({
                 JobDetailPanel, which is one click away and is where you decide you do NOT want a
                 job. Green matches JobDetailPanel's own "Queue Auto" so the two read as one action. */}
             {!isLoggedOut && canQueue && (
-              <IconBtn bg="#16a34a" theme={theme} active={queued}
+              <IconBtn bg={C.SUCCESS} theme={theme} active={queued}
                 title={queued ? "Already in the auto-apply queue" : "Add to auto-apply queue"}
                 disabled={queued}
                 onClick={e => { e.stopPropagation(); handleQueue(); }}>
@@ -808,7 +809,7 @@ export default function JobCard({
 
             {/* View sandbox */}
             {!isLoggedOut && done && g?.html !== "__exists__" && showApplyButton && (
-              <IconBtn bg="#0284c7" title="View in sandbox" theme={theme}
+              <IconBtn bg={C.INFO} title="View in sandbox" theme={theme}
                 onClick={e => { e.stopPropagation(); onViewSandbox?.(); }}>
                 👁
               </IconBtn>
@@ -861,7 +862,7 @@ export default function JobCard({
               </span>
             )}
             {salaryStr && (
-              <span style={{ fontSize:11, color:"#16a34a", fontWeight:700, background:"#dcfce733",
+              <span style={{ fontSize:11, color:C.SUCCESS, fontWeight:700, background:C.SUCCESS_QUIET,
                               padding:"2px 8px", borderRadius:4 }}>
                 💰 {salaryStr}
               </span>
@@ -896,7 +897,7 @@ export default function JobCard({
                 <button onClick={e => { e.stopPropagation(); onGenerate(done && g?.html !== "__exists__"); }}
                   disabled={!!st}
                   style={{ border:"none", borderRadius:6, padding:"8px 12px",
-                           background:"var(--color-primary)", color:"#0f0f0f", cursor:st ? "not-allowed" : "pointer",
+                           background:"var(--color-primary)", color:C.ON_ACCENT, cursor:st ? "not-allowed" : "pointer",
                            fontSize:12, fontWeight:800 }}>
                   {generateLoading ? "Generating..." : done ? "Regenerate" : "Generate"}
                 </button>

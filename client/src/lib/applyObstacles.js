@@ -23,6 +23,7 @@
 
 /** The four surfaces. Mirrors the server's partition in routes/apply.js's GET /api/apply/runs. */
 import { companyLabel } from "../../../shared/atsHosts.js";
+import { C } from "../styles/colorTokens.js";
 
 export const SECTION = {
   NEEDS_YOU: "needsYou",
@@ -395,10 +396,10 @@ export function boardApplicationChip(applyState) {
     [SECTION.STOPPED]:   d.protective ? "Stopped" : "Didn't send",
   };
   const TONE = {
-    [SECTION.IN_FLIGHT]: "#2563eb",
-    [SECTION.SUBMITTED]: "#16a34a",
-    [SECTION.NEEDS_YOU]: "#d97706",
-    [SECTION.STOPPED]:   d.protective ? "#6b7280" : "#dc2626",
+    [SECTION.IN_FLIGHT]: C.INFO,
+    [SECTION.SUBMITTED]: C.SUCCESS,
+    [SECTION.NEEDS_YOU]: C.WARNING,
+    [SECTION.STOPPED]:   d.protective ? C.INK_FAINT : C.DANGER,
   };
   return { label: LABEL[d.section], color: TONE[d.section], title: d.obstacle, section: d.section };
 }
@@ -609,15 +610,15 @@ export function resolutionPlan(app = {}, { portals = [], packets = [], questions
  */
 export function attemptStatusChip(status, accent = null) {
   const BY_STATUS = {
-    submitted:   { label: "Submitted", color: "#16a34a" },
-    held_review: { label: "Review",    color: "#d97706" },
-    held_gate:   { label: "Sign in",   color: "#2563eb" },
-    failed:      { label: "Failed",    color: "#dc2626" },
-    cancelled:   { label: "Aborted",   color: "#6b7280" },
-    running:     { label: "Running",   color: accent || "#2563eb" },
-    queued:      { label: "Queued",    color: "#6b7280" },
+    submitted:   { label: "Submitted", color: C.SUCCESS },
+    held_review: { label: "Review",    color: C.WARNING },
+    held_gate:   { label: "Sign in",   color: C.INFO },
+    failed:      { label: "Failed",    color: C.DANGER },
+    cancelled:   { label: "Aborted",   color: C.INK_FAINT },
+    running:     { label: "Running",   color: accent || C.INFO },
+    queued:      { label: "Queued",    color: C.INK_FAINT },
   };
   // An unknown status still renders — as itself, muted — rather than as a blank pill. A status this
   // table has not met is a fact worth seeing, not one worth hiding.
-  return BY_STATUS[status] || { label: status || "—", color: "#6b7280" };
+  return BY_STATUS[status] || { label: status || "—", color: C.INK_FAINT };
 }
