@@ -111,3 +111,21 @@ test("the per-session random accent and the video background are gone", () => {
   assert.match(paper, /feTurbulence/, "the grain is not generated");
   assert.doesNotMatch(paper, /animation|<video|requestAnimationFrame/, "the substrate moves — it must be still");
 });
+
+test("the paper grain can never be darker than the contrast floor, however it is tuned", () => {
+  // The grain strength is taste (the owner chose a coarse, leather-like pebble, 09-30), but its
+  // DARKEST pixel is not: every contrast pair is computed against CANVAS_SHADE, so the substrate must
+  // stay lighter. Derived from the component's own constants — a stronger grain fails here.
+  const src = fs.readFileSync("client/src/components/PaperBackground.jsx", "utf8");
+  const num = (name) => Number(src.match(new RegExp(`const ${name}\\s*=\\s*([0-9.]+)`))?.[1]);
+  const gain = num("MATRIX_GAIN"), bias = num("MATRIX_BIAS");
+  const grain = num("GRAIN_OPACITY"), fibre = num("FIBRE_OPACITY");
+  for (const [k, v] of Object.entries({ gain, bias, grain, fibre })) assert.ok(Number.isFinite(v), `${k} not found`);
+  const a = Math.min(1, gain - bias);   // feColorMatrix output alpha clamps at 1
+  const darkest = 1 - (1 - a * grain) * (1 - a * fibre);   // GRAIN's coverage over CANVAS, worst case
+  // CANVAS -> CANVAS_SHADE as a fraction of the way to GRAIN, per channel; the floor is the smallest.
+  const hex = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const [c, s, g] = [hex(C.CANVAS), hex(C.CANVAS_SHADE), hex(C.GRAIN)];
+  const floor = Math.min(...c.map((ci, i) => (ci - s[i]) / (ci - g[i])));
+  assert.ok(darkest < floor, `the darkest grain pixel covers ${(darkest * 100).toFixed(2)}% — the floor is ${(floor * 100).toFixed(2)}%`);
+});
