@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
+import { C } from "../styles/colorTokens.js";
 
 const PLAN_LABELS = {
   BASIC: "Basic",
@@ -75,7 +76,7 @@ export function PlansPanel({ user, onUserChange }) {
               {tier !== current && !plan?.pendingRequest && (
                 <button onClick={() => requestPlanChange(tier)}
                   style={{ marginTop:14, border:"none", borderRadius:6, padding:"9px 14px",
-                           background:"var(--color-primary)", color:"#0f0f0f", cursor:"pointer",
+                           background:"var(--color-primary)", color:C.ON_ACCENT, cursor:"pointer",
                            fontWeight:800 }}>
                   Request {tier === "BASIC" ? "downgrade" : "upgrade"}
                 </button>

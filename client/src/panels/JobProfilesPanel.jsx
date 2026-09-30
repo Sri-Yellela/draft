@@ -7,6 +7,7 @@ import DomainProfileWizard from "../components/DomainProfileWizard.jsx";
 // AC3: the card idiom below was lifted OUT of this panel into a shared primitive, and this panel
 // renders it. Extraction, not duplication — see the note at the top of TileCard.jsx.
 import { TileGrid, TileCard, TilePill } from "../components/ui/TileCard.jsx";
+import { C } from "../styles/colorTokens.js";
 
 export function JobProfilesPanel() {
   const { theme } = useTheme();
@@ -218,7 +219,7 @@ export function JobProfilesPanel() {
                         <div style={{ fontSize:11, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.06em", color:"var(--color-text)" }}>
                           Base Resume
                         </div>
-                        <div style={{ fontSize:11, color:profile.has_base_resume ? "#16a34a" : "#d97706", marginTop:3 }}>
+                        <div style={{ fontSize:11, color:profile.has_base_resume ? C.SUCCESS : C.WARNING, marginTop:3 }}>
                           {profile.has_base_resume
                             ? `Ready${profile.base_resume_updated_at ? ` · ${formatTimestamp(profile.base_resume_updated_at)}` : ""}`
                             : "Required before search, ATS, and enhancement"}
@@ -312,7 +313,7 @@ export function JobProfilesPanel() {
                       className="rm-btn rm-btn-sm"
                       onClick={() => deleteProfile(profile)}
                       disabled={profiles.length <= 1}
-                      style={{ color:profiles.length <= 1 ? "var(--color-text-muted)" : "#dc2626" }}
+                      style={{ color:profiles.length <= 1 ? "var(--color-text-muted)" : C.DANGER }}
                     >
                       Delete
                     </button>

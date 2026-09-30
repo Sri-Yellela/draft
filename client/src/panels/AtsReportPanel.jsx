@@ -1,5 +1,8 @@
 import PanelShell from "../components/PanelShell.jsx";
 import { ATSPanel } from "./ATSPanel.jsx";
+import { bandChipStyle } from "../styles/bandStyle.js";
+import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
+import { C } from "../styles/colorTokens.js";
 
 // ── AtsReportPanel — the ATS report + generation history, as a PEER of the JD drawer ──────────
 //
@@ -40,14 +43,24 @@ export default function AtsReportPanel({
         {activeAts?.title || "Match analysis"}
       </div>
       <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 5, marginTop: 5 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-primary-text)" }}>ATS</span>
-        {activeAts?.score != null && (
-          <span style={{ fontSize: 10, fontWeight: 700,
-                         color: activeAts.score >= 80 ? "#16a34a"
-                              : activeAts.score >= 60 ? "#b45309" : "#dc2626" }}>
-            Score {activeAts.score}
-          </span>
-        )}
+        {/* A BAND, NOT THE NUMBER. This printed "Score {n}" on the v3 >=80/>=60 ramp — the one
+            surface the band pass (AK2) missed, found by screenshot at UI step 2b. A report with a
+            null score is the scorer DECLINING, and says so (the dashed Not-enough-signal chip —
+            never a blank, which read as "not scored yet"). No report yet renders nothing at all,
+            not even the "ATS" label, which otherwise dangled with nothing after it. */}
+        {(activeAts?.score != null || activeAts?.report) && (() => {
+          const band = atsBandFor(activeAts.score ?? null);
+          return (
+            <>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-primary-text)" }}>ATS</span>
+              <span title={atsBandLabel(band).blurb}
+                style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 999,
+                         ...bandChipStyle(band) }}>
+                {atsBandLabel(band).short}
+              </span>
+            </>
+          );
+        })()}
       </div>
     </div>
   );
@@ -61,7 +74,7 @@ export default function AtsReportPanel({
             fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
             fontSize: 12, letterSpacing: "0.06em", textTransform: "uppercase",
             background: rightTab === id ? theme.accent : "transparent",
-            color: rightTab === id ? "#0f0f0f" : theme.textMuted,
+            color: rightTab === id ? C.ON_ACCENT : theme.textMuted,
             border: `1px solid ${rightTab === id ? theme.accent : theme.border}`,
           }}>
           {lbl}

@@ -25,6 +25,9 @@ import { PanelSubTabs, PanelSearch, DateFilterButton } from "../components/ui/Pa
 import {
   RESPONSE_OUTCOME, RESPONSE_OUTCOMES, RESPONSE_LABELS, MATURITY_DAYS, responseBucket,
 } from "../../../shared/applicationResponse.js";
+import { C } from "../styles/colorTokens.js";
+import { bandChipStyle } from "../styles/bandStyle.js";
+import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 
 // ── Calendar component ────────────────────────────────────────
 //
@@ -130,12 +133,9 @@ function DetailModal({ modal, onClose, theme }) {
   const hasResume  = !!modal.html;
   const hasAts     = !!(modal.atsReport || modal.atsScore != null);
 
-  const atsBg = modal.atsScore != null
-    ? (modal.atsScore >= 80 ? theme.successMuted : modal.atsScore >= 60 ? theme.warningMuted : theme.dangerMuted)
-    : theme.surfaceHigh;
-  const atsFg = modal.atsScore != null
-    ? (modal.atsScore >= 80 ? theme.success : modal.atsScore >= 60 ? theme.warning : theme.danger)
-    : theme.textMuted;
+  // A BAND, NOT THE NUMBER — the fourth copy of the v3 >=80/>=60 ramp, which paints every v4 score
+  // red (median 28). It printed "ATS {n}" too; both went at UI step 2b.
+  const atsBand = modal.atsScore != null ? atsBandFor(modal.atsScore) : null;
 
   const exportPdf = () => {
     if (!modal.html || exporting) return;
@@ -150,7 +150,7 @@ function DetailModal({ modal, onClose, theme }) {
         // the old NAV (1500) and belonged to neither. Same class as the other two panel-local
         // takeovers.
         position:"fixed", inset:0, zIndex:Z.MODAL_SCRIM,
-        background:"rgba(0,0,0,0.55)",
+        background:C.SCRIM,
         display:"flex", alignItems:"center", justifyContent:"center",
         padding:24,
       }}>
@@ -185,7 +185,7 @@ function DetailModal({ modal, onClose, theme }) {
                 style={{
                   padding:"5px 14px", border:"none", cursor: (id==="resume"?hasResume:hasAts) ? "pointer" : "not-allowed",
                   background: view===id ? theme.accent : theme.surface,
-                  color: view===id ? "#0f0f0f" : (id==="resume"?hasResume:hasAts) ? theme.text : theme.textDim,
+                  color: view===id ? C.ON_ACCENT : (id==="resume"?hasResume:hasAts) ? theme.text : theme.textDim,
                   fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
                   fontSize:12, letterSpacing:"0.06em", textTransform:"uppercase",
                   transition:"background 0.15s",
@@ -198,9 +198,10 @@ function DetailModal({ modal, onClose, theme }) {
 
           {/* ATS score chip */}
           {modal.atsScore != null && (
-            <span style={{ padding:"4px 12px", borderRadius:999, fontSize:12,
-                           fontWeight:700, background:atsBg, color:atsFg, flexShrink:0 }}>
-              ATS {modal.atsScore}
+            <span title={atsBandLabel(atsBand).blurb}
+              style={{ padding:"4px 12px", borderRadius:999, fontSize:12,
+                       fontWeight:700, flexShrink:0, ...bandChipStyle(atsBand) }}>
+              ATS · {atsBandLabel(atsBand).short}
             </span>
           )}
 
@@ -243,8 +244,8 @@ function DetailModal({ modal, onClose, theme }) {
         <div style={{ flex:1, overflow:"hidden", display:"flex" }}>
           {isResume ? (
             <iframe
-              srcDoc={modal.html || "<p style='padding:40px;font-family:sans-serif;color:#888'>No resume HTML stored.</p>"}
-              style={{ width:"100%", height:"100%", border:"none", background:"#ffffff" }}
+              srcDoc={modal.html || `<p style='padding:40px;font-family:sans-serif;color:${C.INK_FAINT}'>No resume HTML stored.</p>`}
+              style={{ width:"100%", height:"100%", border:"none", background:C.SURFACE_SOLID }}
               title="Resume Preview"
               sandbox="allow-same-origin"/>
           ) : (

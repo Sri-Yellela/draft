@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { BRAND } from "../../../shared/brand.js";
+import { C } from "../styles/colorTokens.js";
 
 function StatusPill({ status, healthy, theme }) {
-  const color = healthy ? "#16a34a" : status === "missing" || status === "not_connected" ? "#dc2626" : "#d97706";
+  const color = healthy ? C.SUCCESS : status === "missing" || status === "not_connected" ? C.DANGER : C.WARNING;
   return (
     <span style={{ display:"inline-flex", alignItems:"center", border:`1px solid ${color}55`,
       background:`${color}14`, color, borderRadius:6, padding:"3px 7px", fontSize:11, fontWeight:800 }}>
@@ -32,13 +33,13 @@ function ConsentSwitch({ checked, disabled, onChange, label }) {
       style={{
         position:"relative", width:44, height:24, flex:"none", padding:0,
         borderRadius:999, cursor: disabled ? "wait" : "pointer",
-        border:`1px solid ${checked ? "#16a34a" : "var(--color-border)"}`,
-        background: checked ? "#16a34a" : "var(--color-surface-offset)",
+        border:`1px solid ${checked ? C.SUCCESS : "var(--color-border)"}`,
+        background: checked ? C.SUCCESS : "var(--color-surface-offset)",
         opacity: disabled ? 0.6 : 1, transition:"background .15s, border-color .15s",
       }}>
       <span style={{
         position:"absolute", top:2, left: checked ? 22 : 2, width:18, height:18, borderRadius:999,
-        background:"#fff", boxShadow:"0 1px 3px rgba(0,0,0,.3)", transition:"left .15s",
+        background:C.SURFACE_SOLID, boxShadow:C.SHADOW_SM, transition:"left .15s",
       }}/>
     </button>
   );
@@ -123,7 +124,7 @@ export function IntegrationsPanel() {
     load();
   };
 
-  const buttonStyle = { border:"none", borderRadius:6, background:"var(--color-primary)", color:"#0f0f0f",
+  const buttonStyle = { border:"none", borderRadius:6, background:"var(--color-primary)", color:C.ON_ACCENT,
     padding:"8px 12px", cursor:"pointer", fontWeight:800, fontSize:12 };
   const secondaryButton = { ...buttonStyle, background:"var(--color-surface-offset)", color:"var(--color-text)", border:`1px solid ${"var(--color-border)"}` };
   const oauthSectionStatus = (provider, userStatus) => {
@@ -167,7 +168,7 @@ export function IntegrationsPanel() {
               {status.linkedin?.identityLinked ? "Import Again" : "Import from LinkedIn"}
             </button>
             {status.linkedin?.identityLinked && <button onClick={() => disconnectProvider("linkedin")} style={secondaryButton}>Disconnect</button>}
-            <span style={{ color:status.oauth?.linkedin?.configured === false ? "#ef4444" : "var(--color-text-muted)", fontSize:12 }}>
+            <span style={{ color:status.oauth?.linkedin?.configured === false ? C.DANGER : "var(--color-text-muted)", fontSize:12 }}>
               {status.linkedin?.identityLinked ? "Profile imported" : oauthHelp("linkedin")}
             </span>
           </div>
@@ -217,7 +218,7 @@ export function IntegrationsPanel() {
                 and you can turn it off at any time.
               </div>
               {capture === null && (
-                <div style={{ marginTop:6, color:"#d97706" }}>
+                <div style={{ marginTop:6, color:C.WARNING }}>
                   {captureError
                     ? "This setting is unavailable right now, so it cannot be changed. Nothing is being sent."
                     : "Checking…"}

@@ -35,6 +35,7 @@
 // a shared value back inside one component's lifecycle, which is the bug.
 import { useState } from "react";
 import { getKnownLogoUrl } from "../../../../shared/companyLogos.js";
+import { C } from "../../styles/colorTokens.js";
 
 const failedLogoUrls = new Set();
 
@@ -42,7 +43,7 @@ export default function CompanyIcon({ company, iconUrl, size = 48, radius = 10 }
   const [, forceRender] = useState(0);
   const letter = (company || "?")[0].toUpperCase();
   // Deterministic colour from the company name, so a given employer's tile is always the same one.
-  const colors = ["#0A66C2", "#7c3aed", "#0891b2", "#16a34a", "#dc2626", "#d97706", "#9333ea"];
+  const colors = [C.PROVIDER_LINKEDIN, C.VIOLET, C.TEAL, C.SUCCESS, C.DANGER, C.WARNING, C.VIOLET];
   let hash = 0;
   for (const c of company || "") hash = (hash * 31 + c.charCodeAt(0)) & 0xffff;
   const bg = colors[hash % colors.length];
@@ -58,7 +59,7 @@ export default function CompanyIcon({ company, iconUrl, size = 48, radius = 10 }
     );
   }
   return (
-    <div style={{ width: size, height: size, borderRadius: radius, background: bg, color: "#fff",
+    <div style={{ width: size, height: size, borderRadius: radius, background: bg, color: C.SURFACE_SOLID,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontWeight: 800, fontSize: Math.round(size * 0.38), flexShrink: 0,
                   letterSpacing: "-0.5px" }}>

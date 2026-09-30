@@ -60,27 +60,28 @@ export const ATS_BAND_CUTPOINTS = Object.freeze({
   moderate: 26,
 });
 
+// WHAT A BAND SAYS, NOT HOW IT LOOKS. The colours moved to client/src/styles/bandStyle.js (UI step
+// 2b), on the tokens in client/src/styles/colorTokens.js: this module is shared with the server and
+// the scorer's scripts, none of which paint anything, and raw hex here sat outside the token file
+// and outside the colour-literal guard. `tone` stays — it is meaning, not paint.
 export const ATS_BAND_LABELS = Object.freeze({
   [ATS_BAND.STRONG]: {
     label: "Strong match",
     short: "Strong",
     blurb: "Your resume covers most of what this posting asks for.",
     tone: "positive",
-    bg: "#dcfce7", fg: "#166534",
   },
   [ATS_BAND.MODERATE]: {
     label: "Moderate match",
     short: "Moderate",
     blurb: "Some of what this posting asks for is covered, and some is missing.",
     tone: "neutral",
-    bg: "#fef9c3", fg: "#854d0e",
   },
   [ATS_BAND.WEAK]: {
     label: "Weak match",
     short: "Weak",
     blurb: "Little of what this posting asks for appears in your resume.",
     tone: "negative",
-    bg: "#fee2e2", fg: "#991b1b",
   },
   // Deliberately NOT phrased as a degree of fit. It is the absence of a judgement, and the copy has
   // to say so, or it reads as a fourth, worse grade than Weak.
@@ -89,9 +90,8 @@ export const ATS_BAND_LABELS = Object.freeze({
     short: "No signal",
     blurb: "This posting does not say enough for a fit to be judged. It is not a poor match — it is an unknown one.",
     tone: "unknown",
-    // Grey, and deliberately not on the green-amber-red scale: this is the absence of a
-    // judgement, so it must not read as a position on the axis the other three share.
-    bg: "#e5e7eb", fg: "#4b5563",
+    // Painted as the ABSENCE of a grade — no fill, no hue, a dashed outline — never as a position
+    // on the axis the other three share. See client/src/styles/bandStyle.js.
   },
 });
 

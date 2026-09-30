@@ -14,6 +14,8 @@ import { describeApplication, attemptStatusChip, PREREQUISITE_LABELS } from "../
 import { TileCard, TilePill } from "../components/ui/TileCard.jsx";
 import { companyLabel } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
+import { bandChipStyle } from "../styles/bandStyle.js";
+import { C } from "../styles/colorTokens.js";
 // AD1: OUTCOME_LABELS moved to AutoApplyPanel with the groups themselves — they name the SUB-TABS
 // now, and nothing in this module reads them. The partition still lives in shared/ because
 // routes/apply.js groups rows with it; a copy on each side is how the two come to disagree.
@@ -43,7 +45,7 @@ export function SectionHeading({ children, count, note, theme }) {
  * required" is the same information priced as four jobs.
  */
 export function ObstacleCard({
-  theme, tone = "#d97706", kicker, headline, detail, count, countLabel,
+  theme, tone = C.WARNING, kicker, headline, detail, count, countLabel,
   actionLabel, onAction, secondaryLabel, onSecondary, hero = false,
 }) {
   return (
@@ -98,7 +100,7 @@ export function ObstacleCard({
         {actionLabel && (
           <button onClick={onAction}
             style={{ border: "none", borderRadius: 6, padding: "8px 14px", background: tone,
-                     color: "#ffffff", fontWeight: 800, fontSize: 11.5, cursor: "pointer",
+                     color: C.SURFACE_SOLID, fontWeight: 800, fontSize: 11.5, cursor: "pointer",
                      whiteSpace: "nowrap" }}>
             {actionLabel}
           </button>
@@ -171,7 +173,7 @@ export function ApplicationObstacleCard({
   onGenerateResume, plan = null, onGroupAction, detailsLabel, children,
 }) {
   const many = app.reasons.length > 1;
-  const tone = app.postingGone ? "#6b7280" : app.protective ? "#d97706" : "#dc2626";
+  const tone = app.postingGone ? C.INK_FAINT : app.protective ? C.WARNING : C.DANGER;
   const stale = packet?.stale;
 
   return (
@@ -236,18 +238,18 @@ export function ApplicationObstacleCard({
           ? plan.map((item) => item.kind === "group" ? (
             <div key={item.key} data-rm-plan="group" data-rm-unblocks={item.unblocks}
               style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap",
-                       border: `1px solid #2563eb55`, borderLeft: "3px solid #2563eb",
+                       border: `1px solid ${C.INFO}55`, borderLeft: `3px solid ${C.INFO}`,
                        borderRadius: 6, padding: "8px 10px", background: `${theme.surface}` }}>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
                             minWidth: 34, flexShrink: 0 }}>
                 <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
-                               fontSize: 20, lineHeight: 1, color: "#2563eb" }}>{item.unblocks}</span>
+                               fontSize: 20, lineHeight: 1, color: C.INFO }}>{item.unblocks}</span>
                 <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.06em",
                                textTransform: "uppercase", color: theme.textDim }}>unblocked</span>
               </div>
               <div style={{ flex: 1, minWidth: 160 }}>
                 <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.08em",
-                              textTransform: "uppercase", color: "#2563eb", marginBottom: 2 }}>
+                              textTransform: "uppercase", color: C.INFO, marginBottom: 2 }}>
                   one action, {item.unblocks} applications
                 </div>
                 <div style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.45 }}>
@@ -261,8 +263,8 @@ export function ApplicationObstacleCard({
               </div>
               {item.action && onGroupAction && (
                 <button onClick={() => onGroupAction(item)}
-                  style={{ border: "none", borderRadius: 6, padding: "6px 11px", background: "#2563eb",
-                           color: "#fff", fontWeight: 800, fontSize: 11, cursor: "pointer",
+                  style={{ border: "none", borderRadius: 6, padding: "6px 11px", background: C.INFO,
+                           color: C.SURFACE_SOLID, fontWeight: 800, fontSize: 11, cursor: "pointer",
                            whiteSpace: "nowrap", flexShrink: 0 }}>
                   {item.action}
                 </button>
@@ -274,7 +276,7 @@ export function ApplicationObstacleCard({
             <div key={item.key} data-rm-plan="single"
                  style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
               <span style={{ width: 5, height: 5, borderRadius: "50%", marginTop: 6, flexShrink: 0,
-                             background: item.protective ? "#d97706" : "#dc2626" }} />
+                             background: item.protective ? C.WARNING : C.DANGER }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.45 }}>
                   {item.headline}
@@ -289,7 +291,7 @@ export function ApplicationObstacleCard({
           : app.reasons.map((r, i) => (
             <div key={`${r.code}-${i}`} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
               <span style={{ width: 5, height: 5, borderRadius: "50%", marginTop: 6, flexShrink: 0,
-                             background: r.protective ? "#d97706" : "#dc2626" }} />
+                             background: r.protective ? C.WARNING : C.DANGER }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.45 }}>
                   {r.obstacle}
@@ -322,7 +324,7 @@ export function ApplicationObstacleCard({
           <button onClick={() => onGenerateResume(app)}
             title="Queues this job so the next run generates a tailored resume for it before it applies."
             style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999,
-                     border: "none", background: "#2563eb", color: "#fff", cursor: "pointer",
+                     border: "none", background: C.INFO, color: C.SURFACE_SOLID, cursor: "pointer",
                      whiteSpace: "nowrap" }}>
             Generate a resume
           </button>
@@ -342,11 +344,12 @@ export function ApplicationObstacleCard({
           // The REVIEW SCREEN's band. Renders even when atsScore is null, because null is the
           // scorer declining — its own band — and a reviewer deciding whether to submit is exactly
           // who needs to know the difference between "weak match" and "no basis to judge".
-          const meta = atsBandLabel(atsBandFor(app.atsScore ?? null));
+          const band = atsBandFor(app.atsScore ?? null);
+          const meta = atsBandLabel(band);
           return (
             <span title={meta.blurb}
               style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                       background: meta.bg, color: meta.fg }}>
+                       ...bandChipStyle(band) }}>
               {meta.short}
             </span>
           );
@@ -379,7 +382,7 @@ export function ApplicationObstacleCard({
         ) : onResolve ? (
           <button onClick={() => onResolve(app)} title={resolveTitle}
             style={{ border: "none", borderRadius: 6, padding: "7px 13px", background: tone,
-                     color: "#ffffff", fontWeight: 800, fontSize: 11.5, cursor: "pointer",
+                     color: C.SURFACE_SOLID, fontWeight: 800, fontSize: 11.5, cursor: "pointer",
                      whiteSpace: "nowrap" }}>
             {resolveLabel || "Open"}
           </button>
@@ -415,9 +418,9 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
   const d = describeApplication(job);
   const when = job.finishedAt || job.startedAt || job.createdAt;
   // Protective vs broken is the distinction the old UI lost by calling both "failed".
-  const tone = variant === "submitted" ? "#16a34a"
-    : variant === "inFlight" ? "#2563eb"
-    : d.protective ? "#6b7280" : "#dc2626";
+  const tone = variant === "submitted" ? C.SUCCESS
+    : variant === "inFlight" ? C.INFO
+    : d.protective ? C.INK_FAINT : C.DANGER;
 
   const chip = (bg, fg, text, title) => (
     <span title={title} style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
@@ -483,8 +486,8 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
             picture of the form as submitted. */}
         {variant === "submitted" && (
           job.submitVerified
-            ? chip("#16a34a22", "#16a34a", "confirmed by the site", job.submitEvidence || "")
-            : chip("#d9770622", "#d97706", "sent, not confirmed",
+            ? chip(C.SUCCESS_QUIET, C.SUCCESS, "confirmed by the site", job.submitEvidence || "")
+            : chip(C.WARNING_QUIET, C.WARNING, "sent, not confirmed",
                    "We clicked submit and the page did not show a confirmation. Check the screenshot.")
         )}
         {job.resumeAvailable
@@ -503,7 +506,7 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
                 <button onClick={() => onGenerateResume(job)}
                   title="Queues this job so the next run generates a tailored resume for it before it applies."
                   style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999,
-                           border: "none", background: "#2563eb", color: "#fff", cursor: "pointer",
+                           border: "none", background: C.INFO, color: C.SURFACE_SOLID, cursor: "pointer",
                            whiteSpace: "nowrap" }}>
                   Generate a resume
                 </button>
@@ -517,9 +520,11 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
             there at all rather than offered under a softer label. */}
         {variant === "submitted" && job.screenshotAvailable
           && link(artifactUrl(job.id, "screenshot"), "Screenshot of the form ↗")}
-        {chip(atsBandLabel(atsBandFor(job.atsScore ?? null)).bg,
-              atsBandLabel(atsBandFor(job.atsScore ?? null)).fg,
-              atsBandLabel(atsBandFor(job.atsScore ?? null)).short)}
+        <span title={atsBandLabel(atsBandFor(job.atsScore ?? null)).blurb}
+          style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, whiteSpace: "nowrap",
+                   ...bandChipStyle(atsBandFor(job.atsScore ?? null)) }}>
+          {atsBandLabel(atsBandFor(job.atsScore ?? null)).short}
+        </span>
         {job.applyUrl && link(job.applyUrl, "The posting ↗")}
 
         <span style={{ flex: 1 }} />
@@ -557,8 +562,8 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
         {job.abortable && onAbort && (
           <button onClick={() => onAbort(job)} disabled={busy}
             title="Stops this application. If it is filling a form right now, the browser is closed, nothing is submitted, and the prepared answers are voided."
-            style={{ border: "1px solid #dc262655", borderRadius: 6, padding: "4px 10px",
-                     background: theme.surface, color: "#dc2626", fontWeight: 700, fontSize: 11,
+            style={{ border: `1px solid ${C.DANGER}55`, borderRadius: 6, padding: "4px 10px",
+                     background: theme.surface, color: C.DANGER, fontWeight: 700, fontSize: 11,
                      cursor: busy ? "wait" : "pointer", opacity: busy ? 0.5 : 1 }}>
             Abort
           </button>
@@ -588,7 +593,7 @@ export function PrerequisiteCards({ missing, queuedCount, theme, onGo }) {
       <ObstacleCard
         key={key}
         theme={theme}
-        tone="#dc2626"
+        tone={C.DANGER}
         kicker="blocks every application"
         headline={p.obstacle}
         // ONE blocking item with a fix, not N separate failures. This is computed by the server's
@@ -661,7 +666,7 @@ function FillLog({ runJobId, theme }) {
     return <span style={{ fontSize: 10, color: theme.textMuted }}>reading the record…</span>;
   }
   if (state.status === "error") {
-    return <span style={{ fontSize: 10, color: "#ef4444" }}>{state.error}</span>;
+    return <span style={{ fontSize: 10, color: C.DANGER }}>{state.error}</span>;
   }
 
   const d = state.data;
@@ -682,7 +687,7 @@ function FillLog({ runJobId, theme }) {
       {/* Whether anything was regenerated. This is the answer to "I already generated a resume for
           this job — did queueing it do that work again?" and it is stated rather than implied. */}
       {d.resume?.reuse && (
-        <div style={{ color: d.resume.reuse.reused ? "#16a34a" : theme.textMuted, fontWeight: 600 }}>
+        <div style={{ color: d.resume.reuse.reused ? C.SUCCESS : theme.textMuted, fontWeight: 600 }}>
           {d.resume.reuse.summary}
         </div>
       )}
@@ -719,7 +724,7 @@ function FillLog({ runJobId, theme }) {
                       borderTop: `1px solid ${theme.border}`, paddingTop: 5 }}>
           {d.blanks.map((b, i) => (
             <div key={i} style={{ display: "flex", gap: 6, alignItems: "baseline", ...mono }}>
-              <span style={{ color: b.required ? "#d97706" : theme.textMuted, flex: "0 1 38%",
+              <span style={{ color: b.required ? C.WARNING : theme.textMuted, flex: "0 1 38%",
                              minWidth: 0, overflow: "hidden", textOverflow: "ellipsis",
                              whiteSpace: "nowrap" }}>
                 {b.label || b.field}{b.required ? " *" : ""}
@@ -790,8 +795,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
           })()}
           <span title={atsBandLabel(atsBandFor(job.atsScore ?? null)).blurb} style={{
             fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 999,
-            background: atsBandLabel(atsBandFor(job.atsScore ?? null)).bg,
-            color: atsBandLabel(atsBandFor(job.atsScore ?? null)).fg,
+            ...bandChipStyle(atsBandFor(job.atsScore ?? null)),
           }}>
             {atsBandLabel(atsBandFor(job.atsScore ?? null)).short}
           </span>
@@ -802,7 +806,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
           on — the same defect class as the old unscoped review modal. The list was always computed;
           it lived in an apply_job_logs event that no surface reads. */}
       {job.missingRequired?.length > 0 && (
-        <div data-rm-missing-required={job.id} style={{ fontSize: 10.5, color: "#d97706" }}>
+        <div data-rm-missing-required={job.id} style={{ fontSize: 10.5, color: C.WARNING }}>
           Still yours to answer: <span style={{ fontWeight: 700 }}>{job.missingRequired.join(", ")}</span>
         </div>
       )}
@@ -868,8 +872,8 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
                 : "Opens the real application in your own browser and fills it with the answers we prepared. You review and submit."}
               style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999,
                        border: stale ? `1px solid ${theme.border}` : "none",
-                       background: stale ? theme.surfaceHigh : "#2563eb",
-                       color: stale ? theme.text : "#fff", cursor: "pointer",
+                       background: stale ? theme.surfaceHigh : C.INFO,
+                       color: stale ? theme.text : C.SURFACE_SOLID, cursor: "pointer",
                        whiteSpace: "nowrap" }}>
               {stale ? "Run it again" : "Open & fill ↗"}
             </button>
@@ -878,8 +882,8 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
         {job.status === "submitted" && (
           <span title={job.submitEvidence || ""}
             style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                     background: job.submitVerified ? "#16a34a22" : "#d9770622",
-                     color: job.submitVerified ? "#16a34a" : "#d97706", whiteSpace: "nowrap" }}>
+                     background: job.submitVerified ? C.SUCCESS_QUIET : C.WARNING_QUIET,
+                     color: job.submitVerified ? C.SUCCESS : C.WARNING, whiteSpace: "nowrap" }}>
             {job.submitVerified ? "submission verified" : "unverified submit"}
           </span>
         )}
@@ -929,7 +933,7 @@ export function CompanyApplicationRow({
   app, theme, artifactUrl, packet, onResolve, resolveLabel, resolveTitle, onDetails, onRerun,
   onGenerateResume, onAbort, onHide, busy = false,
 }) {
-  const tone = app.postingGone ? "#6b7280" : app.protective ? "#d97706" : "#dc2626";
+  const tone = app.postingGone ? C.INK_FAINT : app.protective ? C.WARNING : C.DANGER;
   const stale = packet?.stale;
   const chip = {
     fontSize: 9.5, fontWeight: 700, padding: "2px 7px", borderRadius: 999,
@@ -977,7 +981,7 @@ export function CompanyApplicationRow({
           // is a button — and only where a missing resume is actually what is wrong.
           <button onClick={() => onGenerateResume(app)}
             title="Queues this job so the next run generates a tailored resume for it before it applies."
-            style={{ ...chip, border: "none", background: "#2563eb", color: "#fff", fontWeight: 800,
+            style={{ ...chip, border: "none", background: C.INFO, color: C.SURFACE_SOLID, fontWeight: 800,
                      cursor: "pointer" }}>
             Generate a resume
           </button>
@@ -986,9 +990,8 @@ export function CompanyApplicationRow({
             whole point of the tier is compactness — and the picture was the least informative chip
             on it. See ApplicationObstacleCard for the full reasoning. */}
         <span title={atsBandLabel(atsBandFor(app.atsScore ?? null)).blurb}
-          style={{ ...chip, border: "none",
-                   background: atsBandLabel(atsBandFor(app.atsScore ?? null)).bg,
-                   color: atsBandLabel(atsBandFor(app.atsScore ?? null)).fg }}>
+          style={{ ...chip,
+                   ...bandChipStyle(atsBandFor(app.atsScore ?? null)) }}>
           {atsBandLabel(atsBandFor(app.atsScore ?? null)).short}
         </span>
         {app.applyUrl && (
@@ -1011,7 +1014,7 @@ export function CompanyApplicationRow({
           </button>
         ) : onResolve ? (
           <button onClick={() => onResolve(app)} title={resolveTitle}
-            style={{ ...chip, border: "none", background: tone, color: "#fff", fontWeight: 800,
+            style={{ ...chip, border: "none", background: tone, color: C.SURFACE_SOLID, fontWeight: 800,
                      cursor: "pointer" }}>
             {resolveLabel || "Open"}
           </button>
@@ -1032,7 +1035,7 @@ export function CompanyApplicationRow({
         {onAbort && app.rows?.some(r => r.abortable) && (
           <button onClick={() => onAbort(app)} disabled={busy}
             title="Stops this application. If it is filling a form right now, the browser is closed, nothing is submitted, and the prepared answers are voided."
-            style={{ ...chip, color: "#dc2626", borderColor: "#dc262655", fontWeight: 800,
+            style={{ ...chip, color: C.DANGER, borderColor: `${C.DANGER}55`, fontWeight: 800,
                      cursor: busy ? "wait" : "pointer", opacity: busy ? 0.5 : 1 }}>
             Abort
           </button>

@@ -238,3 +238,39 @@ dark-era literals (e.g. `#0a1f0a` fills, `#22c55e` text) now sit on cream and we
 screenshotted — step 2 photographed only what renders without a backend. Band/score colours
 (`#16a34a` 2.81:1, `#d97706` 2.71:1 on cream) FAIL AA as text and are in that remainder. The grain
 is deliberately faint (measured spread 6 levels); how much texture glass needs is an owner call.
+
+## Step 2b status — the signed-in app (2026-09-30, local, not pushed)
+
+**Built:** the 22 budgeted files are migrated — **549 literals, 0 left**; `BUDGET` in
+`test/colorLiteralGuard.test.js` is empty and the 22 files (plus `styles/bandStyle.js`) are pinned
+in its migrated list. The rewrite was by AST position (`@babel/parser`), not by regex, and chose the
+token by the CSS ROLE each literal played — text, fill, edge, shadow, or a positional helper
+argument (`btn(bg, fg, bd)`, `chip(bg, fg, …)`) — because the dark → light flip inverts the neutrals:
+dark-era `#fff` TEXT sat on coloured buttons (→ paper-white `SURFACE_SOLID`, or ink `ON_ACCENT`
+when the fill is the accent); a `#0f0f0f` FILL was a dark panel (→ paper); `#0f0f0f` TEXT was text
+on the accent (→ `ON_ACCENT`). Hue families map tone → tone and dark-era tint fills → the `*_QUIET`
+fill. Two old-yellow constants (`ACCENT` in DBInspector, `ADMIN_ACCENT` in AdminPanel) were used as
+fills AND as text; each keeps the orange for fills and gained an `ACCENT_INK` twin for every text,
+edge and stroke use.
+
+**The bands.** Paint moved out of `shared/atsBands.js` (shared with the server; raw hex there sat
+outside the token file) into `client/src/styles/bandStyle.js` on `BAND_*` tokens. Each filled band
+has a text tone ≥ 4.5:1 on paper and glass and a quiet fill it and ink both pass on, replacing
+`#16a34a` 2.81:1 and `#d97706` 2.71:1. ⛔ **Not enough signal is drawn as the ABSENCE of a grade**:
+no fill, no hue, muted ink in a dashed outline, captioned "no judgement" where the others say "fit
+band". The old grey fill was Weak's shape in a paler colour — a fourth grade. The test now requires
+the fill, the text AND the edge style to differ from Weak's.
+
+**The number (G5).** The panel header's "Score {n}" (the "ATS Score 58" beside "Strong match") is a
+band chip; a decline shows the dashed No-signal chip, never a blank. Also removed: ATSPanel's "Best
+possible: {n}" (now the band), and DatabasePanel's "ATS {n}" chip on a FOURTH surviving copy of the
+v3 ≥80/≥60 ramp. The band test now scans for the ramp in any paint and for the best-possible number.
+⚠ Kept: the public `/tools/ats` donut prints a number, but it is a **Haiku model's** score on its own
+scale, not v4's — v4's cutpoints cannot be applied to it. Owner question (see WORKLOG).
+
+**Screenshotted:** 21 signed-in scenes × 1440/390 against stubbed `/api/*` (Puppeteer request
+interception; no server booted), compared with the 09-29 "before" set of the same scenes. Looked at:
+board, job detail, ATS Strong / Weak / Not enough signal, auto-apply, admin, mobile detail. No page
+errors. Pre-existing, not from this pass, present in the "before" log too: a Rules-of-Hooks order
+warning on every signed-in route, a forwardRef warning in JobsPanel, and a missing list key in
+ContactMessagesSection.

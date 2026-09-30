@@ -236,7 +236,8 @@ test("held-on-purpose is distinguished from broken, which is the distinction the
       `"${c}" is a real failure and must not read as a deliberate hold`);
   }
   // And the panel colours on it rather than on the status.
-  assert.match(sections, /d\.protective \? "#6b7280" : "#dc2626"/);
+  // Re-pinned at UI step 2b (09-30): muted for held-on-purpose, danger for broken — as tokens.
+  assert.match(sections, /d\.protective \? C\.INK_FAINT : C\.DANGER/);
 });
 
 test("retry is offered ONLY where retrying can work", () => {

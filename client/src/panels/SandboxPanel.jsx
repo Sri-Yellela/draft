@@ -16,6 +16,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "../styles/theme.jsx";
 import PanelShell from "../components/PanelShell.jsx";
+import { C } from "../styles/colorTokens.js";
 
 const RESUME_PAGE_WIDTH  = 794;  // A4 at 96dpi
 const RESUME_PAGE_HEIGHT = 1123; // A4 at 96dpi
@@ -281,7 +282,7 @@ export default function SandboxPanel({
         )}
         {dirty && <span style={{ fontSize:10, color:"var(--color-warning)", fontWeight:700 }}>● unsaved</span>}
         {saveMsg && <span style={{ fontSize:10, fontWeight:700,
-          color: saveMsg.startsWith("✓") ? "#16a34a" : "#dc2626" }}>{saveMsg}</span>}
+          color: saveMsg.startsWith("✓") ? C.SUCCESS : C.DANGER }}>{saveMsg}</span>}
       </div>
     </div>
   );
@@ -318,7 +319,7 @@ export default function SandboxPanel({
       <button style={btnStyle()} onClick={exportPdf} disabled={!activeEntry?.html||exporting}>
         {exporting ? "Exporting…" : "PDF"}
       </button>
-      {exportError && <span style={{ fontSize:10, color:"#991b1b" }}>{exportError}</span>}
+      {exportError && <span style={{ fontSize:10, color:C.DANGER }}>{exportError}</span>}
     </>
   );
 
@@ -414,8 +415,8 @@ export default function SandboxPanel({
                   <div key={i} style={{ display:"flex", alignItems:"center", gap:8, fontSize:11 }}>
                     <span style={{
                       padding:"2px 6px", borderRadius:4, fontWeight:700, fontSize:9, flexShrink:0,
-                      background: isFlag ? "#fee2e2" : "#fef9c3",
-                      color: isFlag ? "#991b1b" : "#854d0e",
+                      background: isFlag ? C.DANGER_QUIET : C.WARNING_QUIET,
+                      color: isFlag ? C.DANGER : C.WARNING,
                     }}>
                       {isFlag ? "FLAG" : "SUGGESTION"}
                     </span>
@@ -538,7 +539,7 @@ export default function SandboxPanel({
                       position:     "relative",
                       background:   "var(--color-surface)",
                       borderRadius: 4,
-                      boxShadow:    "0 40px 80px rgba(0,0,0,0.7), 0 16px 32px rgba(0,0,0,0.5)",
+                      boxShadow:    C.SHADOW_SM,
                       flexShrink:   0,
                     }}
                   >

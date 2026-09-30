@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { StackSection, OrgSection, HiringSection, SponsorshipSection } from "./CompanyKbSections.jsx";
+import { C } from "../styles/colorTokens.js";
 
 export default function CompanyViewModal({ company, onClose }) {
   const { theme } = useTheme();
@@ -23,14 +24,14 @@ export default function CompanyViewModal({ company, onClose }) {
   }, [company]);
 
   const overlay = {
-    position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9000,
+    position: "fixed", inset: 0, background: C.SCRIM, zIndex: 9000,
     display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
   };
   const modal = {
     background: theme.surface, border: `1px solid ${theme.border}`,
     borderRadius: 12, width: "100%", maxWidth: 480, maxHeight: "85vh",
     display: "flex", flexDirection: "column", overflow: "hidden",
-    boxShadow: "0 24px 80px rgba(0,0,0,0.35)",
+    boxShadow: C.SHADOW_SM,
   };
   const hdr = {
     display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -52,7 +53,7 @@ export default function CompanyViewModal({ company, onClose }) {
         <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 18 }}>
           {loading && <div style={{ fontSize: 12, color: theme.textMuted }}>Loading…</div>}
           {error && !loading && (
-            <div style={{ background: "#fee2e2", color: "#991b1b", borderRadius: 6, padding: "8px 12px", fontSize: 12 }}>
+            <div style={{ background: C.DANGER_QUIET, color: C.DANGER, borderRadius: 6, padding: "8px 12px", fontSize: 12 }}>
               {error}
             </div>
           )}

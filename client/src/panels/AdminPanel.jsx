@@ -4,10 +4,14 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api }      from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
+import { C } from "../styles/colorTokens.js";
 
 // Lucy admin yellow accent — consistent across this panel
-const ADMIN_ACCENT = "#F5E642";
-const ADMIN_TEXT   = "#0f0f0f";
+const ADMIN_ACCENT = C.ACCENT;
+// ADMIN_ACCENT is the orange, which is 2.96:1 on the paper: a FILL only. Text, edges and strokes use the
+// darker ink twin (4.5:1+), the rule UI step 2 set for the logo orange.
+const ADMIN_ACCENT_TEXT = C.ACCENT_INK;
+const ADMIN_TEXT   = C.ON_ACCENT;
 
 function displayEventSubtype(value) {
   if (value === "CUSTOM_SAMPLER" || value === "A_PLUS") return "A+";
@@ -34,7 +38,7 @@ function DateRange({ from, to, onFromChange, onToChange }) {
           <button key={p.label} onClick={() => { onFromChange(pFrom); onToChange(Math.floor(Date.now()/1000) + 86400); }}
             style={{
               padding:"4px 12px", borderRadius:999, border:`1px solid ${active ? theme.accent : theme.border}`,
-              background: active ? theme.accent : "transparent", color: active ? "#0f0f0f" : theme.text,
+              background: active ? theme.accent : "transparent", color: active ? C.ON_ACCENT : theme.text,
               fontSize:11, fontWeight:700, cursor:"pointer",
             }}>
             {p.label}
@@ -46,7 +50,7 @@ function DateRange({ from, to, onFromChange, onToChange }) {
 }
 
 // ── MiniLineChart ─────────────────────────────────────────────
-function MiniLineChart({ data, width=300, height=80, color="#7c3aed" }) {
+function MiniLineChart({ data, width=300, height=80, color=C.VIOLET }) {
   const { theme } = useTheme();
   if (!data || data.length < 2) return (
     <div style={{ width, height, display:"flex", alignItems:"center", justifyContent:"center",
@@ -73,7 +77,7 @@ function MiniLineChart({ data, width=300, height=80, color="#7c3aed" }) {
 }
 
 // ── MiniBarChart ──────────────────────────────────────────────
-function MiniBarChart({ data, width=300, height=80, color="#7c3aed" }) {
+function MiniBarChart({ data, width=300, height=80, color=C.VIOLET }) {
   const { theme } = useTheme();
   if (!data || data.length === 0) return (
     <div style={{ width, height, display:"flex", alignItems:"center", justifyContent:"center",
@@ -154,7 +158,7 @@ function UsageTab({ theme }) {
   const fmtDate = ts => ts ? new Date(ts*1000).toLocaleString() : "-";
   const shortModel = model => (model || "-").replace("claude-", "").replace("-20250514", "").replace("-20251001", "");
 
-  const cacheColor = overview.cacheHitRate >= 0.7 ? "#16a34a" : overview.cacheHitRate >= 0.4 ? "#d97706" : "#dc2626";
+  const cacheColor = overview.cacheHitRate >= 0.7 ? C.SUCCESS : overview.cacheHitRate >= 0.4 ? C.WARNING : C.DANGER;
 
   return (
     <div style={{ padding:"20px", display:"flex", flexDirection:"column", gap:20 }}>
@@ -168,8 +172,8 @@ function UsageTab({ theme }) {
           theme={theme} color={theme.accent}/>
         <StatCard label="Jobs Scraped" value={fmtNum(overview.totalJobsInserted)} sub={`${overview.totalScrapes} scrape runs`} theme={theme}/>
         <StatCard label="Token Usage" value={fmtNum(overview.totalTokensUsed)} sub="tokens" theme={theme}/>
-        <StatCard label="API Cost" value={fmtUsd(overview.totalCostUsd)} theme={theme} color="#dc2626"/>
-        <StatCard label="Cache Savings" value={fmtUsd(overview.totalCostSaved)} theme={theme} color="#16a34a"/>
+        <StatCard label="API Cost" value={fmtUsd(overview.totalCostUsd)} theme={theme} color={C.DANGER}/>
+        <StatCard label="Cache Savings" value={fmtUsd(overview.totalCostSaved)} theme={theme} color={C.SUCCESS}/>
         <StatCard label="Cache Hit Rate" value={fmtPct(overview.cacheHitRate)} theme={theme} color={cacheColor}/>
         <StatCard label="Avg ATS Δ"
           value={overview.avgAtsImprovement != null ? `+${overview.avgAtsImprovement.toFixed(1)}` : "—"}
@@ -187,7 +191,7 @@ function UsageTab({ theme }) {
         <div style={{ flex:1, minWidth:280, background:theme.surface, border:`1px solid ${theme.border}`,
                       borderRadius:12, padding:16 }}>
           <div style={{ fontSize:12, fontWeight:700, marginBottom:12, color:theme.text }}>API Cost (USD/day)</div>
-          <MiniBarChart data={timeseries.cost || []} width={300} height={90} color="#dc2626"/>
+          <MiniBarChart data={timeseries.cost || []} width={300} height={90} color={C.DANGER}/>
         </div>
       </div>
 
@@ -204,7 +208,7 @@ function UsageTab({ theme }) {
                                 width: `${Math.min(100, (ev.count / (overview.topEventTypes[0]?.count||1))*100)}%` }}/>
                 </div>
                 <div style={{ width:50, textAlign:"right", fontSize:12, color:theme.textMuted }}>{ev.count}</div>
-                <div style={{ width:70, textAlign:"right", fontSize:11, color:"#dc2626" }}>{fmtUsd(ev.cost)}</div>
+                <div style={{ width:70, textAlign:"right", fontSize:11, color:C.DANGER }}>{fmtUsd(ev.cost)}</div>
               </div>
             ))}
           </div>
@@ -227,12 +231,12 @@ function UsageTab({ theme }) {
                     {label}
                   </div>
                   <div style={{ flex:1, height:7, background:theme.surfaceHigh, borderRadius:999 }}>
-                    <div style={{ height:7, borderRadius:999, background:"#dc2626",
+                    <div style={{ height:7, borderRadius:999, background:C.DANGER,
                                   width: `${Math.min(100, (row.cost / maxCost) * 100)}%` }}/>
                   </div>
                   <div style={{ width:55, textAlign:"right", fontSize:11, color:theme.textMuted }}>{row.calls} calls</div>
                   <div style={{ width:80, textAlign:"right", fontSize:11, color:theme.textMuted }}>{fmtNum(totalTokens)} tok</div>
-                  <div style={{ width:76, textAlign:"right", fontSize:11, color:"#dc2626" }}>{fmtUsd(row.cost)}</div>
+                  <div style={{ width:76, textAlign:"right", fontSize:11, color:C.DANGER }}>{fmtUsd(row.cost)}</div>
                 </div>
               );
             })}
@@ -282,13 +286,13 @@ function UsageTab({ theme }) {
                 <div>{fmtNum(call.cache_read_tokens || 0)}</div>
                 <div>{fmtNum(call.cache_creation_tokens || 0)}</div>
                 <div style={{
-                  color: call.cache_state === "warm" || call.cache_state === "partial" ? "#16a34a"
-                    : call.cache_state === "cold_write" ? "#d97706" : theme.textMuted,
+                  color: call.cache_state === "warm" || call.cache_state === "partial" ? C.SUCCESS
+                    : call.cache_state === "cold_write" ? C.WARNING : theme.textMuted,
                   fontWeight:700,
                 }}>
                   {call.cache_state || (call.cached ? "warm" : "cold")}
                 </div>
-                <div style={{ color:"#dc2626" }}>{fmtUsd(call.cost_usd || 0)}</div>
+                <div style={{ color:C.DANGER }}>{fmtUsd(call.cost_usd || 0)}</div>
               </div>
             ))}
           </div>
@@ -332,7 +336,7 @@ function LimitsModal({ userId, username, initialLimits, onSave, onClose, theme }
   return (
     <div style={{ position:"fixed", inset:0, zIndex:1100, display:"flex",
                   alignItems:"center", justifyContent:"center",
-                  background:"rgba(0,0,0,0.5)" }}
+                  background:C.SCRIM }}
       onClick={e => { if(e.target===e.currentTarget) onClose(); }}>
       <div style={{ background:theme.surface, borderRadius:16, padding:28,
                     maxWidth:420, width:"90%", maxHeight:"80vh", overflowY:"auto",
@@ -379,7 +383,7 @@ function LimitsModal({ userId, username, initialLimits, onSave, onClose, theme }
             setSaving(false);
           }}
             style={{ flex:2, padding:"10px 0", borderRadius:999, border:"none",
-                     background:theme.accent, color:"#0f0f0f", fontWeight:800, fontSize:13,
+                     background:theme.accent, color:C.ON_ACCENT, fontWeight:800, fontSize:13,
                      cursor:"pointer", opacity:saving?0.7:1 }}>
             {saving ? "Saving…" : "Save Limits"}
           </button>
@@ -458,7 +462,7 @@ function UsersTab({ theme }) {
                 <div style={{ color:theme.textMuted }}>{u.resumesGenerated}</div>
                 <div style={{ color:theme.textMuted }}>{u.jobScrapes}</div>
                 <div style={{ color:theme.textMuted }}>{fmtNum(u.totalTokens)}</div>
-                <div style={{ color:"#dc2626" }}>{fmtUsd(u.totalCost)}</div>
+                <div style={{ color:C.DANGER }}>{fmtUsd(u.totalCost)}</div>
                 <div style={{ color:theme.textMuted }}>{fmtPct(u.cacheHitRate)}</div>
                 <div style={{ color:theme.accentText }}>
                   {u.avgAtsScoreAfter != null && u.avgAtsScoreBefore != null
@@ -487,9 +491,9 @@ function UsersTab({ theme }) {
                       onClick={() => toggleAplusResume(u.userId, u.aplusResume)}
                       style={{
                         fontSize:11, padding:"3px 10px", borderRadius:999, fontWeight:700, cursor:"pointer",
-                        border:`1px solid ${u.aplusResume ? "#16a34a" : theme.border}`,
-                        background: u.aplusResume ? "#dcfce7" : "transparent",
-                        color: u.aplusResume ? "#166534" : theme.textMuted,
+                        border:`1px solid ${u.aplusResume ? C.SUCCESS : theme.border}`,
+                        background: u.aplusResume ? C.SUCCESS_QUIET : "transparent",
+                        color: u.aplusResume ? C.SUCCESS : theme.textMuted,
                       }}>
                       A+ Resume: {u.aplusResume ? "ON" : "OFF"}
                     </button>
@@ -504,7 +508,7 @@ function UsersTab({ theme }) {
                       <span style={{ color:theme.text, fontWeight:600, width:140 }}>{ev.event_type}</span>
                       <span>{ev.model?.replace("claude-","")}</span>
                       <span>{(ev.input_tokens||0)+(ev.output_tokens||0)} tok</span>
-                      <span style={{ color:"#dc2626" }}>${Number(ev.cost_usd||0).toFixed(5)}</span>
+                      <span style={{ color:C.DANGER }}>${Number(ev.cost_usd||0).toFixed(5)}</span>
                       <span>{new Date(ev.created_at*1000).toLocaleString()}</span>
                     </div>
                   ))}
@@ -553,7 +557,7 @@ function CacheTab({ theme }) {
                     borderRadius:12, padding:20, display:"flex", alignItems:"center", gap:20 }}>
         <div style={{ textAlign:"center" }}>
           <div style={{ fontSize:40, fontWeight:900,
-                        color: data.warmthScore >= 70 ? "#16a34a" : data.warmthScore >= 40 ? "#d97706" : "#dc2626" }}>
+                        color: data.warmthScore >= 70 ? C.SUCCESS : data.warmthScore >= 40 ? C.WARNING : C.DANGER }}>
             {data.warmthScore}
           </div>
           <div style={{ fontSize:10, color:theme.textMuted, fontWeight:700 }}>CACHE READ CALLS</div>
@@ -585,7 +589,7 @@ function CacheTab({ theme }) {
               <div style={{ color:theme.textMuted }}>{l.writes || 0} writes</div>
               <div style={{ color:theme.textMuted }}>{l.misses} misses</div>
               <div style={{ color:theme.textMuted }}>{l.hits + l.misses > 0 ? fmtPct(l.hits / (l.hits + l.misses)) : "—"}</div>
-              <div style={{ color:"#16a34a" }}>{fmtUsd(l.cost_saved)}</div>
+              <div style={{ color:C.SUCCESS }}>{fmtUsd(l.cost_saved)}</div>
             </div>
           ))}
         </div>
@@ -606,7 +610,7 @@ function CacheTab({ theme }) {
               <div style={{ color:theme.textMuted }}>{d.writes || 0} writes</div>
               <div style={{ color:theme.textMuted }}>{d.misses || 0} cold</div>
               <div style={{ color:theme.textMuted }}>{d.calls > 0 ? fmtPct(d.hits / d.calls) : "—"}</div>
-              <div style={{ color:"#16a34a" }}>{fmtUsd(d.cost_saved)}</div>
+              <div style={{ color:C.SUCCESS }}>{fmtUsd(d.cost_saved)}</div>
             </div>
           ))}
         </div>
@@ -645,7 +649,7 @@ function ContactMessagesSection({ theme }) {
     <div style={{ marginBottom: 40 }}>
       {/* Section header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <h2 style={{ fontSize: 14, fontWeight: 800, color: ADMIN_ACCENT, margin: 0,
+        <h2 style={{ fontSize: 14, fontWeight: 800, color: ADMIN_ACCENT_TEXT, margin: 0,
                       letterSpacing: "0.05em", textTransform: "uppercase" }}>
           Contact Messages
         </h2>
@@ -859,7 +863,7 @@ export function AdminPanel() {
   return (
     <div style={{ padding:"32px 24px", overflowY:"auto", height:"100%",
                   boxSizing:"border-box", background:theme.bg, maxWidth:1200,
-                  borderTop:`4px solid ${ADMIN_ACCENT}` }}>
+                  borderTop:`4px solid ${ADMIN_ACCENT_TEXT}` }}>
 
       {/* Lucy admin header — yellow accent */}
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:24 }}>
@@ -883,7 +887,7 @@ export function AdminPanel() {
             borderRadius:10, padding:"10px 16px", cursor:"pointer",
             transition:"border-color 0.15s",
           }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = ADMIN_ACCENT}
+          onMouseEnter={e => e.currentTarget.style.borderColor = ADMIN_ACCENT_TEXT}
           onMouseLeave={e => e.currentTarget.style.borderColor = theme.border}>
             <span style={{ fontSize:18 }}>🔬</span>
             <div>
@@ -894,13 +898,13 @@ export function AdminPanel() {
                 Scrapes · Pool · Schema · Trace
               </div>
             </div>
-            <span style={{ fontSize:11, color:ADMIN_ACCENT, fontWeight:700, marginLeft:4 }}>→</span>
+            <span style={{ fontSize:11, color:ADMIN_ACCENT_TEXT, fontWeight:700, marginLeft:4 }}>→</span>
           </div>
         </a>
       </div>
 
       {/* ── Top-level tabs ── */}
-      <div style={{ display:"flex", borderBottom:`2px solid ${ADMIN_ACCENT}`, marginBottom:24 }}>
+      <div style={{ display:"flex", borderBottom:`2px solid ${ADMIN_ACCENT_TEXT}`, marginBottom:24 }}>
         {TOP_TABS.map(({ id, label }) => (
           <button key={id}
             style={{
@@ -1064,9 +1068,9 @@ export function AdminPanel() {
                           </td>
                           <td style={{ padding:"12px 14px" }}>
                             <span className="rm-badge" style={{
-                              background: u.is_admin ? "#f3e8ff" : theme.surfaceHigh,
-                              color: u.is_admin ? "#7c3aed" : theme.textMuted,
-                              border:`1px solid ${u.is_admin ? "#7c3aed33" : theme.border}`,
+                              background: u.is_admin ? C.VIOLET_QUIET : theme.surfaceHigh,
+                              color: u.is_admin ? C.VIOLET : theme.textMuted,
+                              border:`1px solid ${u.is_admin ? `${C.VIOLET}33` : theme.border}`,
                             }}>
                               {u.is_admin ? "Admin" : "User"}
                             </span>

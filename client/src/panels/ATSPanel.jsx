@@ -19,6 +19,8 @@ import {
 } from "../lib/profileSuggestions.js";
 import { profileSignalKey } from "../../../shared/profileSignals.js";
 import { atsBandFor, atsBandLabel, ATS_BAND } from "../../../shared/atsBands.js";
+import { bandChipStyle } from "../styles/bandStyle.js";
+import { C } from "../styles/colorTokens.js";
 
 export function ATSPanel({ report, score, jobId, resumeText, activeProfileId }) {
   const { theme } = useTheme();
@@ -207,6 +209,7 @@ export function ATSPanel({ report, score, jobId, resumeText, activeProfileId }) 
   const band = atsBandFor(activeReport.score ?? score ?? null);
   const atsCard = {
     render: true,
+    band,
     meta: atsBandLabel(band),
     isUnknown: band === ATS_BAND.NOT_ENOUGH_SIGNAL,
     declineReasons: Array.isArray(activeReport.decline_reasons) ? activeReport.decline_reasons : [],
@@ -260,7 +263,7 @@ export function ATSPanel({ report, score, jobId, resumeText, activeProfileId }) 
                       borderRadius:16, padding:"16px", display:"flex", alignItems:"center", gap:16 }}>
           <div style={{ flexShrink:0, minWidth:104, display:"flex", flexDirection:"column",
                         alignItems:"center", gap:6 }}>
-            <div style={{ background:atsCard.meta.bg, color:atsCard.meta.fg, padding:"10px 14px",
+            <div style={{ ...bandChipStyle(atsCard.band, { edgeAlpha: "33" }), padding:"10px 14px",
                           borderRadius:12, fontWeight:900, fontSize:15, textAlign:"center",
                           lineHeight:1.2, width:"100%" }}>
               {atsCard.meta.label}
@@ -292,13 +295,15 @@ export function ATSPanel({ report, score, jobId, resumeText, activeProfileId }) 
             </div>
             {activeReport.best_possible_score != null && (
               <div style={{ fontSize:11, padding:"6px 10px", borderRadius:8,
-                            background: pct === activeReport.best_possible_score ? "#0a1f0a" : "var(--color-surface-offset)",
-                            color: pct === activeReport.best_possible_score ? "#22c55e" : "var(--color-text-muted)",
-                            border:`1px solid ${pct === activeReport.best_possible_score ? "color-mix(in srgb, #22c55e 20%, transparent)" : "var(--color-border)"}` }}>
+                            background: pct === activeReport.best_possible_score ? C.SUCCESS_QUIET : "var(--color-surface-offset)",
+                            color: pct === activeReport.best_possible_score ? C.SUCCESS : "var(--color-text-muted)",
+                            border:`1px solid ${pct === activeReport.best_possible_score ? `color-mix(in srgb, ${C.SUCCESS} 20%, transparent)` : "var(--color-border)"}` }}>
+                {/* A BAND, NOT THE NUMBER (G5). "Best possible: 72" was the last raw ATS figure on this
+                    panel; rho = 0.746 supports coarse ordering, not a printed score. */}
                 {pct === activeReport.best_possible_score
-                  ? "✓ Max achievable score for your profile"
+                  ? "✓ The best fit your profile can reach for this posting"
                   : <>
-                      <span style={{ fontWeight:700 }}>Best possible: {activeReport.best_possible_score}</span>
+                      <span style={{ fontWeight:700 }}>Best possible for your profile: {atsBandLabel(atsBandFor(activeReport.best_possible_score)).label}</span>
                       {activeReport.best_possible_reason && <span> — {activeReport.best_possible_reason}</span>}
                     </>
                 }
@@ -312,7 +317,7 @@ export function ATSPanel({ report, score, jobId, resumeText, activeProfileId }) 
       {activeReport.tier1_matched?.length > 0 && (
         <TagSection title="✓ Skills Matched"
           subtitle="This job asked for these, and your resume already evidences them."
-          bg={"#0a1f0a"} fg={"#22c55e"} border={"color-mix(in srgb, #22c55e 20%, transparent)"}
+          bg={C.SUCCESS_QUIET} fg={C.SUCCESS} border={`color-mix(in srgb, ${C.SUCCESS} 20%, transparent)`}
           items={activeReport.tier1_matched}
           evidencedLookup={evidencedLookup}/>
       )}
@@ -321,7 +326,7 @@ export function ATSPanel({ report, score, jobId, resumeText, activeProfileId }) 
       {activeReport.tier1_missing?.length > 0 && (
         <TagSection title="✗ Skills Missing"
           subtitle="This job asked for these and your resume does not show them. Claim any that are true of you."
-          bg={"#1f0a0a"} fg={"#ef4444"} border={"color-mix(in srgb, #ef4444 20%, transparent)"}
+          bg={C.DANGER_QUIET} fg={C.DANGER} border={`color-mix(in srgb, ${C.DANGER} 20%, transparent)`}
           items={activeReport.tier1_missing}
           onToggleClaim={clickableProfileId ? (item, claimed) => toggleClaim("skill", item, claimed) : null}
           pendingItems={addedItems}
@@ -341,7 +346,7 @@ export function ATSPanel({ report, score, jobId, resumeText, activeProfileId }) 
       {activeReport.competencies_matched?.length > 0 && (
         <TagSection title="✓ Competencies Matched"
           subtitle="Qualities this job asked for that your resume already shows."
-          bg={"#0a1f0a"} fg={"#22c55e"} border={"color-mix(in srgb, #22c55e 20%, transparent)"}
+          bg={C.SUCCESS_QUIET} fg={C.SUCCESS} border={`color-mix(in srgb, ${C.SUCCESS} 20%, transparent)`}
           items={activeReport.competencies_matched}
           evidencedLookup={evidencedLookup}/>
       )}
@@ -349,7 +354,7 @@ export function ATSPanel({ report, score, jobId, resumeText, activeProfileId }) 
       {activeReport.competencies_missing?.length > 0 && (
         <TagSection title="◇ Competencies Missing"
           subtitle="Ways of working this job asked for. These are qualities, not technologies — claim the ones that are true of you."
-          bg={"#1a1226"} fg={"#a78bfa"} border={"color-mix(in srgb, #a78bfa 20%, transparent)"}
+          bg={C.VIOLET_QUIET} fg={C.VIOLET} border={`color-mix(in srgb, ${C.VIOLET} 20%, transparent)`}
           items={activeReport.competencies_missing}
           onToggleClaim={clickableProfileId ? (item, claimed) => toggleClaim("skill", item, claimed) : null}
           pendingItems={addedItems}
@@ -364,7 +369,7 @@ export function ATSPanel({ report, score, jobId, resumeText, activeProfileId }) 
       {activeReport.action_verbs_matched?.length > 0 && (
         <TagSection title="⚡ Verbs Matched"
           subtitle="Your resume already uses this job's language for these."
-          bg={"#0a1525"} fg={"#38bdf8"} border={"color-mix(in srgb, #38bdf8 20%, transparent)"}
+          bg={C.INFO_QUIET} fg={C.INFO} border={`color-mix(in srgb, ${C.INFO} 20%, transparent)`}
           items={activeReport.action_verbs_matched}
           kind="action_verb"
           evidencedLookup={evidencedLookup}/>
@@ -374,7 +379,7 @@ export function ATSPanel({ report, score, jobId, resumeText, activeProfileId }) 
       {activeReport.action_verbs_missing?.length > 0 && (
         <TagSection title="⚠ Verbs Missing"
           subtitle="This job's language for work you may already have done. Claim the ones that describe you."
-          bg={"#1f1500"} fg={"var(--color-warning)"} border={"color-mix(in srgb, var(--color-warning) 20%, transparent)"}
+          bg={C.WARNING_QUIET} fg={"var(--color-warning)"} border={"color-mix(in srgb, var(--color-warning) 20%, transparent)"}
           items={activeReport.action_verbs_missing}
           onToggleClaim={clickableProfileId ? (item, claimed) => toggleClaim("action_verb", item, claimed) : null}
           pendingItems={addedItems}
@@ -398,18 +403,18 @@ export function ATSPanel({ report, score, jobId, resumeText, activeProfileId }) 
       )}
 
       {activeReport.experience && (
-        <ListSection title="Experience Fit" items={[activeReport.experience.summary]} color={activeReport.experience.fit ? "#22c55e" : "var(--color-warning)"} theme={theme}/>
+        <ListSection title="Experience Fit" items={[activeReport.experience.summary]} color={activeReport.experience.fit ? C.SUCCESS : "var(--color-warning)"} theme={theme}/>
       )}
 
       {activeReport.hard_constraint_misses?.length > 0 && (
         <TagSection title="Profile Facts Missing"
-          bg={"#1f0a0a"} fg={"#ef4444"} border={"color-mix(in srgb, #ef4444 20%, transparent)"}
+          bg={C.DANGER_QUIET} fg={C.DANGER} border={`color-mix(in srgb, ${C.DANGER} 20%, transparent)`}
           items={activeReport.hard_constraint_misses}/>
       )}
 
       {/* Strengths */}
       {!isLocalReport && activeReport.strengths?.length > 0 && (
-        <ListSection title="💪 Strengths" items={activeReport.strengths} color={"#22c55e"} theme={theme}/>
+        <ListSection title="💪 Strengths" items={activeReport.strengths} color={C.SUCCESS} theme={theme}/>
       )}
 
       {/* Improvements */}
@@ -492,9 +497,9 @@ function TagSection({
                   : `Claim "${k}" — only if it is true of you. It counts toward this score and toward where this job ranks, and it is used in future resumes.`)
               : provenance}
             style={{
-              background:claimed ? "#0a1f0a" : bg,
-              color:claimed ? "#22c55e" : fg,
-              border:`1px solid ${claimed ? "color-mix(in srgb, #22c55e 20%, transparent)" : border}`,
+              background:claimed ? C.SUCCESS_QUIET : bg,
+              color:claimed ? C.SUCCESS : fg,
+              border:`1px solid ${claimed ? `color-mix(in srgb, ${C.SUCCESS} 20%, transparent)` : border}`,
               cursor:interactive ? "pointer" : "default",
             }}>
             {claimed ? `✓ ${k}` : k}
