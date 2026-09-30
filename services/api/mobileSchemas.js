@@ -163,11 +163,16 @@ export const RESPONSE_SCHEMAS = Object.freeze({
   },
   DeckCard: {
     description: "One card, in deal order (position IS the fit signal). The band is shown; the score is not.",
-    fields: { position: "number", band: "enum:atsBand", decision: "string|null", job: "$Job" },
+    fields: { position: "number", band: "enum:atsBand", decision: "string|null", job: "$Job", why: "$DeckWhy" },
     fieldNotes: {
       decision: "null (undecided) | 'drafted' | 'passed' | 'saved' — read live, so it changes when you act.",
       job: "The board's $Job shape with matchScore null.",
+      why: "The evidence behind the card, frozen at deal time from the same report as its band.",
     },
+  },
+  DeckWhy: {
+    description: "Skills the posting asks for that the résumé shows (up to 6) and does not (up to 4).",
+    fields: { matched: "string[]", missing: "string[]", matchedTotal: "number" },
   },
 
   // ── Apply ──────────────────────────────────────────────────────────────────────────────────

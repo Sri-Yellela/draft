@@ -206,6 +206,8 @@ export interface DeckCard {
   /** The board's $Job shape with matchScore null. */
   job: Job;
   position: number;
+  /** The evidence behind the card, frozen at deal time from the same report as its band. */
+  why: DeckWhy;
 }
 
 /** Today's frozen deal. Fewer than 10 is a thin day and 0 an empty one — never padded. */
@@ -217,6 +219,13 @@ export interface DeckResponse {
   reason: string | null;
   size: number;
   thin: boolean;
+}
+
+/** Skills the posting asks for that the résumé shows (up to 6) and does not (up to 4). */
+export interface DeckWhy {
+  matched: string[];
+  matchedTotal: number;
+  missing: string[];
 }
 
 /** SNAKE_CASE — the handler spreads the whole domain_profiles row, so every column is listed here rather than a chosen subset. Listing a subset was tried and rejected: the contract would then be silent about keys the server really sends, and a strict decoder rejects an undeclared key. */
