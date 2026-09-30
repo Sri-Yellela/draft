@@ -3712,6 +3712,27 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE ats_only_reports ADD COLUMN basis_hash TEXT;
       `,
     },
+    {
+      // UI step 3a (09-30) — the daily draft. docs/UI_REDESIGN.md §3.1, services/dailyDraft.js.
+      // Stores the DEAL — which cards, in what order, what they looked like at deal time — and NOT
+      // the decisions, which already live in apply_run_jobs and user_jobs. The PRIMARY KEY makes a
+      // concurrent first deal lose cleanly; UNIQUE(job) keeps a job to one slot per day.
+      id: "111_daily_drafts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS daily_drafts (
+          user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          profile_id  INTEGER NOT NULL,
+          draft_date  TEXT    NOT NULL,
+          position    INTEGER NOT NULL,
+          job_id      TEXT    NOT NULL,
+          band        TEXT    NOT NULL,
+          card_json   TEXT    NOT NULL,
+          dealt_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, profile_id, draft_date, position),
+          UNIQUE (user_id, profile_id, draft_date, job_id)
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7321,13 +7342,26 @@ function rejectInvalidFilterValues(query) {
 }
 
 app.get("/api/jobs", requireAuth, async (req, res) => {
+  const { status, body } = await boardPageResponse(req);
+  res.status(status).json(body);
+});
+
+// ── THE BOARD, AS A FUNCTION (09-30) ────────────────────────────────────────────────────────────
+//
+// GET /api/jobs was one 690-line inline handler. It is this function now, called by that route and
+// by the daily deal (GET /api/draft/today, services/dailyDraft.js), because the deal must deal from
+// EXACTLY the board's default order (FIT_KEYS) — the same query, not a copy of it. Nothing inside
+// changed: it reads req.query, req.user and the active profile, and every response it used to send
+// it now returns as { status, body }.
+const boardReply = (status, body) => ({ status, body });
+async function boardPageResponse(req) {
   try {
     // Validate the enumerated filter vocabularies BEFORE any work — a bad value must not reach the
     // query builder and come back as an empty board. 400 rather than 200-with-nothing: the caller
     // sent something this endpoint does not understand, and saying so is the whole point.
     const filterProblem = rejectInvalidFilterValues(req.query);
     if (filterProblem) {
-      return res.status(400).json({ success: false, error: filterProblem, jobs: [], total: 0 });
+      return boardReply(400, { success: false, error: filterProblem, jobs: [], total: 0 });
     }
 
     const {
@@ -7366,7 +7400,7 @@ app.get("/api/jobs", requireAuth, async (req, res) => {
     // Phase 6: board is profile-scoped via job_role_map join — profile required
     const sessionActiveProfile = getOrRepairActiveProfile(req.user.id);
     if (!sessionActiveProfile) {
-      return res.json({
+      return boardReply(200, {
         success:           true,
         jobs:              [],
         total:             0,
@@ -7683,7 +7717,7 @@ app.get("/api/jobs", requireAuth, async (req, res) => {
           // profile's derived relevance changed) would otherwise resume against keys that no longer
           // mean the same thing and return an arbitrary slice, with no error. Saying so lets the
           // client do the one correct thing: ask for the first page again.
-          return res.status(400).json({
+          return boardReply(400, {
             success: false,
             error: decoded.error === "cursor_sort_mismatch"
               ? "This cursor was issued for a different sort or profile. Request the first page again."
@@ -7959,7 +7993,7 @@ app.get("/api/jobs", requireAuth, async (req, res) => {
         responseBody.facets = facets;
       }
 
-      return res.json(responseBody);
+      return boardReply(200, responseBody);
     }
 
     // --- Empty cache: an explained empty board, NOT a live aggregator feed ---
@@ -7982,7 +8016,7 @@ app.get("/api/jobs", requireAuth, async (req, res) => {
     // /api/jobs/search), which the client already calls, plus the public GET /api/jobs/generic.
     // What is removed is the silent substitution of a global feed for a profile-scoped board.
     console.warn(`[jobs] cache empty — returning explained empty board for profile ${sessionActiveProfile.id}`);
-    return res.json({
+    return boardReply(200, {
       success:    true,
       jobs:       [],
       total:      0,
@@ -8000,13 +8034,14 @@ app.get("/api/jobs", requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('[GET /api/jobs] Error:', err.message);
-    res.status(500).json({
+    return boardReply(500, {
       success: false,
       error:   'Failed to fetch jobs. Please try again.',
       jobs:    [],
     });
   }
-});
+}
+
 
 // GET /api/jobs/generic -- public cached feed (no auth, no personalization)
 app.get("/api/jobs/generic", async (req, res) => {
