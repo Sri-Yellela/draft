@@ -137,6 +137,7 @@ const AUTHENTICATED = new Set([
   "POST /api/company/:company/consistency-check",
   "GET /api/categories",
   "GET /api/jobs",
+  "GET /api/draft/today",        // UI step 3b: the user's own daily deck
   "GET /api/jobs/facets",
   "GET /api/jobs/suggest",
   "GET /api/jobs/pending",

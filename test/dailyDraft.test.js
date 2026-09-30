@@ -32,14 +32,16 @@ const TODAY = new Date().toISOString().slice(0, 10);
 
 test("the deal keeps the board's order and deals only Strong and Moderate", () => {
   const picked = selectDeal([job("a", WEAK), job("b", STRONG), job("c", null), job("d", MODERATE), job("e", STRONG)]);
-  assert.deepEqual(picked.map(c => c.id), ["b", "d", "e"], "position is the fit signal — order must survive");
+  assert.deepEqual(picked.map(c => c.job.id), ["b", "d", "e"], "position is the fit signal — order must survive");
   assert.deepEqual(picked.map(c => c.band), [ATS_BAND.STRONG, ATS_BAND.MODERATE, ATS_BAND.STRONG]);
 });
 
 test("a card carries its band and NEVER the number (G5)", () => {
-  const c = deckSnapshot(job("a", STRONG, { atsScore: 60, baseAtsScore: 55 }));
+  const [c] = selectDeal([job("a", STRONG, { atsScore: 60, baseAtsScore: 55 })]);
   assert.equal(c.band, ATS_BAND.STRONG);
-  for (const k of ["matchScore", "atsScore", "baseAtsScore"]) assert.equal(k in c, false, `${k} leaked onto a card`);
+  assert.equal(c.job.matchScore, null, "the score leaked onto a card");
+  for (const k of ["atsScore", "baseAtsScore"]) assert.equal(k in c.job, false, `${k} leaked onto a card`);
+  assert.equal(deckSnapshot(job("b", 50)).title, "Role b", "the rest of the job shape must survive");
 });
 
 test("the deck is dealt once and frozen for the day — a re-ranked board does not reshuffle it", async () => {
@@ -52,7 +54,7 @@ test("the deck is dealt once and frozen for the day — a re-ranked board does n
   const deck2 = await todaysDeck(d, { userId: 1, profileId: 7, date: TODAY, fetchBoardPage: second.fetchBoardPage });
   assert.equal(deck2.dealtNow, false);
   assert.equal(second.calls.length, 0, "a dealt day must not read the board again");
-  assert.deepEqual(deck2.cards.map(c => c.id), ["a", "b", "c"]);
+  assert.deepEqual(deck2.cards.map(c => c.job.id), ["a", "b", "c"]);
   assert.deepEqual(deck2.cards.map(c => c.position), [0, 1, 2]);
 });
 
@@ -77,7 +79,7 @@ test("the deal reads further down the board to fill the deck, and stops at the s
   const b = board(pages);
   const deck = await todaysDeck(d, { userId: 1, profileId: 7, date: TODAY, fetchBoardPage: b.fetchBoardPage });
   assert.equal(deck.size, DECK_SIZE);
-  assert.deepEqual(deck.cards.map(c => c.id), Array.from({ length: DECK_SIZE }, (_, i) => "s" + i));
+  assert.deepEqual(deck.cards.map(c => c.job.id), Array.from({ length: DECK_SIZE }, (_, i) => "s" + i));
   assert.equal(b.calls.length, 2);
 });
 
@@ -88,7 +90,7 @@ test("a decided job never re-deals; an undecided one — and an undone draft —
           INSERT INTO user_jobs (user_id, job_id, starred) VALUES (1, 'saved', 1);`);
   const deck = await todaysDeck(d, { userId: 1, profileId: 7, date: TODAY, fetchBoardPage: board([[
     job("drafted", STRONG), job("passed", STRONG), job("saved", STRONG), job("undone", STRONG), job("fresh", STRONG)]]).fetchBoardPage });
-  assert.deepEqual(deck.cards.map(c => c.id), ["undone", "fresh"]);
+  assert.deepEqual(deck.cards.map(c => c.job.id), ["undone", "fresh"]);
 });
 
 test("a card's decision is read LIVE from where decisions live", async () => {
@@ -111,7 +113,7 @@ test("a concurrent first deal cannot produce two decks", async () => {
     todaysDeck(d, { userId: 1, profileId: 7, date: TODAY, fetchBoardPage: mk() }),
     todaysDeck(d, { userId: 1, profileId: 7, date: TODAY, fetchBoardPage: mk() }),
   ]);
-  assert.deepEqual(x.cards.map(c => c.id), y.cards.map(c => c.id));
+  assert.deepEqual(x.cards.map(c => c.job.id), y.cards.map(c => c.job.id));
   assert.equal(d.prepare("SELECT COUNT(*) n FROM daily_drafts").get().n, 2);
 });
 

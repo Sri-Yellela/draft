@@ -55,6 +55,7 @@ import {
   EXPERIENCE_LEVELS, WORK_MODELS, AUTOMATION_TIERS, EMPLOYMENT_TYPES, SORTS, values,
 } from "../../shared/jobFilterOptions.js";
 import { OUTCOME, OUTCOME_STATUSES } from "../../shared/applyOutcomeGroups.js";
+import { ATS_BAND } from "../../shared/atsBands.js";
 
 /**
  * Semver. MAJOR is breaking; MINOR is additive. The rules, and why removing a field is
@@ -75,7 +76,7 @@ import { OUTCOME, OUTCOME_STATUSES } from "../../shared/applyOutcomeGroups.js";
  *         a checksum and need a reason to re-copy.
  * 1.0.0 — initial contract.
  */
-export const CONTRACT_VERSION = "1.1.1";
+export const CONTRACT_VERSION = "1.2.0";
 
 // ------------------------------------------------------------------------------------------------
 // THE JOB SHAPE — derived by executing mapJobRow, not by reading it
@@ -189,6 +190,8 @@ export const ENUMS = Object.freeze({
   // added without being filed into a group cannot reach the contract.
   applyStatus:     Object.freeze(Object.values(OUTCOME_STATUSES).flat().slice().sort()),
   applyOutcome:    Object.freeze(Object.values(OUTCOME).slice().sort()),
+  // The four fit bands (a deck card's `band`), from the one definition — never restated here.
+  atsBand:         Object.freeze(Object.values(ATS_BAND).slice().sort()),
 });
 
 // ------------------------------------------------------------------------------------------------

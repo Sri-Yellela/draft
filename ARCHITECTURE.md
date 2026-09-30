@@ -383,11 +383,11 @@ profile-scoped table — which is exactly why the global `ats_score` column is v
 a migration added only to `scripts/migrations.js` never runs. Each migration and its bookkeeping row
 commit in **one transaction**, so a half-applied migration cannot be recorded as done.
 
-Both runners define **111** numbered migrations. Production has applied **116**: the first **110**
+Both runners define **112** numbered migrations. Production has applied **117**: the first **111**
 of them, plus **6** unnumbered legacy ids predating the `NNN_` convention (`admin_cache_events`,
 `admin_scrape_events`, `admin_usage_events`, `admin_user_limits`, `ats_only_reports`,
-`contact_messages`). Defined high-water: `110_ats_reports_basis_hash` (the board's fit cache —
-⚠ local, not yet deployed; production's high-water is `109_restore_stripped_seniority_titles`).
+`contact_messages`). Defined high-water: `111_daily_drafts` (the deck's frozen daily deal —
+⚠ local, not yet deployed; production's high-water is `110_ats_reports_basis_hash`, applied 09-30).
 
 ⛔ These two files are checked out **CRLF** and the byte-identity tests depend on it. Never rewrite
 either whole-file — see `CLAUDE.md`.
