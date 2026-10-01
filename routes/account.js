@@ -3,6 +3,7 @@ import { monetisationEnabledFromEnv } from "../shared/monetisation.js";
 import { SPONSORSHIP_NEEDS } from "../services/applyAutomation.js";
 
 import { readAnswerStore } from "../services/customAnswers.js";
+import { normaliseDeckPreference } from "../shared/deckGeometry.js";
 // Shared with server.js's OAuth upsert, which called it without a binding until 09-30.
 import { saveIntegrationSecret } from "../services/secretBox.js";
 
@@ -138,6 +139,23 @@ export function createAccountRouter({
     const preference = req.body?.preference;
     if (!THEME_PREFERENCES.has(preference)) return res.status(400).json({ error: "preference must be system, light or dark" });
     db.prepare("UPDATE users SET theme_preference=? WHERE id=?").run(preference, req.user.id);
+    res.json({ preference });
+  });
+
+  // The deck's geometry, with the account (queue 38, migration 114). Stored in the one shape
+  // shared/deckGeometry.js defines, each axis clamped to its range; the COUPLED fit against the
+  // layout is applied where the fan is drawn (client/src/lib/fanGeometry.js · clampGeometry), so a
+  // stored value can never produce a broken deck. A malformed body is refused, never half-stored.
+  router.get("/api/settings/deck-geometry", requireAuth, (req, res) => {
+    const row = db.prepare("SELECT deck_geometry FROM users WHERE id=?").get(req.user.id);
+    let stored = null;
+    try { stored = row?.deck_geometry ? JSON.parse(row.deck_geometry) : null; } catch { stored = null; }
+    res.json({ preference: normaliseDeckPreference(stored) });
+  });
+  router.put("/api/settings/deck-geometry", requireAuth, (req, res) => {
+    const preference = normaliseDeckPreference(req.body?.preference);
+    if (!preference) return res.status(400).json({ error: "preference must be { preset: tight | standard | wide | custom, custom? }" });
+    db.prepare("UPDATE users SET deck_geometry=? WHERE id=?").run(JSON.stringify(preference), req.user.id);
     res.json({ preference });
   });
 

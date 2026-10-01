@@ -10,7 +10,7 @@ something you read elsewhere in `docs/`, re-measure before you believe either.
 |---|---|
 | deployed commit | **read it from `/api/version`** — any value written here is stale by the next push, which is why the doc guard deliberately does not assert one |
 | contract | `1.2.0` — source and production agree (deployed 09-30) |
-| migration high-water | `113_account_management` in **both** runners (⚠ not yet deployed — production is at `112_users_theme_preference`, applied 09-30) |
+| migration high-water | `114_users_deck_geometry` in **both** runners (queue 38; after `113_account_management` — ⚠ neither deployed; production is at `112_users_theme_preference`, applied 09-30) |
 | test baseline | **2675 tests, 2675 pass, 0 fail** — no deliberate failures since P4; see `CLAUDE.md` |
 | monetisation | **disabled** — the product presents as free and untiered |
 | Anthropic balance | **exhausted.** Model-backed paths return 502 — except capture, which degrades (see below) |
