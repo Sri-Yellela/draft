@@ -71,8 +71,8 @@ this is why.
 
 ## Deliberate test failures — currently 0
 
-`npm test` is **2871 tests, 2871 pass, 0 fail** — re-measured 2026-10-01 in the working tree after queue 31
-(+7 `landingFindFitApply`). Before that 2864 after queue 30 (+7 `signupFirstImpression`). Before that 2857 after queues 27–29, the deck's fan and shared-element transitions (+15 `deckFan`, +9 `viewTransitions`). Before that 2833 after the
+`npm test` is **2876 tests, 2876 pass, 0 fail** — re-measured 2026-10-01 in the working tree after the top bar
+and /features (+5 `featuresPageHonest`). Before that 2871 after queue 31 (+7 `landingFindFitApply`). Before that 2864 after queue 30 (+7 `signupFirstImpression`). Before that 2857 after queues 27–29, the deck's fan and shared-element transitions (+15 `deckFan`, +9 `viewTransitions`). Before that 2833 after the
 mark reached the five text-wordmark surfaces (+2). Before that 2831 after G3 (+3 formatter tests),
 G6 (+6 ATS category tests), K1 (+10) and R1 (+10). Before that 2802 with account management (+6 account security, +10 account service, +5 account routes, +2 sealed sweep).
 Before that 2779 at `c39dff7` (+1 new-account deck pin, +1 account theme). Before that 2777 at
