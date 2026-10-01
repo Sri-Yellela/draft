@@ -16,8 +16,7 @@ const SENIORITY_FOR_LEVEL = {
   lead:      "manager",
   executive: "manager",
 };
-import BelowFoldContent from "../components/BelowFoldContent.jsx";
-import { PosterBanner } from "../components/PosterBanner.jsx";
+import FindFitApply from "../components/FindFitApply.jsx";
 import { StampLogo } from "../components/StampLogo.jsx";
 import { useLogoSize } from "../hooks/useLogoSize.js";
 import { api } from "../lib/api.js";
@@ -156,7 +155,7 @@ export default function LandingPage({ authUser }) {
       <div className={`lp__hero-zone${uiMode === 'dock' ? ' lp__hero-zone--hidden' : ''}`}>
         <StampLogo size="lg" progress={isWide ? 0 : 1} />
         <p className="lp__hero-tagline">
-          {authUser ? 'Your personalized job feed.' : 'Apply smarter. Track everything. Land faster.'}
+          {authUser ? 'Your personalized job feed.' : 'Find the job. Fit the résumé. Apply when you say so.'}
         </p>
         {!authUser && (
           <button className="lp__hero-cta" onClick={() =>
@@ -228,7 +227,7 @@ export default function LandingPage({ authUser }) {
             {!authUser && (
               <div id="auth-section" className="lp__signup-prompt">
                 <div className="lp__signup-prompt__title">
-                  Sign up to save jobs, score your resume, and generate tailored applications
+                  Get ten of these a day, picked against your résumé — nothing sent until you approve it
                 </div>
                 <Link to="/register" className="lp__cta-btn">
                   Create free account
@@ -250,9 +249,9 @@ export default function LandingPage({ authUser }) {
           </div>
         )}
 
-        {/* Below-fold marketing content (logged-out only) */}
-        {!authUser && <BelowFoldContent />}
-        {!authUser && <PosterBanner />}
+        {/* Below the fold (logged-out only): ONE line, find → fit → apply, with every tool a stop on
+            it — queue 31. It replaced a numbered feature grid and a marquee of feature names. */}
+        {!authUser && <FindFitApply />}
       </main>
     </div>
   );

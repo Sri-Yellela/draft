@@ -30,6 +30,9 @@
   text-align: center;
   margin: 0;
   max-width: 40ch;
+  padding: 0 16px;      /* the zone has no gutter: at 390px the line ran to within 4px of each edge */
+  box-sizing: border-box;
+  text-wrap: balance;   /* no one-word last line ("so.") */
 }
 
 .lp__hero-cta {

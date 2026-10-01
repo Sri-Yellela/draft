@@ -19,7 +19,7 @@ export function Footer() {
               <StampLogo size="md" />
             </div>
             <p style={{ fontSize: 13, color: "var(--c-ink-muted)", lineHeight: 1.6, marginBottom: 16, maxWidth: 220 }}>
-              AI-powered resumes for the modern job search.
+              Find, fit, apply — and nothing is sent until you approve it.
             </p>
             <p style={{ fontSize: 11, color: "var(--c-ink-faint)" }}>
               © 2025 {BRAND}. All rights reserved.
