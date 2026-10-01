@@ -707,6 +707,12 @@ export default function DeckView({ canUseAPlusResume = true }) {
 
   return (
     <MotionConfig reducedMotion="user">
+      {/* ⛔ The fan runs past the screen's edge on purpose, and must never scroll the page sideways.
+          Measured: expanded at 1440 the arc sliding right made the page 1820px wide (1667 at 1280),
+          and the resting fan at 1100 was 1px over. `clip`, not `hidden`: clip makes no scroll
+          container, so the sticky action row and the sticky Collapse keep working. Full width, so
+          the panels that flank the card (outside the centred column) are not cut. */}
+      <div data-deck-clip style={{ overflowX: "clip" }}>
       {/* isolation: the fan's tiers are below CONTENT, and this keeps them above the page itself. */}
       <div data-deck-orientation={orientation}
         style={{ maxWidth: vertical ? 560 : 760, margin: "0 auto", padding: vertical ? "20px 16px 120px" : "28px 16px 140px",
@@ -866,6 +872,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
             ))}
           </div>
         )}
+      </div>
       </div>
     </MotionConfig>
   );
