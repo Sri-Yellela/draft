@@ -12,8 +12,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const { C, CONTRAST_PAIRS, FORBIDDEN_PAIRS, cssVarName, installColorVars } =
+const { C, C_LIGHT, C_DARK, CONTRAST_PAIRS, FORBIDDEN_PAIRS, cssVarName, installColorVars, resolveTheme, themePreference } =
   await import("../client/src/styles/colorTokens.js");
+// The live palette under Node is LIGHT (no window); the dark one is proved explicitly below.
+let PAL = C;
 
 // ── WCAG 2.x relative luminance ────────────────────────────────────────────────────────────────
 function parse(v) {
@@ -23,9 +25,9 @@ function parse(v) {
   if (m) return { rgb: [+m[1], +m[2], +m[3]], a: m[4] === undefined ? 1 : +m[4] };
   throw new Error(`unparseable colour ${v}`);
 }
-const value = (nameOrLiteral) => (nameOrLiteral in C ? C[nameOrLiteral] : nameOrLiteral);
-// A translucent colour is composited over the WORST-CASE paper, CANVAS_SHADE.
-function opaque(nameOrLiteral, under = C.CANVAS_SHADE) {
+const value = (nameOrLiteral) => (nameOrLiteral in PAL ? PAL[nameOrLiteral] : nameOrLiteral);
+// A translucent colour is composited over the WORST-CASE paper, CANVAS_SHADE (of the theme in use).
+function opaque(nameOrLiteral, under = PAL.CANVAS_SHADE) {
   const { rgb, a } = parse(value(nameOrLiteral));
   if (a === 1) return rgb;
   const base = opaque(under);
@@ -85,7 +87,8 @@ test("the tokens are published as custom properties from the one definition", ()
   installColorVars({ documentElement: { style: { setProperty: (k, v) => set.set(k, v) } } });
   assert.equal(set.get("--c-accent"), "#FD4600");
   assert.equal(set.get("--c-accent-quiet"), C.ACCENT_QUIET);
-  assert.equal(set.size, Object.keys(C).length);
+  assert.equal([...set.keys()].filter(k => k.startsWith("--c-")).length, Object.keys(C).length);
+  assert.equal(set.get("color-scheme"), "light", "the page must say which scheme it is");
   assert.equal(cssVarName("SURFACE_MENU"), "--c-surface-menu");
   // And the app loads it before anything paints.
   assert.match(fs.readFileSync("client/src/main.jsx", "utf8"), /import "\.\/styles\/colorTokens\.js";/);
@@ -112,20 +115,59 @@ test("the per-session random accent and the video background are gone", () => {
   assert.doesNotMatch(paper, /animation|<video|requestAnimationFrame/, "the substrate moves — it must be still");
 });
 
-test("the paper grain can never be darker than the contrast floor, however it is tuned", () => {
-  // The grain strength is taste (the owner chose a coarse, leather-like pebble, 09-30), but its
-  // DARKEST pixel is not: every contrast pair is computed against CANVAS_SHADE, so the substrate must
-  // stay lighter. Derived from the component's own constants — a stronger grain fails here.
-  const src = fs.readFileSync("client/src/components/PaperBackground.jsx", "utf8");
-  const num = (name) => Number(src.match(new RegExp(`const ${name}\\s*=\\s*([0-9.]+)`))?.[1]);
-  const gain = num("MATRIX_GAIN"), bias = num("MATRIX_BIAS");
-  const grain = num("GRAIN_OPACITY"), fibre = num("FIBRE_OPACITY");
-  for (const [k, v] of Object.entries({ gain, bias, grain, fibre })) assert.ok(Number.isFinite(v), `${k} not found`);
-  const a = Math.min(1, gain - bias);   // feColorMatrix output alpha clamps at 1
-  const darkest = 1 - (1 - a * grain) * (1 - a * fibre);   // GRAIN's coverage over CANVAS, worst case
-  // CANVAS -> CANVAS_SHADE as a fraction of the way to GRAIN, per channel; the floor is the smallest.
+test("the leather can never cross either theme's contrast floor, however it is tuned", async () => {
+  // Taste sets the grain (the owner chose bench C, 09-30); the FLOOR is not taste. Light: the
+  // shadow layers darken toward GRAIN and must stay lighter than CANVAS_SHADE. Dark: the floor
+  // inverts — the SHEEN lightens toward SHEEN_TINT and must stay darker than the dark CANVAS_SHADE.
+  // Computed from styles/paper.js, the numbers the component draws with.
+  const { PAPER, alphaMax } = await import("../client/src/styles/paper.js");
   const hex = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
-  const [c, s, g] = [hex(C.CANVAS), hex(C.CANVAS_SHADE), hex(C.GRAIN)];
-  const floor = Math.min(...c.map((ci, i) => (ci - s[i]) / (ci - g[i])));
-  assert.ok(darkest < floor, `the darkest grain pixel covers ${(darkest * 100).toFixed(2)}% — the floor is ${(floor * 100).toFixed(2)}%`);
+  const floor = (P, toward) => {
+    const [c, s, g] = [hex(P.CANVAS), hex(P.CANVAS_SHADE), hex(P[toward])];
+    return Math.min(...c.map((ci, i) => (s[i] - ci) / (g[i] - ci)));
+  };
+  const L = PAPER.light, D = PAPER.dark;
+  const lightWorst = 1 - (1 - alphaMax(L) * L.grain) * (1 - alphaMax(L) * L.fibre);
+  assert.ok(lightWorst < floor(C_LIGHT, "GRAIN"),
+    `light: the darkest pebble covers ${(lightWorst * 100).toFixed(2)}% — the floor is ${(floor(C_LIGHT, "GRAIN") * 100).toFixed(2)}%`);
+  const darkWorst = alphaMax(D) * D.sheen;
+  assert.ok(darkWorst < floor(C_DARK, "SHEEN_TINT"),
+    `dark: the lightest sheen covers ${(darkWorst * 100).toFixed(2)}% — the floor is ${(floor(C_DARK, "SHEEN_TINT") * 100).toFixed(2)}%`);
+  // The component reads these, not its own copies.
+  const src = fs.readFileSync("client/src/components/PaperBackground.jsx", "utf8");
+  assert.match(src, /const P = PAPER\[THEME\]/);
+});
+
+// ── DARK MODE (UI step 6, 09-30) ────────────────────────────────────────────────────────────────
+
+test("the two palettes have IDENTICAL keys — a token cannot exist in one theme only", () => {
+  assert.deepEqual(Object.keys(C_DARK).sort(), Object.keys(C_LIGHT).sort());
+  for (const [k, v] of Object.entries(C_DARK)) {
+    if (v.startsWith("#")) assert.match(v, /^#[0-9A-F]{6}$/i, `${k} must be a 6-digit hex (alpha suffixes)`);
+  }
+});
+
+test("⛔ every declared pair passes AA in DARK too — passing on cream says nothing about charcoal", () => {
+  PAL = C_DARK;
+  try {
+    const failures = [];
+    for (const [fg, bg, size] of CONTRAST_PAIRS) {
+      const r = contrast(fg, bg);
+      if (r < REQUIRED[size]) failures.push(`${fg} on ${bg} (${size}): ${r.toFixed(2)} < ${REQUIRED[size]}`);
+    }
+    assert.deepEqual(failures, []);
+    // In dark the floor INVERTS: CANVAS_SHADE is the LIGHTEST substrate tone, so it must be lighter
+    // than CANVAS — the worst case for light text — and still dark.
+    assert.ok(contrast("CANVAS_SHADE", "#000000") > contrast("CANVAS", "#000000"), "dark CANVAS_SHADE is not the lighter tone");
+  } finally { PAL = C; }
+});
+
+test("the theme preference: system follows the OS; an explicit choice wins; junk is system", () => {
+  const mm = (dark) => () => ({ matches: dark });
+  assert.equal(resolveTheme("dark", mm(false)), "dark");
+  assert.equal(resolveTheme("light", mm(true)), "light");
+  assert.equal(resolveTheme("system", mm(true)), "dark");
+  assert.equal(resolveTheme("system", mm(false)), "light");
+  assert.equal(themePreference({ getItem: () => "neon" }), "system");
+  assert.equal(themePreference({ getItem: () => { throw new Error("blocked"); } }), "system");
 });

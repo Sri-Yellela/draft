@@ -16,6 +16,7 @@ import { StampLogo } from "./StampLogo.jsx";
 import { DockPortal } from "./DockPortal.jsx";
 import ProfileSelectorDropdown from "./ProfileSelectorDropdown.jsx";
 import { Z } from "../styles/zLayers.js";
+import { themePreference, setThemePreference } from "../styles/colorTokens.js";
 
 // The slideDown keyframes and injectKeyframes() were removed with the pill (Y4).
 //
@@ -280,6 +281,26 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
                 Add your first job profile
               </button>
             )}
+          </div>
+
+          {/* Appearance (UI step 6): System follows the OS. A change RELOADS — the palette resolves once
+              at load, so the whole app (inline tokens, CSS variables, alpha suffixes) switches together. */}
+          <div style={{ padding: "10px 16px 10px", borderBottom: `1px solid ${theme.border}` }}>
+            <div className="rm-section-label">Appearance</div>
+            <div role="radiogroup" aria-label="Appearance" style={{ display: "flex", gap: 6, marginTop: 6 }}>
+              {[["system", "System"], ["light", "Light"], ["dark", "Dark"]].map(([id, label]) => {
+                const on = themePreference() === id;
+                return (
+                  <button key={id} type="button" role="radio" aria-checked={on}
+                    onClick={() => { if (!on) setThemePreference(id); }}
+                    style={{ flex: 1, padding: "7px 0", borderRadius: 8, cursor: on ? "default" : "pointer", fontSize: 12, fontWeight: 700,
+                             background: on ? "var(--c-hover)" : "transparent", color: "var(--color-text)",
+                             border: on ? "1px solid var(--c-accent-ink)" : "1px solid var(--border-glass)" }}>
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Theme picker — hidden until more than one theme is registered */}

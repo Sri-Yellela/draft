@@ -4381,7 +4381,7 @@ function HistoryList({ generated, onOpen, onExport, theme: themeProp }) {
     <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
       {entries.map(([jid,v]) => {
         const letter = (v.company||"?")[0].toUpperCase();
-        const colors = [C.PROVIDER_LINKEDIN,C.VIOLET,C.TEAL,C.SUCCESS,C.DANGER,C.WARNING,C.VIOLET];
+        const colors = [C.INFO,C.VIOLET,C.TEAL,C.SUCCESS,C.DANGER,C.WARNING,C.VIOLET];
         let hash = 0;
         for (const c of v.company||"") hash = (hash*31+c.charCodeAt(0))&0xffff;
         const bg = colors[hash%colors.length];
