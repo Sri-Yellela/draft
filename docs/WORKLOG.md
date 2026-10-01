@@ -36,8 +36,8 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`6e1837d`** (E1, live 09-29 15:48Z), auto-deploys on push. **232 tests, 232 pass** |
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (OWNER 2) |
 | Resume Master contract | **v1.1.0** (E1, additive; live 09-29), generated; vendored in draft at 1.1.0 (`8472416`). **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
-| Test baseline (draft) | **2753 / 2753 / 0** — measured 09-30 in the working tree at `0d67462`, run alone (+2 retention, +5 standalone ATS, +1 grain floor over 2745). ⚠ Not yet re-measured on a fresh CRLF worktree |
-| Migration high-water | **110** defined (`110_ats_reports_basis_hash`, merged `28b8a33`, not deployed); production reports 116 applied, latest **109** |
+| Test baseline (draft) | **2777 / 2777 / 0** — measured 09-30 in the working tree at `6788a8e`, run alone. Before that 2753 at `0d67462`. ⚠ Not yet re-measured on a fresh CRLF worktree |
+| Migration high-water | **111** defined (`111_daily_drafts`, local); production applied **110** on 09-30 (`9108a15`) |
 | Contract | v1.1.1 (mobile) · v1.0.0 (Resume Master, above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
 | draft volume | `resume-master-volume` (draft's DB, `/app/data`) — **481 / 1,000 MB** after the owner grew it 09-29. It was 481/500 and the 09-29 02:00 backup failed with ENOSPC. ⚠ The backup policy still allows ~640 MB steady; policy fixed locally in `3b9dbe9` (budget from the volume, refuse before the copy — NOT deployed); pruning is agent queue 8(b), waiting on OWNER 9 |
@@ -46,7 +46,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | ⛔ Fabrication | **2 of 2 real generations contained material the candidate never stated** (a JD skill; two invented responsibility bullets and an unsourced skill). The claim guard enforces years and seniority only. Resume Master's `docs/API.md` now says so. ⛔ **Blocks AF5** — agent queue 2 |
 | Users | **none** |
 | draft volume backups | ✅ **Pruned 09-30 on the owner's approval: 4 backups, volume 124 / 879 MB** (was 392). ⛔ The retention bug that made the 09-17..09-29 hole is fixed in `b628ee6` — NOT yet deployed (the push was blocked by the session's permission guard; OWNER 7c) |
-| Android (draft-android) | `main` = `b94a0e0`, **10 commits ahead of origin** (local). 55/55 JVM tests; **15/15 instrumented on the `rm_api36` emulator** (09-30, the first run ever) |
+| Android (draft-android) | `main` = `14b18d4`, local. **58/58 JVM, 15/15 instrumented** on `rm_api36` (09-30). Today's draft on the shared deal; right = server Draft. Contract 1.2.0 vendored |
 | `job_applications` | **empty** — nothing has ever validated the product against an employer |
 | Board | ~2,663 active per `STUDENT_BOARD_FINDING.md` (not re-measured against production this session; local `scraped_jobs` = 2,616). **80 (3.0%) are entry or intern** |
 
@@ -54,13 +54,16 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
-**09-30 (second pass): pushed and live (`9108a15`); the owner's five asks done locally.**
+**09-30 (third pass): the redesign is BUILT — steps 3 to 6 — and nothing since `9108a15` is live.**
 
-- **Owner, in order:** OWNER 9 (approve the exact prune list — the fix `b628ee6` should deploy first
-  or with it) → OWNER 7c (push the 7 commits since `9108a15`) → OWNER 25 (one Google sign-in, to
-  observe the fix in production) → the §3.0 deck proposals in `UI_REDESIGN.md` (OWNER 26).
-- **Agent, next:** UI step 3a (the deal service + migration), per the build sequence in
-  `UI_REDESIGN.md`, once the owner confirms or amends §3.0.
+- ⛔ **Owner: push draft `main` (OWNER 7c) — before 02:00 if you can.** The retention fix
+  (`b628ee6`) must be live before tonight's backup or it skips recent backups again. The push was
+  approved and then blocked by this session's permission guard; run it yourself:
+  `! git -C C:\Users\duggi\WebstormProjects\draft push origin main`. It deploys migration 111 (the
+  deck's table) and the whole redesign. Then one Google sign-in (OWNER 25).
+- Android (`draft-android`) is local too; it has no auto-deploy, so pushing it is housekeeping.
+- **Agent, next:** queue 17 (Android's look onto the leather and glass) and the per-user theme
+  preference; neither blocks anything.
 
 
 ## OWNER QUEUE
@@ -76,7 +79,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | 6 | **AF5 — 30 supervised applications** | ⭐ **UNBLOCKED by the owner, 09-30.** ⚠ Premise correction the owner should see: the Kafka document was NOT A+ — both fabrications came from `mode: "GENERATE"`, the standard Generate prompt (see G1). AF5 is supervised, so every generated document is read before it is sent; that reading is the control. Run ONE first and confirm `job_applications` gets a row with `ats_score_at_apply` populated |
 | 7 | ~~Go-ahead to push draft `main`~~ ✅ given 09-29; `dad1114` live 14:30Z. ✅ The `[boot] registries:` line is read (148 / 28, non-zero) and the first 02:00 backup on the new policy succeeded — both by the agent, 09-30 | — |
 | 7b | ~~Push draft `main`~~ ✅ **pushed on the owner's go 09-30** (`dad1114..9108a15`), after the key was set; live 20:18Z, `[boot] secret key: configured` | — |
-| 7c | **Push draft `main` again** — 7 commits since `9108a15`: `b628ee6` (⛔ the retention fix — should be live BEFORE the next 02:00 backup, or it keeps skipping recent backups), `fc668be` (public ATS tool: v4 scorer, bands, free and unlimited), `0d67462` (leather grain), `d1f50d5` (design docs), plus this WORKLOG | Push = auto-deploy |
+| 7c | **Push draft `main`** — approved 09-30, then BLOCKED by the session's permission guard; the owner runs it: `! git -C C:\Users\duggi\WebstormProjects\draft push origin main`. Carries: `b628ee6` (⛔ retention — before 02:00), `fc668be` (public ATS on v4, bands, free/unlimited), `3f448e7` (crisp leather, the glass material, the board off its cream slab), `be26aa7` `4a139af` `9464bae` (the daily deal, `/api/draft/today`, contract 1.2.0, migration **111**), `be8833a` (Today's draft — the deck), `6788a8e` (dark mode), and docs | Push = auto-deploy. Then the agent reads the boot log (migration 111, the deck route) and checks Today in production |
 | 8 | ~~Optional: re-run `verify:live` on the domain~~ ✅ **run by the owner with the token, 09-29** | — |
 | 9 | ~~Approve the prune set~~ ✅ **approved by the owner and DONE 09-30 21:32Z**: dry run first (exactly 22 listed), then deleted over SSH — **276.2 MB freed, volume 392 → 124 MB**, manifest 26 → 4 entries. Kept: 09-30 auto-daily · 09-16 auto-daily · 09-09 pre-migration-102-103 · 08-22 manual. ⚠ Still suggested: `BACKUP_MAX_BYTES=125829120`, or the nightly job refills toward its 351 MB budget | — |
 | 10 | Decide which iOS branch is canonical: `main` (`f8be63c`, 05-09) or `feat/api-layer-feed-review-queue` (`aad5a3a` + the P3 sweep) — and a Mac for agent queue 7 | The rebrand's "three repos" is only true on the branch |
@@ -86,7 +89,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | 14 | ~~Android: what does a left swipe mean?~~ ✅ **Decided 09-29 by the owner: a SAVED pass** (a persisted dislike; the card never returns). Being wired in agent queue 14 | — |
 | 15 | Android store readiness — no signing config, no Data Safety form, `versionCode 1`, launcher icon, and `com.draft.android` availability on Play unchecked; plus the admin flavour (hardcoded "Sri Yellela / Admin • Pro", literal dashboard counts) — ship it, hide it, or delete it? | Owner-only: the Play console, the keystore, and the product call |
 | 16 | **E1 decisions** (resume-master `6e1837d`): ~~(a) push = deploy~~ ✅ pushed 09-29 on the owner's go and **LIVE 15:48:54Z** (GitHub status "Success - resumemaster.one"; `POST /mcp` 404 → 401 `{"error":"unauthenticated"}` unauthenticated and with a bogus token; `/health` ok); `verify:live` still needs your token (OWNER 8) · ~~(b) metering~~ ✅ **decided 09-29: ATS stays FREE and UNLIMITED** (distribution, not revenue) · (c) who gets `rmk_` tokens — a public free connector needs a token policy (no OAuth/anonymous today) · (d) the contract-hash gap: accept, or fix in a new version (changes the recorded 1.0.0 hash) · (e) build a local PDF extractor so parsing can ship deterministic? | Nothing deploys until (a) |
-| 17 | ~~Paper-grain strength~~ ✅ **owner 09-30: "fairly coarse, like a leather, not too coarse"** — `0d67462`; chosen from a measured bench of six. Screenshots now in a plain folder: **`C:\Users\duggi\WebstormProjects\draft-screenshots\`** (`grain/`, `signed-in/`, `public/`, `android/`) | — |
+| 17 | ~~Paper-grain strength~~ ✅ **owner 09-30, second look: bench C, "crisp leather", and more gloss** — `3f448e7` (the floor token moved for it and every pair re-proved) | — |
 | 18 | ~~Copy: the login page's "Upgrade from Plans…" line~~ ✅ **removed on the owner's call, 09-29** (`4e0f96d`, screenshotted) | — |
 | 19 | **Fit-ranking calls** (`28b8a33`): (a) should a `skills_include` MISS still outrank fit? 4 of the 9 reachable graded-5 postings sit at 499–644 because of that key, not their score (e.g. "Full Stack Engineer, Link" scores Strong 54 and lands at 499) · (b) a pre-adoption score: base résumé or the unadopted enhanced draft? (the crawl scorer uses the draft; panel and precompute use the base) · (c) should the nightly term-weight refresh force a rescore? (weights are deliberately outside the hash) · (d) on deploy, the boot pass backfills automatically (~2.5 min per active profile at local speed; production has no users) — fine, or set `BOARD_FIT_PRECOMPUTE=off` and run it by hand? | (a) is the biggest remaining lever on where good jobs land |
 | 20 | ~~Set `COOKIE_ENCRYPTION_KEY`~~ ✅ **set by the owner 09-30**; boot line `[boot] secret key: configured` | — |
@@ -95,7 +98,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | 23 | ~~ATS free and unlimited on draft's public tool?~~ ✅ **owner 09-30: yes, for now (no monetisation yet)** — the rate limit is removed in `fc668be` | — |
 | 24 | Android LinkedIn import (agent queue 15) needs **LinkedIn OAuth configured in production** — the boot log says `[oauth:linkedin] missing; missing client_id, client_secret, redirect_uri_or_app_base_url`. And note: LinkedIn's OIDC gives name, email and picture — the app's "import" can never be more than that | Blocks queue 15 |
 | 25 | **Complete one Google sign-in at `jobsviadraft.com`** (any account) | The OAuth fix (`ef6071f`) is live but unobserved — only a real consent screen exercises it. The agent then reads the log for a clean callback |
-| 26 | **Confirm or amend the deck's four product proposals** — `docs/UI_REDESIGN.md` §3.0: up to 10 a day · Strong and Moderate only (fewer on a thin day, honest empty state) · an undecided card may return, a decided one never · "All jobs" stays reachable | Each is one constant or one branch; slice 3a can start on the proposals |
+| 26 | ~~Confirm the deck's four proposals~~ ✅ **confirmed by the owner 09-30** and built (`be26aa7`) | — |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
 committed and reuploaded · `marketing.md` deferred — **the pilot is gated to CS anyway** · **service
@@ -123,13 +126,15 @@ marked ✅ move to *DONE* at the next tidy; ⏸/⛔ rows are what is left, and w
 | 8 | Volume pruning + backup policy | (a) ✅ `3b9dbe9`, live. ⛔ **(c) `b628ee6` — retention skipped big recent backups to keep small old ones** (found listing the volume 09-30); local. (b) the manual prune: list made, OWNER 9 | OWNER 7c, 9 |
 | 9 | **UI redesign, step 2** — tokens + paper substrate | ✅ `1fd46dc` `0b76191` `76cc044` (09-29, local). One token file (`client/src/styles/colorTokens.js`, published as `--c-*`, the `zLayers` pattern); a still SVG paper grain; the night-sky VIDEO background and the per-session random accent (and its picker) deleted. ⛔ The premise was bigger than a reskin — the old UI was fully DARK, so every text colour flipped. Literals 887 → 554 (22 budgeted files + 3 permanent exemptions), ratchet `colorLiteralGuard` seen to fail 3 ways. **44 contrast pairs pass AA** — ⛔ the logo orange is 2.96:1 on cream, so it is a FILL only; orange text uses `#A33200`; text on orange is ink, not white (3.47:1). Two more /pricing-shaped invisible buttons fixed. 2712/2712; 18 routes screenshotted at 1440/390, looked at (agent and me) | — |
 | 9b | UI step 2b — **the signed-in app** | ✅ `2356153` (09-30, local) + copy sweep `b8882f8`. **549 literals → 0**, budget EMPTY, rewritten by AST position choosing the token by CSS role (the interrupted run's regex rewriter was not used). Bands on `BAND_*` tokens, all ≥ 4.5:1 as text; ⛔ **Not enough signal = no fill, no hue, dashed outline, "no judgement"** — not a paler Weak. ⭐ **G5 done: no ATS number shown** — the header's "Score {n}", "Best possible: {n}", and DatabasePanel's "ATS {n}" on a 4th copy of the v3 ramp. 21 signed-in scenes screenshotted at 1440/390 on stubbed `/api/*`, compared with the 09-29 before set. 2745/2745 | — |
-| 10 | UI redesign, steps 3–6 — the deck, transitions, mobile, dark mode | ✅ **Designed in full 09-30** (`d1f50d5`, `UI_REDESIGN.md` §Steps 3–6, with a build sequence 3a → 6). ⏳ Build next: **3a** (migration `daily_drafts` + the deal service). Android 2c revised to the deck (`ANDROID.md`, draft-android `ce213f3`) | OWNER 26 (proposals; 3a can start on them) |
+| 10 | UI redesign, steps 3–6 | ✅ **BUILT 09-30** — the deal (`be26aa7`), the API + contract 1.2.0 (`4a139af` `9464bae`), the deck (`be8833a`), Android on the deck (draft-android `f7fdc2c`), dark mode (`6788a8e`). See `UI_REDESIGN.md` §Steps 3–6 status, with its three recorded deviations | OWNER 7c (deploy) |
 | 11 | **E1 · MCP connectors** in Resume Master | ✅ `6e1837d` in resume-master (09-29, **local — RM auto-deploys on push**). `POST /mcp`, stateless Streamable HTTP, same token auth before the body is read (401 / 503 `auth_unconfigured`), metered per call with `via:"mcp"`. Tools: `score_ats_fit` (0 model calls; a decline is `outcome:"not_enough_signal"`, `score:null`, "NOT a low score") and `format_resume_print_html` (HTML, not PDF). Schemas GENERATED from the HTTP contract (`x-mcp`), drift-tested; contract **1.0.0 → 1.1.0**, additive. 197 → **232/232**, 22 injected violations caught. ⛔ Premise corrected: parsing has NO deterministic path (it is a Sonnet call) — left out. Generation deferred per the design. Found: the formatter reorders/renames sections and folds unknown headings into the previous one (described in the tool); the contract hash ignores every key named `description` (not fixed) | deploy = OWNER 16 |
 | 16 | Re-vendor Resume Master contract 1.1.0 into draft | ✅ `8472416` (09-29, local) — 14/14 contract tests. Also: two root scanners (`modelCallGuard`, `dropImportExtensionTokens`) walked into agent worktrees under `.claude/` and reported the repo twice; both now skip it | — |
 | 12 | E3 · Remote browser profiles — the **security design** only | ✅ written 09-29, `docs/E3_SECURITY_DESIGN.md`; nothing built. ⛔ Building waits on AF5, full-auto proven on the direct tier, the kill switch verified mid-batch, and the design reviewed | AF5 · OWNER 12 |
 | 13 | ⭐ **Rank the board by fit** | ✅ merged `28b8a33` (09-29, local; commits `269e7e3` `0cfb427` `52b1261`). Migration **110** adds `basis_hash` to `ats_only_reports` (REUSED rather than a second score table — the card, panel and apply stamp already read it). ONE scoring definition (`atsBasisForProfile`/`scoreJobForBasis`); precompute incremental, chunked writes, explicit status per run, kill switch `BOARD_FIT_PRECOMPUTE=off`, admin `POST /api/admin/board-fit/precompute` (dry run by default). Default order = rank keys → band (Strong, Moderate, not established, Weak) → score → recency; a cursor spanning a score write is refused and restarts (a 681-row walk had returned 680). Measured on a local copy: graded-5 in the top 50 **2 → 3**; top 20 **20 unscored → 20 Strong**; fit-FIRST was worse (1). 2738/2738 | — |
 | 14 | Android open defects from the sweep | ✅ `8445e88` + `b94a0e0` (09-30, draft-android, local), verified on the emulator: 401 → sign-in with a notice, credential cleared (relaunch lands on sign-in); **left swipe and X = saved pass** (PATCH `disliked:true` seen; Skip deleted); dead Filter button removed; failed Star → snackbar; section delete confirmed — ⛔ and found: the delete arm was UNREACHABLE (a stale swipe lambda painted "Delete" and un-hid); drag handle removed. 55/55 JVM, **15/15 instrumented**. Open: the optimistic "Saved to starred" badge shows before a failed write's snackbar; admin `AssistChip(onClick={})` left with 2b1 (OWNER 15) | — |
 | 15 | Android: LinkedIn import — needs a mobile import endpoint in draft | ⏸ **Blocked, 09-30.** The interrupted run "started" it and left nothing (no worktree, no branch). ⛔ LinkedIn OAuth is not configured in production at all (OWNER 24), so an endpoint could not be exercised end to end — not built | OWNER 24 |
+| 17 | Android's LOOK onto the leather and glass (and a dark theme there) | ⏳ The deck works on Android but wears the earlier Material look | — |
+| 18 | The theme preference stored with the ACCOUNT, not per device | ⏳ Design says per user; built per device (local storage) | — |
 
 ---
 
@@ -420,6 +425,33 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 ## SESSION LOG
 
 Newest first. ⛔ Agents append here rather than creating a new file.
+
+### 2026-09-30 (3) · The redesign built: crisp leather, lit glass, Today's draft, Android on the deck, dark mode
+
+The owner confirmed the deck proposals and found the board "mundane … like 2012"; wanted bench C's
+crisp leather and more gloss. Done in that order, each slice tested, screenshotted and committed:
+
+- **Grain + glass** (`3f448e7`): bench C needs a 12% shadow, past the old floor — so the FLOOR token
+  moved and every pair was re-proved (one moved). A lit glass material. Two causes of the flat look
+  found: a grey static overlay on every card, and the board sitting on `theme.bg` — which is the
+  GLASS token, a 58% cream sheet over the leather.
+- **The deal** (`be26aa7`): the 690-line `/api/jobs` handler became `boardPageResponse`, so the deck
+  deals from the board's own query. Migration 111 stores the deal, not the decisions.
+- **The API** (`4a139af` `9464bae`): `/api/draft/today`, contract 1.2.0, the deck surface refuses
+  any `approvalMode` (tested in-process for every value), frozen evidence per card.
+- **The deck** (`be8833a`): Today's draft. Keys, web swipe with a following, tilting card and
+  stamps, a visible stack, fly-outs, the slash as progress, every state; a pure reducer proves no
+  animation gates input and a refused call is never a success.
+- **Android** (draft-android `f7fdc2c`): the same deal; right drafts ON THE SERVER (it never reached
+  one before); two gestures. Found on the way: the deck's null score would have shown every card as
+  "Not enough signal" — the dealt band is carried instead.
+- **Dark mode** (`6788a8e`): both palettes proved; it found a real avatar failure the light theme
+  could not; the leather's floor inverts in dark and is tested for both.
+
+**Measured:** draft 2777/2777/0 run alone; client build OK; android 58/58 JVM + 15/15 instrumented.
+Screenshots: `draft-screenshots\` (`deck`, `dark`, `gloss`, `grain`, `android`). Nothing pushed — the
+approved push was blocked by the session's permission guard (OWNER 7c).
+
 
 ### 2026-09-30 (2) · Pushed; backups listed and a retention bug found; public ATS on the v4 scorer; leather grain; steps 3–6 designed
 
