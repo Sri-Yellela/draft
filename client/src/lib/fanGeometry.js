@@ -67,7 +67,12 @@ const rad = (deg) => (deg * Math.PI) / 180;
  * face the pivot — that is what makes it a fan and not a staircase. The behind-cards are then
  * pulled back: positions and size both scaled by `zoom` toward the front slot.
  */
-export function fanTransform(offset, orientation, geometry = FAN[orientation]) {
+export function fanTransform(offset, orientation, geometry = FAN[orientation], expanded = null) {
+  // Expanded three-column (queue 40): the front card shifts right by `card.shift`, every back by `arc`.
+  if (expanded) {
+    const t = fanTransform(offset, orientation, geometry);
+    return { ...t, x: round(t.x + (offset === 0 ? expanded.card.shift : expanded.arc)) };
+  }
   const { zoom, spread, reach, visible } = geometry;
   if (offset === 0) return { x: 0, y: 0, rotate: 0, scale: 1, opacity: 1, shown: true, depth: 0 };
   const a = rad(offset * spread);
@@ -85,3 +90,43 @@ export function fanTransform(offset, orientation, geometry = FAN[orientation]) {
 }
 
 const round = (n) => Math.round(n * 100) / 100;
+
+// ── The expanded card, three columns: ATS │ card │ posting (queue 40) ─────────────────────────
+//
+// Expansion used to grow DOWNWARDS and leave the left and right thirds of a wide screen empty. At
+// THREE_COL_PX and above it grows SIDEWAYS instead: the card shifts slightly right, the ATS report
+// opens on its LEFT, the posting sits on its RIGHT, and the fan's arc slides right, behind the
+// posting — the depth comes from the arc passing under the new panel.
+//
+// ⛔ The card is still the element that expanded. The panels FLANK it inside the deck's own stage;
+// they are not a second view and nothing routes.
+//
+// The numbers are the edges of constraints, not taste:
+//   minPanel 280   the narrowest a column of 14.5px prose reads at (~40 characters a line) and the
+//                  ATS chips wrap without orphaning a single chip per line
+//   minCard  560   the narrowest the horizontal card holds its 46px title in three lines
+//   shift     32   "slightly": less than the gap, so the card never reads as left-aligned to a panel
+//   → THREE_COL_PX = the width at which minPanel × 2 + minCard + the gutters + 2 × shift first fit
+//                  (1272), rounded up to the laptop breakpoint the screenshots are taken at.
+// Below it the panels STACK inside the card (ATS, then the posting), and below FAN_SWITCH_PX the deck
+// is the vertical one — the fallback is the layout that shipped, so a narrow screen loses nothing.
+export const EXPANDED = Object.freeze({ pad: 24, gap: 20, minPanel: 280, minCard: 560, shift: 32 });
+export const THREE_COL_PX = 1280;
+
+/**
+ * Where the three columns go for a viewport, or null below THREE_COL_PX (the panels stack).
+ * `vw` is the LAYOUT width (clientWidth — a scrollbar is not page), `centerX` the deck stage's centre
+ * in it. Every x is relative to that centre, which is where the front card's slot is.
+ */
+export function expandedLayout(vw, centerX = vw / 2) {
+  if (!(vw >= THREE_COL_PX)) return null;
+  const { pad, gap, minPanel, shift } = EXPANDED;
+  const width = Math.min(CARD.horizontal.width, vw - 2 * pad - 2 * gap - 2 * minPanel - 2 * shift);
+  const cardLeft = centerX - width / 2 + shift;
+  const cardRight = cardLeft + width;
+  const left = { x: round(pad - centerX), width: round(cardLeft - gap - pad) };
+  const right = { x: round(cardRight + gap - centerX), width: round(vw - pad - cardRight - gap) };
+  // The arc slides right until the fan's spine sits under the posting's centre — behind it, by tier.
+  const arc = round(right.x + right.width / 2);
+  return { card: { width, shift }, left, right, arc };
+}

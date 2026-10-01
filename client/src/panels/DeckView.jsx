@@ -41,7 +41,7 @@ import { jobDetailHref } from "../lib/jobUrl.js";
 import { TITLE_ATTR, transitionClick } from "../lib/viewTransitions.js";
 import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
 import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, stepTarget } from "../lib/deckState.js";
-import { FAN, cardSize, fanTransform, orientationFor } from "../lib/fanGeometry.js";
+import { FAN, cardSize, expandedLayout, fanTransform, orientationFor } from "../lib/fanGeometry.js";
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
 const TOAST_MS = 5000;
@@ -141,14 +141,93 @@ function StepButton({ dir, onClick, disabled }) {
   );
 }
 
+// ── the expansion's two pieces: the ATS report and the posting (queue 40) ─────────────────────
+// ONE definition of each, rendered either INSIDE the card (stacked — below THREE_COL_PX) or in the
+// two panels that flank it. The content is what the card already carried: the band and its blurb,
+// the matched / missing terms from the same stored report the band came from (dailyDraft's
+// whyFromReport), and the posting's own text. Nothing here is new information.
+const sectionLabel = { fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.INK_FAINT, marginBottom: 8 };
+
+function WhyChips({ why }) {
+  return (
+    <>
+      {why.matched?.length > 0 && (
+        <section style={{ marginBottom: 14 }}>
+          <div style={sectionLabel}>Why it's here</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {why.matched.map(s => <Chip key={s} tone="good">{s}</Chip>)}
+            {why.matchedTotal > why.matched.length && <Chip tone="good">+{why.matchedTotal - why.matched.length} you show</Chip>}
+          </div>
+        </section>
+      )}
+      {why.missing?.length > 0 && (
+        <section>
+          <div style={sectionLabel}>Not on your résumé yet</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {why.missing.map(s => <Chip key={s}>{s}</Chip>)}
+          </div>
+        </section>
+      )}
+    </>
+  );
+}
+
+function BandLine({ band }) {
+  const bandMeta = atsBandLabel(band);
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+      <span style={{ ...bandChipStyle(band), padding: "4px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 800 }}>{bandMeta.label}</span>
+      <span style={{ fontSize: 13, color: C.INK_MUTED }}>{bandMeta.blurb}</span>
+    </div>
+  );
+}
+
+function PostingText({ job }) {
+  const text = String(job.description || "").trim();
+  return text
+    ? <p style={{ fontSize: 14.5, lineHeight: 1.7, color: C.INK, whiteSpace: "pre-wrap", margin: 0 }}>{text}</p>
+    : <p style={{ fontSize: 14, color: C.INK_MUTED, margin: 0 }}>The posting's text is not stored. Open it at the source.</p>;
+}
+
+function PostingLinks({ job, onReport }) {
+  return (
+    <div style={{ display: "flex", gap: 18, marginTop: 16, flexWrap: "wrap", fontSize: 13.5, fontWeight: 700 }}>
+      {(job.applyUrl || job.url) && <a href={job.applyUrl || job.url} target="_blank" rel="noreferrer" style={{ color: C.ACCENT_INK }}>The posting ↗</a>}
+      <Link to={jobDetailHref(job.id)} onClick={onReport} style={{ color: C.ACCENT_INK }}>Full report on the board →</Link>
+    </div>
+  );
+}
+
+// The two flanking panels. The opaque menu surface, so they read over the arc that slides behind the
+// right one; each scrolls on its own, so a long posting never makes the page any taller than the
+// screen. They grow out from behind the card — transform and opacity only, under the one MotionConfig.
+const FLANK_MIN_H = 380;
+function FlankPanel({ id, label, side, box, children }) {
+  const from = side === "left" ? 40 : -40;
+  return (
+    <motion.aside id={id} aria-label={label} tabIndex={0} data-deck-flank={side}
+      initial={{ opacity: 0, x: from }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: from, transition: { duration: 0.12 } }}
+      transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+      style={{ ...glass({ radius: 24 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU, position: "absolute", top: 0,
+               left: `calc(50% + ${box.x}px)`, width: box.width, boxSizing: "border-box",
+               // Ends ABOVE the sticky action row (stage top ~205px + the row's 16 + 54 + its margin):
+               // 230 let the posting run underneath Pass / Save / Draft on a 900px screen.
+               maxHeight: "calc(100vh - 300px)", minHeight: FLANK_MIN_H, overflowY: "auto", overscrollBehavior: "contain",
+               padding: "24px 24px 22px", zIndex: Z.CONTENT, outline: "none" }}>
+      {children}
+    </motion.aside>
+  );
+}
+
 // ── the face-up side: the card that shipped, plus the expansion ─────────────────────────────
-function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, onReport, orientation }) {
+// `detail` says where the expansion goes: "inline" grows the card downward (the stacked fallback),
+// "flank" keeps the card's face and lets the two panels beside it carry the rest.
+function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, onReport, orientation, detail = "inline" }) {
   const { job, why = {}, band } = card;
   const meta = [job.location, workModel(job), salary(job), ago(job)].filter(Boolean);
   const titleId = `deck-title-${job.id}`;
   const vertical = orientation === "vertical";
-  const bandMeta = atsBandLabel(band);
-  const text = String(job.description || "").trim();
+  const flank = isFront && expanded && detail === "flank";
   return (
     <div style={{ padding: vertical ? "22px 22px 20px" : "28px 30px 24px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -176,48 +255,23 @@ function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, o
         </div>
       )}
 
-      {why.matched?.length > 0 && (
-        <section style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.INK_FAINT, marginBottom: 8 }}>
-            Why it's here
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {why.matched.map(s => <Chip key={s} tone="good">{s}</Chip>)}
-            {why.matchedTotal > why.matched.length && <Chip tone="good">+{why.matchedTotal - why.matched.length} you show</Chip>}
-          </div>
-        </section>
-      )}
-      {why.missing?.length > 0 && (
-        <section>
-          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.INK_FAINT, marginBottom: 8 }}>
-            Not on your résumé yet
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {why.missing.map(s => <Chip key={s}>{s}</Chip>)}
-          </div>
-        </section>
-      )}
+      {/* Flanked, the evidence has MOVED to the ATS panel on the left — rearranged, not repeated. */}
+      {!flank && <WhyChips why={why} />}
 
-      {/* ⭐ EXPANSION IS THE DETAIL — the same element, grown. No modal, no second view. */}
-      {isFront && expanded && (
+      {/* ⭐ EXPANSION IS THE DETAIL — the same element, grown. No modal, no second view. Stacked
+          below THREE_COL_PX; above it the same pieces flank the card instead (queue 40). */}
+      {isFront && expanded && detail === "inline" && (
         <motion.section id="deck-detail" aria-label="The posting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}
           style={{ marginTop: 22, paddingTop: 20, borderTop: `1px solid ${C.BORDER}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
-            <span style={{ ...bandChipStyle(band), padding: "4px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 800 }}>{bandMeta.label}</span>
-            <span style={{ fontSize: 13, color: C.INK_MUTED }}>{bandMeta.blurb}</span>
-          </div>
-          {text
-            ? <p style={{ fontSize: 14.5, lineHeight: 1.7, color: C.INK, whiteSpace: "pre-wrap", margin: 0 }}>{text}</p>
-            : <p style={{ fontSize: 14, color: C.INK_MUTED, margin: 0 }}>The posting's text is not stored. Open it at the source.</p>}
-          <div style={{ display: "flex", gap: 18, marginTop: 16, flexWrap: "wrap", fontSize: 13.5, fontWeight: 700 }}>
-            {(job.applyUrl || job.url) && <a href={job.applyUrl || job.url} target="_blank" rel="noreferrer" style={{ color: C.ACCENT_INK }}>The posting ↗</a>}
-            <Link to={jobDetailHref(job.id)} onClick={onReport} style={{ color: C.ACCENT_INK }}>Full report on the board →</Link>
-          </div>
+          <BandLine band={band} />
+          <PostingText job={job} />
+          <PostingLinks job={job} onReport={onReport} />
         </motion.section>
       )}
 
       {isFront && (
-        <button type="button" onClick={expanded ? onCollapse : onExpand} aria-expanded={expanded} aria-controls={expanded ? "deck-detail" : undefined}
+        <button type="button" onClick={expanded ? onCollapse : onExpand} aria-expanded={expanded}
+          aria-controls={expanded ? (flank ? "deck-ats deck-posting" : "deck-detail") : undefined}
           aria-keyshortcuts={expanded ? "Escape" : "Enter"}
           style={{ marginTop: 20, padding: 0, background: "transparent", border: "none", cursor: "pointer",
                    fontSize: 12.5, fontWeight: 700, color: C.INK_FAINT }}>
@@ -243,11 +297,15 @@ function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, o
 const POSITION_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const FLIP_EASE = "cubic-bezier(0.34, 1.32, 0.5, 1)";   // a touch of overshoot: the card settles face-up
 
-function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing, appear, dealRank, dealTotal, reduced,
+function FanCard({ entry, orientation, geometry, size: baseSize, expanded, flank, dimmed, dealing, appear, dealRank, dealTotal, reduced,
                    onDecide, onExpand, onCollapse, onReport, onGoto, headingRef, faceRef }) {
   const { card, offset } = entry;
   const isFront = offset === 0;
-  const t = fanTransform(offset, orientation, geometry);
+  // Flanked (queue 40): the front card narrows to its column and shifts right, and the backs slide
+  // right with the arc, behind the posting — through the SAME transform the rotation uses.
+  const t = fanTransform(offset, orientation, geometry, flank);
+  // Its evidence moved to the ATS panel, so it is as tall as what is left on it, not the resting 380.
+  const size = isFront && flank ? { width: flank.card.width, height: 0 } : baseSize;
   const x = useMotionValue(0);
   const tilt = useTransform(x, [-320, 0, 320], [-10, 0, 10]);
   const draftStamp = useTransform(x, [20, SWIPE_COMMIT_PX + 40], [0, 1]);
@@ -309,7 +367,8 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
                        transition: "none", transform: "none",
                        cursor: isFront && !expanded ? "pointer" : "auto", visibility: showFace ? "visible" : "hidden" }}>
               {showFace && <CardFace card={card} headingRef={headingRef} isFront={isFront} expanded={isFront && expanded}
-                                     onExpand={onExpand} onCollapse={onCollapse} onReport={onReport} orientation={orientation} />}
+                                     onExpand={onExpand} onCollapse={onCollapse} onReport={onReport} orientation={orientation}
+                                     detail={flank ? "flank" : "inline"} />}
             </article>
             <div style={{ position: "absolute", inset: 0, transform: "rotateY(180deg)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
                           borderRadius: 28, maxHeight: size.height }}>
@@ -410,6 +469,8 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const [expanded, setExpanded] = useState(false);
   const [leave, setLeave] = useState(null);
   const [frontH, setFrontH] = useState(0);
+  const [flankH, setFlankH] = useState(0);
+  const [stageBox, setStageBox] = useState(null);   // { vw: the layout width, cx: the stage's centre }
   const headingRef = useRef(null);
   const faceRef = useRef(null);
   const stageRef = useRef(null);
@@ -429,6 +490,8 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const orientation = orientationFor(vw);
   const geometry = { ...FAN[orientation], ...(DEV_FAN?.[orientation] || null) };
   const size = cardSize(orientation, vw);
+  // Three columns only when expanded, horizontal and wide enough; otherwise null and the card stacks.
+  const flank = expanded && orientation === "horizontal" && stageBox ? expandedLayout(stageBox.vw, stageBox.cx) : null;
 
   const fetchDeck = useCallback(async () => {
     setLoad({ status: "loading", error: null });
@@ -547,6 +610,28 @@ export default function DeckView({ canUseAPlusResume = true }) {
     return () => ro.disconnect();
   }, [current?.job.id, load.status]);
 
+  // Where the stage's centre is, in the LAYOUT width — clientWidth, because a scrollbar is not page,
+  // and a panel laid out against innerWidth runs under it and scrolls the page sideways.
+  useLayoutEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const box = { vw: document.documentElement.clientWidth, cx: Math.round(r.left + r.width / 2) };
+    setStageBox(b => (b && b.vw === box.vw && b.cx === box.cx ? b : box));
+  }, [vw, expanded, load.status]);
+  // The flanking panels scroll on their own; the stage is as tall as the taller of them and the card.
+  const flanked = !!flank;
+  useLayoutEffect(() => {
+    if (!flanked) { setFlankH(0); return; }
+    const els = [...(stageRef.current?.querySelectorAll("[data-deck-flank]") || [])];
+    if (!els.length || typeof ResizeObserver === "undefined") return;
+    const measure = () => setFlankH(Math.max(0, ...els.map(e => e.offsetHeight)));
+    const ro = new ResizeObserver(measure);
+    els.forEach(e => ro.observe(e));
+    measure();
+    return () => ro.disconnect();
+  }, [flanked, current?.job.id]);
+
   // ⛔ SCROLL CAPTURE, only when a rotation is possible. One flick, one card.
   useEffect(() => {
     const el = stageRef.current;
@@ -591,7 +676,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
 
   const dateLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   const vertical = orientation === "vertical";
-  const stageH = Math.max(size.height, frontH || 0);
+  const stageH = Math.max(size.height, frontH || 0, flankH || 0);
   const dealTotal = Math.min(order.length, geometry.visible + 1);
 
   return (
@@ -692,10 +777,26 @@ export default function DeckView({ canUseAPlusResume = true }) {
               <AnimatePresence initial custom={leave}>
                 {order.map((e) => (
                   <FanCard key={e.card.job.id} entry={e} orientation={orientation} geometry={geometry} size={size}
-                    expanded={expanded} dimmed={expanded} dealing={dealing} appear={!firstPaint.current} reduced={!!reduced} dealRank={Math.max(0, dealTotal - 1 - Math.abs(e.offset))}
+                    expanded={expanded} flank={flank} dimmed={expanded} dealing={dealing} appear={!firstPaint.current} reduced={!!reduced} dealRank={Math.max(0, dealTotal - 1 - Math.abs(e.offset))}
                     dealTotal={dealTotal} onDecide={decide} onExpand={() => setExpanded(true)} onCollapse={() => setExpanded(false)}
                     onReport={transitionClick(navigate, jobDetailHref(e.card.job.id), { awaitTitle: e.card.job.id })} onGoto={(i) => dispatch({ type: "goto", index: i })} headingRef={headingRef} faceRef={faceRef} />
                 ))}
+              </AnimatePresence>
+              {/* ⭐ THE FLANKS (queue 40): the ATS report LEFT, the posting RIGHT, beside the card that
+                  expanded and inside its stage — part of the expansion, not a view of their own. */}
+              <AnimatePresence>
+                {flank && current && !current.decision && [
+                  <FlankPanel key="ats" id="deck-ats" label="The ATS report" side="left" box={flank.left}>
+                    <div style={sectionLabel}>The ATS report</div>
+                    <BandLine band={current.band} />
+                    <WhyChips why={current.why || {}} />
+                  </FlankPanel>,
+                  <FlankPanel key="posting" id="deck-posting" label="The posting" side="right" box={flank.right}>
+                    <div style={sectionLabel}>The posting</div>
+                    <PostingText job={current.job} />
+                    <PostingLinks job={current.job} onReport={transitionClick(navigate, jobDetailHref(current.job.id), { awaitTitle: current.job.id })} />
+                  </FlankPanel>,
+                ]}
               </AnimatePresence>
             </div>
 
