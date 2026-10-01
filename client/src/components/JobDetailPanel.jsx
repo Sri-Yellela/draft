@@ -239,7 +239,8 @@ export default function JobDetailPanel({
                               overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                   {selectedJob.company}
                 </div>
-                <div style={{ fontSize:12, color:"var(--color-text-muted)", marginTop:2,
+                {/* The shared element (lib/viewTransitions.js): the deck card's title lands here. */}
+                <div data-vt-title={selectedJob.id} style={{ fontSize:12, color:"var(--color-text-muted)", marginTop:2,
                               overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                   {selectedJob.title}
                 </div>

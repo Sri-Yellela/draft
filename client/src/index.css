@@ -165,3 +165,19 @@
   .animate-fade-rise-delay-2,
   .animate-scroll-hint { animation: none !important; }
 }
+
+/* ── Shared-element transitions (queue 29; lib/viewTransitions.js) ──────────────────────────
+   A job's title morphs between the deck, the board's detail and the review queue by name. Short,
+   because a transition past ~200ms of perceived delay is a cost, not a feature. */
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) { animation-duration: 180ms; animation-timing-function: cubic-bezier(0.2, 0, 0, 1); }
+/* ⛔ Never gates input: the snapshot overlay takes no pointer events, so a click mid-transition
+   reaches the live page underneath. */
+:root::view-transition { pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation: none !important; }
+}

@@ -447,7 +447,7 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
         <span style={{ fontSize: 12.5, fontWeight: 700, color: theme.text }}>
           {companyLabel(job.company)}
         </span>
-        <span style={{ fontSize: 11.5, color: theme.textMuted, flex: 1, minWidth: 120 }}>
+        <span data-vt-title={job.jobId || undefined} style={{ fontSize: 11.5, color: theme.textMuted, flex: 1, minWidth: 120 }}>
           {job.title || job.jobId || "—"}
         </span>
         {when && (
@@ -949,7 +949,7 @@ export function CompanyApplicationRow({
          style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
         <span style={{ width: 5, height: 5, borderRadius: "50%", flexShrink: 0, background: tone }} />
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: theme.text, flex: 1, minWidth: 0,
+        <span data-vt-title={app.jobId || undefined} style={{ fontSize: 12.5, fontWeight: 700, color: theme.text, flex: 1, minWidth: 0,
                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {app.title || app.jobId || "Unknown role"}
         </span>

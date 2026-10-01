@@ -1,5 +1,5 @@
 // REVAMP v1 — App.jsx
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useMemo } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { api, setAuthContext }   from "./lib/api.js";
 import { adoptAccountTheme }     from "./styles/colorTokens.js";
@@ -23,6 +23,7 @@ import { JobProfilesPanel }      from "./panels/JobProfilesPanel.jsx";
 import { DatabasePanel }         from "./panels/DatabasePanel.jsx";
 import { PlansPanel }            from "./panels/PlansPanel.jsx";
 import DeckView                  from "./panels/DeckView.jsx";
+import { routeCommitted, transitionTo } from "./lib/viewTransitions.js";
 import { IntegrationsPanel }     from "./panels/IntegrationsPanel.jsx";
 import { AccountPanel }          from "./panels/AccountPanel.jsx";
 import { RecruiterPanel }        from "./panels/RecruiterPanel.jsx";
@@ -114,6 +115,15 @@ function BoardSearchBar(props) {
       onSearch={params => applyBarFilters(params, { live: true })}
     />
   );
+}
+
+// Tells lib/viewTransitions.js that a navigation has reached the DOM. A layout effect, so it runs
+// after React writes the new route and before the browser paints — the moment a view transition's
+// update callback must wait for, because BrowserRouter commits navigations as React transitions.
+function RouteCommitSignal() {
+  const location = useLocation();
+  useLayoutEffect(() => { routeCommitted(); }, [location.key]);
+  return null;
 }
 
 // The top bar, with the AUTO APPLY needs-review count decorated onto its tab.
@@ -349,7 +359,7 @@ function AppDashboard({ authUser, setAuthUser }) {
   const handlePanelChange = useCallback((tab) => {
     if (tab === "jobs" || tab === "console") {
       if (activeTab !== "console") setJobBoardRefreshKey(k => k + 1);
-      navigate(consolePath);
+      transitionTo(navigate, consolePath);
       return;
     }
     // Derived from the tab row plus the routes reachable only from elsewhere (the profile menu,
@@ -359,7 +369,9 @@ function AppDashboard({ authUser, setAuthUser }) {
     // a filter wired to a no-op — so the row itself is now the source of truth and a tab added
     // tomorrow routes without anyone remembering this line.
     if (NAVIGABLE_TABS.has(tab)) {
-      navigate(`/app/${tab}`);
+      // A view transition (queue 29): a job title on the page you leave and the page you reach is
+      // one element moving, not two that cut. lib/viewTransitions.js says why it is not RR's prop.
+      transitionTo(navigate, `/app/${tab}`);
     }
   }, [activeTab, consolePath, navigate, NAVIGABLE_TABS]);
 
@@ -669,6 +681,11 @@ function AppRouter() {
     setAuthStatus("unauthenticated");
   }, []);
 
+  // The lever. Read once here and passed down, rather than re-read in each route element, so the
+  // route table and the nav cannot disagree about whether /pricing exists. ABOVE the loading return:
+  // a hook after an early return changes the hook order between renders (React warned on every load).
+  const monetisationEnabled = useMonetisationEnabled();
+
   if (authStatus === "unknown") return (
     <div style={{ height:"100vh", display:"flex", flexDirection:"column",
                   alignItems:"center", justifyContent:"center",
@@ -680,10 +697,6 @@ function AppRouter() {
       <span style={{ color:theme.textMuted, fontSize:13 }}>Loading…</span>
     </div>
   );
-
-  // The lever. Read once here and passed down, rather than re-read in each route element, so the
-  // route table and the nav cannot disagree about whether /pricing exists.
-  const monetisationEnabled = useMonetisationEnabled();
 
   // NavBar helper — renders the shared public nav with current auth state
   const navBar = (
@@ -808,6 +821,7 @@ function AppRouter() {
 export default function App() {
   return (
     <BrowserRouter>
+      <RouteCommitSignal/>
       {/* Outside AppRouter so the marketing routes, which render logged out, are inside it too. */}
       <MonetisationProvider>
         <AppRouter/>

@@ -1,6 +1,7 @@
-// ── Today — the deck (UI steps 3c + 4) ───────────────────────────────────────────────────────
+// ── Today — the deck (UI steps 3c + 4; the fan, queue 27; the deal and the end, queue 28) ─────
 //
-// docs/UI_REDESIGN.md §3–§4. One job at a time; position is the fit signal; nothing here submits.
+// docs/UI_REDESIGN.md §3–§4 and docs/BRAND_OUTLAY_AND_MOTION.md §"THE DECK — DECIDED 2026-09-30".
+// One job at a time; position is the fit signal; nothing here submits.
 //
 //   Draft  (D, →, swipe right)  POST /api/apply/runs { surface:"deck" }, NO approvalMode — the job is
 //                               previewed and parked for review. The route refuses approvalMode from
@@ -9,26 +10,47 @@
 //   Save   (S, button only)     PATCH /api/jobs/interact { starred:true }
 //   Undo   (U, the toast)       abort the run job / interact false
 //
+// THE FAN (lib/fanGeometry.js holds every number). The dealt cards sit on a shallow arc, pulled
+// back; the FRONT card is face-up, square-on and full size, the rest face-down. Scroll over the
+// stack rotates it (the page does not move), a card reaching the front FLIPS face-up, and clicking
+// the front card EXPANDS IT IN PLACE — the expansion is the detail, so there is no detail view to
+// route to and the element never changes identity.
+//
+// ⛔ Scroll capture is an accessibility cost, paid back in full: J/K and ↑/↓ do exactly what the
+// wheel does, ‹ › buttons do it for touch and pointer, Enter expands, Esc collapses. The wheel is
+// only captured when a rotation is POSSIBLE — at either end, and while expanded, the page scrolls.
+// ⛔ Layering by named tier (zLayers.js): --z-fan < --z-content < --z-nav. The fan passes behind the
+// header and the action row; only the face-up card rises into the content layer.
 // ⛔ No animation gates input (lib/deckState.js): an action commits at once and the fly-out plays on
-// the leaving copy. ⛔ Every motion honours prefers-reduced-motion — from ONE MotionConfig, so a new
-// transition cannot forget it. ⛔ Colours are tokens only; the card shows a band on demand and never
-// a number.
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { AnimatePresence, MotionConfig, motion, useMotionValue, useTransform } from "framer-motion";
-import { Link } from "react-router-dom";
+// the leaving element. ⛔ Every motion honours prefers-reduced-motion — from ONE MotionConfig, so a
+// new transition cannot forget it. ⛔ Colours are tokens only; the card shows a band and never a number.
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
+import { AnimatePresence, MotionConfig, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
+import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
 import { bandChipStyle } from "../styles/bandStyle.js";
 import { atsBandLabel } from "../../../shared/atsBands.js";
 import CompanyIcon from "../components/ui/CompanyIcon.jsx";
+import CardBack, { CardBackDefs } from "../components/CardBack.jsx";
+import { useViewport } from "../hooks/useViewport.js";
+import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { jobDetailHref } from "../lib/jobUrl.js";
+import { TITLE_ATTR, transitionClick } from "../lib/viewTransitions.js";
 import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
-import { DECISIONS, counts, deckReducer, initialDeck, isFinished } from "../lib/deckState.js";
+import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, stepTarget } from "../lib/deckState.js";
+import { FAN, cardSize, fanTransform, orientationFor } from "../lib/fanGeometry.js";
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
 const TOAST_MS = 5000;
+const WHEEL_STEP = 60;               // accumulated wheel delta for one card
+const WHEEL_SETTLE_MS = 140;         // one trackpad flick is many events; rotate once per flick
 const localDate = () => new Date().toLocaleDateString("en-CA");   // YYYY-MM-DD in the user's zone
+// Development only: lets the geometry be swept from the console while looking (queue 27's reach
+// sweep). Production reads FAN and nothing else.
+const DEV_FAN = import.meta.env?.DEV ? globalThis.__DECK_FAN__ : null;
 
 const VERB = { drafted: "Drafted", passed: "Passed", saved: "Saved" };
 const AFTER = {
@@ -41,6 +63,7 @@ const AFTER = {
 const visuallyHidden = { position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" };
 const kbd = { fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 5, border: `1px solid ${C.BORDER_STRONG}`,
               color: C.INK_MUTED, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", lineHeight: "16px" };
+const isInteractive = (el) => !!el?.closest?.("a,button,input,textarea,select,[role=button]");
 
 function ago(job) {
   const t = job.postedAt ? Date.parse(job.postedAt) : job.discoveredAt ? job.discoveredAt * 1000 : NaN;
@@ -61,16 +84,24 @@ function workModel(job) {
   if (w === "onsite" || w === "on-site") return "On-site";
   return null;
 }
+function untilTomorrow() {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const m = Math.max(1, Math.round((next - now) / 60000));
+  return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+}
 
 // The mark is a slash; the deck's progress fills it along its diagonal — drafted ÷ size.
-function SlashProgress({ drafted, size }) {
+function SlashProgress({ drafted, size, big = false }) {
   const p = size ? drafted / size : 0;
+  const px = big ? 64 : 30;
   return (
-    <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
+    <svg width={px} height={px} viewBox="0 0 30 30" aria-hidden="true">
       <line x1="8" y1="26" x2="22" y2="4" stroke={C.BORDER_STRONG} strokeWidth="5" strokeLinecap="round" />
       <motion.line x1="8" y1="26" x2="22" y2="4" stroke={C.ACCENT_INK} strokeWidth="5" strokeLinecap="round"
         // opacity 0 at zero: a round cap on a zero-length path draws a stray dot.
-        initial={false} animate={{ pathLength: p, opacity: p > 0 ? 1 : 0 }} transition={{ duration: 0.2 }} />
+        initial={big ? { pathLength: 0, opacity: 0 } : false} animate={{ pathLength: p, opacity: p > 0 ? 1 : 0 }}
+        transition={{ duration: big ? 0.7 : 0.2, delay: big ? 0.25 : 0 }} />
     </svg>
   );
 }
@@ -83,7 +114,7 @@ function Chip({ children, tone = "neutral" }) {
   return <span style={{ ...tones[tone], padding: "4px 10px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap" }}>{children}</span>;
 }
 
-function ActionButton({ label, hint, onClick, primary, disabled, ariaKeys }) {
+function ActionButton({ label, hint, onClick, primary, disabled, ariaKeys, compact }) {
   const [hov, setHov] = useState(false);
   const base = primary
     ? { background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`, boxShadow: hov ? C.SHADOW_GLASS_HOVER : C.SHADOW_GLASS }
@@ -91,58 +122,50 @@ function ActionButton({ label, hint, onClick, primary, disabled, ariaKeys }) {
   return (
     <motion.button type="button" onClick={onClick} disabled={disabled} aria-keyshortcuts={ariaKeys}
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} whileTap={{ scale: 0.96 }}
-      style={{ ...base, flex: 1, minHeight: 54, borderRadius: 16, fontSize: 16, fontWeight: 800, letterSpacing: "0.02em",
+      style={{ ...base, flex: 1, minHeight: compact ? 48 : 54, borderRadius: 16, fontSize: 16, fontWeight: 800, letterSpacing: "0.02em",
                display: "flex", alignItems: "center", justifyContent: "center", gap: 10, cursor: disabled ? "default" : "pointer",
                opacity: disabled ? 0.5 : 1 }}>
-      {label}<span style={{ ...kbd, ...(primary ? { borderColor: C.ON_ACCENT, color: C.ON_ACCENT } : null) }}>{hint}</span>
+      {label}{!compact && <span style={{ ...kbd, ...(primary ? { borderColor: C.ON_ACCENT, color: C.ON_ACCENT } : null) }}>{hint}</span>}
     </motion.button>
   );
 }
 
-// ── the card ────────────────────────────────────────────────────────────────────────────────
-const cardVariants = {
-  enter: (deal) => ({ opacity: 0, y: deal ? 80 : 18, scale: 0.94, rotate: deal ? -2 : 0 }),
-  center: { opacity: 1, y: 0, scale: 1, rotate: 0, x: 0 },
-  exit: (d) => d === DECISIONS.DRAFTED ? { x: 460, y: -300, rotate: 16, scale: 0.4, opacity: 0, transition: { duration: 0.28, ease: [0.4, 0, 0.9, 0.6] } }
-    : d === DECISIONS.PASSED ? { x: -520, rotate: -14, opacity: 0, transition: { duration: 0.22, ease: "easeIn" } }
-    : { x: 380, y: -320, scale: 0.3, opacity: 0, transition: { duration: 0.24, ease: "easeIn" } },
-};
+function StepButton({ dir, onClick, disabled }) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} aria-keyshortcuts={dir < 0 ? "K ArrowUp" : "J ArrowDown"}
+      aria-label={dir < 0 ? "Previous card" : "Next card"}
+      style={{ ...glass({ radius: 999 }), width: 32, height: 32, display: "grid", placeItems: "center", padding: 0,
+               color: C.INK, fontSize: 16, fontWeight: 800, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.4 : 1 }}>
+      {dir < 0 ? "‹" : "›"}
+    </button>
+  );
+}
 
-function DeckCard({ card, onDecide, headingRef, dealing }) {
-  const { job, why = {} } = card;
-  const x = useMotionValue(0);
-  const rotate = useTransform(x, [-320, 0, 320], [-10, 0, 10]);
-  const draftStamp = useTransform(x, [20, SWIPE_COMMIT_PX + 40], [0, 1]);
-  const passStamp = useTransform(x, [-SWIPE_COMMIT_PX - 40, -20], [1, 0]);
+// ── the face-up side: the card that shipped, plus the expansion ─────────────────────────────
+function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, onReport, orientation }) {
+  const { job, why = {}, band } = card;
   const meta = [job.location, workModel(job), salary(job), ago(job)].filter(Boolean);
   const titleId = `deck-title-${job.id}`;
-  const stamp = { position: "absolute", top: 28, padding: "6px 14px", borderRadius: 10, fontWeight: 900, fontSize: 22,
-                  letterSpacing: "0.12em", border: "3px solid", pointerEvents: "none" };
+  const vertical = orientation === "vertical";
+  const bandMeta = atsBandLabel(band);
+  const text = String(job.description || "").trim();
   return (
-    <motion.article aria-labelledby={titleId}
-      custom={dealing} variants={cardVariants} initial="enter" animate="center"
-      transition={{ type: "spring", stiffness: 320, damping: 30, delay: dealing ? 0.18 : 0 }}
-      drag="x" dragSnapToOrigin dragElastic={0.6} style={{ x, rotate, ...glass({ radius: 28 }), position: "relative",
-        padding: "28px 30px 24px", cursor: "grab", touchAction: "pan-y", userSelect: "none" }}
-      onDragEnd={(_, info) => {
-        if (info.offset.x > SWIPE_COMMIT_PX) onDecide(DECISIONS.DRAFTED);
-        else if (info.offset.x < -SWIPE_COMMIT_PX) onDecide(DECISIONS.PASSED);
-      }}>
-      {/* Both stamps sit top-right, the card's empty corner — only one is ever visible. */}
-      <motion.div aria-hidden style={{ ...stamp, right: 26, color: C.SUCCESS, borderColor: C.SUCCESS, opacity: draftStamp, rotate: 10 }}>DRAFT</motion.div>
-      <motion.div aria-hidden style={{ ...stamp, right: 26, color: C.INK_MUTED, borderColor: C.INK_MUTED, opacity: passStamp, rotate: -10 }}>PASS</motion.div>
-
+    <div style={{ padding: vertical ? "22px 22px 20px" : "28px 30px 24px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <CompanyIcon company={job.company} iconUrl={job.companyIconUrl} size={56} radius={16} />
+        <CompanyIcon company={job.company} iconUrl={job.companyIconUrl} size={vertical ? 48 : 56} radius={16} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: C.INK_MUTED }}>{job.company}</div>
           {meta.length > 0 && <div style={{ fontSize: 13, color: C.INK_FAINT, marginTop: 2 }}>{meta.join("  ·  ")}</div>}
         </div>
       </div>
 
-      <h2 id={titleId} ref={headingRef} tabIndex={-1}
-        style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "clamp(30px, 4.6vw, 48px)", lineHeight: 1.06,
-                 letterSpacing: "-0.01em", color: C.INK, margin: "22px 0 22px", outline: "none" }}>
+      <h2 id={titleId} ref={isFront ? headingRef : undefined} tabIndex={-1} {...(isFront ? { [TITLE_ATTR]: job.id } : null)}
+        // ⭐ The shared element (queue 29): this heading IS the job's title on the board's detail and
+        // on the review queue's line — one name, so a navigation moves it instead of cutting.
+        style={{ fontFamily: "var(--font-display)", fontWeight: 400, lineHeight: 1.06, letterSpacing: "-0.01em", color: C.INK,
+                 fontSize: vertical ? "clamp(28px, 8vw, 36px)" : "clamp(30px, 3.4vw, 46px)", margin: vertical ? "18px 0 18px" : "22px 0 20px",
+                 outline: "none",
+                 ...(expanded ? null : { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
         {job.title}
       </h2>
 
@@ -174,43 +197,204 @@ function DeckCard({ card, onDecide, headingRef, dealing }) {
           </div>
         </section>
       )}
-      <div style={{ marginTop: 22, fontSize: 12.5, color: C.INK_FAINT }}>Scroll for the posting ↓</div>
-    </motion.article>
+
+      {/* ⭐ EXPANSION IS THE DETAIL — the same element, grown. No modal, no second view. */}
+      {isFront && expanded && (
+        <motion.section id="deck-detail" aria-label="The posting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}
+          style={{ marginTop: 22, paddingTop: 20, borderTop: `1px solid ${C.BORDER}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+            <span style={{ ...bandChipStyle(band), padding: "4px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 800 }}>{bandMeta.label}</span>
+            <span style={{ fontSize: 13, color: C.INK_MUTED }}>{bandMeta.blurb}</span>
+          </div>
+          {text
+            ? <p style={{ fontSize: 14.5, lineHeight: 1.7, color: C.INK, whiteSpace: "pre-wrap", margin: 0 }}>{text}</p>
+            : <p style={{ fontSize: 14, color: C.INK_MUTED, margin: 0 }}>The posting's text is not stored. Open it at the source.</p>}
+          <div style={{ display: "flex", gap: 18, marginTop: 16, flexWrap: "wrap", fontSize: 13.5, fontWeight: 700 }}>
+            {(job.applyUrl || job.url) && <a href={job.applyUrl || job.url} target="_blank" rel="noreferrer" style={{ color: C.ACCENT_INK }}>The posting ↗</a>}
+            <Link to={jobDetailHref(job.id)} onClick={onReport} style={{ color: C.ACCENT_INK }}>Full report on the board →</Link>
+          </div>
+        </motion.section>
+      )}
+
+      {isFront && (
+        <button type="button" onClick={expanded ? onCollapse : onExpand} aria-expanded={expanded} aria-controls={expanded ? "deck-detail" : undefined}
+          aria-keyshortcuts={expanded ? "Escape" : "Enter"}
+          style={{ marginTop: 20, padding: 0, background: "transparent", border: "none", cursor: "pointer",
+                   fontSize: 12.5, fontWeight: 700, color: C.INK_FAINT }}>
+          {expanded ? "Fold the card ↑" : "Open the posting ↓"}
+        </button>
+      )}
+    </div>
   );
 }
 
-function StackBehind({ cards, dealing }) {
-  // The next two cards as glass slabs behind the top one: the deck is visibly a DECK.
-  return cards.slice(0, 2).map((c, i) => (
-    <motion.div key={c.job.id} aria-hidden
-      initial={{ opacity: 0, y: dealing ? 90 : 0, scale: 0.9 }}
-      animate={{ opacity: 1 - (i + 1) * 0.22, y: (i + 1) * 13, scale: 1 - (i + 1) * 0.04 }}
-      transition={{ type: "spring", stiffness: 260, damping: 28, delay: dealing ? 0.06 * (2 - i) : 0 }}
-      // Scaled from the BOTTOM so each slab's lower edge peeks out under the card above it.
-      style={{ ...glass({ radius: 28 }), position: "absolute", inset: 0, zIndex: -1 - i, transformOrigin: "50% 100%" }} />
-  ));
+// ── one card in the fan ─────────────────────────────────────────────────────────────────────
+// Four layers, each owning one motion so none fights another:
+//   arrival  — framer: the once-a-day deal in, and the exit when a card is decided (rare, short)
+//   position — CSS: where on the arc. A transition of transform and opacity only
+//   drag     — framer: the front card's swipe, following the finger and tilting
+//   flip     — CSS: rotateY — face-up at the front, face-down everywhere else
+//
+// ⛔ WHY ROTATION AND FLIP ARE CSS, NOT framer (measured, queue 27): framer animates x/y/rotate/scale
+// in JavaScript, per card, per frame. On a CPU throttled to a mid-tier phone (4×, production build)
+// that dropped 13–26% of frames past 25 ms while the fan turned; removing the logos, the filter, the
+// shadows or the 3D changed nothing, and showing fewer cards did. A CSS transition of transform and
+// opacity runs on the COMPOSITOR thread, so a busy main thread cannot stall it. See the SESSION LOG.
+const POSITION_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const FLIP_EASE = "cubic-bezier(0.34, 1.32, 0.5, 1)";   // a touch of overshoot: the card settles face-up
+
+function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing, appear, dealRank, dealTotal, reduced,
+                   onDecide, onExpand, onCollapse, onReport, onGoto, headingRef, faceRef }) {
+  const { card, offset } = entry;
+  const isFront = offset === 0;
+  const t = fanTransform(offset, orientation, geometry);
+  const x = useMotionValue(0);
+  const tilt = useTransform(x, [-320, 0, 320], [-10, 0, 10]);
+  const draftStamp = useTransform(x, [20, SWIPE_COMMIT_PX + 40], [0, 1]);
+  const passStamp = useTransform(x, [-SWIPE_COMMIT_PX - 40, -20], [1, 0]);
+  const dragged = useRef(false);
+  const showFace = Math.abs(offset) <= 1;   // only a card that is, or is about to be, face-up needs one
+  const stamp = { position: "absolute", top: 28, right: 26, padding: "6px 14px", borderRadius: 10, fontWeight: 900, fontSize: 22,
+                  letterSpacing: "0.12em", border: "3px solid", pointerEvents: "none" };
+  // The deal arrives from the pivot's side, face-down, one card at a time; the front turns over last.
+  const from = orientation === "horizontal" ? { x: 520, y: 40, rotate: 18 } : { x: 60, y: 520, rotate: 14 };
+  const dealDelay = dealing ? 0.08 * dealRank : 0;
+  const [held, setHeld] = useState(dealing && isFront && !reduced);
+  useEffect(() => {
+    if (!held) return;
+    const id = setTimeout(() => setHeld(false), (0.08 * dealTotal + 0.25) * 1000);
+    return () => clearTimeout(id);
+  }, [held, dealTotal]);
+  const faceUp = isFront && !held;
+  const opacity = t.shown ? t.opacity * (dimmed && !isFront ? 0.35 : 1) : 0;
+
+  return (
+    <motion.div data-fan-offset={offset} data-face={faceUp ? "up" : "down"}
+      // deal: from the pivot side · first paint of a non-deal visit: already in place · later (an
+      // undo, a refusal): fades back into its slot.
+      initial={dealing ? { ...from, scale: geometry.zoom, opacity: 0 } : appear ? { opacity: 0 } : false}
+      animate={{ x: 0, y: 0, rotate: 0, scale: 1, opacity: 1 }}
+      exit="leave"
+      variants={{ leave: (d) => d?.variant || { opacity: 0 } }}
+      transition={{ type: "spring", stiffness: 260, damping: 32, delay: dealDelay }}
+      onClick={!isFront && t.shown ? () => onGoto(entry.i) : undefined}
+      style={{ position: "absolute", top: 0, left: "50%", width: size.width, marginLeft: -size.width / 2,
+               // Layer by TIER: the face-up card is content; the fan sits under it, nearer cards above farther.
+               zIndex: isFront ? Z.CONTENT : Z.FAN - t.depth,
+               pointerEvents: t.shown ? "auto" : "none", cursor: isFront ? "default" : "pointer" }}>
+      <div data-fan-position style={{
+          transform: `translate3d(${t.x}px, ${t.y}px, 0) rotate(${t.rotate}deg) scale(${t.scale})`, opacity,
+          transition: reduced ? "none" : `transform 460ms ${POSITION_EASE}, opacity 320ms ease`, willChange: "transform, opacity" }}>
+        <motion.div
+          drag={isFront && !expanded ? "x" : false} dragSnapToOrigin dragElastic={0.6}
+          onDragStart={() => { dragged.current = true; }}
+          onDragEnd={(_, info) => {
+            setTimeout(() => { dragged.current = false; }, 0);
+            if (info.offset.x > SWIPE_COMMIT_PX) onDecide(DECISIONS.DRAFTED);
+            else if (info.offset.x < -SWIPE_COMMIT_PX) onDecide(DECISIONS.PASSED);
+          }}
+          style={{ x, rotate: tilt, touchAction: "pan-y", cursor: isFront && !expanded ? "grab" : undefined,
+                   userSelect: expanded ? "text" : "none" }}>
+          <div data-flip
+            // ⭐ THE FLIP: a card reaching the front turns face-up as it arrives.
+            style={{ position: "relative", transformStyle: "preserve-3d", minHeight: size.height, height: isFront ? "auto" : size.height,
+                     transform: `perspective(1800px) rotateY(${faceUp ? 0 : 180}deg)`,
+                     transition: reduced ? "none" : `transform 520ms ${FLIP_EASE} 40ms` }}>
+            <article ref={isFront ? faceRef : undefined} aria-labelledby={`deck-title-${card.job.id}`} aria-hidden={!isFront}
+              onClick={isFront && !expanded ? (e) => { if (!dragged.current && !isInteractive(e.target)) onExpand(); } : undefined}
+              style={{ position: "relative", minHeight: size.height, borderRadius: 28, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
+                       // OPAQUE, not see-through glass: over a fan, a translucent face shows the backs
+                       // through it (Android found the same with the next card's text, 09-30).
+                       ...glass({ radius: 28 }), backgroundColor: C.SURFACE_SOLID, backdropFilter: "none", WebkitBackdropFilter: "none",
+                       transition: "none", transform: "none",
+                       cursor: isFront && !expanded ? "pointer" : "auto", visibility: showFace ? "visible" : "hidden" }}>
+              {showFace && <CardFace card={card} headingRef={headingRef} isFront={isFront} expanded={isFront && expanded}
+                                     onExpand={onExpand} onCollapse={onCollapse} onReport={onReport} orientation={orientation} />}
+            </article>
+            <div style={{ position: "absolute", inset: 0, transform: "rotateY(180deg)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
+                          borderRadius: 28, maxHeight: size.height }}>
+              <CardBack company={card.job.company} iconUrl={card.job.companyIconUrl} />
+            </div>
+          </div>
+          {/* The stamps come AFTER the card in the DOM, so they paint over it with no z-index of their own. */}
+          {isFront && <motion.div aria-hidden style={{ ...stamp, color: C.SUCCESS, borderColor: C.SUCCESS, opacity: draftStamp, rotate: 10 }}>DRAFT</motion.div>}
+          {isFront && <motion.div aria-hidden style={{ ...stamp, color: C.INK_MUTED, borderColor: C.INK_MUTED, opacity: passStamp, rotate: -10 }}>PASS</motion.div>}
+        </motion.div>
+      </div>
+    </motion.div>
+  );
 }
 
-function Detail({ card }) {
-  const { job, band } = card;
-  const meta = atsBandLabel(band);
-  const text = String(job.description || "").trim();
+// How a decided card leaves (queue 29): DRAFT flies to the Drafted counter — you see where it went,
+// and the count moves; PASS drops away BEHIND the fan — direction encodes finality; SAVE lifts off.
+function leaveFor(decision, target, geometry) {
+  if (decision === DECISIONS.DRAFTED) {
+    return { x: target?.dx ?? 380, y: target?.dy ?? -300, scale: 0.08, rotate: 10, opacity: 0,
+             transition: { duration: 0.42, ease: [0.45, 0, 0.2, 1] } };
+  }
+  if (decision === DECISIONS.PASSED) {
+    return { zIndex: Z.FAN - 20, scale: geometry.zoom * 0.9, y: 70, rotate: -5, opacity: 0,
+             transition: { duration: 0.34, ease: "easeIn", zIndex: { duration: 0 } } };
+  }
+  return { y: -120, scale: 0.9, opacity: 0, transition: { duration: 0.26, ease: "easeIn" } };
+}
+
+// ── the end of the deck: a moment, not an empty state (queue 28) ────────────────────────────
+function EndOfDeck({ s, tally, needsReview, onUndo }) {
+  const navigate = useNavigate();
+  const drafted = s.cards.filter(c => c.decision === DECISIONS.DRAFTED);
+  const line = (i) => ({ initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { delay: 0.15 + i * 0.09, duration: 0.3 } });
   return (
-    <section style={{ ...glass({ radius: 22 }), padding: "22px 26px", marginTop: 18 }} aria-label="The posting">
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
-        <span style={{ ...bandChipStyle(band), padding: "4px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 800 }}>{meta.label}</span>
-        <span style={{ fontSize: 13, color: C.INK_MUTED }}>{meta.blurb}</span>
+    <motion.div data-deck-end initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}
+      style={{ ...glass({ radius: 28 }), padding: "40px 36px 36px", position: "relative", zIndex: Z.CONTENT }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 18 }}>
+        <SlashProgress drafted={tally.drafted} size={s.size} big />
+        <div>
+          <motion.div {...line(0)} style={{ fontFamily: "var(--font-display)", fontSize: "clamp(34px, 6vw, 46px)", lineHeight: 1, color: C.INK }}>
+            That's today's draft.
+          </motion.div>
+          <motion.div {...line(1)} style={{ fontSize: 14.5, color: C.INK_MUTED, marginTop: 8 }}>
+            {s.size} dealt · {tally.drafted} drafted · {tally.saved} saved · {tally.passed} passed
+          </motion.div>
+        </div>
       </div>
-      {text
-        ? <p style={{ fontSize: 14.5, lineHeight: 1.7, color: C.INK, whiteSpace: "pre-wrap", margin: 0 }}>
-            {text.length > 1600 ? text.slice(0, 1600).trimEnd() + "…" : text}
-          </p>
-        : <p style={{ fontSize: 14, color: C.INK_MUTED, margin: 0 }}>The posting's text is not stored. Open it at the source.</p>}
-      <div style={{ display: "flex", gap: 18, marginTop: 16, flexWrap: "wrap", fontSize: 13.5, fontWeight: 700 }}>
-        {(job.applyUrl || job.url) && <a href={job.applyUrl || job.url} target="_blank" rel="noreferrer" style={{ color: C.ACCENT_INK }}>The posting ↗</a>}
-        <Link to={jobDetailHref(job.id)} style={{ color: C.ACCENT_INK }}>Full report on the board →</Link>
-      </div>
-    </section>
+
+      {drafted.length > 0 && (
+        <motion.ul {...line(2)} aria-label="Drafted today" style={{ listStyle: "none", padding: 0, margin: "0 0 20px", display: "grid", gap: 8 }}>
+          {drafted.map(c => (
+            <li key={c.job.id} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 14.5, color: C.INK }}>
+              <CompanyIcon company={c.job.company} iconUrl={c.job.companyIconUrl} size={28} radius={8} />
+              <span style={{ minWidth: 0 }}>
+                <strong {...{ [TITLE_ATTR]: c.job.id }} style={{ fontWeight: 700 }}>{c.job.title}</strong>
+                <span style={{ color: C.INK_MUTED }}> · {c.job.company}</span>
+              </span>
+            </li>
+          ))}
+        </motion.ul>
+      )}
+
+      <motion.p {...line(3)} style={{ fontSize: 15, color: C.INK_MUTED, lineHeight: 1.6, margin: "0 0 22px" }}>
+        {tally.drafted > 0
+          ? <>Nothing has been sent. {tally.drafted === 1 ? "That draft waits" : "Each draft waits"} for your review{needsReview > 0 ? <> — <strong style={{ color: C.INK }}>{needsReview}</strong> {needsReview === 1 ? "thing needs" : "things need"} you in the queue now</> : null}.</>
+          : <>You drafted nothing today, which is a fine answer when nothing fits.</>}
+        {" "}That is it until tomorrow: the next draft is dealt in {untilTomorrow()}.
+      </motion.p>
+
+      <motion.div {...line(4)} style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+        {tally.drafted > 0 && (
+          <Link to="/app/auto-apply" onClick={transitionClick(navigate, "/app/auto-apply")} style={{ background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`,
+            padding: "12px 20px", borderRadius: 14, fontWeight: 800, textDecoration: "none", boxShadow: C.SHADOW_GLASS }}>
+            Review your drafts →
+          </Link>
+        )}
+        <Link to="/app/jobs" onClick={transitionClick(navigate, "/app/jobs")} style={{ ...glass({ radius: 14 }), padding: "12px 20px", fontWeight: 800, color: C.INK, textDecoration: "none" }}>All jobs</Link>
+        {onUndo && (
+          <button type="button" onClick={onUndo} style={{ background: "transparent", border: "none", color: C.ACCENT_INK, fontWeight: 800, cursor: "pointer" }}>
+            Undo the last one <span style={kbd}>U</span>
+          </button>
+        )}
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -223,28 +407,57 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const [toast, setToast] = useState(null);
   const [live, setLive] = useState("");
   const [legend, setLegend] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [leave, setLeave] = useState(null);
+  const [frontH, setFrontH] = useState(0);
   const headingRef = useRef(null);
+  const faceRef = useRef(null);
+  const stageRef = useRef(null);
+  const counterRef = useRef(null);
   const stateRef = useRef(state);
   stateRef.current = state;
+  const expandedRef = useRef(expanded);
+  expandedRef.current = expanded;
+  const { needsAttentionCount = 0 } = useAutoApply();
+  const reduced = useReducedMotion();   // the CSS-driven motion reads it here; framer's reads MotionConfig
+  const navigate = useNavigate();
+  // Cards present on the first ready paint are simply THERE (unless this is the deal); a card that
+  // arrives later — an undo, a refusal — fades into its slot.
+  const firstPaint = useRef(true);
+
+  const { w: vw } = useViewport();
+  const orientation = orientationFor(vw);
+  const geometry = { ...FAN[orientation], ...(DEV_FAN?.[orientation] || null) };
+  const size = cardSize(orientation, vw);
 
   const fetchDeck = useCallback(async () => {
     setLoad({ status: "loading", error: null });
     try {
       const deck = await api(`/api/draft/today?date=${encodeURIComponent(localDate())}`);
       dispatch({ type: "__replace", state: initialDeck(deck) });
-      setDealing(!!deck.dealtNow);   // the deal-in plays on the day's FIRST open only
+      // ⛔ The deal plays on the day's FIRST open only — the server says whether this request dealt.
+      // Once per day, not per navigation, or the signal that today's draft is new means nothing.
+      setDealing(!!deck.dealtNow);
       setLoad({ status: "ready", error: null });
     } catch (e) {
       setLoad({ status: "error", error: e.message || "The deck could not be dealt." });
     }
   }, []);
   useEffect(() => { fetchDeck(); }, [fetchDeck]);
+  // The deal is an arrival, not a mode: once it has played, later moves are ordinary rotations.
+  useEffect(() => {
+    if (!dealing) return;
+    const id = setTimeout(() => setDealing(false), 2200);
+    return () => clearTimeout(id);
+  }, [dealing]);
 
   const s = state;
   const current = s.cards[s.index];
-  const upcoming = useMemo(() => s.cards.slice(s.index + 1).filter(c => !c.decision), [s]);
+  const order = useMemo(() => fanOrder(s), [s]);
   const tally = counts(s);
   const tool = canUseAPlusResume ? A_PLUS_TOOL : GENERATE_TOOL;
+  const canPrev = stepTarget(s, -1) != null;
+  const canNext = stepTarget(s, 1) != null;
 
   const commit = useCallback(async (card, decision) => {
     const id = card.job.id;
@@ -268,12 +481,26 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const decide = useCallback((decision) => {
     const cur = stateRef.current.cards[stateRef.current.index];
     if (!cur || cur.decision) return;
+    // Where the Drafted counter is, relative to the card — measured now, so the card flies to it.
+    let target = null;
+    const a = faceRef.current?.getBoundingClientRect?.();
+    const b = counterRef.current?.getBoundingClientRect?.();
+    if (a && b) target = { dx: b.left + b.width / 2 - (a.left + a.width / 2), dy: b.top + b.height / 2 - (a.top + a.height / 2) };
+    setLeave({ variant: leaveFor(decision, target, geometry) });
+    setExpanded(false);
     dispatch({ type: "decide", decision });
     commit(cur, decision);
     const n = counts(stateRef.current).drafted + (decision === DECISIONS.DRAFTED ? 1 : 0);
     setToast({ jobId: cur.job.id, company: cur.job.company, decision, at: Date.now() });
     setLive(`${VERB[decision]} ${cur.job.title} at ${cur.job.company}. ${decision === DECISIONS.DRAFTED ? `${n} drafted.` : ""}`);
-  }, [commit]);
+  }, [commit, geometry.zoom]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  const step = useCallback((dir) => {
+    if (stepTarget(stateRef.current, dir) == null) return false;
+    setExpanded(false);
+    dispatch({ type: "step", dir });
+    return true;
+  }, []);
 
   const undo = useCallback(async () => {
     const t = toast;
@@ -305,8 +532,40 @@ export default function DeckView({ canUseAPlusResume = true }) {
     return () => clearTimeout(id);
   }, [toast]);
 
-  // Focus follows the deck: after an action the next card's heading takes focus (§3.7).
+  // Focus follows the deck: after an action or a rotation the front card's heading takes focus (§3.7).
   useEffect(() => { headingRef.current?.focus({ preventScroll: true }); }, [s.index]);
+  useEffect(() => { setExpanded(false); }, [s.index]);
+  useEffect(() => { if (load.status === "ready") firstPaint.current = false; }, [load.status]);
+
+  // The stage is as tall as the face-up card — which is what lets the expansion push the page.
+  useLayoutEffect(() => {
+    const el = faceRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setFrontH(el.offsetHeight));
+    ro.observe(el);
+    setFrontH(el.offsetHeight);
+    return () => ro.disconnect();
+  }, [current?.job.id, load.status]);
+
+  // ⛔ SCROLL CAPTURE, only when a rotation is possible. One flick, one card.
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    let acc = 0, settleUntil = 0;
+    const onWheel = (e) => {
+      if (expandedRef.current || e.ctrlKey) return;           // reading, or pinch-zoom: the page's
+      const d = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      const dir = d > 0 ? 1 : -1;
+      if (stepTarget(stateRef.current, dir) == null) { acc = 0; return; }   // at an end: let the page scroll
+      e.preventDefault();
+      const now = performance.now();
+      if (now < settleUntil) return;
+      acc += d * (e.deltaMode === 1 ? 33 : 1);
+      if (Math.abs(acc) >= WHEEL_STEP) { acc = 0; settleUntil = now + WHEEL_SETTLE_MS; step(dir); }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [step, load.status, isFinished(state)]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const onKey = (e) => {
@@ -318,23 +577,34 @@ export default function DeckView({ canUseAPlusResume = true }) {
       else if (k === "x" || k === "X" || k === "ArrowLeft") { e.preventDefault(); decide(DECISIONS.PASSED); }
       else if (k === "s" || k === "S") { e.preventDefault(); decide(DECISIONS.SAVED); }
       else if (k === "u" || k === "U") { e.preventDefault(); undo(); }
-      else if (k === "j" || k === "J") dispatch({ type: "goto", index: stateRef.current.index + 1 });
-      else if (k === "k" || k === "K") dispatch({ type: "goto", index: stateRef.current.index - 1 });
-      else if (k === "Enter") document.getElementById("deck-detail")?.scrollIntoView({ behavior: "smooth" });
+      // The keyboard does everything the wheel does. ↑/↓ only while folded — expanded, they read.
+      else if (k === "j" || k === "J") { e.preventDefault(); step(1); }
+      else if (k === "k" || k === "K") { e.preventDefault(); step(-1); }
+      else if ((k === "ArrowDown" || k === "ArrowUp") && !expandedRef.current) { if (step(k === "ArrowDown" ? 1 : -1)) e.preventDefault(); }
+      else if (k === "Enter" && tag !== "button" && tag !== "a") { e.preventDefault(); setExpanded(v => !v); }
+      else if (k === "Escape") { setExpanded(false); setLegend(false); }
       else if (k === "?") setLegend(v => !v);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [decide, undo]);
+  }, [decide, undo, step]);
 
   const dateLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  const vertical = orientation === "vertical";
+  const stageH = Math.max(size.height, frontH || 0);
+  const dealTotal = Math.min(order.length, geometry.visible + 1);
 
   return (
     <MotionConfig reducedMotion="user">
-      <div style={{ maxWidth: 760, margin: "0 auto", padding: "28px 16px 140px", position: "relative" }}>
+      {/* isolation: the fan's tiers are below CONTENT, and this keeps them above the page itself. */}
+      <div data-deck-orientation={orientation}
+        style={{ maxWidth: vertical ? 560 : 760, margin: "0 auto", padding: vertical ? "20px 16px 120px" : "28px 16px 140px",
+                 position: "relative", isolation: "isolate", overflowX: vertical ? "clip" : "visible" }}>
+        <CardBackDefs />
         <div aria-live="polite" style={visuallyHidden}>{live}</div>
 
-        <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, marginBottom: 22, flexWrap: "wrap" }}>
+        <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, marginBottom: vertical ? 18 : 22,
+                         flexWrap: "wrap", position: "relative", zIndex: Z.CONTENT }}>
           <div>
             <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "clamp(36px, 5vw, 54px)", lineHeight: 1, margin: 0, color: C.INK }}>
               Today's draft
@@ -345,13 +615,22 @@ export default function DeckView({ canUseAPlusResume = true }) {
             </div>
           </div>
           {load.status === "ready" && s.size > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <SlashProgress drafted={tally.drafted} size={s.size} />
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.INK }}>
-                {Math.min(s.index + 1, s.size)} <span style={{ color: C.INK_FAINT, fontWeight: 600 }}>/ {s.size}</span>
-              </div>
-              <motion.span key={tally.drafted} initial={{ scale: 1.25 }} animate={{ scale: 1 }}
-                style={{ ...glass({ radius: 999 }), padding: "6px 12px", fontSize: 13, fontWeight: 800, color: C.INK }}>
+              {!isFinished(s) && (
+                // The counter is also what makes the fan's clipped edges read as deliberate: it says
+                // where you are in a stack that runs past the frame.
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <StepButton dir={-1} onClick={() => step(-1)} disabled={!canPrev} />
+                  <div data-deck-counter style={{ fontSize: 14, fontWeight: 700, color: C.INK, minWidth: 44, textAlign: "center" }}>
+                    {Math.min(s.index + 1, s.size)} <span style={{ color: C.INK_FAINT, fontWeight: 600 }}>/ {s.size}</span>
+                  </div>
+                  <StepButton dir={1} onClick={() => step(1)} disabled={!canNext} />
+                </div>
+              )}
+              <motion.span ref={counterRef} key={tally.drafted} initial={{ scale: 1.35 }} animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 420, damping: 18 }}
+                style={{ ...glass({ radius: 999 }), padding: "6px 12px", fontSize: 13, fontWeight: 800, color: C.INK, display: "inline-block" }}>
                 Drafted {tally.drafted}
               </motion.span>
             </div>
@@ -399,40 +678,35 @@ export default function DeckView({ canUseAPlusResume = true }) {
         })()}
 
         {load.status === "ready" && s.size > 0 && isFinished(s) && (
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} style={{ ...glass({ radius: 28 }), padding: "44px 36px" }}>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 40, color: C.INK, marginBottom: 10 }}>That's today's draft.</div>
-            <p style={{ fontSize: 15, color: C.INK_MUTED, margin: "0 0 24px" }}>
-              {tally.drafted} drafted · {tally.saved} saved · {tally.passed} passed.
-              {tally.drafted > 0 ? " Nothing has been sent — each draft waits for your review." : " Tomorrow's draft is dealt fresh."}
-            </p>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {tally.drafted > 0 && (
-                <Link to="/app/auto-apply" style={{ background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`,
-                  padding: "12px 20px", borderRadius: 14, fontWeight: 800, textDecoration: "none", boxShadow: C.SHADOW_GLASS }}>
-                  Review your drafts →
-                </Link>
-              )}
-              <Link to="/app/jobs" style={{ ...glass({ radius: 14 }), padding: "12px 20px", fontWeight: 800, color: C.INK, textDecoration: "none" }}>All jobs</Link>
-            </div>
-          </motion.div>
+          <EndOfDeck s={s} tally={tally} needsReview={needsAttentionCount} onUndo={toast ? undo : null} />
         )}
 
-        {load.status === "ready" && current && (
+        {load.status === "ready" && (current || order.length > 0) && !isFinished(s) && (
           <>
-            <div style={{ position: "relative", isolation: "isolate" }}>
-              <StackBehind cards={upcoming} dealing={dealing} />
-              <AnimatePresence initial={true} mode="popLayout" custom={s.lastAction?.decision}>
-                <DeckCard key={current.job.id} card={current} onDecide={decide} headingRef={headingRef} dealing={dealing} />
+            <div ref={stageRef} data-deck-stage
+              // The stage is the face-up card's box; the fan overflows it on purpose, behind the
+              // header above and the action row below.
+              style={{ position: "relative", height: stageH, transition: "height 220ms ease" }}>
+              {/* EVERY undecided card stays mounted, the far ones invisible: only a DECISION may
+                  remove a card, so only a decided card ever plays an exit. */}
+              <AnimatePresence initial custom={leave}>
+                {order.map((e) => (
+                  <FanCard key={e.card.job.id} entry={e} orientation={orientation} geometry={geometry} size={size}
+                    expanded={expanded} dimmed={expanded} dealing={dealing} appear={!firstPaint.current} reduced={!!reduced} dealRank={Math.max(0, dealTotal - 1 - Math.abs(e.offset))}
+                    dealTotal={dealTotal} onDecide={decide} onExpand={() => setExpanded(true)} onCollapse={() => setExpanded(false)}
+                    onReport={transitionClick(navigate, jobDetailHref(e.card.job.id), { awaitTitle: e.card.job.id })} onGoto={(i) => dispatch({ type: "goto", index: i })} headingRef={headingRef} faceRef={faceRef} />
+                ))}
               </AnimatePresence>
             </div>
 
-            <div style={{ position: "sticky", bottom: 16, zIndex: 5, display: "flex", gap: 12, marginTop: 20 }}>
-              <ActionButton label="Pass" hint="X" ariaKeys="X ArrowLeft" onClick={() => decide(DECISIONS.PASSED)} />
-              <ActionButton label="Save" hint="S" ariaKeys="S" onClick={() => decide(DECISIONS.SAVED)} />
-              <ActionButton label="Draft" hint="D" ariaKeys="D ArrowRight" primary onClick={() => decide(DECISIONS.DRAFTED)} />
+            {/* ⛔ The action row STICKS: an expanded card is tall, and Pass / Save / Draft must stay
+                reachable without scrolling back. It is above the fan by tier. */}
+            <div data-deck-actions style={{ position: "sticky", bottom: 16, zIndex: Z.NAV, display: "flex", gap: 12,
+                                            marginTop: vertical ? 18 : 22, maxWidth: size.width, marginLeft: "auto", marginRight: "auto" }}>
+              <ActionButton label="Pass" hint="X" ariaKeys="X ArrowLeft" compact={vertical} onClick={() => decide(DECISIONS.PASSED)} />
+              <ActionButton label="Save" hint="S" ariaKeys="S" compact={vertical} onClick={() => decide(DECISIONS.SAVED)} />
+              <ActionButton label="Draft" hint="D" ariaKeys="D ArrowRight" compact={vertical} primary onClick={() => decide(DECISIONS.DRAFTED)} />
             </div>
-
-            <div id="deck-detail"><Detail card={current} /></div>
           </>
         )}
 
@@ -441,7 +715,9 @@ export default function DeckView({ canUseAPlusResume = true }) {
             <motion.div key={toast.at} role="status" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 24 }}
               // A toast must read over anything, so it is the opaque menu surface, not see-through glass.
               style={{ ...glass({ radius: 16 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU,
-                       position: "fixed", left: "50%", bottom: 96, x: "-50%", zIndex: 30,
+                       // Centred by margins, not left:50% + translate — that shrink-wraps the toast
+                       // to HALF the viewport and wrapped it to eight lines on a phone.
+                       position: "fixed", left: 0, right: 0, margin: "0 auto", width: "fit-content", bottom: 96, zIndex: Z.NAV,
                        padding: "12px 16px", display: "flex", alignItems: "center", gap: 14, maxWidth: "calc(100vw - 32px)",
                        fontSize: 14, color: C.INK }}>
               <span><strong>{VERB[toast.decision]}</strong> {toast.company} — {AFTER[toast.decision]}</span>
@@ -454,10 +730,12 @@ export default function DeckView({ canUseAPlusResume = true }) {
         </AnimatePresence>
 
         {legend && (
-          <div role="dialog" aria-label="Keyboard shortcuts" style={{ ...glass({ radius: 18 }), position: "fixed", right: 24, bottom: 96, zIndex: 31, padding: "16px 20px", fontSize: 13.5, color: C.INK }}>
+          <div role="dialog" aria-label="Keyboard shortcuts" style={{ ...glass({ radius: 18 }), backgroundColor: C.SURFACE_MENU, position: "fixed", right: 24, bottom: 96,
+                                                                    zIndex: Z.NAV, padding: "16px 20px", fontSize: 13.5, color: C.INK }}>
             {[["D  →", "Draft — queue it for your review"], ["X  ←", "Pass — it won't come back"], ["S", "Save for later"],
-              ["U", "Undo the last one"], ["J / K", "Next / previous"], ["Enter", "Read the posting"], ["?", "This list"]].map(([k, v]) => (
-              <div key={k} style={{ display: "flex", gap: 14, padding: "3px 0" }}><span style={{ ...kbd, minWidth: 52, textAlign: "center" }}>{k}</span>{v}</div>
+              ["U", "Undo the last one"], ["J ↓ / K ↑", "Next / previous card (as the wheel does)"], ["Enter", "Open the posting in the card"],
+              ["Esc", "Fold it again"], ["?", "This list"]].map(([k, v]) => (
+              <div key={k} style={{ display: "flex", gap: 14, padding: "3px 0" }}><span style={{ ...kbd, minWidth: 64, textAlign: "center" }}>{k}</span>{v}</div>
             ))}
           </div>
         )}

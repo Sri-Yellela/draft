@@ -1,5 +1,6 @@
 import { C, THEME } from "../styles/colorTokens.js";
 import { PAPER } from "../styles/paper.js";
+import { Z } from "../styles/zLayers.js";
 
 /**
  * The paper substrate. Replaces CinematicBackground — a looping night-sky video with a navy
@@ -89,8 +90,9 @@ export default function PaperBackground({ className = "" }) {
       aria-hidden="true"
       role="presentation"
       data-substrate="paper"
-      className={"pointer-events-none fixed inset-0 -z-10 overflow-hidden " + className}
-      style={{ background: C.CANVAS }}
+      className={"pointer-events-none fixed inset-0 overflow-hidden " + className}
+      // The floor of the layer scale, by name — it was the Tailwind literal -z-10.
+      style={{ background: C.CANVAS, zIndex: Z.BG }}
     >
       <div className="absolute inset-0" style={{ backgroundImage: FIBRE, backgroundSize: "600px 600px", opacity: FIBRE_OPACITY }} />
       <div className="absolute inset-0" style={{ backgroundImage: SHEEN, backgroundSize: `${TILE}px ${TILE}px`, opacity: SHEEN_OPACITY }} />
