@@ -33,3 +33,16 @@ test("/app lands on Today, and the board keeps /app/jobs", () => {
   assert.match(app, /if \(!routeKey\) \{\s*navigate\("\/app\/today", \{ replace:true \}\);/);
   assert.match(app, /activeTab === "today"\s+&& <DeckView/);
 });
+
+test("a brand-new account is a SET-UP state on Today, never an error", () => {
+  // 09-30: the owner's first Google sign-in created a fresh account, and Today said "could not be
+  // dealt. no_active_profile". The route now answers 200 with a reason, and the deck explains it.
+  const server = fs.readFileSync("server.js", "utf8");
+  const route = server.slice(at(server, 'app.get("/api/draft/today"', 0, "deck route"),
+                             at(server, "// GET /api/jobs/generic", 0, "next route"))
+    .replace(/^\s*\/\/.*$/gm, "");   // code only — the comment quotes the old error by name
+  assert.match(route, /if \(!profile\) return noDeal\("no_profile"\);/);
+  assert.match(route, /if \(!hasResume\) return noDeal\("no_resume", profile\.id\);/);
+  assert.doesNotMatch(route, /no_active_profile/, "the 404 is back");
+  for (const r of ["no_profile", "no_resume", "empty"]) assert.match(src, new RegExp(`\\b${r}: \\[`), `the deck has no copy for ${r}`);
+});

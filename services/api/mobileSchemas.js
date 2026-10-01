@@ -155,7 +155,8 @@ export const RESPONSE_SCHEMAS = Object.freeze({
 
   // ── The deck (UI step 3) ───────────────────────────────────────────────────────────────────
   DeckResponse: {
-    description: "Today's frozen deal. Fewer than 10 is a thin day and 0 an empty one — never padded.",
+    description: "Today's frozen deal. Fewer than 10 is a thin day and 0 an empty one — never padded. " +
+      "`reason`: null | 'thin' | 'empty' | 'no_profile' | 'no_resume' — the last two are set-up states, not errors.",
     fields: {
       date: "string", profileId: "number", size: "number", dealtNow: "boolean", thin: "boolean",
       reason: "string|null", cards: "$DeckCard[]",

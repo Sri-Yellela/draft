@@ -372,19 +372,31 @@ export default function DeckView({ canUseAPlusResume = true }) {
           </div>
         )}
 
-        {load.status === "ready" && s.size === 0 && (
-          <div style={{ ...glass({ radius: 28 }), padding: "40px 36px" }}>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 34, color: C.INK, marginBottom: 10 }}>Nothing strong enough today.</div>
-            <p style={{ fontSize: 15, color: C.INK_MUTED, lineHeight: 1.6, margin: "0 0 22px" }}>
-              Today's draft only deals Strong and Moderate matches you haven't decided yet, and there are none right now.
-              A thin résumé makes most jobs read as weak — adding detail changes this more than anything else.
-            </p>
-            <div style={{ display: "flex", gap: 18, fontWeight: 800, fontSize: 14.5 }}>
-              <Link to="/app/jobs" style={{ color: C.ACCENT_INK }}>All jobs →</Link>
-              <Link to="/app/job-profiles" style={{ color: C.ACCENT_INK }}>Improve your profile →</Link>
+        {load.status === "ready" && s.size === 0 && (() => {
+          // Three different empties, each with its own way forward (§3.6). A brand-new account — a
+          // first Google sign-in creates one — has no profile and no résumé: that is set-up, not an error.
+          const copy = {
+            no_profile: ["Let's set up your first job profile.",
+              "Today's draft is dealt from jobs ranked against a profile — the roles you want and the résumé you'd send. Set one up and your first draft is dealt straight away.",
+              [["/app/job-profiles", "Set up a job profile →"]]],
+            no_resume: ["Add your résumé to get today's draft.",
+              "Fit is judged against your résumé, so there is nothing to rank until it's there. It takes a minute, and nothing is sent anywhere.",
+              [["/app/job-profiles", "Add your résumé →"], ["/app/jobs", "All jobs"]]],
+            empty: ["Nothing strong enough today.",
+              "Today's draft only deals Strong and Moderate matches you haven't decided yet, and there are none right now. A thin résumé makes most jobs read as weak — adding detail changes this more than anything else.",
+              [["/app/jobs", "All jobs →"], ["/app/job-profiles", "Improve your profile →"]]],
+          }[s.reason] || null;
+          const [title, body, links] = copy || [null, null, []];
+          return (
+            <div style={{ ...glass({ radius: 28 }), padding: "40px 36px" }} data-deck-empty={s.reason || "empty"}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 34, color: C.INK, marginBottom: 10 }}>{title || "Nothing strong enough today."}</div>
+              <p style={{ fontSize: 15, color: C.INK_MUTED, lineHeight: 1.6, margin: "0 0 22px" }}>{body}</p>
+              <div style={{ display: "flex", gap: 18, fontWeight: 800, fontSize: 14.5, flexWrap: "wrap" }}>
+                {links.map(([to, label]) => <Link key={to} to={to} style={{ color: C.ACCENT_INK }}>{label}</Link>)}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {load.status === "ready" && s.size > 0 && isFinished(s) && (
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} style={{ ...glass({ radius: 28 }), padding: "44px 36px" }}>

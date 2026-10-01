@@ -159,12 +159,14 @@ export const MOBILE_ENDPOINTS = Object.freeze([
     summary: "Today's deck: up to 10 Strong or Moderate jobs, dealt once per local day and frozen.",
     query: { date: "string" },
     response: "DeckResponse",
-    errors: ["BadRequest", "Unauthorized", "NotFound", "ServerError"],
+    errors: ["BadRequest", "Unauthorized", "ServerError"],
     mobileNotes:
       "SEND YOUR LOCAL DATE (?date=YYYY-MM-DD); the server accepts it within a day of its own, and " +
       "the same date returns the same deck on every client — a card drafted on the phone reads as " +
       "decided on the web. The deck is dealt from the board's own default order and is NEVER " +
-      "padded: `size` may be below 10 (reason 'thin') or 0 (reason 'empty'). Decide with the " +
+      "padded: `size` may be below 10 (reason 'thin') or 0 — reason 'empty' (nothing strong enough), " +
+      "'no_profile' (a new account: set one up) or 'no_resume' (add one). Those are states to " +
+      "explain, never errors — a first Google sign-in creates an account in exactly that state. Decide with the " +
       "existing calls: Draft = POST /api/apply/runs with surface:'deck' and no approvalMode; " +
       "Pass = PATCH /api/jobs/interact {disliked:true}; Save = {starred:true}. `decision` is read " +
       "live from those. A card carries its band and never a score (job.matchScore is null).",
