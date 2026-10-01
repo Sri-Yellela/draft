@@ -99,3 +99,13 @@ test("⛔ the old stacked JD / ATS / PDF overlays: the deck mounts none of them"
     assert.doesNotMatch(deckSrc, new RegExp(`\\b${name}\\b`), `the deck reaches the old overlay surface through ${name}`);
   }
 });
+
+test("⛔ the fan never scrolls the page sideways — clipped by `clip` on a full-width wrapper, never `hidden`", () => {
+  // Measured 10-01: expanded at 1440 the arc sliding right made the page 1820px wide (1667 at 1280),
+  // and the resting fan at 1100 was 1px over. `hidden` would make a scroll container and break the
+  // sticky action row and the sticky Collapse; `clip` does not.
+  const root = deckSrc.slice(at(deckSrc, '<MotionConfig reducedMotion="user">', 0, "root"), at(deckSrc, "<CardBackDefs />", 0, "content"));
+  assert.match(root, /<div data-deck-clip style=\{\{ overflowX: "clip" \}\}>/);
+  assert.ok(at(root, "data-deck-clip", 0, "clip") < at(root, "data-deck-orientation", 0, "column"), "the clip wraps the centred column, so the flanks are inside it");
+  assert.doesNotMatch(root, /overflowX?: "hidden"/, "a scroll container round the deck un-sticks the action row and Collapse");
+});
