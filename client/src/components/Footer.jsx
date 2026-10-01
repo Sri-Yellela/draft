@@ -1,7 +1,8 @@
 // client/src/components/Footer.jsx
 import { Link } from "react-router-dom";
 import { useMonetisationEnabled } from "../lib/monetisation.jsx";
-import { BRAND, WORDMARK } from "../../../shared/brand.js";
+import { BRAND } from "../../../shared/brand.js";
+import { StampLogo } from "./StampLogo.jsx";
 
 export function Footer() {
   const monetisationEnabled = useMonetisationEnabled();
@@ -14,9 +15,8 @@ export function Footer() {
         <div style={{ display: "flex", gap: 40, flexWrap: "wrap" }}>
           {/* Column 1 — Brand */}
           <div style={{ flex: "1 1 200px", minWidth: 180 }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: "var(--c-ink)",
-                          letterSpacing: "-0.5px", marginBottom: 10 }}>
-              {WORDMARK}
+            <div style={{ marginBottom: 10 }}>
+              <StampLogo size="md" />
             </div>
             <p style={{ fontSize: 13, color: "var(--c-ink-muted)", lineHeight: 1.6, marginBottom: 16, maxWidth: 220 }}>
               AI-powered resumes for the modern job search.

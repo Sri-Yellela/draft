@@ -1,7 +1,7 @@
 // client/src/components/MarketingNav.jsx
 import { Link } from "react-router-dom";
 import { useMonetisationEnabled } from "../lib/monetisation.jsx";
-import { WORDMARK } from "../../../shared/brand.js";
+import { StampLogo } from "./StampLogo.jsx";
 
 export function MarketingNav() {
   const monetisationEnabled = useMonetisationEnabled();
@@ -13,10 +13,7 @@ export function MarketingNav() {
       fontFamily: "'DM Sans', system-ui, sans-serif",
     }}>
       <Link to="/" style={{ textDecoration: "none" }}>
-        <span style={{ fontSize: 17, fontWeight: 900, color: "var(--color-text)",
-                        letterSpacing: "-0.5px" }}>
-          {WORDMARK}
-        </span>
+        <StampLogo size="sm" />
       </Link>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         {[

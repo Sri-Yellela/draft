@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api, setAuthContext } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
-import { WORDMARK } from "../../../shared/brand.js";
+import { StampLogo } from "../components/StampLogo.jsx";
 
 export default function AdminLoginPage({ onLogin }) {
   const { theme } = useTheme();
@@ -57,9 +57,7 @@ export default function AdminLoginPage({ onLogin }) {
         {/* Lock icon + title */}
         <div style={{ textAlign:"center", marginBottom:28 }}>
           <div style={{ fontSize:32, marginBottom:10 }}>🔒</div>
-          <div style={{ fontWeight:800, fontSize:18, color:theme.text, letterSpacing:"-0.3px" }}>
-            {WORDMARK}
-          </div>
+          <StampLogo size="md" />
           <div style={{ fontSize:11, color:theme.textMuted, marginTop:4, fontWeight:700,
                         textTransform:"uppercase", letterSpacing:"0.1em" }}>
             Admin Access
