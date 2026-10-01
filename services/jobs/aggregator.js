@@ -7,6 +7,7 @@ import { classifyJob, ROLE_KEY_FALLBACK } from './classifyJob.js';
 import { getKnownLogoUrl } from './enrichLogos.js';
 import { drainEnrichment } from './enrichJob.js';
 import { recordPipelineRun } from './pipelineRunLog.js';
+import { usEligibility, officeLocations } from './usLocation.js';
 
 // ─── REGISTER SOURCES HERE ───────────────────────────────────────────────────
 // To add a new source: import it and add to SOURCES array.
@@ -201,6 +202,34 @@ function getFingerprintStmts(db) {
   return stmts;
 }
 
+// ── Queue 37: draft is US-only, and that is decided HERE, at ingestion ─────────────────────────
+// Not a curation filter and not a per-user preference: a posting no user on the platform can
+// work is a property of the PRODUCT, so it is never admitted to the board at all — rather than
+// stored and filtered at every query, where one forgotten WHERE clause puts it back.
+//
+// ⛔ It runs BEFORE the content-hash check. The cheap "unchanged" path re-activates the row
+// (touchSeenStmt sets is_active = 1), so a gate placed after it would let every non-US row already
+// stored ride back onto the board on each crawl, unchanged, forever.
+//
+// ⛔ Held out, not deleted: the row is retired (is_active = 0, reversible) and the reason recorded
+// in rejected_jobs as `out_of_market:<reason>` — measurable, and readable by hiringSignals so a
+// retirement is not miscounted as a role closing. An unparseable location is held out, never
+// admitted (services/jobs/usLocation.js).
+export const OUT_OF_MARKET_PREFIX = 'out_of_market:';
+
+function holdOutOfMarket(job, jobId, stmts, now) {
+  const market = usEligibility({
+    location: job.location, description: job.description, offices: officeLocations(job._raw),
+  });
+  if (market.admit) { stmts.clearOutOfMarketStmt.run(jobId); return false; }
+  stmts.demoteStmt.run(jobId);
+  stmts.rejectStmt.run({
+    job_id: jobId, title: job.title || '', company: job.company || '', source: job.source || '',
+    reason: OUT_OF_MARKET_PREFIX + market.reason, rejected_at: now,
+  });
+  return true;
+}
+
 // Per-job upsert/classify statements shared by cacheJobs() (per-company ATS loop) and
 // cacheJoboFeed() (global feed sync) — same WeakMap-per-connection pattern as
 // getFingerprintStmts above, so both callers reuse one prepared set instead of each preparing
@@ -341,6 +370,9 @@ function getCacheStmts(db) {
       `),
       demoteStmt: db.prepare(`UPDATE scraped_jobs SET is_active = 0 WHERE job_id = ?`),
       getExistingHashes: db.prepare(`SELECT job_id, _hash FROM scraped_jobs WHERE source = ?`),
+      // A posting that was out of market and now names a US location (an employer edit) is no
+      // longer held out — its old record must not keep hiding it from hiring signals.
+      clearOutOfMarketStmt: db.prepare(`DELETE FROM rejected_jobs WHERE job_id = ? AND reason LIKE '${OUT_OF_MARKET_PREFIX}%'`),
     };
     cacheStmtsCache.set(db, stmts);
   }
@@ -697,10 +729,11 @@ async function cacheJobs(db, anthropic = null) {
     // fingerprint/sources_seen/req_uid every crawl, so rows created before migration 063/065
     // (or before a cross-source duplicate showed up) self-heal into the dedup system over
     // time instead of sitting on the coarse key forever.
+    const cacheStmts = getCacheStmts(db);
     const {
       rejectStmt, deleteJobStmt, deleteRoleStmt,
       touchSeenStmt, demoteStmt, getExistingHashes,
-    } = getCacheStmts(db);
+    } = cacheStmts;
 
     // Mark rows inactive when their listing date has passed
     const markExpiredByDate = db.prepare(`
@@ -786,12 +819,15 @@ async function cacheJobs(db, anthropic = null) {
       );
 
       // ── Upsert in a transaction ───────────────────────────────────────────
-      const { cached, unchanged, ejected, dropped, merged } = db.transaction(() => {
-        let cached = 0, unchanged = 0, ejected = 0, dropped = 0, merged = 0;
+      const { cached, unchanged, ejected, dropped, merged, outOfMarket } = db.transaction(() => {
+        let cached = 0, unchanged = 0, ejected = 0, dropped = 0, merged = 0, outOfMarket = 0;
 
         for (const job of fetchedJobs) {
           const jobId = job.id || job.url || '';
           if (!jobId) continue;
+
+          // Queue 37 — before the hash check, or an unchanged non-US row is re-activated.
+          if (holdOutOfMarket(job, jobId, cacheStmts, now)) { outOfMarket++; continue; }
 
           const contentHash = fingerprintJob(job);
           if (existingHashes.get(jobId) === contentHash) {
@@ -852,7 +888,7 @@ async function cacheJobs(db, anthropic = null) {
           cached++;
         }
 
-        return { cached, unchanged, ejected, dropped, merged };
+        return { cached, unchanged, ejected, dropped, merged, outOfMarket };
       })();
 
       // ── Expiry pruning (outside the upsert transaction) ───────────────────
@@ -875,13 +911,14 @@ async function cacheJobs(db, anthropic = null) {
       if (ejected > 0) console.log(`[cacheJobs:${source.name}] Ejected ${ejected} blue-collar jobs`);
       if (dropped > 0) console.log(`[cacheJobs:${source.name}] Dropped ${dropped} unclassifiable jobs`);
       if (merged  > 0) console.log(`[cacheJobs:${source.name}] Merged ${merged} cross-source duplicates into existing canonical rows`);
+      if (outOfMarket > 0) console.log(`[cacheJobs:${source.name}] Held out ${outOfMarket} postings outside the US or with no readable location`);
       if (pruned  > 0) console.log(`[cacheJobs:${source.name}] Pruned ${pruned} jobs inactive (${byDate.changes} expired, ${byStale.changes} stale)`);
       console.log(`[cacheJobs:${source.name}] Sync complete — ${fetchedJobs.length} fetched, ${cached} new/changed, ${unchanged} unchanged (touch-only), ${merged} merged, ${pruned} pruned (prevWatermark=${prevWatermark})`);
       recordPipelineRun(db, {
         runKind: 'source_sync', source: source.name, status: 'ok',
         startedAt: runStartedAt,
         fetched: fetchedJobs.length, written: cached, unchanged, merged, dropped, ejected,
-        details: { companies: companies.length, pruned, prunedExpired: byDate.changes, prunedStale: byStale.changes },
+        details: { companies: companies.length, pruned, prunedExpired: byDate.changes, prunedStale: byStale.changes, outOfMarket },
       });
       totalCached += cached;
     }
@@ -1061,10 +1098,11 @@ async function cacheJoboFeed(db, anthropic = null) {
     return record(joboResult('skipped_unconfigured'));
   }
 
+  const cacheStmts = getCacheStmts(db);
   const {
     rejectStmt, deleteJobStmt, deleteRoleStmt,
     touchSeenStmt, demoteStmt, getExistingHashes,
-  } = getCacheStmts(db);
+  } = cacheStmts;
 
   const getSyncState = db.prepare('SELECT cursor, last_watermark FROM sync_state WHERE source = ?');
   const upsertSyncState = db.prepare(`
@@ -1087,7 +1125,7 @@ async function cacheJoboFeed(db, anthropic = null) {
   const state = getSyncState.get(JOBO_SOURCE_NAME);
   const existingHashes = new Map(getExistingHashes.all(JOBO_SOURCE_NAME).map(r => [r.job_id, r._hash]));
 
-  let cached = 0, unchanged = 0, ejected = 0, dropped = 0, merged = 0, failed = 0, fetched = 0;
+  let cached = 0, unchanged = 0, ejected = 0, dropped = 0, merged = 0, failed = 0, fetched = 0, outOfMarket = 0;
 
   // Classify + dedup + upsert one raw Jobo job — mirrors cacheJobs' per-job inner-loop body.
   function processJob(rawJob) {
@@ -1100,6 +1138,8 @@ async function cacheJoboFeed(db, anthropic = null) {
       return;
     }
     const jobId       = job.id;
+    // Queue 37 — before the hash check, as in cacheJobs.
+    if (holdOutOfMarket(job, jobId, cacheStmts, now)) { outOfMarket++; return; }
     const contentHash = fingerprintJob(job);
 
     if (existingHashes.get(jobId) === contentHash) {
@@ -1209,7 +1249,7 @@ async function cacheJoboFeed(db, anthropic = null) {
       scheduleEnrichment();
       return record(joboResult('ok', {
         mode: decision.mode === 'bounded' ? 'bounded_backfill' : 'full_backfill',
-        fetched, cached, unchanged, merged, ejected, dropped, failed,
+        fetched, cached, unchanged, merged, ejected, dropped, failed, outOfMarket,
       }));
     }
 
@@ -1272,13 +1312,13 @@ async function cacheJoboFeed(db, anthropic = null) {
 
     return record(joboResult('ok', {
       mode: 'incremental',
-      fetched, cached, unchanged, merged, ejected, dropped, failed, expired: expiredCount,
+      fetched, cached, unchanged, merged, ejected, dropped, failed, outOfMarket, expired: expiredCount,
     }));
   } catch (err) {
     console.error('[cacheJoboFeed] Failed — watermark NOT advanced:', err.message);
     return record(joboResult('failed', {
       error: err.message,
-      fetched, cached, unchanged, merged, ejected, dropped, failed,
+      fetched, cached, unchanged, merged, ejected, dropped, failed, outOfMarket,
     }));
   }
 }
@@ -1298,6 +1338,6 @@ function getSourceStatus() {
 export {
   searchJobs, cacheJobs, cacheJoboFeed, getSourceStatus, reconcileFingerprint,
   decideJoboBackfillMode, resolveJoboIncrementalBatch, upsertCanonicalJob, fingerprintJob,
-  groupCompaniesByAtsType,
+  groupCompaniesByAtsType, holdOutOfMarket,
   JOBO_INCREMENTAL_BATCH_DEFAULT, JOBO_INCREMENTAL_BATCH_MAX,
 };
