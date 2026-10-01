@@ -155,7 +155,7 @@ test("the shell, the public pages and the shared surfaces are literal-free", () 
     "client/src/pages/BlogPage.jsx", "client/src/pages/ProductsPage.jsx",
     "client/src/pages/marketing/PricingPage.jsx", "client/src/pages/marketing/ContactPage.jsx",
     "client/src/pages/marketing/FeaturesPage.jsx", "client/src/pages/AdminLoginPage.jsx",
-    "client/src/components/InlineLoginPopover.jsx", "client/src/components/BelowFoldContent.jsx",
+    "client/src/components/InlineLoginPopover.jsx", "client/src/components/FindFitApply.jsx",   // was BelowFoldContent (queue 31)
     "client/src/components/ProfileSelectorDropdown.jsx", "client/src/components/MetaChips.jsx",
     "client/src/components/CountdownDisplay.jsx", "client/src/components/AdminLayout.jsx",
     "client/src/components/ui/TileCard.jsx", "client/src/components/ui/DateCalendar.jsx",

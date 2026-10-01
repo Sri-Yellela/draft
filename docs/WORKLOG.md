@@ -36,7 +36,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`6e1837d`** (E1, live 09-29 15:48Z), auto-deploys on push. **232 tests, 232 pass** at that commit; **235** locally after queues 21–22 (G3; G6 re-vendored — not pushed) |
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (OWNER 2) |
 | Resume Master contract | **v1.1.0** (E1, additive; live 09-29), generated; vendored in draft at 1.1.0 (`8472416`). **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
-| Test baseline (draft) | **2864 / 2864 / 0** — measured 10-01 in the working tree after queue 30 (+7 signupFirstImpression). 2857 after queues 27–29 (+15 deckFan, +9 viewTransitions). 2833 after the mark reached the text-wordmark surfaces. 2831 after queue 24 (+10 R1). 2821 after queue 23 (+10 K1). 2811 after queue 22 (+6 G6). 2805 after queue 21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
+| Test baseline (draft) | **2871 / 2871 / 0** — measured 10-01 in the working tree after queue 31 (+7 landingFindFitApply). 2864 after queue 30 (+7 signupFirstImpression). 2857 after queues 27–29 (+15 deckFan, +9 viewTransitions). 2833 after the mark reached the text-wordmark surfaces. 2831 after queue 24 (+10 R1). 2821 after queue 23 (+10 K1). 2811 after queue 22 (+6 G6). 2805 after queue 21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
 | Migration high-water | **113** defined (`113_account_management`, local); production applied **112** (`112_users_theme_preference`, 09-30) |
 | Contract | v1.1.1 (mobile) · v1.0.0 (Resume Master, above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
@@ -53,6 +53,8 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 ---
 
 ## NOW
+
+**10-01: agent queue 27–31 done and local** (SESSION LOG 7–9) — the deck's fan + flip + expansion, the daily deal and the end, shared-element transitions, login/signup, the landing page as find → fit → apply. ⛔ Not pushed. New owner rows **34** (logo backs: trademark) and **35** (the flip on a real phone).
 
 **09-30 (fifth pass): account management is built and local — merge, sessions, picture, password, email, export, delete.**
 
@@ -155,7 +157,7 @@ marked ✅ move to *DONE* at the next tidy; ⏸/⛔ rows are what is left, and w
 | 28 | **The deal, and the end-of-deck moment** | ✅ **10-01, local** — the deal (once per DAY: plays only when the server's `dealtNow` says this request dealt; front card arrives face-down, turns up last) and the end as a moment (what you drafted, with logos · what waits for review · "that is it until tomorrow", with the time to the next deal). SESSION LOG (7). *Was:* ⏸ Queued 09-30. Cards dealt one at a time on first view — ⛔ **once per day, not per navigation**, or the signal that today's draft is new means nothing. ⭐ **The end of the deck is a MOMENT, not an empty state**: a board is infinite and you never finish it; a deck has a bottom, and that is the product's only natural ending. What you drafted, what awaits review, and that is it until tomorrow | queue 27 |
 | 29 | ⭐ **Shared-element transitions everywhere** | ✅ **10-01, local** — title morphs deck → board detail → review queue line, and Today → Auto Apply via the tab row. ⛔ **Premise corrected:** RR's `viewTransition` prop is a no-op under this app's `<BrowserRouter>`, and the `flushSync` fix ALSO did nothing (RR 7 commits navigations as React transitions) — a browser probe caught it after source tests passed; the callback now waits for the route's commit (≤ 200 ms cap; measured 73–151 ms in production). Draft flies to the measured counter; Pass drops under the fan by tier; overlay takes no pointer events. SESSION LOG (7). *Was:* ⏸ Queued 09-30. Highest perceived-quality return per unit of work. A job's title on a card **becomes** the heading in detail, **becomes** the line in the queue — same DOM node, no cross-fade, via the View Transitions API. ⛔ Every transition answers *"where did that go?"*: drafting flies the card to the queue indicator and the count moves; passing drops it **under** the fan, because direction encodes finality. ⛔ Neither may gate input — a card mid-flight must not swallow the next decision. ⛔ `prefers-reduced-motion` on every one; the chevron animation already has a test and that is the standard | — |
 | 30 | **Login and signup, reimagined** | ✅ **10-01, local.** The deal behind the form (the deck's own logo backs, CSS, FAN tier) · type that sets once per page session · paper drifting ≤ 4px with a fine pointer · the `/` filling across the two signup steps · **a real ATS check as the hook** (the public deterministic scorer, a band, zero model calls) whose résumé is CARRIED, in memory only, into the new account's first profile. ⛔ **The form now waits for nothing:** its 200 ms entrance animation is gone — form ready **233–295 ms vs 452–754 ms before** (production, unthrottled); the deal costs it nothing measurable. SESSION LOG (8). *Was:* ⏸ Queued 09-30. ⛔ It is the first impression and it is currently a form. ⭐ **The deal as the sign-in background** — the product's own motion, not stock animation. ⭐ **A live ATS score as the signup hook**: paste a JD, get a real score, then sign up to keep it — free, deterministic, **zero model calls**, works for an anonymous visitor. Value first, account second. Type that sets once on first paint; paper that shifts with the pointer; the `/` as stepped-signup progress. ⛔ **None of it may delay the form** | — |
-| 31 | **The landing page as find → fit → apply** | ⏸ Queued 09-30. ⛔ draft is a **wrapper over several products** and the site advertises one. ⛔ **The failure mode is a feature grid** — six cards saying "ATS Scoring · Resume Generation · Auto Apply" tells a visitor nothing about which is for them. ⭐ **One verb, many surfaces:** the tools are stations along find → fit → apply, introduced where they belong, not in a catalogue. ⛔ Write each as what it does for a person, never as a feature name. ⭐ **The restraint IS the pitch** — *"nothing is submitted until you approve it"* and *"it will not claim anything you did not"* are differentiators, not disclaimers; every competitor sells volume and draft sells not-volume | — |
+| 31 | **The landing page as find → fit → apply** | ✅ **10-01, local, screenshotted.** `FindFitApply.jsx` replaces the numbered feature grid (`BelowFoldContent`) and the feature marquee (`PosterBanner`, which promised "Claude rewrites every bullet") with one line: find → fit → apply, each tool a stop written as what it does for a person, both promises in display type, links only to what is public today (recruiter side: "Soon"). Hero, signup prompt and footer copy follow. 7 tests, 6 injected violations red, build clean, suite **2871 / 2871 / 0**. Screenshotted on the owner's go (10-01): 42 shots + 10 videos, `draft-screenshots/landing/`; found and fixed the hero tagline running to 4px of the edge at 390px. *Was:* ⏸ Queued 09-30. ⛔ draft is a **wrapper over several products** and the site advertises one. ⛔ **The failure mode is a feature grid** — six cards saying "ATS Scoring · Resume Generation · Auto Apply" tells a visitor nothing about which is for them. ⭐ **One verb, many surfaces:** the tools are stations along find → fit → apply, introduced where they belong, not in a catalogue. ⛔ Write each as what it does for a person, never as a feature name. ⭐ **The restraint IS the pitch** — *"nothing is submitted until you approve it"* and *"it will not claim anything you did not"* are differentiators, not disclaimers; every competitor sells volume and draft sells not-volume | — |
 
 ---
 
@@ -466,6 +468,29 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 ## SESSION LOG
 
 Newest first. ⛔ Agents append here rather than creating a new file.
+
+### 2026-10-01 (9) · Agent queue 31 — the landing page as find → fit → apply
+
+The landing page's feature grid and feature marquee are replaced by ONE line, find → fit → apply
+(`client/src/components/FindFitApply.jsx`): three stations, two surfaces each, every one a sentence about
+what it does for a person; the two promises (*nothing is submitted until you approve it* · *it will not
+claim anything you did not*) in display type after "Most job tools sell volume… This one is built the other
+way round"; links only to `/register` and `/tools/ats`, because grade-the-posting has no public route and
+the connectors no public token policy — the recruiter line says "Soon". The line draws on scroll
+(IntersectionObserver + CSS), content visible until the observer is armed, nothing hidden under reduced
+motion. Hero: "Find the job. Fit the résumé. Apply when you say so." Footer: "Find, fit, apply — and
+nothing is sent until you approve it." (was "AI-powered resumes for the modern job search.")
+`BelowFoldContent.jsx` and `PosterBanner.jsx` deleted (no other users); the colour guard's literal-free list
+re-pointed to `FindFitApply.jsx`, as its own message instructs.
+
+Claude Code stopped the dev and preview servers for low memory before the screenshot pass; restarted on
+the owner's go. ⚠ Found doing it: the "stopped" servers' node processes had survived, orphaned, still
+listening on 4173/4174/5173 — two were killed, one reused. **Verified:** 42 screenshots + 10 videos
+(`draft-screenshots/landing/`: 1440/1280/820/390 × light/dark × full/reduced; `home-walk-*.webm` scrolls the
+line and shows each stop revealing). Fixed from them: the hero tagline had NO side gutter — at 390px it ran
+to within 4px of both edges with "so." alone on the last line; now a 16px gutter and `text-wrap: balance`.
+(Full-page captures stitch the fixed nav mid-page — a capture artefact, judged from viewport frames
+instead.) 7 tests (`landingFindFitApply`), 6 injected violations all red, `npm test` **2871 / 2871 / 0**. Noticed, out of scope: `/features` (`FeaturesPage.jsx`) is still a feature list.
 
 ### 2026-10-01 (8) · Agent queue 30 — login and signup as the first impression
 
