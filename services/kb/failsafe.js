@@ -18,6 +18,9 @@
 
 import { buildStructuredResume } from '../resumeFormatter.js';
 import { normalizeOrgUnitKey } from './orgLayer.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { REGISTRY_DIR } from '@draft/ats-scorer';
 
 // A confirmed unit, or a proposed one with reasonable evidence, counts as "real" for checking
 // purposes — a barely-proposed unit (thin evidence) must never be used to flag/suggest against,
@@ -411,8 +414,212 @@ function checkCandidateConsistency(db, company, resumeText) {
   return { company, status, findings };
 }
 
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+// K1 — THE KB SANITY CHECK ON GENERATED OUTPUT (RECRUITER_LAYER_EXECUTION.md §K1)
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+//
+// ⛔ DECOUPLED BY DECISION (OWNER 30, 09-30). Nothing in the generation path calls this. It runs
+// on its own — scripts/k1KbSanityCheck.mjs — so it and generation can each be tested before anyone
+// decides to wire them together. validateResumeClaims above IS on the generation path and is
+// deliberately left exactly as it was: changing it would wire K1 in by the back door.
+//
+// It EXTENDS this module rather than standing beside it: the same structured extraction
+// (buildStructuredResume), the same org-unit key (normalizeOrgUnitKey), the same place detection
+// (looksLikeLocation — the Bangalore fix), and the same rule: it FLAGS, never rewrites, never
+// blocks, and never writes anything back to the KB.
+//
+// WHY IT ASKS THE SOURCE AS WELL AS THE KB — measured 09-30, and the reason the obvious design fails
+// in BOTH directions:
+//  · The G1 fabrications are company-PLAUSIBLE. Stripe's own postings mention Kafka (12) and it has
+//    Risk units ("Risk Operations", "Payments and Risk"). "Kafka at Stripe" and "worked with the
+//    risk team at Stripe" are TRUE as company facts. A KB-only check cannot flag them, ever.
+//  · A KB-only ABSENCE check flags the owner's TRUE résumé. Stripe's KB has no "GCP Pub/Sub" and no
+//    "Software Development Engineer" title, and the owner really used one and really held the other.
+//    That is the Bangalore error again: a false "does not match" against a true claim.
+// So a finding needs BOTH: a company-shaped claim (a team, or a technology the KB knows the company
+// uses) at a named employer, AND a source résumé that does not support it. The KB's part is to
+// recognise the claim as a company fact and say whether it is plausible there. The source's part is
+// to say whether it is the candidate's. A claim the source supports is never flagged, whatever the
+// KB says — that is what protects the true claim.
+//
+// ⛔ WHAT IT CANNOT CATCH — K1_CANNOT_CATCH below, carried on every result so no caller can show
+// the findings without the limits.
+
+/** Words that make a team mention generic rather than a claim about a company's structure. */
+const GENERIC_TEAM_WORDS = new Set([
+  'cross', 'functional', 'cross-functional', 'product', 'engineering', 'engineers', 'partner',
+  'partners', 'stakeholder', 'stakeholders', 'internal', 'external', 'other', 'multiple', 'several',
+  'downstream', 'upstream', 'client', 'clients', 'customer', 'customers', 'business', 'global',
+  'the', 'our', 'my', 'their', 'adjacent', 'peer', 'sister', 'dev', 'development', 'technical',
+  'tech', 'leadership', 'executive', 'senior', 'various', 'distributed', 'remote', 'agile',
+  'scrum', 'core', 'local', 'regional', 'wider', 'broader', 'larger', 'small', 'large', 'team',
+]);
+
+// "with risk and infrastructure teams", "coordinating with the risk team", "alongside
+// infrastructure engineers". Up to four words before the noun, then split on and / , / &.
+const TEAM_MENTION_RE = /\b(?:with|across|alongside|between|for|from|into|on|to|and)\s+((?:[a-z][\w&/-]*\s+){0,3}?[a-z][\w&/-]*)\s+(?:teams?|engineers|org|organi[sz]ations?|groups?|squads?)\b/gi;
+
+/** Lowercase words, a trailing plural dropped — "payments" is supported by "payment". */
+function wordsOf(text) {
+  return String(text || '').toLowerCase().split(/[^a-z0-9+#]+/).filter(Boolean)
+    .map(w => (w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w));
+}
+
+function sourceSupports(sourceWords, phrase) {
+  const words = wordsOf(phrase);
+  return words.length > 0 && words.every(w => sourceWords.has(w));
+}
+
+/** The team mentions in one entry: its meta line (title already in `role`) and its bullets. */
+function teamMentions(db, entry) {
+  const found = new Map(); // key -> display
+  const add = (raw) => {
+    const words = String(raw || '').split(/\s+/).filter(Boolean)
+      .filter(w => !GENERIC_TEAM_WORDS.has(w.toLowerCase()));
+    const display = words.join(' ').trim();
+    const key = normalizeOrgUnitKey(display);
+    if (key && !looksLikeLocation(db, display) && !found.has(key)) found.set(key, display);
+  };
+  // The meta line, which the model uses for "Team, Location" once the title is in entry-role. The
+  // place is dropped first, exactly as extractTeamClaim does — Bangalore is where, not who.
+  // A TEXT résumé has no meta: "Stripe — Software Development Engineer / Payments Infrastructure,
+  // Bangalore" parses with the team line in `role`. Read it there when it is separator-shaped, or
+  // the owner's own résumé checks zero teams and its clean result means nothing. Every candidate is
+  // still only raised when the source does not support it, so reading more of them costs no precision.
+  const teamLine = entry?.role && entry?.meta ? entry.meta
+    : (!entry?.meta && /,| — | – | - |\|/.test(entry?.role || '') ? entry.role : null);
+  if (teamLine) {
+    let parts = String(teamLine).split(/,| — | – | - |\|/).map(s => s.trim()).filter(Boolean);
+    while (parts.length && looksLikeLocation(db, parts[parts.length - 1])) parts = parts.slice(0, -1);
+    for (const p of parts) if (p.split(/\s+/).length <= 5) add(p);
+  }
+  for (const text of [...(entry?.bullets || []), entry?.text || '']) {
+    for (const m of String(text).matchAll(TEAM_MENTION_RE)) {
+      for (const piece of m[1].split(/\s*(?:,|\band\b|&)\s*/i)) add(piece);
+    }
+  }
+  return [...found].map(([key, display]) => ({ key, display }));
+}
+
+/**
+ * The TOOLS vocabulary — the registry's `tools` lists only, never its `keywords`.
+ *
+ * company_technographics is not a list of technologies. Stripe's rows include "financial
+ * reporting", "payment processing", "APIs" and "infrastructure", and the first run of this check
+ * flagged all four as technologies on the G1 document. A finding that calls "financial reporting"
+ * a technology the candidate never mentioned is noise that teaches the reader to stop reading. So
+ * a technographics row counts only when the registry ALSO calls it a tool (172 of them: Kafka, Go,
+ * PostgreSQL, Redis, Excel, Salesforce…).
+ */
+let _tools = null;
+function toolVocabulary() {
+  if (_tools) return _tools;
+  _tools = new Set();
+  try {
+    const registry = JSON.parse(fs.readFileSync(path.join(REGISTRY_DIR, 'DOMAIN_METADATA_REGISTRY.json'), 'utf8'));
+    for (const domain of Object.values(registry || {})) {
+      for (const t of domain?.tools || []) _tools.add(String(t).trim().toLowerCase());
+    }
+  } catch { /* no registry: no technology findings at all — the narrow failure, not the noisy one */ }
+  return _tools;
+}
+
+/** KB-known technologies of this company that appear inside this entry. */
+function entryTechnologies(entry, companySkills) {
+  const tools = toolVocabulary();
+  const text = [entry?.role, entry?.meta, entry?.tech, entry?.text, ...(entry?.bullets || [])].join(' \n ');
+  const hits = new Map();
+  for (const skill of companySkills) {
+    const s = String(skill.skill || '').trim();
+    if (s.length < 2 || !tools.has(s.toLowerCase())) continue;
+    const esc = s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Short names ("Go", "R", "C#") are case-SENSITIVE — "go to market" is not the language.
+    const re = new RegExp(`(^|[^A-Za-z0-9+#])${esc}(?=$|[^A-Za-z0-9+#])`, s.length <= 3 ? '' : 'i');
+    if (re.test(text) && !hits.has(s.toLowerCase())) hits.set(s.toLowerCase(), skill);
+  }
+  return [...hits.values()];
+}
+
+const K1_CANNOT_CATCH = Object.freeze([
+  'anything in the skills section — a skills list is not a claim about a company ("Kafka" is not a company fact)',
+  "a technology the employer's postings never mention — the KB cannot recognise it, and flagging on absence flags true résumés",
+  'responsibilities, metrics and outcomes — none is a company fact',
+  "title shape — it would flag true titles (measured on the owner's résumé)",
+  'any employer the knowledge base does not hold',
+  'a claim the source makes at a different employer — support is checked document-wide, on purpose',
+]);
+
+/**
+ * K1. Run on its own: NOT called by generation (OWNER 30).
+ *
+ * @param {import('better-sqlite3').Database} db
+ * @param {string} html  a generated résumé (HTML or text — the same parser as the failsafe)
+ * @param {{ baseResumeText: string }} source  the résumé the generation was made FROM
+ * @returns {{ findings: object[], checked: object, cannotCatch: readonly string[], declined?: string }}
+ */
+function kbSanityCheck(db, html, { baseResumeText = '' } = {}) {
+  const result = {
+    findings: [], checked: { entries: 0, entriesWithKb: 0, teams: 0, technologies: 0 }, cannotCatch: K1_CANNOT_CATCH,
+  };
+  if (!html) return result;
+  // ⛔ No source, no verdict. Without the résumé the claims came from, every company-shaped claim
+  // would look unsupported, and that is a page of false flags against a true résumé.
+  if (!String(baseResumeText).trim()) { result.declined = 'no_source_resume'; return result; }
+
+  let structure;
+  try { structure = buildStructuredResume(html); } catch { return result; }
+  const entries = structure.sections?.find(s => s.title === 'EXPERIENCE')?.entries || [];
+  const sourceWords = new Set(wordsOf(baseResumeText));
+  const unitsStmt = db.prepare(`SELECT org_unit, confidence, status FROM company_org_units WHERE company = ?`);
+  const techStmt = db.prepare(`SELECT skill, posting_count FROM company_technographics WHERE company = ?`);
+
+  for (const entry of entries) {
+    result.checked.entries++;
+    // A text résumé parses "Stripe — Software Development Engineer" as the company. The employer
+    // is the leading segment; without this the owner's own résumé was checked against nothing and
+    // "flagged nothing" vacuously — a pass that proves nothing about the false-positive direction.
+    const raw = entry.company?.trim();
+    if (!raw) continue;
+    const company = [raw, raw.split(/\s+[—–-]\s+|\s*\|\s*|,\s*/)[0].trim()]
+      .find(name => name && (unitsStmt.all(name).length || techStmt.all(name).length));
+    if (!company) continue; // not a company the KB holds — silent
+    const units = unitsStmt.all(company);
+    const skills = techStmt.all(company);
+    result.checked.entriesWithKb++;
+
+    for (const team of teamMentions(db, entry)) {
+      result.checked.teams++;
+      if (sourceSupports(sourceWords, team.display)) continue; // the candidate said it — never flag
+      // The KB's part: is there such a team at this company? ANY confidence counts here, because
+      // this only decides how plausible the claim is, never whether to raise it.
+      const teamWords = new Set(wordsOf(team.display));
+      const similar = units
+        .filter(u => wordsOf(u.org_unit).some(w => teamWords.has(w)))
+        .sort((a, b) => b.confidence - a.confidence)[0];
+      result.findings.push({
+        type: 'unsupported_company_claim', kind: 'team', severity: 'review', company, claim: team.display,
+        kb: similar ? { plausible: true, unit: similar.org_unit } : { plausible: false },
+        message: similar
+          ? `"${team.display}" at ${company} is not in your source résumé. ${company}'s postings do show a "${similar.org_unit}" team, so it is plausible — but the source does not say you worked with it.`
+          : `"${team.display}" at ${company} is not in your source résumé, and no team like it appears in ${company}'s postings.`,
+      });
+    }
+
+    for (const tech of entryTechnologies(entry, skills)) {
+      result.checked.technologies++;
+      if (sourceSupports(sourceWords, tech.skill)) continue;
+      result.findings.push({
+        type: 'unsupported_company_claim', kind: 'technology', severity: 'review', company, claim: tech.skill,
+        kb: { plausible: true, postings: tech.posting_count },
+        message: `${tech.skill} at ${company}: ${company}'s postings use it (${tech.posting_count}), but your source résumé never mentions it.`,
+      });
+    }
+  }
+  return result;
+}
+
 export {
-  validateResumeClaims, checkCandidateConsistency, extractTeamClaim, extractStackClaim,
+  validateResumeClaims, checkCandidateConsistency, kbSanityCheck, K1_CANNOT_CATCH, extractTeamClaim, extractStackClaim,
   jaccardOverlap, levenshteinSimilarity, similarity,
   looksLikeLocation, resetLocationVocabulary, NAME_CLOSEST_MIN_SIMILARITY,
 };

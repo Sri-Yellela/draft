@@ -36,7 +36,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`6e1837d`** (E1, live 09-29 15:48Z), auto-deploys on push. **232 tests, 232 pass** at that commit; **235** locally after queues 21–22 (G3; G6 re-vendored — not pushed) |
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (OWNER 2) |
 | Resume Master contract | **v1.1.0** (E1, additive; live 09-29), generated; vendored in draft at 1.1.0 (`8472416`). **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
-| Test baseline (draft) | **2811 / 2811 / 0** — measured 09-30 in the working tree after queue 22 (+6 G6). 2805 after queue 21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
+| Test baseline (draft) | **2821 / 2821 / 0** — measured 09-30 in the working tree after queue 23 (+10 K1). 2811 after queue 22 (+6 G6). 2805 after queue 21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
 | Migration high-water | **113** defined (`113_account_management`, local); production applied **112** (`112_users_theme_preference`, 09-30) |
 | Contract | v1.1.1 (mobile) · v1.0.0 (Resume Master, above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
@@ -140,7 +140,7 @@ marked ✅ move to *DONE* at the next tidy; ⏸/⛔ rows are what is left, and w
 | 20 | Account management — merge, sessions, picture, password, email, export, delete | ✅ local (09-30): `6c3b12b` (sessions sealed at rest, SameSite=Lax, cross-site writes refused, honest email) + the account-management commit (migration 113, `services/accountService.js`, `routes/accountManagement.js`, `/app/account`). ⚠ Not deployed; email-dependent parts wait on OWNER 28 |
 | 21 | ⛔ **G3 — AG4's duplication defect is LIVE AGAIN** | ✅ **09-30, local** (Resume Master + draft's copy): the tests asserted narrower than the behaviour — renderer-vocabulary fixtures and an identical-lines-only detector; the model nests the role in the org and writes the date as a span, and **every date was being dropped**. Fixed in the classifier; 3 behaviour tests fail on the old code. ⚠ Not deployed. SESSION LOG (6). *Was:* ⏸ Never queued — recorded in OBSERVED IN PRODUCTION on 09-29 and no task was ever made.** A generated résumé states the role THREE times: the header line, an italic restatement, then the location alone. ⛔ AG4's tests PASS while this ships — *"a model's plain-text restatement of the header and bullets is read, not reprinted"* · *"a nested entry-header does not leak its date into the body"*. **Green tests, live defect.** ⚠ A2 rebuilt `FORMATTING_SYSTEM` from `RESUME_STYLE_BLOCK`, which fixed G4 — it did NOT fix this, which is in the renderer/output path. Start by establishing whether the tests assert something narrower than the behaviour, or whether the path moved under them | — |
 | 22 | **G6 — the generic-language classifier has gaps** | ✅ **09-30, local** (package + Resume Master's vendored copy): not a threshold — a stated list missing 11 verbs, and "collaboration" a false NEGATIVE (the résumé says *Collaborated*). Fixed report-only; ρ 0.746 unchanged; cached reports re-keyed. Two score-moving fixes measured → OWNER 31. SESSION LOG (6). *Was:* ⏸ Never queued — same origin as 21.** The "Generic language" section correctly holds *Managed, Partnered, Coordinated, Grew*, but **"Defined" and "Created" surface as MISSING VERBS** and **"collaboration" as a MISSING COMPETENCY**. All three are claimable by almost any candidate, so showing them as gaps implies a deficiency that is not real. AH3 built this suppression and set the threshold; these sit the wrong side of it. ⚠ The corpus head is SOFT SKILLS, not technologies — *collaboration* appears 199 times — so the threshold is under-tuned, not absent | — |
-| 23 | ⭐ **K1 — KB sanity check on generation** | ⏸ Queued 09-30, blocks on nothing. `RECRUITER_LAYER_EXECUTION.md` §K1. ⭐ **Attacks the live fabrication defect.** ⛔ **OWNER 30: BUILD IT DECOUPLED.** It ships as a check that can be run on its own — a script, a test harness, an admin route — and is **NOT wired into the generation path** until both it and generation have been tested individually. AF5 is not gated on it. ⛔ EXTEND the 9.6 failsafe; never build a second checker. ⛔ Acceptance is BOTH directions: the two G1 documents must flag, AND the owner's real résumé (Stripe, Bangalore) must flag NOTHING — the Bangalore precedent is a false "does not match" against a TRUE claim. ⛔ Say what it cannot catch; "Kafka" is not a company fact. ⛔ The KB learns from company-emitted data ONLY | — |
+| 23 | ⭐ **K1 — KB sanity check on generation** | ✅ **09-30, built DECOUPLED** — `scripts/k1KbSanityCheck.mjs --verify` passes both directions on the real KB: G1's invented Stripe teams flag, the owner's real résumé flags nothing. ⛔ KB-only fails both ways (G1 is company-PLAUSIBLE; absence flags true claims), so a finding needs a company-shaped claim AND an unsupporting source. Not wired. SESSION LOG (6). *Was:* ⏸ Queued 09-30, blocks on nothing. `RECRUITER_LAYER_EXECUTION.md` §K1. ⭐ **Attacks the live fabrication defect.** ⛔ **OWNER 30: BUILD IT DECOUPLED.** It ships as a check that can be run on its own — a script, a test harness, an admin route — and is **NOT wired into the generation path** until both it and generation have been tested individually. AF5 is not gated on it. ⛔ EXTEND the 9.6 failsafe; never build a second checker. ⛔ Acceptance is BOTH directions: the two G1 documents must flag, AND the owner's real résumé (Stripe, Bangalore) must flag NOTHING — the Bangalore precedent is a false "does not match" against a TRUE claim. ⛔ Say what it cannot catch; "Kafka" is not a company fact. ⛔ The KB learns from company-emitted data ONLY | — |
 | 24 | ⭐ **R1 — grade the employer's posting** | ⏸ Queued 09-30, blocks on nothing. `RECRUITER_LAYER_EXECUTION.md` §R1. The existing extractor pointed at a JD. **Zero model calls** — that is what lets it be a free public tool, and the recruiter-side acquisition hook before the two-sided product exists. ⛔ COMPARATIVE, never absolute ("names 3 technologies; the median names 11") — the "58 beside Strong match" lesson. ⛔ Never a public league table of employers. ⚠ Measure the requirements-section detection rate on 20 postings FIRST, and verify it discriminates over 50 — the v3 engine's whole spread was sd 2.87 on a 0–100 scale | — |
 | 25 | ⛔ **Ingestion for the student segment — MEASURE FIRST, build nothing** | ⏸ Queued 09-30 by OWNER 29 (**serve both, segmented**). The board is 3.0% entry/intern and the cause is **the configured companies do not post these roles here** — already proven, do not re-litigate it. **Establish, and report before changing anything:** where student and new-grad roles actually live (separate ATS tenants? seasonal windows? university boards? a different Greenhouse board per company?) · what a realistic volume looks like per source · what it would cost per crawl. ⚠ `DETAIL_FETCH_ECONOMICS.md`'s lesson applies: **a probe before a budget model** — workable's own comment claimed an N+1 was required and `?details=true` disproved it in five minutes. ⛔ Do NOT enable a source whose description coverage is 0% — Ubisoft, Bosch and Adobe were seeded inactive for exactly that, 648 rows that could never be enriched | — |
 | 26 | **Segmented curation — both audiences on one board** | ⏸ Queued 09-30 by OWNER 29. Blocked on 25's measurement. ⛔ **The seniority guard becomes PROFILE-RELATIVE, not deleted.** It currently demotes intern postings and is worth **0.645 → 0.746** — a senior posting shown to a student needs demoting exactly as much as an intern posting shown to a senior engineer did, so it is needed in BOTH directions. ⛔ **`am1-ats-graded-corpus.json` is 30 SENIOR roles graded by an experienced engineer** — it stays (irreplaceable; the originals were destroyed in the id-85 deletion) but it does NOT validate a student segment. A second reference set is needed, graded blind by someone in that audience. ⚠ The résumé-side extractor is a hardcoded 32-item `SKILL_HINTS` list with no vocabulary for coursework, projects, clubs or teaching assistantships — that is the real gate on what segmented curation can achieve | queue 25 | — |
@@ -458,6 +458,64 @@ Newest first. ⛔ Agents append here rather than creating a new file.
 ### 2026-09-30 (6) · Agent queue 21–26
 
 Run in order, one at a time, one commit per row (per repo where a row touches two).
+
+#### 23 · K1 — the KB sanity check, built decoupled
+
+✅ **Built as a standalone check, NOT wired into generation (OWNER 30).** `kbSanityCheck` in
+`services/kb/failsafe.js` — an EXTENSION of the 9.6 failsafe (same extraction, same org-unit key,
+same place detection), not a second checker — run by **`node scripts/k1KbSanityCheck.mjs`**
+(`--html … --base …`, `--html … --profile N`, or `--verify`). A test fails if `server.js`, `routes/`
+or `services/` call it. ⚠ `validateResumeClaims` IS already on the generation route (`server.js`
+`kbFindingsFor`) and is left exactly as it was — changing it would have wired K1 in by the back door.
+
+⛔ **The premise needed measuring, and the obvious design fails in BOTH directions.** On this KB:
+- **The G1 fabrications are company-PLAUSIBLE.** Stripe's own postings mention **Kafka (12)**, and
+  Stripe has **Risk Operations** and **Payments and Risk** units. "Kafka at Stripe" and "worked with
+  the risk team at Stripe" are TRUE company facts. A KB-only check can never flag them.
+- **A KB-only absence check flags the owner's TRUE résumé.** Stripe's KB has **no "GCP Pub/Sub"**, and
+  "Payments Infrastructure" is not a unit (Jaccard 0.5 to "Payments" — the old 9.6 rule would say
+  *suggest_fix*); the title "Software Development Engineer" is not a Stripe title shape. The owner
+  really used, belonged to and held all three. That is Bangalore again.
+- ⚠ And the existing 9.6 check is **silent on every real generation**: `extractTeamClaim` expects
+  "Title, Team" in one field, the model now writes the title in `entry-role` and "Payments
+  Infrastructure, Bangalore" in the meta, so no team claim is ever extracted. Not changed (it is on
+  the generation path); recorded.
+
+**So a finding needs BOTH:** a company-shaped claim at a named employer — a team, or a technology the
+KB knows that employer uses (filtered to the registry's TOOLS: Stripe's technographics also hold
+"financial reporting", "APIs", "payment processing", which the first run called technologies) — AND
+a source résumé that does not support it. The KB says whether the claim is plausible at that
+company; the source says whether it is the candidate's. A sourced claim is never flagged. No source
+→ it declines.
+
+**Acceptance, on the real KB (`--verify`, exit 0):**
+
+| | Result |
+|---|---|
+| G1 document 2 (saved 09-28, bullets verbatim) | ⚑ **"risk" and "infrastructure" teams at Stripe** — *plausible (Stripe has Risk Operations / Core Infrastructure), not in the source* |
+| Same request regenerated 09-30 | ⚑ the same two (the model invented them again) |
+| Stand-in for G1 doc 1 — **Kafka claimed AT Stripe** | ⚑ *Stripe's postings use it (12), your source never mentions it* |
+| ⛔ **Owner's real résumé** (profile 6, Stripe, Bangalore), as its own generation | **no findings** — 1 team and 3 technologies checked on the Stripe entry |
+| Owner's real résumé, generated 09-30 through the live prompt | **no findings** — 1 team, 3 technologies checked |
+
+⚠ G1 document 1 (the one that "listed Kafka") was **never saved** — the 09-28 run printed 160
+characters of it. A Kafka-at-Stripe line stands in, and the harness shows **Kafka in a SKILLS list
+NOT flagging**, because that is a limit, not a pass.
+
+⛔ **What it cannot catch** (carried on every result as `cannotCatch`, printed by the script):
+anything in the skills section ("Kafka" is not a company fact) · a technology the employer's postings
+never mention · responsibilities, metrics, outcomes (G1 doc 2's "Instrumented service-level
+metrics…" is NOT flagged) · title shape · any employer outside the KB (7 companies with org units,
+10 with technographics — **Amazon is not one**, so half the owner's résumé is unchecked) · a claim the
+source makes at a different employer (support is document-wide, on purpose).
+
+⚠ **Overlap to see:** K1 reads the SOURCE résumé, which is what queue 2's deferred unsupported-content
+check would do — narrowed here to company-shaped claims, which is what lets the G1 documents flag at
+all. Decoupled, it changes nothing the owner deferred. Wiring it is the later decision OWNER 30 names.
+
+10 tests (both directions on a KB that mirrors Stripe's real rows; decoupling; never writes).
+**2821 / 2821 / 0.** `RECRUITER_LAYER.md` and `RECRUITER_LAYER_EXECUTION.md`, untracked until now,
+are committed with this row — K1 is built from them, and the directory table says they were lost once.
 
 #### 22 · G6 — the generic-language gaps
 
