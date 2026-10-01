@@ -71,9 +71,9 @@ this is why.
 
 ## Deliberate test failures — currently 0
 
-`npm test` is **2753 tests, 2753 pass, 0 fail** — re-measured 2026-09-30 in the working tree at
-`0d67462`, the suite run alone (+2 retention, +5 standalone ATS, +1 grain floor; not yet on a fresh
-CRLF worktree). Before that 2745 at `2356153` (+7 `secretBox` in `ef6071f`). Before that 2738 at `28b8a33` (+26 `boardFitRanking` from the fit-ranking merge). Before that 2712 at `76cc044` (+10 UI step 2 tests: colour-token contrast and the colour-literal
+`npm test` is **2777 tests, 2777 pass, 0 fail** — re-measured 2026-09-30 in the working tree at
+`6788a8e`, the suite run alone (+11 daily deal, +5 deck reducer, +4 deck pins, +1 deck surface
+refusal, +3 dark mode; not yet on a fresh CRLF worktree). Before that 2753 at `0d67462`. Before that 2745 at `2356153` (+7 `secretBox` in `ef6071f`). Before that 2738 at `28b8a33` (+26 `boardFitRanking` from the fit-ranking merge). Before that 2712 at `76cc044` (+10 UI step 2 tests: colour-token contrast and the colour-literal
 ratchet), and before that 2702 at `3b9dbe9` (+5 `registryPlacement` in `983a0ed`, +6
 backup-disk tests in `3b9dbe9`), and before that, 2691 / 2691 / 0 — re-measured 2026-09-28 after A4, which moved the
 prompt's tests to resume-master with the prompt (the count FELL by moving them, not by losing them —
