@@ -16,8 +16,8 @@
 // alpha := alpha − luminance, so white and transparent drop out and colour and black stay — then
 // floods it with the ACCENT token and blurs it. The colour is the token, never a restated value.
 //
-// ⚠ TRADEMARK: a blurred, re-tinted company logo is a derivative use of a mark we do not own. Raised
-// as an owner decision (WORKLOG, queue 27), not settled here.
+// TRADEMARK: a blurred, re-tinted company logo is a derivative use of a mark we do not own. Raised as
+// OWNER 34 and DECIDED by the owner 10-01: ship as is (WORKLOG, DECISIONS). Revisit there, not here.
 import { C } from "../styles/colorTokens.js";
 import { getKnownLogoUrl } from "../../../shared/companyLogos.js";
 
