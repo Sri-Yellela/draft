@@ -58,15 +58,19 @@ function runHiringSignalsRollup(db) {
   const openStmt = db.prepare(`
     SELECT COUNT(*) as n FROM scraped_jobs WHERE company = ? AND is_active = 1
   `);
+  // Queue 37: a posting held out as outside the US (rejected_jobs reason `out_of_market:…`) is
+  // neither a new US role nor a role that CLOSED — the gate retiring ~29% of the board in one crawl
+  // would otherwise read as every London and Singapore req expiring at once.
+  const notOutOfMarket = `AND job_id NOT IN (SELECT job_id FROM rejected_jobs WHERE reason LIKE 'out_of_market:%')`;
   const newStmt = db.prepare(`
     SELECT COUNT(*) as n FROM scraped_jobs
-    WHERE company = ? AND discovered_at IS NOT NULL AND discovered_at >= ?
+    WHERE company = ? AND discovered_at IS NOT NULL AND discovered_at >= ? ${notOutOfMarket}
   `);
   // updated_at is what cacheJobs' prune logic touches when it flips is_active to 0 — the
   // existing, already-correct "when did this row become inactive" signal (see aggregator.js).
   const expiredStmt = db.prepare(`
     SELECT COUNT(*) as n FROM scraped_jobs
-    WHERE company = ? AND is_active = 0 AND updated_at IS NOT NULL AND updated_at >= ?
+    WHERE company = ? AND is_active = 0 AND updated_at IS NOT NULL AND updated_at >= ? ${notOutOfMarket}
   `);
   const domainStmt = db.prepare(`
     SELECT bucket_domain as domain, COUNT(*) as n FROM scraped_jobs
