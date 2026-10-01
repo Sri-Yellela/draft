@@ -20,6 +20,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { classifyLocation } from "../services/jobs/usLocation.js";
 
 import {
   normaliseRole,
@@ -206,10 +207,14 @@ test("Stage 3 · normaliseItem: parses salary range from compensation text", () 
   assert.ok(result.salaryMax <= 150000, `expected salaryMax <= 150000, got ${result.salaryMax}`);
 });
 
-test("Stage 3 · normaliseItem: location falls back to 'United States' when absent", () => {
+// Queue 37: this used to pin a fallback of "United States" — an absent location ASSERTED as US,
+// which the US-only gate would then admit. The fallback is non-empty but says it is unknown.
+test("Stage 3 · normaliseItem: an absent location is 'Location not specified', never a US place", () => {
   const raw = { title: "Dev", companyName: "Co", id: "5" };
   const result = normaliseItem(raw);
   assert.ok(result.location.length > 0, "location must never be empty");
+  assert.equal(result.location, "Location not specified");
+  assert.equal(classifyLocation(result.location).verdict, "unknown");
 });
 
 test("Stage 3 · normaliseItem: remote workplaceType sets workTypeHint to remote", () => {

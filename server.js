@@ -63,6 +63,7 @@ import { resolveFromClassifier, getSearchQueryTemplates, qualificationKeyCount }
 import { normaliseRole, buildApifyQueries, isTitleRelevant as isTitleRelevantNew, isTitleRelevantToProfile } from "./services/searchQueryBuilder.js";
 import { getRoleKeyForProfile as _getRoleKeyForProfile, classifyForIngest, getRoleFamilyDomainForKey } from "./services/jobClassifier.js";
 import { inferWorkType, jobHash, normaliseItem, isFullTimeNorm, isEmploymentTypeWanted, parseYearsExperience, ghostJobScoreNorm, isReposted } from "./services/jobNormalization.js";
+import { usEligibility } from "./services/jobs/usLocation.js";
 // profileTitleSql still narrows the poll and pending QUEUES — see the verdict recorded at its
 // remaining call sites. parseProfileArray is the same parser it uses, so the board's ranking
 // and those queues cannot disagree about what target_titles contains.
@@ -4460,6 +4461,14 @@ async function scrapeJobs(query, apifyToken, scrapeParams = {}, domainProfileId 
       if (collarVerdict.roleKey === null) {
         return; // white-ish but no signal → drop
       }
+      // Queue 37 — US-only, decided at ingestion (services/jobs/aggregator.js holdOutOfMarket).
+      // INSERT OR IGNORE never re-activates a stored row, so here the gate only has to refuse.
+      const market = usEligibility({ location: item.location, description: item.description });
+      if (!market.admit) {
+        rejectJobStmt.run(jobId, item.title || '', item.company || '', 'linkedin',
+          'out_of_market:' + market.reason, Math.floor(Date.now() / 1000));
+        return;
+      }
       // ──────────────────────────────────────────────────────────────────────
 
       // Cross-source dedup: collapse this posting into an existing higher-(or-equal-)
@@ -8336,6 +8345,9 @@ app.post("/api/jobs/search", requireAuth, async (req, res) => {
             for (const j of jobs) {
               const id = j.id || j.url || '';
               if (!id) continue;
+              // Queue 37 — a live search result outside the US is shown (the user searched for it)
+              // but never written back to the shared board.
+              if (!usEligibility({ location: j.location, description: j.description }).admit) continue;
 
               // Cross-source dedup: collapse into an existing higher-(or-equal-)priority
               // canonical row (e.g. this same role's direct-ATS listing) if one exists.

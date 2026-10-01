@@ -55,7 +55,10 @@ export function normaliseItem(raw) {
     (raw.location?.city && raw.location?.state
       ? `${raw.location.city}, ${raw.location.state}`
       : raw.location?.city || raw.location?.state || "") ||
-    "United States";
+    // ⛔ NOT "United States" (queue 37). That default ASSERTED a US location for every item that
+    // had none, which is exactly the shape the US-only gate exists to refuse: an unknown location
+    // admitted as included. It reads as unknown now, and the gate holds it out.
+    "Location not specified";
 
   let workTypeHint = "";
   if (raw.workplaceType)                                              workTypeHint = String(raw.workplaceType).toLowerCase();

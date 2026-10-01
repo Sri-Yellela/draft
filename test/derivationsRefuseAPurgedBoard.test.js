@@ -56,6 +56,11 @@ function purgedBoard() {
     CREATE TABLE ats_term_weights (
       role_family TEXT, term TEXT, df INTEGER, corpus_size INTEGER, weight REAL, computed_at INTEGER
     );
+    -- The hiring-signals rollup reads it since queue 37 (an out-of-market retirement is not a
+    -- role closing). Migration 059_jobs_segregation creates it on every real database.
+    CREATE TABLE rejected_jobs (
+      job_id TEXT PRIMARY KEY, title TEXT, company TEXT, source TEXT, reason TEXT, rejected_at INTEGER
+    );
   `);
   // The five survivors, as they actually are on the live board.
   const ins = db.prepare(
