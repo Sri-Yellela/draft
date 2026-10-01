@@ -8057,8 +8057,17 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
       message: "Send your local date as ?date=YYYY-MM-DD (within a day of the server's)." });
   }
   try {
+    // A brand-new account — which is what a first Google sign-in creates — has no profile and no
+    // résumé. That is a STATE the deck explains and points past, not an error (§3.6; found 09-30
+    // when the owner's Google sign-in created a fresh account and Today showed "could not be dealt.
+    // no_active_profile"). Nothing is dealt: a deck without a résumé would 409 on every Draft.
+    const noDeal = (reason, profileId = null) =>
+      res.json({ date, profileId, size: 0, dealtNow: false, thin: false, reason, cards: [] });
     const profile = getOrRepairActiveProfile(req.user.id);
-    if (!profile) return res.status(404).json({ error: "no_active_profile" });
+    if (!profile) return noDeal("no_profile");
+    const hasResume = db.prepare(
+      "SELECT 1 FROM profile_base_resumes WHERE profile_id = ? AND TRIM(content) != ''").get(profile.id);
+    if (!hasResume) return noDeal("no_resume", profile.id);
     const fetchBoardPage = async (cursor) => {
       const { status, body } = await boardPageResponse({ ...req, query: { pageSize: "50", ...(cursor ? { cursor } : {}) } });
       return { ok: status === 200 && body?.success !== false, jobs: body?.jobs || [], nextCursor: body?.nextCursor || null, error: body?.error };

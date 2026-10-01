@@ -210,7 +210,7 @@ export interface DeckCard {
   why: DeckWhy;
 }
 
-/** Today's frozen deal. Fewer than 10 is a thin day and 0 an empty one — never padded. */
+/** Today's frozen deal. Fewer than 10 is a thin day and 0 an empty one — never padded. `reason`: null | 'thin' | 'empty' | 'no_profile' | 'no_resume' — the last two are set-up states, not errors. */
 export interface DeckResponse {
   cards: DeckCard[];
   date: string;
