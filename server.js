@@ -3791,6 +3791,14 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // Queue 38 (10-01): the deck's geometry — a preset or the three sliders — with the ACCOUNT, as
+      // theme_preference is (112). JSON in shared/deckGeometry.js's shape; NULL = never set = standard.
+      id: "114_users_deck_geometry",
+      sql: `
+        ALTER TABLE users ADD COLUMN deck_geometry TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");

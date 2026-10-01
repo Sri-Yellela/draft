@@ -140,6 +140,8 @@ const AUTHENTICATED = new Set([
   "GET /api/draft/today",        // UI step 3b: the user's own daily deck
   "GET /api/settings/theme",     // follow-up 18: the account's light/dark preference
   "PUT /api/settings/theme",
+  "GET /api/settings/deck-geometry",   // queue 38: the deck's geometry preset / sliders, with the account
+  "PUT /api/settings/deck-geometry",
   "GET /api/jobs/facets",
   "GET /api/jobs/suggest",
   "GET /api/jobs/pending",

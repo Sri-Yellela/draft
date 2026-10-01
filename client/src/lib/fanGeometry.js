@@ -14,6 +14,8 @@
 // "Pulled back" applies to the cards BEHIND. The front card is never scaled: it is exactly the card
 // that shipped, risen out of the fan into the content layer (zLayers.js: --z-fan < --z-content).
 
+import { DECK_LIMITS, DECK_PRESETS, clampAxis } from "../../../shared/deckGeometry.js";
+
 export const FAN_SWITCH_PX = 1100;
 
 // The four parameters, found by looking — the reach sweep (550/700/900/1100/1400, both orientations,
@@ -90,6 +92,94 @@ export function fanTransform(offset, orientation, geometry = FAN[orientation], e
 }
 
 const round = (n) => Math.round(n * 100) / 100;
+
+// ── The geometry as a user control: the FIT (queue 38) ───────────────────────────────────────
+//
+// shared/deckGeometry.js holds the presets and each slider's own range. Those are not enough: the
+// three are COUPLED, and the sketches had combinations that broke the layout at the extremes. So a
+// geometry reaches the fan only through clampGeometry, which fits the COMBINATION against the
+// constraints that chose the shipped numbers in queue 27, made general:
+//
+//   horizontal  peek ≥ 40   the first back shows at least 40px below the front card (standard: 47)
+//                           — less, and the next card hides entirely: you rotate blind
+//               frame ≤ 900 the 3rd back's bottom edge inside a 1440×900 frame, the front card's
+//                           centre ~390px down. (The faint 4th may clip, as it already does at
+//                           1280×800 at ANY reach — queue 27; the fade and the counter carry it.)
+//   vertical    peek ≥ 80   the first back clears a 318px phone card by enough to show its logo —
+//                           queue 27's reason vertical zoom moved to 0.86 (standard: 93)
+//               x ≤ 160     the first back's centre — its logo — stays on a 390px screen
+//
+// Every constraint grows with reach (and with spread), so the reaches that fit a zoom and spread are
+// one interval, and so are the spreads that fit a zoom: the clamp keeps zoom, then pulls spread into
+// its interval, then reach into its.
+export const FIT = Object.freeze({
+  horizontal: Object.freeze({ peekMin: 40, frameBottom: 900, frontCentreY: 390 }),
+  vertical:   Object.freeze({ peekMin: 80, logoMaxX: 160, viewport: 390 }),
+});
+
+/** How a geometry sits in the layout, and whether it fits. */
+export function fanFit(orientation, g) {
+  const geometry = { visible: FAN[orientation].visible, ...g };
+  const f = FIT[orientation];
+  if (orientation === "horizontal") {
+    const { width: W, height: H } = CARD.horizontal;
+    const halfH = (t) => { const a = rad(Math.abs(t.rotate)); return geometry.zoom * (H / 2 * Math.cos(a) + W / 2 * Math.sin(a)); };
+    const t1 = fanTransform(1, orientation, geometry), t3 = fanTransform(geometry.visible - 1, orientation, geometry);
+    const peek = t1.y + halfH(t1) - H / 2;
+    const bottom = f.frontCentreY + t3.y + halfH(t3);
+    return { peek: round(peek), bottom: round(bottom), ok: peek >= f.peekMin && bottom <= f.frameBottom };
+  }
+  const { width: W } = cardSize("vertical", f.viewport);
+  const t1 = fanTransform(1, orientation, geometry);
+  const peek = t1.x + (geometry.zoom * W) / 2 - W / 2;
+  return { peek: round(peek), x: round(t1.x), ok: peek >= f.peekMin && t1.x <= f.logoMaxX };
+}
+
+const steps = (orientation, axis) => {
+  const [min, max, step] = DECK_LIMITS[orientation][axis];
+  const out = [];
+  for (let v = min; v <= max + 1e-9; v += step) out.push(Math.round(v * 1000) / 1000);
+  return out;
+};
+const interval = (vals) => (vals.length ? [vals[0], vals[vals.length - 1]] : null);
+
+/** The reaches (on the slider's steps) that fit this zoom and spread — [lo, hi], or null if none. */
+export function reachBounds(orientation, zoom, spread) {
+  return interval(steps(orientation, "reach").filter(reach => fanFit(orientation, { zoom, spread, reach }).ok));
+}
+/** The spreads (on the slider's steps) for which SOME reach fits this zoom. */
+export function spreadBounds(orientation, zoom) {
+  return interval(steps(orientation, "spread").filter(spread => reachBounds(orientation, zoom, spread)));
+}
+
+const within = (v, [lo, hi]) => Math.min(hi, Math.max(lo, v));
+
+/** ⛔ The ONLY way a chosen geometry reaches the fan: each axis into its range, then the combination into the layout. */
+export function clampGeometry(orientation, g = {}) {
+  const std = FAN[orientation];
+  const zoom = clampAxis(orientation, "zoom", g.zoom) ?? std.zoom;
+  const sb = spreadBounds(orientation, zoom);
+  if (!sb) return std;
+  const spread = within(clampAxis(orientation, "spread", g.spread) ?? std.spread, sb);
+  const rb = reachBounds(orientation, zoom, spread);
+  const reach = within(clampAxis(orientation, "reach", g.reach) ?? std.reach, rb);
+  return Object.freeze({ zoom, spread, reach, visible: std.visible });
+}
+
+/**
+ * The geometry the fan draws, from the user's stored preference.
+ * ⛔ prefers-reduced-motion OVERRIDES WHATEVER THE USER PICKED: the deck is Tight — the smallest
+ * sweep, so a step moves each card least — and its transitions are already off. A preference never
+ * brings motion back.
+ */
+export function geometryFor(orientation, pref, { reduced = false } = {}) {
+  const std = FAN[orientation];
+  if (reduced) return Object.freeze({ ...std, ...DECK_PRESETS[orientation].tight });
+  const preset = pref?.preset || "standard";
+  if (preset === "custom") return clampGeometry(orientation, pref?.custom?.[orientation] || std);
+  if (preset === "tight" || preset === "wide") return Object.freeze({ ...std, ...DECK_PRESETS[orientation][preset] });
+  return std;
+}
 
 // ── The expanded card, three columns: ATS │ card │ posting (queue 40) ─────────────────────────
 //

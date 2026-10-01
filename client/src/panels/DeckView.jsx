@@ -42,7 +42,9 @@ import { jobDetailHref } from "../lib/jobUrl.js";
 import { TITLE_ATTR, transitionClick } from "../lib/viewTransitions.js";
 import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
 import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, stepTarget } from "../lib/deckState.js";
-import { FAN, cardSize, expandedLayout, fanTransform, orientationFor } from "../lib/fanGeometry.js";
+import { cardSize, expandedLayout, fanTransform, geometryFor, orientationFor } from "../lib/fanGeometry.js";
+import DeckGeometryControl from "../components/DeckGeometryControl.jsx";
+import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
 const TOAST_MS = 5000;
@@ -50,7 +52,7 @@ const WHEEL_STEP = 60;               // accumulated wheel delta for one card
 const WHEEL_SETTLE_MS = 140;         // one trackpad flick is many events; rotate once per flick
 const localDate = () => new Date().toLocaleDateString("en-CA");   // YYYY-MM-DD in the user's zone
 // Development only: lets the geometry be swept from the console while looking (queue 27's reach
-// sweep). Production reads FAN and nothing else.
+// sweep). Production reads geometryFor (the user's layout, fitted) and nothing else.
 const DEV_FAN = import.meta.env?.DEV ? globalThis.__DECK_FAN__ : null;
 
 const VERB = { drafted: "Drafted", passed: "Passed", saved: "Saved" };
@@ -514,7 +516,10 @@ export default function DeckView({ canUseAPlusResume = true }) {
 
   const { w: vw } = useViewport();
   const orientation = orientationFor(vw);
-  const geometry = { ...FAN[orientation], ...(DEV_FAN?.[orientation] || null) };
+  // The user's layout (queue 38), FITTED to the screen and overridden by reduced motion — geometryFor
+  // is the only road from a stored preference to the fan.
+  const [deckPref, chooseDeckPref] = useDeckGeometry();
+  const geometry = { ...geometryFor(orientation, deckPref, { reduced: !!reduced }), ...(DEV_FAN?.[orientation] || null) };
   const size = cardSize(orientation, vw);
   // Three columns only when expanded, horizontal and wide enough; otherwise null and the card stacks.
   const flank = expanded && orientation === "horizontal" && stageBox ? expandedLayout(stageBox.vw, stageBox.cx) : null;
@@ -732,7 +737,8 @@ export default function DeckView({ canUseAPlusResume = true }) {
             </div>
           </div>
           {load.status === "ready" && s.size > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              {!isFinished(s) && <DeckGeometryControl orientation={orientation} pref={deckPref} onChoose={chooseDeckPref} reduced={!!reduced} />}
               <SlashProgress drafted={tally.drafted} size={s.size} />
               {!isFinished(s) && (
                 // The counter is also what makes the fan's clipped edges read as deliberate: it says
