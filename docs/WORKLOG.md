@@ -33,10 +33,10 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 |---|---|
 | Production (draft) | `jobsviadraft.com` ONLY — **`9108a15`**, deployed 09-30 20:18Z on the owner's go (OWNER 7b), after the owner set `COOKIE_ENCRYPTION_KEY` (OWNER 20). Boot log, read by the agent: `[boot] secret key: configured` · `migrations complete (1 applied)` (110) · `registries: 148 role aliases, 28 qualification keys` · `[board-fit] … scored 2688, failed 0, 34.6 s, longest slice 59 ms`. Carries the OAuth sign-in fix (`ef6071f`), UI 2/2b, fit ranking, the copy sweep. ⚠ A completed Google sign-in is not yet observed (OWNER 25). `[oauth:linkedin]`/`[oauth:github]` still missing |
 | Production (Resume Master) | **LIVE at `https://resumemaster.one`** (since B step 4, 09-28 — verifier 21/21 ON THE DOMAIN; certificate **VALID**, `DETAILED_COMPLETE`, re-read 09-29; DNS Railway-managed and already repointed — see the correction in the step-4 session entry) and `https://resume-master-production-d960.up.railway.app`, commit **`814356d`**, service `resume-master` in draft's Railway project `resume-master` (owner's choice: kept there). Boot log: `model=true clients=["draft"]`. Certificate re-read by the agent 09-29 over TLS: Let's Encrypt, CN=resumemaster.one, valid to 12-27 |
-| Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`6e1837d`** (E1, live 09-29 15:48Z), auto-deploys on push. **232 tests, 232 pass** |
+| Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`6e1837d`** (E1, live 09-29 15:48Z), auto-deploys on push. **232 tests, 232 pass** at that commit; **235** locally after queue 21 (G3, not pushed) |
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (OWNER 2) |
 | Resume Master contract | **v1.1.0** (E1, additive; live 09-29), generated; vendored in draft at 1.1.0 (`8472416`). **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
-| Test baseline (draft) | **2802 / 2802 / 0** — measured 09-30 in the working tree (account management, uncommitted at measure time), run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
+| Test baseline (draft) | **2805 / 2805 / 0** — measured 09-30 in the working tree after queue 21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
 | Migration high-water | **113** defined (`113_account_management`, local); production applied **112** (`112_users_theme_preference`, 09-30) |
 | Contract | v1.1.1 (mobile) · v1.0.0 (Resume Master, above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
@@ -96,6 +96,8 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | 25 | ~~One Google sign-in~~ ✅ **done 09-30**: works end to end (the integration row written, its token sealed by the key). ⚠ It created a NEW account (user 10) — OWNER 27 | — |
 | 27 | **Two accounts: user 3 (yours, password) and user 10 (Google, empty) — MERGE them** (once the account-management push is live). Sign in to user 3 with the password → avatar menu → *Account & security* → *Merge another account into this one* → **Use Google** → pick the Google account. Review the preview (user 10 has no data), confirm. User 10 is deleted and its Google sign-in moves to user 3, so Google then signs you in to YOUR account. ⛔ Linking Google under Integrations would refuse — that Google identity already belongs to user 10; the refusal now points at Merge | The only route that moves an identity between accounts; nothing is lost from either |
 | 28 | **Set `RESEND_API_KEY` on draft** (and `EMAIL_FROM`, a sender on a domain verified in Resend, e.g. `Draft <no-reply@jobsviadraft.com>`) | Without it **forgot-password and email change cannot work** — and now SAY so (503 `email_unconfigured`) instead of claiming an email was sent. Before `6c3b12b` production logged the reset link and its code to the server log. Setting a variable redeploys |
+| 29 | ~~The audience decision~~ ✅ **DECIDED 09-30: SERVE BOTH, segmented.** Students and experienced candidates, one board, per-profile curation. ⛔ **This makes the ingestion work a REAL dependency, not an option** — the board is 3.0% entry/intern and the sources genuinely do not carry them (measured: the classifier is fine, one misclassification on the whole board; the discard path is fine, 12 of 1,089 dropped rows carry student vocabulary and the drop skews SENIOR). 80 postings shared across all users is not a product. **New agent work — see queue 25 and 26** | — |
+| 30 | ~~AF5 vs K1 timing~~ ✅ **DECIDED 09-30: build K1, but keep it DECOUPLED from generation until both are tested individually.** K1 ships as a check that can be exercised on its own, not wired into the generation path. AF5 is not gated on it; supervision remains the control for now. ⛔ Wiring K1 into generation is a SEPARATE, later decision — see queue 23 | — |
 | 26 | ~~Confirm the deck's four proposals~~ ✅ **confirmed by the owner 09-30** and built (`be26aa7`) | — |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
@@ -135,6 +137,32 @@ marked ✅ move to *DONE* at the next tidy; ⏸/⛔ rows are what is left, and w
 | 18 | The theme preference with the account | ✅ `c39dff7` (09-30): migration 112, `GET/PUT /api/settings/theme`; the account wins on a device and reloads only when the screen would change | — |
 | 19 | The redesigned mark everywhere | ✅ `9feac48` (web: "/draft" expanded, "/d" condensed, favicons) · draft-android `ef2bae4` (launcher icon, every density) — from the owner's artwork, like for like with the extension | — |
 | 20 | Account management — merge, sessions, picture, password, email, export, delete | ✅ local (09-30): `6c3b12b` (sessions sealed at rest, SameSite=Lax, cross-site writes refused, honest email) + the account-management commit (migration 113, `services/accountService.js`, `routes/accountManagement.js`, `/app/account`). ⚠ Not deployed; email-dependent parts wait on OWNER 28 |
+| 21 | ⛔ **G3 — AG4's duplication defect is LIVE AGAIN** | ✅ **09-30, local** (Resume Master + draft's copy): the tests asserted narrower than the behaviour — renderer-vocabulary fixtures and an identical-lines-only detector; the model nests the role in the org and writes the date as a span, and **every date was being dropped**. Fixed in the classifier; 3 behaviour tests fail on the old code. ⚠ Not deployed. SESSION LOG (6). *Was:* ⏸ Never queued — recorded in OBSERVED IN PRODUCTION on 09-29 and no task was ever made.** A generated résumé states the role THREE times: the header line, an italic restatement, then the location alone. ⛔ AG4's tests PASS while this ships — *"a model's plain-text restatement of the header and bullets is read, not reprinted"* · *"a nested entry-header does not leak its date into the body"*. **Green tests, live defect.** ⚠ A2 rebuilt `FORMATTING_SYSTEM` from `RESUME_STYLE_BLOCK`, which fixed G4 — it did NOT fix this, which is in the renderer/output path. Start by establishing whether the tests assert something narrower than the behaviour, or whether the path moved under them | — |
+| 22 | **G6 — the generic-language classifier has gaps** | ⏸ **Never queued — same origin as 21.** The "Generic language" section correctly holds *Managed, Partnered, Coordinated, Grew*, but **"Defined" and "Created" surface as MISSING VERBS** and **"collaboration" as a MISSING COMPETENCY**. All three are claimable by almost any candidate, so showing them as gaps implies a deficiency that is not real. AH3 built this suppression and set the threshold; these sit the wrong side of it. ⚠ The corpus head is SOFT SKILLS, not technologies — *collaboration* appears 199 times — so the threshold is under-tuned, not absent | — |
+| 23 | ⭐ **K1 — KB sanity check on generation** | ⏸ Queued 09-30, blocks on nothing. `RECRUITER_LAYER_EXECUTION.md` §K1. ⭐ **Attacks the live fabrication defect.** ⛔ **OWNER 30: BUILD IT DECOUPLED.** It ships as a check that can be run on its own — a script, a test harness, an admin route — and is **NOT wired into the generation path** until both it and generation have been tested individually. AF5 is not gated on it. ⛔ EXTEND the 9.6 failsafe; never build a second checker. ⛔ Acceptance is BOTH directions: the two G1 documents must flag, AND the owner's real résumé (Stripe, Bangalore) must flag NOTHING — the Bangalore precedent is a false "does not match" against a TRUE claim. ⛔ Say what it cannot catch; "Kafka" is not a company fact. ⛔ The KB learns from company-emitted data ONLY | — |
+| 24 | ⭐ **R1 — grade the employer's posting** | ⏸ Queued 09-30, blocks on nothing. `RECRUITER_LAYER_EXECUTION.md` §R1. The existing extractor pointed at a JD. **Zero model calls** — that is what lets it be a free public tool, and the recruiter-side acquisition hook before the two-sided product exists. ⛔ COMPARATIVE, never absolute ("names 3 technologies; the median names 11") — the "58 beside Strong match" lesson. ⛔ Never a public league table of employers. ⚠ Measure the requirements-section detection rate on 20 postings FIRST, and verify it discriminates over 50 — the v3 engine's whole spread was sd 2.87 on a 0–100 scale | — |
+| 25 | ⛔ **Ingestion for the student segment — MEASURE FIRST, build nothing** | ⏸ Queued 09-30 by OWNER 29 (**serve both, segmented**). The board is 3.0% entry/intern and the cause is **the configured companies do not post these roles here** — already proven, do not re-litigate it. **Establish, and report before changing anything:** where student and new-grad roles actually live (separate ATS tenants? seasonal windows? university boards? a different Greenhouse board per company?) · what a realistic volume looks like per source · what it would cost per crawl. ⚠ `DETAIL_FETCH_ECONOMICS.md`'s lesson applies: **a probe before a budget model** — workable's own comment claimed an N+1 was required and `?details=true` disproved it in five minutes. ⛔ Do NOT enable a source whose description coverage is 0% — Ubisoft, Bosch and Adobe were seeded inactive for exactly that, 648 rows that could never be enriched | — |
+| 26 | **Segmented curation — both audiences on one board** | ⏸ Queued 09-30 by OWNER 29. Blocked on 25's measurement. ⛔ **The seniority guard becomes PROFILE-RELATIVE, not deleted.** It currently demotes intern postings and is worth **0.645 → 0.746** — a senior posting shown to a student needs demoting exactly as much as an intern posting shown to a senior engineer did, so it is needed in BOTH directions. ⛔ **`am1-ats-graded-corpus.json` is 30 SENIOR roles graded by an experienced engineer** — it stays (irreplaceable; the originals were destroyed in the id-85 deletion) but it does NOT validate a student segment. A second reference set is needed, graded blind by someone in that audience. ⚠ The résumé-side extractor is a hardcoded 32-item `SKILL_HINTS` list with no vocabulary for coursework, projects, clubs or teaching assistantships — that is the real gate on what segmented curation can achieve | queue 25 | — |
+
+---
+
+## QUEUED — recruiter layer and KB (accepted 09-30, not yet scheduled)
+
+Full detail: **`RECRUITER_LAYER.md`** (reasoning) and **`RECRUITER_LAYER_EXECUTION.md`** (the work).
+All proposals accepted by the owner. ⛔ **Nothing here is in the running queue yet** — this is the
+next body of work once the current one is through.
+
+### ⭐ These two block on NOTHING — build when there is capacity
+
+| | Task | Why it is free to start |
+|---|---|---|
+| **K1** | **KB sanity check on generation** | ⭐ **Attacks G1 directly.** Extends the 9.6 failsafe to check GENERATED output against company facts — a claimed team, title or technology at a named employer. ⛔ Will NOT catch everything ("Kafka" is not a company fact); say so rather than over-claiming. ⛔ Extend the failsafe, never build a second checker. ⛔ The Bangalore precedent: a false "this does not match" against a TRUE claim is the costly error |
+| **R1** | **Grade the employer's posting** | ⭐ No candidates, no consent surface, no matching, no recruiter accounts — just the existing extractor pointed at a JD. Zero model calls. The recruiter-side acquisition hook before the two-sided product exists. ⛔ Comparative, never absolute: *"your posting names 3 technologies; the median names 11"*, not a score — the "58 beside Strong match" lesson. ⛔ Never a public league table of employers |
+
+> ⚠ **INCOMPLETE — restored 09-30 by the agent after it truncated this file by mistake.** This section
+> was uncommitted, written by another session; only the lines above were recoverable (from a `git
+> diff | head -20` in the agent's transcript). The rest of the section — about 30 more lines — is lost.
+> Regenerate it from `RECRUITER_LAYER_EXECUTION.md`.
 
 ---
 
@@ -425,6 +453,61 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 ## SESSION LOG
 
 Newest first. ⛔ Agents append here rather than creating a new file.
+
+### 2026-09-30 (6) · Agent queue 21–26
+
+Run in order, one at a time, one commit per row (per repo where a row touches two).
+
+#### 21 · G3 — why AG4's tests did not see it, and the fix
+
+⛔ **The answer to the question first: the tests asserted something narrower than the behaviour. The
+path did NOT move.** `generate.js` → `normalizeResumeHtml` is the same code A2 carried over byte for
+byte (draft's `services/resumeFormatter.js` and Resume Master's copy were identical at HEAD). Two
+narrownesses, both in the test file, not in the code it tested:
+
+1. **Every AG4 fixture was written in the renderer's OWN vocabulary** — `entry-date` as a `<div>`,
+   `entry-role` a sibling of the header, `entry-meta` inside it. The prompt names the classes
+   (layer 1, one line) and never the structure, and **the model does not write that structure.**
+   Captured 09-30 from two real generations through the live prompt (the owner's base résumé from the
+   local DB, and the 09-28 synthetic one; ~$0.13; run with the kernel in-process, raw output captured
+   before the formatter, nothing persisted outside the scratchpad):
+   ```
+   <span class="entry-org">Stripe <span class="sep">|</span> <span class="entry-role">Software Development Engineer</span></span>
+   <span class="entry-date">Aug 2022 - Dec 2023</span>
+   </div>
+   <div class="entry-meta">Payments Infrastructure, Bangalore</div>
+   ```
+   The role is NESTED IN the org; the date is a SPAN; the meta sits OUTSIDE the header.
+2. **The detector, `duplicatedLinesPerEntry`, counts IDENTICAL lines only** — "Stripe | Software
+   Development Engineer" and "Software Development Engineer" are different lines, so a role printed
+   twice reads clean. Run on the real output it reports `[]`. And **nothing asserted content was
+   KEPT**, so a loss was invisible to it by construction.
+
+⛔ **It was worse than G3 recorded: every date was being DROPPED.** The date reader looked only for
+`<div class="entry-date">`; the model writes a span. **10 of 10 dates (owner) and 3 of 3 (synthetic)
+vanished** from the formatted document — the header then showed `Stripe | Software Development
+Engineer | Payments Infrastructure, Bangalore` with no dates at all, which is the owner's G3 shape.
+(The 09-28 run that DID show dates had a different shape on the day: the shape varies per call, which
+is the other reason hand-written fixtures cannot stand in for it.)
+
+**Fix — in the classifier, not the renderer (AG4's own rule):** each field is read as its element's
+text MINUS any other field nested inside it, found by class whatever its tag (`readEntryField`); a
+field element outside the header leaves the leftover text only if it IS the field read
+(`isReadField`), so a second, different `entry-meta` is kept as prose rather than lost. The div-only
+date reader is deleted. Re-run on both captured documents: dates 10/10 and 3/3, role once, a fixed
+point.
+
+**Tests assert the behaviour now:** `assertEachFieldOnce` — every field of the source renders exactly
+once, neither lost nor repeated — against entries copied from the captured output. **3 new tests,
+all 3 FAIL on the old formatter** (verified by stashing the fix), pass on the new.
+
+- Resume Master: **235 / 235 / 0** (was 232). draft: the same formatter and test file mirrored —
+  **2805 / 2805 / 0** (was 2802), working tree.
+- ⚠ Not deployed: Resume Master's is a push (auto-deploys); draft's copy is used by the 9.6 failsafe's
+  extraction (`services/kb/failsafe.js` → `buildStructuredResume`), so the fix matters to K1 too.
+- ⚠ Seen on the way, not this row's: both replays were REFUSED by the claim guard — the model wrote
+  the JD's title, "Senior Backend Engineer", as the tagline. The guard working as designed (G1 is
+  about what it does not check).
 
 ### 2026-09-30 (5) · Account management
 
@@ -1076,9 +1159,15 @@ pass.
 | `UI_REDESIGN.md` | ⭐ The deck model replacing listings-into-cards, the cream/orange/glass palette, the transition inventory. Keyboard is acceleration, never the only path — mobile has none, and the gestures must mean the same things | Phase B. ⛔ **Its one blocking decision: does position encode fit?** If yes, the board's ordering problem becomes a hard dependency, and the board still ranks by `discovered_at DESC` |
 | `POST_MIGRATION_DESIGN.md` | ⭐ MCP connectors (the **deterministic** tools — scoring, parsing, formatting; generation is the weakest candidate) and remote browser profiles for the gated tier | MCP: Phase B. ⛔ Profiles: AF5, proven full-auto, **and a security design as the first task** |
 | `E3_SECURITY_DESIGN.md` | E3's security design, written 09-29 — **unreviewed**. ⛔ Corrects its parent: a streamed sign-in DOES pass the password through our servers; recommends device sign-in + session upload instead. Envelope encryption with a KEK outside the app env (not `COOKIE_ENCRYPTION_KEY`), crypto-shred revocation, the breach sentence, the 410 reversal recorded | Review = OWNER 12. Building: AF5 and the rest of §E3's prerequisites |
+| `RECRUITER_LAYER.md` | ⭐ **The two-sided product** — reverse matching, **double opt-in**, blind-first candidates, caps on BOTH sides, and ⭐ **grade-the-employer's-posting**. Also the **KB expansion** and moving job profiles into account management. ⛔ The four mechanics are MECHANICS, not UI: a calm interface over a search box is still a job board | ⛔ Candidate supply, which does not exist. Zero users, `job_applications` empty — a two-sided product whose matching is unvalidated fails on both sides at once |
+| `RECRUITER_LAYER_EXECUTION.md` | ⭐ The build document for the above, task by task with its constraints and verification. **All proposals accepted by the owner 09-30** | ⭐ **K1 and R1 block on NOTHING.** K1 attacks G1 (live fabrication); R1 needs no users at all. K2→K1, K3→a verification, R2–R6→candidate supply |
 
-⚠ Both are experimental and may be reverted or absorbed. They are kept because the reasoning is
-expensive to rebuild, not because either is committed.
+⚠ All five are experimental and may be reverted or absorbed. They are kept because the reasoning is
+expensive to rebuild, not because any of them is committed.
+
+⛔ **These two have been dropped from this table once already** — added 09-30, lost when the
+directory was re-verified against the tree. If a design doc exists in `docs/` and is not listed
+here, the table is wrong, not the doc.
 
 **Directories** — `ai1-summary/` · `migration/` · `monetisation-lever/` · `privacy/` ·
 `store-screenshots/`
