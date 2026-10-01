@@ -103,6 +103,7 @@ import {
 import {
   buildRuntimeAtsBasis,
   LOCAL_ATS_SOURCE,
+  ATS_REPORT_CACHE_KEY,
   scoreAtsLocally,
 } from "./services/localAtsScorer.js";
 import {
@@ -4596,7 +4597,7 @@ async function scrapeJobs(query, apifyToken, scrapeParams = {}, domainProfileId 
         // precompute do not — so these rows hash differently and the precompute (scheduled below)
         // re-scores them against the base résumé. Stated rather than silently reconciled: which of
         // the two texts a pre-adoption score should use is a product question, not a cache one.
-        const scrapeBasisHash = atsBasisHash(runtimeBasis, { scorerVersion: LOCAL_ATS_SOURCE });
+        const scrapeBasisHash = atsBasisHash(runtimeBasis, { scorerVersion: ATS_REPORT_CACHE_KEY });
 
         // ⛔ CC5 · SCORED FOR THIS USER AND PROFILE, NOT ONTO THE POSTING.
         //
@@ -6258,7 +6259,9 @@ function atsBasisForProfile(userId, profile, { resumeText = null } = {}) {
     domainProfile: profile ?? undefined,
     claims: atsClaims(profile),
   });
-  return { runtimeBasis, basisHash: atsBasisHash(runtimeBasis, { scorerVersion: LOCAL_ATS_SOURCE }) };
+  // ATS_REPORT_CACHE_KEY, not LOCAL_ATS_SOURCE: a stored REPORT is stale when its buckets change
+  // (G6), not only when the number does. See the package's note.
+  return { runtimeBasis, basisHash: atsBasisHash(runtimeBasis, { scorerVersion: ATS_REPORT_CACHE_KEY }) };
 }
 
 /** Score one posting against a basis. Local and deterministic: no model call, no network. */

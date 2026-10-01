@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { LOCAL_ATS_SOURCE, buildRuntimeAtsBasis, scoreAtsLocally } from "../services/localAtsScorer.js";
+import { LOCAL_ATS_SOURCE, ATS_REPORT_CACHE_KEY, buildRuntimeAtsBasis, scoreAtsLocally } from "../services/localAtsScorer.js";
 import { at } from "../test-support/sourceAnchors.js";
 
 /**
@@ -238,4 +238,82 @@ test("the panel renders both new buckets, and AG2's copy is untouched", () => {
   ]) assert.ok(panel.includes(sentence), sentence);
   assert.ok(!panel.includes("It does not change this score"),
     "the panel must not still claim that a claim does not affect the score — since CC4 it does");
+});
+
+// ── G6 — what was still reported as a gap and should not have been ──────────────────────────
+//
+// Observed 09-30 on the owner's report: "Defined" and "Created" under VERBS MISSING and
+// "collaboration" under COMPETENCIES MISSING, while Managed / Partnered / Coordinated / Grew sat
+// correctly in Generic Language. Precision over recall: an empty gap list beats one implying a
+// deficiency that is not real.
+
+const G6_POSTING = {
+  title: "Software Engineer", company: "Acme",
+  description:
+    "You will define the roadmap, create new services, improve reliability and plan migrations. " +
+    "You will lead projects, ship features and deploy to production. We value collaboration, " +
+    "cross-functional collaboration and strategy. Go, Kubernetes, PostgreSQL, Kafka.",
+  // Soft-typed by enrichment, as the real postings carry them — that is the path the owner's
+  // "collaboration" arrived by.
+  skills_json: JSON.stringify([
+    { skill: "Go", type: "hard" }, { skill: "Kubernetes", type: "hard" },
+    { skill: "PostgreSQL", type: "hard" }, { skill: "Kafka", type: "hard" },
+    { skill: "collaboration", type: "soft" }, { skill: "cross-functional collaboration", type: "soft" },
+    { skill: "strategy", type: "soft" },
+  ]),
+};
+
+test("G6: Defined, Created, Improved and Planned are generic language, not gaps", () => {
+  const r = scoreAtsLocally({ job: G6_POSTING, runtimeBasis: basis({ resumeText: "Go engineer." }) });
+  for (const verb of ["Defined", "Created", "Improved", "Planned"]) {
+    assert.ok(!has(r.action_verbs_missing, verb), `${verb} must not be listed as a gap: ${r.action_verbs_missing.join(" | ")}`);
+  }
+  assert.ok(has(r.action_verbs_generic, "Defined"), r.action_verbs_generic.join(" | "));
+  assert.ok(has(r.action_verbs_generic, "Created"), r.action_verbs_generic.join(" | "));
+});
+
+test("G6: the counterweight — Led, Shipped and Deployed are still gaps", () => {
+  const r = scoreAtsLocally({ job: G6_POSTING, runtimeBasis: basis({ resumeText: "Go engineer." }) });
+  const gaps = r.action_verbs_missing.map(norm);
+  for (const stem of ["led", "ship", "deploy"]) {
+    assert.ok(gaps.some(v => v.startsWith(stem)), `${stem}… must stay a gap: ${gaps.join(" | ")}`);
+  }
+});
+
+test("G6: a competency the résumé shows AS A VERB is not reported missing", () => {
+  // The owner's résumé says "Collaborated with cross-functional teams" and was told it lacked
+  // collaboration. Lexically "collaborated" is not "collaboration"; to a reader it is.
+  const r = scoreAtsLocally({ job: G6_POSTING, runtimeBasis: basis({
+    resumeText: "Collaborated with cross-functional teams to ship Go services on Kubernetes.",
+  }) });
+  assert.ok(!has(r.competencies_missing, "collaboration"), r.competencies_missing.join(" | "));
+  assert.ok(!has(r.competencies_missing, "cross-functional collaboration"), r.competencies_missing.join(" | "));
+  assert.ok(has(r.competencies_matched, "cross-functional collaboration"), r.competencies_matched.join(" | "));
+  // Not a blanket suppression: what the résumé does not show stays missing.
+  assert.ok(has(r.competencies_missing, "strategy"), r.competencies_missing.join(" | "));
+});
+
+test("G6: the verb must be NEAR the rest of the phrase, as for any other term", () => {
+  const far = "Collaborated on payments. " + "Built services in Go. ".repeat(20) + "Worked with cross-functional teams.";
+  const r = scoreAtsLocally({ job: G6_POSTING, runtimeBasis: basis({ resumeText: far }) });
+  assert.ok(has(r.competencies_missing, "cross-functional collaboration"),
+    "two words a page apart are not the phrase: " + r.competencies_missing.join(" | "));
+});
+
+test("G6: the verb evidence is REPORT-ONLY — the score does not move", () => {
+  // By AH3's rule a change to how the report reads must not re-weight what the number means, and
+  // the bands are calibrated on this scorer. The graded rho stayed 0.746 (am1GradedCorpusVerify).
+  const src = fs.readFileSync("packages/ats-scorer/src/scorer.js", "utf8");
+  assert.match(src, /const matchedCompetencies = jobCompetencies\.filter\(term => hasTerm\(matchIndex, term, synonyms\)\)/);
+  assert.match(src, /const allMatched = \[\.\.\.matchedSkills, \.\.\.matchedCompetencies\]/);
+});
+
+test("G6: a cached report is keyed by its buckets, not only by what its score means", () => {
+  // Without this every stored report keeps showing Defined as a gap: the fix "works" and is not seen.
+  assert.notEqual(ATS_REPORT_CACHE_KEY, LOCAL_ATS_SOURCE);
+  assert.ok(ATS_REPORT_CACHE_KEY.startsWith(LOCAL_ATS_SOURCE), "a score change must still invalidate it");
+  const server = fs.readFileSync("server.js", "utf8");
+  assert.doesNotMatch(server, /atsBasisHash\([^)]*scorerVersion: LOCAL_ATS_SOURCE/,
+    "the panel and the precompute must hash with the same key, or neither counts the other's rows as fresh");
+  assert.equal((server.match(/scorerVersion: ATS_REPORT_CACHE_KEY/g) || []).length, 2);
 });
