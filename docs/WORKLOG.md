@@ -99,6 +99,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | 29 | ~~The audience decision~~ ✅ **DECIDED 09-30: SERVE BOTH, segmented.** Students and experienced candidates, one board, per-profile curation. ⛔ **This makes the ingestion work a REAL dependency, not an option** — the board is 3.0% entry/intern and the sources genuinely do not carry them (measured: the classifier is fine, one misclassification on the whole board; the discard path is fine, 12 of 1,089 dropped rows carry student vocabulary and the drop skews SENIOR). 80 postings shared across all users is not a product. **New agent work — see queue 25 and 26** | — |
 | 30 | ~~AF5 vs K1 timing~~ ✅ **DECIDED 09-30: build K1, but keep it DECOUPLED from generation until both are tested individually.** K1 ships as a check that can be exercised on its own, not wired into the generation path. AF5 is not gated on it; supervision remains the control for now. ⛔ Wiring K1 into generation is a SEPARATE, later decision — see queue 23 | — |
 | 31 | **Two ATS fixes that MOVE THE SCORE — ship them, and re-derive the bands?** Found in queue 22 (G6), measured, NOT shipped: (a) count a competency the résumé shows as a verb (*Collaborated* → collaboration) in the score, ρ 0.746 → **0.761**; (b) three dead entries in the competency registry ("cross" normalises to "cros", so cross-functional terms are filed as SKILLS), ρ → **0.755**. Both are already fixed in the REPORT where that was possible without moving a number | Both are n=30 improvements inside what the set can distinguish; the cost is that Strong ≥ 44 was calibrated on today's scores, so shipping either means re-deriving the cutpoints. Recommendation: (b) yes — it is a plain defect — with the cutpoints re-derived in the same change |
+| 32 | **Student ingestion — which route?** (queue 25 measured it; nothing is built) (a) **add the top Greenhouse/Lever/Ashby boards** to `company_ats_list` — existing adapters, 1 request each, every student posting described; top 100 ≈ 855 roles, ~130 MB a crawl plus giants (SpaceX 30 MB, Anduril 42 MB); (b) **Workday** — 2,518 roles, the largest host, but whole-site paging (100–244 pages on the big tenants) and `workday.js`'s 300-posting cap must change first; (c) **the public curated index** as discovery (2 requests a day) — ⛔ no license declared on either repository | (a) is the cheap, proven start and needs only rows. ⛔ Not SmartRecruiters or Oracle (0% described). ⚠ The board's role-taxonomy refusal will drop design/data/ops internships exactly as it drops their senior equivalents — that is queue 26's question, not ingestion's |
 | 26 | ~~Confirm the deck's four proposals~~ ✅ **confirmed by the owner 09-30** and built (`be26aa7`) | — |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
@@ -142,7 +143,7 @@ marked ✅ move to *DONE* at the next tidy; ⏸/⛔ rows are what is left, and w
 | 22 | **G6 — the generic-language classifier has gaps** | ✅ **09-30, local** (package + Resume Master's vendored copy): not a threshold — a stated list missing 11 verbs, and "collaboration" a false NEGATIVE (the résumé says *Collaborated*). Fixed report-only; ρ 0.746 unchanged; cached reports re-keyed. Two score-moving fixes measured → OWNER 31. SESSION LOG (6). *Was:* ⏸ Never queued — same origin as 21.** The "Generic language" section correctly holds *Managed, Partnered, Coordinated, Grew*, but **"Defined" and "Created" surface as MISSING VERBS** and **"collaboration" as a MISSING COMPETENCY**. All three are claimable by almost any candidate, so showing them as gaps implies a deficiency that is not real. AH3 built this suppression and set the threshold; these sit the wrong side of it. ⚠ The corpus head is SOFT SKILLS, not technologies — *collaboration* appears 199 times — so the threshold is under-tuned, not absent | — |
 | 23 | ⭐ **K1 — KB sanity check on generation** | ✅ **09-30, built DECOUPLED** — `scripts/k1KbSanityCheck.mjs --verify` passes both directions on the real KB: G1's invented Stripe teams flag, the owner's real résumé flags nothing. ⛔ KB-only fails both ways (G1 is company-PLAUSIBLE; absence flags true claims), so a finding needs a company-shaped claim AND an unsupporting source. Not wired. SESSION LOG (6). *Was:* ⏸ Queued 09-30, blocks on nothing. `RECRUITER_LAYER_EXECUTION.md` §K1. ⭐ **Attacks the live fabrication defect.** ⛔ **OWNER 30: BUILD IT DECOUPLED.** It ships as a check that can be run on its own — a script, a test harness, an admin route — and is **NOT wired into the generation path** until both it and generation have been tested individually. AF5 is not gated on it. ⛔ EXTEND the 9.6 failsafe; never build a second checker. ⛔ Acceptance is BOTH directions: the two G1 documents must flag, AND the owner's real résumé (Stripe, Bangalore) must flag NOTHING — the Bangalore precedent is a false "does not match" against a TRUE claim. ⛔ Say what it cannot catch; "Kafka" is not a company fact. ⛔ The KB learns from company-emitted data ONLY | — |
 | 24 | ⭐ **R1 — grade the employer's posting** | ✅ **09-30, built + measured, no public route** — detection 17/17 visible on 20; it discriminates over 50 (peer percentiles sd 25–30), but specificity is coarse (engineering median 2 tools) and seniority incoherence never fires on this board. ⛔ The board's text is capped at 3k+2k chars — requirements are read on full text and compared with uncapped peers only. SESSION LOG (6). *Was:* ⏸ Queued 09-30, blocks on nothing. `RECRUITER_LAYER_EXECUTION.md` §R1. The existing extractor pointed at a JD. **Zero model calls** — that is what lets it be a free public tool, and the recruiter-side acquisition hook before the two-sided product exists. ⛔ COMPARATIVE, never absolute ("names 3 technologies; the median names 11") — the "58 beside Strong match" lesson. ⛔ Never a public league table of employers. ⚠ Measure the requirements-section detection rate on 20 postings FIRST, and verify it discriminates over 50 — the v3 engine's whole spread was sd 2.87 on a 0–100 scale | — |
-| 25 | ⛔ **Ingestion for the student segment — MEASURE FIRST, build nothing** | ⏸ Queued 09-30 by OWNER 29 (**serve both, segmented**). The board is 3.0% entry/intern and the cause is **the configured companies do not post these roles here** — already proven, do not re-litigate it. **Establish, and report before changing anything:** where student and new-grad roles actually live (separate ATS tenants? seasonal windows? university boards? a different Greenhouse board per company?) · what a realistic volume looks like per source · what it would cost per crawl. ⚠ `DETAIL_FETCH_ECONOMICS.md`'s lesson applies: **a probe before a budget model** — workable's own comment claimed an N+1 was required and `?details=true` disproved it in five minutes. ⛔ Do NOT enable a source whose description coverage is 0% — Ubisoft, Bosch and Adobe were seeded inactive for exactly that, 648 rows that could never be enriched | — |
+| 25 | ⛔ **Ingestion for the student segment — MEASURE FIRST, build nothing** | ✅ **09-30, measured, nothing built** — 7,486 active student roles at ~2,200 companies (public curated lists); our 25 companies carry 48. Workday 34% · custom 28% · Greenhouse/Lever/Ashby 22% (1 request/board, 100% described). ⛔ Workday needs whole-site paging and `workday.js` caps at 300; SmartRecruiters 0/4 and Oracle 0/6 described. Route = OWNER 32. SESSION LOG (6). *Was:* ⏸ Queued 09-30 by OWNER 29 (**serve both, segmented**). The board is 3.0% entry/intern and the cause is **the configured companies do not post these roles here** — already proven, do not re-litigate it. **Establish, and report before changing anything:** where student and new-grad roles actually live (separate ATS tenants? seasonal windows? university boards? a different Greenhouse board per company?) · what a realistic volume looks like per source · what it would cost per crawl. ⚠ `DETAIL_FETCH_ECONOMICS.md`'s lesson applies: **a probe before a budget model** — workable's own comment claimed an N+1 was required and `?details=true` disproved it in five minutes. ⛔ Do NOT enable a source whose description coverage is 0% — Ubisoft, Bosch and Adobe were seeded inactive for exactly that, 648 rows that could never be enriched | — |
 | 26 | **Segmented curation — both audiences on one board** | ⏸ Queued 09-30 by OWNER 29. Blocked on 25's measurement. ⛔ **The seniority guard becomes PROFILE-RELATIVE, not deleted.** It currently demotes intern postings and is worth **0.645 → 0.746** — a senior posting shown to a student needs demoting exactly as much as an intern posting shown to a senior engineer did, so it is needed in BOTH directions. ⛔ **`am1-ats-graded-corpus.json` is 30 SENIOR roles graded by an experienced engineer** — it stays (irreplaceable; the originals were destroyed in the id-85 deletion) but it does NOT validate a student segment. A second reference set is needed, graded blind by someone in that audience. ⚠ The résumé-side extractor is a hardcoded 32-item `SKILL_HINTS` list with no vocabulary for coursework, projects, clubs or teaching assistantships — that is the real gate on what segmented curation can achieve | queue 25 | — |
 
 ---
@@ -458,6 +459,55 @@ Newest first. ⛔ Agents append here rather than creating a new file.
 ### 2026-09-30 (6) · Agent queue 21–26
 
 Run in order, one at a time, one commit per row (per repo where a row touches two).
+
+#### 25 · Ingestion for the student segment — measured, nothing built
+
+Nothing re-tested from `STUDENT_BOARD_FINDING.md` (classifier, discard path, cause A stand). Read-only
+probes of public endpoints only; nothing enabled, nothing written to any table.
+
+**Where student and new-grad roles actually live.** The two public curated lists (SimplifyJobs
+*Summer2026-Internships* and *New-Grad-Positions*, `listings.json`, one GET each, 12.8 + 13.4 MB) hold
+**4,429 active internships + 3,057 active new-grad roles = 7,486, at ~2,200 companies.** Of those,
+**our 25 configured companies carry 48** — the same order as the board's 19 distinct. The roles are at
+OTHER companies, not hidden in ours. By host:
+
+| Host | Active student roles | Adapter today | Description coverage (probed) |
+|---|---|---|---|
+| **Workday** | **2,518 (34%)** — 590 sites | `workday.js`, 1 site configured (inactive) | ✅ 4/4 via the public page's JSON-LD (5.7–17.8k chars) — what `detailFetch.js` already reads |
+| Custom career sites | 2,070 (28%) | none | ⚠ 6/16 have JSON-LD (TikTok, ByteDance, Apple: 0) |
+| **Greenhouse / Lever / Ashby** | **1,613 (22%)** — 637 boards | ✅ all three | ✅ **14/14 boards, every student posting described, in the list call** |
+| Oracle / Taleo | 505 | none | ⛔ **0/6** — JS-rendered, no JSON-LD |
+| iCIMS · Eightfold | 307 · 64 | none | ✅ 4/4 live (2 were 410) · ✅ 4/4 |
+| SmartRecruiters | 282 | adapter, 2 inactive | ⛔ **0/4** on the page — the Ubisoft/Bosch shape. Do not enable |
+
+Seasonal, and in season now: internship postings by month peak **Aug 2,348 → Sep 3,870**; median listed
+age 27 days (intern) / 49 (new grad); **591 posted in the last 7 days (~85/day)**. Student roles also sit
+on SEPARATE sites inside one tenant — the one configured Workday row is Adobe's
+`external_experienced` site, which by its name excludes them.
+
+**Realistic volume per source — concentrated, but not very.** Greenhouse/Lever/Ashby: median **1**
+student role per board; the top 100 boards hold **53%** (~855), top 200 68%; 64 boards have ≥5.
+Workday: median 2 per site; top 100 sites hold 59% (~1,470); 143 sites have ≥5.
+
+**Cost per crawl — probed, not modelled:**
+- **Greenhouse/Lever/Ashby: 1 request per board**, description included. Mid-size boards 0.6–2.4 MB
+  and 76–200 ms (Jane Street 230 jobs / 5 student, IMC 169 / 23, Astranis 174 / 58, Palantir 318 / 79).
+  ⚠ The giants are the cost: **SpaceX 29.5 MB (55 student), Anduril 41.7 MB (34), TSMG 33.8 MB and 11.6 s
+  for 3.** Across the 14 probed: 131.6 MB for 344 student postings; **without the three giants, 26.6 MB
+  for 252 (~0.1 MB each).** Top-100 boards ≈ 100 requests, ~130 MB at the probed median plus whatever
+  giants are in it.
+- **Workday: the list call has no description, and `searchText` is not a filter** — "intern" returned
+  all 3,076 of Micron's postings, 2,436 of RTX's 4,868. So it is the WHOLE site, 20 per page: **RTX 244
+  pages, Northrop 188, Micron 154, NVIDIA 100** (13–79 KB each), then one ~20–44 KB page GET per student
+  posting for the description. ⛔ `workday.js` stops at **15 pages (300 postings)**, so on those four it
+  would see 6–15% of the site — it cannot serve these tenants as written.
+- **The index route:** the two `listings.json` files are a 2-request daily discovery index with the
+  ATS URL of every role; descriptions would come from the company's own page, ~85 new a day. ⛔ **Neither
+  repository declares a license** (GitHub's license API: none) — using it as a feed is a terms question,
+  not an engineering one.
+
+⛔ **Never enable** SmartRecruiters (0/4) or Oracle/Taleo (0/6) on this evidence. The decision between
+the routes is **OWNER 32**.
 
 #### 24 · R1 — grade the employer's posting
 
