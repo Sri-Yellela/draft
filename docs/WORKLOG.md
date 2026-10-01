@@ -59,6 +59,8 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 - **Owner:** push draft `main` (`! git -C C:\Users\duggi\WebstormProjects\draft push origin main`) — carries
   the security foundations (`6c3b12b`) and account management (migration **113**). Then OWNER 27 (merge
   your two accounts from Account → *Merge another account*) and OWNER 28 (an email provider).
+- **Agent queue 21–26 run 09-30** (SESSION LOG (6)): G3, G6, K1 (decoupled), R1 built and committed
+  locally in draft and Resume Master — ⛔ **not pushed**; 25 measured; 26 blocked. New owner rows **31, 32, 33**.
 - **Agent:** after the push — read the boot log (113 applied), sign in, open `/app/account`. What else is
   left needs the owner (19 a–d, 10 iOS, 15 store, 16 c–e, 24 LinkedIn OAuth) or a Mac (7).
 
@@ -100,6 +102,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | 30 | ~~AF5 vs K1 timing~~ ✅ **DECIDED 09-30: build K1, but keep it DECOUPLED from generation until both are tested individually.** K1 ships as a check that can be exercised on its own, not wired into the generation path. AF5 is not gated on it; supervision remains the control for now. ⛔ Wiring K1 into generation is a SEPARATE, later decision — see queue 23 | — |
 | 31 | **Two ATS fixes that MOVE THE SCORE — ship them, and re-derive the bands?** Found in queue 22 (G6), measured, NOT shipped: (a) count a competency the résumé shows as a verb (*Collaborated* → collaboration) in the score, ρ 0.746 → **0.761**; (b) three dead entries in the competency registry ("cross" normalises to "cros", so cross-functional terms are filed as SKILLS), ρ → **0.755**. Both are already fixed in the REPORT where that was possible without moving a number | Both are n=30 improvements inside what the set can distinguish; the cost is that Strong ≥ 44 was calibrated on today's scores, so shipping either means re-deriving the cutpoints. Recommendation: (b) yes — it is a plain defect — with the cutpoints re-derived in the same change |
 | 32 | **Student ingestion — which route?** (queue 25 measured it; nothing is built) (a) **add the top Greenhouse/Lever/Ashby boards** to `company_ats_list` — existing adapters, 1 request each, every student posting described; top 100 ≈ 855 roles, ~130 MB a crawl plus giants (SpaceX 30 MB, Anduril 42 MB); (b) **Workday** — 2,518 roles, the largest host, but whole-site paging (100–244 pages on the big tenants) and `workday.js`'s 300-posting cap must change first; (c) **the public curated index** as discovery (2 requests a day) — ⛔ no license declared on either repository | (a) is the cheap, proven start and needs only rows. ⛔ Not SmartRecruiters or Oracle (0% described). ⚠ The board's role-taxonomy refusal will drop design/data/ops internships exactly as it drops their senior equivalents — that is queue 26's question, not ingestion's |
+| 33 | **A student reference set, graded blind by someone in that audience** (queue 26) | `am1-ats-graded-corpus.json` is 30 senior roles graded by an experienced engineer and cannot validate a student segment. Needs ~30 student/new-grad postings — once OWNER 32's route puts them on the board — graded for fit by a student or recent graduate who has not seen the engine's scores. Only a person can do this |
 | 26 | ~~Confirm the deck's four proposals~~ ✅ **confirmed by the owner 09-30** and built (`be26aa7`) | — |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
@@ -144,7 +147,7 @@ marked ✅ move to *DONE* at the next tidy; ⏸/⛔ rows are what is left, and w
 | 23 | ⭐ **K1 — KB sanity check on generation** | ✅ **09-30, built DECOUPLED** — `scripts/k1KbSanityCheck.mjs --verify` passes both directions on the real KB: G1's invented Stripe teams flag, the owner's real résumé flags nothing. ⛔ KB-only fails both ways (G1 is company-PLAUSIBLE; absence flags true claims), so a finding needs a company-shaped claim AND an unsupporting source. Not wired. SESSION LOG (6). *Was:* ⏸ Queued 09-30, blocks on nothing. `RECRUITER_LAYER_EXECUTION.md` §K1. ⭐ **Attacks the live fabrication defect.** ⛔ **OWNER 30: BUILD IT DECOUPLED.** It ships as a check that can be run on its own — a script, a test harness, an admin route — and is **NOT wired into the generation path** until both it and generation have been tested individually. AF5 is not gated on it. ⛔ EXTEND the 9.6 failsafe; never build a second checker. ⛔ Acceptance is BOTH directions: the two G1 documents must flag, AND the owner's real résumé (Stripe, Bangalore) must flag NOTHING — the Bangalore precedent is a false "does not match" against a TRUE claim. ⛔ Say what it cannot catch; "Kafka" is not a company fact. ⛔ The KB learns from company-emitted data ONLY | — |
 | 24 | ⭐ **R1 — grade the employer's posting** | ✅ **09-30, built + measured, no public route** — detection 17/17 visible on 20; it discriminates over 50 (peer percentiles sd 25–30), but specificity is coarse (engineering median 2 tools) and seniority incoherence never fires on this board. ⛔ The board's text is capped at 3k+2k chars — requirements are read on full text and compared with uncapped peers only. SESSION LOG (6). *Was:* ⏸ Queued 09-30, blocks on nothing. `RECRUITER_LAYER_EXECUTION.md` §R1. The existing extractor pointed at a JD. **Zero model calls** — that is what lets it be a free public tool, and the recruiter-side acquisition hook before the two-sided product exists. ⛔ COMPARATIVE, never absolute ("names 3 technologies; the median names 11") — the "58 beside Strong match" lesson. ⛔ Never a public league table of employers. ⚠ Measure the requirements-section detection rate on 20 postings FIRST, and verify it discriminates over 50 — the v3 engine's whole spread was sd 2.87 on a 0–100 scale | — |
 | 25 | ⛔ **Ingestion for the student segment — MEASURE FIRST, build nothing** | ✅ **09-30, measured, nothing built** — 7,486 active student roles at ~2,200 companies (public curated lists); our 25 companies carry 48. Workday 34% · custom 28% · Greenhouse/Lever/Ashby 22% (1 request/board, 100% described). ⛔ Workday needs whole-site paging and `workday.js` caps at 300; SmartRecruiters 0/4 and Oracle 0/6 described. Route = OWNER 32. SESSION LOG (6). *Was:* ⏸ Queued 09-30 by OWNER 29 (**serve both, segmented**). The board is 3.0% entry/intern and the cause is **the configured companies do not post these roles here** — already proven, do not re-litigate it. **Establish, and report before changing anything:** where student and new-grad roles actually live (separate ATS tenants? seasonal windows? university boards? a different Greenhouse board per company?) · what a realistic volume looks like per source · what it would cost per crawl. ⚠ `DETAIL_FETCH_ECONOMICS.md`'s lesson applies: **a probe before a budget model** — workable's own comment claimed an N+1 was required and `?details=true` disproved it in five minutes. ⛔ Do NOT enable a source whose description coverage is 0% — Ubisoft, Bosch and Adobe were seeded inactive for exactly that, 648 rows that could never be enriched | — |
-| 26 | **Segmented curation — both audiences on one board** | ⏸ Queued 09-30 by OWNER 29. Blocked on 25's measurement. ⛔ **The seniority guard becomes PROFILE-RELATIVE, not deleted.** It currently demotes intern postings and is worth **0.645 → 0.746** — a senior posting shown to a student needs demoting exactly as much as an intern posting shown to a senior engineer did, so it is needed in BOTH directions. ⛔ **`am1-ats-graded-corpus.json` is 30 SENIOR roles graded by an experienced engineer** — it stays (irreplaceable; the originals were destroyed in the id-85 deletion) but it does NOT validate a student segment. A second reference set is needed, graded blind by someone in that audience. ⚠ The résumé-side extractor is a hardcoded 32-item `SKILL_HINTS` list with no vocabulary for coursework, projects, clubs or teaching assistantships — that is the real gate on what segmented curation can achieve | queue 25 | — |
+| 26 | **Segmented curation — both audiences on one board** | ⏸ **09-30: blocked on OWNER 32 (the route) + OWNER 33 (the student reference set).** ⛔ Premise corrected, measured: `SKILL_HINTS` is NOT the gate — removing it changes 4 of 67 scores; the gate is the POSTING-side registry vocabulary (no *data structures, algorithms, coursework, TA, hackathon*). The guard is profile-relative one way only (0/300 senior postings capped for a student). SESSION LOG (6). *Was:* ⏸ Queued 09-30 by OWNER 29. Blocked on 25's measurement. ⛔ **The seniority guard becomes PROFILE-RELATIVE, not deleted.** It currently demotes intern postings and is worth **0.645 → 0.746** — a senior posting shown to a student needs demoting exactly as much as an intern posting shown to a senior engineer did, so it is needed in BOTH directions. ⛔ **`am1-ats-graded-corpus.json` is 30 SENIOR roles graded by an experienced engineer** — it stays (irreplaceable; the originals were destroyed in the id-85 deletion) but it does NOT validate a student segment. A second reference set is needed, graded blind by someone in that audience. ⚠ The résumé-side extractor is a hardcoded 32-item `SKILL_HINTS` list with no vocabulary for coursework, projects, clubs or teaching assistantships — that is the real gate on what segmented curation can achieve | queue 25 | — |
 
 ---
 
@@ -459,6 +462,49 @@ Newest first. ⛔ Agents append here rather than creating a new file.
 ### 2026-09-30 (6) · Agent queue 21–26
 
 Run in order, one at a time, one commit per row (per repo where a row touches two).
+
+#### 26 · Segmented curation — ⏸ blocked, and one of its premises corrected
+
+⏸ **Not built.** It is blocked on the board CARRYING student roles (queue 25 measured where they are;
+the route is OWNER 32) and on a blind-graded student reference set (OWNER 33) — without both there is
+nothing to curate and nothing to validate against. Its three premises were measured instead
+(`scripts/studentSegmentPremises.mjs`, read-only):
+
+1. ⛔ **"The résumé-side `SKILL_HINTS` list is the real gate" — WRONG as stated.** The list is real
+   (33 items, not 32, and matched by SUBSTRING — "api" matches "capital", "rest" matches "interest",
+   "java" matches "javascript"). But the scorer matches the résumé TEXT directly; `SKILL_HINTS` only
+   adds `basis.skills`. Scoring a student-shaped résumé (coursework, projects, a TA role, a hackathon)
+   against all **67** entry/intern postings with and without those skills: **63/67 identical.**
+   **The real gate is the POSTING-side vocabulary** — the registries the scorer extracts terms with.
+   *data structures, algorithms, computer networks, coursework, teaching assistant, GPA, hackathon,
+   compilers, Django, pytest, object-oriented programming* are **not in it** (only *operating systems*
+   and *LLVM* are). A posting asking for data structures cannot be scored on it unless enrichment's
+   `skills_json` happened to carry the term (it did once). So the work is registry vocabulary, not the
+   résumé extractor.
+2. ✅ **The seniority guard is profile-relative in ONE direction only** — confirmed. It caps a junior
+   posting for a non-entry profile; for a STUDENT profile, **0 of 300** senior/lead postings are capped.
+   The missing direction is the build. It would not move ρ (the graded 30 are scored for profile 6,
+   which is not an entry seniority) — but it cannot be validated without OWNER 33's set.
+3. ✅ `am1-ats-graded-corpus.json` — 30 senior roles graded by an experienced engineer — stays and does
+   not validate a student segment. Unchanged.
+
+Also seen: the board's 67 entry/intern postings are scored mostly on SALES vocabulary (*onboarding,
+Salesforce, go-to-market, pipeline generation, cold prospecting*) — most "entry" rows are BDR/SDR roles,
+as the finding said. The student *software* supply is what queue 25 is about.
+
+### Queue 21–26, summary
+
+| | Landed | Commits |
+|---|---|---|
+| 21 G3 | ✅ local — tests asserted narrower than the behaviour; the model's real shape dropped every date and printed the role twice; fixed in the classifier | RM `6ec0dd3` · draft `a1a14d8` |
+| 22 G6 | ✅ local — 11 verbs to generic; verb-evidenced competencies off the missing list; cached reports re-keyed; ρ 0.746 unchanged. Two score-moving fixes → OWNER 31 | draft `eae68e1` · RM `661b758` |
+| 23 K1 | ✅ local, DECOUPLED — `--verify` passes both directions on the real KB | draft `18bef21` |
+| 24 R1 | ✅ local — measured first; discriminates; no public route | draft `03836c0` |
+| 25 | ✅ measured, nothing built — route → OWNER 32 | draft `c618e0d` |
+| 26 | ⏸ blocked on OWNER 32 + 33; premise 1 corrected | this commit |
+
+⛔ **Nothing is pushed.** Resume Master's `main` (G3 + the re-vendored scorer) and draft's `main` both
+auto-deploy on push — the owner's go. **draft 2831 / 2831 / 0 · Resume Master 235 / 235 / 0.**
 
 #### 25 · Ingestion for the student segment — measured, nothing built
 
