@@ -36,7 +36,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`6e1837d`** (E1, live 09-29 15:48Z), auto-deploys on push. **232 tests, 232 pass** at that commit; **235** locally after queues 21–22 (G3; G6 re-vendored — not pushed) |
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (OWNER 2) |
 | Resume Master contract | **v1.1.0** (E1, additive; live 09-29), generated; vendored in draft at 1.1.0 (`8472416`). **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
-| Test baseline (draft) | **2871 / 2871 / 0** — measured 10-01 in the working tree after queue 31 (+7 landingFindFitApply). 2864 after queue 30 (+7 signupFirstImpression). 2857 after queues 27–29 (+15 deckFan, +9 viewTransitions). 2833 after the mark reached the text-wordmark surfaces. 2831 after queue 24 (+10 R1). 2821 after queue 23 (+10 K1). 2811 after queue 22 (+6 G6). 2805 after queue 21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
+| Test baseline (draft) | **2876 / 2876 / 0** — measured 10-01 after the top bar + /features (+5 featuresPageHonest). 2871 after queue 31 (+7 landingFindFitApply). 2864 after queue 30 (+7 signupFirstImpression). 2857 after queues 27–29 (+15 deckFan, +9 viewTransitions). 2833 after the mark reached the text-wordmark surfaces. 2831 after queue 24 (+10 R1). 2821 after queue 23 (+10 K1). 2811 after queue 22 (+6 G6). 2805 after queue 21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
 | Migration high-water | **113** defined (`113_account_management`, local); production applied **112** (`112_users_theme_preference`, 09-30) |
 | Contract | v1.1.1 (mobile) · v1.0.0 (Resume Master, above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
@@ -107,6 +107,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | 33 | **A student reference set, graded blind by someone in that audience** (queue 26) | `am1-ats-graded-corpus.json` is 30 senior roles graded by an experienced engineer and cannot validate a student segment. Needs ~30 student/new-grad postings — once OWNER 32's route puts them on the board — graded for fit by a student or recent graduate who has not seen the engine's scores. Only a person can do this |
 | 34 | **The deck's card backs show each company's logo, blurred and tinted orange — is that use acceptable?** (queue 27) The logos are trademarks we do not own, fetched from DuckDuckGo's icon service as the board already does; blurring and re-tinting one is a derivative use. Built and local, not pushed. Options: (a) ship as is · (b) ship with the logo untinted (still blurred) · (c) weave + `/` mark only, no logo | Without the logo a face-down card says nothing and the fan is rotated blind — the reason five sketches failed. (c) keeps the fan but loses that. Raised, not assumed |
 | 35 | **Measure the fan's flip on a real mid-range Android phone** (queue 27). Open Today in Chrome on the phone, rotate with the ‹ › buttons and tap-to-expand; Chrome DevTools remote → Performance, or just say whether it stutters | The agent measured Chrome at 4× CPU throttle (Lighthouse's mid-tier proxy): **2.7–4.7% frames > 25 ms, p95 17 ms** after moving rotation and flip to the compositor (it was 13–26% before). A throttled desktop CPU is not a phone GPU — only a device settles it |
+| 36 | **The live landing and login pages promise "It will not claim anything you did not." — that is not true today.** CURRENT STATE · Fabrication: 2 of 2 real generations added unstated material; the claim guard enforces years and seniority only; K1 is built but deliberately NOT wired (OWNER 30). The line came from the brand brief and shipped in `3af6c5e` (landing, FindFitApply's PROMISES and the Tailoring sentence). Options: (a) reword to what is true now — e.g. *"It will not inflate your years or seniority — and you read every draft before anything is sent"* · (b) keep it and make it true first (wire K1 / G1) · (c) keep it as is | ⚠ A public promise the product breaks. /features (10-01) already states only what is true; the landing still does not. Recommendation: (a) now, restore the stronger line when G1 is closed |
 | 26 | ~~Confirm the deck's four proposals~~ ✅ **confirmed by the owner 09-30** and built (`be26aa7`) | — |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
@@ -468,6 +469,25 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 ## SESSION LOG
 
 Newest first. ⛔ Agents append here rather than creating a new file.
+
+### 2026-10-01 (10) · The top bar and /features — on the owner's ask
+
+- **The top bar was transparent** — not a decision: the leftover of the retired pill's p < 0.02 branch.
+  With the deck's in-place expansion a long card scrolled through the tab labels. Now frosted `SURFACE_2`
+  (blur 18px) with the `GLASS_EDGE` hairline; INK / INK_MUTED on SURFACE_2 are declared AA pairs in both
+  themes. `appScrollProgressRemoved` pinned the old transparent constants; its intent (constants, never the
+  dead interpolation) is kept and its values moved, with a guard against an interpolated blur.
+  Screenshots: `draft-screenshots/topbar/` (expanded card scrolled under the bar, 4 widths × themes × motion).
+- **/features was the feature grid** — five emoji cards under "Everything you need to land the interview",
+  one promising "One click fills the application form at any portal". Now "What each tool is for": the
+  find → fit → apply stations, every tool with what it does, **the one thing it will not do**, where it lives
+  and its real limit; tier names only with the monetisation lever on (kept, as before).
+- ⛔ **Premise found wrong while writing it:** "it will not claim anything you did not" — the brief's line, on
+  the landing page I shipped in `3af6c5e` — is false today (CURRENT STATE · Fabrication). /features says what
+  the guard really does and tells the reader to read every draft; a test refuses the false promise there.
+  The landing is NOT changed — owner decision, **OWNER 36**.
+- 5 tests (`featuresPageHonest`) + the updated top-bar test; 4 injected violations all red. **2876 / 2876 / 0.**
+  Screenshots: `draft-screenshots/features/` (4 widths × light/dark × full/reduced, + full-page).
 
 ### 2026-10-01 (9) · Agent queue 31 — the landing page as find → fit → apply
 

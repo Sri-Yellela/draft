@@ -5,7 +5,12 @@
 // the file existed, and it never did. The convergence read AppScrollContext's `progress`, whose only
 // writer listened on a container that never scrolls, so the value was permanently 0 and the bar was
 // permanently the full-width end of the interpolation. The machinery is removed; the description is
-// corrected to what it always rendered. position:fixed, full width, transparent, no elevation.
+// corrected to what it always rendered. position:fixed, full width, no elevation.
+//
+// ⛔ NOT TRANSPARENT (10-01). It was, as the leftover of the pill's p < 0.02 branch — never a decision —
+// and with the deck's in-place expansion a long card scrolled visibly THROUGH the tab labels. The bar is
+// now frosted SURFACE_2 with the glass hairline under it: INK and INK_MUTED on SURFACE_2 are declared,
+// contrast-proved pairs in both themes (colorTokens.js CONTRAST_PAIRS), so the labels stay AA over anything.
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTheme } from "../styles/theme.jsx";
 import { useMonetisationEnabled } from "../lib/monetisation.jsx";
@@ -16,7 +21,7 @@ import { StampLogo } from "./StampLogo.jsx";
 import { DockPortal } from "./DockPortal.jsx";
 import ProfileSelectorDropdown from "./ProfileSelectorDropdown.jsx";
 import { Z } from "../styles/zLayers.js";
-import { themePreference, setThemePreference } from "../styles/colorTokens.js";
+import { C, themePreference, setThemePreference } from "../styles/colorTokens.js";
 import { useAccountAvatar } from "../lib/accountAvatar.js";
 
 // The slideDown keyframes and injectKeyframes() were removed with the pill (Y4).
@@ -528,8 +533,12 @@ export default function TopBar({
           width: vw,
           height: 46,
           borderRadius: 0,
-          background: "transparent",
-          border: "1px solid transparent",
+          background: C.SURFACE_2,
+          backdropFilter: "blur(18px) saturate(1.4)",
+          WebkitBackdropFilter: "blur(18px) saturate(1.4)",
+          border: "none",
+          borderBottom: `1px solid ${C.GLASS_EDGE}`,
+          boxSizing: "border-box",
           boxShadow: "none",
           display: "flex",
           alignItems: "center",

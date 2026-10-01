@@ -82,12 +82,16 @@ test("the bar's geometry is the constants it always rendered, not an interpolati
   assert.match(style, /top: 0,/);
   assert.match(style, /width: vw,/);
   assert.match(style, /borderRadius: 0,/);
-  assert.match(style, /background: "transparent",/);
-  assert.match(style, /border: "1px solid transparent",/);
+  // 10-01, on the owner's call: the bar is no longer transparent (a long expanded deck card scrolled
+  // through its labels). It is still CONSTANTS — a token background and a literal blur — which is
+  // what this test exists for; it was the p=0 transparent end of the dead interpolation until then.
+  assert.match(style, /background: C\.SURFACE_2,/);
+  assert.match(style, /borderBottom: `1px solid \$\{C\.GLASS_EDGE\}`,/);
   assert.match(style, /boxShadow: "none",/);
-  // The blur pair was `blur(${effectiveBlur}px)` with effectiveBlur always 0 — a no-op filter on a
-  // fixed, full-width element, so it is gone rather than hardcoded to 0.
-  assert.ok(!/backdropFilter/.test(style), "a backdrop-filter is back on a transparent bar");
+  // The blur pair used to be `blur(${effectiveBlur}px)` with effectiveBlur always 0. It is back as a
+  // fixed value; a blur driven by a variable would need a live progress first.
+  assert.match(style, /backdropFilter: "blur\(18px\) saturate\(1\.4\)",/);
+  assert.ok(!/blur\(\$\{/.test(style), "the blur is interpolated again");
 });
 
 test("both dividers and the Divider component are gone", () => {
