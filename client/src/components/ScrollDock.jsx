@@ -15,13 +15,12 @@ import { StampLogo } from "./StampLogo.jsx";
 // One call, not a third copy of the mark. This file used to draw its own stamp — see the header of
 // StampLogo.jsx for why three copies of one mark is the mechanism a rename half-ships through.
 //
-// `accent` is the one thing the dock genuinely wants and the app bar does not: the rotated colour
-// rect behind the stamp. It is passed as a COLOUR so the shared component stays theme-free.
-//
-// ⚠ THE FIXED width: 158 IS GONE. It was tuned to the old, much longer wordmark; against a short
-// one it left the accent rect floating well past the mark. The stamp sizes itself now.
+// The dock shows the redesigned mark: "/draft", or "/d" when mini (09-30). The rotated accent rect
+// it used to draw sat behind the old WHITE stamp; behind the orange mark it would swallow it, so it
+// is gone with that stamp. The mark sizes itself.
+// eslint-disable-next-line no-unused-vars
 function LucyLogo({ theme, mini = false }) {
-  return <StampLogo size={mini ? "mini" : "sm"} progress={mini ? 1 : 0} accent={theme.accent}/>;
+  return <StampLogo size={mini ? "mini" : "sm"} progress={mini ? 1 : 0}/>;
 }
 
 // ── Dock divider ─────────────────────────────────────────────

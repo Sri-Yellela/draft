@@ -102,75 +102,44 @@ const logoOf = (src) => {
   return src.slice(start, end);
 };
 
-test("the app logo is the WHITE stamp — now BY CONSTRUCTION, because there is one", () => {
-  // ⛔ THIS USED TO CHECK THE APP'S OWN COPY OF THE CHROME, and that framing is what let the copies
-  // drift. TopBar drew its own stamp; so did ScrollDock; so did StampLogo. The assertions below
-  // compared their declarations and passed while the app copy spelled the LEGACY BRAND, because
-  // styles were all they ever compared.
+test("the app logo is the REDESIGNED mark — /draft and /d, by construction, because there is one", () => {
+  // 09-30, the owner: use the redesigned mark the extension carries, expanded and condensed, like for
+  // like. The white, black-bordered "DRAFT" stamp these assertions used to pin is retired.
   //
-  // The mark is one component now (StampLogo.jsx), so "the app mark is white" is not something to
-  // assert about TopBar at all — it is a property of the shared component, asserted once below.
-  // What is worth pinning HERE is that TopBar does not grow a third copy again.
+  // What stays pinned is the structural rule that survived every redesign: TopBar RENDERS the one
+  // shared component and never draws the mark itself.
   const logo = logoOf(topBarCode);
-
   assert.match(logo, /<StampLogo\b/, "the app bar must RENDER the shared mark, not redraw it");
-  assert.ok(!/background: "#ffffff"/.test(logo),
-    "TopBar is declaring the stamp's fill again — that is a second implementation starting");
-  assert.ok(!/rotate\(-2deg\)/.test(logo),
-    "TopBar is declaring the stamp's rotation again — same");
-  assert.ok(!/Barlow Condensed/.test(logo),
-    "TopBar is declaring the mark's typography again — same");
+  assert.ok(!/wordmark\.png|monogram\.png/.test(topBarCode), "TopBar imports the artwork itself — a second implementation starting");
+  assert.ok(!/background: "#ffffff"|rotate\(-2deg\)|Barlow Condensed/.test(logo),
+    "TopBar is declaring the old stamp's chrome again");
 
-  // The chrome itself, asserted once, where it now lives.
+  // The mark, asserted once, where it lives: the owner's artwork, both states, an accessible name.
   const stamp = stripComments(read("client/src/components/StampLogo.jsx"));
-  assert.match(stamp, /background: '#ffffff'/, "the mark is not white");
-  assert.match(stamp, /border: `\$\{s\.border\}px solid #0f0f0f`/, "the stamp border is not the mark's");
-  assert.match(stamp, /borderRadius: 2\b/, "the stamp corner radius is not the mark's");
-  assert.match(stamp, /transform: 'rotate\(-2deg\)'/, "the rotation is the mark's character");
-
-  // Both glyph spans still carry the stamp's black — W6 split them into text/textMuted, which is
-  // what made the mark read as two-tone. One `letterStyle` now feeds both, so one declaration is
-  // the correct count.
-  assert.equal((stamp.match(/color: '#0f0f0f'/g) || []).length, 1,
-    "both glyphs must share one colour declaration");
-
-  // The glass treatment stays gone.
-  assert.ok(!/rgba\(255,255,255,0\.06\)/.test(stamp), "the translucent fill is back");
-  assert.ok(!/--border-glass/.test(stamp), "the glass hairline is back on the mark");
-  assert.ok(!/backdropFilter/.test(stamp), "the backdrop blur is back behind an opaque fill");
-  assert.ok(!/transition: "background/.test(stamp), "the unwired hover transition is back");
+  assert.match(stamp, /import wordmarkSrc from '\.\.\/assets\/brand\/wordmark\.png';/, "the expanded mark is not the artwork");
+  assert.match(stamp, /import monogramSrc from '\.\.\/assets\/brand\/monogram\.png';/, "the condensed mark is not the artwork");
+  assert.match(stamp, /role="img" aria-label=\{WORDMARK\}/, "the mark has no accessible name");
+  for (const f of ["client/src/assets/brand/wordmark.png", "client/src/assets/brand/monogram.png"]) {
+    assert.ok(fs.existsSync(f) && fs.statSync(f).size > 1000, `${f} is missing or empty`);
+  }
+  // The old stamp's chrome and its glass treatment stay gone.
+  assert.ok(!/'#ffffff'|#0f0f0f|rotate\(-2deg\)/.test(stamp), "the old white stamp is back");
+  assert.ok(!/rgba\(255,255,255,0\.06\)|--border-glass|backdropFilter/.test(stamp), "a glass treatment is on the mark");
 });
 
 test("⛔ the mark's container does not clip it — the 33-pixel finding, kept", () => {
-  // Measured on the running app at 1440x900 dSF 6, by forcing this one property to `visible` and
-  // differencing the screenshots: 33 device pixels changed. The box is rotated and rounded, so
-  // clipping to its own padding box shaves the mark's corner and the italic glyph bearings, which
-  // sit flush against the content edge.
-  //
-  // ⚠ THIS ASSERTION MOVED FILES, AND THAT IS THE POINT. The finding was TopBar's — its copy was
-  // the one that had it right, while StampLogo.jsx still carried the clip. Collapsing the three
-  // copies meant choosing between them, and the measurement chose: the shared component dropped
-  // the box-level overflow, so unifying APPLIED this finding everywhere instead of discarding it.
-  // Asserted here against the shared component, because that is where the box now lives.
+  // Measured on the running app (1440x900, dSF 6): a box-level clip shaved the mark's corner and
+  // glyph bearings by 33 device pixels. The mark is artwork now, but the rule is the same: the ONLY
+  // overflow in the component is the collapsing tail's — never the mark's own box.
   const stamp = stripComments(read("client/src/components/StampLogo.jsx"));
-
-  // Exactly one `overflow` in the whole component, and it is on the collapsing span — a zero
-  // max-width without a clip would let the tail spill instead of collapsing.
   const overflows = stamp.match(/overflow:/g) || [];
   assert.equal(overflows.length, 1,
     "the mark should declare overflow exactly once, on the collapsing tail — a second one is " +
     "almost certainly the box clip coming back");
+  const outer = stamp.slice(at(stamp, 'role="img"', 0, "the mark's box"), at(stamp, "}}>", at(stamp, 'role="img"', 0, "box")));
+  assert.ok(!/overflow/.test(outer), "the mark's own box clips it again");
 
-  const fillAt = stamp.indexOf("background: '#ffffff'");
-  assert.ok(fillAt > 0, "the stamp's fill declaration moved");
-  const box = stamp.slice(fillAt, at(stamp, "}}>", fillAt));
-  assert.ok(box.length > 40, "the stamp's style object could not be isolated");
-  assert.ok(!/overflow/.test(box), "the stamp box clips the mark again");
-
-  // The collapse machinery stays retired in the APP bar specifically: it was driven by
-  // AppScrollContext's `progress`, which was permanently 0, so the animation never ran in any
-  // session. Asserted as an ABSENCE rather than deleted, so it cannot quietly return without the
-  // writer that would make it mean something.
+  // The collapse stays retired in the APP bar (its progress was permanently 0).
   const logo = logoOf(topBarCode);
   assert.ok(!/textMaxW|textOpacity/.test(logo),
     "the collapse interpolation is back in the app bar — it needs a live scroll progress first");
@@ -199,10 +168,9 @@ test("⛔ THERE IS ONE MARK, AND EVERY SURFACE CALLS IT", () => {
       `${f} is drawing the stamp itself again — that is a second implementation`);
   }
 
-  // And the mark derives its letters rather than spelling them, which is what makes a rename a
-  // one-line change instead of a sweep that misses one.
-  assert.match(stamp, /WORDMARK\.slice\(0, 1\)/, "the initial must be derived");
-  assert.match(stamp, /WORDMARK\.slice\(1\)/, "the tail must be derived");
+  // The mark is ARTWORK now (09-30), so a rename is new art, not a string; what is still derived is
+  // its accessible name — from the one brand definition, never spelled here.
+  assert.match(stamp, /aria-label=\{WORDMARK\}/, "the mark's name must come from shared/brand.js");
 });
 
 test("the actions row's vertical rhythm matches the bar's horizontal spacing", () => {

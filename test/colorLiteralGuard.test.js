@@ -77,10 +77,6 @@ export function literalCounts() {
  * Permanent entries, each with its reason. These are not "not yet migrated"; they are decided.
  */
 const PERMANENT = {
-  "client/src/components/StampLogo.jsx":
-    "THE MARK. docs/UI_REDESIGN.md keeps StampLogo unchanged, and its white fill and #0f0f0f " +
-    "border/glyphs ARE the logo — test/topBarChrome.test.js pins them as source strings. The mark " +
-    "is a fixed artwork, not a themed surface; a dark mode does not recolour a logo.",
   "client/src/components/DockPortal.jsx":
     "Kept unchanged by the redesign (the portalled listbox). Its three literals are FALLBACKS for a " +
     "caller that passes no theme; every caller passes one. Remove them if DockPortal is next edited " +
