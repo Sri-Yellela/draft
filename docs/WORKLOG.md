@@ -33,10 +33,10 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 |---|---|
 | Production (draft) | `jobsviadraft.com` ONLY — **`9108a15`**, deployed 09-30 20:18Z on the owner's go (OWNER 7b), after the owner set `COOKIE_ENCRYPTION_KEY` (OWNER 20). Boot log, read by the agent: `[boot] secret key: configured` · `migrations complete (1 applied)` (110) · `registries: 148 role aliases, 28 qualification keys` · `[board-fit] … scored 2688, failed 0, 34.6 s, longest slice 59 ms`. Carries the OAuth sign-in fix (`ef6071f`), UI 2/2b, fit ranking, the copy sweep. ⚠ A completed Google sign-in is not yet observed (OWNER 25). `[oauth:linkedin]`/`[oauth:github]` still missing |
 | Production (Resume Master) | **LIVE at `https://resumemaster.one`** (since B step 4, 09-28 — verifier 21/21 ON THE DOMAIN; certificate **VALID**, `DETAILED_COMPLETE`, re-read 09-29; DNS Railway-managed and already repointed — see the correction in the step-4 session entry) and `https://resume-master-production-d960.up.railway.app`, commit **`814356d`**, service `resume-master` in draft's Railway project `resume-master` (owner's choice: kept there). Boot log: `model=true clients=["draft"]`. Certificate re-read by the agent 09-29 over TLS: Let's Encrypt, CN=resumemaster.one, valid to 12-27 |
-| Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`6e1837d`** (E1, live 09-29 15:48Z), auto-deploys on push. **232 tests, 232 pass** at that commit; **235** locally after queue 21 (G3, not pushed) |
+| Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`6e1837d`** (E1, live 09-29 15:48Z), auto-deploys on push. **232 tests, 232 pass** at that commit; **235** locally after queues 21–22 (G3; G6 re-vendored — not pushed) |
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (OWNER 2) |
 | Resume Master contract | **v1.1.0** (E1, additive; live 09-29), generated; vendored in draft at 1.1.0 (`8472416`). **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
-| Test baseline (draft) | **2805 / 2805 / 0** — measured 09-30 in the working tree after queue 21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
+| Test baseline (draft) | **2811 / 2811 / 0** — measured 09-30 in the working tree after queue 22 (+6 G6). 2805 after queue 21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
 | Migration high-water | **113** defined (`113_account_management`, local); production applied **112** (`112_users_theme_preference`, 09-30) |
 | Contract | v1.1.1 (mobile) · v1.0.0 (Resume Master, above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
@@ -98,6 +98,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | 28 | **Set `RESEND_API_KEY` on draft** (and `EMAIL_FROM`, a sender on a domain verified in Resend, e.g. `Draft <no-reply@jobsviadraft.com>`) | Without it **forgot-password and email change cannot work** — and now SAY so (503 `email_unconfigured`) instead of claiming an email was sent. Before `6c3b12b` production logged the reset link and its code to the server log. Setting a variable redeploys |
 | 29 | ~~The audience decision~~ ✅ **DECIDED 09-30: SERVE BOTH, segmented.** Students and experienced candidates, one board, per-profile curation. ⛔ **This makes the ingestion work a REAL dependency, not an option** — the board is 3.0% entry/intern and the sources genuinely do not carry them (measured: the classifier is fine, one misclassification on the whole board; the discard path is fine, 12 of 1,089 dropped rows carry student vocabulary and the drop skews SENIOR). 80 postings shared across all users is not a product. **New agent work — see queue 25 and 26** | — |
 | 30 | ~~AF5 vs K1 timing~~ ✅ **DECIDED 09-30: build K1, but keep it DECOUPLED from generation until both are tested individually.** K1 ships as a check that can be exercised on its own, not wired into the generation path. AF5 is not gated on it; supervision remains the control for now. ⛔ Wiring K1 into generation is a SEPARATE, later decision — see queue 23 | — |
+| 31 | **Two ATS fixes that MOVE THE SCORE — ship them, and re-derive the bands?** Found in queue 22 (G6), measured, NOT shipped: (a) count a competency the résumé shows as a verb (*Collaborated* → collaboration) in the score, ρ 0.746 → **0.761**; (b) three dead entries in the competency registry ("cross" normalises to "cros", so cross-functional terms are filed as SKILLS), ρ → **0.755**. Both are already fixed in the REPORT where that was possible without moving a number | Both are n=30 improvements inside what the set can distinguish; the cost is that Strong ≥ 44 was calibrated on today's scores, so shipping either means re-deriving the cutpoints. Recommendation: (b) yes — it is a plain defect — with the cutpoints re-derived in the same change |
 | 26 | ~~Confirm the deck's four proposals~~ ✅ **confirmed by the owner 09-30** and built (`be26aa7`) | — |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
@@ -138,7 +139,7 @@ marked ✅ move to *DONE* at the next tidy; ⏸/⛔ rows are what is left, and w
 | 19 | The redesigned mark everywhere | ✅ `9feac48` (web: "/draft" expanded, "/d" condensed, favicons) · draft-android `ef2bae4` (launcher icon, every density) — from the owner's artwork, like for like with the extension | — |
 | 20 | Account management — merge, sessions, picture, password, email, export, delete | ✅ local (09-30): `6c3b12b` (sessions sealed at rest, SameSite=Lax, cross-site writes refused, honest email) + the account-management commit (migration 113, `services/accountService.js`, `routes/accountManagement.js`, `/app/account`). ⚠ Not deployed; email-dependent parts wait on OWNER 28 |
 | 21 | ⛔ **G3 — AG4's duplication defect is LIVE AGAIN** | ✅ **09-30, local** (Resume Master + draft's copy): the tests asserted narrower than the behaviour — renderer-vocabulary fixtures and an identical-lines-only detector; the model nests the role in the org and writes the date as a span, and **every date was being dropped**. Fixed in the classifier; 3 behaviour tests fail on the old code. ⚠ Not deployed. SESSION LOG (6). *Was:* ⏸ Never queued — recorded in OBSERVED IN PRODUCTION on 09-29 and no task was ever made.** A generated résumé states the role THREE times: the header line, an italic restatement, then the location alone. ⛔ AG4's tests PASS while this ships — *"a model's plain-text restatement of the header and bullets is read, not reprinted"* · *"a nested entry-header does not leak its date into the body"*. **Green tests, live defect.** ⚠ A2 rebuilt `FORMATTING_SYSTEM` from `RESUME_STYLE_BLOCK`, which fixed G4 — it did NOT fix this, which is in the renderer/output path. Start by establishing whether the tests assert something narrower than the behaviour, or whether the path moved under them | — |
-| 22 | **G6 — the generic-language classifier has gaps** | ⏸ **Never queued — same origin as 21.** The "Generic language" section correctly holds *Managed, Partnered, Coordinated, Grew*, but **"Defined" and "Created" surface as MISSING VERBS** and **"collaboration" as a MISSING COMPETENCY**. All three are claimable by almost any candidate, so showing them as gaps implies a deficiency that is not real. AH3 built this suppression and set the threshold; these sit the wrong side of it. ⚠ The corpus head is SOFT SKILLS, not technologies — *collaboration* appears 199 times — so the threshold is under-tuned, not absent | — |
+| 22 | **G6 — the generic-language classifier has gaps** | ✅ **09-30, local** (package + Resume Master's vendored copy): not a threshold — a stated list missing 11 verbs, and "collaboration" a false NEGATIVE (the résumé says *Collaborated*). Fixed report-only; ρ 0.746 unchanged; cached reports re-keyed. Two score-moving fixes measured → OWNER 31. SESSION LOG (6). *Was:* ⏸ Never queued — same origin as 21.** The "Generic language" section correctly holds *Managed, Partnered, Coordinated, Grew*, but **"Defined" and "Created" surface as MISSING VERBS** and **"collaboration" as a MISSING COMPETENCY**. All three are claimable by almost any candidate, so showing them as gaps implies a deficiency that is not real. AH3 built this suppression and set the threshold; these sit the wrong side of it. ⚠ The corpus head is SOFT SKILLS, not technologies — *collaboration* appears 199 times — so the threshold is under-tuned, not absent | — |
 | 23 | ⭐ **K1 — KB sanity check on generation** | ⏸ Queued 09-30, blocks on nothing. `RECRUITER_LAYER_EXECUTION.md` §K1. ⭐ **Attacks the live fabrication defect.** ⛔ **OWNER 30: BUILD IT DECOUPLED.** It ships as a check that can be run on its own — a script, a test harness, an admin route — and is **NOT wired into the generation path** until both it and generation have been tested individually. AF5 is not gated on it. ⛔ EXTEND the 9.6 failsafe; never build a second checker. ⛔ Acceptance is BOTH directions: the two G1 documents must flag, AND the owner's real résumé (Stripe, Bangalore) must flag NOTHING — the Bangalore precedent is a false "does not match" against a TRUE claim. ⛔ Say what it cannot catch; "Kafka" is not a company fact. ⛔ The KB learns from company-emitted data ONLY | — |
 | 24 | ⭐ **R1 — grade the employer's posting** | ⏸ Queued 09-30, blocks on nothing. `RECRUITER_LAYER_EXECUTION.md` §R1. The existing extractor pointed at a JD. **Zero model calls** — that is what lets it be a free public tool, and the recruiter-side acquisition hook before the two-sided product exists. ⛔ COMPARATIVE, never absolute ("names 3 technologies; the median names 11") — the "58 beside Strong match" lesson. ⛔ Never a public league table of employers. ⚠ Measure the requirements-section detection rate on 20 postings FIRST, and verify it discriminates over 50 — the v3 engine's whole spread was sd 2.87 on a 0–100 scale | — |
 | 25 | ⛔ **Ingestion for the student segment — MEASURE FIRST, build nothing** | ⏸ Queued 09-30 by OWNER 29 (**serve both, segmented**). The board is 3.0% entry/intern and the cause is **the configured companies do not post these roles here** — already proven, do not re-litigate it. **Establish, and report before changing anything:** where student and new-grad roles actually live (separate ATS tenants? seasonal windows? university boards? a different Greenhouse board per company?) · what a realistic volume looks like per source · what it would cost per crawl. ⚠ `DETAIL_FETCH_ECONOMICS.md`'s lesson applies: **a probe before a budget model** — workable's own comment claimed an N+1 was required and `?details=true` disproved it in five minutes. ⛔ Do NOT enable a source whose description coverage is 0% — Ubisoft, Bosch and Adobe were seeded inactive for exactly that, 648 rows that could never be enriched | — |
@@ -457,6 +458,64 @@ Newest first. ⛔ Agents append here rather than creating a new file.
 ### 2026-09-30 (6) · Agent queue 21–26
 
 Run in order, one at a time, one commit per row (per repo where a row touches two).
+
+#### 22 · G6 — the generic-language gaps
+
+⚠ **The premise was half wrong: there is no threshold to tune.** AH3 deliberately rejected a frequency
+threshold for verbs (Managed is in 44% of postings, Built in 93% — frequency keeps the wrong ones) and
+set the generic list by a STATED semantic criterion. "Defined" and "Created" were simply not on it.
+And "collaboration" was not a genericness problem at all — it was a **false negative in matching**.
+
+**Measured first** — the owner's real résumé (profile 6) scored against all **2,079 scorable local
+postings**, every bucket tallied:
+- Verbs reported MISSING: Created **55%** · Improved 39% · Planned 37% · Defined **33%** · Increased 28%
+  · Influenced 20% · Surfaced 14% · Structured 14% · Prioritised 11% · Iterated 11% · Facilitated 8%.
+  Several are not even the posting asking: "increase" is Stripe's mission statement ("increase the
+  GDP of the internet"), "surface" mostly the noun ("API surfaces"), "plan" the noun ("account
+  plans").
+- Competencies reported MISSING: cross-functional collaboration **15%**, collaboration **6%** —
+  ⛔ while the résumé says **"Collaborated with cross-functional teams"**. Lexically "collaborated" is
+  not "collaboration". The report told the candidate who had written the quality down that they lacked
+  it.
+
+**Fixed:**
+1. Those eleven verbs join `GENERIC_ACTION_VERB_WORDS` by AH3's own criterion (an outcome or stance
+   anyone can assert, not a checkable act). **Kept as gaps on purpose:** Led, Scaled, Shipped,
+   Deployed, Launched, Architected, Prototyped, Researched, Recruited, Administered.
+2. A competency the résumé shows **as a verb** is not reported missing (`hasCompetencyAsVerb`, a
+   short explicit noun→verb map, the same adjacency window as any term — "collaborated with
+   cross-functional teams" satisfies "cross-functional collaboration"; the two words a page apart do
+   not). ⛔ **REPORT ONLY** — by AH3's rule a change to how the report reads must not move the number.
+3. ⛔ **The fix would not have been SEEN without this:** cached reports are served whenever
+   `source === local_ats_v4`. Bumping the source would split one scorer into two in the outcome
+   analysis (it groups by source), so the package now exports **`ATS_REPORT_CACHE_KEY`**
+   (`local_ats_v4/buckets-2`), and both basis-hash sites in `server.js` use it — panel and precompute
+   still agree, and every stored panel report is re-scored on next read. ⚠ A report saved WITH a
+   generated résumé (`resumes.ats_report`, priority 1) keeps its buckets — it is that document's record.
+
+**After, same 2,079:** Defined, Created, Improved, Planned, Increased… are in Generic Language;
+cross-functional collaboration and collaboration are **gone from missing**. ⭐ **ρ = 0.746, drift 0.000**
+(`am1GradedCorpusVerify`; τ-b 0.596 → 0.595 — moving verbs between buckets moves which survive the
+per-bucket caps, which is a hair of score movement, inside tolerance).
+
+**Found, measured, NOT shipped — both move the score, so both are OWNER 31:**
+- Counting verb-evidenced competencies in the SCORE: ρ **0.746 → 0.761**.
+- ⛔ `COMPETENCY_REGISTRY_TERMS` has three dead entries — the normaliser turns "cross" into "cros", so
+  "cross-functional", "cross functional" and "cross-functional collaboration" are looked up as
+  "cros functional…" and every registry-path hit is filed under **SKILLS**. AH3's own defect, through
+  the mistake AH3 documents for the verb set. Keying the set through `normaliseAtsTerm` moves ρ to
+  **0.755** (reclassification changes what survives the caps).
+  Each is n=30 and inside what that set can distinguish; the real cost is that the band cutpoints
+  (Strong ≥ 44 at 100% precision) were calibrated on today's numbers.
+- Not touched, recorded: "culture" is reported missing on 20% and "strategy" on 40% — "culture" is a
+  registry term from the HR domain. A candidate cannot lack "culture"; it is the next G6.
+- ⚠ The wider cause: verbs are read from the WHOLE posting, boilerplate included. That is R1's
+  requirements-section question (queue 24).
+
+6 new tests (the old scorer gives exactly the owner's report on the fixture: *Defined, Planned,
+Created, Improved* missing; *collaboration, cross-functional collaboration* missing). Package
+checksums rewritten, re-vendored into Resume Master byte-identical. **draft 2811 / 2811 / 0 · Resume
+Master 235 / 235 / 0.** ⚠ Not deployed.
 
 #### 21 · G3 — why AG4's tests did not see it, and the fix
 
