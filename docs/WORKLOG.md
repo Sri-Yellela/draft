@@ -36,8 +36,8 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`6e1837d`** (E1, live 09-29 15:48Z), auto-deploys on push. **232 tests, 232 pass** |
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (OWNER 2) |
 | Resume Master contract | **v1.1.0** (E1, additive; live 09-29), generated; vendored in draft at 1.1.0 (`8472416`). **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
-| Test baseline (draft) | **2777 / 2777 / 0** — measured 09-30 in the working tree at `6788a8e`, run alone. Before that 2753 at `0d67462`. ⚠ Not yet re-measured on a fresh CRLF worktree |
-| Migration high-water | **111** defined (`111_daily_drafts`, local); production applied **110** on 09-30 (`9108a15`) |
+| Test baseline (draft) | **2802 / 2802 / 0** — measured 09-30 in the working tree (account management, uncommitted at measure time), run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
+| Migration high-water | **113** defined (`113_account_management`, local); production applied **112** (`112_users_theme_preference`, 09-30) |
 | Contract | v1.1.1 (mobile) · v1.0.0 (Resume Master, above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
 | draft volume | `resume-master-volume` (draft's DB, `/app/data`) — **481 / 1,000 MB** after the owner grew it 09-29. It was 481/500 and the 09-29 02:00 backup failed with ENOSPC. ⚠ The backup policy still allows ~640 MB steady; policy fixed locally in `3b9dbe9` (budget from the volume, refuse before the copy — NOT deployed); pruning is agent queue 8(b), waiting on OWNER 9 |
@@ -54,14 +54,13 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
-**09-30 (fourth pass): live through `ed1a42d`; the mark, the account theme and Android's look are local.**
+**09-30 (fifth pass): account management is built and local — merge, sessions, picture, password, email, export, delete.**
 
-- **Owner:** push draft `main` (2 commits + docs: the redesigned mark, migration 112 + the account
-  theme) — `! git -C C:\Users\duggi\WebstormProjects\draft push origin main`. Then OWNER 27 (the two
-  accounts) and OWNER 21a (try admin / changeme; change it if it works).
-- **Agent:** the queue is through. What is left needs the owner (19 a–d, 10 iOS, 15 store, 16 c–e,
-  24 LinkedIn OAuth) or a Mac (7).
-
+- **Owner:** push draft `main` (`! git -C C:\Users\duggi\WebstormProjects\draft push origin main`) — carries
+  the security foundations (`6c3b12b`) and account management (migration **113**). Then OWNER 27 (merge
+  your two accounts from Account → *Merge another account*) and OWNER 28 (an email provider).
+- **Agent:** after the push — read the boot log (113 applied), sign in, open `/app/account`. What else is
+  left needs the owner (19 a–d, 10 iOS, 15 store, 16 c–e, 24 LinkedIn OAuth) or a Mac (7).
 
 ## OWNER QUEUE
 
@@ -95,7 +94,8 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | 23 | ~~ATS free and unlimited on draft's public tool?~~ ✅ **owner 09-30: yes, for now (no monetisation yet)** — the rate limit is removed in `fc668be` | — |
 | 24 | Android LinkedIn import (agent queue 15) needs **LinkedIn OAuth configured in production** — the boot log says `[oauth:linkedin] missing; missing client_id, client_secret, redirect_uri_or_app_base_url`. And note: LinkedIn's OIDC gives name, email and picture — the app's "import" can never be more than that | Blocks queue 15 |
 | 25 | ~~One Google sign-in~~ ✅ **done 09-30**: works end to end (the integration row written, its token sealed by the key). ⚠ It created a NEW account (user 10) — OWNER 27 | — |
-| 27 | **Two accounts now: user 3 (yours, password) and user 10 (Google, empty).** Link Google to user 3 — sign in with the password, then connect Google under Integrations, and delete user 10 from admin — or keep user 10 as a clean new-user test | Google matched by email, and the Google email is not the one on user 3 |
+| 27 | **Two accounts: user 3 (yours, password) and user 10 (Google, empty) — MERGE them** (once the account-management push is live). Sign in to user 3 with the password → avatar menu → *Account & security* → *Merge another account into this one* → **Use Google** → pick the Google account. Review the preview (user 10 has no data), confirm. User 10 is deleted and its Google sign-in moves to user 3, so Google then signs you in to YOUR account. ⛔ Linking Google under Integrations would refuse — that Google identity already belongs to user 10; the refusal now points at Merge | The only route that moves an identity between accounts; nothing is lost from either |
+| 28 | **Set `RESEND_API_KEY` on draft** (and `EMAIL_FROM`, a sender on a domain verified in Resend, e.g. `Draft <no-reply@jobsviadraft.com>`) | Without it **forgot-password and email change cannot work** — and now SAY so (503 `email_unconfigured`) instead of claiming an email was sent. Before `6c3b12b` production logged the reset link and its code to the server log. Setting a variable redeploys |
 | 26 | ~~Confirm the deck's four proposals~~ ✅ **confirmed by the owner 09-30** and built (`be26aa7`) | — |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
@@ -134,6 +134,7 @@ marked ✅ move to *DONE* at the next tidy; ⏸/⛔ rows are what is left, and w
 | 17 | Android's look onto the leather and glass, and dark there | ✅ draft-android `d2f0e3a` (09-30): the web's tokens, theme-aware at the source; the web's own leather tile; the glass card with blank slabs behind; the "/draft" mark on sign-in. Verified on the emulator, light and dark | — |
 | 18 | The theme preference with the account | ✅ `c39dff7` (09-30): migration 112, `GET/PUT /api/settings/theme`; the account wins on a device and reloads only when the screen would change | — |
 | 19 | The redesigned mark everywhere | ✅ `9feac48` (web: "/draft" expanded, "/d" condensed, favicons) · draft-android `ef2bae4` (launcher icon, every density) — from the owner's artwork, like for like with the extension | — |
+| 20 | Account management — merge, sessions, picture, password, email, export, delete | ✅ local (09-30): `6c3b12b` (sessions sealed at rest, SameSite=Lax, cross-site writes refused, honest email) + the account-management commit (migration 113, `services/accountService.js`, `routes/accountManagement.js`, `/app/account`). ⚠ Not deployed; email-dependent parts wait on OWNER 28 |
 
 ---
 
@@ -424,6 +425,45 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 ## SESSION LOG
 
 Newest first. ⛔ Agents append here rather than creating a new file.
+
+### 2026-09-30 (5) · Account management
+
+Owner: *"for the two accounts there should be a provision to be able to merge them, and we need to
+wire all the basic account management … cookie encrypted sessions, profile and management profile
+pictures, forgot password, delete account and everything else."*
+
+- **Foundations, `6c3b12b`:** sessions SEALED at rest (`EncryptedSessionStore`, AES-256-GCM, key
+  HKDF-derived from `COOKIE_ENCRYPTION_KEY`; legacy rows still read, so nobody was signed out);
+  SameSite=None → Lax unless a cross-origin frontend needs it; cross-site state-changing requests
+  refused (`originGuard`); email honest — ⛔ production had been answering "reset email sent" while
+  sending nothing and LOGGING the reset link and code.
+- ⛔ **A regression from that commit, found and fixed in this one:** `revokeAllUserSessions` read the
+  session rows as plain JSON. Behind the sealed store that read threw and was swallowed, so a
+  password reset destroyed NO cookie session. Now `SStore.sessionsForUser()` opens each row
+  (`test/sealedSessionSweep.test.js`, real connect-sqlite3); the old pin that asserted the raw read
+  was replaced.
+- **Migration 113** (both runners): `user_sessions` (a registry — the sealed store cannot list "my
+  sessions"), `users.password_set` (backfilled: no provider id ⇒ a password account; OAuth accounts
+  got a random password nobody knows), `avatar_path`, `email_verified_at`, `email_codes`,
+  `account_merges`.
+- **`services/accountService.js`** — tested on the REAL migrated schema (10 tests). Merge has a plan for
+  every one of the 37 user tables (move / keep-into / fill / drop) and ⛔ REFUSES if a table without a
+  plan appears — a new table would otherwise be silently cascade-deleted with the merged account; a
+  test fails the moment one is added. Provider identities move; admins and two different identities of
+  one provider refuse. Delete clears the one table without an FK and returns the files to remove.
+- **`routes/accountManagement.js`** (20 routes, in the guard manifest; 5 HTTP tests): profile name;
+  picture (sniffed by BYTES — an SVG named .png is a 415; served with nosniff and CSP; new name per
+  upload); sessions and app tokens listed by a hash, never the sid, and signed out IN THE STORE;
+  password change/set (set needs a recent sign-in; a change signs out everywhere else); email change by
+  a 6-digit code to the new address (HMAC'd, 15 min, 5 tries); unlink (never the last method);
+  export; merge (prove the other account by its password, or by `/auth/:provider?mode=merge`, which
+  finds it by provider id only and signs nobody in; preview; confirm); delete (recent sign-in + the
+  username typed). Every sign-in is stamped (`req.session.authAt`) by wrapping `req.logIn`.
+- **`/app/account`** — light, dark and 390 px screenshotted against a locally booted server (paid keys
+  blanked, throwaway data dir), and the flows driven live: registry row, wrong/right password,
+  email 503 without a provider, merge OAuth redirect. Avatar in the top bar (uploaded, else Google's).
+- Already there and kept: forgot-password (`/api/auth/password-reset/*`) — it needs OWNER 28 to send.
+- Tests **2802 / 2802 / 0**, run alone.
 
 ### 2026-09-30 (4) · Live checks; a new-account Today fixed; the redesigned mark; Android on the leather; the account theme
 

@@ -88,9 +88,12 @@ test("a password change revokes every credential for that user, both kinds", () 
   assert.match(fn, /UPDATE auth_contexts SET revoked_at=\? WHERE user_id=\? AND revoked_at IS NULL/);
   // The cookie session is the credential that outlives everything else, so a sweep that only
   // revoked tokens would leave the account effectively unlocked.
-  assert.match(fn, /SELECT sid, sess FROM \$\{SStore\.table\}/);
-  assert.match(fn, /SStore\.destroy\(row\.sid/);
-  assert.match(fn, /passport\?\.user/);
+  // Sessions are SEALED at rest (EncryptedSessionStore), so the rows cannot be read as JSON here:
+  // the store opens them and names this user's sids (test/sealedSessionSweep.test.js). The old pin
+  // asserted the raw-row read, which threw behind the sealed store and swept nothing.
+  assert.match(fn, /SStore\.sessionsForUser\(userId/);
+  assert.match(fn, /SStore\.destroy\(sid/);
+  assert.doesNotMatch(fn, /SStore\.db\.all/);
   // connect-sqlite3's own all() drops the sid, which is the one field destroy() needs.
   assert.doesNotMatch(fn, /SStore\.all\(/);
 });

@@ -24,6 +24,7 @@ import { DatabasePanel }         from "./panels/DatabasePanel.jsx";
 import { PlansPanel }            from "./panels/PlansPanel.jsx";
 import DeckView                  from "./panels/DeckView.jsx";
 import { IntegrationsPanel }     from "./panels/IntegrationsPanel.jsx";
+import { AccountPanel }          from "./panels/AccountPanel.jsx";
 import { RecruiterPanel }        from "./panels/RecruiterPanel.jsx";
 import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
 import UnifiedSearchBar          from "./components/UnifiedSearchBar.jsx";
@@ -326,7 +327,7 @@ function AppDashboard({ authUser, setAuthUser }) {
   // other non-tab path does — the panel is absent, not an empty panel that renders nothing.
   const NAVIGABLE_TABS = useMemo(
     () => new Set([...appTabs.map(t => t.id).filter(id => id !== "console"),
-                   ...(monetisationEnabled ? ["plans"] : []), "profile", "integrations"]),
+                   ...(monetisationEnabled ? ["plans"] : []), "profile", "integrations", "account"]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [monetisationEnabled],
   );
@@ -572,6 +573,7 @@ function AppDashboard({ authUser, setAuthUser }) {
             {activeTab === "auto-apply"   && <AutoApplyPanel/>}
             {activeTab === "database"     && <DatabasePanel user={authUser}/>}
             {activeTab === "integrations" && <IntegrationsPanel/>}
+            {activeTab === "account"      && <AccountPanel onSignedOut={() => { setAuthContext(""); setAuthUser(null); }}/>}
             {activeTab === "plans" && monetisationEnabled && <PlansPanel user={authUser} onUserChange={setAuthUser}/>}
             {activeTab === "profile"      && <ProfilePanel user={authUser} onOpenJobProfiles={() => handlePanelChange("job-profiles")}/>}
             {activeTab === "job-profiles" && <JobProfilesPanel/>}

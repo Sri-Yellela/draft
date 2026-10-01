@@ -14,7 +14,8 @@ function setupDb() {
     CREATE TABLE users (
       id INTEGER PRIMARY KEY,
       username TEXT NOT NULL,
-      password_hash TEXT NOT NULL
+      password_hash TEXT NOT NULL,
+      password_set INTEGER NOT NULL DEFAULT 0   -- 113: a reset is the user SETTING a password
     );
     CREATE TABLE user_profile (
       user_id INTEGER PRIMARY KEY,
@@ -33,7 +34,7 @@ function setupDb() {
       user_agent TEXT
     );
   `);
-  db.prepare("INSERT INTO users VALUES (?, ?, ?)").run(1, "casey", hashPassword("SecretCase1"));
+  db.prepare("INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)").run(1, "casey", hashPassword("SecretCase1"));
   db.prepare("INSERT INTO user_profile VALUES (?, ?)").run(1, "Casey@example.com");
   return db;
 }
@@ -80,6 +81,7 @@ test("password reset consumes a matching token and OTP once", () => {
   const row = db.prepare("SELECT password_hash FROM users WHERE id=1").get();
   assert.equal(verifyPassword("NewSecret1", row.password_hash), true);
   assert.equal(verifyPassword("newsecret1", row.password_hash), false);
+  assert.equal(db.prepare("SELECT password_set FROM users WHERE id=1").get().password_set, 1);
 
   const reused = consumePasswordReset(db, {
     token: reset.token,

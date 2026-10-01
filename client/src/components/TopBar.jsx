@@ -17,6 +17,7 @@ import { DockPortal } from "./DockPortal.jsx";
 import ProfileSelectorDropdown from "./ProfileSelectorDropdown.jsx";
 import { Z } from "../styles/zLayers.js";
 import { themePreference, setThemePreference } from "../styles/colorTokens.js";
+import { useAccountAvatar } from "../lib/accountAvatar.js";
 
 // The slideDown keyframes and injectKeyframes() were removed with the pill (Y4).
 //
@@ -172,6 +173,7 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
   // avatar — see the badge below.
   const { notifs, unread, load: loadNotifs, markAll } = useNotifications();
   const { themeId, setThemeId, availableThemes } = useTheme();
+  const { url: avatarUrl } = useAccountAvatar(!!user);
   const planTier = user?.planTier || "BASIC";
   const planLabel = planTier === "PRO" ? "Pro" : planTier === "PLUS" ? "Plus" : "Basic";
   const toolLabel = planTier === "PRO" ? "Generate + A+ Resume"
@@ -208,7 +210,11 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
           outlineOffset: 2, transition: "outline 0.15s",
           fontFamily: "'DM Sans',system-ui,sans-serif",
         }}>
-        {(user?.username || "U")[0].toUpperCase()}
+        {/* The account picture (uploaded, else Google's), the initial until there is one. */}
+        {avatarUrl
+          ? <img src={avatarUrl} alt="" referrerPolicy="no-referrer"
+              style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}/>
+          : (user?.username || "U")[0].toUpperCase()}
         {/* The unread count, kept OUTSIDE the menu on purpose. Moving notifications into the
             profile menu is only safe if the fact that there ARE unread ones survives the move —
             otherwise they become invisible until someone happens to open a menu. Same "9+" cap and
@@ -347,6 +353,10 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
                 </button>
               </>
             )}
+            <button onClick={() => { setOpen(false); onTabChange?.("account"); }}
+              style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
+              Account &amp; security
+            </button>
             <button onClick={() => { setOpen(false); onTabChange?.("integrations"); }}
               style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
               Integrations
