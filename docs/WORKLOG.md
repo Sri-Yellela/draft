@@ -36,7 +36,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`6e1837d`** (E1, live 09-29 15:48Z), auto-deploys on push. **232 tests, 232 pass** at that commit; **235** locally after queues 21–22 (G3; G6 re-vendored — not pushed) |
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (OWNER 2) |
 | Resume Master contract | **v1.1.0** (E1, additive; live 09-29), generated; vendored in draft at 1.1.0 (`8472416`). **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
-| Test baseline (draft) | **2857 / 2857 / 0** — measured 10-01 in the working tree after queues 27–29 (+15 deckFan, +9 viewTransitions). 2833 after the mark reached the text-wordmark surfaces. 2831 after queue 24 (+10 R1). 2821 after queue 23 (+10 K1). 2811 after queue 22 (+6 G6). 2805 after queue 21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
+| Test baseline (draft) | **2864 / 2864 / 0** — measured 10-01 in the working tree after queue 30 (+7 signupFirstImpression). 2857 after queues 27–29 (+15 deckFan, +9 viewTransitions). 2833 after the mark reached the text-wordmark surfaces. 2831 after queue 24 (+10 R1). 2821 after queue 23 (+10 K1). 2811 after queue 22 (+6 G6). 2805 after queue 21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
 | Migration high-water | **113** defined (`113_account_management`, local); production applied **112** (`112_users_theme_preference`, 09-30) |
 | Contract | v1.1.1 (mobile) · v1.0.0 (Resume Master, above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
@@ -154,7 +154,7 @@ marked ✅ move to *DONE* at the next tidy; ⏸/⛔ rows are what is left, and w
 | 27 | ⭐ **The deck — the fan, the flip, click-to-expand** | ✅ **10-01, local (one commit with 28 + 29).** Palette FIRST: the deck is NOT dark by design — built after 2b on tokens; "dark" is step 6's dark mode following the OS. Fan built: `lib/fanGeometry.js`, the logo back (`CardBack.jsx`, SVG filter flooded with the ACCENT token — CORS rules out `mask-image`), `--z-bg < --z-fan < --z-content < --z-nav`. **reach fixed: horizontal 800, vertical 1100 (+ vertical zoom 0.86)** — each the edge of a stated constraint. ⛔ **Flip measured, failed, fixed:** framer's JS transforms dropped 13–26% of frames at 4× CPU; moved to compositor CSS → 2.7–4.7%, p95 17 ms. Real-device check = OWNER 35; trademark = OWNER 34. SESSION LOG (7). *Was:* ⏸ Queued 09-30, ✅ **MODEL DECIDED 09-30** after five interactive sketches. `BRAND_OUTLAY_AND_MOTION.md` §"THE DECK — DECIDED". ⛔ **Read the DECIDED section, not the SUPERSEDED one below it** — the file carries both, deliberately. **A fan of full-size cards on a shallow arc, pulled back so the whole dealt stack is in frame.** Front card face-up and square-on, exactly the ~700×380 card that ships today; the rest face-DOWN falling away either side. ⭐ **Two orientations, one model: desktop pivots RIGHT with HORIZONTAL cards; mobile/portrait pivots BELOW with VERTICAL cards.** The pivot and the orientation move together — mixing them is what made the early sketches unreadable, because a narrow card tilted 10° is unreadable while a 700px-wide one is fine. ⭐ **The back carries the COMPANY'S OWN LOGO, blurred, in accent orange** — that is what fixes the fan's fatal flaw, since a blank back meant rotating blind. Logos, never letters. ⛔ Click expands IN PLACE — no second view to route to, so the shared-element transition is free. ⚠ Geometry: zoom ~0.72, spread ~7°, reach ~900px — **`reach` is the parameter that decides whether the arc reads as a circle and cannot be split the difference.** ⚠ Scroll capture is an accessibility cost; the keyboard must do everything scroll does. ⚠ Measure the flip's frame budget on a real mid-range phone | — |
 | 28 | **The deal, and the end-of-deck moment** | ✅ **10-01, local** — the deal (once per DAY: plays only when the server's `dealtNow` says this request dealt; front card arrives face-down, turns up last) and the end as a moment (what you drafted, with logos · what waits for review · "that is it until tomorrow", with the time to the next deal). SESSION LOG (7). *Was:* ⏸ Queued 09-30. Cards dealt one at a time on first view — ⛔ **once per day, not per navigation**, or the signal that today's draft is new means nothing. ⭐ **The end of the deck is a MOMENT, not an empty state**: a board is infinite and you never finish it; a deck has a bottom, and that is the product's only natural ending. What you drafted, what awaits review, and that is it until tomorrow | queue 27 |
 | 29 | ⭐ **Shared-element transitions everywhere** | ✅ **10-01, local** — title morphs deck → board detail → review queue line, and Today → Auto Apply via the tab row. ⛔ **Premise corrected:** RR's `viewTransition` prop is a no-op under this app's `<BrowserRouter>`, and the `flushSync` fix ALSO did nothing (RR 7 commits navigations as React transitions) — a browser probe caught it after source tests passed; the callback now waits for the route's commit (≤ 200 ms cap; measured 73–151 ms in production). Draft flies to the measured counter; Pass drops under the fan by tier; overlay takes no pointer events. SESSION LOG (7). *Was:* ⏸ Queued 09-30. Highest perceived-quality return per unit of work. A job's title on a card **becomes** the heading in detail, **becomes** the line in the queue — same DOM node, no cross-fade, via the View Transitions API. ⛔ Every transition answers *"where did that go?"*: drafting flies the card to the queue indicator and the count moves; passing drops it **under** the fan, because direction encodes finality. ⛔ Neither may gate input — a card mid-flight must not swallow the next decision. ⛔ `prefers-reduced-motion` on every one; the chevron animation already has a test and that is the standard | — |
-| 30 | **Login and signup, reimagined** | ⏸ Queued 09-30. ⛔ It is the first impression and it is currently a form. ⭐ **The deal as the sign-in background** — the product's own motion, not stock animation. ⭐ **A live ATS score as the signup hook**: paste a JD, get a real score, then sign up to keep it — free, deterministic, **zero model calls**, works for an anonymous visitor. Value first, account second. Type that sets once on first paint; paper that shifts with the pointer; the `/` as stepped-signup progress. ⛔ **None of it may delay the form** | — |
+| 30 | **Login and signup, reimagined** | ✅ **10-01, local.** The deal behind the form (the deck's own logo backs, CSS, FAN tier) · type that sets once per page session · paper drifting ≤ 4px with a fine pointer · the `/` filling across the two signup steps · **a real ATS check as the hook** (the public deterministic scorer, a band, zero model calls) whose résumé is CARRIED, in memory only, into the new account's first profile. ⛔ **The form now waits for nothing:** its 200 ms entrance animation is gone — form ready **233–295 ms vs 452–754 ms before** (production, unthrottled); the deal costs it nothing measurable. SESSION LOG (8). *Was:* ⏸ Queued 09-30. ⛔ It is the first impression and it is currently a form. ⭐ **The deal as the sign-in background** — the product's own motion, not stock animation. ⭐ **A live ATS score as the signup hook**: paste a JD, get a real score, then sign up to keep it — free, deterministic, **zero model calls**, works for an anonymous visitor. Value first, account second. Type that sets once on first paint; paper that shifts with the pointer; the `/` as stepped-signup progress. ⛔ **None of it may delay the form** | — |
 | 31 | **The landing page as find → fit → apply** | ⏸ Queued 09-30. ⛔ draft is a **wrapper over several products** and the site advertises one. ⛔ **The failure mode is a feature grid** — six cards saying "ATS Scoring · Resume Generation · Auto Apply" tells a visitor nothing about which is for them. ⭐ **One verb, many surfaces:** the tools are stations along find → fit → apply, introduced where they belong, not in a catalogue. ⛔ Write each as what it does for a person, never as a feature name. ⭐ **The restraint IS the pitch** — *"nothing is submitted until you approve it"* and *"it will not claim anything you did not"* are differentiators, not disclaimers; every competitor sells volume and draft sells not-volume | — |
 
 ---
@@ -466,6 +466,53 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 ## SESSION LOG
 
 Newest first. ⛔ Agents append here rather than creating a new file.
+
+### 2026-10-01 (8) · Agent queue 30 — login and signup as the first impression
+
+Run after 27–29, alone in the tree. Local; nothing pushed. **2864 / 2864 / 0** after (+7).
+
+**What it was:** "Land / your next / role / faster" in four tiles, "Start with the shared jobs console, ATS
+Search, and Simple Apply.", and the form — which itself faded and scaled in over 200 ms.
+
+**What it is** (`AuthScreen.jsx`, `DealBackdrop.jsx`, `SignupAtsHook.jsx`, `lib/signupCarry.js`):
+- **"Ten jobs a day, picked for you."** — the doc's honest sentence for the daily draft — with "Not a search
+  box… **Nothing is sent until you approve it.**" The restraint is in the second line, not a footnote.
+- **The deal behind the form** — the deck's own card backs (company logos in blurred orange), dealt slowly
+  onto a hand-fan, outermost first. aria-hidden, no pointer events, `Z.FAN`, CSS transform/opacity only.
+- **Type that sets once** — letter by letter on the first paint of the page SESSION (a module flag, so
+  /login → /register does not replay it); the h1 carries the sentence as its accessible name. ⚠ Found in
+  the screenshots: inline-block letters let a line break inside a word ("for y / ou." at 390px) — each
+  word is now a no-wrap span.
+- **Paper that reacts** — the leather drifts up to 4px against the pointer; fine pointers only, scaled
+  1.02 so no edge shows, restored on leave.
+- **The `/` as signup progress** — fills a third at step 1, two thirds at step 2.
+- **⭐ The hook** — "Try it before you sign up": a résumé PDF and one posting → the public
+  `/api/standalone/ats` (the board's v4 scorer, free, unlimited, zero model calls — asserted on the route)
+  → a BAND and its blurb, never a number. "Create my account" switches the form to signup. **"Keep it"
+  is literal:** the scored PDF is carried in MEMORY (never browser storage — a résumé must not outlive the
+  tab on a shared computer) and Job Profiles offers it to the first profile without a base résumé, once.
+  ⚠ It needs a profile to exist first; a reload drops it (the safe failure).
+- ⛔ **None of it delays the form.** The entrance animation is removed. Measured on production builds of
+  the OLD and NEW pages (first frame at which the first input exists, fully opaque, untransformed):
+
+| | form ready | after first paint |
+|---|---|---|
+| old, unthrottled | 452–754 ms | +230–410 ms |
+| **new, unthrottled** | **233–295 ms** | **+20–110 ms** |
+| old, 4× CPU | 1030–1303 ms | +570–720 ms |
+| new, 4× CPU | 701–1868 ms (noisy) | +260–900 ms |
+| new 4× with the deal hidden vs shown (5 each) | median 990 vs **882** ms | — the deal costs nothing measurable |
+
+**Verified:** 90 screenshots + 10 videos (`draft-screenshots/auth/`: login, register, step 2, hook scored,
+hook → keep × 1440/1280/820/390 × light/dark × full/reduced; `story-*.webm`). In the desktop video the form
+is fully drawn while the headline is still setting. 8 injected violations, all red (entrance animation
+back, backdrop taking pointer events, deal or drift ignoring reduced motion, headline replaying per
+route, a number in the hook, the résumé in sessionStorage, step 2 losing its slash). ⚠ First injection
+run was VOID — my own over-broad regex was already red, so every case "fired"; fixed and re-run.
+
+**Not done / noticed:** OAuth buttons render only when a provider is configured (unchanged). The footer
+still says "AI-powered resumes for the modern job search" — that is the site's one-product framing, and
+it is row 31's problem.
 
 ### 2026-10-01 (7) · Agent queue 27–29 — the deck's fan, the deal, shared-element transitions
 

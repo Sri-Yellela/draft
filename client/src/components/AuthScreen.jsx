@@ -1,13 +1,16 @@
 // client/src/components/AuthScreen.jsx — Design System v4
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 import { api, setAuthContext } from "../lib/api.js";
 import { StampLogo } from "./StampLogo.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import { Footer } from "./Footer.jsx";
 import { C } from "../styles/colorTokens.js";
+import { Z } from "../styles/zLayers.js";
+import DealBackdrop from "./DealBackdrop.jsx";
+import SignupAtsHook from "./SignupAtsHook.jsx";
 
 // ── AtomEmblem — keep this exported, TopBar imports it ────────
 function tiltedEllipsePath(cx, cy, rx, ry, angleDeg) {
@@ -70,8 +73,28 @@ export function AtomEmblem({ size = 120, textSize = 8.5, orbitSize = 28 }) {
   );
 }
 
+// ── The slash as the signup's progress (queue 30) ─────────────
+// Brand as instrumentation: the mark's own "/" fills as the steps advance — a third at step 1, two
+// thirds at step 2 (the account is created on step 2's submit, which is the last third).
+function SlashSteps({ step, of }) {
+  const p = step / (of + 1);
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:2 }}
+      role="img" aria-label={`Step ${step} of ${of}`}>
+      <svg width="22" height="22" viewBox="0 0 30 30" aria-hidden="true">
+        <line x1="8" y1="26" x2="22" y2="4" stroke={C.BORDER_STRONG} strokeWidth="5" strokeLinecap="round"/>
+        <line x1="8" y1="26" x2={8 + 14 * p} y2={26 - 22 * p} stroke={C.ACCENT_INK} strokeWidth="5" strokeLinecap="round"
+          style={{ transition:"all 320ms cubic-bezier(.2,.8,.2,1)" }}/>
+      </svg>
+      <span style={{ fontSize:11, color:C.INK_FAINT, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em" }}>
+        Step {step} of {of}
+      </span>
+    </div>
+  );
+}
+
 // ── Auth modal ────────────────────────────────────────────────
-function AuthModal({ onLogin, initialTab = "login" }) {
+function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
   const { theme } = useTheme();
   const [tab,     setTab]   = useState(initialTab);
   const [regStep, setRegStep] = useState(1);
@@ -87,6 +110,11 @@ function AuthModal({ onLogin, initialTab = "login" }) {
   const [error,   setError]   = useState("");
   const [notice,  setNotice]  = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!registerRequest) return;
+    setTab("register"); setRegStep(1); setError(""); setNotice("");
+  }, [registerRequest]);
 
   const oauthLabel = provider =>
     provider === "linkedin" ? "LinkedIn" : provider === "github" ? "GitHub" : "Google";
@@ -230,10 +258,11 @@ function AuthModal({ onLogin, initialTab = "login" }) {
   };
 
   return (
-    <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }}
-      transition={{ duration:0.2 }}
-      className="liquid-panel"
-      style={{ borderRadius:24, padding:36, width:"100%", maxWidth:400 }}>
+    // ⛔ No entrance animation: it was a 200 ms fade-and-scale, and a sign-in page that makes someone
+    // wait for an animation is a worse sign-in page. The form is usable on the first paint.
+    <div data-auth-form className="liquid-panel"
+      style={{ borderRadius:24, padding:36, width:"100%", maxWidth:400, boxSizing:"border-box",
+               position:"relative", zIndex:Z.CONTENT, background:C.SURFACE_MENU }}>
 
       {/* Tab switcher */}
       <div style={{ display:"flex", gap:4, marginBottom:28,
@@ -335,10 +364,7 @@ function AuthModal({ onLogin, initialTab = "login" }) {
       ) : regStep === 1 ? (
         /* ── Register step 1: credentials ── */
         <form onSubmit={handleStep1} style={{ display:"flex", flexDirection:"column", gap:12 }}>
-          <div style={{ fontSize:11, color:theme.textDim, fontWeight:600,
-                        textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:2 }}>
-            Step 1 of 2 — Account credentials
-          </div>
+          <SlashSteps step={1} of={2}/>
           <input style={inputStyle} placeholder="Username" value={step1.username}
             onChange={e=>setS1("username",e.target.value)} autoFocus/>
           <input style={inputStyle} placeholder="Password (min 8 chars)" type="password" value={step1.password}
@@ -374,10 +400,7 @@ function AuthModal({ onLogin, initialTab = "login" }) {
       ) : (
         /* ── Register step 2: name + contact ── */
         <form onSubmit={handleRegister} style={{ display:"flex", flexDirection:"column", gap:12 }}>
-          <div style={{ fontSize:11, color:theme.textDim, fontWeight:600,
-                        textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:2 }}>
-            Step 2 of 2 — Your information
-          </div>
+          <SlashSteps step={2} of={2}/>
           <div style={{ display:"flex", gap:8 }}>
             <input style={halfInput} placeholder="First name *" value={step2.first_name}
               onChange={e=>setS2("first_name",e.target.value)} autoFocus/>
@@ -425,84 +448,123 @@ function AuthModal({ onLogin, initialTab = "login" }) {
           </Link>
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
 
-// ── Main AuthScreen ───────────────────────────────────────────
+// ── Main AuthScreen (queue 30: "it is the first impression and it is currently a form") ───────
+//
+// docs/BRAND_OUTLAY_AND_MOTION.md §Login and signup. Motion that is the product's own, and ⛔ NONE OF
+// IT MAY DELAY THE FORM — it is behind, around and after, never in front:
+//   · the deal behind the form (DealBackdrop): the deck's own card backs, dealt slowly
+//   · type that sets ONCE, on the first paint of the page session — one gesture, then stillness
+//   · paper that shifts, almost imperceptibly, with the pointer — a suggestion the surface is physical
+//   · the "/" as the signup's progress (SlashSteps)
+//   · a real ATS check as the signup hook (SignupAtsHook): value first, account second
+// ⛔ prefers-reduced-motion stops every one of them; the page is then simply still.
+
+const HEADLINE = "Ten jobs a day, picked for you.";
+let headlineSet = false;   // module-level: the type sets once per page session, not per route change
+
+function SetOnceHeading({ size }) {
+  const [animate] = useState(() => { const first = !headlineSet; headlineSet = true; return first; });
+  return (
+    <h1 aria-label={HEADLINE} data-set-once={animate ? "playing" : "set"}
+      style={{ fontFamily:"var(--font-display)", fontWeight:400, fontSize:size, lineHeight:1.02, letterSpacing:"-0.01em",
+               color:C.INK, margin:0, maxWidth:560 }}>
+      <style>{`
+        @keyframes draft-type-set { from { opacity:0; transform:translate3d(0, 0.18em, 0); } }
+        [data-set-once="playing"] span[data-ch] { display:inline-block; animation:draft-type-set 420ms cubic-bezier(.2,.8,.2,1) both; }
+        @media (prefers-reduced-motion: reduce) { [data-set-once="playing"] span[data-ch] { animation:none; } }
+      `}</style>
+      {animate
+        ? HEADLINE.split(" ").flatMap((word, wi, words) => {
+            // Words never break inside: letters are inline-blocks, and a line may break between any two.
+            const before = words.slice(0, wi).join(" ").length + (wi ? 1 : 0);
+            const el = (
+              <span key={wi} aria-hidden="true" style={{ whiteSpace:"nowrap" }}>
+                {[...word].map((ch, ci) => <span key={ci} data-ch style={{ animationDelay:`${(before + ci) * 16}ms` }}>{ch}</span>)}
+              </span>
+            );
+            return wi < words.length - 1 ? [el, " "] : [el];
+          })
+        : HEADLINE}
+    </h1>
+  );
+}
+
+// Paper that reacts: the substrate drifts a few pixels against the pointer. Fine pointers only (a
+// finger has no hover position), never under reduced motion, and the substrate is put back on leave.
+function usePaperDrift(reduced) {
+  useEffect(() => {
+    if (reduced || typeof window === "undefined" || !window.matchMedia?.("(pointer: fine)")?.matches) return;
+    const el = document.querySelector('[data-substrate="paper"]');
+    if (!el) return;
+    const prev = { transform: el.style.transform, transition: el.style.transition };
+    el.style.transition = "transform 900ms cubic-bezier(.2,.8,.2,1)";
+    let raf = 0;
+    const onMove = (e) => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const dx = (e.clientX / window.innerWidth - 0.5) * -8;
+        const dy = (e.clientY / window.innerHeight - 0.5) * -8;
+        // scale(1.02) so the drift never uncovers an edge of the fixed layer
+        el.style.transform = `translate3d(${dx.toFixed(1)}px, ${dy.toFixed(1)}px, 0) scale(1.02)`;
+      });
+    };
+    window.addEventListener("pointermove", onMove, { passive:true });
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      cancelAnimationFrame(raf);
+      el.style.transform = prev.transform;
+      el.style.transition = prev.transition;
+    };
+  }, [reduced]);
+}
+
 export default function AuthScreen({ onLogin, initialTab = "login" }) {
-  const { theme } = useTheme();
-  const { mode: vpMode } = useViewport();
-  const isMobile = vpMode === "mobile" || vpMode === "tablet";
+  const { w } = useViewport();
+  const reduced = useReducedMotion();
+  const wide = w >= 980;
+  const [registerRequest, setRegisterRequest] = useState(0);
+  const formRef = useRef(null);
+  usePaperDrift(reduced);
+
+  const keep = () => {
+    setRegisterRequest(n => n + 1);
+    formRef.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block:"center" });
+  };
+
+  const intro = (
+    <div style={{ display:"flex", flexDirection:"column", gap:16, maxWidth:560 }}>
+      <StampLogo size={wide ? "lg" : "md"} />
+      <SetOnceHeading size={wide ? "clamp(48px, 5.4vw, 76px)" : "clamp(38px, 10vw, 52px)"} />
+      <p style={{ fontSize: wide ? 17 : 15, color:C.INK_MUTED, lineHeight:1.55, margin:0, maxWidth:470 }}>
+        Not a search box. Every job on the board is read against your résumé, and the best ten are
+        dealt to you each morning. <strong style={{ color:C.INK }}>Nothing is sent until you approve it.</strong>
+      </p>
+    </div>
+  );
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", minHeight:"100vh" }}>
-      {/* Main content area — 1-column centered */}
-      <div style={{ display:"flex", flexDirection:"column", flex:1,
-                    fontFamily:"'DM Sans',system-ui,sans-serif" }}>
-
-        {/* Centered content column */}
-        <div style={{ flex:"1 1 auto",
-                      display:"flex", flexDirection:"column",
-                      alignItems:"center", justifyContent:"center",
-                      padding: isMobile ? "32px 24px" : "40px 24px",
-                      overflowY:"auto" }}>
-          {/* Logo */}
-          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom: isMobile ? 28 : 48 }}>
-            <StampLogo size={isMobile ? "md" : "lg"} />
-          </div>
-
-          {/* Hero tiles — editorial style */}
-          <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom: isMobile ? 20 : 32 }}>
-            {/* Row 1 */}
-            <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
-              <div style={{
-                padding:"14px 28px", borderRadius:14,
-                background:"var(--bg-card)", backdropFilter:"var(--bg-blur-sm)",
-                WebkitBackdropFilter:"var(--bg-blur-sm)",
-                border:"1.5px solid var(--border-glass)",
-                fontSize:"clamp(36px,4.5vw,60px)", fontWeight:900,
-                letterSpacing:"-3px", color:theme.text, lineHeight:1,
-              }}>Land</div>
-              <div style={{
-                padding:"14px 28px", borderRadius:999,
-                background:theme.gradAccent,
-                fontSize:"clamp(36px,4.5vw,60px)", fontWeight:900,
-                letterSpacing:"-3px", color:"var(--c-on-accent)", lineHeight:1,
-              }}>your next</div>
-            </div>
-            {/* Row 2 */}
-            <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
-              <div style={{
-                padding:"14px 28px", borderRadius:14,
-                background:"var(--bg-card)", backdropFilter:"var(--bg-blur-sm)",
-                WebkitBackdropFilter:"var(--bg-blur-sm)",
-                border:"1.5px solid var(--border-glass)",
-                fontSize:"clamp(36px,4.5vw,60px)", fontWeight:900,
-                letterSpacing:"-3px", color:theme.text, lineHeight:1,
-              }}>role</div>
-              <div style={{
-                padding:"14px 28px", borderRadius:14,
-                background:"var(--bg-card)", backdropFilter:"var(--bg-blur-sm)",
-                WebkitBackdropFilter:"var(--bg-blur-sm)",
-                border:"1.5px solid var(--border-glass)",
-                fontSize:"clamp(36px,4.5vw,60px)", fontWeight:900,
-                letterSpacing:"-3px", color:theme.text, lineHeight:1,
-              }}>faster</div>
-            </div>
-          </div>
-
-          {/* Subtitle */}
-          <p style={{ fontSize: isMobile ? 13 : 15, color:theme.textMuted, lineHeight:1.6,
-                      marginBottom: isMobile ? 24 : 36, maxWidth:420, textAlign:"center" }}>
-            Start with the shared jobs console, ATS Search, and Simple Apply.
-          </p>
-
-          {/* Auth modal */}
-          <AuthModal onLogin={onLogin} initialTab={initialTab}/>
+    <div style={{ display:"flex", flexDirection:"column", minHeight:"100vh", position:"relative", isolation:"isolate",
+                  fontFamily:"'DM Sans',system-ui,sans-serif" }}>
+      <DealBackdrop compact={!wide} />
+      <main style={{ flex:"1 1 auto", position:"relative", zIndex:Z.CONTENT, width:"100%", maxWidth:1180, margin:"0 auto",
+                     boxSizing:"border-box", padding: wide ? "64px 40px 56px" : "28px 16px 40px",
+                     display:"grid", gap: wide ? 48 : 24, alignItems:"start",
+                     gridTemplateColumns: wide ? "minmax(0, 1fr) 400px" : "minmax(0, 1fr)" }}>
+        {/* Narrow: the form comes straight after the headline — the hook follows it, never in front. */}
+        <div style={{ display:"flex", flexDirection:"column", gap:28 }}>
+          {intro}
+          {wide && <SignupAtsHook onKeep={keep} />}
         </div>
-      </div>
-      <Footer/>
+        <div ref={formRef} style={{ display:"flex", justifyContent:"center" }}>
+          <AuthModal onLogin={onLogin} initialTab={initialTab} registerRequest={registerRequest}/>
+        </div>
+        {!wide && <SignupAtsHook onKeep={keep} />}
+      </main>
+      <div style={{ position:"relative", zIndex:Z.CONTENT }}><Footer/></div>
     </div>
   );
 }

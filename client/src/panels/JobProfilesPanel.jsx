@@ -8,6 +8,7 @@ import DomainProfileWizard from "../components/DomainProfileWizard.jsx";
 // renders it. Extraction, not duplication — see the note at the top of TileCard.jsx.
 import { TileGrid, TileCard, TilePill } from "../components/ui/TileCard.jsx";
 import { C } from "../styles/colorTokens.js";
+import { carriedResume, dropCarriedResume } from "../lib/signupCarry.js";
 
 export function JobProfilesPanel() {
   const { theme } = useTheme();
@@ -17,6 +18,7 @@ export function JobProfilesPanel() {
   const [wizardMode, setWizardMode] = useState(null);
   const [editingProfile, setEditingProfile] = useState(null);
   const [uploadingProfileId, setUploadingProfileId] = useState(null);
+  const [carried, setCarried] = useState(() => carriedResume());
 
   const parseResumeFile = async (file) => {
     const ext = file.name.split(".").pop().toLowerCase();
@@ -196,6 +198,23 @@ export function JobProfilesPanel() {
           </div>
         )}
 
+        {/* "Sign up to keep it" (queue 30): the résumé this visitor scored on the signup page, carried
+            in memory into the new account. Offered once; it never touches browser storage. */}
+        {carried && (
+          <div data-carried-resume style={{ marginBottom:14, padding:"12px 14px", borderRadius:12, background:C.ACCENT_QUIET,
+                                            color:C.INK, fontSize:13, lineHeight:1.5, display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
+            <span style={{ flex:1, minWidth:220 }}>
+              <strong>{carried.file.name}</strong> — the résumé you checked before signing up.{" "}
+              {profiles.some(p => !p.has_base_resume)
+                ? "Use it as a profile's base résumé below."
+                : "Add a profile and it will be offered as that profile's base résumé."}
+            </span>
+            <button type="button" className="rm-btn rm-btn-sm" onClick={() => { dropCarriedResume(); setCarried(null); }}>
+              Not this one
+            </button>
+          </div>
+        )}
+
         {/* The card idiom this panel established now lives in components/ui/TileCard.jsx, and this
             panel renders it (AC3 requirement 1: reuse the primitive, do not clone it into a second
             implementation). The markup was lifted out and parameterised, not rebuilt — every value
@@ -230,6 +249,13 @@ export function JobProfilesPanel() {
                             : "ATS scoring, new scrapes, and enhancement are blocked for this profile"}
                         </div>
                       </div>
+                      {carried && !profile.has_base_resume && uploadingProfileId !== profile.id && (
+                        <button type="button" className="rm-btn rm-btn-sm rm-btn-primary" style={{ margin:0 }}
+                          onClick={() => { const file = carried.file; dropCarriedResume(); setCarried(null);
+                                           uploadProfileResume(profile, { target: { files: [file], value: "" } }); }}>
+                          Use {carried.file.name}
+                        </button>
+                      )}
                       <label className="rm-btn rm-btn-sm" style={{ cursor:"pointer", margin:0 }}>
                         {uploadingProfileId === profile.id
                           ? "Parsing..."
