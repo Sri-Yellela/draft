@@ -71,7 +71,9 @@ import { resolveSponsorshipNeed } from "./services/applyAutomation.js";
 import { readAnswerStore, effectiveCustomAnswers } from "./services/customAnswers.js";
 import { hashPassword, verifyPassword, validatePassword } from "./services/authSecurity.js";
 import { createPasswordReset, consumePasswordReset, findUserForPasswordReset } from "./services/passwordResetService.js";
-import { sendPasswordResetEmail } from "./services/emailService.js";
+import { sendPasswordResetEmail, emailConfigured } from "./services/emailService.js";
+import { EncryptedSessionStore } from "./services/encryptedSessionStore.js";
+import { rejectCrossSiteWrites } from "./services/originGuard.js";
 import { allowedModesForTier, canUseAPlusResume, canUseGenerate, canUseMode, hasPlanAtLeast, nextPlan, normalisePlanTier, planForMode } from "./services/entitlements.js";
 import { monetisationEnabledFromEnv } from "./shared/monetisation.js";
 import { fullAutoState, setSetting, clearSetting, FULL_AUTO_KEY } from "./services/appSettings.js";
@@ -222,9 +224,10 @@ const MAX_JOBS_PER_REFRESH= 50;
 // The key that seals stored integration secrets — services/secretBox.js. ⛔ Production refuses to
 // boot without a valid one, as it does without SESSION_SECRET: until 09-30 an unset key silently
 // became a random per-boot key, and production ran that way.
-let SECRET_BOX;
+let SECRET_BOX, SECRET_KEY;
 try {
   const { key, source } = loadSecretKey(process.env, { isProduction: IS_PRODUCTION });
+  SECRET_KEY = key;
   SECRET_BOX = createSecretBox(key);
   console.log(`[boot] secret key: ${source === "env" ? "configured" : "EPHEMERAL (development)"}`);
 } catch (e) {
@@ -5152,7 +5155,9 @@ function buildAutofillPayload(profile, mode, company = null) {
 const SQLiteStore = SQLiteStoreFactory(session);
 // Same DATA_DIR as the main database: a throwaway boot must not share the real sessions.db, or the
 // session-revocation assertions would be destroying the developer's own sessions.
-const SStore = new SQLiteStore({ db:"sessions.db", dir:DATA_DIR });
+// Sessions are SEALED at rest (services/encryptedSessionStore.js): AES-256-GCM under a key derived
+// from COOKIE_ENCRYPTION_KEY. Plain rows written before this still read, and are resealed on write.
+const SStore = new EncryptedSessionStore(new SQLiteStore({ db:"sessions.db", dir:DATA_DIR }), SECRET_KEY);
 
 passport.use(new LocalStrategy((username, password, done) => {
   const login = String(username || "").trim();
@@ -6441,6 +6446,12 @@ app.use(cors({ origin:corsOrigin, credentials:true }));
 app.use(express.json({ limit:"4mb" }));
 // TODO: reduce cookie maxAge to 30 min + implement sliding renewal
 // once useInactivityLogout (30-min idle) is deployed on the client.
+// ⛔ SameSite=LAX (09-30). Production sent "none", so the browser attached the session cookie to
+// requests from ANY site — the precondition for cross-site request forgery. "none" is only needed
+// when the frontend is served from a different origin than the API, and here it is not (the server
+// serves the client). The extension authenticates with a header token (extension/auth.js), not the
+// cookie, except one GET for that token. The Origin check below is the second layer.
+const SESSION_SAMESITE = IS_PRODUCTION && CROSS_ORIGIN_FRONTEND ? "none" : "lax";
 app.use(session({
   store: SStore,
   secret:SESSION_SECRET, resave:false, saveUninitialized:false,
@@ -6450,13 +6461,19 @@ app.use(session({
   cookie:{
     httpOnly:true,
     secure:process.env.NODE_ENV === "production",
-    sameSite:process.env.NODE_ENV === "production" ? "none" : "lax",
+    sameSite:SESSION_SAMESITE,
     maxAge:7*24*60*60*1000,
   },
 }));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(bindAuthContext);
+// ⛔ CROSS-SITE REQUEST FORGERY, refused at the door (09-30). A state-changing request that carries
+// an Origin (or, failing that, a Referer) from anywhere but this site is a 403. Exempt: requests
+// authenticated by a HEADER token (the extension, mobile) — a forged cross-site request cannot set
+// one — and server-to-server calls, which send no Origin. Browsers always send Origin on a
+// cross-origin POST, so the attack cannot simply omit it.
+app.use(rejectCrossSiteWrites({ allowedOrigins: ALLOWED_CORS_ORIGINS, hasHeaderToken: (req) => !!getRequestAuthContextToken(req) }));
 
 const CLIENT_DIST = path.join(__dirname,"client","dist");
 app.use(express.static(CLIENT_DIST));
@@ -6717,6 +6734,12 @@ app.post("/api/auth/provider/:provider", async (req, res, next) => {
 });
 
 app.post("/api/auth/password-reset/request", async (req, res) => {
+  // No email provider means no reset email can be sent — so say so, for EVERY request. It is a fact
+  // about the deployment, not about any account, so it discloses nothing. (It used to say "sent".)
+  if (!emailConfigured()) {
+    return res.status(503).json({ error: "email_unconfigured",
+      message: "Password reset by email isn't available yet. Contact support to reset your password." });
+  }
   const email = String(req.body?.email || "").trim();
   const generic = {
     ok: true,
@@ -6808,7 +6831,7 @@ app.post("/api/auth/logout", (req, res) => {
       res.clearCookie("connect.sid", {
         httpOnly:true,
         secure:process.env.NODE_ENV === "production",
-        sameSite:process.env.NODE_ENV === "production" ? "none" : "lax",
+        sameSite:SESSION_SAMESITE,
       });
       res.json({ ok:true, scope:"browser" });
     });
