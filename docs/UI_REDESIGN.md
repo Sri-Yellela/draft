@@ -583,3 +583,26 @@ to the OS. The logo (`StampLogo`) does not recolour — it is artwork (its PERMA
 
 **Open, owner:** the four §3.0 proposals. Nothing in 3a–3b depends on the answers beyond
 `DECK_SIZE` and the band filter, both one constant each.
+
+---
+
+## Steps 3–6 status — BUILT (2026-09-30, local, not pushed)
+
+The owner confirmed the §3.0 proposals (09-30) and, looking at the board, said it felt "very
+mundane … like something from 2012", the leather should be "C or D … crisp", and "the glossy effect
+can be more apparent". In order:
+
+| | Commit | What |
+|---|---|---|
+| Grain + glass | `3f448e7` | Bench C exactly; the floor token moved for it (`CANVAS_SHADE` → `#DFD6C9`) and every pair re-proved (`WARNING` darkened). `styles/glass.js`: a lit glass material — specular top edge, upper-left sheen, a body clearer at the bottom, rim and underside, a warm resting shadow. Found: the board sat on `theme.bg`, which is the GLASS token, so the listing was a 58% cream sheet over the leather |
+| 3a | `be26aa7` | Migration 111 `daily_drafts`; the deal service; the board handler became `boardPageResponse` so the deal uses the board's own query |
+| 3b | `4a139af` `9464bae` | `GET /api/draft/today`; contract 1.2.0; the deck surface may not send any `approvalMode`; frozen evidence ("why") per card |
+| 3c/3d/4 | `be8833a` | `DeckView` — Today's draft; keys, web swipe, the stack, the stamps, the fly-outs, the slash; one `MotionConfig`; `/app` → Today |
+| 5b | draft-android `f7fdc2c` | Android's Jobs tab is Today on the same deal; right is a server Draft; two gestures only |
+| 6 | `6788a8e` | Dark mode — both palettes proved; the leather per theme with the floor inverted |
+
+**Deviations from the design, recorded:** the theme preference is per DEVICE (local storage), not
+stored with the account; Android keeps its earlier Material look (no leather/glass, no dark theme);
+a deck transition test is a reducer test plus a reduced-motion screenshot, not a rendered-DOM test
+(the client has no DOM test harness). Screenshots: `C:\Users\duggi\WebstormProjects\draft-screenshots\`
+(`deck/`, `dark/`, `gloss/`, `grain/`, `android/`).
