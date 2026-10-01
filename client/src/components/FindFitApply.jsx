@@ -9,8 +9,11 @@
 // ⭐ ONE VERB, MANY SURFACES. Every tool is a station on one line, introduced where it belongs, and
 // ⛔ written as what it does for a person — never a feature name. A visitor scrolling walks the line
 // once and each stop lights as it is reached.
-// ⭐ THE RESTRAINT IS THE PITCH: "nothing is submitted until you approve it" and "it will not claim
-// anything you did not" are stated as differentiators, in the page's largest type after the hero.
+// ⭐ THE RESTRAINT IS THE PITCH: "nothing is submitted until you approve it" and the guard on your
+// years and seniority are stated as differentiators, in the page's largest type after the hero.
+// ⛔ NOT "it will not claim anything you did not" (OWNER 36, 10-01): false today — two of two real
+// generations added unstated material, and the claim guard enforces years and seniority only. Restore
+// the stronger line when G1 is closed, not before.
 // ⛔ Only what a visitor can use today is offered as a link. Grading a posting (R1) has no public route
 // and the connectors have no public token policy (OWNER 16c), so the recruiter line says "soon".
 // ⛔ Motion: the line draws as you scroll — IntersectionObserver + CSS transitions; content is VISIBLE
@@ -35,7 +38,7 @@ export const STATIONS = [
     line: "See what a machine sees in your résumé, then shape it for one posting — honestly.",
     surfaces: [
       { name: "The ATS check", say: "What an applicant-tracking system sees in your résumé before a human does. Free, no account.", to: "/tools/ats", cta: "Check a résumé" },
-      { name: "Tailoring", say: "One résumé, shaped for one posting — and it will not claim anything you did not." },
+      { name: "Tailoring", say: "One résumé, shaped for one posting — it will not inflate your years or seniority, and you read it before anything is sent." },
     ],
   },
   {
@@ -50,7 +53,7 @@ export const STATIONS = [
 
 export const PROMISES = [
   "Nothing is submitted until you approve it.",
-  "It will not claim anything you did not.",
+  "It will not inflate your years or seniority — and you read every draft before anything is sent.",
 ];
 
 function useReached(count, reduced) {

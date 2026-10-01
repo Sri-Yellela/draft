@@ -38,7 +38,9 @@ test("⛔ each tool is written as what it does for a PERSON, never a feature nam
 
 test("⭐ the restraint IS the pitch — both promises, in display type, not small print", () => {
   assert.match(ffa, /"Nothing is submitted until you approve it\."/);
-  assert.match(ffa, /"It will not claim anything you did not\."/);
+  assert.match(ffa, /"It will not inflate your years or seniority — and you read every draft before anything is sent\."/);
+  // ⛔ OWNER 36: the stronger promise is false while generation can add unstated material (G1).
+  assert.doesNotMatch(ffa, /not claim anything you did not/i, "a public promise the product breaks");
   assert.match(ffa, /PROMISES\.map\(p => \(\s*<p key=\{p\} style=\{\{ fontFamily: "var\(--font-display\)"/);
 });
 
