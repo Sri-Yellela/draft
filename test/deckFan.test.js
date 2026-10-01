@@ -142,7 +142,7 @@ test("⭐ the flip and the rotation are compositor-only: transform and opacity, 
 
 test("⛔ expansion is the detail: the posting opens INSIDE the card, and Draft never sends a review-less run", () => {
   assert.doesNotMatch(deckSrc, /<Detail\b/, "a separate detail block under the card");
-  assert.match(deckSrc, /isFront && expanded && \(\s*<motion\.section id="deck-detail"/);
+  assert.match(deckSrc, /isFront && expanded && detail === "inline" && \(\s*<motion\.section id="deck-detail"/);
   assert.match(deckSrc, /aria-expanded=\{expanded\}/);
   assert.doesNotMatch(deckSrc, /approvalMode/);
 });
