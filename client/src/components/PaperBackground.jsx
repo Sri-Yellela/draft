@@ -1,4 +1,5 @@
-import { C } from "../styles/colorTokens.js";
+import { C, THEME } from "../styles/colorTokens.js";
+import { PAPER } from "../styles/paper.js";
 
 /**
  * The paper substrate. Replaces CinematicBackground — a looping night-sky video with a navy
@@ -31,12 +32,13 @@ import { C } from "../styles/colorTokens.js";
  * nothing for prefers-reduced-motion to suppress and nothing to pause on a hidden tab.
  */
 const TILE = 320;
-const MATRIX_GAIN = 2.2;
-const MATRIX_BIAS = 0.85;
-export const GRAIN_OPACITY = 0.12;
-export const FIBRE_OPACITY = 0;   // off: the owner's pick (bench C) had no fibre mottle
-export const SHEEN_OPACITY = 0.55;
-export const MATRIX_ALPHA_MAX = Math.min(1, MATRIX_GAIN - MATRIX_BIAS);
+// The numbers live in styles/paper.js, per theme (step 6), so the floor test can prove each one.
+const P = PAPER[THEME] || PAPER.light;
+const MATRIX_GAIN = P.gain;
+const MATRIX_BIAS = P.bias;
+export const GRAIN_OPACITY = P.grain;
+export const FIBRE_OPACITY = P.fibre;
+export const SHEEN_OPACITY = P.sheen;
 
 const rgb01 = (hex) => [1, 3, 5].map((i) => (parseInt(hex.slice(i, i + 2), 16) / 255).toFixed(3));
 
@@ -45,7 +47,7 @@ function grainUri() {
   const svg =
     `<svg xmlns='http://www.w3.org/2000/svg' width='${TILE}' height='${TILE}'>` +
     `<filter id='g' x='0' y='0' width='100%' height='100%'>` +
-    `<feTurbulence type='fractalNoise' baseFrequency='0.34' numOctaves='2' stitchTiles='stitch'/>` +
+    `<feTurbulence type='fractalNoise' baseFrequency='${P.freq}' numOctaves='${P.octaves}' stitchTiles='stitch'/>` +
     `<feColorMatrix type='matrix' values='0 0 0 0 ${r}  0 0 0 0 ${g}  0 0 0 0 ${b}  ${MATRIX_GAIN} 0 0 0 -${MATRIX_BIAS}'/>` +
     `</filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`;
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
@@ -64,13 +66,15 @@ function fibreUri() {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
-// The pebble's lit side: the same frequency as the grain, in white, on another seed.
+// The pebble's lit side: the same frequency as the grain, in SHEEN_TINT (white on cream, a warm
+// grey on charcoal), on another seed.
 function sheenUri() {
+  const [r, g, b] = rgb01(C.SHEEN_TINT);
   const svg =
     `<svg xmlns='http://www.w3.org/2000/svg' width='${TILE}' height='${TILE}'>` +
     `<filter id='s' x='0' y='0' width='100%' height='100%'>` +
-    `<feTurbulence type='fractalNoise' baseFrequency='0.34' numOctaves='2' seed='23' stitchTiles='stitch'/>` +
-    `<feColorMatrix type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  ${MATRIX_GAIN} 0 0 0 -${MATRIX_BIAS}'/>` +
+    `<feTurbulence type='fractalNoise' baseFrequency='${P.freq}' numOctaves='${P.octaves}' seed='23' stitchTiles='stitch'/>` +
+    `<feColorMatrix type='matrix' values='0 0 0 0 ${r}  0 0 0 0 ${g}  0 0 0 0 ${b}  ${MATRIX_GAIN} 0 0 0 -${MATRIX_BIAS}'/>` +
     `</filter><rect width='100%' height='100%' filter='url(#s)'/></svg>`;
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }

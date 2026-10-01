@@ -29,7 +29,7 @@
 // `${theme.border}44` / `${theme.accent}22`, which is valid only on a 6-digit hex. Translucent
 // tokens are therefore separate, named, and already carry their alpha.
 
-export const C = {
+export const C_LIGHT = {
   // ── CANVAS — the paper. The substrate everything sits on. ─────────────────────────────────
   CANVAS:        "#F3ECE0",   // cream paper, the logo's ground
   // The DARKEST tone the grain can produce. Not painted anywhere: it is the worst case that every
@@ -40,6 +40,7 @@ export const C = {
   // (WARNING #8F5200 → #855000). The floor follows the substrate, never the reverse.
   CANVAS_SHADE:  "#DFD6C9",
   GRAIN:         "#5A4632",   // the fibre tone the noise is tinted with (drawn at low alpha)
+  SHEEN_TINT:    "#FFFFFF",   // the lit side of each pebble (PaperBackground's sheen layer)
 
   // ── SURFACE — glass over the paper. Cards, panels, the dock. ──────────────────────────────
   SURFACE_TINT:  "#FFFBF5",   // the glass's colour; drawn at the alphas below
@@ -141,6 +142,103 @@ export const C = {
   SHADOW_GLASS_HOVER: "0 2px 2px rgba(60,40,20,0.06), 0 22px 40px -14px rgba(90,55,25,0.36)",
 };
 
+// ── DARK (UI step 6, 09-30) — the same keys, re-pointed ────────────────────────────────────────
+//
+// docs/UI_REDESIGN.md §Step 6. Not black: warm charcoal leather, with the same pebble generator. ⛔
+// The floor INVERTS: text here is light, so the worst case is the LIGHTEST substrate pixel — the
+// sheen — and CANVAS_SHADE names that tone in this theme. Every CONTRAST_PAIRS entry is proved
+// against both themes (test/colorTokens.test.js). The orange is ~5:1 on charcoal, so here ACCENT_INK
+// is a LIGHTER orange for text; ON_ACCENT stays ink on the fill. Provider colours are their owners'.
+export const C_DARK = {
+  CANVAS:              "#1C1815",
+  CANVAS_SHADE:        "#2C2621",
+  GRAIN:               "#050403",
+  SHEEN_TINT:          "#8C7A66",
+  SURFACE_TINT:        "#2A2420",
+  SURFACE:             "rgba(46,39,34,0.62)",
+  SURFACE_2:           "rgba(52,44,38,0.78)",
+  SURFACE_MENU:        "rgba(34,29,25,0.97)",
+  SURFACE_MODAL:       "rgba(34,29,25,0.98)",
+  SURFACE_INPUT:       "rgba(255,240,225,0.06)",
+  SURFACE_SOLID:       "#26201C",
+  HOVER:               "rgba(255,240,225,0.07)",
+  SCRIM:               "rgba(0,0,0,0.55)",
+  GLASS_EDGE:          "rgba(255,240,225,0.12)",
+  GLASS_HIGHLIGHT:     "rgba(255,240,225,0.10)",
+  GLASS_SPECULAR:      "rgba(255,240,225,0.22)",
+  GLASS_SHEEN:         "rgba(255,240,225,0.07)",
+  GLASS_BODY_TOP:      "rgba(58,49,42,0.74)",
+  GLASS_BODY:          "rgba(38,32,28,0.50)",
+  GLASS_RIM:           "rgba(255,240,225,0.11)",
+  GLASS_UNDERSIDE:     "rgba(0,0,0,0.40)",
+  INK:                 "#F2EADF",
+  INK_MUTED:           "#CFC2B3",
+  INK_FAINT:           "#ADA090",
+  BORDER:              "#3B332C",
+  BORDER_STRONG:       "#53483F",
+  BORDER_CONTROL:      "#8E8072",
+  ACCENT:              "#FD4600",
+  ACCENT_HOVER:        "#FF6424",
+  ON_ACCENT:           "#1E1915",
+  ACCENT_INK:          "#FF7D4A",
+  ACCENT_QUIET:        "#3D2519",
+  SUCCESS:             "#5FCB8C",
+  SUCCESS_QUIET:       "#163120",
+  WARNING:             "#E6AA4E",
+  WARNING_QUIET:       "#35280F",
+  DANGER:              "#F27F72",
+  DANGER_QUIET:        "#3B1C18",
+  INFO:                "#7BB4EA",
+  INFO_QUIET:          "#15263A",
+  VIOLET:              "#BCA2F0",
+  VIOLET_QUIET:        "#2B2142",
+  TEAL:                "#62C5D1",
+  BAND_STRONG:         "#72D59D",
+  BAND_STRONG_QUIET:   "#173423",
+  BAND_MODERATE:       "#EAB95E",
+  BAND_MODERATE_QUIET: "#362913",
+  BAND_WEAK:           "#F48F83",
+  BAND_WEAK_QUIET:     "#3D1D19",
+  BAND_UNKNOWN:        "#CFC2B3",
+  BAND_UNKNOWN_EDGE:   "#8E8072",
+  PROVIDER_LINKEDIN:   "#0A66C2",
+  PROVIDER_GITHUB:     "#24292E",
+  PROVIDER_GOOGLE:     "#1A73E8",
+  PROVIDER_INDEED:     "#003A9B",
+  ON_PROVIDER:         "#FFFFFF",
+  SHADOW_SM:           "0 1px 2px rgba(0,0,0,0.35), 0 1px 1px rgba(0,0,0,0.25)",
+  SHADOW_MD:           "0 4px 12px rgba(0,0,0,0.40), 0 2px 4px rgba(0,0,0,0.30)",
+  SHADOW_LG:           "0 18px 40px rgba(0,0,0,0.50), 0 6px 14px rgba(0,0,0,0.35)",
+  SHADOW_XL:           "0 36px 80px rgba(0,0,0,0.60), 0 14px 30px rgba(0,0,0,0.40)",
+  SHADOW_GLASS:        "0 1px 1px rgba(0,0,0,0.30), 0 14px 30px -10px rgba(0,0,0,0.65)",
+  SHADOW_GLASS_HOVER:  "0 2px 2px rgba(0,0,0,0.35), 0 24px 44px -14px rgba(0,0,0,0.75)",
+};
+
+// ── Which palette is live ─────────────────────────────────────────────────────────────────────
+//
+// RESOLVED ONCE, AT LOAD. Step 2b made 549 literals into C.TOKEN values read inline at render, and
+// several modules capture a token in a module-level constant, so swapping values live would leave
+// half the app on the old theme. A preference change therefore RELOADS (setThemePreference) and the
+// whole app — inline styles, CSS variables, hex-alpha suffixes — resolves one palette, coherently.
+// The preference is per device ("system" by default, which follows the OS).
+export const THEME_STORAGE_KEY = "draft-theme";
+export const THEME_PREFERENCES = Object.freeze(["system", "light", "dark"]);
+export function themePreference(storage = typeof localStorage !== "undefined" ? localStorage : null) {
+  try { const v = storage?.getItem(THEME_STORAGE_KEY); return THEME_PREFERENCES.includes(v) ? v : "system"; }
+  catch { return "system"; }
+}
+export function resolveTheme(pref = themePreference(), matchMedia = typeof window !== "undefined" ? window.matchMedia : null) {
+  if (pref === "light" || pref === "dark") return pref;
+  try { return matchMedia?.call(typeof window !== "undefined" ? window : undefined, "(prefers-color-scheme: dark)")?.matches ? "dark" : "light"; }
+  catch { return "light"; }
+}
+export function setThemePreference(pref) {
+  try { localStorage.setItem(THEME_STORAGE_KEY, pref); } catch {}
+  if (typeof location !== "undefined") location.reload();
+}
+export const THEME = resolveTheme();
+export const C = THEME === "dark" ? C_DARK : C_LIGHT;
+
 // The custom-property name for a token: ACCENT_QUIET -> --c-accent-quiet. The same rule zLayers.js
 // uses for --z-*, so the two scales read alike in a stylesheet.
 export const cssVarName = (name) => `--c-${name.toLowerCase().replace(/_/g, "-")}`;
@@ -152,6 +250,8 @@ export function installColorVars(doc = typeof document !== "undefined" ? documen
   for (const [name, value] of Object.entries(C)) {
     doc.documentElement.style.setProperty(cssVarName(name), value);
   }
+  doc.documentElement.dataset && (doc.documentElement.dataset.theme = THEME);
+  doc.documentElement.style.setProperty("color-scheme", THEME);
 }
 
 installColorVars();
@@ -209,7 +309,8 @@ export const CONTRAST_PAIRS = [
   ["VIOLET", "CANVAS_SHADE", "normal"], ["VIOLET", "SURFACE", "normal"], ["VIOLET", "VIOLET_QUIET", "normal"],
   ["TEAL",   "CANVAS_SHADE", "normal"], ["TEAL",   "SURFACE", "normal"],
   ["SURFACE_SOLID", "VIOLET", "normal"], ["SURFACE_SOLID", "TEAL", "normal"],
-  ["ON_PROVIDER", "INFO", "normal"],   // a company avatar's initial on the blue
+  // a company avatar's initial (SURFACE_SOLID) on each avatar tone — CompanyIcon / JobsPanel
+  ["SURFACE_SOLID", "SUCCESS", "normal"], ["SURFACE_SOLID", "DANGER", "normal"], ["SURFACE_SOLID", "WARNING", "normal"],
   // ── the fit bands ─────────────────────────────────────────────────────────────────────────
   // as TEXT on paper and on every glass the band appears on (card, panel, menu)
   ["BAND_STRONG",   "CANVAS_SHADE", "normal"], ["BAND_STRONG",   "SURFACE", "normal"], ["BAND_STRONG",   "SURFACE_2", "normal"],

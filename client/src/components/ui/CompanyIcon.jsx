@@ -43,7 +43,9 @@ export default function CompanyIcon({ company, iconUrl, size = 48, radius = 10 }
   const [, forceRender] = useState(0);
   const letter = (company || "?")[0].toUpperCase();
   // Deterministic colour from the company name, so a given employer's tile is always the same one.
-  const colors = [C.PROVIDER_LINKEDIN, C.VIOLET, C.TEAL, C.SUCCESS, C.DANGER, C.WARNING, C.VIOLET];
+  // INFO, not LinkedIn's fixed blue: the initial is SURFACE_SOLID, which flips with the theme, and
+  // dark-on-#0A66C2 is ~3:1 in dark mode. Every tone here is paired with SURFACE_SOLID in both themes.
+  const colors = [C.INFO, C.VIOLET, C.TEAL, C.SUCCESS, C.DANGER, C.WARNING, C.VIOLET];
   let hash = 0;
   for (const c of company || "") hash = (hash * 31 + c.charCodeAt(0)) & 0xffff;
   const bg = colors[hash % colors.length];
