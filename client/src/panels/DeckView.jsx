@@ -36,6 +36,7 @@ import { atsBandLabel } from "../../../shared/atsBands.js";
 import CompanyIcon from "../components/ui/CompanyIcon.jsx";
 import CardBack, { CardBackDefs } from "../components/CardBack.jsx";
 import { useViewport } from "../hooks/useViewport.js";
+import { CHROME_HEIGHT_VAR } from "../hooks/useChromeHeight.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { jobDetailHref } from "../lib/jobUrl.js";
 import { TITLE_ATTR, transitionClick } from "../lib/viewTransitions.js";
@@ -219,6 +220,20 @@ function FlankPanel({ id, label, side, box, children }) {
   );
 }
 
+// ⛔ The label is "Collapse". One word — not "click to collapse", not "fold the card".
+function CollapseButton({ onCollapse, controls }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button type="button" onClick={onCollapse} aria-expanded="true" aria-controls={controls} aria-keyshortcuts="Escape"
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      // The opaque menu surface: it rides over the posting's text as the reader scrolls.
+      style={{ ...glass({ hover: hov, radius: 999 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU,
+               padding: "7px 14px", fontSize: 13, fontWeight: 800, color: C.INK, cursor: "pointer" }}>
+      Collapse
+    </button>
+  );
+}
+
 // ── the face-up side: the card that shipped, plus the expansion ─────────────────────────────
 // `detail` says where the expansion goes: "inline" grows the card downward (the stacked fallback),
 // "flank" keeps the card's face and lets the two panels beside it carry the rest.
@@ -228,9 +243,20 @@ function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, o
   const titleId = `deck-title-${job.id}`;
   const vertical = orientation === "vertical";
   const flank = isFront && expanded && detail === "flank";
+  const open = isFront && expanded;
   return (
     <div style={{ padding: vertical ? "22px 22px 20px" : "28px 30px 24px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+      {/* ⭐ COLLAPSE AT THE TOP TOO (queue 39), and STICKY — the bottom one is a whole posting away.
+          A zero-height sticky row, so the button rides down with the reader without pushing the
+          card's content; it sits just under the fixed top bar (its measured height, published). */}
+      {open && (
+        <div data-deck-collapse-top style={{ position: "sticky", top: `calc(var(${CHROME_HEIGHT_VAR}, 46px) + 10px)`, height: 0 }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", transform: vertical ? "translate(8px, -10px)" : "translate(12px, -14px)" }}>
+            <CollapseButton onCollapse={onCollapse} controls={flank ? "deck-ats deck-posting" : "deck-detail"} />
+          </div>
+        </div>
+      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, paddingRight: open ? 104 : 0 }}>
         <CompanyIcon company={job.company} iconUrl={job.companyIconUrl} size={vertical ? 48 : 56} radius={16} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: C.INK_MUTED }}>{job.company}</div>
@@ -275,7 +301,7 @@ function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, o
           aria-keyshortcuts={expanded ? "Escape" : "Enter"}
           style={{ marginTop: 20, padding: 0, background: "transparent", border: "none", cursor: "pointer",
                    fontSize: 12.5, fontWeight: 700, color: C.INK_FAINT }}>
-          {expanded ? "Fold the card ↑" : "Open the posting ↓"}
+          {expanded ? "Collapse" : "Open the posting ↓"}
         </button>
       )}
     </div>
@@ -835,7 +861,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
                                                                     zIndex: Z.NAV, padding: "16px 20px", fontSize: 13.5, color: C.INK }}>
             {[["D  →", "Draft — queue it for your review"], ["X  ←", "Pass — it won't come back"], ["S", "Save for later"],
               ["U", "Undo the last one"], ["J ↓ / K ↑", "Next / previous card (as the wheel does)"], ["Enter", "Open the posting in the card"],
-              ["Esc", "Fold it again"], ["?", "This list"]].map(([k, v]) => (
+              ["Esc", "Collapse"], ["?", "This list"]].map(([k, v]) => (
               <div key={k} style={{ display: "flex", gap: 14, padding: "3px 0" }}><span style={{ ...kbd, minWidth: 64, textAlign: "center" }}>{k}</span>{v}</div>
             ))}
           </div>
