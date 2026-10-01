@@ -71,7 +71,10 @@ this is why.
 
 ## Deliberate test failures — currently 0
 
-`npm test` is **2876 tests, 2876 pass, 0 fail** — re-measured 2026-10-01 in the working tree after the top bar
+`npm test` is **2912 tests, 2912 pass, 0 fail** — re-measured 2026-10-01 on `main` at `eea1162` after queues 37–40
+(+26 deck: expanded layout, Collapse, deck geometry; +10 `usOnlyBoard`); `queue-37` alone read 2886 / 2886 / 0 on a
+fresh CRLF worktree. ⚠ `accountSecurity` "a session is SEALED at rest" fails ~1.7% of runs (random ciphertext can
+contain "42") — a flaky test, not rot; fix by matching `"user":42`. Before that 2876 after the top bar
 and /features (+5 `featuresPageHonest`). Before that 2871 after queue 31 (+7 `landingFindFitApply`). Before that 2864 after queue 30 (+7 `signupFirstImpression`). Before that 2857 after queues 27–29, the deck's fan and shared-element transitions (+15 `deckFan`, +9 `viewTransitions`). Before that 2833 after the
 mark reached the five text-wordmark surfaces (+2). Before that 2831 after G3 (+3 formatter tests),
 G6 (+6 ATS category tests), K1 (+10) and R1 (+10). Before that 2802 with account management (+6 account security, +10 account service, +5 account routes, +2 sealed sweep).
