@@ -292,7 +292,9 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
                 const on = themePreference() === id;
                 return (
                   <button key={id} type="button" role="radio" aria-checked={on}
-                    onClick={() => { if (!on) setThemePreference(id); }}
+                    // Saved with the ACCOUNT first (so it follows you to other devices), then applied.
+                    onClick={() => { if (!on) api("/api/settings/theme", { method: "PUT", body: JSON.stringify({ preference: id }) })
+                      .catch(() => {}).finally(() => setThemePreference(id)); }}
                     style={{ flex: 1, padding: "7px 0", borderRadius: 8, cursor: on ? "default" : "pointer", fontSize: 12, fontWeight: 700,
                              background: on ? "var(--c-hover)" : "transparent", color: "var(--color-text)",
                              border: on ? "1px solid var(--c-accent-ink)" : "1px solid var(--border-glass)" }}>

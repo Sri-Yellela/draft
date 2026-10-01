@@ -236,6 +236,19 @@ export function setThemePreference(pref) {
   try { localStorage.setItem(THEME_STORAGE_KEY, pref); } catch {}
   if (typeof location !== "undefined") location.reload();
 }
+/**
+ * The ACCOUNT's preference wins on every device (follow-up 18). Called once the signed-in app knows
+ * it. Stores it locally, and reloads ONLY if it changes what is actually on screen — so agreeing
+ * values cost nothing, and there is no loop (after the reload the two agree).
+ * @returns {boolean} whether a reload was triggered
+ */
+export function adoptAccountTheme(pref, { reload = () => location.reload() } = {}) {
+  if (!THEME_PREFERENCES.includes(pref) || pref === themePreference()) return false;
+  try { localStorage.setItem(THEME_STORAGE_KEY, pref); } catch { return false; }
+  if (resolveTheme(pref) === THEME) return false;
+  reload();
+  return true;
+}
 export const THEME = resolveTheme();
 export const C = THEME === "dark" ? C_DARK : C_LIGHT;
 

@@ -127,6 +127,20 @@ export function createAccountRouter({
     res.json({ ok: true });
   });
 
+  // The light/dark preference, with the account (follow-up 18, 09-30). Web-only, so it is not on the
+  // published PublicUser (a mobile contract change for a setting mobile does not have).
+  const THEME_PREFERENCES = new Set(["system", "light", "dark"]);
+  router.get("/api/settings/theme", requireAuth, (req, res) => {
+    const row = db.prepare("SELECT theme_preference FROM users WHERE id=?").get(req.user.id);
+    res.json({ preference: THEME_PREFERENCES.has(row?.theme_preference) ? row.theme_preference : null });
+  });
+  router.put("/api/settings/theme", requireAuth, (req, res) => {
+    const preference = req.body?.preference;
+    if (!THEME_PREFERENCES.has(preference)) return res.status(400).json({ error: "preference must be system, light or dark" });
+    db.prepare("UPDATE users SET theme_preference=? WHERE id=?").run(preference, req.user.id);
+    res.json({ preference });
+  });
+
   router.get("/api/settings", requireAuth, (req, res) => {
     const u = db.prepare("SELECT apply_mode,plan_tier,apify_token FROM users WHERE id=?").get(req.user.id);
     const planTier = normalisePlanTier(u?.plan_tier);

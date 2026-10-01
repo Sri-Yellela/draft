@@ -171,3 +171,23 @@ test("the theme preference: system follows the OS; an explicit choice wins; junk
   assert.equal(themePreference({ getItem: () => "neon" }), "system");
   assert.equal(themePreference({ getItem: () => { throw new Error("blocked"); } }), "system");
 });
+
+test("the ACCOUNT's theme wins on a device — and reloads only when the screen would change", async () => {
+  const { adoptAccountTheme } = await import("../client/src/styles/colorTokens.js");
+  let reloads = 0;
+  const store = new Map();
+  globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
+  try {
+    // Under Node the live theme is light. Account says light: stored, NO reload (nothing changes).
+    assert.equal(adoptAccountTheme("light", { reload: () => reloads++ }), false);
+    assert.equal(store.get("draft-theme"), "light");
+    // Account says dark: stored, and a reload (the screen must change).
+    assert.equal(adoptAccountTheme("dark", { reload: () => reloads++ }), true);
+    assert.equal(reloads, 1);
+    // Already agreeing: nothing at all — no loop after the reload.
+    assert.equal(adoptAccountTheme("dark", { reload: () => reloads++ }), false);
+    assert.equal(reloads, 1);
+    // Junk is ignored.
+    assert.equal(adoptAccountTheme("neon", { reload: () => reloads++ }), false);
+  } finally { delete globalThis.localStorage; }
+});
