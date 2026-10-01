@@ -54,16 +54,13 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
-**09-30 (third pass): the redesign is BUILT — steps 3 to 6 — and nothing since `9108a15` is live.**
+**09-30 (fourth pass): live through `ed1a42d`; the mark, the account theme and Android's look are local.**
 
-- ⛔ **Owner: push draft `main` (OWNER 7c) — before 02:00 if you can.** The retention fix
-  (`b628ee6`) must be live before tonight's backup or it skips recent backups again. The push was
-  approved and then blocked by this session's permission guard; run it yourself:
-  `! git -C C:\Users\duggi\WebstormProjects\draft push origin main`. It deploys migration 111 (the
-  deck's table) and the whole redesign. Then one Google sign-in (OWNER 25).
-- Android (`draft-android`) is local too; it has no auto-deploy, so pushing it is housekeeping.
-- **Agent, next:** queue 17 (Android's look onto the leather and glass) and the per-user theme
-  preference; neither blocks anything.
+- **Owner:** push draft `main` (2 commits + docs: the redesigned mark, migration 112 + the account
+  theme) — `! git -C C:\Users\duggi\WebstormProjects\draft push origin main`. Then OWNER 27 (the two
+  accounts) and OWNER 21a (try admin / changeme; change it if it works).
+- **Agent:** the queue is through. What is left needs the owner (19 a–d, 10 iOS, 15 store, 16 c–e,
+  24 LinkedIn OAuth) or a Mac (7).
 
 
 ## OWNER QUEUE
@@ -97,7 +94,8 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | 22 | ~~The public `/tools/ats` donut~~ ✅ **owner 09-30: switch to the main scorer and bands** — done in `fc668be` (v4 scorer with the panel's weights and synonyms, band + evidence, no number) | — |
 | 23 | ~~ATS free and unlimited on draft's public tool?~~ ✅ **owner 09-30: yes, for now (no monetisation yet)** — the rate limit is removed in `fc668be` | — |
 | 24 | Android LinkedIn import (agent queue 15) needs **LinkedIn OAuth configured in production** — the boot log says `[oauth:linkedin] missing; missing client_id, client_secret, redirect_uri_or_app_base_url`. And note: LinkedIn's OIDC gives name, email and picture — the app's "import" can never be more than that | Blocks queue 15 |
-| 25 | **Complete one Google sign-in at `jobsviadraft.com`** (any account) | The OAuth fix (`ef6071f`) is live but unobserved — only a real consent screen exercises it. The agent then reads the log for a clean callback |
+| 25 | ~~One Google sign-in~~ ✅ **done 09-30**: works end to end (the integration row written, its token sealed by the key). ⚠ It created a NEW account (user 10) — OWNER 27 | — |
+| 27 | **Two accounts now: user 3 (yours, password) and user 10 (Google, empty).** Link Google to user 3 — sign in with the password, then connect Google under Integrations, and delete user 10 from admin — or keep user 10 as a clean new-user test | Google matched by email, and the Google email is not the one on user 3 |
 | 26 | ~~Confirm the deck's four proposals~~ ✅ **confirmed by the owner 09-30** and built (`be26aa7`) | — |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
@@ -133,8 +131,9 @@ marked ✅ move to *DONE* at the next tidy; ⏸/⛔ rows are what is left, and w
 | 13 | ⭐ **Rank the board by fit** | ✅ merged `28b8a33` (09-29, local; commits `269e7e3` `0cfb427` `52b1261`). Migration **110** adds `basis_hash` to `ats_only_reports` (REUSED rather than a second score table — the card, panel and apply stamp already read it). ONE scoring definition (`atsBasisForProfile`/`scoreJobForBasis`); precompute incremental, chunked writes, explicit status per run, kill switch `BOARD_FIT_PRECOMPUTE=off`, admin `POST /api/admin/board-fit/precompute` (dry run by default). Default order = rank keys → band (Strong, Moderate, not established, Weak) → score → recency; a cursor spanning a score write is refused and restarts (a 681-row walk had returned 680). Measured on a local copy: graded-5 in the top 50 **2 → 3**; top 20 **20 unscored → 20 Strong**; fit-FIRST was worse (1). 2738/2738 | — |
 | 14 | Android open defects from the sweep | ✅ `8445e88` + `b94a0e0` (09-30, draft-android, local), verified on the emulator: 401 → sign-in with a notice, credential cleared (relaunch lands on sign-in); **left swipe and X = saved pass** (PATCH `disliked:true` seen; Skip deleted); dead Filter button removed; failed Star → snackbar; section delete confirmed — ⛔ and found: the delete arm was UNREACHABLE (a stale swipe lambda painted "Delete" and un-hid); drag handle removed. 55/55 JVM, **15/15 instrumented**. Open: the optimistic "Saved to starred" badge shows before a failed write's snackbar; admin `AssistChip(onClick={})` left with 2b1 (OWNER 15) | — |
 | 15 | Android: LinkedIn import — needs a mobile import endpoint in draft | ⏸ **Blocked, 09-30.** The interrupted run "started" it and left nothing (no worktree, no branch). ⛔ LinkedIn OAuth is not configured in production at all (OWNER 24), so an endpoint could not be exercised end to end — not built | OWNER 24 |
-| 17 | Android's LOOK onto the leather and glass (and a dark theme there) | ⏳ The deck works on Android but wears the earlier Material look | — |
-| 18 | The theme preference stored with the ACCOUNT, not per device | ⏳ Design says per user; built per device (local storage) | — |
+| 17 | Android's look onto the leather and glass, and dark there | ✅ draft-android `d2f0e3a` (09-30): the web's tokens, theme-aware at the source; the web's own leather tile; the glass card with blank slabs behind; the "/draft" mark on sign-in. Verified on the emulator, light and dark | — |
+| 18 | The theme preference with the account | ✅ `c39dff7` (09-30): migration 112, `GET/PUT /api/settings/theme`; the account wins on a device and reloads only when the screen would change | — |
+| 19 | The redesigned mark everywhere | ✅ `9feac48` (web: "/draft" expanded, "/d" condensed, favicons) · draft-android `ef2bae4` (launcher icon, every density) — from the owner's artwork, like for like with the extension | — |
 
 ---
 
@@ -425,6 +424,25 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 ## SESSION LOG
 
 Newest first. ⛔ Agents append here rather than creating a new file.
+
+### 2026-09-30 (4) · Live checks; a new-account Today fixed; the redesigned mark; Android on the leather; the account theme
+
+- **Deploy `ee4b1bd` checked**: migration 111 applied, contract 1.2.0, clean boot. The owner's Google
+  sign-in **works** — the integration row written, its token sealed by the key — but created a NEW,
+  empty account (user 10), and Today answered "could not be dealt. no_active_profile". Fixed in
+  `ed1a42d` (deployed): no profile / no résumé are set-up states with a way forward, on web and Android.
+- **The mark** (`9feac48`, android `ef2bae4`): "/draft" and "/d" cut from the owner's artwork (the
+  orange keyed out, the glyphs separated as connected shapes so the italic slash and the d part
+  cleanly), the same vertical crop for both so the condensed mark sits exactly on the expanded one;
+  StampLogo renders them; favicons (there were none); the Android launcher icon (it was the template
+  robot). Seen on the landing page, Today, light and dark, and the emulator's app drawer.
+- **Account theme** (`c39dff7`): migration 112, the preference follows the account.
+- **Android's look** (android `d2f0e3a`): web tokens, theme-aware; the web's leather tile; glass
+  cards — found on the emulator that see-through cards showed the NEXT card's text, so the cards
+  behind are blank slabs now, as on the web.
+
+**Measured:** draft 2779/2779/0 run alone; android 58/58 JVM, 15/15 instrumented.
+
 
 ### 2026-09-30 (3) · The redesign built: crisp leather, lit glass, Today's draft, Android on the deck, dark mode
 

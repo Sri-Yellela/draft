@@ -601,8 +601,9 @@ can be more apparent". In order:
 | 5b | draft-android `f7fdc2c` | Android's Jobs tab is Today on the same deal; right is a server Draft; two gestures only |
 | 6 | `6788a8e` | Dark mode — both palettes proved; the leather per theme with the floor inverted |
 
-**Deviations from the design, recorded:** the theme preference is per DEVICE (local storage), not
-stored with the account; Android keeps its earlier Material look (no leather/glass, no dark theme);
+**Deviations from the design, recorded:** ~~the theme preference is per device~~ — closed 09-30
+(`c39dff7`, it follows the account); ~~Android keeps its earlier Material look~~ — closed 09-30
+(draft-android `d2f0e3a`; the one remaining difference: no backdrop blur on Android glass);
 a deck transition test is a reducer test plus a reduced-motion screenshot, not a rendered-DOM test
 (the client has no DOM test harness). Screenshots: `C:\Users\duggi\WebstormProjects\draft-screenshots\`
 (`deck/`, `dark/`, `gloss/`, `grain/`, `android/`).
