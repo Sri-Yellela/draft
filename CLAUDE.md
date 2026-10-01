@@ -71,8 +71,9 @@ this is why.
 
 ## Deliberate test failures — currently 0
 
-`npm test` is **2779 tests, 2779 pass, 0 fail** — re-measured 2026-09-30 in the working tree at
-`c39dff7` (+1 new-account deck pin, +1 account theme). Before that 2777 at
+`npm test` is **2802 tests, 2802 pass, 0 fail** — re-measured 2026-09-30 in the working tree with
+account management (+6 account security, +10 account service, +5 account routes, +2 sealed sweep).
+Before that 2779 at `c39dff7` (+1 new-account deck pin, +1 account theme). Before that 2777 at
 `6788a8e`, the suite run alone (+11 daily deal, +5 deck reducer, +4 deck pins, +1 deck surface
 refusal, +3 dark mode; not yet on a fresh CRLF worktree). Before that 2753 at `0d67462`. Before that 2745 at `2356153` (+7 `secretBox` in `ef6071f`). Before that 2738 at `28b8a33` (+26 `boardFitRanking` from the fit-ranking merge). Before that 2712 at `76cc044` (+10 UI step 2 tests: colour-token contrast and the colour-literal
 ratchet), and before that 2702 at `3b9dbe9` (+5 `registryPlacement` in `983a0ed`, +6

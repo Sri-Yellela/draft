@@ -52,6 +52,26 @@ export class EncryptedSessionStore extends session.Store {
     return this.set(sid, sess, cb);
   }
   destroy(sid, cb) { this.inner.destroy(sid, cb); }
+
+  /**
+   * Every sid whose session belongs to `userId` — sealed rows OPENED to see the owner. The sweep in
+   * revokeAllUserSessions read `inner.db` rows as plain JSON; behind this wrapper that read threw and
+   * was swallowed, so a password reset destroyed no cookie session. It asks here instead.
+   */
+  sessionsForUser(userId, cb) {
+    const { db, table } = this.inner;
+    if (!db?.all) return cb(new Error("inner store cannot be scanned"));
+    db.all(`SELECT sid, sess FROM ${table}`, (err, rows) => {
+      if (err) return cb(err);
+      const mine = [];
+      for (const row of rows || []) {
+        let s = null;
+        try { s = this.open(JSON.parse(row.sess)); } catch {}
+        if (s && Number(s.passport?.user) === Number(userId)) mine.push(row.sid);
+      }
+      cb(null, mine);
+    });
+  }
   length(cb) { this.inner.length ? this.inner.length(cb) : cb(null, 0); }
   clear(cb) { this.inner.clear ? this.inner.clear(cb) : cb?.(); }
 }

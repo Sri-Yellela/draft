@@ -71,9 +71,11 @@ import { resolveSponsorshipNeed } from "./services/applyAutomation.js";
 import { readAnswerStore, effectiveCustomAnswers } from "./services/customAnswers.js";
 import { hashPassword, verifyPassword, validatePassword } from "./services/authSecurity.js";
 import { createPasswordReset, consumePasswordReset, findUserForPasswordReset } from "./services/passwordResetService.js";
-import { sendPasswordResetEmail, emailConfigured } from "./services/emailService.js";
+import { sendPasswordResetEmail, sendVerificationCodeEmail, emailConfigured } from "./services/emailService.js";
 import { EncryptedSessionStore } from "./services/encryptedSessionStore.js";
 import { rejectCrossSiteWrites } from "./services/originGuard.js";
+import { forgetSessions, recordSession, sidsToRevoke } from "./services/accountService.js";
+import { createAccountManagementRouter } from "./routes/accountManagement.js";
 import { allowedModesForTier, canUseAPlusResume, canUseGenerate, canUseMode, hasPlanAtLeast, nextPlan, normalisePlanTier, planForMode } from "./services/entitlements.js";
 import { monetisationEnabledFromEnv } from "./shared/monetisation.js";
 import { fullAutoState, setSetting, clearSetting, FULL_AUTO_KEY } from "./services/appSettings.js";
@@ -3746,6 +3748,48 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE users ADD COLUMN theme_preference TEXT;
       `,
     },
+    {
+      // Account management (09-30): a registry of each user's sessions (the store is sealed and keyed
+      // by sid alone, so it cannot list "my sessions"); whether the password was ever SET by the user
+      // (OAuth accounts got a random one — backfilled: no provider id means a password account);
+      // the uploaded picture; a verified-email stamp; one-time email codes; and the merge log.
+      id: "113_account_management",
+      sql: `
+        CREATE TABLE IF NOT EXISTS user_sessions (
+          sid TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at INTEGER NOT NULL,
+          last_seen_at INTEGER NOT NULL,
+          user_agent TEXT,
+          ip_hint TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id);
+        ALTER TABLE users ADD COLUMN password_set INTEGER NOT NULL DEFAULT 0;
+        UPDATE users SET password_set = CASE WHEN google_auth_id IS NULL AND linkedin_auth_id IS NULL AND github_auth_id IS NULL THEN 1 ELSE 0 END;
+        ALTER TABLE users ADD COLUMN avatar_path TEXT;
+        ALTER TABLE users ADD COLUMN email_verified_at INTEGER;
+        CREATE TABLE IF NOT EXISTS email_codes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          purpose TEXT NOT NULL,
+          email TEXT,
+          code_hash TEXT NOT NULL,
+          expires_at INTEGER NOT NULL,
+          used_at INTEGER,
+          attempts INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_email_codes_user ON email_codes(user_id, purpose);
+        -- no foreign keys: the FROM account is gone by design, and the log outlives both
+        CREATE TABLE IF NOT EXISTS account_merges (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          into_user_id INTEGER NOT NULL,
+          from_user_id INTEGER NOT NULL,
+          summary_json TEXT,
+          merged_at INTEGER NOT NULL
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -5320,19 +5364,15 @@ function revokeAllUserSessions(userId, reason) {
       resolve({ revokedTokens: revoked, destroyedSessions: destroyed });
     };
     try {
-      SStore.db.all(`SELECT sid, sess FROM ${SStore.table}`, (err, rows) => {
-        if (err || !Array.isArray(rows)) {
-          console.warn("[auth] session sweep query failed:", err?.message || "no rows");
-          return done(0);
-        }
-        const mine = rows.filter(row => {
-          try { return Number(JSON.parse(row.sess)?.passport?.user) === Number(userId); }
-          catch { return false; }
-        });
+      // Sessions are sealed at rest: the store opens them to find this user's (sessionsForUser).
+      SStore.sessionsForUser(userId, (err, sids) => {
+        if (err) console.warn("[auth] session sweep query failed:", err.message);
+        const mine = [...new Set([...(sids || []), ...sidsToRevoke(db, userId)])];
+        forgetSessions(db, mine);
         if (!mine.length) return done(0);
         let outstanding = mine.length;
-        for (const row of mine) {
-          SStore.destroy(row.sid, () => { if (--outstanding === 0) done(mine.length); });
+        for (const sid of mine) {
+          SStore.destroy(sid, () => { if (--outstanding === 0) done(mine.length); });
         }
       });
     } catch(e) {
@@ -5611,7 +5651,7 @@ async function findOrCreateOAuthUser({ provider, providerId, email, name, emailV
   if (linkUserId) {
     const existing = findUserByAuthProvider(provider, providerUserId, null, { allowEmailMatch: false });
     if (existing && existing.id !== linkUserId) {
-      const err = new Error(`${provider} is already linked to another account.`);
+      const err = new Error(`That ${provider} sign-in belongs to another Draft account. To bring the two together, use Merge accounts in Account settings.`);
       err.status = 409;
       throw err;
     }
@@ -6467,6 +6507,36 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+// Account management: every sign-in is STAMPED (sensitive changes need a recent one — see
+// routes/accountManagement.js) and every signed-in browser is kept in a registry, because the sealed
+// store is keyed by sid alone and cannot answer "where am I signed in?". req.logIn is passport's,
+// wrapped per request; passport regenerates the session inside it, so the stamp lands on the new one.
+const sessionSeen = new Map();   // sid -> last registry write (ms), so a busy tab writes once per 5 min
+const ipHint = (req) => {
+  const ip = String(req.ip || "").replace(/^::ffff:/, "");
+  return /^\d+\.\d+\.\d+\.\d+$/.test(ip) ? ip.split(".").slice(0, 2).join(".") + ".x.x" : null;   // coarse, never the full address
+};
+app.use((req, res, next) => {
+  const logIn = req.logIn;
+  req.login = req.logIn = function stampedLogIn(user, options, done) {
+    if (typeof options === "function") { done = options; options = {}; }
+    return logIn.call(this, user, options, (err) => {
+      if (!err && req.session) {
+        req.session.authAt = Date.now();
+        try { recordSession(db, { sid: req.sessionID, userId: user.id, userAgent: req.get("user-agent"), ipHint: ipHint(req) }); } catch {}
+        sessionSeen.set(req.sessionID, Date.now());
+      }
+      done?.(err);
+    });
+  };
+  const uid = req.session?.passport?.user;
+  if (uid && req.sessionID && Date.now() - (sessionSeen.get(req.sessionID) || 0) > 5 * 60 * 1000) {
+    sessionSeen.set(req.sessionID, Date.now());
+    if (sessionSeen.size > 5000) sessionSeen.clear();
+    try { recordSession(db, { sid: req.sessionID, userId: uid, userAgent: req.get("user-agent"), ipHint: ipHint(req) }); } catch {}
+  }
+  next();
+});
 app.use(bindAuthContext);
 // ⛔ CROSS-SITE REQUEST FORGERY, refused at the door (09-30). A state-changing request that carries
 // an Origin (or, failing that, a Referer) from anywhere but this site is a 403. Exempt: requests
@@ -6555,6 +6625,7 @@ app.post("/api/auth/register", (req, res) => {
     db.prepare("INSERT INTO users (username,password_hash,is_admin,apply_mode,plan_tier) VALUES (?,?,0,'SIMPLE','BASIC')")
       .run(username, hashPassword(password));
     const newUser = db.prepare("SELECT id FROM users WHERE username=?").get(username);
+    db.prepare("UPDATE users SET password_set=1 WHERE id=?").run(newUser.id);   // a password the user chose
     db.prepare(`INSERT INTO user_profile
       (user_id,full_name,first_name,middle_name,last_name,name_suffix,
        email,phone,linkedin_url,github_url,location,
@@ -6595,9 +6666,11 @@ app.get("/api/auth/oauth/status", (req, res) => {
 app.get(["/api/auth/oauth/:provider/start", "/auth/:provider"], (req, res) => {
   const provider = String(req.params.provider || "").toLowerCase();
   if (!OAUTH_PROVIDERS.includes(provider)) return res.status(400).json({ error: "Unsupported auth provider" });
-  const mode = req.query?.mode === "link" ? "link" : "login";
-  const returnTo = String(req.query?.returnTo || (mode === "link" ? "/app/integrations" : "/app"));
-  if (mode === "link" && !req.isAuthenticated()) {
+  // mode=merge: prove ANOTHER Draft account (the one this sign-in belongs to) is yours, so it can be
+  // merged into the signed-in one. It signs nobody in and creates nothing.
+  const mode = ["link", "merge"].includes(req.query?.mode) ? req.query.mode : "login";
+  const returnTo = String(req.query?.returnTo || (mode === "link" ? "/app/integrations" : mode === "merge" ? "/app/account" : "/app"));
+  if (mode !== "login" && !req.isAuthenticated()) {
     return res.redirect(oauthReturnUrl(req, "/login", {
       oauthError: "Sign in before linking an OAuth provider.",
       oauthProvider: provider,
@@ -6615,6 +6688,7 @@ app.get(["/api/auth/oauth/:provider/start", "/auth/:provider"], (req, res) => {
       mode,
       returnTo,
       linkUserId: mode === "link" && req.isAuthenticated() ? req.user.id : null,
+      mergeIntoUserId: mode === "merge" && req.isAuthenticated() ? req.user.id : null,
       createdAt: Date.now(),
     };
     const authUrl = new URL(cfg.authUrl);
@@ -6625,12 +6699,12 @@ app.get(["/api/auth/oauth/:provider/start", "/auth/:provider"], (req, res) => {
     authUrl.searchParams.set("state", state);
     if (provider === "google") {
       authUrl.searchParams.set("access_type", "offline");
-      authUrl.searchParams.set("prompt", mode === "link" ? "consent" : "select_account");
+      authUrl.searchParams.set("prompt", mode === "link" ? "consent" : "select_account");   // merge: pick the OTHER account
     }
     res.redirect(authUrl.toString());
   } catch(e) {
     console.warn(`[oauth:${provider}] start blocked:`, e.message);
-    const target = oauthReturnUrl(req, mode === "link" ? returnTo : "/login", { oauthError: e.message, oauthProvider: provider });
+    const target = oauthReturnUrl(req, mode !== "login" ? returnTo : "/login", { oauthError: e.message, oauthProvider: provider });
     res.redirect(target);
   }
 });
@@ -6640,7 +6714,7 @@ app.get(["/api/auth/oauth/:provider/callback", "/auth/:provider/callback"], asyn
   const state = String(req.query?.state || "");
   const code = String(req.query?.code || "");
   const stored = req.session.oauthStates?.[state];
-  const fail = (message, returnTo = stored?.mode === "link" ? stored.returnTo : "/login") =>
+  const fail = (message, returnTo = stored?.mode === "link" || stored?.mode === "merge" ? stored.returnTo : "/login") =>
     res.redirect(oauthReturnUrl(req, returnTo, { oauthError: message, oauthProvider: provider }));
 
   if (!OAUTH_PROVIDERS.includes(provider)) return fail("Unsupported auth provider.");
@@ -6666,6 +6740,17 @@ app.get(["/api/auth/oauth/:provider/callback", "/auth/:provider/callback"], asyn
     delete req.session.oauthStates[state];
     const tokenSet = await exchangeOAuthCode(provider, code, req);
     const identity = await fetchOAuthUserInfo(provider, tokenSet, req);
+    if (stored.mode === "merge") {
+      // Find the account this sign-in belongs to — by the provider id ONLY (an email match proves
+      // nothing about who holds the other account) — and remember it as the merge candidate.
+      const intoId = stored.mergeIntoUserId;
+      if (!req.isAuthenticated() || req.user.id !== intoId) return fail("Sign in to the account you want to keep, then try again.");
+      const from = findUserByAuthProvider(provider, identity.providerUserId, null, { allowEmailMatch: false });
+      if (!from) return fail(`No other Draft account signs in with that ${provider} account — there is nothing to merge.`);
+      if (from.id === intoId) return fail(`That ${provider} account already signs in to this account.`);
+      req.session.mergeCandidate = { fromId: from.id, intoId, via: provider, at: Date.now() };
+      return res.redirect(oauthReturnUrl(req, stored.returnTo, { oauthProvider: provider, oauthStatus: "merge_ready" }));
+    }
     const { user, created, linked } = await completeProviderAuth(provider, identity, {
       linkUserId: stored.linkUserId || null,
       tokenSet,
@@ -6824,6 +6909,7 @@ app.post("/api/auth/logout", (req, res) => {
   // req.logout() regenerates the session, so read the sid we are revoking against BEFORE it runs.
   const sid = req.sessionID;
   revokeBrowserAuthContexts(sid, token);
+  try { forgetSessions(db, [sid]); } catch {}
   req.logout(() => {
     // Destroy rather than leave the regenerated-but-empty session behind, so nothing survives
     // this request that could be replayed.
@@ -7062,7 +7148,7 @@ app.post("/api/admin/users", requireAdmin, (req, res) => {
   if (passwordError) return res.status(400).json({ error:passwordError });
   const tier = normalisePlanTier(planTier || "BASIC");
   try {
-    db.prepare("INSERT INTO users (username,password_hash,is_admin,apply_mode,plan_tier) VALUES (?,?,?,?,?)")
+    db.prepare("INSERT INTO users (username,password_hash,password_set,is_admin,apply_mode,plan_tier) VALUES (?,?,1,?,?,?)")
       .run(username, hashPassword(password), isAdmin?1:0, allowedModesForTier(tier)[0], tier);
     const u = db.prepare("SELECT id FROM users WHERE username=?").get(username);
     db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(u.id);
@@ -7081,7 +7167,7 @@ app.patch("/api/admin/users/:id/password", requireAdmin, async (req, res) => {
   const passwordError = validatePassword(password);
   if (passwordError) return res.status(400).json({ error:passwordError });
   const targetId = parseInt(req.params.id);
-  db.prepare("UPDATE users SET password_hash=? WHERE id=?")
+  db.prepare("UPDATE users SET password_hash=?, password_set=1 WHERE id=?")
     .run(hashPassword(password), targetId);
   // Same reasoning as the self-service reset: an admin resetting someone's password is locking an
   // account, and it does not lock anything if the existing sessions keep working.
@@ -7242,6 +7328,27 @@ app.use(createAccountRouter({
   publicIntegrationRow,
   providerColumnFor,
   INDUSTRY_CATEGORIES,
+}));
+
+// Account management — profile, picture, sessions, password, email, sign-in methods, export,
+// merge and delete. routes/accountManagement.js; the data layer is services/accountService.js.
+app.use(createAccountManagementRouter({
+  db,
+  requireAuth,
+  store: SStore,
+  dataDir: DATA_DIR,
+  multer,
+  hashPassword,
+  verifyPassword,
+  emailConfigured,
+  sendVerificationCodeEmail,
+  codePepper: PASSWORD_RESET_SECRET,
+  revokeBrowserAuthContexts,
+  clearSessionCookie: (res) => res.clearCookie("connect.sid", { httpOnly:true, secure:process.env.NODE_ENV === "production", sameSite:SESSION_SAMESITE }),
+  findLoginUser: (identifier) => identifier ? db.prepare(`
+    SELECT u.* FROM users u LEFT JOIN user_profile up ON up.user_id = u.id
+    WHERE LOWER(u.username) = LOWER(?) OR LOWER(up.email) = LOWER(?) LIMIT 1
+  `).get(identifier, identifier) : null,
 }));
 
 // ═══════════════════════════════════════════════════════════════

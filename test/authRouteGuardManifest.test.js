@@ -216,6 +216,28 @@ const AUTHENTICATED = new Set([
   "GET /api/domain-profiles/metadata/:domain",
   "GET /api/domain-profiles/metadata",
   "POST /api/domain-profiles/generate-chips",
+  // routes/accountManagement.js — the signed-in user's OWN account, always req.user.id. The merge
+  // routes take the other account only from req.session.mergeCandidate, set after proving it.
+  "GET /api/account",
+  "POST /api/account/reauth",
+  "PATCH /api/account/profile",
+  "POST /api/account/avatar",
+  "GET /api/account/avatar",
+  "DELETE /api/account/avatar",
+  "GET /api/account/sessions",
+  "DELETE /api/account/sessions/:id",
+  "POST /api/account/sessions/revoke-others",
+  "DELETE /api/account/apps/:id",
+  "POST /api/account/password",
+  "POST /api/account/email",
+  "POST /api/account/email/confirm",
+  "DELETE /api/account/sign-in/:provider",
+  "GET /api/account/export",
+  "POST /api/account/merge/verify-password",
+  "GET /api/account/merge/preview",
+  "DELETE /api/account/merge",
+  "POST /api/account/merge",
+  "POST /api/account/delete",
   // routes/apply.js — every one of these is mounted with requireAuth
   "POST /api/apply",
   "GET /api/apply/status/:jobId",
@@ -322,6 +344,7 @@ function collect() {
     // account.js is mounted with app.use(createAccountRouter({...})) at the ROOT, so its routes
     // already carry their full /api path and their own per-route guard.
     ...routerRoutes(fs.readFileSync("routes/account.js", "utf8"), ""),
+    ...routerRoutes(fs.readFileSync("routes/accountManagement.js", "utf8"), ""),
     ...routerRoutes(fs.readFileSync("routes/domainProfiles.js", "utf8"), "/api/domain-profiles")
       .map(r => ({ ...r, guard: named(r.guard) || mounts.get("/api/domain-profiles") })),
     ...routerRoutes(fs.readFileSync("routes/importJob.js", "utf8"), "/api/import")

@@ -3383,4 +3383,46 @@ export const MIGRATIONS = [
         ALTER TABLE users ADD COLUMN theme_preference TEXT;
       `,
     },
+    {
+      // Account management (09-30): a registry of each user's sessions (the store is sealed and keyed
+      // by sid alone, so it cannot list "my sessions"); whether the password was ever SET by the user
+      // (OAuth accounts got a random one — backfilled: no provider id means a password account);
+      // the uploaded picture; a verified-email stamp; one-time email codes; and the merge log.
+      id: "113_account_management",
+      sql: `
+        CREATE TABLE IF NOT EXISTS user_sessions (
+          sid TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at INTEGER NOT NULL,
+          last_seen_at INTEGER NOT NULL,
+          user_agent TEXT,
+          ip_hint TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id);
+        ALTER TABLE users ADD COLUMN password_set INTEGER NOT NULL DEFAULT 0;
+        UPDATE users SET password_set = CASE WHEN google_auth_id IS NULL AND linkedin_auth_id IS NULL AND github_auth_id IS NULL THEN 1 ELSE 0 END;
+        ALTER TABLE users ADD COLUMN avatar_path TEXT;
+        ALTER TABLE users ADD COLUMN email_verified_at INTEGER;
+        CREATE TABLE IF NOT EXISTS email_codes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          purpose TEXT NOT NULL,
+          email TEXT,
+          code_hash TEXT NOT NULL,
+          expires_at INTEGER NOT NULL,
+          used_at INTEGER,
+          attempts INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_email_codes_user ON email_codes(user_id, purpose);
+        -- no foreign keys: the FROM account is gone by design, and the log outlives both
+        CREATE TABLE IF NOT EXISTS account_merges (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          into_user_id INTEGER NOT NULL,
+          from_user_id INTEGER NOT NULL,
+          summary_json TEXT,
+          merged_at INTEGER NOT NULL
+        );
+      `,
+    },
   ];

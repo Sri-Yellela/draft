@@ -74,7 +74,7 @@ export function consumePasswordReset(db, { token, otp, password }, options = {})
 
   const passwordHash = hashPassword(password);
   const update = db.transaction(() => {
-    db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(passwordHash, row.user_id);
+    db.prepare("UPDATE users SET password_hash = ?, password_set = 1 WHERE id = ?").run(passwordHash, row.user_id);
     db.prepare("UPDATE password_reset_tokens SET used_at = ? WHERE id = ?").run(now, row.id);
     db.prepare(`
       UPDATE password_reset_tokens
