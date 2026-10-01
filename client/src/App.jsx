@@ -21,6 +21,7 @@ import { ProfilePanel }          from "./panels/ProfilePanel.jsx";
 import { JobProfilesPanel }      from "./panels/JobProfilesPanel.jsx";
 import { DatabasePanel }         from "./panels/DatabasePanel.jsx";
 import { PlansPanel }            from "./panels/PlansPanel.jsx";
+import DeckView                  from "./panels/DeckView.jsx";
 import { IntegrationsPanel }     from "./panels/IntegrationsPanel.jsx";
 import { RecruiterPanel }        from "./panels/RecruiterPanel.jsx";
 import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
@@ -294,9 +295,12 @@ function AppDashboard({ authUser, setAuthUser }) {
   const chromeHeight = useChromeHeight();
   const consolePath = `/app/${CONSOLE_ROUTE}`;
   const routeKey = location.pathname.replace(/^\/app\/?/, "") || "";
-  const activeTab = routeKey === CONSOLE_ROUTE || LEGACY_CONSOLE_ROUTES.has(routeKey) || routeKey === ""
-    ? "console" : routeKey;
+  // /app lands on TODAY (UI step 3d): the daily deck. The board keeps /app/jobs as "All jobs".
+  const activeTab = routeKey === CONSOLE_ROUTE || LEGACY_CONSOLE_ROUTES.has(routeKey)
+    ? "console" : routeKey === "" ? "today" : routeKey;
   const appTabs = [
+    // Today's draft — the deck, dealt from the top of the fit-ranked board (UI_REDESIGN §3).
+    { id: "today",        label: "Today" },
     { id: "console",      label: "Jobs" },
     // The auto-apply pipeline is a peer of the board now, not a strip above it (W5). It sits in
     // this row for the same reason the others do — it is a place you go, not a thing that happens
@@ -378,7 +382,11 @@ function AppDashboard({ authUser, setAuthUser }) {
   });
 
   useEffect(() => {
-    if (!routeKey || LEGACY_CONSOLE_ROUTES.has(routeKey)) {
+    if (!routeKey) {
+      navigate("/app/today", { replace:true });
+      return;
+    }
+    if (LEGACY_CONSOLE_ROUTES.has(routeKey)) {
       navigate(consolePath, { replace:true });
       return;
     }
@@ -553,6 +561,7 @@ function AppDashboard({ authUser, setAuthUser }) {
               <JobsConsole user={authUser} onUserChange={setAuthUser}
                 refreshKey={jobBoardRefreshKey} isActive={activeTab === "console"}/>
             )}
+            {activeTab === "today"        && <DeckView canUseAPlusResume={canUseAPlusResumeHere}/>}
             {activeTab === "auto-apply"   && <AutoApplyPanel/>}
             {activeTab === "database"     && <DatabasePanel user={authUser}/>}
             {activeTab === "integrations" && <IntegrationsPanel/>}
