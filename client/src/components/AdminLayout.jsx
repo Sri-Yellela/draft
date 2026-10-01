@@ -1,7 +1,7 @@
 // client/src/components/AdminLayout.jsx
 import { useTheme } from "../styles/theme.jsx";
 import { AdminPanel } from "../panels/AdminPanel.jsx";
-import { WORDMARK } from "../../../shared/brand.js";
+import { StampLogo } from "./StampLogo.jsx";
 
 export default function AdminLayout({ user, onLogout, children }) {
   const { theme } = useTheme();
@@ -17,11 +17,7 @@ export default function AdminLayout({ user, onLogout, children }) {
         padding:"0 24px", gap:16, flexShrink:0,
         position:"sticky", top:0, zIndex:100,
       }}>
-        <span style={{ fontFamily:"'Barlow Condensed','DM Sans',sans-serif",
-                       fontWeight:800, fontSize:17, letterSpacing:"0.06em",
-                       textTransform:"uppercase", color:theme.text, fontStyle:"italic" }}>
-          {WORDMARK}
-        </span>
+        <StampLogo size="sm" />
         <span style={{ fontSize:11, color:theme.textMuted,
                        borderLeft:`1px solid ${theme.border}`, paddingLeft:16,
                        fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em" }}>

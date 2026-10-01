@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { api, setAuthContext } from "../lib/api.js";
-import { WORDMARK } from "../../../shared/brand.js";
+import { StampLogo } from "./StampLogo.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import { Footer } from "./Footer.jsx";
@@ -449,7 +449,7 @@ export default function AuthScreen({ onLogin, initialTab = "login" }) {
                       overflowY:"auto" }}>
           {/* Logo */}
           <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom: isMobile ? 28 : 48 }}>
-            <span className="site-title" style={{ fontSize: isMobile ? 20 : 22 }}>{WORDMARK}</span>
+            <StampLogo size={isMobile ? "md" : "lg"} />
           </div>
 
           {/* Hero tiles — editorial style */}
