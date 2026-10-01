@@ -24,6 +24,27 @@ export function firstUndecided(cards, from = 0) {
 }
 
 export const isFinished = (s) => s.index >= s.cards.length;
+
+/**
+ * The fan: the undecided cards in deal order, each with its offset from the front. A decided card
+ * has left the fan, so the fan closes up behind it.
+ */
+export function fanOrder(s) {
+  const live = s.cards.map((c, i) => ({ card: c, i })).filter(e => !e.card.decision);
+  const front = live.findIndex(e => e.i === s.index);
+  return live.map((e, rank) => ({ ...e, offset: front < 0 ? rank + 1 : rank - front }));
+}
+
+/**
+ * Where a one-card rotation lands, or null at either end. Null is load-bearing: the deck only
+ * captures the wheel when a rotation is possible, so at the ends the page scrolls again and the
+ * pointer is never trapped over the stack.
+ */
+export function stepTarget(s, dir) {
+  const d = dir < 0 ? -1 : 1;
+  for (let i = s.index + d; i >= 0 && i < s.cards.length; i += d) if (!s.cards[i].decision) return i;
+  return null;
+}
 export const counts = (s) => ({
   drafted: s.cards.filter(c => c.decision === DECISIONS.DRAFTED).length,
   passed:  s.cards.filter(c => c.decision === DECISIONS.PASSED).length,
@@ -66,6 +87,10 @@ export function deckReducer(s, a) {
     case "goto": {
       const index = Math.max(0, Math.min(s.cards.length - 1, a.index));
       return { ...s, index };
+    }
+    case "step": {      // rotate the fan one card: to the next/previous UNDECIDED card, never wrapping
+      const to = stepTarget(s, a.dir);
+      return to == null ? s : { ...s, index: to };
     }
     case "landed":      // the fly-out finished; drop the detached copy
       return s.flight && s.flight.seq === a.seq ? { ...s, flight: null } : s;

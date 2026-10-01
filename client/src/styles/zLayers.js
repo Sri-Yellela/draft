@@ -60,6 +60,17 @@
 // reason). A bar that is dimmed AND inert is coherent; the old bar was undimmed and live over a
 // modal, which is the state the scrim exists to prevent.
 export const Z = {
+  // ── BELOW CONTENT: the substrate, and the deck's fan (docs/BRAND_OUTLAY_AND_MOTION.md §Layering).
+  //
+  //     --z-bg  <  --z-fan  <  --z-content  <  --z-nav
+  //
+  // The paper/leather (PaperBackground) is the floor. The fan of face-down cards sits on it and
+  // BELOW every piece of content, so it passes behind the header, the nav and the action row; only
+  // the face-up card rises into CONTENT. Negative because they are under in-flow content, which is
+  // at 0 — the deck's stage isolates its own stacking context, so FAN can never sink under the page.
+  BG: -10,
+  FAN: -5,
+
   // In-flow application content: the board, the Applications table, panel bodies.
   CONTENT: 0,
 

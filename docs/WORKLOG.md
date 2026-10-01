@@ -3,7 +3,7 @@
 **This file is the only place work is tracked.** Every other doc is reference material for a task
 named here. If a task is not in this file, it is not being worked on.
 
-**Last updated:** 2026-09-30
+**Last updated:** 2026-10-01
 
 ---
 
@@ -36,7 +36,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`6e1837d`** (E1, live 09-29 15:48Z), auto-deploys on push. **232 tests, 232 pass** at that commit; **235** locally after queues 21–22 (G3; G6 re-vendored — not pushed) |
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (OWNER 2) |
 | Resume Master contract | **v1.1.0** (E1, additive; live 09-29), generated; vendored in draft at 1.1.0 (`8472416`). **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
-| Test baseline (draft) | **2831 / 2831 / 0** — measured 09-30 in the working tree after queue 24 (+10 R1). 2821 after queue 23 (+10 K1). 2811 after queue 22 (+6 G6). 2805 after queue 21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
+| Test baseline (draft) | **2857 / 2857 / 0** — measured 10-01 in the working tree after queues 27–29 (+15 deckFan, +9 viewTransitions). 2833 after the mark reached the text-wordmark surfaces. 2831 after queue 24 (+10 R1). 2821 after queue 23 (+10 K1). 2811 after queue 22 (+6 G6). 2805 after queue 21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
 | Migration high-water | **113** defined (`113_account_management`, local); production applied **112** (`112_users_theme_preference`, 09-30) |
 | Contract | v1.1.1 (mobile) · v1.0.0 (Resume Master, above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
@@ -103,6 +103,8 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | 31 | **Two ATS fixes that MOVE THE SCORE — ship them, and re-derive the bands?** Found in queue 22 (G6), measured, NOT shipped: (a) count a competency the résumé shows as a verb (*Collaborated* → collaboration) in the score, ρ 0.746 → **0.761**; (b) three dead entries in the competency registry ("cross" normalises to "cros", so cross-functional terms are filed as SKILLS), ρ → **0.755**. Both are already fixed in the REPORT where that was possible without moving a number | Both are n=30 improvements inside what the set can distinguish; the cost is that Strong ≥ 44 was calibrated on today's scores, so shipping either means re-deriving the cutpoints. Recommendation: (b) yes — it is a plain defect — with the cutpoints re-derived in the same change |
 | 32 | **Student ingestion — which route?** (queue 25 measured it; nothing is built) (a) **add the top Greenhouse/Lever/Ashby boards** to `company_ats_list` — existing adapters, 1 request each, every student posting described; top 100 ≈ 855 roles, ~130 MB a crawl plus giants (SpaceX 30 MB, Anduril 42 MB); (b) **Workday** — 2,518 roles, the largest host, but whole-site paging (100–244 pages on the big tenants) and `workday.js`'s 300-posting cap must change first; (c) **the public curated index** as discovery (2 requests a day) — ⛔ no license declared on either repository | (a) is the cheap, proven start and needs only rows. ⛔ Not SmartRecruiters or Oracle (0% described). ⚠ The board's role-taxonomy refusal will drop design/data/ops internships exactly as it drops their senior equivalents — that is queue 26's question, not ingestion's |
 | 33 | **A student reference set, graded blind by someone in that audience** (queue 26) | `am1-ats-graded-corpus.json` is 30 senior roles graded by an experienced engineer and cannot validate a student segment. Needs ~30 student/new-grad postings — once OWNER 32's route puts them on the board — graded for fit by a student or recent graduate who has not seen the engine's scores. Only a person can do this |
+| 34 | **The deck's card backs show each company's logo, blurred and tinted orange — is that use acceptable?** (queue 27) The logos are trademarks we do not own, fetched from DuckDuckGo's icon service as the board already does; blurring and re-tinting one is a derivative use. Built and local, not pushed. Options: (a) ship as is · (b) ship with the logo untinted (still blurred) · (c) weave + `/` mark only, no logo | Without the logo a face-down card says nothing and the fan is rotated blind — the reason five sketches failed. (c) keeps the fan but loses that. Raised, not assumed |
+| 35 | **Measure the fan's flip on a real mid-range Android phone** (queue 27). Open Today in Chrome on the phone, rotate with the ‹ › buttons and tap-to-expand; Chrome DevTools remote → Performance, or just say whether it stutters | The agent measured Chrome at 4× CPU throttle (Lighthouse's mid-tier proxy): **2.7–4.7% frames > 25 ms, p95 17 ms** after moving rotation and flip to the compositor (it was 13–26% before). A throttled desktop CPU is not a phone GPU — only a device settles it |
 | 26 | ~~Confirm the deck's four proposals~~ ✅ **confirmed by the owner 09-30** and built (`be26aa7`) | — |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
@@ -148,6 +150,12 @@ marked ✅ move to *DONE* at the next tidy; ⏸/⛔ rows are what is left, and w
 | 24 | ⭐ **R1 — grade the employer's posting** | ✅ **09-30, built + measured, no public route** — detection 17/17 visible on 20; it discriminates over 50 (peer percentiles sd 25–30), but specificity is coarse (engineering median 2 tools) and seniority incoherence never fires on this board. ⛔ The board's text is capped at 3k+2k chars — requirements are read on full text and compared with uncapped peers only. SESSION LOG (6). *Was:* ⏸ Queued 09-30, blocks on nothing. `RECRUITER_LAYER_EXECUTION.md` §R1. The existing extractor pointed at a JD. **Zero model calls** — that is what lets it be a free public tool, and the recruiter-side acquisition hook before the two-sided product exists. ⛔ COMPARATIVE, never absolute ("names 3 technologies; the median names 11") — the "58 beside Strong match" lesson. ⛔ Never a public league table of employers. ⚠ Measure the requirements-section detection rate on 20 postings FIRST, and verify it discriminates over 50 — the v3 engine's whole spread was sd 2.87 on a 0–100 scale | — |
 | 25 | ⛔ **Ingestion for the student segment — MEASURE FIRST, build nothing** | ✅ **09-30, measured, nothing built** — 7,486 active student roles at ~2,200 companies (public curated lists); our 25 companies carry 48. Workday 34% · custom 28% · Greenhouse/Lever/Ashby 22% (1 request/board, 100% described). ⛔ Workday needs whole-site paging and `workday.js` caps at 300; SmartRecruiters 0/4 and Oracle 0/6 described. Route = OWNER 32. SESSION LOG (6). *Was:* ⏸ Queued 09-30 by OWNER 29 (**serve both, segmented**). The board is 3.0% entry/intern and the cause is **the configured companies do not post these roles here** — already proven, do not re-litigate it. **Establish, and report before changing anything:** where student and new-grad roles actually live (separate ATS tenants? seasonal windows? university boards? a different Greenhouse board per company?) · what a realistic volume looks like per source · what it would cost per crawl. ⚠ `DETAIL_FETCH_ECONOMICS.md`'s lesson applies: **a probe before a budget model** — workable's own comment claimed an N+1 was required and `?details=true` disproved it in five minutes. ⛔ Do NOT enable a source whose description coverage is 0% — Ubisoft, Bosch and Adobe were seeded inactive for exactly that, 648 rows that could never be enriched | — |
 | 26 | **Segmented curation — both audiences on one board** | ⏸ **09-30: blocked on OWNER 32 (the route) + OWNER 33 (the student reference set).** ⛔ Premise corrected, measured: `SKILL_HINTS` is NOT the gate — removing it changes 4 of 67 scores; the gate is the POSTING-side registry vocabulary (no *data structures, algorithms, coursework, TA, hackathon*). The guard is profile-relative one way only (0/300 senior postings capped for a student). SESSION LOG (6). *Was:* ⏸ Queued 09-30 by OWNER 29. Blocked on 25's measurement. ⛔ **The seniority guard becomes PROFILE-RELATIVE, not deleted.** It currently demotes intern postings and is worth **0.645 → 0.746** — a senior posting shown to a student needs demoting exactly as much as an intern posting shown to a senior engineer did, so it is needed in BOTH directions. ⛔ **`am1-ats-graded-corpus.json` is 30 SENIOR roles graded by an experienced engineer** — it stays (irreplaceable; the originals were destroyed in the id-85 deletion) but it does NOT validate a student segment. A second reference set is needed, graded blind by someone in that audience. ⚠ The résumé-side extractor is a hardcoded 32-item `SKILL_HINTS` list with no vocabulary for coursework, projects, clubs or teaching assistantships — that is the real gate on what segmented curation can achieve | queue 25 | — |
+
+| 27 | ⭐ **The deck — the fan, the flip, click-to-expand** | ✅ **10-01, local (one commit with 28 + 29).** Palette FIRST: the deck is NOT dark by design — built after 2b on tokens; "dark" is step 6's dark mode following the OS. Fan built: `lib/fanGeometry.js`, the logo back (`CardBack.jsx`, SVG filter flooded with the ACCENT token — CORS rules out `mask-image`), `--z-bg < --z-fan < --z-content < --z-nav`. **reach fixed: horizontal 800, vertical 1100 (+ vertical zoom 0.86)** — each the edge of a stated constraint. ⛔ **Flip measured, failed, fixed:** framer's JS transforms dropped 13–26% of frames at 4× CPU; moved to compositor CSS → 2.7–4.7%, p95 17 ms. Real-device check = OWNER 35; trademark = OWNER 34. SESSION LOG (7). *Was:* ⏸ Queued 09-30, ✅ **MODEL DECIDED 09-30** after five interactive sketches. `BRAND_OUTLAY_AND_MOTION.md` §"THE DECK — DECIDED". ⛔ **Read the DECIDED section, not the SUPERSEDED one below it** — the file carries both, deliberately. **A fan of full-size cards on a shallow arc, pulled back so the whole dealt stack is in frame.** Front card face-up and square-on, exactly the ~700×380 card that ships today; the rest face-DOWN falling away either side. ⭐ **Two orientations, one model: desktop pivots RIGHT with HORIZONTAL cards; mobile/portrait pivots BELOW with VERTICAL cards.** The pivot and the orientation move together — mixing them is what made the early sketches unreadable, because a narrow card tilted 10° is unreadable while a 700px-wide one is fine. ⭐ **The back carries the COMPANY'S OWN LOGO, blurred, in accent orange** — that is what fixes the fan's fatal flaw, since a blank back meant rotating blind. Logos, never letters. ⛔ Click expands IN PLACE — no second view to route to, so the shared-element transition is free. ⚠ Geometry: zoom ~0.72, spread ~7°, reach ~900px — **`reach` is the parameter that decides whether the arc reads as a circle and cannot be split the difference.** ⚠ Scroll capture is an accessibility cost; the keyboard must do everything scroll does. ⚠ Measure the flip's frame budget on a real mid-range phone | — |
+| 28 | **The deal, and the end-of-deck moment** | ✅ **10-01, local** — the deal (once per DAY: plays only when the server's `dealtNow` says this request dealt; front card arrives face-down, turns up last) and the end as a moment (what you drafted, with logos · what waits for review · "that is it until tomorrow", with the time to the next deal). SESSION LOG (7). *Was:* ⏸ Queued 09-30. Cards dealt one at a time on first view — ⛔ **once per day, not per navigation**, or the signal that today's draft is new means nothing. ⭐ **The end of the deck is a MOMENT, not an empty state**: a board is infinite and you never finish it; a deck has a bottom, and that is the product's only natural ending. What you drafted, what awaits review, and that is it until tomorrow | queue 27 |
+| 29 | ⭐ **Shared-element transitions everywhere** | ✅ **10-01, local** — title morphs deck → board detail → review queue line, and Today → Auto Apply via the tab row. ⛔ **Premise corrected:** RR's `viewTransition` prop is a no-op under this app's `<BrowserRouter>`, and the `flushSync` fix ALSO did nothing (RR 7 commits navigations as React transitions) — a browser probe caught it after source tests passed; the callback now waits for the route's commit (≤ 200 ms cap; measured 73–151 ms in production). Draft flies to the measured counter; Pass drops under the fan by tier; overlay takes no pointer events. SESSION LOG (7). *Was:* ⏸ Queued 09-30. Highest perceived-quality return per unit of work. A job's title on a card **becomes** the heading in detail, **becomes** the line in the queue — same DOM node, no cross-fade, via the View Transitions API. ⛔ Every transition answers *"where did that go?"*: drafting flies the card to the queue indicator and the count moves; passing drops it **under** the fan, because direction encodes finality. ⛔ Neither may gate input — a card mid-flight must not swallow the next decision. ⛔ `prefers-reduced-motion` on every one; the chevron animation already has a test and that is the standard | — |
+| 30 | **Login and signup, reimagined** | ⏸ Queued 09-30. ⛔ It is the first impression and it is currently a form. ⭐ **The deal as the sign-in background** — the product's own motion, not stock animation. ⭐ **A live ATS score as the signup hook**: paste a JD, get a real score, then sign up to keep it — free, deterministic, **zero model calls**, works for an anonymous visitor. Value first, account second. Type that sets once on first paint; paper that shifts with the pointer; the `/` as stepped-signup progress. ⛔ **None of it may delay the form** | — |
+| 31 | **The landing page as find → fit → apply** | ⏸ Queued 09-30. ⛔ draft is a **wrapper over several products** and the site advertises one. ⛔ **The failure mode is a feature grid** — six cards saying "ATS Scoring · Resume Generation · Auto Apply" tells a visitor nothing about which is for them. ⭐ **One verb, many surfaces:** the tools are stations along find → fit → apply, introduced where they belong, not in a catalogue. ⛔ Write each as what it does for a person, never as a feature name. ⭐ **The restraint IS the pitch** — *"nothing is submitted until you approve it"* and *"it will not claim anything you did not"* are differentiators, not disclaimers; every competitor sells volume and draft sells not-volume | — |
 
 ---
 
@@ -458,6 +466,131 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 ## SESSION LOG
 
 Newest first. ⛔ Agents append here rather than creating a new file.
+
+### 2026-10-01 (7) · Agent queue 27–29 — the deck's fan, the deal, shared-element transitions
+
+27 → 28 → 29 run as ONE sequential task (same files), one commit. Rows 30–31 follow, separately.
+Everything below is local; nothing pushed. Baseline re-derived first: 2833 / 2833 / 0; after: **2857 / 2857 / 0**.
+
+#### First, before any motion work: is the deck dark on purpose? — **No, and it is not dark.**
+
+The premise was that the shipped deck is dark while 2b settled on cream. Git says otherwise: the deck
+(`be8833a`, 09-30 20:08) was built **after** 2b (`2356153`, 09-30 00:30) and reads every colour from
+`colorTokens.js`; its own screenshots (`draft-screenshots/deck/`) are cream. Dark mode (`6788a8e`, step 6)
+landed 20 minutes later and re-points the same tokens — and the preference defaults to **"system"**, so a
+machine set to dark sees the charcoal leather (`draft-screenshots/dark/dark-today-*`). What the owner saw
+is dark mode following the OS, not a deck that predates 2b. No palette was assumed: the fan is tokens only
+and every state was shot in both themes.
+
+#### 27 · The fan
+
+- **Built:** `client/src/lib/fanGeometry.js` (pure; every number), `components/CardBack.jsx`, DeckView rebuilt
+  as the fan. Front card face-up, square-on, **exactly the 700×380 card** (it is not scaled — "pulled back"
+  applies to the cards behind, which is how 0.72 and "nothing shrinks" are both true). Desktop ≥ 1100px:
+  pivot right, horizontal cards; below: pivot below, vertical cards. Width-driven (`FAN_SWITCH_PX = 1100`),
+  so a portrait tablet (820) gets the vertical fan.
+- **The back:** the company's logo through an SVG filter (alpha − luminance, flooded with `C.ACCENT`,
+  blurred), a 5% orange weave, the `/` in the corner. ⚠ Not `mask-image`: masks are fetched CORS-mode and
+  DuckDuckGo's icon host does not answer CORS. No logo → weave and mark only; ⛔ never a letter.
+  Trademark → **OWNER 34**.
+- **Layering:** `Z.BG` / `Z.FAN` added below `Z.CONTENT` in the one z-scale (`--z-bg`, `--z-fan` published);
+  `PaperBackground`'s Tailwind `-z-10` became `Z.BG`. The fan passes behind header and action row; only the
+  face-up card is CONTENT. A test refuses any `zIndex:` number in the deck — it caught one of mine (the swipe
+  stamps), now ordered by DOM instead.
+- **Interaction:** wheel over the stack rotates it, captured ONLY when a rotation is possible (at either end,
+  and while a card is expanded, the page scrolls). J/K and ↑/↓ do what the wheel does; ‹ › buttons beside
+  the counter do it for touch; a peeking back is tappable; Enter expands IN PLACE (no `<Detail>` block, no
+  route), Esc folds; the action row sticks. Reducer gained `step` / `stepTarget` / `fanOrder` (decided cards
+  leave the fan; it closes up).
+
+**⚠ GEOMETRY — the reach sweep** (550 / 700 / 900 / 1100 / 1400, both orientations, mid-stack; sheets in
+the scratchpad, finals in `draft-screenshots/fan/`). Each fixed number is the edge of a constraint, written
+into `fanGeometry.js` and pinned by a test that names the constraint:
+
+| | fixed | why |
+|---|---|---|
+| horizontal reach | **800** | largest that keeps the opening stack in 1440×900 — 4th card's bottom edge at ~899px. 900 clips (933px); 550–700 step < 70px per card and the backs bunch out of sight |
+| vertical reach | **1100** | smallest at which the first back clears a 318px card far enough to show its logo |
+| vertical zoom | **0.86** (was 0.72) | ⚠ premise adjusted: at 0.72 a narrow back's logo sits entirely BEHIND the front card — a phone rotates blind, the exact failure the logo back exists to fix. 0.86 shows ~90px of the first back |
+| spread / horizontal zoom | 7° / 0.72 | held as briefed |
+
+At 1280×800 the faint 4th card clips at ANY reach — height is the binding dimension there; the opacity fade
+and the counter carry it.
+
+**⛔ THE FLIP'S FRAME BUDGET — measured, failed, fixed.** No real phone here, so: Chrome at Lighthouse's
+mid-tier-mobile proxy (4× CPU, plus 6×), 390×844 @ DPR 2.75, rAF intervals across six rotations,
+**production build**:
+
+| | > 25 ms frames | p95 | worst |
+|---|---|---|---|
+| framer-motion transforms (first build), 4× | **13–26%** | 33–67 ms | 117–217 ms |
+| …without logos / filter / shadows / 3D, or at DPR 1 | no change | | |
+| …with only 3 cards | ~6% | | |
+| **CSS transitions of transform + opacity (shipped)**, 4× | **2.7–4.7%** | **17 ms** | 100–133 ms |
+| same, 6× | 16.8% | 83 ms | 267 ms |
+| desktop, unthrottled | 0% | 16.9 ms | 17 ms |
+
+Card count mattered and raster did not, so it was main-thread scripting: framer computes x/y/rotate/scale
+per card per frame in JS. Rotation and flip now run on the compositor; framer keeps only the once-a-day
+deal, the drag and the exit flights. The remaining long frames are ~1 per keypress (React re-render on
+input). ⚠ A throttled desktop CPU is not a phone GPU → **OWNER 35**.
+
+**Edge clipping:** the opacity fade reaches zero exactly past `visible` (4), and the counter (`4 / 10`)
+says where you are in a stack that runs past the frame.
+
+#### 28 · The deal and the end
+
+- **Once per day:** `setDealing(!!deck.dealtNow)` — the server's "this request dealt" — and nothing else.
+  Cards arrive from the pivot side face-down, farthest first; the front card turns up last. Reduced motion:
+  no deal.
+- **The end is a moment:** the slash draws full; "That's today's draft."; dealt · drafted · saved · passed;
+  the drafted jobs listed with their logos; "Nothing has been sent… N things need you in the queue now"
+  (AutoApplyContext's `needsAttentionCount`, the same number as the tab badge); "That is it until tomorrow:
+  the next draft is dealt in 22h 38m"; Review your drafts / All jobs / Undo.
+
+#### 29 · Shared-element transitions — ⛔ two premises corrected
+
+1. **React Router's `viewTransition` prop does nothing here.** It needs a data router; App.jsx mounts a
+   declarative `<BrowserRouter>`. Wired as briefed it would have looked done and never run. Replaced by
+   `lib/viewTransitions.js`.
+2. **The first replacement did nothing either — caught only in a browser.** `startViewTransition` +
+   `flushSync(navigate)` passed every source test; a probe wrapping `startViewTransition` showed the only
+   named element on BOTH sides of the snapshot was the deck's own title. Cause, read in
+   `react-router/dist`: `BrowserRouter` commits history updates inside `React.startTransition`, which
+   `flushSync` cannot force — the browser snapshotted the old page twice. Fix: the update callback awaits
+   `<RouteCommitSignal/>` (a layout effect inside the router), capped at **200 ms**; a destination title
+   that renders a beat later (the board's detail fetches its job) is awaited within the same cap.
+   Re-probed: deck `h2` → board detail `DIV` "Software Engineer, Platform"; Today → Auto Apply lands on the
+   queue's `SPAN`. **Production wait 73–97 ms (tab), 131–151 ms (deck → detail)** — mostly the route's own
+   render, which happens with or without a transition.
+
+- **Unique names:** the queue can show one job in several sections, and a duplicate name makes the browser
+  abandon the whole transition — so components mark titles `data-vt-title` and `nameSharedTitles()` names
+  the first VISIBLE one per job at each snapshot.
+- **Never gates input:** `:root::view-transition { pointer-events: none }`; 180 ms; reduced motion starts no
+  transition at all (and CSS drops the animation). Deck decisions do not use view transitions: Draft flies
+  to the measured Drafted counter, Pass drops under the fan by tier (`Z.FAN − 20`), and the reducer already
+  commits before any animation.
+
+#### Verification
+
+- **Screenshots: 100** (`draft-screenshots/fan/`) — rest, rotated, expanded, after-draft, finished × 1440,
+  1280, 820, 390 × light/dark × full/reduced. **Videos: 10** (`story-*.webm`: deal → wheel → keys → expand →
+  fold → draft → pass → save) — all four breakpoints in both motion settings, plus desktop and mobile dark.
+  Watched as filmstrips: the front card arrives showing Figma's blurred logo, turns up; rotation flips one
+  down as the next arrives face-down; reduced motion cuts.
+- **Injected violations: 25, all red** — reach 900 and 650, vertical zoom 0.72, a 900px switch, the wheel
+  captured before the end check and while expanded, a zIndex literal, the flip ignoring reduced motion, the
+  position animated by `top`, a deal per navigation, a letter on the back, a literal flood colour, a
+  wrapping step, FAN above CONTENT; dedupe removed, reduced motion starting a transition, the overlay
+  taking input, a 400 ms transition, a tab bypassing the helper, Pass flying forward, an untagged queue
+  line; flushSync restored, the commit wait removed, a 400 ms cap, the signal outside the router.
+- **Also fixed, found by the harness:** `AppRouter` called `useMonetisationEnabled()` after an early
+  return — React warned "change in the order of Hooks" on every load. Moved above the return. The deck's
+  toast was centred with `left:50%` + translate, which shrink-wraps it to half the viewport (eight lines on
+  a phone); now margin-centred.
+- **Observed, not changed:** the top bar is transparent, so a long expanded card scrolls visibly behind the
+  nav labels. That predates this work (it holds on every page) — a one-line follow-up if wanted.
 
 ### 2026-09-30 (6) · Agent queue 21–26
 
