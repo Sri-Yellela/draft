@@ -3374,4 +3374,13 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // Follow-up 18 (09-30): the light/dark preference stored with the ACCOUNT, so it follows the
+      // user between devices (UI_REDESIGN §Step 6 said per user; it was per device). NULL = never set,
+      // which means "system" and lets a device keep its own until the user chooses.
+      id: "112_users_theme_preference",
+      sql: `
+        ALTER TABLE users ADD COLUMN theme_preference TEXT;
+      `,
+    },
   ];
