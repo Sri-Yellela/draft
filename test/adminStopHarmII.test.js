@@ -287,7 +287,7 @@ test("(c) ⛔ the pre-restore safety copy holds what was still in the WAL — ru
 });
 
 test("(c) the checkpoint runs before the safety copy in the source, as in createBackup", () => {
-  const src = read("scripts/backup.js");
+  const src = read("packages/sqlite-backup/src/index.js");   // A65: the policy's home
   const body = src.slice(at(src, "export function restoreBackup"));
   const cpAt = body.indexOf("const cp = checkpointWal();");
   assert.ok(cpAt > 0 && cpAt < body.indexOf("fs.copyFileSync(DB_PATH, safePath);"));

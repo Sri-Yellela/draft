@@ -107,7 +107,7 @@ test("A50 #1: the raw ledger UI draws success / error_text (the Groq outage woul
 test("A50 #1: the Backups copy states the byte budget, with the numbers backup.js actually uses", () => {
   const panel = read("client/src/panels/AdminPanel.jsx");
   assert.ok(!/kept for the last 30 snapshots/.test(code(panel)), "the count-only retention claim is back");
-  const backup = read("scripts/backup.js");
+  const backup = read("packages/sqlite-backup/src/index.js");   // A65: the policy's home
   const maxCount = Number(backup.match(/envInt\("BACKUP_MAX_COUNT", (\d+)\)/)[1]);
   const minKeep = Number(backup.match(/envInt\("BACKUP_MIN_KEEP", (\d+)\)/)[1]);
   const share = Number(backup.match(/: (0\.\d+);\s*\n\}\)\(\);/)[1]);
