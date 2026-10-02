@@ -28,6 +28,8 @@ import { createAccountRouter } from "./routes/account.js";
 import { loadSecretKey, createSecretBox, saveIntegrationSecret } from "./services/secretBox.js";
 import { createAdminRouter } from "./routes/admin.js";
 import { createAdminDbRouter } from "./routes/adminDb.js";
+import { buildGlance } from "./services/adminGlance.js";
+import { enrichBudget } from "./services/jobs/enrichJob.js";
 import { createEnrichmentRouter } from "./routes/enrichment.js";
 import { createDomainProfilesRouter } from "./routes/domainProfiles.js";
 import { createImportJobRouter } from "./routes/importJob.js";
@@ -7372,6 +7374,18 @@ app.use("/api/admin/analytics", createAdminRouter(db));
 // the SAME computation this route serves. See the note above that function in routes/adminDb.js.
 const adminDbRouter = createAdminDbRouter(db, { dbPath: DB_PATH, scrapeJobs });
 app.use("/api/admin/db", adminDbRouter);
+// A50 step 3 — the daily glance (docs/ADMIN_PANEL_REVAMP.md §2A). Ingestion and enrichment come
+// from adminDbRouter.pipelineHealth() — the one computation the nightly alert also reads — and are
+// only SELECTED from here, never recomputed. Read-only; every section states when it was measured.
+app.get("/api/admin/glance", requireAdmin, (_req, res) => {
+  try {
+    res.json(buildGlance(db, {
+      health: adminDbRouter.pipelineHealth(),
+      enrichBudget: enrichBudget(),
+      fullAuto: fullAutoState(db),
+    }));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 // U1/U2/U3/U4 — the manual enrichment path: dry-run trigger, JSONL export/import, and batch
 // provenance. Enrichment previously had three triggers and all three were automatic, which is how
 // 837 of ~1252 active production rows sat unenriched through the Groq 404 outage with no way to
