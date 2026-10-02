@@ -87,7 +87,12 @@ function normalizeAshbyJob(job, companyName) {
     url:            job.applyUrl,
     source:         'ashby',
     description:    descriptionText,
-    posted_at:      job.publishedDate || null,
+    // The posting API's field is `publishedAt`, on every posting (1,155 of 1,155 across openai, ramp,
+    // notion and linear, probed 10-02). `publishedDate` does not exist, so reading it — as this did
+    // from the first version — left every Ashby row undated: no "posted N days ago", and recency
+    // ordering fell back to when WE first saw it. Fixing it re-upserts each Ashby row once (posted_at
+    // is in the content hash); discovered_at and enrichment survive the re-upsert.
+    posted_at:      job.publishedAt || null,
     remote:         !!job.isRemote,
     _raw:           job,
     workplace_type: normalizeAshbyWorkplaceType(job.workplaceType, job.isRemote),
