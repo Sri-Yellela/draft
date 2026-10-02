@@ -91,6 +91,11 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
   const [applySubmitted, setApplySubmitted] = useState([]);
   const [applyStopped, setApplyStopped] = useState([]);
   const [applyGatedJobs, setApplyGatedJobs] = useState([]);
+  // A59: the user's line — Drafts waiting behind the running one, next first, each editable until it
+  // starts. `held` says why it is not moving (the kill switch), or null.
+  const [applyLine, setApplyLine] = useState({ waiting: [], held: null });
+  const [lineMsg, setLineMsg] = useState("");
+  const [lineBusyId, setLineBusyId] = useState(null);
   // Missing apply prerequisites, read BEFORE queueing rather than discovered as a 409 afterwards.
   // The server has computed this all along (getMissingApplyPrerequisites) and the only way to see it
   // was to try to start a run and fail.
@@ -105,6 +110,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       setApplyInFlight(Array.isArray(data.inFlight) ? data.inFlight : []);
       setApplySubmitted(Array.isArray(data.submitted) ? data.submitted : []);
       setApplyStopped(Array.isArray(data.stopped) ? data.stopped : []);
+      setApplyLine(data.line && Array.isArray(data.line.waiting) ? data.line : { waiting: [], held: null });
     } catch {}
     // Prerequisites, so "add your email address -> unblocks N applications" can be shown BEFORE the
     // user queues anything. Its own try: a failure here must not blank the pipeline.
@@ -622,15 +628,52 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
     }
   }, [draftTool, loadApplyRuns]);
 
+  /**
+   * A59: edit the line — the tool a waiting Draft will use, its place, or whether it is in it at all.
+   * Every call can lose a race with the draft STARTING; the server then answers 409 run_started
+   * with its own sentence, and that sentence is what the user reads.
+   */
+  const lineCall = useCallback(async (runId, path, opts, done) => {
+    setLineBusyId(runId);
+    setLineMsg("");
+    try {
+      const r = await api(path, opts);
+      if (r?.line) setApplyLine(r.line);
+      if (done) setLineMsg(done);
+    } catch (e) {
+      if (e.payload?.line) setApplyLine(e.payload.line);
+      setLineMsg(e.message || "Could not change the line.");
+    } finally {
+      setLineBusyId(null);
+      loadApplyRuns();
+    }
+  }, [loadApplyRuns]);
+  const setLineTool = useCallback((runId, tool) =>
+    lineCall(runId, `/api/apply/line/${runId}`, { method: "PATCH", body: JSON.stringify({ tool }) },
+      "Changed — it will use that when it starts."), [lineCall]);
+  const moveInLine = useCallback((runId, dir) => {
+    const ids = applyLine.waiting.map(r => r.id);
+    const i = ids.indexOf(runId), j = i + dir;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    return lineCall(runId, "/api/apply/line/order", { method: "POST", body: JSON.stringify({ runIds: ids }) });
+  }, [applyLine, lineCall]);
+  const removeFromLine = useCallback((runId) =>
+    lineCall(runId, `/api/apply/line/${runId}`, { method: "DELETE" },
+      "Removed from the line. Nothing was opened or sent."), [lineCall]);
+
   // Ordered least-to-most current: a job that was stopped and has been re-queued should read as
   // queued, not stopped.
   const applyStateByJobId = useMemo(() => {
     const map = {};
-    for (const list of [applyStopped, applySubmitted, applyReviewJobs, applyGatedJobs, applyInFlight]) {
+    // A59: a job waiting in line is drafted too — it left inFlight for the line, and the board must
+    // not offer to draft it again.
+    const lineJobs = (applyLine.waiting || []).flatMap(r => r.jobs || []);
+    for (const list of [applyStopped, applySubmitted, applyReviewJobs, applyGatedJobs, applyInFlight, lineJobs]) {
       for (const j of list) if (j?.jobId) map[j.jobId] = { status: j.status, reasonCode: j.reasonCode };
     }
     return map;
-  }, [applyStopped, applySubmitted, applyReviewJobs, applyGatedJobs, applyInFlight]);
+  }, [applyStopped, applySubmitted, applyReviewJobs, applyGatedJobs, applyInFlight, applyLine]);
 
   return (
     <AutoApplyContext.Provider value={{
@@ -638,6 +681,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       applyHandoffPackets, handoffPacketFor, openHandoff, handoffMsg, setHandoffMsg,
       applyInFlight, applySubmitted, applyStopped, applyGatedJobs,
       applyPrereqMissing,
+      applyLine, lineMsg, lineBusyId, setLineTool, moveInLine, removeFromLine,
       // ── The board's own view of the pipeline ────────────────────────────────────────────────
       // The board and the pipeline were separate worlds: a card gave no hint that you had already
       // applied to it, queued it, or that it was stuck waiting on you. This is the join, done here

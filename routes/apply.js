@@ -414,6 +414,10 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   const APPLY_WORKER_LIMIT   = envInt("APPLY_WORKER_LIMIT", 2);
   const APPLY_DAILY_CAP      = envInt("APPLY_DAILY_CAP", 25);
   const APPLY_MAX_ACTIVE_RUNS = envInt("APPLY_MAX_ACTIVE_RUNS_PER_USER", 1);
+  // A59: how many runs may WAIT behind the active one. A line is not a cap on spend — each waiting
+  // job already counted against the daily queue cap when it was drafted — it bounds how much a user
+  // can stack up that they would then have to read through in Auto Apply.
+  const APPLY_MAX_WAITING_RUNS = envInt("APPLY_MAX_WAITING_RUNS_PER_USER", 25);
   /**
    * The ceiling on queue attempts per 24h.
    *
@@ -647,6 +651,169 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         SELECT COUNT(*) AS n FROM apply_runs WHERE user_id=? AND status IN ('queued','running')
       `).get(userId).n;
     } catch { return 0; }
+  }
+
+  // ── A59: THE LINE ─────────────────────────────────────────────────────────────────────────────
+  //
+  // A run over APPLY_MAX_ACTIVE_RUNS waits as apply_runs.status='waiting', ordered by
+  // line_position (migration 120). Its jobs stay 'queued', so the duplicate filter, the caps and the
+  // outcome partition need no new status. Until it STARTS it is the user's to edit, reorder or
+  // remove; once dispatchLine claims it, it is an ordinary run and only abort applies.
+  //
+  // Every query that names line_position is reached only after a waiting row is known to exist, so
+  // a database or a test fixture that predates 120 never touches the column.
+
+  function waitingRunCount(userId) {
+    return db.prepare(`SELECT COUNT(*) FROM apply_runs WHERE user_id=? AND status='waiting'`).pluck().get(userId);
+  }
+
+  /** The user's waiting runs, next first. */
+  function waitingRuns(userId) {
+    if (!waitingRunCount(userId)) return [];
+    return db.prepare(`
+      SELECT * FROM apply_runs WHERE user_id=? AND status='waiting' ORDER BY line_position, id
+    `).all(userId);
+  }
+
+  /** 1-based place of one waiting run, and the line's length; null when it is not waiting. */
+  function linePlaceOf(userId, runId) {
+    const line = waitingRuns(userId);
+    const i = line.findIndex(r => r.id === Number(runId));
+    return i < 0 ? null : { position: i + 1, length: line.length };
+  }
+
+  /**
+   * Why the line is not moving, or null. ⛔ THE KILL SWITCH STOPS THE LINE, not only the active run
+   * (the A59 row): a waiting full-auto run is never started while full-auto is disabled, and since
+   * the line is strictly in order, nothing behind it starts either. Semi runs are exempt exactly as
+   * they are at admission — a human is at the browser for those.
+   */
+  function lineHeldBy(run) {
+    if (run && run.mode === "auto" && fullAutoDisabled()) return "kill_switch";
+    return null;
+  }
+
+  /**
+   * Start the head of the user's line while a slot is free. Synchronous claim (status='waiting' in
+   * the WHERE), so two callers — a run finishing and the ticker — cannot both start one run.
+   * Returns how many runs it started.
+   */
+  function dispatchLine(userId) {
+    let started = 0;
+    for (let guard = 0; guard < 100; guard++) {
+      if (activeRunCount(userId) >= APPLY_MAX_ACTIVE_RUNS) break;
+      const head = waitingRuns(userId)[0];
+      if (!head || lineHeldBy(head)) break;
+      // Every job removed from it while it waited: nothing to start, so it leaves the line as
+      // cancelled rather than becoming an empty run that "completes".
+      const live = db.prepare(`SELECT COUNT(*) FROM apply_run_jobs WHERE run_id=? AND status='queued'`).pluck().get(head.id);
+      if (!live) {
+        db.prepare(`UPDATE apply_runs SET status='cancelled', line_position=NULL, finished_at=unixepoch()
+                    WHERE id=? AND status='waiting'`).run(head.id);
+        continue;
+      }
+      const claimed = db.prepare(`
+        UPDATE apply_runs SET status='queued', line_position=NULL WHERE id=? AND status='waiting'
+      `).run(head.id).changes;
+      if (!claimed) continue;
+      for (const rj of db.prepare(`SELECT id, job_id FROM apply_run_jobs WHERE run_id=? AND status='queued'`).all(head.id)) {
+        logEvent(head.id, rj.id, userId, rj.job_id, "run_left_line",
+          "Started from the line — it can no longer be edited.");
+      }
+      const run = db.prepare("SELECT * FROM apply_runs WHERE id=?").get(head.id);
+      setImmediate(() => processRun(run).catch(e => console.error("[applyRoutes] processRun:", e.message)));
+      started++;
+    }
+    return started;
+  }
+
+  /** Every user's line, once. The ticker's body, and what boot recovery ends with. */
+  function dispatchAllLines() {
+    let users;
+    try {
+      users = db.prepare(`SELECT DISTINCT user_id FROM apply_runs WHERE status='waiting'`).pluck().all();
+    } catch { return 0; }
+    let started = 0;
+    for (const u of users) {
+      try { started += dispatchLine(u); }
+      catch (e) { console.error(`[applyRoutes] line user=${u}: ${e.message}`); }
+    }
+    return started;
+  }
+
+  /**
+   * ⚠ THE ORPHAN (the A59 row): a run left 'queued' or 'running' by a restart was never reset, and
+   * because activeRunCount counts it, that user's line could never move again. Called once at boot
+   * (server.js), before anything else can start a run.
+   *
+   *   a run-job that was RUNNING  -> failed, reason 'interrupted_by_restart'. Its browser is gone and
+   *                                  what it reached is unknown, so it is not silently retried — a
+   *                                  full-auto or approved job may have clicked submit just before.
+   *   a run-job still QUEUED      -> left queued, and its run is restarted: it never opened anything.
+   *   a run with nothing queued   -> 'interrupted'.
+   *
+   * ⚠ Assumes one process owns the database. Railway stops a service with a volume before it
+   * starts the new deployment, so no other process can be mid-run when this reads 'running'.
+   */
+  function recoverInterruptedRuns() {
+    const out = { runs: 0, jobsInterrupted: 0, runsResumed: 0, linesStarted: 0 };
+    let orphans;
+    try {
+      orphans = db.prepare(`SELECT * FROM apply_runs WHERE status IN ('queued','running')`).all();
+    } catch (e) {
+      console.error(`[applyRoutes] recovery could not read apply_runs: ${e.message}`);
+      return out;
+    }
+    for (const run of orphans) {
+      out.runs++;
+      const willSend = (run.mode || "auto") === "auto" && (run.approval_mode || "auto") !== "required";
+      const detail = willSend
+        ? "The server restarted while this application was being filled. It may or may not have reached the employer — check before drafting it again."
+        : "The server restarted while this draft was being prepared. Nothing was sent. Draft it again to retry.";
+      const running = db.prepare(`SELECT * FROM apply_run_jobs WHERE run_id=? AND status='running'`).all(run.id);
+      for (const rj of running) {
+        const n = db.prepare(`
+          UPDATE apply_run_jobs SET status='failed', reason_code='interrupted_by_restart', reason_detail=?,
+                 finished_at=unixepoch()
+          WHERE id=? AND status='running'
+        `).run(detail, rj.id).changes;
+        if (n) {
+          out.jobsInterrupted++;
+          db.prepare(`UPDATE apply_runs SET failed_count=failed_count+1 WHERE id=?`).run(run.id);
+          logEvent(run.id, rj.id, run.user_id, rj.job_id, "run_job_interrupted", detail);
+        }
+      }
+      const queued = db.prepare(`SELECT COUNT(*) FROM apply_run_jobs WHERE run_id=? AND status='queued'`).pluck().get(run.id);
+      if (queued) {
+        db.prepare(`UPDATE apply_runs SET status='queued' WHERE id=?`).run(run.id);
+        const fresh = db.prepare("SELECT * FROM apply_runs WHERE id=?").get(run.id);
+        setImmediate(() => processRun(fresh).catch(e => console.error("[applyRoutes] processRun:", e.message)));
+        out.runsResumed++;
+      } else {
+        db.prepare(`UPDATE apply_runs SET status='interrupted', finished_at=unixepoch() WHERE id=?`).run(run.id);
+      }
+    }
+    out.linesStarted = dispatchAllLines();
+    if (out.runs) {
+      console.log(`[boot] apply runs recovered: ${out.runs} orphaned, ${out.jobsInterrupted} jobs interrupted, ` +
+        `${out.runsResumed} resumed, ${out.linesStarted} started from a line`);
+    }
+    return out;
+  }
+
+  /**
+   * The line moves when a run finishes (processRun's finally). The ticker covers what that cannot:
+   * the kill switch being turned OFF again (nothing finishes, so nothing would move the line) and a
+   * dispatch lost to an exception. unref'd, so it never holds a process open.
+   */
+  let lineTicker = null;
+  function startLineTicker(intervalMs = 30_000) {
+    if (lineTicker) return lineTicker;
+    lineTicker = setInterval(() => {
+      try { dispatchAllLines(); } catch (e) { console.error(`[applyRoutes] line ticker: ${e.message}`); }
+    }, intervalMs);
+    lineTicker.unref?.();
+    return lineTicker;
   }
 
   // ── Idempotency (requirement 1) ──────────────────────────────────────────────
@@ -1633,6 +1800,10 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     } catch (e) {
       console.error(`[applyRoutes] processRun error run=${run.id}: ${e.message}`);
       db.prepare(`UPDATE apply_runs SET status='failed', finished_at=unixepoch() WHERE id=?`).run(run.id);
+    } finally {
+      // A59: a slot just freed — start the next run in this user's line, if there is one.
+      try { dispatchLine(run.user_id); }
+      catch (e) { console.error(`[applyRoutes] line user=${run.user_id}: ${e.message}`); }
     }
   };
 
@@ -1714,13 +1885,26 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
 
     // CONCURRENCY (requirement 2). A user may not stack runs: overlapping runs make the daily cap
     // racy and multiply browser load.
+    //
+    // ⛔ A59 (owner, O44, 10-02): A DRAFT WAITS IN LINE — it is no longer REFUSED. This was a 429
+    // run_already_active, which the deck reached on every second Draft inside a minute and, since
+    // A53 gave the board the deck's Draft, the board too. The limit on concurrent runs is unchanged;
+    // what changed is that a run over it is admitted as status 'waiting' with a place in the user's
+    // line (dispatchLine starts it when a slot frees). It also waits when the line is not empty,
+    // even with a free slot, so a later Draft can never jump an earlier one — the head of the line
+    // can be held by the kill switch, and that hold must hold everything behind it.
+    // Every other admission check below still runs NOW, at the moment of the Draft, so a refusal is
+    // said while the user is looking rather than discovered later in a list.
     const active = activeRunCount(userId);
-    if (active >= APPLY_MAX_ACTIVE_RUNS) {
+    const waitingAhead = waitingRunCount(userId);
+    const mustWait = active >= APPLY_MAX_ACTIVE_RUNS || waitingAhead > 0;
+    if (mustWait && waitingAhead >= APPLY_MAX_WAITING_RUNS) {
       return respond(429, {
-        error: "run_already_active",
-        message: `You already have ${active} run in progress. Wait for it to finish before starting another.`,
-        activeRuns: active,
-        limit: APPLY_MAX_ACTIVE_RUNS,
+        error: "line_full",
+        message: `${waitingAhead} drafts are already waiting in line — the most there can be. ` +
+          "Remove one from the line in Auto Apply, or wait for the current one to finish.",
+        waiting: waitingAhead,
+        limit: APPLY_MAX_WAITING_RUNS,
       });
     }
 
@@ -1832,11 +2016,21 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       });
     }
 
+    // A59: a run over the limit is inserted 'waiting' and takes the place after the last one. The
+    // place is written only on that branch, so a database (or a test fixture) without migration
+    // 120 is untouched until a line actually forms. Synchronous, so nothing runs in between.
     const runResult = db.prepare(`
       INSERT INTO apply_runs (user_id, mode, tool_type, status, total_jobs, approval_mode)
-      VALUES (?, ?, ?, 'queued', ?, ?)
-    `).run(userId, resolvedMode, resolvedTool, filtered.length, resolvedApproval);
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(userId, resolvedMode, resolvedTool, mustWait ? "waiting" : "queued", filtered.length, resolvedApproval);
     const runId = runResult.lastInsertRowid;
+    if (mustWait) {
+      db.prepare(`
+        UPDATE apply_runs SET line_position =
+          (SELECT COALESCE(MAX(line_position), 0) + 1 FROM apply_runs WHERE user_id=? AND status='waiting')
+        WHERE id=?
+      `).run(userId, runId);
+    }
 
     // approvedFrom maps job_id -> the preview run-job whose answers were approved. Carrying it on
     // the row is what lets the submitting run compare against what the human actually saw.
@@ -1848,8 +2042,16 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       for (const id of filtered) insertJob.run(runId, userId, id, approvedFrom?.[id] ?? null);
     })();
 
-    const run = db.prepare("SELECT * FROM apply_runs WHERE id=?").get(runId);
-    setImmediate(() => processRun(run).catch(e => console.error("[applyRoutes] processRun:", e.message)));
+    let run = db.prepare("SELECT * FROM apply_runs WHERE id=?").get(runId);
+    if (mustWait) {
+      // The run ahead may have finished between the count above and here; let the line move now
+      // rather than at the next tick. dispatchLine only ever starts the HEAD, so this cannot jump.
+      dispatchLine(userId);
+      run = db.prepare("SELECT * FROM apply_runs WHERE id=?").get(runId);
+    } else {
+      setImmediate(() => processRun(run).catch(e => console.error("[applyRoutes] processRun:", e.message)));
+    }
+    const line = run.status === "waiting" ? linePlaceOf(userId, run.id) : null;
 
     // 3. RESPONSE SHAPE. The client's success message reads `data.queued?.length`, which this
     //    route never sent — so every run reported "0 jobs started". `queued` is the accepted ids,
@@ -1862,6 +2064,14 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       toolType: run.tool_type,
       queued: filtered,
       totalJobs: filtered.length,
+      // A59: true when the run is in the user's line rather than started. `line` is its place
+      // (1 = next) and the line's length; the sentence is the one every surface shows.
+      waiting: !!line,
+      line: line ? { position: line.position, length: line.length } : null,
+      message: line
+        ? `Waiting in line (${line.position} of ${line.length}) — it starts when the draft ahead of it ` +
+          "finishes. Until then you can edit, reorder or remove it in Auto Apply."
+        : undefined,
       dailyCap: { limit: APPLY_DAILY_CAP, submittedLast24h: used, remaining: Math.max(0, APPLY_DAILY_CAP - used - filtered.length) },
       // The preview/session budget. NOT the cost budget any more — see APPLY_DAILY_QUEUE_CAP.
       queueCap: (() => {
@@ -2018,9 +2228,12 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // held_review. The partition is asserted total by statusCounts below.
     const IN_FLIGHT   = ['queued', 'running'];
     const NEEDS_YOU   = ['held_review', 'held_gate'];
+    // A59: a job waiting in the line is 'queued' but has not started, and the user can still change
+    // it — so it is listed under `line` below, with its controls, and not here as "clears itself".
     const inFlight = db.prepare(`
       ${RUN_JOB_SELECT}
       WHERE rj.user_id=? AND rj.hidden_at IS NULL AND rj.status IN (${IN_FLIGHT.map(() => '?').join(',')})
+        AND r.status != 'waiting'
       ORDER BY rj.created_at DESC LIMIT 50
     `).all(req.user.id, ...IN_FLIGHT);
     const submitted = db.prepare(`
@@ -2051,8 +2264,170 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       inFlight: inFlight.map(publicRunJob),
       submitted: submitted.map(publicRunJob),
       stopped: stopped.map(publicRunJob),
+      // A59: the user's line, next first — the same payload as GET /api/apply/line.
+      line: publicLine(req.user.id),
       statusCounts,
     });
+  });
+
+  // ── A59: THE LINE, VIEWED AND EDITED ──────────────────────────────────────────────────────────
+  //
+  // ⭐ Every waiting Draft is viewable and editable BEFORE it begins (owner, O44): its place, its
+  // job, and what the run will do and use. ⛔ A run that has STARTED is not editable, and the
+  // refusal says so — every write below carries status='waiting' in its WHERE (or checks it inside
+  // a transaction), because dispatchLine can claim the run between the user's read and their click.
+
+  const TOOL_LABEL = { generate: "Generate", a_plus_resume: "A+ Resume" };
+
+  /** What a run will do, in the user's words — the "what will be filled / generated" of the row. */
+  function lineWillDo(run) {
+    const tool = TOOL_LABEL[run.tool_type] || "Generate";
+    if ((run.mode || "auto") !== "auto") {
+      return `Opens the employer's form in a browser for you to finish by hand, with a résumé made by ${tool}.`;
+    }
+    if (run.approval_mode === "approved") {
+      return "Sends the application you already approved, with exactly the answers you approved.";
+    }
+    if (run.approval_mode === "auto") {
+      return `Fills the employer's form from your profile and SENDS it without a review, with a résumé made by ${tool}.`;
+    }
+    return "Fills the employer's form from your profile and stops before sending, to wait for your review. " +
+      `The résumé and cover letter are made by ${tool} when you approve it.`;
+  }
+
+  function publicLine(userId) {
+    const runs = waitingRuns(userId)
+      .filter(r => db.prepare(`SELECT COUNT(*) FROM apply_run_jobs WHERE run_id=? AND status='queued'`).pluck().get(r.id));
+    if (!runs.length) return { waiting: [], held: null };
+    const profile = db.prepare(`
+      SELECT dp.profile_name FROM domain_profiles dp WHERE dp.user_id=? AND dp.is_active=1 ORDER BY dp.id DESC LIMIT 1
+    `).pluck().get(userId) ?? null;
+    const jobsOf = db.prepare(`${RUN_JOB_SELECT} WHERE rj.run_id=? AND rj.status='queued' ORDER BY rj.id`);
+    const held = lineHeldBy(runs[0]);
+    return {
+      waiting: runs.map((r, i) => ({
+        ...publicRun(r),
+        position: i + 1,
+        // Only the tool is a choice here: an approved run sends what was approved, unchanged.
+        editable: { tool: r.approval_mode !== "approved", order: true, remove: true },
+        willDo: lineWillDo(r),
+        // Read when the run STARTS, not now — said so, rather than implying it is pinned.
+        usesProfile: profile,
+        jobs: jobsOf.all(r.id).map(publicRunJob),
+      })),
+      held: held === "kill_switch"
+        ? { reason: "kill_switch",
+            message: "Automatic applications are paused by the operator, so the line is not moving. Nothing in it will start until they are resumed." }
+        : null,
+    };
+  }
+
+  /** 404 when the run is not this user's; 409 run_started (with what it is now) when not waiting. */
+  function notWaiting(res, userId, runId) {
+    const run = db.prepare("SELECT status FROM apply_runs WHERE id=? AND user_id=?").get(runId, userId);
+    if (!run) return res.status(404).json({ error: "run_not_found" });
+    return res.status(409).json({
+      error: "run_started",
+      status: run.status,
+      message: "This draft has already left the line, so it can no longer be edited or removed from it. " +
+        "While it runs you can stop it from In flight.",
+    });
+  }
+
+  app.get("/api/apply/line", requireAuth, (req, res) => {
+    res.json({ ...publicLine(req.user.id), limits: { active: APPLY_MAX_ACTIVE_RUNS, waiting: APPLY_MAX_WAITING_RUNS } });
+  });
+
+  /** Edit what a waiting run will use. Today that is the résumé tool; A+ is entitlement-gated. */
+  app.patch("/api/apply/line/:runId", requireAuth, (req, res) => {
+    const runId = Number(req.params.runId);
+    const { tool, toolType } = req.body || {};
+    const want = tool ?? toolType;
+    if (want !== "generate" && want !== "a_plus_resume")
+      return res.status(400).json({ error: "tool_required", message: "tool must be generate or a_plus_resume." });
+    const planTier = normalisePlanTier(req.user?.planTier);
+    if (monetisationEnabled() && want === "a_plus_resume" && !canUseAPlusResume(planTier))
+      return res.status(403).json({ error: "upgrade_required", message: "A+ Resume requires the PRO plan.",
+        requiredTier: "PRO", planTier });
+    const changed = db.prepare(`
+      UPDATE apply_runs SET tool_type=?
+      WHERE id=? AND user_id=? AND status='waiting' AND COALESCE(approval_mode, '') != 'approved'
+    `).run(want, runId, req.user.id).changes;
+    if (!changed) {
+      const run = db.prepare("SELECT status, approval_mode FROM apply_runs WHERE id=? AND user_id=?").get(runId, req.user.id);
+      if (run?.status === "waiting" && run.approval_mode === "approved")
+        return res.status(409).json({ error: "approved_run_locked",
+          message: "You approved this application as it is, so it sends exactly that. Remove it from the line to change it." });
+      return notWaiting(res, req.user.id, runId);
+    }
+    res.json({ ok: true, line: publicLine(req.user.id) });
+  });
+
+  /** Reorder the line. The body is the WHOLE order, so a stale view is refused, never half-applied. */
+  app.post("/api/apply/line/order", requireAuth, (req, res) => {
+    const order = Array.isArray(req.body?.runIds) ? req.body.runIds.map(Number) : null;
+    if (!order || !order.length) return res.status(400).json({ error: "runIds array required" });
+    const result = db.transaction(() => {
+      const current = waitingRuns(req.user.id).map(r => r.id);
+      const same = current.length === order.length && new Set(order).size === order.length &&
+        order.every(id => current.includes(id));
+      if (!same) return false;
+      const set = db.prepare(`UPDATE apply_runs SET line_position=? WHERE id=? AND user_id=? AND status='waiting'`);
+      order.forEach((id, i) => set.run(i + 1, id, req.user.id));
+      return true;
+    })();
+    if (!result)
+      return res.status(409).json({ error: "line_changed",
+        message: "The line changed while you were reordering it — a draft started or was removed. Here it is now.",
+        line: publicLine(req.user.id) });
+    res.json({ ok: true, line: publicLine(req.user.id) });
+  });
+
+  /** Remove a whole waiting run from the line. Nothing was opened, so nothing needs undoing. */
+  app.delete("/api/apply/line/:runId", requireAuth, (req, res) => {
+    const runId = Number(req.params.runId);
+    const removed = db.transaction(() => {
+      const n = db.prepare(`
+        UPDATE apply_runs SET status='cancelled', line_position=NULL, finished_at=unixepoch()
+        WHERE id=? AND user_id=? AND status='waiting'
+      `).run(runId, req.user.id).changes;
+      if (!n) return false;
+      db.prepare(`
+        UPDATE apply_run_jobs SET status='cancelled', reason_code='removed_from_line',
+               reason_detail='Removed from the line before it started. Nothing was opened or sent.',
+               finished_at=unixepoch()
+        WHERE run_id=? AND status='queued'
+      `).run(runId);
+      return true;
+    })();
+    if (!removed) return notWaiting(res, req.user.id, runId);
+    res.json({ ok: true, message: "Removed from the line. Nothing was opened or sent.", line: publicLine(req.user.id) });
+  });
+
+  /** Remove ONE job from a waiting run of several. Removing its last job removes the run. */
+  app.delete("/api/apply/line/:runId/jobs/:runJobId", requireAuth, (req, res) => {
+    const runId = Number(req.params.runId);
+    const runJobId = Number(req.params.runJobId);
+    const outcome = db.transaction(() => {
+      const run = db.prepare("SELECT status FROM apply_runs WHERE id=? AND user_id=?").get(runId, req.user.id);
+      if (!run || run.status !== "waiting") return "not_waiting";
+      const n = db.prepare(`
+        UPDATE apply_run_jobs SET status='cancelled', reason_code='removed_from_line',
+               reason_detail='Removed from the line before it started. Nothing was opened or sent.',
+               finished_at=unixepoch()
+        WHERE id=? AND run_id=? AND status='queued'
+      `).run(runJobId, runId).changes;
+      if (!n) return "no_job";
+      const left = db.prepare(`SELECT COUNT(*) FROM apply_run_jobs WHERE run_id=? AND status='queued'`).pluck().get(runId);
+      db.prepare(left
+        ? `UPDATE apply_runs SET total_jobs=? WHERE id=?`
+        : `UPDATE apply_runs SET total_jobs=?, status='cancelled', line_position=NULL, finished_at=unixepoch() WHERE id=?`)
+        .run(left, runId);
+      return "ok";
+    })();
+    if (outcome === "not_waiting") return notWaiting(res, req.user.id, runId);
+    if (outcome === "no_job") return res.status(404).json({ error: "run_job_not_found" });
+    res.json({ ok: true, line: publicLine(req.user.id) });
   });
 
   app.get("/api/apply/runs/:runId", requireAuth, (req, res) => {
@@ -2618,6 +2993,17 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // processRunJob's `finally` clears it once the run has actually finished; a five-minute TTL in
     // applyAutomation is the backstop for when there was no run in flight to do so.
     requestAbort(rj.job_id).catch(e => console.warn("[applyRoutes] abort:", e.message));
+
+    // A59: Undo on a Draft that is still WAITING in line aborts its only job — the run leaves the
+    // line now, rather than sitting in it empty until it reaches the head. (Status read first: a
+    // database without migration 120 has no waiting runs and never compiles the column.)
+    if (db.prepare("SELECT status FROM apply_runs WHERE id=?").pluck().get(rj.run_id) === "waiting") {
+      db.prepare(`
+        UPDATE apply_runs SET status='cancelled', line_position=NULL, finished_at=unixepoch()
+        WHERE id=? AND status='waiting'
+          AND NOT EXISTS (SELECT 1 FROM apply_run_jobs WHERE run_id=? AND status='queued')
+      `).run(rj.run_id, rj.run_id);
+    }
 
     logEvent(rj.run_id, rj.id, req.user.id, rj.job_id, "run_job_cancelled",
       "Aborted by the user. The browser was closed, nothing was submitted, and the prepared handoff was voided.",
@@ -3640,4 +4026,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   };
   app.post("/api/apply/session/save", requireAuth, (_req, res) => res.status(410).json(SESSION_RETIRED));
   app.get("/api/apply/session/:domain", requireAuth, (_req, res) => res.status(410).json(SESSION_RETIRED));
+
+  // A59: boot-time hooks, called by server.js — not here, so a test mounting these routes on its own
+  // fixture neither recovers its seeded rows nor starts a timer unless it asks to.
+  return { recoverInterruptedRuns, startLineTicker, dispatchAllLines };
 }

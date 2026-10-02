@@ -3127,7 +3127,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       try {
         const r = await commitDecision({ jobId, decision, tool: draftTool, surface: DECISION_SURFACES.BOARD });
         setDraftedIds(prev => new Set(prev).add(jobId));
-        setDecisionToast({ jobId, company: job.company, decision, runId: r.runId, prior, at });
+        setDecisionToast({ jobId, company: job.company, decision, runId: r.runId, line: r.line, prior, at });
         loadApplyRuns?.();
       } catch (e) {
         // ⛔ Never a success toast for a refused call. "Already drafted" IS the drafted state.

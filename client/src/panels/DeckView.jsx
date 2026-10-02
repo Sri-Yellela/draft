@@ -600,6 +600,9 @@ export default function DeckView({ canUseAPlusResume = true }) {
       // The board's Draft / Save / Pass make this exact call (lib/jobDecisions.js) — one behaviour.
       const r = await commitDecision({ jobId: id, decision, tool, surface: DECISION_SURFACES.DECK });
       dispatch({ type: "settled", jobId: id, ...(r.runId != null ? { runId: r.runId } : null) });
+      // A59: a Draft behind a running one waits in line — the toast says so instead of "waits for
+      // your review", which would be true only once it has run.
+      if (r.line) setToast(t => (t && t.jobId === id ? { ...t, line: r.line } : t));
     } catch (e) {
       dispatch({ type: "refused", jobId: id, message: e.message });
       setToast(null);
