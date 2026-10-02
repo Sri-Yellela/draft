@@ -141,6 +141,26 @@ was empty. ⛔ "It should help" is not evidence.
 
 ---
 
+### ⛔ K2 — MEASURED 2026-10-02 (17), NOT SHIPPED
+
+`scripts/k2KbScoringRho.mjs` (read-only) precomputes exactly what this section allows — the KB stack
+of the employers the résumé names, appended to the candidate basis as claimed skills, the scorer
+unchanged — and re-scores the graded 30. The only employer the KB knows on that résumé is Stripe.
+
+| variant | rho (baseline 0.746) |
+|---|---|
+| KB skills, top 5 / 10 / 20 / 40 / 80 by weight | 0.735 / 0.726 / 0.708 / 0.609 / 0.580 |
+| KB skills filtered to the scorer's technical vocabulary, top 5 / 10 / 20 / 40 | **0.752** / 0.721 / 0.679 / 0.559 |
+| the curated per-company stack (DOMAIN_TOOL_REGISTRY, 15 terms) | 0.734 |
+
+The one gain (+0.006) is inside what n=30 can distinguish; every larger credit HURTS, because it
+gives the candidate terms their résumé does not show and so flattens the ordering. Why: the
+technographics are mined from POSTINGS and are dominated by soft skills ("communication",
+"stakeholder management") — a fact about how the employer writes job ads, not about what a person
+there used. ⛔ So K2 stops here, as this section says it must. ⚠ Separately: the curated stack the
+registry returns for "Stripe" begins GCP, Pub/Sub, BigQuery, GKE — worth checking which company key
+it resolved to before anything else relies on it.
+
 ## K3 — KB over API and MCP
 
 ```
