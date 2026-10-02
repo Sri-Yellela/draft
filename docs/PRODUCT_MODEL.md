@@ -11,7 +11,7 @@ documents what exists. Owner decisions recorded 2026-09-25.
 |---|---|
 | **Brand** | **draft**, lowercase, as a wordmark. Not "drafted." — the screenshots were visual reference only. `BRAND.md` is authoritative and says Draft; update it for the lowercase treatment |
 | **Two products** | `jobsviadraft.com` (draft) and `resumemaster.one` (Resume Master). **Not linked.** Separate user bases, separate databases, separate deployments |
-| **Resume Master** | A **stateless processor**. Takes input, returns output, **stores nothing**. Sessions only, plus accounts for its own direct consumers |
+| **Resume Master** | ⛔ ~~A **stateless processor**, stores nothing~~ **REVERSED 10-02 — see A57.** It now has **accounts, a credit ledger and opt-in storage** of résumés and PDFs. Still processes-and-discards by default: **nothing is retained unless the user asks, per artifact.** ⚠ Losing the stateless promise means the privacy page must say what IS kept, for how long, and why |
 | **draft** | Stores everything: résumés, profiles, applications, outcomes |
 | **The API** | Real, because draft is genuinely a third-party caller. It earns itself |
 | **Audience** | **Students and new grads.** Major, graduation year, internship / full-time / micro job |
@@ -42,7 +42,26 @@ engineering titles. A student's target titles are different in kind, not only in
 
 ---
 
-## Resume Master — the stateless processor
+## Resume Master — ⛔ NO LONGER A STATELESS PROCESSOR (reversed 10-02)
+
+⛔ **REVERSED 2026-10-02 — A57.** Resume Master now has **accounts, a credit ledger and opt-in
+storage** of résumés and PDFs. The text below described the original stateless design and is kept
+for its reasoning, not as current fact.
+
+**What still holds:** processes-and-discards is the **default** — nothing is retained unless the user
+asks, per artifact, with a delete that deletes. The gate is **only on model-backed tools**
+(generation, A+, cover letters); ⛔ **ATS scoring stays free, unlimited and ungated** because it makes
+zero model calls.
+
+**The light version, decided 10-02:** separate accounts, **no SSO** · draft's service token **exempt**
+from credits · ledger built, **economics left blank** — no price, no packs, no purchase path, so
+**credits are granted only and nothing here makes the owner a trader** · ⚠ **every debit records what
+it was for and what it cost in tokens**, which is cheap now and impossible to add retroactively.
+
+⚠ **Losing the stateless promise has a cost:** *"we process it and keep nothing"* was the trust
+story, and a stored résumé is personal data — US résumés routinely carry addresses, phone numbers
+and sometimes veteran or disability status, which is the **GDPR Article 9** exposure
+`business/LEGAL_AND_COMPLIANCE.md` §1 already flags for draft.
 
 **What moves there:** résumé generation, the formatting system, the PDF artifact and editor, résumé
 parsing, and the ATS scorer as a *product surface*.
