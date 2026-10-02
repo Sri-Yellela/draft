@@ -69,14 +69,12 @@ test("a provider copy that outranks an aggregator row inherits its pay through t
   assert.equal(d.job.salary_currency, "USD");
 });
 
-test("server.js: the LinkedIn writer passes pay into the deduper and writes the canonical's", () => {
-  const fn = server.slice(at(server, "const insertMany = db.transaction((jobs) => {"), at(server, "return inserted;"));
-  const call = fn.slice(at(fn, "reconcileFingerprint(db, {"), at(fn, "if (dedup.action === 'fold')"));
-  assert.match(call, /salary_min:\s+item\.salaryMin/);
-  assert.match(call, /salary_currency:\s+item\.salaryCurrency/);
-  const insert = fn.slice(at(fn, "insertJob.run("));
-  assert.match(insert, /canonical\.salary_min\s+\?\? null/);
-  assert.doesNotMatch(insert, /item\.salaryMin/, "its own figure would overwrite a donated one");
+test("server.js: the LinkedIn writer is gone, so the live-search write-back is its only writer", () => {
+  // The LinkedIn scrape's writer (insertMany inside scrapeJobs) was fixed here, then deleted with
+  // scrapeJobs on 10-02 (18): A58 had removed its last entry point. Asserted absent so a second
+  // writer that bypasses the donation cannot come back unreviewed.
+  assert.doesNotMatch(server, /async function scrapeJobs\(/);
+  assert.doesNotMatch(server, /harvestapi\/linkedin-job-search/);
 });
 
 test("server.js: the live-search write-back carries description and pay, from the merged canonical", () => {

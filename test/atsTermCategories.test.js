@@ -316,5 +316,7 @@ test("G6: a cached report is keyed by its buckets, not only by what its score me
   const server = fs.readFileSync("server.js", "utf8");
   assert.doesNotMatch(server, /atsBasisHash\([^)]*scorerVersion: LOCAL_ATS_SOURCE/,
     "the panel and the precompute must hash with the same key, or neither counts the other's rows as fresh");
-  assert.equal((server.match(/scorerVersion: ATS_REPORT_CACHE_KEY/g) || []).length, 2);
+  // One: atsBasisForProfile, which the panel and the precompute share. It was two while the scrape
+  // scorer (scrapeJobs, deleted 10-02, 18) hashed its own basis.
+  assert.equal((server.match(/scorerVersion: ATS_REPORT_CACHE_KEY/g) || []).length, 1);
 });

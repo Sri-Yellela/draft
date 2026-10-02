@@ -72,12 +72,10 @@ test("hard profile facts and experience misses affect local ATS score", () => {
 
 test("server precomputed and generated ATS paths use local scorer instead of LLM ATS calls", () => {
   const server = fs.readFileSync("server.js", "utf8");
-  const scrapeBlock = server.slice(at(server, "ATS scoring for newly inserted jobs"), at(server, "Async company icon fallback"));
   const keywordBlock = server.slice(at(server, 'app.post("/api/jobs/:id/keywords"'), at(server, 'app.get("/api/jobs/pending"'));
   const generateBlock = server.slice(at(server, "const resumeStripped = stripResumeHtml(formattedHtml)"), at(server, "const version = (db.prepare"));
 
-  assert.match(scrapeBlock, /scoreAtsLocally/);
-  assert.doesNotMatch(scrapeBlock, /anthropic\.messages\.create|ATS_SYSTEM_PROMPT|claude-haiku/);
+  // The scrape path's scorer went with scrapeJobs (deleted 10-02, 18).
   // The panel now scores through scoreJobForBasis — the one scorer call it shares with the board's
   // fit precompute — so the local-scorer property is asserted on that function's body, and the
   // route is asserted to use it.

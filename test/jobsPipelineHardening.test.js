@@ -217,10 +217,9 @@ test("polling includes same-second inserts and refreshes through local board fil
   assert.doesNotMatch(loopBlock, /\[\.\.\.toAdd, \.\.\.prev\]/, "poll must not blindly prepend unfiltered rows");
 });
 
-test("profile facts are hard constraints for local jobs, poll, and scrape ingestion", () => {
+test("profile facts are hard constraints for local jobs and poll", () => {
   assert.match(server, /function evaluateProfileFactEligibility/, "profile fact eligibility helper must exist");
   assert.match(server, /normaliseStructuredFacts/, "structured profile facts must be normalized before use");
-  assert.match(server, /profileFactMismatch/, "scrape filter summary must track profile fact drops");
   assert.match(server, /profileFactsUsed/, "board/search logs must expose profile facts used for shaping");
   assert.match(server, /requiresSponsorship/, "sponsorship fact must be considered");
   assert.match(server, /hasClearance/, "clearance fact must be considered");
@@ -267,15 +266,8 @@ test("/api/jobs response maps scrapedAt so client can render staleness indicator
 // is covered by "/api/jobs does not hard-filter by scrape age" above, which asserts against the
 // LIVE board query rather than the retired scrape path.
 
-test("normalizePostedAt converts relative age strings to ISO dates at ingest", () => {
-  // Root of O1: LinkedIn returns "2 days ago" which new Date() can't parse.
-  // normalizePostedAt converts these to ISO dates using scraped_at as anchor.
-  assert.match(server, /function normalizePostedAt\(raw, scrapedAt\)/, "normalizePostedAt must be defined");
-  assert.match(server, /minute.*hour.*day.*week.*month/, "must handle all relative time units");
-  assert.match(server, /normalizePostedAt\(item\.postedAt, nowUnix\)/, "must be used at insert time");
-  // ISO fallback must handle parseable dates already
-  assert.match(server, /new Date\(str\)/, "must try to parse as date first");
-});
+// "normalizePostedAt converts relative age strings to ISO dates at ingest" went with the LinkedIn
+// ingest it served ("2 days ago" was a LinkedIn shape): scrapeJobs was deleted 10-02 (18).
 
 test("job card age always renders using scrapedAt fallback when postedAt is absent", () => {
   const jobCard = fs.readFileSync("client/src/components/JobCard.jsx", "utf8");
@@ -360,10 +352,12 @@ test("phase4: aggregator cacheJobs stores collar and confidence on every insert"
   assert.match(agg, /collar:\s*'white'/, "inserted jobs must carry collar='white'");
 });
 
-test("phase4: server.js LinkedIn ingest imports unifiedClassifyJob and gates on collar", () => {
-  assert.match(server, /import \{ classifyJob as unifiedClassifyJob \} from "\.\/services\/jobs\/classifyJob\.js"/, "server.js must import unifiedClassifyJob");
-  assert.match(server, /unifiedClassifyJob\(item\.title/, "insertMany must call unifiedClassifyJob per job");
-  assert.match(server, /collar === 'blue'.*skip insert|skip insert.*collar === 'blue'/s, "insertMany must skip insert for blue-collar jobs");
+test("phase4: server.js has no LinkedIn ingest left to gate", () => {
+  // The LinkedIn ingest (scrapeJobs -> insertMany) gated on collar here until it was deleted 10-02
+  // (18): A58 had removed its last entry point. Every remaining writer goes through the aggregator
+  // or the job gateway, whose collar gate the test above pins.
+  assert.doesNotMatch(server, /unifiedClassifyJob/);
+  assert.doesNotMatch(server, /async function scrapeJobs\(|async function scrapeHarvestAPI\(/);
 });
 
 test("phase4: classifyJob correctly ejects canonical blue-collar titles", () => {

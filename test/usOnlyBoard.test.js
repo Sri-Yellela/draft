@@ -110,10 +110,10 @@ test("queue 37: ⛔ the gate runs BEFORE the content-hash check in both ingestio
   }
 });
 
-test("queue 37: the two server.js write paths are gated too, and the legacy default no longer asserts a US location", () => {
+test("queue 37: the server.js write path is gated too, and the legacy default no longer asserts a US location", () => {
   const server = read("../server.js");
-  const linkedin = server.slice(at(server, "const collarVerdict = unifiedClassifyJob("), at(server, "const result = insertJob.run("));
-  assert.match(linkedin, /usEligibility\(/, "the LinkedIn insert path must be gated");
+  // There were two; the LinkedIn insert path went with scrapeJobs, deleted 10-02 (18).
+  assert.doesNotMatch(server, /const collarVerdict = unifiedClassifyJob\(/);
   const wb = at(server, "// Non-blocking write-back of live search results");
   const writeBack = server.slice(wb, at(server, "insert.run({", wb));
   assert.match(writeBack, /usEligibility\(/, "the live-search write-back must be gated");

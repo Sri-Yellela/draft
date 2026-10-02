@@ -45,7 +45,9 @@ test("profile enhancement architecture is wired through server routes and profil
 
   assert.match(server, /CREATE TABLE IF NOT EXISTS profile_signal_suggestions/);
   assert.match(server, /CREATE TABLE IF NOT EXISTS profile_resume_enhancements/);
-  assert.match(server, /aggregateAtsMissingSignals\(db/);
+  // aggregateAtsMissingSignals was called only from the scrape scorer, deleted with scrapeJobs
+  // 10-02 (18) — and that path had no entry point since A58, so it was already not running.
+  assert.doesNotMatch(server, /aggregateAtsMissingSignals\(db/);
   assert.match(server, /buildSelectedEnhancementSkills\(db/);
   assert.match(routes, /router\.put\("\/:id\/suggestions"/);
   assert.match(routes, /router\.get\("\/:id\/enhancement-history"/);
