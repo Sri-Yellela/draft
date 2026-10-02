@@ -141,7 +141,7 @@ import {
 } from "./services/jobs/jobCursor.js";
 // The board's fit precompute. It holds no scoring code — server.js injects the panel's own
 // basis builder and scorer call (atsBasisForProfile / scoreJobForBasis).
-import { createBoardFitPrecompute, atsBasisHash } from "./services/jobs/boardFitPrecompute.js";
+import { createBoardFitPrecompute, atsBasisHash, atsJobInputHash, storedScoreSql, presentedScore } from "./services/jobs/boardFitPrecompute.js";
 import { deriveAutomationTier } from "./services/jobs/automationTier.js";
 import { backfillAutomationTier } from "./services/jobs/backfillAutomationTier.js";
 import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
@@ -3813,6 +3813,19 @@ console.log(`[boot] database ready: ${DB_PATH}`);
          WHERE company = 'Skroutz' AND ats_type = 'workable' AND ats_slug = 'skroutz';
       `,
     },
+    {
+      // 118 (A52) — EVERY STORED ATS REPORT SAYS WHICH VERSION OF THE POSTING IT SCORED.
+      // 110's basis_hash covers the candidate side only, so a posting scored before its enrichment
+      // landed kept that verdict forever: a board card read "No signal" while the ATS panel, scoring
+      // the same posting fresh, read "Strong match". job_hash is services/jobs/boardFitPrecompute.js
+      // atsJobInputHash over the columns the scorer reads; a row is fresh only when both hashes
+      // match. Additive: NULL on existing rows reads as stale, never fresh, so the first pass after
+      // deploy re-scores each active profile's board once.
+      id: "118_ats_reports_job_hash",
+      sql: `
+        ALTER TABLE ats_only_reports ADD COLUMN job_hash TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -4661,14 +4674,22 @@ async function scrapeJobs(query, apifyToken, scrapeParams = {}, domainProfileId 
           await Promise.all(batch.map(async item => {
             try {
               attempted++;
+              // ⛔ A52 · THE STORED ROW, NOT THE CRAWL'S IN-MEMORY ITEM. The item carries no
+              // `category` (it is `_category` there) and no enrichment, so it scored a thinner
+              // posting than the panel and the precompute read — and with no enhanced draft its
+              // basis hash matched theirs, so that thinner score was accepted as fresh. Scoring the
+              // row (`SELECT *`, as the panel does) and stamping its job_hash makes it one posting.
+              const row = db.prepare("SELECT * FROM scraped_jobs WHERE job_id=?").get(item.jobId);
+              if (!row) return;
               const report = scoreAtsLocally({
-                job: item,
+                job: row,
                 runtimeBasis,
-                termWeights: atsTermWeightsForJob(item),
+                termWeights: atsTermWeightsForJob(row),
                 synonyms: atsSynonyms(),
               });
               storeAtsReportForProfile({
                 userId, profileId: domainProfile?.id ?? null, jobId: item.jobId, report, basisHash: scrapeBasisHash,
+                jobHash: atsJobInputHash(row),
               });
               if (domainProfile?.id) {
                 const aggregation = aggregateAtsMissingSignals(db, {
@@ -6326,7 +6347,11 @@ function scoreJobForBasis(job, runtimeBasis) {
 // profile's current basis, so a writer that omits it (NULL) is treated as "basis unknown" and its
 // row gets re-scored, never trusted as fresh.
 let _storeAtsReportTxn = null;
-function storeAtsReportForProfile({ userId, profileId = null, jobId, report, basisHash = null }) {
+//
+// `jobHash` (migration 118, A52) records WHICH VERSION OF THE POSTING was scored — atsJobInputHash
+// over the columns the scorer reads. Omitted (NULL) reads as stale exactly like a NULL basis_hash:
+// the precompute re-scores it and the board never presents it as a verdict.
+function storeAtsReportForProfile({ userId, profileId = null, jobId, report, basisHash = null, jobHash = null }) {
   if (!userId || !jobId || !report) return;
   // A declaration rather than a `const` holding db.transaction(...), because the scrape scorer 1,500
   // lines above calls this: a const would sit in its temporal dead zone for any caller that ran
@@ -6341,8 +6366,8 @@ function storeAtsReportForProfile({ userId, profileId = null, jobId, report, bas
     );
     const ins = db.prepare(`
         INSERT INTO ats_only_reports
-          (user_id, domain_profile_id, job_id, ats_report, ats_score, scorer_version, scored_at, basis_hash)
-        VALUES (?, ?, ?, ?, ?, ?, unixepoch(), ?)
+          (user_id, domain_profile_id, job_id, ats_report, ats_score, scorer_version, scored_at, basis_hash, job_hash)
+        VALUES (?, ?, ?, ?, ?, ?, unixepoch(), ?, ?)
       `);
     _storeAtsReportTxn = db.transaction((args) => {
       del.run(args.userId, args.jobId, args.profileId);
@@ -6350,11 +6375,12 @@ function storeAtsReportForProfile({ userId, profileId = null, jobId, report, bas
         args.userId, args.profileId, args.jobId,
         JSON.stringify(args.report), args.report.score ?? null,
         args.report.source || LOCAL_ATS_SOURCE,
-        args.basisHash,
+        args.basisHash, args.jobHash,
       );
     });
   }
-  _storeAtsReportTxn({ userId, profileId: profileId ?? null, jobId: String(jobId), report, basisHash: basisHash ?? null });
+  _storeAtsReportTxn({ userId, profileId: profileId ?? null, jobId: String(jobId), report,
+                       basisHash: basisHash ?? null, jobHash: jobHash ?? null });
 }
 
 // ── THE BOARD'S FIT PRECOMPUTE ──────────────────────────────────────────────────────────────────
@@ -7866,6 +7892,12 @@ async function boardPageResponse(req) {
             "SELECT COALESCE(MAX(id), 0) AS e FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ?"
           ).get(req.user.id, sessionActiveProfile.id)?.e ?? 0)
         : null;
+      // A52 · the caller's CURRENT basis hash, so a score stored against an earlier résumé, claim set
+      // or profile is not presented as theirs (presentedScore below). Built, never scored: a few ms.
+      // null when there is no base résumé — then no stored score is current, which is true.
+      let boardBasisHash = null;
+      try { boardBasisHash = atsBasisForProfile(req.user.id, sessionActiveProfile)?.basisHash ?? null; }
+      catch (e) { console.warn("[jobs] basis for stored-score check:", e.message); }
       const order     = orderByClause(orderKeys);
       // Projects each sort key into the SELECT as __cursor_kN, so the DATABASE computes the values
       // the cursor carries. Re-deriving COALESCE(discovered_at, scraped_at) or the experience-level
@@ -8028,7 +8060,7 @@ async function boardPageResponse(req) {
         // reads. sj.ats_score is deliberately not selected under that name any more — see the
         // joinClause note.
         `SELECT ${selectCols}, uj.visited, uj.applied, uj.starred, uj.disliked,
-                aor.ats_score AS matchScore${cursorCols.sql}
+                aor.ats_score AS matchScore, ${storedScoreSql("sj", "aor")}${cursorCols.sql}
          ${joinClause} ${whereClause} ${cursorSql} ORDER BY ${order.sql} LIMIT ?${rawCursor ? "" : " OFFSET ?"}`
       ).all(
         ...cursorCols.params,
@@ -8082,7 +8114,13 @@ async function boardPageResponse(req) {
 
       const responseBody = {
         success:    true,
-        jobs:       rows.map(j => ({ ...mapJobRow(j), scrapedAt: j.scraped_at })),
+        // ⛔ A52 · A STORED SCORE IS SHOWN ONLY WHILE IT IS STILL ABOUT THIS POSTING AND THIS BASIS.
+        // A card read "No signal" beside a panel reading "Strong match" because the stored row
+        // predated the posting's enrichment. presentedScore nulls a stale score — null is "no
+        // opinion", which the card renders as nothing — and the precompute this board load schedules
+        // replaces it. The ORDER may still use it until then; the verdict is never shown.
+        jobs:       rows.map(j => ({ ...mapJobRow({ ...j, matchScore: presentedScore(j, { basisHash: boardBasisHash }) }),
+                                     scrapedAt: j.scraped_at })),
         total,
         page:       pg,
         pageSize:   ps,
@@ -8803,7 +8841,9 @@ app.post("/api/jobs/:id/keywords", requireAuth, async (req, res) => {
   if (existingResume?.ats_report) {
     try {
       const parsed = JSON.parse(existingResume.ats_report);
-      if (parsed?.source === LOCAL_ATS_SOURCE) return res.json(parsed);
+      // A52: says WHICH résumé it is about. This is the GENERATED résumé's report, not the base
+      // résumé's — the board must not adopt it as the card's base verdict.
+      if (parsed?.source === LOCAL_ATS_SOURCE) return res.json({ ...parsed, report_basis: "generated_resume" });
     } catch {}
   }
 
@@ -8848,14 +8888,23 @@ app.post("/api/jobs/:id/keywords", requireAuth, async (req, res) => {
     console.error("[keywords] basis", e.message);
     return res.status(500).json({ error: "Keyword analysis failed" });
   }
+  //
+  // ⛔ A52 · AND ON THE POSTING. A row whose basis matched was served even when the posting had
+  // changed under it — enrichment landing skills_json is the common case — so the panel repeated a
+  // verdict the scorer would no longer give. The job is read first now (it was read below anyway)
+  // and the cache is accepted only when its job_hash matches the posting as it is.
+  const job = db.prepare("SELECT * FROM scraped_jobs WHERE job_id=?").get(jobId);
+  if (!job) return res.status(404).json({ error: "Job not found" });
+  const panelJobHash = atsJobInputHash(job);
   const cached = db.prepare(`
     SELECT ats_report FROM ats_only_reports
     WHERE user_id = ? AND job_id = ?
       AND (domain_profile_id IS NULL OR domain_profile_id = ?)
       AND basis_hash IS ?
+      AND job_hash IS ?
     ORDER BY (domain_profile_id IS NULL) ASC
     LIMIT 1
-  `).get(userId, jobId, keywordsProfileId, panelBasis?.basisHash ?? null);
+  `).get(userId, jobId, keywordsProfileId, panelBasis?.basisHash ?? null, panelJobHash);
   if (cached?.ats_report) {
     try {
       const parsed = JSON.parse(cached.ats_report);
@@ -8863,9 +8912,7 @@ app.post("/api/jobs/:id/keywords", requireAuth, async (req, res) => {
     } catch {}
   }
 
-  // Priority 4: fetch job + run the in-house deterministic scorer.
-  const job = db.prepare("SELECT * FROM scraped_jobs WHERE job_id=?").get(jobId);
-  if (!job) return res.status(404).json({ error: "Job not found" });
+  // Priority 4: run the in-house deterministic scorer on the job read above.
 
   // Resolved once at the top of the route now (keywordsProfile), because the cache reads above
   // need it too and resolving it twice is two chances to disagree about which profile is active.
@@ -8888,6 +8935,7 @@ app.post("/api/jobs/:id/keywords", requireAuth, async (req, res) => {
     // the user who opened it — per profile, and visible to nobody else.
     storeAtsReportForProfile({
       userId, profileId: keywordsProfileId, jobId, report: result, basisHash: panelBasis.basisHash,
+      jobHash: panelJobHash,
     });
 
     res.json(result);
@@ -9309,7 +9357,7 @@ async function adoptEnhancedProfileResume(req, res) {
         await Promise.all(batch.map(async job => {
           try {
             const report = scoreJobForBasis(job, runtimeBasis);
-            storeAtsReportForProfile({ userId, profileId, jobId: job.job_id, report, basisHash });
+            storeAtsReportForProfile({ userId, profileId, jobId: job.job_id, report, basisHash, jobHash: atsJobInputHash(job) });
           } catch(e) {
             console.warn(`[adopt-enhanced] rescore failed for ${job.job_id}:`, e.message);
           }

@@ -10,7 +10,7 @@ something you read elsewhere in `docs/`, re-measure before you believe either.
 |---|---|
 | deployed commit | **read it from `/api/version`** — any value written here is stale by the next push, which is why the doc guard deliberately does not assert one |
 | contract | `1.3.0` — source and production agree (A40, deployed 10-02: `DeckCard.report`, `DeckWhy.missingTotal` — additive); draft-android still vendors `1.2.0` |
-| migration high-water | `115_deactivate_skroutz_outside_us` in **both** runners (A44, owner 10-02). Production applied through `115_deactivate_skroutz_outside_us` — **read from `/api/version`** 10-02 02:59Z (`latestApplied`), not from this table |
+| migration high-water | `118_ats_reports_job_hash` in **both** runners (A52, ⚠ local, not pushed; 116/117 reserved for A49/A50), after `115_deactivate_skroutz_outside_us` (A44, owner 10-02). Production applied through `115_deactivate_skroutz_outside_us` — **read from `/api/version`** 10-02 02:59Z (`latestApplied`), not from this table |
 | test baseline | see `CLAUDE.md` § "Deliberate test failures" — the one place the count is kept (this line said 2675 until 10-02) |
 | monetisation | **disabled** — the product presents as free and untiered |
 | Anthropic balance | **funded — verified 09-28** by real generation, A+ and PDF calls (WORKLOG CURRENT STATE). The "exhausted" behaviour below — 502s, capture degrading — is what happens if it runs out again |
@@ -33,7 +33,7 @@ on their behalf without a gate.**
 - **The board and its ranking.** Post-CC1 it ranks by a three-valued sieve, recency as tiebreak.
 - **Weighted ATS scoring.** Production: `state: fresh`, `weightedScoring: true`, 493 terms.
 - **Auth and identity.** Three credentials, deliberately separate. Re-verified in a real browser.
-- **Migrations.** 116 applied, **0 defined-but-unapplied**.
+- **Migrations.** 116 applied; **1 defined-but-unapplied** in production once A52 ships (`118_ats_reports_job_hash`, additive).
 
 **Built but never completed** — this is the section that matters:
 

@@ -29,7 +29,7 @@ import {
   buildOrderKeys, orderByClause, cursorProjection, cursorPredicate, encodeCursor, decodeCursor,
   FIT_KEYS, FIT_BAND_SQL, FIT_BAND_ORDINAL, ordersByFit, RECENCY, SORT_KEYS,
 } from "../services/jobs/jobCursor.js";
-import { createBoardFitPrecompute, atsBasisHash } from "../services/jobs/boardFitPrecompute.js";
+import { createBoardFitPrecompute, atsBasisHash, atsJobInputHash } from "../services/jobs/boardFitPrecompute.js";
 import { atsBandFor, ATS_BAND, ATS_BAND_CUTPOINTS } from "../shared/atsBands.js";
 import { scoreAtsLocally, buildRuntimeAtsBasis, LOCAL_ATS_SOURCE } from "../services/localAtsScorer.js";
 import { at } from "../test-support/sourceAnchors.js";
@@ -61,14 +61,18 @@ function seed(db, rows) {
       (job_id, search_query, company, title, _hash, scraped_at, discovered_at, is_active, description)
     VALUES (?, 'q', 'Co', ?, ?, ?, ?, ?, ?)`);
   const rep = db.prepare(`INSERT INTO ats_only_reports
-      (user_id, domain_profile_id, job_id, ats_report, ats_score, scorer_version, scored_at, basis_hash)
-    VALUES (?, ?, ?, '{}', ?, ?, 1, ?)`);
+      (user_id, domain_profile_id, job_id, ats_report, ats_score, scorer_version, scored_at, basis_hash, job_hash)
+    VALUES (?, ?, ?, '{}', ?, ?, 1, ?, ?)`);
+  const postingOf = db.prepare("SELECT * FROM scraped_jobs WHERE job_id = ?");
   for (const r of rows) {
     const t = r.at ?? 1786000000;
     ins.run(r.id, r.title ?? "Engineer", `h-${r.id}`, t, t, r.active === false ? 0 : 1,
       r.description ?? "Build services in Python and Go.");
     if (r.score !== MISSING) {
-      rep.run(USER, PROFILE, r.id, r.score === DECLINED ? null : r.score, LOCAL_ATS_SOURCE, r.hash ?? null);
+      // A52: a seeded report is about the posting as seeded (job_hash current) unless the row says
+      // otherwise — `jobHash: null` is a row written before migration 118.
+      const jobHash = r.jobHash !== undefined ? r.jobHash : atsJobInputHash(postingOf.get(r.id));
+      rep.run(USER, PROFILE, r.id, r.score === DECLINED ? null : r.score, LOCAL_ATS_SOURCE, r.hash ?? null, jobHash);
     }
   }
 }
@@ -281,11 +285,11 @@ test("the mid-walk hazard the epoch exists for is real: a score landing mid-walk
 // ── the precompute ───────────────────────────────────────────────────────────────────────────
 
 /** A store with the shape of server.js's storeAtsReportForProfile: delete-then-insert, per key. */
-const makeStore = (db) => ({ userId, profileId, jobId, report, basisHash }) => {
+const makeStore = (db) => ({ userId, profileId, jobId, report, basisHash, jobHash = null }) => {
   db.prepare("DELETE FROM ats_only_reports WHERE user_id=? AND job_id=? AND domain_profile_id IS ?").run(userId, jobId, profileId);
-  db.prepare(`INSERT INTO ats_only_reports (user_id, domain_profile_id, job_id, ats_report, ats_score, scorer_version, scored_at, basis_hash)
-              VALUES (?, ?, ?, ?, ?, ?, 1, ?)`)
-    .run(userId, profileId, jobId, JSON.stringify(report), report.score ?? null, report.source || LOCAL_ATS_SOURCE, basisHash);
+  db.prepare(`INSERT INTO ats_only_reports (user_id, domain_profile_id, job_id, ats_report, ats_score, scorer_version, scored_at, basis_hash, job_hash)
+              VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`)
+    .run(userId, profileId, jobId, JSON.stringify(report), report.score ?? null, report.source || LOCAL_ATS_SOURCE, basisHash, jobHash);
 };
 const quietLog = () => { const lines = []; return { lines, log: (l) => lines.push(["log", l]), warn: (l) => lines.push(["warn", l]), error: (l) => lines.push(["error", l]) }; };
 const profileRow = (db) => db.prepare("SELECT * FROM domain_profiles WHERE id=?").get(PROFILE);
