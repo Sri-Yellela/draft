@@ -519,8 +519,13 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
       // Still attach on the fast path. The freshness short-circuit exists to avoid re-fetching,
       // but a SECOND user importing the same URL within the window is a real import for them —
       // skipping this would silently return someone else's row without adding it to their board.
-      attachImportToUser(db, userId, existing.job_id);
-      return { job: mapJobRow(existing) };
+      // A row retired as a duplicate resolves to its canonical row (A49 fix 4): starring the
+      // retired id would save a job the board never shows.
+      const target = existing.duplicate_of
+        ? (db.prepare('SELECT * FROM scraped_jobs WHERE job_id = ?').get(existing.duplicate_of) || existing)
+        : existing;
+      attachImportToUser(db, userId, target.job_id);
+      return { job: mapJobRow(target), ...attachedNotice(target.job_id) };
     }
   }
 
@@ -641,15 +646,26 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
     );
   }
 
+  // A49 fix 4 — an import that matched a posting already on the board is ATTACHED to that row
+  // (starred above), and the response says so. Without the flag the user saw their capture come
+  // back under another source's id and no record of their own URL: indistinguishable from the
+  // capture having been dropped.
+  const attached = dedup.action === 'fold' ? attachedNotice(finalJobId) : {};
+
   // `degraded` travels with the row: the caller promised the user a capture, and a capture that
   // carries a title and a URL but no salary or skills is a DIFFERENT promise kept. Saying so is
   // the flag-don't-fabricate rule applied to the response rather than to a field.
   return degraded
-    ? { job: mapJobRow(row), degraded: true,
+    ? { job: mapJobRow(row), ...attached, degraded: true,
         degradedReason: 'ai_unavailable',
         message: 'Saved with title and link only — the AI service is unavailable, so details '
                + 'will fill in automatically once it is back.' }
-    : { job: mapJobRow(row) };
+    : { job: mapJobRow(row), ...attached };
+}
+
+const ATTACHED_MESSAGE = 'This job was already on the board — it is now in your Saved jobs.';
+function attachedNotice(jobId) {
+  return { attachedToExisting: true, existingJobId: jobId, message: ATTACHED_MESSAGE };
 }
 
 export {

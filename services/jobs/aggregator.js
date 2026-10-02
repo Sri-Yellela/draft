@@ -8,6 +8,7 @@ import { getKnownLogoUrl } from './enrichLogos.js';
 import { drainEnrichment } from './enrichJob.js';
 import { recordPipelineRun } from './pipelineRunLog.js';
 import { usEligibility, officeLocations } from './usLocation.js';
+import { retireDuplicate, keptApart } from './dedupRetire.js';
 
 // ─── REGISTER SOURCES HERE ───────────────────────────────────────────────────
 // To add a new source: import it and add to SOURCES array.
@@ -172,8 +173,9 @@ function getFingerprintStmts(db) {
         WHERE fingerprint = ? AND job_id != ? AND is_active = 1
         ORDER BY updated_at DESC
       `),
-      findOwnSourcesSeen: db.prepare(`SELECT sources_seen FROM scraped_jobs WHERE job_id = ?`),
-      demote: db.prepare(`UPDATE scraped_jobs SET is_active = 0 WHERE job_id = ?`),
+      // SELECT * rather than named columns: duplicate_of (migration 116) is read off it, and the
+      // hand-rolled fixtures many tests build do not all carry that column.
+      findOwnRow: db.prepare(`SELECT * FROM scraped_jobs WHERE job_id = ?`),
       foldIntoExisting: db.prepare(`
         UPDATE scraped_jobs SET
           description            = @description,
@@ -585,13 +587,20 @@ function reconcileFingerprint(db, job) {
   const reqUid      = computeReqUid(job);
   const jobId       = job.id || job.url || '';
 
-  const candidates = stmts.findCandidates.all(fingerprint, jobId);
+  // A pair someone restored apart (dedupRetire.restoreRetiredDuplicate) is never merged again —
+  // otherwise a restore would last exactly until the next crawl.
+  const candidates = stmts.findCandidates.all(fingerprint, jobId)
+    .filter(c => !keptApart(db, jobId, c.job_id));
   const existing   = selectMatch(candidates, reqUid);
+  const now        = Math.floor(Date.now() / 1000);
 
   if (!existing) {
     // Either nothing shares this fingerprint, or (reqUid set) every same-fingerprint row is a
     // confirmed-distinct sibling req — either way this job gets its own canonical row.
-    const own = stmts.findOwnSourcesSeen.get(jobId);
+    const own = stmts.findOwnRow.get(jobId);
+    // A row once retired as a duplicate whose canonical has since gone (closed, pruned) is a
+    // canonical row again: it must not keep claiming to be a duplicate of something.
+    if (own?.duplicate_of) unretire(db, jobId);
     const sourcesSeen = mergeSourcesSeen(own?.sources_seen, job.source);
     return { action: 'insert_canonical', job, sourcesSeen, fingerprint, reqUid };
   }
@@ -601,7 +610,11 @@ function reconcileFingerprint(db, job) {
   if (incomingWins) {
     const sourcesSeen = mergeSourcesSeen(existing.sources_seen, existing.source, job.source);
     const merged      = unionMergeFields(job, existing);
-    stmts.demote.run(existing.job_id);
+    // A49 fix 4 — retired, not just demoted: the users' Saves, Passes, applications and résumés on
+    // the outranked row move to this one (dedupRetire.js), and the retirement is logged.
+    retireDuplicate(db, { fromJobId: existing.job_id, toJobId: jobId, now });
+    const own = stmts.findOwnRow.get(jobId);
+    if (own?.duplicate_of) unretire(db, jobId);
     const finalReqUid = reqUid || existing.req_uid || null;
     return { action: 'insert_canonical', job: merged, sourcesSeen, fingerprint, reqUid: finalReqUid };
   }
@@ -612,7 +625,17 @@ function reconcileFingerprint(db, job) {
   const mergedExisting  = unionMergeFields(existing, job);
   const finalReqUid     = existing.req_uid || reqUid || null;
   stmts.foldIntoExisting.run({ ...mergedExisting, sources_seen: sourcesSeen, req_uid: finalReqUid, job_id: existing.job_id });
+  // A49 fix 4 — the incoming job_id may already be a board row (a re-crawl of a posting that has
+  // since been outranked) or carry user state without a row (a live-search result starred before
+  // write-back). Either way it resolves to the canonical row now; nothing a user did stays on an id
+  // the board will never show again.
+  retireDuplicate(db, { fromJobId: jobId, toJobId: existing.job_id, now });
   return { action: 'fold', intoJobId: existing.job_id, fingerprint, reqUid: finalReqUid };
+}
+
+function unretire(db, jobId) {
+  db.prepare(`UPDATE scraped_jobs SET duplicate_of = NULL, retired_reason = NULL, retired_at = NULL
+              WHERE job_id = ?`).run(jobId);
 }
 
 /**
