@@ -1,5 +1,6 @@
-// SCRAPING — SCHEDULED FOR REMOVAL AFTER MIGRATION
-// client/src/pages/admin/DBInspector.jsx — Admin DB diagnostic tool
+// client/src/pages/admin/DBInspector.jsx — Admin DB diagnostic tool (/admin/db)
+// (A50: the "SCRAPING — SCHEDULED FOR REMOVAL" banner was stale. This is the diagnostic surface
+// almost every defect was found through; nothing schedules its removal.)
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api, authHeaders, authContextQuery } from "../../lib/api.js";
 import { useTheme } from "../../styles/theme.jsx";

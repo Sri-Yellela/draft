@@ -272,7 +272,10 @@ export function createBoardFitPrecompute({
     const results = [];
     for (const profile of profiles) {
       results.push(dryRun
-        ? await runFor({ userId: profile.user_id, profile, dryRun: true, reason })
+        // `force` passed through (A50): a dry run of a forced pass must plan the forced pass. Without
+        // it the plan counted only missing/stale rows, so the admin panel's dry run of "force" showed
+        // a smaller job than the real run it was the preview for.
+        ? await runFor({ userId: profile.user_id, profile, dryRun: true, force, reason })
         : await schedule({ userId: profile.user_id, profile, reason, force }));
     }
     const summary = {

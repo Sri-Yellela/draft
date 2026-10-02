@@ -1,5 +1,7 @@
-// SCRAPING — SCHEDULED FOR REMOVAL AFTER MIGRATION
 // routes/admin.js — Usage analytics and limits admin API
+// (The "SCRAPING — SCHEDULED FOR REMOVAL" banner that headed this file was stale: per-user scraping
+// was removed at the pivot and this router outlived it. Its last scraping read — scrape_events —
+// went in A50.)
 import { Router } from "express";
 import { getTrackingStats } from "../services/usageTracker.js";
 import { pendingCount as sinkPendingCount, sinkPath } from "../services/trackingFailureSink.js";
@@ -25,6 +27,26 @@ export function createAdminRouter(db) {
     return { from, to };
   }
 
+  // Postings first seen, and crawl runs, in [from, to]. Each read is tolerated separately so a
+  // database without pipeline_runs (pre-migration) still reports discoveries, and vice versa.
+  function ingestionInRange(from, to) {
+    const out = { postingsDiscovered: null, crawlRuns: null, crawlRunsFailed: null };
+    try {
+      out.postingsDiscovered = db.prepare(
+        "SELECT COUNT(*) AS c FROM scraped_jobs WHERE discovered_at BETWEEN ? AND ?",
+      ).get(from, to).c;
+    } catch { /* table or column absent: reported as null */ }
+    try {
+      const r = db.prepare(`
+        SELECT COUNT(*) AS c, SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed
+        FROM pipeline_runs WHERE run_kind = 'source_sync' AND started_at BETWEEN ? AND ?
+      `).get(from, to);
+      out.crawlRuns = r.c;
+      out.crawlRunsFailed = r.failed || 0;
+    } catch { /* pipeline_runs absent */ }
+    return out;
+  }
+
   // ── Overview ─────────────────────────────────────────────────
   router.get("/overview", requireAdmin, (req, res) => {
     const { from, to } = getRange(req.query);
@@ -40,10 +62,12 @@ export function createAdminRouter(db) {
         WHERE event_type='resume_generate' AND created_at BETWEEN ? AND ?
       `).get(from, to).c;
 
-      const scrapeStats = db.prepare(`
-        SELECT COUNT(*) as c, COALESCE(SUM(inserted_count),0) as inserted
-        FROM scrape_events WHERE created_at BETWEEN ? AND ?
-      `).get(from, to);
+      // ⛔ NOT scrape_events. Its only writer (usageTracker.trackScrape) was removed in cleanup 5.8,
+      // so "Jobs Scraped" read a permanent 0 that looked like a data bug (A50). The ingestion this
+      // tile is about is the shared crawl: postings FIRST SEEN in the range (discovered_at — not
+      // scraped_at, which every unchanged re-crawl touches) and the crawl runs that produced them.
+      // null, not 0, when the table is absent: "not measurable here" is not "nothing happened".
+      const ingest = ingestionInRange(from, to);
 
       const tokenStats = db.prepare(`
         SELECT
@@ -108,8 +132,9 @@ export function createAdminRouter(db) {
         totalUsers,
         activeUsers,
         totalResumes,
-        totalScrapes: scrapeStats.c,
-        totalJobsInserted: scrapeStats.inserted,
+        postingsDiscovered: ingest.postingsDiscovered,
+        crawlRuns: ingest.crawlRuns,
+        crawlRunsFailed: ingest.crawlRunsFailed,
         totalTokensUsed: tokenStats.total_tokens,
         totalCostUsd: tokenStats.total_cost,
         totalCostSaved: cacheSaved,
@@ -149,10 +174,8 @@ export function createAdminRouter(db) {
             MAX(created_at) as last_active
           FROM usage_events WHERE user_id=? AND created_at BETWEEN ? AND ?
         `).get(u.id, from, to);
-        const sc = db.prepare(`
-          SELECT COUNT(*) as c, COALESCE(SUM(inserted_count),0) as inserted
-          FROM scrape_events WHERE user_id=? AND created_at BETWEEN ? AND ?
-        `).get(u.id, from, to);
+        // No per-user scrape count: users stopped scraping at the pivot (the crawl is shared), and
+        // scrape_events has had no writer since cleanup 5.8 — the column read 0 for everyone.
         const ce = db.prepare(`
           SELECT
             SUM(CASE WHEN event_type='cache_hit' THEN 1 ELSE 0 END) as hits,
@@ -170,8 +193,6 @@ export function createAdminRouter(db) {
           userId: u.id, username: u.username, createdAt: u.created_at,
           resumesGenerated: ev.resumes || 0,
           atsScores: ev.ats_scores || 0,
-          jobScrapes: sc.c || 0,
-          jobsInserted: sc.inserted || 0,
           pdfExports: ev.pdf_exports || 0,
           applyRuns: ev.apply_runs || 0,
           totalTokens: ev.total_tokens || 0,
@@ -228,13 +249,11 @@ export function createAdminRouter(db) {
         sql = `SELECT (created_at / ?) * ? as bucket, COALESCE(SUM(cost_usd),0) as value
           FROM usage_events WHERE created_at BETWEEN ? AND ?
           GROUP BY bucket ORDER BY bucket`;
-      } else if (metric === "scrapes") {
-        sql = `SELECT (created_at / ?) * ? as bucket, COALESCE(SUM(inserted_count),0) as value
-          FROM scrape_events WHERE created_at BETWEEN ? AND ?
-          GROUP BY bucket ORDER BY bucket`;
-      } else if (metric === "jobs_inserted") {
-        sql = `SELECT (created_at / ?) * ? as bucket, COALESCE(SUM(inserted_count),0) as value
-          FROM scrape_events WHERE created_at BETWEEN ? AND ?
+      } else if (metric === "scrapes" || metric === "jobs_inserted" || metric === "postings_discovered") {
+        // Postings first seen per bucket. "scrapes" / "jobs_inserted" are kept as aliases for any
+        // caller still asking by the old names; they read scrape_events, which nothing writes.
+        sql = `SELECT (discovered_at / ?) * ? as bucket, COUNT(*) as value
+          FROM scraped_jobs WHERE discovered_at BETWEEN ? AND ?
           GROUP BY bucket ORDER BY bucket`;
       } else if (metric === "cache_hit_rate") {
         sql = `SELECT (created_at / ?) * ? as bucket,
