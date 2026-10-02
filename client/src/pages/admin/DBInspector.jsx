@@ -1728,6 +1728,31 @@ function JobTraceTab({ theme, initialJobId }) {
             </div>
           </div>
 
+          {/* A50 step 5: the lifecycle — crawl, gate, dedup, enrichment, scoring, captures, drafts,
+              records, submitted — in time order, each with the reason the system gave. */}
+          {data.lifecycle?.events?.length > 0 && (
+            <div data-job-lifecycle style={{ border:`1px solid ${theme.border}`, borderRadius:10, padding:14, marginBottom:14 }}>
+              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em",
+                            color:theme.textMuted, marginBottom:10 }}>
+                Lifecycle {data.lifecycle.active ? "" : "· not on the board"}
+              </div>
+              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
+                <tbody>
+                  {data.lifecycle.events.map((e, i) => (
+                    <tr key={i} style={{ borderTop:`1px solid ${theme.border}` }}>
+                      <td style={{ padding:"5px 8px", whiteSpace:"nowrap", color:theme.textMuted }}>
+                        {e.at ? new Date(e.at * 1000).toISOString().replace("T", " ").slice(0, 16) + "Z" : "—"}
+                      </td>
+                      <td style={{ padding:"5px 8px", fontWeight:700, textTransform:"uppercase", fontSize:10 }}>{e.stage}</td>
+                      <td style={{ padding:"5px 8px" }}>{e.what}</td>
+                      <td style={{ padding:"5px 8px", color: /STALE|Held|Retired|no column/.test(e.detail || e.what) ? C.WARNING : theme.textMuted }}>{e.detail || ""}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {/* 2x2 grid of cards */}
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
 

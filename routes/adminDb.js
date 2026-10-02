@@ -1,6 +1,7 @@
 // routes/adminDb.js — DB Inspector API routes for admin diagnostics
 // (A50: the "SCRAPING — SCHEDULED FOR REMOVAL" banner was stale. pipelineHealth() here is the ONE
 // computation the nightly alert reads; nothing schedules this file's removal.)
+import { traceJobLifecycle } from "../services/jobTrace.js";
 import { Router } from "express";
 import fs from "fs";
 import Database from "better-sqlite3";
@@ -1142,6 +1143,9 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
           isCorrectlyIsolated: hasProfile && issues.length === 0,
           issues,
         },
+        // A50 step 5: the posting end to end — crawl, gate, dedup, enrichment, scoring, captures,
+        // drafts, records, submitted — every decision with its reason, in time order.
+        lifecycle: traceJobLifecycle(db, jobId),
       });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
