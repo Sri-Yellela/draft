@@ -119,7 +119,8 @@ test("every self-hosted family is one the UI actually asks for, under the name i
       "barlow-condensed/700", "barlow-condensed/800",
       "dm-sans/400", "dm-sans/500", "dm-sans/700", "dm-sans/800",
       "instrument-serif/400", "instrument-serif/400-italic",
-      "inter/400", "inter/500",
+      // inter/400 and inter/500 removed 10-02 (A53 follow-up): no surface asked for Inter — the body
+      // renders DM Sans, and the two tokens that still named Inter were corrected to say so.
     ],
     "the self-hosted font set changed. If that is deliberate, update this list and say why in the " +
     "commit; if it is not, a weight nobody asked for is being shipped to every visitor");

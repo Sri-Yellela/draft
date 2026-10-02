@@ -550,7 +550,9 @@ export default function TopBar({
         }}>
         {/* Left group: the mark, then the app's primary navigation.
             logo | JOBS | AUTO APPLY | JOB PROFILES | DATABASE | RECRUITER */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+        {/* flex 1 + overflow hidden: the tab row must give way to the avatar, never slide under it —
+            at 390px the avatar sat on top of "AUTO APPLY" (seen in the 10-02 reshoot). */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: "1 1 auto", overflow: "hidden" }}>
           {/* Logo — "R" always visible, "esume Master" collapses */}
           <AnimatedLucyLogo/>
 
@@ -600,7 +602,7 @@ export default function TopBar({
         </div>
 
         {/* Right: utility icons */}
-        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0, marginLeft: 8 }}>
           {/* The bell and the quick-actions button are gone from the bar (W6). Notifications live
               in the profile menu below; their unread count rides on the avatar so it is still
               visible without opening anything. */}

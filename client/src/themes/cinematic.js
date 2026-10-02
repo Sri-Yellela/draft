@@ -249,6 +249,7 @@ export default {
   Wrapper: PaperBackground,
   fonts: {
     display: "'Instrument Serif', serif",
-    body: "'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'",
+    // DM Sans: what the body actually renders in (the global rule above). This said Inter; A53 found the split.
+    body: "'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'",
   },
 };
