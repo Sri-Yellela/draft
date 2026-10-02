@@ -62,6 +62,97 @@ apologetic.
 ⛔ **What ships today is not the deck.** One card, fully expanded, with the whole description. The
 design was a deck and the implementation is a list of one.
 
+## ✅ THE EXPANDED CARD — DECIDED 2026-10-01, after three HTML sketches
+
+⛔ **Two equally sized panels. Not three.** The posting stays **inside the card**, growing downward.
+It does not move to a third column — an earlier build did that and it was wrong.
+
+### The model
+
+```
+COLLAPSED   one compact card: logo, company, title, and ONE ATS signal line
+            ("Strong match · 9 of 12 matched · tap for the report")
+            ⛔ No chip rows. The collapsed card is for a two-second decision
+
+CLICK       FOUR THINGS MOVE ON ONE CLOCK, same duration and easing, NO stagger:
+              · the grid goes 0fr 1fr → 1fr 1fr   (what makes the card look PUSHED, not moved)
+              · the deck arc translates right      (the background moves WITH the card)
+              · the ATS signal collapses to zero height
+              · the posting grows inside the card
+
+EXPANDED    two equal panels. ATS report left, card right, posting inside the card
+```
+
+⭐ **The `0fr → 1fr` grid transition is the whole trick.** The card is not being animated to a new
+position — the left column grows from nothing and pushes it. That is what produces "makes way"
+rather than "slides over".
+
+⛔ **NO STAGGER.** An earlier sketch delayed the ATS panel by 0.2s so it would arrive "after the
+space exists". It read as **two separate events** instead of one motion. Everything shares one
+`--T` and one easing curve.
+
+### Duration
+
+**~0.9s to 1.3s**, slower than a normal UI transition and deliberately so — the owner's words were
+*"in unison a bit slowly"*. ⚠ **Expose it as a single CSS custom property** so it can be tuned
+without touching four rules. The sketch had a slider for exactly this reason.
+
+### ⭐ The ATS chips leave the card, and it is not choppy
+
+When expanded, the card carries **no ATS information** — the full report is beside it, and
+duplicating it is noise.
+
+⚠ The obvious risk is a double height change: chips shrink, then the posting grows, two jerks.
+⭐ **The fix is that both run on the same curve and duration** — the chips collapse via `max-height`
+exactly as the posting expands, so it is one continuous height change. Verified in the sketch.
+
+### The ATS panel is the FULL report
+
+⛔ Not the "Why it's here / Not on your résumé yet" chip summary. The real one: **fit band · skills
+matched · skills missing with the claim note · verbs matched · verbs missing · generic language ·
+experience fit.**
+
+⚠ **The two panels will be different heights** — the report is long. Equal width, unequal height.
+Accepted.
+
+---
+
+## ✅ MOBILE AND PORTRAIT — DECIDED 2026-10-01
+
+⛔ **Keep the vertical fan** (the bottom-pivot orientation). The two-panel layout is desktop only —
+there is no room for an adjacent panel at 390px.
+
+**The ATS signal line is the tap target.** Tap it and the report opens as a **sheet**, not a panel.
+That is why the signal exists on the collapsed card at all: one line that is both information and
+the way in.
+
+### ⛔ Swipe versus scroll — the real conflict, and the decision
+
+Swipe left/right is Pass/Draft. Vertical scroll is how you read. **They are orthogonal axes, so a
+gesture handler can lock on first movement** — that part is solved by axis detection.
+
+⛔ **But the expanded card is the problem.** Reading a long posting means a lot of vertical
+scrolling, thumbs drift, and an accidental horizontal component fires an action on something you
+were still reading. **A Pass is final by design.**
+
+✅ **DECIDED: swipe is DISABLED when the card is expanded.**
+
+| | |
+|---|---|
+| **Collapsed** | Triage. Swipe freely — decisions are fast and cheap |
+| **Expanded** | Consideration. **Buttons only.** Deliberate |
+
+⭐ **This removes the conflict rather than tuning a threshold that will still misfire sometimes.** It
+also matches the mental model exactly: the collapsed deck is for deciding quickly, the expanded card
+is for reading carefully.
+
+⛔ **And the rule that does not change: no gesture and no keystroke ever submits an application.**
+Draft queues; approval is separate and deliberate. A keystroke is at least as easy to fire by
+accident as a swipe, and the Android build once displayed **"Application sent"** for 2.5 seconds
+having sent nothing.
+
+---
+
 ## ✅ THE DECK — DECIDED 2026-09-30, after five interactive sketches
 
 > **BUILT 2026-10-01 (queues 27–29), local.** The numbers below were the starting point; the fixed ones

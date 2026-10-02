@@ -123,7 +123,58 @@ job-market feeling the owner is trying to avoid**, and dating apps that added th
 
 ---
 
-## ⛔ What it depends on, and none of it exists yet
+## ⭐ FUTURE — the employer side flips the ATS answer
+
+**Owner, 2026-10-01:** the recruiter layer means **employers become customers**, and that inverts
+every conclusion the 10-01 ATS investigation reached.
+
+### What that investigation found, and why it flips
+
+It concluded: no ATS submission integration is possible, because **every path requires credentials
+from each individual employer** — Greenhouse, Lever, Ashby and Workable API keys; Workday
+integration users; SmartRecruiters partner OAuth. A deal with the *vendor* unlocks nothing. A
+candidate-side tool cannot qualify for LinkedIn Apply Connect, Indeed Apply or any equivalent,
+because those are configured **on the employer's side** and each employer opts in.
+
+⭐ **That was the right answer for a candidate-only product. It is the wrong answer once employers
+sign up.**
+
+**An employer with a recruiter account can authorise their own ATS.** They already hold the
+credentials; the blocker was never technical, it was that we had no relationship with them. The
+recruiter side *is* that relationship.
+
+### The sequence this creates
+
+```
+1  Candidates use the product. Browser automation fills employers' forms — the only route
+   available, and what every comparable tool does.
+2  Employers join as recruiters, for the reverse draft and grade-the-posting.
+3  ⭐ An employer connects their own ATS — their key, their consent, their instance.
+4  Candidates applying to THAT employer submit through the integration instead of the browser.
+   Faster, more reliable, and no form-filling failure modes at all.
+```
+
+⭐ **Each integration is a per-employer win, not a platform-wide one** — and that is fine. It is
+also a reason for an employer to sign up: *"connect your ATS and applications arrive structured."*
+
+### ⭐ What becomes worth revisiting, and when
+
+| | Now | Once employers are on board |
+|---|---|---|
+| **ATS submission integration** | ⛔ Not possible | ⭐ **Possible, per employer, with their consent** |
+| **SmartRecruiters partner programme** | ⛔ Not worth it — each employer must still connect, and the board has **zero** SmartRecruiters rows | ⭐ **Worth applying.** It is the only open partner route, and an employer asking to connect is the signal that makes the paperwork worth it |
+| **Apply Connect / Indeed Apply** | ⛔ A candidate-side tool does not qualify | ⚠ Still employer-configured. Revisit only if an employer asks |
+
+⛔ **Do not build any of this before employers exist.** The investigation's conclusion stands for
+today: **browser automation is the architecture, not a workaround.** This section is the trigger
+list for when that changes — not a plan to start now.
+
+⚠ **And one thing that does not flip: Recruitee's unauthenticated submission endpoint.** It is meant
+for a company's own careers site, so using it without permission is unauthorised regardless of who
+else joins. 4 rows of 2,616. **Never build on it.**
+
+---
+
 
 | | Why it blocks |
 |---|---|

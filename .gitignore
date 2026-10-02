@@ -9,3 +9,7 @@ data/
 !packages/ats-scorer/data/
 env.sh
 
+
+# Owner-only business, legal and immigration material — this repository is PUBLIC (2026-10-01).
+docs/business/
+docs/COMPANY_AND_MONETISATION.md
