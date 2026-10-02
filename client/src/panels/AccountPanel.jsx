@@ -134,7 +134,7 @@ export function AccountPanel({ onSignedOut }) {
             {["google", "linkedin", "github"].map(p => (
               <div key={p} style={{ ...row, justifyContent: "space-between" }}>
                 <span style={{ fontSize: 13, color: "var(--color-text)" }}>{PROVIDER_LABEL[p]}
-                  <span style={{ ...muted, marginLeft: 8 }}>{methods[p] ? "Linked" : "Not linked"}</span></span>
+                  <span style={{ ...muted, marginLeft: 8 }}>{methods[p] ? "Connected" : "Not connected"}</span></span>
                 {methods[p]
                   ? <button style={btnQuiet} disabled={!!busy || methodCount <= 1}
                       title={methodCount <= 1 ? "Your only way to sign in — set a password or link another first" : ""}
