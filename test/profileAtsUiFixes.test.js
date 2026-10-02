@@ -9,15 +9,15 @@ test("job card hover preview uses shared active-aware icon helpers for save and 
   assert.match(jobCard, /function IconBtn\(\{/);
   assert.match(jobCard, /active = false/);
   assert.match(jobCard, /preview = hov && !disabled/);
-  assert.match(jobCard, /function ToggleIconBtn/);
-  assert.match(jobCard, /activeLabel="Remove from saved"/);
-  // AE5 replaced the card's thumbs-down with Queue Auto, so there is no "Undo pass" toggle on a
-  // listing any more. Pass still exists and still drives the pass list — it lives on
-  // JobDetailPanel's action bar. What this line now pins is that the slot went to the action
-  // that MOVES an application forward, and that it reports its own state rather than firing
-  // twice.
-  assert.match(jobCard, /title=\{queued \? "Already in the auto-apply queue" : "Add to auto-apply queue"\}/);
-  assert.match(jobCard, /disabled=\{queued\}/);
+  // A53 (owner, 10-02): Save SETS — the star toggle (ToggleIconBtn, "Remove from saved" on a second
+  // press) is gone; reversal is Undo, or the Saved list's own labelled "Remove" (onUnsave).
+  const buttons = fs.readFileSync("client/src/components/DecisionButtons.jsx", "utf8");
+  assert.doesNotMatch(jobCard, /function ToggleIconBtn/);
+  assert.match(buttons, /label="Remove" title="Remove from saved" onClick=\{onUnsave\}/);
+  // AE5 gave the thumbs-down's slot to the action that MOVES an application forward — Draft now
+  // (was Queue Auto) — and it reports its own state rather than firing twice.
+  assert.match(buttons, /title=\{drafted \? "Drafted — it waits for your review in Auto Apply"/);
+  assert.match(buttons, /disabled=\{drafted \|\| drafting\}/);
   assert.doesNotMatch(jobCard, /activeLabel="Undo pass"/,
     "the listing must not grow the thumbs-down back — see AE5 for where Pass lives");
   assert.match(jobCard, /active=\{done && !generateLoading\}/);

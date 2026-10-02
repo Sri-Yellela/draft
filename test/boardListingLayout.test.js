@@ -142,17 +142,18 @@ test("the card's own horizontal margin moved onto the grid", () => {
     "DatabasePanel's two card lists must supply the spacing JobCard stopped carrying");
 });
 
-// ── Queue Auto, and where Pass went ──────────────────────────────────────────
+// ── Draft (was Queue Auto), and where Pass went ──────────────────────────────
 
-test("the listing offers QUEUE AUTO, and reports when the job is already queued", () => {
-  assert.match(jobCard, /const \{ addToApplyQueue, applyQueue \} = useAutoApply\(\)/,
-    "read off the shared context, the same way ApplyStateChip in this file already does");
-  assert.match(jobCard, /const queued = \(applyQueue \|\| \[\]\)\.some\(item => item\.jobId === queueKey\)/);
-  assert.match(jobCard, /title=\{queued \? "Already in the auto-apply queue" : "Add to auto-apply queue"\}/);
-  assert.match(jobCard, /disabled=\{queued\}/,
-    "a button that fires twice would queue the same job twice");
-  // Only offered when there is somewhere to apply. A listing with no URL cannot be queued.
-  assert.match(jobCard, /const canQueue = !!\(job\.applyUrl \|\| job\.url\) && !!queueKey/);
+test("the listing offers DRAFT where Queue Auto was, and reports when the job is already drafted", () => {
+  // A53 (owner, 10-02): the deck's Draft, one name and one behaviour — JobsPanel's decideJob posts
+  // the deck's own call; the card reports the pipeline's drafted state and cannot fire twice.
+  const buttons = fs.readFileSync("client/src/components/DecisionButtons.jsx", "utf8");
+  assert.match(jobCard, /<DraftButton drafted=\{drafted\} drafting=\{drafting\} onDraft=\{handleDraft\}/);
+  assert.match(jobCard, /const handleDraft = \(\) => \{ if \(!drafted && !drafting\) onDraft\?\.\(\); \};/,
+    "a button that fires twice would draft the same job twice");
+  assert.match(buttons, /disabled=\{drafted \|\| drafting\}/);
+  // Only offered when there is somewhere to apply. A listing with no URL cannot be drafted.
+  assert.match(jobCard, /const canDraft = !!\(job\.applyUrl \|\| job\.url\) && !!queueKey && !!onDraft/);
 });
 
 test("THE PASS LIST KEPT A HOME — dislike is a query filter, not a preference", () => {
@@ -163,13 +164,12 @@ test("THE PASS LIST KEPT A HOME — dislike is a query filter, not a preference"
   const server = fs.readFileSync("server.js", "utf8");
   assert.ok((server.match(/uj\.disliked\s+IS NULL OR uj\.disliked\s+= 0/g) || []).length >= 2,
     "the board still filters on disliked, so the user must still be able to set it");
-  assert.match(server, /app\.patch\("\/api\/jobs\/:id\/disliked"/);
+  // A53 (owner, 10-02): it is SET through /api/jobs/interact (the deck's call), never toggled.
+  assert.match(server, /app\.patch\("\/api\/jobs\/interact"/);
   // And the surface that sets it.
-  assert.match(detail, /onDislike && \(/);
-  assert.match(detail, /title="Not interested"/);
-  assert.match(detail, /Pass\s*<\/ActionBtn>/);
+  assert.match(detail, /\{onPass && <PassButton passed=\{!!selectedJob\.disliked\} onPass=\{onPass\} \/>\}/);
   // JobsPanel still wires it through, so the detail panel's action is live rather than decorative.
-  assert.match(jobsPanel, /onDislike: \(\) => toggleDislike\?\.\(selectedJob\.jobId, selectedJob\)/);
+  assert.match(jobsPanel, /onPass: \(\) => decideJob\(selectedJob, DECISIONS\.PASSED\)/);
 });
 
 test("a passed job still READS as passed on the board", () => {
@@ -186,15 +186,17 @@ test("the card grew no second source of truth for `disliked`", () => {
   const code = jobCard.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, "");
   assert.ok(!/setDisliked/.test(code), "the local disliked state is back without a control to drive it");
   assert.ok(!/showDislike/.test(code), "showDislike gates nothing now and must not linger as dead surface");
-  // Starring still clears it server-side: starring a job you had passed on has to un-pass it.
-  assert.match(jobCard, /interact\(\{ starred: next, \.\.\.\(next \? \{ disliked: false \} : \{\}\) \}\)/);
+  // Saving still clears it server-side: saving a job you had passed on has to un-pass it — now as
+  // the shared SET (lib/jobDecisions.js flagsFor), not the card's own toggle.
+  const decisions = fs.readFileSync("client/src/lib/jobDecisions.js", "utf8");
+  assert.match(decisions, /if \(decision === DECISIONS\.SAVED\) return \{ starred: true, disliked: false \};/);
 });
 
 // ── Requirement 4: everything else stayed ────────────────────────────────────
 
 test("every other control on the listing survived", () => {
   for (const [what, re] of [
-    ["the star",        /inactiveLabel="Save job"/],
+    ["save",            /<SaveButton saved=\{starred\} onSave=\{handleSave\}/],
     ["the sparkle",     /title=\{done \? "Regenerate" : "Generate resume"\}/],
     ["open-in-new",     /title="Open job listing"/],
     ["the ATS badge",   /<ATSBadge score=/],

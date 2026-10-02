@@ -123,7 +123,8 @@ test("AD1 requirement 2: every consumer of the removed surface still has what it
   const nothingYet = panel.slice(at(panel, "const nothingYet ="),
                                  at(panel, "// ── Grouping"));
   assert.ok(!/history/i.test(nothingYet), "nothingYet now depends on the dated history");
-  for (const feed of ["applyQueue", "applyRuns", "applyReviewJobs", "applyPending", "applyQuestions",
+  // "applyQueue" left this list in A53 with the basket itself (owner, 10-02); applyMsg replaced it.
+  for (const feed of ["applyMsg", "applyRuns", "applyReviewJobs", "applyPending", "applyQuestions",
                       "applyInFlight", "applySubmitted", "applyStopped", "applyPrereqMissing"]) {
     assert.ok(nothingYet.includes(feed), `nothingYet lost its ${feed} term`);
   }

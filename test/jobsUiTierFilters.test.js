@@ -133,9 +133,12 @@ test("the tier chip stays silent on `direct` and never promises anything on `unk
 });
 
 test("the queue names what an `account` or `gated` job needs before the run starts", () => {
-  assert.match(panel, /automationTier === "account"/);
-  assert.match(panel, /automationTier === "gated"/);
-  assert.match(panel, /cannot be automated/);
+  // A53 removed the basket this notice sat in (owner, 10-02: a Draft is a run the moment it is made).
+  // The notice is on the CARD, beside the Draft button, so it is read BEFORE the run starts.
+  assert.match(card, /account: \{ label:"Account req\."/);
+  assert.match(card, /gated:   \{ label:"Login \+ check"/);
+  assert.match(card, /cannot be automated/);
   // Nothing here may attempt to get past the challenge — it is handed to the user.
-  assert.match(panel, /apply to \{cannotAuto\.length === 1 \? "that one" : "those"\} yourself/);
+  assert.match(card, /this one cannot be automated\. Apply here yourself\./);
+  assert.ok(card.indexOf("<TierChip tier={job.automationTier}/>") !== -1);
 });

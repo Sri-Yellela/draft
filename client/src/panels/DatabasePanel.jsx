@@ -6,6 +6,7 @@ import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import JobCard      from "../components/JobCard.jsx";
+import { DECISIONS, commitDecision } from "../lib/jobDecisions.js";
 import { DockPortal } from "../components/DockPortal.jsx";
 import { Z } from "../styles/zLayers.js";
 // AC4: the calendar this panel established, extracted so the Auto Apply panel's dated run history
@@ -167,8 +168,8 @@ function DetailModal({ modal, onClose, theme }) {
         }}>
           {/* Title */}
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                          fontSize:17, letterSpacing:"0.06em", textTransform:"uppercase",
+            <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
+                          fontSize:22,
                           color:theme.text, overflow:"hidden", textOverflow:"ellipsis",
                           whiteSpace:"nowrap" }}>
               {modal.company}
@@ -186,8 +187,8 @@ function DetailModal({ modal, onClose, theme }) {
                   padding:"5px 14px", border:"none", cursor: (id==="resume"?hasResume:hasAts) ? "pointer" : "not-allowed",
                   background: view===id ? theme.accent : theme.surface,
                   color: view===id ? C.ON_ACCENT : (id==="resume"?hasResume:hasAts) ? theme.text : theme.textDim,
-                  fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                  fontSize:12, letterSpacing:"0.06em", textTransform:"uppercase",
+                  fontFamily:"inherit", fontWeight:800,
+                  fontSize:12,
                   transition:"background 0.15s",
                   borderRight: id==="resume" ? `1px solid ${theme.borderStrong}` : "none",
                 }}>
@@ -210,10 +211,10 @@ function DetailModal({ modal, onClose, theme }) {
             <button onClick={exportPdf} disabled={exporting}
               style={{
                 display:"inline-flex", alignItems:"center", gap:5, flexShrink:0,
-                padding:"6px 16px", borderRadius:2,
-                fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                fontSize:12, letterSpacing:"0.08em", textTransform:"uppercase",
-                background:"transparent", border:`2px solid ${theme.borderStrong}`,
+                padding:"6px 16px", borderRadius:999,
+                fontFamily:"inherit", fontWeight:800,
+                fontSize:12,
+                background:"transparent", border:`1px solid ${theme.borderStrong}`,
                 color:theme.text, cursor: exporting ? "not-allowed" : "pointer",
                 opacity: exporting ? 0.6 : 1, transition:"border-radius 0.4s ease",
               }}
@@ -225,7 +226,7 @@ function DetailModal({ modal, onClose, theme }) {
                 }
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.borderRadius = "2px";
+                e.currentTarget.style.borderRadius = "999px";
                 e.currentTarget.style.background   = "transparent";
                 e.currentTarget.style.borderColor  = theme.borderStrong;
               }}>
@@ -369,8 +370,10 @@ export function DatabasePanel({ user }) {
     }) }).catch(()=>{});
   }, [user]);
 
+  // A53: an explicit SET, not the per-id toggle — "Remove" on a job that is (somehow) already
+  // unsaved used to RE-save it. The same call the deck's and the board's Undo make.
   const unsaveJob = useCallback(async (jobId) => {
-    await api(`/api/jobs/${jobId}/starred`, { method:"PATCH" });
+    await api("/api/jobs/interact", { method:"PATCH", body: JSON.stringify({ jobId, starred: false }) });
     setSavedJobs(prev => prev.filter(j => j.jobId !== jobId));
   }, []);
 
@@ -557,8 +560,10 @@ export function DatabasePanel({ user }) {
   const SHEETS = [["applications","Applications"],["resumes","Resumes"],["saved","Saved Jobs"],["pending","Pending Apply"]];
 
   return (
+    // A53: transparent, not theme.bg (the glass) — the board's 09-30 fix: the leather is the
+    // substrate, the header and toolbar strips are the glass.
     <div style={{ flex:1, display:"flex", flexDirection:"column",
-                  overflow:"hidden", background:theme.bg }}>
+                  overflow:"hidden", background:"transparent" }}>
 
       <DetailModal modal={detailModal} onClose={() => setDetailModal(null)} theme={theme}/>
 
@@ -638,8 +643,9 @@ export function DatabasePanel({ user }) {
           jobs={pendingJobs}
           theme={theme}
           onRefresh={loadPending}
-          onDislike={async (jobId) => {
-            await api(`/api/jobs/${jobId}/disliked`, { method:"PATCH" }).catch(()=>{});
+          onPass={async (jobId) => {
+            // A53: Pass SETS (the deck's call), never the toggle — a repeat must not un-pass.
+            await commitDecision({ jobId, decision: DECISIONS.PASSED }).catch(()=>{});
             setPendingJobs(prev => prev.filter(j => j.job_id !== jobId && j.jobId !== jobId));
           }}
         />
@@ -967,7 +973,7 @@ export function DatabasePanel({ user }) {
 }
 
 // ── Pending Apply pane ────────────────────────────────────────
-function PendingJobsPane({ jobs, theme, onRefresh, onDislike }) {
+function PendingJobsPane({ jobs, theme, onRefresh, onPass }) {
   if (jobs.length === 0) return (
     <div style={{ flex:1, display:"flex", flexDirection:"column",
                   alignItems:"center", justifyContent:"center", gap:12, padding:40 }}>
@@ -1004,7 +1010,7 @@ function PendingJobsPane({ jobs, theme, onRefresh, onDislike }) {
               showApplyButton={true}
               applyMode="SIMPLE"
               onVisit={() => job.url && window.open(job.url, "_blank", "noreferrer")}
-              onDislike={() => onDislike?.(jid)}
+              onPass={() => onPass?.(jid)}
               onCardClick={() => job.url && window.open(job.url, "_blank", "noreferrer")}
             />
           );
@@ -1025,7 +1031,7 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
       <div style={{ fontSize:40 }}>★</div>
       <div style={{ fontWeight:700, color:theme.textMuted, fontSize:14 }}>No saved jobs yet</div>
       <div style={{ fontSize:12, color:theme.textDim, textAlign:"center", maxWidth:300, lineHeight:1.8 }}>
-        Star jobs on the Jobs board to save them here. Generate and A+ Resume access is controlled by your plan.
+        Save jobs on Today or the board and they appear here. Generate and A+ Resume access is controlled by your plan.
       </div>
       <button className="rm-btn rm-btn-secondary rm-btn-sm" onClick={onRefresh}>↻ Refresh</button>
     </div>
@@ -1033,7 +1039,7 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
 
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden",
-                  background: `linear-gradient(160deg, ${theme.accentMuted}55 0%, ${theme.bg} 55%)` }}>
+                  background: `linear-gradient(160deg, ${theme.accentMuted}40 0%, transparent 45%)` }}>
       {/* toolbar */}
       <div style={{ padding:"8px 16px", display:"flex", alignItems:"center", gap:8,
                     borderBottom:`1px solid ${theme.border}`, flexShrink:0,
@@ -1077,7 +1083,7 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
               onGenerate={() => onGenerate(job, done && g?.html !== "__exists__")}
               onExport={() => done && g?.html !== "__exists__" && onExport(job, g.html)}
               onVisit={() => job.url && window.open(job.url, "_blank", "noreferrer")}
-              onStar={() => onUnsave(job.jobId)}
+              onUnsave={() => onUnsave(job.jobId)}
               onCardClick={() => job.url && window.open(job.url, "_blank", "noreferrer")}
             />
           );

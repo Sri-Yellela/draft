@@ -4,6 +4,8 @@ import { api } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { StackSection, OrgSection, HiringSection, SponsorshipSection } from "../components/CompanyKbSections.jsx";
 import { C } from "../styles/colorTokens.js";
+import { glass } from "../styles/glass.js";
+import { TYPE } from "../styles/type.js";
 
 const STATUS_COPY = {
   consistent: { label: "Consistent", color: C.SUCCESS, bg: C.SUCCESS_QUIET },
@@ -29,10 +31,8 @@ function CompanyKbCard({ company, theme }) {
 
   if (!company) return null;
   return (
-    <section style={{ border: `1px solid ${theme.border}`, background: theme.surface,
-      borderRadius: 8, padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
-        fontSize: 16, letterSpacing: "0.06em", textTransform: "uppercase", color: theme.text }}>
+    <section style={{ ...glass({ radius: 20 }), padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={TYPE.CARD_TITLE}>
         {company} — KB Reference
       </div>
       {loading && <div style={{ fontSize: 12, color: theme.textMuted }}>Loading…</div>}
@@ -82,11 +82,10 @@ function ConsistencyCheckCard({ company, theme }) {
   const statusCopy = result ? STATUS_COPY[result.status] : null;
 
   return (
-    <section style={{ border: `1px solid ${theme.border}`, background: theme.surface,
-      borderRadius: 8, padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
+    <section style={{ ...glass({ radius: 20 }), padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
-          fontSize: 16, letterSpacing: "0.06em", textTransform: "uppercase", color: theme.text }}>
+        <div style={{ fontFamily: "var(--font-display)", fontWeight: 400,
+          fontSize: 21, color: theme.text }}>
           Candidate-Claim Consistency Check
         </div>
         <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 4, lineHeight: 1.5 }}>
@@ -100,16 +99,13 @@ function ConsistencyCheckCard({ company, theme }) {
         onChange={e => setResumeText(e.target.value)}
         rows={8}
         placeholder={`Paste the candidate's resume text here (checked against ${company})...`}
-        style={{ width: "100%", borderRadius: 6, border: `1px solid ${theme.border}`,
-                 background: theme.bg, color: theme.text, fontSize: 12,
+        style={{ width: "100%", borderRadius: 12, border: `1px solid ${C.BORDER_CONTROL}`,
+                 background: C.SURFACE_INPUT, color: theme.text, fontSize: 13,
                  padding: "8px 10px", resize: "vertical", fontFamily: "inherit",
                  outline: "none", boxSizing: "border-box" }}
       />
       <button onClick={runCheck} disabled={checking || !resumeText.trim()}
-        style={{ border: "none", borderRadius: 6, padding: "9px 14px", fontWeight: 800, fontSize: 12,
-                 cursor: checking || !resumeText.trim() ? "not-allowed" : "pointer",
-                 opacity: checking || !resumeText.trim() ? 0.6 : 1,
-                 background: theme.accent, color: C.ON_ACCENT, alignSelf: "flex-start" }}>
+        className="rm-btn rm-btn-primary" style={{ alignSelf: "flex-start" }}>
         {checking ? "Checking…" : "Check consistency"}
       </button>
       {error && (
@@ -155,14 +151,14 @@ export function RecruiterPanel() {
   const load = () => setActiveCompany(companyInput.trim());
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", background: "var(--color-bg)", padding: "28px 24px 44px" }}>
+    // A53: no glass sheet under the page — the leather is the substrate; the two cards are glass.
+    <div style={{ flex: 1, overflowY: "auto", background: "transparent", padding: "28px 24px 44px" }}>
       <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
-          <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
-            fontSize: 24, letterSpacing: "0.06em", textTransform: "uppercase", color: theme.text }}>
+          <h1 style={TYPE.PAGE_TITLE}>
             Recruiter
-          </div>
-          <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 4, lineHeight: 1.6, maxWidth: 560 }}>
+          </h1>
+          <div style={{ ...TYPE.LEAD, marginTop: 10, maxWidth: 560 }}>
             Companies and roles only — a KB reference and candidate-claim consistency aid, not a
             background-check or identity-linked service. No individual dossiers are built or
             stored here.
@@ -175,15 +171,12 @@ export function RecruiterPanel() {
             onChange={e => setCompanyInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && load()}
             placeholder="Company name (e.g. Figma)"
-            style={{ flex: 1, border: `1px solid ${theme.border}`, borderRadius: 6,
-                     background: theme.surface, color: theme.text, fontSize: 13,
-                     padding: "9px 12px", outline: "none" }}
+            // An input's edge is a UI boundary: BORDER_CONTROL reaches 3:1, BORDER does not.
+            style={{ flex: 1, minWidth: 0, border: `1px solid ${C.BORDER_CONTROL}`, borderRadius: 999,
+                     background: C.SURFACE_INPUT, color: theme.text, fontSize: 13,
+                     padding: "10px 16px", outline: "none" }}
           />
-          <button onClick={load} disabled={!companyInput.trim()}
-            style={{ border: "none", borderRadius: 6, padding: "9px 16px", fontWeight: 800, fontSize: 12,
-                     cursor: companyInput.trim() ? "pointer" : "not-allowed",
-                     opacity: companyInput.trim() ? 1 : 0.6,
-                     background: theme.accent, color: C.ON_ACCENT }}>
+          <button onClick={load} disabled={!companyInput.trim()} className="rm-btn rm-btn-primary">
             Load
           </button>
         </div>

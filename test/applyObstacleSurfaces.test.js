@@ -376,8 +376,9 @@ test("prerequisites are surfaced BEFORE queueing, as one blocking item with a fi
   assert.match(ctx, /api\("\/api\/integrations\/status"\)/);
   assert.match(ctx, /setApplyPrereqMissing/);
   assert.match(panel, /<PrerequisiteCards missing=\{applyPrereqMissing\}/);
-  // The count is what it unblocks, and must include already-dispatched jobs, not just the basket.
-  assert.match(panel, /queuedCount=\{applyQueue\.length \+ applyInFlight\.length\}/);
+  // The count is what it unblocks: the dispatched jobs. (A53 removed the client-side basket — a
+  // Draft is a persisted run the moment it is made — so in-flight IS the whole count.)
+  assert.match(panel, /queuedCount=\{applyInFlight\.length\}/);
   for (const key of ["base_resume", "active_profile", "profile_email", "profile_name"]) {
     assert.ok(PREREQUISITE_LABELS[key], `no plain-language label for prerequisite "${key}"`);
     assert.ok(!/_/.test(PREREQUISITE_LABELS[key].obstacle));
@@ -534,11 +535,12 @@ test("the needs-review count is still reachable from the board", () => {
 
 test("every capability of the old strip survived the reorganisation", () => {
   for (const [what, needle] of [
-    ["the run control",         /Autofill for Review/],
+    // A53 (owner, 10-02) REMOVED the basket and its run control: the board's Draft is the deck's,
+    // a persisted run the moment it is made. The run control is now the Draft itself (pinned in
+    // a53DecisionVocabulary.test.js), queue removal is Undo / Abort, and the tier notice moved to
+    // the card, where it is read BEFORE drafting (jobsUiTierFilters.test.js).
     ["the readiness gate",      /applyReadiness && !applyReadiness\.available/],
-    ["the queue's tier notice", /automationTier === "account"/],
-    ["the CAPTCHA warning",     /automationTier === "gated"/],
-    ["queue removal",           /removeFromApplyQueue\(job\.jobId\)/],
+    ["retry drafts again",      /const retryJob = \(job\) => \{ draftJob/],
     // AD1 REMOVED THE SEPARATE RUN-HISTORY SURFACE and dated navigation supersedes it: the calendar
     // is the panel's primary navigation and the three outcome groups are its sub-tabs, so a second
     // dated view underneath would have been the same rows twice. The CAPABILITY — "what did I put

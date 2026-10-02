@@ -30,6 +30,7 @@ import { OUTCOME, OUTCOME_LABELS } from "../../../shared/applyOutcomeGroups.js";
 import { companyLabel, UNKNOWN_COMPANY } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { C } from "../styles/colorTokens.js";
+import { TYPE } from "../styles/type.js";
 
 // ============================================================
 // AutoApplyPanel — the auto-apply pipeline, on its own tab
@@ -55,10 +56,9 @@ export function AutoApplyPanel() {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const {
-    // setApplyQueueMsg was USED by retryJob below and never destructured, so every Retry click threw
-    // a ReferenceError before it reached the queue — the same "handler wired to nothing" class as
-    // W1's no-op callbacks. The context has exported it all along.
-    applyQueue = [], applyQueueMsg, setApplyQueueMsg,
+    // The message line under the heading (it was setApplyQueueMsg, USED by retryJob and never
+    // destructured, so every Retry click threw a ReferenceError — W1's "handler wired to nothing").
+    applyMsg, setApplyMsg,
     applyRuns = [], applyReviewJobs = [], applyGatePortals = [],
     applyGateTruncated = false, applyGateTotal = null,
     applyHandoffPackets = [], handoffPacketFor, openHandoff, handoffMsg, setHandoffMsg,
@@ -73,9 +73,9 @@ export function AutoApplyPanel() {
     answersSaving, answersMsg,
     applyPending = [], approvalCap, pendingDetail, pendingBusy, pendingMsg,
     confirmApproveAll, setConfirmApproveAll,
-    addToApplyQueue, removeFromApplyQueue, loadApplyRunDetail,
+    draftJob, loadApplyRunDetail,
     submitApplyAnswers, openPendingDetail, decidePending,
-    artifactUrl, startApplyRun,
+    artifactUrl,
     // AC4: the dated run history. Nothing here is populated until loadHistory is called with a
     // date the user picked — there is no loader effect anywhere behind it.
     historyDate, historyGroup = OUTCOME.PENDING, history, historyLoading, historyMsg,
@@ -85,7 +85,7 @@ export function AutoApplyPanel() {
   } = useAutoApply();
 
   const nothingYet =
-    !applyQueue.length && !applyQueueMsg && !applyRuns.length &&
+    !applyMsg && !applyRuns.length &&
     !applyReviewJobs.length && !applyPending.length && !applyQuestions.length &&
     // The four cross-run feeds count too: a user whose only applications are SUBMITTED used to be
     // told "Nothing queued" over the top of their own sent applications.
@@ -407,19 +407,16 @@ export function AutoApplyPanel() {
   const rowAbort = (job) => abortRunJob(job.id);
   const rowHide  = (job) => hideRunJob(job.id);
 
-  // No per-job retry endpoint exists — the only way to try again is a new run — so "Retry" puts the
-  // job back on the queue and says so, rather than pretending to re-dispatch it.
-  const retryJob = (job) => {
-    addToApplyQueue({ jobId: job.jobId, company: job.company, title: job.title });
-    setApplyQueueMsg(`${companyLabel(job.company)} is back on the queue — press Autofill for Review to try again.`);
-  };
+  // No per-job retry endpoint exists — the only way to try again is a new run. "Retry" DRAFTS the job
+  // again, at once, with the deck's and the board's own call (A53: there is no client-side basket to
+  // put it back on any more), and says what it did rather than implying the old attempt resumed.
+  const retryJob = (job) => { draftJob?.(job, companyLabel(job.company)); };
   // The remedy for a STALE or unpreparable handoff (AB1 requirement 5): a fresh run, which produces
   // a fresh packet. Same mechanism as retryJob — there is no per-job re-dispatch endpoint, so it
   // says what it actually did rather than implying the application resumed by itself.
   const rerunJob = (job) => {
-    addToApplyQueue({ jobId: job.jobId, company: job.company, title: job.title });
     setHandoffMsg(null);
-    setApplyQueueMsg(`${companyLabel(job.company)} is queued for a fresh run — press Autofill for Review to prepare new answers.`);
+    draftJob?.(job, companyLabel(job.company));
   };
 
   /**
@@ -434,25 +431,19 @@ export function AutoApplyPanel() {
    *
    * The message says what actually happened rather than implying a resume now exists.
    */
-  const generateResume = (job) => {
-    addToApplyQueue({ jobId: job.jobId, company: job.company, title: job.title });
-    setApplyQueueMsg(
-      `${companyLabel(job.company)} is queued — the next run generates a resume for it before it applies. ` +
-      `Press Autofill for Review to start.`);
-  };
+  const generateResume = (job) => { draftJob?.(job, companyLabel(job.company)); };
 
   return (
     <div style={{ padding: "24px 20px", maxWidth: 1100, margin: "0 auto",
                   display: "flex", flexDirection: "column", gap: 14 }}>
       <div>
-        <h2 style={{ margin: 0, fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
-                     fontSize: 26, letterSpacing: "0.06em", textTransform: "uppercase",
-                     color: theme.text }}>
+        {/* A53: the deck's type — the display serif for what the page is (styles/type.js). */}
+        <h2 style={TYPE.PAGE_TITLE}>
           Auto Apply
         </h2>
-        <p style={{ margin: "6px 0 0", fontSize: 12, color: theme.textMuted, lineHeight: 1.6 }}>
+        <p style={{ ...TYPE.LEAD, margin: "10px 0 0" }}>
           Applications are filled and held for your approval. Nothing is submitted until you approve
-          it. Queue jobs from the board.
+          it. Draft jobs from Today or the board.
         </p>
       </div>
 
@@ -460,83 +451,22 @@ export function AutoApplyPanel() {
       {nothingYet && (
         <div style={{ padding: "28px 20px", border: `1px dashed ${theme.border}`, borderRadius: 8,
                       color: theme.textMuted, fontSize: 13, textAlign: "center" }}>
-          Nothing queued. Add jobs from the board and they will appear here.
+          Nothing drafted yet. Draft a job from Today or the board and it will appear here.
         </div>
       )}
 
-      {/* ── READY TO START ───────────────────────────────────────────────────────────────────
-          The client-side queue: jobs picked on the board that have not been dispatched yet. This is
-          the old strip's first half, unchanged in behaviour — same single action posting the same
-          mode:"auto" with no approvalMode, which the server treats as approval-required. */}
-      {applyQueue.length > 0 && (
-        <>
-          <SectionHeading theme={theme} count={applyQueue.length} note="picked on the board, not started yet">
-            Ready to start
-          </SectionHeading>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-                        padding: "10px 12px", border: `1px solid ${theme.border}`,
-                        background: theme.surfaceHigh, borderRadius: 8 }}>
-            {applyQueue.map(job => (
-              <span key={job.jobId} style={{ display: "inline-flex", alignItems: "center", gap: 5,
-                                             padding: "3px 7px", borderRadius: 4,
-                                             background: theme.surface, color: theme.text, fontSize: 11 }}>
-                {job.company || job.title}
-                <button onClick={() => removeFromApplyQueue(job.jobId)}
-                  style={{ border: "none", background: "transparent", color: theme.textDim,
-                           cursor: "pointer", padding: 0 }}>x</button>
-              </span>
-            ))}
-            {/* Automation tier, applied to the queue BEFORE the run starts. Requirement: full-auto is
-                never offered for `account` or `gated`, and it is not — the only action here posts
-                mode:"auto" with no approvalMode, so every job takes the fill-then-hold path. `gated`
-                additionally cannot be completed at all; a CAPTCHA is named as the user's own job
-                rather than attempted. Said BEFORE queueing, which is what was missing. */}
-            {(() => {
-              const needsAuth = applyQueue.filter(j => j.automationTier === "account");
-              const cannotAuto = applyQueue.filter(j => j.automationTier === "gated");
-              if (!needsAuth.length && !cannotAuto.length) return null;
-              return (
-                <span style={{ flexBasis: "100%", fontSize: 11, color: theme.textMuted, lineHeight: 1.6 }}>
-                  {needsAuth.length > 0 && (
-                    <>
-                      <strong style={{ color: C.WARNING }}>{needsAuth.length}</strong> of these need
-                      you to sign in to the employer&rsquo;s account first — autofill fills the form once
-                      you have.{" "}
-                    </>
-                  )}
-                  {cannotAuto.length > 0 && (
-                    <>
-                      <strong style={{ color: C.DANGER }}>{cannotAuto.length}</strong> sit behind a
-                      CAPTCHA or identity check and cannot be automated at all; you will need to
-                      apply to {cannotAuto.length === 1 ? "that one" : "those"} yourself.
-                    </>
-                  )}
-                </span>
-              );
-            })()}
-            <span style={{ flex: 1 }} />
-            <button onClick={() => startApplyRun("review")}
-              disabled={applyReadiness !== null && !applyReadiness.available}
-              title={applyReadiness && !applyReadiness.available
-                ? `Autofill unavailable: ${applyReadiness.reason}`
-                : "Fills each application and holds it for your approval. Nothing is submitted until you approve it."}
-              style={{ border: "none", borderRadius: 6, padding: "8px 14px",
-                       background: applyReadiness && !applyReadiness.available ? (theme.surfaceHigh || C.BORDER_STRONG) : theme.accent,
-                       color: C.ON_ACCENT, fontWeight: 800,
-                       cursor: applyReadiness && !applyReadiness.available ? "not-allowed" : "pointer",
-                       fontSize: 12, opacity: applyReadiness && !applyReadiness.available ? 0.5 : 1 }}>
-              Autofill for Review
-            </button>
-            {applyReadiness && !applyReadiness.available && (
-              <span style={{ fontSize: 11, color: theme.textDim || theme.textMuted }}>
-                Browser unavailable: {applyReadiness.reason}
-              </span>
-            )}
-          </div>
-        </>
+      {/* ── READY TO START was here: the client-side basket "picked on the board, not started yet"
+          and its "Autofill for Review" button. A53 (owner, 10-02) removed it — a Draft is a
+          persisted run the moment it is made, from Today or the board. What it said BEFORE a run
+          still matters, so it stays: autofill unavailable is stated here, and the employer-account
+          and CAPTCHA tiers are on every board card (TierChip) before you draft. */}
+      {applyReadiness && !applyReadiness.available && (
+        <span style={{ fontSize: 11.5, color: theme.textDim || theme.textMuted }}>
+          Autofill is unavailable right now ({applyReadiness.reason}) — drafts wait until it is back.
+        </span>
       )}
-      {applyQueueMsg && (
-        <span style={{ fontSize: 11.5, color: theme.accentText }}>{applyQueueMsg}</span>
+      {applyMsg && (
+        <span style={{ fontSize: 11.5, color: theme.accentText }}>{applyMsg}</span>
       )}
 
       {/* ── AD1: THE DATABASE PANEL'S LAYOUT, ADOPTED ──────────────────────────────────────────
@@ -748,11 +678,11 @@ export function AutoApplyPanel() {
             {/* Prerequisites first: they block EVERY application, so clearing anything else is wasted
                 effort until they are done. */}
             {/* The count is what the jobs are blocked FROM, so it has to include applications already
-                dispatched and sitting queued — not just the client-side basket. With only
-                applyQueue.length the card read "Your profile has no email address" with no number
+                dispatched and sitting queued. With only
+                the old client-side basket's length the card read "Your profile has no email address" with no number
                 beside six jobs that were blocked on exactly that. */}
             <PrerequisiteCards missing={applyPrereqMissing}
-              queuedCount={applyQueue.length + applyInFlight.length}
+              queuedCount={applyInFlight.length}
               theme={theme} onGo={(tab) => navigate(`/app/${tab}`)} />
 
             {/* THE PORTAL AMORTISATION, and the most differentiated thing in the product: one sign-in
@@ -1155,8 +1085,8 @@ export function AutoApplyPanel() {
               padding:"16px 20px", borderBottom:`1px solid ${theme.border}`,
               display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0, gap:12,
             }}>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                             fontSize:18, letterSpacing:"0.06em", textTransform:"uppercase" }}>
+              <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
+                             fontSize:23}}>
                 {/* The popup SAYS what it is about. It used to be titled "Jobs Needing Review"
                     whichever row you opened it from, which is the honest name for a popup that was
                     always showing all of them. */}
@@ -1686,11 +1616,10 @@ export function AutoApplyPanel() {
               <button
                 onClick={() => closeReview()}
                 style={{
-                  padding:"8px 20px", borderRadius:4, fontWeight:700, fontSize:12,
+                  padding:"8px 20px", borderRadius:999, fontWeight:700, fontSize:12,
                   background:"transparent", color:theme.textMuted,
-                  border:`1.5px solid ${theme.border}`, cursor:"pointer",
-                  fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:"0.06em",
-                  textTransform:"uppercase",
+                  border:`1px solid ${theme.border}`, cursor:"pointer",
+                  fontFamily:"inherit",
                 }}>
                 Close
               </button>

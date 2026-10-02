@@ -10,6 +10,7 @@ import CompanyIcon from "./ui/CompanyIcon.jsx";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { bandChipStyle } from "../styles/bandStyle.js";
 import { C } from "../styles/colorTokens.js";
+import { DraftButton, PassButton, SaveButton } from "./DecisionButtons.jsx";
 
 function ago(postedAt, scrapedAt) {
   let ms = postedAt ? new Date(postedAt).getTime() : NaN;
@@ -89,15 +90,15 @@ function ActionBtn({ onClick, title, children, accent = C.INFO, active, disabled
     <button title={title} onClick={disabled ? undefined : onClick} disabled={disabled}
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
-        display:"flex", alignItems:"center", gap:5,
-        padding:"6px 12px", borderRadius:4, border:`1px solid ${active || hov ? accent : "var(--color-border)"}`,
+        display:"flex", alignItems:"center", gap:5, minHeight:32, fontFamily:"inherit",
+        padding:"6px 12px", borderRadius:999, border:`1px solid ${active || hov ? accent : "var(--color-border)"}`,
         background: active
           ? `color-mix(in srgb, ${accent} 13%, transparent)`
           : hov
             ? `color-mix(in srgb, ${accent} 7%, transparent)`
             : "transparent",
         color: active || hov ? accent : "var(--color-text-muted)",
-        cursor: disabled ? "not-allowed" : "pointer", fontSize:11, fontWeight:600,
+        cursor: disabled ? "not-allowed" : "pointer", fontSize:12, fontWeight:700,
         opacity: disabled ? 0.55 : 1,
         transition:"all 0.15s", flexShrink:0,
       }}>
@@ -306,64 +307,62 @@ export default function JobDetailPanel({
         </div>
       }
       actions={selectedJobMeta ? (() => {
-              const { g, done, st, applyMode: am, canUseGenerate: canGen, onGenerate, onViewSandbox, onExport, onStar, onDislike, onQueueApply } = selectedJobMeta;
+              const { g, done, st, canUseGenerate: canGen, onGenerate, onViewSandbox, onExport,
+                      onSave, onPass, onDraft, drafted, drafting } = selectedJobMeta;
               // Same orphan as the one removed from JobCard: this action bar has no dedicated A+
               // button, so the `aPlusLoading` flag beside this one was computed and never read.
               // A+ is still a live tool — JobsPanel selects it by apply_mode/plan tier — it just
               // has no button of its own here, and `disabled={!!st}` below already covers the
               // in-flight state for whichever tool is running.
               const generateLoading = st === "generate";
+              const canApply = !!(selectedJob.applyUrl || selectedJob.url);
               return (
                 <>
-                  {canGen && onGenerate && (
-                    <ActionBtn onClick={() => onGenerate(done && g?.html !== "__exists__")}
-                      title={done ? "Regenerate resume" : "Generate resume"} accent="var(--color-primary)" disabled={!!st}>
-                      {generateLoading ? "⏳ Generating" : done ? "↻ Regen" : "✦ Generate"}
+                  {/* ── DECIDE: the deck's three, in the deck's order and treatment (A53) ─────────
+                      Pass · Save · Draft — the same calls as Today (lib/jobDecisions.js). "Queue
+                      Auto" was the old name for Draft, and Save and Pass used to TOGGLE; they SET
+                      now, and Undo is the toast. */}
+                  <div role="group" aria-label="Decide" style={{ display:"flex", gap:6, alignItems:"center", flexWrap:"wrap" }}>
+                    {onPass && <PassButton passed={!!selectedJob.disliked} onPass={onPass} />}
+                    {onSave && <SaveButton saved={!!selectedJob.starred} onSave={onSave} />}
+                    {canApply && onDraft && <DraftButton drafted={!!drafted} drafting={!!drafting} onDraft={onDraft} />}
+                  </div>
+                  {/* ── WORK ON IT YOURSELF: the board's tools, which the deck does not carry ─────
+                      Kept on the board (owner question in A53's report): a Draft generates the
+                      tailored résumé and cover letter at approval, so these are the manual path. */}
+                  <span aria-hidden style={{ width:1, alignSelf:"stretch", background:"var(--border-glass)", margin:"0 4px" }}/>
+                  <div role="group" aria-label="Tools" style={{ display:"flex", gap:6, alignItems:"center", flexWrap:"wrap" }}>
+                    {canGen && onGenerate && (
+                      <ActionBtn onClick={() => onGenerate(done && g?.html !== "__exists__")}
+                        title={done ? "Regenerate resume" : "Generate resume"} accent="var(--color-primary-text)" disabled={!!st}>
+                        {generateLoading ? "Generating…" : done ? "Regenerate" : "Generate résumé"}
+                      </ActionBtn>
+                    )}
+                    {done && g?.html !== "__exists__" && (
+                      <ActionBtn onClick={() => onViewSandbox?.()} title="View in sandbox" accent={C.INFO}>
+                        Preview
+                      </ActionBtn>
+                    )}
+                    {done && g?.html !== "__exists__" && (
+                      <ActionBtn onClick={() => onExport?.()} title="Export PDF" accent={C.SUCCESS}>
+                        PDF
+                      </ActionBtn>
+                    )}
+                    <ActionBtn onClick={() => setShowCoverLetter(true)} title="Write a cover letter" accent={C.VIOLET}>
+                      Cover letter
                     </ActionBtn>
-                  )}
-                  {done && g?.html !== "__exists__" && (
-                    <ActionBtn onClick={() => onViewSandbox?.()} title="View in sandbox" accent={C.INFO}>
-                      👁 Preview
-                    </ActionBtn>
-                  )}
-                  {done && g?.html !== "__exists__" && (
-                    <ActionBtn onClick={() => onExport?.()} title="Export PDF" accent={C.SUCCESS}>
-                      📥 PDF
-                    </ActionBtn>
-                  )}
-                  {(selectedJob.applyUrl || selectedJob.url) && !semiActive && (
-                    <ActionBtn onClick={() => handleAutoApply("semi")} title="Open pre-filled application in browser"
-                      accent="var(--color-primary)" active={applyLoading}>
-                      {applyLoading ? "⏳" : "Apply"}
-                    </ActionBtn>
-                  )}
-                  {(selectedJob.applyUrl || selectedJob.url) && onQueueApply && (
-                    <ActionBtn onClick={() => onQueueApply(selectedJob)} title="Add to auto-apply queue" accent={C.SUCCESS}>
-                      Queue Auto
-                    </ActionBtn>
-                  )}
-                  {semiActive && (
-                    <ActionBtn onClick={closeSemi} title="Close automation browser" accent={C.DANGER}>
-                      ⏹ Close Browser
-                    </ActionBtn>
-                  )}
-                  {onStar && (
-                    <ActionBtn onClick={() => onStar?.()} title={selectedJob.starred ? "Remove saved" : "Save"} accent={C.WARNING} active={selectedJob.starred}>
-                      {selectedJob.starred ? "★ Saved" : "☆ Save"}
-                    </ActionBtn>
-                  )}
-                  {onDislike && (
-                    <ActionBtn onClick={() => onDislike?.()} title="Not interested" accent={C.DANGER} active={selectedJob.disliked}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/>
-                        <path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/>
-                      </svg>
-                      Pass
-                    </ActionBtn>
-                  )}
-                  <ActionBtn onClick={() => setShowCoverLetter(true)} title="Write a cover letter" accent={C.VIOLET}>
-                    ✉ Cover Letter
-                  </ActionBtn>
+                    {canApply && !semiActive && (
+                      <ActionBtn onClick={() => handleAutoApply("semi")} title="Open pre-filled application in browser"
+                        accent="var(--color-primary-text)" active={applyLoading}>
+                        {applyLoading ? "Opening…" : "Apply"}
+                      </ActionBtn>
+                    )}
+                    {semiActive && (
+                      <ActionBtn onClick={closeSemi} title="Close automation browser" accent={C.DANGER}>
+                        Close browser
+                      </ActionBtn>
+                    )}
+                  </div>
                 </>
               );
             })() : null}
