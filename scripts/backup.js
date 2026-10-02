@@ -397,11 +397,26 @@ export function restoreBackup(filename) {
     const safeTs   = new Date().toISOString().replace(/[:.]/g,"-");
     const safeName = `resume_master_${safeTs}_pre-restore.db`;
     const safePath = path.join(BAK_DIR, safeName);
+    // A58 (c): CHECKPOINTED FIRST, as createBackup is — see checkpointWal. Without it the safety copy
+    // was the main file only, so committed pages still in the WAL were in NEITHER the safety copy nor
+    // the restored file, and the unlink below then deleted the WAL: the one copy of them.
+    const cp = checkpointWal();
     // Same disk rule as createBackup. A restore with no safety copy would overwrite the only copy of
     // the current state, so no room means no restore — never "restore anyway".
     const { budget, ceiling } = makeRoom(
-      { filename: safeName, label: "pre-restore", size: fileSize(DB_PATH) }, "restore not attempted");
+      { filename: safeName, label: "pre-restore", size: fileSize(DB_PATH) + (cp.ok ? 0 : fileSize(`${DB_PATH}-wal`)) },
+      "restore not attempted");
     fs.copyFileSync(DB_PATH, safePath);
+    // A log that could not drain travels with the safety copy, exactly as createBackup carries it.
+    let walCopied = false;
+    if (!cp.ok && fs.existsSync(`${DB_PATH}-wal`)) {
+      fs.copyFileSync(`${DB_PATH}-wal`, `${safePath}-wal`);
+      walCopied = true;
+    }
+    if (!cp.ok) {
+      console.warn(`[restore] WAL checkpoint incomplete before the safety copy (${cp.error ?? `busy=${cp.busy}`})` +
+                   `${walCopied ? " — copied the -wal sidecar alongside" : ""}`);
+    }
     // RECORDED IN THE MANIFEST, which it was not before. An untracked file is never pruned and never
     // listed, so pre-restore snapshots accumulated forever and invisibly — and the one file you most
     // want to find after a mistaken restore was the one `list` would not show you. Its own label
@@ -410,7 +425,9 @@ export function restoreBackup(filename) {
     manifest.unshift({
       filename: safeName, label: "pre-restore",
       created: new Date().toISOString(),
-      size: fs.statSync(safePath).size,
+      size: fs.statSync(safePath).size + (walCopied ? fs.statSync(`${safePath}-wal`).size : 0),
+      walCheckpointed: cp.ok,
+      ...(walCopied ? { walSidecar: true } : {}),
     });
     const { keep, drop } = selectRetained(manifest, { maxBytes: budget, ceiling });
     for (const e of drop) removeBackupFile(e.filename);

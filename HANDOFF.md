@@ -10,7 +10,7 @@ something you read elsewhere in `docs/`, re-measure before you believe either.
 |---|---|
 | deployed commit | **read it from `/api/version`** — any value written here is stale by the next push, which is why the doc guard deliberately does not assert one |
 | contract | `1.3.0` — source and production agree (A40, deployed 10-02: `DeckCard.report`, `DeckWhy.missingTotal` — additive); draft-android still vendors `1.2.0` |
-| migration high-water | `118_ats_reports_job_hash` in **both** runners (A52, 10-02; 117 unused), after `116_dedup_retire_and_log` (A49, 10-02), after `115_deactivate_skroutz_outside_us` (A44, owner 10-02). Production applied through `115_deactivate_skroutz_outside_us` — **read from `/api/version`** 10-02 02:59Z (`latestApplied`), not from this table |
+| migration high-water | `119_admin_audit_log` in **both** runners (A58, 10-02), after `118_ats_reports_job_hash` (A52, 10-02; 117 unused), after `116_dedup_retire_and_log` (A49, 10-02), after `115_deactivate_skroutz_outside_us` (A44, owner 10-02). Production applied through `115_deactivate_skroutz_outside_us` — **read from `/api/version`** 10-02 02:59Z (`latestApplied`), not from this table |
 | test baseline | see `CLAUDE.md` § "Deliberate test failures" — the one place the count is kept (this line said 2675 until 10-02) |
 | monetisation | **disabled** — the product presents as free and untiered |
 | Anthropic balance | **funded — verified 09-28** by real generation, A+ and PDF calls (WORKLOG CURRENT STATE). The "exhausted" behaviour below — 502s, capture degrading — is what happens if it runs out again |

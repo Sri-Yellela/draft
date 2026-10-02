@@ -90,6 +90,8 @@ const ADMIN = new Set([
   "GET /api/admin/users",
   "POST /api/admin/users",
   "DELETE /api/admin/users/:id",
+  // A58 (a): what an admin delete would remove, per table. Read-only, but it reads any user's data.
+  "GET /api/admin/users/:id/delete-preview",
   "PATCH /api/admin/users/:id/password",
   "PATCH /api/admin/users/:id/plan",
   "GET /api/admin/users/:id/profile",
