@@ -1,6 +1,6 @@
 /**
  * Draft — Mobile API types.
- * Contract version 1.3.0.
+ * Contract version 1.4.0.
  *
  * GENERATED — DO NOT EDIT. Regenerate with `node scripts/generateMobileContract.mjs`.
  *
@@ -40,6 +40,8 @@ export interface Job {
   /** Per (user, domain profile). Excluded from the default board. */
   disliked: boolean;
   experienceLevel: ("intern" | "entry" | "mid" | "senior" | "lead" | "executive") | null;
+  /** True only on the Saved tab, for a row the US-only gate held off the board: the employer still lists it, but outside the US. When true, show that rather than 'no longer listed' — isActive is false for both. */
+  heldOutsideUs: boolean;
   /** Stable job identifier. The value every other endpoint calls jobId. */
   id?: string;
   /** Whether the LISTING is live, not whether the row exists. Only the Saved tab can return false: an expired starred job is retired rather than deleted, so its owner is told it closed instead of being sent to apply for something that is gone. */

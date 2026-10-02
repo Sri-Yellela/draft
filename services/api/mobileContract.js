@@ -61,6 +61,9 @@ import { ATS_BAND } from "../../shared/atsBands.js";
  * Semver. MAJOR is breaking; MINOR is additive. The rules, and why removing a field is
  * deliberately awkward, are in contract/README.md.
  *
+ * 1.4.0 — `Job.heldOutsideUs`: an inactive Saved row that the US-only gate held off the board, so a
+ *         client can say "outside the US" rather than "no longer listed" (A62 follow-up, 10-02).
+ *         Additive and always present (false by default); an existing decoder ignores it.
  * 1.3.0 — GET /api/draft/today: `DeckCard.report` (the full ATS report, every number removed, null on a
  *         card dealt before it) and `DeckWhy.missingTotal`. Additive — an existing decoder ignores both
  *         — for the web deck's expanded card (A40, 10-02); the mobile repos re-copy at their pace.
@@ -79,7 +82,7 @@ import { ATS_BAND } from "../../shared/atsBands.js";
  *         a checksum and need a reason to re-copy.
  * 1.0.0 — initial contract.
  */
-export const CONTRACT_VERSION = "1.3.0";
+export const CONTRACT_VERSION = "1.4.0";
 
 // ------------------------------------------------------------------------------------------------
 // THE JOB SHAPE — derived by executing mapJobRow, not by reading it
@@ -174,6 +177,7 @@ export const JOB_FIELD_TYPES = Object.freeze({
   skills:              { type: "string[]", description: "Always an array; [] means none extracted. Flattened from two stored shapes (plain strings, and {skill,type} objects)." },
   automationTier:      { type: "string",  nullable: true, enum: "automationTier", description: "What the candidate will face at the apply destination, known at BROWSE time. null = the row predates migration 078 and has not been recomputed; read it exactly as 'unknown', never as 'direct'. THE MOBILE FEED MUST GATE ON THIS — see x-mobile-tier-gating." },
   isActive:            { type: "boolean", description: "Whether the LISTING is live, not whether the row exists. Only the Saved tab can return false: an expired starred job is retired rather than deleted, so its owner is told it closed instead of being sent to apply for something that is gone." },
+  heldOutsideUs:       { type: "boolean", description: "True only on the Saved tab, for a row the US-only gate held off the board: the employer still lists it, but outside the US. When true, show that rather than 'no longer listed' — isActive is false for both." },
   discoveredAt:        { type: "number",  nullable: true, description: "Unix seconds." },
   summary:             { type: "string",  nullable: true },
   validThrough:        { type: "string",  nullable: true },

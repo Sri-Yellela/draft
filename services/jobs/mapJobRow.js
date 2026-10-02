@@ -103,6 +103,11 @@ function mapJobRow(j) {
     // being sent to apply for something that is gone. Absent column (a live-search result, which has
     // no is_active at all) reads as live, which is what a just-fetched posting is.
     isActive:            j.is_active == null ? true : !!j.is_active,
+    // A62 follow-up: an inactive Saved row that the US-only gate held off the board — still listed
+    // by the employer, just not on draft's board. Lets the card say "outside the US" instead of
+    // "no longer listed". Only an inactive row can be held, so only the Saved tab returns true
+    // (see `held_outside_us` in server.js's board SELECT).
+    heldOutsideUs:       !!j.held_outside_us,
     discoveredAt:        j.discovered_at         ?? null,
     summary:             j.summary               ?? null,
     validThrough:        j.valid_through         ?? null,
