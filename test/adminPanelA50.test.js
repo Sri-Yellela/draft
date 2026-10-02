@@ -274,3 +274,18 @@ test("A50 #2: a board-fit DRY RUN with force plans the forced pass (it used to d
   const forced = await pc.runAll({ dryRun: true, force: true });
   assert.equal(forced.summary.todo, 3, "the dry run of a forced pass must show the forced pass's size");
 });
+
+// 10-02 (18): the deploy card printed the refresh health as Object.entries() joined, so the field an
+// operator reads it for came out as `lastRun: [object Object]` (seen on a local admin screenshot).
+test("the deploy card states the term-weight refresh as a sentence, never [object Object]", () => {
+  const ops = read("client/src/panels/adminOps.jsx");
+  const start = at(ops, "function refreshLine(r) {");
+  const src = ops.slice(start, at(ops, "\n}\n", start) + 2);
+  const refreshLine = new Function("ago", "num", `${src}; return refreshLine;`)(() => "2h ago", String);
+  const failed = refreshLine({ consecutiveFailures: 1, failuresBeforeCliff: 3,
+    lastRun: { status: "failed", at: 1, error: "corpus too small" } });
+  assert.doesNotMatch(failed, /object Object/);
+  assert.match(failed, /last run failed 2h ago — corpus too small/);
+  assert.match(refreshLine({ consecutiveFailures: 0, failuresBeforeCliff: 3, lastRun: null }), /^no run recorded · 0 consecutive/);
+  assert.match(ops, /\["weight refresh", refreshLine\(w\.refresh\)/);
+});

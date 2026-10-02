@@ -103,6 +103,15 @@ function Table({ theme, cols, rows, empty = "Nothing recorded." }) {
   );
 }
 
+// The term-weight refresh health from /api/version, as a sentence. It was Object.entries() joined,
+// which printed `lastRun: [object Object]` — the one field an operator reads it for (10-02, 18).
+function refreshLine(r) {
+  const last = r.lastRun
+    ? `last run ${r.lastRun.status ?? "?"}${r.lastRun.at ? ` ${ago(r.lastRun.at)}` : ""}${r.lastRun.error ? ` — ${r.lastRun.error}` : ""}`
+    : "no run recorded";
+  return `${last} · ${num(r.consecutiveFailures ?? 0)} consecutive failure(s); the refusal comes after ${num(r.failuresBeforeCliff ?? 0)}`;
+}
+
 // ── /api/version — the deploy ─────────────────────────────────────────────────────────────────
 export function DeploySection({ theme }) {
   const [v, setV] = useState(null);
@@ -125,7 +134,7 @@ export function DeploySection({ theme }) {
           ["migrations", `${num(v.migrations?.count)} applied · highest ${v.migrations?.highestNumbered ?? "—"} · last ${v.migrations?.latestApplied ?? "—"}`],
           ["ATS term weights", w ? `${w.state}${w.weightedScoring ? " — weighted scoring" : " — UNWEIGHTED scoring"}${w.ageDays != null ? ` · ${w.ageDays} days old` : ""}${w.corpusSize ? ` · corpus ${num(w.corpusSize)}` : ""}` : "—",
             w && !w.weightedScoring ? C.DANGER : null],
-          w?.refresh && ["weight refresh", Object.entries(w.refresh).map(([k, val]) => `${k}: ${val ?? "—"}`).join(" · ")],
+          w?.refresh && ["weight refresh", refreshLine(w.refresh), w.refresh.lastRun?.error ? C.DANGER : null],
           ["monetisation", v.monetisationEnabled ? "ON — plan gates enforced" : "off — every tool open"],
         ]}/>
       )}
