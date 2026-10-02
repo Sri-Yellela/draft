@@ -576,6 +576,31 @@ export function CompaniesSection({ theme }) {
   );
 }
 
+// ── Resume Master — /api/admin/resume-master (A50 step 7) ─────────────────────────────────────
+// The second service, as draft sees it: is it up, which commit, does draft hold a token. Read-only.
+export function ResumeMasterSection({ theme }) {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState(null);
+  const load = useCallback(() => { setErr(null); api("/api/admin/resume-master").then(setD).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { load(); }, [load]);
+  const up = d?.health?.status === 200 && d?.health?.body?.ok === true;
+  return (
+    <Card theme={theme} title="Resume Master" measured={d ? `measured ${ago(d.measuredAt)}` : "measuring…"}>
+      <Err msg={err || d?.error}/>
+      {d && <KV theme={theme} rows={[
+        ["service", up ? "up" : d.health ? `answered ${d.health.status}` : "no answer", up ? C.SUCCESS : C.DANGER],
+        ["url", d.url || "RESUME_MASTER_URL not set"],
+        ["commit", d.version?.commit ? String(d.version.commit).slice(0, 7) : "—"],
+        ["scorer", d.version?.scorer || "—"],
+        ["draft's client", d.configured ? "configured" : "NOT configured — generation and A+ answer 503", d.configured ? null : C.WARNING],
+        ["draft holds a token", d.tokenHeld ? "yes" : "no", d.tokenHeld ? null : C.WARNING],
+        ["per-client usage", d.usageNote],
+      ]}/>}
+      <div style={{ marginTop: 8 }}><Btn theme={theme} onClick={load}>Measure again</Btn></div>
+    </Card>
+  );
+}
+
 // ── /api/admin/analytics/spend ─────────────────────────────────────────────────────────────────
 export function SpendSection({ theme }) {
   const [days, setDays] = useState(1);
@@ -671,6 +696,7 @@ export function OpsTab({ theme }) {
       <EnrichmentSection theme={theme}/>
       <JobDataSection theme={theme}/>
       <CompaniesSection theme={theme}/>
+      <ResumeMasterSection theme={theme}/>
       <SpendSection theme={theme}/>
     </div>
   );
