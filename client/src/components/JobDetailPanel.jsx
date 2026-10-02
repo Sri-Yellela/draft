@@ -263,6 +263,13 @@ export default function JobDetailPanel({
                   // board red under v4 (median 27, max 64).
                   const atsBand = atsBandFor(atsScore);
                   const atsMeta = atsBandLabel(atsBand);
+                  // ⛔ A52 · NO SCORE IS NOT A VERDICT. This chip printed "No signal" for a null score,
+                  // and on the board null means "no current stored score" far more often than "the
+                  // scorer declined" — so the header read "No signal" while the ATS panel beside it,
+                  // scoring the posting fresh, read "Strong match". Same rule as JobCard's AtsSlot: a
+                  // score is a band chip; no score is the neutral "Check match" way in, and a decline
+                  // is shown where the scorer ran — the report.
+                  const atsShown = atsScore != null;
                   const done = selectedJobMeta?.done;
                   const st = selectedJobMeta?.st;
                   return (
@@ -275,11 +282,17 @@ export default function JobDetailPanel({
                       {salaryStr && <span style={{ fontSize:10, color:C.SUCCESS, fontWeight:700 }}>{salaryStr}</span>}
                       {!salaryStr && job.compensation && <span style={{ fontSize:10, color:C.SUCCESS, fontWeight:700 }}>{job.compensation}</span>}
                       <span style={{ fontSize:10, color:C.SUCCESS, fontWeight:600 }}>{ago(job.postedAt, job.scrapedAt)}</span>
-                      <span onClick={() => selectedJobMeta?.onAts?.()} title={atsMeta.blurb}
+                      {atsShown ? <span onClick={() => selectedJobMeta?.onAts?.()} title={atsMeta.blurb}
                         style={{ ...bandChipStyle(atsBand), padding:"2px 8px", borderRadius:999,
                                   fontSize:10, fontWeight:700, cursor:"pointer" }}>
                         {atsMeta.short}
-                      </span>
+                      </span> : <span onClick={() => selectedJobMeta?.onAts?.()}
+                        title="Score this job against your resume and see which terms match"
+                        style={{ background:"transparent", color:"var(--color-text-muted)", padding:"2px 8px",
+                                  borderRadius:999, fontSize:10, fontWeight:600, cursor:"pointer",
+                                  border:"1px dashed var(--color-border)" }}>
+                        Check match
+                      </span>}
                       {done && (
                         <span onClick={() => selectedJobMeta?.onResume?.()} style={{ background:C.INFO_QUIET, color:C.INFO,
                           padding:"2px 8px", borderRadius:999, fontSize:10, fontWeight:700, cursor:"pointer" }}>

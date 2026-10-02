@@ -79,6 +79,9 @@ test("no user-facing surface prints the raw ATS number", () => {
     "client/src/panels/AutoApplyPanel.jsx",
     "client/src/panels/AutoApplyPanelSections.jsx",
     "client/src/panels/ATSPanel.jsx",
+    // A52: the one report implementation every ATS surface now draws, and the public tool.
+    "client/src/components/AtsReport.jsx",
+    "client/src/pages/tools/ATSToolPage.jsx",
     "client/src/pages/tools/GenerateToolPage.jsx",
     // Added at UI step 2b: its header printed "Score {activeAts.score}" on the v3 ramp, and the
     // pattern below could not see it — it looks for `ATS {…atsScore`, and this read `.score`.
@@ -212,11 +215,13 @@ test("a thin resume is called out as its own state, not delivered as an all-Weak
 });
 
 test("the ATS panel renders the band for a DECLINED report, and the depth warning above it", () => {
-  const panel = fs.readFileSync("client/src/panels/ATSPanel.jsx", "utf8");
+  // A52: the report is drawn by components/AtsReport.jsx now (ATSPanel only fetches and claims).
+  const panel = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
   // The card used to be gated on `score != null`, so a declined report displayed nothing at all.
-  assert.match(panel, /atsCard\.render/);
+  // It is rendered unconditionally now — no gate in front of the band card.
+  assert.match(panel, /\{\/\* Band card\. Renders for EVERY report, including a declined one\. \*\/\}\s*<AtsBandCard /);
   assert.match(panel, /decline_reasons/);
-  assert.match(panel, /atsCard\.depth/);
+  assert.match(panel, /\{depth && \(/);
   assert.match(panel, /seniority_cap/);
   // And the donut is gone — it was the most precise-looking thing on the screen.
   assert.doesNotMatch(panel, /strokeDashoffset/,

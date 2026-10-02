@@ -10,40 +10,17 @@ import { useTheme } from "../../styles/theme.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { C } from "../../styles/colorTokens.js";
-import { bandChipStyle } from "../../styles/bandStyle.js";
-import { atsBandLabel, ATS_BAND } from "../../../../shared/atsBands.js";
+import { AtsReport, fromStandaloneResult } from "../../components/AtsReport.jsx";
 
 // ⛔ NO SCORE DONUT (09-30). It printed a Haiku model's own 0–100 on a ≥75/≥50 ramp — a different
 // number, on a different scale, from the one the product ranks by. The route now runs the same v4
 // scorer as the board and answers with a BAND; see server.js /api/standalone/ats.
-function BandResult({ result }) {
-  const { theme } = useTheme();
-  const band = result.band;
-  const meta = atsBandLabel(band);
-  const unknown = band === ATS_BAND.NOT_ENOUGH_SIGNAL;
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap",
-                  padding: 24, borderRadius: 10, background: theme.surface, border: `1px solid ${theme.border}` }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 140 }}>
-        <div style={{ ...bandChipStyle(band), padding: "10px 16px", borderRadius: 12,
-                      fontWeight: 900, fontSize: 17, textAlign: "center" }}>
-          {meta.label}
-        </div>
-        <div style={{ fontSize: 10, color: theme.textMuted }}>{unknown ? "no judgement" : "fit band"}</div>
-      </div>
-      <div style={{ flex: 1, minWidth: 220 }}>
-        <div style={{ fontSize: 14, color: theme.text, lineHeight: 1.6 }}>{meta.blurb}</div>
-        {result.decline_reasons?.length > 0 && (
-          <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12.5, color: theme.textMuted, lineHeight: 1.6 }}>
-            {result.decline_reasons.map((r, i) => <li key={i}>{r}</li>)}
-          </ul>
-        )}
-        {result.seniority && <div style={{ fontSize: 12.5, color: theme.textMuted, marginTop: 8 }}>{result.seniority}</div>}
-        {result.experience && <div style={{ fontSize: 12.5, color: theme.textMuted, marginTop: 8, fontStyle: "italic" }}>{result.experience}</div>}
-      </div>
-    </div>
-  );
-}
+//
+// ⛔ A52 · AND THE SAME REPORT. This page drew its own copy — a band card and three chip rows —
+// which had already drifted thinner than the board's (no competencies, no generic language, no
+// matched verbs). It renders components/AtsReport.jsx now, the one implementation; the route's
+// result is converted by fromStandaloneResult and the band the route computed is passed through.
+// No claims here: there is no profile, so every chip is read-only.
 
 export function ATSToolPage() {
   const { theme } = useTheme();
@@ -152,35 +129,9 @@ export function ATSToolPage() {
         {/* Results */}
         {result && (
           <div style={{ marginTop: 40, display: "flex", flexDirection: "column", gap: 20 }}>
-            <BandResult result={result}/>
-            {result.resume_depth && (
-              <div style={{ padding: "12px 16px", borderRadius: 8, background: theme.surface,
-                            border: `1px solid ${theme.border}`, fontSize: 12.5, color: theme.textMuted, lineHeight: 1.6 }}>
-                <strong style={{ color: theme.text }}>{result.resume_depth.headline}</strong> {result.resume_depth.detail}
-              </div>
-            )}
-
-            {/* Matched / Missing keywords */}
-            {[["Skills this posting asks for that your resume shows", result.matched_skills, C.SUCCESS, C.SUCCESS_QUIET],
-              ["Skills it asks for that your resume does not show", result.missing_skills, C.DANGER, C.DANGER_QUIET],
-              ["Its language your resume does not use yet", result.missing_verbs, C.WARNING, C.WARNING_QUIET]].map(([lbl, chips, col, quiet]) =>
-              chips?.length ? (
-                <div key={lbl}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: theme.textMuted,
-                                textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                    {lbl}
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {chips.map(c => (
-                      <span key={c} style={{ padding: "3px 10px", borderRadius: 999, fontSize: 12,
-                                              background: quiet, color: col, fontWeight: 600 }}>
-                        {c}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : null
-            )}
+            <div style={{ borderRadius: 10, background: theme.surface, border: `1px solid ${theme.border}` }}>
+              <AtsReport report={fromStandaloneResult(result)} band={result.band} />
+            </div>
 
             <div style={{
               padding: "16px 20px", borderRadius: 8,

@@ -65,10 +65,12 @@ test("⭐ the collapsed card is COMPACT: ONE signal line, no chip rows — and o
 
 test("⛔ the LEFT panel is the FULL report — the board's own ATSPanel — fed the BAND, never a number", () => {
   const panel = deckSrc.slice(at(deckSrc, "function DeckAtsReport", 0, "report"), at(deckSrc, "function CollapseButton", 0, "end"));
-  assert.match(panel, /<ATSPanel report=\{toPanelReport\(r\)\} band=\{r\.scorable \? card\.band : ATS_BAND\.NOT_ENOUGH_SIGNAL\}/,
+  assert.match(panel, /<ATSPanel report=\{fromDeckReport\(r\)\} band=\{r\.scorable \? card\.band : ATS_BAND\.NOT_ENOUGH_SIGNAL\}/,
     "a declined report is 'not enough signal', never a low band");
   assert.doesNotMatch(panel, /score=/, "a number handed to the report");
-  const adapt = deckSrc.slice(at(deckSrc, "function toPanelReport", 0, "adapter"), at(deckSrc, "function DeckAtsReport", 0, "end"));
+  // A52: the adapter lives with the one report implementation (components/AtsReport.jsx).
+  const reportSrc = read("client/src/components/AtsReport.jsx");
+  const adapt = reportSrc.slice(at(reportSrc, "export function fromDeckReport", 0, "adapter"), at(reportSrc, "export function fromStandaloneResult", 0, "end"));
   for (const k of ["tier1_matched", "tier1_missing", "competencies_matched", "action_verbs_matched", "action_verbs_missing",
                    "action_verbs_generic", "experience", "hard_constraint_misses", "decline_reasons"]) {
     assert.match(adapt, new RegExp(`\\b${k}:`), `the report lost ${k}`);
