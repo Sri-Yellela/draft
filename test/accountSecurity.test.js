@@ -19,7 +19,9 @@ test("a session is SEALED at rest — the stored row reveals nothing — and ope
   const sess = { cookie: { maxAge: 1000 }, passport: { user: 42 }, oauthState: "s3cret" };
   await setP(st, "sid1", sess);
   const raw = inner.rows.get("sid1");
-  assert.doesNotMatch(raw, /passport|s3cret|42/, "the stored session is readable");
+  // Match the plaintext's own shape ("user":42), not a bare 42 — random base64 ciphertext contains
+  // the digits "42" in ~1.7% of runs, which made this test flake without anything being readable.
+  assert.doesNotMatch(raw, /passport|s3cret|"user":42/, "the stored session is readable");
   assert.match(raw, /"maxAge":1000/, "the cookie stays in clear — the store computes expiry from it");
   assert.deepEqual(await getP(st, "sid1"), sess);
 });
