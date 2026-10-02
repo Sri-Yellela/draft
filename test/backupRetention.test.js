@@ -17,7 +17,10 @@ import { selectRetained, backupLimits } from "../scripts/backup.js";
 import { at } from "../test-support/sourceAnchors.js";
 
 const MB = 1024 * 1024;
-const BACKUP_SRC = fs.readFileSync(new URL("../scripts/backup.js", import.meta.url), "utf8");
+// A65: the policy moved to packages/sqlite-backup unchanged; scripts/backup.js keeps draft's paths and
+// the CLI. Every source assertion below reads the two together — the code is the same code.
+const BACKUP_SRC = fs.readFileSync(new URL("../packages/sqlite-backup/src/index.js", import.meta.url), "utf8") + "\n" +
+  fs.readFileSync(new URL("../scripts/backup.js", import.meta.url), "utf8");
 
 /** Newest-first, the order the manifest stores. */
 const entry = (n, label = "manual", size = 100 * MB) => ({ filename: `b${n}.db`, label, size });
