@@ -500,6 +500,82 @@ export function JobDataSection({ theme }) {
   );
 }
 
+// ── Company list — /api/admin/companies (A50 step 4) ──────────────────────────────────────────
+// The growth lever, as a surface. Add = probe the board first (dead / empty / live, with how many
+// postings carry US evidence), then "Add" only for exactly what the probe saw. Disable is reversible.
+// Suggestions are slugs users' captures named that are not configured (A45's harvest, from A62).
+export function CompaniesSection({ theme }) {
+  const [d, setD] = useState(null);
+  const [form, setForm] = useState({ company: "", atsType: "greenhouse", slug: "" });
+  const [probe, setProbe] = useState(null);      // { key, body }
+  const [busy, setBusy] = useState(null);
+  const [err, setErr] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const load = useCallback(() => { api("/api/admin/companies").then(setD).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { load(); }, [load]);
+  const key = `${form.atsType}|${form.slug.trim()}|${form.company.trim()}`;
+  const seen = probe && probe.key === key ? probe.body.validation : null;
+  const body = () => ({ company: form.company.trim(), atsType: form.atsType, slug: form.slug.trim() });
+  const runProbe = async () => {
+    setBusy("probe"); setErr(null); setMsg(null);
+    try { setProbe({ key, body: await api("/api/admin/companies", { method: "POST", body: JSON.stringify(body()) }) }); }
+    catch (e) { setErr(e.message); }
+    setBusy(null);
+  };
+  const add = async () => {
+    if (!confirm(`Add ${form.company} (${form.atsType}/${form.slug})?\n\n${seen.message}\n\nThe next crawl reads it.`)) return;
+    setBusy("add"); setErr(null);
+    try {
+      const r = await api("/api/admin/companies", { method: "POST", body: JSON.stringify({ ...body(), confirm: true, expectState: seen.state }) });
+      setMsg(r.note); setProbe(null); setForm({ company: "", atsType: form.atsType, slug: "" }); load();
+    } catch (e) { setErr(e.payload?.message || e.message); }
+    setBusy(null);
+  };
+  const toggle = async (c) => {
+    if (!confirm(`${c.active ? "Disable" : "Enable"} ${c.company} (${c.ats_type}/${c.ats_slug})? ${c.active ? "The crawl stops reading it; rows already on the board age out as usual." : "The next crawl reads it again."}`)) return;
+    try { await api(`/api/admin/companies/${c.id}`, { method: "PATCH", body: JSON.stringify({ active: !c.active }) }); load(); }
+    catch (e) { setErr(e.message); }
+  };
+  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "5px 8px", fontSize: 12 };
+  return (
+    <Card theme={theme} title="Companies" measured="adding probes the board first — nothing is added until you press Add">
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
+        <input placeholder="Company" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} style={{ ...input, width: 160 }}/>
+        <select value={form.atsType} onChange={e => setForm({ ...form, atsType: e.target.value })} style={input}>
+          {(d?.atsTypes || ["greenhouse"]).map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <input placeholder="board slug" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} style={{ ...input, width: 160 }}/>
+        <Btn theme={theme} primary disabled={!!busy || !form.slug.trim() || !form.company.trim()} onClick={runProbe}>{busy === "probe" ? "Probing…" : "Probe the board"}</Btn>
+        <Btn theme={theme} disabled={!seen?.ok || !!busy} onClick={add}>{busy === "add" ? "Adding…" : "Add…"}</Btn>
+      </div>
+      {seen && <div style={{ fontSize: 12, color: seen.ok ? (seen.state === "live" ? C.SUCCESS : theme.text) : C.DANGER, marginBottom: 8 }}>
+        {seen.state.toUpperCase()} — {seen.message}
+        {seen.sample?.length > 0 && <span style={{ color: theme.textMuted }}> e.g. {seen.sample.map(s => s.title).join(" · ")}</span>}
+      </div>}
+      <Err msg={err}/>
+      {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 8 }}>{msg}</div>}
+      {d?.suggestions?.length > 0 && (
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 4 }}>NAMED BY CAPTURES, NOT CONFIGURED</div>
+          <Table theme={theme} rows={d.suggestions} cols={[
+            { key: "ats_type", label: "ats" }, { key: "ats_slug", label: "slug" },
+            { key: "people", label: "people", right: true }, { key: "captures", label: "captures", right: true },
+            { key: "use", label: "", render: r => <button type="button" style={{ fontSize: 11, cursor: "pointer" }}
+                onClick={() => setForm({ company: form.company || r.ats_slug, atsType: r.ats_type, slug: r.ats_slug })}>Use</button> },
+          ]}/>
+        </div>
+      )}
+      <Table theme={theme} rows={d?.companies || []} empty="No companies configured." cols={[
+        { key: "company", label: "company" }, { key: "ats_type", label: "ats" }, { key: "ats_slug", label: "slug" },
+        { key: "active_rows", label: "on board", right: true, render: r => num(r.active_rows) },
+        { key: "last_new_at", label: "last new posting", render: r => ago(r.last_new_at) },
+        { key: "active", label: "", render: r => <button type="button" style={{ fontSize: 11, cursor: "pointer", color: r.active ? theme.text : C.WARNING }}
+            onClick={() => toggle(r)}>{r.active ? "Disable…" : "Enable…"}</button> },
+      ]}/>
+    </Card>
+  );
+}
+
 // ── /api/admin/analytics/spend ─────────────────────────────────────────────────────────────────
 export function SpendSection({ theme }) {
   const [days, setDays] = useState(1);
@@ -594,6 +670,7 @@ export function OpsTab({ theme }) {
       <BoardFitSection theme={theme}/>
       <EnrichmentSection theme={theme}/>
       <JobDataSection theme={theme}/>
+      <CompaniesSection theme={theme}/>
       <SpendSection theme={theme}/>
     </div>
   );

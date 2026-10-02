@@ -35,6 +35,7 @@ import { buildGlance } from "./services/adminGlance.js";
 import { enrichBudget, onEnrichmentApplied } from "./services/jobs/enrichJob.js";
 import { createEnrichmentRouter } from "./routes/enrichment.js";
 import { createJobDataRouter } from "./routes/jobData.js";
+import { createCompaniesRouter } from "./routes/companies.js";
 import { createDomainProfilesRouter } from "./routes/domainProfiles.js";
 import { createImportJobRouter } from "./routes/importJob.js";
 import { createCompanyKbRouter } from "./routes/companyKb.js";
@@ -7574,6 +7575,8 @@ app.get("/api/admin/glance", requireAdmin, (_req, res) => {
 app.use("/api/admin/enrichment", requireAdmin, createEnrichmentRouter(db, requireAdmin, { anthropic }));
 // A62: the JOBS themselves in and out (NDJSON), through the one gateway; dry by default, revertible.
 app.use("/api/admin/job-data", requireAdmin, createJobDataRouter(db, requireAdmin));
+// A50 step 4: the company list as a surface — probe a board before adding it; enable / disable, logged.
+app.use("/api/admin/companies", requireAdmin, createCompaniesRouter(db, requireAdmin));
 
 app.use(createAccountRouter({
   db,
