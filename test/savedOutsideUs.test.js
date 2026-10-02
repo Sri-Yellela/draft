@@ -63,6 +63,25 @@ test("a live row is never held, whatever the reject log says", () => {
   d.close();
 });
 
+test("Pipeline Health's job list labels an inactive row by why it is off the board, not as UNENRICHED", () => {
+  // The scrape monitor lists inactive rows too; it labelled them by enrichment alone, so the held
+  // capture read "UNENRICHED" — seen on the admin screenshots, 10-02 (18).
+  const routes = fs.readFileSync("routes/adminDb.js", "utf8").replace(/\r\n/g, "\n");
+  const monitor = routes.slice(at(routes, 'router.get("/scrape-monitor"'), at(routes, "FROM scraped_jobs sj", at(routes, 'router.get("/scrape-monitor"')));
+  const expr = monitor.slice(at(monitor, "(sj.is_active = 0 AND EXISTS"), at(monitor, " AS held_outside_us"));
+  const d = db();
+  const abroad = { id: "greenhouse:acme:12", title: "Data Engineer", company: "Acme", location: "Dublin, Ireland",
+                   url: "https://job-boards.greenhouse.io/acme/jobs/12", source: "greenhouse", description: "Dublin, Ireland." };
+  ingestJob(d, { job: abroad, origin: "capture", userId: 1 });
+  assert.equal(d.prepare(`SELECT ${expr} AS h FROM scraped_jobs sj WHERE sj.job_id = ?`).get(abroad.id).h, 1);
+  d.close();
+  const inspector = fs.readFileSync("client/src/pages/admin/DBInspector.jsx", "utf8").replace(/\r\n/g, "\n");
+  const labelAt = at(inspector, "const statusLabel = (job) => {");
+  const label = inspector.slice(labelAt, at(inspector, 'label:"UNENRICHED"', labelAt));
+  assert.match(label, /job\.is_active === 0\) return job\.held_outside_us\s*\? \{ label:"OUTSIDE US"/,
+    "the inactive check must come before the enrichment labels");
+});
+
 test("the card says OUTSIDE THE US instead of NO LONGER LISTED for a held row", () => {
   assert.match(CARD, /OUTSIDE THE US/);
   assert.match(CARD, /\{job\.heldOutsideUs \? <OutsideUsPill\/> : job\.isActive === false && <ClosedPill\/>\}/,
