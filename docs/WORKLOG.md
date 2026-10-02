@@ -44,7 +44,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (O2) |
 | Resume Master contract | **v1.1.0** (E1, additive; live 09-29), generated; vendored in draft at 1.1.0 (`8472416`). **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
 | Test baseline (draft) | **2936 / 2936 / 0** — measured 10-02 after A51 (+7 `adminSafety`). Before that **2929 / 2929 / 0** — measured 10-02 on `main` after A40 + the A44 merge (A44's branch alone 2922 on a fresh CRLF worktree). Before that **2913 / 2913 / 0** — measured 10-01 after audit item 7 (+1 net: the promises test became two). ⚠ `sealedSessionSweep` can hit a Windows EPERM in its temp-dir cleanup (6/6 alone). Before that **2912 / 2912 / 0** on `main` after merging queues 37–40 (`eea1162`; +26 deck 38–40, +10 `usOnlyBoard`). queue-37 alone read 2886/2886/0 on a fresh CRLF worktree. ⚠ `accountSecurity` "a session is SEALED at rest" is flaky ~1.7% (random ciphertext can contain "42"; fix: match `"user":42`) — not fixed. Before that 2876 after the top bar + /features (+5 featuresPageHonest). 2871 after A31 (+7 landingFindFitApply). 2864 after A30 (+7 signupFirstImpression). 2857 after queues 27–29 (+15 deckFan, +9 viewTransitions). 2833 after the mark reached the text-wordmark surfaces. 2831 after A24 (+10 R1). 2821 after A23 (+10 K1). 2811 after A22 (+6 G6). 2805 after A21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
-| Migration high-water | **114** (`114_users_deck_geometry`) — ✅ **production APPLIED, read 10-02 from `/api/version`** (`latestApplied: 114_users_deck_geometry`, 121 migrations, commit `94cad9f`, started 02:00:01Z). ⭐ `/api/version` answers what the boot log was needed for — read it first |
+| Migration high-water | **115** (`115_deactivate_skroutz_outside_us`, A44) — ✅ **production APPLIED, read 10-02 02:59Z from `/api/version`** (`latestApplied`, 122 migrations, commit `c9a6131`, contract 1.3.0). ⭐ `/api/version` answers what the boot log was needed for — read it first |
 | Contract | mobile **1.3.0** in source (A40, additive), **1.2.0** in production and in draft-android until pushed / re-vendored · Resume Master 1.1.0 (above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
 | draft volume | `resume-master-volume` (draft's DB, `/app/data`) — **481 / 1,000 MB** after the owner grew it 09-29. It was 481/500 and the 09-29 02:00 backup failed with ENOSPC. ⚠ The backup policy still allows ~640 MB steady; policy fixed in `3b9dbe9` (budget from the volume, refuse before the copy) — **deployed** (on `origin/main`, checked 10-01); pruning done 09-30 (O9) |
@@ -61,14 +61,13 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
-**10-02 (end of session):** production = `fbeeeef` (docs) on top of `94cad9f` — migration **114 applied**
-(`/api/version`). **Local, NOT pushed:** A40 rebuilt (two panels, contract **1.3.0**), A44 merged (`a95bae0`,
-migration **115**), A51 (`a56e931`) — `main` is **2936 / 2936 / 0**. ⛔ `docs/business/` and
-`COMPANY_AND_MONETISATION.md` stay out of the repo.
+**10-02 (end of session):** production = **`c9a6131`** (A40 rebuilt — contract **1.3.0** — and A44 merged), read
+from `/api/version` 02:59Z: migration **115 applied** (122). Pushed with this note: A51 (`a56e931`) — `main` is
+**2936 / 2936 / 0**. ⛔ `docs/business/` and `COMPANY_AND_MONETISATION.md` stay out of the repo.
 
-- **Owner:** push `main` when ready (ships contract 1.3.0 — Android stays on 1.2.0 until re-vendored — and the
-  one-time Ashby re-date on the next crawl) · then O42 (`PIPELINE_PAUSED_SOURCES=jobo`, only meaningful after the
-  push) · O41 (production reads/writes, or install the Railway CLI) · O35 · AF5 (held; use ENRICHED postings).
+- **Owner:** O42 (`PIPELINE_PAUSED_SOURCES=jobo` — A44's code is live, so it now takes effect) · ⚠ Android is on
+  contract 1.2.0 while production serves 1.3.0 (additive — it keeps working; re-vendor to show the full report) · the
+  next crawl re-dates every Ashby row once · O41 (production reads/writes, or install the Railway CLI) · O35 · AF5 (held; use ENRICHED postings).
 - **Agent, next session, in order:** A52 (one ATS-report implementation + the stored-vs-fresh disagreement) ·
   A53 (vocabulary, then styling) · A49's dedup fixes 1 + 4 before A43, 1–5 before A45 · A50's order from step 2
   (wrong numbers → curl-only UIs → daily glance). ⛔ Read SESSION LOG (13)–(15) first.
