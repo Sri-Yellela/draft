@@ -81,6 +81,16 @@ account with examples is in `docs/FINDINGS_ARCHIVE.md`.
 A seventh, newer: **a guard blind to what it guards.** A guard never seen to fail is not evidence —
 verify it by injecting a violation.
 
+## ⛔ Three rules for anyone writing in this repository
+
+1. **Product and engineering only.** Nothing personal, legal, immigration-related or financial — that
+   lives outside the repo. Check visibility before writing anything that touches a person: the repo
+   was public until 2026-10-01 and history still carries the owner's personal details. `CLAUDE.md`
+   § "What may go in this repository".
+2. **WORKLOG rows are O## (owner) and A## (agent)** — O34–O40 and A34–A40 were different tasks.
+3. **CURRENT STATE is re-derived, never carried forward** — five of the 10-01 audit's twelve findings
+   were stale state.
+
 ## What needs the owner, not an agent
 
 - **Funding the Anthropic balance.** Enrichment, résumé generation and cover letters do nothing

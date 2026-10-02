@@ -19,6 +19,37 @@ Note that ordinary technical mentions of Anthropic or Claude are unaffected and 
 scrubbed: `shared/anthropicModels.js`, model IDs like `claude-sonnet-5`, the `.claude/` directory,
 and commit messages that discuss the API are all describing the code and must stay accurate.
 
+## ⛔ What may go in this repository — product and engineering ONLY
+
+**Nothing personal, legal, immigration-related or financial goes in this repo.** Not the owner's visa
+or work-authorisation status, tax residency, company-formation or funding plans, personal contact
+details, or legal advice. That material lives OUTSIDE the repository (the owner's `business/` folder) —
+not in a gitignored path, because a gitignore entry is a guard someone can edit away. A WORKLOG row may
+say *that* an owner-only item gates engineering work; it may not restate the item.
+
+⛔ **Check the repository's visibility BEFORE writing any document that touches a person** —
+`curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/Sri-Yellela/draft` (200 = public).
+On 2026-10-01 four such files were written into what was then a PUBLIC repository, and the audit then
+found the owner's visa status, phone number and personal email already committed months earlier
+(`docs/auto-apply-a5-live-run.md`, `docs/ai1-summary/*.html`, `db06253`). Making a repository private
+does not retract its history.
+
+Test fixtures and verification records use SYNTHETIC people. A real person's form answers are
+summarised ("the work-authorisation answer"), never quoted.
+
+## The WORKLOG's two queues: O## and A##
+
+Owner rows are **O##**, agent rows **A##**, always written with the letter. O34–O40 and A34–A40 were
+different tasks; "34" alone was misread for a whole session (2026-10-01).
+
+## ⛔ CURRENT STATE is re-derived, never carried forward
+
+Every figure in the WORKLOG's CURRENT STATE is measured when it is written — from git
+(`git merge-base --is-ancestor <sha> origin/main`), the live site, a boot log or the database — and the
+line says where it came from. This file has been stale eight times, and **five of the 10-01 audit's twelve
+findings were stale state** ("local, unpushed" for commits live for days). If you cannot re-measure a
+figure, mark it ⚠ with its date rather than restating it.
+
 ## ⛔ Line endings: never rewrite a whole tracked source file
 
 **Do not use `sed -i`, a Python whole-file write, or any other tool that rewrites a file end to
@@ -71,7 +102,7 @@ this is why.
 
 ## Deliberate test failures — currently 0
 
-`npm test` is **2912 tests, 2912 pass, 0 fail** — re-measured 2026-10-01 on `main` at `eea1162` after queues 37–40
+`npm test` is **2913 tests, 2913 pass, 0 fail** — re-measured 2026-10-01 after audit item 7 (the promises ditched: one landing test replaced by two). ⚠ `sealedSessionSweep` can fail with Windows EPERM removing its temp dir (a file lock in cleanup, not an assertion; 6/6 alone). Before that **2912** on `main` at `eea1162` after queues 37–40
 (+26 deck: expanded layout, Collapse, deck geometry; +10 `usOnlyBoard`); `queue-37` alone read 2886 / 2886 / 0 on a
 fresh CRLF worktree. ⚠ `accountSecurity` "a session is SEALED at rest" fails ~1.7% of runs (random ciphertext can
 contain "42") — a flaky test, not rot; fix by matching `"user":42`. Before that 2876 after the top bar

@@ -54,7 +54,7 @@ export const TOOLS = [
     line: "The tedious part, done for you. The decision stays yours.",
     tools: [
       { name: "Your review queue", does: "Queue an application, see exactly what was filled in and which résumé was used, then approve it or don't.",
-        wont: "Nothing is submitted until you approve it — unless you switch a run to full-auto yourself.",
+        wont: "A review run does not submit by itself: each filled application waits for you. Only a full-auto run, which you switch on, submits.",
         to: "/tools/apply", cta: "Try an application run", limit: "2 runs a month (sign in required)" },
       { name: "The browser extension", does: "Capture a job from any page, and fill the application form you signed in to reach.",
         wont: "It fills; you submit. It never presses the final button for you.", where: "Chrome, from the extension store" },

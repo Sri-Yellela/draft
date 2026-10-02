@@ -541,7 +541,7 @@ export default function AuthScreen({ onLogin, initialTab = "login" }) {
       <SetOnceHeading size={wide ? "clamp(48px, 5.4vw, 76px)" : "clamp(38px, 10vw, 52px)"} />
       <p style={{ fontSize: wide ? 17 : 15, color:C.INK_MUTED, lineHeight:1.55, margin:0, maxWidth:470 }}>
         Not a search box. Every job on the board is read against your résumé, and the best ten are
-        dealt to you each morning. <strong style={{ color:C.INK }}>Nothing is sent until you approve it.</strong>
+        dealt to you each morning.
       </p>
     </div>
   );

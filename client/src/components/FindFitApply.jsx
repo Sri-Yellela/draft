@@ -9,11 +9,11 @@
 // ⭐ ONE VERB, MANY SURFACES. Every tool is a station on one line, introduced where it belongs, and
 // ⛔ written as what it does for a person — never a feature name. A visitor scrolling walks the line
 // once and each stop lights as it is reached.
-// ⭐ THE RESTRAINT IS THE PITCH: "nothing is submitted until you approve it" and the guard on your
-// years and seniority are stated as differentiators, in the page's largest type after the hero.
-// ⛔ NOT "it will not claim anything you did not" (OWNER 36, 10-01): false today — two of two real
-// generations added unstated material, and the claim guard enforces years and seniority only. Restore
-// the stronger line when G1 is closed, not before.
+// ⛔ NO PROMISES AS A PITCH (owner, 10-01 — the WORKLOG audit's item 7). "Nothing is submitted until
+// you approve it", "it will not claim anything you did not" and the reworded "it will not inflate your
+// years or seniority" were all ditched as selling points: the page says what each tool DOES. The
+// approval sentence survives only where it is FUNCTIONAL — inside the auto-apply flow and the deck's
+// Draft toast, at the moment a user queues something and needs to know what happens next.
 // ⛔ Only what a visitor can use today is offered as a link. Grading a posting (R1) has no public route
 // and the connectors have no public token policy (OWNER 16c), so the recruiter line says "soon".
 // ⛔ Motion: the line draws as you scroll — IntersectionObserver + CSS transitions; content is VISIBLE
@@ -38,22 +38,17 @@ export const STATIONS = [
     line: "See what a machine sees in your résumé, then shape it for one posting — honestly.",
     surfaces: [
       { name: "The ATS check", say: "What an applicant-tracking system sees in your résumé before a human does. Free, no account.", to: "/tools/ats", cta: "Check a résumé" },
-      { name: "Tailoring", say: "One résumé, shaped for one posting — it will not inflate your years or seniority, and you read it before anything is sent." },
+      { name: "Tailoring", say: "One résumé, shaped for one posting, from inside that job's card." },
     ],
   },
   {
     verb: "apply",
     line: "The tedious part, done for you. The decision stays yours.",
     surfaces: [
-      { name: "Your review queue", say: "Queue it, review it, approve it. Nothing is sent without you." },
+      { name: "Your review queue", say: "Queue an application, see what was filled in, then approve it or don't." },
       { name: "The browser extension", say: "Capture a job from any page, and fill the form you signed in to reach. You submit." },
     ],
   },
-];
-
-export const PROMISES = [
-  "Nothing is submitted until you approve it.",
-  "It will not inflate your years or seniority — and you read every draft before anything is sent.",
 ];
 
 function useReached(count, reduced) {
@@ -128,19 +123,7 @@ export default function FindFitApply() {
         })}
       </ol>
 
-      {/* ⭐ The restraint is the pitch — not a disclaimer, so not small print. */}
-      <div data-promises style={{ margin: "72px auto 0", maxWidth: 860, textAlign: "center" }}>
-        <p style={{ fontSize: 15, color: C.INK_MUTED, margin: "0 0 18px" }}>
-          Most job tools sell volume — more applications, sent faster. This one is built the other way round.
-        </p>
-        {PROMISES.map(p => (
-          <p key={p} style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 44px)", lineHeight: 1.15, margin: "0 0 6px", color: C.INK }}>
-            {p}
-          </p>
-        ))}
-      </div>
-
-      <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginTop: 40 }}>
+      <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginTop: 72 }}>
         <Link to="/register" style={{ background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`, borderRadius: 999,
                                       padding: "13px 26px", fontWeight: 800, fontSize: 15, textDecoration: "none", boxShadow: C.SHADOW_GLASS }}>
           Get today's draft

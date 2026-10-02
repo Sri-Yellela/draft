@@ -37,8 +37,9 @@ test("⛔ tailoring states what the guard ACTUALLY does — it does not promise 
   assert.match(entry("Tailoring"), /read every draft before you approve it/);
 });
 
-test("the approval promise is stated with its real exception", () => {
-  assert.match(entry("Your review queue"), /Nothing is submitted until you approve it — unless you switch a run to full-auto yourself\./);
+test("the review queue says what it does, with its real exception — not the ditched slogan", () => {
+  assert.doesNotMatch(entry("Your review queue"), /Nothing is submitted until you approve it/, "the slogan, ditched 10-01");
+  assert.match(entry("Your review queue"), /Only a full-auto run, which you switch on, submits\./);
 });
 
 test("tier names show only when the monetisation lever is on", () => {
