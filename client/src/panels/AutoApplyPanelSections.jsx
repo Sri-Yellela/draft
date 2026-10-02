@@ -23,8 +23,8 @@ import { C } from "../styles/colorTokens.js";
 export function SectionHeading({ children, count, note, theme }) {
   return (
     <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 4 }}>
-      <h3 style={{ margin: 0, fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
-                   fontSize: 15, letterSpacing: "0.08em", textTransform: "uppercase",
+      <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontWeight: 400,
+                   fontSize: 20,
                    color: theme.text }}>
         {children}
       </h3>
@@ -60,8 +60,8 @@ export function ObstacleCard({
       {count != null && (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
                       minWidth: 46, flexShrink: 0 }}>
-          <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
-                         fontSize: hero ? 30 : 24, lineHeight: 1, color: tone }}>
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 400,
+                         fontSize: hero ? 39 : 31, lineHeight: 1, color: tone }}>
             {count}
           </span>
           {countLabel && (
@@ -216,8 +216,8 @@ export function ApplicationObstacleCard({
             big "1" beside it was the number that made three cards look like three jobs. */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
                       minWidth: 46, flexShrink: 0 }}>
-          <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
-                         fontSize: 28, lineHeight: 1, color: tone }}>{app.reasons.length}</span>
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 400,
+                         fontSize: 36, lineHeight: 1, color: tone }}>{app.reasons.length}</span>
           <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
                          textTransform: "uppercase", color: theme.textDim, textAlign: "center" }}>
             to resolve
@@ -242,8 +242,8 @@ export function ApplicationObstacleCard({
                        borderRadius: 6, padding: "8px 10px", background: `${theme.surface}` }}>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
                             minWidth: 34, flexShrink: 0 }}>
-                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
-                               fontSize: 20, lineHeight: 1, color: C.INFO }}>{item.unblocks}</span>
+                <span style={{ fontFamily: "var(--font-display)", fontWeight: 400,
+                               fontSize: 26, lineHeight: 1, color: C.INFO }}>{item.unblocks}</span>
                 <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.06em",
                                textTransform: "uppercase", color: theme.textDim }}>unblocked</span>
               </div>

@@ -593,13 +593,16 @@ export default function JobCard({
       {/* ── Tier 1: full layout (>= 280px) — unchanged ── */}
       {tier === 1 && (
         <div onClick={handleCardClick}
-          style={{ padding: compact ? "10px 14px" : "14px 18px", display:"flex", alignItems:"center", gap:14, cursor:"pointer", position:"relative", zIndex:1 }}>
+          // A53: the row WRAPS. The decisions are words now (Save, Draft), wider than the glyphs they
+          // replaced, and at 390px the old row already clipped its last two icons off the card.
+          // Below ~the info's 220px floor the action cluster drops to its own line, right-aligned.
+          style={{ padding: compact ? "10px 14px" : "14px 18px", display:"flex", alignItems:"center", flexWrap:"wrap", columnGap:14, rowGap:10, cursor:"pointer", position:"relative", zIndex:1 }}>
 
           {/* Company icon */}
           <CompanyIcon company={job.company} iconUrl={job.companyIconUrl} size={48}/>
 
           {/* Center info */}
-          <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ flex:"1 1 220px", minWidth:0 }}>
             <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:3 }}>
               <span onClick={e => { e.stopPropagation(); setShowCompanyView(true); }}
                 title={`View ${job.company}'s KB profile`}
@@ -680,7 +683,7 @@ export default function JobCard({
           </div>
 
           {/* Right side */}
-          <div style={{ display:"flex", alignItems:"center", gap:5, flexShrink:0 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:5, flexShrink:0, flexWrap:"wrap", justifyContent:"flex-end", marginLeft:"auto" }}>
             {isLoggedOut && hov && (
               <span style={{ fontSize:13, color:"var(--color-primary-text)", fontWeight:700, opacity:0.85 }}>↗</span>
             )}

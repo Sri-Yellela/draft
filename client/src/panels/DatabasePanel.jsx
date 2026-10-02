@@ -168,8 +168,8 @@ function DetailModal({ modal, onClose, theme }) {
         }}>
           {/* Title */}
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                          fontSize:17, letterSpacing:"0.06em", textTransform:"uppercase",
+            <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
+                          fontSize:22,
                           color:theme.text, overflow:"hidden", textOverflow:"ellipsis",
                           whiteSpace:"nowrap" }}>
               {modal.company}
@@ -187,8 +187,8 @@ function DetailModal({ modal, onClose, theme }) {
                   padding:"5px 14px", border:"none", cursor: (id==="resume"?hasResume:hasAts) ? "pointer" : "not-allowed",
                   background: view===id ? theme.accent : theme.surface,
                   color: view===id ? C.ON_ACCENT : (id==="resume"?hasResume:hasAts) ? theme.text : theme.textDim,
-                  fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                  fontSize:12, letterSpacing:"0.06em", textTransform:"uppercase",
+                  fontFamily:"inherit", fontWeight:800,
+                  fontSize:12,
                   transition:"background 0.15s",
                   borderRight: id==="resume" ? `1px solid ${theme.borderStrong}` : "none",
                 }}>
@@ -211,10 +211,10 @@ function DetailModal({ modal, onClose, theme }) {
             <button onClick={exportPdf} disabled={exporting}
               style={{
                 display:"inline-flex", alignItems:"center", gap:5, flexShrink:0,
-                padding:"6px 16px", borderRadius:2,
-                fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                fontSize:12, letterSpacing:"0.08em", textTransform:"uppercase",
-                background:"transparent", border:`2px solid ${theme.borderStrong}`,
+                padding:"6px 16px", borderRadius:999,
+                fontFamily:"inherit", fontWeight:800,
+                fontSize:12,
+                background:"transparent", border:`1px solid ${theme.borderStrong}`,
                 color:theme.text, cursor: exporting ? "not-allowed" : "pointer",
                 opacity: exporting ? 0.6 : 1, transition:"border-radius 0.4s ease",
               }}
@@ -226,7 +226,7 @@ function DetailModal({ modal, onClose, theme }) {
                 }
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.borderRadius = "2px";
+                e.currentTarget.style.borderRadius = "999px";
                 e.currentTarget.style.background   = "transparent";
                 e.currentTarget.style.borderColor  = theme.borderStrong;
               }}>
@@ -560,8 +560,10 @@ export function DatabasePanel({ user }) {
   const SHEETS = [["applications","Applications"],["resumes","Resumes"],["saved","Saved Jobs"],["pending","Pending Apply"]];
 
   return (
+    // A53: transparent, not theme.bg (the glass) — the board's 09-30 fix: the leather is the
+    // substrate, the header and toolbar strips are the glass.
     <div style={{ flex:1, display:"flex", flexDirection:"column",
-                  overflow:"hidden", background:theme.bg }}>
+                  overflow:"hidden", background:"transparent" }}>
 
       <DetailModal modal={detailModal} onClose={() => setDetailModal(null)} theme={theme}/>
 
@@ -1037,7 +1039,7 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
 
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden",
-                  background: `linear-gradient(160deg, ${theme.accentMuted}55 0%, ${theme.bg} 55%)` }}>
+                  background: `linear-gradient(160deg, ${theme.accentMuted}40 0%, transparent 45%)` }}>
       {/* toolbar */}
       <div style={{ padding:"8px 16px", display:"flex", alignItems:"center", gap:8,
                     borderBottom:`1px solid ${theme.border}`, flexShrink:0,

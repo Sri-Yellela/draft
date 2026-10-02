@@ -8,6 +8,7 @@ import DomainProfileWizard from "../components/DomainProfileWizard.jsx";
 // renders it. Extraction, not duplication — see the note at the top of TileCard.jsx.
 import { TileGrid, TileCard, TilePill } from "../components/ui/TileCard.jsx";
 import { C } from "../styles/colorTokens.js";
+import { TYPE } from "../styles/type.js";
 import { carriedResume, dropCarriedResume } from "../lib/signupCarry.js";
 
 export function JobProfilesPanel() {
@@ -168,21 +169,17 @@ export function JobProfilesPanel() {
   };
 
   return (
-    <div style={{ flex:1, overflow:"auto", padding:"24px 28px", background:"var(--color-bg)", color:"var(--color-text)" }}>
+    // A53: no glass sheet under the page — the leather is the substrate and only the cards are glass
+    // (the board's 09-30 fix, which this surface never got).
+    <div style={{ flex:1, overflow:"auto", padding:"24px 28px", background:"transparent", color:"var(--color-text)" }}>
       <div style={{ maxWidth:1100, margin:"0 auto" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:16, marginBottom:18 }}>
           <div>
             <div className="rm-section-label">Job Profiles</div>
-            <h1 style={{
-              margin:"4px 0 6px",
-              fontFamily:"'Barlow Condensed','DM Sans',sans-serif",
-              textTransform:"uppercase",
-              letterSpacing:"0.06em",
-              fontSize:30,
-            }}>
-              Manage Job Profiles
+            <h1 style={{ ...TYPE.PAGE_TITLE, margin:"6px 0 10px" }}>
+              Job profiles
             </h1>
-            <p style={{ margin:0, color:"var(--color-text-muted)", fontSize:13, maxWidth:640, lineHeight:1.5 }}>
+            <p style={{ ...TYPE.LEAD, margin:0, maxWidth:640 }}>
               Create, edit, delete, and switch profile-specific search targets. Each job profile keeps its own titles,
               skills, base resume, extracted signals, ATS basis, and search behavior.
             </p>

@@ -152,40 +152,45 @@ export function styles(t) {
           transform: translateY(-2px) scale(1.005);
           border-color: ${t.borderStrong};
         }
+        /* A53: the deck's button treatment (DeckView ActionButton, components/DecisionButtons.jsx),
+           for every .rm-btn. It was the pre-rebrand "Lucy tin" button: Barlow Condensed capitals,
+           a 2.5px ink box with square corners that rounded on hover over one second. Now: the body
+           font, a pill, the glass material at rest; primary is the orange FILL with ink text and an
+           ACCENT_INK edge (text on orange is ink — colorTokens.js); ghost is a hairline. */
         .rm-btn {
           display: inline-flex; align-items: center; justify-content: center;
-          gap: 6px; padding: 8px 20px; border-radius: 2px;
-          font-family: 'Barlow Condensed', 'DM Sans', system-ui, sans-serif;
-          font-weight: 800; font-size: 13px; letter-spacing: 0.1em;
-          text-transform: uppercase; cursor: pointer;
-          border: 2.5px solid ${t.text};
+          gap: 6px; padding: 8px 18px; border-radius: 999px;
+          font-family: inherit; font-weight: 800; font-size: 13px; letter-spacing: 0.02em;
+          cursor: pointer;
+          border: 1px solid ${C.GLASS_RIM};
           background-color: transparent;
-          background-image: linear-gradient(to top, transparent, transparent);
-          background-size: 100% 0%;
-          background-repeat: no-repeat;
-          background-position: bottom;
+          background-image: radial-gradient(120% 70% at 12% 0%, ${C.GLASS_SHEEN} 0%, transparent 55%),
+                            linear-gradient(170deg, ${C.GLASS_BODY_TOP} 0%, ${C.GLASS_BODY} 70%);
+          box-shadow: inset 0 1px 0 ${C.GLASS_SPECULAR}, inset 0 -1px 0 ${C.GLASS_UNDERSIDE}, ${C.SHADOW_GLASS};
           color: ${t.text};
-          transition: background-size 1s ease, border-radius 1s ease, border-color 1s ease;
+          transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
           white-space: nowrap; text-decoration: none; box-sizing: border-box;
         }
-        .rm-btn:hover:not(:disabled) { border-radius: 999px; }
+        .rm-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: inset 0 1px 0 ${C.GLASS_SPECULAR}, inset 0 -1px 0 ${C.GLASS_UNDERSIDE}, ${C.SHADOW_GLASS_HOVER};
+        }
         .rm-btn:active { transform: scale(0.97); }
-        .rm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .rm-btn-primary:hover:not(:disabled) {
-          background-image: linear-gradient(to top, ${t.accent}, ${t.accent});
-          background-size: 100% 100%; border-color: ${t.accent}; color: ${t.onAccent};
+        .rm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .rm-btn-primary {
+          background-image: none; background-color: ${C.ACCENT};
+          color: ${C.ON_ACCENT}; border-color: ${C.ACCENT_INK};
         }
-        .rm-btn-secondary:hover:not(:disabled) {
-          background-image: linear-gradient(to top, var(--bg-panel), var(--bg-panel));
-          background-size: 100% 100%; border-color: ${t.borderStrong};
+        .rm-btn-primary:hover:not(:disabled) { background-color: ${C.ACCENT_HOVER}; }
+        .rm-btn-ghost {
+          background-image: none; box-shadow: none;
+          border-color: ${t.borderStrong}; color: ${t.textMuted};
         }
-        .rm-btn-ghost { border-color: ${t.border}; color: ${t.textMuted}; }
         .rm-btn-ghost:hover:not(:disabled) {
-          border-radius: 999px;
-          background-image: linear-gradient(to top, ${t.overlay}, ${t.overlay});
-          background-size: 100% 100%; border-color: ${t.borderStrong}; color: ${t.text};
+          background-color: ${t.overlay}; border-color: ${t.borderStrong}; color: ${t.text};
+          box-shadow: none;
         }
-        .rm-btn-sm { padding: 5px 14px; font-size: 11px; gap: 4px; }
+        .rm-btn-sm { padding: 5px 12px; font-size: 12px; gap: 4px; }
         .rm-btn-icon { padding: 0; width: 36px; height: 36px; border-radius: 999px; font-size: 16px; border: none; }
         .rm-btn-icon.sm { width: 28px; height: 28px; font-size: 13px; }
         .rm-input {
@@ -194,7 +199,7 @@ export function styles(t) {
           background: ${t.colorInputBg}; color: ${t.text};
           backdrop-filter: ${t.backdropCard};
           -webkit-backdrop-filter: ${t.backdropCard};
-          font-family: 'DM Sans', system-ui, sans-serif; font-size: 13px;
+          font-family: inherit; font-size: 13px;
           outline: none; transition: border-color 0.15s, box-shadow 0.15s;
         }
         .rm-input:focus { border-color: ${t.accentText}; box-shadow: 0 0 0 3px ${t.accentText}22; }

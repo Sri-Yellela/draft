@@ -20,6 +20,9 @@
 // on) that re-renders with the theme. Keeping the vars means this is the profile card's own styling
 // language unaltered, which is the point — converting it to `theme` lookups would have been a
 // rewrite that happened to look the same today.
+import { C } from "../../styles/colorTokens.js";
+import { glass } from "../../styles/glass.js";
+import { TYPE } from "../../styles/type.js";
 
 /**
  * The responsive grid the profile cards sit in.
@@ -41,7 +44,9 @@ export function TileGrid({ children, min = 260, gap = 14, maxColumns = null, sty
   // fit, which is the stacking behaviour unchanged. The gap is subtracted first, or N columns of
   // 100/N% plus the gaps between them overflow the row and collapse it to N-1.
   const track = maxColumns
-    ? `minmax(max(${min}px, calc((100% - ${(maxColumns - 1) * gap}px) / ${maxColumns})), 1fr)`
+    // A53: clamped to the row with min(100%, …) — at 390px the 430px floor was wider than the
+    // phone, so every board card ran off the right edge and its last controls were clipped.
+    ? `minmax(min(100%, max(${min}px, calc((100% - ${(maxColumns - 1) * gap}px) / ${maxColumns}))), 1fr)`
     : `minmax(${min}px, 1fr)`;
   return (
     <div style={{
@@ -79,12 +84,15 @@ export function TileCard({
         .filter(([k]) => k !== "tile")
         .map(([k, v]) => [`data-rm-${k}`, v ?? ""]))}
       style={{
-        border: `1px solid ${tone || (active ? "var(--color-primary)" : "var(--color-border)")}`,
-        // The accent tint that marks the ACTIVE profile. A tone'd tile keeps the plain surface —
+        // A53: the glass material (styles/glass.js), as every card on the board and the deck is.
+        ...glass({ radius: 16 }),
+        // ⛔ The active ring is ACCENT_INK, not the orange fill: #FD4600 on the paper is 2.96:1 and
+        // fails the 3:1 bar for a UI boundary (colorTokens.js) — the same call the board's selected
+        // card makes.
+        border: `1px solid ${tone || (active ? C.ACCENT_INK : C.GLASS_RIM)}`,
+        // The accent tint that marks the ACTIVE profile. A tone'd tile keeps the plain glass —
         // two competing background tints on one grid stops either reading as a state.
-        background: active && !tone
-          ? "color-mix(in srgb, var(--color-primary) 9%, transparent)"
-          : "var(--color-surface)",
+        ...(active && !tone ? { backgroundColor: C.ACCENT_QUIET } : null),
         // The 3px left rule is the one addition to the profile card's shape, and it is the Auto
         // Apply panel's existing language for "held on purpose vs this broke" — the same rule its
         // rows and cards already carry. Absent unless a tone is given, so a profile card is
@@ -92,7 +100,6 @@ export function TileCard({
         ...(tone ? { borderLeft: `3px solid ${tone}` } : {}),
         borderRadius: 16,
         padding: "16px 18px",
-        boxShadow: "var(--shadow-sm)",
         display: "flex",
         flexDirection: "column",
         minWidth: 0,
@@ -100,7 +107,7 @@ export function TileCard({
       }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 15, wordBreak: "break-word" }}>{title}</div>
+          <div style={{ ...TYPE.CARD_TITLE, fontSize: 22, wordBreak: "break-word" }}>{title}</div>
           {meta && (
             <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 4 }}>{meta}</div>
           )}
