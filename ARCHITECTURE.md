@@ -383,10 +383,12 @@ profile-scoped table — which is exactly why the global `ats_score` column is v
 a migration added only to `scripts/migrations.js` never runs. Each migration and its bookkeeping row
 commit in **one transaction**, so a half-applied migration cannot be recorded as done.
 
-Both runners define **116** numbered migrations. Production had applied **121** on 10-02 (`/api/version`): the
+Both runners define **117** numbered migrations. Production had applied **121** on 10-02 (`/api/version`): the
 first **115** of them, plus **6** unnumbered legacy ids predating the `NNN_` convention (`admin_cache_events`,
 `admin_scrape_events`, `admin_usage_events`, `admin_user_limits`, `ats_only_reports`,
-`contact_messages`). Defined high-water: `115_deactivate_skroutz_outside_us` (A44 — Skroutz posts only in Greece; ⚠ local), after
+`contact_messages`). Defined high-water: `116_dedup_retire_and_log` (A49 — a dedup duplicate is retired with
+`duplicate_of` / `retired_reason` / `retired_at` and logged in `job_dedup_log`, restorable; ⚠ local, unpushed), after
+`115_deactivate_skroutz_outside_us` (A44 — Skroutz posts only in Greece; applied in production 10-02), after
 `114_users_deck_geometry` (the deck's layout preset / sliders with the account, A38 — applied in production,
 read from `/api/version` 10-02) and `113_account_management` (sessions registry, password_set, avatar, email
 codes, merge log — applied).
