@@ -7,6 +7,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const code = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
@@ -40,7 +41,7 @@ test("the page titles use the deck's type scale", () => {
 
 test(".rm-btn is the deck's button: a pill in the body font, primary is the orange FILL with ink text", () => {
   const css = read("client/src/themes/cinematic.js");
-  const block = css.slice(css.indexOf("        .rm-btn {"), css.indexOf("        .rm-input {"));
+  const block = css.slice(at(css, "        .rm-btn {"), at(css, "        .rm-input {"));
   assert.doesNotMatch(block, /Barlow|text-transform: uppercase|2\.5px/, "the Lucy-tin button is back");
   assert.match(block, /border-radius: 999px/);
   assert.match(block, /\.rm-btn-primary \{\s*background-image: none; background-color: \$\{C\.ACCENT\};\s*color: \$\{C\.ON_ACCENT\}; border-color: \$\{C\.ACCENT_INK\};/);
