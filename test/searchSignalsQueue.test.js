@@ -27,10 +27,8 @@ test("outbound Apify scraping stays retired", () => {
 test("ATS scoring reuses stored signal basis through the queue", () => {
   assert.match(server, /const atsScoreQueue = \[\]/);
   assert.match(server, /function enqueueAtsScoreWork\(label, worker\)/);
-  assert.match(server, /enqueueAtsScoreWork\(`scrape:\$\{userId\}:\$\{query\}`/);
   assert.match(server, /buildRuntimeAtsBasis\(\{/);
-  assert.match(server, /resumeText: baseResumeRow\?\.enhanced_content \|\| baseResumeText/);
-  assert.match(server, /signalProfile: simpleProfile/);
+  // The scrape queue's basis (`scrape:${userId}:${query}`) went with scrapeJobs, deleted 10-02 (18).
   assert.match(server, /scoreAtsLocally\(\{/);
   assert.match(server, /enqueueAtsScoreWork\(`adopt-enhanced:\$\{userId\}:\$\{profileId\}`/);
   // adopt-enhanced builds its basis through atsBasisForProfile — the panel's and the board fit

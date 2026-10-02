@@ -151,8 +151,8 @@ test("the server wires it: every writer stamps the posting, the panel's cache an
   assert.match(panel, /AND job_hash IS \?/, "the panel's cache must not serve a report about an older posting");
   assert.match(panel, /jobHash: panelJobHash/);
   assert.match(SERVER, /report, basisHash, jobHash: atsJobInputHash\(job\)/, "adopt-enhanced stamps the posting");
-  assert.match(SERVER, /jobHash: atsJobInputHash\(row\)/, "the crawl scorer scores and stamps the STORED row");
-  assert.doesNotMatch(SERVER, /scoreAtsLocally\(\{\s*job: item,/, "the crawl scorer must not score its thinner in-memory item");
+  // The crawl scorer that stamped `atsJobInputHash(row)` went with scrapeJobs (deleted 10-02, 18).
+  assert.doesNotMatch(SERVER, /scoreAtsLocally\(\{\s*job: item,/, "no path may score a thinner in-memory item");
   const route = SERVER.slice(at(SERVER, "async function boardPageResponse"), at(SERVER, "include_facets (optional, default-off)"));
   assert.match(route, /aor\.ats_score AS matchScore, \$\{storedScoreSql\("sj", "aor"\)\}/);
   assert.match(route, /matchScore: presentedScore\(j, \{ basisHash: boardBasisHash \}\)/);

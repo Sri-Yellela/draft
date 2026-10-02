@@ -396,6 +396,17 @@ Confirmed against the DB: `user_job_searches` has 0 rows and the cron's own quer
 *user-facing* flow (`/api/scrape` → 410) while remaining fully functional behind an admin endpoint.
 `isExternalScrapeQuotaError` stays with it; after the cron went, `scrapeJobs` is its only caller.
 
+**Update 10-02 (18): DELETED.** A58 removed `force-scrape` (it spent a user's own Apify token and
+nothing called it), which left `scrapeJobs` with no caller. The follow-up deleted `scrapeJobs`,
+`scrapeHarvestAPI`, and the helpers only they used (`extractDomain`, `fetchCompanyIcon`,
+`hasAtsReportForProfile`, `searchThreadId`, `logSearchThread`, `isExternalScrapeQuotaError`,
+`mapWorkplaceTypes`, `mapPostedLimit`, `MAX_JOBS_PER_REFRESH`) and five unused imports. ⛔ It could
+not have run in any case: `ApifyClient` was never imported into `server.js`, so the crawl's first
+line was a ReferenceError. Two consequences worth knowing: `aggregateAtsMissingSignals` (the
+ATS-suggested skills feed) now has no caller anywhere, as it effectively had none since A58; and
+`apify-client` stays in `package.json` with no importer. The tests that quoted the crawl's source
+were narrowed to what still exists, and two became absence guards.
+
 **Two things this surfaced that are decisions, not cleanup:**
 
 1. **`force-scrape` has no caller of its own** — not even DBInspector. It is an orphaned admin

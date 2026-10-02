@@ -67,8 +67,8 @@ import { resolveFromClassifier, getSearchQueryTemplates, qualificationKeyCount }
 // 5.7's module they still have real callers, in scripts/tracePipeline.js, scripts/rawTrace.js and
 // scripts/conditionTests.js (all three verified to still run) plus their own unit tests. Dead in
 // the production path, live in tooling; only the server's unused reference goes.
-import { normaliseRole, buildApifyQueries, isTitleRelevant as isTitleRelevantNew, isTitleRelevantToProfile } from "./services/searchQueryBuilder.js";
-import { getRoleKeyForProfile as _getRoleKeyForProfile, classifyForIngest, getRoleFamilyDomainForKey } from "./services/jobClassifier.js";
+import { normaliseRole, buildApifyQueries } from "./services/searchQueryBuilder.js";
+import { getRoleKeyForProfile as _getRoleKeyForProfile } from "./services/jobClassifier.js";
 import { inferWorkType, jobHash, normaliseItem, isFullTimeNorm, isEmploymentTypeWanted, parseYearsExperience, ghostJobScoreNorm, isReposted } from "./services/jobNormalization.js";
 import { usEligibility } from "./services/jobs/usLocation.js";
 // profileTitleSql still narrows the poll and pending QUEUES — see the verdict recorded at its
@@ -101,7 +101,6 @@ import {
   upsertSimpleApplyProfile,
 } from "./services/simpleApplyProfile.js";
 import {
-  aggregateAtsMissingSignals,
   buildSelectedEnhancementSkills,
   computeEnhancementStatus,
   insertProfileEnhancementHistory,
@@ -130,7 +129,6 @@ import {
   publicIntegrationRow,
 } from "./services/integrationReadiness.js";
 import { searchJobs, cacheJobs, cacheJoboFeed, reconcileFingerprint } from "./services/jobs/aggregator.js";
-import { classifyJob as unifiedClassifyJob } from "./services/jobs/classifyJob.js";
 // profileMatcher.js deleted in cleanup 5.7. filterAndRankForProfile was imported here and never
 // called — the board has been ranked in SQL (ORDER BY in the /api/jobs query) since the pivot,
 // so scoreJob's in-memory weighting had no call site. Flagged as dead in bb24241; removed now.
@@ -170,7 +168,6 @@ import { fetchDescription, persistDetailOutcome, hasDetailFetcher } from "./serv
 // GET /api/jobs validates against it (rejectInvalidFilterValues below) so an unknown value is a
 // 400 rather than a board that silently matches nothing. See shared/jobFilterOptions.js.
 import { FILTER_DIMENSIONS, invalidEntries, ageDaysMap } from "./shared/jobFilterOptions.js";
-import { logoUrlForDomain } from "./shared/companyLogos.js";
 import { BRAND } from "./shared/brand.js";
 import { isExtensionRequest, mayActAsAdmin } from "./shared/authPolicy.js";
 import { validateResumeClaims, checkCandidateConsistency } from "./services/kb/failsafe.js";
@@ -232,7 +229,6 @@ const OAUTH_PROVIDER_CONFIG = {
 };
 const OAUTH_PROVIDERS = ["google", "linkedin", "github"];
 const CACHE_TTL_MS        = 12 * 60 * 60 * 1000;
-const MAX_JOBS_PER_REFRESH= 50;
 // The key that seals stored integration secrets — services/secretBox.js. ⛔ Production refuses to
 // boot without a valid one, as it does without SESSION_SECRET: until 09-30 an unset key silently
 // became a random per-boot key, and production ran that way.
@@ -4361,574 +4357,6 @@ Reply with the category name only. No explanation.` }],
   } catch { return "Other"; }
 }
 
-// ── Company icon helpers ──────────────────────────────────────
-function extractDomain(url) {
-  if (!url) return null;
-  try { return new URL(url).hostname.replace(/^www\./, ""); }
-  catch { return null; }
-}
-
-// The logo URL is built by shared/companyLogos.js, not here. This function used to hold its own
-// `https://logo.clearbit.com/${domain}` literal — a third copy of a host that the shared module and
-// enrichLogos.js also carried, which is why retiring one provider (TASK X) touched three files.
-async function fetchCompanyIcon(domain) {
-  if (!domain) return null;
-  const url = logoUrlForDomain(domain);
-  try {
-    const r = await fetch(url, { method:"HEAD", signal:AbortSignal.timeout(3000) });
-    if (r.ok) return url;
-  } catch {}
-  // No second provider on failure. The Google S2 favicon that used to sit here was reached on
-  // EVERY call once Clearbit's DNS died — a silent switch of who sees the user's browsing, from
-  // the provider the privacy policy names to one it does not. A null leaves company_icon_url
-  // untouched and CompanyIcon renders the lettered tile, which is the disclosed behaviour.
-  return null;
-}
-
-// ── Scraping ──────────────────────────────────────────────────
-// Actor: harvestapi/linkedin-job-search
-// Returns real LinkedIn job IDs — INSERT OR IGNORE keeps first-write wins.
-async function scrapeHarvestAPI(query, token, scrapeParams = {}) {
-  if (!token) throw new Error("No Apify token");
-  const client = new ApifyClient({ token });
-  // QUERY BUILDING: scrapeParams.jobTitles (profile-driven array) takes priority over
-  // the single query string. This allows multi-title searches from domain profiles.
-  const jobTitles = (scrapeParams.jobTitles?.length)
-    ? scrapeParams.jobTitles
-    : [query];
-  const input = {
-    jobTitles,
-    locations:      [scrapeParams.location      || "United States"],
-    workplaceType:  scrapeParams.workplaceTypes?.length
-                      ? scrapeParams.workplaceTypes
-                      : ["remote", "hybrid", "office"],
-    employmentType: scrapeParams.employmentTypes?.length
-                      ? scrapeParams.employmentTypes
-                      : ["full-time"],
-    postedLimit:    scrapeParams.postedLimit     || "24h",
-    maxItems:       scrapeParams.maxItems || MAX_JOBS_PER_REFRESH * 3,
-  };
-  if (scrapeParams.threadId) {
-    logSearchThread(scrapeParams.threadId, "apify_payload", {
-      jobTitles,
-      workplaceType: input.workplaceType,
-      employmentType: input.employmentType,
-      postedLimit: input.postedLimit,
-      location: input.locations[0],
-      maxItems: input.maxItems,
-    });
-  }
-  console.log(`[scrape] Apify input: titles=[${jobTitles.join(",")}] workplaceType=${input.workplaceType} empType=${input.employmentType} postedLimit=${input.postedLimit} location=${input.locations[0]} maxItems=${input.maxItems}`);
-  const run = await client.actor("harvestapi/linkedin-job-search").call(input, { waitSecs: 300 });
-  const dataset = await client.dataset(run.defaultDatasetId).listItems({ limit: MAX_JOBS_PER_REFRESH * 3 });
-  const items = Array.isArray(dataset.items) ? dataset.items : [];
-  console.log(`[scrape] HarvestAPI returned ${items.length} raw items`);
-  items.forEach((item, i) => {
-    const title   = item.title   ?? item.jobTitle   ?? "unknown";
-    const company = item.company?.name ?? item.companyName ?? "unknown";
-    const empType = item.contractType  ?? item.employmentType ?? item.jobType ?? "unknown";
-    const wpType  = item.workplaceType ?? item.workplaceTypes?.[0] ?? "unknown";
-    console.log(`[scrape] #${i+1} "${title}" @ ${company} | ${empType} | ${wpType}`);
-  });
-  return items;
-}
-
-async function scrapeJobs(query, apifyToken, scrapeParams = {}, domainProfileId = null) {
-  const employmentTypes = scrapeParams.employmentTypes?.length ? scrapeParams.employmentTypes : ["full-time"];
-  // TITLE RELEVANCE: if jobTitles array supplied (profile-driven), check against all targets.
-  // Otherwise fall back to single-query isTitleRelevantNew.
-  // Edit isTitleRelevantToProfile() in services/searchQueryBuilder.js to change matching logic.
-  const profileTitles = scrapeParams.jobTitles?.length ? scrapeParams.jobTitles : null;
-  const domainProfile = domainProfileId
-    ? db.prepare("SELECT * FROM domain_profiles WHERE id=?").get(domainProfileId)
-    : null;
-  // Derive userId from domainProfileId for ATS scoring and usage tracking
-  const userId = domainProfile?.user_id ?? null;
-  console.log(`[scrape] "${query}" — HarvestAPI (${profileTitles ? profileTitles.length + " profile titles" : "single query"})`);
-  let rawItems = [];
-  try {
-    rawItems = await scrapeHarvestAPI(query, apifyToken, scrapeParams);
-    console.log(`[scrape] HarvestAPI: ${rawItems.length} raw items`);
-  } catch(e) {
-    if (isExternalScrapeQuotaError(e)) {
-      console.warn("[scrape] HarvestAPI quota exhausted:", e.message);
-    } else {
-      console.warn("[scrape] HarvestAPI failed:", e.message);
-    }
-    throw e;
-  }
-
-  const combined = rawItems.map(j => normaliseItem(j));
-
-  let cntNoTitle = 0, cntNoApply = 0, cntNotFT = 0, cntIrrelevant = 0, cntRepost = 0, cntGhost = 0, cntDup = 0, cntYoeMismatch = 0, cntProfileFactMismatch = 0;
-  const profileFactDrops = { clearance: 0, citizenship: 0, sponsorship: 0 };
-  const thisRunIds    = new Set();
-  const thisRunHashes = new Set();
-
-  const filtered = combined.filter(item => {
-    if (!item.title || !item.company || !item.jobId) { cntNoTitle++;  return false; }
-    // Hard-drop: applyUrl is a LinkedIn-internal apply link (not an external ATS)
-    // noExternalApplyUrl (Easy Apply) is counted but NOT dropped — many valid roles (PM, etc.) use Easy Apply
-    if (item.applyUrl) {
-      const applyDomain = extractDomain(item.applyUrl);
-      if (applyDomain && applyDomain.includes("linkedin.com")) { cntNoApply++; return false; }
-    }
-    // Post-scrape contract filter — catches what Apify's filter misses
-    // (staffing agency postings often slip through the API's employmentType param)
-    if (!employmentTypes.includes("contract") && !employmentTypes.includes("temporary")) {
-      const textCheck = [
-        item.title,
-        item.jobType,
-        item.contractType,
-        item.description?.slice(0, 200),
-      ].join(" ").toLowerCase();
-      const contractSignals = [
-        "contract", "contractor", "contract-to-hire",
-        "c2h", "c2c", "corp-to-corp", "w2 contract",
-        "temporary", "temp-to-perm",
-      ];
-      if (contractSignals.some(s => textCheck.includes(s))) { cntNotFT++; return false; }
-    }
-    if (!isEmploymentTypeWanted(item, employmentTypes)) { cntNotFT++; return false; }
-    const titleOk = profileTitles
-      ? isTitleRelevantToProfile(item.title, profileTitles)
-      : isTitleRelevantNew(item.title, query);
-    if (!titleOk) { cntIrrelevant++; return false; }
-    // Profile-aware title guard: second pass using profile's target_titles tokens.
-    // Runs after the generic relevance check to catch cross-domain bleed
-    // (e.g. "Nurse Educator" passing isTitleRelevantNew for a SWE profile).
-    if (domainProfileId) {
-      const profileRow = db.prepare(
-        "SELECT target_titles FROM domain_profiles WHERE id=?"
-      ).get(domainProfileId);
-      const targetTitles = JSON.parse(profileRow?.target_titles || "[]");
-      if (targetTitles.length > 0) {
-        const titleLower = item.title.toLowerCase();
-        const STOP = new Set(["the","and","for","with","senior","junior","staff","lead"]);
-        const matches = targetTitles.some(target => {
-          const tokens = target.toLowerCase()
-            .split(/[\s/\-]+/)
-            .filter(w => w.length > 2 && !STOP.has(w));
-          return tokens.length > 0 && tokens.every(t => titleLower.includes(t));
-        });
-        if (!matches) { cntIrrelevant++; return false; }
-      }
-    }
-    if (isReposted(item))                      { cntRepost++;     return false; }
-    if (ghostJobScoreNorm({ ...item, url: item.applyUrl || item.url }) >= 4) { cntGhost++; return false; }
-    if (thisRunIds.has(item.jobId))            { cntDup++;        return false; }
-    thisRunIds.add(item.jobId);
-    const h = jobHash(item);
-    if (thisRunHashes.has(h))                  { cntDup++;        return false; }
-    thisRunHashes.add(h);
-    return true;
-  });
-
-  const profileTitlesForSignals = domainProfile ? (() => {
-    try { return JSON.parse(domainProfile.target_titles || "[]"); } catch { return []; }
-  })() : [];
-  const signalProfile = domainProfile
-    ? loadOrCreateSimpleApplyProfile(db, {
-        userId,
-        profileId: domainProfile.id,
-        roleTitles: profileTitlesForSignals,
-      })
-    : null;
-  const maxAllowedYoe = signalProfile?.yearsExperience != null
-    ? signalProfile.yearsExperience + 2
-    : null;
-  const eligible = filtered.filter(item => {
-    if (maxAllowedYoe != null) {
-      const yoe = parseYearsExperience(item.description || "");
-      if (yoe.min != null && yoe.min > maxAllowedYoe) {
-        cntYoeMismatch++;
-        return false;
-      }
-    }
-    const factCheck = evaluateProfileFactEligibility(item, signalProfile);
-    if (!factCheck.ok) {
-      cntProfileFactMismatch++;
-      if (factCheck.reason && profileFactDrops[factCheck.reason] != null) {
-        profileFactDrops[factCheck.reason] += 1;
-      }
-      return false;
-    }
-    return true;
-  });
-  if (scrapeParams.threadId) {
-    logSearchThread(scrapeParams.threadId, "scrape_filter_summary", {
-      rawCount: rawItems.length,
-      normalisedCount: combined.length,
-      filteredCount: eligible.length,
-      dropped: {
-        missingTitleOrCompany: cntNoTitle,
-        noExternalApplyUrl: cntNoApply,
-        notFullTime: cntNotFT,
-        titleIrrelevant: cntIrrelevant,
-        yoeMismatch: cntYoeMismatch,
-        profileFactMismatch: cntProfileFactMismatch,
-        profileFactReasons: profileFactDrops,
-        repost: cntRepost,
-        ghostScore: cntGhost,
-        duplicate: cntDup,
-      },
-    });
-  }
-  console.log(
-    `[scrape] filtered: ${eligible.length}/${combined.length}` +
-    ` (missingTitleOrCompany:${cntNoTitle} noExternalApplyUrl:${cntNoApply} notFullTime:${cntNotFT}` +
-    ` titleIrrelevant:${cntIrrelevant} yoeMismatch:${cntYoeMismatch} profileFactMismatch:${cntProfileFactMismatch} repost:${cntRepost} ghostScore:${cntGhost} duplicate:${cntDup})`
-  );
-
-  const nowUnix = Math.floor(Date.now() / 1000);
-
-  // Convert raw posting string to ISO date so the cron cleanup and age display work reliably.
-  // LinkedIn returns relative strings ("2 days ago", "3 weeks ago") or ISO dates.
-  function normalizePostedAt(raw, scrapedAt) {
-    if (!raw) return null;
-    const str = String(raw).trim();
-    // Already a parseable date (ISO, RFC2822, etc.)
-    const d = new Date(str);
-    if (!isNaN(d.getTime()) && d.getFullYear() > 2010) return d.toISOString().slice(0, 10);
-    // Relative string: "X minutes/hours/days/weeks/months ago"
-    const m = str.match(/^(\d+)\s+(minute|hour|day|week|month)s?\s+ago$/i);
-    if (m) {
-      const n = parseInt(m[1]);
-      const unit = m[2].toLowerCase();
-      const offsets = { minute: 60, hour: 3600, day: 86400, week: 604800, month: 2592000 };
-      return new Date((scrapedAt - n * (offsets[unit] || 86400)) * 1000).toISOString().slice(0, 10);
-    }
-    return null;
-  }
-
-  const insertJob = db.prepare(`
-    INSERT OR IGNORE INTO scraped_jobs
-    (job_id, search_query, company, title, category, location,
-     work_type, source, url, apply_url, posted_at, description, description_html,
-     ghost_score, years_experience, min_years_exp, max_years_exp, exp_raw,
-     is_frequent_repost, _hash, scraped_at, source_platform,
-     salary_min, salary_max, salary_currency, applicant_count, company_icon_url,
-     employment_type, domain_profile_id, collar, classification_confidence,
-     fingerprint, sources_seen, req_uid, automation_tier)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-  `);
-
-  const rejectJobStmt  = db.prepare(`
-    INSERT OR REPLACE INTO rejected_jobs (job_id, title, company, source, reason, rejected_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `);
-  const deleteScrapedStmt  = db.prepare(`DELETE FROM scraped_jobs WHERE job_id = ?`);
-  const deleteRoleMapStmt  = db.prepare(`DELETE FROM job_role_map  WHERE job_id = ?`);
-
-  const insertMany = db.transaction((jobs) => {
-    let inserted = 0;
-    jobs.forEach(item => {
-      const jobId   = item.jobId; // always a real LinkedIn job ID — synthetic IDs were removed
-      const hash    = jobHash(item);
-      const yoe     = parseYearsExperience(item.description);
-      const wt      = inferWorkType(
-        (item.workTypeHint || '') + ' ' + (item.location || '') + ' ' + (item.description || '')
-      );
-      const empType = item.jobType || null;
-
-      // ── Collar gate (blue-collar eject) ───────────────────────────────────
-      const collarVerdict = unifiedClassifyJob(item.title || '', item.description || '', item.company || '');
-      if (collarVerdict.collar === 'blue') {
-        deleteScrapedStmt.run(jobId);
-        deleteRoleMapStmt.run(jobId);
-        rejectJobStmt.run(jobId, item.title || '', item.company || '', 'linkedin', 'blue_collar',
-          Math.floor(Date.now() / 1000));
-        return; // skip insert
-      }
-      if (collarVerdict.roleKey === null) {
-        return; // white-ish but no signal → drop
-      }
-      // Queue 37 — US-only, decided at ingestion (services/jobs/aggregator.js holdOutOfMarket).
-      // INSERT OR IGNORE never re-activates a stored row, so here the gate only has to refuse.
-      const market = usEligibility({ location: item.location, description: item.description });
-      if (!market.admit) {
-        rejectJobStmt.run(jobId, item.title || '', item.company || '', 'linkedin',
-          'out_of_market:' + market.reason, Math.floor(Date.now() / 1000));
-        return;
-      }
-      // ──────────────────────────────────────────────────────────────────────
-
-      // Cross-source dedup: collapse this posting into an existing higher-(or-equal-)
-      // priority canonical row (e.g. a direct-ATS listing of the same role) if one exists.
-      const dedup = reconcileFingerprint(db, {
-        id: jobId, url: item.applyUrl || item.url || jobId,
-        title: item.title, company: item.company, location: item.location || 'United States',
-        source: 'LinkedIn',
-        description: item.description || null,
-        company_icon_url: item.companyLogoUrl || null,
-        workplace_type: wt || null,
-        posted_at: normalizePostedAt(item.postedAt, nowUnix),
-        // A49 fix 3 — the salary goes INTO the deduper, so a fold donates it to the canonical row
-        // and a win inherits the outranked row's figure; the insert below writes canonical.*.
-        salary_min:      item.salaryMin      || null,
-        salary_max:      item.salaryMax      || null,
-        salary_currency: item.salaryCurrency || null,
-      });
-      if (dedup.action === 'fold') {
-        return; // superseded by an existing canonical row for this role — no separate row written
-      }
-      const canonical = dedup.job;
-
-      const result = insertJob.run(
-        jobId,
-        query.toLowerCase(),
-        item.company,
-        item.title,
-        item._category || 'Other',
-        item.location  || 'United States',
-        wt,
-        'LinkedIn',
-        item.url        || null,
-        item.applyUrl   || null,
-        canonical.posted_at,
-        canonical.description || null,
-        item.descriptionHtml || null,
-        ghostJobScoreNorm({ ...item, url: item.applyUrl || item.url }),
-        yoe.min,          // years_experience (compat col — use min)
-        yoe.min,
-        yoe.max,
-        yoe.raw,
-        isReposted(item) ? 1 : 0,
-        hash,
-        nowUnix,
-        'linkedin',
-        canonical.salary_min      ?? null,
-        canonical.salary_max      ?? null,
-        canonical.salary_currency ?? null,
-        item.applicantCount || null,
-        canonical.company_icon_url || null,
-        empType,
-        domainProfileId,
-        'white',
-        collarVerdict.confidence || 0,
-        dedup.fingerprint,
-        dedup.sourcesSeen,
-        dedup.reqUid,
-        // Same (source, apply_url ?? url) contract every other writer uses. This is the one path
-        // that actually populates apply_url, and it is the destination that decides the tier —
-        // item.url is the LinkedIn posting page, item.applyUrl is where the candidate lands.
-        deriveAutomationTier('LinkedIn', item.applyUrl || item.url),
-      );
-      if (result.changes > 0) inserted++;
-      else if (domainProfileId) {
-        db.prepare(`
-          UPDATE scraped_jobs
-          SET domain_profile_id = ?
-          WHERE job_id = ? AND domain_profile_id IS NULL
-        `).run(domainProfileId, jobId);
-      }
-      assignJobRoleMap(jobId, domainProfile, result.changes > 0 ? "profile_scrape" : "duplicate_profile_scrape");
-    });
-    return inserted;
-  });
-
-  const classified = [];
-  let inserted = 0;
-  for (let i = 0; i < Math.min(eligible.length, MAX_JOBS_PER_REFRESH); i += 5) {
-    const batch = eligible.slice(i, i + 5);
-    const cats  = await Promise.all(batch.map(item => classifyJob(item.title, item.description)));
-    const classifiedBatch = batch.map((item, idx) => ({ ...item, _category: cats[idx] }));
-    classified.push(...classifiedBatch);
-    inserted += insertMany(classifiedBatch);
-  }
-
-  // ── Conservative ingest-time classification for orphaned jobs ─────────────
-  // Jobs scraped without a domainProfile (admin scrapes, deleted profiles, etc.)
-  // have no job_role_map entry and are invisible to profile-based search flows.
-  // Assign a role_key only when classifyForIngest() returns >= 0.75 confidence.
-  // Low-confidence jobs remain unclassified for later LLM scoring or admin review.
-  {
-    const orphanInsert = db.prepare(`
-      INSERT OR IGNORE INTO job_role_map
-        (job_id, role_key, role_family, domain, confidence, matched_by)
-      VALUES (?, ?, ?, ?, ?, 'ingest_classifier')
-    `);
-    const classifyOrphans = db.transaction((jobs) => {
-      let cnt = 0;
-      for (const item of jobs) {
-        if (item._domainProfileId) continue; // already handled by assignJobRoleMap
-        const existing = db.prepare(
-          "SELECT 1 FROM job_role_map WHERE job_id = ?"
-        ).get(item.jobId);
-        if (existing) continue; // already has a role_map entry
-        const result = classifyForIngest(item.title, item.description || "");
-        if (!result) continue;
-        const { role_family, domain } = getRoleFamilyDomainForKey(result.roleKey);
-        orphanInsert.run(item.jobId, result.roleKey, role_family, domain, result.confidence);
-        cnt++;
-      }
-      return cnt;
-    });
-    // Only run for scrapes that had no domainProfile
-    if (!domainProfileId) {
-      const orphansClassified = classifyOrphans(classified.map(it => ({ ...it, _domainProfileId: domainProfileId })));
-      if (orphansClassified > 0) {
-        console.log(`[scrape] ingest_classifier assigned role_key to ${orphansClassified} orphaned jobs`);
-      }
-    }
-  }
-
-  // ── ATS scoring for newly inserted jobs (D1) ──────────────────────────────
-  // Score new jobs against the user's base resume using Haiku.
-  // Non-fatal — job is still inserted if scoring fails.
-  if (userId) {
-    enqueueAtsScoreWork(`scrape:${userId}:${query}`, async () => {
-      try {
-        const baseResumeRow = domainProfile
-          ? getBaseResumeRecord(db, { userId, profileId: domainProfile.id })
-          : null;
-        const baseResumeText = baseResumeRow?.content;
-        if (!baseResumeText) return; // No base resume — skip scoring
-        const profileTitles = domainProfile ? (() => {
-          try { return JSON.parse(domainProfile.target_titles || "[]"); } catch { return []; }
-        })() : [];
-        const simpleProfile = domainProfile
-          ? loadOrCreateSimpleApplyProfile(db, { userId, profileId: domainProfile.id, roleTitles: profileTitles })
-          : null;
-        const runtimeBasis = buildRuntimeAtsBasis({
-          resumeText: baseResumeRow?.enhanced_content || baseResumeText,
-          signalProfile: simpleProfile,
-          domainProfile,
-          claims: atsClaims(domainProfile),
-        });
-        // Migration 110: the row records which basis produced it. ⚠ This basis prefers an
-        // UNADOPTED enhanced draft over the base résumé, which the ATS panel and the board's fit
-        // precompute do not — so these rows hash differently and the precompute (scheduled below)
-        // re-scores them against the base résumé. Stated rather than silently reconciled: which of
-        // the two texts a pre-adoption score should use is a product question, not a cache one.
-        const scrapeBasisHash = atsBasisHash(runtimeBasis, { scorerVersion: ATS_REPORT_CACHE_KEY });
-
-        // ⛔ CC5 · SCORED FOR THIS USER AND PROFILE, NOT ONTO THE POSTING.
-        //
-        // This block used to `UPDATE scraped_jobs SET ats_score=?, ats_report=?` — one cell per
-        // posting — from `runtimeBasis`, which is built three lines above out of THIS user's base
-        // résumé, their signal profile and their claims. So whoever crawled a posting first wrote
-        // their own fit onto it, and every other user of the board read that number as theirs.
-        //
-        // Two consequences, and the second was the quieter one:
-        //   · the leak. Every reader of the column served one candidate's score to all of them.
-        //   · the suppression. The "already scored?" marker was the same shared cell, so a second
-        //     user crawling the same posting was skipped for having a score they did not have.
-        //
-        // Both go away by keying the write on (user, profile, job), which is what the basis was
-        // always specific to.
-        //
-        // The `SELECT ... FROM scraped_jobs` this replaces also served as an existence check, so
-        // that survives as its own clause: a row that failed to insert would otherwise get a cache
-        // entry pointing at a posting nobody can open.
-        const newlyInserted = classified.filter(item =>
-          db.prepare("SELECT 1 FROM scraped_jobs WHERE job_id=?").get(item.jobId)
-          && !hasAtsReportForProfile({ userId, profileId: domainProfile?.id ?? null, jobId: item.jobId })
-        );
-
-        if (!newlyInserted.length) return;
-
-        let attempted = 0;
-        let failed = 0;
-        for (let i = 0; i < newlyInserted.length; i += 25) {
-          const batch = newlyInserted.slice(i, i + 25);
-          await Promise.all(batch.map(async item => {
-            try {
-              attempted++;
-              // ⛔ A52 · THE STORED ROW, NOT THE CRAWL'S IN-MEMORY ITEM. The item carries no
-              // `category` (it is `_category` there) and no enrichment, so it scored a thinner
-              // posting than the panel and the precompute read — and with no enhanced draft its
-              // basis hash matched theirs, so that thinner score was accepted as fresh. Scoring the
-              // row (`SELECT *`, as the panel does) and stamping its job_hash makes it one posting.
-              const row = db.prepare("SELECT * FROM scraped_jobs WHERE job_id=?").get(item.jobId);
-              if (!row) return;
-              const report = scoreAtsLocally({
-                job: row,
-                runtimeBasis,
-                termWeights: atsTermWeightsForJob(row),
-                synonyms: atsSynonyms(),
-              });
-              storeAtsReportForProfile({
-                userId, profileId: domainProfile?.id ?? null, jobId: item.jobId, report, basisHash: scrapeBasisHash,
-                jobHash: atsJobInputHash(row),
-              });
-              if (domainProfile?.id) {
-                const aggregation = aggregateAtsMissingSignals(db, {
-                  userId,
-                  profileId: domainProfile.id,
-                  report,
-                });
-                if (aggregation.eligibleNow) {
-                  insertNotification(
-                    userId,
-                    "enhance_ready",
-                    `Enhance Base Resume is ready for ${domainProfile.profile_name}. Review profile ATS suggestions and select new skills.`,
-                    { profileId: domainProfile.id, source: "ats_missing_signals" },
-                  );
-                }
-              }
-            } catch(e) {
-              failed++;
-              console.warn(`[scrape] local ATS score failed for ${item.jobId}:`, e.message);
-            }
-          }));
-        }
-        if (scrapeParams.threadId) {
-          logSearchThread(scrapeParams.threadId, "ats_enrichment", {
-            candidateCount: newlyInserted.length,
-            attempted,
-            failed,
-            scorer: LOCAL_ATS_SOURCE,
-            status: "complete",
-          });
-        }
-      } catch(e) {
-        console.warn("[scrape] local ATS batch scoring failed:", e.message);
-      } finally {
-        // A crawl added postings: bring this user's board fit up to date. Incremental, so it scores
-        // only what this crawl added (plus anything stale). Other users pick the new rows up at the
-        // next crawl-wide pass or the next time their board loads.
-        scheduleBoardFit(userId, "scrape");
-      }
-    });
-  }
-
-  // ── Async company icon fallback (non-blocking, only for jobs without a logo) ──
-  setImmediate(async () => {
-    const updateIcon = db.prepare(
-      "UPDATE scraped_jobs SET company_icon_url=? WHERE _hash=? AND company_icon_url IS NULL"
-    );
-    for (const item of classified) {
-      if (item.companyLogoUrl) continue; // HarvestAPI already provided a logo
-      try {
-        const domain  = extractDomain(item.url);
-        const iconUrl = await fetchCompanyIcon(domain);
-        if (iconUrl) updateIcon.run(iconUrl, jobHash(item));
-      } catch {}
-    }
-  });
-
-  if (scrapeParams.threadId) {
-    logSearchThread(scrapeParams.threadId, "scrape_complete", {
-      query,
-      insertedCount: inserted,
-      classifiedCount: classified.length,
-      filteredCount: eligible.length,
-      rawCount: combined.length,
-    });
-  }
-  console.log(`[scrape] ✓ "${query}" — ${inserted} inserted, ${classified.length} classified, ${eligible.length} passed filter of ${combined.length} total`);
-  return {
-    classified,
-    rawCount: rawItems.length,
-    filteredCount: eligible.length,
-    insertedCount: inserted,
-    duplicateCount: cntDup,
-    ghostCount: cntGhost,
-    irrelevantCount: cntIrrelevant,
-  };
-}
-
 // ── Job expiry cleanup — runs at startup and daily at 03:00 ──────
 // Extracts into a named function so it can be called at startup (to
 // catch any window missed if the server was down during the cron time)
@@ -5187,8 +4615,10 @@ cron.schedule("0 2 * * *", () => {
 // it survived earlier caller-grep passes.
 //
 // `scrapeJobs` was KEPT for POST /api/admin/db/force-scrape, its one entry point. A58 (10-02) removed
-// that route — it spent a USER'S OWN Apify token and nothing called it — so `scrapeJobs` now has NO
-// caller. Deleting the function and its helpers is left as its own cleanup. See docs/PIPELINE_DIAGNOSIS.md §5.12.
+// that route — it spent a USER'S OWN Apify token and nothing called it — and the follow-up (10-02, 18)
+// deleted scrapeJobs, scrapeHarvestAPI and the helpers only they used. It could not have run anyway:
+// `ApifyClient` was never imported here, so its first line was a ReferenceError. See
+// docs/PIPELINE_DIAGNOSIS.md §5.12.
 
 /// ── Prompt injection ──────────────────────────────────────────
 // buildRuntimeInputs moved to the tools service in A4 (src/generation/runtimeInputs.js), byte-identical
@@ -6620,21 +6050,6 @@ onEnrichmentApplied(() => {
   _enrichmentRescoreTimer.unref?.();
 });
 
-/**
- * CC5 · has THIS user, on THIS profile, already got a report for this job?
- *
- * The scrape scorer used to ask `SELECT ats_score FROM scraped_jobs WHERE job_id=?` and skip any
- * row that was non-NULL — which meant one user's crawl suppressed scoring for everybody else's,
- * because the marker it read was shared. Asking per (user, profile) is both correct and what makes
- * the skip meaningful: a second user crawling the same posting genuinely has no score yet.
- */
-function hasAtsReportForProfile({ userId, profileId = null, jobId }) {
-  try {
-    return !!db.prepare(
-      "SELECT 1 FROM ats_only_reports WHERE user_id=? AND job_id=? AND domain_profile_id IS ? LIMIT 1"
-    ).get(userId, String(jobId), profileId ?? null);
-  } catch { return false; }
-}
 
 const atsScoreQueue = [];
 let atsScoreQueueRunning = false;
@@ -6659,14 +6074,6 @@ function enqueueAtsScoreWork(label, worker) {
 
 function scrapeStateKey(userId, profileId, query) {
   return `${userId}:${profileId || "none"}:${String(query || "").toLowerCase()}`;
-}
-
-function searchThreadId() {
-  return `search_${Date.now().toString(36)}_${crypto.randomBytes(3).toString("hex")}`;
-}
-
-function logSearchThread(threadId, event, details = {}) {
-  console.log(`[search:${threadId}] ${event} ${JSON.stringify(details)}`);
 }
 
 function getProfileSearchFacts(signalProfile = null) {
@@ -8977,14 +8384,6 @@ app.get("/api/jobs/poll", requireAuth, (req, res) => {
 // The real validation is rejectInvalidFilterValues() on GET /api/jobs, which reads
 // shared/jobFilterOptions.js — the same definition the controls render from.
 
-function isExternalScrapeQuotaError(err) {
-  const msg = String(err?.message || err || "").toLowerCase();
-  return msg.includes("monthly usage hard limit exceeded")
-      || msg.includes("usage hard limit exceeded")
-      || msg.includes("quota")
-      || msg.includes("limit exceeded");
-}
-
 function isAnthropicCreditError(err) {
   const msg = String(err?.message || err || "").toLowerCase();
   return msg.includes("credit balance is too low")
@@ -8992,21 +8391,6 @@ function isAnthropicCreditError(err) {
       || msg.includes("billing")
       || msg.includes("payment required")
       || msg.includes("quota exceeded");
-}
-
-// Map UI workType string → Apify workplaceType array
-function mapWorkplaceTypes(workType) {
-  const map = { Remote:"remote", Hybrid:"hybrid", Onsite:"office", "On-site":"office",
-                remote:"remote", hybrid:"hybrid", office:"office" };
-  if (!workType) return ["remote","hybrid","office"];
-  const mapped = map[workType];
-  return mapped ? [mapped] : ["remote","hybrid","office"];
-}
-
-// Map UI ageFilter string → Apify postedLimit
-function mapPostedLimit(ageFilter) {
-  const map = { "1d":"24h","2d":"24h","3d":"24h","1w":"1w","1m":"1m","1mo":"1m" };
-  return map[ageFilter] || "24h";
 }
 
 app.post("/api/scrape", requireAuth, (_req, res) => {

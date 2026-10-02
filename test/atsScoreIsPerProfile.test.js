@@ -66,20 +66,21 @@ test("⛔ NOTHING writes a score onto the posting any more", () => {
     "a per-job cell cannot hold a per-résumé number; there is no correct way to write this");
 });
 
-test("all three scoring paths write through the one per-profile writer", () => {
-  // The scrape scorer, adopt-enhanced and the keywords route. One writer means the next mistake
-  // gets made once rather than three times — which is how this defect survived: it was three
-  // copies of the same UPDATE, and fixing any one of them looked complete.
+test("every scoring path writes through the one per-profile writer", () => {
+  // adopt-enhanced and the keywords route. One writer means the next mistake gets made once rather
+  // than three times — which is how this defect survived: it was three copies of the same UPDATE,
+  // and fixing any one of them looked complete. The third, the scrape scorer, went with scrapeJobs
+  // (deleted 10-02, 18 — A58 had removed its last entry point).
   // `basisHash` (migration 110) records which candidate basis produced the report; `jobHash`
   // (migration 118, A52) which version of the posting.
   assert.match(SERVER, /function storeAtsReportForProfile\(\{ userId, profileId = null, jobId, report, basisHash = null, jobHash = null \}\)/);
   // The board's fit precompute is a fourth scoring path, and it stores through the SAME writer —
   // by reference, injected, so it adds no call site of its own below.
   assert.match(SERVER, /createBoardFitPrecompute\(\{\s*db, basisFor: atsBasisForProfile, scoreJob: scoreJobForBasis, store: storeAtsReportForProfile,/);
-  // Minus the declaration the previous line just matched: three call sites, no more and no fewer.
-  // A fourth would mean a new scoring path nobody reviewed; a second would mean one of the three
-  // went back to writing its own SQL, which is the shape the defect had.
-  assert.equal((SERVER.match(/storeAtsReportForProfile\(\{/g) || []).length - 1, 3,
+  // Minus the declaration the previous line just matched: two call sites, no more and no fewer.
+  // A third would mean a new scoring path nobody reviewed; one would mean the other went back to
+  // writing its own SQL, which is the shape the defect had.
+  assert.equal((SERVER.match(/storeAtsReportForProfile\(\{/g) || []).length - 1, 2,
     "every path that computes a score must store it through the same writer");
 });
 
@@ -113,26 +114,9 @@ test("SQLite really does let duplicate NULL-profile rows through that UNIQUE", (
   db.close();
 });
 
-test("a profile's score does not suppress scoring for a different profile", () => {
-  // The quieter half of the leak. The scrape scorer skipped any posting whose `ats_score` was
-  // already set — a marker shared by every user — so the second user to crawl a job was skipped for
-  // having a score they did not have. The replacement asks per (user, profile).
-  assert.match(SERVER, /!hasAtsReportForProfile\(\{ userId, profileId: domainProfile\?\.id \?\? null, jobId: item\.jobId \}\)/);
-  assert.match(SERVER, /FROM ats_only_reports WHERE user_id=\? AND job_id=\? AND domain_profile_id IS \?/);
-
-  const db = new Database(":memory:");
-  for (const m of MIGRATIONS) db.exec(m.sql);
-  db.prepare("INSERT INTO users (id,username,password_hash) VALUES (1,'ada','x')").run();
-  db.prepare("INSERT INTO users (id,username,password_hash) VALUES (2,'bob','x')").run();
-  db.prepare("INSERT INTO ats_only_reports (user_id,domain_profile_id,job_id,ats_report,ats_score) VALUES (1,NULL,'j',?,55)")
-    .run(JSON.stringify({ score: 55 }));
-  const asked = (userId) => db.prepare(
-    "SELECT 1 FROM ats_only_reports WHERE user_id=? AND job_id=? AND domain_profile_id IS ? LIMIT 1"
-  ).get(userId, "j", null);
-  assert.ok(asked(1), "user 1 has a score for this posting");
-  assert.ok(!asked(2), "user 2 does not, and must not be skipped for user 1's");
-  db.close();
-});
+// "a profile's score does not suppress scoring for a different profile" went with the scrape
+// scorer it pinned (hasAtsReportForProfile): scrapeJobs was deleted 10-02 (18). The board fit
+// precompute that scores today is keyed by basis_hash per (user, profile) — boardFitRanking.
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
 // THE READERS

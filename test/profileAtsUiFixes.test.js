@@ -97,12 +97,10 @@ test("the imported-LinkedIn section is gone, and the bulk-import CTA stays gone 
     "the removed bulk-import CTA must not come back");
 });
 
-test("scrape and poll enforce stored profile experience constraints before surfacing new jobs", () => {
+test("poll enforces stored profile experience constraints before surfacing new jobs", () => {
   const server = fs.readFileSync("server.js", "utf8");
 
-  assert.match(server, /const maxAllowedYoe = signalProfile\?\.yearsExperience != null/);
-  assert.match(server, /const eligible = filtered\.filter/);
-  assert.match(server, /yoeMismatch: cntYoeMismatch/);
+  // The scrape half (maxAllowedYoe, yoeMismatch) went with scrapeJobs, deleted 10-02 (18).
   assert.match(server, /const pollSignals = loadSimpleApplyProfile/);
   assert.match(server, /const pollMaxYoe = pollSignals\?\.yearsExperience != null \? pollSignals\.yearsExperience \+ 2 : null/);
   assert.match(server, /\(\? IS NULL OR sj\.min_years_exp IS NULL OR sj\.min_years_exp <= \?\)/);
