@@ -189,7 +189,8 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
       )}
       {report.competencies_missing?.length > 0 && (
         <TagSection title="◇ Competencies Missing"
-          subtitle="Ways of working this job asked for. These are qualities, not technologies — claim the ones that are true of you."
+          subtitle={claims?.onToggle ? "Ways of working this job asked for. These are qualities, not technologies — claim the ones that are true of you."
+                                     : "Ways of working this job asked for. These are qualities, not technologies."}
           bg={C.VIOLET_QUIET} fg={C.VIOLET} border={`color-mix(in srgb, ${C.VIOLET} 20%, transparent)`}
           items={report.competencies_missing} evidencedLookup={evidencedLookup} kind="skill" {...claimable("skill")}/>
       )}
@@ -200,7 +201,8 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
       )}
       {report.action_verbs_missing?.length > 0 && (
         <TagSection title="⚠ Verbs Missing"
-          subtitle="This job's language for work you may already have done. Claim the ones that describe you."
+          subtitle={claims?.onToggle ? "This job's language for work you may already have done. Claim the ones that describe you."
+                                     : "This job's language for work you may already have done."}
           bg={C.WARNING_QUIET} fg={"var(--color-warning)"} border={"color-mix(in srgb, var(--color-warning) 20%, transparent)"}
           items={report.action_verbs_missing} evidencedLookup={evidencedLookup} kind="action_verb" {...claimable("action_verb")}/>
       )}
