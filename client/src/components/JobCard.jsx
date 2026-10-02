@@ -203,6 +203,18 @@ function NewPill() {
 // user's own star with it, so a saved posting simply ceased to exist. It is now retired instead
 // (is_active = 0) and kept — and a kept row has to SAY it is closed, or the list quietly promises
 // the user they can still apply.
+// A62 follow-up — a saved capture the US-only gate held off the shared board is inactive too, but
+// it has not closed: the employer still lists it. Saying "no longer listed" would be false.
+function OutsideUsPill() {
+  return (
+    <span title="Still listed by the employer, but outside the US — so it is kept in your Saved jobs and not shown on the board."
+          style={{ fontSize:9, fontWeight:800, color:C.WARNING, background:C.WARNING_QUIET,
+                   padding:"1px 6px", borderRadius:999, whiteSpace:"nowrap", letterSpacing:"0.03em" }}>
+      OUTSIDE THE US
+    </span>
+  );
+}
+
 function ClosedPill() {
   return (
     <span title="This listing was not seen again for 7 days, so it is probably filled or withdrawn. Kept here because you saved it."
@@ -649,7 +661,7 @@ export default function JobCard({
               <WorkBadge t={job.workType} theme={theme}/>
               {/* Explicit `=== false`: isActive is absent on live-search results, and absent must
                   not read as closed. Ahead of the NEW pill because "closed" outranks "recent". */}
-              {job.isActive === false && <ClosedPill/>}
+              {job.heldOutsideUs ? <OutsideUsPill/> : job.isActive === false && <ClosedPill/>}
               {/* A closed listing is never new, whatever discoveredAt says — the two pills side by
                   side ("NO LONGER LISTED" + "NEW") is a contradiction the user has to resolve, and
                   the closed state is the one that changes what they can do about it. */}

@@ -7699,7 +7699,14 @@ async function boardPageResponse(req) {
         // CC5 · `matchScore` is selected from the CALLER's cache, aliased to the name mapJobRow
         // reads. sj.ats_score is deliberately not selected under that name any more — see the
         // joinClause note.
+        // A62 follow-up · `held_outside_us`: a capture the US-only gate held off the board is
+        // is_active = 0, exactly like an expired listing, so the Saved tab told its owner it was
+        // "NO LONGER LISTED". It is listed; the board is US-only. The gate's own record
+        // (rejected_jobs, `out_of_market:`, cleared when a later crawl admits the posting) says
+        // which. A literal projection, not a fragment: only an inactive row can be held, so every
+        // board but Saved short-circuits on is_active, and the count needs no matching change.
         `SELECT ${selectCols}, uj.visited, uj.applied, uj.starred, uj.disliked,
+                (sj.is_active = 0 AND EXISTS (SELECT 1 FROM rejected_jobs rj WHERE rj.job_id = sj.job_id AND rj.reason LIKE 'out_of_market:%')) AS held_outside_us,
                 aor.ats_score AS matchScore, ${storedScoreSql("sj", "aor")}${cursorCols.sql}
          ${joinClause} ${whereClause} ${cursorSql} ORDER BY ${order.sql} LIMIT ?${rawCursor ? "" : " OFFSET ?"}`
       ).all(
