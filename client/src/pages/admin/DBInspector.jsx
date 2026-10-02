@@ -1454,7 +1454,6 @@ function UserPoolTab({ theme }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [poolFilter, setPoolFilter] = useState("All");
-  const [cleanResult, setCleanResult] = useState(null);
   const [retagResult, setRetagResult] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
 
@@ -1469,15 +1468,6 @@ function UserPoolTab({ theme }) {
     catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }, []);
-
-  const cleanPool = async () => {
-    if (!selectedUser) return;
-    setActionLoading("clean"); setCleanResult(null);
-    try { setCleanResult(await api(`/api/admin/db/clean-user-pool/${selectedUser}`, { method:"POST" })); }
-    catch (e) { setCleanResult({ error: e.message }); }
-    setActionLoading(null);
-    loadPool(selectedUser);
-  };
 
   const retagPool = async () => {
     if (!selectedUser) return;
@@ -1632,25 +1622,15 @@ function UserPoolTab({ theme }) {
               )}
             </div>
 
-            {/* Utility buttons */}
+            {/* Utility buttons. ⛔ "Clean Pool" was removed (A51, 10-02): it deleted a user's Saves and
+                Passes in one click. Nothing here may delete user_jobs rows. */}
             <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-              <button onClick={cleanPool} disabled={!selectedUser || actionLoading === "clean"}
-                style={{ background:C.DANGER_QUIET, color:C.DANGER, border:`1px solid ${C.DANGER}44`,
-                         borderRadius:6, padding:"7px 16px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
-                {actionLoading==="clean" ? "Cleaning…" : "🧹 Clean Pool"}
-              </button>
               <button onClick={retagPool} disabled={!selectedUser || actionLoading === "retag"}
                 style={{ background:ACCENT+"22", color:ACCENT_TEXT, border:`1px solid ${ACCENT_TEXT}44`,
                          borderRadius:6, padding:"7px 16px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
                 {actionLoading==="retag" ? "Retagging…" : "🏷 Re-tag Pool"}
               </button>
             </div>
-            {cleanResult && (
-              <div style={{ marginTop:8, fontSize:11, color:C.SUCCESS }}>
-                {cleanResult.error ? <span style={{color:C.DANGER}}>{cleanResult.error}</span>
-                : `Removed ${cleanResult.removed} jobs, preserved ${cleanResult.preserved} applied.`}
-              </div>
-            )}
             {retagResult && (
               <div style={{ marginTop:8, fontSize:11, color:C.SUCCESS }}>
                 {retagResult.error ? <span style={{color:C.DANGER}}>{retagResult.error}</span>
