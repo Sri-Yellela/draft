@@ -34,7 +34,9 @@ function setupServer() {
       user_id INTEGER,
       job_id TEXT,
       domain_profile_id INTEGER,
-      applied INTEGER DEFAULT 0
+      applied INTEGER DEFAULT 0,
+      starred INTEGER DEFAULT 0,
+      disliked INTEGER DEFAULT 0
     );
     CREATE TABLE job_role_map (
       job_id TEXT NOT NULL REFERENCES scraped_jobs(job_id) ON DELETE CASCADE,
@@ -44,14 +46,26 @@ function setupServer() {
       source_profile_id INTEGER,
       confidence REAL,
       matched_by TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
       PRIMARY KEY (job_id, role_key)
+    );
+    -- migration 119 (A58): Job Review records what it replaced, so the route needs the table.
+    CREATE TABLE admin_audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      at INTEGER NOT NULL DEFAULT (unixepoch()),
+      admin_user_id INTEGER,
+      action TEXT NOT NULL,
+      target TEXT,
+      before_json TEXT,
+      after_json TEXT,
+      undone_at INTEGER
     );
     INSERT INTO users VALUES (1, 'admin');
     INSERT INTO domain_profiles VALUES (10, 1, 'Data', 'data', 'data', 1);
     INSERT INTO scraped_jobs VALUES ('j1', 'Software Engineer', 'Acme', 'software engineer', 'linkedin', '2026-04-01', 1000, NULL);
     INSERT INTO scraped_jobs VALUES ('j2', 'Machine Learning Engineer', 'MLCo', 'software engineer', 'linkedin', '2026-04-01', 1000, NULL);
-    INSERT INTO job_role_map VALUES ('j1', 'engineering', 'engineering', 'engineering', NULL, 0.6, 'title_heuristic');
-    INSERT INTO job_role_map VALUES ('j2', 'engineering', 'engineering', 'engineering', NULL, 0.6, 'title_heuristic');
+    INSERT INTO job_role_map (job_id, role_key, role_family, domain, source_profile_id, confidence, matched_by) VALUES ('j1', 'engineering', 'engineering', 'engineering', NULL, 0.6, 'title_heuristic');
+    INSERT INTO job_role_map (job_id, role_key, role_family, domain, source_profile_id, confidence, matched_by) VALUES ('j2', 'engineering', 'engineering', 'engineering', NULL, 0.6, 'title_heuristic');
   `);
 
   const app = express();

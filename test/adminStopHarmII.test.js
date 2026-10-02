@@ -9,6 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import Database from "better-sqlite3";
+import { at, lastAt } from "../test-support/sourceAnchors.js";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import { AccountError, deleteAccount } from "../services/accountService.js";
 import {
@@ -99,9 +100,8 @@ test("(a) the delete goes through deleteAccount: files returned, rows gone, byst
 
 test("(a) the route: preview, typed confirm, sessions revoked BEFORE the cascade, no raw DELETE FROM users", () => {
   const server = read("server.js");
-  const at = server.indexOf('app.delete("/api/admin/users/:id"');
-  assert.ok(at > 0);
-  const route = server.slice(at, server.indexOf("\napp.", at + 10));
+  const start = at(server, 'app.delete("/api/admin/users/:id"');
+  const route = server.slice(start, at(server, "\napp.", start + 10));
   assert.doesNotMatch(route, /DELETE FROM users/, "the raw delete bypassed files, sessions and the system refusal");
   assert.match(route, /checkAdminDeleteConfirmed\(db, id, \{ actorId: req\.user\.id, confirmUsername \}\)/);
   assert.ok(route.indexOf("revokeAllUserSessions(id") < route.indexOf("adminDeleteUser("),
@@ -113,7 +113,8 @@ test("(a) the route: preview, typed confirm, sessions revoked BEFORE the cascade
 test("(a) the UI hides Delete for the system account and arms the delete only with the typed username", () => {
   const ui = code(read("client/src/panels/AdminPanel.jsx"));
   assert.match(ui, /export const isSystemAccount = \(u\) => u\?\.id === 0 \|\| u\?\.username === "system"/);
-  const btn = ui.slice(ui.lastIndexOf("{", ui.indexOf("onClick={() => deleteUser(u.id)}")) - 200, ui.indexOf("onClick={() => deleteUser(u.id)}"));
+  const del = at(ui, "onClick={() => deleteUser(u.id)}");
+  const btn = ui.slice(lastAt(ui, "{", del) - 200, del);
   assert.match(btn, /!u\.is_admin && !isSystemAccount\(u\) && \(/);
   assert.doesNotMatch(ui, /confirm\("Delete this user and all their data\?"\)/, "the generic confirm is gone");
   assert.match(ui, /const armed = typed === preview\.confirmWith && !busy;/);
@@ -217,7 +218,7 @@ test("(b) Re-tag Pool is gone; Hide is Unclassify and its confirm states the eff
   assert.doesNotMatch(ui, />\s*Hide\s*</, "the label stated the opposite of the effect");
   assert.match(ui, />\s*Unclassify\s*</);
   assert.match(ui, /SHOWN ON EVERY BOARD/);
-  const reassign = ui.slice(ui.indexOf("const reassign = async"), ui.indexOf("const undoLast"));
+  const reassign = ui.slice(at(ui, "const reassign = async"), at(ui, "const undoLast"));
   for (const needle of ["/api/admin/db/job-review/impact/", "confirm(", "/api/admin/db/job-review/reassign"]) assert.ok(reassign.includes(needle), needle);
   assert.ok(reassign.indexOf("/api/admin/db/job-review/impact/") < reassign.indexOf("confirm("), "the count is read before the confirm");
   assert.ok(reassign.indexOf("confirm(") < reassign.indexOf("/api/admin/db/job-review/reassign"), "and the confirm comes before the write");
@@ -287,7 +288,7 @@ test("(c) ⛔ the pre-restore safety copy holds what was still in the WAL — ru
 
 test("(c) the checkpoint runs before the safety copy in the source, as in createBackup", () => {
   const src = read("scripts/backup.js");
-  const body = src.slice(src.indexOf("export function restoreBackup"));
+  const body = src.slice(at(src, "export function restoreBackup"));
   const cpAt = body.indexOf("const cp = checkpointWal();");
   assert.ok(cpAt > 0 && cpAt < body.indexOf("fs.copyFileSync(DB_PATH, safePath);"));
   assert.match(body, /walCheckpointed: cp\.ok/);
@@ -318,12 +319,12 @@ test("(d) the revert dry run counts what it would restore — and the rows chang
 
 test("(d) ⛔ the route refuses an apply that did not quote its dry run; the button runs the dry run first", () => {
   const route = read("routes/enrichment.js");
-  const body = route.slice(route.indexOf('router.post("/batches/:id/revert"'));
+  const body = route.slice(at(route, 'router.post("/batches/:id/revert"'));
   assert.ok(body.indexOf("req.body?.expectRestorable !== preview.restorable") < body.indexOf("revertBatch(db, id)"));
   const ui = code(read("client/src/pages/admin/DBInspector.jsx"));
-  const revert = ui.slice(ui.indexOf("const revert = async (batchId)"), ui.indexOf("const confirmRevert"));
+  const revert = ui.slice(at(ui, "const revert = async (batchId)"), at(ui, "const confirmRevert"));
   assert.doesNotMatch(revert, /apply: true/, "the first click is the dry run");
-  const confirmRevert = ui.slice(ui.indexOf("const confirmRevert"), ui.indexOf("const plan      = dry?.body?.plan;"));
+  const confirmRevert = ui.slice(at(ui, "const confirmRevert"), at(ui, "const plan      = dry?.body?.plan;"));
   assert.ok(confirmRevert.includes("confirm(") && confirmRevert.indexOf("confirm(") < confirmRevert.indexOf("apply: true"));
   assert.match(confirmRevert, /JSON\.stringify\(\{ apply: true, expectRestorable: p\.restorable \}\)/);
   assert.match(confirmRevert, /p\.changedSince/);
