@@ -236,7 +236,7 @@ export const MERGE_PLAN = Object.freeze({
   cache_events: "move", domain_profile_requests: "move", notifications: "move",
   profile_base_resumes: "move", profile_resume_enhancements: "move", profile_signal_suggestions: "move",
   profile_simple_apply_profiles: "move", resume_versions: "move", scrape_events: "move", usage_events: "move",
-  usage_tracking_failures: "move", draft_slot_uses: "move",
+  usage_tracking_failures: "move", draft_slot_uses: "move", job_captures: "move",
   domain_profiles: "profiles",
   application_records: "keepInto", ats_only_reports: "keepInto", daily_drafts: "keepInto", imported_jobs: "keepInto", job_applications: "keepInto",
   resumes: "keepInto", user_integrations: "keepInto", user_job_searches: "keepInto", user_job_views: "keepInto",

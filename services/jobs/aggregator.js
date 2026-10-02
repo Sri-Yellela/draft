@@ -641,6 +641,33 @@ function reconcileFingerprint(db, job) {
   return { action: 'fold', intoJobId: existing.job_id, fingerprint, reqUid: finalReqUid };
 }
 
+/**
+ * A62 — what reconcileFingerprint WOULD decide, without writing anything. The same statements, the
+ * same keptApart filter, the same selectMatch and priority rule, so a dry run's "would fold into X"
+ * cannot disagree with the apply. ⛔ Not a second deduper: it only reads.
+ *
+ * Returns { action: 'insert' | 'replace' | 'fold', existingJobId, fingerprint, reqUid }.
+ *   insert   no match — the job gets its own row
+ *   replace  it matches a LOWER-priority row, which apply would retire in its favour
+ *   fold     it matches a same-or-higher-priority row; apply would fold into (attach to) it
+ */
+function previewFingerprint(db, job) {
+  const stmts       = getFingerprintStmts(db);
+  const fingerprint = computeFingerprint(job);
+  const reqUid      = computeReqUid(job);
+  const jobId       = job.id || job.url || '';
+  const candidates  = stmts.findCandidates.all(fingerprint, jobId).filter(c => !keptApart(db, jobId, c.job_id));
+  const existing    = selectMatch(candidates, reqUid);
+  if (!existing) return { action: 'insert', existingJobId: null, fingerprint, reqUid };
+  const incomingWins = sourcePriority(job.source) > sourcePriority(existing.source);
+  return { action: incomingWins ? 'replace' : 'fold', existingJobId: existing.job_id, fingerprint, reqUid };
+}
+
+/** A62 — queue 37's US-only gate for a caller outside cacheJobs (the job gateway). */
+function gateOutOfMarket(db, job, jobId, now = Math.floor(Date.now() / 1000)) {
+  return holdOutOfMarket(job, jobId, getCacheStmts(db), now);
+}
+
 function unretire(db, jobId) {
   db.prepare(`UPDATE scraped_jobs SET duplicate_of = NULL, retired_reason = NULL, retired_at = NULL
               WHERE job_id = ?`).run(jobId);
@@ -1385,6 +1412,6 @@ function getSourceStatus() {
 export {
   searchJobs, cacheJobs, cacheJoboFeed, getSourceStatus, reconcileFingerprint,
   decideJoboBackfillMode, resolveJoboIncrementalBatch, upsertCanonicalJob, fingerprintJob,
-  groupCompaniesByAtsType, holdOutOfMarket,
+  groupCompaniesByAtsType, holdOutOfMarket, previewFingerprint, gateOutOfMarket,
   JOBO_INCREMENTAL_BATCH_DEFAULT, JOBO_INCREMENTAL_BATCH_MAX,
 };

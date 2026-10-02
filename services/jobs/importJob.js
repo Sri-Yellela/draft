@@ -34,8 +34,7 @@ import crypto from 'crypto';
 import { lookup as dnsLookup } from 'dns/promises';
 import { normalizeJob } from './schema.js';
 import { stripResumeHtml } from '../resumeFormatter.js';
-import { classifyJob } from './classifyJob.js';
-import { reconcileFingerprint, upsertCanonicalJob, fingerprintJob, SOURCE_LABELS } from './aggregator.js';
+import { ingestJob } from './jobGateway.js';
 import { runEnrichment } from './enrichJob.js';
 import { mapJobRow } from './mapJobRow.js';
 import { MODEL_HAIKU } from '../../shared/anthropicModels.js';
@@ -571,32 +570,20 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
     throw new ImportInputError('Could not extract a job from the given input');
   }
 
-  // Informational tagging only — never gates. Every OTHER write path (cacheJobs, cacheJoboFeed)
-  // ejects blue-collar / drops unclassifiable postings; an explicit user import must never
-  // silently vanish (approved decision), so classifyJob() here only feeds bucket_role/collar.
-  const verdict = classifyJob(
-    normalizedJob.title || '', normalizedJob.description || '', normalizedJob.company || ''
-  );
-
-  const jobForDedup = { ...normalizedJob, company_icon_url: normalizedJob.thumbnail || null };
-  const dedup = reconcileFingerprint(db, jobForDedup);
-
-  let finalJobId;
-  if (dedup.action === 'insert_canonical') {
-    const canonical = dedup.job;
-    const now = Math.floor(Date.now() / 1000);
-    upsertCanonicalJob(db, {
-      jobId: normalizedJob.id,
-      canonical, verdict, dedup, now,
-      contentHash: fingerprintJob(canonical),
-      searchQuery: 'import',
-      sourceLabel: SOURCE_LABELS[canonical.source] || SOURCE_LABELS.import,
-      matchedBy: canonical.source === 'import' ? 'import_extract' : 'import_ats_reuse',
-    });
-    finalJobId = normalizedJob.id;
-  } else {
-    finalJobId = dedup.intoJobId; // folded into an existing (equal-or-higher priority) row
-  }
+  // ⛔ A62: THROUGH THE ONE GATEWAY (services/jobs/jobGateway.js) — the same deduper, canonical write
+  // and US-only gate every crawled source uses, plus a job_captures row with the ATS host + slug
+  // (A45). Classification is still informational only: an explicit user import never silently
+  // vanishes. What the gateway adds for an import is queue 37's gate — a capture outside the US is
+  // kept for the user (attached below) but held off the shared board, and the response says so.
+  const origin = url && providedText ? 'capture' : url ? 'import_url' : 'paste';
+  const ingest = ingestJob(db, {
+    job: normalizedJob, origin, userId,
+    searchQuery: 'import',
+    matchedBy: normalizedJob.source === 'import' ? 'import_extract' : 'import_ats_reuse',
+    detectKnownAtsMatch,
+  });
+  const finalJobId = ingest.jobId;
+  const dedup = { action: ingest.action === 'attached' ? 'fold' : 'insert_canonical' };
 
   // Deliberately after the fold branch: when an import collapses into an existing canonical row
   // the user still imported it, so the row they get back is the one that must be starred.
@@ -650,7 +637,8 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
   // (starred above), and the response says so. Without the flag the user saw their capture come
   // back under another source's id and no record of their own URL: indistinguishable from the
   // capture having been dropped.
-  const attached = dedup.action === 'fold' ? attachedNotice(finalJobId) : {};
+  const attached = dedup.action === 'fold' ? attachedNotice(finalJobId)
+    : ingest.outOfMarket ? OUT_OF_MARKET_NOTICE : {};
 
   // `degraded` travels with the row: the caller promised the user a capture, and a capture that
   // carries a title and a URL but no salary or skills is a DIFFERENT promise kept. Saying so is
@@ -664,6 +652,11 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
 }
 
 const ATTACHED_MESSAGE = 'This job was already on the board — it is now in your Saved jobs.';
+// A62 — the gate is said, never silent: the job is the user's (in Saved) but not on the shared board.
+const OUT_OF_MARKET_NOTICE = Object.freeze({
+  outOfMarket: true,
+  message: `Saved to your Saved jobs — but it is outside the US, so it is not on the shared board (${BRAND} is US-only).`,
+});
 function attachedNotice(jobId) {
   return { attachedToExisting: true, existingJobId: jobId, message: ATTACHED_MESSAGE };
 }

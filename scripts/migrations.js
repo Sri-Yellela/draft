@@ -3568,4 +3568,44 @@ export const MIGRATIONS = [
             AND NOT EXISTS (SELECT 1 FROM apply_run_jobs rj WHERE rj.user_id = r.user_id AND rj.job_id = r.job_id);
       `,
     },
+    {
+      // A62 (owner, 10-02): ONE GATEWAY FOR JOB DATA IN. job_captures records every job a user brought
+      // in (extension capture, imported URL, pasted text) or an admin imported, with the ATS host and
+      // slug read from its URL — what A45's slug harvesting reads — and what the gateway did with it
+      // (inserted, or attached to an existing row; held out of market). user_id is SET NULL on account
+      // deletion: the URL and slug are a fact about an employer's board, not about the person.
+      // job_import_batches makes an admin import revertible: the rows a batch INSERTED are retired
+      // (soft, A49's columns), never deleted.
+      id: "122_job_captures",
+      sql: `
+        CREATE TABLE IF NOT EXISTS job_captures (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          job_id TEXT NOT NULL,
+          url TEXT,
+          ats_type TEXT,
+          ats_slug TEXT,
+          origin TEXT NOT NULL,
+          action TEXT NOT NULL,
+          out_of_market INTEGER NOT NULL DEFAULT 0,
+          batch_id INTEGER,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_job_captures_slug ON job_captures(ats_type, ats_slug);
+        CREATE INDEX IF NOT EXISTS idx_job_captures_batch ON job_captures(batch_id);
+        CREATE TABLE IF NOT EXISTS job_import_batches (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          admin_user_id INTEGER,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          rows_in INTEGER NOT NULL DEFAULT 0,
+          inserted INTEGER NOT NULL DEFAULT 0,
+          attached INTEGER NOT NULL DEFAULT 0,
+          held_out_of_market INTEGER NOT NULL DEFAULT 0,
+          refused INTEGER NOT NULL DEFAULT 0,
+          notes TEXT,
+          reverted_at INTEGER,
+          reverted_rows INTEGER
+        );
+      `,
+    },
   ];
