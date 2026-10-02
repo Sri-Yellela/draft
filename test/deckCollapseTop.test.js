@@ -38,5 +38,5 @@ test("the top control does what Esc does, and says so", () => {
   assert.match(button, /onClick=\{onCollapse\}/);
   assert.match(button, /aria-keyshortcuts="Escape"/);
   assert.match(button, /aria-expanded="true" aria-controls=\{controls\}/);
-  assert.match(face, /controls=\{flank \? "deck-ats deck-posting" : "deck-detail"\}/, "it names what it closes, in both layouts");
+  assert.match(face, /<CollapseButton onCollapse=\{onCollapse\} controls="deck-detail" \/>/, "it names what it closes — the posting, inside the card (A40)");
 });

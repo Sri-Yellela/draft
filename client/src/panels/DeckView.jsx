@@ -32,7 +32,8 @@ import { C } from "../styles/colorTokens.js";
 import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
 import { bandChipStyle } from "../styles/bandStyle.js";
-import { atsBandLabel } from "../../../shared/atsBands.js";
+import { ATS_BAND, atsBandLabel } from "../../../shared/atsBands.js";
+import { ATSPanel } from "./ATSPanel.jsx";
 import CompanyIcon from "../components/ui/CompanyIcon.jsx";
 import CardBack, { CardBackDefs } from "../components/CardBack.jsx";
 import { useViewport } from "../hooks/useViewport.js";
@@ -42,7 +43,7 @@ import { jobDetailHref } from "../lib/jobUrl.js";
 import { TITLE_ATTR, transitionClick } from "../lib/viewTransitions.js";
 import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
 import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, stepTarget } from "../lib/deckState.js";
-import { cardSize, expandedLayout, fanTransform, geometryFor, orientationFor } from "../lib/fanGeometry.js";
+import { CARD, EXPAND_CLOCK, TWO_PANEL, cardSize, fanTransform, geometryFor, orientationFor, twoPanelColumn, twoPanelFor } from "../lib/fanGeometry.js";
 import DeckGeometryControl from "../components/DeckGeometryControl.jsx";
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
 
@@ -109,14 +110,6 @@ function SlashProgress({ drafted, size, big = false }) {
   );
 }
 
-function Chip({ children, tone = "neutral" }) {
-  const tones = {
-    good:    { background: C.SUCCESS_QUIET, color: C.SUCCESS, border: `1px solid ${C.SUCCESS}33` },
-    neutral: { background: "transparent",   color: C.INK_MUTED, border: `1px solid ${C.BORDER_STRONG}` },
-  };
-  return <span style={{ ...tones[tone], padding: "4px 10px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap" }}>{children}</span>;
-}
-
 function ActionButton({ label, hint, onClick, primary, disabled, ariaKeys, compact }) {
   const [hov, setHov] = useState(false);
   const base = primary
@@ -144,44 +137,38 @@ function StepButton({ dir, onClick, disabled }) {
   );
 }
 
-// ── the expansion's two pieces: the ATS report and the posting (queue 40) ─────────────────────
-// ONE definition of each, rendered either INSIDE the card (stacked — below THREE_COL_PX) or in the
-// two panels that flank it. The content is what the card already carried: the band and its blurb,
-// the matched / missing terms from the same stored report the band came from (dailyDraft's
-// whyFromReport), and the posting's own text. Nothing here is new information.
+// ── the expansion (A40, rebuilt 10-02): TWO EQUAL PANELS — the ATS report │ the card ─────────────
+// docs/BRAND_OUTLAY_AND_MOTION.md §"THE EXPANDED CARD — DECIDED 2026-10-01" is authoritative. The
+// posting stays INSIDE the card, growing downward; the one panel beside it is the FULL ATS report.
+// ⛔ The first build (8c38dd2, da73ff9) was three columns — ATS │ card │ posting — and was wrong.
+//
+// COLLAPSED  logo, company, title and ONE signal line ("Strong match · 9 of 12 matched · tap for the
+//            report"). ⛔ No chip rows: the collapsed card is a two-second decision.
+// CLICK      four things on ONE clock (--deck-t / --deck-ease, set once on the deck's root) and NO
+//            stagger: the grid 0fr → 1fr · the arc riding right with the card's column · the signal
+//            collapsing to nothing · the posting growing inside the card. Both height changes are
+//            grid-row 0fr ↔ 1fr on the same curve, so they read as ONE continuous change, not two jerks.
+// NARROW     (below TWO_PANEL_PX — phones, portrait tablets) the vertical fan stays, the signal line
+//            stays on the card, and tapping it opens the report as a SHEET.
 const sectionLabel = { fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.INK_FAINT, marginBottom: 8 };
+const ON_THE_CLOCK = "var(--deck-t) var(--deck-ease)";
+// `inert` as an attribute — React 18 has no boolean prop for it. Hidden content takes no focus and no clicks.
+const inertIf = (hidden) => (hidden ? { inert: "", "aria-hidden": true } : null);
 
-function WhyChips({ why }) {
+// The card's ONE line of ATS: the band, how many of the posting's skills the résumé shows (term counts,
+// never a score), and the way in to the full report.
+function AtsSignal({ band, why = {}, onOpen, cta }) {
+  const meta = atsBandLabel(band);
+  const matched = Number(why.matchedTotal) || 0;
+  const total = matched + (Number.isFinite(why.missingTotal) ? why.missingTotal : (why.missing?.length || 0));
   return (
-    <>
-      {why.matched?.length > 0 && (
-        <section style={{ marginBottom: 14 }}>
-          <div style={sectionLabel}>Why it's here</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {why.matched.map(s => <Chip key={s} tone="good">{s}</Chip>)}
-            {why.matchedTotal > why.matched.length && <Chip tone="good">+{why.matchedTotal - why.matched.length} you show</Chip>}
-          </div>
-        </section>
-      )}
-      {why.missing?.length > 0 && (
-        <section>
-          <div style={sectionLabel}>Not on your résumé yet</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {why.missing.map(s => <Chip key={s}>{s}</Chip>)}
-          </div>
-        </section>
-      )}
-    </>
-  );
-}
-
-function BandLine({ band }) {
-  const bandMeta = atsBandLabel(band);
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
-      <span style={{ ...bandChipStyle(band), padding: "4px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 800 }}>{bandMeta.label}</span>
-      <span style={{ fontSize: 13, color: C.INK_MUTED }}>{bandMeta.blurb}</span>
-    </div>
+    <button type="button" data-deck-signal onClick={onOpen} aria-controls="deck-ats"
+      style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "2px 0", background: "transparent",
+               border: "none", cursor: "pointer", textAlign: "left", fontSize: 13.5, color: C.INK_MUTED }}>
+      <span style={{ ...bandChipStyle(band), padding: "3px 10px", borderRadius: 999, fontSize: 12.5, fontWeight: 800 }}>{meta.label}</span>
+      {total > 0 && <span>{matched} of {total} matched</span>}
+      {cta && <span style={{ color: C.ACCENT_INK, fontWeight: 700 }}>{cta}</span>}
+    </button>
   );
 }
 
@@ -201,25 +188,44 @@ function PostingLinks({ job, onReport }) {
   );
 }
 
-// The two flanking panels. The opaque menu surface, so they read over the arc that slides behind the
-// right one; each scrolls on its own, so a long posting never makes the page any taller than the
-// screen. They grow out from behind the card — transform and opacity only, under the one MotionConfig.
-const FLANK_MIN_H = 380;
-function FlankPanel({ id, label, side, box, children }) {
-  const from = side === "left" ? 40 : -40;
-  return (
-    <motion.aside id={id} aria-label={label} tabIndex={0} data-deck-flank={side}
-      initial={{ opacity: 0, x: from }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: from, transition: { duration: 0.12 } }}
-      transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-      style={{ ...glass({ radius: 24 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU, position: "absolute", top: 0,
-               left: `calc(50% + ${box.x}px)`, width: box.width, boxSizing: "border-box",
-               // Ends ABOVE the sticky action row (stage top ~205px + the row's 16 + 54 + its margin):
-               // 230 let the posting run underneath Pass / Save / Draft on a 900px screen.
-               maxHeight: "calc(100vh - 300px)", minHeight: FLANK_MIN_H, overflowY: "auto", overscrollBehavior: "contain",
-               padding: "24px 24px 22px", zIndex: Z.CONTENT, outline: "none" }}>
-      {children}
-    </motion.aside>
-  );
+// The deck's frozen report (services/dailyDraft.js deckReport — every section, no number) in the shape
+// the board's own report panel reads, so the deck draws THE SAME report rather than a second one.
+// `source` starts "local_ats", which keeps the old LLM-only sections off, as on the board.
+function toPanelReport(r) {
+  return {
+    source: "local_ats_deck", decline_reasons: r.declineReasons,
+    tier1_matched: r.skillsMatched, tier1_missing: r.skillsMissing,
+    competencies_matched: r.competenciesMatched, competencies_missing: r.competenciesMissing,
+    action_verbs_matched: r.verbsMatched, action_verbs_missing: r.verbsMissing, action_verbs_generic: r.verbsGeneric,
+    claimed_matches: r.claimedMatches,
+    experience: r.experience ? { summary: r.experience, fit: r.experienceFit !== false } : null,
+    hard_constraint_misses: r.hardConstraintMisses,
+    seniority_cap: r.seniorityNote ? { applied: true, reason: r.seniorityNote } : { applied: false },
+    resume_depth: r.depthHeadline ? { headline: r.depthHeadline, detail: r.depthDetail || "" } : null,
+  };
+}
+
+// The FULL report: band · skills matched · skills missing with the claim note · competencies · verbs
+// matched and missing · generic language · experience fit — the board's ATSPanel, fed the frozen
+// report and the card's BAND (never a number). ⛔ A declined report is the scorer saying it cannot
+// judge, drawn as "Not enough signal", never as a low band.
+function DeckAtsReport({ card, profileId, onReport }) {
+  const r = card.report;
+  if (!r) {
+    // A card dealt before the deck froze the full report. Say where it is — never rebuild one from the
+    // six-chip summary, which would be a second, thinner report wearing the first one's name.
+    return (
+      <div style={{ padding: "4px 16px" }}>
+        <AtsSignal band={card.band} why={card.why} cta="" />
+        <p style={{ fontSize: 14, color: C.INK_MUTED, lineHeight: 1.6, margin: "14px 0 12px" }}>
+          This card was dealt before the deck carried the full report. Tomorrow's will; this one's is on the board.
+        </p>
+        <Link to={jobDetailHref(card.job.id)} onClick={onReport} style={{ color: C.ACCENT_INK, fontWeight: 700, fontSize: 13.5 }}>Full report on the board →</Link>
+      </div>
+    );
+  }
+  return <ATSPanel report={toPanelReport(r)} band={r.scorable ? card.band : ATS_BAND.NOT_ENOUGH_SIGNAL}
+                   jobId={card.job.id} activeProfileId={profileId} />;
 }
 
 // ⛔ The label is "Collapse". One word — not "click to collapse", not "fold the card".
@@ -236,25 +242,62 @@ function CollapseButton({ onCollapse, controls }) {
   );
 }
 
-// ── the face-up side: the card that shipped, plus the expansion ─────────────────────────────
-// `detail` says where the expansion goes: "inline" grows the card downward (the stacked fallback),
-// "flank" keeps the card's face and lets the two panels beside it carry the rest.
-function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, onReport, orientation, detail = "inline" }) {
+// The phone's report: a SHEET from the bottom, opened by the card's signal line. Above everything by
+// tier (MODAL over its scrim); Esc, the scrim and Close all dismiss it; focus goes in and comes back.
+function AtsSheet({ card, profileId, onClose, onReport }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const back = document.activeElement;
+    ref.current?.focus({ preventScroll: true });
+    return () => back?.focus?.({ preventScroll: true });
+  }, []);
+  return (
+    <>
+      <motion.div aria-hidden onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        style={{ position: "fixed", inset: 0, background: C.SCRIM, zIndex: Z.MODAL_SCRIM }} />
+      <motion.div ref={ref} role="dialog" aria-modal="true" aria-label="The ATS report" tabIndex={-1} data-deck-sheet
+        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        style={{ ...glass({ radius: 24 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU,
+                 position: "fixed", left: 0, right: 0, bottom: 0, margin: "0 auto", maxWidth: 640, maxHeight: "85vh",
+                 overflowY: "auto", overscrollBehavior: "contain", borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
+                 zIndex: Z.MODAL, outline: "none", padding: "14px 4px 28px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 12px 4px" }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={sectionLabel}>The ATS report</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {card.job.title} · {card.job.company}
+            </div>
+          </div>
+          <button type="button" onClick={onClose} aria-keyshortcuts="Escape"
+            style={{ ...glass({ radius: 999 }), padding: "7px 14px", fontSize: 13, fontWeight: 800, color: C.INK, cursor: "pointer" }}>
+            Close
+          </button>
+        </div>
+        <DeckAtsReport card={card} profileId={profileId} onReport={onReport} />
+      </motion.div>
+    </>
+  );
+}
+
+// ── the face-up side ─────────────────────────────────────────────────────────────────────────
+// `twoPanel`: the report opens BESIDE the card (so the signal line leaves it on the clock); otherwise
+// the signal stays, because it is the way into the sheet.
+function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, onReport, onSignal, orientation, twoPanel }) {
   const { job, why = {}, band } = card;
   const meta = [job.location, workModel(job), salary(job), ago(job)].filter(Boolean);
   const titleId = `deck-title-${job.id}`;
   const vertical = orientation === "vertical";
-  const flank = isFront && expanded && detail === "flank";
   const open = isFront && expanded;
+  const signalShown = !(open && twoPanel);
   return (
     <div style={{ padding: vertical ? "22px 22px 20px" : "28px 30px 24px" }}>
-      {/* ⭐ COLLAPSE AT THE TOP TOO (queue 39), and STICKY — the bottom one is a whole posting away.
-          A zero-height sticky row, so the button rides down with the reader without pushing the
-          card's content; it sits just under the fixed top bar (its measured height, published). */}
+      {/* ⭐ COLLAPSE AT THE TOP TOO (A39), and STICKY — the bottom one is a whole posting away. A
+          zero-height sticky row, so the button rides down with the reader without pushing the card's
+          content; it sits just under the fixed top bar (its measured height, published). */}
       {open && (
         <div data-deck-collapse-top style={{ position: "sticky", top: `calc(var(${CHROME_HEIGHT_VAR}, 46px) + 10px)`, height: 0 }}>
           <div style={{ display: "flex", justifyContent: "flex-end", transform: vertical ? "translate(8px, -10px)" : "translate(12px, -14px)" }}>
-            <CollapseButton onCollapse={onCollapse} controls={flank ? "deck-ats deck-posting" : "deck-detail"} />
+            <CollapseButton onCollapse={onCollapse} controls="deck-detail" />
           </div>
         </div>
       )}
@@ -283,25 +326,31 @@ function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, o
         </div>
       )}
 
-      {/* Flanked, the evidence has MOVED to the ATS panel on the left — rearranged, not repeated. */}
-      {!flank && <WhyChips why={why} />}
+      {/* The ONE signal line. On a two-panel screen it collapses to nothing as the report opens beside
+          the card — grid-row 1fr → 0fr on the expansion's clock, so it and the posting are one motion. */}
+      <div data-deck-signal-row style={{ display: "grid", gridTemplateRows: signalShown ? "1fr" : "0fr", transition: `grid-template-rows ${ON_THE_CLOCK}` }}>
+        <div style={{ minHeight: 0, overflow: "hidden" }} {...inertIf(!signalShown)}>
+          <AtsSignal band={band} why={why} onOpen={isFront ? onSignal : undefined} cta={twoPanel ? "open the report" : "tap for the report"} />
+        </div>
+      </div>
 
-      {/* ⭐ EXPANSION IS THE DETAIL — the same element, grown. No modal, no second view. Stacked
-          below THREE_COL_PX; above it the same pieces flank the card instead (queue 40). */}
-      {isFront && expanded && detail === "inline" && (
-        <motion.section id="deck-detail" aria-label="The posting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}
-          style={{ marginTop: 22, paddingTop: 20, borderTop: `1px solid ${C.BORDER}` }}>
-          <BandLine band={band} />
-          <PostingText job={job} />
-          <PostingLinks job={job} onReport={onReport} />
-        </motion.section>
+      {/* ⭐ EXPANSION IS THE DETAIL — the same element, grown. The posting grows INSIDE the card
+          (grid-row 0fr → 1fr, on the same clock). No modal, no second view, no third column. */}
+      {isFront && (
+        <div data-deck-posting-row style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr", transition: `grid-template-rows ${ON_THE_CLOCK}` }}>
+          <section id="deck-detail" aria-label="The posting" style={{ minHeight: 0, overflow: "hidden" }} {...inertIf(!open)}>
+            <div style={{ marginTop: 18, paddingTop: 20, borderTop: `1px solid ${C.BORDER}` }}>
+              <PostingText job={job} />
+              <PostingLinks job={job} onReport={onReport} />
+            </div>
+          </section>
+        </div>
       )}
 
       {isFront && (
-        <button type="button" onClick={expanded ? onCollapse : onExpand} aria-expanded={expanded}
-          aria-controls={expanded ? (flank ? "deck-ats deck-posting" : "deck-detail") : undefined}
+        <button type="button" onClick={expanded ? onCollapse : onExpand} aria-expanded={expanded} aria-controls="deck-detail"
           aria-keyshortcuts={expanded ? "Escape" : "Enter"}
-          style={{ marginTop: 20, padding: 0, background: "transparent", border: "none", cursor: "pointer",
+          style={{ marginTop: 18, padding: 0, background: "transparent", border: "none", cursor: "pointer",
                    fontSize: 12.5, fontWeight: 700, color: C.INK_FAINT }}>
           {expanded ? "Collapse" : "Open the posting ↓"}
         </button>
@@ -325,15 +374,13 @@ function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, o
 const POSITION_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const FLIP_EASE = "cubic-bezier(0.34, 1.32, 0.5, 1)";   // a touch of overshoot: the card settles face-up
 
-function FanCard({ entry, orientation, geometry, size: baseSize, expanded, flank, dimmed, dealing, appear, dealRank, dealTotal, reduced,
-                   onDecide, onExpand, onCollapse, onReport, onGoto, headingRef, faceRef }) {
+function FanCard({ entry, orientation, geometry, size, expanded, twoPanel, dimmed, dealing, appear, dealRank, dealTotal, reduced,
+                   onDecide, onExpand, onCollapse, onReport, onSignal, onGoto, headingRef, faceRef }) {
   const { card, offset } = entry;
   const isFront = offset === 0;
-  // Flanked (queue 40): the front card narrows to its column and shifts right, and the backs slide
-  // right with the arc, behind the posting — through the SAME transform the rotation uses.
-  const t = fanTransform(offset, orientation, geometry, flank);
-  // Its evidence moved to the ATS panel, so it is as tall as what is left on it, not the resting 380.
-  const size = isFront && flank ? { width: flank.card.width, height: 0 } : baseSize;
+  // The arc's position. Opening a card does not move it here: the fan lives in the card's grid column,
+  // and that column is what moves (A40) — so the arc rides right on the expansion's own clock.
+  const t = fanTransform(offset, orientation, geometry);
   const x = useMotionValue(0);
   const tilt = useTransform(x, [-320, 0, 320], [-10, 0, 10]);
   const draftStamp = useTransform(x, [20, SWIPE_COMMIT_PX + 40], [0, 1]);
@@ -371,6 +418,9 @@ function FanCard({ entry, orientation, geometry, size: baseSize, expanded, flank
       <div data-fan-position style={{
           transform: `translate3d(${t.x}px, ${t.y}px, 0) rotate(${t.rotate}deg) scale(${t.scale})`, opacity,
           transition: reduced ? "none" : `transform 460ms ${POSITION_EASE}, opacity 320ms ease`, willChange: "transform, opacity" }}>
+        {/* ⛔ SWIPE IS DISABLED WHEN THE CARD IS EXPANDED (A40, decided 10-01). Collapsed is triage —
+            swipe freely; expanded is reading — buttons only. A long posting means heavy vertical
+            scrolling, thumbs drift, and a Pass is final: removing the gesture beats tuning a threshold. */}
         <motion.div
           drag={isFront && !expanded ? "x" : false} dragSnapToOrigin dragElastic={0.6}
           onDragStart={() => { dragged.current = true; }}
@@ -395,8 +445,8 @@ function FanCard({ entry, orientation, geometry, size: baseSize, expanded, flank
                        transition: "none", transform: "none",
                        cursor: isFront && !expanded ? "pointer" : "auto", visibility: showFace ? "visible" : "hidden" }}>
               {showFace && <CardFace card={card} headingRef={headingRef} isFront={isFront} expanded={isFront && expanded}
-                                     onExpand={onExpand} onCollapse={onCollapse} onReport={onReport} orientation={orientation}
-                                     detail={flank ? "flank" : "inline"} />}
+                                     onExpand={onExpand} onCollapse={onCollapse} onReport={onReport} onSignal={onSignal}
+                                     orientation={orientation} twoPanel={twoPanel} />}
             </article>
             <div style={{ position: "absolute", inset: 0, transform: "rotateY(180deg)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
                           borderRadius: 28, maxHeight: size.height }}>
@@ -497,8 +547,9 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const [expanded, setExpanded] = useState(false);
   const [leave, setLeave] = useState(null);
   const [frontH, setFrontH] = useState(0);
-  const [flankH, setFlankH] = useState(0);
-  const [stageBox, setStageBox] = useState(null);   // { vw: the layout width, cx: the stage's centre }
+  const [sheet, setSheet] = useState(false);          // the phone's ATS report (A40)
+  const [atsMounted, setAtsMounted] = useState(false); // the two-panel report stays mounted while it closes
+  const [deckProfileId, setDeckProfileId] = useState(null);
   const headingRef = useRef(null);
   const faceRef = useRef(null);
   const stageRef = useRef(null);
@@ -507,6 +558,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
   stateRef.current = state;
   const expandedRef = useRef(expanded);
   expandedRef.current = expanded;
+  const sheetRef = useRef(false);
   const { needsAttentionCount = 0 } = useAutoApply();
   const reduced = useReducedMotion();   // the CSS-driven motion reads it here; framer's reads MotionConfig
   const navigate = useNavigate();
@@ -520,15 +572,17 @@ export default function DeckView({ canUseAPlusResume = true }) {
   // is the only road from a stored preference to the fan.
   const [deckPref, chooseDeckPref] = useDeckGeometry();
   const geometry = { ...geometryFor(orientation, deckPref, { reduced: !!reduced }), ...(DEV_FAN?.[orientation] || null) };
-  const size = cardSize(orientation, vw);
-  // Three columns only when expanded, horizontal and wide enough; otherwise null and the card stacks.
-  const flank = expanded && orientation === "horizontal" && stageBox ? expandedLayout(stageBox.vw, stageBox.cx) : null;
+  // ⭐ TWO EQUAL PANELS (A40) on a wide horizontal screen: the card is one column wide at rest AND open,
+  // so opening never resizes it. Below TWO_PANEL_PX the report is a sheet and the card is as it was.
+  const twoPanel = twoPanelFor(vw);
+  const size = twoPanel ? { width: twoPanelColumn(vw), height: CARD.horizontal.height } : cardSize(orientation, vw);
 
   const fetchDeck = useCallback(async () => {
     setLoad({ status: "loading", error: null });
     try {
       const deck = await api(`/api/draft/today?date=${encodeURIComponent(localDate())}`);
       dispatch({ type: "__replace", state: initialDeck(deck) });
+      setDeckProfileId(deck.profileId ?? null);
       // ⛔ The deal plays on the day's FIRST open only — the server says whether this request dealt.
       // Once per day, not per navigation, or the signal that today's draft is new means nothing.
       setDealing(!!deck.dealtNow);
@@ -641,27 +695,14 @@ export default function DeckView({ canUseAPlusResume = true }) {
     return () => ro.disconnect();
   }, [current?.job.id, load.status]);
 
-  // Where the stage's centre is, in the LAYOUT width — clientWidth, because a scrollbar is not page,
-  // and a panel laid out against innerWidth runs under it and scrolls the page sideways.
-  useLayoutEffect(() => {
-    const el = stageRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const box = { vw: document.documentElement.clientWidth, cx: Math.round(r.left + r.width / 2) };
-    setStageBox(b => (b && b.vw === box.vw && b.cx === box.cx ? b : box));
-  }, [vw, expanded, load.status]);
-  // The flanking panels scroll on their own; the stage is as tall as the taller of them and the card.
-  const flanked = !!flank;
-  useLayoutEffect(() => {
-    if (!flanked) { setFlankH(0); return; }
-    const els = [...(stageRef.current?.querySelectorAll("[data-deck-flank]") || [])];
-    if (!els.length || typeof ResizeObserver === "undefined") return;
-    const measure = () => setFlankH(Math.max(0, ...els.map(e => e.offsetHeight)));
-    const ro = new ResizeObserver(measure);
-    els.forEach(e => ro.observe(e));
-    measure();
-    return () => ro.disconnect();
-  }, [flanked, current?.job.id]);
+  // The two-panel report mounts as the card opens and stays until its column has closed, so it is
+  // pushed shut on the clock rather than vanishing. Reduced motion has no transition to wait for.
+  useEffect(() => {
+    if (expanded && twoPanel) { setAtsMounted(true); return; }
+    if (reduced || !twoPanel) setAtsMounted(false);
+  }, [expanded, twoPanel, reduced]);
+  // The sheet belongs to the card it was opened on, and only to a narrow screen.
+  useEffect(() => { setSheet(false); }, [s.index, twoPanel]);
 
   // ⛔ SCROLL CAPTURE, only when a rotation is possible. One flick, one card.
   useEffect(() => {
@@ -698,7 +739,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
       else if (k === "k" || k === "K") { e.preventDefault(); step(-1); }
       else if ((k === "ArrowDown" || k === "ArrowUp") && !expandedRef.current) { if (step(k === "ArrowDown" ? 1 : -1)) e.preventDefault(); }
       else if (k === "Enter" && tag !== "button" && tag !== "a") { e.preventDefault(); setExpanded(v => !v); }
-      else if (k === "Escape") { setExpanded(false); setLegend(false); }
+      else if (k === "Escape") { if (sheetRef.current) setSheet(false); else setExpanded(false); setLegend(false); }
       else if (k === "?") setLegend(v => !v);
     };
     window.addEventListener("keydown", onKey);
@@ -707,7 +748,8 @@ export default function DeckView({ canUseAPlusResume = true }) {
 
   const dateLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   const vertical = orientation === "vertical";
-  const stageH = Math.max(size.height, frontH || 0, flankH || 0);
+  sheetRef.current = sheet;
+  const stageH = Math.max(size.height, frontH || 0);
   const dealTotal = Math.min(order.length, geometry.visible + 1);
 
   return (
@@ -716,14 +758,20 @@ export default function DeckView({ canUseAPlusResume = true }) {
           Measured: expanded at 1440 the arc sliding right made the page 1820px wide (1667 at 1280),
           and the resting fan at 1100 was 1px over. `clip`, not `hidden`: clip makes no scroll
           container, so the sticky action row and the sticky Collapse keep working. Full width, so
-          the panels that flank the card (outside the centred column) are not cut. */}
+          the arc riding right with an open card's column is clipped at the SCREEN's edge. */}
       <div data-deck-clip style={{ overflowX: "clip" }}>
       {/* isolation: the fan's tiers are below CONTENT, and this keeps them above the page itself. */}
-      <div data-deck-orientation={orientation}
-        style={{ maxWidth: vertical ? 560 : 760, margin: "0 auto", padding: vertical ? "20px 16px 120px" : "28px 16px 140px",
-                 position: "relative", isolation: "isolate", overflowX: vertical ? "clip" : "visible" }}>
+      <div data-deck-orientation={orientation} data-deck-two-panel={twoPanel ? "" : undefined}
+        style={{ maxWidth: twoPanel ? TWO_PANEL.maxWidth + 2 * TWO_PANEL.pad : vertical ? 560 : 760, margin: "0 auto",
+                 padding: vertical ? "20px 16px 120px" : "28px 16px 140px",
+                 position: "relative", isolation: "isolate", overflowX: vertical ? "clip" : "visible",
+                 // ⭐ THE ONE CLOCK (A40): every rule in the expansion reads these two; none restates a
+                 // duration. Reduced motion stops all four movements at once.
+                 "--deck-t": reduced ? "0s" : EXPAND_CLOCK.duration, "--deck-ease": EXPAND_CLOCK.ease }}>
         <CardBackDefs />
         <div aria-live="polite" style={visuallyHidden}>{live}</div>
+        {/* The header and every non-deck state keep the deck's resting width; only the deck's grid is wide. */}
+        <div style={{ maxWidth: vertical ? 560 : 760, margin: "0 auto" }}>
 
         <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, marginBottom: vertical ? 18 : 22,
                          flexWrap: "wrap", position: "relative", zIndex: Z.CONTENT }}>
@@ -803,51 +851,78 @@ export default function DeckView({ canUseAPlusResume = true }) {
         {load.status === "ready" && s.size > 0 && isFinished(s) && (
           <EndOfDeck s={s} tally={tally} needsReview={needsAttentionCount} onUndo={toast ? undo : null} />
         )}
+        </div>
 
         {load.status === "ready" && (current || order.length > 0) && !isFinished(s) && (
-          <>
-            <div ref={stageRef} data-deck-stage
-              // The stage is the face-up card's box; the fan overflows it on purpose, behind the
-              // header above and the action row below.
-              style={{ position: "relative", height: stageH, transition: "height 220ms ease" }}>
-              {/* EVERY undecided card stays mounted, the far ones invisible: only a DECISION may
-                  remove a card, so only a decided card ever plays an exit. */}
-              <AnimatePresence initial custom={leave}>
-                {order.map((e) => (
-                  <FanCard key={e.card.job.id} entry={e} orientation={orientation} geometry={geometry} size={size}
-                    expanded={expanded} flank={flank} dimmed={expanded} dealing={dealing} appear={!firstPaint.current} reduced={!!reduced} dealRank={Math.max(0, dealTotal - 1 - Math.abs(e.offset))}
-                    dealTotal={dealTotal} onDecide={decide} onExpand={() => setExpanded(true)} onCollapse={() => setExpanded(false)}
-                    onReport={transitionClick(navigate, jobDetailHref(e.card.job.id), { awaitTitle: e.card.job.id })} onGoto={(i) => dispatch({ type: "goto", index: i })} headingRef={headingRef} faceRef={faceRef} />
-                ))}
-              </AnimatePresence>
-              {/* ⭐ THE FLANKS (queue 40): the ATS report LEFT, the posting RIGHT, beside the card that
-                  expanded and inside its stage — part of the expansion, not a view of their own. */}
-              <AnimatePresence>
-                {flank && current && !current.decision && [
-                  <FlankPanel key="ats" id="deck-ats" label="The ATS report" side="left" box={flank.left}>
-                    <div style={sectionLabel}>The ATS report</div>
-                    <BandLine band={current.band} />
-                    <WhyChips why={current.why || {}} />
-                  </FlankPanel>,
-                  <FlankPanel key="posting" id="deck-posting" label="The posting" side="right" box={flank.right}>
-                    <div style={sectionLabel}>The posting</div>
-                    <PostingText job={current.job} />
-                    <PostingLinks job={current.job} onReport={transitionClick(navigate, jobDetailHref(current.job.id), { awaitTitle: current.job.id })} />
-                  </FlankPanel>,
-                ]}
-              </AnimatePresence>
-            </div>
+          // ⭐ THE GRID IS THE TRICK (A40): the report's column goes 0fr → 1fr and PUSHES the card's
+          // column right — the card is never animated to a new place, and the fan, living in the card's
+          // column, rides right with it. minmax(0, …) so a closed column is truly zero wide.
+          <div data-deck-grid onTransitionEnd={(e) => { if (e.target === e.currentTarget && !expanded) setAtsMounted(false); }}
+            style={{ display: "grid", alignItems: "start",
+                     gridTemplateColumns: twoPanel ? `minmax(0, ${expanded ? 1 : 0}fr) minmax(0, 1fr)` : "minmax(0, 1fr)",
+                     columnGap: twoPanel && expanded ? TWO_PANEL.gap : 0,
+                     transition: `grid-template-columns ${ON_THE_CLOCK}, column-gap ${ON_THE_CLOCK}` }}>
+            {twoPanel && (
+              // `clip`, not `hidden`: no scroll container, so the page — not this column — scrolls the report.
+              // flex-end: while the column is narrower than the report, the report overflows to the LEFT
+              // (start) side and is clipped there — so it is uncovered from behind the card, edge first.
+              // (marginLeft: auto cannot do this: an over-wide child's auto margin resolves to 0.)
+              <div data-deck-ats-col style={{ minWidth: 0, overflowX: "clip", display: "flex", justifyContent: "flex-end" }}>
+                {atsMounted && current && !current.decision && (
+                  // As wide as its OPEN column from the first frame, pinned to the column's right edge: it
+                  // is uncovered from behind the card as the column grows, never reflowed while it does.
+                  <aside id="deck-ats" aria-label="The ATS report" {...inertIf(!expanded)}
+                    style={{ ...glass({ radius: 24 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU,
+                             width: size.width, flexShrink: 0, boxSizing: "border-box", padding: "18px 6px 10px",
+                             position: "relative", zIndex: Z.CONTENT }}>
+                    <div style={{ ...sectionLabel, padding: "0 16px" }}>The ATS report</div>
+                    <DeckAtsReport card={current} profileId={deckProfileId}
+                      onReport={transitionClick(navigate, jobDetailHref(current.job.id), { awaitTitle: current.job.id })} />
+                  </aside>
+                )}
+              </div>
+            )}
 
-            {/* ⛔ The action row STICKS: an expanded card is tall, and Pass / Save / Draft must stay
-                reachable without scrolling back. It is above the fan by tier. */}
-            <div data-deck-actions style={{ position: "sticky", bottom: 16, zIndex: Z.NAV, display: "flex", gap: 12,
-                                            marginTop: vertical ? 18 : 22, maxWidth: size.width, marginLeft: "auto", marginRight: "auto" }}>
-              <ActionButton label="Pass" hint="X" ariaKeys="X ArrowLeft" compact={vertical} onClick={() => decide(DECISIONS.PASSED)} />
-              <ActionButton label="Save" hint="S" ariaKeys="S" compact={vertical} onClick={() => decide(DECISIONS.SAVED)} />
-              <ActionButton label="Draft" hint="D" ariaKeys="D ArrowRight" compact={vertical} primary onClick={() => decide(DECISIONS.DRAFTED)} />
+            <div data-deck-col style={{ minWidth: 0 }}>
+              <div ref={stageRef} data-deck-stage
+                // The stage is the face-up card's box; the fan overflows it on purpose, behind the
+                // header above and the action row below. Its height FOLLOWS the card (measured each
+                // frame as the posting grows) — a transition of its own would lag the clock.
+                style={{ position: "relative", height: stageH }}>
+                {/* EVERY undecided card stays mounted, the far ones invisible: only a DECISION may
+                    remove a card, so only a decided card ever plays an exit. */}
+                <AnimatePresence initial custom={leave}>
+                  {order.map((e) => (
+                    <FanCard key={e.card.job.id} entry={e} orientation={orientation} geometry={geometry} size={size}
+                      expanded={expanded} twoPanel={twoPanel} dimmed={expanded} dealing={dealing} appear={!firstPaint.current} reduced={!!reduced} dealRank={Math.max(0, dealTotal - 1 - Math.abs(e.offset))}
+                      dealTotal={dealTotal} onDecide={decide} onExpand={() => setExpanded(true)} onCollapse={() => setExpanded(false)}
+                      // The signal line: beside the card on a wide screen (it opens the card), a sheet on a narrow one.
+                      onSignal={() => (twoPanel ? setExpanded(true) : setSheet(true))}
+                      onReport={transitionClick(navigate, jobDetailHref(e.card.job.id), { awaitTitle: e.card.job.id })} onGoto={(i) => dispatch({ type: "goto", index: i })} headingRef={headingRef} faceRef={faceRef} />
+                  ))}
+                </AnimatePresence>
+              </div>
+
+              {/* ⛔ The action row STICKS: an expanded card is tall, and Pass / Save / Draft must stay
+                  reachable without scrolling back. It is above the fan by tier, and in the card's own
+                  column, so it travels with the card when the report opens. */}
+              <div data-deck-actions style={{ position: "sticky", bottom: 16, zIndex: Z.NAV, display: "flex", gap: 12,
+                                              marginTop: vertical ? 18 : 22, maxWidth: size.width, marginLeft: "auto", marginRight: "auto" }}>
+                <ActionButton label="Pass" hint="X" ariaKeys="X ArrowLeft" compact={vertical} onClick={() => decide(DECISIONS.PASSED)} />
+                <ActionButton label="Save" hint="S" ariaKeys="S" compact={vertical} onClick={() => decide(DECISIONS.SAVED)} />
+                <ActionButton label="Draft" hint="D" ariaKeys="D ArrowRight" compact={vertical} primary onClick={() => decide(DECISIONS.DRAFTED)} />
+              </div>
             </div>
-          </>
+          </div>
         )}
+
+        {/* The phone's report (A40): a sheet, opened by the card's signal line. */}
+        <AnimatePresence>
+          {sheet && !twoPanel && current && !current.decision && (
+            <AtsSheet key="ats-sheet" card={current} profileId={deckProfileId} onClose={() => setSheet(false)}
+              onReport={transitionClick(navigate, jobDetailHref(current.job.id), { awaitTitle: current.job.id })} />
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {toast && (

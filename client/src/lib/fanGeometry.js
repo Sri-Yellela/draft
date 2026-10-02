@@ -69,12 +69,7 @@ const rad = (deg) => (deg * Math.PI) / 180;
  * face the pivot — that is what makes it a fan and not a staircase. The behind-cards are then
  * pulled back: positions and size both scaled by `zoom` toward the front slot.
  */
-export function fanTransform(offset, orientation, geometry = FAN[orientation], expanded = null) {
-  // Expanded three-column (queue 40): the front card shifts right by `card.shift`, every back by `arc`.
-  if (expanded) {
-    const t = fanTransform(offset, orientation, geometry);
-    return { ...t, x: round(t.x + (offset === 0 ? expanded.card.shift : expanded.arc)) };
-  }
+export function fanTransform(offset, orientation, geometry = FAN[orientation]) {
   const { zoom, spread, reach, visible } = geometry;
   if (offset === 0) return { x: 0, y: 0, rotate: 0, scale: 1, opacity: 1, shown: true, depth: 0 };
   const a = rad(offset * spread);
@@ -181,42 +176,45 @@ export function geometryFor(orientation, pref, { reduced = false } = {}) {
   return std;
 }
 
-// ── The expanded card, three columns: ATS │ card │ posting (queue 40) ─────────────────────────
+// ── The expanded card: TWO EQUAL PANELS, ATS report │ card (A40, rebuilt 10-02) ────────────────
 //
-// Expansion used to grow DOWNWARDS and leave the left and right thirds of a wide screen empty. At
-// THREE_COL_PX and above it grows SIDEWAYS instead: the card shifts slightly right, the ATS report
-// opens on its LEFT, the posting sits on its RIGHT, and the fan's arc slides right, behind the
-// posting — the depth comes from the arc passing under the new panel.
+// docs/BRAND_OUTLAY_AND_MOTION.md §"THE EXPANDED CARD — DECIDED 2026-10-01" is authoritative. The
+// first build (8c38dd2) was THREE columns — ATS │ card │ posting — and was wrong: the posting stays
+// INSIDE the card, growing downward, and the report is the one panel beside it.
 //
-// ⛔ The card is still the element that expanded. The panels FLANK it inside the deck's own stage;
-// they are not a second view and nothing routes.
+// ⭐ THE GRID IS THE TRICK. The deck sits in a two-column grid whose LEFT column goes 0fr → 1fr: the
+// card is never animated to a new position — the column grows from nothing and PUSHES it, and the
+// fan, living in the same right-hand column, translates right WITH it. Four things move on ONE clock
+// (the grid, the arc, the signal line collapsing, the posting growing), so no number here says where
+// anything goes: the columns do.
 //
-// The numbers are the edges of constraints, not taste:
-//   minPanel 280   the narrowest a column of 14.5px prose reads at (~40 characters a line) and the
-//                  ATS chips wrap without orphaning a single chip per line
-//   minCard  560   the narrowest the horizontal card holds its 46px title in three lines
-//   shift     32   "slightly": less than the gap, so the card never reads as left-aligned to a panel
-//   → THREE_COL_PX = the width at which minPanel × 2 + minCard + the gutters + 2 × shift first fit
-//                  (1272), rounded up to the laptop breakpoint the screenshots are taken at.
-// Below it the panels STACK inside the card (ATS, then the posting), and below FAN_SWITCH_PX the deck
-// is the vertical one — the fallback is the layout that shipped, so a narrow screen loses nothing.
-export const EXPANDED = Object.freeze({ pad: 24, gap: 20, minPanel: 280, minCard: 560, shift: 32 });
-export const THREE_COL_PX = 1280;
+//   minCard 560   the narrowest the horizontal card holds its 46px title in three lines (queue 40's
+//                 measurement, kept)
+//   gap      24   between the report and the card
+//   pad      16   the page gutter the deck already had
+//   → TWO_PANEL_PX = 2 × minCard + gap + 2 × pad = 1176: the narrowest screen on which two EQUAL
+//     panels each hold a card. Below it — a phone, a portrait tablet, a 1100–1175 window — the report
+//     opens as a SHEET from the card's signal line, and the posting still grows inside the card.
+//
+// ⚠ The card is as wide as one column, at rest AND open, so expanding never resizes it: at 1440 a
+// column is 692 (the card was 700), at 1280 it is 612. Nothing jumps on click.
+export const TWO_PANEL = Object.freeze({ minCard: 560, gap: 24, pad: 16, maxWidth: 2 * CARD.horizontal.width + 24 });
+export const TWO_PANEL_PX = 2 * TWO_PANEL.minCard + TWO_PANEL.gap + 2 * TWO_PANEL.pad;
 
-/**
- * Where the three columns go for a viewport, or null below THREE_COL_PX (the panels stack).
- * `vw` is the LAYOUT width (clientWidth — a scrollbar is not page), `centerX` the deck stage's centre
- * in it. Every x is relative to that centre, which is where the front card's slot is.
- */
-export function expandedLayout(vw, centerX = vw / 2) {
-  if (!(vw >= THREE_COL_PX)) return null;
-  const { pad, gap, minPanel, shift } = EXPANDED;
-  const width = Math.min(CARD.horizontal.width, vw - 2 * pad - 2 * gap - 2 * minPanel - 2 * shift);
-  const cardLeft = centerX - width / 2 + shift;
-  const cardRight = cardLeft + width;
-  const left = { x: round(pad - centerX), width: round(cardLeft - gap - pad) };
-  const right = { x: round(cardRight + gap - centerX), width: round(vw - pad - cardRight - gap) };
-  // The arc slides right until the fan's spine sits under the posting's centre — behind it, by tier.
-  const arc = round(right.x + right.width / 2);
-  return { card: { width, shift }, left, right, arc };
+/** Whether this screen gets two panels when a card opens (else the report is a sheet). */
+export const twoPanelFor = (viewportWidth) => orientationFor(viewportWidth) === "horizontal" && viewportWidth >= TWO_PANEL_PX;
+
+/** The width of each panel — and so of the card — on a two-panel screen. */
+export function twoPanelColumn(viewportWidth) {
+  const { pad, gap, maxWidth } = TWO_PANEL;
+  const inner = Math.min(maxWidth, viewportWidth - 2 * pad);
+  return Math.min(CARD.horizontal.width, Math.floor((inner - gap) / 2));
 }
+
+// ⭐ ONE CLOCK. The design's "in unison, a bit slowly": ~0.9–1.3 s, exposed as ONE custom property so
+// it is tuned in one place. Every rule in the expansion reads --deck-t and --deck-ease; none restates
+// a duration. Reduced motion sets it to 0s.
+// ⚠ An EVEN ease-in-out, not an ease-out: the fan's ease-out (0.22, 1, 0.36, 1) had the card 97% of the
+// way there at 550 ms of 1.1 s — measured in the screenshots — which reads as fast-then-waiting, not
+// "in unison, a bit slowly". Symmetric, so the slow middle is where the four movements are seen together.
+export const EXPAND_CLOCK = Object.freeze({ duration: "1.1s", ease: "cubic-bezier(0.65, 0, 0.35, 1)" });
