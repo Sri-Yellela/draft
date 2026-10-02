@@ -706,6 +706,8 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
         SELECT
           sj.job_id, sj.title, sj.company, sj.location, sj.source, sj.source_label,
           sj.posted_at, sj.discovered_at, sj.scraped_at, sj.updated_at, sj.is_active,
+          (sj.is_active = 0 AND EXISTS (SELECT 1 FROM rejected_jobs rj WHERE rj.job_id = sj.job_id
+             AND rj.reason LIKE 'out_of_market:%')) AS held_outside_us,
           sj.normalized_title, sj.experience_level, sj.workplace_type,
           sj.salary_min_usd, sj.salary_max_usd, sj.skills_json, sj.summary,
           sj.enriched_at, sj.content_hash, sj.sources_seen, sj.req_uid,

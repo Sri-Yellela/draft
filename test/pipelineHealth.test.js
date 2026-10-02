@@ -74,6 +74,10 @@ function makeDb() {
       created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
       UNIQUE(ats_type, ats_slug)
     );
+    -- The row list reads the US gate's record to say why an inactive row is off the board
+    -- (10-02, 18). Production has had this table since queue 37.
+    CREATE TABLE IF NOT EXISTS rejected_jobs (job_id TEXT PRIMARY KEY, title TEXT, company TEXT,
+      source TEXT, reason TEXT, rejected_at INTEGER);
   `);
   return db;
 }
@@ -837,7 +841,7 @@ test("A44: a company its source's last successful crawl did NOT return is stale,
 
 test("A44: a slug whose every posting the US gate holds out is OUTSIDE US, not a dead slug", async () => {
   const db = makeDb();
-  db.exec(`CREATE TABLE rejected_jobs (job_id TEXT PRIMARY KEY, title TEXT, company TEXT, source TEXT,
+  db.exec(`CREATE TABLE IF NOT EXISTS rejected_jobs (job_id TEXT PRIMARY KEY, title TEXT, company TEXT, source TEXT,
                                        reason TEXT, rejected_at INTEGER)`);
   const now = Math.floor(Date.now() / 1000);
   db.prepare(`INSERT INTO company_ats_list (company,ats_type,ats_slug,active,created_at) VALUES

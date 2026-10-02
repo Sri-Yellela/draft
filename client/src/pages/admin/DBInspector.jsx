@@ -352,6 +352,11 @@ function ScrapeMonitorTab({ theme }) {
   const statusLabel = (job) => {
     // The single most important per-row fact post-pivot: a row with no description can never be
     // enriched, so it will never gain skills, summary, salary or visa signals.
+    // 10-02 (18): the list carries inactive rows too, and labelled them by enrichment alone — a
+    // capture held outside the US read "UNENRICHED", as if it were waiting to be enriched. An
+    // inactive row is off the board first; that is what it needs to say.
+    if (job.is_active === 0) return job.held_outside_us
+      ? { label:"OUTSIDE US", color:C.WARNING } : { label:"INACTIVE", color:C.TEXT_MUTED };
     if (!job.has_description) return { label:"NO DESC", color:C.DANGER };
     if (!job.enriched_at)     return { label:"UNENRICHED", color:C.WARNING };
     return { label:"ENRICHED", color:C.SUCCESS };
