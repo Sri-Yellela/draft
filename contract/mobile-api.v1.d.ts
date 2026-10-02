@@ -1,6 +1,6 @@
 /**
  * Draft — Mobile API types.
- * Contract version 1.2.0.
+ * Contract version 1.3.0.
  *
  * GENERATED — DO NOT EDIT. Regenerate with `node scripts/generateMobileContract.mjs`.
  *
@@ -206,8 +206,32 @@ export interface DeckCard {
   /** The board's $Job shape with matchScore null. */
   job: Job;
   position: number;
+  /** The FULL report behind the band (1.3.0), frozen with the card — every section, no number. null on a card dealt before 1.3.0: say the full report is on the board, do not rebuild one from `why`. */
+  report: DeckReport | null;
   /** The evidence behind the card, frozen at deal time from the same report as its band. */
   why: DeckWhy;
+}
+
+/** The full ATS report, as the board shows it, with every number removed (G5). scorable false is the scorer DECLINING — 'not enough signal', no judgement — never a low score. */
+export interface DeckReport {
+  /** Matches that rest on a term the candidate CLAIMED rather than on résumé evidence. */
+  claimedMatches: string[];
+  competenciesMatched: string[];
+  competenciesMissing: string[];
+  declineReasons: string[];
+  depthDetail: string | null;
+  depthHeadline: string | null;
+  experience: string | null;
+  experienceFit: boolean | null;
+  hardConstraintMisses: string[];
+  scorable: boolean;
+  seniorityNote: string | null;
+  skillsMatched: string[];
+  skillsMissing: string[];
+  /** Language almost any candidate could claim — show it as language, never as a gap. */
+  verbsGeneric: string[];
+  verbsMatched: string[];
+  verbsMissing: string[];
 }
 
 /** Today's frozen deal. Fewer than 10 is a thin day and 0 an empty one — never padded. `reason`: null | 'thin' | 'empty' | 'no_profile' | 'no_resume' — the last two are set-up states, not errors. */
@@ -221,11 +245,12 @@ export interface DeckResponse {
   thin: boolean;
 }
 
-/** Skills the posting asks for that the résumé shows (up to 6) and does not (up to 4). */
+/** Skills the posting asks for that the résumé shows (up to 6) and does not (up to 4). The totals count every one, for the card's one signal line ("9 of 12 matched") — term counts, never a score. */
 export interface DeckWhy {
   matched: string[];
   matchedTotal: number;
   missing: string[];
+  missingTotal: number;
 }
 
 /** SNAKE_CASE — the handler spreads the whole domain_profiles row, so every column is listed here rather than a chosen subset. Listing a subset was tried and rejected: the contract would then be silent about keys the server really sends, and a strict decoder rejects an undeclared key. */

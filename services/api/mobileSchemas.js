@@ -164,16 +164,38 @@ export const RESPONSE_SCHEMAS = Object.freeze({
   },
   DeckCard: {
     description: "One card, in deal order (position IS the fit signal). The band is shown; the score is not.",
-    fields: { position: "number", band: "enum:atsBand", decision: "string|null", job: "$Job", why: "$DeckWhy" },
+    fields: { position: "number", band: "enum:atsBand", decision: "string|null", job: "$Job", why: "$DeckWhy",
+              report: "$DeckReport|null" },
     fieldNotes: {
+      report: "The FULL report behind the band (1.3.0), frozen with the card — every section, no number. " +
+        "null on a card dealt before 1.3.0: say the full report is on the board, do not rebuild one from `why`.",
       decision: "null (undecided) | 'drafted' | 'passed' | 'saved' — read live, so it changes when you act.",
       job: "The board's $Job shape with matchScore null.",
       why: "The evidence behind the card, frozen at deal time from the same report as its band.",
     },
   },
   DeckWhy: {
-    description: "Skills the posting asks for that the résumé shows (up to 6) and does not (up to 4).",
-    fields: { matched: "string[]", missing: "string[]", matchedTotal: "number" },
+    description: "Skills the posting asks for that the résumé shows (up to 6) and does not (up to 4). " +
+      "The totals count every one, for the card's one signal line (\"9 of 12 matched\") — term counts, never a score.",
+    fields: { matched: "string[]", missing: "string[]", matchedTotal: "number", missingTotal: "number" },
+  },
+  DeckReport: {
+    description: "The full ATS report, as the board shows it, with every number removed (G5). " +
+      "scorable false is the scorer DECLINING — 'not enough signal', no judgement — never a low score.",
+    fields: {
+      scorable: "boolean", declineReasons: "string[]",
+      skillsMatched: "string[]", skillsMissing: "string[]",
+      competenciesMatched: "string[]", competenciesMissing: "string[]",
+      verbsMatched: "string[]", verbsMissing: "string[]", verbsGeneric: "string[]",
+      claimedMatches: "string[]",
+      experience: "string|null", experienceFit: "boolean|null",
+      hardConstraintMisses: "string[]", seniorityNote: "string|null",
+      depthHeadline: "string|null", depthDetail: "string|null",
+    },
+    fieldNotes: {
+      verbsGeneric: "Language almost any candidate could claim — show it as language, never as a gap.",
+      claimedMatches: "Matches that rest on a term the candidate CLAIMED rather than on résumé evidence.",
+    },
   },
 
   // ── Apply ──────────────────────────────────────────────────────────────────────────────────

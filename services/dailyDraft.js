@@ -93,11 +93,55 @@ export function decisionsFor(db, userId, jobIds) {
  * the skills the posting asks for that the résumé shows, and the ones it does not. Frozen with the
  * card. Position says how good; this says why, which position cannot (UI_REDESIGN §3.3).
  */
+const strings = (v, n) => (Array.isArray(v) ? v.filter(x => typeof x === "string" && x.trim()).slice(0, n) : []);
+const total = (v) => (Array.isArray(v) ? v.length : 0);
+
 export function whyFromReport(report) {
   const r = report && typeof report === "object" ? report : {};
-  const list = (v, n) => (Array.isArray(v) ? v.filter(x => typeof x === "string" && x.trim()).slice(0, n) : []);
-  return { matched: list(r.tier1_matched, 6), missing: list(r.tier1_missing, 4),
-           matchedTotal: Array.isArray(r.tier1_matched) ? r.tier1_matched.length : 0 };
+  return { matched: strings(r.tier1_matched, 6), missing: strings(r.tier1_missing, 4),
+           matchedTotal: total(r.tier1_matched), missingTotal: total(r.tier1_missing) };
+}
+
+/**
+ * The FULL ATS report behind a card (A40 — the expanded card's left panel, and the phone's sheet):
+ * every section the board's report shows — skills, competencies and verbs matched and missing, the
+ * generic language, experience fit, the profile facts missing, why the scorer declined, the seniority
+ * guard's reason, the résumé-depth note. Frozen with the card, from the SAME stored report its band
+ * came from.
+ *
+ * ⛔ NO NUMBER (G5). A WHITELIST, not a copy minus the score: the stored report also carries the
+ * score, the seniority cap and the pre-cap raw score, and a deny-list would leak whatever numeric
+ * field is added next. A declined report (`scorable: false`) is the scorer saying it cannot judge —
+ * carried as that, never as a low score.
+ */
+export function deckReport(report) {
+  if (!report || typeof report !== "object") return null;
+  const r = report;
+  const text = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  const exp = r.experience && typeof r.experience === "object" ? r.experience : null;
+  const depth = r.resume_depth && typeof r.resume_depth === "object" ? r.resume_depth : null;
+  return {
+    scorable: r.scorable !== false && !(Array.isArray(r.decline_reasons) && r.decline_reasons.length),
+    declineReasons: strings(r.decline_reasons, 6),
+    skillsMatched: strings(r.tier1_matched, 40), skillsMissing: strings(r.tier1_missing, 40),
+    competenciesMatched: strings(r.competencies_matched, 12), competenciesMissing: strings(r.competencies_missing, 12),
+    verbsMatched: strings(r.action_verbs_matched, 24), verbsMissing: strings(r.action_verbs_missing, 24),
+    verbsGeneric: strings(r.action_verbs_generic, 10),
+    claimedMatches: strings(r.claimed_matches, 40),
+    experience: text(exp?.summary), experienceFit: typeof exp?.fit === "boolean" ? exp.fit : null,
+    hardConstraintMisses: strings(r.hard_constraint_misses, 10),
+    seniorityNote: r.seniority_cap?.applied ? text(r.seniority_cap.reason) : null,
+    depthHeadline: text(depth?.headline), depthDetail: text(depth?.detail),
+  };
+}
+
+/** A card frozen before a field existed reads back in today's shape — the contract declares every field. */
+function readWhy(why) {
+  const w = why && typeof why === "object" ? why : {};
+  const matched = strings(w.matched, 6), missing = strings(w.missing, 4);
+  return { matched, missing,
+           matchedTotal: Number.isFinite(w.matchedTotal) ? w.matchedTotal : matched.length,
+           missingTotal: Number.isFinite(w.missingTotal) ? w.missingTotal : missing.length };
 }
 
 function readDeal(db, userId, profileId, date) {
@@ -135,14 +179,17 @@ export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, 
        VALUES (?, ?, ?, ?, ?, ?, ?)`);
     db.transaction(() => picked.forEach((c, i) =>
       insert.run(userId, profileId, date, i, c.job.id, c.band,
-                 JSON.stringify({ job: c.job, why: whyFromReport(reportFor(c.job.id)) }))))();
+                 JSON.stringify(((report) => ({ job: c.job, why: whyFromReport(report), report: deckReport(report) }))(reportFor(c.job.id))))))();
     rows = readDeal(db, userId, profileId, date);
     dealtNow = true;
   }
   const decisions = decisionsFor(db, userId, rows.map(r => r.job_id));
   const cards = rows.map(r => {
     const snap = JSON.parse(r.card_json);
-    return { position: r.position, band: r.band, decision: decisions[r.job_id], job: snap.job, why: snap.why };
+    // `report` is null on a card dealt before A40 froze it — the panel then says the full report is on
+    // the board rather than inventing one from the six-chip summary.
+    return { position: r.position, band: r.band, decision: decisions[r.job_id], job: snap.job, why: readWhy(snap.why),
+             report: snap.report ?? null };
   });
   return {
     date, profileId, size: cards.length, dealtNow, cards,

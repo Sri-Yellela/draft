@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Draft — Mobile API",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "description": "The contract between this repository and the two mobile repositories (iOS, Android), which are native clients over this JSON API and live outside this tree.\n\nGENERATED — DO NOT HAND-EDIT. Regenerate with `node scripts/generateMobileContract.mjs`. The Job schema is produced by EXECUTING services/jobs/mapJobRow.js, so it cannot disagree with what the server actually emits. test/mobileApiContract.test.js fails the build if this file and the source ever disagree.\n\nOnly the endpoints a swipe feed and a review flow need are published. Anything absent is absent on purpose and is not a promise — see x-retired for what a greenfield client must not call, and x-mobile-gaps for what mobile needs that this API does not yet expose."
   },
   "servers": [
@@ -2465,12 +2465,124 @@
           "position": {
             "type": "number"
           },
+          "report": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DeckReport"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The FULL report behind the band (1.3.0), frozen with the card — every section, no number. null on a card dealt before 1.3.0: say the full report is on the board, do not rebuild one from `why`."
+          },
           "why": {
             "$ref": "#/components/schemas/DeckWhy",
             "description": "The evidence behind the card, frozen at deal time from the same report as its band."
           }
         },
         "description": "One card, in deal order (position IS the fit signal). The band is shown; the score is not."
+      },
+      "DeckReport": {
+        "type": "object",
+        "properties": {
+          "claimedMatches": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Matches that rest on a term the candidate CLAIMED rather than on résumé evidence."
+          },
+          "competenciesMatched": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "competenciesMissing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "declineReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "depthDetail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "depthHeadline": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "experience": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "experienceFit": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "hardConstraintMisses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scorable": {
+            "type": "boolean"
+          },
+          "seniorityNote": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "skillsMatched": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "skillsMissing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verbsGeneric": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Language almost any candidate could claim — show it as language, never as a gap."
+          },
+          "verbsMatched": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verbsMissing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "The full ATS report, as the board shows it, with every number removed (G5). scorable false is the scorer DECLINING — 'not enough signal', no judgement — never a low score."
       },
       "DeckResponse": {
         "type": "object",
@@ -2522,9 +2634,12 @@
             "items": {
               "type": "string"
             }
+          },
+          "missingTotal": {
+            "type": "number"
           }
         },
-        "description": "Skills the posting asks for that the résumé shows (up to 6) and does not (up to 4)."
+        "description": "Skills the posting asks for that the résumé shows (up to 6) and does not (up to 4). The totals count every one, for the card's one signal line (\"9 of 12 matched\") — term counts, never a score."
       },
       "DomainProfile": {
         "type": "object",
