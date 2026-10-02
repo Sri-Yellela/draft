@@ -12,6 +12,9 @@ import {
 import { draftSlots, recordGenerationSlot, draftSlotLimit } from "../services/draftSlots.js";
 import { DECK_SIZE } from "../services/dailyDraft.js";
 import { at } from "../test-support/sourceAnchors.js";
+import { atsJobInputHash, ATS_JOB_INPUT_FIELDS } from "../services/jobs/boardFitPrecompute.js";
+// A52 follow-up: a stored board score is stamped at apply only while it is CURRENT for the posting.
+const currentJobHash = (db, jobId) => atsJobInputHash(db.prepare(`SELECT ${ATS_JOB_INPUT_FIELDS.join(", ")} FROM scraped_jobs WHERE job_id = ?`).get(jobId));
 
 // A63 (owner, O45c, 10-02): the board's tools, reshaped.
 //   (1) Apply is the company name — a link to the posting; no separate Apply button.
@@ -118,8 +121,8 @@ test("opening the posting tags Pending; 'I did not apply' takes it out; opening 
 test("record without evidence -> RECORDED (still pending, says what is missing); with evidence -> VERIFIED and Submitted", async () => {
   const { db, base, stop } = mount();
   try {
-    db.prepare("INSERT INTO ats_only_reports (user_id,domain_profile_id,job_id,ats_report,ats_score) VALUES (1,10,'j1',?,48)")
-      .run(JSON.stringify({ source: "local_ats_v4", score: 48 }));
+    db.prepare("INSERT INTO ats_only_reports (user_id,domain_profile_id,job_id,ats_report,ats_score,job_hash) VALUES (1,10,'j1',?,48,?)")
+      .run(JSON.stringify({ source: "local_ats_v4", score: 48 }), currentJobHash(db, "j1"));
     const first = await (await post(base, "/api/applications/pending/j1/record",
       { submittedAt: new Date().toISOString(), method: "company_site" })).json();
     assert.equal(first.state, "recorded");
@@ -289,5 +292,18 @@ test("markPending is a no-op for a job already submitted, and recordSubmission r
     assert.equal(markPending(db, 1, "j1", "opened_posting").state, "submitted");
     assert.throws(() => recordSubmission(db, { userId: 1, jobId: "j1",
       input: { submittedAt: Date.now(), method: "email", reference: "A-1234" } }), /already verified/);
+  } finally { stop(); }
+});
+
+test("A52 follow-up: a stored board score is stamped at apply only while it is current for the posting", () => {
+  const { db, stop } = mount();
+  try {
+    db.prepare("INSERT INTO ats_only_reports (user_id,domain_profile_id,job_id,ats_report,ats_score,job_hash) VALUES (1,10,'j1',?,48,?)")
+      .run(JSON.stringify({ source: "local_ats_v4", score: 48 }), currentJobHash(db, "j1"));
+    assert.equal(capturedAtsAtApply(db, 1, "j1").score, 48, "current: stamped");
+    db.prepare("UPDATE scraped_jobs SET description = 'Rewritten after enrichment landed.' WHERE job_id = 'j1'").run();
+    assert.equal(capturedAtsAtApply(db, 1, "j1").score, null, "the posting changed: the board says Check match, so nothing is stamped");
+    db.prepare("UPDATE ats_only_reports SET job_hash = NULL").run();
+    assert.equal(capturedAtsAtApply(db, 1, "j1").score, null, "scored before migration 118, posting still there: stale");
   } finally { stop(); }
 });

@@ -8,6 +8,9 @@ import { capturedAtsAtApply } from "../routes/apply.js";
 import { trackApiCall, recordAtsOutcome } from "../services/usageTracker.js";
 import { callModel } from "../services/modelCall.js";
 import { at, lastAt } from "../test-support/sourceAnchors.js";
+import { atsJobInputHash, ATS_JOB_INPUT_FIELDS } from "../services/jobs/boardFitPrecompute.js";
+// A52 follow-up: a stored board score is stamped at apply only while it is CURRENT for the posting.
+const currentJobHash = (db, jobId) => atsJobInputHash(db.prepare(`SELECT ${ATS_JOB_INPUT_FIELDS.join(", ")} FROM scraped_jobs WHERE job_id = ?`).get(jobId));
 
 /**
  * AK1 Phase 3 — the adversarial cases, asserted rather than described.
@@ -209,9 +212,9 @@ test("migration 094 is byte-identical in both runners and only ADDS columns", ()
 // 108. What each test pins is unchanged; only the table it is pinned against is, and the last test
 // here is new: it pins the deletion in the direction the defect actually ran.
 const seedReport = (db, { userId = 1, profileId = null, jobId, report }) =>
-  db.prepare(`INSERT INTO ats_only_reports (user_id, domain_profile_id, job_id, ats_report, ats_score)
-              VALUES (?, ?, ?, ?, ?)`)
-    .run(userId, profileId, jobId, JSON.stringify(report), report.score ?? null);
+  db.prepare(`INSERT INTO ats_only_reports (user_id, domain_profile_id, job_id, ats_report, ats_score, job_hash)
+              VALUES (?, ?, ?, ?, ?, ?)`)
+    .run(userId, profileId, jobId, JSON.stringify(report), report.score ?? null, currentJobHash(db, jobId));
 
 // `ats_only_reports.user_id` is `NOT NULL REFERENCES users(id)`, which the per-job cell these tests
 // used to seed was not, so every one of them now needs its candidate to exist.
