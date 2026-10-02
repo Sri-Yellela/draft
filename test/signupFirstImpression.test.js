@@ -53,7 +53,8 @@ test("the / is the signup's progress, on both steps", () => {
 
 test("⭐ the signup hook is a REAL score — the public deterministic scorer, a band, never a number", () => {
   assert.match(hook, /fetch\("\/api\/standalone\/ats", \{ method: "POST"/);
-  assert.match(hook, /bandChipStyle\(result\.band\)/);
+  // A52: the band is drawn by the ONE report implementation's band card, from the route's band.
+  assert.match(hook, /<AtsBandCard report=\{fromStandaloneResult\(result\)\} band=\{result\.band\}/);
   assert.doesNotMatch(hook, /\.score\b|atsScore|matchScore/, "the hook reads a number");
   const server = read("server.js");
   const route = server.slice(at(server, 'app.post("/api/standalone/ats"', 0, "route"), at(server, "// POST /api/standalone/generate", 0, "next"));

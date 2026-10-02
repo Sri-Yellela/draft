@@ -92,7 +92,8 @@ test("server precomputed and generated ATS paths use local scorer instead of LLM
 
 test("AG1: the report version was bumped, so cached fragment reports are not served forever", () => {
   const server = fs.readFileSync("server.js", "utf8");
-  const panel = fs.readFileSync("client/src/panels/ATSPanel.jsx", "utf8");
+  // A52: the report is drawn by components/AtsReport.jsx; ATSPanel only fetches and claims.
+  const panel = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
 
   // A report is cached in four places and the read path serves it whenever `source` matches. If
   // the version had stayed local_ats_v1, every job already scored would keep showing "and
@@ -111,7 +112,7 @@ test("AG1: the report version was bumped, so cached fragment reports are not ser
   assert.doesNotMatch(server, /"local_ats_v1"/, "no gate may still spell the old version");
 
   // The panel hides the LLM-only sections for the whole local family, not one version of it.
-  assert.match(panel, /String\(activeReport\.source \|\| ""\)\.startsWith\("local_ats"\)/);
+  assert.match(panel, /String\(report\.source \|\| ""\)\.startsWith\("local_ats"\)/);
 });
 
 // ── AG1: the extractor emits skills, not text fragments ─────────────────────────────────────────
@@ -291,8 +292,12 @@ test("AG2: the ATS chips claim through the reversible route, not the one-way add
 
   assert.match(suggestionsLib, /body: JSON\.stringify\(\{ kind, label, claimed \}\)/);
   assert.match(panel, /await setProfileClaim\(clickableProfileId, kind, label, claimed\)/);
-  assert.match(panel, /toggleClaim\("skill", item, claimed\)/);
-  assert.match(panel, /toggleClaim\("action_verb", item, claimed\)/);
+  // A52: ATSPanel hands its toggle to the one report implementation, which calls it per kind.
+  const report = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
+  assert.match(panel, /onToggle: toggleClaim,/);
+  assert.match(report, /claims\.onToggle\(kind, item, claimed\)/);
+  assert.match(report, /claimable\("skill"\)/);
+  assert.match(report, /claimable\("action_verb"\)/);
 
   // The superseded one-way helpers must be gone from the client, so there is one way to do this.
   for (const dead of ["addSkillToProfile", "addVerbToProfile", "buildProfileSuggestionLookup"]) {
@@ -303,7 +308,8 @@ test("AG2: the ATS chips claim through the reversible route, not the one-way add
 });
 
 test("AG2: nothing is pre-selected — only what the candidate claimed reads as claimed", () => {
-  const panel = fs.readFileSync("client/src/panels/ATSPanel.jsx", "utf8");
+  // A52: the chips and their copy are drawn by components/AtsReport.jsx now.
+  const panel = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
   const suggestionsLib = fs.readFileSync("client/src/lib/profileSuggestions.js", "utf8");
   const aggregator = fs.readFileSync("services/profileSignalAggregator.js", "utf8");
 

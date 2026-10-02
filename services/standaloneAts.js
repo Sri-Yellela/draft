@@ -33,6 +33,12 @@ export function standaloneAtsResult({ resumeText, jdText, jobTitle, termWeightsF
     missing_skills: report.tier1_missing || [],
     matched_verbs: report.action_verbs_matched || [],
     missing_verbs: report.action_verbs_missing || [],
+    // A52: the rest of the report's term buckets, so the public tool draws the SAME report the board
+    // does (client/src/components/AtsReport.jsx) instead of a thinner copy of it. Terms only — still
+    // no number. Additive: every field above is unchanged.
+    competencies_matched: report.competencies_matched || [],
+    competencies_missing: report.competencies_missing || [],
+    generic_verbs: report.action_verbs_generic || [],
     experience: report.experience?.summary || null,
     seniority: report.seniority_cap?.applied ? report.seniority_cap.reason : null,
     // Only a SHORT résumé. The warning's other arm, "few_skills", counts the candidate's PROFILE

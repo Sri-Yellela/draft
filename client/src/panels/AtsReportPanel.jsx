@@ -1,7 +1,8 @@
 import PanelShell from "../components/PanelShell.jsx";
 import { ATSPanel } from "./ATSPanel.jsx";
 import { bandChipStyle } from "../styles/bandStyle.js";
-import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
+import { atsBandLabel } from "../../../shared/atsBands.js";
+import { reportBand } from "../components/AtsReport.jsx";
 import { C } from "../styles/colorTokens.js";
 
 // ── AtsReportPanel — the ATS report + generation history, as a PEER of the JD drawer ──────────
@@ -21,7 +22,7 @@ export default function AtsReportPanel({
   onFocus, onResizeStart, onResize, onResizeEnd, onClose,
   theme, activeAts, rightTab, setRightTab, genCount,
   jobId, resumeText, activeProfileId,
-  historyContent,
+  historyContent, onReport = null,
 }) {
   // ⛔ CC5 · THE JOB THE REPORT IS ABOUT, WHICH IS NOT NECESSARILY THE SELECTED ONE.
   //
@@ -48,8 +49,14 @@ export default function AtsReportPanel({
             null score is the scorer DECLINING, and says so (the dashed Not-enough-signal chip —
             never a blank, which read as "not scored yet"). No report yet renders nothing at all,
             not even the "ATS" label, which otherwise dangled with nothing after it. */}
+        {/* ⛔ A52 · THE HEADER READS THE REPORT THE BODY DRAWS. It read `activeAts.score` — the
+            stored score the board was loaded with — while the body below drew a report, so the two
+            could disagree inside one panel. With a report, the report's own score governs (null is
+            the scorer declining); without one, the score the panel itself just computed, which
+            JobsPanel adopts into activeAts (adoptPanelVerdict). */}
         {(activeAts?.score != null || activeAts?.report) && (() => {
-          const band = atsBandFor(activeAts.score ?? null);
+          const r = activeAts.report;
+          const band = reportBand(r && Object.prototype.hasOwnProperty.call(r, "score") ? r : { score: activeAts.score ?? null });
           return (
             <>
               <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-primary-text)" }}>ATS</span>
@@ -103,6 +110,7 @@ export default function AtsReportPanel({
             jobId={reportJobId}
             resumeText={resumeText}
             activeProfileId={activeProfileId}
+            onReport={onReport}
           />
         )}
         {rightTab === "history" && historyContent}

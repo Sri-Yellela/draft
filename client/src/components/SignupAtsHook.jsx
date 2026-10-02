@@ -8,8 +8,7 @@
 import { useRef, useState } from "react";
 import { C } from "../styles/colorTokens.js";
 import { glass } from "../styles/glass.js";
-import { bandChipStyle } from "../styles/bandStyle.js";
-import { atsBandLabel } from "../../../shared/atsBands.js";
+import { AtsBandCard, fromStandaloneResult } from "./AtsReport.jsx";
 import { carryResume } from "../lib/signupCarry.js";
 
 export default function SignupAtsHook({ onKeep }) {
@@ -37,7 +36,6 @@ export default function SignupAtsHook({ onKeep }) {
     finally { setBusy(false); }
   };
 
-  const meta = result ? atsBandLabel(result.band) : null;
   const field = { width: "100%", boxSizing: "border-box", borderRadius: 12, border: `1px solid ${C.BORDER_CONTROL}`,
                   background: C.SURFACE_INPUT, color: C.INK, fontSize: 13.5, fontFamily: "inherit", outline: "none" };
 
@@ -69,15 +67,9 @@ export default function SignupAtsHook({ onKeep }) {
         </form>
       ) : (
         <div aria-live="polite">
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ ...bandChipStyle(result.band), padding: "6px 14px", borderRadius: 999, fontSize: 14, fontWeight: 800 }}>{meta.label}</span>
-            <span style={{ fontSize: 13.5, color: C.INK_MUTED }}>{meta.blurb}</span>
-          </div>
-          {result.decline_reasons?.length > 0 && (
-            <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: 12.5, color: C.INK_MUTED, lineHeight: 1.55 }}>
-              {result.decline_reasons.map((r, i) => <li key={i}>{r}</li>)}
-            </ul>
-          )}
+          {/* A52: the band card from the ONE report implementation (components/AtsReport.jsx) — the
+              band, what it means, why the scorer declined — not a hand-drawn copy of it. */}
+          <AtsBandCard report={fromStandaloneResult(result)} band={result.band} compact />
           <p style={{ fontSize: 13.5, color: C.INK, lineHeight: 1.55, margin: "14px 0 12px" }}>
             Keep it: create an account and this résumé comes with you — every job on the board gets read against it,
             and ten good ones are dealt to you each day.
