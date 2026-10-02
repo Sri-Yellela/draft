@@ -42,7 +42,8 @@ test("job card hover preview uses shared active-aware icon helpers for save and 
     .replace(/^\s*\/\/.*$/gm, "");
   assert.doesNotMatch(detailPanelCode, /aPlusLoading/,
     "the detail panel's action bar must not regrow the unused flag either");
-  assert.match(detailPanelCode, /disabled=\{!!st\}/,
+  // A63 adds "no Draft slots left" beside it; the in-flight guard itself must stay.
+  assert.match(detailPanelCode, /disabled=\{!!st( \|\| noSlots)?\}/,
     "the detail panel's generic in-flight guard must stay");
 });
 

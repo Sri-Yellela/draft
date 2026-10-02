@@ -61,6 +61,13 @@ function setup({ planTier = "PRO", env = {} } = {}) {
       UNIQUE(user_id, job_id));
     CREATE TABLE user_jobs (user_id INTEGER, job_id TEXT, domain_profile_id INTEGER, applied INTEGER DEFAULT 0,
       updated_at INTEGER, UNIQUE(user_id, job_id));
+    -- migration 121 (A63): POST /api/apply tags a job Pending instead of recording an application.
+    CREATE TABLE application_records (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+      job_id TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'pending', origin TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()), updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      submitted_at INTEGER, method TEXT, reference TEXT, evidence_text TEXT, evidence_url TEXT,
+      recorded_at INTEGER, verified_at INTEGER, verification_json TEXT, withdrawn_at INTEGER,
+      UNIQUE(user_id, job_id));
     -- migration 072
     CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER DEFAULT (unixepoch()));
     CREATE TABLE apply_idempotency (user_id INTEGER NOT NULL, idem_key TEXT NOT NULL, endpoint TEXT NOT NULL,

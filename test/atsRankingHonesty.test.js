@@ -405,13 +405,17 @@ test("the onTracked hook cannot break a generation", async () => {
   assert.equal(msg.content[0].text, "ok");
 });
 
-test("both application writers stamp the score — neither route may leave a hole in the dataset", () => {
-  const apply = fs.readFileSync("routes/apply.js", "utf8");
-  const server = fs.readFileSync("server.js", "utf8");
-  for (const [name, src] of [["routes/apply.js", apply], ["server.js", server]]) {
-    assert.match(src, /INSERT INTO job_applications[\s\S]{0,600}ats_score_at_apply/,
-      `${name} writes job_applications without stamping the score`);
-    assert.match(src, /ats_score_at_apply=COALESCE\(job_applications\.ats_score_at_apply/,
-      `${name} must keep the FIRST stamp — re-recording must not overwrite the score that was true when it was sent`);
+// A63: there is now ONE writer — a verified record in services/applicationRecords.js. The two
+// click-to-applied routes (POST /api/apply, POST /api/applications) tag a job Pending instead, so
+// neither may write job_applications again; the one writer must stamp the score and keep the first.
+test("the one application writer stamps the score — and no click-to-applied route writes it", () => {
+  const writer = fs.readFileSync("services/applicationRecords.js", "utf8");
+  assert.match(writer, /INSERT INTO job_applications[\s\S]{0,600}ats_score_at_apply/,
+    "services/applicationRecords.js writes job_applications without stamping the score");
+  assert.match(writer, /ats_score_at_apply\s*=\s*COALESCE\(job_applications\.ats_score_at_apply/,
+    "it must keep the FIRST stamp — re-recording must not overwrite the score that was true when it was sent");
+  for (const f of ["routes/apply.js", "server.js"]) {
+    assert.doesNotMatch(fs.readFileSync(f, "utf8"), /INSERT INTO job_applications/,
+      `${f} writes job_applications directly — only a VERIFIED record may (A63)`);
   }
 });

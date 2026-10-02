@@ -3082,10 +3082,10 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     }
     printResume(html, filename);
     if (targetJob) {
-      await api("/api/applications", { method:"POST", body:JSON.stringify({
-        jobId:targetJob.jobId, company:targetJob.company, role:targetJob.title,
-        jobUrl:targetJob.url, source:targetJob.source, location:targetJob.location,
-        applyMode: current?.tool === A_PLUS_TOOL ? "CUSTOM_SAMPLER" : applyMode, resumeFile:filename + ".pdf",
+      // A63: exporting a résumé is not submitting one — the job is tagged Pending, not "applied",
+      // until the user records the submission and it verifies (Database → Pending).
+      await api("/api/applications/pending", { method:"POST", body:JSON.stringify({
+        jobId:targetJob.jobId, origin:"exported_resume",
       }) }).catch(()=>{});
       await fetchJobs(currentPage);
     }

@@ -24,7 +24,7 @@ import { resolveBrowserExecutable } from '../services/browserLauncher.js';
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\//, '')), '..');
 const LABEL = process.argv[2] || 'shot';
 const ONLY = process.argv[3] ? new Set(process.argv[3].split(',')) : null;
-const OUT_DIR = path.resolve(ROOT, '..', '..', '..', '..', 'draft-screenshots', 'a59-line');
+const OUT_DIR = path.resolve(ROOT, '..', 'draft-screenshots', 'a59-line');
 const PORT = 5194;
 // A53_CLIENT_DIR: shoot another checkout of the client (the 'before' tree), served by THIS tree's vite.
 const CLIENT_DIR = process.env.A53_CLIENT_DIR ? path.resolve(process.env.A53_CLIENT_DIR) : path.join(ROOT, 'client');

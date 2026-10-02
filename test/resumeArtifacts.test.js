@@ -38,7 +38,8 @@ test("download/export marks the selected artifact as kept for downstream use", (
   assert.match(server, /const keptExists = !!db\.prepare/);
   assert.match(server, /UPDATE resume_versions SET is_kept=1/);
   assert.match(jobsPanel, /\/api\/resumes\/\$\{current\.jobId\}\/keep/);
-  assert.match(jobsPanel, /applyMode: current\?\.tool === A_PLUS_TOOL \? "CUSTOM_SAMPLER" : applyMode/);
+  // A63: the export then tags the job Pending — it no longer records an application.
+  assert.match(jobsPanel, /"\/api\/applications\/pending", \{ method:"POST", body:JSON\.stringify\(\{\s*jobId:targetJob\.jobId, origin:"exported_resume"/);
 });
 
 test("cached artifacts reuse stored ATS reports; the formatting is the tools service's deterministic render", () => {

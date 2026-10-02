@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { HighlightedDescription } from "./HighlightedDescription.jsx";
 import { api } from "../lib/api.js";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
@@ -120,16 +121,13 @@ export default function JobDetailPanel({
   const { theme } = useTheme();
   const close = useCallback(() => setSelectedJob(null), [setSelectedJob]);
 
-  // Apply automation state (self-contained in portal)
-  const [applyLoading, setApplyLoading] = useState(false);
-  const [applyResult, setApplyResult] = useState(null);
-  const [semiActive, setSemiActive] = useState(false);
+  const navigate = useNavigate();
   const [showCoverLetter, setShowCoverLetter] = useState(false);
   const [showCompanyView, setShowCompanyView] = useState(false);
 
-  // Reset apply state when job changes
+  // Reset per-job state when the job changes
   useEffect(() => {
-    setApplyLoading(false); setApplyResult(null); setSemiActive(false); setShowCoverLetter(false);
+    setShowCoverLetter(false);
     setShowCompanyView(false);
   }, [selectedJob?.jobId]);
 
@@ -193,34 +191,35 @@ export default function JobDetailPanel({
 
   const description = hasStoredDescription ? selectedJob.description : fetched;
 
-  const handleAutoApply = useCallback(async (mode = "semi") => {
-    if (!selectedJob) return;
-    setApplyLoading(true); setApplyResult(null);
-    try {
-      const d = await api("/api/apply", { method:"POST", body:JSON.stringify({
-        jobId: selectedJob.jobId, jobUrl: selectedJob.applyUrl || selectedJob.url, mode,
-      }) });
-      if (mode === "semi" && d.status === "semi_launched") {
-        setSemiActive(true);
-        setApplyResult({ status:"semi", message: d.message });
-      } else if (d.status === "submitted") {
-        setApplyResult({ status:"success", message:"Application submitted!" });
-      } else if (d.status === "filled_not_submitted") {
-        setApplyResult({ status:"warn", message:"Form filled — submit button not found." });
-      } else if (d.status === "error") {
-        setApplyResult({ status:"error", message: d.error || "Automation failed", fallbackUrl: d.fallbackUrl || null });
-      } else {
-        setApplyResult({ status:"info", message: d.message || "Done" });
-      }
-    } catch(e) { setApplyResult({ status:"error", message: e.message }); }
-    finally { setApplyLoading(false); }
-  }, [selectedJob]);
+  // ── A63 (owner, O45c): THE DAY'S DRAFT SLOTS, AND PENDING ────────────────────────────────
+  //
+  // A generated résumé uses one of the day's Draft slots, the same allowance a Draft uses — so the
+  // count is shown HERE, before Generate or Draft is pressed, not discovered as a refusal. And a
+  // job the user generated for or opened the posting of is PENDING until they record and verify
+  // the submission (Database → Pending); nothing becomes "applied" on a click.
+  const [slots, setSlots] = useState(null);
+  const [pendingState, setPendingState] = useState(null);
+  const generating = selectedJobMeta?.st;
+  useEffect(() => {
+    if (!jobId) return;
+    let cancelled = false;
+    api("/api/draft/slots").then(d => { if (!cancelled) setSlots(d); }).catch(() => {});
+    api("/api/applications/pending").then(d => {
+      if (cancelled) return;
+      const r = (d?.pending || []).find(x => String(x.jobId) === String(jobId));
+      setPendingState(r?.state ?? null);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [jobId, generating, selectedJobMeta?.drafted]);
 
-  const closeSemi = useCallback(async () => {
-    if (!selectedJob) return;
-    await api(`/api/apply/close/${selectedJob.jobId}`, { method:"POST" }).catch(()=>{});
-    setSemiActive(false); setApplyResult(null);
-  }, [selectedJob]);
+  // The company name IS the apply link (the old Apply button opened a "browser" that never opened
+  // and recorded the job as applied). Opening it tags the job Pending — the user may be applying.
+  const postingUrl = selectedJob?.applyUrl || selectedJob?.url || null;
+  const openedPosting = useCallback(() => {
+    if (!jobId) return;
+    api("/api/applications/pending", { method: "POST", body: JSON.stringify({ jobId, origin: "opened_posting" }) })
+      .then(d => setPendingState(d?.state ?? "pending")).catch(() => {});
+  }, [jobId]);
 
   if (!selectedJob) return null;
 
@@ -233,13 +232,28 @@ export default function JobDetailPanel({
       onResizeStart={onResizeStart} onResize={onResize} onResizeEnd={onResizeEnd}
       header={
         <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
-              <CompanyIcon company={selectedJob.company} iconUrl={selectedJob.companyIconUrl} size={44} radius={8}/>
+              {/* The KB profile moved to the logo: the company NAME is now the apply link (A63). */}
+              <button type="button" onClick={() => setShowCompanyView(true)} title={`View ${selectedJob.company}'s KB profile`}
+                aria-label={`View ${selectedJob.company}'s KB profile`}
+                style={{ background:"none", border:"none", padding:0, cursor:"pointer", flexShrink:0 }}>
+                <CompanyIcon company={selectedJob.company} iconUrl={selectedJob.companyIconUrl} size={44} radius={8}/>
+              </button>
               <div style={{ flex:1, minWidth:0 }}>
-                <div onClick={() => setShowCompanyView(true)} title={`View ${selectedJob.company}'s KB profile`}
-                  style={{ fontWeight:700, fontSize:14, color:"var(--color-text)", cursor:"pointer",
-                              overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                  {selectedJob.company}
-                </div>
+                {/* ⭐ A63: APPLY IS THE COMPANY NAME — a link to the posting, opened in a new tab. */}
+                {postingUrl ? (
+                  <a href={postingUrl} target="_blank" rel="noopener noreferrer" onClick={openedPosting}
+                    data-apply-link title={`Apply at ${selectedJob.company} — opens the posting`}
+                    style={{ display:"block", fontWeight:700, fontSize:14, color:"var(--color-primary-text)",
+                             textDecoration:"underline", textUnderlineOffset:3,
+                             overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    {selectedJob.company} ↗
+                  </a>
+                ) : (
+                  <div style={{ fontWeight:700, fontSize:14, color:"var(--color-text)",
+                                overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    {selectedJob.company}
+                  </div>
+                )}
                 {/* The shared element (lib/viewTransitions.js): the deck card's title lands here. */}
                 <div data-vt-title={selectedJob.id} style={{ fontSize:12, color:"var(--color-text-muted)", marginTop:2,
                               overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
@@ -294,6 +308,14 @@ export default function JobDetailPanel({
                                   border:"1px dashed var(--color-border)" }}>
                         Check match
                       </span>}
+                      {(pendingState === "pending" || pendingState === "recorded") && (
+                        <span data-pending-tag onClick={() => navigate("/app/database?sheet=pending")}
+                          title="You may have applied — record when and how, and it moves to Submitted once it verifies."
+                          style={{ background:C.WARNING_QUIET, color:C.WARNING, padding:"2px 8px", borderRadius:999,
+                                   fontSize:10, fontWeight:700, cursor:"pointer" }}>
+                          {pendingState === "recorded" ? "Pending · not verified" : "Pending · record it"}
+                        </span>
+                      )}
                       {done && (
                         <span onClick={() => selectedJobMeta?.onResume?.()} style={{ background:C.INFO_QUIET, color:C.INFO,
                           padding:"2px 8px", borderRadius:999, fontSize:10, fontWeight:700, cursor:"pointer" }}>
@@ -316,6 +338,8 @@ export default function JobDetailPanel({
               // in-flight state for whichever tool is running.
               const generateLoading = st === "generate";
               const canApply = !!(selectedJob.applyUrl || selectedJob.url);
+              // A63: a NEW résumé uses a slot (a cached one does not, so Regenerate says so too).
+              const noSlots = slots != null && slots.remaining <= 0;
               return (
                 <>
                   {/* ── DECIDE: the deck's three, in the deck's order and treatment (A53) ─────────
@@ -334,7 +358,10 @@ export default function JobDetailPanel({
                   <div role="group" aria-label="Tools" style={{ display:"flex", gap:6, alignItems:"center", flexWrap:"wrap" }}>
                     {canGen && onGenerate && (
                       <ActionBtn onClick={() => onGenerate(done && g?.html !== "__exists__")}
-                        title={done ? "Regenerate resume" : "Generate resume"} accent="var(--color-primary-text)" disabled={!!st}>
+                        title={noSlots
+                          ? "No drafts left in the last 24 hours — a new résumé uses one, like a Draft."
+                          : `${done ? "Regenerate" : "Generate"} résumé — uses 1 of your ${slots?.limit ?? 10} drafts (a Draft uses one too)`}
+                        accent="var(--color-primary-text)" disabled={!!st || noSlots}>
                         {generateLoading ? "Generating…" : done ? "Regenerate" : "Generate résumé"}
                       </ActionBtn>
                     )}
@@ -351,18 +378,16 @@ export default function JobDetailPanel({
                     <ActionBtn onClick={() => setShowCoverLetter(true)} title="Write a cover letter" accent={C.VIOLET}>
                       Cover letter
                     </ActionBtn>
-                    {canApply && !semiActive && (
-                      <ActionBtn onClick={() => handleAutoApply("semi")} title="Open pre-filled application in browser"
-                        accent="var(--color-primary-text)" active={applyLoading}>
-                        {applyLoading ? "Opening…" : "Apply"}
-                      </ActionBtn>
-                    )}
-                    {semiActive && (
-                      <ActionBtn onClick={closeSemi} title="Close automation browser" accent={C.DANGER}>
-                        Close browser
-                      </ActionBtn>
-                    )}
                   </div>
+                  {/* A63: the shared allowance, said before anything is pressed. */}
+                  {slots && (
+                    <span data-draft-slots style={{ fontSize:11, color: noSlots ? C.DANGER : "var(--color-text-muted)",
+                                                    width:"100%", marginTop:2 }}>
+                      {noSlots
+                        ? `No drafts left — all ${slots.limit} used in the last 24 hours (a Draft or a new résumé uses one).`
+                        : `${slots.remaining} of ${slots.limit} drafts left in the last 24 hours — a Draft or a new résumé uses one.`}
+                    </span>
+                  )}
                 </>
               );
             })() : null}
@@ -387,48 +412,6 @@ export default function JobDetailPanel({
                 company={selectedJob.company}
                 onClose={() => setShowCoverLetter(false)}
               />
-            )}
-
-            {/* Apply result toast */}
-            {applyResult && (
-              <div style={{
-                margin:"0 14px 0", padding:"8px 12px",
-                background: applyResult.status === "success" ? C.SUCCESS_QUIET
-                          : applyResult.status === "error"   ? C.DANGER_QUIET
-                          : applyResult.status === "semi"    ? "var(--color-primary-muted)"
-                          : C.WARNING_QUIET,
-                color: applyResult.status === "success" ? C.SUCCESS
-                     : applyResult.status === "error"   ? C.DANGER
-                     : applyResult.status === "semi"    ? "var(--color-primary-text)"
-                     : C.WARNING,
-                borderRadius:6, fontSize:11, fontWeight:600,
-                display:"flex", alignItems:"center", justifyContent:"space-between",
-                flexShrink:0,
-              }}>
-                <span>
-                  {applyResult.status === "success" ? "✓ " : applyResult.status === "error" ? "✗ " : "ℹ "}
-                  {applyResult.message}
-                  {applyResult.fallbackUrl && (
-                    <a href={applyResult.fallbackUrl} target="_blank" rel="noreferrer"
-                      style={{ color:"inherit", marginLeft:6, textDecoration:"underline" }}>
-                      Apply directly ↗
-                    </a>
-                  )}
-                </span>
-                <button onClick={() => setApplyResult(null)}
-                  style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, opacity:0.6, padding:"0 2px" }}>
-                  ✕
-                </button>
-              </div>
-            )}
-            {semiActive && (
-              <div style={{ margin:"6px 14px 0", padding:"6px 12px", background:"var(--color-primary-muted)",
-                            color:"var(--color-primary-text)", borderRadius:6, fontSize:11,
-                            display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
-                <span style={{ display:"inline-block", width:7, height:7, borderRadius:"50%",
-                                background:"var(--color-primary)", animation:"pulse 1.5s infinite" }}/>
-                Automation browser is open — fill remaining fields and submit
-              </div>
             )}
 
             {/* Description. PanelShell's body is the scroll container (property 5), so this is a
@@ -472,16 +455,8 @@ export default function JobDetailPanel({
               ) : (
                 <p style={{ fontSize:12, color:"var(--color-text-faint)", fontStyle:"italic" }}>No description available.</p>
               )}
-              {(selectedJob.applyUrl || selectedJob.url) && (
-                <div style={{ marginTop:16, paddingTop:12, borderTop:"1px solid var(--border-glass)" }}>
-                  <a href={selectedJob.applyUrl || selectedJob.url} target="_blank" rel="noreferrer"
-                    style={{ fontSize:12, color:"var(--color-primary-text)", fontWeight:700,
-                              textDecoration:"underline", background:"var(--color-primary-muted)",
-                              padding:"6px 14px", borderRadius:4, display:"inline-block" }}>
-                    Apply directly ↗
-                  </a>
-                </div>
-              )}
+              {/* A63: no second "Apply directly" link here — Apply is the company name in the pinned
+                  header, which stays in view however far the posting is scrolled. */}
             </div>
       </div>
     </PanelShell>

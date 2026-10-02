@@ -242,13 +242,15 @@ test("apply routes convert generated HTML to PDF via htmlToPdf for actual file u
   assert.match(applyRoute, /resumePathPromise/, "must pass resumePathPromise to autoApply");
 });
 
-test("job detail panel has single Apply action and no redundant Manual button", () => {
-  // Single "Apply" action — no ↗ icon prefix, no separate ✎ Manual button
-  assert.match(detailPanel, /: "Apply"/, "Apply button label must be exactly 'Apply'");
-  assert.doesNotMatch(detailPanel, /✎ Manual/, "redundant Manual button must be removed");
-  // Semi-auto apply mechanism must remain intact
-  assert.match(detailPanel, /handleAutoApply/, "semi-auto apply handler must still be present");
-  assert.match(detailPanel, /mode.*semi|semi.*mode/, "Apply action must use semi mode");
+// A63 (owner, O45c, 10-02): the Apply BUTTON is gone — Apply is the company name, a link to the
+// posting. The button it replaces sent mode:"semi" to POST /api/apply, which ignored the mode and
+// recorded the job as applied on the click; a visible browser cannot open headless in production.
+test("job detail panel: Apply is the company-name link — no Apply button, no Manual button", () => {
+  assert.match(detailPanel, /<a href=\{postingUrl\} target="_blank" rel="noopener noreferrer"/,
+    "the company name links to the posting");
+  assert.doesNotMatch(detailPanel, /: "Apply"/, "no separate Apply button");
+  assert.doesNotMatch(detailPanel, /✎ Manual/, "redundant Manual button must stay removed");
+  assert.doesNotMatch(detailPanel, /handleAutoApply/, "the click-to-applied handler is gone");
 });
 
 test("worker generates cover letter in parallel and passes coverLetterPath to autoApply", () => {
