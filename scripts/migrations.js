@@ -3446,4 +3446,29 @@ export const MIGRATIONS = [
          WHERE company = 'Skroutz' AND ats_type = 'workable' AND ats_slug = 'skroutz';
       `,
     },
+    {
+      // A49 (10-02): a duplicate is RETIRED, recorded and restorable — never just demoted, never
+      // hard-deleted. duplicate_of names the canonical row; retired_reason/retired_at say why and
+      // when. job_dedup_log keeps what moved with each retirement (users' Saves, Passes,
+      // applications, resumes) so services/jobs/dedupRetire.js can put it back; restored_at marks a
+      // pair someone kept apart, which dedup then never merges again. Additive only.
+      id: "116_dedup_retire_and_log",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN duplicate_of   TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN retired_reason TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN retired_at     INTEGER;
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_duplicate_of ON scraped_jobs(duplicate_of);
+        CREATE TABLE IF NOT EXISTS job_dedup_log (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          from_job_id TEXT NOT NULL,
+          to_job_id   TEXT NOT NULL,
+          reason      TEXT NOT NULL,
+          moved_json  TEXT,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          restored_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_job_dedup_log_from ON job_dedup_log(from_job_id);
+        CREATE INDEX IF NOT EXISTS idx_job_dedup_log_to   ON job_dedup_log(to_job_id);
+      `,
+    },
   ];

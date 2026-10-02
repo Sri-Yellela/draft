@@ -3813,6 +3813,31 @@ console.log(`[boot] database ready: ${DB_PATH}`);
          WHERE company = 'Skroutz' AND ats_type = 'workable' AND ats_slug = 'skroutz';
       `,
     },
+    {
+      // A49 (10-02): a duplicate is RETIRED, recorded and restorable — never just demoted, never
+      // hard-deleted. duplicate_of names the canonical row; retired_reason/retired_at say why and
+      // when. job_dedup_log keeps what moved with each retirement (users' Saves, Passes,
+      // applications, resumes) so services/jobs/dedupRetire.js can put it back; restored_at marks a
+      // pair someone kept apart, which dedup then never merges again. Additive only.
+      id: "116_dedup_retire_and_log",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN duplicate_of   TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN retired_reason TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN retired_at     INTEGER;
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_duplicate_of ON scraped_jobs(duplicate_of);
+        CREATE TABLE IF NOT EXISTS job_dedup_log (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          from_job_id TEXT NOT NULL,
+          to_job_id   TEXT NOT NULL,
+          reason      TEXT NOT NULL,
+          moved_json  TEXT,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          restored_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_job_dedup_log_from ON job_dedup_log(from_job_id);
+        CREATE INDEX IF NOT EXISTS idx_job_dedup_log_to   ON job_dedup_log(to_job_id);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -4015,13 +4040,12 @@ try {
 // Cache cleanup — removes scraped_jobs older than 7 days, then re-warms if empty
 function runCacheCleanup() {
   try {
-    const cutoff = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
-    const removed = db.prepare("DELETE FROM scraped_jobs WHERE scraped_at < ?").run(cutoff);
-    if (removed.changes > 0) {
-      console.log(`[Cache] Removed ${removed.changes} expired jobs`);
-      // Also clean orphaned job_role_map entries
-      db.prepare("DELETE FROM job_role_map WHERE job_id NOT IN (SELECT job_id FROM scraped_jobs)").run();
-    }
+    // ⛔ A49 fix 5 — this was a second, UNGUARDED expiry: a bare delete of every scraped_jobs row
+    // whose scraped_at was past the cutoff, on a 24h setInterval from boot. It deleted
+    // starred and APPLIED rows (which runExpiredJobsCleanup exempts), retired duplicates, and ran
+    // with no blast-radius brake and no cleanup_log record — the cleanup_log id-85 shape, unlogged.
+    // There is one expiry policy, and this now runs it.
+    runExpiredJobsCleanup();
     const remaining = db.prepare("SELECT COUNT(*) as n FROM scraped_jobs WHERE is_active = 1").get()?.n || 0;
     if (remaining === 0) {
       console.log("[Cache] Empty after cleanup — re-warming from ATS...");
@@ -4494,6 +4518,11 @@ async function scrapeJobs(query, apifyToken, scrapeParams = {}, domainProfileId 
         company_icon_url: item.companyLogoUrl || null,
         workplace_type: wt || null,
         posted_at: normalizePostedAt(item.postedAt, nowUnix),
+        // A49 fix 3 — the salary goes INTO the deduper, so a fold donates it to the canonical row
+        // and a win inherits the outranked row's figure; the insert below writes canonical.*.
+        salary_min:      item.salaryMin      || null,
+        salary_max:      item.salaryMax      || null,
+        salary_currency: item.salaryCurrency || null,
       });
       if (dedup.action === 'fold') {
         return; // superseded by an existing canonical row for this role — no separate row written
@@ -4523,9 +4552,9 @@ async function scrapeJobs(query, apifyToken, scrapeParams = {}, domainProfileId 
         hash,
         nowUnix,
         'linkedin',
-        item.salaryMin      || null,
-        item.salaryMax      || null,
-        item.salaryCurrency || null,
+        canonical.salary_min      ?? null,
+        canonical.salary_max      ?? null,
+        canonical.salary_currency ?? null,
         item.applicantCount || null,
         canonical.company_icon_url || null,
         empType,
@@ -4800,7 +4829,15 @@ function runExpiredJobsCleanup() {
     AND job_id NOT IN (
       SELECT DISTINCT job_id FROM user_jobs WHERE starred = 1
     )
+    AND NOT (duplicate_of IS NOT NULL
+             AND duplicate_of IN (SELECT job_id FROM scraped_jobs))
   `;
+  // ⛔ A49 fix 5 — A RETIRED DUPLICATE IS NOT EXPIRED. Dedup retires a row (is_active = 0,
+  // duplicate_of, retired_reason — services/jobs/dedupRetire.js) and never refreshes its scraped_at,
+  // so seven days later this DELETE took every one of them: a wrong merge became unrecoverable on a
+  // timer. It stays, restorable, for as long as the row it was merged into exists; once that
+  // canonical row is itself gone there is nothing left to restore it against, and it expires
+  // with the ordinary rule on a later pass.
   const boardTotal = db.prepare("SELECT COUNT(*) c FROM scraped_jobs").get().c;
   const wouldDelete = db.prepare(`SELECT COUNT(*) c FROM scraped_jobs WHERE ${EXPIRED_PREDICATE}`).get(cutoff).c;
   const scope = assessCleanupScope({ total: boardTotal, deletable: wouldDelete, ...cleanupBrakeOptions() });
@@ -8347,12 +8384,16 @@ app.post("/api/jobs/search", requireAuth, async (req, res) => {
               (job_id, _hash, title, company, location, url, source, source_label,
                via, bucket_role, bucket_seniority, bucket_domain,
                company_icon_url, direct_apply, posted_at, scraped_at,
-               fingerprint, sources_seen, req_uid, automation_tier)
+               fingerprint, sources_seen, req_uid, automation_tier,
+               description, salary_min, salary_max, salary_currency,
+               salary_min_usd, salary_max_usd, salary_period)
             VALUES
               (@job_id, @_hash, @title, @company, @location, @url, @source, @source_label,
                @via, @bucket_role, @bucket_seniority, @bucket_domain,
                @company_icon_url, @direct_apply, @posted_at, strftime('%s','now'),
-               @fingerprint, @sources_seen, @req_uid, @automation_tier)
+               @fingerprint, @sources_seen, @req_uid, @automation_tier,
+               @description, @salary_min, @salary_max, @salary_currency,
+               @salary_min_usd, @salary_max_usd, @salary_period)
           `);
           const insertMany = db.transaction((jobs) => {
             for (const j of jobs) {
@@ -8371,6 +8412,14 @@ app.post("/api/jobs/search", requireAuth, async (req, res) => {
                 company_icon_url: j.companyIconUrl || j.company_icon_url || j.thumbnail || null,
                 workplace_type:   j.workplaceType || j.workplace_type || null,
                 posted_at:        j.postedAt || j.posted_at || null,
+                // A49 fix 3 — the pay goes into the deduper too, so a fold DONATES it to the
+                // canonical row (unionMergeFields fills blanks only) instead of dropping it.
+                salary_min:       j.salary_min      ?? null,
+                salary_max:       j.salary_max      ?? null,
+                salary_currency:  j.salary_currency ?? null,
+                salary_min_usd:   j.salary_min_usd  ?? null,
+                salary_max_usd:   j.salary_max_usd  ?? null,
+                salary_period:    j.salary_period   ?? null,
               });
               if (dedup.action === 'fold') continue; // no separate row for this duplicate
               const canonical = dedup.job;
@@ -8397,6 +8446,16 @@ app.post("/api/jobs/search", requireAuth, async (req, res) => {
                 // This insert writes no apply_url column at all, so `url` IS the apply
                 // destination — the same value mapJobRow will hand the client as applyUrl.
                 automation_tier:  deriveAutomationTier(j.source || 'serpapi', j.url || ''),
+                // A49 fix 3 — this INSERT carried no description and no pay at all, so a live
+                // result that WON (outranked an aggregator row) lost what that row donated, and a
+                // new row was born empty. canonical.* is the result already union-merged.
+                description:      canonical.description     || null,
+                salary_min:       canonical.salary_min      ?? null,
+                salary_max:       canonical.salary_max      ?? null,
+                salary_currency:  canonical.salary_currency ?? null,
+                salary_min_usd:   canonical.salary_min_usd  ?? null,
+                salary_max_usd:   canonical.salary_max_usd  ?? null,
+                salary_period:    canonical.salary_period   ?? null,
               });
             }
           });

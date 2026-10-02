@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { validatePlugin } from './sources/base.js';
-import { stripInternalFields, computeFingerprint, computeReqUid, normalizeEmploymentType } from './schema.js';
+import { stripInternalFields, computeFingerprint, computeReqUid, reqUidNamespace, normalizeEmploymentType } from './schema.js';
 import { filterDirectApplyOnly, DIRECT_ATS_SOURCES } from './directApplyFilter.js';
 import { deriveAutomationTier } from './automationTier.js';
 import { classifyJob, ROLE_KEY_FALLBACK } from './classifyJob.js';
@@ -8,6 +8,7 @@ import { getKnownLogoUrl } from './enrichLogos.js';
 import { drainEnrichment } from './enrichJob.js';
 import { recordPipelineRun } from './pipelineRunLog.js';
 import { usEligibility, officeLocations } from './usLocation.js';
+import { retireDuplicate, keptApart } from './dedupRetire.js';
 
 // ─── REGISTER SOURCES HERE ───────────────────────────────────────────────────
 // To add a new source: import it and add to SOURCES array.
@@ -172,8 +173,9 @@ function getFingerprintStmts(db) {
         WHERE fingerprint = ? AND job_id != ? AND is_active = 1
         ORDER BY updated_at DESC
       `),
-      findOwnSourcesSeen: db.prepare(`SELECT sources_seen FROM scraped_jobs WHERE job_id = ?`),
-      demote: db.prepare(`UPDATE scraped_jobs SET is_active = 0 WHERE job_id = ?`),
+      // SELECT * rather than named columns: duplicate_of (migration 116) is read off it, and the
+      // hand-rolled fixtures many tests build do not all carry that column.
+      findOwnRow: db.prepare(`SELECT * FROM scraped_jobs WHERE job_id = ?`),
       foldIntoExisting: db.prepare(`
         UPDATE scraped_jobs SET
           description            = @description,
@@ -535,13 +537,29 @@ function upsertCanonicalJob(db, {
 // the orphaned hash-only row instead of creating its own — aggregators carry no req id, so
 // this ambiguity can't be fully resolved from their data alone. Distinct siblings still never
 // silently disappear once each has arrived from a source that DOES carry a req_uid.
+//
+// A49 fix 1 — req_uids are compared only WITHIN a namespace (schema.js reqUidNamespace). The old
+// rule treated ANY two different non-null req_uids as distinct siblings, and req_uids were
+// namespaced by the carrying source, so `jobo:acme:77` against `ashby:acme:<uuid>` — one posting —
+// read as two requisitions and never merged; neither did a company's Greenhouse and Ashby copies
+// while it moved ATS. Now:
+//   - exact req_uid                         → same job (unchanged)
+//   - same namespace, different req_uid     → a distinct sibling req, NEVER merged (unchanged)
+//   - different namespace, or no req_uid    → the ids say nothing; the fingerprint decides
+// ⛔ AMBIGUITY REFUSES TO MERGE. If more than one cross-namespace candidate carries a distinct
+// req_uid, the incoming row cannot say which sibling it is, and guessing could demote a real job;
+// it gets its own row instead (a visible duplicate is recoverable, a hidden distinct job is not).
 function selectMatch(candidates, reqUid) {
   if (!candidates.length) return null;
   if (reqUid) {
     const exact = candidates.find(c => c.req_uid === reqUid);
     if (exact) return exact;
+    const ns = reqUidNamespace(reqUid);
     const hashOnly = candidates.find(c => !c.req_uid);
-    return hashOnly || null;
+    if (hashOnly) return hashOnly;
+    const foreign = candidates.filter(c => reqUidNamespace(c.req_uid) !== ns);
+    const distinct = new Set(foreign.map(c => c.req_uid));
+    return distinct.size === 1 ? foreign[0] : null;
   }
   return candidates.find(c => c.req_uid) || candidates[0];
 }
@@ -569,13 +587,20 @@ function reconcileFingerprint(db, job) {
   const reqUid      = computeReqUid(job);
   const jobId       = job.id || job.url || '';
 
-  const candidates = stmts.findCandidates.all(fingerprint, jobId);
+  // A pair someone restored apart (dedupRetire.restoreRetiredDuplicate) is never merged again —
+  // otherwise a restore would last exactly until the next crawl.
+  const candidates = stmts.findCandidates.all(fingerprint, jobId)
+    .filter(c => !keptApart(db, jobId, c.job_id));
   const existing   = selectMatch(candidates, reqUid);
+  const now        = Math.floor(Date.now() / 1000);
 
   if (!existing) {
     // Either nothing shares this fingerprint, or (reqUid set) every same-fingerprint row is a
     // confirmed-distinct sibling req — either way this job gets its own canonical row.
-    const own = stmts.findOwnSourcesSeen.get(jobId);
+    const own = stmts.findOwnRow.get(jobId);
+    // A row once retired as a duplicate whose canonical has since gone (closed, pruned) is a
+    // canonical row again: it must not keep claiming to be a duplicate of something.
+    if (own?.duplicate_of) unretire(db, jobId);
     const sourcesSeen = mergeSourcesSeen(own?.sources_seen, job.source);
     return { action: 'insert_canonical', job, sourcesSeen, fingerprint, reqUid };
   }
@@ -585,8 +610,20 @@ function reconcileFingerprint(db, job) {
   if (incomingWins) {
     const sourcesSeen = mergeSourcesSeen(existing.sources_seen, existing.source, job.source);
     const merged      = unionMergeFields(job, existing);
-    stmts.demote.run(existing.job_id);
+    // A49 fix 4 — retired, not just demoted: the users' Saves, Passes, applications and résumés on
+    // the outranked row move to this one (dedupRetire.js), and the retirement is logged.
+    retireDuplicate(db, { fromJobId: existing.job_id, toJobId: jobId, now });
+    const own = stmts.findOwnRow.get(jobId);
+    if (own?.duplicate_of) unretire(db, jobId);
     const finalReqUid = reqUid || existing.req_uid || null;
+    // A49 fix 3 — when this job ALREADY has a row, the caller may not rewrite it: the unchanged-
+    // crawl path only touches timestamps, and LinkedIn / live-search write with INSERT OR IGNORE.
+    // The outranked row's donation (a salary, a description) would then be computed and dropped.
+    // Fill the blanks on the existing row here, the same blank-only rule as the fold path.
+    if (own) {
+      const donated = unionMergeFields(own, existing);
+      stmts.foldIntoExisting.run({ ...donated, sources_seen: sourcesSeen, req_uid: finalReqUid, job_id: jobId });
+    }
     return { action: 'insert_canonical', job: merged, sourcesSeen, fingerprint, reqUid: finalReqUid };
   }
 
@@ -596,7 +633,17 @@ function reconcileFingerprint(db, job) {
   const mergedExisting  = unionMergeFields(existing, job);
   const finalReqUid     = existing.req_uid || reqUid || null;
   stmts.foldIntoExisting.run({ ...mergedExisting, sources_seen: sourcesSeen, req_uid: finalReqUid, job_id: existing.job_id });
+  // A49 fix 4 — the incoming job_id may already be a board row (a re-crawl of a posting that has
+  // since been outranked) or carry user state without a row (a live-search result starred before
+  // write-back). Either way it resolves to the canonical row now; nothing a user did stays on an id
+  // the board will never show again.
+  retireDuplicate(db, { fromJobId: jobId, toJobId: existing.job_id, now });
   return { action: 'fold', intoJobId: existing.job_id, fingerprint, reqUid: finalReqUid };
+}
+
+function unretire(db, jobId) {
+  db.prepare(`UPDATE scraped_jobs SET duplicate_of = NULL, retired_reason = NULL, retired_at = NULL
+              WHERE job_id = ?`).run(jobId);
 }
 
 /**

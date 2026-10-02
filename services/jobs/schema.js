@@ -8,6 +8,7 @@
  */
 
 import { EXPERIENCE_LEVELS, WORK_MODELS, valueSet } from '../../shared/jobFilterOptions.js';
+import { segments as locationSegments, US_STATES } from './usLocation.js';
 
 const JOB_SCHEMA_VERSION = '1.1';
 
@@ -101,15 +102,94 @@ function normalizeForFingerprint(str) {
 }
 
 // A location field can list more than one office ("New York, NY / Remote");
-// the fingerprint keys on the first (primary) one only.
+// the fingerprint keys on the first (primary) one only. Split exactly as the A37 US gate splits
+// (usLocation.segments): `|`, `;`, `•`, " / ", lower-case " or " / " and ", parentheses. The old
+// split used `\bor\b` case-INsensitively, which cut "Portland, OR" in half.
 function primaryLocationSegment(location) {
-  return String(location || '').split(/\s*(?:\/|;|\||\bor\b)\s*/i)[0];
+  return locationSegments(String(location || ''))[0] || '';
+}
+
+// ── A49 fix 2 — the fingerprint keys on the PLACE, not on how a source spelled it ─────────────
+// Measured on the local board with simulated aggregator echoes of each US row (scripts/
+// a49FingerprintMeasure.mjs): "City, ST" merged 35.3%, "City, State" 5.0%, ", Inc." 0%,
+// " - Remote" 0% — because the key was the exact normalized string, so "San Francisco",
+// "San Francisco, CA" and "San Francisco, California, United States" were three places.
+//
+// ⛔ ONE ROLE IN DIFFERENT CITIES IS NEVER MERGED. Everything below only ever REMOVES spelling
+// differences of the SAME place; it never drops a city. A state is inferred for a bare city only
+// from the short list of cities that are unambiguous on this board (no Portland, no Dublin, no
+// bare Washington), and a qualified city keeps its own state — "Dublin" (Ireland) and
+// "Dublin, CA" stay two keys, as do "Portland, OR" and "Portland, ME".
+const STATE_CODE_BY_NAME = Object.fromEntries(Object.entries(US_STATES).map(([code, name]) => [name, code.toLowerCase()]));
+const STATE_CODES = new Set(Object.keys(US_STATES).map(c => c.toLowerCase()));
+const US_COUNTRY = new Set(['united states', 'united states of america', 'usa', 'us', 'u s', 'u s a', 'america']);
+const CITY_ALIASES = {
+  'sf': 'san francisco', 'nyc': 'new york', 'new york city': 'new york', 'new-york': 'new york',
+  'sea': 'seattle', 'chi': 'chicago', 'atl': 'atlanta',
+};
+const UNAMBIGUOUS_CITY_STATE = {
+  'san francisco': 'ca', 'south san francisco': 'ca', 'new york': 'ny', 'seattle': 'wa', 'chicago': 'il',
+  'austin': 'tx', 'boston': 'ma', 'los angeles': 'ca', 'palo alto': 'ca', 'mountain view': 'ca',
+  'menlo park': 'ca', 'sunnyvale': 'ca', 'redwood city': 'ca', 'san diego': 'ca', 'santa monica': 'ca',
+  'west hollywood': 'ca', 'denver': 'co', 'atlanta': 'ga', 'pittsburgh': 'pa', 'philadelphia': 'pa',
+  'salt lake city': 'ut', 'houston': 'tx', 'dallas': 'tx', 'minneapolis': 'mn', 'nashville': 'tn',
+};
+const REMOTE_RE = /\b(remote|rem|remote first|remote friendly|work from home|wfh|anywhere)\b/;
+// Words that qualify a remote posting without naming a region.
+const REMOTE_FILLER = /\b(remote|rem|first|friendly|travel|required|based|in|from|the|within|national|eligible|open|to|only|wfh|work|home|anywhere)\b/g;
+const OFFICE_FILLER = /\b(hq|headquarters|main office|office|privy)\b/g;
+const WORKPLACE_PREFIX = /^(hybrid|on site|onsite|in office)\s+/;
+
+function fingerprintLocation(location) {
+  const raw = String(primaryLocationSegment(location)).replace(/^(us|usa)\s*[-–:]\s*/i, '');
+  const seg = normalizeForFingerprint(raw);
+  if (!seg) return '';
+  // Commas join a city to its state, so the RAW segment is split for structure.
+  const parts = raw.split(',').map(p => normalizeForFingerprint(p).replace(WORKPLACE_PREFIX, '')
+    .replace(OFFICE_FILLER, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean);
+  if (parts.length && REMOTE_RE.test(parts[0])) {
+    // "US - Remote", "Remote (US)", "Remote in the US", "Remote, US": one place — remote, US.
+    // "Remote - Canada" keeps its region: a different market is a different job. Only when the
+    // FIRST place is remote — "SF, NYC, Remote" is San Francisco.
+    const region = parts.join(' ').replace(REMOTE_FILLER, ' ').split(' ')
+      .filter(w => w && !US_COUNTRY.has(w)).join(' ');
+    return region ? `remote ${region}` : 'remote';
+  }
+  while (parts.length > 1 && US_COUNTRY.has(parts[parts.length - 1])) parts.pop();
+  if (!parts.length) return seg;
+  let city = parts[0];
+  city = CITY_ALIASES[city] || city;
+  if (US_COUNTRY.has(city)) return 'united states';
+  // The second comma part is a state only when it IS one; "San Francisco, Seattle" is a list, and
+  // its first city is the location. A non-US region ("London, UK") is kept as written.
+  const second = parts[1];
+  let state = null;
+  if (second) {
+    if (STATE_CODES.has(second)) state = second;
+    else if (STATE_CODE_BY_NAME[second]) state = STATE_CODE_BY_NAME[second];
+    else if (!UNAMBIGUOUS_CITY_STATE[CITY_ALIASES[second] || second] && !REMOTE_RE.test(second)) state = second;
+  }
+  if (!state && UNAMBIGUOUS_CITY_STATE[city]) state = UNAMBIGUOUS_CITY_STATE[city];
+  return state ? `${city} ${state}` : city;
+}
+
+// Legal-form suffixes only — never a word that is part of the name ("Scale AI" stays "scale ai").
+const COMPANY_SUFFIX = /(?:\s+(?:inc|incorporated|llc|l l c|ltd|limited|corp|corporation|co|plc|gmbh|pbc|lp|l p))+$/;
+function fingerprintCompany(company) {
+  return normalizeForFingerprint(company).replace(COMPANY_SUFFIX, '').trim();
+}
+
+// A trailing workplace qualifier an aggregator appends to the title: "Engineer - Remote",
+// "Engineer (Remote, US)", "Engineer, Hybrid". Only at the END, only these words.
+const TITLE_WORKPLACE_SUFFIX = /\s*(?:[-–—|,]\s*|\(\s*)(?:remote|hybrid|on-?site)(?:\s*[-–,]?\s*(?:us|usa|united states))?\s*\)?\s*$/i;
+function fingerprintTitle(title) {
+  return normalizeForFingerprint(String(title || '').replace(TITLE_WORKPLACE_SUFFIX, ''));
 }
 
 function computeFingerprint({ company, title, location }) {
-  const c = normalizeForFingerprint(company);
-  const t = normalizeForFingerprint(title);
-  const l = normalizeForFingerprint(primaryLocationSegment(location));
+  const c = fingerprintCompany(company);
+  const t = fingerprintTitle(title);
+  const l = fingerprintLocation(location);
   return `${c}|${t}|${l}`;
 }
 
@@ -122,9 +202,68 @@ function computeFingerprint({ company, title, location }) {
 // from the same posting seen twice. Namespaced with source AND company — a bare req id can
 // collide across unrelated sources/companies (e.g. two different Workday tenants both
 // numbering requisitions "R100" independently).
-function computeReqUid({ source, company, req_id }) {
-  if (!req_id) return null;
-  return `${source}:${normalizeForFingerprint(company)}:${req_id}`;
+//
+// ⛔ A49 fix 1 — THE NAMESPACE IS THE REQUISITION'S HOME ATS, NOT THE SOURCE THAT CARRIED IT.
+// It used to be `source` outright, so the same Ashby posting reached through Jobo got
+// `jobo:linear:<jobo's own id>` while the Ashby crawl wrote `ashby:linear:<uuid>`. selectMatch
+// reads two different non-null req_uids as two distinct sibling reqs, so the pair could NEVER
+// merge — the canonical priority (direct ATS > provider > aggregator > import) never got a vote.
+// A non-ATS source whose URL is a known ATS posting URL now gets the identity the ATS crawl itself
+// computes, so the pair matches EXACTLY (not by fingerprint), and a sibling req at the same
+// company/title/city still keeps its own row. A direct-ATS source keeps the formula it always had,
+// so no stored ATS req_uid changes meaning.
+const DIRECT_ATS_NAMESPACES = new Set([
+  'greenhouse', 'lever', 'ashby', 'workday', 'smartrecruiters', 'workable', 'recruitee',
+]);
+
+// The posting's identity on the ATS that owns it, read from its URL — or null. Pure, and only
+// ever answers for a URL whose path actually carries the id (an ATS host with no id in the path
+// is null, not a guess). The ids are the ones each ATS plugin stores as req_id: Greenhouse's
+// numeric job id (also `gh_jid` on a company-hosted careers page, which is what Greenhouse's own
+// absolute_url often is), Lever's and Ashby's posting uuids, SmartRecruiters' numeric id and
+// Workable's shortcode. Recruitee and Workday expose no id in their public URLs.
+function atsPostingIdentity(url) {
+  let u;
+  try { u = new URL(String(url || '')); } catch { return null; }
+  const host = u.hostname.toLowerCase();
+  const path = u.pathname;
+  const ghJid = u.searchParams.get('gh_jid');
+  if (ghJid && /^\d+$/.test(ghJid)) return { type: 'greenhouse', externalId: ghJid };
+  let m;
+  if (/(^|\.)greenhouse\.io$/.test(host) && (m = path.match(/\/jobs\/(\d+)/))) {
+    return { type: 'greenhouse', externalId: m[1] };
+  }
+  if (host === 'jobs.lever.co' && (m = path.match(/^\/[^/]+\/([0-9a-f]{8}-[0-9a-f-]{27,})/i))) {
+    return { type: 'lever', externalId: m[1].toLowerCase() };
+  }
+  if (host === 'jobs.ashbyhq.com' && (m = path.match(/^\/[^/]+\/([0-9a-f]{8}-[0-9a-f-]{27,})/i))) {
+    return { type: 'ashby', externalId: m[1].toLowerCase() };
+  }
+  if (host === 'jobs.smartrecruiters.com' && (m = path.match(/^\/[^/]+\/(\d+)(?:-|$)/))) {
+    return { type: 'smartrecruiters', externalId: m[1] };
+  }
+  if (host === 'apply.workable.com' && (m = path.match(/\/j\/([a-z0-9]+)/i))) {
+    return { type: 'workable', externalId: m[1] };
+  }
+  return null;
+}
+
+function computeReqUid({ source, company, req_id, url }) {
+  const c = normalizeForFingerprint(company);
+  if (DIRECT_ATS_NAMESPACES.has(source)) return req_id ? `${source}:${c}:${req_id}` : null;
+  const home = atsPostingIdentity(url);
+  if (home) return `${home.type}:${c}:${home.externalId}`;
+  return req_id ? `${source}:${c}:${req_id}` : null;
+}
+
+// The namespace a req_uid was minted in — the part before the first ':'. Two req_uids are only
+// COMPARABLE when they share it: within one namespace a different id is a different requisition,
+// across namespaces (a Jobo id against an Ashby uuid, a company's Greenhouse id against its new
+// Ashby uuid) the ids say nothing about each other and the fingerprint has to decide.
+function reqUidNamespace(reqUid) {
+  if (!reqUid) return null;
+  const i = String(reqUid).indexOf(':');
+  return i === -1 ? String(reqUid) : String(reqUid).slice(0, i);
 }
 
 /**
@@ -269,4 +408,4 @@ function normalizeEmploymentType(raw) {
       ?? null;
 }
 
-export { normalizeJob, stripInternalFields, JOB_SCHEMA_VERSION, computeFingerprint, normalizeForFingerprint, computeReqUid, normalizeEmploymentType };
+export { normalizeJob, stripInternalFields, JOB_SCHEMA_VERSION, computeFingerprint, normalizeForFingerprint, computeReqUid, reqUidNamespace, atsPostingIdentity, normalizeEmploymentType };
