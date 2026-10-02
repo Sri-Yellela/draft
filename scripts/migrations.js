@@ -3506,4 +3506,17 @@ export const MIGRATIONS = [
           ON admin_audit_log(action, target);
       `,
     },
+    {
+      // A59 (10-02): A DRAFT WAITS IN LINE (owner, O44). A Draft made while one of the user's runs is
+      // active used to be refused 429 run_already_active; it now waits as an apply_runs row with
+      // status 'waiting', and line_position is its place (lowest starts next). NULL on every other
+      // status, so existing rows need nothing. The waiting run's jobs keep status 'queued', which is
+      // what keeps the duplicate filter, the caps and the outcome partition unchanged.
+      id: "120_apply_run_line",
+      sql: `
+        ALTER TABLE apply_runs ADD COLUMN line_position INTEGER;
+        CREATE INDEX IF NOT EXISTS idx_apply_runs_line
+          ON apply_runs(user_id, status, line_position);
+      `,
+    },
   ];

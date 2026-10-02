@@ -9,6 +9,8 @@
 //
 //   Draft  POST  /api/apply/runs   { jobIds:[id], mode:"auto", tool, surface }   ⛔ never approvalMode
 //          — previewed and parked for review; the route refuses approvalMode from a decision surface.
+//          A59: while another draft is running it WAITS IN LINE (202, waiting:true, line:{position,
+//          length}) — never refused — and can be edited, reordered or removed in Auto Apply.
 //   Pass   PATCH /api/jobs/interact { jobId, disliked:true, starred:false }       a SET, never a toggle
 //   Save   PATCH /api/jobs/interact { jobId, starred:true, disliked:false }       a SET, never a toggle
 //   Undo   abort the drafted run-job / put back exactly the flags the decision changed
@@ -32,6 +34,13 @@ export const DECISION_AFTER = Object.freeze({
   passed: "it won't come back",
   saved: "it's in Saved on the board",
 });
+
+/** A59: the toast's second half for a Draft that waits in line rather than starting now. */
+export function lineAfter(line) {
+  if (!line?.position) return DECISION_AFTER.drafted;
+  return `it waits in line (${line.position} of ${line.length}) and starts when the draft ahead of it finishes — ` +
+    "edit, reorder or remove it in Auto Apply";
+}
 
 /** The flags a Save or a Pass SETS. They are exclusive: saving a passed job un-passes it, and back. */
 export function flagsFor(decision) {
@@ -58,15 +67,16 @@ export function isDrafted(applyState) {
 }
 
 /**
- * Commit one decision on one job. Resolves to `{ runId }` for a draft, `{}` otherwise; rejects with
- * the server's own sentence on a refusal (409 prerequisite, 429 cap, 400 already drafted).
+ * Commit one decision on one job. Resolves to `{ runId, line }` for a draft (`line` is null when it
+ * started at once, `{ position, length }` when it waits in line — A59), `{}` otherwise; rejects
+ * with the server's own sentence on a refusal (409 prerequisite, 429 cap, 400 already drafted).
  */
 export async function commitDecision({ jobId, decision, tool, surface, api = defaultApi }) {
   if (!jobId) throw new Error("jobId required");
   if (decision === DECISIONS.DRAFTED) {
     const r = await api("/api/apply/runs", { method: "POST",
       body: JSON.stringify({ jobIds: [jobId], mode: "auto", tool, surface }) });
-    return { runId: r?.runId ?? null };
+    return { runId: r?.runId ?? null, line: r?.waiting ? (r.line ?? null) : null };
   }
   await api("/api/jobs/interact", { method: "PATCH",
     body: JSON.stringify({ jobId, ...flagsFor(decision) }) });

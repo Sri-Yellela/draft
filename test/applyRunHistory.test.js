@@ -134,7 +134,9 @@ test("AC4: every status the SERVER WRITES lands in exactly one group", () => {
   for (const m of applySource.matchAll(/finalStatus = \w+ \? "([a-z_]+)"/g)) written.add(m[1]);
   // Statuses that appear in the source as COMPARISONS against other tables, not as writes to
   // apply_run_jobs. Named individually so the exclusion is auditable rather than a loose filter.
-  for (const notARunJobStatus of ["manual", "completed", "queued_x"]) written.delete(notARunJobStatus);
+  // A59: 'waiting' and 'interrupted' are written to apply_RUNS (the line, and a run orphaned by a
+  // restart) — a waiting run's jobs stay 'queued', an interrupted one's become 'failed'.
+  for (const notARunJobStatus of ["manual", "completed", "queued_x", "waiting", "interrupted"]) written.delete(notARunJobStatus);
 
   const mapped = Object.values(OUTCOME_STATUSES).flat();
   assert.equal(new Set(mapped).size, mapped.length, `a status is DOUBLE-mapped: ${mapped.join(", ")}`);

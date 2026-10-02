@@ -31,6 +31,8 @@ import { companyLabel, UNKNOWN_COMPANY } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { C } from "../styles/colorTokens.js";
 import { TYPE } from "../styles/type.js";
+import WaitingLine from "../components/WaitingLine.jsx";
+import { A_PLUS_TOOL } from "../lib/applyTools.js";
 
 // ============================================================
 // AutoApplyPanel — the auto-apply pipeline, on its own tab
@@ -64,6 +66,9 @@ export function AutoApplyPanel() {
     applyHandoffPackets = [], handoffPacketFor, openHandoff, handoffMsg, setHandoffMsg,
     applyInFlight = [], applySubmitted = [], applyStopped = [], applyGatedJobs = [],
     applyPrereqMissing = [],
+    // A59: Drafts waiting in line behind the running one, editable until they start.
+    applyLine = { waiting: [], held: null }, lineMsg, lineBusyId, setLineTool, moveInLine, removeFromLine,
+    draftTool,
     applyRunDetailOpen, setApplyRunDetailOpen,
     applyRunDetail, setApplyRunDetail,
     applyReviewScope, setApplyReviewScope,
@@ -90,7 +95,7 @@ export function AutoApplyPanel() {
     // The four cross-run feeds count too: a user whose only applications are SUBMITTED used to be
     // told "Nothing queued" over the top of their own sent applications.
     !applyInFlight.length && !applySubmitted.length && !applyStopped.length &&
-    !applyPrereqMissing.length;
+    !applyPrereqMissing.length && !(applyLine.waiting || []).length;
 
   // ── Grouping ────────────────────────────────────────────────────────────────────────────────
   //
@@ -637,6 +642,14 @@ export function AutoApplyPanel() {
             submitted, nor waiting on the user, nor broken — so filing it under any of the three would
             be a claim about it that is not true, and dropping it would lose a capability. It reads as
             progress, which is what it is: small, self-clearing, and out of the way. */}
+        {/* ── WAITING IN LINE (A59) ─────────────────────────────────────────────────────────────
+            Above In flight because it is the one place in this band where the user can still change
+            what will happen: a waiting Draft has not started, so its tool, place and presence are
+            theirs to edit. Once it starts it moves to In flight and only Stop applies. */}
+        <WaitingLine line={applyLine} theme={theme} busyId={lineBusyId} message={lineMsg}
+          canUseAPlus={draftTool === A_PLUS_TOOL}
+          onTool={setLineTool} onMove={moveInLine} onRemove={removeFromLine} />
+
         {applyInFlight.length > 0 && (
           <>
             <SectionHeading theme={theme} count={applyInFlight.length} note="nothing to do — these clear themselves">

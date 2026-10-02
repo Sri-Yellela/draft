@@ -42,7 +42,8 @@ function setup({ planTier = "PRO", env = {} } = {}) {
     CREATE TABLE apply_runs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, mode TEXT, approval_mode TEXT,
       tool_type TEXT, status TEXT, total_jobs INTEGER, held_count INTEGER DEFAULT 0,
       submitted_count INTEGER DEFAULT 0, failed_count INTEGER DEFAULT 0,
-      created_at INTEGER DEFAULT (unixepoch()), started_at INTEGER, finished_at INTEGER);
+      created_at INTEGER DEFAULT (unixepoch()), started_at INTEGER, finished_at INTEGER,
+      line_position INTEGER);
     CREATE TABLE apply_run_jobs (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, user_id INTEGER, approved_at INTEGER, approved_from_run_job_id INTEGER,
       job_id TEXT, status TEXT, reason_code TEXT, reason_detail TEXT, started_at INTEGER,
       finished_at INTEGER, created_at INTEGER DEFAULT (unixepoch()),
@@ -201,15 +202,19 @@ test("semi mode is not subject to the daily cap — a human submits those", asyn
   } finally { restore(); }
 });
 
-test("a user may not stack concurrent runs", async () => {
+// A59 (owner, O44, 10-02): runs still do not STACK — but a second one now waits in line instead of
+// being refused 429 run_already_active. The line itself is tested in a59DraftLine.test.js.
+test("a user may not stack concurrent runs — the second WAITS rather than running alongside", async () => {
   const { db, baseUrl, restore } = setup();
   try {
     db.prepare("INSERT INTO apply_runs (user_id, mode, tool_type, status, total_jobs) VALUES (1,'auto','generate','running',1)").run();
     const res = await post(baseUrl, "/api/apply/runs", { jobIds: ["a"], mode: "manual" });
-    assert.equal(res.status, 429);
+    assert.equal(res.status, 202);
     const body = await res.json();
-    assert.equal(body.error, "run_already_active");
-    assert.equal(body.limit, 1);
+    assert.equal(body.waiting, true);
+    assert.equal(db.prepare("SELECT status FROM apply_runs WHERE id=?").pluck().get(body.runId), "waiting",
+      "admitted, but not started: one active run at a time still holds");
+    assert.equal(db.prepare("SELECT COUNT(*) FROM apply_runs WHERE status IN ('queued','running')").pluck().get(), 1);
   } finally { restore(); }
 });
 

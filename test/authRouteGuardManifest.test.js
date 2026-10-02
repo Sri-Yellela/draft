@@ -258,6 +258,12 @@ const AUTHENTICATED = new Set([
   "POST /api/apply/runs",
   "GET /api/apply/runs",
   "GET /api/apply/runs/:runId",
+  // A59: the user's own line of waiting Drafts — viewed and edited by its owner only.
+  "GET /api/apply/line",
+  "PATCH /api/apply/line/:runId",
+  "POST /api/apply/line/order",
+  "DELETE /api/apply/line/:runId",
+  "DELETE /api/apply/line/:runId/jobs/:runJobId",
   "GET /api/apply/review",
   "GET /api/apply/run-jobs/:runJobId/review",
   // AH5: the fill log — what this run put in the form and what it did not. On demand, so it is

@@ -3876,6 +3876,19 @@ console.log(`[boot] database ready: ${DB_PATH}`);
           ON admin_audit_log(action, target);
       `,
     },
+    {
+      // A59 (10-02): A DRAFT WAITS IN LINE (owner, O44). A Draft made while one of the user's runs is
+      // active used to be refused 429 run_already_active; it now waits as an apply_runs row with
+      // status 'waiting', and line_position is its place (lowest starts next). NULL on every other
+      // status, so existing rows need nothing. The waiting run's jobs keep status 'queued', which is
+      // what keeps the duplicate filter, the caps and the outcome partition unchanged.
+      id: "120_apply_run_line",
+      sql: `
+        ALTER TABLE apply_runs ADD COLUMN line_position INTEGER;
+        CREATE INDEX IF NOT EXISTS idx_apply_runs_line
+          ON apply_runs(user_id, status, line_position);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -10412,8 +10425,13 @@ app.post("/api/smart-search", requireAuth, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // APPLY AUTOMATION (Playwright)
 // ═══════════════════════════════════════════════════════════════
-applyRoutes(app, db, requireAuth, buildAutofillPayload, generateResumeForApply, htmlToPdf, generateCoverLetterForApply,
+const applyLine = applyRoutes(app, db, requireAuth, buildAutofillPayload, generateResumeForApply, htmlToPdf, generateCoverLetterForApply,
             scoreBaseResumeForApply);
+// A59: a run left 'running' by the last process is reset before anything can start a new one, or
+// that user's line never moves; then the ticker keeps every line moving (kill switch released, a
+// lost dispatch).
+applyLine.recoverInterruptedRuns();
+applyLine.startLineTicker();
 
 // ── Contact form (public — no auth required) ──────────────────
 app.post("/api/contact", (req, res) => {
