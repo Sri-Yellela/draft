@@ -86,10 +86,20 @@ export function prefillFromResumeText(text) {
   if (best) {
     put("highest_degree", best.label, best.line);
     const near = [lines[best.i - 1], best.line, lines[best.i + 1]].filter(Boolean);
-    const uni = near.find(l => /\b(University|Institute|College|School of)\b/.test(l));
-    // The school's name only — stop at " — ", " | ", "," or a date.
-    if (uni) put("university", clean(uni.split(/\s[–—|-]\s|,|\s(?=\d{4}\b)/)[0]).slice(0, 120), uni);
-    const field = best.line.match(/\b(?:in|of)\s+([A-Z][A-Za-z &]+?)(?:[,|(–—-]|\s+\d|$)/);
+    // A line's parts, split at " — ", " | ", " - " and commas. ⛔ Read each field from ITS part:
+    // "B.S. Computer Science, University of Texas at Austin, 2021" once gave university "B.S.
+    // Computer Science" (the first part) and field "Texas at Austin" (the "of" inside the school's
+    // name) — seen in a browser, 10-02 (18).
+    const SCHOOL = /\b(University|Institute|College|School)\b/;
+    const parts = (l) => l.split(/\s[–—|-]\s|,/).map(clean).filter(Boolean);
+    const uni = near.find(l => SCHOOL.test(l));
+    // The school's name only: the part that names a school, without a trailing date.
+    const uniPart = uni && parts(uni).find(s => SCHOOL.test(s));
+    if (uniPart) put("university", clean(uniPart.replace(/\s+\d{4}\b.*$/, "")).slice(0, 120), uni);
+    // The field: what follows the degree in the degree's own part — never the school's part.
+    const degPart = parts(best.line).find(s => best.re.test(s) && !SCHOOL.test(s));
+    const after = degPart ? degPart.slice(degPart.search(best.re)).replace(best.re, "") : "";
+    const field = after.match(/^[\s.]*(?:degree\s+)?(?:(?:of|in)\s+(?:(?:Science|Arts|Engineering)\s+in\s+)?)?([A-Z][A-Za-z &]+?)(?:\s*\(|\s+\d|$)/);
     if (field) put("field_of_study", clean(field[1]), best.line);
     // The year on the degree's own line first; a neighbour's only if that line has none (the next
     // line is often an older degree).
