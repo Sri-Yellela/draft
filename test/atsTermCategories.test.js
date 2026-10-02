@@ -216,17 +216,18 @@ test("the report version was bumped, or every cached report keeps the old catego
 // ── 5. the panel shows what the scorer computed ──────────────────────────────────────────────
 
 test("the panel renders both new buckets, and AG2's copy is untouched", () => {
-  const panel = fs.readFileSync("client/src/panels/ATSPanel.jsx", "utf8");
-  assert.match(panel, /activeReport\.competencies_matched\?\.length > 0/);
-  assert.match(panel, /activeReport\.competencies_missing\?\.length > 0/);
-  assert.match(panel, /activeReport\.action_verbs_generic\?\.length > 0/);
+  // A52: the report is drawn by components/AtsReport.jsx (ATSPanel only fetches and claims).
+  const panel = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
+  assert.match(panel, /report\.competencies_matched\?\.length > 0/);
+  assert.match(panel, /report\.competencies_missing\?\.length > 0/);
+  assert.match(panel, /report\.action_verbs_generic\?\.length > 0/);
   // Generic language is NOT claimable — a chip that offers to add "Manage" to your profile is the
   // same false gap in a different control.
   const genericBlock = panel.slice(at(panel, "○ Generic Language"), at(panel, "○ Generic Language") + 600);
   assert.doesNotMatch(genericBlock, /onToggleClaim/);
   // Competencies matched must count as evidenced, or a term shown as matched above renders as
   // unevidenced below.
-  assert.match(panel, /\.\.\.\(activeReport\.competencies_matched \|\| \[\]\)/);
+  assert.match(panel, /\.\.\.\(report\.competencies_matched \|\| \[\]\)/);
   // ⛔ CC4 CHANGED ONE OF THESE SENTENCES, BECAUSE IT STOPPED BEING TRUE. This list used to
   // include "It does not change this score". A claim now counts toward the score and toward where
   // the job ranks, so that sentence had to go — copy promising one thing while the code does

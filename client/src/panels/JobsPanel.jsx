@@ -1354,6 +1354,22 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setRightTab("ats");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ⛔ A52 · ONE SCORING READ PER SCREEN. When the ATS panel has scored a posting itself, its verdict
+  // becomes the board's for that posting — on the card, the JD header and the panel's own header —
+  // until the next board load reads the (by then re-scored) stored value. Before this the card and
+  // the JD header kept the stored score they were loaded with while the panel, open beside them,
+  // showed a fresh one: "No signal" next to "Strong match". A generated résumé's report is about a
+  // different résumé and is never adopted as the base verdict.
+  const adoptPanelVerdict = useCallback((jobId, report) => {
+    if (!jobId || !report || report.report_basis === "generated_resume") return;
+    if (!String(report.source || "").startsWith("local_ats")) return;
+    const score = report.score ?? null;
+    const patch = (j) => (j && j.jobId === jobId ? { ...j, baseAtsScore: score } : j);
+    setJobs(prev => prev.map(patch));
+    setSelectedJob(prev => patch(prev));
+    setActiveAts(prev => (prev && prev.jobId === jobId && !prev.report ? { ...prev, score } : prev));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── The panel host ──────────────────────────────────────────────────────────────────────────
   // JD, PDF and ATS are peers in one ordered set. The host does not own their open/closed state —
   // that still lives where it always did (selectedJob in JobBoardContext, sandboxOpen and
@@ -3739,6 +3755,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               theme={theme} activeAts={activeAts}
               rightTab={rightTab} setRightTab={setRightTab} genCount={genCount}
               jobId={selectedJob?.jobId} resumeText={resumeText} activeProfileId={activeProfileId}
+              onReport={adoptPanelVerdict}
               historyContent={
                 <HistoryList generated={generated} theme={theme}
                   onOpen={e => {

@@ -3471,4 +3471,17 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_job_dedup_log_to   ON job_dedup_log(to_job_id);
       `,
     },
+    {
+      // 118 (A52) — EVERY STORED ATS REPORT SAYS WHICH VERSION OF THE POSTING IT SCORED.
+      // 110's basis_hash covers the candidate side only, so a posting scored before its enrichment
+      // landed kept that verdict forever: a board card read "No signal" while the ATS panel, scoring
+      // the same posting fresh, read "Strong match". job_hash is services/jobs/boardFitPrecompute.js
+      // atsJobInputHash over the columns the scorer reads; a row is fresh only when both hashes
+      // match. Additive: NULL on existing rows reads as stale, never fresh, so the first pass after
+      // deploy re-scores each active profile's board once.
+      id: "118_ats_reports_job_hash",
+      sql: `
+        ALTER TABLE ats_only_reports ADD COLUMN job_hash TEXT;
+      `,
+    },
   ];

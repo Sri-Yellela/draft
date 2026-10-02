@@ -26,6 +26,8 @@ test("profile suggestion additions use shared normalized helpers on both server 
 // is how the candidate takes the claim back.
 test("ATS missing chips stay visible, turn green when claimed, and react to profile suggestion updates", () => {
   const atsPanel = fs.readFileSync("client/src/panels/ATSPanel.jsx", "utf8");
+  // A52: the chips are drawn by components/AtsReport.jsx; ATSPanel keeps the claim state and events.
+  const chips = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
 
   assert.match(atsPanel, /PROFILE_SUGGESTIONS_UPDATED_EVENT/);
   assert.match(atsPanel, /buildProfileClaimLookup/);
@@ -34,10 +36,10 @@ test("ATS missing chips stay visible, turn green when claimed, and react to prof
   // behaviour this test is named for — the chip turns green — is unchanged; only the token went,
   // and now the trigger is the candidate's claim rather than an irreversible add.
   // Re-pinned at UI step 2b (09-30): the dark-era literals became tokens; the claimed/unclaimed switch is what is pinned.
-  assert.match(atsPanel, /background:claimed \? C\.SUCCESS_QUIET : bg/);
-  assert.match(atsPanel, /color:claimed \? C\.SUCCESS : fg/);
-  assert.match(atsPanel, /claimed \? `✓ \$\{k\}` : k/);
-  assert.doesNotMatch(atsPanel, /pointerEvents:\s*claimed/,
+  assert.match(chips, /background: claimed \? C\.SUCCESS_QUIET : bg/);
+  assert.match(chips, /color: claimed \? C\.SUCCESS : fg/);
+  assert.match(chips, /claimed \? `✓ \$\{k\}` : k/);
+  assert.doesNotMatch(chips, /pointerEvents:\s*claimed/,
     "a claimed chip must stay clickable — that click is how the claim is withdrawn");
 });
 

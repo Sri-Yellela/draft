@@ -8,7 +8,6 @@
 // server.js — it is shared between ATS scoring and keyword
 // analysis.
 import { useState, useEffect } from "react";
-import { useTheme } from "../styles/theme.jsx";
 import { api } from "../lib/api.js";
 import { useSyncEvents } from "../hooks/useSyncEvents.js";
 import {
@@ -18,14 +17,17 @@ import {
   setProfileClaim,
 } from "../lib/profileSuggestions.js";
 import { profileSignalKey } from "../../../shared/profileSignals.js";
-import { atsBandFor, atsBandLabel, ATS_BAND } from "../../../shared/atsBands.js";
-import { bandChipStyle } from "../styles/bandStyle.js";
-import { C } from "../styles/colorTokens.js";
+import { atsBandFor } from "../../../shared/atsBands.js";
+import { AtsReport } from "../components/AtsReport.jsx";
 
 // `band` (A40): a caller that holds the BAND and deliberately not the number — the deck — passes it here,
-// and the report is drawn from it. Everywhere else the band is derived from the score, as before.
-export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeText, activeProfileId }) {
-  const { theme } = useTheme();
+// and the report is drawn from it. Everywhere else the band is derived from the report's own score.
+//
+// `onReport(jobId, report)` (A52): called when this panel has scored a posting itself, so the board
+// can show THIS verdict on the card and the JD header instead of the stored one it loaded earlier —
+// one scoring read per screen. Without it a card read "No signal" beside this panel reading
+// "Strong match".
+export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeText, activeProfileId, onReport = null }) {
   const [localReport, setLocalReport] = useState(null);
   const [kwLoading,   setKwLoading]   = useState(false);
   const [kwError,     setKwError]     = useState(false);
@@ -62,7 +64,11 @@ export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeT
       method: "POST",
       body: JSON.stringify({ resumeText }),
     })
-      .then(data => { if (!cancelled) setLocalReport(data); })
+      .then(data => {
+        if (cancelled) return;
+        setLocalReport(data);
+        if (data && onReport) onReport(jobId, data);
+      })
       .catch(() => { if (!cancelled) setKwError(true); })
       .finally(() => { if (!cancelled) setKwLoading(false); });
     return () => { cancelled = true; };
@@ -192,347 +198,24 @@ export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeT
 
   if (!activeReport) return null;
 
-  // Strengths and improvements only ever came from the LLM scorer. Matched on the family rather
-  // than one exact version string, so bumping the local report version (local_ats_v1 -> v2, and
-  // whatever comes after) cannot quietly switch two sections back on for local reports.
-  const isLocalReport = String(activeReport.source || "").startsWith("local_ats");
+  // ⛔ A52 · ONE READ. When a report is on screen, ITS score governs the band — including a null,
+  // which is the scorer declining. `activeReport.score ?? score` let a stored number stand in for a
+  // declined report, so the panel could read a band the report beneath it contradicted. The bare
+  // `score` prop is used only for a report that carries no score field at all.
+  const band = knownBand ?? atsBandFor(
+    Object.prototype.hasOwnProperty.call(activeReport, "score") ? activeReport.score : (score ?? null));
 
-  // THE DONUT AND ITS NUMBER ARE GONE, and the reason is the whole of AK2 task 4. A ring filled to
-  // 43/100 in a colour ramp is the most precise-looking thing on the screen, and the engine cannot
-  // support it: rho 0.746 against the owner's human-graded 30, with 12.2% of pairs still
-  // mis-ordered. It orders coarsely and honestly; it does not measure. The colour ramp was worse
-  // than merely imprecise — it was >=80 green / >=60 amber / else red, carried over from v3, and
-  // under v4 (median 27, max 64) NOTHING on the board ever cleared 60, so every single job rendered
-  // red. `pct` is retained only for the best-possible chip below, which is LLM-report-only.
-  const pct = Math.max(0, Math.min(100, activeReport.score ?? score ?? 0));
+  // AG2. CLAIMED, not merely suggested — only what the candidate said counts here. Terms already
+  // written into the profile's own lists (the old one-way path) show as locked claims.
+  const claims = clickableProfileId ? {
+    onToggle: toggleClaim,
+    pending: addedItems,
+    claimedLookup: buildProfileClaimLookup(profileSuggestions || {}),
+    lockedSkills: new Set((profileSelections.activeSkills || []).map(profileSignalKey).filter(Boolean)),
+    lockedVerbs: new Set((profileSelections.activeVerbs || []).map(profileSignalKey).filter(Boolean)),
+  } : null;
 
-  // Rendered for every report, including a declined one. The old card was gated on `score != null`,
-  // so the scorer's most honest output — "I cannot judge this" — displayed as an empty space.
-  const band = knownBand ?? atsBandFor(activeReport.score ?? score ?? null);
-  const atsCard = {
-    render: true,
-    band,
-    meta: atsBandLabel(band),
-    isUnknown: band === ATS_BAND.NOT_ENOUGH_SIGNAL,
-    declineReasons: Array.isArray(activeReport.decline_reasons) ? activeReport.decline_reasons : [],
-    seniority: activeReport.seniority_cap?.applied ? activeReport.seniority_cap : null,
-    // Shown ABOVE the band, not instead of it: the user still gets the ordering, plus the reason
-    // the whole board looks flat. Telling them only "Weak" would be true and useless.
-    depth: activeReport.resume_depth || null,
-  };
-  // AG2. CLAIMED, not merely suggested. The old lookup unioned every status, so a term the
-  // scrape-time aggregator had written unprompted rendered as an already-added chip the user could
-  // not click — an auto-opt-in the user never made. Only what the candidate said counts here.
-  const claimLookup = buildProfileClaimLookup(profileSuggestions || {});
-  // Terms already written into the profile's own lists. Those are claims too, made through the
-  // old one-way path or typed in by hand, but there is no un-add for them so they show as locked.
-  const lockedSkillLookup = new Set((profileSelections.activeSkills || []).map(profileSignalKey).filter(Boolean));
-  const lockedVerbLookup = new Set((profileSelections.activeVerbs || []).map(profileSignalKey).filter(Boolean));
-  // Provenance: what the base resume already evidences. The scorer has already decided this — a
-  // term is in `matched` precisely because it found it in the resume — so nothing is re-derived.
-  const evidencedLookup = new Set([
-    ...(activeReport.tier1_matched || []),
-    // AH3 moved competencies into their own bucket. They are matched by the same rule and are
-    // evidenced by the same resume, so leaving them out here would show a term as unevidenced in
-    // one section that the section above it has just marked as matched.
-    ...(activeReport.competencies_matched || []),
-    ...(activeReport.action_verbs_matched || []),
-  ].map(profileSignalKey).filter(Boolean));
-
-  return (
-    // No scroller and no height:100% of its own any more. This used to be handed a fixed-height
-    // react-resizable-panels column and had to scroll itself; it is now rendered inside
-    // PanelShell's body (see AtsReportPanel), which is the scroll container. Keeping overflowY:auto
-    // here would nest a second scrollbar inside the first, and height:100% would clip the report to
-    // the panel body's height instead of letting it extend and scroll.
-    <div style={{ padding:"16px 16px", display:"flex", flexDirection:"column", gap:14 }}>
-
-      {atsCard.depth && (
-        <div style={{ background:"var(--color-surface-offset)", border:"1px solid var(--color-border)",
-                      borderRadius:12, padding:"12px 14px" }}>
-          <div style={{ fontSize:12.5, fontWeight:800, color:"var(--color-text)", marginBottom:4 }}>
-            {atsCard.depth.headline}
-          </div>
-          <div style={{ fontSize:11.5, color:"var(--color-text-muted)", lineHeight:1.6 }}>
-            {atsCard.depth.detail}
-          </div>
-        </div>
-      )}
-
-      {/* Band card. Renders for EVERY report, including a declined one. */}
-      {atsCard.render && (
-        <div style={{ background:"var(--color-surface)", border:`1px solid ${"var(--color-border)"}`,
-                      borderRadius:16, padding:"16px", display:"flex", alignItems:"center", gap:16 }}>
-          <div style={{ flexShrink:0, minWidth:104, display:"flex", flexDirection:"column",
-                        alignItems:"center", gap:6 }}>
-            <div style={{ ...bandChipStyle(atsCard.band, { edgeAlpha: "33" }), padding:"10px 14px",
-                          borderRadius:12, fontWeight:900, fontSize:15, textAlign:"center",
-                          lineHeight:1.2, width:"100%" }}>
-              {atsCard.meta.label}
-            </div>
-            <div style={{ fontSize:10, color:"var(--color-text-muted)", textAlign:"center" }}>
-              {atsCard.isUnknown ? "no judgement" : "fit band"}
-            </div>
-          </div>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:12, color:"var(--color-text-muted)", lineHeight:1.6, marginBottom:8 }}>
-              {atsCard.meta.blurb}
-            </div>
-            {atsCard.declineReasons.length > 0 && (
-              <ul style={{ margin:"0 0 8px 0", paddingLeft:16, fontSize:11.5,
-                           color:"var(--color-text-muted)", lineHeight:1.6 }}>
-                {atsCard.declineReasons.map((r, i) => <li key={i}>{r}</li>)}
-              </ul>
-            )}
-            {atsCard.seniority && (
-              <div style={{ fontSize:11.5, padding:"6px 10px", borderRadius:8, marginBottom:8,
-                            background:"var(--color-surface-offset)", color:"var(--color-text-muted)",
-                            border:"1px solid var(--color-border)" }}>
-                {atsCard.seniority.reason}
-              </div>
-            )}
-            <div style={{ fontSize:12, color:"var(--color-text-muted)", fontStyle:"italic",
-                          lineHeight:1.6, marginBottom:8 }}>
-              {activeReport.verdict || activeReport.experience?.summary || "Deterministic local ATS match against this profile."}
-            </div>
-            {activeReport.best_possible_score != null && (
-              <div style={{ fontSize:11, padding:"6px 10px", borderRadius:8,
-                            background: pct === activeReport.best_possible_score ? C.SUCCESS_QUIET : "var(--color-surface-offset)",
-                            color: pct === activeReport.best_possible_score ? C.SUCCESS : "var(--color-text-muted)",
-                            border:`1px solid ${pct === activeReport.best_possible_score ? `color-mix(in srgb, ${C.SUCCESS} 20%, transparent)` : "var(--color-border)"}` }}>
-                {/* A BAND, NOT THE NUMBER (G5). "Best possible: 72" was the last raw ATS figure on this
-                    panel; rho = 0.746 supports coarse ordering, not a printed score. */}
-                {pct === activeReport.best_possible_score
-                  ? "✓ The best fit your profile can reach for this posting"
-                  : <>
-                      <span style={{ fontWeight:700 }}>Best possible for your profile: {atsBandLabel(atsBandFor(activeReport.best_possible_score)).label}</span>
-                      {activeReport.best_possible_reason && <span> — {activeReport.best_possible_reason}</span>}
-                    </>
-                }
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Skills matched */}
-      {activeReport.tier1_matched?.length > 0 && (
-        <TagSection title="✓ Skills Matched"
-          subtitle="This job asked for these, and your resume already evidences them."
-          bg={C.SUCCESS_QUIET} fg={C.SUCCESS} border={`color-mix(in srgb, ${C.SUCCESS} 20%, transparent)`}
-          items={activeReport.tier1_matched}
-          evidencedLookup={evidencedLookup}/>
-      )}
-
-      {/* Skills missing */}
-      {activeReport.tier1_missing?.length > 0 && (
-        <TagSection title="✗ Skills Missing"
-          subtitle="This job asked for these and your resume does not show them. Claim any that are true of you."
-          bg={C.DANGER_QUIET} fg={C.DANGER} border={`color-mix(in srgb, ${C.DANGER} 20%, transparent)`}
-          items={activeReport.tier1_missing}
-          onToggleClaim={clickableProfileId ? (item, claimed) => toggleClaim("skill", item, claimed) : null}
-          pendingItems={addedItems}
-          claimedLookup={claimLookup}
-          lockedLookup={lockedSkillLookup}
-          evidencedLookup={evidencedLookup}
-          kind="skill"
-          theme={theme}/>
-      )}
-
-      {/* Competencies — AH3's third bucket.
-          "problem decomposition" and "thoughtful problem-solving" used to sit under Skills Missing
-          beside typescript and node, where they read as verbs mis-filed as skills. They are neither.
-          They are qualities, the enrichment model had already typed them `soft`, and this is their
-          honest home: still claimable, still worth knowing the posting asked for them, but not
-          pretending to be a checkable technology. */}
-      {activeReport.competencies_matched?.length > 0 && (
-        <TagSection title="✓ Competencies Matched"
-          subtitle="Qualities this job asked for that your resume already shows."
-          bg={C.SUCCESS_QUIET} fg={C.SUCCESS} border={`color-mix(in srgb, ${C.SUCCESS} 20%, transparent)`}
-          items={activeReport.competencies_matched}
-          evidencedLookup={evidencedLookup}/>
-      )}
-
-      {activeReport.competencies_missing?.length > 0 && (
-        <TagSection title="◇ Competencies Missing"
-          subtitle="Ways of working this job asked for. These are qualities, not technologies — claim the ones that are true of you."
-          bg={C.VIOLET_QUIET} fg={C.VIOLET} border={`color-mix(in srgb, ${C.VIOLET} 20%, transparent)`}
-          items={activeReport.competencies_missing}
-          onToggleClaim={clickableProfileId ? (item, claimed) => toggleClaim("skill", item, claimed) : null}
-          pendingItems={addedItems}
-          claimedLookup={claimLookup}
-          lockedLookup={lockedSkillLookup}
-          evidencedLookup={evidencedLookup}
-          kind="skill"
-          theme={theme}/>
-      )}
-
-      {/* Action verbs matched */}
-      {activeReport.action_verbs_matched?.length > 0 && (
-        <TagSection title="⚡ Verbs Matched"
-          subtitle="Your resume already uses this job's language for these."
-          bg={C.INFO_QUIET} fg={C.INFO} border={`color-mix(in srgb, ${C.INFO} 20%, transparent)`}
-          items={activeReport.action_verbs_matched}
-          kind="action_verb"
-          evidencedLookup={evidencedLookup}/>
-      )}
-
-      {/* Action verbs missing */}
-      {activeReport.action_verbs_missing?.length > 0 && (
-        <TagSection title="⚠ Verbs Missing"
-          subtitle="This job's language for work you may already have done. Claim the ones that describe you."
-          bg={C.WARNING_QUIET} fg={"var(--color-warning)"} border={"color-mix(in srgb, var(--color-warning) 20%, transparent)"}
-          items={activeReport.action_verbs_missing}
-          onToggleClaim={clickableProfileId ? (item, claimed) => toggleClaim("action_verb", item, claimed) : null}
-          pendingItems={addedItems}
-          claimedLookup={claimLookup}
-          lockedLookup={lockedVerbLookup}
-          evidencedLookup={evidencedLookup}
-          kind="action_verb"
-          theme={theme}/>
-      )}
-
-      {/* Generic language — AH3. NOT a gap, and deliberately not claimable.
-          "Deliver" and "Manage" were being listed under Verbs Missing, which asserts a shortfall
-          that is not real: almost any engineer could claim them, so their absence says nothing.
-          They are not suppressed either — the posting does use this language and that is worth
-          seeing. It is just reported as language rather than as something to go and fix. */}
-      {activeReport.action_verbs_generic?.length > 0 && (
-        <TagSection title="○ Generic Language"
-          subtitle="This job uses these, but almost any candidate could claim them — they are not a gap."
-          bg={"var(--color-surface-offset)"} fg={"var(--color-text-muted)"} border={"var(--color-border)"}
-          items={activeReport.action_verbs_generic}/>
-      )}
-
-      {activeReport.experience && (
-        <ListSection title="Experience Fit" items={[activeReport.experience.summary]} color={activeReport.experience.fit ? C.SUCCESS : "var(--color-warning)"} theme={theme}/>
-      )}
-
-      {activeReport.hard_constraint_misses?.length > 0 && (
-        <TagSection title="Profile Facts Missing"
-          bg={C.DANGER_QUIET} fg={C.DANGER} border={`color-mix(in srgb, ${C.DANGER} 20%, transparent)`}
-          items={activeReport.hard_constraint_misses}/>
-      )}
-
-      {/* Strengths */}
-      {!isLocalReport && activeReport.strengths?.length > 0 && (
-        <ListSection title="💪 Strengths" items={activeReport.strengths} color={C.SUCCESS} theme={theme}/>
-      )}
-
-      {/* Improvements */}
-      {!isLocalReport && activeReport.improvements?.length > 0 && (
-        <ListSection title="🔧 Improvements" items={activeReport.improvements} color={"var(--color-primary)"} theme={theme}/>
-      )}
-    </div>
-  );
-}
-
-/**
- * A row of terms, each of which the candidate may CLAIM (AG2).
- *
- * THE COPY IS THE FEATURE. Clicking one of these asserts "I have this" — it is the candidate
- * making a claim they will have to defend in an interview, which is the only direction this can
- * safely run. So the chip must never read as "add this to improve your score": that invites
- * someone to tick things because a number goes up, and the number is not the thing being decided.
- * Hence "is true of you" / "You claimed this".
- *
- * ⛔ CC4 CHANGED WHAT IS TRUE HERE, SO THE COPY CHANGED WITH IT. This block used to end: "a line
- * saying in plain words that claiming does not move the score. It does not: claims are
- * deliberately kept out of the scoring basis, so a claim cannot flatter its own number."
- *
- * A claim now DOES count — toward this score and toward where the job sits on the board — because a
- * person's fit is not limited to what their current résumé happens to spell out, and that is what
- * the owner asked for. Leaving the old line would have been the worse outcome of the two: copy
- * promising one thing while the code does another, which is a lie rather than a caveat.
- *
- * What replaces the old guarantee is not nothing. The scorer keeps résumé evidence and claims in
- * separate indexes and reports every match that rested on a claim alone, so the number is never
- * silently inflated — and the incentive is still fought where it is created, in the interaction:
- * nothing is pre-checked, and the copy asks for the truth rather than offering a reward.
- *
- * NOTHING IS PRE-SELECTED. `claimedLookup` holds only what the person actually claimed.
- */
-function TagSection({
-  title,
-  subtitle = null,
-  bg,
-  fg,
-  border,
-  items,
-  onToggleClaim = null,
-  pendingItems = new Set(),
-  claimedLookup = { skillKeys: new Set(), verbKeys: new Set() },
-  lockedLookup = new Set(),
-  evidencedLookup = new Set(),
-  kind = "skill",
-  theme,
-}) {
-  const claimedKeys = kind === "action_verb" ? claimedLookup.verbKeys : claimedLookup.skillKeys;
-  return (
-    <div>
-      <div className="rm-section-label" style={{ color:fg }}>{title}</div>
-      {subtitle && (
-        <div style={{ fontSize:11, color:"var(--color-text-muted)", marginBottom:6, lineHeight:1.5 }}>
-          {subtitle}
-        </div>
-      )}
-      <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
-        {items.map(k => {
-          const itemKey = profileSignalKey(k);
-          const locked = lockedLookup.has(itemKey);
-          const claimed = locked || claimedKeys.has(itemKey) || pendingItems.has(`${kind}:${k}`);
-          const evidenced = evidencedLookup.has(itemKey);
-          const interactive = !!onToggleClaim && !locked;
-          const provenance = evidenced
-            ? "Your resume already shows this"
-            : claimed
-              ? "You claimed this — the job description asked for it"
-              : "This job asked for it. Your resume does not show it.";
-          return (
-          <button key={k} type="button" className="rm-badge"
-            onClick={interactive ? () => onToggleClaim(k, !claimed) : undefined}
-            disabled={!interactive}
-            aria-pressed={interactive ? claimed : undefined}
-            title={interactive
-              ? (claimed
-                  ? `You claimed "${k}". Click to withdraw it.`
-                  : `Claim "${k}" — only if it is true of you. It counts toward this score and toward where this job ranks, and it is used in future resumes.`)
-              : provenance}
-            style={{
-              background:claimed ? C.SUCCESS_QUIET : bg,
-              color:claimed ? C.SUCCESS : fg,
-              border:`1px solid ${claimed ? `color-mix(in srgb, ${C.SUCCESS} 20%, transparent)` : border}`,
-              cursor:interactive ? "pointer" : "default",
-            }}>
-            {claimed ? `✓ ${k}` : k}
-          </button>
-        )})}
-      </div>
-      {onToggleClaim && (
-        <div style={{ fontSize:10, color:"var(--color-text-muted)", marginTop:6, fontStyle:"italic" }}>
-          Claiming a term says it is true of you — claim it only if it is. It counts toward this
-          score and toward where jobs rank on your board, and it is used in resumes generated from
-          now on; it never rewrites one you already have. Withdraw it at any time and all three go
-          back.
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ListSection({ title, items, color, theme }) {
-  return (
-    <div>
-      <div className="rm-section-label" style={{ color }}>{title}</div>
-      <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-        {items.map((t,i) => (
-          <div key={i} style={{ display:"flex", gap:8, fontSize:12,
-                                 color:"var(--color-text-muted)", lineHeight:1.6 }}>
-            <span style={{ color, flexShrink:0, fontWeight:700 }}>·</span>
-            <span>{t}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  // THE REPORT ITSELF IS components/AtsReport.jsx — the one implementation every ATS surface draws
+  // (A52). This panel only fetches, caches and claims.
+  return <AtsReport report={activeReport} band={band} claims={claims} />;
 }
