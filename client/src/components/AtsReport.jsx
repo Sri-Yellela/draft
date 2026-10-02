@@ -212,7 +212,9 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
           bg={"var(--color-surface-offset)"} fg={"var(--color-text-muted)"} border={"var(--color-border)"}
           items={report.action_verbs_generic}/>
       )}
-      {report.experience && (
+      {/* A52 follow-up: the band card above already prints the experience summary as its verdict when
+          there is no other verdict — printing it again here was the "renders twice" defect. */}
+      {report.experience && report.experience.summary !== (report.verdict || report.experience.summary) && (
         <ListSection title="Experience Fit" items={[report.experience.summary]} color={report.experience.fit ? C.SUCCESS : "var(--color-warning)"}/>
       )}
       {report.hard_constraint_misses?.length > 0 && (

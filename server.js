@@ -32,7 +32,7 @@ import { loadSecretKey, createSecretBox, saveIntegrationSecret } from "./service
 import { createAdminRouter } from "./routes/admin.js";
 import { createAdminDbRouter } from "./routes/adminDb.js";
 import { buildGlance } from "./services/adminGlance.js";
-import { enrichBudget } from "./services/jobs/enrichJob.js";
+import { enrichBudget, onEnrichmentApplied } from "./services/jobs/enrichJob.js";
 import { createEnrichmentRouter } from "./routes/enrichment.js";
 import { createJobDataRouter } from "./routes/jobData.js";
 import { createDomainProfilesRouter } from "./routes/domainProfiles.js";
@@ -6609,6 +6609,15 @@ function scheduleBoardFitForAll(reason) {
   boardFit().runAll({ reason })
     .catch(e => console.error(`[board-fit] ${reason} pass threw:`, e.message));
 }
+// A52 follow-up: a pass that enriched rows moved their job_hash, so their stored scores are stale.
+// Rescore them now rather than at the next crawl. Debounced: a drain runs many passes in a row, and
+// the precompute is incremental (only changed postings are scored), so one trailing pass is enough.
+let _enrichmentRescoreTimer = null;
+onEnrichmentApplied(() => {
+  if (_enrichmentRescoreTimer) clearTimeout(_enrichmentRescoreTimer);
+  _enrichmentRescoreTimer = setTimeout(() => { _enrichmentRescoreTimer = null; scheduleBoardFitForAll("enrichment"); }, 30_000);
+  _enrichmentRescoreTimer.unref?.();
+});
 
 /**
  * CC5 · has THIS user, on THIS profile, already got a report for this job?

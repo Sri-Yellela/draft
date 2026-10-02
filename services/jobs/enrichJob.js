@@ -278,6 +278,22 @@ let enrichmentInProgress = false;
  * @param {import('better-sqlite3').Database} db
  * @param {import('@anthropic-ai/sdk').default | null} anthropic
  */
+// ── A52 follow-up (10-02): ENRICHMENT FINISHING MAKES STORED SCORES STALE — SAY SO ──────────────
+// A52 tied each stored ATS score to the posting it scored (job_hash), so a row enrichment just
+// filled is correctly read as stale — but nothing then rescored it until the next crawl or board
+// load. Listeners run after a pass that wrote at least one row; server.js registers the board-fit
+// precompute, which rescores exactly the postings whose hash moved. A listener must never fail a pass.
+const enrichmentListeners = new Set();
+function onEnrichmentApplied(fn) {
+  enrichmentListeners.add(fn);
+  return () => enrichmentListeners.delete(fn);
+}
+function notifyEnrichmentApplied(info) {
+  for (const fn of enrichmentListeners) {
+    try { fn(info); } catch (e) { console.warn(`[enrichJob] enrichment listener threw: ${e.message}`); }
+  }
+}
+
 async function runEnrichment(db, anthropic, {
   batchSize = ENRICH_BATCH_SIZE,
   recordRun = true,
@@ -623,6 +639,8 @@ async function runEnrichment(db, anthropic, {
       },
     });
 
+    if (enriched > 0) notifyEnrichmentApplied({ enriched, batchId, batchSource });
+
     return {
       enriched, failed, empty, skipped: candidates.length - batch.length, noDescription,
       totalInputTokens, totalOutputTokens, batchId, gatedOut, coverage,
@@ -861,4 +879,4 @@ async function drainEnrichment(db, anthropic, {
 // home, services/jobs/enrichmentSelection.js, and callers import them from there. Offering a second
 // path to them would recreate in the import graph the very thing this task removed from the
 // queries — two ways to reach one answer, which is how the two drift.
-export { runEnrichment, drainEnrichment, enrichBudget, computeContentHash, decayedWeight, hasAnySignal, buildPrompt, DECAY_HALFLIFE_DAYS, ENRICH_BATCH_SIZE };
+export { runEnrichment, drainEnrichment, enrichBudget, onEnrichmentApplied, computeContentHash, decayedWeight, hasAnySignal, buildPrompt, DECAY_HALFLIFE_DAYS, ENRICH_BATCH_SIZE };

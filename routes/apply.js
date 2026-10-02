@@ -29,6 +29,7 @@ import { canUseAPlusResume, normalisePlanTier } from "../services/entitlements.j
 import { monetisationEnabledFromEnv } from "../shared/monetisation.js";
 import { fullAutoDisabled as sharedFullAutoDisabled } from "../services/appSettings.js";
 import { draftSlots, slotsExhausted } from "../services/draftSlots.js";
+import { atsJobInputHash, ATS_JOB_INPUT_FIELDS } from "../services/jobs/boardFitPrecompute.js";
 import { recordSubmissionFromPipeline, markPending, publicRecord } from "../services/applicationRecords.js";
 
 // Live read through the one shared parser, exactly as server.js does — same flag, same function,
@@ -140,8 +141,26 @@ export function capturedAtsAtApply(db, userId, jobId) {
       ORDER BY (domain_profile_id IS NULL) ASC
       LIMIT 1
     `).get(userId, jobId, profileId);
+    // A52 follow-up (10-02): a STORED board score is a statement about the posting as it was when it
+    // was scored. If the posting has changed since (enrichment landed, a re-crawl edited it), its
+    // job_hash no longer matches and the board itself shows "Check match" — so it is not the score
+    // the candidate saw, and stamping it would put a stale number into the only dataset that can
+    // validate the score. A row with no job_hash (scored before migration 118) is stale too, while the
+    // posting still exists.
+    const boardReport = () => {
+      const row = db.prepare(`
+        SELECT ats_report, job_hash FROM ats_only_reports
+        WHERE user_id = ? AND job_id = ? AND (domain_profile_id IS NULL OR domain_profile_id = ?)
+        ORDER BY (domain_profile_id IS NULL) ASC LIMIT 1
+      `).get(userId, jobId, profileId);
+      if (!row) return null;
+      const posting = db.prepare(`SELECT ${ATS_JOB_INPUT_FIELDS.join(", ")} FROM scraped_jobs WHERE job_id = ?`).get(jobId);
+      // No posting row (expired, pruned): nothing newer exists for the score to be stale against.
+      if (posting && row.job_hash !== atsJobInputHash(posting)) return null;
+      return pick(row);
+    };
     return pick(forProfile("resumes"))
-      || pick(forProfile("ats_only_reports"))
+      || boardReport()
       || empty;
   } catch {
     // Recording an application must never fail because a score could not be found for it.

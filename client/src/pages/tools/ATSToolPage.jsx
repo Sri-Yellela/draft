@@ -1,5 +1,5 @@
 // client/src/pages/tools/ATSToolPage.jsx — Standalone ATS scorer
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 // ⛔ `Link` WAS USED FOUR TIMES IN THIS FILE AND NEVER IMPORTED, so the page threw
 // "ReferenceError: Link is not defined" the moment it rendered — it has never worked. Found while
 // verifying the extension's ATS button in a real browser; a build succeeds because JSX compiles an
@@ -41,6 +41,12 @@ export function ATSToolPage() {
   const [result,    setResult]    = useState(null);
   const [error,     setError]     = useState("");
   const fileRef = useRef();
+  const resultRef = useRef(null);
+  // A52 follow-up: the fixed ScrollDock (56px) sat over the top of the report once it rendered. The
+  // result now carries a scroll margin past the dock and is brought into view when it arrives.
+  useEffect(() => {
+    if (result) resultRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  }, [result]);
 
   const submit = async () => {
     if (!pdfFile || !jdText.trim()) { setError("Upload a PDF and paste a job description."); return; }
@@ -128,7 +134,7 @@ export function ATSToolPage() {
 
         {/* Results */}
         {result && (
-          <div style={{ marginTop: 40, display: "flex", flexDirection: "column", gap: 20 }}>
+          <div ref={resultRef} data-ats-result style={{ marginTop: 40, display: "flex", flexDirection: "column", gap: 20, scrollMarginTop: 80 }}>
             <div style={{ borderRadius: 10, background: theme.surface, border: `1px solid ${theme.border}` }}>
               <AtsReport report={fromStandaloneResult(result)} band={result.band} />
             </div>

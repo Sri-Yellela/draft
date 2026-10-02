@@ -11,6 +11,9 @@ import { MIGRATIONS } from "../scripts/migrations.js";
 import applyRoutes, { capturedAtsAtApply } from "../routes/apply.js";
 import applicationRecordRoutes from "../routes/applicationRecords.js";
 import { at, lastAt } from "../test-support/sourceAnchors.js";
+import { atsJobInputHash, ATS_JOB_INPUT_FIELDS } from "../services/jobs/boardFitPrecompute.js";
+// A52 follow-up: a stored board score is stamped at apply only while it is CURRENT for the posting.
+const currentJobHash = (db, jobId) => atsJobInputHash(db.prepare(`SELECT ${ATS_JOB_INPUT_FIELDS.join(", ")} FROM scraped_jobs WHERE job_id = ?`).get(jobId));
 
 const DAY = 86400;
 const NOW = 1_800_000_000;
@@ -390,8 +393,8 @@ test("the pair is complete: score in, outcome out, joined on one row", async () 
     // capturedAtsAtApply deleted: it stamped whoever crawled a posting first onto everybody else's
     // application row, poisoning the only dataset that can ever validate the score. Same number,
     // same assertions; it now belongs to user 1, who is the one applying.
-    db.prepare("INSERT INTO ats_only_reports (user_id,domain_profile_id,job_id,ats_report,ats_score) VALUES (?,?,?,?,?)")
-      .run(1, null, "j1", JSON.stringify({ source: "local_ats_v4", score: 57 }), 57);
+    db.prepare("INSERT INTO ats_only_reports (user_id,domain_profile_id,job_id,ats_report,ats_score,job_hash) VALUES (?,?,?,?,?,?)")
+      .run(1, null, "j1", JSON.stringify({ source: "local_ats_v4", score: 57 }), 57, currentJobHash(db, "j1"));
     // A63: an application exists only once a recorded submission VERIFIES — the confirmation
     // names the company, so it does.
     const rec = await fetch(`${base}/api/applications/pending/j1/record`, {
