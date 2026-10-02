@@ -194,6 +194,19 @@ fifteen times.
 
 ---
 
+## Decisions deliberately reversed
+
+A reversal is not an error, but it leaves two documents disagreeing unless it is written down —
+this project's most expensive recurring failure. Each entry: what was decided, what replaced it,
+who decided, and where the code enforces the new line.
+
+| Was (decided) | Now (reversed) | By | Enforced by |
+|---|---|---|---|
+| **Resume Master is STATELESS — no database, nothing retained** (owner, 2026-09-26; `PRODUCT_MODEL.md`, resume-master `docs/API.md` and `docs/PRIVACY.md`) | **Accounts, a credit ledger and OPT-IN storage — for people on the site only** (A57, owner 2026-10-02): separate accounts, no SSO; credits granted only (no price, no purchase path); debit on success; documents kept only when the user asks, 90 days. The service-token API stays stateless and uncharged (draft exempt) | owner, 10-02 | resume-master `3e48123`: `test/stateless.test.js` narrowed to "the token API never reaches the store", `test/accounts.test.js` "a token call leaves every table untouched"; `docs/PRIVACY.md` rewritten to say what IS kept |
+| **resumemaster.one answers a JSON 404 at "/"** (resume-master: "every answer is JSON, including not found") | **"/" is the site** (A54, owner 2026-10-02); every other unknown path is still a JSON 404 | owner, 10-02 | resume-master `5ab72ff`: `test/site.test.js`; the contract harness no longer declares the root scenario |
+| **A Draft while a run is active is refused 429 `run_already_active`** (`APPLY_MAX_ACTIVE_RUNS_PER_USER=1`, A3) | **It waits in line**, viewable and editable until it starts (A59, O44, owner 2026-10-02); runs still never stack | owner, 10-02 | draft `0040f1e`: `test/a59DraftLine.test.js`, `applyGuards` "the second WAITS" |
+| **Pressing Apply on the board / exporting a résumé PDF records an application** | **Nothing becomes submitted on a click alone**: Pending → recorded → verified → Submitted; only a verified record writes `job_applications` (A63, O45c, owner 2026-10-02) | owner, 10-02 | draft `1a3b123`: `atsRankingHonesty` (no route but the verified record writes `job_applications`), `test/a63BoardToolsPending.test.js` |
+
 ## Why this file stays
 
 ⛔ **RECOMMENDED KEEP, and not as a backlog.** The checklist that used to end this file was closed
