@@ -209,6 +209,9 @@ export function exportAccount(db, userId) {
 export function deleteAccount(db, userId) {
   const u = db.prepare("SELECT id, is_admin, avatar_path FROM users WHERE id = ?").get(userId);
   if (!u) fail(404, "not_found", "Account not found.");
+  // id 0 is the `system` account (migration 075): every background usage_events row cascades from
+  // it, and 075 never re-creates it. Refused here as well as in the admin route (A58).
+  if (u.id === 0) fail(409, "system_account", "The system account cannot be deleted.");
   if (u.is_admin) fail(409, "admin_account", "An admin account cannot be deleted from here.");
   const files = [
     ...db.prepare("SELECT screenshot_path p FROM apply_run_jobs WHERE user_id = ? AND screenshot_path IS NOT NULL").all(userId).map(r => r.p),

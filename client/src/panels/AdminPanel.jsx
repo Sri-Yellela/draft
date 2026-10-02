@@ -800,6 +800,82 @@ function ContactMessagesSection({ theme }) {
   );
 }
 
+// The `system` account (id 0, migration 075) is not a person: every background usage record hangs off
+// it. No Delete and no plan control are offered for it — and the server refuses both anyway (A58).
+export const isSystemAccount = (u) => u?.id === 0 || u?.username === "system";
+
+// A58 (a): deleting a user shows what goes with them — rows per table, from the server — and is armed
+// only by typing their username back. The server re-checks the username; this is not the only lock.
+function DeleteUserDialog({ preview, onCancel, onDeleted }) {
+  const { theme } = useTheme();
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const armed = typed === preview.confirmWith && !busy;
+  const rows = Object.entries(preview.counts || {}).sort((a, b) => b[1] - a[1]);
+  const doDelete = async () => {
+    setBusy(true); setErr("");
+    try {
+      await api(`/api/admin/users/${preview.user.id}`, {
+        method:"DELETE", body:JSON.stringify({ confirmUsername: typed }),
+      });
+      onDeleted(preview.user.id);
+    } catch (e) { setErr(e.message); setBusy(false); }
+  };
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:1100, display:"flex",
+                  alignItems:"center", justifyContent:"center", background:C.SCRIM }}
+      onClick={e => { if (e.target === e.currentTarget && !busy) onCancel(); }}>
+      <div role="dialog" aria-label={`Delete ${preview.user.username}`}
+        style={{ background:theme.surface, borderRadius:16, padding:24, maxWidth:460, width:"90%",
+                 maxHeight:"80vh", overflowY:"auto", border:`1px solid ${theme.danger}55` }}>
+        <div style={{ fontSize:16, fontWeight:800, marginBottom:8, color:theme.danger }}>
+          Delete {preview.user.username}?
+        </div>
+        <div style={{ fontSize:12, color:theme.textMuted, lineHeight:1.6, marginBottom:12 }}>
+          This permanently removes the account and {preview.totalRows.toLocaleString()} row(s) of their data,
+          their screenshots and picture, and signs out every session. It cannot be undone.
+        </div>
+        {rows.length > 0 ? (
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, marginBottom:14 }}>
+            <tbody>
+              {rows.map(([t, n]) => (
+                <tr key={t} style={{ borderBottom:`1px solid ${theme.border}` }}>
+                  <td style={{ padding:"4px 6px", color:theme.textMuted, fontFamily:"monospace" }}>{t}</td>
+                  <td style={{ padding:"4px 6px", color:theme.text, textAlign:"right", fontWeight:700 }}>{n.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div style={{ fontSize:12, color:theme.textMuted, marginBottom:14 }}>No rows outside the account itself.</div>
+        )}
+        <label style={{ fontSize:11, fontWeight:700, color:theme.textMuted }}>
+          Type <span style={{ fontFamily:"monospace", color:theme.text }}>{preview.confirmWith}</span> to confirm
+          <input value={typed} onChange={e => setTyped(e.target.value)} autoFocus
+            style={{ display:"block", marginTop:4, height:34, padding:"0 10px", borderRadius:8, width:"100%",
+                     boxSizing:"border-box", border:`1px solid ${theme.border}`, background:theme.surface,
+                     color:theme.text, fontSize:12 }}/>
+        </label>
+        {err && <div style={{ marginTop:8, fontSize:12, color:theme.danger }}>{err}</div>}
+        <div style={{ display:"flex", gap:8, marginTop:16 }}>
+          <button onClick={onCancel} disabled={busy}
+            style={{ flex:1, padding:"9px 0", borderRadius:999, border:`1px solid ${theme.border}`,
+                     background:"transparent", color:theme.text, fontWeight:700, fontSize:13, cursor:"pointer" }}>
+            Cancel
+          </button>
+          <button onClick={doDelete} disabled={!armed}
+            style={{ flex:2, padding:"9px 0", borderRadius:999, border:"none", background:theme.danger,
+                     color:C.ON_ACCENT, fontWeight:800, fontSize:13, cursor:armed ? "pointer" : "not-allowed",
+                     opacity:armed ? 1 : 0.45 }}>
+            {busy ? "Deleting…" : "Delete permanently"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AdminPanel() {
   const { theme } = useTheme();
   const [users,    setUsers]    = useState([]);
@@ -835,9 +911,14 @@ export function AdminPanel() {
     setTimeout(() => setStatus(""), 3000);
   };
 
+  // Opens the preview; the delete itself is DeleteUserDialog's, behind the typed username.
+  const [deletePreview, setDeletePreview] = useState(null);
   const deleteUser = async id => {
-    if (!confirm("Delete this user and all their data?")) return;
-    await api(`/api/admin/users/${id}`, { method:"DELETE" });
+    try { setDeletePreview(await api(`/api/admin/users/${id}/delete-preview`)); }
+    catch (e) { alert("Cannot delete: " + e.message); }
+  };
+  const onUserDeleted = id => {
+    setDeletePreview(null);
     setUsers(u => u.filter(x => x.id !== id));
   };
 
@@ -915,6 +996,11 @@ export function AdminPanel() {
     <div style={{ padding:"32px 24px", overflowY:"auto", height:"100%",
                   boxSizing:"border-box", background:theme.bg, maxWidth:1200,
                   borderTop:`4px solid ${ADMIN_ACCENT_TEXT}` }}>
+
+      {deletePreview && (
+        <DeleteUserDialog preview={deletePreview}
+          onCancel={() => setDeletePreview(null)} onDeleted={onUserDeleted}/>
+      )}
 
       {/* Admin header */}
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:24 }}>
@@ -1145,7 +1231,7 @@ export function AdminPanel() {
                           </td>
                           <td style={{ padding:"12px 14px" }}>
                             <div style={{ display:"flex", gap:6 }}>
-                              {!u.is_admin && (
+                              {!u.is_admin && !isSystemAccount(u) && (
                                 <select value={u.plan_tier || "BASIC"} onChange={e => grantPlan(u.id, e.target.value)}
                                   style={{ background:theme.surfaceHigh, color:theme.text,
                                            border:`1px solid ${theme.border}`, borderRadius:6,
@@ -1155,7 +1241,7 @@ export function AdminPanel() {
                                   <option value="PRO">Pro</option>
                                 </select>
                               )}
-                              {!u.is_admin && (
+                              {!u.is_admin && !isSystemAccount(u) && (
                                 <button className="rm-btn rm-btn-ghost rm-btn-sm"
                                   style={{ color:theme.danger, borderColor:theme.danger+"44" }}
                                   onClick={() => deleteUser(u.id)}>

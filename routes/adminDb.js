@@ -5,6 +5,7 @@ import { Router } from "express";
 import fs from "fs";
 import Database from "better-sqlite3";
 import { redactRow, redactRows, runReadOnlyQuery, secretColumnsMentioned } from "../services/adminSafety.js";
+import { JobReviewError, jobReviewImpact, reassignJob, recentJobReviewChanges, undoJobReview } from "../services/adminJobReview.js";
 import { classifyTitle } from "../services/jobClassifier.js";
 import { getSourceStatus } from "../services/jobs/aggregator.js";
 import { BRAND } from "../shared/brand.js";
@@ -46,7 +47,7 @@ const ENRICHMENT_COLUMNS = [
 // crawl here too and this cannot drift into the second copy of the list it exists to avoid.
 const CRAWL_SOURCES = new Set([...DIRECT_ATS_SOURCES, "jobo"]);
 
-export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
+export function createAdminDbRouter(db, { dbPath } = {}) {
   const router = Router();
 
   // A51: the raw query's own connection, READ-ONLY at the SQLite level and opened lazily. No file
@@ -831,7 +832,8 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
                sj.posted_at, sj.scraped_at, sj.domain_profile_id,
                dp.profile_name, dp.role_family as profile_role_family,
                GROUP_CONCAT(jrm.role_key) as role_keys,
-               GROUP_CONCAT(jrm.matched_by) as matched_by
+               GROUP_CONCAT(jrm.matched_by) as matched_by,
+               (SELECT COUNT(DISTINCT uj.user_id) FROM user_jobs uj WHERE uj.job_id = sj.job_id) as users_referencing
         FROM scraped_jobs sj
         LEFT JOIN domain_profiles dp ON dp.id = sj.domain_profile_id
         LEFT JOIN job_role_map jrm ON jrm.job_id = sj.job_id
@@ -854,48 +856,36 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
+  // A58 (b): re-classification only — job_role_map and scraped_jobs.domain_profile_id, logged with
+  // the value replaced. It used to rewrite every user's unapplied user_jobs row for the posting too,
+  // which re-dealt Passes and dropped Saves; see services/adminJobReview.js.
+  const jobReviewFail = (res, e) => res.status(e instanceof JobReviewError ? e.status : 500).json({ error: e.message });
   router.post("/job-review/reassign", requireAdmin, (req, res) => {
     try {
-      const jobId = String(req.body?.jobId || "").trim();
-      const roleKey = String(req.body?.roleKey || "").trim().toLowerCase();
-      const domainProfileId = req.body?.domainProfileId ? parseInt(req.body.domainProfileId) : null;
-      if (!jobId) return res.status(400).json({ error: "jobId required" });
-      const job = db.prepare("SELECT job_id FROM scraped_jobs WHERE job_id=?").get(jobId);
-      if (!job) return res.status(404).json({ error: "Job not found" });
+      res.json(reassignJob(db, {
+        jobId: req.body?.jobId,
+        roleKey: req.body?.roleKey,
+        domainProfileId: req.body?.domainProfileId ? parseInt(req.body.domainProfileId) : null,
+        adminUserId: req.user?.id ?? null,
+        validRoleKeys: VALID_REVIEW_ROLE_KEYS,
+      }));
+    } catch(e) { jobReviewFail(res, e); }
+  });
 
-      if (roleKey === "unclassified") {
-        db.prepare("DELETE FROM job_role_map WHERE job_id=?").run(jobId);
-        db.prepare("UPDATE scraped_jobs SET domain_profile_id=NULL WHERE job_id=?").run(jobId);
-        db.prepare("UPDATE user_jobs SET domain_profile_id=NULL WHERE job_id=? AND applied=0").run(jobId);
-        return res.json({ ok: true, jobId, roleKey: "unclassified" });
-      }
-      if (!VALID_REVIEW_ROLE_KEYS.has(roleKey)) return res.status(400).json({ error: "Invalid roleKey" });
+  // Who has a Save / Pass / application on the posting — what the confirm states. Read-only.
+  router.get("/job-review/impact/:jobId", requireAdmin, (req, res) => {
+    try { res.json(jobReviewImpact(db, String(req.params.jobId))); }
+    catch(e) { jobReviewFail(res, e); }
+  });
 
-      let profile = null;
-      if (domainProfileId) {
-        profile = db.prepare("SELECT * FROM domain_profiles WHERE id=?").get(domainProfileId);
-        if (!profile) return res.status(400).json({ error: "domainProfileId not found" });
-      }
-      db.prepare("DELETE FROM job_role_map WHERE job_id=?").run(jobId);
-      db.prepare(`
-        INSERT INTO job_role_map
-          (job_id, role_key, role_family, domain, source_profile_id, confidence, matched_by)
-        VALUES (?, ?, ?, ?, ?, 1.0, 'manual_review')
-      `).run(
-        jobId,
-        roleKey,
-        profile?.role_family || roleKey,
-        profile?.domain || roleKey,
-        profile?.id || null,
-      );
-      db.prepare("UPDATE scraped_jobs SET domain_profile_id=? WHERE job_id=?")
-        .run(profile?.id || null, jobId);
-      if (profile?.id) {
-        db.prepare("UPDATE user_jobs SET domain_profile_id=? WHERE job_id=? AND applied=0")
-          .run(profile.id, jobId);
-      }
-      res.json({ ok: true, jobId, roleKey, domainProfileId: profile?.id || null });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+  // The logged changes, newest first, and undoing the newest one for a posting.
+  router.get("/job-review/changes", requireAdmin, (req, res) => {
+    try { res.json({ changes: recentJobReviewChanges(db, { limit: Math.min(100, parseInt(req.query.limit || "20") || 20) }) }); }
+    catch(e) { jobReviewFail(res, e); }
+  });
+  router.post("/job-review/undo/:logId", requireAdmin, (req, res) => {
+    try { res.json(undoJobReview(db, Number(req.params.logId), { adminUserId: req.user?.id ?? null })); }
+    catch(e) { jobReviewFail(res, e); }
   });
 
   // ── Route 2c: Full schema export (for copy/download) ─────────
@@ -1283,47 +1273,14 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
   // passed jobs and wiped other profiles' decisions: the cleanup_log id-85 class of loss. Nothing
   // else called it, and there is no pool left to clean.
 
-  // ── Utility: Re-tag user pool ─────────────────────────────────
-  router.post("/retag-user-pool/:userId", requireAdmin, (req, res) => {
-    const userId = parseInt(req.params.userId);
-    try {
-      const activeProfile = db.prepare(
-        "SELECT * FROM domain_profiles WHERE user_id = ? AND is_active = 1"
-      ).get(userId);
-
-      if (!activeProfile) return res.json({ tagged: 0, stillNull: 0, error: "No active profile" });
-      const roleKey = roleKeyForProfile(activeProfile);
-
-      const tagged = db.prepare(`
-        UPDATE user_jobs SET domain_profile_id = ?
-        WHERE user_id = ? AND domain_profile_id IS NULL
-        AND job_id IN (SELECT job_id FROM job_role_map WHERE role_key = ?)
-      `).run(activeProfile.id, userId, roleKey);
-
-      const stillNull = db.prepare(
-        "SELECT COUNT(*) as c FROM user_jobs WHERE user_id = ? AND domain_profile_id IS NULL"
-      ).get(userId).c;
-
-      res.json({ tagged: tagged.changes, stillNull });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-  });
-
-  // ── Utility: Force scrape ─────────────────────────────────────
-  router.post("/force-scrape", requireAdmin, async (req, res) => {
-    const { userId, query } = req.body;
-    if (!userId || !query) return res.status(400).json({ error: "userId and query required" });
-    if (!scrapeJobs) return res.status(501).json({ error: "scrapeJobs not wired up" });
-    try {
-      const user = db.prepare("SELECT apify_token FROM users WHERE id=?").get(userId);
-      if (!user?.apify_token) return res.status(400).json({ error: "User has no apify_token configured" });
-      const activeProfile = db.prepare(
-        "SELECT id FROM domain_profiles WHERE user_id=? AND is_active=1"
-      ).get(userId);
-      if (!activeProfile) return res.status(400).json({ error: "User has no active domain profile" });
-      scrapeJobs(query, user.apify_token, {}, activeProfile.id).catch(console.error);
-      res.json({ ok: true, scraping: true });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-  });
+  // A58 (b): "Re-tag Pool" (POST /retag-user-pool/:userId) is REMOVED. Pre-pivot pool logic: it ran
+  // UPDATE user_jobs SET domain_profile_id = <active> over one user's untagged rows, which can resurface a
+  // Pass made under another profile onto this one. A user's Saves and Passes are theirs; no admin route
+  // writes user_jobs (test/adminStopHarmII.test.js).
+  //
+  // A58 (e): POST /force-scrape is REMOVED. It started an Apify crawl on a USER'S OWN apify_token against
+  // their active profile — spending their account — and nothing called it (no UI, script or extension).
+  // External scraping is retired; ingestion is the ATS crawl.
 
   // ── Utility: Raw read-only query ──────────────────────────────
   router.get("/raw-query", requireAdmin, (req, res) => {

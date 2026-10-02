@@ -27,11 +27,11 @@ test("external scraping stays retired and the setup gate still blocks a profilel
   // (server.js:911-916) joins it to domain_profiles legitimately, and an admin view reads it.
   // Reads are fine — the table having no WRITER is what made the cron unreachable.
 
-  // isExternalScrapeQuotaError and scrapeJobs still EXIST and are still live, now via exactly one
-  // entry point: POST /api/admin/db/force-scrape, which is a working HarvestAPI crawl. Removing
-  // that is a product decision, not cleanup, so absence is deliberately NOT asserted for them.
-  assert.match(server, /createAdminDbRouter\(db, \{ dbPath: DB_PATH, scrapeJobs \}\)/,
-    "force-scrape is the one remaining scrapeJobs entry point — keep the wiring explicit");
+  // scrapeJobs's one remaining entry point was POST /api/admin/db/force-scrape. A58 (10-02) removed
+  // it — the owner's call (it spent a user's own Apify token, and nothing called it) — so the admin
+  // router is no longer handed scrapeJobs. Asserted absent so the wiring cannot quietly come back.
+  assert.match(server, /createAdminDbRouter\(db, \{ dbPath: DB_PATH \}\)/,
+    "the admin router no longer receives scrapeJobs: force-scrape is gone");
 
   // The user-facing gate that replaced it is live.
   assert.match(jobsPanel, /setupBlock/);
