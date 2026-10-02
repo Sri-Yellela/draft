@@ -42,6 +42,11 @@ summarised ("the work-authorisation answer"), never quoted.
 Owner rows are **O##**, agent rows **A##**, always written with the letter. O34–O40 and A34–A40 were
 different tasks; "34" alone was misread for a whole session (2026-10-01).
 
+⛔ **The A## sequence belongs to the owner and the chat assistant (2026-10-02).** An agent may mark an
+A row done, correct its facts, or flag it wrong — it may **not** add A rows. **Findings an agent raises
+are F##**, numbered independently. Agent-made A rows collided twice (A51/A52; A66/A67 forced the
+assistant's A66–A70 to become A68–A70); F1 and F2 were first numbered A66 and A67.
+
 ## ⛔ CURRENT STATE is re-derived, never carried forward
 
 Every figure in the WORKLOG's CURRENT STATE is measured when it is written — from git
