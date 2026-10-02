@@ -3800,6 +3800,19 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE users ADD COLUMN deck_geometry TEXT;
       `,
     },
+    {
+      // Owner, 10-02 (A44): Skroutz's Workable board is alive but every posting is in Greece, and draft
+      // is US-only (A37). Deactivated, not deleted — as 102 did for Retool: active=0 is honoured by
+      // cacheJobs, the crawl stops spending a request on it, and the row stays as the record should
+      // it ever post in the US. Its existing rows are held out by the A37 gate on the next crawl.
+      // (Hygraph's empty board is KEPT, also the owner's call.)
+      id: "115_deactivate_skroutz_outside_us",
+      sql: `
+        UPDATE company_ats_list
+           SET active = 0
+         WHERE company = 'Skroutz' AND ats_type = 'workable' AND ats_slug = 'skroutz';
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
