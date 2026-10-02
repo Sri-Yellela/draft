@@ -82,12 +82,12 @@ test("the Operations tab draws it, with Add gated on a probe of exactly the type
   assert.match(ops, /confirm: true, expectState: seen\.state/);
 });
 
-test("A50 step 7: Resume Master status — public routes only, a yes/no for the token, usage said to be elsewhere", () => {
+test("A50 step 7: the tools service status — public routes only, a yes/no for the token, usage said to be elsewhere", () => {
   const server = fs.readFileSync("server.js", "utf8");
-  const route = server.slice(at(server, 'app.get("/api/admin/resume-master", requireAdmin'), at(server, 'app.get("/api/admin/glance"'));
+  const route = server.slice(at(server, 'app.get("/api/admin/tools-service", requireAdmin'), at(server, 'app.get("/api/admin/glance"'));
   assert.ok(route.length > 100);
   assert.match(route, /tokenHeld: !!process\.env\.RESUME_MASTER_TOKEN/);
   assert.doesNotMatch(route, /authorization|Bearer/i, "no token is sent to read health and version");
   assert.match(route, /get\("\/health"\), get\("\/v1\/version"\)/);
-  assert.match(fs.readFileSync("client/src/panels/adminOps.jsx", "utf8"), /<ResumeMasterSection theme=\{theme\}\/>/);
+  assert.match(fs.readFileSync("client/src/panels/adminOps.jsx", "utf8"), /<ToolsServiceSection theme=\{theme\}\/>/);
 });

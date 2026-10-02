@@ -9,6 +9,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { api, authContextQuery } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
+// The second product is named by the one constant that holds its name (shared/brand.js).
+import { LEGACY_BRAND } from "../../../shared/brand.js";
 
 // ── shared bits ───────────────────────────────────────────────────────────────────────────────
 const nowSec = () => Math.floor(Date.now() / 1000);
@@ -576,20 +578,20 @@ export function CompaniesSection({ theme }) {
   );
 }
 
-// ── Resume Master — /api/admin/resume-master (A50 step 7) ─────────────────────────────────────
+// ── The tools service — /api/admin/tools-service (A50 step 7) ─────────────────────────────────
 // The second service, as draft sees it: is it up, which commit, does draft hold a token. Read-only.
-export function ResumeMasterSection({ theme }) {
+export function ToolsServiceSection({ theme }) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
-  const load = useCallback(() => { setErr(null); api("/api/admin/resume-master").then(setD).catch(e => setErr(e.message)); }, []);
+  const load = useCallback(() => { setErr(null); api("/api/admin/tools-service").then(setD).catch(e => setErr(e.message)); }, []);
   useEffect(() => { load(); }, [load]);
   const up = d?.health?.status === 200 && d?.health?.body?.ok === true;
   return (
-    <Card theme={theme} title="Resume Master" measured={d ? `measured ${ago(d.measuredAt)}` : "measuring…"}>
+    <Card theme={theme} title={LEGACY_BRAND} measured={d ? `measured ${ago(d.measuredAt)}` : "measuring…"}>
       <Err msg={err || d?.error}/>
       {d && <KV theme={theme} rows={[
         ["service", up ? "up" : d.health ? `answered ${d.health.status}` : "no answer", up ? C.SUCCESS : C.DANGER],
-        ["url", d.url || "RESUME_MASTER_URL not set"],
+        ["url", d.url || "no URL configured (see the boot log)"],
         ["commit", d.version?.commit ? String(d.version.commit).slice(0, 7) : "—"],
         ["scorer", d.version?.scorer || "—"],
         ["draft's client", d.configured ? "configured" : "NOT configured — generation and A+ answer 503", d.configured ? null : C.WARNING],
@@ -696,7 +698,7 @@ export function OpsTab({ theme }) {
       <EnrichmentSection theme={theme}/>
       <JobDataSection theme={theme}/>
       <CompaniesSection theme={theme}/>
-      <ResumeMasterSection theme={theme}/>
+      <ToolsServiceSection theme={theme}/>
       <SpendSection theme={theme}/>
     </div>
   );
