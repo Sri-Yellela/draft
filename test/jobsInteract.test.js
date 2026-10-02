@@ -172,16 +172,20 @@ test("two users starring the same job keep separate rows", () => {
 // ── the caller ───────────────────────────────────────────────────────────────────────────────
 
 test("JobCard sends the jobId it already has", () => {
+  // A53: the card's own interact() became the shared SET (lib/jobDecisions.js commitDecision) —
+  // the deck's call — so what is pinned is that the card hands it the jobId and nothing else.
   const card = fs.readFileSync("client/src/components/JobCard.jsx", "utf8");
-  const fn = card.slice(at(card, "async function interact(patch)"), at(card, "// Fallback handlers"));
-  assert.match(fn, /jobId: job\.jobId \|\| job\.id/);
+  const decisions = fs.readFileSync("client/src/lib/jobDecisions.js", "utf8");
+  const fn = card.slice(at(card, "const handleSave = () => {"), at(card, "// ── DRAFT, WHERE"));
+  assert.match(fn, /commitDecision\(\{ jobId: job\.jobId \|\| job\.id, decision: DECISIONS\.SAVED \}\)/);
   // The three parameters the endpoint discarded are gone.
   assert.doesNotMatch(fn, /title: job\.title/);
   assert.doesNotMatch(fn, /company: job\.company/);
   assert.doesNotMatch(fn, /source: job\.source/);
   // Still through api(), so the tab's own identity is what the write lands on (AH1).
-  assert.match(fn, /await api\("\/api\/jobs\/interact"/);
-  // And a failure now names the job and the message, rather than logging a bare object — that
+  assert.match(decisions, /await api\("\/api\/jobs\/interact", \{ method: "PATCH",/);
+  assert.match(decisions, /import \{ api as defaultApi \} from "\.\/api\.js";/);
+  // And a failure names the job and the message, rather than logging a bare object — that
   // console.warn is the reason a permanently-500ing endpoint went unnoticed.
-  assert.match(fn, /interact failed for \$\{job\.jobId \|\| job\.id\}: \$\{e\.message\}/);
+  assert.match(fn, /save failed for \$\{job\.jobId \|\| job\.id\}: \$\{e\.message\}/);
 });

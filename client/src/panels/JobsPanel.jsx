@@ -4,12 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
-import { api, printResume, dislikeJob, authHeaders, authContextQuery } from "../lib/api.js";
+import { api, printResume, authHeaders, authContextQuery } from "../lib/api.js";
 import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { TileGrid } from "../components/ui/TileCard.jsx";
 import { GENERATE_TOOL, A_PLUS_TOOL, TOOL_LABELS, normalizeTool } from "../lib/applyTools.js";
 import { planPageFetch, recordPageCursor } from "../lib/boardPaging.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
+import { DECISIONS, DECISION_SURFACES, DECISION_TOAST_MS, commitDecision, undoDecision, undoFlagsFor, flagsFor, isDrafted } from "../lib/jobDecisions.js";
+import DecisionToast from "../components/DecisionToast.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import JobCard from "../components/JobCard.jsx";
@@ -1428,11 +1430,17 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // Live scrape status
   const [scrapeError,    setScrapeError]    = useState("");
   // The auto-apply pipeline's state moved to contexts/AutoApplyContext.jsx, and its surface to
-  // panels/AutoApplyPanel.jsx on its own tab (W5). The board keeps exactly one thing: the ability
-  // to put a job IN the queue, which is what the card's queue button does. Everything else it used
-  // to own — runs, review queues, held-gate batches, questions, pending approvals, per-run detail —
-  // is on that tab, unchanged.
-  const { addToApplyQueue } = useAutoApply();
+  // panels/AutoApplyPanel.jsx on its own tab (W5). The board keeps what it needs to DECIDE: Draft,
+  // Save and Pass are the deck's own calls (lib/jobDecisions.js, A53 — owner 10-02), and whether a
+  // job is already drafted is the pipeline's own feed. Everything else is on that tab.
+  const { draftTool, applyStateByJobId, loadApplyRuns } = useAutoApply();
+  // The decision just made, for the shared toast and its Undo (components/DecisionToast.jsx).
+  const [decisionToast, setDecisionToast] = useState(null);
+  // Drafted this session, and drafts in flight: the feed catches up on its next load, and a second
+  // click must not post twice while the first is on the wire.
+  const [draftedIds, setDraftedIds] = useState(() => new Set());
+  const [draftingIds, setDraftingIds] = useState(() => new Set());
+  const isJobDrafted = (jobId) => draftedIds.has(jobId) || isDrafted(applyStateByJobId?.[jobId]);
 
   // LIVE POLLING: polls /api/jobs/poll every 4s during active scrape.
   // Stops when scraping:false returned or after 3 consecutive failures.
@@ -1876,13 +1884,16 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       },
       onExport: () => exportAndTrack(selectedJob, getActiveArtifact(g2)?.html, selectedJob.company, getActiveArtifact(g2)),
       onVisit: () => visitUrl(selectedJob),
-      onStar: () => toggleStar(selectedJob.jobId, selectedJob),
-      onDislike: () => toggleDislike?.(selectedJob.jobId, selectedJob),
+      // A53: the deck's three decisions, the deck's calls. Save and Pass SET; Undo is the toast.
+      onSave: () => decideJob(selectedJob, DECISIONS.SAVED),
+      onPass: () => decideJob(selectedJob, DECISIONS.PASSED),
+      onDraft: () => decideJob(selectedJob, DECISIONS.DRAFTED),
+      drafted: isJobDrafted(selectedJob.jobId),
+      drafting: draftingIds.has(selectedJob.jobId),
       onAts: () => openAtsPanel(buildAtsPayload(selectedJob, g2)),
       onResume: () => generate(selectedJob, false),
-      onQueueApply: addToApplyQueue,
     });
-  }, [selectedJob, generated, loading, applyMode, canUseGenerate, resumeText]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedJob, generated, loading, applyMode, canUseGenerate, resumeText, draftedIds, draftingIds, applyStateByJobId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-open resume + ATS panel when a pending job card is selected
   useEffect(() => {
@@ -3068,40 +3079,85 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     }
   }, [applyMode, fetchJobs, currentPage, sandbox]);
 
-  // -- Starred toggle ----------------------------------------
-  const toggleStar = useCallback(async (jobId, job = null) => {
-    try {
-      const d = await api(`/api/jobs/${jobId}/starred`, { method:"PATCH" });
-      setJobs(prev => prev.map(j => j.jobId === jobId ? {...j, starred: d.starred, disliked: false} : j));
-    } catch {}
-  }, []);
+  // -- Save / Pass / Draft — the deck's decisions, the deck's calls (A53, owner 10-02) ----------
+  //
+  // These were TOGGLES (PATCH /api/jobs/:id/starred and /disliked read the current value and write
+  // its opposite), so a second click — or a retried request — silently undid the decision with a
+  // 200, and "Queue Auto" put the job in a client-side basket a reload emptied. Now: Save and Pass
+  // SET (a repeat is a no-op that shows the set state), Draft posts the run at once, and reversal
+  // is Undo on the shared toast — exactly as on Today.
+  //
+  // A passed card stays visible (faded) for the rest of the session: sessionDislikedRef keeps it
+  // through any fetchJobs call; only a reload lets the server exclusion apply.
+  const applyFlags = useCallback((jobId, flags) => {
+    setJobs(prev => prev.map(j => {
+      if (j.jobId !== jobId) return j;
+      const updated = { ...j, ...flags };
+      if (flags.disliked === true) sessionDislikedRef.current.set(jobId, { ...updated, __profileKey: activeProfileKeyRef.current });
+      else if (flags.disliked === false) sessionDislikedRef.current.delete(jobId);
+      return updated;
+    }));
+    setPendingJobs(prev => prev.map(j => j.jobId !== jobId ? j : { ...j, ...flags }));
+    setSelectedJob(prev => (prev && prev.jobId === jobId ? { ...prev, ...flags } : prev));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // -- Dislike toggle — deferred removal ------------------------
-  // Card stays visible (faded/greyed) for the rest of the session.
-  // sessionDislikedRef ensures the card survives any fetchJobs call
-  // (sort change, filter change, pagination, etc.) within this session.
-  // Only a page reload clears the ref and lets the server exclusion apply.
-  const toggleDislike = useCallback(async (jobId, job = null) => {
+  const decideJob = useCallback(async (job, decision) => {
+    const jobId = job?.jobId || job?.id;
+    if (!jobId) return;
+    const prior = { starred: !!job.starred, disliked: !!job.disliked };
+    // ⛔ A SET, NEVER A TOGGLE: deciding what is already decided does nothing.
+    if (decision === DECISIONS.SAVED && prior.starred) return;
+    if (decision === DECISIONS.PASSED && prior.disliked) return;
+    if (decision === DECISIONS.DRAFTED && (isJobDrafted(jobId) || draftingIds.has(jobId))) return;
+    const at = Date.now();
+    if (decision === DECISIONS.DRAFTED) {
+      setDraftingIds(prev => new Set(prev).add(jobId));
+      try {
+        const r = await commitDecision({ jobId, decision, tool: draftTool, surface: DECISION_SURFACES.BOARD });
+        setDraftedIds(prev => new Set(prev).add(jobId));
+        setDecisionToast({ jobId, company: job.company, decision, runId: r.runId, prior, at });
+        loadApplyRuns?.();
+      } catch (e) {
+        // ⛔ Never a success toast for a refused call. "Already drafted" IS the drafted state.
+        if (e.payload?.code === "already_drafted") setDraftedIds(prev => new Set(prev).add(jobId));
+        setDecisionToast({ jobId, company: job.company, decision, error: e.message, at });
+      } finally {
+        setDraftingIds(prev => { const n = new Set(prev); n.delete(jobId); return n; });
+      }
+      return;
+    }
+    applyFlags(jobId, flagsFor(decision));
+    setDecisionToast({ jobId, company: job.company, decision, prior, at });
     try {
-      const d = await dislikeJob(jobId);
-      const isNowDisliked = !!d.disliked;
-      setJobs(prev => {
-        return prev.map(j => {
-          if (j.jobId !== jobId) return j;
-          const updated = { ...j, disliked: isNowDisliked, starred: isNowDisliked ? false : j.starred };
-          if (isNowDisliked) {
-            sessionDislikedRef.current.set(jobId, { ...updated, __profileKey: activeProfileKeyRef.current });
-          } else {
-            sessionDislikedRef.current.delete(jobId);
-          }
-          return updated;
-        });
-      });
-      setPendingJobs(prev => prev.map(j => j.jobId !== jobId ? j : {
-        ...j, disliked: isNowDisliked, starred: isNowDisliked ? false : j.starred,
-      }));
-    } catch {}
-  }, []);
+      await commitDecision({ jobId, decision });
+    } catch (e) {
+      applyFlags(jobId, undoFlagsFor(decision, prior));
+      setDecisionToast({ jobId, company: job.company, decision, error: e.message, at: Date.now() });
+    }
+  }, [applyFlags, draftTool, draftedIds, draftingIds, applyStateByJobId, loadApplyRuns]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const undoLastDecision = useCallback(async () => {
+    const t = decisionToast;
+    if (!t || t.error) return;
+    setDecisionToast(null);
+    try {
+      await undoDecision({ jobId: t.jobId, decision: t.decision, runId: t.runId, prior: t.prior });
+      if (t.decision === DECISIONS.DRAFTED) {
+        setDraftedIds(prev => { const n = new Set(prev); n.delete(t.jobId); return n; });
+        loadApplyRuns?.();
+      } else {
+        applyFlags(t.jobId, undoFlagsFor(t.decision, t.prior));
+      }
+    } catch (e) {
+      setDecisionToast({ jobId: t.jobId, company: t.company, decision: t.decision, error: `Could not undo: ${e.message}`, at: Date.now() });
+    }
+  }, [decisionToast, applyFlags, loadApplyRuns]);
+
+  useEffect(() => {
+    if (!decisionToast) return;
+    const id = setTimeout(() => setDecisionToast(null), DECISION_TOAST_MS);
+    return () => clearTimeout(id);
+  }, [decisionToast]);
 
   // -- Mark visited in local state ---------------------------
   const markVisited = useCallback((job) => {
@@ -3221,6 +3277,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
 
   return (
     <div style={{ flex:1, minHeight:0, minWidth:0, display:"flex", flexDirection:"column", overflow:"hidden", background:"transparent" }}>
+      {/* A53: the deck's toast and its Undo — one component, both surfaces. */}
+      <DecisionToast toast={decisionToast} onUndo={undoLastDecision} bottom={24} />
       {/* TRANSPARENT, not theme.bg (09-30). theme.bg is --bg-page, which is mapped to SURFACE — the
           GLASS — so the whole board sat under a 58% cream sheet, the cards were glass on glass, and
           the leather never reached them. The page is the substrate; only the cards are glass. */}
@@ -3582,7 +3640,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               theme={theme}
               totalPages={totalPages} currentPage={currentPage} isLastPage={isLastPage}
               generate={generate} openSandbox={openSandbox} exportAndTrack={exportAndTrack}
-              visitUrl={visitUrl} toggleStar={toggleStar} openAtsPanel={openAtsPanel}
+              visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds} openAtsPanel={openAtsPanel}
               goPage={goPage} onPullRefresh={handlePullRefresh}
               isMobile={isMobile}
               onJobSelect={handleJobSelect} selectedJobId={selectedJob?.jobId}
@@ -3663,7 +3721,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               theme={theme}
               totalPages={totalPages} currentPage={currentPage} isLastPage={isLastPage}
               generate={generate} openSandbox={openSandbox} exportAndTrack={exportAndTrack}
-              visitUrl={visitUrl} toggleStar={toggleStar} toggleDislike={toggleDislike}
+              visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds}
               openAtsPanel={openAtsPanel}
               goPage={goPage} onPullRefresh={handlePullRefresh}
               isMobile={isMobile}
@@ -3786,7 +3844,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       generated, loading, applyMode, canUseGenerate, canUseAPlusResume,
                       theme, totalPages, currentPage, isLastPage,
                       generate, openSandbox, exportAndTrack,
-                      visitUrl, toggleStar, toggleDislike, openAtsPanel,
+                      visitUrl, decideJob, isJobDrafted = () => false, draftingIds = new Set(), openAtsPanel,
                       goPage, onPullRefresh,
                       isMobile,
                       compact, selectedJobId, onJobSelect,
@@ -3923,13 +3981,13 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                 }}
                 onExport={() => exportAndTrack(job, getActiveArtifact(g)?.html, job.company, getActiveArtifact(g))}
                 onVisit={() => visitUrl(job)}
-                onStar={() => toggleStar(key)}
-                // AE5: the card's thumbs-down became Queue Auto, which JobCard reads off the
-                // AutoApply context itself — the same way ApplyStateChip in that file already does,
-                // so the queue action needs no plumbing through this component. `onDislike` is still
-                // passed: JobDetailPanel's "Pass" action is where the pass list is driven from now,
-                // and the dimmed rendering of an already-passed job is unchanged.
-                onDislike={() => toggleDislike?.(key)}
+                // A53: the card's decisions are the deck's — Draft (where Queue Auto was) and Save,
+                // both SETS; Pass lives on JobDetailPanel. Undo is the board's shared toast.
+                onSave={() => decideJob?.(job, DECISIONS.SAVED)}
+                onPass={() => decideJob?.(job, DECISIONS.PASSED)}
+                onDraft={() => decideJob?.(job, DECISIONS.DRAFTED)}
+                drafted={isJobDrafted(key)}
+                drafting={draftingIds.has(key)}
                 onCardClick={!onJobSelect ? () => {
                   if (done && g.html !== "__exists__") {
                     const entry = {...g, company:g.company||job.company, title:g.title||job.title};

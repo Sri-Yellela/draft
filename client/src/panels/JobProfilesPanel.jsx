@@ -154,8 +154,8 @@ export function JobProfilesPanel() {
         body: JSON.stringify({ generate_at_queue: next }),
       });
       setStatus(next
-        ? `Resumes for ${profile.profile_name} will be generated when a job is QUEUED. Queueing now costs money — about $0.04 per application, whether or not you approve it.`
-        : `Resumes for ${profile.profile_name} are generated when you APPROVE. Queueing is free.`);
+        ? `Resumes for ${profile.profile_name} will be generated when you DRAFT a job. Drafting now costs money — about $0.04 per application, whether or not you approve it.`
+        : `Resumes for ${profile.profile_name} are generated when you APPROVE. Drafting is free.`);
     } catch (e) {
       setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, generate_at_queue: previous } : p));
       setStatus(e.message || "Could not change the generation setting");
@@ -314,12 +314,12 @@ export function JobProfilesPanel() {
                         />
                         <span>
                           <span style={{ fontSize:11, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.06em", color:"var(--color-text)" }}>
-                            Generate resumes at queue time
+                            Generate resumes when you draft
                           </span>
                           <span style={{ display:"block", fontSize:10, color:"var(--color-text-muted)", marginTop:2, lineHeight:1.4 }}>
                             {profile.generate_at_queue
-                              ? "On. A tailored resume is written as soon as a job is queued — about $0.04 each, spent whether or not you go on to approve it."
-                              : "Off. Queueing is free; the tailored resume is written when you approve the application. The approval screen shows your base resume's fit so you are not deciding blind."}
+                              ? "On. A tailored resume is written as soon as you draft a job — about $0.04 each, spent whether or not you go on to approve it."
+                              : "Off. Drafting is free; the tailored resume is written when you approve the application. The approval screen shows your base resume's fit so you are not deciding blind."}
                           </span>
                         </span>
                       </label>

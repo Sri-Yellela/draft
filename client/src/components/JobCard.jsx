@@ -6,7 +6,8 @@ import { useTheme } from "../styles/theme.jsx";
 import CompanyViewModal from "./CompanyViewModal.jsx";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { boardApplicationChip } from "../lib/applyObstacles.js";
-import { api } from "../lib/api.js";
+import { DECISIONS, commitDecision } from "../lib/jobDecisions.js";
+import { SaveButton, DraftButton } from "./DecisionButtons.jsx";
 import { jobDetailHref } from "../lib/jobUrl.js";
 import CompanyIcon from "./ui/CompanyIcon.jsx";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
@@ -372,17 +373,8 @@ function IconBtn({
   );
 }
 
-function ToggleIconBtn({ active, activeLabel, inactiveLabel, activeChildren, inactiveChildren, ...props }) {
-  return (
-    <IconBtn
-      {...props}
-      active={active}
-      title={active ? activeLabel : inactiveLabel}
-    >
-      {active ? activeChildren : inactiveChildren}
-    </IconBtn>
-  );
-}
+// The board's Save and Draft buttons live in components/DecisionButtons.jsx (A53) — shared with
+// JobDetailPanel, in the deck's button treatment.
 
 // ── Main JobCard ─────────────────────────────────────────────────
 export default function JobCard({
@@ -401,8 +393,12 @@ export default function JobCard({
   onViewSandbox,
   onExport,
   onVisit,
-  onStar,
-  onDislike,
+  onSave,             // A53: Save SETS (the deck's call) — a repeat is a no-op
+  onUnsave,           // an explicit, labelled reversal — the Saved list's own control
+  onPass,             // the board card has no Pass slot; JobDetailPanel carries it
+  onDraft,            // Draft — the deck's call (lib/jobDecisions.js); was "Queue Auto"
+  drafted = false,    // already drafted (the pipeline's feed, or this session)
+  drafting = false,   // a Draft on the wire
   onCardClick,
   onAts,
   onResume,
@@ -419,10 +415,7 @@ export default function JobCard({
   const [expanded, setExpanded] = useState(false);
   const [showCompanyView, setShowCompanyView] = useState(false);
 
-  // Local STAR state — used when onStar is not provided (e.g. rendered from LandingPage with no
-  // parent managing state). The matching `disliked` state went with the thumbs-down (AE5): it
-  // existed only to drive that button's fill, and keeping a write-only copy of a flag whose one
-  // remaining reader is `job.disliked` below would be a second source of truth for it.
+  // Local SAVED state — used when no parent manages it (e.g. a card rendered with no onSave).
   const [starred,  setStarred]  = useState(job._user?.starred  ?? job.starred  ?? false);
 
   // Sync if job prop changes (e.g. parent re-fetches)
@@ -430,63 +423,29 @@ export default function JobCard({
     setStarred(job._user?.starred  ?? job.starred  ?? false);
   }, [job._user, job.starred]);
 
-  // Persist interact (star/dislike) when no parent callback provided.
-  //
-  // Goes through api() rather than a bare fetch. This was the ONE /api call site in the client that
-  // sent only `credentials: "include"` and no X-RM-Auth-Context header, so it was authenticated by
-  // the connect.sid cookie alone. The cookie is shared by every tab in a browser profile while the
-  // auth-context token is per tab, so whenever those two disagreed — two accounts open in one
-  // browser — starring a job in one tab wrote the star onto the OTHER account, silently. Every
-  // other call site already routes through api(); this one was the hole.
-  //
-  // Sends the jobId, which the card always has. It used to send the URL plus title/company/source;
-  // the endpoint keyed the row on the URL — where every other writer of user_jobs uses a job_id —
-  // and discarded the other three entirely. It still accepts a URL and resolves it, for a caller
-  // that only has one, but there is no reason for this caller to be that one.
-  async function interact(patch) {
-    try {
-      await api("/api/jobs/interact", {
-        method: "PATCH",
-        body: JSON.stringify({
-          jobId: job.jobId || job.id,
-          url: job.url || job.applyUrl,
-          ...patch,
-        }),
-      });
-    } catch (e) {
-      // Kept as a warn rather than surfaced: a star is not worth a toast. But the endpoint 500'd on
-      // EVERY call for its whole life and this line is why nobody noticed, so the failure is now
-      // loud in the console rather than a bare object.
-      console.warn(`[JobCard] interact failed for ${job.jobId || job.id}: ${e.message}`);
-    }
-  }
+  // ── SAVE SETS, IT DOES NOT TOGGLE (A53, owner 10-02) ──────────────────────────────────────
+  // This used to flip: a second press on a saved job UN-saved it, so the star was two decisions
+  // wearing one button. Save is the deck's Save now — PATCH /api/jobs/interact { starred:true },
+  // through lib/jobDecisions.js, never a second copy — and pressing it on a saved job does nothing.
+  // Reversal is a separate, labelled control: Undo on the board's toast, or "Remove" on the Saved
+  // list (onUnsave). The fallback below (no parent) goes through api() for the per-tab auth
+  // context: a bare fetch once wrote a star onto the OTHER signed-in account.
+  const handleSave = () => {
+    if (starred) return;
+    if (onSave) { onSave(); return; }
+    setStarred(true);
+    commitDecision({ jobId: job.jobId || job.id, decision: DECISIONS.SAVED })
+      .catch(e => { setStarred(false); console.warn(`[JobCard] save failed for ${job.jobId || job.id}: ${e.message}`); });
+  };
 
-  // Fallback handlers used when parent doesn't provide callbacks
-  const handleStar = onStar ?? (() => {
-    const next = !starred;
-    setStarred(next);
-    // Still clears `disliked` SERVER-side: starring a job you had passed on has to un-pass it, and
-    // that is the flag the board query filters on.
-    interact({ starred: next, ...(next ? { disliked: false } : {}) });
-  });
-
-  // ── AE5: QUEUE AUTO REPLACES THE THUMBS-DOWN ────────────────────────────────────────────────
-  // Read straight off the AutoApply context, the same way ApplyStateChip above does, so the action
-  // the card most needs does not have to be threaded through JobsPanel's board component. `queued`
-  // is the queue's own membership, so the button reports state rather than firing blindly twice.
-  //
-  // WHAT HAPPENED TO DISLIKE. It was checked before it was moved, and it is NOT merely a UI
-  // preference: `uj.disliked = 0` is a WHERE clause on the board query, the poll query and the
-  // facet counts (server.js), and routes/adminDb.js reports "disliked" as a reason a job was
-  // filtered out. It is the pass list. So it is not dropped — JobDetailPanel's "Pass" action drives
-  // exactly the same PATCH, and this card still renders a passed job dimmed and greyscaled. What
-  // changed is which of the two gets the scarce slot on a listing: one of these hides a job, the
-  // other applies to it, and only one of them is why the user is on this board.
-  const { addToApplyQueue, applyQueue } = useAutoApply();
+  // ── DRAFT, WHERE "QUEUE AUTO" WAS (AE5's slot) ─────────────────────────────────────────────
+  // AE5 gave this slot to the action that moves an application forward, and that stands. What
+  // changed (A53, owner 10-02) is that it is now the deck's Draft — one name, one behaviour: an
+  // immediate, persisted POST /api/apply/runs, not a client-side basket a reload emptied. Pass is
+  // on JobDetailPanel, one click away, and this card still renders a passed job dimmed.
   const queueKey = job.jobId || job.id;
-  const queued = (applyQueue || []).some(item => item.jobId === queueKey);
-  const canQueue = !!(job.applyUrl || job.url) && !!queueKey;
-  const handleQueue = () => { if (!queued) addToApplyQueue?.({ ...job, jobId: queueKey }); };
+  const canDraft = !!(job.applyUrl || job.url) && !!queueKey && !!onDraft;
+  const handleDraft = () => { if (!drafted && !drafting) onDraft?.(); };
 
   // The glass material (styles/glass.js) — a lit surface, not a pale rectangle (owner, 09-30).
   const material = glass({ hover: hov, radius: 14 });
@@ -615,25 +574,10 @@ export default function JobCard({
                   card still has to offer a way IN when there is no score. */}
               {!isLoggedOut && <AtsSlot score={g?.atsScore ?? job?.baseAtsScore ?? null} onClick={onAts}/>}
               {!isLoggedOut && (
-                <ToggleIconBtn
-                  bg={C.WARNING}
-                  size={28}
-                  theme={theme}
-                  active={starred}
-                  activeLabel="Remove from saved"
-                  inactiveLabel="Save job"
-                  onClick={e => { e.stopPropagation(); handleStar(); }}
-                  activeChildren="★"
-                  inactiveChildren="☆"
-                />
+                <SaveButton saved={starred} onSave={handleSave} onUnsave={onUnsave} compact />
               )}
-              {!isLoggedOut && canQueue && (
-                <IconBtn bg={C.SUCCESS} theme={theme} active={queued} size={28}
-                  title={queued ? "Already in the auto-apply queue" : "Add to auto-apply queue"}
-                  disabled={queued}
-                  onClick={e => { e.stopPropagation(); handleQueue(); }}>
-                  {queued ? "✓" : "⚡"}
-                </IconBtn>
+              {!isLoggedOut && canDraft && (
+                <DraftButton drafted={drafted} drafting={drafting} onDraft={handleDraft} compact />
               )}
             </div>
             {/* Row 2: job title */}
@@ -754,32 +698,13 @@ export default function JobCard({
               </span>
             )}
 
-            {/* Star */}
+            {/* Save, then Draft — the deck's order (Pass · Save · Draft) with Pass on the detail
+                panel, and the deck's button treatment: glass for Save, the orange fill for Draft. */}
             {!isLoggedOut && (
-              <ToggleIconBtn
-                bg={C.WARNING}
-                size={30}
-                theme={theme}
-                active={starred}
-                activeLabel="Remove from saved"
-                inactiveLabel="Save job"
-                onClick={e => { e.stopPropagation(); handleStar(); }}
-                activeChildren="★"
-                inactiveChildren="☆"
-              />
+              <SaveButton saved={starred} onSave={handleSave} onUnsave={onUnsave} />
             )}
-
-            {/* Queue Auto — AE5. Where the thumbs-down was. A listing has room for a handful of
-                controls and this is the one that moves an application forward; Pass lives on
-                JobDetailPanel, which is one click away and is where you decide you do NOT want a
-                job. Green matches JobDetailPanel's own "Queue Auto" so the two read as one action. */}
-            {!isLoggedOut && canQueue && (
-              <IconBtn bg={C.SUCCESS} theme={theme} active={queued}
-                title={queued ? "Already in the auto-apply queue" : "Add to auto-apply queue"}
-                disabled={queued}
-                onClick={e => { e.stopPropagation(); handleQueue(); }}>
-                {queued ? "✓" : "⚡"}
-              </IconBtn>
+            {!isLoggedOut && canDraft && (
+              <DraftButton drafted={drafted} drafting={drafting} onDraft={handleDraft} />
             )}
             {/* Generate */}
             {!isLoggedOut && canUseGenerate && onGenerate && showApplyButton && (

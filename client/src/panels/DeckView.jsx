@@ -43,12 +43,14 @@ import { jobDetailHref } from "../lib/jobUrl.js";
 import { TITLE_ATTR, transitionClick } from "../lib/viewTransitions.js";
 import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
 import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, stepTarget } from "../lib/deckState.js";
+import { DECISION_SURFACES, DECISION_TOAST_MS, DECISION_VERB, commitDecision, undoDecision } from "../lib/jobDecisions.js";
+import DecisionToast from "../components/DecisionToast.jsx";
 import { CARD, EXPAND_CLOCK, TWO_PANEL, cardSize, fanTransform, geometryFor, orientationFor, twoPanelColumn, twoPanelFor } from "../lib/fanGeometry.js";
 import DeckGeometryControl from "../components/DeckGeometryControl.jsx";
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
-const TOAST_MS = 5000;
+const TOAST_MS = DECISION_TOAST_MS;
 const WHEEL_STEP = 60;               // accumulated wheel delta for one card
 const WHEEL_SETTLE_MS = 140;         // one trackpad flick is many events; rotate once per flick
 const localDate = () => new Date().toLocaleDateString("en-CA");   // YYYY-MM-DD in the user's zone
@@ -56,12 +58,8 @@ const localDate = () => new Date().toLocaleDateString("en-CA");   // YYYY-MM-DD 
 // sweep). Production reads geometryFor (the user's layout, fitted) and nothing else.
 const DEV_FAN = import.meta.env?.DEV ? globalThis.__DECK_FAN__ : null;
 
-const VERB = { drafted: "Drafted", passed: "Passed", saved: "Saved" };
-const AFTER = {
-  drafted: "it waits for your review — nothing is sent until you approve it",
-  passed: "it won't come back",
-  saved: "it's in Saved on the board",
-};
+// The words, the toast and the calls are the board's too (A53, owner 10-02): lib/jobDecisions.js.
+const VERB = DECISION_VERB;
 
 // ── small pieces ────────────────────────────────────────────────────────────────────────────
 const visuallyHidden = { position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" };
@@ -610,15 +608,9 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const commit = useCallback(async (card, decision) => {
     const id = card.job.id;
     try {
-      if (decision === DECISIONS.DRAFTED) {
-        const r = await api("/api/apply/runs", { method: "POST",
-          body: JSON.stringify({ jobIds: [id], mode: "auto", tool, surface: "deck" }) });
-        dispatch({ type: "settled", jobId: id, runId: r.runId });
-      } else {
-        await api("/api/jobs/interact", { method: "PATCH",
-          body: JSON.stringify(decision === DECISIONS.PASSED ? { jobId: id, disliked: true } : { jobId: id, starred: true }) });
-        dispatch({ type: "settled", jobId: id });
-      }
+      // The board's Draft / Save / Pass make this exact call (lib/jobDecisions.js) — one behaviour.
+      const r = await commitDecision({ jobId: id, decision, tool, surface: DECISION_SURFACES.DECK });
+      dispatch({ type: "settled", jobId: id, ...(r.runId != null ? { runId: r.runId } : null) });
     } catch (e) {
       dispatch({ type: "refused", jobId: id, message: e.message });
       setToast(null);
@@ -656,17 +648,8 @@ export default function DeckView({ canUseAPlusResume = true }) {
     setToast(null);
     const card = stateRef.current.cards.find(c => c.job.id === t.jobId);
     try {
-      if (t.decision === DECISIONS.DRAFTED) {
-        const runId = card?.runId;
-        if (runId) {
-          const run = await api(`/api/apply/runs/${runId}`);
-          const rj = (run.jobs || run.run?.jobs || []).find(j => (j.jobId ?? j.job_id) === t.jobId);
-          if (rj) await api(`/api/apply/run-jobs/${rj.id}/abort`, { method: "POST" });
-        }
-      } else {
-        await api("/api/jobs/interact", { method: "PATCH",
-          body: JSON.stringify(t.decision === DECISIONS.PASSED ? { jobId: t.jobId, disliked: false } : { jobId: t.jobId, starred: false }) });
-      }
+      // A dealt card is undecided, so nothing was set before: Undo clears exactly the flag it set.
+      await undoDecision({ jobId: t.jobId, decision: t.decision, runId: card?.runId, prior: {} });
       dispatch({ type: "undone", jobId: t.jobId });
       setLive(`Undone. ${card?.job.title} is back.`);
     } catch (e) {
@@ -924,24 +907,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
           )}
         </AnimatePresence>
 
-        <AnimatePresence>
-          {toast && (
-            <motion.div key={toast.at} role="status" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 24 }}
-              // A toast must read over anything, so it is the opaque menu surface, not see-through glass.
-              style={{ ...glass({ radius: 16 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU,
-                       // Centred by margins, not left:50% + translate — that shrink-wraps the toast
-                       // to HALF the viewport and wrapped it to eight lines on a phone.
-                       position: "fixed", left: 0, right: 0, margin: "0 auto", width: "fit-content", bottom: 96, zIndex: Z.NAV,
-                       padding: "12px 16px", display: "flex", alignItems: "center", gap: 14, maxWidth: "calc(100vw - 32px)",
-                       fontSize: 14, color: C.INK }}>
-              <span><strong>{VERB[toast.decision]}</strong> {toast.company} — {AFTER[toast.decision]}</span>
-              <button type="button" onClick={undo} style={{ background: "transparent", border: "none", color: C.ACCENT_INK,
-                fontWeight: 800, cursor: "pointer", display: "flex", gap: 6, alignItems: "center" }}>
-                Undo <span style={kbd}>U</span>
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <DecisionToast toast={toast} onUndo={undo} undoKey="U" />
 
         {legend && (
           <div role="dialog" aria-label="Keyboard shortcuts" style={{ ...glass({ radius: 18 }), backgroundColor: C.SURFACE_MENU, position: "fixed", right: 24, bottom: 96,

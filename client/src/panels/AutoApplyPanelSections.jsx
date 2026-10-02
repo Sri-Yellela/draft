@@ -322,7 +322,7 @@ export function ApplicationObstacleCard({
           // when a missing resume is one of the reasons this application is held, and withheld when
           // the posting is gone: there would be nothing to tailor a resume to.
           <button onClick={() => onGenerateResume(app)}
-            title="Queues this job so the next run generates a tailored resume for it before it applies."
+            title="Drafts this job again — the new run generates a tailored resume for it before it applies."
             style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999,
                      border: "none", background: C.INFO, color: C.SURFACE_SOLID, cursor: "pointer",
                      whiteSpace: "nowrap" }}>
@@ -504,7 +504,7 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
             : onGenerateResume && d.resumeBlocked
               ? (
                 <button onClick={() => onGenerateResume(job)}
-                  title="Queues this job so the next run generates a tailored resume for it before it applies."
+                  title="Drafts this job again — the new run generates a tailored resume for it before it applies."
                   style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999,
                            border: "none", background: C.INFO, color: C.SURFACE_SOLID, cursor: "pointer",
                            whiteSpace: "nowrap" }}>
@@ -599,7 +599,7 @@ export function PrerequisiteCards({ missing, queuedCount, theme, onGo }) {
         // ONE blocking item with a fix, not N separate failures. This is computed by the server's
         // prerequisite gate, which used to only speak when a run was already refused.
         detail={queuedCount > 0
-          ? `${p.action} — unblocks the ${queuedCount} job${queuedCount === 1 ? "" : "s"} you have queued.`
+          ? `${p.action} — unblocks the ${queuedCount} job${queuedCount === 1 ? "" : "s"} you have drafted.`
           : `${p.action}. Nothing can be applied to until this is set.`}
         count={queuedCount || null}
         countLabel={queuedCount ? "blocked" : null}
@@ -980,7 +980,7 @@ export function CompanyApplicationRow({
           // AB4 requirement 5, unchanged: a missing resume is a problem with a one-click fix, so it
           // is a button — and only where a missing resume is actually what is wrong.
           <button onClick={() => onGenerateResume(app)}
-            title="Queues this job so the next run generates a tailored resume for it before it applies."
+            title="Drafts this job again — the new run generates a tailored resume for it before it applies."
             style={{ ...chip, border: "none", background: C.INFO, color: C.SURFACE_SOLID, fontWeight: 800,
                      cursor: "pointer" }}>
             Generate a resume
