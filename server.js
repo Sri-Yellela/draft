@@ -4040,13 +4040,12 @@ try {
 // Cache cleanup — removes scraped_jobs older than 7 days, then re-warms if empty
 function runCacheCleanup() {
   try {
-    const cutoff = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
-    const removed = db.prepare("DELETE FROM scraped_jobs WHERE scraped_at < ?").run(cutoff);
-    if (removed.changes > 0) {
-      console.log(`[Cache] Removed ${removed.changes} expired jobs`);
-      // Also clean orphaned job_role_map entries
-      db.prepare("DELETE FROM job_role_map WHERE job_id NOT IN (SELECT job_id FROM scraped_jobs)").run();
-    }
+    // ⛔ A49 fix 5 — this was a second, UNGUARDED expiry: a bare delete of every scraped_jobs row
+    // whose scraped_at was past the cutoff, on a 24h setInterval from boot. It deleted
+    // starred and APPLIED rows (which runExpiredJobsCleanup exempts), retired duplicates, and ran
+    // with no blast-radius brake and no cleanup_log record — the cleanup_log id-85 shape, unlogged.
+    // There is one expiry policy, and this now runs it.
+    runExpiredJobsCleanup();
     const remaining = db.prepare("SELECT COUNT(*) as n FROM scraped_jobs WHERE is_active = 1").get()?.n || 0;
     if (remaining === 0) {
       console.log("[Cache] Empty after cleanup — re-warming from ATS...");
@@ -4830,7 +4829,15 @@ function runExpiredJobsCleanup() {
     AND job_id NOT IN (
       SELECT DISTINCT job_id FROM user_jobs WHERE starred = 1
     )
+    AND NOT (duplicate_of IS NOT NULL
+             AND duplicate_of IN (SELECT job_id FROM scraped_jobs))
   `;
+  // ⛔ A49 fix 5 — A RETIRED DUPLICATE IS NOT EXPIRED. Dedup retires a row (is_active = 0,
+  // duplicate_of, retired_reason — services/jobs/dedupRetire.js) and never refreshes its scraped_at,
+  // so seven days later this DELETE took every one of them: a wrong merge became unrecoverable on a
+  // timer. It stays, restorable, for as long as the row it was merged into exists; once that
+  // canonical row is itself gone there is nothing left to restore it against, and it expires
+  // with the ordinary rule on a later pass.
   const boardTotal = db.prepare("SELECT COUNT(*) c FROM scraped_jobs").get().c;
   const wouldDelete = db.prepare(`SELECT COUNT(*) c FROM scraped_jobs WHERE ${EXPIRED_PREDICATE}`).get(cutoff).c;
   const scope = assessCleanupScope({ total: boardTotal, deletable: wouldDelete, ...cleanupBrakeOptions() });
