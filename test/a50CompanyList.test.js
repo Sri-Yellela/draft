@@ -6,6 +6,7 @@ import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import { createCompaniesRouter } from "../routes/companies.js";
 import { validateBoard } from "../services/companyList.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 // A50 step 4 (docs/ADMIN_PANEL_REVAMP.md §3): the company list as a surface. Fake fetchers — no
 // board is contacted — standing in for a live board, an empty one, and a dead slug.
@@ -79,4 +80,14 @@ test("the Operations tab draws it, with Add gated on a probe of exactly the type
   assert.match(ops, /const seen = probe && probe\.key === key \? probe\.body\.validation : null;/);
   assert.match(ops, /disabled=\{!seen\?\.ok \|\| !!busy\} onClick=\{add\}/);
   assert.match(ops, /confirm: true, expectState: seen\.state/);
+});
+
+test("A50 step 7: Resume Master status — public routes only, a yes/no for the token, usage said to be elsewhere", () => {
+  const server = fs.readFileSync("server.js", "utf8");
+  const route = server.slice(at(server, 'app.get("/api/admin/resume-master", requireAdmin'), at(server, 'app.get("/api/admin/glance"'));
+  assert.ok(route.length > 100);
+  assert.match(route, /tokenHeld: !!process\.env\.RESUME_MASTER_TOKEN/);
+  assert.doesNotMatch(route, /authorization|Bearer/i, "no token is sent to read health and version");
+  assert.match(route, /get\("\/health"\), get\("\/v1\/version"\)/);
+  assert.match(fs.readFileSync("client/src/panels/adminOps.jsx", "utf8"), /<ResumeMasterSection theme=\{theme\}\/>/);
 });

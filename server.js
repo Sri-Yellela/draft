@@ -7559,6 +7559,28 @@ app.use("/api/admin/db", adminDbRouter);
 // A50 step 3 — the daily glance (docs/ADMIN_PANEL_REVAMP.md §2A). Ingestion and enrichment come
 // from adminDbRouter.pipelineHealth() — the one computation the nightly alert also reads — and are
 // only SELECTED from here, never recomputed. Read-only; every section states when it was measured.
+// A50 step 7 (ADMIN_PANEL_REVAMP §3 — "Resume Master: no health, no per-client usage, no token
+// status"): the second service, as draft sees it. Health and version are its public routes (no token
+// sent); whether draft HOLDS a token is a yes/no, never the token. Per-client usage lives in Resume
+// Master's own metering log and is not visible from here — said, not hidden.
+app.get("/api/admin/resume-master", requireAdmin, async (_req, res) => {
+  const base = String(process.env.RESUME_MASTER_URL || "").replace(/\/+$/, "");
+  const out = { configured: !!toolsService.configured, url: base || null, tokenHeld: !!process.env.RESUME_MASTER_TOKEN,
+    measuredAt: Math.floor(Date.now() / 1000), health: null, version: null, error: null,
+    usageNote: "Per-client usage is in Resume Master's metering log (one line per call); it is not readable from draft." };
+  if (!base) return res.json({ ...out, error: "RESUME_MASTER_URL is not set" });
+  const get = async (path) => {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 5000);
+    try { const r = await fetch(base + path, { signal: ctl.signal }); return { status: r.status, body: await r.json().catch(() => null) }; }
+    finally { clearTimeout(t); }
+  };
+  try {
+    const [h, v] = await Promise.all([get("/health"), get("/v1/version")]);
+    out.health = h; out.version = v.body;
+  } catch (e) { out.error = e.name === "AbortError" ? "no answer within 5 s" : e.message; }
+  res.json(out);
+});
+
 app.get("/api/admin/glance", requireAdmin, (_req, res) => {
   try {
     res.json(buildGlance(db, {
