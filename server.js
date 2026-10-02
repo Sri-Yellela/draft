@@ -77,7 +77,8 @@ import { createPasswordReset, consumePasswordReset, findUserForPasswordReset } f
 import { sendPasswordResetEmail, sendVerificationCodeEmail, emailConfigured } from "./services/emailService.js";
 import { EncryptedSessionStore } from "./services/encryptedSessionStore.js";
 import { rejectCrossSiteWrites } from "./services/originGuard.js";
-import { forgetSessions, recordSession, sidsToRevoke } from "./services/accountService.js";
+import { AccountError, forgetSessions, recordSession, sidsToRevoke } from "./services/accountService.js";
+import { adminDeletePreview, adminDeleteUser, checkAdminDeleteConfirmed, removeDataFiles } from "./services/adminUserDelete.js";
 import { createAccountManagementRouter } from "./routes/accountManagement.js";
 import { allowedModesForTier, canUseAPlusResume, canUseGenerate, canUseMode, hasPlanAtLeast, nextPlan, normalisePlanTier, planForMode } from "./services/entitlements.js";
 import { monetisationEnabledFromEnv } from "./shared/monetisation.js";
@@ -3815,6 +3816,28 @@ console.log(`[boot] database ready: ${DB_PATH}`);
          WHERE company = 'Skroutz' AND ats_type = 'workable' AND ats_slug = 'skroutz';
       `,
     },
+    {
+      // A58 (10-02): what an admin write CHANGED, with the value it replaced, so it can be undone and
+      // so it can be read afterwards. Job Review's Save/Unclassify rewrote a posting's role map with no
+      // record of the old one; an admin user delete left no trace that it happened. One row per write.
+      // admin_user_id deliberately has NO foreign key and is not named user_id: deleting an admin must
+      // not cascade away the record of what that admin did, and this is not a per-user table.
+      id: "119_admin_audit_log",
+      sql: `
+        CREATE TABLE IF NOT EXISTS admin_audit_log (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          at INTEGER NOT NULL DEFAULT (unixepoch()),
+          admin_user_id INTEGER,
+          action TEXT NOT NULL,
+          target TEXT,
+          before_json TEXT,
+          after_json TEXT,
+          undone_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_admin_audit_log_target
+          ON admin_audit_log(action, target);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -4998,9 +5021,9 @@ cron.schedule("0 2 * * *", () => {
 // and the crawl could never run. Dead by data flow, not merely by absent callers, which is why
 // it survived earlier caller-grep passes.
 //
-// `scrapeJobs` itself is deliberately KEPT: POST /api/admin/db/force-scrape still reaches it and
-// it is still a working HarvestAPI crawl. Removing that is a product decision, not cleanup.
-// See docs/PIPELINE_DIAGNOSIS.md §5.12.
+// `scrapeJobs` was KEPT for POST /api/admin/db/force-scrape, its one entry point. A58 (10-02) removed
+// that route — it spent a USER'S OWN Apify token and nothing called it — so `scrapeJobs` now has NO
+// caller. Deleting the function and its helpers is left as its own cleanup. See docs/PIPELINE_DIAGNOSIS.md §5.12.
 
 /// ── Prompt injection ──────────────────────────────────────────
 // buildRuntimeInputs moved to the tools service in A4 (src/generation/runtimeInputs.js), byte-identical
@@ -7190,11 +7213,28 @@ app.post("/api/admin/users", requireAdmin, (req, res) => {
     res.json({ ok:true });
   } catch(e) { res.status(400).json({ error:e.message.includes("UNIQUE")?"Username taken":e.message }); }
 });
-app.delete("/api/admin/users/:id", requireAdmin, (req, res) => {
-  const id = parseInt(req.params.id);
-  if (id===req.user.id) return res.status(400).json({ error:"Cannot delete yourself" });
-  db.prepare("DELETE FROM users WHERE id=?").run(id);
-  res.json({ ok:true });
+// A58 (a): the admin delete is the user's own delete (accountService.deleteAccount — files, sessions,
+// usage_tracking_failures), behind a per-table preview and the target's username typed back. It
+// refuses the `system` account (id 0), every admin, and the caller. See services/adminUserDelete.js.
+const adminDeleteError = (res, e) => e instanceof AccountError
+  ? res.status(e.status).json({ error: e.message, code: e.code })
+  : res.status(500).json({ error: e.message });
+app.get("/api/admin/users/:id/delete-preview", requireAdmin, (req, res) => {
+  try { res.json(adminDeletePreview(db, Number(req.params.id), req.user.id)); }
+  catch (e) { adminDeleteError(res, e); }
+});
+app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const confirmUsername = req.body?.confirmUsername;
+  try {
+    checkAdminDeleteConfirmed(db, id, { actorId: req.user.id, confirmUsername });
+    // Sessions first: the sealed store is found through rows the cascade is about to remove.
+    await revokeAllUserSessions(id, "admin_delete");
+    const { files, counts } = adminDeleteUser(db, id, { actorId: req.user.id, confirmUsername });
+    removeDataFiles(DATA_DIR, files);
+    console.log(`[admin] user ${id} deleted by admin ${req.user.id}`);
+    res.json({ ok:true, counts, filesRemoved: files.length });
+  } catch (e) { adminDeleteError(res, e); }
 });
 app.patch("/api/admin/users/:id/password", requireAdmin, async (req, res) => {
   const { password } = req.body;
@@ -7335,7 +7375,7 @@ app.get("/api/admin/users/:id/applications", requireAdmin, (req, res) => {
 app.use("/api/admin/analytics", createAdminRouter(db));
 // Captured, not just mounted: the nightly alert delivery calls `adminDbRouter.pipelineHealth()` —
 // the SAME computation this route serves. See the note above that function in routes/adminDb.js.
-const adminDbRouter = createAdminDbRouter(db, { dbPath: DB_PATH, scrapeJobs });
+const adminDbRouter = createAdminDbRouter(db, { dbPath: DB_PATH });
 app.use("/api/admin/db", adminDbRouter);
 // A50 step 3 — the daily glance (docs/ADMIN_PANEL_REVAMP.md §2A). Ingestion and enrichment come
 // from adminDbRouter.pipelineHealth() — the one computation the nightly alert also reads — and are

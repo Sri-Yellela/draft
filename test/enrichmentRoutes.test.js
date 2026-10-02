@@ -262,7 +262,12 @@ test("routes: batch provenance is listable, inspectable and revertible", async (
     assert.equal(dry.body.recordedRows, 1);
     assert.equal(db.prepare("SELECT summary FROM scraped_jobs WHERE job_id='fresh'").get().summary, "external");
 
-    const applied = await post(base, `/batches/${id}/revert`, { apply: true });
+    // A58 (d): the dry run names what it would restore, and the apply must quote that count back.
+    assert.equal(dry.body.restorable, 1);
+    assert.equal(dry.body.changedSince, 0);
+    assert.equal((await post(base, `/batches/${id}/revert`, { apply: true })).status, 409, "an apply without its dry run");
+    assert.equal(db.prepare("SELECT summary FROM scraped_jobs WHERE job_id='fresh'").get().summary, "external");
+    const applied = await post(base, `/batches/${id}/revert`, { apply: true, expectRestorable: dry.body.restorable });
     assert.equal(applied.body.restored, 1);
     assert.equal(db.prepare("SELECT summary FROM scraped_jobs WHERE job_id='fresh'").get().summary, null);
 

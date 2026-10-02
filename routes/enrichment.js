@@ -26,7 +26,7 @@ import {
 } from "../services/jobs/enrichmentSelection.js";
 import { runEnrichment } from "../services/jobs/enrichJob.js";
 import { buildExport, toJsonl, planImport, applyImport } from "../services/jobs/enrichmentTransfer.js";
-import { listBatches, getBatch, revertBatch } from "../services/jobs/enrichmentBatches.js";
+import { listBatches, getBatch, revertBatch, revertPreview } from "../services/jobs/enrichmentBatches.js";
 
 // A single manual pass is bounded. The cron's own batch is 25; a manual trigger may ask for more,
 // but not for "everything" in one request — an HTTP handler that runs for 837 sequential model
@@ -371,14 +371,27 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
       const id = Number(req.params.id);
       const batch = getBatch(db, id);
       if (!batch) return res.status(404).json({ error: `no batch ${id}` });
+      // A58 (d): the dry run says what WILL be restored — how many rows, which, and how many were
+      // re-enriched or re-imported since (a revert clobbers those back to the pre-batch state).
+      const preview = revertPreview(db, id);
       if (req.body?.apply !== true) {
         return res.json({
+          ...preview,
           applied: false, dryRun: true, batchId: id, recordedRows: batch.rows.length,
           alreadyReverted: Boolean(batch.reverted_at),
           note: "Would restore each row to its recorded prior state, including enriched_at and " +
                 "content_hash — which returns the rows to the candidate set. Values that came from " +
                 "INGESTION are preserved, because the revert replays a per-row before-image rather " +
-                "than nulling the enrichment columns. POST again with apply: true.",
+                "than nulling the enrichment columns. Rows counted in changedSince were rewritten after " +
+                "this batch and lose that later change. POST again with apply: true and " +
+                "expectRestorable: <restorable from this dry run>.",
+        });
+      }
+      // The apply names the count its dry run showed, so it cannot run unseen or on a stale preview.
+      if (req.body?.expectRestorable !== preview.restorable) {
+        return res.status(409).json({
+          applied: false, error: "Run the dry run first: expectRestorable must equal the dry run's restorable " +
+            `count (now ${preview.restorable}).`, restorable: preview.restorable,
         });
       }
       const result = revertBatch(db, id);
