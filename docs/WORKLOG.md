@@ -2271,6 +2271,25 @@ here, the table is wrong, not the doc.
 
 ---
 
+## QUEUED — added by the ASSISTANT, 2026-10-02 (session 18)
+
+⚠ **Numbered A68–A70 because the agent took A66 and A67 in session 18.** ⛔ This is exactly the
+collision the numbering rule exists to prevent — see the note at the end of this section.
+
+| | Task | Notes |
+|---|---|---|
+| **A68** | **RESUME MASTER'S LOOK — the OLD site, not an interpretation of it** | ⏸ Owner, 10-02, after seeing A54. A54 shipped *"the old night-blue cinematic look + Instrument Serif/Inter + glass"*. ⛔ **That is not what the owner meant.** They want **the actual previous Resume Master site** — its styling, and specifically **the WHITE BOXED LOGO**. ⛔ **Do not interpret "old" — go and find it.** The assets are in git history: walk back through `client/` before the rebrand sweep (the P2/P3 commits, and `StampLogo`'s three pre-collapse implementations) and recover the real background, type, spacing and boxed-logo treatment. ⚠ **Show the owner what you found BEFORE restyling** — there were several looks across the Resume Master era and picking the wrong one twice is worse than asking. ⭐ Keep from A54: self-hosted fonts, no third-party request, the full end-to-end flows, the privacy page. ⚠ Still a **sibling** of draft — but it should look like **what Resume Master was**, not like draft in a different palette |
+| **A69** | ⭐⭐ **A PDF TOOLKIT — and the best version of it beats SmallPDF** | ⏸ Queued 10-02 by the owner: *"everything SmallPDF provides"*, on Resume Master, **inherited by draft**. ⛔ **"Everything they provide" is a company, not a task — split it.** ⭐ **TIER 1, DETERMINISTIC, FREE, ZERO MODEL CALLS:** merge · split · extract pages · reorder · rotate · delete · compress · watermark · password protect/remove · images→PDF · PDF→images. Library work (`pdf-lib`, `pdf.js`). **No marginal cost, so free and ungated** — the same argument that made ATS scoring free. ⚠ **TIER 2, GENUINELY HARD:** PDF→Word/Excel with real fidelity, and OCR. ⛔ **Do not promise these — say plainly what is not offered** rather than shipping a bad converter. ⭐⭐ **THE IDEA THAT BEATS SMALLPDF: run Tier 1 ENTIRELY IN THE BROWSER.** `pdf-lib` works client-side, so **the file never leaves the user's machine** — no upload, no storage, no account, no credit, nothing to breach. **SmallPDF uploads your file to their servers; this would not.** ⭐ It also restores part of the trust story A57 cost us. **WHY IT IS WORTH DOING:** (a) *merge pdf* / *compress pdf* are enormous search categories — real acquisition for a product with **zero users** · (b) ⭐ **it serves draft's apply flow: ATS portals routinely CAP UPLOAD SIZE**, and compress is the fix for a problem candidates actually hit · (c) merging a cover letter onto a résumé is a one-click thing people do by hand · (d) it makes **O16e** worth building. ⛔ **Inherit into draft as the SAME component, not a copy** — A52's lesson, and StampLogo's before it |
+| **A70** | ⛔ **PDF→TEXT MUST NOT COST A CREDIT** | ⏸ Owner decision, 10-02. A54 prices it at **1 credit**. ⛔ **It costs nothing to run and must be free and ungated.** ⛔ **ESTABLISH WHY IT IS PRICED BEFORE CHANGING IT — three possibilities, three different fixes:** **(a)** it calls a model to parse → **O16e is the real task**: build the local deterministic extractor, and the credit disappears as a consequence. ⚠ Report what the model is actually doing that a library cannot — the answer may be *nothing*. **(b)** it is already deterministic and the debit is a leftover from the ledger being wired per-route by default → remove the debit. **(c)** it falls back to a model only for scanned PDFs with no text layer → ⭐ **free for the deterministic path, and SAY the file needs OCR** rather than silently charging. ⛔ **Read the route; do not guess.** **THEN:** free, ungated, anonymous — the same standing as ATS scoring, for the same reason: **zero model calls means nothing to meter.** Remove the debit, its 402 path, and any copy mentioning a cost. ⚠ **Keep a per-day ceiling** — free is not unbounded, and an anonymous endpoint with none is the `/api/standalone/generate` shape. ⛔ **A test that fails if a debit is reintroduced on this route** — the ledger wires debits by route, so the next person adding one will not otherwise notice. ⚠ **Sits in front of A69** — shipping a deterministic free toolkit beside a parser that charges for a library call contradicts itself on one page |
+
+⛔ **NUMBERING — this collided in session 18 and will again.** The **A## sequence belongs to the
+owner and the chat assistant.** ⭐ **Agent-raised findings get their own letter, `F##`**, numbered
+independently. The agent may mark an A row done, correct its facts, or flag it wrong — it may not
+extend the sequence. **A66/A67 were agent-created and forced these three to renumber; the same thing
+happened at A51/A52.** Record the rule in `CLAUDE.md` and this file's header.
+
+---
+
 ## STANDING RULES
 
 Prepend to every agent task.
