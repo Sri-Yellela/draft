@@ -1,7 +1,7 @@
 # @draft/sqlite-backup
 
 The backup policy draft runs on its production volume, moved out of `draft/scripts/backup.js`
-unchanged (A65, 2026-10-02) so that Resume Master runs the same one rather than a second.
+unchanged (A65, 2026-10-02) so that the résumé tools service (repo resume-master) runs the same one rather than a second.
 
 - **Checkpoint before copy** (`wal_checkpoint(TRUNCATE)`), so the copy is the whole database.
 - **The budget comes from the volume** (`statfs`): `BACKUP_DISK_SHARE` (0.4) of it, lowered — never
