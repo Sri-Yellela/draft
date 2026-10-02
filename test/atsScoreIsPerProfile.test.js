@@ -70,8 +70,9 @@ test("all three scoring paths write through the one per-profile writer", () => {
   // The scrape scorer, adopt-enhanced and the keywords route. One writer means the next mistake
   // gets made once rather than three times — which is how this defect survived: it was three
   // copies of the same UPDATE, and fixing any one of them looked complete.
-  // `basisHash` (migration 110) records which candidate basis produced the report.
-  assert.match(SERVER, /function storeAtsReportForProfile\(\{ userId, profileId = null, jobId, report, basisHash = null \}\)/);
+  // `basisHash` (migration 110) records which candidate basis produced the report; `jobHash`
+  // (migration 118, A52) which version of the posting.
+  assert.match(SERVER, /function storeAtsReportForProfile\(\{ userId, profileId = null, jobId, report, basisHash = null, jobHash = null \}\)/);
   // The board's fit precompute is a fourth scoring path, and it stores through the SAME writer —
   // by reference, injected, so it adds no call site of its own below.
   assert.match(SERVER, /createBoardFitPrecompute\(\{\s*db, basisFor: atsBasisForProfile, scoreJob: scoreJobForBasis, store: storeAtsReportForProfile,/);
