@@ -30,6 +30,7 @@ import { OUTCOME, OUTCOME_LABELS } from "../../../shared/applyOutcomeGroups.js";
 import { companyLabel, UNKNOWN_COMPANY } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { C } from "../styles/colorTokens.js";
+import { TYPE } from "../styles/type.js";
 
 // ============================================================
 // AutoApplyPanel — the auto-apply pipeline, on its own tab
@@ -436,12 +437,11 @@ export function AutoApplyPanel() {
     <div style={{ padding: "24px 20px", maxWidth: 1100, margin: "0 auto",
                   display: "flex", flexDirection: "column", gap: 14 }}>
       <div>
-        <h2 style={{ margin: 0, fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
-                     fontSize: 26, letterSpacing: "0.06em", textTransform: "uppercase",
-                     color: theme.text }}>
+        {/* A53: the deck's type — the display serif for what the page is (styles/type.js). */}
+        <h2 style={TYPE.PAGE_TITLE}>
           Auto Apply
         </h2>
-        <p style={{ margin: "6px 0 0", fontSize: 12, color: theme.textMuted, lineHeight: 1.6 }}>
+        <p style={{ ...TYPE.LEAD, margin: "10px 0 0" }}>
           Applications are filled and held for your approval. Nothing is submitted until you approve
           it. Draft jobs from Today or the board.
         </p>
@@ -1085,8 +1085,8 @@ export function AutoApplyPanel() {
               padding:"16px 20px", borderBottom:`1px solid ${theme.border}`,
               display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0, gap:12,
             }}>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                             fontSize:18, letterSpacing:"0.06em", textTransform:"uppercase" }}>
+              <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
+                             fontSize:23}}>
                 {/* The popup SAYS what it is about. It used to be titled "Jobs Needing Review"
                     whichever row you opened it from, which is the honest name for a popup that was
                     always showing all of them. */}
@@ -1616,11 +1616,10 @@ export function AutoApplyPanel() {
               <button
                 onClick={() => closeReview()}
                 style={{
-                  padding:"8px 20px", borderRadius:4, fontWeight:700, fontSize:12,
+                  padding:"8px 20px", borderRadius:999, fontWeight:700, fontSize:12,
                   background:"transparent", color:theme.textMuted,
-                  border:`1.5px solid ${theme.border}`, cursor:"pointer",
-                  fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:"0.06em",
-                  textTransform:"uppercase",
+                  border:`1px solid ${theme.border}`, cursor:"pointer",
+                  fontFamily:"inherit",
                 }}>
                 Close
               </button>

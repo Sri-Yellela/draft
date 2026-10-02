@@ -41,6 +41,7 @@ import { JOB_URL_PARAM, jobIdFromSearch } from "../lib/jobUrl.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { bandChipStyle } from "../styles/bandStyle.js";
 import { C } from "../styles/colorTokens.js";
+import { glass } from "../styles/glass.js";
 
 // The three extension-bridge stubs that stood here (getLinkedInExtensionInstallUrl,
 // isLinkedInExtensionInstalled, sendExtensionRequest) are gone with cleanup 5.3. They returned
@@ -292,34 +293,29 @@ function ResumeBadge({ onClick, loading }) {
   );
 }
 
-// ── Lucy button (rectangular → pill on hover, 1s) ─────────────
+// ── The board's text button (was the "Lucy" button: rectangle → pill on hover over 1s, Barlow
+//    capitals, a 2.5px ink box). A53: the deck's treatment — a glass pill at rest, the orange FILL
+//    with ink text on hover (text on orange is ink; colorTokens.js). Same props, same callers.
 function LucyBtn({ children, onClick, disabled, accent: accentProp,
                     style = {}, title }) {
   const [hov, setHov] = useState(false);
-  const { theme } = useTheme();
-  const accent = accentProp || theme.accent;
+  const live = hov && !disabled;
   return (
     <button
       onClick={onClick} disabled={disabled} title={title}
       onMouseEnter={() => !disabled && setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        // Water-fill: gradient fills upward from bottom over 1s
-        backgroundImage: `linear-gradient(to top, ${accent}, ${accent})`,
-        backgroundSize: hov && !disabled ? "100% 100%" : "100% 0%",
-        backgroundRepeat: "no-repeat",
-        backgroundPosition: "bottom",
-        backgroundColor: "transparent",
-        color: theme.text,
-        border: `2.5px solid ${hov && !disabled ? accent : theme.borderStrong}`,
+        ...(live
+          ? { background: accentProp || C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`,
+              borderRadius: 999, boxShadow: C.SHADOW_GLASS_HOVER }
+          : { ...glass({ radius: 999 }), color: C.INK }),
         cursor: disabled ? "not-allowed" : "pointer",
-        padding: "7px 18px", fontWeight: 800, fontSize: 12,
-        fontFamily: "'Barlow Condensed','DM Sans',sans-serif",
-        letterSpacing: "0.1em", textTransform: "uppercase",
-        borderRadius: hov && !disabled ? 999 : 2,
-        transition: "background-size 1s ease, border-radius 1s ease, border-color 1s ease",
+        padding: "7px 18px", fontWeight: 800, fontSize: 12.5, letterSpacing: "0.02em",
+        fontFamily: "inherit",
+        transition: "background-color 160ms ease, box-shadow 160ms ease",
         whiteSpace: "nowrap", flexShrink: 0,
-        opacity: disabled ? 0.4 : 1,
+        opacity: disabled ? 0.45 : 1,
         display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
         ...style,
       }}>
@@ -569,8 +565,8 @@ function FiltersPanel({
           boxShadow:theme.shadowXl || C.SHADOW_SM,
         }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                          fontSize:20, letterSpacing:"0.06em", textTransform:"uppercase" }}>
+          <span style={{ fontFamily:"var(--font-display)", fontWeight:400,
+                          fontSize:26}}>
             Filters
           </span>
           {/* A real hit target. With no padding this was the width of the glyph alone — measured at
@@ -3388,8 +3384,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             <button key={id} onClick={() => setBoardTab(id)}
               style={{
                 padding:"6px 16px", border:"none", cursor:"pointer",
-                fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                fontSize:13, letterSpacing:"0.08em", textTransform:"uppercase",
+                fontFamily:"inherit", fontWeight:800,
+                fontSize:13,
                 background: boardTab===id ? theme.accent : theme.surface,
                 color: boardTab===id ? C.ON_ACCENT : theme.text,
                 transition:"background 0.15s",
@@ -3424,7 +3420,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               background: theme.accentMuted || theme.surface,
               border:`1px solid ${theme.accent}`, borderRadius:999,
               padding:"4px 12px", cursor:"pointer",
-              fontFamily:"'DM Sans',system-ui", fontWeight:700, fontSize:11,
+              fontFamily:"inherit", fontWeight:700, fontSize:11,
               color: theme.accentText || theme.text,
             }}>
             {activeFilterCount} filter{activeFilterCount === 1 ? "" : "s"} active
@@ -3463,7 +3459,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             style={{ width:"100%", height:38, paddingLeft:14, paddingRight:14,
                      borderRadius:2, border:`1px solid ${theme.border}`,
                      background:theme.surface, color:theme.text,
-                     fontFamily:"'DM Sans',system-ui", fontSize:13, outline:"none",
+                     fontFamily:"inherit", fontSize:13, outline:"none",
                      boxSizing:"border-box" }}/>
           {showPreview && (
             <div style={{ position:"absolute", top:"calc(100% + 4px)", left:0,
@@ -3525,8 +3521,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           }}>
             {/* Header */}
             <div style={{ padding:"20px 24px 16px", borderBottom:`1px solid ${theme.border}` }}>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                             fontSize:20, letterSpacing:"0.06em", textTransform:"uppercase" }}>
+              <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
+                             fontSize:26}}>
                 Resume Enhancement
               </div>
               {enhanceResult.delta != null && (
@@ -3571,20 +3567,18 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               <div style={{ display:"flex", gap:10, width:"100%", justifyContent:"center" }}>
                 <button onClick={handleAdoptEnhanced}
                   style={{
-                    padding:"10px 24px", borderRadius:4, fontWeight:800, fontSize:13,
+                    padding:"10px 24px", borderRadius:999, fontWeight:800, fontSize:13,
                     background:theme.accent, color:"var(--c-on-accent)", border:"none", cursor:"pointer",
-                    fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:"0.06em",
-                    textTransform:"uppercase",
+                    fontFamily:"inherit",
                   }}>
                   Adopt Enhanced Version
                 </button>
                 <button onClick={() => setEnhanceModalOpen(false)}
                   style={{
-                    padding:"10px 24px", borderRadius:4, fontWeight:800, fontSize:13,
+                    padding:"10px 24px", borderRadius:999, fontWeight:800, fontSize:13,
                     background:"transparent", color:theme.textMuted,
-                    border:`1.5px solid ${theme.border}`, cursor:"pointer",
-                    fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:"0.06em",
-                    textTransform:"uppercase",
+                    border:`1px solid ${theme.border}`, cursor:"pointer",
+                    fontFamily:"inherit",
                   }}>
                   Keep Original
                 </button>
@@ -4186,8 +4180,8 @@ function EmptyState({ theme }) {
     <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
                   justifyContent:"center", gap:16, padding:40, color:th.textDim }}>
       <div style={{ fontSize:56 }}>Search</div>
-      <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                    fontSize:22, letterSpacing:"0.06em", textTransform:"uppercase", color:th.text }}>
+      <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
+                    fontSize:29, color:th.text }}>
         Search for a role above
       </div>
       <div style={{ fontSize:12, textAlign:"center", color:th.textDim, maxWidth:320, lineHeight:1.8 }}>
@@ -4218,8 +4212,8 @@ function PagingEmptyState({ theme, reason, onFirstPage }) {
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
                   justifyContent:"center", gap:14, padding:40, color:th.textDim }}>
-      <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                    fontSize:22, letterSpacing:"0.06em", textTransform:"uppercase", color:th.text,
+      <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
+                    fontSize:29, color:th.text,
                     textAlign:"center" }}>
         {isBug ? "Something went wrong loading this page" : "You are past the end of the list"}
       </div>
@@ -4280,8 +4274,8 @@ function FilteredEmptyState({ theme, count, onClearFilters }) {
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
                   justifyContent:"center", gap:14, padding:40, color:th.textDim }}>
-      <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                    fontSize:22, letterSpacing:"0.06em", textTransform:"uppercase", color:th.text,
+      <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
+                    fontSize:29, color:th.text,
                     textAlign:"center" }}>
         Your filters exclude all jobs
       </div>
@@ -4317,8 +4311,8 @@ function NoPoolEmptyState({ theme }) {
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
                   justifyContent:"center", gap:14, padding:40, color:th.textDim }}>
-      <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                    fontSize:22, letterSpacing:"0.06em", textTransform:"uppercase", color:th.text,
+      <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
+                    fontSize:29, color:th.text,
                     textAlign:"center" }}>
         No jobs have been collected yet
       </div>
@@ -4346,8 +4340,8 @@ function RoleScopedEmptyState({ theme, profileName }) {
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
                   justifyContent:"center", gap:14, padding:40, color:th.textDim }}>
-      <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                    fontSize:22, letterSpacing:"0.06em", textTransform:"uppercase", color:th.text,
+      <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
+                    fontSize:29, color:th.text,
                     textAlign:"center" }}>
         No jobs in your profile&rsquo;s role
       </div>
@@ -4368,8 +4362,8 @@ function SetupGateNotice({ theme, title, body, actionLabel, onAction }) {
       <div style={{ width:"min(92vw, 520px)", border:`1px solid ${theme.border}`,
                     background:theme.surface, borderRadius:8, padding:24,
                     boxShadow:C.SHADOW_SM }}>
-        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                      fontSize:22, letterSpacing:"0.06em", textTransform:"uppercase",
+        <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
+                      fontSize:29,
                       color:theme.text, marginBottom:8 }}>
           {title}
         </div>
@@ -4377,10 +4371,9 @@ function SetupGateNotice({ theme, title, body, actionLabel, onAction }) {
           {body}
         </div>
         <button onClick={onAction}
-          style={{ border:"none", borderRadius:6, padding:"10px 16px",
+          style={{ border:"none", borderRadius:999, padding:"10px 16px",
                    background:theme.accent, color:C.ON_ACCENT, fontWeight:800,
-                   cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif",
-                   letterSpacing:"0.06em", textTransform:"uppercase" }}>
+                   cursor:"pointer", fontFamily:"inherit"}}>
           {actionLabel}
         </button>
       </div>
@@ -4395,8 +4388,8 @@ function SearchIntentDialog({ theme, prompt, onConfirm, onCancel }) {
       <div role="dialog" aria-modal="true" style={{ width:"min(92vw, 460px)",
         background:theme.modalSurface || theme.surface, border:`1px solid ${theme.border}`,
         borderRadius:8, boxShadow:C.SHADOW_SM, padding:22 }}>
-        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                      fontSize:20, letterSpacing:"0.06em", textTransform:"uppercase",
+        <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
+                      fontSize:26,
                       color:theme.text, marginBottom:8 }}>
           {prompt.title}
         </div>
@@ -4497,18 +4490,16 @@ function CompanyReuseModal({ company, onUseExisting, onGenerateNew, onCancel, th
         </div>
         <div style={{ display:"flex", gap:10, flexDirection:"column" }}>
           <button onClick={onUseExisting} style={{
-            padding:"10px 0", borderRadius:999, border:`2px solid ${theme.accent}`,
+            padding:"10px 0", borderRadius:999, border:`1px solid ${theme.accent}`,
             background:theme.accent, color:C.ON_ACCENT, fontWeight:800, fontSize:13,
-            cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif",
-            letterSpacing:"0.06em", textTransform:"uppercase",
+            cursor:"pointer", fontFamily:"inherit",
           }}>
             Use Existing Resume
           </button>
           <button onClick={onGenerateNew} style={{
-            padding:"10px 0", borderRadius:999, border:`2px solid ${theme.border}`,
+            padding:"10px 0", borderRadius:999, border:`1px solid ${theme.border}`,
             background:"transparent", color:theme.text, fontWeight:800, fontSize:13,
-            cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif",
-            letterSpacing:"0.06em", textTransform:"uppercase",
+            cursor:"pointer", fontFamily:"inherit",
           }}>
             Generate New
           </button>
