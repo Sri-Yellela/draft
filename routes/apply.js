@@ -28,6 +28,8 @@ import { getAutomationReadiness, getMissingApplyPrerequisites } from "../service
 import { canUseAPlusResume, normalisePlanTier } from "../services/entitlements.js";
 import { monetisationEnabledFromEnv } from "../shared/monetisation.js";
 import { fullAutoDisabled as sharedFullAutoDisabled } from "../services/appSettings.js";
+import { draftSlots, slotsExhausted } from "../services/draftSlots.js";
+import { recordSubmissionFromPipeline, markPending, publicRecord } from "../services/applicationRecords.js";
 
 // Live read through the one shared parser, exactly as server.js does — same flag, same function,
 // so this route and the gates over there cannot disagree. ⛔ See shared/monetisation.js: ON is a
@@ -182,92 +184,27 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
                                     scoreBaseResumeForApply) {
   // ── Manual tracking endpoints ────────────────────────────────────────────────
 
+  // ⛔ A63: THIS NO LONGER RECORDS AN APPLICATION ON A CLICK. Its one caller was the board's Apply
+  // button, which sent mode:"semi" expecting a browser to open — this route ignored the mode and
+  // wrote job_applications on the spot, so pressing Apply marked a job "applied" with nothing sent.
+  // The Apply button is gone (the company name now links to the posting) and this route tags the
+  // job PENDING instead; job_applications is written only when a recorded submission VERIFIES
+  // (services/applicationRecords.js). Idempotent as before.
   app.post("/api/apply", requireAuth, (req, res) =>
     withIdempotency("/api/apply", req, res, (out) => {
-    const {
-      jobId,
-      jobUrl,
-      company = null,
-      role = null,
-      source = "manual",
-      location = null,
-      resumeFile = null,
-      notes = null,
-    } = req.body || {};
-
-    if (!jobId && !jobUrl) {
-      return out.status(400).json({ error: "jobId or jobUrl required" });
+    const { jobId } = req.body || {};
+    if (!jobId) {
+      return out.status(400).json({ error: "jobId required",
+        message: "Pick the job on the board; it is tagged Pending until you record and verify the submission." });
     }
-
-    const resolvedJobId = String(jobId || `manual_${Date.now()}`);
-    const resolvedJobUrl = String(jobUrl || "");
-    const existingJob = jobId
-      ? db.prepare("SELECT company, title, url, apply_url, source, location FROM scraped_jobs WHERE job_id=?").get(String(jobId))
-      : null;
-
-    // AK1 — stamp the score that was true WHEN THE APPLICATION WENT OUT.
-    //
-    // Read from whichever report already exists rather than scoring here: this endpoint records an
-    // application the candidate has already sent, so the number that matters is the one they saw,
-    // and re-deriving it would answer a different question. The generated resume's report wins over
-    // the scrape-time one because it describes the document actually submitted.
-    //
-    // NULL IS AN HONEST ANSWER AND IS LEFT AS NULL. Manual applications to jobs that were never
-    // scored have no score; writing 0 would put a fabricated data point into the only dataset that
-    // can ever validate this number.
-    const atStamp = capturedAtsAtApply(db, req.user.id, resolvedJobId);
-    db.prepare(`
-      INSERT INTO job_applications
-        (user_id, job_id, company, role, job_url, source, location, apply_mode, resume_file, applied_at, notes, auto_status,
-         ats_score_at_apply, ats_scorer_version, ats_report_at_apply, ats_scored_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'MANUAL', ?, unixepoch(), ?, 'manual', ?, ?, ?, ?)
-      ON CONFLICT(user_id, job_id) DO UPDATE SET
-        company=excluded.company,
-        role=excluded.role,
-        job_url=excluded.job_url,
-        source=excluded.source,
-        location=excluded.location,
-        apply_mode='MANUAL',
-        resume_file=excluded.resume_file,
-        applied_at=excluded.applied_at,
-        notes=excluded.notes,
-        auto_status='manual',
-        -- COALESCE keeps the FIRST stamp. Re-recording an application must not overwrite the score
-        -- that was true when it was actually sent with today's, which is the whole point of the
-        -- column: the pair being collected is (score at the time, outcome), not (score now, outcome).
-        ats_score_at_apply=COALESCE(job_applications.ats_score_at_apply, excluded.ats_score_at_apply),
-        ats_scorer_version=COALESCE(job_applications.ats_scorer_version, excluded.ats_scorer_version),
-        ats_report_at_apply=COALESCE(job_applications.ats_report_at_apply, excluded.ats_report_at_apply),
-        ats_scored_at=COALESCE(job_applications.ats_scored_at, excluded.ats_scored_at)
-    `).run(
-      req.user.id,
-      resolvedJobId,
-      company || existingJob?.company || null,
-      role || existingJob?.title || null,
-      resolvedJobUrl || existingJob?.apply_url || existingJob?.url || null,
-      source || existingJob?.source || "manual",
-      location || existingJob?.location || null,
-      resumeFile,
-      notes,
-      atStamp.score,
-      atStamp.version,
-      atStamp.report,
-      atStamp.score == null ? null : Math.floor(Date.now() / 1000),
-    );
-
-    if (jobId) {
-      const profileId = db.prepare("SELECT id FROM domain_profiles WHERE user_id=? AND is_active=1 ORDER BY id DESC LIMIT 1")
-        .get(req.user.id)?.id || null;
-      db.prepare(`
-        INSERT INTO user_jobs (user_id, job_id, domain_profile_id, applied, updated_at)
-        VALUES (?, ?, ?, 1, unixepoch())
-        ON CONFLICT(user_id, job_id) DO UPDATE SET applied = 1, updated_at = unixepoch()
-      `).run(req.user.id, resolvedJobId, profileId);
-    }
-
-    const row = db.prepare("SELECT * FROM job_applications WHERE user_id=? AND job_id=?")
-      .get(req.user.id, resolvedJobId);
-    out.json({ ok: true, application: publicApplication(row) });
+    const r = markPending(db, req.user.id, String(jobId), "manual");
+    out.json({
+      ok: true, state: r.state, pending: r.state === "pending" || r.state === "recorded",
+      record: publicRecord(r.record),
+      message: r.state === "submitted"
+        ? "Already in your Submitted applications."
+        : "Tagged Pending — record when and how you submitted it, and it moves to Submitted once it verifies.",
+    });
   }));
 
   app.get("/api/apply/status/:jobId", requireAuth, (req, res) => {
@@ -1723,6 +1660,15 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       if (submitted) {
         logEvent(runId, runJobId, userId, jobId, "submitted", "Application submitted successfully");
         db.prepare(`UPDATE apply_runs SET submitted_count=submitted_count+1 WHERE id=?`).run(runId);
+        // A63: the same Pending -> verified -> Submitted record every other route uses. A submit the
+        // automation VERIFIED (submit_verified, with its evidence) is recorded verified, and that is
+        // what writes job_applications with the score at apply; a claimed-but-unverified submit
+        // stays recorded, for the user to confirm. Never allowed to fail the run.
+        try {
+          recordSubmissionFromPipeline(db, { userId, jobId, runJobId, capturedAtsAtApply });
+        } catch (e) {
+          console.warn(`[applyRoutes] application record job=${jobId}: ${e.message}`);
+        }
       } else if (cancelled) {
         // Counted as neither held nor failed. The run's three counters are what the run chip
         // reports, and a cancelled job is not work waiting on the user (held) nor work that broke
@@ -1830,7 +1776,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * Returns { status, body } — body carries `error` on refusal.
    */
   function startRun(userId, planTier, jobIds, { mode = "auto", tool = "generate", approvalMode = null,
-                                                approvedFrom = null } = {}) {
+                                                approvedFrom = null, retryOfHeld = false } = {}) {
     const respond = (status, body) => ({ status, body });
 
     // ── Three payload-contract mismatches with the client, fixed together ──────────────────────
@@ -1942,6 +1888,15 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         message: jobIds.length === 1
           ? "Already drafted — it is waiting for your review, in progress, or sent."
           : "All selected jobs are already drafted — waiting for your review, in progress, or sent." });
+
+    // ⛔ A63: THE DAY'S DRAFT SLOTS (owner, O45c). A Draft and a board résumé generation share one
+    // allowance — the deck's 10 (services/draftSlots.js). Exempt: an approval (the same Draft
+    // continuing) and an answers retry (it supersedes the held row it replaces, so the count does
+    // not move). Refused with the one sentence every surface shows.
+    if (resolvedApproval !== "approved" && !retryOfHeld) {
+      const slots = draftSlots(db, userId);
+      if (slots.used + filtered.length > slots.limit) return respond(429, slotsExhausted(slots, filtered.length));
+    }
 
     // QUEUE CAP. The cost gate: bounds generations, which the submission cap below does not (see
     // queuedLast24h). Checked before it because it is the limit a queue-heavy caller hits first,
@@ -2087,6 +2042,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // subtracts `filtered.length` because a submission has not happened yet. The client renders
       // "what is left now", and an approval budget that excluded the approval just made would tell
       // the user they have one more than they do.
+      // A63: what is left of the day's Draft slots, after this one.
+      draftSlots: draftSlots(db, userId),
       approvalCap: (() => {
         const a = approvedLast24h(userId);
         return { limit: APPLY_DAILY_APPROVAL_CAP, approvedLast24h: a, remaining: Math.max(0, APPLY_DAILY_APPROVAL_CAP - a) };
@@ -3976,7 +3933,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         db.transaction(() => { for (const id of toRetry) dismiss.run(req.user.id, id); })();
 
         const retry = startRun(req.user.id, normalisePlanTier(req.user?.planTier), toRetry,
-          { mode, tool: "generate", approvalMode });
+          { mode, tool: "generate", approvalMode, retryOfHeld: true });
         // A refusal is surfaced as-is: the answers were still saved, but the retry did not start,
         // and the caller needs the real reason (cap, kill switch, concurrency).
         if (retry.status !== 202) return out.status(retry.status).json({ ...body, ...retry.body, skipped });

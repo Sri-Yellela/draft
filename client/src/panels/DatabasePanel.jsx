@@ -6,7 +6,7 @@ import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import JobCard      from "../components/JobCard.jsx";
-import { DECISIONS, commitDecision } from "../lib/jobDecisions.js";
+import PendingApplications from "../components/PendingApplications.jsx";
 import { DockPortal } from "../components/DockPortal.jsx";
 import { Z } from "../styles/zLayers.js";
 // AC4: the calendar this panel established, extracted so the Auto Apply panel's dated run history
@@ -269,7 +269,11 @@ export function DatabasePanel({ user }) {
   const monetisationEnabled = useMonetisationEnabled();
   const { theme } = useTheme();
   const { activeProfileId, setActiveProfileId } = useJobBoard() || {};
-  const [activeSheet,  setActiveSheet]  = useState("applications");
+  // A63: the board's Pending tag links here with ?sheet=pending.
+  const [activeSheet,  setActiveSheet]  = useState(() => {
+    try { return new URLSearchParams(window.location.search).get("sheet") === "pending" ? "pending" : "applications"; }
+    catch { return "applications"; }
+  });
   const [apps,         setApps]         = useState([]);
   const [resumes,      setResumes]      = useState([]);
   const [detailModal,  setDetailModal]  = useState(null);
@@ -294,8 +298,10 @@ export function DatabasePanel({ user }) {
   const [baseResume,   setBaseResume]   = useState("");
   const [genLoading,   setGenLoading]   = useState({});
 
-  // ── Pending Apply tab state ───────────────────────────────────
-  const [pendingJobs,  setPendingJobs]  = useState([]);
+  // ── Pending tab state (A63: application records, pending until a submission verifies) ──
+  const [pendingData,  setPendingData]  = useState({ pending: [], verified: [], methods: [], verifyRule: null });
+  const [pendingBusy,  setPendingBusy]  = useState(null);
+  const [pendingMsgs,  setPendingMsgs]  = useState({});
 
   const inputRef = useRef();
   const calRef   = useRef();
@@ -339,10 +345,36 @@ export function DatabasePanel({ user }) {
 
   const loadPending = useCallback(async () => {
     try {
-      const rows = await api("/api/jobs/pending");
-      setPendingJobs(Array.isArray(rows) ? rows : []);
+      const d = await api("/api/applications/pending");
+      setPendingData({ pending: d?.pending || [], verified: d?.verified || [], methods: d?.methods || [],
+                       verifyRule: d?.verifyRule || null });
     } catch {}
   }, []);
+
+  // A63: record a submission. Verified -> it leaves Pending for the Applications sheet; otherwise the
+  // checks say exactly what is missing, and it stays.
+  const recordPending = useCallback(async (jobId, body) => {
+    setPendingBusy(jobId);
+    try {
+      const d = await api(`/api/applications/pending/${encodeURIComponent(jobId)}/record`,
+        { method: "POST", body: JSON.stringify(body) });
+      setPendingMsgs(m => ({ ...m, [jobId]: { text: d.message, checks: d.checks } }));
+      await loadPending();
+      if (d.verified) load();
+    } catch (e) {
+      setPendingMsgs(m => ({ ...m, [jobId]: { text: e.message || "Could not record it." } }));
+    } finally { setPendingBusy(null); }
+  }, [loadPending]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const withdrawPending = useCallback(async (jobId) => {
+    setPendingBusy(jobId);
+    try {
+      await api(`/api/applications/pending/${encodeURIComponent(jobId)}/withdraw`, { method: "POST" });
+      await loadPending();
+    } catch (e) {
+      setPendingMsgs(m => ({ ...m, [jobId]: { text: e.message || "Could not change it." } }));
+    } finally { setPendingBusy(null); }
+  }, [loadPending]);
 
   const generateForSaved = useCallback(async (job, force = false, tool = "generate") => {
     const planTier = String(user?.planTier || "BASIC").toUpperCase();
@@ -363,10 +395,9 @@ export function DatabasePanel({ user }) {
   const exportSavedPdf = useCallback(async (job, html) => {
     const filename = `Resume_${(job.company||"").replace(/\s+/g,"_")}`;
     printResume(html, filename);
-    await api("/api/applications", { method:"POST", body:JSON.stringify({
-      jobId:job.jobId, company:job.company, role:job.title,
-      jobUrl:job.url, source:job.source, location:job.location,
-      applyMode:user?.applyMode||"SIMPLE", resumeFile:filename + ".pdf",
+    // A63: exporting a résumé is not submitting one — the job is tagged Pending, not "applied".
+    await api("/api/applications/pending", { method:"POST", body:JSON.stringify({
+      jobId:job.jobId, origin:"exported_resume",
     }) }).catch(()=>{});
   }, [user]);
 
@@ -581,7 +612,7 @@ export function DatabasePanel({ user }) {
           id, label: lbl,
           count: id === "applications" ? apps.length
             : id === "resumes" ? resumes.length
-            : id === "pending" ? pendingJobs.length : null,
+            : id === "pending" ? pendingData.pending.length : null,
         }))}
         right={
           <div style={{ display:"flex", alignItems:"center", gap:8, paddingRight:4 }}>
@@ -637,18 +668,10 @@ export function DatabasePanel({ user }) {
         />
       )}
 
-      {/* ── Pending Apply pane ── */}
+      {/* ── Pending pane (A63) ── */}
       {activeSheet === "pending" && (
-        <PendingJobsPane
-          jobs={pendingJobs}
-          theme={theme}
-          onRefresh={loadPending}
-          onPass={async (jobId) => {
-            // A53: Pass SETS (the deck's call), never the toggle — a repeat must not un-pass.
-            await commitDecision({ jobId, decision: DECISIONS.PASSED }).catch(()=>{});
-            setPendingJobs(prev => prev.filter(j => j.job_id !== jobId && j.jobId !== jobId));
-          }}
-        />
+        <PendingApplications data={pendingData} theme={theme} busyId={pendingBusy} messages={pendingMsgs}
+          onRecord={recordPending} onWithdraw={withdrawPending} />
       )}
 
       {isApps && displayRows.length > 0 && (
@@ -968,54 +991,6 @@ export function DatabasePanel({ user }) {
           </table>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-// ── Pending Apply pane ────────────────────────────────────────
-function PendingJobsPane({ jobs, theme, onRefresh, onPass }) {
-  if (jobs.length === 0) return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column",
-                  alignItems:"center", justifyContent:"center", gap:12, padding:40 }}>
-      <div style={{ fontSize:40 }}>📋</div>
-      <div style={{ fontWeight:700, color:theme.textMuted, fontSize:14 }}>No pending applications</div>
-      <div style={{ fontSize:12, color:theme.textDim, textAlign:"center", maxWidth:320, lineHeight:1.8 }}>
-        When you generate a resume for a job it moves here until you apply or pass on it.
-      </div>
-      <button className="rm-btn rm-btn-secondary rm-btn-sm" onClick={onRefresh}>↻ Refresh</button>
-    </div>
-  );
-  return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-      <div style={{ padding:"8px 16px", display:"flex", alignItems:"center", gap:8,
-                    borderBottom:`1px solid ${theme.border}`, flexShrink:0, background:theme.surface }}>
-        <span style={{ fontSize:12, color:theme.textMuted }}>
-          {jobs.length} pending job{jobs.length !== 1 ? "s" : ""} — resume ready, not yet applied
-        </span>
-        <div style={{ flex:1 }}/>
-        <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={onRefresh}>↻ Refresh</button>
-      </div>
-      <div style={{ flex:1, overflowY:"auto",
-                    // AE5 moved JobCard's own `margin: "0 16px 8px"` onto its container, because a
-                    // per-card margin double-insets a grid cell. This list is not a grid, so it
-                    // takes over the exact spacing the card used to carry and looks unchanged.
-                    display:"flex", flexDirection:"column", gap:8, padding:"8px 16px 16px" }}>
-        {jobs.map(job => {
-          const jid = job.job_id || job.jobId;
-          return (
-            <JobCard
-              key={jid}
-              job={{ ...job, jobId: jid }}
-              theme={theme}
-              showApplyButton={true}
-              applyMode="SIMPLE"
-              onVisit={() => job.url && window.open(job.url, "_blank", "noreferrer")}
-              onPass={() => onPass?.(jid)}
-              onCardClick={() => job.url && window.open(job.url, "_blank", "noreferrer")}
-            />
-          );
-        })}
-      </div>
     </div>
   );
 }

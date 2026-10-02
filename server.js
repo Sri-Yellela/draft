@@ -24,6 +24,9 @@ import { createBackup, listBackups, restoreBackup } from "./scripts/backup.js";
 // is still this file's own copy on purpose; see the note at the top of scripts/migration.js.
 import { applyPendingMigrations } from "./scripts/applyMigrations.js";
 import applyRoutes, { capturedAtsAtApply } from "./routes/apply.js";
+import applicationRecordRoutes from "./routes/applicationRecords.js";
+import { draftSlots, slotsExhausted, recordGenerationSlot } from "./services/draftSlots.js";
+import { markPending } from "./services/applicationRecords.js";
 import { createAccountRouter } from "./routes/account.js";
 import { loadSecretKey, createSecretBox, saveIntegrationSecret } from "./services/secretBox.js";
 import { createAdminRouter } from "./routes/admin.js";
@@ -3887,6 +3890,55 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE apply_runs ADD COLUMN line_position INTEGER;
         CREATE INDEX IF NOT EXISTS idx_apply_runs_line
           ON apply_runs(user_id, status, line_position);
+      `,
+    },
+    {
+      // A63 (owner, O45c, 10-02): PENDING -> VERIFIED -> SUBMITTED, and a résumé generation costs one
+      // of the day's Draft slots. application_records holds a job the user generated for, opened the
+      // posting of, or exported a résumé for — PENDING until they record the submission (when, how,
+      // a confirmation) and it is VERIFIED; only then is job_applications written. Nothing becomes
+      // "submitted" on a click alone. draft_slot_uses is the ledger of board generations; Drafts are
+      // counted from apply_run_jobs, so a generation and a Draft share one daily allowance.
+      // The backfill makes every résumé generated before this a PENDING record, unless it was already
+      // applied to or belongs to a Draft (the pipeline tracks those).
+      id: "121_application_records",
+      sql: `
+        CREATE TABLE IF NOT EXISTS application_records (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          job_id TEXT NOT NULL,
+          state TEXT NOT NULL DEFAULT 'pending',
+          origin TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          submitted_at INTEGER,
+          method TEXT,
+          reference TEXT,
+          evidence_text TEXT,
+          evidence_url TEXT,
+          recorded_at INTEGER,
+          verified_at INTEGER,
+          verification_json TEXT,
+          withdrawn_at INTEGER,
+          UNIQUE(user_id, job_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_application_records_user_state
+          ON application_records(user_id, state, updated_at);
+        CREATE TABLE IF NOT EXISTS draft_slot_uses (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          kind TEXT NOT NULL,
+          job_id TEXT,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_draft_slot_uses_user_time
+          ON draft_slot_uses(user_id, created_at);
+        INSERT OR IGNORE INTO application_records (user_id, job_id, state, origin, created_at, updated_at)
+          SELECT r.user_id, r.job_id, 'pending', 'generated', COALESCE(r.created_at, unixepoch()), unixepoch()
+          FROM resumes r
+          WHERE r.job_id IS NOT NULL
+            AND NOT EXISTS (SELECT 1 FROM job_applications ja WHERE ja.user_id = r.user_id AND ja.job_id = r.job_id)
+            AND NOT EXISTS (SELECT 1 FROM apply_run_jobs rj WHERE rj.user_id = r.user_id AND rj.job_id = r.job_id);
       `,
     },
   ];
@@ -9201,8 +9253,14 @@ app.get("/api/jobs/pending", requireAuth, (req, res) => {
     JOIN user_jobs uj ON uj.job_id = sj.job_id AND uj.user_id = ? AND uj.domain_profile_id = ?
     LEFT JOIN resumes r ON r.user_id = ? AND r.job_id = sj.job_id
     WHERE sj.is_active = 1
-      AND uj.resume_generated = 1
-      AND r.html IS NOT NULL
+      -- A63: Pending is a generated résumé OR an application record still pending / not verified
+      -- (the posting was opened from the board, or a résumé exported); "I did not apply" and a
+      -- verified submission both leave it.
+      AND ((uj.resume_generated = 1 AND r.html IS NOT NULL)
+           OR EXISTS (SELECT 1 FROM application_records ar WHERE ar.user_id = uj.user_id AND ar.job_id = sj.job_id
+                        AND ar.state IN ('pending', 'recorded')))
+      AND NOT EXISTS (SELECT 1 FROM application_records ar WHERE ar.user_id = uj.user_id AND ar.job_id = sj.job_id
+                        AND ar.state IN ('withdrawn', 'verified'))
       AND (uj.applied IS NULL OR uj.applied = 0)
       AND (uj.disliked IS NULL OR uj.disliked = 0)
       AND ${pendingProfileTitleFilter.sql}
@@ -10038,6 +10096,11 @@ app.post("/api/generate", requireAuth, async (req, res) => {
         current: limitCheck.current, limit: limitCheck.limit, period: limitCheck.period,
       });
     }
+    // ⛔ A63 (owner, O45c): A NEW résumé costs one of the day's Draft slots — the same allowance a
+    // Draft uses (services/draftSlots.js). A cached one costs nothing. Refused at zero, with the
+    // sentence every surface shows; debited below only once the résumé exists.
+    const slots = draftSlots(db, req.user.id);
+    if (slots.remaining <= 0) return res.status(429).json(slotsExhausted(slots));
   }
   if (cachedArtifact && !forceRegen) {
     const cachedAtsKey = buildAtsCacheKey(cachedArtifact.html, job);
@@ -10122,7 +10185,16 @@ app.post("/api/generate", requireAuth, async (req, res) => {
 
   try {
     const result = await coreGenerateResume({ userId: req.user.id, jobId: String(jobId), job, tool, resumeText, employers });
-    res.json({ html: result.html, atsScore: result.atsScore, atsReport: result.atsReport, cached:false, version: result.version, tool, toolLabel: tool === "a_plus_resume" ? "A+ Resume" : "Generate", kbFindings: kbFindingsFor(result.html) });
+    // A63: debit the slot on SUCCESS, and tag the job Pending — a résumé made for a job is the
+    // first sign the user may apply; it stays Pending until they record and verify a submission.
+    let slots = null, pending = null;
+    try {
+      recordGenerationSlot(db, req.user.id, jobId);
+      slots = draftSlots(db, req.user.id);
+      if (jobId) pending = markPending(db, req.user.id, jobId, "generated").state;
+    } catch (e) { console.warn("[generate] slot/pending:", e.message); }
+    res.json({ html: result.html, atsScore: result.atsScore, atsReport: result.atsReport, cached:false, version: result.version, tool, toolLabel: tool === "a_plus_resume" ? "A+ Resume" : "Generate", kbFindings: kbFindingsFor(result.html),
+      draftSlots: slots, pending });
   } catch(e) {
     // ⛔ Was `500 { error: e.message }` for everything — an exhausted balance, an overload and a
     // withheld résumé looked identical and none said whether retrying could help.
@@ -10233,39 +10305,19 @@ app.get("/api/history", requireAuth, (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // JOB APPLICATIONS
 // ═══════════════════════════════════════════════════════════════
+// ⛔ A63: THIS NO LONGER RECORDS AN APPLICATION. Its two callers were the résumé PDF exports (the
+// board and the Saved sheet), and exporting a PDF is not submitting one — yet it wrote
+// job_applications, so an export appeared as "applied". It now tags the job PENDING
+// (services/applicationRecords.js); job_applications is written only when a recorded submission
+// VERIFIES. Kept as a route so an older client's export still lands somewhere true.
 app.post("/api/applications", requireAuth, (req, res) => {
-  const { jobId,company,role,jobUrl,source,location,applyMode,resumeFile,notes } = req.body;
-  if (!jobId||!company||!role) return res.status(400).json({ error:"jobId, company, role required" });
+  const { jobId } = req.body || {};
+  if (!jobId) return res.status(400).json({ error:"jobId required" });
   try {
-    // AK1 — the same stamp as the manual path in routes/apply.js. Both writers must record it, or
-    // the dataset that is supposed to validate the score has a hole shaped like whichever route the
-    // candidate happened to use.
-    const atsStamp = capturedAtsAtApply(db, req.user.id, jobId);
-    db.prepare(`INSERT INTO job_applications (user_id,job_id,company,role,job_url,source,location,apply_mode,resume_file,notes,applied_at,
-        ats_score_at_apply,ats_scorer_version,ats_report_at_apply,ats_scored_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,unixepoch(),?,?,?,?)
-      ON CONFLICT(user_id,job_id) DO UPDATE SET
-        resume_file=COALESCE(excluded.resume_file,resume_file),
-        notes=COALESCE(excluded.notes,notes),
-        applied_at=excluded.applied_at,
-        ats_score_at_apply=COALESCE(job_applications.ats_score_at_apply,excluded.ats_score_at_apply),
-        ats_scorer_version=COALESCE(job_applications.ats_scorer_version,excluded.ats_scorer_version),
-        ats_report_at_apply=COALESCE(job_applications.ats_report_at_apply,excluded.ats_report_at_apply),
-        ats_scored_at=COALESCE(job_applications.ats_scored_at,excluded.ats_scored_at)`)
-      .run(req.user.id,jobId,company,role,jobUrl||null,source||null,location||null,applyMode||null,resumeFile||null,notes||null,
-        atsStamp.score, atsStamp.version, atsStamp.report,
-        atsStamp.score == null ? null : Math.floor(Date.now() / 1000));
-    // Sync applied flag to user_jobs
-    const userJobProfileId = resolveUserJobDomainProfileId(req.user.id, jobId);
-    if (userJobProfileId) {
-      db.prepare(`
-        INSERT INTO user_jobs (user_id, job_id, domain_profile_id, applied, updated_at)
-        VALUES (?, ?, ?, 1, unixepoch())
-        ON CONFLICT(user_id, job_id) DO UPDATE SET applied = 1, updated_at = unixepoch()
-      `).run(req.user.id, jobId, userJobProfileId);
-    }
-    res.json({ ok:true });
-  } catch(e) { res.status(500).json({ error:e.message }); }
+    const out = markPending(db, req.user.id, jobId, "exported_resume");
+    res.json({ ok:true, pending: out.state === "pending" || out.state === "recorded", state: out.state,
+      message: "Tagged Pending — record the submission in Database → Pending once you have sent it." });
+  } catch(e) { res.status(e.status || 500).json({ error: e.code || e.message, message: e.message }); }
 });
 app.get("/api/applications", requireAuth, (req, res) => {
   const rows = db.prepare(`
@@ -10432,6 +10484,8 @@ const applyLine = applyRoutes(app, db, requireAuth, buildAutofillPayload, genera
 // lost dispatch).
 applyLine.recoverInterruptedRuns();
 applyLine.startLineTicker();
+// A63: the Pending table (pending -> verified -> submitted) and the day's Draft slots.
+applicationRecordRoutes(app, db, requireAuth, { capturedAtsAtApply });
 
 // ── Contact form (public — no auth required) ──────────────────
 app.post("/api/contact", (req, res) => {

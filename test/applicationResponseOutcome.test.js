@@ -8,7 +8,8 @@ import {
   MATURITY_DAYS, isResponse, responseBucket, mergeResponse,
 } from "../shared/applicationResponse.js";
 import { MIGRATIONS } from "../scripts/migrations.js";
-import applyRoutes from "../routes/apply.js";
+import applyRoutes, { capturedAtsAtApply } from "../routes/apply.js";
+import applicationRecordRoutes from "../routes/applicationRecords.js";
 import { at, lastAt } from "../test-support/sourceAnchors.js";
 
 const DAY = 86400;
@@ -284,6 +285,7 @@ function mount() {
   app.use((req, _res, next) => { req.user = { id: 1, planTier: "PRO" }; next(); });
   const noop = async () => ({});
   applyRoutes(app, db, (req, _res, next) => next(), noop, noop, noop, noop);
+  applicationRecordRoutes(app, db, (req, _res, next) => next(), { capturedAtsAtApply });
   const server = app.listen(0);
   return { db, base: `http://127.0.0.1:${server.address().port}`, stop: () => server.close() };
 }
@@ -390,10 +392,14 @@ test("the pair is complete: score in, outcome out, joined on one row", async () 
     // same assertions; it now belongs to user 1, who is the one applying.
     db.prepare("INSERT INTO ats_only_reports (user_id,domain_profile_id,job_id,ats_report,ats_score) VALUES (?,?,?,?,?)")
       .run(1, null, "j1", JSON.stringify({ source: "local_ats_v4", score: 57 }), 57);
-    await fetch(`${base}/api/apply`, {
+    // A63: an application exists only once a recorded submission VERIFIES — the confirmation
+    // names the company, so it does.
+    const rec = await fetch(`${base}/api/applications/pending/j1/record`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jobId: "j1", jobUrl: "https://x.test/j1" }),
+      body: JSON.stringify({ submittedAt: new Date().toISOString(), method: "company_site",
+        evidenceText: "Thank you for applying to Acme" }),
     });
+    assert.equal((await rec.json()).verified, true);
     await patch(base, "j1", { outcome: RESPONSE_OUTCOME.INTERVIEW });
 
     const row = db.prepare("SELECT * FROM job_applications WHERE job_id='j1'").get();

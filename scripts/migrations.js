@@ -3519,4 +3519,53 @@ export const MIGRATIONS = [
           ON apply_runs(user_id, status, line_position);
       `,
     },
+    {
+      // A63 (owner, O45c, 10-02): PENDING -> VERIFIED -> SUBMITTED, and a résumé generation costs one
+      // of the day's Draft slots. application_records holds a job the user generated for, opened the
+      // posting of, or exported a résumé for — PENDING until they record the submission (when, how,
+      // a confirmation) and it is VERIFIED; only then is job_applications written. Nothing becomes
+      // "submitted" on a click alone. draft_slot_uses is the ledger of board generations; Drafts are
+      // counted from apply_run_jobs, so a generation and a Draft share one daily allowance.
+      // The backfill makes every résumé generated before this a PENDING record, unless it was already
+      // applied to or belongs to a Draft (the pipeline tracks those).
+      id: "121_application_records",
+      sql: `
+        CREATE TABLE IF NOT EXISTS application_records (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          job_id TEXT NOT NULL,
+          state TEXT NOT NULL DEFAULT 'pending',
+          origin TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          submitted_at INTEGER,
+          method TEXT,
+          reference TEXT,
+          evidence_text TEXT,
+          evidence_url TEXT,
+          recorded_at INTEGER,
+          verified_at INTEGER,
+          verification_json TEXT,
+          withdrawn_at INTEGER,
+          UNIQUE(user_id, job_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_application_records_user_state
+          ON application_records(user_id, state, updated_at);
+        CREATE TABLE IF NOT EXISTS draft_slot_uses (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          kind TEXT NOT NULL,
+          job_id TEXT,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_draft_slot_uses_user_time
+          ON draft_slot_uses(user_id, created_at);
+        INSERT OR IGNORE INTO application_records (user_id, job_id, state, origin, created_at, updated_at)
+          SELECT r.user_id, r.job_id, 'pending', 'generated', COALESCE(r.created_at, unixepoch()), unixepoch()
+          FROM resumes r
+          WHERE r.job_id IS NOT NULL
+            AND NOT EXISTS (SELECT 1 FROM job_applications ja WHERE ja.user_id = r.user_id AND ja.job_id = r.job_id)
+            AND NOT EXISTS (SELECT 1 FROM apply_run_jobs rj WHERE rj.user_id = r.user_id AND rj.job_id = r.job_id);
+      `,
+    },
   ];

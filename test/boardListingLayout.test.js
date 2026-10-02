@@ -136,10 +136,11 @@ test("the card's own horizontal margin moved onto the grid", () => {
   assert.match(jobCard, /margin: 0,/);
   assert.ok(!/margin: "0 16px 8px"/.test(jobCard), "the card is inside a grid now; the grid owns the spacing");
   assert.match(jobsPanel, /style=\{\{ padding: "0 16px 8px" \}\}/);
-  // The two lists that are NOT grids had to take that spacing over, or their cards go flush.
+  // The list that is NOT a grid had to take that spacing over, or its cards go flush. (There were
+  // two; A63 replaced the Pending card list with the Pending table, which draws no JobCards.)
   const db = fs.readFileSync("client/src/panels/DatabasePanel.jsx", "utf8");
-  assert.equal((db.match(/display:"flex", flexDirection:"column", gap:8, padding:"8px 16px 16px"/g) || []).length, 2,
-    "DatabasePanel's two card lists must supply the spacing JobCard stopped carrying");
+  assert.equal((db.match(/display:"flex", flexDirection:"column", gap:8, padding:"8px 16px 16px"/g) || []).length, 1,
+    "DatabasePanel's card list must supply the spacing JobCard stopped carrying");
 });
 
 // ── Draft (was Queue Auto), and where Pass went ──────────────────────────────

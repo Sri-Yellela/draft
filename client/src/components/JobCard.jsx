@@ -14,6 +14,7 @@ import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { bandChipStyle } from "../styles/bandStyle.js";
 import { C } from "../styles/colorTokens.js";
 import { glass } from "../styles/glass.js";
+import { api } from "../lib/api.js";
 
 // AH2: a job's title is a LINK to that job's own address.
 //
@@ -598,18 +599,36 @@ export default function JobCard({
           // Below ~the info's 220px floor the action cluster drops to its own line, right-aligned.
           style={{ padding: compact ? "10px 14px" : "14px 18px", display:"flex", alignItems:"center", flexWrap:"wrap", columnGap:14, rowGap:10, cursor:"pointer", position:"relative", zIndex:1 }}>
 
-          {/* Company icon */}
-          <CompanyIcon company={job.company} iconUrl={job.companyIconUrl} size={48}/>
+          {/* Company icon — the KB profile lives here now; the NAME is the apply link (A63). */}
+          <span onClick={e => { e.stopPropagation(); setShowCompanyView(true); }}
+            title={`View ${job.company}'s KB profile`} style={{ cursor:"pointer", display:"inline-flex" }}>
+            <CompanyIcon company={job.company} iconUrl={job.companyIconUrl} size={48}/>
+          </span>
 
           {/* Center info */}
           <div style={{ flex:"1 1 220px", minWidth:0 }}>
             <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:3 }}>
-              <span onClick={e => { e.stopPropagation(); setShowCompanyView(true); }}
-                title={`View ${job.company}'s KB profile`}
-                style={{ fontWeight:700, fontSize:14, color:"var(--color-text)", cursor:"pointer",
-                              overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                {job.company}
-              </span>
+              {/* ⭐ A63 (owner, O45c): APPLY IS THE COMPANY NAME. The separate Apply link is
+                  gone; the name links to the posting and opening it tags the job Pending — it stays
+                  Pending until the submission is recorded and verified (Database → Pending). */}
+              {!isLoggedOut && (job.applyUrl || job.url) ? (
+                <a href={job.applyUrl || job.url} target="_blank" rel="noopener noreferrer" data-apply-link
+                  onClick={e => {
+                    e.stopPropagation();
+                    api("/api/applications/pending", { method: "POST",
+                      body: JSON.stringify({ jobId: job.jobId || job.id, origin: "opened_posting" }) }).catch(() => {});
+                  }}
+                  title={`Apply at ${job.company} — opens the posting`}
+                  style={{ fontWeight:700, fontSize:14, color:"var(--color-primary-text)", textDecoration:"underline",
+                           textUnderlineOffset:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                  {job.company} ↗
+                </a>
+              ) : (
+                <span style={{ fontWeight:700, fontSize:14, color:"var(--color-text)",
+                               overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                  {job.company}
+                </span>
+              )}
               {job.alreadyApplied && (
                 <span title="Applied" style={{ fontSize:10, color:C.SUCCESS, fontWeight:700 }}>✓APPLIED</span>
               )}
@@ -789,15 +808,6 @@ export default function JobCard({
                               padding:"2px 8px", borderRadius:4 }}>
                 👥 {job.applicantCount > 200 ? "200+" : job.applicantCount} applicants
               </span>
-            )}
-            {!isLoggedOut && showApplyButton !== false && (job.applyUrl || job.url) && (
-              <a href={job.applyUrl || job.url} target="_blank" rel="noreferrer"
-                onClick={e => e.stopPropagation()}
-                style={{ fontSize:11, color:"var(--color-primary-text)", fontWeight:700,
-                          textDecoration:"underline", background:"var(--color-primary-muted)",
-                          padding:"2px 8px", borderRadius:4 }}>
-                Apply directly ↗
-              </a>
             )}
           </div>
 
