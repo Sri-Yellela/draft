@@ -22,7 +22,9 @@ import { atsBandFor, atsBandLabel, ATS_BAND } from "../../../shared/atsBands.js"
 import { bandChipStyle } from "../styles/bandStyle.js";
 import { C } from "../styles/colorTokens.js";
 
-export function ATSPanel({ report, score, jobId, resumeText, activeProfileId }) {
+// `band` (A40): a caller that holds the BAND and deliberately not the number — the deck — passes it here,
+// and the report is drawn from it. Everywhere else the band is derived from the score, as before.
+export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeText, activeProfileId }) {
   const { theme } = useTheme();
   const [localReport, setLocalReport] = useState(null);
   const [kwLoading,   setKwLoading]   = useState(false);
@@ -206,7 +208,7 @@ export function ATSPanel({ report, score, jobId, resumeText, activeProfileId }) 
 
   // Rendered for every report, including a declined one. The old card was gated on `score != null`,
   // so the scorer's most honest output — "I cannot judge this" — displayed as an empty space.
-  const band = atsBandFor(activeReport.score ?? score ?? null);
+  const band = knownBand ?? atsBandFor(activeReport.score ?? score ?? null);
   const atsCard = {
     render: true,
     band,
