@@ -5,6 +5,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { api, authHeaders, authContextQuery } from "../../lib/api.js";
 import { useTheme } from "../../styles/theme.jsx";
 import { C } from "../../styles/colorTokens.js";
+import { atsBandFor, atsBandLabel } from "../../../../shared/atsBands.js";
+// A50 step 6: the board's bands, not the v3-era 70/50 ramp (under v4 that ramp painted almost every
+// score red). Admin still sees the number beside the band — it is a diagnostic tool.
+const BAND_COLOR = { strong: C.SUCCESS, moderate: C.WARNING, weak: C.DANGER };
+const bandColor = (score) => BAND_COLOR[atsBandFor(score ?? null)] || C.INK_FAINT;
 
 const ACCENT = C.ACCENT;
 // ACCENT is the orange, which is 2.96:1 on the paper: a FILL only. Text, edges and strokes use the
@@ -1720,8 +1725,8 @@ function JobTraceTab({ theme, initialJobId }) {
                 {data.scraped_job.employment_type && <Pill color={C.VIOLET}>{data.scraped_job.employment_type}</Pill>}
                 {data.scraped_job.work_type && <Pill color={C.INFO}>{data.scraped_job.work_type}</Pill>}
                 {data.scraped_job.ats_score != null && (
-                  <Pill color={data.scraped_job.ats_score>=70?C.SUCCESS:data.scraped_job.ats_score>=50?C.WARNING:C.DANGER}>
-                    ATS {data.scraped_job.ats_score}%
+                  <Pill color={bandColor(data.scraped_job.ats_score)}>
+                    {atsBandLabel(atsBandFor(data.scraped_job.ats_score)).short} · {data.scraped_job.ats_score}
                   </Pill>
                 )}
               </div>
@@ -2028,8 +2033,8 @@ function QuerySimulatorTab({ theme }) {
                   }}>
                     <div style={{ fontWeight:600 }}>{truncate(job.title,28)}</div>
                     <div style={{ color:theme.textMuted }}>{truncate(job.company,20)}</div>
-                    <div style={{ color:job.ats_score>=70?C.SUCCESS:job.ats_score>=50?C.WARNING:C.DANGER }}>
-                      {job.ats_score != null ? job.ats_score+"%" : "—"}
+                    <div style={{ color:bandColor(job.ats_score) }}>
+                      {job.ats_score != null ? `${atsBandLabel(atsBandFor(job.ats_score)).short} ${job.ats_score}` : "—"}
                     </div>
                   </div>
                 ))}

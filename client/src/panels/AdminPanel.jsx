@@ -7,6 +7,7 @@ import { api }      from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
 import { OpsTab, GlanceTab, UserApplications } from "./adminOps.jsx";
+import { TYPE } from "../styles/type.js";
 
 const ADMIN_ACCENT = C.ACCENT;
 // ADMIN_ACCENT is the orange, which is 2.96:1 on the paper: a FILL only. Text, edges and strokes use the
@@ -1004,17 +1005,9 @@ export function AdminPanel() {
 
       {/* Admin header */}
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:24 }}>
-        <span style={{
-          fontFamily:"'Barlow Condensed','DM Sans',sans-serif",
-          fontWeight:800, fontSize:28, letterSpacing:"0.08em",
-          textTransform:"uppercase", color:ADMIN_TEXT,
-          background:ADMIN_ACCENT, padding:"4px 16px", borderRadius:2,
-        }}>Admin</span>
-        <span style={{
-          fontFamily:"'Barlow Condensed','DM Sans',sans-serif",
-          fontWeight:800, fontSize:28, letterSpacing:"0.08em",
-          textTransform:"uppercase", color:theme.text,
-        }}>Panel</span>
+        {/* A50 step 6: the shared type scale (styles/type.js), not the pre-rebrand Barlow badge.
+            A tool, so the title is the section size, not the deck's page size. */}
+        <h1 style={{ ...TYPE.SECTION_TITLE, fontSize: 32 }}>Admin</h1>
         <div style={{ flex:1 }}/>
         {/* DB Inspector shortcut */}
         <a href="/admin/db" style={{ textDecoration:"none" }}>
@@ -1045,9 +1038,9 @@ export function AdminPanel() {
         {TOP_TABS.map(({ id, label }) => (
           <button key={id}
             style={{
-              padding:"10px 20px", border:"none", cursor:"pointer",
-              fontFamily:"'Barlow Condensed','DM Sans',sans-serif",
-              fontWeight:800, fontSize:14, letterSpacing:"0.06em", textTransform:"uppercase",
+              padding:"8px 16px", border:"none", cursor:"pointer", borderRadius:999,
+              fontFamily:"inherit",
+              fontWeight:700, fontSize:12, letterSpacing:"0.08em", textTransform:"uppercase",
               background: topTab===id ? ADMIN_ACCENT : "transparent",
               color: topTab===id ? ADMIN_TEXT : theme.textMuted,
               transition:"all 0.15s", borderRadius:"2px 2px 0 0",
@@ -1079,8 +1072,8 @@ export function AdminPanel() {
               <button key={id}
                 style={{
                   padding:"8px 16px", border:"none", cursor:"pointer",
-                  fontFamily:"'Barlow Condensed','DM Sans',sans-serif",
-                  fontWeight:800, fontSize:13, letterSpacing:"0.06em", textTransform:"uppercase",
+                  fontFamily:"inherit",
+                  fontWeight:700, fontSize:12, letterSpacing:"0.08em", textTransform:"uppercase",
                   background: section===id ? theme.surfaceHigh : "transparent",
                   color: section===id ? theme.text : theme.textMuted,
                   transition:"all 0.15s", borderRadius:"4px 4px 0 0",
@@ -1290,8 +1283,8 @@ export function AdminPanel() {
                         background: backing ? theme.border : ADMIN_ACCENT,
                         color: ADMIN_TEXT, border:"none", borderRadius:2,
                         padding:"8px 20px", cursor:"pointer",
-                        fontFamily:"'Barlow Condensed','DM Sans',sans-serif",
-                        fontWeight:800, fontSize:13, letterSpacing:"0.08em",
+                        fontFamily:"inherit",
+                        fontWeight:700, fontSize:12, letterSpacing:"0.08em",
                         textTransform:"uppercase",
                         transition:"border-radius 1s ease",
                       }}
