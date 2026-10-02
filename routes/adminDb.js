@@ -19,6 +19,14 @@ import { loadSimpleApplyProfile } from "../services/simpleApplyProfile.js";
 // A source that hasn't written in this long is treated as stale. Ashby stopped writing on
 // 2026-08-07 and nobody noticed for three days because nothing anywhere asserted freshness.
 const STALE_AFTER_HOURS = 48;
+// A44: enrichment runs after each nightly sync. Three missed nights with enrichable rows waiting
+// is a stop, not a queue — local enrichment stopped 2026-08-24 and nothing on this panel said so.
+const ENRICHMENT_STOPPED_AFTER_HOURS = 72;
+// A44: sources the owner has deliberately paused (jobo: wallet exhausted, 402, "waiting,
+// deliberately" — owner 10-01). Comma-separated names. A paused source is shown, never alerted:
+// a permanent critical for a decision already taken is the alarm nobody reads.
+const pausedSources = () => new Set(String(process.env.PIPELINE_PAUSED_SOURCES || "")
+  .split(",").map(s => s.trim()).filter(Boolean));
 
 // Columns enrichJob.js is responsible for filling. Coverage across these IS the enrichment
 // health signal: the outage was diagnosed by noticing skills_json was 0% and summary 0%, which
@@ -157,6 +165,7 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
         }
       }
 
+      const paused = pausedSources();
       const sources = getSourceStatus().map(({ name, configured }) => {
         const rows = rowsBySource.get(name) || null;
         const lastRun = lastRuns.get(name) || null;
@@ -198,8 +207,17 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
         const accountedFor = Number(lastRun?.written   || 0)
                            + Number(lastRun?.unchanged || 0)
                            + Number(lastRun?.merged    || 0);
+        // A44: rows the US-only gate holds out (A37) are refusals too. They are counted only in
+        // details_json.outOfMarket, so without this a run whose yield was part classifier-refused
+        // and part held out read `wrote_nothing` CRITICAL — "lost rows silently" — when every row
+        // was accounted for. A source whose whole yield is non-US is `all_rejected`, a warn.
+        const heldOut      = (() => {
+          try { return Number(JSON.parse(lastRun?.details_json || "null")?.outOfMarket || 0); }
+          catch { return 0; }
+        })();
         const rejected     = Number(lastRun?.dropped   || 0)
-                           + Number(lastRun?.ejected   || 0);
+                           + Number(lastRun?.ejected   || 0)
+                           + heldOut;
 
         // Fetched rows, boarded none, and the classifier refused all of them. Nothing is broken in
         // the fetch; the source's entire yield is off-board. A different cause needs a different
@@ -219,11 +237,14 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
         // Ordered by severity — the first matching condition wins, so a misconfiguration is
         // never masked by a downstream symptom.
         let health;
-        if (!configured)                       health = "not_configured";
+        if (paused.has(name))                  health = "paused";
+        else if (!configured)                  health = "not_configured";
         else if (!inCrawl)                     health = "live_search_only";
         else if (!rows && !lastRun)            health = "never_ran";
         else if (lastRun?.status === "failed") health = "failed";
-        else if (lastRun?.status === "skipped_unconfigured") health = "not_configured";
+        // Keyed and in the crawl, with no active companies: never enabled (workday, smartrecruiters).
+        // That is configuration as intended, not a fault — shown grey, not alerted (A44).
+        else if (lastRun?.status === "skipped_unconfigured") health = "not_enabled";
         else if (lastRun?.status === "no_results")           health = "no_results";
         // Ahead of `stale`, because a source writing nothing on every run is a harder failure
         // than one that has merely gone quiet, and `stale` would mask it after 48h.
@@ -252,6 +273,7 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
           // condition that would become an alarm nobody reads. `all_rejected` (all of them, so the
           // source contributes nothing at all) is the part that earns an alert.
           rejectedShare:   fetchedRows > 0 ? Number((rejected / fetchedRows).toFixed(3)) : null,
+          heldOutOfMarket: heldOut,
           lastRun:         lastRun && {
             status: lastRun.status, at: lastRun.started_at,
             fetched: lastRun.fetched, written: lastRun.written,
@@ -319,6 +341,23 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
         // whole panel exists to catch.
         : `NULL AS detail_attempts, NULL AS detail_fetched, NULL AS detail_exhausted,`;
 
+      // Rows the US-only gate holds out, per company, and when a crawl last re-saw them.
+      const heldOutByCompany = new Map();
+      try {
+        if (assertReadableTable("rejected_jobs")) {
+          for (const h of db.prepare(`
+            SELECT source, company, MAX(rejected_at) AS last_seen_at,
+                   SUM(reason LIKE 'out_of_market:%') AS out_of_market
+            FROM rejected_jobs GROUP BY source, company
+          `).all()) {
+            heldOutByCompany.set(`${h.source}|${h.company}`,
+              { lastSeenAt: h.last_seen_at ?? null, outOfMarket: h.out_of_market || 0 });
+          }
+        }
+      } catch (e) {
+        console.warn("[pipeline-health] held-out rows unavailable:", e.message);
+      }
+
       const companyHealth = (() => {
       try {
       return assertReadableTable("company_ats_list")
@@ -329,7 +368,8 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
                    SUM(COALESCE(s.is_active, 0) = 1 AND (s.description IS NULL OR TRIM(s.description) = '')) AS no_description,
                    SUM(COALESCE(s.is_active, 0) = 1 AND s.enriched_at IS NOT NULL)                           AS enriched,
                    ${detailCols}
-                   MAX(COALESCE(s.discovered_at, s.scraped_at, s.updated_at)) AS last_row_at
+                   MAX(COALESCE(s.discovered_at, s.scraped_at, s.updated_at)) AS last_row_at,
+                   MAX(COALESCE(s.scraped_at, s.updated_at, s.discovered_at)) AS last_seen_at
             FROM company_ats_list c
             LEFT JOIN scraped_jobs s
                    ON s.company = c.company AND s.source = c.ats_type
@@ -340,6 +380,16 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
             const activeRows = r.active_rows || 0;
             const noDesc = r.no_description || 0;
             const lastCrawlOk = lastOkBySource.get(r.source) ?? null;
+            const held = heldOutByCompany.get(`${r.source}|${r.company}`) || null;
+            // A44 (10-02) · LIVENESS, NOT POSTING CADENCE. `last_row_at` leads with discovered_at,
+            // which is when a posting was FIRST seen — so it is "this company's newest NEW job", and
+            // it never moves while a stable board is re-crawled every day. Production's 542h cluster
+            // (lever/openx, workable/persado, workable/skroutz, identical to the hour) was exactly
+            // that: three companies seeded together by migration 103, first crawled in one run, all
+            // ALIVE (probed 10-02) and re-seen on every crawl, flagged only for not posting anything
+            // new. A crawl touches scraped_at on every row it returns, and the US gate rewrites
+            // rejected_at on every row it holds out, so either one proves the slug answered.
+            const lastSeenAt = Math.max(r.last_seen_at || 0, held?.lastSeenAt || 0) || null;
             // A company seeded AFTER its source's last successful crawl has not yet had a chance
             // to produce anything, so zero rows is the expected state and not a finding. This is
             // exactly the position the ten companies migration 103 added are in right now: the
@@ -349,6 +399,9 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
               && (lastCrawlOk == null || r.created_at > lastCrawlOk);
             let health;
             if (awaitingFirstCrawl)                      health = "awaiting_first_crawl";
+            // Every posting it returns is held out by the US-only gate (A37): the slug works and the
+            // company simply does not hire here. Not a dead slug — a decision about the company.
+            else if (activeRows === 0 && held?.outOfMarket > 0) health = "out_of_market";
             // An ACTIVE company with no rows is the alert. It is configured, so somebody meant it
             // to produce; producing nothing is a failure regardless of what the source says.
             else if (activeRows === 0)                   health = "no_rows";
@@ -363,7 +416,10 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
             // in a queue; the same company with `detailAttempts: 900` and `detailYield: 0` is a
             // real finding. The health WORD cannot carry that distinction, so the numbers do.
             else if (noDesc === activeRows)              health = "no_descriptions";
-            else if (r.last_row_at && r.last_row_at < staleBefore) health = "stale";
+            // Stale = its source's last SUCCESSFUL crawl did not return it. With no successful crawl
+            // on record there is nothing to compare with, so the old clock stands in.
+            else if (lastCrawlOk != null ? (lastSeenAt == null || lastSeenAt < lastCrawlOk)
+                                         : (lastSeenAt != null && lastSeenAt < staleBefore)) health = "stale";
             else                                         health = "ok";
             const attempts = r.detail_attempts;
             const obtained = r.detail_fetched;
@@ -372,7 +428,13 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
               total: r.total || 0, active: activeRows, noDescription: noDesc,
               enriched: r.enriched || 0, lastRowAt: r.last_row_at ?? null,
               addedAt: r.created_at ?? null,
-              staleHours: r.last_row_at ? Math.floor((now - r.last_row_at) / 3600) : null,
+              lastSeenAt,
+              // How long since this company's newest NEW posting. Reported, never alerted: most
+              // companies do not post every two days (median gap between postings for the small
+              // boards measured 10-02 was 6–43 days), so a fixed clock on it is alarm fatigue.
+              quietHours: r.last_row_at ? Math.floor((now - r.last_row_at) / 3600) : null,
+              heldOutOfMarket: held?.outOfMarket ?? 0,
+              staleHours: lastSeenAt ? Math.floor((now - lastSeenAt) / 3600) : null,
               // Y2D. Reported, never acted on — see the ⛔ below.
               detailAttempts: attempts ?? null,
               detailObtained: obtained ?? null,
@@ -473,7 +535,8 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
 
       const unhealthySources = new Set();
       for (const s of sources) {
-        if (s.health === "ok" || s.health === "live_search_only") continue;
+        if (s.health === "ok" || s.health === "live_search_only"
+            || s.health === "not_enabled" || s.health === "paused") continue;
         unhealthySources.add(s.name);
         // `not_configured` is reached two different ways and they need different words. A source
         // whose isConfigured() is false is missing a KEY; a source whose last run recorded
@@ -495,8 +558,9 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
                           `(written 0, unchanged 0, merged 0, refused ${(s.lastRun?.dropped ?? 0) + (s.lastRun?.ejected ?? 0)})`,
           all_rejected:   `fetched ${s.lastRun?.fetched ?? 0} rows and the classifier refused ` +
                           `every one of them (${s.lastRun?.dropped ?? 0} unclassifiable, ` +
-                          `${s.lastRun?.ejected ?? 0} blue-collar) — the source works, its whole ` +
-                          `yield is off-board`,
+                          `${s.lastRun?.ejected ?? 0} blue-collar` +
+                          (s.heldOutOfMarket ? `, ${s.heldOutOfMarket} outside the US` : "") +
+                          `) — the source works, its whole yield is off-board`,
           stale:          `no successful run in ${s.staleHours}h (threshold ${STALE_AFTER_HOURS}h)`,
           no_rows:        "has run but holds no active rows",
         }[s.health] || s.health;
@@ -518,9 +582,10 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
         const detail = {
           no_rows:         "active company, zero rows on the board — a dead slug, or its postings were dropped before they were written",
           no_descriptions: `all ${c.active} rows have no description, so none of them can ever be enriched`,
-          stale:           `no row seen in ${c.staleHours}h (threshold ${STALE_AFTER_HOURS}h)`,
+          stale:           `not returned by its source's last successful crawl (last seen ${c.staleHours ?? "never"}h ago)`,
+          out_of_market:   `every posting it returns (${c.heldOutOfMarket}) is outside the US and held out by the US-only gate — the slug works; keep or deactivate the company`,
         }[c.health] || c.health;
-        push(c.health === "stale" ? "warn" : "critical", "company",
+        push(c.health === "stale" || c.health === "out_of_market" ? "warn" : "critical", "company",
           `${c.source}/${c.slug}`, `${c.company}: ${detail}`);
       }
 
@@ -530,6 +595,31 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
         if (c.pct === 0 && c.total > 0) {
           push("critical", "coverage", c.column, `0% of ${c.total} active rows have a value`);
         }
+      }
+      // A44: an alert when enrichment has STOPPED. The checks below fire on a failed run and the
+      // coverage loop on exactly 0%; neither fires when runs simply cease, which is how local
+      // enrichment stopped on 2026-08-24 with nothing raised — and A48 found that unenriched rows are
+      // the ones that score "not enough signal" (~30% of them), so a stop shows up on the board.
+      let enrichmentLag = null;
+      try {
+        enrichmentLag = db.prepare(`
+          SELECT MAX(enriched_at) AS last_enriched_at,
+                 SUM(is_active = 1 AND enriched_at IS NULL
+                     AND description IS NOT NULL AND TRIM(description) != '') AS waiting
+          FROM scraped_jobs
+        `).get();
+      } catch (e) {
+        // This panel must never be the thing that breaks (see hasDetailFetchColumns).
+        console.warn("[pipeline-health] enrichment lag unavailable:", e.message);
+      }
+      if ((enrichmentLag?.waiting || 0) > 0
+          && (enrichmentLag.last_enriched_at == null
+              || enrichmentLag.last_enriched_at < now - ENRICHMENT_STOPPED_AFTER_HOURS * 3600)) {
+        push("critical", "enrichment", "stopped",
+          `nothing enriched ${enrichmentLag.last_enriched_at == null ? "ever"
+            : `in ${Math.floor((now - enrichmentLag.last_enriched_at) / 3600)}h`} while ` +
+          `${enrichmentLag.waiting} active rows with a description wait — unenriched rows are the ones ` +
+          `that score "not enough signal"`);
       }
       const lastEnrichment = enrichmentRuns[0];
       if (lastEnrichment?.health === "failed") {
@@ -564,6 +654,8 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
         enrichment: {
           activeTotal,
           coverage,
+          lastEnrichedAt: enrichmentLag?.last_enriched_at ?? null,
+          waitingForEnrichment: enrichmentLag?.waiting ?? 0,
           recentRuns: enrichmentRuns,
           noDescription: db.prepare(`
             SELECT COUNT(*) n FROM scraped_jobs

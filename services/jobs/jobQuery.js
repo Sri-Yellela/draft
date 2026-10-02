@@ -526,7 +526,7 @@ function buildJobFilters(params = {}, opts = {}) {
   // client's one "Past week" pill emits BOTH `ageFilter` and `posted_after` from the same state
   // (see JobsPanel's buildParams), and server.js's ageFilter clause is `sj.scraped_at >= ?` — so
   // ageFilter kept an undated posting and posted_after, applied in the same query, threw it away.
-  // Plenty of rows are undated: Ashby only sets publishedDate when the employer does, and the
+  // Plenty of rows were undated: Ashby's adapter read a field that does not exist (fixed A44, 10-02), and the
   // imported Quora posting came through with posted_at NULL, so every date-filtered board dropped it.
   const postedAfter = toInt(params.posted_after);
   if (postedAfter != null) {

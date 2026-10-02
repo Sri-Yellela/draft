@@ -760,9 +760,12 @@ test("not_configured says which KIND of misconfiguration it is", async () => {
 
   const workable = sourceNamed(body, "workable");
   assert.equal(workable.configured, true, "workable's isConfigured() is unconditionally true");
-  assert.equal(workable.health, "not_configured");
-  assert.match(alertFor(body, "source", "workable").detail, /no active companies/,
-    "a source with the key and no companies must not be told to go find a key");
+  // A44 (10-02, coordinator from the A50 audit): keyed + no active companies is a source that was
+  // never ENABLED (workday, smartrecruiters) — configuration as intended. It is its own grey state
+  // and raises nothing, which also guarantees it is never told to go find a key.
+  assert.equal(workable.health, "not_enabled");
+  assert.equal(alertFor(body, "source", "workable"), undefined,
+    "a source with the key and no companies must not be alerted on, let alone told to find a key");
 
   // And the other branch, on a source whose isConfigured() really is false without its key.
   const saved = process.env.SERPAPI_KEY;
@@ -788,4 +791,119 @@ test("per-company health degrades to empty rather than 500ing when the column se
   assert.deepEqual(body.companies, []);
   assert.ok(Array.isArray(body.sources), "every other signal must survive");
   assert.ok(Array.isArray(body.enrichment.coverage));
+});
+
+// ── A44 (10-02) · company staleness is LIVENESS, not posting cadence ─────────────────────────
+// Production showed lever/openx, workable/persado and workable/skroutz all at "no row seen in
+// 542h", identical to the hour. Probed live, all three boards were up; locally their rows had been
+// re-seen by every crawl. The clock measured MAX(discovered_at) — each company's newest NEW posting —
+// so three companies seeded together by migration 103 and first crawled in one run aged in lockstep.
+
+test("A44: a company the last crawl re-saw is OK however long since it posted something new", async () => {
+  const db = makeDb();
+  const now = Math.floor(Date.now() / 1000);
+  db.prepare(`INSERT INTO company_ats_list (company,ats_type,ats_slug,active,created_at) VALUES
+              ('OpenX','lever','openx',1,?)`).run(now - 60 * 24 * HOUR);
+  // First seen 542h ago, re-seen (scraped_at) by the crawl that just ran.
+  db.prepare(`INSERT INTO scraped_jobs (job_id,title,company,source,discovered_at,scraped_at,is_active,description)
+              VALUES ('o1','Eng','OpenX','lever',?,?,1,'text')`).run(now - 542 * HOUR, now);
+  recordPipelineRun(db, { runKind: "source_sync", source: "lever", status: "ok", startedAt: now - 60,
+                          fetched: 1, unchanged: 1 });
+  const { body } = await getHealth(db);
+  const c = body.companies.find(x => x.slug === "openx");
+  assert.equal(c.health, "ok", "re-seen by the last successful crawl: alive");
+  assert.equal(c.quietHours, 542, "the quiet spell is still REPORTED");
+  assert.equal(alertFor(body, "company", "lever/openx"), undefined, "and not alerted on");
+});
+
+test("A44: a company its source's last successful crawl did NOT return is stale, and says so", async () => {
+  const db = makeDb();
+  const now = Math.floor(Date.now() / 1000);
+  db.prepare(`INSERT INTO company_ats_list (company,ats_type,ats_slug,active,created_at) VALUES
+              ('Persado','workable','persado',1,?), ('Blueground','workable','blueground',1,?)`)
+    .run(now - 60 * 24 * HOUR, now - 60 * 24 * HOUR);
+  // Persado last re-seen two days before the latest successful crawl; Blueground re-seen by it.
+  db.prepare(`INSERT INTO scraped_jobs (job_id,title,company,source,discovered_at,scraped_at,is_active,description)
+              VALUES ('p1','Eng','Persado','workable',?,?,1,'text'),
+                     ('b1','Eng','Blueground','workable',?,?,1,'text')`)
+    .run(now - 30 * 24 * HOUR, now - 50 * HOUR, now - 30 * 24 * HOUR, now);
+  recordPipelineRun(db, { runKind: "source_sync", source: "workable", status: "ok", startedAt: now - 60,
+                          fetched: 1, unchanged: 1 });
+  const { body } = await getHealth(db);
+  assert.equal(body.companies.find(x => x.slug === "persado").health, "stale");
+  assert.match(alertFor(body, "company", "workable/persado").detail, /not returned by its source's last successful crawl/);
+  assert.equal(body.companies.find(x => x.slug === "blueground").health, "ok");
+});
+
+test("A44: a slug whose every posting the US gate holds out is OUTSIDE US, not a dead slug", async () => {
+  const db = makeDb();
+  db.exec(`CREATE TABLE rejected_jobs (job_id TEXT PRIMARY KEY, title TEXT, company TEXT, source TEXT,
+                                       reason TEXT, rejected_at INTEGER)`);
+  const now = Math.floor(Date.now() / 1000);
+  db.prepare(`INSERT INTO company_ats_list (company,ats_type,ats_slug,active,created_at) VALUES
+              ('Skroutz','workable','skroutz',1,?)`).run(now - 60 * 24 * HOUR);
+  db.prepare(`INSERT INTO scraped_jobs (job_id,title,company,source,discovered_at,scraped_at,is_active,description)
+              VALUES ('s1','Analyst','Skroutz','workable',?,?,0,'text')`).run(now - 30 * 24 * HOUR, now - 30 * 24 * HOUR);
+  db.prepare(`INSERT INTO rejected_jobs VALUES ('s1','Analyst','Skroutz','workable','out_of_market:non_us',?)`).run(now);
+  recordPipelineRun(db, { runKind: "source_sync", source: "workable", status: "ok", startedAt: now - 60,
+                          fetched: 1, unchanged: 0 });
+  const { body } = await getHealth(db);
+  const c = body.companies.find(x => x.slug === "skroutz");
+  assert.equal(c.health, "out_of_market");
+  assert.equal(c.heldOutOfMarket, 1);
+  const a = alertFor(body, "company", "workable/skroutz");
+  assert.equal(a.severity, "warn", "a decision about the company, not an outage");
+  assert.match(a.detail, /outside the US/);
+});
+
+test("A44: a run whose refused rows include US-gate hold-outs is all_rejected (warn), not wrote_nothing", async () => {
+  // A37's gate counts held-out rows only in details_json.outOfMarket. Before A44 a run that fetched
+  // 16, classifier-refused 12 and held out 4 read `wrote_nothing` CRITICAL — "rows lost silently".
+  const db = makeDb();
+  const now = Math.floor(Date.now() / 1000);
+  db.prepare(`INSERT INTO scraped_jobs (job_id,title,company,source,discovered_at,scraped_at,is_active,description)
+              VALUES ('r1','Eng','Channable','recruitee',?,?,1,'t')`).run(now - 5 * HOUR, now - 5 * HOUR);
+  recordPipelineRun(db, { runKind: "source_sync", source: "recruitee", status: "ok", startedAt: now - 60,
+                          fetched: 16, written: 0, dropped: 12, details: { outOfMarket: 4 } });
+  const { body } = await getHealth(db);
+  const s = sourceNamed(body, "recruitee");
+  assert.equal(s.health, "all_rejected");
+  assert.equal(s.heldOutOfMarket, 4);
+  const a = alertFor(body, "source", "recruitee");
+  assert.equal(a.severity, "warn");
+  assert.match(a.detail, /4 outside the US/);
+});
+
+test("A44: a keyed source with no active companies is NOT ENABLED, and a paused one is PAUSED — neither alerts", async () => {
+  const db = makeDb();
+  const now = Math.floor(Date.now() / 1000);
+  recordPipelineRun(db, { runKind: "source_sync", source: "workday", status: "skipped_unconfigured", startedAt: now - 60 });
+  const before = process.env.PIPELINE_PAUSED_SOURCES;
+  process.env.PIPELINE_PAUSED_SOURCES = "jobo";
+  try {
+    const { body } = await getHealth(db);
+    assert.equal(sourceNamed(body, "workday").health, "not_enabled");
+    assert.equal(alertFor(body, "source", "workday"), undefined);
+    assert.equal(sourceNamed(body, "jobo").health, "paused");
+    assert.equal(alertFor(body, "source", "jobo"), undefined);
+  } finally {
+    if (before === undefined) delete process.env.PIPELINE_PAUSED_SOURCES; else process.env.PIPELINE_PAUSED_SOURCES = before;
+  }
+});
+
+test("A44: enrichment that has STOPPED with rows waiting is a critical alert, not silence", async () => {
+  const db = makeDb();
+  const now = Math.floor(Date.now() / 1000);
+  db.prepare(`INSERT INTO scraped_jobs (job_id,title,company,source,discovered_at,is_active,description,enriched_at)
+              VALUES ('e1','Eng','A','greenhouse',?,1,'text',?), ('e2','Eng','A','greenhouse',?,1,'text',NULL)`)
+    .run(now, now - 40 * 24 * HOUR, now);
+  let { body } = await getHealth(db);
+  const a = alertFor(body, "enrichment", "stopped");
+  assert.equal(a?.severity, "critical");
+  assert.match(a.detail, /1 active rows with a description wait/);
+  assert.equal(body.enrichment.waitingForEnrichment, 1);
+  // A recent enrichment means a queue, not a stop.
+  db.prepare(`UPDATE scraped_jobs SET enriched_at = ? WHERE job_id = 'e1'`).run(now - 3 * HOUR);
+  ({ body } = await getHealth(db));
+  assert.equal(alertFor(body, "enrichment", "stopped"), undefined);
 });
