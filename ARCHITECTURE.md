@@ -383,10 +383,11 @@ profile-scoped table — which is exactly why the global `ats_score` column is v
 a migration added only to `scripts/migrations.js` never runs. Each migration and its bookkeeping row
 commit in **one transaction**, so a half-applied migration cannot be recorded as done.
 
-Both runners define **118** numbered migrations. Production had applied **121** on 10-02 (`/api/version`): the
-first **115** of them, plus **6** unnumbered legacy ids predating the `NNN_` convention (`admin_cache_events`,
+Both runners define **119** numbered migrations. Production had applied **124** on 10-02 (`/api/version` 13:41Z): the
+first **118** of them (117 is unused), plus **6** unnumbered legacy ids predating the `NNN_` convention (`admin_cache_events`,
 `admin_scrape_events`, `admin_usage_events`, `admin_user_limits`, `ats_only_reports`,
-`contact_messages`). Defined high-water: `118_ats_reports_job_hash` (A52 — each stored ATS report records which
+`contact_messages`). Defined high-water: `119_admin_audit_log` (A58 — what an admin write changed, with the value it
+replaced, so it can be undone), after `118_ats_reports_job_hash` (A52 — each stored ATS report records which
 version of the posting it scored, so enrichment landing makes it stale; 117 is unused), after `116_dedup_retire_and_log`
 (A49 — a dedup duplicate is retired with `duplicate_of` / `retired_reason` / `retired_at` and logged in `job_dedup_log`,
 restorable), after `115_deactivate_skroutz_outside_us` (A44 — Skroutz posts only in Greece; applied in production 10-02), after

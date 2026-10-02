@@ -832,13 +832,31 @@ function EnrichmentTransferPanel({ theme }) {
     finally { setBusy(null); }
   };
 
+  // A58 (d): Revert runs the route's DRY RUN first and shows what it would restore — how many rows,
+  // and how many were re-enriched or re-imported since (a revert clobbers those back). Only then can
+  // it be confirmed, and the apply quotes the dry run's count back, so the server refuses a stale one.
+  const [revertPlan, setRevertPlan] = useState(null);
   const revert = async (batchId) => {
+    setBusy("revert"); setErr(null); setRevertPlan(null);
+    try {
+      setRevertPlan(await api(`/api/admin/enrichment/batches/${batchId}/revert`, {
+        method: "POST", body: JSON.stringify({}),
+      }));
+    } catch (e) { setErr(e.message); }
+    finally { setBusy(null); }
+  };
+  const confirmRevert = async () => {
+    const p = revertPlan;
+    if (!p) return;
+    if (!confirm(`Revert batch #${p.batchId}: restore ${p.restorable} row(s) to their state before it.` +
+        (p.changedSince ? `\n\n${p.changedSince} of them were changed AFTER this batch; that later change is lost.` : "") +
+        "\n\nContinue?")) return;
     setBusy("revert"); setErr(null);
     try {
-      await api(`/api/admin/enrichment/batches/${batchId}/revert`, {
-        method: "POST", body: JSON.stringify({ apply: true }),
+      await api(`/api/admin/enrichment/batches/${p.batchId}/revert`, {
+        method: "POST", body: JSON.stringify({ apply: true, expectRestorable: p.restorable }),
       });
-      setResult(r => ({ ...r, reverted: true }));
+      setResult(r => ({ ...r, reverted: true })); setRevertPlan(null);
     } catch (e) { setErr(e.message); }
     finally { setBusy(null); }
   };
@@ -987,7 +1005,8 @@ function EnrichmentTransferPanel({ theme }) {
       <ErrBox msg={err} theme={theme}/>
       {planFresh && <ImportPlanView body={dry.body} theme={theme}/>}
       {result && <ImportResultView result={result} theme={theme}
-                    onRevert={revert} reverting={busy === "revert"}/>}
+                    onRevert={revert} reverting={busy === "revert"}
+                    revertPlan={revertPlan} onConfirmRevert={confirmRevert} onCancelRevert={() => setRevertPlan(null)}/>}
     </div>
   );
 }
@@ -1087,7 +1106,7 @@ function ImportPlanView({ body, theme }) {
   );
 }
 
-function ImportResultView({ result, theme, onRevert, reverting }) {
+function ImportResultView({ result, theme, onRevert, reverting, revertPlan, onConfirmRevert, onCancelRevert }) {
   const cell = { padding: "3px 8px", fontSize: 11 };
   return (
     <div style={{ marginTop: 12, padding: 12, borderRadius: 8,
@@ -1124,8 +1143,37 @@ function ImportResultView({ result, theme, onRevert, reverting }) {
           : <button type="button" onClick={() => onRevert(result.batchId)} disabled={reverting}
               style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${theme.border}`,
                        background: "transparent", color: theme.text, cursor: "pointer", fontSize: 11 }}>
-              {reverting ? "Reverting…" : `↩ Revert batch #${result.batchId}`}
+              {reverting ? "Checking…" : `↩ Revert batch #${result.batchId}…`}
             </button>
+      )}
+      {revertPlan && !result.reverted && (
+        <div style={{ marginTop: 10, padding: 10, borderRadius: 8, border: `1px solid ${C.DANGER}55`, background: C.DANGER_QUIET }}>
+          <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 6 }}>
+            DRY RUN — revert batch #{revertPlan.batchId} would restore {fmt(revertPlan.restorable)} row(s)
+          </div>
+          <div style={{ fontSize: 11, color: theme.textMuted, lineHeight: 1.6 }}>
+            {fmt(revertPlan.recordedRows)} recorded · {fmt(revertPlan.missing)} cannot be restored (deleted or no before-image)
+            {revertPlan.changedSince > 0 && (
+              <div style={{ color: C.DANGER, fontWeight: 700 }}>
+                {fmt(revertPlan.changedSince)} row(s) were changed after this batch — the revert overwrites that later change.
+              </div>
+            )}
+            {revertPlan.alreadyReverted && <div style={{ color: C.DANGER, fontWeight: 700 }}>Already reverted.</div>}
+          </div>
+          {(revertPlan.changedSinceSample?.length ? revertPlan.changedSinceSample : revertPlan.sample || []).map(r => (
+            <div key={r.jobId} style={{ fontSize: 11, color: theme.text }}>· {r.title || r.jobId}{r.company ? ` — ${r.company}` : ""}</div>
+          ))}
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button type="button" onClick={onConfirmRevert} disabled={reverting || revertPlan.alreadyReverted || !revertPlan.restorable}
+              style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${C.DANGER}`, background: "transparent",
+                       color: C.DANGER, cursor: "pointer", fontSize: 11, fontWeight: 800 }}>
+              {reverting ? "Reverting…" : `Revert ${fmt(revertPlan.restorable)} row(s)`}
+            </button>
+            <button type="button" onClick={onCancelRevert}
+              style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${theme.border}`, background: "transparent",
+                       color: theme.text, cursor: "pointer", fontSize: 11 }}>Cancel</button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1455,8 +1503,6 @@ function UserPoolTab({ theme }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [poolFilter, setPoolFilter] = useState("All");
-  const [retagResult, setRetagResult] = useState(null);
-  const [actionLoading, setActionLoading] = useState(null);
 
   useEffect(() => {
     api("/api/admin/users").then(d => setUsers(Array.isArray(d) ? d : [])).catch(() => {});
@@ -1469,15 +1515,6 @@ function UserPoolTab({ theme }) {
     catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }, []);
-
-  const retagPool = async () => {
-    if (!selectedUser) return;
-    setActionLoading("retag"); setRetagResult(null);
-    try { setRetagResult(await api(`/api/admin/db/retag-user-pool/${selectedUser}`, { method:"POST" })); }
-    catch (e) { setRetagResult({ error: e.message }); }
-    setActionLoading(null);
-    loadPool(selectedUser);
-  };
 
   const filteredJobs = data?.sampleJobs?.filter(j => {
     if (poolFilter === "All") return true;
@@ -1623,21 +1660,9 @@ function UserPoolTab({ theme }) {
               )}
             </div>
 
-            {/* Utility buttons. ⛔ "Clean Pool" was removed (A51, 10-02): it deleted a user's Saves and
-                Passes in one click. Nothing here may delete user_jobs rows. */}
-            <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-              <button onClick={retagPool} disabled={!selectedUser || actionLoading === "retag"}
-                style={{ background:ACCENT+"22", color:ACCENT_TEXT, border:`1px solid ${ACCENT_TEXT}44`,
-                         borderRadius:6, padding:"7px 16px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
-                {actionLoading==="retag" ? "Retagging…" : "🏷 Re-tag Pool"}
-              </button>
-            </div>
-            {retagResult && (
-              <div style={{ marginTop:8, fontSize:11, color:C.SUCCESS }}>
-                {retagResult.error ? <span style={{color:C.DANGER}}>{retagResult.error}</span>
-                : `Tagged ${retagResult.tagged} jobs, ${retagResult.stillNull} still untagged.`}
-              </div>
-            )}
+            {/* ⛔ This inspector is READ-ONLY over user_jobs. "Clean Pool" was removed (A51, 10-02): it deleted
+                a user's Saves and Passes in one click. "Re-tag Pool" was removed (A58, 10-02): pre-pivot pool
+                logic that rewrote a user's rows onto their active profile. A Save or a Pass is the user's. */}
           </div>
         </div>
       )}
@@ -2269,10 +2294,32 @@ function JobReviewTab({ theme }) {
 
   useEffect(() => { load(); }, [load]);
 
+  // A58 (b): a re-classification changes which BOARDS show the posting — never anyone's Save or Pass.
+  // The confirm says who has a decision on it (read fresh from the server) and what the change does.
+  // Since CC1b an UNCLASSIFIED posting is shown on every board, so the old "Hide" un-hid it.
+  const [lastChange, setLastChange] = useState(null);   // { logId, title }
+  const describeImpact = (im) => im.usersReferencing === 0
+    ? "No user has saved, passed or applied to it."
+    : `${im.usersReferencing} user(s) have it on record (${im.saved} saved, ${im.passed} passed, ${im.applied} applied). ` +
+      "Their saves and passes are NOT changed.";
   const reassign = async (job, nextRoleKey, profileId = "") => {
-    setSaving(job.job_id); setStatus("");
+    setStatus(""); setError(null);
+    let impact;
+    try { impact = await api(`/api/admin/db/job-review/impact/${encodeURIComponent(job.job_id)}`); }
+    catch (e) { setError(e.message); return; }
+    const effect = nextRoleKey === "unclassified"
+      ? "Unclassify removes its role classification. An unclassified posting is SHOWN ON EVERY BOARD (ranked as unknown) — this does not hide it."
+      : `Classify as "${nextRoleKey}": it is then shown on ${nextRoleKey} boards and on no other role's board.`;
+    if (!confirm(`${job.title}
+
+${effect}
+
+${describeImpact(impact)}
+
+The previous classification is logged and can be undone. Continue?`)) return;
+    setSaving(job.job_id);
     try {
-      await api("/api/admin/db/job-review/reassign", {
+      const r = await api("/api/admin/db/job-review/reassign", {
         method: "POST",
         body: JSON.stringify({
           jobId: job.job_id,
@@ -2281,12 +2328,21 @@ function JobReviewTab({ theme }) {
         }),
       });
       setStatus(`Updated ${job.title}`);
+      setLastChange({ logId: r.logId, title: job.title });
       load();
     } catch(e) {
       setError(e.message);
     } finally {
       setSaving(null);
     }
+  };
+
+  const undoLast = async () => {
+    if (!lastChange || !confirm(`Undo the last change to "${lastChange.title}"? Its previous classification is restored.`)) return;
+    try {
+      await api(`/api/admin/db/job-review/undo/${lastChange.logId}`, { method: "POST" });
+      setStatus(`Undid the change to ${lastChange.title}`); setLastChange(null); load();
+    } catch (e) { setError(e.message); }
   };
 
   const roleOptions = ["", "engineering", "data", "pm", "finance", "hr", "design", "operations", "marketing", "general", "unclassified"];
@@ -2310,13 +2366,20 @@ function JobReviewTab({ theme }) {
           Refresh
         </button>
         {status && <span style={{ fontSize:12, color:theme.textMuted }}>{status}</span>}
+        {lastChange && (
+          <button onClick={undoLast}
+            style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
+                     padding:"5px 10px", fontWeight:700, cursor:"pointer", fontSize:11 }}>
+            ↩ Undo last change
+          </button>
+        )}
       </div>
       <ErrBox msg={error} theme={theme}/>
       <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, overflow:"auto" }}>
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
           <thead>
             <tr style={{ background:theme.surfaceHigh }}>
-              {["Job", "Current", "Suggested", "Assign", "Profile", ""].map(h => (
+              {["Job", "Current", "Users", "Suggested", "Assign", "Profile", ""].map(h => (
                 <th key={h} style={{ padding:"8px 10px", textAlign:"left", color:theme.textMuted,
                                       borderBottom:`1px solid ${theme.border}` }}>{h}</th>
               ))}
@@ -2335,6 +2398,10 @@ function JobReviewTab({ theme }) {
                   <td style={{ padding:"8px 10px" }}>
                     <Pill color={currentRole === "unclassified" ? C.DANGER : ACCENT_TEXT}>{currentRole}</Pill>
                     {job.profile_name && <div style={{ marginTop:4, color:theme.textMuted }}>{job.profile_name}</div>}
+                  </td>
+                  <td style={{ padding:"8px 10px", color:theme.textMuted }}
+                    title="Users with a Save, Pass or application on this posting. A re-classification never changes them.">
+                    {job.users_referencing ?? 0}
                   </td>
                   <td style={{ padding:"8px 10px" }}>
                     <Pill color={job.suggestedRoleKey === "data" ? C.SUCCESS : C.INFO}>{job.suggestedRoleKey}</Pill>
@@ -2367,10 +2434,11 @@ function JobReviewTab({ theme }) {
                     </button>
                     <button disabled={saving === job.job_id}
                       onClick={() => reassign(job, "unclassified", "")}
+                      title="Removes the classification. Unclassified postings are shown on every board."
                       style={{ marginLeft:6, background:"transparent", color:C.DANGER,
                                border:`1px solid ${C.DANGER}66`, borderRadius:6,
                                padding:"5px 10px", fontWeight:800, cursor:"pointer" }}>
-                      Hide
+                      Unclassify
                     </button>
                   </td>
                 </tr>

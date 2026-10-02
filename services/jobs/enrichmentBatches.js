@@ -189,6 +189,37 @@ export function revertBatch(db, batchId) {
   return { ok: true, restored, missing, rowsRecorded: rows.length };
 }
 
+/**
+ * What revertBatch WOULD do, without doing it — the dry run the Revert button shows first (A58 (d)).
+ *
+ * A revert replays each row's before-image unconditionally, so a row re-enriched or re-imported
+ * since this batch is clobbered back to its pre-batch state. Those rows are counted and sampled
+ * here, so the operator sees the cost before confirming. "Changed since" = the row now points at a
+ * different batch, or was enriched after this batch wrote it.
+ */
+export function revertPreview(db, batchId, { sample = 10 } = {}) {
+  const batch = db.prepare('SELECT * FROM enrichment_batches WHERE id = ?').get(batchId);
+  if (!batch) return null;
+  const rows = db.prepare(`
+    SELECT r.job_id, r.before_json IS NULL OR r.before_json = 'null' AS no_before, r.written_at,
+           sj.job_id IS NOT NULL AS present, sj.title, sj.company, sj.enrichment_batch_id, sj.enriched_at
+    FROM enrichment_batch_rows r LEFT JOIN scraped_jobs sj ON sj.job_id = r.job_id
+    WHERE r.batch_id = ? ORDER BY r.written_at
+  `).all(batchId);
+  const missing = rows.filter(r => r.no_before || !r.present);
+  const restorable = rows.filter(r => !r.no_before && r.present);
+  const changed = restorable.filter(r =>
+    (r.enrichment_batch_id != null && r.enrichment_batch_id !== batchId) ||
+    (r.enriched_at != null && r.enriched_at > r.written_at));
+  return {
+    batchId, alreadyReverted: Boolean(batch.reverted_at), revertedAt: batch.reverted_at ?? null,
+    recordedRows: rows.length, restorable: restorable.length, missing: missing.length,
+    changedSince: changed.length,
+    changedSinceSample: changed.slice(0, sample).map(r => ({ jobId: r.job_id, title: r.title, company: r.company })),
+    sample: restorable.slice(0, sample).map(r => ({ jobId: r.job_id, title: r.title, company: r.company })),
+  };
+}
+
 /** Recent batches, newest first — the provenance view. */
 export function listBatches(db, { limit = 20 } = {}) {
   return db.prepare(`

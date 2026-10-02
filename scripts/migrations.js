@@ -3484,4 +3484,26 @@ export const MIGRATIONS = [
         ALTER TABLE ats_only_reports ADD COLUMN job_hash TEXT;
       `,
     },
+    {
+      // A58 (10-02): what an admin write CHANGED, with the value it replaced, so it can be undone and
+      // so it can be read afterwards. Job Review's Save/Unclassify rewrote a posting's role map with no
+      // record of the old one; an admin user delete left no trace that it happened. One row per write.
+      // admin_user_id deliberately has NO foreign key and is not named user_id: deleting an admin must
+      // not cascade away the record of what that admin did, and this is not a per-user table.
+      id: "119_admin_audit_log",
+      sql: `
+        CREATE TABLE IF NOT EXISTS admin_audit_log (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          at INTEGER NOT NULL DEFAULT (unixepoch()),
+          admin_user_id INTEGER,
+          action TEXT NOT NULL,
+          target TEXT,
+          before_json TEXT,
+          after_json TEXT,
+          undone_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_admin_audit_log_target
+          ON admin_audit_log(action, target);
+      `,
+    },
   ];
