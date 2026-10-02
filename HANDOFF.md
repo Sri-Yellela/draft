@@ -9,7 +9,7 @@ something you read elsewhere in `docs/`, re-measure before you believe either.
 | | |
 |---|---|
 | deployed commit | **read it from `/api/version`** — any value written here is stale by the next push, which is why the doc guard deliberately does not assert one |
-| contract | `1.2.0` — source and production agree (deployed 09-30) |
+| contract | `1.3.0` in source (A40, 10-02: `DeckCard.report`, `DeckWhy.missingTotal` — additive); production is `1.2.0` until it is pushed |
 | migration high-water | `114_users_deck_geometry` in **both** runners (queue 38; after `113_account_management` — ⚠ neither deployed; production is at `112_users_theme_preference`, applied 09-30) |
 | test baseline | **2675 tests, 2675 pass, 0 fail** — no deliberate failures since P4; see `CLAUDE.md` |
 | monetisation | **disabled** — the product presents as free and untiered |

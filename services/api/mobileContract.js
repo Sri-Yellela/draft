@@ -61,6 +61,9 @@ import { ATS_BAND } from "../../shared/atsBands.js";
  * Semver. MAJOR is breaking; MINOR is additive. The rules, and why removing a field is
  * deliberately awkward, are in contract/README.md.
  *
+ * 1.3.0 — GET /api/draft/today: `DeckCard.report` (the full ATS report, every number removed, null on a
+ *         card dealt before it) and `DeckWhy.missingTotal`. Additive — an existing decoder ignores both
+ *         — for the web deck's expanded card (A40, 10-02); the mobile repos re-copy at their pace.
  * 1.1.1 — `Job.matchScore` now carries a score. THE SCHEMA IS BYTE-IDENTICAL to 1.1.0 — the field,
  *         its type and its nullability were always declared exactly as they are now. What changed
  *         is that the value was previously NULL ON EVERY ROW OF EVERY RESPONSE: mapJobRow read
@@ -76,7 +79,7 @@ import { ATS_BAND } from "../../shared/atsBands.js";
  *         a checksum and need a reason to re-copy.
  * 1.0.0 — initial contract.
  */
-export const CONTRACT_VERSION = "1.2.0";
+export const CONTRACT_VERSION = "1.3.0";
 
 // ------------------------------------------------------------------------------------------------
 // THE JOB SHAPE — derived by executing mapJobRow, not by reading it

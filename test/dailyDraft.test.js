@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
-import { todaysDeck, selectDeal, validDraftDate, deckSnapshot, DECK_SIZE } from "../services/dailyDraft.js";
+import { todaysDeck, selectDeal, validDraftDate, deckSnapshot, deckReport, DECK_SIZE } from "../services/dailyDraft.js";
 import { ATS_BAND, ATS_BAND_CUTPOINTS } from "../shared/atsBands.js";
 
 const STRONG = ATS_BAND_CUTPOINTS.strong + 5, MODERATE = ATS_BAND_CUTPOINTS.moderate + 2, WEAK = 3;
@@ -135,10 +135,60 @@ test("each card carries its evidence, frozen from the same report as its band", 
   const reports = { a: { tier1_matched: ["Go", "SQL", "AWS", "Docker", "K8s", "gRPC", "Redis"], tier1_missing: ["Kafka"] } };
   const deck = await todaysDeck(d, { userId: 1, profileId: 7, date: TODAY, reportFor: (id) => reports[id] || null,
     fetchBoardPage: board([[job("a", STRONG), job("b", STRONG)]]).fetchBoardPage });
-  assert.deepEqual(deck.cards[0].why, { matched: ["Go", "SQL", "AWS", "Docker", "K8s", "gRPC"], missing: ["Kafka"], matchedTotal: 7 });
-  assert.deepEqual(deck.cards[1].why, { matched: [], missing: [], matchedTotal: 0 }, "no report is empty evidence, not an error");
+  assert.deepEqual(deck.cards[0].why, { matched: ["Go", "SQL", "AWS", "Docker", "K8s", "gRPC"], missing: ["Kafka"], matchedTotal: 7, missingTotal: 1 });
+  assert.deepEqual(deck.cards[1].why, { matched: [], missing: [], matchedTotal: 0, missingTotal: 0 }, "no report is empty evidence, not an error");
+  assert.equal(deck.cards[1].report, null, "no report is no report — not one rebuilt from the chips");
   reports.a.tier1_matched = ["changed"];
   const again = await todaysDeck(d, { userId: 1, profileId: 7, date: TODAY, reportFor: (id) => reports[id],
     fetchBoardPage: board([]).fetchBoardPage });
   assert.equal(again.cards[0].why.matched[0], "Go", "the evidence is frozen with the deal");
+});
+
+// ── A40 — the FULL report behind the card, frozen with it, and never a number ─────────────────
+test("⭐ the card carries the FULL report — every section the board shows — frozen with the deal", async () => {
+  const d = db();
+  const stored = {
+    source: "local_ats_v4", score: 58, scorable: true, decline_reasons: [],
+    weighting: { applied: true, terms: 412 },
+    seniority_cap: { applied: true, cap: 40, raw_score: 61, reason: "A senior posting for an earlier-career profile." },
+    tier1_matched: ["Go", "SQL"], tier1_missing: ["Kafka"],
+    competencies_matched: ["mentoring"], competencies_missing: ["ownership"],
+    action_verbs_matched: ["Built"], action_verbs_missing: ["Scaled"], action_verbs_generic: ["Managed"],
+    claimed_matches: ["SQL"], experience: { requiredYears: 5, candidateYears: 6, fit: true, summary: "Meets 5+ years." },
+    hard_constraint_misses: ["Security clearance"], resume_depth: { reason: "short_resume", headline: "Thin résumé", detail: "Add detail." },
+  };
+  const deck = await todaysDeck(d, { userId: 1, profileId: 7, date: TODAY, reportFor: () => stored,
+    fetchBoardPage: board([[job("a", STRONG)]]).fetchBoardPage });
+  assert.deepEqual(deck.cards[0].report, {
+    scorable: true, declineReasons: [],
+    skillsMatched: ["Go", "SQL"], skillsMissing: ["Kafka"],
+    competenciesMatched: ["mentoring"], competenciesMissing: ["ownership"],
+    verbsMatched: ["Built"], verbsMissing: ["Scaled"], verbsGeneric: ["Managed"], claimedMatches: ["SQL"],
+    experience: "Meets 5+ years.", experienceFit: true, hardConstraintMisses: ["Security clearance"],
+    seniorityNote: "A senior posting for an earlier-career profile.", depthHeadline: "Thin résumé", depthDetail: "Add detail.",
+  });
+});
+
+test("⛔ NO NUMBER reaches the card's report — a whitelist, so a numeric field added later cannot leak", () => {
+  const r = deckReport({ score: 58, best_possible_score: 72, seniority_cap: { applied: true, cap: 40, raw_score: 61, reason: "x" },
+                         weighting: { applied: true, terms: 9 }, newNumericField: 99, tier1_matched: ["Go"] });
+  const walk = (v) => (typeof v === "number" ? [v] : v && typeof v === "object" ? Object.values(v).flatMap(walk) : []);
+  assert.deepEqual(walk(r), [], "a number in the frozen report");
+  assert.equal(JSON.stringify(r).includes("score"), false);
+});
+
+test("⛔ a DECLINED report stays a decline — 'cannot judge', never a low score", () => {
+  const r = deckReport({ score: null, scorable: false, decline_reasons: ["Too few scorable terms in the posting."] });
+  assert.equal(r.scorable, false);
+  assert.deepEqual(r.declineReasons, ["Too few scorable terms in the posting."]);
+  assert.equal(deckReport({ score: null, decline_reasons: ["x"] }).scorable, false, "decline reasons alone mean declined");
+});
+
+test("a card frozen BEFORE A40 reads back in today's shape: totals filled, report null", async () => {
+  const d = db();
+  await todaysDeck(d, { userId: 1, profileId: 7, date: TODAY, fetchBoardPage: board([[job("a", STRONG)]]).fetchBoardPage });
+  d.prepare("UPDATE daily_drafts SET card_json = ?").run(JSON.stringify({ job: { id: "a" }, why: { matched: ["Go"], missing: ["Kafka", "Rust"], matchedTotal: 3 } }));
+  const deck = await todaysDeck(d, { userId: 1, profileId: 7, date: TODAY, fetchBoardPage: board([]).fetchBoardPage });
+  assert.deepEqual(deck.cards[0].why, { matched: ["Go"], missing: ["Kafka", "Rust"], matchedTotal: 3, missingTotal: 2 });
+  assert.equal(deck.cards[0].report, null);
 });
