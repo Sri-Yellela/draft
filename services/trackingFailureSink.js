@@ -26,12 +26,14 @@
 import fs from "fs";
 import path from "path";
 
-// Sits next to the database file so it shares the durable volume in production. Overridable for
-// tests and for hosts that want it elsewhere.
-const DEFAULT_SINK_PATH = path.join(process.cwd(), "data", "usage-tracking-failures.jsonl");
-
+// Sits next to the database file so it shares the durable volume in production — and therefore
+// follows RM_DATA_DIR exactly as server.js's DATA_DIR does. Until 10-02 (18) it ignored RM_DATA_DIR,
+// so a server booted against a throwaway database drained the developer's real sink into it.
+// Overridable for tests (test-support/isolateTrackingSink.mjs) and for hosts that want it elsewhere.
 export function sinkPath() {
-  return process.env.USAGE_FAILURE_SINK_PATH || DEFAULT_SINK_PATH;
+  if (process.env.USAGE_FAILURE_SINK_PATH) return process.env.USAGE_FAILURE_SINK_PATH;
+  const dataDir = process.env.RM_DATA_DIR || path.join(process.cwd(), "data");
+  return path.join(dataDir, "usage-tracking-failures.jsonl");
 }
 
 /**

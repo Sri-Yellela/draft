@@ -192,6 +192,7 @@ test("sends are throttled so one outage cannot become a request per model call",
 test("end to end: a call whose usage reaches neither the DB nor the sink notifies the webhook", async () => {
   const r = await receiver();
   process.env.USAGE_FAILURE_WEBHOOK_URL = r.url;
+  const preloadedSink = process.env.USAGE_FAILURE_SINK_PATH; // test-support/isolateTrackingSink.mjs
   process.env.USAGE_FAILURE_SINK_PATH = unwritableSink;
   resetWebhookStats();
   resetTrackingStats();
@@ -223,6 +224,7 @@ test("end to end: a call whose usage reaches neither the DB nor the sink notifie
     console.error = errLog; console.info = infoLog;
     await r.close();
     delete process.env.USAGE_FAILURE_WEBHOOK_URL;
-    delete process.env.USAGE_FAILURE_SINK_PATH;
+    if (preloadedSink) process.env.USAGE_FAILURE_SINK_PATH = preloadedSink;
+    else delete process.env.USAGE_FAILURE_SINK_PATH;
   }
 });
