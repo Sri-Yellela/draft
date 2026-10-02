@@ -16,13 +16,15 @@ import { trackApiCall, getTrackingStats, resetTrackingStats } from "../services/
 import { appendFailure, readPending, pendingCount, drainInto, sinkPath } from "../services/trackingFailureSink.js";
 
 let tmpDir;
+const PRELOADED_SINK = process.env.USAGE_FAILURE_SINK_PATH; // test-support/isolateTrackingSink.mjs
 function useTempSink() {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sink-"));
   process.env.USAGE_FAILURE_SINK_PATH = path.join(tmpDir, "failures.jsonl");
   return process.env.USAGE_FAILURE_SINK_PATH;
 }
 function cleanup() {
-  delete process.env.USAGE_FAILURE_SINK_PATH;
+  if (PRELOADED_SINK) process.env.USAGE_FAILURE_SINK_PATH = PRELOADED_SINK;
+  else delete process.env.USAGE_FAILURE_SINK_PATH;
   try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
 }
 
