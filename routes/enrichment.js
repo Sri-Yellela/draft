@@ -24,7 +24,7 @@ import {
   selectCandidates, estimateCost, columnCoverage, diffCoverage,
   enrichSelectionOptions, DEFAULT_MAX_LAST_SEEN_DAYS, ENRICHMENT_COLUMNS,
 } from "../services/jobs/enrichmentSelection.js";
-import { runEnrichment } from "../services/jobs/enrichJob.js";
+import { runEnrichment, enrichBudget } from "../services/jobs/enrichJob.js";
 import { buildExport, toJsonl, planImport, applyImport } from "../services/jobs/enrichmentTransfer.js";
 import { listBatches, getBatch, revertBatch, revertPreview } from "../services/jobs/enrichmentBatches.js";
 
@@ -124,6 +124,11 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
         limitCappedAt: requested > MAX_MANUAL_ROWS ? MAX_MANUAL_ROWS : null,
         estimate, estimateIsCeiling: true,
         jobIds: considered.map(r => r.job_id),
+        // A61: what the admin button's confirm states — the per-request cap, and the nightly drain's
+        // budget, which a manual run is NOT counted against (drainEnrichment budgets one drain).
+        manualCap: MAX_MANUAL_ROWS,
+        nightlyBudget: enrichBudget(),
+        coverageNow: columnCoverage(db),
       };
 
       // U1.3 — the dry run reports what WOULD be enriched and the estimated cost, without calling

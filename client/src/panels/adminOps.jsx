@@ -290,6 +290,116 @@ export function BoardFitSection({ theme }) {
   );
 }
 
+// ── Enrichment run — POST /api/admin/enrichment/run (A61, owner O45b) ─────────────────────────
+// Was curl-only. ⛔ It spends real money per row, so it is never a one-click default: the route is
+// dry by default and so is this. "Enrich N" unlocks only after a dry run of the SAME parameters,
+// its label is the number of postings, and its confirm states the ceiling cost, the per-request cap
+// and the nightly drain's budget. The result is COVERAGE, before and after — not a call count.
+const enrichCols = ["summary", "experience_level", "skills_json", "workplace_type", "salary_min_usd", "enriched_at"];
+
+export function EnrichmentSection({ theme }) {
+  const [limit, setLimit] = useState(10);
+  const [source, setSource] = useState("");
+  const [dry, setDry] = useState(null);       // { key, body }
+  const [result, setResult] = useState(null);
+  const [after, setAfter] = useState(null);   // GET /coverage once the run has landed
+  const [busy, setBusy] = useState(null);
+  const [err, setErr] = useState(null);
+  const key = `${limit}|${source.trim()}`;
+  const params = () => ({ limit: Number(limit), ...(source.trim() ? { source: source.trim() } : {}) });
+
+  const runDry = async () => {
+    setBusy("dry"); setErr(null); setResult(null); setAfter(null);
+    try { setDry({ key, body: await api("/api/admin/enrichment/run", { method: "POST", body: JSON.stringify(params()) }) }); }
+    catch (e) { setErr(e.message); }
+    setBusy(null);
+  };
+  const plan = dry && dry.key === key ? dry.body.plan : null;
+  const n = plan?.wouldSend ?? 0;
+  const runReal = async () => {
+    const b = plan.nightlyBudget || {};
+    if (!confirm(`Enrich ${num(n)} posting(s) now — real model calls, real money.\n\n` +
+                 `Cost: up to ${usd(plan.estimate?.usd)} (a ceiling — output is priced at the maximum tokens).\n` +
+                 `Cap: at most ${plan.manualCap} postings per request; larger backlogs take repeated runs, each its own revertible batch.\n` +
+                 `The nightly drain's budget is ${num(b.maxRows)} rows / ${usd(b.maxUsd)} a night — this manual run is NOT counted against it.`)) return;
+    setBusy("real"); setErr(null);
+    try {
+      const r = await api("/api/admin/enrichment/run", { method: "POST", body: JSON.stringify({ ...params(), apply: true }) });
+      setResult(r); setDry(null);
+      setAfter(await api("/api/admin/enrichment/coverage").catch(() => null));
+    } catch (e) { setErr(e.payload?.error || e.message); }
+    setBusy(null);
+  };
+  const beforeCov = (result?.plan || plan)?.coverageNow;
+  const covRow = (cov) => Object.fromEntries(enrichCols.map(c => [c, cov?.columns?.[c]?.rate]));
+  const b4 = beforeCov ? covRow(beforeCov) : null;
+  const af = after?.coverage ? covRow(after.coverage) : null;
+  return (
+    <Card theme={theme} title="Enrichment run" measured="dry run by default — nothing is sent until you press Enrich">
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+        <label style={{ fontSize: 12, display: "flex", gap: 6, alignItems: "center" }}>
+          postings
+          <input type="number" min={1} max={100} value={limit}
+            onChange={e => setLimit(Math.max(1, Math.min(100, Number(e.target.value) || 1)))}
+            style={{ width: 70, background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`,
+                     borderRadius: 6, padding: "5px 8px", fontSize: 12 }}/>
+        </label>
+        <label style={{ fontSize: 12, display: "flex", gap: 6, alignItems: "center" }}>
+          source
+          <input value={source} placeholder="any" onChange={e => setSource(e.target.value)}
+            style={{ width: 140, background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`,
+                     borderRadius: 6, padding: "5px 8px", fontSize: 12 }}/>
+        </label>
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <Btn theme={theme} primary disabled={!!busy} onClick={runDry}>{busy === "dry" ? "Planning…" : "Dry run"}</Btn>
+        <Btn theme={theme} danger disabled={!plan || n === 0 || !!busy} onClick={runReal}>
+          {busy === "real" ? "Enriching…" : plan ? `Enrich ${num(n)} posting(s)…` : "Enrich…"}
+        </Btn>
+        <span style={{ fontSize: 11, color: theme.textMuted }}>
+          {!dry && !result ? "Dry run first — Enrich unlocks for exactly the parameters it planned."
+            : dry && !plan ? "Parameters changed since the dry run — run it again."
+            : plan && n === 0 ? "Nothing to enrich with these parameters."
+            : null}
+        </span>
+      </div>
+      <Err msg={err}/>
+      {plan && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 6 }}>DRY RUN — nothing was sent, no model was called</div>
+          <KV theme={theme} rows={[
+            ["would enrich", num(plan.wouldSend)],
+            ["candidates", `${num(plan.candidates)} (of ${num(plan.prefilterCount)} before the content check)`],
+            ["cost ceiling", usd(plan.estimate?.usd)],
+            ["per-request cap", num(plan.manualCap)],
+            ["nightly drain budget", `${num(plan.nightlyBudget?.maxRows)} rows / ${usd(plan.nightlyBudget?.maxUsd)} — this run is not counted`],
+          ]}/>
+        </div>
+      )}
+      {result && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 6, color: result.warning ? C.DANGER : C.SUCCESS }}>
+            RAN — {num(result.enriched)} enriched · {num(result.failed)} failed · {num(result.empty)} empty
+            {result.batchId != null ? ` · batch ${result.batchId} (revertible)` : ""}
+          </div>
+          {result.warning && <Err msg={result.warning}/>}
+          <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 6 }}>
+            Columns that gained values in this batch: {num(result.columnsClimbed)} · lost: {num(result.columnsRegressed)}
+          </div>
+        </div>
+      )}
+      {b4 && af && (
+        <Table theme={theme} rows={enrichCols.map(c => ({ col: c, before: b4[c], after: af[c] }))} cols={[
+          { key: "col", label: "board coverage" },
+          { key: "before", label: "before", right: true, render: r => pct(r.before) },
+          { key: "after", label: "after", right: true, render: r => pct(r.after),
+            color: r => (r.after > r.before ? C.SUCCESS : r.after < r.before ? C.DANGER : null) },
+        ]}/>
+      )}
+    </Card>
+  );
+}
+
 // ── /api/admin/analytics/spend ─────────────────────────────────────────────────────────────────
 export function SpendSection({ theme }) {
   const [days, setDays] = useState(1);
@@ -382,6 +492,7 @@ export function OpsTab({ theme }) {
       <DeploySection theme={theme}/>
       <KillSwitchSection theme={theme}/>
       <BoardFitSection theme={theme}/>
+      <EnrichmentSection theme={theme}/>
       <SpendSection theme={theme}/>
     </div>
   );
