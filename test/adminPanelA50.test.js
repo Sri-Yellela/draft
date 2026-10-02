@@ -8,7 +8,7 @@ import express from "express";
 import Database from "better-sqlite3";
 import { createAdminRouter } from "../routes/admin.js";
 import { buildGlance, utcDayStart } from "../services/adminGlance.js";
-import { createBoardFitPrecompute } from "../services/jobs/boardFitPrecompute.js";
+import { createBoardFitPrecompute, atsJobInputHash } from "../services/jobs/boardFitPrecompute.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 // Comments stripped: several of these files EXPLAIN in prose what was removed, and the explanation
@@ -249,14 +249,19 @@ test("A50 #2: every mutating control in the Operations tab asks first and states
 test("A50 #2: a board-fit DRY RUN with force plans the forced pass (it used to drop `force`)", async () => {
   const db = new Database(":memory:");
   db.exec(`
-    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, is_active INTEGER);
-    CREATE TABLE ats_only_reports (id INTEGER PRIMARY KEY, job_id TEXT, user_id INTEGER, domain_profile_id INTEGER, basis_hash TEXT);
+    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, is_active INTEGER, title TEXT, company TEXT, category TEXT,
+                               description TEXT, skills_json TEXT, normalized_title TEXT);
+    CREATE TABLE ats_only_reports (id INTEGER PRIMARY KEY, job_id TEXT, user_id INTEGER, domain_profile_id INTEGER,
+                                   basis_hash TEXT, job_hash TEXT);
     CREATE TABLE domain_profiles (id INTEGER PRIMARY KEY, user_id INTEGER, is_active INTEGER);
     INSERT INTO domain_profiles VALUES (7, 1, 1);
   `);
   for (const id of ["a", "b", "c"]) {
-    db.prepare("INSERT INTO scraped_jobs VALUES (?, 1)").run(id);
-    db.prepare("INSERT INTO ats_only_reports (job_id, user_id, domain_profile_id, basis_hash) VALUES (?, 1, 7, 'h')").run(id);
+    // A52 (migration 118): a stored row is fresh only when the POSTING's hash matches too, so the
+    // fixture carries the columns the scorer reads and stamps the real job_hash.
+    const job = { title: "Engineer " + id, company: "Acme", category: null, description: "d", skills_json: null, normalized_title: null };
+    db.prepare("INSERT INTO scraped_jobs VALUES (?, 1, ?, ?, ?, ?, ?, ?)").run(id, job.title, job.company, job.category, job.description, job.skills_json, job.normalized_title);
+    db.prepare("INSERT INTO ats_only_reports (job_id, user_id, domain_profile_id, basis_hash, job_hash) VALUES (?, 1, 7, 'h', ?)").run(id, atsJobInputHash(job));
   }
   const pc = createBoardFitPrecompute({
     db, log: { log() {}, warn() {}, error() {} },
