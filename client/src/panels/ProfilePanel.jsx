@@ -8,6 +8,15 @@ import {
   emitProfileSuggestionsUpdated,
   PROFILE_SUGGESTIONS_UPDATED_EVENT,
 } from "../lib/profileSuggestions.js";
+import { prefillFromResumeText, prefillDiff } from "../../../shared/resumePrefill.js";
+
+// A33: the labels the prefill review shows. Only PREFILL_FIELDS can appear — eligibility and EEO
+// answers are attestations and are never proposed (shared/resumePrefill.js NEVER_PREFILL).
+const PREFILL_LABELS = {
+  full_name: "Full name", email: "Email", phone: "Phone", linkedin_url: "LinkedIn", github_url: "GitHub",
+  website_url: "Website", city: "City", state: "State", highest_degree: "Highest degree",
+  field_of_study: "Field of study", university: "University", graduation_year: "Graduation year",
+};
 
 // ── Field normalisers ─────────────────────────────────────────
 function normalisePhone(raw) {
@@ -391,6 +400,9 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
   const [enhancePreview, setEnhancePreview] = useState(null);
   const [suggestionStatus, setSuggestionStatus] = useState("");
   const [resumeDraft, setResumeDraft] = useState("");
+  // A33: proposals read from the résumé, each ticked or not by the user. null = closed.
+  const [prefillRows, setPrefillRows] = useState(null);
+  const [prefillPicked, setPrefillPicked] = useState({});
   const [resumeName, setResumeName] = useState("");
   const [profileStatus, setProfileStatus] = useState("");
   const [resumeStatus, setResumeStatus] = useState("");
@@ -793,6 +805,57 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
 
         {/* ── Personal ── */}
         <PSec title="Personal" theme={theme}>
+          {/* ── A33: FILL FROM YOUR RÉSUMÉ — proposed, never auto-accepted ─────────────────────────
+              Each value is shown with the line it was read from. An empty field is ticked by
+              default; a value that would REPLACE what you typed is not. Nothing is saved until Save,
+              and work authorisation, sponsorship, clearance and the EEO answers are never proposed. */}
+          {resumeDraft && (
+            <div data-resume-prefill style={{ marginBottom: 14 }}>
+              {!prefillRows ? (
+                <button type="button" className="rm-btn rm-btn-secondary rm-btn-sm"
+                  onClick={() => {
+                    const rows = prefillDiff(prefillFromResumeText(resumeDraft), form);
+                    setPrefillRows(rows);
+                    setPrefillPicked(Object.fromEntries(rows.map(r => [r.field, !String(r.current || "").trim()])));
+                  }}>
+                  Fill from your résumé…
+                </button>
+              ) : (
+                <div style={{ border: `1px solid ${theme.border}`, borderRadius: 10, padding: 12 }}>
+                  <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 8 }}>
+                    {prefillRows.length
+                      ? "Read from your résumé. Tick what is right — nothing is saved until you press Save. Work authorisation, sponsorship, clearance and the voluntary questions are never filled from a résumé."
+                      : "Nothing in your résumé differs from what is already here."}
+                  </div>
+                  {prefillRows.map(r => (
+                    <label key={r.field} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, padding: "4px 0" }}>
+                      <input type="checkbox" checked={!!prefillPicked[r.field]}
+                        onChange={e => setPrefillPicked(p => ({ ...p, [r.field]: e.target.checked }))}/>
+                      <span>
+                        <strong>{PREFILL_LABELS[r.field] || r.field}:</strong> {r.value}
+                        {String(r.current || "").trim() && <span style={{ color: theme.textMuted }}> (replaces “{r.current}”)</span>}
+                        <span style={{ display: "block", color: theme.textMuted, fontSize: 11 }}>from: {r.from}</span>
+                      </span>
+                    </label>
+                  ))}
+                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    {prefillRows.length > 0 && (
+                      <button type="button" className="rm-btn rm-btn-primary rm-btn-sm"
+                        onClick={() => {
+                          const chosen = prefillRows.filter(r => prefillPicked[r.field]);
+                          setForm(f => ({ ...f, ...Object.fromEntries(chosen.map(r => [r.field, r.value])) }));
+                          setStatus(chosen.length ? `Filled ${chosen.length} field${chosen.length === 1 ? "" : "s"} — check them, then Save.` : "");
+                          setPrefillRows(null);
+                        }}>
+                        Fill the ticked fields
+                      </button>
+                    )}
+                    <button type="button" className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setPrefillRows(null)}>Close</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <PRow label="Full Name" theme={theme}>
             <input className="rm-input" value={form.full_name || ""}
               onChange={e => set("full_name", e.target.value)}
