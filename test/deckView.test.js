@@ -9,10 +9,16 @@ const src = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$
 const app = fs.readFileSync("client/src/App.jsx", "utf8").replace(/\r\n/g, "\n");
 
 test("⛔ the deck's Draft call carries surface:'deck' and NEVER an approvalMode", () => {
-  const start = at(src, 'api("/api/apply/runs"', 0, "the deck's Draft call");
-  const call = src.slice(start, start + 260);
-  assert.match(call, /surface: "deck"/);
+  // A53 (owner, 10-02): the call moved into lib/jobDecisions.js so the board makes the SAME one.
+  const libRaw = fs.readFileSync("client/src/lib/jobDecisions.js", "utf8").replace(/\r\n/g, "\n");
+  const lib = libRaw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+  const start = at(lib, 'api("/api/apply/runs"', 0, "the shared Draft call");
+  const call = lib.slice(start, start + 260);
+  assert.match(call, /jobIds: \[jobId\], mode: "auto", tool, surface/);
   assert.doesNotMatch(call, /approvalMode/, "the deck asks for no review — the route would refuse it, and the client must not try");
+  assert.doesNotMatch(lib, /approvalMode/, "no approvalMode anywhere in the shared calls");
+  assert.match(lib, /DECK: "deck"/);
+  assert.match(src, /commitDecision\(\{ jobId: id, decision, tool, surface: DECISION_SURFACES\.DECK \}\)/);
   assert.doesNotMatch(src, /approvalMode/, "no approvalMode anywhere in the deck");
 });
 

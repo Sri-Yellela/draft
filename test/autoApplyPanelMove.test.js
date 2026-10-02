@@ -13,11 +13,13 @@ const panel   = read("client/src/panels/AutoApplyPanel.jsx");
 const ctx     = read("client/src/contexts/AutoApplyContext.jsx");
 const app     = read("client/src/App.jsx");
 
-test("the board no longer owns any of the pipeline except putting a job in the queue", () => {
+test("the board no longer owns any of the pipeline except DRAFTING a job (A53: was the queue)", () => {
   const code = board.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/^\s*\/\/.*$/gm, "");
   for (const gone of [
     "applyRuns", "applyPending", "applyQuestions", "applyGatePortals", "applyRunDetail",
-    "applyReadiness", "startApplyRun", "decidePending", "artifactUrl", "loadApplyRuns",
+    // loadApplyRuns left this list in A53: the board's Draft posts the run itself now (the deck's
+    // call), and refreshes the pipeline's feed so the card can say "Drafted".
+    "applyReadiness", "startApplyRun", "decidePending", "artifactUrl",
     "submitApplyAnswers", "confirmApproveAll", "questionDrafts",
   ]) {
     // Word-boundary, not substring: `applyPending` is a prefix of `applyPendingFilters`, which is
@@ -27,16 +29,16 @@ test("the board no longer owns any of the pipeline except putting a job in the q
     assert.ok(!new RegExp(`\\b${gone}\\b`).test(code),
       `${gone} is back on the board — the pipeline is leaking into it`);
   }
-  // The one thing it keeps, and the wire it keeps it through.
-  assert.match(board, /const \{ addToApplyQueue \} = useAutoApply\(\);/);
-  assert.match(board, /onQueueApply: addToApplyQueue/);
+  // What it keeps: the decision, through the deck's own call, and the pipeline's view of it.
+  assert.match(board, /const \{ draftTool, applyStateByJobId, loadApplyRuns \} = useAutoApply\(\);/);
+  assert.match(board, /onDraft: \(\) => decideJob\(selectedJob, DECISIONS\.DRAFTED\)/);
 });
 
 test("every piece of the surface arrived in the panel — nothing dropped in the move", () => {
   // Run status, the review queue, the held-gate batches, the question queue, the pending-approval
   // queue and the per-run detail are each named in the requirement as things that must survive.
   for (const [what, needle] of [
-    ["the run control",        /Autofill for Review/],
+    // "the run control" (Autofill for Review) was removed in A53 with the basket it dispatched.
     ["run status badges",      /run\.submittedCount/],
     ["the review queue",       /need review/],
     ["held-gate batches",      /applyGatePortals\.map/],
@@ -51,7 +53,6 @@ test("every piece of the surface arrived in the panel — nothing dropped in the
     // application row instead of from a chip, and the run's status and counts moved into the detail
     // modal's own header — so what is asserted is the capability, not the call site that carried it.
     ["per-run detail",         /onOpenRun=\{loadApplyRunDetail\}/],
-    ["the queue's tier notice",/automationTier === "account"/],
     ["the readiness gate",     /applyReadiness && !applyReadiness\.available/],
   ]) {
     assert.match(panel, needle, `${what} did not make it into AutoApplyPanel`);
@@ -68,9 +69,9 @@ test("no apply behaviour changed — the requests and their guards moved verbati
     assert.ok(ctx.includes(call), `${call} did not move with the pipeline`);
   }
   // The one behavioural invariant this pipeline is built on: nothing is submitted without approval.
-  // startApplyRun posts mode "auto" and NEVER approvalMode, which the server reads as
-  // approval-required. A full-auto run must not become reachable by accident in a move.
-  assert.match(ctx, /const mode = intent === "review" \? "auto" : intent;/);
+  // draftJob posts through the deck's own call (mode "auto", NEVER approvalMode), which the
+  // server reads as approval-required. A full-auto run must not become reachable by accident.
+  assert.match(ctx, /commitDecision\(\{ jobId: job\.jobId, decision: DECISIONS\.DRAFTED, tool: draftTool \}\)/);
   // Comments stripped: the note above startApplyRun explains that approvalMode is deliberately NOT
   // sent, and a bare search would read that explanation as the thing it warns against.
   const ctxCode = ctx.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*(?:\/\/|\*).*$/gm, "");

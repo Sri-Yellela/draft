@@ -149,8 +149,8 @@ export async function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-export const dislikeJob = (jobId) =>
-  api(`/api/jobs/${jobId}/disliked`, { method:"PATCH" });
+// dislikeJob (PATCH /api/jobs/:id/disliked, a TOGGLE) was removed in A53: Pass SETS now, through
+// lib/jobDecisions.js — the deck's call — so a repeat can never un-pass a job.
 
 
 // Chromium File System Access API — shows Save As dialog, returns chosen filename.

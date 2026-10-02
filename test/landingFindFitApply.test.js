@@ -50,7 +50,10 @@ test("⛔ no promise is sold as a pitch — landing, login or footer", () => {
 test("⭐ the approval sentence stays where it is FUNCTIONAL — the auto-apply flow and the deck's Draft toast", () => {
   assert.match(read("client/src/contexts/AutoApplyContext.jsx"), /nothing is sent until you approve each one/);
   assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /Nothing is submitted until you approve/);
-  assert.match(read("client/src/panels/DeckView.jsx"), /nothing is sent until you approve it/);
+  // A53: the toast's words are shared by the deck and the board (lib/jobDecisions.js), and the deck
+  // renders that shared toast.
+  assert.match(read("client/src/lib/jobDecisions.js"), /nothing is sent until you approve it/);
+  assert.match(read("client/src/panels/DeckView.jsx"), /<DecisionToast toast=\{toast\} onUndo=\{undo\} undoKey="U" \/>/);
 });
 
 test("⛔ only what a visitor can use today is a link; the recruiter side says 'soon'", () => {

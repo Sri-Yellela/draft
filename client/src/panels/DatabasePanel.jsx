@@ -6,6 +6,7 @@ import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import JobCard      from "../components/JobCard.jsx";
+import { DECISIONS, commitDecision } from "../lib/jobDecisions.js";
 import { DockPortal } from "../components/DockPortal.jsx";
 import { Z } from "../styles/zLayers.js";
 // AC4: the calendar this panel established, extracted so the Auto Apply panel's dated run history
@@ -369,8 +370,10 @@ export function DatabasePanel({ user }) {
     }) }).catch(()=>{});
   }, [user]);
 
+  // A53: an explicit SET, not the per-id toggle — "Remove" on a job that is (somehow) already
+  // unsaved used to RE-save it. The same call the deck's and the board's Undo make.
   const unsaveJob = useCallback(async (jobId) => {
-    await api(`/api/jobs/${jobId}/starred`, { method:"PATCH" });
+    await api("/api/jobs/interact", { method:"PATCH", body: JSON.stringify({ jobId, starred: false }) });
     setSavedJobs(prev => prev.filter(j => j.jobId !== jobId));
   }, []);
 
@@ -638,8 +641,9 @@ export function DatabasePanel({ user }) {
           jobs={pendingJobs}
           theme={theme}
           onRefresh={loadPending}
-          onDislike={async (jobId) => {
-            await api(`/api/jobs/${jobId}/disliked`, { method:"PATCH" }).catch(()=>{});
+          onPass={async (jobId) => {
+            // A53: Pass SETS (the deck's call), never the toggle — a repeat must not un-pass.
+            await commitDecision({ jobId, decision: DECISIONS.PASSED }).catch(()=>{});
             setPendingJobs(prev => prev.filter(j => j.job_id !== jobId && j.jobId !== jobId));
           }}
         />
@@ -967,7 +971,7 @@ export function DatabasePanel({ user }) {
 }
 
 // ── Pending Apply pane ────────────────────────────────────────
-function PendingJobsPane({ jobs, theme, onRefresh, onDislike }) {
+function PendingJobsPane({ jobs, theme, onRefresh, onPass }) {
   if (jobs.length === 0) return (
     <div style={{ flex:1, display:"flex", flexDirection:"column",
                   alignItems:"center", justifyContent:"center", gap:12, padding:40 }}>
@@ -1004,7 +1008,7 @@ function PendingJobsPane({ jobs, theme, onRefresh, onDislike }) {
               showApplyButton={true}
               applyMode="SIMPLE"
               onVisit={() => job.url && window.open(job.url, "_blank", "noreferrer")}
-              onDislike={() => onDislike?.(jid)}
+              onPass={() => onPass?.(jid)}
               onCardClick={() => job.url && window.open(job.url, "_blank", "noreferrer")}
             />
           );
@@ -1025,7 +1029,7 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
       <div style={{ fontSize:40 }}>★</div>
       <div style={{ fontWeight:700, color:theme.textMuted, fontSize:14 }}>No saved jobs yet</div>
       <div style={{ fontSize:12, color:theme.textDim, textAlign:"center", maxWidth:300, lineHeight:1.8 }}>
-        Star jobs on the Jobs board to save them here. Generate and A+ Resume access is controlled by your plan.
+        Save jobs on Today or the board and they appear here. Generate and A+ Resume access is controlled by your plan.
       </div>
       <button className="rm-btn rm-btn-secondary rm-btn-sm" onClick={onRefresh}>↻ Refresh</button>
     </div>
@@ -1077,7 +1081,7 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
               onGenerate={() => onGenerate(job, done && g?.html !== "__exists__")}
               onExport={() => done && g?.html !== "__exists__" && onExport(job, g.html)}
               onVisit={() => job.url && window.open(job.url, "_blank", "noreferrer")}
-              onStar={() => onUnsave(job.jobId)}
+              onUnsave={() => onUnsave(job.jobId)}
               onCardClick={() => job.url && window.open(job.url, "_blank", "noreferrer")}
             />
           );
