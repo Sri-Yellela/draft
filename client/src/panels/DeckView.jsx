@@ -34,6 +34,7 @@ import { glass } from "../styles/glass.js";
 import { bandChipStyle } from "../styles/bandStyle.js";
 import { ATS_BAND, atsBandLabel } from "../../../shared/atsBands.js";
 import { ATSPanel } from "./ATSPanel.jsx";
+import { fromDeckReport } from "../components/AtsReport.jsx";
 import CompanyIcon from "../components/ui/CompanyIcon.jsx";
 import CardBack, { CardBackDefs } from "../components/CardBack.jsx";
 import { useViewport } from "../hooks/useViewport.js";
@@ -188,22 +189,10 @@ function PostingLinks({ job, onReport }) {
   );
 }
 
-// The deck's frozen report (services/dailyDraft.js deckReport — every section, no number) in the shape
-// the board's own report panel reads, so the deck draws THE SAME report rather than a second one.
-// `source` starts "local_ats", which keeps the old LLM-only sections off, as on the board.
-function toPanelReport(r) {
-  return {
-    source: "local_ats_deck", decline_reasons: r.declineReasons,
-    tier1_matched: r.skillsMatched, tier1_missing: r.skillsMissing,
-    competencies_matched: r.competenciesMatched, competencies_missing: r.competenciesMissing,
-    action_verbs_matched: r.verbsMatched, action_verbs_missing: r.verbsMissing, action_verbs_generic: r.verbsGeneric,
-    claimed_matches: r.claimedMatches,
-    experience: r.experience ? { summary: r.experience, fit: r.experienceFit !== false } : null,
-    hard_constraint_misses: r.hardConstraintMisses,
-    seniority_cap: r.seniorityNote ? { applied: true, reason: r.seniorityNote } : { applied: false },
-    resume_depth: r.depthHeadline ? { headline: r.depthHeadline, detail: r.depthDetail || "" } : null,
-  };
-}
+// The deck's frozen report (services/dailyDraft.js deckReport — every section, no number) is converted
+// to the report shape by fromDeckReport, which lives WITH the one report implementation
+// (components/AtsReport.jsx, A52) — so the deck draws THE SAME report rather than a second one, and no
+// file but that one knows a report's field names.
 
 // The FULL report: band · skills matched · skills missing with the claim note · competencies · verbs
 // matched and missing · generic language · experience fit — the board's ATSPanel, fed the frozen
@@ -224,7 +213,7 @@ function DeckAtsReport({ card, profileId, onReport }) {
       </div>
     );
   }
-  return <ATSPanel report={toPanelReport(r)} band={r.scorable ? card.band : ATS_BAND.NOT_ENOUGH_SIGNAL}
+  return <ATSPanel report={fromDeckReport(r)} band={r.scorable ? card.band : ATS_BAND.NOT_ENOUGH_SIGNAL}
                    jobId={card.job.id} activeProfileId={profileId} />;
 }
 
