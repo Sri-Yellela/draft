@@ -616,6 +616,14 @@ function reconcileFingerprint(db, job) {
     const own = stmts.findOwnRow.get(jobId);
     if (own?.duplicate_of) unretire(db, jobId);
     const finalReqUid = reqUid || existing.req_uid || null;
+    // A49 fix 3 — when this job ALREADY has a row, the caller may not rewrite it: the unchanged-
+    // crawl path only touches timestamps, and LinkedIn / live-search write with INSERT OR IGNORE.
+    // The outranked row's donation (a salary, a description) would then be computed and dropped.
+    // Fill the blanks on the existing row here, the same blank-only rule as the fold path.
+    if (own) {
+      const donated = unionMergeFields(own, existing);
+      stmts.foldIntoExisting.run({ ...donated, sources_seen: sourcesSeen, req_uid: finalReqUid, job_id: jobId });
+    }
     return { action: 'insert_canonical', job: merged, sourcesSeen, fingerprint, reqUid: finalReqUid };
   }
 

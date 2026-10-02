@@ -4519,6 +4519,11 @@ async function scrapeJobs(query, apifyToken, scrapeParams = {}, domainProfileId 
         company_icon_url: item.companyLogoUrl || null,
         workplace_type: wt || null,
         posted_at: normalizePostedAt(item.postedAt, nowUnix),
+        // A49 fix 3 — the salary goes INTO the deduper, so a fold donates it to the canonical row
+        // and a win inherits the outranked row's figure; the insert below writes canonical.*.
+        salary_min:      item.salaryMin      || null,
+        salary_max:      item.salaryMax      || null,
+        salary_currency: item.salaryCurrency || null,
       });
       if (dedup.action === 'fold') {
         return; // superseded by an existing canonical row for this role — no separate row written
@@ -4548,9 +4553,9 @@ async function scrapeJobs(query, apifyToken, scrapeParams = {}, domainProfileId 
         hash,
         nowUnix,
         'linkedin',
-        item.salaryMin      || null,
-        item.salaryMax      || null,
-        item.salaryCurrency || null,
+        canonical.salary_min      ?? null,
+        canonical.salary_max      ?? null,
+        canonical.salary_currency ?? null,
         item.applicantCount || null,
         canonical.company_icon_url || null,
         empType,
@@ -8372,12 +8377,16 @@ app.post("/api/jobs/search", requireAuth, async (req, res) => {
               (job_id, _hash, title, company, location, url, source, source_label,
                via, bucket_role, bucket_seniority, bucket_domain,
                company_icon_url, direct_apply, posted_at, scraped_at,
-               fingerprint, sources_seen, req_uid, automation_tier)
+               fingerprint, sources_seen, req_uid, automation_tier,
+               description, salary_min, salary_max, salary_currency,
+               salary_min_usd, salary_max_usd, salary_period)
             VALUES
               (@job_id, @_hash, @title, @company, @location, @url, @source, @source_label,
                @via, @bucket_role, @bucket_seniority, @bucket_domain,
                @company_icon_url, @direct_apply, @posted_at, strftime('%s','now'),
-               @fingerprint, @sources_seen, @req_uid, @automation_tier)
+               @fingerprint, @sources_seen, @req_uid, @automation_tier,
+               @description, @salary_min, @salary_max, @salary_currency,
+               @salary_min_usd, @salary_max_usd, @salary_period)
           `);
           const insertMany = db.transaction((jobs) => {
             for (const j of jobs) {
@@ -8396,6 +8405,14 @@ app.post("/api/jobs/search", requireAuth, async (req, res) => {
                 company_icon_url: j.companyIconUrl || j.company_icon_url || j.thumbnail || null,
                 workplace_type:   j.workplaceType || j.workplace_type || null,
                 posted_at:        j.postedAt || j.posted_at || null,
+                // A49 fix 3 — the pay goes into the deduper too, so a fold DONATES it to the
+                // canonical row (unionMergeFields fills blanks only) instead of dropping it.
+                salary_min:       j.salary_min      ?? null,
+                salary_max:       j.salary_max      ?? null,
+                salary_currency:  j.salary_currency ?? null,
+                salary_min_usd:   j.salary_min_usd  ?? null,
+                salary_max_usd:   j.salary_max_usd  ?? null,
+                salary_period:    j.salary_period   ?? null,
               });
               if (dedup.action === 'fold') continue; // no separate row for this duplicate
               const canonical = dedup.job;
@@ -8422,6 +8439,16 @@ app.post("/api/jobs/search", requireAuth, async (req, res) => {
                 // This insert writes no apply_url column at all, so `url` IS the apply
                 // destination — the same value mapJobRow will hand the client as applyUrl.
                 automation_tier:  deriveAutomationTier(j.source || 'serpapi', j.url || ''),
+                // A49 fix 3 — this INSERT carried no description and no pay at all, so a live
+                // result that WON (outranked an aggregator row) lost what that row donated, and a
+                // new row was born empty. canonical.* is the result already union-merged.
+                description:      canonical.description     || null,
+                salary_min:       canonical.salary_min      ?? null,
+                salary_max:       canonical.salary_max      ?? null,
+                salary_currency:  canonical.salary_currency ?? null,
+                salary_min_usd:   canonical.salary_min_usd  ?? null,
+                salary_max_usd:   canonical.salary_max_usd  ?? null,
+                salary_period:    canonical.salary_period   ?? null,
               });
             }
           });
