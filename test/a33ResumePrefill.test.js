@@ -60,3 +60,24 @@ test("only what would CHANGE is offered, and the panel ticks overwrites OFF by d
   assert.doesNotMatch(ui.slice(at(ui, "data-resume-prefill"), at(ui, "Fill the ticked fields") + 40), /api\(/,
     "the prefill only fills the form — Save is the user's");
 });
+
+// 10-02 (18), seen in a browser: "B.S. Computer Science, University of Texas at Austin, 2021" was
+// proposed as university "B.S. Computer Science" and field "Texas at Austin". Each field is read
+// from its own part of the line now, and the field never from the school's name.
+test("one-line education entries put the school, the field and the year where they belong", () => {
+  const read = (line) => {
+    const p = prefillFromResumeText(`JOHN ROE\njohn@example.org\nEDUCATION\n${line}`);
+    return [p.university?.value, p.field_of_study?.value, p.highest_degree?.value, p.graduation_year?.value];
+  };
+  assert.deepEqual(read("B.S. Computer Science, University of Texas at Austin, 2021"),
+    ["University of Texas at Austin", "Computer Science", "Bachelor's", "2021"]);
+  assert.deepEqual(read("Bachelor of Science in Computer Science, Purdue University, 2019"),
+    ["Purdue University", "Computer Science", "Bachelor's", "2019"]);
+  assert.deepEqual(read("Bachelor's degree in Mathematics | Ohio State University | 2016"),
+    ["Ohio State University", "Mathematics", "Bachelor's", "2016"]);
+  assert.deepEqual(read("B.A. Economics - Boston College - 2014"), ["Boston College", "Economics", "Bachelor's", "2014"]);
+  assert.deepEqual(read("Ph.D. in Physics (2015), California Institute of Technology"),
+    ["California Institute of Technology", "Physics", "PhD", "2015"]);
+  assert.deepEqual(read("MBA, Harvard Business School, 2018"), ["Harvard Business School", undefined, "Master's", "2018"],
+    "a degree that names no field proposes none — never the school's words");
+});
