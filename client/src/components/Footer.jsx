@@ -19,7 +19,7 @@ export function Footer() {
               <StampLogo size="md" />
             </div>
             <p style={{ fontSize: 13, color: "var(--c-ink-muted)", lineHeight: 1.6, marginBottom: 16, maxWidth: 220 }}>
-              Find, fit, apply — and nothing is sent until you approve it.
+              Find the job. Fit the résumé. Apply.
             </p>
             <p style={{ fontSize: 11, color: "var(--c-ink-faint)" }}>
               © 2025 {BRAND}. All rights reserved.

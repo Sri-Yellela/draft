@@ -10,6 +10,6 @@ data/
 env.sh
 
 
-# Owner-only business, legal and immigration material — this repository is PUBLIC (2026-10-01).
+# Temporary safety net while the owner moves these OUT of the repository (10-01); remove once they are gone.
 docs/business/
 docs/COMPANY_AND_MONETISATION.md
