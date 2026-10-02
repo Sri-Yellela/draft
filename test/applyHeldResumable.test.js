@@ -411,9 +411,14 @@ test("reopening an abandoned handoff works for a held review too, not only for a
 test("Retry no longer throws before it reaches the queue", () => {
   // setApplyQueueMsg was called by retryJob and never destructured from the context — a
   // ReferenceError on every click, the same "handler wired to nothing" class as W1's no-op callbacks.
+  // A53 (owner, 10-02): there is no client-side basket to put a job back on, so Retry DRAFTS it again
+  // at once through the context's draftJob — which must therefore be destructured, as must the
+  // message setter and setHandoffMsg.
   const destructured = panel.slice(at(panel, "} = useAutoApply()") - 2000, at(panel, "} = useAutoApply()"));
-  assert.match(destructured, /setApplyQueueMsg/,
-    "retryJob calls setApplyQueueMsg but the panel never takes it from the context");
+  assert.match(destructured, /draftJob/,
+    "retryJob calls draftJob but the panel never takes it from the context");
   assert.match(destructured, /setHandoffMsg/);
-  assert.match(ctx, /applyQueueMsg, setApplyQueueMsg,/);
+  assert.match(panel, /const retryJob = \(job\) => \{ draftJob\?\.\(job, companyLabel\(job\.company\)\); \};/);
+  assert.match(ctx, /applyMsg, setApplyMsg,/);
+  assert.match(ctx, /draftJob, draftTool,/);
 });

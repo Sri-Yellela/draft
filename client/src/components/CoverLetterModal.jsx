@@ -79,8 +79,8 @@ export default function CoverLetterModal({ resumeText, jobDescription, jobTitle,
         {/* Header */}
         <div style={hdr}>
           <div>
-            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-                          fontSize:20, letterSpacing:"0.06em", textTransform:"uppercase",
+            <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
+                          fontSize:26,
                           color:theme.text }}>
               Cover Letter
             </div>

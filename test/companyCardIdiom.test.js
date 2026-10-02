@@ -48,8 +48,13 @@ test("AC3: the values in the primitive are the profile card's own, not re-invent
   for (const value of [
     /borderRadius: 16/,                                   // the tile frame
     /padding: "16px 18px"/,
-    /boxShadow: "var\(--shadow-sm\)"/,
-    /color-mix\(in srgb, var\(--color-primary\) 9%, transparent\)/,  // the active tint
+    // A53 restyled the primitive ONCE — which is what extracting it bought: the profile tiles and the
+    // Auto Apply company tiles moved together. Its shadow is now the glass material's
+    // (styles/glass.js) and its active tint the ACCENT_QUIET token, with the ring in ACCENT_INK
+    // (the logo orange fails 3:1 as a UI boundary). Those replace the two lines pinned here before.
+    /\.\.\.glass\(\{ radius: 16 \}\)/,
+    /active && !tone \? \{ backgroundColor: C\.ACCENT_QUIET \}/,  // the active tint
+    /active \? C\.ACCENT_INK : C\.GLASS_RIM/,                     // the active ring
     /borderRadius: 12/,                                   // the inset
     /padding: "10px 12px"/,
     /background: "var\(--color-surface-offset\)"/,

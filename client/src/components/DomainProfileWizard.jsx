@@ -325,8 +325,8 @@ export default function DomainProfileWizard({
           justifyContent: "space-between",
         }}>
           <div>
-            <div style={{ fontWeight: 900, fontSize: 20, color: theme.text,
-                          fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "-0.5px" }}>
+            <div style={{ fontWeight: 400, fontSize: 26, color: theme.text,
+                          fontFamily: "var(--font-display)"}}>
               {isEditMode ? "Edit Job Search Profile" : "Create Your Job Search Profile"}
             </div>
             {bannerText && (

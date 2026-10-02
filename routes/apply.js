@@ -1739,15 +1739,25 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       });
     }
 
+    // ⛔ A53: A DRAFT WAITING FOR YOUR REVIEW IS ALSO A DUPLICATE. This used to list only
+    // submitted / running / queued, so a job previewed and parked (held_review, awaiting_approval)
+    // could be drafted AGAIN — from the deck and then the board, or twice from either — and each
+    // one opened another preview run. The approve path is exempt: it releases exactly that parked
+    // row (approvalMode 'approved'), and the answers-retry path supersedes its held rows first.
     const duplicates = db.prepare(`
       SELECT job_id FROM apply_run_jobs
-      WHERE user_id=? AND status IN ('submitted', 'running', 'queued')
-    `).pluck().all(userId);
+      WHERE user_id=? AND (status IN ('submitted', 'running', 'queued')
+                           OR (? = 1 AND status = 'held_review' AND reason_code = 'awaiting_approval'))
+    `).pluck().all(userId, resolvedApproval === "approved" ? 0 : 1);
     const duplicateSet = new Set(duplicates);
 
     const filtered = jobIds.map(String).filter(id => !duplicateSet.has(id));
     if (filtered.length === 0)
-      return respond(400, { error: "All selected jobs are already applied or in progress" });
+      return respond(400, { error: "All selected jobs are already applied or in progress",
+        code: "already_drafted",
+        message: jobIds.length === 1
+          ? "Already drafted — it is waiting for your review, in progress, or sent."
+          : "All selected jobs are already drafted — waiting for your review, in progress, or sent." });
 
     // QUEUE CAP. The cost gate: bounds generations, which the submission cap below does not (see
     // queuedLast24h). Checked before it because it is the limit a queue-heavy caller hits first,
@@ -1884,9 +1894,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // between it and an employer. The server's default (approvalMode omitted → "required") is
       // what makes it safe; this makes the default the ONLY option from that surface, so a second
       // caller cannot drift into sending approvalMode:'auto'. Any value is refused, not only 'auto'.
-      if (surface === "deck" && approvalMode != null)
+      // A53 (owner, 10-02): the board's Draft is the deck's Draft — same call, same rule. A Draft
+      // from either decision surface is one click, so neither may ask for no review.
+      if ((surface === "deck" || surface === "board") && approvalMode != null)
         return out.status(400).json({ error: "approval_mode_forbidden_for_surface",
-          message: "A draft from the deck always waits for your review. Remove approvalMode." });
+          message: `A draft from the ${surface} always waits for your review. Remove approvalMode.` });
       if (!Array.isArray(jobIds) || jobIds.length === 0)
         return out.status(400).json({ error: "jobIds array required" });
       if (jobIds.length > 25)

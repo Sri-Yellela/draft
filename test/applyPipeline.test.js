@@ -188,11 +188,15 @@ test("browser unavailable error is classified for graceful fallback", () => {
 });
 
 test("jobs UI can queue multiple jobs and start an apply run that holds for approval", () => {
-  assert.match(detailPanel, /onQueueApply/);
-  assert.match(detailPanel, /Queue Auto/);
-  assert.match(jobsPanel, /const \[applyQueue, setApplyQueue\]/);
-  assert.match(jobsPanel, /Autofill for Review/);
-  assert.match(jobsPanel, /api\("\/api\/apply\/runs"/);
+  // A53 (owner, 10-02): "Queue Auto" IS Draft — one name and one behaviour. The detail panel's
+  // Draft posts the run at once through the deck's own call; the client-side basket and its
+  // "Autofill for Review" dispatch are gone. Each Draft is its own run, held for approval.
+  const decisions = fs.readFileSync("client/src/lib/jobDecisions.js", "utf8");
+  assert.match(detailPanel, /onDraft/);
+  assert.match(detailPanel, /<DraftButton /);
+  assert.doesNotMatch(detailPanel, /Queue Auto/);
+  assert.doesNotMatch(jobsPanel, /const \[applyQueue, setApplyQueue\]/);
+  assert.match(decisions, /api\("\/api\/apply\/runs"/);
   // "Run Auto Apply" is gone on purpose. It posted the identical request to this one —
   // mode:"auto" with no approvalMode, which the server treats as approval-required — so it never
   // auto-applied, and a control claiming applications were sent while they sat waiting for
@@ -200,7 +204,7 @@ test("jobs UI can queue multiple jobs and start an apply run that holds for appr
   // Matches the rendered LABEL, not any mention of the name — the comment above the surviving
   // button explains why the old one went, and that explanation should not fail this assertion.
   assert.doesNotMatch(jobsPanel, /Run Auto Apply\s*<\/button>/);
-  assert.match(jobsPanel, /startApplyRun\("review"\)/);
+  assert.doesNotMatch(jobsPanel, /startApplyRun\(/, "the basket's dispatch is gone with the basket");
   assert.doesNotMatch(jobsPanel, /startApplyRun\("manual"\)/,
     "the semi path is retired from this surface: its visible browser cannot exist in production");
 });

@@ -335,13 +335,14 @@ test("the approval row explains the missing resume and shows the terms behind th
 
 test("the generate-at-queue toggle states the COST, not the schedule", () => {
   const panel = fs.readFileSync("client/src/panels/JobProfilesPanel.jsx", "utf8");
-  assert.match(panel, /Generate resumes at queue time/);
+  // A53: the verb is draft — "queue time" / "Queueing" were a second name for the same action.
+  assert.match(panel, /Generate resumes when you draft/);
   // Sits with the other per-profile resume settings, exactly as include_summary does.
-  assert.ok(panel.indexOf("Include a summary section") < panel.indexOf("Generate resumes at queue time"),
+  assert.ok(panel.indexOf("Include a summary section") < panel.indexOf("Generate resumes when you draft"),
     "it belongs beside the profile's other resume settings");
   assert.match(panel, /\$0\.04 each, spent whether or not you go on to approve it/,
-    "turning this on makes queueing spend money; the copy must say that, not describe timing");
-  assert.match(panel, /Queueing is free/);
+    "turning this on makes drafting spend money; the copy must say that, not describe timing");
+  assert.match(panel, /Drafting is free/);
 });
 
 // ── THE COMPLETENESS GATE ───────────────────────────────────────────────────────────────────────

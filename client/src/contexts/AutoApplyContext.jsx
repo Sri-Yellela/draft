@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { api, authContextQuery } from "../lib/api.js";
 import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
+import { DECISIONS, commitDecision } from "../lib/jobDecisions.js";
 // AD1: the outcome partition, shared with routes/apply.js so the sub-tab a request asks for and the
 // group the server files a row under cannot disagree.
 import { OUTCOME } from "../../../shared/applyOutcomeGroups.js";
@@ -20,14 +21,15 @@ import { BRAND } from "../../../shared/brand.js";
 // another tab — and they must, or a run started from the board would stop reporting the moment you
 // navigated to look at it.
 //
-// The board keeps exactly one thing: addToApplyQueue, called by a job card. Everything else it used
-// to own is here.
+// The board used to keep one thing here: addToApplyQueue, a CLIENT-SIDE basket a job card dropped
+// jobs into, dispatched later by "Autofill for Review". A53 (owner, 10-02) removed it: the board's
+// Draft is the deck's Draft, an immediate persisted POST /api/apply/runs (lib/jobDecisions.js). A
+// basket in useState was lost on every reload, and it was a second meaning for one word.
 // ============================================================
 
 const AutoApplyContext = createContext(null);
 
 export function AutoApplyProvider({ user, canUseAPlusResume = false, children }) {
-  const [applyQueue, setApplyQueue] = useState([]);
   const [applyRuns, setApplyRuns] = useState([]);
   const [applyReviewJobs, setApplyReviewJobs] = useState([]); // held_review items across all runs
   // Gated jobs, grouped by the portal you have to sign in to. One crossing releases the whole group,
@@ -45,7 +47,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
   // What the user is told after a handoff is started. The fill happens in ANOTHER TAB, by the
   // extension, so without this the click looks like it did nothing.
   const [handoffMsg, setHandoffMsg] = useState(null); // { kind, text }
-  const [applyQueueMsg, setApplyQueueMsg] = useState("");
+  const [applyMsg, setApplyMsg] = useState("");
   const [applyRunDetailOpen, setApplyRunDetailOpen] = useState(false);
   const [applyRunDetail, setApplyRunDetail] = useState(null); // { run, jobs, logs }
   // ── WHAT THE REVIEW POPUP IS ABOUT (TASK AB3) ───────────────────────────────────────────────
@@ -93,17 +95,6 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
   // The server has computed this all along (getMissingApplyPrerequisites) and the only way to see it
   // was to try to start a run and fail.
   const [applyPrereqMissing, setApplyPrereqMissing] = useState([]);
-
-  const addToApplyQueue = useCallback((job) => {
-    if (!job?.jobId) return;
-    setApplyQueue(prev => prev.some(item => item.jobId === job.jobId) ? prev : [...prev, job]);
-    setApplyQueueMsg(`${job.company || "Job"} queued for auto apply.`);
-    setTimeout(() => setApplyQueueMsg(""), 3000);
-  }, []);
-
-  const removeFromApplyQueue = useCallback((jobId) => {
-    setApplyQueue(prev => prev.filter(item => item.jobId !== jobId));
-  }, []);
 
   const loadApplyRuns = useCallback(async () => {
     try {
@@ -610,43 +601,26 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
   }, [user]);
 
   /**
-   * @param intent "review" — fill, run every gate, stop before submitting, and park each
-   *                          application for a human decision (the approval flow).
-   *               "auto"   — the same today: mode:"auto" without approvalMode means the server
-   *                          defaults to approval-required. Full-auto is opt-in per run via
-   *                          approvalMode:"auto", which nothing in this UI sends.
-   *
-   * "review" replaces the old mode:"manual" (semi) path. Semi's promise — a visible browser you
-   * review the filled form in and submit from — cannot be kept in production: applyAutomation
-   * launches headless whenever the host is not Windows, so on Railway the form is filled in an
-   * invisible container browser and the link here points at an untouched apply URL. The approval
-   * flow keeps the same promise in a way that works remotely: the server fills and verifies, then
-   * shows every resolved answer with its provenance, the resume PDF and a screenshot of the filled
-   * form, and submits only when you approve.
+   * Draft one job again from the Auto Apply tab (Retry, a fresh run for a stale handoff, a missing
+   * résumé). The SAME call the deck and the board make (lib/jobDecisions.js) — mode:"auto" with no
+   * approvalMode, so the server previews and parks it for review. Nothing is staged client-side.
    */
-  const startApplyRun = useCallback(async (intent = "auto") => {
-    if (!applyQueue.length) return;
-    // Both paths post mode:"auto" and omit approvalMode, so the server's approval-required default
-    // applies. They are deliberately the same request today — see the note above.
-    const mode = intent === "review" ? "auto" : intent;
+  const draftTool = canUseAPlusResume ? A_PLUS_TOOL : GENERATE_TOOL;
+  const draftJob = useCallback(async (job, label) => {
+    if (!job?.jobId) return null;
     try {
-      const data = await api("/api/apply/runs", {
-        method: "POST",
-        body: JSON.stringify({ jobIds: applyQueue.map(job => job.jobId), mode, tool: canUseAPlusResume ? A_PLUS_TOOL : GENERATE_TOOL }),
-      });
-      setApplyQueue([]);
-      const n = data.queued?.length || 0;
-      setApplyQueueMsg(
-        `${n} job${n === 1 ? "" : "s"} queued — nothing is sent until you approve each one.`,
-      );
+      const r = await commitDecision({ jobId: job.jobId, decision: DECISIONS.DRAFTED, tool: draftTool });
+      setApplyMsg(`${label || job.company || "Job"} drafted again — nothing is sent until you approve each one.`);
       loadApplyRuns();
-    } catch(e) {
+      return r;
+    } catch (e) {
       const missing = e.payload?.missingPrerequisites;
-      setApplyQueueMsg(missing?.length
+      setApplyMsg(missing?.length
         ? `Setup needed in Integrations: ${missing.join(", ")}.`
-        : (e.message || "Could not start apply run."));
+        : (e.message || "Could not draft it again."));
+      return null;
     }
-  }, [applyQueue, canUseAPlusResume, loadApplyRuns]);
+  }, [draftTool, loadApplyRuns]);
 
   // Ordered least-to-most current: a job that was stopped and has been re-queued should read as
   // queued, not stopped.
@@ -660,7 +634,6 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
 
   return (
     <AutoApplyContext.Provider value={{
-      applyQueue, setApplyQueue,
       applyRuns, applyReviewJobs, applyGatePortals, applyGateTruncated, applyGateTotal,
       applyHandoffPackets, handoffPacketFor, openHandoff, handoffMsg, setHandoffMsg,
       applyInFlight, applySubmitted, applyStopped, applyGatedJobs,
@@ -672,7 +645,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       // Later feeds win, which is the right precedence: what a job is DOING now outranks what it
       // last finished as.
       applyStateByJobId,
-      applyQueueMsg, setApplyQueueMsg,
+      applyMsg, setApplyMsg,
       applyRunDetailOpen, setApplyRunDetailOpen,
       applyRunDetail, setApplyRunDetail,
       applyReviewScope, setApplyReviewScope,
@@ -682,10 +655,10 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       answersSaving, answersMsg,
       applyPending, approvalCap, pendingDetail, pendingBusy, pendingMsg,
       confirmApproveAll, setConfirmApproveAll,
-      addToApplyQueue, removeFromApplyQueue,
+      draftJob, draftTool,
       loadApplyRuns, loadApplyRunDetail, loadApplyQuestions, loadApplyPending,
       submitApplyAnswers, openPendingDetail, decidePending,
-      artifactUrl, runInFlight, startApplyRun,
+      artifactUrl, runInFlight,
       // AC4: the dated run history. Deliberately no loader effect anywhere above — nothing here is
       // populated until loadHistory is called with a date the user picked.
       // AD1: `historyGroup` is the active SUB-TAB, and selectHistoryGroup is the only way to change
