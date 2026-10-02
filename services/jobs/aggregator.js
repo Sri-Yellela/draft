@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { validatePlugin } from './sources/base.js';
-import { stripInternalFields, computeFingerprint, computeReqUid, normalizeEmploymentType } from './schema.js';
+import { stripInternalFields, computeFingerprint, computeReqUid, reqUidNamespace, normalizeEmploymentType } from './schema.js';
 import { filterDirectApplyOnly, DIRECT_ATS_SOURCES } from './directApplyFilter.js';
 import { deriveAutomationTier } from './automationTier.js';
 import { classifyJob, ROLE_KEY_FALLBACK } from './classifyJob.js';
@@ -535,13 +535,29 @@ function upsertCanonicalJob(db, {
 // the orphaned hash-only row instead of creating its own — aggregators carry no req id, so
 // this ambiguity can't be fully resolved from their data alone. Distinct siblings still never
 // silently disappear once each has arrived from a source that DOES carry a req_uid.
+//
+// A49 fix 1 — req_uids are compared only WITHIN a namespace (schema.js reqUidNamespace). The old
+// rule treated ANY two different non-null req_uids as distinct siblings, and req_uids were
+// namespaced by the carrying source, so `jobo:acme:77` against `ashby:acme:<uuid>` — one posting —
+// read as two requisitions and never merged; neither did a company's Greenhouse and Ashby copies
+// while it moved ATS. Now:
+//   - exact req_uid                         → same job (unchanged)
+//   - same namespace, different req_uid     → a distinct sibling req, NEVER merged (unchanged)
+//   - different namespace, or no req_uid    → the ids say nothing; the fingerprint decides
+// ⛔ AMBIGUITY REFUSES TO MERGE. If more than one cross-namespace candidate carries a distinct
+// req_uid, the incoming row cannot say which sibling it is, and guessing could demote a real job;
+// it gets its own row instead (a visible duplicate is recoverable, a hidden distinct job is not).
 function selectMatch(candidates, reqUid) {
   if (!candidates.length) return null;
   if (reqUid) {
     const exact = candidates.find(c => c.req_uid === reqUid);
     if (exact) return exact;
+    const ns = reqUidNamespace(reqUid);
     const hashOnly = candidates.find(c => !c.req_uid);
-    return hashOnly || null;
+    if (hashOnly) return hashOnly;
+    const foreign = candidates.filter(c => reqUidNamespace(c.req_uid) !== ns);
+    const distinct = new Set(foreign.map(c => c.req_uid));
+    return distinct.size === 1 ? foreign[0] : null;
   }
   return candidates.find(c => c.req_uid) || candidates[0];
 }

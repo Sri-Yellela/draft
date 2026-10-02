@@ -122,9 +122,68 @@ function computeFingerprint({ company, title, location }) {
 // from the same posting seen twice. Namespaced with source AND company — a bare req id can
 // collide across unrelated sources/companies (e.g. two different Workday tenants both
 // numbering requisitions "R100" independently).
-function computeReqUid({ source, company, req_id }) {
-  if (!req_id) return null;
-  return `${source}:${normalizeForFingerprint(company)}:${req_id}`;
+//
+// ⛔ A49 fix 1 — THE NAMESPACE IS THE REQUISITION'S HOME ATS, NOT THE SOURCE THAT CARRIED IT.
+// It used to be `source` outright, so the same Ashby posting reached through Jobo got
+// `jobo:linear:<jobo's own id>` while the Ashby crawl wrote `ashby:linear:<uuid>`. selectMatch
+// reads two different non-null req_uids as two distinct sibling reqs, so the pair could NEVER
+// merge — the canonical priority (direct ATS > provider > aggregator > import) never got a vote.
+// A non-ATS source whose URL is a known ATS posting URL now gets the identity the ATS crawl itself
+// computes, so the pair matches EXACTLY (not by fingerprint), and a sibling req at the same
+// company/title/city still keeps its own row. A direct-ATS source keeps the formula it always had,
+// so no stored ATS req_uid changes meaning.
+const DIRECT_ATS_NAMESPACES = new Set([
+  'greenhouse', 'lever', 'ashby', 'workday', 'smartrecruiters', 'workable', 'recruitee',
+]);
+
+// The posting's identity on the ATS that owns it, read from its URL — or null. Pure, and only
+// ever answers for a URL whose path actually carries the id (an ATS host with no id in the path
+// is null, not a guess). The ids are the ones each ATS plugin stores as req_id: Greenhouse's
+// numeric job id (also `gh_jid` on a company-hosted careers page, which is what Greenhouse's own
+// absolute_url often is), Lever's and Ashby's posting uuids, SmartRecruiters' numeric id and
+// Workable's shortcode. Recruitee and Workday expose no id in their public URLs.
+function atsPostingIdentity(url) {
+  let u;
+  try { u = new URL(String(url || '')); } catch { return null; }
+  const host = u.hostname.toLowerCase();
+  const path = u.pathname;
+  const ghJid = u.searchParams.get('gh_jid');
+  if (ghJid && /^\d+$/.test(ghJid)) return { type: 'greenhouse', externalId: ghJid };
+  let m;
+  if (/(^|\.)greenhouse\.io$/.test(host) && (m = path.match(/\/jobs\/(\d+)/))) {
+    return { type: 'greenhouse', externalId: m[1] };
+  }
+  if (host === 'jobs.lever.co' && (m = path.match(/^\/[^/]+\/([0-9a-f]{8}-[0-9a-f-]{27,})/i))) {
+    return { type: 'lever', externalId: m[1].toLowerCase() };
+  }
+  if (host === 'jobs.ashbyhq.com' && (m = path.match(/^\/[^/]+\/([0-9a-f]{8}-[0-9a-f-]{27,})/i))) {
+    return { type: 'ashby', externalId: m[1].toLowerCase() };
+  }
+  if (host === 'jobs.smartrecruiters.com' && (m = path.match(/^\/[^/]+\/(\d+)(?:-|$)/))) {
+    return { type: 'smartrecruiters', externalId: m[1] };
+  }
+  if (host === 'apply.workable.com' && (m = path.match(/\/j\/([a-z0-9]+)/i))) {
+    return { type: 'workable', externalId: m[1] };
+  }
+  return null;
+}
+
+function computeReqUid({ source, company, req_id, url }) {
+  const c = normalizeForFingerprint(company);
+  if (DIRECT_ATS_NAMESPACES.has(source)) return req_id ? `${source}:${c}:${req_id}` : null;
+  const home = atsPostingIdentity(url);
+  if (home) return `${home.type}:${c}:${home.externalId}`;
+  return req_id ? `${source}:${c}:${req_id}` : null;
+}
+
+// The namespace a req_uid was minted in — the part before the first ':'. Two req_uids are only
+// COMPARABLE when they share it: within one namespace a different id is a different requisition,
+// across namespaces (a Jobo id against an Ashby uuid, a company's Greenhouse id against its new
+// Ashby uuid) the ids say nothing about each other and the fingerprint has to decide.
+function reqUidNamespace(reqUid) {
+  if (!reqUid) return null;
+  const i = String(reqUid).indexOf(':');
+  return i === -1 ? String(reqUid) : String(reqUid).slice(0, i);
 }
 
 /**
@@ -269,4 +328,4 @@ function normalizeEmploymentType(raw) {
       ?? null;
 }
 
-export { normalizeJob, stripInternalFields, JOB_SCHEMA_VERSION, computeFingerprint, normalizeForFingerprint, computeReqUid, normalizeEmploymentType };
+export { normalizeJob, stripInternalFields, JOB_SCHEMA_VERSION, computeFingerprint, normalizeForFingerprint, computeReqUid, reqUidNamespace, atsPostingIdentity, normalizeEmploymentType };
