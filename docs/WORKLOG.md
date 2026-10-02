@@ -43,7 +43,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 | Resume Master repo | `github.com/Sri-Yellela/resume-master`, `main` = **`661b758`** = `origin/main` (checked 10-01) — G3 `6ec0dd3` and the G6 re-vendor are PUSHED, so deployed (auto-deploy on push; ⚠ the deploy itself not observed). **235** tests per queues 21–22 (not re-run). Before that `6e1837d` (E1, live 09-29 15:48Z, 232/232) |
 | draft ↔ Resume Master | draft's `RESUME_MASTER_URL` → the Railway URL above; token set. ⭐ **First real generation, 09-28**: through the live service AND through draft's own client on draft's production env — both passed the claim guard; **first cache READ ever on generation** (7,009 read, 0 written) once two requests fell inside five minutes. ⚠ Not yet run through draft's HTTP route by a signed-in user (O2) |
 | Resume Master contract | **v1.1.0** (E1, additive; live 09-29), generated; vendored in draft at 1.1.0 (`8472416`). **Live verifier: 24/24 conform against the deployed service, including the three metered scenarios** |
-| Test baseline (draft) | **2929 / 2929 / 0** — measured 10-02 on `main` after A40 + the A44 merge (A44's branch alone 2922 on a fresh CRLF worktree). Before that **2913 / 2913 / 0** — measured 10-01 after audit item 7 (+1 net: the promises test became two). ⚠ `sealedSessionSweep` can hit a Windows EPERM in its temp-dir cleanup (6/6 alone). Before that **2912 / 2912 / 0** on `main` after merging queues 37–40 (`eea1162`; +26 deck 38–40, +10 `usOnlyBoard`). queue-37 alone read 2886/2886/0 on a fresh CRLF worktree. ⚠ `accountSecurity` "a session is SEALED at rest" is flaky ~1.7% (random ciphertext can contain "42"; fix: match `"user":42`) — not fixed. Before that 2876 after the top bar + /features (+5 featuresPageHonest). 2871 after A31 (+7 landingFindFitApply). 2864 after A30 (+7 signupFirstImpression). 2857 after queues 27–29 (+15 deckFan, +9 viewTransitions). 2833 after the mark reached the text-wordmark surfaces. 2831 after A24 (+10 R1). 2821 after A23 (+10 K1). 2811 after A22 (+6 G6). 2805 after A21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
+| Test baseline (draft) | **2936 / 2936 / 0** — measured 10-02 after A51 (+7 `adminSafety`). Before that **2929 / 2929 / 0** — measured 10-02 on `main` after A40 + the A44 merge (A44's branch alone 2922 on a fresh CRLF worktree). Before that **2913 / 2913 / 0** — measured 10-01 after audit item 7 (+1 net: the promises test became two). ⚠ `sealedSessionSweep` can hit a Windows EPERM in its temp-dir cleanup (6/6 alone). Before that **2912 / 2912 / 0** on `main` after merging queues 37–40 (`eea1162`; +26 deck 38–40, +10 `usOnlyBoard`). queue-37 alone read 2886/2886/0 on a fresh CRLF worktree. ⚠ `accountSecurity` "a session is SEALED at rest" is flaky ~1.7% (random ciphertext can contain "42"; fix: match `"user":42`) — not fixed. Before that 2876 after the top bar + /features (+5 featuresPageHonest). 2871 after A31 (+7 landingFindFitApply). 2864 after A30 (+7 signupFirstImpression). 2857 after queues 27–29 (+15 deckFan, +9 viewTransitions). 2833 after the mark reached the text-wordmark surfaces. 2831 after A24 (+10 R1). 2821 after A23 (+10 K1). 2811 after A22 (+6 G6). 2805 after A21 (+3 G3). Before that 2802, account management, run alone. Before that 2785 at `6c3b12b`, 2777 at `6788a8e`. ⚠ Not yet re-measured on a fresh CRLF worktree |
 | Migration high-water | **114** (`114_users_deck_geometry`) — ✅ **production APPLIED, read 10-02 from `/api/version`** (`latestApplied: 114_users_deck_geometry`, 121 migrations, commit `94cad9f`, started 02:00:01Z). ⭐ `/api/version` answers what the boot log was needed for — read it first |
 | Contract | mobile **1.3.0** in source (A40, additive), **1.2.0** in production and in draft-android until pushed / re-vendored · Resume Master 1.1.0 (above) |
 | Extension | **v1.1.1 reuploaded by the owner, 09-28** (built at `5e7f72e`; `/d` icon, top-level `icons` key). Replaces v1.1.0, which carried the old "RM" icon. Manifest declares `https://jobsviadraft.com/*`. ⚠ Owner-reported; the dashboard is not agent-visible |
@@ -61,15 +61,17 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
-**10-02:** production = `94cad9f` (A46 + the item-7 copy), migration **114 applied** (`/api/version`). Local and
-NOT pushed: **A40 rebuilt** (two panels, contract 1.3.0) and **A44 merged** (`a95bae0`, migration 115) — 2929 / 2929 / 0. A48 explained (enrichment coverage); A49 and A50 audited. ⛔ `docs/business/` and
+**10-02 (end of session):** production = `fbeeeef` (docs) on top of `94cad9f` — migration **114 applied**
+(`/api/version`). **Local, NOT pushed:** A40 rebuilt (two panels, contract **1.3.0**), A44 merged (`a95bae0`,
+migration **115**), A51 (`a56e931`) — `main` is **2936 / 2936 / 0**. ⛔ `docs/business/` and
 `COMPANY_AND_MONETISATION.md` stay out of the repo.
 
-- **Agent, in order:** **A51** (admin stop-the-harm) → then A49's dedup fixes before
-  A43/A45, and the rest of A50's order.
-- **Owner:** O41 (production reads/writes — or install the Railway CLI), O42 (`PIPELINE_PAUSED_SOURCES=jobo`),
-  O35 (the flip on a real phone), then AF5 (held until generation and ATS scoring are each tested — use
-  ENRICHED postings for the ATS test, A48).
+- **Owner:** push `main` when ready (ships contract 1.3.0 — Android stays on 1.2.0 until re-vendored — and the
+  one-time Ashby re-date on the next crawl) · then O42 (`PIPELINE_PAUSED_SOURCES=jobo`, only meaningful after the
+  push) · O41 (production reads/writes, or install the Railway CLI) · O35 · AF5 (held; use ENRICHED postings).
+- **Agent, next session, in order:** A52 (one ATS-report implementation + the stored-vs-fresh disagreement) ·
+  A53 (vocabulary, then styling) · A49's dedup fixes 1 + 4 before A43, 1–5 before A45 · A50's order from step 2
+  (wrong numbers → curl-only UIs → daily glance). ⛔ Read SESSION LOG (13)–(15) first.
 
 ## OWNER QUEUE
 
@@ -200,7 +202,7 @@ Android part, 14, 17, 19's launcher icon): its `main` is **16 commits ahead of o
 
 | A49 | ✅ **Audited 10-02, nothing built — SESSION LOG (13).** Six defects; A43 needs 1 + 4 fixed first, A45 needs 1–5 + a production re-measure. ⛔⭐ **DEDUPLICATION — audit the pipeline before adding sources to it** | ⏸ Queued 10-01 by the owner. ⛔ **Every growth decision on this page multiplies duplicates.** A43 adds companies, A45 harvests slugs from aggregators, and users import their own URLs — so **the same posting will arrive from several directions**: an aggregator result AND the company's own ATS board AND a user's capture. ⚠ **MEASURE BEFORE CHANGING ANYTHING.** How many duplicate groups exist on the board today, by what criterion, and which sources collide most? ⭐ **The machinery already exists** — `reconcileFingerprint` and `computeReqUid`, with a canonical priority of **direct ATS > provider > aggregator > import**. ⛔ **Do not build a second deduper.** Audit the one that exists: where does it key, what does it miss, and does every writer actually route through it? A new source bypassing it is the recurring Shape 1 defect. **The hard cases, each needing a stated rule:** • **the same job from a different source** — an aggregator URL and an ATS board URL for one posting. Canonical priority says the ATS row wins, but ⛔ **the duplicate must DONATE anything the canonical row lacks** (a salary, a description) rather than being discarded, as the salary-donation path already does. • **the same job reposted** by the employer with a new id — same title, same company, days apart. ⚠ Genuinely ambiguous: a repost and a second opening look identical. • **near-identical postings for different locations** — one role listed in three cities is three real jobs, not one. ⛔ **Do not collapse these.** • **a user's own imported URL** colliding with a board row. ⛔ **Dedup must never silently drop a user's own capture** — it should attach to the existing row and say so. ⚠ **Soft-delete, never hard-delete, and log the reason.** A duplicate that is actually a distinct job and gets deleted is unrecoverable; one that is retired can be restored |
 | A50 | ✅ **Audited 10-02 — SESSION LOG (13); stop-the-harm queued as A51.** ⛔⭐ **ADMIN PANEL REVAMP — it is from the Resume Master era and the product has pivoted repeatedly** | ⏸ Queued 10-01 by the owner. ⛔ **Design doc first: `ADMIN_PANEL_REVAMP.md`. Do not start building from this row.** The panel was designed when this was a single-user résumé tool; it is now a two-sided job platform with a second stateless service, an extension, two mobile clients and a recruiter side. **It has not been redesigned once in that time**, and ⚠ one of its labels ("Not linked") was misread as an ATS integration status and triggered a whole strategy investigation — **that is what an outdated panel costs.** ⚠ **It is also the most load-bearing surface in the project for diagnosis** — Pipeline Health, the DB inspector and the usage ledger are how almost every defect in this codebase was found. ⛔ **Do not break that while making it prettier** |
-| A51 | ⛔⭐ **ADMIN — STOP THE HARM (A50 step 1). Queued 10-02 by the owner: run AFTER A40.** | Three fixes, nothing cosmetic: **(1) "🧹 Clean Pool" deletes users' Saves and PASSES in one click** (`DBInspector.jsx:1458-1464`, `:1622-1625` → `routes/adminDb.js:1170-1196`: `DELETE FROM user_jobs` for every row not applied and not tagged to the active profile — no confirm, no dry run, no count). Passes are the persisted "never deal again" decision, so one click re-deals passed jobs and wipes other profiles' decisions — the `cleanup_log` id-85 class. ⛔ Remove it, or dry-run by default with the exact count and a typed confirm, and never touch passes/saves. **(2) Raw query is not read-only** — a keyword blocklist, not a read-only connection; it materialises the whole result in production memory before trimming to 200. ⛔ Open a `readonly: true` connection and enforce the LIMIT in SQL. **(3) Table Browser serves any table** (`assertReadableTable`) — including `users.password_hash`, tokens and sessions — while the export route uses an allowlist. ⛔ Redact secret columns (or reuse the allowlist). ⛔ Do not break diagnosis: Table Browser, Job Trace and Schema must keep working. Tests with injected violations; the rest of A50's order (wrong numbers → curl-only UIs → daily glance → restyle) stays in A50 |
+| A51 | ✅ **DONE 10-02 (`a56e931`) — SESSION LOG (15).** ⛔⭐ **ADMIN — STOP THE HARM (A50 step 1). Queued 10-02 by the owner: run AFTER A40.** | Three fixes, nothing cosmetic: **(1) "🧹 Clean Pool" deletes users' Saves and PASSES in one click** (`DBInspector.jsx:1458-1464`, `:1622-1625` → `routes/adminDb.js:1170-1196`: `DELETE FROM user_jobs` for every row not applied and not tagged to the active profile — no confirm, no dry run, no count). Passes are the persisted "never deal again" decision, so one click re-deals passed jobs and wipes other profiles' decisions — the `cleanup_log` id-85 class. ⛔ Remove it, or dry-run by default with the exact count and a typed confirm, and never touch passes/saves. **(2) Raw query is not read-only** — a keyword blocklist, not a read-only connection; it materialises the whole result in production memory before trimming to 200. ⛔ Open a `readonly: true` connection and enforce the LIMIT in SQL. **(3) Table Browser serves any table** (`assertReadableTable`) — including `users.password_hash`, tokens and sessions — while the export route uses an allowlist. ⛔ Redact secret columns (or reuse the allowlist). ⛔ Do not break diagnosis: Table Browser, Job Trace and Schema must keep working. Tests with injected violations; the rest of A50's order (wrong numbers → curl-only UIs → daily glance → restyle) stays in A50 |
 
 ---
 
@@ -221,6 +223,16 @@ Android part, 14, 17, 19's launcher icon): its `main` is **16 commits ahead of o
 `job_applications` empty.** That is pre-seed by any measure. ⭐ **The cheapest thing that changes it
 is not more product — it is AF5 plus real users.** Investors fund evidence of demand, and there is
 none yet because nobody has used it.
+
+---
+
+## QUEUED — added 2026-10-01 (second batch; ids A52–A53, renumbered 10-02)
+
+| | Task | Notes |
+|---|---|---|
+| **A52** | ⛔⭐ **THE ATS REPORT IS ONE MODULAR COMPONENT, NOT A DESTINATION** — ⚠ **10-02: renumbered from "A51" (that id was already queued and pushed as admin stop-the-harm). Partly overtaken: the A40 rebuild (`596d6b4`) renders the board's OWN `ATSPanel` in place in the deck's left panel and in the mobile sheet — the redirect observed was the three-column build. Still open: confirm ONE implementation across the board's side panel, the deck, the sheet and the public tool, and a guard that refuses a second.** | ⛔ **A40's expanded card REDIRECTS TO THE BOARD instead of rendering the report in place.** The owner's point: **it can be shown anywhere modularly — there is no reason to navigate to it.** ⭐ **One implementation, four surfaces:** the deck's left panel · the board's side panel · the mobile sheet · and the free public ATS tool (R1). ⛔ **This is the StampLogo lesson exactly** — three implementations of one mark existed, the rebrand swept two, and the third shipped the legacy name on every page while the guard passed green. **A second ATS-report implementation will drift the same way.** ⛔ A redirect here is not a UI decision, it is a **missing component**. ⚠ Check what the card snapshot holds — if it carries only 6 matched / 4 missing, the component renders a truncated report, and that is a `services/dailyDraft.js` dependency, not styling |
+| **A53** | ⭐ **UNIFORM STYLING SITE-WIDE — the old board is still pre-rebrand** | ⛔ **VOCABULARY FIRST; it matters more than the styling.** The board card offers **Generate · Apply · Queue Auto · Save · Pass · Cover Letter**; the deck offers **Pass · Save · Draft**. ⭐ **"Queue Auto" IS "Draft"** — the product's verb is *draft*, the brand is *draft*, and two names for one action teaches two mental models. Rename it and audit every surface for the same split. ⚠ **Six buttons against three also means the two surfaces disagree about what a user DOES with a job** — decide which is right rather than restyling both. **Then the styling:** cream/ink/orange tokens, `StampLogo`, the new type scale, the deck's button treatment. ⛔ Use the token file — the guard fails on any colour outside it. ⚠ **Sweep every surface:** Auto Apply, Job Profiles, Database and the Recruiter stub were all built at different times and none has been through the rebrand |
+🔸 ⚠ **10-02: NOT explained by A48** (A48 = enrichment coverage, measured with ONE scoring path; this is two paths disagreeing) — **still open, attach to A52.** **A48 evidence, observed 10-01:** a board card header reads **"No signal"** while its ATS panel, open beside it, reads **"Strong match"**. ⛔ **Two scoring reads disagreeing on one screen.** The card badge reads a **stored** value; the panel computes **fresh**. Precedent: `aj2fixture::moderate-upper` stored 43 (Moderate) and scored null (No signal). **Feed this into A48** — it may be the whole explanation for 0.1% → 20.5%, or an independent stored-vs-fresh defect, and the difference matters.
 
 ---
 
@@ -545,6 +557,30 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 ## SESSION LOG
 
 Newest first. ⛔ Agents append here rather than creating a new file.
+
+### 2026-10-02 (15) · A51 — the admin inspector stops doing harm (`a56e931`)
+
+The A51 agent hit the session limit mid-wiring (`services/adminSafety.js` written, routes half-wired, UI and
+tests untouched). The coordinator audited what it left, finished it and verified it. Local; not pushed.
+
+- **Clean Pool REMOVED** — route and button. Built 04-15 (`bb0ceab`) when `user_jobs` was a per-user scraped
+  pool; it ran `DELETE FROM user_jobs` for every row not applied and not on the active profile, with no
+  confirm, dry run or count. `user_jobs` now holds Saves and PASSES on every profile, so one click re-dealt
+  passed jobs. Nothing else called it. A test refuses any `DELETE FROM user_jobs` in the inspector.
+- **Raw query read-only BY CONNECTION** — a separate `readonly: true` better-sqlite3 connection (SQLite refuses
+  any write however spelled), iterated and stopped at 200 with `truncated` reported, never `.all()` into
+  production memory. Keyword check kept as defence in depth; ATTACH refused (a read-only ATTACH still reads
+  other files). No file path → no raw query (fails closed).
+- **Credentials redacted everywhere the inspector returns raw rows** — Table Browser, peek, Job Trace, CSV
+  export, and the raw query by ORIGIN column (an alias does not unmask); a statement naming a credential column
+  is refused. Content/basis hashes stay visible (they debug ranking and dedup); NULL stays NULL.
+- `adminSafety` 7 tests; 7 injected violations, 6 red — the 7th (dropping `password_hash` from the explicit
+  list) stays green because the `_hash` pattern catches it too. **`npm test` 2936 / 2936 / 0.**
+- **WORKLOG ids:** another session queued "A51"/"A52" (uncommitted) while A51 was already pushed as stop-the-harm —
+  renumbered to **A52** (one ATS-report implementation) and **A53** (site-wide vocabulary and styling). A52 is
+  partly overtaken by the A40 rebuild, which already renders the board's own `ATSPanel` in place. Its
+  stored-vs-fresh note ("No signal" on the card, "Strong match" in the panel) is NOT explained by A48 — still open.
+  The recruiter section's header, fused into one line by that edit, is restored.
 
 ### 2026-10-02 (14) · A40 rebuilt as TWO equal panels; A44 merged (`a95bae0`)
 
