@@ -996,6 +996,9 @@ export function AdminPanel() {
   return (
     <div style={{ padding:"32px 24px", overflowY:"auto", height:"100%",
                   boxSizing:"border-box", background:theme.bg, maxWidth:1200,
+                  // Centred (10-02, 18): without it the 1200 px panel sat pinned to the left of a
+                  // wider window, its accent rule and glass ending ~240 px short of the header.
+                  margin:"0 auto",
                   borderTop:`4px solid ${ADMIN_ACCENT_TEXT}` }}>
 
       {deletePreview && (
