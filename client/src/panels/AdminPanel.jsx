@@ -1,12 +1,13 @@
-// SCRAPING — SCHEDULED FOR REMOVAL AFTER MIGRATION
-// client/src/panels/AdminPanel.jsx — Lucy Brand (yellow accent)
+// client/src/panels/AdminPanel.jsx — the admin dashboard (/admin). The DB inspector is /admin/db.
+// (A50: the "SCRAPING — SCHEDULED FOR REMOVAL" banner and the "Lucy / yellow accent" labels were
+// stale — the accent is the brand orange from colorTokens, and this panel was never removed.)
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api }      from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
+import { OpsTab, GlanceTab, UserApplications } from "./adminOps.jsx";
 
-// Lucy admin yellow accent — consistent across this panel
 const ADMIN_ACCENT = C.ACCENT;
 // ADMIN_ACCENT is the orange, which is 2.96:1 on the paper: a FILL only. Text, edges and strokes use the
 // darker ink twin (4.5:1+), the rule UI step 2 set for the logo orange.
@@ -18,6 +19,13 @@ function displayEventSubtype(value) {
   if (value === "TAILORED" || value === "GENERATE") return "Generate";
   return value;
 }
+
+// The raw ledger's columns. The fourth is the call's RESULT — success / error_text from usage_events —
+// placed beside the action rather than last, so a failure is visible without scrolling the table.
+const LEDGER_COLS = "150px 120px 130px minmax(170px, 1.4fr) 140px repeat(4, 76px) 68px 84px";
+// success is NOT NULL DEFAULT 1, so only an explicit 0 is a failure; an absent field (an older
+// response shape) is not reported as one.
+export const callFailed = (call) => call?.success === 0 || call?.success === false;
 
 // ── DateRange presets ─────────────────────────────────────────
 function DateRange({ from, to, onFromChange, onToChange }) {
@@ -158,6 +166,7 @@ function UsageTab({ theme }) {
   const fmtDate = ts => ts ? new Date(ts*1000).toLocaleString() : "-";
   const shortModel = model => (model || "-").replace("claude-", "").replace("-20250514", "").replace("-20251001", "");
 
+  const failedCalls = modelCalls.filter(callFailed).length;
   const cacheColor = overview.cacheHitRate >= 0.7 ? C.SUCCESS : overview.cacheHitRate >= 0.4 ? C.WARNING : C.DANGER;
 
   return (
@@ -170,7 +179,13 @@ function UsageTab({ theme }) {
         <StatCard label="Resumes Generated" value={overview.totalResumes}
           sub={overview.avgAtsImprovement != null ? `▲${overview.avgAtsImprovement.toFixed(1)} pts ATS avg` : null}
           theme={theme} color={theme.accent}/>
-        <StatCard label="Jobs Scraped" value={fmtNum(overview.totalJobsInserted)} sub={`${overview.totalScrapes} scrape runs`} theme={theme}/>
+        {/* Was "Jobs Scraped", read from scrape_events — unwritten since cleanup 5.8, so a permanent 0.
+            Now the shared crawl: postings first seen in the range, and the crawl runs behind them. */}
+        <StatCard label="Postings Discovered"
+          value={overview.postingsDiscovered == null ? "—" : fmtNum(overview.postingsDiscovered)}
+          sub={overview.crawlRuns == null ? "no pipeline_runs table"
+            : `${overview.crawlRuns} crawl runs${overview.crawlRunsFailed ? ` · ${overview.crawlRunsFailed} failed` : ""}`}
+          theme={theme}/>
         <StatCard label="Token Usage" value={fmtNum(overview.totalTokensUsed)} sub="tokens" theme={theme}/>
         <StatCard label="API Cost" value={fmtUsd(overview.totalCostUsd)} theme={theme} color={C.DANGER}/>
         <StatCard label="Cache Savings" value={fmtUsd(overview.totalCostSaved)} theme={theme} color={C.SUCCESS}/>
@@ -249,18 +264,25 @@ function UsageTab({ theme }) {
           <div style={{ fontSize:12, fontWeight:700, color:theme.text }}>Generation / Model Call Usage</div>
           <div style={{ fontSize:11, color:theme.textMuted, marginTop:3 }}>
             Most recent tracked model calls. Cache state is derived from stored token fields.
+            {/* A50: success / error_text were returned by the route and never drawn, so a run of
+                failing calls (the Groq 404 outage) read as an ordinary list of $0 rows. */}
+            {failedCalls > 0 && (
+              <span style={{ color:C.DANGER, fontWeight:700 }}>
+                {" "}{failedCalls} of {modelCalls.length} shown FAILED.
+              </span>
+            )}
           </div>
         </div>
         <div style={{ overflowX:"auto" }}>
-          <div style={{ minWidth:920 }}>
+          <div style={{ minWidth:1120 }}>
             <div style={{
               display:"grid",
-              gridTemplateColumns:"150px 120px 140px 150px repeat(4, 86px) 76px 90px",
+              gridTemplateColumns:LEDGER_COLS,
               gap:8, padding:"9px 14px", background:theme.surfaceHigh,
               fontSize:10, fontWeight:700, textTransform:"uppercase",
               letterSpacing:"0.06em", color:theme.textMuted,
             }}>
-              <div>Time</div><div>User</div><div>Action</div><div>Model</div>
+              <div>Time</div><div>User</div><div>Action</div><div>Result</div><div>Model</div>
               <div>Input</div><div>Output</div><div>Cache Read</div><div>Cache Create</div>
               <div>Cache</div><div>Cost</div>
             </div>
@@ -271,15 +293,24 @@ function UsageTab({ theme }) {
             ) : modelCalls.map(call => (
               <div key={call.id} style={{
                 display:"grid",
-                gridTemplateColumns:"150px 120px 140px 150px repeat(4, 86px) 76px 90px",
+                gridTemplateColumns:LEDGER_COLS,
                 gap:8, padding:"9px 14px", borderTop:`1px solid ${theme.border}`,
                 fontSize:11, alignItems:"center", color:theme.textMuted,
+                background: callFailed(call) ? C.DANGER_QUIET : "transparent",
               }}>
                 <div>{fmtDate(call.created_at)}</div>
                 <div style={{ color:theme.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                   {call.username}
                 </div>
                 <div style={{ color:theme.text }}>{displayEventSubtype(call.event_subtype) || call.event_type}</div>
+                {callFailed(call) ? (
+                  <div style={{ color:C.DANGER, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis",
+                                whiteSpace:"nowrap" }} title={call.error_text || "failed (no error text recorded)"}>
+                    FAILED · {call.error_text || "no error text recorded"}
+                  </div>
+                ) : (
+                  <div style={{ color:C.SUCCESS, fontWeight:700 }}>ok</div>
+                )}
                 <div title={call.model || ""}>{shortModel(call.model)}</div>
                 <div>{fmtNum(call.input_tokens || 0)}</div>
                 <div>{fmtNum(call.output_tokens || 0)}</div>
@@ -422,11 +453,19 @@ function UsersTab({ theme }) {
     } catch(e) {}
   };
 
-  const toggleAplusResume = async (userId, current) => {
+  // A50: this flag is not a feature grant. server.js /api/generate SILENTLY replaces the user's
+  // Generate with the A+ Resume prompt while it is on — and with monetisation enabled, a user below
+  // PRO then gets a 403 ("A+ Resume requires the PRO plan") from the Generate button. So the toggle
+  // states the consequence and asks before it changes anything.
+  const toggleAplusResume = async (userId, current, username) => {
+    const next = !current;
+    if (!confirm(next
+      ? `Turn the A+ override ON for ${username}?\n\nEvery Generate this user runs will silently use the A+ Resume prompt instead. If monetisation is on and their plan is below PRO, Generate will be refused (403) until this is turned off.`
+      : `Turn the A+ override OFF for ${username}?\n\nTheir Generate goes back to the standard Generate prompt.`)) return;
     try {
       const d = await api(`/api/admin/analytics/users/${userId}/flags`, {
         method: "PATCH",
-        body: JSON.stringify({ aplus_resume: !current }),
+        body: JSON.stringify({ aplus_resume: next }),
       });
       setUsers(prev => prev.map(u => u.userId === userId ? { ...u, aplusResume: d.aplus_resume } : u));
     } catch(e) {}
@@ -443,24 +482,25 @@ function UsersTab({ theme }) {
       {loading ? <div style={{ color:theme.textMuted, fontSize:12 }}>Loading…</div> : (
         <div style={{ background:theme.surface, border:`1px solid ${theme.border}`, borderRadius:12, overflow:"hidden" }}>
           {/* Table header */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 60px 60px 80px 80px 70px 70px 80px 80px",
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 60px 80px 80px 70px 70px 80px 80px",
                         padding:"10px 16px", background:theme.surfaceHigh,
                         fontSize:10, fontWeight:700, textTransform:"uppercase",
                         letterSpacing:"0.06em", color:theme.textMuted }}>
-            <div>User</div><div>Resumes</div><div>Scrapes</div>
+            {/* "Scrapes" removed (A50): per-user scraping ended at the pivot and the column read
+                scrape_events, which nothing has written since cleanup 5.8 — 0 for every user. */}
+            <div>User</div><div>Resumes</div>
             <div>Tokens</div><div>Cost</div><div>Cache%</div>
             <div>ATS Δ</div><div>Last Active</div><div>Actions</div>
           </div>
           {users.map(u => (
             <div key={u.userId}>
               <div onClick={() => { setExpanded(e => e===u.userId?null:u.userId); loadEvents(u.userId); }}
-                style={{ display:"grid", gridTemplateColumns:"1fr 60px 60px 80px 80px 70px 70px 80px 80px",
+                style={{ display:"grid", gridTemplateColumns:"1fr 60px 80px 80px 70px 70px 80px 80px",
                          padding:"12px 16px", borderTop:`1px solid ${theme.border}`,
                          cursor:"pointer", fontSize:12,
                          background: expanded===u.userId ? theme.surfaceHigh : "transparent" }}>
                 <div style={{ fontWeight:700, color:theme.text }}>{u.username}</div>
                 <div style={{ color:theme.textMuted }}>{u.resumesGenerated}</div>
-                <div style={{ color:theme.textMuted }}>{u.jobScrapes}</div>
                 <div style={{ color:theme.textMuted }}>{fmtNum(u.totalTokens)}</div>
                 <div style={{ color:C.DANGER }}>{fmtUsd(u.totalCost)}</div>
                 <div style={{ color:theme.textMuted }}>{fmtPct(u.cacheHitRate)}</div>
@@ -485,19 +525,26 @@ function UsersTab({ theme }) {
                 <div style={{ padding:"12px 16px 16px", borderTop:`1px solid ${theme.border}`,
                               background:theme.surfaceHigh }}>
                   {/* Feature flags */}
-                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12, flexWrap:"wrap" }}>
                     <span style={{ fontSize:11, fontWeight:700, color:theme.textMuted }}>Feature Flags:</span>
                     <button
-                      onClick={() => toggleAplusResume(u.userId, u.aplusResume)}
+                      onClick={() => toggleAplusResume(u.userId, u.aplusResume, u.username)}
                       style={{
                         fontSize:11, padding:"3px 10px", borderRadius:999, fontWeight:700, cursor:"pointer",
-                        border:`1px solid ${u.aplusResume ? C.SUCCESS : theme.border}`,
-                        background: u.aplusResume ? C.SUCCESS_QUIET : "transparent",
-                        color: u.aplusResume ? C.SUCCESS : theme.textMuted,
+                        // Amber, not green: ON is an override of what the user asked for, not a perk.
+                        border:`1px solid ${u.aplusResume ? C.WARNING : theme.border}`,
+                        background: u.aplusResume ? C.WARNING_QUIET : "transparent",
+                        color: u.aplusResume ? C.WARNING : theme.textMuted,
                       }}>
-                      A+ Resume: {u.aplusResume ? "ON" : "OFF"}
+                      A+ override: {u.aplusResume ? "ON" : "OFF"}
                     </button>
+                    <span style={{ fontSize:11, color: u.aplusResume ? C.WARNING : theme.textMuted }}>
+                      {u.aplusResume
+                        ? "This user's Generate is silently replaced by the A+ Resume prompt (needs PRO when monetisation is on, else Generate is refused)."
+                        : "Off — Generate runs the standard prompt. Turning it on swaps this user's Generate for A+ Resume."}
+                    </span>
                   </div>
+                  <UserApplications userId={u.userId} theme={theme}/>
                   <div style={{ fontSize:11, fontWeight:700, color:theme.textMuted, marginBottom:8 }}>
                     Recent Events
                   </div>
@@ -765,8 +812,10 @@ export function AdminPanel() {
   const [backing,  setBacking]  = useState(false);
   const [section,  setSection]  = useState("users");
 
-  // Top-level tab: "system" | "usage" | "users_analytics" | "cache"
-  const [topTab, setTopTab] = useState("system");
+  // Top-level tab: "glance" | "ops" | "system" | "usage" | "users_analytics" | "cache".
+  // The glance opens first (A50 step 3): "is the system healthy right now?" is the question this
+  // panel is opened to answer, and it should not need a click.
+  const [topTab, setTopTab] = useState("glance");
 
   useEffect(() => { loadUsers(); loadBackups(); loadUpgradeRequests(); loadProfileRequests(); }, []);
 
@@ -854,6 +903,8 @@ export function AdminPanel() {
   };
 
   const TOP_TABS = [
+    { id:"glance",          label:"Today" },
+    { id:"ops",             label:"Operations" },
     { id:"system",          label:"System" },
     { id:"usage",           label:"Usage" },
     { id:"users_analytics", label:"Users" },
@@ -865,7 +916,7 @@ export function AdminPanel() {
                   boxSizing:"border-box", background:theme.bg, maxWidth:1200,
                   borderTop:`4px solid ${ADMIN_ACCENT_TEXT}` }}>
 
-      {/* Lucy admin header — yellow accent */}
+      {/* Admin header */}
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:24 }}>
         <span style={{
           fontFamily:"'Barlow Condensed','DM Sans',sans-serif",
@@ -895,7 +946,7 @@ export function AdminPanel() {
                 DB Inspector
               </div>
               <div style={{ fontSize:10, color:theme.textMuted }}>
-                Scrapes · Pool · Schema · Trace
+                Pipeline Health · Schema · Tables · Trace
               </div>
             </div>
             <span style={{ fontSize:11, color:ADMIN_ACCENT_TEXT, fontWeight:700, marginLeft:4 }}>→</span>
@@ -921,6 +972,10 @@ export function AdminPanel() {
         ))}
       </div>
 
+      {/* ── The daily glance, and the surfaces that used to be curl-only (A50) ── */}
+      {topTab === "glance" && <GlanceTab theme={theme}/>}
+      {topTab === "ops" && <OpsTab theme={theme}/>}
+
       {/* ── Usage analytics tab ── */}
       {topTab === "usage" && <UsageTab theme={theme}/>}
       {topTab === "users_analytics" && <UsersTab theme={theme}/>}
@@ -932,7 +987,7 @@ export function AdminPanel() {
       {/* ── System tab (existing user management + backups) ── */}
       {topTab === "system" && (
         <>
-          {/* ── Section tabs — Lucy style ── */}
+          {/* ── Section tabs ── */}
           <div style={{ display:"flex", borderBottom:`1px solid ${theme.border}`, marginBottom:24 }}>
             {SECTIONS.map(([id, lbl]) => (
               <button key={id}
@@ -1129,9 +1184,16 @@ export function AdminPanel() {
                   </div>
                   <div style={{ fontSize:12, color:theme.textMuted, lineHeight:1.6, marginBottom:14 }}>
                     Backups are saved to{" "}
-                    <code style={{ color:theme.accentText, fontFamily:"monospace" }}>data/backups/</code>{" "}
-                    and kept for the last 30 snapshots.
-                    An automatic backup runs daily at 2:00 AM. Restore creates a safety backup
+                    <code style={{ color:theme.accentText, fontFamily:"monospace" }}>data/backups/</code>.{" "}
+                    {/* A50: this said "kept for the last 30 snapshots". Retention has been a BYTE budget
+                        since the DB outgrew the volume (scripts/backup.js selectRetained): 30 is only the
+                        count cap, and on a large database far fewer survive. */}
+                    Retention is a byte budget, not a count: at most 30 snapshots and at most 40% of the
+                    volume (<code>BACKUP_MAX_COUNT</code>, <code>BACKUP_DISK_SHARE</code>,{" "}
+                    <code>BACKUP_MAX_BYTES</code>), never fewer than 3 (<code>BACKUP_MIN_KEEP</code>) unless
+                    the disk itself cannot hold them. The newest backup and the newest of each type are
+                    kept first, so a tight budget loses depth, not kinds. The list below is what survived.
+                    An automatic backup runs daily at 2:00 (server time). Restore creates a safety backup
                     of the current DB before overwriting.
                     After restoring, <strong style={{ color:theme.text }}>restart the server</strong> to apply.
                   </div>

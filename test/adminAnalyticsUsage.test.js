@@ -1,4 +1,4 @@
-// SCRAPING — SCHEDULED FOR REMOVAL AFTER MIGRATION
+// (A50: stale "SCRAPING — SCHEDULED FOR REMOVAL" banner removed; this suite covers the admin panel.)
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

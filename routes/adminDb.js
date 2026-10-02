@@ -1,5 +1,6 @@
-// SCRAPING — SCHEDULED FOR REMOVAL AFTER MIGRATION
 // routes/adminDb.js — DB Inspector API routes for admin diagnostics
+// (A50: the "SCRAPING — SCHEDULED FOR REMOVAL" banner was stale. pipelineHealth() here is the ONE
+// computation the nightly alert reads; nothing schedules this file's removal.)
 import { Router } from "express";
 import fs from "fs";
 import Database from "better-sqlite3";

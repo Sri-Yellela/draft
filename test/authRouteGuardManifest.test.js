@@ -85,6 +85,8 @@ const ADMIN = new Set([
   // The board's fit precompute, run on purpose (dry-run by default). Admin-only: it scores every
   // user's active profile, which is an operator's decision, not a candidate's.
   "POST /api/admin/board-fit/precompute",
+  // A50 step 3: the daily glance. Read-only, but it reads every user's apply outcomes and spend.
+  "GET /api/admin/glance",
   "GET /api/admin/users",
   "POST /api/admin/users",
   "DELETE /api/admin/users/:id",
