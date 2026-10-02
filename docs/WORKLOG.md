@@ -63,7 +63,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 **10-02 (session 16, end):** `main` carries **A49** (dedup fixes 1–5, migration 116), **A50** (admin: wrong numbers,
 Operations tab, the daily glance) and **A52** (stored ATS score tied to the posting, migration 118; ONE report
-component) — **2987 / 2987 / 0** — pushed on the owner's go ("push when merged and green"). The deployed commit is read from `/api/version` after the push (follow-up note below).
+component) — **2987 / 2987 / 0** — pushed on the owner's go ("push when merged and green"). ✅ **LIVE: `/api/version` 13:41Z reads commit `e66cdf4`, `latestApplied: 118_ats_reports_job_hash` (124 applied), contract 1.3.0; `/api/health` ok.** The first board pass rescores every active profile once (118).
 ⛔ `docs/business/` and `COMPANY_AND_MONETISATION.md` stay out of the repo. The repo is **private** (API 404, re-checked 10-02).
 
 - **Owner:** O43 (A49's production re-measure — SQL in SESSION LOG (16)) · O44 (one active run per user → a second Draft is 429 — decide before A53 merges) · O45 (A50/A58 calls: unenforced limits, enrichment-run UI) · O19b (base résumé for the crawl scorer — now the ONLY remaining stored/fresh split) · O42 · O41 · O35 · AF5 (held).
