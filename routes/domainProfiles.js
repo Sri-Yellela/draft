@@ -345,7 +345,11 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
       content,
       roleTitles,
     );
-    res.json({ ok: true, profileId: profile.id, signals });
+    // P1 (10-02): a new résumé re-extracts the lists, exactly as /signals/refresh does — so it says so
+    // in the same words, rather than a bare ok:true over replaced hand edits.
+    res.json({ ok: true, profileId: profile.id, signals, replaced: "extracted", preserved: "claims",
+      notice: "Re-extracted from your new resume. Any hand edits to these lists were replaced. "
+            + "Terms you claimed are stored separately and were not affected." });
   });
 
   router.get("/:id/signals", (req, res) => {

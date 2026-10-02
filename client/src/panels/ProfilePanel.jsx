@@ -618,8 +618,14 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
     }
   };
 
+  // P1 (10-02): re-extracting REPLACES hand edits to these three lists (claimed terms are stored
+  // separately and survive). The server always said so in `notice`; the button now asks first and
+  // shows that sentence, instead of a cheerful "Refreshed".
+  const REEXTRACT_WARNING = "Re-extract from your résumé? Any hand edits to Titles, Keywords and Skills are replaced. " +
+    "Terms you claimed are kept — they are stored separately.";
   const refreshSignals = async () => {
     if (!activeProfileId) return;
+    if (!window.confirm(REEXTRACT_WARNING)) return;
     try {
       const next = await api(`/api/domain-profiles/${activeProfileId}/signals/refresh`, { method: "POST" });
       setSignalsForm({
@@ -637,7 +643,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
         clearanceLevel: next?.structuredFacts?.clearanceLevel || structuredFactsForm.clearanceLevel,
         degreeLevel: next?.structuredFacts?.degreeLevel || structuredFactsForm.degreeLevel,
       });
-      setSignalStatus("Refreshed from profile resume");
+      setSignalStatus(next?.notice || "Re-extracted from your résumé. Hand edits to these lists were replaced; claimed terms were kept.");
       setTimeout(() => setSignalStatus(""), 2500);
       await loadProfileAssets(activeProfileId);
     } catch (e) {
@@ -757,8 +763,9 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
         searchTerms: joinChipText(nextSignals?.searchTerms),
         yearsExperience: nextSignals?.yearsExperience ?? "",
       });
-      setResumeStatus("Uploaded and extracted for this profile");
-      setTimeout(() => setResumeStatus(""), 2500);
+      // P1: say what the re-extraction replaced, as the refresh does.
+      setResumeStatus(nextSignals?.notice || "Uploaded. Titles, keywords and skills were re-extracted — hand edits to them were replaced; claimed terms were kept.");
+      setTimeout(() => setResumeStatus(""), 9000);   // long enough to read what was replaced
       loadProfiles();
       await loadProfileAssets(activeProfileId);
     } catch (e) {
@@ -1391,7 +1398,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
             </div>
 
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-              <PRow label="Extracted Titles" theme={theme}>
+              <PRow label="Titles — from your résumé (re-extracting replaces edits)" theme={theme}>
                 <textarea className="rm-input" rows={3} value={signalsForm.titles}
                   onChange={e => setSignalsForm(f => ({ ...f, titles: e.target.value }))}/>
               </PRow>
@@ -1400,11 +1407,11 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
                   onChange={e => setSignalsForm(f => ({ ...f, yearsExperience: e.target.value }))}/>
               </PRow>
             </div>
-            <PRow label="Extracted Keywords" theme={theme}>
+            <PRow label="Keywords — from your résumé" theme={theme}>
               <textarea className="rm-input" rows={4} value={signalsForm.keywords}
                 onChange={e => setSignalsForm(f => ({ ...f, keywords: e.target.value }))}/>
             </PRow>
-            <PRow label="Extracted Skills / Tools" theme={theme}>
+            <PRow label="Skills / tools — from your résumé" theme={theme}>
               <textarea className="rm-input" rows={3} value={signalsForm.skills}
                 onChange={e => setSignalsForm(f => ({ ...f, skills: e.target.value }))}/>
             </PRow>
