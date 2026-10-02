@@ -1,10 +1,10 @@
 // @draft/sqlite-backup — the backup policy draft runs, as a package (A65, 2026-10-02).
 //
 // MOVED, NOT REWRITTEN. This is draft's scripts/backup.js with its paths made configurable, so that
-// Resume Master — which since A57 holds accounts, a credit ledger and documents users asked to keep —
-// runs the SAME policy rather than a second one (owner's note under WORKLOG A57: "Port draft's policy;
+// the résumé tools service (repo resume-master) — which since A57 holds accounts, a credit ledger
+// and documents users asked to keep — runs the SAME policy rather than a second one (owner's note under WORKLOG A57: "Port draft's policy;
 // do not write a second one"). Every rule below was learned on draft's production volume. draft
-// consumes this from packages/sqlite-backup; Resume Master vendors a checksummed copy, exactly as it
+// consumes this from packages/sqlite-backup; the tools service vendors a checksummed copy, exactly as it
 // vendors @draft/ats-scorer. Call configureBackups() once before anything else.
 //
 // A BACKUP IS CHECKPOINTED BEFORE IT IS COPIED — see checkpointWal, and read that comment before
@@ -26,7 +26,7 @@ import path     from "path";
 
 // WHERE: set by configureBackups(). draft points it at its data/ (or BACKUP_DATA_DIR, which exists
 // for the tests — one run against the real data/ with a faked disk once deleted two local backups
-// for good); Resume Master points it at its volume.
+// for good); the tools service points it at its volume.
 let DATA_DIR = null;
 let DB_PATH = null;
 let BAK_DIR = null;
