@@ -17,7 +17,12 @@ const SQLiteStore = connectSqlite3(session);
 test("sessionsForUser finds a user's SEALED sessions in the real sqlite store", async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sess-"));
   const inner = new SQLiteStore({ db: "s.db", dir });
-  t.after(() => { inner.db.close(); fs.rmSync(dir, { recursive: true, force: true }); });
+  // node-sqlite3's close() is asynchronous: removing the directory before its callback races the
+  // still-open s.db, which Windows refuses with EPERM. Wait for the close, then remove.
+  t.after(async () => {
+    await new Promise((r) => inner.db.close(() => r()));
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+  });
   const store = new EncryptedSessionStore(inner, crypto.randomBytes(32));
   const cookie = { originalMaxAge: 60000, expires: new Date(Date.now() + 60000).toISOString() };
   const put = (sid, user) => new Promise((r, j) => store.set(sid, { cookie, passport: { user } }, (e) => (e ? j(e) : r())));
