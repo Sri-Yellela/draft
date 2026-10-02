@@ -7,7 +7,7 @@
 // what they change, and the one that resumes real submissions to employers is the one that asks
 // hardest. A51 is why: "Clean Pool" deleted users' Saves and Passes in one unlabelled click.
 import { useState, useEffect, useCallback } from "react";
-import { api } from "../lib/api.js";
+import { api, authContextQuery } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 
 // ── shared bits ───────────────────────────────────────────────────────────────────────────────
@@ -400,6 +400,106 @@ export function EnrichmentSection({ theme }) {
   );
 }
 
+// ── Job data in and out — /api/admin/job-data (A62) ───────────────────────────────────────────
+// The JOBS, not their enrichment (that round trip is in the DB inspector). Export the board as
+// NDJSON; import postings through the one gateway — dry run first, "Import N" only for the text
+// that was planned, every import a batch that can be reverted (dry run, then the matching count).
+export function JobDataSection({ theme }) {
+  const [text, setText] = useState("");
+  const [dry, setDry] = useState(null);       // { forText, body }
+  const [result, setResult] = useState(null);
+  const [batches, setBatches] = useState([]);
+  const [busy, setBusy] = useState(null);
+  const [err, setErr] = useState(null);
+  const loadBatches = useCallback(() => {
+    api("/api/admin/job-data/import/batches").then(d => setBatches(d?.batches || [])).catch(() => {});
+  }, []);
+  useEffect(() => { loadBatches(); }, [loadBatches]);
+  const exportHref = () => {
+    const qs = new URLSearchParams();
+    const ctx = authContextQuery();
+    if (ctx) for (const [k, v] of new URLSearchParams(ctx)) qs.set(k, v);
+    return `/api/admin/job-data/export?${qs}`;
+  };
+  const runDry = async () => {
+    setBusy("dry"); setErr(null); setResult(null);
+    try { setDry({ forText: text, body: await api("/api/admin/job-data/import", { method: "POST", body: JSON.stringify({ jsonl: text }) }) }); }
+    catch (e) { setErr(e.message); }
+    setBusy(null);
+  };
+  const plan = dry && dry.forText === text ? dry.body : null;
+  const n = plan?.valid ?? 0;
+  const runReal = async () => {
+    const p = plan.plan;
+    if (!confirm(`Import ${num(n)} posting(s) through the gateway?\n\n` +
+                 `${num(p.insert)} new · ${num(p.replace)} replace a lower-priority copy · ${num(p.attach)} attach to a posting already on the board · ` +
+                 `${num(p.outOfMarket)} held off the board (outside the US).\n${plan.refused.length} line(s) refused.\n\n` +
+                 "Revertible as a batch (the new rows are retired). " + plan.cannotUndo)) return;
+    setBusy("real"); setErr(null);
+    try {
+      setResult(await api("/api/admin/job-data/import", { method: "POST", body: JSON.stringify({ jsonl: text, apply: true }) }));
+      setDry(null); loadBatches();
+    } catch (e) { setErr(e.message); }
+    setBusy(null);
+  };
+  const revert = async (b) => {
+    setErr(null);
+    try {
+      const d = await api(`/api/admin/job-data/import/batches/${b.id}/revert`, { method: "POST", body: JSON.stringify({}) });
+      if (!confirm(`Revert batch ${b.id}?\n\n${d.note}`)) return;
+      await api(`/api/admin/job-data/import/batches/${b.id}/revert`, { method: "POST", body: JSON.stringify({ expectRows: d.wouldRetire }) });
+      loadBatches();
+    } catch (e) { setErr(e.payload?.note || e.message); }
+  };
+  const shown = result || plan;
+  return (
+    <Card theme={theme} title="Job data — in and out" measured="import is dry by default — nothing is written until you press Import">
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+        <a href={exportHref()} style={{ fontSize: 12, fontWeight: 700, color: C.ACCENT_INK }}>Export the active board (NDJSON) ↓</a>
+        <span style={{ fontSize: 11, color: theme.textMuted }}>one posting per line: title, company, url required; source one of the known sources (default import)</span>
+      </div>
+      <textarea value={text} onChange={e => setText(e.target.value)} rows={5} placeholder='{"title":"…","company":"…","url":"https://…","location":"…","description":"…"}'
+        style={{ width: "100%", boxSizing: "border-box", fontFamily: "ui-monospace, monospace", fontSize: 11,
+                 background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: 8 }}/>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
+        <Btn theme={theme} primary disabled={!!busy || !text.trim()} onClick={runDry}>{busy === "dry" ? "Planning…" : "Dry run"}</Btn>
+        <Btn theme={theme} danger disabled={!plan || n === 0 || !!busy} onClick={runReal}>
+          {busy === "real" ? "Importing…" : plan ? `Import ${num(n)} posting(s)…` : "Import…"}
+        </Btn>
+        <span style={{ fontSize: 11, color: theme.textMuted }}>
+          {dry && !plan ? "The text changed since the dry run — run it again." : !dry && !result ? "Dry run first — Import unlocks for exactly the text it planned." : null}
+        </span>
+      </div>
+      <Err msg={err}/>
+      {shown && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 6, color: result ? C.SUCCESS : theme.text }}>
+            {result ? `IMPORTED — batch ${result.batchId}: ${num(result.inserted)} inserted · ${num(result.attached)} attached · ${num(result.held)} held off the board`
+                    : `DRY RUN — nothing written · ${num(shown.valid)} valid of ${num(shown.rows)} · ${num(shown.plan.insert)} new · ${num(shown.plan.replace)} replace · ${num(shown.plan.attach)} attach · ${num(shown.plan.outOfMarket)} outside the US`}
+          </div>
+          {shown.refused?.length > 0 && <Err msg={`Refused: ${shown.refused.slice(0, 5).map(r => `line ${r.line}: ${r.reason}`).join(" · ")}${shown.refused.length > 5 ? " …" : ""}`}/>}
+          {result?.note && <div style={{ fontSize: 11, color: theme.textMuted }}>{result.note}</div>}
+        </div>
+      )}
+      {batches.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <Table theme={theme} rows={batches} cols={[
+            { key: "id", label: "batch" },
+            { key: "created_at", label: "when", render: r => stamp(r.created_at) },
+            { key: "inserted", label: "inserted", right: true },
+            { key: "attached", label: "attached", right: true },
+            { key: "held_out_of_market", label: "held", right: true },
+            { key: "refused", label: "refused", right: true },
+            { key: "reverted_at", label: "", render: r => (r.reverted_at
+              ? `reverted ${stamp(r.reverted_at)} (${r.reverted_rows})`
+              : <button type="button" onClick={() => revert(r)} style={{ fontSize: 11, cursor: "pointer" }}>Revert…</button>) },
+          ]}/>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 // ── /api/admin/analytics/spend ─────────────────────────────────────────────────────────────────
 export function SpendSection({ theme }) {
   const [days, setDays] = useState(1);
@@ -493,6 +593,7 @@ export function OpsTab({ theme }) {
       <KillSwitchSection theme={theme}/>
       <BoardFitSection theme={theme}/>
       <EnrichmentSection theme={theme}/>
+      <JobDataSection theme={theme}/>
       <SpendSection theme={theme}/>
     </div>
   );

@@ -41,7 +41,7 @@ test("the run's dry plan carries what the confirm must state: cost ceiling, per-
 test("the Operations tab mounts the section; Enrich is gated on a same-parameter dry run and confirms the spend", () => {
   const src = fs.readFileSync("client/src/panels/adminOps.jsx", "utf8");
   assert.match(src, /<EnrichmentSection theme=\{theme\}\/>/, "mounted in OpsTab");
-  const sec = src.slice(at(src, "export function EnrichmentSection"), at(src, "// ── /api/admin/analytics/spend"));
+  const sec = src.slice(at(src, "export function EnrichmentSection"), at(src, "export function JobDataSection"));
   assert.ok(sec.length > 100, "the section exists");
   // The dry run posts WITHOUT apply; the real run is the only call with apply: true.
   assert.match(sec, /api\("\/api\/admin\/enrichment\/run", \{ method: "POST", body: JSON\.stringify\(params\(\)\) \}\)/);
