@@ -2,6 +2,8 @@
 // routes/adminDb.js — DB Inspector API routes for admin diagnostics
 import { Router } from "express";
 import fs from "fs";
+import Database from "better-sqlite3";
+import { redactRow, redactRows, runReadOnlyQuery, secretColumnsMentioned } from "../services/adminSafety.js";
 import { classifyTitle } from "../services/jobClassifier.js";
 import { getSourceStatus } from "../services/jobs/aggregator.js";
 import { BRAND } from "../shared/brand.js";
@@ -45,6 +47,17 @@ const CRAWL_SOURCES = new Set([...DIRECT_ATS_SOURCES, "jobo"]);
 
 export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
   const router = Router();
+
+  // A51: the raw query's own connection, READ-ONLY at the SQLite level and opened lazily. No file
+  // path (an in-memory test database) means no raw query at all — fail closed, never fall back to
+  // the read-write handle.
+  let readOnlyConn = null;
+  function readOnlyDb() {
+    if (readOnlyConn) return readOnlyConn;
+    if (!dbPath || dbPath === ":memory:") return null;
+    readOnlyConn = new Database(dbPath, { readonly: true, fileMustExist: true });
+    return readOnlyConn;
+  }
 
   // mayActAsAdmin, not `req.user?.isAdmin`. This router is the DB inspector — the single most
   // valuable thing behind an admin check — and it was reachable from the extension origin with
@@ -971,7 +984,7 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
     const table = req.params.table;
     if (!ALLOWED_TABLES.has(table)) return res.status(400).json({ error: "Table not allowed" });
     try {
-      res.json(db.prepare(`SELECT * FROM "${table}" ORDER BY rowid DESC LIMIT 10`).all());
+      res.json(redactRows(db.prepare(`SELECT * FROM "${table}" ORDER BY rowid DESC LIMIT 10`).all()));
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
@@ -995,8 +1008,10 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
       const offset = (page - 1) * pageSize;
       const total = db.prepare(`SELECT COUNT(*) as c FROM "${table}"`).get().c;
       const columns = db.prepare(`PRAGMA table_info("${table}")`).all();
-      const rows = db.prepare(`SELECT * FROM "${table}" ORDER BY rowid DESC LIMIT ? OFFSET ?`)
-        .all(pageSize, offset);
+      // A51: ⛔ any table is browsable, so every row is redacted — password hashes, sealed secrets
+      // and session ids never leave the server. NULL stays NULL, so "is it set?" still answers.
+      const rows = redactRows(db.prepare(`SELECT * FROM "${table}" ORDER BY rowid DESC LIMIT ? OFFSET ?`)
+        .all(pageSize, offset));
       res.json({
         table,
         columns,
@@ -1121,13 +1136,14 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
         }
       }
 
+      // A51: these are SELECT * / uj.* / ja.* rows — redacted like every other raw row the inspector returns.
       res.json({
-        scraped_job: scrapedJob,
-        user_jobs: userJobs,
-        role_mappings: roleMappings,
-        resumes,
-        applications,
-        domain_profile: domainProfile,
+        scraped_job: redactRow(scrapedJob),
+        user_jobs: redactRows(userJobs),
+        role_mappings: redactRows(roleMappings),
+        resumes: redactRows(resumes),
+        applications: redactRows(applications),
+        domain_profile: redactRow(domainProfile),
         diagnosis: {
           hasProfile,
           profileOwner,
@@ -1259,36 +1275,12 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
   });
 
   // ── Utility: Clean user pool ──────────────────────────────────
-  router.post("/clean-user-pool/:userId", requireAdmin, (req, res) => {
-    const userId = parseInt(req.params.userId);
-    try {
-      const activeProfile = db.prepare(
-        "SELECT * FROM domain_profiles WHERE user_id = ? AND is_active = 1"
-      ).get(userId);
-      const roleKey = activeProfile ? roleKeyForProfile(activeProfile) : "";
-
-      const preserved = db.prepare(
-        "SELECT COUNT(*) as c FROM user_jobs WHERE user_id = ? AND applied = 1"
-      ).get(userId).c;
-
-      const result = db.prepare(`
-        DELETE FROM user_jobs
-        WHERE user_id = ?
-        AND applied = 0
-        AND (
-          domain_profile_id IS NULL
-          OR domain_profile_id != ?
-          OR NOT EXISTS (
-            SELECT 1 FROM job_role_map jrm
-            WHERE jrm.job_id = user_jobs.job_id
-              AND jrm.role_key = ?
-          )
-        )
-      `).run(userId, activeProfile?.id ?? -1, roleKey);
-
-      res.json({ removed: result.changes, preserved });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-  });
+  // A51 (10-02): "Clean Pool" (POST /clean-user-pool/:userId) is REMOVED. Built 04-15 (bb0ceab) when
+  // user_jobs was a per-user scraped pool, it ran DELETE FROM user_jobs for every row not applied and
+  // not tagged to the active profile — no confirm, no dry run, no count. user_jobs now holds a user's
+  // SAVES and PASSES (the persisted "never deal this again") on every profile, so one click re-dealt
+  // passed jobs and wiped other profiles' decisions: the cleanup_log id-85 class of loss. Nothing
+  // else called it, and there is no pool left to clean.
 
   // ── Utility: Re-tag user pool ─────────────────────────────────
   router.post("/retag-user-pool/:userId", requireAdmin, (req, res) => {
@@ -1336,14 +1328,20 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
   router.get("/raw-query", requireAdmin, (req, res) => {
     const sql = (req.query.sql || "").trim();
     if (!sql) return res.status(400).json({ error: "sql param required" });
-    if (/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|ATTACH)\b/i.test(sql)) {
+    // Defence in depth only — ⛔ the READ-ONLY CONNECTION is the guard (A51). ATTACH stays refused
+    // here because a read-only ATTACH can still READ another database file on the server.
+    if (/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|ATTACH|DETACH|VACUUM)\b/i.test(sql)) {
       return res.status(400).json({ error: "Only SELECT queries are allowed" });
     }
+    const secrets = secretColumnsMentioned(sql);
+    if (secrets.length) {
+      return res.status(400).json({ error: `Credential columns cannot be queried here: ${secrets.join(", ")}` });
+    }
+    const conn = readOnlyDb();
+    if (!conn) return res.status(503).json({ error: "No read-only connection is available for raw queries" });
     try {
-      const rows = db.prepare(sql).all().slice(0, 200);
-      const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
-      res.json({ columns, rows, count: rows.length });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+      res.json(runReadOnlyQuery(conn, sql));
+    } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
   });
 
   // ── Utility: Export table as CSV ──────────────────────────────
@@ -1357,7 +1355,7 @@ export function createAdminDbRouter(db, { dbPath, scrapeJobs } = {}) {
       return res.status(400).json({ error: "Table not allowed for export" });
     }
     try {
-      const rows = db.prepare(`SELECT * FROM "${table}" LIMIT 100000`).all();
+      const rows = redactRows(db.prepare(`SELECT * FROM "${table}" LIMIT 100000`).all());
       if (!rows.length) { res.setHeader("Content-Type","text/csv"); return res.send(""); }
       const headers = Object.keys(rows[0]);
       const escape = v => {
