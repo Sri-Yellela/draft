@@ -235,3 +235,6 @@ export function usEligibility({ location, description, offices = [] } = {}) {
   }
   return { admit: false, verdict, reason: verdict === "non_us" ? "non_us_location" : "location_unparseable" };
 }
+
+// The state table, for the cross-source fingerprint (schema.js) — one copy, not two.
+export { STATES as US_STATES };
