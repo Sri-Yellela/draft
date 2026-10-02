@@ -10,10 +10,10 @@ something you read elsewhere in `docs/`, re-measure before you believe either.
 |---|---|
 | deployed commit | **read it from `/api/version`** — any value written here is stale by the next push, which is why the doc guard deliberately does not assert one |
 | contract | `1.3.0` in source (A40, 10-02: `DeckCard.report`, `DeckWhy.missingTotal` — additive); production is `1.2.0` until it is pushed |
-| migration high-water | `114_users_deck_geometry` in **both** runners (queue 38; after `113_account_management` — ⚠ neither deployed; production is at `112_users_theme_preference`, applied 09-30) |
-| test baseline | **2675 tests, 2675 pass, 0 fail** — no deliberate failures since P4; see `CLAUDE.md` |
+| migration high-water | `115_deactivate_skroutz_outside_us` in **both** runners (A44, owner 10-02 — ⚠ local). Production applied through `114_users_deck_geometry` — **read from `/api/version`** 10-02 (`latestApplied`), not from this table |
+| test baseline | see `CLAUDE.md` § "Deliberate test failures" — the one place the count is kept (this line said 2675 until 10-02) |
 | monetisation | **disabled** — the product presents as free and untiered |
-| Anthropic balance | **exhausted.** Model-backed paths return 502 — except capture, which degrades (see below) |
+| Anthropic balance | **funded — verified 09-28** by real generation, A+ and PDF calls (WORKLOG CURRENT STATE). The "exhausted" behaviour below — 502s, capture degrading — is what happens if it runs out again |
 
 ## What this is
 

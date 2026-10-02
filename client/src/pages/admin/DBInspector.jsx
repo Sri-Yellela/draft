@@ -286,6 +286,13 @@ const HEALTH_STYLE = {
   // had a chance to produce yet; migration 103 added ten at once, and calling those ten failures
   // would have put ten false positives at the top of the alert list on the day it shipped.
   awaiting_first_crawl:{ color:C.INK_FAINT, label:"AWAITING CRAWL" },
+  // A44: the slug answers and every posting is held out by the US-only gate. Amber: a decision
+  // about the company (keep it for when it hires here, or deactivate), not an outage.
+  out_of_market:   { color:C.WARNING, label:"OUTSIDE US" },
+  // A44: keyed, in the crawl, no active companies — never enabled (workday, smartrecruiters).
+  not_enabled:     { color:C.INK_FAINT, label:"NOT ENABLED" },
+  // A44: paused by the owner on purpose (PIPELINE_PAUSED_SOURCES — jobo, wallet exhausted).
+  paused:          { color:C.INK_FAINT, label:"PAUSED" },
 };
 
 // 0% must be visually alarming — skills_json sat at 0/684 while nothing surfaced it.
@@ -522,7 +529,7 @@ function ScrapeMonitorTab({ theme }) {
             letterSpacing:"0.06em", color:theme.textMuted,
           }}>
             <div>Company</div><div>Source / Slug</div><div>Health</div><div>Active</div>
-            <div>No Desc</div><div>Enriched</div><div>Last Row</div>
+            <div>No Desc</div><div>Enriched</div><div title="When a crawl last returned this company — not when it last posted">Last Seen</div>
           </div>
           {[...deadCompanies,
             ...health.companies.filter(c => c.health === "ok" || c.health === "awaiting_first_crawl"),
@@ -546,8 +553,9 @@ function ScrapeMonitorTab({ theme }) {
                   {c.active ? fmt(c.noDescription) : "—"}
                 </div>
                 <div style={{ color:theme.textMuted }}>{c.active ? fmt(c.enriched) : "—"}</div>
-                <div style={{ color: c.health === "stale" ? C.WARNING : theme.textMuted, fontSize:11 }}>
-                  {ago(c.lastRowAt)}
+                <div style={{ color: c.health === "stale" ? C.WARNING : theme.textMuted, fontSize:11 }}
+                     title={c.quietHours != null ? `Newest posting first seen ${ago(c.lastRowAt)}` : undefined}>
+                  {ago(c.lastSeenAt ?? c.lastRowAt)}
                 </div>
               </div>
             );
@@ -561,6 +569,13 @@ function ScrapeMonitorTab({ theme }) {
           <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em",
                         color:theme.textMuted, marginBottom:12 }}>
             Enrichment Coverage — % of {fmt(health.enrichment.activeTotal)} active rows with a value
+          </div>
+          {/* A48: unenriched rows are the ones that score "not enough signal" (~30% of them; enriched
+              rows 0%), so skills_json's share below sets how much of the board can get a band. */}
+          <div style={{ fontSize:11, color:theme.textMuted, marginBottom:10 }}>
+            skills_json is enrichment's read of the posting — rows without it are the ones that score
+            “not enough signal”. {fmt(health.enrichment.waitingForEnrichment ?? 0)} active rows wait;
+            last enriched {ago(health.enrichment.lastEnrichedAt)}.
           </div>
           <div style={{ display:"grid", gap:7 }}>
             {health.enrichment.coverage.map(c => <CoverageBar key={c.column} item={c} theme={theme}/>)}
