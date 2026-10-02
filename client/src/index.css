@@ -40,7 +40,9 @@
   --color-card-foreground: var(--c-ink);
 
   --font-display: 'Instrument Serif', serif;
-  --font-body: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  /* A53 follow-up (10-02): DM Sans, because DM Sans is what renders — the theme's global body rule
+     (themes/cinematic.js) sets it on every page. This token said Inter and nothing used it. */
+  --font-body: 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
   /* Cinematic animations */
   --animate-fade-rise: fade-rise 0.8s ease-out both;

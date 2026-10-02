@@ -30,7 +30,7 @@ export const TOOLS = [
     line: "Jobs come to you, ordered by how well they fit your résumé.",
     tools: [
       { name: "Today's draft", does: "Ten jobs a day, picked against your résumé and dealt as a deck. Draft one, pass on one, save one for later.",
-        wont: "Drafting never sends anything — it queues the application and waits for your review.", where: "Today, once you sign in" },
+        wont: "Drafting never sends anything — the application waits for your review.", where: "Today, once you sign in" },
       { name: "The board", tier: "Basic", does: "Every job we track, read against your résumé and ordered by fit, with the reason each one is there.",
         wont: "It shows a fit band — Strong, Moderate, Weak — never a falsely precise score.", where: "Jobs, once you sign in" },
     ],
@@ -53,7 +53,7 @@ export const TOOLS = [
     verb: "apply",
     line: "The tedious part, done for you. The decision stays yours.",
     tools: [
-      { name: "Your review queue", does: "Queue an application, see exactly what was filled in and which résumé was used, then approve it or don't.",
+      { name: "Your review queue", does: "Draft an application, see exactly what was filled in and which résumé was used, then approve it or don't.",
         wont: "A review run does not submit by itself: each filled application waits for you. Only a full-auto run, which you switch on, submits.",
         to: "/tools/apply", cta: "Try an application run", limit: "2 runs a month (sign in required)" },
       { name: "The browser extension", does: "Capture a job from any page, and fill the application form you signed in to reach.",

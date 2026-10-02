@@ -7,7 +7,7 @@ import { BRAND } from "../../../../shared/brand.js";
 const FAQS = [
   { q: "Is my resume data private?", a: "Yes. Your resume and job data stay on your account and are never used to train AI models." },
   { q: "Does the extension scrape my LinkedIn profile?", a: "No. The extension only reads the visible job description text on job listing pages, and only when you explicitly click 'Capture job'. It never accesses your LinkedIn profile or any private data." },
-  { q: `Does ${BRAND} auto-apply to jobs on my behalf?`, a: `Not currently. You can queue jobs and track applications in ${BRAND}, but submissions go to the employer's official application page. You review and submit manually.` },
+  { q: `Does ${BRAND} auto-apply to jobs on my behalf?`, a: `Not without you. When you Draft a job, ${BRAND} opens the employer's own application, fills it from your profile and stops before sending — it waits for your review, and nothing is sent until you approve it. Or open the posting from the company name and apply yourself; record it, and it moves to Submitted once it is verified.` },
   { q: "Where do job listings come from?", a: "Job listings are sourced from Adzuna and Indeed via their official publisher APIs. We do not scrape any job boards." },
   { q: `What LinkedIn data does ${BRAND} access?`, a: "Only your name and email address, and only when you explicitly click 'Import from LinkedIn' and approve the consent screen. We do not access your connections, work history, or any other LinkedIn data." },
   { q: "Does this work for non-tech roles?", a: `Yes. ${BRAND} supports professional roles across engineering, product, finance, marketing, HR, healthcare, legal, and more.` },
