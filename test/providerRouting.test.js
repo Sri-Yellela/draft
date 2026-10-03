@@ -478,7 +478,8 @@ test("every callModel call site declares a dataClass", () => {
 test("the PUBLIC set is exactly the three job-text purposes", () => {
   // Pinned so that widening it is a deliberate edit with a reviewer, not a one-line drift. Every
   // addition here is a new class of data leaving for a free tier.
-  const expected = new Set(["enrich_job", "classify_job", "import_job"]);
+  // classify_job was deleted under D17 (A80 V7) — it had no caller.
+  const expected = new Set(["enrich_job", "import_job"]);
   const found = new Set();
   const files = ["server.js", "services/classifier.js", "services/jobs/enrichJob.js",
                  "services/jobs/importJob.js", "routes/domainProfiles.js"];
@@ -487,7 +488,7 @@ test("the PUBLIC set is exactly the three job-text purposes", () => {
     // Anchored at the DECLARATION and scanning backwards for the purpose beside it. Anchoring at
     // `callModel({` and reading forward needs a window wide enough for the widest prompt, and
     // classify_job's is ~1KB of template literal — a fixed forward window silently missed it and
-    // this test reported two PUBLIC sites where there are three.
+    // this test reported two PUBLIC sites where there were three (before V7 deleted one).
     for (const m of src.matchAll(/dataClass:\s*DATA_CLASS\.PUBLIC/g)) {
       const before = src.slice(Math.max(0, m.index - 600), m.index);
       const p = [...before.matchAll(/purpose: *["']([a-z_]+)["']/g)].pop();
