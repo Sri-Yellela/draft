@@ -14,12 +14,12 @@ const topBar = read("client/src/components/TopBar.jsx");
 
 const tabsBlock = () => app.slice(at(app, "const appTabs = ["), at(app, "];", at(app, "const appTabs = [")));
 
-test("D10: the bar reads Daily Deck · Full House · Draft · The Table, in that order, ids unchanged", () => {
+test("D10/D18: the bar reads Daily Deck · Full House · Draft House · The Table, in that order, ids unchanged", () => {
   const ids = [...tabsBlock().matchAll(/\{ id: "([^"]+)",\s*label: "([^"]+)" \}/g)].map(m => [m[1], m[2]]);
   assert.deepEqual(ids, [
     ["today", "Daily Deck"],
     ["console", "Full House"],
-    ["auto-apply", "Draft"],
+    ["auto-apply", "Draft House"],   // D18 amended D10's "Draft"
     ["database", "The Table"],
   ]);
 });
@@ -29,8 +29,8 @@ test("D10: no Job Profiles TAB — but the page keeps its route and its ways in"
   // The route: a route-only panel is in NAVIGABLE_TABS, so /app/job-profiles renders, not bounces.
   assert.match(app, /const ROUTE_ONLY_TABS = \[[^\]]*"job-profiles"[^\]]*\];/);
   assert.match(app, /activeTab === "job-profiles" && <JobProfilesPanel/);
-  // The ways in: the avatar menu, Profile, and the Daily Deck's set-up state.
-  assert.match(topBar, /onTabChange\?\.\("job-profiles"\);[^\n]*\n\s*[^\n]*\n\s*Manage Job Profiles/);
+  // The ways in: the avatar menu's SETTINGS group (D18), Profile, and the Daily Deck's set-up state.
+  assert.match(topBar, />Settings<\/div>\s*<button onClick=\{\(\) => \{ setOpen\(false\); onTabChange\?\.\("job-profiles"\); \}\}[^\n]*\n[^\n]*\n\s*Job Profiles\s*\n/);
   assert.match(app, /onOpenJobProfiles=\{\(\) => handlePanelChange\("job-profiles"\)\}/);
   assert.match(read("client/src/panels/DeckView.jsx"), /\["\/app\/job-profiles", "Add your résumé →"\]/);
 });

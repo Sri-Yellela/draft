@@ -1867,7 +1867,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       return respond(429, {
         error: "line_full",
         message: `${waitingAhead} drafts are already waiting in line — the most there can be. ` +
-          "Remove one from the line on the Draft tab, or wait for the current one to finish.",
+          "Remove one from the line in Draft House, or wait for the current one to finish.",
         waiting: waitingAhead,
         limit: APPLY_MAX_WAITING_RUNS,
       });
@@ -2044,7 +2044,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       line: line ? { position: line.position, length: line.length } : null,
       message: line
         ? `Waiting in line (${line.position} of ${line.length}) — it starts when the draft ahead of it ` +
-          "finishes. Until then you can edit, reorder or remove it on the Draft tab."
+          "finishes. Until then you can edit, reorder or remove it in Draft House."
         : undefined,
       dailyCap: { limit: APPLY_DAILY_CAP, submittedLast24h: used, remaining: Math.max(0, APPLY_DAILY_CAP - used - filtered.length) },
       // The preview/session budget. NOT the cost budget any more — see APPLY_DAILY_QUEUE_CAP.

@@ -456,7 +456,7 @@ export function AutoApplyPanel() {
       <div>
         {/* A53: the deck's type — the display serif for what the page is (styles/type.js). */}
         <h2 style={TYPE.PAGE_TITLE}>
-          Draft
+          Draft House
         </h2>
         <p style={{ ...TYPE.LEAD, margin: "10px 0 0" }}>
           Applications are filled and held for your approval. Nothing is submitted until you approve

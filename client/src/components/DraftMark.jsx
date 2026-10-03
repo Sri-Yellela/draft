@@ -1,15 +1,16 @@
-// ── The /d mark, as TYPE — the job card's Draft button and the top bar's Draft tab (D6) ──────────
+// ── The /d mark, as TYPE — the job card's Draft button, the board's Pending chip, /extension ──────────
 //
 // D1 set the card's primary button as the mark itself: "/d" in the logo face (Poppins 800 italic,
 // self-hosted — see main.jsx), on the orange. D6 puts the same mark on the nav tab, because the
-// product's verb is draft and the nav said AUTO APPLY: two names for one action. This is the ONE
+// product's verb is draft and the nav said AUTO APPLY: two names for one action. (D18 took it OFF the
+// tab again: no tab carries a symbol, and the /d beside the /draft logo read as one thing twice.) This is the ONE
 // implementation both render — StampLogo's rule ("three copies of one mark is the mechanism a rename
 // half-ships through") applies to the small mark too.
 //
-// Decorative: the word next to it (the tab's "Draft") or the button's aria-label carries the name, so
+// Decorative: the word next to it or the button's aria-label carries the name, so
 // a screen reader never hears "slash d". `textTransform: none` because the tab row is uppercase and
 // "/D" is not the mark. Size and colour inherit from the host — the card sets 19px on the orange,
-// the tab sets its own.
+// the others set their own.
 export function DraftMark({ style }) {
   return (
     <span aria-hidden="true" data-draft-mark=""

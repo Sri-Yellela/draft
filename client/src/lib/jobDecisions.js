@@ -39,7 +39,7 @@ export const DECISION_AFTER = Object.freeze({
 export function lineAfter(line) {
   if (!line?.position) return DECISION_AFTER.drafted;
   return `it waits in line (${line.position} of ${line.length}) and starts when the draft ahead of it finishes — ` +
-    "edit, reorder or remove it on the Draft tab";
+    "edit, reorder or remove it in Draft House";
 }
 
 /** The flags a Save or a Pass SETS. They are exclusive: saving a passed job un-passes it, and back. */

@@ -10,7 +10,7 @@ import AuthScreen                from "./components/AuthScreen.jsx";
 import AdminLayout               from "./components/AdminLayout.jsx";
 import AdminLoginPage            from "./pages/AdminLoginPage.jsx";
 import DBInspector               from "./pages/admin/DBInspector.jsx";
-import TopBar                    from "./components/TopBar.jsx";
+import TopBar, { TabLabel }      from "./components/TopBar.jsx";
 import AppShell                  from "./components/AppShell.jsx";
 import { useChromeHeight }       from "./hooks/useChromeHeight.js";
 import { useCollapsibleHeight }  from "./hooks/useCollapsibleHeight.js";
@@ -138,11 +138,12 @@ function AppTopBar({ tabs, ...props }) {
   // stays discoverable from the board, and it is the ONLY thing the pipeline still renders outside
   // its own panel.
   //
-  // D6: the tab is DRAFT (it said AUTO APPLY — two names for the card's one action), and it carries
-  // the card's own /d mark (components/DraftMark.jsx, the one implementation). Under that name a bare
-  // number reads as "how many drafts", which it is not: it counts drafts that need YOU — waiting for
-  // approval, held for review, or with a question open. So the title and the screen-reader text say
-  // "N drafts need your attention", and the bare digit is hidden from the accessible name.
+  // D6: the tab said AUTO APPLY — two names for the card's one action. D18: it is DRAFT HOUSE, set on
+  // two lines like the other three, and carries NO symbol (the /d mark beside the /draft logo read as
+  // the same thing twice). Under that name a bare number reads as "how many drafts", which it is not:
+  // it counts drafts that need YOU — waiting for approval, held for review, or with a question open.
+  // So the title and the screen-reader text say "N drafts need your attention", and the bare digit is
+  // hidden from the accessible name.
   const attention = `${needsAttentionCount} ${needsAttentionCount === 1 ? "draft needs" : "drafts need"} your attention`;
   const decorated = (tabs || []).map(t =>
     t.id === "auto-apply"
@@ -150,8 +151,7 @@ function AppTopBar({ tabs, ...props }) {
           ...t,
           label: (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <DraftMark style={{ color: "var(--c-accent-ink)", fontSize: 14 }} />
-              {t.label}
+              <span><TabLabel label={t.label}/></span>
               {needsAttentionCount > 0 && (
                 <span
                   title={attention}
@@ -186,7 +186,7 @@ function AppTopBar({ tabs, ...props }) {
 // did not either, which was a defect it is not worth preserving.
 //
 // D11: the Pending chip is the DRAFT MARK, not an hourglass — a pending row is one you drafted, and
-// the card's Draft button and the top bar's Draft tab carry the same /d (components/DraftMark.jsx).
+// the card's Draft button carries the same /d (components/DraftMark.jsx). (D18: the tab no longer does.)
 const BOARD_TABS = [
   ["all",     "ALL",  "All jobs on your board"],
   ["saved",   "★",    "Saved jobs"],
@@ -331,9 +331,10 @@ function AppDashboard({ authUser, setAuthUser }) {
     // The auto-apply pipeline is a peer of the board now, not a strip above it (W5). It sits in
     // this row for the same reason the others do — it is a place you go, not a thing that happens
     // on the board. AppTopBar decorates it with the needs-attention count.
-    // D6: displayed as DRAFT, with the /d mark (AppTopBar). The id and the /app/auto-apply route
+    // D18 (amends D6/D10): displayed as DRAFT HOUSE — it rhymes with Full House beside it — and with
+    // NO mark: the /d is the card's Draft button, not a tab. The id and the /app/auto-apply route
     // are internal and stay — renaming them is cost without benefit (docs/BRAND.md).
-    { id: "auto-apply",   label: "Draft" },
+    { id: "auto-apply",   label: "Draft House" },
     // D10: no "Job Profiles" tab. The PAGE stays (ROUTE_ONLY_TABS below), reached from the avatar
     // menu ("Manage Job Profiles", and the profile switcher's add / manage), Profile's "Open Job
     // Profiles", and the Daily Deck's set-up state ("Add your résumé →").

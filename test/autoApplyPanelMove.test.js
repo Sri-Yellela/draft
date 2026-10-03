@@ -94,8 +94,8 @@ test("the pipeline's state sits above the tab switch, so a run keeps reporting w
 });
 
 test("the tab exists, routes, and is not bounced back to the board", () => {
-  // D6: the tab DISPLAYS "Draft"; its id and route stay "auto-apply" (internal, docs/BRAND.md).
-  assert.match(app, /\{ id: "auto-apply",\s*label: "Draft" \}/);
+  // D6/D18: the tab DISPLAYS "Draft House"; its id and route stay "auto-apply" (internal, docs/BRAND.md).
+  assert.match(app, /\{ id: "auto-apply",\s*label: "Draft House" \}/);
   // BOTH directions. There were two hardcoded copies of the tab list — one in handlePanelChange and
   // one in the redirect guard — and adding a tab to appTabs satisfied neither: the tab rendered and
   // navigated nowhere, and typing the URL bounced straight back to the board. Both now derive from
