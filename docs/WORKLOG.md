@@ -3,7 +3,7 @@
 **This file is the only place work is tracked.** Every other doc is reference material for a task
 named here. If a task is not in this file, it is not being worked on.
 
-**Last updated:** 2026-10-03 (session 20)
+**Last updated:** 2026-10-03 (session 21)
 
 ---
 
@@ -62,6 +62,8 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 ---
 
 ## NOW
+
+**10-03 (21):** ⭐ **New owner batch A71–A79** (section "QUEUED — added by the OWNER, 2026-10-03", above STANDING RULES): A71 the ATS panel regression · A72 ranked local search · A73 filters · A74 jobs-page removals · A75 the ATS number + sort (display gated on A76) · A76 LLM-graded corpus · A77 logos · A78 company links · A79 cards in the draft look. Running in order, one at a time.
 
 **10-03 (20):** The A/O queues hold nothing new and nothing agent-actionable (all owner-gated, as 17b lists). Done: **F3** (the formatter pooled every job's bullets when jobs had no blank line between them — Resume Master `6e430bb`, draft's copy `75f00b5`) · **F2** (`/api/jobs/poll`'s dead scrape state removed; its profile-facts log line made live — `77312df`) · ⭐ **A69 tier 2, on the owner's word that the "not offered" lines were draft's contract, not Resume Master's**: PDF → Word, PDF → Excel, OCR (with a searchable PDF) and Compress → Maximum, all in the browser, with pages (`6d58ea7`). ✅ **Pushed on the owner's go and LIVE (20b): Resume Master `6d58ea7`, draft `3141123`** — verified end to end on production. F1 stays held (a product call).
 
@@ -2331,6 +2333,24 @@ owner and the chat assistant.** ⭐ **Agent-raised findings get their own letter
 independently. The agent may mark an A row done, correct its facts, or flag it wrong — it may not
 extend the sequence. **A66/A67 were agent-created and forced these three to renumber; the same thing
 happened at A51/A52.** Record the rule in `CLAUDE.md` and this file's header.
+
+---
+
+## QUEUED — added by the OWNER, 2026-10-03 (session 21; ids A71–A79)
+
+Words are the owner's; run order as listed. ⛔ A75's displayed number waits on A76; its sort does not.
+
+| | Task | Notes |
+|---|---|---|
+| **A71** | ⛔ **REGRESSION: the ATS panel on the draft page does not open** — reverted to the single-expandable-panel version | ⏳ **Queued 10-03 (21).** A52 made it one component; something has unwired it or an older build is being served. ⛔ Establish WHICH before fixing — a revert and a broken wire need opposite fixes. Owner-visible on production. |
+| **A72** | ⛔ **SEARCH IS COMPLETELY BROKEN — "ai" returns no change at all.** Rebuild as a RANKED LOCAL search | ⏳ **Queued 10-03 (21).** No live scraping any more, so local-only by definition. RANKING (owner's spec): 1 title STARTS WITH the term · 2 title CONTAINS the term · 3 other structured fields (company, skills, requirements) · 4 description only · ⛔ everything else OMITTED — not ranked last, omitted. ⭐ Normalise synonyms with EQUAL weight: ai ≡ artificial intelligence, ml ≡ machine learning. ⚠ `skill_synonyms` already exists and is wired to the scorer (CC3) — reuse it, no second synonym table. ⭐ Tie-break within a tier = ATS match, descending. ⚠ Measure recall on a few real terms and report it — "search returns nothing" shipped once. |
+| **A73** | **FILTERS DO NOTHING** — no filter changes the board for any value | ⏳ **Queued 10-03 (21).** ⛔ Fix the function before the form: a filter panel that looks better and still does nothing is worse. Report PER FILTER whether it was never wired, wired to a dead column, or silently dropped by the query builder. |
+| **A74** | **REMOVE FROM THE JOBS PAGE** — owner-confirmed dead weight | ⏳ **Queued 10-03 (21).** · the "CHECK FOR NEW JOBS" bar · the "Sorted for your profile (role keywords, role_key, …)" disclaimer · the 5-second re-click guard on the search button · the "567 jobs" count bar — ⭐ the filter icon already signals active filters. |
+| **A75** | ⛔ **ATS SCORE RETURNS AS A NUMBER** — owner decision, reversing the band-only call | ⏳ **Queued 10-03 (21).** Show the number again, and ⭐ add "ATS match" as a SORT OPTION on BOTH the jobs page and the daily draft. ⚠ Why it was removed: "58" beside "Strong match" read as contradictory, and ρ ≈ 0.746 on 30 postings graded by one person does not support a displayed figure. ⭐ The owner's answer is to EARN it: validate and tune against external LLM grading. ⛔ That validation is A76 and it is the CONDITION, not an optional follow-up. ⚠ Sorting by score does NOT require displaying it — the sort can ship immediately. ⛔ The mobile contract marks matchScore INTERNAL — DO NOT DISPLAY; update that annotation with this decision rather than leaving the contract contradicting the product. |
+| **A76** | ⭐ **BUILD A LARGER GRADED CORPUS BY LLM, then re-tune** | ⏳ **Queued 10-03 (21).** Today: 30 postings, one grader, ρ 0.746 → 0.723 after the US filter, only 24 survive — ⛔ too thin to justify a displayed number. · Sample N postings against a real profile, grade with an external model, join to scores. · ⛔ GRADE BLIND — scores withheld from the grader, as the original corpus was. · Report ρ, τ-b and mis-ordered %, and re-derive the band cutpoints. ⚠ An LLM grader is not ground truth either — a bigger, cheaper, more consistent proxy. ⭐ The real ground truth is still `job_applications`, which is still empty. |
+| **A77** | **COMPANY LOGOS MISSING FOR SOME COMPANIES** | ⏳ **Queued 10-03 (21).** Resolve during enrichment: fetch, cache, and store PER COMPANY rather than per job. ⚠ Precedent: logo.clearbit.com died and its FALLBACK for "provider unreachable" was Clearbit itself, so 1,290/1,296 rows showed nothing while the code looked fine. ⛔ Any new provider needs a real fallback and a test that fails when it is dead. |
+| **A78** | **COMPANY NAME LINKS** — keep the hyperlink, lose the underline and the ↗ | ⏳ **Queued 10-03 (21).** Use the daily draft's serif treatment. ⚠ Keep a NON-COLOUR hover affordance — removing underline AND arrow leaves only colour, which fails for colour-blind users. |
+| **A79** | **JOB CARDS ADOPT THE DRAFT LOOK** — hover-revealed buttons | ⏳ **Queued 10-03 (21).** See the visualisation. ⚠ The visualisation was referenced but not attached to the brief — ask the owner for it if the daily draft's own card is not the intended reference. |
 
 ---
 
