@@ -35,7 +35,6 @@ import { lookup as dnsLookup } from 'dns/promises';
 import { normalizeJob } from './schema.js';
 import { stripResumeHtml } from '../resumeFormatter.js';
 import { ingestJob } from './jobGateway.js';
-import { runEnrichment } from './enrichJob.js';
 import { mapJobRow } from './mapJobRow.js';
 import { MODEL_HAIKU } from '../../shared/anthropicModels.js';
 import { BRAND } from '../../shared/brand.js';
@@ -589,14 +588,8 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
   // the user still imported it, so the row they get back is the one that must be starred.
   attachImportToUser(db, userId, finalJobId);
 
-  setImmediate(() => {
-    // recordRun:false — this pass is triggered by a user importing one URL, not by the cron.
-    // Logging it would interleave dozens of incidental passes with the scheduled pipeline's
-    // history and push the real runs out of the monitor's recent-runs view. The enrichment
-    // itself still happens and still shows up in coverage.
-    runEnrichment(db, anthropic, { recordRun: false })
-      .catch(e => console.warn('[importJob] Background enrichment failed:', e.message));
-  });
+  // No enrichment pass after an import (D17, A80 V4): it was a model call per imported URL. The
+  // row is enriched when an export → import round trip covers it, like every other row.
 
   // Read back BEFORE reporting success, and say so out loud if the row is not there.
   //

@@ -29,7 +29,9 @@ const ALLOWED = new Set([
 
 // Each entry names its A80 item. Delete the entry in the same commit that removes the call.
 const KNOWN_VIOLATIONS = new Map([
-  ["enrich_job",     "A80 V4 — enrichment (the automatic triggers)"],
+  // V4 is done for REACHABILITY (no caller — pinned below); the call itself still sits in
+  // enrichJob.js beside the pieces the export/import round trip reuses. Delete it to close this.
+  ["enrich_job",     "A80 V4 — enrichJob.js's model call, unreachable since V4"],
   ["domain_chips",   "A80 V3 — /api/domain-profiles/generate-chips"],
   ["import_job",     "A80 V5 — capture/paste extraction"],
   ["classifier",     "A80 V6 — /api/smart-search sends the résumé to a classifier"],
@@ -121,4 +123,22 @@ test("D17 V2:/api/standalone/generate scores its résumé with the deterministic
   const page = fs.readFileSync("client/src/pages/tools/GenerateToolPage.jsx", "utf8");
   assert.match(page, /result\.ats\?\.band/, "the page reads the band the server sends");
   assert.doesNotMatch(page, /result\.atsScore/);
+});
+
+test("D17 V4: nothing in production starts a model enrichment pass — no cron drain, no post-import pass, no run route", () => {
+  // runEnrichment / drainEnrichment are the model passes. They may only be referenced inside
+  // enrichJob.js itself; any production file importing or calling one has put the automatic (or
+  // one-click) model enrichment back.
+  const offenders = [];
+  for (const file of productionFiles()) {
+    const f = file.replace(/\\/g, "/");
+    if (f === "services/jobs/enrichJob.js") continue;
+    // Comments mention both names as history; only code counts.
+    const code = fs.readFileSync(file, "utf8").split(/\r?\n/)
+      .filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l)).map(l => l.replace(/\s\/\/.*$/, "")).join("\n");
+    if (/\b(runEnrichment|drainEnrichment)\b/.test(code)) offenders.push(f);
+  }
+  assert.deepEqual(offenders, [], "a production file reaches the model enrichment pass again");
+  const route = fs.readFileSync("routes/enrichment.js", "utf8");
+  assert.match(route, /status\(410\)[\s\S]{0,80}enrichment_by_model_retired/, "POST /run's apply is refused");
 });

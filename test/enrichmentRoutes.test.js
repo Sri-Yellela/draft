@@ -104,19 +104,19 @@ test("routes: POST /run is a DRY RUN unless apply is true", async () => {
     assert.equal(body.applied, false);
     assert.equal(body.dryRun, true);
     assert.equal(body.plan.wouldSend, 1);
-    assert.ok(body.plan.estimate.usd > 0);
+    assert.equal(body.plan.estimate, undefined, "no model run, so no cost to quote (D17)");
     assert.match(body.note, /no model was called/);
+    assert.match(body.note, /\/export .*\/import/, "the dry run names the round trip that replaced the run");
   } finally { server.close(); }
 });
 
-test("routes: POST /run with apply refuses when no client is configured", async () => {
-  // runEnrichment degrades to a logged no-op without a client, so "I ran it" could otherwise
-  // quietly mean "it skipped".
+test("routes: POST /run with apply is 410 — enrichment by model is retired (D17)", async () => {
   const { server, base } = setup({ anthropic: null });
   try {
     const { status, body } = await post(base, "/run", { apply: true });
-    assert.equal(status, 503);
-    assert.match(body.error, /silently skip rather than fail/);
+    assert.equal(status, 410);
+    assert.equal(body.error, "enrichment_by_model_retired");
+    assert.equal(body.applied, false);
   } finally { server.close(); }
 });
 
@@ -140,34 +140,18 @@ test("routes: POST /run rejects a nonsense limit rather than defaulting", async 
   } finally { server.close(); }
 });
 
-test("routes: POST /run reports coverage and warns when no column gained", async () => {
-  // The A2 failure mode: HTTP 200, success:true, a clean usage row, and a NULL extraction 49 times
-  // in 50. A stub that answers with one real field proves the coverage delta is computed from the
-  // database rather than from the call count.
-  const anthropic = { messages: { create: async () => ({
-    content: [{ text: JSON.stringify({
-      summary: "A backend role.", normalizedTitle: null, experienceLevel: null, workplaceType: null,
-      skillsHard: [], skillsSoft: [], salaryMinUsd: null, salaryMaxUsd: null, salaryPeriod: null,
-      isH1bSponsor: null, requiresWorkAuth: null, isClearanceRequired: null, orgUnit: null,
-    }) }],
-    usage: { input_tokens: 10, output_tokens: 5 },
-  }) } };
+test("routes: POST /run with apply never calls a model, even with a client configured (D17)", async () => {
+  // Was "reports coverage and warns when no column gained" — the model run this route made until
+  // D17. A client that fails the test if touched proves the refusal does not depend on there being
+  // no key, and the row and batch tables prove nothing was written.
+  const anthropic = new Proxy({}, { get(_t, k) { throw new Error(`the model client was touched (.${String(k)})`); } });
   const { db, server, base } = setup({ anthropic });
-  db.exec(`CREATE TABLE company_technographics (company TEXT, skill TEXT, weight REAL,
-           last_seen INTEGER, posting_count INTEGER, PRIMARY KEY (company, skill));`);
   try {
-    const { body } = await post(base, "/run", { apply: true, jobIds: ["fresh"] });
-    assert.equal(body.applied, true);
-    assert.equal(body.enriched, 1);
-    assert.equal(body.coverageClimbed, true);
-    assert.equal(body.warning, null);
-    const summary = body.coverage.find(c => c.column === "summary");
-    assert.equal(summary.delta, 1);
-    // The visa columns are reported but excluded from the verdict, and the response says so.
-    const h1b = body.coverage.find(c => c.column === "is_h1b_sponsor");
-    assert.equal(h1b.sourceSilent, true);
-    assert.match(body.visaColumnsNote, /source material, not a failure/);
-    assert.ok(body.batchId, "the pass is attributable to a batch");
+    const { status, body } = await post(base, "/run", { apply: true, jobIds: ["fresh"] });
+    assert.equal(status, 410);
+    assert.equal(body.error, "enrichment_by_model_retired");
+    assert.equal(db.prepare("SELECT COUNT(*) n FROM scraped_jobs WHERE enriched_at IS NOT NULL").get().n, 0);
+    assert.equal(db.prepare("SELECT COUNT(*) n FROM enrichment_batches").get().n, 0);
   } finally { server.close(); }
 });
 
