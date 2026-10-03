@@ -21,6 +21,7 @@ import { jobDetailHref } from "../lib/jobUrl.js";
 import { api } from "../lib/api.js";
 import { atsBandFor, atsBandLabel, ATS_NUMBER_SHOWN } from "../../../shared/atsBands.js";
 import { columnsFor } from "../lib/bubbleColumns.js";
+import { DraftMark } from "./DraftMark.jsx";
 import "./JobBubble.css";
 
 
@@ -116,8 +117,8 @@ export default function JobBubble({ job, score = null, selected = false, saved =
           <button type="button" className="jb__sq jb__sq--draft" data-done={drafted ? "true" : undefined}
             disabled={drafted || drafting} onClick={stop(onDraft)}
             aria-label={drafted ? "Drafted" : drafting ? "Drafting" : "Draft"}
-            title={drafted ? "Drafted — it waits for your review in Auto Apply" : "Draft — queue it for your review. Nothing is sent until you approve it."}>
-            /d
+            title={drafted ? "Drafted — it waits for your review on the Draft tab" : "Draft — queue it for your review. Nothing is sent until you approve it."}>
+            <DraftMark />
           </button>
         )}
       </div>

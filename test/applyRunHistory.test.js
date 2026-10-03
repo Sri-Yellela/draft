@@ -602,7 +602,7 @@ test("AC4 -> AD1: 'not asked yet', 'nothing happened' and 'nothing in this tab' 
   // A FOURTH exists and is not one of the three: a search that matched nothing. A filtered listing
   // saying "nothing pending" while six things are pending would be a lie.
   assert.match(panel, /\{!historyDate && !historyLoading && \(/);
-  assert.match(panel, /Pick a date to see the applications you added to auto-apply that day/);
+  assert.match(panel, /Pick a date to see the jobs you drafted that day/);
   assert.match(panel, /\{historyDate && history !== null && history\.total === 0 && \(/);
   assert.match(panel, /No applications on \{localDateLabel\(history\.date\)\}/);
   assert.match(panel, /history\.total > 0 && listedJobs\.length === 0 && \(/);

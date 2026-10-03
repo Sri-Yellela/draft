@@ -444,7 +444,7 @@ export function AutoApplyPanel() {
       <div>
         {/* A53: the deck's type — the display serif for what the page is (styles/type.js). */}
         <h2 style={TYPE.PAGE_TITLE}>
-          Auto Apply
+          Draft
         </h2>
         <p style={{ ...TYPE.LEAD, margin: "10px 0 0" }}>
           Applications are filled and held for your approval. Nothing is submitted until you approve
@@ -853,7 +853,7 @@ export function AutoApplyPanel() {
         <div data-rm-empty="no-date"
              style={{ padding: "22px 20px", border: `1px dashed ${theme.border}`, borderRadius: 8,
                       color: theme.textMuted, fontSize: 12, textAlign: "center" }}>
-          Pick a date to see the applications you added to auto-apply that day.
+          Pick a date to see the jobs you drafted that day.
           {Object.keys(historyMarkers).length > 0 && " Dates with activity are dotted in the calendar."}
         </div>
       )}
