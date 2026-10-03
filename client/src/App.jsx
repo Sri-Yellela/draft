@@ -316,7 +316,9 @@ function AppDashboard({ authUser, setAuthUser }) {
     { id: "auto-apply",   label: "Auto Apply" },
     { id: "job-profiles", label: "Job Profiles" },
     { id: "database",     label: "Database" },
-    { id: "recruiter",    label: "Recruiter" },
+    // D5: no "Recruiter" tab. FE-6 built the surface, but there is no recruiter role, signup or
+    // front door, so a candidate-side tab advertised a product that does not exist. The panel and
+    // its route stay (ROUTE_ONLY_TABS below) for the two in-app deep links and R2–R6.
   ];
 
   // The Jobs-only chrome's height, animated in and out. Its `open` input is simply "is Jobs the
@@ -331,9 +333,12 @@ function AppDashboard({ authUser, setAuthUser }) {
   // "plans" is in this set only when the lever is on. It is the set BOTH handlePanelChange and the
   // route guard read, so dropping it here makes /app/plans bounce to the board the same way any
   // other non-tab path does — the panel is absent, not an empty panel that renders nothing.
+  // Panels with a route and no tab: reachable by link, never advertised in the bar (D5).
+  const ROUTE_ONLY_TABS = ["recruiter"];
   const NAVIGABLE_TABS = useMemo(
     () => new Set([...appTabs.map(t => t.id).filter(id => id !== "console"),
-                   ...(monetisationEnabled ? ["plans"] : []), "profile", "integrations", "account"]),
+                   ...(monetisationEnabled ? ["plans"] : []), "profile", "integrations", "account",
+                   ...ROUTE_ONLY_TABS]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [monetisationEnabled],
   );
