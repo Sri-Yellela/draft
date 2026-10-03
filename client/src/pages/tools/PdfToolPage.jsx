@@ -20,8 +20,7 @@ export function PdfToolPage() {
           PDF tools that never upload your file
         </h1>
         <p style={{ fontSize: 15, color: theme.textMuted, marginBottom: 28, lineHeight: 1.6 }}>
-          Merge, split, compress for an upload limit, protect, unlock, and more — all of it runs in this
-          browser.
+          Merge, split, compress for an upload limit, protect, unlock, turn into images, read the text.
         </p>
         <PdfToolkit initial={params.get("tool") || "merge"} />
       </main>
