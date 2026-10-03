@@ -58,6 +58,10 @@ const PUBLIC = new Set([
   // postings with no user column, the query is capped at 20 rows a page, and the page it feeds is
   // reachable without an account. Nothing user-scoped is in scope for it to leak.
   "GET /api/jobs/generic",
+  // A77: a company's stored LOGO, by company key. company_logos has no user column — a logo is a fact
+  // about an employer, and the anonymous landing feed shows logos too. Image bytes only (raster, nosniff,
+  // CSP default-src 'none').
+  "GET /api/company-logo/:key",
   // Standalone tool pages: a separate, deliberately anonymous surface with its own
   // standalone_users table and its own rate limiting. Not the signed-in application.
   "POST /api/standalone/auth/google",
@@ -488,6 +492,8 @@ test("every authenticated route taking an id from the request derives the owner 
     // Stubs. Each responds with a fixed body and reads nothing at all: the recruiter surface is
     // {comingSoon:true}, and server-side PDF export is a 503 pointing at client-side print.
     "server.js: GET /api/jobs/:id/recruiter",
+    // A77: a company logo by company key — company_logos has no user column, nothing to scope.
+    "server.js: GET /api/company-logo/:key",
     "server.js: GET /api/resumes/:jobId/pdf",
   ]);
   const real = offenders.filter(o => !REVIEWED.has(o)).sort();

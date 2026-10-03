@@ -3631,4 +3631,24 @@ export const MIGRATIONS = [
           reviewed_by = excluded.reviewed_by, updated_at = excluded.updated_at;
       `,
     },
+    {
+      // A77 (owner, 10-03): company logos resolved ONCE PER COMPANY during enrichment and STORED — the
+      // bytes, served first-party from /api/company-logo/<key> (services/jobs/companyLogoStore.js), so
+      // a provider that dies later cannot take stored logos with it. status 'none' records a company
+      // nothing could serve (re-tried after 30 days); no URL is ever stored for it.
+      id: "124_company_logos",
+      sql: `
+        CREATE TABLE IF NOT EXISTS company_logos (
+          company_key TEXT PRIMARY KEY,
+          company TEXT NOT NULL,
+          domain TEXT,
+          status TEXT NOT NULL,
+          provider TEXT,
+          mime TEXT,
+          bytes BLOB,
+          error TEXT,
+          checked_at INTEGER NOT NULL
+        );
+      `,
+    },
   ];

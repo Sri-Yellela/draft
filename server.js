@@ -154,6 +154,8 @@ import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
 import { deliverPipelineAlerts } from "./services/jobs/alertDelivery.js";
 import { recordPipelineRun } from "./services/jobs/pipelineRunLog.js";
 import { backfillCompanyLogos } from "./services/jobs/backfillCompanyLogos.js";
+// A77 — per-company logos, resolved during enrichment and stored first-party.
+import { resolveCompanyLogos, storedLogo } from "./services/jobs/companyLogoStore.js";
 import { deriveProfileFilters } from "./services/jobs/profileFilterBridge.js";
 import { suggest } from "./services/jobs/searchSuggestions.js";
 // Bounds the blast radius of one expiry pass — see services/jobs/cleanupBrake.js and cleanup_log 85.
@@ -4006,6 +4008,26 @@ console.log(`[boot] database ready: ${DB_PATH}`);
           reviewed_by = excluded.reviewed_by, updated_at = excluded.updated_at;
       `,
     },
+    {
+      // A77 (owner, 10-03): company logos resolved ONCE PER COMPANY during enrichment and STORED — the
+      // bytes, served first-party from /api/company-logo/<key> (services/jobs/companyLogoStore.js), so
+      // a provider that dies later cannot take stored logos with it. status 'none' records a company
+      // nothing could serve (re-tried after 30 days); no URL is ever stored for it.
+      id: "124_company_logos",
+      sql: `
+        CREATE TABLE IF NOT EXISTS company_logos (
+          company_key TEXT PRIMARY KEY,
+          company TEXT NOT NULL,
+          domain TEXT,
+          status TEXT NOT NULL,
+          provider TEXT,
+          mime TEXT,
+          bytes BLOB,
+          error TEXT,
+          checked_at INTEGER NOT NULL
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -4166,6 +4188,24 @@ try {
   }
 } catch (e) {
   console.error("[boot] company_icon_url backfill failed (board falls back to lettered tiles):", e.message);
+}
+
+// A77 — resolve and STORE each company's logo (services/jobs/companyLogoStore.js). In the background,
+// never at boot's expense: 20 s after start, then every 6 hours, 40 companies a pass. COMPANY_LOGOS=off
+// turns it off (a throwaway or test server has no business fetching employers' homepages).
+// ⛔ A provider with attempts and no success is NAMED in the log — the line that would have caught Clearbit.
+async function runCompanyLogoPass(trigger) {
+  try {
+    const r = await resolveCompanyLogos(db, { limit: 40 });
+    if (r.scanned) console.log(`[logos] ${trigger}: ${r.ok} stored, ${r.none} without a logo (of ${r.scanned}); providers ${JSON.stringify(r.providers)}`);
+    if (r.dead.length) console.error(`[logos] ⛔ provider(s) with attempts and NO success: ${r.dead.join(", ")} — check scripts/a77LogoProvidersLive.mjs`);
+  } catch (e) {
+    console.error(`[logos] ${trigger} pass failed (cards keep their letters):`, e.message);
+  }
+}
+if (process.env.COMPANY_LOGOS !== "off") {
+  setTimeout(() => runCompanyLogoPass("boot"), 20_000).unref?.();
+  setInterval(() => runCompanyLogoPass("interval"), 6 * 3600_000).unref?.();
 }
 
 // Drain the out-of-process failure sink now that the database is known reachable. Anything the
@@ -7994,6 +8034,17 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
     console.error("[GET /api/draft/today]", e.message);
     res.status(500).json({ error: "The deck could not be dealt. Try again." });
   }
+});
+
+// GET /api/company-logo/:key — A77. A company's stored logo, first-party (services/jobs/companyLogoStore.js).
+// Public: a logo is a fact about an employer, and the landing feed shows them too. Raster only (the
+// store refuses SVG); nosniff + a deny-all CSP so the bytes can only ever be an image.
+app.get("/api/company-logo/:key", (req, res) => {
+  const logo = storedLogo(db, req.params.key);
+  if (!logo) return res.status(404).json({ error: "no_logo" });
+  res.set({ "Content-Type": logo.mime, "Cache-Control": "public, max-age=604800",
+            "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'" });
+  res.send(logo.bytes);
 });
 
 // GET /api/jobs/generic -- public cached feed (no auth, no personalization)
