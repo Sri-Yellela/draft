@@ -92,11 +92,14 @@ test("⛔ the card is still the element that expanded: the report is INSIDE the 
 test("⭐ two panels from TWO_PANEL_PX — where two EQUAL columns each hold a card — and the card never resizes on click", () => {
   const { minCard, gap, pad } = TWO_PANEL;
   assert.equal(TWO_PANEL_PX, 2 * minCard + gap + 2 * pad);
-  assert.ok(TWO_PANEL_PX > FAN_SWITCH_PX, "two panels only ever on the horizontal deck");
+  // ⛔ A71 (10-03): two panels start EXACTLY where the horizontal deck starts. At 1176 > 1100 a band of
+  // horizontal screens expanded the card alone and the report "did not open" — the owner saw it on production.
+  assert.equal(TWO_PANEL_PX, FAN_SWITCH_PX, "two panels on EVERY horizontal deck, and only there");
+  for (const vw of [FAN_SWITCH_PX, 1120, 1150, 1175]) assert.equal(twoPanelFor(vw), true, `${vw}: a horizontal deck without two panels`);
   assert.equal(twoPanelFor(TWO_PANEL_PX - 1), false);
   assert.equal(twoPanelFor(TWO_PANEL_PX), true);
   assert.equal(twoPanelFor(390), false);
-  for (const vw of [TWO_PANEL_PX, 1280, 1366, 1440, 1920, 2560]) {
+  for (const vw of [TWO_PANEL_PX, 1150, 1280, 1366, 1440, 1920, 2560]) {
     const w = twoPanelColumn(vw);
     assert.ok(w >= minCard && w <= CARD.horizontal.width, `${vw}: column ${w}`);
     assert.ok(2 * w + gap <= Math.min(TWO_PANEL.maxWidth, vw - 2 * pad), `${vw}: two columns overflow`);
