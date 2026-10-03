@@ -229,7 +229,12 @@ test("profile facts are hard constraints for local jobs and poll", () => {
 test("jobs board structured logs include profile, sort, and result count", () => {
   // Ensures the board-population log line exists for observability
   assert.match(server, /\[jobs\].*profile.*sort.*total.*returned/);
-  assert.match(server, /\[poll\].*profile.*query.*scrape done/);
+  // The "[poll] … scrape done" line could only fire on scrape state nothing wrote; it went with that
+  // state (F2, 10-03), and the poll answers scraping: false outright.
+  assert.doesNotMatch(server, /activeScrapes|scrapeStateKey/);
+  const pollAt = at(server, 'app.get("/api/jobs/poll"');
+  const poll = server.slice(pollAt, at(server, "res.json({", pollAt) + 200);
+  assert.match(poll, /scraping: false,/);
 });
 
 test("/api/jobs does not hard-filter by scrape age — no hidden 7-day cutoff in base conditions", () => {

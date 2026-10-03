@@ -5695,9 +5695,6 @@ function resolveUserJobDomainProfileId(userId, jobId) {
 
 // ── Express ───────────────────────────────────────────────────
 const app = express();
-// Active scrapes: key = "userId:profileId:query", value = { startedAt, done }
-// Polled by GET /api/jobs/poll to determine if a background scrape is still running.
-const activeScrapes = new Map();
 /**
  * AK1 — the corpus term weights that apply to one posting, by its role family.
  *
@@ -6070,10 +6067,6 @@ function enqueueAtsScoreWork(label, worker) {
     }
     atsScoreQueueRunning = false;
   });
-}
-
-function scrapeStateKey(userId, profileId, query) {
-  return `${userId}:${profileId || "none"}:${String(query || "").toLowerCase()}`;
 }
 
 function getProfileSearchFacts(signalProfile = null) {
@@ -8235,12 +8228,6 @@ app.get("/api/jobs/poll", requireAuth, (req, res) => {
   const qRaw   = (req.query.query || "").trim().toLowerCase();
   if (!qRaw) return res.status(400).json({ error:"query required" });
 
-  // Evict stale activeScrapes entries older than 10 minutes
-  const staleCutoff = Date.now() - 10 * 60 * 1000;
-  for (const [k, v] of activeScrapes) {
-    if (v.startedAt < staleCutoff) activeScrapes.delete(k);
-  }
-
   const sinceSeconds = Math.max(0, Math.floor((since - 1000) / 1000));
   const userId = req.user.id;
   const activeProfile = getOrRepairActiveProfile(userId);
@@ -8267,10 +8254,9 @@ app.get("/api/jobs/poll", requireAuth, (req, res) => {
   const pollProfileTitleFilter = profileTitleSql("sj.title", activeProfile);
   const pollSignals = loadSimpleApplyProfile(db, { userId, profileId: activeProfile.id });
   const pollMaxYoe = pollSignals?.yearsExperience != null ? pollSignals.yearsExperience + 2 : null;
-  const pollProfileFacts = getProfileSearchFacts(pollSignals);
-  const scrapeKey = scrapeStateKey(userId, activeProfile.id, qRaw);
-  const scrapeState  = activeScrapes.get(scrapeKey);
-  const stillScraping = !!(scrapeState && !scrapeState.done);
+  // F2 (10-03): no crawl runs per request any more (scrapeJobs went in 2e4ada0), so nothing wrote the
+  // scrape state this route used to read — `scraping` was always false and the client's loop stops
+  // after one read of new rows. The state, its eviction and its key are gone; the answer says so.
 
   const rows = db.prepare(`
     SELECT sj.*, uj.visited, uj.applied, uj.starred, uj.disliked
@@ -8348,34 +8334,21 @@ app.get("/api/jobs/poll", requireAuth, (req, res) => {
     disliked:        !!j.disliked,
   }));
 
-  if (!stillScraping && scrapeState?.done) {
-    // [poll] profile query scrape done — keep this diagnostic shape searchable in tests.
-    console.log(`[poll] ${JSON.stringify({
-      userId,
-      profileId: activeProfile.id,
-      profile: activeProfile.profile_name,
-      query: qRaw,
-      status: "scrape done",
-      pollSinceMs: since,
-      rowsMatched: rows.length,
-      returned: jobs.length,
-      profileFactsUsed: {
-        citizenship: !!pollProfileFacts.citizenshipStatus,
-        workAuthorization: !!pollProfileFacts.workAuthorization,
-        requiresSponsorship: !!pollProfileFacts.requiresSponsorship,
-        hasClearance: !!pollProfileFacts.hasClearance,
-        clearanceLevel: !!pollProfileFacts.clearanceLevel,
-        yearsExperience: pollSignals?.yearsExperience != null,
-      },
-    })}`);
-  }
+  // Which profile facts shaped this read — the line that used to sit behind a scrape that never ran.
+  const pollFacts = getProfileSearchFacts(pollSignals);
+  console.log(JSON.stringify({ msg: "[poll]", profile: activeProfile.profile_name, query: qRaw, returned: jobs.length,
+    profileFactsUsed: {
+      citizenship: !!pollFacts.citizenshipStatus, workAuthorization: !!pollFacts.workAuthorization,
+      requiresSponsorship: !!pollFacts.requiresSponsorship, hasClearance: !!pollFacts.hasClearance,
+      clearanceLevel: !!pollFacts.clearanceLevel, yearsExperience: pollSignals?.yearsExperience != null,
+    } }));
   res.json({
     jobs,
-    scraping: stillScraping,
+    scraping: false,
     total: jobs.length,
-    scrapeUnavailable: !!scrapeState?.error,
-    scrapeError: scrapeState?.error || null,
-    message: scrapeState?.message || null,
+    scrapeUnavailable: false,
+    scrapeError: null,
+    message: null,
   });
 });
 
