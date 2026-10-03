@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { useTheme } from "../../styles/theme.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import ScrollDock from "../../components/ScrollDock.jsx";
-import { atsBandFor, atsBandLabel } from "../../../../shared/atsBands.js";
+import { atsBandLabel } from "../../../../shared/atsBands.js";
 import { C } from "../../styles/colorTokens.js";
 
 const RESUME_PAGE_WIDTH  = 794;
@@ -110,9 +110,9 @@ export function GenerateToolPage() {
                           border: `1px solid ${theme.border}` }}>
               <div>
                 <span style={{ fontWeight: 700, color: theme.text }}>Resume generated</span>
-                {result.atsScore != null && (
+                {result.ats?.band && (
                   <span style={{ marginLeft: 12, fontSize: 12, color: theme.textMuted }}>
-                    Fit: <strong style={{ color: theme.accentText }}>{atsBandLabel(atsBandFor(result.atsScore)).label}</strong>
+                    Fit: <strong style={{ color: theme.accentText }}>{atsBandLabel(result.ats.band).label}</strong>
                   </span>
                 )}
               </div>

@@ -4351,41 +4351,8 @@ const upload = multer({
   preservePath: true,
 });
 
-// ── ATS scoring system prompt (module-level, defined once) ────
-const ATS_SYSTEM_PROMPT = `You are an ATS (Applicant Tracking System) scoring engine.
-
-Score the provided resume against the provided job description.
-Extract keywords ONLY from the job description text provided in this message.
-Do not use prior knowledge, assumptions, or memory of other calls.
-Every keyword in tier1_matched and tier1_missing must appear verbatim
-in the job description text provided below.
-
-ACTION VERB RULES — critical:
-Only include STRONG, SPECIFIC action verbs in action_verbs_matched and action_verbs_missing.
-Strong action verbs are domain-specific and demonstrate concrete professional capability. What counts as strong depends on the role: Architecting and Deploying are strong for engineering; Negotiated, Structured, and Modelled are strong for finance; Procured, Commissioned, and Coordinated are strong for construction PM; Diagnosed, Administered, and Triaged are strong for healthcare. Apply the same principle: include verbs that signal specific professional capability in the domain of the job description. Exclude weak/generic verbs regardless of domain.
-
-WEAK generic verbs to EXCLUDE from action verb lists (do not count these):
-  Utilize, Use, Apply, Employ, Bring, Demonstrate, Perform, Do, Make, Have, Get,
-  Ensure, Support, Help, Assist, Provide, Enable, Allow, Work, Handle, Manage (when vague),
-  Involve, Include, Require, Need, Want, Like, Know, Understand, Able, Capable.
-
-If a verb appears in the JD but is weak/generic, omit it from both action_verbs_matched
-and action_verbs_missing entirely. Do not penalize the candidate for missing weak verbs.
-
-Reply ONLY with valid JSON. No markdown fences, no explanation, no preamble.
-Use this exact schema:
-{
-  "score": <integer 0-100>,
-  "tier1_matched": [<specific technical keywords, tools, skills from JD that appear in resume>],
-  "tier1_missing": [<specific technical keywords, tools, skills from JD NOT in resume>],
-  "action_verbs_matched": [<STRONG domain-specific action verbs from JD found in resume>],
-  "action_verbs_missing": [<STRONG domain-specific action verbs from JD NOT in resume>],
-  "strengths": [<2-4 specific strengths as short sentences>],
-  "improvements": [<2-4 specific improvements as short sentences>],
-  "best_possible_score": <integer — highest achievable score given candidate background. Account for: cloud provider mismatches, domain gaps, missing certifications, seniority gaps>,
-  "best_possible_reason": "<one sentence: specific gaps preventing higher score>",
-  "verdict": "<one sentence overall assessment>"
-}`;
+// ATS_SYSTEM_PROMPT (the model-scored ATS) was deleted under D17 (A80 V2): its last caller,
+// /api/standalone/generate, now scores with the deterministic scorer like everything else.
 
 // ── Helpers (extracted to services/jobNormalization.js) ───────
 // inferWorkType, jobHash, normaliseItem, isFullTimeNorm,
@@ -10268,23 +10235,15 @@ app.post("/api/standalone/generate", requireStandaloneAuth, standaloneRateLimit(
     const html = generated.html;
 
 
-    // Quick ATS score
+    // The fit of the generated résumé — the SAME deterministic scorer and bands as
+    // /api/standalone/ats and the board (D17, A80 V2). This used to be a Haiku call returning the
+    // model's own 0–100, which the page then cut with the product's band cutpoints: a different
+    // scale read through the wrong thresholds. Terms and a band, no number (as /api/standalone/ats).
     const cachedText = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-    let atsScore = null;
-    try {
-      const atsMsg = await callModel({
-        anthropic, db, purpose: "standalone_ats", userId: SYSTEM_USER_ID,
-        // CANDIDATE: an uploaded resume scored against a pasted JD. Never routed off Anthropic.
-        dataClass: DATA_CLASS.CANDIDATE,
-        model: MODEL_HAIKU, max_tokens: 900,
-        system: ATS_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: `JOB DESCRIPTION:\n${jdText}\n\nRESUME TEXT:\n${cachedText}` }],
-      });
-      const atsRaw = atsMsg.content.map(b => b.text || "").join("").replace(/```json|```/g, "").trim();
-      atsScore = JSON.parse(atsRaw).score;
-    } catch {}
+    const ats = standaloneAtsResult({ resumeText: cachedText, jdText, jobTitle: req.body?.job_title,
+                                      termWeightsFor: atsTermWeightsForJob, synonyms: atsSynonyms() });
 
-    res.json({ html, atsScore });
+    res.json({ html, ats });
   } catch(e) {
     const { status, body } = httpErrorFor(e, "Resume generation failed");
     res.status(status).json(body);
