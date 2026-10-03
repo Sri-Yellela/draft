@@ -383,10 +383,11 @@ profile-scoped table — which is exactly why the global `ats_score` column is v
 a migration added only to `scripts/migrations.js` never runs. Each migration and its bookkeeping row
 commit in **one transaction**, so a half-applied migration cannot be recorded as done.
 
-Both runners define **122** numbered migrations. Production had applied **125** on 10-02 (`/api/version`, commit `bfef596`): the
+Both runners define **123** numbered migrations. Production had applied **125** on 10-02 (`/api/version`, commit `bfef596`): the
 first **119** of them (117 is unused), plus **6** unnumbered legacy ids predating the `NNN_` convention (`admin_cache_events`,
 `admin_scrape_events`, `admin_usage_events`, `admin_user_limits`, `ats_only_reports`,
-`contact_messages`). Defined high-water: `122_job_captures` (A62 — every job a user brings in or an admin imports goes through
+`contact_messages`). Defined high-water: `123_owner_skill_aliases` (A72 — the owner's two confirmed skill aliases, ai ≡ artificial
+intelligence and ml ≡ machine learning, which the board's ranked search and the scorer both read), after `122_job_captures` (A62 — every job a user brings in or an admin imports goes through
 one gateway, `services/jobs/jobGateway.js`; `job_captures` records it with the ATS host + slug, `job_import_batches` makes
 an admin import revertible), after `121_application_records` (A63 — `application_records`, a job is
 Pending until a recorded submission VERIFIES and only then written to `job_applications`; `draft_slot_uses`, the ledger
