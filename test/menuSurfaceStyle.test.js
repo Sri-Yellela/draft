@@ -157,9 +157,8 @@ test("search toolbar removes redundant label and checking-jobs icon is a spinner
 
   assert.doesNotMatch(jobsPanel, />Search<\/span>\s*<input value=\{searchInput\}/);
   assert.match(jobsPanel, /placeholder="ATS search role/);
-  assert.match(jobsPanel, /Checking/);
-  assert.match(jobsPanel, /animation:"spin 0\.8s linear infinite"/);
-  assert.doesNotMatch(jobsPanel, />\?<\/span>\s*[\r\n\s]*Checking/);
+  // A74 (owner, 10-03): the "CHECK FOR NEW JOBS" strip and its "Checking…" twin are removed.
+  assert.doesNotMatch(jobsPanel, /Check for new jobs|Checking…/);
 });
 
 // The GOAL of this test is still met — the legacy light/dark toggle really is gone. But its

@@ -1143,35 +1143,7 @@ function PullToRefresh({ onRefresh, refreshing, theme, children }) {
         )}
       </div>
 
-      {/* Desktop "check for new" strip — visible at very top, compact */}
-      {!refreshing && pullY === 0 && (
-        <div onClick={onRefresh} style={{
-          flexShrink:0, padding:"4px 20px",
-          display:"flex", alignItems:"center", justifyContent:"center", gap:6,
-          background:theme.accentMuted, borderBottom:`1px solid ${theme.accent}22`,
-          cursor:"pointer", fontSize:10, fontWeight:700,
-          color:theme.accentText, letterSpacing:"0.06em", textTransform:"uppercase",
-        }}>
-          <span style={{ display:"inline-block", width:10, height:10,
-                         border:`2px solid ${theme.border}`, borderTop:`2px solid ${theme.accent}`,
-                         borderRadius:"50%", marginRight:6, verticalAlign:"-2px" }}/>
-          Check for new jobs
-        </div>
-      )}
-      {refreshing && (
-        <div style={{
-          flexShrink:0, padding:"4px 20px",
-          display:"flex", alignItems:"center", justifyContent:"center", gap:6,
-          background:theme.accentMuted, borderBottom:`1px solid ${theme.accent}22`,
-          fontSize:10, fontWeight:700, color:theme.accentText,
-          letterSpacing:"0.06em", textTransform:"uppercase",
-        }}>
-          <span style={{ display:"inline-block", width:10, height:10,
-                         border:`2px solid ${theme.border}`, borderTop:`2px solid ${theme.accent}`,
-                         borderRadius:"50%", animation:"spin 0.8s linear infinite" }}/>
-          Checking…
-        </div>
-      )}
+      {/* A74 (owner, 10-03): the "CHECK FOR NEW JOBS" strip is removed — there is no live scraping to check. */}
 
       <div
         ref={scrollRef}
@@ -3398,6 +3370,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           Rendering it unconditionally is what has always happened. */}
       {/* Row A: tabs | filters | sort | local-search | job count */}
       {/* Row B (wraps): search input | Search | resume upload */}
+      {(smartSearchError || uploadError) && (
       <div style={{
         background:theme.surface, borderBottom:`1px solid ${theme.border}`,
         padding:"10px 20px", display:"flex", alignItems:"center", gap:8,
@@ -3437,45 +3410,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             What stays visible is the result count and the active-filter indicator, because with
             the filters behind an icon those are the only things that can explain a narrow board. */}
 
-        {/* Active-filter indicator. The count badge on the icon is the at-a-glance signal; this is
-            the same fact in words, and it stays visible when the bar has collapsed to the pill and
-            the badge has scrolled away with it. */}
-        {activeFilterCount > 0 && (
-          <button
-            onClick={() => setFiltersOpen(true)}
-            title="Open filters"
-            style={{
-              display:"inline-flex", alignItems:"center", gap:6, flexShrink:0,
-              background: theme.accentMuted || theme.surface,
-              border:`1px solid ${theme.accent}`, borderRadius:999,
-              padding:"4px 12px", cursor:"pointer",
-              fontFamily:"inherit", fontWeight:700, fontSize:11,
-              color: theme.accentText || theme.text,
-            }}>
-            {activeFilterCount} filter{activeFilterCount === 1 ? "" : "s"} active
-          </button>
-        )}
-
-        {/* Background loading indicator + job count */}
-        <span style={{ fontSize:11, color:theme.textMuted, whiteSpace:"nowrap", flexShrink:0,
-                       display:"flex", alignItems:"center", gap:5 }}>
-          {bgLoading && (
-            <span style={{ display:"inline-block", width:10, height:10,
-                           border:`2px solid ${theme.border}`, borderTop:`2px solid ${theme.accent}`,
-                           borderRadius:"50%", animation:"spin 0.7s linear infinite" }}/>
-          )}
-          {/* ⛔ THE COUNT MUST NOT OUTLIVE THE LIST IT DESCRIBES. `setupBlock` still replaces the
-              board when there is no PROFILE, and this chip sits in the header above it — so it
-              would otherwise report rows that are not on screen. That is exactly what shipped:
-              CWS_test_user's board read "688 jobs" over a blank screen, because a missing resume
-              hid the list while the count kept coming from a successful /api/jobs response.
-              The resume no longer hides anything (see setupBlock), so this case is now only the
-              genuinely empty no-profile state. Measured 2026-09-26 on production. */}
-          {setupBlock
-            ? "setup required"
-            : <>{boardTab === "pending" ? `${displayJobs.length}` : `${totalJobs}`} job{totalJobs !== 1 ? "s" : ""}
-                {localSearch && !bgLoading ? " matched" : ""}</>}
-        </span>
+        {/* A74 (owner, 10-03): the "N filters active" chip and the "567 jobs" count are removed — the
+            filter icon's badge already signals active filters. This row now shows only errors. */}
 
         {/* ATS role search + trigger — superseded by UnifiedSearchBar */}
         {false && (<>
@@ -3529,6 +3465,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             install guard, and its action button called the no-op extension bridge. */}
 
       </div>
+      )}
       {/* Hidden file input — always mounted so TopBar resume upload button works even when toolbar is hidden */}
       <input ref={fileRef} type="file" accept=".txt,.html,.md,.docx,.pdf"
         onChange={handleFile} style={{ display:"none" }}/>
@@ -3926,7 +3863,6 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
       {/* Rendered OUTSIDE the empty/non-empty branch on purpose: the bridge can narrow a board to a
           short list or to nothing at all, and both need to say so. Left inside the non-empty branch
           it would go silent in the very case where the user has least to go on. */}
-      <CurationNotice theme={theme} curation={curation} curateOff={curateOff} onToggleCurate={onToggleCurate}/>
       <FitRankingNotice theme={theme} show={!canRankByFit} onAddResume={onAddResume}/>
       {shouldShowEmptyState ? (
         pagingProblem
@@ -4136,72 +4072,9 @@ function buildVisiblePageItems(currentPage, totalPages) {
 // whose extension-side content script was deleted in v1.2.0. Clicking either only ever opened an
 // "install the extension" modal that no install could satisfy. The LIST below stays — it is fed
 // by the single-job capture path (/api/extension/save-job), which is live.
-// ── Curation disclosure ─────────────────────────────────────────────────────────────────────
-// The board is ORDERED by default from the active profile (services/jobs/profileFilterBridge.js
-// derives q, skills_include, experience_levels and sponsorship_friendly for any dimension the user
-// did not set explicitly). It used to be NARROWED by them, and this banner used to say so.
-//
-// That is the wording change X2 requires. A derived filter now ranks instead of excluding, so
-// "Showing 210 of 241" became false in the one way that matters — all 241 are on the board, and a
-// user told 31 were missing would go looking somewhere else for rows that are simply further down.
-// The banner reports `demoted` now: how many rows sorted below the ones matching the profile.
-//
-// The reason it exists at all is unchanged. Ordering applied silently is still ordering the user
-// cannot account for, and the same imported Quora posting that read as missing under the old regime
-// (a New Grad req against a 3-years profile) would now read as inexplicably buried. Say the number,
-// name the dimensions, and keep one control that turns the whole thing off.
-const CURATION_KEY_LABELS = {
-  q:                    "role keywords",
-  skills_include:       "skills",
-  experience_levels:    "experience level",
-  sponsorship_friendly: "sponsorship",
-  company_sponsorship:  "company H-1B filings",
-  // The board ranks by the caller's own résumé fit inside what the keys above leave tied.
-  fit:                  "fit to your résumé",
-};
-
-function CurationNotice({ theme, curation, curateOff, onToggleCurate }) {
-  const { theme: t } = useTheme();
-  const th = theme || t;
-  // Nothing to disclose unless the bridge actually demoted rows. When the user has switched curation
-  // off we keep a way back on, so the state is never a one-way door they cannot see they are in.
-  if (!curation && !curateOff) return null;
-
-  // `rankedKeys` is the current field; `derivedKeys` was its name while these dimensions still
-  // excluded. Both are read so a client and server that ship out of step still name the reason
-  // instead of silently rendering a bare number.
-  const reasons = (curation?.rankedKeys || curation?.derivedKeys || [])
-    .map(k => CURATION_KEY_LABELS[k] || k)
-    .join(", ");
-
-  return (
-    <div style={{ margin:"8px 16px 0", padding:"8px 12px", borderRadius:4,
-                  background:`${th.accentMuted}66`, border:`1px solid ${th.accentMuted}`,
-                  display:"flex", alignItems:"center", justifyContent:"space-between", gap:12,
-                  flexWrap:"wrap" }}>
-      <span style={{ fontSize:11.5, color:th.text, lineHeight:1.6 }}>
-        {curateOff ? (
-          <>Showing <strong>everything in your role</strong>, unsorted — your profile is not ordering these.</>
-        ) : (
-          <>
-            Sorted for your profile
-            {reasons ? <> ({reasons})</> : null} — all <strong>{curation.total}</strong> jobs are here,
-            with <strong>{curation.demoted}</strong> further down.
-          </>
-        )}
-      </span>
-      <button type="button" onClick={onToggleCurate}
-        style={{ border:`1px solid ${th.text}`, borderRadius:4, padding:"3px 10px",
-                 background:"transparent", color:th.text, fontWeight:700, fontSize:11,
-                 cursor:"pointer", whiteSpace:"nowrap" }}>
-        {/* "Show all N" was the way past a filter that hid rows. Nothing is hidden now, so the
-            control is about the ORDER: keep it, because a user who disagrees with the ranking still
-            needs a way out, but stop promising rows that were never withheld. */}
-        {curateOff ? "Use my profile" : "Don't sort for me"}
-      </button>
-    </div>
-  );
-}
+// A74 (owner, 10-03): the "Sorted for your profile (role keywords, role_key, …)" disclaimer and its
+// "Don't sort for me" toggle are removed — owner-confirmed dead weight. The ORDER is unchanged; the
+// sort control is how a user picks a different one.
 
 function EmptyState({ theme }) {
   const { theme: t } = useTheme();
