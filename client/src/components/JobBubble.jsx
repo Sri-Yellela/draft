@@ -117,7 +117,7 @@ export default function JobBubble({ job, score = null, selected = false, saved =
           <button type="button" className="jb__sq jb__sq--draft" data-done={drafted ? "true" : undefined}
             disabled={drafted || drafting} onClick={stop(onDraft)}
             aria-label={drafted ? "Drafted" : drafting ? "Drafting" : "Draft"}
-            title={drafted ? "Drafted — it waits for your review on the Draft tab" : "Draft — queue it for your review. Nothing is sent until you approve it."}>
+            title={drafted ? "Drafted — it waits for your review in Draft House" : "Draft — queue it for your review. Nothing is sent until you approve it."}>
             <DraftMark />
           </button>
         )}

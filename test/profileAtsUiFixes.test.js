@@ -16,7 +16,7 @@ test("job card hover preview uses shared active-aware icon helpers for save and 
   assert.match(buttons, /label="Remove" title="Remove from saved" onClick=\{onUnsave\}/);
   // AE5 gave the thumbs-down's slot to the action that MOVES an application forward — Draft now
   // (was Queue Auto) — and it reports its own state rather than firing twice.
-  assert.match(buttons, /title=\{drafted \? "Drafted — it waits for your review on the Draft tab"/);
+  assert.match(buttons, /title=\{drafted \? "Drafted — it waits for your review in Draft House"/);
   assert.match(buttons, /disabled=\{drafted \|\| drafting\}/);
   assert.doesNotMatch(jobCard, /activeLabel="Undo pass"/,
     "the listing must not grow the thumbs-down back — see AE5 for where Pass lives");

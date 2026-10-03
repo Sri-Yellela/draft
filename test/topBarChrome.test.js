@@ -73,7 +73,8 @@ test("the profile menu kept everything it already had", () => {
   // per-session accent and the picker that chose among four were killed by the owner (2026-09-27),
   // and the accent is the logo orange, always. So it is asserted GONE, not merely dropped from here:
   // test/colorTokens.test.js pins the picker's absence from comment-stripped source.
-  for (const kept of [/PROFILE/, /Job Profile/, /Manage Job Profiles/, /<ProfileSelectorDropdown/,
+  // D18: "Manage Job Profiles" MOVED into the menu's Settings group as "Job Profiles" — moved, not lost.
+  for (const kept of [/PROFILE/, /Job Profile/, />Settings<\/div>[\s\S]{0,400}Job Profiles/, /<ProfileSelectorDropdown/,
                       /Sign Out|onLogout/]) {
     assert.match(menu, kept, `the profile menu lost ${kept}`);
   }
@@ -116,8 +117,11 @@ test("the app logo is the REDESIGNED mark — /draft and /d, by construction, be
 
   // The mark, asserted once, where it lives: the owner's artwork, both states, an accessible name.
   const stamp = stripComments(read("client/src/components/StampLogo.jsx"));
-  assert.match(stamp, /import wordmarkSrc from '\.\.\/assets\/brand\/wordmark\.png';/, "the expanded mark is not the artwork");
-  assert.match(stamp, /import monogramSrc from '\.\.\/assets\/brand\/monogram\.png';/, "the condensed mark is not the artwork");
+  // D19: the artwork is drawn as two masks per state (slash, letters), cut from these same PNGs by
+  // scripts/d19SplitMark.mjs — test/d19MarkLightMode.test.js proves the masks are fresh from the art.
+  for (const part of ["wordmark-slash", "wordmark-letters", "monogram-slash", "monogram-letters"]) {
+    assert.match(stamp, new RegExp(`from '\\.\\./assets/brand/${part}\\.png';`), `the mark does not draw ${part} from the artwork`);
+  }
   assert.match(stamp, /role="img" aria-label=\{WORDMARK\}/, "the mark has no accessible name");
   for (const f of ["client/src/assets/brand/wordmark.png", "client/src/assets/brand/monogram.png"]) {
     assert.ok(fs.existsSync(f) && fs.statSync(f).size > 1000, `${f} is missing or empty`);
@@ -203,7 +207,8 @@ test("the tab row moved into the top bar, whole, and from appTabs", () => {
   assert.match(app, /tabs=\{appTabs\}/, "the bar is no longer fed from appTabs");
 
   // The styling is UnifiedSearchBar's verbatim, because this is a MOVE.
-  for (const kept of [/borderRadius: 999,/, /textTransform: "uppercase", letterSpacing: "0\.08em"/,
+  // (D18/O56e: below 560px the spacing tightens to fit a phone; the desktop value is still 0.08em.)
+  for (const kept of [/borderRadius: 999,/, /textTransform: "uppercase", letterSpacing: narrow \? "0\.04em" : "0\.08em"/,
                       /fontSize: 12, fontWeight: 600, cursor: "pointer"/]) {
     assert.match(topBarCode, kept, `the tab styling changed on the way across (${kept})`);
   }
