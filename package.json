@@ -44,9 +44,5 @@
   },
   "engines": {
     "node": ">=20.0.0"
-  },
-  "devDependencies": {
-    "@cantoo/pdf-lib": "^2.11.1",
-    "pdfjs-dist": "^4.10.38"
   }
 }
