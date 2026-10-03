@@ -166,7 +166,7 @@ export function ATSToolPage() {
             {[
               { title: "AI Resume Generator", desc: "Rewrites your resume around this job, from what you have actually done" },
               { title: "Job Discovery",        desc: "A board ranked by how well each job fits you" },
-              { title: "Auto Apply",            desc: "Apply to matched roles in one click" },
+              { title: "Draft",                 desc: "One click fills the application; nothing is sent until you approve it" },
             ].map(f => (
               <div key={f.title} style={{ padding: 20, borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.bg }}>
                 <div style={{ fontWeight: 700, marginBottom: 6, color: theme.text }}>{f.title}</div>

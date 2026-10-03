@@ -94,7 +94,8 @@ test("the pipeline's state sits above the tab switch, so a run keeps reporting w
 });
 
 test("the tab exists, routes, and is not bounced back to the board", () => {
-  assert.match(app, /\{ id: "auto-apply",\s*label: "Auto Apply" \}/);
+  // D6: the tab DISPLAYS "Draft"; its id and route stay "auto-apply" (internal, docs/BRAND.md).
+  assert.match(app, /\{ id: "auto-apply",\s*label: "Draft" \}/);
   // BOTH directions. There were two hardcoded copies of the tab list — one in handlePanelChange and
   // one in the redirect guard — and adding a tab to appTabs satisfied neither: the tab rendered and
   // navigated nowhere, and typing the URL bounced straight back to the board. Both now derive from
@@ -112,7 +113,8 @@ test("the board keeps a count badge, and only when something needs a human", () 
   // nothing at all.
   assert.match(ctx, /needsAttentionCount: applyPending\.length \+ applyReviewJobs\.length \+ applyQuestions\.length/);
   assert.match(app, /needsAttentionCount > 0/);
-  assert.match(app, /needs\$\{needsAttentionCount === 1 \? "s" : ""\} your attention|need\$\{needsAttentionCount === 1 \? "s" : ""\} your attention/);
+  // D6: under the name "Draft" the count is said as drafts that need you, not a bare "need".
+  assert.match(app, /needsAttentionCount === 1 \? "draft needs" : "drafts need"\} your attention/);
   // The queue itself is deliberately NOT counted: queueing a job is not something waiting on you.
   assert.ok(!/needsAttentionCount[^;]*applyQueue/.test(ctx),
     "the queue is counted as needing attention — queueing a job is not a thing waiting on a human");

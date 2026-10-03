@@ -57,7 +57,8 @@ test("the rail: three 52px squares, zero width until hover / focus-within, one m
   const rail = jsx.slice(at(jsx, '<div className="jb__rail">', 0, "rail"), at(jsx, "{companyView &&", 0, "end"));
   assert.equal((rail.match(/<button /g) || []).length, 3);
   assert.doesNotMatch(rail, /Generate|onGenerate|onVisit|↗/);
-  assert.match(rail, />\n\s*\/d\n\s*<\/button>/, "Draft is the mark");
+  // D6: the mark is DraftMark.jsx — the one implementation the top bar's Draft tab renders too.
+  assert.match(rail, />\s*<DraftMark \/>\s*<\/button>/, "Draft is the mark");
 });
 
 test("⭐ depth on every control, from TOKENS (rest, hover lift, press, the orange-tinted Draft)", () => {

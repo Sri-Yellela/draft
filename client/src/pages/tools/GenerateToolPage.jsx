@@ -166,7 +166,7 @@ export function GenerateToolPage() {
             {[
               { title: "Job Discovery",  desc: "Find fresh roles matched to your profile" },
               { title: "ATS Scoring",    desc: "See your score before you apply" },
-              { title: "Auto Apply",     desc: "Apply to matched roles in one click" },
+              { title: "Draft",          desc: "One click fills the application; nothing is sent until you approve it" },
             ].map(f => (
               <div key={f.title} style={{ padding: 20, borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.bg }}>
                 <div style={{ fontWeight: 700, marginBottom: 6, color: theme.text }}>{f.title}</div>

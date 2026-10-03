@@ -98,8 +98,9 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
 
 .jb__sq--save[aria-pressed="true"] { color: var(--c-accent-ink); }
 
-/* DRAFT — the mark, /d, on the orange, with a shadow tinted in its own colour. */
+/* DRAFT — the mark, /d, on the orange, with a shadow tinted in its own colour. The mark's face is
+   DraftMark.jsx's (D6: the top bar's Draft tab renders the same component); the size is the card's. */
 .jb__sq--draft { background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent);
-                 font-family: 'Poppins', var(--font-body); font-style: italic; font-weight: 800; font-size: 19px; letter-spacing: -.02em; }
+                 font-size: 19px; }
 .jb__sq--draft:hover, .jb__sq--draft:focus-visible { box-shadow: var(--c-depth-accent); }
 .jb__sq--draft[data-done="true"] { opacity: .55; }
