@@ -242,18 +242,24 @@ const FIT_KEYS = Object.freeze([
 // default sort, the FIT keys decide: ATS match, descending — the owner's tie-break, and the same two
 // keys the default board already uses, so NOT ESTABLISHED keeps its place between Moderate and Weak.
 // An explicit sort ("Pay high to low") replaces the fit tie-break and keeps the tier.
-function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null } = {}) {
+//
+// ⭐ A73 · `established`: one key per filter the user SET on a soft-null column (jobQuery.js
+// buildJobFilters' `established.keys`, 0 = known to match, 1 = not classified yet). They follow a
+// search tier and lead everything else, on EVERY sort — the user asked for Remote, so the rows known
+// to be remote come first whatever order they chose inside that.
+function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null, established = [] } = {}) {
   const chosen = SORT_KEYS[sort] || SORT_KEYS.dateDesc;
   const sortIsDefault = !sort || sort === "dateDesc";
+  const known = (established || []).map(k => KEY(k.sql, "ASC", k.params || []));
   if (search?.sql) {
     const tier = KEY(search.sql, "ASC", search.params || []);
-    return assertTotalOrder([tier, ...(sortIsDefault ? FIT_KEYS : []), ...chosen], sort || "dateDesc");
+    return assertTotalOrder([tier, ...known, ...(sortIsDefault ? FIT_KEYS : []), ...chosen], sort || "dateDesc");
   }
   const prefix = sortIsDefault
     ? rankKeys.map(k => KEY(`(${k.sql})`, "ASC", k.params || []))
     : [];
   const fitKeys = sortIsDefault && fit ? FIT_KEYS : [];
-  return assertTotalOrder([...prefix, ...fitKeys, ...chosen], sort || "dateDesc");
+  return assertTotalOrder([...known, ...prefix, ...fitKeys, ...chosen], sort || "dateDesc");
 }
 
 /** Did this key list order by fit? The board discloses it as `curation.rankedKeys` 'fit'. */

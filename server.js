@@ -7547,7 +7547,8 @@ async function boardPageResponse(req) {
       // tab (a record of what the user chose, ordered as they chose it) and under ?curate=off,
       // which is the user saying "don't sort for me" — fit is sorting for them, so it obeys that.
       const fitRequested = !savedTab && req.query.curate !== 'off';
-      const orderKeys = buildOrderKeys(sort, richFilters.rank.keys, { fit: fitRequested, search: boardSearch });
+      const orderKeys = buildOrderKeys(sort, richFilters.rank.keys,
+        { fit: fitRequested, search: boardSearch, established: richFilters.established.keys });
       const fitApplied = ordersByFit(orderKeys);
       // The fit keys sort on scores a precompute pass can rewrite while this user pages, so the
       // cursor is signed with an EPOCH that moves whenever their scores do: the newest report row
@@ -7776,6 +7777,13 @@ async function boardPageResponse(req) {
       // three variables, so a future edit cannot fork one without failing.
       const total = db.prepare(`SELECT COUNT(*) as n ${joinClause} ${whereClause}`).get(...baseArgs)?.n || 0;
       const totalPages = Math.ceil(total / ps);
+      // A73 · of `total`, how many are on the board only because a filter the user set could not
+      // judge them (the column is not classified yet). They are ordered last; this says how many.
+      const unclassifiedSql = richFilters.established.unclassifiedSql;
+      const unclassified = unclassifiedSql
+        ? { count: db.prepare(`SELECT COUNT(*) as n ${joinClause} ${whereClause} AND ${unclassifiedSql}`).get(...baseArgs)?.n || 0,
+            filters: richFilters.established.filters }
+        : null;
 
       // WHY THE PAGE IS EMPTY, WHEN IT IS. Absent whenever rows came back, so a healthy response is
       // byte-identical to before and no client has to learn a new field to keep working.
@@ -7804,6 +7812,8 @@ async function boardPageResponse(req) {
         jobs:       rows.map(j => ({ ...mapJobRow({ ...j, matchScore: presentedScore(j, { basisHash: boardBasisHash }) }),
                                      scrapedAt: j.scraped_at })),
         total,
+        // A73 · present only when a user-set filter kept rows it could not judge; they sort last.
+        ...(unclassified ? { unclassified } : {}),
         page:       pg,
         pageSize:   ps,
         totalPages,

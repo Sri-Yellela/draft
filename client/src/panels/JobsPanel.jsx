@@ -436,6 +436,8 @@ function defaultFilterSnapshot() {
 // one out of the other's source to check. Importing them makes "the filters drawer and the
 // JD/PDF/ATS dock share a top edge" true by construction. And the top one is no longer a number at
 // all: it is `calc(var(--app-chrome-height) + 34px)`, so it tracks the bar's measured height (Y4).
+// A73 · the board's own failure message starts with this, so a later success clears only its own.
+const BOARD_ERROR_PREFIX = "The board could not be updated";
 const FILTER_DRAWER_TOP = PANEL_TOP_INSET;
 const FILTER_DRAWER_BOTTOM = PANEL_BOTTOM_INSET;
 
@@ -2316,6 +2318,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       setTotalJobs(d.total || 0);
       setTotalPages(d.totalPages || 0);
       setCurrentPage(page);
+      // A73 · this request answered, so a board error from an earlier one no longer describes the screen.
+      setScrapeError(prev => (typeof prev === "string" && prev.startsWith(BOARD_ERROR_PREFIX) ? null : prev));
       // Absent whenever the bridge hid nothing (and on ?curate=off), so this clears itself as soon
       // as the board stops being narrowed — the notice can never outlive the condition it describes.
       setCuration(d.curation || null);
@@ -2336,6 +2340,15 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         totalPages: d.totalPages || 0,
         currentPage: page,
       }));
+    } catch (e) {
+      // ⛔ A73 · A FAILED BOARD REQUEST MUST SAY SO. It used to throw into an effect nobody awaited:
+      // the previous board stayed on screen, unchanged and unexplained, so a filter whose request
+      // failed looked exactly like a filter that does nothing. Said on the board, then rethrown for
+      // the callers that await it.
+      if (requestSeq === jobsFetchSeqRef.current) {
+        setScrapeError(`${BOARD_ERROR_PREFIX} — ${e?.message || "the request failed"}. The jobs shown are from before that change.`);
+      }
+      throw e;
     } finally {
       if (requestSeq === jobsFetchSeqRef.current) setBgLoading(false);
     }
@@ -2427,7 +2440,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (!user) return;
     const page = nextFetchPageRef.current || 1;
     nextFetchPageRef.current = 1;
-    fetchJobs(page);
+    fetchJobs(page).catch(() => {});   // A73: fetchJobs puts the failure on the board itself
   }, [sortBy, roleFilter, locationFilter, workType, employmentTypePrefs, catFilter, srcFilter,
       minYoe, maxYoe, maxApplicants, visitedFilter, ageFilter, boardTab, refreshKey,
       profileSwitchKey, activeProfileKey,
@@ -2557,7 +2570,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (!user) return;
     const timer = setTimeout(() => {
       setCurrentPage(1);
-      fetchJobsRef.current?.(1);
+      fetchJobsRef.current?.(1)?.catch(() => {});
     }, 300);
     return () => clearTimeout(timer);
   }, [localSearch]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -2573,14 +2586,14 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       ));
     },
     resume_generated: () => {
-      fetchJobs(currentPage);
+      fetchJobs(currentPage).catch(() => {});
     },
     profile_switched: ({ profileId }) => {
       if (profileId) setActiveProfileId?.(Number(profileId));
       setProfileSwitchKey(k => k + 1);
     },
     scrape_complete: () => {
-      fetchJobs(1);
+      fetchJobs(1).catch(() => {});
     },
   });
 
@@ -2623,7 +2636,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           totalNew += newJobs.length;
           // Re-read through /api/jobs so progressive merges honor local filters,
           // profile hard constraints, sort mode, and pagination consistently.
-          fetchJobsRef.current?.(1);
+          fetchJobsRef.current?.(1)?.catch(() => {});
         }
 
         if (!pollData.scraping) {
@@ -2632,7 +2645,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           setScraping(false);
           setPollStatus("idle");
           // Re-fetch from DB with current sort so poll-prepended jobs end up in correct order
-          fetchJobsRef.current?.(1);
+          fetchJobsRef.current?.(1)?.catch(() => {});
         }
       } catch {
         failCount++;

@@ -339,6 +339,13 @@ function buildJobFilters(params = {}, opts = {}) {
   // key -> { sql, params }; assembled into DERIVED_RANK_ORDER at the end so the ORDER BY key order
   // is this module's documented decision and not the order the caller happened to build params in.
   const ranks = {};
+  // ⭐ A73 · KNOWN MATCHES LEAD. A filter the user SETS on a sparsely classified column keeps the
+  // unclassified rows (soft-null — "a row is never hidden because we have not classified it"), and
+  // on a board that is mostly unenriched that meant the filter changed NOTHING the user could see:
+  // the kept NULL rows held their places at the top. Each such filter now also contributes an
+  // ORDER key, `(column IS NULL) ASC`, so the rows KNOWN to match come first and the unclassified
+  // follow. Nothing is hidden that was shown before; what was shown first is now what matched.
+  const established = [];
   const derivedKeys = new Set(toArray(opts.derivedKeys));
   const isDerived = (key) => derivedKeys.has(key) && DERIVED_RANK_ORDER.includes(key);
 
@@ -457,6 +464,7 @@ function buildJobFilters(params = {}, opts = {}) {
   if (workModels.length) {
     clauses.push(`(sj.workplace_type IS NULL OR sj.workplace_type IN (${workModels.map(() => '?').join(',')}))`);
     args.push(...workModels);
+    established.push({ key: 'work_models', sql: 'sj.workplace_type IS NULL' });
   }
 
   // Soft-null, same class as work_models above and for the same reason — but reached by a route
@@ -471,6 +479,7 @@ function buildJobFilters(params = {}, opts = {}) {
   if (employmentTypes.length) {
     clauses.push(`(sj.employment_type IS NULL OR sj.employment_type IN (${employmentTypes.map(() => '?').join(',')}))`);
     args.push(...employmentTypes);
+    established.push({ key: 'employment_types', sql: 'sj.employment_type IS NULL' });
   }
 
   // EXPLICIT -> excludes (soft-null). DERIVED -> ranks. See DERIVED_RANK_ORDER.
@@ -497,6 +506,7 @@ function buildJobFilters(params = {}, opts = {}) {
     } else {
       clauses.push(`(sj.experience_level IS NULL OR sj.experience_level IN (${inList}))`);
       args.push(...experienceLevels);
+      established.push({ key: 'experience_levels', sql: 'sj.experience_level IS NULL' });
     }
   }
 
@@ -596,6 +606,7 @@ function buildJobFilters(params = {}, opts = {}) {
       // skill-less row.
       clauses.push(`(${SKILLS_UNKNOWN_SQL} OR (${skillMatch.sql}))`);
       args.push(...skillMatch.params);
+      established.push({ key: 'skills_include', sql: SKILLS_UNKNOWN_SQL });
     }
   }
   // skills_exclude is ALWAYS explicit (the bridge never derives it) and stays an exclusion. It
@@ -634,6 +645,7 @@ function buildJobFilters(params = {}, opts = {}) {
     } else {
       clauses.push(`(sj.requires_work_auth IS NULL OR sj.requires_work_auth != 1)`);
       clauses.push(`(sj.is_h1b_sponsor IS NULL OR sj.is_h1b_sponsor != 0)`);
+      established.push({ key: 'sponsorship_friendly', sql: 'sj.requires_work_auth IS NULL AND sj.is_h1b_sponsor IS NULL' });
     }
   }
 
@@ -784,6 +796,14 @@ function buildJobFilters(params = {}, opts = {}) {
       demotedParams: rankSqls.length ? [...rankParams] : [],
     },
     rankedKeys,
+    // A73 · one ORDER key per user-set soft-null filter: 0 = known to match, 1 = not classified yet.
+    // `unclassifiedSql` matches a row kept ONLY because one of those columns is unclassified, so the
+    // board can say how many of its rows are "not yet classified" rather than matches.
+    established: {
+      keys: established.map(e => ({ sql: `(CASE WHEN ${e.sql} THEN 1 ELSE 0 END)`, params: [] })),
+      filters: established.map(e => e.key),
+      unclassifiedSql: established.length ? `(${established.map(e => `(${e.sql})`).join(' OR ')})` : '',
+    },
   };
 }
 
