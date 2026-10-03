@@ -5,7 +5,6 @@ import { filterDirectApplyOnly, DIRECT_ATS_SOURCES } from './directApplyFilter.j
 import { deriveAutomationTier } from './automationTier.js';
 import { classifyJob, ROLE_KEY_FALLBACK } from './classifyJob.js';
 import { getKnownLogoUrl } from './enrichLogos.js';
-import { drainEnrichment } from './enrichJob.js';
 import { recordPipelineRun } from './pipelineRunLog.js';
 import { usEligibility, officeLocations } from './usLocation.js';
 import { retireDuplicate, keptApart } from './dedupRetire.js';
@@ -779,9 +778,8 @@ async function searchJobs({ query = '', location = '', country = 'us', page = 1,
  * - Rows with passed valid_through → is_active = 0.
  * - Re-appearing rows → is_active = 1 (via upsert or the unchanged-touch path).
  * @param {import('better-sqlite3').Database} db
- * @param {import('@anthropic-ai/sdk').default | null} [anthropic] optional — when provided,
- *   a background LLM enrichment pass (services/jobs/enrichJob.js) runs after the sync
- *   completes. Omitted/falsy simply skips enrichment (e.g. no ANTHROPIC_KEY configured).
+ * @param {import('@anthropic-ai/sdk').default | null} [anthropic] UNUSED since D17 (A80 V4) — it
+ *   fed the background enrichment drain, which no longer runs. Kept so callers need not change.
  */
 async function cacheJobs(db, anthropic = null) {
   try {
@@ -1024,17 +1022,11 @@ async function cacheJobs(db, anthropic = null) {
       }
     });
 
-    // Background job-description enrichment (non-blocking — never delays the board query
-    // or this function's return). Skips cleanly when no Anthropic client is configured.
-    //
-    // DRAINS rather than taking one 25-row bite (task AE). This is the only scheduled enrichment
-    // in the system — there is no separate enrichment cron, it rides the 04:00 ET tick from here —
-    // so a single pass made 25 rows/day the whole daily throughput against a ~28 rows/day inflow,
-    // and the queue drained at about the rate it filled. drainEnrichment loops until the candidate
-    // set is empty or its daily budget binds, whichever comes first.
-    setImmediate(() => {
-      drainEnrichment(db, anthropic).catch(e => console.warn('[enrichJob] Background drain failed:', e.message));
-    });
+    // ⛔ NO AUTOMATIC ENRICHMENT (D17, A80 V4 — 10-03). This tick used to drain the enrichment
+    // queue through a model (task AE: the only scheduled enrichment in the system). D17 allows a
+    // model for résumé generation only, so enrichment is the manual round trip now —
+    // GET /api/admin/enrichment/export → enrich outside the product → POST /api/admin/enrichment/import,
+    // every import a revertible batch. New rows stay unenriched until an import covers them.
 
     console.log(`[cacheJobs] Total: ${totalCached} jobs cached across ${atsSources.length} sources`);
     return totalCached;
@@ -1132,9 +1124,7 @@ function decideJoboBackfillMode({ cursor, fullBackfillEnv }) {
  * file already defaults an unlisted source name (jobo isn't in DIRECT_ATS_SOURCES or
  * AGGREGATOR_SOURCES) to tier 2 — below direct ATS, above aggregators — with no code change.
  * @param {import('better-sqlite3').Database} db
- * @param {import('@anthropic-ai/sdk').default | null} [anthropic] optional — same background
- *   enrichment hook cacheJobs() uses; enrichJob.js's own in-progress guard makes it safe to
- *   fire from both in the same cron tick.
+ * @param {import('@anthropic-ai/sdk').default | null} [anthropic] UNUSED since D17 (A80 V4), as in cacheJobs().
  */
 // Shape returned by cacheJoboFeed. `status` exists so a caller can tell "the provider never ran"
 // from "the provider ran and legitimately had nothing to add" — those were indistinguishable
@@ -1268,14 +1258,7 @@ async function cacheJoboFeed(db, anthropic = null) {
     db.transaction(() => jobs.forEach(processJob))();
   };
 
-  // Fired on every successful path, not just the incremental one — the bounded backfill is the
-  // FIRST run a fresh deployment makes, so skipping enrichment there left the initial batch of
-  // rows unenriched until the next day's tick for no reason.
-  const scheduleEnrichment = () => {
-    setImmediate(() => {
-      drainEnrichment(db, anthropic).catch(e => console.warn('[cacheJoboFeed] Background drain failed:', e.message));
-    });
-  };
+  // No enrichment is scheduled from here (D17, A80 V4): it is the manual export → import round trip.
 
   try {
     if (state?.last_watermark == null) {
@@ -1320,7 +1303,6 @@ async function cacheJoboFeed(db, anthropic = null) {
         }
         console.log(`[cacheJoboFeed] Full backfill ${hasMore ? 'paused (page cap)' : 'complete'} after ${pageCount} page(s)`);
       }
-      scheduleEnrichment();
       return record(joboResult('ok', {
         mode: decision.mode === 'bounded' ? 'bounded_backfill' : 'full_backfill',
         fetched, cached, unchanged, merged, ejected, dropped, failed, outOfMarket,
@@ -1381,8 +1363,6 @@ async function cacheJoboFeed(db, anthropic = null) {
     // Both steps succeeded — advance the watermark now, not before.
     upsertSyncState.run(JOBO_SOURCE_NAME, null, now, now);
     console.log(`[cacheJoboFeed] Incremental sync complete — cached ${cached}, unchanged ${unchanged}, merged ${merged}, ejected ${ejected}, dropped ${dropped}, expired ${expiredCount}`);
-
-    scheduleEnrichment();
 
     return record(joboResult('ok', {
       mode: 'incremental',

@@ -11,6 +11,9 @@
 // The plan is produced by the SAME functions the apply path calls, so what is reported and what is
 // done cannot be different sets — the failure mode this codebase keeps rediscovering.
 //
+// ⭐ D17 (10-03): NOTHING HERE CALLS A MODEL ANY MORE. /run counts the backlog and refuses `apply`
+// (410); enrichment is /export → outside the product → /import. The paragraphs below are history.
+//
 // ⛔ ADMIN-GATED, AND FOR TWO DIFFERENT REASONS. /run spends real money per row. /export returns the
 // entire board's posting text in one response. Neither is a per-user resource and neither should be
 // reachable by an ordinary session.
@@ -24,7 +27,6 @@ import {
   selectCandidates, estimateCost, columnCoverage, diffCoverage,
   enrichSelectionOptions, DEFAULT_MAX_LAST_SEEN_DAYS, ENRICHMENT_COLUMNS,
 } from "../services/jobs/enrichmentSelection.js";
-import { runEnrichment, enrichBudget } from "../services/jobs/enrichJob.js";
 import { buildExport, toJsonl, planImport, applyImport } from "../services/jobs/enrichmentTransfer.js";
 import { listBatches, getBatch, revertBatch, revertPreview } from "../services/jobs/enrichmentBatches.js";
 
@@ -100,7 +102,13 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ── POST /run — the manual trigger ────────────────────────────────────────────────────────────
+  // ── POST /run — the backlog, counted (D17, A80 V4 — 10-03) ────────────────────────────────────
+  //
+  // This was the manual MODEL trigger: plan, then `apply: true` sent the rows to a model. D17 allows
+  // a model for résumé generation only, so the route now does the first half and refuses the
+  // second. The plan — how many rows need enrichment, and the board's coverage now — is still the
+  // useful question; the answer to "so enrich them" is the export → import round trip, which this
+  // response names. ⛔ An `apply: true` is 410 and touches nothing, client or no client.
   router.post("/run", async (req, res) => {
     try {
       const body = req.body || {};
@@ -113,7 +121,6 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
 
       const sel = selectCandidates(db, opts);
       const considered = sel.candidates.slice(0, limit);
-      const estimate = estimateCost(considered);
       const plan = {
         prefilterCount: sel.prefilterCount,
         candidates: sel.totalMatched,
@@ -122,86 +129,20 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
         wouldSend: considered.length,
         limitApplied: limit,
         limitCappedAt: requested > MAX_MANUAL_ROWS ? MAX_MANUAL_ROWS : null,
-        estimate, estimateIsCeiling: true,
         jobIds: considered.map(r => r.job_id),
-        // A61: what the admin button's confirm states — the per-request cap, and the nightly drain's
-        // budget, which a manual run is NOT counted against (drainEnrichment budgets one drain).
         manualCap: MAX_MANUAL_ROWS,
-        nightlyBudget: enrichBudget(),
         coverageNow: columnCoverage(db),
       };
+      const roundTrip = "GET /api/admin/enrichment/export → enrich the file outside the product → " +
+        "POST /api/admin/enrichment/import (dry run first; every import is a revertible batch).";
 
-      // U1.3 — the dry run reports what WOULD be enriched and the estimated cost, without calling
-      // anything. This is the default, so a mistyped request cannot spend money.
-      if (body.apply !== true) {
-        return res.json({ applied: false, dryRun: true, plan,
-          note: "Nothing was sent and no model was called. POST again with apply: true to run." });
+      if (body.apply === true) {
+        return res.status(410).json({ applied: false, error: "enrichment_by_model_retired",
+          message: "Enrichment no longer calls a model (D17: a model is for résumé generation only). " +
+            "Nothing was sent and no row was touched. Use the round trip: " + roundTrip, plan });
       }
-      if (!considered.length) {
-        return res.json({ applied: false, plan, written: 0, note: "no candidates" });
-      }
-      if (!anthropic) {
-        // runEnrichment degrades to a logged no-op with no client. Refusing here means "I ran it"
-        // can never quietly mean "it skipped".
-        return res.status(503).json({ error: "No Anthropic client configured — refusing to run, " +
-          "because enrichment would silently skip rather than fail.", plan });
-      }
-
-      const ids = considered.map(r => r.job_id);
-      const before = columnCoverage(db, { jobIds: ids });
-      const result = await runEnrichment(db, anthropic, {
-        jobIds: ids,
-        batchSize: considered.length,
-        maxLastSeenDays: opts.maxLastSeenDays,
-        batchSource: "manual",
-        batchNotes: `POST /api/admin/enrichment/run by ${req.user?.username ?? "admin"}`,
-        recordRun: true,
-      });
-      // ⛔ A REFUSED INVOCATION IS NOT AN APPLIED RUN.
-      //
-      // runEnrichment's concurrency guard returns all-zeros, which this handler used to pass
-      // straight through as `applied: true, enriched: 0, failed: 0, empty: 0, batchId: null,
-      // warning: null` — the exact shape of a healthy pass with nothing to do. The owner read
-      // that as a failure twice, correctly: the run they asked for did not happen, and nothing in
-      // the response said so. 409 Conflict, because the request was fine and the SERVER STATE is
-      // what refused it; retrying once the in-flight pass finishes is the fix.
-      if (result.ran === false) {
-        return res.status(409).json({
-          applied: false, skipped: true, skippedReason: result.skippedReason,
-          plan, enriched: 0, failed: 0, empty: 0, batchId: null,
-          error: result.skippedDetail,
-          note: result.skippedReason === 'already_running'
-            ? "Nothing was sent and no row was touched. Wait for the in-flight pass to finish " +
-              "(check GET /api/admin/enrichment/batches for the batch it opened) and POST again."
-            : "Nothing was sent and no row was touched.",
-        });
-      }
-
-      const after = columnCoverage(db, { jobIds: ids });
-      const coverage = diffCoverage(before, after);
-
-      res.json({
-        applied: true, plan,
-        enriched: result.enriched, failed: result.failed, empty: result.empty,
-        batchId: result.batchId ?? null,
-        inputTokens: result.totalInputTokens, outputTokens: result.totalOutputTokens,
-        // U1.4 — COVERAGE, NOT CALL COUNTS. `enriched: 10` is compatible with ten null extractions;
-        // a per-column delta is not. A2 measured a model returning HTTP 200, success:true and a
-        // NULL extraction 49 times in 50, so the count alone is not evidence the pass worked.
-        coverage: coverage.rows,
-        columnsClimbed: coverage.climbed,
-        columnsRegressed: coverage.regressed,
-        coverageClimbed: coverage.climbed > 0,
-        // Said in the response, not just in a log: U1.5's rule is that if coverage does not climb
-        // with the count, STOP rather than scaling up.
-        warning: coverage.climbed === 0 && result.enriched > 0
-          ? "NO COLUMN GAINED A VALUE despite rows being stamped enriched. Do not scale this up — " +
-            "check the provider and model first."
-          : null,
-        visaColumnsNote: "is_h1b_sponsor / requires_work_auth / is_clearance_required are expected " +
-          "at or near zero and are excluded from the climbed/regressed verdict: 0 of 1261 postings " +
-          "contain H-1B and 36 mention sponsorship at all. That is the source material, not a failure.",
-      });
+      res.json({ applied: false, dryRun: true, plan,
+        note: "Nothing was sent and no model was called. To enrich these rows: " + roundTrip });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 

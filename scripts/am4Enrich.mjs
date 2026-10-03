@@ -13,8 +13,8 @@
  *
  * Commands:
  *   node scripts/am4Enrich.mjs run                      # DRY RUN: what would be enriched, and the cost
- *   node scripts/am4Enrich.mjs run --apply --limit 10    # actually enrich 10 rows
- *   node scripts/am4Enrich.mjs run --apply --all         # repeat until no candidates remain
+ *   node scripts/am4Enrich.mjs run --apply ...           # ⛔ RETIRED (D17, A80 V4): refuses — a model is
+ *                                                        #    for generation only; use export → import
  *   node scripts/am4Enrich.mjs export --out batch.jsonl  # JSONL of rows needing enrichment
  *   node scripts/am4Enrich.mjs import batch.jsonl        # DRY RUN of an import
  *   node scripts/am4Enrich.mjs import batch.jsonl --apply
@@ -162,6 +162,10 @@ if (cmd === "run") {
     process.exit(0);
   }
 
+  // ⛔ D17 (A80 V4, 10-03): enrichment no longer calls a model. The dry run above still counts the
+  // backlog; --apply refuses, and the code below it stays only until the A76 round-trip work lands.
+  die("`run --apply` is retired: enrichment no longer calls a model (D17). Use `export --out FILE`, " +
+      "enrich the file outside the product, then `import FILE` (dry run) and `import FILE --apply`.");
   const anthropic = anthropicOrDie();
   const ids = considered.map(r => r.job_id);
   const before = columnCoverage(db, { jobIds: ids });
