@@ -48,18 +48,19 @@ const PROSE_ALLOWLIST = [
 const tracked = (globs) =>
   execFileSync("git", ["ls-files", "--", ...globs], { encoding: "utf8" }).split("\n").filter(Boolean);
 
-test("D6: the nav tab DISPLAYS Draft — its id and route stay auto-apply", () => {
+test("D6/D18: the nav tab DISPLAYS Draft House — its id and route stay auto-apply", () => {
   const app = read("client/src/App.jsx");
-  assert.match(app, /\{ id: "auto-apply",\s*label: "Draft" \}/);
+  assert.match(app, /\{ id: "auto-apply",\s*label: "Draft House" \}/);
   assert.doesNotMatch(app, /label: "Auto Apply"/);
 });
 
-test("D6: the Draft tab carries the card's /d mark — ONE implementation, both callers", () => {
+test("D6/D18: the /d mark is ONE implementation on the card — and D18 took it OFF the tab", () => {
   const app = read("client/src/App.jsx");
   const bubble = read("client/src/components/JobBubble.jsx");
   const mark = read("client/src/components/DraftMark.jsx");
   assert.match(app, /import \{ DraftMark \}\s+from "\.\/components\/DraftMark\.jsx";/);
-  assert.match(app, /t\.id === "auto-apply"[\s\S]{0,200}<DraftMark /, "the Draft tab does not render the mark");
+  // D18 (owner, 10-03) REVERSES D6 here: no tab carries a symbol. The import stays for the board's Pending chip (D11).
+  assert.doesNotMatch(app, /t\.id === "auto-apply"[\s\S]{0,400}<DraftMark /, "the Draft House tab renders the mark again (D18: no symbol on any tab)");
   assert.match(bubble, /<DraftMark \/>/, "the card's Draft button no longer renders the shared mark");
   // The mark is decorative (the word or the button's aria-label names the action), and it must not be
   // uppercased by the tab row's text-transform — "/D" is not the mark.

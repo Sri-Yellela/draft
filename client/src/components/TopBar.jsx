@@ -61,9 +61,10 @@ function AnimatedLucyLogo() {
 
 // D10: a two-word tab name is set on two lines ("Daily / Deck", "Full / House", "The / Table"), so the
 // label is as tall as the mark beside it rather than a long single line. A one-word string, or a
-// decorated ReactNode (the Draft tab's mark + count), renders as given. The accessible name is the
-// same words with a space — the line break is a <br>, not a character in the name.
-function TabLabel({ label }) {
+// decorated ReactNode (Draft House's label + count, which calls this itself), renders as given. The
+// accessible name is the same words with a space — the line break is a <br>, not a character in the name.
+// D18: no tab carries a symbol — all four are two-line text in the same format.
+export function TabLabel({ label }) {
   if (typeof label !== "string" || !label.includes(" ")) return label;
   const cut = label.indexOf(" ");
   return <>{label.slice(0, cut)}<br/>{label.slice(cut + 1)}</>;
@@ -281,10 +282,7 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
                            letterSpacing: "0.08em", color: theme.textDim, marginBottom: 8 }}>
               Job Profile
             </div>
-            <button onClick={() => { setOpen(false); onTabChange?.("job-profiles"); }}
-              style={{ ...menuItemStyle, padding:"0 0 8px", color:theme.accentText, fontWeight:700 }}>
-              Manage Job Profiles
-            </button>
+            {/* D18: managing profiles is a SETTING (the Settings group below); this block only switches. */}
             {profiles?.length > 0 ? (
               <ProfileSelectorDropdown
                 theme={theme}
@@ -368,6 +366,13 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
                 </button>
               </>
             )}
+            {/* D18 (10-03): JOB PROFILES LIVES IN SETTINGS. It left the top bar in D10; the page stays
+                route-only (/app/job-profiles) and this group is its home, beside the other settings. */}
+            <div className="rm-section-label" style={{ marginTop: monetisationEnabled ? 10 : 2 }}>Settings</div>
+            <button onClick={() => { setOpen(false); onTabChange?.("job-profiles"); }}
+              style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
+              Job Profiles
+            </button>
             <button onClick={() => { setOpen(false); onTabChange?.("account"); }}
               style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
               Account &amp; security
