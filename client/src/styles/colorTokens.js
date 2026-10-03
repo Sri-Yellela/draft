@@ -140,6 +140,14 @@ export const C_LIGHT = {
   // Warm, soft, offset down: a glass object resting ON the leather, lit from above.
   SHADOW_GLASS:       "0 1px 1px rgba(60,40,20,0.05), 0 12px 28px -10px rgba(90,55,25,0.28)",
   SHADOW_GLASS_HOVER: "0 2px 2px rgba(60,40,20,0.06), 0 22px 40px -14px rgba(90,55,25,0.36)",
+  // D1 (10-03) — DEPTH ON EVERY CONTROL. The inset top highlight is what makes a control read as LIT
+  // rather than merely dropped; DEPTH_ACCENT tints the orange control's shadow orange, so it reads as
+  // orange rather than grey-made-orange. Ink-warm like the shadows above, not the sketch's pure black.
+  DEPTH_REST:   "0 3px 8px rgba(30,25,21,0.11), inset 0 1px 0 rgba(255,255,255,0.66)",
+  DEPTH_HOVER:  "0 7px 17px rgba(30,25,21,0.15), inset 0 1px 0 rgba(255,255,255,0.66)",
+  DEPTH_PRESS:  "0 2px 5px rgba(30,25,21,0.13), inset 0 1px 0 rgba(255,255,255,0.5)",
+  DEPTH_ACCENT: "0 3px 9px rgba(253,70,0,0.34), inset 0 1px 0 rgba(255,255,255,0.35)",
+  LOGO_SHADOW:  "0 2px 6px rgba(30,25,21,0.14)",
 };
 
 // ── DARK (UI step 6, 09-30) — the same keys, re-pointed ────────────────────────────────────────
@@ -212,6 +220,11 @@ export const C_DARK = {
   SHADOW_XL:           "0 36px 80px rgba(0,0,0,0.60), 0 14px 30px rgba(0,0,0,0.40)",
   SHADOW_GLASS:        "0 1px 1px rgba(0,0,0,0.30), 0 14px 30px -10px rgba(0,0,0,0.65)",
   SHADOW_GLASS_HOVER:  "0 2px 2px rgba(0,0,0,0.35), 0 24px 44px -14px rgba(0,0,0,0.75)",
+  DEPTH_REST:          "0 3px 8px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.08)",
+  DEPTH_HOVER:         "0 7px 17px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.10)",
+  DEPTH_PRESS:         "0 2px 5px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)",
+  DEPTH_ACCENT:        "0 3px 9px rgba(253,70,0,0.40), inset 0 1px 0 rgba(255,255,255,0.20)",
+  LOGO_SHADOW:         "0 2px 6px rgba(0,0,0,0.45)",
 };
 
 // ── Which palette is live ─────────────────────────────────────────────────────────────────────

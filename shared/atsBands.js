@@ -54,6 +54,15 @@ export const ATS_BAND = {
   NOT_ENOUGH_SIGNAL: "not_enough_signal",
 };
 
+/**
+ * ⛔ A75 (owner, 10-03): THE NUMBER WILL BE SHOWN — ONCE A76 EARNS IT. The owner reversed "band only",
+ * on the condition that A76's larger blind-graded corpus validates the score first ("the condition, not
+ * an optional follow-up"). Every surface that would show the number (D1's ATS button, D2's count-up)
+ * reads THIS switch, so turning it on is one edit made with A76's figures in hand — not a sweep.
+ * Until then those surfaces show the band's mark. Sorting by the score does not depend on it.
+ */
+export const ATS_NUMBER_SHOWN = false;
+
 /** Cutpoints are INCLUSIVE lower bounds on the internal score. */
 export const ATS_BAND_CUTPOINTS = Object.freeze({
   strong: 44,

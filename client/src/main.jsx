@@ -23,6 +23,9 @@ import "@fontsource/barlow-condensed/800.css";
 import "@fontsource/dm-sans/400.css";
 import "@fontsource/dm-sans/500.css";
 import "@fontsource/dm-sans/700.css";
+// D1 (10-03): the job card's company name is set in "the logo face" — heavy italic geometric sans.
+// Self-hosted like every face here (no third-party request); ⚠ Poppins is an approximation of the mark.
+import "@fontsource/poppins/800-italic.css";
 import "@fontsource/dm-sans/800.css";
 import "@fontsource/instrument-serif/400.css";
 import "@fontsource/instrument-serif/400-italic.css";

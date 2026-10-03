@@ -106,11 +106,12 @@ test("A GUESS IS NOT A LOGO — an unknown company resolves to null, not a slug"
 
 // ── Two per row ──────────────────────────────────────────────────────────────
 
-test("the listings use the shared grid primitive, capped at two columns", () => {
-  assert.match(jobsPanel, /import \{ TileGrid \} from "\.\.\/components\/ui\/TileCard\.jsx"/,
-    "the Database/Auto Apply card idiom is imported, not reimplemented");
-  assert.match(jobsPanel, /<TileGrid min=\{430\} gap=\{14\} maxColumns=\{2\}/);
-  assert.match(jobsPanel, /<\/TileGrid>/);
+test("D1 (10-03): the listings are bubble ROWS of 2/3/4 — the two-column TileGrid is superseded", () => {
+  // AE5 put two listings per row in a TileGrid; D1 (chosen 10-02) replaces the jobs-page card with
+  // bubbles in rows, so a growing card's neighbours share its row (test/jobBubbleD1.test.js).
+  assert.match(jobsPanel, /import JobBubble, \{ JobBubbleRows \} from "\.\.\/components\/JobBubble\.jsx";/);
+  assert.match(jobsPanel, /<JobBubbleRows jobs=\{jobs\}>/);
+  assert.doesNotMatch(jobsPanel, /<TileGrid/);
 });
 
 test("the cap is opt-in, so the profile and company tiles are untouched", () => {
@@ -135,7 +136,7 @@ test("the card's own horizontal margin moved onto the grid", () => {
   // 32px of nothing between them ON TOP of the gap.
   assert.match(jobCard, /margin: 0,/);
   assert.ok(!/margin: "0 16px 8px"/.test(jobCard), "the card is inside a grid now; the grid owns the spacing");
-  assert.match(jobsPanel, /style=\{\{ padding: "0 16px 8px" \}\}/);
+  // D1: the board's spacing is the bubble rows' own (JobBubble.css: padding 0 28px, gap 18px).
   // The list that is NOT a grid had to take that spacing over, or its cards go flush. (There were
   // two; A63 replaced the Pending card list with the Pending table, which draws no JobCards.)
   const db = fs.readFileSync("client/src/panels/DatabasePanel.jsx", "utf8");

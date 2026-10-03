@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 import { api, printResume, authHeaders, authContextQuery } from "../lib/api.js";
 import { useMonetisationEnabled } from "../lib/monetisation.jsx";
-import { TileGrid } from "../components/ui/TileCard.jsx";
 import { GENERATE_TOOL, A_PLUS_TOOL, TOOL_LABELS, normalizeTool } from "../lib/applyTools.js";
 import { planPageFetch, recordPageCursor } from "../lib/boardPaging.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
@@ -14,7 +13,7 @@ import { DECISIONS, DECISION_SURFACES, DECISION_TOAST_MS, commitDecision, undoDe
 import DecisionToast from "../components/DecisionToast.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
-import JobCard from "../components/JobCard.jsx";
+import JobBubble, { JobBubbleRows } from "../components/JobBubble.jsx";
 import JobDetailPanel from "../components/JobDetailPanel.jsx";
 import SandboxPanel from "./SandboxPanel.jsx";
 import AtsReportPanel from "./AtsReportPanel.jsx";
@@ -3900,82 +3899,40 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
             </div>
           )}
 
-          {/* ── AE5: TWO LISTINGS PER ROW ────────────────────────────────────────────────────
-              One full-width listing per row is why the board read as oversized: a card whose
-              content is a 48px logo, two lines of text and a chip row was being given 1200px to
-              put them in, so the eye travelled the whole width for every listing and half of it
-              was empty.
-
-              TileGrid is the Database / Auto Apply card idiom, imported rather than reimplemented —
-              `repeat(auto-fill, minmax(430px, 1fr))`, the same min and gap AutoApplyPanel's company
-              tiles use. auto-fill is what makes the stacking automatic and honest: two equal columns
-              wherever two 430px columns fit, one below that, and no breakpoint to keep in sync with
-              the panel's chrome. The cards keep their own tier logic (JobCard measures its container
-              and drops to tier 2/3 when it gets narrow), so a single column on a phone is the
-              condensed layout it always was.
-
-              The horizontal margin moved off the card and onto this wrapper: a per-card margin
-              inside a grid cell insets each cell separately, which puts 32px of nothing between the
-              two columns on top of the gap. */}
-          <TileGrid min={430} gap={14} maxColumns={2} style={{ padding: "0 16px 8px" }}>
-          {jobs.map(job => {
-            const key = job.jobId, g = generated[key],
-                  done = !!g?.html, st = loading[key];
+          {/* ⭐ D1 (chosen 10-02): THE CARD IS A BUBBLE — rows of 2/3/4 (3 by default), a hovered or focused
+              card grows to 1.55 and its neighbours give up the width; the rail (ATS · Save · Draft) opens on
+              hover / focus-within, and is always shown on touch. components/JobBubble.jsx carries the spec.
+              Generate and the posting link are off the card (D1): Apply is the company name (A63), and
+              generating lives on the job's detail panel. */}
+          <JobBubbleRows jobs={jobs}>
+          {(job) => {
+            const key = job.jobId, g = generated[key];
+            // Without a detail panel to select into: a generated résumé opens in its sandbox, else the posting.
+            const open = onJobSelect ? () => onJobSelect(job) : () => {
+              if (g?.html && g.html !== "__exists__") {
+                openSandbox({ ...g, company: g.company || job.company, title: g.title || job.title });
+                openAtsPanel(buildAtsPayload(job, g));
+              } else if (job.url) visitUrl(job);
+            };
             return (
-              <JobCard
-                key={key} job={job} g={g} done={done} st={st}
-                applyMode={applyMode}
-                canUseGenerate={canUseGenerate} canUseAPlusResume={canUseAPlusResume}
-                theme={theme}
-                showApplyButton={!compact}
-                compact={compact}
+              <JobBubble
+                key={key} job={job}
+                score={g?.atsScore ?? job.matchScore ?? job.baseAtsScore ?? null}
                 selected={selectedJobId === key}
-                onSelect={onJobSelect ? () => onJobSelect(job) : undefined}
-                cardTier={cardTier}
-                onGenerate={force => generate(job, force)}
-                onAPlusResume={force => generate(job, force, "a_plus_resume")}
-                onViewSandbox={() => {
-                  const entry = {...g, company:g.company||job.company, title:g.title||job.title};
-                  openSandbox(entry);
-                  openAtsPanel(buildAtsPayload(job, g));
-                }}
-                onExport={() => exportAndTrack(job, getActiveArtifact(g)?.html, job.company, getActiveArtifact(g))}
-                onVisit={() => visitUrl(job)}
-                // A53: the card's decisions are the deck's — Draft (where Queue Auto was) and Save,
-                // both SETS; Pass lives on JobDetailPanel. Undo is the board's shared toast.
-                onSave={() => decideJob?.(job, DECISIONS.SAVED)}
-                onPass={() => decideJob?.(job, DECISIONS.PASSED)}
-                onDraft={() => decideJob?.(job, DECISIONS.DRAFTED)}
+                saved={!!(job._user?.starred ?? job.starred)}
                 drafted={isJobDrafted(key)}
                 drafting={draftingIds.has(key)}
-                onCardClick={!onJobSelect ? () => {
-                  if (done && g.html !== "__exists__") {
-                    const entry = {...g, company:g.company||job.company, title:g.title||job.title};
-                    openSandbox(entry);
-                    openAtsPanel(buildAtsPayload(job, g));
-                  } else if (job.url) {
-                    visitUrl(job);
-                  }
-                } : undefined}
-                // ⛔ CC5 · THE GATE HERE WAS THE OTHER HALF OF THE DEAD END. It read
-                //
-                //   if (g?.atsReport || g?.atsScore != null || job?.baseAtsReport || job?.baseAtsScore != null)
-                //
-                // i.e. the report could only be opened for a row that ALREADY had one — and 0 of
-                // 2,458 active postings do, because nothing scores a board row until somebody asks.
-                // So the chip that opens this was hidden on every card AND the handler behind it
-                // was a no-op on every card, two independent locks on the same door.
-                //
-                // Opening with an EMPTY payload is the working case, not a degraded one: ATSPanel
-                // fetches POST /api/jobs/:id/keywords when it is handed no report, which scores the
-                // posting against this caller's own résumé and caches it per profile. That is the
-                // answer to "backfill or per request" — per request, on the one row being looked at.
+                onOpen={open}
+                // ⛔ CC5 · opening with an EMPTY payload is the working case: ATSPanel scores the posting
+                // against this caller's résumé on demand when it is handed no report.
                 onAts={() => openAtsPanel(buildAtsPayload(job, g))}
-                onResume={() => generate(job, false)}
+                // A53: the card's decisions are the deck's — Save and Draft SET; Pass is on the detail panel.
+                onSave={() => decideJob?.(job, DECISIONS.SAVED)}
+                onDraft={() => decideJob?.(job, DECISIONS.DRAFTED)}
               />
             );
-          })}
-          </TileGrid>
+          }}
+          </JobBubbleRows>
 
           {/* Pagination controls */}
           {totalPages > 1 && (
