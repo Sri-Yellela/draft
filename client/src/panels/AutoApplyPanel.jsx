@@ -32,6 +32,7 @@ import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { C } from "../styles/colorTokens.js";
 import { TYPE } from "../styles/type.js";
 import WaitingLine from "../components/WaitingLine.jsx";
+import { useViewport } from "../hooks/useViewport.js";
 import { A_PLUS_TOOL } from "../lib/applyTools.js";
 
 // ============================================================
@@ -54,8 +55,15 @@ import { A_PLUS_TOOL } from "../lib/applyTools.js";
 // The board keeps a count badge on this tab (AutoApplyContext's needsAttentionCount) so that
 // "3 need review" is still discoverable without opening it.
 // ============================================================
+// D14: the eyebrow over each of the two columns — Stopped and Queued.
+const COLUMN_LABEL = (theme) => ({
+  fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
+  color: theme.textMuted, paddingBottom: 6, borderBottom: `1px solid ${theme.border}`,
+});
+
 export function AutoApplyPanel() {
   const { theme } = useTheme();
+  const { w: viewportWidth } = useViewport();
   const navigate = useNavigate();
   const {
     // The message line under the heading (it was setApplyQueueMsg, USED by retryJob and never
@@ -171,6 +179,10 @@ export function AutoApplyPanel() {
   const listedSplit         = splitByFault(listedJobs);
   const listedBrokeByCompany = groupByCompany(listedSplit.broke);
   const listedHeldByCompany  = groupByCompany(listedSplit.held);
+
+  // D14: Stopped and Queued sit side by side from ~1080px; below that they stack, Stopped first.
+  const splitSideBySide = viewportWidth >= 1080;
+  const queuedCount = (applyLine.waiting || []).length + applyInFlight.length;
 
   const needsYouCount =
     applyGatePortals.reduce((n, p) => n + (p.count || 0), 0) +
@@ -448,7 +460,7 @@ export function AutoApplyPanel() {
         </h2>
         <p style={{ ...TYPE.LEAD, margin: "10px 0 0" }}>
           Applications are filled and held for your approval. Nothing is submitted until you approve
-          it. Draft jobs from Today or the board.
+          it. Draft jobs from the Daily Deck or Full House.
         </p>
       </div>
 
@@ -636,197 +648,223 @@ export function AutoApplyPanel() {
           </div>
         )}
 
-        {/* ── IN FLIGHT ────────────────────────────────────────────────────────────────────────
-            NOT one of AB4's three outcome sections, and deliberately placed ABOVE them rather than
-            made a fourth. A queued or running application has no outcome yet — it is neither
-            submitted, nor waiting on the user, nor broken — so filing it under any of the three would
-            be a claim about it that is not true, and dropping it would lose a capability. It reads as
-            progress, which is what it is: small, self-clearing, and out of the way. */}
-        {/* ── WAITING IN LINE (A59) ─────────────────────────────────────────────────────────────
-            Above In flight because it is the one place in this band where the user can still change
-            what will happen: a waiting Draft has not started, so its tool, place and presence are
-            theirs to edit. Once it starts it moves to In flight and only Stop applies. */}
-        <WaitingLine line={applyLine} theme={theme} busyId={lineBusyId} message={lineMsg}
-          canUseAPlus={draftTool === A_PLUS_TOOL}
-          onTool={setLineTool} onMove={moveInLine} onRemove={removeFromLine} />
-
-        {applyInFlight.length > 0 && (
-          <>
-            <SectionHeading theme={theme} count={applyInFlight.length} note="nothing to do — these clear themselves">
-              In flight
-            </SectionHeading>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {applyInFlight.map(job => (
-                <ApplicationRow key={job.id} job={job} theme={theme} variant="inFlight"
-                  artifactUrl={artifactUrl} onOpenRun={loadApplyRunDetail} />
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* ── 1. NEEDS REVIEW ──────────────────────────────────────────────────────────────────
-            The first of AB4's three outcome sections, and first on the page: it is the only one where
-            anything is waiting on a human. Inside it, both halves of the grouping rule — per-portal
-            batches where one action unblocks many, per-application cards where many obstacles block
-            one — then a company tier over the cards. */}
-        {needsYouCount > 0 && (
-          <>
-            <SectionHeading theme={theme} count={needsYouCount} note="each of these is one action">
-              Needs review
-            </SectionHeading>
-
-            {/* THE DELIBERATE "REVIEW ALL" (AB3 requirement 3). This view is still reachable — it is
-                genuinely useful for working through a queue in one sitting — but it is now its own
-                control, rather than being what every row's Open did. */}
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -6 }}>
-              <button onClick={openEverything}
-                title="Every application needing review, in one list."
-                style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "4px 10px",
-                         background: "transparent", color: theme.textMuted, fontWeight: 700,
-                         fontSize: 11, cursor: "pointer" }}>
-                Review all {needsYouCount} →
-              </button>
-            </div>
-
-            {/* Prerequisites first: they block EVERY application, so clearing anything else is wasted
-                effort until they are done. */}
-            {/* The count is what the jobs are blocked FROM, so it has to include applications already
-                dispatched and sitting queued. With only
-                the old client-side basket's length the card read "Your profile has no email address" with no number
-                beside six jobs that were blocked on exactly that. */}
-            <PrerequisiteCards missing={applyPrereqMissing}
-              queuedCount={applyInFlight.length}
-              theme={theme} onGo={(tab) => navigate(`/app/${tab}`)} />
-
-            {/* THE PORTAL AMORTISATION, and the most differentiated thing in the product: one sign-in
-                releases every application queued behind that portal. Rendered as the hero because
-                "sign in once -> 4 ready" is a ten-second job priced as one, where the same thing shown
-                as four held rows is priced as four. */}
-            {/* THE QUEUE IS CAPPED, AND A CAPPED QUEUE MUST SAY SO. GET /api/apply/gate-packets
-                returns the newest 100 unconsumed packets; past that the portals below are a SUBSET
-                and every count on them is short. Without this the panel renders a truncated queue
-                exactly as it renders a complete one, which is the same failure the extension hit —
-                a cap that reads as an answer. */}
-            {applyGateTruncated && (
-              <div style={{ padding: "8px 12px", marginBottom: 8, borderRadius: 8,
-                            border: `1px solid ${theme.border}`, background: theme.surfaceHigh,
-                            fontSize: 12, color: theme.textMuted }}>
-                Showing the {applyHandoffPackets.length} most recent of{" "}
-                <strong>{applyGateTotal ?? "many"}</strong> queued handoffs. Clear some of these to
-                see the rest.
-              </div>
+        {/* ── D14: STOPPED AND QUEUED, SIDE BY SIDE, 75 / 25 ──────────────────────────────────────
+            The owner's choice from the v3 sketch. STOPPED — everything the pipeline stopped for you
+            (Needs review: prerequisites, portal batches, questions, approvals, held applications) — is
+            the working surface, so it takes three quarters. QUEUED — Waiting in line and In flight —
+            is a glance, so it takes one. Below ~1080px they stack, Stopped FIRST: that is DOM order,
+            so a screen reader and a phone both meet the work before the queue. */}
+        {(needsYouCount > 0 || applyInFlight.length > 0 || (applyLine.waiting || []).length > 0) && (
+        <div data-draft-split="" style={{
+          display: "grid", gap: 20, alignItems: "start",
+          gridTemplateColumns: splitSideBySide ? "minmax(0, 3fr) minmax(0, 1fr)" : "minmax(0, 1fr)",
+        }}>
+          <section data-draft-stopped="" aria-label="Stopped"
+                   style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={COLUMN_LABEL(theme)}>Stopped{needsYouCount > 0 ? ` · ${needsYouCount}` : ""}</div>
+            {needsYouCount === 0 && (
+              <div style={{ fontSize: 12.5, color: theme.textMuted }}>Nothing is stopped — nothing needs you.</div>
             )}
-            {applyGatePortals.map(p => {
-              const isCaptcha = p.gateReasons?.includes("captcha_required");
-              return (
-                <ObstacleCard
-                  key={p.origin}
-                  theme={theme}
-                  hero={!isCaptcha}
-                  tone={isCaptcha ? C.DANGER : C.INFO}
-                  kicker={isCaptcha ? "cannot be automated" : "one sign-in clears all of these"}
-                  headline={isCaptcha
-                    ? `${p.host} is behind a CAPTCHA or identity check`
-                    : `Sign in to ${p.host} once → ${p.count} application${p.count === 1 ? "" : "s"} ready`}
-                  detail={isCaptcha
-                    ? "We do not defeat identity checks. Open these and apply yourself."
-                    : "Everything queued behind this portal continues as soon as you are signed in. Each one is still reviewed by you before it is sent."}
-                  count={p.count}
-                  countLabel={p.count === 1 ? "application" : "applications"}
-                  actionLabel={isCaptcha ? "Open them" : "Sign in"}
-                  onAction={() => openPortalReview(p)}
-                />
-              );
-            })}
+            {/* ── 1. NEEDS REVIEW ──────────────────────────────────────────────────────────────────
+                The first of AB4's three outcome sections, and first on the page: it is the only one where
+                anything is waiting on a human. Inside it, both halves of the grouping rule — per-portal
+                batches where one action unblocks many, per-application cards where many obstacles block
+                one — then a company tier over the cards. */}
+            {needsYouCount > 0 && (
+              <>
+                <SectionHeading theme={theme} count={needsYouCount} note="each of these is one action">
+                  Needs review
+                </SectionHeading>
 
-            {/* Low-confidence answers: the resolver HAS a value and would not send it. */}
-            {confirmQuestions.length > 0 && (
-              <ObstacleCard
-                theme={theme} tone={C.WARNING}
-                kicker="we guessed, and would not send a guess"
-                headline={`${confirmQuestions.length} answer${confirmQuestions.length === 1 ? "" : "s"} need${confirmQuestions.length === 1 ? "s" : ""} confirmation`}
-                detail={applyQuestionMeta.blockedJobs > 0
-                  ? `Confirming them unblocks ${applyQuestionMeta.blockedJobs} application${applyQuestionMeta.blockedJobs === 1 ? "" : "s"}. Each one is pre-filled with our guess — accepting it is the answer.`
-                  : "Each one is pre-filled with our guess — accepting it is the answer."}
-                count={confirmQuestions.length}
-                countLabel="to confirm"
-                actionLabel="Confirm answers"
-                onAction={() => openFacet("questions", "Answers to confirm")}
-              />
-            )}
+                {/* THE DELIBERATE "REVIEW ALL" (AB3 requirement 3). This view is still reachable — it is
+                    genuinely useful for working through a queue in one sitting — but it is now its own
+                    control, rather than being what every row's Open did. */}
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -6 }}>
+                  <button onClick={openEverything}
+                    title="Every application needing review, in one list."
+                    style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "4px 10px",
+                             background: "transparent", color: theme.textMuted, fontWeight: 700,
+                             fontSize: 11, cursor: "pointer" }}>
+                    Review all {needsYouCount} →
+                  </button>
+                </div>
 
-            {/* Attestations are a different act: a statement the user makes to an employer. Never
-                inferred from the profile, so never grouped with the guesses above. */}
-            {attestQuestions.length > 0 && (
-              <ObstacleCard
-                theme={theme} tone={C.DANGER}
-                kicker="only you can state these"
-                headline={`${attestQuestions.length} question${attestQuestions.length === 1 ? "" : "s"} you must answer yourself`}
-                detail="These are statements to the employer — work authorisation, sponsorship, disability status. We never answer them from your profile."
-                count={attestQuestions.length}
-                countLabel="attestations"
-                actionLabel="Answer"
-                onAction={() => openFacet("questions", "Questions only you can answer")}
-              />
-            )}
+                {/* Prerequisites first: they block EVERY application, so clearing anything else is wasted
+                    effort until they are done. */}
+                {/* The count is what the jobs are blocked FROM, so it has to include applications already
+                    dispatched and sitting queued. With only
+                    the old client-side basket's length the card read "Your profile has no email address" with no number
+                    beside six jobs that were blocked on exactly that. */}
+                <PrerequisiteCards missing={applyPrereqMissing}
+                  queuedCount={applyInFlight.length}
+                  theme={theme} onGo={(tab) => navigate(`/app/${tab}`)} />
 
-            {otherQuestions.length > 0 && (
-              <ObstacleCard
-                theme={theme} tone={C.WARNING}
-                kicker="the form asked for something we do not have"
-                headline={`${otherQuestions.length} field${otherQuestions.length === 1 ? "" : "s"} we would not fill without you`}
-                detail="Answering these turns the hold into a completed application. Saved answers are reused verbatim, never re-inferred."
-                count={otherQuestions.length}
-                countLabel="to answer"
-                actionLabel="Answer"
-                onAction={() => openFacet("questions", "Fields we would not fill without you")}
-              />
-            )}
+                {/* THE PORTAL AMORTISATION, and the most differentiated thing in the product: one sign-in
+                    releases every application queued behind that portal. Rendered as the hero because
+                    "sign in once -> 4 ready" is a ten-second job priced as one, where the same thing shown
+                    as four held rows is priced as four. */}
+                {/* THE QUEUE IS CAPPED, AND A CAPPED QUEUE MUST SAY SO. GET /api/apply/gate-packets
+                    returns the newest 100 unconsumed packets; past that the portals below are a SUBSET
+                    and every count on them is short. Without this the panel renders a truncated queue
+                    exactly as it renders a complete one, which is the same failure the extension hit —
+                    a cap that reads as an answer. */}
+                {applyGateTruncated && (
+                  <div style={{ padding: "8px 12px", marginBottom: 8, borderRadius: 8,
+                                border: `1px solid ${theme.border}`, background: theme.surfaceHigh,
+                                fontSize: 12, color: theme.textMuted }}>
+                    Showing the {applyHandoffPackets.length} most recent of{" "}
+                    <strong>{applyGateTotal ?? "many"}</strong> queued handoffs. Clear some of these to
+                    see the rest.
+                  </div>
+                )}
+                {applyGatePortals.map(p => {
+                  const isCaptcha = p.gateReasons?.includes("captcha_required");
+                  return (
+                    <ObstacleCard
+                      key={p.origin}
+                      theme={theme}
+                      hero={!isCaptcha}
+                      tone={isCaptcha ? C.DANGER : C.INFO}
+                      kicker={isCaptcha ? "cannot be automated" : "one sign-in clears all of these"}
+                      headline={isCaptcha
+                        ? `${p.host} is behind a CAPTCHA or identity check`
+                        : `Sign in to ${p.host} once → ${p.count} application${p.count === 1 ? "" : "s"} ready`}
+                      detail={isCaptcha
+                        ? "We do not defeat identity checks. Open these and apply yourself."
+                        : "Everything queued behind this portal continues as soon as you are signed in. Each one is still reviewed by you before it is sent."}
+                      count={p.count}
+                      countLabel={p.count === 1 ? "application" : "applications"}
+                      actionLabel={isCaptcha ? "Open them" : "Sign in"}
+                      onAction={() => openPortalReview(p)}
+                    />
+                  );
+                })}
 
-            {/* Filled and one click from a real employer — the highest-stakes item on the panel. */}
-            {applyPending.length > 0 && (
-              <ObstacleCard
-                theme={theme} tone={C.INFO} hero
-                kicker="filled, checked, and not sent"
-                headline={`${applyPending.length} application${applyPending.length === 1 ? "" : "s"} waiting for your approval`}
-                /* TASK Q — THE BUDGET IS ON THE SCREEN WHERE IT IS SPENT.
-                   Approving is what generates the resume and cover letter now (AL2 deferred both
-                   from queue time), so this is the number that decides how much of the queue above
-                   can be acted on today. A cap discovered by being refused at it has already wasted
-                   the reviewing it was meant to bound — so it is stated up front, and only when the
-                   server sent one, and only when it is actually close enough to matter. */
-                detail={
-                  !approvalCap ? "Read one before you approve it — approving submits it to the employer and cannot be undone."
-                  : approvalCap.remaining === 0
-                    ? `Approving submits to the employer and cannot be undone. You have used all ${approvalCap.limit} of today's approvals — these stay here until the limit resets.`
-                  : approvalCap.remaining < applyPending.length
-                    ? `Read one before you approve it — approving submits it to the employer and cannot be undone. ${approvalCap.remaining} of ${approvalCap.limit} approvals left today, fewer than the ${applyPending.length} waiting.`
-                    : `Read one before you approve it — approving submits it to the employer and cannot be undone. ${approvalCap.remaining} of ${approvalCap.limit} approvals left today.`
-                }
-                count={applyPending.length}
-                countLabel="to approve"
-                actionLabel="Review & approve"
-                onAction={() => openFacet("pending", "Applications waiting for your approval")}
-              />
-            )}
+                {/* Low-confidence answers: the resolver HAS a value and would not send it. */}
+                {confirmQuestions.length > 0 && (
+                  <ObstacleCard
+                    theme={theme} tone={C.WARNING}
+                    kicker="we guessed, and would not send a guess"
+                    headline={`${confirmQuestions.length} answer${confirmQuestions.length === 1 ? "" : "s"} need${confirmQuestions.length === 1 ? "s" : ""} confirmation`}
+                    detail={applyQuestionMeta.blockedJobs > 0
+                      ? `Confirming them unblocks ${applyQuestionMeta.blockedJobs} application${applyQuestionMeta.blockedJobs === 1 ? "" : "s"}. Each one is pre-filled with our guess — accepting it is the answer.`
+                      : "Each one is pre-filled with our guess — accepting it is the answer."}
+                    count={confirmQuestions.length}
+                    countLabel="to confirm"
+                    actionLabel="Confirm answers"
+                    onAction={() => openFacet("questions", "Answers to confirm")}
+                  />
+                )}
 
-            {/* The handoff happens in ANOTHER TAB, so the panel has to say what to expect there. A
-                refusal (stale answers, a posting that is gone) is reported in the same place, because
-                the alternative is a click that appears to do nothing. */}
-            {handoffMsg && (
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 10,
-                            border: `1px solid ${handoffMsg.kind === "open" ? C.INFO : theme.border}`,
-                            borderLeft: `3px solid ${handoffMsg.kind === "open" ? C.INFO : C.WARNING}`,
-                            borderRadius: 8, padding: "10px 14px", background: theme.surfaceHigh }}>
-                <span style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.6, flex: 1 }}>
-                  {handoffMsg.text}
-                </span>
-                <button onClick={() => setHandoffMsg(null)}
-                  style={{ border: "none", background: "transparent", color: theme.textDim,
-                           cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 2px" }}>×</button>
-              </div>
+                {/* Attestations are a different act: a statement the user makes to an employer. Never
+                    inferred from the profile, so never grouped with the guesses above. */}
+                {attestQuestions.length > 0 && (
+                  <ObstacleCard
+                    theme={theme} tone={C.DANGER}
+                    kicker="only you can state these"
+                    headline={`${attestQuestions.length} question${attestQuestions.length === 1 ? "" : "s"} you must answer yourself`}
+                    detail="These are statements to the employer — work authorisation, sponsorship, disability status. We never answer them from your profile."
+                    count={attestQuestions.length}
+                    countLabel="attestations"
+                    actionLabel="Answer"
+                    onAction={() => openFacet("questions", "Questions only you can answer")}
+                  />
+                )}
+
+                {otherQuestions.length > 0 && (
+                  <ObstacleCard
+                    theme={theme} tone={C.WARNING}
+                    kicker="the form asked for something we do not have"
+                    headline={`${otherQuestions.length} field${otherQuestions.length === 1 ? "" : "s"} we would not fill without you`}
+                    detail="Answering these turns the hold into a completed application. Saved answers are reused verbatim, never re-inferred."
+                    count={otherQuestions.length}
+                    countLabel="to answer"
+                    actionLabel="Answer"
+                    onAction={() => openFacet("questions", "Fields we would not fill without you")}
+                  />
+                )}
+
+                {/* Filled and one click from a real employer — the highest-stakes item on the panel. */}
+                {applyPending.length > 0 && (
+                  <ObstacleCard
+                    theme={theme} tone={C.INFO} hero
+                    kicker="filled, checked, and not sent"
+                    headline={`${applyPending.length} application${applyPending.length === 1 ? "" : "s"} waiting for your approval`}
+                    /* TASK Q — THE BUDGET IS ON THE SCREEN WHERE IT IS SPENT.
+                       Approving is what generates the resume and cover letter now (AL2 deferred both
+                       from queue time), so this is the number that decides how much of the queue above
+                       can be acted on today. A cap discovered by being refused at it has already wasted
+                       the reviewing it was meant to bound — so it is stated up front, and only when the
+                       server sent one, and only when it is actually close enough to matter. */
+                    detail={
+                      !approvalCap ? "Read one before you approve it — approving submits it to the employer and cannot be undone."
+                      : approvalCap.remaining === 0
+                        ? `Approving submits to the employer and cannot be undone. You have used all ${approvalCap.limit} of today's approvals — these stay here until the limit resets.`
+                      : approvalCap.remaining < applyPending.length
+                        ? `Read one before you approve it — approving submits it to the employer and cannot be undone. ${approvalCap.remaining} of ${approvalCap.limit} approvals left today, fewer than the ${applyPending.length} waiting.`
+                        : `Read one before you approve it — approving submits it to the employer and cannot be undone. ${approvalCap.remaining} of ${approvalCap.limit} approvals left today.`
+                    }
+                    count={applyPending.length}
+                    countLabel="to approve"
+                    actionLabel="Review & approve"
+                    onAction={() => openFacet("pending", "Applications waiting for your approval")}
+                  />
+                )}
+
+                {/* The handoff happens in ANOTHER TAB, so the panel has to say what to expect there. A
+                    refusal (stale answers, a posting that is gone) is reported in the same place, because
+                    the alternative is a click that appears to do nothing. */}
+                {handoffMsg && (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10,
+                                border: `1px solid ${handoffMsg.kind === "open" ? C.INFO : theme.border}`,
+                                borderLeft: `3px solid ${handoffMsg.kind === "open" ? C.INFO : C.WARNING}`,
+                                borderRadius: 8, padding: "10px 14px", background: theme.surfaceHigh }}>
+                    <span style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.6, flex: 1 }}>
+                      {handoffMsg.text}
+                    </span>
+                    <button onClick={() => setHandoffMsg(null)}
+                      style={{ border: "none", background: "transparent", color: theme.textDim,
+                               cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 2px" }}>×</button>
+                  </div>
+                )}
+              </>
             )}
-          </>
+          </section>
+          <aside data-draft-queued="" aria-label="Queued"
+                 style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={COLUMN_LABEL(theme)}>Queued{queuedCount > 0 ? ` · ${queuedCount}` : ""}</div>
+            {queuedCount === 0 && (
+              <div style={{ fontSize: 12.5, color: theme.textMuted }}>Nothing queued.</div>
+            )}
+            {/* ── IN FLIGHT ────────────────────────────────────────────────────────────────────────
+                NOT one of AB4's three outcome sections, and deliberately placed ABOVE them rather than
+                made a fourth. A queued or running application has no outcome yet — it is neither
+                submitted, nor waiting on the user, nor broken — so filing it under any of the three would
+                be a claim about it that is not true, and dropping it would lose a capability. It reads as
+                progress, which is what it is: small, self-clearing, and out of the way. */}
+            {/* ── WAITING IN LINE (A59) ─────────────────────────────────────────────────────────────
+                Above In flight because it is the one place in this band where the user can still change
+                what will happen: a waiting Draft has not started, so its tool, place and presence are
+                theirs to edit. Once it starts it moves to In flight and only Stop applies. */}
+            <WaitingLine line={applyLine} theme={theme} busyId={lineBusyId} message={lineMsg}
+              canUseAPlus={draftTool === A_PLUS_TOOL}
+              onTool={setLineTool} onMove={moveInLine} onRemove={removeFromLine} />
+
+            {applyInFlight.length > 0 && (
+              <>
+                <SectionHeading theme={theme} count={applyInFlight.length} note="nothing to do — these clear themselves">
+                  In flight
+                </SectionHeading>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {applyInFlight.map(job => (
+                    <ApplicationRow key={job.id} job={job} theme={theme} variant="inFlight"
+                      artifactUrl={artifactUrl} onOpenRun={loadApplyRunDetail} />
+                  ))}
+                </div>
+              </>
+            )}
+          </aside>
+        </div>
         )}
         </>
       )}
