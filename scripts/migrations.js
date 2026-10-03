@@ -3651,4 +3651,31 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // A76 under D17 (owner, 10-03: "only résumé generation may call a model"): the validation
+      // corpus is graded OUTSIDE the product — export a blind file, grade it, import the grades. The
+      // grades REUSE the enrichment manual path's provenance, not a second batch system: an import
+      // is an enrichment_batches row (kind 'ats_grade'), each graded posting an enrichment_batch_rows
+      // before-image, and revertBatch dispatches on kind. `kind` defaults to 'enrichment', so every
+      // existing batch reads exactly as before. A grade is a judgement of a posting AGAINST A PROFILE,
+      // so it cannot live on scraped_jobs like an enrichment column; it gets its own table, keyed by
+      // grader so the owner's, an external model's and the 10-03 model grades sit side by side.
+      // content_hash is the staleness interlock: a grade is about the text that was graded.
+      id: "126_ats_grade_corpus",
+      sql: `
+        ALTER TABLE enrichment_batches ADD COLUMN kind TEXT NOT NULL DEFAULT 'enrichment';
+        CREATE TABLE IF NOT EXISTS ats_corpus_grades (
+          corpus       TEXT    NOT NULL,
+          job_id       TEXT    NOT NULL,
+          grader       TEXT    NOT NULL,
+          profile_id   INTEGER,
+          fit          INTEGER NOT NULL CHECK (fit BETWEEN 1 AND 5),
+          content_hash TEXT    NOT NULL,
+          batch_id     INTEGER REFERENCES enrichment_batches(id),
+          graded_at    INTEGER NOT NULL,
+          note         TEXT,
+          PRIMARY KEY (corpus, job_id, grader)
+        );
+      `,
+    },
   ];

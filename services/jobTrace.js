@@ -36,9 +36,13 @@ export function traceJobLifecycle(db, jobId) {
   }
 
   // enrichment
+  // b.* rather than b.kind: a database from before migration 126 has no `kind`, and naming it would
+  // make the whole read fail and drop the enrichment history. A76's grade batches (kind 'ats_grade')
+  // share these tables but are not enrichment of the posting, so they are skipped here.
   for (const b of read(() => db.prepare(`
-    SELECT r.batch_id, r.written_at, r.filled_json, b.source FROM enrichment_batch_rows r
+    SELECT b.*, r.batch_id, r.written_at, r.filled_json FROM enrichment_batch_rows r
     LEFT JOIN enrichment_batches b ON b.id = r.batch_id WHERE r.job_id = ? ORDER BY r.written_at`).all(jobId))) {
+    if (b.kind === "ats_grade") continue;
     let filled = [];
     try { filled = Object.keys(JSON.parse(b.filled_json || "{}")); } catch {}
     add("enrichment", b.written_at, `Enriched in batch ${b.batch_id} (${b.source || "?"})`,
