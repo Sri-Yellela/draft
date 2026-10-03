@@ -51,6 +51,6 @@ export function PassButton({ passed, onPass, compact }) {
 export function DraftButton({ drafted, drafting, onDraft, compact }) {
   return <DecisionPill compact={compact} primary label={drafted ? "Drafted" : drafting ? "Drafting…" : "Draft"}
     done={drafted} disabled={drafted || drafting}
-    title={drafted ? "Drafted — it waits for your review in Auto Apply" : "Draft — queue it for your review. Nothing is sent until you approve it."}
+    title={drafted ? "Drafted — it waits for your review on the Draft tab" : "Draft — queue it for your review. Nothing is sent until you approve it."}
     onClick={onDraft} />;
 }

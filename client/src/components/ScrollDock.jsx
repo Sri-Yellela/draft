@@ -124,7 +124,7 @@ function MarketingToolsDock({ variant }) {
   const TOOLS_LINKS = [
     { label: "ATS Scorer",         to: "/tools/ats" },
     { label: "Resume Generator",   to: "/tools/generate" },
-    { label: "Auto Apply",         to: "/tools/apply" },
+    { label: "Draft",              to: "/tools/apply" },
   ];
   const TOOLS_CTAS = [
     { label: "← Full Platform", to: "/login",    primary: false },
