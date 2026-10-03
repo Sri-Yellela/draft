@@ -89,46 +89,77 @@ zero cost and perfectly targeted.** No list, no guessing, no crawling — the de
 ⛔ **Do not auto-enable from this.** Queue it for validation first; an extension capture proves a
 page exists, not that the board is worth crawling.
 
-### C · ⭐⭐ AGGREGATORS ARE THE DISCOVERY LAYER. ATS BOARDS ARE THE FRESHNESS LAYER.
+### C · ⭐ SERPAPI IS A DISCOVERY POOL. ATS BOARDS ARE THE FRESHNESS LAYER.
 
-**Owner, 2026-10-01 — this is the central idea of the whole document.**
+⛔ **REWRITTEN 2026-10-03 — a deliberate correction, not a drift.** The 10-01 version named BOTH
+aggregators as slug sources and paired each harvested slug with the job it was found under. The D4
+probe and the owner's own live call found three things wrong with that; `CORRECTIONS_REGISTER.md`
+records each. Evidence: `docs/LIVE_SEARCH_FINDING.md` (D4) and `docs/SERPAPI_SLUG_YIELD.md` (the
+20-search measurement).
 
-`adzuna` and `serpapi` are configured and show **LIVE SEARCH ONLY, 0 active rows**. They contribute
-nothing to the board today. But they have the one thing the ATS boards do not:
+**The idea that survives — the owner's, 10-01:** a direct ATS board sees only the companies we have
+configured; an aggregator sees the whole market. An ATS URL found through an aggregator names a
+company **permanently** — configure it once and every future posting arrives same-day, direct from
+its board. Slow and broad finds companies; fast and narrow keeps them fresh.
 
-> **Aggregators see the WHOLE market.** Direct ATS boards see only the ~25 companies we happen to
-> have configured. The aggregator's jobs are 2–3 days old — but they are *everything*.
+**What changed:**
 
-⭐ **And the compounding part: an aggregator result's URL contains the ATS host and the company
-slug.** So every aggregator search does not just find a job — **it finds a company, permanently.**
+1. ⛔ **Adzuna is RETIRED as a slug source.** Its results — API `redirect_url` and browser links
+   alike — are `adzuna.com/land/ad/…` click-tracking redirects (50 of 50 in D4); the employer URL
+   exists only two hops later, outside the API. Descriptions are excerpts (≈500 chars), which
+   collides with §4's "never enable a source at 0% description coverage". US coverage is its weak
+   side (UK/EU-first). And some redirects land on other aggregators (aiapply.co and similar):
+   part of its inventory is second-hand. ⚠ Adzuna's rows also left the board **deliberately** on
+   2026-07-23 (`4c4ce74`, the crawl restricted to direct ATS sources) — not by a defect.
+2. ⭐ **SerpApi (`engine=google_jobs`) is the source.** `apply_options[].link` carries UNWRAPPED
+   ATS URLs — `jobs.ashbyhq.com/coder/…`, `blueorigin.wd5.myworkdayjobs.com/blueorigin/…`. No
+   redirect to follow: slug extraction is a string parse (`detectKnownAtsMatch`,
+   `services/jobs/importJob.js`). ⛔ Every call carries `hl=en&gl=us` — without them the response
+   is localised ("Estados Unidos", "hace 18 horas") and would silently defeat the US-only gate.
+   Pinned by `test/serpapiLocale.test.js`.
+3. ⛔ **A POOL, NOT A PAIRING.** Google clusters similar postings: the `apply_options` under one
+   result are NOT routes to one job. Under "Staff Software Engineer (AI Agents)" at People In AI sat
+   Coder's Ashby job, Western Alliance Bank's Workday "Staff Engineer I — GRC" and a Mural link;
+   NVIDIA's result carried Rocket Software's Workday and a Toast careers link. ⛔ **Never attach a
+   harvested slug to the job it was found under** — that corrupts company attribution (the
+   "Localhost" and "Physical Superintelligence → Intel" class). Each search yields an **unordered
+   pool of `(ats_host, slug)` pairs; the job association is discarded entirely.** This section's
+   purpose was always to find COMPANIES, not to enrich jobs.
+
+**Measured yield (20 searches, every role family, 2026-10-03 — `SERPAPI_SLUG_YIELD.md`):**
 
 ```
-            aggregator search                 →  a job we were missing, 2–3 days old
-            its URL → ashby/linear           →  a company we did not have
-            configure that company            →  ⭐ EVERY future Linear posting, on day one,
-                                                  direct from the board, for free, forever
+200 jobs · 1,031 apply_options links · 52 on an ATS host (5.0%) · 83.4% job-board-to-job-board
+50 distinct (vendor, slug) pairs · 0 already configured · 50 NEW
+  ashby 9 · lever 1 · smartrecruiters 3 · workable 1 · recruitee 1   → 15 crawlable today
+  workday 25 (adapter exists; site needs a path parse; 300-posting cap)  → NOT harvest-ready
+  icims 4 · jazzhr 2 · oracle 1 · eightfold 1 · gem 1 · pinpoint 1     → no adapter
+  ⛔ greenhouse 0 · lever 1 — our two largest configured vendors barely appear
+cost: free plan, 250 searches/month (NOT "already paid for"); 0.75 new crawlable non-Workday
+slugs per search, 2.0 counting Workday — falling as the pool saturates
 ```
 
-⭐ **That is the engine.** The aggregator is slow and broad; the ATS board is fast and narrow.
-Use the broad one to find companies and the narrow one to stay fresh. **Each search permanently
-converts a slice of the market from "2–3 days late" to "same day", and it never has to be repeated
-for that company.**
+⚠ **So harvesting feeds mostly Workday and Ashby, not Greenhouse.** Ashby is ready today. Workday is
+a separate project (site extraction, validation, and an adapter that caps at 300 postings with a
+title filter — poor for Wells Fargo-, Boeing-, Comcast-sized boards) and must be decided as such.
 
-⚠ **It also explains why a one-person company list cannot win.** One person can name twenty
-companies. The market has thousands, and the owner cannot enumerate them by hand — but a search for
-the roles that matter will surface them, and each one surfaced is permanent coverage.
+**What to build — when the owner says so (nothing is built):**
 
-**What to build:**
+1. A small batch of google_jobs searches (`hl=en&gl=us`, `location=United States`) across the role
+   families; every `apply_options[].link` into one pool.
+2. `detectKnownAtsMatch` on each link → `(ats_type, slug)`; drop the job association.
+3. Write the pairs where the existing harvest already reads them — the `harvestedSuggestions` →
+   `validateBoard` → admin add-company path (`services/companyList.js`, `routes/companies.js`),
+   which is live and dry-by-default. ⛔ **Never auto-enable.**
+4. ⛔ **Validate before enabling** (§4) — and add **description coverage** to `validateBoard` first:
+   it checks dead / empty / live and US evidence today, not descriptions.
+5. ⚠ **Track the conversion rate** — new pairs per search. When it falls toward zero for a family,
+   that family is covered and its searches stop.
+6. ⚠ A49's dedup gates any **job** ingestion from the aggregator itself; this section ingests
+   companies only, which is why it does not need it.
 
-1. Run aggregator searches for the role families the product serves.
-2. Extract `(ats_host, slug)` from every result URL.
-3. ⛔ **Validate before enabling** — does the board exist and return a non-empty list? §4.
-4. Add the company. From then on it is crawled directly and its postings arrive same-day.
-5. ⚠ **Track the conversion rate** — how many searched results yield a *new* company. When that
-   number falls toward zero, the market is covered for that role family and the searches can stop.
-
-⚠ **Both keys are already configured and already paid for.** This is not a new dependency; it is
-using two things that currently return nothing.
+⚠ **For the owner:** Jobright — a direct competitor — appears in Google's apply list (21 links in 12
+of 20 queries).
 
 ### D · User request — the strongest demand signal
 

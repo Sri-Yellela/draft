@@ -12,6 +12,16 @@ in § Owner actions.
 
 ---
 
+## ⛔ ADDENDUM 2026-10-03 — the owner's live call and a 20-search measurement supersede parts of this
+
+- **SerpApi DOES carry unwrapped ATS URLs** in `apply_options[].link` (the owner's call: Ashby, three Workday tenants, eightfold). This probe's "0 / 20, 0 new" read only `apply_options[0]` — the URL the plugin keeps — and two of three searches had no location. ⇒ **20 searches with `hl=en&gl=us`: 50 distinct pairs, 50 NEW** (`docs/SERPAPI_SLUG_YIELD.md`). The SerpApi half of the verdict below is **superseded**; the Adzuna half stands and is now the owner's decision: **Adzuna retired as a slug source.**
+- ⛔ **Google clusters similar postings** — one result's `apply_options` belong to different companies. Harvest is a POOL; never pair a slug with its job.
+- **§2 corrected: Adzuna's absence from the board is DELIBERATE**, not a defect — `4c4ce74` (2026-07-23) restricted `cacheJobs` to direct ATS sources, and `8b780e0` (same day) made every aggregator copy lose dedup to its ATS listing. Nothing recorded a reason; the excerpted descriptions would have been one. The defect is only the live-search route (§1).
+- `hl=en&gl=us`: the plugin has sent both since `462618f`; the owner's Spanish response came from a call without them. Now pinned by `test/serpapiLocale.test.js`.
+- §3C is rewritten (`COMPANY_LIST_STRATEGY.md`); the corrections are in `CORRECTIONS_REGISTER.md`.
+
+---
+
 ## ⭐ Verdict on `COMPANY_LIST_STRATEGY.md` §3C
 
 **§3C does not work as written, and it needs rewriting.**
@@ -80,7 +90,7 @@ scraping any more"*, `UnifiedSearchBar.jsx:56-60`). `server.js:7944` removed the
 to `searchJobs()`. ⚠ `jobQuery.js:560` says "searchJobs never writes": that's true of the function
 itself, but not of its one route, which does write.
 
-## 2 · Are we ingesting from them? — no, and it's a defect, not a decision
+## 2 · Are we ingesting from them? — no; the crawl's exclusion is a decision (07-23), the live route's is a defect
 
 | DB (local) | adzuna | serpapi |
 |---|---|---|

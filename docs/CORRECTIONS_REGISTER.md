@@ -4,7 +4,7 @@
 with what replaced it. Kept because several of these were repeated across multiple sessions before
 anyone measured them, and a wrong figure in a brief becomes a wrong premise in the work.
 
-**Last reconciled:** 2026-09-21.
+**Last reconciled:** 2026-10-03 (D4 — `COMPANY_LIST_STRATEGY.md` §3C).
 
 > **The pattern worth naming:** almost every entry below was corrected by an agent *measuring* a
 > premise it had been handed, not by anyone noticing the error. The standing instruction —
@@ -46,6 +46,10 @@ anyone measured them, and a wrong figure in a brief becomes a wrong premise in t
 | **Tasks B and C were pending** | Both complete; the head commit read *"docs: Phase 2a is complete"* |
 | **Six commits unpushed and undeployed — "the highest-value action"** | All six were on `main` **and** `origin/main`. Sixth time `NEXT_WORK.md` was stale about its own headline |
 | **`GROQ_API_KEY` absent from local `.env`** | It was present all along |
+| ⛔ **"An aggregator result's URL contains the ATS host and the company slug" — for Adzuna** (`COMPANY_LIST_STRATEGY.md` §3C, 10-01) | **Adzuna's URLs are its own click-tracking redirect** (`adzuna.com/land/ad/…`; 50 of 50, D4), in the API and the browser alike; the employer URL is two hops away, outside the API; descriptions are excerpts. Adzuna is retired as a slug source (owner, 10-03). It was true of SerpApi's `apply_options` only |
+| **"Both keys are already configured and already paid for"** (§3C) | SerpApi is on the **free plan, 250 searches/month** (D4). Adzuna's plan was not read; ⚠ a licence may be needed for commercial use (owner row) |
+| **A Google Jobs result's `apply_options` are apply routes for that job** (implicit in §3C's "every search finds a company" pairing) | **Google clusters similar postings** — one result's options belonged to Coder, Western Alliance Bank and Mural (owner's live call, 10-03). Harvested slugs are a POOL; never attached to the job they came under |
+| **"SerpApi: 0 new companies"** (D4, 10-03, this same day) | **50 of 50 distinct pairs new** over 20 searches with `location` and `hl/gl` set (`SERPAPI_SLUG_YIELD.md`). D4 read only `apply_options[0]` (the URL the plugin keeps) on 20 jobs, two of three searches without a location. Corrected within hours — by the next measurement, as this file predicts |
 
 ---
 
@@ -206,6 +210,7 @@ who decided, and where the code enforces the new line.
 | **resumemaster.one answers a JSON 404 at "/"** (resume-master: "every answer is JSON, including not found") | **"/" is the site** (A54, owner 2026-10-02); every other unknown path is still a JSON 404 | owner, 10-02 | resume-master `5ab72ff`: `test/site.test.js`; the contract harness no longer declares the root scenario |
 | **A Draft while a run is active is refused 429 `run_already_active`** (`APPLY_MAX_ACTIVE_RUNS_PER_USER=1`, A3) | **It waits in line**, viewable and editable until it starts (A59, O44, owner 2026-10-02); runs still never stack | owner, 10-02 | draft `0040f1e`: `test/a59DraftLine.test.js`, `applyGuards` "the second WAITS" |
 | **Pressing Apply on the board / exporting a résumé PDF records an application** | **Nothing becomes submitted on a click alone**: Pending → recorded → verified → Submitted; only a verified record writes `job_applications` (A63, O45c, owner 2026-10-02) | owner, 10-02 | draft `1a3b123`: `atsRankingHonesty` (no route but the verified record writes `job_applications`), `test/a63BoardToolsPending.test.js` |
+| **Aggregators (Adzuna AND SerpApi) are the discovery layer; each harvested slug pairs with its job** (`COMPANY_LIST_STRATEGY.md` §3C, owner 10-01) | **SerpApi only; Adzuna retired; an unordered POOL of (ats_host, slug), the job association discarded** — and nothing is built until the yield is read (measured: `SERPAPI_SLUG_YIELD.md`) | owner, 10-03 (D4 addendum) | doc only — nothing harvests yet. `test/serpapiLocale.test.js` pins `hl=en&gl=us` on the one google_jobs call site |
 
 ## Why this file stays
 
