@@ -121,7 +121,7 @@ import {
 // The band, not the number, is what a user is shown — see the header of shared/atsBands.js.
 import { atsBandFor } from "./shared/atsBands.js";
 import { standaloneAtsResult } from "./services/standaloneAts.js";
-import { todaysDeck, validDraftDate } from "./services/dailyDraft.js";
+import { todaysDeck, validDraftDate, DECK_ORDERS } from "./services/dailyDraft.js";
 import { roleFamilyForTitle, roleAliasCount } from "./services/searchQueryBuilder.js";
 import {
   INTEGRATION_PROVIDERS,
@@ -7958,13 +7958,19 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "invalid_date",
       message: "Send your local date as ?date=YYYY-MM-DD (within a day of the server's)." });
   }
+  // A75 — "ATS match" as a sort on the daily draft: the deal is frozen, the READ is reordered by the
+  // caller's own stored score (services/dailyDraft.js orderByAts). The score is not sent.
+  const order = String(req.query.order || "dealt");
+  if (!DECK_ORDERS.includes(order)) {
+    return res.status(400).json({ error: "invalid_order", message: `order must be one of: ${DECK_ORDERS.join(", ")}` });
+  }
   try {
     // A brand-new account — which is what a first Google sign-in creates — has no profile and no
     // résumé. That is a STATE the deck explains and points past, not an error (§3.6; found 09-30
     // when the owner's Google sign-in created a fresh account and Today showed "could not be dealt.
     // no_active_profile"). Nothing is dealt: a deck without a résumé would 409 on every Draft.
     const noDeal = (reason, profileId = null) =>
-      res.json({ date, profileId, size: 0, dealtNow: false, thin: false, reason, cards: [] });
+      res.json({ date, profileId, size: 0, dealtNow: false, thin: false, reason, cards: [], order });
     const profile = getOrRepairActiveProfile(req.user.id);
     if (!profile) return noDeal("no_profile");
     const hasResume = db.prepare(
@@ -7980,7 +7986,10 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
       try { return JSON.parse(reportStmt.get(req.user.id, profile.id, jobId)?.ats_report || "null"); }
       catch { return null; }
     };
-    res.json(await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor }));
+    const scoreStmt = db.prepare(
+      "SELECT ats_score FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ?");
+    const scoreFor = (jobId) => scoreStmt.get(req.user.id, profile.id, jobId)?.ats_score ?? null;
+    res.json(await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor }));
   } catch (e) {
     console.error("[GET /api/draft/today]", e.message);
     res.status(500).json({ error: "The deck could not be dealt. Try again." });

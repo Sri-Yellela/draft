@@ -157,7 +157,7 @@ export const MOBILE_ENDPOINTS = Object.freeze([
   {
     group: "feed", method: "GET", path: "/api/draft/today", auth: AUTH.BEARER,
     summary: "Today's deck: up to 10 Strong or Moderate jobs, dealt once per local day and frozen.",
-    query: { date: "string" },
+    query: { date: "string", order: "string" },
     response: "DeckResponse",
     errors: ["BadRequest", "Unauthorized", "ServerError"],
     mobileNotes:
@@ -169,7 +169,8 @@ export const MOBILE_ENDPOINTS = Object.freeze([
       "explain, never errors — a first Google sign-in creates an account in exactly that state. Decide with the " +
       "existing calls: Draft = POST /api/apply/runs with surface:'deck' and no approvalMode; " +
       "Pass = PATCH /api/jobs/interact {disliked:true}; Save = {starred:true}. `decision` is read " +
-      "live from those. A card carries its band and never a score (job.matchScore is null).",
+      "live from those. A card carries its band and never a score (job.matchScore is null). " +
+      "?order=ats (1.5.0) returns the same cards sorted by ATS match; anything but 'dealt' or 'ats' is a 400.",
   },
   {
     group: "feed", method: "GET", path: "/api/jobs/by-id/{jobId}", auth: AUTH.BEARER,

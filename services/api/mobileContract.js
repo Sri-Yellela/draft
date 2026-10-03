@@ -61,6 +61,11 @@ import { ATS_BAND } from "../../shared/atsBands.js";
  * Semver. MAJOR is breaking; MINOR is additive. The rules, and why removing a field is
  * deliberately awkward, are in contract/README.md.
  *
+ * 1.5.0 — GET /api/draft/today: `?order=ats` and `DeckResponse.order` — "ATS match" as a sort on the daily
+ *         draft (A75, 10-03). Additive: the default is 'dealt', exactly the 1.4.0 behaviour; the score
+ *         orders the cards and is still not sent. The three ATS-score annotations change from "INTERNAL —
+ *         DO NOT DISPLAY" to "NOT DISPLAYED YET": the owner decided the number will be shown once A76
+ *         validates it — the contract says so rather than contradicting the product.
  * 1.4.0 — `Job.heldOutsideUs`: an inactive Saved row that the US-only gate held off the board, so a
  *         client can say "outside the US" rather than "no longer listed" (A62 follow-up, 10-02).
  *         Additive and always present (false by default); an existing decoder ignores it.
@@ -82,7 +87,7 @@ import { ATS_BAND } from "../../shared/atsBands.js";
  *         a checksum and need a reason to re-copy.
  * 1.0.0 — initial contract.
  */
-export const CONTRACT_VERSION = "1.4.0";
+export const CONTRACT_VERSION = "1.5.0";
 
 // ------------------------------------------------------------------------------------------------
 // THE JOB SHAPE — derived by executing mapJobRow, not by reading it
@@ -165,7 +170,7 @@ export const JOB_FIELD_TYPES = Object.freeze({
   bucketDomain:        { type: "string",  nullable: true },
   directApply:         { type: "boolean" },
   companyIconUrl:      { type: "string",  nullable: true, format: "uri" },
-  matchScore:          { type: "number",  nullable: true, description: "INTERNAL — DO NOT DISPLAY THIS NUMBER. The local ATS engine orders coarsely and cannot support a shown figure: Spearman rho 0.746 against a human-graded set of 30, with 12.2% of pairs still mis-ordered. \"This job is a 43\" claims a precision it does not have. Render the BAND instead — Strong (>=44) / Moderate (>=26) / Weak / Not enough signal — whose cutpoints and copy are defined once in shared/atsBands.js. A NULL IS NOT A ZERO: null means the scorer declined for want of signal, which is its own band and must never render as a low score. The number stays in the payload because the auto-apply gate is a numeric threshold (30) and mobile needs to show remaining capacity against it; that is the only sanctioned use." },
+  matchScore:          { type: "number",  nullable: true, description: "NOT DISPLAYED YET — the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The local ATS engine orders coarsely and cannot support a shown figure: Spearman rho 0.746 against a human-graded set of 30, with 12.2% of pairs still mis-ordered. \"This job is a 43\" claims a precision it does not have. Render the BAND instead — Strong (>=44) / Moderate (>=26) / Weak / Not enough signal — whose cutpoints and copy are defined once in shared/atsBands.js. A NULL IS NOT A ZERO: null means the scorer declined for want of signal, which is its own band and must never render as a low score. The number stays in the payload because the auto-apply gate is a numeric threshold (30) and mobile needs to show remaining capacity against it; that is the only sanctioned use." },
   starred:             { type: "boolean", description: "Per (user, domain profile). The Saved tab is starred=1." },
   visited:             { type: "boolean", description: "Per (user, domain profile)." },
   disliked:            { type: "boolean", description: "Per (user, domain profile). Excluded from the default board." },

@@ -156,7 +156,27 @@ function readDeal(db, userId, profileId, date) {
  * `fetchBoardPage(cursor)` returns one page of the board in its default order:
  * `{ ok, jobs, nextCursor }`. The deal pages until the deck is full or the board ends.
  */
-export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, reportFor = () => null, size = DECK_SIZE }) {
+/** The orders a deck can be read in. 'dealt' is the board's own (position IS the fit signal). */
+export const DECK_ORDERS = Object.freeze(["dealt", "ats"]);
+
+// A75 (owner, 10-03): "ATS match" as a sort on the daily draft. The deal stays frozen; only the READ
+// is reordered — by the caller's own stored score, with the board's fit-band rule (FIT_KEYS in
+// services/jobs/jobCursor.js): Strong, Moderate, NOT ESTABLISHED, Weak — a declined score is the
+// scorer saying it cannot judge, so it sorts between, never last — then the score, then the dealt
+// position. ⛔ THE SCORE NEVER LEAVES THE SERVER: it orders the cards and is not added to them.
+const BAND_ORDINAL = { [ATS_BAND.STRONG]: 0, [ATS_BAND.MODERATE]: 1, [ATS_BAND.NOT_ENOUGH_SIGNAL]: 2, [ATS_BAND.WEAK]: 3 };
+export function orderByAts(cards, scoreFor) {
+  const keyed = cards.map(c => {
+    const s = scoreFor(c.job.id);
+    const score = Number.isFinite(s) ? s : null;
+    return { c, band: BAND_ORDINAL[atsBandFor(score)] ?? 2, score };
+  });
+  keyed.sort((a, b) => (a.band - b.band) || ((b.score ?? -1) - (a.score ?? -1)) || (a.c.position - b.c.position));
+  return keyed.map(k => k.c);
+}
+
+export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, reportFor = () => null, size = DECK_SIZE,
+                                       order = "dealt", scoreFor = () => null }) {
   let rows = readDeal(db, userId, profileId, date);
   let dealtNow = false;
   if (!rows.length) {
@@ -184,15 +204,16 @@ export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, 
     dealtNow = true;
   }
   const decisions = decisionsFor(db, userId, rows.map(r => r.job_id));
-  const cards = rows.map(r => {
+  const dealtCards = rows.map(r => {
     const snap = JSON.parse(r.card_json);
     // `report` is null on a card dealt before A40 froze it — the panel then says the full report is on
     // the board rather than inventing one from the six-chip summary.
     return { position: r.position, band: r.band, decision: decisions[r.job_id], job: snap.job, why: readWhy(snap.why),
              report: snap.report ?? null };
   });
+  const cards = order === "ats" ? orderByAts(dealtCards, scoreFor) : dealtCards;
   return {
-    date, profileId, size: cards.length, dealtNow, cards,
+    date, profileId, size: cards.length, dealtNow, cards, order: order === "ats" ? "ats" : "dealt",
     thin: cards.length > 0 && cards.length < size,
     ...(cards.length === 0 ? { reason: "empty" } : cards.length < size ? { reason: "thin" } : {}),
   };

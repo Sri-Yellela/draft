@@ -227,7 +227,8 @@ export const SORTS = {
     { value: "compLow",  label: "Pay low to high" },
     { value: "yoeLow",   label: "Exp low to high" },
     { value: "yoeHigh",  label: "Exp high to low" },
-    { value: "atsScore", label: "ATS Sort"        },
+    // A75 (owner, 10-03): named "ATS match", the same words as the daily draft's sort.
+    { value: "atsScore", label: "ATS match"       },
   ],
   dbOnly: [
     { value: "applicantCount", label: "Fewest applicants", why:

@@ -228,14 +228,17 @@ test("the ATS panel renders the band for a DECLINED report, and the depth warnin
     "the score donut is back; a ring filled to 43/100 claims a precision the engine does not have");
 });
 
-test("the mobile contract marks the score internal", () => {
+test("the mobile contract says the score is NOT DISPLAYED YET — and why, and when it will be (A75)", () => {
+  // A75 (owner, 10-03) reversed "never display" to "display once A76 validates it". The contract says
+  // exactly that, rather than contradicting the product either way.
   const contract = JSON.parse(fs.readFileSync(path.join("contract", "mobile-api.v1.json"), "utf8"));
   const job = contract.components.schemas.Job.properties.matchScore;
-  assert.match(job.description, /INTERNAL/);
-  assert.match(job.description, /DO NOT DISPLAY/i);
+  assert.match(job.description, /NOT DISPLAYED YET/);
+  assert.match(job.description, /A76/);
+  assert.match(job.description, /render the BAND/);
   // The two apply-side copies too.
   for (const schema of ["PendingResume", "RunJob"]) {
     const node = contract.components.schemas[schema].properties.atsScore;
-    assert.match(node.description || "", /INTERNAL/, `${schema}.atsScore is not marked internal`);
+    assert.match(node.description || "", /NOT DISPLAYED YET/, `${schema}.atsScore is not annotated`);
   }
 });

@@ -235,7 +235,7 @@ test("tool access is plan-owned and local match UI is removed", () => {
   // SORT_OPTIONS and the collapsed pill, and now (X1) out of both of those literal lists into
   // shared/jobFilterOptions.js, which is the one definition both surfaces render from. Asserting
   // the contract rather than either copy is the point — it is what makes the two agree.
-  assert.ok(SORTS.options.some(o => o.value === "atsScore" && o.label === "ATS Sort"),
+  assert.ok(SORTS.options.some(o => o.value === "atsScore" && o.label === "ATS match"),
     "ATS Sort is no longer offered as a board sort");
   assert.match(fs.readFileSync("client/src/App.jsx", "utf8"), /const SORT_OPTIONS = SORTS\.options\.map/);
   // The second assertion here pinned the COLLAPSED PILL's sort select. Y4 retired the pill, so there

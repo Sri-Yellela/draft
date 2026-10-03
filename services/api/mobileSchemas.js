@@ -159,7 +159,12 @@ export const RESPONSE_SCHEMAS = Object.freeze({
       "`reason`: null | 'thin' | 'empty' | 'no_profile' | 'no_resume' — the last two are set-up states, not errors.",
     fields: {
       date: "string", profileId: "number", size: "number", dealtNow: "boolean", thin: "boolean",
-      reason: "string|null", cards: "$DeckCard[]",
+      reason: "string|null", cards: "$DeckCard[]", order: "string",
+    },
+    fieldNotes: {
+      order: "1.5.0 — 'dealt' (the board's own order; position IS the fit signal) or 'ats' (?order=ats: " +
+        "the same cards by the caller's ATS match — Strong, Moderate, not enough signal, Weak, then the score, " +
+        "then position). The score orders the cards and is never sent.",
     },
   },
   DeckCard: {
@@ -253,7 +258,7 @@ export const RESPONSE_SCHEMAS = Object.freeze({
     fields: { artifactId: "number|null", atsScore: "number|null", available: "boolean" },
     fieldNotes: {
       atsScore:
-        "INTERNAL - DO NOT DISPLAY. The engine orders coarsely (rho 0.746 against a human-graded 30, " +
+        "NOT DISPLAYED YET - the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The engine orders coarsely (rho 0.746 against a human-graded 30, " +
         "12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from " +
         "shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own " +
         "band, never a zero. Kept in the payload because the auto-apply gate is numeric (30).",
@@ -334,7 +339,7 @@ export const RESPONSE_SCHEMAS = Object.freeze({
     },
     fieldNotes: {
       atsScore:
-        "INTERNAL - DO NOT DISPLAY. The engine orders coarsely (rho 0.746 against a human-graded 30, " +
+        "NOT DISPLAYED YET - the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The engine orders coarsely (rho 0.746 against a human-graded 30, " +
         "12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from " +
         "shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own " +
         "band, never a zero. Kept in the payload because the auto-apply gate is numeric (30).",
