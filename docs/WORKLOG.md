@@ -2380,3 +2380,154 @@ tests depend on line endings and the failure shows as CLEAN in git diff. Three i
 ⛔ WHERE A PREMISE IS WRONG, SAY SO AND MEASURE. Three briefs in a row had their central premise
 inverted by the first measurement, and each time that was the most valuable thing in the session.
 ```
+
+---
+
+# D — DESIGN DECISIONS (visualised, chosen, specified)
+
+⛔ **`D##` is a THIRD sequence, separate from `O##` and `A##`.** These are designs the owner and the
+assistant worked out through interactive HTML sketches and **chose**. ⭐ **The sketch is the
+specification** — build to the spec below, not to an interpretation of it.
+
+⛔ **The agent does not create or renumber `D##` rows.** Agent-raised findings are `F##`. Two writers
+on one sequence is what produced the duplicate A51/A52 and A66/A67 collisions.
+
+---
+
+## ✅ D1 · JOB CARDS AS BUBBLES — chosen 2026-10-02
+
+Replaces the jobs-page card. Sketch: `bubbles2.html`. ⚠ Supersedes the A79 explorations.
+
+### Layout
+
+```
+2, 3 or 4 cards PER ROW by viewport width — 3 is the default
+flex row · each card flex: 1 1 0 · gap 18px · page padding 28px
+
+HOVER / FOCUS-WITHIN   the card grows to flex-grow 1.55
+                       ⛔ THE NEIGHBOURS GIVE UP THE WIDTH. They do NOT reflow to another row,
+                         and the row height never changes.
+```
+
+⛔ **Sizing is deliberate so compression never truncates.** Card padding `16px 20px`, gaps 18px, and
+growth capped at 1.55× — the resting card has enough slack that neighbours compress into
+**whitespace**, not into text. Titles ellipsis on one line; nothing wraps or rearranges.
+⚠ An earlier sketch used 2.1× growth and 12px gaps and it truncated.
+
+### The card
+
+```
+[ logo 52px ] [ company / title / meta ] [ rail — zero width until hover ]
+
+logo        52×52, radius 13, shadow 0 2px 6px rgba(0,0,0,.14)
+text block  height 52px, vertically centred — shares the logo's exact top and bottom edge
+company     ⭐ THE LOGO FACE — heavy italic geometric sans, 17px, letter-spacing -.015em
+title       12.5px, --soft
+meta        11px, --faint      (all three single-line, ellipsis)
+```
+
+⛔ **The company name keeps its hyperlink and loses the underline and the ↗.** ⚠ Keep a non-colour
+hover affordance — removing both leaves only colour, which fails for colour-blind users.
+
+⛔ **NO BAND AND NO NUMBER on the card body.** The score lives on the ATS button only.
+⚠ **Consequence, and it is deliberate:** nothing on the row shows fit, so **the sort order becomes
+the signal** — which is why A75's "ATS match" sort matters more than it looks.
+
+### The rail — three squares, 52px, matching the logo
+
+```
+ATS     ⭐ SHOWS THE SCORE when there is one — e.g. 58 with a small "ats" caption,
+          green on --okbg.
+        ⛔ NO SCORE → the bar icon on --paper, NOT a zero. "Not enough signal" is the scorer
+          DECLINING, a correctness state, not a low score.
+SAVE    star outline
+DRAFT   ⭐ the mark: /d  · --accent fill · shadow tinted orange so it sits in its own colour
+
+⛔ GENERATE and APPLY are REMOVED from the card.
+```
+
+**Rail motion:** `max-width: 0 → 196px`, opacity 0 → 1, `margin-left: 0 → 4px`, 0.42s on
+`cubic-bezier(.3,.8,.25,1)`. The rail growing is what pushes the neighbours — one motion, not two.
+
+### ⭐ Depth — use it on every control
+
+```
+rest   box-shadow: 0 3px 8px rgba(0,0,0,.11), inset 0 1px 0 rgba(255,255,255,.66)
+hover  0 7px 17px rgba(0,0,0,.15) + translateY(-2px)
+press  translateY(0) + 0 2px 5px rgba(0,0,0,.13)
+draft  0 3px 9px rgba(253,70,0,.34)  — tinted, so it reads as orange rather than grey-made-orange
+```
+
+The inset top highlight is what makes it feel lit rather than merely dropped.
+
+### ⛔ Before this ships
+
+- **`:focus-within`, not only `:hover`.** Hover-only buttons are unreachable by keyboard.
+- ⚠ **Touch has no hover.** Decide: always-visible on touch, or tap-to-reveal. Same shape as the
+  swipe/scroll conflict resolved on the deck.
+- ⛔ **Self-host the logo typeface.** The sketch loads Poppins from Google Fonts; ⚠ Google Fonts is
+  already an open item on the privacy reconciliation and a second third-party request makes it
+  worse. A54 established self-hosted fonts with no third-party request — follow it.
+  ⚠ Poppins Bold Italic is an **approximation** of the mark; check the source artwork.
+- **Tokens only.** The guard fails on any colour outside the token file.
+- ⚠ **4-per-row is a wide-monitor column count.** At 1280px the resting cards ellipsis early.
+
+---
+
+## ✅ D2 · THE ATS REPORT — "THE WEAVE" — chosen 2026-10-02
+
+Sketch: `concepts.html` tab 2. Four concepts were built and compared: the scan, the weave, the
+stamp, the sieve.
+
+### ⭐ Why the weave won
+
+**A match IS a pairing between two documents, and this draws exactly that.** It was the only one of
+the four that is **informative at rest** — when the motion stops, the picture still says something:
+asks paired on the left, asks with nothing attached dangling.
+
+⭐ **Dangling asks communicate "missing" better than a red chip does**, because the absence is the
+visual rather than a label.
+
+**Why the others lost, recorded so they are not re-proposed:**
+
+| | |
+|---|---|
+| **The scan** | ⭐ Strong second — the only one showing **where** in the résumé you matched, and it makes the product's own line literal. ⚠ Needs a loaded résumé, so it cannot run everywhere |
+| **The stamp** | ⭐ Best on brand — cream paper, the tilted mark. ⛔ **Least informative: a satisfying reveal of a list you could have read.** Wears out fastest on repeat opens |
+| **The sieve** | ⛔ **Tone problem.** Watching your terms *fail to pass a filter* reads as rejection. The product's voice is *"here is what you could claim"* — the animation argues the opposite of the copy |
+
+### The design
+
+```
+TWO COLUMNS          left: what this posting asks     right: what your résumé has
+ON OPEN              curves draw between pairs, one at a time, ~260ms apart
+                     each pair turns green as its thread lands
+AFTER THE PAIRS      unmatched asks switch to a dashed outline — nothing attached
+THEN                 the score counts up, ~900ms, eased
+```
+
+Thread: `stroke-dasharray` + `stroke-dashoffset` animated to 0, a cubic Bézier with horizontal
+control points so it leaves and arrives flat.
+
+### ⛔ Constraints that carry over and must survive
+
+- ⛔ **"Not enough signal" stays visually DISTINCT from "Weak"** — declining is a correctness state.
+- ⛔ **Generic language stays separated from genuine gaps**, folded away and labelled **not a gap**.
+  Surfacing *Managed* or *collaboration* as a deficiency is a claim that is not true.
+- ⛔ **Claim copy unchanged**, and it appears **once**, where the action is — not verbatim three
+  times as today: *"claiming a term says it is true of you"*. Nothing is ever pre-selected.
+- ⛔ **Depth on every claim control**, per D1.
+- ⛔ `prefers-reduced-motion` renders the final state with no drawing.
+
+### ⚠ Open, and they need deciding before build
+
+1. ⛔ **A CAP ON THREADS.** Six is elegant; twenty is spaghetti. Show the top N asks and fold the
+   rest — or fall back to the segmented bar above a threshold.
+2. **Does it replay on every open?** A panel opened repeatedly will wear out. Once per job, once per
+   session, or always — the same question the deck's deal animation had.
+3. ⚠ **The score is now the largest element.** That is a stronger claim than a band chip, and
+   ⛔ **A76's validation corpus is the condition for it, not a follow-up** — 30 postings graded by
+   one person does not support the most prominent element in the product's most-seen free feature.
+4. ⭐ **One component, four surfaces** (A52): the deck's left panel, the board, the mobile sheet,
+   the public `/tools/ats`. ⛔ Build it once. **Three StampLogo implementations is how the legacy
+   brand shipped on every page while the guard passed green.**
