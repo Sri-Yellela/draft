@@ -28,6 +28,8 @@
 // prove the employer received it — only their reply does (Applications → Outcome, AK1). A reference
 // number in particular is taken on trust: we cannot look it up.
 
+import { buildHistory, matchesSearch } from "../shared/applicationHistory.js";
+
 /** "Northwind, Inc." and "NORTHWIND" match; "the confirmation for Northwind Traders" contains it. */
 export function normaliseCompanyForMatch(s) {
   return String(s ?? "").toLowerCase()
@@ -302,4 +304,28 @@ export function listRecords(db, userId) {
     ORDER BY ar.updated_at DESC, ar.id DESC LIMIT ${limit}
   `).all(userId, ...states).map(publicRecord);
   return { pending: q(["pending", "recorded"], 200), verified: q(["verified"], 50) };
+}
+
+// ── D15 · The Table — every application, pending and sent ──────────────────────────────────────
+//
+// The rule (status, timeline, chips) is shared/applicationHistory.js; this only reads the rows.
+// Search covers the POSTING TEXT, which never leaves the server — the panel gets the matches, not
+// the descriptions. Each read is guarded: a fixture without a table must not lose the history.
+export function listHistory(db, userId, { q = "", now = nowSec(), limit = 500 } = {}) {
+  const all = (sql, ...args) => { try { return db.prepare(sql).all(...args); } catch { return []; } };
+  const records = all("SELECT * FROM application_records WHERE user_id = ? ORDER BY updated_at DESC LIMIT ?", userId, limit);
+  const applications = all("SELECT * FROM job_applications WHERE user_id = ? ORDER BY applied_at DESC LIMIT ?", userId, limit);
+  const resumes = all("SELECT job_id, created_at FROM resumes WHERE user_id = ?", userId);
+  const approvals = all(`SELECT job_id, MAX(approved_at) AS approved_at FROM apply_run_jobs
+                          WHERE user_id = ? AND approved_at IS NOT NULL GROUP BY job_id`, userId);
+  const ids = [...new Set([...records, ...applications].map(r => String(r.job_id)))];
+  const jobs = [];
+  for (let i = 0; i < ids.length; i += 400) {
+    const chunk = ids.slice(i, i + 400);
+    jobs.push(...all(`SELECT job_id, title, company, apply_url, url, description FROM scraped_jobs
+                       WHERE job_id IN (${chunk.map(() => "?").join(",")})`, ...chunk));
+  }
+  const rows = buildHistory({ records, applications, resumes, approvals, jobs }, { now });
+  const text = new Map(jobs.map(j => [String(j.job_id), j.description]));
+  return rows.filter(r => matchesSearch(r, text.get(r.jobId), q));
 }
