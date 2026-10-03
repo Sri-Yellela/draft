@@ -1,4 +1,5 @@
-// RESUME_MASTER_URL is defined by config.js, loaded before this script.
+// RESUME_MASTER_URL is defined by config.js, loaded before this script; companionMode and the line
+// helpers by companion.js (D13).
 
 function setStatus(msg, timeout = 0) {
   document.getElementById('status').textContent = msg;
@@ -99,9 +100,21 @@ async function init() {
   // was not broken there, it was absent. Now the button appears on any http(s) page and the
   // extractor decides. Being wrong costs one "No job found on this page"; the old behaviour cost
   // every embedded board, silently.
-  const preview = await chrome.runtime.sendMessage({ type: 'PREVIEW_ACTIVE_TAB' }).catch(() => null);
+  // D13: the page's context (board status, a form you drafted, recent captures) is asked for in
+  // parallel with the local preview. Neither is stored.
+  const [preview, context] = await Promise.all([
+    chrome.runtime.sendMessage({ type: 'PREVIEW_ACTIVE_TAB' }).catch(() => null),
+    chrome.runtime.sendMessage({ type: 'POPUP_CONTEXT' }).catch(() => null),
+  ]);
+  renderCompanion(companionMode({ preview, context }));
 
   if (!preview?.capturable) {
+    // D13: all four actions stay VISIBLE — on a page that cannot be read (chrome://, a PDF viewer)
+    // Capture is shown disabled, with the reason, rather than vanishing.
+    const cap = document.getElementById('btn-capture-job');
+    cap.style.display = 'flex';
+    cap.disabled = true;
+    cap.title = 'This page cannot be captured';
     setStatus('Open a job posting to capture it');
     return;
   }
@@ -121,11 +134,67 @@ async function init() {
 }
 
 
+// ── D13: THE COMPANION ─────────────────────────────────────────────────────────────────────────
+// Shows the one or two actions this page calls for, and why. Everything else stays under
+// "Everything" — the decision only adds a shortcut, it never removes a button.
+function renderCompanion(c) {
+  const box = document.getElementById('companion');
+  const line = document.getElementById('ctx-line');
+  const q = document.getElementById('ctx-questions');
+  if (c.mode === 'form') {
+    line.textContent = draftedLine(c.packet);
+    const ql = questionsLine(c.packet);
+    if (ql) { q.textContent = ql; q.style.display = 'block'; }
+    document.getElementById('btn-fill-primary').style.display = 'flex';
+    box.style.display = 'block';
+    return;
+  }
+  if (c.mode === 'posting') {
+    line.textContent = postingLine(c.posting);
+    line.className = 'ctx-line' + (c.posting?.saved ? ' saved' : '');
+    document.getElementById('posting-actions').style.display = 'flex';
+    if (c.posting?.saved) document.getElementById('btn-capture-primary').textContent = 'Capture again';
+    box.style.display = 'block';
+    return;
+  }
+  // Neither a posting nor a form you drafted: your recent captures, as text (never parsed).
+  if (c.recent?.length) {
+    const ul = document.getElementById('recent-list');
+    for (const r of c.recent) {
+      const li = document.createElement('li');
+      li.append(r.title || 'A captured job');
+      const meta = document.createElement('span');
+      meta.textContent = ` · ${r.company ? r.company + ' · ' : ''}${ageWords(Date.now() - (r.capturedAt || Date.now()))}`;
+      li.append(meta);
+      ul.append(li);
+    }
+    document.getElementById('recent').style.display = 'block';
+  }
+}
+
+// "Fill it" — the same gated handoff Ctrl+Shift+Y runs, through the service worker. The review
+// overlay it opens is where the answers are checked; you submit the form yourself.
+async function fillActiveTab() {
+  setStatus('Filling…');
+  const r = await chrome.runtime.sendMessage({ type: 'FILL_ACTIVE_TAB' }).catch(() => null);
+  setStatus(r?.message || (r?.ok ? 'Filled — check every answer, then submit.' : 'Could not fill this page.'), 4000);
+  if (r?.ok) setTimeout(() => window.close(), 1200);
+}
+document.getElementById('btn-fill-primary').addEventListener('click', fillActiveTab);
+document.getElementById('btn-fill').addEventListener('click', fillActiveTab);
+
+// The companion's Capture it / Score it are the same handlers as the buttons under "Everything".
+document.getElementById('btn-capture-primary').addEventListener('click', () => captureFrom('btn-capture-primary'));
+document.getElementById('btn-score-primary').addEventListener('click', () => openAtsScore());
+
 // The SAME capture the hotkey runs — same message, same implementation, same destination, same
 // wording. Previously this button called a second implementation that wrote to a different table
 // with a different dedup identity, so "Save Job" and Ctrl+Shift+K were two features wearing one name.
-document.getElementById('btn-capture-job').addEventListener('click', async () => {
-  const btn = document.getElementById('btn-capture-job');
+document.getElementById('btn-capture-job').addEventListener('click', () => captureFrom('btn-capture-job'));
+
+async function captureFrom(buttonId) {
+  const btn = document.getElementById(buttonId);
+  const label = btn.textContent;
   btn.textContent = 'Capturing...';
   btn.disabled = true;
 
@@ -137,15 +206,15 @@ document.getElementById('btn-capture-job').addEventListener('click', async () =>
     if (result?.success) {
       btn.textContent = 'Captured';
     } else {
-      btn.textContent = 'Capture job';
+      btn.textContent = label;
       btn.disabled = false;
     }
   } catch (e) {
-    btn.textContent = 'Capture job';
+    btn.textContent = label;
     btn.disabled = false;
     setStatus('Could not reach the page — reload and try again', 3000);
   }
-});
+}
 
 // Ending the extension's credential on purpose. Revokes server-side and clears it locally, so the
 // next invocation bootstraps a fresh one from whatever session is signed in THEN — which is how a
@@ -158,6 +227,9 @@ document.getElementById('btn-disconnect')?.addEventListener('click', async () =>
   renderIdentity({ authenticated: false });
   document.getElementById('btn-sign-in').style.display = 'flex';
   document.getElementById('btn-capture-job').style.display = 'none';
+  // The companion spoke for the account that just disconnected; it says nothing for nobody.
+  document.getElementById('companion').style.display = 'none';
+  document.getElementById('recent').style.display = 'none';
   setStatus('Disconnected. Sign in to reconnect.');
 });
 
@@ -183,7 +255,9 @@ document.getElementById('btn-linkedin').addEventListener('click', async () => {
 // opened an empty scorer instead. The gate was never what made the read legal — the activeTab grant
 // from opening this popup is — so it is gone. On a page with nothing to read the extraction simply
 // comes back empty and the scorer opens blank, which is the old else-branch behaviour anyway.
-document.getElementById('btn-ats').addEventListener('click', async () => {
+document.getElementById('btn-ats').addEventListener('click', () => openAtsScore());
+
+async function openAtsScore() {
   const tab = await getCurrentTab();
   let jobText = '';
   if (tab?.id) {
@@ -198,7 +272,7 @@ document.getElementById('btn-ats').addEventListener('click', async () => {
   await chrome.runtime.sendMessage({ type: 'OPEN_ATS_SCORE', jobText });
   setStatus('Sending to ATS Score...', 1000);
   setTimeout(() => window.close(), 900);
-});
+}
 
 // ─── Settings (keyboard shortcuts) ─────────────────────────────────────────
 // Named for both commands, not just capture: this button was the only route to the shortcuts page

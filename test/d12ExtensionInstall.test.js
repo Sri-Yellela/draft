@@ -12,7 +12,7 @@ import { at } from "../test-support/sourceAnchors.js";
 import express from "express";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
-import { createExtensionStatusRouter } from "../routes/extensionStatus.js";
+import { extensionStatusHandler } from "../routes/extensionStatus.js";
 import { EXTENSION_STORE_URL, EXTENSION_PAGE, isStoreDetailUrl } from "../shared/extension.js";
 import { EXTENSION_USER_AGENT } from "../shared/brand.js";
 
@@ -32,7 +32,7 @@ const token = (db, { user = 1, ua = EXTENSION_USER_AGENT, revoked = null, expire
 async function statusFor(db, userId) {
   const app = express();
   app.use((req, _res, next) => { req.user = { id: userId }; next(); });
-  app.use("/api/extension/status", createExtensionStatusRouter(db));
+  app.get("/api/extension/status", extensionStatusHandler(db));
   const server = app.listen(0);
   try {
     const r = await fetch(`http://127.0.0.1:${server.address().port}/api/extension/status`);
@@ -58,7 +58,7 @@ test("D12: /api/extension/status — connected only on a LIVE extension token of
 
 test("D12: the status route is behind requireAuth, at its exact path (the save-job 410 stub stays public)", () => {
   const server = read("server.js");
-  assert.match(server, /app\.use\("\/api\/extension\/status", requireAuth, createExtensionStatusRouter\(db\)\);/);
+  assert.match(server, /app\.get\("\/api\/extension\/status", requireAuth, extensionStatusHandler\(db\)\);/);
   assert.doesNotMatch(server, /app\.use\("\/api\/extension", requireAuth/);
   // The issuing route and the status route agree on the token's tag through ONE constant.
   assert.match(read("routes/extensionStatus.js"), /import \{ EXTENSION_USER_AGENT \} from "\.\.\/shared\/brand\.js";/);

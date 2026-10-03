@@ -24,6 +24,7 @@
     .btn-primary:disabled { background: #6aacaf; cursor: default; }
     .btn-secondary { background: #F3F0EC; color: #28251D; border: 1px solid #D4D1CA; }
     .btn-secondary:hover { background: #E6E4DF; }
+    .btn-secondary:disabled { color: #A9A7A1; cursor: default; }
     .status { font-size: 11px; color: #7A7974; margin-top: 6px; text-align: center; min-height: 14px; }
     .divider { border: none; border-top: 1px solid #DCD9D5; margin: 10px 0; }
     .progress-bar {
@@ -61,6 +62,22 @@
     #identity .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #identity .who strong { color: #28251D; font-weight: 600; }
     #identity .not-admin { color: #7A7974; }
+    /* D13, the companion: what this page is, and the one or two actions it calls for. */
+    #companion { display: none; margin-bottom: 8px; }
+    #companion .ctx-line { font-size: 11px; color: #7A7974; margin: 4px 0 8px; }
+    #companion .ctx-line.saved { color: #437A22; }
+    #companion .questions { font-size: 11px; color: #28251D; background: #FFF4E5; border: 1px solid #F2D7B0;
+      border-radius: 8px; padding: 6px 8px; margin: 0 0 8px; }
+    #recent { display: none; margin-bottom: 8px; }
+    #recent .recent-head { font-size: 11px; font-weight: 600; color: #7A7974; margin-bottom: 4px; }
+    #recent ul { list-style: none; }
+    #recent li { font-size: 12px; padding: 4px 0; border-bottom: 1px solid #ECEAE5;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #recent li span { color: #7A7974; }
+    .all-head { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+      color: #7A7974; margin: 0 0 6px; }
+    .btn-row { display: flex; gap: 6px; }
+    .btn-row .btn { justify-content: center; }
     #btn-disconnect {
       background: none; border: none; padding: 0; cursor: pointer;
       color: #01696F; font-size: 11px; text-decoration: underline; flex: none;
@@ -87,17 +104,37 @@
   </div>
 
   <button class="btn btn-primary" id="btn-sign-in" style="display:none">Sign in to Draft</button>
-  <button class="btn btn-primary" id="btn-capture-job" style="display:none">Capture job</button>
-  <button class="btn btn-primary" id="btn-resume">Open Resume Builder</button>
-  <button class="btn btn-secondary" id="btn-linkedin">Sign in with LinkedIn</button>
+
+  <!-- D13, THE COMPANION. companion.js decides which of the four actions this page calls for; the
+       full set stays below ("Everything"), because a wrong guess must never hide an action. -->
+  <div id="companion">
+    <p class="ctx-line" id="ctx-line"></p>
+    <p class="questions" id="ctx-questions" style="display:none"></p>
+    <button class="btn btn-primary" id="btn-fill-primary" style="display:none">Fill it</button>
+    <div class="btn-row" id="posting-actions" style="display:none">
+      <button class="btn btn-primary" id="btn-capture-primary">Capture it</button>
+      <button class="btn btn-secondary" id="btn-score-primary">Score it</button>
+    </div>
+  </div>
+  <div id="recent">
+    <div class="recent-head">Your recent captures</div>
+    <ul id="recent-list"></ul>
+  </div>
+
   <hr class="divider">
+  <p class="all-head">Everything</p>
+  <button class="btn btn-secondary" id="btn-capture-job" style="display:none">Capture job</button>
+  <button class="btn btn-secondary" id="btn-fill">Fill application</button>
   <button class="btn btn-secondary" id="btn-ats">ATS Score Tool</button>
+  <button class="btn btn-secondary" id="btn-resume">Open Resume Builder</button>
+  <button class="btn btn-secondary" id="btn-linkedin">Sign in with LinkedIn</button>
   <button class="btn btn-secondary" id="btn-settings">Keyboard Shortcuts</button>
 
   <p class="result-text" id="last-capture" style="display:none"></p>
   <p class="status" id="status"></p>
 
   <script src="config.js"></script>
+  <script src="companion.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

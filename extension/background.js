@@ -1,6 +1,6 @@
 import {
   runGatedHandoff, clearPacketForTab, sweepExpiredPackets, applyOverlayEdit,
-  loadBatchForTab, clearBatchForTab,
+  loadBatchForTab, clearBatchForTab, portalQueueFor,
 } from './gated-handoff.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
 import { authedFetch, getIdentity, cachedIdentity, disconnect } from './auth.js';
@@ -127,6 +127,38 @@ async function reportCapture(tabId, result) {
   chrome.storage.local.set({ lastCapture: { ...result, at: Date.now() } }).catch(() => {});
 }
 
+/**
+ * D13 — the page's context for the companion popup, from two reads the server already answers:
+ *   · POST /api/import/context      — is this posting on your board, what ATS the URL names, your
+ *                                     recent captures
+ *   · portalQueueFor(origin)         — the applications you DRAFTED whose form lives at this origin
+ *                                     (gate-packets?origin=), with their counts — never their answers
+ * Either can fail on its own; the popup then falls back to showing every action.
+ */
+async function popupContext(tab) {
+  let url = '';
+  let origin = '';
+  try { const u = new URL(tab?.url || ''); if (/^https?:$/.test(u.protocol)) { url = u.href; origin = u.origin; } }
+  catch { /* chrome://, file:// or a blank tab: no page context, recent captures only */ }
+  const [board, queue] = await Promise.all([
+    authedFetch(RESUME_MASTER_URL, '/api/import/context', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }),
+    })
+      .then(r => (r && r.ok ? r.json() : null)).catch(() => null),
+    origin ? portalQueueFor(RESUME_MASTER_URL, origin) : Promise.resolve(null),
+  ]);
+  return {
+    url, origin,
+    posting: board?.posting || null,
+    ats: board?.ats || null,
+    recent: board?.recent || [],
+    packets: (queue?.packets || []).map(p => ({
+      packetId: p.packetId, title: p.title, company: p.company, createdAt: p.createdAt, stale: !!p.stale,
+      answerCount: p.answerCount ?? 0, unresolvedCount: p.unresolvedCount ?? 0, resumeAvailable: !!p.resumeAvailable,
+    })),
+  };
+}
+
 /** What the popup shows before you commit to capturing. Same extractor, no network, no writes. */
 async function previewActiveTab(tab) {
   const capturable = !!tab?.id && (!tab.url || /^https?:$/.test(new URL(tab.url).protocol));
@@ -156,6 +188,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.tabs.query({ active: true, currentWindow: true })
       .then(([tab]) => previewActiveTab(tab))
       .then(sendResponse);
+    return true;
+  }
+
+  // D13, THE COMPANION — what the popup needs to pick the right action for this page. Asked once per
+  // popup opening (a user action) and never stored: no storage key is added, so the listing's six
+  // are unchanged. See popupContext() below.
+  if (message.type === 'POPUP_CONTEXT') {
+    chrome.tabs.query({ active: true, currentWindow: true })
+      .then(([tab]) => popupContext(tab))
+      .then(sendResponse)
+      .catch(() => sendResponse(null));
+    return true;
+  }
+
+  // D13: "Fill it" from the popup — the SAME handoff Ctrl+Shift+Y runs (one implementation, two
+  // triggers, as capture already is). Opening the popup is the gesture that grants activeTab.
+  if (message.type === 'FILL_ACTIVE_TAB') {
+    handleGatedHandoff()
+      .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null }))
+      .catch(() => sendResponse({ ok: false, message: 'Could not fill this page.' }));
     return true;
   }
 
