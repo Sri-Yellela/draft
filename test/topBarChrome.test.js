@@ -73,7 +73,8 @@ test("the profile menu kept everything it already had", () => {
   // per-session accent and the picker that chose among four were killed by the owner (2026-09-27),
   // and the accent is the logo orange, always. So it is asserted GONE, not merely dropped from here:
   // test/colorTokens.test.js pins the picker's absence from comment-stripped source.
-  for (const kept of [/PROFILE/, /Job Profile/, /Manage Job Profiles/, /<ProfileSelectorDropdown/,
+  // D18: "Manage Job Profiles" MOVED into the menu's Settings group as "Job Profiles" — moved, not lost.
+  for (const kept of [/PROFILE/, /Job Profile/, />Settings<\/div>[\s\S]{0,400}Job Profiles/, /<ProfileSelectorDropdown/,
                       /Sign Out|onLogout/]) {
     assert.match(menu, kept, `the profile menu lost ${kept}`);
   }
