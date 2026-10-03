@@ -80,6 +80,11 @@ export const C_LIGHT = {
   // ACCENT-QUIET: a desaturated orange for states that are not calls to action — the selected
   // tab, a tag, an active filter. A fill; its text is ACCENT_INK.
   ACCENT_QUIET:  "#EBD5C6",
+  // ── THE MARK (D19, owner 10-03) — StampLogo draws the "/" and the letters as two masks, each
+  //    filled from a token. LIGHT: the "/" stays the orange, "draft" is ink (orange on cream is 2.96:1,
+  //    which is why orange is fill-only; the ink word is the legible half). DARK keeps the all-orange mark.
+  LOGO_SLASH:    "#FD4600",   // = ACCENT
+  LOGO_WORD:     "#1E1915",   // = INK
 
   // ── State. Each has a text tone that passes on paper and a quiet fill it also passes on. ──────
   SUCCESS:       "#1A6B33",
@@ -190,6 +195,8 @@ export const C_DARK = {
   ON_ACCENT:           "#1E1915",
   ACCENT_INK:          "#FF7D4A",
   ACCENT_QUIET:        "#3D2519",
+  LOGO_SLASH:          "#FD4600",   // D19: dark mode unchanged — the whole mark stays the orange
+  LOGO_WORD:           "#FD4600",
   SUCCESS:             "#5FCB8C",
   SUCCESS_QUIET:       "#163120",
   WARNING:             "#E6AA4E",
@@ -316,6 +323,12 @@ export const CONTRAST_PAIRS = [
   ["ACCENT_INK",  "SURFACE_MENU",  "normal"],
   ["ACCENT_INK",  "ACCENT_QUIET",  "normal"],   // selected tab / tag
   ["ACCENT_INK",  "CANVAS_SHADE",  "ui"],       // focus ring, active edge
+  // the mark's word (D19) on every surface the mark sits on: the paper (the bar at rest, auth, the
+  // marketing pages), the bar's glass once scrolled, and a menu. "large": the mark is >= 18px tall.
+  ["LOGO_WORD",   "CANVAS_SHADE",  "large"],
+  ["LOGO_WORD",   "SURFACE",       "large"],
+  ["LOGO_WORD",   "SURFACE_2",     "large"],
+  ["LOGO_WORD",   "SURFACE_MENU",  "large"],
   // control edges
   ["BORDER_CONTROL", "CANVAS_SHADE",  "ui"],
   ["BORDER_CONTROL", "SURFACE_INPUT", "ui"],
