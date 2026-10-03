@@ -4395,35 +4395,8 @@ Use this exact schema:
 // encryptCookies/decryptCookies were defined here over the key above. They are SECRET_BOX now
 // (services/secretBox.js); decrypt had no caller then and has none now.
 
-async function classifyJob(title, description = "") {
-  try {
-    const msg = await callModel({
-      anthropic, db, purpose: "classify_job", userId: SYSTEM_USER_ID,
-      // PUBLIC: title + the first 600 chars of the posting's own description, and nothing else.
-      //
-      // ⚠ NOT TO BE CONFUSED WITH `classifier` (services/classifier.js), whose name is one letter
-      // apart and which sends 2000 chars of the CANDIDATE'S RESUME. That one is CANDIDATE class and
-      // must never be routed. The two purposes are adjacent in every cost report; check the payload,
-      // not the name.
-      dataClass: DATA_CLASS.PUBLIC,
-      model: MODEL_HAIKU,
-      max_tokens: 30,
-      messages: [{ role:"user", content:
-        `Classify this job into the single best matching category from the list below.
-If no category fits well, reply with exactly: Other
-
-Categories: ${INDUSTRY_CATEGORIES.join(", ")}
-
-Title: ${title}
-Description: ${description.slice(0,600)}
-
-Reply with the category name only. No explanation.` }],
-    });
-    const raw = msg.content.map(b => b.text||"").join("").trim();
-    const match = INDUSTRY_CATEGORIES.find(c => raw.toLowerCase().includes(c.toLowerCase()));
-    return match || "Other";
-  } catch { return "Other"; }
-}
+// classifyJob (the `classify_job` model call) was deleted under D17 (A80 V7): it had no caller.
+// Ingest classifies with the deterministic services/jobs/classifyJob.js.
 
 // ── Job expiry cleanup — runs at startup and daily at 03:00 ──────
 // Extracts into a named function so it can be called at startup (to
