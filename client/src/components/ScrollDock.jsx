@@ -123,7 +123,6 @@ function MarketingToolsDock({ variant }) {
   ];
   const TOOLS_LINKS = [
     { label: "ATS Scorer",         to: "/tools/ats" },
-    { label: "PDF Tools",          to: "/tools/pdf" },
     { label: "Resume Generator",   to: "/tools/generate" },
     { label: "Auto Apply",         to: "/tools/apply" },
   ];
