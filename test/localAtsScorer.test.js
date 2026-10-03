@@ -294,7 +294,8 @@ test("AG2: the ATS chips claim through the reversible route, not the one-way add
   const report = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
   assert.match(panel, /onToggle: toggleClaim,/);
   assert.match(report, /claims\.onToggle\(kind, item, claimed\)/);
-  assert.match(report, /claimable\("skill"\)/);
+  // D2: skills and competencies are claimed on the weave's dangling asks — the same reversible call.
+  assert.match(report, /onClick=\{\(\) => claims\.onToggle\("skill", label, !claimed\)\}/);
   assert.match(report, /claimable\("action_verb"\)/);
 
   // The superseded one-way helpers must be gone from the client, so there is one way to do this.

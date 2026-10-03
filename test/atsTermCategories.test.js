@@ -218,8 +218,9 @@ test("the report version was bumped, or every cached report keeps the old catego
 test("the panel renders both new buckets, and AG2's copy is untouched", () => {
   // A52: the report is drawn by components/AtsReport.jsx (ATSPanel only fetches and claims).
   const panel = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
-  assert.match(panel, /report\.competencies_matched\?\.length > 0/);
-  assert.match(panel, /report\.competencies_missing\?\.length > 0/);
+  // D2: both buckets are on the weave — asks it pairs, and asks it leaves dangling.
+  assert.match(panel, /\.\.\.\(report\?\.competencies_matched \|\| \[\]\)/);
+  assert.match(panel, /\.\.\.\(report\?\.competencies_missing \|\| \[\]\)/);
   assert.match(panel, /report\.action_verbs_generic\?\.length > 0/);
   // Generic language is NOT claimable — a chip that offers to add "Manage" to your profile is the
   // same false gap in a different control.
