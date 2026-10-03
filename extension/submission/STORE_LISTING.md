@@ -1,11 +1,28 @@
-# Chrome Web Store listing — draft v1.1.1
+# Chrome Web Store listing — draft v1.2.0
 
 Copy for the Web Store developer dashboard. Every justification below was written against the
 actual code and cites the file that uses the permission, because the dashboard rejects
 justifications that don't match observable behaviour.
 
-Upload artifact: `extension/submission/resume-master-extension-v1.1.1.zip`
+Upload artifact: `extension/submission/resume-master-extension-v1.2.0.zip`
 (build with `npm run build:extension` — never hand-assemble it; see extension/README.md).
+
+> **v1.2.0 (D13, 10-03) REPLACES v1.1.1.** One user-visible change, **the companion popup**: the
+> popup now leads with the action the page calls for — on an application form the user drafted,
+> **Fill it** (with "You drafted this 2 days ago · résumé ready · 14 fields prepared" and any
+> unanswered questions); on a job posting, **Capture it** and **Score it**, with whether the job is
+> already on the user's board; elsewhere, the user's recent captures. Every action is still listed
+> under "Everything". **Fill application** is now also a popup button — the SAME handoff Ctrl+Shift+Y
+> runs (`background.js` `FILL_ACTIVE_TAB` → `handleGatedHandoff()`), not a second implementation.
+>
+> ⛔ **No new permission, no new host, no content script, no new storage key** (the six below are
+> unchanged; `test/d13Companion.test.js` and `test/privacyReconciliation.test.js` hold this).
+> ⚠ **One new transmission, now in the privacy policy:** when the popup opens (a user action, which
+> is also the `activeTab` grant), it sends the active tab's URL to `jobsviadraft.com`
+> (`POST /api/import/context`, in the body — not logged as a query string) to answer "is this on
+> your board" and "is an application waiting here" (`/api/apply/gate-packets?origin=`, which v1.1.1
+> already called on a fill). The answer is shown, never stored. Re-paste the "website content /
+> URL" disclosure if the dashboard asks what is collected and when.
 
 > **v1.1.1 REPLACES v1.1.0, WHICH IS IN REVIEW AND WAS NEVER PUBLISHED.** The only change is the
 > **icon**: the v1.1.0 package still carried the old brand's "RM" mark in all three sizes

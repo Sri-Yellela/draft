@@ -38,7 +38,7 @@ import { createJobDataRouter } from "./routes/jobData.js";
 import { createCompaniesRouter } from "./routes/companies.js";
 import { createDomainProfilesRouter } from "./routes/domainProfiles.js";
 import { createImportJobRouter } from "./routes/importJob.js";
-import { createExtensionStatusRouter } from "./routes/extensionStatus.js";
+import { extensionStatusHandler } from "./routes/extensionStatus.js";
 import { createCompanyKbRouter } from "./routes/companyKb.js";
 import { runOrgLayerRollup } from "./services/kb/orgLayer.js";
 import { runHiringSignalsRollup } from "./services/jobs/hiringSignals.js";
@@ -6717,7 +6717,7 @@ app.use("/api/domain-profiles", requireAuth, createDomainProfilesRouter(db, anth
 }));
 app.use("/api/import", requireAuth, createImportJobRouter(db, anthropic));
 // D12: is this user's extension connected (a live extension token)? Drives Full House's first-run prompt.
-app.use("/api/extension/status", requireAuth, createExtensionStatusRouter(db));
+app.get("/api/extension/status", requireAuth, extensionStatusHandler(db));
 app.use("/api/company-kb", requireAuth, createCompanyKbRouter(db, requireAdmin));
 // RETIRED (E2). imported_jobs had exactly one writer — save-job, above — and zero rows. Its reading
 // surface was a board panel promising that captured jobs "appear here", which they never did: the

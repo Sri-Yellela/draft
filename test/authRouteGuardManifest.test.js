@@ -202,6 +202,8 @@ const AUTHENTICATED = new Set([
   "GET /api/debug/verify-isolation",
   // Mounted routers, guarded at the mount
   "POST /api/import/job",
+  "POST /api/import/context",               // D13: the companion popup's board lookup (read-only; URL in the body)
+  "GET /api/extension/status",               // D12: is this user's extension connected
   "GET /api/company-kb/:company/org-units",
   "GET /api/company-kb/:company/form-schemas",
   "GET /api/company-kb/:company/lca",
