@@ -34,6 +34,7 @@ import { Plus, SlidersHorizontal, ArrowUpDown } from "lucide-react";
 import UsbSelect                 from "./components/UsbSelect.jsx";
 import { SORTS }                 from "../../shared/jobFilterOptions.js";
 import { ATSToolPage }           from "./pages/tools/ATSToolPage.jsx";
+import { PdfToolPage }           from "./pages/tools/PdfToolPage.jsx";
 import { GenerateToolPage }      from "./pages/tools/GenerateToolPage.jsx";
 import { ApplyToolPage }         from "./pages/tools/ApplyToolPage.jsx";
 
@@ -709,6 +710,7 @@ function AppRouter() {
       <Routes>
         {/* Standalone tool pages — always public */}
         <Route path="/tools/ats"      element={<ATSToolPage/>}/>
+        <Route path="/tools/pdf"      element={<PdfToolPage/>}/>
         <Route path="/tools/generate" element={<GenerateToolPage/>}/>
         <Route path="/tools/apply"    element={<ApplyToolPage/>}/>
 
