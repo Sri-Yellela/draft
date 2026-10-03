@@ -7,6 +7,7 @@ import { useTheme } from "../styles/theme.jsx";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import JobCard      from "../components/JobCard.jsx";
 import PendingApplications from "../components/PendingApplications.jsx";
+import ApplicationHistory from "../components/ApplicationHistory.jsx";
 import { DockPortal } from "../components/DockPortal.jsx";
 import { Z } from "../styles/zLayers.js";
 // AC4: the calendar this panel established, extracted so the Auto Apply panel's dated run history
@@ -269,10 +270,11 @@ export function DatabasePanel({ user }) {
   const monetisationEnabled = useMonetisationEnabled();
   const { theme } = useTheme();
   const { activeProfileId, setActiveProfileId } = useJobBoard() || {};
-  // A63: the board's Pending tag links here with ?sheet=pending.
+  // A63: the board's Pending tag links here with ?sheet=pending. D15: otherwise The Table opens on
+  // the application history.
   const [activeSheet,  setActiveSheet]  = useState(() => {
-    try { return new URLSearchParams(window.location.search).get("sheet") === "pending" ? "pending" : "applications"; }
-    catch { return "applications"; }
+    try { return new URLSearchParams(window.location.search).get("sheet") === "pending" ? "pending" : "history"; }
+    catch { return "history"; }
   });
   const [apps,         setApps]         = useState([]);
   const [resumes,      setResumes]      = useState([]);
@@ -588,7 +590,10 @@ export function DatabasePanel({ user }) {
   const isApps      = activeSheet === "applications";
   const displayRows = filterRows(rows, cols);
 
-  const SHEETS = [["applications","Applications"],["resumes","Resumes"],["saved","Saved Jobs"],["pending","Pending Apply"]];
+  // D15: "History" is The Table's own view — every application, pending and sent, with its timeline
+  // and the "Did they reply?" capture. The spreadsheet stays as the editable sheet behind it.
+  const SHEETS = [["history","History"],["applications","Spreadsheet"],["resumes","Resumes"],["saved","Saved Jobs"],["pending","Pending Apply"]];
+  const isTableSheet = activeSheet === "applications" || activeSheet === "resumes";
 
   return (
     // A53: transparent, not theme.bg (the glass) — the board's 09-30 fix: the leather is the
@@ -627,8 +632,8 @@ export function DatabasePanel({ user }) {
         }
       />
 
-      {/* ── Toolbar (hidden for saved/pending tab — they have their own toolbars) ── */}
-      {activeSheet !== "saved" && activeSheet !== "pending" && <div style={{ background:theme.surface, padding:"10px 16px",
+      {/* ── Toolbar (the two table sheets only — history, saved and pending have their own toolbars) ── */}
+      {isTableSheet && <div style={{ background:theme.surface, padding:"10px 16px",
                     display:"flex", alignItems:"center", gap:10,
                     borderBottom:`1px solid ${theme.border}`,
                     flexShrink:0, flexWrap:"wrap" }}>
@@ -674,19 +679,20 @@ export function DatabasePanel({ user }) {
           onRecord={recordPending} onWithdraw={withdrawPending} />
       )}
 
-      {isApps && displayRows.length > 0 && (
-        <ResponseSummary rows={displayRows} theme={theme}/>
+      {/* ── History (D15) — The Table's own view. ⛔ No summary strip: its chips carry the counts. ── */}
+      {activeSheet === "history" && (
+        <ApplicationHistory onOpenPending={() => setActiveSheet("pending")}/>
       )}
 
       {/* ── Table (applications / resumes) ── */}
-      {activeSheet !== "saved" && activeSheet !== "pending" && loading ? (
+      {isTableSheet && loading ? (
         <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center",
                       color:theme.textMuted, fontSize:13 }}>
           Loading data…
         </div>
-      ) : activeSheet !== "saved" && activeSheet !== "pending" && displayRows.length === 0 ? (
+      ) : isTableSheet && displayRows.length === 0 ? (
         <EmptyState sheet={activeSheet} hasFilter={!!(search || filterDate)} theme={theme}/>
-      ) : activeSheet !== "saved" && activeSheet !== "pending" ? (
+      ) : isTableSheet ? (
         <div style={{ flex:1, overflow:"auto" }}>
           <table style={{ borderCollapse:"collapse", width:"100%", tableLayout:"fixed" }}>
             <thead>
@@ -1081,60 +1087,6 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
  * predict anything", and a difference computed over four applications would answer it confidently
  * and wrongly, which is the failure the engine work was about avoiding in the first place.
  */
-function ResponseSummary({ rows, theme }) {
-  let responded = 0, silent = 0, unresolved = 0;
-  const scoresResponded = [], scoresSilent = [];
-  for (const r of rows) {
-    const bucket = responseBucket(r);
-    const score = r.ats_score_at_apply;
-    if (bucket === "responded") { responded++; if (score != null) scoresResponded.push(score); }
-    else if (bucket === "silent") { silent++; if (score != null) scoresSilent.push(score); }
-    else unresolved++;
-  }
-  const decided = responded + silent;
-  const rate = decided ? Math.round((responded / decided) * 100) : null;
-  const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
-  const mr = mean(scoresResponded), ms = mean(scoresSilent);
-  // 8 a side is not statistical significance and is not claimed to be — it is the point below which
-  // a delta is visibly meaningless. The server's correlation endpoint holds a stricter bar (20).
-  const enough = scoresResponded.length >= 8 && scoresSilent.length >= 8;
-
-  const Stat = ({ label, value, color, title }) => (
-    <div title={title} style={{ display:"flex", alignItems:"baseline", gap:6 }}>
-      <span style={{ fontSize:15, fontWeight:700, color:color || theme.text, fontFamily:theme.fontMono }}>{value}</span>
-      <span style={{ fontSize:10, color:theme.textDim, textTransform:"uppercase", letterSpacing:"0.06em" }}>{label}</span>
-    </div>
-  );
-
-  return (
-    <div style={{ display:"flex", alignItems:"center", gap:20, flexWrap:"wrap",
-                  padding:"10px 16px", borderBottom:`1px solid ${theme.border}`,
-                  background:theme.surfaceHigh }}>
-      <Stat label="replied" value={responded} color={theme.success}
-        title="A rejection counts here: something read the application and answered."/>
-      <Stat label="no reply" value={silent} color={theme.textMuted}
-        title={`Marked as no response, or applied over ${MATURITY_DAYS} days ago with nothing recorded.`}/>
-      <Stat label="too recent" value={unresolved} color={theme.textDim}
-        title={`Applied less than ${MATURITY_DAYS} days ago with nothing recorded — in no denominator yet.`}/>
-      {rate != null && (
-        <Stat label="reply rate" value={`${rate}%`} color={theme.accent}
-          title={`${responded} of ${decided} resolved applications. Excludes the ${unresolved} too recent to count.`}/>
-      )}
-      {enough ? (
-        <div style={{ marginLeft:"auto", fontSize:11, color:theme.textMuted }}>
-          mean ATS at apply:{" "}
-          <strong style={{ color:theme.success }}>{mr.toFixed(1)}</strong> when they replied vs{" "}
-          <strong style={{ color:theme.textMuted }}>{ms.toFixed(1)}</strong> when they did not
-        </div>
-      ) : (
-        <div style={{ marginLeft:"auto", fontSize:11, color:theme.textDim }}>
-          not enough outcomes yet to compare scores
-        </div>
-      )}
-    </div>
-  );
-}
-
 function EmptyState({ sheet, hasFilter, theme }) {
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column",

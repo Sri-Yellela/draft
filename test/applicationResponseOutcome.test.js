@@ -262,14 +262,14 @@ test("the ATS-at-apply cell is NOT colour-banded on the old thresholds", () => {
     "a score is only comparable to another from the same scorer, so the version must be reachable");
 });
 
-test("the summary strip counts unresolved applications separately", () => {
+// D15 removed the summary strip (owner: "no status bar — the chips carry the counts"). The rule it
+// pinned — too-recent applications are UNRESOLVED, never silence — now lives in the history's
+// status, shared/applicationHistory.js, and is driven in test/d15TheTable.test.js.
+test("the summary strip is gone; the history's status reads the maturity rule from the shared file", () => {
   const src = fs.readFileSync("client/src/panels/DatabasePanel.jsx", "utf8");
-  const fn = src.slice(at(src, "function ResponseSummary"), at(src, "function EmptyState"));
-  assert.ok(fn.length > 200, "the summary component must exist");
-  assert.match(fn, /unresolved/, "too-recent applications must be counted");
-  assert.match(fn, /decided = responded \+ silent/,
-    "and excluded from the denominator — including them is what makes an early rate read near zero");
-  assert.match(fn, /enough/, "the score comparison must be withheld until there is enough data");
+  assert.doesNotMatch(src, /function ResponseSummary/);
+  const rule = fs.readFileSync("shared/applicationHistory.js", "utf8");
+  assert.match(rule, /responseBucket\(app, \{ now \}\)/);
 });
 
 // ── The routes, actually mounted and driven ──────────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 // services/applicationRecords.js holds the rule (pending -> recorded -> verified, and what
 // "verified" means); services/draftSlots.js holds the allowance. These routes only expose them.
 import {
-  markPending, recordSubmission, withdraw, listRecords, readRecord, publicRecord,
+  markPending, recordSubmission, withdraw, listRecords, listHistory, readRecord, publicRecord,
   CLIENT_ORIGINS, USER_METHODS, SUBMIT_METHODS, VERIFY_RULE,
 } from "../services/applicationRecords.js";
 import { draftSlots } from "../services/draftSlots.js";
@@ -23,6 +23,16 @@ export default function applicationRecordRoutes(app, db, requireAuth, { captured
       methods: USER_METHODS.map(value => ({ value, label: SUBMIT_METHODS[value] })),
       verifyRule: VERIFY_RULE,
     });
+  });
+
+  /**
+   * D15 · The Table — every application, pending and sent, one row each, with its status and
+   * timeline (shared/applicationHistory.js). ?q= searches company, title AND the posting text; the
+   * text itself is not returned. Chips, date range and sort are applied by the panel over this list.
+   */
+  app.get("/api/applications/history", requireAuth, (req, res) => {
+    const q = String(req.query.q ?? "").slice(0, 200);
+    res.json({ rows: listHistory(db, req.user.id, { q }), q });
   });
 
   /** Tag a job pending: the user opened its posting, or exported a résumé for it. */
