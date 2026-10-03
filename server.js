@@ -9087,38 +9087,22 @@ app.patch("/api/domain-profiles/:id/adopt-enhanced", requireAuth, async (req, re
 
 app.post("/api/parse-pdf", requireAuth, upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).json({ error:"No file" });
-  // A4 — the tools service extracts with the model, preserving section structure. ⛔ If it cannot — not
-  // configured, unreachable, overloaded, unfunded — this DEGRADES to local text extraction rather
-  // than failing: reduced quality, never zero, and the response says which one ran. Capture learned
-  // this the hard way: /api/import/job had a hard model dependency, and an unfunded balance took it
-  // to nothing instead of to a reduced mode.
-  let modelFailure = null;
-  if (toolsService.configured) {
-    try {
-      const out = await toolsService.parsePdf({ pdfBase64: req.file.buffer.toString("base64") });
-      recordToolsServiceUsage(db, out.usage, { userId: req.user.id });
-      return res.json({ text: out.text, chars: out.chars, source: "resume_master", degraded: false });
-    } catch (e) {
-      recordToolsServiceUsage(db, e?.usage, { userId: req.user.id });
-      // Refused as not-a-PDF or too large: the file is the problem, and extracting it locally
-      // would not make it a valid résumé.
-      if (e?.code === "invalid_request" || e?.code === "payload_too_large") {
-        const { status, body } = httpErrorFor(e);
-        return res.status(status).json(body);
-      }
-      modelFailure = e;
-      console.warn(`[parse-pdf] tools service failed (${e?.code || e?.name}); degrading to local extraction`);
-    }
-  }
+  // D17 (A80 V1, O16e): PDF → text reads the file's own text layer, here, with no model call. It used
+  // to send the PDF to the tools service, which had Sonnet transcribe it; local extraction was the
+  // fallback. Measured 10-03 on synthetic résumés (one column, two columns, a two-column TABLE whose
+  // draw order interleaves rows, and an image-only scan): pdf-parse keeps every line of the first two
+  // in its own section; the table layout comes out row-interleaved (sections mixed — the model's
+  // "preserve section structure" could untangle that); a scan has no text layer at all (the model
+  // read images). Neither of those is guessed at: a scan is refused with what to do instead.
   try {
     const { default: pdfParse } = await import("pdf-parse/lib/pdf-parse.js");
     const text = ((await pdfParse(req.file.buffer)).text || "").trim();
     if (text.length < 50) {
-      return res.status(422).json({ error: "Could not extract text from this PDF", retryable: false,
-        detail: modelFailure ? `Model extraction was unavailable: ${modelFailure.message}` : "Model extraction is not configured on this server" });
+      return res.status(422).json({ error: "This PDF has no readable text — it looks like a scan or an image",
+        code: "pdf_no_text_layer", retryable: false,
+        detail: "Export the résumé from your editor as a PDF (File → Save as PDF), or paste its text instead." });
     }
-    res.json({ text, chars: text.length, source: "local", degraded: true,
-      degradedReason: modelFailure ? modelFailure.message : "The résumé tools service is not configured on this server" });
+    res.json({ text, chars: text.length, source: "local", degraded: false });
   } catch (e) {
     res.status(422).json({ error: "Could not read this PDF", retryable: false, detail: String(e?.message || e).slice(0, 200) });
   }
