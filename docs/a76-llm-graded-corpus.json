@@ -1,0 +1,666 @@
+{
+  "schema": "a76-llm-graded-corpus/1",
+  "purpose": "A76 — blind LLM grades joined to engine scores; a PROXY, not ground truth",
+  "profile_id": 6,
+  "resume_chars": 4912,
+  "grader": "claude-sonnet-5",
+  "seed": 76,
+  "postings": [
+    {
+      "job_id": "ashby::fff02c39-1185-427c-bf89-70d7eaa5e3db",
+      "company": "OpenAI",
+      "title": "Software Engineer, Codex -Enterprise Controls",
+      "set": "owner30",
+      "engine_score": 21,
+      "llm_fit": 2,
+      "human_fit": 5
+    },
+    {
+      "job_id": "greenhouse::7644950",
+      "company": "Stripe",
+      "title": "Frontend Engineer, Expansion",
+      "set": "owner30",
+      "engine_score": 37,
+      "llm_fit": 2,
+      "human_fit": 5
+    },
+    {
+      "job_id": "ashby::529feb11-4b9b-4baf-9b3f-f2b100156c5a",
+      "company": "OpenAI",
+      "title": "Protection Scientist Engineer, Integrity",
+      "set": "owner30",
+      "engine_score": 43,
+      "llm_fit": 1,
+      "human_fit": 2
+    },
+    {
+      "job_id": "ashby::65913e57-80e0-4a1a-bbc3-265ae8a1a41b",
+      "company": "OpenAI",
+      "title": "Research Program Manager – Adversarial Model Research",
+      "set": "owner30",
+      "engine_score": 6,
+      "llm_fit": 1,
+      "human_fit": 2
+    },
+    {
+      "job_id": "greenhouse::7589234",
+      "company": "Stripe",
+      "title": "Technical Program Manager, Core Infrastructure",
+      "set": "owner30",
+      "engine_score": 36,
+      "llm_fit": 2,
+      "human_fit": 3
+    },
+    {
+      "job_id": "greenhouse::7863467",
+      "company": "Airbnb",
+      "title": "Senior Web Automation Engineer, Quality Platform",
+      "set": "owner30",
+      "engine_score": 55,
+      "llm_fit": 2,
+      "human_fit": 4
+    },
+    {
+      "job_id": "ashby::9f78c41f-8d39-46c9-b9c3-c3b075905b24",
+      "company": "OpenAI",
+      "title": "Network Engineer",
+      "set": "owner30",
+      "engine_score": 26,
+      "llm_fit": 1,
+      "human_fit": 3
+    },
+    {
+      "job_id": "greenhouse::6073106004",
+      "company": "Figma",
+      "title": "Software Engineer - Figma Weave (Tel Aviv, Israel)",
+      "set": "owner30",
+      "engine_score": 63,
+      "llm_fit": 3,
+      "human_fit": 5
+    },
+    {
+      "job_id": "ashby::9d11e1d8-af1d-413b-873f-d8fac2bdee99",
+      "company": "OpenAI",
+      "title": "Full Stack Engineer, Fleet Scheduling",
+      "set": "owner30",
+      "engine_score": 52,
+      "llm_fit": 3,
+      "human_fit": 5
+    },
+    {
+      "job_id": "greenhouse::8107302",
+      "company": "Stripe",
+      "title": "Software Engineer, Sending",
+      "set": "owner30",
+      "engine_score": 49,
+      "llm_fit": 4,
+      "human_fit": 5
+    },
+    {
+      "job_id": "ashby::73fdf2c0-4318-4b13-addc-b66bc1308ba4",
+      "company": "OpenAI",
+      "title": "Product Designer, Engineering Acceleration",
+      "set": "owner30",
+      "engine_score": 28,
+      "llm_fit": 1,
+      "human_fit": 2
+    },
+    {
+      "job_id": "greenhouse::6131089004",
+      "company": "Figma",
+      "title": "Software Engineer Intern (Winter 2027)",
+      "set": "owner30",
+      "engine_score": 20,
+      "llm_fit": 1,
+      "human_fit": 2
+    },
+    {
+      "job_id": "ashby::da07ba71-81fd-47c7-adb1-2b2d1eaed325",
+      "company": "OpenAI",
+      "title": "Software Engineer, Distributed Data Systems - Robotics",
+      "set": "owner30",
+      "engine_score": 40,
+      "llm_fit": 2,
+      "human_fit": 5
+    },
+    {
+      "job_id": "ashby::f272fc4a-91a7-4dcf-9cb5-3600ebaf14e1",
+      "company": "Linear",
+      "title": "Analytics Engineer",
+      "set": "owner30",
+      "engine_score": 21,
+      "llm_fit": 1,
+      "human_fit": 4
+    },
+    {
+      "job_id": "greenhouse::7594208",
+      "company": "Stripe",
+      "title": "People Solutions Program Manager",
+      "set": "owner30",
+      "engine_score": 17,
+      "llm_fit": 1,
+      "human_fit": 2
+    },
+    {
+      "job_id": "greenhouse::7736738",
+      "company": "Airbnb",
+      "title": "Strategic Sourcing, Manager - Engineering & Infrastructure",
+      "set": "owner30",
+      "engine_score": 27,
+      "llm_fit": 1,
+      "human_fit": 2
+    },
+    {
+      "job_id": "greenhouse::8084195",
+      "company": "Stripe",
+      "title": "Backend Engineer, Credit Decisions",
+      "set": "owner30",
+      "engine_score": 59,
+      "llm_fit": 2,
+      "human_fit": 5
+    },
+    {
+      "job_id": "ashby::0ed5f6c7-3977-4da9-9961-202fe76de456",
+      "company": "OpenAI",
+      "title": "Applied AI Engineer, Digital Natives",
+      "set": "owner30",
+      "engine_score": 39,
+      "llm_fit": 2,
+      "human_fit": 5
+    },
+    {
+      "job_id": "ashby::66288824-8b77-4774-bc57-6825d3e6221e",
+      "company": "OpenAI",
+      "title": "Full Stack Software Engineer, API Experience",
+      "set": "owner30",
+      "engine_score": 48,
+      "llm_fit": 3,
+      "human_fit": 5
+    },
+    {
+      "job_id": "greenhouse::8128900",
+      "company": "Stripe",
+      "title": "Account Executive, Startups (Scaled Grower)",
+      "set": "owner30",
+      "engine_score": 19,
+      "llm_fit": 1,
+      "human_fit": 1
+    },
+    {
+      "job_id": "ashby::e44bfa94-0b82-4d0c-b224-02155b76eea9",
+      "company": "OpenAI",
+      "title": "Software Engineer, Infrastructure - Analytics Platform",
+      "set": "owner30",
+      "engine_score": 32,
+      "llm_fit": 2,
+      "human_fit": 5
+    },
+    {
+      "job_id": "greenhouse::6141591004",
+      "company": "Figma",
+      "title": "Executive Recruiter",
+      "set": "owner30",
+      "engine_score": 25,
+      "llm_fit": 1,
+      "human_fit": 1
+    },
+    {
+      "job_id": "greenhouse::7569678",
+      "company": "Stripe",
+      "title": "Program Manager, Intake & Portfolio Management",
+      "set": "owner30",
+      "engine_score": 15,
+      "llm_fit": 1,
+      "human_fit": 1
+    },
+    {
+      "job_id": "greenhouse::8062305",
+      "company": "Stripe",
+      "title": "Full Stack Engineer, Link",
+      "set": "owner30",
+      "engine_score": 54,
+      "llm_fit": 5,
+      "human_fit": 5
+    },
+    {
+      "job_id": "ashby::d8794980-1d3f-4d82-8b48-811449b6c492",
+      "company": "OpenAI",
+      "title": "Training: ML Framework Engineer",
+      "set": "owner30",
+      "engine_score": 41,
+      "llm_fit": 1,
+      "human_fit": 4
+    },
+    {
+      "job_id": "ashby::4c078f82-93b9-427c-8fd8-95de198884b4",
+      "company": "OpenAI",
+      "title": "Forward Deployed Engineer - Singapore",
+      "set": "owner30",
+      "engine_score": 32,
+      "llm_fit": 2,
+      "human_fit": 4
+    },
+    {
+      "job_id": "greenhouse::8070121",
+      "company": "Airbnb",
+      "title": "Senior Manager, Machine Learning Engineering - Communication & Connectivity",
+      "set": "owner30",
+      "engine_score": 34,
+      "llm_fit": 1,
+      "human_fit": 3
+    },
+    {
+      "job_id": "greenhouse::7594866",
+      "company": "Stripe",
+      "title": "Risk Advisory Strategist, Card Network Compliance",
+      "set": "owner30",
+      "engine_score": 16,
+      "llm_fit": 1,
+      "human_fit": 2
+    },
+    {
+      "job_id": "ashby::550d0123-238c-4ad8-aaee-ea4a5a484639",
+      "company": "OpenAI",
+      "title": "GRC Program Manager, US Government Compliance",
+      "set": "owner30",
+      "engine_score": 7,
+      "llm_fit": 1,
+      "human_fit": 1
+    },
+    {
+      "job_id": "greenhouse::5691911004",
+      "company": "Figma",
+      "title": "Software Engineer - Full Stack",
+      "set": "owner30",
+      "engine_score": 54,
+      "llm_fit": 4,
+      "human_fit": 5
+    },
+    {
+      "job_id": "greenhouse::4727671005",
+      "company": "Scale AI",
+      "title": "Deployment Strategist - DHS/DOJ",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::5278230008",
+      "company": "Anthropic",
+      "title": "Applied AI Architect, Digital Natives Business",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::35e6355f-52fd-405e-b5b6-98b275666d39",
+      "company": "OpenAI",
+      "title": "Research Program Manager, Governance",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::a92eb06e-8ef3-4118-b496-94f3cdf8005d",
+      "company": "Notion",
+      "title": "Commercial Counsel",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::4980430008",
+      "company": "Anthropic",
+      "title": "Research Engineer, Interpretability",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::5117589008",
+      "company": "Anthropic",
+      "title": "Applied AI Architect",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::5391313008",
+      "company": "Anthropic",
+      "title": "Account Executive, Startups",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::abc4b2b4-c251-482e-8f71-f02dda1e3b65",
+      "company": "OpenAI",
+      "title": "Head of Analyst Relations",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::26c77e48-b4ef-455d-a02c-3ef68fc6f9f9",
+      "company": "Linear",
+      "title": "Customer Success Manager, Growth",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::5342935008",
+      "company": "Anthropic",
+      "title": "Staff+ Software Engineer, Safeguards Human Review Tooling",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 2
+    },
+    {
+      "job_id": "ashby::f5cf4790-0b77-47be-b332-02ca6ec755fd",
+      "company": "Ramp",
+      "title": "Account Manager | Enterprise",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "lever::1692fccc-29f4-4525-a683-b004c2ec62b9",
+      "company": "Spotify",
+      "title": "Senior Fullstack Engineer",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 3
+    },
+    {
+      "job_id": "greenhouse::8530395002",
+      "company": "Duolingo",
+      "title": "Senior Product Manager, DET",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "lever::bf0984d7-c54f-4a8a-9a15-f870633d62c0",
+      "company": "Spotify",
+      "title": "Staff Data Scientist - Experience",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "lever::2196948b-9338-4943-acba-cb529335ed16",
+      "company": "Match Group",
+      "title": "Machine Learning Engineer (Match Group AI)",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::5368166008",
+      "company": "Anthropic",
+      "title": "Staff Software Engineer, GTM Systems",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 2
+    },
+    {
+      "job_id": "lever::a577f609-b61b-4c26-b0a5-e74f2004d669",
+      "company": "Wealthfront",
+      "title": "Director of Product Management, Growth",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::b28b990c-54e4-4be4-a33a-d5518dc3e117",
+      "company": "OpenAI",
+      "title": "Manager, Applied AI Engineering (Codex)",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::8155378",
+      "company": "Stripe",
+      "title": "Sales Manager, Enterprise Platforms, Hunter Team",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::cce684de-191d-4a8a-bc42-7ded3ccd47af",
+      "company": "Ramp",
+      "title": "Business Development Representative | Ontario, Canada",
+      "set": "sample",
+      "engine_score": null,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::c5d3a06a-eb31-425d-94d3-1664070c31e4",
+      "company": "OpenAI",
+      "title": "Senior Webinar & Digital Events Strategist",
+      "set": "sample",
+      "engine_score": 18,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::09dcf3e6-c510-4e7a-af50-e3e401e0f043",
+      "company": "OpenAI",
+      "title": "Senior Technical Sourcer, Applications Engineering",
+      "set": "sample",
+      "engine_score": 17,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::8112959",
+      "company": "Stripe",
+      "title": "Sales Manager, SMB (Hunter)",
+      "set": "sample",
+      "engine_score": 17,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::8b82e596-e828-45db-94d5-b76acc89e749",
+      "company": "Notion",
+      "title": "Product Operations Manager",
+      "set": "sample",
+      "engine_score": 18,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::8043083",
+      "company": "Stripe",
+      "title": "Staff Product Manager, Issuing",
+      "set": "sample",
+      "engine_score": 17,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::ba8a41d2-4198-481a-a7f4-e09c5364ff7f",
+      "company": "Linear",
+      "title": "Principal Product Designer",
+      "set": "sample",
+      "engine_score": 18,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::7370967",
+      "company": "Stripe",
+      "title": "Pre-Sales Solutions Architect, Money Management",
+      "set": "sample",
+      "engine_score": 18,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::707d5f91-bcf7-42b2-a0e6-8130bf13e56b",
+      "company": "Ramp",
+      "title": "Account Executive | Strategic",
+      "set": "sample",
+      "engine_score": 16,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::8175647",
+      "company": "Stripe",
+      "title": "Integration Engineer (Metronome)",
+      "set": "sample",
+      "engine_score": 14,
+      "llm_fit": 2
+    },
+    {
+      "job_id": "greenhouse::7958961",
+      "company": "Stripe",
+      "title": "Account Executive, Product Sales - Billing (Velocity)",
+      "set": "sample",
+      "engine_score": 18,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::623abf6f-84c6-49d2-8276-385c1ffec097",
+      "company": "Ramp",
+      "title": "Manager, Account Executive | Commercial",
+      "set": "sample",
+      "engine_score": 15,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::5b9997fd-7507-4437-8fd7-14178c99ab5d",
+      "company": "Linear",
+      "title": "Production Designer",
+      "set": "sample",
+      "engine_score": 17,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::86abcce0-04b2-405c-9a8e-e0ca84813914",
+      "company": "Linear",
+      "title": "Product Manager",
+      "set": "sample",
+      "engine_score": 16,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::b32de590-06ce-47d4-8994-66b936df908d",
+      "company": "Linear",
+      "title": "Production Designer",
+      "set": "sample",
+      "engine_score": 16,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::8097051",
+      "company": "Stripe",
+      "title": "Business Value Consultant",
+      "set": "sample",
+      "engine_score": 15,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::b7669c4b-eeca-421d-ba9a-d90203f6fcb2",
+      "company": "Linear",
+      "title": "Product Manager",
+      "set": "sample",
+      "engine_score": 16,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::8190050",
+      "company": "Stripe",
+      "title": "Account Executive, Product Sales - Billing",
+      "set": "sample",
+      "engine_score": 18,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "ashby::3c67f712-697d-48d8-b05c-01be896e61da",
+      "company": "OpenAI",
+      "title": "Software Engineer, Scaled Abuse",
+      "set": "sample",
+      "engine_score": 18,
+      "llm_fit": 2
+    },
+    {
+      "job_id": "greenhouse::8029128",
+      "company": "Stripe",
+      "title": "Enterprise Account Executive, Revenue Suite (Grower)",
+      "set": "sample",
+      "engine_score": 16,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::8029043",
+      "company": "Stripe",
+      "title": "Account Executive, Product Sales, Metronome (Hunter)",
+      "set": "sample",
+      "engine_score": 14,
+      "llm_fit": 1
+    },
+    {
+      "job_id": "greenhouse::8049828",
+      "company": "Stripe",
+      "title": "Account Executive, Product - Link",
+      "set": "sample",
+      "engine_score": 21,
+      "llm_fit": 1
+    }
+  ],
+  "report": {
+    "generated_at": "2026-10-03T06:02:38.344Z",
+    "engine_vs_owner_30": {
+      "n": 30,
+      "rho": 0.7361,
+      "tau_b": 0.588,
+      "misordered": 0.1631
+    },
+    "llm_vs_owner_30": {
+      "n": 30,
+      "rho": 0.8547,
+      "tau_b": 0.7498,
+      "misordered": 0.0084
+    },
+    "engine_vs_llm_all": {
+      "n": 71,
+      "rho": 0.5057,
+      "tau_b": 0.4296,
+      "misordered": 0.1789
+    },
+    "engine_vs_llm_sample": {
+      "n": 41,
+      "rho": -0.1069,
+      "tau_b": -0.097,
+      "misordered": 0.629
+    },
+    "llm_owner_agreement": {
+      "exact": 5,
+      "within_one": 15,
+      "n": 30
+    },
+    "cutpoints": {
+      "current": {
+        "strong": 44,
+        "moderate": 26,
+        "kappa": 0.5395
+      },
+      "best_in_sample": {
+        "strong": 49,
+        "moderate": 44,
+        "kappa": 0.7302
+      },
+      "held_out": {
+        "fit_on": "even rows",
+        "strong": 60,
+        "moderate": 44,
+        "kappa_odd": 0.6884,
+        "current_kappa_odd": 0.6835
+      }
+    },
+    "llm_fit_distribution": [
+      51,
+      13,
+      4,
+      2,
+      1
+    ]
+  }
+}
