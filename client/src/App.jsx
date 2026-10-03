@@ -18,6 +18,7 @@ import { AppScrollProvider } from "./contexts/AppScrollContext.jsx";
 import { JobBoardProvider, useJobBoard } from "./contexts/JobBoardContext.jsx";
 import { AutoApplyProvider, useAutoApply } from "./contexts/AutoApplyContext.jsx";
 import { AutoApplyPanel }        from "./panels/AutoApplyPanel.jsx";
+import { DraftMark }             from "./components/DraftMark.jsx";
 import { ProfilePanel }          from "./panels/ProfilePanel.jsx";
 import { JobProfilesPanel }      from "./panels/JobProfilesPanel.jsx";
 import { DatabasePanel }         from "./panels/DatabasePanel.jsx";
@@ -122,7 +123,7 @@ function RouteCommitSignal() {
   return null;
 }
 
-// The top bar, with the AUTO APPLY needs-review count decorated onto its tab.
+// The top bar, with the DRAFT tab's /d mark and its needs-review count decorated onto it.
 //
 // This wrapper exists for the same reason BoardSearchBar does: AppDashboard RENDERS
 // AutoApplyProvider, so it cannot read the count itself. The decoration used to live on
@@ -135,22 +136,33 @@ function AppTopBar({ tabs, ...props }) {
   // count on the tab, not a strip above the postings. This is the requirement that "3 need review"
   // stays discoverable from the board, and it is the ONLY thing the pipeline still renders outside
   // its own panel.
+  //
+  // D6: the tab is DRAFT (it said AUTO APPLY — two names for the card's one action), and it carries
+  // the card's own /d mark (components/DraftMark.jsx, the one implementation). Under that name a bare
+  // number reads as "how many drafts", which it is not: it counts drafts that need YOU — waiting for
+  // approval, held for review, or with a question open. So the title and the screen-reader text say
+  // "N drafts need your attention", and the bare digit is hidden from the accessible name.
+  const attention = `${needsAttentionCount} ${needsAttentionCount === 1 ? "draft needs" : "drafts need"} your attention`;
   const decorated = (tabs || []).map(t =>
-    t.id === "auto-apply" && needsAttentionCount > 0
+    t.id === "auto-apply"
       ? {
           ...t,
           label: (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <DraftMark style={{ color: "var(--c-accent-ink)", fontSize: 14 }} />
               {t.label}
-              <span
-                title={`${needsAttentionCount} need${needsAttentionCount === 1 ? "s" : ""} your attention`}
-                style={{
-                  minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999,
-                  background: "var(--color-primary)", color: "var(--color-on-primary)",
-                  fontSize: 10, fontWeight: 800, lineHeight: "16px", textAlign: "center",
-                }}>
-                {needsAttentionCount}
-              </span>
+              {needsAttentionCount > 0 && (
+                <span
+                  title={attention}
+                  style={{
+                    minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999,
+                    background: "var(--color-primary)", color: "var(--color-on-primary)",
+                    fontSize: 10, fontWeight: 800, lineHeight: "16px", textAlign: "center",
+                  }}>
+                  <span aria-hidden="true">{needsAttentionCount}</span>
+                  <span className="sr-only">{`, ${attention}`}</span>
+                </span>
+              )}
             </span>
           ),
         }
@@ -313,7 +325,9 @@ function AppDashboard({ authUser, setAuthUser }) {
     // The auto-apply pipeline is a peer of the board now, not a strip above it (W5). It sits in
     // this row for the same reason the others do — it is a place you go, not a thing that happens
     // on the board. AppTopBar decorates it with the needs-attention count.
-    { id: "auto-apply",   label: "Auto Apply" },
+    // D6: displayed as DRAFT, with the /d mark (AppTopBar). The id and the /app/auto-apply route
+    // are internal and stay — renaming them is cost without benefit (docs/BRAND.md).
+    { id: "auto-apply",   label: "Draft" },
     { id: "job-profiles", label: "Job Profiles" },
     { id: "database",     label: "Database" },
     // D5: no "Recruiter" tab. FE-6 built the surface, but there is no recruiter role, signup or

@@ -136,7 +136,7 @@ test("the mount asks once, per user, and only while nothing is selected", () => 
 test("a null date leaves AD1's resting state exactly as it was", () => {
   assert.match(CONTEXT, /if \(cancelled \|\| !date\) return;/);
   // And the resting state itself is untouched.
-  assert.match(PANEL, /Pick a date to see the applications you added to auto-apply that day\./);
+  assert.match(PANEL, /Pick a date to see the jobs you drafted that day\./);
   assert.match(PANEL, /data-rm-empty="no-date"/);
 });
 

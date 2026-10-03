@@ -51,9 +51,9 @@ export function ApplyToolPage() {
         <div style={{ flex: 1, display: "flex", flexDirection: "column",
                       alignItems: "center", justifyContent: "center", gap: 16, padding: 24, textAlign: "center" }}>
           <div style={{ fontSize: 48 }}>🔒</div>
-          <div style={{ fontWeight: 800, fontSize: 22, color: theme.text }}>Sign in to use Auto Apply</div>
+          <div style={{ fontWeight: 800, fontSize: 22, color: theme.text }}>Sign in to use Draft</div>
           <div style={{ fontSize: 14, color: theme.textMuted, maxWidth: 360 }}>
-            Auto Apply and resume generation need a free account. ATS scoring does not.
+            Drafting applications and generating résumés need a free account. ATS scoring does not.
           </div>
           <Link to="/login">
             <button style={{ padding: "10px 28px", borderRadius: 6, border: "none",

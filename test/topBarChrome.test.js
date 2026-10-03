@@ -221,8 +221,11 @@ test("the AUTO APPLY needs-review count survived the move", () => {
   const app = read("client/src/App.jsx");
   assert.match(app, /function AppTopBar\(\{ tabs, \.\.\.props \}\)/);
   assert.match(app, /const \{ needsAttentionCount = 0 \} = useAutoApply\(\);/);
-  assert.match(app, /t\.id === "auto-apply" && needsAttentionCount > 0/);
-  assert.match(app, /need\$\{needsAttentionCount === 1 \? "s" : ""\} your attention/);
+  // D6: the tab is always decorated (it carries the /d mark); the COUNT still appears only when
+  // something needs a human.
+  assert.match(app, /t\.id === "auto-apply"\s*\n\s*\? \{/);
+  assert.match(app, /\{needsAttentionCount > 0 && \(/);
+  assert.match(app, /needsAttentionCount === 1 \? "draft needs" : "drafts need"\} your attention/);
   // It is a ReactNode substituted for the tab's LABEL, which is why TopBar renders {t.label} rather
   // than a string — the badge could not travel any other way without the bar knowing about it.
   assert.match(app, /label: \(/);
