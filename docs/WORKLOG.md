@@ -63,6 +63,8 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
+**10-03 (22):** ✅ **D3 designed** (`docs/BUG_REPORTING.md`; decisions → O50) and ✅ **D4 probed** (`docs/LIVE_SEARCH_FINDING.md`; ⛔ §3C does not work as written; production reads → O51), run in parallel on the owner's ask. Nothing built. Production re-read at write time: `/api/version` = **`131e721`, migrations 124** — i.e. session 21 is live.
+
 **10-03 (21):** ⭐ **New owner batch A71–A79** (section "QUEUED — added by the OWNER, 2026-10-03", above STANDING RULES): A71 the ATS panel regression · A72 ranked local search · A73 filters · A74 jobs-page removals · A75 the ATS number + sort (display gated on A76) · A76 LLM-graded corpus · A77 logos · A78 company links · A79 cards in the draft look. Running in order, one at a time.
 
 **10-03 (20):** The A/O queues hold nothing new and nothing agent-actionable (all owner-gated, as 17b lists). Done: **F3** (the formatter pooled every job's bullets when jobs had no blank line between them — Resume Master `6e430bb`, draft's copy `75f00b5`) · **F2** (`/api/jobs/poll`'s dead scrape state removed; its profile-facts log line made live — `77312df`) · ⭐ **A69 tier 2, on the owner's word that the "not offered" lines were draft's contract, not Resume Master's**: PDF → Word, PDF → Excel, OCR (with a searchable PDF) and Compress → Maximum, all in the browser, with pages (`6d58ea7`). ✅ **Pushed on the owner's go and LIVE (20b): Resume Master `6d58ea7`, draft `3141123`** — verified end to end on production. F1 stays held (a product call).
@@ -145,6 +147,8 @@ component) — **2987 / 2987 / 0** — pushed on the owner's go ("push when merg
 | O47 | ✅ **Pushed and live 10-02 (17c), `3e3539f` (Node 22).** ⏸ **Still yours:** the volume + `RM_DB_PATH` (accounts are off until then), `RM_ADMIN_EMAILS`, Resend for resets. Was: **Resume Master: three commits wait to deploy (A57 accounts/credits/storage, A54 the site, A55)** — pushing RM `main` deploys. ⚠ The site's account routes stay off (503 `accounts_unconfigured`) until you **attach a Railway volume to the resume-master service and set `RM_DB_PATH`** to a file on it; also `RM_ADMIN_EMAILS` (who may grant/refund credits) and, for password reset, `RESEND_API_KEY` + `EMAIL_FROM`. The free ATS check and formatting work without any of it. ⚠ First deploy with a native dependency (`better-sqlite3`, prebuilt for linux/node 20) — watch the build. Optional: `RM_LIMITS_PER_DAY` turns per-client limits on (A55) | Owner: push; volume + variables |
 | O48 | ⛔ **URGENT — THE ANTHROPIC API CREDIT RAN OUT, 10-03 ~04:40Z.** A76's grading got "Your credit balance is too low to access the Anthropic API" after 71 calls, with this machine's `ANTHROPIC_KEY`. ⚠ **If production uses the same Anthropic account, résumé generation is failing for users now.** Top up; then the agent re-runs A76 (it resumes where it stopped). | The agent cannot buy credit, and cannot see production's key or its errors (no Railway CLI here). |
 | O49 | **Push draft `main` — and three calls.** ⚠ `87d2c33` (A71, A72, migration 123) was pushed by someone else and is LIVE (04:05Z). Local since: A73 `92d2f3c`, A74 `1f9df8e`, A75 `c60ec0c` (contract 1.5.0), A76 `afbbf95`, A77 `e240e6b` (migration 124 — the server then fetches employers' homepages and icons in the background; `COMPANY_LOGOS=off` disables), D1 `c6bd112`, D2 `568b556`. **Calls:** (a) A72 — a search lifts the profile's role scope (else "data engineer" returned 0 on an engineering profile); keep or revert? (b) A73 — Employment Type and Sponsor-friendly filter dead columns (0.3% / 0.1%); remove the controls, or wait for enrichment? (c) D2's four open questions — see the D2 row's status. | Pushing auto-deploys production. |
+| O50 | **D3 — four decisions** (`docs/BUG_REPORTING.md` §11; the agent's recommendation in bold): (1) build or service — **in-house for BOTH layers in v1**, with a seam so Sentry (EU region) or self-hosted GlitchTip can be added at ~50 automatic reports/day (⚠ differs from the brief's split on purpose: at zero users the third-party privacy cost starts day one, the benefit does not) · (2) **beside A50**, `/admin/tickets` as a sibling route; one nav-link line, after A50's audit closes · (3) retention — **automatic 30 days; user reports until the ticket closes + 30, capped at 180; tickets (no personal data) kept**; hourly sweep; backups ~30 days, stated honestly; `contact_messages` gets the same rule (kept forever today) · (4) **one panel per product**, shared code vendored (the `packages/sqlite-backup` precedent). Also: a read-only GitHub token for the "deployed" check | D3 is designed; nothing is built until these are answered |
+| O51 | **D4 — what the agent could not read** (`docs/LIVE_SEARCH_FINDING.md` § Owner actions): (a) production rows per source — `SELECT source, COUNT(*), SUM(is_active), MAX(scraped_at) FROM scraped_jobs WHERE source IN ('adzuna','serpapi','jobo') GROUP BY source;` · (b) unconfigured companies already in production `job_captures` / `apply_gate_packets` (the admin Company list's suggestions table answers the first) · (c) if production's `SERPAPI_KEY` differs from local, its usage: `curl "https://serpapi.com/account.json?api_key=KEY"` (free) · (d) whether following Adzuna apply pages to the employer URL is allowed by its API terms. ⏸ And a call: **rewrite §3C** and **relabel/remove "live search only"** (both recommended, neither done) | No Railway CLI here; the production admin login was refused by the session's permission layer |
 | O26 | ~~Confirm the deck's four proposals~~ ✅ **confirmed by the owner 09-30** and built (`be26aa7`) | — |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
@@ -661,6 +665,13 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 ---
 
 ## SESSION LOG
+
+### 2026-10-03 (22) · D3 designed and D4 probed — in parallel, nothing built
+
+- Two agents on the owner's ask, disjoint files, neither touched WORKLOG, D1, D2 or A50. Coordinator folded both in.
+- **D3** → `docs/BUG_REPORTING.md` (payload field by field, structural privacy, fingerprint, migration-125 sketch, 20 planted-PII tests, retention). Decisions → **O50**.
+- **D4** → `docs/LIVE_SEARCH_FINDING.md`. ⛔ §3C does not work as written: Adzuna 50/50 wrapped, SerpApi 0/20 kept-URL ATS hits. The receiving half of the harvest exists; the input does not. Spent: Adzuna 1, SerpApi 3 (3 / 250 this month). Production reads → **O51**.
+- No code changed, so no suite run was needed for correctness; the docs were staged before the suite (guards read tracked files).
 
 ### 2026-10-03 (21) · The owner's A71–A79 and the assistant's D1/D2 — all built, A76 half-graded
 
@@ -2409,6 +2420,77 @@ on one sequence is what produced the duplicate A51/A52 and A66/A67 collisions.
 
 ---
 
+## ✅ D4 · WHAT DOES "LIVE SEARCH ONLY" ACTUALLY MEAN? — ~~RUN THIS NEXT~~ **PROBED 10-03 (22)**
+
+**Status 10-03 (22): ✅ PROBED, nothing built → `docs/LIVE_SEARCH_FINDING.md`.** ⛔ **§3C DOES NOT WORK AS WRITTEN — rewrite it.** (1) "live search only" is a **static label** (`routes/adminDb.js:258`: has a key, not in the crawl list) — not a status; the only live-search path (`POST /api/jobs/search`) needs login but its one caller is the logged-out landing page → 401 in production: **a dead branch, by defect**. (2) **0 adzuna / 0 serpapi rows** in every local copy (production not read — O51). (3) **Adzuna 50 / 50 URLs are its own wrapper**, no ATS host in the API; followed by hand 4 / 12 reach greenhouse/lever/ashby (scraping, terms unclear). **SerpApi: the URL the code keeps is an ATS 0 / 20 times**; 73 % are LinkedIn/Indeed-type boards; new companies found: 0. (4) ⭐ The **receiving half EXISTS and is live**: URL→(ats, slug) parsing (`importJob.js:82-165`), `job_captures`, unconfigured-slug suggestions, `validateBoard`, a dry-by-default add-company route; the list is a table (`company_ats_list`, 29 / 22 active). Missing: any input from aggregators, a **description-coverage check** in the validator, Workday. (5) SerpApi is the **free plan, 250 / month** ("already paid for" is wrong); spend today ≈ 0 only because the path is dead. Searches spent: Adzuna 1, SerpApi 3. (6) Extension captures **wired**; board-opened jobs and apply handoffs **not** (and point at already-configured companies). Recommended (not built): grow from the curated lists + extension captures through the existing add-company path, add description coverage to `validateBoard` first, relabel or remove the label.
+
+⏸ Queued 2026-10-02 by the owner. ⛔ **PROBE AND REPORT. Build nothing in this pass.**
+
+### Why it is urgent
+
+Pipeline Health shows `adzuna` and `serpapi` as **LIVE SEARCH ONLY · 0 active rows**. ⚠ **Nobody
+knows what that status actually means**, and two things depend on the answer:
+
+⭐ **(1) Volume.** The board is ~25 configured companies against ~2,200 that exist. Aggregators see
+the **whole market**.
+⭐ **(2) ⭐ THE SLUGS.** `COMPANY_LIST_STRATEGY.md` §3C is built on this: **an aggregator result's URL
+contains the ATS host AND the company slug.** So every search does not just find a job — **it finds
+a company, permanently.** Configure that company once and every future posting arrives same-day,
+direct from its board, for free. **That is the engine for ingesting fresh jobs from ATS partner
+portals**, and it is the owner's stated reason this matters.
+
+⛔ **If that path is not actually wired, the whole company-growth strategy rests on nothing.**
+
+### What to establish — answer each in writing, with evidence
+
+```
+1  WHAT "LIVE SEARCH ONLY" MEANS. Read the code that sets it. Is it a label for
+   "queried on demand, never persisted", a dead branch, or something else entirely?
+   ⚠ Do not infer it from the panel — the panel has already lied once (A50's audit found
+   Pipeline Health mislabelling non-US and inactive rows as "UNENRICHED").
+
+2  ARE WE INGESTING FROM THEM AT ALL? 0 active rows is the panel's claim. Verify against the
+   database, not the panel. If zero: is that by design, by configuration, or by defect?
+
+3  ⛔ DO THEIR RESULTS ACTUALLY CARRY ATS URLs? This is the load-bearing question.
+   Run a real search against each and REPORT ACTUAL RESULT URLs. Then:
+     · what fraction point at a known ATS host (greenhouse / lever / ashby / workable /
+       recruitee / smartrecruiters / workday)?
+     · what fraction are the aggregator's own redirect wrapper, an employer's careers page, or a
+       dead end?
+   ⚠ ⛔ IF MOST RESULTS ARE WRAPPED REDIRECTS, THE SLUG-HARVEST IDEA DOES NOT WORK AS WRITTEN and
+     COMPANY_LIST_STRATEGY.md §3C needs rewriting. Say so plainly rather than working around it.
+
+4  IS THE HARVEST INFRASTRUCTURE THERE? The owner asks whether "all this discussed infrastructure
+   is there and wired". Check honestly, per piece:
+     · is there any code that extracts (ats_host, slug) from a URL?
+     · is there a validator that tests a candidate slug against its ATS board before enabling it?
+     · is the company list a table, or config files?
+     · is there any path from "a URL was seen" to "a company was added"?
+   ⛔ THE LIKELY ANSWER IS "NONE OF IT" — A45 was queued and never run. Report what exists rather
+   than what was planned. ⚠ This project has repeatedly found documents describing machinery that
+   was never built.
+
+5  COST AND LIMITS. Both keys are configured. What is the quota, what does a search cost, and is
+   anything being spent today for 0 rows?
+
+6  THE OTHER THREE FREE SOURCES of slugs, per A45 — are any wired?
+     extension captures · jobs opened from our own board · apply / handoff targets.
+   ⛔ All three are URLs we ALREADY HOLD and that disclose nothing new.
+```
+
+### ⚠ Constraints on whatever comes next
+
+- ⛔ **Do not enable a source or company at 0% description coverage.** Ubisoft, Bosch and Adobe were
+  seeded inactive for exactly that: 648 rows that could never be enriched.
+- ⛔ **Validate every harvested slug before enabling it.** A URL proves a page existed, not that a
+  board is worth crawling.
+- ⚠ **Growth is paced by enrichment capacity**, and the board is still being filtered for US-only.
+- ⚠ **A49's dedup work gates this** — an aggregator and an ATS board will return the same posting,
+  and every new source multiplies duplicates.
+
+---
+
 ## ✅ D1 · JOB CARDS AS BUBBLES — chosen 2026-10-02
 
 **Status 10-03 (21): ✅ BUILT, `c6bd112`, LOCAL** (closes A78, A79) — rows of 2/3/4, grow 1.55 on hover/focus-within, the three-square rail, depth tokens in both themes, Poppins 800 italic self-hosted. Decided: the rail is **always shown on touch**, and on a phone it sits on its own line under the text. ⛔ The ATS square shows the **bar mark, not the number**, until A76 (`ATS_NUMBER_SHOWN` in `shared/atsBands.js`). Shots: `draft-screenshots/d1-bubbles/`.
@@ -2488,6 +2570,88 @@ The inset top highlight is what makes it feel lit rather than merely dropped.
   ⚠ Poppins Bold Italic is an **approximation** of the mark; check the source artwork.
 - **Tokens only.** The guard fails on any colour outside the token file.
 - ⚠ **4-per-row is a wide-monitor column count.** At 1280px the resting cards ellipsis early.
+
+---
+
+## ✅ D3 · BUG REPORTING AND A TICKET PANEL — queued 2026-10-02, ~~not yet designed~~ **DESIGNED 10-03 (22)**
+
+**Status 10-03 (22): ✅ DESIGNED, nothing built → `docs/BUG_REPORTING.md`; ⏸ the four decisions are O50.** ⛔ **Error handling today is ZERO in draft**: no React error boundary (a render error blanks the app), no `window.onerror`/`unhandledrejection`, no Express error middleware, no `process.on`, no telemetry. Build order: **A** shared payload module (allowlist schema + scrubber + fingerprint) **+ Layer 2 + Layer 1** together, so Layer 2 cannot slip · **B** Layer 3, `/admin/tickets` · **C** "deployed" check, regression reopen, reporter notification · **D** Resume Master's own copy. ⚠ The inspector's redaction covers credentials only (`services/adminSafety.js:17-20`) — reused as an intake refusal; content safety comes from the allowlist in `shared/piiPolicy.js` + server-side scrubbing against what the server knows of the reporter. ⚠ Query strings can carry a session token (`api.js:45`) — never captured. Client SHA compiled into the bundle, not fetched. Production has no `.git` → "deployed" needs the GitHub compare API (a read-only token) or a by-hand check. ⚠ Source maps would publish the source via `express.static` — move them out first.
+
+⛔ **Design the data model and the capture payload first. The panel is the easy half.**
+
+### Why it is worth building now, with zero users
+
+⭐ **The owner IS the first reporter.** Every defect this session — the ATS panel not opening, search
+returning nothing, filters doing nothing, "analysing" then erroring — was found by the owner using
+the product and relayed through chat. ⚠ **That relay is lossy:** no URL, no job id, no console
+error, no build SHA. Half of each investigation has been reconstructing what the owner was looking
+at. A report button would have carried all of it for free.
+
+⭐ **And it is the only channel that will exist when strangers arrive.** A user who hits a bug today
+has no way to tell anyone.
+
+### How this is normally built — three layers, and most products need all three
+
+```
+1  USER-INITIATED        a "Report a problem" control. The user knows something is wrong.
+2  AUTOMATIC CAPTURE     an error boundary + a global handler. The product knows before the user
+                         says anything — and often before they notice.
+3  TRIAGE                somewhere the reports land, get a status, and get closed.
+```
+
+⚠ **Most teams build 1 and 3, skip 2, then wonder why the inbox is empty while the product is
+broken.** ⭐ **Layer 2 is where the real signal is** — people do not report, they leave.
+
+### ⭐ The context payload is what makes a report useful
+
+A bare "it is broken" costs more to chase than it saves. **Attach automatically, without asking:**
+
+```
+WHERE       route, the component, the job / profile / run id in view
+WHAT        the console error + stack, the last failed request (method, path, status)
+BUILD       ⭐ the commit SHA from /api/version — "which build was this" has been the first
+            question in almost every investigation here
+WHO         user id, plan, browser, viewport.  ⛔ NOT the résumé. NOT profile contents.
+WHEN        timestamp, and the last few user actions if a breadcrumb trail is cheap
+```
+
+⛔ **PRIVACY IS THE WHOLE RISK.** A naive reporter scoops up whatever is on screen — which here
+means résumé text, addresses, phone numbers, and the **Article 9 columns** (`ethnicity`,
+`disability_status`, `veteran_status`). ⛔ **ALLOWLIST the fields captured; never serialise the page
+or the store.** The admin inspector already redacts passwords, tokens and session ids — the same
+redaction applies here, **by construction, not by remembering**.
+
+⚠ **A screenshot is the highest-value attachment and the highest-risk one.** If offered at all:
+opt-in per report, previewed before sending, never automatic.
+
+### The ticket panel
+
+```
+STATUS       new → triaged → in progress → fixed → closed   (+ won't fix, duplicate)
+SEVERITY     set at TRIAGE, not by the reporter — ⚠ everyone picks "critical"
+GROUPING     ⭐ identical stack + route = ONE ticket with a count, not forty.
+             The dedup lesson (A49) applies to tickets too.
+LINKS        to the job, the run, the user, the build
+RESOLUTION   ⭐ the commit that fixed it, AND whether it is DEPLOYED — not merely merged.
+             This project has shipped a fix that sat undeployed for a day while being treated
+             as done.
+```
+
+⭐ **Close the loop with the reporter.** A ticket fixed and never acknowledged teaches people not to
+report again — which is the failure mode that makes the whole feature worthless.
+
+### ⚠ Decisions needed before building
+
+1. **Build it, or use a service?** Sentry and similar do layer 2 far better than a first attempt
+   will. ⚠ But they are a **third party receiving error payloads from a product that handles
+   special-category data** — that is a privacy-reconciliation entry and a policy line. ⭐ A plausible
+   split: **in-house for user reports, a service for automatic error capture.** Decide deliberately.
+2. **Does the ticket panel live inside the admin panel (A50) or beside it?** A50 is mid-audit; this
+   must not collide with it.
+3. **Retention.** A report carries personal data, so it needs a stated lifetime and real deletion —
+   the same obligation A57 created for stored artifacts.
+4. ⚠ **Resume Master needs this too and it is a separate deployment.** One panel reading both, or
+   one each? ⛔ The products are *not linked* by decision.
 
 ---
 
