@@ -207,7 +207,8 @@ test("the tab row moved into the top bar, whole, and from appTabs", () => {
   assert.match(app, /tabs=\{appTabs\}/, "the bar is no longer fed from appTabs");
 
   // The styling is UnifiedSearchBar's verbatim, because this is a MOVE.
-  for (const kept of [/borderRadius: 999,/, /textTransform: "uppercase", letterSpacing: "0\.08em"/,
+  // (D18/O56e: below 560px the spacing tightens to fit a phone; the desktop value is still 0.08em.)
+  for (const kept of [/borderRadius: 999,/, /textTransform: "uppercase", letterSpacing: narrow \? "0\.04em" : "0\.08em"/,
                       /fontSize: 12, fontWeight: 600, cursor: "pointer"/]) {
     assert.match(topBarCode, kept, `the tab styling changed on the way across (${kept})`);
   }

@@ -72,3 +72,16 @@ test("D18: no display string still sends the user to 'the Draft tab'", () => {
   assert.deepEqual(hits, [], "a display string names the old tab — it is Draft House (D18):\n" + hits.join("\n"));
   assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /<h2 style=\{TYPE\.PAGE_TITLE\}>\s*Draft House\s*</);
 });
+
+test("O56e: on a phone the tab row tightens and FADES at the edge that still hides a tab — it reads as scrollable", () => {
+  // Four two-line tabs + the full wordmark + the avatar need ~470px; a 390px phone shows ~3.5 tabs.
+  // The row has always scrolled; nothing said so, and "The Table" sat wholly past the edge.
+  assert.match(topBar, /const narrow = vw < 560;/);
+  assert.match(topBar, /padding: narrow \? "5px 8px" : "5px 14px"/);
+  // The cue is driven by a measurement, not by the width alone: nothing fades when everything fits.
+  assert.match(topBar, /setTabsMore\(!!el && el\.scrollLeft \+ el\.clientWidth < el\.scrollWidth - 2\)/);
+  assert.match(topBar, /<nav aria-label="Main" ref=\{tabRowRef\} onScroll=\{measureTabs\}/);
+  assert.match(topBar, /\.\.\.\(tabsMore \? \{ WebkitMaskImage: TAB_ROW_FADE, maskImage: TAB_ROW_FADE \} : null\)/);
+  // Scrolling, not wrapping, still keeps every tab reachable.
+  assert.match(topBar, /overflowX: "auto"/);
+});
