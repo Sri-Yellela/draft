@@ -279,7 +279,7 @@ All routes are prefixed `/api/`. All except auth routes require a valid session 
 |---|---|---|
 | GET | `/api/base-resume` | Get saved base resume text |
 | POST | `/api/base-resume` | `{content, name}` — save base resume |
-| POST | `/api/parse-pdf` | Multipart PDF → extracted text via Anthropic document API |
+| POST | `/api/parse-pdf` | Multipart PDF → its own text layer, read locally (pdf-parse); no model call (D17). A scan is refused (`pdf_no_text_layer`) |
 | POST | `/api/generate` | `{jobId, job, resumeText, forceRegen, employers}` → `{html, atsScore, atsReport}` |
 | POST | `/api/resumes/:jobId/html` | Save edited sandbox HTML |
 | POST | `/api/export-pdf` | `{html, filename}` → PDF binary via Puppeteer |

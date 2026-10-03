@@ -94,7 +94,20 @@ test("D17 V7: the dead classify_job model call stays deleted", () => {
   assert.ok(!/purpose:\s*["']classify_job["']/.test(src));
 });
 
-test("D17 V2: /api/standalone/generate scores its résumé with the deterministic scorer, no model", () => {
+test("D17 V1: /api/parse-pdf reads the PDF's text layer locally — no tools-service model call", () => {
+  const src = fs.readFileSync("server.js", "utf8");
+  const start = src.indexOf('app.post("/api/parse-pdf"');
+  const end = src.indexOf("\n});", start);
+  assert.ok(start > 0 && end > start, "the route moved — re-anchor this test");
+  const route = src.slice(start, end);
+  assert.doesNotMatch(route, /toolsService\.parsePdf|callModel\(/, "PDF → text went back to a model");
+  assert.match(route, /pdf-parse/);
+  // A scan has no text layer; the answer says so and what to do, rather than an empty résumé.
+  assert.match(route, /pdf_no_text_layer/);
+  assert.match(route, /degraded: false/, "local extraction is the product now, not a degraded mode");
+});
+
+test("D17 V2:/api/standalone/generate scores its résumé with the deterministic scorer, no model", () => {
   const src = fs.readFileSync("server.js", "utf8");
   const start = src.indexOf('app.post("/api/standalone/generate"');
   const end = src.indexOf("// POST /api/standalone/apply", start);
