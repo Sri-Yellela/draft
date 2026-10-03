@@ -64,6 +64,10 @@ function AnimatedLucyLogo() {
 // decorated ReactNode (Draft House's label + count, which calls this itself), renders as given. The
 // accessible name is the same words with a space — the line break is a <br>, not a character in the name.
 // D18: no tab carries a symbol — all four are two-line text in the same format.
+// The scrollable tab row's "there is more" cue: the last 36px fade out (a mask, so it works over
+// any background and in both themes — no colour literal).
+const TAB_ROW_FADE = "linear-gradient(to right, var(--c-ink) calc(100% - 36px), transparent)";   // a mask reads alpha only; ink is opaque
+
 export function TabLabel({ label }) {
   if (typeof label !== "string" || !label.includes(" ")) return label;
   const cut = label.indexOf(" ");
@@ -450,6 +454,19 @@ export default function TopBar({
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // The tab row scrolls when it does not fit (below ~760px with the full wordmark). D18/O56e: at
+  // 390px "The Table" sat wholly past the edge with nothing to say it was there. Two small things:
+  // tighter tab spacing on a phone, and a fade on the edge that still hides a tab, so the row reads
+  // as scrollable. `tabsMore` is recomputed on scroll and resize; nothing fades when it all fits.
+  const narrow = vw < 560;
+  const tabRowRef = useRef(null);
+  const [tabsMore, setTabsMore] = useState(false);
+  const measureTabs = useCallback(() => {
+    const el = tabRowRef.current;
+    setTabsMore(!!el && el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+  useEffect(() => { measureTabs(); }, [measureTabs, vw, tabs]);
+
   // Domain profiles for docked pill switcher
   const [profiles, setProfiles] = useState([]);
   const loadProfiles = useCallback(() => {
@@ -586,9 +603,10 @@ export default function TopBar({
               46px tall and five tabs plus the mark plus the avatar do not fit below about 700px of
               viewport. Scrolling keeps every tab REACHABLE at any width, where wrapping would push
               the second row outside the bar's height and clip it. */}
-          <nav aria-label="Main" style={{
-            display: "flex", gap: 4, alignItems: "center", minWidth: 0,
+          <nav aria-label="Main" ref={tabRowRef} onScroll={measureTabs} style={{
+            display: "flex", gap: narrow ? 2 : 4, alignItems: "center", minWidth: 0,
             overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none",
+            ...(tabsMore ? { WebkitMaskImage: TAB_ROW_FADE, maskImage: TAB_ROW_FADE } : null),
           }}>
             {(tabs || []).map(t => (
               <a key={t.id}
@@ -605,13 +623,13 @@ export default function TopBar({
                 aria-current={activeTab === t.id ? "page" : undefined}
                 style={{
                   display: "inline-block", textDecoration: "none",
-                  padding: "5px 14px",
+                  padding: narrow ? "5px 8px" : "5px 14px",
                   background: activeTab === t.id ? "var(--c-hover)" : "transparent",
                   border: activeTab === t.id ? "1px solid var(--color-primary)" : "1px solid transparent",
                   borderRadius: 14, lineHeight: 1.15, textAlign: "center",
                   color: activeTab === t.id ? "var(--color-text)" : "var(--color-text-muted)",
                   fontSize: 12, fontWeight: 600, cursor: "pointer",
-                  textTransform: "uppercase", letterSpacing: "0.08em",
+                  textTransform: "uppercase", letterSpacing: narrow ? "0.04em" : "0.08em",
                   whiteSpace: "nowrap", flexShrink: 0,
                 }}><TabLabel label={t.label}/></a>
             ))}
