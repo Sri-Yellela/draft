@@ -118,8 +118,13 @@ const FIXTURES = {
   },
 };
 
+// The surface being shot, so a fixture can vary by surface (D12's empty Saved tab).
+let CURRENT = {};
+
 function fixtureFor(url) {
+  if (url.pathname === '/api/extension/status') return { connected: !!CURRENT.extensionConnected, lastSeenAt: null };
   if (url.pathname.startsWith('/api/jobs') && url.searchParams.get('starred') === '1') {
+    if (CURRENT.savedEmpty) return { jobs: [], total: 0, totalPages: 0 };
     const jobs = POOL.filter(j => j.starred).map(j => (j.jobId === 'j1' ? { ...j, location: 'London, United Kingdom' } : j));
     return { jobs, total: jobs.length, totalPages: 1 };
   }
@@ -137,6 +142,10 @@ const SURFACES = [
   { id: 'draft', path: '/app/auto-apply' },
   { id: 'table', path: '/app/database' },
   { id: 'job-profiles', path: '/app/job-profiles' },
+  // D12
+  { id: 'extension', path: '/extension' },
+  { id: 'jobs-connected', path: '/app/jobs', extensionConnected: true },
+  { id: 'saved-empty', path: '/app/jobs', clickTab: '★', savedEmpty: true },
 ];
 const WIDTHS = (process.env.SHOT_WIDTHS || '1920,1440,1100,820,390').split(',').map(Number)
   .map(w => ({ w, h: w < 500 ? 844 : w < 1000 ? 1000 : 900 }));
@@ -168,6 +177,7 @@ async function main() {
   try {
     for (const theme of THEMES) for (const { w, h } of WIDTHS) for (const s of SURFACES) {
       if (ONLY && !ONLY.has(s.id)) continue;
+      CURRENT = s;
       const page = await browser.newPage();
       const errors = [];
       page.on('pageerror', e => errors.push(e.message));
