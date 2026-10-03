@@ -1,6 +1,6 @@
 // client/src/panels/JobsPanel.jsx — Lucy Brand, shared job pool
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
@@ -14,6 +14,7 @@ import DecisionToast from "../components/DecisionToast.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import JobBubble, { JobBubbleRows } from "../components/JobBubble.jsx";
+import { SavedEmptyState } from "../components/ExtensionPrompt.jsx";
 import JobDetailPanel from "../components/JobDetailPanel.jsx";
 import SandboxPanel from "./SandboxPanel.jsx";
 import AtsReportPanel from "./AtsReportPanel.jsx";
@@ -3615,6 +3616,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               onToggleCurate={toggleCuration}
               boardReason={boardReason}
               emptyReason={emptyReason}
+              savedTab={boardTab === "saved"}
               cardTier={1}
             />
             {/* The mobile "editor" pane is gone: the PDF sandbox is a popup panel now and renders
@@ -3697,6 +3699,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               onToggleCurate={toggleCuration}
               boardReason={boardReason}
               emptyReason={emptyReason}
+              savedTab={boardTab === "saved"}
               cardTier={effectiveTier}
               containerRef={jobsPanelElementRef}
             />
@@ -3813,6 +3816,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       searchActive = false, profileName = null,
                       curation = null, curateOff = false, onToggleCurate, boardReason = null,
                       emptyReason = null, canRankByFit = true, onAddResume,
+                      savedTab = false,
                       cardTier = 1, containerRef }) {
   const [pageInput, setPageInput] = useState("");
   const shouldShowEmptyState = jobs.length === 0 && !scraping;
@@ -3871,6 +3875,9 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
           ? <NoPoolEmptyState theme={theme}/>
           : emptyBecauseFiltered
             ? <FilteredEmptyState theme={theme} count={narrowingCount} onClearFilters={onClearFilters}/>
+            // D12: an empty ★ Saved tab is where a missing extension shows — captures land there.
+            : savedTab
+              ? <SavedEmptyState theme={theme}/>
             : emptyBecauseRole
               ? <RoleScopedEmptyState theme={theme} profileName={profileName}/>
               : <EmptyState theme={theme}/>
@@ -4180,7 +4187,7 @@ function NoPoolEmptyState({ theme }) {
       <div style={{ fontSize:12, textAlign:"center", color:th.textDim, maxWidth:380, lineHeight:1.8 }}>
         This is not your profile and not your filters — the shared job pool itself is empty, so there
         is nothing for any board to show. It refills on the next scheduled crawl. You can also add a
-        posting yourself with the <strong>draft browser extension</strong>.
+        posting yourself with the <Link to="/extension" target="_blank" rel="noopener">draft browser extension</Link>.
       </div>
     </div>
   );

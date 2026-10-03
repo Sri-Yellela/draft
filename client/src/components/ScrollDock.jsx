@@ -114,6 +114,8 @@ function MarketingToolsDock({ variant }) {
   const MARKETING_LINKS = [
     { label: "Features",     to: "/features" },
     { label: "How It Works", to: "/how-it-works" },
+    // D12: the extension is how a job from anywhere reaches the board, so the nav says where it is.
+    { label: "Extension",    to: "/extension" },
     ...(monetisationEnabled ? [{ label: "Pricing", to: "/pricing" }] : []),
     { label: "About",        to: "/about" },
   ];

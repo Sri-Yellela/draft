@@ -35,6 +35,8 @@ export function Footer() {
             {[
               { label: "Features",     to: "/features" },
               { label: "How It Works", to: "/how-it-works" },
+              // D12: the extension is the import path; the site has to say where to get it.
+              { label: "Browser extension", to: "/extension" },
               ...(monetisationEnabled ? [{ label: "Pricing", to: "/pricing" }] : []),
               { label: "FAQ",          to: "/faq" },
             ].map(({ label, to }) => (

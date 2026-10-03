@@ -19,6 +19,7 @@ import { JobBoardProvider, useJobBoard } from "./contexts/JobBoardContext.jsx";
 import { AutoApplyProvider, useAutoApply } from "./contexts/AutoApplyContext.jsx";
 import { AutoApplyPanel }        from "./panels/AutoApplyPanel.jsx";
 import { DraftMark }             from "./components/DraftMark.jsx";
+import { ExtensionAddJobsLink, ExtensionFirstRunPrompt } from "./components/ExtensionPrompt.jsx";
 import { ProfilePanel }          from "./panels/ProfilePanel.jsx";
 import { JobProfilesPanel }      from "./panels/JobProfilesPanel.jsx";
 import { DatabasePanel }         from "./panels/DatabasePanel.jsx";
@@ -47,6 +48,7 @@ import { MonetisationProvider, useMonetisationEnabled } from "./lib/monetisation
 // Marketing pages (lazy-loaded is fine but direct imports work too)
 import { FeaturesPage }    from "./pages/marketing/FeaturesPage.jsx";
 import { HowItWorksPage }  from "./pages/marketing/HowItWorksPage.jsx";
+import { ExtensionPage }   from "./pages/marketing/ExtensionPage.jsx";
 import { PricingPage }     from "./pages/marketing/PricingPage.jsx";
 import { AboutPage }       from "./pages/marketing/AboutPage.jsx";
 import { ContactPage }     from "./pages/marketing/ContactPage.jsx";
@@ -563,12 +565,17 @@ function AppDashboard({ authUser, setAuthUser }) {
                     {/* RIGHT: the board's actions, in the order and with the behaviour they had. */}
                     <div style={{ display: "flex", alignItems: "center", paddingBottom: 4 }}>
                       <BoardControlIcons />
-                      {/* D11: no IMPORT button. Importing is the extension's job now (D12): it
-                          posts to the same /api/import/job the removed modal did. */}
+                      {/* D11: no IMPORT button. Importing is the extension's job now: it posts to
+                          the same /api/import/job the removed modal did. D12 puts the way to GET it
+                          here, where IMPORT sat. */}
+                      <div style={{ width: 1, height: 20, background: "var(--border-glass)", margin: "0 8px" }} />
+                      <ExtensionAddJobsLink />
                     </div>
                     </>
                   }
                 />
+                {/* D12: until the extension is connected, say where jobs from elsewhere come from. */}
+                <ExtensionFirstRunPrompt />
                 </>
               )}
             </div>
@@ -726,6 +733,8 @@ function AppRouter() {
         {/* Marketing pages — always public */}
         <Route path="/features"     element={<FeaturesPage/>}/>
         <Route path="/how-it-works" element={<HowItWorksPage/>}/>
+        {/* D12: the extension is the import path since D11 — this page explains and installs it. */}
+        <Route path="/extension"    element={<ExtensionPage/>}/>
         {/* OFF MEANS ABSENT. Not a disabled page, not a "pricing coming soon" placeholder — with
             the lever off the URL is simply not part of this product, and answers exactly as any
             other unknown path does. */}
