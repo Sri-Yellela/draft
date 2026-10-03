@@ -15,16 +15,16 @@ const app     = read("client/src/App.jsx");
 const topBar  = read("client/src/components/TopBar.jsx");
 const context = read("client/src/contexts/JobBoardContext.jsx");
 
-test("the filter and sort triggers sit beside IMPORT, in the search bar's actions slot", () => {
+test("the filter and sort triggers sit in the search bar's actions slot (IMPORT beside them went in D11)", () => {
   assert.match(app, /function BoardControlIcons\(\)/);
-  // In the actions slot, next to the Import button — one row, not a new one.
+  // In the actions slot — one row, not a new one. The Import button beside them was removed by D11
+  // (importing is the extension's job; test/d11FullHouseHeader.test.js pins its absence).
   //
   // The slice used to start at `actions={activeTab === "console"` — the ternary that decided whether
   // to pass actions at all. Y4 removed that ternary because the WHOLE search bar now renders only on
   // Jobs, so there is nothing left to gate: if the bar is on screen, its actions belong to it.
   const actions = app.slice(at(app, "actions={"), at(app, "</main>"));
   assert.match(actions, /<BoardControlIcons \/>/);
-  assert.match(actions, /Import\s*\n?\s*<\/button>/);
   // And the board's view tabs, which moved here off the retired pill.
   assert.match(actions, /<BoardTabs \/>/);
   // And inside the provider, for the same reason BoardSearchBar is: AppDashboard renders

@@ -30,8 +30,7 @@ import { AccountPanel }          from "./panels/AccountPanel.jsx";
 import { RecruiterPanel }        from "./panels/RecruiterPanel.jsx";
 import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
 import UnifiedSearchBar          from "./components/UnifiedSearchBar.jsx";
-import ImportJobModal            from "./components/ImportJobModal.jsx";
-import { Plus, SlidersHorizontal, ArrowUpDown } from "lucide-react";
+import { SlidersHorizontal, ArrowUpDown } from "lucide-react";
 import UsbSelect                 from "./components/UsbSelect.jsx";
 import { SORTS }                 from "../../shared/jobFilterOptions.js";
 import { ATSToolPage }           from "./pages/tools/ATSToolPage.jsx";
@@ -183,10 +182,13 @@ function AppTopBar({ tabs, ...props }) {
 // Labels and values are the pill's verbatim, including the glyphs, so a user who knew where ★ was
 // still recognises it. Titles are added because a glyph alone has no accessible name — the pill's
 // did not either, which was a defect it is not worth preserving.
+//
+// D11: the Pending chip is the DRAFT MARK, not an hourglass — a pending row is one you drafted, and
+// the card's Draft button and the top bar's Draft tab carry the same /d (components/DraftMark.jsx).
 const BOARD_TABS = [
   ["all",     "ALL",  "All jobs on your board"],
   ["saved",   "★",    "Saved jobs"],
-  ["pending", "⏳",   "Pending apply"],
+  ["pending", <DraftMark key="d" style={{ fontSize: 13 }}/>, "Pending apply"],
 ];
 
 function BoardTabs() {
@@ -221,7 +223,7 @@ function BoardTabs() {
 // "Pay ↓" there) — one control, two renderings, disagreeing about what to call the same value.
 const SORT_OPTIONS = SORTS.options.map(o => ({ v: o.value, l: o.label }));
 
-// The consolidated control row (W4): a filter icon and a sort icon, beside IMPORT.
+// The consolidated control row (W4): a filter icon and a sort icon (IMPORT beside them went in D11).
 //
 // Inside JobBoardProvider for the same reason BoardSearchBar is — AppDashboard renders the
 // provider and so cannot read it. The filter icon only TOGGLES; the panel itself, and every piece
@@ -306,7 +308,6 @@ function AppDashboard({ authUser, setAuthUser }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [jobBoardRefreshKey, setJobBoardRefreshKey] = useState(0);
-  const [importOpen, setImportOpen] = useState(false);
   // THE PILL IS RETIRED (Y4), so there is no longer a SURFACE to choose between — there is one
   // search bar and it renders on Jobs. hooks/useSearchSurface.js is deleted; what replaces it is
   // not another threshold but the absence of one.
@@ -396,13 +397,6 @@ function AppDashboard({ authUser, setAuthUser }) {
   }, [activeTab, consolePath, navigate, NAVIGABLE_TABS]);
 
   const handleProfileActivate = useCallback(() => {
-    setJobBoardRefreshKey(k => k + 1);
-  }, []);
-
-  // An import stars the row for this user (services/jobs/importJob.js), so it belongs on their
-  // board immediately — remount the console the same way activating a profile does, rather than
-  // leaving the user to refresh before their own import shows up.
-  const handleJobImported = useCallback(() => {
     setJobBoardRefreshKey(k => k + 1);
   }, []);
 
@@ -540,15 +534,14 @@ function AppDashboard({ authUser, setAuthUser }) {
                     BELOW THE CHROME rather than an absolute offset that cleared it by coincidence. */}
                 <div style={{ textAlign:"center", padding:"34px 20px 40px",
                               animation:"fadeUp 0.6s ease both" }}>
+                  {/* D11: one line, the same for everyone — it was "Your jobs." (or "Welcome back,
+                      <name>.") over "Pick up where you left off." */}
                   <div style={{
                     fontFamily:"var(--font-display, 'Instrument Serif', serif)",
                     fontSize:"clamp(2rem, 5vw, 4rem)", fontWeight:400,
-                    color:"var(--color-text)", letterSpacing:"-0.025em", marginBottom:8,
+                    color:"var(--color-text)", letterSpacing:"-0.025em",
                   }}>
-                    {authUser?.first_name ? `Welcome back, ${authUser.first_name}.` : "Your jobs."}
-                  </div>
-                  <div style={{ fontSize:14, color:"var(--color-text-muted)", maxWidth:520, margin:"0 auto" }}>
-                    Pick up where you left off.
+                    Let's get to work.
                   </div>
                 </div>
 
@@ -570,23 +563,8 @@ function AppDashboard({ authUser, setAuthUser }) {
                     {/* RIGHT: the board's actions, in the order and with the behaviour they had. */}
                     <div style={{ display: "flex", alignItems: "center", paddingBottom: 4 }}>
                       <BoardControlIcons />
-                      <div style={{ width: 1, height: 20, background: "var(--border-glass)", margin: "0 8px" }} />
-                      <button
-                        type="button"
-                        onClick={() => setImportOpen(true)}
-                        title="Import a job from a link or pasted text"
-                        style={{
-                          display: "flex", alignItems: "center", gap: 6,
-                          padding: "6px 12px", borderRadius: 999,
-                          background: "transparent",
-                          border: "1px solid var(--color-primary)",
-                          color: "var(--color-text)",
-                          fontSize: 12, fontWeight: 600, cursor: "pointer",
-                          textTransform: "uppercase", letterSpacing: "0.08em",
-                          whiteSpace: "nowrap",
-                        }}>
-                        <Plus size={13} /> Import
-                      </button>
+                      {/* D11: no IMPORT button. Importing is the extension's job now (D12): it
+                          posts to the same /api/import/job the removed modal did. */}
                     </div>
                     </>
                   }
@@ -621,12 +599,6 @@ function AppDashboard({ authUser, setAuthUser }) {
               selection itself lives in JobBoardContext, above the tab switch, so returning to Jobs
               restores the same open drawer. */}
 
-          {importOpen && (
-            <ImportJobModal
-              onClose={() => setImportOpen(false)}
-              onImported={handleJobImported}
-            />
-          )}
         </div>
 
         {/* TOASTS. Mounted here, OUTSIDE [data-app-shell], and that placement is the point.

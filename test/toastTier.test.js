@@ -80,7 +80,8 @@ test("Toaster is mounted exactly once, and OUTSIDE the subtree useBoardLock iner
   // inside that panel must not be inerted with the board behind it.
   const appCode = code(app);
   const shellOpen = appCode.indexOf("<div data-app-shell");
-  const shellClose = appCode.indexOf("</div>", appCode.indexOf("{importOpen && ("));
+  // The shell closes right after <main> (the import modal that sat between them went in D11).
+  const shellClose = appCode.indexOf("</div>", appCode.indexOf("</main>"));
   const toasterAt = code(app).indexOf("<Toaster />");
   assert.ok(toasterAt > shellClose,
     "<Toaster /> is inside [data-app-shell] — useBoardLock would inert it along with the board");
