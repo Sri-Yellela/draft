@@ -1,6 +1,6 @@
 // client/src/pages/tools/PdfToolPage.jsx — A69: the PDF tools, free, in the browser.
 // ⭐ Why draft carries them: ATS portals cap upload size (compress), and a cover letter merged onto
-// a résumé is a one-click job people do by hand (merge). Same component as resumemaster.one.
+// a résumé is a one-click job people do by hand (merge). Same component as the tools service's site.
 import { useSearchParams } from "react-router-dom";
 import { useTheme } from "../../styles/theme.jsx";
 import { Footer } from "../../components/Footer.jsx";

@@ -1,4 +1,4 @@
-// A69 — draft carries the PDF toolkit as the SAME component Resume Master mounts, not a copy.
+// A69 — draft carries the PDF toolkit as the SAME component the tools service mounts, not a copy.
 // The operations themselves are tested in packages/pdf-toolkit/test (run by this suite).
 import test from "node:test";
 import assert from "node:assert/strict";

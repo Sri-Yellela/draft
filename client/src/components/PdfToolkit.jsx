@@ -1,4 +1,4 @@
-// A69 — draft's mount of @draft/pdf-toolkit: the SAME component resumemaster.one mounts, not a copy
+// A69 — draft's mount of @draft/pdf-toolkit: the SAME component the tools service's site mounts, not a copy
 // (A52's lesson). The package is framework-free; this wrapper only loads the libraries — lazily, so
 // nobody downloads ~2 MB of PDF code until they open the tools — and maps draft's tokens onto the
 // toolkit's --pt-host-* variables. Everything runs in the browser; the file is never uploaded.
