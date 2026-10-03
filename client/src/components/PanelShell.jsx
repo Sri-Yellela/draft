@@ -64,7 +64,7 @@ const EDGE_GAP = PANEL_EDGE_GAP;
 //
 // ONE CONSTANT, exported, rather than two numbers that read each other. That is what makes "the two
 // drawers share a top edge" true by construction instead of true by a test noticing.
-export const PANEL_TOP_INSET = "calc(var(--app-chrome-height, 46px) + 34px)";
+export const PANEL_TOP_INSET = "calc(var(--app-chrome-height, 74px) + 34px)";
 export const PANEL_BOTTOM_INSET = 16;
 
 // One scrim for the whole group. Rendered once by the host rather than once per panel, because two

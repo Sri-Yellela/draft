@@ -35,7 +35,8 @@ test("the deck shows a band and never a score", () => {
 });
 
 test("/app lands on Today, and the board keeps /app/jobs", () => {
-  assert.match(app, /\{ id: "today",\s+label: "Today" \}/);
+  // D10: displayed as DAILY DECK; the id and route stay "today".
+  assert.match(app, /\{ id: "today",\s+label: "Daily Deck" \}/);
   assert.match(app, /if \(!routeKey\) \{\s*navigate\("\/app\/today", \{ replace:true \}\);/);
   assert.match(app, /activeTab === "today"\s+&& <DeckView/);
 });

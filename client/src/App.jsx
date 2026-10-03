@@ -318,18 +318,23 @@ function AppDashboard({ authUser, setAuthUser }) {
   // /app lands on TODAY (UI step 3d): the daily deck. The board keeps /app/jobs as "All jobs".
   const activeTab = routeKey === CONSOLE_ROUTE || LEGACY_CONSOLE_ROUTES.has(routeKey)
     ? "console" : routeKey === "" ? "today" : routeKey;
+  // D10 (10-03): the card-game family — DAILY DECK, FULL HOUSE, DRAFT, THE TABLE. Display strings
+  // only: the ids and the /app/<id> routes are internal and stay (docs/BRAND.md). TopBar sets a two-word
+  // label on two lines, so the bar's height fits the mark's.
   const appTabs = [
     // Today's draft — the deck, dealt from the top of the fit-ranked board (UI_REDESIGN §3).
-    { id: "today",        label: "Today" },
-    { id: "console",      label: "Jobs" },
+    { id: "today",        label: "Daily Deck" },
+    { id: "console",      label: "Full House" },
     // The auto-apply pipeline is a peer of the board now, not a strip above it (W5). It sits in
     // this row for the same reason the others do — it is a place you go, not a thing that happens
     // on the board. AppTopBar decorates it with the needs-attention count.
     // D6: displayed as DRAFT, with the /d mark (AppTopBar). The id and the /app/auto-apply route
     // are internal and stay — renaming them is cost without benefit (docs/BRAND.md).
     { id: "auto-apply",   label: "Draft" },
-    { id: "job-profiles", label: "Job Profiles" },
-    { id: "database",     label: "Database" },
+    // D10: no "Job Profiles" tab. The PAGE stays (ROUTE_ONLY_TABS below), reached from the avatar
+    // menu ("Manage Job Profiles", and the profile switcher's add / manage), Profile's "Open Job
+    // Profiles", and the Daily Deck's set-up state ("Add your résumé →").
+    { id: "database",     label: "The Table" },
     // D5: no "Recruiter" tab. FE-6 built the surface, but there is no recruiter role, signup or
     // front door, so a candidate-side tab advertised a product that does not exist. The panel and
     // its route stay (ROUTE_ONLY_TABS below) for the two in-app deep links and R2–R6.
@@ -348,7 +353,7 @@ function AppDashboard({ authUser, setAuthUser }) {
   // route guard read, so dropping it here makes /app/plans bounce to the board the same way any
   // other non-tab path does — the panel is absent, not an empty panel that renders nothing.
   // Panels with a route and no tab: reachable by link, never advertised in the bar (D5).
-  const ROUTE_ONLY_TABS = ["recruiter"];
+  const ROUTE_ONLY_TABS = ["recruiter", "job-profiles"];
   const NAVIGABLE_TABS = useMemo(
     () => new Set([...appTabs.map(t => t.id).filter(id => id !== "console"),
                    ...(monetisationEnabled ? ["plans"] : []), "profile", "integrations", "account",

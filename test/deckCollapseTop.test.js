@@ -22,7 +22,7 @@ test("⭐ an expanded card has Collapse at its TOP, before anything else on the 
 test("⛔ it is STICKY — reachable at any scroll position, just under the fixed top bar — and takes no room", () => {
   const row = face.slice(at(face, "<div data-deck-collapse-top", 0, "row"), at(face, "<CollapseButton", 0, "button"));
   assert.match(row, /position: "sticky"/);
-  assert.match(row, /top: `calc\(var\(\$\{CHROME_HEIGHT_VAR\}, 46px\) \+ 10px\)`/, "under the bar's MEASURED height, not a literal");
+  assert.match(row, /top: `calc\(var\(\$\{CHROME_HEIGHT_VAR\}, 74px\) \+ 10px\)`/, "under the bar's MEASURED height, not a literal");
   assert.match(row, /height: 0/, "a zero-height row: it rides down without pushing the card's content");
   assert.match(deckSrc, /import \{ CHROME_HEIGHT_VAR \} from "\.\.\/hooks\/useChromeHeight\.js";/);
 });

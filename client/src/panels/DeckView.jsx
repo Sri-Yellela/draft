@@ -300,7 +300,7 @@ function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, o
           zero-height sticky row, so the button rides down with the reader without pushing the card's
           content; it sits just under the fixed top bar (its measured height, published). */}
       {open && (
-        <div data-deck-collapse-top style={{ position: "sticky", top: `calc(var(${CHROME_HEIGHT_VAR}, 46px) + 10px)`, height: 0 }}>
+        <div data-deck-collapse-top style={{ position: "sticky", top: `calc(var(${CHROME_HEIGHT_VAR}, 74px) + 10px)`, height: 0 }}>
           <div style={{ display: "flex", justifyContent: "flex-end", transform: vertical ? "translate(8px, -10px)" : "translate(12px, -14px)" }}>
             <CollapseButton onCollapse={onCollapse} controls="deck-detail" />
           </div>
@@ -529,7 +529,7 @@ function EndOfDeck({ s, tally, needsReview, onUndo }) {
             Review your drafts →
           </Link>
         )}
-        <Link to="/app/jobs" onClick={transitionClick(navigate, "/app/jobs")} style={{ ...glass({ radius: 14 }), padding: "12px 20px", fontWeight: 800, color: C.INK, textDecoration: "none" }}>All jobs</Link>
+        <Link to="/app/jobs" onClick={transitionClick(navigate, "/app/jobs")} style={{ ...glass({ radius: 14 }), padding: "12px 20px", fontWeight: 800, color: C.INK, textDecoration: "none" }}>Full House</Link>
         {onUndo && (
           <button type="button" onClick={onUndo} style={{ background: "transparent", border: "none", color: C.ACCENT_INK, fontWeight: 800, cursor: "pointer" }}>
             Undo the last one <span style={kbd}>U</span>
@@ -834,7 +834,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
               [["/app/job-profiles", "Set up a job profile →"]]],
             no_resume: ["Add your résumé to get today's draft.",
               "Fit is judged against your résumé, so there is nothing to rank until it's there. It takes a minute, and nothing is sent anywhere.",
-              [["/app/job-profiles", "Add your résumé →"], ["/app/jobs", "All jobs"]]],
+              [["/app/job-profiles", "Add your résumé →"], ["/app/jobs", "Full House"]]],
             empty: ["Nothing strong enough today.",
               "Today's draft only deals Strong and Moderate matches you haven't decided yet, and there are none right now. A thin résumé makes most jobs read as weak — adding detail changes this more than anything else.",
               [["/app/jobs", "All jobs →"], ["/app/job-profiles", "Improve your profile →"]]],

@@ -42,7 +42,7 @@ test("every nav tab is a real link, not a button", () => {
 });
 
 test("a modified click is left to the browser, a plain click still navigates in-app", () => {
-  const nav = TOPBAR.slice(at(TOPBAR, '<a key={t.id}'), at(TOPBAR, "{t.label}</a>"));
+  const nav = TOPBAR.slice(at(TOPBAR, '<a key={t.id}'), at(TOPBAR, "<TabLabel label={t.label}/></a>"));
   // Without this the href would hijack every click into a full page load, which is a worse
   // regression than the missing affordance it is there to add.
   assert.match(nav, /e\.metaKey \|\| e\.ctrlKey \|\| e\.shiftKey \|\| e\.altKey \|\| e\.button !== 0/);

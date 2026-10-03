@@ -159,7 +159,7 @@ test("the filters drawer is on the named tiers and inset clear of the nav", () =
   // "the two drawers share a top edge" true by construction, so what is asserted is that both read
   // it rather than that two numbers happen to match.
   const shell = read("client/src/components/PanelShell.jsx");
-  assert.match(shell, /export const PANEL_TOP_INSET = "calc\(var\(--app-chrome-height, 46px\) \+ 34px\)";/,
+  assert.match(shell, /export const PANEL_TOP_INSET = "calc\(var\(--app-chrome-height, 74px\) \+ 34px\)";/,
     "PanelDock's top inset is back to a literal, or no longer tracks the measured chrome");
   assert.match(shell, /export const PANEL_BOTTOM_INSET = 16;/);
   assert.match(shell, /\{ right: EDGE_GAP, top: PANEL_TOP_INSET, bottom: PANEL_BOTTOM_INSET,/,
