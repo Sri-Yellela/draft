@@ -63,7 +63,8 @@ test("the bar's handlers are real functions that reach the board's one channel",
   assert.ok(!/onSearch=\{\(\) => \{\}\}/.test(app), "onSearch is a no-op");
   assert.ok(!/onLocalFilter=\{\(\) => \{\}\}/.test(app), "onLocalFilter is a no-op");
   assert.match(app, /applyBarFilters\(params\)/);
-  assert.match(app, /applyBarFilters\(params, \{ live: true \}\)/);
+  // A74: one click, one search — the board no longer has a "live" second click.
+  assert.doesNotMatch(app, /applyBarFilters\(params, \{ live: true \}\)/);
   // ...and that channel actually exists on the context both sides share.
   assert.match(context, /const applyBarFilters = useCallback/);
   assert.match(context, /barFilters, applyBarFilters, liveSearchTick,/);

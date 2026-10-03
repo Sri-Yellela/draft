@@ -100,19 +100,15 @@ function PublicLoginRoute({ authStatus, authUser, children, admin = false }) {
 // null context. This is the smallest thing that can live inside the provider and still hand
 // UnifiedSearchBar its two handlers.
 //
-// The double-click local->live pattern is the bar's own and is untouched here: it calls
-// onLocalFilter on the first click and onSearch on the second, and both arrive at the same
-// applyBarFilters — the only difference being the `live` flag, which is what JobsPanel watches to
-// decide whether to also go out to the aggregator. Committing the filters on BOTH is deliberate:
-// the live half is a superset of the local half, and skipping the commit there would make the
-// second click widen the board back out to unfiltered before searching.
+// A74 (owner, 10-03): one click, one search. The bar's double-click (filter, then within 5 s a
+// "live" search through the aggregator) is gone with live scraping; a click commits the filters and
+// the board runs the ranked local search (A72). So only onLocalFilter is handed down.
 function BoardSearchBar(props) {
   const { applyBarFilters } = useJobBoard();
   return (
     <UnifiedSearchBar
       {...props}
       onLocalFilter={params => applyBarFilters(params)}
-      onSearch={params => applyBarFilters(params, { live: true })}
     />
   );
 }

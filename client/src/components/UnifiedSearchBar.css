@@ -283,17 +283,7 @@
   white-space: nowrap;
 }
 .usb__btn:hover        { background: var(--color-primary-hover); }
-.usb__btn--live        { background: var(--color-warning); }
 .usb__btn--loading     { background: var(--color-primary-hover); cursor: wait; }
-.usb__cdw {
-  font-size: .75rem;
-  font-weight: 700;
-  background: color-mix(in srgb, var(--color-on-primary) 22%, transparent);
-  border-radius: 9999px;
-  padding: 1px 6px;
-  min-width: 24px;
-  text-align: center;
-}
 .usb__spin {
   display: inline-block;
   width: 16px;
@@ -305,15 +295,6 @@
 }
 @keyframes usb-spin { to { transform: rotate(360deg); } }
 
-.usb__hint {
-  font-size: .75rem;
-  color: var(--color-text-muted);
-  text-align: center;
-  margin-top: .75rem;
-  animation: usb-fade 200ms ease;
-}
-.usb__hint--live { color: var(--color-primary-text); font-weight: 600; }
-@keyframes usb-fade { from { opacity: 0; } to { opacity: 1; } }
 
 @keyframes card-up {
   from { opacity: 0; transform: translateY(18px); }

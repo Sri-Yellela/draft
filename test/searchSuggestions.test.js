@@ -242,9 +242,8 @@ test("the list is portalled, because .usb__bar clips it", () => {
 });
 
 test("accepting a suggestion only fills the box — search behaviour is unchanged", () => {
-  // The double-click local->live pattern is the bar's, and must stay the bar's.
-  assert.match(barUi, /const DCLICK_MS = 5000;/);
-  assert.match(barUi, /if \(clicks\.current === 1\) \{/);
+  // A74: one click, one search — and it is the bar's, not the typeahead's.
+  assert.match(barUi, /function handleClick\(\) \{/);
   // UsbSuggest reaches nothing but the caller's own setter.
   assert.ok(!/api\("\/api\/jobs\?|onSearch|onLocalFilter/.test(suggestUi),
     "the typeahead runs a search of its own — it must only propose text");

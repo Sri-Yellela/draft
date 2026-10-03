@@ -61,7 +61,7 @@ test("NEW IN 24H and Save Search moved INTO the filters panel, and still exist",
   const marker = panel.indexOf("The control ROW is gone");
   assert.notEqual(marker, -1, "the note explaining the removed row is gone");
   const rowStart = panel.indexOf("*/}", marker) + 3;
-  const rowRegion = panel.slice(rowStart, at(panel, "Background loading indicator"));
+  const rowRegion = panel.slice(rowStart, at(panel, "the \"N filters active\" chip and the \"567 jobs\" count are removed"));
   const rowCode = rowRegion.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/^\s*\/\/.*$/gm, "");
   for (const gone of [/New in 24h/i, /Save Search/i, /Filter loaded jobs/i, /ProfileSelectorDropdown/, /Pay high to low/]) {
     assert.ok(!gone.test(rowCode), `${gone} is back in the control row`);
@@ -90,13 +90,13 @@ test("the two redundant controls are removed, and both are still reachable elsew
   assert.match(topBar, /<ProfileSelectorDropdown/);
 });
 
-test("the result count and the active-filter indicator stay visible on the board", () => {
-  // With the filters behind an icon these are the only things that can explain a narrow board, and
-  // unlike the badge they do not scroll away with the search bar.
-  assert.match(panel, /job\{totalJobs !== 1 \? "s" : ""\}/);
-  assert.match(panel, /\{activeFilterCount\} filter\{activeFilterCount === 1 \? "" : "s"\} active/);
-  // The banner is load-bearing and stays.
-  assert.match(panel, /Show all|Showing/);
+test("A74 (owner, 10-03): the count bar and the filters-active chip are GONE — the icon's badge signals filters", () => {
+  // Reverses the earlier "stay visible" call on the owner's word: "the filter icon already signals
+  // active filters". The badge is what carries it now, so it must exist.
+  assert.doesNotMatch(panel, /job\{totalJobs !== 1 \? "s" : ""\}/, "the job count is back");
+  assert.doesNotMatch(panel, /\{activeFilterCount\} filter\{activeFilterCount === 1 \? "" : "s"\} active/, "the filters-active chip is back");
+  const appSrc = fs.readFileSync("client/src/App.jsx", "utf8");
+  assert.match(appSrc, /aria-label=\{on \? `Filters \(\$\{activeFilterCount\} active\)` : "Filters"\}/);
 });
 
 test("the badge counts the same filters the empty-board notice counts", () => {

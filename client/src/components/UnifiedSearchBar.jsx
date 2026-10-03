@@ -28,8 +28,6 @@ const DOMAIN_OPTIONS = toSelect(DOMAINS, 'Any Domain');
 // BOARD_STATUS already carries its own empty option, with the label this control has always used.
 const STATUS_OPTIONS = BOARD_STATUS.options.map(o => ({ v: o.value, l: o.label }));
 
-const DCLICK_MS = 5000;
-
 export default function UnifiedSearchBar({
   mode = 'hero',
   variant = 'floating',  // 'floating' = marketing landing (position:fixed over empty hero)
@@ -54,57 +52,20 @@ export default function UnifiedSearchBar({
   const [domain,  setDomain]  = useState('');
   const [status,  setStatus]  = useState('');
   const [uiState, setUiState] = useState('idle');
-  const [cdw,     setCdw]     = useState(null);
 
-  const clicks  = useRef(0);
-  const cTmr    = useRef(null);
-  const cdwInt  = useRef(null);
-
-  // Any filter change resets double-click state
-  useEffect(() => {
-    clicks.current = 0;
-    setCdw(null);
-    setUiState('idle');
-    clearTimeout(cTmr.current);
-    clearInterval(cdwInt.current);
-  }, [q, loc, exp, domain, status]);
-
+  // ⛔ A74 (owner, 10-03): ONE CLICK, ONE SEARCH. The button used to be a double-click: the first
+  // click filtered what was loaded and started a 5-second countdown ("Click again within 5s for live
+  // search"), and only a second click went out to the live search. There is no live scraping any
+  // more, so the board's search is the ranked local search (A72) and one click runs it. A caller
+  // that supplies onLocalFilter gets that; one that supplies only onSearch (the landing page) gets
+  // its search, with the spinner while it runs.
   function handleClick() {
-    clicks.current += 1;
     const params = { query: q, location: loc, experience: exp, domain, status };
-
-    if (clicks.current === 1) {
-      setUiState('local');
-      onLocalFilter?.(params);
-
-      let rem = DCLICK_MS / 1000;
-      setCdw(rem);
-      cdwInt.current = setInterval(() => {
-        rem -= 1;
-        setCdw(rem);
-        if (rem <= 0) {
-          clearInterval(cdwInt.current);
-          setCdw(null);
-          setUiState('idle');
-          clicks.current = 0;
-        }
-      }, 1000);
-      cTmr.current = setTimeout(() => {
-        clicks.current = 0;
-        setUiState('idle');
-        setCdw(null);
-      }, DCLICK_MS);
-
-    } else {
-      clearTimeout(cTmr.current);
-      clearInterval(cdwInt.current);
-      clicks.current = 0;
-      setCdw(null);
-      setUiState('loading');
-      const p = onSearch?.(params);
-      if (p?.finally) p.finally(() => setUiState('live'));
-      else setUiState('live');
-    }
+    if (onLocalFilter) { onLocalFilter(params); return; }
+    setUiState('loading');
+    const p = onSearch?.(params);
+    if (p?.finally) p.finally(() => setUiState('idle'));
+    else setUiState('idle');
   }
 
   const isDock = mode === 'dock';
@@ -215,34 +176,16 @@ export default function UnifiedSearchBar({
 
         {/* Search button */}
         <button
-          className={
-            'usb__btn' +
-            (uiState === 'live'    ? ' usb__btn--live'    : '') +
-            (uiState === 'loading' ? ' usb__btn--loading' : '')
-          }
+          className={'usb__btn' + (uiState === 'loading' ? ' usb__btn--loading' : '')}
           onClick={handleClick}
           aria-label="Search"
         >
           {uiState === 'loading'
             ? <span className="usb__spin" aria-hidden="true" />
             : <Search size={17} aria-hidden="true" />}
-          {cdw !== null && (
-            <span className="usb__cdw" title="Click again for live search">
-              {cdw}s
-            </span>
-          )}
         </button>
       </div>
 
-      {/* Hints */}
-      {uiState === 'local' && cdw !== null && (
-        <p className="usb__hint">
-          Filtered locally · Click again within <strong>{cdw}s</strong> for live search
-        </p>
-      )}
-      {uiState === 'live' && (
-        <p className="usb__hint usb__hint--live">Searching all sources…</p>
-      )}
     </div>
   );
 }

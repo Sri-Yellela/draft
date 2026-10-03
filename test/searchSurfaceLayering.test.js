@@ -301,12 +301,11 @@ test("DatabasePanel's duplicate outside-click handler is gone", () => {
 
 // ── Behaviour must not change ──────────────────────────────────────────────────────────────────
 
-test("the double-click local -> live search pattern is untouched", () => {
+test("A74 (owner, 10-03): ONE click, ONE search — the 5-second double-click is gone", () => {
   const usb = read("client/src/components/UnifiedSearchBar.jsx");
-  assert.match(usb, /const DCLICK_MS = 5000;/);
-  assert.match(usb, /clicks\.current \+= 1;/);
-  assert.match(usb, /if \(clicks\.current === 1\) \{/);
-  assert.match(usb, /onLocalFilter\?\.\(params\)/);
+  assert.doesNotMatch(code("client/src/components/UnifiedSearchBar.jsx"), /DCLICK_MS|clicks\.current|Click again within/,
+    "the double-click is back");
+  assert.match(usb, /if \(onLocalFilter\) \{ onLocalFilter\(params\); return; \}/);
   assert.match(usb, /onSearch\?\.\(params\)/);
 
   // The two assertions that used to stand here pinned `onSearch={() => {}}` and
@@ -321,5 +320,5 @@ test("the double-click local -> live search pattern is untouched", () => {
   assert.ok(!/onLocalFilter=\{\(\) => \{\}\}/.test(app),
     "the search bar's onLocalFilter is a no-op again — every control on the bar is inert");
   assert.match(app, /onLocalFilter=\{params => applyBarFilters\(params\)\}/);
-  assert.match(app, /onSearch=\{params => applyBarFilters\(params, \{ live: true \}\)\}/);
+  assert.doesNotMatch(app, /onSearch=\{params => applyBarFilters\(params, \{ live: true \}\)\}/);
 });
