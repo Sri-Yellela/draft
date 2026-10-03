@@ -93,8 +93,8 @@ test("job profiles have a dedicated app section and menu entry", () => {
   const profile = fs.readFileSync("client/src/panels/ProfilePanel.jsx", "utf8");
 
   assert.match(app, /JobProfilesPanel/);
-  // Whitespace-tolerant: App.jsx formats this as `{ id: "job-profiles", label: "Job Profiles" }`.
-  assert.match(app, /id:\s*"job-profiles",\s*label:\s*"Job Profiles"/);
+  // D10: no TAB any more — a route-only panel, reached from the menu and Profile below.
+  assert.match(app, /ROUTE_ONLY_TABS = \[[^\]]*"job-profiles"/);
   // `renderRoute` became `activeTab` when App.jsx moved to react-router — the panel is still
   // gated on the same key, only the variable was renamed.
   assert.match(app, /activeTab === "job-profiles"/);

@@ -18,7 +18,8 @@ test("⛔ the tab row has no Recruiter tab", () => {
 });
 
 test("the recruiter route still resolves — the deep links into it are not bounced to the board", () => {
-  assert.match(app, /const ROUTE_ONLY_TABS = \["recruiter"\];/);
+  // D10 added "job-profiles" beside it (a tab removed, its page kept the same way).
+  assert.match(app, /const ROUTE_ONLY_TABS = \["recruiter"[^\]]*\];/);
   assert.match(app, /\.\.\.ROUTE_ONLY_TABS\]\)/);
   assert.match(app, /activeTab === "recruiter"\s*&& <RecruiterPanel\/>/);
   assert.ok(fs.existsSync("client/src/panels/RecruiterPanel.jsx"), "the panel's code was deleted, not just its tab");

@@ -1006,7 +1006,7 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
       <div style={{ fontSize:40 }}>★</div>
       <div style={{ fontWeight:700, color:theme.textMuted, fontSize:14 }}>No saved jobs yet</div>
       <div style={{ fontSize:12, color:theme.textDim, textAlign:"center", maxWidth:300, lineHeight:1.8 }}>
-        Save jobs on Today or the board and they appear here. Generate and A+ Resume access is controlled by your plan.
+        Save jobs on the Daily Deck or Full House and they appear here. Generate and A+ Resume access is controlled by your plan.
       </div>
       <button className="rm-btn rm-btn-secondary rm-btn-sm" onClick={onRefresh}>↻ Refresh</button>
     </div>
@@ -1026,7 +1026,7 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
           <span style={{ fontSize:11, color:theme.warning, background:theme.warningMuted,
                          border:`1px solid ${theme.warning}33`, borderRadius:4,
                          padding:"2px 10px" }}>
-            Upload base resume in Jobs tab to enable generation
+            Upload a base resume in Job Profiles to enable generation
           </span>
         )}
         <div style={{ flex:1 }}/>
@@ -1150,7 +1150,7 @@ function EmptyState({ sheet, hasFilter, theme }) {
         {hasFilter ? "Try clearing the search or date filter." :
           sheet === "applications"
             ? "When you export a PDF for a job, it's automatically logged here."
-            : "Generate resumes from the Jobs tab — they appear here with ATS scores."}
+            : "Generate resumes from Full House — they appear here with ATS scores."}
       </div>
     </div>
   );

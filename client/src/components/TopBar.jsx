@@ -56,7 +56,17 @@ import { useAccountAvatar } from "../lib/accountAvatar.js";
 // test/topBarChrome.test.js and test/appScrollProgressRemoved.test.js, which slice the file
 // between this function and the next to assert the mark's chrome.
 function AnimatedLucyLogo() {
-  return <StampLogo size="sm"/>;
+  return <StampLogo size="nav"/>;
+}
+
+// D10: a two-word tab name is set on two lines ("Daily / Deck", "Full / House", "The / Table"), so the
+// label is as tall as the mark beside it rather than a long single line. A one-word string, or a
+// decorated ReactNode (the Draft tab's mark + count), renders as given. The accessible name is the
+// same words with a space — the line break is a <br>, not a character in the name.
+function TabLabel({ label }) {
+  if (typeof label !== "string" || !label.includes(" ")) return label;
+  const cut = label.indexOf(" ");
+  return <>{label.slice(0, cut)}<br/>{label.slice(cut + 1)}</>;
 }
 
 
@@ -531,7 +541,9 @@ export default function TopBar({
           left: dockCenter,
           transform: "translateX(-50%)",
           width: vw,
-          height: 46,
+          // D10: ~74px, so two-line tab labels sit beside a ~30px mark. The in-flow reserve and every
+          // sticky offset read the MEASURED height (hooks/useChromeHeight.js), not this number.
+          height: 74,
           borderRadius: 0,
           background: C.SURFACE_2,
           backdropFilter: "blur(18px) saturate(1.4)",
@@ -549,7 +561,7 @@ export default function TopBar({
           fontFamily: "'DM Sans',system-ui,sans-serif",
         }}>
         {/* Left group: the mark, then the app's primary navigation.
-            logo | JOBS | AUTO APPLY | JOB PROFILES | DATABASE | RECRUITER */}
+            logo | DAILY DECK | FULL HOUSE | DRAFT | THE TABLE (D10) */}
         {/* flex 1 + overflow hidden: the tab row must give way to the avatar, never slide under it —
             at 390px the avatar sat on top of "AUTO APPLY" (seen in the 10-02 reshoot). */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: "1 1 auto", overflow: "hidden" }}>
@@ -588,15 +600,15 @@ export default function TopBar({
                 aria-current={activeTab === t.id ? "page" : undefined}
                 style={{
                   display: "inline-block", textDecoration: "none",
-                  padding: "8px 14px",
+                  padding: "5px 14px",
                   background: activeTab === t.id ? "var(--c-hover)" : "transparent",
                   border: activeTab === t.id ? "1px solid var(--color-primary)" : "1px solid transparent",
-                  borderRadius: 999,
+                  borderRadius: 14, lineHeight: 1.15, textAlign: "center",
                   color: activeTab === t.id ? "var(--color-text)" : "var(--color-text-muted)",
                   fontSize: 12, fontWeight: 600, cursor: "pointer",
                   textTransform: "uppercase", letterSpacing: "0.08em",
                   whiteSpace: "nowrap", flexShrink: 0,
-                }}>{t.label}</a>
+                }}><TabLabel label={t.label}/></a>
             ))}
           </nav>
         </div>

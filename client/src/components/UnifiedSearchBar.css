@@ -86,7 +86,7 @@
 .usb--inline.usb--hero,
 .usb--inline.usb--dock {
   position: sticky;
-  top: var(--app-chrome-height, 46px);
+  top: var(--app-chrome-height, 74px);
   left: auto;
   right: auto;
   transform: none;

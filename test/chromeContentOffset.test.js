@@ -79,7 +79,7 @@ test("the sticky search bar's threshold IS the reserve, so it cannot be displace
   // TopBar" while the app's bar is 46px — 56 is the MARKETING NavBar's height, copied onto app
   // chrome of a different size. And wrong SHAPE: any threshold above the element's static position
   // displaces the painted box by the difference.
-  assert.match(css, /top: var\(--app-chrome-height, 46px\);/,
+  assert.match(css, /top: var\(--app-chrome-height, 74px\);/,
     "the sticky offset is a literal again");
   const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, "");
   assert.ok(!/\.usb--inline[^{]*\{[^}]*top:\s*56px/.test(cssCode),

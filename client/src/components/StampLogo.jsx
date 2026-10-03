@@ -29,12 +29,12 @@ const WORDMARK_ASPECT = 1722 / 605;
 const MONOGRAM_ASPECT = 670 / 605;
 
 /** Mark height per size. The old stamp's four scales, carried over by its rendered height. */
-const SIZES = { mini: 18, sm: 24, md: 28, lg: 34 };
+const SIZES = { mini: 18, sm: 24, md: 28, nav: 30, lg: 34 };  // nav: the app bar's (D10)
 
 /**
  * @param {object} p
  * @param {number} [p.progress] 0 = "/draft", 1 = condensed to "/d".
- * @param {'mini'|'sm'|'md'|'lg'} [p.size]
+ * @param {'mini'|'sm'|'md'|'nav'|'lg'} [p.size]
  */
 export function StampLogo({ progress = 0, size = 'sm' }) {
   const h  = SIZES[size] || SIZES.sm;

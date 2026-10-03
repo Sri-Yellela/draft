@@ -34,7 +34,7 @@ test("1. right-anchored overlay, inset from the viewport edges, with rounded cor
   // The insets are named constants now, not literals, and the top one tracks the measured chrome
   // height (Y4) so the dock cannot stop clearing a bar whose size changed. 46 + 34 is the 80 it was.
   assert.match(shell, /\{ right: EDGE_GAP, top: PANEL_TOP_INSET, bottom: PANEL_BOTTOM_INSET,/);
-  assert.match(shell, /export const PANEL_TOP_INSET = "calc\(var\(--app-chrome-height, 46px\) \+ 34px\)";/);
+  assert.match(shell, /export const PANEL_TOP_INSET = "calc\(var\(--app-chrome-height, 74px\) \+ 34px\)";/);
   assert.match(shell, /export const PANEL_BOTTOM_INSET = 16;/);
   assert.match(shell, /borderRadius: 16,/);
   // Not full-height, not flush, and not in the layout flow: the dock is portalled to body.
