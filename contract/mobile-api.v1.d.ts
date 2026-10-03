@@ -1,6 +1,6 @@
 /**
  * Draft — Mobile API types.
- * Contract version 1.4.0.
+ * Contract version 1.5.0.
  *
  * GENERATED — DO NOT EDIT. Regenerate with `node scripts/generateMobileContract.mjs`.
  *
@@ -52,7 +52,7 @@ export interface Job {
   isH1bSponsor: boolean | null;
   /** Free text, as posted. Not normalised, not geocoded. */
   location?: string;
-  /** INTERNAL — DO NOT DISPLAY THIS NUMBER. The local ATS engine orders coarsely and cannot support a shown figure: Spearman rho 0.746 against a human-graded set of 30, with 12.2% of pairs still mis-ordered. "This job is a 43" claims a precision it does not have. Render the BAND instead — Strong (>=44) / Moderate (>=26) / Weak / Not enough signal — whose cutpoints and copy are defined once in shared/atsBands.js. A NULL IS NOT A ZERO: null means the scorer declined for want of signal, which is its own band and must never render as a low score. The number stays in the payload because the auto-apply gate is a numeric threshold (30) and mobile needs to show remaining capacity against it; that is the only sanctioned use. */
+  /** NOT DISPLAYED YET — the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The local ATS engine orders coarsely and cannot support a shown figure: Spearman rho 0.746 against a human-graded set of 30, with 12.2% of pairs still mis-ordered. "This job is a 43" claims a precision it does not have. Render the BAND instead — Strong (>=44) / Moderate (>=26) / Weak / Not enough signal — whose cutpoints and copy are defined once in shared/atsBands.js. A NULL IS NOT A ZERO: null means the scorer declined for want of signal, which is its own band and must never render as a low score. The number stays in the payload because the auto-apply gate is a numeric threshold (30) and mobile needs to show remaining capacity against it; that is the only sanctioned use. */
   matchScore: number | null;
   /** As published by the source. Free text or ISO — not normalised. */
   postedAt: string | null;
@@ -241,6 +241,8 @@ export interface DeckResponse {
   cards: DeckCard[];
   date: string;
   dealtNow: boolean;
+  /** 1.5.0 — 'dealt' (the board's own order; position IS the fit signal) or 'ats' (?order=ats: the same cards by the caller's ATS match — Strong, Moderate, not enough signal, Weak, then the score, then position). The score orders the cards and is never sent. */
+  order: string;
   profileId: number;
   reason: string | null;
   size: number;
@@ -395,7 +397,7 @@ export interface PendingResponse {
 
 export interface PendingResume {
   artifactId: number | null;
-  /** INTERNAL - DO NOT DISPLAY. The engine orders coarsely (rho 0.746 against a human-graded 30, 12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own band, never a zero. Kept in the payload because the auto-apply gate is numeric (30). */
+  /** NOT DISPLAYED YET - the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The engine orders coarsely (rho 0.746 against a human-graded 30, 12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own band, never a zero. Kept in the payload because the auto-apply gate is numeric (30). */
   atsScore: number | null;
   available: boolean;
 }
@@ -461,7 +463,7 @@ export interface RunDetailResponse {
 /** One application within a run. */
 export interface RunJob {
   applyUrl: string | null;
-  /** INTERNAL - DO NOT DISPLAY. The engine orders coarsely (rho 0.746 against a human-graded 30, 12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own band, never a zero. Kept in the payload because the auto-apply gate is numeric (30). */
+  /** NOT DISPLAYED YET - the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The engine orders coarsely (rho 0.746 against a human-graded 30, 12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own band, never a zero. Kept in the payload because the auto-apply gate is numeric (30). */
   atsScore: number | null;
   company: string | null;
   createdAt: number | null;

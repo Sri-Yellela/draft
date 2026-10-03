@@ -43,7 +43,7 @@ test("every sort option moved across intact — same values, same labels", () =>
     [["dateDesc", "Newest"], ["dateAsc", "Oldest"],
      ["compHigh", "Pay high to low"], ["compLow", "Pay low to high"],
      ["yoeLow", "Exp low to high"], ["yoeHigh", "Exp high to low"],
-     ["atsScore", "ATS Sort"]],
+     ["atsScore", "ATS match"]],
     "the sort menu's values or labels changed");
   // ...and that App.jsx really renders FROM it rather than keeping a copy beside it.
   assert.match(app, /const SORT_OPTIONS = SORTS\.options\.map/,

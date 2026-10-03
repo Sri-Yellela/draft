@@ -215,6 +215,24 @@ function DeckAtsReport({ card, profileId, onReport }) {
                    jobId={card.job.id} activeProfileId={profileId} />;
 }
 
+// A75 · the deck's sort: the dealt order (the board's own — position IS the fit signal) or ATS match.
+const DECK_ORDER_KEY = "draft-deck-order";
+function DeckOrderControl({ order, onChoose }) {
+  const opt = (value, label) => (
+    <button type="button" aria-pressed={order === value} onClick={() => onChoose(value)}
+      style={{ border: "none", borderRadius: 999, padding: "5px 11px", fontSize: 12.5, fontWeight: 800, cursor: "pointer",
+               background: order === value ? C.INK : "transparent", color: order === value ? C.SURFACE_MENU : C.INK_MUTED }}>
+      {label}
+    </button>
+  );
+  return (
+    <div role="group" aria-label="Order the deck by" data-deck-order
+      style={{ ...glass({ radius: 999 }), display: "flex", gap: 2, padding: 2 }}>
+      {opt("dealt", "Dealt")}{opt("ats", "ATS match")}
+    </div>
+  );
+}
+
 // ⛔ The label is "Collapse". One word — not "click to collapse", not "fold the card".
 function CollapseButton({ onCollapse, controls }) {
   const [hov, setHov] = useState(false);
@@ -537,6 +555,15 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const [sheet, setSheet] = useState(false);          // the phone's ATS report (A40)
   const [atsMounted, setAtsMounted] = useState(false); // the two-panel report stays mounted while it closes
   const [deckProfileId, setDeckProfileId] = useState(null);
+  // A75 (owner, 10-03): "ATS match" as a sort on the daily draft. The deal is frozen; the server reads it
+  // back in ATS order when asked (the score itself never reaches the client). Remembered per browser.
+  const [deckOrder, setDeckOrder] = useState(() => {
+    try { return localStorage.getItem(DECK_ORDER_KEY) === "ats" ? "ats" : "dealt"; } catch { return "dealt"; }
+  });
+  const chooseDeckOrder = useCallback((next) => {
+    setDeckOrder(next);
+    try { localStorage.setItem(DECK_ORDER_KEY, next); } catch { /* a private window: this session only */ }
+  }, []);
   const headingRef = useRef(null);
   const faceRef = useRef(null);
   const stageRef = useRef(null);
@@ -567,7 +594,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const fetchDeck = useCallback(async () => {
     setLoad({ status: "loading", error: null });
     try {
-      const deck = await api(`/api/draft/today?date=${encodeURIComponent(localDate())}`);
+      const deck = await api(`/api/draft/today?date=${encodeURIComponent(localDate())}&order=${deckOrder}`);
       dispatch({ type: "__replace", state: initialDeck(deck) });
       setDeckProfileId(deck.profileId ?? null);
       // ⛔ The deal plays on the day's FIRST open only — the server says whether this request dealt.
@@ -577,7 +604,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
     } catch (e) {
       setLoad({ status: "error", error: e.message || "The deck could not be dealt." });
     }
-  }, []);
+  }, [deckOrder]);
   useEffect(() => { fetchDeck(); }, [fetchDeck]);
   // The deal is an arrival, not a mode: once it has played, later moves are ordinary rotations.
   useEffect(() => {
@@ -762,6 +789,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
           {load.status === "ready" && s.size > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               {!isFinished(s) && <DeckGeometryControl orientation={orientation} pref={deckPref} onChoose={chooseDeckPref} reduced={!!reduced} />}
+              {!isFinished(s) && <DeckOrderControl order={deckOrder} onChoose={chooseDeckOrder} />}
               <SlashProgress drafted={tally.drafted} size={s.size} />
               {!isFinished(s) && (
                 // The counter is also what makes the fan's clipped edges read as deliberate: it says

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Draft — Mobile API",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "description": "The contract between this repository and the two mobile repositories (iOS, Android), which are native clients over this JSON API and live outside this tree.\n\nGENERATED — DO NOT HAND-EDIT. Regenerate with `node scripts/generateMobileContract.mjs`. The Job schema is produced by EXECUTING services/jobs/mapJobRow.js, so it cannot disagree with what the server actually emits. test/mobileApiContract.test.js fails the build if this file and the source ever disagree.\n\nOnly the endpoints a swipe feed and a review flow need are published. Anything absent is absent on purpose and is not a promise — see x-retired for what a greenfield client must not call, and x-mobile-gaps for what mobile needs that this API does not yet expose."
   },
   "servers": [
@@ -1458,10 +1458,18 @@
             "authContextHeader": []
           }
         ],
-        "x-mobile-notes": "SEND YOUR LOCAL DATE (?date=YYYY-MM-DD); the server accepts it within a day of its own, and the same date returns the same deck on every client — a card drafted on the phone reads as decided on the web. The deck is dealt from the board's own default order and is NEVER padded: `size` may be below 10 (reason 'thin') or 0 — reason 'empty' (nothing strong enough), 'no_profile' (a new account: set one up) or 'no_resume' (add one). Those are states to explain, never errors — a first Google sign-in creates an account in exactly that state. Decide with the existing calls: Draft = POST /api/apply/runs with surface:'deck' and no approvalMode; Pass = PATCH /api/jobs/interact {disliked:true}; Save = {starred:true}. `decision` is read live from those. A card carries its band and never a score (job.matchScore is null).",
+        "x-mobile-notes": "SEND YOUR LOCAL DATE (?date=YYYY-MM-DD); the server accepts it within a day of its own, and the same date returns the same deck on every client — a card drafted on the phone reads as decided on the web. The deck is dealt from the board's own default order and is NEVER padded: `size` may be below 10 (reason 'thin') or 0 — reason 'empty' (nothing strong enough), 'no_profile' (a new account: set one up) or 'no_resume' (add one). Those are states to explain, never errors — a first Google sign-in creates an account in exactly that state. Decide with the existing calls: Draft = POST /api/apply/runs with surface:'deck' and no approvalMode; Pass = PATCH /api/jobs/interact {disliked:true}; Save = {starred:true}. `decision` is read live from those. A card carries its band and never a score (job.matchScore is null). ?order=ats (1.5.0) returns the same cards sorted by ATS match; anything but 'dealt' or 'ats' is a 400.",
         "parameters": [
           {
             "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "order",
             "in": "query",
             "required": false,
             "schema": {
@@ -2599,6 +2607,10 @@
           "dealtNow": {
             "type": "boolean"
           },
+          "order": {
+            "type": "string",
+            "description": "1.5.0 — 'dealt' (the board's own order; position IS the fit signal) or 'ats' (?order=ats: the same cards by the caller's ATS match — Strong, Moderate, not enough signal, Weak, then the score, then position). The score orders the cards and is never sent."
+          },
           "profileId": {
             "type": "number"
           },
@@ -3111,7 +3123,7 @@
               "number",
               "null"
             ],
-            "description": "INTERNAL — DO NOT DISPLAY THIS NUMBER. The local ATS engine orders coarsely and cannot support a shown figure: Spearman rho 0.746 against a human-graded set of 30, with 12.2% of pairs still mis-ordered. \"This job is a 43\" claims a precision it does not have. Render the BAND instead — Strong (>=44) / Moderate (>=26) / Weak / Not enough signal — whose cutpoints and copy are defined once in shared/atsBands.js. A NULL IS NOT A ZERO: null means the scorer declined for want of signal, which is its own band and must never render as a low score. The number stays in the payload because the auto-apply gate is a numeric threshold (30) and mobile needs to show remaining capacity against it; that is the only sanctioned use.",
+            "description": "NOT DISPLAYED YET — the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The local ATS engine orders coarsely and cannot support a shown figure: Spearman rho 0.746 against a human-graded set of 30, with 12.2% of pairs still mis-ordered. \"This job is a 43\" claims a precision it does not have. Render the BAND instead — Strong (>=44) / Moderate (>=26) / Weak / Not enough signal — whose cutpoints and copy are defined once in shared/atsBands.js. A NULL IS NOT A ZERO: null means the scorer declined for want of signal, which is its own band and must never render as a low score. The number stays in the payload because the auto-apply gate is a numeric threshold (30) and mobile needs to show remaining capacity against it; that is the only sanctioned use.",
             "x-empty-row-value": null
           },
           "postedAt": {
@@ -3510,7 +3522,7 @@
               "number",
               "null"
             ],
-            "description": "INTERNAL - DO NOT DISPLAY. The engine orders coarsely (rho 0.746 against a human-graded 30, 12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own band, never a zero. Kept in the payload because the auto-apply gate is numeric (30)."
+            "description": "NOT DISPLAYED YET - the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The engine orders coarsely (rho 0.746 against a human-graded 30, 12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own band, never a zero. Kept in the payload because the auto-apply gate is numeric (30)."
           },
           "available": {
             "type": "boolean"
@@ -3701,7 +3713,7 @@
               "number",
               "null"
             ],
-            "description": "INTERNAL - DO NOT DISPLAY. The engine orders coarsely (rho 0.746 against a human-graded 30, 12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own band, never a zero. Kept in the payload because the auto-apply gate is numeric (30)."
+            "description": "NOT DISPLAYED YET - the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The engine orders coarsely (rho 0.746 against a human-graded 30, 12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own band, never a zero. Kept in the payload because the auto-apply gate is numeric (30)."
           },
           "company": {
             "type": [
