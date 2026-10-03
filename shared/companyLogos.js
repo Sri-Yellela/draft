@@ -62,6 +62,14 @@ export const KNOWN_DOMAINS = {
   'fly.io':       'fly.io',          'railway':     'railway.app',
   'render':       'render.com',      'netlify':     'netlify.com',
   'digitalocean': 'digitalocean.com','linode':      'linode.com',
+  // A77 (10-03): the board's own employers that had no logo — each domain checked by hand, because a
+  // name alone is not evidence (ramp.app is a different company; match.com is not Match Group's site).
+  'ramp':         'ramp.com',        'mercury':     'mercury.com',
+  'duolingo':     'duolingo.com',    'wealthfront': 'wealthfront.com',
+  'tala':         'tala.co',         'match group': 'mtch.com',
+  'openx':        'openx.com',       'channable':   'channable.com',
+  'blueground':   'theblueground.com','persado':    'persado.com',
+  'skroutz':      'skroutz.gr',
 };
 
 /**
