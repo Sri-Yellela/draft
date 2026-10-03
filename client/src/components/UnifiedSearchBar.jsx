@@ -82,7 +82,7 @@ export default function UnifiedSearchBar({
           neither tabs nor actions) is unaffected. */}
       {/* THE ACTIONS ROW. This was the TAB row with an actions slot on the end; the tabs moved into
           TopBar (Y4) and what is left is the board's own controls — the All/Saved/Pending tabs, the
-          filter and sort icons, and IMPORT.
+          filter and sort icons (IMPORT went in D11).
 
           The vertical rhythm is the one W6 established and is deliberately unchanged: nothing above
           (the card's own 20px padding is the frame, matching the 20px left and right), 10px between

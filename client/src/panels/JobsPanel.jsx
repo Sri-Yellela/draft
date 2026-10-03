@@ -1914,7 +1914,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // No generated artifact yet. Keep the pre-generation state neutral.
   }, [selectedJob?.jobId, boardTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const PAGE_SIZE = 25;
+  // D11: ~50 per page (was 25). The board route caps pageSize at 50 (boardPageResponse).
+  const PAGE_SIZE = 50;
 
   // Profile-scoped cache restore: show the correct profile's last board state
   // immediately, then let the normal fetch effect refresh it in the background.
@@ -3399,7 +3400,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         )}
         {/* ── The control ROW is gone (W4). Nothing in it was deleted; every control MOVED. ──
             FILTERS, NEW IN 24H, Save Search and the saved-search chip -> the filters panel, opened
-              by the icon beside IMPORT (App.jsx's BoardControlIcons).
+              by the filter icon (App.jsx's BoardControlIcons).
             Sort ("Newest") -> the sort icon beside it, same seven options, same values.
             "Filter loaded jobs" -> REMOVED as redundant: it wrote `localSearch`, which is the
               same state the main search bar's keyword field now writes, so it was a second input
@@ -4179,7 +4180,7 @@ function NoPoolEmptyState({ theme }) {
       <div style={{ fontSize:12, textAlign:"center", color:th.textDim, maxWidth:380, lineHeight:1.8 }}>
         This is not your profile and not your filters — the shared job pool itself is empty, so there
         is nothing for any board to show. It refills on the next scheduled crawl. You can also add a
-        posting yourself with <strong>Import</strong>.
+        posting yourself with the <strong>draft browser extension</strong>.
       </div>
     </div>
   );

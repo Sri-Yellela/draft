@@ -166,7 +166,7 @@ test("the shell, the public pages and the shared surfaces are literal-free", () 
     "client/src/components/JobDetailPanel.jsx", "client/src/panels/ATSPanel.jsx",
     "client/src/lib/applyObstacles.js", "client/src/panels/RecruiterPanel.jsx",
     "client/src/panels/IntegrationsPanel.jsx", "client/src/components/CompanyKbSections.jsx",
-    "client/src/panels/SandboxPanel.jsx", "client/src/components/ImportJobModal.jsx",
+    "client/src/panels/SandboxPanel.jsx",   // ImportJobModal.jsx was here — deleted in D11 (no IMPORT control)
     "client/src/components/ui/CompanyIcon.jsx", "client/src/components/DomainProfileWizard.jsx",
     "client/src/components/CoverLetterModal.jsx", "client/src/components/CompanyViewModal.jsx",
     "client/src/panels/AtsReportPanel.jsx", "client/src/panels/DatabasePanel.jsx",

@@ -11,7 +11,7 @@ const jsx = read("client/src/components/JobBubble.jsx");
 const panel = read("client/src/panels/JobsPanel.jsx");
 import { columnsFor } from "../client/src/lib/bubbleColumns.js";
 
-test("⭐ rows of 2, 3 or 4 — 3 by default; a hovered or focused card grows to 1.55 and the NEIGHBOURS give up the width", () => {
+test("⭐ rows of 2 or 3 (D11: never 4) — 3 by default; a hovered or focused card grows to 1.55 and the NEIGHBOURS give up the width", () => {
   assert.match(css, /\.jb-row  \{ display: flex; gap: 18px;/);
   assert.match(css, /\.jb \{\n  flex: 1 1 0;\n  min-width: 0;/);
   assert.match(css, /\.jb:hover, \.jb:focus-within \{ flex-grow: 1\.55;/);
@@ -87,5 +87,6 @@ test("the board renders bubbles in rows; the Database panel keeps JobCard", () =
   assert.equal(columnsFor(390), 1);
   assert.equal(columnsFor(820), 2);
   assert.equal(columnsFor(1440), 3);
-  assert.equal(columnsFor(1920), 4);
+  assert.equal(columnsFor(1920), 3, "D11: never more than 3 per row");
+  assert.equal(columnsFor(3840), 3);
 });

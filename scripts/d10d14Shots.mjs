@@ -138,7 +138,8 @@ const SURFACES = [
   { id: 'table', path: '/app/database' },
   { id: 'job-profiles', path: '/app/job-profiles' },
 ];
-const WIDTHS = [{ w: 1440, h: 900 }, { w: 1100, h: 800 }, { w: 820, h: 1000 }, { w: 390, h: 844 }];
+const WIDTHS = (process.env.SHOT_WIDTHS || '1920,1440,1100,820,390').split(',').map(Number)
+  .map(w => ({ w, h: w < 500 ? 844 : w < 1000 ? 1000 : 900 }));
 const THEMES = ['light', 'dark'];
 
 function startVite() {

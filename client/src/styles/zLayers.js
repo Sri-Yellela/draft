@@ -22,7 +22,7 @@
 // stopped being a usable description the moment Y2 moved NAV from 1500 to 250. The list, stated as
 // surfaces rather than as a number:
 //
-//   9000-series full-screen modals   CompanyViewModal, CoverLetterModal, ImportJobModal, and
+//   9000-series full-screen modals   CompanyViewModal, CoverLetterModal, and
 //                                    ScrollDock's marketing-only 9998 hamburger. Full-screen
 //                                    takeovers: nothing else is on screen to dispute an order with.
 //   DomainProfileWizard (1000/1001)  Same — a full-screen wizard.
