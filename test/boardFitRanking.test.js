@@ -543,7 +543,7 @@ test("the precompute is wired to the SAME basis builder and scorer call the ATS 
 test("the board route: fit only on the default, non-Saved, curated board; disclosed; epoch-signed", () => {
   const route = SERVER.slice(at(SERVER, 'app.get("/api/jobs", requireAuth'), at(SERVER, "include_facets (optional, default-off)"));
   assert.match(route, /const fitRequested = !savedTab && req\.query\.curate !== 'off';/);
-  assert.match(route, /buildOrderKeys\(sort, richFilters\.rank\.keys, \{ fit: fitRequested, search: boardSearch \}\)/);
+  assert.match(route, /buildOrderKeys\(sort, richFilters\.rank\.keys,\s*\{ fit: fitRequested, search: boardSearch, established: richFilters\.established\.keys \}\)/);
   assert.match(route, /rankedKeys: fitApplied \? \[\.\.\.richFilters\.rankedKeys, 'fit'\] : richFilters\.rankedKeys/);
   assert.match(route, /decodeCursor\(rawCursor, orderKeys, \{ epoch: fitEpoch \}\)/);
   assert.match(route, /encodeCursor\(orderKeys, rows\[rows\.length - 1\], \{ epoch: fitEpoch \}\)/);
