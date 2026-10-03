@@ -123,6 +123,28 @@ let CURRENT = {};
 
 function fixtureFor(url) {
   if (url.pathname === '/api/extension/status') return { connected: !!CURRENT.extensionConnected, lastSeenAt: null };
+  // D14: a Draft panel with work in BOTH columns — stopped (approvals, a question) and queued (the
+  // waiting line, one in flight).
+  if (CURRENT.draftBusy && url.pathname === '/api/apply/runs') {
+    const runs = FIXTURES['/api/apply/runs'];
+    return { ...runs,
+      inFlight: [{ id: 91, jobId: 'j3', title: TITLES[3], company: COMPANIES[3], startedAt: (now - 120) * 1000, createdAt: (now - 300) * 1000 }],
+      line: { held: null, waiting: [
+        { id: 201, position: 1, toolType: 'generate', usesProfile: 'Software Engineering', willDo: 'Write a résumé, then fill the form',
+          editable: { tool: true }, jobs: [{ title: TITLES[4], company: COMPANIES[4] }] },
+        { id: 202, position: 2, toolType: 'baseline', usesProfile: 'Software Engineering', willDo: 'Fill the form with your base résumé',
+          editable: { tool: true }, jobs: [{ title: TITLES[5], company: COMPANIES[5] }, { title: TITLES[0], company: COMPANIES[0] }] },
+      ] } };
+  }
+  if (CURRENT.draftBusy && url.pathname === '/api/apply/pending') {
+    return { pending: [
+      { id: 301, jobId: 'j0', title: TITLES[0], company: COMPANIES[0], createdAt: (now - 3600) * 1000 },
+      { id: 302, jobId: 'j1', title: TITLES[1], company: COMPANIES[1], createdAt: (now - 7200) * 1000 },
+    ], approvalCap: { remaining: 8, limit: 10 } };
+  }
+  if (CURRENT.draftBusy && url.pathname === '/api/apply/questions') {
+    return { questions: [{ id: 401, question: 'Are you willing to work from the Boston office three days a week?', jobIds: ['j2'], count: 1 }] };
+  }
   if (url.pathname.startsWith('/api/jobs') && url.searchParams.get('starred') === '1') {
     if (CURRENT.savedEmpty) return { jobs: [], total: 0, totalPages: 0 };
     const jobs = POOL.filter(j => j.starred).map(j => (j.jobId === 'j1' ? { ...j, location: 'London, United Kingdom' } : j));
@@ -146,6 +168,8 @@ const SURFACES = [
   { id: 'extension', path: '/extension' },
   { id: 'jobs-connected', path: '/app/jobs', extensionConnected: true },
   { id: 'saved-empty', path: '/app/jobs', clickTab: '★', savedEmpty: true },
+  // D14
+  { id: 'draft-busy', path: '/app/auto-apply', draftBusy: true },
 ];
 const WIDTHS = (process.env.SHOT_WIDTHS || '1920,1440,1100,820,390').split(',').map(Number)
   .map(w => ({ w, h: w < 500 ? 844 : w < 1000 ? 1000 : 900 }));
