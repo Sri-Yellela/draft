@@ -234,9 +234,21 @@ const FIT_KEYS = Object.freeze([
  * defines it; nothing else calls this) and whether ranking by the profile is wanted at all — the
  * Saved tab and `?curate=off` both say it is not.
  */
-function buildOrderKeys(sort, rankKeys = [], { fit = false } = {}) {
+//
+// ⭐ A72 · A SEARCH LEADS EVERYTHING. `search` is boardSearch.js's tier expression ({ sql, params }):
+// 1 title starts with the term, 2 title contains it, 3 company or skill, 4 description only. A
+// search is the user's explicit question, so its tier outranks the derived rank keys (dropped while
+// searching — they answer "what suits my profile", not "what did I ask for"). Inside a tier, on the
+// default sort, the FIT keys decide: ATS match, descending — the owner's tie-break, and the same two
+// keys the default board already uses, so NOT ESTABLISHED keeps its place between Moderate and Weak.
+// An explicit sort ("Pay high to low") replaces the fit tie-break and keeps the tier.
+function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null } = {}) {
   const chosen = SORT_KEYS[sort] || SORT_KEYS.dateDesc;
   const sortIsDefault = !sort || sort === "dateDesc";
+  if (search?.sql) {
+    const tier = KEY(search.sql, "ASC", search.params || []);
+    return assertTotalOrder([tier, ...(sortIsDefault ? FIT_KEYS : []), ...chosen], sort || "dateDesc");
+  }
   const prefix = sortIsDefault
     ? rankKeys.map(k => KEY(`(${k.sql})`, "ASC", k.params || []))
     : [];
@@ -339,8 +351,14 @@ function cursorPredicate(keys, values) {
 // newest ats_only_reports row id for (user, profile)). A cursor that straddles a score change then
 // fails loudly as `cursor_sort_mismatch` — the documented "request the first page again" — rather
 // than returning a plausible feed with a hole in it.
+//
+// ⛔ A72 · THE BOUND PARAMETERS ARE PART OF THE ORDERING. A search tier is one SQL text for every
+// term — the term is a `?` — so a signature of the text alone accepted a cursor issued for "ai" on a
+// search for "ml" and resumed at a meaningless position. A key with params signs them too; a key
+// without params signs exactly as before. (A cursor issued before this over a rank key WITH params
+// is refused once as cursor_sort_mismatch — the documented "request the first page again".)
 function orderSignature(keys, epoch = null) {
-  const base = keys.map(k => `${k.sql}|${k.dir}`).join("~~");
+  const base = keys.map(k => (k.params?.length ? `${k.sql}|${k.dir}|${JSON.stringify(k.params)}` : `${k.sql}|${k.dir}`)).join("~~");
   return epoch == null ? base : `${base}~~epoch:${epoch}`;
 }
 

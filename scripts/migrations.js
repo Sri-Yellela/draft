@@ -3608,4 +3608,27 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // A72 (owner, 10-03): "normalise synonyms with equal weight: ai = artificial intelligence, ml =
+      // machine learning". The owner's brief IS the review that services/kb/skillSynonyms.js requires
+      // before a pair may be confirmed, so the two land confirmed, as aliases, reviewed_by the brief.
+      // Stored as canonicalPair orders them (term < equivalent). An earlier proposal or rejection of
+      // the same pair is overruled: the owner's word is the newest review. The board's search
+      // (services/jobs/boardSearch.js) and the scorer (CC3) both read loadConfirmedSynonyms, so these
+      // two rows reach both; there is no second synonym table.
+      id: "123_owner_skill_aliases",
+      sql: `
+        INSERT INTO skill_synonyms
+          (term, equivalent, relation, confidence, corroboration_count, status, reviewed_at, reviewed_by,
+           first_seen, last_seen, updated_at)
+        VALUES
+          ('ai', 'artificial intelligence', 'alias', 1, 0, 'confirmed', unixepoch(), 'owner (A72 brief, 10-03)',
+           unixepoch(), unixepoch(), unixepoch()),
+          ('machine learning', 'ml', 'alias', 1, 0, 'confirmed', unixepoch(), 'owner (A72 brief, 10-03)',
+           unixepoch(), unixepoch(), unixepoch())
+        ON CONFLICT(term, equivalent) DO UPDATE SET
+          relation = 'alias', status = 'confirmed', reviewed_at = excluded.reviewed_at,
+          reviewed_by = excluded.reviewed_by, updated_at = excluded.updated_at;
+      `,
+    },
   ];

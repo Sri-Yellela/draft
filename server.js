@@ -160,6 +160,8 @@ import { suggest } from "./services/jobs/searchSuggestions.js";
 import { assessCleanupScope, cleanupBrakeOptions } from "./services/jobs/cleanupBrake.js";
 // CC3 — the confirmed synonym map, read on the scoring path. See atsSynonyms() below.
 import { loadConfirmedSynonyms } from "./services/kb/skillSynonyms.js";
+// A72 — the board's ranked local search (tiers, whole words, the same synonym map).
+import { registerBoardSearch, boardSearchSql, searchVariants } from "./services/jobs/boardSearch.js";
 // Y2B — the SAME fetcher and the SAME writer the enrichment pass uses. One implementation, two
 // triggers: the background pass buys descriptions for rows it is about to enrich, and this buys
 // one for a job a user actually opened. See services/jobs/detailFetch.js.
@@ -378,6 +380,8 @@ const db = new Database(DB_PATH);
 // Critical for multi-user deployments — prevents SQLITE_BUSY lock errors.
 db.pragma("journal_mode = WAL");
 db.pragma("busy_timeout = 5000");
+// A72 — the search tier function the board's WHERE and ORDER BY call (services/jobs/boardSearch.js).
+registerBoardSearch(db);
 console.log(`[boot] database ready: ${DB_PATH}`);
 
 // ── Inline migration runner (additive only — never drops data) ─
@@ -3979,6 +3983,29 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // A72 (owner, 10-03): "normalise synonyms with equal weight: ai = artificial intelligence, ml =
+      // machine learning". The owner's brief IS the review that services/kb/skillSynonyms.js requires
+      // before a pair may be confirmed, so the two land confirmed, as aliases, reviewed_by the brief.
+      // Stored as canonicalPair orders them (term < equivalent). An earlier proposal or rejection of
+      // the same pair is overruled: the owner's word is the newest review. The board's search
+      // (services/jobs/boardSearch.js) and the scorer (CC3) both read loadConfirmedSynonyms, so these
+      // two rows reach both; there is no second synonym table.
+      id: "123_owner_skill_aliases",
+      sql: `
+        INSERT INTO skill_synonyms
+          (term, equivalent, relation, confidence, corroboration_count, status, reviewed_at, reviewed_by,
+           first_seen, last_seen, updated_at)
+        VALUES
+          ('ai', 'artificial intelligence', 'alias', 1, 0, 'confirmed', unixepoch(), 'owner (A72 brief, 10-03)',
+           unixepoch(), unixepoch(), unixepoch()),
+          ('machine learning', 'ml', 'alias', 1, 0, 'confirmed', unixepoch(), 'owner (A72 brief, 10-03)',
+           unixepoch(), unixepoch(), unixepoch())
+        ON CONFLICT(term, equivalent) DO UPDATE SET
+          relation = 'alias', status = 'confirmed', reviewed_at = excluded.reviewed_at,
+          reviewed_by = excluded.reviewed_by, updated_at = excluded.updated_at;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7302,9 +7329,17 @@ async function boardPageResponse(req) {
     // nothing for it to opt out of. `savedTab` still skips the role_key join and the bridge.
     const titleFilter = { sql: "1 = 1", params: [] };
 
-    // Keyword + location (opt-in)
-    const keyFilter = rawQuery ? `AND (sj.title LIKE ? OR sj.company LIKE ? OR sj.description LIKE ?)` : '';
-    const keyArgs   = rawQuery ? [`%${rawQuery}%`, `%${rawQuery}%`, `%${rawQuery}%`] : [];
+    // Keyword (opt-in) — A72: a RANKED, whole-word search (services/jobs/boardSearch.js). This was
+    // `title/company/description LIKE %q%`, a substring filter that ranked nothing: "ai" matched
+    // 2,525 of 2,616 active rows, so a search changed nothing. Now each row gets a tier — title
+    // starts with · title contains · company or skill · description only — and a row in no tier is
+    // OMITTED. The tier leads the order (buildOrderKeys' `search`), ATS match breaks ties. The term's
+    // synonyms are the scorer's own confirmed map (CC3), with equal weight.
+    const searchPhrases = rawQuery ? searchVariants(rawQuery, atsSynonyms()) : [];
+    const boardSearch   = searchPhrases.length ? boardSearchSql(searchPhrases) : null;
+    const keyFilter = boardSearch ? `AND ${boardSearch.sql} IS NOT NULL` : '';
+    const keyArgs   = boardSearch ? boardSearch.params : [];
+    // Location (opt-in)
     const locFilter = location ? `AND sj.location LIKE ?` : '';
     const locArgs   = location ? [`%${location}%`] : [];
 
@@ -7512,7 +7547,7 @@ async function boardPageResponse(req) {
       // tab (a record of what the user chose, ordered as they chose it) and under ?curate=off,
       // which is the user saying "don't sort for me" — fit is sorting for them, so it obeys that.
       const fitRequested = !savedTab && req.query.curate !== 'off';
-      const orderKeys = buildOrderKeys(sort, richFilters.rank.keys, { fit: fitRequested });
+      const orderKeys = buildOrderKeys(sort, richFilters.rank.keys, { fit: fitRequested, search: boardSearch });
       const fitApplied = ordersByFit(orderKeys);
       // The fit keys sort on scores a precompute pass can rewrite while this user pages, so the
       // cursor is signed with an EPOCH that moves whenever their scores do: the newest report row
@@ -7639,7 +7674,14 @@ async function boardPageResponse(req) {
       // the work_type / employment_type / category clauses above, which say it outright: a row must
       // never be hidden purely because we have not classified it, only on an explicit mismatch once
       // we have. Takes no bound parameter — the roleKey is already bound in the LEFT JOIN.
-      const roleSql = savedTab ? '' : `AND (
+      //
+      // ⛔ A72 · A SEARCH LIFTS THE ROLE SCOPE. Measured on an engineering profile: "data engineer"
+      // returned 0 while 19 titles named it (bucketed 'data'), "product manager" returned 4
+      // description-only hits while 145 titles named it ('pm'). The scope is the profile's DEFAULT —
+      // what to show unasked; a typed term is the user asking, and the newer, narrower instruction
+      // wins. Every filter the user SET still applies, and so do is_active and dislikes. The LEFT JOIN
+      // stays (its placeholder is in argsFor), so only this predicate moves.
+      const roleSql = (savedTab || boardSearch) ? '' : `AND (
             jrm.role_key IS NOT NULL
             OR NOT EXISTS (SELECT 1 FROM job_role_map m WHERE m.job_id = sj.job_id)
           )`;
