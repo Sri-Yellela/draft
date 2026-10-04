@@ -1,0 +1,87 @@
+/* D23 — THE EXTENSION'S CONTROLS, IN THE SITE'S LANGUAGE.
+   ───────────────────────────────────────────────────────────────────────────────────────────────
+   Shared by popup.html and options.html. ⛔ Every colour is a var(--c-*) from tokens.css, which is
+   GENERATED from the site's client/src/styles/colorTokens.js — test/colorLiteralGuard.test.js fails
+   on any colour literal anywhere in extension/ outside the two generated token files.
+
+   The geometry and the depth are the job card's (client/src/components/JobBubble.css, D1): square
+   controls the size of the logo, radius 12, and on every control the D1 depth —
+     rest    var(--c-depth-rest)                       hover  var(--c-depth-hover) + translateY(-2px)
+     press   var(--c-depth-press) + translateY(0)      primary var(--c-depth-accent), tinted orange
+   prefers-reduced-motion drops the transitions, as the site does. */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font: 13px/1.45 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--c-canvas); color: var(--c-ink);
+}
+
+/* ── The mark: /draft, the site's art as two masks — the slash var(--c-logo-slash), the word
+      var(--c-logo-word): in light mode an orange "/" and an ink "draft" (D19). StampLogo's method. */
+.mark { position: relative; display: block; height: 26px; width: calc(26px * 1722 / 605); }
+.mark > span {
+  position: absolute; inset: 0; forced-color-adjust: none;
+  -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+}
+.mark .mark-slash { background: var(--c-logo-slash);
+  -webkit-mask-image: url(brand/wordmark-slash.png); mask-image: url(brand/wordmark-slash.png); }
+.mark .mark-word  { background: var(--c-logo-word);
+  -webkit-mask-image: url(brand/wordmark-letters.png); mask-image: url(brand/wordmark-letters.png); }
+
+/* The logo face: the mark's heavy italic geometric sans, for the /d, company names and headings. */
+.logo-face { font-family: 'Poppins', 'DM Sans', ui-sans-serif, sans-serif; font-style: italic;
+  font-weight: 800; letter-spacing: -.02em; }
+.draft-d { font-family: 'Poppins', 'DM Sans', ui-sans-serif, sans-serif; font-style: italic;
+  font-weight: 800; letter-spacing: -.02em; line-height: 1; font-size: 19px; text-transform: none; }
+
+/* ── Square controls — the job card's three squares, here four ─────────────────────────────── */
+.sq {
+  width: 52px; height: 52px; flex-shrink: 0; border-radius: 12px; border: 0;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: var(--c-surface-solid); color: var(--c-ink);
+  box-shadow: var(--c-depth-rest);
+  cursor: pointer; font-family: inherit;
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.sq svg { width: 20px; height: 20px; }
+.sq-cap { font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: lowercase; line-height: 1; }
+.sq--primary { background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent); }
+
+/* ── Wide controls — the same radius and depth, for an action that needs its words ──────────── */
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: 40px; padding: 9px 14px; margin-bottom: 8px;
+  border-radius: 12px; border: 0; font: inherit; font-size: 13px; font-weight: 700;
+  background: var(--c-surface-solid); color: var(--c-ink);
+  box-shadow: var(--c-depth-rest); cursor: pointer; text-align: center;
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn-primary { background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent); }
+
+.sq:hover:not(:disabled), .sq:focus-visible,
+.btn:hover:not(:disabled), .btn:focus-visible { box-shadow: var(--c-depth-hover); transform: translateY(-2px); }
+.sq--primary:hover:not(:disabled), .sq--primary:focus-visible,
+.btn-primary:hover:not(:disabled), .btn-primary:focus-visible { box-shadow: var(--c-depth-accent); }
+.sq:active:not(:disabled), .btn:active:not(:disabled) { transform: translateY(0); box-shadow: var(--c-depth-press); }
+.sq:focus-visible, .btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.sq:disabled, .btn:disabled { cursor: default; color: var(--c-ink-faint); box-shadow: none; }
+.sq--primary:disabled, .btn-primary:disabled { background: var(--c-accent-quiet); color: var(--c-ink-muted); }
+
+/* A text control (Disconnect, the secondary links): no fill, the orange as TEXT is ACCENT_INK. */
+.link {
+  background: none; border: 0; padding: 0; cursor: pointer; font: inherit; font-size: 11px;
+  color: var(--c-accent-ink); text-decoration: underline; text-underline-offset: 2px;
+}
+.link:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; border-radius: 4px; }
+
+kbd {
+  font: inherit; font-size: 10px; font-weight: 700; line-height: 1; padding: 3px 5px; border-radius: 5px;
+  background: var(--c-surface-2); color: var(--c-ink-muted); box-shadow: inset 0 -1px 0 var(--c-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sq, .btn { transition: none; }
+}

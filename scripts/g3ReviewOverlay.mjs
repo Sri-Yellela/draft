@@ -65,7 +65,9 @@ const OUT_DIR = path.join(os.tmpdir(), 'g3-review-overlay');
 // renders and does not work; one taken at this point in this run cannot be, because the assertions
 // above and below it have to pass for the run to be green.
 const SHOTS = process.argv.includes('--screenshots');
-const SHOT_DIR = path.join(ROOT, 'docs', 'store-screenshots');
+// STORE_SHOT_DIR (D23) sends a rehearsal run somewhere other than the committed set — e.g. a run on
+// a machine without the owner's database, whose real-value check therefore has nothing to look for.
+const SHOT_DIR = process.env.STORE_SHOT_DIR ? path.resolve(process.env.STORE_SHOT_DIR) : path.join(ROOT, 'docs', 'store-screenshots');
 // The Chrome Web Store accepts 1280x800 or 640x400. 1280x800 for all three.
 const SHOT_SIZE = { width: 1280, height: 800 };
 
@@ -175,8 +177,9 @@ function writeShot(name, note, buffer) {
     bits: onDisk.bitsPerPixel, bytes: png.length, nonOpaque, note });
   console.log(`  shot  ${path.relative(ROOT, file)} — ${width}x${height}, 24-bit, no alpha — ${note}`);
 }
-const ATS_PORT = 4599;
+const ATS_PORT = Number(process.env.G3_ATS_PORT) || 4599;   // G3_ATS_PORT: a parallel session's port plan
 const PORTAL = `http://localhost:${ATS_PORT}`;
+const POSTING_ORIGIN = `http://127.0.0.1:${ATS_PORT}`;   // the same fakeAts, a different origin (see buildTestExtension)
 // AI2. Under --screenshots the WHOLE run happens on the presentation variant of the form, not just
 // the capture. Same fields, same names, same traps — only the didactic captions differ (see
 // gatedForm() in fakeAts.js). Running the assertions on the page that gets photographed is what
@@ -305,6 +308,12 @@ function buildTestExtension(apiOrigin) {
   }
   const manifest = JSON.parse(fs.readFileSync(path.join(dst, 'manifest.json'), 'utf8'));
   manifest.host_permissions = [...manifest.host_permissions, `${apiOrigin}/*`];
+  // D23: the popup reads the page only when "Read this page" is pressed, and the read runs under the
+  // activeTab grant a TOOLBAR click gives — which puppeteer cannot produce for a popup it navigates to.
+  // So the TEST build may read the posting's origin, and that origin is deliberately not the form's:
+  // the posting is served as 127.0.0.1, the gated form as localhost, so the fill run above still has
+  // no standing access to the form it fills. The shipped manifest is untouched (d23ExtensionLook pins it).
+  if (SHOTS) manifest.host_permissions.push(`${POSTING_ORIGIN}/*`);
   fs.writeFileSync(path.join(dst, 'manifest.json'), JSON.stringify(manifest, null, 2));
   return { dir: dst, manifest };
 }
@@ -467,6 +476,10 @@ async function main() {
     await control.goto(`chrome-extension://${extensionId}/options.html`);
 
     const page = (await browser.pages())[0];
+    // D23: the extension follows the OS colour scheme, as the site's "system" preference does. The
+    // listing images are the LIGHT palette whatever the machine running this prefers.
+    const LIGHT = [{ name: 'prefers-color-scheme', value: 'light' }];
+    if (SHOTS) for (const p of [page, control]) await p.emulateMediaFeatures(LIGHT);
     await page.goto(FORM_URL, { waitUntil: 'domcontentloaded' });
     await page.bringToFront();
     await sleep(400);
@@ -598,7 +611,7 @@ async function main() {
       // the tab behind the popup is a genuine application page rather than a mock-up. The popup is
       // rendered from the extension's own popup.html by the extension itself.
       const posting = await browser.newPage();
-      await posting.goto(`${PORTAL}/ashby-spa?delay=0&presentation=1`, { waitUntil: 'domcontentloaded' });
+      await posting.goto(`${POSTING_ORIGIN}/ashby-spa?delay=0&presentation=1`, { waitUntil: 'domcontentloaded' });
       await sleep(800);
 
       // ORDER MATTERS. popup.js asks the service worker for the ACTIVE TAB and only offers to
@@ -608,10 +621,16 @@ async function main() {
       // Screenshotting it while it is backgrounded is the price of that, and is what makes the
       // image show the capture surface rather than "Open a job posting to capture it".
       const popup = await browser.newPage();
+      await popup.emulateMediaFeatures(LIGHT);
       await posting.bringToFront();
       await sleep(300);
       await popup.goto(`chrome-extension://${extensionId}/popup.html`);
       await sleep(1200);
+      // D23: the popup reads nothing until "Read this page" is pressed. The listing shows the
+      // companion, so the press happens here — while the POSTING is still the active tab, which is
+      // what the press reads.
+      await popup.evaluate(() => document.getElementById('btn-read-page')?.click());
+      await sleep(1500);
 
       // ── The popup OVER the posting ──────────────────────────────────────────
       //
@@ -654,7 +673,7 @@ async function main() {
       }
       // The popup only offers to capture when the service worker reports a posting in the active
       // tab. If it is showing anything else, the image would claim a state the run did not reach.
-      if (!/Capture job/i.test(popupText)) {
+      if (!/Capture it/i.test(popupText)) {
         throw new Error(`2-popup: the popup is not in its capture state — it reads ${JSON.stringify(popupText.slice(0, 120))}`);
       }
 

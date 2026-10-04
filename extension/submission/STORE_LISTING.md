@@ -1,13 +1,38 @@
-# Chrome Web Store listing — draft v1.2.0
+# Chrome Web Store listing — draft v1.3.0
 
 Copy for the Web Store developer dashboard. Every justification below was written against the
 actual code and cites the file that uses the permission, because the dashboard rejects
 justifications that don't match observable behaviour.
 
-Upload artifact: `extension/submission/resume-master-extension-v1.2.0.zip`
+Upload artifact: `extension/submission/resume-master-extension-v1.3.0.zip`
 (build with `npm run build:extension` — never hand-assemble it; see extension/README.md).
 
-> **v1.2.0 (D13, 10-03) REPLACES v1.1.1.** One user-visible change, **the companion popup**: the
+> **v1.3.0 (D23 + A35, 10-04) REPLACES v1.2.0, WHICH WAS NEVER UPLOADED.** Two changes, one
+> submission:
+>
+> 1. **The manual context trigger.** Opening the popup no longer reads the page or asks the server
+>    anything about it: the popup shows the four actions (capture, fill, score, open draft) and a
+>    **Read this page** control (or the R key). Only that press runs the local preview and sends the
+>    tab's URL for the board check. v1.2.0's "when the popup opens" transmission (below) therefore
+>    NARROWS to "when you press Read this page", and the privacy policy's sentence says so — no new
+>    disclosure, a smaller one.
+> 2. **The site's visual language (A35).** Popup, options page, capture toast and the review overlay
+>    use the site's colour tokens (generated from `client/src/styles/colorTokens.js` into
+>    `tokens.css` / `tokens.js`), the self-hosted logo face and body face (`fonts/`, no request to any
+>    font service), and the `/draft` mark from the site's own art (`brand/`). New files in the package:
+>    `tokens.css`, `tokens.js`, `ui.css`, `fonts/*.woff2`, `brand/*.png` — all static, all reached
+>    from `popup.html` / `options.html` / `background.js`.
+>
+> ⛔ **No new permission, no new host, no content script, no `web_accessible_resources`, no new
+> storage key** — the six below are unchanged (`test/d23ExtensionLook.test.js` pins the permission
+> set and the six keys by name). The review overlay receives its font as bytes from the service
+> worker (FontFace API), so nothing in the package is exposed to web pages.
+>
+> ⚠ **The three screenshots must be regenerated** (`npm run store:screenshots`) on the owner's machine,
+> where the harness checks them against the real profile values — the overlay and popup they show
+> have changed.
+
+> **v1.2.0 (D13, 10-03) REPLACED v1.1.1** (never uploaded; superseded by v1.3.0 above). One user-visible change, **the companion popup**: the
 > popup now leads with the action the page calls for — on an application form the user drafted,
 > **Fill it** (with "You drafted this 2 days ago · résumé ready · 14 fields prepared" and any
 > unanswered questions); on a job posting, **Capture it** and **Score it**, with whether the job is

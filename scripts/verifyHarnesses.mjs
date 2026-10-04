@@ -95,6 +95,8 @@ const EXCLUDED = {
   am4EnrichBacklogAudit: "read-only backlog measurement; --prod authenticates to PRODUCTION and reads its board. Asserts nothing, and like am3ProdSchemaDiff it points at a live deployment",
   am4Enrich:           "the manual enrichment path — `run --apply` spends model tokens per row, and `import --apply` / `revert --apply` write to the developer's database. Every subcommand defaults to a dry run, but the whole point of the script is the apply, so it is run by hand. test/enrichmentTransfer.test.js is the half that asserts, and it stays in `npm test`",
   ak2BandSurfaces:     "screenshots; drives the real board in a browser to prove the bands reach pixels",
+  d23CompanionShots:   "screenshots; the popup before/after 'Read this page' and the overlay — test/d23ExtensionLook.test.js is the half that asserts",
+  buildExtensionTokens: "a generator, not a harness — it WRITES extension/tokens.* and copies assets; test/d23ExtensionLook.test.js asserts its output is fresh",
   fakeAts:             "the fixture server itself",
   verifyHarnesses:     "this runner",
 };
