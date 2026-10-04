@@ -307,7 +307,14 @@ test("NO UI SITE HOLDS A LITERAL OPTION LIST ANY MORE", () => {
       /POSTING_AGE\.options\.map/,
       /VISITED\.options\.map/,
     ],
-    "client/src/App.jsx": [/const SORT_OPTIONS\s*=\s*SORTS\.options\.map/],
+    // D24: the sort icon's list is the sort PANEL (shared/filterSentence.js's SORT_PANEL), read
+    // through the model; the sentence's options are each clause's own dimension.
+    "client/src/App.jsx": [/sortRows\(atsSortAvailable\)/],
+    "client/src/lib/filterSentenceModel.js": [
+      /SENTENCE_CLAUSES\.slice\(0, SENTENCE_CAP\)/,
+      /clause\.dim\.options\.filter\(o => o\.value !== ""\)/,
+      /SORT_PANEL\.filter\(/,
+    ],
     // TopBar was here, for the collapsed pill's own sort <select>. Y4 retired the pill, so there is
     // one sort control again; the bar rendering from the contract is not a property it can have when
     // it renders no sort at all. Asserted the other way round below instead.
