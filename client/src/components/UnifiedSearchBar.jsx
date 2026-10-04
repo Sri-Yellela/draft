@@ -97,6 +97,9 @@ export default function UnifiedSearchBar({
         <div style={{
           display: "flex", gap: 4, padding: "0 12px 10px", marginBottom: 10,
           alignItems: "center", justifyContent: "space-between",
+          // D24: the icons grew to 46px. At phone width the right-hand group wraps under the tabs
+          // (and keeps to the right, App.jsx's marginLeft:auto) rather than running off the card.
+          flexWrap: "wrap", rowGap: 8,
           borderBottom: "1px solid var(--border-glass)",
         }}>
           {actions}

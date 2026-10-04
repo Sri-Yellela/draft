@@ -169,10 +169,15 @@ test("the ATS sort is removed from the options when there is nothing to rank by"
   const app = fs.readFileSync("client/src/App.jsx", "utf8");
   assert.match(app, /atsSortAvailable/,
     "the sort control must read whether fit ranking is possible");
-  assert.match(app, /SORT_OPTIONS\.filter\(o => o\.v !== "atsScore"\)/,
+  // D24: the sort control is the sort PANEL. sortRows(false) leaves Best fit (the row that sorts
+  // unscored jobs last) out of the list — removed, not shown disabled.
+  assert.match(app, /sortRows\(atsSortAvailable\)/,
     "the option is REMOVED rather than shown disabled — a disabled row in a dropdown invites a " +
     "click that does nothing, and the reason lives on the board, not in a tooltip");
+  assert.match(fs.readFileSync("client/src/lib/filterSentenceModel.js", "utf8"),
+    /SORT_PANEL\.filter\(o => atsAvailable \|\| !o\.unscoredLast\)/);
   // Falling back matters: the control must not keep displaying a value it no longer offers.
-  assert.match(app, /if \(!atsSortAvailable && sortBy === "atsScore"\) setSortBy\("dateDesc"\)/,
+  // D24: it falls back to the CURATED default (DEFAULT_SORT, no sort param), not to Newest.
+  assert.match(app, /if \(!atsSortAvailable && fitRow && sortBy === fitRow\.value\) setSortBy\(DEFAULT_SORT\)/,
     "a board already sorted by fit must fall back when the resume goes away");
 });
