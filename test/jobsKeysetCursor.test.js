@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import Database from "better-sqlite3";
 import {
-  SORT_KEYS, RECENCY, TOTAL_ORDER_COLUMN,
+  SORT_KEYS, RECENCY, TOTAL_ORDER_COLUMN, CURATED_TAIL,
   buildOrderKeys, orderByClause, cursorProjection, cursorPredicate,
   encodeCursor, decodeCursor, cursorColumn, assertTotalOrder, KEY,
 } from "../services/jobs/jobCursor.js";
@@ -265,8 +265,9 @@ test("the relevance prefix participates in the cursor, and only on the default s
   const db = board();
   try {
     const rankKeys = [{ sql: "CASE WHEN sj.company = ? THEN 0 ELSE 1 END", params: ["Co2"] }];
-    const keys = buildOrderKeys("dateDesc", rankKeys);
-    assert.equal(keys.length, rankKeys.length + RECENCY.length, "the prefix was not applied");
+    // D24: the prefix leads the ABSENT (curated) sort; an explicit dateDesc is exactly its own chain.
+    const keys = buildOrderKeys("", rankKeys);
+    assert.equal(keys.length, rankKeys.length + CURATED_TAIL.length, "the prefix was not applied");
 
     const expected = fullOrder(db, keys);
     // The relevance key really leads: every Co2 row comes before every non-Co2 row.
@@ -322,8 +323,8 @@ test("a cursor is rejected when the relevance keys change, not just when the sor
   // SORT is still 'dateDesc', so a signature keyed on the sort name alone would have accepted it.
   const db = board();
   try {
-    const before = buildOrderKeys("dateDesc", [{ sql: "CASE WHEN sj.company = ? THEN 0 ELSE 1 END", params: ["Co2"] }]);
-    const after  = buildOrderKeys("dateDesc", [{ sql: "CASE WHEN sj.bucket_domain = ? THEN 0 ELSE 1 END", params: ["saas"] }]);
+    const before = buildOrderKeys("", [{ sql: "CASE WHEN sj.company = ? THEN 0 ELSE 1 END", params: ["Co2"] }]);
+    const after  = buildOrderKeys("", [{ sql: "CASE WHEN sj.bucket_domain = ? THEN 0 ELSE 1 END", params: ["saas"] }]);
     const p = cursorPage(db, before, null, 5);
     assert.equal(decodeCursor(p.next, after).error, "cursor_sort_mismatch");
   } finally { db.close(); }

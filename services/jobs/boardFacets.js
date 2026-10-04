@@ -1,0 +1,146 @@
+/**
+ * D24 · GET /api/jobs/facets — THE COUNTS THE SENTENCE READS, AS THE BOARD WOULD ANSWER THEM.
+ * ================================================================================================
+ *
+ * The response is shared/filterSentence.js's FacetsResponse, exactly:
+ *
+ *   { total, known, unscored, clauses: { level, where, posted, fit: FacetOption[] } }
+ *   FacetOption = { value, label, count, known }
+ *
+ * where `count` is "rows the board would show with THIS option chosen in its clause and every OTHER
+ * active filter as it is". The clause's own current choice is REPLACED, not added to.
+ *
+ * ⛔ THE COUNT MUST BE THE BOARD'S OWN ANSWER, NOT A SECOND OPINION. This module never writes a
+ * WHERE clause for the board. It is handed `measureBoard(query, fn)`, which runs server.js's own
+ * boardPageResponse for `query` up to the point the board's join / where / args exist and hands
+ * them to `fn` — the identical bindings GET /api/jobs then counts and lists with. The per-option
+ * conditions below are likewise the board's own fragments (buildJobFilters for the two soft-null
+ * clauses, postedSinceSql for the posting age, fitBandsSql for fit), so
+ *
+ *     count(option) = |board(query without the clause)  ∩  the clause's own predicate for option|
+ *                   = |board(query with the clause set to option)|
+ *
+ * holds by construction rather than by a parallel implementation agreeing. test/d24FitFacetsSorts
+ * .test.js pins the equality against real queries, soft-null rows and a zero-count option included.
+ *
+ * COST: one statement for the headline (total / known / unscored) and ONE per clause — conditional
+ * aggregation (`SUM(CASE WHEN <option> THEN 1 END)` per option) over that clause's base set — so
+ * five statements whatever the option count, never one per option.
+ */
+import { EXPERIENCE_LEVELS, WORK_MODELS, POSTING_AGE, FIT_BANDS, labelFor } from "../../shared/jobFilterOptions.js";
+import { buildJobFilters, postedSinceSql } from "./jobQuery.js";
+import { fitBandsSql, FIT_SCORE_SQL } from "./jobCursor.js";
+
+// Paging and cursor are about WHICH SLICE of the board, never about how many rows it holds, and a
+// facets request must not 400 on a cursor issued for a list. Projection params change no count.
+const NOT_FILTERS = ["page", "pageSize", "page_size", "cursor", "include_fields", "include_facets"];
+
+const strip = (sql) => String(sql).replace(/^\s*AND\s+/, "");
+
+/** A soft-null clause's options: count = known match OR unclassified; known = known match only. */
+function softNullOptions(dim) {
+  return dim.options.filter(o => o.value !== "").map(o => {
+    const f = buildJobFilters({ [dim.param]: [o.value] });
+    const cond = strip(f.sql);
+    return {
+      value: o.value, label: o.label,
+      count: { sql: cond, params: f.params },
+      // Known = matches and is NOT kept only for being unclassified. The unclassified test is the
+      // board's own (`established.unclassifiedSql`), so "known" here is the A73 `unclassified` count's
+      // complement, from the same expression.
+      known: { sql: `(${cond}) AND NOT ${f.established.unclassifiedSql}`, params: f.params },
+    };
+  });
+}
+
+/**
+ * The four clauses, in SENTENCE_CLAUSES' order, each with the params that encode its choice (all of
+ * them are removed to form the clause's base set) and its options' predicates.
+ */
+export function facetClauses({ nowSec }) {
+  return [
+    { key: "level", remove: [EXPERIENCE_LEVELS.param], options: softNullOptions(EXPERIENCE_LEVELS) },
+    { key: "where", remove: [WORK_MODELS.param],       options: softNullOptions(WORK_MODELS) },
+    {
+      key: "posted",
+      // The client's one age control emits BOTH (POSTING_AGE.derivedParam), so replacing the clause's
+      // choice means removing both — leaving posted_after behind would cap every option at it.
+      remove: [POSTING_AGE.param, POSTING_AGE.derivedParam],
+      options: POSTING_AGE.options.map(o => {
+        const p = o.days == null ? { sql: "1 = 1", params: [] } : postedSinceSql(nowSec - o.days * 86400);
+        // Hard filter (a row's age is always known — it falls back to first-seen), so known === count.
+        return { value: o.value, label: o.label, count: p, known: p };
+      }),
+    },
+    {
+      key: "fit",
+      remove: [FIT_BANDS.param],
+      options: FIT_BANDS.options.map(o => {
+        const p = { sql: fitBandsSql([o.value]), params: [] };
+        // ⛔ HARD: an unscored row is in no band, so known === count (filterSentence.js says so).
+        return { value: o.value, label: labelFor(FIT_BANDS, o.value), count: p, known: p };
+      }),
+    },
+  ];
+}
+
+const withoutKeys = (query, keys) => {
+  const q = { ...query };
+  for (const k of [...NOT_FILTERS, ...keys]) delete q[k];
+  return q;
+};
+
+const EMPTY = (clauses) => ({
+  total: 0, known: 0, unscored: 0,
+  clauses: Object.fromEntries(clauses.map(c => [c.key,
+    c.options.map(o => ({ value: o.value, label: o.label, count: 0, known: 0 }))])),
+});
+
+/**
+ * @param {object} deps
+ * @param {object} deps.query         the request's query params — exactly what GET /api/jobs takes
+ * @param {(query:object, fn:(ctx:{db, joinClause:string, whereClause:string, baseArgs:any[],
+ *          unclassifiedSql:string}) => any) => Promise<{status:number, body:any}>} deps.measureBoard
+ *        Runs the board's own query builder for `query`. When the board gets as far as a query it
+ *        answers `{ status: 200, body: { measured: true, value: fn(ctx) } }`; anything else (a 400 for
+ *        an unknown filter value, no profile, an empty pool) is passed through as the board said it.
+ * @param {number} deps.nowSec        one clock for the whole response, shared with the board's
+ *        ageFilter cutoff so "Past 24h" means the same second in both
+ * @returns {Promise<{status:number, body:any}>}
+ */
+export async function boardFacetsResponse({ query, measureBoard, nowSec }) {
+  const clauses = facetClauses({ nowSec });
+
+  const head = await measureBoard(withoutKeys(query, []), ({ db, joinClause, whereClause, baseArgs, unclassifiedSql }) => {
+    const r = db.prepare(
+      `SELECT COUNT(*) AS total,
+              COALESCE(SUM(CASE WHEN ${FIT_SCORE_SQL} IS NULL THEN 1 ELSE 0 END), 0) AS unscored
+              ${unclassifiedSql ? `, COALESCE(SUM(CASE WHEN ${unclassifiedSql} THEN 1 ELSE 0 END), 0) AS unclassified` : ""}
+       ${joinClause} ${whereClause}`).get(...baseArgs);
+    return { total: r.total, known: r.total - (r.unclassified || 0), unscored: r.unscored };
+  });
+  // A validation 400 is the board's own answer — same params, same validation, same body.
+  if (head.status !== 200) return head;
+  // No profile / empty pool: the board answers an explained empty list, so every count is 0.
+  if (!head.body?.measured) return { status: 200, body: EMPTY(clauses) };
+
+  const body = { ...head.body.value, clauses: {} };
+  for (const clause of clauses) {
+    const r = await measureBoard(withoutKeys(query, clause.remove), ({ db, joinClause, whereClause, baseArgs }) => {
+      const cols = [], params = [];
+      clause.options.forEach((o, i) => {
+        cols.push(`COALESCE(SUM(CASE WHEN ${o.count.sql} THEN 1 ELSE 0 END), 0) AS c${i}`);
+        params.push(...o.count.params);
+        cols.push(`COALESCE(SUM(CASE WHEN ${o.known.sql} THEN 1 ELSE 0 END), 0) AS k${i}`);
+        params.push(...o.known.params);
+      });
+      // PARAMETER ORDER IS SQL TEXT ORDER: the SELECT's option params, then the board's own.
+      return db.prepare(`SELECT ${cols.join(", ")} ${joinClause} ${whereClause}`).get(...params, ...baseArgs);
+    });
+    if (r.status !== 200 || !r.body?.measured) return r.status !== 200 ? r : { status: 200, body: EMPTY(clauses) };
+    body.clauses[clause.key] = clause.options.map((o, i) => ({
+      value: o.value, label: o.label, count: r.body.value[`c${i}`], known: r.body.value[`k${i}`],
+    }));
+  }
+  return { status: 200, body };
+}
