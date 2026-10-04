@@ -32,7 +32,7 @@ test("⭐ each user-set soft-null filter contributes a KNOWN-FIRST key; derived 
 
 test("the known-first keys lead every sort, follow a search tier, and are absent when no filter is set", () => {
   const known = buildJobFilters({ work_models: ["remote"] }).established.keys;
-  const def = buildOrderKeys("dateDesc", [], { fit: true, established: known });
+  const def = buildOrderKeys("", [], { fit: true, established: known });
   assert.equal(def[0].sql, known[0].sql);
   assert.equal(def[1], FIT_KEYS[0]);
   assert.equal(buildOrderKeys("compHigh", [], { established: known })[0].sql, known[0].sql);
@@ -40,18 +40,18 @@ test("the known-first keys lead every sort, follow a search tier, and are absent
   const searched = buildOrderKeys("", [], { search: s, established: known });
   assert.equal(searched[0].sql, s.sql);
   assert.equal(searched[1].sql, known[0].sql);
-  assert.deepEqual(buildOrderKeys("dateDesc", [], { fit: true, established: [] }), buildOrderKeys("dateDesc", [], { fit: true }));
+  assert.deepEqual(buildOrderKeys("", [], { fit: true, established: [] }), buildOrderKeys("", [], { fit: true }));
 });
 
 test("⭐ in SQLite: Remote shows the remote rows FIRST, the unclassified after, and drops the explicit mismatch", () => {
   const db = new Database(":memory:");
-  db.exec(`CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, workplace_type TEXT, discovered_at INTEGER, scraped_at INTEGER, posted_at INTEGER);
+  db.exec(`CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, workplace_type TEXT, discovered_at INTEGER, scraped_at INTEGER, posted_at INTEGER, company TEXT);
            CREATE TABLE ats_only_reports (job_id TEXT, ats_score INTEGER);`);
   // Newest first by discovery — so before A73 the unclassified rows (newest) held the top.
   const rows = [["u1", null, 9], ["u2", null, 8], ["r1", "remote", 5], ["o1", "onsite", 7], ["r2", "remote", 4]];
-  for (const [id, w, t] of rows) db.prepare("INSERT INTO scraped_jobs VALUES (?,?,?,?,NULL)").run(id, w, t, t);
+  for (const [id, w, t] of rows) db.prepare("INSERT INTO scraped_jobs VALUES (?,?,?,?,NULL,NULL)").run(id, w, t, t);
   const f = buildJobFilters({ work_models: ["remote"] });
-  const order = orderByClause(buildOrderKeys("dateDesc", [], { fit: true, established: f.established.keys }));
+  const order = orderByClause(buildOrderKeys("", [], { fit: true, established: f.established.keys }));
   const got = db.prepare(`SELECT sj.job_id FROM scraped_jobs sj LEFT JOIN ats_only_reports aor ON aor.job_id = sj.job_id
                           WHERE 1=1 ${f.sql} ORDER BY ${order.sql}`).all(...f.params, ...order.params).map(r => r.job_id);
   assert.deepEqual(got, ["r1", "r2", "u1", "u2"]);

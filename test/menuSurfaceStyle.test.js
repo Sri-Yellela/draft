@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { SORTS } from "../shared/jobFilterOptions.js";
+import { SORT_PANEL } from "../shared/filterSentence.js";
 import { normalizeResumeHtml } from "../services/resumeFormatter.js";
 import { at } from "../test-support/sourceAnchors.js";
 
@@ -237,7 +238,9 @@ test("tool access is plan-owned and local match UI is removed", () => {
   // the contract rather than either copy is the point — it is what makes the two agree.
   assert.ok(SORTS.options.some(o => o.value === "atsScore" && o.label === "ATS match"),
     "ATS Sort is no longer offered as a board sort");
-  assert.match(fs.readFileSync("client/src/App.jsx", "utf8"), /const SORT_OPTIONS = SORTS\.options\.map/);
+  // D24: the board's sort control is the sort PANEL, and fit is offered there as "Best fit".
+  assert.match(fs.readFileSync("client/src/App.jsx", "utf8"), /sortRows\(atsSortAvailable\)/);
+  assert.ok(SORT_PANEL.some(o => o.value === "atsScore"), "the sort panel no longer offers ranking by fit");
   // The second assertion here pinned the COLLAPSED PILL's sort select. Y4 retired the pill, so there
   // is one sort control again — the icon beside IMPORT — and the bar renders none.
   assert.ok(!/SORTS/.test(topBar), "a second sort control is back in the top bar");

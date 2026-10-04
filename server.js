@@ -137,15 +137,17 @@ import { searchJobs, cacheJobs, cacheJoboFeed, reconcileFingerprint } from "./se
 import { isResumeRelevant } from "./services/jobs/relevanceFilter.js";
 import {
   buildJobFilters, buildSelectColumns, resolveFacetDimensions, computeSkillsFacet,
-  FACET_DIMENSIONS,
+  FACET_DIMENSIONS, postedSinceSql,
 } from "./services/jobs/jobQuery.js";
+// D24 · GET /api/jobs/facets — the sentence's counts, measured through boardPageResponse itself.
+import { boardFacetsResponse } from "./services/jobs/boardFacets.js";
 import { mapJobRow } from "./services/jobs/mapJobRow.js";
 import { describeEmptyBoard, activeFilterNames } from "./services/jobs/emptyBoardReason.js";
 // Board ordering AND keyset pagination, generated from one key-list declaration so the ORDER BY
 // and the cursor's resume predicate cannot disagree. See services/jobs/jobCursor.js.
 import {
   buildOrderKeys, orderByClause, cursorProjection, cursorPredicate, encodeCursor, decodeCursor,
-  ordersByFit,
+  ordersByFit, ordersByScore, fitBandsSql,
 } from "./services/jobs/jobCursor.js";
 // The board's fit precompute. It holds no scoring code — server.js injects the panel's own
 // basis builder and scorer call (atsBasisForProfile / scoreJobForBasis).
@@ -7125,54 +7127,25 @@ app.use(createAccountManagementRouter({
 }));
 
 // ═══════════════════════════════════════════════════════════════
-// ── /api/jobs/facets — live counts for filter UI ──────────────
-// Returns grouped counts over the current user's job pool (7-day window,
-// non-disliked, non-applied). Used to show "Remote (23)" labels and hide
-// zero-count filter options. Re-fetch after each scrape completes.
-app.get("/api/jobs/facets", requireAuth, (req, res) => {
-  const userId = req.user.id;
-  const thirtyDaysAgo = Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60;
-  const facetProfile = getOrRepairActiveProfile(userId);
-  if (!facetProfile) {
-    return res.json({ workType:{}, employmentType:{}, category:{}, postedAge:{}, salaryRange:null, total:0 });
-  }
-  const roleKey = roleKeyForProfile(facetProfile);
-  const rows = db.prepare(`
-    SELECT sj.work_type, sj.employment_type, sj.category,
-           sj.scraped_at, sj.posted_at, sj.salary_min, sj.salary_max
-    FROM scraped_jobs sj
-    JOIN job_role_map jrm ON jrm.job_id = sj.job_id AND jrm.role_key = ?
-    LEFT JOIN user_jobs uj ON uj.job_id = sj.job_id AND uj.user_id = ? AND uj.domain_profile_id = ?
-    WHERE sj.is_active = 1
-      AND (uj.disliked IS NULL OR uj.disliked = 0)
-      AND (uj.applied  IS NULL OR uj.applied  = 0)
-      AND ((sj.posted_at IS NOT NULL AND sj.posted_at != ''
-            AND CAST(strftime('%s', sj.posted_at) AS INTEGER) > ?)
-           OR ((sj.posted_at IS NULL OR sj.posted_at = '') AND sj.scraped_at > ?))
-  `).all(roleKey, userId, facetProfile.id, thirtyDaysAgo, thirtyDaysAgo);
-
-  const workType = {}, empType = {}, category = {}, postedAge = {};
-  const salaries = [];
-  const now = Math.floor(Date.now() / 1000);
-
-  for (const r of rows) {
-    if (r.work_type)       workType[r.work_type]           = (workType[r.work_type]       || 0) + 1;
-    if (r.employment_type) empType[r.employment_type]      = (empType[r.employment_type]  || 0) + 1;
-    if (r.category)        category[r.category]            = (category[r.category]        || 0) + 1;
-    const ts = r.posted_at ? parseInt(r.posted_at) || 0 : r.scraped_at;
-    const age = now - ts;
-    const bucket = age < 86400 ? "24h" : age < 259200 ? "3d" : "1w";
-    postedAge[bucket] = (postedAge[bucket] || 0) + 1;
-    if (r.salary_min) salaries.push(r.salary_min);
-    if (r.salary_max) salaries.push(r.salary_max);
-  }
-
-  const salaryRange = salaries.length
-    ? { min: Math.min(...salaries), max: Math.max(...salaries),
-        median: salaries.sort((a,b)=>a-b)[Math.floor(salaries.length/2)] }
-    : null;
-
-  res.json({ workType, employmentType: empType, category, postedAge, salaryRange, total: rows.length });
+// ── /api/jobs/facets — the filter sentence's counts (D24) ─────────────────────────────────────────
+//
+// REPLACES a facets endpoint that answered a different board. It took NO query params (so its
+// counts ignored every active filter), INNER-joined job_role_map (dropping the unclassified rows
+// the board has shown since CC1b), excluded applied rows (the board does not), used its own 30-day
+// window, and bucketed posting age with parseInt() over an ISO posted_at — parseInt("2026-10-01…")
+// is 2026, so every dated row landed in '1w'. No web control read it; the mobile contract did.
+//
+// Now: the SAME params as GET /api/jobs, validated by the same rejectInvalidFilterValues (a 400 for
+// an unknown value, with the board's body), and every count measured through boardPageResponse's
+// own join / where / args — services/jobs/boardFacets.js. The shape is shared/filterSentence.js's
+// FacetsResponse.
+app.get("/api/jobs/facets", requireAuth, async (req, res) => {
+  const nowSec = Math.floor(Date.now() / 1000);
+  const { status, body } = await boardFacetsResponse({
+    query: req.query, nowSec,
+    measureBoard: (query, measure) => boardPageResponse({ ...req, query }, { measure, nowSec }),
+  });
+  res.status(status).json(body);
 });
 
 
@@ -7267,7 +7240,13 @@ app.get("/api/jobs", requireAuth, async (req, res) => {
 // changed: it reads req.query, req.user and the active profile, and every response it used to send
 // it now returns as { status, body }.
 const boardReply = (status, body) => ({ status, body });
-async function boardPageResponse(req) {
+// D24 · `opts.measure`: GET /api/jobs/facets' way in. When given, the board is built exactly as for a
+// list — same validation, same profile scope, same join / where / args — and then, INSTEAD of fetching
+// a page, `measure({ db, joinClause, whereClause, baseArgs, unclassifiedSql })` runs over those
+// bindings and its value is returned as { measured: true, value }. One board, two readers: a count the
+// list cannot reproduce is not possible when both are the same statement's WHERE. `opts.nowSec` pins
+// the ageFilter cutoff so a facets response's options and its base sets read one clock.
+async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
   try {
     // Validate the enumerated filter vocabularies BEFORE any work — a bad value must not reach the
     // query builder and come back as an empty board. 400 rather than 200-with-nothing: the caller
@@ -7474,10 +7453,24 @@ async function boardPageResponse(req) {
     // come to disagree about how many days "past week" is.
     const AGE_MAP = ageDaysMap();
     const ageDays = AGE_MAP[ageFilter] ?? parseInt(ageFilter, 10);
+    // ⛔ D24 · NOT `sj.scraped_at >= ?` ANY MORE. scraped_at is "last touched by a crawl" — every
+    // crawl rewrites it for every row it sees, changed or not — so "Past 24h" kept every posting the
+    // nightly crawl re-saw: on a daily-crawled board, the whole board. It filtered only because the
+    // web client ALSO sends posted_after; a client sending ageFilter alone (the mobile contract, the
+    // sentence's facets) got nothing. postedSinceSql is the one "posted within" predicate, the same
+    // one posted_after applies: posted_at, else first seen, else scraped_at.
     if (ageFilter && !isNaN(ageDays) && ageDays > 0) {
-      ageSql  = `AND sj.scraped_at >= ?`;
-      ageArgs = [Math.floor(Date.now() / 1000) - ageDays * 86400];
+      const since = postedSinceSql((nowSec ?? Math.floor(Date.now() / 1000)) - ageDays * 86400);
+      ageSql  = `AND ${since.sql}`;
+      ageArgs = since.params;
     }
+
+    // D24 · the fit filter, fit_bands=strong,moderate,weak. HARD: an unscored row matches no band
+    // (jobCursor.js fitBandsSql). Validated with every other dimension above (FIT_BANDS is in
+    // FILTER_DIMENSIONS), so only known bands reach here. No bound params — the cutpoints are
+    // shared/atsBands.js constants — so it can sit anywhere in the WHERE without shifting baseArgs.
+    const fitBands = String(req.query.fit_bands || "").split(",").map(v => v.trim()).filter(Boolean);
+    const fitBandSql = fitBands.length ? `AND ${fitBandsSql(fitBands)}` : '';
 
     // YoE range: auto-apply from stored signals when no explicit maxYoe is set
     const signals = loadSimpleApplyProfile(db, { userId: req.user.id, profileId: sessionActiveProfile.id });
@@ -7610,7 +7603,9 @@ async function boardPageResponse(req) {
       // so any write produces a new, larger id. A cursor issued before a pass commit is then
       // refused as cursor_sort_mismatch instead of resuming over rows that moved. One index-only
       // MAX over the 108 index; only when fit is actually ordering.
-      const fitEpoch = fitApplied
+      // D24 · ANY key reading the score (ordersByScore), not only the curated fit keys: the atsScore
+      // sort and Newest's best-fit tie-break order by the same cell a precompute pass rewrites.
+      const fitEpoch = ordersByScore(orderKeys)
         ? (db.prepare(
             "SELECT COALESCE(MAX(id), 0) AS e FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ?"
           ).get(req.user.id, sessionActiveProfile.id)?.e ?? 0)
@@ -7619,7 +7614,8 @@ async function boardPageResponse(req) {
       // or profile is not presented as theirs (presentedScore below). Built, never scored: a few ms.
       // null when there is no base résumé — then no stored score is current, which is true.
       let boardBasisHash = null;
-      try { boardBasisHash = atsBasisForProfile(req.user.id, sessionActiveProfile)?.basisHash ?? null; }
+      // (Not needed to MEASURE — nothing is presented — so facets skip its few ms per clause.)
+      if (!measure) try { boardBasisHash = atsBasisForProfile(req.user.id, sessionActiveProfile)?.basisHash ?? null; }
       catch (e) { console.warn("[jobs] basis for stored-score check:", e.message); }
       const order     = orderByClause(orderKeys);
       // Projects each sort key into the SELECT as __cursor_kN, so the DATABASE computes the values
@@ -7759,6 +7755,7 @@ async function boardPageResponse(req) {
           ${yoeSql}
           ${minYoeSql}
           ${rich.sql}
+          ${fitBandSql}
           AND (uj.disliked IS NULL OR uj.disliked = 0)
       `;
       const argsFor = (rich) => [
@@ -7774,6 +7771,13 @@ async function boardPageResponse(req) {
       ];
       const whereClause = whereClauseFor(richFilters);
       const baseArgs    = argsFor(richFilters);
+      // D24 · GET /api/jobs/facets stops here, with the board's own bindings (see boardPageResponse's
+      // `measure` note). No page is fetched, no fit pass is scheduled, nothing is logged as a board load.
+      if (measure) {
+        return boardReply(200, { measured: true, value: measure({
+          db, joinClause, whereClause, baseArgs, unclassifiedSql: richFilters.established.unclassifiedSql,
+        }) });
+      }
 
       // ONE EXTRA ROW. Fetching ps+1 and trimming is what makes `hasMore` a fact rather than an
       // inference: comparing rows.length to ps cannot distinguish "exactly a full last page" from
@@ -7927,7 +7931,12 @@ async function boardPageResponse(req) {
       // user whose rows were never scored at all). First page only, and the precompute coalesces,
       // so paging or re-rendering costs nothing; when the cache is complete this is one plan query
       // that answers "nothing to do", off the request path.
-      if (fitApplied && !rawCursor && pg === 1) scheduleBoardFit(req.user.id, "board", sessionActiveProfile);
+      // D24 · also when the user asked for score order (Best fit) or filtered by fit: before, only the
+      // CURATED board scheduled a pass, so a user who only ever sorted by Best fit, or chose "where my
+      // fit is Strong", read a cache nothing was filling. Not on the Saved tab or under curate=off.
+      const wantsScores = fitApplied
+        || (!savedTab && req.query.curate !== 'off' && (sort === 'atsScore' || fitBands.length > 0));
+      if (wantsScores && !rawCursor && pg === 1) scheduleBoardFit(req.user.id, "board", sessionActiveProfile);
 
       // include_facets (optional, default-off): facet counts over the SAME filtered result
       // set, using the identical joinClause/whereClause/baseArgs as the main query.

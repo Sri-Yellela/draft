@@ -101,62 +101,6 @@ const EXP = (dir) => [
   ...RECENCY,
 ];
 
-/**
- * Every sort the board offers, as key lists. Reconciled against shared/jobFilterOptions.js's SORTS
- * by test/filterOptionContract.test.js — an option with no entry here would silently fall through
- * to the default and read to the user as a dead control, which is what happened to compHigh,
- * compLow and dateAsc before they were implemented.
- */
-const SORT_KEYS = {
-  dateDesc:       RECENCY,
-  dateAsc:        OLDEST,
-  // ⛔ CC5 · THIS SORTED ON A COLUMN THAT IS NULL ON EVERY ROW, i.e. it was a dead control: the
-  // NULLS_LAST key was equal for all 2,460 active rows and the order collapsed to RECENCY, so
-  // picking "Best match" silently gave you "Newest". `sj.ats_score` was also the wrong column even
-  // when populated — one cell per JOB, written from whichever user's résumé triggered the crawl.
-  //
-  // It now sorts on `aor.ats_score`, the caller's OWN cached score for their active profile
-  // (migration 108). Rows they have never had scored still sort last, which is honest: the control
-  // orders what it actually knows and says nothing about the rest.
-  //
-  // ⛔ IT IS NOT SCORED PER REQUEST, AND THAT IS MEASURED RATHER THAN ASSUMED. Scoring the whole
-  // board to sort it costs 2,458 rows x 6.67ms = 16.4 SECONDS. A cache read is the only affordable
-  // source, so the sort is only as complete as the user's own history — stated here so nobody
-  // reads a short "Best match" list as a bug.
-  //
-  // `aor` is the board query's own LEFT JOIN alias. Every other key here is `sj.`-prefixed for the
-  // same reason: these expressions are written against the caller's aliases, and buildOrderKeys has
-  // exactly one caller (server.js's board), which defines both.
-  atsScore:       [NULLS_LAST("aor.ats_score"),      KEY("aor.ats_score", "DESC"),      ...RECENCY],
-  applicantCount: [NULLS_LAST("sj.applicant_count"), KEY("sj.applicant_count", "ASC"),  ...RECENCY],
-  compHigh:       [NULLS_LAST("sj.salary_max"),      KEY("sj.salary_max", "DESC"),      ...RECENCY],
-  compLow:        [NULLS_LAST("sj.salary_min"),      KEY("sj.salary_min", "ASC"),       ...RECENCY],
-  yoeLow:         EXP("ASC"),
-  yoeHigh:        EXP("DESC"),
-};
-
-/** The column the ordering is guaranteed to end on. Nothing here works without it. */
-const TOTAL_ORDER_COLUMN = "sj.job_id";
-
-/**
- * Fail loudly rather than paginate wrongly.
- *
- * If a future sort is added that does NOT end in the primary key, its order is not total: rows tie,
- * SQLite is free to return a tie group in any order between queries, and a cursor built on it will
- * both repeat and skip rows — silently, because there is no error to raise at read time. Checking
- * it here turns that into a startup-time throw.
- */
-function assertTotalOrder(keys, label) {
-  const last = keys[keys.length - 1];
-  if (!last || last.sql !== TOTAL_ORDER_COLUMN) {
-    throw new Error(
-      `sort "${label}" does not end in ${TOTAL_ORDER_COLUMN}, so its order is not total and a ` +
-      `keyset cursor over it would repeat and skip rows`);
-  }
-  return keys;
-}
-for (const [name, keys] of Object.entries(SORT_KEYS)) assertTotalOrder(keys, name);
-
 // ── FIT: position encodes fit (owner decision 2026-09-29) ─────────────────────────────────────
 //
 // The default board ranked by the derived rank keys and then by RECENCY, and on a real profile the
@@ -204,6 +148,101 @@ const FIT_KEYS = Object.freeze([
 ]);
 
 /**
+ * Every sort the board offers, as key lists. Reconciled against shared/jobFilterOptions.js's SORTS
+ * by test/filterOptionContract.test.js — an option with no entry here would silently fall through
+ * to the default and read to the user as a dead control, which is what happened to compHigh,
+ * compLow and dateAsc before they were implemented.
+ */
+// ── D24 · THE SORT PANEL'S TIE-BREAKS, AS KEY GROUPS ──────────────────────────────────────────
+//
+// shared/filterSentence.js's SORT_PANEL declares, per sort, the tie-break chain IN WORDS ("newest
+// first", "then company A–Z", "best fit first") — because a coarse score ties hundreds of rows and
+// those ties used to fall to whatever the next key happened to be, invisibly. Each phrase is ONE key
+// group here, and test/d24FitFacetsSorts.test.js asserts every panel sort is exactly
+//     [its primary key(s), ...the groups its tieBreak names, in order, sj.job_id]
+// so the words on the panel and the ORDER BY cannot drift apart.
+//
+//   "newest first"   — the Newest sort's own keys: first seen (discovered_at, onto scraped_at for
+//                      pre-pivot rows), then the posting's own date with undated rows last.
+//   "best fit first" — FIT_KEYS' two expressions (band ordinal with NOT ESTABLISHED between Moderate
+//                      and Weak, then the score): the same "fit" the curated board leads with. NEW key
+//                      objects, not FIT_KEYS itself — ordersByFit() tests identity, so a tie-break on
+//                      fit does not read as "the board was ranked by fit" in the curation disclosure.
+//   "company A–Z"    — case-insensitive (LOWER — ASCII folding, as SQLite does without ICU), with a
+//                      NULL company last so the cursor never compares across the NULL partition.
+const NEWEST = RECENCY.slice(0, -1);
+const BEST_FIT = Object.freeze([KEY(FIT_BAND_SQL, "ASC"), KEY(FIT_SCORE_SQL, "DESC")]);
+const COMPANY_AZ = Object.freeze([NULLS_LAST("sj.company"), KEY("LOWER(sj.company)", "ASC")]);
+const BY_ID = KEY("sj.job_id", "ASC");
+/** The panel's tie-break phrases -> key groups. "then " is prose, not a different key. */
+const TIE_BREAK_KEYS = Object.freeze({
+  "newest first":   NEWEST,
+  "best fit first": BEST_FIT,
+  "company A–Z":    COMPANY_AZ,
+});
+const tieBreakKeys = (phrase) => TIE_BREAK_KEYS[String(phrase).replace(/^then\s+/, "")];
+
+const SORT_KEYS = {
+  // ⛔ D24 · NEWEST IS NEWEST. An EXPLICIT dateDesc no longer gets the curated prefix (derived rank
+  // keys + fit leading) — buildOrderKeys gives that to an ABSENT sort only. The panel's subtitle is
+  // "Most recently posted first. Shows everything.", and with fit leading it was neither. Ties: best
+  // fit first, then company A–Z.
+  dateDesc:       [...NEWEST, ...BEST_FIT, ...COMPANY_AZ, BY_ID],
+  dateAsc:        OLDEST,
+  // ⛔ CC5 · THIS SORTED ON A COLUMN THAT IS NULL ON EVERY ROW, i.e. it was a dead control: the
+  // NULLS_LAST key was equal for all 2,460 active rows and the order collapsed to RECENCY, so
+  // picking "Best match" silently gave you "Newest". `sj.ats_score` was also the wrong column even
+  // when populated — one cell per JOB, written from whichever user's résumé triggered the crawl.
+  //
+  // It now sorts on `aor.ats_score`, the caller's OWN cached score for their active profile
+  // (migration 108). Rows they have never had scored still sort last, which is honest: the control
+  // orders what it actually knows and says nothing about the rest.
+  //
+  // ⛔ IT IS NOT SCORED PER REQUEST, AND THAT IS MEASURED RATHER THAN ASSUMED. Scoring the whole
+  // board to sort it costs 2,458 rows x 6.67ms = 16.4 SECONDS. A cache read is the only affordable
+  // source, so the sort is only as complete as the user's own history — stated here so nobody
+  // reads a short "Best match" list as a bug.
+  //
+  // `aor` is the board query's own LEFT JOIN alias. Every other key here is `sj.`-prefixed for the
+  // same reason: these expressions are written against the caller's aliases, and buildOrderKeys has
+  // exactly one caller (server.js's board), which defines both.
+  //
+  // D24 · unscored rows LAST (the NULLS_LAST key — SORT_PANEL's `unscoredLast: true`), and ties
+  // newest first, then company A–Z: a score is coarse, so ties are the common case, not the edge.
+  atsScore:       [NULLS_LAST("aor.ats_score"),      KEY("aor.ats_score", "DESC"),      ...NEWEST, ...COMPANY_AZ, BY_ID],
+  applicantCount: [NULLS_LAST("sj.applicant_count"), KEY("sj.applicant_count", "ASC"),  ...RECENCY],
+  // D24 · "no stated pay sorts last" is the NULLS_LAST key; ties newest first, then company A–Z.
+  compHigh:       [NULLS_LAST("sj.salary_max"),      KEY("sj.salary_max", "DESC"),      ...NEWEST, ...COMPANY_AZ, BY_ID],
+  // D24 · new. Ties newest first; job_id makes it total.
+  companyAsc:     [...COMPANY_AZ, ...NEWEST, BY_ID],
+  compLow:        [NULLS_LAST("sj.salary_min"),      KEY("sj.salary_min", "ASC"),       ...RECENCY],
+  yoeLow:         EXP("ASC"),
+  yoeHigh:        EXP("DESC"),
+};
+
+/** The column the ordering is guaranteed to end on. Nothing here works without it. */
+const TOTAL_ORDER_COLUMN = "sj.job_id";
+
+/**
+ * Fail loudly rather than paginate wrongly.
+ *
+ * If a future sort is added that does NOT end in the primary key, its order is not total: rows tie,
+ * SQLite is free to return a tie group in any order between queries, and a cursor built on it will
+ * both repeat and skip rows — silently, because there is no error to raise at read time. Checking
+ * it here turns that into a startup-time throw.
+ */
+function assertTotalOrder(keys, label) {
+  const last = keys[keys.length - 1];
+  if (!last || last.sql !== TOTAL_ORDER_COLUMN) {
+    throw new Error(
+      `sort "${label}" does not end in ${TOTAL_ORDER_COLUMN}, so its order is not total and a ` +
+      `keyset cursor over it would repeat and skip rows`);
+  }
+  return keys;
+}
+for (const [name, keys] of Object.entries(SORT_KEYS)) assertTotalOrder(keys, name);
+
+/**
  * The full key list for a request: the derived profile-relevance prefix (default sort only), then
  * — when `fit` is asked for, default sort only — the fit keys, then the chosen sort.
  *
@@ -247,9 +286,17 @@ const FIT_KEYS = Object.freeze([
 // buildJobFilters' `established.keys`, 0 = known to match, 1 = not classified yet). They follow a
 // search tier and lead everything else, on EVERY sort — the user asked for Remote, so the rows known
 // to be remote come first whatever order they chose inside that.
+//
+// ⛔ D24 · THE CURATED DEFAULT IS AN *ABSENT* SORT, NO LONGER ALSO dateDesc. Until D24 "absence and
+// 'dateDesc' are the same state" (above), so choosing Newest gave rank keys + fit first and the sort
+// panel's "Most recently posted first" was false. Now an explicit sort is EXACTLY its SORT_KEYS chain
+// (after a search tier and the A73 known-first keys, which are filter semantics and lead every sort),
+// and the curated order (rank keys, fit, then newest, company A–Z, job_id) is what a request with NO
+// `sort` gets: the daily deck's, and any client asking for "the board as curated for me".
+const CURATED_TAIL = Object.freeze([...NEWEST, ...COMPANY_AZ, BY_ID]);
 function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null, established = [] } = {}) {
-  const chosen = SORT_KEYS[sort] || SORT_KEYS.dateDesc;
-  const sortIsDefault = !sort || sort === "dateDesc";
+  const sortIsDefault = !SORT_KEYS[sort];
+  const chosen = sortIsDefault ? CURATED_TAIL : SORT_KEYS[sort];
   const known = (established || []).map(k => KEY(k.sql, "ASC", k.params || []));
   if (search?.sql) {
     const tier = KEY(search.sql, "ASC", search.params || []);
@@ -262,9 +309,39 @@ function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null, estab
   return assertTotalOrder([...known, ...prefix, ...fitKeys, ...chosen], sort || "dateDesc");
 }
 
-/** Did this key list order by fit? The board discloses it as `curation.rankedKeys` 'fit'. */
+/**
+ * Did this key list order by fit? The board discloses it as `curation.rankedKeys` 'fit'.
+ * ⛔ D24 · by IDENTITY with FIT_KEYS: Newest's "best fit first" tie-break carries the same SQL in its
+ * own key objects (BEST_FIT), and a tie-break is not "the board was ranked by fit".
+ */
 function ordersByFit(keys) {
-  return keys.some(k => k.sql === FIT_BAND_SQL);
+  return keys.includes(FIT_KEYS[0]);
+}
+
+/**
+ * Does any key read the caller's score? Then the cursor must carry the fit EPOCH (below), because a
+ * precompute pass rewrites that score while the user pages. Before D24 only the curated fit keys were
+ * epoch-signed; the atsScore sort ordered by the same moving cell without it.
+ */
+function ordersByScore(keys) {
+  return keys.some(k => k.sql.includes(FIT_SCORE_SQL));
+}
+
+/**
+ * D24 · the fit FILTER (`fit_bands`): rows whose score falls in one of `bands`, cut at the same
+ * ATS_BAND_CUTPOINTS as FIT_BAND_SQL and atsBandFor(). ⛔ HARD — a NULL score is in no band, so an
+ * unscored row never matches "Strong" (or "Weak": unscored is not weak). Reads `aor`, the board's
+ * LEFT JOIN of the caller's own ats_only_reports row, the same cell the atsScore sort orders by.
+ * Returns a boolean SQL expression with no bound params, or null when no band is asked for.
+ */
+function fitBandsSql(bands) {
+  const want = new Set((bands || []).map(String));
+  const arms = [];
+  if (want.has("strong"))   arms.push(`${FIT_SCORE_SQL} >= ${Number(ATS_BAND_CUTPOINTS.strong)}`);
+  if (want.has("moderate")) arms.push(`(${FIT_SCORE_SQL} >= ${Number(ATS_BAND_CUTPOINTS.moderate)} AND ${FIT_SCORE_SQL} < ${Number(ATS_BAND_CUTPOINTS.strong)})`);
+  if (want.has("weak"))     arms.push(`${FIT_SCORE_SQL} < ${Number(ATS_BAND_CUTPOINTS.moderate)}`);
+  if (!arms.length) return null;
+  return `(${FIT_SCORE_SQL} IS NOT NULL AND (${arms.join(" OR ")}))`;
 }
 
 /** `expr DIR, expr DIR, ...` plus the params bound inside those expressions, in text order. */
@@ -409,5 +486,6 @@ export {
   buildOrderKeys, orderByClause, cursorProjection, cursorPredicate,
   encodeCursor, decodeCursor, cursorColumn, orderSignature, assertTotalOrder,
   KEY, NULLS_LAST,
-  FIT_KEYS, FIT_BAND_SQL, FIT_SCORE_SQL, FIT_BAND_ORDINAL, ordersByFit,
+  FIT_KEYS, FIT_BAND_SQL, FIT_SCORE_SQL, FIT_BAND_ORDINAL, ordersByFit, ordersByScore, fitBandsSql,
+  NEWEST, BEST_FIT, COMPANY_AZ, CURATED_TAIL, TIE_BREAK_KEYS, tieBreakKeys,
 };
