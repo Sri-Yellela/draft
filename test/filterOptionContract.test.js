@@ -27,7 +27,7 @@ import { SORT_KEYS } from "../services/jobs/jobCursor.js";
 
 import {
   FILTER_DIMENSIONS, EXPERIENCE_LEVELS, DOMAINS, WORK_MODELS, EMPLOYMENT_TYPES,
-  SOURCES, AUTOMATION_TIERS, SORTS, POSTING_AGE, VISITED, BOARD_STATUS,
+  SOURCES, AUTOMATION_TIERS, SORTS, POSTING_AGE, VISITED, BOARD_STATUS, FIT_BANDS,
   values, allValues, dbOnlyValues, valueSet, labelFor, labelMap, isValid, invalidEntries,
   ageDays, ageDaysMap, EXPERIENCE_LEVEL_ORDER,
 } from "../shared/jobFilterOptions.js";
@@ -41,7 +41,7 @@ test("every dimension is registered, and every registered dimension is well form
   // A dimension defined but not registered in FILTER_DIMENSIONS would be unguarded by everything
   // below AND unvalidated by the server, which is the worst of both.
   const exported = { EXPERIENCE_LEVELS, DOMAINS, WORK_MODELS, EMPLOYMENT_TYPES, SOURCES,
-                     AUTOMATION_TIERS, SORTS, POSTING_AGE, VISITED, BOARD_STATUS };
+                     AUTOMATION_TIERS, SORTS, POSTING_AGE, VISITED, BOARD_STATUS, FIT_BANDS };
   const registered = new Set(Object.values(FILTER_DIMENSIONS));
   for (const [name, dim] of Object.entries(exported)) {
     assert.ok(registered.has(dim), `${name} is exported but not in FILTER_DIMENSIONS`);
@@ -446,7 +446,7 @@ test("de-duplication changed no value that already worked", () => {
   assert.deepEqual(values(EMPLOYMENT_TYPES), ["full-time", "contract", "internship", "part-time"]);
   assert.deepEqual(values(AUTOMATION_TIERS), ["direct", "guest", "account", "gated", "unknown"]);
   assert.deepEqual(values(SORTS),
-    ["dateDesc", "dateAsc", "compHigh", "compLow", "yoeLow", "yoeHigh", "atsScore"]);
+    ["dateDesc", "dateAsc", "compHigh", "compLow", "yoeLow", "yoeHigh", "atsScore", "companyAsc"]);
   assert.deepEqual(values(VISITED), ["0", "1"]);
   assert.deepEqual(values(BOARD_STATUS), ["new", "starred", "applied"]);
 

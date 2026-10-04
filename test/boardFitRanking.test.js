@@ -27,7 +27,7 @@ import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import {
   buildOrderKeys, orderByClause, cursorProjection, cursorPredicate, encodeCursor, decodeCursor,
-  FIT_KEYS, FIT_BAND_SQL, FIT_BAND_ORDINAL, ordersByFit, RECENCY, SORT_KEYS,
+  FIT_KEYS, FIT_BAND_SQL, FIT_BAND_ORDINAL, ordersByFit, RECENCY, SORT_KEYS, CURATED_TAIL,
 } from "../services/jobs/jobCursor.js";
 import { createBoardFitPrecompute, atsBasisHash, atsJobInputHash } from "../services/jobs/boardFitPrecompute.js";
 import { atsBandFor, ATS_BAND, ATS_BAND_CUTPOINTS } from "../shared/atsBands.js";
@@ -111,7 +111,7 @@ function walk(db, keys, pageSize, epoch = null) {
   throw new Error("walk did not terminate");
 }
 
-const FIT_DEFAULT = () => buildOrderKeys("dateDesc", [], { fit: true });
+const FIT_DEFAULT = () => buildOrderKeys("", [], { fit: true });
 
 // ── ordering ─────────────────────────────────────────────────────────────────────────────────
 
@@ -191,23 +191,24 @@ test("the rank keys LEAD fit: a Strong row outside a derived window stays below 
     { id: "match-strong", score: 60, title: "Software Engineer" },
   ]);
   const rankKeys = [{ sql: "CASE WHEN sj.title LIKE ? THEN 0 ELSE 2 END", params: ["%Engineer%"] }];
-  assert.deepEqual(ordered(db, buildOrderKeys("dateDesc", rankKeys, { fit: true })),
+  assert.deepEqual(ordered(db, buildOrderKeys("", rankKeys, { fit: true })),
     ["match-strong", "match-weak", "miss-strong"],
     "fit orders what the rank keys leave tied; it does not override CC1's scope-shaped ordering");
 });
 
 test("fit is DEFAULT-ORDER ONLY and opt-in: an explicit sort, or no opt-in, is byte-identical to before", () => {
   const rk = [{ sql: "0", params: [] }];
-  for (const sort of Object.keys(SORT_KEYS).filter(s => s !== "dateDesc")) {
+  // D24: EVERY named sort is user-chosen now, dateDesc included — the curated order is an ABSENT sort.
+  for (const sort of Object.keys(SORT_KEYS)) {
     assert.ok(!ordersByFit(buildOrderKeys(sort, rk, { fit: true })), `${sort} is a user-chosen order`);
   }
-  assert.ok(!ordersByFit(buildOrderKeys("dateDesc", rk)), "absent opt-in adds nothing");
-  assert.deepEqual(buildOrderKeys("dateDesc", rk), buildOrderKeys("dateDesc", rk, { fit: false }));
-  const withFit = buildOrderKeys("dateDesc", rk, { fit: true });
+  assert.ok(!ordersByFit(buildOrderKeys("", rk)), "absent opt-in adds nothing");
+  assert.deepEqual(buildOrderKeys("", rk), buildOrderKeys("", rk, { fit: false }));
+  const withFit = buildOrderKeys("", rk, { fit: true });
   assert.ok(ordersByFit(withFit));
-  // rank prefix -> FIT_KEYS -> RECENCY, and still total.
+  // rank prefix -> FIT_KEYS -> newest, company A–Z, job_id (D24's CURATED_TAIL), and still total.
   assert.deepEqual(withFit.slice(1, 1 + FIT_KEYS.length), [...FIT_KEYS]);
-  assert.deepEqual(withFit.slice(1 + FIT_KEYS.length), RECENCY);
+  assert.deepEqual(withFit.slice(1 + FIT_KEYS.length), [...CURATED_TAIL]);
 });
 
 // ── the cursor ───────────────────────────────────────────────────────────────────────────────
@@ -224,7 +225,7 @@ test("a cursor walk across band boundaries and NULL scores returns every row exa
     });
   }
   seed(db, rows);
-  const keys = buildOrderKeys("dateDesc", [{ sql: "CASE WHEN sj.job_id < ? THEN 0 ELSE 1 END", params: ["j30"] }], { fit: true });
+  const keys = buildOrderKeys("", [{ sql: "CASE WHEN sj.job_id < ? THEN 0 ELSE 1 END", params: ["j30"] }], { fit: true });
   const expected = ordered(db, keys);
   assert.equal(expected.length, 67);
   for (const ps of [1, 2, 3, 4, 5, 7, 9, 10, 50]) {

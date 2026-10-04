@@ -84,7 +84,7 @@ test("⛔ the substring filter is GONE from the board", () => {
 test("⭐ the order: tier first, then ATS match (the fit keys) on the default sort; an explicit sort keeps the tier", () => {
   const search = boardSearchSql(["ai"]);
   const rank = [{ sql: "sj.title LIKE ?", params: ["%x%"] }];
-  const def = buildOrderKeys("dateDesc", rank, { fit: true, search });
+  const def = buildOrderKeys("", rank, { fit: true, search }); // D24: the default is an ABSENT sort
   assert.equal(def[0].sql, search.sql);
   assert.deepEqual(def[0].params, search.params);
   assert.equal(def[1], FIT_KEYS[0]);
@@ -96,7 +96,7 @@ test("⭐ the order: tier first, then ATS match (the fit keys) on the default so
   assert.equal(pay[0].sql, search.sql);
   assert.ok(!pay.includes(FIT_KEYS[0]), "an explicit sort replaces the fit tie-break");
   // No search → exactly as before.
-  assert.deepEqual(buildOrderKeys("dateDesc", rank, { fit: true }), buildOrderKeys("dateDesc", rank, { fit: true, search: null }));
+  assert.deepEqual(buildOrderKeys("", rank, { fit: true }), buildOrderKeys("", rank, { fit: true, search: null }));
 });
 
 test("⛔ a cursor issued for one search is REFUSED for another (the term is a bound parameter)", () => {
