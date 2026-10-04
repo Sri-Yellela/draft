@@ -52,7 +52,7 @@
 
 import { mapJobRow } from "../jobs/mapJobRow.js";
 import {
-  EXPERIENCE_LEVELS, WORK_MODELS, AUTOMATION_TIERS, EMPLOYMENT_TYPES, SORTS, values,
+  EXPERIENCE_LEVELS, WORK_MODELS, AUTOMATION_TIERS, EMPLOYMENT_TYPES, SORTS, POSTING_AGE, FIT_BANDS, values,
 } from "../../shared/jobFilterOptions.js";
 import { OUTCOME, OUTCOME_STATUSES } from "../../shared/applyOutcomeGroups.js";
 import { ATS_BAND } from "../../shared/atsBands.js";
@@ -61,6 +61,16 @@ import { ATS_BAND } from "../../shared/atsBands.js";
  * Semver. MAJOR is breaking; MINOR is additive. The rules, and why removing a field is
  * deliberately awkward, are in contract/README.md.
  *
+ * 2.0.0 — D24 (10-04). MAJOR, because GET /api/jobs/facets' response is REPLACED: the 1.x flat
+ *         workType / employmentType / category / postedAge / salaryRange took no query params (its
+ *         counts ignored every filter) and is gone, with its SalaryRange schema. It is now
+ *         FacetsResponse { total, known, unscored, clauses: { level, where, posted, fit } } over the
+ *         SAME params as GET /api/jobs. Also: the `sort` enum gains `companyAsc` (an enum gaining a
+ *         value breaks a closed decoder); new params `ageFilter` (enum postingAge) and `fit_bands`
+ *         (enum fitBand); the GET /api/jobs param `employment_type` corrected to `employment_types`
+ *         (the server never read the singular); and JobFeedResponse documents three keys it already
+ *         emitted — `unclassified` (A73), `emptyReason`, `needsProfileSetup`. An explicit `sort` is
+ *         now exactly its own order; omitting it gives the curated board.
  * 1.5.0 — GET /api/draft/today: `?order=ats` and `DeckResponse.order` — "ATS match" as a sort on the daily
  *         draft (A75, 10-03). Additive: the default is 'dealt', exactly the 1.4.0 behaviour; the score
  *         orders the cards and is still not sent. The three ATS-score annotations change from "INTERNAL —
@@ -87,7 +97,7 @@ import { ATS_BAND } from "../../shared/atsBands.js";
  *         a checksum and need a reason to re-copy.
  * 1.0.0 — initial contract.
  */
-export const CONTRACT_VERSION = "1.5.0";
+export const CONTRACT_VERSION = "2.0.0";
 
 // ------------------------------------------------------------------------------------------------
 // THE JOB SHAPE — derived by executing mapJobRow, not by reading it
@@ -197,6 +207,9 @@ export const ENUMS = Object.freeze({
   automationTier:  Object.freeze(values(AUTOMATION_TIERS)),
   employmentType:  Object.freeze(values(EMPLOYMENT_TYPES)),
   sort:            Object.freeze(values(SORTS)),
+  // D24 (2.0.0) — the filter sentence's age and fit clauses. postingAge omits "" (no opinion = omit).
+  postingAge:      Object.freeze(values(POSTING_AGE)),
+  fitBand:         Object.freeze(values(FIT_BANDS)),
   // The apply status vocabulary, flattened from the partition that already guarantees every status
   // appears exactly once. Deriving it from the partition rather than listing it means a status
   // added without being filed into a group cannot reach the contract.
