@@ -16,6 +16,7 @@ import { fetchCompanyJobs as workable } from "./jobs/sources/workable.js";
 import { fetchCompanyJobs as recruitee } from "./jobs/sources/recruitee.js";
 import { fetchCompanyJobs as workday } from "./jobs/sources/workday.js";
 import { usEligibility } from "./jobs/usLocation.js";
+import { fetchDescription, hasDetailFetcher } from "./jobs/detailFetch.js";
 
 export const ATS_FETCHERS = Object.freeze({ greenhouse, lever, ashby, smartrecruiters, workable, recruitee, workday });
 const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._|-]{0,119}$/;
@@ -56,8 +57,9 @@ export function harvestedSuggestions(db, limit = 50) {
  *   dead     the ATS answered 404 / not found — the slug is wrong or the board is gone
  *   empty    the board answered with zero postings — alive, nothing to crawl today
  *   live     postings, with how many carry positive US evidence (queue 37 would admit only those)
+ *   no_descriptions  postings, but no job text inline and none through the detail fetch (D20)
  */
-export async function validateBoard({ atsType, slug, company = "", fetchers = ATS_FETCHERS }) {
+export async function validateBoard({ atsType, slug, company = "", fetchers = ATS_FETCHERS, describe = defaultDescribe }) {
   const fetch = fetchers[atsType];
   if (!fetch) return { ok: false, state: "unsupported", message: `No crawler for "${atsType}".` };
   if (!SLUG_RE.test(String(slug || ""))) return { ok: false, state: "invalid", message: "That slug has characters no board slug has." };
@@ -73,9 +75,46 @@ export async function validateBoard({ atsType, slug, company = "", fetchers = AT
   if (!list.length) return { ok: true, state: "empty", jobs: 0, us: 0, sample: [],
     message: "The board is alive but has no postings right now. Enabling it is safe; it will add nothing until it posts." };
   const us = list.filter(j => usEligibility({ location: j.location, description: j.description, offices: [] }).admit).length;
-  return { ok: true, state: "live", jobs: list.length, us, sample: list.slice(0, 5).map(j => ({ title: j.title, location: j.location })),
-    companyGuess: list[0]?.company || null,
-    message: `${list.length} posting(s); ${us} with positive US evidence — only those reach the board.` };
+  const descriptions = await descriptionCoverage(list, atsType, describe);
+  const base = { jobs: list.length, us, descriptions, sample: list.slice(0, 5).map(j => ({ title: j.title, location: j.location })),
+    companyGuess: list[0]?.company || null };
+  // ⛔ D4 / D20: never enable a board at 0% description coverage. Ubisoft, Bosch and Adobe were seeded
+  // inactive for exactly this — 648 rows enrichment could never read. A list endpoint that carries no
+  // text (SmartRecruiters, Workday) passes only if the detail fetch the enrichment pass uses actually
+  // returns text for a sample of its postings.
+  if (descriptions.inline === 0 && descriptions.reachable === 0) {
+    return { ok: false, state: "no_descriptions", ...base,
+      message: `${list.length} posting(s), but none carries a description and ${descriptions.sampled ? `0 of ${descriptions.sampled} sampled detail pages returned one` : "there is no detail fetch for this ATS"} — every row would be unenrichable. Do not enable it.` };
+  }
+  return { ok: true, state: "live", ...base,
+    message: `${list.length} posting(s); ${us} with positive US evidence — only those reach the board. Descriptions: ${descriptions.note}.` };
+}
+
+const DETAIL_SAMPLE = 3;
+const defaultDescribe = row => fetchDescription(row, { maxRetries: 0, timeoutMs: 10000 });
+
+/**
+ * How many postings carry job text inline, and — when none do — whether the enrichment pass's detail
+ * fetch can reach it, measured on up to DETAIL_SAMPLE postings. `reachable` is a sample count, not a
+ * projection.
+ */
+export async function descriptionCoverage(list, atsType, describe = defaultDescribe) {
+  const inline = list.filter(j => String(j.description || "").trim().length > 0).length;
+  if (inline > 0) {
+    return { inline, of: list.length, sampled: 0, reachable: 0,
+      note: `${inline} of ${list.length} inline (${Math.round((inline / list.length) * 100)}%)` };
+  }
+  if (!hasDetailFetcher(atsType) || !describe) {
+    return { inline: 0, of: list.length, sampled: 0, reachable: 0, note: "none inline, no detail fetch" };
+  }
+  const sample = list.filter(j => j.url).slice(0, DETAIL_SAMPLE);
+  let reachable = 0;
+  for (const j of sample) {
+    const r = await describe({ job_id: j.id ?? null, source: atsType, url: j.url, company: j.company ?? null });
+    if (r?.ok) reachable++;
+  }
+  return { inline: 0, of: list.length, sampled: sample.length, reachable,
+    note: `none inline; the detail fetch returned text for ${reachable} of ${sample.length} sampled` };
 }
 
 function audit(db, adminUserId, action, target, before, after) {

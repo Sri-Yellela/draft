@@ -36,6 +36,7 @@ import { enrichBudget, onEnrichmentApplied } from "./services/jobs/enrichJob.js"
 import { createEnrichmentRouter } from "./routes/enrichment.js";
 import { createJobDataRouter } from "./routes/jobData.js";
 import { createCompaniesRouter } from "./routes/companies.js";
+import { createSlugHarvestRouter } from "./routes/slugHarvest.js";
 import { createDomainProfilesRouter } from "./routes/domainProfiles.js";
 import { createImportJobRouter } from "./routes/importJob.js";
 import { extensionStatusHandler } from "./routes/extensionStatus.js";
@@ -4029,6 +4030,73 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // D20 (owner, 10-04): the slug harvest rides in the daily manual sweep. A sweep runs a handful
+      // of SerpApi google_jobs searches by hand (no cron, no model), pools every ATS URL in the
+      // results' apply_options as an UNORDERED set of (ats_type, slug) — never attached to the job it
+      // was found under, because Google clusters different employers' postings into one result — and
+      // the owner reviews an export and imports decisions. Numbered 127: 125 and 126 are taken by the
+      // unmerged D16 and A76 branches.
+      //   slug_harvest_sweeps        one row per sweep: what was searched, what it found, per query
+      //   slug_harvest_pool          one row per (ats_type, slug) ever seen, its last validation and
+      //                              the owner's decision
+      //   slug_harvest_imports       provenance for an imported decision file (revertable whole)
+      //   slug_harvest_import_rows   each row's before-image, so a revert restores it exactly
+      id: "127_slug_harvest",
+      sql: `
+        CREATE TABLE IF NOT EXISTS slug_harvest_sweeps (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          started_at    INTEGER NOT NULL,
+          finished_at   INTEGER,
+          admin_user_id INTEGER,
+          searches      INTEGER NOT NULL DEFAULT 0,
+          links         INTEGER NOT NULL DEFAULT 0,
+          ats_links     INTEGER NOT NULL DEFAULT 0,
+          pairs         INTEGER NOT NULL DEFAULT 0,
+          new_pairs     INTEGER NOT NULL DEFAULT 0,
+          queries_json  TEXT NOT NULL,
+          error         TEXT
+        );
+        CREATE TABLE IF NOT EXISTS slug_harvest_pool (
+          ats_type        TEXT NOT NULL,
+          slug_key        TEXT NOT NULL,
+          ats_slug        TEXT NOT NULL,
+          sample_url      TEXT,
+          first_sweep_id  INTEGER,
+          first_query     TEXT,
+          first_seen_at   INTEGER NOT NULL,
+          last_seen_at    INTEGER NOT NULL,
+          times_seen      INTEGER NOT NULL DEFAULT 1,
+          state           TEXT,
+          validation_json TEXT,
+          validated_at    INTEGER,
+          decision        TEXT,
+          company         TEXT,
+          decided_at      INTEGER,
+          import_id       INTEGER,
+          company_id      INTEGER,
+          PRIMARY KEY (ats_type, slug_key)
+        );
+        CREATE TABLE IF NOT EXISTS slug_harvest_imports (
+          id              INTEGER PRIMARY KEY AUTOINCREMENT,
+          imported_at     INTEGER NOT NULL,
+          admin_user_id   INTEGER,
+          file_sha256     TEXT NOT NULL,
+          rows_written    INTEGER NOT NULL DEFAULT 0,
+          companies_added INTEGER NOT NULL DEFAULT 0,
+          reverted_at     INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS slug_harvest_import_rows (
+          import_id   INTEGER NOT NULL REFERENCES slug_harvest_imports(id),
+          ats_type    TEXT NOT NULL,
+          slug_key    TEXT NOT NULL,
+          before_json TEXT NOT NULL,
+          after_json  TEXT NOT NULL,
+          company_id  INTEGER,
+          PRIMARY KEY (import_id, ats_type, slug_key)
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7009,6 +7077,9 @@ app.use("/api/admin/enrichment", requireAdmin, createEnrichmentRouter(db, requir
 app.use("/api/admin/job-data", requireAdmin, createJobDataRouter(db, requireAdmin));
 // A50 step 4: the company list as a surface — probe a board before adding it; enable / disable, logged.
 app.use("/api/admin/companies", requireAdmin, createCompaniesRouter(db, requireAdmin));
+// D20: the slug harvest in the daily manual sweep — SerpApi searches started by a person, an export the
+// owner reviews, an import that adds companies. No cron, no model call.
+app.use("/api/admin/slug-harvest", requireAdmin, createSlugHarvestRouter(db, requireAdmin));
 
 app.use(createAccountRouter({
   db,
