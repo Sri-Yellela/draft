@@ -43,13 +43,13 @@ per-platform fact, measured by trying it, not assumed (§6).
 
 ## 1 · What is stored, exactly
 
-**Per (user, portal registrable domain)** — one *profile*:
+**Per (user, portal host)** — one *profile*. ⛔ *Corrected 10-04 (D22): this read "portal registrable domain". Every Workday tenant shares the registrable domain `myworkdayjobs.com` and its session cookies are host-only on `<tenant>.wdN.myworkdayjobs.com` — one sign-in per employer — so a registrable-domain key would merge every employer's session into one profile. The key is the host; the capture filter below still uses the registrable domain to refuse foreign cookies.*
 
 - Cookies whose domain is the portal's registrable domain or a subdomain of it — name, value,
   domain, path, expiry, `Secure`, `HttpOnly`, `SameSite`. Nothing for any other site: the capture
   filters by registrable domain (the same check that stopped "Localhost" being filed as a company)
 - `localStorage` for that portal's origins only
-- Metadata, unencrypted: `user_id`, portal domain, `created_at`, `last_used_at`, `expires_at`,
+- Metadata, unencrypted **and sensitive** (it names the employer — see §4): `user_id`, portal host, `created_at`, `last_used_at`, `expires_at`,
   profile version
 
 **Never stored:** passwords, form values, keystrokes, screenshots, page HTML, IndexedDB, cache,
@@ -119,6 +119,19 @@ rotate session cookies) and re-encrypt it under a **new** data key.
 > phone number, work authorisation and sometimes demographic answers) — until the portal's session
 > expires, the user disconnects, or the portal revokes it. They get no passwords, nothing on any
 > other site, and no access to the user's email.**
+>
+> **An attacker who obtains the database alone, without the key, can act as no one — but learns
+> which employers each user holds a live session with, and when each was connected and last used:
+> the portal host is stored in the clear and names the employer (`metacareers.com`; for Workday,
+> the tenant subdomain, `<employer>.wd5.myworkdayjobs.com`), and the use log names the applications.
+> That is a list of the employers each user is pursuing. It is not new exposure: `job_applications`
+> and `application_records` already hold the company, role and job URL of every application in the
+> clear, so the same breach yields it today without E3.**
+
+*(D22, 10-04: the database-only sentence added — the gap D22 raised. The host stays in the clear
+deliberately: encrypting it alone would protect nothing while `job_applications.company` is plaintext,
+and would imply a privacy that does not exist. Protecting the employer list is a database-wide
+decision, not an E3 one — options in `E3_SECTION6_WORKDAY.md`, Task B.)*
 
 That sentence **is** uncomfortable, and the parent doc says that means the design is not finished.
 What makes it acceptable is not in the sentence but in the conditions around it:
@@ -155,18 +168,20 @@ with access to its memory. ⛔ This is the reason B is not the design.
 
 ## 6 · Per-platform facts to establish before building for a platform
 
-Each of these is a **fact to measure per platform**, not a property to assume. ⛔ None has been
-checked.
+Each of these is a **fact to measure per platform**, not a property to assume. ⛔ Workday was measured 10-04 (D22) —
+`E3_SECTION6_WORKDAY.md`, every claim marked VERIFIED / MEASURED / UNVERIFIED. Amazon and Meta are unchecked.
 
 | Platform | Terms prohibit automated submission? | Session bound to IP / fingerprint? | Sign-in in a WebView allowed? (some IdPs block embedded browsers) |
 |---|---|---|---|
-| Workday | unchecked | unchecked | unchecked |
+| Workday | ⚠ **Workday's ToS forbid "any applications that interact with our Sites without our prior written consent" and letting "any other person or entity … use your account"** — binding at least on the "Continue with MyWorkday" sign-in; each tenant adds its own candidate terms. **Owner/legal reading required before any build (O59)** | unmeasured. Session cookies host-only per tenant, **no `Expires`** (server idle timeout decides, unknown for candidates; employees: 15–30 min); `wd-browser-id`; Cloudflare Bot Management on every tenant seen; `cf_clearance` device-bound | email/password probably (unverified); **Google: no** (WebView OAuth blocked since 2021); others unverified |
 | Amazon (amazon.jobs) | unchecked | unchecked | unchecked |
 | Meta careers | unchecked | unchecked | unchecked |
 
 ⛔ A "prohibited" in column one means we do not build for that platform, regardless of who
 authorised it. ⚠ Google sign-in refuses embedded WebViews by policy; a portal that only offers
 "Sign in with Google" may force shape B or be out of scope.
+
+⚠ **Workday consequences (10-04):** §3's `min(the portal's own cookie expiry, 30 days)` always falls back to 30 days for Workday — there is no cookie date to read, so it overstates the real lifetime, and D22's *"will sign you out on 5 Oct"* copy cannot be produced for Workday. If the candidate idle timeout is near the employee one, "sign in on the phone, apply later from the worker" does not work for Workday at all. **The cheapest decisive test is the owner's and needs no automation (O59):** sign in to one tenant on a phone, leave it idle, reload at 30 / 60 / 120 minutes.
 
 **Detection** (datacenter IPs): residential proxies are the usual answer, and the parent doc calls
 them murky — they are, and this design **does not adopt them**. If a platform flags datacenter
