@@ -38,6 +38,14 @@ import {
 import CompanyIcon from "../components/ui/CompanyIcon.jsx";
 // AH2: the job-detail address, shared with JobCard so the href and the param cannot disagree.
 import { JOB_URL_PARAM, jobIdFromSearch } from "../lib/jobUrl.js";
+// D24: the sentence and the sort panel, and the facets answer they read their counts from.
+import FilterSentence from "../components/FilterSentence.jsx";
+import SortPanel from "../components/SortPanel.jsx";
+import { useJobFacets } from "../hooks/useJobFacets.js";
+import {
+  BOARD_PANEL, SENTENCE_CLAUSES, activeClauseCount as countActiveClauses, clearAllClauses,
+} from "../lib/filterSentenceModel.js";
+import { FIT_BANDS } from "../../../shared/filterSentence.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { bandChipStyle } from "../styles/bandStyle.js";
 import { C } from "../styles/colorTokens.js";
@@ -405,6 +413,10 @@ function defaultFilterSnapshot() {
     sourcesExclude: [],
     tiersInclude: [],
     tiersExclude: [],
+    // D24: the sentence's fourth clause, "where my fit is Strong" — FIT_BANDS, a HARD filter (an
+    // unscored job matches no band). Empty is the default-off state, so the default querystring is
+    // unchanged.
+    fitBands: [],
   };
 }
 
@@ -1275,7 +1287,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     selectedJob, setSelectedJob, setSelectedJobMeta,
     barFilters, liveSearchTick,
     filterPanelOpen, setFilterPanelOpen, setActiveFilterCount,
-    setAtsSortAvailable,
+    setAtsSortAvailable, atsSortAvailable,
+    boardPanel, setBoardPanel, setActiveClauseCount,
   } = useJobBoard();
 
   // Open / close sandbox — panel size rebalancing handled by useEffect below.
@@ -1584,6 +1597,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const [sourcesExclude, setSourcesExclude] = useState([]);
   const [tiersInclude,   setTiersInclude]   = useState([]);
   const [tiersExclude,   setTiersExclude]   = useState([]);
+  const [fitBands,       setFitBands]       = useState([]);
   const [facetCounts,    setFacetCounts]    = useState(null);
   const [pendingFilters, setPendingFilters] = useState(defaultFilterSnapshot);
 
@@ -1657,11 +1671,12 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     sourcesExclude,
     tiersInclude,
     tiersExclude,
+    fitBands,
   }), [
     roleFilter, locationFilter, workType, employmentTypePrefs,
     catFilter, srcFilter, minYoe, maxYoe, maxApplicants, visitedFilter, ageFilter,
     salaryMin, salaryMax, workModels, experienceLevels, skillsInclude, sponsorFriendly,
-    companySponsors, sourcesInclude, sourcesExclude, tiersInclude, tiersExclude,
+    companySponsors, sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, fitBands,
   ]);
 
   const stageFilter = useCallback((key, value) => {
@@ -1707,6 +1722,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setSourcesExclude(Array.isArray(next.sourcesExclude) ? next.sourcesExclude : []);
     setTiersInclude(Array.isArray(next.tiersInclude) ? next.tiersInclude : []);
     setTiersExclude(Array.isArray(next.tiersExclude) ? next.tiersExclude : []);
+    setFitBands(Array.isArray(next.fitBands) ? next.fitBands : []);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyPendingFilters = useCallback(() => {
@@ -1792,7 +1808,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setCurrentPage(snapshot.currentPage || 1);
     setBoardTab(["linkedin", "linkedin_saved"].includes(snapshot.boardTab) ? "saved" : (snapshot.boardTab || "all"));
     setLocalSearch(snapshot.localSearch || "");
-    setSortBy(snapshot.sortBy || "dateDesc");
+    setSortBy(snapshot.sortBy || "");
     // Restore every committed filter through the single writer, and re-stage the drawer to match, so
     // reopening it shows the filters the board is actually applying. Hand-listing them here is what
     // dropped the newer ones on every reload and profile switch.
@@ -2084,7 +2100,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (cursor) p.set("cursor", cursor);
     else        p.set("page", String(page));
     p.set("pageSize", String(PAGE_SIZE));
-    p.set("sort", sortBy);
+    // D24: the curated default sends NO sort (sortBy === ""); see JobBoardContext.
+    if (sortBy)               p.set("sort", sortBy);
     const effectiveRole = overrides.role ?? roleFilter;
     const effectiveVisited = overrides.visited ?? visitedFilter;
     if (effectiveRole.trim()) p.set("role",     effectiveRole.trim().toLowerCase());
@@ -2134,6 +2151,10 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (sourcesExclude.length) p.set("sources_exclude", sourcesExclude.join(","));
     if (tiersInclude.length)   p.set("tiers_include",   tiersInclude.join(","));
     if (tiersExclude.length)   p.set("tiers_exclude",   tiersExclude.join(","));
+    // D24: the fit clause. Its param name is the contract's (FIT_BANDS.param), read by the server
+    // half's GET /api/jobs and /api/jobs/facets — test/d24FilterSentenceClient.test.js holds the
+    // server to reading it once that half is merged.
+    if (fitBands.length)       p.set(FIT_BANDS.param,   fitBands.join(","));
     // posted_after: derived from the SAME named-interval the legacy ageFilter already uses —
     // no new UI control, matching the server's own AGE_MAP (server.js's /api/jobs handler).
     // Redundant with ageFilter's own inline clause (same date, same source of truth) — both
@@ -2147,7 +2168,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       minYoe, maxYoe, maxApplicants, visitedFilter, ageFilter, domainFilter, appliedFilter,
       boardTab, localSearch,
       salaryMin, salaryMax, workModels, experienceLevels, skillsInclude, sponsorFriendly,
-      sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, curateOff]);
+      sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, curateOff, fitBands]);
 
   // FE-2: opt-in facet counts for the panel currently being edited — requested against the
   // CURRENTLY-COMMITTED filters (buildParams(1)), not the still-being-staged pendingFilters, so
@@ -2183,6 +2204,49 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // lives here — and it is the SAME activeFilterCount the empty-board notice already uses, so the
   // badge and the notice can never disagree about how narrow the board is.
   useEffect(() => { setActiveFilterCount(activeFilterCount); }, [activeFilterCount, setActiveFilterCount]);
+
+  // ── D24: THE SENTENCE AND THE SORT PANEL ──────────────────────────────────────────────────────
+  //
+  // The icons are App.jsx's; the panels render here, directly under the search bar, because the
+  // committed filters and the facets answer are here — W4's split, unchanged. Both closed by default
+  // (JobBoardContext's boardPanel starts null), so the board starts right under the bar.
+  //
+  // The four clauses read and write the board's COMMITTED filters directly — a press applies at once,
+  // because the counts on the popover already said what it would do. No staging, no Apply. The
+  // clause -> state binding is keyed by the contract's clause key; no param name is written here.
+  const clauseState = {
+    level:  [experienceLevels, setExperienceLevels],
+    where:  [workModels,       setWorkModels],
+    posted: [ageFilter,        setAgeFilter],
+    fit:    [fitBands,         setFitBands],
+  };
+  const clauseParams = Object.fromEntries(
+    SENTENCE_CLAUSES.map(c => [c.dim.param, clauseState[c.key]?.[0]]));
+  const clauseCount = countActiveClauses(clauseParams);
+  useEffect(() => { setActiveClauseCount?.(clauseCount); }, [clauseCount, setActiveClauseCount]);
+
+  const applyClausePatch = (patch) => {
+    for (const c of SENTENCE_CLAUSES) {
+      if (Object.prototype.hasOwnProperty.call(patch, c.dim.param)) clauseState[c.key]?.[1](patch[c.dim.param]);
+    }
+    setCurrentPage(1);
+  };
+  // "Clear all ×" clears the sentence AND the drawer's filters (the footer counts those as "on"), but
+  // not the search bar's own fields — those are visible where they were typed.
+  const clearSentenceAndDrawer = () => {
+    const base = defaultFilterSnapshot();
+    setPendingFilters(base);
+    applyFilterSnapshot(base);
+    applyClausePatch(clearAllClauses());
+  };
+  // Filters that are NOT clauses (the drawer's) and still narrow the board. The bar's Domain and
+  // Status are left out: they are visible on the bar itself.
+  const otherFilterCount = Math.max(0,
+    activeFilterCount - clauseCount - (domainFilter ? 1 : 0) - (appliedFilter ? 1 : 0));
+
+  // GET /api/jobs/facets, for the board's own querystring, only while a panel is open.
+  const facetsQs = useMemo(() => buildParams(1), [buildParams]);
+  const facets = useJobFacets(facetsQs, boardPanel != null, api);
 
   // openLinkedInExtensionPopup / closeLinkedInImportTab / startLinkedInImport removed in cleanup
   // 5.3. They drove the LinkedIn bulk saved-jobs import, and every one of them called
@@ -2435,6 +2499,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       // reason the four above do — without it, "Show all N" would build the right querystring and
       // never send it, and the control would look dead.
       curateOff,
+      // D24's fit clause, added with it — the same reason as every entry above.
+      fitBands,
   ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // -- The search bar's params land here ------------------------------------------------------
@@ -3581,6 +3647,28 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             generateActual(job, false, true, tool);
           }}
           onCancel={() => setCompanyReuseTarget(null)}
+        />
+      )}
+
+      {/* D24: the sentence or the sort panel — never both, neither by default. */}
+      {boardPanel === BOARD_PANEL.FILTER && (
+        <FilterSentence
+          params={clauseParams}
+          facets={facets.data}
+          facetsStatus={facets.status}
+          onChange={applyClausePatch}
+          onClearAll={clearSentenceAndDrawer}
+          otherFilterCount={otherFilterCount}
+          onMoreFilters={() => { setBoardPanel(null); setFilterPanelOpen(true); }}
+        />
+      )}
+      {boardPanel === BOARD_PANEL.SORT && (
+        <SortPanel
+          value={sortBy}
+          onChange={setSortBy}
+          atsAvailable={atsSortAvailable}
+          facets={facets.data}
+          facetsStatus={facets.status}
         />
       )}
 

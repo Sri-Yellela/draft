@@ -120,7 +120,9 @@ test("EVERY CONTROL THE PILL CARRIED IS STILL REACHABLE", () => {
   assert.match(app, /<BoardTabs \/>/, "BoardTabs is defined but never rendered");
   // ...and the three that did NOT need moving are still where they were.
   assert.match(app, /<BoardControlIcons \/>/);
-  assert.match(app, /ariaLabel="Sort"/);
+  // D24: the sort control is BoardPanelIcons' sort icon (it opens the sort panel).
+  assert.match(app, /<BoardPanelIcons\b/);
+  assert.match(read("client/src/components/BoardPanelIcons.jsx"), /aria-label=\{sortLabel \? `Sort: \$\{sortLabel\}` : "Sort"\}/);
   assert.match(topbar, /<ProfileSelectorDropdown/, "the profile switcher left the avatar menu");
   assert.match(read("client/src/components/UnifiedSearchBar.jsx"),
     /placeholder="Job title or keywords"/);

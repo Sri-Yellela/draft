@@ -11,7 +11,10 @@ const EMPTY_BAR_FILTERS = { query: "", location: "", experience: "", domain: "",
 export function JobBoardProvider({ children }) {
   const [boardTab,    setBoardTab]    = useState("all");
   const [localSearch, setLocalSearch] = useState("");
-  const [sortBy,      setSortBy]      = useState("dateDesc");
+  // D24: "" = the CURATED default — GET /api/jobs is sent NO sort param and answers with the
+  // profile's relevance and fit first. An explicit "dateDesc" now means truly newest-first, so it is
+  // sent only when the user picks Newest in the sort panel.
+  const [sortBy,      setSortBy]      = useState("");
   const [activeProfileId, setActiveProfileId] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedJobMeta, setSelectedJobMeta] = useState(null);
@@ -61,6 +64,21 @@ export function JobBoardProvider({ children }) {
   // and not a decoration.
   const [activeFilterCount, setActiveFilterCount] = useState(0);
 
+  // -- D24: the two panels behind the two icons -----------------------------------------------
+  //
+  // ⛔ BOTH CLOSED BY DEFAULT — the board starts right under the search bar. ONE value, not two
+  // booleans: null | "filter" (the sentence) | "sort" (the sort panel), so the two are mutually
+  // exclusive by construction (lib/filterSentenceModel.js's nextBoardPanel). The icons are in
+  // App.jsx; the panels render in JobsPanel, which owns the filters and the facets answer — the
+  // same split W4 made for the drawer, for the same reason.
+  //
+  // `filterPanelOpen` above is still the DRAWER — the filters that are not clauses — reached from the
+  // sentence's "More filters".
+  const [boardPanel, setBoardPanel] = useState(null);
+  // The filter icon's badge: how many of the sentence's clauses carry a choice (activeClauseCount,
+  // shared/filterSentence.js). Published upward by JobsPanel, which holds the committed filters.
+  const [activeClauseCount, setActiveClauseCount] = useState(0);
+
   const applyBarFilters = useCallback((params, { live = false } = {}) => {
     setBarFilters({ ...EMPTY_BAR_FILTERS, ...(params || {}) });
     if (live) setLiveSearchTick(t => t + 1);
@@ -99,6 +117,7 @@ export function JobBoardProvider({ children }) {
       barFilters, applyBarFilters, liveSearchTick,
       atsSortAvailable, setAtsSortAvailable,
       filterPanelOpen, setFilterPanelOpen, activeFilterCount, setActiveFilterCount,
+      boardPanel, setBoardPanel, activeClauseCount, setActiveClauseCount,
     }}>
       {children}
     </JobBoardContext.Provider>

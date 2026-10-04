@@ -7,6 +7,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { SORTS } from "../shared/jobFilterOptions.js";
+import { SORT_PANEL } from "../shared/filterSentence.js";
 import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8");
@@ -38,18 +39,24 @@ test("every sort option moved across intact — same values, same labels", () =>
   // App.jsx maps over it, so the seven pairs are checked against THAT. The old version read a
   // literal `const SORT_OPTIONS = [...]`; that is exactly the second copy X1 removed, and a test
   // that requires the copy to exist is a test that forbids the fix.
-  assert.deepEqual(
-    SORTS.options.map(o => [o.value, o.label]),
-    [["dateDesc", "Newest"], ["dateAsc", "Oldest"],
+  //
+  // D24 (10-04) IS a redesign, by decision: the sort icon opens THE SORT PANEL — Best fit · Newest ·
+  // Salary · Company A–Z, shared/filterSentence.js's SORT_PANEL, each with its subtitle and visible
+  // tie-break. SORTS stays what GET /api/jobs VALIDATES against, so the seven pairs must still be in
+  // it (a subset now, not an exact list: the server half of D24 adds companyAsc to it).
+  for (const pair of [["dateDesc", "Newest"], ["dateAsc", "Oldest"],
      ["compHigh", "Pay high to low"], ["compLow", "Pay low to high"],
      ["yoeLow", "Exp low to high"], ["yoeHigh", "Exp high to low"],
-     ["atsScore", "ATS match"]],
-    "the sort menu's values or labels changed");
-  // ...and that App.jsx really renders FROM it rather than keeping a copy beside it.
-  assert.match(app, /const SORT_OPTIONS = SORTS\.options\.map/,
-    "App.jsx holds its own sort list again");
-  // Reuses the bar's dropdown rather than being a second implementation.
-  assert.match(app, /<UsbSelect\s*\n?\s*iconOnly/);
+     ["atsScore", "ATS match"]]) {
+    assert.ok(SORTS.options.some(o => o.value === pair[0] && o.label === pair[1]),
+      `the server's sort set lost ${pair.join(" / ")}`);
+  }
+  // ...and App.jsx renders the PANEL's list through the model, holding no copy of its own.
+  assert.match(app, /sortRows\(atsSortAvailable\)/, "App.jsx no longer reads the sort panel's list");
+  assert.ok(!/const SORT_OPTIONS\s*=/.test(app), "App.jsx holds its own sort list again");
+  assert.ok(SORT_PANEL.length >= 4, "precondition: the sort panel offers its four orders");
+  // One sort surface: the panel behind the icon, not a dropdown beside it.
+  assert.ok(!/<UsbSelect\s*\n?\s*iconOnly/.test(app), "the old sort dropdown is back beside the panel");
 });
 
 test("NEW IN 24H and Save Search moved INTO the filters panel, and still exist", () => {
@@ -95,8 +102,12 @@ test("A74 (owner, 10-03): the count bar and the filters-active chip are GONE —
   // active filters". The badge is what carries it now, so it must exist.
   assert.doesNotMatch(panel, /job\{totalJobs !== 1 \? "s" : ""\}/, "the job count is back");
   assert.doesNotMatch(panel, /\{activeFilterCount\} filter\{activeFilterCount === 1 \? "" : "s"\} active/, "the filters-active chip is back");
+  // D24: the badge is the number of the SENTENCE's clauses with a choice (activeClauseCount), and
+  // the icon is BoardPanelIcons, which App.jsx renders and feeds.
   const appSrc = fs.readFileSync("client/src/App.jsx", "utf8");
-  assert.match(appSrc, /aria-label=\{on \? `Filters \(\$\{activeFilterCount\} active\)` : "Filters"\}/);
+  assert.match(appSrc, /badge=\{activeClauseCount\}/);
+  const icons = fs.readFileSync("client/src/components/BoardPanelIcons.jsx", "utf8");
+  assert.match(icons, /aria-label=\{on \? `Filters \(\$\{badge\} active\)` : "Filters"\}/);
 });
 
 test("the badge counts the same filters the empty-board notice counts", () => {
