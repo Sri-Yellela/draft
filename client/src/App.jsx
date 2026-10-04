@@ -31,9 +31,8 @@ import { AccountPanel }          from "./panels/AccountPanel.jsx";
 import { RecruiterPanel }        from "./panels/RecruiterPanel.jsx";
 import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
 import UnifiedSearchBar          from "./components/UnifiedSearchBar.jsx";
-import { SlidersHorizontal, ArrowUpDown } from "lucide-react";
-import UsbSelect                 from "./components/UsbSelect.jsx";
-import { SORTS }                 from "../../shared/jobFilterOptions.js";
+import BoardPanelIcons           from "./components/BoardPanelIcons.jsx";
+import { nextBoardPanel, sortRows, isSortChosen, DEFAULT_SORT } from "./lib/filterSentenceModel.js";
 import { ATSToolPage }           from "./pages/tools/ATSToolPage.jsx";
 import { GenerateToolPage }      from "./pages/tools/GenerateToolPage.jsx";
 import { ApplyToolPage }         from "./pages/tools/ApplyToolPage.jsx";
@@ -219,83 +218,42 @@ function BoardTabs() {
   );
 }
 
-// The board's sort options, from the shared filter contract. Same list, same values, that the
-// removed "Newest" select in the control row held. It was a literal here AND a second literal in
-// TopBar's collapsed pill, and the two had already drifted on labels ("Pay high to low" here vs
-// "Pay ↓" there) — one control, two renderings, disagreeing about what to call the same value.
-const SORT_OPTIONS = SORTS.options.map(o => ({ v: o.value, l: o.label }));
-
-// The consolidated control row (W4): a filter icon and a sort icon (IMPORT beside them went in D11).
+// D24: THE FILTER AND SORT ICONS — same place as since W4 (the right of the search bar's actions row),
+// new look and new contents. The filter icon opens THE SENTENCE, the sort icon THE SORT PANEL; both
+// panels render in JobsPanel, directly under the search bar, and both are closed by default.
 //
-// Inside JobBoardProvider for the same reason BoardSearchBar is — AppDashboard renders the
-// provider and so cannot read it. The filter icon only TOGGLES; the panel itself, and every piece
-// of staging logic behind it, stays in JobsPanel untouched. The sort icon reuses UsbSelect, the
-// same dropdown the search bar uses, so the board has one dropdown implementation rather than one
-// per surface.
+// ⛔ MUTUALLY EXCLUSIVE BY CONSTRUCTION: one context value, `boardPanel`, and nextBoardPanel decides
+// what a press does — press the open one and it closes, press the other and they swap.
+//
+// Inside JobBoardProvider for the same reason BoardSearchBar is — AppDashboard renders the provider
+// and so cannot read it.
+//
+// The sort list is shared/filterSentence.js's SORT_PANEL (Best fit · Newest · Salary · Company A–Z),
+// read through sortRows — no copy of it lives here. It replaced the seven-entry SORTS dropdown;
+// SORTS stays the server's VALIDATION set for the param.
 function BoardControlIcons() {
-  const { filterPanelOpen, setFilterPanelOpen, activeFilterCount, sortBy, setSortBy,
+  const { boardPanel, setBoardPanel, activeClauseCount, sortBy, setSortBy,
           atsSortAvailable } = useJobBoard();
-  const on = activeFilterCount > 0;
 
-  // ⛔ THE RESUME GATES THIS CONTROL AND NOTHING ELSE. Decided 2026-09-26, replacing a gate that
-  // hid the entire board: /api/jobs ranks fine without a resume (by target title and role key), so
-  // the only thing a missing one actually prevents is ranking by FIT — this option, which would
-  // otherwise sort every row by an ats_score that is null for all of them.
-  //
-  // Removed from the list rather than shown disabled: a disabled entry in a six-item dropdown
-  // invites a click that does nothing, and the reason lives on the board where the resume is
-  // actually uploaded (JobsPanel's notice), not in a tooltip on a menu item.
-  const sortOptions = atsSortAvailable
-    ? SORT_OPTIONS
-    : SORT_OPTIONS.filter(o => o.v !== "atsScore");
-
-  // And if the board was already sorted by fit when the resume went away, fall back rather than
-  // leaving the control displaying a value it no longer offers.
+  // ⛔ THE RESUME GATES BEST FIT AND NOTHING ELSE. Decided 2026-09-26, replacing a gate that hid the
+  // entire board: /api/jobs ranks fine without a resume (by target title and role key), so the only
+  // thing a missing one actually prevents is ranking by FIT. sortRows(false) leaves Best fit out of
+  // the panel; this falls back if the board was already sorted by fit when the resume went away,
+  // rather than leaving the board on an order the panel no longer offers.
+  const fitRow = sortRows(true).find(r => r.unscoredLast);
   useEffect(() => {
-    if (!atsSortAvailable && sortBy === "atsScore") setSortBy("dateDesc");
-  }, [atsSortAvailable, sortBy, setSortBy]);
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-      <button
-        type="button"
-        onClick={() => setFilterPanelOpen(o => !o)}
-        aria-expanded={filterPanelOpen}
-        aria-label={on ? `Filters (${activeFilterCount} active)` : "Filters"}
-        title={on ? `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"} active` : "Filters"}
-        style={{
-          position: "relative", display: "flex", alignItems: "center", gap: 6,
-          padding: "6px 10px", borderRadius: 999,
-          background: filterPanelOpen ? "var(--c-hover)" : "transparent",
-          border: `1px solid ${on || filterPanelOpen ? "var(--color-primary)" : "var(--border-glass)"}`,
-          color: on || filterPanelOpen ? "var(--color-primary)" : "var(--color-text-muted)",
-          cursor: "pointer",
-        }}>
-        <SlidersHorizontal size={15} />
-        {/* The badge is load-bearing, not decoration: with the filters behind an icon it is the
-            only thing that explains an unexpectedly narrow board. It carries the COUNT rather than
-            being a dot, so "why is this empty" has a number attached to it. */}
-        {on && (
-          <span
-            aria-hidden="true"
-            style={{
-              minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999,
-              background: "var(--color-primary)", color: "var(--color-on-primary)",
-              fontSize: 10, fontWeight: 800, lineHeight: "16px", textAlign: "center",
-            }}>
-            {activeFilterCount}
-          </span>
-        )}
-      </button>
+    if (!atsSortAvailable && fitRow && sortBy === fitRow.value) setSortBy(DEFAULT_SORT);
+  }, [atsSortAvailable, sortBy, setSortBy, fitRow]);
 
-      <UsbSelect
-        iconOnly
-        icon={ArrowUpDown}
-        ariaLabel="Sort"
-        value={sortBy || "dateDesc"}
-        onChange={setSortBy}
-        options={sortOptions}
-      />
-    </div>
+  const sortLabel = sortRows(atsSortAvailable).find(r => r.value === sortBy)?.label || "";
+  return (
+    <BoardPanelIcons
+      open={boardPanel}
+      onPress={(which) => setBoardPanel(current => nextBoardPanel(current, which))}
+      badge={activeClauseCount}
+      sortLabel={sortLabel}
+      sortChosen={isSortChosen(sortBy)}
+    />
   );
 }
 
@@ -564,7 +522,7 @@ function AppDashboard({ authUser, setAuthUser }) {
                     <BoardTabs />
 
                     {/* RIGHT: the board's actions, in the order and with the behaviour they had. */}
-                    <div style={{ display: "flex", alignItems: "center", paddingBottom: 4 }}>
+                    <div style={{ display: "flex", alignItems: "center", paddingBottom: 4, marginLeft: "auto" }}>
                       <BoardControlIcons />
                       {/* D11: no IMPORT button. Importing is the extension's job now: it posts to
                           the same /api/import/job the removed modal did. D12 puts the way to GET it

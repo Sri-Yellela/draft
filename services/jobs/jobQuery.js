@@ -302,6 +302,25 @@ function skillsIncludeSql(terms) {
   return sql.length ? { sql: sql.join(' OR '), params } : { sql: '0', params: [] };
 }
 
+/**
+ * D24 · WHEN A POSTING WAS POSTED, as one SQL expression: its own posted_at (an ISO string), else
+ * when we FIRST saw it (discovered_at), else scraped_at (pre-pivot rows lack discovered_at).
+ *
+ * ⛔ NOT scraped_at first. server.js's ageFilter used to be `sj.scraped_at >= ?`, and scraped_at is
+ * "last touched by a crawl" — aggregator.js rewrites it for every row a crawl sees, changed or not.
+ * So "Past 24h" kept every posting the nightly crawl had re-seen, i.e. effectively the whole active
+ * board, and only the client's parallel `posted_after` was doing any filtering. Both now apply THIS.
+ *
+ * Not soft-null: every row has at least scraped_at, so a recency filter never needs to admit a row
+ * of unknown age, and does not.
+ */
+const POSTED_TS_SQL =
+  `COALESCE(CASE WHEN sj.posted_at IS NOT NULL AND sj.posted_at != '' ` +
+  `THEN CAST(strftime('%s', sj.posted_at) AS INTEGER) END, sj.discovered_at, sj.scraped_at)`;
+function postedSinceSql(cutoffEpochSec) {
+  return { sql: `${POSTED_TS_SQL} >= ?`, params: [cutoffEpochSec] };
+}
+
 // Every rank expression is three-valued and sorts ASC, so the three states mean the same thing on
 // every dimension and the disclosure can count "demoted" once, uniformly:
 //   0 = matches the derived window
@@ -538,16 +557,16 @@ function buildJobFilters(params = {}, opts = {}) {
   // ageFilter kept an undated posting and posted_after, applied in the same query, threw it away.
   // Plenty of rows were undated: Ashby's adapter read a field that does not exist (fixed A44, 10-02), and the
   // imported Quora posting came through with posted_at NULL, so every date-filtered board dropped it.
+  //
+  // ⛔ D24 · ONE PREDICATE FOR "POSTED WITHIN", shared with server.js's ageFilter (postedSinceSql
+  // below). The fallback for an undated posting is now discovered_at (FIRST seen) before scraped_at:
+  // scraped_at is rewritten by every crawl touch (aggregator.js's touchSeenStmt), so an undated row
+  // re-crawled this morning read as "posted today" forever.
   const postedAfter = toInt(params.posted_after);
   if (postedAfter != null) {
-    clauses.push(
-      `COALESCE(
-         CASE WHEN sj.posted_at IS NOT NULL AND sj.posted_at != ''
-              THEN CAST(strftime('%s', sj.posted_at) AS INTEGER) END,
-         sj.scraped_at
-       ) >= ?`
-    );
-    args.push(postedAfter);
+    const since = postedSinceSql(postedAfter);
+    clauses.push(since.sql);
+    args.push(...since.params);
   }
   // COALESCE onto scraped_at rather than hard-excluding NULL. Note this is NOT the soft-null
   // pattern used for the enrichment-backed filters below — a recency filter genuinely must not
@@ -856,4 +875,6 @@ export {
   ALLOWED_FIELDS,
   DERIVED_RANK_ORDER,
   toArray,
+  POSTED_TS_SQL,
+  postedSinceSql,
 };

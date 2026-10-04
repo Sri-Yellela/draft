@@ -44,6 +44,8 @@
  * exactly the way these two did.
  */
 
+import { ATS_BAND, ATS_BAND_LABELS } from "./atsBands.js";
+
 // ── Experience level — scraped_jobs.experience_level ────────────────────────────────────────────
 //
 // Written by services/jobs/schema.js's normalizeExperienceLevel() at ingest and by
@@ -229,6 +231,9 @@ export const SORTS = {
     { value: "yoeHigh",  label: "Exp high to low" },
     // A75 (owner, 10-03): named "ATS match", the same words as the daily draft's sort.
     { value: "atsScore", label: "ATS match"       },
+    // D24: the sort panel's fourth entry (shared/filterSentence.js SORT_PANEL). Company, A to Z,
+    // case-insensitively; ties newest first, then job_id — services/jobs/jobCursor.js.
+    { value: "companyAsc", label: "Company A–Z"   },
   ],
   dbOnly: [
     { value: "applicantCount", label: "Fewest applicants", why:
@@ -312,8 +317,32 @@ export const PROFILE_SENIORITY = {
   dbOnly: [],
 };
 
+// ── Fit band — the caller's OWN ats_only_reports.ats_score, banded (D24) ───────────────────────
+//
+// Not a scraped_jobs column: the per-user, per-profile score the atsScore sort orders by (the
+// board's `aor` join), cut at shared/atsBands.js's ATS_BAND_CUTPOINTS. The band, never the number.
+// ⛔ HARD, unlike the soft-null classified dimensions: an unscored row matches NO band — "unscored"
+// is not "weak" — and GET /api/jobs/facets reports how many rows that leaves out (`unscored`).
+//
+// ⛔ DEFINED HERE, NOT IMPORTED FROM shared/filterSentence.js, because that file imports THIS one
+// (its clauses read EXPERIENCE_LEVELS / WORK_MODELS / POSTING_AGE at evaluation time), and an ES
+// module cycle between the two throws a TDZ ReferenceError for whichever is loaded second. The
+// contract's own FIT_BANDS is pinned deep-equal to this one (test/d24FitFacetsSorts.test.js); the
+// way to have ONE copy is for filterSentence.js to re-export this.
+//
+// `not_enough_signal` is deliberately not an option and not dbOnly: it is atsBandFor()'s word for a
+// NULL score, which this filter never matches — not a value anyone filters for.
+export const FIT_BANDS = {
+  param: "fit_bands",
+  multi: true,
+  options: [ATS_BAND.STRONG, ATS_BAND.MODERATE, ATS_BAND.WEAK]
+    .map(value => ({ value, label: ATS_BAND_LABELS[value].short })),
+  dbOnly: [],
+};
+
 export const FILTER_DIMENSIONS = {
   experienceLevel: EXPERIENCE_LEVELS,
+  fitBand:         FIT_BANDS,
   domain:          DOMAINS,
   workModel:       WORK_MODELS,
   employmentType:  EMPLOYMENT_TYPES,
