@@ -27,6 +27,8 @@ import {
 // rather than three literal words that could drift from what routes/apply.js files rows under.
 import { OUTCOME, OUTCOME_LABELS } from "../shared/applyOutcomeGroups.js";
 import { at } from "../test-support/sourceAnchors.js";
+// D25: the Stopped column's items, as data — so the rules below are driven, not just read.
+import { buildStoppedItems } from "../client/src/lib/draftHouseExceptions.js";
 
 const read = (p) => fs.readFileSync(p, "utf8");
 const panel = read("client/src/panels/AutoApplyPanel.jsx");
@@ -38,82 +40,52 @@ const applyRoute = read("routes/apply.js");
 
 // ── The four surfaces ────────────────────────────────────────────────────────────────────────
 
-test("the panel is organised around OUTCOME: three SUB-TABS, plus progress (AB4 -> AD1)", () => {
-  // Was ["Needs you", "In flight", "Submitted", "Stopped"], then AB4's three SECTIONS stacked down
-  // the page. AD1 keeps the three outcomes and changes only how you reach one: they are SUB-TABS
-  // over a dated listing, in the Database panel's layout, so the page is ONE listing rather than
-  // three stacked ones plus a run history underneath showing the same rows a second time.
-  //
-  // RE-PINNED, NOT DELETED. What is being asserted — the panel is organised around three outcomes,
-  // progress is not a fourth, and "Stopped" as one flattening word does not come back — is exactly
-  // what it was. The three headings became three tabs whose labels come from OUTCOME_LABELS, the
-  // same shared partition routes/apply.js files rows with; re-asserting the literal words here
-  // would recreate the drift that partition exists to prevent.
-  assert.match(panel, /<PanelSubTabs/);
-  assert.match(panel, /\[OUTCOME\.COMPLETED, OUTCOME\.PENDING, OUTCOME\.ABORTED\]\.map/);
-  assert.match(panel, /label: OUTCOME_LABELS\[g\]\.label\.toUpperCase\(\)/);
-  assert.deepEqual(
-    [OUTCOME.COMPLETED, OUTCOME.PENDING, OUTCOME.ABORTED].map(g => OUTCOME_LABELS[g].label),
-    ["Completed", "Pending", "Aborted"]);
-  // Held-on-purpose vs broke lives INSIDE aborted, still separated and still labelled.
-  assert.match(panel, /These broke —/);
-  assert.match(panel, /Held on purpose —/);
+test("the panel is organised around EXCEPTIONS: Stopped, with Queued as a glance (AB4 -> AD1 -> D25)", () => {
+  // Was ["Needs you", "In flight", "Submitted", "Stopped"], then AB4's three SECTIONS, then AD1's
+  // COMPLETED / PENDING / ABORTED sub-tabs over a dated listing. D25 (the workspace model) RE-PINS
+  // it: the panel shows what STOPPED and needs the user, and what is QUEUED, side by side (D14).
+  // ⛔ COMPLETED was a Sent column — that is The Table's (D15) — and terminal outcomes are history.
+  assert.doesNotMatch(panel, /<PanelSubTabs/, "AD1's outcome sub-tabs are back");
+  assert.doesNotMatch(panel, /OUTCOME\.COMPLETED/, "a Sent listing is back in Draft House");
+  assert.match(panel, /<section data-draft-stopped=""/);
+  assert.match(panel, /<aside data-draft-queued=""/);
+  assert.match(panel, /Stopped\{stoppedCount > 0 \? ` · \$\{stoppedCount\}` : ""\}/);
+  // "Stopped" here is the D14 COLUMN of exceptions, never a SectionHeading that flattens
+  // held-on-purpose into failed — only the BROKE half of splitByFault reaches it.
   assert.ok(!/SectionHeading[^>]*>\s*Stopped\s*</.test(panel),
     "the Stopped heading is back — it collapses held-on-purpose into failed");
-  // IN FLIGHT is NOT an outcome — a queued application is neither submitted, nor waiting on the
-  // user, nor broken — so it is not a fourth tab. It still has to exist: dropping it would lose a
-  // capability, at the moment a user most needs it (a run they just started).
+  assert.match(panel, /splitByFault\(applyStopped\)\.broke/);
+  // IN FLIGHT is NOT an outcome; it is progress, and it still has to exist.
   assert.match(panel, /SectionHeading[^>]*>\s*In flight\s*</);
   assert.match(panel, /count=\{applyInFlight\.length\}/);
-  assert.match(panel, /count=\{needsYouCount\}/);
-  // The counts that sat on the SUBMITTED and PROBLEMS headings are the sub-tab count pills now, and
-  // AD1 requirement 4 scopes them to the SELECTED DATE — with the label beside them saying so,
-  // which is what makes the choice unambiguous rather than the number.
-  assert.match(panel, /count: historyDate && history\?\.counts \? \(history\.counts\[g\] \?\? 0\) : null/);
-  assert.match(panel, /Counts are for \$\{localDateLabel\(historyDate\)\}/);
-  assert.match(panel, /"Pick a date to see counts"/);
 });
 
 test("PROBLEMS keeps 'we protected you' distinguishable from 'this failed'", () => {
-  // The requirement is explicit that the HELD ON PURPOSE copy is right and must stay visible,
-  // because the two need different affordances and produce different feelings.
-  // RE-PINNED FOR AD1: splitByFault is applied to the DAY'S aborted rows rather than to the
-  // cross-run `applyStopped` feed, because the ABORTED tab is one day of one outcome. The split
-  // itself, and the two labelled halves it produces, are unchanged — which is the point.
-  assert.match(panel, /const listedSplit\s+= splitByFault\(listedJobs\)/);
-  // And the distinction is visible WITHOUT OPENING ANYTHING: two headings, two tones, two pills.
-  assert.match(panel, /pillText="did not complete"/);
-  // The held pill is CONDITIONAL, and that is AC3's rule surviving into the ABORTED tab rather than
-  // a weakening of this one: a tile whose postings the 7-day cleanup removed is not "held on
-  // purpose", because nothing is holding it and there is nothing left to hold. A dead posting is
-  // filed under ABORTED by the override, so this is where such a tile now lands.
-  assert.match(panel, /pillText=\{allGone \? "posting gone" : "held on purpose"\}/);
-  assert.match(panel, /const allGone = items\.every\(j => j\.postingGone\)/);
-  assert.match(panel, /These broke —/);
-  assert.match(panel, /Held on purpose —/);
-  assert.match(panel, /Nothing went wrong with these/);
-
+  // RE-PINNED FOR D25. The distinction survives as a FILTER on what needs the user: a failure is a
+  // Stopped item ("did not complete — nothing was sent", with Retry where retrying can work); a
+  // hold on purpose needs nobody and is not listed — it is history, and history is The Table's.
+  assert.match(panel, /splitByFault\(applyStopped\)\.broke/);
+  assert.doesNotMatch(panel, /splitByFault\(applyStopped\)\.held/);
   const { broke, held } = splitByFault([
-    { status: "failed",   reasonCode: "internal_error" },
-    { status: "failed",   reasonCode: "browser_binary_not_found" },
-    { status: "rejected", reasonCode: null },
-    { status: "held_review", reasonCode: "ats_below_threshold" },
+    { id: 1, jobId: "a", status: "failed",   reasonCode: "internal_error" },
+    { id: 2, jobId: "b", status: "failed",   reasonCode: "browser_binary_not_found" },
+    { id: 3, jobId: "c", status: "rejected", reasonCode: null },
+    { id: 4, jobId: "d", status: "held_review", reasonCode: "ats_below_threshold" },
   ]);
   assert.equal(broke.length, 2);
   assert.equal(held.length, 2, "a rejection and a protective hold are not failures");
+  const items = buildStoppedItems({ brokeApplications: groupByApplication(broke) });
+  assert.equal(items.length, 2);
+  assert.ok(items.every(i => i.kind === "broke" && i.tone === "danger"));
+  assert.ok(items.every(i => /did not complete — nothing was sent/.test(i.sub)));
 });
 
-test("every section groups by COMPANY — seven roles at one employer belong together", () => {
-  // RE-PINNED FOR AD1. The four cross-run groupings became three per-tab ones over the same day's
-  // rows — the sections they fed are sub-tabs now — and the RULE is identical in each: company over
-  // application. Note that PENDING groups by APPLICATION first (AB2: three held run-job rows for one
-  // posting are one card, not three) while COMPLETED and ABORTED group the raw rows, because a
-  // submitted attempt and a failed attempt are each their own event, and collapsing two of them
-  // would hide one of the two things that actually happened.
-  assert.match(panel, /const listedByCompany\s+= groupByCompany\(groupByApplication\(listedJobs\)\)/);
-  assert.match(panel, /const listedFlatByCompany = groupByCompany\(listedJobs\)/);
-  assert.match(panel, /groupByCompany\(listedSplit\.broke\)/);
-  assert.match(panel, /groupByCompany\(listedSplit\.held\)/);
+test("the review modal groups by COMPANY — seven roles at one employer belong together", () => {
+  // RE-PINNED FOR D25. The company TILES left the columns with AD1's listings; the Stopped column is
+  // one item per application. The review modal — the deep review every item opens — keeps AB4's
+  // company tier over AC2's application grouping, which is where reading seven roles together pays.
+  assert.match(panel, /const modalCompanies\s+= groupByCompany\(modalApplications\)/);
+  assert.doesNotMatch(panel, /<TileGrid/);
   assert.match(sections, /export function CompanyHeading/);
 
   const g = groupByCompany([
@@ -127,12 +99,10 @@ test("every section groups by COMPANY — seven roles at one employer belong tog
   assert.equal(g[0].items.length, 2);
   // Most recent first within a company.
   assert.equal(g[0].items[0].title, "B");
-  // A posting removed by the cleanup has no company; they collect under one honest heading rather
-  // than each becoming its own group of employers the user has never heard of.
+  // A posting removed by the cleanup has no company; they collect under one honest heading.
   const anon = groupByCompany([{ company: null, finishedAt: 1 }, { company: "", finishedAt: 2 }]);
   assert.equal(anon.length, 1);
-  // AE3: the string moved into shared/atsHosts.js, which is now the ONE place a company becomes
-  // display text — so an unnameable employer and an ATS host cannot be labelled differently.
+  // AE3: shared/atsHosts.js is the ONE place a company becomes display text.
   assert.match(sections, /\{companyLabel\(company\)\}/);
 });
 
@@ -161,7 +131,8 @@ test("the server serves the four surfaces as a TOTAL partition", () => {
   assert.match(applyRoute, /const IN_FLIGHT\s+= \['queued', 'running'\]/);
   assert.match(applyRoute, /const NEEDS_YOU\s+= \['held_review', 'held_gate'\]/);
   assert.match(applyRoute, /rj\.status NOT IN \(\$\{\[\.\.\.IN_FLIGHT, \.\.\.NEEDS_YOU\]/);
-  assert.match(applyRoute, /inFlight: inFlight\.map\(publicRunJob\)/);
+  // D25: the in-flight rows also carry the server's own `abortable`, so Stop needs no client rule.
+  assert.match(applyRoute, /inFlight: inFlight\.map\(r => \(\{ \.\.\.publicRunJob\(r\), abortable:/);
   assert.match(applyRoute, /submitted: submitted\.map\(publicRunJob\)/);
   assert.match(applyRoute, /stopped: stopped\.map\(publicRunJob\)/);
   // The counts that let a caller prove the partition is total.
@@ -278,28 +249,37 @@ test("an unknown STATUS is filed as broken, never claimed as deliberate", () => 
 
 test("the portal gate is ONE action with a count, not N rows", () => {
   // G5's amortisation, which the requirement calls the most differentiated thing in the product.
-  assert.match(panel, /Sign in to \$\{p\.host\} once → \$\{p\.count\} application/);
-  assert.match(panel, /applyGatePortals\.map/);
-  assert.match(panel, /countLabel=\{p\.count === 1 \? "application" : "applications"\}/);
+  // D25: one Stopped item per PORTAL, whatever the number of applications behind it.
+  assert.match(panel, /gatePortals: applyGatePortals/);
+  const items = buildStoppedItems({ gatePortals: [
+    { origin: "https://acme.wd1.myworkdayjobs.com", host: "acme.wd1.myworkdayjobs.com", count: 4, gateReasons: ["login_required"] },
+    { origin: "https://hard.example", host: "hard.example", count: 1, gateReasons: ["captcha_required"] },
+  ] });
+  assert.equal(items.length, 2, "two portals are two items, not five rows");
+  assert.equal(items[0].title, "Sign in to acme.wd1.myworkdayjobs.com once");
+  assert.match(items[0].sub, /^4 applications continue when you are signed in/);
   // A CAPTCHA portal is NOT offered a sign-in — it is named as the user's own job.
-  assert.match(panel, /gateReasons\?\.includes\("captcha_required"\)/);
+  assert.match(items[1].title, /behind an identity check/);
+  assert.equal(items[1].tone, "danger");
+  assert.match(panel, /\(r\.gateReasons \|\| \[\]\)\.includes\("captcha_required"\)/);
 });
 
 test("the grouping has TWO halves, and each is used where it is true (AB2)", () => {
-  // This test used to assert that held applications were grouped BY OBSTACLE — one rule, applied
-  // everywhere. That rule is right for a portal sign-in and wrong for everything else, and it was
-  // showing the same application three times, once per problem, each card claiming "1 APPLICATION".
-  //
-  //   group by OBSTACLE      when ONE action unblocks MANY applications  (the portal batches above)
+  //   group by OBSTACLE      when ONE action unblocks MANY applications  (the portal items)
   //   group by APPLICATION   when MANY obstacles block ONE application   (held reviews)
-  //
   // Both halves are asserted here so neither can be quietly dropped in favour of the other again.
   assert.match(panel, /const heldApplications = groupByApplication\(applyReviewJobs\)/);
   assert.ok(!/const heldByObstacle = new Map\(\)/.test(panel),
     "held applications are grouped by obstacle again — one application with three problems is three cards");
-  // The obstacle half survives, untouched, where it genuinely amortises.
-  assert.match(panel, /applyGatePortals\.map/);
-  assert.match(panel, /Sign in to \$\{p\.host\} once → \$\{p\.count\} application/);
+  const held = groupByApplication([
+    { id: 1, jobId: "j1", company: "OpenAI", title: "Staff", status: "held_review", reasonCode: "login_required", finishedAt: 1 },
+    { id: 2, jobId: "j1", company: "OpenAI", title: "Staff", status: "held_review", reasonCode: "ats_below_threshold", finishedAt: 2 },
+  ]);
+  const items = buildStoppedItems({ heldApplications: held,
+    gatePortals: [{ origin: "o", host: "h.example", count: 3, gateReasons: ["login_required"] }] });
+  assert.equal(items.filter(i => i.kind === "held").length, 1, "one application, one item");
+  assert.equal(items.find(i => i.kind === "held").fold.needs.length, 2, "carrying both obstacles");
+  assert.equal(items.filter(i => i.kind === "portal").length, 1);
 });
 
 test("one application with several obstacles is ONE entry, carrying all of them", () => {
@@ -375,10 +355,15 @@ test("prerequisites are surfaced BEFORE queueing, as one blocking item with a fi
   // The gate already computed this and only spoke as a 409 after the user tried to start a run.
   assert.match(ctx, /api\("\/api\/integrations\/status"\)/);
   assert.match(ctx, /setApplyPrereqMissing/);
-  assert.match(panel, /<PrerequisiteCards missing=\{applyPrereqMissing\}/);
-  // The count is what it unblocks: the dispatched jobs. (A53 removed the client-side basket — a
-  // Draft is a persisted run the moment it is made — so in-flight IS the whole count.)
-  assert.match(panel, /queuedCount=\{applyInFlight\.length\}/);
+  // D25: a Stopped item each, FIRST — they block every application — with the label's own fix.
+  assert.match(panel, /prereqMissing: applyPrereqMissing, prereqLabels: PREREQUISITE_LABELS/);
+  const items = buildStoppedItems({
+    prereqMissing: ["profile_email"], prereqLabels: PREREQUISITE_LABELS,
+    pending: [{ runJobId: 9, company: "Acme", answerCount: 3, guessCount: 0 }],
+  });
+  assert.equal(items[0].kind, "prerequisite", "prerequisites come before everything they block");
+  assert.equal(items[0].title, PREREQUISITE_LABELS.profile_email.obstacle);
+  assert.deepEqual(items[0].fold.needs, [PREREQUISITE_LABELS.profile_email.action]);
   for (const key of ["base_resume", "active_profile", "profile_email", "profile_name"]) {
     assert.ok(PREREQUISITE_LABELS[key], `no plain-language label for prerequisite "${key}"`);
     assert.ok(!/_/.test(PREREQUISITE_LABELS[key].obstacle));
@@ -389,21 +374,15 @@ test("prerequisites are surfaced BEFORE queueing, as one blocking item with a fi
 
 test("the popup was never GIVEN a scope — that is the defect, not a scope it ignored", () => {
   // AB3 requirement 2 asks which of the two it is. It is the first: `openReview` took no arguments,
-  // all seven cards passed the same bare function, and the modal had no scoping parameter at all —
-  // so it rendered the full cross-run feeds every time. The fix is a scope that exists.
+  // all seven cards passed the same bare function, and the modal had no scoping parameter at all.
   assert.match(ctx, /const \[applyReviewScope, setApplyReviewScope\] = useState\(null\)/);
   assert.match(ctx, /applyReviewScope, setApplyReviewScope,/);
   assert.match(panel, /const openScoped = \(s\) => \{ setApplyRunDetail\(null\); setApplyReviewScope\(s\); setApplyRunDetailOpen\(true\); \}/);
   assert.match(panel, /const openApplicationReview = \(app\) => openScoped\(\{/);
-  // Every card now opens the popup on the thing it stands for, so no card opens it bare.
-  //
-  // The two assertions that used to live here were `!/onAction={openReview}/` and
-  // `!/onDetails={() => openReview()}/` — CALL-SITE SHAPES, and the two exact strings AB3 had just
-  // finished replacing. They could only ever fail if someone re-typed the shape that had already
-  // been fixed, and they passed for the whole time Open was unscoped through a third shape. They
-  // are replaced by the identifier-level check in the AC1 test below, which does not care what
-  // shape a call site takes.
-  assert.match(panel, /onDetails=\{\(\) => openApplicationReview\(app\)\}/);
+  // D25: every Stopped item opens the popup on the thing it stands for — a held application's
+  // attempts, an approval's own answers.
+  assert.match(panel, /onClick=\{\(\) => openApplicationReview\(r\)\}/);
+  assert.match(panel, /const openApprovalReview = \(p\) => openScoped\(\{/);
 });
 
 // ── AC1: Open is STILL unscoped — the half-fix, and the assertion that closes the class ──────
@@ -442,11 +421,11 @@ test("AC1: no CARD-LEVEL handler can name the unscoped entry point, whatever its
 
 test("AC1: Open and Details on the same card scope to the SAME one application", () => {
   // The bug was that they did not: Details went through openApplicationReview, Open went bare. Both
-  // arms are now the scoped handler, so they cannot disagree.
-  assert.match(panel, /onResolve=\{resumable \? \(\) => openHandoff\(packet, app\) : openApplicationReview\}/);
-  assert.match(panel, /onDetails=\{\(\) => openApplicationReview\(app\)\}/);
-  // ApplicationObstacleCard must actually PASS the app, or a scoped handler receives nothing and
-  // scopes to an empty set — which renders an empty popup rather than an over-full one.
+  // arms are now the scoped handler, so they cannot disagree. D25: the rail's Open and the fold's
+  // "Show attempts" on a held item.
+  assert.match(panel, /onClick: resumable \? \(\) => openHandoff\(packet, r\) : \(\) => openApplicationReview\(r\)/);
+  assert.match(panel, /onClick=\{\(\) => openApplicationReview\(r\)\}/);
+  // ApplicationObstacleCard (the modal's card) must actually PASS the app.
   assert.match(sections, /onClick=\{\(\) => onResolve\(app\)\}/,
     "the card calls onResolve with no argument, so a scoped handler gets no application");
 });
@@ -535,32 +514,18 @@ test("the needs-review count is still reachable from the board", () => {
 
 test("every capability of the old strip survived the reorganisation", () => {
   for (const [what, needle] of [
-    // A53 (owner, 10-02) REMOVED the basket and its run control: the board's Draft is the deck's,
-    // a persisted run the moment it is made. The run control is now the Draft itself (pinned in
-    // a53DecisionVocabulary.test.js), queue removal is Undo / Abort, and the tier notice moved to
-    // the card, where it is read BEFORE drafting (jobsUiTierFilters.test.js).
     ["the readiness gate",      /applyReadiness && !applyReadiness\.available/],
     ["retry drafts again",      /const retryJob = \(job\) => \{ draftJob/],
-    // AD1 REMOVED THE SEPARATE RUN-HISTORY SURFACE and dated navigation supersedes it: the calendar
-    // is the panel's primary navigation and the three outcome groups are its sub-tabs, so a second
-    // dated view underneath would have been the same rows twice. The CAPABILITY — "what did I put
-    // into auto-apply on this day, and how did each one end" — is what this list is for, and it is
-    // now the panel's whole body rather than a section at the bottom of it.
-    ["dated navigation",        /onChange=\{\(iso\) => loadHistory\(iso, historyGroup\)\}/],
-    ["the three outcome tabs",  /active=\{historyGroup\}/],
-    ["abort, on the listing",   /const abortApplication = \(app\) =>/],
-    ["soft delete",             /const hideApplication  = \(app\) =>/],
-    // AC4 replaced the run-history CHIP LIST with a dated view, so the assertion that used to pin
-    // `loadApplyRunDetail(run.id)` — the chip's own onClick — no longer describes anything that
-    // exists. The CAPABILITY is what matters and it survives in two places: every application row
-    // opens its run through onOpenRun, and the run's own status and counts render in that modal's
-    // header (the status moved there deliberately, because the chip's dot was the only place a run
-    // said whether it had finished).
+    // D25 REMOVED AD1's dated navigation and outcome tabs: Draft House shows what needs the user
+    // now, and the dated record of what happened is The Table's (D15). What remains here is the
+    // control over what is still live.
+    ["the run bar",             /<DraftRunBar runBar=\{runBar\} onStop=\{setStopEverything\}/],
+    ["stop, on in flight",      /onAbort=\{rowAbort\}/],
+    ["soft delete",             /const hideApplication = \(app\) =>/],
     ["per-run detail",          /onOpenRun=\{loadApplyRunDetail\}/],
     ["the run's own status",    /applyRunDetail\.run\.status === "completed"/],
-    ["the approvals surface",   /waiting for your approval/],
-    // Reads the SCOPED list since AB3 — the surface is unchanged, what it lists is now scoped to
-    // whatever the user opened it from.
+    ["the approvals surface",   /pending: applyPending/],
+    ["approve from the fold",   /decidePending\(\[r\.runJobId\], true\)/],
     ["the questions surface",   /Answer \{scopedQuestions\.length\}/],
     ["bulk approve guard",      /confirmApproveAll/],
     ["artifact links",          /artifactUrl/],

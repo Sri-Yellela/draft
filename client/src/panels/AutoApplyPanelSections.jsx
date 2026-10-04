@@ -10,8 +10,7 @@
 import { useState } from "react";
 import { useTheme } from "../styles/theme.jsx";
 import { api } from "../lib/api.js";
-import { describeApplication, attemptStatusChip, PREREQUISITE_LABELS } from "../lib/applyObstacles.js";
-import { TileCard, TilePill } from "../components/ui/TileCard.jsx";
+import { describeApplication, attemptStatusChip } from "../lib/applyObstacles.js";
 import { companyLabel } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { bandChipStyle } from "../styles/bandStyle.js";
@@ -40,78 +39,9 @@ export function SectionHeading({ children, count, note, theme }) {
   );
 }
 
-/**
- * ONE obstacle, ONE action, and the count of what the action unblocks.
- *
- * The count is the whole argument for this shape: "Sign in to Workday once → 4 applications ready"
- * is a ten-second job that releases four applications. Four separate rows saying "held: login
- * required" is the same information priced as four jobs.
- */
-export function ObstacleCard({
-  theme, tone = C.WARNING, kicker, headline, detail, count, countLabel,
-  actionLabel, onAction, secondaryLabel, onSecondary, hero = false,
-}) {
-  return (
-    <div style={{
-      border: `1px solid ${hero ? tone : theme.border}`,
-      borderLeft: `3px solid ${tone}`,
-      borderRadius: 8,
-      padding: hero ? "14px 16px" : "11px 14px",
-      background: hero ? `${tone}0f` : theme.surfaceHigh,
-      display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap",
-    }}>
-      {count != null && (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
-                      minWidth: 46, flexShrink: 0 }}>
-          <span style={{ fontFamily: "var(--font-display)", fontWeight: 400,
-                         fontSize: hero ? 39 : 31, lineHeight: 1, color: tone }}>
-            {count}
-          </span>
-          {countLabel && (
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
-                           textTransform: "uppercase", color: theme.textDim, textAlign: "center" }}>
-              {countLabel}
-            </span>
-          )}
-        </div>
-      )}
-      <div style={{ flex: 1, minWidth: 220 }}>
-        {kicker && (
-          <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.08em",
-                        textTransform: "uppercase", color: tone, marginBottom: 3 }}>
-            {kicker}
-          </div>
-        )}
-        <div style={{ fontSize: hero ? 14 : 13, fontWeight: 700, color: theme.text, lineHeight: 1.4 }}>
-          {headline}
-        </div>
-        {detail && (
-          <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 3, lineHeight: 1.5 }}>
-            {detail}
-          </div>
-        )}
-      </div>
-      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-        {secondaryLabel && (
-          <button onClick={onSecondary}
-            style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "7px 12px",
-                     background: theme.surface, color: theme.text, fontWeight: 700, fontSize: 11.5,
-                     cursor: "pointer", whiteSpace: "nowrap" }}>
-            {secondaryLabel}
-          </button>
-        )}
-        {actionLabel && (
-          <button onClick={onAction}
-            style={{ border: "none", borderRadius: 6, padding: "8px 14px", background: tone,
-                     color: C.SURFACE_SOLID, fontWeight: 800, fontSize: 11.5, cursor: "pointer",
-                     whiteSpace: "nowrap" }}>
-            {actionLabel}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
+// D25: ObstacleCard (one obstacle, one action, a count) is gone with the cards it drew. Draft House's
+// Stopped column renders each exception as a StoppedItem (components/StoppedItem.jsx), built from
+// lib/draftHouseExceptions.js — the portal item still says how many one sign-in releases.
 
 /**
  * The COMPANY tier of AB4's hierarchy: outcome -> company -> application.
@@ -587,50 +517,9 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
   );
 }
 
-/** The prerequisites, as obstacles, surfaced BEFORE queueing rather than as a 409 after. */
-export function PrerequisiteCards({ missing, queuedCount, theme, onGo }) {
-  if (!missing?.length) return null;
-  return missing.map((key) => {
-    const p = PREREQUISITE_LABELS[key] || { obstacle: key.replace(/_/g, " "), action: "Fix it", to: "profile" };
-    return (
-      <ObstacleCard
-        key={key}
-        theme={theme}
-        tone={C.DANGER}
-        kicker="blocks every application"
-        headline={p.obstacle}
-        // ONE blocking item with a fix, not N separate failures. This is computed by the server's
-        // prerequisite gate, which used to only speak when a run was already refused.
-        detail={queuedCount > 0
-          ? `${p.action} — unblocks the ${queuedCount} job${queuedCount === 1 ? "" : "s"} you have drafted.`
-          : `${p.action}. Nothing can be applied to until this is set.`}
-        count={queuedCount || null}
-        countLabel={queuedCount ? "blocked" : null}
-        actionLabel="Fix this"
-        onAction={() => onGo(p.to)}
-      />
-    );
-  });
-}
+// D25: PrerequisiteCards is gone the same way — a missing prerequisite is a Stopped item of kind
+// "prerequisite", still FIRST in the column because it blocks every application.
 
-/**
- * ONE ATTEMPT at one application — a single apply_run_jobs row (TASK AC2).
- *
- * This is the modal's old flat list item, MOVED here whole and otherwise unchanged. Every control
- * it carried is still on it: the status pill, the obstacle sentence from the shared vocabulary, the
- * ATS chip, the timestamps and attempt counter, the resume artifact, the submitted screenshot
- * screenshot, the submission-verified chip, the Open & fill / Run it again route, the posting-gone
- * state, and the apply URL.
- *
- * WHAT CHANGED IS WHERE IT SITS, NOT WHAT IT IS. The modal used to render these rows at the top
- * level, so a job held, re-run and held again was three entries and a dead posting for a different
- * job sat between them. They are now nested inside the application they are attempts AT, behind
- * that application's own disclosure. The server returns one row per RUN-JOB and always has; that
- * is the right unit for "what happened on attempt 2" and the wrong unit for "what is in my way".
- *
- * Collapsing without this would lose the audit trail, which is the one thing a user needs when an
- * interview lands — so the attempts stay, one click away, rather than being summarised out.
- */
 /**
  * THE FILL LOG (AH5), fetched when asked for and not before.
  *
@@ -905,219 +794,14 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
   );
 }
 
-// ── AC3: THE COMPANY CARD, IN THE JOB PROFILES IDIOM ─────────────────────────────────────────
+// ── D25: THE COMPANY TILES ARE GONE ─────────────────────────────────────────────────────────
 //
-// The company tier used to be a HEADING followed by full-width application cards — one per row,
-// down the whole page, so four employers took four screens and nothing could be compared. The
-// ManageJobProfiles panel had already solved this shape: a bordered tile with a title and a status
-// pill, a compact metadata line, an inset sub-block for the state that matters, and a footer action
-// row, several to a row in an auto-fill grid.
+// AC3 put AD1's dated listings into company TILES (CompanyTile, CompanyApplicationRow) under three
+// outcome sub-tabs. Draft House's workspace model has neither the sub-tabs nor the listings: what
+// needs the user is one StoppedItem per application, and what went out or ended is history, which
+// is The Table's (D15). TileCard itself stays in components/ui — Job Profiles renders it.
 //
-// So that primitive was EXTRACTED from JobProfilesPanel into components/ui/TileCard.jsx and both
-// panels render it. Not cloned — JobProfilesPanel was refactored onto it in the same change, and
-// scripts/abPanelUi.mjs drives that panel to prove its cards are unchanged. A "reuse" that leaves
-// two implementations behind is a clone with extra steps, and it drifts within a month.
-//
-// WHAT MOVED, AND WHERE IT WENT. The tile is a TRIAGE surface: which employer, how many
-// applications, how much is in the way, and whether it was held on purpose or broke — requirement
-// 4's "triage without opening anything". The full problem SENTENCES moved into the review modal,
-// which AC2 restructured into company -> application -> problems for exactly this. Every control
-// survives: the artifact chips and the resolve action stay on the compact row, and Open/Details
-// lead to the modal that now carries the rest.
-
-/**
- * ONE APPLICATION, compact, inside a company tile (AC3 requirement 2: "role + count to resolve").
- *
- * Keeps ApplicationObstacleCard's data hooks so the real-browser checks can still ask which
- * application a row is for and how many problems it has — the AB2 defect was about exactly that
- * count, and an assertion that silently stopped covering it would be worse than one that fails.
- */
-export function CompanyApplicationRow({
-  app, theme, artifactUrl, packet, onResolve, resolveLabel, resolveTitle, onDetails, onRerun,
-  onGenerateResume, onAbort, onHide, busy = false,
-}) {
-  const tone = app.postingGone ? C.INK_FAINT : app.protective ? C.WARNING : C.DANGER;
-  const stale = packet?.stale;
-  const chip = {
-    fontSize: 9.5, fontWeight: 700, padding: "2px 7px", borderRadius: 999,
-    border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text,
-    textDecoration: "none", whiteSpace: "nowrap",
-  };
-
-  return (
-    <div data-rm-card="application"
-         data-rm-job={app.jobId || ""}
-         data-rm-company={app.company || ""}
-         data-rm-obstacles={app.reasons.length}
-         style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <span style={{ width: 5, height: 5, borderRadius: "50%", flexShrink: 0, background: tone }} />
-        <span data-vt-title={app.jobId || undefined} style={{ fontSize: 12.5, fontWeight: 700, color: theme.text, flex: 1, minWidth: 0,
-                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {app.title || app.jobId || "Unknown role"}
-        </span>
-        {/* The count, at row level. AC3 requirement 4 — a user triages on this without opening
-            anything, and the problems themselves are one click away in the modal. */}
-        <span style={{ fontSize: 10, fontWeight: 800, color: tone, whiteSpace: "nowrap", flexShrink: 0 }}>
-          {app.reasons.length} to resolve
-        </span>
-      </div>
-      <div style={{ fontSize: 10, color: theme.textDim, paddingLeft: 13 }}>
-        {/* HELD ON PURPOSE vs BROKEN, at card level. Requirement 4 again: the distinction this whole
-            line of work exists to preserve must survive the compaction, not only the modal. */}
-        <span style={{ color: tone, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          {app.postingGone ? "the posting is gone"
-            : stale ? "prepared too long ago"
-            : app.protective ? "held on purpose" : "did not complete"}
-        </span>
-        {app.attempts > 1 && ` · ${app.attempts} attempts`}
-        {app.when ? ` · ${new Date(app.when).toLocaleDateString()}` : ""}
-      </div>
-
-      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center", paddingLeft: 13 }}>
-        {app.primary?.row?.resumeAvailable ? (
-          <a href={artifactUrl(app.primary.row.id, "resume")} target="_blank" rel="noreferrer" style={chip}>
-            Resume PDF ↗
-          </a>
-        ) : onGenerateResume && !app.postingGone && app.reasons.some(r => r.resumeBlocked) ? (
-          // AB4 requirement 5, unchanged: a missing resume is a problem with a one-click fix, so it
-          // is a button — and only where a missing resume is actually what is wrong.
-          <button onClick={() => onGenerateResume(app)}
-            title="Drafts this job again — the new run generates a tailored resume for it before it applies."
-            style={{ ...chip, border: "none", background: C.INFO, color: C.SURFACE_SOLID, fontWeight: 800,
-                     cursor: "pointer" }}>
-            Generate a resume
-          </button>
-        ) : null}
-        {/* AE4: not offered here. This row is a held application inside a company tile, where the
-            whole point of the tier is compactness — and the picture was the least informative chip
-            on it. See ApplicationObstacleCard for the full reasoning. */}
-        <span title={atsBandLabel(atsBandFor(app.atsScore ?? null)).blurb}
-          style={{ ...chip,
-                   ...bandChipStyle(atsBandFor(app.atsScore ?? null)) }}>
-          {atsBandLabel(atsBandFor(app.atsScore ?? null)).short}
-        </span>
-        {app.applyUrl && (
-          <a href={app.applyUrl} target="_blank" rel="noreferrer" style={chip}>The posting ↗</a>
-        )}
-
-        <span style={{ flex: 1 }} />
-
-        {/* A posting that no longer exists gets no action and says why — requirement 6, and AC2
-            requirement 4. There is no form to open and no run that would find one. */}
-        {app.postingGone ? (
-          <span style={{ fontSize: 9.5, color: theme.textDim, whiteSpace: "nowrap" }}>
-            posting gone — cannot be resumed
-          </span>
-        ) : stale && onRerun ? (
-          <button onClick={() => onRerun(app)}
-            title="These answers were prepared too long ago to fill safely. A fresh run prepares new ones."
-            style={{ ...chip, fontWeight: 800, cursor: "pointer" }}>
-            Run it again
-          </button>
-        ) : onResolve ? (
-          <button onClick={() => onResolve(app)} title={resolveTitle}
-            style={{ ...chip, border: "none", background: tone, color: C.SURFACE_SOLID, fontWeight: 800,
-                     cursor: "pointer" }}>
-            {resolveLabel || "Open"}
-          </button>
-        ) : null}
-        {onDetails && (
-          <button onClick={() => onDetails(app)}
-            title="Everything in this application's way, with its actions and its attempts."
-            style={{ ...chip, fontWeight: 700, cursor: "pointer" }}>
-            Details
-          </button>
-        )}
-        {/* AD1: abort and remove, on the APPLICATION rather than on one attempt of it. Both handlers
-            are given the grouped application and the panel hands the endpoint every run-job id it
-            holds — stopping the newest attempt alone leaves the application in PENDING, and hiding
-            the newest alone makes it reappear on the next fetch wearing an earlier attempt's face.
-            Abortability is the SERVER's flag, ORed across the attempts: if any of them is still
-            live, the application is still stoppable. */}
-        {onAbort && app.rows?.some(r => r.abortable) && (
-          <button onClick={() => onAbort(app)} disabled={busy}
-            title="Stops this application. If it is filling a form right now, the browser is closed, nothing is submitted, and the prepared answers are voided."
-            style={{ ...chip, color: C.DANGER, borderColor: `${C.DANGER}55`, fontWeight: 800,
-                     cursor: busy ? "wait" : "pointer", opacity: busy ? 0.5 : 1 }}>
-            Abort
-          </button>
-        )}
-        {onHide && (
-          <button onClick={() => onHide(app)} disabled={busy}
-            title="Removes this application from your history. It is hidden, not deleted, and can be restored — nothing that reached an employer is ever erased."
-            style={{ ...chip, fontWeight: 700, cursor: busy ? "wait" : "pointer",
-                     opacity: busy ? 0.5 : 1 }}>
-            Remove
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/**
- * ONE COMPANY, as a tile in the Job Profiles idiom (AC3).
- *
- * @param {string}   company   the employer, already through companyLabel by groupByCompany (AE3),
- *                             so it is a real name or UNKNOWN_COMPANY — never blank, never a host
- * @param {Array}    items     what to list inside — grouped applications, or raw rows
- * @param {function} children  the rendered list
- * @param {string}   section   which outcome section this tile belongs to, for the DOM checks
- * @param {string}   tone      the state colour: held on purpose, broke, submitted
- * @param {node}     pillText  the status chip's text
- * @param {node}     meta      the compact metadata line
- * @param {node}     footer    the action row
- */
-export function CompanyTile({
-  company, count, section, tone, pillText, meta, footer, theme, children,
-}) {
-  return (
-    <TileCard
-      tone={tone}
-      data={{ tile: "company", company: company || "", section, apps: count }}
-      // A posting removed by the 7-day cleanup leaves an application with no employer. Said
-      // plainly, rather than rendered as a blank tile title — the same sentence CompanyHeading used.
-      title={companyLabel(company)}
-      pill={pillText ? <TilePill tone={tone}>{pillText}</TilePill> : null}
-      meta={meta}
-      // No `body`: the profile card's body is a summary line above the inset, and a company tile's
-      // summary IS the metadata line. An empty body would only add the 36px min-height reserved for
-      // one, which is what made the old full-width cards wasteful in the first place.
-      body={null}
-      inset={
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {children}
-        </div>
-      }
-      footer={footer}
-    />
-  );
-}
-
-// ── TASK AD1: HistoryRow AND HistoryGroup ARE GONE ───────────────────────────────────────────
-//
-// AC4 built a dated run-history SECTION at the bottom of the panel: three outcome boxes, each
-// holding compact log rows. AD1 promotes those three groups to the panel's own SUB-TABS and makes
-// the dated listing the panel's body, so a second, smaller rendering of the same rows underneath
-// it would be the same data twice — which is the duplication this whole line of work has been
-// removing.
-//
-// NOTHING THAT LIVED HERE WAS LOST. What each piece showed, and where it is now:
-//
-//   the three outcome boxes          -> the COMPLETED / PENDING / ABORTED sub-tabs, whose labels,
-//                                       notes and colours still come from OUTCOME_LABELS
-//   "0 completed" at zero            -> the sub-tab's own count pill, which renders 0 rather than
-//                                       hiding, for the same reason: a missing group makes the
-//                                       reader count sections to work out what is absent
-//   "None on this date."             -> the empty-sub-tab state, which now says WHICH emptiness it
-//                                       is (AD1 requirement 7's three sentences)
-//   company / role / time            -> ApplicationRow and CompanyApplicationRow, which carried
-//                                       them already
-//   the obstacle sentence            -> both rows, from describeApplication, unchanged
-//   "the posting was removed"        -> the postingGone branch on both rows, unchanged
-//   Resume PDF                       -> both rows, which additionally carry the ATS chip and the
-//                                      (the screenshot is SUBMITTED-only since AE4)
-//                                       posting link the compact log row never had
-//   Abort (server-decided)           -> both rows, above; the flag is still `job.abortable`
-//   Remove, and its soft-hide copy   -> both rows, above
+// What the tiles carried and where it is now: the application's obstacle sentences -> the item's
+// fold; Open / Open & fill (AC1, scoped) -> the item's rail; Details and every attempt -> the review
+// modal (CompanyHeading + ApplicationObstacleCard + AttemptRow, above); Remove -> the rail; Abort ->
+// In flight's own row; the held-on-purpose vs broke split -> only BROKE is listed, as kind "broke".
