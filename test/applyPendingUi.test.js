@@ -202,14 +202,16 @@ test("bulk approval takes two deliberate steps", () => {
 });
 
 test("the pending surface gets its own CTA rather than hiding behind 'need review'", () => {
-  // The wording moved from "N awaiting your approval" to a dedicated obstacle card when the panel
-  // was reorganised around obstacles. The property is unchanged and is asserted more directly now:
-  // pending approvals get their OWN card, with their own count and their own single action, rather
-  // than being one of several buttons in a strip.
-  assert.match(jobsPanel, /waiting for your approval/);
-  assert.match(jobsPanel, /kicker="filled, checked, and not sent"/);
-  assert.match(jobsPanel, /actionLabel="Review & approve"/);
-  assert.match(jobsPanel, /countLabel="to approve"/);
+  // The property, unchanged since the obstacle restructure: pending approvals are their OWN thing to
+  // act on, never one of several buttons in a strip. D25 makes it sharper — ONE Stopped item per
+  // application waiting for approval, with Review on its rail and Approve & send in its fold, read
+  // before it can be pressed.
+  const lib = fs.readFileSync("client/src/lib/draftHouseExceptions.js", "utf8");
+  assert.match(lib, /filled — waiting for your approval/);
+  assert.match(lib, /for \(const p of pending\) \{/);
+  assert.match(jobsPanel, /pending: applyPending/);
+  assert.match(jobsPanel, /label: "Review", glyph: "☰", primary: true/);
+  assert.match(jobsPanel, /Approve &amp; send/);
 });
 
 // ── the artifact links must actually authenticate ────────────────────────────

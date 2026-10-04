@@ -1,0 +1,122 @@
+/* D25 · DRAFT HOUSE — the run bar and the Stopped items. D1's depth tokens on every control and its
+ * hover rail (revealed on hover AND keyboard focus; always shown where the pointer cannot hover),
+ * the same idiom The Table uses (ApplicationHistory.css).
+ * Colours are tokens only (--c-*, published from styles/colorTokens.js). */
+
+/* ── THE RUN BAR ───────────────────────────────────────────────────────────────────────────── */
+.dh-bar {
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px 22px;
+  padding: 14px 16px; border-radius: 18px; background: var(--c-surface-solid); box-shadow: var(--c-depth-rest);
+}
+.dh-bar[data-held="true"] { box-shadow: var(--c-depth-hover); outline: 2px solid var(--c-warning); outline-offset: -2px; }
+.dh-bar__group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.dh-bar__label { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--c-ink-faint); }
+
+.dh-mode { display: inline-flex; gap: 4px; padding: 3px; border-radius: 12px; background: var(--c-hover); }
+.dh-mode__seg {
+  border: 0; border-radius: 9px; padding: 6px 14px; font: inherit; font-size: 12px; font-weight: 800;
+  letter-spacing: .06em; background: transparent; color: var(--c-ink-muted); cursor: pointer;
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.dh-mode__seg[aria-pressed="true"] { background: var(--c-surface-solid); color: var(--c-ink); box-shadow: var(--c-depth-rest); }
+.dh-mode__seg:disabled { cursor: not-allowed; color: var(--c-ink-faint); }
+.dh-mode__seg:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.dh-mode__why { margin: 0; font-size: 11.5px; color: var(--c-ink-muted); max-width: 30ch; }
+
+.dh-caps { display: flex; flex-wrap: wrap; gap: 8px; }
+.dh-cap {
+  display: flex; flex-direction: column; gap: 4px; min-width: 104px; padding: 7px 10px; border-radius: 12px;
+  background: var(--c-surface-solid); box-shadow: var(--c-depth-rest);
+}
+.dh-cap__name { font-size: 11px; font-weight: 700; color: var(--c-ink-muted); }
+.dh-cap__n { font-size: 13px; font-weight: 800; color: var(--c-ink); font-variant-numeric: tabular-nums; }
+.dh-cap__meter { height: 4px; border-radius: 999px; background: var(--c-hover); overflow: hidden; }
+.dh-cap__meter span { display: block; height: 100%; background: var(--c-accent); }
+.dh-cap[data-full="true"] .dh-cap__meter span { background: var(--c-danger); }
+
+.dh-stop { flex: 1 1 260px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.dh-stop__btn {
+  align-self: flex-start; border: 0; border-radius: 12px; padding: 9px 16px; font: inherit; font-size: 13px; font-weight: 800;
+  background: var(--c-surface-solid); color: var(--c-danger); cursor: pointer; box-shadow: var(--c-depth-rest);
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.dh-stop__btn[data-held="true"] { color: var(--c-accent-ink); }
+.dh-stop__btn:hover:not(:disabled), .dh-stop__btn:focus-visible { box-shadow: var(--c-depth-hover); transform: translateY(-2px); }
+.dh-stop__btn:active { transform: translateY(0); box-shadow: var(--c-depth-press); }
+.dh-stop__btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.dh-stop__btn:disabled { opacity: .55; cursor: wait; }
+.dh-stop__say { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--c-ink-muted); }
+.dh-stop__held { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--c-warning); }
+.dh-stop__msg { margin: 0; font-size: 11.5px; color: var(--c-accent-ink); }
+
+/* ── THE STOPPED ITEMS ─────────────────────────────────────────────────────────────────────── */
+.dh-list { display: flex; flex-direction: column; gap: 10px; }
+.dh-item {
+  border-radius: 18px; background: var(--c-surface-solid); box-shadow: var(--c-depth-rest);
+  padding: 12px 14px 12px 16px; border-left: 4px solid var(--c-border); transition: box-shadow .2s ease;
+}
+.dh-item[data-tone="danger"]  { border-left-color: var(--c-danger); }
+.dh-item[data-tone="warning"] { border-left-color: var(--c-warning); }
+.dh-item[data-tone="info"]    { border-left-color: var(--c-info); }
+.dh-item:hover, .dh-item:focus-within, .dh-item[data-open="true"] { box-shadow: var(--c-depth-hover); }
+
+.dh-item__head { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.dh-item__main {
+  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  border: 0; background: none; padding: 0; text-align: left; cursor: pointer; color: inherit; font: inherit;
+}
+.dh-item__main:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 4px; border-radius: 6px; }
+.dh-item__title, .dh-item__sub { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dh-item__title { font-size: 14.5px; font-weight: 800; color: var(--c-ink); }
+.dh-item__sub { font-size: 12px; color: var(--c-ink-muted); }
+
+/* THE RAIL — D1's motion: zero width until hover / focus-within. */
+.dh-rail {
+  flex-shrink: 0; display: flex; gap: 8px;
+  max-width: 0; opacity: 0; overflow: hidden; padding: 6px 2px 8px; margin-block: -6px -8px;
+  transition: max-width .42s cubic-bezier(.3,.8,.25,1), opacity .42s cubic-bezier(.3,.8,.25,1);
+}
+.dh-item:hover .dh-rail, .dh-item:focus-within .dh-rail { max-width: 196px; opacity: 1; }
+@media (hover: none) { .dh-rail { max-width: 196px; opacity: 1; } }
+
+.dh-sq {
+  width: 52px; height: 52px; flex-shrink: 0; border-radius: 13px; border: 0;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: var(--c-surface-solid); color: var(--c-ink); font-family: var(--font-body); font-size: 17px;
+  text-decoration: none; cursor: pointer; box-shadow: var(--c-depth-rest);
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.dh-sq[data-primary="true"] { background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent); }
+.dh-sq:hover:not(:disabled), .dh-sq:focus-visible { box-shadow: var(--c-depth-hover); transform: translateY(-2px); }
+.dh-sq:active { transform: translateY(0); box-shadow: var(--c-depth-press); }
+.dh-sq:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.dh-sq:disabled { opacity: .55; cursor: wait; }
+.dh-sq__cap { font-size: 9px; font-weight: 700; letter-spacing: .06em; }
+
+/* The fold — what needs the user, then ONE line for everything that did not. */
+.dh-fold { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--c-border); display: flex; flex-direction: column; gap: 8px; }
+.dh-fold__needs { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--c-ink); }
+.dh-fold__quiet { margin: 0; font-size: 12px; color: var(--c-ink-faint); }
+.dh-fold__actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dh-btn {
+  border: 0; border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 12.5px; font-weight: 700;
+  background: var(--c-surface-solid); color: var(--c-ink); cursor: pointer; box-shadow: var(--c-depth-rest);
+  text-decoration: none; transition: box-shadow .2s ease, transform .2s ease;
+}
+.dh-btn[data-kind="primary"] { background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent); }
+.dh-btn[data-kind="danger"] { color: var(--c-danger); }
+.dh-btn:hover:not(:disabled), .dh-btn:focus-visible { box-shadow: var(--c-depth-hover); transform: translateY(-2px); }
+.dh-btn:active { transform: translateY(0); box-shadow: var(--c-depth-press); }
+.dh-btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.dh-btn:disabled { opacity: .55; cursor: wait; }
+
+@media (max-width: 640px) {
+  .dh-bar { padding: 12px; }
+  .dh-stop { flex-basis: 100%; }
+  .dh-item__head { flex-wrap: wrap; }
+  .dh-item__main { flex-basis: 100%; }
+  .dh-rail { max-width: none; opacity: 1; margin-left: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dh-rail, .dh-sq, .dh-btn, .dh-item, .dh-stop__btn, .dh-mode__seg { transition: none; }
+}

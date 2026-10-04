@@ -40,7 +40,8 @@ test("every piece of the surface arrived in the panel — nothing dropped in the
   for (const [what, needle] of [
     // "the run control" (Autofill for Review) was removed in A53 with the basket it dispatched.
     ["run status badges",      /run\.submittedCount/],
-    ["the review queue",       /need review/],
+    // D25: "Review all N" over the Stopped column (the "need review" this matched was a comment).
+    ["the review queue",       /Review all \{needsYouCount\} →/],
     ["held-gate batches",      /applyGatePortals\.map/],
     // Reads the scoped list since AB3 — the queue survives, its contents are now scoped to the card
     // the popup was opened from rather than being every question every time.
@@ -48,7 +49,9 @@ test("every piece of the surface arrived in the panel — nothing dropped in the
     // Copy changed with the obstacle restructure ("awaiting" -> "waiting for"), so this matches the
     // COUNT-plus-noun shape rather than one adjective. The capability is stronger than it was: the
     // pending queue now has its own obstacle card with its own action, not a CTA among others.
-    ["pending approvals",      /application\$\{applyPending\.length === 1 \? "" : "s"\} waiting for your approval/],
+    // D25: one Stopped item per application waiting for approval (lib/draftHouseExceptions.js),
+    // so the panel hands the whole queue over rather than writing one card's sentence.
+    ["pending approvals",      /pending: applyPending/],
     // AC4 replaced the run-history chip list with a dated view. Per-run detail is reached from every
     // application row instead of from a chip, and the run's status and counts moved into the detail
     // modal's own header — so what is asserted is the capability, not the call site that carried it.
