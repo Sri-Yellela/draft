@@ -112,6 +112,21 @@ export function collectRequiredFiles(manifest) {
     }
   }
 
+  // Follow url(...) in stylesheets and in the HTML pages' own <style> (D23). tokens.css declares the
+  // self-hosted faces and ui.css draws the mark from two mask images; neither is named by a src or
+  // href, so without this the zip would ship a popup whose fonts and mark 404 — and the build would
+  // still validate.
+  for (const entry of [...need].filter(f => f.endsWith('.css') || f.endsWith('.html'))) {
+    const file = path.join(SRC_DIR, entry);
+    if (!fs.existsSync(file)) continue;
+    const { text } = readTextNoBom(file);
+    for (const m of text.matchAll(/url\(\s*["']?([^"')]+)["']?\s*\)/g)) {
+      const ref = m[1].trim();
+      if (/^(https?:)?\/\//i.test(ref) || ref.startsWith('data:') || ref.startsWith('#')) continue;
+      need.add(path.posix.normalize(path.posix.join(path.posix.dirname(entry), ref)));
+    }
+  }
+
   // Follow ES import graphs, transitively.
   //
   // The header above claims a newly referenced script can never be silently left out of the bundle.
@@ -175,6 +190,16 @@ async function main() {
   }
 
   const required = collectRequiredFiles(manifest);
+
+  // D23: the extension's tokens, faces and mark are generated from the site's. A package built from
+  // a stale set would ship a palette the site no longer has — refuse it.
+  try {
+    const { staleExtensionTokens } = await import('./buildExtensionTokens.mjs');
+    const stale = await staleExtensionTokens();
+    if (stale.length) fail(`extension design assets are stale (${stale.join(', ')}) — run: node scripts/buildExtensionTokens.mjs`);
+  } catch (err) {
+    fail(`could not check the extension's design assets: ${err.message}`);
+  }
 
   for (const rel of required) {
     if (!fs.existsSync(path.join(SRC_DIR, rel))) fail(`referenced file is missing from source: ${rel}`);

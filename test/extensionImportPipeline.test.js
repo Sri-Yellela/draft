@@ -112,7 +112,8 @@ test("the outcome is worded in ONE place, so the triggers cannot disagree", () =
     "the request and its message live in the service worker");
   assert.match(popupSrc, /result\?\.message/,
     "the popup displays the message it was given rather than composing its own");
-  assert.match(bgSrc, /func: showCaptureToast, args: \[result\.message, !!result\.success\]/,
+  // D23 added a third argument, the colour tokens (a serialised function closes over nothing).
+  assert.match(bgSrc, /func: showCaptureToast, args: \[result\.message, !!result\.success, toastTheme\(\)\]/,
     "the toast is injected with the same message, from the same place");
 });
 

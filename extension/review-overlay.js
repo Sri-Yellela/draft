@@ -153,55 +153,97 @@ export const keyOf = (i) => `${i.name || ''}::${i.field || ''}`;
 // Self-contained by necessity — executeScript serialises this function, so it closes over nothing
 // and the ordering rules are passed in already applied.
 //
-// The visual language is the product's, not a debug panel's: pills at radius 999 in 9px/700, the
-// same #dcfce7/#166534 green the KB uses for `verified`, a confidence bar, and a glass surface.
-// A candidate should recognise this as the same application they queued the job in.
+// ⛔ D23: THE VISUAL LANGUAGE IS EXACTLY THE SITE'S — it is what a Web Store reviewer sees, and what
+// proves fill-and-review rather than auto-submit. Every colour is a var(--c-*) declared on the overlay
+// itself from `meta.theme` ({ light, dark } — the generated extension/tokens.js, i.e. the site's
+// client/src/styles/colorTokens.js), light by default and dark under the page's
+// prefers-color-scheme. ⛔ No colour literal (test/colorLiteralGuard.test.js scans extension/).
+// The controls are the job card's: radius 11-12, the D1 depth at rest / hover / press, the orange
+// primary with its own tinted shadow. The mark is "/draft" set in the logo face, whose bytes arrive
+// as `meta.theme.logoFont` (base64) and are loaded with the FontFace API — no URL is fetched, so no
+// web_accessible_resources entry and nothing for the page's CSP to refuse; without it, the fallback
+// face renders the same words.
 export function renderOverlay(bands, meta) {
   const ID = 'rm-gate-review-overlay';
   document.getElementById(ID)?.remove();
 
+  const theme = meta.theme || {};
+  const varsOf = (pal) => Object.entries(pal || {})
+    .map(([k, v]) => `--c-${k.toLowerCase().replace(/_/g, '-')}: ${v};`).join(' ');
+  const LOGO_FACE = 'rm-draft-logo';
+  if (theme.logoFont && typeof FontFace === 'function') {
+    try {
+      const bin = atob(theme.logoFont);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const face = new FontFace(LOGO_FACE, bytes.buffer, { style: 'italic', weight: '800' });
+      document.fonts.add(face);
+      face.load().catch(() => {});
+    } catch { /* the fallback face carries the same words */ }
+  }
+  const logo = `'${LOGO_FACE}', 'Poppins', ui-sans-serif, system-ui, sans-serif`;
+
   const css = `
+    #${ID} { ${varsOf(theme.light)} }
+    @media (prefers-color-scheme: dark) { #${ID} { ${varsOf(theme.dark)} } }
     #${ID} { position: fixed; top: 16px; right: 16px; width: 380px; max-height: calc(100vh - 32px);
-      overflow: auto; z-index: 2147483647; font: 13px/1.45 system-ui, -apple-system, sans-serif;
-      color: #0f172a; background: rgba(255,255,255,.86); backdrop-filter: blur(12px);
-      border: 1px solid rgba(15,23,42,.10); border-radius: 14px;
-      box-shadow: 0 12px 40px rgba(15,23,42,.18); }
+      overflow: auto; z-index: 2147483647;
+      font: 13px/1.45 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+      color: var(--c-ink); background: var(--c-surface-menu); backdrop-filter: blur(12px);
+      border: 1px solid var(--c-glass-edge); border-radius: 18px;
+      box-shadow: var(--c-shadow-lg); text-align: left; }
     #${ID} * { box-sizing: border-box; }
-    #${ID} .rm-hd { padding: 14px 16px 10px; border-bottom: 1px solid rgba(15,23,42,.08); }
-    #${ID} .rm-t { font-size: 13px; font-weight: 700; letter-spacing: -.01em; }
-    #${ID} .rm-s { font-size: 11px; color: #64748b; margin-top: 2px; }
+    #${ID} .rm-hd { padding: 14px 16px 12px; border-bottom: 1px solid var(--c-border); }
+    #${ID} .rm-mark { font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 20px;
+      letter-spacing: -.02em; line-height: 1; color: var(--c-logo-word); forced-color-adjust: none; }
+    #${ID} .rm-mark .rm-slash { color: var(--c-logo-slash); }
+    #${ID} .rm-t { font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 15px;
+      letter-spacing: -.01em; margin-top: 8px; }
+    #${ID} .rm-s { font-size: 11px; color: var(--c-ink-muted); margin-top: 2px; }
     #${ID} .rm-sec { padding: 10px 16px; }
-    #${ID} .rm-lbl { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-      color: #64748b; margin-bottom: 8px; }
-    #${ID} .rm-row { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0;
-      border-top: 1px solid rgba(15,23,42,.05); }
+    #${ID} .rm-lbl { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--c-ink-faint); margin-bottom: 8px; }
+    #${ID} .rm-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0;
+      border-top: 1px solid var(--c-border); }
     #${ID} .rm-row:first-of-type { border-top: none; }
-    #${ID} .rm-bar { width: 3px; align-self: stretch; border-radius: 999px; background: #e2e8f0; flex: none; }
+    #${ID} .rm-bar { width: 3px; align-self: stretch; border-radius: 999px; background: var(--c-border-strong); flex: none; }
+    #${ID} .rm-bar.ok { background: var(--c-success); }
+    #${ID} .rm-bar.guess { background: var(--c-warning); }
     #${ID} .rm-main { flex: 1; min-width: 0; }
-    #${ID} .rm-f { font-size: 11px; color: #64748b; }
-    #${ID} .rm-v { font-size: 12.5px; font-weight: 600; word-break: break-word; }
-    #${ID} .rm-pill { font-size: 9px; font-weight: 700; padding: 1px 7px; border-radius: 999px;
-      white-space: nowrap; background: #f1f5f9; color: #64748b; }
-    #${ID} .rm-pill.ok { background: #dcfce7; color: #166534; }
-    #${ID} .rm-pill.guess { background: #fef3c7; color: #92400e; }
-    #${ID} .rm-pill.elig { background: #dbeafe; color: #1e40af; }
-    #${ID} .rm-btn { font: inherit; font-size: 10px; font-weight: 700; padding: 3px 9px;
-      border-radius: 999px; border: 1px solid rgba(15,23,42,.15); background: #fff; cursor: pointer; }
-    #${ID} .rm-btn:hover { background: #f8fafc; }
-    #${ID} .rm-btn.ack { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
-    #${ID} .rm-btn.done { background: #dcfce7; border-color: #86efac; color: #166534; }
-    #${ID} .rm-edit { width: 100%; font: inherit; font-size: 12px; padding: 4px 6px; margin-top: 4px;
-      border: 1px solid rgba(15,23,42,.2); border-radius: 6px; }
-    #${ID} .rm-ft { position: sticky; bottom: 0; padding: 12px 16px; background: rgba(255,255,255,.94);
-      border-top: 1px solid rgba(15,23,42,.08); }
+    #${ID} .rm-f { font-size: 11px; color: var(--c-ink-muted); }
+    #${ID} .rm-v { font-size: 12.5px; font-weight: 700; word-break: break-word; }
+    #${ID} .rm-side { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex: none; }
+    #${ID} .rm-pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+      white-space: nowrap; background: var(--c-surface-2); color: var(--c-ink-muted); }
+    #${ID} .rm-pill.ok { background: var(--c-success-quiet); color: var(--c-success); }
+    #${ID} .rm-pill.guess { background: var(--c-warning-quiet); color: var(--c-warning); }
+    #${ID} .rm-pill.elig { background: var(--c-info-quiet); color: var(--c-info); }
+    #${ID} .rm-btn { font: inherit; font-size: 11px; font-weight: 700; padding: 5px 11px; min-height: 28px;
+      border-radius: 11px; border: 0; background: var(--c-surface-solid); color: var(--c-ink);
+      box-shadow: var(--c-depth-rest); cursor: pointer; transition: box-shadow .2s ease, transform .2s ease; }
+    #${ID} .rm-btn:hover:not(:disabled), #${ID} .rm-btn:focus-visible { box-shadow: var(--c-depth-hover); transform: translateY(-2px); }
+    #${ID} .rm-btn:active:not(:disabled) { transform: translateY(0); box-shadow: var(--c-depth-press); }
+    #${ID} .rm-btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+    #${ID} .rm-btn:disabled { cursor: default; }
+    #${ID} .rm-btn.ack { background: var(--c-warning-quiet); color: var(--c-warning); }
+    #${ID} .rm-btn.done { background: var(--c-success-quiet); color: var(--c-success); box-shadow: none; }
+    #${ID} .rm-btn.primary { background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent);
+      margin-top: 8px; }
+    #${ID} .rm-btn.primary:hover:not(:disabled), #${ID} .rm-btn.primary:focus-visible { box-shadow: var(--c-depth-accent); }
+    #${ID} .rm-edit { width: 100%; font: inherit; font-size: 12px; padding: 5px 8px; margin-top: 4px;
+      color: var(--c-ink); background: var(--c-surface-input); border: 1px solid var(--c-border-control); border-radius: 11px; }
+    #${ID} .rm-edit:focus { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
+    #${ID} .rm-ft { position: sticky; bottom: 0; padding: 12px 16px; background: var(--c-surface-modal);
+      border-top: 1px solid var(--c-border); }
     #${ID} .rm-state { font-size: 11px; font-weight: 700; }
-    #${ID} .rm-state.ready { color: #166534; }
-    #${ID} .rm-state.block { color: #92400e; }
-    #${ID} .rm-bug { margin: 8px 16px; padding: 9px 11px; border-radius: 9px; background: #fee2e2;
-      border: 1px solid #fca5a5; color: #991b1b; font-size: 11px; }
-    #${ID} details > summary { cursor: pointer; font-size: 11px; color: #64748b; padding: 6px 0; }
-    #${ID} .rm-next { margin-top: 10px; padding: 9px 11px; border-radius: 9px; background: #eff6ff;
-      border: 1px solid #bfdbfe; color: #1e3a8a; font-size: 11px; }
+    #${ID} .rm-state.ready { color: var(--c-success); }
+    #${ID} .rm-state.block { color: var(--c-warning); }
+    #${ID} .rm-bug { margin: 8px 16px; padding: 9px 11px; border-radius: 12px; background: var(--c-danger-quiet);
+      color: var(--c-danger); font-size: 11px; }
+    #${ID} details > summary { cursor: pointer; font-size: 11px; color: var(--c-ink-muted); padding: 6px 0; }
+    #${ID} .rm-next { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--c-info-quiet);
+      color: var(--c-info); font-size: 11px; }
+    @media (prefers-reduced-motion: reduce) { #${ID} .rm-btn { transition: none; } }
   `;
 
   const root = document.createElement('div');
@@ -225,13 +267,13 @@ export function renderOverlay(bands, meta) {
     const tier = i.tierLabel || (guess ? 'guess' : 'exact');
     return `
       <div class="rm-row" data-band="${band}" data-idx="${idx}">
-        <div class="rm-bar" style="background:${guess ? '#fbbf24' : conf >= 0.8 ? '#22c55e' : '#94a3b8'}"></div>
+        <div class="rm-bar ${guess ? 'guess' : conf >= 0.8 ? 'ok' : ''}"></div>
         <div class="rm-main">
           <div class="rm-f">${esc(i.field)}</div>
           <div class="rm-v" data-role="value">${esc(i.value)}</div>
           <input class="rm-edit" data-role="input" value="${esc(i.value)}" hidden>
         </div>
-        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex:none">
+        <div class="rm-side">
           <span class="rm-pill ${pill}">${esc(i.eligibility ? 'eligibility' : tier)}</span>
           <button class="rm-btn" data-role="edit">edit</button>
           ${guess ? `<button class="rm-btn ack" data-role="ack">acknowledge</button>` : ''}
@@ -248,6 +290,7 @@ export function renderOverlay(bands, meta) {
   const body = document.createElement('div');
   body.innerHTML = `
     <div class="rm-hd">
+      <div class="rm-mark" aria-hidden="true"><span class="rm-slash">/</span>draft</div>
       <div class="rm-t">Review before you submit</div>
       <div class="rm-s">${meta.filledCount} field(s) filled${meta.resumeAttached ? ' · resume attached' : ''}.
         Draft never submits for you.</div>
@@ -272,7 +315,7 @@ export function renderOverlay(bands, meta) {
           }</div>
           ${meta.portal.next ? `<div class="rm-s" style="margin-top:2px">Next:
             ${esc(meta.portal.next.title || meta.portal.next.company || 'application')}</div>` : ''}
-          <button class="rm-btn" data-role="next" style="margin-top:7px">Submit this one first, then go to the next</button>
+          <button class="rm-btn primary" data-role="next">Submit this one first, then go to the next</button>
         </div>` : ''}
     </div>`;
   root.appendChild(body);

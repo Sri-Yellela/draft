@@ -28,6 +28,26 @@
  */
 
 import { orderForReview, readinessOf, renderOverlay } from './review-overlay.js';
+import { C_LIGHT, C_DARK } from './tokens.js';
+
+// D23 — what the review overlay is painted with: the site's tokens (extension/tokens.js, generated
+// from client/src/styles/colorTokens.js) and the logo face's bytes, read from the extension's own
+// package (fonts/, the same file tokens.css declares). renderOverlay is serialised into the page and
+// closes over nothing, so all of it travels as an argument. The font is a courtesy: if it cannot be
+// read the overlay renders the same words in the fallback face.
+export async function overlayTheme() {
+  let logoFont = null;
+  try {
+    const res = await fetch(chrome.runtime.getURL('fonts/poppins-latin-800-italic.woff2'));
+    if (res.ok) {
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      logoFont = btoa(bin);
+    }
+  } catch { /* fallback face */ }
+  return { light: C_LIGHT, dark: C_DARK, logoFont };
+}
 import { authedFetch } from './auth.js';
 
 /** Matches the server's token TTL. A packet outlives its grant (G0 §9), so it is cleared on purpose. */
@@ -707,6 +727,7 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
         resumeAttached: outcome?.resume?.attached === true,
         resolverBug: readiness.resolverBug,
         portal: portalForOverlay,
+        theme: await overlayTheme(),
       }],
     });
   } catch (e) {

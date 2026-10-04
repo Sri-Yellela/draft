@@ -4,6 +4,9 @@ import {
 } from './gated-handoff.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
 import { authedFetch, getIdentity, cachedIdentity, disconnect } from './auth.js';
+// D23: the site's colour tokens, generated from client/src/styles/colorTokens.js — the toolbar badge
+// and the capture toast take their colours from here, never from a literal.
+import { C_LIGHT, C_DARK } from './tokens.js';
 
 // Keep in sync with config.js (service workers cannot share plain-script globals).
 // DEV SWITCH: comment line A, uncomment line B.
@@ -116,11 +119,19 @@ async function captureActiveTab(tab) {
   return result;
 }
 
+// The toast's colours, both palettes: it is injected into the page and picks one by the page's
+// prefers-color-scheme. Text on a solid state fill is SURFACE_SOLID — the sanctioned pairing in
+// colorTokens.js's CONTRAST_PAIRS (["SURFACE_SOLID", "SUCCESS"], ["SURFACE_SOLID", "DANGER"]).
+function toastTheme() {
+  const pick = (c) => ({ ok: c.SUCCESS, fail: c.DANGER, text: c.SURFACE_SOLID, shadow: c.SHADOW_MD });
+  return { light: pick(C_LIGHT), dark: pick(C_DARK) };
+}
+
 /** Same feedback for every trigger: the toast in the page, and the record the popup reads later. */
 async function reportCapture(tabId, result) {
   try {
     await chrome.scripting.executeScript({
-      target: { tabId }, func: showCaptureToast, args: [result.message, !!result.success],
+      target: { tabId }, func: showCaptureToast, args: [result.message, !!result.success, toastTheme()],
     });
   } catch (_) { /* the toast is a courtesy; never let it change the outcome */ }
   // Recorded so the popup can show the outcome of a hotkey capture it was not open for.
@@ -159,7 +170,7 @@ async function popupContext(tab) {
   };
 }
 
-/** What the popup shows before you commit to capturing. Same extractor, no network, no writes. */
+/** What the popup shows once you press "Read this page" (D23). Same extractor, no network, no writes. */
 async function previewActiveTab(tab) {
   const capturable = !!tab?.id && (!tab.url || /^https?:$/.test(new URL(tab.url).protocol));
   if (!capturable) return { capturable: false };
@@ -191,9 +202,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  // D13, THE COMPANION — what the popup needs to pick the right action for this page. Asked once per
-  // popup opening (a user action) and never stored: no storage key is added, so the listing's six
-  // are unchanged. See popupContext() below.
+  // D13, THE COMPANION — what the popup needs to pick the right action for this page. ⛔ D23: asked
+  // only when the user PRESSES "Read this page" in the popup (or its R key) — never on popup open —
+  // and never stored: no storage key is added, so the listing's six are unchanged. See popupContext().
   if (message.type === 'POPUP_CONTEXT') {
     chrome.tabs.query({ active: true, currentWindow: true })
       .then(([tab]) => popupContext(tab))
@@ -302,8 +313,8 @@ async function handleGatedHandoff() {
 }
 
 async function reportHandoff(tab, result) {
-  const badge = result.ok ? { text: String(result.filled?.length ?? 0), color: '#16a34a' }
-                          : { text: '!', color: '#dc2626' };
+  const badge = result.ok ? { text: String(result.filled?.length ?? 0), color: C_LIGHT.SUCCESS }
+                          : { text: '!', color: C_LIGHT.DANGER };
   try {
     await chrome.action.setBadgeText({ tabId: tab?.id, text: badge.text });
     await chrome.action.setBadgeBackgroundColor({ tabId: tab?.id, color: badge.color });
