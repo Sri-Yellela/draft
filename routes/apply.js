@@ -28,6 +28,7 @@ import { getAutomationReadiness, getMissingApplyPrerequisites } from "../service
 import { canUseAPlusResume, normalisePlanTier } from "../services/entitlements.js";
 import { monetisationEnabledFromEnv } from "../shared/monetisation.js";
 import { fullAutoDisabled as sharedFullAutoDisabled } from "../services/appSettings.js";
+import { userHeld, userHoldSince, setUserHold } from "../services/applyUserHold.js";
 import { draftSlots, slotsExhausted } from "../services/draftSlots.js";
 import { atsJobInputHash, ATS_JOB_INPUT_FIELDS } from "../services/jobs/boardFitPrecompute.js";
 import { recordSubmissionFromPipeline, markPending, publicRecord } from "../services/applicationRecords.js";
@@ -645,6 +646,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * they are at admission — a human is at the browser for those.
    */
   function lineHeldBy(run) {
+    // D25: the USER's Stop everything holds the line for every mode — unlike the kill switch, which
+    // exempts semi. It is checked first because it is the one the user can see and undo.
+    if (run && userHeld(db, run.user_id)) return "user_hold";
     if (run && run.mode === "auto" && fullAutoDisabled()) return "kill_switch";
     return null;
   }
@@ -1739,12 +1743,43 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     }
   }
 
+  /**
+   * D25: put a run that has not finished back at the HEAD of the user's line, its unstarted jobs
+   * still queued. Used when the user's hold is found at processRun's own doors — before the run is
+   * marked running, or before its next job is launched. The head, not the tail, because it was
+   * already the next thing to happen; resuming must not reorder what the user lined up.
+   */
+  function parkRunAtHead(run, why) {
+    db.prepare(`
+      UPDATE apply_runs SET status='waiting', line_position =
+        (SELECT COALESCE(MIN(line_position), 1) - 1 FROM apply_runs WHERE user_id=? AND status='waiting')
+      WHERE id=?
+    `).run(run.user_id, run.id);
+    for (const rj of db.prepare(`SELECT id, job_id FROM apply_run_jobs WHERE run_id=? AND status='queued'`).all(run.id)) {
+      logEvent(run.id, rj.id, run.user_id, rj.job_id, "user_hold", why);
+    }
+  }
+
   const processRun = async (run) => {
+    // D25: set when this run went back to the line because of the user's hold. Such a run must not
+    // re-dispatch the line on its way out: if the line's check and this one ever disagreed, that
+    // dispatch would start the run, this would park it, and the two would ping-pong it forever (an
+    // injected-violation check found exactly that loop). Resume dispatches the line itself.
+    let parked = false;
     try {
+      // D25: THE USER'S HOLD, CHECKED BEFORE THE RUN STARTS. startRun and dispatchLine already
+      // decline to start a held user's run; this is the door they both lead to, and boot recovery
+      // calls it directly — so the check here is the one that cannot be walked around.
+      if (userHeld(db, run.user_id)) {
+        parkRunAtHead(run, "You stopped everything before this draft started. Nothing was opened or sent.");
+        parked = true;
+        return;
+      }
       db.prepare(`UPDATE apply_runs SET status='running', started_at=unixepoch() WHERE id=?`).run(run.id);
       const jobs = db.prepare(`SELECT * FROM apply_run_jobs WHERE run_id=? AND status='queued' ORDER BY id`).all(run.id);
 
       const runningJobs = [];
+      let heldMidRun = false;
       for (const job of jobs) {
         while (activeWorkers >= APPLY_WORKER_LIMIT) {
           await new Promise(r => setTimeout(r, 500));
@@ -1753,6 +1788,10 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         if (runningJobs.length > 0) {
           await new Promise(r => setTimeout(r, 1000 + Math.random() * 2000));
         }
+        // D25: re-checked immediately before EACH next application is launched (after the worker
+        // wait and the jitter, so a Stop pressed during either is seen), so Stop everything pressed
+        // during a run starts nothing further. What is already being filled finishes; the rest wait.
+        if (userHeld(db, run.user_id)) { heldMidRun = true; break; }
         activeWorkers++;
         const p = processRunJob(job, run)
           .catch(e => console.error(`[applyRoutes] uncaught job error job=${job.job_id}: ${e.message}`))
@@ -1761,14 +1800,25 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       }
 
       await Promise.allSettled(runningJobs);
+      const unstarted = heldMidRun
+        ? db.prepare(`SELECT COUNT(*) FROM apply_run_jobs WHERE run_id=? AND status='queued'`).pluck().get(run.id)
+        : 0;
+      if (unstarted) {
+        parkRunAtHead(run, "You stopped everything while this run was going. This application had not started — nothing was opened or sent.");
+        parked = true;
+        return;
+      }
       db.prepare(`UPDATE apply_runs SET status='completed', finished_at=unixepoch() WHERE id=?`).run(run.id);
     } catch (e) {
       console.error(`[applyRoutes] processRun error run=${run.id}: ${e.message}`);
       db.prepare(`UPDATE apply_runs SET status='failed', finished_at=unixepoch() WHERE id=?`).run(run.id);
     } finally {
-      // A59: a slot just freed — start the next run in this user's line, if there is one.
-      try { dispatchLine(run.user_id); }
-      catch (e) { console.error(`[applyRoutes] line user=${run.user_id}: ${e.message}`); }
+      // A59: a slot just freed — start the next run in this user's line, if there is one. Not after
+      // a D25 park: the user stopped everything, and Resume is what moves the line again.
+      if (!parked) {
+        try { dispatchLine(run.user_id); }
+        catch (e) { console.error(`[applyRoutes] line user=${run.user_id}: ${e.message}`); }
+      }
     }
   };
 
@@ -1862,7 +1912,10 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // said while the user is looking rather than discovered later in a list.
     const active = activeRunCount(userId);
     const waitingAhead = waitingRunCount(userId);
-    const mustWait = active >= APPLY_MAX_ACTIVE_RUNS || waitingAhead > 0;
+    // D25: a user who pressed Stop everything still gets their Draft admitted — every check below
+    // runs now — but it WAITS rather than starting, and the line does not move until they resume.
+    const heldByUser = userHeld(db, userId);
+    const mustWait = active >= APPLY_MAX_ACTIVE_RUNS || waitingAhead > 0 || heldByUser;
     if (mustWait && waitingAhead >= APPLY_MAX_WAITING_RUNS) {
       return respond(429, {
         error: "line_full",
@@ -2043,9 +2096,13 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       waiting: !!line,
       line: line ? { position: line.position, length: line.length } : null,
       message: line
-        ? `Waiting in line (${line.position} of ${line.length}) — it starts when the draft ahead of it ` +
-          "finishes. Until then you can edit, reorder or remove it in Draft House."
+        ? (heldByUser
+          ? `Waiting in line (${line.position} of ${line.length}) — you stopped everything, so nothing ` +
+            "starts until you resume in Draft House. Until then you can edit, reorder or remove it."
+          : `Waiting in line (${line.position} of ${line.length}) — it starts when the draft ahead of it ` +
+            "finishes. Until then you can edit, reorder or remove it in Draft House.")
         : undefined,
+      held: heldByUser || undefined,
       dailyCap: { limit: APPLY_DAILY_CAP, submittedLast24h: used, remaining: Math.max(0, APPLY_DAILY_CAP - used - filtered.length) },
       // The preview/session budget. NOT the cost budget any more — see APPLY_DAILY_QUEUE_CAP.
       queueCap: (() => {
@@ -2237,7 +2294,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       runs: runs.map(publicRun),
       review: review.map(publicRunJob),
       gated: gated.map(publicRunJob),
-      inFlight: inFlight.map(publicRunJob),
+      // D25: Draft House's In flight rows carry Stop, so the SERVER says which can be aborted — the
+      // same rule the dated history and the abort endpoint use, never re-derived by the client.
+      inFlight: inFlight.map(r => ({ ...publicRunJob(r), abortable: OUTCOME_STATUSES[OUTCOME.PENDING].includes(r.status) })),
       submitted: submitted.map(publicRunJob),
       stopped: stopped.map(publicRunJob),
       // A59: the user's line, next first — the same payload as GET /api/apply/line.
@@ -2291,12 +2350,90 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         usesProfile: profile,
         jobs: jobsOf.all(r.id).map(publicRunJob),
       })),
-      held: held === "kill_switch"
+      held: held === "user_hold"
+        ? { reason: "user_hold",
+            message: "You stopped everything, so the line is not moving. Nothing in it will start until you resume." }
+        : held === "kill_switch"
         ? { reason: "kill_switch",
             message: "Automatic applications are paused by the operator, so the line is not moving. Nothing in it will start until they are resumed." }
         : null,
     };
   }
+
+  // ── D25: THE RUN BAR ─────────────────────────────────────────────────────────────────────────
+  //
+  // Draft House's top strip: the mode, the three caps with how much of each is used, and the
+  // user's Stop everything. One read, so the bar never assembles itself from three endpoints that
+  // could each be a poll apart.
+
+  /**
+   * ⛔ AUTO IS LOCKED, AND THE LOCK IS THE SERVER'S. Full-auto has never run unattended against a
+   * real employer; D22 gates opening it on AF5 AND a supervised full-auto run, and that is an owner
+   * decision, not a code path. When it is made, this is the one line that changes — the client
+   * renders AUTO selectable only when this says `locked: false`, and never decides it for itself.
+   * The kill switch is reported beside it, because "proven" is not "allowed right now".
+   */
+  const FULL_AUTO_PROVEN = false;
+  function autoModeState() {
+    const killSwitch = fullAutoDisabled();
+    if (!FULL_AUTO_PROVEN) {
+      return { locked: true, reason: "never_run_unattended",
+               message: "Auto has never run unattended against a real employer.", killSwitch };
+    }
+    if (killSwitch) {
+      return { locked: true, reason: "kill_switch",
+               message: "Automatic sending is paused by the operator.", killSwitch };
+    }
+    return { locked: false, reason: null, message: null, killSwitch };
+  }
+
+  function runBar(userId) {
+    const queued = queuedLast24h(userId);
+    const approved = approvedLast24h(userId);
+    const submitted = submittedLast24h(userId);
+    const cap = (id, label, bounds, used, limit) =>
+      ({ id, label, bounds, used, limit, remaining: Math.max(0, limit - used) });
+    const held = userHeld(db, userId);
+    const since = userHoldSince(db, userId);
+    return {
+      // Every Draft previews and waits for the user's approval; that is SEMI. It is the only mode a
+      // user can be in while AUTO is locked, so it is stated rather than stored.
+      mode: { current: "semi", auto: autoModeState() },
+      // The pipeline's own order, queue ≥ approval ≥ submission (docs/am2-approval-cap.md §4).
+      windowHours: 24,
+      caps: [
+        cap("queue", "Previews", "applications opened and filled for review", queued, APPLY_DAILY_QUEUE_CAP),
+        cap("approval", "Approvals", "tailored résumés and cover letters generated on approval", approved, APPLY_DAILY_APPROVAL_CAP),
+        cap("submission", "Submitted", "applications submitted to employers", submitted, APPLY_DAILY_CAP),
+      ],
+      hold: { held, since: since ? since * 1000 : null },
+    };
+  }
+
+  app.get("/api/apply/run-bar", requireAuth, (req, res) => {
+    res.json(runBar(req.user.id));
+  });
+
+  /**
+   * Stop everything / Resume. Strict boolean, the kill switch's rule: a stop must never be flipped
+   * by a typo coercing one way or the other. Releasing moves the line at once rather than at the
+   * next tick, so Resume visibly does something.
+   */
+  app.post("/api/apply/hold", requireAuth, (req, res) => {
+    const { held } = req.body || {};
+    if (typeof held !== "boolean") {
+      return res.status(400).json({ error: "held_must_be_boolean",
+        message: 'POST {"held": true} to stop everything, {"held": false} to resume.' });
+    }
+    const userId = req.user.id;
+    setUserHold(db, userId, held);
+    console.warn(`[apply] user ${userId} ${held ? "STOPPED everything" : "resumed"}`);
+    if (!held) {
+      try { dispatchLine(userId); }
+      catch (e) { console.error(`[applyRoutes] line user=${userId}: ${e.message}`); }
+    }
+    res.json({ ...runBar(userId), line: publicLine(userId) });
+  });
 
   /** 404 when the run is not this user's; 409 run_started (with what it is now) when not waiting. */
   function notWaiting(res, userId, runId) {

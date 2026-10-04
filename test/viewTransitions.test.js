@@ -113,7 +113,10 @@ test("the three surfaces carry the shared title, and the tab row navigates throu
   assert.match(read("client/src/panels/DeckView.jsx"), /\{\.\.\.\(isFront \? \{ \[TITLE_ATTR\]: job\.id \} : null\)\}/, "the deck's FRONT card only");
   assert.match(read("client/src/components/JobDetailPanel.jsx"), /data-vt-title=\{selectedJob\.id\}/);
   const queue = read("client/src/panels/AutoApplyPanelSections.jsx");
-  assert.equal((queue.match(/data-vt-title=\{(job|app)\.jobId \|\| undefined\}/g) || []).length, 2, "the queue's lines");
+  // D25: Draft House's lines are an in-flight row (ApplicationRow) and a Stopped item, which carries
+  // the job id of the application it stands for (the company tile row that held the second one is gone).
+  assert.equal((queue.match(/data-vt-title=\{job\.jobId \|\| undefined\}/g) || []).length, 1, "the in-flight line");
+  assert.match(read("client/src/components/StoppedItem.jsx"), /data-vt-title=\{item\.jobId \|\| undefined\}/, "the Stopped line");
   const app = read("client/src/App.jsx");
   const handler = app.slice(at(app, "const handlePanelChange = useCallback", 0, "tab handler"), at(app, "const handleProfileActivate", 0, "next"));
   assert.equal((handler.match(/transitionTo\(navigate,/g) || []).length, 2);

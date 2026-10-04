@@ -1,60 +1,61 @@
 import { useState } from "react";
-// framer-motion is gone from this file: the only thing that used it was the hand-assembled
-// calendar popover, which AD1 replaced with the shared DateFilterButton — the animation moved
-// there with the portal it belongs to.
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../styles/theme.jsx";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { Z } from "../styles/zLayers.js";
 import {
-  groupByApplication, groupByCompany, splitByFault, resolutionPlan,
+  groupByApplication, groupByCompany, splitByFault, resolutionPlan, PREREQUISITE_LABELS,
 } from "../lib/applyObstacles.js";
 import {
-  SectionHeading, ObstacleCard, ApplicationRow, PrerequisiteCards, ApplicationObstacleCard,
-  CompanyHeading, AttemptRow, CompanyTile, CompanyApplicationRow,
+  SectionHeading, ApplicationRow, ApplicationObstacleCard, CompanyHeading, AttemptRow,
 } from "./AutoApplyPanelSections.jsx";
-// AC3: the company tier is now a TILE in the ManageJobProfiles idiom, and TileGrid is what makes it
-// sit several-to-a-row at desktop width and stack when there is no room. Extracted from that panel,
-// which renders the same components — see the note at the top of TileCard.jsx.
-import { TileGrid } from "../components/ui/TileCard.jsx";
-// AD1: the Database panel's CHROME, extracted rather than reimplemented — the underline sub-tab row
-// with its count pills, the rounded search input, and the "Filter by date" pill with its portalled
-// calendar inside it. Reuse, not a second copy of the layout: see the note at the top of
-// PanelControls.jsx for what was extracted, what was not, and why.
-//
-// (AC4 had already extracted the CALENDAR alone. DateFilterButton is that calendar plus the pill
-// and the portal, which is the unit both panels actually render, so the Auto Apply side no longer
-// hand-assembles the three.)
-import { PanelSubTabs, PanelSearch, DateFilterButton } from "../components/ui/PanelControls.jsx";
-import { OUTCOME, OUTCOME_LABELS } from "../../../shared/applyOutcomeGroups.js";
+// D25: the ONE control this panel still takes from the Database panel's chrome, reused rather than
+// forked — PanelSearch narrows the Stopped column once it is long. PanelSubTabs and DateFilterButton
+// were AD1's outcome tabs and calendar; the workspace model has neither (see the header below), and
+// the Database panel keeps all three (test/d25DraftHouseWorkspace.test.js pins both facts).
+import { PanelSearch } from "../components/ui/PanelControls.jsx";
 import { companyLabel, UNKNOWN_COMPANY } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { C } from "../styles/colorTokens.js";
 import { TYPE } from "../styles/type.js";
 import WaitingLine from "../components/WaitingLine.jsx";
+import DraftRunBar from "../components/DraftRunBar.jsx";
+import StoppedItem from "../components/StoppedItem.jsx";
+import { buildStoppedItems, splitAnswers, filterItems, SEARCH_FROM } from "../lib/draftHouseExceptions.js";
 import { useViewport } from "../hooks/useViewport.js";
 import { A_PLUS_TOOL } from "../lib/applyTools.js";
 
 // ============================================================
-// AutoApplyPanel — the auto-apply pipeline, on its own tab
+// AutoApplyPanel — DRAFT HOUSE, the workspace (D14, D18, D25)
 // ============================================================
-// This is the strip that used to sit between the search bar and the postings, plus the review modal
-// it opened, MOVED here whole. Run status, the review queue, the held-gate batches, the question
-// queue, the pending-approval queue and the per-run detail are all present and all unchanged —
-// nothing was dropped or simplified on the way, and no request, guard or ordering differs. The
-// state now lives in AutoApplyContext so that this panel and the board can both reach it.
+// The tab reads "Draft House" (D18). The file and the /app/auto-apply route keep their old names —
+// renaming them is cost without benefit (docs/BRAND.md) — but nothing on the page is "Auto Apply".
 //
-// Two consequences of the move, both deliberate:
+// THE WORKSPACE MODEL (D25, docs/DRAFT_HOUSE_WORKSPACE.md):
 //
-//   - The strip's outer condition is gone. It existed to keep an EMPTY pipeline from taking up room
-//     above the postings; on its own tab there is nothing to crowd, and a tab that renders blank
-//     when you open it is worse than one that says the queue is empty.
-//   - flexBasis:"100%" is dropped from the container: it made the strip span the toolbar's flex
-//     row, and there is no row here.
+//   RUN BAR   the mode (SEMI; AUTO visibly LOCKED unless the server says otherwise), the three caps
+//             with how much of each is used, and ⏸ Stop everything, which reaches the server.
+//   STOPPED   ¾ — the working surface. EXCEPTIONS ONLY: what stopped and needs the user, one item
+//             each, with D1's hover rail and depth. Everything that worked stays quiet: an exact
+//             match is never listed, it is one line inside the fold ("12 of 14 needed no attention").
+//   QUEUED    ¼ — a glance: the line (A59) and what is in flight. Labelled "Queued", never "Running
+//             fine". Side by side from 1080 px; below that it stacks, Stopped FIRST (DOM order).
 //
-// The board keeps a count badge on this tab (AutoApplyContext's needsAttentionCount) so that
-// "3 need review" is still discoverable without opening it.
+// ⛔ NO SENT COLUMN — what went out lives in The Table (D15). ⛔ NO NUMBERED FLOW BOXES.
+//
+// WHAT D25 REMOVED, because the workspace model does not call for it: AD1's COMPLETED / PENDING /
+// ABORTED sub-tabs (COMPLETED was a Sent column), its search-and-calendar control row and the four
+// date empty states, AH6's "most recent activity" day, and AC3's company TILES with the
+// groupByCompany / splitByFault listings under each tab. Terminal outcomes are history, and history
+// is The Table's. AB2's groupByApplication stays — one application is one item however many times it
+// was held — and so does the review modal below, the deep review every item opens.
+//
+// D22, ANTICIPATED AND NOT BUILT: a remote run will be a Queued row with its own phase text, and an
+// expired portal session a Stopped item (lib/draftHouseExceptions.js — one more `kind`, no new list).
+//
+// The state is AutoApplyContext's, so the board and this panel read one pipeline.
 // ============================================================
+
 // D14: the eyebrow over each of the two columns — Stopped and Queued.
 const COLUMN_LABEL = (theme) => ({
   fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
@@ -77,6 +78,8 @@ export function AutoApplyPanel() {
     // A59: Drafts waiting in line behind the running one, editable until they start.
     applyLine = { waiting: [], held: null }, lineMsg, lineBusyId, setLineTool, moveInLine, removeFromLine,
     draftTool,
+    // D25: the run bar.
+    runBar = null, setStopEverything, holdBusy = false, holdMsg = "",
     applyRunDetailOpen, setApplyRunDetailOpen,
     applyRunDetail, setApplyRunDetail,
     applyReviewScope, setApplyReviewScope,
@@ -89,12 +92,8 @@ export function AutoApplyPanel() {
     draftJob, loadApplyRunDetail,
     submitApplyAnswers, openPendingDetail, decidePending,
     artifactUrl,
-    // AC4: the dated run history. Nothing here is populated until loadHistory is called with a
-    // date the user picked — there is no loader effect anywhere behind it.
-    historyDate, historyGroup = OUTCOME.PENDING, history, historyLoading, historyMsg,
-    historyMarkers, historyBusyId,
-    loadHistory, selectHistoryGroup, loadHistoryMonth, abortRunJob, hideRunJob,
-    historyAuto,
+    // Abort and remove. Their confirmations arrive on historyMsg, the name AD1 gave the line.
+    historyMsg, historyBusyId, abortRunJob, hideRunJob,
   } = useAutoApply();
 
   const nothingYet =
@@ -105,80 +104,39 @@ export function AutoApplyPanel() {
     !applyInFlight.length && !applySubmitted.length && !applyStopped.length &&
     !applyPrereqMissing.length && !(applyLine.waiting || []).length;
 
-  // ── Grouping ────────────────────────────────────────────────────────────────────────────────
+  // ── AB2: ONE ITEM PER APPLICATION ───────────────────────────────────────────────────────────
   //
-  // The panel is organised by OBSTACLE, so the first job here is to turn flat lists of applications
-  // into a small number of things a human can act on. Two questions are being answered per obstacle:
-  // what is in the way, and how many applications does clearing it release.
-  //
-  // Questions split by REASON rather than being one queue: "confirm a guess" and "make a statement
-  // to an employer" are different acts with different stakes, and the second is an attestation the
-  // system will never answer on the user's behalf.
-  const confirmQuestions = applyQuestions.filter(q => q.reason === "low_confidence" && !q.eligibility);
-  const attestQuestions  = applyQuestions.filter(q => q.eligibility);
-  const otherQuestions   = applyQuestions.filter(q => q.reason !== "low_confidence" && !q.eligibility);
-
-  // ── AB2: ONE CARD PER APPLICATION ───────────────────────────────────────────────────────────
-  //
-  // This used to be `heldByObstacle`, a Map keyed on the obstacle SENTENCE. The server returns one
-  // row per RUN-JOB, so a job held, re-run and held again for a different reason is three rows — and
-  // keying on the sentence scattered that one application across three cards, each reporting
-  // "1 APPLICATION". Three cards, one job, and counts that looked correct while the panel overstated
-  // the work by 3x.
-  //
-  // The obstacle grouping is NOT gone; it moved to where it is true. See the rule in
-  // applyObstacles.js: group by obstacle when one action unblocks many (the portal batches below,
-  // which are the most differentiated thing in the product and are untouched), and by application
-  // when many obstacles block one (this).
+  // The server returns one row per RUN-JOB, so a job held, re-run and held again for a different
+  // reason is three rows. Keying on the obstacle sentence once scattered that one application across
+  // three cards, each reporting "1 APPLICATION". groupByApplication is the rule that makes it one.
+  // The obstacle grouping is NOT gone; it lives where it is true — the portal items below, where one
+  // sign-in releases many (applyObstacles.js has the two-halves rule).
   const heldApplications = groupByApplication(applyReviewJobs);
 
-  // ── AB4: OUTCOME, THEN COMPANY, THEN APPLICATION ────────────────────────────────────────────
-  //
-  // The company tier. A user applying to seven OpenAI roles wants them together; flat
-  // reverse-chronological order interleaved them with everything else and made the one fact that
-  // matters when a recruiter calls — which employer this is — invisible.
-  // ── AD1: THE SAME GROUPING, OVER THE DAY'S ROWS ─────────────────────────────────────────────
-  //
-  // AB4's three cross-run groupings — heldByCompany, submittedByCompany and the two halves of
-  // stoppedSplit — are GONE AS SECTIONS, because the three sections they fed are gone: the sub-tabs
-  // replaced them, and the listing under a sub-tab is one day of one outcome. The grouping RULES did
-  // not change and are not duplicated; the same three calls are made below against
-  // `history.jobs`, which is that day and that outcome and nothing else.
-  //
-  // Note which grouping goes with which tab, because it is not uniform and that is deliberate:
-  //
-  //   PENDING    groupByApplication THEN groupByCompany. AB2's rule: three held run-job rows for one
-  //              posting are ONE card with three reasons, not three cards each claiming to be one
-  //              application. Rendered as CompanyApplicationRow, which is the row that carries
-  //              scoped Open, the resumable handoff and the per-application problem count.
-  //   COMPLETED  groupByCompany over the RAW rows. A submitted application is one attempt that
-  //              reached an employer; collapsing two of them into one card would hide one of the two
-  //              things that actually went out.
-  //   ABORTED    splitByFault, then groupByCompany over each half — held-on-purpose kept
-  //              distinguishable from broke, which is the distinction this work exists to preserve.
-  const historyJobs = history?.jobs || [];
+  // ── D25: WHAT BROKE, AND ONLY WHAT BROKE ────────────────────────────────────────────────────
+  // splitByFault keeps held-on-purpose apart from broke — the distinction this line of work exists
+  // to preserve. Only the BROKE half needs the user (retry it, or apply yourself); the held half
+  // is history. A failure whose job has since been drafted again is not listed: the newer attempt
+  // is what that application is doing now.
+  const liveJobIds = new Set([
+    ...applyInFlight, ...applyReviewJobs, ...applyGatedJobs, ...applySubmitted, ...applyPending,
+    ...(applyLine.waiting || []).flatMap(r => r.jobs || []),
+  ].map(j => String(j?.jobId)));
+  const brokeApplications = groupByApplication(
+    splitByFault(applyStopped).broke.filter(j => !liveJobIds.has(String(j.jobId))));
 
-  /**
-   * AD1: what the search box filters. A day's listing, narrowed by employer or role.
-   *
-   * DECLARED HERE, above the values that read it, and that is not a style choice. `const` is in its
-   * temporal dead zone until the line that declares it runs, so a useState sitting below this
-   * grouping throws "Cannot access 'search' before initialization" AT RENDER — and it throws in a
-   * way `vite build` compiles happily, because it is a runtime ordering error rather than a syntax
-   * one. scripts/abPanelUi.mjs caught it; nothing that reads the source could have.
-   */
+  // ── D25: THE STOPPED COLUMN, AS DATA ────────────────────────────────────────────────────────
+  // Every exception, in the order the user should meet them: what blocks everything, then what one
+  // action clears for many, then one item per application. lib/draftHouseExceptions.js decides what
+  // is listed and how it reads; this file attaches the actions.
+  const stoppedItems = buildStoppedItems({
+    prereqMissing: applyPrereqMissing, prereqLabels: PREREQUISITE_LABELS,
+    gatePortals: applyGatePortals, questions: applyQuestions, pending: applyPending,
+    heldApplications, brokeApplications, companyLabel,
+  });
   const [search, setSearch] = useState("");
-
-  /** The search box, applied. Employer, role, or the posting id — what a person would type. */
-  const searchTerm = search.trim().toLowerCase();
-  const listedJobs = historyJobs.filter(j => !searchTerm
-    || `${j.company || ""} ${j.title || ""} ${j.jobId || ""}`.toLowerCase().includes(searchTerm));
-
-  const listedByCompany     = groupByCompany(groupByApplication(listedJobs));
-  const listedFlatByCompany = groupByCompany(listedJobs);
-  const listedSplit         = splitByFault(listedJobs);
-  const listedBrokeByCompany = groupByCompany(listedSplit.broke);
-  const listedHeldByCompany  = groupByCompany(listedSplit.held);
+  const listedItems = filterItems(stoppedItems, search);
+  const [openKey, setOpenKey] = useState(null);
 
   // D14: Stopped and Queued sit side by side from ~1080px; below that they stack, Stopped first.
   const splitSideBySide = viewportWidth >= 1080;
@@ -190,47 +148,39 @@ export function AutoApplyPanel() {
     // times added 3 to the number on the tab and in this heading.
     applyQuestions.length + applyPending.length + heldApplications.length +
     applyPrereqMissing.length;
+  // The column's own count is every item in it, broke ones included; "Review all" stays the review
+  // queue's number, which is what that control opens.
+  const stoppedCount = needsYouCount + brokeApplications.length;
 
-  // ── AC1: OPEN IS SCOPED TO THE CARD ─────────────────────────────────────────────────────────
+  /**
+   * TASK Q — THE BUDGET IS ON THE SCREEN WHERE IT IS SPENT. The run bar carries all three caps; this
+   * says the one thing the bar cannot — how the approval budget compares with what is WAITING.
+   * Stated only when the server sent a cap and there is something to approve.
+   */
+  const approvalBudgetLine = !approvalCap || applyPending.length === 0 ? null
+    : approvalCap.remaining === 0
+      ? `You have used all ${approvalCap.limit} of today's approvals — these stay here until the limit resets.`
+    : approvalCap.remaining < applyPending.length
+      ? `${approvalCap.remaining} of ${approvalCap.limit} approvals left today, fewer than the ${applyPending.length} waiting.`
+      : `${approvalCap.remaining} of ${approvalCap.limit} approvals left today.`;
+
+  // ── AC1: OPEN IS SCOPED TO THE ITEM ─────────────────────────────────────────────────────────
   //
   // A scope is { label, jobIds, rowIds, only }. `only` narrows to one FACET of the popup, for the
-  // cards that are inherently about a queue rather than about one job — a portal batch, the question
-  // queue, the approvals queue. Every card opens the popup on the thing it is standing for.
+  // items that are inherently about a queue rather than about one job — a portal batch, the question
+  // queue, the approvals queue. Every item opens the popup on the thing it is standing for.
   const openScoped = (s) => { setApplyRunDetail(null); setApplyReviewScope(s); setApplyRunDetailOpen(true); };
 
   /**
-   * THE UNSCOPED ENTRY POINT, AND THE ONLY ONE (requirement: "Review all" is the ONLY unscoped path).
+   * THE UNSCOPED ENTRY POINT, AND THE ONLY ONE (AB3: "Review all" is the ONLY unscoped path).
    *
-   * It is named `openEverything` rather than `openReview` on purpose, and that rename IS the fix for
-   * the class of defect described below — not decoration.
-   *
-   * WHAT WENT WRONG, PRECISELY. AB3 (679ddac) did not regress and it did not leave a scope ignored
-   * downstream. It was a HALF-FIX. AB3 rewrote every call site whose SHAPE was `onAction={openReview}`
-   * or `onDetails={() => openReview()}` into a scoped call, and it left one call site alone — the one
-   * whose shape was different, because its `openReview` sat in the fallback arm of a ternary:
-   *
-   *     onResolve={resumable ? () => openHandoff(packet, app) : openReview}
-   *                                                             ^^^^^^^^^^ never rewritten
-   *
-   * So Details was scoped and OPEN was not, on the same card. Open only reaches that arm when the
-   * application has no usable handoff packet — which is exactly the OpenAI card in the bug report,
-   * and exactly the case the fixtures did not cover.
-   *
-   * THE MECHANISM, NAMED. This is the third appearance in this codebase of "a handler wired to the
-   * wrong thing" (the no-op onSearch callbacks; the three hardcoded tab lists). Every instance has
-   * the same cause: a fix applied by REWRITING THE CALL SITES THAT MATCHED A PATTERN, while the
-   * wrong handler stayed in scope as a bare, zero-argument callable that any call site could still
-   * name. A pattern-matched fix covers the shapes the author happened to look at; the identifier
-   * covers every shape. So the unscoped handler is renamed away from the word every card's control
-   * uses, the card's non-resumable arm now passes the SCOPED handler, and two assertions below hold
-   * it: a source assertion that no card-level prop names the unscoped handler, and a real-browser
-   * assertion in scripts/abPanelUi.mjs that CLICKS Open on a packet-less card and reads back what
-   * the popup contains.
-   *
-   * The source assertion alone would not have caught this — test/applyObstacleSurfaces.test.js
-   * asserted `!/onAction={openReview}/`, the exact string AB3 had just replaced, and
-   * test/applyHeldResumable.test.js asserted the broken ternary VERBATIM. A test pinned the defect
-   * in place. That is why the browser assertion exists.
+   * Named `openEverything` rather than `openReview` on purpose, and that rename IS the fix for a
+   * class of defect, not decoration. AB3 rewrote every call site whose SHAPE was
+   * `onAction={openReview}` into a scoped call and left one alone — the one whose `openReview` sat in
+   * the fallback arm of a ternary — so Details was scoped and Open was not, on the same card. A
+   * pattern-matched fix covers the shapes the author looked at; the identifier covers every shape.
+   * So the unscoped handler is named away from the word every item's control uses, and no
+   * item-level prop may name it (test/applyHeldResumable.test.js and scripts/abPanelUi.mjs).
    */
   const openEverything = () => openScoped(null);
 
@@ -244,18 +194,12 @@ export function AutoApplyPanel() {
     label: [companyLabel(app.company), app.title].filter(Boolean).join(" — "),
   });
 
-  /**
-   * ONE COMPANY's applications (AC3). The tile's footer action.
-   *
-   * Scoped like every other entry point, and for the reason AC1 exists: the tile is a triage
-   * surface, so its one control has to open the thing it stands for. A company is several
-   * applications, so the scope carries all of their ids — which is what makes this different from
-   * `openEverything`, and the difference is the whole point.
-   */
-  const openCompanyReview = (company, items) => openScoped({
-    jobIds: items.filter(a => a.jobId != null).map(a => String(a.jobId)),
-    rowIds: items.flatMap(a => (a.rows || []).map(r => r.id)),
-    label: companyLabel(company),
+  /** ONE application waiting for approval: the approvals facet, narrowed to it. */
+  const openApprovalReview = (p) => openScoped({
+    jobIds: p.jobId != null ? [String(p.jobId)] : [],
+    rowIds: p.runJobId != null ? [p.runJobId] : [],
+    only: "pending",
+    label: [companyLabel(p.company), p.title].filter(Boolean).join(" — "),
   });
 
   /**
@@ -263,17 +207,10 @@ export function AutoApplyPanel() {
    *
    * ── AE3: THE ATS HOST IS NOT THE EMPLOYER ───────────────────────────────────────────────────
    * This label was `${p.host} — N applications`, which is how the modal came to be headed
-   * "JOBS.ASHBYHQ.COM — 1 APPLICATION" over a card that correctly said OpenAI. It was never a
-   * missing-company fallback: a portal is DEFINED by its origin, so the one entry point whose unit
-   * is an origin was the one that named an origin. Every other entry point — openApplicationReview,
-   * openCompanyReview — already labelled by company, which is why the sibling OpenAI application
-   * read correctly and this one did not. What put this row here at all was the false CAPTCHA (AE1);
-   * the label would have been just as wrong for a genuine gate.
-   *
-   * `jobs.ashbyhq.com` is a multi-tenant apply host serving hundreds of unrelated employers, so it
-   * does not identify anyone. The batch is named by the COMPANIES in it, which is the fact the user
-   * is actually looking for, with the host demoted to the parenthetical it is — a detail about where
-   * the sign-in happens, not a name.
+   * "JOBS.ASHBYHQ.COM — 1 APPLICATION" over a card that correctly said OpenAI. `jobs.ashbyhq.com` is
+   * a multi-tenant apply host serving hundreds of unrelated employers, so it does not identify
+   * anyone. The batch is named by the COMPANIES in it, with the host demoted to a detail about where
+   * the sign-in happens.
    */
   const openPortalReview = (p) => {
     const jobIds = (applyHandoffPackets || [])
@@ -315,9 +252,7 @@ export function AutoApplyPanel() {
 
   // A scope names specific applications, so it has to be able to show them whichever feed they came
   // from. Gated jobs live in their own feed and have only ever been visible as a portal BATCH — so
-  // scoping to a portal and then filtering `review` alone would open an empty popup. The unscoped
-  // view is left as it was: there the batches above already stand for these rows, and listing them
-  // twice is what the batching exists to avoid.
+  // scoping to a portal and then filtering `review` alone would open an empty popup.
   const reviewPool = byJob
     ? [...applyReviewJobs, ...applyGatedJobs].filter((j, i, a) => a.findIndex(x => x.id === j.id) === i)
     : applyReviewJobs;
@@ -330,59 +265,19 @@ export function AutoApplyPanel() {
     : [];
 
   // ── AC2: THE MODAL, AS COMPANY → APPLICATION → PROBLEMS ─────────────────────────────────────
-  //
-  // The same two functions the panel's own sections use, applied to whichever rows the popup is
-  // showing. That is the point of requirement 1: "the card summary already does this correctly; the
-  // modal must match it" — so this is not a second grouping, it is the same one.
-  //
-  // A RUN DETAIL is grouped too, not left as a flat list. The old code branched here and rendered
-  // run-job rows raw for a run, which meant one job attempted twice inside one run read as two
-  // applications on that surface while reading as one everywhere else. The per-attempt rows are
-  // preserved underneath each application, so nothing about a run has become less visible.
+  // The popup is the deep review behind every item, and it keeps AC2's grouping: one renderer, so
+  // the item and the popup cannot disagree about how many applications there are.
   const modalApplications = groupByApplication(applyRunDetail ? applyRunDetail.jobs : scopedReviewJobs);
   const modalCompanies    = groupByCompany(modalApplications);
 
   // Which applications have their attempt list expanded. Keyed by the application key, so opening
-  // one does not open another's, and the state outlives the popup rather than dying with it —
-  // reopening the same application remembers what you were reading.
+  // one does not open another's, and the state outlives the popup rather than dying with it.
   const [openAttempts, setOpenAttempts] = useState({});
 
   /**
-   * A YYYY-MM-DD rendered as the day the USER picked.
-   *
-   * `new Date("2026-08-11")` is parsed as UTC MIDNIGHT — so west of Greenwich toLocaleDateString
-   * renders the 10th, and the panel told the user "No applications on 8/10" for a date they had
-   * just clicked on. Constructed from the parts instead: no conversion, so nothing to get wrong.
-   */
-  const localDateLabel = (iso) => {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
-    if (!m) return iso || "";
-    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString();
-  };
-
-  // AH6: today, as the panel's own YYYY-MM-DD. Built from LOCAL parts for the same reason
-  // localDateLabel is — toISOString() would hand back the UTC day, which west of Greenwich is
-  // tomorrow for most of the evening.
-  const todayIso = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  };
-  const isToday = (iso) => iso === todayIso();
-
-  // The calendar popover's open/closed state and its anchor rect used to be three pieces of local
-  // state here. They moved INTO DateFilterButton with the rest of the control (AD1), because they
-  // were chrome that both panels were keeping their own copy of — and the Database panel's copy was
-  // the one that had already learned the portalling rule. Which date is SELECTED still lives in the
-  // context, where the fetch is. (`search` moved UP, above the grouping that reads it — see there.)
-
-  /**
    * AC2 requirement 2: this application's problems, with the CO-RESOLVABLE ones lifted out.
-   *
-   * Everything it needs is already computed by the server and already in this panel's hands —
-   * `applyGatePortals` is GET /api/apply/gate-packets' own per-origin grouping (the unit an
-   * activeTab grant is scoped to), and `applyQuestions` is GET /api/apply/questions' own cross-job
-   * deduplication. resolutionPlan CONSUMES both rather than re-deriving either; see the table there
-   * for exactly which holds can share one crossing and which cannot.
+   * resolutionPlan CONSUMES the server's own portal and question groupings rather than re-deriving
+   * either; see the table there for which holds can share one crossing and which cannot.
    */
   const planFor = (app) => resolutionPlan(app, {
     portals: applyGatePortals, packets: applyHandoffPackets, questions: applyQuestions,
@@ -394,7 +289,7 @@ export function AutoApplyPanel() {
     if (item.origin) {
       // The portal batch. Cross it via this application's own packet when there is one — that puts
       // the user on the real form with the answers already prepared — and fall back to the batch
-      // view, which is what the panel's own portal card opens.
+      // view, which is what the panel's own portal item opens.
       const packet = handoffPacketFor?.(app.primary?.row) || handoffPacketFor?.(app);
       const portal = applyGatePortals.find(p => p.origin === item.origin);
       if (packet && !packet.stale && !packet.postingGone) openHandoff(packet, app);
@@ -406,52 +301,173 @@ export function AutoApplyPanel() {
     if (item.question) openFacet("questions", item.question);
   };
 
-  // ── AD1: ABORT AND REMOVE, ON THE LISTING ───────────────────────────────────────────────────
-  //
-  // Two shapes because the listing has two row types, and they identify their target differently.
-  //
-  // A GROUPED APPLICATION (the PENDING tab) is every attempt at one posting, so both actions take
-  // ALL of its run-job ids. Aborting only the newest attempt leaves the application in PENDING after
-  // telling the user it stopped; hiding only the newest makes the row reappear on the next fetch
-  // wearing an earlier attempt's face, which is exactly the "does not return on refetch" AD1 asks
-  // to verify. Abortability is the SERVER's flag, never re-derived here — the button's presence and
-  // the endpoint's guard have to agree.
-  //
-  // A RAW ROW (the COMPLETED and ABORTED tabs) is one run-job, and takes its own id.
-  const abortApplication = (app) => abortRunJob((app.rows || []).filter(r => r.abortable).map(r => r.id));
-  const hideApplication  = (app) => hideRunJob((app.rows || []).map(r => r.id));
+  // ── ABORT AND REMOVE ────────────────────────────────────────────────────────────────────────
+  // A GROUPED APPLICATION is every attempt at one posting, so remove takes ALL of its run-job ids:
+  // hiding only the newest makes the item reappear on the next fetch wearing an earlier attempt's
+  // face. An IN-FLIGHT row is one run-job, and Stop takes its own id. The abort endpoint is the
+  // guard either way — a row that has already finished is refused there, not here.
+  const hideApplication = (app) => hideRunJob((app.rows || []).map(r => r.id));
   const appBusy = (app) => (app.rows || []).some(r => r.id === historyBusyId);
   const rowAbort = (job) => abortRunJob(job.id);
-  const rowHide  = (job) => hideRunJob(job.id);
 
   // No per-job retry endpoint exists — the only way to try again is a new run. "Retry" DRAFTS the job
-  // again, at once, with the deck's and the board's own call (A53: there is no client-side basket to
-  // put it back on any more), and says what it did rather than implying the old attempt resumed.
+  // again, at once, with the deck's and the board's own call, and says what it did rather than
+  // implying the old attempt resumed.
   const retryJob = (job) => { draftJob?.(job, companyLabel(job.company)); };
+
   // The remedy for a STALE or unpreparable handoff (AB1 requirement 5): a fresh run, which produces
-  // a fresh packet. Same mechanism as retryJob — there is no per-job re-dispatch endpoint, so it
-  // says what it actually did rather than implying the application resumed by itself.
+  // a fresh packet. There is no per-job re-dispatch endpoint, so it says what it actually did rather
+  // than implying the application resumed by itself.
   const rerunJob = (job) => {
     setHandoffMsg(null);
     draftJob?.(job, companyLabel(job.company));
   };
 
   /**
-   * AB4 requirement 5: a missing resume is a PROBLEM WITH A ONE-CLICK FIX, and it was left as text —
-   * a dead "no resume generated" chip with a tooltip.
-   *
-   * The click puts the job back on the queue, because the run is what generates a resume: the
-   * pipeline's CASE C generates one in parallel with the browser and gates the upload on it. There is
-   * no way to reach the board's own generator for a specific job from here — JobsPanel has no
-   * deep-link — so using the pipeline's own generation path is both the shortest honest fix and the
-   * one that produces a resume tailored the same way an auto-apply run would.
-   *
-   * The message says what actually happened rather than implying a resume now exists.
+   * AB4 requirement 5: a missing resume is a PROBLEM WITH A ONE-CLICK FIX. The click puts the job
+   * back on the queue, because the run is what generates a resume (the pipeline's CASE C), and the
+   * message says what actually happened rather than implying a resume now exists.
    */
   const generateResume = (job) => { draftJob?.(job, companyLabel(job.company)); };
 
+  // ── D25: EACH ITEM'S RAIL AND FOLD ──────────────────────────────────────────────────────────
+  const toggle = (item) => {
+    const opening = openKey !== item.key;
+    setOpenKey(opening ? item.key : null);
+    // An approval's fold lists its GUESSES, which only the per-application review read has. Asked
+    // for when the fold opens — the user's action — never at render.
+    if (opening && item.kind === "approval" && pendingDetail?.runJobId !== item.ref.runJobId) {
+      openPendingDetail?.(item.ref.runJobId);
+    }
+  };
+
+  const railFor = (item) => {
+    const r = item.ref;
+    switch (item.kind) {
+      case "prerequisite": {
+        const to = PREREQUISITE_LABELS[r]?.to || "profile";
+        return [{ label: "Fix", glyph: "→", primary: true, title: PREREQUISITE_LABELS[r]?.action || "Fix it",
+                  onClick: () => navigate(`/app/${to}`) }];
+      }
+      case "portal": {
+        const captcha = (r.gateReasons || []).includes("captcha_required");
+        return [{ label: captcha ? "Open" : "Sign in", glyph: "↗", primary: true,
+                  title: captcha ? "Open them and apply yourself" : `Sign in to ${r.host} once`,
+                  onClick: () => openPortalReview(r) }];
+      }
+      case "questions":
+        return [{ label: "Answer", glyph: "✎", primary: true, title: item.title,
+                  onClick: () => openFacet("questions", item.title) }];
+      case "approval":
+        return [
+          { label: "Review", glyph: "☰", primary: true, title: "Read every answer before you approve",
+            onClick: () => openApprovalReview(r) },
+          { label: "Reject", glyph: "✕", title: "Reject — nothing is sent", disabled: pendingBusy,
+            onClick: () => decidePending([r.runJobId], false) },
+        ];
+      case "held": {
+        const packet = handoffPacketFor?.(r.primary?.row) || handoffPacketFor?.(r);
+        const resumable = !!packet && !packet.postingGone && !packet.stale && !r.postingGone;
+        return [
+          // THE AC1 DEFECT, STILL FIXED: the non-resumable arm is the SCOPED handler.
+          { label: resumable ? "Fill" : "Open", glyph: "↗", primary: true,
+            title: resumable
+              ? `Opens the application in your own browser and fills it with the ${packet.answerCount} answer${packet.answerCount === 1 ? "" : "s"} we already resolved. You review and submit.`
+              : "Open this application's review — only this one",
+            onClick: resumable ? () => openHandoff(packet, r) : () => openApplicationReview(r) },
+          { label: "Remove", glyph: "✕", title: "Remove from Draft House — the record is kept",
+            disabled: appBusy(r), onClick: () => hideApplication(r) },
+        ];
+      }
+      case "broke": {
+        const lead = r.primary || {};
+        return [
+          lead.retryable
+            ? { label: "Retry", glyph: "↻", primary: true, title: "Draft it again — a new run, and nothing is sent until you approve it",
+                onClick: () => retryJob(lead.row || r) }
+            : { label: "Details", glyph: "☰", primary: true, title: "Every attempt, and why it stopped",
+                onClick: () => loadApplyRunDetail(lead.row?.runId ?? r.runId) },
+          { label: "Remove", glyph: "✕", title: "Remove from Draft House — the record is kept",
+            disabled: appBusy(r), onClick: () => hideApplication(r) },
+        ];
+      }
+      default: return [];
+    }
+  };
+
+  const foldFor = (item) => {
+    const r = item.ref;
+    if (item.kind === "approval") {
+      const loaded = pendingDetail?.runJobId === r.runJobId && !pendingDetail.loading ? pendingDetail : null;
+      const split = loaded ? splitAnswers(loaded.answers) : null;
+      // Once the answers are read, the fold lists the GUESSES by field and value and counts the rest;
+      // before that it has the server's two numbers, which say the same thing without the fields.
+      const shown = split
+        ? { ...item, fold: {
+            needs: split.attention.map(a => `${a.label || a.name || a.field_id}: ${String(a.value ?? "")} — a guess`),
+            quiet: split.line } }
+        : item;
+      return { shown, extra: (
+        <>
+          {pendingDetail?.runJobId === r.runJobId && pendingDetail.loading && (
+            <p className="dh-fold__quiet">Reading the answers…</p>
+          )}
+          <p className="dh-fold__quiet">
+            {r.generationDeferred
+              ? `No résumé yet — approving writes the tailored one. Base résumé: ${atsBandLabel(r.baseAts?.band ?? null).short}.`
+              : `Résumé: ${atsBandLabel(atsBandFor(r.resume?.atsScore ?? null)).short}.`}
+            {approvalCap ? ` ${approvalCap.remaining} of ${approvalCap.limit} approvals left today.` : ""}
+          </p>
+          <div className="dh-fold__actions">
+            <button type="button" className="dh-btn" onClick={() => openApprovalReview(r)}>Review every answer</button>
+            {r.screenshotAvailable && (
+              <a className="dh-btn" href={artifactUrl(r.runJobId, "screenshot")} target="_blank" rel="noreferrer">
+                What we filled ↗
+              </a>
+            )}
+            <button type="button" className="dh-btn" data-kind="danger" disabled={pendingBusy}
+              onClick={() => decidePending([r.runJobId], false)}>Reject</button>
+            <button type="button" className="dh-btn" data-kind="primary" disabled={pendingBusy}
+              title="Approving submits it to the employer and cannot be undone."
+              onClick={() => decidePending([r.runJobId], true)}>Approve &amp; send</button>
+          </div>
+        </>
+      ) };
+    }
+    if (item.kind === "held") {
+      return { shown: item, extra: (
+        <div className="dh-fold__actions">
+          <button type="button" className="dh-btn" onClick={() => openApplicationReview(r)}>
+            Show {r.rows.length} attempt{r.rows.length === 1 ? "" : "s"}
+          </button>
+          {/* AB4 requirement 5, with its guard: only where the résumé is what is actually wrong. */}
+          {r.primary?.resumeBlocked && !r.primary?.row?.resumeAvailable && (
+            <button type="button" className="dh-btn" onClick={() => generateResume(r.primary.row)}>
+              Generate résumé
+            </button>
+          )}
+          {r.primary?.row?.applyUrl && (
+            <a className="dh-btn" href={r.primary.row.applyUrl} target="_blank" rel="noreferrer">Posting ↗</a>
+          )}
+        </div>
+      ) };
+    }
+    if (item.kind === "broke") {
+      const row = r.primary?.row || r;
+      return { shown: item, extra: (
+        <div className="dh-fold__actions">
+          <button type="button" className="dh-btn" onClick={() => loadApplyRunDetail(row.runId)}>The run's log</button>
+          {row.applyUrl && (
+            <a className="dh-btn" href={row.applyUrl} target="_blank" rel="noreferrer">Apply yourself ↗</a>
+          )}
+        </div>
+      ) };
+    }
+    return { shown: item, extra: null };
+  };
+
   return (
-    <div style={{ padding: "24px 20px", maxWidth: 1100, margin: "0 auto",
+    <div style={{ padding: "24px 20px", maxWidth: 1240, margin: "0 auto",
                   display: "flex", flexDirection: "column", gap: 14 }}>
       <div>
         {/* A53: the deck's type — the display serif for what the page is (styles/type.js). */}
@@ -464,6 +480,9 @@ export function AutoApplyPanel() {
         </p>
       </div>
 
+      {/* ── D25: THE RUN BAR — mode, the three caps, ⏸ Stop everything. ── */}
+      <DraftRunBar runBar={runBar} onStop={setStopEverything} busy={holdBusy} message={holdMsg} />
+
       {/* Empty is a real state and is said plainly, rather than the tab rendering blank. */}
       {nothingYet && (
         <div style={{ padding: "28px 20px", border: `1px dashed ${theme.border}`, borderRadius: 8,
@@ -472,11 +491,8 @@ export function AutoApplyPanel() {
         </div>
       )}
 
-      {/* ── READY TO START was here: the client-side basket "picked on the board, not started yet"
-          and its "Autofill for Review" button. A53 (owner, 10-02) removed it — a Draft is a
-          persisted run the moment it is made, from Today or the board. What it said BEFORE a run
-          still matters, so it stays: autofill unavailable is stated here, and the employer-account
-          and CAPTCHA tiers are on every board card (TierChip) before you draft. */}
+      {/* What it said BEFORE a run still matters: autofill unavailable is stated here, and the
+          employer-account and CAPTCHA tiers are on every board card (TierChip) before you draft. */}
       {applyReadiness && !applyReadiness.available && (
         <span style={{ fontSize: 11.5, color: theme.textDim || theme.textMuted }}>
           Autofill is unavailable right now ({applyReadiness.reason}) — drafts wait until it is back.
@@ -485,630 +501,134 @@ export function AutoApplyPanel() {
       {applyMsg && (
         <span style={{ fontSize: 11.5, color: theme.accentText }}>{applyMsg}</span>
       )}
-
-      {/* ── AD1: THE DATABASE PANEL'S LAYOUT, ADOPTED ──────────────────────────────────────────
-          A sub-tab row over a control row over a body, which is what the Database panel has always
-          been. The components below are that panel's own, extracted rather than copied — see
-          components/ui/PanelControls.jsx.
-
-          WHY THE THREE TABS ARE THESE THREE. They are AC4's outcome partition, unchanged and still
-          shared with routes/apply.js: COMPLETED is `submitted`, PENDING is queued / running /
-          held_review / held_gate, ABORTED is failed / dismissed / superseded / cancelled, and a
-          DEAD POSTING is an override applied after that map rather than a fourth state. The
-          totality of it is asserted against the statuses actually written by routes/apply.js, which
-          is how `dismissed` and `superseded` were found in the first place — the vocabulary had
-          never described either.
-
-          COUNTS ARE SCOPED TO THE SELECTED DATE. This is the one place AD1 has to differ from the
-          Database panel and it is worth being explicit about why. That panel's tabs are ENTITY
-          TYPES — an application is not a resume and never becomes one — so a global count is stable
-          and means something on its own. These are OUTCOME STATES OF ONE ENTITY: a run-job moves
-          from PENDING to COMPLETED as it progresses, so a global count is a number that changes
-          under the reader for reasons unrelated to what they are looking at. Date-scoping also
-          keeps requirement 3: a global count would need a query at render, which is exactly what
-          "initial render issues NO listing query" forbids. So the pills carry the day's numbers,
-          they appear only once a day is chosen, and the control row SAYS which day they are for —
-          the label is what makes it unambiguous, not the number. */}
-      <PanelSubTabs
-        theme={theme}
-        layoutId="apply-outcome-underline"
-        active={historyGroup}
-        onSelect={selectHistoryGroup}
-        // Rounded and outlined because this panel is a centred column of cards rather than a
-        // full-bleed sheet — but the PADDING is left alone deliberately. It is what sets the tab
-        // row's height and the gutter its first tab sits in, and overriding it here is how "the
-        // same component" quietly stops being the same layout. The side-by-side check in
-        // scripts/abPanelUi.mjs measures exactly that and caught the override that used to be here.
-        style={{ borderRadius: 8, border: `1px solid ${theme.border}` }}
-        tabs={[OUTCOME.COMPLETED, OUTCOME.PENDING, OUTCOME.ABORTED].map(g => ({
-          id: g,
-          label: OUTCOME_LABELS[g].label.toUpperCase(),
-          // Nothing before a date is picked, because there is nothing true to put here yet — a "0"
-          // would be a claim about a day the user has not named.
-          count: historyDate && history?.counts ? (history.counts[g] ?? 0) : null,
-          title: historyDate
-            ? `${OUTCOME_LABELS[g].label} on ${localDateLabel(historyDate)} — ${OUTCOME_LABELS[g].note}`
-            : `${OUTCOME_LABELS[g].label} — ${OUTCOME_LABELS[g].note}. Pick a date to see how many.`,
-        }))}
-      />
-
-      {/* ── AH6: WHAT THIS TAB MEANS, VISIBLY ────────────────────────────────────────────────
-          The three notes already existed — "sent to the employer", "queued, in flight, or waiting
-          on you", "ended without being sent" — and every one of them was in a `title` attribute.
-          A tooltip is invisible: it needs a mouse, a hover, and a second of patience, and it does
-          not exist at all on a touch screen. A first-time reader looking at COMPLETED / PENDING /
-          ABORTED has to guess what an application does to move between them, and "Aborted" in
-          particular reads as failure when three of its four statuses are not failures.
-          One line, for the tab you are actually on. */}
-      <div data-rm-tab-note={historyGroup}
-           style={{ fontSize: 11.5, color: theme.textMuted, padding: "0 2px", marginTop: -4 }}>
-        <span style={{ fontWeight: 700, color: theme.text }}>{OUTCOME_LABELS[historyGroup].label}</span>
-        {` — ${OUTCOME_LABELS[historyGroup].note}.`}
-      </div>
-
-      {/* ── The control row ──────────────────────────────────────────────────────────────────
-          Search, then the date filter. THE CALENDAR IS THE PRIMARY NAVIGATION here, which is the
-          inversion AD1 asks for: the panel does not show you a default day's worth of applications
-          and let you narrow it, it shows you nothing and asks which day you mean. Nothing is
-          fetched until that question is answered — verified on the network, not in the source, by
-          scripts/abPanelUi.mjs. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-                    padding: "10px 12px", border: `1px solid ${theme.border}`,
-                    borderRadius: 8, background: theme.surface }}>
-        <PanelSearch theme={theme} value={search} onChange={setSearch} width={240}
-          placeholder={historyDate ? "Search this date's applications…" : "Search…"} />
-        <DateFilterButton
-          theme={theme}
-          value={historyDate || ""}
-          format={localDateLabel}
-          markers={historyMarkers}
-          onMonth={loadHistoryMonth}
-          // Requirement 7's markers, fetched when the calendar is OPENED — an action the user took
-          // — never on the panel's initial render. See loadHistoryMonth for the tradeoff and how to
-          // remove it if an owner would rather have no query at all before a pick.
-          onOpen={(value) => {
-            const d = value ? new Date(value) : new Date();
-            loadHistoryMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-          }}
-          onChange={(iso) => loadHistory(iso, historyGroup)}
-          onClear={() => loadHistory(null)}
-          portalKey="history-cal" />
-        {historyLoading && (
-          <span style={{ fontSize: 11, color: theme.textMuted }}>Loading…</span>
-        )}
-        {historyMsg && (
-          <span style={{ fontSize: 11.5, color: theme.accentText }}>{historyMsg}</span>
-        )}
-        <span style={{ flex: 1 }} />
-        {/* The label that makes the counts unambiguous. Requirement 4 asks for a decision AND for
-            the label to say which one was made, in both states. */}
-        <span data-rm-count-scope={historyDate ? "date" : "none"}
-              style={{ fontSize: 11, color: theme.textMuted, whiteSpace: "nowrap" }}>
-          {historyDate
-            ? `Counts are for ${localDateLabel(historyDate)}`
-            : "Pick a date to see counts"}
-        </span>
-      </div>
-
-      {/* ── AH6: SAY WHY THIS DAY IS ON SCREEN ───────────────────────────────────────────────
-          A date the reader did not choose needs to explain itself, or it is indistinguishable from
-          a date they chose and forgot. This appears only when the PANEL picked it, and it names
-          the alternative — today — because the whole point is that the two are usually different
-          and the panel has quietly shown you the more useful one. */}
-      {historyAuto && historyDate && (
-        <div data-rm-auto-date={historyDate}
-             style={{ fontSize: 11.5, color: theme.textMuted, padding: "0 2px" }}>
-          Showing <span style={{ fontWeight: 700, color: theme.text }}>{localDateLabel(historyDate)}</span>
-          {" — your most recent activity."}
-          {!isToday(historyDate) && (
-            <>
-              {" "}
-              <button onClick={() => loadHistory(todayIso(), historyGroup)}
-                style={{ background: "none", border: "none", padding: 0, cursor: "pointer",
-                         color: theme.accentText, font: "inherit", textDecoration: "underline" }}>
-                Show today instead
-              </button>
-            </>
-          )}
-        </div>
+      {historyMsg && (
+        <span role="status" style={{ fontSize: 11.5, color: theme.accentText }}>{historyMsg}</span>
       )}
 
-      {/* ── AD1: THE STANDING WORK, ON THE PENDING TAB ───────────────────────────────────────
-          Everything from here to the end of this block is what is WAITING ON A HUMAN RIGHT NOW,
-          and it is deliberately NOT behind the date picker.
-
-          The reason is that none of it is date-scoped and none of it can be. A portal batch is
-          "sign in to Workday once and four applications continue" — those four were queued on four
-          different days. A shared question blocks every application that was asked it, whenever
-          they were queued. A missing profile field blocks all of them. Filing these under a day
-          would be filing them under a day that is not true of them, and putting them behind a date
-          pick would hide the most differentiated thing in the product behind a calendar.
-
-          So the tab is in two parts, and they answer two different questions: this band is "what
-          needs you", the dated listing below is "what did I queue on the 14th". The overlap is
-          small and honest — an in-flight run appears in both if you happen to have picked today,
-          because it genuinely is both something happening now and something you queued today.
-
-          NOTHING HERE COSTS A QUERY AT RENDER BEYOND WHAT THE APP ALREADY MAKES. These read the
-          cross-run feeds AutoApplyContext loads for the whole session — the same ones that produce
-          the AUTO APPLY tab's badge — not the dated listing endpoint, which is still untouched
-          until a date is picked. */}
-      {historyGroup === OUTCOME.PENDING && (
-        <>
-        {/* AH6: SAY THAT THIS BAND IS NOT THE DATE'S. The split between "what needs you" and "what
-            did I queue that day" is the right one and was invisible: a reader who has just picked a
-            date reasonably reads every count below it as belonging to that date. It does not, and
-            it cannot — a portal batch spans the days its applications were queued on. Rendered only
-            when there IS standing work, so an empty tab does not explain a section that is absent. */}
-        {(applyInFlight.length > 0 || needsYouCount > 0) && (
-          <div data-rm-standing-scope="all-time"
-               style={{ fontSize: 11.5, color: theme.textMuted, padding: "0 2px" }}>
-            Waiting on you right now — whatever day it was queued, so this is not filtered by the
-            date above.
-          </div>
-        )}
-
-        {/* ── D14: STOPPED AND QUEUED, SIDE BY SIDE, 75 / 25 ──────────────────────────────────────
-            The owner's choice from the v3 sketch. STOPPED — everything the pipeline stopped for you
-            (Needs review: prerequisites, portal batches, questions, approvals, held applications) — is
-            the working surface, so it takes three quarters. QUEUED — Waiting in line and In flight —
-            is a glance, so it takes one. Below ~1080px they stack, Stopped FIRST: that is DOM order,
-            so a screen reader and a phone both meet the work before the queue. */}
-        {(needsYouCount > 0 || applyInFlight.length > 0 || (applyLine.waiting || []).length > 0) && (
-        <div data-draft-split="" style={{
-          display: "grid", gap: 20, alignItems: "start",
-          gridTemplateColumns: splitSideBySide ? "minmax(0, 3fr) minmax(0, 1fr)" : "minmax(0, 1fr)",
-        }}>
-          <section data-draft-stopped="" aria-label="Stopped"
-                   style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={COLUMN_LABEL(theme)}>Stopped{needsYouCount > 0 ? ` · ${needsYouCount}` : ""}</div>
-            {needsYouCount === 0 && (
-              <div style={{ fontSize: 12.5, color: theme.textMuted }}>Nothing is stopped — nothing needs you.</div>
-            )}
-            {/* ── 1. NEEDS REVIEW ──────────────────────────────────────────────────────────────────
-                The first of AB4's three outcome sections, and first on the page: it is the only one where
-                anything is waiting on a human. Inside it, both halves of the grouping rule — per-portal
-                batches where one action unblocks many, per-application cards where many obstacles block
-                one — then a company tier over the cards. */}
+      {/* ── D14: STOPPED AND QUEUED, SIDE BY SIDE, 75 / 25 ──────────────────────────────────────
+          STOPPED is the working surface, so it takes three quarters; QUEUED is a glance, so it takes
+          one. Below ~1080px they stack, Stopped FIRST: that is DOM order, so a screen reader and a
+          phone both meet the work before the queue. D25: always shown — there is no sub-tab above it
+          any more, and an empty column says so rather than disappearing. */}
+      {!nothingYet && (
+      <div data-draft-split="" style={{
+        display: "grid", gap: 20, alignItems: "start",
+        gridTemplateColumns: splitSideBySide ? "minmax(0, 3fr) minmax(0, 1fr)" : "minmax(0, 1fr)",
+      }}>
+        <section data-draft-stopped="" aria-label="Stopped"
+                 style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ ...COLUMN_LABEL(theme), display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ flex: 1 }}>Stopped{stoppedCount > 0 ? ` · ${stoppedCount}` : ""}</span>
+            {/* THE DELIBERATE "REVIEW ALL" (AB3 requirement 3) — its own control, not what every
+                item's Open does. */}
             {needsYouCount > 0 && (
-              <>
-                <SectionHeading theme={theme} count={needsYouCount} note="each of these is one action">
-                  Needs review
-                </SectionHeading>
-
-                {/* THE DELIBERATE "REVIEW ALL" (AB3 requirement 3). This view is still reachable — it is
-                    genuinely useful for working through a queue in one sitting — but it is now its own
-                    control, rather than being what every row's Open did. */}
-                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -6 }}>
-                  <button onClick={openEverything}
-                    title="Every application needing review, in one list."
-                    style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "4px 10px",
-                             background: "transparent", color: theme.textMuted, fontWeight: 700,
-                             fontSize: 11, cursor: "pointer" }}>
-                    Review all {needsYouCount} →
-                  </button>
-                </div>
-
-                {/* Prerequisites first: they block EVERY application, so clearing anything else is wasted
-                    effort until they are done. */}
-                {/* The count is what the jobs are blocked FROM, so it has to include applications already
-                    dispatched and sitting queued. With only
-                    the old client-side basket's length the card read "Your profile has no email address" with no number
-                    beside six jobs that were blocked on exactly that. */}
-                <PrerequisiteCards missing={applyPrereqMissing}
-                  queuedCount={applyInFlight.length}
-                  theme={theme} onGo={(tab) => navigate(`/app/${tab}`)} />
-
-                {/* THE PORTAL AMORTISATION, and the most differentiated thing in the product: one sign-in
-                    releases every application queued behind that portal. Rendered as the hero because
-                    "sign in once -> 4 ready" is a ten-second job priced as one, where the same thing shown
-                    as four held rows is priced as four. */}
-                {/* THE QUEUE IS CAPPED, AND A CAPPED QUEUE MUST SAY SO. GET /api/apply/gate-packets
-                    returns the newest 100 unconsumed packets; past that the portals below are a SUBSET
-                    and every count on them is short. Without this the panel renders a truncated queue
-                    exactly as it renders a complete one, which is the same failure the extension hit —
-                    a cap that reads as an answer. */}
-                {applyGateTruncated && (
-                  <div style={{ padding: "8px 12px", marginBottom: 8, borderRadius: 8,
-                                border: `1px solid ${theme.border}`, background: theme.surfaceHigh,
-                                fontSize: 12, color: theme.textMuted }}>
-                    Showing the {applyHandoffPackets.length} most recent of{" "}
-                    <strong>{applyGateTotal ?? "many"}</strong> queued handoffs. Clear some of these to
-                    see the rest.
-                  </div>
-                )}
-                {applyGatePortals.map(p => {
-                  const isCaptcha = p.gateReasons?.includes("captcha_required");
-                  return (
-                    <ObstacleCard
-                      key={p.origin}
-                      theme={theme}
-                      hero={!isCaptcha}
-                      tone={isCaptcha ? C.DANGER : C.INFO}
-                      kicker={isCaptcha ? "cannot be automated" : "one sign-in clears all of these"}
-                      headline={isCaptcha
-                        ? `${p.host} is behind a CAPTCHA or identity check`
-                        : `Sign in to ${p.host} once → ${p.count} application${p.count === 1 ? "" : "s"} ready`}
-                      detail={isCaptcha
-                        ? "We do not defeat identity checks. Open these and apply yourself."
-                        : "Everything queued behind this portal continues as soon as you are signed in. Each one is still reviewed by you before it is sent."}
-                      count={p.count}
-                      countLabel={p.count === 1 ? "application" : "applications"}
-                      actionLabel={isCaptcha ? "Open them" : "Sign in"}
-                      onAction={() => openPortalReview(p)}
-                    />
-                  );
-                })}
-
-                {/* Low-confidence answers: the resolver HAS a value and would not send it. */}
-                {confirmQuestions.length > 0 && (
-                  <ObstacleCard
-                    theme={theme} tone={C.WARNING}
-                    kicker="we guessed, and would not send a guess"
-                    headline={`${confirmQuestions.length} answer${confirmQuestions.length === 1 ? "" : "s"} need${confirmQuestions.length === 1 ? "s" : ""} confirmation`}
-                    detail={applyQuestionMeta.blockedJobs > 0
-                      ? `Confirming them unblocks ${applyQuestionMeta.blockedJobs} application${applyQuestionMeta.blockedJobs === 1 ? "" : "s"}. Each one is pre-filled with our guess — accepting it is the answer.`
-                      : "Each one is pre-filled with our guess — accepting it is the answer."}
-                    count={confirmQuestions.length}
-                    countLabel="to confirm"
-                    actionLabel="Confirm answers"
-                    onAction={() => openFacet("questions", "Answers to confirm")}
-                  />
-                )}
-
-                {/* Attestations are a different act: a statement the user makes to an employer. Never
-                    inferred from the profile, so never grouped with the guesses above. */}
-                {attestQuestions.length > 0 && (
-                  <ObstacleCard
-                    theme={theme} tone={C.DANGER}
-                    kicker="only you can state these"
-                    headline={`${attestQuestions.length} question${attestQuestions.length === 1 ? "" : "s"} you must answer yourself`}
-                    detail="These are statements to the employer — work authorisation, sponsorship, disability status. We never answer them from your profile."
-                    count={attestQuestions.length}
-                    countLabel="attestations"
-                    actionLabel="Answer"
-                    onAction={() => openFacet("questions", "Questions only you can answer")}
-                  />
-                )}
-
-                {otherQuestions.length > 0 && (
-                  <ObstacleCard
-                    theme={theme} tone={C.WARNING}
-                    kicker="the form asked for something we do not have"
-                    headline={`${otherQuestions.length} field${otherQuestions.length === 1 ? "" : "s"} we would not fill without you`}
-                    detail="Answering these turns the hold into a completed application. Saved answers are reused verbatim, never re-inferred."
-                    count={otherQuestions.length}
-                    countLabel="to answer"
-                    actionLabel="Answer"
-                    onAction={() => openFacet("questions", "Fields we would not fill without you")}
-                  />
-                )}
-
-                {/* Filled and one click from a real employer — the highest-stakes item on the panel. */}
-                {applyPending.length > 0 && (
-                  <ObstacleCard
-                    theme={theme} tone={C.INFO} hero
-                    kicker="filled, checked, and not sent"
-                    headline={`${applyPending.length} application${applyPending.length === 1 ? "" : "s"} waiting for your approval`}
-                    /* TASK Q — THE BUDGET IS ON THE SCREEN WHERE IT IS SPENT.
-                       Approving is what generates the resume and cover letter now (AL2 deferred both
-                       from queue time), so this is the number that decides how much of the queue above
-                       can be acted on today. A cap discovered by being refused at it has already wasted
-                       the reviewing it was meant to bound — so it is stated up front, and only when the
-                       server sent one, and only when it is actually close enough to matter. */
-                    detail={
-                      !approvalCap ? "Read one before you approve it — approving submits it to the employer and cannot be undone."
-                      : approvalCap.remaining === 0
-                        ? `Approving submits to the employer and cannot be undone. You have used all ${approvalCap.limit} of today's approvals — these stay here until the limit resets.`
-                      : approvalCap.remaining < applyPending.length
-                        ? `Read one before you approve it — approving submits it to the employer and cannot be undone. ${approvalCap.remaining} of ${approvalCap.limit} approvals left today, fewer than the ${applyPending.length} waiting.`
-                        : `Read one before you approve it — approving submits it to the employer and cannot be undone. ${approvalCap.remaining} of ${approvalCap.limit} approvals left today.`
-                    }
-                    count={applyPending.length}
-                    countLabel="to approve"
-                    actionLabel="Review & approve"
-                    onAction={() => openFacet("pending", "Applications waiting for your approval")}
-                  />
-                )}
-
-                {/* The handoff happens in ANOTHER TAB, so the panel has to say what to expect there. A
-                    refusal (stale answers, a posting that is gone) is reported in the same place, because
-                    the alternative is a click that appears to do nothing. */}
-                {handoffMsg && (
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10,
-                                border: `1px solid ${handoffMsg.kind === "open" ? C.INFO : theme.border}`,
-                                borderLeft: `3px solid ${handoffMsg.kind === "open" ? C.INFO : C.WARNING}`,
-                                borderRadius: 8, padding: "10px 14px", background: theme.surfaceHigh }}>
-                    <span style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.6, flex: 1 }}>
-                      {handoffMsg.text}
-                    </span>
-                    <button onClick={() => setHandoffMsg(null)}
-                      style={{ border: "none", background: "transparent", color: theme.textDim,
-                               cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 2px" }}>×</button>
-                  </div>
-                )}
-              </>
+              <button onClick={openEverything}
+                title="Every application needing review, in one list."
+                style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "3px 9px",
+                         background: "transparent", color: theme.textMuted, fontWeight: 700,
+                         fontSize: 10.5, cursor: "pointer", letterSpacing: 0, textTransform: "none" }}>
+                Review all {needsYouCount} →
+              </button>
             )}
-          </section>
-          <aside data-draft-queued="" aria-label="Queued"
-                 style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={COLUMN_LABEL(theme)}>Queued{queuedCount > 0 ? ` · ${queuedCount}` : ""}</div>
-            {queuedCount === 0 && (
-              <div style={{ fontSize: 12.5, color: theme.textMuted }}>Nothing queued.</div>
+          </div>
+          {stoppedCount === 0 && (
+            <div style={{ fontSize: 12.5, color: theme.textMuted }}>Nothing is stopped — nothing needs you.</div>
+          )}
+          {approvalBudgetLine && (
+            <div data-approval-budget="" style={{ fontSize: 12, color: approvalCap.remaining === 0 ? C.DANGER : theme.textMuted }}>
+              {approvalBudgetLine}
+            </div>
+          )}
+
+          {stoppedItems.length >= SEARCH_FROM && (
+            <PanelSearch theme={theme} value={search} onChange={setSearch} width={260}
+              placeholder="Search what stopped…" />
+          )}
+
+          {/* THE QUEUE IS CAPPED, AND A CAPPED QUEUE MUST SAY SO. GET /api/apply/gate-packets
+              returns the newest 100 unconsumed packets; past that the portals below are a SUBSET
+              and every count on them is short. */}
+          {applyGateTruncated && (
+            <div style={{ padding: "8px 12px", borderRadius: 8,
+                          border: `1px solid ${theme.border}`, background: theme.surfaceHigh,
+                          fontSize: 12, color: theme.textMuted }}>
+              Showing the {applyHandoffPackets.length} most recent of{" "}
+              <strong>{applyGateTotal ?? "many"}</strong> queued handoffs. Clear some of these to
+              see the rest.
+            </div>
+          )}
+
+          <div className="dh-list">
+            {listedItems.map(item => {
+              const { shown, extra } = foldFor(item);
+              return (
+                <StoppedItem key={item.key} item={shown} open={openKey === item.key}
+                  onToggle={() => toggle(item)} rail={railFor(item)}>
+                  {extra}
+                </StoppedItem>
+              );
+            })}
+            {search.trim() && listedItems.length === 0 && (
+              <div style={{ fontSize: 12.5, color: theme.textMuted }}>Nothing stopped matches “{search.trim()}”.</div>
             )}
-            {/* ── IN FLIGHT ────────────────────────────────────────────────────────────────────────
-                NOT one of AB4's three outcome sections, and deliberately placed ABOVE them rather than
-                made a fourth. A queued or running application has no outcome yet — it is neither
-                submitted, nor waiting on the user, nor broken — so filing it under any of the three would
-                be a claim about it that is not true, and dropping it would lose a capability. It reads as
-                progress, which is what it is: small, self-clearing, and out of the way. */}
-            {/* ── WAITING IN LINE (A59) ─────────────────────────────────────────────────────────────
-                Above In flight because it is the one place in this band where the user can still change
-                what will happen: a waiting Draft has not started, so its tool, place and presence are
-                theirs to edit. Once it starts it moves to In flight and only Stop applies. */}
-            <WaitingLine line={applyLine} theme={theme} busyId={lineBusyId} message={lineMsg}
-              canUseAPlus={draftTool === A_PLUS_TOOL}
-              onTool={setLineTool} onMove={moveInLine} onRemove={removeFromLine} />
+          </div>
 
-            {applyInFlight.length > 0 && (
-              <>
-                <SectionHeading theme={theme} count={applyInFlight.length} note="nothing to do — these clear themselves">
-                  In flight
-                </SectionHeading>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {applyInFlight.map(job => (
-                    <ApplicationRow key={job.id} job={job} theme={theme} variant="inFlight"
-                      artifactUrl={artifactUrl} onOpenRun={loadApplyRunDetail} />
-                  ))}
-                </div>
-              </>
-            )}
-          </aside>
-        </div>
-        )}
-        </>
-      )}
+          {pendingMsg && !applyRunDetailOpen && (
+            <span role="status" style={{ fontSize: 11.5, color: theme.accentText }}>{pendingMsg}</span>
+          )}
 
-      {/* ── AD1: THE BODY — ONE DAY, ONE OUTCOME, GROUPED COMPANY → APPLICATION ──────────────
-          This replaces BOTH the three cross-run outcome sections that used to stack down the page
-          AND the separate dated run-history surface that sat under them. They were the same rows
-          twice: the sections showed every held / submitted / stopped application regardless of when
-          it happened, and the history showed one day's worth of the same records in a second,
-          smaller rendering. Dated navigation supersedes the history, and the sub-tabs supersede the
-          sections, so there is one listing.
+          {/* The handoff happens in ANOTHER TAB, so the panel has to say what to expect there. A
+              refusal (stale answers, a posting that is gone) is reported in the same place, because
+              the alternative is a click that appears to do nothing. */}
+          {handoffMsg && (
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10,
+                          border: `1px solid ${handoffMsg.kind === "open" ? C.INFO : theme.border}`,
+                          borderLeft: `3px solid ${handoffMsg.kind === "open" ? C.INFO : C.WARNING}`,
+                          borderRadius: 8, padding: "10px 14px", background: theme.surfaceHigh }}>
+              <span style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.6, flex: 1 }}>
+                {handoffMsg.text}
+              </span>
+              <button onClick={() => setHandoffMsg(null)}
+                style={{ border: "none", background: "transparent", color: theme.textDim,
+                         cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 2px" }}>×</button>
+            </div>
+          )}
+        </section>
+        <aside data-draft-queued="" aria-label="Queued"
+               style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={COLUMN_LABEL(theme)}>Queued{queuedCount > 0 ? ` · ${queuedCount}` : ""}</div>
+          {queuedCount === 0 && (
+            <div style={{ fontSize: 12.5, color: theme.textMuted }}>Nothing queued.</div>
+          )}
+          {/* ── WAITING IN LINE (A59) ─────────────────────────────────────────────────────────────
+              Above In flight because it is the one place in this column where the user can still
+              change what will happen: a waiting Draft has not started, so its tool, place and
+              presence are theirs to edit. Once it starts it moves to In flight and only Stop applies. */}
+          <WaitingLine line={applyLine} theme={theme} busyId={lineBusyId} message={lineMsg}
+            canUseAPlus={draftTool === A_PLUS_TOOL}
+            onTool={setLineTool} onMove={moveInLine} onRemove={removeFromLine} />
 
-          WHAT THE REMOVED SURFACE SHOWED, AND WHERE EACH PIECE LIVES NOW, is enumerated at the
-          bottom of AutoApplyPanelSections.jsx where HistoryRow and HistoryGroup used to be. The
-          short version: everything moved onto these rows, which carried more of it already.
-
-          The per-run detail the original run-history CHIPS opened is still reachable — every row's
-          `details` opens loadApplyRunDetail, and the run's own status and counters render in that
-          modal's header, which is where AC4 moved them when the chip list went away. */}
-
-      {/* 1. NO DATE SELECTED. Not an error and not a spinner — the resting state of a surface whose
-             primary navigation is a calendar. */}
-      {!historyDate && !historyLoading && (
-        <div data-rm-empty="no-date"
-             style={{ padding: "22px 20px", border: `1px dashed ${theme.border}`, borderRadius: 8,
-                      color: theme.textMuted, fontSize: 12, textAlign: "center" }}>
-          Pick a date to see the jobs you drafted that day.
-          {Object.keys(historyMarkers).length > 0 && " Dates with activity are dotted in the calendar."}
-        </div>
-      )}
-
-      {/* 2. AN EMPTY DAY. Nothing happened, in any of the three groups. A different sentence from
-             the one below it, because "you queued nothing that day" and "you queued things that day
-             but none of them are pending" are different answers to the question being asked. */}
-      {historyDate && history !== null && history.total === 0 && (
-        <div data-rm-empty="empty-date"
-             style={{ padding: "22px 20px", border: `1px dashed ${theme.border}`, borderRadius: 8,
-                      color: theme.textMuted, fontSize: 12, textAlign: "center" }}>
-          No applications on {localDateLabel(history.date)}.
-        </div>
-      )}
-
-      {/* 3. AN EMPTY SUB-TAB on a day that had activity — and, separately, a search that matched
-             nothing. Three empty states was the requirement; the fourth is here because a filtered
-             listing that says "nothing pending" when six things are pending would be a lie. */}
-      {historyDate && history !== null && history.total > 0 && listedJobs.length === 0 && (
-        <div data-rm-empty={searchTerm && historyJobs.length > 0 ? "no-match" : "empty-tab"}
-             style={{ padding: "22px 20px", border: `1px dashed ${theme.border}`, borderRadius: 8,
-                      color: theme.textMuted, fontSize: 12, textAlign: "center" }}>
-          {searchTerm && historyJobs.length > 0
-            ? `Nothing on ${localDateLabel(history.date)} matches “${search.trim()}”.`
-            : `Nothing ${OUTCOME_LABELS[historyGroup].label.toLowerCase()} on ${localDateLabel(history.date)}.`}
-        </div>
-      )}
-
-      {/* ── PENDING: the company → application hierarchy AC2/AC3 established ─────────────────
-          Grouped by APPLICATION first (AB2: three held run-job rows for one posting are one card,
-          not three) and then by COMPANY (AB4: seven roles at one employer belong together), which
-          is the same pair of calls the panel has made since AB4 — pointed at the day's rows instead
-          of at the cross-run feed. Everything on the row is AC1's and AC3's: scoped Open, the
-          resumable handoff, the held-on-purpose vs broke state at row level, the evidence links,
-          and Details. Abort and Remove joined them from the surface this replaces. */}
-      {historyGroup === OUTCOME.PENDING && listedByCompany.length > 0 && (
-        <TileGrid min={430} gap={14}>
-          {listedByCompany.map(({ company, items }) => {
-            const toResolve = items.reduce((n, a) => n + a.reasons.length, 0);
-            // One broken application is enough to stop calling the whole tile deliberate — the same
-            // rule groupByApplication uses within one application, one tier up.
-            const allProtective = items.every(a => a.protective);
-            const allGone = items.every(a => a.postingGone);
-            const tone = allGone ? C.INK_FAINT : allProtective ? C.WARNING : C.DANGER;
-            return (
-              <CompanyTile
-                key={`pending-${company}`}
-                company={company}
-                count={items.length}
-                section="needsReview"
-                tone={tone}
-                theme={theme}
-                // A tile of applications whose postings the cleanup removed is not "held on
-                // purpose" — nothing is holding them, there is nothing left to hold.
-                pillText={allGone ? "posting gone" : allProtective ? "held on purpose" : "needs you"}
-                meta={`${items.length} application${items.length === 1 ? "" : "s"} · ${toResolve} thing${toResolve === 1 ? "" : "s"} to resolve`}
-                footer={
-                  <button onClick={() => openCompanyReview(company, items)}
-                    title={`Everything in the way of ${companyLabel(company)}, in one list.`}
-                    style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "6px 12px",
-                             background: theme.surface, color: theme.text, fontWeight: 700,
-                             fontSize: 11.5, cursor: "pointer" }}>
-                    Review all {items.length} →
-                  </button>
-                }
-              >
-                {items.map(app => {
-                  const packet = handoffPacketFor?.(app.primary.row) || handoffPacketFor?.(app);
-                  const resumable = !!packet && !packet.postingGone && !packet.stale && !app.postingGone;
-                  return (
-                    <CompanyApplicationRow
-                      key={app.key}
-                      app={app}
-                      theme={theme}
-                      artifactUrl={artifactUrl}
-                      packet={packet}
-                      onRerun={rerunJob}
-                      // THE AC1 DEFECT, STILL FIXED. The fallback arm was `openReview` — the
-                      // unscoped "everything" handler — so Open on a packet-less card listed every
-                      // application needing review. It passes the SCOPED handler, invoked as
-                      // onResolve(app), so Open and Details scope to the same one application by
-                      // construction. The unscoped handler is named `openEverything` precisely so
-                      // that no card-level prop can name it by reaching for the obvious word.
-                      onResolve={resumable ? () => openHandoff(packet, app) : openApplicationReview}
-                      resolveLabel={resumable ? "Open & fill" : "Open"}
-                      resolveTitle={resumable
-                        ? `Opens the application in your own browser and fills it with the ${packet.answerCount} answer${packet.answerCount === 1 ? "" : "s"} we already resolved. You review and submit.`
-                        : "Open this application's review — only this one"}
-                      onDetails={() => openApplicationReview(app)}
-                      // AB4 requirement 5: a missing resume is a problem with a one-click fix.
-                      onGenerateResume={app.primary?.row?.resumeAvailable ? null : generateResume}
-                      onAbort={abortApplication}
-                      onHide={hideApplication}
-                      busy={appBusy(app)}
-                    />
-                  );
-                })}
-              </CompanyTile>
-            );
-          })}
-        </TileGrid>
-      )}
-
-      {/* ── COMPLETED: what went out, and the proof ──────────────────────────────────────────
-          Grouped by company because that is the question being asked at this moment — a recruiter
-          from OpenAI has called, and the OpenAI applications need to be together. The rows are the
-          existing ApplicationRow, untouched: a submitted application's evidence — the date, the
-          exact resume that went out, the screenshot, whether the site confirmed it — is what a user
-          reaches for when an interview lands, and compacting that would trade away the thing this
-          tab exists for. */}
-      {historyGroup === OUTCOME.COMPLETED && listedFlatByCompany.length > 0 && (
-        <TileGrid min={430} gap={14}>
-          {listedFlatByCompany.map(({ company, items }) => (
-            <CompanyTile
-              key={`sub-${company}`}
-              company={company}
-              count={items.length}
-              section="submitted"
-              tone={C.SUCCESS}
-              theme={theme}
-              pillText="sent"
-              meta={`${items.length} application${items.length === 1 ? "" : "s"} · ${items.filter(j => j.submitVerified).length} confirmed by the site`}
-            >
-              {items.map(job => (
-                <ApplicationRow key={job.id} job={job} theme={theme} variant="submitted"
-                  artifactUrl={artifactUrl} onOpenRun={loadApplyRunDetail}
-                  onHide={rowHide} busy={historyBusyId === job.id} />
-              ))}
-            </CompanyTile>
-          ))}
-        </TileGrid>
-      )}
-
-      {/* ── ABORTED: ended without being sent, and NOT all of it went wrong ──────────────────
-          The held-on-purpose vs broke distinction, which is the thing this whole line of work
-          exists to preserve, and it stays VISIBLE WITHOUT OPENING ANYTHING: two labelled halves,
-          two tones, two different sentences. "We protected you" and "this failed" need different
-          affordances and produce different feelings, and one heading over both is the flattening
-          being undone. Both are here because both are terminal and neither is waiting on a
-          decision. */}
-      {historyGroup === OUTCOME.ABORTED && (listedBrokeByCompany.length > 0 || listedHeldByCompany.length > 0) && (
-        <>
-          {listedBrokeByCompany.length > 0 && (
+          {/* ── IN FLIGHT ───────────────────────────────────────────────────────────────────────
+              A queued or running application has no outcome yet, so it reads as progress: small,
+              self-clearing, out of the way. D25: each row carries Stop — until now it was reachable
+              only from AD1's dated listing, which is gone. Whether a row CAN be stopped is the
+              server's `abortable` flag on the inFlight feed, never re-derived here. */}
+          {applyInFlight.length > 0 && (
             <>
-              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em",
-                            textTransform: "uppercase", color: C.DANGER, marginTop: 4 }}>
-                These broke — {listedSplit.broke.length} application{listedSplit.broke.length === 1 ? "" : "s"}
-              </div>
-              <TileGrid min={430} gap={14}>
-                {listedBrokeByCompany.map(({ company, items }) => (
-                  <CompanyTile
-                    key={`broke-${company}`}
-                    company={company}
-                    count={items.length}
-                    section="broke"
-                    tone={C.DANGER}
-                    theme={theme}
-                    pillText="did not complete"
-                    meta={`${items.length} application${items.length === 1 ? "" : "s"} · nothing was sent`}
-                  >
-                    {items.map(job => (
-                      <ApplicationRow key={job.id} job={job} theme={theme} variant="stopped"
-                        artifactUrl={artifactUrl} onRetry={retryJob} onOpenRun={loadApplyRunDetail}
-                        // Requirement 5: a missing resume is a problem with an obvious fix, so it
-                        // gets a button instead of the dead "no resume generated" chip it was.
-                        onGenerateResume={job.resumeAvailable ? null : generateResume}
-                        onAbort={rowAbort} onHide={rowHide} busy={historyBusyId === job.id} />
-                    ))}
-                  </CompanyTile>
+              <SectionHeading theme={theme} count={applyInFlight.length} note="nothing to do — these clear themselves">
+                In flight
+              </SectionHeading>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {applyInFlight.map(job => (
+                  <ApplicationRow key={job.id} job={job} theme={theme} variant="inFlight"
+                    artifactUrl={artifactUrl} onOpenRun={loadApplyRunDetail}
+                    onAbort={rowAbort} busy={historyBusyId === job.id} />
                 ))}
-              </TileGrid>
+              </div>
             </>
           )}
-
-          {listedHeldByCompany.length > 0 && (
-            <>
-              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em",
-                            textTransform: "uppercase", color: C.WARNING, marginTop: 8 }}>
-                Held on purpose — {listedSplit.held.length} application{listedSplit.held.length === 1 ? "" : "s"}
-              </div>
-              <div style={{ fontSize: 11, color: theme.textMuted, marginTop: -2 }}>
-                Nothing went wrong with these. The pipeline stopped them, or you did.
-              </div>
-              <TileGrid min={430} gap={14}>
-                {listedHeldByCompany.map(({ company, items }) => {
-                  // A tile whose postings the cleanup removed is NOT "held on purpose" — nothing is
-                  // holding them, there is nothing left to hold. AC3 made that a tile-level state on
-                  // the held tiles, and it has to survive here: a dead posting is filed under ABORTED
-                  // by the override, so this is now where such a tile lands, and a fixed
-                  // "held on purpose" pill would be the exact claim AC3 removed.
-                  const allGone = items.every(j => j.postingGone);
-                  return (
-                  <CompanyTile
-                    key={`held-stop-${company}`}
-                    company={company}
-                    count={items.length}
-                    section="heldOnPurpose"
-                    tone={allGone ? C.INK_FAINT : C.WARNING}
-                    theme={theme}
-                    pillText={allGone ? "posting gone" : "held on purpose"}
-                    meta={allGone
-                      ? `${items.length} application${items.length === 1 ? "" : "s"} · the posting is gone`
-                      : `${items.length} application${items.length === 1 ? "" : "s"} · nothing went wrong`}
-                  >
-                    {items.map(job => (
-                      <ApplicationRow key={job.id} job={job} theme={theme} variant="stopped"
-                        artifactUrl={artifactUrl} onRetry={retryJob} onOpenRun={loadApplyRunDetail}
-                        onGenerateResume={job.resumeAvailable ? null : generateResume}
-                        onAbort={rowAbort} onHide={rowHide} busy={historyBusyId === job.id} />
-                    ))}
-                  </CompanyTile>
-                  );
-                })}
-              </TileGrid>
-            </>
-          )}
-        </>
+        </aside>
+      </div>
       )}
 
       {/* ── Apply Runs Review Modal ──────────────────────────────────── */}

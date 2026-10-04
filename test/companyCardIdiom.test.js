@@ -19,7 +19,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8");
 const tile     = read("client/src/components/ui/TileCard.jsx");
@@ -78,87 +77,23 @@ test("AC3: the values in the primitive are the profile card's own, not re-invent
   assert.ok(!/theme\./.test(tileCode), "the primitive was translated to theme lookups instead of moved");
 });
 
-test("AC3: the Auto Apply panel renders the SAME primitive, in a grid", () => {
-  assert.match(panel, /import \{ TileGrid \} from "\.\.\/components\/ui\/TileCard\.jsx"/);
-  assert.match(sections, /import \{ TileCard, TilePill \} from "\.\.\/components\/ui\/TileCard\.jsx"/);
-  assert.match(sections, /export function CompanyTile\(/);
-  assert.match(sections, /<TileCard/);
-  // Requirement 3: side by side at desktop, stacked at narrow. auto-fill with a min track does both
-  // without a media query — below the min there is room for one and they stack.
-  // The COMPANY grids, identified by their own min track. AC4 added a fifth TileGrid for the dated
-  // history's three outcome groups — a different thing at a different width — so counting every
-  // grid in the file would make this fail on any unrelated reuse of the primitive, which is the
-  // opposite of what it is for.
-  const grids = [...panel.matchAll(/<TileGrid min=\{(\d+)\}/g)].map(m => Number(m[1]));
-  const companyGrids = grids.filter(g => g === 430);
-  assert.equal(companyGrids.length, 4,
-    `expected four company tile grids, found ${companyGrids.length} (all grids: ${grids.join(', ')})`);
+test("D25: Draft House retired the company tiles — and forked nothing on the way out", () => {
+  // AC3 put the Auto Apply panel's company groupings into TileCard tiles. D25 (10-04) removed them:
+  // the workspace model lists one Stopped item per application (components/StoppedItem.jsx), and
+  // what was sent or ended is The Table's (D15). Five AC3 tests that described the tiles went with
+  // them. What still holds is AC3's own rule — ONE implementation of the primitive, which Job
+  // Profiles renders — so nothing in Draft House may import it, copy it, or keep a tile component
+  // alive with nothing rendering it.
+  assert.ok(!/TileCard|TileGrid|TilePill/.test(panel), "Draft House renders a tile again");
+  assert.ok(!/import \{[^}]*Tile[^}]*\} from "\.\.\/components\/ui\/TileCard\.jsx"/.test(sections),
+    "the sections module still imports the tile primitive");
+  assert.ok(!/export function CompanyTile\b|export function CompanyApplicationRow\b/.test(sections),
+    "a retired tile component is still exported");
+  assert.match(profiles, /<TileCard/, "Job Profiles stopped rendering the shared primitive");
+  assert.match(tile, /export function TileCard/);
 });
 
-test("AC3: all FOUR company groupings became tiles — none was left as a full-width list", () => {
-  // needsReview, submitted, broke, heldOnPurpose. Leaving one behind would make the page read as a
-  // tiled section above a listed one, which is worse than either alone.
-  for (const section of ["needsReview", "submitted", "broke", "heldOnPurpose"]) {
-    assert.match(panel, new RegExp(`section="${section}"`), `${section} is still a full-width list`);
-  }
-  // And the heading-plus-rows shape it replaced is gone from the panel body. CompanyHeading itself
-  // survives — the MODAL still uses it, where a tier marker is right and a tile would be a card
-  // inside a card.
-  assert.ok(!/<CompanyHeading company=\{company\} count=\{items\.length\} theme=\{theme\} \/>[\s\S]{0,400}?<ApplicationRow/.test(panel),
-    "a company heading still leads a full-width row list");
-});
 
-test("AC3 requirement 2: name, count, a compact application list, and a footer action row", () => {
-  assert.match(panel, /title=\{companyLabel\(company\)\}|company=\{company\}/);
-  assert.match(panel, /meta=\{`\$\{items\.length\} application\$\{items\.length === 1 \? "" : "s"\} · \$\{toResolve\} thing/);
-  assert.match(sections, /export function CompanyApplicationRow\(/);
-  assert.match(sections, /\{app\.reasons\.length\} to resolve/);
-  assert.match(panel, /Review all \{items\.length\} →/);
-  // The footer action must be SCOPED to that company — AC1's lesson, one tier up. A company-level
-  // control that opened the everything view would be the same defect in a new place.
-  assert.match(panel, /const openCompanyReview = \(company, items\) => openScoped\(\{/);
-  assert.match(panel, /onClick=\{\(\) => openCompanyReview\(company, items\)\}/);
-});
 
-test("AC3 requirement 4: triage without opening anything — count AND held-vs-broke at card level", () => {
-  // Both, at BOTH tiers. The tile says which kind of trouble the employer is in; each row says which
-  // kind that application is in. Losing either would make the tile a link rather than a triage
-  // surface, which is the whole point of the compaction.
-  assert.match(panel, /pillText=\{allGone \? "posting gone" : allProtective \? "held on purpose" : "needs you"\}/);
-  assert.match(sections, /app\.postingGone \? "the posting is gone"[\s\S]{0,200}?app\.protective \? "held on purpose" : "did not complete"/);
-  // One broken application is enough to stop calling the whole tile deliberate — the same rule
-  // groupByApplication uses within one application, applied one tier up.
-  assert.match(panel, /const allProtective = items\.every\(a => a\.protective\)/);
-});
 
-test("AC3: nothing was dropped from the row on the way to being compact", () => {
-  // FEATURE PRESERVATION. The compact row keeps every control the full-width card had except the
-  // problem SENTENCES, which moved into the modal AC2 restructured to hold them — and the row still
-  // states how many there are, so nothing is hidden without being counted.
-  const row = sections.slice(at(sections, "export function CompanyApplicationRow"));
-  for (const control of [
-    // AE4: no screenshot on a compact held row - it was the least informative chip on the tier
-    // whose entire purpose is compactness.
-    // AK2: the chip renders a BAND now rather than "ATS 43". Re-pinned on the band call, because
-    // what this list guards is that the control survived the compaction — not how it is worded.
-    /Resume PDF ↗/, /Generate a resume/, /atsBandFor\(app\.atsScore/,
-    /The posting ↗/, /Run it again/, /posting gone — cannot be resumed/, /\{resolveLabel \|\| "Open"\}/,
-    /Details/,
-  ]) {
-    assert.match(row, control, `a control was dropped from the compact row: ${control}`);
-  }
-  // The data hooks survive, so the real-browser AB2 checks can still say WHICH application a row is
-  // for and how many problems it has. That count is the defect AB2 fixed; an assertion that
-  // silently stopped covering it would be worse than one that fails.
-  assert.match(row, /data-rm-card="application"/);
-  assert.match(row, /data-rm-obstacles=\{app\.reasons\.length\}/);
-});
 
-test("AC3: submitted and broke tiles keep their existing rows verbatim", () => {
-  // A submitted application's evidence — the date, the exact resume that went out, the screenshot,
-  // whether the site confirmed it — is what a user reaches for when an interview lands. Compacting
-  // that would trade away the thing the section exists for, so those tiles wrap ApplicationRow
-  // unchanged rather than swapping in the compact row.
-  assert.match(panel, /section="submitted"[\s\S]{0,600}?<ApplicationRow key=\{job\.id\} job=\{job\} theme=\{theme\} variant="submitted"/);
-  assert.match(panel, /section="broke"[\s\S]{0,1400}?variant="stopped"[\s\S]{0,600}?onGenerateResume=/);
-});

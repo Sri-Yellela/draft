@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { api, authContextQuery } from "../lib/api.js";
 import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
 import { DECISIONS, commitDecision } from "../lib/jobDecisions.js";
@@ -432,40 +432,11 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
     }
   }, [historyGroup]);
 
-  /**
-   * AH6: open on the day something last happened.
-   *
-   * ONE request, and it returns a date rather than a listing — so the thing AD1 forbade (shipping a
-   * day's applications nobody asked for) still cannot happen by accident, and the thing it cost
-   * (landing on a blank board) does not.
-   *
-   * Runs once per signed-in user, and only while nothing is selected: a remount that already has a
-   * date must not drag the reader back to the most recent day they were not looking at.
-   */
-  const bootstrappedFor = useRef(null);
-  // The live value of historyDate, for the async bootstrap to read without re-running on it.
-  const historyDateRef = useRef(null);
-  useEffect(() => { historyDateRef.current = historyDate; }, [historyDate]);
-  useEffect(() => {
-    if (!user?.id) return;
-    if (bootstrappedFor.current === user.id) return;
-    bootstrappedFor.current = user.id;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { date } = await api(`/api/apply/history/latest?tzOffset=${tzOffset()}`);
-        // No runs at all: AD1's resting state is the right answer and is left exactly as it was.
-        // Inventing today for a user with no history is the blank board with extra steps.
-        if (cancelled || !date) return;
-        // A date the USER picked while this was in flight outranks the one it was about to choose
-        // for them. Read through a ref rather than a state updater: an updater that calls
-        // loadHistory is not pure, and React double-invokes updaters in development.
-        if (historyDateRef.current) return;
-        loadHistory(date, undefined, { auto: true });
-      } catch { /* the panel still works; it just opens on the resting state */ }
-    })();
-    return () => { cancelled = true; };
-  }, [user?.id, loadHistory]);
+  // D25: AH6's mount-time bootstrap (GET /api/apply/history/latest, then that day's listing) is
+  // GONE. It pre-picked a day for AD1's calendar, and Draft House no longer has a calendar — its
+  // primary surface is the exceptions, read from the cross-run feeds above. Fetching a day nobody
+  // renders would be two requests per sign-in for nothing. loadHistory itself stays: abort and
+  // remove still call it, and with no date selected it is a reset, not a request.
 
   /**
    * Switch sub-tab (AD1 requirement 3).
@@ -572,6 +543,40 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
     }
   }, [historyDate, loadHistory, loadApplyRuns, loadApplyPending]);
 
+  // ── D25: THE RUN BAR ─────────────────────────────────────────────────────────────────────────
+  // The mode (AUTO locked unless the SERVER says otherwise), the three caps with their usage, and
+  // the user's own Stop everything — one read, GET /api/apply/run-bar. Null until it answers: a
+  // cap rendered from an unloaded state would be a number nobody measured.
+  const [runBar, setRunBar] = useState(null);
+  const [holdBusy, setHoldBusy] = useState(false);
+  const [holdMsg, setHoldMsg] = useState("");
+  const loadRunBar = useCallback(async () => {
+    try { setRunBar(await api("/api/apply/run-bar")); }
+    catch { /* the bar renders its locked, unloaded state — never an unlocked one */ }
+  }, []);
+  /**
+   * Stop everything (held=true) or Resume (held=false). It reaches the SERVER — POST
+   * /api/apply/hold — and the server checks it before starting any run; nothing here pretends to
+   * stop anything locally. The response carries the bar and the line as they now are.
+   */
+  const setStopEverything = useCallback(async (held) => {
+    setHoldBusy(true);
+    setHoldMsg("");
+    try {
+      const r = await api("/api/apply/hold", { method: "POST", body: JSON.stringify({ held: !!held }) });
+      setRunBar(r);
+      if (r?.line && Array.isArray(r.line.waiting)) setApplyLine(r.line);
+      setHoldMsg(held
+        ? "Stopped. Nothing new will start. Applications already sent are not recalled."
+        : "Resumed. Drafts in line start in order.");
+      loadApplyRuns();
+    } catch (e) {
+      setHoldMsg(e.message || (held ? "Could not stop — nothing changed." : "Could not resume."));
+    } finally {
+      setHoldBusy(false);
+    }
+  }, [loadApplyRuns]);
+
   // The resume and screenshot are served as files, so they cannot carry the auth header api() adds.
   // authContextQuery is the query-param form of the same token, which requireAuth also honours
   // (server.js: `req.query?.authContext`) — the mechanism useSyncEvents already relies on for SSE.
@@ -583,6 +588,10 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
   useEffect(() => {
     if (user) { loadApplyRuns(); loadApplyQuestions(); loadApplyPending(); }
   }, [user, loadApplyRuns, loadApplyQuestions, loadApplyPending]);
+
+  // D25: the bar's caps move when the pipeline does, so it is re-read whenever the runs feed is —
+  // on mount, on every poll while a run is in flight, and after any action that reloads the runs.
+  useEffect(() => { if (user) loadRunBar(); }, [user, applyRuns, loadRunBar]);
 
   // A run does its work in the background, and nothing refreshed this panel — so progress and the
   // final result never appeared until the page was reloaded, which read as "it did nothing".
@@ -682,6 +691,8 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       applyInFlight, applySubmitted, applyStopped, applyGatedJobs,
       applyPrereqMissing,
       applyLine, lineMsg, lineBusyId, setLineTool, moveInLine, removeFromLine,
+      // D25: the run bar — mode, caps, Stop everything.
+      runBar, loadRunBar, setStopEverything, holdBusy, holdMsg,
       // ── The board's own view of the pipeline ────────────────────────────────────────────────
       // The board and the pipeline were separate worlds: a card gave no hint that you had already
       // applied to it, queued it, or that it was stuck waiting on you. This is the join, done here
