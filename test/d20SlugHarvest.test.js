@@ -10,7 +10,7 @@ import { createCompaniesRouter } from "../routes/companies.js";
 import { validateBoard, descriptionCoverage } from "../services/companyList.js";
 import { googleJobs } from "../services/jobs/sources/serpapi.js";
 import {
-  harvestPairOf, poolFromResults, planSweep, serpSearch, familyConversion, HARVEST_QUERIES, DAILY_SEARCH_CAP, EXHAUSTED_AFTER,
+  harvestPairOf, poolFromResults, planSweep, serpSearch, poolSummary, familyConversion, HARVEST_QUERIES, DAILY_SEARCH_CAP, EXHAUSTED_AFTER,
 } from "../services/slugHarvest.js";
 
 // D20 — the slug harvest in the daily manual sweep. The searches are D4's twenty real SerpApi
@@ -122,6 +122,7 @@ test("a sweep is dry first, spends exactly the searches the operator saw, and po
     const dry = await s.call("POST", "/h/sweep", {});
     assert.equal(dry.body.dryRun, true);
     assert.equal(dry.body.expectQueries.length, DAILY_SEARCH_CAP);
+    assert.equal(new Set(dry.body.plan.queries.map(q => q.family)).size, DAILY_SEARCH_CAP, "a fresh pool spends one search per family");
     assert.equal(s.calls.length, 0, "a dry run searches nothing");
     const wrong = await s.call("POST", "/h/sweep", { confirm: true, expectQueries: ["software engineer"] });
     assert.equal(wrong.status, 409);
@@ -188,6 +189,7 @@ test("a configured company is never pooled — including a Workday tenant under 
     s.db.prepare("INSERT INTO company_ats_list (company, ats_type, ats_slug, active) VALUES ('Coder','ashby','coder',1), ('WAB','workday','5|westernalliancebank|other',0)").run();
     await sweep(s, ["software engineer"]);
     const keys = s.db.prepare("SELECT ats_type || ':' || slug_key FROM slug_harvest_pool").pluck().all();
+    assert.deepEqual(Object.values(poolSummary(s.db)[0]).filter(v => v === null), [], "counts are 0, never null");
     assert.ok(!keys.includes("ashby:coder"));
     assert.ok(!keys.some(k => k.includes("westernalliancebank")));
   } finally { s.stop(); }

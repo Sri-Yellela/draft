@@ -235,7 +235,11 @@ export function planSweep(db, { queries = null, now = Math.floor(Date.now() / 10
       if (fams.get(x.family)?.exhausted) { skipped.push({ q: x.q, family: x.family, reason: `the last ${EXHAUSTED_AFTER} ${x.family} searches found nothing new` }); continue; }
       chosen.push({ ...x });
     }
-    chosen.sort((a, b) => (lastRun.get(a.q) ?? -1) - (lastRun.get(b.q) ?? -1));
+    // Least recently searched first; among equals, each family's first query before any family's
+    // second — so a fresh pool spends one search per family, not eight on engineering.
+    const rank = new Map(), perFamily = {};
+    for (const x of HARVEST_QUERIES) rank.set(x.q, perFamily[x.family] = (perFamily[x.family] ?? -1) + 1);
+    chosen.sort((a, b) => ((lastRun.get(a.q) ?? -1) - (lastRun.get(b.q) ?? -1)) || (rank.get(a.q) - rank.get(b.q)));
   }
   const over = chosen.slice(remainingToday);
   for (const x of over) skipped.push({ q: x.q, family: x.family, reason: `over today's cap of ${DAILY_SEARCH_CAP}` });
@@ -319,8 +323,8 @@ export function listSweeps(db, limit = 20) {
 }
 
 export function poolSummary(db) {
-  return db.prepare(`SELECT ats_type, COUNT(*) pairs, SUM(decision IS NULL) undecided, SUM(decision = 'add') added,
-                            SUM(decision = 'skip') skipped, SUM(state = 'live') live
+  return db.prepare(`SELECT ats_type, COUNT(*) pairs, SUM(decision IS NULL) undecided, SUM(COALESCE(decision = 'add', 0)) added,
+                            SUM(COALESCE(decision = 'skip', 0)) skipped, SUM(COALESCE(state = 'live', 0)) live
                      FROM slug_harvest_pool GROUP BY ats_type ORDER BY pairs DESC`).all();
 }
 
