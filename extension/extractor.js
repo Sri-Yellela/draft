@@ -323,23 +323,32 @@ export function extractJobPayload() {
  *
  * This used to be part of the content script, so it only ever appeared on the six declared boards.
  * Injected on demand it now appears wherever the user captured, which is the whole point.
+ *
+ * D23: its colours are the site's tokens, passed in as `theme` ({ light, dark }, built by
+ * background.js toastTheme() from tokens.js) because a serialised function closes over nothing. The
+ * page's own colour scheme picks the palette. Square geometry and depth as on every other control.
  */
-export function showCaptureToast(message, success) {
+export function showCaptureToast(message, success, theme) {
+  const dark = !!(theme?.dark && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+  const t = (dark ? theme.dark : theme?.light) || {};
   let toast = document.getElementById('rm-capture-toast');
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'rm-capture-toast';
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     Object.assign(toast.style, {
       position: 'fixed', bottom: '24px', right: '24px',
-      zIndex: '2147483647', color: '#fff',
-      borderRadius: '10px', padding: '10px 16px', fontSize: '13px', fontWeight: '600',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      transition: 'opacity 0.2s ease', opacity: '0',
+      zIndex: '2147483647',
+      borderRadius: '12px', padding: '10px 16px', fontSize: '13px', fontWeight: '700',
+      fontFamily: '"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+      transition: still ? 'none' : 'opacity 0.2s ease', opacity: '0',
     });
     document.body.appendChild(toast);
   }
-  toast.style.background = success ? '#437A22' : '#a12c2c';
+  if (t.text) toast.style.color = t.text;
+  if (t.shadow) toast.style.boxShadow = t.shadow;
+  const fill = success ? t.ok : t.fail;
+  if (fill) toast.style.background = fill;
   toast.textContent = message;
   toast.style.opacity = '1';
   clearTimeout(toast._hideTimer);
