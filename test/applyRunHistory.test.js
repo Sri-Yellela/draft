@@ -550,111 +550,41 @@ test("AC4: the history endpoint has no default date — it cannot be called with
 
 // ── AC4 on the CLIENT: on demand, and the calendar reused rather than rebuilt ────────────────
 
-test("AC4 requirement 2: nothing loads until a date is selected", () => {
-  // "ON DEMAND, NOT PRELOADED — this is explicit. Nothing loads until a date is selected. The
-  // panel's initial render issues no history query."
+test("AC4 requirement 2: nothing loads until a date is selected — and since D25 nothing asks for one", () => {
+  // "ON DEMAND, NOT PRELOADED — this is explicit. Nothing loads until a date is selected."
   //
-  // The real proof is a network check, and scripts/abPanelUi.mjs makes it: it records every /api/*
-  // path the page requested on load and asserts none of them starts with /api/apply/history. What
-  // is asserted HERE is the structural reason that stays true — because a loader effect added later
-  // would break requirement 2 silently, and a source check names the thing not to add.
-  //
-  // Every other feed in the context is loaded by a useEffect on `user`. The history must not be.
+  // AH6 once narrowed this with ONE mount effect that asked /api/apply/history/latest for a date and
+  // opened it. D25 (10-04) removed AD1's calendar from Draft House — the workspace shows what needs
+  // the user now, and the dated record is The Table's — so that effect fed nothing and went with it.
+  // AC4's rule is therefore back at full strength: NO effect loads the history.
   assert.match(ctx, /const \[historyDate, setHistoryDate\] = useState\(null\)/);
   assert.match(ctx, /const \[history, setHistory\] = useState\(null\)/);
-
-  // ── AH6 NARROWED THIS REQUIREMENT, AND IT IS WORTH SAYING WHICH PART ────────────────────────
-  //
-  // AC4 forbade a loader effect outright. AH6 adds exactly one: a mount that asks
-  // /api/apply/history/latest — a DATE, never rows — and opens on that day if there is one. The
-  // rule AC4 was protecting is unchanged and is what is asserted now: no day's applications are
-  // shipped to a panel that did not ask for a day, and there is still no implicit TODAY.
-  //
-  // Why the change was right: AC4's inversion left the panel on a blank board with "pick a date",
-  // and the commonest reason to open Auto Apply is to see what happened on the last run, which is
-  // almost never today. The panel was making the reader answer a question it could answer itself.
-  // A user with NO runs still gets AC4's resting state exactly as it was — that case is driven by
-  // scripts/abPanelUi.mjs, and the AH6 default by scripts/ah6RecentRunDefault.mjs.
   const loaderEffects = [...ctx.matchAll(/useEffect\(\(\) => \{([\s\S]*?)\n  \}, \[/g)]
-    .filter(m => /loadHistory\b/.test(m[1]));
-  assert.equal(loaderEffects.length, 1,
-    "exactly one effect may load the history — AH6's latest-date bootstrap, and nothing else");
-  const bootstrap = loaderEffects[0][1];
-  assert.match(bootstrap, /\/api\/apply\/history\/latest/,
-    "the one loader effect must ask for a DATE, not for a day's rows");
-  assert.match(bootstrap, /if \(cancelled \|\| !date\) return;/,
-    "no date means no history call at all — AC4's resting state, untouched");
-  assert.match(bootstrap, /\{ auto: true \}/,
-    "a date the panel chose must be marked as such, so the UI can say why it is on screen");
-
+    .filter(m => /loadHistory\b|history\/latest/.test(m[1]));
+  assert.equal(loaderEffects.length, 0, "an effect loads the dated history again");
   // The prohibition that has NOT changed: there is no implicit today anywhere.
   assert.ok(!/loadHistory\(\s*new Date\(\)|loadHistory\(\s*today/.test(ctx),
-    "the history defaults to today somewhere — AH6 defaults to the LAST RUN, never to today");
+    "the history defaults to today somewhere");
 });
 
-test("AC4 -> AD1: 'not asked yet', 'nothing happened' and 'nothing in this tab' are THREE states", () => {
-  // Collapsing them is how requirement 7's "no applications on this date" becomes a permanent
-  // spinner: the panel cannot tell an unasked question from an empty answer. AD1 adds a THIRD,
-  // because the sub-tabs made it possible to be looking at an empty tab on a busy day — "you queued
-  // nothing that day" and "you queued six things and none of them are pending" are different
-  // answers to the question being asked, and one sentence for both would be wrong for one of them.
-  //
-  // A FOURTH exists and is not one of the three: a search that matched nothing. A filtered listing
-  // saying "nothing pending" while six things are pending would be a lie.
-  assert.match(panel, /\{!historyDate && !historyLoading && \(/);
-  assert.match(panel, /Pick a date to see the jobs you drafted that day/);
-  assert.match(panel, /\{historyDate && history !== null && history\.total === 0 && \(/);
-  assert.match(panel, /No applications on \{localDateLabel\(history\.date\)\}/);
-  assert.match(panel, /history\.total > 0 && listedJobs\.length === 0 && \(/);
-  assert.match(panel, /Nothing \$\{OUTCOME_LABELS\[historyGroup\]\.label\.toLowerCase\(\)\}/);
-  assert.match(panel, /matches “\$\{search\.trim\(\)\}”/);
-  // Each one is identifiable in the DOM, so scripts/abPanelUi.mjs can assert WHICH emptiness was
-  // reported rather than just that the page was empty — which is what it was really checking before.
-  for (const kind of ["no-date", "empty-date", "no-match", "empty-tab"]) {
-    assert.ok(new RegExp(`data-rm-empty=(\"${kind}\"|\{)`).test(panel),
-      `the "${kind}" empty state is not identifiable in the DOM`);
-  }
-});
 
-test("AC4 -> AD1: the DATABASE PANEL'S calendar — and now its whole CHROME — is reused, not rebuilt", () => {
-  // AC4's requirement was "REUSE that widget rather than building a second date picker", and it was
-  // met by extracting DateCalendar. AD1 widens the same requirement to the whole layout — the
-  // sub-tab row, the search box and the date filter — with the same reasoning: a second
-  // implementation that looks identical today drifts the first time either side is touched.
-  //
-  // RE-PINNED, NOT RELAXED. The two Auto Apply assertions that named DateCalendar and DockPortal
-  // directly now name the extracted CONTROL that contains both, because that is the unit both
-  // panels render; asserting the inner pieces at the panel would fail for a refactor that made the
-  // reuse stronger, which is the opposite of what this test is for.
+test("AC4 -> AD1 -> D25: the Database panel's calendar and chrome are the shared ones, and Draft House forks none", () => {
+  // AC4: "REUSE that widget rather than building a second date picker". AD1 widened it to the whole
+  // chrome. D25 removed the tabs and the calendar from Draft House; the rule that survives is that
+  // nothing was forked on the way out — the Database panel still renders the shared control, and
+  // Draft House hand-assembles no calendar and no portal of its own.
   assert.match(controls, /import \{ DateCalendar \} from "\.\/DateCalendar\.jsx"/);
   assert.match(controls, /import \{ DockPortal \} from "\.\.\/DockPortal\.jsx"/);
-  for (const [name, src] of [["DatabasePanel", dbPanel], ["AutoApplyPanel", panel]]) {
-    assert.match(src, /import \{ PanelSubTabs, PanelSearch, DateFilterButton \} from "\.\.\/components\/ui\/PanelControls\.jsx"/,
-      `${name} does not render the shared chrome`);
-    assert.match(src, /<PanelSubTabs/, `${name} has its own tab row again`);
-    assert.match(src, /<PanelSearch/,  `${name} has its own search box again`);
-    assert.match(src, /<DateFilterButton/, `${name} has its own date filter again`);
-  }
-  // DatabasePanel's per-ROW date cell still renders DateCalendar directly — a table cell is not a
-  // filter pill and has no button to share — so exactly one direct call site remains there, and
-  // the panel's own local calendar is still gone.
+  assert.match(dbPanel, /import \{ PanelSubTabs, PanelSearch, DateFilterButton \} from "\.\.\/components\/ui\/PanelControls\.jsx"/);
+  for (const el of [/<PanelSubTabs/, /<PanelSearch/, /<DateFilterButton/]) assert.match(dbPanel, el);
   assert.equal((dbPanel.match(/<DateCalendar theme=\{theme\}/g) || []).length, 1);
   assert.ok(!/^function Calendar\(\{ value, onChange, onClose, theme \}\)/m.test(dbPanel),
     "DatabasePanel still holds its own calendar — the extraction is a copy");
-  // The Auto Apply panel writes NEITHER any more: no bare DateCalendar, no hand-assembled portal.
-  assert.ok(!/<DateCalendar/.test(panel),
-    "the Auto Apply panel hand-assembles the calendar again instead of rendering the shared control");
-  assert.ok(!/<DockPortal/.test(panel),
-    "the Auto Apply panel hand-assembles the popover again instead of rendering the shared control");
-  // And the same portal treatment, because the reason it is portalled has not changed: an
-  // absolutely-positioned popover inside a scrolling column is CLIPPED by it, and clipping is
-  // resolved before stacking, so no z-index can fix it.
+  assert.ok(!/<DateCalendar|<DockPortal|<DateFilterButton/.test(panel),
+    "Draft House hand-assembles a calendar again");
   assert.match(controls, /<DockPortal anchorRect=\{rect\} theme=\{theme\}/);
-  // The layoutId is a PROP, not a literal shared by both panels — two surfaces animating one
-  // underline between them is a coupling this extraction exists to avoid.
   assert.match(controls, /<motion\.div layoutId=\{layoutId\}/);
   assert.match(dbPanel, /layoutId="db-tab-underline"/);
-  assert.match(panel, /layoutId="apply-outcome-underline"/);
 });
 
 test("AC4: the shadcn calendar.jsx was not clobbered by a case-insensitive filename", () => {
@@ -669,59 +599,41 @@ test("AC4: the shadcn calendar.jsx was not clobbered by a case-insensitive filen
 });
 
 test("AC4: the calendar's date string and the server's day boundary agree", () => {
-  // The picker returns a LOCAL date; created_at is UTC seconds. Without the offset a run queued at
-  // 8pm in Boston lands on the next UTC day, so the user picks the day they remember and is told
-  // nothing happened. Every history request carries the browser's own getTimezoneOffset().
+  // The picker returns a LOCAL date; created_at is UTC seconds. Every history request carries the
+  // browser's own getTimezoneOffset(), so the day asked for is the user's day.
   assert.match(ctx, /const tzOffset = \(\) => new Date\(\)\.getTimezoneOffset\(\)/);
-  // RE-PINNED FOR AD1: the request grew a `group`, because the three outcome groups are sub-tabs and
-  // a tab switch must refetch ONE of them. The date and the offset are unchanged and are still what
-  // this test is about.
   assert.match(ctx, /\/api\/apply\/history\?date=\$\{encodeURIComponent\(date\)\}&group=\$\{encodeURIComponent\(wanted\)\}&tzOffset=\$\{tzOffset\(\)\}/);
   assert.match(ctx, /\/api\/apply\/history\/months\/\$\{encodeURIComponent\(month\)\}\?tzOffset=\$\{tzOffset\(\)\}/);
-  // And the LABEL is built from the parts rather than through new Date(iso), which parses a
-  // YYYY-MM-DD as UTC midnight and renders the previous day west of Greenwich — the panel was
-  // telling users "No applications on 8/10" for a date they had just clicked on.
-  assert.match(panel, /const localDateLabel = \(iso\) => \{/);
-  assert.ok(!/new Date\(history\.date\)\.toLocaleDateString/.test(panel));
-  assert.ok(!/new Date\(historyDate\)\.toLocaleDateString/.test(panel));
+  // D25: Draft House renders no date at all now, so it cannot render one a day early.
+  assert.ok(!/new Date\(history\.date\)\.toLocaleDateString|new Date\(historyDate\)/.test(panel));
 });
 
 test("AC4 requirement 7: markers are fetched on OPENING the picker, never on render", () => {
-  // Requirement 7 permits a marker only if it does not violate requirement 2. Requirement 2's words
-  // are "the panel's initial render issues no history query" — and opening the calendar is an
-  // action the user took, so the marker fetch is inside the rule rather than an exception to it.
-  // RE-PINNED FOR AD1. The open/closed state moved INTO the extracted DateFilterButton with the
-  // rest of the control, so the panel no longer writes `if (opening)` — it passes an `onOpen`
-  // callback that the control fires when the popover opens. Same rule, same moment, one place.
+  // Opening the calendar is an action the user took, so the marker fetch is inside the rule. The
+  // control fires onOpen when the popover opens; nothing fetches markers at render.
   assert.match(controls, /if \(opening\) onOpen\?\.\(value\)/);
-  assert.match(panel, /onOpen=\{\(value\) => \{[\s\S]{0,400}?loadHistoryMonth\(/);
-  assert.match(panel, /onMonth=\{loadHistoryMonth\}/);
-  assert.match(panel, /markers=\{historyMarkers\}/);
-  // Opt-in, still: the Database panel passes no markers, so nothing is dotted there. That is what
-  // "unchanged for its own use" means at the source level; the browser check proves it renders.
+  // Opt-in, still: the Database panel passes no markers, so nothing is dotted there.
   assert.ok(!/markers=/.test(dbPanel),
     "the Database panel started passing markers — its calendar is no longer unchanged for its own use");
-  // Failing to get markers must not break the picker — they are a convenience, not the feature.
+  // D25: Draft House has no calendar, so nothing there can ask for markers either.
+  assert.ok(!/loadHistoryMonth\(/.test(panel), "Draft House fetches calendar markers again");
   assert.match(ctx, /catch \{ \/\* markers are a convenience/);
 });
 
 test("AC4 requirement 4: the abort button's presence is the SERVER's decision", () => {
   // The client must not re-derive abortability: the button's presence and the endpoint's guard have
-  // to agree, and two copies of that rule is how a button appears for something the server refuses.
-  // RE-PINNED FOR AD1: HistoryRow is gone — the dated listing is the panel's body now, so abort and
-  // remove live on the two rows that body renders. The RULE is untouched and is asserted on both:
-  // the flag comes from the response, never re-derived here.
+  // to agree. D25: Stop lives on Draft House's In flight rows, so the inFlight feed carries the
+  // server's own `abortable` — the same expression the dated history uses — and the panel passes
+  // the row through untouched.
   assert.match(sections, /\{job\.abortable && onAbort && \(/);
-  assert.match(sections, /\{onAbort && app\.rows\?\.some\(r => r\.abortable\) && \(/);
   assert.ok(!/status === "running" \|\| .*status === "queued"/.test(sections),
     "the row is re-deriving which applications can be aborted");
   assert.match(applyRoute, /abortable: OUTCOME_STATUSES\[OUTCOME\.PENDING\]\.includes\(r\.status\)/);
-  // A GROUPED application aborts and hides EVERY run-job it holds. Stopping only the newest attempt
-  // leaves the application in PENDING after telling the user it stopped; hiding only the newest
-  // makes the row come back on the next fetch wearing an earlier attempt's face, which is exactly
-  // the "does not return on refetch" AD1 asks to verify.
-  assert.match(panel, /const abortApplication = \(app\) => abortRunJob\(\(app\.rows \|\| \[\]\)\.filter\(r => r\.abortable\)\.map\(r => r\.id\)\)/);
-  assert.match(panel, /const hideApplication  = \(app\) => hideRunJob\(\(app\.rows \|\| \[\]\)\.map\(r => r\.id\)\)/);
+  assert.match(applyRoute, /inFlight: inFlight\.map\(r => \(\{ \.\.\.publicRunJob\(r\), abortable: OUTCOME_STATUSES\[OUTCOME\.PENDING\]\.includes\(r\.status\) \}\)\)/);
+  assert.ok(!/abortable:\s*true/.test(panel), "Draft House decides abortability itself");
+  // A GROUPED application hides EVERY run-job it holds, or it comes back on the next fetch wearing
+  // an earlier attempt's face.
+  assert.match(panel, /const hideApplication = \(app\) => hideRunJob\(\(app\.rows \|\| \[\]\)\.map\(r => r\.id\)\)/);
   assert.match(ctx, /const ids = Array\.isArray\(runJobId\) \? runJobId : \[runJobId\];/);
 });
 

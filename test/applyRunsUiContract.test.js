@@ -188,6 +188,9 @@ test("the panel polls while a run is in flight, and only then", () => {
 
 test("a row says whether a resume exists, either way", () => {
   assert.match(jobsPanel, /job\.resumeAvailable/);
-  assert.match(jobsPanel, /no resume generated/);
+  // The words a row actually renders when there is none. (This used to match "no resume generated",
+  // which only ever matched a comment in the panel — D25 removed the comment and the test with it
+  // would have gone on passing over nothing.)
+  assert.match(jobsPanel, /"no resume recorded"/);
   assert.match(jobsPanel, /artifactUrl\(job\.id, "resume"\)/);
 });

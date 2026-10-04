@@ -271,6 +271,9 @@ const AUTHENTICATED = new Set([
   "POST /api/apply/line/order",
   "DELETE /api/apply/line/:runId",
   "DELETE /api/apply/line/:runId/jobs/:runJobId",
+  // D25: the run bar and the user's Stop everything.
+  "GET /api/apply/run-bar",
+  "POST /api/apply/hold",
   "GET /api/apply/review",
   "GET /api/apply/run-jobs/:runJobId/review",
   // AH5: the fill log — what this run put in the form and what it did not. On demand, so it is

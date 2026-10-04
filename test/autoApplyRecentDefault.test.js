@@ -19,6 +19,13 @@ import { at } from "../test-support/sourceAnchors.js";
  * about what to do instead: the commonest reason to open Auto Apply is to see what happened on the
  * last run, which is almost never today, so the panel was making the reader answer a question it
  * could answer itself.
+ *
+ * ⛔ D25 (10-04): THE CLIENT HALF IS GONE. Draft House no longer has AD1's calendar or sub-tabs —
+ * it shows what stopped and needs the user, and the dated record is The Table's (D15) — so the
+ * mount-time bootstrap that picked a day for that calendar, the "Showing <day>" line, the tab notes
+ * and the standing-work notes were all removed with it, and their nine tests with them. What stays
+ * pinned here is the ENDPOINT, which still exists and still answers correctly; that no effect calls
+ * it any more is asserted in applyRunHistory.test.js and applyPanelLayoutAdoption.test.js.
  */
 
 function serverWith(rows) {
@@ -120,93 +127,18 @@ test("the listing endpoint still refuses to default — only the panel has a def
     "a caller must still name the day it wants; an endpoint with a sensible default invites a mount to hit it");
 });
 
-// ── the panel ────────────────────────────────────────────────────────────────────────────────
+// ── the panel: removed by D25 (see the header) ───────────────────────────────────────────────
 
-const CONTEXT = fs.readFileSync("client/src/contexts/AutoApplyContext.jsx", "utf8");
-const PANEL = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
 
-test("the mount asks once, per user, and only while nothing is selected", () => {
-  assert.match(CONTEXT, /api\(`\/api\/apply\/history\/latest\?tzOffset=\$\{tzOffset\(\)\}`\)/);
-  assert.match(CONTEXT, /if \(bootstrappedFor\.current === user\.id\) return;/);
-  // A remount that already has a date must not drag the reader back to a day they navigated away
-  // from.
-  assert.match(CONTEXT, /if \(historyDateRef\.current\) return;/);
-});
 
-test("a null date leaves AD1's resting state exactly as it was", () => {
-  assert.match(CONTEXT, /if \(cancelled \|\| !date\) return;/);
-  // And the resting state itself is untouched.
-  assert.match(PANEL, /Pick a date to see the jobs you drafted that day\./);
-  assert.match(PANEL, /data-rm-empty="no-date"/);
-});
 
-test("the bootstrap does not use a state updater to cause a side effect", () => {
-  // React double-invokes updaters in development, so calling loadHistory inside one fires the
-  // request twice. The live value is read through a ref instead.
-  const block = CONTEXT.slice(at(CONTEXT, "const bootstrappedFor = useRef(null)"),
-                              at(CONTEXT, "Switch sub-tab (AD1 requirement 3)"));
-  assert.doesNotMatch(block, /setHistoryDate\(prev =>/);
-  assert.match(block, /historyDateRef\.current/);
-});
 
-test("the auto flag is cleared the moment the user picks a day themselves", () => {
-  // "your most recent activity" describes a choice the PANEL made. Once the user picks, it stops
-  // being true, and a label that outlives the choice it describes is worse than no label.
-  assert.match(CONTEXT, /const loadHistory = useCallback\(async \(date, group, \{ auto = false \} = \{\}\) => \{/);
-  assert.match(CONTEXT, /setHistoryAuto\(auto\);/);
-  assert.match(CONTEXT, /loadHistory\(date, undefined, \{ auto: true \}\)/);
-  // Every other call site leaves `auto` at its default, so a user pick clears it.
-  assert.match(PANEL, /onChange=\{\(iso\) => loadHistory\(iso, historyGroup\)\}/);
-});
 
-test("the panel says WHY that day is on screen, and offers the one it did not choose", () => {
-  assert.match(PANEL, /\{historyAuto && historyDate && \(/);
-  assert.match(PANEL, /your most recent activity/);
-  assert.match(PANEL, /Show today instead/);
-  assert.match(PANEL, /data-rm-auto-date=\{historyDate\}/);
-});
-
-test("today is built from LOCAL parts, not toISOString", () => {
-  // toISOString() hands back the UTC day, which west of Greenwich is tomorrow for most of the
-  // evening — the same class of bug localDateLabel already carries a comment about.
-  assert.match(PANEL, /const todayIso = \(\) => \{/);
-  assert.match(PANEL, /d\.getFullYear\(\)/);
-  const helper = PANEL.slice(at(PANEL, "const todayIso"), at(PANEL, "const isToday"));
-  assert.doesNotMatch(helper, /toISOString/);
-});
 
 // ── legibility (requirement 4) ────────────────────────────────────────────────────────────────
 
-test("the three tabs explain themselves in TEXT, not in a tooltip", () => {
-  // The notes already existed and were all in `title` attributes. A tooltip needs a mouse, a hover
-  // and a second of patience, and does not exist at all on a touch screen — so a first-time reader
-  // had to guess what moves an application between COMPLETED, PENDING and ABORTED, and "Aborted"
-  // reads as failure when three of its four statuses are not failures.
-  assert.match(PANEL, /data-rm-tab-note=\{historyGroup\}/);
-  assert.match(PANEL, /OUTCOME_LABELS\[historyGroup\]\.note/);
-});
 
-test("the standing work says it is not the date's", () => {
-  // The split between "what needs you" and "what did I queue that day" was correct and invisible:
-  // a reader who has just picked a date reads every count below it as belonging to that date.
-  assert.match(PANEL, /data-rm-standing-scope="all-time"/);
-  // Matched in two pieces because the sentence wraps in the source. JSX collapses the newline at
-  // render, so the text a reader sees is one line — scripts/ah6RecentRunDefault.mjs asserts that
-  // rendered form, which is the claim that matters; this only pins that the copy is still here.
-  assert.match(PANEL, /Waiting on you right now — whatever day it was queued/);
-  assert.match(PANEL, /not filtered by the\s+date above/);
-  // Only when there IS standing work — an empty tab must not explain an absent section.
-  assert.match(PANEL, /\{\(applyInFlight\.length > 0 \|\| needsYouCount > 0\) && \(/);
-});
 
-test("the standing work is still OUTSIDE the date filter, as decided", () => {
-  // AH6 requirement 4 says to keep it there. It reads cross-run feeds the session already loads,
-  // never the dated listing.
-  const band = PANEL.slice(at(PANEL, "THE STANDING WORK, ON THE PENDING TAB"),
-                           at(PANEL, "THE BODY — ONE DAY, ONE OUTCOME"));
-  assert.doesNotMatch(band, /history\?date=|historyJobs/);
-  assert.match(band, /applyInFlight|needsYouCount/);
-});
 
 test("abPanelUi stubs the latest-date endpoint explicitly, so its resting state is the real one", () => {
   // Before this it fell through to a fallback body with no `date` key, so AD1's resting-state
