@@ -16,6 +16,7 @@
 import {
   SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, wouldEmpty, activeClauseCount,
 } from "../../../shared/filterSentence.js";
+import { SORTS } from "../../../shared/jobFilterOptions.js";
 
 export { SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, activeClauseCount };
 
@@ -172,4 +173,21 @@ export function unscoredText(facets) {
     return `${plural(facets.unscored, "job has", "jobs have")} no score and sort${facets.unscored === 1 ? "s" : ""} last${tail}`;
   }
   return `Jobs with no score sort last${tail}`;
+}
+
+// ── A cached board from before D24 reopens CURATED, not Newest ──────────────────────────────────
+//
+// Before D24 the client always sent sort=dateDesc and the server answered with the CURATED order
+// (profile relevance and fit first), so every cached view snapshot holds sortBy "dateDesc" whether
+// or not anyone chose Newest. D24 made an explicit dateDesc truly newest-first and moved the curated
+// order to "no sort param". Read literally, every returning user's board would silently flip to
+// Newest. So a snapshot carries SORT_SEMANTICS; one without it predates D24, and its "dateDesc"
+// meant the curated default. A snapshot written after D24 is taken at its word — a user who picks
+// Newest keeps Newest.
+export const SORT_SEMANTICS = 2;
+export function sortFromCachedSnapshot(snapshot) {
+  const sortBy = snapshot?.sortBy || "";
+  // SORTS.default is what every pre-D24 client sent on every request (it is "dateDesc").
+  if (snapshot?.sortSemantics !== SORT_SEMANTICS && sortBy === SORTS.default) return "";
+  return sortBy;
 }

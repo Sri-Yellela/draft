@@ -44,6 +44,7 @@ import SortPanel from "../components/SortPanel.jsx";
 import { useJobFacets } from "../hooks/useJobFacets.js";
 import {
   BOARD_PANEL, SENTENCE_CLAUSES, activeClauseCount as countActiveClauses, clearAllClauses,
+  sortFromCachedSnapshot,
 } from "../lib/filterSentenceModel.js";
 import { FIT_BANDS } from "../../../shared/filterSentence.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
@@ -132,7 +133,9 @@ function writeProfileUiCache(profileId, snapshot) {
   // at ageFilter, so every filter added after it — salary, work models, experience levels, skills,
   // sponsor-friendly, providers, tiers — was silently dropped on reload: the board came back
   // unfiltered while the drawer had claimed the filter was applied.
-  const persisted = { cachedAt: Date.now() };
+  // sortSemantics: D24's SORT_SEMANTICS, written as a literal because this function runs with storage as
+  // its only dependency (test/boardSecondLoadParity runs the shipping source); a test pins 2 === SORT_SEMANTICS.
+  const persisted = { cachedAt: Date.now(), sortSemantics: 2 };
   for (const key of ["boardTab", "localSearch", "sortBy", "currentPage",
                      ...Object.keys(defaultFilterSnapshot())]) {
     persisted[key] = snapshot[key];
@@ -1808,7 +1811,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setCurrentPage(snapshot.currentPage || 1);
     setBoardTab(["linkedin", "linkedin_saved"].includes(snapshot.boardTab) ? "saved" : (snapshot.boardTab || "all"));
     setLocalSearch(snapshot.localSearch || "");
-    setSortBy(snapshot.sortBy || "");
+    setSortBy(sortFromCachedSnapshot(snapshot));
     // Restore every committed filter through the single writer, and re-stage the drawer to match, so
     // reopening it shows the filters the board is actually applying. Hand-listing them here is what
     // dropped the newer ones on every reload and profile switch.

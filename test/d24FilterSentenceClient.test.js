@@ -320,7 +320,8 @@ test("D24: the DEFAULT board request carries NO sort param — the curated order
   const bp = panel.slice(at(panel, "const buildParams = useCallback"), at(panel, "}, [sortBy"));
   assert.match(bp, /if \(sortBy\)\s+p\.set\("sort", sortBy\);/, "buildParams sends a sort when none was chosen");
   assert.doesNotMatch(bp, /^\s*p\.set\("sort", sortBy\);/m, "an unconditional sort is back");
-  assert.match(panel, /setSortBy\(snapshot\.sortBy \|\| ""\)/, "a restored board without a sort must stay curated");
+  // A restored board without a sort stays curated — now through the pre-D24 rule (test 10 asserts it behaviourally).
+  assert.match(panel, /setSortBy\(sortFromCachedSnapshot\(snapshot\)\)/, "a restored board without a sort must stay curated");
   // Simulate the emission rule on the default state: no sort key at all.
   const p = new URLSearchParams(); const sortBy = ""; if (sortBy) p.set("sort", sortBy);
   assert.equal(p.has("sort"), false);
@@ -371,17 +372,15 @@ test("D24: NO LITERAL OPTION VALUE OR LABEL in the new client code — everythin
   assert.match(strip(read("client/src/App.jsx")), /sortRows\(atsSortAvailable\)/);
 });
 
-// ── 9. The server side of the two new params — HELD ONCE THE SERVER HALF IS MERGED ─────────────
-
-test("D24: the server reads fit_bands and offers companyAsc (the server half — todo until merged)", (t) => {
+// ── 9. The server side of the two new params — both halves are merged, so this is a hard check ──
+//
+// It was a `todo` while the halves were built apart. ⛔ Not any more: a self-skipping check would go
+// quiet the day fit_bands left the server, which is exactly the regression it exists to catch.
+test("D24: the server reads fit_bands and offers every sort the panel sends", () => {
   const server = read("server.js");
   const jobQuery = read("services/jobs/jobQuery.js");
-  const merged = server.includes(FIT_BANDS.param) || jobQuery.includes(FIT_BANDS.param);
-  if (!merged) {
-    t.todo("server half not merged on this branch: GET /api/jobs does not read fit_bands yet, " +
-           "and SORTS has no companyAsc — the client already sends both");
-    return;
-  }
+  assert.ok(server.includes(FIT_BANDS.param) || jobQuery.includes(FIT_BANDS.param),
+    "the client sends fit_bands but GET /api/jobs no longer reads it");
   assert.ok(SORTS.options.some(o => o.value === "companyAsc") || (SORTS.dbOnly || []).some(o => o.value === "companyAsc"),
     "the sort panel offers Company A–Z but the server's SORTS does not accept it");
   for (const o of SORT_PANEL) {
@@ -389,4 +388,19 @@ test("D24: the server reads fit_bands and offers companyAsc (the server half —
     assert.ok([...SORTS.options, ...(SORTS.dbOnly || [])].some(s => s.value === o.value),
       `the sort panel offers ${o.value}, which GET /api/jobs would 400`);
   }
+});
+
+// ── 10. A board cached before D24 reopens CURATED (integration, 10-04) ─────────────────────────
+test("D24: a pre-D24 cached 'dateDesc' reopens as the curated default; a post-D24 choice of Newest is kept", async () => {
+  const { sortFromCachedSnapshot, SORT_SEMANTICS } = await import("../client/src/lib/filterSentenceModel.js");
+  assert.equal(sortFromCachedSnapshot({ sortBy: "dateDesc" }), "", "every pre-D24 board sent dateDesc, meaning curated");
+  assert.equal(sortFromCachedSnapshot({ sortBy: "dateDesc", sortSemantics: SORT_SEMANTICS }), "dateDesc", "an explicit Newest after D24 stays Newest");
+  assert.equal(sortFromCachedSnapshot({ sortBy: "atsScore" }), "atsScore", "only the ambiguous value is reinterpreted");
+  assert.equal(sortFromCachedSnapshot({}), "");
+  assert.equal(sortFromCachedSnapshot(null), "");
+  const panel = read("client/src/panels/JobsPanel.jsx");
+  const written = panel.match(/sortSemantics: (\d+) \}/);
+  assert.ok(written, "new snapshots must carry the sort semantics");
+  assert.equal(Number(written[1]), SORT_SEMANTICS, "the literal in writeProfileUiCache drifted from SORT_SEMANTICS");
+  assert.match(panel, /setSortBy\(sortFromCachedSnapshot\(snapshot\)\)/, "a restored snapshot must go through the rule");
 });
