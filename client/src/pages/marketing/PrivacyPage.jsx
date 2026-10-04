@@ -206,8 +206,9 @@ export function PrivacyPage() {
             </LI>
             <LI>
               It reads the <Strong>address (URL) of the tab you invoke it on</Strong>, to
-              recognise whether that page is a supported job posting. When you open the extension's
-              popup, it also sends that one address to {CANONICAL_HOST}, to show you whether the job
+              recognise whether that page is a supported job posting. When you press{" "}
+              <Strong>Read this page</Strong> in the extension's popup (opening the popup alone reads
+              nothing), it also sends that one address to {CANONICAL_HOST}, to show you whether the job
               is already on your board and whether an application you drafted is waiting on that
               site; the answer is shown in the popup and not kept by the extension. It cannot see the
               address of any other tab, and it does not record where you go.

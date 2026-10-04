@@ -167,7 +167,8 @@ test("⛔ D13: no new storage, no new permission — and all four actions stay v
   assert.match(bg, /if \(message\.type === 'FILL_ACTIVE_TAB'\) \{\s*handleGatedHandoff\(\)/);
 
   const html = read("extension/popup.html");
-  const everything = html.slice(at(html, '<p class="all-head">Everything</p>'), at(html, '<p class="result-text"'));
+  // D23: the heading only appears once the page has been read; the four sit under it either way.
+  const everything = html.slice(at(html, '<p class="all-head" id="all-head" style="display:none">Everything</p>'), at(html, '<p class="result-text"'));
   for (const id of ["btn-capture-job", "btn-fill", "btn-ats", "btn-resume"]) {
     assert.match(everything, new RegExp(`id="${id}"`), `${id} is not under Everything`);
   }
@@ -176,7 +177,7 @@ test("⛔ D13: no new storage, no new permission — and all four actions stay v
   // On a page that cannot be read, Capture is disabled — never hidden.
   const popupSrc = read("extension/popup.js");
   const unreadable = popupSrc.slice(at(popupSrc, "if (!preview?.capturable) {"), at(popupSrc, "setStatus('Open a job posting to capture it');"));
-  assert.match(unreadable, /cap\.style\.display = 'flex';\s*cap\.disabled = true;/);
+  assert.match(unreadable, /cap\.style\.display = 'inline-flex';\s*cap\.disabled = true;/);
 
   // The popup renders server text as TEXT.
   const popup = read("extension/popup.js");
@@ -184,7 +185,9 @@ test("⛔ D13: no new storage, no new permission — and all four actions stay v
   assert.doesNotMatch(render, /innerHTML/);
 });
 
-test("D13: the privacy policy says the popup sends the tab's address", () => {
+test("D13 (narrowed by D23): the privacy policy says the popup sends the tab's address — on the press", () => {
+  // D23 moved the board check from popup OPEN to the "Read this page" press; the sentence narrowed
+  // with it rather than growing a new disclosure.
   assert.match(read("client/src/pages/marketing/PrivacyPage.jsx"),
-    /When you open the extension's\s+popup, it also sends that one address to \{CANONICAL_HOST\}/);
+    /When you press\{" "\}\s*<Strong>Read this page<\/Strong> in the extension's popup \(opening the popup alone reads\s+nothing\), it also sends that one address to \{CANONICAL_HOST\}/);
 });

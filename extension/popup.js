@@ -11,12 +11,12 @@ async function getCurrentTab() {
   return tab;
 }
 
+// The company in the logo face (as on the job cards, D1), the title and place beneath it.
 function showJobPreview(jobData) {
-  document.getElementById('preview-title').textContent = jobData.title || '';
-  document.getElementById('preview-company').textContent =
-    (jobData.company || '') + (jobData.location ? ' · ' + jobData.location : '');
+  document.getElementById('preview-company').textContent = jobData.company || '';
+  document.getElementById('preview-title').textContent =
+    (jobData.title || '') + (jobData.location ? ' · ' + jobData.location : '');
   document.getElementById('job-preview').style.display = 'block';
-  document.getElementById('btn-capture-job').style.display = 'flex';
 }
 
 let currentJobData = null;
@@ -91,47 +91,79 @@ async function init() {
 
   await showLastCapture();
 
-  // The popup no longer decides whether this page is capturable from a hardcoded list of six
-  // hostnames. It asks the service worker, which injects the real extractor under the activeTab
-  // grant this popup's own opening created (measured in scripts/e6PopupGrant.mjs).
+  // ⛔ D23, THE MANUAL CONTEXT TRIGGER (owner, 10-04). Opening the popup reads NOTHING from the page
+  // and asks the server NOTHING about it. Until "Read this page" is pressed, the popup shows the four
+  // actions — capture, fill, score, open draft — unchanged. A wrong primary action is worse than a
+  // menu, and this removes that failure rather than tuning a confidence threshold; it also keeps the
+  // product's defining property exact: every read of every page begins with a click or a keystroke.
   //
-  // That inverts the old rule. Before, the button appeared only where a content script was
-  // declared, so a Greenhouse board on a company's own domain looked unsupported — the extension
-  // was not broken there, it was absent. Now the button appears on any http(s) page and the
-  // extractor decides. Being wrong costs one "No job found on this page"; the old behaviour cost
-  // every embedded board, silently.
-  // D13: the page's context (board status, a form you drafted, recent captures) is asked for in
-  // parallel with the local preview. Neither is stored.
+  // The one thing decided on open is local and is not a page read: the tab's address scheme, which
+  // the browser already handed the popup. On a page that cannot be captured at all (chrome://, the
+  // PDF viewer) Capture is shown DISABLED with its reason — never hidden (D13).
+  const tab = await getCurrentTab().catch(() => null);
+  const cap = document.getElementById('btn-capture-job');
+  if (!isWebPage(tab)) {
+    cap.disabled = true;
+    cap.title = 'This page cannot be captured';
+  }
+  document.getElementById('btn-read-page').style.display = 'flex';
+  document.getElementById('read-hint').style.display = 'block';
+}
+
+function isWebPage(tab) {
+  try { return !tab?.url || /^https?:$/.test(new URL(tab.url).protocol); } catch { return false; }
+}
+
+// The press. The local preview (the extractor, injected under the activeTab grant) and the server's
+// view of this page (POST /api/import/context + the drafted-application queue for this origin) are
+// asked for HERE, in parallel, once — and neither is stored.
+let pageRead = false;
+async function readPage() {
+  if (pageRead) return;
+  pageRead = true;
+  const trigger = document.getElementById('btn-read-page');
+  trigger.disabled = true;
+  setStatus('Reading this page…');
+
   const [preview, context] = await Promise.all([
     chrome.runtime.sendMessage({ type: 'PREVIEW_ACTIVE_TAB' }).catch(() => null),
     chrome.runtime.sendMessage({ type: 'POPUP_CONTEXT' }).catch(() => null),
   ]);
+  trigger.style.display = 'none';
+  document.getElementById('read-hint').style.display = 'none';
+  document.getElementById('all-divider').style.display = 'block';
+  document.getElementById('all-head').style.display = 'block';
   renderCompanion(companionMode({ preview, context }));
 
   if (!preview?.capturable) {
     // D13: all four actions stay VISIBLE — on a page that cannot be read (chrome://, a PDF viewer)
     // Capture is shown disabled, with the reason, rather than vanishing.
     const cap = document.getElementById('btn-capture-job');
-    cap.style.display = 'flex';
+    cap.style.display = 'inline-flex';
     cap.disabled = true;
     cap.title = 'This page cannot be captured';
     setStatus('Open a job posting to capture it');
     return;
   }
-
-  document.getElementById('btn-capture-job').style.display = 'flex';
-
   if (preview.ok) {
     currentJobData = { title: preview.title, company: preview.company, location: preview.location };
     showJobPreview(currentJobData);
-    setStatus('Job detected');
+    setStatus('');
   } else if (preview.unreadable) {
-    // No grant yet, so the speculative read failed. Clicking the button is itself an invocation.
     setStatus('Ready to capture');
   } else {
     setStatus('No job detected here — capture anyway to try');
   }
 }
+document.getElementById('btn-read-page').addEventListener('click', readPage);
+// The keystroke form of the same press: R, with no modifier, while the popup has focus.
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'r' && ev.key !== 'R') return;
+  if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.repeat) return;
+  if (document.getElementById('btn-read-page').style.display === 'none') return;
+  ev.preventDefault();
+  readPage();
+});
 
 
 // ── D13: THE COMPANION ─────────────────────────────────────────────────────────────────────────
@@ -162,10 +194,13 @@ function renderCompanion(c) {
     const ul = document.getElementById('recent-list');
     for (const r of c.recent) {
       const li = document.createElement('li');
-      li.append(r.title || 'A captured job');
-      const meta = document.createElement('span');
-      meta.textContent = ` · ${r.company ? r.company + ' · ' : ''}${ageWords(Date.now() - (r.capturedAt || Date.now()))}`;
-      li.append(meta);
+      if (r.company) {                                   // the company in the logo face, as on the cards
+        const co = document.createElement('span');
+        co.className = 'co logo-face';
+        co.textContent = r.company;
+        li.append(co, ' · ');
+      }
+      li.append(`${r.title || 'A captured job'} · ${ageWords(Date.now() - (r.capturedAt || Date.now()))}`);
       ul.append(li);
     }
     document.getElementById('recent').style.display = 'block';
@@ -226,7 +261,8 @@ document.getElementById('btn-disconnect')?.addEventListener('click', async () =>
   await chrome.runtime.sendMessage({ type: 'DISCONNECT' }).catch(() => {});
   renderIdentity({ authenticated: false });
   document.getElementById('btn-sign-in').style.display = 'flex';
-  document.getElementById('btn-capture-job').style.display = 'none';
+  document.getElementById('btn-read-page').style.display = 'none';
+  document.getElementById('read-hint').style.display = 'none';
   // The companion spoke for the account that just disconnected; it says nothing for nobody.
   document.getElementById('companion').style.display = 'none';
   document.getElementById('recent').style.display = 'none';

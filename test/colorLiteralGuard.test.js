@@ -180,4 +180,58 @@ test("the shell, the public pages and the shared surfaces are literal-free", () 
   }
 });
 
+// ════════════════════════════════════════════════════════════════════════════════════════════
+// D23 — THE EXTENSION. Same rule, NO budget: extension/ was migrated in one pass (10-04), so any
+// colour literal in it fails. Its only token files are the two GENERATED from client/src/styles/
+// colorTokens.js by scripts/buildExtensionTokens.mjs — the extension consumes the site's palette, it
+// does not keep one. (Their staleness is test/d23ExtensionLook.test.js's job.) Scanned: .js, .css and
+// .html, with HTML comments stripped too; extension/submission/ (the built zip, the listing) is not
+// source. ⛔ Verified red before it was committed — see the D23 commit message.
+// ════════════════════════════════════════════════════════════════════════════════════════════
+const EXT_ROOT = "extension";
+export const EXT_TOKEN_FILES = new Set(["extension/tokens.css", "extension/tokens.js"]);
+
+function extensionFiles(dir = EXT_ROOT) {
+  const out = [];
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) { if (e.name !== "submission") out.push(...extensionFiles(p)); }
+    else if (/\.(js|css|html)$/.test(e.name)) out.push(p.split(path.sep).join("/"));
+  }
+  return out;
+}
+
+const stripHtmlComments = (s) => s.replace(/<!--[\s\S]*?-->/g, "");
+
+export function extensionLiteralCounts() {
+  const counts = {};
+  for (const f of extensionFiles()) {
+    if (EXT_TOKEN_FILES.has(f)) continue;
+    const n = (stripComments(stripHtmlComments(fs.readFileSync(f, "utf8"))).match(LITERAL) || []).length;
+    if (n) counts[f] = n;
+  }
+  return counts;
+}
+
+test("⛔ D23: the extension scan works — it sees the generated token files and every surface", () => {
+  const files = extensionFiles();
+  for (const f of ["extension/popup.html", "extension/options.html", "extension/review-overlay.js",
+                   "extension/extractor.js", "extension/background.js", "extension/ui.css"]) {
+    assert.ok(files.includes(f), `the extension walk missed ${f}`);
+  }
+  for (const f of EXT_TOKEN_FILES) {
+    const hits = (stripComments(fs.readFileSync(f, "utf8")).match(LITERAL) || []).length;
+    assert.ok(hits >= 60, `the scanner found only ${hits} literals in ${f} — a zero-hit scan is a broken scan`);
+  }
+  assert.equal((stripHtmlComments('<!-- #123456 --><p style="color:#abcdef">').match(LITERAL) || []).length, 1);
+});
+
+test("⛔ D23: no colour literal anywhere in extension/ outside its generated token files — no budget", () => {
+  const counts = extensionLiteralCounts();
+  assert.deepEqual(Object.entries(counts).map(([f, n]) => `${f}: ${n} literal(s)`), [],
+    "a colour literal in the extension. Use var(--c-*) (tokens.css) in a page, or C_LIGHT/C_DARK from " +
+    "tokens.js in a worker or an injected function — and if no token fits, add it to the SITE's " +
+    "client/src/styles/colorTokens.js and run node scripts/buildExtensionTokens.mjs");
+});
+
 export { BUDGET, PERMANENT };

@@ -2,133 +2,131 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <!-- D23: the site's tokens (generated from client/src/styles/colorTokens.js, with the self-hosted
+       faces) and the site's controls. ⛔ No colour literal here — test/colorLiteralGuard.test.js. -->
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="ui.css">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      width: 260px; padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #F7F6F2; color: #28251D;
-    }
-    .header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-    .header-title { font-size: 15px; font-weight: 600; color: #28251D; }
-    .btn {
-      display: flex; align-items: center; gap: 8px;
-      width: 100%; padding: 9px 14px; margin-bottom: 8px;
-      border-radius: 10px; border: none; font-size: 13px;
-      font-weight: 500; cursor: pointer;
-      transition: background 0.15s ease;
-      font-family: inherit; text-align: left;
-    }
-    .btn-primary { background: #01696F; color: #fff; }
-    .btn-primary:hover { background: #0C4E54; }
-    .btn-primary:disabled { background: #6aacaf; cursor: default; }
-    .btn-secondary { background: #F3F0EC; color: #28251D; border: 1px solid #D4D1CA; }
-    .btn-secondary:hover { background: #E6E4DF; }
-    .btn-secondary:disabled { color: #A9A7A1; cursor: default; }
-    .status { font-size: 11px; color: #7A7974; margin-top: 6px; text-align: center; min-height: 14px; }
-    .divider { border: none; border-top: 1px solid #DCD9D5; margin: 10px 0; }
-    .progress-bar {
-      width: 100%; height: 6px;
-      background: #DCD9D5; border-radius: 9999px;
-      margin: 8px 0 4px; overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%; background: #01696F;
-      border-radius: 9999px;
-      transition: width 300ms ease;
-    }
-    .progress-text {
-      font-size: 11px; color: #7A7974;
-      text-align: center; margin: 0;
-    }
-    .result-text {
-      font-size: 11px; text-align: center; margin: 4px 0 0;
-    }
-    .result-text.success { color: #437A22; }
-    .result-text.error   { color: #a12c2c; }
-    #job-preview {
-      display: none;
-      background: #fff; border: 1px solid #DCD9D5; border-radius: 8px;
-      padding: 10px 12px; margin-bottom: 8px; font-size: 12px;
-    }
-    #job-preview .job-title { font-weight: 600; color: #28251D; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #job-preview .job-company { color: #7A7974; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    body { width: 284px; padding: 16px; }
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .status { font-size: 11px; color: var(--c-ink-faint); margin-top: 8px; text-align: center; min-height: 14px; }
+    .result-text { font-size: 11px; text-align: center; margin: 6px 0 0; }
+    .result-text.success { color: var(--c-success); }
+    .result-text.error   { color: var(--c-danger); }
+    hr.divider { border: 0; border-top: 1px solid var(--c-border); margin: 12px 0; }
+
     /* WHO THE EXTENSION IS ACTING AS. Always rendered, never hidden behind a hover or a menu —
        an identity a user has to go looking for is not a visible one. */
     #identity {
       display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
-      font-size: 11px; color: #7A7974; margin: 0 0 8px; min-height: 14px;
+      font-size: 11px; color: var(--c-ink-muted); margin: 0 0 12px; min-height: 14px;
     }
     #identity .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    #identity .who strong { color: #28251D; font-weight: 600; }
-    #identity .not-admin { color: #7A7974; }
-    /* D13, the companion: what this page is, and the one or two actions it calls for. */
-    #companion { display: none; margin-bottom: 8px; }
-    #companion .ctx-line { font-size: 11px; color: #7A7974; margin: 4px 0 8px; }
-    #companion .ctx-line.saved { color: #437A22; }
-    #companion .questions { font-size: 11px; color: #28251D; background: #FFF4E5; border: 1px solid #F2D7B0;
-      border-radius: 8px; padding: 6px 8px; margin: 0 0 8px; }
-    #recent { display: none; margin-bottom: 8px; }
-    #recent .recent-head { font-size: 11px; font-weight: 600; color: #7A7974; margin-bottom: 4px; }
-    #recent ul { list-style: none; }
-    #recent li { font-size: 12px; padding: 4px 0; border-bottom: 1px solid #ECEAE5;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #recent li span { color: #7A7974; }
-    .all-head { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
-      color: #7A7974; margin: 0 0 6px; }
-    .btn-row { display: flex; gap: 6px; }
-    .btn-row .btn { justify-content: center; }
-    #btn-disconnect {
-      background: none; border: none; padding: 0; cursor: pointer;
-      color: #01696F; font-size: 11px; text-decoration: underline; flex: none;
+    #identity .who strong { color: var(--c-ink); font-weight: 700; }
+    #identity .not-admin { color: var(--c-ink-faint); }
+
+    /* D23, THE MANUAL CONTEXT TRIGGER. Nothing about the page is read until this is pressed. */
+    #btn-read-page { justify-content: space-between; }
+    #btn-read-page .lbl { display: inline-flex; align-items: center; gap: 8px; }
+    .read-hint { font-size: 11px; color: var(--c-ink-faint); margin: -2px 0 12px; }
+
+    #job-preview {
+      display: none; background: var(--c-surface-solid); border-radius: 12px; box-shadow: var(--c-depth-rest);
+      padding: 10px 12px; margin-bottom: 10px; font-size: 12px;
     }
+    #job-preview .job-company { font-size: 15px; color: var(--c-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #job-preview .job-title { color: var(--c-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* D13, the companion: what this page is, and the one or two actions it calls for. */
+    #companion { display: none; margin-bottom: 4px; }
+    #companion .ctx-line { font-size: 11px; color: var(--c-ink-muted); margin: 0 0 8px; }
+    #companion .ctx-line.saved { color: var(--c-success); }
+    #companion .questions { font-size: 11px; color: var(--c-ink); background: var(--c-accent-quiet);
+      border-radius: 12px; padding: 7px 9px; margin: 0 0 10px; }
+    .btn-row { display: flex; gap: 8px; }
+    .btn-row .btn { flex: 1 1 0; }
+    #recent { display: none; margin-bottom: 4px; }
+    #recent ul { list-style: none; }
+    #recent li { font-size: 12px; padding: 6px 0; border-bottom: 1px solid var(--c-border);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--c-ink-muted); }
+    #recent li .co { color: var(--c-ink); font-size: 13px; }
+    .all-head { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--c-ink-faint); margin: 0 0 8px; }
+    .squares { display: flex; justify-content: space-between; margin-bottom: 12px; }
+    .links { display: flex; justify-content: space-between; gap: 8px; }
   </style>
 </head>
 <body>
   <div class="header">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="4" y="2" width="16" height="20" rx="2" stroke="#01696F" stroke-width="1.5"/>
-      <path d="M8 7h8M8 11h8M8 15h5" stroke="#01696F" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-    <span class="header-title">draft</span>
+    <span class="mark" role="img" aria-label="draft"><span class="mark-slash"></span><span class="mark-word"></span></span>
   </div>
 
   <div id="identity">
     <span class="who" id="identity-who"></span>
-    <button id="btn-disconnect" style="display:none">Disconnect</button>
-  </div>
-
-  <div id="job-preview">
-    <div class="job-title" id="preview-title"></div>
-    <div class="job-company" id="preview-company"></div>
+    <button class="link" id="btn-disconnect" style="display:none">Disconnect</button>
   </div>
 
   <button class="btn btn-primary" id="btn-sign-in" style="display:none">Sign in to Draft</button>
 
-  <!-- D13, THE COMPANION. companion.js decides which of the four actions this page calls for; the
-       full set stays below ("Everything"), because a wrong guess must never hide an action. -->
+  <!-- D23, THE MANUAL CONTEXT TRIGGER (owner, 10-04). Context detection is never automatic on popup
+       open: until this is pressed, the popup shows the four actions below and nothing else, reads
+       nothing from the page and asks the server nothing about it. -->
+  <button class="btn" id="btn-read-page" style="display:none" aria-keyshortcuts="R"
+          aria-describedby="read-hint">
+    <span class="lbl">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+      Read this page
+    </span>
+    <kbd>R</kbd>
+  </button>
+  <p class="read-hint" id="read-hint" style="display:none">Nothing on this page is read until you press it.</p>
+
+  <div id="job-preview">
+    <div class="job-company logo-face" id="preview-company"></div>
+    <div class="job-title" id="preview-title"></div>
+  </div>
+
+  <!-- D13, THE COMPANION. companion.js decides which of the four actions this page calls for — after
+       the press above, never before. The four stay below ("Everything"): a wrong guess must never
+       hide an action. -->
   <div id="companion">
     <p class="ctx-line" id="ctx-line"></p>
     <p class="questions" id="ctx-questions" style="display:none"></p>
     <button class="btn btn-primary" id="btn-fill-primary" style="display:none">Fill it</button>
     <div class="btn-row" id="posting-actions" style="display:none">
       <button class="btn btn-primary" id="btn-capture-primary">Capture it</button>
-      <button class="btn btn-secondary" id="btn-score-primary">Score it</button>
+      <button class="btn" id="btn-score-primary">Score it</button>
     </div>
   </div>
   <div id="recent">
-    <div class="recent-head">Your recent captures</div>
+    <p class="all-head">Your recent captures</p>
     <ul id="recent-list"></ul>
   </div>
 
-  <hr class="divider">
-  <p class="all-head">Everything</p>
-  <button class="btn btn-secondary" id="btn-capture-job" style="display:none">Capture job</button>
-  <button class="btn btn-secondary" id="btn-fill">Fill application</button>
-  <button class="btn btn-secondary" id="btn-ats">ATS Score Tool</button>
-  <button class="btn btn-secondary" id="btn-resume">Open Resume Builder</button>
-  <button class="btn btn-secondary" id="btn-linkedin">Sign in with LinkedIn</button>
-  <button class="btn btn-secondary" id="btn-settings">Keyboard Shortcuts</button>
+  <hr class="divider" id="all-divider" style="display:none">
+  <p class="all-head" id="all-head" style="display:none">Everything</p>
+  <div class="squares">
+    <button class="sq" id="btn-capture-job" aria-label="Capture job" title="Capture job (Ctrl+Shift+K)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h10a1 1 0 0 1 1 1V21l-6-4-6 4V4.5a1 1 0 0 1 1-1z"/></svg>
+      <span class="sq-cap" aria-hidden="true">capture</span>
+    </button>
+    <button class="sq" id="btn-fill" aria-label="Fill application" title="Fill application (Ctrl+Shift+Y)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h9l5 5v11H5z"/><path d="M14 4v5h5M8.5 13h7M8.5 16.5h4.5"/></svg>
+      <span class="sq-cap" aria-hidden="true">fill</span>
+    </button>
+    <button class="sq" id="btn-ats" aria-label="ATS Score Tool" title="ATS Score Tool">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 19v-5M12 19V7M18 19v-9"/></svg>
+      <span class="sq-cap" aria-hidden="true">score</span>
+    </button>
+    <!-- The Draft action carries the mark, /d on the orange, as on the job cards (D1). -->
+    <button class="sq sq--primary" id="btn-resume" aria-label="Open draft" title="Open draft">
+      <span class="draft-d" aria-hidden="true">/d</span>
+    </button>
+  </div>
+  <div class="links">
+    <button class="link" id="btn-linkedin">Sign in with LinkedIn</button>
+    <button class="link" id="btn-settings">Keyboard shortcuts</button>
+  </div>
 
   <p class="result-text" id="last-capture" style="display:none"></p>
   <p class="status" id="status"></p>
