@@ -37,14 +37,35 @@ does not retract its history.
 Test fixtures and verification records use SYNTHETIC people. A real person's form answers are
 summarised ("the work-authorisation answer"), never quoted.
 
-## The WORKLOG's two queues: O## and A##
+## The WORKLOG's three sequences: O##, D## and A##
 
-Owner rows are **O##**, agent rows **A##**, always written with the letter. O34–O40 and A34–A40 were
-different tasks; "34" alone was misread for a whole session (2026-10-01).
+⛔ **CORRECTED 2026-10-03. The rule written here on 10-02 was INVERTED and never matched practice** —
+it said the A sequence belonged to the owner and the assistant. It does not, and never did: the agent
+has been writing A rows throughout (A71–A77), and the assistant has been writing D rows (D1–D17).
+The sequences are:
 
-⛔ **The A## sequence belongs to the owner and the chat assistant (2026-10-02).** An agent may mark an
+| | Who writes it | What it is |
+|---|---|---|
+| **O##** | the owner | actions only the owner can take |
+| **D##** | ⭐ the owner and the chat assistant | decisions and designs worked out in chat, usually from a sketch |
+| **A##** | ⭐ the agent | tasks and findings the agent raises while working |
+
+⛔ **Always write the letter.** O34–O40 and A34–A40 were different tasks; "34" alone was misread for
+a whole session (2026-10-01), and A51/A52 then A66/A67 collided when two writers shared one sequence.
+
+⛔ **Nobody renumbers another sequence.** An agent may mark a D row done, correct its facts, or flag
+it wrong — it may not add to or renumber the D sequence. The same applies in reverse.
+
+⚠ **`F##` is retired.** It was proposed on 10-02 for agent findings and never used; agent findings
+are A rows.
+
+~~Owner rows are **O##**, agent rows **A##**, always written with the letter. O34–O40 and A34–A40 were
+different tasks; "34" alone was misread for a whole session (2026-10-01).~~
+
+⛔ ~~**The A## sequence belongs to the owner and the chat assistant (2026-10-02).** An agent may mark an
 A row done, correct its facts, or flag it wrong — it may **not** add A rows. **Findings an agent raises
-are F##**, numbered independently. Agent-made A rows collided twice (A51/A52; A66/A67 forced the
+are F##**~~ — ⛔ **SUPERSEDED, see the table above.** Kept only for the collision history it records,
+which is the reason the sequences are separate at all: Agent-made A rows collided twice (A51/A52; A66/A67 forced the
 assistant's A66–A70 to become A68–A70); F1 and F2 were first numbered A66 and A67.
 
 ## ⛔ CURRENT STATE is re-derived, never carried forward
@@ -107,7 +128,7 @@ this is why.
 
 ## Deliberate test failures — currently 0
 
-`npm test` is **3168 tests, 3168 pass, 0 fail** — re-measured 2026-10-03 (23) on `main` `fd32c2b` (+27: D10–D14). Before that **3141** — re-measured 2026-10-03 (22) on `main` `97747f1` (+9: D4's SerpApi locale pin, D5, D6). Before that **3132** — re-measured 2026-10-03 (21) on `main` `568b556` (+40: A71–A77, D1, D2 — search, filters, deck order, logos, bubbles, the weave). Before that **3092** — re-measured 2026-10-03 (20) on `main` `77312df` (+4 F3). Before that **3088** — re-measured 2026-10-03 (19b) on `main` `02bbca0`, after the PDF tools left draft (owner: the tools service's independent product). Before that **3105** on `9bb1d80` (+17, the PDF toolkit while draft carried it). Before that **3088** — re-measured 2026-10-02 (18) on `main` `90f2360`. ⚠ Run it as `npm test`: the script preloads `test-support/isolateTrackingSink.mjs` so tests stop writing fake tracking failures into `data/`, and a bare `node --test` fails `testSinkIsolation` on purpose. Before that **3077** — re-measured 2026-10-02 (17b) on `main` `2217a89` after P1 (+1) and A33 (+4). Before that **3072** on `68beb18` after A59, A63, A61, A62, the A52/A53 follow-ups and A50 steps 4–7. Before that **3025** — re-measured 2026-10-02 (16b) on `main` after merging A58 (+18 `adminStopHarmII`) and A53 (+20 vocabulary and styling). Before that **2987** (session 16) on `main` after merging A49 (+30 dedup), A50 (+11 `adminPanelA50`) and A52 (+10 ATS stored-score / one-report guards). ✅ The two known flakes are fixed at their cause (`888f84c`): `sealedSessionSweep` now awaits sqlite's async close before removing its temp dir, and `accountSecurity` matches `"user":42`, not a bare 42 — the ⚠ notes about both below are history. Before that **2936** after A51 (+7 `adminSafety`). Before that **2929** on `main` after A40's rebuild (+7) and the A44 merge (+8: pipeline health, Ashby dates, migration 115), on top of A46 (+1). Before that **2913** after audit item 7 (the promises ditched: one landing test replaced by two). ⚠ `sealedSessionSweep` can fail with Windows EPERM removing its temp dir (a file lock in cleanup, not an assertion; 6/6 alone). Before that **2912** on `main` at `eea1162` after queues 37–40
+`npm test` is **3258 tests, 3258 pass, 0 fail** — re-measured 2026-10-04 (25) on `main` `8c09802` (+7: D25 — +24 new, 17 removed-UI tests retired). Before that **3251** on `main` `b6072e3` (+83 since 3168: D17's ratchets, D18/D19, D20 slug harvest, D23 companion, D24 filter sentence + facets). Before that **3168** — re-measured 2026-10-03 (23) on `main` `fd32c2b` (+27: D10–D14). Before that **3141** — re-measured 2026-10-03 (22) on `main` `97747f1` (+9: D4's SerpApi locale pin, D5, D6). Before that **3132** — re-measured 2026-10-03 (21) on `main` `568b556` (+40: A71–A77, D1, D2 — search, filters, deck order, logos, bubbles, the weave). Before that **3092** — re-measured 2026-10-03 (20) on `main` `77312df` (+4 F3). Before that **3088** — re-measured 2026-10-03 (19b) on `main` `02bbca0`, after the PDF tools left draft (owner: the tools service's independent product). Before that **3105** on `9bb1d80` (+17, the PDF toolkit while draft carried it). Before that **3088** — re-measured 2026-10-02 (18) on `main` `90f2360`. ⚠ Run it as `npm test`: the script preloads `test-support/isolateTrackingSink.mjs` so tests stop writing fake tracking failures into `data/`, and a bare `node --test` fails `testSinkIsolation` on purpose. Before that **3077** — re-measured 2026-10-02 (17b) on `main` `2217a89` after P1 (+1) and A33 (+4). Before that **3072** on `68beb18` after A59, A63, A61, A62, the A52/A53 follow-ups and A50 steps 4–7. Before that **3025** — re-measured 2026-10-02 (16b) on `main` after merging A58 (+18 `adminStopHarmII`) and A53 (+20 vocabulary and styling). Before that **2987** (session 16) on `main` after merging A49 (+30 dedup), A50 (+11 `adminPanelA50`) and A52 (+10 ATS stored-score / one-report guards). ✅ The two known flakes are fixed at their cause (`888f84c`): `sealedSessionSweep` now awaits sqlite's async close before removing its temp dir, and `accountSecurity` matches `"user":42`, not a bare 42 — the ⚠ notes about both below are history. Before that **2936** after A51 (+7 `adminSafety`). Before that **2929** on `main` after A40's rebuild (+7) and the A44 merge (+8: pipeline health, Ashby dates, migration 115), on top of A46 (+1). Before that **2913** after audit item 7 (the promises ditched: one landing test replaced by two). ⚠ `sealedSessionSweep` can fail with Windows EPERM removing its temp dir (a file lock in cleanup, not an assertion; 6/6 alone). Before that **2912** on `main` at `eea1162` after queues 37–40
 (+26 deck: expanded layout, Collapse, deck geometry; +10 `usOnlyBoard`); `queue-37` alone read 2886 / 2886 / 0 on a
 fresh CRLF worktree. ⚠ `accountSecurity` "a session is SEALED at rest" fails ~1.7% of runs (random ciphertext can
 contain "42") — a flaky test, not rot; fix by matching `"user":42`. Before that 2876 after the top bar
