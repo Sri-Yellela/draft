@@ -1,6 +1,6 @@
 /**
  * Draft — Mobile API types.
- * Contract version 1.5.0.
+ * Contract version 2.0.0.
  *
  * GENERATED — DO NOT EDIT. Regenerate with `node scripts/generateMobileContract.mjs`.
  *
@@ -16,7 +16,9 @@ export type AtsBand = "moderate" | "not_enough_signal" | "strong" | "weak";
 export type AutomationTier = "direct" | "guest" | "account" | "gated" | "unknown";
 export type EmploymentType = "full-time" | "contract" | "internship" | "part-time";
 export type ExperienceLevel = "intern" | "entry" | "mid" | "senior" | "lead" | "executive";
-export type Sort = "dateDesc" | "dateAsc" | "compHigh" | "compLow" | "yoeLow" | "yoeHigh" | "atsScore";
+export type FitBand = "strong" | "moderate" | "weak";
+export type PostingAge = "1d" | "2d" | "3d" | "1w" | "1m";
+export type Sort = "dateDesc" | "dateAsc" | "compHigh" | "compLow" | "yoeLow" | "yoeHigh" | "atsScore" | "companyAsc";
 export type WorkplaceType = "remote" | "hybrid" | "onsite";
 
 /** The job shape. Derived from mapJobRow's field whitelist. */
@@ -289,16 +291,31 @@ export interface DomainProfile {
 /** A BARE ARRAY — there is no envelope and no `profiles` key. A client reading `response.profiles` gets undefined and renders an empty profile list, which presents as 'you have no job profile' to a user who has four. */
 export type DomainProfileListResponse = DomainProfile[];
 
-/** Counts per dimension, FLAT — there is no `facets` wrapper. Each dimension is an object keyed by value and valued by count. Note this is a DIFFERENT shape from the optional `facets` block on GET /api/jobs?include_facets=, which is keyed by dimension and valued by an array of {value, count}. Two shapes for related data; do not share a parser. */
+/** One list per sentence clause, options in the contract's order. A count of 0 is DIMMED, not hidden. */
+export interface FacetClauses {
+  fit: FacetOption[];
+  level: FacetOption[];
+  posted: FacetOption[];
+  where: FacetOption[];
+}
+
+export interface FacetOption {
+  count: number;
+  /** Of `count`, rows whose clause column is classified as this option; count − known are kept only because it is unclassified. For `fit` and `posted` (hard filters) known === count. */
+  known: number;
+  label: string;
+  /** The query-param value (posted: '' is 'any time'). */
+  value: string;
+}
+
+/** What the board WOULD hold, for the filter sentence's four clauses. Takes exactly GET /api/jobs' query params. `total` is the board now; each option's `count` is the board with THAT option chosen in its clause and every other active filter unchanged — the clause's current choice is REPLACED, not added to — and equals what GET /api/jobs returns for those params. Note this is a DIFFERENT shape from the optional `facets` block on GET /api/jobs?include_facets=; do not share a parser. */
 export interface FacetsResponse {
-  category: Record<string, unknown>;
-  employmentType: Record<string, unknown>;
-  /** Bucketed '24h' / '3d' / '1w'. */
-  postedAge: Record<string, unknown>;
-  /** null when no row in the set stated a salary — which is NOT the same as a range of zero. */
-  salaryRange: SalaryRange | null;
+  clauses: FacetClauses;
+  /** Of `total`, rows KNOWN to match every soft-null filter (experience level, work model, ...). The rest are on the board only because their column is not classified yet. */
+  known: number;
   total: number;
-  workType: Record<string, unknown>;
+  /** Rows on the board with no fit score for this caller. They match no fit band and sort last under sort=atsScore. */
+  unscored: number;
 }
 
 /** A RunJob plus the two fields only the dated history adds. */
@@ -325,9 +342,11 @@ export interface JobDetailResponse {
 /** The board page. `jobs` carries the derived $Job shape and nothing else. */
 export interface JobFeedResponse {
   curation: Curation | null;
+  emptyReason: Record<string, unknown> | null;
   facets: Record<string, unknown> | null;
   fromCache: boolean;
   jobs: Job[];
+  needsProfileSetup: boolean | null;
   /** Opaque. Pass it back as ?cursor= for the next page. **null means this is the last page** — established by over-fetching one row, not by comparing a count, so it is a fact rather than an inference. Emitted on BOTH paging modes, so an offset client can adopt cursors mid-feed without restarting the feed. */
   nextCursor: string | null;
   page: number;
@@ -340,6 +359,7 @@ export interface JobFeedResponse {
   /** The count of matching rows AT THIS MOMENT. On a swipe feed it shrinks as the user swipes, so it is a progress denominator, not a promise about how many more are coming. */
   total: number;
   totalPages: number;
+  unclassified: Unclassified | null;
 }
 
 /** `scope` names what was actually ended, so a client never claims more than happened. */
@@ -548,12 +568,6 @@ export interface RunQueuedResponse {
   totalJobs: number;
 }
 
-export interface SalaryRange {
-  max: number;
-  median: number;
-  min: number;
-}
-
 /** A per-employer answer, keyed by company. */
 export interface SavedOverride {
   company: string;
@@ -564,6 +578,12 @@ export interface SavedOverride {
 export interface SubmissionEvidence {
   evidence: string | null;
   verified: boolean;
+}
+
+/** Present only when a filter you SET on a sparsely classified column kept rows it could not judge (A73): `count` of `total` are on the board because that column is not classified yet, and they sort after the known matches. */
+export interface Unclassified {
+  count: number;
+  filters: string[];
 }
 
 export interface UserCapabilities {

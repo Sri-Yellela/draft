@@ -152,7 +152,9 @@ test("every board sort ends in the total-order tie-break, not a bare timestamp",
   // which is what "reuse the shared tie-break" meant. Checked by tail comparison.
   const tail = (keys) => keys.slice(-RECENCY_KEYS.length).map(k => `${k.sql} ${k.dir}`).join(", ");
   const recencyTail = RECENCY_KEYS.map(k => `${k.sql} ${k.dir}`).join(", ");
-  for (const s of ["atsScore", "applicantCount", "compHigh", "compLow", "yoeLow", "yoeHigh"]) {
+  // D24: atsScore and compHigh now end in the sort panel's declared chain (newest first, then company
+  // A–Z, then job_id) — pinned key-for-key in test/d24FitFacetsSorts.test.js. The rest keep RECENCY.
+  for (const s of ["applicantCount", "compLow", "yoeLow", "yoeHigh"]) {
     assert.equal(tail(SORT_KEYS[s]), recencyTail,
       `sort "${s}" must fall back on the shared recency tie-break once its own key ties`);
   }

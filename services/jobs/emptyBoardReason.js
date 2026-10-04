@@ -26,6 +26,9 @@ const NARROWING_PARAMS = [
   "q", "role", "location", "employmentType", "workType", "category", "domain", "source",
   "maxApplicants", "ageFilter", "yoe", "minYoe", "visited", "starred", "applied",
   "salaryMin", "salaryMax", "skills", "company", "sponsorship", "clearance", "workplaceType",
+  // D24 · the filter sentence's clauses. Without them an empty board under "Senior · Remote · Strong"
+  // explained itself as unfiltered and told the user to widen filters they could not see named.
+  "experience_levels", "work_models", "posted_after", "fit_bands",
 ];
 
 /**

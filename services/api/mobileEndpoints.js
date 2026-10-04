@@ -130,8 +130,11 @@ export const MOBILE_ENDPOINTS = Object.freeze([
       cursor: "string",
       page: "number", pageSize: "number", q: "string", location: "string", sort: "enum:sort",
       experience_levels: "enum:experienceLevel[]", work_models: "enum:workplaceType[]",
-      employment_type: "enum:employmentType[]",
+      // 2.0.0 — was `employment_type`, a name the server never read (it reads employment_types).
+      employment_types: "enum:employmentType[]",
       tiers_include: "enum:automationTier[]", tiers_exclude: "enum:automationTier[]",
+      // 2.0.0 (D24) — the filter sentence's age and fit clauses.
+      ageFilter: "enum:postingAge", fit_bands: "enum:fitBand[]",
       starred: "boolean", visited: "boolean", applied: "boolean",
       include_fields: "string", include_facets: "string",
     },
@@ -152,7 +155,13 @@ export const MOBILE_ENDPOINTS = Object.freeze([
       "Send include_fields to drop `description` from feed rows; it is the largest field by far " +
       "and a card never shows it. " +
       "`reason: 'cache_empty'` on an empty body means the pool is empty, NOT that the filters " +
-      "matched nothing — a client must not render 'no results, try widening' for it.",
+      "matched nothing — a client must not render 'no results, try widening' for it. " +
+      "SORT (2.0.0): an explicit `sort` is exactly its own order with its tie-breaks — atsScore: " +
+      "score, unscored LAST, then newest, then company A–Z; dateDesc: newest, then best fit, then " +
+      "company A–Z; compHigh: pay, unstated last, then newest, then company A–Z; companyAsc: " +
+      "company A–Z, then newest. OMIT `sort` for the curated board (profile relevance and fit " +
+      "first) — the order the daily deck deals from. " +
+      "`fit_bands` is HARD: a job with no fit score matches no band ('unscored' is not 'weak').",
   },
   {
     group: "feed", method: "GET", path: "/api/draft/today", auth: AUTH.BEARER,
@@ -181,8 +190,22 @@ export const MOBILE_ENDPOINTS = Object.freeze([
   },
   {
     group: "feed", method: "GET", path: "/api/jobs/facets", auth: AUTH.BEARER,
-    summary: "Facet counts over the same filtered set, for filter-sheet badges.",
-    response: "FacetsResponse", errors: ["Unauthorized"],
+    summary: "The filter sentence's counts: what the board would hold for each choice of each clause.",
+    query: {
+      q: "string", location: "string",
+      experience_levels: "enum:experienceLevel[]", work_models: "enum:workplaceType[]",
+      employment_types: "enum:employmentType[]",
+      tiers_include: "enum:automationTier[]", tiers_exclude: "enum:automationTier[]",
+      ageFilter: "enum:postingAge", fit_bands: "enum:fitBand[]",
+      starred: "boolean", visited: "boolean", applied: "boolean",
+    },
+    response: "FacetsResponse", errors: ["FeedBadRequest", "Unauthorized", "ServerError"],
+    mobileNotes:
+      "SEND THE SAME PARAMS AS GET /api/jobs (2.0.0 — the 1.x endpoint took none, so its counts " +
+      "ignored every filter). Each option's `count` is the board with that option REPLACING its " +
+      "clause's current choice, every other filter unchanged, and equals GET /api/jobs' `total` " +
+      "for those params. An unknown value is the same 400 GET /api/jobs gives. Paging and cursor " +
+      "params are ignored. A zero-count option should be dimmed, not hidden.",
   },
 
   // ── THE SWIPE ──────────────────────────────────────────────────────────────────────────────

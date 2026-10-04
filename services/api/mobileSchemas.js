@@ -105,6 +105,10 @@ export const RESPONSE_SCHEMAS = Object.freeze({
       facets: "object|null",
       nextCursor: "string|null",
       paging: "string",
+      // 2.0.0 — emitted since A73 / the empty-board work, undocumented until D24 found them.
+      unclassified: "$Unclassified|null",
+      emptyReason: "object|null",
+      needsProfileSetup: "boolean|null",
     },
     fieldNotes: {
       nextCursor: "Opaque. Pass it back as ?cursor= for the next page. **null means this is the " +
@@ -119,6 +123,12 @@ export const RESPONSE_SCHEMAS = Object.freeze({
         "swipes, so it is a progress denominator, not a promise about how many more are coming.",
     },
   },
+  Unclassified: {
+    description: "Present only when a filter you SET on a sparsely classified column kept rows it " +
+      "could not judge (A73): `count` of `total` are on the board because that column is not " +
+      "classified yet, and they sort after the known matches.",
+    fields: { count: "number", filters: "string[]" },
+  },
   Curation: {
     description: "A statement about ORDER, not about a withheld remainder. `demoted` rows ARE on " +
       "the board, further down — a client must not render 'showing N of M', which was the old and " +
@@ -128,24 +138,38 @@ export const RESPONSE_SCHEMAS = Object.freeze({
   JobDetailResponse: {
     fields: { success: "boolean", job: "$Job" },
   },
+  // 2.0.0 (D24) — REPLACED. The 1.x shape (flat workType / employmentType / category / postedAge /
+  // salaryRange) took no query params, so its counts ignored every active filter; its postedAge
+  // bucketed parseInt() of an ISO date (every dated row landed in '1w'). This is
+  // shared/filterSentence.js's FacetsResponse, measured through the board's own query.
   FacetsResponse: {
     description:
-      "Counts per dimension, FLAT — there is no `facets` wrapper. Each dimension is an object " +
-      "keyed by value and valued by count. Note this is a DIFFERENT shape from the optional " +
-      "`facets` block on GET /api/jobs?include_facets=, which is keyed by dimension and valued by " +
-      "an array of {value, count}. Two shapes for related data; do not share a parser.",
-    fields: {
-      workType: "object", employmentType: "object", category: "object",
-      postedAge: "object", salaryRange: "$SalaryRange|null", total: "number",
-    },
+      "What the board WOULD hold, for the filter sentence's four clauses. Takes exactly GET " +
+      "/api/jobs' query params. `total` is the board now; each option's `count` is the board with " +
+      "THAT option chosen in its clause and every other active filter unchanged — the clause's " +
+      "current choice is REPLACED, not added to — and equals what GET /api/jobs returns for those " +
+      "params. Note this is a DIFFERENT shape from the optional `facets` block on " +
+      "GET /api/jobs?include_facets=; do not share a parser.",
+    fields: { total: "number", known: "number", unscored: "number", clauses: "$FacetClauses" },
     fieldNotes: {
-      postedAge: "Bucketed '24h' / '3d' / '1w'.",
-      salaryRange: "null when no row in the set stated a salary — which is NOT the same as a range " +
-        "of zero.",
+      known: "Of `total`, rows KNOWN to match every soft-null filter (experience level, work model, " +
+        "...). The rest are on the board only because their column is not classified yet.",
+      unscored: "Rows on the board with no fit score for this caller. They match no fit band and " +
+        "sort last under sort=atsScore.",
     },
   },
-  SalaryRange: {
-    fields: { min: "number", max: "number", median: "number" },
+  FacetClauses: {
+    description: "One list per sentence clause, options in the contract's order. A count of 0 is " +
+      "DIMMED, not hidden.",
+    fields: { level: "$FacetOption[]", where: "$FacetOption[]", posted: "$FacetOption[]", fit: "$FacetOption[]" },
+  },
+  FacetOption: {
+    fields: { value: "string", label: "string", count: "number", known: "number" },
+    fieldNotes: {
+      value: "The query-param value (posted: '' is 'any time').",
+      known: "Of `count`, rows whose clause column is classified as this option; count − known are " +
+        "kept only because it is unclassified. For `fit` and `posted` (hard filters) known === count.",
+    },
   },
   InteractResponse: {
     description: "Echoes the RESOLVED job id and the values now stored, so a client reconciles " +
