@@ -540,6 +540,132 @@ export function CompaniesSection({ theme }) {
   );
 }
 
+// ── Slug harvest — /api/admin/slug-harvest (D20) ─────────────────────────────────────────────
+// The daily manual sweep's second half: a few SerpApi searches → a pool of ATS boards we do not
+// crawl → an export the owner reviews → an import that adds the ones marked "add". Every step is dry
+// first. The searches are the free plan's (250 a month), so the run button names how many it spends.
+export function SlugHarvestSection({ theme }) {
+  const [d, setD] = useState(null);
+  const [dry, setDry] = useState(null);
+  const [imp, setImp] = useState(null);         // { text, body }
+  const [busy, setBusy] = useState(null);
+  const [err, setErr] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const load = useCallback(() => { api("/api/admin/slug-harvest").then(setD).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { load(); }, [load]);
+  const running = d?.sweeps?.find(s => !s.finished_at);
+  useEffect(() => {
+    if (!running) return undefined;
+    const t = setTimeout(load, 3000);
+    return () => clearTimeout(t);
+  }, [running, load, d]);
+  const fail = e => setErr(e.payload?.message || e.payload?.error || e.message);
+  const planSweep = async () => {
+    setBusy("plan"); setErr(null); setMsg(null);
+    try { setDry(await api("/api/admin/slug-harvest/sweep", { method: "POST", body: JSON.stringify({}) })); } catch (e) { fail(e); }
+    setBusy(null);
+  };
+  const runSweep = async () => {
+    const n = dry.expectQueries.length;
+    if (!confirm(`Spend ${n} SerpApi search${n === 1 ? "" : "es"}?\n\n${dry.expectQueries.join("\n")}\n\n${dry.quota?.left ?? "?"} left this month.`)) return;
+    setBusy("run"); setErr(null);
+    try {
+      const r = await api("/api/admin/slug-harvest/sweep", { method: "POST", body: JSON.stringify({ confirm: true, expectQueries: dry.expectQueries }) });
+      setMsg(`Sweep ${r.sweepId} started — ${r.searches} searches, then each new board is probed.`); setDry(null); load();
+    } catch (e) { fail(e); }
+    setBusy(null);
+  };
+  const pickFile = async (e) => {
+    const f = e.target.files?.[0]; e.target.value = "";
+    if (!f) return;
+    setBusy("import"); setErr(null); setMsg(null);
+    try {
+      const text = await f.text();
+      setImp({ text, body: await api("/api/admin/slug-harvest/import", { method: "POST", body: JSON.stringify({ jsonl: text }) }) });
+    } catch (e2) { fail(e2); }
+    setBusy(null);
+  };
+  const applyImport = async () => {
+    const p = imp.body.plan;
+    if (!confirm(`Apply this file?\n\nAdd ${p.wouldAdd} compan${p.wouldAdd === 1 ? "y" : "ies"} (active; the next crawl reads them), skip ${p.wouldSkip}.`)) return;
+    setBusy("apply"); setErr(null);
+    try {
+      const r = await api("/api/admin/slug-harvest/import", { method: "POST", body: JSON.stringify({ jsonl: imp.text, apply: true, expectWrites: p.expectWrites }) });
+      setMsg(`Import ${r.importId ?? "—"}: ${r.written} written, ${r.companiesAdded} compan${r.companiesAdded === 1 ? "y" : "ies"} added.`); setImp(null); load();
+    } catch (e) { fail(e); }
+    setBusy(null);
+  };
+  const revert = async (i) => {
+    setErr(null);
+    try {
+      const p = await api(`/api/admin/slug-harvest/imports/${i.id}/revert`, { method: "POST", body: JSON.stringify({}) });
+      const lines = p.pairs.map(x => `${x.pair}: ${x.now.decision}${x.now.company ? ` · ${x.now.company}` : ""} → ${typeof x.after === "string" ? x.after : `${x.after.decision ?? "undecided"}${x.after.company ? ` · ${x.after.company}` : ""}`}`);
+      if (!confirm(`Revert import ${i.id}?\n\n${lines.join("\n")}\n\nCompanies are disabled, never deleted.`)) return;
+      const r = await api(`/api/admin/slug-harvest/imports/${i.id}/revert`, { method: "POST", body: JSON.stringify({ apply: true, expectRestorable: p.restorable }) });
+      setMsg(`Reverted import ${i.id}: ${r.restored} pair(s) undecided again, ${r.companiesDisabled} compan${r.companiesDisabled === 1 ? "y" : "ies"} disabled.`); load();
+    } catch (e) { fail(e); }
+  };
+  const plan = d?.plan;
+  return (
+    <Card theme={theme} title="Slug harvest"
+      measured={plan ? `${plan.usedToday} / ${plan.cap} searches today · nothing runs until you press Run` : "measuring…"}>
+      {d && !d.configured && <div style={{ fontSize: 12, color: C.WARNING, marginBottom: 8 }}>SERPAPI_KEY is not set — no search can run.</div>}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
+        <Btn theme={theme} primary disabled={!!busy || !!running || !d?.configured} onClick={planSweep}>{busy === "plan" ? "Reading the quota…" : "Plan today's sweep"}</Btn>
+        <Btn theme={theme} disabled={!dry?.expectQueries?.length || !!busy} onClick={runSweep}>
+          {busy === "run" ? "Starting…" : `Run ${dry?.expectQueries?.length ?? 0} search${dry?.expectQueries?.length === 1 ? "" : "es"}…`}</Btn>
+        <a href={`/api/admin/slug-harvest/export${authContextQuery() ? `?${authContextQuery()}` : ""}`} style={{ fontSize: 12, color: theme.text }}>Export for review (JSONL)</a>
+        <label style={{ fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
+          {busy === "import" ? "Checking the file…" : "Import decisions…"}
+          <input type="file" accept=".jsonl,.ndjson,.txt" onChange={pickFile} style={{ display: "none" }}/>
+        </label>
+      </div>
+      {running && <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 8 }}>Sweep {running.id} running — {running.searches} search(es) done.</div>}
+      {dry && <div style={{ fontSize: 12, marginBottom: 8 }}>
+        {dry.note} {dry.quota && <span style={{ color: theme.textMuted }}>SerpApi: {dry.quota.left ?? "?"} left this month.</span>}
+        {dry.quotaError && <span style={{ color: C.DANGER }}> {dry.quotaError}.</span>}
+        {dry.plan.skipped.length > 0 && <div style={{ color: theme.textMuted }}>Not searched: {dry.plan.skipped.map(x => `${x.q} (${x.reason})`).join(" · ")}</div>}
+      </div>}
+      {imp && <div style={{ fontSize: 12, marginBottom: 8 }}>
+        <div style={{ color: imp.body.plan.valid ? theme.text : C.DANGER }}>{imp.body.note}</div>
+        {imp.body.plan.rejected.map((r, i) => <div key={i} style={{ color: C.DANGER }}>line {r.line} · {r.pair || "—"} · {r.kind}: {r.error}</div>)}
+        {imp.body.plan.valid && imp.body.plan.expectWrites > 0 && <div style={{ marginTop: 6 }}>
+          <Btn theme={theme} disabled={!!busy} onClick={applyImport}>{busy === "apply" ? "Applying…" : `Apply: add ${imp.body.plan.wouldAdd}, skip ${imp.body.plan.wouldSkip}…`}</Btn>
+        </div>}
+      </div>}
+      <Err msg={err}/>
+      {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 8 }}>{msg}</div>}
+      <div style={{ fontSize: 11, fontWeight: 800, margin: "6px 0 4px" }}>NEW BOARDS PER SEARCH, BY ROLE FAMILY</div>
+      <Table theme={theme} rows={d?.families || []} cols={[
+        { key: "family", label: "family" }, { key: "searches", label: "searches", right: true },
+        { key: "newPairs", label: "new boards", right: true }, { key: "rate", label: "per search", right: true, render: r => r.rate ?? "—" },
+        { key: "exhausted", label: "", render: r => r.exhausted ? <span style={{ color: C.WARNING }}>stopped — nothing new lately</span> : "" },
+      ]}/>
+      <div style={{ fontSize: 11, fontWeight: 800, margin: "10px 0 4px" }}>SWEEPS</div>
+      <Table theme={theme} rows={d?.sweeps || []} empty="No sweep yet." cols={[
+        { key: "id", label: "#" }, { key: "started_at", label: "started", render: r => ago(r.started_at) },
+        { key: "searches", label: "searches", right: true }, { key: "ats_links", label: "ATS links", right: true },
+        { key: "new_pairs", label: "new", right: true }, { key: "conversion", label: "per search", right: true, render: r => r.conversion ?? "—" },
+        { key: "error", label: "", render: r => r.error ? <span style={{ color: C.DANGER }}>{r.error}</span> : "" },
+      ]}/>
+      <div style={{ fontSize: 11, fontWeight: 800, margin: "10px 0 4px" }}>POOL</div>
+      <Table theme={theme} rows={d?.pool || []} empty="Nothing harvested yet." cols={[
+        { key: "ats_type", label: "ats" }, { key: "pairs", label: "boards", right: true }, { key: "live", label: "live", right: true },
+        { key: "undecided", label: "to review", right: true }, { key: "added", label: "added", right: true }, { key: "skipped", label: "skipped", right: true },
+      ]}/>
+      {d?.imports?.length > 0 && <>
+        <div style={{ fontSize: 11, fontWeight: 800, margin: "10px 0 4px" }}>IMPORTS</div>
+        <Table theme={theme} rows={d.imports} cols={[
+          { key: "id", label: "#" }, { key: "imported_at", label: "when", render: r => ago(r.imported_at) },
+          { key: "rows_written", label: "decisions", right: true }, { key: "companies_added", label: "added", right: true },
+          { key: "reverted_at", label: "", render: r => r.reverted_at ? `reverted ${ago(r.reverted_at)}`
+              : <button type="button" style={{ fontSize: 11, cursor: "pointer" }} onClick={() => revert(r)}>Revert…</button> },
+        ]}/>
+      </>}
+    </Card>
+  );
+}
+
 // ── The tools service — /api/admin/tools-service (A50 step 7) ─────────────────────────────────
 // The second service, as draft sees it: is it up, which commit, does draft hold a token. Read-only.
 export function ToolsServiceSection({ theme }) {
@@ -660,6 +786,7 @@ export function OpsTab({ theme }) {
       <EnrichmentSection theme={theme}/>
       <JobDataSection theme={theme}/>
       <CompaniesSection theme={theme}/>
+      <SlugHarvestSection theme={theme}/>
       <ToolsServiceSection theme={theme}/>
       <SpendSection theme={theme}/>
     </div>
