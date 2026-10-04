@@ -32,6 +32,18 @@ function normalizeGoogleJob(raw) {
   });
 }
 
+// ⛔ THE ONE CALL TO serpapi.com/search (test/serpapiLocale.test.js pins that there is no other).
+// engine, hl and gl are written AFTER the caller's params so no caller can drop or override them:
+// an unpinned call came back in Spanish, which silently defeats the US-only gate. D20's slug
+// harvest (services/slugHarvest.js) calls this too.
+export async function googleJobs(params, { timeout = 12000 } = {}) {
+  const { data } = await axios.get('https://serpapi.com/search', {
+    params: { ...params, engine: 'google_jobs', hl: 'en', gl: 'us', api_key: process.env.SERPAPI_KEY },
+    timeout,
+  });
+  return data;
+}
+
 const serpapiPlugin = {
   name: 'serpapi',
 
@@ -47,19 +59,12 @@ const serpapiPlugin = {
     if (remote) q += ' remote';
     if (contractType === 'contract') q += ' contract';
 
-    const { data } = await axios.get('https://serpapi.com/search', {
-      params: {
-        engine:   'google_jobs',
-        q,
-        location: location || undefined,
-        hl:       'en',
-        gl:       'us',
-        chips:    'date_posted:week',
-        api_key:  process.env.SERPAPI_KEY,
-        num:      Math.min(pageSize, 10),
-        start:    (page - 1) * 10,
-      },
-      timeout: 12000,
+    const data = await googleJobs({
+      q,
+      location: location || undefined,
+      chips:    'date_posted:week',
+      num:      Math.min(pageSize, 10),
+      start:    (page - 1) * 10,
     });
 
     const jobs = (data.jobs_results || []).map(normalizeGoogleJob);
