@@ -165,6 +165,24 @@ export const C_LIGHT = {
   PAIR_LIFT2:     "0 7px 17px rgba(30,25,21,0.15), inset 0 1px 0 rgba(255,255,255,0.66)",
   PAIR_PRESS:     "0 2px 5px rgba(30,25,21,0.13), inset 0 1px 0 rgba(255,255,255,0.5)",
 
+  // ── D35 · THE FULL HOUSE HEADER — the sentence, its one panel, the condensed bar (header.html). ──
+  //
+  // ⛔ THE SKETCH IS THE SPECIFICATION. Each key is a value header.html names that no existing token
+  // already holds; where one does, the header uses it (the sketch's --tx is INK, --tx2 INK_MUTED,
+  // --atx ACCENT_INK, --accent ACCENT, --lift / --lift2 / the orange shadow D1's DEPTH_REST /
+  // DEPTH_HOVER / DEPTH_ACCENT, --surf SURFACE_SOLID's #FBF7F0). ⚠ The sketch's --dim #8a8075 is NOT
+  // used for text: on --surf it is 3.6:1 and fails AA, so the header's faint text is INK_FAINT.
+  // ⚠ The dark values are RE-DERIVED against the app's charcoal canvas, not converted from the light
+  // ones and not copied from the sketch's darker ground; every text pair is in CONTRAST_PAIRS.
+  FH_SURFACE:     "#FBF7F0",   // --surf: a token at rest, the panel, the bar
+  FH_WELL:        "#F2ECE1",   // --surf2: the search well, the views segment, the two squares, an option
+  FH_LINE:        "#DED5C4",   // --line: every hairline in the header (decorative, not a control edge)
+  FH_ACCENT_EDGE: "#E03D00",   // the orange fill's own edge — an active token, a checked option, the +
+  FH_ON_ACCENT:   "#2A0D00",   // text on the orange fill in the header (the sketch's #2a0d00)
+  FH_SEG_LIFT:    "0 2px 6px rgba(253,70,0,0.30)",          // the pressed view in the segment
+  FH_INSET:       "inset 0 1px 3px rgba(30,25,21,0.07)",    // the views well and the search well
+  FH_ADD_HOVER:   "0 7px 17px rgba(253,70,0,0.40)",         // the + square, lifted
+
   // Shadows are ink at low alpha — a warm shadow on paper, not a grey one.
   SHADOW_SM: "0 1px 2px rgba(30,25,21,0.08), 0 1px 1px rgba(30,25,21,0.05)",
   SHADOW_MD: "0 4px 12px rgba(30,25,21,0.10), 0 2px 4px rgba(30,25,21,0.06)",
@@ -268,6 +286,17 @@ export const C_DARK = {
   PAIR_LIFT:           "0 3px 9px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,240,225,0.09)",
   PAIR_LIFT2:          "0 8px 20px rgba(0,0,0,0.70), inset 0 1px 0 rgba(255,240,225,0.12)",
   PAIR_PRESS:          "0 2px 5px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,240,225,0.06)",
+  // D35 · the Full House header — RE-DERIVED for the charcoal canvas (#1C1815). The sketch's dark
+  // ground (#141110) is darker than the app's, so its --surf #191511 would sit BELOW the canvas and
+  // read as a hole; each value keeps the sketch's STEP above the ground instead.
+  FH_SURFACE:          "#241F1B",
+  FH_WELL:             "#2D2722",
+  FH_LINE:             "#40372F",
+  FH_ACCENT_EDGE:      "#E03D00",
+  FH_ON_ACCENT:        "#2A0D00",
+  FH_SEG_LIFT:         "0 2px 6px rgba(253,70,0,0.36)",
+  FH_INSET:            "inset 0 1px 3px rgba(0,0,0,0.38)",
+  FH_ADD_HOVER:        "0 8px 20px rgba(253,70,0,0.46)",
   SHADOW_SM:           "0 1px 2px rgba(0,0,0,0.35), 0 1px 1px rgba(0,0,0,0.25)",
   SHADOW_MD:           "0 4px 12px rgba(0,0,0,0.40), 0 2px 4px rgba(0,0,0,0.30)",
   SHADOW_LG:           "0 18px 40px rgba(0,0,0,0.50), 0 6px 14px rgba(0,0,0,0.35)",
@@ -430,6 +459,15 @@ export const CONTRAST_PAIRS = [
   ["PAIR_INK", "PAIR_LIT", "normal"],
   // "Not enough signal" has no fill, so it sits on the pair's ground directly
   ["BAND_UNKNOWN", "PAIR_SURFACE", "normal"], ["BAND_UNKNOWN_EDGE", "PAIR_SURFACE", "ui"],
+  // ── D35 · the Full House header (every pair it draws, proved in BOTH themes) ─────────────────
+  // the sentence's prose sits on the paper; a token at rest is INK on FH_SURFACE
+  ["INK_MUTED", "CANVAS_SHADE", "large"], ["INK_MUTED", "CANVAS_SHADE", "normal"],
+  ["INK", "FH_SURFACE", "normal"], ["INK", "FH_WELL", "normal"],
+  ["INK_MUTED", "FH_SURFACE", "normal"], ["INK_MUTED", "FH_WELL", "normal"],
+  ["INK_FAINT", "FH_SURFACE", "normal"], ["INK_FAINT", "FH_WELL", "normal"],   // + add, a panel's key, the coverage line
+  ["ACCENT_INK", "FH_SURFACE", "normal"], ["ACCENT_INK", "FH_WELL", "normal"], // hover text, Close ×
+  ["ACCENT_INK", "CANVAS_SHADE", "ui"], ["ACCENT_INK", "FH_SURFACE", "ui"],    // the OPEN outline, a hover edge
+  ["FH_ON_ACCENT", "ACCENT", "normal"], ["FH_ON_ACCENT", "ACCENT_HOVER", "normal"],
 ];
 
 // Pairs that are FORBIDDEN, asserted to fail so nobody "fixes" the test by adding them above.

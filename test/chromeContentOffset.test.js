@@ -94,7 +94,10 @@ test("the hero's offset became a distance BELOW the chrome, not an absolute one"
   // 80px cleared a 46px bar only by coincidence and would stop clearing it the moment the bar grew.
   // 34 + the reserved 46 is the same 80px from the viewport top the hero has always had, which is
   // why the Jobs tab measures pixel-identical before and after.
-  assert.match(app, /padding:"34px 20px 40px"/);
+  // D35: the hero is the Full House header (FullHouse.css .fh — header.html's 22px), still a distance
+  // BELOW the reserved chrome and never an absolute offset that clears it.
+  assert.match(app, /<header className="fh"/);
+  assert.match(fs.readFileSync("client/src/components/FullHouse.css", "utf8"), /\.fh \{[^}]*padding: 22px 22px 0;/);
   assert.ok(!strip(app).includes('padding:"80px 20px 40px"'),
     "the hero is back on an absolute offset that clears the chrome by coincidence");
 });

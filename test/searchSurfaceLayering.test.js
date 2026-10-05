@@ -112,20 +112,21 @@ test("EVERY CONTROL THE PILL CARRIED IS STILL REACHABLE", () => {
   //   "Filter jobs…" input         already the main search bar's keyword field — both write the
   //                                same `localSearch`, which is why the board's third copy went in W4
   assert.match(app, /function BoardTabs\(\)/, "the board's All/Saved/Pending tabs are gone");
-  assert.match(app, /const \{ boardTab, setBoardTab \} = useJobBoard\(\);/,
+  assert.match(app, /const \{ boardTab, setBoardTab, boardHeadline \} = useJobBoard\(\);/,
     "BoardTabs no longer writes the board's own state");
+  assert.match(app, /onChange=\{id => setBoardTab\?\.\(id\)\}/);
   for (const id of ['"all"', '"saved"', '"pending"']) {
     assert.ok(app.includes(id), `the ${id} board view is gone`);
   }
   assert.match(app, /<BoardTabs \/>/, "BoardTabs is defined but never rendered");
   // ...and the three that did NOT need moving are still where they were.
   assert.match(app, /<BoardControlIcons \/>/);
-  // D24: the sort control is BoardPanelIcons' sort icon (it opens the sort panel).
-  assert.match(app, /<BoardPanelIcons\b/);
-  assert.match(read("client/src/components/BoardPanelIcons.jsx"), /aria-label=\{sortLabel \? `Sort: \$\{sortLabel\}` : "Sort"\}/);
+  // D24 → D35: the sort control is the bar's ⇅ square (it opens the sort panel).
+  assert.match(app, /<SortSquare\b/);
+  assert.match(read("client/src/components/BoardBar.jsx"), /aria-label=\{label \? `Sort: \$\{label\}` : "Sort"\}/);
   assert.match(topbar, /<ProfileSelectorDropdown/, "the profile switcher left the avatar menu");
-  assert.match(read("client/src/components/UnifiedSearchBar.jsx"),
-    /placeholder="Job title or keywords"/);
+  assert.match(read("client/src/components/BoardBar.jsx"),
+    /placeholder="Job title, company, or anything in the posting…"/);
 });
 
 test("the second, unrelated scroll source is still gone", () => {
@@ -321,6 +322,8 @@ test("A74 (owner, 10-03): ONE click, ONE search — the 5-second double-click is
     "the search bar's onSearch is a no-op again — every control on the bar is inert");
   assert.ok(!/onLocalFilter=\{\(\) => \{\}\}/.test(app),
     "the search bar's onLocalFilter is a no-op again — every control on the bar is inert");
-  assert.match(app, /onLocalFilter=\{params => applyBarFilters\(params, \{ fields: \["query"\] \}\)\}/);
+  // D35: the board's field is BoardBar's BoardSearch — Enter is the one press, and it publishes query only.
+  assert.match(app, /onSubmit=\{params => applyBarFilters\(params, \{ fields: \["query"\] \}\)\}/);
   assert.doesNotMatch(app, /onSearch=\{params => applyBarFilters\(params, \{ live: true \}\)\}/);
+  assert.match(read("client/src/components/BoardBar.jsx"), /if \(!e\.defaultPrevented && e\.key === "Enter"\) submit\(\);/);
 });
