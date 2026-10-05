@@ -38,13 +38,12 @@ import {
 import CompanyIcon from "../components/ui/CompanyIcon.jsx";
 // AH2: the job-detail address, shared with JobCard so the href and the param cannot disagree.
 import { JOB_URL_PARAM, jobIdFromSearch } from "../lib/jobUrl.js";
-// D24/D30: the filter dials and the sort panel, and the facets answer they read their counts from.
-import FilterDials from "../components/FilterDials.jsx";
+// D35: the Full House header (App.jsx) renders the sentence, its one panel and the sort panel; this
+// panel publishes what they read — the committed clause params and the facets answer.
 import { JOB_FUNCTIONS, PLACES, functionForRole } from "../../../shared/jobTagVocabulary.js";
-import SortPanel from "../components/SortPanel.jsx";
 import { useJobFacets } from "../hooks/useJobFacets.js";
 import {
-  BOARD_PANEL, SENTENCE_CLAUSES, activeClauseCount as countActiveClauses, clearAllClauses,
+  SENTENCE_CLAUSES, activeClauseCount as countActiveClauses,
   sortFromCachedSnapshot,
 } from "../lib/filterSentenceModel.js";
 import { FIT_BANDS } from "../../../shared/filterSentence.js";
@@ -1285,8 +1284,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     barFilters, liveSearchTick,
     filterPanelOpen, setFilterPanelOpen, setActiveFilterCount,
     setAtsSortAvailable, atsSortAvailable,
-    boardPanel, setBoardPanel, setActiveClauseCount,
-    setBoardHeadline, focusDial, setFocusDial,
+    setBoardPanel, setBoardHeadline,
   } = useJobBoard();
 
   // Open / close sandbox — panel size rebalancing handled by useEffect below.
@@ -2214,14 +2212,14 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // badge and the notice can never disagree about how narrow the board is.
   useEffect(() => { setActiveFilterCount(activeFilterCount); }, [activeFilterCount, setActiveFilterCount]);
 
-  // ── D24: THE SENTENCE AND THE SORT PANEL ──────────────────────────────────────────────────────
+  // ── D24 → D35: THE SENTENCE'S CLAUSES ─────────────────────────────────────────────────────────
   //
-  // The icons are App.jsx's; the panels render here, directly under the search bar, because the
-  // committed filters and the facets answer are here — W4's split, unchanged. Both closed by default
-  // (JobBoardContext's boardPanel starts null), so the board starts right under the bar.
+  // The header is App.jsx's — the sentence, the ONE panel its words open, the bar and the sort panel —
+  // but the committed filters and the facets answer are here (W4's split, unchanged), so this panel
+  // PUBLISHES them (setBoardHeadline) and the header reads them.
   //
-  // The four clauses read and write the board's COMMITTED filters directly — a press applies at once,
-  // because the counts on the popover already said what it would do. No staging, no Apply. The
+  // The clauses read and write the board's COMMITTED filters directly — a press applies at once,
+  // because the counts on the panel already said what it would do. No staging, no Apply. The
   // clause -> state binding is keyed by the contract's clause key; no param name is written here.
   const clauseState = {
     domain:   [jobFunctions,     setJobFunctions],
@@ -2234,7 +2232,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const clauseParams = Object.fromEntries(
     SENTENCE_CLAUSES.map(c => [c.dim.param, clauseState[c.key]?.[0]]));
   const clauseCount = countActiveClauses(clauseParams);
-  useEffect(() => { setActiveClauseCount?.(clauseCount); }, [clauseCount, setActiveClauseCount]);
 
   const applyClausePatch = (patch) => {
     for (const c of SENTENCE_CLAUSES) {
@@ -2242,22 +2239,26 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     }
     setCurrentPage(1);
   };
-  // "Clear all ×" clears the sentence AND the drawer's filters (the footer counts those as "on"), but
-  // not the search bar's own fields — those are visible where they were typed.
-  const clearSentenceAndDrawer = () => {
-    const base = defaultFilterSnapshot();
-    setPendingFilters(base);
-    applyFilterSnapshot(base);
-    applyClausePatch(clearAllClauses());
-  };
-  // Filters that are NOT clauses (the drawer's) and still narrow the board. The bar's Domain and
-  // Status are left out: they are visible on the bar itself.
+  // The header holds these across renders; the ref keeps them pointed at THIS render's closures.
+  const clausePatchRef = useRef(applyClausePatch);
+  clausePatchRef.current = applyClausePatch;
+  const onClausePatch = useCallback((patch) => clausePatchRef.current(patch), []);
+  // "+ add → salary & more" opens the drawer of the filters that are NOT words (salary, sponsorship,
+  // sources, experience years…). The filter ICON that used to open the panel is gone (D35 §1).
+  const onMoreFilters = useCallback(() => { setBoardPanel(null); setFilterPanelOpen(true); }, [setBoardPanel, setFilterPanelOpen]);
+  // Filters that are NOT clauses (the drawer's) and still narrow the board — "+ add" says how many
+  // are on. The bar's Domain and Status are left out: they are not drawer filters.
   const otherFilterCount = Math.max(0,
     activeFilterCount - clauseCount - (domainFilter ? 1 : 0) - (appliedFilter ? 1 : 0));
 
-  // ── D26/D30 · THE HEADLINE. The sentence is published upward for App.jsx to render where the
+  // GET /api/jobs/facets, for the board's own querystring. D35: ALWAYS — the bar's view counts and
+  // the panels' coverage lines are on the page, not behind a panel.
+  const facetsQs = useMemo(() => buildParams(1), [buildParams]);
+  const facets = useJobFacets(facetsQs, true, api);
+
+  // ── D26/D30/D35 · THE HEADLINE. The sentence is published upward for App.jsx to render where the
   // "Let's get to work." caption was — a projection of exactly these clause params, so the headline
-  // and the dials cannot disagree. The unset domain reads the profile's own function (the board IS
+  // and its panels cannot disagree. The unset domain reads the profile's own function (the board IS
   // scoped to it); "Nothing matches" when the board answered with no rows.
   const defaultDomain = useMemo(() => {
     const fn = functionForRole(activeDomainProfile?.role_family);
@@ -2266,13 +2267,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const clauseParamsKey = JSON.stringify(clauseParams);
   const nothingMatches = !bgLoading && !!activeDomainProfile && boardTab === "all" && totalJobs === 0 && jobs.length === 0;
   useEffect(() => {
-    setBoardHeadline?.({ params: clauseParams, defaultDomain, nothingMatches });
-  }, [clauseParamsKey, defaultDomain, nothingMatches]); // eslint-disable-line react-hooks/exhaustive-deps
+    setBoardHeadline?.({ params: clauseParams, defaultDomain, nothingMatches,
+      facets: facets.data, facetsStatus: facets.status, otherFilterCount,
+      onPatch: onClausePatch, onMoreFilters });
+  }, [clauseParamsKey, defaultDomain, nothingMatches, facets, otherFilterCount, onClausePatch, onMoreFilters]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => setBoardHeadline?.(null), [setBoardHeadline]);
-
-  // GET /api/jobs/facets, for the board's own querystring, only while a panel is open.
-  const facetsQs = useMemo(() => buildParams(1), [buildParams]);
-  const facets = useJobFacets(facetsQs, boardPanel != null, api);
 
   // openLinkedInExtensionPopup / closeLinkedInImportTab / startLinkedInImport removed in cleanup
   // 5.3. They drove the LinkedIn bulk saved-jobs import, and every one of them called
@@ -3688,29 +3687,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         />
       )}
 
-      {/* D30: the dials or the sort panel — never both, neither by default. */}
-      {boardPanel === BOARD_PANEL.FILTER && (
-        <FilterDials
-          params={clauseParams}
-          facets={facets.data}
-          facetsStatus={facets.status}
-          onChange={applyClausePatch}
-          onClearAll={clearSentenceAndDrawer}
-          otherFilterCount={otherFilterCount}
-          defaultDomain={defaultDomain}
-          initialOpen={focusDial}
-          onMoreFilters={() => { setBoardPanel(null); setFocusDial?.(null); setFilterPanelOpen(true); }}
-        />
-      )}
-      {boardPanel === BOARD_PANEL.SORT && (
-        <SortPanel
-          value={sortBy}
-          onChange={setSortBy}
-          atsAvailable={atsSortAvailable}
-          facets={facets.data}
-          facetsStatus={facets.status}
-        />
-      )}
+      {/* D35: the sentence's panel and the sort panel render in App.jsx's header, above the bar —
+          the sentence, the open panel, the bar, the jobs. Nothing sits between the bar and the board. */}
 
       {/* ── MOBILE / TABLET: single-pane + bottom nav ── */}
       {setupBlock ? (

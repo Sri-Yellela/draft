@@ -4,7 +4,8 @@
 // from elsewhere on their board. Three things here say where to get it, each in the place the
 // missing route would otherwise be felt:
 //
-//   ExtensionAddJobsLink    — in the board's action row, exactly where IMPORT sat. Always shown.
+//   the bar's + square     — D35: ADD JOBS is the condensed bar's "+" (components/BoardBar.jsx AddSquare),
+//                             exactly where IMPORT sat. Always shown.
 //   ExtensionFirstRunPrompt — under the search bar until the extension is CONNECTED (a live
 //                             extension token, GET /api/extension/status) or the user says "Not now".
 //                             Connecting makes it go away by itself; nobody who has it is nagged.
@@ -16,7 +17,6 @@
 // knows whether a store link exists yet.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus } from "lucide-react";
 import { api } from "../lib/api.js";
 import { DraftMark } from "./DraftMark.jsx";
 import { EXTENSION_PAGE } from "../../../shared/extension.js";
@@ -46,26 +46,6 @@ export function useExtensionStatus({ enabled = true } = {}) {
     return () => { live = false; };
   }, [enabled]);
   return status;
-}
-
-export function ExtensionAddJobsLink() {
-  return (
-    <Link to={EXTENSION_PAGE} target="_blank" rel="noopener"
-      title="Add jobs from any site with the draft browser extension"
-      data-extension-link=""
-      style={{
-        display: "flex", alignItems: "center", gap: 6,
-        padding: "6px 12px", borderRadius: 999,
-        background: "transparent",
-        border: "1px solid var(--color-primary)",
-        color: "var(--color-text)", textDecoration: "none",
-        fontSize: 12, fontWeight: 600, cursor: "pointer",
-        textTransform: "uppercase", letterSpacing: "0.08em",
-        whiteSpace: "nowrap",
-      }}>
-      <Plus size={13} /> Add jobs
-    </Link>
-  );
 }
 
 function readDismissed() {

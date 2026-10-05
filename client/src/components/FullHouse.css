@@ -1,0 +1,195 @@
+/* D34 + D35 · THE FULL HOUSE HEADER — header.html, the specification.
+ *
+ *   1 the sentence (its words are the controls)   2 the ONE panel a word opens
+ *   3 the condensed bar  [ ALL · ★ · /d ] [ search ] [ ⇅ ] [ + ]   4 the jobs
+ *
+ * Colours and depth are tokens only (--c-*, styles/colorTokens.js — the FH_* keys are header.html's
+ * values that no existing token held). Type is tokens only (--fh-*, styles/type.js FULL_HOUSE_TYPE).
+ * Geometry — radii, padding, the 40px squares — is the sketch's, written once here.
+ *
+ * ⛔ ONE FAMILY, ONE SIZE, ONE LINE-HEIGHT across the prose and the tokens (D34 §1). The sentence sets
+ * them; every token rule below INHERITS them and names none of its own. Only background, border,
+ * border-radius and box-shadow say which words are controls. test/d35FullHouseHeader.test.js reads
+ * this file and fails on any font-family / font-size / line-height in a token rule. */
+
+.fh {
+  --fh-t: .34s; --fh-e: cubic-bezier(.3, .8, .25, 1);
+  box-sizing: border-box; width: 100%; max-width: 1180px; margin: 0 auto; padding: 22px 22px 0;
+  text-align: left;
+}
+
+/* ── 1 · THE SENTENCE ─────────────────────────────────────────────────────────────────────────── */
+.bh {
+  margin: 0 0 4px; max-width: 46ch;
+  font-family: var(--fh-sentence-family); font-size: var(--fh-sentence-size);
+  line-height: var(--fh-sentence-line); font-weight: var(--fh-sentence-weight);
+  font-style: normal; letter-spacing: normal; color: var(--c-ink-muted);
+}
+.bh__verb { color: inherit; }
+.bh[data-nothing-matches="true"] .bh__verb { color: var(--c-warning); font-weight: 700; }
+
+/* A token: the SAME type as the words around it. The box is the whole signal. The sketch's internal
+   `line-height:1.3` would have made the token's line-height differ from the prose's; the box keeps
+   that size (--fh-token-box, the height of one line of the type inside it) and the type keeps the
+   sentence's line-height. inline-flex centres the line in the box and aligns on its baseline. */
+.bh .tok {
+  font: inherit;
+  display: inline-flex; align-items: center; box-sizing: border-box;
+  height: calc(var(--fh-token-box) + 6px); max-width: 100%; vertical-align: baseline;
+  margin: 0 2px; padding: 0 12px; white-space: nowrap;
+  border: 1px solid var(--c-fh-line); border-radius: 10px;
+  background: var(--c-fh-surface); color: var(--c-ink); box-shadow: var(--c-depth-rest);
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s, border-color .15s, color .15s, background .15s;
+}
+/* Hover AND keyboard focus — D1's rule: a hover-only affordance is unreachable by keyboard. */
+.bh .tok:hover, .bh .tok:focus-visible {
+  transform: translateY(-2px); box-shadow: var(--c-depth-hover);
+  border-color: var(--c-accent-ink); color: var(--c-accent-ink); outline: none;
+}
+/* ACTIVE — a filter is set: the orange fill, its own orange depth, dark text. */
+.bh .tok[aria-pressed="true"] {
+  background: var(--c-accent); border-color: var(--c-fh-accent-edge); color: var(--c-fh-on-accent);
+  box-shadow: var(--c-depth-accent);
+}
+.bh .tok[aria-pressed="true"]:hover, .bh .tok[aria-pressed="true"]:focus-visible { color: var(--c-fh-on-accent); }
+/* OPEN — its panel is showing: an OUTLINE, a different signal from the fill, and a word can carry both. */
+.bh .tok[aria-expanded="true"],
+.bh .tok[aria-expanded="true"]:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+/* + add — the same box, dashed and shadowless: an unset filter is discoverable INSIDE the sentence. */
+.bh .tok--add { border-style: dashed; color: var(--c-ink-faint); box-shadow: none; font-weight: 600; }
+.bh .tok--add:hover, .bh .tok--add:focus-visible { box-shadow: var(--c-depth-rest); color: var(--c-accent-ink); }
+
+/* ── 2 · THE PANEL a word opens — ONE, directly beneath the sentence ──────────────────────────── */
+@keyframes fh-open { from { max-height: 0; opacity: 0; margin-top: 0; } to { max-height: 520px; opacity: 1; margin-top: 14px; } }
+.fh-pan { margin: 14px 0 0; animation: fh-open var(--fh-t) var(--fh-e); overflow: visible; }
+.fh-sortp { margin: 10px 0 0; animation: fh-open var(--fh-t) var(--fh-e); }
+.fh-pin {
+  background: var(--c-fh-surface); border: 1px solid var(--c-fh-line); border-radius: 14px;
+  padding: 15px 17px; box-shadow: var(--c-depth-rest);
+}
+.fh-ph { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.fh-k { font: 800 italic 11.5px/1 var(--fh-logo-family); color: var(--c-ink-faint); text-transform: uppercase; }
+.fh-cl {
+  font: 800 italic 10.5px/1 var(--fh-logo-family); color: var(--c-accent-ink);
+  background: none; border: 0; padding: 4px 0; cursor: pointer;
+}
+.fh-cl:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; border-radius: 4px; }
+.fh-opts { display: flex; gap: 8px; flex-wrap: wrap; }
+.fh-opts--open { max-height: 176px; overflow-y: auto; padding: 4px 4px 6px; margin: -4px -4px 0; }
+.fh-op {
+  display: flex; align-items: center; gap: 9px;
+  border: 1px solid var(--c-fh-line); background: var(--c-fh-well); border-radius: 9px; padding: 9px 13px;
+  box-shadow: var(--c-depth-rest); font: inherit; font-size: 12.5px; line-height: 1.2; color: var(--c-ink);
+  cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.fh-op:hover, .fh-op:focus-visible {
+  transform: translateY(-2px); box-shadow: var(--c-depth-hover); border-color: var(--c-accent-ink); outline: none;
+}
+.fh-op[aria-checked="true"] {
+  background: var(--c-accent); border-color: var(--c-fh-accent-edge); color: var(--c-fh-on-accent);
+  box-shadow: var(--c-depth-accent);
+}
+/* The count: the sketch's mono note behind a rule. At full opacity — the sketch's .5 is 3.2:1 and an
+   option's count is information (the 0 on intern most of all). */
+.fh-op .n {
+  font: 700 10px/1 var(--fh-mono); color: var(--c-ink-faint);
+  border-left: 1px solid currentColor; padding-left: 9px;
+}
+.fh-op[aria-checked="true"] .n { color: inherit; }
+/* ⛔ DIMMED AND NOT SELECTABLE, NEVER HIDDEN — the pill keeps its place and its 0. aria-disabled, so a
+   keyboard still reaches it and hears why; an inactive control is exempt from the contrast minimum. */
+.fh-op[aria-disabled="true"] { opacity: .36; cursor: not-allowed; }
+.fh-op[aria-disabled="true"]:hover { transform: none; box-shadow: var(--c-depth-rest); border-color: var(--c-fh-line); }
+.fh-op[aria-disabled="true"]:focus-visible { transform: none; outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.fh-cov { font-size: 11px; color: var(--c-ink-faint); font-style: italic; margin: 11px 0 0; }
+.fh-cov b { font-weight: 700; color: var(--c-ink-muted); }
+.fh-find {
+  box-sizing: border-box; width: 100%; margin: 0 0 10px; padding: 9px 12px; border-radius: 10px;
+  border: 1px solid var(--c-fh-line); background: var(--c-fh-well); box-shadow: var(--c-fh-inset);
+  color: var(--c-ink); font: inherit; font-size: 13px;
+}
+.fh-find:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
+
+/* ── 3 · THE CONDENSED BAR — one row: the views, the search, sort, + ─────────────────────────── */
+.fh-bar {
+  display: flex; align-items: center; gap: 9px; margin-top: 16px;
+  background: var(--c-fh-surface); border: 1px solid var(--c-fh-line); border-radius: 14px;
+  padding: 9px 10px; box-shadow: var(--c-depth-rest);
+}
+.fh-views {
+  display: flex; flex: 0 0 auto; padding: 3px;
+  background: var(--c-fh-well); border: 1px solid var(--c-fh-line); border-radius: 10px; box-shadow: var(--c-fh-inset);
+}
+.fh-views button {
+  display: flex; align-items: center; gap: 6px; border: 0; background: transparent; border-radius: 8px;
+  padding: 7px 12px; cursor: pointer; font: 800 italic 11px/1 var(--fh-logo-family); color: var(--c-ink-faint);
+  transition: background .18s, color .18s, box-shadow .18s;
+}
+.fh-views button:hover, .fh-views button:focus-visible { color: var(--c-accent-ink); outline: none; }
+.fh-views button:focus-visible { box-shadow: inset 0 0 0 2px var(--c-accent-ink); }
+.fh-views button[aria-pressed="true"] { background: var(--c-accent); color: var(--c-fh-on-accent); box-shadow: var(--c-fh-seg-lift); }
+.fh-views .fh-ct { font: 700 9.5px/1 var(--fh-mono); font-style: normal; }
+.fh-srch {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; padding: 0 12px;
+  background: var(--c-fh-well); border: 1px solid var(--c-fh-line); border-radius: 10px; box-shadow: var(--c-fh-inset);
+}
+.fh-srch:focus-within { border-color: var(--c-accent-ink); }
+.fh-srch > svg { width: 15px; height: 15px; fill: none; stroke: var(--c-ink-faint); stroke-width: 2; flex: 0 0 auto; }
+.fh-srch .usb__suggest { flex: 1; min-width: 0; display: flex; position: relative; }
+.fh-srch input {
+  flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 0;
+  font: inherit; font-size: 13.5px; color: var(--c-ink); outline: none;
+}
+.fh-srch input::placeholder { color: var(--c-ink-faint); }
+.fh-srch__clear {
+  flex: 0 0 auto; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0;
+  border-radius: 6px; background: transparent; color: var(--c-ink-faint); cursor: pointer;
+}
+.fh-srch__clear:hover, .fh-srch__clear:focus-visible { color: var(--c-accent-ink); outline: 2px solid var(--c-accent-ink); outline-offset: 0; }
+/* The two 40px squares — the same size as each other, one rhythm. */
+.fh-ico {
+  width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; padding: 0;
+  border: 1px solid var(--c-fh-line); background: var(--c-fh-well); border-radius: 10px;
+  color: var(--c-ink-muted); box-shadow: var(--c-depth-rest); cursor: pointer;
+  transition: transform .16s, box-shadow .16s, border-color .16s, color .16s;
+}
+.fh-ico:hover, .fh-ico:focus-visible {
+  transform: translateY(-2px); box-shadow: var(--c-depth-hover); border-color: var(--c-accent-ink); color: var(--c-accent-ink); outline: none;
+}
+/* A chosen order (anything but the curated default) holds the hover's edge and glyph. */
+.fh-ico[data-active="true"] { border-color: var(--c-accent-ink); color: var(--c-accent-ink); }
+.fh-ico[aria-expanded="true"] {
+  background: var(--c-accent); border-color: var(--c-fh-accent-edge); color: var(--c-fh-on-accent); box-shadow: var(--c-depth-accent);
+}
+.fh-ico svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* + — the one creative action: the orange fill, bold italic in the logo face, no label. */
+.fh-add {
+  width: 40px; height: 40px; flex: 0 0 auto; box-sizing: border-box; display: grid; place-items: center;
+  border: 1px solid var(--c-fh-accent-edge); background: var(--c-accent); color: var(--c-fh-on-accent);
+  border-radius: 10px; box-shadow: var(--c-depth-accent); text-decoration: none; cursor: pointer;
+  font: 800 italic 22px/1 var(--fh-logo-family); transition: transform .16s, box-shadow .16s;
+}
+.fh-add:hover, .fh-add:focus-visible { transform: translateY(-2px); box-shadow: var(--c-fh-add-hover); outline: none; }
+.fh-add:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+
+/* ── PHONE — the one row cannot hold four elements, so the bar becomes TWO, chosen: the views with the
+   two squares on the first (the squares keep their 40px and stay together at the right), the search
+   on its own full-width row beneath. The sketch has no phone rule; at 390 its one row leaves the
+   search ~60px wide. ─────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .fh { padding: 16px 16px 0; }
+  .fh-bar { flex-wrap: wrap; row-gap: 9px; }
+  .fh-views { order: 1; }
+  .fh-ico { order: 2; margin-left: auto; }
+  .fh-add { order: 3; }
+  .fh-srch { order: 4; flex: 1 1 100%; }
+  .fh-pin { padding: 13px 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bh .tok, .fh-op, .fh-ico, .fh-add, .fh-views button { transition: none; }
+  .fh-pan, .fh-sortp { animation: none; }
+  .bh .tok:hover, .bh .tok:focus-visible, .fh-op:hover, .fh-op:focus-visible,
+  .fh-ico:hover, .fh-ico:focus-visible, .fh-add:hover, .fh-add:focus-visible { transform: none; }
+}
