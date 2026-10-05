@@ -152,7 +152,7 @@ import {
 } from "./services/jobs/jobCursor.js";
 // The board's fit precompute. It holds no scoring code — server.js injects the panel's own
 // basis builder and scorer call (atsBasisForProfile / scoreJobForBasis).
-import { createBoardFitPrecompute, atsBasisHash, atsJobInputHash, storedScoreSql, presentedScore } from "./services/jobs/boardFitPrecompute.js";
+import { createBoardFitPrecompute, atsBasisHash, atsJobInputHash, storedScoreSql, presentedScore, registerScoreFreshness, currentScoreSql } from "./services/jobs/boardFitPrecompute.js";
 import { deriveAutomationTier } from "./services/jobs/automationTier.js";
 import { backfillAutomationTier } from "./services/jobs/backfillAutomationTier.js";
 import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
@@ -391,6 +391,8 @@ db.pragma("journal_mode = WAL");
 db.pragma("busy_timeout = 5000");
 // A72 — the search tier function the board's WHERE and ORDER BY call (services/jobs/boardSearch.js).
 registerBoardSearch(db);
+// A85 · the fit filter's "is this stored score current?" — the badge's own test, as a SQL function.
+registerScoreFreshness(db);
 console.log(`[boot] database ready: ${DB_PATH}`);
 
 // ── Inline migration runner (additive only — never drops data) ─
@@ -7536,7 +7538,15 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
     // FILTER_DIMENSIONS), so only known bands reach here. No bound params — the cutpoints are
     // shared/atsBands.js constants — so it can sit anywhere in the WHERE without shifting baseArgs.
     const fitBands = String(req.query.fit_bands || "").split(",").map(v => v.trim()).filter(Boolean);
-    const fitBandSql = fitBands.length ? `AND ${fitBandsSql(fitBands)}` : '';
+    // ⛔ A85 · the filter bands the CURRENT score — the one the card's badge shows (presentedScore) —
+    // not the raw stored cell. A score stored against an earlier résumé or an earlier version of the
+    // posting is in no band, exactly as it shows no badge. Built only when something reads it.
+    let fitScoreSql = "NULL";
+    if (fitBands.length || measure) {
+      try { fitScoreSql = currentScoreSql(atsBasisForProfile(req.user.id, sessionActiveProfile)?.basisHash ?? null); }
+      catch (e) { console.warn("[jobs] basis for the fit filter:", e.message); }
+    }
+    const fitBandSql = fitBands.length ? `AND ${fitBandsSql(fitBands, { scoreSql: fitScoreSql })}` : '';
 
     // YoE range: auto-apply from stored signals when no explicit maxYoe is set
     const signals = loadSimpleApplyProfile(db, { userId: req.user.id, profileId: sessionActiveProfile.id });
@@ -7851,6 +7861,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       if (measure) {
         return boardReply(200, { measured: true, value: measure({
           db, joinClause, whereClause, baseArgs, unclassifiedSql: richFilters.established.unclassifiedSql,
+          fitScoreSql,
         }) });
       }
 
