@@ -3652,6 +3652,34 @@ export const MIGRATIONS = [
       `,
     },
     {
+      // D16 (owner, 10-03): the résumé an application SENT, kept with the application and downloadable
+      // from The Table months later. resumes.html is the working copy and a regeneration overwrites
+      // it, so it cannot answer "what did I send?". Stored as the HTML, brotli-compressed
+      // (services/applicationArtifacts.js: ~1.7 KB a résumé, measured; a stored PDF is ~56x that), with
+      // the sha256 of the uncompressed bytes so a corrupt row FAILS on read instead of serving an empty
+      // file. A PDF is printed from it on demand and never stored. No user_id: the artifact belongs to
+      // its record and goes with it (and with the account, through the record's cascade).
+      id: "125_application_artifacts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS application_artifacts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          record_id INTEGER NOT NULL REFERENCES application_records(id) ON DELETE CASCADE,
+          kind TEXT NOT NULL DEFAULT 'resume',
+          media_type TEXT NOT NULL,
+          encoding TEXT NOT NULL,
+          sha256 TEXT NOT NULL,
+          raw_bytes INTEGER NOT NULL,
+          stored_bytes INTEGER NOT NULL,
+          body BLOB NOT NULL,
+          source TEXT NOT NULL,
+          resume_id INTEGER,
+          resume_updated_at INTEGER,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          UNIQUE(record_id, kind)
+        );
+      `,
+    },
+    {
       // D20 (owner, 10-04): the slug harvest rides in the daily manual sweep. A sweep runs a handful
       // of SerpApi google_jobs searches by hand (no cron, no model), pools every ATS URL in the
       // results' apply_options as an UNORDERED set of (ats_type, slug) — never attached to the job it
