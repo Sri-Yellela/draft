@@ -82,7 +82,6 @@ const EXCLUDED = {
   freePort:            "utility",
   importJobUrls:       "utility, writes to the database",
   ingestLca:           "utility, downloads a dataset",
-  runEnrichment:       "utility, spends model tokens",
   al5TokenizedGeneration: "REAL generation x2 — spends model tokens on every run; run it by hand",
   al8FormFieldMappings: "utility — proposes/reviews the derived label map against the real database; asserts nothing",
   al4LcaResolution:    "OFFLINE asset generation — export → owner → import of LCA company resolutions (D17: no model call), and --import --apply writes to the database; run it by hand. test/a80LcaResolutionTransfer.test.js is the half that asserts",
