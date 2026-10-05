@@ -181,7 +181,7 @@ test("the posting-level sponsorship signal is a DIFFERENT column and was not tou
 });
 
 test("the resolution module makes no model call", () => {
-  // The model proposes in scripts/al4LcaResolution.mjs, offline and by hand. A call inside the KB
+  // Proposals come from scripts/al4LcaResolution.mjs, offline and by hand (export → import since D17). A call inside the KB
   // layer would put a model on the read path for a sponsorship claim.
   const src = fs.readFileSync("services/kb/lcaResolution.js", "utf8");
   assert.ok(!/callModel|messages\.create|fetch\s*\(/.test(src));
