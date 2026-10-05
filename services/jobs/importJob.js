@@ -36,6 +36,7 @@ import { normalizeJob } from './schema.js';
 import { stripResumeHtml } from '../resumeFormatter.js';
 import { ingestJob } from './jobGateway.js';
 import { recordExistingCapture } from './jobGateway.js';
+import { describeCapture } from './captureOutcome.js';
 import { mapJobRow } from './mapJobRow.js';
 import { MODEL_HAIKU } from '../../shared/anthropicModels.js';
 import { BRAND } from '../../shared/brand.js';
@@ -474,9 +475,12 @@ async function extractJobFromContent(anthropic, { url, text, db = null }) {
  * because changing it would silently orphan existing rows.
  *
  * Never throws: failing to star must not fail the import itself.
+ *
+ * Returns { noActiveProfile } so the answer can say when ★ Saved cannot show the job yet (the tab is
+ * scoped to the active profile), or null when nothing was attached.
  */
 function attachImportToUser(db, userId, jobId) {
-  if (!userId || !jobId) return;
+  if (!userId || !jobId) return null;
   try {
     const activeProfile = db.prepare(
       'SELECT id FROM domain_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1'
@@ -496,8 +500,10 @@ function attachImportToUser(db, userId, jobId) {
         domain_profile_id = COALESCE(excluded.domain_profile_id, user_jobs.domain_profile_id),
         updated_at        = unixepoch()
     `).run(userId, jobId, activeProfile?.id || null);
+    return { noActiveProfile: !activeProfile };
   } catch (err) {
     console.warn(`[importJob] Could not attach import to user ${userId}:`, err.message);
+    return null;
   }
 }
 
@@ -531,7 +537,7 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
       const target = existing.duplicate_of
         ? (db.prepare('SELECT * FROM scraped_jobs WHERE job_id = ?').get(existing.duplicate_of) || existing)
         : existing;
-      attachImportToUser(db, userId, target.job_id);
+      const attachment = attachImportToUser(db, userId, target.job_id);
       // D33: the fast path recorded nothing, so a capture of a posting already on the board left no
       // job_captures row — indistinguishable, in the one table built to answer it, from a capture
       // that never reached the server.
@@ -539,7 +545,7 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
         jobId: target.job_id, url, userId, detectKnownAtsMatch,
         origin: text || html ? 'capture' : 'import_url',
       });
-      return { job: mapJobRow(target), ...attachedNotice(target.job_id) };
+      return answer(db, target, { action: 'attached', attachment });
     }
   }
 
@@ -602,7 +608,7 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
 
   // Deliberately after the fold branch: when an import collapses into an existing canonical row
   // the user still imported it, so the row they get back is the one that must be starred.
-  attachImportToUser(db, userId, finalJobId);
+  const attachment = attachImportToUser(db, userId, finalJobId);
 
   // No enrichment pass after an import (D17, A80 V4): it was a model call per imported URL. The
   // row is enriched when an export → import round trip covers it, like every other row.
@@ -642,32 +648,38 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
     );
   }
 
-  // A49 fix 4 — an import that matched a posting already on the board is ATTACHED to that row
-  // (starred above), and the response says so. Without the flag the user saw their capture come
-  // back under another source's id and no record of their own URL: indistinguishable from the
-  // capture having been dropped.
-  const attached = dedup.action === 'fold' ? attachedNotice(finalJobId)
-    : ingest.outOfMarket ? OUT_OF_MARKET_NOTICE : {};
-
+  // A49 fix 4 + D33 — what happened, worded once (services/jobs/captureOutcome.js): inserted, ATTACHED
+  // to a posting already on the board (with a link to it), or held off the board and why. The
+  // extension and the site show this text; they no longer word the outcome themselves.
+  //
   // `degraded` travels with the row: the caller promised the user a capture, and a capture that
   // carries a title and a URL but no salary or skills is a DIFFERENT promise kept. Saying so is
   // the flag-don't-fabricate rule applied to the response rather than to a field.
-  return degraded
-    ? { job: mapJobRow(row), ...attached, degraded: true,
-        degradedReason: 'ai_unavailable',
-        message: 'Saved with title and link only — the AI service is unavailable, so details '
-               + 'will fill in automatically once it is back.' }
-    : { job: mapJobRow(row), ...attached };
+  return answer(db, row, {
+    action: ingest.action, attachment,
+    extra: degraded ? { degraded: true, degradedReason: 'ai_unavailable' } : {},
+    note: degraded ? 'Saved with title and link only — the AI service is unavailable, so details '
+                   + 'will fill in automatically once it is back.' : null,
+  });
 }
 
-const ATTACHED_MESSAGE = 'This job was already on the board — it is now in your Saved jobs.';
-// A62 — the gate is said, never silent: the job is the user's (in Saved) but not on the shared board.
-const OUT_OF_MARKET_NOTICE = Object.freeze({
-  outOfMarket: true,
-  message: `Saved to your Saved jobs — but it is outside the US, so it is not on the shared board (${BRAND} is US-only).`,
-});
-function attachedNotice(jobId) {
-  return { attachedToExisting: true, existingJobId: jobId, message: ATTACHED_MESSAGE };
+/**
+ * The one shape every successful import answers (D33). `capture` is the contract; the A49/A62 flags
+ * beside it are kept for the callers that already read them (the mobile contract, an extension
+ * build from before v1.4.0), and `message` is capture.message for the same reason.
+ */
+function answer(db, row, { action, attachment, extra = {}, note = null }) {
+  const capture = describeCapture(db, {
+    jobId: row.job_id, action, title: row.title, company: row.company,
+    noActiveProfile: !!attachment?.noActiveProfile,
+  });
+  if (note) capture.message += ` ${note}`;
+  return {
+    job: mapJobRow(row), capture, message: capture.message,
+    ...(capture.matchedExisting ? { attachedToExisting: true, existingJobId: row.job_id } : {}),
+    ...(capture.outcome === 'held' ? { outOfMarket: true } : {}),
+    ...extra,
+  };
 }
 
 export {

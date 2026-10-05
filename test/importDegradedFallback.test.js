@@ -79,10 +79,10 @@ test("the degraded row stays an enrichment candidate, which is what makes this a
 test("the caller is told the capture was partial, rather than left to assume it was whole", () => {
   assert.match(SRC, /degradedReason: 'ai_unavailable'/);
   assert.match(SRC, /Saved with title and link only/);
-  // And the extension words it as a smaller promise kept, not as a plain success.
-  const bg = fs.readFileSync("extension/background.js", "utf8");
-  assert.match(bg, /Saved \(partial\)/);
-  assert.match(bg, /degraded: !!json\.degraded/);
+  // D33: the extension no longer words outcomes itself — the partial note travels INSIDE the
+  // capture message the server words once (captureOutcome.js), and the extension shows it as given.
+  assert.match(SRC, /if \(note\) capture\.message \+= /);
+  assert.match(fs.readFileSync("extension/captureResult.js", "utf8"), /message: c\.message,/);
 });
 
 test("the header parse stops at the blank line, so a description cannot become a label", () => {
