@@ -7,8 +7,10 @@
 //   a Draft       an apply_run_jobs row the user started — any surface (deck, board, Auto Apply's
 //                 Draft again). NOT a run the approve endpoint made (approval_mode 'approved'): that
 //                 is the same Draft continuing, not a second one. NOT 'cancelled' (Undo / removed
-//                 from the line gives the slot back) and NOT 'superseded' (an answers retry replaced
-//                 that attempt with a newer row, which is the one counted).
+//                 from the line gives the slot back) and NOT 'superseded' by an answers retry (it
+//                 replaced that attempt with a newer row, which is the one counted). ⛔ D36: a preview
+//                 superseded by an APPROVAL (approved_at set) IS counted — it is the Draft, and the
+//                 approved run that continues it is excluded, so it is counted exactly once.
 //   a generation  a draft_slot_uses row, written when POST /api/generate makes a NEW résumé (a cached
 //                 one costs nothing). Debited on success, never on attempt.
 //
@@ -34,7 +36,11 @@ function draftsUsed(db, userId, since) {
       JOIN apply_runs r ON r.id = rj.run_id
       WHERE rj.user_id = ?
         AND COALESCE(r.approval_mode, '') != 'approved'
-        AND rj.status NOT IN ('cancelled', 'superseded')
+        AND rj.status <> 'cancelled'
+        -- D36: superseded by an ANSWERS retry is not counted (the newer row is); superseded by an
+        -- APPROVAL is — the approved run is excluded above, so not counting this as well gave the slot
+        -- back on every Approve and the 10-a-day bound held only for drafts never approved.
+        AND NOT (rj.status = 'superseded' AND rj.approved_at IS NULL)
         AND COALESCE(rj.created_at, 0) >= ?
     `).pluck().get(userId, since);
   } catch { return 0; }
