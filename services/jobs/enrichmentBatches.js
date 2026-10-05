@@ -41,6 +41,18 @@ export const BATCH_TRACKED_COLUMNS = [...ENRICHMENT_COLUMNS, 'enriched_at', 'con
 export const BATCH_SOURCES = ['cron', 'manual', 'import'];
 
 /**
+ * What a batch wrote (migration 126). 'enrichment' — scraped_jobs columns, the original and default
+ * kind. 'ats_grade' — rows of ats_corpus_grades (A76 under D17: the validation corpus is graded
+ * outside the product and imported through this same provenance, not a second batch system).
+ *
+ * ⛔ A REVERT MUST DISPATCH ON KIND. A grade batch's before-image is a grade row, not the enrichment
+ * columns; replaying it into scraped_jobs would set every enrichment column to NULL on every graded
+ * posting — the 120-rows-nulled defect again, through the revert button.
+ */
+export const BATCH_KINDS = ['enrichment', 'ats_grade'];
+export const GRADE_BATCH_KIND = 'ats_grade';
+
+/**
  * Whether this database can record provenance at all — both tables AND the pointer column.
  *
  * ⛔ ALL THREE, NOT JUST THE TABLES. Checking only for `enrichment_batches` is not enough: the
@@ -69,9 +81,21 @@ export function batchProvenanceAvailable(db) {
  * still leaves a row in enrichment_batches with a started_at and no finished_at — which is a
  * readable state ("this run died") rather than an absence.
  */
-export function openBatch(db, { source, provider = null, model = null, notes = null } = {}) {
+export function openBatch(db, { source, provider = null, model = null, notes = null, kind = 'enrichment' } = {}) {
   if (!BATCH_SOURCES.includes(source)) {
     throw new Error(`enrichmentBatches: source must be one of ${BATCH_SOURCES.join(' | ')}, got ${source}`);
+  }
+  if (!BATCH_KINDS.includes(kind)) {
+    throw new Error(`enrichmentBatches: kind must be one of ${BATCH_KINDS.join(' | ')}, got ${kind}`);
+  }
+  // An enrichment batch is inserted WITHOUT naming `kind`, so a database from before migration 126
+  // still records provenance exactly as it did; the column's default supplies 'enrichment'.
+  if (kind !== 'enrichment') {
+    const info = db.prepare(`
+      INSERT INTO enrichment_batches (source, provider, model, started_at, notes, kind)
+      VALUES (@source, @provider, @model, @started_at, @notes, @kind)
+    `).run({ source, provider, model, started_at: Math.floor(Date.now() / 1000), notes, kind });
+    return Number(info.lastInsertRowid);
   }
   const info = db.prepare(`
     INSERT INTO enrichment_batches (source, provider, model, started_at, notes)
@@ -165,6 +189,7 @@ export function revertBatch(db, batchId) {
   if (batch.reverted_at) {
     return { ok: false, reason: `batch ${batchId} was already reverted at ${batch.reverted_at}`, restored: 0 };
   }
+  if ((batch.kind ?? 'enrichment') === GRADE_BATCH_KIND) return revertGradeBatch(db, batchId);
   const rows = db.prepare('SELECT job_id, before_json FROM enrichment_batch_rows WHERE batch_id = ?').all(batchId);
   if (!rows.length) return { ok: false, reason: `batch ${batchId} has no recorded rows to restore`, restored: 0 };
 
@@ -200,6 +225,7 @@ export function revertBatch(db, batchId) {
 export function revertPreview(db, batchId, { sample = 10 } = {}) {
   const batch = db.prepare('SELECT * FROM enrichment_batches WHERE id = ?').get(batchId);
   if (!batch) return null;
+  if ((batch.kind ?? 'enrichment') === GRADE_BATCH_KIND) return gradeRevertPreview(db, batch, { sample });
   const rows = db.prepare(`
     SELECT r.job_id, r.before_json IS NULL OR r.before_json = 'null' AS no_before, r.written_at,
            sj.job_id IS NOT NULL AS present, sj.title, sj.company, sj.enrichment_batch_id, sj.enriched_at
@@ -218,6 +244,63 @@ export function revertPreview(db, batchId, { sample = 10 } = {}) {
     changedSinceSample: changed.slice(0, sample).map(r => ({ jobId: r.job_id, title: r.title, company: r.company })),
     sample: restorable.slice(0, sample).map(r => ({ jobId: r.job_id, title: r.title, company: r.company })),
   };
+}
+
+// ── kind 'ats_grade' — restore ats_corpus_grades, never scraped_jobs ─────────────────────────────
+//
+// before_json is the grade row as it stood before the import (the string 'null' = there was none,
+// so the revert DELETES the row). The key is in the batch row's own record of what it wrote
+// (filled_json.key), because a grade is keyed by corpus and grader as well as job.
+
+function gradeRows(db, batchId) {
+  return db.prepare('SELECT job_id, before_json, filled_json, written_at FROM enrichment_batch_rows WHERE batch_id = ?')
+    .all(batchId).map(r => {
+      const f = JSON.parse(r.filled_json || '{}');
+      return { jobId: r.job_id, before: JSON.parse(r.before_json || 'null'), key: f.key ?? null, wrote: f.after ?? null,
+               writtenAt: r.written_at };
+    });
+}
+const currentGrade = (db, key) => db.prepare(
+  'SELECT * FROM ats_corpus_grades WHERE corpus = ? AND job_id = ? AND grader = ?').get(key.corpus, key.job_id, key.grader) ?? null;
+
+/** The dry run: every row as a before/after PAIR — the fit it holds now, and the fit a revert restores. */
+function gradeRevertPreview(db, batch, { sample = 10 } = {}) {
+  const rows = gradeRows(db, batch.id);
+  const restorable = rows.filter(r => r.key);
+  const missing = rows.length - restorable.length;
+  const pairs = restorable.map(r => {
+    const now = currentGrade(db, r.key);
+    return { jobId: r.jobId, grader: r.key.grader, now: now?.fit ?? null, restoresTo: r.before?.fit ?? null,
+             changedSince: !!now && now.batch_id !== batch.id };
+  });
+  const changed = pairs.filter(p => p.changedSince);
+  return {
+    batchId: batch.id, kind: GRADE_BATCH_KIND, alreadyReverted: Boolean(batch.reverted_at), revertedAt: batch.reverted_at ?? null,
+    recordedRows: rows.length, restorable: restorable.length, missing, changedSince: changed.length,
+    changedSinceSample: changed.slice(0, sample), sample: pairs.slice(0, sample), pairs,
+  };
+}
+
+function revertGradeBatch(db, batchId) {
+  const rows = gradeRows(db, batchId);
+  if (!rows.length) return { ok: false, reason: `batch ${batchId} has no recorded rows to restore`, restored: 0 };
+  const del = db.prepare('DELETE FROM ats_corpus_grades WHERE corpus = @corpus AND job_id = @job_id AND grader = @grader');
+  const put = db.prepare(`
+    INSERT INTO ats_corpus_grades (corpus, job_id, grader, profile_id, fit, content_hash, batch_id, graded_at, note)
+    VALUES (@corpus, @job_id, @grader, @profile_id, @fit, @content_hash, @batch_id, @graded_at, @note)
+    ON CONFLICT(corpus, job_id, grader) DO UPDATE SET profile_id = excluded.profile_id, fit = excluded.fit,
+      content_hash = excluded.content_hash, batch_id = excluded.batch_id, graded_at = excluded.graded_at, note = excluded.note`);
+  let restored = 0, missing = 0;
+  db.transaction(() => {
+    for (const r of rows) {
+      if (!r.key) { missing++; continue; }
+      if (r.before) put.run({ note: null, profile_id: null, batch_id: null, ...r.before });
+      else del.run(r.key);
+      restored++;
+    }
+    db.prepare('UPDATE enrichment_batches SET reverted_at = ? WHERE id = ?').run(Math.floor(Date.now() / 1000), batchId);
+  })();
+  return { ok: true, restored, missing, rowsRecorded: rows.length };
 }
 
 /** Recent batches, newest first — the provenance view. */
