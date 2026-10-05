@@ -146,23 +146,34 @@ export const C_LIGHT = {
   // consumer, any other dark surface, and any second place that picks a theme.
   // ⚠ The dark greens, reds and blues are NOT these values converted: each was re-derived against the
   // ink surface, and every pair below is declared in CONTRAST_PAIRS and proved in both themes.
-  PAIR_SURFACE:   "#F7F1E7",   // the pair's ground — cream, a shade lighter than the paper
-  PAIR_RAISED:    "#FFFCF6",   // a depth box, a deck-strip cell
-  PAIR_INK:       "#1E1915",
-  PAIR_INK_MUTED: "#4A423B",
-  PAIR_INK_FAINT: "#62574D",   // the `kind` label, the deck strip's cell names
-  PAIR_RULE:      "#DCD0BF",   // decorative rules (a heading's small-caps rule, the strip's dividers)
-  PAIR_EDGE:      "#857766",   // a claim box's dashed edge — a UI boundary, so 3:1
-  PAIR_KICKER:    "#A33200",   // the masthead's orange kicker, as TEXT (the logo orange fails as text)
-  PAIR_ACCENT:    "#A33200",   // the score in serif accent, the bullets' markers, the drop cap
-  PAIR_MATCHED:   "#17663A",   // the bar's matched segment; "already yours"; the met Experience cell
-  PAIR_MISSING:   "#A3281E",   // the bar's missing segment; Experience short
-  PAIR_GENERIC:   "#1E5E94",   // the bar's generic segment — blue, so it never reads as a gap
-  PAIR_MET_QUIET: "#DCEBDF",   // the Experience cell's tint when the requirement is met; a claimed box
+  // ⭐ A86 (10-05): THE VALUES ARE THE OWNER'S SKETCH (pair2.html), key for key — D32 was built from the
+  // row's prose and drifted. The sketch's name is in each comment. Where a sketch value FAILS its
+  // declared pair it moved the least distance that passes, and the comment says from what.
+  PAIR_SURFACE:   "#FBF7F0",   // --surf: the card
+  PAIR_RAISED:    "#F2ECE1",   // --surf2: a depth box, the deck strip, the count chip
+  PAIR_INK:       "#171512",   // --tx
+  PAIR_INK_MUTED: "#3D362E",   // --tx2: the employer's description
+  PAIR_INK_FAINT: "#726960",   // --dim #8A8075 → #726960: 3.6:1 on --surf, 3.25:1 on --okbg; now ≥ 4.5 on all four grounds
+  PAIR_RULE:      "#DED5C4",   // --line: every hairline (decorative, not a control edge)
+  PAIR_KICKER:    "#A33200",   // --atx: the kicker, as TEXT (the logo orange fails as text)
+  PAIR_ACCENT:    "#FC4600",   // --accent #FD4600 → #FC4600: 2.98:1 under the masthead tint (large needs 3)
+  PAIR_MATCHED:   "#1D6B43",   // --ok
+  PAIR_MISSING:   "#8A3B2E",   // --no: a claim box's text, its filled + square, the bar's missing segment
+  PAIR_GENERIC:   "#6B6257",   // --gen: generic boxes and the bar's generic segment (grey, never a gap)
+  PAIR_MET_QUIET: "#DFF0DA",   // --okbg: "already yours", a claimed box, the met Experience cell and row
   PAIR_LIT:       "#F6DCC6",   // the hover link: a term lit in the posting while its box is pointed at
-  // D1's depth, re-derived for the pair's surface (the cream keeps D1's values).
-  PAIR_LIFT:      "0 3px 8px rgba(30,25,21,0.11), inset 0 1px 0 rgba(255,255,255,0.66)",
-  PAIR_LIFT2:     "0 7px 17px rgba(30,25,21,0.15), inset 0 1px 0 rgba(255,255,255,0.66)",
+  PAIR_HI:        "#0F0D0B",   // --hi: the title, the band's heading
+  PAIR_MATCHED_EDGE: "#BCDCB4",   // --okbd
+  PAIR_MISSING_QUIET: "#F6E2DB",  // --nobg: Experience short
+  PAIR_MISSING_EDGE: "#E6CAC1",   // --nobd: a claim box's border (decorative — the filled + square is the indicator)
+  PAIR_GENERIC_QUIET: "#EFEAE0",  // --genbg
+  PAIR_GENERIC_EDGE: "#DED5C4",   // --genbd
+  PAIR_MAST_TINT: "rgba(253,70,0,0.07)",   // the masthead's and the score header's orange wash, top → transparent
+  PAIR_CARD_SHADOW: "0 12px 34px rgba(0,0,0,0.18)",   // .card
+  PAIR_KIND_ALPHA: "0.91",   // the `kind` label's opacity: sketch .62 → .91, the least that keeps it ≥ 4.5 on every box
+  // D1's depth — the sketch's --lift / --lift2 (light).
+  PAIR_LIFT:      "0 3px 8px rgba(0,0,0,0.11), inset 0 1px 0 rgba(255,255,255,0.66)",
+  PAIR_LIFT2:     "0 7px 17px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.72)",
   PAIR_PRESS:     "0 2px 5px rgba(30,25,21,0.13), inset 0 1px 0 rgba(255,255,255,0.5)",
 
   // Shadows are ink at low alpha — a warm shadow on paper, not a grey one.
@@ -250,23 +261,34 @@ export const C_DARK = {
   PROVIDER_INDEED:     "#003A9B",
   ON_PROVIDER:         "#FFFFFF",
   // D32 · the ink pair — the product's only dark surface. RE-DERIVED against the ink, never converted.
-  PAIR_SURFACE:        "#121110",   // the ink: darker than the leather, so the pair reads as one object
-  PAIR_RAISED:         "#201D1A",
-  PAIR_INK:            "#F3ECE1",
-  PAIR_INK_MUTED:      "#D0C5B8",
-  PAIR_INK_FAINT:      "#ABA092",
-  PAIR_RULE:           "#37312B",
-  PAIR_EDGE:           "#8C8072",
-  PAIR_KICKER:         "#FF8B5C",
-  PAIR_ACCENT:         "#FF8B5C",
-  PAIR_MATCHED:        "#6FD39A",
-  PAIR_MISSING:        "#F7907F",
-  PAIR_GENERIC:        "#86BBF0",
-  PAIR_MET_QUIET:      "#17301F",
+  // A86: the sketch's DARK values (pair2.html). Its translucent tints (--okbg, --nobd …) are composited
+  // ONCE, over --surf (#191511; a claim box's edge over --surf2, the box it outlines), into the opaque
+  // hex the contrast test can measure.
+  PAIR_SURFACE:        "#191511",   // --surf: darker than the leather, so the pair reads as one object
+  PAIR_RAISED:         "#221D18",   // --surf2
+  PAIR_INK:            "#E8E0D2",   // --tx
+  PAIR_INK_MUTED:      "#CDC4B6",   // --tx2
+  PAIR_INK_FAINT:      "#A39A8C",   // --dim
+  PAIR_RULE:           "#342C25",   // --line
+  PAIR_KICKER:         "#FD4600",   // --atx (in dark the logo orange passes as text: 5.2:1)
+  PAIR_ACCENT:         "#FD4600",   // --accent
+  PAIR_MATCHED:        "#7FC79A",   // --ok
+  PAIR_MISSING:        "#E8937C",   // --no
+  PAIR_GENERIC:        "#91887D",   // --gen #8A8075 → #91887D: 4.07:1 on its own --genbg
+  PAIR_MET_QUIET:      "#262C23",   // --okbg rgba(127,199,154,.13) over --surf
   PAIR_LIT:            "#4B2C1A",
-  // On ink a shadow barely reads, so the lift leans on a deeper drop and a faint lit top edge.
-  PAIR_LIFT:           "0 3px 9px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,240,225,0.09)",
-  PAIR_LIFT2:          "0 8px 20px rgba(0,0,0,0.70), inset 0 1px 0 rgba(255,240,225,0.12)",
+  PAIR_HI:             "#FBF7F0",   // --hi
+  PAIR_MATCHED_EDGE:   "#384A3A",   // --okbd rgba(127,199,154,.3)
+  PAIR_MISSING_QUIET:  "#32241E",   // --nobg rgba(232,147,124,.12)
+  PAIR_MISSING_EDGE:   "#5D4036",   // --nobd rgba(232,147,124,.3), over --surf2
+  PAIR_GENERIC_QUIET:  "#27221D",   // --genbg rgba(138,128,117,.12)
+  PAIR_GENERIC_EDGE:   "#36312B",   // --genbd rgba(138,128,117,.26)
+  PAIR_MAST_TINT:      "rgba(253,70,0,0.07)",
+  PAIR_CARD_SHADOW:    "0 12px 34px rgba(0,0,0,0.18)",
+  PAIR_KIND_ALPHA:     "0.75",      // sketch .62 → .75, the least that keeps the label ≥ 4.5 on every box
+  // The sketch's dark --lift / --lift2.
+  PAIR_LIFT:           "0 3px 9px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.07)",
+  PAIR_LIFT2:          "0 8px 20px rgba(0,0,0,0.52), inset 0 1px 0 rgba(255,255,255,0.11)",
   PAIR_PRESS:          "0 2px 5px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,240,225,0.06)",
   SHADOW_SM:           "0 1px 2px rgba(0,0,0,0.35), 0 1px 1px rgba(0,0,0,0.25)",
   SHADOW_MD:           "0 4px 12px rgba(0,0,0,0.40), 0 2px 4px rgba(0,0,0,0.30)",
@@ -415,17 +437,22 @@ export const CONTRAST_PAIRS = [
   ["PAIR_INK", "PAIR_SURFACE", "normal"], ["PAIR_INK", "PAIR_RAISED", "normal"],
   ["PAIR_INK_MUTED", "PAIR_SURFACE", "normal"], ["PAIR_INK_MUTED", "PAIR_RAISED", "normal"],
   ["PAIR_INK_FAINT", "PAIR_SURFACE", "normal"], ["PAIR_INK_FAINT", "PAIR_RAISED", "normal"],
+  ["PAIR_HI", "PAIR_SURFACE", "normal"],                                                // the title, the band's heading
   ["PAIR_KICKER", "PAIR_SURFACE", "normal"],
-  ["PAIR_ACCENT", "PAIR_SURFACE", "large"], ["PAIR_ACCENT", "PAIR_RAISED", "large"],   // the score, the drop cap
+  ["PAIR_ACCENT", "PAIR_SURFACE", "large"],                                             // the score, the drop cap
   ["PAIR_ACCENT", "PAIR_SURFACE", "ui"],                                                // a bullet's marker
-  ["PAIR_MATCHED", "PAIR_SURFACE", "normal"], ["PAIR_MATCHED", "PAIR_RAISED", "normal"], ["PAIR_MATCHED", "PAIR_MET_QUIET", "normal"],
+  ["PAIR_MATCHED", "PAIR_SURFACE", "normal"], ["PAIR_MATCHED", "PAIR_MET_QUIET", "normal"],
   ["PAIR_INK", "PAIR_MET_QUIET", "normal"], ["PAIR_INK_MUTED", "PAIR_MET_QUIET", "normal"],
-  ["PAIR_INK_FAINT", "PAIR_MET_QUIET", "normal"],   // a claimed box's kind label; the met Experience cell's name
-  ["PAIR_MISSING", "PAIR_SURFACE", "normal"], ["PAIR_MISSING", "PAIR_RAISED", "normal"],
-  ["PAIR_GENERIC", "PAIR_SURFACE", "normal"], ["PAIR_GENERIC", "PAIR_RAISED", "normal"],
+  ["PAIR_INK_FAINT", "PAIR_MET_QUIET", "normal"],   // the met Experience cell's name
+  ["PAIR_MISSING", "PAIR_SURFACE", "normal"], ["PAIR_MISSING", "PAIR_RAISED", "normal"],    // a claim box's term
+  ["PAIR_MISSING", "PAIR_MISSING_QUIET", "normal"],                                     // Experience short
+  ["PAIR_GENERIC", "PAIR_SURFACE", "normal"], ["PAIR_GENERIC", "PAIR_GENERIC_QUIET", "normal"],
   // the three bar segments are UI indicators on the pair's ground
   ["PAIR_MATCHED", "PAIR_SURFACE", "ui"], ["PAIR_MISSING", "PAIR_SURFACE", "ui"], ["PAIR_GENERIC", "PAIR_SURFACE", "ui"],
-  ["PAIR_EDGE", "PAIR_SURFACE", "ui"], ["PAIR_EDGE", "PAIR_RAISED", "ui"],
+  // ⭐ A86: a claim box is identified by its FILLED + square, not its (decorative) edge — the square is
+  // the indicator, on the box; its glyph is the card's surface colour on the fill. Claimed: the green.
+  ["PAIR_MISSING", "PAIR_RAISED", "ui"], ["PAIR_SURFACE", "PAIR_MISSING", "normal"],
+  ["PAIR_MATCHED", "PAIR_MET_QUIET", "ui"], ["PAIR_SURFACE", "PAIR_MATCHED", "normal"],
   ["PAIR_KICKER", "PAIR_RAISED", "ui"],                                                 // a focus ring on a box
   ["PAIR_INK", "PAIR_LIT", "normal"],
   // "Not enough signal" has no fill, so it sits on the pair's ground directly

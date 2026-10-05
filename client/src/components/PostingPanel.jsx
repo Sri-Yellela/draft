@@ -6,8 +6,8 @@
 //             ⭐ A fact not on file is printed as an italic-serif "not stated" — a VALUE, never a blank.
 //             The Experience cell tints when the scorer judged the requirement met.
 //   BODY      the employer's ORIGINAL description, formatted plainly (shared/postingFormat.js): a drop
-//             cap on the first paragraph, THEIR headings as small-caps rules, THEIR bullets with accent
-//             markers. ⛔ No sectioning, no pull quote, no reordering of their words — the posting stays
+//             cap on the first paragraph, THEIR headings as small uppercase labels with a rule under
+//             them, THEIR bullets with accent markers — in Georgia, the sketch's reading face (A86). ⛔ No sectioning, no pull quote, no reordering of their words — the posting stays
 //             the employer's document.
 // ⛔ THE ATS CONTENT IS NOT IN HERE. It is its own card (components/AtsReport.jsx), beside this one.
 // This file reads no report section; it is handed, at most, the scorer's experience judgement.
@@ -31,7 +31,7 @@ export function PostingMasthead({ job, experience = null, showTitle = true }) {
   const kicker = kickerFor(job);
   const cells = deckStrip(job, { experience });
   return (
-    <header className="posting__mast" data-posting-masthead>
+    <header className="posting__mast" data-posting-masthead data-titled={showTitle ? "true" : "false"}>
       {kicker.length > 0 && <div className="posting__kicker" data-posting-kicker>{kicker.join(" · ")}</div>}
       {showTitle && <h2 className="posting__title">{job.title}</h2>}
       {showTitle && job.company && <div className="posting__company">{job.company}</div>}
