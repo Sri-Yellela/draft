@@ -105,12 +105,15 @@ test("an auto run previews by default — full-auto is now opt-in", async () => 
   } finally { t.close(); }
 });
 
-test("approvalMode:'auto' is how a caller opts back into full-auto", async () => {
+// D36 (10-05): this used to pin that approvalMode:'auto' opted back into full-auto — an unattended
+// submit to a real employer while the run bar said AUTO was locked. FULL_AUTO_PROVEN now gates it at
+// admission; the opt-out returns only when the owner flips that constant (test/d36ApplyPaths.test.js).
+test("approvalMode:'auto' is refused while full auto is unproven — 403, nothing queued", async () => {
   const t = setup();
   try {
     const r = await t.post("/api/apply/runs", { jobIds: ["gh1"], mode: "auto", approvalMode: "auto" });
-    const { runId } = await r.json();
-    assert.equal(runRow(t, runId).approval_mode, "auto");
+    assert.equal(r.status, 403);
+    assert.equal((await r.json()).error, "full_auto_locked");
   } finally { t.close(); }
 });
 
