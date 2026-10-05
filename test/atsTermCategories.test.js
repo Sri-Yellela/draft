@@ -208,7 +208,8 @@ test("the report version was bumped, or every cached report keeps the old catego
   // v4: AK1 changed what the NUMBER means (weighted terms, graded experience, constraints as a
   // penalty) and what the report carries (scorable / decline_reasons / weighting). Every cached v3
   // report would otherwise keep being served with the old semantics behind the same field names.
-  assert.equal(LOCAL_ATS_SOURCE, "local_ats_v4");
+  // v5: a met years requirement stopped paying a bonus (exp-weight-retune) — the number moved again.
+  assert.equal(LOCAL_ATS_SOURCE, "local_ats_v5");
   const server = fs.readFileSync("server.js", "utf8");
   assert.doesNotMatch(server, /"local_ats_v2"/, "no gate may still spell the superseded version");
 });
