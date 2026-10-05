@@ -394,7 +394,7 @@ console.log("\n6. ENRICHMENT — reported, NOT re-run");
   } else {
     console.log("   ⚠ " + Math.max(rest.no_hash, rest.no_enriched_at) + " RESTORED row(s) genuinely" +
       " lack enrichment. REPORTING AND STOPPING per");
-    console.log("     requirement 4 — do not run runEnrichment to close this without a decision.");
+    console.log("     requirement 4 — do not enrich them (am4Enrich export → import) to close this without a decision.");
   }
 }
 

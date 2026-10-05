@@ -27,8 +27,8 @@ const SPELLED = new Map(Object.entries({
  * The four values domain_profiles.seniority can hold, on the same rank scale as SENIORITY_RANK.
  *
  * THIS IS THE CANDIDATE'S OWN DECLARATION, and it is the authority on their level.
- * It is written only by the profile wizard and the profile editor — services/classifier.js produces
- * a seniority for search-query building but nothing writes that into the column. So when it says
+ * It is written only by the profile wizard and the profile editor — the deleted services/classifier.js
+ * (A80 V6) produced a seniority for search-query building, and nothing ever wrote it into the column. So when it says
  * "senior", a person chose "senior" about themselves.
  *
  * Kept as its own map rather than folded into SENIORITY_RANK: that map's keys also become the

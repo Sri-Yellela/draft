@@ -1,64 +1,65 @@
 #!/usr/bin/env node
 /**
- * AL3 (G1) — propose SKILL EQUIVALENCES from the corpus, offline.
+ * AL3 (G1) — propose SKILL EQUIVALENCES from the corpus, offline. ⛔ Under D17 it makes NO model call.
  *
  * THE MEASURED CEILING THIS ATTACKS. AK1's worst ATS inversion was -19 ranks: a reliability role
  * whose JD said "log analysis" where the résumé said "observability tooling". AK1 called that "a
  * ceiling on the approach, not a bug" — the scorer matches terms, and two names for one skill are
- * two terms. This is the only queued item that moves rho UPWARD rather than sideways.
+ * two terms.
  *
- * ── IT READS THE CORPUS VOCABULARY, NOT 1291 JOB DESCRIPTIONS ──────────────────────────────────
+ * ── IT READS THE CORPUS VOCABULARY, NOT THE JOB DESCRIPTIONS ───────────────────────────────────
  *
- * The task says "offline pass over the ~1291 active postings' JD text". This reads
- * `scraped_jobs.skills_json` instead — the per-posting skill terms enrichment already extracted
- * from exactly those JDs — and that is a deliberate improvement, not a shortcut:
+ * The batches are built from `scraped_jobs.skills_json` — the per-posting skill terms the scorer
+ * itself matches on (services/atsTermWeights.js builds its weights from the same column). Pairs for
+ * words the scorer never sees could not move rho however good they were. Provenance survives: which
+ * postings support a pair is recovered exactly, from which postings carry the terms.
  *
- *   · IT IS THE SAME VOCABULARY THE SCORER USES. services/atsTermWeights.js builds its weights
- *     from this column and the scorer matches against these terms. Mining equivalences from raw
- *     prose would produce pairs for words the scorer never sees, which is a table that cannot move
- *     rho however good it is.
- *   · ~40 calls instead of ~1291. The distinct vocabulary is a few thousand terms and batches
- *     cleanly; the JDs are ~4.5k chars each. At Haiku that is cents rather than ~$3.32, and the
- *     whole point of task G is that these assets are cheap enough to rebuild.
- *   · PROVENANCE SURVIVES. Which postings supported a pair is recovered exactly, from which
- *     postings contain the terms — the same join the corroboration count is built on.
+ * ── EXPORT → OWNER → IMPORT (D17, A80 V10) ─────────────────────────────────────────────────────
  *
- * ── WHAT IT DOES NOT DO ────────────────────────────────────────────────────────────────────────
+ * Until 10-05 `--propose` sent each batch of 60 terms to Haiku (purpose skill_synonyms — 36 calls
+ * on 09-04). D17 confines model calls to résumé generation, so that step now happens OUTSIDE the
+ * product: `--export` writes the same batches and the same rules as JSONL, the owner fills each
+ * line's `pairs`, and `--import` validates the file and records the pairs. The guards are in
+ * services/kb/synonymTransfer.js: invalid value, a tampered batch, a term the batch did not contain,
+ * a duplicate batch, a term that left the corpus — any one refuses the whole file. Re-importing the
+ * same file changes nothing.
  *
- * ⛔ IT PROMOTES NOTHING. Every row lands as 'proposed'. A false equivalence is a confidently wrong
- * match that shifts every score on the board in the same direction, invisibly, so promotion is a
- * human act — `--review` writes the sheet, `--confirm`/`--reject` record the decision. Corroboration
- * orders the queue and never promotes. See services/kb/skillSynonyms.js.
+ * ⛔ IT STILL PROMOTES NOTHING. Every imported pair lands as 'proposed'. A false equivalence is a
+ * confidently wrong match that shifts every score on the board in the same direction, invisibly, so
+ * promotion is a human act — `--review` writes the sheet, `--confirm`/`--reject` record the
+ * decision, and a rejection is sticky. Corroboration orders the queue and never promotes.
  *
- * Usage:
- *   node scripts/al3SkillSynonyms.mjs --propose [--batches N] [--yes]
+ * Usage (point --db at a COPY unless you mean to change the developer database):
+ *   node scripts/al3SkillSynonyms.mjs --export FILE.jsonl [--corpus SNAPSHOT.db] [--batches N]
+ *   (fill each line's "pairs" outside the product)
+ *   node scripts/al3SkillSynonyms.mjs --import FILE.jsonl [--corpus SNAPSHOT.db] [--allow-stale]   # dry run
+ *   node scripts/al3SkillSynonyms.mjs --import FILE.jsonl --apply
  *   node scripts/al3SkillSynonyms.mjs --review                     # write the review sheet
  *   node scripts/al3SkillSynonyms.mjs --confirm "k8s|kubernetes"   # promote (repeatable)
  *   node scripts/al3SkillSynonyms.mjs --reject  "kubernetes|docker"
  *   node scripts/al3SkillSynonyms.mjs --stats
+ * Every command takes --db PATH (default data/resume_master.db).
  */
 import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import "dotenv/config";
-import Anthropic from "@anthropic-ai/sdk";
 
-import { callModel, SYSTEM_USER_ID } from "../services/modelCall.js";
-import { DATA_CLASS, PROVIDER, resolveProvider } from "../shared/modelProviders.js";
-import { MODEL_HAIKU } from "../shared/anthropicModels.js";
-import { normaliseAtsTerm } from "../services/localAtsScorer.js";
 import {
-  recordSynonymProposals, listProposals, listConfirmed, confirmSynonym, rejectSynonym, synonymStats,
+  listProposals, listConfirmed, confirmSynonym, rejectSynonym, synonymStats,
 } from "../services/kb/skillSynonyms.js";
+import {
+  MIN_DF, BATCH, corpusVocabulary as vocabularyOfRows, vocabularyTerms, buildSynonymExport,
+  parseJsonl, planSynonymImport, applySynonymImport,
+} from "../services/kb/synonymTransfer.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, "..", "data", "resume_master.db");
 const SHEET = path.join(__dirname, "..", "docs", "al3-skill-synonym-review.md");
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
 const val = (f, d = null) => { const i = args.indexOf(f); return i >= 0 && args[i + 1] && !args[i + 1].startsWith("--") ? args[i + 1] : d; };
+const DB_PATH = val("--db") || path.join(__dirname, "..", "data", "resume_master.db");
 
 const db = new Database(DB_PATH);
 
@@ -102,168 +103,66 @@ function openCorpus() {
     `   Running anyway would build a synonym table from a handful of terms and report success.\n\n` +
     (candidates.length
       ? `   Point at a snapshot instead — the newest has the full board:\n\n` +
-        `       node scripts/al3SkillSynonyms.mjs --propose --corpus data/backups/${candidates[0]}\n`
+        `       node scripts/al3SkillSynonyms.mjs --export FILE.jsonl --corpus data/backups/${candidates[0]}\n`
       : `   No backups found in data/backups.\n`)
   );
   process.exit(2);
 }
-
-/** Terms seen in at least this many postings. Below it we are looking at one posting's phrasing. */
-const MIN_DF = 3;
-/** Terms per model call. Small enough that the model can hold the whole list in view. */
-const BATCH = 60;
 
 function corpusVocabulary(corpus) {
   const rows = corpus.prepare(`
     SELECT job_id, skills_json FROM scraped_jobs
     WHERE is_active = 1 AND skills_json IS NOT NULL AND skills_json != '' AND skills_json != '[]'
   `).all();
-  const postingsByTerm = new Map();
-  for (const r of rows) {
-    let arr;
-    try { arr = JSON.parse(r.skills_json); } catch { continue; }
-    if (!Array.isArray(arr)) continue;
-    const seen = new Set();
-    for (const entry of arr) {
-      const raw = typeof entry === "string" ? entry : entry?.skill;
-      const t = normaliseAtsTerm(raw);
-      if (!t || seen.has(t)) continue;
-      seen.add(t);
-      let list = postingsByTerm.get(t);
-      if (!list) { list = []; postingsByTerm.set(t, list); }
-      list.push(r.job_id);
-    }
-  }
-  return { postingsByTerm, corpusSize: rows.length };
+  return vocabularyOfRows(rows);
 }
 
-function buildPrompt(terms) {
-  return `You are building a SKILL SYNONYM TABLE for a resume/job matching engine.
-
-Below is a list of skill terms taken from real job postings. Find pairs among THESE TERMS ONLY that
-refer to the same or near-same skill.
-
-Two kinds, and the distinction matters more than the coverage:
-  "alias"   — the SAME thing under another name. k8s / kubernetes. postgres / postgresql.
-              js / javascript. Interchangeable in any sentence.
-  "related" — DIFFERENT but so close that a candidate strong in one is credited with the other.
-              log analysis / observability. ci cd / continuous integration.
-
-RULES — read these before answering:
-- Use ONLY terms that appear verbatim in the list. Do not invent or generalise a term.
-- Do NOT pair two things that merely co-occur or belong to the same area. kubernetes and docker are
-  BOTH containers and are NOT equivalent. python and django are NOT equivalent. aws and azure are
-  NOT equivalent — they are competitors, not synonyms.
-- Do NOT pair a broad field with a specific tool. "machine learning" is not "pytorch".
-- If you are not confident, LEAVE IT OUT. An empty list is a correct answer. A wrong pair silently
-  changes every score this engine produces, so a missed pair costs far less than a false one.
-
-TERMS:
-${terms.map(t => `- ${t}`).join("\n")}
-
-Reply ONLY with valid JSON, no markdown fences:
-{"pairs":[{"a":"<term from the list>","b":"<term from the list>","relation":"alias|related"}]}`;
-}
-
-async function propose() {
-  // ⛔ CHECK THE DESTINATION BEFORE SPENDING ANYTHING. The first run of this script made all 18
-  // model calls and THEN died on `no such table: skill_synonyms` — migration 098 had not been
-  // applied to the live database yet. Every extraction was paid for and thrown away. A writer that
-  // validates its destination only at write time turns any schema drift into wasted spend, and the
-  // failure arrives after the money is gone rather than before.
+function requireTable() {
   try {
     db.prepare("SELECT 1 FROM skill_synonyms LIMIT 1").get();
   } catch {
-    console.error(
-      `\n⛔ skill_synonyms DOES NOT EXIST in ${path.relative(process.cwd(), DB_PATH)}.\n\n` +
-      `   Migration 098 has not been applied to this database. Refusing to start: the extraction\n` +
-      `   costs real model calls and there would be nowhere to put the result.\n\n` +
-      `   Start the server once (it migrates at boot), or run the CLI migration runner.\n`
-    );
+    console.error(`\n⛔ skill_synonyms DOES NOT EXIST in ${DB_PATH}. Migration 098 has not been applied.\n` +
+      `   Start the server once against it (it migrates at boot), or run the CLI migration runner.\n`);
     process.exit(2);
   }
+}
 
-  const route = resolveProvider(process.env);
-  const onFreeTier = route.provider !== PROVIDER.ANTHROPIC;
+function exportBatches(out) {
+  requireTable();
   const corpus = openCorpus();
   const { postingsByTerm, corpusSize } = corpusVocabulary(corpus);
+  const terms = vocabularyTerms(postingsByTerm, MIN_DF);
+  const maxBatches = Number(val("--batches", "0")) || Infinity;
+  const lines = buildSynonymExport(terms, { batchSize: BATCH, maxBatches });
+  fs.writeFileSync(out, lines.map(l => JSON.stringify(l)).join("\n") + "\n");
+  console.log(`[al3] corpus: ${corpusSize} active postings with skills, ${postingsByTerm.size} distinct terms`);
+  console.log(`[al3] vocabulary at df>=${MIN_DF}: ${terms.length} terms -> ${lines.length - 1} batches of ${BATCH}`);
+  console.log(`[al3] wrote ${out}. Fill each line's "pairs" (the rules are on line 1), then:`);
+  console.log(`      node scripts/al3SkillSynonyms.mjs --import ${out}            (dry run)`);
+}
 
-  const terms = [...postingsByTerm.entries()]
-    .filter(([, posts]) => posts.length >= MIN_DF)
-    .sort((a, b) => b[1].length - a[1].length)
-    .map(([t]) => t);
-
-  const maxBatches = Number(val("--batches", "0")) || Math.ceil(terms.length / BATCH);
-  const batches = Math.min(maxBatches, Math.ceil(terms.length / BATCH));
-
-  console.log(`[al3] corpus: ${corpusSize} active postings, ${postingsByTerm.size} distinct terms`);
-  console.log(`[al3] vocabulary at df>=${MIN_DF}: ${terms.length} terms -> ${batches} calls of ${BATCH}`);
-  console.log(`[al3] provider: ${route.provider}${onFreeTier ? ` / ${route.model}` : " (Haiku)"}`);
-
-  // ⛔ THE FREE TIER IS THE PREMISE OF TASK G, NOT AN OPTIMISATION. Running this on Anthropic works
-  // and costs real money; that is a decision the owner makes, not one taken by default because a
-  // key happened to be absent. It is loud, and it needs --yes.
-  if (!onFreeTier && !has("--yes")) {
-    console.error(
-      `\n⛔ NOT ON A FREE TIER — reason: ${route.reason}. ${route.detail || ""}\n` +
-      `   Task G's whole principle is "use the FREE-TIER LLM offline to build deterministic assets".\n` +
-      `   This would run ${batches} Haiku calls against your paid key instead.\n\n` +
-      `   Either set GROQ_API_KEY + ENRICH_PROVIDER=groq, or pass --yes to spend deliberately.\n` +
-      `   --batches N bounds the run if you only want to prove the pipeline.\n`
-    );
+function importBatches(file) {
+  requireTable();
+  const corpus = openCorpus();
+  const { postingsByTerm } = corpusVocabulary(corpus);
+  const parsed = parseJsonl(fs.readFileSync(file, "utf8"));
+  const opts = { allowStale: has("--allow-stale") };
+  const apply = has("--apply");
+  const res = apply ? applySynonymImport(db, parsed, postingsByTerm, opts) : planSynonymImport(db, parsed, postingsByTerm, opts);
+  console.log(`[al3] ${res.batches} batches, ${res.pairs} distinct pairs: ${res.pairs - res.unchanged - res.alreadyReviewed} new or reinforced, ` +
+    `${res.unchanged} unchanged, ${res.alreadyReviewed} already decided by a person (left alone)`);
+  if (!res.ok) {
+    console.error(`\n⛔ REFUSED — ${res.problems.length} problem(s); nothing was written:`);
+    for (const p of res.problems) console.error(`   line ${p.lineNo}  ${p.code.padEnd(15)} ${p.detail}`);
     process.exit(2);
   }
-
-  const anthropic = process.env.ANTHROPIC_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_KEY }) : null;
-  const proposals = [];
-  let failed = 0;
-
-  for (let i = 0; i < batches; i++) {
-    const slice = terms.slice(i * BATCH, (i + 1) * BATCH);
-    if (!slice.length) break;
-    const inBatch = new Set(slice);
-    try {
-      const msg = await callModel({
-        anthropic, db, purpose: "skill_synonyms", userId: SYSTEM_USER_ID,
-        // PUBLIC: skill terms extracted from job adverts companies published about themselves.
-        // No candidate data is in this prompt at all — this is task G's stated boundary.
-        dataClass: DATA_CLASS.PUBLIC,
-        model: MODEL_HAIKU,
-        max_tokens: 1500,
-        messages: [{ role: "user", content: buildPrompt(slice) }],
-      });
-      const raw = msg.content.map(b => b.text || "").join("").replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(raw);
-      for (const p of parsed?.pairs || []) {
-        const a = normaliseAtsTerm(p?.a);
-        const b = normaliseAtsTerm(p?.b);
-        // ⛔ THE MODEL MAY ONLY PAIR TERMS IT WAS SHOWN. A hallucinated term has no postings behind
-        // it, so it would enter the table with fabricated provenance — the exact thing confidence
-        // and provenance exist to prevent.
-        if (!inBatch.has(a) || !inBatch.has(b)) continue;
-        const shared = (postingsByTerm.get(a) || []).filter(j => (postingsByTerm.get(b) || []).includes(j));
-        // Provenance is the postings that support the PAIR. Where the two never co-occur, fall back
-        // to the postings carrying either — still real, and recorded as such.
-        const support = shared.length ? shared : [...new Set([...(postingsByTerm.get(a) || []), ...(postingsByTerm.get(b) || [])])];
-        for (const jobId of support.slice(0, 25)) {
-          proposals.push({ term: a, equivalent: b, relation: p?.relation, jobId });
-        }
-      }
-    } catch (e) {
-      failed++;
-      console.warn(`  batch ${i + 1}/${batches} failed: ${e.message}`);
-    }
-    process.stdout.write(`\r[al3] ${i + 1}/${batches} batches`);
+  if (!apply) { console.log("DRY RUN — nothing written. Add --apply to record these as 'proposed'."); return; }
+  if (res.written) {
+    console.log(`[al3] recorded: ${res.written.inserted} new, ${res.written.reinforced} reinforced`);
   }
-  console.log("");
-
-  const res = recordSynonymProposals(db, proposals);
-  console.log(`\n[al3] ${res.distinctPairs} distinct pairs proposed ` +
-              `(${res.inserted} new, ${res.reinforced} reinforced, ${res.skippedAlreadyReviewed} already reviewed)`);
-  if (failed) console.log(`[al3] ${failed} batch(es) failed`);
   console.log(`[al3] status: ${JSON.stringify(synonymStats(db))}`);
-  console.log(`\nNOTHING IS LIVE YET. Every row is 'proposed' and the scorer reads only 'confirmed'.`);
-  console.log(`Next: node scripts/al3SkillSynonyms.mjs --review`);
+  console.log("NOTHING IS LIVE YET. Every row is 'proposed' and the scorer reads only 'confirmed'.");
+  console.log("Next: node scripts/al3SkillSynonyms.mjs --review");
 }
 
 function writeReviewSheet() {
@@ -335,10 +234,19 @@ if (has("--stats")) {
   console.log(`${n} updated. status: ${JSON.stringify(synonymStats(db))}`);
 } else if (has("--review")) {
   writeReviewSheet();
+} else if (has("--export")) {
+  const out = val("--export");
+  if (!out) { console.error("--export FILE"); process.exit(1); }
+  exportBatches(out);
+} else if (has("--import")) {
+  const file = val("--import");
+  if (!file) { console.error("--import FILE"); process.exit(1); }
+  importBatches(file);
 } else if (has("--propose")) {
-  await propose();
+  console.error("--propose is retired (D17, A80 V10): it sent the vocabulary to a model. Use --export, fill the pairs, then --import.");
+  process.exit(1);
 } else {
-  console.log("one of --propose | --review | --confirm a|b | --reject a|b | --stats");
+  console.log("one of --export FILE | --import FILE [--apply] | --review | --confirm a|b | --reject a|b | --stats");
   process.exit(1);
 }
 db.close();

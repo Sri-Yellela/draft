@@ -26,33 +26,46 @@
  * it is the expected answer when nothing fits, because a model asked to pick from a list will pick
  * from the list.
  *
- * Nothing proposed here reaches the matcher. `--confirm` does, and only after a person reads it.
+ * ── EXPORT → OWNER → IMPORT (D17, A80 V11) ─────────────────────────────────────────────────────
  *
- * Usage:
- *   node scripts/al4LcaResolution.mjs --propose [--yes]
+ * Until 10-05 `--propose` asked Haiku (purpose lca_company_resolution — 3 calls on 09-05). D17
+ * confines model calls to résumé generation, so the question now goes to the owner as a file:
+ * `--export` writes one line per AMBIGUOUS company with its candidate employers and the rules
+ * below; the owner fills `answer`; `--import` validates it (services/kb/lcaResolutionTransfer.js:
+ * invalid value, an unknown or no-longer-ambiguous company, a tampered or stale candidate list, an
+ * employer that is not a candidate, a duplicate — any one refuses the whole file) and records it.
+ * The grader's name is required and kept with every answer.
+ *
+ * Nothing imported here reaches the matcher. `--confirm` does, and only after a person reads it.
+ *
+ * Usage (point --db at a COPY unless you mean to change the developer database):
+ *   node scripts/al4LcaResolution.mjs --export FILE.jsonl
+ *   (fill each line's "answer" outside the product)
+ *   node scripts/al4LcaResolution.mjs --import FILE.jsonl --grader NAME            # dry run
+ *   node scripts/al4LcaResolution.mjs --import FILE.jsonl --grader NAME --apply
  *   node scripts/al4LcaResolution.mjs --review
  *   node scripts/al4LcaResolution.mjs --confirm "Ramp"      (repeatable)
  *   node scripts/al4LcaResolution.mjs --reject  "Linear"
  *   node scripts/al4LcaResolution.mjs --rate                # the match rate, before/after
+ * Every command takes --db PATH (default data/resume_master.db).
  */
 import Database from "better-sqlite3";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import "dotenv/config";
-import Anthropic from "@anthropic-ai/sdk";
 
-import { callModel, SYSTEM_USER_ID } from "../services/modelCall.js";
-import { DATA_CLASS, PROVIDER, resolveProvider } from "../shared/modelProviders.js";
-import { MODEL_HAIKU } from "../shared/anthropicModels.js";
 import {
-  recordResolutionProposal, listResolutionProposals, confirmResolution, rejectResolution,
+  listResolutionProposals, confirmResolution, rejectResolution,
   resolutionStats, RESOLUTION_CONFIDENCE,
 } from "../services/kb/lcaResolution.js";
+import { buildLcaExport, planLcaImport, applyLcaImport } from "../services/kb/lcaResolutionTransfer.js";
+import { parseJsonl } from "../services/kb/synonymTransfer.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, "..", "data", "resume_master.db");
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
+const val = (f, d = null) => { const i = args.indexOf(f); return i >= 0 && args[i + 1] && !args[i + 1].startsWith("--") ? args[i + 1] : d; };
+const DB_PATH = val("--db") || path.join(__dirname, "..", "data", "resume_master.db");
 
 const db = new Database(DB_PATH);
 
@@ -75,15 +88,12 @@ function candidatesFor(company) {
   `).all(`${token}%`);
 }
 
-function buildPrompt(company, candidates) {
-  return `A job board lists a company called "${company}". US Department of Labor H-1B (LCA) filings
-are recorded against LEGAL ENTITY names. Below are every LCA employer whose name begins with the
-same word.
+// The rules the model was given, unchanged in substance — now addressed to whoever fills the file.
+const RULES = `A job board lists each company below. US Department of Labor H-1B (LCA) filings
+are recorded against LEGAL ENTITY names. Each line gives every LCA employer whose name begins with the
+same word as the company.
 
-Which ONE of these, if any, is the legal entity of the company "${company}"?
-
-CANDIDATES:
-${candidates.map((c, i) => `${i + 1}. ${c.employer_name}  (${c.certified} certified across ${c.periods} quarters)`).join("\n")}
+For each line: which ONE of its candidates, if any, is the legal entity of that company?
 
 ⛔ READ BEFORE ANSWERING:
 - "none" is a REAL and often CORRECT answer. Many well-known companies have never filed an LCA at
@@ -94,63 +104,53 @@ ${candidates.map((c, i) => `${i + 1}. ${c.employer_name}  (${c.certified} certif
   it does not — a false statement about a third party who cannot correct it.
 - Answer "none" unless you specifically know this legal entity IS this company.
 
-Reply ONLY with valid JSON, no markdown fences:
-{"employer_name": "<exact name from the list, or null>", "confidence": <0.0-1.0>, "reason": "<one sentence>"}`;
-}
+Fill "answer" as {"employer_name": "<exact name from candidates, or null for none>",
+"confidence": <0.0-1.0 or null>, "reason": "<one sentence — required, also for none>"}.
+Leave a line's answer empty (null and "") to skip it for now. Change nothing else on the line.`;
 
-async function propose() {
+/** The ambiguous companies, with their candidates — and the ones skipped, said out loud. */
+function askable({ quiet = false } = {}) {
   const rows = unresolved();
   // ⛔ AMBIGUOUS ONLY. See the header: an unmatched company has no candidates, so there is nothing
   // to resolve and the only possible answer is an invented one.
-  const askable = rows.filter(r => r.match_status === "ambiguous");
+  const ambiguous = rows.filter(r => r.match_status === "ambiguous");
   const skipped = rows.filter(r => r.match_status !== "ambiguous");
-
-  console.log(`[al4] unresolved: ${rows.length}  (${askable.length} ambiguous, ${skipped.length} unmatched)`);
-  for (const s of skipped) {
-    console.log(`      skipping ${s.company} — ${s.match_status}: no candidate entities exist, so there is nothing to resolve`);
-  }
-  if (!askable.length) { console.log("nothing to ask about."); return; }
-
-  const route = resolveProvider(process.env);
-  if (route.provider === PROVIDER.ANTHROPIC && !has("--yes")) {
-    console.error(`\n⛔ NOT ON A FREE TIER (${route.reason}). ${askable.length} Haiku calls against the paid key. Pass --yes.\n`);
-    process.exit(2);
-  }
-  const anthropic = process.env.ANTHROPIC_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_KEY }) : null;
-
-  for (const row of askable) {
-    const candidates = candidatesFor(row.company);
-    if (!candidates.length) { console.log(`  ${row.company}: no candidates found`); continue; }
-    try {
-      const msg = await callModel({
-        anthropic, db, purpose: "lca_company_resolution", userId: SYSTEM_USER_ID,
-        // PUBLIC: company legal names from a US government disclosure dataset, and a brand name
-        // from a job posting. No candidate data whatsoever.
-        dataClass: DATA_CLASS.PUBLIC,
-        model: MODEL_HAIKU, max_tokens: 400,
-        messages: [{ role: "user", content: buildPrompt(row.company, candidates) }],
-      });
-      const raw = msg.content.map(b => b.text || "").join("").replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(raw);
-      const name = parsed?.employer_name || null;
-      // The model may only choose from what it was shown. A name it invented has no filings behind
-      // it, and would become a sponsorship claim backed by nothing.
-      const valid = name && candidates.some(c => c.employer_name === name);
-      recordResolutionProposal(db, {
-        company: row.company,
-        resolvedEmployerName: valid ? name : null,
-        candidates: candidates.map(c => ({ name: c.employer_name, certified: c.certified })),
-        modelConfidence: Number(parsed?.confidence) || null,
-        modelReason: (valid || !name)
-          ? String(parsed?.reason || "").slice(0, 400)
-          : `model named "${name}", which is not in the candidate list — recorded as none`,
-      });
-      console.log(`  ${row.company.padEnd(12)} -> ${valid ? name : "none"}  (model confidence ${parsed?.confidence ?? "?"})`);
-    } catch (e) {
-      console.warn(`  ${row.company}: failed — ${e.message}`);
+  if (!quiet) {
+    console.log(`[al4] unresolved: ${rows.length}  (${ambiguous.length} ambiguous, ${skipped.length} unmatched)`);
+    for (const s of skipped) {
+      console.log(`      skipping ${s.company} — ${s.match_status}: no candidate entities exist, so there is nothing to resolve`);
     }
   }
-  console.log(`\nstatus: ${JSON.stringify(resolutionStats(db))}`);
+  return ambiguous
+    .map(r => ({ company: r.company, candidates: candidatesFor(r.company).map(c => ({ name: c.employer_name, certified: c.certified, periods: c.periods })) }))
+    .filter(a => a.candidates.length);
+}
+
+function exportResolutions(out) {
+  const list = askable();
+  const lines = buildLcaExport(list, RULES);
+  fs.writeFileSync(out, lines.map(l => JSON.stringify(l)).join("\n") + "\n");
+  console.log(`[al4] wrote ${list.length} companies to ${out}. Fill each "answer", then:`);
+  console.log(`      node scripts/al4LcaResolution.mjs --import ${out} --grader NAME   (dry run)`);
+}
+
+function importResolutions(file) {
+  const current = new Map(askable({ quiet: true }).map(a => [a.company, a.candidates]));
+  const parsed = parseJsonl(fs.readFileSync(file, "utf8"));
+  const opts = { grader: val("--grader") };
+  const apply = has("--apply");
+  const lookup = (c) => current.get(c) || null;
+  const res = apply ? applyLcaImport(db, parsed, lookup, opts) : planLcaImport(db, parsed, lookup, opts);
+  console.log(`[al4] ${res.lines} companies: ${res.proposals.length} to record, ${res.unchanged} unchanged, ` +
+    `${res.unanswered} not answered yet, ${res.alreadyReviewed} already decided by a person (left alone)`);
+  for (const p of res.proposals) console.log(`  ${p.company.padEnd(12)} -> ${p.resolvedEmployerName || "none"}`);
+  if (!res.ok) {
+    console.error(`\n⛔ REFUSED — ${res.problems.length} problem(s); nothing was written:`);
+    for (const p of res.problems) console.error(`   line ${p.lineNo}  ${p.code.padEnd(18)} ${p.detail}`);
+    process.exit(2);
+  }
+  if (!apply) { console.log("DRY RUN — nothing written. Add --apply to record these as 'proposed'."); return; }
+  console.log(`[al4] recorded ${res.written}. status: ${JSON.stringify(resolutionStats(db))}`);
   console.log("NOTHING IS LIVE. Confirm with --confirm \"<Company>\" after reading --review.");
 }
 
@@ -187,7 +187,18 @@ function rate() {
   console.log(`"no evidence of sponsorship" is the correct answer for them.`);
 }
 
-if (has("--propose")) await propose();
+if (has("--export")) {
+  const out = val("--export");
+  if (!out) { console.error("--export FILE"); process.exit(1); }
+  exportResolutions(out);
+} else if (has("--import")) {
+  const f = val("--import");
+  if (!f) { console.error("--import FILE --grader NAME"); process.exit(1); }
+  importResolutions(f);
+} else if (has("--propose")) {
+  console.error("--propose is retired (D17, A80 V11): it asked a model. Use --export, fill the answers, then --import.");
+  process.exit(1);
+}
 else if (has("--review")) review();
 else if (has("--rate")) rate();
 else if (has("--confirm") || has("--reject")) {
@@ -201,7 +212,7 @@ else if (has("--confirm") || has("--reject")) {
   console.log(`status: ${JSON.stringify(resolutionStats(db))}`);
   console.log("Re-run the LCA rollup for a confirmation to take effect in company_lca_sponsorship.");
 } else {
-  console.log("one of --propose | --review | --confirm <Company> | --reject <Company> | --rate");
+  console.log("one of --export FILE | --import FILE --grader NAME [--apply] | --review | --confirm <Company> | --reject <Company> | --rate");
   process.exit(1);
 }
 db.close();

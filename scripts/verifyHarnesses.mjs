@@ -33,8 +33,10 @@
  * that would is in EXCLUDED below precisely because it spends tokens. So a full green board says
  * the apply pipeline, the browser and the extension work; it says nothing about which provider
  * served a call or what it cost. Cost and routing are covered by `npm test`
- * (test/modelCallGuard.test.js, test/providerRouting.test.js) and, for real traffic, only by
- * scripts/al1ProviderQualityDiff.mjs, which is run by hand.
+ * (test/modelCallGuard.test.js, test/providerRouting.test.js, test/d17ModelCallSites.test.js).
+ * Real traffic is not verified by any script: the one that did, al1ProviderQualityDiff.mjs, was
+ * deleted under D17 (A80 V9) once no production call routed off Anthropic — what is left is
+ * generation and cover letters, and only a real request shows those working.
  *
  * Usage:
  *   node scripts/verifyHarnesses.mjs                  # all of them
@@ -80,13 +82,11 @@ const EXCLUDED = {
   freePort:            "utility",
   importJobUrls:       "utility, writes to the database",
   ingestLca:           "utility, downloads a dataset",
-  runEnrichment:       "utility, spends model tokens",
-  al1ProviderQualityDiff: "REAL enrichment on BOTH providers — the Anthropic arm spends tokens on every row; run it by hand",
   al5TokenizedGeneration: "REAL generation x2 — spends model tokens on every run; run it by hand",
   al8FormFieldMappings: "utility — proposes/reviews the derived label map against the real database; asserts nothing",
-  al4LcaResolution:    "OFFLINE asset generation — model calls over public LCA company names; run it by hand",
+  al4LcaResolution:    "OFFLINE asset generation — export → owner → import of LCA company resolutions (D17: no model call), and --import --apply writes to the database; run it by hand. test/a80LcaResolutionTransfer.test.js is the half that asserts",
   al3SynonymRhoEffect: "measurement, not a harness — re-scores the graded 30 against a read-only backup and prints rho; asserts nothing",
-  al3SkillSynonyms:    "OFFLINE asset generation — spends model tokens over the corpus vocabulary; run it by hand, and only when the review sheet is being rebuilt",
+  al3SkillSynonyms:    "OFFLINE asset generation — export → owner → import of synonym proposals (D17: no model call), and --import --apply writes to the database; run it by hand. test/a80SynonymTransfer.test.js is the half that asserts",
   ak2AtsGradingSet:    "utility, writes the grading sheet to docs/ and asserts nothing",
   am1PreserveGradedCorpus: "utility — copies a 110 MB backup to data/evidence/ and rewrites the docs fixture; run it when the corpus needs re-pinning. am1GradedCorpusVerify is the half that asserts, and it stays in the suite",
   am1PurgeImpactAudit: "read-only forensics report against the real database and a backup; asserts nothing",

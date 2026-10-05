@@ -15,7 +15,8 @@
 // And no file but services/modelCall.js may talk to the SDK directly: a direct
 // `anthropic.messages.create` would walk round this whole check.
 //
-// Scripts are deliberately out of scope here (A80 V8–V12 are one-off tools, decided separately).
+// Scripts (scripts/) are held by a second, file-level ratchet at the bottom of this file
+// (A80 V8–V12): a script may reach a model only if it is the generation family or a named A80 item.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -30,8 +31,8 @@ const ALLOWED = new Set([
 // Each entry names its A80 item. Delete the entry in the same commit that removes the call.
 const KNOWN_VIOLATIONS = new Map([
   // V4 closed 10-05: enrich_job's call was deleted from enrichJob.js once A76 landed (pinned below).
+  // V6 closed 10-05: /api/smart-search and services/classifier.js deleted — no UI had called it (pinned below).
   ["domain_chips",   "A80 V3 — /api/domain-profiles/generate-chips"],
-  ["classifier",     "A80 V6 — /api/smart-search sends the résumé to a classifier"],
 ]);
 
 function productionFiles() {
@@ -140,4 +141,91 @@ test("D17 V4: nothing in production starts a model enrichment pass — no cron d
     "enrichJob.js calls a model again — enrichment is export → import only (D17)");
   const route = fs.readFileSync("routes/enrichment.js", "utf8");
   assert.match(route, /status\(410\)[\s\S]{0,80}enrichment_by_model_retired/, "POST /run's apply is refused");
+});
+
+test("D17 V6: no résumé classifier in draft — /api/smart-search and services/classifier.js stay deleted", () => {
+  // The route sent 2,000 chars of the résumé to Haiku to pick a search query. Its only UI, the
+  // Smart Search button, was removed in a68c6c0 (2026-04-14); the route outlived it by six months.
+  // The tools service still classifies INSIDE generate when no role family is sent — that is part of
+  // résumé generation and pinned in resume-master's own ratchet.
+  assert.equal(fs.existsSync("services/classifier.js"), false, "services/classifier.js is back");
+  const src = fs.readFileSync("server.js", "utf8");
+  assert.doesNotMatch(src, /app\.(post|get)\("\/api\/smart-search"/, "/api/smart-search is back");
+  assert.doesNotMatch(src, /from "\.\/services\/classifier\.js"/);
+});
+
+// ── SCRIPTS (A80 V8–V12) ─────────────────────────────────────────────────────────────────────────
+// One-off tools are not production, but D17 still binds them: every batch job needs an export and
+// an import so the owner can do the model's part by hand. Held per FILE, because a script may build
+// its client and call the SDK in ways the purpose scan above was never meant to read.
+const SCRIPT_ALLOWED = new Map([
+  // Verifies the tokenized GENERATION round trip on a real Sonnet call — the generation family.
+  ["scripts/al5TokenizedGeneration.mjs", "generation — AL5's tokenized round trip"],
+]);
+const SCRIPT_KNOWN_VIOLATIONS = new Map([
+  // V8 closed 10-05: scripts/a76LlmGradedCorpus.mjs is export → grade → import (A76, 291c906).
+  // V9 closed 10-05: scripts/al1ProviderQualityDiff.mjs deleted (pinned below).
+  // V10 closed 10-05: scripts/al3SkillSynonyms.mjs is export → owner → import (test/a80SynonymTransfer).
+  // V11 closed 10-05: scripts/al4LcaResolution.mjs is export → owner → import (test/a80LcaResolutionTransfer).
+]);
+
+function scriptFiles() {
+  const out = [];
+  const walk = (d) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (/\.(m?js|cjs)$/.test(e.name)) out.push(p.replace(/\\/g, "/"));
+    }
+  };
+  walk("scripts");
+  return out;
+}
+
+/** Code only — a script's header may describe the model call it used to make. */
+function codeOf(src) {
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").split(/\r?\n/)
+    .filter(l => !/^\s*\/\//.test(l)).map(l => l.replace(/\s\/\/.*$/, "")).join("\n");
+}
+
+const REACHES_A_MODEL = /callModel\(|\.messages\.(create|stream)\s*\(|new Anthropic\(|callProvider\(|api\.anthropic\.com|api\.groq\.com|generativelanguage\.googleapis/;
+
+test("D17 scripts: a script reaches a model only for generation, or for a violation A80 already names", () => {
+  const found = scriptFiles().filter(f => REACHES_A_MODEL.test(codeOf(fs.readFileSync(f, "utf8"))));
+  const unexpected = found.filter(f => !SCRIPT_ALLOWED.has(f) && !SCRIPT_KNOWN_VIOLATIONS.has(f));
+  assert.deepEqual(unexpected, [],
+    "D17: a batch job needs an export and an import, not a model loop. New model-calling script(s):\n" +
+    unexpected.map(f => `  ${f}`).join("\n"));
+  const fixed = [...SCRIPT_KNOWN_VIOLATIONS.keys()].filter(f => !found.includes(f));
+  assert.deepEqual(fixed, [],
+    "These scripts no longer reach a model — delete them from SCRIPT_KNOWN_VIOLATIONS:\n" +
+    fixed.map(f => `  ${f}: ${SCRIPT_KNOWN_VIOLATIONS.get(f)}`).join("\n"));
+  const allowedGone = [...SCRIPT_ALLOWED.keys()].filter(f => !found.includes(f));
+  assert.deepEqual(allowedGone, [], "an allowed script stopped calling a model — drop it from SCRIPT_ALLOWED");
+});
+
+test("D17 V8: the A76 corpus script grades by export → grade → import, never by a model", () => {
+  const src = fs.readFileSync("scripts/a76LlmGradedCorpus.mjs", "utf8");
+  assert.doesNotMatch(codeOf(src), REACHES_A_MODEL);
+  assert.match(src, /--export <out\.jsonl>/);
+  assert.match(src, /--import <graded\.jsonl>/);
+  assert.match(src, /--revert <batchId>/);
+});
+
+test("D17 V9: the provider-comparison script stays deleted", () => {
+  // al1ProviderQualityDiff.mjs ran the enrichment prompt on Groq AND Haiku to compare them (it
+  // measured 30.5% Jaccard on skills_json). With enrichment export → import only, there is no
+  // production call for it to compare, and its Anthropic arm spent tokens on every row.
+  assert.equal(fs.existsSync("scripts/al1ProviderQualityDiff.mjs"), false);
+});
+
+test("D17 V12: the enrichment scripts cannot run a model pass — runEnrichment.mjs is gone, am4Enrich run --apply refuses", () => {
+  // runEnrichment.mjs had been a refusing stub since V4; it is deleted. am4Enrich keeps `run` as a
+  // dry-run backlog count, and its --apply dies naming export → import.
+  assert.equal(fs.existsSync("scripts/runEnrichment.mjs"), false, "scripts/runEnrichment.mjs is back");
+  const am4 = fs.readFileSync("scripts/am4Enrich.mjs", "utf8");
+  assert.match(am4, /die\("`run --apply` is retired: enrichment no longer calls a model \(D17\)/);
+  assert.match(am4, /if \(cmd === "export"\)/);
+  assert.match(am4, /if \(cmd === "import"\)/);
+  assert.doesNotMatch(codeOf(am4), REACHES_A_MODEL);
 });
