@@ -4156,18 +4156,33 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           return out.status(409).json({ ...body, error: "no_retryable_jobs", skipped });
         }
         // The held rows are dismissed first: leaving them held_review would keep re-offering
-        // questions that have since been answered.
-        const dismiss = db.prepare(`
-          UPDATE apply_run_jobs SET status='superseded', finished_at=unixepoch()
-          WHERE user_id=? AND job_id=? AND status='held_review'
+        // questions that have since been answered. (And startRun's duplicate check counts a row
+        // awaiting approval, so it has to be out of the way before the retry is admitted.)
+        //
+        // ⛔ D36: KEEP WHAT WAS DISMISSED, and put it back if the retry is refused. This superseded
+        // the held rows and then called startRun; a refusal (the kill switch's 503, a full line, a
+        // cap, FULL AUTO locked) returned an error with the rows already gone — so the application
+        // vanished from Draft House: no longer held, never retried, with nothing to press.
+        const heldNow = db.prepare(`
+          SELECT id, finished_at FROM apply_run_jobs WHERE user_id=? AND job_id=? AND status='held_review'
         `);
-        db.transaction(() => { for (const id of toRetry) dismiss.run(req.user.id, id); })();
+        const dismissed = [];
+        const dismiss = db.prepare(`UPDATE apply_run_jobs SET status='superseded', finished_at=unixepoch() WHERE id=? AND status='held_review'`);
+        db.transaction(() => {
+          for (const id of toRetry) for (const r of heldNow.all(req.user.id, id)) {
+            if (dismiss.run(r.id).changes) dismissed.push(r);
+          }
+        })();
 
         const retry = startRun(req.user.id, normalisePlanTier(req.user?.planTier), toRetry,
           { mode, tool: "generate", approvalMode, retryOfHeld: true });
         // A refusal is surfaced as-is: the answers were still saved, but the retry did not start,
         // and the caller needs the real reason (cap, kill switch, concurrency).
-        if (retry.status !== 202) return out.status(retry.status).json({ ...body, ...retry.body, skipped });
+        if (retry.status !== 202) {
+          const restore = db.prepare(`UPDATE apply_run_jobs SET status='held_review', finished_at=? WHERE id=? AND status='superseded'`);
+          db.transaction(() => { for (const r of dismissed) restore.run(r.finished_at, r.id); })();
+          return out.status(retry.status).json({ ...body, ...retry.body, skipped, stillHeld: dismissed.map(r => r.id) });
+        }
         return out.status(202).json({ ...body, skipped, retry: retry.body });
       }
 
