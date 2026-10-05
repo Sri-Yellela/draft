@@ -17,74 +17,43 @@
 // grouped by feature rather than only by model.
 
 import { trackApiCall } from "./usageTracker.js";
-import { DATA_CLASS, PROVIDER, PROVIDERS, resolveProvider } from "../shared/modelProviders.js";
 import { assertOutboundFields } from "../shared/piiPolicy.js";
-import { callProvider } from "./providerTransport.js";
 
-// ── ROUTING ─────────────────────────────────────────────────────────────────────────────────────
+// ── ONE PROVIDER: ANTHROPIC ─────────────────────────────────────────────────────────────────────
 //
-// ROUTE BY WHOSE DATA IT IS, NOT BY WHAT A FILTER FINDS IN THE STRING. "Did the regex catch every
-// email in this resume" is not a checkable property; "does this call site send job-advert text or
-// person text" is, and a test can assert it per site.
+// Every call this wrapper makes goes to the Anthropic SDK. There is no second provider.
 //
-// PUBLIC   — job descriptions, titles, requirements: text a company published about itself.
-//            No production call site is PUBLIC any more: enrich_job (60.2% of all spend at its peak)
-//            was deleted by A80 (10-05); classify_job by D17 V7; import_job by D33. The one script
-//            that compared providers, al1ProviderQualityDiff.mjs, was deleted too (A80 V9).
-// CANDIDATE — anything derived from a person. resume_generate, enhanceProfileResume, parse-pdf,
-//            cover letters, domainProfiles suggestions. These stay on Anthropic. Redaction is NOT
-//            part of this: a call site either sends public text or it does not.
+// ⛔ A87 (10-05) DELETED THE GROQ/GEMINI STACK. shared/modelProviders.js (the free-tier catalog),
+// services/providerTransport.js (their fetch adapters, pacing and max_tokens floor) and the
+// ENRICH_PROVIDER / ENRICH_MODEL / GROQ_API_KEY / GOOGLE_API_KEY switches existed to route PUBLIC
+// job-advert text — enrich_job, classify_job, import_job — to a free tier. D17 deleted all three
+// model calls (A80 V4, V7; D33), so the route had no traffic left, and the provider-comparison
+// script went with A80 V9. test/a87AnthropicOnly.test.js fails if any of it comes back.
 //
-// ⛔ THE DEFAULT IS CANDIDATE. A call site that declares nothing stays on Anthropic. That is the
-// whitelist direction and it is the whole safety property here — a blacklist would mean that
-// forgetting to annotate a new resume-touching site silently routes a person's home address and
-// work authorisation to a free tier that may train on it. Forgetting to annotate a public site
-// costs a fraction of a cent.
+// ── WHOSE DATA IT IS ─────────────────────────────────────────────────────────────────────────────
+//
+// A call site still declares WHAT it sends, because one class carries a guard:
+//
+// CANDIDATE — anything derived from a person: cover letters, domain-profile suggestions, the AL5
+//             harness's untokenized arm. The default, so a site that declares nothing is CANDIDATE.
+// TOKENIZED — a payload built from shared/piiPolicy.js's allow-list. callModel REFUSES to send it
+//             unless every field passes assertOutboundFields; see below.
+//
+// PUBLIC is gone with the route it existed for. An unknown class (`"public"` included) is refused
+// rather than read as CANDIDATE, so a stale declaration is a loud error, not a silent relabel.
+export const DATA_CLASS = Object.freeze({
+  /** Anything derived from a person: resumes, profiles, cover letters, parsed PDFs. */
+  CANDIDATE: "candidate",
+  /**
+   * TASK F — a payload built from an explicit field ALLOW-LIST and tokenized, so it carries the
+   * structure of a candidate's history without their identity. callModel refuses it unless the
+   * whitelist assertion passes. See shared/piiPolicy.js.
+   */
+  TOKENIZED: "tokenized",
+});
 
-/** Warned reasons, so a fallback is loud ONCE per process rather than 1302 times per pass. */
-const warnedFallbacks = new Set();
-
-function warnFallbackOnce(reason, detail) {
-  if (warnedFallbacks.has(reason)) return;
-  warnedFallbacks.add(reason);
-  console.warn(
-    `[modelCall] PUBLIC traffic is NOT using a free tier — falling back to Anthropic. ` +
-    `Reason: ${reason}. ${detail || ""} ` +
-    `This warns once per process; every subsequent PUBLIC call takes the same fallback.`
-  );
-}
-
-/** Test seam — the warn-once set is process-global and would hide a second test's warning. */
-export function resetRoutingWarnings() {
-  warnedFallbacks.clear();
-}
-
-/**
- * Decide which provider and model a call uses. Exported for testing; nothing else may call it,
- * because a second consumer is a second routing path and this must have exactly one.
- *
- * @returns {{ provider: string, model: string }}
- */
-export function routeFor({ dataClass, model, env = process.env } = {}) {
-  // TOKENIZED is routable for the same reason PUBLIC is: what leaves carries no identity. The
-  // difference is that PUBLIC is safe by WHERE THE TEXT CAME FROM, while TOKENIZED is safe only
-  // because callModel refuses to send it unless the whitelist assertion passes — see the guard in
-  // callModel below, which is the thing that makes this class meaningful.
-  if (dataClass !== DATA_CLASS.PUBLIC && dataClass !== DATA_CLASS.TOKENIZED) {
-    return { provider: PROVIDER.ANTHROPIC, model };
-  }
-
-  // Throws on an unpinned ENRICH_MODEL, deliberately — see requirement 6 in shared/modelProviders.js.
-  const resolved = resolveProvider(env);
-  if (resolved.provider === PROVIDER.ANTHROPIC) {
-    // UNCONFIGURED MUST BE LOUD. cacheJoboFeed logged "sync complete — 0 jobs cached" for months on
-    // exactly this shape: a missing key producing a quiet no-op that reads as success.
-    // `not_configured` is the honest default and is not a defect, so it does not warn.
-    if (resolved.reason !== "not_configured") warnFallbackOnce(resolved.reason, resolved.detail);
-    return { provider: PROVIDER.ANTHROPIC, model };
-  }
-  return { provider: resolved.provider, model: resolved.model };
-}
+/** The provider recorded on every usage_events row this wrapper writes. */
+const PROVIDER_ANTHROPIC = "anthropic";
 
 // Background work — enrichment, import extraction, job classification, and the unauthenticated
 // standalone endpoints — has no user in scope, but usage_events.user_id is NOT NULL REFERENCES
@@ -128,8 +97,7 @@ export async function callModel({
   // records the row, so it runs on success AND on failure, and a throwing callback cannot escape
   // into the caller's error path.
   onTracked = null,
-  // WHOSE DATA THIS CALL SENDS. See the routing note at the top of this file. Defaults to
-  // CANDIDATE so an unannotated site can never be routed off Anthropic by accident.
+  // WHOSE DATA THIS CALL SENDS. See the note at the top of this file. Defaults to CANDIDATE.
   dataClass = DATA_CLASS.CANDIDATE,
   // TASK F — the STRUCTURED payload a TOKENIZED prompt was rendered from. Required for that class
   // and asserted field-by-field against shared/piiPolicy.js before anything is sent. Not forwarded
@@ -140,9 +108,14 @@ export async function callModel({
   if (!purpose) throw new Error("callModel: `purpose` is required — it is how spend is attributed to a feature");
   if (!model) throw new Error(`callModel(${purpose}): no model — import MODEL_SONNET/MODEL_HAIKU from shared/anthropicModels.js`);
 
-  // Resolved BEFORE the timer and outside the try, because an unpinned ENRICH_MODEL is a config
-  // error rather than a call: no request is made, so no usage row should be written for it.
-  const route = routeFor({ dataClass, model });
+  // Checked before the timer and outside the try: a bad declaration is a code error, not a call, so
+  // no usage row is written for it.
+  if (!Object.values(DATA_CLASS).includes(dataClass)) {
+    throw new Error(
+      `callModel(${purpose}): unknown dataClass "${dataClass}". Known: ${Object.values(DATA_CLASS).join(", ")}. ` +
+      `PUBLIC was removed with the free-tier route (A87).`
+    );
+  }
 
   // ── TASK F: THE FIELD-LEVEL WHITELIST ASSERTION ON THE OUTBOUND PAYLOAD ────────────────────────
   //
@@ -166,9 +139,7 @@ export async function callModel({
     }
     assertOutboundFields(piiFields, { where: `callModel(${purpose})` });
   }
-  // Only the Anthropic route needs the SDK client. Checked after routing so a PUBLIC-only pass is
-  // not blocked by an absent Anthropic client it was never going to use.
-  if (route.provider === PROVIDER.ANTHROPIC && !anthropic) throw new Error(`callModel(${purpose}): no anthropic client`);
+  if (!anthropic) throw new Error(`callModel(${purpose}): no anthropic client`);
 
   const startedAt = Date.now();
   let message = null;
@@ -176,15 +147,7 @@ export async function callModel({
   let errorText = null;
 
   try {
-    message = route.provider === PROVIDER.ANTHROPIC
-      ? await anthropic.messages.create({ model: route.model, ...params })
-      // Returns an Anthropic-SHAPED message, so every caller's `.content.map(b => b.text)` and
-      // `.usage.input_tokens` keep working and routing stays a concern of this file alone.
-      : await callProvider({
-          provider: route.provider,
-          apiKey: process.env[PROVIDERS[route.provider].envKey],
-          params: { model: route.model, ...params },
-        });
+    message = await anthropic.messages.create({ model, ...params });
     return message;
   } catch (e) {
     success = false;
@@ -202,11 +165,9 @@ export async function callModel({
         eventType: eventType || purpose,
         eventSubtype,
         purpose,
-        // THE MODEL ACTUALLY CALLED, not the one the call site asked for — they differ whenever a
-        // PUBLIC site is routed. Recording the requested one would make cost reconcile against a
-        // model that was never invoked.
-        model: route.model,
-        provider: route.provider,
+        model,
+        // usage_events.provider (migration 096) stays populated; it is always anthropic now.
+        provider: PROVIDER_ANTHROPIC,
         usage: message?.usage || {},
         durationMs: Date.now() - startedAt,
         jobId,

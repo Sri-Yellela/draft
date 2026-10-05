@@ -12,8 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import Database from "better-sqlite3";
-import { callModel, SYSTEM_USER_ID } from "../services/modelCall.js";
-import { DATA_CLASS } from "../shared/modelProviders.js";
+import { callModel, SYSTEM_USER_ID, DATA_CLASS } from "../services/modelCall.js";
 import {
   GENERATION_FIELD_ALLOWLIST, EXCLUDED_FIELDS, assertOutboundFields, policyIsConsistent,
 } from "../shared/piiPolicy.js";
@@ -139,9 +138,9 @@ test("a clean TOKENIZED payload is sent", async () => {
   db.close();
 });
 
-test("CANDIDATE calls are not subject to the whitelist — and are not routable either", async () => {
-  // The untokenized path is unchanged. It stays on Anthropic, so the field policy is not what
-  // protects it; the routing rule is. Applying the whitelist there would refuse every existing
+test("CANDIDATE calls are not subject to the whitelist", async () => {
+  // The untokenized path is unchanged. It goes to Anthropic (the only provider since A87), so the
+  // field policy is not what protects it. Applying the whitelist there would refuse every existing
   // generation for fields it legitimately sends.
   const db = makeDb();
   const anthropic = fakeAnthropic();

@@ -1,6 +1,9 @@
 // services/modelCatalogue.js
-// PURPOSE (task AD, requirement 2): at startup, ask each provider whether the model this codebase
-// is PINNED to still exists. If a provider says it does not, refuse to start and say which one.
+// PURPOSE (task AD, requirement 2): at startup, ask Anthropic whether the models this codebase is
+// PINNED to still exist. If it says one does not, refuse to start and say which one.
+//
+// A87 (10-05): Anthropic is the only provider. The Groq catalogue probe (and the UNSUPPORTED verdict
+// for Gemini, which had no probe) went with services/providerTransport.js and shared/modelProviders.js.
 //
 // ── WHY THIS EXISTS, IN THIS REPOSITORY'S OWN WORDS ─────────────────────────────────────────────
 //
@@ -32,22 +35,12 @@
 // outage into a hard one, which is strictly worse than the problem being solved. Unreachable warns
 // loudly and continues; only an answered "no such model" refuses.
 
-import { PROVIDERS } from "../shared/modelProviders.js";
-import { listProviderModels } from "./providerTransport.js";
-
 /** One model's verdict. `gone` is the only one that stops a boot. */
 export const LIVENESS = Object.freeze({
   LIVE: "live",
   GONE: "gone",
   UNREACHABLE: "unreachable",
   UNCONFIGURED: "unconfigured",
-  /**
-   * The provider is configured and reachable, but this transport has no catalogue endpoint for its
-   * wire — so the pin CANNOT BE CHECKED. Distinct from UNREACHABLE on purpose: reporting an
-   * un-probeable provider as a network failure is a warning that fires on every boot and can never
-   * be cleared, which is how a panel teaches people to ignore it.
-   */
-  UNSUPPORTED: "unsupported",
 });
 
 const TIMEOUT_MS = 10_000;
@@ -82,37 +75,14 @@ async function checkAnthropic(client, modelId) {
 }
 
 /**
- * OpenAI-wire providers (Groq): GET {baseUrl}/models returns the whole catalogue, so membership is
- * checkable in one call. This is the exact request that revealed the llama family had been removed.
- */
-async function checkOpenAiWire(spec, apiKey, modelId, fetchImpl) {
-  try {
-    // Through the transport, never a URL built here: modelCallGuard asserts that only
-    // providerTransport.js reads a provider's base URL, and it caught the first version of this
-    // function doing exactly that. See listProviderModels.
-    const ids = await withTimeout(listProviderModels({ provider: spec.id, apiKey, fetchImpl }));
-    if (!ids.length) return { status: LIVENESS.UNREACHABLE, detail: "catalogue came back empty" };
-    return ids.includes(modelId)
-      ? { status: LIVENESS.LIVE, detail: `${ids.length} models listed` }
-      : { status: LIVENESS.GONE, detail: `not in the ${ids.length}-model catalogue` };
-  } catch (e) {
-    return { status: LIVENESS.UNREACHABLE, detail: String(e?.message || e) };
-  }
-}
-
-/**
- * Check every pinned model that has a configured key.
+ * Check every pinned Anthropic model.
  *
  * @param {object}  o
  * @param {object}  [o.anthropic]   the Anthropic SDK client, or null
  * @param {string[]}[o.anthropicModels] Anthropic model ids this codebase pins
- * @param {object}  [o.env]         defaults to process.env
- * @param {Function}[o.fetchImpl]   injected by tests
  * @returns {Promise<Array<{provider, model, status, detail}>>}
  */
-export async function checkPinnedModels({
-  anthropic = null, anthropicModels = [], env = process.env, fetchImpl = null,
-} = {}) {
+export async function checkPinnedModels({ anthropic = null, anthropicModels = [] } = {}) {
   const results = [];
 
   for (const modelId of anthropicModels) {
@@ -120,22 +90,6 @@ export async function checkPinnedModels({
       ? await checkAnthropic(anthropic, modelId)
       : { status: LIVENESS.UNCONFIGURED, detail: "ANTHROPIC_KEY unset" };
     results.push({ provider: "anthropic", model: modelId, ...r });
-  }
-
-  for (const spec of Object.values(PROVIDERS)) {
-    // The same lookup resolveProvider() uses — one place decides what "configured" means.
-    const apiKey = env[spec.envKey];
-    if (!apiKey) {
-      // Not configured is not a failure — this provider is simply not in use. Saying so is still
-      // worth doing: "unconfigured" and "broken" reading alike is how Jobo hid for months.
-      results.push({ provider: spec.id, model: spec.defaultModel,
-        status: LIVENESS.UNCONFIGURED, detail: `${spec.envKey} unset` });
-      continue;
-    }
-    const r = spec.wire === "openai"
-      ? await checkOpenAiWire(spec, apiKey, spec.defaultModel, fetchImpl)
-      : { status: LIVENESS.UNSUPPORTED, detail: `no catalogue endpoint for wire "${spec.wire}"` };
-    results.push({ provider: spec.id, model: spec.defaultModel, ...r });
   }
 
   return results;
@@ -172,8 +126,8 @@ export async function assertPinnedModelsLive(opts = {}) {
     const err = new Error(
       `REFUSING TO START: ${gone.length} pinned model(s) no longer exist at their provider:\n` +
       gone.map(g => `  ${g.provider}/${g.model} — ${g.detail}`).join("\n") +
-      `\n\nPick a replacement deliberately and update shared/anthropicModels.js or ` +
-      `shared/modelProviders.js. This does NOT substitute one automatically: a model chosen for ` +
+      `\n\nPick a replacement deliberately and update shared/anthropicModels.js. ` +
+      `This does NOT substitute one automatically: a model chosen for ` +
       `you is a model whose behaviour nobody checked, and the last one that happened returned ` +
       `HTTP 200 with an empty extraction 49 times in 50.`
     );

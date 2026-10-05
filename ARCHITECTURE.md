@@ -445,30 +445,23 @@ satisfy `isAdmin`.
 
 **`callModel()` in `services/modelCall.js` is the single path.** It requires a `purpose` (so spend
 is attributable to a feature) and a pinned `model`, records every call in `usage_events` **including
-failures**, and routes by data class.
+failures**, and sends it to Anthropic — the only provider.
 
-⛔ **Routing is by PAYLOAD, never by call-site name.** `purpose: "classifier"` sends 2000 characters
-of résumé; `classify_job` does not. The class is declared per site:
+⛔ **There is no free-tier route (A87, 10-05).** `shared/modelProviders.js`, `services/providerTransport.js`
+and the `ENRICH_PROVIDER` / `ENRICH_MODEL` / `GROQ_API_KEY` / `GOOGLE_API_KEY` variables existed to send
+PUBLIC job-advert text (`enrich_job`, `classify_job`, `import_job`) to Groq or Gemini. D17 deleted all
+three model calls, so the route had no traffic and was deleted; `test/a87AnthropicOnly.test.js` fails
+if a non-Anthropic provider module, SDK, host or env var comes back. (Groq had measured **30.5% Jaccard on
+`skillsHard`** against Haiku — `docs/am3-provider-verdict.md:183` — so it was never switched on.)
 
-- **PUBLIC** — job advert text a company published about itself: `enrich_job`, `classify_job`,
-  `import_job`. Eligible for a free provider.
-- **CANDIDATE** — anything derived from a person. Stays on Anthropic.
+Each call site still declares what it sends:
+
+- **CANDIDATE** — anything derived from a person. The default.
 - **TOKENIZED** — a structured payload asserted field-by-field against `shared/piiPolicy.js` before
   anything is sent. ⛔ It **refuses**, it does not sanitise: dropping an offending field would mean
   the send succeeds and nobody learns the payload was wrong.
 
-⛔ **The default is CANDIDATE.** A site that declares nothing stays on Anthropic. Forgetting to
-annotate a public site costs a fraction of a cent; forgetting to annotate a résumé-touching one
-would route a home address and work authorisation to a free tier.
-
-**PUBLIC traffic is currently on Anthropic anyway.** Free-tier routing requires `ENRICH_PROVIDER`,
-which is unset, so `resolveProvider()` returns `not_configured` and falls back — silently, by
-design, since unconfigured is an honest default.
-
-**The A2 verdict stands: enrichment stays on Haiku.** Groq measured **30.5% Jaccard on
-`skillsHard`** and 17.4% on `skillsSoft` against Anthropic (`docs/am3-provider-verdict.md:183`) —
-the column that feeds both `company_technographics` and the ATS scorer. Routing public traffic
-there to dodge a billing problem trades a loud failure for a quiet data-quality one.
+An unknown class — the retired `"public"` included — is refused by `callModel`, not relabelled.
 
 **Spend, measured.** 1971 production `usage_events`; locally 1663, of which `enrich_job` is 1551
 (1519 successful). ⛔ **Zero rows carry `ats_score_before` / `ats_score_after`** in either database,
