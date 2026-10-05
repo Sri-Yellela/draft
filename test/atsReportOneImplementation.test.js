@@ -38,7 +38,8 @@ const SECTION_FIELDS = [
 ];
 const READS_SECTION = new RegExp(`\\.(${SECTION_FIELDS.join("|")})\\b`);
 // D31 (10-04): the simple card's three section headings are a report's headings too.
-const HEADINGS = /Skills Matched|Skills Missing|Competencies Missing|Verbs Missing|Generic Language|Experience Fit|Profile Facts Missing|"fit band"|"no judgement"|You could claim|Already on your r[eé]sum[eé]|Generic — not a gap/;
+// D32 (10-05): and the ink pair's — "Already yours", and the header's "You cover … things this posting asks for".
+const HEADINGS = /Skills Matched|Skills Missing|Competencies Missing|Verbs Missing|Generic Language|Experience Fit|Profile Facts Missing|"fit band"|"no judgement"|You could claim|Already on your r[eé]sum[eé]|Already yours|You cover|things this posting asks for|Generic — not a gap/;
 
 /** Every file, other than the one, that draws or reads an ATS report. Pure, so violations can be injected. */
 export function secondReports(sources) {

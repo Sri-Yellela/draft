@@ -164,7 +164,7 @@ test("⭐ the card carries the FULL report — every section the board shows —
     skillsMatched: ["Go", "SQL"], skillsMissing: ["Kafka"],
     competenciesMatched: ["mentoring"], competenciesMissing: ["ownership"],
     verbsMatched: ["Built"], verbsMissing: ["Scaled"], verbsGeneric: ["Managed"], claimedMatches: ["SQL"],
-    experience: "Meets 5+ years.", experienceFit: true, hardConstraintMisses: ["Security clearance"],
+    experience: "Meets 5+ years.", experienceFit: true, experienceState: "met", hardConstraintMisses: ["Security clearance"],
     seniorityNote: "A senior posting for an earlier-career profile.", depthHeadline: "Thin résumé", depthDetail: "Add detail.",
   });
 });

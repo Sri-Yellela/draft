@@ -91,6 +91,11 @@ function mapJobRow(j) {
     isClearanceRequired: j.is_clearance_required ?? null,
     experienceLevel:     j.experience_level      ?? null,
     workplaceType:       j.workplace_type        ?? null,
+    // D29's tags, for D32's masthead kicker (domain · level · workplace). NULL means UNKNOWN, never NO —
+    // the masthead prints only the tags on file. Closed vocabularies (shared/jobTagVocabulary.js).
+    tagFunction:         j.tag_function          ?? null,
+    tagLevel:            j.tag_level             ?? null,
+    tagWorkplace:        j.tag_workplace         ?? null,
     skills:              parseSkillsList(j.skills_json ?? j.skills) ?? [],
     // Automation tier (services/jobs/automationTier.js): what the candidate will face at the
     // apply destination, known at browse time instead of mid-run. null here means the row predates

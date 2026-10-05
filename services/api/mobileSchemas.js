@@ -217,13 +217,14 @@ export const RESPONSE_SCHEMAS = Object.freeze({
       competenciesMatched: "string[]", competenciesMissing: "string[]",
       verbsMatched: "string[]", verbsMissing: "string[]", verbsGeneric: "string[]",
       claimedMatches: "string[]",
-      experience: "string|null", experienceFit: "boolean|null",
+      experience: "string|null", experienceFit: "boolean|null", experienceState: "string|null",
       hardConstraintMisses: "string[]", seniorityNote: "string|null",
       depthHeadline: "string|null", depthDetail: "string|null",
     },
     fieldNotes: {
       verbsGeneric: "Language almost any candidate could claim — show it as language, never as a gap.",
       claimedMatches: "Matches that rest on a term the candidate CLAIMED rather than on résumé evidence.",
+      experienceState: "D32: the years requirement as the scorer judged it — met | short | unknown (nothing to compare) | none (no years asked). A word, never a number. null on a card dealt before it.",
     },
   },
 
