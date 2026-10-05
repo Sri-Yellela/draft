@@ -1,72 +1,87 @@
 /* D32 · THE POSTING HALF OF THE INK PAIR (components/PostingPanel.jsx).
  *
  * On the pair's surface (styles/inkPair.css). The pair's tokens only (--c-pair-*). Nothing animates.
- * The employer's words are formatted, never rearranged: a drop cap, small-caps rules for their
- * headings, accent markers for their bullets — and that is all. */
+ * The employer's words are formatted, never rearranged: a drop cap, their headings as ruled labels,
+ * their bullets with accent markers — and that is all.
+ *
+ * ⭐ A86 (10-05): EVERY VALUE BELOW IS THE OWNER'S SKETCH, pair2.html (.card · .mast · .kick · .co ·
+ * .dek · .dk · .body · .art). D32 was built from the row's prose and its type drifted — the strip went
+ * sans, the body went sans in full ink, the headings went small caps. test/inkPairD32.test.js pins the
+ * faces so it cannot drift silently again. */
 
-.posting { border-radius: 18px; padding: 22px 24px 26px; }
+.posting { border-radius: 18px; overflow: hidden; box-shadow: var(--c-pair-card-shadow); }
 
-/* ── Masthead ─────────────────────────────────────────────────────────────────────────────────── */
+/* ── Masthead (.mast) — the orange wash, the rule beneath ──────────────────────────────────────── */
+.posting__mast {
+  padding: 26px 30px 22px; border-bottom: 1px solid var(--c-pair-rule);
+  background: linear-gradient(180deg, var(--c-pair-mast-tint), transparent);
+}
 .posting__kicker {
-  font-size: 11.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--c-pair-kicker);
-  margin-bottom: 8px;
+  font-family: var(--font-body); font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: .17em;
+  text-transform: uppercase; color: var(--c-pair-kicker); margin-bottom: 12px;
 }
 .posting__title {
-  margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 3.2vw, 42px);
-  line-height: 1.06; letter-spacing: -.01em; color: var(--c-pair-ink); overflow-wrap: anywhere;
+  margin: 0 0 6px; font-family: var(--font-display); font-weight: 400; font-size: 36px;
+  line-height: 1.08; letter-spacing: -.01em; color: var(--c-pair-hi); overflow-wrap: anywhere;
 }
-/* THE LOGO FACE — Poppins 800 italic, self-hosted (D1). */
+/* THE LOGO FACE — Poppins 800 italic, self-hosted (D1). In --dim, as the sketch's .co. */
 .posting__company {
-  margin-top: 6px; font-family: 'Poppins', var(--font-body); font-style: italic; font-weight: 800; font-size: 17px;
-  letter-spacing: -.015em; color: var(--c-pair-ink);
+  font-family: 'Poppins', var(--font-body); font-style: italic; font-weight: 800; font-size: 15px; line-height: 1;
+  color: var(--c-pair-ink-faint);
 }
 
-/* The deck strip: four cells. Two by two on a phone. */
+/* The deck strip (.dek): four cells, the values in the SERIF. Two by two on a phone. The 1px gap over
+ * the rule draws the sketch's cell dividers. */
 .posting__strip {
-  margin: 16px 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 22px 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
   border: 1px solid var(--c-pair-rule); border-radius: 12px; overflow: hidden; background: var(--c-pair-rule); gap: 1px;
 }
-.posting__cell { background: var(--c-pair-raised); padding: 9px 12px 10px; min-width: 0; }
+.posting__mast[data-titled="false"] .posting__strip { margin-top: 0; }
+.posting__cell { background: var(--c-pair-raised); padding: 12px 15px; min-width: 0; }
 .posting__cell dt {
-  font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--c-pair-ink-faint);
+  font-family: var(--font-body); font-size: 8.5px; font-weight: 700; line-height: 1; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--c-pair-ink-faint); margin-bottom: 6px;
 }
 .posting__cell dd {
-  margin: 3px 0 0; font-size: 13.5px; font-weight: 700; color: var(--c-pair-ink); line-height: 1.3; overflow-wrap: anywhere;
+  margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 400; line-height: 1;
+  color: var(--c-pair-ink); overflow-wrap: anywhere;
 }
 /* ⭐ "not stated" is a VALUE in italic serif — it reads as an answer, not a gap in the layout. */
-.posting__ns { font-family: var(--font-display); font-style: italic; font-weight: 400; font-size: 15px; color: var(--c-pair-ink-muted); }
-/* The Experience cell tints when the scorer judged the requirement met. */
+.posting__ns { font-family: var(--font-display); font-style: italic; font-weight: 400; font-size: 14px; line-height: 1.3; color: var(--c-pair-ink-faint); }
+/* The Experience cell tints when the scorer judged the requirement met (.dk.hi). */
 .posting__cell[data-met="true"] { background: var(--c-pair-met-quiet); }
 .posting__cell[data-met="true"] dd { color: var(--c-pair-matched); }
-@media (max-width: 560px) {
-  .posting { padding: 18px 16px 22px; }
-  .posting__strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 
-/* ── The employer's description ──────────────────────────────────────────────────────────────── */
-.posting__body { margin-top: 22px; font-size: 14.5px; line-height: 1.7; color: var(--c-pair-ink); }
-.posting__p { margin: 0 0 12px; white-space: pre-line; }
+/* ── The employer's description (.body · .art) — Georgia, in --tx2 ─────────────────────────────── */
+.posting__body {
+  padding: 24px 30px 28px;
+  font-family: var(--font-reading); font-size: 15.5px; font-weight: 400; line-height: 1.78; color: var(--c-pair-ink-muted);
+}
+.posting__p { margin: 0 0 15px; white-space: pre-line; }
 /* The drop cap: CSS, on the first paragraph only. */
 .posting__p--lead::first-letter {
-  float: left; font-family: var(--font-display); font-size: 3.4em; line-height: .86; padding: 4px 8px 0 0;
+  float: left; margin: 4px 11px 0 0; font-family: var(--font-display); font-size: 50px; font-weight: 400; line-height: .82;
   color: var(--c-pair-accent);
 }
-/* Their headings, as small-caps rules. */
+/* Their headings (.art h4): a small uppercase label with the rule UNDER it. */
 .posting__h {
-  display: flex; align-items: center; gap: 12px; margin: 22px 0 10px;
-  font-family: var(--font-body); font-size: 13.5px; font-weight: 800; font-variant: small-caps; letter-spacing: .08em;
-  text-transform: lowercase;
-  color: var(--c-pair-ink-muted);
+  margin: 26px 0 12px; padding-bottom: 9px; border-bottom: 1px solid var(--c-pair-rule);
+  font-family: var(--font-body); font-size: 10px; font-weight: 700; line-height: 1; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--c-pair-ink-faint);
 }
-.posting__h::after { content: ""; flex: 1; height: 1px; background: var(--c-pair-rule); }
-/* Their bullets, with accent markers. */
-.posting__ul { margin: 0 0 12px; padding: 0; list-style: none; }
-.posting__ul li { position: relative; padding-left: 18px; margin: 0 0 6px; white-space: pre-line; }
-.posting__ul li::before {
-  content: ""; position: absolute; left: 2px; top: .62em; width: 6px; height: 6px; border-radius: 2px;
-  background: var(--c-pair-accent);
-}
+/* Their bullets, with the native marker in the accent. */
+.posting__ul { margin: 0 0 15px; padding-left: 20px; list-style: disc; }
+.posting__ul li { margin: 0 0 8px; white-space: pre-line; }
+.posting__ul li::marker { color: var(--c-pair-accent); }
 /* D32's hover link: the one term the reader is pointing at in the score card. Only while asked. */
 .posting__lit { background: var(--c-pair-lit); color: var(--c-pair-ink); border-radius: 3px; padding: 0 2px; }
-.posting__none { margin-top: 18px; font-size: 14px; color: var(--c-pair-ink-muted); }
+.posting__none { padding: 20px 30px 26px; font-size: 14px; color: var(--c-pair-ink-muted); }
 .posting__none a, .posting__none button { color: var(--c-pair-kicker); }
+
+/* ── The phone. The sketch has no phone values; D32's phone answer stands — the strip two by two, and
+ * the masthead and body inset less, so the employer's text is not squeezed to a column. Last, so it wins. */
+@media (max-width: 560px) {
+  .posting__mast { padding: 22px 18px 18px; }
+  .posting__body { padding: 20px 18px 24px; }
+  .posting__strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
