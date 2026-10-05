@@ -146,12 +146,11 @@ test("a retirement is restorable: the row comes back, the users' state goes back
 test("a user's import of a posting already on the board ATTACHES to it and says so", async () => {
   const db = board();
   write(db, ATS);
-  // A stand-in model client: the extraction itself is not under test, the dedup outcome is.
-  const extracted = { title: "Backend Engineer", company: "Examplecorp", location: "Austin, TX", description: "Build services." };
-  const anthropic = { messages: { create: async () => ({ content: [{ type: "text", text: JSON.stringify(extracted) }], usage: {} }) } };
+  // The extension's labelled block — since D33 the only extraction is deterministic (no model).
   const res = await importJob(
-    { url: "https://www.linkedin.com/jobs/view/4100000001", text: "Backend Engineer at Examplecorp, Austin, TX." },
-    { db, anthropic, userId: 2 },
+    { url: "https://www.linkedin.com/jobs/view/4100000001",
+      text: "Title: Backend Engineer\nCompany: Examplecorp\nLocation: Austin, TX\nBuild services." },
+    { db, userId: 2 },
   );
   assert.equal(res.attachedToExisting, true, "the response must say the capture matched an existing row");
   assert.equal(res.existingJobId, `ashby::${UUID}`);

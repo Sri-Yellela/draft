@@ -33,7 +33,6 @@ const KNOWN_VIOLATIONS = new Map([
   // enrichJob.js beside the pieces the export/import round trip reuses. Delete it to close this.
   ["enrich_job",     "A80 V4 — enrichJob.js's model call, unreachable since V4"],
   ["domain_chips",   "A80 V3 — /api/domain-profiles/generate-chips"],
-  ["import_job",     "A80 V5 — capture/paste extraction"],
   ["classifier",     "A80 V6 — /api/smart-search sends the résumé to a classifier"],
 ]);
 

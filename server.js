@@ -6783,7 +6783,7 @@ app.use("/api/domain-profiles", requireAuth, createDomainProfilesRouter(db, anth
     if (p) scheduleBoardFit(userId, `profile ${what}`, p);
   },
 }));
-app.use("/api/import", requireAuth, createImportJobRouter(db, anthropic));
+app.use("/api/import", requireAuth, createImportJobRouter(db));
 // D12: is this user's extension connected (a live extension token)? Drives Full House's first-run prompt.
 app.get("/api/extension/status", requireAuth, extensionStatusHandler(db));
 app.use("/api/company-kb", requireAuth, createCompanyKbRouter(db, requireAdmin));
