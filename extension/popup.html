@@ -13,6 +13,7 @@
     .result-text { font-size: 11px; text-align: center; margin: 6px 0 0; }
     .result-text.success { color: var(--c-success); }
     .result-text.error   { color: var(--c-danger); }
+    .result-text.warn    { color: var(--c-warning); }
     hr.divider { border: 0; border-top: 1px solid var(--c-border); margin: 12px 0; }
 
     /* WHO THE EXTENSION IS ACTING AS. Always rendered, never hidden behind a hover or a menu —
@@ -129,6 +130,7 @@
   </div>
 
   <p class="result-text" id="last-capture" style="display:none"></p>
+  <div class="links" id="capture-open-row" style="display:none"><button class="link" id="capture-open">Open it on draft</button></div>
   <p class="status" id="status"></p>
 
   <script src="config.js"></script>

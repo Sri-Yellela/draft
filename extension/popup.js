@@ -27,13 +27,30 @@ let currentJobData = null;
 async function showLastCapture() {
   try {
     const { lastCapture } = await chrome.storage.local.get('lastCapture');
-    const el = document.getElementById('last-capture');
-    if (!el || !lastCapture) return;
-    el.textContent = (lastCapture.success ? '✓ Captured: ' : '✗ ') + (lastCapture.message || '');
-    el.className = 'result-text ' + (lastCapture.success ? 'success' : 'error');
-    el.style.display = 'block';
+    showCaptureResult(lastCapture);
   } catch (_) { /* storage unavailable */ }
 }
+
+// ⛔ D33: the server's own words, as given — "added", "already on the board", or "held off the
+// board, because …". It used to prefix every success with "✓ Captured:", which is how a capture
+// held off the board read as one that landed. Green only when the job is ON the board; amber when
+// it is saved but not on it; red when nothing was saved. The link opens the job on draft by id.
+function showCaptureResult(result) {
+  const el = document.getElementById('last-capture');
+  if (!el || !result) return;
+  el.textContent = result.message || '';
+  el.className = 'result-text ' + (!result.success ? 'error' : result.onBoard ? 'success' : 'warn');
+  el.style.display = 'block';
+  const row = document.getElementById('capture-open-row');
+  if (row) row.style.display = result.success && result.link ? 'flex' : 'none';
+  captureLink = result.success ? result.link || null : null;
+}
+let captureLink = null;
+document.getElementById('capture-open')?.addEventListener('click', () => {
+  if (!captureLink || !captureLink.startsWith(`${RESUME_MASTER_URL}/`)) return;
+  chrome.tabs.create({ url: captureLink });
+  setTimeout(() => window.close(), 300);
+});
 
 // Asked via the service worker, not fetched here. A popup's fetch carries chrome-extension:// as
 // its origin, which server.js's corsOrigin refuses in production — so this worked in development
@@ -201,6 +218,8 @@ function renderCompanion(c) {
         li.append(co, ' · ');
       }
       li.append(`${r.title || 'A captured job'} · ${ageWords(Date.now() - (r.capturedAt || Date.now()))}`);
+      // D33: a capture that is saved but NOT on the board says so here too, in the server's words.
+      if (r.message && r.onBoard === false) { li.append(' · not on the board'); li.title = r.message; }
       ul.append(li);
     }
     document.getElementById('recent').style.display = 'block';
@@ -237,7 +256,10 @@ async function captureFrom(buttonId) {
     // One message to the service worker, which runs the same captureActiveTab() the hotkey runs.
     // The popup does not extract, does not fetch, and does not word the outcome.
     const result = await chrome.runtime.sendMessage({ type: 'CAPTURE_ACTIVE_TAB' });
-    setStatus(result?.message || 'Capture failed — try again', 3000);
+    // The outcome stays on screen (no timeout): it may be the only place that says the job was
+    // held off the board, and why.
+    setStatus(result?.message ? '' : 'Capture failed — try again');
+    showCaptureResult(result || { success: false, message: 'Capture failed — try again' });
     if (result?.success) {
       btn.textContent = 'Captured';
     } else {

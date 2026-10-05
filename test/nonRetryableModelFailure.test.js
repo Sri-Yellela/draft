@@ -64,13 +64,12 @@ test("it reads the SDK's nested error.message too, not just err.message", () => 
   assert.equal(isPermanentModelFailure({ error: { message: "credit balance is too low" } }), true);
 });
 
-test("the import route uses the classifier and stops promising a retry", () => {
+test("the import route has no model failure to classify any more (D33) — and still says when a retry can help", () => {
+  // This pinned the route's 503 "not funded, retrying will not help" branch. D33 removed the model
+  // call from import (D17), so there is no balance for it to fail on: the branch went with the call.
+  // test/d33ImportDeterministic.test.js pins the absence.
   const src = fs.readFileSync("routes/importJob.js", "utf8");
-  assert.match(src, /isPermanentModelFailure\(err\)/);
-  // 503 for the permanent case, and a machine-readable flag so a client can branch on the fact
-  // rather than pattern-matching the prose.
-  assert.match(src, /status\(503\)[\s\S]{0,400}retryable: false/);
-  assert.match(src, /Retrying will not help/);
-  // The retryable branch must still say so, or the two cases become indistinguishable again.
+  assert.doesNotMatch(src, /isPermanentModelFailure|status\(503\)/);
+  // The remaining failures (a fetch, the database) are ones a retry can fix, and the route says so.
   assert.match(src, /retryable: true/);
 });

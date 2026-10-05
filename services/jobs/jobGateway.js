@@ -83,6 +83,53 @@ export function ingestJob(db, { job, origin, userId = null, batchId = null, matc
   return { jobId, action, outOfMarket };
 }
 
+// ── D33: WHERE A CAPTURE ENDED UP, read from the database, not from the path that wrote it ─────
+//
+// The owner captured a posting and it was not on the board, and nothing said why. Every answer to
+// "why" is already in the database — is_active, and the US-only gate's own record in rejected_jobs
+// — so the state is READ BACK from there rather than carried as flags through whichever branch ran.
+// A flag can be forgotten by a branch (the freshness fast path below never set one); a row cannot.
+//
+//   on_board  is_active = 1 — the posting is on the shared board
+//   held      is_active = 0 with an `out_of_market:<reason>` record — the US-only gate (queue 37,
+//             D29) holds it off the shared board; <reason> is usEligibility's own reason code
+//   closed    is_active = 0 with no such record — the listing expired or was retired
+//   missing   no row at all
+const OUT_OF_MARKET_REASON_PREFIX = "out_of_market:";
+export function boardStateOf(db, jobId) {
+  const row = jobId ? db.prepare("SELECT is_active FROM scraped_jobs WHERE job_id = ?").get(jobId) : null;
+  if (!row) return { state: "missing", reason: null };
+  if (row.is_active !== 0) return { state: "on_board", reason: null };
+  let reason = null;
+  try {
+    reason = db.prepare(`SELECT reason FROM rejected_jobs WHERE job_id = ? AND reason LIKE '${OUT_OF_MARKET_REASON_PREFIX}%'`)
+      .get(jobId)?.reason || null;
+  } catch { /* a database without rejected_jobs cannot hold anything */ }
+  return reason
+    ? { state: "held", reason: reason.slice(OUT_OF_MARKET_REASON_PREFIX.length) }
+    : { state: "closed", reason: null };
+}
+
+/**
+ * D33 — record a capture that did NOT go through ingestJob because the posting was already here
+ * (importJob's freshness fast path: the same URL, updated inside 24 hours — which for a crawled
+ * board row is almost always, since every crawl touches updated_at). Before this the fast path
+ * wrote no job_captures row at all, so "no row" could not tell "never reached the server" from
+ * "attached to a posting we already had". Same table, same columns, action 'attached'.
+ */
+export function recordExistingCapture(db, { jobId, url, origin, userId = null, detectKnownAtsMatch = null }) {
+  if (!CAPTURE_ORIGINS.includes(origin)) throw new Error(`unknown capture origin ${origin}`);
+  try {
+    recordCapture(db, {
+      user_id: userId, job_id: jobId, url: url || null,
+      ...atsSlugOf(url, detectKnownAtsMatch),
+      origin, action: "attached", out_of_market: boardStateOf(db, jobId).state === "held" ? 1 : 0, batch_id: null,
+    });
+  } catch (e) {
+    console.warn(`[jobGateway] capture not recorded for ${jobId}: ${e.message}`);
+  }
+}
+
 /** Read-only: what ingestJob WOULD do with this job — for an import's dry run. */
 export function previewIngest(db, job) {
   const p = previewFingerprint(db, { ...job, company_icon_url: job.thumbnail || job.company_icon_url || null });

@@ -6783,7 +6783,7 @@ app.use("/api/domain-profiles", requireAuth, createDomainProfilesRouter(db, anth
     if (p) scheduleBoardFit(userId, `profile ${what}`, p);
   },
 }));
-app.use("/api/import", requireAuth, createImportJobRouter(db, anthropic));
+app.use("/api/import", requireAuth, createImportJobRouter(db));
 // D12: is this user's extension connected (a live extension token)? Drives Full House's first-run prompt.
 app.get("/api/extension/status", requireAuth, extensionStatusHandler(db));
 app.use("/api/company-kb", requireAuth, createCompanyKbRouter(db, requireAdmin));
@@ -10623,6 +10623,15 @@ app.get("/api/debug/verify-isolation", requireAuth, (req, res) => {
 
 app.get("*", (_req, res) => {
   res.sendFile(path.join(CLIENT_DIST, "index.html"));
+});
+
+// ⛔ D33 · ONE STRAY PROMISE MUST NOT TAKE THE WHOLE SITE TO 502. Node 15+ exits on an unhandled
+// rejection, and Express 4 does not catch a rejected async handler — so a single throw in any async
+// route killed the process, and until Railway restarted it EVERY page, /extension included, was the
+// edge's 502 (nothing the app itself can send for a document: its only 502s are under /api/).
+// Logged loudly with the stack instead, and the process keeps serving.
+process.on("unhandledRejection", (reason) => {
+  console.error("[process] ⛔ UNHANDLED REJECTION — logged, process kept alive:", reason?.stack || reason);
 });
 
 console.log(`[boot] binding HTTP listener on :${PORT}`);

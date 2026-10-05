@@ -73,7 +73,9 @@ test("importJob uses the gateway — it no longer calls the deduper or the canon
   assert.match(src, /import \{ ingestJob \} from '\.\/jobGateway\.js';/);
   assert.match(src, /ingestJob\(db, \{/);
   assert.doesNotMatch(src, /reconcileFingerprint\(|upsertCanonicalJob\(/, "a second writer is back in importJob");
-  assert.match(src, /outside the US, so it is not on the shared board/, "the gate is said, never silent");
+  // D33: the wording moved to services/jobs/captureOutcome.js, the one place every outcome is said.
+  assert.match(src, /describeCapture\(db, \{/, "the gate is said, never silent");
+  assert.match(fs.readFileSync("services/jobs/captureOutcome.js", "utf8"), /NOT on the shared board/);
   assert.deepEqual(atsSlugOf("https://jobs.lever.co/acme/0f8a1c2d-1111", detectKnownAtsMatch), { ats_type: "lever", ats_slug: "acme" });
   assert.deepEqual(atsSlugOf("https://example.com/job/1", detectKnownAtsMatch), { ats_type: null, ats_slug: null });
 });

@@ -475,11 +475,12 @@ test("every callModel call site declares a dataClass", () => {
     "These call sites do not say whose data they send:\n" + missing.map(x => `  ${x}`).join("\n"));
 });
 
-test("the PUBLIC set is exactly the three job-text purposes", () => {
+test("the PUBLIC set is exactly the job-text purposes still calling a model", () => {
   // Pinned so that widening it is a deliberate edit with a reviewer, not a one-line drift. Every
   // addition here is a new class of data leaving for a free tier.
-  // classify_job was deleted under D17 (A80 V7) — it had no caller.
-  const expected = new Set(["enrich_job", "import_job"]);
+  // classify_job was deleted under D17 (A80 V7) — it had no caller. import_job was deleted by D33
+  // (A80 V5): import reads deterministically and calls no model.
+  const expected = new Set(["enrich_job"]);
   const found = new Set();
   const files = ["server.js", "services/classifier.js", "services/jobs/enrichJob.js",
                  "services/jobs/importJob.js", "routes/domainProfiles.js"];

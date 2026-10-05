@@ -33,26 +33,19 @@ const labelled = (over = {}) => [
   over.description ?? "We are looking for a senior backend engineer to own payments.",
 ].filter(l => l !== null).join("\n");
 
-test("the fallback is reached ONLY on a permanent failure, never a transient one", () => {
-  // Silently filing a title-only row because the provider was briefly overloaded would swap a
-  // loud, recoverable error for a permanently thinner row nobody knows to revisit.
-  const i = at(SRC, "async function extractJobFromContent");
-  const fn = SRC.slice(i, i + 3000);
-  assert.match(fn, /if \(!isPermanentModelFailure\(err\)\) throw err;/);
-  // And when the text yields nothing trustworthy, the ORIGINAL error stands.
-  assert.match(fn, /if \(!fallback\) throw err;/);
-});
-
-test("both return paths share a shape, so neither can be mistaken for the other", () => {
-  assert.match(SRC, /return \{ job: fallback, degraded: true \}/);
-  assert.match(SRC, /return \{ degraded: false, job: normalizeJob\(\{/);
+test("D33: the labelled read is no longer a fallback — it is the read, and no model is behind it", () => {
+  // D17 confines model calls to résumé generation. Import used to call Haiku and fall back to this
+  // only on a permanent failure; D33 inverted the order and deleted the model path.
+  assert.doesNotMatch(SRC, /callModel\(|IMPORT_MODEL_ID|isPermanentModelFailure|MODEL_HAIKU/);
+  assert.ok(SRC.includes("function extractJobDeterministic({ url, text, html })"));
+  assert.ok(SRC.includes("jobFromLabelledText({ url, text: text || (html ? stripResumeHtml(html) : '') })"));
 });
 
 test("⛔ it does not fabricate: inferred fields stay NULL", () => {
   // A wrong salary is not a smaller version of a right one. Enrichment fills these correctly once
   // funded; a guess here would be indistinguishable from a measurement and never revisited.
   const i = at(SRC, "function jobFromLabelledText");
-  const fn = SRC.slice(i, at(SRC, "async function extractJobFromContent"));
+  const fn = SRC.slice(i, at(SRC, "// ── A schema.org JobPosting"));
   for (const field of ["salary_min", "salary_max", "salary_currency", "remote", "posted_at"]) {
     assert.match(fn, new RegExp(`${field}:\\s*null`), `${field} must not be inferred`);
   }
@@ -60,7 +53,7 @@ test("⛔ it does not fabricate: inferred fields stay NULL", () => {
 
 test("⛔ no title means no job — a stray page is not filed as a posting", () => {
   const i = at(SRC, "function jobFromLabelledText");
-  const fn = SRC.slice(i, at(SRC, "async function extractJobFromContent"));
+  const fn = SRC.slice(i, at(SRC, "// ── A schema.org JobPosting"));
   assert.match(fn, /if \(!labels\.title\) return null;/);
   // Nor is a posting with no identifiable employer.
   assert.match(fn, /if \(!company\) return null;/);
@@ -70,24 +63,19 @@ test("the degraded row stays an enrichment candidate, which is what makes this a
   // enrichJob selects on `enriched_at IS NULL`, so a row filed without the model is picked up and
   // completed the moment the balance is funded. Nothing marks it permanently thin.
   const i = at(SRC, "function jobFromLabelledText");
-  const fn = SRC.slice(i, at(SRC, "async function extractJobFromContent"));
+  const fn = SRC.slice(i, at(SRC, "// ── A schema.org JobPosting"));
   assert.doesNotMatch(fn, /enriched_at/,
     "the fallback must not stamp enriched_at — that would hide the row from enrichment forever");
   assert.match(SRC, /enriched_at is NULL, so enrichment completes this row/);
 });
 
-test("the caller is told the capture was partial, rather than left to assume it was whole", () => {
-  assert.match(SRC, /degradedReason: 'ai_unavailable'/);
-  assert.match(SRC, /Saved with title and link only/);
-  // And the extension words it as a smaller promise kept, not as a plain success.
-  const bg = fs.readFileSync("extension/background.js", "utf8");
-  assert.match(bg, /Saved \(partial\)/);
-  assert.match(bg, /degraded: !!json\.degraded/);
+test("an import says nothing about an AI service — there is none in the path", () => {
+  assert.doesNotMatch(SRC, /ai_unavailable|AI service is unavailable|degraded/);
 });
 
 test("the header parse stops at the blank line, so a description cannot become a label", () => {
   const i = at(SRC, "function jobFromLabelledText");
-  const fn = SRC.slice(i, at(SRC, "async function extractJobFromContent"));
+  const fn = SRC.slice(i, at(SRC, "// ── A schema.org JobPosting"));
   assert.match(fn, /if \(!line\.trim\(\)\) break;/);
   // An unlabelled first line means this is not the extractor's block at all.
   assert.match(fn, /if \(!m\) break;/);
@@ -101,7 +89,7 @@ test("⛔ a posting HOST is never treated as the employer", () => {
   // employer would be a fabrication dressed as a derivation. Asserted name-by-name rather than as
   // one alternation string, so adding a source to the list cannot break the test that guards it.
   const i = at(SRC, "function jobFromLabelledText");
-  const fn = SRC.slice(i, at(SRC, "async function extractJobFromContent"));
+  const fn = SRC.slice(i, at(SRC, "// ── A schema.org JobPosting"));
   for (const host of ["greenhouse", "lever", "ashbyhq", "myworkdayjobs", "workable",
                       "recruitee", "smartrecruiters", "linkedin", "indeed", "glassdoor"]) {
     assert.ok(fn.includes(host), `${host} serves postings and must never name an employer`);
@@ -113,7 +101,7 @@ test("⛔ a host that is not a domain at all cannot name a company", () => {
   // not by any assertion above it. Deriving a company from the URL is legitimate, because it reads
   // the employer's OWN domain; doing it for a host that is not a domain is not.
   const i = at(SRC, "function jobFromLabelledText");
-  const fn = SRC.slice(i, at(SRC, "async function extractJobFromContent"));
+  const fn = SRC.slice(i, at(SRC, "// ── A schema.org JobPosting"));
   assert.match(fn, /isRealDomain/, "the host must be validated before it can name a company");
   assert.ok(fn.includes("[a-z]{2,}"), "a registrable domain needs a real TLD");
   assert.ok(fn.includes("isRealDomain && root"), "the check must gate the assignment, not just exist");
