@@ -1,0 +1,14 @@
+/* D32 · THE INK PAIR — the ONE place the pair's surface is declared.
+ *
+ * ⛔ THE PRODUCT'S ONLY DARK SURFACE IS A RULE, NOT A PER-SCREEN CHOICE. Every surface that draws the
+ * posting or the score (components/PostingPanel.jsx, components/AtsReport.jsx) takes this class, and
+ * NOTHING ELSE may: the class, the --c-pair-* tokens and the surface they paint are refused anywhere
+ * else by test/inkPairD32.test.js. Which values are live — cream or ink — is decided once, by the theme
+ * (styles/colorTokens.js resolves it at load). No component picks dark for itself.
+ *
+ * Tokens only. Nothing here moves. */
+.ink-pair {
+  background: var(--c-pair-surface);
+  color: var(--c-pair-ink);
+  border: 1px solid var(--c-pair-rule);
+}

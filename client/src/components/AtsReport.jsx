@@ -14,18 +14,20 @@
 // copy of this report was already thinner (no competencies, no generic language, no matched verbs)
 // before anyone noticed. test/atsReportOneImplementation.test.js refuses a second copy.
 //
-// ── D31 (owner, 10-04) · THE SIMPLE CARD — reverses D2's weave ───────────────────────────────────
+// ── D32 (owner, 10-04) · THE SCORE HALF OF THE INK PAIR — narrows D31 ────────────────────────────
 //
-// The weave drew threads between two columns. It looked good and told the reader nothing a count
-// does not, and it cost a thread cap, a replay rule and a layout minimum. It is gone. The card is:
+//   HEADER     band · "you cover 9 of 12 things this posting asks for" · (the score in serif accent,
+//              once A76 earns it) · ONE THREE-SEGMENT bar: matched · missing · generic.
+//   OPEN       "You could claim" — ONE block. Skills, verbs and qualities were three sections with the
+//              claim note under each; now each RECTANGULAR DEPTH BOX carries a small `kind` label
+//              (skill · verb · quality) and the claim note appears ONCE. ⛔ The distinction survives
+//              — the kind is the scorer's own bucket, carried, never flattened — the fragmentation does not.
+//   ROW        Experience — its own row, because it is the one requirement that is genuinely pass/fail.
+//   FOLDED     "Already yours" and "Generic — not a gap".
 //
-//   SUMMARY    band · (the score, once A76 earns it) · "9 of 12" · ONE two-segment bar. That is all.
-//   OPEN       "You could claim" — the ONLY open section: claim chips with a + affordance, and the
-//              claim copy ONCE, beneath them, where the action is.
-//   FOLDED     "Already on your résumé" and "Generic — not a gap".
-//
-// ⭐ Nothing in it moves and nothing in it needs a width, so it renders the same in the deck's panel,
-// the board's panel, the phone's sheet and /tools/ats. That is what makes A52's one component hold.
+// ⭐ It sits on the pair's surface (styles/inkPair.css — cream in light, ink in dark, decided by the
+// theme and nowhere else). Nothing in it moves and nothing in it needs a width, so it renders the same
+// in the deck's panel, the board's panel, the phone's sheet and /tools/ats — A52's one component holds.
 //
 // Behaviour kept from every surface it replaces:
 //   · BAND-FIRST (G5). `band` may be passed by a caller that holds only the band (the deck);
@@ -35,14 +37,20 @@
 //   · "Not enough signal" is the scorer DECLINING — the dashed, hue-less chip (bandStyle), "no
 //     judgement" under it, a dashed hue-less bar, and the decline reasons — never a low grade, and
 //     rendered for every report, including a declined one.
-//   · Generic language is separated from real gaps, folded, labelled NOT A GAP, and never claimable.
-//   · Claim chips are interactive only when the caller passes `claims` (the board and the deck, on
-//     a profile); the public tool passes none and the chips are read-only. Nothing is pre-selected.
-//   · D1's depth on every control; colours are tokens only (C.*, var(--c-*)).
+//   · Generic language is separated from real gaps, folded, labelled NOT A GAP, never claimable, and
+//     never counted: its bar segment is drawn (blue, so it never reads as a gap) but it is in neither
+//     side of "9 of 12".
+//   · Claim boxes are interactive only when the caller passes `claims` (the board and the deck, on
+//     a profile); the public tool passes none and the boxes are read-only. Nothing is pre-selected.
+//   · D1's depth on every control (the pair's own --c-pair-lift / -lift2 / -press); tokens only.
+//   · D32's hover link: inside a pair (lib/pairLink.js), pointing at a box lights its term in the
+//     posting — on request only, never standing, never animated.
 import { atsBandFor, atsBandLabel, ATS_BAND, ATS_NUMBER_SHOWN } from "../../../shared/atsBands.js";
 import { profileSignalKey } from "../../../shared/profileSignals.js";
-import { bandChipStyle, bandStyle } from "../styles/bandStyle.js";
-import { C } from "../styles/colorTokens.js";
+import { experienceState } from "../../../shared/postingFacts.js";
+import { bandChipStyle } from "../styles/bandStyle.js";
+import { usePairLink } from "../lib/pairLink.js";
+import "../styles/inkPair.css";
 import "./AtsReport.css";
 
 /** The band a report reads as — the ONE derivation every ATS surface uses. */
@@ -60,7 +68,7 @@ export function fromDeckReport(r) {
     competencies_matched: r.competenciesMatched, competencies_missing: r.competenciesMissing,
     action_verbs_matched: r.verbsMatched, action_verbs_missing: r.verbsMissing, action_verbs_generic: r.verbsGeneric,
     claimed_matches: r.claimedMatches,
-    experience: r.experience ? { summary: r.experience, fit: r.experienceFit !== false } : null,
+    experience: r.experience ? { summary: r.experience, fit: r.experienceFit !== false, state: r.experienceState ?? null } : null,
     hard_constraint_misses: r.hardConstraintMisses,
     seniority_cap: r.seniorityNote ? { applied: true, reason: r.seniorityNote } : { applied: false },
     resume_depth: r.depthHeadline ? { headline: r.depthHeadline, detail: r.depthDetail || "" } : null,
@@ -76,50 +84,70 @@ export function fromStandaloneResult(r) {
     competencies_matched: r.competencies_matched || [], competencies_missing: r.competencies_missing || [],
     action_verbs_matched: r.matched_verbs || [], action_verbs_missing: r.missing_verbs || [],
     action_verbs_generic: r.generic_verbs || [],
-    experience: r.experience ? { summary: r.experience, fit: true } : null,
+    experience: r.experience ? { summary: r.experience, fit: r.experience_state !== "short", state: r.experience_state ?? null } : null,
     // No profile on the public tool, so the board's "…against this profile" fallback would be untrue.
-    verdict: r.experience || "Deterministic local ATS match against this posting.",
+    verdict: r.experience ? null : "Deterministic local ATS match against this posting.",
     seniority_cap: r.seniority ? { applied: true, reason: r.seniority } : { applied: false },
     resume_depth: r.resume_depth ? { headline: r.resume_depth.headline, detail: r.resume_depth.detail || "" } : null,
   };
 }
 
+// ⛔ THE KIND IS THE SCORER'S BUCKET, CARRIED — never re-derived from the word. The scorer keeps
+// skills (tier1_*), competencies (competencies_*) and verbs (action_verbs_*) apart; each box says which
+// one it came from. `claim` is the route a claim goes through: a competency is claimed as a skill (the
+// same reversible call D31 used), a verb as a verb.
+export const TERM_KINDS = Object.freeze({
+  skill:   { label: "skill",   claim: "skill" },
+  quality: { label: "quality", claim: "skill" },
+  verb:    { label: "verb",    claim: "action_verb" },
+});
+const asTerms = (list, kind) => (Array.isArray(list) ? list : []).filter(t => typeof t === "string" && t).map(term => ({ term, kind }));
+
 /**
- * D31: what the card counts. Every real ask the posting makes — skills, competencies and its
- * job-specific verbs — is either already on the résumé or something the candidate could claim.
- * Generic language is in NEITHER: it is not a gap, so it is not in the denominator either.
- * The bar's two segments and the two sections are these same two lists, so they cannot disagree.
+ * D32: what the card counts. Every real ask the posting makes — skills, competencies (qualities) and
+ * its job-specific verbs — is either already on the résumé or something the candidate could claim.
+ * Generic language is in NEITHER: it is not a gap, so it is not in the denominator either; the bar
+ * draws it as its own third segment so the reader sees it was read and set aside.
  */
 export function reportAsks(report) {
   const onResume = [
-    ...(report?.tier1_matched || []), ...(report?.competencies_matched || []), ...(report?.action_verbs_matched || []),
+    ...(report?.tier1_matched || []).map(term => ({ term, kind: "skill" })),
+    ...(report?.competencies_matched || []).map(term => ({ term, kind: "quality" })),
+    ...(report?.action_verbs_matched || []).map(term => ({ term, kind: "verb" })),
   ];
-  const couldClaimSkills = [...(report?.tier1_missing || []), ...(report?.competencies_missing || [])];
-  const couldClaimVerbs = [...(report?.action_verbs_missing || [])];
-  const generic = [...(report?.action_verbs_generic || [])];
-  const missing = couldClaimSkills.length + couldClaimVerbs.length;
-  return { onResume, couldClaimSkills, couldClaimVerbs, generic, matched: onResume.length, total: onResume.length + missing };
+  const couldClaim = [
+    ...(report?.tier1_missing || []).map(term => ({ term, kind: "skill" })),
+    ...(report?.action_verbs_missing || []).map(term => ({ term, kind: "verb" })),
+    ...(report?.competencies_missing || []).map(term => ({ term, kind: "quality" })),
+  ];
+  const generic = asTerms(report?.action_verbs_generic, "verb");
+  const missing = couldClaim.length;
+  return { onResume, couldClaim, generic, matched: onResume.length, missing, total: onResume.length + missing };
 }
 
-/** The one two-segment bar: on your résumé | not yet. Not enough signal is a dashed, hue-less outline. */
-function AskBar({ band, matched, total }) {
+/**
+ * The one THREE-segment bar: matched · missing · generic. Not enough signal is a dashed, hue-less
+ * outline whose segments carry no hue at all — never a short Weak bar.
+ */
+function AskBar({ band, matched, missing, generic }) {
   const unknown = band === ATS_BAND.NOT_ENOUGH_SIGNAL;
-  const s = bandStyle(band);
-  const share = total > 0 ? (matched / total) * 100 : 0;
+  const all = matched + missing + generic;
+  const share = (n) => `${all > 0 ? (n / all) * 100 : 0}%`;
   return (
     <div className="ats-bar" data-ats-bar data-unknown={unknown ? "true" : "false"} role="img"
-      aria-label={`${matched} of ${total} asks already on your résumé`}>
-      <div className="ats-bar__seg" style={{ width: `${share}%`, background: unknown ? `${C.BAND_UNKNOWN_EDGE}55` : s.fg }} />
-      <div className="ats-bar__seg" style={{ flex: 1, background: unknown ? "transparent" : s.bg }} />
+      aria-label={`${matched} of ${matched + missing} asks already on your résumé; ${generic} generic, not a gap`}>
+      <div className="ats-bar__seg ats-bar__seg--matched" style={{ width: share(matched) }} />
+      <div className="ats-bar__seg ats-bar__seg--missing" style={{ width: share(missing) }} />
+      <div className="ats-bar__seg ats-bar__seg--generic" style={{ width: share(generic) }} />
     </div>
   );
 }
 
 /**
- * The band card — THE SUMMARY: the band, the score (only once A76 earns it), "9 of 12", one bar.
- * Below it, only when they exist, the reasons the band is what it is: why the scorer declined, the
- * seniority note, the profile facts the posting requires. The full report opens with it; the signup
- * hook shows only this.
+ * The band card — THE HEADER: the band, "you cover 9 of 12", the score (only once A76 earns it), the
+ * three-segment bar. Below it, only when they exist, the reasons the band is what it is: why the scorer
+ * declined, the seniority note, the profile facts the posting requires. The full report opens with it;
+ * the signup hook shows only this.
  */
 export function AtsBandCard({ report, band: knownBand = null, compact = false, children = null }) {
   const band = reportBand(report, knownBand);
@@ -128,9 +156,9 @@ export function AtsBandCard({ report, band: knownBand = null, compact = false, c
   const declineReasons = Array.isArray(report?.decline_reasons) ? report.decline_reasons : [];
   const seniority = report?.seniority_cap?.applied ? report.seniority_cap : null;
   const hardMisses = Array.isArray(report?.hard_constraint_misses) ? report.hard_constraint_misses : [];
-  const { matched, total } = reportAsks(report);
+  const { matched, missing, total, generic } = reportAsks(report);
   return (
-    <div data-ats-band-card className="ats-sum" data-compact={compact ? "true" : "false"}>
+    <div data-ats-band-card className="ats-sum ink-pair" data-compact={compact ? "true" : "false"}>
       <div className="ats-sum__head">
         {/* BAND-FIRST: the band is read first; the number, when it is earned, is the largest thing. */}
         <span data-ats-band className="ats-sum__band" style={bandChipStyle(band, { edgeAlpha: "33" })}>{meta.label}</span>
@@ -142,8 +170,8 @@ export function AtsBandCard({ report, band: knownBand = null, compact = false, c
       </div>
       {total > 0 && (
         <>
-          <div data-ats-count className="ats-sum__count"><b>{matched} of {total}</b> on your résumé</div>
-          <AskBar band={band} matched={matched} total={total} />
+          <div data-ats-count className="ats-sum__count">You cover <b>{matched} of {total}</b> things this posting asks for</div>
+          <AskBar band={band} matched={matched} missing={missing} generic={generic.length} />
         </>
       )}
       {declineReasons.length > 0 && (
@@ -151,11 +179,31 @@ export function AtsBandCard({ report, band: knownBand = null, compact = false, c
       )}
       {seniority && <div className="ats-note">{seniority.reason}</div>}
       {hardMisses.length > 0 && (
-        <div data-ats-hard className="ats-note" style={{ color: C.DANGER }}>
+        <div data-ats-hard className="ats-note ats-note--hard">
           Required by this posting, not on your profile: {hardMisses.join(" · ")}
         </div>
       )}
       {children}
+    </div>
+  );
+}
+
+const EXPERIENCE_MARK = {
+  met:     { mark: "✓", word: "Met" },
+  short:   { mark: "✕", word: "Short" },
+  unknown: { mark: "?", word: "Can't compare" },
+  none:    { mark: "–", word: "Not asked" },
+};
+
+/** Experience — its own row: the one requirement that is genuinely pass/fail. */
+function ExperienceRow({ experience }) {
+  const state = experienceState(experience);
+  const m = EXPERIENCE_MARK[state] || null;
+  return (
+    <div data-ats-experience className="ats-exp" data-state={state || "stated"}>
+      <span className="ats-exp__label">Experience</span>
+      {m && <span className="ats-exp__mark"><span aria-hidden="true">{m.mark}</span> {m.word}</span>}
+      <span className="ats-exp__text">{experience.summary}</span>
     </div>
   );
 }
@@ -176,7 +224,7 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
   // `pct` survives only for the best-possible line (LLM reports), which is itself shown as a band.
   const pct = Math.max(0, Math.min(100, report.score ?? 0));
   const depth = report.resume_depth || null;
-  const { onResume, couldClaimSkills, couldClaimVerbs, generic } = reportAsks(report);
+  const { onResume, couldClaim, generic } = reportAsks(report);
   // Provenance: what the résumé already evidences — the scorer decided this; nothing is re-derived.
   const evidencedLookup = new Set([
     ...(report.tier1_matched || []),
@@ -188,19 +236,17 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
         claimedLookup: claims.claimedLookup, lockedLookup: kind === "action_verb" ? claims.lockedVerbs : claims.lockedSkills }
     : {};
   const canClaim = !!claims?.onToggle;
-  const couldClaimCount = couldClaimSkills.length + couldClaimVerbs.length;
-  const verdict = report.verdict || report.experience?.summary || null;
-  const showExperience = report.experience && report.experience.summary !== (report.verdict || report.experience.summary);
-  const more = verdict || showExperience || (!isLocalReport && (report.strengths?.length || report.improvements?.length));
+  // The verdict is printed once: when it is only the experience summary again (the A52 "renders twice"
+  // defect), the Experience row already said it.
+  const verdict = report.verdict && report.verdict !== report.experience?.summary ? report.verdict : null;
+  const more = verdict || (!isLocalReport && (report.strengths?.length || report.improvements?.length));
 
   return (
-    <div data-ats-report className="ats-card">
+    <div data-ats-report className="ats-card ink-pair">
       {/* Band card. Renders for EVERY report, including a declined one. */}
       <AtsBandCard report={report} band={knownBand}>
         {report.best_possible_score != null && (
-          <div className="ats-note" style={pct === report.best_possible_score
-            ? { background: C.SUCCESS_QUIET, color: C.SUCCESS, borderColor: `color-mix(in srgb, ${C.SUCCESS} 20%, transparent)` }
-            : undefined}>
+          <div className="ats-note" data-best={pct === report.best_possible_score ? "reached" : "short"}>
             {/* A BAND, NOT THE NUMBER (G5). */}
             {pct === report.best_possible_score
               ? "✓ The best fit your profile can reach for this posting"
@@ -215,24 +261,27 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
       {/* The résumé-depth warning sits under the band it qualifies, never above it (band-first). */}
       {depth && (
         <div className="ats-note">
-          <div style={{ fontWeight: 800, color: "var(--color-text)", marginBottom: 2 }}>{depth.headline}</div>
+          <div className="ats-note__head">{depth.headline}</div>
           <div>{depth.detail}</div>
         </div>
       )}
 
-      {/* ⭐ D31: "YOU COULD CLAIM" IS THE ONLY OPEN SECTION — every real ask the résumé does not show. */}
-      {couldClaimCount > 0 && (
+      {/* ⭐ D32: "YOU COULD CLAIM" IS ONE BLOCK, AND THE ONLY OPEN SECTION — skills, verbs and qualities
+          together, each box labelled with the scorer's bucket. */}
+      {couldClaim.length > 0 && (
         <section data-ats-could-claim>
-          <div className="rm-section-label">You could claim ({couldClaimCount})</div>
+          <div className="ats-sec__label">You could claim ({couldClaim.length})</div>
           <div className="ats-sec__sub">
             {canClaim ? "This posting asks for these and your résumé does not show them. Claim the ones that are true of you."
                       : "This posting asks for these and your résumé does not show them."}
           </div>
-          <div className="ats-chips">
-            <TermChips items={couldClaimSkills} kind="skill" evidencedLookup={evidencedLookup} {...claimable("skill")} />
-            <TermChips items={couldClaimVerbs} kind="action_verb" evidencedLookup={evidencedLookup} {...claimable("action_verb")} />
+          <div className="ats-boxes">
+            {couldClaim.map(({ term, kind }) => (
+              <TermBox key={`${kind}:${term}`} term={term} kind={kind} evidencedLookup={evidencedLookup}
+                {...claimable(TERM_KINDS[kind].claim)} />
+            ))}
           </div>
-          {/* ⛔ THE CLAIM COPY APPEARS ONCE — beneath the chips, where the action is. */}
+          {/* ⛔ THE CLAIM COPY APPEARS ONCE — beneath the boxes, where the action is. */}
           {canClaim && (
             <div data-claim-note className="ats-claim-note">
               Claiming a term says it is true of you — claim it only if it is. It counts toward this score and toward
@@ -244,12 +293,17 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
         </section>
       )}
 
+      {/* ⭐ D32: Experience gets its own row — pass/fail, not a footnote. */}
+      {report.experience?.summary && <ExperienceRow experience={report.experience} />}
+
       {/* FOLDED: what the résumé already shows. Read-only — there is nothing to do here. */}
       {onResume.length > 0 && (
         <details data-ats-on-resume className="ats-fold">
-          <summary>Already on your résumé ({onResume.length})</summary>
-          <div className="ats-chips">
-            <TermChips items={onResume} kind="skill" evidencedLookup={evidencedLookup} />
+          <summary>Already yours ({onResume.length})</summary>
+          <div className="ats-boxes">
+            {onResume.map(({ term, kind }) => (
+              <TermBox key={`${kind}:${term}`} term={term} kind={kind} evidencedLookup={evidencedLookup} />
+            ))}
           </div>
         </details>
       )}
@@ -262,28 +316,23 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
           <summary>Generic — not a gap ({generic.length})</summary>
           {/* ○ Generic Language: never claimable, never counted. */}
           <div className="ats-sec__sub">This job uses these, but almost any candidate could claim them — they are not a gap.</div>
-          <div className="ats-chips">
-            <TermChips items={generic} kind="action_verb" />
+          <div className="ats-boxes">
+            {generic.map(({ term, kind }) => <TermBox key={`g:${term}`} term={term} kind={kind} generic />)}
           </div>
         </details>
       )}
 
-      {/* The verdict, the experience line and (LLM reports only) strengths and improvements — folded,
-          printed once. A52 follow-up: the experience summary is often the verdict itself, and printing it
-          twice was the "renders twice" defect. */}
+      {/* The verdict and (LLM reports only) strengths and improvements — folded, printed once. */}
       {more && (
         <details data-ats-more className="ats-fold">
           <summary>More about this match</summary>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {verdict && <div style={{ fontSize: 12, color: "var(--color-text-muted)", fontStyle: "italic", lineHeight: 1.6 }}>{verdict}</div>}
-            {report.experience && report.experience.summary !== (report.verdict || report.experience.summary) && (
-              <ListSection title="Experience Fit" items={[report.experience.summary]} color={report.experience.fit ? C.SUCCESS : "var(--color-warning)"}/>
-            )}
+          <div className="ats-more">
+            {verdict && <div className="ats-more__verdict">{verdict}</div>}
             {!isLocalReport && report.strengths?.length > 0 && (
-              <ListSection title="💪 Strengths" items={report.strengths} color={C.SUCCESS}/>
+              <ListSection title="💪 Strengths" items={report.strengths} />
             )}
             {!isLocalReport && report.improvements?.length > 0 && (
-              <ListSection title="🔧 Improvements" items={report.improvements} color={"var(--color-primary)"}/>
+              <ListSection title="🔧 Improvements" items={report.improvements} />
             )}
           </div>
         </details>
@@ -293,66 +342,68 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
 }
 
 /**
- * A row of terms. With `onToggleClaim` they are CLAIM CHIPS (AG2) — a control, with the + affordance
- * and D1's depth; without it they are read-only labels, flat.
+ * One term, as a RECTANGULAR DEPTH BOX (D32 — the pills are gone), with the scorer's `kind` beside it.
+ * With `onToggleClaim` it is a CLAIM BOX (AG2) — a control, with the + affordance and D1's lift / hover
+ * / press; without it, a read-only box.
  *
  * THE COPY IS THE FEATURE. Clicking one of these asserts "I have this" — a claim the candidate will
- * have to defend in an interview. So the chip never reads as "add this to improve your score".
+ * have to defend in an interview. So the box never reads as "add this to improve your score".
  * CC4: a claim DOES count toward this score and toward where the job ranks, and the copy says so;
  * the scorer reports every match that rested on a claim alone, so the number is never silently
  * inflated. NOTHING IS PRE-SELECTED: `claimedLookup` holds only what the person actually claimed.
  */
-function TermChips({
-  items, onToggleClaim = null, pendingItems = new Set(),
+function TermBox({
+  term: k, kind, generic = false, onToggleClaim = null, pendingItems = new Set(),
   claimedLookup = { skillKeys: new Set(), verbKeys: new Set() },
-  lockedLookup = new Set(), evidencedLookup = new Set(), kind = "skill",
+  lockedLookup = new Set(), evidencedLookup = new Set(),
 }) {
-  const claimedKeys = (kind === "action_verb" ? claimedLookup?.verbKeys : claimedLookup?.skillKeys) || new Set();
-  return items.map(k => {
-    const itemKey = profileSignalKey(k);
-    const locked = (lockedLookup || new Set()).has(itemKey);
-    const claimed = locked || claimedKeys.has(itemKey) || (pendingItems || new Set()).has(`${kind}:${k}`);
-    const evidenced = evidencedLookup.has(itemKey);
-    const interactive = !!onToggleClaim && !locked;
-    const provenance = evidenced
+  const link = usePairLink();
+  const claimKind = TERM_KINDS[kind]?.claim || "skill";
+  const claimedKeys = (claimKind === "action_verb" ? claimedLookup?.verbKeys : claimedLookup?.skillKeys) || new Set();
+  const itemKey = profileSignalKey(k);
+  const locked = (lockedLookup || new Set()).has(itemKey);
+  const claimed = locked || claimedKeys.has(itemKey) || (pendingItems || new Set()).has(`${claimKind}:${k}`);
+  const evidenced = evidencedLookup.has(itemKey);
+  const interactive = !!onToggleClaim && !locked;
+  // D32's hover link — only inside a pair, only while pointed at or focused.
+  const linkProps = link
+    ? { onMouseEnter: () => link.light(k), onMouseLeave: () => link.light(null),
+        onFocus: () => link.light(k), onBlur: () => link.light(null), "data-pair-term": k }
+    : {};
+  const provenance = generic
+    ? "Generic language — almost any candidate could claim this. Not a gap."
+    : evidenced
       ? "Your resume already shows this"
       : claimed ? "You claimed this — the job description asked for it" : "This job asked for it. Your resume does not show it.";
-    if (!interactive) {
-      return (
-        <span key={`${kind}:${k}`} className="ats-chip" title={provenance}
-          style={claimed ? { background: C.SUCCESS_QUIET, color: C.SUCCESS } : undefined}>
-          {claimed ? `✓ ${k}` : k}
-        </span>
-      );
-    }
+  const kindLabel = <span className="ats-box__kind">{TERM_KINDS[kind]?.label || kind}</span>;
+  if (!interactive) {
     return (
-      <button key={`${kind}:${k}`} type="button" className="ats-chip ats-chip--claim" data-claim-chip={kind}
-        onClick={() => onToggleClaim(k, !claimed)}
-        aria-pressed={claimed}
-        title={claimed ? `You claimed "${k}". Click to withdraw it.`
-                       : `Claim "${k}" — only if it is true of you. It counts toward this score and toward where this job ranks, and it is used in future resumes.`}
-        style={{
-          background: claimed ? C.SUCCESS_QUIET : C.SURFACE_SOLID,
-          color: claimed ? C.SUCCESS : C.INK,
-          borderColor: claimed ? C.SUCCESS : undefined,
-        }}>
-        {!claimed && <span className="ats-chip__plus" aria-hidden="true">+</span>}
-        {claimed ? `✓ ${k}` : k}
-      </button>
+      <span className="ats-box" data-kind={kind} data-claimed={claimed ? "true" : "false"} title={provenance}
+        tabIndex={link ? 0 : undefined} {...linkProps}>
+        <span className="ats-box__term">{claimed ? `✓ ${k}` : k}</span>{kindLabel}
+      </span>
     );
-  });
+  }
+  return (
+    <button type="button" className="ats-box ats-box--claim" data-kind={kind} data-claim-chip={claimKind}
+      onClick={() => onToggleClaim(k, !claimed)}
+      aria-pressed={claimed}
+      title={claimed ? `You claimed "${k}". Click to withdraw it.`
+                     : `Claim "${k}" — only if it is true of you. It counts toward this score and toward where this job ranks, and it is used in future resumes.`}
+      {...linkProps}>
+      {!claimed && <span className="ats-box__plus" aria-hidden="true">+</span>}
+      <span className="ats-box__term">{claimed ? `✓ ${k}` : k}</span>{kindLabel}
+    </button>
+  );
 }
 
-function ListSection({ title, items, color }) {
+function ListSection({ title, items }) {
   return (
     <div>
-      <div className="rm-section-label" style={{ color }}>{title}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div className="ats-sec__label">{title}</div>
+      <div className="ats-list">
         {items.map((t, i) => (
-          <div key={i} style={{ display: "flex", gap: 8, fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.6 }}>
-            <span style={{ color, flexShrink: 0, fontWeight: 700 }}>·</span>
-            <span>{t}</span>
-          </div>
+          <div key={i} className="ats-list__item"><span aria-hidden="true">·</span><span>{t}</span></div>
         ))}
       </div>
     </div>

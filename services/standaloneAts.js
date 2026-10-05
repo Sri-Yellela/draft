@@ -9,6 +9,7 @@
 // reasons — never a low score.
 import { scoreAtsLocally } from "./localAtsScorer.js";
 import { atsBandFor } from "../shared/atsBands.js";
+import { experienceState } from "../shared/postingFacts.js";
 
 /**
  * A pasted JD has no title field, but the scorer reads one (the seniority guard, and the role
@@ -40,6 +41,8 @@ export function standaloneAtsResult({ resumeText, jdText, jobTitle, termWeightsF
     competencies_missing: report.competencies_missing || [],
     generic_verbs: report.action_verbs_generic || [],
     experience: report.experience?.summary || null,
+    // D32: the Experience row's pass/fail, as a word (met / short / unknown / none) — no number.
+    experience_state: report.experience ? experienceState(report.experience) : null,
     seniority: report.seniority_cap?.applied ? report.seniority_cap.reason : null,
     // Only a SHORT résumé. The warning's other arm, "few_skills", counts the candidate's PROFILE
     // skills — and an anonymous visitor has no profile, so it would fire for every one of them.

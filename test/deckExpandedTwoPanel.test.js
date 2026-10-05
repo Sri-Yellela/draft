@@ -27,8 +27,10 @@ test("⛔ TWO panels, not three: no third column, and the posting stays INSIDE t
   }
   // The grid has exactly two columns when wide: the report, and the card's column.
   assert.match(grid, /gridTemplateColumns: twoPanel \? `minmax\(0, \$\{expanded \? 1 : 0\}fr\) minmax\(0, 1fr\)` : "minmax\(0, 1fr\)"/);
-  // The posting is part of the card's face.
-  assert.match(face, /<section id="deck-detail" aria-label="The posting"[\s\S]*?<PostingText job=\{job\} \/>/);
+  // The posting is part of the card's face. D32: it is drawn by the posting half of the ink pair
+  // (components/PostingPanel.jsx) — still inside the card, still the card's own section.
+  assert.match(face, /<section id="deck-detail" aria-label="The posting"[\s\S]*?<CardPosting card=\{card\} \/>/);
+  assert.match(deckSrc, /<PostingPanel job=\{card\.job\} experience=\{experience\} showTitle=\{false\}>/);
 });
 
 test("⭐ the grid is the trick: the report's column grows 0fr → 1fr and PUSHES the card; the fan rides in the card's column", () => {
@@ -59,7 +61,10 @@ test("⛔ ONE CLOCK, NO STAGGER: every movement reads --deck-t / --deck-ease, se
 test("⭐ the collapsed card is COMPACT: ONE signal line, no chip rows — and on a wide screen it leaves as the report arrives", () => {
   assert.doesNotMatch(deckSrc, /WhyChips|Why it's here|Not on your résumé yet/, "a chip row on the collapsed card");
   assert.match(deckSrc, /\{matched\} of \{total\} matched/, "the signal line's term counts");
-  assert.match(face, /const signalShown = !\(open && twoPanel\);/);
+  // D32 re-pin: open, the signal line leaves on EVERY width — beside the report when wide, and on a phone
+  // to the collapsed score that heads the posting (the sticky column's phone answer). Closed, it stays.
+  assert.match(face, /const signalShown = !open;/);
+  assert.match(face, /\{!twoPanel && <CollapsedScore card=\{card\} onOpen=\{isFront \? onSignal : undefined\} \/>\}/);
   assert.match(face, /cta=\{twoPanel \? "open the report" : "tap for the report"\}/);
 });
 
@@ -107,7 +112,8 @@ test("⭐ two panels from TWO_PANEL_PX — where two EQUAL columns each hold a c
   // One width at rest and open: the card IS a column wide, so opening only moves it.
   assert.match(deckSrc, /const size = twoPanel \? \{ width: twoPanelColumn\(vw\), height: CARD\.horizontal\.height \} : cardSize\(orientation, vw\);/);
   assert.match(grid, /width: size\.width, flexShrink: 0/, "the report is as wide as its OPEN column from the first frame");
-  assert.match(grid, /data-deck-ats-col style=\{\{ minWidth: 0, overflowX: "clip", display: "flex", justifyContent: "flex-end" \}\}/,
+  // D32: + alignSelf stretch, so the column is the card's height and the report inside it can be STICKY.
+  assert.match(grid, /data-deck-ats-col style=\{\{ minWidth: 0, overflowX: "clip", display: "flex", justifyContent: "flex-end", alignSelf: "stretch" \}\}/,
     "pinned to the card's side, so it is uncovered from behind the card — not wiped in from the screen's edge");
 });
 

@@ -137,6 +137,34 @@ export const C_LIGHT = {
   PROVIDER_INDEED:   "#003A9B",
   ON_PROVIDER:       "#FFFFFF",
 
+  // ── D32 · THE INK PAIR — the posting and the score, side by side (PostingPanel + AtsReport). ────
+  //
+  // ⛔ THE PRODUCT'S ONLY DARK SURFACE, AND A RULE RATHER THAN A PER-SCREEN CHOICE. These keys are the
+  // pair's ONE token set; the theme (resolved once, below) is the ONE place that decides which values
+  // are live — cream here, ink in C_DARK. They are consumed ONLY through the `.ink-pair` surface
+  // (styles/inkPair.css) and the pair's two stylesheets; test/inkPairD32.test.js refuses any other
+  // consumer, any other dark surface, and any second place that picks a theme.
+  // ⚠ The dark greens, reds and blues are NOT these values converted: each was re-derived against the
+  // ink surface, and every pair below is declared in CONTRAST_PAIRS and proved in both themes.
+  PAIR_SURFACE:   "#F7F1E7",   // the pair's ground — cream, a shade lighter than the paper
+  PAIR_RAISED:    "#FFFCF6",   // a depth box, a deck-strip cell
+  PAIR_INK:       "#1E1915",
+  PAIR_INK_MUTED: "#4A423B",
+  PAIR_INK_FAINT: "#62574D",   // the `kind` label, the deck strip's cell names
+  PAIR_RULE:      "#DCD0BF",   // decorative rules (a heading's small-caps rule, the strip's dividers)
+  PAIR_EDGE:      "#857766",   // a claim box's dashed edge — a UI boundary, so 3:1
+  PAIR_KICKER:    "#A33200",   // the masthead's orange kicker, as TEXT (the logo orange fails as text)
+  PAIR_ACCENT:    "#A33200",   // the score in serif accent, the bullets' markers, the drop cap
+  PAIR_MATCHED:   "#17663A",   // the bar's matched segment; "already yours"; the met Experience cell
+  PAIR_MISSING:   "#A3281E",   // the bar's missing segment; Experience short
+  PAIR_GENERIC:   "#1E5E94",   // the bar's generic segment — blue, so it never reads as a gap
+  PAIR_MET_QUIET: "#DCEBDF",   // the Experience cell's tint when the requirement is met; a claimed box
+  PAIR_LIT:       "#F6DCC6",   // the hover link: a term lit in the posting while its box is pointed at
+  // D1's depth, re-derived for the pair's surface (the cream keeps D1's values).
+  PAIR_LIFT:      "0 3px 8px rgba(30,25,21,0.11), inset 0 1px 0 rgba(255,255,255,0.66)",
+  PAIR_LIFT2:     "0 7px 17px rgba(30,25,21,0.15), inset 0 1px 0 rgba(255,255,255,0.66)",
+  PAIR_PRESS:     "0 2px 5px rgba(30,25,21,0.13), inset 0 1px 0 rgba(255,255,255,0.5)",
+
   // Shadows are ink at low alpha — a warm shadow on paper, not a grey one.
   SHADOW_SM: "0 1px 2px rgba(30,25,21,0.08), 0 1px 1px rgba(30,25,21,0.05)",
   SHADOW_MD: "0 4px 12px rgba(30,25,21,0.10), 0 2px 4px rgba(30,25,21,0.06)",
@@ -221,6 +249,25 @@ export const C_DARK = {
   PROVIDER_GOOGLE:     "#1A73E8",
   PROVIDER_INDEED:     "#003A9B",
   ON_PROVIDER:         "#FFFFFF",
+  // D32 · the ink pair — the product's only dark surface. RE-DERIVED against the ink, never converted.
+  PAIR_SURFACE:        "#121110",   // the ink: darker than the leather, so the pair reads as one object
+  PAIR_RAISED:         "#201D1A",
+  PAIR_INK:            "#F3ECE1",
+  PAIR_INK_MUTED:      "#D0C5B8",
+  PAIR_INK_FAINT:      "#ABA092",
+  PAIR_RULE:           "#37312B",
+  PAIR_EDGE:           "#8C8072",
+  PAIR_KICKER:         "#FF8B5C",
+  PAIR_ACCENT:         "#FF8B5C",
+  PAIR_MATCHED:        "#6FD39A",
+  PAIR_MISSING:        "#F7907F",
+  PAIR_GENERIC:        "#86BBF0",
+  PAIR_MET_QUIET:      "#17301F",
+  PAIR_LIT:            "#4B2C1A",
+  // On ink a shadow barely reads, so the lift leans on a deeper drop and a faint lit top edge.
+  PAIR_LIFT:           "0 3px 9px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,240,225,0.09)",
+  PAIR_LIFT2:          "0 8px 20px rgba(0,0,0,0.70), inset 0 1px 0 rgba(255,240,225,0.12)",
+  PAIR_PRESS:          "0 2px 5px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,240,225,0.06)",
   SHADOW_SM:           "0 1px 2px rgba(0,0,0,0.35), 0 1px 1px rgba(0,0,0,0.25)",
   SHADOW_MD:           "0 4px 12px rgba(0,0,0,0.40), 0 2px 4px rgba(0,0,0,0.30)",
   SHADOW_LG:           "0 18px 40px rgba(0,0,0,0.50), 0 6px 14px rgba(0,0,0,0.35)",
@@ -364,6 +411,25 @@ export const CONTRAST_PAIRS = [
   // Not enough signal has no fill; its dashed edge is a UI boundary on paper and on glass
   ["BAND_UNKNOWN_EDGE", "CANVAS_SHADE", "ui"], ["BAND_UNKNOWN_EDGE", "SURFACE", "ui"],
   ["BAND_UNKNOWN_EDGE", "SURFACE_2", "ui"],
+  // ── D32 · the ink pair (every pair its two halves draw, proved in BOTH themes) ─────────────────
+  ["PAIR_INK", "PAIR_SURFACE", "normal"], ["PAIR_INK", "PAIR_RAISED", "normal"],
+  ["PAIR_INK_MUTED", "PAIR_SURFACE", "normal"], ["PAIR_INK_MUTED", "PAIR_RAISED", "normal"],
+  ["PAIR_INK_FAINT", "PAIR_SURFACE", "normal"], ["PAIR_INK_FAINT", "PAIR_RAISED", "normal"],
+  ["PAIR_KICKER", "PAIR_SURFACE", "normal"],
+  ["PAIR_ACCENT", "PAIR_SURFACE", "large"], ["PAIR_ACCENT", "PAIR_RAISED", "large"],   // the score, the drop cap
+  ["PAIR_ACCENT", "PAIR_SURFACE", "ui"],                                                // a bullet's marker
+  ["PAIR_MATCHED", "PAIR_SURFACE", "normal"], ["PAIR_MATCHED", "PAIR_RAISED", "normal"], ["PAIR_MATCHED", "PAIR_MET_QUIET", "normal"],
+  ["PAIR_INK", "PAIR_MET_QUIET", "normal"], ["PAIR_INK_MUTED", "PAIR_MET_QUIET", "normal"],
+  ["PAIR_INK_FAINT", "PAIR_MET_QUIET", "normal"],   // a claimed box's kind label; the met Experience cell's name
+  ["PAIR_MISSING", "PAIR_SURFACE", "normal"], ["PAIR_MISSING", "PAIR_RAISED", "normal"],
+  ["PAIR_GENERIC", "PAIR_SURFACE", "normal"], ["PAIR_GENERIC", "PAIR_RAISED", "normal"],
+  // the three bar segments are UI indicators on the pair's ground
+  ["PAIR_MATCHED", "PAIR_SURFACE", "ui"], ["PAIR_MISSING", "PAIR_SURFACE", "ui"], ["PAIR_GENERIC", "PAIR_SURFACE", "ui"],
+  ["PAIR_EDGE", "PAIR_SURFACE", "ui"], ["PAIR_EDGE", "PAIR_RAISED", "ui"],
+  ["PAIR_KICKER", "PAIR_RAISED", "ui"],                                                 // a focus ring on a box
+  ["PAIR_INK", "PAIR_LIT", "normal"],
+  // "Not enough signal" has no fill, so it sits on the pair's ground directly
+  ["BAND_UNKNOWN", "PAIR_SURFACE", "normal"], ["BAND_UNKNOWN_EDGE", "PAIR_SURFACE", "ui"],
 ];
 
 // Pairs that are FORBIDDEN, asserted to fail so nobody "fixes" the test by adding them above.

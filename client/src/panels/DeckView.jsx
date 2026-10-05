@@ -34,7 +34,9 @@ import { glass } from "../styles/glass.js";
 import { bandChipStyle } from "../styles/bandStyle.js";
 import { ATS_BAND, atsBandLabel } from "../../../shared/atsBands.js";
 import { ATSPanel } from "./ATSPanel.jsx";
-import { fromDeckReport } from "../components/AtsReport.jsx";
+import { AtsBandCard, fromDeckReport } from "../components/AtsReport.jsx";
+import PostingPanel from "../components/PostingPanel.jsx";
+import { PairLinkProvider } from "../lib/pairLink.js";
 import CompanyIcon from "../components/ui/CompanyIcon.jsx";
 import CardBack, { CardBackDefs } from "../components/CardBack.jsx";
 import { useViewport } from "../hooks/useViewport.js";
@@ -171,11 +173,32 @@ function AtsSignal({ band, why = {}, onOpen, cta }) {
   );
 }
 
-function PostingText({ job }) {
-  const text = String(job.description || "").trim();
-  return text
-    ? <p style={{ fontSize: 14.5, lineHeight: 1.7, color: C.INK, whiteSpace: "pre-wrap", margin: 0 }}>{text}</p>
-    : <p style={{ fontSize: 14, color: C.INK_MUTED, margin: 0 }}>The posting's text is not stored. Open it at the source.</p>;
+// D32 · THE POSTING HALF OF THE INK PAIR (components/PostingPanel.jsx): the masthead's kicker and deck
+// strip, then the employer's own description, formatted plainly. The card's heading above IS the title,
+// so the masthead does not print it twice. The Experience cell tints from the frozen report's judgement.
+function CardPosting({ card }) {
+  const experience = card.report ? fromDeckReport(card.report).experience : null;
+  return (
+    <PostingPanel job={card.job} experience={experience} showTitle={false}>
+      The posting's text is not stored. Open it at the source.
+    </PostingPanel>
+  );
+}
+
+// D32 · THE PHONE'S ANSWER: the sticky score column COLLAPSES ABOVE THE POSTING — its header only (band ·
+// "you cover 9 of 12" · the three-segment bar), with the way into the full report as a sheet.
+function CollapsedScore({ card, onOpen }) {
+  if (!card.report) return null;
+  return (
+    <div data-pair-collapsed style={{ marginBottom: 14 }}>
+      <AtsBandCard report={fromDeckReport(card.report)} band={card.report.scorable ? card.band : ATS_BAND.NOT_ENOUGH_SIGNAL} compact />
+      <button type="button" onClick={onOpen} aria-controls="deck-ats"
+        style={{ marginTop: 8, padding: 0, background: "transparent", border: "none", cursor: "pointer",
+                 fontSize: 13, fontWeight: 700, color: C.ACCENT_INK }}>
+        The full report ↑
+      </button>
+    </div>
+  );
 }
 
 function PostingLinks({ job, onReport }) {
@@ -293,7 +316,9 @@ function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, o
   const titleId = `deck-title-${job.id}`;
   const vertical = orientation === "vertical";
   const open = isFront && expanded;
-  const signalShown = !(open && twoPanel);
+  // D32: open, the signal line always leaves — beside the report on a wide screen, and on a phone to the
+  // collapsed score that heads the posting.
+  const signalShown = !open;
   return (
     <div style={{ padding: vertical ? "22px 22px 20px" : "28px 30px 24px" }}>
       {/* ⭐ COLLAPSE AT THE TOP TOO (A39), and STICKY — the bottom one is a whole posting away. A
@@ -345,7 +370,8 @@ function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, o
         <div data-deck-posting-row style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr", transition: `grid-template-rows ${ON_THE_CLOCK}` }}>
           <section id="deck-detail" aria-label="The posting" style={{ minHeight: 0, overflow: "hidden" }} {...inertIf(!open)}>
             <div style={{ marginTop: 18, paddingTop: 20, borderTop: `1px solid ${C.BORDER}` }}>
-              <PostingText job={job} />
+              {!twoPanel && <CollapsedScore card={card} onOpen={isFront ? onSignal : undefined} />}
+              <CardPosting card={card} />
               <PostingLinks job={job} onReport={onReport} />
             </div>
           </section>
@@ -755,6 +781,8 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const dealTotal = Math.min(order.length, geometry.visible + 1);
 
   return (
+    // D32: the pair's two halves — the report and the posting — share one hover link (lib/pairLink.js).
+    <PairLinkProvider>
     <MotionConfig reducedMotion="user">
       {/* ⛔ The fan runs past the screen's edge on purpose, and must never scroll the page sideways.
           Measured: expanded at 1440 the arc sliding right made the page 1820px wide (1667 at 1280),
@@ -870,14 +898,20 @@ export default function DeckView({ canUseAPlusResume = true }) {
               // flex-end: while the column is narrower than the report, the report overflows to the LEFT
               // (start) side and is clipped there — so it is uncovered from behind the card, edge first.
               // (marginLeft: auto cannot do this: an over-wide child's auto margin resolves to 0.)
-              <div data-deck-ats-col style={{ minWidth: 0, overflowX: "clip", display: "flex", justifyContent: "flex-end" }}>
+              // D32: the column STRETCHES to the card's height so the report inside it can be STICKY — the
+              // score stays beside the posting as the reader scrolls it.
+              <div data-deck-ats-col style={{ minWidth: 0, overflowX: "clip", display: "flex", justifyContent: "flex-end", alignSelf: "stretch" }}>
                 {atsMounted && current && !current.decision && (
                   // As wide as its OPEN column from the first frame, pinned to the column's right edge: it
                   // is uncovered from behind the card as the column grows, never reflowed while it does.
                   <aside id="deck-ats" aria-label="The ATS report" {...inertIf(!expanded)}
                     style={{ ...glass({ radius: 24 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU,
                              width: size.width, flexShrink: 0, boxSizing: "border-box", padding: "18px 6px 10px",
-                             position: "relative", zIndex: Z.CONTENT }}>
+                             // ⭐ D32: STICKY, under the fixed top bar; a report taller than the screen scrolls
+                             // inside itself rather than running off the bottom.
+                             position: "sticky", top: `calc(var(${CHROME_HEIGHT_VAR}, 74px) + 10px)`, alignSelf: "flex-start",
+                             maxHeight: `calc(100vh - var(${CHROME_HEIGHT_VAR}, 74px) - 20px)`, overflowY: "auto",
+                             overscrollBehavior: "contain", zIndex: Z.CONTENT }}>
                     <div style={{ ...sectionLabel, padding: "0 16px" }}>The ATS report</div>
                     <DeckAtsReport card={current} profileId={deckProfileId}
                       onReport={transitionClick(navigate, jobDetailHref(current.job.id), { awaitTitle: current.job.id })} />
@@ -942,5 +976,6 @@ export default function DeckView({ canUseAPlusResume = true }) {
       </div>
       </div>
     </MotionConfig>
+    </PairLinkProvider>
   );
 }

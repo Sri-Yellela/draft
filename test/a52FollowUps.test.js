@@ -12,9 +12,14 @@ test("enrichment finishing schedules a rescore: the hook fires after a pass that
   assert.match(server, /scheduleBoardFitForAll\("enrichment"\)/);
 });
 
-test("the experience summary renders once: the Experience Fit section is skipped when the band card already printed it", () => {
+test("the experience summary renders once: the verdict is skipped when it is only the experience summary again", () => {
   const src = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
-  assert.match(src, /report\.experience && report\.experience\.summary !== \(report\.verdict \|\| report\.experience\.summary\) && \(/);
+  // D32 re-pin: Experience moved to its OWN row (always printed when there is a summary), so the guard
+  // against printing it twice moved to the other side — the "More" fold's verdict line drops out when
+  // it would only repeat that summary (the A52 "renders twice" defect, same condition, other end).
+  assert.match(src, /const verdict = report\.verdict && report\.verdict !== report\.experience\?\.summary \? report\.verdict : null;/);
+  assert.match(src, /\{report\.experience\?\.summary && <ExperienceRow experience=\{report\.experience\} \/>\}/);
+  assert.equal((src.match(/<ExperienceRow /g) || []).length, 1, "the experience row is printed once");
 });
 
 test("/tools/ats: the result clears the fixed ScrollDock and is brought into view", () => {

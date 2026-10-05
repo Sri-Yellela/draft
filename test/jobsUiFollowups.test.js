@@ -37,8 +37,12 @@ test("ATS missing chips stay visible, turn green when claimed, and react to prof
   // and now the trigger is the candidate's claim rather than an irreversible add.
   // Re-pinned at UI step 2b (09-30): the dark-era literals became tokens; the claimed/unclaimed switch is what is pinned.
   // D31: the claim chip's resting colours are tokens on the chip itself (the + chip); the switch is the same.
-  assert.match(chips, /background: claimed \? C\.SUCCESS_QUIET : C\.SURFACE_SOLID/);
-  assert.match(chips, /color: claimed \? C\.SUCCESS : C\.INK/);
+  // D32 re-pin: the chip is a depth BOX on the ink pair, and its colours moved into AtsReport.css as the
+  // pair's tokens — the switch is now aria-pressed (which IS the claimed state), and it still turns green.
+  const css = fs.readFileSync("client/src/components/AtsReport.css", "utf8");
+  assert.match(chips, /aria-pressed=\{claimed\}/);
+  assert.match(css, /\.ats-box--claim\[aria-pressed="true"\] \{[^}]*background: var\(--c-pair-met-quiet\); color: var\(--c-pair-matched\);/);
+  assert.match(css, /\.ats-box--claim \{[^}]*border: 1\.5px dashed var\(--c-pair-edge\)/, "an unclaimed box is dashed, on the pair's raised surface");
   assert.match(chips, /claimed \? `✓ \$\{k\}` : k/);
   assert.doesNotMatch(chips, /pointerEvents:\s*claimed/,
     "a claimed chip must stay clickable — that click is how the claim is withdrawn");

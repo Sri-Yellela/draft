@@ -56,11 +56,16 @@ import {
 } from "../../shared/jobFilterOptions.js";
 import { OUTCOME, OUTCOME_STATUSES } from "../../shared/applyOutcomeGroups.js";
 import { ATS_BAND } from "../../shared/atsBands.js";
+import { JOB_FUNCTIONS } from "../../shared/jobTagVocabulary.js";
 
 /**
  * Semver. MAJOR is breaking; MINOR is additive. The rules, and why removing a field is
  * deliberately awkward, are in contract/README.md.
  *
+ * 2.1.0 — D32 (10-05). Additive: `Job.tagFunction` / `tagLevel` / `tagWorkplace` (D29's tags, for the
+ *         posting masthead's kicker; null = unknown, never "none") and `DeckReport.experienceState`
+ *         (met / short / unknown / none — the scorer's years judgement as a WORD, no number). Every 2.0.0
+ *         field is unchanged; an existing decoder ignores the new ones.
  * 2.0.0 — D24 (10-04). MAJOR, because GET /api/jobs/facets' response is REPLACED: the 1.x flat
  *         workType / employmentType / category / postedAge / salaryRange took no query params (its
  *         counts ignored every filter) and is gone, with its SalaryRange schema. It is now
@@ -97,7 +102,7 @@ import { ATS_BAND } from "../../shared/atsBands.js";
  *         a checksum and need a reason to re-copy.
  * 1.0.0 — initial contract.
  */
-export const CONTRACT_VERSION = "2.0.0";
+export const CONTRACT_VERSION = "2.1.0";
 
 // ------------------------------------------------------------------------------------------------
 // THE JOB SHAPE — derived by executing mapJobRow, not by reading it
@@ -189,6 +194,9 @@ export const JOB_FIELD_TYPES = Object.freeze({
   isClearanceRequired: { type: "boolean", nullable: true, description: "TRI-STATE. null = no signal yet." },
   experienceLevel:     { type: "string",  nullable: true, enum: "experienceLevel" },
   workplaceType:       { type: "string",  nullable: true, enum: "workplaceType" },
+  tagFunction:         { type: "string",  nullable: true, enum: "jobFunction", description: "D29's tag: the kind of work. null = UNKNOWN (not tagged), never 'none'." },
+  tagLevel:            { type: "string",  nullable: true, enum: "experienceLevel", description: "D29's tag: from the title, then the stated years. null = UNKNOWN — there is no 'mid' fallback." },
+  tagWorkplace:        { type: "string",  nullable: true, enum: "workplaceType", description: "D29's tag: remote / hybrid / onsite. null = UNKNOWN." },
   skills:              { type: "string[]", description: "Always an array; [] means none extracted. Flattened from two stored shapes (plain strings, and {skill,type} objects)." },
   automationTier:      { type: "string",  nullable: true, enum: "automationTier", description: "What the candidate will face at the apply destination, known at BROWSE time. null = the row predates migration 078 and has not been recomputed; read it exactly as 'unknown', never as 'direct'. THE MOBILE FEED MUST GATE ON THIS — see x-mobile-tier-gating." },
   isActive:            { type: "boolean", description: "Whether the LISTING is live, not whether the row exists. Only the Saved tab can return false: an expired starred job is retired rather than deleted, so its owner is told it closed instead of being sent to apply for something that is gone." },
@@ -204,6 +212,8 @@ export const JOB_FIELD_TYPES = Object.freeze({
 export const ENUMS = Object.freeze({
   experienceLevel: Object.freeze(values(EXPERIENCE_LEVELS)),
   workplaceType:   Object.freeze(values(WORK_MODELS)),
+  // D29's closed function vocabulary, from its one definition.
+  jobFunction:     Object.freeze(JOB_FUNCTIONS.options.map(o => o.value)),
   automationTier:  Object.freeze(values(AUTOMATION_TIERS)),
   employmentType:  Object.freeze(values(EMPLOYMENT_TYPES)),
   sort:            Object.freeze(values(SORTS)),
