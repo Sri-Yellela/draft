@@ -52,12 +52,17 @@ test("THE BUG: boolean 0 on a time-limited status REFUSES rather than guessing '
   assert.equal(resolveSponsorshipNeed({ requires_sponsorship: 0, work_auth: "J-1 visa" }), null);
 });
 
-test("boolean 0 with no visa signal at all is 'none' — the citizen case is not disturbed", () => {
-  assert.equal(resolveSponsorshipNeed({ requires_sponsorship: 0 }), "none");
-  assert.equal(resolveSponsorshipNeed({}), "none");
+// D36 (10-05): this pinned that a 0 with no visa signal meant 'none'. But requires_sponsorship is
+// NOT NULL DEFAULT 0 and registration writes 0 when the question was never shown, so that 0 is
+// "never asked" — and it answered "now or in the future?" with No at 1.0 for a user who stated nothing.
+// A citizen sets sponsorship_need 'none' in Profile (the explicit-tri-state test above), or answers once.
+test("boolean 0 is NOT an answer — unknown refuses, however plausible the citizen reading", () => {
+  assert.equal(resolveSponsorshipNeed({ requires_sponsorship: 0 }), null);
+  assert.equal(resolveSponsorshipNeed({}), null);
   assert.equal(resolveSponsorshipNeed({
     requires_sponsorship: 0, work_auth: "Authorized to work in the US",
-  }), "none");
+  }), null);
+  assert.equal(resolveSponsorshipNeed({ sponsorship_need: "none", requires_sponsorship: 0 }), "none");
 });
 
 // ── the answer, per tense ────────────────────────────────────────────────────

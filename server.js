@@ -4978,7 +4978,9 @@ function buildAutofillPayload(profile, mode, company = null) {
       requires_sponsorship:profile?.requires_sponsorship?"Yes":"No",
       sponsorship:profile?.requires_sponsorship?"Yes":"No",
       clearance_level:profile?.clearance_level||"", clearanceLevel:profile?.clearance_level||"",
-      has_clearance:profile?.has_clearance?"Yes":"No",
+      // D36: has_clearance is NOT NULL DEFAULT 0, and a 0 means "never ticked", not "holds none" — a
+      // clearance question is left to the candidate (refused, held, asked once), never answered "No".
+      has_clearance:profile?.has_clearance?"Yes":"",
       // New fields
       desired_salary:profile?.desired_salary ? String(profile.desired_salary) : "",
       available_start_date:profile?.available_start_date||"",

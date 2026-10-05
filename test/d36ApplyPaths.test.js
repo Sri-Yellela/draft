@@ -5,11 +5,14 @@ import os from "node:os";
 import path from "node:path";
 import { tmpPdfPath } from "../routes/apply.js";
 import { describeApplication } from "../client/src/lib/applyObstacles.js";
+import { at as anchor } from "../test-support/sourceAnchors.js";
 import express from "express";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import applyRoutes from "../routes/apply.js";
-import { submitBlockedReason } from "../services/applyAutomation.js";
+import {
+  submitBlockedReason, resolveSponsorshipNeed, buildAnswers, eligibilityClassOf, sanitizeDiscoveredFields,
+} from "../services/applyAutomation.js";
 
 // D36 — EVERY APPLY PATH, END TO END. Each test here pins a defect the walk found against the local
 // fake ATS on a throwaway server (synthetic user, keys blanked); the walk itself is in the D36 report
@@ -111,8 +114,8 @@ test("D36·7 · the lock is a literal at module scope that nothing can reassign 
   const src = read("routes/apply.js");
   assert.match(src, /\nconst FULL_AUTO_PROVEN = false;\n/, "a module-scope literal false");
   assert.equal((src.match(/FULL_AUTO_PROVEN\s*=(?!=)/g) || []).length, 1, "declared once, never reassigned");
-  const at = src.indexOf("const FULL_AUTO_PROVEN");
-  assert.doesNotMatch(src.slice(at, at + 60), /process\.env|app_settings|getSetting|envInt/);
+  const decl = anchor(src, "const FULL_AUTO_PROVEN");
+  assert.doesNotMatch(src.slice(decl, decl + 60), /process\.env|app_settings|getSetting|envInt/);
   // Read by the bar, by admission and by processing — not by the bar alone.
   assert.ok((src.match(/!FULL_AUTO_PROVEN/g) || []).length >= 3, "autoModeState, startRun and processRunJob all read it");
   assert.match(src, /resolvedMode === "auto" && resolvedApproval === "auto" && !FULL_AUTO_PROVEN/);
@@ -194,10 +197,10 @@ test("D36·2 · submitBlockedReason: null proceeds, a reason blocks, and a THROW
 
 test("D36·2 · the check sits at the LAST moment before the click, after the per-job abort", () => {
   const src = read("services/applyAutomation.js");
-  const abort = src.indexOf("aborted before submit");
-  const blocked = src.indexOf("const blockedBy = await submitBlockedReason(submitBlocker);");
-  const submitting = src.indexOf('inProgress.set(String(jobId), { status: "submitting", browser });');
-  const click = src.indexOf("await best.btn.click();");
+  const abort = anchor(src, "aborted before submit");
+  const blocked = anchor(src, "const blockedBy = await submitBlockedReason(submitBlocker);");
+  const submitting = anchor(src, 'inProgress.set(String(jobId), { status: "submitting", browser });');
+  const click = anchor(src, "await best.btn.click();");
   assert.ok(abort > 0 && blocked > abort, "after the abort checkpoint");
   assert.ok(submitting > blocked && click > submitting, "before anything can be clicked");
   // Between the check and the click there is no await that could let the switch change unseen
@@ -222,4 +225,108 @@ test("D36·2 · a run stopped in flight says it was not sent, and can be drafted
     assert.equal(o.retryable, true, code);
     assert.equal(o.protective, true, code);
   }
+});
+
+// ── 4 · ELIGIBILITY IS MAPPED EXACTLY, OR FLAGGED AND STOPPED — NEVER GUESSED ─────────────────────
+// Walked 10-05 two ways. (a) FULL AUTO in the harness on the fake ATS's Greenhouse form: "Do you now
+// or in the future require sponsorship?" answered "No" at sponsorship_derived / 1.0 for a synthetic
+// user who had stated NOTHING — requires_sponsorship is NOT NULL DEFAULT 0 and 0 was read as 'none'.
+// (b) The real autoApply in mode 'full' on a synthetic local trap page (scratchpad eligTrap.mjs): the
+// pre-fix code SUBMITTED ethnicity="Springfield" (attr 'city' ⊂ "ethnicity"), "Tell us why…"="555-0136"
+// ('tel' ⊂ "tell_us_why"), "Personal statement"="IL" ('state'), relocation=location, "Country of
+// citizenship"="United States", "Referrer's email"=the candidate's own, and sponsorship "No" three
+// times (select via the legacy label sweep, a text box by name, a radio) plus clearance "no" — every
+// gate passed, most at handler_exact 1.0. After: every one of those fields blank, each refusal recorded.
+const automationSrc = read("services/applyAutomation.js");
+function emitted(name) {
+  const open = `const ${name} = \``;
+  const i = anchor(automationSrc, open);
+  const raw = automationSrc.slice(i + open.length, anchor(automationSrc, "`;", i));
+  return eval("`" + raw + "`"); // eslint-disable-line no-eval -- the template literal, exactly as emitted
+}
+const fnFrom = (src, name) => {
+  const k = anchor(src, `function ${name}(`);
+  return src.slice(k, anchor(src, "\n  }\n", k) + 4);
+};
+
+test("D36·4 · a sponsorship situation is never read off a column default", () => {
+  assert.equal(resolveSponsorshipNeed({ requires_sponsorship: 0 }), null);
+  assert.equal(resolveSponsorshipNeed({}), null);
+  // The Greenhouse question, a synthetic user with nothing stated: refused, not "No".
+  const fields = [{ field_id: "s", name: "job_application[requires_sponsorship]", type: "select", is_required: true,
+    label: "Do you now or in the future require sponsorship for work authorization?", handler_type: "sponsorship",
+    handler_source: "attr", options: [{ value: "", label: "Select..." }, { value: "Yes", label: "Yes" }, { value: "No", label: "No" }] }];
+  const payload = { sponsorship_need: resolveSponsorshipNeed({ requires_sponsorship: 0 }),
+    field_map: { requires_sponsorship: "No", sponsorship: "No" }, handler_map: { sponsorship: "No" }, custom_answers: {} };
+  const [a] = buildAnswers(fields, payload);
+  assert.equal(a.skipped, true, `answered ${a.value} at ${a.provenance}`);
+  assert.ok(a.refusals.some(r => /unknown_sponsorship_need/.test(r)));
+  // Stated, it is answered — the refusal is about the default, not the question.
+  const [b] = buildAnswers(fields, { ...payload, sponsorship_need: "none" });
+  assert.equal(b.value, "No");
+});
+
+test("D36·4 · citizenship is an attestation class: residence never answers it", () => {
+  assert.equal(eligibilityClassOf("Country of citizenship"), "citizenship");
+  assert.equal(eligibilityClassOf("Are you a U.S. citizen or permanent resident?"), "citizenship");
+  const fields = [{ field_id: "c", name: "country_of_citizenship", type: "text", label: "Country of citizenship",
+    handler_type: "country", handler_source: "attr", is_required: true, options: [] }];
+  sanitizeDiscoveredFields(fields);
+  const [a] = buildAnswers(fields, { field_map: { country: "United States" }, handler_map: { country: "United States" }, custom_answers: {} });
+  assert.equal(a.skipped, true, `answered ${a.value}`);
+  // The candidate's own answer to THAT question is the only thing that may fill it.
+  const [b] = buildAnswers(fields, { field_map: {}, handler_map: {}, custom_answers: { "Country of citizenship": "Canada" } });
+  assert.equal(b.value, "Canada");
+  assert.equal(b.provenance, "custom_answer");
+});
+
+test("D36·4 · attribute-derived handlers are vetted: third party, inverted class, citizenship", () => {
+  const f = (name, label, handler_type) => ({ name, label, handler_type, handler_source: "attr", type: "text" });
+  const fields = [
+    f("referrer_email", "Referrer's email", "email"),
+    f("work_authorization", "Will you require sponsorship to work here?", "work-auth"),
+    f("country_of_citizenship", "Country of citizenship", "country"),
+    f("requires_sponsorship", "Do you require sponsorship?", "sponsorship"),   // the exact signal survives
+    f("email", "Email", "email"),
+  ];
+  sanitizeDiscoveredFields(fields);
+  assert.deepEqual(fields.map(x => x.handler_type), [null, null, null, "sponsorship", "email"]);
+  assert.match(fields[0].handler_rejected, /third_party_subject/);
+  assert.match(fields[1].handler_rejected, /eligibility_class:sponsorship/);
+});
+
+test("D36·4 · an attribute names a handler by whole token or leading word — never by substring", () => {
+  const disc = emitted("DISCOVER_FN_SRC");
+  const attrHit = new Function(`${fnFrom(disc, "tokenMatch")}\nconst PREFIX_UNSAFE = { state: 1, major: 1 };\n${fnFrom(disc, "attrHit")}\nreturn attrHit;`)();
+  const no = [["ethnicity", "city"], ["tell_us_why", "tel"], ["telecommute", "tel"], ["personal_statement", "state"],
+              ["relocation", "location"], ["hotel_name", "tel"], ["statement", "state"], ["majority_owner", "major"]];
+  const yes = [["job_application[email]", "email"], ["_systemfield_email", "email"], ["applicantEmail", "email"],
+               ["emailaddress", "email"], ["phonenumber", "phone"], ["zipCode", "zip"], ["zipcode", "zipcode"],
+               ["tel", "tel"], ["given-name", "given-name"], ["address_line1", "address_line1"],
+               ["urls[LinkedIn]", "linkedin"], ["job_application[first_name]", "first_name"], ["state", "state"]];
+  for (const [raw, key] of no) assert.equal(attrHit(raw, key), false, `${raw} must not name '${key}'`);
+  for (const [raw, key] of yes) assert.equal(attrHit(raw, key), true, `${raw} must name '${key}'`);
+  assert.match(disc, /if \(attrHit\(raw, key\)\) return \{ handler: ht, source: 'attr' \};/);
+  assert.doesNotMatch(disc, /val\.includes\(substr\)/, "the raw substring match is gone");
+});
+
+test("D36·4 · the legacy in-page sweep never fills an eligibility field", () => {
+  const fill = emitted("FILL_FN_SRC");
+  const g = { eligibility: [["sponsorship", "\\bsponsor(?:s|ed|ship)?\\b"], ["clearance", "\\bclearance\\b"]],
+              canonicalKeys: { sponsorship: ["requires_sponsorship"] }, thirdPartyRe: "$^", identityKeyRe: "$^" };
+  const refused = new Function("g", `${fnFrom(fill, "refused")}\nreturn refused;`)(g);
+  // Even the CANONICAL key is refused on this path — it has no direction, tense or provenance.
+  assert.equal(refused("Will you require sponsorship?", "requires_sponsorship"), true);
+  assert.equal(refused("Do you hold an active security clearance?", "has_clearance"), true);
+  assert.equal(refused("First name", "first_name"), false);
+  // Step 1 (exact name) consults it, and step 5's sponsorship/clearance radios are gone.
+  assert.match(fill, /if \(refused\(describe\(el\) \+ ' ' \+ \(\(el\.labels && el\.labels\[0\]\) \? el\.labels\[0\]\.textContent : ''\), name\)\) return;/);
+  assert.doesNotMatch(fill, /fm\.requires_sponsorship === "Yes"/);
+  assert.doesNotMatch(fill, /fm\.has_clearance === "Yes"/);
+});
+
+test("D36·4 · server.js does not turn has_clearance's default 0 into an answer", () => {
+  const server = read("server.js");
+  assert.match(server, /has_clearance:profile\?\.has_clearance\?"Yes":"",/);
+  assert.doesNotMatch(server, /has_clearance:profile\?\.has_clearance\?"Yes":"No"/);
 });
