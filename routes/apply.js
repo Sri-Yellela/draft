@@ -1085,6 +1085,13 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const deferGeneration = needsApproval && !generateAtQueue;
     // 'preview' is full-auto minus the click; 'semi' opens a visible browser for a live human.
     const applyMode = mode !== "auto" ? "semi" : needsApproval ? "preview" : "full";
+    // D36 · the kill switch reaches a run ALREADY IN FLIGHT. Read at the moment before the click
+    // (autoApply's submitBlocker), not only here at the job's start — a full or approved run fills
+    // and waits on generation for up to ~90 s, and the switch thrown in that window used to be
+    // ignored. Only for the mode that clicks: a preview never submits and semi leaves it to a human.
+    const submitBlocker = applyMode === "full"
+      ? () => (fullAutoDisabled() ? "full_auto_disabled" : null)
+      : null;
     // What the human approved, if this run exists because of an approval. autoApply refuses to
     // submit anything that differs from it.
     const approvedAnswers = runJob.approved_from_run_job_id
@@ -1336,6 +1343,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           coverLetterPath: clPath,
           approvedAnswers,
           onCorrections: recordCorrections,
+          submitBlocker,
         });
 
       } else if (mode === "semi") {
@@ -1582,6 +1590,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           resumePathPromise,
           coverLetterPathPromise: coverLetterPathPromiseCaseC,
           approvedAnswers,
+          submitBlocker,
         });
         const [,, applySettled] = await Promise.allSettled([resumePathPromise, coverLetterPathPromiseCaseC, applyPromise]);
         result = applySettled.status === "fulfilled" ? applySettled.value : { status: "error", fieldsFilled: 0 };

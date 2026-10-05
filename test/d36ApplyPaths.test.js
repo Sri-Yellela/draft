@@ -9,6 +9,7 @@ import express from "express";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import applyRoutes from "../routes/apply.js";
+import { submitBlockedReason } from "../services/applyAutomation.js";
 
 // D36 — EVERY APPLY PATH, END TO END. Each test here pins a defect the walk found against the local
 // fake ATS on a throwaway server (synthetic user, keys blanked); the walk itself is in the D36 report
@@ -173,4 +174,52 @@ test("D36·7 · the user is told nothing was sent, and how to send it reviewed",
   assert.match(o.obstacle, /nothing was opened or sent/);
   assert.match(o.action, /wait for your approval/);
   assert.equal(o.protective, true);
+});
+
+// ── 2 · THE KILL SWITCH STOPS A RUN ALREADY IN FLIGHT ─────────────────────────────────────────────
+// Walked 10-05 (scratchpad harness: real routes, real autoApply, local fake ATS): approve a preview,
+// let the approved run open the form while its résumé is still generating, throw the operator's kill
+// switch. Before: the run submitted (fake ATS count 1, job_applications written) — the switch was read
+// only at admission and when a job STARTED. After: held full_auto_disabled, count 0. The same
+// harness with the routes' blocker removed submits again (seen red). Every path that can run
+// unattended — an approved SEMI submit and FULL AUTO — goes through autoApply mode 'full'.
+
+test("D36·2 · submitBlockedReason: null proceeds, a reason blocks, and a THROW blocks (fail-closed)", async () => {
+  assert.equal(await submitBlockedReason(null), null);
+  assert.equal(await submitBlockedReason(() => null), null);
+  assert.equal(await submitBlockedReason(() => "full_auto_disabled"), "full_auto_disabled");
+  assert.equal(await submitBlockedReason(async () => "full_auto_disabled"), "full_auto_disabled");
+  assert.equal(await submitBlockedReason(() => { throw new Error("database is locked"); }), "submit_check_failed");
+});
+
+test("D36·2 · the check sits at the LAST moment before the click, after the per-job abort", () => {
+  const src = read("services/applyAutomation.js");
+  const abort = src.indexOf("aborted before submit");
+  const blocked = src.indexOf("const blockedBy = await submitBlockedReason(submitBlocker);");
+  const submitting = src.indexOf('inProgress.set(String(jobId), { status: "submitting", browser });');
+  const click = src.indexOf("await best.btn.click();");
+  assert.ok(abort > 0 && blocked > abort, "after the abort checkpoint");
+  assert.ok(submitting > blocked && click > submitting, "before anything can be clicked");
+  // Between the check and the click there is no await that could let the switch change unseen
+  // except the button scan itself — and the check returns before the browser is told to submit.
+  assert.match(src.slice(blocked, submitting), /status:\s*"held_review",\s*\n\s*reasonCode:\s*blockedBy/);
+});
+
+test("D36·2 · every autoApply that can submit is given the operator's switch", () => {
+  const src = read("routes/apply.js");
+  assert.match(src, /const submitBlocker = applyMode === "full"\n\s*\? \(\) => \(fullAutoDisabled\(\) \? "full_auto_disabled" : null\)\n\s*: null;/);
+  // CASE A (current artifact) and CASE C (generate in parallel) are the two full-mode call sites.
+  const calls = [...src.matchAll(/autoApply\(jobUrl, autofillPayload, \{([\s\S]*?)\}\);/g)].map(m => m[1]);
+  const fullCapable = calls.filter(c => /mode: applyMode/.test(c) && !/documentsDeferred: true/.test(c));
+  assert.equal(fullCapable.length, 2);
+  for (const c of fullCapable) assert.match(c, /\bsubmitBlocker,/);
+});
+
+test("D36·2 · a run stopped in flight says it was not sent, and can be drafted again", () => {
+  for (const code of ["full_auto_disabled", "submit_check_failed"]) {
+    const o = describeApplication({ status: "held_review", reasonCode: code });
+    assert.match(o.obstacle, /not sent|before this one was sent/, code);
+    assert.equal(o.retryable, true, code);
+    assert.equal(o.protective, true, code);
+  }
 });

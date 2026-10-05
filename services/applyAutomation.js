@@ -2581,6 +2581,12 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
     // resolver defect or a missing custom answer, which makes this the most useful thing a semi
     // campaign produces and the one thing nothing was recording.
     onCorrections     = null,
+    // D36 · THE KILL SWITCH IN FLIGHT. Asked once more immediately before the submit click, after
+    // every gate: a run admitted while full-auto was allowed can spend a minute filling a form and
+    // waiting on its résumé, and the operator's switch used to be read only at admission and when a
+    // job STARTED — so a job already in flight submitted after the switch was thrown. Returns a reason
+    // code (or null to proceed); see submitBlockedReason for why a throw blocks.
+    submitBlocker     = null,
   } = options;
 
   // 'preview' is full-auto in every respect EXCEPT the submit click: same headless browser, same
@@ -3062,6 +3068,25 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
         try { await browser.close(); } catch {}
         return { ...abortedResult(totalFilled), answers: resolvedAnswers, platform: detected };
       }
+      // D36: the run-wide stop (the operator's kill switch), checked at the same last moment as the
+      // per-job abort. Held, not cancelled: the user did not stop it, and it is theirs to send again.
+      const blockedBy = await submitBlockedReason(submitBlocker);
+      if (blockedBy) {
+        console.log(`[autoApply] submit blocked (${blockedBy}) — job=${jobId}, nothing clicked`);
+        inProgress.set(String(jobId), { status: "held_review", browser: null });
+        try { await browser.close(); } catch {}
+        return {
+          status:       "held_review",
+          reasonCode:   blockedBy,
+          reasonDetail: "Stopped immediately before the submit click. The form was filled and nothing was sent.",
+          flowState,
+          fieldsFilled: totalFilled,
+          fieldsDiscovered: firstPassFieldCount ?? 0,
+          answers:      resolvedAnswers,
+          platform:     detected,
+          landedUrl:    jobUrl,
+        };
+      }
 
       inProgress.set(String(jobId), { status: "submitting", browser });
       // Submit-button matching lives in classifySubmitLabel — see the note there for why the
@@ -3310,6 +3335,23 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
       screenshotBase64: ss.base64,
       screenshotPath: ss.path,
     };
+  }
+}
+
+/**
+ * D36 — may the submit click happen? `submitBlocker` returns a reason code to stop, or null.
+ *
+ * FAIL-CLOSED: a blocker that throws (the database is locked, a settings read failed) BLOCKS. The
+ * cost of being wrong that way is a held application the user sends again; the cost of being wrong
+ * the other way is an application sent after someone said stop, which cannot be recalled.
+ */
+export async function submitBlockedReason(submitBlocker) {
+  if (typeof submitBlocker !== "function") return null;
+  try {
+    const r = await submitBlocker();
+    return r ? String(r) : null;
+  } catch {
+    return "submit_check_failed";
   }
 }
 

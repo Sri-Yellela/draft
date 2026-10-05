@@ -60,6 +60,18 @@ const BY_REASON = {
     action: "Draft it again — it will wait for your approval",
     protective: true, retryable: true,
   },
+  // The operator's kill switch. Checked before the run opens anything AND immediately before the
+  // submit click (D36), so this can also be a run that was stopped mid-fill; either way, not sent.
+  full_auto_disabled: {
+    obstacle: "Automatic applications were paused by the operator before this one was sent",
+    action: "Draft it again once they are resumed",
+    protective: true, retryable: true,
+  },
+  submit_check_failed: {
+    obstacle: "We could not confirm it was safe to send, so it was not sent",
+    action: "Draft it again",
+    protective: true, retryable: true,
+  },
   manual_review: {
     obstacle: "The form asked something only you can answer",
     action: "Answer it, and this application continues",
