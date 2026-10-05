@@ -46,7 +46,7 @@ export const HANDLER_BY_ATTR = {
   'address-line2':'address2','address_line2':'address2','address_line_2':'address2','address2':'address2',
   'city':'city',
   'state':'state',
-  'zip':'zip','postal-code':'zip','postal_code':'zip','postalcode':'zip',
+  'zip':'zip','zipcode':'zip','postal-code':'zip','postal_code':'zip','postalcode':'zip',
   'country':'country',
   'location':'location',
   'sponsorship':'sponsorship','requires_sponsorship':'sponsorship',
@@ -171,6 +171,11 @@ export const ELIGIBILITY_PATTERNS = [
   ['sponsorship', /\bsponsor(?:s|ed|ship)?\b/i],
   ['criminal',    /\b(?:criminal|felony|convict\w*|background\s+check)\b/i],
   ['clearance',   /\bclearance\b/i],
+  // D36: "Are you a U.S. citizen?" and "Country of citizenship" were classed as nothing at all, so a
+  // `country` attribute or key could answer citizenship with the country of RESIDENCE. No profile key
+  // states citizenship, so only the candidate's own exact answer (custom_answers) may. Listed BEFORE
+  // visa so "citizen or permanent resident" is a citizenship question, not a visa-keyed one.
+  ['citizenship', /\b(?:citizen(?:ship)?s?|nationality)\b/i],
   ['visa',        /\b(?:visa|h-?1-?b|f-?1|opt|cpt|green\s+card|permanent\s+resident)\b/i],
   ['eeo',         /\b(?:gender|ethnicit\w*|races?|racial|veteran|disabilit\w*|eeo|hispanic|latino|pronouns?)\b/i],
   ['work_auth',   /\b(?:work\s+authoriz\w*|authoriz\w*\s+to\s+work|right\s+to\s+work|legally\s+authoriz\w*|employment\s+eligib\w*)\b/i],
@@ -183,6 +188,7 @@ export const ELIGIBILITY_CANONICAL_KEYS = {
   clearance:   ['clearance_level', 'has_clearance', 'clearance'],
   visa:        ['visa_type', 'visa_status', 'visa'],
   criminal:    ['criminal_history', 'has_criminal_record', 'background_check'],
+  citizenship: [],
   eeo:         ['gender', 'ethnicity', 'race', 'veteran_status', 'disability_status', 'pronouns'],
 };
 
@@ -193,6 +199,7 @@ export const ELIGIBILITY_HANDLERS = {
   clearance:   ['clearance'],
   visa:        ['visa'],
   criminal:    [],
+  citizenship: [],
   eeo:         ['gender', 'ethnicity', 'veteran', 'disability'],
 };
 
@@ -494,13 +501,16 @@ export function resolveSponsorshipNeed(profile) {
 
   if (profile?.requires_sponsorship) return 'now';
 
-  // A time-limited authorization means "not now" does not imply "not ever".
-  const statusText = `${profile?.visa_type ?? ''} ${profile?.work_auth ?? ''}`;
-  const TEMPORARY_STATUS_RE =
-    /\b(?:f-?1|opt|stem\s*opt|cpt|j-?1|h-?4|l-?2|tn\b|ead|student\s+visa|work\s+permit|h-?1-?b)\b/i;
-  if (TEMPORARY_STATUS_RE.test(statusText)) return null;
-
-  return 'none';
+  // ⛔ D36: 0 IS NOT AN ANSWER. `user_profile.requires_sponsorship` is NOT NULL DEFAULT 0 and
+  // registration writes 0 when the question was never shown, so a 0 is indistinguishable from
+  // "never asked". This used to return 'none' (after refusing only when a visa string named a
+  // time-limited status), and the D36 walk (10-05) watched it answer Greenhouse's "Do you now or in
+  // the future require sponsorship?" with "No" at sponsorship_derived / 1.0 — ABOVE the low-confidence
+  // floor, so FULL AUTO would have sent it — for a synthetic user who had stated nothing at all. The
+  // Profile panel already promises the opposite: "Left unset the run holds and asks rather than
+  // guessing". Only the explicit tri-state, or the legacy boolean set TRUE, is a statement. Unknown
+  // refuses; the completeness gate holds on it; the correction loop asks once and stores the answer.
+  return null;
 }
 
 /**
@@ -668,7 +678,12 @@ export function sanitizeDiscoveredFields(fields) {
       f.handler_type = null;
       continue;
     }
-    if (f?.handler_source !== 'label' || !f.handler_type) continue;
+    // D36: ATTRIBUTE-derived handlers are vetted too. They were trusted as exact, and step 1 of
+    // buildAnswers applies no guard at all — so `name="referrer_email"` (a third party),
+    // `name="work_authorization"` under a sponsorship question (the inverted class) or
+    // `name="country_of_citizenship"` (residence answering citizenship) were filled at handler_exact /
+    // 1.0. Only the file-slot heuristic (source 'file') is exempt: it names a document, not an answer.
+    if (!f?.handler_type || f.handler_source === 'file') continue;
     const reason = refuseReason({ label: f.label, name: f.name, handler: f.handler_type });
     if (reason) {
       f.handler_rejected = `${f.handler_type}:${reason}`;
@@ -819,10 +834,11 @@ function(autofillData, labelMap, guards) {
     if (!t) return false;
     for (const pair of g.eligibility) {
       let re; try { re = new RegExp(pair[1], 'i'); } catch { continue; }
-      if (re.test(t)) {
-        const ok = (g.canonicalKeys[pair[0]] || []).indexOf(String(key).toLowerCase()) !== -1;
-        return !ok;
-      }
+      // D36: an eligibility subject is NEVER filled by this sweep, whatever the key. This path types
+      // into the page without producing an answer, so there is no direction or tense check here, no
+      // provenance and nothing the review or the low-confidence gate can see. buildAnswers is the one
+      // place an attestation may be resolved; when it refuses, the field stays blank and the run holds.
+      if (re.test(t)) return true;
     }
     try {
       if (new RegExp(g.thirdPartyRe, 'i').test(t) &&
@@ -874,6 +890,9 @@ function(autofillData, labelMap, guards) {
     document.querySelectorAll(sel).forEach(el => {
       if (["hidden","submit","button","file","image"].includes(el.type)) return;
       if (isCredential(el)) return;
+      // D36: <input name="requires_sponsorship"> took field_map's "No" here, from a NOT NULL
+      // DEFAULT 0, with no check at all. The subject is the control and its label.
+      if (refused(describe(el) + ' ' + ((el.labels && el.labels[0]) ? el.labels[0].textContent : ''), name)) return;
       // Do not overwrite a value that is already there. Steps 2 and 3 always checked this; step 1
       // did not, so it clobbered both ATS-prefilled values (requirement 6) and buildAnswers' own
       // vetted output — it was overwriting a date formatted to the field's advertised MM/DD/YYYY
@@ -953,25 +972,12 @@ function(autofillData, labelMap, guards) {
     });
   }
 
-  // 5. Radio buttons: sponsorship + clearance
-  document.querySelectorAll("input[type='radio']").forEach(r => {
-    if (isCredential(r)) return;
-    const n   = (r.name  || "").toLowerCase();
-    const v   = (r.value || "").toLowerCase();
-    const lbl = (r.labels?.[0]?.textContent || "").toLowerCase();
-    if (n.includes("sponsor") || lbl.includes("sponsor")) {
-      const yes = fm.requires_sponsorship === "Yes";
-      if ((yes&&(v==="yes"||v==="true"))||(!yes&&(v==="no"||v==="false"))) {
-        r.checked=true; r.dispatchEvent(new Event("change",{bubbles:true})); filled++;
-      }
-    }
-    if (n.includes("clearance") || lbl.includes("clearance")) {
-      const yes = fm.has_clearance === "Yes";
-      if ((yes&&(v==="yes"||v==="true"))||(!yes&&(v==="no"||v==="false"))) {
-        r.checked=true; r.dispatchEvent(new Event("change",{bubbles:true})); filled++;
-      }
-    }
-  });
+  // 5. (D36) REMOVED: radio buttons for sponsorship and clearance. Any radio whose name or label
+  // contained "sponsor" was checked from field_map.requires_sponsorship — the yes/no read off a
+  // NOT NULL DEFAULT 0 — with no reading of the question's direction or tense, so "authorized to
+  // work WITHOUT sponsorship?" got the inverted answer and "now or in the future?" the present-tense
+  // one; clearance the same from has_clearance. Both are attestations. They resolve in buildAnswers
+  // (sponsorshipAnswer, the eligibility guards) or are left for the candidate.
 
   return filled;
 }
@@ -1043,13 +1049,30 @@ function(handlerByAttr, profileKeyToHandler, labelMap) {
   // Returns { handler, source }. The source lets Node distinguish an exact attribute signal
   // (name="requires_sponsorship") from a label-map substring guess ("Name" -> full_name), which
   // otherwise resolve through the same "exact" field_map path. See sanitizeDiscoveredFields.
+  // D36: an attribute names a handler only as a WHOLE TOKEN ("job_application[email]", "tel", the
+  // camel-split "applicantEmail"), or as the LEADING part of one run of letters for a letters-only key
+  // of 5+ characters ("emailaddress", "phonenumber"). A raw substring let 'city' claim "ethnicity",
+  // 'tel' claim "tell_us_why" and "telecommute", 'state' claim "personal_statement" and 'location'
+  // claim "relocation" — each at handler_exact / 1.0, the most trusted tier, with no guard behind it.
+  // ⛔ No backslash anywhere below: this source is inside a template literal (see tokenMatch).
+  const PREFIX_UNSAFE = { state: 1, major: 1 };
+  function attrNamesOf(el) {
+    return ['name','id','autocomplete'].map(a => el.getAttribute(a) || '').filter(Boolean);
+  }
+  function attrHit(raw, key) {
+    const lower = raw.toLowerCase();
+    const camel = raw.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
+    if (tokenMatch(lower, key) || tokenMatch(camel, key)) return true;
+    const k = String(key).toLowerCase();
+    if (k.length < 5 || PREFIX_UNSAFE[k] || /[^a-z]/.test(k)) return false;
+    return lower.split(/[^a-z]+/).some(run => run.length > k.length && run.indexOf(k) === 0);
+  }
   function resolveHandler(el, fieldType, label) {
-    const attrNames = ['name','id','autocomplete'];
-    const attrVals = attrNames.map(a => (el.getAttribute(a) || '').toLowerCase());
-    for (const val of attrVals) {
-      if (!val) continue;
-      for (const [substr, ht] of Object.entries(handlerByAttr)) {
-        if (val.includes(substr)) return { handler: ht, source: 'attr' };
+    const raws = attrNamesOf(el);
+    const attrVals = raws.map(v => v.toLowerCase());
+    for (const raw of raws) {
+      for (const [key, ht] of Object.entries(handlerByAttr)) {
+        if (attrHit(raw, key)) return { handler: ht, source: 'attr' };
       }
     }
     // file-specific: check label+name+id for resume/cover
