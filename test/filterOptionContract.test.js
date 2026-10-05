@@ -312,7 +312,8 @@ test("NO UI SITE HOLDS A LITERAL OPTION LIST ANY MORE", () => {
     // through the model; the sentence's options are each clause's own dimension.
     "client/src/App.jsx": [/sortRows\(atsSortAvailable\)/],
     "client/src/lib/filterSentenceModel.js": [
-      /SENTENCE_CLAUSES\.slice\(0, SENTENCE_CAP\)/,
+      // D30: the six dials are the contract's SENTENCE_CLAUSES, all of them (no cap drops one).
+      /export const sentenceClauses = \(\) => SENTENCE_CLAUSES;/,
       /clause\.dim\.options\.filter\(o => o\.value !== ""\)/,
       /SORT_PANEL\.filter\(/,
     ],

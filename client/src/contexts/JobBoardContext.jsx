@@ -78,9 +78,19 @@ export function JobBoardProvider({ children }) {
   // The filter icon's badge: how many of the sentence's clauses carry a choice (activeClauseCount,
   // shared/filterSentence.js). Published upward by JobsPanel, which holds the committed filters.
   const [activeClauseCount, setActiveClauseCount] = useState(0);
+  // D26/D30 · THE SENTENCE IS THE HEADLINE. App.jsx renders it where the "Let's get to work." caption
+  // was; JobsPanel, which holds the committed filters, publishes what it projects ({ params,
+  // defaultDomain, nothingMatches }). `focusDial` is which dial a headline slot asked to open.
+  const [boardHeadline, setBoardHeadline] = useState(null);
+  const [focusDial, setFocusDial] = useState(null);
 
-  const applyBarFilters = useCallback((params, { live = false } = {}) => {
-    setBarFilters({ ...EMPTY_BAR_FILTERS, ...(params || {}) });
+  // D26 · the board's bar now publishes ONLY `query`. A key it does not publish is not "cleared": the
+  // level, domain and location it used to carry live in the sentence's dials, and spreading
+  // EMPTY_BAR_FILTERS over them here is how a search silently wiped the dials' level and posted
+  // clauses (D27). `fields` says which keys this publish speaks for; the rest are left alone.
+  const applyBarFilters = useCallback((params, { live = false, fields = null } = {}) => {
+    const keys = fields || Object.keys(EMPTY_BAR_FILTERS);
+    setBarFilters(Object.fromEntries(keys.map(k => [k, (params || {})[k] ?? ""])));
     if (live) setLiveSearchTick(t => t + 1);
   }, []);
 
@@ -118,6 +128,7 @@ export function JobBoardProvider({ children }) {
       atsSortAvailable, setAtsSortAvailable,
       filterPanelOpen, setFilterPanelOpen, activeFilterCount, setActiveFilterCount,
       boardPanel, setBoardPanel, activeClauseCount, setActiveClauseCount,
+      boardHeadline, setBoardHeadline, focusDial, setFocusDial,
     }}>
       {children}
     </JobBoardContext.Provider>

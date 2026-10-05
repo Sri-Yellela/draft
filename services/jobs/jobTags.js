@@ -30,7 +30,7 @@
 import crypto from "node:crypto";
 import { segments, classifySegment, remoteRegionFromText, US_STATES } from "./usLocation.js";
 import { EXPERIENCE_LEVELS, EMPLOYMENT_TYPES, WORK_MODELS, valueSet } from "../../shared/jobFilterOptions.js";
-import { METROS, JOB_FUNCTIONS } from "../../shared/jobTagVocabulary.js";
+import { METROS, JOB_FUNCTIONS, functionForRole } from "../../shared/jobTagVocabulary.js";
 
 /** Bump when a rule changes: every row is re-tagged on the next pass (owner tags survive). */
 export const TAGGER_VERSION = 1;
@@ -243,13 +243,8 @@ export function tagLevel({ title, experience_level, enriched_at, description }) 
 //
 // From the classifier's bucket (job_role_map, written from the title at ingest). 'general' is the
 // classifier's "matched nothing" and becomes NULL — it is the absence of a function, not one.
-const ROLE_TO_FUNCTION = {
-  engineering: "engineering", engineering_embedded_firmware: "engineering", data: "data",
-  design: "design", pm: "product", sales: "sales", marketing: "marketing", hr: "people",
-  legal: "legal", operations: "operations", finance: "finance",
-};
 export function tagFunction(roleKey) {
-  return ROLE_TO_FUNCTION[roleKey] || null;
+  return functionForRole(roleKey);
 }
 
 // ── EMPLOYMENT TYPE ──────────────────────────────────────────────────────────────────────────────

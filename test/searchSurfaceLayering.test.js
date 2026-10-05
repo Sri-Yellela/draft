@@ -321,6 +321,6 @@ test("A74 (owner, 10-03): ONE click, ONE search — the 5-second double-click is
     "the search bar's onSearch is a no-op again — every control on the bar is inert");
   assert.ok(!/onLocalFilter=\{\(\) => \{\}\}/.test(app),
     "the search bar's onLocalFilter is a no-op again — every control on the bar is inert");
-  assert.match(app, /onLocalFilter=\{params => applyBarFilters\(params\)\}/);
+  assert.match(app, /onLocalFilter=\{params => applyBarFilters\(params, \{ fields: \["query"\] \}\)\}/);
   assert.doesNotMatch(app, /onSearch=\{params => applyBarFilters\(params, \{ live: true \}\)\}/);
 });
