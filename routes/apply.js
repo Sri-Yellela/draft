@@ -184,6 +184,19 @@ export function tmpPdfPath(kind, userId, jobId, now = Date.now()) {
   return path.join(os.tmpdir(), `${safe(kind)}_${safe(userId)}_${safe(jobId)}_${now}.pdf`);
 }
 
+/**
+ * ⛔ AUTO IS LOCKED, AND THE LOCK IS THE SERVER'S. Full-auto has never run unattended against a
+ * real employer; D22 gates opening it on AF5 AND a supervised full-auto run, and that is an owner
+ * decision, not a code path. When it is made, this is the one line that changes.
+ *
+ * D36: it is READ in three places — the run bar (autoModeState), admission (startRun refuses
+ * approvalMode 'auto' with 403 full_auto_locked) and processing (processRunJob holds an 'auto' row
+ * as full_auto_locked before anything opens). ⛔ It is a literal on purpose: no env var, no
+ * app_settings row and no admin route can flip it, so a deployment cannot be talked into sending
+ * unattended. test/d36ApplyPaths.test.js pins all of that.
+ */
+const FULL_AUTO_PROVEN = false;
+
 function publicApplication(row) {
   if (!row) return null;
   return {
@@ -1175,6 +1188,16 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // Re-checked per job, not just at admission: a run can cross the daily cap mid-flight, and
       // the kill switch can be flipped while a run is in progress. Both HOLD the job with a
       // reasonCode — visible in /api/apply/review — rather than dropping it silently.
+      // D36: the same lock as startRun's, at the door that cannot be walked around — boot recovery,
+      // the line and any hand-written row all arrive here. NULL approval_mode reads as 'auto' above.
+      if (mode === "auto" && approvalMode === "auto" && !FULL_AUTO_PROVEN) {
+        logEvent(runId, runJobId, userId, jobId, "full_auto_locked",
+          "Held: this run would have sent without your review, and that is switched off. Nothing was opened or sent.");
+        setJobStatus("held_review", "full_auto_locked",
+          "Sending without review is switched off until Auto has been proven attended. Nothing was opened or sent.");
+        db.prepare(`UPDATE apply_runs SET held_count=held_count+1 WHERE id=?`).run(runId);
+        return;
+      }
       if (mode === "auto" && fullAutoDisabled()) {
         logEvent(runId, runJobId, userId, jobId, "full_auto_disabled",
           "Full-auto submission is disabled; holding for manual review");
@@ -1930,6 +1953,20 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       });
     }
 
+    // ⛔ D36 · FULL AUTO RUNS ATTENDED ONLY. FULL_AUTO_PROVEN shaped only the run bar: the bar showed
+    // AUTO locked while this function still admitted `approvalMode:'auto'` from POST /api/apply/runs
+    // and from POST /api/apply/answers ("answer-and-send in one step") and the run then SUBMITTED to
+    // the employer with nobody having seen it. The lock is now enforced where a run is admitted, and
+    // again where it is processed (processRunJob), so a row written any other way cannot send either.
+    // 'approved' is not this: a human approved exactly those answers.
+    if (resolvedMode === "auto" && resolvedApproval === "auto" && !FULL_AUTO_PROVEN) {
+      return respond(403, {
+        error: "full_auto_locked",
+        message: "Sending without your review is switched off: Auto has never run unattended against a real " +
+          "employer. Draft it without approvalMode and it will wait for your approval.",
+      });
+    }
+
     // CONCURRENCY (requirement 2). A user may not stack runs: overlapping runs make the daily cap
     // racy and multiply browser load.
     //
@@ -2399,13 +2436,10 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   // could each be a poll apart.
 
   /**
-   * ⛔ AUTO IS LOCKED, AND THE LOCK IS THE SERVER'S. Full-auto has never run unattended against a
-   * real employer; D22 gates opening it on AF5 AND a supervised full-auto run, and that is an owner
-   * decision, not a code path. When it is made, this is the one line that changes — the client
-   * renders AUTO selectable only when this says `locked: false`, and never decides it for itself.
-   * The kill switch is reported beside it, because "proven" is not "allowed right now".
+   * ⛔ AUTO IS LOCKED, AND THE LOCK IS THE SERVER'S — see FULL_AUTO_PROVEN at the top of this file.
+   * The client renders AUTO selectable only when this says `locked: false`, and never decides it
+   * for itself. The kill switch is reported beside it, because "proven" is not "allowed right now".
    */
-  const FULL_AUTO_PROVEN = false;
   function autoModeState() {
     const killSwitch = fullAutoDisabled();
     if (!FULL_AUTO_PROVEN) {

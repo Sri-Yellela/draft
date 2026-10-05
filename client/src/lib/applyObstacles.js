@@ -53,6 +53,13 @@ const BY_REASON = {
     action: "Read the score, then approve it anyway or improve the resume",
     protective: true, retryable: false,
   },
+  // D36: a run that would have SENT without the user's review. Locked server-side until Auto has
+  // been proven attended (FULL_AUTO_PROVEN); nothing was opened. Re-drafting makes it a reviewed one.
+  full_auto_locked: {
+    obstacle: "This would have been sent without your review, which is switched off — nothing was opened or sent",
+    action: "Draft it again — it will wait for your approval",
+    protective: true, retryable: true,
+  },
   manual_review: {
     obstacle: "The form asked something only you can answer",
     action: "Answer it, and this application continues",
