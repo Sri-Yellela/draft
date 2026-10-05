@@ -330,3 +330,33 @@ test("D36·4 · server.js does not turn has_clearance's default 0 into an answer
   assert.match(server, /has_clearance:profile\?\.has_clearance\?"Yes":"",/);
   assert.doesNotMatch(server, /has_clearance:profile\?\.has_clearance\?"Yes":"No"/);
 });
+
+// ── 3 · A REFUSED RETRY LEAVES THE APPLICATION WHERE IT WAS ──────────────────────────────────────
+// Found 10-05 reading the answers path, then reproduced here before the fix: POST /api/apply/answers
+// with retryJobIds superseded the held rows and THEN asked startRun, so a refusal (the kill switch's
+// 503 in this test) returned an error with the application already gone from Draft House — not held,
+// not retried, nothing to press.
+test("D36·3 · a retry the server refuses puts the held application back, questions and all", async () => {
+  const t = mount();
+  try {
+    const run = t.db.prepare("INSERT INTO apply_runs (user_id,mode,status,total_jobs,approval_mode) VALUES (1,'auto','completed',1,'required')").run().lastInsertRowid;
+    const held = t.db.prepare(`INSERT INTO apply_run_jobs (run_id,user_id,job_id,status,reason_code,finished_at,open_questions_json)
+                  VALUES (?,1,'gh::1','held_review','incomplete_form',1700000000,?)`).run(run, JSON.stringify([{ question: "Start date", reason: "unanswered" }])).lastInsertRowid;
+    t.db.prepare("INSERT INTO app_settings (key, value) VALUES ('apply_full_auto_disabled', '1')").run();
+    const r = await t.post("/api/apply/answers", { answers: { "Start date": "11/02/2026" }, retryJobIds: ["gh::1"] });
+    assert.equal(r.status, 503);
+    const body = await r.json();
+    assert.equal(body.error, "full_auto_disabled");
+    assert.deepEqual(body.saved, ["Start date"], "the answer itself is still kept");
+    const row = t.db.prepare("SELECT status, reason_code, finished_at FROM apply_run_jobs WHERE id=?").get(held);
+    assert.deepEqual(row, { status: "held_review", reason_code: "incomplete_form", finished_at: 1700000000 },
+      "the held row must be exactly as it was");
+    assert.equal(t.db.prepare("SELECT COUNT(*) FROM apply_runs").pluck().get(), 1, "no run was started");
+    // And once the switch is lifted the same retry goes through and supersedes it.
+    t.db.prepare("UPDATE app_settings SET value='0' WHERE key='apply_full_auto_disabled'").run();
+    t.db.prepare("DELETE FROM scraped_jobs WHERE job_id='gh::1'").run(); // the retry then fails fast: no browser in a unit test
+    const ok = await t.post("/api/apply/answers", { answers: { "Start date": "11/02/2026" }, retryJobIds: ["gh::1"] });
+    assert.equal(ok.status, 202);
+    assert.equal(t.db.prepare("SELECT status FROM apply_run_jobs WHERE id=?").pluck().get(held), "superseded");
+  } finally { t.stop(); }
+});
