@@ -169,6 +169,21 @@ export function capturedAtsAtApply(db, userId, jobId) {
   }
 }
 
+/**
+ * D36 — where a run's résumé / cover-letter PDF is written for upload.
+ *
+ * ⛔ THE JOB ID IS NOT A FILENAME. Real ids are `greenhouse::6110219004`, and `:` is illegal in a
+ * Windows path, so every conversion on a Windows host threw ENOENT inside a `catch { return null; }`.
+ * The run then held as `resume_unavailable` — "No resume was generated" — over a résumé that HAD
+ * been generated and scored (D36 walk, 10-05). Linux accepts the colon, which is why production never
+ * showed it; the silent catch is why nothing else did either. Anything outside [A-Za-z0-9_-] becomes
+ * `_`, so the name is portable and still says which job it was.
+ */
+export function tmpPdfPath(kind, userId, jobId, now = Date.now()) {
+  const safe = (v) => String(v ?? "").replace(/[^A-Za-z0-9_-]+/g, "_").slice(0, 80);
+  return path.join(os.tmpdir(), `${safe(kind)}_${safe(userId)}_${safe(jobId)}_${now}.pdf`);
+}
+
 function publicApplication(row) {
   if (!row) return null;
   return {
@@ -1077,6 +1092,14 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // than inheriting whatever failed last. Resume generation runs in parallel with the browser,
     // so without this the browser's outcome silently wins the attribution race.
     let genFailure = null;
+    // D36: set when the résumé WAS generated but its PDF could not be made. Without it the run
+    // reported `resume_unavailable` — "No resume was generated" — which sends the user to generate
+    // a résumé they already have. Ranked just below genFailure in the attribution below.
+    let docFailure = null;
+    const resumePdfFailure = (e) => ({
+      reasonCode: "resume_pdf_failed",
+      detail: `The résumé was written but could not be turned into a PDF to attach: ${String(e?.message || e).slice(0, 300)}`,
+    });
 
     /**
      * Write a terminal status — unless the user has ABORTED this run-job (TASK AC4).
@@ -1271,14 +1294,14 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           }
           try {
             const pdfBuf = await htmlToPdf(cl.html);
-            const tmpPath = path.join(os.tmpdir(), `cl_${userId}_${jobId}_${Date.now()}.pdf`);
+            const tmpPath = tmpPdfPath("cl", userId, jobId);
             writeFileSync(tmpPath, pdfBuf);
             coverLetterTmpPath = tmpPath;
             return tmpPath;
           } catch { return null; }
         }).catch(() => null);
         const pdfBuf = await htmlToPdf(artifact.html);
-        resumeTmpPath = path.join(os.tmpdir(), `resume_${userId}_${jobId}_${Date.now()}.pdf`);
+        resumeTmpPath = tmpPdfPath("resume", userId, jobId);
         writeFileSync(resumeTmpPath, pdfBuf);
         const clPath = await clPromise;
         logEvent(runId, runJobId, userId, jobId, "site_visit_started", "Opening application page in browser");
@@ -1318,11 +1341,15 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           logEvent(runId, runJobId, userId, jobId, "generation_ready", "Resume generation completed", { atsScore: gen.atsScore });
           try {
             const pdfBuf = await htmlToPdf(gen.html);
-            const tmpPath = path.join(os.tmpdir(), `resume_${userId}_${jobId}_${Date.now()}.pdf`);
+            const tmpPath = tmpPdfPath("resume", userId, jobId);
             writeFileSync(tmpPath, pdfBuf);
             resumeTmpPath = tmpPath;
             return tmpPath;
-          } catch { return null; }
+          } catch (e) {
+            docFailure = resumePdfFailure(e);
+            logEvent(runId, runJobId, userId, jobId, "resume_pdf_failed", docFailure.detail);
+            return null;
+          }
         });
         const coverLetterPathPromise = generateCoverLetterForApply(userId, jobId).then(async (cl) => {
           if (!cl?.html) {
@@ -1331,7 +1358,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           }
           try {
             const pdfBuf = await htmlToPdf(cl.html);
-            const tmpPath = path.join(os.tmpdir(), `cl_${userId}_${jobId}_${Date.now()}.pdf`);
+            const tmpPath = tmpPdfPath("cl", userId, jobId);
             writeFileSync(tmpPath, pdfBuf);
             coverLetterTmpPath = tmpPath;
             return tmpPath;
@@ -1501,11 +1528,15 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           }
           try {
             const pdfBuf = await htmlToPdf(gen.html);
-            const tmpPath = path.join(os.tmpdir(), `resume_${userId}_${jobId}_${Date.now()}.pdf`);
+            const tmpPath = tmpPdfPath("resume", userId, jobId);
             writeFileSync(tmpPath, pdfBuf);
             resumeTmpPath = tmpPath;
             return tmpPath;
-          } catch { return null; }
+          } catch (e) {
+            docFailure = resumePdfFailure(e);
+            logEvent(runId, runJobId, userId, jobId, "resume_pdf_failed", docFailure.detail);
+            return null;
+          }
         });
         const coverLetterPathPromiseCaseC = generateCoverLetterForApply(userId, jobId).then(async (cl) => {
           if (!cl?.html) {
@@ -1514,7 +1545,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           }
           try {
             const pdfBuf = await htmlToPdf(cl.html);
-            const tmpPath = path.join(os.tmpdir(), `cl_${userId}_${jobId}_${Date.now()}.pdf`);
+            const tmpPath = tmpPdfPath("cl", userId, jobId);
             writeFileSync(tmpPath, pdfBuf);
             coverLetterTmpPath = tmpPath;
             return tmpPath;
@@ -1575,6 +1606,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       const reasonCode = cancelled ? (result.reasonCode || "user_aborted")
         : submitted ? null
         : genFailure ? genFailure.reasonCode
+        : docFailure ? docFailure.reasonCode
         : atsHeld ? (result.reasonCode || "ats_below_threshold")
         : previewed ? "awaiting_approval"
         : result.status === "awaiting_user" ? "manual_review"
@@ -1583,7 +1615,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
 
       // Preserve the upstream failure (404 body, error type, request_id) on the row, and say
       // plainly whether a retry can ever work — "permanent" means the same call fails identically.
-      const reasonDetail = genFailure ? genFailure.detail : result.reasonDetail;
+      const reasonDetail = genFailure ? genFailure.detail : docFailure ? docFailure.detail : result.reasonDetail;
       const fallbackUrl = isBrowserFailure(reasonCode) ? jobUrl : null;
       setJobStatus(finalStatus, reasonCode, reasonDetail || (fallbackUrl ? `fallbackUrl:${fallbackUrl}` : null));
 
