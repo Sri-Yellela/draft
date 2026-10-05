@@ -1411,7 +1411,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   }, []);
 
   const [activeAts,   setActiveAts]   = useState(null);
-  const [smartSearching, setSmartSearching] = useState(false);
   const [attribution, setAttribution] = useState([]); // job source attribution from aggregator
 
   // Domain profiles
@@ -1471,7 +1470,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
 
 
   // Task 5 — Inline error states
-  const [smartSearchError, setSmartSearchError] = useState("");
   const [uploadError,      setUploadError]      = useState("");
 
   // Task 6 — Company reuse modal
@@ -3002,23 +3000,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setEnhanceModalOpen(false);
   }, [enhanceResult, activeProfileAdoptEnhancedPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSmartSearch = useCallback(async () => {
-    if (!resumeText) {
-      setSmartSearchError("Upload the active profile's base resume from Job Profiles first — smart search extracts the best query from it.");
-      navigate("/app/job-profiles");
-      return;
-    }
-    setSmartSearchError("");
-    setSmartSearching(true);
-    try {
-      const result = await api("/api/smart-search", { method:"POST", body:JSON.stringify({ resumeText }) });
-      if (result.error) { setSmartSearchError(result.error); return; }
-      const q = result.searchQuery;
-      if (q) { setSearchInput(q); await handleSearch(q); }
-    } catch(e) { setSmartSearchError("Smart search failed: " + e.message); }
-    finally { setSmartSearching(false); }
-  }, [resumeText, handleSearch, navigate]);
-
   // -- File upload -------------------------------------------
   const handleFile = useCallback(async e => {
     const file = e.target.files[0]; if (!file) return;
@@ -3474,7 +3455,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           Rendering it unconditionally is what has always happened. */}
       {/* Row A: tabs | filters | sort | local-search | job count */}
       {/* Row B (wraps): search input | Search | resume upload */}
-      {(smartSearchError || uploadError) && (
+      {uploadError && (
       <div style={{
         background:theme.surface, borderBottom:`1px solid ${theme.border}`,
         padding:"10px 20px", display:"flex", alignItems:"center", gap:8,
@@ -3550,13 +3531,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           <span>{buttonLabel}</span>
         </LucyBtn>
         </>)}
-        {smartSearchError && (
-          <div style={{ flexBasis:"100%", padding:"4px 0", fontSize:11, color:C.DANGER }}>
-            Error: {smartSearchError}
-            <button onClick={() => setSmartSearchError("")} style={{ marginLeft:6, background:"none", border:"none", cursor:"pointer", fontSize:11, color:C.DANGER }}>Dismiss</button>
-          </div>
-        )}
-
         {uploadError && (
           <div style={{ flexBasis:"100%", padding:"4px 0", fontSize:11, color:C.DANGER }}>
             Error: {uploadError}

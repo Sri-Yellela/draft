@@ -152,6 +152,12 @@ test("D17 V6: no résumé classifier in draft — /api/smart-search and services
   const src = fs.readFileSync("server.js", "utf8");
   assert.doesNotMatch(src, /app\.(post|get)\("\/api\/smart-search"/, "/api/smart-search is back");
   assert.doesNotMatch(src, /from "\.\/services\/classifier\.js"/);
+  // A87: the client's orphaned handler (handleSmartSearch, its two states and its error row) went too.
+  for (const f of ["client/src/panels/JobsPanel.jsx", "client/src/App.jsx"]) {
+    const client = fs.readFileSync(f, "utf8");
+    assert.doesNotMatch(client, /\/api\/smart-search|handleSmartSearch|smartSearch(Error|ing)\b/,
+      `${f} carries the smart-search client again`);
+  }
 });
 
 // ── SCRIPTS (A80 V8–V12) ─────────────────────────────────────────────────────────────────────────
