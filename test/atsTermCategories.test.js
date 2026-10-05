@@ -226,7 +226,8 @@ test("the panel renders both new buckets, and AG2's copy is untouched", () => {
   // Generic language is NOT claimable — a chip that offers to add "Manage" to your profile is the
   // same false gap in a different control. (The whole fold, up to its closing tag.)
   const genericBlock = panel.slice(at(panel, "<details data-ats-generic"), at(panel, "</details>", at(panel, "<details data-ats-generic")));
-  assert.match(genericBlock, /<TermChips items=\{generic\}/);
+  // D32: the pills became depth boxes (TermBox); a generic box is read-only and says it is generic.
+  assert.match(genericBlock, /generic\.map\(\(\{ term, kind \}\) => <TermBox key=\{`g:\$\{term\}`\} term=\{term\} kind=\{kind\} generic \/>\)/);
   assert.doesNotMatch(genericBlock, /onToggleClaim|claimable\(/);
   // Competencies matched must count as evidenced, or a term shown as matched above renders as
   // unevidenced below.

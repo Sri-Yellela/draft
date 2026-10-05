@@ -1,61 +1,98 @@
-/* D31 · THE SIMPLE ATS CARD — the one report (components/AtsReport.jsx), on every surface.
+/* D32 · THE SCORE HALF OF THE INK PAIR — the one report (components/AtsReport.jsx), on every surface.
  *
- * Colours and depth are tokens only (--c-*, published from styles/colorTokens.js); D1's depth is
- * --c-depth-rest / --c-depth-hover / --c-depth-press. ⛔ NOTHING HERE MOVES: no transition, no
- * keyframes, no minimum width — the card renders the same in the deck's panel, the board's panel,
- * the phone's sheet and /tools/ats because there is nothing in it that depends on where it is. */
+ * It sits on the pair's surface (styles/inkPair.css: cream in light, ink in dark — decided by the theme,
+ * never here). Colours and depth are the pair's tokens only (--c-pair-*, published from
+ * styles/colorTokens.js; the band chip keeps the band tokens). D1's depth is --c-pair-lift (rest),
+ * --c-pair-lift2 + translateY(-2px) (hover) and --c-pair-press (press), re-derived per theme.
+ * ⛔ NOTHING HERE ANIMATES: no transition, no keyframes, no minimum width — the card renders the same in
+ * the deck's panel, the board's panel, the phone's sheet and /tools/ats. A hover lifts a box instantly. */
 
-.ats-card { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.ats-card { padding: 16px; display: flex; flex-direction: column; gap: 14px; border-radius: 18px; }
 
-/* ── The summary: band · (score) · "9 of 12" · one two-segment bar ───────────────────────────── */
+/* ── The header: band · "you cover 9 of 12" · (score) · one three-segment bar ─────────────────── */
 .ats-sum {
-  background: var(--c-surface-solid); border: 1px solid var(--c-border); border-radius: 16px;
-  padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+  border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+  background: var(--c-pair-raised);
 }
 .ats-sum[data-compact="true"] { padding: 12px 14px; }
 .ats-sum__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.ats-sum__band { padding: 7px 12px; border-radius: 10px; font-weight: 900; font-size: 15px; line-height: 1.2; }
-.ats-sum__cap { font-size: 11px; color: var(--c-ink-muted); }
-.ats-sum__score { margin-left: auto; font-size: 40px; font-weight: 800; line-height: 1; color: var(--c-ink); }
-.ats-sum__count { font-size: 13px; color: var(--c-ink-muted); }
-.ats-sum__count b { font-size: 15px; font-weight: 800; color: var(--c-ink); }
-
-/* The bar: two segments, on your résumé | not yet. A graded band fills them in its own tone. */
-.ats-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; box-sizing: border-box; }
-.ats-bar__seg { height: 100%; }
-/* ⛔ NOT ENOUGH SIGNAL is the scorer declining — no hue, no fill, a DASHED outline. It never looks
- * like a short Weak bar. */
-.ats-bar[data-unknown="true"] { border: 1.5px dashed var(--c-band-unknown-edge); }
-
-.ats-notes { margin: 0; padding-left: 16px; font-size: 11.5px; line-height: 1.6; color: var(--c-ink-muted); }
-.ats-note {
-  font-size: 11.5px; line-height: 1.6; padding: 6px 10px; border-radius: 8px;
-  background: var(--color-surface-offset); color: var(--c-ink-muted); border: 1px solid var(--c-border);
+.ats-sum__band { padding: 7px 12px; border-radius: 9px; font-weight: 900; font-size: 15px; line-height: 1.2; }
+.ats-sum__cap { font-size: 11px; color: var(--c-pair-ink-muted); }
+/* The number in SERIF ACCENT — the largest element when A76 lets it show. */
+.ats-sum__score {
+  margin-left: auto; font-family: var(--font-display); font-weight: 400; font-size: 46px; line-height: 1;
+  color: var(--c-pair-accent);
 }
+.ats-sum__count { font-size: 13px; color: var(--c-pair-ink-muted); line-height: 1.45; }
+.ats-sum__count b { font-size: 15px; font-weight: 800; color: var(--c-pair-ink); }
+
+/* The bar: THREE segments — matched · missing · generic. Generic is blue so it never reads as a gap. */
+.ats-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; box-sizing: border-box; gap: 2px; }
+.ats-bar__seg { height: 100%; }
+.ats-bar__seg--matched { background: var(--c-pair-matched); }
+.ats-bar__seg--missing { background: var(--c-pair-missing); }
+.ats-bar__seg--generic { background: var(--c-pair-generic); }
+/* ⛔ NOT ENOUGH SIGNAL is the scorer declining — no hue, no fill, a DASHED outline. It never looks
+ * like a short Weak bar: every segment loses its colour. */
+.ats-bar[data-unknown="true"] { border: 1.5px dashed var(--c-band-unknown-edge); }
+.ats-bar[data-unknown="true"] .ats-bar__seg { background: transparent; }
+
+.ats-notes { margin: 0; padding-left: 16px; font-size: 11.5px; line-height: 1.6; color: var(--c-pair-ink-muted); }
+.ats-note {
+  font-size: 11.5px; line-height: 1.6; padding: 6px 10px; border-radius: 9px;
+  background: var(--c-pair-surface); color: var(--c-pair-ink-muted); border: 1px solid var(--c-pair-rule);
+}
+.ats-note__head { font-weight: 800; color: var(--c-pair-ink); margin-bottom: 2px; }
+.ats-note--hard { color: var(--c-pair-missing); }
+.ats-note[data-best="reached"] { background: var(--c-pair-met-quiet); color: var(--c-pair-matched); }
 
 /* ── Sections ─────────────────────────────────────────────────────────────────────────────────── */
-.ats-sec__sub { font-size: 11px; color: var(--c-ink-muted); margin: 2px 0 8px; line-height: 1.5; }
-.ats-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ats-sec__label {
+  font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--c-pair-ink-faint);
+  margin-bottom: 4px;
+}
+.ats-sec__sub { font-size: 11px; color: var(--c-pair-ink-muted); margin: 2px 0 10px; line-height: 1.5; }
+.ats-boxes { display: flex; flex-wrap: wrap; gap: 8px; }
 .ats-fold > summary {
-  font-size: 12px; font-weight: 700; color: var(--c-ink-muted); cursor: pointer; padding: 4px 0;
+  font-size: 12px; font-weight: 700; color: var(--c-pair-ink-muted); cursor: pointer; padding: 4px 0;
 }
-.ats-fold > summary:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; border-radius: 4px; }
+.ats-fold > summary:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; border-radius: 4px; }
 .ats-fold[open] > summary { margin-bottom: 8px; }
-.ats-claim-note { font-size: 10.5px; color: var(--c-ink-muted); font-style: italic; line-height: 1.6; margin-top: 8px; }
+.ats-claim-note { font-size: 10.5px; color: var(--c-pair-ink-muted); font-style: italic; line-height: 1.6; margin-top: 10px; }
 
-/* ── Chips. A claim chip is a CONTROL and has D1's depth; a read-only chip is a label and is flat. */
-.ats-chip {
-  display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
-  padding: 4px 10px; border-radius: 9px; font: inherit; font-size: 12px; font-weight: 700; line-height: 1.4;
-  border: 1px solid var(--c-border); background: var(--color-surface-offset); color: var(--c-ink-muted);
-  overflow-wrap: anywhere;
+/* ── Experience: its own row, pass/fail ──────────────────────────────────────────────────────── */
+.ats-exp {
+  display: grid; grid-template-columns: auto auto 1fr; align-items: baseline; gap: 4px 10px;
+  padding: 10px 12px; border-radius: 9px; background: var(--c-pair-raised); border: 1px solid var(--c-pair-rule);
+  font-size: 12px; line-height: 1.5; color: var(--c-pair-ink-muted);
 }
-.ats-chip--claim {
-  cursor: pointer; background: var(--c-surface-solid); color: var(--c-ink);
-  border: 1.5px dashed var(--c-ink-faint); box-shadow: var(--c-depth-rest);
+.ats-exp__label { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--c-pair-ink-faint); }
+.ats-exp__mark { font-weight: 800; color: var(--c-pair-ink); white-space: nowrap; }
+.ats-exp[data-state="met"] { background: var(--c-pair-met-quiet); }
+.ats-exp[data-state="met"] .ats-exp__mark { color: var(--c-pair-matched); }
+.ats-exp[data-state="short"] .ats-exp__mark { color: var(--c-pair-missing); }
+
+/* ── Boxes. RECTANGULAR (radius 9), D1's depth at rest. A claim box is a CONTROL: it lifts on hover and
+ * settles on press. A read-only box is a label: it rests, and never pretends to be pressable. */
+.ats-box {
+  display: inline-flex; align-items: baseline; gap: 7px; max-width: 100%; box-sizing: border-box;
+  padding: 6px 10px; border-radius: 9px; font: inherit; font-size: 12.5px; font-weight: 700; line-height: 1.35;
+  background: var(--c-pair-raised); color: var(--c-pair-ink); border: 1px solid var(--c-pair-rule);
+  box-shadow: var(--c-pair-lift); overflow-wrap: anywhere; text-align: left;
 }
-.ats-chip--claim:hover { box-shadow: var(--c-depth-hover); border-color: var(--c-accent-ink); }
-.ats-chip--claim:active { box-shadow: var(--c-depth-press); }
-.ats-chip--claim:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-.ats-chip--claim[aria-pressed="true"] { border-style: solid; }
-.ats-chip__plus { font-weight: 900; color: var(--c-accent-ink); }
+.ats-box__kind {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--c-pair-ink-faint);
+}
+.ats-box[data-claimed="true"] { background: var(--c-pair-met-quiet); color: var(--c-pair-matched); }
+.ats-box:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; }
+.ats-box--claim { cursor: pointer; border: 1.5px dashed var(--c-pair-edge); }
+.ats-box--claim:hover { transform: translateY(-2px); box-shadow: var(--c-pair-lift2); border-color: var(--c-pair-kicker); }
+.ats-box--claim:active { transform: translateY(0); box-shadow: var(--c-pair-press); }
+.ats-box--claim[aria-pressed="true"] { border-style: solid; border-color: var(--c-pair-matched); background: var(--c-pair-met-quiet); color: var(--c-pair-matched); }
+.ats-box__plus { font-weight: 900; color: var(--c-pair-kicker); }
+
+/* ── More about this match ───────────────────────────────────────────────────────────────────── */
+.ats-more { display: flex; flex-direction: column; gap: 10px; }
+.ats-more__verdict { font-size: 12px; color: var(--c-pair-ink-muted); font-style: italic; line-height: 1.6; }
+.ats-list { display: flex; flex-direction: column; gap: 6px; }
+.ats-list__item { display: flex; gap: 8px; font-size: 12px; color: var(--c-pair-ink-muted); line-height: 1.6; }
