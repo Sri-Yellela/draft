@@ -63,7 +63,7 @@ import { MODEL_SONNET, MODEL_HAIKU } from "./shared/anthropicModels.js";
 import { assertPinnedModelsLive } from "./services/modelCatalogue.js";
 import { classifyGenerationError } from "./shared/failureAttribution.js";
 import { checkLimit } from "./services/limitEnforcer.js";
-import { DATA_CLASS } from "./shared/modelProviders.js";
+import { DATA_CLASS } from "./services/modelCall.js";
 import { qualificationKeyCount } from "./services/qualificationResolver.js";
 // buildApifyQueriesFromProfile and buildProfileSearchTerms dropped from this import in cleanup
 // 5.1: both were imported here and never called. The functions themselves are KEPT — unlike
@@ -4468,7 +4468,7 @@ console.log(`[boot] registries: ${roleAliasCount()} role aliases, ${qualificatio
 
 // ── PINNED-MODEL LIVENESS (task AD, requirement 2) ────────────────────────────────────────────
 //
-// Ask each provider whether the model we are pinned to still exists. This file's own history is
+// Ask Anthropic whether the models we are pinned to still exist. This file's own history is
 // the argument: a Haiku bump updated 8 of ~20 inline model literals and left Sonnet on
 // `claude-sonnet-4-20250514`, which Anthropic retired on 2026-06-15 — every Sonnet call 404'd and
 // four features degraded silently for about two months. Nothing asked, so nothing knew.
@@ -4485,7 +4485,6 @@ console.log(`[boot] registries: ${roleAliasCount()} role aliases, ${qualificatio
 assertPinnedModelsLive({
   anthropic: ANTHROPIC_KEY ? anthropic : null,
   anthropicModels: [MODEL_HAIKU, MODEL_SONNET],
-  env: process.env,
 }).catch(err => {
   if (err?.code === "PINNED_MODEL_GONE") {
     console.error("\n" + err.message + "\n");

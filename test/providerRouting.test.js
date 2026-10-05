@@ -1,25 +1,39 @@
-// Multi-provider routing — the half that keeps the PUBLIC/CANDIDATE split honest.
+// Provider routing — what is left of it after A87.
 //
-// The routing rule is "route by WHOSE DATA IT IS", chosen over "filter PII out of the payload"
-// precisely because it is checkable by a test and the filter is not: "did the regex catch every
-// email in every resume" cannot be asserted, and a miss is a real person's address in a training
-// corpus with no error and no way to know. What CAN be asserted is that each call site declares
-// what it sends, that the declaration matches the payload, and that the default is the safe one.
+// This file held the PUBLIC/CANDIDATE split: PUBLIC job-advert text (enrich_job, classify_job,
+// import_job) could be routed to a free tier (Groq, Gemini) under ENRICH_PROVIDER; anything derived
+// from a person stayed on Anthropic. D17 deleted all three PUBLIC model calls (A80 V4, V7; D33), so
+// the route carried no traffic, and A87 (10-05) deleted it: shared/modelProviders.js,
+// services/providerTransport.js, routeFor(), and the ENRICH_PROVIDER / ENRICH_MODEL / GROQ_API_KEY /
+// GOOGLE_API_KEY switches.
 //
-// So this file checks the SPLIT, not the redaction. There is no redaction.
+// What survives, and is pinned here:
+//   - every call goes to the Anthropic SDK and is recorded provider=anthropic, whatever the env says;
+//   - an undeclared call site is CANDIDATE; an unknown class (the retired "public") is refused;
+//   - each call site still declares what it sends;
+//   - migration 096's provider column and its backfill.
+//
+// Retired with the code (each exercised only the deleted modules): "PUBLIC traffic routes to the
+// configured free tier", "a missing key WARNS and falls back", "an unknown ENRICH_PROVIDER warns and
+// falls back", "the default — nothing configured — is Anthropic and is NOT a warning", "the fallback
+// warning fires ONCE per process", "an unpinned ENRICH_MODEL is a LOUD failure", "a pinned
+// ENRICH_MODEL that IS in the catalog is honoured", "a DECOMMISSIONED model id is refused for sending
+// yet still prices historical rows", "every pinned model of every provider has a pricing entry", "a
+// free-tier model prices at $0 SILENTLY; a genuinely unknown model still warns loudly" (the unknown
+// half is test/anthropicModels.test.js's "an unknown model warns loudly"), "a routed call records
+// the PROVIDER and the model actually called", "providerForModel labels a model with its provider",
+// the three adapter tests (OpenAI-compatible, Gemini, block flattening), the three transport 429 /
+// error tests, "a param the transport cannot translate is REFUSED", and "the three PUBLIC call sites
+// pass only translatable params".
 
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import Database from "better-sqlite3";
 
-import { callModel, routeFor, resetRoutingWarnings, SYSTEM_USER_ID } from "../services/modelCall.js";
-import { DATA_CLASS, PROVIDER, PROVIDERS, FREE_TIER_PRICING, resolveProvider, providerForModel } from "../shared/modelProviders.js";
-import { callProvider, ProviderRateLimitError, ProviderRequestError, resetRateLimiter } from "../services/providerTransport.js";
+import { callModel, DATA_CLASS, SYSTEM_USER_ID } from "../services/modelCall.js";
 import { calculateCost } from "../shared/anthropicModels.js";
 import { at, lastAt } from "../test-support/sourceAnchors.js";
-
-const GROQ_ENV = { ENRICH_PROVIDER: "groq", GROQ_API_KEY: "gsk_test" };
 
 function makeDb() {
   const db = new Database(":memory:");
@@ -66,228 +80,78 @@ function fakeAnthropic() {
   };
 }
 
-/** A fetch stub for the transport. `handler` receives (url, init) and returns a Response. */
-function fakeFetch(handler) {
-  const calls = [];
-  const impl = async (url, init) => {
-    calls.push({ url: String(url), init });
-    return handler(String(url), init, calls.length);
-  };
-  impl.calls = calls;
-  return impl;
-}
-
-function jsonResponse(body, { status = 200, headers = {} } = {}) {
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    headers: { get: (k) => headers[k.toLowerCase()] ?? null },
-    json: async () => body,
-    text: async () => JSON.stringify(body),
-  };
-}
-
-// ── THE SPLIT ───────────────────────────────────────────────────────────────────────────────────
-
-test("PUBLIC traffic routes to the configured free tier, at the pinned model", () => {
-  const route = routeFor({ dataClass: DATA_CLASS.PUBLIC, model: "claude-haiku-4-5-20251001", env: GROQ_ENV });
-  assert.equal(route.provider, PROVIDER.GROQ);
-  assert.equal(route.model, "openai/gpt-oss-20b");
-});
-
-test("CANDIDATE traffic stays on Anthropic even when a free tier is fully configured", () => {
-  // The entire safety property. If this ever passes for groq, resumes are leaving to a tier whose
-  // training policy is not stated on any public page.
-  const route = routeFor({ dataClass: DATA_CLASS.CANDIDATE, model: "claude-sonnet-5", env: GROQ_ENV });
-  assert.equal(route.provider, PROVIDER.ANTHROPIC);
-  assert.equal(route.model, "claude-sonnet-5", "the candidate model must not be swapped either");
-});
-
-test("an UNDECLARED call site stays on Anthropic — the default fails closed", () => {
-  // A blacklist would default the other way and a forgotten annotation would leak. Here a
-  // forgotten annotation costs a fraction of a cent and nothing else.
-  const route = routeFor({ model: "claude-sonnet-5", env: GROQ_ENV });
-  assert.equal(route.provider, PROVIDER.ANTHROPIC);
-});
-
-// ── UNCONFIGURED IS LOUD ────────────────────────────────────────────────────────────────────────
-
-test("a missing key WARNS and falls back to Anthropic — it never silently skips", () => {
-  resetRoutingWarnings();
-  const warnings = [];
-  const realWarn = console.warn;
-  console.warn = (...a) => warnings.push(a.join(" "));
-  try {
-    const route = routeFor({ dataClass: DATA_CLASS.PUBLIC, model: "claude-haiku-4-5-20251001",
-                             env: { ENRICH_PROVIDER: "groq" } });
-    assert.equal(route.provider, PROVIDER.ANTHROPIC);
-    assert.equal(route.model, "claude-haiku-4-5-20251001", "the fallback keeps the caller's model");
-  } finally {
-    console.warn = realWarn;
-  }
-  assert.equal(warnings.length, 1, "a configured-but-keyless provider must say so");
-  assert.match(warnings[0], /GROQ_API_KEY/);
-  assert.match(warnings[0], /falling back to Anthropic/i);
-});
-
-test("an unknown ENRICH_PROVIDER warns and falls back rather than throwing", () => {
-  // A typo in a deploy config must not take enrichment down, but it must not be invisible either:
-  // without the warning, the deploy that contains it looks identical to a working one.
-  const r = resolveProvider({ ENRICH_PROVIDER: "grok" }); // note the missing q
-  assert.equal(r.provider, PROVIDER.ANTHROPIC);
-  assert.equal(r.reason, "unknown_provider");
-  assert.match(r.detail, /grok/);
-});
-
-test("the default — nothing configured — is Anthropic and is NOT a warning", () => {
-  const r = resolveProvider({});
-  assert.equal(r.provider, PROVIDER.ANTHROPIC);
-  assert.equal(r.reason, "not_configured",
-    "the unconfigured default is the documented state, not a defect to warn about on every call");
-});
-
-test("the fallback warning fires ONCE per process, not once per row", () => {
-  // enrich_job runs 1302 times in a pass. A per-call warning would bury every other log line, and
-  // the usual response to that is to delete the warning.
-  resetRoutingWarnings();
-  const warnings = [];
-  const realWarn = console.warn;
-  console.warn = (...a) => warnings.push(a.join(" "));
-  try {
-    for (let i = 0; i < 5; i++) {
-      routeFor({ dataClass: DATA_CLASS.PUBLIC, model: "m", env: { ENRICH_PROVIDER: "groq" } });
-    }
-  } finally {
-    console.warn = realWarn;
-  }
-  assert.equal(warnings.length, 1);
-  assert.match(warnings[0], /warns once per process/i);
-});
-
-// ── THE MODEL IS PINNED ─────────────────────────────────────────────────────────────────────────
-
-test("an unpinned ENRICH_MODEL is a LOUD failure, not a quiet fallback", () => {
-  // Catalogs churn: a provider deleted most of its free models on a single day. Falling back to
-  // Anthropic here would mean the free tier silently stopped being used and the bill silently
-  // returned, with every dashboard green.
-  assert.throws(
-    () => resolveProvider({ ...GROQ_ENV, ENRICH_MODEL: "openai/gpt-oss-20b-deprecated" }),
-    (e) => e.code === "UNPINNED_MODEL" && /Pinned: /.test(e.message),
-  );
-});
-
-test("a pinned ENRICH_MODEL that IS in the catalog is honoured", () => {
-  const r = resolveProvider({ ...GROQ_ENV, ENRICH_MODEL: "openai/gpt-oss-120b" });
-  assert.equal(r.model, "openai/gpt-oss-120b");
-});
-
-// ⛔ THE MODEL THIS PROJECT ACTUALLY LOST. Not a hypothetical — `llama-3.1-8b-instant` was the
-// pinned default from task A until 2026-09-07, when the first REAL call returned
-// 404 model_not_found and the live catalog turned out to list no llama model at all.
-//
-// Task A was fully tested when that happened and the suite was green, because every test used a
-// fetch stub and a stub answers for any model id. So this pair of assertions is deliberately about
-// the TWO DIFFERENT JOBS the two lists do, which is what the incident exposed:
-//
-//   the allowlist decides what MAY BE SENT     -> a retired id must be refused, loudly
-//   pricing has to answer for what WAS SENT    -> a retired id must still price, silently
-//
-// Getting either backwards is a real failure: refuse-but-unpriced makes calculateCost warn on
-// every historical row, and priced-but-selectable lets a 404 back into the enrichment path.
-test("a DECOMMISSIONED model id is refused for sending yet still prices historical rows", () => {
-  assert.throws(
-    () => resolveProvider({ ...GROQ_ENV, ENRICH_MODEL: "llama-3.1-8b-instant" }),
-    (e) => e.code === "UNPINNED_MODEL",
-    "the retired llama id must not be selectable — it 404s against the live API",
-  );
-
-  const warnings = [];
-  const realWarn = console.warn;
-  console.warn = (...a) => warnings.push(a.join(" "));
-  try {
-    // 6 usage_events rows carry this id from the 2026-09-07 attempt. They price at zero, correctly,
-    // and must not drag a warning along behind them every time the cost report is built.
-    assert.equal(calculateCost("llama-3.1-8b-instant", { input_tokens: 1000, output_tokens: 500 }), 0);
-    assert.deepEqual(warnings, [], "a retired but still-priced model must not warn");
-  } finally { console.warn = realWarn; }
-});
-
-// ── PRICING ─────────────────────────────────────────────────────────────────────────────────────
-
-test("every pinned model of every provider has a pricing entry", () => {
-  // Requirement 3: usage_events stops reconciling the moment a model is callable but unpriceable,
-  // and the loud unknown-key warning would then fire on every enrichment call.
-  for (const spec of Object.values(PROVIDERS)) {
-    for (const m of spec.models) {
-      assert.ok(FREE_TIER_PRICING[m], `${spec.label} can call "${m}" but nothing can price it`);
+/** Runs `fn` with env vars set, restoring each one (including absence) afterwards. */
+async function withEnv(vars, fn) {
+  const saved = Object.fromEntries(Object.keys(vars).map(k => [k, process.env[k]]));
+  Object.assign(process.env, vars);
+  try { return await fn(); } finally {
+    for (const [k, v] of Object.entries(saved)) {
+      if (v === undefined) delete process.env[k]; else process.env[k] = v;
     }
   }
-});
+}
 
-test("a free-tier model prices at $0 SILENTLY; a genuinely unknown model still warns loudly", () => {
-  const warnings = [];
-  const realWarn = console.warn;
-  console.warn = (...a) => warnings.push(a.join(" "));
+// ── ONE PROVIDER ────────────────────────────────────────────────────────────────────────────────
+
+test("CANDIDATE traffic goes to Anthropic even with the retired free-tier env vars set", async () => {
+  // Re-pointed (A87). This was "CANDIDATE traffic stays on Anthropic even when a free tier is fully
+  // configured", asserted through routeFor(). routeFor is gone; the property is now asserted at the
+  // wrapper: a deploy that still carries ENRICH_PROVIDER / GROQ_API_KEY changes nothing, and no
+  // request leaves for any other host.
+  const db = makeDb();
+  const anthropic = fakeAnthropic();
+  const originalFetch = globalThis.fetch;
+  let fetched = 0;
+  globalThis.fetch = async () => { fetched++; throw new Error("callModel must not fetch"); };
   try {
-    const free = calculateCost("openai/gpt-oss-20b", { input_tokens: 100000, output_tokens: 50000 });
-    assert.equal(free, 0);
-    assert.deepEqual(warnings, [], "a priced-at-zero model must not warn — it would warn 1302 times a pass");
-
-    const unknown = calculateCost("some-model-nobody-added", { input_tokens: 100 });
-    assert.equal(unknown, 0);
-    assert.equal(warnings.length, 1, "an unpriced model must STILL be loud — that is how a dead ID hides");
-    assert.match(warnings[0], /NO PRICING ENTRY/);
-  } finally {
-    console.warn = realWarn;
-  }
+    await withEnv({ ENRICH_PROVIDER: "groq", GROQ_API_KEY: "gsk_test", ENRICH_MODEL: "openai/gpt-oss-20b" }, () =>
+      callModel({
+        anthropic, db, purpose: "cover_letter", userId: SYSTEM_USER_ID,
+        dataClass: DATA_CLASS.CANDIDATE,
+        model: "claude-sonnet-5", max_tokens: 10, messages: [{ role: "user", content: "hi" }],
+      }));
+  } finally { globalThis.fetch = originalFetch; }
+  assert.equal(anthropic.calls.length, 1);
+  assert.equal(anthropic.calls[0].model, "claude-sonnet-5", "the candidate model must not be swapped either");
+  assert.equal(fetched, 0);
+  const row = db.prepare("SELECT provider, model FROM usage_events").get();
+  assert.deepEqual({ ...row }, { provider: "anthropic", model: "claude-sonnet-5" });
 });
 
-test("Anthropic pricing is untouched by the free-tier table", () => {
+test("an UNDECLARED call site is CANDIDATE and goes to Anthropic — the default fails closed", async () => {
+  // Re-pointed (A87) from the routeFor() version of the same rule.
+  const db = makeDb();
+  const anthropic = fakeAnthropic();
+  await callModel({
+    anthropic, db, purpose: "cover_letter", userId: SYSTEM_USER_ID,
+    model: "claude-sonnet-5", max_tokens: 10, messages: [{ role: "user", content: "hi" }],
+  });
+  assert.equal(anthropic.calls.length, 1);
+});
+
+test("the retired PUBLIC class is REFUSED before any call or usage row", async () => {
+  // Re-pointed (A87). This was "the PUBLIC set is exactly the job-text purposes still calling a
+  // model" — an empty set since enrich_job went. With the route gone, a site still declaring
+  // "public" is a stale declaration; reading it as CANDIDATE would hide it, so callModel refuses.
+  assert.equal(DATA_CLASS.PUBLIC, undefined, "DATA_CLASS has no PUBLIC member");
+  const db = makeDb();
+  const anthropic = fakeAnthropic();
+  await assert.rejects(() => callModel({
+    anthropic, db, purpose: "enrich_job", userId: SYSTEM_USER_ID,
+    dataClass: "public",
+    model: "claude-haiku-4-5-20251001", messages: [{ role: "user", content: "a job advert" }],
+  }), /unknown dataClass "public"/);
+  assert.equal(anthropic.calls.length, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM usage_events").get().n, 0);
+});
+
+test("Anthropic pricing is untouched by the free-tier table's removal", () => {
   // A regression here would silently reprice every historical reconciliation.
   assert.equal(calculateCost("claude-haiku-4-5-20251001", { input_tokens: 1_000_000 }), 1);
   assert.equal(calculateCost("claude-sonnet-5", { output_tokens: 1_000_000 }), 10);
 });
 
 // ── usage_events RECORDS PROVIDER AND MODEL ─────────────────────────────────────────────────────
-
-test("a routed call records the PROVIDER and the model actually called", async () => {
-  const db = makeDb();
-  const restore = process.env.ENRICH_PROVIDER;
-  const restoreKey = process.env.GROQ_API_KEY;
-  process.env.ENRICH_PROVIDER = "groq";
-  process.env.GROQ_API_KEY = "gsk_test";
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = fakeFetch(() => jsonResponse({
-    choices: [{ message: { content: "{\"ok\":true}" }, finish_reason: "stop" }],
-    usage: { prompt_tokens: 900, completion_tokens: 40 },
-  }));
-  try {
-    resetRateLimiter();
-    const msg = await callModel({
-      anthropic: fakeAnthropic(), db, purpose: "enrich_job", userId: SYSTEM_USER_ID,
-      dataClass: DATA_CLASS.PUBLIC,
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 4096,   // above the reasoning floor — see assertOutputBudget
-      messages: [{ role: "user", content: "a job advert" }],
-    });
-    // The Anthropic-shaped result every caller already destructures.
-    assert.equal(msg.content.map(b => b.text).join(""), "{\"ok\":true}");
-
-    const row = db.prepare("SELECT * FROM usage_events ORDER BY id DESC LIMIT 1").get();
-    assert.equal(row.provider, "groq");
-    assert.equal(row.model, "openai/gpt-oss-20b",
-      "the model RECORDED must be the one called, not the one the call site asked for");
-    assert.equal(row.purpose, "enrich_job");
-    assert.equal(row.input_tokens, 900);
-    assert.equal(row.output_tokens, 40);
-    assert.equal(row.cost_usd, 0);
-    assert.equal(row.success, 1);
-  } finally {
-    globalThis.fetch = originalFetch;
-    process.env.ENRICH_PROVIDER = restore;
-    if (restoreKey === undefined) delete process.env.GROQ_API_KEY; else process.env.GROQ_API_KEY = restoreKey;
-  }
-});
 
 test("an unrouted call still records provider=anthropic — no row is left unattributed", async () => {
   const db = makeDb();
@@ -303,159 +167,27 @@ test("an unrouted call still records provider=anthropic — no row is left unatt
   assert.equal(anthropic.calls.length, 1, "the candidate call must have gone to the Anthropic SDK");
 });
 
-test("providerForModel labels a model with its provider", () => {
-  assert.equal(providerForModel("openai/gpt-oss-20b"), PROVIDER.GROQ);
-  assert.equal(providerForModel("gemini-2.0-flash"), PROVIDER.GOOGLE);
-  assert.equal(providerForModel("claude-sonnet-5"), null);
-});
-
-// ── THE TRANSPORT ───────────────────────────────────────────────────────────────────────────────
-
-test("the OpenAI-compatible adapter returns an ANTHROPIC-shaped message", async () => {
-  resetRateLimiter();
-  const impl = fakeFetch(() => jsonResponse({
-    choices: [{ message: { content: "hello" }, finish_reason: "stop" }],
-    usage: { prompt_tokens: 7, completion_tokens: 3 },
-  }));
-  const msg = await callProvider({
-    provider: PROVIDER.GROQ, apiKey: "gsk_test", fetchImpl: impl,
-    params: { model: "openai/gpt-oss-20b", max_tokens: 4096,
-              messages: [{ role: "user", content: "hi" }], system: "be terse" },
-  });
-  // `content` MUST be an array of blocks: every caller does `.content.map(b => b.text || '')`.
-  // A bare string would map to a list of undefined and every extraction would parse as empty —
-  // a total, silent failure that reads as a bad model rather than a bad adapter.
-  assert.ok(Array.isArray(msg.content));
-  assert.equal(msg.content[0].text, "hello");
-  assert.equal(msg.usage.input_tokens, 7);
-  assert.equal(msg.usage.output_tokens, 3);
-
-  const body = JSON.parse(impl.calls[0].init.body);
-  assert.equal(body.messages[0].role, "system", "an Anthropic `system` becomes an OpenAI system message");
-  assert.equal(body.messages[1].content, "hi");
-  assert.match(impl.calls[0].init.headers.authorization, /^Bearer /);
-});
-
-test("the Gemini adapter translates roles and reads Gemini's own usage fields", async () => {
-  resetRateLimiter();
-  const impl = fakeFetch(() => jsonResponse({
-    candidates: [{ content: { parts: [{ text: "hi there" }] }, finishReason: "STOP" }],
-    usageMetadata: { promptTokenCount: 11, candidatesTokenCount: 4 },
-  }));
-  const msg = await callProvider({
-    provider: PROVIDER.GOOGLE, apiKey: "goog_test", fetchImpl: impl,
-    params: { model: "gemini-2.0-flash", max_tokens: 50,
-              messages: [{ role: "assistant", content: "prior" }, { role: "user", content: "hi" }] },
-  });
-  assert.equal(msg.content[0].text, "hi there");
-  assert.equal(msg.usage.input_tokens, 11);
-  assert.equal(msg.usage.output_tokens, 4);
-
-  const body = JSON.parse(impl.calls[0].init.body);
-  assert.equal(body.contents[0].role, "model", "Gemini's vocabulary is user/model, not user/assistant");
-  // The key belongs in a header, not the query string, or it lands in every proxy access log.
-  assert.ok(!impl.calls[0].url.includes("goog_test"));
-  assert.equal(impl.calls[0].init.headers["x-goog-api-key"], "goog_test");
-});
-
-test("Anthropic's array-of-blocks content and system shapes flatten rather than stringify", async () => {
-  // promptAssembler sends `system` as an array of cache_control blocks. `String(obj)` would send
-  // the literal "[object Object]" to the provider, which is a plausible-looking prompt that
-  // contains none of the instructions.
-  resetRateLimiter();
-  const impl = fakeFetch(() => jsonResponse({
-    choices: [{ message: { content: "ok" } }], usage: { prompt_tokens: 1, completion_tokens: 1 },
-  }));
-  await callProvider({
-    provider: PROVIDER.GROQ, apiKey: "k", fetchImpl: impl,
-    params: {
-      model: "openai/gpt-oss-20b",
-      system: [{ type: "text", text: "SYSTEM RULES" }],
-      messages: [{ role: "user", content: [{ type: "text", text: "BLOCK ONE" }, { type: "text", text: " AND TWO" }] }],
-    },
-  });
-  const body = JSON.parse(impl.calls[0].init.body);
-  assert.equal(body.messages[0].content, "SYSTEM RULES");
-  assert.equal(body.messages[1].content, "BLOCK ONE AND TWO");
-  assert.ok(!JSON.stringify(body).includes("[object Object]"));
-});
-
-// ── 429 ─────────────────────────────────────────────────────────────────────────────────────────
-
-test("a 429 backs off, retries, and SUCCEEDS if the limit clears", async () => {
-  resetRateLimiter();
-  const impl = fakeFetch((_url, _init, n) =>
-    n === 1
-      ? jsonResponse({ error: "rate limited" }, { status: 429, headers: { "retry-after": "0" } })
-      : jsonResponse({ choices: [{ message: { content: "second try" } }], usage: {} }));
-  const msg = await callProvider({
-    provider: PROVIDER.GROQ, apiKey: "k", fetchImpl: impl,
-    params: { model: "openai/gpt-oss-20b", messages: [{ role: "user", content: "x" }] },
-  });
-  assert.equal(msg.content[0].text, "second try");
-  assert.equal(impl.calls.length, 2);
-});
-
-test("a persistent 429 throws ProviderRateLimitError — it never returns an empty extraction", async () => {
-  // The failure that matters: an empty result would be written as "this posting says nothing",
-  // and because the success path also stamps content_hash the row would leave the candidate pool
-  // for good. That is the exact shape COALESCE and hasAnySignal were both added to prevent.
-  resetRateLimiter();
-  const impl = fakeFetch(() => jsonResponse({ error: "slow down" },
-    { status: 429, headers: { "retry-after": "0" } }));
-  await assert.rejects(
-    () => callProvider({
-      provider: PROVIDER.GROQ, apiKey: "k", fetchImpl: impl,
-      params: { model: "openai/gpt-oss-20b", messages: [{ role: "user", content: "x" }] },
-    }),
-    (e) => e instanceof ProviderRateLimitError && e.code === "RATE_LIMITED",
-  );
-  assert.equal(impl.calls.length, 4, "one attempt plus three retries");
-});
-
-test("a non-429 provider error is a ProviderRequestError carrying the status", async () => {
-  resetRateLimiter();
-  const impl = fakeFetch(() => jsonResponse({ error: "bad model" }, { status: 400 }));
-  await assert.rejects(
-    () => callProvider({
-      provider: PROVIDER.GROQ, apiKey: "k", fetchImpl: impl,
-      params: { model: "openai/gpt-oss-20b", messages: [{ role: "user", content: "x" }] },
-    }),
-    (e) => e instanceof ProviderRequestError && e.status === 400,
-  );
-  assert.equal(impl.calls.length, 1, "a 400 must not be retried — it will fail identically");
-});
-
 test("a rate-limited call is RECORDED as a failure, not dropped", async () => {
   // A failed call is a fact worth having: the dead claude-sonnet-4 ID 404'd on every call for two
   // months while the cost table showed nothing at all.
+  // Re-pointed (A87): this drove a Groq 429 through the deleted transport; the rule it pinned —
+  // callModel's `finally` records success=0 with the upstream message — is asserted on Anthropic.
   const db = makeDb();
-  const restore = process.env.ENRICH_PROVIDER;
-  const restoreKey = process.env.GROQ_API_KEY;
-  process.env.ENRICH_PROVIDER = "groq";
-  process.env.GROQ_API_KEY = "gsk_test";
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = fakeFetch(() => jsonResponse({ error: "slow down" },
-    { status: 429, headers: { "retry-after": "0" } }));
-  try {
-    resetRateLimiter();
-    await assert.rejects(() => callModel({
-      anthropic: fakeAnthropic(), db, purpose: "enrich_job", userId: SYSTEM_USER_ID,
-      dataClass: DATA_CLASS.PUBLIC, model: "claude-haiku-4-5-20251001",
-      messages: [{ role: "user", content: "x" }],
-    }), (e) => e.code === "RATE_LIMITED");
-    const row = db.prepare("SELECT * FROM usage_events ORDER BY id DESC LIMIT 1").get();
-    assert.equal(row.success, 0);
-    assert.equal(row.provider, "groq");
-    assert.match(row.error_text, /rate limited/i);
-  } finally {
-    globalThis.fetch = originalFetch;
-    process.env.ENRICH_PROVIDER = restore;
-    if (restoreKey === undefined) delete process.env.GROQ_API_KEY; else process.env.GROQ_API_KEY = restoreKey;
-  }
+  const anthropic = {
+    messages: { create: async () => { throw Object.assign(new Error("429 rate_limit_error: slow down"), { status: 429 }); } },
+  };
+  await assert.rejects(() => callModel({
+    anthropic, db, purpose: "cover_letter", userId: SYSTEM_USER_ID,
+    dataClass: DATA_CLASS.CANDIDATE, model: "claude-sonnet-5",
+    messages: [{ role: "user", content: "x" }],
+  }), (e) => e.status === 429);
+  const row = db.prepare("SELECT * FROM usage_events ORDER BY id DESC LIMIT 1").get();
+  assert.equal(row.success, 0);
+  assert.equal(row.provider, "anthropic");
+  assert.match(row.error_text, /rate_limit/i);
 });
 
-// ── THE SPLIT IS DECLARED AT EVERY SITE, AND THE DECLARATIONS ARE THE EXPECTED ONES ─────────────
+// ── EACH SITE DECLARES WHAT IT SENDS ────────────────────────────────────────────────────────────
 
 test("every callModel call site declares a dataClass", () => {
   // The safe default protects production; this protects INTENT. A new site that forgets is made to
@@ -475,111 +207,10 @@ test("every callModel call site declares a dataClass", () => {
     "These call sites do not say whose data they send:\n" + missing.map(x => `  ${x}`).join("\n"));
 });
 
-test("the PUBLIC set is exactly the job-text purposes still calling a model", () => {
-  // Pinned so that widening it is a deliberate edit with a reviewer, not a one-line drift. Every
-  // addition here is a new class of data leaving for a free tier.
-  // classify_job was deleted under D17 (A80 V7) — it had no caller. import_job was deleted by D33
-  // (A80 V5): import reads deterministically and calls no model. enrich_job was deleted by A80
-  // (10-05) once A76 landed: enrichment is export → import only. The set is now EMPTY — no
-  // production call site routes to a free tier, so a new PUBLIC declaration fails here.
-  const expected = new Set([]);
-  const found = new Set();
-  const files = ["server.js", "services/jobs/enrichJob.js",
-                 "services/jobs/importJob.js", "routes/domainProfiles.js"];
-  for (const file of files) {
-    const src = fs.readFileSync(file, "utf8");
-    // Anchored at the DECLARATION and scanning backwards for the purpose beside it. Anchoring at
-    // `callModel({` and reading forward needs a window wide enough for the widest prompt, and
-    // classify_job's is ~1KB of template literal — a fixed forward window silently missed it and
-    // this test reported two PUBLIC sites where there were three (before V7 deleted one).
-    for (const m of src.matchAll(/dataClass:\s*DATA_CLASS\.PUBLIC/g)) {
-      const before = src.slice(Math.max(0, m.index - 600), m.index);
-      const p = [...before.matchAll(/purpose: *["']([a-z_]+)["']/g)].pop();
-      assert.ok(p, `a PUBLIC declaration in ${file} has no purpose within 600 chars above it`);
-      found.add(p[1]);
-    }
-  }
-  assert.deepEqual([...found].sort(), [...expected].sort(),
-    "A purpose was added to or removed from the free-tier route. Every entry here is candidate-free\n" +
-    "text a company published about itself. Check the PAYLOAD, not the name — `classifier` and\n" +
-    "`classify_job` differ by one word and one of them sends the candidate's resume.");
-});
-
 test("the resume-bearing `classifier` call is gone from draft, not re-routed (A80 V6)", () => {
   // services/classifier.js sent 2000 chars of the candidate's resume; it was CANDIDATE and never
   // public. D17 deleted it with /api/smart-search. Back in any form, it must declare CANDIDATE again.
   assert.equal(fs.existsSync("services/classifier.js"), false);
-});
-
-// ── A 429 LEAVES THE ROW RETRYABLE ──────────────────────────────────────────────────────────────
-
-// (A80, 10-05) "a 429 during enrichment leaves the row a candidate" retired: it drove runEnrichment, which was
-// deleted with enrichJob.js's model call (D17). The manual import never calls a provider.
-
-test("a param the transport cannot translate is REFUSED, not dropped", async () => {
-  // A request that succeeds while quietly ignoring half of what it was asked to do is worse than
-  // one that fails. `tools` is the sharp case: routed to a free tier it would come back as plain
-  // prose, and the call site would read that as a bad model rather than a lost parameter.
-  resetRateLimiter();
-  const impl = fakeFetch(() => jsonResponse({ choices: [{ message: { content: "x" } }], usage: {} }));
-  await assert.rejects(
-    () => callProvider({
-      provider: PROVIDER.GROQ, apiKey: "k", fetchImpl: impl,
-      params: { model: "openai/gpt-oss-20b", messages: [{ role: "user", content: "x" }],
-                tools: [{ name: "search" }] },
-    }),
-    (e) => e instanceof ProviderRequestError && /tools/.test(e.message),
-  );
-  assert.equal(impl.calls.length, 0, "it must refuse BEFORE spending a request");
-});
-
-test("the three PUBLIC call sites pass only translatable params", async () => {
-  // The refusal above is a runtime backstop. This is the compile-time-ish version: if enrichment,
-  // classification or import ever grows a `tools` or `stop_sequences`, this fails at `npm test`
-  // rather than at 3am in a background pass.
-  const sites = [
-    ["services/jobs/enrichJob.js", /dataClass: DATA_CLASS\.PUBLIC/],
-    ["services/jobs/importJob.js", /dataClass: DATA_CLASS\.PUBLIC/],
-    ["server.js", /dataClass: DATA_CLASS\.PUBLIC/],
-  ];
-  const translatable = new Set(["model", "max_tokens", "messages", "system", "temperature"]);
-  // Bookkeeping keys consumed by callModel itself and never forwarded to a provider.
-  const wrapperKeys = new Set(["anthropic", "db", "purpose", "userId", "eventType", "eventSubtype",
-                               "jobId", "company", "domainModule", "atsScoreBefore", "atsScoreAfter",
-                               "onTracked", "dataClass"]);
-  for (const [file, marker] of sites) {
-    const src = fs.readFileSync(file, "utf8");
-    for (const m of src.matchAll(new RegExp(marker.source, "g"))) {
-      // Read forward from the declaration only as far as the END of callModel's argument object —
-      // the first line that closes it. A fixed character window overruns into the neighbouring
-      // object literals (enrichJob's SQL bindings sit right below the call) and reports column
-      // names as if they were request params.
-      //
-      // ⛔ `[ \t]`, NEVER `\s`, IN EITHER PATTERN — `\s` MATCHES NEWLINES AND SO CROSSES LINES.
-      //
-      // Indentation is spaces and tabs; a newline is not indentation. With `^\s{2,}` the engine
-      // could match `^` after the first newline of a BLANK LINE, spend the blank line's own
-      // whitespace on the `{2,}`, and then read an identifier sitting at column 0 of the next line
-      // as though it were an indented key. That is not hypothetical: server.js's classifier prompt
-      // is a template literal containing the lines `Categories: ${...}` and `Title: ${...}` at
-      // column 0, and this test reported both as untranslatable request params.
-      //
-      // It only did so on a CRLF working tree, which is what `.gitattributes`' `* text=auto` plus
-      // core.autocrlf=true produce on a Windows checkout — a blank line is then `\r\n`, two
-      // whitespace characters, exactly enough for `{2,}`. Under LF a blank line is one character
-      // and the same pattern cannot reach. So the test passed or failed according to how server.js
-      // happened to have been written, and it failed on every fresh clone here while finding
-      // nothing wrong with the code. Restricting the class to horizontal whitespace fixes the
-      // line-crossing bug and makes the line ending irrelevant, which is the same repair.
-      const rest = src.slice(m.index);
-      const close = rest.search(/^[ \t]*\}\);/m);
-      const after = close > 0 ? rest.slice(0, close) : rest.slice(0, 2000);
-      const keys = [...after.matchAll(/^[ \t]{2,}([a-zA-Z_]+):/gm)].map(x => x[1]);
-      const bad = keys.filter(k => !translatable.has(k) && !wrapperKeys.has(k));
-      assert.deepEqual(bad, [],
-        `${file}: a PUBLIC call site passes ${bad.join(", ")}, which the transport cannot translate`);
-    }
-  }
 });
 
 // ── MIGRATION 096 ───────────────────────────────────────────────────────────────────────────────

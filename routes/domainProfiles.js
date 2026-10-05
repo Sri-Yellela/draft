@@ -25,8 +25,7 @@ import {
 } from "../services/profileSignalAggregator.js";
 import { mergeUniqueSignalLabels } from "../shared/profileSignals.js";
 import { MODEL_HAIKU } from "../shared/anthropicModels.js";
-import { DATA_CLASS } from "../shared/modelProviders.js";
-import { callModel } from "../services/modelCall.js";
+import { callModel, DATA_CLASS } from "../services/modelCall.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
