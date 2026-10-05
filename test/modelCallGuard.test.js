@@ -237,5 +237,5 @@ test("every callModel invocation passes a purpose", () => {
 
 // (A87, 10-05) "the provider catalog is data — it makes no network call at all" and "only the
 // transport reads a provider base URL" retired with the two files they policed —
-// shared/modelProviders.js and services/providerTransport.js. With them gone, the scan above has no
-// exemption but this file itself.
+// shared/modelProviders.js and services/providerTransport.js; test/a87AnthropicOnly.test.js keeps them
+// deleted. With them gone, the scan above has no exemption but this file itself.

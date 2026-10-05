@@ -450,7 +450,8 @@ failures**, and sends it to Anthropic — the only provider.
 ⛔ **There is no free-tier route (A87, 10-05).** `shared/modelProviders.js`, `services/providerTransport.js`
 and the `ENRICH_PROVIDER` / `ENRICH_MODEL` / `GROQ_API_KEY` / `GOOGLE_API_KEY` variables existed to send
 PUBLIC job-advert text (`enrich_job`, `classify_job`, `import_job`) to Groq or Gemini. D17 deleted all
-three model calls, so the route had no traffic and was deleted. (Groq had measured **30.5% Jaccard on
+three model calls, so the route had no traffic and was deleted; `test/a87AnthropicOnly.test.js` fails
+if a non-Anthropic provider module, SDK, host or env var comes back. (Groq had measured **30.5% Jaccard on
 `skillsHard`** against Haiku — `docs/am3-provider-verdict.md:183` — so it was never switched on.)
 
 Each call site still declares what it sends:
