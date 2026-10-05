@@ -81,7 +81,7 @@ test("there is still no 1-hour cache price key, and nothing selects one", () => 
   // A4: the generation breakpoints live in the tools service now, and draft PRICES that service's
   // cache writes from its usage records at the 5-minute rate — so the same guard runs there
   // (resume-master test/cacheBreakpoints.test.js). Here it covers draft's own model calls.
-  for (const f of ["server.js", "services/modelCall.js", "services/classifier.js"]) {
+  for (const f of ["server.js", "services/modelCall.js"]) {
     const src = fs.readFileSync(f, "utf8");
     assert.ok(!/ttl:\s*["']1h["']/.test(src),
       `${f} sets a 1-hour cache TTL, but calculateCost has no 1h key — it would under-report by 37.5%`);

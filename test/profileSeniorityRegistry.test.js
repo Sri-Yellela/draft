@@ -35,7 +35,6 @@ const code = (src) => src
 
 const wizard = read("client/src/components/DomainProfileWizard.jsx");
 const profilePanel = read("client/src/panels/ProfilePanel.jsx");
-const classifier = read("services/classifier.js");
 
 test("PROFILE_SENIORITY is registered, and is deliberately NOT the board's experience levels", () => {
   assert.deepEqual(values(PROFILE_SENIORITY), ["junior", "mid", "senior", "executive"]);
@@ -72,14 +71,11 @@ test("the wizard's options and its label lookup both derive from the registry", 
   assert.ok(!/junior: "Entry Level"/.test(src), "the literal label map is back");
 });
 
-test("the classifier asks the model for exactly the registry's values", () => {
-  // The prompt is what WRITES this column, so an enum that drifts from the UI means the model can
-  // return a value no control can display — the same two-sides-of-a-contract defect as the rest.
-  assert.match(classifier, /import \{ PROFILE_SENIORITY, values \} from "\.\.\/shared\/jobFilterOptions\.js";/);
-  assert.match(classifier, /const SENIORITY_ENUM = values\(PROFILE_SENIORITY\)\.join\(" \| "\)/);
-  assert.match(classifier, /"seniority": "<one of: \$\{SENIORITY_ENUM\}>"/);
-  const src = code(classifier);
-  assert.ok(!/junior \| mid \| senior \| executive/.test(src), "the literal enum is back in the prompt");
+test("draft's model classifier — the third copy of this enum — is gone (A80 V6)", () => {
+  // services/classifier.js interpolated values(PROFILE_SENIORITY) into a Haiku prompt. It was deleted
+  // with /api/smart-search under D17. The tools service's classifier (inside generate) carries the
+  // same four values and pins them in its own test/classifier.test.js.
+  assert.equal(fs.existsSync("services/classifier.js"), false);
 });
 
 test("no option-vocabulary copy of these four values survives outside the registry", () => {

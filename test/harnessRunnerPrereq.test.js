@@ -48,8 +48,11 @@ test("the runner says a green board is NOT evidence about the model-call path", 
   // EXCLUDED because it spends tokens. A future session must not read a full green board as
   // provider verification — which is precisely the inference AL1's own summary had to disclaim.
   assert.match(runner, /does NOT mean: it is not evidence about the MODEL-CALL path/i);
-  assert.match(runner, /al1ProviderQualityDiff/,
-    "it must name what DOES verify real provider traffic, or the warning is a dead end");
+  // It used to name scripts/al1ProviderQualityDiff.mjs as what DOES verify real provider traffic.
+  // D17 deleted that script (A80 V9); the warning must now say so instead of pointing at nothing.
+  assert.match(runner, /Real traffic is not verified by any script/,
+    "it must say what verifies real model traffic — now nothing scripted — or the warning is a dead end");
+  assert.ok(!fs.existsSync("scripts/al1ProviderQualityDiff.mjs"), "al1 is back; restore the pointer");
   const pkg = fs.readFileSync("package.json", "utf8");
   assert.match(pkg, /REQUIRES the app already running on :3001/,
     "the prerequisite belongs where the command is invoked too, not only in the file it runs");

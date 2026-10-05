@@ -9,8 +9,9 @@
  * "Ramp Systems, Inc." alongside our Linear, Mercury and Ramp.
  *
  * services/kb/lcaMatch.js already declines all three, deliberately and with measurements. This
- * module does NOT loosen it. It adds a separate, slower path: a model proposes an identity, a human
- * confirms it, and only then does the matcher see it — as its own tier, at its own confidence.
+ * module does NOT loosen it. It adds a separate, slower path: an identity is proposed (since D17, A80 V11,
+ * by the owner through export → import — services/kb/lcaResolutionTransfer.js; a model did it before),
+ * a human confirms it, and only then does the matcher see it — as its own tier, at its own confidence.
  *
  * ── WHY TIER R SITS WHERE IT DOES ──────────────────────────────────────────────────────────────
  *

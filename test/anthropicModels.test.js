@@ -28,7 +28,6 @@ test("no module hardcodes a model ID outside shared/anthropicModels.js", () => {
   const files = [
     "server.js",
     "services/usageTracker.js",
-    "services/classifier.js",
     "services/jobs/enrichJob.js",
     "services/jobs/importJob.js",
     "routes/domainProfiles.js",

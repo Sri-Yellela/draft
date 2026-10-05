@@ -63,15 +63,13 @@ import { MODEL_SONNET, MODEL_HAIKU } from "./shared/anthropicModels.js";
 import { assertPinnedModelsLive } from "./services/modelCatalogue.js";
 import { classifyGenerationError } from "./shared/failureAttribution.js";
 import { checkLimit } from "./services/limitEnforcer.js";
-import { classify } from "./services/classifier.js";
 import { DATA_CLASS } from "./shared/modelProviders.js";
-import { resolveFromClassifier, getSearchQueryTemplates, qualificationKeyCount } from "./services/qualificationResolver.js";
+import { qualificationKeyCount } from "./services/qualificationResolver.js";
 // buildApifyQueriesFromProfile and buildProfileSearchTerms dropped from this import in cleanup
 // 5.1: both were imported here and never called. The functions themselves are KEPT — unlike
 // 5.7's module they still have real callers, in scripts/tracePipeline.js, scripts/rawTrace.js and
 // scripts/conditionTests.js (all three verified to still run) plus their own unit tests. Dead in
 // the production path, live in tooling; only the server's unused reference goes.
-import { normaliseRole, buildApifyQueries } from "./services/searchQueryBuilder.js";
 import { getRoleKeyForProfile as _getRoleKeyForProfile } from "./services/jobClassifier.js";
 import { inferWorkType, jobHash, normaliseItem, isFullTimeNorm, isEmploymentTypeWanted, parseYearsExperience, ghostJobScoreNorm, isReposted } from "./services/jobNormalization.js";
 import { usEligibility } from "./services/jobs/usLocation.js";
@@ -10151,33 +10149,12 @@ app.get("/api/export/excel", requireAuth, async (req, res) => {
   res.end();
 });
 
-// ═══════════════════════════════════════════════════════════════
-// SMART SEARCH
-// ═══════════════════════════════════════════════════════════════
-app.post("/api/smart-search", requireAuth, async (req, res) => {
-  const { resumeText } = req.body;
-  if (!resumeText) return res.status(400).json({ error: "resumeText required" });
-  if (!ANTHROPIC_KEY) return res.status(500).json({ error: "ANTHROPIC_KEY not configured" });
-  try {
-    const classifierResult = await classify(anthropic, resumeText, "", {
-      db, userId: req.user.id, eventSubtype: "profile_setup",
-    });
-    const qualKey    = resolveFromClassifier(classifierResult);
-    const qualTemplates = getSearchQueryTemplates(qualKey);
-    const canonical  = normaliseRole(classifierResult.searchQueries?.[0] || "");
-    const queries    = buildApifyQueries(canonical, classifierResult, qualTemplates);
-    res.json({
-      ok:              true,
-      searchQuery:     queries[0] || canonical,
-      searchQueries:   queries,
-      roleFamily:      classifierResult.roleFamily,
-      domain:          classifierResult.domain,
-      seniority:       classifierResult.seniority,
-      topTools:        classifierResult.topTools || [],
-      yearsExperience: null,
-    });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
+// ── /api/smart-search: DELETED (D17, A80 V6) ─────────────────────────────────────────────────────
+// It sent 2,000 characters of the résumé to a Haiku classifier (services/classifier.js) to pick a
+// search query. The only UI that called it, Smart Search in JobsPanel, lost its button in a68c6c0
+// (2026-04-14) — no screen has reached it since, and the local board's usage_events holds no
+// `classifier` row from draft. D17 confines model calls to résumé generation; a route nobody calls is not worth a
+// deterministic rewrite. The classifier inside the tools service's generate is generation's own.
 
 // ═══════════════════════════════════════════════════════════════
 // LINKEDIN SESSION COOKIES (AES-256-GCM encrypted at rest)
