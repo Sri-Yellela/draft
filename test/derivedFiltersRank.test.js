@@ -39,7 +39,7 @@ function db0() {
       normalized_title TEXT, summary TEXT,
       skills_json TEXT, experience_level TEXT,
       is_h1b_sponsor INTEGER, requires_work_auth INTEGER,
-      posted_at TEXT, scraped_at INTEGER, is_active INTEGER DEFAULT 1
+      posted_at TEXT, scraped_at INTEGER, is_active INTEGER DEFAULT 1, tag_basis TEXT, tag_level TEXT, tag_workplace TEXT, tag_employment TEXT, tag_function TEXT
     );
     -- The board's second table (X3): company_sponsorship ranks through a correlated subquery on
     -- it, so the schema has to exist for the rank expression to prepare. Left EMPTY on purpose —

@@ -11,10 +11,10 @@ import { buildJobFilters } from "../services/jobs/jobQuery.js";
 test("skills_include is soft-null: a row with skills_json IS NULL is never excluded", () => {
   const db = new Database(":memory:");
   db.exec(`
-    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, title TEXT, skills_json TEXT);
-    INSERT INTO scraped_jobs VALUES ('a', 'Software Engineer', NULL);
-    INSERT INTO scraped_jobs VALUES ('b', 'Software Engineer', '["python","react"]');
-    INSERT INTO scraped_jobs VALUES ('c', 'Software Engineer', '["java","go"]');
+    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, title TEXT, skills_json TEXT, tag_basis TEXT, tag_level TEXT, tag_workplace TEXT, tag_employment TEXT, tag_function TEXT);
+    INSERT INTO scraped_jobs (job_id, title, skills_json) VALUES ('a', 'Software Engineer', NULL);
+    INSERT INTO scraped_jobs (job_id, title, skills_json) VALUES ('b', 'Software Engineer', '["python","react"]');
+    INSERT INTO scraped_jobs (job_id, title, skills_json) VALUES ('c', 'Software Engineer', '["java","go"]');
   `);
   const { sql, params } = buildJobFilters({ skills_include: ["python"] });
   const rows = db.prepare(`SELECT job_id FROM scraped_jobs sj WHERE 1=1 ${sql}`).all(...params);
@@ -25,8 +25,8 @@ test("skills_include is soft-null: a row with skills_json IS NULL is never exclu
 test("skills_include still excludes a row with a populated, non-matching skills_json", () => {
   const db = new Database(":memory:");
   db.exec(`
-    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, skills_json TEXT);
-    INSERT INTO scraped_jobs VALUES ('only-java', '["java"]');
+    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, skills_json TEXT, tag_basis TEXT, tag_level TEXT, tag_workplace TEXT, tag_employment TEXT, tag_function TEXT);
+    INSERT INTO scraped_jobs (job_id, skills_json) VALUES ('only-java', '["java"]');
   `);
   const { sql, params } = buildJobFilters({ skills_include: ["python"] });
   const rows = db.prepare(`SELECT job_id FROM scraped_jobs sj WHERE 1=1 ${sql}`).all(...params);
@@ -41,10 +41,10 @@ test("skills_include still excludes a row with a populated, non-matching skills_
 test("experience_levels is soft-null: a row with experience_level IS NULL is never excluded", () => {
   const db = new Database(":memory:");
   db.exec(`
-    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, experience_level TEXT);
-    INSERT INTO scraped_jobs VALUES ('unenriched', NULL);
-    INSERT INTO scraped_jobs VALUES ('mid', 'mid');
-    INSERT INTO scraped_jobs VALUES ('executive', 'executive');
+    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, experience_level TEXT, tag_basis TEXT, tag_level TEXT, tag_workplace TEXT, tag_employment TEXT, tag_function TEXT);
+    INSERT INTO scraped_jobs (job_id, experience_level) VALUES ('unenriched', NULL);
+    INSERT INTO scraped_jobs (job_id, experience_level) VALUES ('mid', 'mid');
+    INSERT INTO scraped_jobs (job_id, experience_level) VALUES ('executive', 'executive');
   `);
   const { sql, params } = buildJobFilters({ experience_levels: ["mid", "senior"] });
   const rows = db.prepare(`SELECT job_id FROM scraped_jobs sj WHERE 1=1 ${sql}`).all(...params);
@@ -58,9 +58,9 @@ test("experience_levels is soft-null: a row with experience_level IS NULL is nev
 test("experience_levels widening does not rescue NULL: guard must be the IS NULL clause", () => {
   const db = new Database(":memory:");
   db.exec(`
-    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, experience_level TEXT);
-    INSERT INTO scraped_jobs VALUES ('a', NULL);
-    INSERT INTO scraped_jobs VALUES ('b', NULL);
+    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, experience_level TEXT, tag_basis TEXT, tag_level TEXT, tag_workplace TEXT, tag_employment TEXT, tag_function TEXT);
+    INSERT INTO scraped_jobs (job_id, experience_level) VALUES ('a', NULL);
+    INSERT INTO scraped_jobs (job_id, experience_level) VALUES ('b', NULL);
   `);
   const { sql, params } = buildJobFilters({ experience_levels: ["entry", "mid", "senior", "lead", "executive"] });
   const rows = db.prepare(`SELECT job_id FROM scraped_jobs sj WHERE 1=1 ${sql}`).all(...params);
@@ -70,10 +70,10 @@ test("experience_levels widening does not rescue NULL: guard must be the IS NULL
 test("work_models is soft-null: an unenriched workplace_type is never excluded", () => {
   const db = new Database(":memory:");
   db.exec(`
-    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, workplace_type TEXT);
-    INSERT INTO scraped_jobs VALUES ('unenriched', NULL);
-    INSERT INTO scraped_jobs VALUES ('remote', 'remote');
-    INSERT INTO scraped_jobs VALUES ('onsite', 'onsite');
+    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, workplace_type TEXT, tag_basis TEXT, tag_level TEXT, tag_workplace TEXT, tag_employment TEXT, tag_function TEXT);
+    INSERT INTO scraped_jobs (job_id, workplace_type) VALUES ('unenriched', NULL);
+    INSERT INTO scraped_jobs (job_id, workplace_type) VALUES ('remote', 'remote');
+    INSERT INTO scraped_jobs (job_id, workplace_type) VALUES ('onsite', 'onsite');
   `);
   const { sql, params } = buildJobFilters({ work_models: ["remote"] });
   const rows = db.prepare(`SELECT job_id FROM scraped_jobs sj WHERE 1=1 ${sql}`).all(...params);
@@ -91,10 +91,10 @@ test("discovered_after falls back to scraped_at when discovered_at is missing", 
   const db = new Database(":memory:");
   const now = Math.floor(Date.now() / 1000);
   db.exec(`
-    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, discovered_at INTEGER, scraped_at INTEGER);
-    INSERT INTO scraped_jobs VALUES ('orphan_recent', NULL, ${now - 3600});
-    INSERT INTO scraped_jobs VALUES ('orphan_old',    NULL, ${now - 60 * 86400});
-    INSERT INTO scraped_jobs VALUES ('normal_recent', ${now - 7200}, ${now - 7200});
+    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, discovered_at INTEGER, scraped_at INTEGER, tag_basis TEXT, tag_level TEXT, tag_workplace TEXT, tag_employment TEXT, tag_function TEXT);
+    INSERT INTO scraped_jobs (job_id, discovered_at, scraped_at) VALUES ('orphan_recent', NULL, ${now - 3600});
+    INSERT INTO scraped_jobs (job_id, discovered_at, scraped_at) VALUES ('orphan_old',    NULL, ${now - 60 * 86400});
+    INSERT INTO scraped_jobs (job_id, discovered_at, scraped_at) VALUES ('normal_recent', ${now - 7200}, ${now - 7200});
   `);
   const { sql, params } = buildJobFilters({ discovered_after: now - 86400 });
   const ids = db.prepare(`SELECT job_id FROM scraped_jobs sj WHERE 1=1 ${sql}`).all(...params)
@@ -110,9 +110,9 @@ test("discovered_after still excludes genuinely old rows — this is not a soft-
   const db = new Database(":memory:");
   const now = Math.floor(Date.now() / 1000);
   db.exec(`
-    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, discovered_at INTEGER, scraped_at INTEGER);
-    INSERT INTO scraped_jobs VALUES ('no_dates_at_all', NULL, NULL);
-    INSERT INTO scraped_jobs VALUES ('old', NULL, ${now - 60 * 86400});
+    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, discovered_at INTEGER, scraped_at INTEGER, tag_basis TEXT, tag_level TEXT, tag_workplace TEXT, tag_employment TEXT, tag_function TEXT);
+    INSERT INTO scraped_jobs (job_id, discovered_at, scraped_at) VALUES ('no_dates_at_all', NULL, NULL);
+    INSERT INTO scraped_jobs (job_id, discovered_at, scraped_at) VALUES ('old', NULL, ${now - 60 * 86400});
   `);
   const { sql, params } = buildJobFilters({ discovered_after: now - 86400 });
   const rows = db.prepare(`SELECT job_id FROM scraped_jobs sj WHERE 1=1 ${sql}`).all(...params);

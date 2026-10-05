@@ -148,6 +148,34 @@ export function presentedScore(row, { basisHash, scoreKey = "matchScore" } = {})
   return storedScoreIsCurrent(row, { basisHash }) ? (row[scoreKey] ?? null) : null;
 }
 
+// ── A85 · THE FIT FILTER READS THE SAME "CURRENT" THE BADGE DOES ──────────────────────────────────
+//
+// The badge is presentedScore above: a stored score shows only when its basis_hash is the caller's
+// current basis AND its job_hash is the posting's inputs as they are now. The fit filter used to read
+// the raw stored cell, so a stale score could file a card under "Strong" while its badge was blank.
+// ⛔ ONE DEFINITION OF CURRENT: the same atsJobInputHash, registered as a SQL function so the
+// WHERE clause can ask it, and the same basis comparison.
+export const ATS_INPUT_HASH_FN = "ats_job_input_hash";
+const fnRegistered = new WeakSet();
+export function registerScoreFreshness(db) {
+  if (fnRegistered.has(db)) return;
+  db.function(ATS_INPUT_HASH_FN, { deterministic: true, varargs: true }, (...vals) =>
+    atsJobInputHash(Object.fromEntries(ATS_JOB_INPUT_FIELDS.map((k, i) => [k, vals[i]]))));
+  fnRegistered.add(db);
+}
+/**
+ * The caller's CURRENT stored score as a SQL expression — the score, or NULL when there is none or
+ * it is stale. ⛔ The basis is inlined as a literal, which is safe ONLY because it is validated as the
+ * hex digest our own atsBasisHash produces; anything else (including no basis: no base résumé, so no
+ * stored score is current) yields NULL — exactly what presentedScore answers for that caller.
+ */
+export function currentScoreSql(basisHash, jobAlias = "sj", aorAlias = "aor") {
+  if (typeof basisHash !== "string" || !/^[0-9a-f]{8,128}$/.test(basisHash)) return "NULL";
+  const inputs = ATS_JOB_INPUT_FIELDS.map(c => `${jobAlias}.${c}`).join(", ");
+  return `(CASE WHEN ${aorAlias}.id IS NOT NULL AND ${aorAlias}.basis_hash = '${basisHash}' ` +
+    `AND ${aorAlias}.job_hash = ${ATS_INPUT_HASH_FN}(${inputs}) THEN ${aorAlias}.ats_score END)`;
+}
+
 const yieldToEventLoop = () => new Promise(resolve => setImmediate(resolve));
 
 /**

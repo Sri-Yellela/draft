@@ -15,10 +15,11 @@
 // footer drops its number, and nothing is dimmed or warned about — "unknown" is never drawn as zero.
 import {
   SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, wouldEmpty, activeClauseCount,
+  OPEN_SET_CLAUSES, chosenValues, slotText, sentenceParts, sentenceText,
 } from "../../../shared/filterSentence.js";
 import { SORTS } from "../../../shared/jobFilterOptions.js";
 
-export { SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, activeClauseCount };
+export { SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, activeClauseCount, OPEN_SET_CLAUSES, slotText, sentenceParts, sentenceText };
 
 // ── The two panels behind the two icons ─────────────────────────────────────────────────────────
 //
@@ -28,38 +29,33 @@ export const BOARD_PANEL = Object.freeze({ FILTER: "filter", SORT: "sort" });
 export const BOARD_PANEL_DEFAULT = null;
 export const nextBoardPanel = (current, pressed) => (current === pressed ? null : pressed);
 
-// ── The clauses ─────────────────────────────────────────────────────────────────────────────────
+// ── D30 · The dials ─────────────────────────────────────────────────────────────────────────────
 //
-// ⛔ THE CAP IS ENFORCED HERE, not merely documented: the sentence renders at most SENTENCE_CAP
-// clauses, so a fifth added to the contract without revisiting the decision does not quietly turn
-// the sentence into a run-on.
-export const sentenceClauses = () => SENTENCE_CLAUSES.slice(0, SENTENCE_CAP);
+// SIX DIALS, ALL ALWAYS VISIBLE, each with its dimension, its current value and its count. The
+// sentence above them is derived from the same params (shared/filterSentence.js sentenceParts), so
+// the readable headline and the complete inventory cannot disagree.
+export const sentenceClauses = () => SENTENCE_CLAUSES;
 
 /** The values chosen in a clause, always as an array ("" and null are "nothing chosen"). */
-export function clauseSelection(clause, params = {}) {
-  const v = params[clause.dim.param];
-  if (Array.isArray(v)) return v.filter(x => x != null && x !== "");
-  return v == null || v === "" ? [] : [String(v)];
-}
+export const clauseSelection = (clause, params = {}) => chosenValues(clause, params);
 
 /** The options a clause offers — the dimension's own, minus its empty "any" entry. */
 export const clauseOptions = (clause) => clause.dim.options.filter(o => o.value !== "");
 
-const labelOf = (clause, value) =>
-  clause.dim.options.find(o => o.value === value)?.label ?? String(value);
+/** Is this an OPEN set (domain, location) — a picker, not an inline row of every option? */
+export const isOpenSet = (clause) => OPEN_SET_CLAUSES.includes(clause.key);
 
-// "posted Past week" is not a sentence. The posting-age labels are written as menu items, so the
-// prose lower-cases them; every other clause's labels are nouns that read as written ("Senior",
-// "Remote", "Strong").
-const proseCase = (clause, text) => (clause.dim.derivedParam ? text.toLowerCase() : text);
-
-/** What a clause's token reads: the chosen labels joined with "or", or the clause's `any`. */
-export function tokenText(clause, params) {
+/** What a dial's value reads: the chosen labels, or "no filter". The floor reads as the floor. */
+export function dialValue(clause, params) {
   const chosen = clauseSelection(clause, params);
-  if (!chosen.length) return clause.any;
-  const words = chosen.map(v => proseCase(clause, labelOf(clause, v)));
-  return words.length <= 2 ? words.join(" or ") : `${words.slice(0, -1).join(", ")} or ${words.at(-1)}`;
+  if (!chosen.length) return clause.floor ? "United States" : "no filter";
+  const labels = chosen.map(v => clause.dim.options.find(o => o.value === v)?.label ?? v);
+  if (clause.key === "domain" && clauseOptions(clause).every(o => chosen.includes(o.value))) return "All";
+  return labels.length <= 2 ? labels.join(" or ") : `${labels[0]} +${labels.length - 1}`;
 }
+
+/** Kept for the D24 tests' vocabulary: a clause's token text is its slot text now. */
+export const tokenText = (clause, params, opts) => slotText(clause, params, opts).text;
 
 /**
  * The params patch for pressing `value` in `clause`. A multi clause toggles the value in its list;
@@ -74,26 +70,29 @@ export function pressOption(clause, params, value) {
   return { [clause.dim.param]: chosen[0] === value ? "" : value };
 }
 
-/** The params patch that returns a clause to "any". */
+/** The params patch that returns a clause to its default — for location, the US floor. */
 export const clearClause = (clause) => ({ [clause.dim.param]: clause.dim.multi ? [] : "" });
+
+/** Domain's "every kind of work": choose every function, which lifts the profile's role scope. */
+export const allDomainsPatch = (clause) => ({ [clause.dim.param]: clauseOptions(clause).map(o => o.value) });
 
 /** The patch that clears every clause. */
 export const clearAllClauses = () =>
   Object.assign({}, ...sentenceClauses().map(clearClause));
 
-// What an unclassified row is missing, per clause — prose for the "kept, not hidden" note. Keyed by
-// the clause's own key; it names a column in plain words and carries no option value.
-const UNKNOWN_NOUN = { level: "level", where: "work arrangement", posted: "posting date", fit: "score" };
+// What an unclassified row is missing, per clause — prose for the "kept, not hidden" note.
+const UNKNOWN_NOUN = {
+  domain: "kind of work", level: "level", location: "city or state", where: "work arrangement",
+  posted: "posting date", fit: "score",
+};
 
 /**
- * The popover's rows for one clause, each with its count from the facets answer.
+ * One dial's options, each with its count from the facets answer.
  *
  *   count / known  — straight from the FacetOption; null when there is no facets answer.
- *   unclassified   — count − known: rows kept only because their column is not classified yet.
+ *   unclassified   — count − known: rows kept only because their tag is not on file.
  *   dimmed         — ⛔ a zero-count option is DIMMED, NOT HIDDEN. It is still a row, still pressable.
  *   empties        — ⛔ pressing it would empty the board, so the row says so BEFORE it is pressed.
- *                    Only for an option that is not already chosen, and not when it would be ADDED
- *                    to a multi clause that already has a choice: that widens an OR, it cannot empty.
  */
 export function optionRows(clause, params, facets) {
   const chosen = clauseSelection(clause, params);
@@ -115,13 +114,38 @@ export function optionRows(clause, params, facets) {
       value: o.value, label: o.label, selected, count, known, unclassified,
       dimmed: count === 0,
       empties,
-      note: empties
-        ? "Would show no jobs"
-        : unclassified > 0
-          ? `${unclassified} ${unclassified === 1 ? "has" : "have"} no ${UNKNOWN_NOUN[clause.key] ?? "value"} on file yet — kept, not hidden`
-          : null,
+      note: empties ? "Would show no jobs" : null,
     };
   });
+}
+
+/**
+ * ⛔ THIN COVERAGE IS SAID ON THE DIAL, NEVER IN THE SENTENCE (D30): "3 have no level on file — kept,
+ * not hidden". The rows kept as unknown are the same rows for every option of a dimension (their tag
+ * is NULL), so the chosen option's gap — or, with nothing chosen, the first option's — is the number.
+ * null when there is no answer or nothing is unknown.
+ */
+export function coverageNote(clause, params, facets) {
+  if (!facetsUsable(facets) || clause.key === "posted" || clause.key === "fit") return null;
+  const rows = optionRows(clause, params, facets);
+  const chosen = rows.filter(r => r.selected);
+  const pick = (chosen.length ? chosen : rows).reduce((m, r) => (r.unclassified > (m?.unclassified ?? -1) ? r : m), null);
+  const n = pick?.unclassified ?? 0;
+  if (!n) return null;
+  return `${n} ${n === 1 ? "has" : "have"} no ${UNKNOWN_NOUN[clause.key] ?? "value"} on file — kept, not hidden`;
+}
+
+/**
+ * A dial's face: LEVEL · Senior · 674 jobs. The count is the board as it stands (the dial's own choice
+ * included) when the dial is set; an unset dial reads "no filter" and carries no number of its own.
+ */
+export function dialSummary(clause, params, facets) {
+  const active = clauseSelection(clause, params).length > 0;
+  return {
+    key: clause.key, label: clause.label, value: dialValue(clause, params), active,
+    count: active && facetsUsable(facets) ? facets.total : null,
+    note: coverageNote(clause, params, facets),
+  };
 }
 
 /** Is this a facets answer the UI may draw numbers from? Anything else draws none. */
@@ -134,8 +158,8 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 /** The line under the sentence. With no facets answer it promises no number. */
 export function footerText(facets) {
   return facetsUsable(facets)
-    ? `${plural(facets.total, "job matches", "jobs match")} — tap any word to change it`
-    : "Tap any word to change it";
+    ? `${plural(facets.total, "job matches", "jobs match")} — tap any dial to change it`
+    : "Tap any dial to change it";
 }
 
 // ── The sort panel ──────────────────────────────────────────────────────────────────────────────

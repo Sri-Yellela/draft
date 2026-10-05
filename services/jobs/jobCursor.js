@@ -334,14 +334,18 @@ function ordersByScore(keys) {
  * LEFT JOIN of the caller's own ats_only_reports row, the same cell the atsScore sort orders by.
  * Returns a boolean SQL expression with no bound params, or null when no band is asked for.
  */
-function fitBandsSql(bands) {
+// A85 · `scoreSql` is the score to band: the board passes boardFitPrecompute's currentScoreSql, so a
+// STALE stored score — one the badge would not show — is in no band, as an unscored row is. The raw
+// cell remains the default only for callers with no basis to compare.
+function fitBandsSql(bands, { scoreSql = FIT_SCORE_SQL } = {}) {
   const want = new Set((bands || []).map(String));
   const arms = [];
-  if (want.has("strong"))   arms.push(`${FIT_SCORE_SQL} >= ${Number(ATS_BAND_CUTPOINTS.strong)}`);
-  if (want.has("moderate")) arms.push(`(${FIT_SCORE_SQL} >= ${Number(ATS_BAND_CUTPOINTS.moderate)} AND ${FIT_SCORE_SQL} < ${Number(ATS_BAND_CUTPOINTS.strong)})`);
-  if (want.has("weak"))     arms.push(`${FIT_SCORE_SQL} < ${Number(ATS_BAND_CUTPOINTS.moderate)}`);
+  const s = scoreSql;
+  if (want.has("strong"))   arms.push(`${s} >= ${Number(ATS_BAND_CUTPOINTS.strong)}`);
+  if (want.has("moderate")) arms.push(`(${s} >= ${Number(ATS_BAND_CUTPOINTS.moderate)} AND ${s} < ${Number(ATS_BAND_CUTPOINTS.strong)})`);
+  if (want.has("weak"))     arms.push(`${s} < ${Number(ATS_BAND_CUTPOINTS.moderate)}`);
   if (!arms.length) return null;
-  return `(${FIT_SCORE_SQL} IS NOT NULL AND (${arms.join(" OR ")}))`;
+  return `(${s} IS NOT NULL AND (${arms.join(" OR ")}))`;
 }
 
 /** `expr DIR, expr DIR, ...` plus the params bound inside those expressions, in text order. */

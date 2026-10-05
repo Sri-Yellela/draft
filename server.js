@@ -37,6 +37,7 @@ import { createEnrichmentRouter } from "./routes/enrichment.js";
 import { createJobDataRouter } from "./routes/jobData.js";
 import { createCompaniesRouter } from "./routes/companies.js";
 import { createSlugHarvestRouter } from "./routes/slugHarvest.js";
+import { createJobTagsRouter } from "./routes/jobTags.js";
 import { createDomainProfilesRouter } from "./routes/domainProfiles.js";
 import { createImportJobRouter } from "./routes/importJob.js";
 import { extensionStatusHandler } from "./routes/extensionStatus.js";
@@ -151,10 +152,12 @@ import {
 } from "./services/jobs/jobCursor.js";
 // The board's fit precompute. It holds no scoring code — server.js injects the panel's own
 // basis builder and scorer call (atsBasisForProfile / scoreJobForBasis).
-import { createBoardFitPrecompute, atsBasisHash, atsJobInputHash, storedScoreSql, presentedScore } from "./services/jobs/boardFitPrecompute.js";
+import { createBoardFitPrecompute, atsBasisHash, atsJobInputHash, storedScoreSql, presentedScore, registerScoreFreshness, currentScoreSql } from "./services/jobs/boardFitPrecompute.js";
 import { deriveAutomationTier } from "./services/jobs/automationTier.js";
 import { backfillAutomationTier } from "./services/jobs/backfillAutomationTier.js";
 import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
+import { tagStaleJobs } from "./services/jobs/jobTags.js";
+import { resolvePlaceText } from "./shared/jobTagVocabulary.js";
 import { deliverPipelineAlerts } from "./services/jobs/alertDelivery.js";
 import { recordPipelineRun } from "./services/jobs/pipelineRunLog.js";
 import { backfillCompanyLogos } from "./services/jobs/backfillCompanyLogos.js";
@@ -388,6 +391,8 @@ db.pragma("journal_mode = WAL");
 db.pragma("busy_timeout = 5000");
 // A72 — the search tier function the board's WHERE and ORDER BY call (services/jobs/boardSearch.js).
 registerBoardSearch(db);
+// A85 · the fit filter's "is this stored score current?" — the badge's own test, as a SQL function.
+registerScoreFreshness(db);
 console.log(`[boot] database ready: ${DB_PATH}`);
 
 // ── Inline migration runner (additive only — never drops data) ─
@@ -4099,6 +4104,39 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // D29 (owner, 10-04): FILTERS QUERY OUR OWN TAGS, NOT FREE TEXT. services/jobs/jobTags.js
+      // derives them deterministically (no model call, D17) and the owner fills the rest through
+      // export -> tag -> import (routes/jobTags.js). Every tag is nullable and NULL means UNKNOWN —
+      // every predicate over them is soft-null. Numbered 128: 125 (D16) and 126 (A76) are held by
+      // unmerged branches and 127 is the slug harvest.
+      //   scraped_jobs.tag_*     the scalar tags; tag_owner_json holds owner-set values, which a
+      //                          re-tag never overwrites; tag_basis/tag_version say when to re-tag
+      //   job_tag_places         a posting's places as a SET (country, state, metro) — one posting
+      //                          can be in several places, so location is not a column
+      id: "128_job_tags",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN tag_level TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_function TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_employment TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_workplace TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_remote INTEGER;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_us TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_basis TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_version INTEGER;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_owner_json TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN tagged_at INTEGER;
+        CREATE TABLE IF NOT EXISTS job_tag_places (
+          job_id  TEXT NOT NULL,
+          country TEXT NOT NULL,
+          state   TEXT,
+          metro   TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_job_tag_places_job   ON job_tag_places(job_id);
+        CREATE INDEX IF NOT EXISTS idx_job_tag_places_metro ON job_tag_places(metro, job_id);
+        CREATE INDEX IF NOT EXISTS idx_job_tag_places_state ON job_tag_places(state, job_id);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -4201,6 +4239,26 @@ if (String(process.env.ROLE_MAP_BACKFILL || "").toLowerCase() === "off") {
     console.error("[boot] job_role_map backfill failed (unbucketed rows stay visible everywhere):", e.message);
   }
 }
+
+// ── D29 · the board's own tags (services/jobs/jobTags.js) ───────────────────────────────────────
+//
+// Every filter on the board reads these, so they are derived here at boot, after the role map
+// (job_function reads its bucket), and again every 10 minutes for whatever a crawl wrote or changed
+// since. Deterministic and local — no model call (D17) — and idempotent: an unchanged posting is
+// skipped on its tag_basis, so a pass over a settled board writes nothing.
+//
+// Never fatal: an untagged row is NULL on every tag, which every board predicate reads as UNKNOWN
+// and keeps (soft-null). Failing the boot over it would trade precision for an outage.
+function runJobTagPass(trigger) {
+  try {
+    const r = tagStaleJobs(db);
+    if (r.tagged > 0) console.log(`[tags] (${trigger}) tagged ${r.tagged} of ${r.scanned} posting(s)`);
+  } catch (e) {
+    console.error(`[tags] (${trigger}) tagging failed (untagged rows read as unknown and stay visible):`, e.message);
+  }
+}
+runJobTagPass("boot");
+setInterval(() => runJobTagPass("interval"), 10 * 60 * 1000).unref();
 
 // ── ATS term weights: say what state they are in, then fix it if it needs fixing ────────────────
 //
@@ -7082,6 +7140,8 @@ app.use("/api/admin/companies", requireAdmin, createCompaniesRouter(db, requireA
 // D20: the slug harvest in the daily manual sweep — SerpApi searches started by a person, an export the
 // owner reviews, an import that adds companies. No cron, no model call.
 app.use("/api/admin/slug-harvest", requireAdmin, createSlugHarvestRouter(db, requireAdmin));
+// D29 · the board's own tags: coverage, and the owner's export -> tag -> import (no model call, D17).
+app.use("/api/admin/job-tags", requireAdmin, createJobTagsRouter(db, requireAdmin));
 
 app.use(createAccountRouter({
   db,
@@ -7372,9 +7432,17 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
     const boardSearch   = searchPhrases.length ? boardSearchSql(searchPhrases) : null;
     const keyFilter = boardSearch ? `AND ${boardSearch.sql} IS NOT NULL` : '';
     const keyArgs   = boardSearch ? boardSearch.params : [];
-    // Location (opt-in)
-    const locFilter = location ? `AND sj.location LIKE ?` : '';
-    const locArgs   = location ? [`%${location}%`] : [];
+    // Location (opt-in) — ⛔ D29: NOT `sj.location LIKE %x%` ANY MORE. That substring matched "IN"
+    // inside Washington and Berlin, "MA" inside Omaha and "CA" inside Canada, and found none of 370
+    // San Francisco rows for "Bay Area" (D27). The text is RESOLVED into the tag vocabulary instead
+    // ("Boston" -> metro:boston, "CA" -> state:CA) and filtered over the place set by buildJobFilters'
+    // `places`, soft-null; "Remote" means the workplace, not a place. Only text that names nothing in
+    // the vocabulary keeps the old substring match — it is what the caller typed, and saved searches
+    // and API callers still send it.
+    const locationPlace  = location ? resolvePlaceText(location) : null;
+    const locationRemote = !!location && !locationPlace && /^s*remotes*$/i.test(location);
+    const locFilter = location && !locationPlace && !locationRemote ? `AND sj.location LIKE ?` : '';
+    const locArgs   = locFilter ? [`%${location}%`] : [];
 
     // Work-type / employment-type / category (opt-in) — SOFT-NULL, the same pattern and for the
     // same reason as services/jobs/jobQuery.js's workplace_type / experience_level / skills_json
@@ -7470,7 +7538,15 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
     // FILTER_DIMENSIONS), so only known bands reach here. No bound params — the cutpoints are
     // shared/atsBands.js constants — so it can sit anywhere in the WHERE without shifting baseArgs.
     const fitBands = String(req.query.fit_bands || "").split(",").map(v => v.trim()).filter(Boolean);
-    const fitBandSql = fitBands.length ? `AND ${fitBandsSql(fitBands)}` : '';
+    // ⛔ A85 · the filter bands the CURRENT score — the one the card's badge shows (presentedScore) —
+    // not the raw stored cell. A score stored against an earlier résumé or an earlier version of the
+    // posting is in no band, exactly as it shows no badge. Built only when something reads it.
+    let fitScoreSql = "NULL";
+    if (fitBands.length || measure) {
+      try { fitScoreSql = currentScoreSql(atsBasisForProfile(req.user.id, sessionActiveProfile)?.basisHash ?? null); }
+      catch (e) { console.warn("[jobs] basis for the fit filter:", e.message); }
+    }
+    const fitBandSql = fitBands.length ? `AND ${fitBandsSql(fitBands, { scoreSql: fitScoreSql })}` : '';
 
     // YoE range: auto-apply from stored signals when no explicit maxYoe is set
     const signals = loadSimpleApplyProfile(db, { userId: req.user.id, profileId: sessionActiveProfile.id });
@@ -7517,6 +7593,11 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       ? {}
       : deriveProfileFilters(sessionActiveProfile, curationSignals);
     const filterParams = { ...baseFilterParams };
+    // D29 · the legacy location text, resolved above, joins the place set / the workplace.
+    if (locationPlace) {
+      filterParams.places = [...String(filterParams.places || "").split(",").map(v => v.trim()).filter(Boolean), locationPlace];
+    }
+    if (locationRemote && !filterParams.work_models) filterParams.work_models = "remote";
     // Which derived keys ACTUALLY took effect (an explicit query param for the same dimension wins,
     // so a derived key can be computed and then not used). Only these are reported to the client,
     // and only these are removed to compute the uncurated total below — reporting the ones that
@@ -7732,7 +7813,11 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // what to show unasked; a typed term is the user asking, and the newer, narrower instruction
       // wins. Every filter the user SET still applies, and so do is_active and dislikes. The LEFT JOIN
       // stays (its placeholder is in argsFor), so only this predicate moves.
-      const roleSql = (savedTab || boardSearch) ? '' : `AND (
+      // ⛔ D30 · SO DOES AN EXPLICIT FUNCTION ("design jobs"). The domain dial names the kind of work, so
+      // choosing one is the user overriding the profile's declared role for this view, exactly as a
+      // typed search does — its own soft-null predicate (jobQuery.js job_functions) then scopes the board.
+      const functionChosen = String(req.query.job_functions || "").trim() !== "";
+      const roleSql = (savedTab || boardSearch || functionChosen) ? '' : `AND (
             jrm.role_key IS NOT NULL
             OR NOT EXISTS (SELECT 1 FROM job_role_map m WHERE m.job_id = sj.job_id)
           )`;
@@ -7776,6 +7861,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       if (measure) {
         return boardReply(200, { measured: true, value: measure({
           db, joinClause, whereClause, baseArgs, unclassifiedSql: richFilters.established.unclassifiedSql,
+          fitScoreSql,
         }) });
       }
 

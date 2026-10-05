@@ -9,6 +9,10 @@
 // No import cycle: localAtsScorer imports only skillVocabulary and shared/atsBands, and neither
 // reaches back here.
 import { normaliseAtsTerm } from '../localAtsScorer.js';
+// D29 · every classified dimension reads the board's OWN tags through these expressions (an untagged
+// row reads its legacy column — see tagFilters.js). Location reads the place SET, never sj.location.
+import { LEVEL_SQL, WORKPLACE_SQL, EMPLOYMENT_SQL, FUNCTION_SQL, placesFilterSql } from './tagFilters.js';
+import { resolvePlaceText } from '../../shared/jobTagVocabulary.js';
 
 /**
  * SQL WHERE-clause + facet builder for the /api/jobs board query.
@@ -42,9 +46,10 @@ const ALLOWED_FIELDS = new Set([
 // GROUP BY (skills live in a JSON array column) so it's computed in-app — see
 // computeSkillsFacet() below — everything else groups directly in SQL.
 const FACET_DIMENSIONS = {
-  work_model:       { column: 'sj.workplace_type' },
-  experience_level: { column: 'sj.experience_level' },
-  employment_type:  { column: 'sj.employment_type' },
+  work_model:       { column: WORKPLACE_SQL },
+  experience_level: { column: LEVEL_SQL },
+  employment_type:  { column: EMPLOYMENT_SQL },
+  job_function:     { column: FUNCTION_SQL },
   sources:          { column: 'sj.source' },
   // Grouped through the same COALESCE the tier filter uses, so the count the user sees next to
   // "Unknown" is the count they get when they select it — a facet that omitted NULL rows would
@@ -462,10 +467,36 @@ function buildJobFilters(params = {}, opts = {}) {
     };
   }
 
-  const locations = toArray(params.locations);
-  if (locations.length) {
-    clauses.push(`(${locations.map(() => 'sj.location LIKE ?').join(' OR ')})`);
-    locations.forEach(l => args.push(`%${l}%`));
+  // ── D29 · LOCATION READS THE PLACE SET ────────────────────────────────────────────────────────
+  // `places` (metro:boston, state:CA) is the vocabulary; `locations` is the old free-text key and is
+  // RESOLVED into it ("Boston" -> metro:boston, "CA" -> state:CA) — the substring `LIKE %CA%` it used
+  // to run matched Canada, and "IN" matched Washington (D27). A free-text value that names nothing in
+  // the vocabulary keeps the old substring match: it is what the caller typed, and there is no
+  // better reading of it.
+  const locationTexts = toArray(params.locations);
+  const placeValues = [...toArray(params.places)];
+  const unresolved = [];
+  for (const t of locationTexts) {
+    const v = resolvePlaceText(t);
+    if (v) placeValues.push(v); else unresolved.push(t);
+  }
+  const places = placesFilterSql(placeValues);
+  if (places) {
+    clauses.push(places.sql);
+    established.push({ key: 'places', sql: places.unknownSql });
+  }
+  if (unresolved.length) {
+    clauses.push(`(${unresolved.map(() => 'sj.location LIKE ?').join(' OR ')})`);
+    unresolved.forEach(l => args.push(`%${l}%`));
+  }
+
+  // D29 · the job function ("domain" in the sentence): design · engineering · data · product …
+  // Soft-null: 'general' (the classifier's "matched nothing") is tagged NULL and kept, after the matches.
+  const jobFunctions = toArray(params.job_functions);
+  if (jobFunctions.length) {
+    clauses.push(`(${FUNCTION_SQL} IS NULL OR ${FUNCTION_SQL} IN (${jobFunctions.map(() => '?').join(',')}))`);
+    args.push(...jobFunctions);
+    established.push({ key: 'job_functions', sql: `${FUNCTION_SQL} IS NULL` });
   }
 
   const sources = toArray(params.sources);
@@ -481,9 +512,9 @@ function buildJobFilters(params = {}, opts = {}) {
   // as "no remote jobs exist," which is worse than showing not-yet-classified rows.
   const workModels = toArray(params.work_models);
   if (workModels.length) {
-    clauses.push(`(sj.workplace_type IS NULL OR sj.workplace_type IN (${workModels.map(() => '?').join(',')}))`);
+    clauses.push(`(${WORKPLACE_SQL} IS NULL OR ${WORKPLACE_SQL} IN (${workModels.map(() => '?').join(',')}))`);
     args.push(...workModels);
-    established.push({ key: 'work_models', sql: 'sj.workplace_type IS NULL' });
+    established.push({ key: 'work_models', sql: `${WORKPLACE_SQL} IS NULL` });
   }
 
   // Soft-null, same class as work_models above and for the same reason — but reached by a route
@@ -496,9 +527,9 @@ function buildJobFilters(params = {}, opts = {}) {
   // it. Excluded only on an explicit mismatch, never on absence.
   const employmentTypes = toArray(params.employment_types);
   if (employmentTypes.length) {
-    clauses.push(`(sj.employment_type IS NULL OR sj.employment_type IN (${employmentTypes.map(() => '?').join(',')}))`);
+    clauses.push(`(${EMPLOYMENT_SQL} IS NULL OR ${EMPLOYMENT_SQL} IN (${employmentTypes.map(() => '?').join(',')}))`);
     args.push(...employmentTypes);
-    established.push({ key: 'employment_types', sql: 'sj.employment_type IS NULL' });
+    established.push({ key: 'employment_types', sql: `${EMPLOYMENT_SQL} IS NULL` });
   }
 
   // EXPLICIT -> excludes (soft-null). DERIVED -> ranks. See DERIVED_RANK_ORDER.
@@ -517,15 +548,15 @@ function buildJobFilters(params = {}, opts = {}) {
     const inList = experienceLevels.map(() => '?').join(',');
     if (isDerived('experience_levels')) {
       ranks.experience_levels = {
-        sql: `CASE WHEN sj.experience_level IS NULL THEN ${RANK_UNKNOWN}
-                   WHEN sj.experience_level IN (${inList}) THEN ${RANK_MATCH}
+        sql: `CASE WHEN ${LEVEL_SQL} IS NULL THEN ${RANK_UNKNOWN}
+                   WHEN ${LEVEL_SQL} IN (${inList}) THEN ${RANK_MATCH}
                    ELSE ${RANK_MISS} END`,
         params: [...experienceLevels],
       };
     } else {
-      clauses.push(`(sj.experience_level IS NULL OR sj.experience_level IN (${inList}))`);
+      clauses.push(`(${LEVEL_SQL} IS NULL OR ${LEVEL_SQL} IN (${inList}))`);
       args.push(...experienceLevels);
-      established.push({ key: 'experience_levels', sql: 'sj.experience_level IS NULL' });
+      established.push({ key: 'experience_levels', sql: `${LEVEL_SQL} IS NULL` });
     }
   }
 

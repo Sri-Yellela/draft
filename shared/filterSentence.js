@@ -11,6 +11,8 @@
  * hardcoded at a call site.
  */
 import { EXPERIENCE_LEVELS, WORK_MODELS, POSTING_AGE } from "./jobFilterOptions.js";
+// D30 · the two open-set dimensions, over the D29 tag layer.
+import { JOB_FUNCTIONS, PLACES } from "./jobTagVocabulary.js";
 import { ATS_BAND, ATS_BAND_LABELS } from "./atsBands.js";
 
 // ── The fit filter — a new dimension ────────────────────────────────────────────────────────────
@@ -27,20 +29,120 @@ export const FIT_BANDS = {
   dbOnly: [],
 };
 
-// ── The sentence — four clauses, deliberately ───────────────────────────────────────────────────
+// ── D30 · THE SENTENCE IS A PROJECTION OF DIAL STATE — six slots, four permanent ────────────────
 //
-// "Show me <Senior> jobs that are <Remote>, posted <this month>, where my fit is <Strong>".
-// ⛔ THE CAP IS FOUR, AND IT IS A DECISION (D24): past four the sentence is a run-on, and a daily-draft
-// product that needs six simultaneous filters is curating wrong. Every other filter the drawer had
-// (domain, provider, status, employment type, visited) is NOT a clause — the sentence does not grow.
-// `lead`/`tail` are the prose around the token; `any` is what the token reads with nothing chosen.
+//   Now showing ⟦domain⟧ jobs, at ⟦level⟧, ⟦location⟧, ⟦workplace⟧[, ⟦posted⟧][, ⟦fit⟧].
+//
+// Supersedes D24's four-clause "Show me…" and D28's phrasing. ⛔ The sentence is never a second source
+// of truth: it is DERIVED from the same params the dials set (sentenceParts below), so the two cannot
+// disagree. The four permanent slots always show, reading their default when nothing is chosen —
+// that is what lets a user see every dimension they can filter by without opening anything (D28).
+// `posted` and `fit` append ONLY WHEN SET: the dials make them discoverable, and six clauses at rest
+// is the run-on D24 warned about.
+//
+// ⛔ LOCATION'S FLOOR IS "in the United States" AND CANNOT BE CLEARED, only narrowed. The board is
+// US-only (queue 37), so the sentence states it as a fact instead of letting anyone think the search
+// is global. An empty `places` IS the floor.
+//
+// ⚠ DOMAIN is the KIND OF WORK (the D29 job-function tag), not the old industry select. With nothing
+// chosen the board is scoped to the profile's declared role, so the default reads that role's word
+// ("engineering") when the caller supplies it — "all" would claim a breadth the board does not have.
+// Choosing EVERY function is how the scope is lifted, and that reads "all".
+//
+// SENTENCE_CAP stays exported for the sentence's permanent-slot count; it is no longer a ceiling
+// that drops clauses — the two optional ones append, and that is the extreme case by D30's decision.
 export const SENTENCE_CAP = 4;
 export const SENTENCE_CLAUSES = Object.freeze([
-  { key: "level",   dim: EXPERIENCE_LEVELS, lead: "Show me",          tail: "jobs", any: "any level" },
-  { key: "where",   dim: WORK_MODELS,       lead: "that are",         tail: "",     any: "anywhere" },
-  { key: "posted",  dim: POSTING_AGE,       lead: "posted",           tail: "",     any: "any time" },
-  { key: "fit",     dim: FIT_BANDS,         lead: "where my fit is",  tail: "",     any: "anything" },
+  { key: "domain",   dim: JOB_FUNCTIONS,     label: "Domain",    permanent: true,  any: "all" },
+  { key: "level",    dim: EXPERIENCE_LEVELS, label: "Level",     permanent: true,  any: "any level" },
+  { key: "location", dim: PLACES,            label: "Location",  permanent: true,  any: "in the United States", floor: true },
+  { key: "where",    dim: WORK_MODELS,       label: "Workplace", permanent: true,  any: "any workplace" },
+  { key: "posted",   dim: POSTING_AGE,       label: "Posted",    permanent: false, any: "any time" },
+  { key: "fit",      dim: FIT_BANDS,         label: "Fit",       permanent: false, any: "any fit" },
 ]);
+// The four closed sets cycle or open an inline list; the two OPEN sets need a picker (D30).
+export const OPEN_SET_CLAUSES = Object.freeze(["domain", "location"]);
+
+// The words each value reads as IN THE SENTENCE (labels are for the dials). Keyed by the dimension's
+// own values, so a value added to a dimension without a word here is caught by the D30 test.
+export const SENTENCE_WORDS = Object.freeze({
+  level: { intern: "intern", entry: "entry", mid: "mid", senior: "senior", lead: "lead", executive: "executive" },
+  where: { remote: "remote only", hybrid: "hybrid", onsite: "on-site" },
+  posted: { "1d": "posted today", "2d": "posted in the last 2 days", "3d": "posted in the last 3 days",
+            "1w": "posted this week", "1m": "posted this month" },
+  fit: { [ATS_BAND.STRONG]: "strong", [ATS_BAND.MODERATE]: "moderate", [ATS_BAND.WEAK]: "weak" },
+});
+
+const or = (words) => words.length <= 2 ? words.join(" or ") : `${words.slice(0, -1).join(", ")} or ${words.at(-1)}`;
+
+/** The values chosen for a clause, always as an array. */
+export function chosenValues(clause, params = {}) {
+  const v = params[clause.dim.param];
+  if (Array.isArray(v)) return v.filter(x => x != null && x !== "").map(String);
+  if (v == null || v === "") return [];
+  return clause.dim.multi ? String(v).split(",").map(s => s.trim()).filter(Boolean) : [String(v)];
+}
+
+/**
+ * What one slot reads. `defaultDomain` is the profile's own function word (or null).
+ * @returns {{ key: string, text: string, active: boolean }}
+ */
+export function slotText(clause, params = {}, { defaultDomain = null } = {}) {
+  const chosen = chosenValues(clause, params);
+  const active = chosen.length > 0;
+  const optionOf = (v) => clause.dim.options.find(o => o.value === v);
+  let text;
+  switch (clause.key) {
+    case "domain": {
+      const all = clause.dim.options.every(o => chosen.includes(o.value));
+      text = !active ? (defaultDomain || clause.any)
+        : all ? "all" : or(chosen.map(v => optionOf(v)?.sentence ?? v));
+      break;
+    }
+    case "level": {
+      if (!active) { text = clause.any; break; }
+      const words = chosen.map(v => SENTENCE_WORDS.level[v] ?? v);
+      text = words.length === 1 && chosen[0] === "mid" ? "mid-level" : `${or(words)} level`;
+      break;
+    }
+    case "location":
+      text = !active ? clause.any : `in ${or(chosen.map(v => (optionOf(v)?.label ?? v)))}`;
+      break;
+    case "where":
+      text = !active ? clause.any : or(chosen.map(v => SENTENCE_WORDS.where[v] ?? v));
+      break;
+    case "posted":
+      text = !active ? clause.any : (SENTENCE_WORDS.posted[chosen[0]] ?? chosen[0]);
+      break;
+    case "fit": {
+      if (!active) { text = clause.any; break; }
+      text = `${or(chosen.map(v => SENTENCE_WORDS.fit[v] ?? v))} fit${chosen.length === 1 ? "s only" : "s"}`;
+      break;
+    }
+    default:
+      text = active ? or(chosen) : clause.any;
+  }
+  return { key: clause.key, text, active };
+}
+
+/**
+ * THE SENTENCE, as parts: the verb, then the slots in order — the four permanent ones always, the
+ * optional ones only when set. ⛔ NOTHING MATCHES keeps the same clauses with a different verb, so the
+ * reader can see which one to loosen (D30) — "this board has emptied four times".
+ */
+export function sentenceParts(params = {}, { defaultDomain = null, nothingMatches = false } = {}) {
+  const slots = SENTENCE_CLAUSES
+    .map(c => ({ clause: c, ...slotText(c, params, { defaultDomain }) }))
+    .filter(s => s.clause.permanent || s.active);
+  return { verb: nothingMatches ? "Nothing matches" : "Now showing", slots };
+}
+
+/** The sentence as one string: "Now showing all jobs, at any level, in the United States, any workplace." */
+export function sentenceText(params = {}, opts = {}) {
+  const { verb, slots } = sentenceParts(params, opts);
+  const [domain, ...rest] = slots;
+  return `${verb} ${domain.text} jobs, ${rest.map(s => (s.key === "level" ? `at ${s.text}` : s.text)).join(", ")}.`;
+}
 
 // ── The sort panel ──────────────────────────────────────────────────────────────────────────────
 //

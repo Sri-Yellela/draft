@@ -21,7 +21,8 @@ test("⭐ each user-set soft-null filter contributes a KNOWN-FIRST key; derived 
                               employment_types: ["contract"], sponsorship_friendly: "1" });
   assert.deepEqual(f.established.filters, ["work_models", "employment_types", "experience_levels", "skills_include", "sponsorship_friendly"]);
   assert.equal(f.established.keys.length, 5);
-  assert.match(f.established.unclassifiedSql, /sj\.workplace_type IS NULL/);
+  // D29: workplace reads the tag, falling back to workplace_type only on a row not yet tagged.
+  assert.match(f.established.unclassifiedSql, /THEN sj\.tag_workplace ELSE sj\.workplace_type END\) IS NULL/);
   // A DERIVED experience level ranks already (RANK_UNKNOWN) and adds no second key.
   const d = buildJobFilters({ experience_levels: ["senior"] }, { derivedKeys: ["experience_levels"] });
   assert.deepEqual(d.established.filters, []);
@@ -45,11 +46,11 @@ test("the known-first keys lead every sort, follow a search tier, and are absent
 
 test("⭐ in SQLite: Remote shows the remote rows FIRST, the unclassified after, and drops the explicit mismatch", () => {
   const db = new Database(":memory:");
-  db.exec(`CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, workplace_type TEXT, discovered_at INTEGER, scraped_at INTEGER, posted_at INTEGER, company TEXT);
+  db.exec(`CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, workplace_type TEXT, discovered_at INTEGER, scraped_at INTEGER, posted_at INTEGER, company TEXT, tag_basis TEXT, tag_level TEXT, tag_workplace TEXT, tag_employment TEXT, tag_function TEXT);
            CREATE TABLE ats_only_reports (job_id TEXT, ats_score INTEGER);`);
   // Newest first by discovery — so before A73 the unclassified rows (newest) held the top.
   const rows = [["u1", null, 9], ["u2", null, 8], ["r1", "remote", 5], ["o1", "onsite", 7], ["r2", "remote", 4]];
-  for (const [id, w, t] of rows) db.prepare("INSERT INTO scraped_jobs VALUES (?,?,?,?,NULL,NULL)").run(id, w, t, t);
+  for (const [id, w, t] of rows) db.prepare("INSERT INTO scraped_jobs (job_id, workplace_type, discovered_at, scraped_at, posted_at, company) VALUES (?,?,?,?,NULL,NULL)").run(id, w, t, t);
   const f = buildJobFilters({ work_models: ["remote"] });
   const order = orderByClause(buildOrderKeys("", [], { fit: true, established: f.established.keys }));
   const got = db.prepare(`SELECT sj.job_id FROM scraped_jobs sj LEFT JOIN ats_only_reports aor ON aor.job_id = sj.job_id

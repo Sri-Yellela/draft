@@ -38,8 +38,9 @@ import {
 import CompanyIcon from "../components/ui/CompanyIcon.jsx";
 // AH2: the job-detail address, shared with JobCard so the href and the param cannot disagree.
 import { JOB_URL_PARAM, jobIdFromSearch } from "../lib/jobUrl.js";
-// D24: the sentence and the sort panel, and the facets answer they read their counts from.
-import FilterSentence from "../components/FilterSentence.jsx";
+// D24/D30: the filter dials and the sort panel, and the facets answer they read their counts from.
+import FilterDials from "../components/FilterDials.jsx";
+import { JOB_FUNCTIONS, PLACES, functionForRole } from "../../../shared/jobTagVocabulary.js";
 import SortPanel from "../components/SortPanel.jsx";
 import { useJobFacets } from "../hooks/useJobFacets.js";
 import {
@@ -420,6 +421,10 @@ function defaultFilterSnapshot() {
     // unscored job matches no band). Empty is the default-off state, so the default querystring is
     // unchanged.
     fitBands: [],
+    // D30: the two open-set dials, over the D29 tag layer — the job function ("domain") and the place
+    // set ("location"; empty IS the US floor). Empty is default-off, so the querystring is unchanged.
+    jobFunctions: [],
+    places: [],
   };
 }
 
@@ -670,12 +675,10 @@ function FiltersPanel({
             style={{...selStyle, padding:"0 10px", height:36, borderRadius:4}}/>
         </div>
 
-        <div>
-          <div style={labelStyle}>Location</div>
-          <input value={location} onChange={e=>setLocation(e.target.value)}
-            placeholder="e.g. San Francisco"
-            style={{...selStyle, padding:"0 10px", height:36, borderRadius:4}}/>
-        </div>
+        {/* D29/D30: no free-text Location here. It was `sj.location LIKE %x%` — "IN" matched
+            Washington, "CA" matched Canada (D27) — and location is now the sentence's LOCATION dial,
+            over the board's own place tags. The `location` param is still honoured server-side
+            (resolved into the place vocabulary), so saved searches that carry it still work. */}
 
         {/* Work Type (sj.work_type) removed: no write path populates that column — it is absent
             from aggregator's upsertStmt, the single writer shared by cacheJobs, cacheJoboFeed and
@@ -786,19 +789,10 @@ function FiltersPanel({
             below is the same filter done properly — real source values, live facet counts, and an
             exclude direction. The source param stays honoured server-side as a hard match. */}
 
-        <div>
-          <div style={labelStyle}>Provider</div>
-          <IncludeExcludeRow
-            options={SOURCE_OPTIONS}
-            dimension="sources"
-            included={sourcesInclude} setIncluded={setSourcesInclude}
-            excluded={sourcesExclude} setExcluded={setSourcesExclude}
-          />
-          <div style={{ fontSize:10, color:theme.textDim, marginTop:4 }}>
-            Which job board the posting came from. Click once to include, twice to exclude.
-            Counts are for your current board.
-          </div>
-        </div>
+        {/* D26: the PROVIDER filter left the user surface. Which ATS a posting was crawled from is an
+            admin concept — a candidate does not care, and showing it invited the same misreading as
+            "Not linked". The sources_include/_exclude params are still honoured server-side, so an
+            admin view or an API caller can still narrow by provider. */}
 
         <div>
           <div style={labelStyle}>Automation Tier</div>
@@ -1292,6 +1286,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     filterPanelOpen, setFilterPanelOpen, setActiveFilterCount,
     setAtsSortAvailable, atsSortAvailable,
     boardPanel, setBoardPanel, setActiveClauseCount,
+    setBoardHeadline, focusDial, setFocusDial,
   } = useJobBoard();
 
   // Open / close sandbox — panel size rebalancing handled by useEffect below.
@@ -1601,6 +1596,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const [tiersInclude,   setTiersInclude]   = useState([]);
   const [tiersExclude,   setTiersExclude]   = useState([]);
   const [fitBands,       setFitBands]       = useState([]);
+  const [jobFunctions,   setJobFunctions]   = useState([]);
+  const [places,         setPlaces]         = useState([]);
   const [facetCounts,    setFacetCounts]    = useState(null);
   const [pendingFilters, setPendingFilters] = useState(defaultFilterSnapshot);
 
@@ -1675,11 +1672,14 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     tiersInclude,
     tiersExclude,
     fitBands,
+    jobFunctions,
+    places,
   }), [
     roleFilter, locationFilter, workType, employmentTypePrefs,
     catFilter, srcFilter, minYoe, maxYoe, maxApplicants, visitedFilter, ageFilter,
     salaryMin, salaryMax, workModels, experienceLevels, skillsInclude, sponsorFriendly,
     companySponsors, sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, fitBands,
+    jobFunctions, places,
   ]);
 
   const stageFilter = useCallback((key, value) => {
@@ -1726,6 +1726,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setTiersInclude(Array.isArray(next.tiersInclude) ? next.tiersInclude : []);
     setTiersExclude(Array.isArray(next.tiersExclude) ? next.tiersExclude : []);
     setFitBands(Array.isArray(next.fitBands) ? next.fitBands : []);
+    setJobFunctions(Array.isArray(next.jobFunctions) ? next.jobFunctions : []);
+    setPlaces(Array.isArray(next.places) ? next.places : []);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyPendingFilters = useCallback(() => {
@@ -2158,6 +2160,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // half's GET /api/jobs and /api/jobs/facets — test/d24FilterSentenceClient.test.js holds the
     // server to reading it once that half is merged.
     if (fitBands.length)       p.set(FIT_BANDS.param,   fitBands.join(","));
+    // D30: the domain and location dials, by the contract's param names (D29's tag dimensions).
+    if (jobFunctions.length)   p.set(JOB_FUNCTIONS.param, jobFunctions.join(","));
+    if (places.length)         p.set(PLACES.param,      places.join(","));
     // posted_after: derived from the SAME named-interval the legacy ageFilter already uses —
     // no new UI control, matching the server's own AGE_MAP (server.js's /api/jobs handler).
     // Redundant with ageFilter's own inline clause (same date, same source of truth) — both
@@ -2171,7 +2176,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       minYoe, maxYoe, maxApplicants, visitedFilter, ageFilter, domainFilter, appliedFilter,
       boardTab, localSearch,
       salaryMin, salaryMax, workModels, experienceLevels, skillsInclude, sponsorFriendly,
-      sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, curateOff, fitBands]);
+      sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, curateOff, fitBands,
+      jobFunctions, places]);
 
   // FE-2: opt-in facet counts for the panel currently being edited — requested against the
   // CURRENTLY-COMMITTED filters (buildParams(1)), not the still-being-staged pendingFilters, so
@@ -2218,10 +2224,12 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // because the counts on the popover already said what it would do. No staging, no Apply. The
   // clause -> state binding is keyed by the contract's clause key; no param name is written here.
   const clauseState = {
-    level:  [experienceLevels, setExperienceLevels],
-    where:  [workModels,       setWorkModels],
-    posted: [ageFilter,        setAgeFilter],
-    fit:    [fitBands,         setFitBands],
+    domain:   [jobFunctions,     setJobFunctions],
+    level:    [experienceLevels, setExperienceLevels],
+    location: [places,           setPlaces],
+    where:    [workModels,       setWorkModels],
+    posted:   [ageFilter,        setAgeFilter],
+    fit:      [fitBands,         setFitBands],
   };
   const clauseParams = Object.fromEntries(
     SENTENCE_CLAUSES.map(c => [c.dim.param, clauseState[c.key]?.[0]]));
@@ -2246,6 +2254,21 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // Status are left out: they are visible on the bar itself.
   const otherFilterCount = Math.max(0,
     activeFilterCount - clauseCount - (domainFilter ? 1 : 0) - (appliedFilter ? 1 : 0));
+
+  // ── D26/D30 · THE HEADLINE. The sentence is published upward for App.jsx to render where the
+  // "Let's get to work." caption was — a projection of exactly these clause params, so the headline
+  // and the dials cannot disagree. The unset domain reads the profile's own function (the board IS
+  // scoped to it); "Nothing matches" when the board answered with no rows.
+  const defaultDomain = useMemo(() => {
+    const fn = functionForRole(activeDomainProfile?.role_family);
+    return JOB_FUNCTIONS.options.find(o => o.value === fn)?.sentence ?? null;
+  }, [activeDomainProfile?.role_family]);
+  const clauseParamsKey = JSON.stringify(clauseParams);
+  const nothingMatches = !bgLoading && !!activeDomainProfile && boardTab === "all" && totalJobs === 0 && jobs.length === 0;
+  useEffect(() => {
+    setBoardHeadline?.({ params: clauseParams, defaultDomain, nothingMatches });
+  }, [clauseParamsKey, defaultDomain, nothingMatches]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => setBoardHeadline?.(null), [setBoardHeadline]);
 
   // GET /api/jobs/facets, for the board's own querystring, only while a panel is open.
   const facetsQs = useMemo(() => buildParams(1), [buildParams]);
@@ -2504,6 +2527,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       curateOff,
       // D24's fit clause, added with it — the same reason as every entry above.
       fitBands,
+      // D30's domain and location dials — the same reason again.
+      jobFunctions, places,
   ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // -- The search bar's params land here ------------------------------------------------------
@@ -2534,25 +2559,35 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // NOT in the dep array: every setter, and boardTab. The setters are stable; boardTab is written
   // here, and including it would make this effect re-run on a tab change made from the pill or the
   // board and stamp the bar's stale status back over it.
+  //
+  // ⛔ D26/D27 · ONLY THE KEYS THE BAR PUBLISHED. The board's bar now carries the search input alone, so
+  // it publishes `query` and nothing else; applying the other four as "" on every search is how a
+  // search silently cleared the sentence's level (experience) and posted (status -> ageFilter) clauses
+  // and dropped the Saved tab. A key that is not in the published object is not touched.
   useEffect(() => {
-    const { query = "", location = "", experience = "", domain = "", status = "" } = barFilters || {};
-    setLocalSearch(query);
-    setLocationFilter(location);
+    const bf = barFilters || {};
+    const has = (k) => Object.prototype.hasOwnProperty.call(bf, k);
+    const { query = "", location = "", experience = "", domain = "", status = "" } = bf;
+    if (has("query")) setLocalSearch(query);
+    if (!has("location") && !has("experience") && !has("domain") && !has("status")) return;
+    if (has("location")) setLocationFilter(location);
     // Identity-preserving, and it has to be. A bare `experience ? [experience] : []` allocates a
     // FRESH array on every apply, so even when the Experience select has not been touched React
     // sees a new value, and `experienceLevels` is in the refetch effect's dep array — which fired a
     // second, redundant /api/jobs alongside the debounced one the keyword search already sends.
     // Measured: one click on Search produced two identical requests for
     // `localSearch=software+engineer`. Returning `prev` unchanged collapses that back to one.
-    setExperienceLevels(prev => {
+    if (has("experience")) setExperienceLevels(prev => {
       const next = experience ? [experience] : [];
       const same = prev.length === next.length && prev.every((v, i) => v === next[i]);
       return same ? prev : next;
     });
-    setDomainFilter(domain);
-    setBoardTab(status === "starred" ? "saved" : "all");
-    setAgeFilter(status === "new" ? "1d" : "");
-    setAppliedFilter(status === "applied" ? "1" : "");
+    if (has("domain")) setDomainFilter(domain);
+    if (has("status")) {
+      setBoardTab(status === "starred" ? "saved" : "all");
+      setAgeFilter(status === "new" ? "1d" : "");
+      setAppliedFilter(status === "applied" ? "1" : "");
+    }
   }, [barFilters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The LIVE half of the bar's double-click. The first click only commits the filters above (a
@@ -3653,16 +3688,18 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         />
       )}
 
-      {/* D24: the sentence or the sort panel — never both, neither by default. */}
+      {/* D30: the dials or the sort panel — never both, neither by default. */}
       {boardPanel === BOARD_PANEL.FILTER && (
-        <FilterSentence
+        <FilterDials
           params={clauseParams}
           facets={facets.data}
           facetsStatus={facets.status}
           onChange={applyClausePatch}
           onClearAll={clearSentenceAndDrawer}
           otherFilterCount={otherFilterCount}
-          onMoreFilters={() => { setBoardPanel(null); setFilterPanelOpen(true); }}
+          defaultDomain={defaultDomain}
+          initialOpen={focusDial}
+          onMoreFilters={() => { setBoardPanel(null); setFocusDial?.(null); setFilterPanelOpen(true); }}
         />
       )}
       {boardPanel === BOARD_PANEL.SORT && (

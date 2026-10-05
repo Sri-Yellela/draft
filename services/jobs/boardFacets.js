@@ -30,6 +30,9 @@
 import { EXPERIENCE_LEVELS, WORK_MODELS, POSTING_AGE, FIT_BANDS, labelFor } from "../../shared/jobFilterOptions.js";
 import { buildJobFilters, postedSinceSql } from "./jobQuery.js";
 import { fitBandsSql, FIT_SCORE_SQL } from "./jobCursor.js";
+// D30 · the two open-set dials, over the D29 tag layer.
+import { JOB_FUNCTIONS, PLACES } from "../../shared/jobTagVocabulary.js";
+import { placesFilterSql } from "./tagFilters.js";
 
 // Paging and cursor are about WHICH SLICE of the board, never about how many rows it holds, and a
 // facets request must not 400 on a cursor issued for a list. Projection params change no count.
@@ -54,12 +57,29 @@ function softNullOptions(dim) {
 }
 
 /**
- * The four clauses, in SENTENCE_CLAUSES' order, each with the params that encode its choice (all of
+ * The six clauses (D30), in SENTENCE_CLAUSES' order, each with the params that encode its choice (all of
  * them are removed to form the clause's base set) and its options' predicates.
  */
 export function facetClauses({ nowSec }) {
   return [
+    // D30 · DOMAIN (the job function). Choosing one LIFTS the profile's role scope (server.js
+    // functionChosen), so its base set is the board with the scope lifted and nothing narrowed —
+    // every function named, soft-null keeping the unclassified — not the profile-scoped board.
+    { key: "domain", remove: [JOB_FUNCTIONS.param],
+      base: { [JOB_FUNCTIONS.param]: JOB_FUNCTIONS.options.map(o => o.value).join(",") },
+      options: softNullOptions(JOB_FUNCTIONS) },
     { key: "level", remove: [EXPERIENCE_LEVELS.param], options: softNullOptions(EXPERIENCE_LEVELS) },
+    // D30 · LOCATION, over the place set. The legacy free-text keys are removed with it: the clause's
+    // own choice is replaced, whichever spelling it arrived in. known = matches a stated place.
+    {
+      key: "location",
+      remove: [PLACES.param, "location", "locations"],
+      options: PLACES.options.map(o => {
+        const f = placesFilterSql([o.value]);
+        return { value: o.value, label: o.label,
+          count: { sql: f.sql, params: [] }, known: { sql: `(${f.sql}) AND NOT ${f.unknownSql}`, params: [] } };
+      }),
+    },
     { key: "where", remove: [WORK_MODELS.param],       options: softNullOptions(WORK_MODELS) },
     {
       key: "posted",
@@ -76,7 +96,9 @@ export function facetClauses({ nowSec }) {
       key: "fit",
       remove: [FIT_BANDS.param],
       options: FIT_BANDS.options.map(o => {
-        const p = { sql: fitBandsSql([o.value]), params: [] };
+        // ⛔ A85 · banded on the CURRENT score the board hands the measure (ctx.fitScoreSql) — the one
+        // the badge shows — so a stale stored score is counted in no band. Lazy for that reason.
+        const p = (ctx) => ({ sql: fitBandsSql([o.value], { scoreSql: ctx?.fitScoreSql ?? FIT_SCORE_SQL }), params: [] });
         // ⛔ HARD: an unscored row is in no band, so known === count (filterSentence.js says so).
         return { value: o.value, label: labelFor(FIT_BANDS, o.value), count: p, known: p };
       }),
@@ -111,10 +133,12 @@ const EMPTY = (clauses) => ({
 export async function boardFacetsResponse({ query, measureBoard, nowSec }) {
   const clauses = facetClauses({ nowSec });
 
-  const head = await measureBoard(withoutKeys(query, []), ({ db, joinClause, whereClause, baseArgs, unclassifiedSql }) => {
+  const head = await measureBoard(withoutKeys(query, []), ({ db, joinClause, whereClause, baseArgs, unclassifiedSql, fitScoreSql }) => {
+    // A85 · "no score" means no CURRENT score — what the badge shows nothing for.
+    const score = fitScoreSql ?? FIT_SCORE_SQL;
     const r = db.prepare(
       `SELECT COUNT(*) AS total,
-              COALESCE(SUM(CASE WHEN ${FIT_SCORE_SQL} IS NULL THEN 1 ELSE 0 END), 0) AS unscored
+              COALESCE(SUM(CASE WHEN ${score} IS NULL THEN 1 ELSE 0 END), 0) AS unscored
               ${unclassifiedSql ? `, COALESCE(SUM(CASE WHEN ${unclassifiedSql} THEN 1 ELSE 0 END), 0) AS unclassified` : ""}
        ${joinClause} ${whereClause}`).get(...baseArgs);
     return { total: r.total, known: r.total - (r.unclassified || 0), unscored: r.unscored };
@@ -126,13 +150,17 @@ export async function boardFacetsResponse({ query, measureBoard, nowSec }) {
 
   const body = { ...head.body.value, clauses: {} };
   for (const clause of clauses) {
-    const r = await measureBoard(withoutKeys(query, clause.remove), ({ db, joinClause, whereClause, baseArgs }) => {
+    const baseQuery = { ...withoutKeys(query, clause.remove), ...(clause.base || {}) };
+    const r = await measureBoard(baseQuery, (ctx) => {
+      const { db, joinClause, whereClause, baseArgs } = ctx;
       const cols = [], params = [];
       clause.options.forEach((o, i) => {
-        cols.push(`COALESCE(SUM(CASE WHEN ${o.count.sql} THEN 1 ELSE 0 END), 0) AS c${i}`);
-        params.push(...o.count.params);
-        cols.push(`COALESCE(SUM(CASE WHEN ${o.known.sql} THEN 1 ELSE 0 END), 0) AS k${i}`);
-        params.push(...o.known.params);
+        const count = typeof o.count === "function" ? o.count(ctx) : o.count;
+        const known = typeof o.known === "function" ? o.known(ctx) : o.known;
+        cols.push(`COALESCE(SUM(CASE WHEN ${count.sql} THEN 1 ELSE 0 END), 0) AS c${i}`);
+        params.push(...count.params);
+        cols.push(`COALESCE(SUM(CASE WHEN ${known.sql} THEN 1 ELSE 0 END), 0) AS k${i}`);
+        params.push(...known.params);
       });
       // PARAMETER ORDER IS SQL TEXT ORDER: the SELECT's option params, then the board's own.
       return db.prepare(`SELECT ${cols.join(", ")} ${joinClause} ${whereClause}`).get(...params, ...baseArgs);

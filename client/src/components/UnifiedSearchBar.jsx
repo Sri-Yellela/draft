@@ -39,6 +39,9 @@ export default function UnifiedSearchBar({
   // meaningful on the Jobs board. It lives in TopBar now. `actions` stays — those really are board
   // controls and really do belong beside the board's search.
   actions,   // optional ReactNode rendered right-aligned in the actions row (see below)
+  // D26/D28: "query" renders the search input and the button ONLY — the board's bar. The location
+  // field and the Experience / Domain / Status selects are the marketing landing page's ("all").
+  fields = 'all',
   // `hidden` is GONE with the pill. It hid this bar without removing it from the layout, because
   // the caller owned exactly one of two search surfaces and unmounting this one took 386px of
   // above-the-fold layout with it, which Chrome's scroll anchoring then subtracted from the scroll
@@ -133,6 +136,7 @@ export default function UnifiedSearchBar({
           )}
         </div>
 
+        {fields === 'all' && (<>
         <div className="usb__div" />
 
         {/* Location */}
@@ -176,6 +180,7 @@ export default function UnifiedSearchBar({
           <UsbSelect value={status} onChange={setStatus} options={STATUS_OPTIONS}
                      ariaLabel="Status" icon={Tag} />
         </div>
+        </>)}
 
         {/* Search button */}
         <button

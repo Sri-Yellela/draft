@@ -27,7 +27,7 @@ import { SORT_KEYS } from "../services/jobs/jobCursor.js";
 
 import {
   FILTER_DIMENSIONS, EXPERIENCE_LEVELS, DOMAINS, WORK_MODELS, EMPLOYMENT_TYPES,
-  SOURCES, AUTOMATION_TIERS, SORTS, POSTING_AGE, VISITED, BOARD_STATUS, FIT_BANDS,
+  SOURCES, AUTOMATION_TIERS, SORTS, POSTING_AGE, VISITED, BOARD_STATUS, FIT_BANDS, JOB_FUNCTIONS, PLACES,
   values, allValues, dbOnlyValues, valueSet, labelFor, labelMap, isValid, invalidEntries,
   ageDays, ageDaysMap, EXPERIENCE_LEVEL_ORDER,
 } from "../shared/jobFilterOptions.js";
@@ -41,7 +41,8 @@ test("every dimension is registered, and every registered dimension is well form
   // A dimension defined but not registered in FILTER_DIMENSIONS would be unguarded by everything
   // below AND unvalidated by the server, which is the worst of both.
   const exported = { EXPERIENCE_LEVELS, DOMAINS, WORK_MODELS, EMPLOYMENT_TYPES, SOURCES,
-                     AUTOMATION_TIERS, SORTS, POSTING_AGE, VISITED, BOARD_STATUS, FIT_BANDS };
+                     AUTOMATION_TIERS, SORTS, POSTING_AGE, VISITED, BOARD_STATUS, FIT_BANDS,
+                     JOB_FUNCTIONS, PLACES };
   const registered = new Set(Object.values(FILTER_DIMENSIONS));
   for (const [name, dim] of Object.entries(exported)) {
     assert.ok(registered.has(dim), `${name} is exported but not in FILTER_DIMENSIONS`);
@@ -311,7 +312,8 @@ test("NO UI SITE HOLDS A LITERAL OPTION LIST ANY MORE", () => {
     // through the model; the sentence's options are each clause's own dimension.
     "client/src/App.jsx": [/sortRows\(atsSortAvailable\)/],
     "client/src/lib/filterSentenceModel.js": [
-      /SENTENCE_CLAUSES\.slice\(0, SENTENCE_CAP\)/,
+      // D30: the six dials are the contract's SENTENCE_CLAUSES, all of them (no cap drops one).
+      /export const sentenceClauses = \(\) => SENTENCE_CLAUSES;/,
       /clause\.dim\.options\.filter\(o => o\.value !== ""\)/,
       /SORT_PANEL\.filter\(/,
     ],
