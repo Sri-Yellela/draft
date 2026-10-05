@@ -85,7 +85,7 @@ const EXCLUDED = {
   runEnrichment:       "utility, spends model tokens",
   al5TokenizedGeneration: "REAL generation x2 — spends model tokens on every run; run it by hand",
   al8FormFieldMappings: "utility — proposes/reviews the derived label map against the real database; asserts nothing",
-  al4LcaResolution:    "OFFLINE asset generation — model calls over public LCA company names; run it by hand",
+  al4LcaResolution:    "OFFLINE asset generation — export → owner → import of LCA company resolutions (D17: no model call), and --import --apply writes to the database; run it by hand. test/a80LcaResolutionTransfer.test.js is the half that asserts",
   al3SynonymRhoEffect: "measurement, not a harness — re-scores the graded 30 against a read-only backup and prints rho; asserts nothing",
   al3SkillSynonyms:    "OFFLINE asset generation — export → owner → import of synonym proposals (D17: no model call), and --import --apply writes to the database; run it by hand. test/a80SynonymTransfer.test.js is the half that asserts",
   ak2AtsGradingSet:    "utility, writes the grading sheet to docs/ and asserts nothing",
