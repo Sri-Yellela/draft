@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { importJob, ImportInputError, detectKnownAtsMatch } from "../services/jobs/importJob.js";
 import { isPermanentModelFailure } from "../services/modelCall.js";
+import { recentCaptures } from "../services/jobs/captureOutcome.js";
 
 // Sibling to routes/importedJobs.js, NOT an extension of it — importedJobs.js manages the
 // legacy per-user `imported_jobs` table (LinkedIn-extension saved jobs). This router writes
@@ -87,12 +88,9 @@ export function createImportJobRouter(db, anthropic) {
       const m = detectKnownAtsMatch(raw);
       ats = m ? { type: m.type, slug: m.slug || m.tenant || null } : null;
     }
-    const recent = db.prepare(`
-      SELECT c.job_id AS jobId, MAX(c.created_at) AS capturedAt, s.title, s.company
-      FROM job_captures c LEFT JOIN scraped_jobs s ON s.job_id = c.job_id
-      WHERE c.user_id = ?
-      GROUP BY c.job_id ORDER BY capturedAt DESC LIMIT 5
-    `).all(req.user.id).map(r => ({ ...r, capturedAt: r.capturedAt * 1000 }));
+    // D33: each with what happened to it (on the board · held off it and why · closed), worded by
+    // services/jobs/captureOutcome.js — the same words the capture itself answered with.
+    const recent = recentCaptures(db, req.user.id, 5);
     res.json({ posting, ats, recent });
   });
 
