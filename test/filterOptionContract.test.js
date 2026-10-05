@@ -86,15 +86,16 @@ test("no option value is a humanised string", () => {
 // ── Direction 1: a UI option with no DB counterpart ────────────────────────────────────────────
 
 test("experience level: every option is a value the WRITERS can store", () => {
-  // schema.js's normalizeExperienceLevel and enrichJob.js's coerceEnum both take their enum from
-  // the contract now, so the join is by construction — but assert the return trip, because the
-  // point is that a future edit to either writer cannot silently narrow it.
+  // schema.js's normalizeExperienceLevel and the enrichment importer's validateColumn both take
+  // their enum from the contract now, so the join is by construction — but assert the return trip,
+  // because the point is that a future edit to either writer cannot silently narrow it. (The second
+  // writer was enrichJob.js's coerceEnum until A80 deleted the model pass, 10-05.)
   const schema  = read("services/jobs/schema.js");
-  const enrich  = read("services/jobs/enrichJob.js");
+  const enrich  = read("services/jobs/enrichmentTransfer.js");
   assert.match(schema, /const VALID_EXPERIENCE_LEVELS = valueSet\(EXPERIENCE_LEVELS\)/,
     "schema.js re-typed the experience-level enum instead of reading the contract");
   assert.match(enrich, /const VALID_EXPERIENCE_LEVELS = valueSet\(EXPERIENCE_LEVELS\)/,
-    "enrichJob.js re-typed the experience-level enum instead of reading the contract");
+    "enrichmentTransfer.js re-typed the experience-level enum instead of reading the contract");
 
   // normalizeExperienceLevel's own return values are literals in its regex ladder, so they are a
   // real second vocabulary and have to be reconciled rather than assumed.
@@ -144,7 +145,9 @@ test("domain: the control and classifyJob's DOMAIN_PATTERNS name the same domain
 
 test("work model: the control and the two writers agree", () => {
   for (const [file, src] of [["schema.js", read("services/jobs/schema.js")],
-                             ["enrichJob.js", read("services/jobs/enrichJob.js")]]) {
+                             // A80 (10-05): the enrichment writer is now the manual import
+                             // (enrichJob.js's model pass was deleted under D17).
+                             ["enrichmentTransfer.js", read("services/jobs/enrichmentTransfer.js")]]) {
     assert.match(src, /VALID_WORKPLACE_TYPES\s*=\s*valueSet\(WORK_MODELS\)/,
       `${file} re-typed the workplace-type enum instead of reading the contract`);
   }

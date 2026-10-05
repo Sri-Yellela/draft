@@ -35,12 +35,40 @@ import "dotenv/config";
 import { callModel, SYSTEM_USER_ID } from "../services/modelCall.js";
 import { DATA_CLASS, PROVIDER, resolveProvider, PROVIDERS } from "../shared/modelProviders.js";
 import { MODEL_HAIKU } from "../shared/anthropicModels.js";
-// THE PIPELINE'S OWN PROMPT, imported rather than copied. A copy would drift and this harness would
-// then report agreement on a prompt enrichment does not use.
-import { buildPrompt } from "../services/jobs/enrichJob.js";
 import Anthropic from "@anthropic-ai/sdk";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// THE PIPELINE'S PROMPT, as it last stood. It was imported from services/jobs/enrichJob.js so it could
+// not drift; that file's model pass was deleted under D17 (A80, 10-05), so this is now the only copy
+// and this harness measures a prompt production no longer sends. Whether the script stays is O57(e).
+function buildPrompt(title, company, description) {
+  return `Extract structured signals from this job posting. Only state what the text actually
+says — if the posting doesn't mention something, use null. Never guess or infer beyond what's
+written; a silent posting must produce null, not your best guess.
+
+Title: ${title || ''}
+Company: ${company || ''}
+Description:
+${(description || '').slice(0, 4000)}
+
+Reply ONLY with valid JSON matching this exact schema. No markdown fences, no explanation:
+{
+  "summary": "<one sentence summary of the role, or null>",
+  "normalizedTitle": "<canonical title stripped of level/location noise, lowercase, or null>",
+  "experienceLevel": "<one of: intern | entry | mid | senior | lead | executive | null>",
+  "workplaceType": "<one of: remote | hybrid | onsite | null>",
+  "skillsHard": ["<hard/technical skill>", "..."],
+  "skillsSoft": ["<soft skill>", "..."],
+  "salaryMinUsd": <number or null>,
+  "salaryMaxUsd": <number or null>,
+  "salaryPeriod": "<one of: annual | hourly | monthly | null>",
+  "isH1bSponsor": <true, false, or null — null unless the posting explicitly states its sponsorship policy>,
+  "requiresWorkAuth": <true, false, or null — null unless explicitly stated>,
+  "isClearanceRequired": <true, false, or null — null unless explicitly stated>,
+  "orgUnit": "<the specific sub-team/org this role belongs to, e.g. 'Payments Platform' or 'Fraud ML', ONLY if the title or description explicitly names one — null if it just says the company name or a generic department like 'Engineering'>"
+}`;
+}
 const DB_PATH = path.join(__dirname, "..", "data", "resume_master.db");
 
 const args = process.argv.slice(2);

@@ -267,40 +267,8 @@ test("dedup folding is visible", async () => {
   assert.equal(body.dedup.total, 2);
 });
 
-test("user-triggered enrichment passes are excluded from the run log", async () => {
-  // importJob.js fires enrichment on every single-URL import. pipeline_runs answers "is the
-  // SCHEDULED pipeline healthy?", so incidental user-triggered passes must not interleave with
-  // the cron history and push real runs out of the recent-runs view.
-  const { runEnrichment } = await import("../services/jobs/enrichJob.js");
-  const db = makeDb();
-  db.exec(`CREATE TABLE company_technographics (
-    company TEXT, skill TEXT, weight REAL, last_seen INTEGER, posting_count INTEGER,
-    PRIMARY KEY (company, skill)
-  );`);
-  db.prepare(`INSERT INTO scraped_jobs (job_id,title,company,source,discovered_at,is_active,description)
-              VALUES ('a','Eng','Acme','import',1,1,'Real description text.')`).run();
-
-  const stub = { messages: { create: async () => ({
-    content: [{ text: JSON.stringify({
-      summary: "A role.", normalizedTitle: null, experienceLevel: null, workplaceType: null,
-      skillsHard: [], skillsSoft: [], salaryMinUsd: null, salaryMaxUsd: null, salaryPeriod: null,
-      isH1bSponsor: null, requiresWorkAuth: null, isClearanceRequired: null, orgUnit: null,
-    }) }],
-    usage: { input_tokens: 1, output_tokens: 1 },
-  }) } };
-
-  await runEnrichment(db, stub, { recordRun: false });
-  assert.equal(db.prepare("SELECT COUNT(*) n FROM pipeline_runs").get().n, 0,
-    "an opted-out pass must leave no run record");
-  assert.ok(db.prepare("SELECT summary FROM scraped_jobs WHERE job_id='a'").get().summary,
-    "the enrichment work itself must still happen");
-
-  // The scheduled path still records.
-  db.prepare("UPDATE scraped_jobs SET content_hash=NULL, enriched_at=NULL, summary=NULL WHERE job_id='a'").run();
-  await runEnrichment(db, stub);
-  assert.equal(db.prepare("SELECT COUNT(*) n FROM pipeline_runs").get().n, 1,
-    "the default (cron) path must still record");
-});
+// (A80, 10-05) "user-triggered enrichment passes are excluded from the run log" retired: it drove
+// runEnrichment, which was deleted with enrichJob.js's model call (D17).
 
 // ── THE AC RESIDUAL ─────────────────────────────────────────────────────────────────────────────
 //

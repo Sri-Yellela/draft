@@ -641,3 +641,26 @@ test("U4: migration 101 is byte-identical in both migration paths", () => {
   };
   assert.equal(slice("scripts/migrations.js"), slice("server.js"));
 });
+
+test("A80/A52: an import that writes rows tells the rescore listener; one that writes nothing does not", async () => {
+  // The model pass used to fire this (and was deleted under D17), so the import must — or every
+  // score on an imported row stays stale until the next crawl, silently.
+  const { onEnrichmentApplied } = await import("../services/jobs/enrichJob.js");
+  const heard = [];
+  const off = onEnrichmentApplied((info) => heard.push(info));
+  try {
+    const db = makeDb();
+    addJob(db, { job_id: "a" });
+    const noop = applyImport(db, toJsonl(buildExport(db, { candidatesOnly: false, maxLastSeenDays: 0 })));
+    assert.equal(noop.written, 0);
+    assert.equal(heard.length, 0, "a no-op import must not schedule a rescore");
+
+    const res = applyImport(db, exportOne(db, "a", { summary: "Builds services." }));
+    assert.equal(res.written, 1, res.reason);
+    assert.deepEqual(heard, [{ enriched: 1, batchId: res.batchId, batchSource: "import" }]);
+
+    const refused = applyImport(db, JSON.stringify({ job_id: "ghost", content_hash: "x", enrichment: { summary: "y" } }) + "\n");
+    assert.equal(refused.ok, false);
+    assert.equal(heard.length, 1, "a refused file writes nothing and says nothing");
+  } finally { off(); }
+});

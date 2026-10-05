@@ -29,9 +29,7 @@ const ALLOWED = new Set([
 
 // Each entry names its A80 item. Delete the entry in the same commit that removes the call.
 const KNOWN_VIOLATIONS = new Map([
-  // V4 is done for REACHABILITY (no caller — pinned below); the call itself still sits in
-  // enrichJob.js beside the pieces the export/import round trip reuses. Delete it to close this.
-  ["enrich_job",     "A80 V4 — enrichJob.js's model call, unreachable since V4"],
+  // V4 closed 10-05: enrich_job's call was deleted from enrichJob.js once A76 landed (pinned below).
   ["domain_chips",   "A80 V3 — /api/domain-profiles/generate-chips"],
   ["classifier",     "A80 V6 — /api/smart-search sends the résumé to a classifier"],
 ]);
@@ -125,19 +123,21 @@ test("D17 V2:/api/standalone/generate scores its résumé with the deterministic
 });
 
 test("D17 V4: nothing in production starts a model enrichment pass — no cron drain, no post-import pass, no run route", () => {
-  // runEnrichment / drainEnrichment are the model passes. They may only be referenced inside
-  // enrichJob.js itself; any production file importing or calling one has put the automatic (or
-  // one-click) model enrichment back.
+  // runEnrichment / drainEnrichment were the model passes, deleted with enrichJob.js's call (A80,
+  // 10-05). Any production file defining, importing or calling one has put model enrichment back —
+  // enrichJob.js included, which is no longer exempt.
   const offenders = [];
   for (const file of productionFiles()) {
     const f = file.replace(/\\/g, "/");
-    if (f === "services/jobs/enrichJob.js") continue;
     // Comments mention both names as history; only code counts.
     const code = fs.readFileSync(file, "utf8").split(/\r?\n/)
       .filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l)).map(l => l.replace(/\s\/\/.*$/, "")).join("\n");
     if (/\b(runEnrichment|drainEnrichment)\b/.test(code)) offenders.push(f);
   }
   assert.deepEqual(offenders, [], "a production file reaches the model enrichment pass again");
+  const enrich = fs.readFileSync("services/jobs/enrichJob.js", "utf8");
+  assert.doesNotMatch(enrich, /callModel|modelCall.js|buildPrompt|purpose:s*["']enrich_job["']/,
+    "enrichJob.js calls a model again — enrichment is export → import only (D17)");
   const route = fs.readFileSync("routes/enrichment.js", "utf8");
   assert.match(route, /status\(410\)[\s\S]{0,80}enrichment_by_model_retired/, "POST /run's apply is refused");
 });
