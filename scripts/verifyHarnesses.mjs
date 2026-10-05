@@ -33,8 +33,10 @@
  * that would is in EXCLUDED below precisely because it spends tokens. So a full green board says
  * the apply pipeline, the browser and the extension work; it says nothing about which provider
  * served a call or what it cost. Cost and routing are covered by `npm test`
- * (test/modelCallGuard.test.js, test/providerRouting.test.js) and, for real traffic, only by
- * scripts/al1ProviderQualityDiff.mjs, which is run by hand.
+ * (test/modelCallGuard.test.js, test/providerRouting.test.js, test/d17ModelCallSites.test.js).
+ * Real traffic is not verified by any script: the one that did, al1ProviderQualityDiff.mjs, was
+ * deleted under D17 (A80 V9) once no production call routed off Anthropic — what is left is
+ * generation and cover letters, and only a real request shows those working.
  *
  * Usage:
  *   node scripts/verifyHarnesses.mjs                  # all of them
@@ -81,7 +83,6 @@ const EXCLUDED = {
   importJobUrls:       "utility, writes to the database",
   ingestLca:           "utility, downloads a dataset",
   runEnrichment:       "utility, spends model tokens",
-  al1ProviderQualityDiff: "REAL enrichment on BOTH providers — the Anthropic arm spends tokens on every row; run it by hand",
   al5TokenizedGeneration: "REAL generation x2 — spends model tokens on every run; run it by hand",
   al8FormFieldMappings: "utility — proposes/reviews the derived label map against the real database; asserts nothing",
   al4LcaResolution:    "OFFLINE asset generation — model calls over public LCA company names; run it by hand",

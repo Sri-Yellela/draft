@@ -164,7 +164,7 @@ const SCRIPT_ALLOWED = new Map([
 ]);
 const SCRIPT_KNOWN_VIOLATIONS = new Map([
   // V8 closed 10-05: scripts/a76LlmGradedCorpus.mjs is export → grade → import (A76, 291c906).
-  ["scripts/al1ProviderQualityDiff.mjs", "A80 V9 — Groq vs Anthropic enrichment diff"],
+  // V9 closed 10-05: scripts/al1ProviderQualityDiff.mjs deleted (pinned below).
   ["scripts/al3SkillSynonyms.mjs",       "A80 V10 — skill-synonym proposals by Haiku"],
   ["scripts/al4LcaResolution.mjs",       "A80 V11 — LCA company resolution by Haiku"],
 ]);
@@ -210,4 +210,11 @@ test("D17 V8: the A76 corpus script grades by export → grade → import, never
   assert.match(src, /--export <out\.jsonl>/);
   assert.match(src, /--import <graded\.jsonl>/);
   assert.match(src, /--revert <batchId>/);
+});
+
+test("D17 V9: the provider-comparison script stays deleted", () => {
+  // al1ProviderQualityDiff.mjs ran the enrichment prompt on Groq AND Haiku to compare them (it
+  // measured 30.5% Jaccard on skills_json). With enrichment export → import only, there is no
+  // production call for it to compare, and its Anthropic arm spent tokens on every row.
+  assert.equal(fs.existsSync("scripts/al1ProviderQualityDiff.mjs"), false);
 });
