@@ -197,6 +197,10 @@ export function tmpPdfPath(kind, userId, jobId, now = Date.now()) {
  */
 const FULL_AUTO_PROVEN = false;
 
+/** D36: what a deferred preview says about the résumé it has not written yet. */
+export const DEFERRED_RESUME_SENTENCE =
+  "No résumé exists for this job yet. It is written when you approve — nothing was generated for the preview.";
+
 function publicApplication(row) {
   if (!row) return null;
   return {
@@ -1283,9 +1287,14 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
        */
       const currency = artifactCurrency(db, { userId, jobId, tool: toolType });
       reuseDecision = { reused: currency.current, reason: currency.reason, detail: currency.detail ?? null };
+      // D36: a DEFERRED preview (CASE D below) writes nothing now, so "…so one was generated" was
+      // false — and the run history printed it directly above "No resume generated yet". Said as
+      // what will happen instead; the event name stays, so every reader of it is unchanged.
+      const willDefer = !currency.current && mode !== "semi" && deferGeneration;
       logEvent(runId, runJobId, userId, jobId,
         currency.current ? "resume_reused" : "resume_regenerating",
-        currencySentence(currency), reuseDecision);
+        willDefer ? DEFERRED_RESUME_SENTENCE : currencySentence(currency),
+        willDefer ? { ...reuseDecision, deferred: true } : reuseDecision);
       const artifact = currency.current ? currency.artifact : null;
 
       let result;

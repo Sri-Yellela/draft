@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { tmpPdfPath } from "../routes/apply.js";
+import { tmpPdfPath, DEFERRED_RESUME_SENTENCE } from "../routes/apply.js";
 import { describeApplication } from "../client/src/lib/applyObstacles.js";
 import { at as anchor } from "../test-support/sourceAnchors.js";
 import express from "express";
@@ -386,4 +386,15 @@ test("D36 · caps · an approved Draft still counts against the day's Draft slot
     assert.equal(r.status, 202);
     assert.equal(draftSlots(t.db, 1).used, 2, "the superseded held row and its retry are one Draft");
   } finally { t.stop(); }
+});
+
+// ── RESPONSE · a deferred preview does not claim a résumé was generated ──────────────────────────
+// Walked 10-05: the preview's run history read "No resume existed for this job yet, so one was
+// generated." directly above "No resume generated yet … Generation happens when you approve."
+test("D36 · response · the deferred preview's first line says what will happen, not what did not", () => {
+  const src = read("routes/apply.js");
+  assert.match(DEFERRED_RESUME_SENTENCE, /written when you approve/);
+  assert.doesNotMatch(DEFERRED_RESUME_SENTENCE, /so one was generated/);
+  assert.match(src, /const willDefer = !currency\.current && mode !== "semi" && deferGeneration;/);
+  assert.match(src, /willDefer \? DEFERRED_RESUME_SENTENCE : currencySentence\(currency\)/);
 });
