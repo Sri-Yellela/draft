@@ -10625,6 +10625,15 @@ app.get("*", (_req, res) => {
   res.sendFile(path.join(CLIENT_DIST, "index.html"));
 });
 
+// ⛔ D33 · ONE STRAY PROMISE MUST NOT TAKE THE WHOLE SITE TO 502. Node 15+ exits on an unhandled
+// rejection, and Express 4 does not catch a rejected async handler — so a single throw in any async
+// route killed the process, and until Railway restarted it EVERY page, /extension included, was the
+// edge's 502 (nothing the app itself can send for a document: its only 502s are under /api/).
+// Logged loudly with the stack instead, and the process keeps serving.
+process.on("unhandledRejection", (reason) => {
+  console.error("[process] ⛔ UNHANDLED REJECTION — logged, process kept alive:", reason?.stack || reason);
+});
+
 console.log(`[boot] binding HTTP listener on :${PORT}`);
 app.listen(PORT, () => {
   console.log(`[server] ${BRAND} v5 on :${PORT}`);
