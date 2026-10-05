@@ -15,7 +15,8 @@
 // And no file but services/modelCall.js may talk to the SDK directly: a direct
 // `anthropic.messages.create` would walk round this whole check.
 //
-// Scripts are deliberately out of scope here (A80 V8–V12 are one-off tools, decided separately).
+// Scripts (scripts/) are held by a second, file-level ratchet at the bottom of this file
+// (A80 V8–V12): a script may reach a model only if it is the generation family or a named A80 item.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -151,4 +152,62 @@ test("D17 V6: no résumé classifier in draft — /api/smart-search and services
   const src = fs.readFileSync("server.js", "utf8");
   assert.doesNotMatch(src, /app\.(post|get)\("\/api\/smart-search"/, "/api/smart-search is back");
   assert.doesNotMatch(src, /from "\.\/services\/classifier\.js"/);
+});
+
+// ── SCRIPTS (A80 V8–V12) ─────────────────────────────────────────────────────────────────────────
+// One-off tools are not production, but D17 still binds them: every batch job needs an export and
+// an import so the owner can do the model's part by hand. Held per FILE, because a script may build
+// its client and call the SDK in ways the purpose scan above was never meant to read.
+const SCRIPT_ALLOWED = new Map([
+  // Verifies the tokenized GENERATION round trip on a real Sonnet call — the generation family.
+  ["scripts/al5TokenizedGeneration.mjs", "generation — AL5's tokenized round trip"],
+]);
+const SCRIPT_KNOWN_VIOLATIONS = new Map([
+  // V8 closed 10-05: scripts/a76LlmGradedCorpus.mjs is export → grade → import (A76, 291c906).
+  ["scripts/al1ProviderQualityDiff.mjs", "A80 V9 — Groq vs Anthropic enrichment diff"],
+  ["scripts/al3SkillSynonyms.mjs",       "A80 V10 — skill-synonym proposals by Haiku"],
+  ["scripts/al4LcaResolution.mjs",       "A80 V11 — LCA company resolution by Haiku"],
+]);
+
+function scriptFiles() {
+  const out = [];
+  const walk = (d) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (/\.(m?js|cjs)$/.test(e.name)) out.push(p.replace(/\\/g, "/"));
+    }
+  };
+  walk("scripts");
+  return out;
+}
+
+/** Code only — a script's header may describe the model call it used to make. */
+function codeOf(src) {
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").split(/\r?\n/)
+    .filter(l => !/^\s*\/\//.test(l)).map(l => l.replace(/\s\/\/.*$/, "")).join("\n");
+}
+
+const REACHES_A_MODEL = /callModel\(|\.messages\.(create|stream)\s*\(|new Anthropic\(|callProvider\(|api\.anthropic\.com|api\.groq\.com|generativelanguage\.googleapis/;
+
+test("D17 scripts: a script reaches a model only for generation, or for a violation A80 already names", () => {
+  const found = scriptFiles().filter(f => REACHES_A_MODEL.test(codeOf(fs.readFileSync(f, "utf8"))));
+  const unexpected = found.filter(f => !SCRIPT_ALLOWED.has(f) && !SCRIPT_KNOWN_VIOLATIONS.has(f));
+  assert.deepEqual(unexpected, [],
+    "D17: a batch job needs an export and an import, not a model loop. New model-calling script(s):\n" +
+    unexpected.map(f => `  ${f}`).join("\n"));
+  const fixed = [...SCRIPT_KNOWN_VIOLATIONS.keys()].filter(f => !found.includes(f));
+  assert.deepEqual(fixed, [],
+    "These scripts no longer reach a model — delete them from SCRIPT_KNOWN_VIOLATIONS:\n" +
+    fixed.map(f => `  ${f}: ${SCRIPT_KNOWN_VIOLATIONS.get(f)}`).join("\n"));
+  const allowedGone = [...SCRIPT_ALLOWED.keys()].filter(f => !found.includes(f));
+  assert.deepEqual(allowedGone, [], "an allowed script stopped calling a model — drop it from SCRIPT_ALLOWED");
+});
+
+test("D17 V8: the A76 corpus script grades by export → grade → import, never by a model", () => {
+  const src = fs.readFileSync("scripts/a76LlmGradedCorpus.mjs", "utf8");
+  assert.doesNotMatch(codeOf(src), REACHES_A_MODEL);
+  assert.match(src, /--export <out\.jsonl>/);
+  assert.match(src, /--import <graded\.jsonl>/);
+  assert.match(src, /--revert <batchId>/);
 });
