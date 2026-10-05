@@ -28,7 +28,7 @@ import { assertOutboundFields } from "../shared/piiPolicy.js";
 // ENRICH_PROVIDER / ENRICH_MODEL / GROQ_API_KEY / GOOGLE_API_KEY switches existed to route PUBLIC
 // job-advert text — enrich_job, classify_job, import_job — to a free tier. D17 deleted all three
 // model calls (A80 V4, V7; D33), so the route had no traffic left, and the provider-comparison
-// script went with A80 V9.
+// script went with A80 V9. test/a87AnthropicOnly.test.js fails if any of it comes back.
 //
 // ── WHOSE DATA IT IS ─────────────────────────────────────────────────────────────────────────────
 //
