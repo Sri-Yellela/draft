@@ -7204,6 +7204,8 @@ app.get("/api/jobs/facets", requireAuth, async (req, res) => {
   const { status, body } = await boardFacetsResponse({
     query: req.query, nowSec,
     measureBoard: (query, measure) => boardPageResponse({ ...req, query }, { measure, nowSec }),
+    // D35 · the /d view's count — the Pending list's own query, counted.
+    countPending: () => pendingJobsQuery(req.user.id, { count: true }),
   });
   res.status(status).json(body);
 });
@@ -8902,14 +8904,19 @@ app.post("/api/jobs/by-id/:jobId/description", requireAuth, async (req, res) => 
 });
 
 app.get("/api/jobs/pending", requireAuth, (req, res) => {
-  const userId = req.user.id;
+  res.json(pendingJobsQuery(req.user.id));
+});
+
+// D35 · the Pending view's rows, and their COUNT for the board's view segment (GET /api/jobs/facets'
+// `views.pending`). One query for both, so the /d count and the /d list cannot disagree.
+function pendingJobsQuery(userId, { count = false } = {}) {
   const activeProfile = getOrRepairActiveProfile(userId);
-  if (!activeProfile) return res.json([]);
+  if (!activeProfile) return count ? 0 : [];
   const roleKey = roleKeyForProfile(activeProfile);
   const pendingProfileTitleFilter = profileTitleSql("sj.title", activeProfile);
-  const rows = db.prepare(`
-    SELECT sj.*, uj.starred, uj.applied, uj.disliked, uj.visited, uj.resume_generated,
-           r.ats_score, r.ats_report, r.html as resume_html, r.apply_mode
+  const stmt = db.prepare(`
+    SELECT ${count ? "COUNT(*) AS n" : `sj.*, uj.starred, uj.applied, uj.disliked, uj.visited, uj.resume_generated,
+           r.ats_score, r.ats_report, r.html as resume_html, r.apply_mode`}
     FROM scraped_jobs sj
     JOIN job_role_map jrm ON jrm.job_id = sj.job_id AND jrm.role_key = ?
     JOIN user_jobs uj ON uj.job_id = sj.job_id AND uj.user_id = ? AND uj.domain_profile_id = ?
@@ -8926,10 +8933,11 @@ app.get("/api/jobs/pending", requireAuth, (req, res) => {
       AND (uj.applied IS NULL OR uj.applied = 0)
       AND (uj.disliked IS NULL OR uj.disliked = 0)
       AND ${pendingProfileTitleFilter.sql}
-    ORDER BY uj.updated_at DESC
-  `).all(roleKey, userId, activeProfile.id, userId, ...pendingProfileTitleFilter.params);
-  res.json(rows);
-});
+    ${count ? "" : "ORDER BY uj.updated_at DESC"}
+  `);
+  const args = [roleKey, userId, activeProfile.id, userId, ...pendingProfileTitleFilter.params];
+  return count ? stmt.get(...args).n : stmt.all(...args);
+}
 
 app.get("/api/categories", requireAuth, (_req,res) => res.json(INDUSTRY_CATEGORIES));
 

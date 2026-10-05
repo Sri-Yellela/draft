@@ -150,13 +150,26 @@ export const RESPONSE_SCHEMAS = Object.freeze({
       "current choice is REPLACED, not added to — and equals what GET /api/jobs returns for those " +
       "params. Note this is a DIFFERENT shape from the optional `facets` block on " +
       "GET /api/jobs?include_facets=; do not share a parser.",
-    fields: { total: "number", known: "number", unscored: "number", clauses: "$FacetClauses" },
+    fields: { total: "number", known: "number", unscored: "number", clauses: "$FacetClauses",
+              coverage: "$FacetCoverage", views: "$FacetViews" },
     fieldNotes: {
+      coverage: "2.2.0 (D35). Of `total`, rows whose tag is ON FILE, per tag — measured, never a " +
+        "constant; a panel's coverage line is coverage / total.",
+      views: "2.2.0 (D35). The board's three views' counts — ALL, Saved, Pending — with every other " +
+        "filter as it is.",
       known: "Of `total`, rows KNOWN to match every soft-null filter (experience level, work model, " +
         "...). The rest are on the board only because their column is not classified yet.",
       unscored: "Rows on the board with no fit score for this caller. They match no fit band and " +
         "sort last under sort=atsScore.",
     },
+  },
+  FacetCoverage: {
+    description: "Rows on the board whose tag is known, per tag. NULL is unknown, never no.",
+    fields: { level: "number", where: "number", employment: "number" },
+  },
+  FacetViews: {
+    description: "The board's view counts. `pending` is null when it could not be measured.",
+    fields: { all: "number", saved: "number", pending: "number|null" },
   },
   FacetClauses: {
     description: "One list per sentence clause, options in the contract's order. A count of 0 is " +
