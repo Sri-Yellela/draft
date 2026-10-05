@@ -289,7 +289,17 @@ export function extractJobPayload() {
         '').trim();
     }
 
-    return { title, company, location: ldCity?.trim() || '', workType: '', salary: null };
+    // ⛔ D33: a REMOTE posting publishes no city — schema.org says so with jobLocationType
+    // "TELECOMMUTE" and names where applicants may live in applicantLocationRequirements. Reading
+    // only addressLocality sent no Location at all for it, and the board's US-only gate holds a
+    // posting with no location (location_unparseable) or a bare "Remote" (remote_region_unstated).
+    // "Remote (United States)" is the posting's own structured statement, read, not guessed.
+    const remote = /TELECOMMUTE/i.test(String(ld?.jobLocationType || ''));
+    const where = [].concat(ld?.applicantLocationRequirements || [])
+      .map(r => (typeof r === 'string' ? r : r?.name || r?.address?.addressCountry?.name || r?.address?.addressCountry))
+      .filter(v => typeof v === 'string' && v.trim()).map(v => v.trim()).join(', ');
+    const ldLocation = ldCity?.trim() || (remote ? (where ? `Remote (${where})` : 'Remote') : '');
+    return { title, company, location: ldLocation, workType: remote ? 'Remote' : '', salary: null };
   }
 
   const isLinkedIn = window.location.hostname.includes('linkedin.com');

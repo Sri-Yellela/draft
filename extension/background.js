@@ -4,6 +4,7 @@ import {
 } from './gated-handoff.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
 import { authedFetch, getIdentity, cachedIdentity, disconnect } from './auth.js';
+import { captureResultFrom } from './captureResult.js';
 // D23: the site's colour tokens, generated from client/src/styles/colorTokens.js — the toolbar badge
 // and the capture toast take their colours from here, never from a literal.
 import { C_LIGHT, C_DARK } from './tokens.js';
@@ -38,38 +39,15 @@ async function importCapturedJob({ url, text }) {
 
     // null means there is no credential to be had — no session to bootstrap from, so the remedy
     // is signing in on the website, not retrying here.
-    if (!res || res.status === 401) {
-      return { success: false, message: 'Sign in to Draft first' };
-    }
+    if (!res) return captureResultFrom(401, {}, RESUME_MASTER_URL);
     const json = await res.json().catch(() => ({}));
-    if (json.needsClientCapture) {
-      // Should not happen: we always send the extracted text. Reported rather than swallowed, so a
-      // regression in extraction is visible instead of looking like a generic failure.
-      return { success: false, message: json.message || 'Could not read this job automatically' };
-    }
-    if (!res.ok) {
-      return { success: false, message: json.error || `Import failed (${res.status})` };
-    }
-
-    const job = json.job || {};
-    const label = [job.title, job.company].filter(Boolean).join(' @ ') || 'job';
-    // A DEGRADED capture is a success with a smaller promise: the job is on the board with its
-    // title and link, but the model that fills salary, skills and the summary was unavailable, so
-    // those are empty until enrichment runs. Saying "Captured" flat would overstate it, and
-    // failing would have thrown away a posting the extractor had already read.
-    return {
-      success: true,
-      // One message, produced in one place, so the popup and the hotkey cannot word it differently.
-      message: json.alreadyImported || json.reconciled
-        ? `Already on your board: ${label}`
-        : json.degraded
-          ? `Saved (partial): ${label} — details fill in later`
-          : `Captured: ${label}`,
-      degraded: !!json.degraded,
-      jobId: job.jobId || json.jobId || null,
-    };
+    // ⛔ D33: the server's capture object says what happened — added · already on the board (with a
+    // link to that posting) · held off the board and WHY · closed — and the toast and popup show
+    // exactly that. A 2xx that says nothing is not reported as a capture. needsClientCapture (should
+    // not happen: the extracted text is always sent) is reported, not swallowed — captureResult.js.
+    return captureResultFrom(res.status, json, RESUME_MASTER_URL);
   } catch (e) {
-    return { success: false, message: 'Could not reach Draft' };
+    return { success: false, outcome: null, onBoard: false, message: 'Could not reach draft', link: null, jobId: null };
   }
 }
 

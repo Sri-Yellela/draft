@@ -8,12 +8,15 @@
 //
 // ⛔ The install control reads shared/extension.js. While EXTENSION_STORE_URL is null (the owner has
 // not supplied the store item — WORKLOG O55) the page says so and offers nothing to click.
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import { DraftMark } from "../../components/DraftMark.jsx";
 import { EXTENSION_STORE_URL } from "../../../../shared/extension.js";
 import { CANONICAL_HOST, PRIVACY_POLICY_PATH } from "../../../../shared/brand.js";
+import { api } from "../../lib/api.js";
+import { useExtensionStatus } from "../../components/ExtensionPrompt.jsx";
 
 const STEPS = [
   { title: "Add it to Chrome",
@@ -50,7 +53,100 @@ export function ExtensionInstallButton({ compact = false }) {
   );
 }
 
+// ── D33 · THE PAGE KNOWS WHICH OF THREE PEOPLE IS READING IT ─────────────────────────────────────
+// Signed out, or no sign of the extension on this account -> install (as before). Used on this
+// account but not connected now -> connect it, and the install control steps back. Connected -> what
+// to do with it, and what happened to your last captures, in the server's own words
+// (services/jobs/captureOutcome.js) — the site half of "the gateway says why".
+//
+// /api/auth/me first: it answers 200 signed in or out, where a signed-out call to the status route
+// would be a 401, and lib/api.js treats every 401 as an expired session.
+function useSignedIn() {
+  const [signedIn, setSignedIn] = useState(null);
+  useEffect(() => {
+    let live = true;
+    api("/api/auth/me").then(d => { if (live) setSignedIn(!!d?.authenticated); }).catch(() => { if (live) setSignedIn(false); });
+    return () => { live = false; };
+  }, []);
+  return signedIn;
+}
+
+function agoWords(ms) {
+  if (!ms) return null;
+  const mins = Math.max(0, Math.floor((Date.now() - ms) / 60000));
+  if (mins < 60) return mins <= 1 ? "just now" : `${mins} minutes ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return hours === 1 ? "an hour ago" : `${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? "yesterday" : `${days} days ago`;
+}
+
+const card = { border: "1px solid var(--color-border)", borderRadius: 14, padding: 18, marginBottom: 32 };
+
+export function ExtensionStateCard({ status }) {
+  if (status.state === "connected") {
+    const seen = agoWords(status.lastSeenAt ? status.lastSeenAt * 1000 : null);
+    return (
+      <div data-extension-state="connected" style={card}>
+        <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>Your extension is connected</div>
+        <p style={{ fontSize: 14, color: "var(--color-text-muted)", lineHeight: 1.6, margin: "0 0 12px" }}>
+          {seen ? `Last used ${seen}. ` : ""}Here's what to do with it:
+        </p>
+        <ul style={{ fontSize: 14, lineHeight: 1.7, margin: 0, paddingLeft: 20 }}>
+          <li><strong>On a job posting</strong> — click the draft icon, or press Ctrl+Shift+K. It says exactly where the job went.</li>
+          <li><strong>On an application you drafted</strong> — press Ctrl+Shift+Y to fill it, check every answer, and submit it yourself.</li>
+          <li><strong>Not sure which?</strong> — open it and press <em>Read this page</em>; it picks the action that fits.</li>
+        </ul>
+      </div>
+    );
+  }
+  if (status.state === "not_connected") {
+    return (
+      <div data-extension-state="not_connected" style={card}>
+        <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>Your extension isn't connected</div>
+        <p style={{ fontSize: 14, color: "var(--color-text-muted)", lineHeight: 1.6, margin: 0 }}>
+          It has been used on this account, but it holds no live key right now. Click the draft icon in your
+          browser's toolbar while you're signed in here and it connects by itself — or press <em>Sign in</em> inside it.
+        </p>
+        <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "12px 0 0" }}>
+          Setting it up on a different browser? <ExtensionInstallButton compact/>
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
+
+export function RecentCaptures({ captures }) {
+  if (!captures?.length) return null;
+  return (
+    <section data-recent-captures="" style={{ marginBottom: 48 }}>
+      <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 12px" }}>Your recent captures</h2>
+      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+        {captures.map(c => (
+          <li key={c.jobId} data-capture-outcome={c.outcome}
+              style={{ border: "1px solid var(--color-border)", borderRadius: 12, padding: "10px 14px",
+                       borderLeft: `4px solid ${c.onBoard ? "var(--color-primary)" : "var(--color-warning)"}` }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>
+              {[c.title, c.company].filter(Boolean).join(" · ") || "A captured job"}
+              <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}> · {agoWords(c.capturedAt)}</span>
+            </div>
+            <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.6, marginTop: 2 }}>{c.message}</div>
+            {c.link && <Link to={c.link} style={{ fontSize: 13 }}>Open it on draft</Link>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function ExtensionPage() {
+  const signedIn = useSignedIn();
+  const status = useExtensionStatus({ enabled: signedIn === true });
+  // Install is the page's control only when there is no sign of the extension on this account (or
+  // nobody is signed in). For someone who has it, offering a download is the D33 defect.
+  const known = signedIn === false || !!status;
+  const offerInstall = signedIn === false || status?.state === "not_installed";
   return (
     <div className="scroll-dock-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
                   background: "transparent", color: "var(--color-text)",
@@ -67,8 +163,21 @@ export function ExtensionPage() {
           posting you're viewing, and later fill the application — you review every answer and submit
           it yourself.
         </p>
-        <div style={{ marginBottom: 56 }}><ExtensionInstallButton/></div>
+        {known && offerInstall && (
+          <div style={{ marginBottom: 56 }}>
+            <ExtensionInstallButton/>
+            {signedIn && (
+              <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "10px 0 0" }}>
+                Already installed it? Click it once while you're signed in here and it connects.
+              </p>
+            )}
+          </div>
+        )}
+        {status && <ExtensionStateCard status={status}/>}
+        {status && <RecentCaptures captures={status.recentCaptures}/>}
 
+        {/* D33: the install-and-set-up steps are for someone setting it up — not for a connected user. */}
+        {status?.state !== "connected" && (
         <ol style={{ listStyle: "none", padding: 0, margin: "0 0 56px", display: "flex", flexDirection: "column", gap: 28 }}>
           {STEPS.map((s, i) => (
             <li key={s.title} style={{ display: "flex", gap: 20 }}>
@@ -85,6 +194,7 @@ export function ExtensionPage() {
             </li>
           ))}
         </ol>
+        )}
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
           {FACTS.map(([h, b]) => (

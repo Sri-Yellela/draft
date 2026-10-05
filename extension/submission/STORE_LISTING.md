@@ -1,13 +1,28 @@
-# Chrome Web Store listing — draft v1.3.0
+# Chrome Web Store listing — draft v1.4.0
 
 Copy for the Web Store developer dashboard. Every justification below was written against the
 actual code and cites the file that uses the permission, because the dashboard rejects
 justifications that don't match observable behaviour.
 
-Upload artifact: `extension/submission/resume-master-extension-v1.3.0.zip`
+Upload artifact: `extension/submission/resume-master-extension-v1.4.0.zip`
 (build with `npm run build:extension` — never hand-assemble it; see extension/README.md).
 
-> **v1.3.0 (D23 + A35, 10-04) REPLACES v1.2.0, WHICH WAS NEVER UPLOADED.** Two changes, one
+> **v1.4.0 (D33, 10-05) REPLACES v1.3.0, WHICH WAS NEVER UPLOADED.** The capture result says what
+> happened instead of "Captured" for everything:
+>
+> 1. **The server's words, shown as given** (`captureResult.js`, new, reached from `background.js`).
+>    The toast and the popup show: added to the board · already on the board (with an **Open it on
+>    draft** link to that posting) · saved but held off the board, and why · saved but the listing
+>    has closed. A 2xx that does not say where the job went is reported as a failure, not a capture.
+> 2. **A remote posting's structured location is read.** The extractor reads JSON-LD
+>    `jobLocationType` ("TELECOMMUTE") and `applicantLocationRequirements` from the same JobPosting
+>    it already read, so a remote US posting sends `Location: Remote (United States)` in the same
+>    labelled block. Same page, same moment (the user's click), same one destination.
+>
+> ⛔ **No new permission, no new host, no content script, no new storage key** — `lastCapture` keeps
+> its name and simply carries the outcome and the link. No new disclosure.
+
+> **v1.3.0 (D23 + A35, 10-04) REPLACED v1.2.0, WHICH WAS NEVER UPLOADED.** Two changes, one
 > submission:
 >
 > 1. **The manual context trigger.** Opening the popup no longer reads the page or asks the server
