@@ -114,8 +114,11 @@ test("the four dead controls are gone and the surviving ones are the populated o
   assert.ok(!/<option value="indeed">/.test(jsx), "the legacy Source select offered unreachable values");
 
   // Kept, because every one of these columns IS written and the filters discriminate on real data.
-  for (const label of ["Employment Type", "Work Model", "Experience Level", "Provider",
+  for (const label of ["Employment Type", "Work Model", "Experience Level",
                        "Automation Tier", "Date Posted"]) {
     assert.ok(jsx.includes(`>${label}<`), `${label} filters a populated column and must stay`);
   }
+  // D26: Provider filters a populated column too, but it is an ADMIN concept and left the user's
+  // drawer; the sources_include/_exclude params stay honoured server-side.
+  assert.ok(!jsx.includes(">Provider<"), "the provider filter is back on the user surface (D26)");
 });

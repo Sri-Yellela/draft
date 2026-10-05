@@ -34,6 +34,18 @@ export const JOB_FUNCTIONS = {
   dbOnly: [],
 };
 
+/**
+ * The classifier's role buckets (job_role_map.role_key, and a profile's role family) -> a function.
+ * 'general' is the classifier's "matched nothing" and maps to nothing: it is the absence of a
+ * function. ONE copy — the tagger and the client's default-domain word both read it.
+ */
+export const ROLE_TO_FUNCTION = Object.freeze({
+  engineering: "engineering", engineering_embedded_firmware: "engineering", data: "data",
+  design: "design", pm: "product", product: "product", sales: "sales", marketing: "marketing",
+  hr: "people", people: "people", legal: "legal", operations: "operations", finance: "finance",
+});
+export const functionForRole = (roleKey) => ROLE_TO_FUNCTION[String(roleKey || "").toLowerCase()] || null;
+
 // ── Metros ──────────────────────────────────────────────────────────────────────────────────────
 //
 // `cities` are [city, state] pairs the tagger recognises after a comma ("Cambridge, MA"). A city in

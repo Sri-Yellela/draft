@@ -48,7 +48,7 @@ test("every field the bar publishes is destructured and mapped by the board", ()
 
   // Each one has to be destructured by the effect that applies barFilters to the board. A field
   // that is published and never read is the same dead control in a new place.
-  const a = panel.indexOf("const { query = \"\", location = \"\", experience = \"\", domain = \"\", status = \"\" } = barFilters");
+  const a = panel.indexOf("const { query = \"\", location = \"\", experience = \"\", domain = \"\", status = \"\" } = bf");
   assert.notEqual(a, -1, "JobsPanel's bar-filter mapping effect moved or changed shape");
   for (const field of published) {
     assert.ok(
@@ -62,7 +62,8 @@ test("the bar's handlers are real functions that reach the board's one channel",
   // Not "are they present" — they were always present. They were `() => {}`.
   assert.ok(!/onSearch=\{\(\) => \{\}\}/.test(app), "onSearch is a no-op");
   assert.ok(!/onLocalFilter=\{\(\) => \{\}\}/.test(app), "onLocalFilter is a no-op");
-  assert.match(app, /applyBarFilters\(params\)/);
+  // D26: the board's bar speaks for `query` only, so a search never resets the dials.
+  assert.match(app, /applyBarFilters\(params, \{ fields: \["query"\] \}\)/);
   // A74: one click, one search — the board no longer has a "live" second click.
   assert.doesNotMatch(app, /applyBarFilters\(params, \{ live: true \}\)/);
   // ...and that channel actually exists on the context both sides share.
@@ -171,7 +172,7 @@ test("applying the bar's filters does not fire a redundant second request", () =
   //
   // The array is the only value in this effect that can change identity without changing meaning;
   // every other setter takes a string. So the guard belongs on it specifically.
-  const a = panel.indexOf('const { query = "", location = "", experience = "", domain = "", status = "" } = barFilters');
+  const a = panel.indexOf('const { query = "", location = "", experience = "", domain = "", status = "" } = bf');
   assert.notEqual(a, -1, "the bar-filter mapping effect moved");
   const effect = panel.slice(a, a + 1600);
   assert.ok(!/setExperienceLevels\(experience \? \[experience\] : \[\]\)/.test(effect),

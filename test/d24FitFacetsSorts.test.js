@@ -30,6 +30,7 @@ import {
 } from "../services/jobs/jobCursor.js";
 import { boardFacetsResponse, facetClauses } from "../services/jobs/boardFacets.js";
 import { at } from "../test-support/sourceAnchors.js";
+import { placesFilterSql } from "../services/jobs/tagFilters.js";
 
 const SERVER = fs.readFileSync("server.js", "utf8");
 const USER = 41, PROFILE = 410, OTHER_USER = 42;
@@ -370,10 +371,15 @@ test("④ ⭐ every facet count IS the board's count with that option chosen —
         // known: of the board's rows under q, those whose THIS-clause column is classified (the
         // contract: "count − known are kept only because their column is unclassified").
         const bq = boardSql(q);
-        const col = { level: "sj.experience_level", where: "sj.workplace_type" }[clause.key];
+        // D29: level and workplace read the tag, falling back to the legacy column on an untagged row
+        // (every row of this fixture); domain reads the function tag; location the place set.
+        const col = { level: "sj.experience_level", where: "sj.workplace_type", domain: "sj.tag_function" }[clause.key];
+        const place = clause.key === "location" ? placesFilterSql([o.value]) : null;
         const knownN = col
           ? db.prepare(`SELECT COUNT(*) n ${bq.joinClause} ${bq.whereClause} AND ${col} IS NOT NULL`).get(...bq.baseArgs).n
-          : o.count;
+          : place
+            ? db.prepare(`SELECT COUNT(*) n ${bq.joinClause} ${bq.whereClause} AND NOT ${place.unknownSql}`).get(...bq.baseArgs).n
+            : o.count;
         assert.equal(o.known, knownN, `known ${clause.key}=${o.value}`);
         assert.ok(o.known <= o.count);
         assert.ok(typeof o.label === "string" && o.label);
@@ -411,10 +417,14 @@ test("④ one statement for the headline and ONE per clause — never one per op
   assert.equal(prepares, 1 + sentence.SENTENCE_CLAUSES.length);
   // Paging and the cursor are never forwarded (a list cursor must not 400 a facets call).
   for (const q of calls) { assert.ok(!("page" in q) && !("cursor" in q)); }
-  // Each clause's base set drops exactly its own params — both of the age control's.
-  assert.deepEqual(Object.keys(calls[1]).sort(), ["ageFilter", "fit_bands", "posted_after", "work_models"]);
-  assert.deepEqual(Object.keys(calls[3]).sort(), ["experience_levels", "fit_bands", "work_models"]);
-  assert.deepEqual(Object.keys(calls[4]).sort(), ["ageFilter", "experience_levels", "posted_after", "work_models"]);
+  // Each clause's base set drops exactly its own params — both of the age control's. (D30: six
+  // clauses, so the calls are found by clause key, in SENTENCE_CLAUSES' order after the headline.)
+  const callFor = (key) => calls[1 + sentence.SENTENCE_CLAUSES.findIndex(c => c.key === key)];
+  assert.deepEqual(Object.keys(callFor("level")).sort(), ["ageFilter", "fit_bands", "posted_after", "work_models"]);
+  assert.deepEqual(Object.keys(callFor("posted")).sort(), ["experience_levels", "fit_bands", "work_models"]);
+  assert.deepEqual(Object.keys(callFor("fit")).sort(), ["ageFilter", "experience_levels", "posted_after", "work_models"]);
+  // The domain dial's base LIFTS the role scope: every function named, nothing narrowed.
+  assert.deepEqual(Object.keys(callFor("domain")).sort(), ["ageFilter", "experience_levels", "fit_bands", "job_functions", "posted_after", "work_models"]);
 });
 
 test("④ same params, same validation: an unknown value is the board's own 400; no profile / empty pool is all zeros", async () => {

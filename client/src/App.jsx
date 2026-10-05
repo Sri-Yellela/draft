@@ -31,6 +31,7 @@ import { AccountPanel }          from "./panels/AccountPanel.jsx";
 import { RecruiterPanel }        from "./panels/RecruiterPanel.jsx";
 import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
 import UnifiedSearchBar          from "./components/UnifiedSearchBar.jsx";
+import BoardHeadline             from "./components/BoardHeadline.jsx";
 import BoardPanelIcons           from "./components/BoardPanelIcons.jsx";
 import { nextBoardPanel, sortRows, isSortChosen, DEFAULT_SORT } from "./lib/filterSentenceModel.js";
 import { ATSToolPage }           from "./pages/tools/ATSToolPage.jsx";
@@ -104,13 +105,29 @@ function PublicLoginRoute({ authStatus, authUser, children, admin = false }) {
 // A74 (owner, 10-03): one click, one search. The bar's double-click (filter, then within 5 s a
 // "live" search through the aggregator) is gone with live scraping; a click commits the filters and
 // the board runs the ranked local search (A72). So only onLocalFilter is handed down.
+//
+// ⛔ D26/D28: on the board the bar is the SEARCH INPUT ONLY (fields="query") — the "All Jobs" status
+// dropdown duplicated the ALL / ★ / /d chips, and level, domain and location are the sentence's dials.
+// So it publishes `query` and nothing else, and the dials' state is never overwritten by a search.
 function BoardSearchBar(props) {
   const { applyBarFilters } = useJobBoard();
   return (
     <UnifiedSearchBar
       {...props}
-      onLocalFilter={params => applyBarFilters(params)}
+      fields="query"
+      onLocalFilter={params => applyBarFilters(params, { fields: ["query"] })}
     />
+  );
+}
+
+// D26/D30: THE SENTENCE IS THE HEADLINE, where "Let's get to work." was. JobsPanel publishes what it
+// projects (the committed clause params); each slot opens the filter panel on its own dial.
+function BoardHeadlineSlot() {
+  const { boardHeadline, setBoardPanel, setFocusDial } = useJobBoard();
+  if (!boardHeadline) return null;
+  return (
+    <BoardHeadline {...boardHeadline}
+      onSlot={(key) => { setFocusDial(key); setBoardPanel("filter"); }} />
   );
 }
 
@@ -495,15 +512,9 @@ function AppDashboard({ authUser, setAuthUser }) {
                     BELOW THE CHROME rather than an absolute offset that cleared it by coincidence. */}
                 <div style={{ textAlign:"center", padding:"34px 20px 40px",
                               animation:"fadeUp 0.6s ease both" }}>
-                  {/* D11: one line, the same for everyone — it was "Your jobs." (or "Welcome back,
-                      <name>.") over "Pick up where you left off." */}
-                  <div style={{
-                    fontFamily:"var(--font-display, 'Instrument Serif', serif)",
-                    fontSize:"clamp(2rem, 5vw, 4rem)", fontWeight:400,
-                    color:"var(--color-text)", letterSpacing:"-0.025em",
-                  }}>
-                    Let's get to work.
-                  </div>
+                  {/* D26/D30: the filter sentence IS the headline — "Now showing all jobs, at any
+                      level, in the United States, any workplace." — replacing D11's caption. */}
+                  <BoardHeadlineSlot />
                 </div>
 
                 {/* The search bar, on Jobs and nowhere else. It no longer carries `tabs` — those are
