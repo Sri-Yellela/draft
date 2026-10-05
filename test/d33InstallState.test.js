@@ -85,6 +85,8 @@ test("the /extension page offers the install ONLY to the signed-out and to not_i
   const connected = card.slice(at(card, 'status.state === "connected"'), at(card, 'status.state === "not_connected"'));
   assert.doesNotMatch(connected, /ExtensionInstallButton|Add to Chrome|Get the extension/);
   assert.match(connected, /Ctrl\+Shift\+K/);
+  // …and the install-and-set-up steps ("Add it to Chrome") are not shown to a connected user.
+  assert.match(page, /\{status\?\.state !== "connected" && \(\s*<ol/);
   // The site shows the capture outcome text as the server gave it.
   assert.match(page, /\{c\.message\}/);
   // Signed-in is learned from /api/auth/me (200 either way), never from a 401 on the status route.

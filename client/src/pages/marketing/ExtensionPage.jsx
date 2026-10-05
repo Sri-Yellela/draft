@@ -176,6 +176,8 @@ export function ExtensionPage() {
         {status && <ExtensionStateCard status={status}/>}
         {status && <RecentCaptures captures={status.recentCaptures}/>}
 
+        {/* D33: the install-and-set-up steps are for someone setting it up — not for a connected user. */}
+        {status?.state !== "connected" && (
         <ol style={{ listStyle: "none", padding: 0, margin: "0 0 56px", display: "flex", flexDirection: "column", gap: 28 }}>
           {STEPS.map((s, i) => (
             <li key={s.title} style={{ display: "flex", gap: 20 }}>
@@ -192,6 +194,7 @@ export function ExtensionPage() {
             </li>
           ))}
         </ol>
+        )}
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
           {FACTS.map(([h, b]) => (
