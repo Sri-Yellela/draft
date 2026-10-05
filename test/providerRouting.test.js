@@ -460,7 +460,7 @@ test("a rate-limited call is RECORDED as a failure, not dropped", async () => {
 test("every callModel call site declares a dataClass", () => {
   // The safe default protects production; this protects INTENT. A new site that forgets is made to
   // choose, rather than inheriting a default that happens to be right today.
-  const files = ["server.js", "services/classifier.js", "services/jobs/enrichJob.js",
+  const files = ["server.js", "services/jobs/enrichJob.js",
                  "services/jobs/importJob.js", "routes/domainProfiles.js"];
   const missing = [];
   for (const file of files) {
@@ -484,7 +484,7 @@ test("the PUBLIC set is exactly the job-text purposes still calling a model", ()
   // production call site routes to a free tier, so a new PUBLIC declaration fails here.
   const expected = new Set([]);
   const found = new Set();
-  const files = ["server.js", "services/classifier.js", "services/jobs/enrichJob.js",
+  const files = ["server.js", "services/jobs/enrichJob.js",
                  "services/jobs/importJob.js", "routes/domainProfiles.js"];
   for (const file of files) {
     const src = fs.readFileSync(file, "utf8");
@@ -505,13 +505,10 @@ test("the PUBLIC set is exactly the job-text purposes still calling a model", ()
     "`classify_job` differ by one word and one of them sends the candidate's resume.");
 });
 
-test("the resume-bearing `classifier` purpose is NOT public", () => {
-  // services/classifier.js sends 2000 chars of the candidate's resume. Its name sits one letter
-  // from `classify_job`, which is genuinely public, and the two are adjacent in every cost report.
-  const src = fs.readFileSync("services/classifier.js", "utf8");
-  assert.match(src, /resumeText\.slice/, "this test is pinned to the resume actually being sent");
-  assert.match(src, /dataClass: DATA_CLASS\.CANDIDATE/);
-  assert.ok(!/dataClass: DATA_CLASS\.PUBLIC/.test(src));
+test("the resume-bearing `classifier` call is gone from draft, not re-routed (A80 V6)", () => {
+  // services/classifier.js sent 2000 chars of the candidate's resume; it was CANDIDATE and never
+  // public. D17 deleted it with /api/smart-search. Back in any form, it must declare CANDIDATE again.
+  assert.equal(fs.existsSync("services/classifier.js"), false);
 });
 
 // ── A 429 LEAVES THE ROW RETRYABLE ──────────────────────────────────────────────────────────────

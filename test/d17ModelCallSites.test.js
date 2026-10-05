@@ -30,8 +30,8 @@ const ALLOWED = new Set([
 // Each entry names its A80 item. Delete the entry in the same commit that removes the call.
 const KNOWN_VIOLATIONS = new Map([
   // V4 closed 10-05: enrich_job's call was deleted from enrichJob.js once A76 landed (pinned below).
+  // V6 closed 10-05: /api/smart-search and services/classifier.js deleted — no UI had called it (pinned below).
   ["domain_chips",   "A80 V3 — /api/domain-profiles/generate-chips"],
-  ["classifier",     "A80 V6 — /api/smart-search sends the résumé to a classifier"],
 ]);
 
 function productionFiles() {
@@ -140,4 +140,15 @@ test("D17 V4: nothing in production starts a model enrichment pass — no cron d
     "enrichJob.js calls a model again — enrichment is export → import only (D17)");
   const route = fs.readFileSync("routes/enrichment.js", "utf8");
   assert.match(route, /status\(410\)[\s\S]{0,80}enrichment_by_model_retired/, "POST /run's apply is refused");
+});
+
+test("D17 V6: no résumé classifier in draft — /api/smart-search and services/classifier.js stay deleted", () => {
+  // The route sent 2,000 chars of the résumé to Haiku to pick a search query. Its only UI, the
+  // Smart Search button, was removed in a68c6c0 (2026-04-14); the route outlived it by six months.
+  // The tools service still classifies INSIDE generate when no role family is sent — that is part of
+  // résumé generation and pinned in resume-master's own ratchet.
+  assert.equal(fs.existsSync("services/classifier.js"), false, "services/classifier.js is back");
+  const src = fs.readFileSync("server.js", "utf8");
+  assert.doesNotMatch(src, /app\.(post|get)\("\/api\/smart-search"/, "/api/smart-search is back");
+  assert.doesNotMatch(src, /from "\.\/services\/classifier\.js"/);
 });
