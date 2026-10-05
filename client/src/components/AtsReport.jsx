@@ -34,9 +34,15 @@
 //     otherwise it is derived from report.score with shared/atsBands.js. The number is the largest
 //     element when it is shown, and ⛔ it is shown only when ATS_NUMBER_SHOWN — A76's corpus is the
 //     condition (A75), not a follow-up.
-//   · "Not enough signal" is the scorer DECLINING — the dashed, hue-less chip (bandStyle), "no
-//     judgement" under it, a dashed hue-less bar, and the decline reasons — never a low grade, and
-//     rendered for every report, including a declined one.
+//   · "Not enough signal" is the scorer DECLINING — the band heading in a dashed, hue-less outline (the
+//     band-unknown tokens), "no judgement" beside it, a dashed hue-less bar, and the decline reasons —
+//     never a low grade, and rendered for every report, including a declined one.
+//
+// ── A86 (10-05) · FIDELITY WITH THE SKETCH (pair2.html) ────────────────────────────────────────────
+//   The band is the sketch's HEADING (the logo face, 800 italic), not a chip; the bar is 6px, flush and
+//   square under the header; each section opens with a ruled label and a monospace count; boxes are
+//   toned — green for what the résumé shows, grey for generic language, the claim red with a FILLED +
+//   square for an ask it does not show. Every value is a token; test/pairFidelityA86.test.js pins them.
 //   · Generic language is separated from real gaps, folded, labelled NOT A GAP, never claimable, and
 //     never counted: its bar segment is drawn (blue, so it never reads as a gap) but it is in neither
 //     side of "9 of 12".
@@ -48,7 +54,6 @@
 import { atsBandFor, atsBandLabel, ATS_BAND, ATS_NUMBER_SHOWN } from "../../../shared/atsBands.js";
 import { profileSignalKey } from "../../../shared/profileSignals.js";
 import { experienceState } from "../../../shared/postingFacts.js";
-import { bandChipStyle } from "../styles/bandStyle.js";
 import { usePairLink } from "../lib/pairLink.js";
 import "../styles/inkPair.css";
 import "./AtsReport.css";
@@ -160,30 +165,36 @@ export function AtsBandCard({ report, band: knownBand = null, compact = false, c
   return (
     <div data-ats-band-card className="ats-sum ink-pair" data-compact={compact ? "true" : "false"}>
       <div className="ats-sum__head">
-        {/* BAND-FIRST: the band is read first; the number, when it is earned, is the largest thing. */}
-        <span data-ats-band className="ats-sum__band" style={bandChipStyle(band, { edgeAlpha: "33" })}>{meta.label}</span>
-        <span className="ats-sum__cap">{isUnknown ? "no judgement" : "fit band"}</span>
+        <div>
+          {/* BAND-FIRST: the band is the heading, read first (pair2.html's .bd). ⛔ "Not enough signal" is
+              the scorer declining — dashed and hue-less (data-unknown), with "no judgement" beside it. */}
+          <div data-ats-band className="ats-sum__band" data-unknown={isUnknown ? "true" : "false"}>{meta.label}</div>
+          {isUnknown && <span className="ats-sum__cap">no judgement</span>}
+          {total > 0 && (
+            <p data-ats-count className="ats-sum__count">You cover {matched} of the {total} things this posting asks for.</p>
+          )}
+        </div>
         {/* ⛔ A75/A76: the number only once A76 has earned it (ATS_NUMBER_SHOWN). Static — nothing counts up. */}
         {ATS_NUMBER_SHOWN && !isUnknown && Number.isFinite(report?.score) && (
-          <span data-ats-score className="ats-sum__score">{Math.round(report.score)}</span>
+          <div data-ats-score className="ats-sum__score">{Math.round(report.score)}<small>ats</small></div>
         )}
       </div>
-      {total > 0 && (
-        <>
-          <div data-ats-count className="ats-sum__count">You cover <b>{matched} of {total}</b> things this posting asks for</div>
-          <AskBar band={band} matched={matched} missing={missing} generic={generic.length} />
-        </>
-      )}
-      {declineReasons.length > 0 && (
-        <ul className="ats-notes">{declineReasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
-      )}
-      {seniority && <div className="ats-note">{seniority.reason}</div>}
-      {hardMisses.length > 0 && (
-        <div data-ats-hard className="ats-note ats-note--hard">
-          Required by this posting, not on your profile: {hardMisses.join(" · ")}
+      {(declineReasons.length > 0 || seniority || hardMisses.length > 0 || children) && (
+        <div className="ats-sum__notes">
+          {declineReasons.length > 0 && (
+            <ul className="ats-notes">{declineReasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
+          )}
+          {seniority && <div className="ats-note">{seniority.reason}</div>}
+          {hardMisses.length > 0 && (
+            <div data-ats-hard className="ats-note ats-note--hard">
+              Required by this posting, not on your profile: {hardMisses.join(" · ")}
+            </div>
+          )}
+          {children}
         </div>
       )}
-      {children}
+      {/* The bar runs flush across the card, under the header (pair2.html's .bar). */}
+      {total > 0 && <AskBar band={band} matched={matched} missing={missing} generic={generic.length} />}
     </div>
   );
 }
@@ -200,11 +211,13 @@ function ExperienceRow({ experience }) {
   const state = experienceState(experience);
   const m = EXPERIENCE_MARK[state] || null;
   return (
-    <div data-ats-experience className="ats-exp" data-state={state || "stated"}>
-      <span className="ats-exp__label">Experience</span>
-      {m && <span className="ats-exp__mark"><span aria-hidden="true">{m.mark}</span> {m.word}</span>}
-      <span className="ats-exp__text">{experience.summary}</span>
-    </div>
+    <section className="ats-sec">
+      <div className="ats-gh"><span className="ats-gh__label">Experience</span></div>
+      <div data-ats-experience className="ats-exp" data-state={state || "stated"}>
+        {m && <b className="ats-exp__mark"><span aria-hidden="true">{m.mark}</span> {m.word}</b>}
+        <span className="ats-exp__text">{experience.summary}</span>
+      </div>
+    </section>
   );
 }
 
@@ -240,6 +253,8 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
   // defect), the Experience row already said it.
   const verdict = report.verdict && report.verdict !== report.experience?.summary ? report.verdict : null;
   const more = verdict || (!isLocalReport && (report.strengths?.length || report.improvements?.length));
+  const hasBody = !!(depth || couldClaim.length || report.experience?.summary || onResume.length
+    || report.action_verbs_generic?.length || more);
 
   return (
     <div data-ats-report className="ats-card ink-pair">
@@ -258,9 +273,11 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
         )}
       </AtsBandCard>
 
+      {hasBody && (
+      <div className="ats-sb">
       {/* The résumé-depth warning sits under the band it qualifies, never above it (band-first). */}
       {depth && (
-        <div className="ats-note">
+        <div className="ats-note ats-sec">
           <div className="ats-note__head">{depth.headline}</div>
           <div>{depth.detail}</div>
         </div>
@@ -269,8 +286,8 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
       {/* ⭐ D32: "YOU COULD CLAIM" IS ONE BLOCK, AND THE ONLY OPEN SECTION — skills, verbs and qualities
           together, each box labelled with the scorer's bucket. */}
       {couldClaim.length > 0 && (
-        <section data-ats-could-claim>
-          <div className="ats-sec__label">You could claim ({couldClaim.length})</div>
+        <section data-ats-could-claim className="ats-sec">
+          <div className="ats-gh"><span className="ats-gh__label">You could claim</span><span className="ats-gh__ct">{couldClaim.length}</span></div>
           <div className="ats-sec__sub">
             {canClaim ? "This posting asks for these and your résumé does not show them. Claim the ones that are true of you."
                       : "This posting asks for these and your résumé does not show them."}
@@ -298,8 +315,8 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
 
       {/* FOLDED: what the résumé already shows. Read-only — there is nothing to do here. */}
       {onResume.length > 0 && (
-        <details data-ats-on-resume className="ats-fold">
-          <summary>Already yours ({onResume.length})</summary>
+        <details data-ats-on-resume className="ats-fold ats-sec">
+          <summary className="ats-gh"><span className="ats-gh__label">Already yours</span><span className="ats-gh__ct">{onResume.length}</span></summary>
           <div className="ats-boxes">
             {onResume.map(({ term, kind }) => (
               <TermBox key={`${kind}:${term}`} term={term} kind={kind} evidencedLookup={evidencedLookup} />
@@ -312,8 +329,8 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
       {/* ⛔ FOLDED AWAY and labelled NOT A GAP — surfacing "Managed" or "collaboration" as a deficiency
           is a claim that is not true. */}
       {report.action_verbs_generic?.length > 0 && (
-        <details data-ats-generic className="ats-fold">
-          <summary>Generic — not a gap ({generic.length})</summary>
+        <details data-ats-generic className="ats-fold ats-sec">
+          <summary className="ats-gh"><span className="ats-gh__label">Generic — not a gap</span><span className="ats-gh__ct">{generic.length}</span></summary>
           {/* ○ Generic Language: never claimable, never counted. */}
           <div className="ats-sec__sub">This job uses these, but almost any candidate could claim them — they are not a gap.</div>
           <div className="ats-boxes">
@@ -324,8 +341,8 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
 
       {/* The verdict and (LLM reports only) strengths and improvements — folded, printed once. */}
       {more && (
-        <details data-ats-more className="ats-fold">
-          <summary>More about this match</summary>
+        <details data-ats-more className="ats-fold ats-sec">
+          <summary className="ats-gh"><span className="ats-gh__label">More about this match</span></summary>
           <div className="ats-more">
             {verdict && <div className="ats-more__verdict">{verdict}</div>}
             {!isLocalReport && report.strengths?.length > 0 && (
@@ -336,6 +353,8 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
             )}
           </div>
         </details>
+      )}
+      </div>
       )}
     </div>
   );
@@ -376,23 +395,28 @@ function TermBox({
       ? "Your resume already shows this"
       : claimed ? "You claimed this — the job description asked for it" : "This job asked for it. Your resume does not show it.";
   const kindLabel = <span className="ats-box__kind">{TERM_KINDS[kind]?.label || kind}</span>;
+  // The box's tone (pair2.html): green for what the résumé shows or the candidate claimed, grey for
+  // generic language, the claim red for an ask the résumé does not show.
+  const tone = generic ? "gen" : (evidenced || claimed) ? "ok" : "claim";
   if (!interactive) {
     return (
-      <span className="ats-box" data-kind={kind} data-claimed={claimed ? "true" : "false"} title={provenance}
+      <span className="ats-box" data-kind={kind} data-tone={tone} data-claimed={claimed ? "true" : "false"} title={provenance}
         tabIndex={link ? 0 : undefined} {...linkProps}>
-        <span className="ats-box__term">{claimed ? `✓ ${k}` : k}</span>{kindLabel}
+        {/* Generic language carries no kind — the sketch's grey boxes are the word alone. */}
+        <span className="ats-box__term">{claimed ? `✓ ${k}` : k}</span>{!generic && kindLabel}
       </span>
     );
   }
   return (
-    <button type="button" className="ats-box ats-box--claim" data-kind={kind} data-claim-chip={claimKind}
+    <button type="button" className="ats-box ats-box--claim" data-kind={kind} data-tone="claim" data-claim-chip={claimKind}
       onClick={() => onToggleClaim(k, !claimed)}
       aria-pressed={claimed}
       title={claimed ? `You claimed "${k}". Click to withdraw it.`
                      : `Claim "${k}" — only if it is true of you. It counts toward this score and toward where this job ranks, and it is used in future resumes.`}
       {...linkProps}>
-      {!claimed && <span className="ats-box__plus" aria-hidden="true">+</span>}
-      <span className="ats-box__term">{claimed ? `✓ ${k}` : k}</span>{kindLabel}
+      {/* The FILLED square: + to claim, ✓ once claimed (pair2.html's .p). aria-pressed carries the state. */}
+      <span className="ats-box__plus" aria-hidden="true">{claimed ? "✓" : "+"}</span>
+      <span className="ats-box__term">{k}</span>{kindLabel}
     </button>
   );
 }

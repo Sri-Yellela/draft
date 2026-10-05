@@ -2,97 +2,145 @@
  *
  * It sits on the pair's surface (styles/inkPair.css: cream in light, ink in dark — decided by the theme,
  * never here). Colours and depth are the pair's tokens only (--c-pair-*, published from
- * styles/colorTokens.js; the band chip keeps the band tokens). D1's depth is --c-pair-lift (rest),
- * --c-pair-lift2 + translateY(-2px) (hover) and --c-pair-press (press), re-derived per theme.
+ * styles/colorTokens.js; "not enough signal" keeps the band tokens). D1's depth is --c-pair-lift (rest),
+ * --c-pair-lift2 + translateY(-2px) (hover) and --c-pair-press (press).
  * ⛔ NOTHING HERE ANIMATES: no transition, no keyframes, no minimum width — the card renders the same in
- * the deck's panel, the board's panel, the phone's sheet and /tools/ats. A hover lifts a box instantly. */
+ * the deck's panel, the board's panel, the phone's sheet and /tools/ats. A hover lifts a box instantly
+ * (the sketch eases it over .15s; D31 forbids motion, so it does not).
+ *
+ * ⭐ A86 (10-05): EVERY VALUE BELOW IS THE OWNER'S SKETCH, pair2.html (.shd · .bd · .n · .bar · .sb ·
+ * .gh · .ct · .sub · .b · .kind · .b.ok · .b.gen · .b.cl · .p · .claimnote · .xp). */
 
-.ats-card { padding: 16px; display: flex; flex-direction: column; gap: 14px; border-radius: 18px; }
+.ats-card { border-radius: 18px; overflow: hidden; box-shadow: var(--c-pair-card-shadow); }
 
-/* ── The header: band · "you cover 9 of 12" · (score) · one three-segment bar ─────────────────── */
-.ats-sum {
-  border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
-  background: var(--c-pair-raised);
+/* ── The header (.shd): band heading · "you cover 9 of the 12" · (score) — then the flush bar ──────── */
+.ats-sum { border-radius: 18px; overflow: hidden; box-shadow: var(--c-pair-card-shadow); }
+/* Inside the full report the header is the card's top, not a card of its own. */
+.ats-card .ats-sum { border: 0; border-radius: 0; box-shadow: none; }
+.ats-sum__head {
+  padding: 20px 24px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;
+  background: linear-gradient(180deg, var(--c-pair-mast-tint), transparent);
 }
-.ats-sum[data-compact="true"] { padding: 12px 14px; }
-.ats-sum__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.ats-sum__band { padding: 7px 12px; border-radius: 9px; font-weight: 900; font-size: 15px; line-height: 1.2; }
-.ats-sum__cap { font-size: 11px; color: var(--c-pair-ink-muted); }
-/* The number in SERIF ACCENT — the largest element when A76 lets it show. */
+.ats-sum[data-compact="true"] .ats-sum__head { padding: 14px 16px; }
+/* The band IS the heading — the logo face, 800 italic (.bd). */
+.ats-sum__band {
+  display: inline-block; margin-bottom: 5px;
+  font-family: 'Poppins', var(--font-body); font-style: italic; font-weight: 800; font-size: 20px; line-height: 1.1;
+  color: var(--c-pair-hi);
+}
+/* ⛔ NOT ENOUGH SIGNAL is the scorer declining — no hue, a DASHED outline: never a low grade. */
+.ats-sum__band[data-unknown="true"] {
+  padding: 4px 10px; border-radius: 9px; border: 1.5px dashed var(--c-band-unknown-edge); color: var(--c-band-unknown);
+}
+.ats-sum__cap { margin-left: 8px; font-size: 11px; color: var(--c-pair-ink-faint); }
+.ats-sum__count { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--c-pair-ink-faint); }
+/* The number in SERIF ACCENT (.n) — the largest element when A76 lets it show. */
 .ats-sum__score {
-  margin-left: auto; font-family: var(--font-display); font-weight: 400; font-size: 46px; line-height: 1;
+  font-family: var(--font-display); font-weight: 400; font-size: 46px; line-height: 1; text-align: right;
   color: var(--c-pair-accent);
 }
-.ats-sum__count { font-size: 13px; color: var(--c-pair-ink-muted); line-height: 1.45; }
-.ats-sum__count b { font-size: 15px; font-weight: 800; color: var(--c-pair-ink); }
+.ats-sum__score small {
+  display: block; margin-top: 4px; font-family: var(--font-body); font-size: 7.5px; font-weight: 700; line-height: 1;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--c-pair-ink-faint);
+}
+.ats-sum__notes { padding: 0 24px 16px; display: flex; flex-direction: column; gap: 8px; }
+.ats-sum[data-compact="true"] .ats-sum__notes { padding: 0 16px 12px; }
 
-/* The bar: THREE segments — matched · missing · generic. Generic is blue so it never reads as a gap. */
-.ats-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; box-sizing: border-box; gap: 2px; }
+/* The bar (.bar): THREE flush segments, 6px, square — matched · missing · generic (grey: never a gap). */
+.ats-bar { display: flex; height: 6px; box-sizing: border-box; }
 .ats-bar__seg { height: 100%; }
 .ats-bar__seg--matched { background: var(--c-pair-matched); }
 .ats-bar__seg--missing { background: var(--c-pair-missing); }
 .ats-bar__seg--generic { background: var(--c-pair-generic); }
-/* ⛔ NOT ENOUGH SIGNAL is the scorer declining — no hue, no fill, a DASHED outline. It never looks
- * like a short Weak bar: every segment loses its colour. */
+/* ⛔ NOT ENOUGH SIGNAL: every segment loses its colour, the bar is a DASHED outline — never a short Weak bar. */
 .ats-bar[data-unknown="true"] { border: 1.5px dashed var(--c-band-unknown-edge); }
 .ats-bar[data-unknown="true"] .ats-bar__seg { background: transparent; }
 
 .ats-notes { margin: 0; padding-left: 16px; font-size: 11.5px; line-height: 1.6; color: var(--c-pair-ink-muted); }
 .ats-note {
-  font-size: 11.5px; line-height: 1.6; padding: 6px 10px; border-radius: 9px;
-  background: var(--c-pair-surface); color: var(--c-pair-ink-muted); border: 1px solid var(--c-pair-rule);
+  font-size: 11.5px; line-height: 1.6; padding: 8px 11px; border-radius: 9px;
+  background: var(--c-pair-raised); color: var(--c-pair-ink-muted); border: 1px solid var(--c-pair-rule);
 }
-.ats-note__head { font-weight: 800; color: var(--c-pair-ink); margin-bottom: 2px; }
+.ats-note__head { font-weight: 700; color: var(--c-pair-ink); margin-bottom: 2px; }
 .ats-note--hard { color: var(--c-pair-missing); }
-.ats-note[data-best="reached"] { background: var(--c-pair-met-quiet); color: var(--c-pair-matched); }
+.ats-note[data-best="reached"] { background: var(--c-pair-met-quiet); color: var(--c-pair-matched); border-color: var(--c-pair-matched-edge); }
 
-/* ── Sections ─────────────────────────────────────────────────────────────────────────────────── */
-.ats-sec__label {
-  font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--c-pair-ink-faint);
-  margin-bottom: 4px;
+/* ── The body (.sb) and its sections, each headed by a .gh with a monospace count ─────────────────── */
+.ats-sb { padding: 19px 22px 22px; border-top: 1px solid var(--c-pair-rule); }
+.ats-sec + .ats-sec { margin-top: 21px; padding-top: 18px; border-top: 1px solid var(--c-pair-rule); }
+.ats-gh {
+  margin: 0 0 12px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  font-family: var(--font-body); font-size: 9px; font-weight: 700; line-height: 1; letter-spacing: .15em;
+  text-transform: uppercase; color: var(--c-pair-ink-faint);
 }
-.ats-sec__sub { font-size: 11px; color: var(--c-pair-ink-muted); margin: 2px 0 10px; line-height: 1.5; }
+.ats-gh__ct {
+  font-family: var(--font-count); font-size: 10px; font-weight: 700; line-height: 1; letter-spacing: 0;
+  background: var(--c-pair-raised); border: 1px solid var(--c-pair-rule); border-radius: 6px; padding: 3px 7px;
+  color: var(--c-pair-ink-faint);
+}
+.ats-sec__sub { font-size: 11.5px; color: var(--c-pair-ink-faint); margin: -6px 0 12px; line-height: 1.5; }
 .ats-boxes { display: flex; flex-wrap: wrap; gap: 8px; }
-.ats-fold > summary {
-  font-size: 12px; font-weight: 700; color: var(--c-pair-ink-muted); cursor: pointer; padding: 4px 0;
-}
+/* A fold's summary IS its .gh; a caret says it opens. */
+.ats-fold > summary { cursor: pointer; list-style: none; }
+.ats-fold > summary::-webkit-details-marker { display: none; }
+.ats-fold > summary .ats-gh__label::before { content: "▸ "; }
+.ats-fold[open] > summary .ats-gh__label::before { content: "▾ "; }
+.ats-fold:not([open]) > summary { margin-bottom: 0; }
 .ats-fold > summary:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; border-radius: 4px; }
-.ats-fold[open] > summary { margin-bottom: 8px; }
-.ats-claim-note { font-size: 10.5px; color: var(--c-pair-ink-muted); font-style: italic; line-height: 1.6; margin-top: 10px; }
+.ats-claim-note { font-size: 11px; color: var(--c-pair-ink-faint); font-style: italic; line-height: 1.55; margin-top: 11px; }
 
-/* ── Experience: its own row, pass/fail ──────────────────────────────────────────────────────── */
+/* ── Experience (.xp): its own row, pass/fail ────────────────────────────────────────────────── */
 .ats-exp {
-  display: grid; grid-template-columns: auto auto 1fr; align-items: baseline; gap: 4px 10px;
-  padding: 10px 12px; border-radius: 9px; background: var(--c-pair-raised); border: 1px solid var(--c-pair-rule);
-  font-size: 12px; line-height: 1.5; color: var(--c-pair-ink-muted);
+  display: flex; align-items: center; gap: 11px; padding: 11px 13px; border-radius: 10px;
+  background: var(--c-pair-raised); border: 1px solid var(--c-pair-rule); box-shadow: var(--c-pair-lift);
+  font-size: 12.5px; line-height: 1.5; color: var(--c-pair-ink-muted);
 }
-.ats-exp__label { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--c-pair-ink-faint); }
-.ats-exp__mark { font-weight: 800; color: var(--c-pair-ink); white-space: nowrap; }
-.ats-exp[data-state="met"] { background: var(--c-pair-met-quiet); }
+.ats-exp__mark {
+  flex: 0 0 auto; white-space: nowrap; color: var(--c-pair-ink);
+  font-family: 'Poppins', var(--font-body); font-style: italic; font-weight: 800; font-size: 12.5px; line-height: 1;
+}
+.ats-exp[data-state="met"] { background: var(--c-pair-met-quiet); border-color: var(--c-pair-matched-edge); color: var(--c-pair-matched); }
 .ats-exp[data-state="met"] .ats-exp__mark { color: var(--c-pair-matched); }
+.ats-exp[data-state="short"] { background: var(--c-pair-missing-quiet); border-color: var(--c-pair-missing-edge); color: var(--c-pair-missing); }
 .ats-exp[data-state="short"] .ats-exp__mark { color: var(--c-pair-missing); }
 
-/* ── Boxes. RECTANGULAR (radius 9), D1's depth at rest. A claim box is a CONTROL: it lifts on hover and
- * settles on press. A read-only box is a label: it rests, and never pretends to be pressable. */
+/* ── Boxes (.b). RECTANGULAR (radius 9), D1's depth at rest. A claim box is a CONTROL: it lifts on hover
+ * and settles on press. A read-only box is a label: it rests, and never pretends to be pressable. */
 .ats-box {
-  display: inline-flex; align-items: baseline; gap: 7px; max-width: 100%; box-sizing: border-box;
-  padding: 6px 10px; border-radius: 9px; font: inherit; font-size: 12.5px; font-weight: 700; line-height: 1.35;
+  display: inline-flex; align-items: center; gap: 9px; max-width: 100%; box-sizing: border-box;
+  padding: 8px 11px; border-radius: 9px; font: inherit; font-size: 12.5px; font-weight: 400; line-height: 1.35;
   background: var(--c-pair-raised); color: var(--c-pair-ink); border: 1px solid var(--c-pair-rule);
   box-shadow: var(--c-pair-lift); overflow-wrap: anywhere; text-align: left;
 }
+/* The `kind` (.kind): a small label behind a hairline, at the sketch's reduced opacity — raised from .62 to
+ * the least that still reads at 4.5:1 on every box (PAIR_KIND_ALPHA, per theme). */
 .ats-box__kind {
-  font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--c-pair-ink-faint);
+  font-family: var(--font-body); font-size: 7.5px; font-weight: 700; line-height: 1; letter-spacing: .11em;
+  text-transform: uppercase; opacity: var(--c-pair-kind-alpha);
+  border-left: 1px solid var(--c-pair-rule); padding-left: 9px; margin-left: 1px;
 }
-.ats-box[data-claimed="true"] { background: var(--c-pair-met-quiet); color: var(--c-pair-matched); }
+.ats-box[data-tone="ok"] { background: var(--c-pair-met-quiet); border-color: var(--c-pair-matched-edge); color: var(--c-pair-matched); }
+.ats-box[data-tone="gen"] { background: var(--c-pair-generic-quiet); border-color: var(--c-pair-generic-edge); color: var(--c-pair-generic); }
+.ats-box[data-tone="claim"] { border-color: var(--c-pair-missing-edge); color: var(--c-pair-missing); }
 .ats-box:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; }
-.ats-box--claim { cursor: pointer; border: 1.5px dashed var(--c-pair-edge); }
-.ats-box--claim:hover { transform: translateY(-2px); box-shadow: var(--c-pair-lift2); border-color: var(--c-pair-kicker); }
+.ats-box--claim { cursor: pointer; }
+.ats-box--claim:hover { transform: translateY(-2px); box-shadow: var(--c-pair-lift2); }
 .ats-box--claim:active { transform: translateY(0); box-shadow: var(--c-pair-press); }
-.ats-box--claim[aria-pressed="true"] { border-style: solid; border-color: var(--c-pair-matched); background: var(--c-pair-met-quiet); color: var(--c-pair-matched); }
-.ats-box__plus { font-weight: 900; color: var(--c-pair-kicker); }
+.ats-box--claim[aria-pressed="true"] { background: var(--c-pair-met-quiet); border-color: var(--c-pair-matched-edge); color: var(--c-pair-matched); }
+/* The FILLED + square (.p) — the claim box's indicator; a ✓ on the green once claimed. */
+.ats-box__plus {
+  flex: 0 0 auto; width: 17px; height: 17px; border-radius: 5px; display: grid; place-items: center;
+  background: var(--c-pair-missing); color: var(--c-pair-surface);
+  font-family: var(--font-body); font-size: 13px; font-weight: 700; line-height: 1;
+}
+.ats-box--claim[aria-pressed="true"] .ats-box__plus { background: var(--c-pair-matched); }
 
 /* ── More about this match ───────────────────────────────────────────────────────────────────── */
+.ats-sec__label {
+  font-size: 9px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; color: var(--c-pair-ink-faint);
+  margin-bottom: 8px;
+}
 .ats-more { display: flex; flex-direction: column; gap: 10px; }
-.ats-more__verdict { font-size: 12px; color: var(--c-pair-ink-muted); font-style: italic; line-height: 1.6; }
+.ats-more__verdict { font-size: 12.5px; color: var(--c-pair-ink-muted); font-style: italic; line-height: 1.6; }
 .ats-list { display: flex; flex-direction: column; gap: 6px; }
-.ats-list__item { display: flex; gap: 8px; font-size: 12px; color: var(--c-pair-ink-muted); line-height: 1.6; }
+.ats-list__item { display: flex; gap: 8px; font-size: 12.5px; color: var(--c-pair-ink-muted); line-height: 1.6; }
