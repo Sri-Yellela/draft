@@ -28,7 +28,9 @@ import { callProvider } from "./providerTransport.js";
 // person text" is, and a test can assert it per site.
 //
 // PUBLIC   — job descriptions, titles, requirements: text a company published about itself.
-//            enrich_job (60.2% of all spend). (classify_job: deleted, D17 V7; import_job: deleted, D33.)
+//            No production call site is PUBLIC any more: enrich_job (60.2% of all spend at its peak)
+//            was deleted by A80 (10-05); classify_job by D17 V7; import_job by D33. A script may
+//            still declare it (scripts/al1ProviderQualityDiff.mjs, O57e).
 // CANDIDATE — anything derived from a person. resume_generate, enhanceProfileResume, parse-pdf,
 //            cover letters, domainProfiles suggestions. These stay on Anthropic. Redaction is NOT
 //            part of this: a call site either sends public text or it does not.

@@ -49,6 +49,7 @@ import { EXPERIENCE_LEVELS, WORK_MODELS, valueSet } from '../../shared/jobFilter
 import {
   openBatch, closeBatch, captureBefore, recordBatchRow, columnChanges, batchProvenanceAvailable,
 } from './enrichmentBatches.js';
+import { notifyEnrichmentApplied } from './enrichJob.js';
 
 /** Posting fields that describe the SOURCE. Exported for context; never writable on import. */
 export const SOURCE_FIELDS = [
@@ -485,6 +486,10 @@ export function applyImport(db, jsonlText, {
       coverage: { perColumn: plan.perColumn, overwrite, allowStale, forced: !plan.valid },
     });
   }
+
+  // A52: rows whose text-derived columns moved have stale stored scores. The model pass that used
+  // to say so is deleted (A80), so the import — the only enrichment write left — says it instead.
+  if (written > 0) notifyEnrichmentApplied({ enriched: written, batchId, batchSource: 'import' });
 
   return { ok: true, plan, written, batchId };
 }

@@ -130,16 +130,9 @@ test("⛔ nothing writes a merge back into company_technographics", () => {
   }
 });
 
-test("the write path de-dups on the CANONICAL key, so no NEW variants accumulate", () => {
-  // This is where the 412 came from: the de-dup keyed on the exact spelling, so one posting listing
-  // both "problem-solving" and "problem solving" incremented two rows AND counted itself twice.
-  const src = fs.readFileSync("services/jobs/enrichJob.js", "utf8");
-  assert.match(src, /const key = canonicalSkillKey\(skill, synonyms\)/);
-  assert.match(src, /seen\.has\(key\)/);
-  // But the RAW spelling is still what is stored — it is the provenance.
-  assert.match(src, /upsertStmt\.run\(\{ company, skill,/,
-    "the stored skill must remain the raw one; only the de-dup decision is canonical");
-});
+// (A80, 10-05) "the write path de-dups on the CANONICAL key" retired: the only writer of
+// company_technographics was enrichJob.js's model pass, deleted under D17. A new writer must
+// de-dup on canonicalSkillKey and store the raw spelling, as that one did.
 
 // ── THE SURFACE ─────────────────────────────────────────────────────────────────────────────────
 

@@ -27,6 +27,11 @@
 // It PROVES that the user stated it and that what they gave matches this employer. It does NOT
 // prove the employer received it — only their reply does (Applications → Outcome, AK1). A reference
 // number in particular is taken on trust: we cannot look it up.
+//
+// D16: recording a submission (recorded OR verified, by the user or the pipeline) also copies the
+// résumé onto the record, once — what was sent, kept for The Table's download. See
+// services/applicationArtifacts.js. It runs AFTER the record's transaction and never throws into it.
+import { snapshotResumeForRecord } from "./applicationArtifacts.js";
 
 import { buildHistory, matchesSearch } from "../shared/applicationHistory.js";
 
@@ -229,7 +234,8 @@ function persist(db, userId, jobId, origin, fields, verification, capturedAtsAtA
            now, verification.verified ? now : null, JSON.stringify(verification), now, userId, String(jobId));
     if (verification.verified) writeApplication(db, { userId, jobId, job, record: fields, capturedAtsAtApply });
   })();
-  return { state, verification, record: readRecord(db, userId, jobId) };
+  const artifact = snapshotResumeForRecord(db, { userId, jobId });
+  return { state, verification, record: readRecord(db, userId, jobId), artifact };
 }
 
 /**
@@ -325,7 +331,12 @@ export function listHistory(db, userId, { q = "", now = nowSec(), limit = 500 } 
     jobs.push(...all(`SELECT job_id, title, company, apply_url, url, description FROM scraped_jobs
                        WHERE job_id IN (${chunk.map(() => "?").join(",")})`, ...chunk));
   }
-  const rows = buildHistory({ records, applications, resumes, approvals, jobs }, { now });
+  // D16's kept copies — metadata only, never the body. Joined through the record so another user's
+  // artifact can never appear (application_artifacts has no user_id of its own).
+  const artifacts = all(`SELECT aa.record_id, aa.source, aa.created_at FROM application_artifacts aa
+                          JOIN application_records ar ON ar.id = aa.record_id
+                          WHERE ar.user_id = ? AND aa.kind = 'resume'`, userId);
+  const rows = buildHistory({ records, applications, resumes, approvals, jobs, artifacts }, { now });
   const text = new Map(jobs.map(j => [String(j.job_id), j.description]));
   return rows.filter(r => matchesSearch(r, text.get(r.jobId), q));
 }

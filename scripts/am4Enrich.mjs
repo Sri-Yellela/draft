@@ -38,12 +38,10 @@
 
 import "dotenv/config";
 import Database from "better-sqlite3";
-import Anthropic from "@anthropic-ai/sdk";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { runEnrichment } from "../services/jobs/enrichJob.js";
 import {
   selectCandidates, estimateCost, columnCoverage, diffCoverage,
   DEFAULT_MAX_LAST_SEEN_DAYS, SOURCE_SILENT_COLUMNS,
@@ -97,15 +95,6 @@ if (!cmd || flag("help") || flag("h")) {
 }
 if (!fs.existsSync(DB_PATH)) die(`no database at ${DB_PATH}`);
 const db = new Database(DB_PATH);
-
-function anthropicOrDie() {
-  const key = process.env.ANTHROPIC_KEY || process.env.ANTHROPIC_API_KEY || "";
-  // runEnrichment degrades to a logged no-op without a client. Failing here instead means "I ran
-  // it" can never quietly mean "it skipped" — the same reason scripts/runEnrichment.mjs refuses.
-  if (!key) die("No ANTHROPIC_KEY (or ANTHROPIC_API_KEY). Refusing to run — enrichment would " +
-                "silently skip rather than fail.");
-  return new Anthropic({ apiKey: key });
-}
 
 /** The dry run. Shared by `run` and printed before any --apply, so both see the same numbers. */
 function reportPlan() {
@@ -163,46 +152,9 @@ if (cmd === "run") {
   }
 
   // ⛔ D17 (A80 V4, 10-03): enrichment no longer calls a model. The dry run above still counts the
-  // backlog; --apply refuses, and the code below it stays only until the A76 round-trip work lands.
+  // backlog; --apply refuses. The model pass it used to run was deleted with enrichJob.js's call (A80, 10-05).
   die("`run --apply` is retired: enrichment no longer calls a model (D17). Use `export --out FILE`, " +
       "enrich the file outside the product, then `import FILE` (dry run) and `import FILE --apply`.");
-  const anthropic = anthropicOrDie();
-  const ids = considered.map(r => r.job_id);
-  const before = columnCoverage(db, { jobIds: ids });
-  console.log(`\n${bar()}\nAPPLYING — up to ${considered.length} row(s), est. ceiling $${est.usd.toFixed(4)}\n${bar()}`);
-
-  const batchIds = [];
-  let pass = 0;
-  for (;;) {
-    pass++;
-    const res = await runEnrichment(db, anthropic, {
-      // The pass is restricted to the rows the dry run priced. Without this the batch size and the
-      // ordering could pick up rows the estimate never covered, and the quoted number would be
-      // about a different set than the spend.
-      jobIds: ids,
-      batchSize: LIMIT != null ? Math.min(LIMIT, 25) : 25,
-      maxLastSeenDays: MAX_LAST_SEEN,
-      batchSource: "manual",
-      batchNotes: `scripts/am4Enrich.mjs run --apply${LIMIT != null ? ` --limit ${LIMIT}` : ""}`,
-      recordRun: true,
-    });
-    if (res.batchId) batchIds.push(res.batchId);
-    console.log(`pass ${pass}: enriched=${res.enriched} failed=${res.failed} empty=${res.empty} ` +
-                `remaining=${res.skipped} batch=${res.batchId ?? "none"}`);
-    if (!flag("all")) break;
-    if (!res.enriched) { console.log("no progress this pass — stopping"); break; }
-  }
-
-  const d = printCoverage(before, columnCoverage(db, { jobIds: ids }), "coverage for the rows this run touched");
-  console.log(`\nbatches: ${batchIds.join(", ") || "none"}`);
-  // U1.5 — "If coverage does not climb with the count, STOP." Said in the exit code, so a wrapper
-  // or a CI step can act on it rather than having to parse this output.
-  if (!d.climbed) {
-    console.error("\n⛔ NO COLUMN GAINED A VALUE. Task U1.5: if coverage does not climb with the " +
-                  "count, STOP — do not scale this up. Check the provider and model before rerunning.");
-    process.exit(3);
-  }
-  process.exit(0);
 }
 
 if (cmd === "export") {
