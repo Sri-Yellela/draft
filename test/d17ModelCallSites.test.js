@@ -218,3 +218,14 @@ test("D17 V9: the provider-comparison script stays deleted", () => {
   // production call for it to compare, and its Anthropic arm spent tokens on every row.
   assert.equal(fs.existsSync("scripts/al1ProviderQualityDiff.mjs"), false);
 });
+
+test("D17 V12: the enrichment scripts cannot run a model pass — runEnrichment.mjs is gone, am4Enrich run --apply refuses", () => {
+  // runEnrichment.mjs had been a refusing stub since V4; it is deleted. am4Enrich keeps `run` as a
+  // dry-run backlog count, and its --apply dies naming export → import.
+  assert.equal(fs.existsSync("scripts/runEnrichment.mjs"), false, "scripts/runEnrichment.mjs is back");
+  const am4 = fs.readFileSync("scripts/am4Enrich.mjs", "utf8");
+  assert.match(am4, /die\("`run --apply` is retired: enrichment no longer calls a model \(D17\)/);
+  assert.match(am4, /if \(cmd === "export"\)/);
+  assert.match(am4, /if \(cmd === "import"\)/);
+  assert.doesNotMatch(codeOf(am4), REACHES_A_MODEL);
+});
