@@ -37,7 +37,8 @@ const SECTION_FIELDS = [
   "matched_skills", "missing_skills", "matched_verbs", "missing_verbs", "generic_verbs",
 ];
 const READS_SECTION = new RegExp(`\\.(${SECTION_FIELDS.join("|")})\\b`);
-const HEADINGS = /Skills Matched|Skills Missing|Competencies Missing|Verbs Missing|Generic Language|Experience Fit|Profile Facts Missing|"fit band"|"no judgement"/;
+// D31 (10-04): the simple card's three section headings are a report's headings too.
+const HEADINGS = /Skills Matched|Skills Missing|Competencies Missing|Verbs Missing|Generic Language|Experience Fit|Profile Facts Missing|"fit band"|"no judgement"|You could claim|Already on your r[eé]sum[eé]|Generic — not a gap/;
 
 /** Every file, other than the one, that draws or reads an ATS report. Pure, so violations can be injected. */
 export function secondReports(sources) {
@@ -88,6 +89,8 @@ test("the guard goes red on a second report (injected)", () => {
     "\nfunction toPanelReport(r) { return { tier1_matched: r.skillsMatched }; }\n").length, 1, "deck re-grows its adapter");
   assert.equal(injected("client/src/components/JobCard.jsx",
     '\nconst h = <div className="rm-section-label">✓ Skills Matched</div>;\n').length, 1, "a heading copied into a card");
+  assert.equal(injected("client/src/components/JobCard.jsx",
+    '\nconst h = <summary>Already on your résumé (3)</summary>;\n').length, 1, "D31: the simple card's fold copied into a card");
   assert.equal(injected("client/src/components/SignupAtsHook.jsx",
     "\nconst y = report.decline_reasons.map(r => r);\n").length, 1, "the hook draws its own decline list");
   // A mention in a comment is not an implementation.
