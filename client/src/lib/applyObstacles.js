@@ -111,6 +111,14 @@ const BY_REASON = {
     action: "Generate one for this job, and it will be attached on the next run",
     protective: false, retryable: true, resumeBlocked: true,
   },
+  // D36: the résumé EXISTS — it was generated and scored — but turning it into the PDF the form
+  // uploads failed. NOT resumeBlocked: offering "Generate a resume" here sends the user to make a
+  // document they already have, which is exactly what `resume_unavailable` used to tell them.
+  resume_pdf_failed: {
+    obstacle: "Your résumé was written, but it could not be turned into a PDF to attach",
+    action: "Draft it again — the résumé is kept and reused, so nothing is regenerated",
+    protective: false, retryable: true, resumeBlocked: false,
+  },
   generation_failed: {
     obstacle: "The resume for this job could not be generated",
     action: "Generate one for this job and try again",
