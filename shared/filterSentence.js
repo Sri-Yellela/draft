@@ -73,6 +73,34 @@ export const SENTENCE_WORDS = Object.freeze({
   fit: { [ATS_BAND.STRONG]: "strong", [ATS_BAND.MODERATE]: "moderate", [ATS_BAND.WEAK]: "weak" },
 });
 
+// D35 · THE WORDS AN OPTION READS AS IN ITS PANEL (header.html: "entry", "remote", "on-site", "the Bay
+// Area"). Lower-case, sentence-like, so the panel reads as the same voice as the sentence it opens
+// from; where the sentence's own word fits (level, fit) the sentence's word is used, so there is one
+// vocabulary. Keyed by the dimension's values, so a value with no word here is caught by the D35 test.
+export const PANEL_WORDS = Object.freeze({
+  where: { remote: "remote", hybrid: "hybrid", onsite: "on-site" },
+  posted: { "1d": "today", "2d": "the last 2 days", "3d": "the last 3 days", "1w": "this week", "1m": "this month" },
+});
+
+/** What one option reads as in its panel (D35). */
+export function panelWord(clause, value) {
+  const o = clause.dim.options.find(x => x.value === value);
+  switch (clause.key) {
+    case "domain":   return o?.sentence ?? value;
+    case "level":    return SENTENCE_WORDS.level[value] ?? value;
+    case "location": return o?.label ?? value;
+    case "where":    return PANEL_WORDS.where[value] ?? value;
+    case "posted":   return PANEL_WORDS.posted[value] ?? value;
+    case "fit":      return SENTENCE_WORDS.fit[value] ?? value;
+    default:         return o?.label ?? value;
+  }
+}
+
+/** What a clause's "nothing chosen" option reads as in its panel — location's is the floor itself. */
+export function panelAnyWord(clause) {
+  return clause.floor ? clause.any.replace(/^in /, "") : clause.any;
+}
+
 const or = (words) => words.length <= 2 ? words.join(" or ") : `${words.slice(0, -1).join(", ")} or ${words.at(-1)}`;
 
 /** The values chosen for a clause, always as an array. */
@@ -150,15 +178,19 @@ export function sentenceText(params = {}, opts = {}) {
 // tie-break VISIBLE — a coarse score produces many ties, and they used to fall to insertion order
 // silently. `tieBreak` is the contract the ORDER BY must implement, in this order, ending in a
 // unique key so the order is total. `companyAsc` is new (the server half adds it to SORTS).
+//
+// D35 · each row also carries the two words its option reads as in the header's sort panel
+// (header.html: "Best fit · ats", "Newest · posted", "Salary · high", "Company · A–Z") — `short` the
+// option, `tag` its small mono note. The labels above are unchanged; the panel reads these.
 export const SORT_PANEL = Object.freeze([
   { value: "atsScore",   label: "Best fit",    subtitle: "Your strongest matches first.",
-    tieBreak: ["newest first", "then company A–Z"], unscoredLast: true },
+    tieBreak: ["newest first", "then company A–Z"], unscoredLast: true,  short: "Best fit", tag: "ats" },
   { value: "dateDesc",   label: "Newest",      subtitle: "Most recently posted first. Shows everything.",
-    tieBreak: ["best fit first", "then company A–Z"], unscoredLast: false },
+    tieBreak: ["best fit first", "then company A–Z"], unscoredLast: false, short: "Newest", tag: "posted" },
   { value: "compHigh",   label: "Salary",      subtitle: "Highest stated pay first; no stated pay sorts last.",
-    tieBreak: ["newest first", "then company A–Z"], unscoredLast: false },
+    tieBreak: ["newest first", "then company A–Z"], unscoredLast: false, short: "Salary", tag: "high" },
   { value: "companyAsc", label: "Company A–Z", subtitle: "Alphabetical by company.",
-    tieBreak: ["newest first"], unscoredLast: false },
+    tieBreak: ["newest first"], unscoredLast: false, short: "Company", tag: "A–Z" },
 ]);
 
 // ── GET /api/jobs/facets — the response the sentence reads its counts from ──────────────────────

@@ -64,25 +64,23 @@ export function JobBoardProvider({ children }) {
   // and not a decoration.
   const [activeFilterCount, setActiveFilterCount] = useState(0);
 
-  // -- D24: the two panels behind the two icons -----------------------------------------------
+  // -- D35: the ONE panel the header can show ------------------------------------------------
   //
-  // ⛔ BOTH CLOSED BY DEFAULT — the board starts right under the search bar. ONE value, not two
-  // booleans: null | "filter" (the sentence) | "sort" (the sort panel), so the two are mutually
-  // exclusive by construction (lib/filterSentenceModel.js's nextBoardPanel). The icons are in
-  // App.jsx; the panels render in JobsPanel, which owns the filters and the facets answer — the
-  // same split W4 made for the drawer, for the same reason.
+  // ⛔ CLOSED BY DEFAULT, and ONE value, not booleans: null | a clause key (the sentence word whose
+  // options are open beneath it) | "more" (the sentence's "+ add") | "sort" (the bar's ⇅). So two
+  // open panels is not a state the board can hold (lib/filterSentenceModel.js's nextBoardPanel). The
+  // header is App.jsx's; JobsPanel, which owns the filters and the facets answer, publishes them.
   //
-  // `filterPanelOpen` above is still the DRAWER — the filters that are not clauses — reached from the
-  // sentence's "More filters".
+  // ⛔ D35 DELETED the filter icon and its panel: the words are the filters, so the icon's badge
+  // (activeClauseCount) and the dial it was asked to open (focusDial) have nothing left to serve.
+  //
+  // `filterPanelOpen` above is still the DRAWER — the filters that are not words — reached from the
+  // sentence's "+ add → salary & more".
   const [boardPanel, setBoardPanel] = useState(null);
-  // The filter icon's badge: how many of the sentence's clauses carry a choice (activeClauseCount,
-  // shared/filterSentence.js). Published upward by JobsPanel, which holds the committed filters.
-  const [activeClauseCount, setActiveClauseCount] = useState(0);
-  // D26/D30 · THE SENTENCE IS THE HEADLINE. App.jsx renders it where the "Let's get to work." caption
-  // was; JobsPanel, which holds the committed filters, publishes what it projects ({ params,
-  // defaultDomain, nothingMatches }). `focusDial` is which dial a headline slot asked to open.
+  // D26/D30/D35 · THE SENTENCE IS THE HEADLINE. App.jsx renders it; JobsPanel, which holds the
+  // committed filters, publishes what it projects ({ params, defaultDomain, nothingMatches, facets,
+  // facetsStatus, otherFilterCount, onPatch, onMoreFilters }).
   const [boardHeadline, setBoardHeadline] = useState(null);
-  const [focusDial, setFocusDial] = useState(null);
 
   // D26 · the board's bar now publishes ONLY `query`. A key it does not publish is not "cleared": the
   // level, domain and location it used to carry live in the sentence's dials, and spreading
@@ -127,8 +125,8 @@ export function JobBoardProvider({ children }) {
       barFilters, applyBarFilters, liveSearchTick,
       atsSortAvailable, setAtsSortAvailable,
       filterPanelOpen, setFilterPanelOpen, activeFilterCount, setActiveFilterCount,
-      boardPanel, setBoardPanel, activeClauseCount, setActiveClauseCount,
-      boardHeadline, setBoardHeadline, focusDial, setFocusDial,
+      boardPanel, setBoardPanel,
+      boardHeadline, setBoardHeadline,
     }}>
       {children}
     </JobBoardContext.Provider>

@@ -16,18 +16,17 @@ const app     = read("client/src/App.jsx");
 const topBar  = read("client/src/components/TopBar.jsx");
 const context = read("client/src/contexts/JobBoardContext.jsx");
 
-test("the filter and sort triggers sit in the search bar's actions slot (IMPORT beside them went in D11)", () => {
+test("the sort trigger sits in the board's ONE bar beside the views (D35: the filter trigger IS the sentence)", () => {
   assert.match(app, /function BoardControlIcons\(\)/);
-  // In the actions slot — one row, not a new one. The Import button beside them was removed by D11
-  // (importing is the extension's job; test/d11FullHouseHeader.test.js pins its absence).
-  //
-  // The slice used to start at `actions={activeTab === "console"` — the ternary that decided whether
-  // to pass actions at all. Y4 removed that ternary because the WHOLE search bar now renders only on
-  // Jobs, so there is nothing left to gate: if the bar is on screen, its actions belong to it.
-  const actions = app.slice(at(app, "actions={"), at(app, "</main>"));
-  assert.match(actions, /<BoardControlIcons \/>/);
+  // D35 §3: the condensed bar — the views, the search, the sort square and + — one row, not a new one.
+  // The Import button was removed by D11 (importing is the extension's job; test/d11FullHouseHeader
+  // .test.js pins its absence), and D35 deleted the FILTER icon: the sentence's words are the filters
+  // (test/d35FullHouseHeader.test.js pins that).
+  const bar = app.slice(at(app, "function BoardBar()"), at(app, "function AppDashboard("));
+  assert.match(bar, /<BoardControlIcons \/>/);
   // And the board's view tabs, which moved here off the retired pill.
-  assert.match(actions, /<BoardTabs \/>/);
+  assert.match(bar, /<BoardTabs \/>/);
+  assert.match(app.slice(at(app, '<header className="fh"'), at(app, "</header>")), /<BoardBar \/>/);
   // And inside the provider, for the same reason BoardSearchBar is: AppDashboard renders
   // JobBoardProvider and cannot read it.
   assert.match(app, /function BoardControlIcons\(\) \{\s*\n\s*const \{[^}]*\} = useJobBoard\(\);/);
@@ -88,8 +87,9 @@ test("the two redundant controls are removed, and both are still reachable elsew
   // them and is now retired, so this points at the surviving one. That the reachability claim had to
   // be RE-POINTED rather than simply passing is the reason it is asserted at all.
   assert.ok(!/placeholder="Filter loaded jobs/.test(panel));
-  assert.match(read("client/src/components/UnifiedSearchBar.jsx"),
-    /placeholder="Job title or keywords"/,
+  // D35: the board's keyword field is the condensed bar's search (BoardBar.jsx), through BoardSearchBar.
+  assert.match(read("client/src/components/BoardBar.jsx"),
+    /placeholder="Job title, company, or anything in the posting…"/,
     "nothing writes localSearch any more — the board's own input was removed as redundant to it");
   // The profile selector here was the third on screen. Of the two that remained, the pill's went
   // with the pill, leaving TopBar's avatar menu as the one place it lives.
@@ -97,17 +97,17 @@ test("the two redundant controls are removed, and both are still reachable elsew
   assert.match(topBar, /<ProfileSelectorDropdown/);
 });
 
-test("A74 (owner, 10-03): the count bar and the filters-active chip are GONE — the icon's badge signals filters", () => {
+test("A74 (owner, 10-03): the count bar and the filters-active chip are GONE — the SENTENCE signals filters", () => {
   // Reverses the earlier "stay visible" call on the owner's word: "the filter icon already signals
-  // active filters". The badge is what carries it now, so it must exist.
+  // active filters". D35 deleted the icon and its badge with it: the sentence now SHOWS every active
+  // filter — a chosen clause is a filled word (aria-pressed) — so the board still cannot be narrowed
+  // invisibly, which is the whole reason the badge was a requirement.
   assert.doesNotMatch(panel, /job\{totalJobs !== 1 \? "s" : ""\}/, "the job count is back");
   assert.doesNotMatch(panel, /\{activeFilterCount\} filter\{activeFilterCount === 1 \? "" : "s"\} active/, "the filters-active chip is back");
-  // D24: the badge is the number of the SENTENCE's clauses with a choice (activeClauseCount), and
-  // the icon is BoardPanelIcons, which App.jsx renders and feeds.
-  const appSrc = fs.readFileSync("client/src/App.jsx", "utf8");
-  assert.match(appSrc, /badge=\{activeClauseCount\}/);
-  const icons = fs.readFileSync("client/src/components/BoardPanelIcons.jsx", "utf8");
-  assert.match(icons, /aria-label=\{on \? `Filters \(\$\{badge\} active\)` : "Filters"\}/);
+  const headline = fs.readFileSync("client/src/components/BoardHeadline.jsx", "utf8");
+  assert.match(headline, /aria-pressed=\{s\.active \|\| !!s\.clause\.floor\}/, "an active filter no longer shows in the sentence");
+  // The drawer's filters, which are not words, are counted on "+ add" ("salary & more · 2 on").
+  assert.match(fs.readFileSync("client/src/lib/filterSentenceModel.js", "utf8"), /salary & more · \$\{otherFilterCount\} on/);
 });
 
 test("the badge counts the same filters the empty-board notice counts", () => {

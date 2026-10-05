@@ -319,7 +319,8 @@ test("⛔ THE ONLY DARK SURFACE IS A RULE: no file but the pair wears it, and no
   assert.match(POSTING, /<article className="posting ink-pair" data-posting-panel>/);
   // The extension draws no pair, so its generated tokens carry none of the pair's.
   for (const f of ["extension/tokens.css", "extension/tokens.js"]) assert.doesNotMatch(read(f), /PAIR_|--c-pair-/, `${f} carries the pair`);
-  assert.match(read("scripts/buildExtensionTokens.mjs"), /const names = Object\.keys\(C_LIGHT\)\.filter\(\(n\) => !n\.startsWith\("PAIR_"\)\);/);
+  // (D35 added the Full House header's FH_* to the same exclusion — the extension draws no board header.)
+  assert.match(read("scripts/buildExtensionTokens.mjs"), /const names = Object\.keys\(C_LIGHT\)\.filter\(\(n\) => !n\.startsWith\("PAIR_"\)(?: && !n\.startsWith\("FH_"\))?\);/);
 });
 
 test("⛔ ONE token set for both themes: cream in light, the darkest ink in dark — and nothing else dark in light", () => {
