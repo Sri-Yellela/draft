@@ -78,7 +78,8 @@ test("⛔ the substring filter is GONE from the board", () => {
   assert.match(src, /buildOrderKeys\(sort, richFilters\.rank\.keys,\s*\{ fit: fitRequested, search: boardSearch, established: richFilters\.established\.keys \}\)/);
   assert.match(src, /registerBoardSearch\(db\);/);
   // A search is the user asking: the profile's role scope (a default) does not hide what they typed.
-  assert.match(src, /const roleSql = \(savedTab \|\| boardSearch\) \? '' : `AND \(/);
+  // D30: so does an explicitly chosen job function (the sentence's domain).
+  assert.match(src, /const roleSql = \(savedTab \|\| boardSearch \|\| functionChosen\) \? '' : `AND \(/);
 });
 
 test("⭐ the order: tier first, then ATS match (the fit keys) on the default sort; an explicit sort keeps the tier", () => {

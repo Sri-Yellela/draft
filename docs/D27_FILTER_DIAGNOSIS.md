@@ -75,3 +75,25 @@ But three things make them **look** more precise than they are:
 - Two client defects are fixed with D30: the bar's location/level/domain apply only on the
   magnifier, and a bar search clobbers the sentence's level and posted clauses. D26/D28 remove those
   bar controls; the sentence becomes the one place they live.
+
+## After D29 — the tag layer, measured on the same copy (1,866 active)
+
+Coverage per tag (`GET /api/admin/job-tags`), deterministic rules only, no owner tags yet:
+
+| tag | known | share | source of the value |
+|---|---|---|---|
+| country | 1,866 | 100% | the place parser (every admitted row names a US place, or a remote role's description does) |
+| state | 1,714 | 91.9% | "City, ST", state names, known cities |
+| metro | 1,712 | 91.7% | 23 metros, closed vocabulary (`shared/jobTagVocabulary.js`) |
+| remote / workplace | 886 | 47.5% | location words, the stored workplace_type, a description sentence that states the arrangement |
+| level | 1,217 | 65.2% | the title, then the stated years of experience; **no 'mid' fallback** |
+| function | 1,430 | 76.6% | the classifier's role bucket; `general` → NULL |
+| employment type | 143 | 7.7% | stated by the source, the title, or a description sentence |
+
+**US-only, re-derived:** the tag verdict and the ingest gate (`usEligibility`) agree on every one of
+the 2,616 rows — 1,866 US, 711 non-US, 27 unknown, 12 remote with no region. The US-only work was
+not resting on the substring match: it had its own parser, which the tag layer now reuses.
+
+**The location filter, after:** Boston 1 known + 32 kept as unknown (country-only or remote) · Bay
+Area 422 (was 0) · CA 424 (was 206, a mix of California and Canada) · IN 32, none of them
+Washington or Berlin · Washington resolves to the state.
