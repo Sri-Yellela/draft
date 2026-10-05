@@ -42,7 +42,9 @@ async function statusFor(db, userId) {
 
 test("D12: /api/extension/status — connected only on a LIVE extension token of this user", async () => {
   const db = freshDb();
-  assert.deepEqual((await statusFor(db, 1)).body, { connected: false, lastSeenAt: null }, "no token");
+  // D33 added `state`, `lastCaptureAt` and `recentCaptures` (test/d33InstallState.test.js).
+  const none = (await statusFor(db, 1)).body;
+  assert.deepEqual({ connected: none.connected, lastSeenAt: none.lastSeenAt }, { connected: false, lastSeenAt: null }, "no token");
   token(db, { ua: "resume-master-mobile" });                 // the phone's token is not the extension
   token(db, { revoked: 1 });                                   // revoked = disconnected
   token(db, { expiresIn: -10 });                               // expired
