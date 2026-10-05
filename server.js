@@ -4776,11 +4776,11 @@ cron.schedule("0 4 * * *", async () => {
   // had nothing to do versus how many scored, so "0 scored" is never ambiguous.
   scheduleBoardFitForAll("crawl");
   // Company KB rollups (Tasks 9.5/9.7) — reuse this same cron tick, no new scheduler. Both are
-  // read-only aggregations over scraped_jobs/its enrichment columns; org_unit_raw fills in via
-  // runEnrichment's own background pass (fired above, inside cacheJobs/cacheJoboFeed), which can
-  // lag behind same-tick crawls — the org rollup just sees whatever's enriched as of now and
-  // picks up newly-enriched rows on the next day's run (an existing characteristic of the
-  // enrichment pipeline, not something new).
+  // read-only aggregations over scraped_jobs/its enrichment columns. ⛔ Nothing in this tick fills
+  // org_unit_raw any more: the model enrichment pass that did (once fired inside cacheJobs/
+  // cacheJoboFeed) lost its triggers in A80 V4 and was deleted under D17 (A80, 10-05). The column
+  // fills only through the manual export → import (routes/enrichment.js), so the org rollup sees
+  // whatever has been imported as of now and picks up newly imported rows on the next day's run.
   try {
     runOrgLayerRollup(db);
   } catch(e) {
