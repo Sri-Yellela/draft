@@ -1,6 +1,6 @@
 /**
  * Draft — Mobile API types.
- * Contract version 2.1.0.
+ * Contract version 2.2.0.
  *
  * GENERATED — DO NOT EDIT. Regenerate with `node scripts/generateMobileContract.mjs`.
  *
@@ -308,6 +308,13 @@ export interface FacetClauses {
   where: FacetOption[];
 }
 
+/** Rows on the board whose tag is known, per tag. NULL is unknown, never no. */
+export interface FacetCoverage {
+  employment: number;
+  level: number;
+  where: number;
+}
+
 export interface FacetOption {
   count: number;
   /** Of `count`, rows whose clause column is classified as this option; count − known are kept only because it is unclassified. For `fit` and `posted` (hard filters) known === count. */
@@ -317,14 +324,25 @@ export interface FacetOption {
   value: string;
 }
 
+/** The board's view counts. `pending` is null when it could not be measured. */
+export interface FacetViews {
+  all: number;
+  pending: number | null;
+  saved: number;
+}
+
 /** What the board WOULD hold, for the filter sentence's four clauses. Takes exactly GET /api/jobs' query params. `total` is the board now; each option's `count` is the board with THAT option chosen in its clause and every other active filter unchanged — the clause's current choice is REPLACED, not added to — and equals what GET /api/jobs returns for those params. Note this is a DIFFERENT shape from the optional `facets` block on GET /api/jobs?include_facets=; do not share a parser. */
 export interface FacetsResponse {
   clauses: FacetClauses;
+  /** 2.2.0 (D35). Of `total`, rows whose tag is ON FILE, per tag — measured, never a constant; a panel's coverage line is coverage / total. */
+  coverage: FacetCoverage;
   /** Of `total`, rows KNOWN to match every soft-null filter (experience level, work model, ...). The rest are on the board only because their column is not classified yet. */
   known: number;
   total: number;
   /** Rows on the board with no fit score for this caller. They match no fit band and sort last under sort=atsScore. */
   unscored: number;
+  /** 2.2.0 (D35). The board's three views' counts — ALL, Saved, Pending — with every other filter as it is. */
+  views: FacetViews;
 }
 
 /** A RunJob plus the two fields only the dated history adds. */

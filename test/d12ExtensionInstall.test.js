@@ -96,9 +96,11 @@ test("D12: /extension is routed, public, and linked from the footer and the mark
 
 test("D12: Full House — + Add jobs where IMPORT sat, the first-run prompt, the Saved empty state", () => {
   const app = strip(read("client/src/App.jsx"));
-  const actions = app.slice(at(app, "actions={"), at(app, "</main>"));
-  assert.match(actions, /<BoardControlIcons \/>[\s\S]*<ExtensionAddJobsLink \/>/, "+ Add jobs is not beside the filter/sort icons");
-  assert.match(actions, /<ExtensionFirstRunPrompt \/>/);
+  // D35 §3: ADD JOBS is the condensed bar's "+" square, beside the sort square, to /extension.
+  const icons = app.slice(at(app, "function BoardControlIcons()"), at(app, "function BoardSortSlot()"));
+  assert.match(icons, /<SortSquare[\s\S]*<AddSquare to=\{EXTENSION_PAGE\} \/>/, "+ Add jobs is not beside the sort square");
+  const chrome = app.slice(at(app, '<header className="fh"'), at(app, "</main>"));
+  assert.match(chrome, /<ExtensionFirstRunPrompt \/>/);
 
   const prompt = read("client/src/components/ExtensionPrompt.jsx");
   assert.match(prompt, /api\("\/api\/extension\/status"\)/);

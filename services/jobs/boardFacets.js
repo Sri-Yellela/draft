@@ -32,7 +32,7 @@ import { buildJobFilters, postedSinceSql } from "./jobQuery.js";
 import { fitBandsSql, FIT_SCORE_SQL } from "./jobCursor.js";
 // D30 · the two open-set dials, over the D29 tag layer.
 import { JOB_FUNCTIONS, PLACES } from "../../shared/jobTagVocabulary.js";
-import { placesFilterSql } from "./tagFilters.js";
+import { placesFilterSql, LEVEL_SQL, WORKPLACE_SQL, EMPLOYMENT_SQL } from "./tagFilters.js";
 
 // Paging and cursor are about WHICH SLICE of the board, never about how many rows it holds, and a
 // facets request must not 400 on a cursor issued for a list. Projection params change no count.
@@ -114,6 +114,7 @@ const withoutKeys = (query, keys) => {
 
 const EMPTY = (clauses) => ({
   total: 0, known: 0, unscored: 0,
+  coverage: { level: 0, where: 0, employment: 0 }, views: { all: 0, saved: 0, pending: null },
   clauses: Object.fromEntries(clauses.map(c => [c.key,
     c.options.map(o => ({ value: o.value, label: o.label, count: 0, known: 0 }))])),
 });
@@ -128,9 +129,11 @@ const EMPTY = (clauses) => ({
  *        an unknown filter value, no profile, an empty pool) is passed through as the board said it.
  * @param {number} deps.nowSec        one clock for the whole response, shared with the board's
  *        ageFilter cutoff so "Past 24h" means the same second in both
+ * @param {() => number} [deps.countPending]  D35 · the Pending view's row count (server.js's
+ *        pendingJobsQuery, the /d list's own query, counted). Absent → `views.pending` is null.
  * @returns {Promise<{status:number, body:any}>}
  */
-export async function boardFacetsResponse({ query, measureBoard, nowSec }) {
+export async function boardFacetsResponse({ query, measureBoard, nowSec, countPending = null }) {
   const clauses = facetClauses({ nowSec });
 
   const head = await measureBoard(withoutKeys(query, []), ({ db, joinClause, whereClause, baseArgs, unclassifiedSql, fitScoreSql }) => {
@@ -139,16 +142,39 @@ export async function boardFacetsResponse({ query, measureBoard, nowSec }) {
     const r = db.prepare(
       `SELECT COUNT(*) AS total,
               COALESCE(SUM(CASE WHEN ${score} IS NULL THEN 1 ELSE 0 END), 0) AS unscored
-              ${unclassifiedSql ? `, COALESCE(SUM(CASE WHEN ${unclassifiedSql} THEN 1 ELSE 0 END), 0) AS unclassified` : ""}
+              ${unclassifiedSql ? `, COALESCE(SUM(CASE WHEN ${unclassifiedSql} THEN 1 ELSE 0 END), 0) AS unclassified` : ""},
+              COALESCE(SUM(CASE WHEN ${LEVEL_SQL} IS NOT NULL THEN 1 ELSE 0 END), 0) AS cov_level,
+              COALESCE(SUM(CASE WHEN ${WORKPLACE_SQL} IS NOT NULL THEN 1 ELSE 0 END), 0) AS cov_where,
+              COALESCE(SUM(CASE WHEN ${EMPLOYMENT_SQL} IS NOT NULL THEN 1 ELSE 0 END), 0) AS cov_employment
        ${joinClause} ${whereClause}`).get(...baseArgs);
-    return { total: r.total, known: r.total - (r.unclassified || 0), unscored: r.unscored };
+    return {
+      total: r.total, known: r.total - (r.unclassified || 0), unscored: r.unscored,
+      // D35 · COVERAGE, LIVE: of `total`, the rows whose tag is ON FILE — the panels say
+      // "47.5% coverage" and "3 postings have no level on file" from these, never from a constant.
+      // Read through tagFilters.js's own expressions, so an untagged row counts its legacy column
+      // exactly as the filter does.
+      coverage: { level: r.cov_level, where: r.cov_where, employment: r.cov_employment },
+    };
   });
   // A validation 400 is the board's own answer — same params, same validation, same body.
   if (head.status !== 200) return head;
   // No profile / empty pool: the board answers an explained empty list, so every count is 0.
   if (!head.body?.measured) return { status: 200, body: EMPTY(clauses) };
 
-  const body = { ...head.body.value, clauses: {} };
+  // D35 · THE VIEW SEGMENT'S COUNTS — ALL · ★ · /d. ALL and ★ are the board's own count with the
+  // Saved tab's `starred` param off and on (every other filter as it is); /d is the Pending list's own
+  // query, counted (countPending). One COUNT each; null when it cannot be measured, never a guess.
+  const viewTotal = async (starred) => {
+    const q = { ...withoutKeys(query, ["starred"]), ...(starred ? { starred: "1" } : {}) };
+    const r = await measureBoard(q, ({ db, joinClause, whereClause, baseArgs }) =>
+      db.prepare(`SELECT COUNT(*) AS n ${joinClause} ${whereClause}`).get(...baseArgs).n);
+    return r.status === 200 && r.body?.measured ? r.body.value : (r.status === 200 ? 0 : null);
+  };
+  let pending = null;
+  try { pending = typeof countPending === "function" ? countPending() : null; } catch { pending = null; }
+  const views = { all: await viewTotal(false), saved: await viewTotal(true), pending: Number.isFinite(pending) ? pending : null };
+
+  const body = { ...head.body.value, views, clauses: {} };
   for (const clause of clauses) {
     const baseQuery = { ...withoutKeys(query, clause.remove), ...(clause.base || {}) };
     const r = await measureBoard(baseQuery, (ctx) => {

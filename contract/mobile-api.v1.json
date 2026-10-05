@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Draft — Mobile API",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "description": "The contract between this repository and the two mobile repositories (iOS, Android), which are native clients over this JSON API and live outside this tree.\n\nGENERATED — DO NOT HAND-EDIT. Regenerate with `node scripts/generateMobileContract.mjs`. The Job schema is produced by EXECUTING services/jobs/mapJobRow.js, so it cannot disagree with what the server actually emits. test/mobileApiContract.test.js fails the build if this file and the source ever disagree.\n\nOnly the endpoints a swipe feed and a review flow need are published. Anything absent is absent on purpose and is not a promise — see x-retired for what a greenfield client must not call, and x-mobile-gaps for what mobile needs that this API does not yet expose."
   },
   "servers": [
@@ -3160,6 +3160,21 @@
         },
         "description": "One list per sentence clause, options in the contract's order. A count of 0 is DIMMED, not hidden."
       },
+      "FacetCoverage": {
+        "type": "object",
+        "properties": {
+          "employment": {
+            "type": "number"
+          },
+          "level": {
+            "type": "number"
+          },
+          "where": {
+            "type": "number"
+          }
+        },
+        "description": "Rows on the board whose tag is known, per tag. NULL is unknown, never no."
+      },
       "FacetOption": {
         "type": "object",
         "properties": {
@@ -3179,11 +3194,33 @@
           }
         }
       },
+      "FacetViews": {
+        "type": "object",
+        "properties": {
+          "all": {
+            "type": "number"
+          },
+          "pending": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "saved": {
+            "type": "number"
+          }
+        },
+        "description": "The board's view counts. `pending` is null when it could not be measured."
+      },
       "FacetsResponse": {
         "type": "object",
         "properties": {
           "clauses": {
             "$ref": "#/components/schemas/FacetClauses"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/FacetCoverage",
+            "description": "2.2.0 (D35). Of `total`, rows whose tag is ON FILE, per tag — measured, never a constant; a panel's coverage line is coverage / total."
           },
           "known": {
             "type": "number",
@@ -3195,6 +3232,10 @@
           "unscored": {
             "type": "number",
             "description": "Rows on the board with no fit score for this caller. They match no fit band and sort last under sort=atsScore."
+          },
+          "views": {
+            "$ref": "#/components/schemas/FacetViews",
+            "description": "2.2.0 (D35). The board's three views' counts — ALL, Saved, Pending — with every other filter as it is."
           }
         },
         "description": "What the board WOULD hold, for the filter sentence's four clauses. Takes exactly GET /api/jobs' query params. `total` is the board now; each option's `count` is the board with THAT option chosen in its clause and every other active filter unchanged — the clause's current choice is REPLACED, not added to — and equals what GET /api/jobs returns for those params. Note this is a DIFFERENT shape from the optional `facets` block on GET /api/jobs?include_facets=; do not share a parser."

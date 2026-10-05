@@ -62,6 +62,10 @@ import { JOB_FUNCTIONS } from "../../shared/jobTagVocabulary.js";
  * Semver. MAJOR is breaking; MINOR is additive. The rules, and why removing a field is
  * deliberately awkward, are in contract/README.md.
  *
+ * 2.2.0 — D35 (10-05). Additive: `FacetsResponse.coverage` (FacetCoverage — of `total`, the rows whose
+ *         level / workplace / employment tag is on file, so a panel's "47.5% coverage" is measured) and
+ *         `FacetsResponse.views` (FacetViews — the ALL / Saved / Pending counts the board's view segment
+ *         shows; `pending` null when unmeasured). Every 2.1.0 field is unchanged.
  * 2.1.0 — D32 (10-05). Additive: `Job.tagFunction` / `tagLevel` / `tagWorkplace` (D29's tags, for the
  *         posting masthead's kicker; null = unknown, never "none") and `DeckReport.experienceState`
  *         (met / short / unknown / none — the scorer's years judgement as a WORD, no number). Every 2.0.0
@@ -102,7 +106,7 @@ import { JOB_FUNCTIONS } from "../../shared/jobTagVocabulary.js";
  *         a checksum and need a reason to re-copy.
  * 1.0.0 — initial contract.
  */
-export const CONTRACT_VERSION = "2.1.0";
+export const CONTRACT_VERSION = "2.2.0";
 
 // ------------------------------------------------------------------------------------------------
 // THE JOB SHAPE — derived by executing mapJobRow, not by reading it

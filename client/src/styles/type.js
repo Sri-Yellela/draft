@@ -31,3 +31,40 @@ export const TYPE = Object.freeze({
   // The sentence under a page title.
   LEAD: { fontSize: 14, lineHeight: 1.6, color: C.INK_MUTED },
 });
+
+// ── D35 · THE FULL HOUSE SENTENCE — one family, one size, one line-height (header.html) ─────────
+//
+// ⛔ D30 shipped the sentence with the TOKENS re-lettered — Poppins 800 italic at .78em inside a serif
+// line — and it read as two things stitched together. D34/D35: the prose and the filter words are ONE
+// line of type; only the box (background, border, radius, shadow) says which words are controls.
+// So the three values live here ONCE and are published as custom properties; the sentence sets them
+// and every token INHERITS them (FullHouse.css), and test/d35FullHouseHeader.test.js fails if any
+// token rule names a family, size or line-height of its own.
+//
+// The values are header.html's: `.sent{font:400 23px/1.85 Georgia,serif}`. ⚠ The sketch gives its
+// `.tok` an internal `line-height:1.3` — which would make the token's line-height differ from the
+// prose's, the very divergence the row forbids. The token keeps the sentence's line-height; the
+// sketch's 1.3 survives only as the HEIGHT of the box drawn around one line (TOKEN_BOX), so the box
+// is the sketch's size and the type is not touched.
+export const FULL_HOUSE_TYPE = Object.freeze({
+  SENTENCE_FAMILY: "Georgia, 'Times New Roman', serif",
+  SENTENCE_SIZE: "23px",
+  SENTENCE_LINE: "1.85",
+  SENTENCE_WEIGHT: "400",
+  TOKEN_BOX: "1.3em",
+  // The logo face — the bar's segment, the panel's key, the + (Poppins 800 italic, self-hosted).
+  LOGO_FAMILY: "'Poppins', var(--font-body)",
+  MONO: FONT.MONO,
+});
+
+export const typeVarName = (name) => `--fh-${name.toLowerCase().replace(/_/g, "-")}`;
+
+/** Publish FULL_HOUSE_TYPE as --fh-* custom properties, from this one definition. */
+export function installTypeVars(doc = typeof document !== "undefined" ? document : null) {
+  if (!doc?.documentElement) return;
+  for (const [name, value] of Object.entries(FULL_HOUSE_TYPE)) {
+    doc.documentElement.style.setProperty(typeVarName(name), value);
+  }
+}
+
+installTypeVars();

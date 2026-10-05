@@ -352,8 +352,8 @@ test("④ ⭐ every facet count IS the board's count with that option chosen —
   for (const query of COMBOS) {
     const { status, body } = await boardFacetsResponse({ query, nowSec: NOW, measureBoard: measureFor(db) });
     assert.equal(status, 200);
-    // Exactly the FacetsResponse shape.
-    assert.deepEqual(Object.keys(body).sort(), ["clauses", "known", "total", "unscored"]);
+    // Exactly the FacetsResponse shape (D35 added `coverage` and `views`, additively).
+    assert.deepEqual(Object.keys(body).sort(), ["clauses", "coverage", "known", "total", "unscored", "views"]);
     assert.deepEqual(Object.keys(body.clauses), sentence.SENTENCE_CLAUSES.map(c => c.key));
     // Headline: the board as it stands.
     assert.equal(body.total, boardCount(db, query), `total ${JSON.stringify(query)}`);
@@ -362,6 +362,15 @@ test("④ ⭐ every facet count IS the board's count with that option chosen —
       ? db.prepare(`SELECT COUNT(*) n ${b.joinClause} ${b.whereClause} AND ${b.unclassifiedSql}`).get(...b.baseArgs).n : 0;
     assert.equal(body.known, body.total - unc);
     assert.equal(body.unscored, db.prepare(`SELECT COUNT(*) n ${b.joinClause} ${b.whereClause} AND aor.ats_score IS NULL`).get(...b.baseArgs).n);
+    // D35 · COVERAGE IS LIVE — of `total`, the rows whose tag is on file (an untagged row reads its
+    // legacy column, as every row of this fixture does), so the panels' "47.5% coverage" is measured.
+    for (const [k, col] of [["level", "sj.experience_level"], ["where", "sj.workplace_type"], ["employment", "sj.employment_type"]]) {
+      assert.equal(body.coverage[k], db.prepare(`SELECT COUNT(*) n ${b.joinClause} ${b.whereClause} AND ${col} IS NOT NULL`).get(...b.baseArgs).n,
+        `coverage.${k} under ${JSON.stringify(query)}`);
+    }
+    // D35 · the view segment's ALL count is the board's own count; /d is null without countPending.
+    assert.equal(body.views.all, boardCount(db, query));
+    assert.equal(body.views.pending, null);
     for (const clause of sentence.SENTENCE_CLAUSES) {
       const opts = body.clauses[clause.key];
       assert.deepEqual(opts.map(o => o.value), clause.dim.options.map(o => o.value).filter(v => clause.key === "posted" || v !== ""));
@@ -413,13 +422,14 @@ test("④ one statement for the headline and ONE per clause — never one per op
   const query = { experience_levels: "senior", work_models: "remote", ageFilter: "1w", posted_after: "1", fit_bands: "strong", page: "3", cursor: "x" };
   const res = await boardFacetsResponse({ query, nowSec: NOW, measureBoard: async (q, m) => { calls.push(q); return { status: 200, body: { measured: true, value: m({ db: counting, ...boardSql(q) }) } }; } });
   assert.equal(res.status, 200);
-  assert.equal(calls.length, 1 + sentence.SENTENCE_CLAUSES.length);
-  assert.equal(prepares, 1 + sentence.SENTENCE_CLAUSES.length);
+  // D35: + one COUNT each for the ALL and ★ views (the /d count is countPending's, absent here).
+  assert.equal(calls.length, 3 + sentence.SENTENCE_CLAUSES.length);
+  assert.equal(prepares, 3 + sentence.SENTENCE_CLAUSES.length);
   // Paging and the cursor are never forwarded (a list cursor must not 400 a facets call).
   for (const q of calls) { assert.ok(!("page" in q) && !("cursor" in q)); }
   // Each clause's base set drops exactly its own params — both of the age control's. (D30: six
   // clauses, so the calls are found by clause key, in SENTENCE_CLAUSES' order after the headline.)
-  const callFor = (key) => calls[1 + sentence.SENTENCE_CLAUSES.findIndex(c => c.key === key)];
+  const callFor = (key) => calls[3 + sentence.SENTENCE_CLAUSES.findIndex(c => c.key === key)];
   assert.deepEqual(Object.keys(callFor("level")).sort(), ["ageFilter", "fit_bands", "posted_after", "work_models"]);
   assert.deepEqual(Object.keys(callFor("posted")).sort(), ["experience_levels", "fit_bands", "work_models"]);
   assert.deepEqual(Object.keys(callFor("fit")).sort(), ["ageFilter", "experience_levels", "posted_after", "work_models"]);
@@ -459,4 +469,15 @@ test("④ server.js: the facets route measures through boardPageResponse — val
     "measure must receive the SAME baseArgs the list and the count use");
   // The legacy endpoint's tells are gone.
   assert.doesNotMatch(SERVER, /postedAge\[bucket\]/);
+});
+
+test("④ D35: the /d count is the Pending list's own query, counted — and a failure there is null, never a guess", async () => {
+  const db = facetFixture();
+  const ok = await boardFacetsResponse({ query: {}, nowSec: NOW, measureBoard: measureFor(db), countPending: () => 9 });
+  assert.equal(ok.body.views.pending, 9);
+  const boom = await boardFacetsResponse({ query: {}, nowSec: NOW, measureBoard: measureFor(db), countPending: () => { throw new Error("x"); } });
+  assert.equal(boom.body.views.pending, null);
+  // server.js hands it the SAME function the /api/jobs/pending route lists with.
+  assert.ok(SERVER.includes("countPending: () => pendingJobsQuery(req.user.id, { count: true })"));
+  assert.ok(SERVER.includes("res.json(pendingJobsQuery(req.user.id));"));
 });

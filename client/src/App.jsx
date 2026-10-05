@@ -19,7 +19,8 @@ import { JobBoardProvider, useJobBoard } from "./contexts/JobBoardContext.jsx";
 import { AutoApplyProvider, useAutoApply } from "./contexts/AutoApplyContext.jsx";
 import { AutoApplyPanel }        from "./panels/AutoApplyPanel.jsx";
 import { DraftMark }             from "./components/DraftMark.jsx";
-import { ExtensionAddJobsLink, ExtensionFirstRunPrompt } from "./components/ExtensionPrompt.jsx";
+import { ExtensionFirstRunPrompt } from "./components/ExtensionPrompt.jsx";
+import { EXTENSION_PAGE }        from "../../shared/extension.js";
 import { ProfilePanel }          from "./panels/ProfilePanel.jsx";
 import { JobProfilesPanel }      from "./panels/JobProfilesPanel.jsx";
 import { DatabasePanel }         from "./panels/DatabasePanel.jsx";
@@ -30,10 +31,11 @@ import { IntegrationsPanel }     from "./panels/IntegrationsPanel.jsx";
 import { AccountPanel }          from "./panels/AccountPanel.jsx";
 import { RecruiterPanel }        from "./panels/RecruiterPanel.jsx";
 import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
-import UnifiedSearchBar          from "./components/UnifiedSearchBar.jsx";
 import BoardHeadline             from "./components/BoardHeadline.jsx";
-import BoardPanelIcons           from "./components/BoardPanelIcons.jsx";
-import { nextBoardPanel, sortRows, isSortChosen, DEFAULT_SORT } from "./lib/filterSentenceModel.js";
+import WordPanel                 from "./components/WordPanel.jsx";
+import SortPanel                 from "./components/SortPanel.jsx";
+import { ViewSegment, BoardSearch, SortSquare, AddSquare } from "./components/BoardBar.jsx";
+import { nextBoardPanel, sortRows, isSortChosen, DEFAULT_SORT, BOARD_PANEL, viewCounts } from "./lib/filterSentenceModel.js";
 import { ATSToolPage }           from "./pages/tools/ATSToolPage.jsx";
 import { GenerateToolPage }      from "./pages/tools/GenerateToolPage.jsx";
 import { ApplyToolPage }         from "./pages/tools/ApplyToolPage.jsx";
@@ -97,37 +99,45 @@ function PublicLoginRoute({ authStatus, authUser, children, admin = false }) {
   }
   return children;
 }
-// The board's search bar. A separate component purely because AppDashboard RENDERS
+// The board's search field. A separate component purely because AppDashboard RENDERS
 // <JobBoardProvider> and therefore sits outside it — useJobBoard() called up there would read a
-// null context. This is the smallest thing that can live inside the provider and still hand
-// UnifiedSearchBar its two handlers.
+// null context. This is the smallest thing that can live inside the provider and still hand the
+// field its handler.
 //
-// A74 (owner, 10-03): one click, one search. The bar's double-click (filter, then within 5 s a
-// "live" search through the aggregator) is gone with live scraping; a click commits the filters and
-// the board runs the ranked local search (A72). So only onLocalFilter is handed down.
+// A74 (owner, 10-03): one press, one search — Enter commits the keyword and the board runs the ranked
+// local search (A72).
 //
-// ⛔ D26/D28: on the board the bar is the SEARCH INPUT ONLY (fields="query") — the "All Jobs" status
-// dropdown duplicated the ALL / ★ / /d chips, and level, domain and location are the sentence's dials.
-// So it publishes `query` and nothing else, and the dials' state is never overwritten by a search.
+// ⛔ D26/D28: on the board the field is the SEARCH INPUT ONLY — it publishes `query` and nothing else,
+// so a search never overwrites the sentence's filters. D35: it is the condensed bar's middle (no
+// Search button; the landing page keeps UnifiedSearchBar).
 function BoardSearchBar(props) {
   const { applyBarFilters } = useJobBoard();
   return (
-    <UnifiedSearchBar
+    <BoardSearch
       {...props}
-      fields="query"
-      onLocalFilter={params => applyBarFilters(params, { fields: ["query"] })}
+      onSubmit={params => applyBarFilters(params, { fields: ["query"] })}
     />
   );
 }
 
-// D26/D30: THE SENTENCE IS THE HEADLINE, where "Let's get to work." was. JobsPanel publishes what it
-// projects (the committed clause params); each slot opens the filter panel on its own dial.
+// D26/D30/D35: THE SENTENCE IS THE HEADLINE, AND ITS WORDS ARE THE CONTROLS. JobsPanel publishes what
+// it projects (the committed clause params, the facets answer, the patch it applies); a word's press
+// goes through nextBoardPanel on the board's ONE panel value, so the same word closes what it opened
+// and opening another closes the first. The panel renders HERE, directly beneath the sentence and
+// above the bar — D35 §4's order: the sentence, the open panel, the bar, the jobs.
 function BoardHeadlineSlot() {
-  const { boardHeadline, setBoardPanel, setFocusDial } = useJobBoard();
+  const { boardHeadline, boardPanel, setBoardPanel } = useJobBoard();
   if (!boardHeadline) return null;
+  const { params, defaultDomain, nothingMatches, facets, facetsStatus, otherFilterCount, onPatch, onMoreFilters } = boardHeadline;
   return (
-    <BoardHeadline {...boardHeadline}
-      onSlot={(key) => { setFocusDial(key); setBoardPanel("filter"); }} />
+    <>
+      <BoardHeadline params={params} defaultDomain={defaultDomain} nothingMatches={nothingMatches}
+        open={boardPanel} onToggle={(key) => setBoardPanel(current => nextBoardPanel(current, key))} />
+      <WordPanel open={boardPanel} params={params} defaultDomain={defaultDomain}
+        facets={facets} facetsStatus={facetsStatus} otherFilterCount={otherFilterCount}
+        onPatch={onPatch} onOpen={(key) => setBoardPanel(key)} onClose={() => setBoardPanel(null)}
+        onMoreFilters={onMoreFilters} />
+    </>
   );
 }
 
@@ -206,50 +216,31 @@ function AppTopBar({ tabs, ...props }) {
 const BOARD_TABS = [
   ["all",     "ALL",  "All jobs on your board"],
   ["saved",   "★",    "Saved jobs"],
-  ["pending", <DraftMark key="d" style={{ fontSize: 13 }}/>, "Pending apply"],
+  ["pending", <DraftMark key="d" style={{ fontSize: "inherit" }}/>, "Pending apply"],
 ];
 
+// D35: the three views as ONE segmented control, each with its count (facets' `views`).
 function BoardTabs() {
-  const { boardTab, setBoardTab } = useJobBoard();
+  const { boardTab, setBoardTab, boardHeadline } = useJobBoard();
   return (
-    <div role="group" aria-label="Board view" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-      {BOARD_TABS.map(([id, label, title]) => {
-        const on = boardTab === id;
-        return (
-          <button key={id} type="button" onClick={() => setBoardTab?.(id)}
-            title={title} aria-label={title} aria-pressed={on}
-            style={{
-              padding: "0 10px", height: 26, border: "none", cursor: "pointer",
-              fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
-              fontSize: 12, letterSpacing: "0.06em", textTransform: "uppercase",
-              borderRadius: 9999, flexShrink: 0,
-              background: on ? "var(--color-primary)" : "var(--c-hover)",
-              color: on ? "var(--color-on-primary)" : "var(--color-text-muted)",
-              transition: "background 0.15s, color 0.15s",
-            }}>
-            {label}
-          </button>
-        );
-      })}
-    </div>
+    <ViewSegment views={BOARD_TABS} value={boardTab} onChange={id => setBoardTab?.(id)}
+      counts={viewCounts(boardHeadline?.facets)} />
   );
 }
 
-// D24: THE FILTER AND SORT ICONS — same place as since W4 (the right of the search bar's actions row),
-// new look and new contents. The filter icon opens THE SENTENCE, the sort icon THE SORT PANEL; both
-// panels render in JobsPanel, directly under the search bar, and both are closed by default.
+// D35 §3: THE BAR'S TWO 40px SQUARES — ⇅ sort and + add jobs. ⛔ The FILTER icon is GONE (D35 §1): the
+// sentence's words are the filters, so the icon had nothing left behind it.
 //
-// ⛔ MUTUALLY EXCLUSIVE BY CONSTRUCTION: one context value, `boardPanel`, and nextBoardPanel decides
-// what a press does — press the open one and it closes, press the other and they swap.
+// The sort square opens the sort panel beneath the bar; it presses through nextBoardPanel on the
+// SAME one panel value the words use, so opening sort closes an open word and the reverse.
 //
 // Inside JobBoardProvider for the same reason BoardSearchBar is — AppDashboard renders the provider
 // and so cannot read it.
 //
-// The sort list is shared/filterSentence.js's SORT_PANEL (Best fit · Newest · Salary · Company A–Z),
-// read through sortRows — no copy of it lives here. It replaced the seven-entry SORTS dropdown;
-// SORTS stays the server's VALIDATION set for the param.
+// The sort list is shared/filterSentence.js's SORT_PANEL, read through sortRows — no copy of it lives
+// here. SORTS stays the server's VALIDATION set for the param.
 function BoardControlIcons() {
-  const { boardPanel, setBoardPanel, activeClauseCount, sortBy, setSortBy,
+  const { boardPanel, setBoardPanel, sortBy, setSortBy,
           atsSortAvailable } = useJobBoard();
 
   // ⛔ THE RESUME GATES BEST FIT AND NOTHING ELSE. Decided 2026-09-26, replacing a gate that hid the
@@ -264,13 +255,38 @@ function BoardControlIcons() {
 
   const sortLabel = sortRows(atsSortAvailable).find(r => r.value === sortBy)?.label || "";
   return (
-    <BoardPanelIcons
-      open={boardPanel}
-      onPress={(which) => setBoardPanel(current => nextBoardPanel(current, which))}
-      badge={activeClauseCount}
-      sortLabel={sortLabel}
-      sortChosen={isSortChosen(sortBy)}
-    />
+    <>
+      <SortSquare
+        open={boardPanel === BOARD_PANEL.SORT}
+        onPress={() => setBoardPanel(current => nextBoardPanel(current, BOARD_PANEL.SORT))}
+        label={sortLabel}
+        chosen={isSortChosen(sortBy)}
+      />
+      {/* D11/D12: ADD JOBS is the extension's job; D35 makes it the bar's "+" square. */}
+      <AddSquare to={EXTENSION_PAGE} />
+    </>
+  );
+}
+
+// D35: the sort panel opens BENEATH the bar (header.html), above the jobs.
+function BoardSortSlot() {
+  const { boardPanel, setBoardPanel, sortBy, setSortBy, atsSortAvailable, boardHeadline } = useJobBoard();
+  if (boardPanel !== BOARD_PANEL.SORT) return null;
+  return (
+    <SortPanel value={sortBy} onChange={setSortBy} atsAvailable={atsSortAvailable}
+      facets={boardHeadline?.facets ?? null} facetsStatus={boardHeadline?.facetsStatus ?? "idle"}
+      onClose={() => setBoardPanel(null)} />
+  );
+}
+
+// D35 §3: THE CONDENSED BAR, one row — [ ALL · ★ · /d ] [ search ] [ ⇅ ] [ + ].
+function BoardBar() {
+  return (
+    <div className="fh-bar" data-board-bar="">
+      <BoardTabs />
+      <BoardSearchBar />
+      <BoardControlIcons />
+    </div>
   );
 }
 
@@ -510,40 +526,14 @@ function AppDashboard({ authUser, setAuthUser }) {
                     chrome's height above this (Y3), so 34 + a 46px bar is the same 80px from the top
                     of the viewport the hero has always had. Expressed that way it is a distance
                     BELOW THE CHROME rather than an absolute offset that cleared it by coincidence. */}
-                <div style={{ textAlign:"center", padding:"34px 20px 40px",
-                              animation:"fadeUp 0.6s ease both" }}>
-                  {/* D26/D30: the filter sentence IS the headline — "Now showing all jobs, at any
-                      level, in the United States, any workplace." — replacing D11's caption. */}
+                {/* ⛔ D35 · THE FULL HOUSE HEADER, in header.html's order: 1 the sentence (its words are
+                    the filters), 2 the one panel a word opens, 3 the condensed bar, then the sort
+                    panel when it is open — and 4 the jobs, below this chrome. */}
+                <header className="fh" style={{ animation:"fadeUp 0.6s ease both" }}>
                   <BoardHeadlineSlot />
-                </div>
-
-                {/* The search bar, on Jobs and nowhere else. It no longer carries `tabs` — those are
-                    in the top bar now — so it renders its action row and its fields only. Every
-                    control in `actions` is the one that was there before, in the same order. */}
-                <BoardSearchBar
-                  mode="hero"
-                  variant="inline"
-                  actions={
-                    <>
-                    {/* All / Saved / Pending. THESE ARE THE ONE CONTROL THAT ONLY THE PILL HAD —
-                        JobsPanel's own boardTabs strip is behind `{false && ...}`, so retiring the
-                        pill without moving these would have deleted the Saved and Pending tabs from
-                        the app. Measured before the move: 0 occurrences of each anywhere but the
-                        pill. */}
-                    <BoardTabs />
-
-                    {/* RIGHT: the board's actions, in the order and with the behaviour they had. */}
-                    <div style={{ display: "flex", alignItems: "center", paddingBottom: 4, marginLeft: "auto" }}>
-                      <BoardControlIcons />
-                      {/* D11: no IMPORT button. Importing is the extension's job now: it posts to
-                          the same /api/import/job the removed modal did. D12 puts the way to GET it
-                          here, where IMPORT sat. */}
-                      <div style={{ width: 1, height: 20, background: "var(--border-glass)", margin: "0 8px" }} />
-                      <ExtensionAddJobsLink />
-                    </div>
-                    </>
-                  }
-                />
+                  <BoardBar />
+                  <BoardSortSlot />
+                </header>
                 {/* D12: until the extension is connected, say where jobs from elsewhere come from. */}
                 <ExtensionFirstRunPrompt />
                 </>

@@ -1,0 +1,88 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { X } from "lucide-react";
+import UsbSuggest from "./UsbSuggest.jsx";
+// The typeahead list's own rules (.usb__suggest*) live with the landing page's bar.
+import "./UnifiedSearchBar.css";
+import "./FullHouse.css";
+
+// ── D35 §3 · THE CONDENSED BAR — one row, below the sentence, above the jobs ─────────────────────────
+//
+//   [ ALL 2626 · ★ 14 · /d 9 ]  [ search ———————————— ]  [ ⇅ ]  [ + ]
+//
+// header.html's bar. The three views are ONE segmented control, each with its count (GET
+// /api/jobs/facets' `views`; no count is drawn without an answer, never a 0 in its place). The search
+// field fills the middle — inset, a magnifier, no separate Search button: Enter searches. Sort is the
+// sketch's two-arrow glyph in a 40px square (open = filled accent); ADD JOBS is just "+", bold italic
+// in the logo face, in the same 40px square, the orange fill — the one creative action in the bar.
+//
+// Phone (FullHouse.css): two rows, chosen — the views and the two squares, then the search full width.
+// These pieces are presentational; App.jsx wires them to the board's context.
+
+/** The views segment. `views` is [[id, label, title]]; counts is { [id]: number | null }. Pure. */
+export function ViewSegment({ views, value, counts = {}, onChange }) {
+  return (
+    <div className="fh-views" role="group" aria-label="Board view">
+      {views.map(([id, label, title]) => {
+        const n = counts[id];
+        return (
+          <button key={id} type="button" data-view={id} aria-pressed={value === id}
+            title={title} aria-label={n != null ? `${title}, ${n}` : title}
+            onClick={() => onChange?.(id)}>
+            <span aria-hidden="true">{label}</span>
+            {n != null && <span className="fh-ct" aria-hidden="true">{n}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** The search field: the board's keyword, Enter commits it (A74: one press, one search). */
+export function BoardSearch({ onSubmit }) {
+  const [q, setQ] = useState("");
+  const submit = () => onSubmit?.({ query: q });
+  return (
+    <div className="fh-srch" role="search" aria-label="Job search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4.3-4.3" /></svg>
+      <UsbSuggest field="title" value={q} onChange={setQ}>
+        {sugg => (
+          <input {...sugg} type="search" enterKeyHint="search"
+            placeholder="Job title, company, or anything in the posting…" aria-label="Search jobs"
+            onKeyDown={e => { sugg.onKeyDown(e); if (!e.defaultPrevented && e.key === "Enter") submit(); }} />
+        )}
+      </UsbSuggest>
+      {q && (
+        <button type="button" className="fh-srch__clear" aria-label="Clear the search"
+          onClick={() => { setQ(""); onSubmit?.({ query: "" }); }}>
+          <X size={12} aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** The sketch's sort glyph — two arrows, up and down, exactly header.html's path. */
+export const SORT_GLYPH_PATH = "M7 4v16M7 20l-3-3M7 4l3 3M17 20V4M17 4l3 3M17 20l-3-3";
+
+/** ⇅ — a 40px square. Open = filled accent; a chosen (non-default) order holds the accent edge. */
+export function SortSquare({ open = false, chosen = false, label = "", onPress }) {
+  return (
+    <button type="button" className="fh-ico" data-board-icon="sort" data-active={chosen ? "true" : "false"}
+      aria-expanded={open} aria-controls={open ? "fh-sort" : undefined}
+      aria-label={label ? `Sort: ${label}` : "Sort"} title={label ? `Sort: ${label}` : "Sort"}
+      onClick={() => onPress?.()}>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d={SORT_GLYPH_PATH} /></svg>
+    </button>
+  );
+}
+
+/** + — ADD JOBS, as the mark's glyph: the extension is how jobs are added (D11/D12). */
+export function AddSquare({ to }) {
+  return (
+    <Link to={to} target="_blank" rel="noopener" className="fh-add" data-extension-link=""
+      aria-label="Add jobs" title="Add jobs from any site with the draft browser extension">
+      <span aria-hidden="true">+</span>
+    </Link>
+  );
+}
