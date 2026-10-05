@@ -3,6 +3,7 @@
  * D32 — THE INK PAIR (the posting and the score), seen on every surface it renders on, light and dark, 1440 and 390.
  * ============================================================================================
  *   node scripts/d32InkPairShots.mjs [label] [surface,surface]
+ *   SHOTS_DIR=<folder name under draft-screenshots> SHOTS_PORT=<vite port>   (A86: d32-ink-pair / 5201 by default)
  *
  * Drives the real client (vite on :5201) in a real browser, every /api/* answered from a fixture
  * (a signed-in SYNTHETIC user; synthetic postings and reports). Nobody's data, no model call.
@@ -32,8 +33,8 @@ import { resolveBrowserExecutable } from '../services/browserLauncher.js';
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\//, '')), '..');
 const LABEL = process.argv[2] || 'd32';
 const ONLY = process.argv[3] ? new Set(process.argv[3].split(',')) : null;
-const OUT_DIR = path.resolve(ROOT, '..', 'draft-screenshots', 'd32-ink-pair');
-const PORT = 5201;
+const OUT_DIR = path.resolve(ROOT, '..', 'draft-screenshots', process.env.SHOTS_DIR || 'd32-ink-pair');
+const PORT = Number(process.env.SHOTS_PORT) || 5201;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const now = Math.floor(Date.now() / 1000);
 

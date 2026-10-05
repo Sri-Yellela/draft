@@ -43,6 +43,11 @@
   /* A53 follow-up (10-02): DM Sans, because DM Sans is what renders — the theme's global body rule
      (themes/cinematic.js) sets it on every page. This token said Inter and nothing used it. */
   --font-body: 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  /* A86: the ink pair's reading face — the employer's description is set in it (pair2.html's .art:
+     Georgia, serif). A system face: nothing is fetched for it. */
+  --font-reading: Georgia, serif;
+  /* A86: the ink pair's section counts (pair2.html's .gh .ct). */
+  --font-count: ui-monospace, monospace;
 
   /* Cinematic animations */
   --animate-fade-rise: fade-rise 0.8s ease-out both;
