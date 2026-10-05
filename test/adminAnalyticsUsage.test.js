@@ -198,36 +198,19 @@ test("admin cache analytics distinguish warm partial writes and cold misses", as
   }
 });
 
-test("classifier tracking is wired into generation classifier call sites", () => {
+test("classifier spend is attributed — and since A80 V6 only the tools service classifies", () => {
   const server = fs.readFileSync("server.js", "utf8");
-  const classifier = fs.readFileSync("services/classifier.js", "utf8");
-  // classifier.js no longer takes an onUsage callback. Only two of its three callers ever passed
-  // one, so the third was silently untracked — it now routes through callModel and the callers
-  // pass { db, userId, eventSubtype } instead. The property under test is unchanged: classifier
-  // spend is attributed, at every call site.
-  assert.match(classifier, /callModel\(\{/);
-  assert.match(classifier, /purpose:\s*"classifier"/);
-  // Strip comments first: classifier.js explains in prose why the callback was removed, and that
-  // explanation must not read as the callback still being there.
-  const classifierCode = classifier.replace(/\/\/.*$/gm, "");
-  assert.doesNotMatch(classifierCode, /options\.onUsage/,
-    "the onUsage callback is the two-paths-to-one-table shape that let a caller go untracked");
+  // A4 moved the two GENERATION callers' classification (coreGenerateResume,
+  // /api/standalone/generate) into the tools service; that spend comes back as a `classifier`
+  // usage record, stored under the same purpose by recordToolsServiceUsage — asserted below. The
+  // last draft caller, /api/smart-search, was deleted with services/classifier.js (D17, A80 V6): no
+  // UI had reached it since a68c6c0. So draft runs no classifier of its own.
+  assert.equal(fs.existsSync("services/classifier.js"), false, "draft's own model classifier is back");
+  assert.doesNotMatch(server, /await classify\(anthropic,/, "server.js calls a model classifier again");
   assert.match(server, /eventSubtype,/);
-  assert.match(server, /eventSubtype:\s*"profile_setup"/);
-  // Every draft caller must pass a db, or its spend is not recorded at all. A4: there were three;
-  // the two GENERATION callers (coreGenerateResume, /api/standalone/generate) now classify inside
-  // the tools service, and that spend comes back as a `classifier` usage record, stored under the
-  // same purpose by recordToolsServiceUsage — asserted below. The one left is smart-search.
-  const callers = [...server.matchAll(/await classify\(anthropic,[\s\S]{0,260}?\}\);/g)];
-  assert.equal(callers.length, 1, `expected 1 classify() caller (smart-search), found ${callers.length}`);
-  assert.match(callers[0][0], /eventSubtype:\s*"profile_setup"/);
   const tools = fs.readFileSync("services/toolsService.js", "utf8");
   assert.match(tools, /const purpose = renamePurpose\[u\.purpose\] \|\| u\.purpose;/,
     "the tools service's classifier spend must be stored under its own purpose, as draft's was");
-  for (const c of callers) {
-    assert.match(c[0], /\bdb\b/,
-      `a classify() caller passes no db, so its spend goes unrecorded: ${c[0].slice(0, 80)}`);
-  }
 });
 
 test("admin usage panel includes model-call token ledger", () => {

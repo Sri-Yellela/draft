@@ -171,7 +171,6 @@ const AUTHENTICATED = new Set([
   "GET /api/jobs/:id/recruiter",
   "POST /api/jobs/:id/keywords",
   "POST /api/scrape",
-  "POST /api/smart-search",
   "GET /api/base-resume",
   "POST /api/base-resume",
   "GET /api/base-resume/enhance-status",

@@ -288,7 +288,8 @@ export const VISITED = {
 // THE FIFTH LATENT DIVERGENCE, and the one that is NOT a board filter. It is registered here anyway,
 // because rule 2 above says no literal option value lives anywhere else, and this vocabulary had
 // three separate copies: a dead <select> in ProfilePanel (now deleted), DomainProfileWizard's live
-// SENIORITY_OPTIONS, and the enum in services/classifier.js's LLM prompt.
+// SENIORITY_OPTIONS, and the enum in services/classifier.js's LLM prompt (that file was deleted
+// with /api/smart-search under D17, A80 V6; the tools service's classifier keeps its own pinned copy).
 //
 // IT IS DELIBERATELY NOT EXPERIENCE_LEVELS, and that is the finding rather than the bug. The two
 // look like the same dimension and are not:
@@ -298,7 +299,7 @@ export const VISITED = {
 //   PROFILE_SENIORITY   domain_profiles.seniority       four values, consumed by PROSE. Its only
 //                                                       reader is server.js's resume-generation
 //                                                       prompt ("**Target seniority:** ${...}") and
-//                                                       it is written by services/classifier.js from
+//                                                       it was written by services/classifier.js from
 //                                                       an LLM that is asked for these four names.
 //
 // So `junior` is not a typo for `entry`. Nothing joins these two columns, no query compares them,
