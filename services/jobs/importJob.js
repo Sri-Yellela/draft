@@ -14,8 +14,9 @@
  *      adapter earlier in this project; an honest "can't parse this one, fall through" beats a
  *      wrong guess.
  *   2. Client-provided text/html, or (if neither given and the URL isn't login-walled) a
- *      server-side fetch of the URL — either way, one Haiku call extracts a normalizeJob()-
- *      shaped posting from raw text.
+ *      server-side fetch of the URL — read DETERMINISTICALLY: a schema.org JobPosting (JSON-LD)
+ *      when the HTML carries one, else the extension's labelled block. ⛔ D17 / D33: no model call.
+ *      Import called Haiku until D33; an unfunded balance answered 503 on the only import route.
  *   3. LinkedIn (or another login-walled host) with no fallback text/html at all → no fetch is
  *      attempted; the caller gets a structured "capture it client-side instead" response.
  *
@@ -38,10 +39,7 @@ import { ingestJob } from './jobGateway.js';
 import { recordExistingCapture } from './jobGateway.js';
 import { describeCapture } from './captureOutcome.js';
 import { mapJobRow } from './mapJobRow.js';
-import { MODEL_HAIKU } from '../../shared/anthropicModels.js';
 import { BRAND } from '../../shared/brand.js';
-import { DATA_CLASS } from '../../shared/modelProviders.js';
-import { callModel, SYSTEM_USER_ID, isPermanentModelFailure } from '../modelCall.js';
 
 import { fetchCompanyJobs as fetchGreenhouseJobs }      from './sources/greenhouse.js';
 import { fetchCompanyJobs as fetchLeverJobs }           from './sources/lever.js';
@@ -58,8 +56,6 @@ class ImportInputError extends Error {
   }
 }
 
-// Model IDs come from shared/anthropicModels.js so a bump cannot land in only some files.
-const IMPORT_MODEL_ID = MODEL_HAIKU;
 const LOGIN_WALLED_HOSTS = new Set(['linkedin.com', 'www.linkedin.com']);
 
 // "global-if-fresh": re-importing the exact same URL within this window reuses the existing
@@ -288,37 +284,17 @@ async function fetchGenericPosting(url) {
     responseType: 'text',
     headers: { 'User-Agent': `Mozilla/5.0 (compatible; ${BRAND}ImportBot/1.0)` },
   });
-  return stripResumeHtml(String(response.data || ''));
+  // The raw HTML, not stripped text: a JobPosting in its JSON-LD is the structured read (D33).
+  return String(response.data || '');
 }
 
-function buildExtractionPrompt(text, url) {
-  return `Extract a single job posting's structured fields from the text below. Only state what
-the text actually says — if a field isn't present, use null. Never invent or infer a value that
-isn't actually written.
-
-${url ? `Source URL: ${url}\n` : ''}Posting text:
-${text.slice(0, 6000)}
-
-Reply ONLY with valid JSON matching this exact schema. No markdown fences, no explanation:
-{
-  "title": "<job title, or null if not determinable>",
-  "company": "<employer name, or null if not determinable>",
-  "location": "<city/state/country, or 'Remote', or null>",
-  "description": "<the job description text, cleaned up, or null>",
-  "salaryMin": <number or null>,
-  "salaryMax": <number or null>,
-  "salaryCurrency": "<ISO 4217 e.g. USD, or null>",
-  "remote": <true, false, or null>,
-  "postedAt": "<ISO8601 date if explicitly stated, or null>"
-}`;
-}
-
-// ── THE DETERMINISTIC FALLBACK ──────────────────────────────────────────────────────────────────
+// ── THE DETERMINISTIC READ — the ONLY read since D33 ───────────────────────────────────────────
 //
-// WHY THIS EXISTS. Import required a model call, so an unfunded balance took capture to ZERO
-// rather than to a degraded mode: the extractor had already read the posting in the page, and the
-// whole capture was thrown away because a model could not be reached to re-read it.
-// docs/ARCHITECTURE.md §10 recorded that as a design constraint; this removes it.
+// WHY. Import required a model call, so an unfunded balance took capture to ZERO: the extractor had
+// already read the posting in the page, and the capture was thrown away because a model could not
+// re-read it. This began as the fallback for that case (docs/ARCHITECTURE.md §10). ⛔ D17 confines
+// model calls to résumé generation, so D33 inverted the order — deterministic first, model never —
+// and the model path is gone: no model id, no model call, no 503 from an unfunded balance.
 //
 // WHAT MAKES IT POSSIBLE. extension/extractor.js does not send raw page text — it sends a LABELLED
 // block it built from JSON-LD and per-host selectors:
@@ -333,12 +309,12 @@ Reply ONLY with valid JSON matching this exact schema. No markdown fences, no ex
 // to change in the extension for this to work for users today.
 //
 // ⛔ FLAG, DO NOT FABRICATE. This reads labels the extractor wrote; it does not guess. No title
-// line means no job — it returns null and the original model error is re-thrown, because filing a
+// line means no job — it returns null and the import says it could not read one, because filing a
 // stray page as a posting is worse than failing to file it. Salary, remote and postedAt are left
 // NULL rather than inferred: a wrong salary is not a smaller version of a right one.
 //
-// The row lands with `enriched_at` NULL, so enrichment picks it up and completes it the moment the
-// balance is funded. Degraded is a STAGE, not a permanent state.
+// The row lands with `enriched_at` NULL, so enriched_at is NULL, so enrichment completes this row in
+// the export -> import round trip (D17), like every other row. Thin is a STAGE, not a permanent state.
 function jobFromLabelledText({ url, text }) {
   const lines = String(text || '').split(/\r?\n/);
   const labels = {};
@@ -374,8 +350,8 @@ function jobFromLabelledText({ url, text }) {
       }
     } catch { /* an unparseable URL simply yields no company */ }
   }
-  // A posting with no identifiable employer is not filable. Failing here is correct: the caller
-  // gets the original model error, which is honest, instead of a row attributed to nobody.
+  // A posting with no identifiable employer is not filable. Failing here is correct: the caller is
+  // told nothing could be read, which is honest, instead of a row attributed to nobody.
   if (!company) return null;
 
   const description = lines.slice(i).join('\n').trim();
@@ -398,65 +374,70 @@ function jobFromLabelledText({ url, text }) {
   });
 }
 
-async function extractJobFromContent(anthropic, { url, text, db = null }) {
-  if (!anthropic) throw new ImportInputError('Job extraction requires an AI client, which is not configured on this server');
-  if (!text || !text.trim()) throw new ImportInputError('No text to extract a job from');
-
-  let msg;
-  try {
-    msg = await callModel({
-    // User-initiated import, but this helper has no user in scope; the system sentinel keeps the
-    // spend visible rather than dropping it.
-    anthropic, db, purpose: "import_job", userId: SYSTEM_USER_ID,
-    // PUBLIC: the payload is the fetched text of an open-web job posting, plus its URL. The user
-    // supplies the LOCATION of the text, never any of their own data — nothing from their profile
-    // or resume is in this prompt.
-    dataClass: DATA_CLASS.PUBLIC,
-    model: IMPORT_MODEL_ID,
-    max_tokens: 800,
-    messages: [{ role: 'user', content: buildExtractionPrompt(text, url) }],
-    });
-  } catch (err) {
-    // ⛔ DEGRADE, DO NOT FAIL WHOLE — but only when retrying genuinely cannot help.
-    //
-    // A permanent failure (an exhausted balance, a dead key) means the model is not coming back on
-    // its own, so capture either degrades now or does nothing at all. A TRANSIENT failure is left
-    // to throw: silently filing a title-only row because the provider was briefly overloaded would
-    // swap a loud, recoverable error for a permanently thinner row nobody knows to revisit.
-    if (!isPermanentModelFailure(err)) throw err;
-    const fallback = jobFromLabelledText({ url, text });
-    if (!fallback) throw err;   // nothing trustworthy in the text — the original error stands
-    console.warn(
-      `[importJob] model unavailable (${String(err?.message ?? err).slice(0, 80)}) — ` +
-      `filed "${fallback.title}" @ "${fallback.company}" from the extractor's own labels. ` +
-      `enriched_at is NULL, so enrichment completes this row once the balance is funded.`
-    );
-    return { job: fallback, degraded: true };
+// ── A schema.org JobPosting, read out of HTML (D33) ──────────────────────────────────────────────
+// Most boards publish one, and it is the same structure extension/extractor.js prefers in the page.
+// Regex-scanned rather than DOM-parsed: the server has no DOM, and only the script bodies matter.
+// Same rules as the labelled block: no title or no employer -> null; nothing inferred.
+function jobPostingFromHtml(html) {
+  const blocks = String(html || '').matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+  const isPosting = (o) => o && (o['@type'] === 'JobPosting' || (Array.isArray(o['@type']) && o['@type'].includes('JobPosting')));
+  for (const [, body] of blocks) {
+    let data;
+    try { data = JSON.parse(body.trim()); } catch { continue; }
+    const list = [].concat(data?.['@graph'] || data);
+    const hit = list.find(isPosting);
+    if (hit) return hit;
   }
-  const raw = msg.content.map(b => b.text || '').join('').replace(/```json|```/g, '').trim();
-  let parsed;
-  try { parsed = JSON.parse(raw); } catch { throw new ImportInputError('Could not parse a job from this content'); }
+  return null;
+}
 
-  if (!parsed.title || !parsed.company) {
-    throw new ImportInputError('Could not extract a job title/company from this content');
+function locationOfPosting(ld) {
+  const places = [].concat(ld?.jobLocation || []).map(l => {
+    const a = l?.address || {};
+    const country = typeof a.addressCountry === 'string' ? a.addressCountry : a.addressCountry?.name;
+    return [a.addressLocality, a.addressRegion, country].filter(v => typeof v === 'string' && v.trim()).join(', ');
+  }).filter(Boolean);
+  const remote = /TELECOMMUTE/i.test(String(ld?.jobLocationType || ''));
+  const where = [].concat(ld?.applicantLocationRequirements || [])
+    .map(r => (typeof r === 'string' ? r : r?.name || r?.address?.addressCountry?.name || r?.address?.addressCountry))
+    .filter(v => typeof v === 'string' && v.trim()).join(', ');
+  if (remote) places.push(where ? `Remote (${where})` : 'Remote');
+  return places.join(' | ') || null;
+}
+
+function jobFromHtml({ url, html }) {
+  const ld = jobPostingFromHtml(html);
+  if (!ld) return null;
+  const title = typeof ld.title === 'string' ? ld.title.trim() : '';
+  const org = ld.hiringOrganization;
+  const company = (typeof org === 'string' ? org : org?.name || '').trim();
+  if (!title || !company) return null;
+  const description = ld.description ? stripResumeHtml(String(ld.description)) : stripResumeHtml(html).slice(0, 3000);
+  return normalizeJob({
+    id: crypto.randomUUID(), req_id: null, title, company,
+    location: locationOfPosting(ld),
+    url: url || `import:${crypto.randomUUID()}`,
+    source: 'import',
+    description: description || null,
+    // ⛔ Inferred fields stay NULL, as in the labelled read.
+    salary_min: null, salary_max: null, salary_currency: null, remote: null, posted_at: null,
+  });
+}
+
+/**
+ * ⛔ D17 / D33 — THE ONLY EXTRACTION, AND IT CALLS NO MODEL. A JobPosting in the HTML first, then the
+ * extension's labelled block. Nothing readable is an ImportInputError (400) that says so — never a
+ * 503, and never a guess.
+ */
+function extractJobDeterministic({ url, text, html }) {
+  const job = (html && jobFromHtml({ url, html }))
+    || jobFromLabelledText({ url, text: text || (html ? stripResumeHtml(html) : '') });
+  if (!job) {
+    throw new ImportInputError(
+      "Could not read a job title and employer from this page. draft reads the posting's own " +
+      "structured data or the extension's capture, and does not guess.");
   }
-
-  // Same SHAPE as the degraded return above, so no caller can accidentally treat one as the other.
-  return { degraded: false, job: normalizeJob({
-    id:              crypto.randomUUID(),
-    req_id:          null, // no genuine per-posting identifier available — fingerprint-only dedup
-    title:           parsed.title,
-    company:         parsed.company,
-    location:        parsed.location || null,
-    url:             url || `import:${crypto.randomUUID()}`,
-    source:          'import',
-    description:     parsed.description || text.slice(0, 3000) || null,
-    salary_min:      typeof parsed.salaryMin === 'number' ? parsed.salaryMin : null,
-    salary_max:      typeof parsed.salaryMax === 'number' ? parsed.salaryMax : null,
-    salary_currency: parsed.salaryCurrency || null,
-    remote:          typeof parsed.remote === 'boolean' ? parsed.remote : null,
-    posted_at:       parsed.postedAt || null,
-  }) };
+  return job;
 }
 
 /**
@@ -509,8 +490,8 @@ function attachImportToUser(db, userId, jobId) {
 
 /**
  * @param {{url?: string, text?: string, html?: string}} input
- * @param {{db: import('better-sqlite3').Database, anthropic: import('@anthropic-ai/sdk').default|null,
- *          userId?: number|null, force?: boolean}} ctx
+ * @param {{db: import('better-sqlite3').Database, userId?: number|null, force?: boolean}} ctx
+ *   (No model client: since D33 import calls no model — D17.)
  *   force skips the freshness short-circuit and re-fetches even a row imported moments ago. For
  *   BACKFILLS after the extractor changes: when a source starts reading a field it previously
  *   dropped, every existing row is stale in a way `updated_at` cannot express, and without this
@@ -518,7 +499,7 @@ function attachImportToUser(db, userId, jobId) {
  *   HTTP — routes/importJob.js never passes it, so a client cannot use it to force repeated
  *   outbound fetches.
  */
-async function importJob({ url, text, html } = {}, { db, anthropic, userId = null, force = false }) {
+async function importJob({ url, text, html } = {}, { db, userId = null, force = false }) {
   if (!url && !text && !html) {
     throw new ImportInputError('Provide at least one of url, text, or html');
   }
@@ -563,9 +544,6 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
   }
 
   let normalizedJob = null;
-  // Whether the row was filed WITHOUT the model — reported to the caller so the extension can
-  // say "partial" rather than claiming a complete capture. See jobFromLabelledText.
-  let degraded = false;
 
   if (url && !isLoginWalled(url)) {
     const match = detectKnownAtsMatch(url);
@@ -579,12 +557,9 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
   }
 
   if (!normalizedJob && providedText) {
-    ({ job: normalizedJob, degraded } = 
-      await extractJobFromContent(anthropic, { url: url || null, text: providedText, db }));
+    normalizedJob = extractJobDeterministic({ url: url || null, text, html });
   } else if (!normalizedJob && url && !isLoginWalled(url)) {
-    const fetchedText = await fetchGenericPosting(url);
-    ({ job: normalizedJob, degraded } = 
-      await extractJobFromContent(anthropic, { url, text: fetchedText, db }));
+    normalizedJob = extractJobDeterministic({ url, html: await fetchGenericPosting(url) });
   }
 
   if (!normalizedJob) {
@@ -651,16 +626,7 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
   // A49 fix 4 + D33 — what happened, worded once (services/jobs/captureOutcome.js): inserted, ATTACHED
   // to a posting already on the board (with a link to it), or held off the board and why. The
   // extension and the site show this text; they no longer word the outcome themselves.
-  //
-  // `degraded` travels with the row: the caller promised the user a capture, and a capture that
-  // carries a title and a URL but no salary or skills is a DIFFERENT promise kept. Saying so is
-  // the flag-don't-fabricate rule applied to the response rather than to a field.
-  return answer(db, row, {
-    action: ingest.action, attachment,
-    extra: degraded ? { degraded: true, degradedReason: 'ai_unavailable' } : {},
-    note: degraded ? 'Saved with title and link only — the AI service is unavailable, so details '
-                   + 'will fill in automatically once it is back.' : null,
-  });
+  return answer(db, row, { action: ingest.action, attachment });
 }
 
 /**
@@ -668,21 +634,19 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
  * beside it are kept for the callers that already read them (the mobile contract, an extension
  * build from before v1.4.0), and `message` is capture.message for the same reason.
  */
-function answer(db, row, { action, attachment, extra = {}, note = null }) {
+function answer(db, row, { action, attachment }) {
   const capture = describeCapture(db, {
     jobId: row.job_id, action, title: row.title, company: row.company,
     noActiveProfile: !!attachment?.noActiveProfile,
   });
-  if (note) capture.message += ` ${note}`;
   return {
     job: mapJobRow(row), capture, message: capture.message,
     ...(capture.matchedExisting ? { attachedToExisting: true, existingJobId: row.job_id } : {}),
     ...(capture.outcome === 'held' ? { outOfMarket: true } : {}),
-    ...extra,
   };
 }
 
 export {
   importJob, ImportInputError, detectKnownAtsMatch, isLoginWalled,
-  isPrivateOrLoopbackIp, findMatchingPosting,
+  isPrivateOrLoopbackIp, findMatchingPosting, jobFromLabelledText, jobFromHtml,
 };
