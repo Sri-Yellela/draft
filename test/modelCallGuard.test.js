@@ -13,21 +13,15 @@ import fs from "node:fs";
 import path from "node:path";
 
 const WRAPPER = "services/modelCall.js";
-// The ONE module allowed to speak a non-Anthropic provider's wire protocol. Groq and Gemini have
-// no SDK here on purpose — they are reached with `fetch`, so the shape that would bypass tracking
-// is an HTTP call to a provider host, not an SDK method. That shape is therefore scanned for too,
-// and this is the single file exempt from it.
-const TRANSPORT = "services/providerTransport.js";
+// A87 (10-05): there is no second module allowed to speak a provider's wire protocol. The Groq/Gemini
+// transport (services/providerTransport.js) and its catalog (shared/modelProviders.js) were deleted,
+// and with them their two exemptions from this scan. The hostname shapes below stay: a fetch to a
+// provider host is still the shape an untracked call would take, for any provider.
 // This file quotes the forbidden calls inside its own failure message and its injection fixtures,
 // so it must not scan itself. Every OTHER test file is still scanned — a test that calls a
 // provider directly is a real untracked call site, not an exemption.
 const SELF = "test/modelCallGuard.test.js";
-// The catalog holds each provider's base URL as DATA. It is exempt from the hostname scan for that
-// reason and for no other — and the exemption is paid for by the test at the bottom of this file,
-// which asserts the catalog contains no network call of any kind. Exempting a file that could make
-// a call is how a guard acquires its first hole.
-const CATALOG = "shared/modelProviders.js";
-const ALLOWED = new Set([WRAPPER, TRANSPORT, CATALOG, SELF]);
+const ALLOWED = new Set([WRAPPER, SELF]);
 
 // ── THE SCAN ────────────────────────────────────────────────────────────────────────────────────
 //
@@ -241,48 +235,7 @@ test("every callModel invocation passes a purpose", () => {
     "callModel requires a `purpose`:\n" + missing.map(x => `  ${x}`).join("\n"));
 });
 
-// ── THE PRICE OF THE CATALOG'S EXEMPTION ────────────────────────────────────────────────────────
-//
-// shared/modelProviders.js is exempt from the hostname scan because it holds base URLs as data.
-// That exemption is only safe while the file cannot itself call anything, so that is asserted
-// rather than assumed — otherwise the one file allowed to name every provider host is also a file
-// that could quietly fetch one.
-test("the provider catalog is data — it makes no network call at all", () => {
-  const src = fs.readFileSync(CATALOG, "utf8");
-  const callShapes = [
-    /\bfetch\s*\(/, /\baxios\b/, /\bhttps?\.(get|request)\s*\(/,
-    /\bXMLHttpRequest\b/, /\bnew\s+Request\s*\(/, /\bundici\b/,
-  ];
-  const found = callShapes.filter(re => re.test(src.replace(/(^|[^:])\/\/.*$/gm, "$1")));
-  assert.deepEqual(found.map(String), [],
-    `${CATALOG} is exempt from the provider-hostname scan because it is pure data. It must stay ` +
-    `that way: move any call into ${TRANSPORT}, which is the module the guard scrutinises.`);
-});
-
-// The hostname scan cannot see `fetch(`${spec.baseUrl}/chat/completions`)` — the host is in the
-// catalog, not at the call. So the catalog's URLs are themselves treated as a capability: only the
-// transport may read them. Without this, any module could import PROVIDERS and fetch a base URL in
-// two lines that no hostname regex would ever match.
-test("only the transport reads a provider base URL", () => {
-  const offenders = [];
-  for (const file of sourceFiles()) {
-    if (file === TRANSPORT || file === CATALOG || file === SELF) continue;
-    const src = fs.readFileSync(file, "utf8");
-    // Scoped two ways, because a bare /baseUrl/ is noise: `baseUrl` is an ordinary name in this
-    // repo for the APP's own URL (server.js builds a password-reset link with one), and a guard
-    // that cries wolf acquires an exemption list instead of a meaning.
-    //   1. the file must actually import the catalog, and
-    //   2. the match must be a PROPERTY READ off a provider spec (`spec.baseUrl`), not a local
-    //      variable that merely shares the name.
-    if (!/from\s+["'][^"']*modelProviders\.js["']/.test(src)) continue;
-    src.split("\n").forEach((line, i) => {
-      const code = line.replace(/(^|[^:])\/\/.*$/, "$1");
-      if (/\.baseUrl\b/.test(code)) offenders.push(`${file}:${i + 1}`);
-    });
-  }
-  assert.deepEqual(offenders, [],
-    "These read a provider's base URL outside the transport, which is a model call the hostname\n" +
-    "scan cannot see (the host is in the catalog, not at the call site):\n" +
-    offenders.map(o => `  ${o}`).join("\n") +
-    `\n\nFIX: route through callModel(), which delegates to ${TRANSPORT}.`);
-});
+// (A87, 10-05) "the provider catalog is data — it makes no network call at all" and "only the
+// transport reads a provider base URL" retired with the two files they policed —
+// shared/modelProviders.js and services/providerTransport.js. With them gone, the scan above has no
+// exemption but this file itself.

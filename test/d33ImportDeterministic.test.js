@@ -103,14 +103,17 @@ test("⛔ no model on the import path: no call, no model id, no client, no 503-o
   assert.match(read("server.js"), /app\.use\("\/api\/import", requireAuth, createImportJobRouter\(db\)\);/);
 });
 
-test("the D17 ratchets agree: import_job is gone from BOTH the A80 known list and the PUBLIC set", () => {
+test("the D17 ratchets agree: import_job is gone from BOTH the A80 known list and the free-tier route", () => {
   const sites = read("test/d17ModelCallSites.test.js");
-  const routing = read("test/providerRouting.test.js");
   const known = sites.slice(at(sites, "const KNOWN_VIOLATIONS"), at(sites, "]);", at(sites, "const KNOWN_VIOLATIONS")));
   assert.doesNotMatch(known, /"import_job"/, "d17ModelCallSites still lists import_job as a known violation");
-  const expected = /const expected = new Set\((\[[^\]]*\])\);/.exec(routing);
-  assert.ok(expected, "providerRouting's PUBLIC set moved");
-  assert.doesNotMatch(expected[1], /import_job/, "providerRouting still expects import_job on the free-tier route");
-  // And every purpose the PUBLIC set expects is still a known violation or allowed — one story, not two.
-  for (const p of JSON.parse(expected[1].replace(/'/g, '"'))) assert.match(known, new RegExp(`"${p}"`));
+  // Re-pointed (A87): this read providerRouting.test.js's expected PUBLIC set. A87 deleted the
+  // free-tier route and the PUBLIC class with it, so the second half is now that there is no PUBLIC
+  // class to put import_job back on, and importJob.js declares none.
+  const modelCall = read("services/modelCall.js");
+  const start = at(modelCall, "export const DATA_CLASS");
+  const dataClass = modelCall.slice(start, at(modelCall, "});", start));
+  assert.doesNotMatch(dataClass, /\bPUBLIC\s*:/, "DATA_CLASS has a PUBLIC member again");
+  assert.doesNotMatch(read("services/jobs/importJob.js"), /DATA_CLASS\.PUBLIC|dataClass:/,
+    "importJob.js declares a model data class again");
 });
