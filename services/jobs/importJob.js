@@ -35,6 +35,7 @@ import { lookup as dnsLookup } from 'dns/promises';
 import { normalizeJob } from './schema.js';
 import { stripResumeHtml } from '../resumeFormatter.js';
 import { ingestJob } from './jobGateway.js';
+import { recordExistingCapture } from './jobGateway.js';
 import { mapJobRow } from './mapJobRow.js';
 import { MODEL_HAIKU } from '../../shared/anthropicModels.js';
 import { BRAND } from '../../shared/brand.js';
@@ -480,12 +481,20 @@ function attachImportToUser(db, userId, jobId) {
     const activeProfile = db.prepare(
       'SELECT id FROM domain_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1'
     ).get(userId);
+    // ⛔ D33 — the ★ Saved tab reads `uj.domain_profile_id = <active profile>`, `starred = 1` and
+    // `disliked = 0`. The upsert set only `starred`, so a capture of a job the user had touched
+    // before — under another profile, or passed on — was starred and STILL not in ★ Saved: the
+    // "inserted but missing from ★" outcome. A capture is the newest, most explicit act on the job,
+    // so it moves the row to the active profile (keeping the old one only when there is none) and
+    // clears a pass, exactly as the ★ button does (PATCH /api/jobs/:id/starred sets disliked = 0).
     db.prepare(`
       INSERT INTO user_jobs (user_id, job_id, domain_profile_id, starred, updated_at)
       VALUES (?, ?, ?, 1, unixepoch())
       ON CONFLICT(user_id, job_id) DO UPDATE SET
-        starred    = 1,
-        updated_at = unixepoch()
+        starred           = 1,
+        disliked          = 0,
+        domain_profile_id = COALESCE(excluded.domain_profile_id, user_jobs.domain_profile_id),
+        updated_at        = unixepoch()
     `).run(userId, jobId, activeProfile?.id || null);
   } catch (err) {
     console.warn(`[importJob] Could not attach import to user ${userId}:`, err.message);
@@ -523,6 +532,13 @@ async function importJob({ url, text, html } = {}, { db, anthropic, userId = nul
         ? (db.prepare('SELECT * FROM scraped_jobs WHERE job_id = ?').get(existing.duplicate_of) || existing)
         : existing;
       attachImportToUser(db, userId, target.job_id);
+      // D33: the fast path recorded nothing, so a capture of a posting already on the board left no
+      // job_captures row — indistinguishable, in the one table built to answer it, from a capture
+      // that never reached the server.
+      recordExistingCapture(db, {
+        jobId: target.job_id, url, userId, detectKnownAtsMatch,
+        origin: text || html ? 'capture' : 'import_url',
+      });
       return { job: mapJobRow(target), ...attachedNotice(target.job_id) };
     }
   }
