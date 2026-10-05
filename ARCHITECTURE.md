@@ -383,10 +383,10 @@ profile-scoped table — which is exactly why the global `ats_score` column is v
 a migration added only to `scripts/migrations.js` never runs. Each migration and its bookkeeping row
 commit in **one transaction**, so a half-applied migration cannot be recorded as done.
 
-Both runners define **125** numbered migrations (127 is the newest; 125 and 126 are reserved by the unmerged D16 and A76 branches). Production had applied **125** on 10-02 (`/api/version`, commit `bfef596`): the
+Both runners define **126** numbered migrations (128 is the newest; 125 and 126 are reserved by the unmerged D16 and A76 branches). Production had applied **125** on 10-02 (`/api/version`, commit `bfef596`): the
 first **119** of them (117 is unused), plus **6** unnumbered legacy ids predating the `NNN_` convention (`admin_cache_events`,
 `admin_scrape_events`, `admin_usage_events`, `admin_user_limits`, `ats_only_reports`,
-`contact_messages`). Defined high-water: `127_slug_harvest` (D20 — the slug harvest in the daily manual sweep: SerpApi searches started by a person pool ATS boards we do not crawl, as an unordered set never tied to the job they were found under; the owner reviews an export and imports decisions, revertable whole), after `124_company_logos` (A77 — each company's logo resolved once during enrichment
+`contact_messages`). Defined high-water: `128_job_tags` (D29 — the board's own filter tags: level, function, employment type, workplace and a remote flag as `scraped_jobs.tag_*`, and each posting's places as a set in `job_tag_places`; derived deterministically, owner-filled by export → import, NULL = unknown), after `127_slug_harvest` (D20 — the slug harvest in the daily manual sweep: SerpApi searches started by a person pool ATS boards we do not crawl, as an unordered set never tied to the job they were found under; the owner reviews an export and imports decisions, revertable whole), after `124_company_logos` (A77 — each company's logo resolved once during enrichment
 and stored as bytes, served from `/api/company-logo/<key>`), after `123_owner_skill_aliases` (A72 — the owner's two confirmed skill aliases, ai ≡ artificial
 intelligence and ml ≡ machine learning, which the board's ranked search and the scorer both read), after `122_job_captures` (A62 — every job a user brings in or an admin imports goes through
 one gateway, `services/jobs/jobGateway.js`; `job_captures` records it with the ATS host + slug, `job_import_batches` makes

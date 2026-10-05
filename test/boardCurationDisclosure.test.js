@@ -34,7 +34,7 @@ function db0() {
       experience_level TEXT, workplace_type TEXT, employment_type TEXT,
       salary_min_usd INTEGER, salary_max_usd INTEGER,
       is_h1b_sponsor INTEGER, requires_work_auth INTEGER,
-      posted_at TEXT, scraped_at INTEGER, is_active INTEGER DEFAULT 1
+      posted_at TEXT, scraped_at INTEGER, is_active INTEGER DEFAULT 1, tag_basis TEXT, tag_level TEXT, tag_workplace TEXT, tag_employment TEXT, tag_function TEXT
     );
   `);
   const add = db.prepare(
@@ -196,7 +196,7 @@ test("experience_level is populated on EVERY row, so its soft-null escape never 
 test("the Saved tab returns every starred job, whatever bucket the classifier chose", () => {
   const db = new Database(":memory:");
   db.exec(`
-    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, title TEXT, company TEXT, is_active INTEGER DEFAULT 1);
+    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, title TEXT, company TEXT, is_active INTEGER DEFAULT 1, tag_basis TEXT, tag_level TEXT, tag_workplace TEXT, tag_employment TEXT, tag_function TEXT);
     CREATE TABLE job_role_map (job_id TEXT, role_key TEXT, PRIMARY KEY (job_id, role_key));
     CREATE TABLE user_jobs (user_id INTEGER, job_id TEXT, domain_profile_id INTEGER,
                             starred INTEGER DEFAULT 0, disliked INTEGER DEFAULT 0);
@@ -234,7 +234,7 @@ test("the Saved tab still respects the user's own dislike, and other users' star
   // Dropping the role join must not drop the per-user scoping with it.
   const db = new Database(":memory:");
   db.exec(`
-    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, title TEXT, is_active INTEGER DEFAULT 1);
+    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, title TEXT, is_active INTEGER DEFAULT 1, tag_basis TEXT, tag_level TEXT, tag_workplace TEXT, tag_employment TEXT, tag_function TEXT);
     CREATE TABLE user_jobs (user_id INTEGER, job_id TEXT, domain_profile_id INTEGER,
                             starred INTEGER DEFAULT 0, disliked INTEGER DEFAULT 0);
   `);

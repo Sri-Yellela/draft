@@ -92,7 +92,7 @@ test("target_titles ranks in TWO keys, so specialisation demotes instead of disa
   // while they check most of the file instead of this block. See test/sourceAnchorGuard.test.js.
   const block = jobQuery.slice(
     at(jobQuery, "const targetTitles = toArray(params.target_titles)"),
-    at(jobQuery, "const locations = toArray(params.locations)"));
+    at(jobQuery, "const locationTexts = toArray(params.locations)"));
   assert.ok(block.length > 200, "the target-title rank block must exist");
   assert.doesNotMatch(block, /clauses\.push/,
     "a target-title predicate in the WHERE clause is the defect CC1 removed");
