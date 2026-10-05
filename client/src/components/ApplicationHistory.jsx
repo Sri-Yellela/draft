@@ -37,6 +37,17 @@ const DOWNLOAD_ERRORS = {
   artifact_corrupt: "The stored résumé is damaged and could not be opened — nothing was downloaded.",
 };
 
+/**
+ * O56(a): what the download IS, from row.resumeSource (shared/applicationHistory.js — D16's kept copy
+ * first, the working résumé only without one). ⛔ Only a kept copy may be called "the résumé sent".
+ */
+const RESUME_LINK = {
+  snapshot_at_record: { title: "Download the résumé sent with this application", label: "Download résumé" },
+  backfill:           { title: "Download the copy kept for this application — saved after you applied, from the résumé as it was then", label: "Download résumé (kept later)" },
+  current_resume:     { title: "No copy was kept when you applied — this downloads your résumé for this job as it is now, which may have changed since", label: "Download current résumé" },
+};
+const resumeLink = (row) => RESUME_LINK[row.resumeSource] || RESUME_LINK.current_resume;
+
 export default function ApplicationHistory({ onOpenPending }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -100,7 +111,7 @@ export default function ApplicationHistory({ onOpenPending }) {
       const blob = await r.blob();
       if (!blob.size) throw new Error(DOWNLOAD_ERRORS.artifact_corrupt);
       const name = /filename="?([^";]+)"?/.exec(r.headers.get("Content-Disposition") || "")?.[1]
-        || `resume-${String(row.company || "application").replace(/[^\w-]+/g, "-")}.pdf`;
+        || `resume-${String(row.company || "application").replace(/[^\w-]+/g, "-")}.html`;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
@@ -191,7 +202,7 @@ export default function ApplicationHistory({ onOpenPending }) {
                     )}
                     {row.hasResume && row.recordId != null && (
                       <button type="button" className="ah__sq" onClick={() => downloadResume(row)}
-                        title="Download the résumé sent with this application" aria-label="Download résumé">
+                        title={resumeLink(row).title} aria-label={resumeLink(row).label}>
                         <span aria-hidden="true">⤓</span><span className="ah__sq-cap">résumé</span>
                       </button>
                     )}
@@ -250,7 +261,8 @@ export default function ApplicationHistory({ onOpenPending }) {
 
                     {row.hasResume && row.recordId != null && (
                       <p className="ah__ask">
-                        <button type="button" className="ah__btn" onClick={() => downloadResume(row)}>Download résumé</button>
+                        <button type="button" className="ah__btn" onClick={() => downloadResume(row)}
+                          title={resumeLink(row).title}>{resumeLink(row).label}</button>
                       </p>
                     )}
                   </div>

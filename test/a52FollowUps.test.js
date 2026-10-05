@@ -4,8 +4,11 @@ import fs from "node:fs";
 
 // A52's open items, 10-02 (17).
 test("enrichment finishing schedules a rescore: the hook fires after a pass that wrote rows, and server.js listens", () => {
+  // A80 (10-05): the model pass that fired this was deleted under D17; the manual import is the only
+  // enrichment write left, so it is the one that must fire it.
+  const transfer = fs.readFileSync("services/jobs/enrichmentTransfer.js", "utf8");
+  assert.match(transfer, /if \(written > 0\) notifyEnrichmentApplied\(\{ enriched: written, batchId, batchSource: 'import' \}\);/);
   const enrich = fs.readFileSync("services/jobs/enrichJob.js", "utf8");
-  assert.match(enrich, /if \(enriched > 0\) notifyEnrichmentApplied\(\{ enriched, batchId, batchSource \}\);/);
   assert.match(enrich, /try \{ fn\(info\); \} catch/, "a listener can never fail a pass");
   const server = fs.readFileSync("server.js", "utf8");
   assert.match(server, /onEnrichmentApplied\(\(\) => \{/);

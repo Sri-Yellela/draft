@@ -479,8 +479,10 @@ test("the PUBLIC set is exactly the job-text purposes still calling a model", ()
   // Pinned so that widening it is a deliberate edit with a reviewer, not a one-line drift. Every
   // addition here is a new class of data leaving for a free tier.
   // classify_job was deleted under D17 (A80 V7) — it had no caller. import_job was deleted by D33
-  // (A80 V5): import reads deterministically and calls no model.
-  const expected = new Set(["enrich_job"]);
+  // (A80 V5): import reads deterministically and calls no model. enrich_job was deleted by A80
+  // (10-05) once A76 landed: enrichment is export → import only. The set is now EMPTY — no
+  // production call site routes to a free tier, so a new PUBLIC declaration fails here.
+  const expected = new Set([]);
   const found = new Set();
   const files = ["server.js", "services/classifier.js", "services/jobs/enrichJob.js",
                  "services/jobs/importJob.js", "routes/domainProfiles.js"];
@@ -514,68 +516,8 @@ test("the resume-bearing `classifier` purpose is NOT public", () => {
 
 // ── A 429 LEAVES THE ROW RETRYABLE ──────────────────────────────────────────────────────────────
 
-test("a 429 during enrichment leaves the row a candidate — it is never stamped enriched", async () => {
-  // Requirement 7. enrichJob's failure path ALREADY leaves content_hash and enriched_at unset, so
-  // this holds today — but "already holds" is a property of the current code, not a guarantee, and
-  // the cost of it silently ceasing to hold is a row that leaves the candidate pool permanently
-  // (the hash only changes when title/description does). Groq's 30 req/min ceiling makes 429 the
-  // ORDINARY case for a 1302-row pass, not an edge one, so it is pinned here.
-  const { runEnrichment } = await import("../services/jobs/enrichJob.js");
-  const db = makeDb();
-  db.exec(`
-    CREATE TABLE scraped_jobs (
-      job_id TEXT PRIMARY KEY, title TEXT, company TEXT, description TEXT,
-      summary TEXT, normalized_title TEXT, experience_level TEXT, workplace_type TEXT,
-      salary_min_usd INTEGER, salary_max_usd INTEGER, salary_period TEXT, skills_json TEXT,
-      is_h1b_sponsor INTEGER, requires_work_auth INTEGER, is_clearance_required INTEGER,
-      org_unit_raw TEXT, content_hash TEXT, enriched_at INTEGER,
-      is_active INTEGER DEFAULT 1, discovered_at INTEGER DEFAULT 0, updated_at INTEGER DEFAULT 0,
-      -- Columns the shared candidate selector reads (services/jobs/enrichmentSelection.js).
-      -- scraped_at is the freshness gate's key and is left NULL here, which the selector treats as
-      -- UNGATED — so this test still exercises the 429 path rather than the gate's clock.
-      source TEXT, posted_at INTEGER, scraped_at INTEGER
-    );
-    CREATE TABLE IF NOT EXISTS company_technographics (
-      company TEXT NOT NULL, skill TEXT NOT NULL, skill_type TEXT, weight REAL DEFAULT 0,
-      posting_count INTEGER DEFAULT 0, last_seen_at INTEGER, updated_at INTEGER,
-      PRIMARY KEY (company, skill)
-    );
-    CREATE TABLE IF NOT EXISTS pipeline_runs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT, stage TEXT, started_at INTEGER, finished_at INTEGER,
-      ok INTEGER, detail TEXT
-    );
-  `);
-  db.prepare(`INSERT INTO scraped_jobs (job_id, title, company, description)
-              VALUES ('j1', 'Backend Engineer', 'Acme', 'Build APIs all day.')`).run();
-
-  const restore = process.env.ENRICH_PROVIDER;
-  const restoreKey = process.env.GROQ_API_KEY;
-  process.env.ENRICH_PROVIDER = "groq";
-  process.env.GROQ_API_KEY = "gsk_test";
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = fakeFetch(() => jsonResponse({ error: "rate limit exceeded" },
-    { status: 429, headers: { "retry-after": "0" } }));
-  try {
-    resetRateLimiter();
-    const result = await runEnrichment(db, fakeAnthropic(), { recordRun: false });
-    assert.equal(result.enriched, 0, "nothing was extracted, so nothing may be counted as enriched");
-  } finally {
-    globalThis.fetch = originalFetch;
-    process.env.ENRICH_PROVIDER = restore;
-    if (restoreKey === undefined) delete process.env.GROQ_API_KEY; else process.env.GROQ_API_KEY = restoreKey;
-  }
-
-  const row = db.prepare("SELECT * FROM scraped_jobs WHERE job_id = 'j1'").get();
-  assert.equal(row.content_hash, null, "a rate-limited row must stay a candidate for the next pass");
-  assert.equal(row.enriched_at, null);
-  assert.equal(row.summary, null, "and it must not have been written with an empty extraction");
-
-  // The 429 is still a recorded fact — a failed call is spend-adjacent information and the dead
-  // sonnet-4 ID proved that silence about failures is how an outage lasts two months.
-  const failed = db.prepare("SELECT * FROM usage_events WHERE success = 0").all();
-  assert.ok(failed.length >= 1, "the rate-limited attempt must appear in usage_events");
-  assert.equal(failed[0].provider, "groq");
-});
+// (A80, 10-05) "a 429 during enrichment leaves the row a candidate" retired: it drove runEnrichment, which was
+// deleted with enrichJob.js's model call (D17). The manual import never calls a provider.
 
 test("a param the transport cannot translate is REFUSED, not dropped", async () => {
   // A request that succeeds while quietly ignoring half of what it was asked to do is worse than
