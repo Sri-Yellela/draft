@@ -16,10 +16,9 @@
  *
  * ⚠ SPENDS REAL MONEY: two Sonnet generations, ~$0.08. Excluded from verify:harness; run by hand.
  *
- * ⚠ THE PROVIDER IS NOT THE POINT HERE. With no GROQ_API_KEY the tokenized call also routes to
- * Anthropic. That does not weaken the test: what is being verified is the round trip and the
- * whitelist, both of which run identically whoever serves the call. The provider split is task A's
- * property and is tested there.
+ * ⚠ THE PROVIDER IS NOT THE POINT HERE. Both calls go to Anthropic — the only provider since A87
+ * deleted the free-tier route. What is being verified is the round trip and the whitelist, both of
+ * which run identically whoever serves the call.
  *
  * Usage: node scripts/al5TokenizedGeneration.mjs [--profile 6] [--job <job_id>]
  */
@@ -29,8 +28,7 @@ import { fileURLToPath } from "node:url";
 import "dotenv/config";
 import Anthropic from "@anthropic-ai/sdk";
 
-import { callModel, SYSTEM_USER_ID } from "../services/modelCall.js";
-import { DATA_CLASS } from "../shared/modelProviders.js";
+import { callModel, SYSTEM_USER_ID, DATA_CLASS } from "../services/modelCall.js";
 import { MODEL_SONNET } from "../shared/anthropicModels.js";
 import { assertOutboundFields } from "../shared/piiPolicy.js";
 import { buildTokenMap, tokenizeText, tokensPresentIn, reverseOrThrow, ANY_TOKEN_RE }
