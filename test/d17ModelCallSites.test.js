@@ -165,7 +165,7 @@ const SCRIPT_ALLOWED = new Map([
 const SCRIPT_KNOWN_VIOLATIONS = new Map([
   // V8 closed 10-05: scripts/a76LlmGradedCorpus.mjs is export → grade → import (A76, 291c906).
   // V9 closed 10-05: scripts/al1ProviderQualityDiff.mjs deleted (pinned below).
-  ["scripts/al3SkillSynonyms.mjs",       "A80 V10 — skill-synonym proposals by Haiku"],
+  // V10 closed 10-05: scripts/al3SkillSynonyms.mjs is export → owner → import (test/a80SynonymTransfer).
   ["scripts/al4LcaResolution.mjs",       "A80 V11 — LCA company resolution by Haiku"],
 ]);
 

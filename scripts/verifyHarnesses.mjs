@@ -87,7 +87,7 @@ const EXCLUDED = {
   al8FormFieldMappings: "utility — proposes/reviews the derived label map against the real database; asserts nothing",
   al4LcaResolution:    "OFFLINE asset generation — model calls over public LCA company names; run it by hand",
   al3SynonymRhoEffect: "measurement, not a harness — re-scores the graded 30 against a read-only backup and prints rho; asserts nothing",
-  al3SkillSynonyms:    "OFFLINE asset generation — spends model tokens over the corpus vocabulary; run it by hand, and only when the review sheet is being rebuilt",
+  al3SkillSynonyms:    "OFFLINE asset generation — export → owner → import of synonym proposals (D17: no model call), and --import --apply writes to the database; run it by hand. test/a80SynonymTransfer.test.js is the half that asserts",
   ak2AtsGradingSet:    "utility, writes the grading sheet to docs/ and asserts nothing",
   am1PreserveGradedCorpus: "utility — copies a 110 MB backup to data/evidence/ and rewrites the docs fixture; run it when the corpus needs re-pinning. am1GradedCorpusVerify is the half that asserts, and it stays in the suite",
   am1PurgeImpactAudit: "read-only forensics report against the real database and a backup; asserts nothing",
