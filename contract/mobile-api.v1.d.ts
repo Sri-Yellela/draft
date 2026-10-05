@@ -1,6 +1,6 @@
 /**
  * Draft — Mobile API types.
- * Contract version 2.0.0.
+ * Contract version 2.1.0.
  *
  * GENERATED — DO NOT EDIT. Regenerate with `node scripts/generateMobileContract.mjs`.
  *
@@ -17,6 +17,7 @@ export type AutomationTier = "direct" | "guest" | "account" | "gated" | "unknown
 export type EmploymentType = "full-time" | "contract" | "internship" | "part-time";
 export type ExperienceLevel = "intern" | "entry" | "mid" | "senior" | "lead" | "executive";
 export type FitBand = "strong" | "moderate" | "weak";
+export type JobFunction = "engineering" | "data" | "design" | "product" | "marketing" | "sales" | "operations" | "finance" | "people" | "legal";
 export type PostingAge = "1d" | "2d" | "3d" | "1w" | "1m";
 export type Sort = "dateDesc" | "dateAsc" | "compHigh" | "compLow" | "yoeLow" | "yoeHigh" | "atsScore" | "companyAsc";
 export type WorkplaceType = "remote" | "hybrid" | "onsite";
@@ -76,6 +77,12 @@ export interface Job {
   /** Per (user, domain profile). The Saved tab is starred=1. */
   starred: boolean;
   summary: string | null;
+  /** D29's tag: the kind of work. null = UNKNOWN (not tagged), never 'none'. */
+  tagFunction: ("engineering" | "data" | "design" | "product" | "marketing" | "sales" | "operations" | "finance" | "people" | "legal") | null;
+  /** D29's tag: from the title, then the stated years. null = UNKNOWN — there is no 'mid' fallback. */
+  tagLevel: ("intern" | "entry" | "mid" | "senior" | "lead" | "executive") | null;
+  /** D29's tag: remote / hybrid / onsite. null = UNKNOWN. */
+  tagWorkplace: ("remote" | "hybrid" | "onsite") | null;
   /** Role title as posted. */
   title?: string;
   /** The posting. */
@@ -227,6 +234,8 @@ export interface DeckReport {
   depthHeadline: string | null;
   experience: string | null;
   experienceFit: boolean | null;
+  /** D32: the years requirement as the scorer judged it — met | short | unknown (nothing to compare) | none (no years asked). A word, never a number. null on a card dealt before it. */
+  experienceState: string | null;
   hardConstraintMisses: string[];
   scorable: boolean;
   seniorityNote: string | null;

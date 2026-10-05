@@ -14,6 +14,7 @@
 //
 // ⛔ NO NUMBER. A card carries its band; the per-caller score is stripped from the snapshot (G5).
 import { atsBandFor, ATS_BAND } from "../shared/atsBands.js";
+import { experienceState } from "../shared/postingFacts.js";
 
 export const DECK_SIZE = 10;
 export const DEAL_BANDS = Object.freeze([ATS_BAND.STRONG, ATS_BAND.MODERATE]);
@@ -129,6 +130,8 @@ export function deckReport(report) {
     verbsGeneric: strings(r.action_verbs_generic, 10),
     claimedMatches: strings(r.claimed_matches, 40),
     experience: text(exp?.summary), experienceFit: typeof exp?.fit === "boolean" ? exp.fit : null,
+    // D32: the Experience row's pass/fail, as a WORD (met / short / unknown / none) — no years leave.
+    experienceState: exp ? experienceState(exp) : null,
     hardConstraintMisses: strings(r.hard_constraint_misses, 10),
     seniorityNote: r.seniority_cap?.applied ? text(r.seniority_cap.reason) : null,
     depthHeadline: text(depth?.headline), depthDetail: text(depth?.detail),

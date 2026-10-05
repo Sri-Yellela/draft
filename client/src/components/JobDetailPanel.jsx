@@ -1,9 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { HighlightedDescription } from "./HighlightedDescription.jsx";
+import PostingPanel from "./PostingPanel.jsx";
 import { api } from "../lib/api.js";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
-import { useTheme } from "../styles/theme.jsx";
 import CoverLetterModal from "./CoverLetterModal.jsx";
 import CompanyViewModal from "./CompanyViewModal.jsx";
 import PanelShell from "./PanelShell.jsx";
@@ -118,7 +117,6 @@ export default function JobDetailPanel({
   onFocus, onResizeStart, onResize, onResizeEnd,
 }) {
   const { selectedJob, setSelectedJob, selectedJobMeta } = useJobBoard();
-  const { theme } = useTheme();
   const close = useCallback(() => setSelectedJob(null), [setSelectedJob]);
 
   const navigate = useNavigate();
@@ -428,13 +426,11 @@ export default function JobDetailPanel({
                   sentence, "No description available.", which was shown for a posting the source
                   never described, for a fetch still in flight, and for a fetch that failed. Three
                   different facts, one of them about us rather than the posting. */}
-              {description ? (
-                <HighlightedDescription
-                  text={description}
-                  theme={theme}
-                  truncate={false}
-                />
-              ) : fetchState === "loading" ? (
+              {/* D32 · the posting half of the ink pair: the masthead (kicker · title · company · the deck
+                  strip, "not stated" where a fact is not on file), then the employer's own description,
+                  formatted plainly. What shows when there is no text is the panel's fallback. */}
+              <PostingPanel job={selectedJob} text={description}>
+              {fetchState === "loading" ? (
                 <p style={{ fontSize:12, color:"var(--color-text-faint)", fontStyle:"italic" }}>
                   Loading the description from the source…
                 </p>
@@ -455,6 +451,7 @@ export default function JobDetailPanel({
               ) : (
                 <p style={{ fontSize:12, color:"var(--color-text-faint)", fontStyle:"italic" }}>No description available.</p>
               )}
+              </PostingPanel>
               {/* A63: no second "Apply directly" link here — Apply is the company name in the pinned
                   header, which stays in view however far the posting is scrolled. */}
             </div>

@@ -295,8 +295,12 @@ test("AG2: the ATS chips claim through the reversible route, not the one-way add
   assert.match(panel, /onToggle: toggleClaim,/);
   assert.match(report, /claims\.onToggle\(kind, item, claimed\)/);
   // D31 (the weave dropped): skills and competencies are claimed in "You could claim" — the same reversible call.
-  assert.match(report, /claimable\("skill"\)/);
-  assert.match(report, /claimable\("action_verb"\)/);
+  // D32 re-pin: ONE block, each box claiming through its scorer bucket's route — skill and quality as
+  // "skill", verb as "action_verb" — the same two reversible kinds.
+  assert.match(report, /\{\.\.\.claimable\(TERM_KINDS\[kind\]\.claim\)\}/);
+  assert.match(report, /skill: +\{ label: "skill", +claim: "skill" \}/);
+  assert.match(report, /quality: \{ label: "quality", claim: "skill" \}/);
+  assert.match(report, /verb: +\{ label: "verb", +claim: "action_verb" \}/);
 
   // The superseded one-way helpers must be gone from the client, so there is one way to do this.
   for (const dead of ["addSkillToProfile", "addVerbToProfile", "buildProfileSuggestionLookup"]) {
