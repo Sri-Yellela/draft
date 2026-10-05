@@ -331,7 +331,12 @@ export function listHistory(db, userId, { q = "", now = nowSec(), limit = 500 } 
     jobs.push(...all(`SELECT job_id, title, company, apply_url, url, description FROM scraped_jobs
                        WHERE job_id IN (${chunk.map(() => "?").join(",")})`, ...chunk));
   }
-  const rows = buildHistory({ records, applications, resumes, approvals, jobs }, { now });
+  // D16's kept copies — metadata only, never the body. Joined through the record so another user's
+  // artifact can never appear (application_artifacts has no user_id of its own).
+  const artifacts = all(`SELECT aa.record_id, aa.source, aa.created_at FROM application_artifacts aa
+                          JOIN application_records ar ON ar.id = aa.record_id
+                          WHERE ar.user_id = ? AND aa.kind = 'resume'`, userId);
+  const rows = buildHistory({ records, applications, resumes, approvals, jobs, artifacts }, { now });
   const text = new Map(jobs.map(j => [String(j.job_id), j.description]));
   return rows.filter(r => matchesSearch(r, text.get(r.jobId), q));
 }

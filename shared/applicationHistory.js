@@ -108,10 +108,12 @@ export function historyTimeline(row, { now = Math.floor(Date.now() / 1000) } = {
  * Fold the database rows into history rows. Inputs are plain row arrays (snake_case, as SQLite
  * returns them); the output is the panel's shape, camelCase, times in SECONDS.
  */
-export function buildHistory({ records = [], applications = [], resumes = [], approvals = [], jobs = [] }, { now = Math.floor(Date.now() / 1000) } = {}) {
+export function buildHistory({ records = [], applications = [], resumes = [], approvals = [], jobs = [], artifacts = [] }, { now = Math.floor(Date.now() / 1000) } = {}) {
   const byJob = new Map();
   const jobInfo = new Map(jobs.map(j => [String(j.job_id), j]));
   const resumeAt = new Map(resumes.map(r => [String(r.job_id), r.created_at ?? null]));
+  // D16's kept copy, by the record it belongs to (application_artifacts.record_id).
+  const artifactBy = new Map(artifacts.map(a => [Number(a.record_id), a]));
   const approvedAt = new Map(approvals.map(a => [String(a.job_id), a.approved_at ?? null]));
   const get = (jobId) => {
     const k = String(jobId);
@@ -143,7 +145,18 @@ export function buildHistory({ records = [], applications = [], resumes = [], ap
     h.title = h.title ?? j.title ?? null;
     h.applyUrl = h.applyUrl ?? j.apply_url ?? j.url ?? null;
     h.resumeAt = resumeAt.get(h.jobId) ?? null;
-    h.hasResume = h.resumeAt != null;
+    // ⛔ O56(a): WHICH résumé the download serves, read the way the download route reads it
+    // (services/applicationArtifacts.js readResumeArtifact): D16's kept copy first — taken when the
+    // application was recorded, or backfilled later — and only without one the working résumé, which a
+    // regeneration may have changed since. A kept copy outlives its working résumé, so the link must
+    // follow the copy, not the `resumes` row. Keyed on the record: the download is
+    // /api/applications/:recordId/resume, so a row with no record has nothing to download.
+    const kept = h.recordId != null ? artifactBy.get(Number(h.recordId)) : undefined;
+    h.resumeSource = h.recordId == null ? null
+      : kept ? (kept.source ?? "snapshot_at_record")
+      : h.resumeAt != null ? "current_resume" : null;
+    h.resumeKeptAt = kept?.created_at ?? null;
+    h.hasResume = h.resumeSource != null;
     h.approvedAt = approvedAt.get(h.jobId) ?? null;
     h.draftedAt = minDefined(h.recordCreatedAt, h.resumeAt, h.sentAt);
     if (h.applicationId == null) h.sentAt = null;
