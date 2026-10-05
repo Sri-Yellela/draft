@@ -10,6 +10,7 @@ import express from "express";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import applyRoutes from "../routes/apply.js";
+import { draftSlots } from "../services/draftSlots.js";
 import {
   submitBlockedReason, resolveSponsorshipNeed, buildAnswers, eligibilityClassOf, sanitizeDiscoveredFields,
 } from "../services/applyAutomation.js";
@@ -358,5 +359,31 @@ test("D36·3 · a retry the server refuses puts the held application back, quest
     const ok = await t.post("/api/apply/answers", { answers: { "Start date": "11/02/2026" }, retryJobIds: ["gh::1"] });
     assert.equal(ok.status, 202);
     assert.equal(t.db.prepare("SELECT status FROM apply_run_jobs WHERE id=?").pluck().get(held), "superseded");
+  } finally { t.stop(); }
+});
+
+// ── CAPS · approving a Draft no longer gives its slot back ───────────────────────────────────────
+// marks the preview 'superseded', draftsUsed excluded every superseded row, and the approved run is
+// excluded by design — so the Draft was counted by nothing and the "10 a day" bound held only for
+// drafts nobody approved. The run bar and the deck both read this number.
+test("D36 · caps · an approved Draft still counts against the day's Draft slots; an answers retry counts once", async () => {
+  const t = mount();
+  try {
+    t.db.prepare("DELETE FROM scraped_jobs").run();   // every run below fails fast (job_not_found): no browser
+    const run = t.db.prepare("INSERT INTO apply_runs (user_id,mode,status,total_jobs,approval_mode) VALUES (1,'auto','completed',1,'required')").run().lastInsertRowid;
+    const preview = t.db.prepare("INSERT INTO apply_run_jobs (run_id,user_id,job_id,status,reason_code) VALUES (?,1,'gh::1','held_review','awaiting_approval')").run(run).lastInsertRowid;
+    assert.equal(draftSlots(t.db, 1).used, 1);
+    const a = await t.post("/api/apply/approve", { runJobIds: [preview] });
+    assert.equal(a.status, 202);
+    assert.equal(t.db.prepare("SELECT status FROM apply_run_jobs WHERE id=?").pluck().get(preview), "superseded");
+    assert.equal(draftSlots(t.db, 1).used, 1, "approving is the same Draft continuing — it is not a refund");
+    // An answers retry replaces a held row with a newer one: still one Draft, not two.
+    const run2 = t.db.prepare("INSERT INTO apply_runs (user_id,mode,status,total_jobs,approval_mode) VALUES (1,'auto','completed',1,'required')").run().lastInsertRowid;
+    t.db.prepare(`INSERT INTO apply_run_jobs (run_id,user_id,job_id,status,reason_code,open_questions_json)
+                  VALUES (?,1,'gh::2','held_review','incomplete_form',?)`).run(run2, JSON.stringify([{ question: "Q", reason: "unanswered" }]));
+    assert.equal(draftSlots(t.db, 1).used, 2);
+    const r = await t.post("/api/apply/answers", { answers: { Q: "A" }, retryJobIds: ["gh::2"] });
+    assert.equal(r.status, 202);
+    assert.equal(draftSlots(t.db, 1).used, 2, "the superseded held row and its retry are one Draft");
   } finally { t.stop(); }
 });
