@@ -1,4 +1,7 @@
-// D24 · FULL HOUSE — THE CLIENT HALF: the filter sentence, the sort panel, the two icons.
+// D24 · FULL HOUSE — THE CLIENT HALF: the filter panel, the sort panel, the two icons.
+// ⛔ D30 (10-04) REPLACED the popover sentence with SIX DIALS and the declarative headline; the tests
+// below that held D24's four-clause sentence (the cap of four, "Show me…" prose, the token popover)
+// now hold D30's shape instead — the panel/sort/icon/no-literal tests are unchanged in substance.
 //
 // Built against shared/filterSentence.js (THE CONTRACT, 217d140) while the server half — GET
 // /api/jobs/facets, the fit_bands filter, the companyAsc sort — is built in parallel. So these tests
@@ -21,12 +24,14 @@ import { at } from "../test-support/sourceAnchors.js";
 
 import {
   SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, FIT_BANDS, activeClauseCount,
+  sentenceText, sentenceParts, SENTENCE_WORDS,
 } from "../shared/filterSentence.js";
+import { JOB_FUNCTIONS, PLACES } from "../shared/jobTagVocabulary.js";
 import { EXPERIENCE_LEVELS, WORK_MODELS, POSTING_AGE, SORTS } from "../shared/jobFilterOptions.js";
 import {
   BOARD_PANEL, BOARD_PANEL_DEFAULT, nextBoardPanel, sentenceClauses, tokenText, pressOption,
   optionRows, footerText, sortRows, tieBreakText, unscoredText, clearAllClauses,
-  DEFAULT_SORT, DEFAULT_SORT_ROW, isSortChosen,
+  DEFAULT_SORT, DEFAULT_SORT_ROW, isSortChosen, dialSummary, coverageNote, clearClause, allDomainsPatch,
 } from "../client/src/lib/filterSentenceModel.js";
 import { loadFacets, facetsQuery, FACETS_PATH } from "../client/src/lib/jobFacets.js";
 
@@ -46,6 +51,8 @@ const FACETS = {
     where:  WORK_MODELS.options.map((o, i) => fo(o.value, 20 + i)),
     posted: POSTING_AGE.options.filter(o => o.value).map((o, i) => fo(o.value, 5 + i)),
     fit:    FIT_BANDS.options.map((o, i) => fo(o.value, i === 2 ? 0 : 7 + i)),
+    domain: JOB_FUNCTIONS.options.map((o, i) => fo(o.value, 30 + i, 20 + i)),
+    location: PLACES.options.map((o, i) => fo(o.value, i < 3 ? 40 - i : 0, i < 3 ? 1 : 0)),
   },
 };
 const clause = (key) => SENTENCE_CLAUSES.find(c => c.key === key);
@@ -68,11 +75,12 @@ async function loadUi() {
       contents: `
         import { createElement } from "react";
         import { renderToStaticMarkup } from "react-dom/server.browser";
-        import FilterSentence, { ClausePopover } from ${abs("components/FilterSentence.jsx")};
+        import FilterDials, { DialOptions } from ${abs("components/FilterDials.jsx")};
+        import BoardHeadline from ${abs("components/BoardHeadline.jsx")};
         import SortPanel from ${abs("components/SortPanel.jsx")};
         import BoardPanelIcons from ${abs("components/BoardPanelIcons.jsx")};
         export const html = (C, props) => renderToStaticMarkup(createElement(C, props));
-        export { FilterSentence, ClausePopover, SortPanel, BoardPanelIcons };`,
+        export { FilterDials, DialOptions, BoardHeadline, SortPanel, BoardPanelIcons };`,
       resolveDir: CLIENT, loader: "jsx",
     },
     bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
@@ -97,9 +105,9 @@ test("D24: BOTH PANELS ARE CLOSED BY DEFAULT — the board starts right under th
   // JobsPanel renders a panel ONLY for an explicit open value — nothing sits between the bar and
   // the first card otherwise.
   const panel = strip(read("client/src/panels/JobsPanel.jsx"));
-  assert.match(panel, /\{boardPanel === BOARD_PANEL\.FILTER && \(\s*<FilterSentence/);
+  assert.match(panel, /\{boardPanel === BOARD_PANEL\.FILTER && \(\s*<FilterDials/);
   assert.match(panel, /\{boardPanel === BOARD_PANEL\.SORT && \(\s*<SortPanel/);
-  assert.equal((panel.match(/<FilterSentence\b/g) || []).length, 1);
+  assert.equal((panel.match(/<FilterDials\b/g) || []).length, 1);
   assert.equal((panel.match(/<SortPanel\b/g) || []).length, 1);
   // And the icons, rendered closed, say so.
   const { html, BoardPanelIcons } = await loadUi();
@@ -133,7 +141,7 @@ test("D24: the two panels are MUTUALLY EXCLUSIVE — one state, and a press swap
 
 // ── 3. The badge ────────────────────────────────────────────────────────────────────────────────
 
-test("D24: the filter icon carries a COUNT BADGE — activeClauseCount of the four clauses", async () => {
+test("D24: the filter icon carries a COUNT BADGE — activeClauseCount of the clauses (six since D30)", async () => {
   const params = {
     [clause("level").dim.param]: [firstValue("level")],
     [clause("posted").dim.param]: firstValue("posted"),
@@ -164,8 +172,8 @@ test("D24: a ZERO-COUNT option is DIMMED, NOT HIDDEN — it keeps its row, its 0
   const zero = rows.find(r => r.value === firstValue("level"));
   assert.equal(zero.count, 0);
   assert.equal(zero.dimmed, true);
-  const { html, ClausePopover } = await loadUi();
-  const out = html(ClausePopover, { id: "p", clause: lvl, params: {}, facets: FACETS, onPress() {}, onAny() {} });
+  const { html, DialOptions } = await loadUi();
+  const out = html(DialOptions, { clause: lvl, params: {}, facets: FACETS, onPatch() {} });
   const row = out.match(new RegExp(`<button[^>]*data-dimmed="true"[^>]*>(?:(?!</button>).)*${firstLabel("level")}(?:(?!</button>).)*</button>`));
   assert.ok(row, `the zero-count ${firstLabel("level")} row is not rendered dimmed:\n${out}`);
   assert.match(row[0], /<span class="fs__opt-n">0<\/span>/, "the 0 itself is information — show it");
@@ -196,12 +204,14 @@ test("D24: an option that WOULD EMPTY THE BOARD says so BEFORE it is pressed", a
   const weak = optionRows(fit, {}, FACETS).find(r => r.count === 0);
   assert.equal(weak.empties, true);
   // Rendered: the warning is in the markup with nothing pressed.
-  const { html, ClausePopover } = await loadUi();
-  const out = html(ClausePopover, { id: "p", clause: lvl, params: {}, facets: FACETS, onPress() {}, onAny() {} });
+  const { html, DialOptions, FilterDials } = await loadUi();
+  const out = html(DialOptions, { clause: lvl, params: {}, facets: FACETS, onPatch() {} });
   assert.match(out, /data-empties="true"[^>]*>(?:(?!<\/button>).)*Would show no jobs/);
   assert.equal((out.match(/Would show no jobs/g) || []).length, 1, "only the empty option warns");
-  // Counts above `known` are said in plain words: kept, not hidden.
-  assert.match(out, /2 have no level on file yet — kept, not hidden/);
+  // ⛔ D30: thin coverage is said ON THE DIAL, in plain words — kept, not hidden.
+  assert.equal(coverageNote(lvl, {}, FACETS), "2 have no level on file — kept, not hidden");
+  const dials = html(FilterDials, { params: {}, facets: FACETS, facetsStatus: "ready" });
+  assert.match(dials, /data-dial="level"(?:(?!<\/button>).)*2 have no level on file — kept, not hidden/);
 });
 
 test("D24: NO FACETS ANSWER, NO NUMBERS — a 404 draws no counts, no dims, no warnings, never zeros", async () => {
@@ -215,8 +225,8 @@ test("D24: NO FACETS ANSWER, NO NUMBERS — a 404 draws no counts, no dims, no w
     assert.doesNotMatch(footerText(facets), /\d/);
     assert.doesNotMatch(unscoredText(facets), /\d/);
   }
-  assert.equal(footerText(FACETS), "142 jobs match — tap any word to change it");
-  assert.equal(footerText({ ...FACETS, total: 1 }), "1 job matches — tap any word to change it");
+  assert.equal(footerText(FACETS), "142 jobs match — tap any dial to change it");
+  assert.equal(footerText({ ...FACETS, total: 1 }), "1 job matches — tap any dial to change it");
 
   // The loader: 404 is "unavailable", anything else bad is "error", and only a well-formed answer
   // is "ready". The fetch is injected — no server.
@@ -233,52 +243,92 @@ test("D24: NO FACETS ANSWER, NO NUMBERS — a 404 draws no counts, no dims, no w
   const junk = await loadFacets("", async () => ({ jobs: [] }));
   assert.deepEqual(junk, { status: "error", data: null });
 
-  const { html, FilterSentence, ClausePopover } = await loadUi();
-  const out = html(FilterSentence, { params: {}, facets: null, facetsStatus: "unavailable" });
+  const { html, FilterDials, DialOptions } = await loadUi();
+  const out = html(FilterDials, { params: {}, facets: null, facetsStatus: "unavailable" });
   assert.match(out, /Counts aren(?:&#x27;|')t available on this build yet\./);
-  assert.match(out, /Tap any word to change it/);
-  const pop = html(ClausePopover, { id: "p", clause: lvl, params: {}, facets: null, noCounts: true, onPress() {}, onAny() {} });
+  assert.match(out, /Tap any dial to change it/);
+  assert.doesNotMatch(out, /fd__note|\d+ jobs?</, "a dial drew a number without a facets answer");
+  const pop = html(DialOptions, { clause: lvl, params: {}, facets: null, noCounts: true, onPatch() {} });
   assert.doesNotMatch(pop, /fs__opt-n/, "a count was drawn without a facets answer");
   assert.doesNotMatch(pop, /data-dimmed="true"|data-empties="true"/);
 });
 
-// ── 6. The cap ──────────────────────────────────────────────────────────────────────────────────
+// ── 6. D30 · six dials, and the declarative sentence projected from them ───────────────────────
 
-test("D24: THE CAP OF FOUR — the sentence renders at most SENTENCE_CAP clauses, by decision", async () => {
-  assert.equal(SENTENCE_CAP, 4);
-  assert.ok(SENTENCE_CLAUSES.length <= SENTENCE_CAP, "the contract grew past its own cap");
-  assert.equal(sentenceClauses().length, Math.min(SENTENCE_CLAUSES.length, SENTENCE_CAP));
-  // Enforced, not merely documented: a fifth clause in the contract would still render four.
-  assert.match(read("client/src/lib/filterSentenceModel.js"), /SENTENCE_CLAUSES\.slice\(0, SENTENCE_CAP\)/);
-  const { html, FilterSentence } = await loadUi();
-  const out = html(FilterSentence, { params: {}, facets: FACETS, facetsStatus: "ready" });
-  assert.equal((out.match(/class="fs__token"/g) || []).length, SENTENCE_CAP);
-  // The prose is the contract's, in order.
-  const text = out.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
-  assert.match(text, /^Show me any level jobs that are anywhere, posted any time, where my fit is anything\./);
-  assert.match(text, /142 jobs match — tap any word to change it/);
-  assert.match(text, /Clear all ×/);
+test("D30: SIX DIALS, ALL ALWAYS VISIBLE — dimension, value and count; an unset dial reads 'no filter'", async () => {
+  assert.deepEqual(SENTENCE_CLAUSES.map(c => c.key), ["domain", "level", "location", "where", "posted", "fit"]);
+  assert.equal(SENTENCE_CLAUSES.filter(c => c.permanent).length, SENTENCE_CAP, "four permanent slots");
+  assert.equal(sentenceClauses().length, 6, "no cap drops a dial");
+  const { html, FilterDials } = await loadUi();
+  const out = html(FilterDials, { params: {}, facets: FACETS, facetsStatus: "ready" });
+  assert.equal((out.match(/class="fd__dial"/g) || []).length, 6);
+  for (const c of SENTENCE_CLAUSES) assert.match(out, new RegExp(`data-dial="${c.key}"`));
+  assert.match(out, /data-dial="level" data-active="false"[^>]*><span class="fd__dim">Level<\/span><span class="fd__val">no filter</);
+  assert.match(out, /data-dial="location"[^>]*>(?:(?!<\/button>).)*United States/, "location's floor reads as the floor");
+  // A set dial: LEVEL · Senior · 142 jobs, filled accent.
+  const lvl = clause("level");
+  const set = { [lvl.dim.param]: ["senior"] };
+  const d = dialSummary(lvl, set, FACETS);
+  assert.deepEqual([d.label, d.value, d.count, d.active], ["Level", "Senior", 142, true]);
+  const on = html(FilterDials, { params: set, facets: FACETS, facetsStatus: "ready" });
+  assert.match(on, /data-dial="level" data-active="true"[^>]*>(?:(?!<\/button>).)*Senior(?:(?!<\/button>).)*142 jobs/);
+  // ⛔ No popovers: the options open INLINE under the dials; the open sets get a find box.
+  assert.doesNotMatch(read("client/src/components/FilterDials.jsx"), /DockPortal/);
+  const loc = html(FilterDials, { params: {}, facets: FACETS, facetsStatus: "ready", initialOpen: "location" });
+  assert.match(loc, /class="fd__opts fd__opts--open"/);
+  assert.match(loc, /placeholder="Find a city or state"/);
+  assert.match(loc, />The whole United States</, "location's clear returns to the US floor, never to 'anywhere'");
+  const lv = html(FilterDials, { params: {}, facets: FACETS, facetsStatus: "ready", initialOpen: "level" });
+  assert.doesNotMatch(lv, /fd__find/, "a closed set has no picker");
+  assert.deepEqual(clearClause(clause("location")), { [PLACES.param]: [] }, "clearing location is the floor");
+  assert.deepEqual(allDomainsPatch(clause("domain"))[JOB_FUNCTIONS.param], JOB_FUNCTIONS.options.map(o => o.value));
 });
 
-test("D24: tokens read the band WORD and the chosen labels; a press toggles or replaces", () => {
-  const fit = clause("fit");
-  const strong = FIT_BANDS.options[0];
-  assert.equal(tokenText(fit, { [fit.dim.param]: [strong.value] }), strong.label);
-  assert.doesNotMatch(tokenText(fit, { [fit.dim.param]: [strong.value] }), /\d/, "the fit clause shows a number");
-  const lvl = clause("level");
-  const [a, b] = lvl.dim.options.filter(o => o.value);
-  assert.equal(tokenText(lvl, { [lvl.dim.param]: [a.value, b.value] }), `${a.label} or ${b.label}`);
-  assert.deepEqual(pressOption(lvl, { [lvl.dim.param]: [a.value] }, b.value), { [lvl.dim.param]: [a.value, b.value] });
-  assert.deepEqual(pressOption(lvl, { [lvl.dim.param]: [a.value] }, a.value), { [lvl.dim.param]: [] });
-  const posted = clause("posted");
-  const [p1, p2] = posted.dim.options.filter(o => o.value);
-  assert.deepEqual(pressOption(posted, { [posted.dim.param]: p1.value }, p2.value), { [posted.dim.param]: p2.value });
-  assert.deepEqual(pressOption(posted, { [posted.dim.param]: p1.value }, p1.value), { [posted.dim.param]: "" });
-  assert.equal(tokenText(posted, { [posted.dim.param]: p1.value }), p1.label.toLowerCase(), "posting age reads as prose");
-  // Clear all returns every clause to "any".
-  const cleared = clearAllClauses();
-  assert.equal(activeClauseCount(cleared), 0);
-  assert.equal(Object.keys(cleared).length, SENTENCE_CLAUSES.length);
+test("D30: THE SENTENCE IS A PROJECTION — four permanent clauses, posted/fit append only when set, same clauses when nothing matches", async () => {
+  assert.equal(sentenceText({}), "Now showing all jobs, at any level, in the United States, any workplace.");
+  assert.equal(sentenceText({}, { defaultDomain: "engineering" }),
+    "Now showing engineering jobs, at any level, in the United States, any workplace.",
+    "the unset domain reads the profile's own function — the board IS scoped to it");
+  const full = { job_functions: ["design"], experience_levels: ["senior"], places: ["metro:boston"],
+    work_models: ["remote"], ageFilter: "1w", fit_bands: ["strong"] };
+  assert.equal(sentenceText(full),
+    "Now showing design jobs, at senior level, in Boston, remote only, posted this week, strong fits only.");
+  const { ageFilter, fit_bands, ...four } = full;
+  assert.equal(sentenceText(four, { nothingMatches: true }),
+    "Nothing matches design jobs, at senior level, in Boston, remote only.", "same clauses, different verb");
+  assert.equal(sentenceText({ job_functions: JOB_FUNCTIONS.options.map(o => o.value) }),
+    "Now showing all jobs, at any level, in the United States, any workplace.", "every function chosen reads 'all'");
+  // Every value of the closed sets has a sentence word.
+  for (const key of ["level", "where", "posted", "fit"]) {
+    for (const o of clause(key).dim.options.filter(o => o.value)) {
+      assert.ok(SENTENCE_WORDS[key][o.value], `${key}=${o.value} has no word in the sentence`);
+    }
+  }
+  // Rendered as the headline, each slot a button that opens its dial.
+  const { html, BoardHeadline } = await loadUi();
+  const out = html(BoardHeadline, { params: full });
+  const text = out.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  assert.equal(text, "Now showing design jobs, at senior level, in Boston, remote only, posted this week, strong fits only.");
+  assert.equal((out.match(/class="bh__slot"/g) || []).length, 6);
+  assert.match(html(BoardHeadline, { params: four, nothingMatches: true }), /data-nothing-matches="true"/);
+  assert.equal(sentenceParts({}).slots.length, 4, "posted and fit are absent at rest");
+  // The caption is gone; the headline is in its place.
+  const app = strip(read("client/src/App.jsx"));
+  assert.doesNotMatch(app, /Let's get to work\./);
+  assert.match(app, /<BoardHeadlineSlot \/>/);
+});
+
+test("D26/D28: the board's bar is the search input only; a search never touches the dials", () => {
+  const app = strip(read("client/src/App.jsx"));
+  assert.match(app, /fields="query"/);
+  assert.match(app, /applyBarFilters\(params, \{ fields: \["query"\] \}\)/);
+  const bar = read("client/src/components/UnifiedSearchBar.jsx");
+  assert.match(bar, /\{fields === 'all' && \(<>/, "location and the three selects render only on the landing page");
+  const panel = strip(read("client/src/panels/JobsPanel.jsx"));
+  assert.match(panel, /if \(has\("query"\)\) setLocalSearch\(query\);/);
+  assert.match(panel, /if \(has\("status"\)\) \{/, "a search without a status must not reset ageFilter or the tab");
+  assert.doesNotMatch(panel, /<div style=\{labelStyle\}>Provider<\/div>/, "the provider filter is an admin concept (D26)");
+  assert.doesNotMatch(panel, /<div style=\{labelStyle\}>Location<\/div>/, "location is the dial now, not free text");
 });
 
 // ── 7. The sort panel: tie-breaks visible ───────────────────────────────────────────────────────
@@ -344,7 +394,8 @@ test("D24: the DEFAULT board request carries NO sort param — the curated order
 test("D24: NO LITERAL OPTION VALUE OR LABEL in the new client code — everything renders from the contract", () => {
   const files = [
     "client/src/lib/filterSentenceModel.js", "client/src/lib/jobFacets.js",
-    "client/src/hooks/useJobFacets.js", "client/src/components/FilterSentence.jsx",
+    "client/src/hooks/useJobFacets.js", "client/src/components/FilterDials.jsx",
+    "client/src/components/BoardHeadline.jsx",
     "client/src/components/SortPanel.jsx", "client/src/components/BoardPanelIcons.jsx",
   ];
   const vocab = new Set();

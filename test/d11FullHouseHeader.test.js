@@ -15,8 +15,11 @@ const strip = (t) => t.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/\/\*[\s\S]*
 const app = read("client/src/App.jsx");
 const appCode = strip(app);
 
-test("D11: the header is one line — Let's get to work.", () => {
-  assert.match(appCode, />\s*Let's get to work\.\s*</);
+// D26/D30 (10-04) replaced D11's caption with the filter sentence itself: the headline is what you
+// are looking at. D11's negatives (no greeting, no second line) still hold.
+test("D11 → D26: the header is ONE line — the filter sentence, where the caption was", () => {
+  assert.doesNotMatch(appCode, /Let's get to work\./);
+  assert.match(appCode, /<BoardHeadlineSlot \/>/);
   assert.doesNotMatch(appCode, /Your jobs\./);
   assert.doesNotMatch(appCode, /Pick up where you left off/);
   assert.doesNotMatch(appCode, /Welcome back, \$\{/);

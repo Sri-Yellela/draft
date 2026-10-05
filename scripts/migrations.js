@@ -3718,4 +3718,37 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // D29 (owner, 10-04): FILTERS QUERY OUR OWN TAGS, NOT FREE TEXT. services/jobs/jobTags.js
+      // derives them deterministically (no model call, D17) and the owner fills the rest through
+      // export -> tag -> import (routes/jobTags.js). Every tag is nullable and NULL means UNKNOWN —
+      // every predicate over them is soft-null. Numbered 128: 125 (D16) and 126 (A76) are held by
+      // unmerged branches and 127 is the slug harvest.
+      //   scraped_jobs.tag_*     the scalar tags; tag_owner_json holds owner-set values, which a
+      //                          re-tag never overwrites; tag_basis/tag_version say when to re-tag
+      //   job_tag_places         a posting's places as a SET (country, state, metro) — one posting
+      //                          can be in several places, so location is not a column
+      id: "128_job_tags",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN tag_level TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_function TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_employment TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_workplace TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_remote INTEGER;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_us TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_basis TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_version INTEGER;
+        ALTER TABLE scraped_jobs ADD COLUMN tag_owner_json TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN tagged_at INTEGER;
+        CREATE TABLE IF NOT EXISTS job_tag_places (
+          job_id  TEXT NOT NULL,
+          country TEXT NOT NULL,
+          state   TEXT,
+          metro   TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_job_tag_places_job   ON job_tag_places(job_id);
+        CREATE INDEX IF NOT EXISTS idx_job_tag_places_metro ON job_tag_places(metro, job_id);
+        CREATE INDEX IF NOT EXISTS idx_job_tag_places_state ON job_tag_places(state, job_id);
+      `,
+    },
   ];
