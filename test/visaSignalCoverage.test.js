@@ -30,7 +30,6 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const read = (p) => fs.readFileSync(p, "utf8");
-const enrich = read("services/jobs/enrichJob.js");
 const card = read("client/src/components/JobCard.jsx");
 const detail = read("client/src/components/JobDetailPanel.jsx");
 
@@ -42,16 +41,9 @@ const badgeOf = (src) => {
   return src.slice(start, end);
 };
 
-test("the model is asked for a TRI-STATE and told not to guess", () => {
-  // The whole soft-null contract starts here. If the prompt ever asks for a boolean, a silent
-  // posting starts coming back `false`, and "we don't know" becomes "does not sponsor" — which is
-  // the one failure mode this column must never have.
-  assert.match(enrich, /"isH1bSponsor": <true, false, or null[^>]*explicitly states its sponsorship policy>/);
-  assert.match(enrich, /"requiresWorkAuth": <true, false, or null — null unless explicitly stated>/);
-  assert.match(enrich, /Never guess or infer beyond what's\s*\n?\s*written/);
-  // coerceBool maps anything that is not exactly true/false to null.
-  assert.match(enrich, /function coerceBool\(value\) \{\s*\n\s*return value === true \? 1 : value === false \? 0 : null;/);
-});
+// (A80, 10-05) "the model is asked for a TRI-STATE and told not to guess" retired: the prompt was
+// deleted with enrichJob.js's model call (D17). The manual import validates the same tri-state
+// (services/jobs/enrichmentTransfer.js validateColumn).
 
 test("null renders NOTHING — in both copies of the badge", () => {
   // FE-1's rule: null means "no signal", never "does not sponsor". This survived the data arriving,
