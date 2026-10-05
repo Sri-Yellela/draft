@@ -14,19 +14,36 @@
 // copy of this report was already thinner (no competencies, no generic language, no matched verbs)
 // before anyone noticed. test/atsReportOneImplementation.test.js refuses a second copy.
 //
+// ── D31 (owner, 10-04) · THE SIMPLE CARD — reverses D2's weave ───────────────────────────────────
+//
+// The weave drew threads between two columns. It looked good and told the reader nothing a count
+// does not, and it cost a thread cap, a replay rule and a layout minimum. It is gone. The card is:
+//
+//   SUMMARY    band · (the score, once A76 earns it) · "9 of 12" · ONE two-segment bar. That is all.
+//   OPEN       "You could claim" — the ONLY open section: claim chips with a + affordance, and the
+//              claim copy ONCE, beneath them, where the action is.
+//   FOLDED     "Already on your résumé" and "Generic — not a gap".
+//
+// ⭐ Nothing in it moves and nothing in it needs a width, so it renders the same in the deck's panel,
+// the board's panel, the phone's sheet and /tools/ats. That is what makes A52's one component hold.
+//
 // Behaviour kept from every surface it replaces:
-//   · A BAND, NEVER A NUMBER (G5). `band` may be passed by a caller that holds only the band (the
-//     deck); otherwise it is derived from report.score with shared/atsBands.js.
+//   · BAND-FIRST (G5). `band` may be passed by a caller that holds only the band (the deck);
+//     otherwise it is derived from report.score with shared/atsBands.js. The number is the largest
+//     element when it is shown, and ⛔ it is shown only when ATS_NUMBER_SHOWN — A76's corpus is the
+//     condition (A75), not a follow-up.
 //   · "Not enough signal" is the scorer DECLINING — the dashed, hue-less chip (bandStyle), "no
-//     judgement" under it, and the decline reasons — never a low grade, and rendered for every
-//     report, including a declined one.
+//     judgement" under it, a dashed hue-less bar, and the decline reasons — never a low grade, and
+//     rendered for every report, including a declined one.
+//   · Generic language is separated from real gaps, folded, labelled NOT A GAP, and never claimable.
 //   · Claim chips are interactive only when the caller passes `claims` (the board and the deck, on
-//     a profile); the public tool passes none and the chips are read-only.
-import { useEffect, useRef, useState } from "react";
+//     a profile); the public tool passes none and the chips are read-only. Nothing is pre-selected.
+//   · D1's depth on every control; colours are tokens only (C.*, var(--c-*)).
 import { atsBandFor, atsBandLabel, ATS_BAND, ATS_NUMBER_SHOWN } from "../../../shared/atsBands.js";
 import { profileSignalKey } from "../../../shared/profileSignals.js";
-import { bandChipStyle } from "../styles/bandStyle.js";
+import { bandChipStyle, bandStyle } from "../styles/bandStyle.js";
 import { C } from "../styles/colorTokens.js";
+import "./AtsReport.css";
 
 /** The band a report reads as — the ONE derivation every ATS surface uses. */
 export function reportBand(report, knownBand = null) {
@@ -68,8 +85,41 @@ export function fromStandaloneResult(r) {
 }
 
 /**
- * The band card alone: the band, what it means, why the scorer declined (if it did), the seniority
- * note and the verdict. The full report opens with it; the signup hook shows only this.
+ * D31: what the card counts. Every real ask the posting makes — skills, competencies and its
+ * job-specific verbs — is either already on the résumé or something the candidate could claim.
+ * Generic language is in NEITHER: it is not a gap, so it is not in the denominator either.
+ * The bar's two segments and the two sections are these same two lists, so they cannot disagree.
+ */
+export function reportAsks(report) {
+  const onResume = [
+    ...(report?.tier1_matched || []), ...(report?.competencies_matched || []), ...(report?.action_verbs_matched || []),
+  ];
+  const couldClaimSkills = [...(report?.tier1_missing || []), ...(report?.competencies_missing || [])];
+  const couldClaimVerbs = [...(report?.action_verbs_missing || [])];
+  const generic = [...(report?.action_verbs_generic || [])];
+  const missing = couldClaimSkills.length + couldClaimVerbs.length;
+  return { onResume, couldClaimSkills, couldClaimVerbs, generic, matched: onResume.length, total: onResume.length + missing };
+}
+
+/** The one two-segment bar: on your résumé | not yet. Not enough signal is a dashed, hue-less outline. */
+function AskBar({ band, matched, total }) {
+  const unknown = band === ATS_BAND.NOT_ENOUGH_SIGNAL;
+  const s = bandStyle(band);
+  const share = total > 0 ? (matched / total) * 100 : 0;
+  return (
+    <div className="ats-bar" data-ats-bar data-unknown={unknown ? "true" : "false"} role="img"
+      aria-label={`${matched} of ${total} asks already on your résumé`}>
+      <div className="ats-bar__seg" style={{ width: `${share}%`, background: unknown ? `${C.BAND_UNKNOWN_EDGE}55` : s.fg }} />
+      <div className="ats-bar__seg" style={{ flex: 1, background: unknown ? "transparent" : s.bg }} />
+    </div>
+  );
+}
+
+/**
+ * The band card — THE SUMMARY: the band, the score (only once A76 earns it), "9 of 12", one bar.
+ * Below it, only when they exist, the reasons the band is what it is: why the scorer declined, the
+ * seniority note, the profile facts the posting requires. The full report opens with it; the signup
+ * hook shows only this.
  */
 export function AtsBandCard({ report, band: knownBand = null, compact = false, children = null }) {
   const band = reportBand(report, knownBand);
@@ -77,41 +127,35 @@ export function AtsBandCard({ report, band: knownBand = null, compact = false, c
   const isUnknown = band === ATS_BAND.NOT_ENOUGH_SIGNAL;
   const declineReasons = Array.isArray(report?.decline_reasons) ? report.decline_reasons : [];
   const seniority = report?.seniority_cap?.applied ? report.seniority_cap : null;
-  const verdict = report?.verdict || report?.experience?.summary || null;
+  const hardMisses = Array.isArray(report?.hard_constraint_misses) ? report.hard_constraint_misses : [];
+  const { matched, total } = reportAsks(report);
   return (
-    <div data-ats-band-card style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)",
-                  borderRadius: 16, padding: compact ? "12px 14px" : 16, display: "flex", alignItems: "center",
-                  gap: compact ? 12 : 16, flexWrap: "wrap" }}>
-      <div style={{ flexShrink: 0, minWidth: 104, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-        <div style={{ ...bandChipStyle(band, { edgeAlpha: "33" }), padding: "10px 14px", borderRadius: 12,
-                      fontWeight: 900, fontSize: 15, textAlign: "center", lineHeight: 1.2, width: "100%" }}>
-          {meta.label}
-        </div>
-        <div style={{ fontSize: 10, color: "var(--color-text-muted)", textAlign: "center" }}>
-          {isUnknown ? "no judgement" : "fit band"}
-        </div>
+    <div data-ats-band-card className="ats-sum" data-compact={compact ? "true" : "false"}>
+      <div className="ats-sum__head">
+        {/* BAND-FIRST: the band is read first; the number, when it is earned, is the largest thing. */}
+        <span data-ats-band className="ats-sum__band" style={bandChipStyle(band, { edgeAlpha: "33" })}>{meta.label}</span>
+        <span className="ats-sum__cap">{isUnknown ? "no judgement" : "fit band"}</span>
+        {/* ⛔ A75/A76: the number only once A76 has earned it (ATS_NUMBER_SHOWN). Static — nothing counts up. */}
+        {ATS_NUMBER_SHOWN && !isUnknown && Number.isFinite(report?.score) && (
+          <span data-ats-score className="ats-sum__score">{Math.round(report.score)}</span>
+        )}
       </div>
-      <div style={{ flex: 1, minWidth: 180 }}>
-        <div style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 8 }}>{meta.blurb}</div>
-        {declineReasons.length > 0 && (
-          <ul style={{ margin: "0 0 8px 0", paddingLeft: 16, fontSize: 11.5, color: "var(--color-text-muted)", lineHeight: 1.6 }}>
-            {declineReasons.map((r, i) => <li key={i}>{r}</li>)}
-          </ul>
-        )}
-        {seniority && (
-          <div style={{ fontSize: 11.5, padding: "6px 10px", borderRadius: 8, marginBottom: 8,
-                        background: "var(--color-surface-offset)", color: "var(--color-text-muted)",
-                        border: "1px solid var(--color-border)" }}>
-            {seniority.reason}
-          </div>
-        )}
-        {!compact && (
-          <div style={{ fontSize: 12, color: "var(--color-text-muted)", fontStyle: "italic", lineHeight: 1.6, marginBottom: 8 }}>
-            {verdict || "Deterministic local ATS match against this profile."}
-          </div>
-        )}
-        {children}
-      </div>
+      {total > 0 && (
+        <>
+          <div data-ats-count className="ats-sum__count"><b>{matched} of {total}</b> on your résumé</div>
+          <AskBar band={band} matched={matched} total={total} />
+        </>
+      )}
+      {declineReasons.length > 0 && (
+        <ul className="ats-notes">{declineReasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
+      )}
+      {seniority && <div className="ats-note">{seniority.reason}</div>}
+      {hardMisses.length > 0 && (
+        <div data-ats-hard className="ats-note" style={{ color: C.DANGER }}>
+          Required by this posting, not on your profile: {hardMisses.join(" · ")}
+        </div>
+      )}
+      {children}
     </div>
   );
 }
@@ -132,6 +176,7 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
   // `pct` survives only for the best-possible line (LLM reports), which is itself shown as a band.
   const pct = Math.max(0, Math.min(100, report.score ?? 0));
   const depth = report.resume_depth || null;
+  const { onResume, couldClaimSkills, couldClaimVerbs, generic } = reportAsks(report);
   // Provenance: what the résumé already evidences — the scorer decided this; nothing is re-derived.
   const evidencedLookup = new Set([
     ...(report.tier1_matched || []),
@@ -142,25 +187,20 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
     ? { onToggleClaim: (item, claimed) => claims.onToggle(kind, item, claimed), pendingItems: claims.pending,
         claimedLookup: claims.claimedLookup, lockedLookup: kind === "action_verb" ? claims.lockedVerbs : claims.lockedSkills }
     : {};
+  const canClaim = !!claims?.onToggle;
+  const couldClaimCount = couldClaimSkills.length + couldClaimVerbs.length;
+  const verdict = report.verdict || report.experience?.summary || null;
+  const showExperience = report.experience && report.experience.summary !== (report.verdict || report.experience.summary);
+  const more = verdict || showExperience || (!isLocalReport && (report.strengths?.length || report.improvements?.length));
 
   return (
-    <div data-ats-report style={{ padding: "16px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
-      {depth && (
-        <div style={{ background: "var(--color-surface-offset)", border: "1px solid var(--color-border)", borderRadius: 12, padding: "12px 14px" }}>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: "var(--color-text)", marginBottom: 4 }}>{depth.headline}</div>
-          <div style={{ fontSize: 11.5, color: "var(--color-text-muted)", lineHeight: 1.6 }}>{depth.detail}</div>
-        </div>
-      )}
-
+    <div data-ats-report className="ats-card">
       {/* Band card. Renders for EVERY report, including a declined one. */}
       <AtsBandCard report={report} band={knownBand}>
-        {/* D2: the score counts up — ⛔ only once A76 has earned the number (ATS_NUMBER_SHOWN). */}
-        {ATS_NUMBER_SHOWN && Number.isFinite(report.score) && <ScoreCountUp value={report.score} />}
         {report.best_possible_score != null && (
-          <div style={{ fontSize: 11, padding: "6px 10px", borderRadius: 8,
-                        background: pct === report.best_possible_score ? C.SUCCESS_QUIET : "var(--color-surface-offset)",
-                        color: pct === report.best_possible_score ? C.SUCCESS : "var(--color-text-muted)",
-                        border: `1px solid ${pct === report.best_possible_score ? `color-mix(in srgb, ${C.SUCCESS} 20%, transparent)` : "var(--color-border)"}` }}>
+          <div className="ats-note" style={pct === report.best_possible_score
+            ? { background: C.SUCCESS_QUIET, color: C.SUCCESS, borderColor: `color-mix(in srgb, ${C.SUCCESS} 20%, transparent)` }
+            : undefined}>
             {/* A BAND, NOT THE NUMBER (G5). */}
             {pct === report.best_possible_score
               ? "✓ The best fit your profile can reach for this posting"
@@ -172,257 +212,89 @@ export function AtsReport({ report, band: knownBand = null, claims = null }) {
         )}
       </AtsBandCard>
 
-      {/* ⭐ D2: skills and competencies are THE WEAVE — asks on the left, the résumé on the right, a thread
-          per pair, the unmatched left dangling. Missing asks are claimable right there, where the action is. */}
-      <AtsWeave report={report} claims={claims} />
-      {report.action_verbs_matched?.length > 0 && (
-        <TagSection title="⚡ Verbs Matched" subtitle="Your resume already uses this job's language for these."
-          bg={C.INFO_QUIET} fg={C.INFO} border={`color-mix(in srgb, ${C.INFO} 20%, transparent)`}
-          items={report.action_verbs_matched} kind="action_verb" evidencedLookup={evidencedLookup}/>
+      {/* The résumé-depth warning sits under the band it qualifies, never above it (band-first). */}
+      {depth && (
+        <div className="ats-note">
+          <div style={{ fontWeight: 800, color: "var(--color-text)", marginBottom: 2 }}>{depth.headline}</div>
+          <div>{depth.detail}</div>
+        </div>
       )}
-      {report.action_verbs_missing?.length > 0 && (
-        <TagSection title="⚠ Verbs Missing"
-          subtitle={claims?.onToggle ? "This job's language for work you may already have done. Claim the ones that describe you."
-                                     : "This job's language for work you may already have done."}
-          bg={C.WARNING_QUIET} fg={"var(--color-warning)"} border={"color-mix(in srgb, var(--color-warning) 20%, transparent)"}
-          items={report.action_verbs_missing} evidencedLookup={evidencedLookup} kind="action_verb" {...claimable("action_verb")}/>
+
+      {/* ⭐ D31: "YOU COULD CLAIM" IS THE ONLY OPEN SECTION — every real ask the résumé does not show. */}
+      {couldClaimCount > 0 && (
+        <section data-ats-could-claim>
+          <div className="rm-section-label">You could claim ({couldClaimCount})</div>
+          <div className="ats-sec__sub">
+            {canClaim ? "This posting asks for these and your résumé does not show them. Claim the ones that are true of you."
+                      : "This posting asks for these and your résumé does not show them."}
+          </div>
+          <div className="ats-chips">
+            <TermChips items={couldClaimSkills} kind="skill" evidencedLookup={evidencedLookup} {...claimable("skill")} />
+            <TermChips items={couldClaimVerbs} kind="action_verb" evidencedLookup={evidencedLookup} {...claimable("action_verb")} />
+          </div>
+          {/* ⛔ THE CLAIM COPY APPEARS ONCE — beneath the chips, where the action is. */}
+          {canClaim && (
+            <div data-claim-note className="ats-claim-note">
+              Claiming a term says it is true of you — claim it only if it is. It counts toward this score and toward
+              where jobs rank on your board, and it is used in resumes generated from now on;
+              it never rewrites one you already have. Withdraw it at any time and all three go back.
+              Nothing is ever pre-selected.
+            </div>
+          )}
+        </section>
       )}
+
+      {/* FOLDED: what the résumé already shows. Read-only — there is nothing to do here. */}
+      {onResume.length > 0 && (
+        <details data-ats-on-resume className="ats-fold">
+          <summary>Already on your résumé ({onResume.length})</summary>
+          <div className="ats-chips">
+            <TermChips items={onResume} kind="skill" evidencedLookup={evidencedLookup} />
+          </div>
+        </details>
+      )}
+
       {/* Generic language — AH3. NOT a gap, and deliberately not claimable. */}
-      {/* ⛔ D2: FOLDED AWAY and labelled NOT A GAP — surfacing "Managed" or "collaboration" as a deficiency
+      {/* ⛔ FOLDED AWAY and labelled NOT A GAP — surfacing "Managed" or "collaboration" as a deficiency
           is a claim that is not true. */}
       {report.action_verbs_generic?.length > 0 && (
-        <details data-ats-generic>
-          <summary style={{ fontSize: 12, fontWeight: 700, color: "var(--color-text-muted)", cursor: "pointer" }}>
-            Generic language ({report.action_verbs_generic.length}) — not a gap
-          </summary>
-          <div style={{ marginTop: 8 }}>
-            <TagSection title="○ Generic Language" subtitle="This job uses these, but almost any candidate could claim them — they are not a gap."
-              bg={"var(--color-surface-offset)"} fg={"var(--color-text-muted)"} border={"var(--color-border)"}
-              items={report.action_verbs_generic}/>
+        <details data-ats-generic className="ats-fold">
+          <summary>Generic — not a gap ({generic.length})</summary>
+          {/* ○ Generic Language: never claimable, never counted. */}
+          <div className="ats-sec__sub">This job uses these, but almost any candidate could claim them — they are not a gap.</div>
+          <div className="ats-chips">
+            <TermChips items={generic} kind="action_verb" />
           </div>
         </details>
       )}
-      {/* A52 follow-up: the band card above already prints the experience summary as its verdict when
-          there is no other verdict — printing it again here was the "renders twice" defect. */}
-      {report.experience && report.experience.summary !== (report.verdict || report.experience.summary) && (
-        <ListSection title="Experience Fit" items={[report.experience.summary]} color={report.experience.fit ? C.SUCCESS : "var(--color-warning)"}/>
-      )}
-      {report.hard_constraint_misses?.length > 0 && (
-        <TagSection title="Profile Facts Missing" bg={C.DANGER_QUIET} fg={C.DANGER}
-          border={`color-mix(in srgb, ${C.DANGER} 20%, transparent)`} items={report.hard_constraint_misses}/>
-      )}
-      {!isLocalReport && report.strengths?.length > 0 && (
-        <ListSection title="💪 Strengths" items={report.strengths} color={C.SUCCESS}/>
-      )}
-      {!isLocalReport && report.improvements?.length > 0 && (
-        <ListSection title="🔧 Improvements" items={report.improvements} color={"var(--color-primary)"}/>
-      )}
-      {/* ⛔ D2: THE CLAIM COPY APPEARS ONCE — it used to repeat verbatim under every claimable section. */}
-      {claims?.onToggle && (report.tier1_missing?.length || report.competencies_missing?.length || report.action_verbs_missing?.length) ? (
-        <div data-claim-note style={{ fontSize: 10.5, color: "var(--color-text-muted)", fontStyle: "italic", lineHeight: 1.6 }}>
-          Claiming a term says it is true of you — claim it only if it is. It counts toward this score and toward
-          where jobs rank on your board, and it is used in resumes generated from now on;
-          it never rewrites one you already have. Withdraw it at any time and all three go back.
-          Nothing is ever pre-selected.
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
-// ── D2 · THE WEAVE (chosen 10-02, concepts.html tab 2) ───────────────────────────────────────────
-//
-// A match IS a pairing between two documents, and this draws exactly that: what the posting asks on
-// the left, what the résumé has on the right, a thread for every pair. It is the one concept of four
-// that is INFORMATIVE AT REST — when the motion stops, asks with nothing attached are left DANGLING,
-// and the absence says "missing" better than a red chip did. (Rejected, recorded so they are not
-// re-proposed: the scan needs a loaded résumé; the stamp is a reveal of a list you could have read;
-// the sieve shows your terms failing a filter, which argues against the copy.)
-//
-// ON OPEN   threads draw one at a time, WEAVE_STEP_MS apart; each pair turns green as its thread lands;
-//           then the unmatched asks go to a dashed outline; then the score counts up — only when the
-//           number is shown (ATS_NUMBER_SHOWN, A75/A76); until then the band stands there.
-// Threads are cubic Béziers with HORIZONTAL control points, so each leaves and arrives flat.
-//
-// The four questions D2 left open, answered (the owner may reverse each):
-//   1 A CAP: threads for the first WEAVE_MAX_THREADS asks; the rest fold into a plain list. Six is
-//     elegant, twenty is spaghetti.
-//   2 REPLAY: once per report per browser session (sessionStorage); later opens draw the final state.
-//   3 THE SCORE as the largest element waits on A76 (ATS_NUMBER_SHOWN), like every shown number.
-//   4 ONE COMPONENT: this lives in the one report implementation, so the deck, the board, the phone
-//     sheet and /tools/ats all draw it.
-// ⛔ prefers-reduced-motion draws the final state with no motion.
-const WEAVE_STEP_MS = 260;
-const WEAVE_MAX_THREADS = 8;
-const WEAVE_ROW = 32;
-const WEAVE_GUTTER = 64;
-const WEAVE_SEEN_KEY = "draft-weave-seen";
-const WEAVE_START_FALLBACK_MS = 1500;
-
-function weaveSeen(key) {
-  try { return JSON.parse(sessionStorage.getItem(WEAVE_SEEN_KEY) || "[]").includes(key); } catch { return false; }
-}
-function markWeaveSeen(key) {
-  try {
-    const seen = JSON.parse(sessionStorage.getItem(WEAVE_SEEN_KEY) || "[]");
-    if (!seen.includes(key)) sessionStorage.setItem(WEAVE_SEEN_KEY, JSON.stringify([...seen, key].slice(-200)));
-  } catch { /* a private window: it simply replays */ }
-}
-const prefersReducedMotion = () => {
-  try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
-};
-
-/** The asks, matched first; the résumé side ordered A→Z (as a résumé would list it), so threads cross. */
-export function weaveLayout(report) {
-  const matched = [...(report?.tier1_matched || []), ...(report?.competencies_matched || [])];
-  const missing = [...(report?.tier1_missing || []), ...(report?.competencies_missing || [])];
-  const asks = [...matched.map(t => ({ term: t, matched: true })), ...missing.map(t => ({ term: t, matched: false }))];
-  const shown = asks.slice(0, WEAVE_MAX_THREADS);
-  const folded = asks.slice(WEAVE_MAX_THREADS);
-  const right = shown.filter(a => a.matched).map(a => a.term).sort((a, b) => a.localeCompare(b));
-  const pairs = shown.map((a, i) => (a.matched ? { from: i, to: right.indexOf(a.term) } : null)).filter(Boolean);
-  return { shown, folded, right, pairs, key: asks.map(a => `${a.matched ? "+" : "-"}${a.term}`).join("|") };
-}
-
-/** D2's count-up: ~900 ms, eased; reduced motion shows the number at once. Dormant until ATS_NUMBER_SHOWN. */
-function ScoreCountUp({ value }) {
-  const [n, setN] = useState(prefersReducedMotion() ? value : 0);
-  useEffect(() => {
-    if (prefersReducedMotion()) { setN(value); return undefined; }
-    const t0 = performance.now();
-    let raf = 0;
-    const tick = (t) => {
-      const k = Math.min(1, (t - t0) / 900);
-      setN(Math.round(value * (1 - Math.pow(1 - k, 3))));
-      if (k < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [value]);
-  return <div data-ats-score style={{ fontSize: 40, fontWeight: 800, lineHeight: 1, color: "var(--color-text)" }}>{n}</div>;
-}
-
-/** A flat-ended thread: horizontal control points, so it leaves and arrives level. */
-export function threadPath(y1, y2, w) {
-  return `M 0 ${y1} C ${w * 0.5} ${y1}, ${w * 0.5} ${y2}, ${w} ${y2}`;
-}
-
-function WeaveTerm({ label, ok, dangling, claimable, claims }) {
-  const k = profileSignalKey(label);
-  const locked = claimable && claims?.lockedSkills?.has(k);
-  const claimed = claimable && (locked || claims?.claimedLookup?.skillKeys?.has(k) || claims?.pending?.has(`skill:${label}`));
-  const style = {
-    position: "relative", maxWidth: "100%",
-    height: WEAVE_ROW - 6, display: "inline-flex", alignItems: "center", padding: "0 10px", borderRadius: 9,
-    boxSizing: "border-box", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-    transition: `background ${WEAVE_STEP_MS}ms ease, color ${WEAVE_STEP_MS}ms ease, border-color ${WEAVE_STEP_MS}ms ease`,
-    background: ok || claimed ? C.SUCCESS_QUIET : C.SURFACE_SOLID,
-    color: ok || claimed ? C.SUCCESS : C.INK,
-    border: `1.5px ${dangling && !claimed ? "dashed" : "solid"} ${ok || claimed ? C.SUCCESS : C.INK_FAINT}`,
-    // ⛔ D2: depth on every claim control, per D1.
-    boxShadow: C.DEPTH_REST,
-  };
-  if (claimable && claims?.onToggle && !locked) {
-    return (
-      <button type="button" aria-pressed={!!claimed} data-weave-ask={label} onClick={() => claims.onToggle("skill", label, !claimed)}
-        title={claimed ? `You claimed "${label}". Click to withdraw it.` : `Claim "${label}" — only if it is true of you.`}
-        style={{ ...style, cursor: "pointer", font: "inherit", fontSize: 12, fontWeight: 700 }}>
-        {claimed ? `✓ ${label}` : label}
-      </button>
-    );
-  }
-  return <span data-weave-ask={label} style={style}>{claimed ? `✓ ${label}` : label}</span>;
-}
-
-function AtsWeave({ report, claims }) {
-  const { shown, folded, right, pairs, key } = weaveLayout(report);
-  const still = prefersReducedMotion() || weaveSeen(key);
-  const [landed, setLanded] = useState(still ? pairs.length : 0);
-  const [settled, setSettled] = useState(still);
-  // The drawing starts when the weave is ON SCREEN, not when it mounts: the deck mounts the report as
-  // its panel begins to slide open (a 1.1 s clock), and the first threads played out of sight (seen in
-  // the 10-03 mid-open shot). ≥ 90% visible, or after WEAVE_START_FALLBACK_MS, whichever comes first.
-  const rootRef = useRef(null);
-  const [inView, setInView] = useState(still);
-  useEffect(() => {
-    if (still || inView) return undefined;
-    const fallback = setTimeout(() => setInView(true), WEAVE_START_FALLBACK_MS);
-    let io = null;
-    if (typeof IntersectionObserver !== "undefined" && rootRef.current) {
-      io = new IntersectionObserver(([e]) => { if (e.intersectionRatio >= 0.9) setInView(true); }, { threshold: [0.9, 1] });
-      io.observe(rootRef.current);
-    }
-    return () => { clearTimeout(fallback); io?.disconnect(); };
-  }, [key, inView]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (still || !inView) return undefined;
-    if (!pairs.length) { setSettled(true); markWeaveSeen(key); return undefined; }
-    let n = 0, done = null;
-    const id = setInterval(() => {
-      n += 1;
-      setLanded(n);
-      if (n >= pairs.length) { clearInterval(id); done = setTimeout(() => { setSettled(true); markWeaveSeen(key); }, WEAVE_STEP_MS); }
-    }, WEAVE_STEP_MS);
-    return () => { clearInterval(id); clearTimeout(done); };
-  }, [key, inView]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!shown.length) return null;
-
-  const rows = Math.max(shown.length, right.length);
-  const y = (i) => i * WEAVE_ROW + WEAVE_ROW / 2;
-  const landedFrom = new Set(pairs.slice(0, landed).map(p => p.from));
-  const landedTo = new Set(pairs.slice(0, landed).map(p => p.to));
-  const cols = `minmax(0,1fr) ${WEAVE_GUTTER}px minmax(0,1fr)`;
-  return (
-    <div data-ats-weave ref={rootRef}>
-      <div style={{ display: "grid", gridTemplateColumns: cols, marginBottom: 6 }}>
-        <div className="rm-section-label" style={{ textAlign: "right" }}>What this posting asks</div>
-        <div />
-        <div className="rm-section-label">What your resume has</div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: cols, height: rows * WEAVE_ROW }}>
-        {/* Both columns sit AGAINST the gutter, so every thread leaves one box and lands on the other. */}
-        <div style={{ position: "relative" }}>
-          {shown.map((a, i) => (
-            <span key={`l${i}`} style={{ position: "absolute", right: 0, top: i * WEAVE_ROW + 3, maxWidth: "100%", display: "flex" }}>
-              <WeaveTerm label={a.term} ok={a.matched && landedFrom.has(i)}
-                dangling={!a.matched && settled} claimable={!a.matched} claims={claims} />
-            </span>
-          ))}
-        </div>
-        <svg width={WEAVE_GUTTER} height={rows * WEAVE_ROW} aria-hidden="true" focusable="false" style={{ overflow: "visible" }}>
-          {pairs.map((p, n) => (
-            <path key={n} d={threadPath(y(p.from), y(p.to), WEAVE_GUTTER)} fill="none" stroke={C.SUCCESS} strokeWidth="2"
-              strokeLinecap="round" pathLength="1" strokeDasharray="1"
-              style={{ strokeDashoffset: n < landed ? 0 : 1, transition: still ? "none" : `stroke-dashoffset ${WEAVE_STEP_MS - 20}ms ease-out` }} />
-          ))}
-        </svg>
-        <div style={{ position: "relative" }}>
-          {right.map((t, j) => (
-            <span key={`r${j}`} style={{ position: "absolute", left: 0, top: j * WEAVE_ROW + 3, maxWidth: "100%", display: "flex" }}>
-              <WeaveTerm label={t} ok={landedTo.has(j)} />
-            </span>
-          ))}
-        </div>
-      </div>
-      {folded.length > 0 && (
-        <details style={{ marginTop: 10 }}>
-          <summary style={{ fontSize: 12, fontWeight: 700, color: "var(--color-text-muted)", cursor: "pointer" }}>
-            {folded.length} more {folded.length === 1 ? "ask" : "asks"} — {folded.filter(a => a.matched).length} matched
-          </summary>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-            {folded.map((a, i) => (
-              <WeaveTerm key={`f${i}`} label={a.term} ok={a.matched} dangling={!a.matched} claimable={!a.matched} claims={claims} />
-            ))}
+      {/* The verdict, the experience line and (LLM reports only) strengths and improvements — folded,
+          printed once. A52 follow-up: the experience summary is often the verdict itself, and printing it
+          twice was the "renders twice" defect. */}
+      {more && (
+        <details data-ats-more className="ats-fold">
+          <summary>More about this match</summary>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {verdict && <div style={{ fontSize: 12, color: "var(--color-text-muted)", fontStyle: "italic", lineHeight: 1.6 }}>{verdict}</div>}
+            {report.experience && report.experience.summary !== (report.verdict || report.experience.summary) && (
+              <ListSection title="Experience Fit" items={[report.experience.summary]} color={report.experience.fit ? C.SUCCESS : "var(--color-warning)"}/>
+            )}
+            {!isLocalReport && report.strengths?.length > 0 && (
+              <ListSection title="💪 Strengths" items={report.strengths} color={C.SUCCESS}/>
+            )}
+            {!isLocalReport && report.improvements?.length > 0 && (
+              <ListSection title="🔧 Improvements" items={report.improvements} color={"var(--color-primary)"}/>
+            )}
           </div>
         </details>
       )}
     </div>
   );
 }
-
 
 /**
- * A row of terms, each of which the candidate may CLAIM (AG2).
+ * A row of terms. With `onToggleClaim` they are CLAIM CHIPS (AG2) — a control, with the + affordance
+ * and D1's depth; without it they are read-only labels, flat.
  *
  * THE COPY IS THE FEATURE. Clicking one of these asserts "I have this" — a claim the candidate will
  * have to defend in an interview. So the chip never reads as "add this to improve your score".
@@ -430,49 +302,45 @@ function AtsWeave({ report, claims }) {
  * the scorer reports every match that rested on a claim alone, so the number is never silently
  * inflated. NOTHING IS PRE-SELECTED: `claimedLookup` holds only what the person actually claimed.
  */
-function TagSection({
-  title, subtitle = null, bg, fg, border, items,
-  onToggleClaim = null, pendingItems = new Set(),
+function TermChips({
+  items, onToggleClaim = null, pendingItems = new Set(),
   claimedLookup = { skillKeys: new Set(), verbKeys: new Set() },
   lockedLookup = new Set(), evidencedLookup = new Set(), kind = "skill",
 }) {
   const claimedKeys = (kind === "action_verb" ? claimedLookup?.verbKeys : claimedLookup?.skillKeys) || new Set();
-  return (
-    <div>
-      <div className="rm-section-label" style={{ color: fg }}>{title}</div>
-      {subtitle && <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 6, lineHeight: 1.5 }}>{subtitle}</div>}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-        {items.map(k => {
-          const itemKey = profileSignalKey(k);
-          const locked = (lockedLookup || new Set()).has(itemKey);
-          const claimed = locked || claimedKeys.has(itemKey) || (pendingItems || new Set()).has(`${kind}:${k}`);
-          const evidenced = evidencedLookup.has(itemKey);
-          const interactive = !!onToggleClaim && !locked;
-          const provenance = evidenced
-            ? "Your resume already shows this"
-            : claimed ? "You claimed this — the job description asked for it" : "This job asked for it. Your resume does not show it.";
-          return (
-            <button key={k} type="button" className="rm-badge"
-              onClick={interactive ? () => onToggleClaim(k, !claimed) : undefined}
-              disabled={!interactive}
-              aria-pressed={interactive ? claimed : undefined}
-              title={interactive
-                ? (claimed ? `You claimed "${k}". Click to withdraw it.`
-                           : `Claim "${k}" — only if it is true of you. It counts toward this score and toward where this job ranks, and it is used in future resumes.`)
-                : provenance}
-              style={{
-                background: claimed ? C.SUCCESS_QUIET : bg,
-                color: claimed ? C.SUCCESS : fg,
-                border: `1px solid ${claimed ? `color-mix(in srgb, ${C.SUCCESS} 20%, transparent)` : border}`,
-                cursor: interactive ? "pointer" : "default",
-              }}>
-              {claimed ? `✓ ${k}` : k}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
+  return items.map(k => {
+    const itemKey = profileSignalKey(k);
+    const locked = (lockedLookup || new Set()).has(itemKey);
+    const claimed = locked || claimedKeys.has(itemKey) || (pendingItems || new Set()).has(`${kind}:${k}`);
+    const evidenced = evidencedLookup.has(itemKey);
+    const interactive = !!onToggleClaim && !locked;
+    const provenance = evidenced
+      ? "Your resume already shows this"
+      : claimed ? "You claimed this — the job description asked for it" : "This job asked for it. Your resume does not show it.";
+    if (!interactive) {
+      return (
+        <span key={`${kind}:${k}`} className="ats-chip" title={provenance}
+          style={claimed ? { background: C.SUCCESS_QUIET, color: C.SUCCESS } : undefined}>
+          {claimed ? `✓ ${k}` : k}
+        </span>
+      );
+    }
+    return (
+      <button key={`${kind}:${k}`} type="button" className="ats-chip ats-chip--claim" data-claim-chip={kind}
+        onClick={() => onToggleClaim(k, !claimed)}
+        aria-pressed={claimed}
+        title={claimed ? `You claimed "${k}". Click to withdraw it.`
+                       : `Claim "${k}" — only if it is true of you. It counts toward this score and toward where this job ranks, and it is used in future resumes.`}
+        style={{
+          background: claimed ? C.SUCCESS_QUIET : C.SURFACE_SOLID,
+          color: claimed ? C.SUCCESS : C.INK,
+          borderColor: claimed ? C.SUCCESS : undefined,
+        }}>
+        {!claimed && <span className="ats-chip__plus" aria-hidden="true">+</span>}
+        {claimed ? `✓ ${k}` : k}
+      </button>
+    );
+  });
 }
 
 function ListSection({ title, items, color }) {

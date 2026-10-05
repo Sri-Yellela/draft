@@ -224,7 +224,7 @@ test("the ATS panel renders the band for a DECLINED report, and the depth warnin
   assert.match(panel, /\{depth && \(/);
   assert.match(panel, /seniority_cap/);
   // And the donut is gone — it was the most precise-looking thing on the screen.
-  // (D2's threads draw with strokeDashoffset on <path>s; the donut was a <circle> ring.)
+  // (The donut was a <circle> ring. D31's bar is two plain segments — a count, not a gauge.)
   assert.doesNotMatch(panel, /<circle\b/,
     "the score donut is back; a ring filled to 43/100 claims a precision the engine does not have");
 });
