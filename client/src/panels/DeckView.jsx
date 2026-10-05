@@ -192,8 +192,8 @@ function PostingLinks({ job, onReport }) {
 // (components/AtsReport.jsx, A52) — so the deck draws THE SAME report rather than a second one, and no
 // file but that one knows a report's field names.
 
-// The FULL report: band · skills matched · skills missing with the claim note · competencies · verbs
-// matched and missing · generic language · experience fit — the board's ATSPanel, fed the frozen
+// The FULL report — D31's simple card: band · "9 of 12" · one bar, then "You could claim" open and the
+// résumé's terms and generic language folded — the board's ATSPanel, fed the frozen
 // report and the card's BAND (never a number). ⛔ A declined report is the scorer saying it cannot
 // judge, drawn as "Not enough signal", never as a low band.
 function DeckAtsReport({ card, profileId, onReport }) {

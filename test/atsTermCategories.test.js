@@ -218,14 +218,15 @@ test("the report version was bumped, or every cached report keeps the old catego
 test("the panel renders both new buckets, and AG2's copy is untouched", () => {
   // A52: the report is drawn by components/AtsReport.jsx (ATSPanel only fetches and claims).
   const panel = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
-  // D2: both buckets are on the weave — asks it pairs, and asks it leaves dangling.
+  // D31: both buckets are counted — on the résumé, or in "You could claim".
   assert.match(panel, /\.\.\.\(report\?\.competencies_matched \|\| \[\]\)/);
   assert.match(panel, /\.\.\.\(report\?\.competencies_missing \|\| \[\]\)/);
   assert.match(panel, /report\.action_verbs_generic\?\.length > 0/);
   // Generic language is NOT claimable — a chip that offers to add "Manage" to your profile is the
-  // same false gap in a different control.
-  const genericBlock = panel.slice(at(panel, "○ Generic Language"), at(panel, "○ Generic Language") + 600);
-  assert.doesNotMatch(genericBlock, /onToggleClaim/);
+  // same false gap in a different control. (The whole fold, up to its closing tag.)
+  const genericBlock = panel.slice(at(panel, "<details data-ats-generic"), at(panel, "</details>", at(panel, "<details data-ats-generic")));
+  assert.match(genericBlock, /<TermChips items=\{generic\}/);
+  assert.doesNotMatch(genericBlock, /onToggleClaim|claimable\(/);
   // Competencies matched must count as evidenced, or a term shown as matched above renders as
   // unevidenced below.
   assert.match(panel, /\.\.\.\(report\.competencies_matched \|\| \[\]\)/);

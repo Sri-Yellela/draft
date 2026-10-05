@@ -36,8 +36,9 @@ test("ATS missing chips stay visible, turn green when claimed, and react to prof
   // behaviour this test is named for — the chip turns green — is unchanged; only the token went,
   // and now the trigger is the candidate's claim rather than an irreversible add.
   // Re-pinned at UI step 2b (09-30): the dark-era literals became tokens; the claimed/unclaimed switch is what is pinned.
-  assert.match(chips, /background: claimed \? C\.SUCCESS_QUIET : bg/);
-  assert.match(chips, /color: claimed \? C\.SUCCESS : fg/);
+  // D31: the claim chip's resting colours are tokens on the chip itself (the + chip); the switch is the same.
+  assert.match(chips, /background: claimed \? C\.SUCCESS_QUIET : C\.SURFACE_SOLID/);
+  assert.match(chips, /color: claimed \? C\.SUCCESS : C\.INK/);
   assert.match(chips, /claimed \? `✓ \$\{k\}` : k/);
   assert.doesNotMatch(chips, /pointerEvents:\s*claimed/,
     "a claimed chip must stay clickable — that click is how the claim is withdrawn");
