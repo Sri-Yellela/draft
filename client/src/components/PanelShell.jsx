@@ -153,6 +153,7 @@ export function PanelDock({ width, fullScreen = false, children }) {
  */
 export default function PanelShell({
   panelId, slot = 0, width = DEFAULT_WIDTH, fullScreen = false, focused = true,
+  closesOnEscape = undefined,
   resizeMode = "dock", onResizeStart, onResize, onResizeEnd,
   onClose, onFocus, header, actions, children, bodyRef,
 }) {
@@ -160,14 +161,23 @@ export default function PanelShell({
   const ownBodyRef = useRef(null);
   const scrollRef = bodyRef || ownBodyRef;
 
-  // Escape closes, but only the FOCUSED panel — otherwise one keypress would close every open
-  // panel at once, which is never what the user meant by "go back".
+  // Escape closes ONE panel — otherwise one keypress would close every open panel at once, which is
+  // never what the user meant by "go back". ⛔ D39: WHICH one is the host's call (the most recently
+  // opened, `closesOnEscape`), the same panel a backdrop click closes; without a host, the focused one.
+  const escapeMine = closesOnEscape ?? focused;
   useEffect(() => {
-    if (!focused) return undefined;
+    if (!escapeMine) return undefined;
     const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [focused, onClose]);
+  }, [escapeMine, onClose]);
+
+  // D39 · FOCUS RETURNS TO WHAT OPENED THE PANEL. The element focused when the panel mounted is the
+  // opener (the card, the ATS square); on close it gets focus back if it is still in the page.
+  useEffect(() => {
+    const opener = typeof document !== "undefined" ? document.activeElement : null;
+    return () => { if (opener && opener !== document.body && opener.isConnected) opener.focus?.({ preventScroll: true }); };
+  }, []);
 
   // Focus the BODY, not the close button.
   //

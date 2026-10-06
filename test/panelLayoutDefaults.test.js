@@ -129,9 +129,10 @@ test("side-by-side has a defined capacity and a defined overflow rule", () => {
 });
 
 test("panels tile inside the dock, not against the viewport", () => {
-  // Slot 0 is the rightmost position — where the JD drawer has always appeared — so a newly opened
-  // panel shows up where the user already expects one.
-  assert.match(host, /const bySlot = \[\.\.\.order\]\.reverse\(\)\.slice\(0, capacity\)/);
+  // ⛔ D39 (owner, 10-06): slots come from a FIXED spatial order — posting left, ATS right — never from
+  // focus, which made a click inside a panel swap the pair. Slot 0 is still the rightmost.
+  assert.match(host, /export const SPATIAL_ORDER = Object\.freeze\(\["jd", "pdf", "ats"\]\);/);
+  assert.match(host, /const bySlot = slotsFor\(order, capacity\);/);
   // Expressed as CSS `order`, not by reordering the JSX, so a panel keeps its DOM node — and
   // therefore its scroll position — when its slot changes.
   assert.match(shell, /order: -slot,/);

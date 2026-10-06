@@ -1417,20 +1417,22 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const {
     visible: visiblePanels, dockWidth, focusPanel,
     beginResize, resizeBy, endResize,
-    openCount: openPanelCount, fullScreenMode: panelsFullScreen,
+    openCount: openPanelCount, fullScreenMode: panelsFullScreen, lastOpenedId,
   } = usePanelHost(panelDescriptors, vpWidth);
   const panelProps = useCallback((id) => {
     const p = visiblePanels.find(v => v.id === id);
     if (!p) return null;
     return {
       slot: p.slot, width: p.width, focused: p.focused, fullScreen: p.fullScreen,
+      // D39: Escape and the backdrop close the most recently OPENED panel — one at a time, deterministic.
+      closesOnEscape: id === lastOpenedId,
       resizeMode: p.resizeMode,
       onFocus: () => focusPanel(id),
       onResizeStart: beginResize,
       onResize: (delta) => resizeBy(id, delta),
       onResizeEnd: endResize,
     };
-  }, [visiblePanels, focusPanel, beginResize, resizeBy, endResize]);
+  }, [visiblePanels, focusPanel, beginResize, resizeBy, endResize, lastOpenedId]);
 
   // While any panel OR THE FILTERS DRAWER is open the board is inert and the page is frozen at its
   // current scroll offset, which is restored exactly on close. See hooks/useBoardLock.js — a scrim
@@ -3886,8 +3888,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           pointer-events:none box when nothing is open, so AnimatePresence still gets to play the
           last panel's exit instead of having its container yanked mid-animation. */}
       <PanelScrim show={openPanelCount > 0} onClick={() => {
-        const focused = visiblePanels.find(p => p.focused);
-        panelDescriptors.find(d => d.id === focused?.id)?.close?.();
+        // ⛔ D39: the most recently OPENED panel closes first — not "the focused one", which a click on
+        // a peer could change. The other panel does not move (usePanelHost SPATIAL_ORDER).
+        panelDescriptors.find(d => d.id === lastOpenedId)?.close?.();
       }}/>
       <PanelDock width={dockWidth} fullScreen={panelsFullScreen && openPanelCount > 0}>
         <AnimatePresence>
