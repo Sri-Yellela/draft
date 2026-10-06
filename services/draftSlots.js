@@ -54,14 +54,31 @@ function generationsUsed(db, userId, since) {
   } catch { return 0; }
 }
 
-/** { limit, used, remaining, drafts, generations, windowHours } for one user, now. */
+/** The oldest use still inside the window (seconds), or null. Same rows the two counts above count. */
+function oldestUse(db, userId, since) {
+  const one = (sql) => { try { return db.prepare(sql).pluck().get(userId, since) ?? null; } catch { return null; } };
+  const d = one(`SELECT MIN(rj.created_at) FROM apply_run_jobs rj JOIN apply_runs r ON r.id = rj.run_id
+    WHERE rj.user_id = ? AND COALESCE(r.approval_mode, '') != 'approved' AND rj.status <> 'cancelled'
+      AND NOT (rj.status = 'superseded' AND rj.approved_at IS NULL) AND COALESCE(rj.created_at, 0) >= ?`);
+  const g = one(`SELECT MIN(created_at) FROM draft_slot_uses WHERE user_id = ? AND kind = 'generate' AND created_at >= ?`);
+  const v = [d, g].filter(x => x != null).map(Number);
+  return v.length ? Math.min(...v) : null;
+}
+
+/**
+ * { limit, used, remaining, drafts, generations, windowHours, nextFreeAt } for one user, now.
+ * D51: `nextFreeAt` (ms) is when the oldest use leaves the window — the moment a slot frees — so an
+ * exhausted Draft button can say "resets in 3h" instead of only "no". Null when nothing is used.
+ */
 export function draftSlots(db, userId, { now = Math.floor(Date.now() / 1000), env = process.env } = {}) {
   const since = now - WINDOW_SECONDS;
   const drafts = draftsUsed(db, userId, since);
   const generations = generationsUsed(db, userId, since);
   const limit = draftSlotLimit(env);
   const used = drafts + generations;
-  return { limit, used, remaining: Math.max(0, limit - used), drafts, generations, windowHours: 24 };
+  const oldest = used > 0 ? oldestUse(db, userId, since) : null;
+  return { limit, used, remaining: Math.max(0, limit - used), drafts, generations, windowHours: 24,
+           nextFreeAt: oldest == null ? null : (oldest + WINDOW_SECONDS) * 1000 };
 }
 
 /** The refusal every surface shows, so the deck, the board and Generate say the same thing. */

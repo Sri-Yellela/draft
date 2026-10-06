@@ -50,7 +50,8 @@ test("D45 · the cache key ignores what does not change the answer; the prefetch
 });
 
 test("D45 · facets AFTER the board, and one board request per view at a time", () => {
-  assert.match(panel, /const facets = useJobFacets\(facetsQs, !boardLoading, api\);/);
+  // D51: + a nonce, so a Draft or an Undo re-reads the /d count; still gated on the board (!boardLoading).
+  assert.match(panel, /const facets = useJobFacets\(facetsQs, !boardLoading, api, facetsNonce\);/);
   assert.match(panel, /if \(!mergeMode && !options\.cursor && inFlightRef\.current === flightKey\) return;/);
   const hook = fs.readFileSync("client/src/hooks/useJobFacets.js", "utf8");
   assert.match(hook, /if \(!enabled\) return;/, "disabled keeps the last counts — they do not blank while the board loads");

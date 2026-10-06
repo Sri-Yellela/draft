@@ -43,8 +43,11 @@ export function normaliseCompanyForMatch(s) {
 }
 
 export const RECORD_STATES = Object.freeze(["pending", "recorded", "verified", "withdrawn"]);
-export const PENDING_ORIGINS = Object.freeze(["generated", "opened_posting", "exported_resume", "manual", "draft"]);
-/** Origins a CLIENT may claim. 'generated' and 'draft' are written by the server only. */
+// ⛔ D51: 'drafted' is the Draft CLICK itself (POST /api/apply/runs) — written in the same transaction as
+// the run-job, so /d, Draft House and The Table read one fact. 'draft' stays the gated handoff's (the
+// candidate is on the employer's form). Only a 'drafted' record is released when its Draft is undone.
+export const PENDING_ORIGINS = Object.freeze(["generated", "opened_posting", "exported_resume", "manual", "draft", "drafted"]);
+/** Origins a CLIENT may claim. 'generated', 'draft' and 'drafted' are written by the server only. */
 export const CLIENT_ORIGINS = Object.freeze(["opened_posting", "exported_resume", "manual"]);
 
 export const SUBMIT_METHODS = Object.freeze({
@@ -175,9 +178,31 @@ export function markPending(db, userId, jobId, origin) {
     ON CONFLICT(user_id, job_id) DO UPDATE SET
       state = 'pending', origin = excluded.origin, withdrawn_at = NULL, updated_at = unixepoch()
     WHERE application_records.state = 'withdrawn'
+       -- D51: a stronger signal replaces the Draft click's own origin (a gated handoff released, the
+       -- posting opened), so undoing the Draft no longer releases a record the user acted on since.
+       OR (application_records.state = 'pending' AND application_records.origin = 'drafted'
+           AND excluded.origin <> 'drafted')
   `).run(userId, String(jobId), origin);
   const record = readRecord(db, userId, jobId);
   return { state: record.state, record };
+}
+
+/**
+ * ⛔ D51 · release the record a Draft click wrote, once nothing of that Draft is left. Called after a
+ * run-job is cancelled (Undo, Stop, removed from the line) or removed. A no-op unless the record is
+ * still PENDING with origin 'drafted' AND no other attempt for the job is live — so a job drafted
+ * again, opened, recorded or sent keeps its record. Returns true when it released one.
+ */
+export function releaseDraftRecord(db, userId, jobId) {
+  if (jobId == null) return false;
+  const liveSql = (hidden) => `SELECT COUNT(*) FROM apply_run_jobs WHERE user_id = ? AND job_id = ?
+    AND status NOT IN ('cancelled', 'superseded')${hidden ? " AND hidden_at IS NULL" : ""}`;
+  let live;
+  try { live = db.prepare(liveSql(true)).pluck().get(userId, String(jobId)); }
+  catch { live = db.prepare(liveSql(false)).pluck().get(userId, String(jobId)); }   // pre-hidden_at schema
+  if (live) return false;
+  return db.prepare(`DELETE FROM application_records WHERE user_id = ? AND job_id = ?
+    AND state = 'pending' AND origin = 'drafted'`).run(userId, String(jobId)).changes > 0;
 }
 
 /** job_applications — the Submitted list — written ONLY from a verified record. */

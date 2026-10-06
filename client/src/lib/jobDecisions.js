@@ -42,6 +42,64 @@ export function lineAfter(line) {
     "edit, reorder or remove it in Draft House";
 }
 
+// ── D51 · A DRAFT BUTTON IS NEVER A DEAD END ────────────────────────────────────────────────────
+//
+// The owner drafted a job and the button went grey: no word of why, nor of where the job went. Every
+// Draft control (the board's bubble, the posting panel, the card) now takes its state from here, and a
+// state that refuses ALWAYS carries the sentence that says why. A drafted job is not refused — its
+// button opens Draft House, where the job is.
+
+/** Hours or minutes until `atMs`, for "resets in 3h". */
+export function untilLabel(atMs, now = Date.now()) {
+  const s = Math.max(0, Math.round((Number(atMs) - now) / 1000));
+  if (!Number.isFinite(s)) return null;
+  if (s < 3600) return `${Math.max(1, Math.ceil(s / 60))} min`;
+  return `${Math.ceil(s / 3600)}h`;
+}
+
+/**
+ * Why a Draft cannot start right now, or null. Each reason is one the SERVER would refuse with
+ * (routes/apply.js startRun), said before the click rather than after it.
+ * @param p.slots         GET /api/draft/slots ({ limit, remaining, nextFreeAt })
+ * @param p.prereqMissing apply prerequisites missing (integrations status `apply.missing`)
+ * @param p.prereqLabels  lib/applyObstacles.js PREREQUISITE_LABELS
+ * @param p.paused        the operator's kill switch is on (run bar `mode.auto.killSwitch`)
+ */
+export function draftBlock({ slots = null, prereqMissing = [], prereqLabels = {}, paused = false, now = Date.now() } = {}) {
+  if (paused) return { code: "paused", label: "Paused",
+    reason: "Drafting is paused by the operator — nothing new can be drafted right now. Nothing already sent is affected." };
+  if (prereqMissing?.length) {
+    const what = prereqMissing.map(k => prereqLabels[k]?.obstacle || k).join("; ");
+    return { code: "setup", label: "Setup needed", reason: `Can't be drafted yet — ${what}.` };
+  }
+  if (slots && Number(slots.remaining) <= 0) {
+    const when = slots.nextFreeAt ? untilLabel(slots.nextFreeAt, now) : null;
+    return { code: "out_of_drafts", label: "Out of drafts",
+      reason: `Out of drafts — all ${slots.limit} used in the last 24 hours (a Draft or a new résumé uses one).` +
+        (when ? ` Resets in ${when}.` : " The next one frees up 24 hours after the oldest.") };
+  }
+  return null;
+}
+
+/**
+ * The one Draft control's state. `disabled` is true ONLY while a Draft is on the wire; a blocked
+ * button is aria-disabled but still answers a press with its reason (touch has no tooltip).
+ * @returns {{ kind: "idle"|"drafting"|"drafted"|"blocked", label: string, title: string,
+ *             disabled: boolean, ariaDisabled: boolean, action: "draft"|"view"|"explain"|null }}
+ */
+export function draftButtonState({ drafted = false, drafting = false, block = null, canView = true } = {}) {
+  if (drafting) return { kind: "drafting", label: "Drafting…", title: "Drafting — it is on its way to Draft House.",
+    disabled: true, ariaDisabled: true, action: null };
+  if (drafted) return { kind: "drafted", label: "Drafted ✓",
+    title: canView ? "Drafted — view it in Draft House. Undo on the toast, or remove it there."
+                   : "Drafted — it waits for your review in Draft House.",
+    disabled: false, ariaDisabled: !canView, action: canView ? "view" : "explain" };
+  if (block) return { kind: "blocked", label: block.label, title: block.reason,
+    disabled: false, ariaDisabled: true, action: "explain" };
+  return { kind: "idle", label: "Draft", title: "Draft — queue it for your review. Nothing is sent until you approve it.",
+    disabled: false, ariaDisabled: false, action: "draft" };
+}
+
 /** The flags a Save or a Pass SETS. They are exclusive: saving a passed job un-passes it, and back. */
 export function flagsFor(decision) {
   if (decision === DECISIONS.SAVED) return { starred: true, disliked: false };
@@ -76,7 +134,9 @@ export async function commitDecision({ jobId, decision, tool, surface, api = def
   if (decision === DECISIONS.DRAFTED) {
     const r = await api("/api/apply/runs", { method: "POST",
       body: JSON.stringify({ jobIds: [jobId], mode: "auto", tool, surface }) });
-    return { runId: r?.runId ?? null, line: r?.waiting ? (r.line ?? null) : null };
+    // D51: the slots after this Draft, so the board's quota moves without a second request.
+    return { runId: r?.runId ?? null, line: r?.waiting ? (r.line ?? null) : null,
+             ...(r?.draftSlots ? { slots: r.draftSlots } : {}) };
   }
   await api("/api/jobs/interact", { method: "PATCH",
     body: JSON.stringify({ jobId, ...flagsFor(decision) }) });

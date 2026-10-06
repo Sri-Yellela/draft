@@ -31,7 +31,7 @@ import { fullAutoDisabled as sharedFullAutoDisabled } from "../services/appSetti
 import { userHeld, userHoldSince, setUserHold } from "../services/applyUserHold.js";
 import { draftSlots, slotsExhausted } from "../services/draftSlots.js";
 import { atsJobInputHash, ATS_JOB_INPUT_FIELDS } from "../services/jobs/boardFitPrecompute.js";
-import { recordSubmissionFromPipeline, markPending, publicRecord } from "../services/applicationRecords.js";
+import { recordSubmissionFromPipeline, markPending, releaseDraftRecord, publicRecord } from "../services/applicationRecords.js";
 
 // Live read through the one shared parser, exactly as server.js does — same flag, same function,
 // so this route and the gates over there cannot disagree. ⛔ See shared/monetisation.js: ON is a
@@ -2169,8 +2169,19 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         WHERE run_id = ?
       `);
     } catch { /* pre-129 schema */ }
+    // ⛔ D51 · ONE WRITE, THREE READERS. The Draft click wrote only the run-job, so the job was in Draft
+    // House and nowhere else: /d reads résumés and application_records, The Table reads application_records.
+    // The record is written HERE, in the run-job's own transaction — both or neither — so /d, Draft House
+    // and The Table all see the Draft at once. Origin 'drafted' (server-only); undoing the Draft releases it
+    // (releaseDraftRecord). An approval or an answers retry continues a Draft that already wrote one.
+    // A fixture database without application_records (pre-A63) still queues the run.
+    const tagDrafted = resolvedApproval !== "approved" && !retryOfHeld &&
+      !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='application_records'").get();
     db.transaction(() => {
-      for (const id of filtered) insertJob.run(runId, userId, id, approvedFrom?.[id] ?? null);
+      for (const id of filtered) {
+        insertJob.run(runId, userId, id, approvedFrom?.[id] ?? null);
+        if (tagDrafted) markPending(db, userId, id, "drafted");
+      }
       snapshotJob?.run(runId);
     })();
 
@@ -2249,6 +2260,10 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           message: `A draft from the ${surface} always waits for your review. Remove approvalMode.` });
       if (!Array.isArray(jobIds) || jobIds.length === 0)
         return out.status(400).json({ error: "jobIds array required" });
+      // ⛔ D51: a null or empty id was admitted as the job "null" — a run-job for nothing, and a Draft slot
+      // spent on it (measured on the throwaway server, 10-07). An id is a non-empty string or a number.
+      if (jobIds.some(id => !((typeof id === "string" && id.trim()) || (typeof id === "number" && Number.isFinite(id)))))
+        return out.status(400).json({ error: "bad_job_id", message: "Every job id must be a non-empty string or a number." });
       if (jobIds.length > 25)
         return out.status(400).json({ error: "Max 25 jobs per run" });
       // 'approved' is set by the approve endpoint on runs it creates; accepting it from a client
@@ -2598,9 +2613,19 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     res.json({ ok: true, line: publicLine(req.user.id) });
   });
 
+  /** ⛔ D51: an undone Draft leaves /d and The Table too — the record its click wrote is released. */
+  const releaseDrafted = (userId, jobIds) => {
+    for (const id of jobIds) {
+      try { releaseDraftRecord(db, userId, id); }
+      catch (e) { console.warn(`[applyRoutes] release drafted record job=${id}: ${e.message}`); }
+    }
+  };
+
   /** Remove a whole waiting run from the line. Nothing was opened, so nothing needs undoing. */
   app.delete("/api/apply/line/:runId", requireAuth, (req, res) => {
     const runId = Number(req.params.runId);
+    const lineJobIds = db.prepare("SELECT job_id FROM apply_run_jobs WHERE run_id=? AND user_id=? AND status='queued'")
+      .pluck().all(runId, req.user.id);
     const removed = db.transaction(() => {
       const n = db.prepare(`
         UPDATE apply_runs SET status='cancelled', line_position=NULL, finished_at=unixepoch()
@@ -2616,6 +2641,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       return true;
     })();
     if (!removed) return notWaiting(res, req.user.id, runId);
+    releaseDrafted(req.user.id, lineJobIds);
     res.json({ ok: true, message: "Removed from the line. Nothing was opened or sent.", line: publicLine(req.user.id) });
   });
 
@@ -2642,6 +2668,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     })();
     if (outcome === "not_waiting") return notWaiting(res, req.user.id, runId);
     if (outcome === "no_job") return res.status(404).json({ error: "run_job_not_found" });
+    const removedJob = db.prepare("SELECT job_id FROM apply_run_jobs WHERE id=? AND user_id=?").pluck().get(runJobId, req.user.id);
+    releaseDrafted(req.user.id, removedJob == null ? [] : [removedJob]);
     res.json({ ok: true, line: publicLine(req.user.id) });
   });
 
@@ -3224,6 +3252,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       "Aborted by the user. The browser was closed, nothing was submitted, and the prepared handoff was voided.",
       { packetsVoided: voided.changes });
 
+    releaseDrafted(req.user.id, [rj.job_id]);
     res.json({ ok: true, runJobId: rj.id, status: "cancelled", packetsVoided: voided.changes });
   });
 
@@ -3281,6 +3310,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         ? "Removed from your history. It was still pending, so it was stopped first — nothing was submitted."
         : "Removed from your history. The record is retained and can be restored by an operator.",
       { previousStatus: rj.status, aborted: wasPending });
+    releaseDrafted(req.user.id, [rj.job_id]);
 
     res.json({
       ok: true,

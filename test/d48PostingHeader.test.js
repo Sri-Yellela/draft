@@ -95,7 +95,8 @@ test("owner 10-07 (36) · the posting panel's Draft button IS the logo — the o
   assert.match(logo, /icon=\{square \? <StampLogo size="md" progress=\{1\} \/> : null\}/);
   assert.match(logo, /\{square \? label : idle \? <StampLogo size="mini" \/> : label\}/);
   assert.doesNotMatch(logo, /primary/, "the mark is not set on the orange fill, where its slash would vanish");
-  assert.match(logo, /aria-label=\{label\}/, "named Draft / Drafting… / Drafted, not \"/draft\"");
+  // D51: named by its state AND its reason — "Out of drafts — …", "Drafted ✓ — view it in Draft House".
+  assert.match(logo, /aria-label=\{\`\$\{label\} — \$\{title\}\`\}/, "named Draft / Drafting… / Drafted, not \"/draft\"");
   // The colours are the mark's tokens: orange and ink in light, all orange in dark (D19).
   const t = read("client/src/styles/colorTokens.js");
   assert.match(t, /LOGO_SLASH:\s+"#FD4600",[^\n]*\n\s+LOGO_WORD:\s+"#1E1915"/);

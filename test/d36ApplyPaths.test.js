@@ -423,7 +423,9 @@ test("D36·3 · a held or failed attempt never blocks the next Draft, and only a
       assert.equal(r.status, 202, `${job} must stay draftable`);
     }
     assert.equal(t.db.prepare("SELECT COUNT(*) FROM job_applications").pluck().get(), 0);
-    assert.equal(t.db.prepare("SELECT COUNT(*) FROM application_records").pluck().get(), 0);
+    // D51: each Draft writes ONE pending record (origin 'drafted') — in play, not recorded. Nothing beyond
+    // that: no record was recorded, verified or written as a submission.
+    assert.equal(t.db.prepare("SELECT COUNT(*) FROM application_records WHERE NOT (state = 'pending' AND origin = 'drafted')").pluck().get(), 0);
     // The one writer, and the one condition under which it runs.
     const src = read("routes/apply.js");
     assert.equal((src.match(/recordSubmissionFromPipeline\(db,/g) || []).length, 1);

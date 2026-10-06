@@ -10,13 +10,15 @@
 // "Remove" — never the same button pressed twice.
 import DepthButton, { ICONS } from "./DepthButton.jsx";
 import { StampLogo } from "./StampLogo.jsx";
+import { draftButtonState } from "../lib/jobDecisions.js";
 
 /** Kept by name for the callers that import it; it is the depth box now. */
 export function DecisionPill({ label, onClick, primary = false, done = false, disabled = false, title, compact = false,
-                               square = false, icon = null, badge = null }) {
+                               square = false, icon = null, badge = null, flags = null }) {
   return (
     <DepthButton size={square ? "square" : compact ? "compact" : "box"} primary={primary} pressed={done} disabled={disabled}
-      title={title} onClick={onClick} icon={compact ? null : icon} badge={badge} caption={square ? label : null} tip={square ? title : null}>
+      title={title} onClick={onClick} icon={compact ? null : icon} badge={badge} caption={square ? label : null} tip={square ? title : null}
+      {...(flags || {})}>
       {label}
     </DepthButton>
   );
@@ -38,18 +40,27 @@ export function PassButton({ passed, onPass, compact, square }) {
     onClick={onPass} />;
 }
 
-export function DraftButton({ drafted, drafting, onDraft, compact, square, badge = null, logo = false }) {
-  const label = drafted ? "Drafted" : drafting ? "Drafting…" : "Draft";
-  const title = drafted ? "Drafted — it waits for your review in Draft House" : "Draft — queue it for your review. Nothing is sent until you approve it.";
+/**
+ * ⛔ D51: never a dead end. Drafted → "Drafted ✓", which opens Draft House (`onView`); refused → its
+ * reason (`block`, lib/jobDecisions.js draftBlock), aria-disabled but answering a press with that reason
+ * (`onExplain`) — touch has no tooltip. Only a Draft on the wire is truly disabled.
+ */
+export function DraftButton({ drafted, drafting, onDraft, onView = null, block = null, onExplain = null,
+                              compact, square, badge = null, logo = false }) {
+  const s = draftButtonState({ drafted, drafting, block, canView: !!onView });
+  const { label, title } = s;
+  const onClick = s.action === "draft" ? onDraft : s.action === "view" ? onView
+    : s.action === "explain" ? () => onExplain?.(title) : undefined;
+  const flags = { "aria-disabled": s.ariaDisabled || undefined, "data-draft-state": s.kind };
   // ⭐ Owner 10-07 (36), the posting panel: the button IS the logo — "/draft", or "/d" as a square — through
   // the ONE StampLogo, so it wears the mark's own tokens (orange and ink in light, all orange in dark). It is
   // therefore not on the orange fill, where the mark would vanish; the word returns only for the states.
   if (logo) {
-    const idle = !drafted && !drafting;
+    const idle = s.kind === "idle";
     return (
-      <DepthButton size={square ? "square" : "box"} pressed={drafted} disabled={drafted || drafting} title={title}
-        onClick={onDraft} badge={badge} caption={square ? label : null} tip={square ? title : null}
-        className="dbx--logo" aria-label={label} data-draft-logo=""
+      <DepthButton size={square ? "square" : "box"} pressed={drafted} disabled={s.disabled} title={title}
+        onClick={onClick} badge={badge} caption={square ? label : null} tip={square ? title : null}
+        className="dbx--logo" aria-label={`${label} — ${title}`} data-draft-logo="" {...flags}
         icon={square ? <StampLogo size="md" progress={1} /> : null}>
         {square ? label : idle ? <StampLogo size="mini" /> : label}
       </DepthButton>
@@ -58,7 +69,6 @@ export function DraftButton({ drafted, drafting, onDraft, compact, square, badge
   return <DecisionPill compact={compact} square={square} primary
     // The /d mark leads the label (posting-header2.html: "/d  Draft"); a square is the mark alone.
     icon={square ? <span aria-hidden="true">/d</span> : <span aria-hidden="true">/d</span>}
-    label={label} badge={badge} done={drafted} disabled={drafted || drafting}
-    title={drafted ? "Drafted — it waits for your review in Draft House" : "Draft — queue it for your review. Nothing is sent until you approve it."}
-    onClick={onDraft} />;
+    label={label} badge={badge} done={drafted} disabled={s.disabled} flags={flags}
+    title={title} onClick={onClick} />;
 }

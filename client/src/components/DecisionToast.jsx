@@ -33,11 +33,21 @@ export default function DecisionToast({ toast, onUndo, undoKey = null, bottom = 
                    position: "fixed", left: 0, right: 0, margin: "0 auto", width: "fit-content", bottom, zIndex: Z.NAV,
                    padding: "12px 16px", display: "flex", alignItems: "center", gap: 14, maxWidth: "calc(100vw - 32px)",
                    fontSize: 14, color: C.INK }}>
-          <span><strong>{DECISION_VERB[toast.decision]}</strong> {toast.company} — {toast.line ? lineAfter(toast.line) : DECISION_AFTER[toast.decision]}</span>
-          <button type="button" onClick={onUndo} style={{ background: "transparent", border: "none", color: C.ACCENT_INK,
-            fontWeight: 800, cursor: "pointer", display: "flex", gap: 6, alignItems: "center" }}>
-            Undo {undoKey && <span style={kbd}>{undoKey}</span>}
-          </button>
+          {/* ⛔ D51: a REFUSED decision said "Drafted Northwind — it waits for your review · Undo" — the
+              board set `error` and this rendered the success sentence over it. A refusal says why, and
+              offers no Undo: nothing was done. */}
+          {toast.error ? (
+            <span data-decision-refused=""><strong>Not {DECISION_VERB[toast.decision]?.toLowerCase()}</strong>
+              {toast.company ? ` ${toast.company}` : ""} — {toast.error}</span>
+          ) : (
+            <>
+              <span><strong>{DECISION_VERB[toast.decision]}</strong> {toast.company} — {toast.line ? lineAfter(toast.line) : DECISION_AFTER[toast.decision]}</span>
+              <button type="button" onClick={onUndo} style={{ background: "transparent", border: "none", color: C.ACCENT_INK,
+                fontWeight: 800, cursor: "pointer", display: "flex", gap: 6, alignItems: "center" }}>
+                Undo {undoKey && <span style={kbd}>{undoKey}</span>}
+              </button>
+            </>
+          )}
         </motion.div>
       )}
     </AnimatePresence>
