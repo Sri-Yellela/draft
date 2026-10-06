@@ -2811,6 +2811,114 @@ A89 / O72(b) corrected `PrivacyPage.jsx` in five places with a pinning test per 
 
 ---
 
+## ⛔ D45–D48 · OWNER BATCH, 2026-10-07 — load lag, dead cards, the sentence's type, the posting panel header
+
+⏸ Queued 2026-10-07 by the owner, from the live site. ⛔ **Suggested place in the queue:** D45 goes **right after D42 and D41** — a board that shows nothing for seconds on every panel makes every other fix look broken. D46 follows D40 (it touches the same `+` view). D47 and D48 are UI and go last.
+
+### D45 · ⛔ EVERY PANEL SHOWS AN EMPTY BOARD FOR THE FIRST SECONDS — on every switch, not just the first load
+
+The owner: *"any panel I open takes a second before it loads and shows empty for the first few seconds"* — ALL, ★, /d and `+`, **every time**, not only when the site opens.
+
+⛔ **Two defects, and they need separate fixes:**
+
+**1 · An EMPTY STATE IS SHOWN WHILE LOADING.** ⛔ This is **"silence reported as success"** — the board says *nothing here* when it means *not here yet*. Whatever the speed, **loading and empty must be different states**, and the empty copy must never render until a response has actually arrived and been empty.
+
+**2 · THE FETCH IS SLOW, OR IS REPEATED NEEDLESSLY.** The production board is **1,858 rows** — a table that size should answer in tens of milliseconds, so *seconds* means something is wrong, not that the data is big.
+
+**MEASURE FIRST, per panel — report the numbers before changing anything:**
+- time to first byte and time to first card for each of ALL / ★ / /d / `+`, on production data
+- **server time per endpoint** (`/api/jobs`, `/api/jobs/facets`, the draft and import queries) — ⚠ which one is slow
+- **is it a waterfall?** profile → facets → jobs fetched one after another, when they could run together
+- **does a switch refetch from scratch?** (the panel unmounts and loses its data) · is the same request made twice?
+- ⚠ **does the server score or rescore on the request path?** `A52`'s migration 118 made stored reports stale once, and a board pass that scores per request would be slow *every* time, not once
+- ⚠ **D41(a) just made ★, /d and `+` views of ALL** — if each is now a separate heavy query over ALL, four panels pay the cost four times
+
+**THE FIXES, in this order:**
+1. ⛔ **Never show an empty state while loading.** Skeleton cards in the card's own geometry from the first frame.
+2. ⭐ **Stale-while-revalidate:** keep the previous panel's data on screen, mounted, and refresh behind it. Switching ALL → ★ → ALL should be **instant** the second time.
+3. **Do not unmount panels on a switch.** The state the user built (the sentence, the search, the scroll position) survives.
+4. **Fire requests together, not in a chain.** **Prefetch** the other views on idle, or on hover of their control.
+5. **Fix the slow query itself** once measured — an index, a join that should not be there, or work that belongs off the request path.
+
+⛔ **Do not mask a slow server with a spinner.** If a query takes seconds, the fix is the query; the skeleton is for the honest tens of milliseconds.
+
+✅ **Acceptance:** switching between the four panels shows **content or skeletons in the first frame**, **never an empty state**, and a warm switch is instant. Report p50 and p95 per panel on production data. ⛔ Tests: **the empty copy does not render while a request is in flight** · a second visit to a panel renders from cache before the network answers.
+
+### D46 · ⛔ CARD DEFECTS IN THE `+` AND /d VIEWS
+
+**(a) `+` imported cards — the text is clipped, only the upper half of the letters shows.** That is **vertical clipping**: a text block with a fixed height and `overflow: hidden`. D1 fixed the block at the **logo's height (52px) for three lines** — company, title, meta. D40 then added a **fourth line** (*captured date · from host*) to the `+` card, so four lines sit in a three-line box and the bottom is cut. ⛔ **Fix:** `min-height`, never a fixed `height`, on any text block; either **fold the captured/from info into the existing meta line** or let the `+` card grow by one line. ⛔ **No glyph may ever be clipped** — `line-height ≥ 1.2`, and the test renders each card at **100 / 125 / 150% zoom** and fails if any text node's box exceeds its container's.
+
+**(b) /d (drafted) cards — stale, they do not open, and their logos do not open or load.** The cards render and do nothing when clicked; the logo does not appear or does not respond. ⛔ **This is the D41(a) model failing on the /d chip:** /d should be **ALL restricted to drafted jobs, rendered by the SAME card component** — a separate renderer or a missing `onClick` is how a card goes dead. **Report which:** a different component · a handler never wired (defect shape 2) · `pointer-events` · a stale snapshot row with no job to open. And **why the logo is missing** — the same logo lookup as the board, or a second one? (D41(c); A77.)
+
+⛔ **The structural fix, because this is the third time:** **one `JobCard` component, rendered by all four views.** Pin it with a test that fails if any view imports a different card — three implementations of one mark is how the legacy brand shipped on every page while the guard passed green. ⛔ **Tests:** clicking a card in **each of the four views** opens the posting panel · each view's card is the same component · no text node is clipped.
+
+### D47 · THE FILTER SENTENCE IS SET IN THE LOGO FACE, AT THE LOGO'S SIZE
+
+✅ Owner 10-07: *"use the same font as the draft logo and the same size — it currently features a different font and styling."*
+
+**This replaces the serif.** D34/D35's sketch set the prose in Georgia. The sentence is now **the logo's own face** — the heavy italic geometric sans of the `/draft` wordmark — **at the wordmark's size** (the top-bar mark, ~30px per D10). ⛔ **Tie the size to the wordmark's CSS variable**, not to a copied number, so the two cannot drift apart.
+
+- ⛔ **D34 still holds:** **one family, one size, one line-height across the whole sentence.** Only the box (fill, border, radius, shadow) distinguishes a token. The family just changes from the serif to the logo face.
+- It starts **lowercase** (*discovering…*), exactly as the wordmark is lowercase — which also settles the earlier question about the `d` (D37): the sentence is simply in the logo's lettering.
+- ⚠ **At ~30px this is a LARGE sentence.** *"discovering all roles at all career levels and workstyles in the United States."* will wrap to about **two lines** in the 720–800px column. The owner chose it knowingly — **report how it wraps at 1280 / 1920 / 390**, and let the size scale down with the wordmark on a phone rather than overflowing.
+- Tokens keep D34's boxes: active filled accent, inactive paper with depth, `+ add` dashed and shadowless. ⚠ Bold italic is heavy inside a box — check the padding so the token does not look cramped.
+
+⛔ **Tests:** the sentence's computed `font-family`, `font-weight` and `font-style` **equal the wordmark's** · its `font-size` **equals** the wordmark's · prose and tokens share all three.
+
+### D48 · THE POSTING PANEL'S HEADER, ACTIONS AND DECK — ✅ DECIDED 10-07
+
+Sketch: **`posting-header2.html`** — ⛔ **build to the file, not to this prose** (D30, D31, D34, D35 all drifted when built from a description). The owner chose **a combination of all three concepts** from the first sketch; v2 is that combination.
+
+**HEADER** (scrolls away): `[logo]  Company name (logo face, a link per D38)  ····  [ATS number box]  [×]`
+- ✅ **The company name stays.** ⚠ It now appears twice — here and as the masthead's company line; drop the masthead's if it reads redundant (owner's call). ⛔ **DEFAULT: keep both** — the masthead was approved as it is.
+- ⛔ **Out of the header:** the title (the masthead has it) · *On-site · location · salary · 3d · Strong* · the keyword chips (the ATS card has them).
+- ✅ **THE ATS BOX shows the NUMBER, not the band.** A small square (~50px) with D1 depth, the number in **the ATS card's own display face** (the serif its header number uses) with a tiny *ATS* caption beneath. In light mode the number uses `--atx`, not `--accent` (2.96:1). Click → opens the ATS card beside the posting (D39); open = an outline, as on the sentence's words. **No score → the dashed box with the bars icon and no digits** — *"not enough signal"* is the scorer declining, never a 0. See D50.
+
+**ACTIONS — A and B are ONE component with two renderings, chosen by the PANEL's width, not the window's:**
+- ✅ **A · labelled boxes when the panel is wide enough** (~600px of panel width): *Pass · Save · /d Draft | Résumé · Cover letter*.
+- ✅ **B · icon squares when it is condensed:** 48px squares, `/d` on Draft with the quota as a badge, a tooltip each.
+- ⛔ **Use a CONTAINER query on the panel, not a viewport media query.** With the ATS card open the posting panel is roughly half the window — a 1280px window can need B while a 1920px one shows A. The panel's width decides.
+- ⚠ **B has no tooltips on touch.** On `(pointer: coarse)` the squares carry a small caption beneath, so a phone is never left guessing which icon is *Résumé* and which is *Cover letter*.
+- The quota (*"10 of 10 drafts left in the last 24 hours"*) is a muted line in A and a badge + tooltip in B.
+
+**STICKY AT THE TOP, not the bottom.** ✅ The action bar sticks to the top of the posting panel's scroll area while the posting scrolls beneath it — **exactly as the board's bar sticks on the home page.** It is built from **the shared `StickyBar` module (D49)**, not copied. ⚠ *Open question for the owner:* the header scrolls away, so **×** is out of reach in a long posting (Esc and the backdrop still close it) — should × live in the sticky bar? At ~620px it does not fit beside A's five boxes. ⛔ **DEFAULT, so the build is not blocked: × stays OUT of the sticky bar** (it is in the header; Esc and the backdrop close from anywhere). Change it only if the owner says so.
+
+**THE DECK STRIP** (the editorial masthead, D32 — a shared component, so **every surface that renders it changes**): *Experience · **Workstyle** · Salary · Posted.* ✅ **"Workstyle" replaces "Where"**; the value is the workstyle (*On-site · Hybrid · Remote*). ⚠ **Location loses its cell** — the header chip that carried it is gone — so it sits on a **muted second line under the workstyle** (*On-site / New York, NY; Pittsburgh, PA*). *If the owner wants location dropped from the strip altogether, say so — it would then appear nowhere on the panel.*
+
+**⛔ THE BUTTON SWEEP — the larger half of this row.** The owner: *"probe the entire site for these Apple-styled buttons and replace them with the latest box-styled depth ones."*
+1. **Find every interactive control in the old pill style** — fully-rounded, dark or flat, no depth: the posting panel's Pass / Saved / Draft / Generate résumé / Cover letter, and wherever else the pill survives. **List every call site and class.**
+2. **Replace them with ONE depth-box button component** — D1's rest / hover / press values, the orange-tinted primary — and have every site use it.
+3. ⛔ **The rule, pinned by a guard:** *pills are for non-interactive tags and status; interactive controls are depth boxes.* A guard that fails when a `<button>` is given a fully-rounded radius outside the allow-list (the segmented views control is the one deliberate exception).
+4. ⚠ **Screenshot every surface before and after** — four things were once green and wrong, and the only thing that disagreed was looking at the output.
+
+### D49 · THE `StickyBar` MODULE — one sticky-at-the-top section, reused
+
+✅ Owner 10-07: *"use the same code modularly … make it a modular section that can be reused and reuse it here."*
+
+**Extract it from the board.** The Full House bar already sticks to the top as the page scrolls. Lift that behaviour into **one component (or hook + CSS) — `StickyBar`** — and make **both** consumers use it: **the board's bar** and **the posting panel's action bar** (D48). ⛔ Two implementations of one behaviour is how the mark, the cards and the buttons all drifted.
+
+**The module owns:**
+- `position: sticky; top: 0` against **the nearest scroll container** — the page for the board, the panel's own scroll area for the posting — chosen by the consumer, never a hard-coded `window`.
+- a **stuck state** (`is-stuck`), found with an **IntersectionObserver on a 1px sentinel** placed just before the bar — **not scroll listeners** — that adds the hairline and the shadow only when it is actually stuck.
+- a translucent surface with a blur, so content passes under it legibly; a **named z-index token** (`--z-sticky`, above content and below `--z-nav`) — no literals.
+- `prefers-reduced-motion`: no transition on the shadow.
+
+⛔ **Tests:** both consumers import the same module · the stuck class appears after scrolling past the sentinel and **not before** · the bar stays inside its container (it does not escape the panel) · removing the module breaks both. ⚠ **Sticky fails silently under any `overflow: hidden` ancestor** — so the test must render it in the **real panel**, not an isolated div. The sketch's tab 2 runs the board's bar on the same module.
+
+### D50 · THE ATS NUMBER IS SHOWN — ✅ owner decision 10-07, tuning to follow
+
+Owner: *"show ats number not band — we will get around tuning it by end of day."*
+
+**This overrides the earlier condition** — the number stayed off (`ATS_NUMBER_SHOWN`) until A76's validation justified it. ⛔ Record it as **the owner's decision to show it now and tune after**, *not* as validation having passed: ρ is **0.723 over the US-only graded set (n = 24)** and the engine scored **−0.166 on 21 held-out postings.** That is exactly why **a provisional note belongs on it** — *"match score — still being tuned"* as the box's tooltip and a footnote in the ATS card.
+
+**Where the number appears:** the posting header's box (D48) · the ATS card's header (D31 — the number beside the band; the band stays in the card) · the board card's ATS square (D1 — already specified to carry the score). The sort control's *Best fit* stays a word. ⛔ **In the ATS card the band, the number and *"9 of 12"* stay together**, so the number is never the only claim.
+
+⚠ **Web only.** The mobile contract still marks `matchScore` *INTERNAL — DO NOT DISPLAY* and Android is vendored at 1.2.0 — **update the contract's annotation in the same commit** (A75's rule) so it does not contradict the product, and leave the apps as they are until the owner says otherwise.
+
+⛔ **No score → no digits.** *Not enough signal* stays the dashed box (D1) — **never a 0.** ⛔ **Tests:** the number renders in the posting box, the ATS card and the card square · a null score renders **no digit anywhere** · the provisional note is present wherever the number is.
+
+---
+
 ## ⛔⛔ D36 · EVERY APPLY PATH, END TO END — the same treatment D33 gave capture
 
 **🚀 LIVE 10-06 (29): `65a9838` — 3366 / 3366 / 0, client builds.** **🔨 BUILT, ⛔ NOT DONE — DONE needs the owner's ATTENDED real application on each path (O73), per `docs/D36_ATTENDED_RUNBOOK.md`.** Walked as a user against the LOCAL fake ATS only (synthetic user, keys blanked, a no-model tools stub; FULL AUTO in a harness copy) — nothing reached an employer. **Measured per path** (rows, score, provenance, gates, caps, response, artifact) in the D36 report: MANUAL → `job_applications` with `ats_score_at_apply` 90 (`local_ats_v5`) · SEMI → preview superseded → approved run submitted + verified, score 90 · GATED → held `login_required`, ⚠ no résumé and a NULL score on that path (O73b) · FULL AUTO (harness) → Ashby submitted, Lever/Greenhouse held. ⭐ **Refuted:** "in SEMI the completeness and low-confidence gates don't run" — D25's preview + approve are both unattended and both gates fired live; only the legacy `run.mode='semi'` skips them, and nothing starts it. ⭐ `recordAtsOutcome` DOES fire with the job id — the null rows were user 0's 09-05 scripts. **Fixed, one commit each:** ⛔ the kill switch did not stop a run IN FLIGHT — now checked right before the submit click, fail-closed (`18c6794`) · ⛔ FULL AUTO was admitted via approvalMode `auto` from two routes — locked at admission (403 `full_auto_locked`) and processing (`ed6e7d2`) · ⛔ **eligibility was guessed** — on a trap page the old code submitted ethnicity = city, sponsorship "No" ×3 from a DEFAULT, clearance "no", citizenship = country; now blank + refusal recorded (`8a08222`) · an approved run said "No resume was generated" over one that existed (a `::` in a Windows temp name, swallowed; `8d73869`) · a refused answers-retry lost the held application (`8df5f53`) · approving refunded the Draft slot (`eb4e0c3`) · the contradictory preview log (`bc6cbcf`) · kill-switch copy offered a mode that doesn't exist (`8f75dde`) · a failed review overlay read as success — **extension v1.4.1** (`051958e`; zip built, not uploaded) · a gated handoff never reached Pending (`e7327cc`). Proofs pinned: `ca13b7a` (the row + score), `70abb4b` (429 / dead container / timeout stay retryable), `b7c3051` (nothing submits on a gesture); g3's real-Chrome overlay run passed. Two generation-call defects → **A88**.
