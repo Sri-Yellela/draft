@@ -81,14 +81,15 @@ test("the /extension page offers the install ONLY to the signed-out and to not_i
   assert.match(page, /const offerInstall = signedIn === false \|\| status\?\.state === "not_installed";/);
   assert.match(page, /\{known && offerInstall && \(/);
   // Connected: what to do with it, never an install control.
-  const card = page.slice(at(page, "export function ExtensionStateCard"), at(page, "export function RecentCaptures"));
+  const card = page.slice(at(page, "export function ExtensionStateCard"), at(page, "export function ImportsPointer"));
   const connected = card.slice(at(card, 'status.state === "connected"'), at(card, 'status.state === "not_connected"'));
   assert.doesNotMatch(connected, /ExtensionInstallButton|Add to Chrome|Get the extension/);
   assert.match(connected, /Ctrl\+Shift\+K/);
   // …and the install-and-set-up steps ("Add it to Chrome") are not shown to a connected user.
   assert.match(page, /\{status\?\.state !== "connected" && \(\s*<ol/);
-  // The site shows the capture outcome text as the server gave it.
-  assert.match(page, /\{c\.message\}/);
+  // ⛔ D40 (owner, 10-06): the page stops listing captures — it points at the + view instead.
+  assert.doesNotMatch(page, /RecentCaptures|data-recent-captures/);
+  assert.match(page, /\/app\/jobs\?view=imported/);
   // Signed-in is learned from /api/auth/me (200 either way), never from a 401 on the status route.
   assert.match(page, /api\("\/api\/auth\/me"\)/);
   assert.match(page, /useExtensionStatus\(\{ enabled: signedIn === true \}\)/);

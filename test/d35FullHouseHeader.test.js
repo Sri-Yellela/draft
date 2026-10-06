@@ -75,11 +75,11 @@ async function loadUi() {
         import BoardHeadline, { SENTENCE_ID, PANEL_ID } from ${abs("components/BoardHeadline.jsx")};
         import WordPanel, { PanelOptions, AddOptions, panelFocusTarget, panelKeyDown, openerSlot } from ${abs("components/WordPanel.jsx")};
         import SortPanel from ${abs("components/SortPanel.jsx")};
-        import { ViewSegment, SortSquare, AddSquare, SORT_GLYPH_PATH } from ${abs("components/BoardBar.jsx")};
+        import { ViewSegment, SortSquare, SORT_GLYPH_PATH } from ${abs("components/BoardBar.jsx")};
         export const html = (C, props) => renderToStaticMarkup(createElement(C, props));
         export const htmlRouted = (C, props) => renderToStaticMarkup(createElement(MemoryRouter, null, createElement(C, props)));
         export { BoardHeadline, SENTENCE_ID, PANEL_ID, WordPanel, PanelOptions, AddOptions, panelFocusTarget,
-                 panelKeyDown, openerSlot, SortPanel, ViewSegment, SortSquare, AddSquare, SORT_GLYPH_PATH };`,
+                 panelKeyDown, openerSlot, SortPanel, ViewSegment, SortSquare, SORT_GLYPH_PATH };`,
       resolveDir: CLIENT, loader: "jsx",
     },
     bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
@@ -366,7 +366,7 @@ test("D35 ⑦ every word is reachable by KEYBOARD, and the panel is reachable fr
   assert.equal(openerSlot("posted", fakeDoc), "ADD", "an optional clause's panel returns focus to + add");
   // Hover-only is not enough: every hover affordance also answers :focus-visible (D1's rule).
   const rules = cssRules(read(CSS_FILE));
-  for (const sel of [".bh .tok", ".fh-op", ".fh-ico", ".fh-add"]) {
+  for (const sel of [".bh .tok", ".fh-op", ".fh-ico"]) {   // D40: the + square is gone
     assert.ok(rules.some(r => r.selector.includes(`${sel}:hover`) && r.selector.includes(`${sel}:focus-visible`)),
       `${sel} lifts on hover but not on keyboard focus`);
   }
@@ -405,9 +405,9 @@ test("D35 §4: the VERTICAL ORDER is the sentence, the open panel, the bar, the 
   assert.doesNotMatch(panel, /<SortPanel\b|<WordPanel\b|<FilterDials\b/, "a panel renders between the bar and the board");
 });
 
-test("D35 §3: the CONDENSED BAR — views with counts, the search, ⇅ and + in two 40px squares", async () => {
-  const { html, htmlRouted, ViewSegment, SortSquare, AddSquare, SORT_GLYPH_PATH } = await loadUi();
-  const views = [["all", "ALL", "All jobs"], ["saved", "★", "Saved jobs"], ["pending", "/d", "Pending apply"]];
+test("D35 §3 → D40: the CONDENSED BAR — FOUR views with counts, the search, ⇅ in a 40px square", async () => {
+  const { html, ViewSegment, SortSquare, SORT_GLYPH_PATH } = await loadUi();
+  const views = [["all", "ALL", "All jobs"], ["saved", "★", "Saved jobs"], ["pending", "/d", "Pending apply"], ["imported", "+", "Imported jobs"]];
   const counted = html(ViewSegment, { views, value: "all", counts: viewCounts(FACETS) });
   assert.match(counted, /data-view="all" aria-pressed="true"[^>]*><span aria-hidden="true">ALL<\/span><span class="fh-ct" aria-hidden="true">400</);
   assert.match(counted, /data-view="saved"[^>]*>.*?<span class="fh-ct" aria-hidden="true">14</);
@@ -419,14 +419,15 @@ test("D35 §3: the CONDENSED BAR — views with counts, the search, ⇅ and + in
   assert.equal(SORT_GLYPH_PATH, "M7 4v16M7 20l-3-3M7 4l3 3M17 20V4M17 4l3 3M17 20l-3-3");
   assert.match(html(SortSquare, { open: true }), /data-board-icon="sort" data-active="false" aria-expanded="true"/);
   assert.match(html(SortSquare, { chosen: true }), /data-active="true"/);
-  const add = htmlRouted(AddSquare, { to: "/extension" });
-  assert.match(add, /class="fh-add"[^>]*aria-label="Add jobs"[^>]*><span aria-hidden="true">\+<\/span><\/a>/, "ADD JOBS is just +");
-  // The two squares are the same 40px, and + is bold italic in the logo face on the accent fill.
+  // ⛔ D40 (owner, 10-06): + is the FOURTH VIEW; the standalone + square is gone, everywhere.
+  assert.match(counted, /data-view="imported"[^>]*><span aria-hidden="true">\+<\/span>/);
+  assert.doesNotMatch(read("client/src/components/BoardBar.jsx"), /export function AddSquare/);
+  assert.doesNotMatch(strip(read("client/src/App.jsx")), /<AddSquare\b/);
   const rules = cssRules(read(CSS_FILE));
-  const ico = rules.find(r => r.selector === ".fh-ico"), plus = rules.find(r => r.selector === ".fh-add");
-  for (const r of [ico, plus]) { assert.equal(r.decls.width, "40px"); assert.equal(r.decls.height, "40px"); }
-  assert.equal(plus.decls.font, `800 italic 22px/1 var(${typeVarName("LOGO_FAMILY")})`);
-  assert.equal(plus.decls.background, "var(--c-accent)");
+  assert.ok(!rules.some(r => r.selector === ".fh-add"), "the + square's rule is back");
+  const ico = rules.find(r => r.selector === ".fh-ico");
+  assert.equal(ico.decls.width, "40px"); assert.equal(ico.decls.height, "40px");
+  void typeVarName;
   assert.ok(rules.some(r => r.selector === '.fh-ico[aria-expanded="true"]' && r.decls.background === "var(--c-accent)"), "sort open is not filled accent");
   // The bar: views, the search, the squares — one row, and the search has no separate button.
   const app = strip(read("client/src/App.jsx"));

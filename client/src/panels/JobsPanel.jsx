@@ -14,7 +14,8 @@ import DecisionToast from "../components/DecisionToast.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import JobBubble, { JobBubbleRows } from "../components/JobBubble.jsx";
-import { SavedEmptyState } from "../components/ExtensionPrompt.jsx";
+import { SavedEmptyState, useExtensionStatus } from "../components/ExtensionPrompt.jsx";
+import { EXTENSION_PAGE, EXTENSION_STORE_URL } from "../../../shared/extension.js";
 import JobDetailPanel from "../components/JobDetailPanel.jsx";
 import SandboxPanel from "./SandboxPanel.jsx";
 import AtsReportPanel from "./AtsReportPanel.jsx";
@@ -25,7 +26,7 @@ import DomainProfileWizard from "../components/DomainProfileWizard.jsx";
 import ProfileSelectorDropdown from "../components/ProfileSelectorDropdown.jsx";
 import { useSyncEvents } from "../hooks/useSyncEvents.js";
 import { useAppScroll } from "../contexts/AppScrollContext.jsx";
-import { useJobBoard } from "../contexts/JobBoardContext.jsx";
+import { useJobBoard, viewFromUrl } from "../contexts/JobBoardContext.jsx";
 import { Z } from "../styles/zLayers.js";
 import { toast } from "../hooks/use-toast.js";
 import ROLE_ALIAS_MAP from "../../../registry/ROLE_ALIAS_MAP.json";
@@ -1851,7 +1852,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setTotalJobs(snapshot.totalJobs || 0);
     setTotalPages(snapshot.totalPages || 0);
     setCurrentPage(snapshot.currentPage || 1);
-    setBoardTab(["linkedin", "linkedin_saved"].includes(snapshot.boardTab) ? "saved" : (snapshot.boardTab || "all"));
+    // D40: a view named in the URL (the extension page's "+ view" link) outranks the cached one.
+    setBoardTab(viewFromUrl() || (["linkedin", "linkedin_saved"].includes(snapshot.boardTab) ? "saved" : (snapshot.boardTab || "all")));
     setLocalSearch(snapshot.localSearch || "");
     setSortBy(sortFromCachedSnapshot(snapshot));
     // Restore every committed filter through the single writer, and re-stage the drawer to match, so
@@ -2168,6 +2170,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // so the default querystring is unchanged.
     if (appliedFilter)        p.set("applied",       appliedFilter);
     if (overrideStarred === "1" || boardTab === "saved") p.set("starred","1");
+    // D40: the + view is ALL restricted to the jobs this user imported — the same query, one predicate.
+    if (boardTab === "imported") p.set("imported", "1");
     if (localSearch.trim())   p.set("localSearch",   localSearch.trim().toLowerCase());
     // FE-2: Task-4 filter vocabulary (services/jobs/jobQuery.js) — additive, legacy params
     // above are untouched and remain the override channel.
@@ -3754,6 +3758,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               boardReason={boardReason}
               emptyReason={emptyReason}
               savedTab={boardTab === "saved"}
+              importedTab={boardTab === "imported"}
               cardTier={1}
             />
             {/* The mobile "editor" pane is gone: the PDF sandbox is a popup panel now and renders
@@ -3837,6 +3842,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               boardReason={boardReason}
               emptyReason={emptyReason}
               savedTab={boardTab === "saved"}
+              importedTab={boardTab === "imported"}
               cardTier={effectiveTier}
               containerRef={jobsPanelElementRef}
             />
@@ -3940,6 +3946,49 @@ function ResizeHandle({ theme: themeProp }) {
 }
 
 // ── Jobs column (shared across layout modes) ──────────────────
+// ── D40 (owner, 10-06) · THE + VIEW ──────────────────────────────────────────────────────────────
+//
+//   HEADER   [ Import jobs ]   Get the extension →
+//   BELOW    the user's imported jobs — the board's own card (ALL filtered to imports), with the board's
+//            search, sort and the filter sentence working on it
+//
+// "Import jobs" goes to the /extension page, which holds the three install states and never offers a
+// download to someone who already has the extension (D33 §4). "Get the extension" is the Web Store
+// listing — ⛔ EXTENSION_STORE_URL is null until the owner supplies the item id (O55b), and then it says
+// the listing is not published rather than showing a dead link.
+export function ImportedHeader({ theme, status = undefined }) {
+  const live = useExtensionStatus({ enabled: status === undefined });
+  return <ImportedHeaderView theme={theme} status={status === undefined ? live : status} />;
+}
+
+/** Pure, so a test renders each install state. ⛔ A connected extension is never offered a download. */
+export function ImportedHeaderView({ theme, status = null }) {
+  const connected = status?.state === "connected";
+  return (
+    <div data-imported-header="" style={{ display:"flex", alignItems:"center", gap:14, flexWrap:"wrap",
+                                           padding:"12px 16px 4px" }}>
+      <Link to={EXTENSION_PAGE} className="rm-btn rm-btn-primary rm-btn-sm" data-import-jobs="">Import jobs</Link>
+      {connected
+        ? <span data-extension-connected="" style={{ fontSize:13, color:theme.textMuted }}>Capture any posting with ⌃⇧K — it lands here.</span>
+        : EXTENSION_STORE_URL
+          ? <a href={EXTENSION_STORE_URL} target="_blank" rel="noopener noreferrer" data-get-extension="" style={{ fontSize:13, color:theme.accentText }}>Get the extension →</a>
+          : <span style={{ fontSize:13, color:theme.textMuted }}>The extension's Web Store listing is not published yet.</span>}
+    </div>
+  );
+}
+
+export function ImportedEmptyState({ theme }) {
+  return (
+    <div data-imported-empty="" style={{ padding:"28px 16px", color:theme.textMuted, fontSize:14, lineHeight:1.6, maxWidth:560 }}>
+      <p style={{ margin:"0 0 8px", color:theme.text, fontWeight:700 }}>No imported jobs yet.</p>
+      <p style={{ margin:0 }}>
+        Open any job posting in Chrome and capture it with the draft extension (⌃⇧K). It lands on your
+        board — in ALL, and here. Use <strong>Import jobs</strong> above to set the extension up.
+      </p>
+    </div>
+  );
+}
+
 function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       pollStatus, onRetryPoll,
                       generated, loading, applyMode, canUseGenerate, canUseAPlusResume,
@@ -3953,7 +4002,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       searchActive = false, profileName = null,
                       curation = null, curateOff = false, onToggleCurate, boardReason = null,
                       emptyReason = null, canRankByFit = true, onAddResume,
-                      savedTab = false,
+                      savedTab = false, importedTab = false,
                       cardTier = 1, containerRef }) {
   const [pageInput, setPageInput] = useState("");
   const shouldShowEmptyState = jobs.length === 0 && !scraping;
@@ -4005,6 +4054,8 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
           short list or to nothing at all, and both need to say so. Left inside the non-empty branch
           it would go silent in the very case where the user has least to go on. */}
       <FitRankingNotice theme={theme} show={!canRankByFit} onAddResume={onAddResume}/>
+      {/* ⭐ D40: the + view's head — Import jobs and the extension page; the list below is ALL's own cards. */}
+      {importedTab && <ImportedHeader theme={theme}/>}
       {shouldShowEmptyState ? (
         pagingProblem
           ? <PagingEmptyState theme={theme} reason={pagingProblem} onFirstPage={() => goPage(1)}/>
@@ -4012,7 +4063,9 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
           ? <NoPoolEmptyState theme={theme}/>
           : emptyBecauseFiltered
             ? <FilteredEmptyState theme={theme} count={narrowingCount} onClearFilters={onClearFilters}/>
-            // D12: an empty ★ Saved tab is where a missing extension shows — captures land there.
+            // D40: imports land in + now, not ★ — the empty + view says how to capture one.
+            : importedTab
+              ? <ImportedEmptyState theme={theme}/>
             : savedTab
               ? <SavedEmptyState theme={theme}/>
             : emptyBecauseRole

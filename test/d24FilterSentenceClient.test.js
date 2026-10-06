@@ -174,7 +174,7 @@ test("D24: NO FACETS ANSWER, NO NUMBERS — a 404 draws no counts, no dims, no w
     }
     assert.doesNotMatch(unscoredText(facets), /\d/);
     assert.equal(panelNote("where", {}, facets), null);
-    assert.deepEqual(viewCounts(facets), { all: null, saved: null, pending: null });
+    assert.deepEqual(viewCounts(facets), { all: null, saved: null, pending: null, imported: null });
   }
   const calls = [];
   const ok = await loadFacets("page=3&pageSize=50&sort=dateDesc&cursor=abc&work_models=remote",

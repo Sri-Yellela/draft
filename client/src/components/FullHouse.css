@@ -169,15 +169,7 @@
   background: var(--c-accent); border-color: var(--c-fh-accent-edge); color: var(--c-fh-on-accent); box-shadow: var(--c-depth-accent);
 }
 .fh-ico svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-/* + — the one creative action: the orange fill, bold italic in the logo face, no label. */
-.fh-add {
-  width: 40px; height: 40px; flex: 0 0 auto; box-sizing: border-box; display: grid; place-items: center;
-  border: 1px solid var(--c-fh-accent-edge); background: var(--c-accent); color: var(--c-fh-on-accent);
-  border-radius: 10px; box-shadow: var(--c-depth-accent); text-decoration: none; cursor: pointer;
-  font: 800 italic 22px/1 var(--fh-logo-family); transition: transform .16s, box-shadow .16s;
-}
-.fh-add:hover, .fh-add:focus-visible { transform: translateY(-2px); box-shadow: var(--c-fh-add-hover); outline: none; }
-.fh-add:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+/* ⛔ D40 (owner, 10-06): the standalone + square is GONE — + is the fourth VIEW in the segment. */
 
 /* ── PHONE — the one row cannot hold four elements, so the bar becomes TWO, chosen: the views with the
    two squares on the first (the squares keep their 40px and stay together at the right), the search
@@ -188,14 +180,13 @@
   .fh-bar { flex-wrap: wrap; row-gap: 9px; }
   .fh-views { order: 1; }
   .fh-ico { order: 2; margin-left: auto; }
-  .fh-add { order: 3; }
   .fh-srch { order: 4; flex: 1 1 100%; }
   .fh-pin { padding: 13px 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bh .tok, .fh-op, .fh-ico, .fh-add, .fh-views button { transition: none; }
+  .bh .tok, .fh-op, .fh-ico, .fh-views button { transition: none; }
   .fh-pan, .fh-sortp { animation: none; }
   .bh .tok:hover, .bh .tok:focus-visible, .fh-op:hover, .fh-op:focus-visible,
-  .fh-ico:hover, .fh-ico:focus-visible, .fh-add:hover, .fh-add:focus-visible { transform: none; }
+  .fh-ico:hover, .fh-ico:focus-visible { transform: none; }
 }

@@ -292,11 +292,11 @@ export function addRows(params, { otherFilterCount = 0 } = {}) {
   ];
 }
 
-/** The three views' counts for the bar's segment — ALL · ★ · /d. null where unmeasured, never 0. */
+/** The four views' counts for the bar's segment — ALL · ★ · /d · + (D40). null where unmeasured, never 0. */
 export function viewCounts(facets) {
   const v = facetsUsable(facets) ? facets.views : null;
   const n = (x) => (Number.isFinite(x) ? x : null);
-  return { all: n(v?.all), saved: n(v?.saved), pending: n(v?.pending) };
+  return { all: n(v?.all), saved: n(v?.saved), pending: n(v?.pending), imported: n(v?.imported) };
 }
 
 // ── The sort panel ──────────────────────────────────────────────────────────────────────────────

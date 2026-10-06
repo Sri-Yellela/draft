@@ -20,7 +20,6 @@ import { AutoApplyProvider, useAutoApply } from "./contexts/AutoApplyContext.jsx
 import { AutoApplyPanel }        from "./panels/AutoApplyPanel.jsx";
 import { DraftMark }             from "./components/DraftMark.jsx";
 import { ExtensionFirstRunPrompt } from "./components/ExtensionPrompt.jsx";
-import { EXTENSION_PAGE }        from "../../shared/extension.js";
 import { ProfilePanel }          from "./panels/ProfilePanel.jsx";
 import { JobProfilesPanel }      from "./panels/JobProfilesPanel.jsx";
 import { DatabasePanel }         from "./panels/DatabasePanel.jsx";
@@ -34,7 +33,7 @@ import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
 import BoardHeadline             from "./components/BoardHeadline.jsx";
 import WordPanel                 from "./components/WordPanel.jsx";
 import SortPanel                 from "./components/SortPanel.jsx";
-import { ViewSegment, BoardSearch, SortSquare, AddSquare } from "./components/BoardBar.jsx";
+import { ViewSegment, BoardSearch, SortSquare } from "./components/BoardBar.jsx";
 import { nextBoardPanel, sortRows, isSortChosen, DEFAULT_SORT, BOARD_PANEL, viewCounts } from "./lib/filterSentenceModel.js";
 import { ATSToolPage }           from "./pages/tools/ATSToolPage.jsx";
 import { GenerateToolPage }      from "./pages/tools/GenerateToolPage.jsx";
@@ -217,6 +216,8 @@ const BOARD_TABS = [
   ["all",     "ALL",  "All jobs on your board"],
   ["saved",   "★",    "Saved jobs"],
   ["pending", <DraftMark key="d" style={{ fontSize: "inherit" }}/>, "Pending apply"],
+  // ⭐ D40 (owner, 10-06): + is the FOURTH VIEW — the jobs you imported, on the board's own card.
+  ["imported", "+", "Imported jobs"],
 ];
 
 // D35: the three views as ONE segmented control, each with its count (facets' `views`).
@@ -262,8 +263,6 @@ function BoardControlIcons() {
         label={sortLabel}
         chosen={isSortChosen(sortBy)}
       />
-      {/* D11/D12: ADD JOBS is the extension's job; D35 makes it the bar's "+" square. */}
-      <AddSquare to={EXTENSION_PAGE} />
     </>
   );
 }

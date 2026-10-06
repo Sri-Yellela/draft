@@ -114,7 +114,7 @@ const withoutKeys = (query, keys) => {
 
 const EMPTY = (clauses) => ({
   total: 0, known: 0, unscored: 0,
-  coverage: { level: 0, where: 0, employment: 0 }, views: { all: 0, saved: 0, pending: null },
+  coverage: { level: 0, where: 0, employment: 0 }, views: { all: 0, saved: 0, pending: null, imported: 0 },
   clauses: Object.fromEntries(clauses.map(c => [c.key,
     c.options.map(o => ({ value: o.value, label: o.label, count: 0, known: 0 }))])),
 });
@@ -164,15 +164,17 @@ export async function boardFacetsResponse({ query, measureBoard, nowSec, countPe
   // D35 · THE VIEW SEGMENT'S COUNTS — ALL · ★ · /d. ALL and ★ are the board's own count with the
   // Saved tab's `starred` param off and on (every other filter as it is); /d is the Pending list's own
   // query, counted (countPending). One COUNT each; null when it cannot be measured, never a guess.
-  const viewTotal = async (starred) => {
-    const q = { ...withoutKeys(query, ["starred"]), ...(starred ? { starred: "1" } : {}) };
+  // D40: + is the same count with `imported` on — ALL restricted to the user's captures.
+  const viewTotal = async (starred, imported = false) => {
+    const q = { ...withoutKeys(query, ["starred", "imported"]), ...(starred ? { starred: "1" } : {}), ...(imported ? { imported: "1" } : {}) };
     const r = await measureBoard(q, ({ db, joinClause, whereClause, baseArgs }) =>
       db.prepare(`SELECT COUNT(*) AS n ${joinClause} ${whereClause}`).get(...baseArgs).n);
     return r.status === 200 && r.body?.measured ? r.body.value : (r.status === 200 ? 0 : null);
   };
   let pending = null;
   try { pending = typeof countPending === "function" ? countPending() : null; } catch { pending = null; }
-  const views = { all: await viewTotal(false), saved: await viewTotal(true), pending: Number.isFinite(pending) ? pending : null };
+  const views = { all: await viewTotal(false), saved: await viewTotal(true), pending: Number.isFinite(pending) ? pending : null,
+                  imported: await viewTotal(false, true) };
 
   const body = { ...head.body.value, views, clauses: {} };
   for (const clause of clauses) {

@@ -117,26 +117,14 @@ export function ExtensionStateCard({ status }) {
   return null;
 }
 
-export function RecentCaptures({ captures }) {
-  if (!captures?.length) return null;
+// ⛔ D40 (owner, 10-06): this page STOPS LISTING CAPTURES at a random spot. It explains the extension
+// and carries the Web Store link; the user's imports live in Full House's `+` view, on the board's
+// own card. One line points there.
+export function ImportsPointer() {
   return (
-    <section data-recent-captures="" style={{ marginBottom: 48 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 12px" }}>Your recent captures</h2>
-      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-        {captures.map(c => (
-          <li key={c.jobId} data-capture-outcome={c.outcome}
-              style={{ border: "1px solid var(--color-border)", borderRadius: 12, padding: "10px 14px",
-                       borderLeft: `4px solid ${c.onBoard ? "var(--color-primary)" : "var(--color-warning)"}` }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>
-              {[c.title, c.company].filter(Boolean).join(" · ") || "A captured job"}
-              <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}> · {agoWords(c.capturedAt)}</span>
-            </div>
-            <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.6, marginTop: 2 }}>{c.message}</div>
-            {c.link && <Link to={c.link} style={{ fontSize: 13 }}>Open it on draft</Link>}
-          </li>
-        ))}
-      </ul>
-    </section>
+    <p data-imports-pointer="" style={{ fontSize: 14, color: "var(--color-text-muted)", margin: "0 0 48px" }}>
+      Jobs you capture are on your board — open the <Link to="/app/jobs?view=imported">+ view on Full House</Link> to see them.
+    </p>
   );
 }
 
@@ -174,7 +162,7 @@ export function ExtensionPage() {
           </div>
         )}
         {status && <ExtensionStateCard status={status}/>}
-        {status && <RecentCaptures captures={status.recentCaptures}/>}
+        {status?.state === "connected" && <ImportsPointer/>}
 
         {/* D33: the install-and-set-up steps are for someone setting it up — not for a connected user. */}
         {status?.state !== "connected" && (

@@ -198,9 +198,9 @@ test("the cleanup retires starred rows and exempts them from the DELETE", async 
   assert.match(fn, /starredRetired/, "the log must count retirements separately from deletions");
 });
 
-test("the Saved tab's relaxed is_active is scoped to the Saved tab alone", () => {
-  assert.match(server, /WHERE \$\{savedTab \? '1 = 1' : 'sj\.is_active = 1'\}/,
-    "every non-Saved board must keep the discovery predicate");
+test("the Saved tab's relaxed is_active is scoped to the user's own views alone (★ and, since D40, +)", () => {
+  assert.match(server, /WHERE \$\{\(savedTab \|\| importedTab\) \? '1 = 1' : 'sj\.is_active = 1'\}/,
+    "every other board must keep the discovery predicate");
 });
 
 test("the card labels a closed listing instead of showing it as ordinary", () => {

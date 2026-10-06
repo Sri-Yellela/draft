@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { X } from "lucide-react";
 import UsbSuggest from "./UsbSuggest.jsx";
 // The typeahead list's own rules (.usb__suggest*) live with the landing page's bar.
@@ -8,7 +7,7 @@ import "./FullHouse.css";
 
 // ── D35 §3 · THE CONDENSED BAR — one row, below the sentence, above the jobs ─────────────────────────
 //
-//   [ ALL 2626 · ★ 14 · /d 9 ]  [ search ———————————— ]  [ ⇅ ]  [ + ]
+//   [ ALL 2626 · ★ 14 · /d 9 · + 3 ]  [ search ———————————— ]  [ ⇅ ]      (D40: + is a view)
 //
 // header.html's bar. The three views are ONE segmented control, each with its count (GET
 // /api/jobs/facets' `views`; no count is drawn without an answer, never a 0 in its place). The search
@@ -77,12 +76,5 @@ export function SortSquare({ open = false, chosen = false, label = "", onPress }
   );
 }
 
-/** + — ADD JOBS, as the mark's glyph: the extension is how jobs are added (D11/D12). */
-export function AddSquare({ to }) {
-  return (
-    <Link to={to} target="_blank" rel="noopener" className="fh-add" data-extension-link=""
-      aria-label="Add jobs" title="Add jobs from any site with the draft browser extension">
-      <span aria-hidden="true">+</span>
-    </Link>
-  );
-}
+// ⛔ D40 (owner, 10-06): the + square (AddSquare) is GONE. + is the fourth VIEW — the jobs you imported,
+// with the Import jobs button at its head (JobsPanel's ImportedHeader).

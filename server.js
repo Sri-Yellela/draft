@@ -5821,6 +5821,13 @@ function assertUserOwns(row, userId, res) {
 
 // Canonical role-key derivation — delegates to services/jobClassifier.js.
 // To change the mapping logic, edit getRoleKeyForProfile() in that module.
+/** D40 · when, and from which site, a user captured a job — the + view card's one extra line. */
+function captureMeta(row) {
+  let from = null;
+  try { from = row?.captured_url ? new URL(row.captured_url).hostname.replace(/^www\./, "") : null; } catch { from = null; }
+  return { at: row?.captured_at ? row.captured_at * 1000 : null, from };
+}
+
 function roleKeyForProfile(profile) {
   const family = String(profile?.role_family || "").trim().toLowerCase();
   const domain = String(profile?.domain    || "").trim().toLowerCase();
@@ -7411,6 +7418,8 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       visited        = '',
       localSearch    = '',
       starred        = '',
+      // D40: the + view — ALL restricted to the jobs this user imported (job_captures).
+      imported       = '',
       domain         = '',
       applied        = '',
       // Keyset pagination, opt-in. When present it REPLACES page/OFFSET; when absent this endpoint
@@ -7908,6 +7917,11 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
             OR uj.resume_generated = 1
             OR EXISTS (SELECT 1 FROM job_captures jc WHERE jc.job_id = sj.job_id AND jc.user_id = ${ownUid})
             OR EXISTS (SELECT 1 FROM application_records ar WHERE ar.job_id = sj.job_id AND ar.user_id = ${ownUid})`;
+      // ⭐ D40 · THE + VIEW: the same statement as ALL, restricted to this user's captures. Like ★, a
+      // capture whose listing has since closed stays in it, labelled — the one exception.
+      const importedTab = imported === '1';
+      const importedSql = importedTab
+        ? `AND EXISTS (SELECT 1 FROM job_captures jc WHERE jc.job_id = sj.job_id AND jc.user_id = ${ownUid})` : '';
       const roleSql = (savedTab || boardSearch || functionChosen) ? '' : `AND (
             jrm.role_key IS NOT NULL${scopeExtraSql ? `
             OR ${scopeExtraSql}` : ''}
@@ -7915,7 +7929,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
             OR ${ownRowsSql}
           )`;
       const whereClauseFor = (rich) => `
-        WHERE ${savedTab ? '1 = 1' : 'sj.is_active = 1'}
+        WHERE ${(savedTab || importedTab) ? '1 = 1' : 'sj.is_active = 1'}
           ${roleSql}
           ${keyFilter}
           ${locFilter}
@@ -7928,6 +7942,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
           ${maxAppSql}
           ${visitedSql}
           ${starredSql}
+          ${importedSql}
           ${appliedSql}
           ${ageSql}
           ${yoeSql}
@@ -8039,6 +8054,17 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
           + `profile=${sessionActiveProfile.id} sort="${sort}" — the count and the list have diverged`);
       }
 
+      // D40 · the + view's capture meta, read for THIS PAGE's rows after the list — not spliced into the
+      // list statement, which must interpolate exactly what the count does (boardCountMatchesList).
+      const capturedBy = new Map();
+      if (importedTab && rows.length) {
+        const ids = rows.map(r => r.job_id);
+        for (const c of db.prepare(`SELECT job_id, MAX(created_at) AS captured_at,
+              (SELECT c2.url FROM job_captures c2 WHERE c2.user_id = c1.user_id AND c2.job_id = c1.job_id ORDER BY c2.id DESC LIMIT 1) AS captured_url
+            FROM job_captures c1 WHERE user_id = ? AND job_id IN (${ids.map(() => "?").join(",")}) GROUP BY job_id`).all(req.user.id, ...ids)) {
+          capturedBy.set(c.job_id, c);
+        }
+      }
       const responseBody = {
         success:    true,
         // ⛔ A52 · A STORED SCORE IS SHOWN ONLY WHILE IT IS STILL ABOUT THIS POSTING AND THIS BASIS.
@@ -8047,7 +8073,9 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
         // opinion", which the card renders as nothing — and the precompute this board load schedules
         // replaces it. The ORDER may still use it until then; the verdict is never shown.
         jobs:       rows.map(j => ({ ...mapJobRow({ ...j, matchScore: presentedScore(j, { basisHash: boardBasisHash }) }),
-                                     scrapedAt: j.scraped_at })),
+                                     scrapedAt: j.scraped_at,
+                                     // D40 · the + view's one extra line: "captured <date> · from <host>".
+                                     ...(importedTab ? { captured: captureMeta(capturedBy.get(j.job_id)) } : {}) })),
         total,
         // A73 · present only when a user-set filter kept rows it could not judge; they sort last.
         ...(unclassified ? { unclassified } : {}),

@@ -423,13 +423,14 @@ test("④ one statement for the headline and ONE per clause — never one per op
   const res = await boardFacetsResponse({ query, nowSec: NOW, measureBoard: async (q, m) => { calls.push(q); return { status: 200, body: { measured: true, value: m({ db: counting, ...boardSql(q) }) } }; } });
   assert.equal(res.status, 200);
   // D35: + one COUNT each for the ALL and ★ views (the /d count is countPending's, absent here).
-  assert.equal(calls.length, 3 + sentence.SENTENCE_CLAUSES.length);
-  assert.equal(prepares, 3 + sentence.SENTENCE_CLAUSES.length);
+  // D40: + adds one view count (ALL · ★ · + measured, /d is its own query) — 4 before the clauses.
+  assert.equal(calls.length, 4 + sentence.SENTENCE_CLAUSES.length);
+  assert.equal(prepares, 4 + sentence.SENTENCE_CLAUSES.length);
   // Paging and the cursor are never forwarded (a list cursor must not 400 a facets call).
   for (const q of calls) { assert.ok(!("page" in q) && !("cursor" in q)); }
   // Each clause's base set drops exactly its own params — both of the age control's. (D30: six
   // clauses, so the calls are found by clause key, in SENTENCE_CLAUSES' order after the headline.)
-  const callFor = (key) => calls[3 + sentence.SENTENCE_CLAUSES.findIndex(c => c.key === key)];
+  const callFor = (key) => calls[4 + sentence.SENTENCE_CLAUSES.findIndex(c => c.key === key)];
   assert.deepEqual(Object.keys(callFor("level")).sort(), ["ageFilter", "fit_bands", "posted_after", "work_models"]);
   assert.deepEqual(Object.keys(callFor("posted")).sort(), ["experience_levels", "fit_bands", "work_models"]);
   assert.deepEqual(Object.keys(callFor("fit")).sort(), ["ageFilter", "experience_levels", "posted_after", "work_models"]);
