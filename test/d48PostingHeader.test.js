@@ -68,7 +68,7 @@ test("D48 · the actions: one component, A ≥ 600px of PANEL and B below — a 
   // A: Pass · Save · Draft | Résumé · (Preview · PDF) · Cover letter; B: the same as squares, the quota as Draft's badge.
   assert.match(acts, /<div className="pp__a" role="group" aria-label="Actions">/);
   assert.match(acts, /<div className="pp__b" role="group" aria-label="Actions">/);
-  assert.match(acts, /<DraftButton square [^>]*\n\s+badge=\{slots \? slots\.remaining : null\} \/>/);
+  assert.match(acts, /<DraftButton logo square [^>]*\n\s+badge=\{slots \? slots\.remaining : null\} \/>/);
   assert.match(acts, /<p className="pp__quota" data-draft-slots/);
 });
 
@@ -83,6 +83,36 @@ test("D48 · the deck strip: Workstyle replaces Where; the location is a muted l
   // ⚠ Found in the app: a bare .posting__sub lost to `.posting__cell dd` and drew the location in the 20px value
   // serif. The rule must out-rank it.
   assert.match(read("client/src/components/PostingPanel.css"), /\.posting__cell dd\.posting__sub \{[^}]*font-family: var\(--font-body\); font-size: 11px;/);
+});
+
+test("owner 10-07 (36) · the posting panel's Draft button IS the logo — the one StampLogo, in the mark's own tokens", () => {
+  const db = read("client/src/components/DecisionButtons.jsx");
+  const acts = jd.slice(at(jd, "function PostingActions("), at(jd, "export default function JobDetailPanel("));
+  assert.match(acts, /<DraftButton logo drafted=/, "A: /draft");
+  assert.match(acts, /<DraftButton logo square drafted=/, "B: /d");
+  assert.match(db, /import \{ StampLogo \} from "\.\/StampLogo\.jsx";/, "reused, never redrawn");
+  const logo = db.slice(at(db, "  if (logo) {"), at(db, "  return <DecisionPill compact={compact} square={square} primary"));
+  assert.match(logo, /icon=\{square \? <StampLogo size="md" progress=\{1\} \/> : null\}/);
+  assert.match(logo, /\{square \? label : idle \? <StampLogo size="mini" \/> : label\}/);
+  assert.doesNotMatch(logo, /primary/, "the mark is not set on the orange fill, where its slash would vanish");
+  assert.match(logo, /aria-label=\{label\}/, "named Draft / Drafting… / Drafted, not \"/draft\"");
+  // The colours are the mark's tokens: orange and ink in light, all orange in dark (D19).
+  const t = read("client/src/styles/colorTokens.js");
+  assert.match(t, /LOGO_SLASH:\s+"#FD4600",[^\n]*\n\s+LOGO_WORD:\s+"#1E1915"/);
+  assert.match(t, /LOGO_SLASH:\s+"#FD4600",[^\n]*\n\s+LOGO_WORD:\s+"#FD4600"/);
+});
+
+test("owner 10-07 (36) · the Workstyle cell has no visible heading: Remote / Hybrid / On-site, then the location", async () => {
+  const { deckStrip } = await import("../shared/postingFacts.js");
+  const both = deckStrip({ tagWorkplace: "remote", location: "Austin, TX" })[1];
+  assert.deepEqual([both.value, both.sub, both.labelHidden], ["Remote", "Austin, TX", true]);
+  const placeOnly = deckStrip({ location: "Austin, TX" })[1];
+  assert.deepEqual([placeOnly.value, placeOnly.sub], ["Austin, TX", null], "no workstyle on file: the location is the value");
+  assert.equal(deckStrip({})[1].value, null, "neither: not stated");
+  assert.match(read("client/src/components/PostingPanel.jsx"), /<dt className=\{c\.labelHidden \? "posting__k--sr" : undefined\}>\{c\.label\}<\/dt>/);
+  const css = read("client/src/components/PostingPanel.css");
+  assert.match(css, /\.posting__cell dt\.posting__k--sr \{[^}]*position: absolute; width: 1px; height: 1px;[^}]*clip: rect\(0 0 0 0\);/, "for screen readers only");
+  assert.match(css, /\.posting__cell dt\.posting__k--sr \+ dd \{ margin-top: 14\.5px; \}/, "its value stays on the row's line");
 });
 
 // ── THE SWEEP ────────────────────────────────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@
 // again; reversal is Undo on the toast (components/DecisionToast.jsx), or the Saved list's own labelled
 // "Remove" — never the same button pressed twice.
 import DepthButton, { ICONS } from "./DepthButton.jsx";
+import { StampLogo } from "./StampLogo.jsx";
 
 /** Kept by name for the callers that import it; it is the depth box now. */
 export function DecisionPill({ label, onClick, primary = false, done = false, disabled = false, title, compact = false,
@@ -37,8 +38,23 @@ export function PassButton({ passed, onPass, compact, square }) {
     onClick={onPass} />;
 }
 
-export function DraftButton({ drafted, drafting, onDraft, compact, square, badge = null }) {
+export function DraftButton({ drafted, drafting, onDraft, compact, square, badge = null, logo = false }) {
   const label = drafted ? "Drafted" : drafting ? "Drafting…" : "Draft";
+  const title = drafted ? "Drafted — it waits for your review in Draft House" : "Draft — queue it for your review. Nothing is sent until you approve it.";
+  // ⭐ Owner 10-07 (36), the posting panel: the button IS the logo — "/draft", or "/d" as a square — through
+  // the ONE StampLogo, so it wears the mark's own tokens (orange and ink in light, all orange in dark). It is
+  // therefore not on the orange fill, where the mark would vanish; the word returns only for the states.
+  if (logo) {
+    const idle = !drafted && !drafting;
+    return (
+      <DepthButton size={square ? "square" : "box"} pressed={drafted} disabled={drafted || drafting} title={title}
+        onClick={onDraft} badge={badge} caption={square ? label : null} tip={square ? title : null}
+        className="dbx--logo" aria-label={label} data-draft-logo=""
+        icon={square ? <StampLogo size="md" progress={1} /> : null}>
+        {square ? label : idle ? <StampLogo size="mini" /> : label}
+      </DepthButton>
+    );
+  }
   return <DecisionPill compact={compact} square={square} primary
     // The /d mark leads the label (posting-header2.html: "/d  Draft"); a square is the mark alone.
     icon={square ? <span aria-hidden="true">/d</span> : <span aria-hidden="true">/d</span>}

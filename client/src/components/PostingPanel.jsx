@@ -42,7 +42,8 @@ export function PostingMasthead({ job, experience = null, showTitle = true, vtTi
         {cells.map(c => (
           <div key={c.key} className="posting__cell" data-cell={c.key} data-met={c.met ? "true" : "false"}
             data-stated={c.value == null ? "false" : "true"}>
-            <dt>{c.label}</dt>
+            {/* A cell that reads for itself (Workstyle) keeps its term for screen readers only. */}
+            <dt className={c.labelHidden ? "posting__k--sr" : undefined}>{c.label}</dt>
             {/* ⭐ "not stated" is a VALUE — italic serif — never a blank cell. */}
             <dd>{c.value ?? <span className="posting__ns">{NOT_STATED}</span>}</dd>
             {/* D48: Workstyle's location line — muted, beneath the value. */}
