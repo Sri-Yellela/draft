@@ -7420,7 +7420,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       starred        = '',
       // D40: the + view — ALL restricted to the jobs this user imported (job_captures).
       imported       = '',
-      // A91: the /d view — ALL restricted to the jobs this user drafted (PENDING_MEMBERSHIP_SQL).
+      // A91: the /d view — ALL restricted to the jobs this user drafted (pendingMembershipSql).
       pending        = '',
       domain         = '',
       applied        = '',
@@ -7925,7 +7925,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // ⭐ A91 · /d IS ALL RESTRICTED BY ONE PREDICATE — the board's search, sentence and drawer filters
       // now apply to it exactly as to ALL (it used to be /api/jobs/pending, a query of its own).
       const pendingTab = pending === '1';
-      const pendingSql = pendingTab ? `AND ${PENDING_MEMBERSHIP_SQL}` : '';
+      const pendingSql = pendingTab ? `AND ${pendingMembershipSql(ownUid)}` : '';
       const importedSql = importedTab
         ? `AND EXISTS (SELECT 1 FROM job_captures jc WHERE jc.job_id = sj.job_id AND jc.user_id = ${ownUid})` : '';
       const roleSql = (savedTab || boardSearch || functionChosen) ? '' : `AND (
@@ -9043,11 +9043,14 @@ app.post("/api/jobs/by-id/:jobId/description", requireAuth, async (req, res) => 
 // OR an application record still pending / not verified (the posting was opened from the board, or a
 // résumé exported); "I did not apply" and a verified submission both leave it. Written over the board's
 // own aliases (sj, uj), and needs no join of its own.
-const PENDING_MEMBERSHIP_SQL = `((uj.resume_generated = 1
+// ⛔ D51: the record half keys on the USER, never on uj — the board LEFT JOINs user_jobs per profile, so a
+// job drafted with no user_jobs row for the active profile had uj.user_id NULL and matched no record: a
+// Draft could never reach /d. `uid` is inlined as an integer (never text), like ownRowsSql's ownUid.
+const pendingMembershipSql = (uid) => `((uj.resume_generated = 1
            AND EXISTS (SELECT 1 FROM resumes pr WHERE pr.user_id = uj.user_id AND pr.job_id = sj.job_id AND pr.html IS NOT NULL))
-         OR EXISTS (SELECT 1 FROM application_records ar WHERE ar.user_id = uj.user_id AND ar.job_id = sj.job_id
+         OR EXISTS (SELECT 1 FROM application_records ar WHERE ar.user_id = ${uid} AND ar.job_id = sj.job_id
                       AND ar.state IN ('pending', 'recorded')))
-      AND NOT EXISTS (SELECT 1 FROM application_records ar WHERE ar.user_id = uj.user_id AND ar.job_id = sj.job_id
+      AND NOT EXISTS (SELECT 1 FROM application_records ar WHERE ar.user_id = ${uid} AND ar.job_id = sj.job_id
                         AND ar.state IN ('withdrawn', 'verified'))
       AND (uj.applied IS NULL OR uj.applied = 0)`;
 
@@ -9071,7 +9074,7 @@ function pendingJobsQuery(userId, { count = false } = {}) {
     JOIN user_jobs uj ON uj.job_id = sj.job_id AND uj.user_id = ? AND uj.domain_profile_id = ?
     LEFT JOIN resumes r ON r.user_id = ? AND r.job_id = sj.job_id
     WHERE sj.is_active = 1
-      AND ${PENDING_MEMBERSHIP_SQL}
+      AND ${pendingMembershipSql(Number.isSafeInteger(Number(userId)) ? Number(userId) : -1)}
       AND (uj.disliked IS NULL OR uj.disliked = 0)
     ${count ? "" : "ORDER BY uj.updated_at DESC"}
   `);

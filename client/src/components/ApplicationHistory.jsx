@@ -48,7 +48,7 @@ const RESUME_LINK = {
 };
 const resumeLink = (row) => RESUME_LINK[row.resumeSource] || RESUME_LINK.current_resume;
 
-export default function ApplicationHistory({ onOpenPending }) {
+export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -227,7 +227,16 @@ export default function ApplicationHistory({ onOpenPending }) {
                       ))}
                     </ol>
 
-                    {row.status === "in_play" && (
+                    {/* D51: a Draft waits in Draft House — that is where it is acted on, not recorded here. */}
+                    {row.status === "in_play" && row.origin === "drafted" && (
+                      <p className="ah__ask">
+                        Drafted — it waits for your review.{" "}
+                        <button type="button" className="ah__btn" onClick={() => onOpenDraftHouse?.(row.jobId)}>
+                          Open Draft House
+                        </button>
+                      </p>
+                    )}
+                    {row.status === "in_play" && row.origin !== "drafted" && (
                       <p className="ah__ask">
                         Not sent yet.{" "}
                         <button type="button" className="ah__btn" onClick={() => onOpenPending?.(row.jobId)}>

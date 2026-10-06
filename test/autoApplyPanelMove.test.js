@@ -30,7 +30,8 @@ test("the board no longer owns any of the pipeline except DRAFTING a job (A53: w
       `${gone} is back on the board — the pipeline is leaking into it`);
   }
   // What it keeps: the decision, through the deck's own call, and the pipeline's view of it.
-  assert.match(board, /const \{ draftTool, applyStateByJobId, loadApplyRuns \} = useAutoApply\(\);/);
+  // D51 adds the two things a Draft button needs to say why it refuses: the setup and the operator's pause.
+  assert.match(board, /const \{ draftTool, applyStateByJobId, loadApplyRuns, applyPrereqMissing = \[\], runBar = null \} = useAutoApply\(\);/);
   assert.match(board, /onDraft: \(\) => decideJob\(selectedJob, DECISIONS\.DRAFTED\)/);
 });
 

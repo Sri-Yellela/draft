@@ -9,7 +9,8 @@ import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { GENERATE_TOOL, A_PLUS_TOOL, TOOL_LABELS, normalizeTool } from "../lib/applyTools.js";
 import { planPageFetch, recordPageCursor } from "../lib/boardPaging.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
-import { DECISIONS, DECISION_SURFACES, DECISION_TOAST_MS, commitDecision, undoDecision, undoFlagsFor, flagsFor, isDrafted } from "../lib/jobDecisions.js";
+import { DECISIONS, DECISION_SURFACES, DECISION_TOAST_MS, commitDecision, undoDecision, undoFlagsFor, flagsFor, isDrafted, draftBlock } from "../lib/jobDecisions.js";
+import { PREREQUISITE_LABELS } from "../lib/applyObstacles.js";
 import DecisionToast from "../components/DecisionToast.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
@@ -1480,7 +1481,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // panels/AutoApplyPanel.jsx on its own tab (W5). The board keeps what it needs to DECIDE: Draft,
   // Save and Pass are the deck's own calls (lib/jobDecisions.js, A53 — owner 10-02), and whether a
   // job is already drafted is the pipeline's own feed. Everything else is on that tab.
-  const { draftTool, applyStateByJobId, loadApplyRuns } = useAutoApply();
+  const { draftTool, applyStateByJobId, loadApplyRuns, applyPrereqMissing = [], runBar = null } = useAutoApply();
   // The decision just made, for the shared toast and its Undo (components/DecisionToast.jsx).
   const [decisionToast, setDecisionToast] = useState(null);
   // Drafted this session, and drafts in flight: the feed catches up on its next load, and a second
@@ -1488,6 +1489,23 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const [draftedIds, setDraftedIds] = useState(() => new Set());
   const [draftingIds, setDraftingIds] = useState(() => new Set());
   const isJobDrafted = (jobId) => draftedIds.has(jobId) || isDrafted(applyStateByJobId?.[jobId]);
+  // ⛔ D51 · THE DRAFT BUTTON IS NEVER A DEAD END. The day's slots (GET /api/draft/slots, moved by each
+  // Draft's own response), the setup it needs and the operator's pause give every refusal its sentence
+  // BEFORE the click; a drafted job's button opens Draft House, where the job is. `facetsNonce` re-reads
+  // the /d count after a Draft or an Undo, so the chip moves without a reload.
+  const [draftSlots, setDraftSlots] = useState(null);
+  const [facetsNonce, setFacetsNonce] = useState(0);
+  useEffect(() => { api("/api/draft/slots").then(setDraftSlots).catch(() => {}); }, []);
+  const draftBlocked = useMemo(() => draftBlock({
+    slots: draftSlots, prereqMissing: applyPrereqMissing, prereqLabels: PREREQUISITE_LABELS,
+    paused: !!runBar?.mode?.auto?.killSwitch,
+  }), [draftSlots, applyPrereqMissing, runBar]);
+  const draftControls = useMemo(() => ({
+    block: draftBlocked,
+    onView: () => navigate("/app/auto-apply"),
+    onExplain: (job, reason) => setDecisionToast({ jobId: job?.jobId || job?.id, company: job?.company,
+      decision: DECISIONS.DRAFTED, error: reason, at: Date.now() }),
+  }), [draftBlocked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // LIVE POLLING: polls /api/jobs/poll every 4s during active scrape.
   // Stops when scraping:false returned or after 3 consecutive failures.
@@ -1953,6 +1971,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       onDraft: () => decideJob(selectedJob, DECISIONS.DRAFTED),
       drafted: isJobDrafted(selectedJob.jobId),
       drafting: draftingIds.has(selectedJob.jobId),
+      // D51: never a dead end — the reason, and the way to Draft House.
+      draftBlock: draftBlocked, onViewDraft: draftControls.onView,
+      onExplainDraft: (reason) => draftControls.onExplain(selectedJob, reason),
       onAts: () => openAtsPanel(buildAtsPayload(selectedJob, g2)),
       // D48: the posting header's ATS box opens the card beside the posting and shows OPEN as an outline.
       atsOpen: !!rightPanelOpen,
@@ -2330,7 +2351,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // synchronously on the server, and fired first it held the board's own request behind it (measured:
   // /api/jobs landed at +860 ms on a cold load). The counts keep their last answer meanwhile.
   const boardLoading = answeredKey === null || requestedKey !== answeredKey;
-  const facets = useJobFacets(facetsQs, !boardLoading, api);
+  const facets = useJobFacets(facetsQs, !boardLoading, api, facetsNonce);
 
   // ── D26/D30/D35 · THE HEADLINE. The sentence is published upward for App.jsx to render where the
   // "Let's get to work." caption was — a projection of exactly these clause params, so the headline
@@ -3310,10 +3331,14 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         const r = await commitDecision({ jobId, decision, tool: draftTool, surface: DECISION_SURFACES.BOARD });
         setDraftedIds(prev => new Set(prev).add(jobId));
         setDecisionToast({ jobId, company: job.company, decision, runId: r.runId, line: r.line, prior, at });
+        if (r.slots) setDraftSlots(r.slots);
+        setFacetsNonce(n => n + 1);
         loadApplyRuns?.();
+        if (boardTab === "pending") fetchJobs(currentPage);
       } catch (e) {
         // ⛔ Never a success toast for a refused call. "Already drafted" IS the drafted state.
         if (e.payload?.code === "already_drafted") setDraftedIds(prev => new Set(prev).add(jobId));
+        if (e.payload?.slots) setDraftSlots(e.payload.slots);
         setDecisionToast({ jobId, company: job.company, decision, error: e.message, at });
       } finally {
         setDraftingIds(prev => { const n = new Set(prev); n.delete(jobId); return n; });
@@ -3328,7 +3353,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       applyFlags(jobId, undoFlagsFor(decision, prior));
       setDecisionToast({ jobId, company: job.company, decision, error: e.message, at: Date.now() });
     }
-  }, [applyFlags, draftTool, draftedIds, draftingIds, applyStateByJobId, loadApplyRuns]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [applyFlags, draftTool, draftedIds, draftingIds, applyStateByJobId, loadApplyRuns, boardTab, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const undoLastDecision = useCallback(async () => {
     const t = decisionToast;
@@ -3339,13 +3364,17 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       if (t.decision === DECISIONS.DRAFTED) {
         setDraftedIds(prev => { const n = new Set(prev); n.delete(t.jobId); return n; });
         loadApplyRuns?.();
+        // D51: the slot comes back and the job leaves /d — both re-read, never assumed.
+        api("/api/draft/slots").then(setDraftSlots).catch(() => {});
+        setFacetsNonce(n => n + 1);
+        if (boardTab === "pending") fetchJobs(currentPage);
       } else {
         applyFlags(t.jobId, undoFlagsFor(t.decision, t.prior));
       }
     } catch (e) {
       setDecisionToast({ jobId: t.jobId, company: t.company, decision: t.decision, error: `Could not undo: ${e.message}`, at: Date.now() });
     }
-  }, [decisionToast, applyFlags, loadApplyRuns]);
+  }, [decisionToast, applyFlags, loadApplyRuns, boardTab, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!decisionToast) return;
@@ -3792,7 +3821,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               theme={theme}
               totalPages={totalPages} currentPage={currentPage} isLastPage={isLastPage}
               generate={generate} openSandbox={openSandbox} exportAndTrack={exportAndTrack}
-              visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds} openAtsPanel={openAtsPanel}
+              visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds} draftControls={draftControls} openAtsPanel={openAtsPanel}
               goPage={goPage} onPullRefresh={handlePullRefresh}
               isMobile={isMobile}
               onJobSelect={handleJobSelect} selectedJobId={selectedJob?.jobId}
@@ -3876,7 +3905,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               theme={theme}
               totalPages={totalPages} currentPage={currentPage} isLastPage={isLastPage}
               generate={generate} openSandbox={openSandbox} exportAndTrack={exportAndTrack}
-              visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds}
+              visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds} draftControls={draftControls}
               openAtsPanel={openAtsPanel}
               goPage={goPage} onPullRefresh={handlePullRefresh}
               isMobile={isMobile}
@@ -4049,7 +4078,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       generated, loading, applyMode, canUseGenerate, canUseAPlusResume,
                       theme, totalPages, currentPage, isLastPage,
                       generate, openSandbox, exportAndTrack,
-                      visitUrl, decideJob, isJobDrafted = () => false, draftingIds = new Set(), openAtsPanel,
+                      visitUrl, decideJob, isJobDrafted = () => false, draftingIds = new Set(), draftControls = null, openAtsPanel,
                       goPage, onPullRefresh,
                       isMobile,
                       compact, selectedJobId, onJobSelect,
@@ -4187,6 +4216,8 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                 // A53: the card's decisions are the deck's — Save and Draft SET; Pass is on the detail panel.
                 onSave={() => decideJob?.(job, DECISIONS.SAVED)}
                 onDraft={() => decideJob?.(job, DECISIONS.DRAFTED)}
+                onViewDraft={draftControls?.onView} draftBlocked={draftControls?.block}
+                onExplainDraft={(reason) => draftControls?.onExplain(job, reason)}
               />
             );
           }}

@@ -47,7 +47,12 @@ export function AtsNumberBox({ score, open = false, onOpen }) {
  * Draft | Résumé · Cover letter — and, once a résumé exists, Preview · PDF beside it.
  */
 function PostingActions({ job, meta, slots, onCoverLetter }) {
-  const { g, done, st, canUseGenerate: canGen, onGenerate, onViewSandbox, onExport, onSave, onPass, onDraft, drafted, drafting } = meta;
+  const { g, done, st, canUseGenerate: canGen, onGenerate, onViewSandbox, onExport, onSave, onPass, onDraft, drafted, drafting,
+          draftBlock = null, onViewDraft = null, onExplainDraft = null } = meta;
+  // D51: the panel knows the slots too — out of drafts is a reason on the button, not a grey box.
+  const block = draftBlock || (slots != null && slots.remaining <= 0 ? { code: "out_of_drafts", label: "Out of drafts",
+    reason: `Out of drafts — all ${slots.limit} used in the last 24 hours (a Draft or a new résumé uses one).` } : null);
+  const draftProps = { block, onView: onViewDraft, onExplain: onExplainDraft };
   const selectedJob = job;
   const generateLoading = st === "generate";
   const canApply = !!(selectedJob.applyUrl || selectedJob.url);
@@ -68,7 +73,7 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
       <div className="pp__a" role="group" aria-label="Actions">
         {onPass && <PassButton passed={!!selectedJob.disliked} onPass={onPass} />}
         {onSave && <SaveButton saved={!!selectedJob.starred} onSave={onSave} />}
-        {canApply && onDraft && <DraftButton logo drafted={!!drafted} drafting={!!drafting} onDraft={onDraft} />}
+        {canApply && onDraft && <DraftButton logo drafted={!!drafted} drafting={!!drafting} onDraft={onDraft} {...draftProps} />}
         <span className="pp__div" aria-hidden="true" />
         {canGen && onGenerate && (
           <DepthButton icon={ICONS.resume} onClick={() => onGenerate(done && g?.html !== "__exists__")} title={resumeTitle}
@@ -84,7 +89,7 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
       <div className="pp__b" role="group" aria-label="Actions">
         {onPass && <PassButton square passed={!!selectedJob.disliked} onPass={onPass} />}
         {onSave && <SaveButton square saved={!!selectedJob.starred} onSave={onSave} />}
-        {canApply && onDraft && <DraftButton logo square drafted={!!drafted} drafting={!!drafting} onDraft={onDraft}
+        {canApply && onDraft && <DraftButton logo square drafted={!!drafted} drafting={!!drafting} onDraft={onDraft} {...draftProps}
           badge={slots ? slots.remaining : null} />}
         <span className="pp__div" aria-hidden="true" />
         {canGen && onGenerate && (

@@ -22,6 +22,7 @@ import CompanyLink from "./CompanyLink.jsx";
 import { atsBandFor, atsBandLabel, ATS_NUMBER_SHOWN, ATS_NUMBER_NOTE } from "../../../shared/atsBands.js";
 import { columnsFor } from "../lib/bubbleColumns.js";
 import { DraftMark } from "./DraftMark.jsx";
+import { draftButtonState } from "../lib/jobDecisions.js";
 import "./JobBubble.css";
 
 
@@ -59,8 +60,10 @@ function StarMark({ filled }) {
 }
 
 export default function JobBubble({ job, score = null, selected = false, saved = false, drafted = false, drafting = false,
-                                    onOpen, onAts, onSave, onDraft }) {
+                                    onOpen, onAts, onSave, onDraft, onViewDraft = null, draftBlocked = null,
+                                    onExplainDraft = null }) {
   const [companyView, setCompanyView] = useState(false);
+  const draft = draftButtonState({ drafted, drafting, block: draftBlocked, canView: !!onViewDraft });
   const id = job.jobId || job.id;
   const applyHref = job.applyUrl || job.url;
   const band = atsBandFor(score);
@@ -106,11 +109,14 @@ export default function JobBubble({ job, score = null, selected = false, saved =
           aria-label={saved ? "Saved" : "Save"} title={saved ? "Saved" : "Save"}>
           <StarMark filled={saved} />
         </button>
+        {/* ⛔ D51: never a dead end — drafted opens Draft House; refused says why, on a press too. */}
         {applyHref && (
           <button type="button" className="jb__sq jb__sq--draft" data-done={drafted ? "true" : undefined}
-            disabled={drafted || drafting} onClick={stop(onDraft)}
-            aria-label={drafted ? "Drafted" : drafting ? "Drafting" : "Draft"}
-            title={drafted ? "Drafted — it waits for your review in Draft House" : "Draft — queue it for your review. Nothing is sent until you approve it."}>
+            data-draft-state={draft.kind} data-blocked={draft.kind === "blocked" ? "true" : undefined}
+            disabled={draft.disabled} aria-disabled={draft.ariaDisabled || undefined}
+            onClick={stop(draft.action === "draft" ? onDraft : draft.action === "view" ? onViewDraft
+              : draft.action === "explain" ? () => onExplainDraft?.(draft.title) : null)}
+            aria-label={`${draft.label} — ${draft.title}`} title={draft.title}>
             <DraftMark />
           </button>
         )}

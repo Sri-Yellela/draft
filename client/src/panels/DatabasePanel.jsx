@@ -1,5 +1,6 @@
 // client/src/panels/DatabasePanel.jsx — Design System v4
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { api, printResume } from "../lib/api.js";
 import { useMonetisationEnabled } from "../lib/monetisation.jsx";
@@ -269,6 +270,7 @@ function DetailModal({ modal, onClose, theme }) {
 export function DatabasePanel({ user }) {
   const monetisationEnabled = useMonetisationEnabled();
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const { activeProfileId, setActiveProfileId } = useJobBoard() || {};
   // A63: the board's Pending tag links here with ?sheet=pending. D15: otherwise The Table opens on
   // the application history.
@@ -681,7 +683,8 @@ export function DatabasePanel({ user }) {
 
       {/* ── History (D15) — The Table's own view. ⛔ No summary strip: its chips carry the counts. ── */}
       {activeSheet === "history" && (
-        <ApplicationHistory onOpenPending={() => setActiveSheet("pending")}/>
+        <ApplicationHistory onOpenPending={() => setActiveSheet("pending")}
+          onOpenDraftHouse={() => navigate("/app/auto-apply")}/>
       )}
 
       {/* ── Table (applications / resumes) ── */}

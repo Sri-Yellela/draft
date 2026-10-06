@@ -153,7 +153,9 @@ test("the listing offers DRAFT where Queue Auto was, and reports when the job is
   assert.match(jobCard, /<DraftButton drafted=\{drafted\} drafting=\{drafting\} onDraft=\{handleDraft\}/);
   assert.match(jobCard, /const handleDraft = \(\) => \{ if \(!drafted && !drafting\) onDraft\?\.\(\); \};/,
     "a button that fires twice would draft the same job twice");
-  assert.match(buttons, /disabled=\{drafted \|\| drafting\}/);
+  // D51: it cannot fire twice — a Draft on the wire is disabled, and a drafted job's press OPENS Draft House
+  // (onView), never onDraft again (lib/jobDecisions.js draftButtonState).
+  assert.match(buttons, /const onClick = s\.action === "draft" \? onDraft : s\.action === "view" \? onView/);
   // Only offered when there is somewhere to apply. A listing with no URL cannot be drafted.
   assert.match(jobCard, /const canDraft = !!\(job\.applyUrl \|\| job\.url\) && !!queueKey && !!onDraft/);
 });

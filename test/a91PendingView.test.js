@@ -14,14 +14,17 @@ import { at } from "../test-support/sourceAnchors.js";
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const server = read("server.js");
 const panel = read("client/src/panels/JobsPanel.jsx");
-const PREDICATE = server.slice(at(server, "const PENDING_MEMBERSHIP_SQL = `") + "const PENDING_MEMBERSHIP_SQL = `".length,
-                               at(server, "`;", at(server, "const PENDING_MEMBERSHIP_SQL = `")));
+// D51: the membership is a function of the user id (the record half keys on the user, never on uj).
+const OPEN = "const pendingMembershipSql = (uid) => `";
+const PREDICATE_OF = (uid) => server.slice(at(server, OPEN) + OPEN.length, at(server, "`;", at(server, OPEN)))
+  .replaceAll("$" + "{uid}", String(uid));
+const PREDICATE = PREDICATE_OF(1);
 
 test("A91 · /d is the board's statement plus ONE predicate, shared with the legacy route", () => {
-  assert.match(server, /const pendingSql = pendingTab \? `AND \$\{PENDING_MEMBERSHIP_SQL\}` : '';/);
+  assert.match(server, /const pendingSql = pendingTab \? `AND \$\{pendingMembershipSql\(ownUid\)\}` : '';/);
   assert.match(server, /\$\{importedSql\}\s+\$\{pendingSql\}/, "beside ★'s and +'s predicates, in the one WHERE");
   const legacy = server.slice(at(server, "function pendingJobsQuery"), at(server, 'app.get("/api/categories"'));
-  assert.match(legacy, /AND \$\{PENDING_MEMBERSHIP_SQL\}/, "the legacy route reads the same membership");
+  assert.match(legacy, /AND \$\{pendingMembershipSql\(/, "the legacy route reads the same membership");
 });
 
 test("A91 · the client fetches /d like every other view and renders the one list", () => {

@@ -8,7 +8,8 @@ import { loadFacets } from "../lib/jobFacets.js";
 // While a refetch is in flight the PREVIOUS answer stays on screen with status "loading" — counts
 // that jump to blank and back on every press read as broken, and the previous answer is a true
 // statement about the previous board.
-export function useJobFacets(qs, enabled, fetchImpl) {
+// D51: `nonce` re-reads the same querystring — a Draft or an Undo moves the /d count without a reload.
+export function useJobFacets(qs, enabled, fetchImpl, nonce = 0) {
   const [state, setState] = useState({ status: "idle", data: null });
   const seq = useRef(0);
   useEffect(() => {
@@ -18,6 +19,6 @@ export function useJobFacets(qs, enabled, fetchImpl) {
     loadFacets(qs, fetchImpl).then(next => {
       if (mine === seq.current) setState(next);
     });
-  }, [qs, enabled, fetchImpl]);
+  }, [qs, enabled, fetchImpl, nonce]);
   return state;
 }

@@ -61,6 +61,8 @@ export function historyStatus(row, { now = Math.floor(Date.now() / 1000) } = {})
   if (!sent) {
     if (row.recordState === "withdrawn") return { status: "closed", label: "Did not apply", ask: false };
     if (row.recordState === "recorded")  return { status: "in_play", label: "Recorded — not verified yet", ask: false };
+    // D51: a Draft is in play from the click — it waits in Draft House until you approve or stop it.
+    if (row.origin === "drafted")        return { status: "in_play", label: "Drafted — in Draft House", ask: false };
     return { status: "in_play", label: "Pending", ask: false };
   }
   const app = { applied_at: row.sentAt, response_outcome: row.responseOutcome, first_response_at: row.firstResponseAt };
