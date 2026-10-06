@@ -208,33 +208,62 @@ export async function resolveCompanyLogos(db, { fetchImpl = globalThis.fetch, li
     return !row || (row.status === "none" && now - row.checked_at > RETRY_NONE_DAYS * 86400);
   }).slice(0, limit);
 
-  const upsert = db.prepare(`
-    INSERT INTO company_logos (company_key, company, domain, status, provider, mime, bytes, error, checked_at)
-    VALUES (@company_key, @company, @domain, @status, @provider, @mime, @bytes, @error, @checked_at)
-    ON CONFLICT(company_key) DO UPDATE SET company = excluded.company, domain = excluded.domain,
-      status = excluded.status, provider = excluded.provider, mime = excluded.mime, bytes = excluded.bytes,
-      error = excluded.error, checked_at = excluded.checked_at`);
-  // A row's own feed logo is kept; NULL, a known-table URL and a retired host are ours to repoint.
-  const point = db.prepare(`
-    UPDATE scraped_jobs SET company_icon_url = ?
-    WHERE company = ? AND (company_icon_url IS NULL OR company_icon_url LIKE ? OR company_icon_url LIKE ?
-                           OR company_icon_url LIKE 'https://logo.clearbit.com/%' OR company_icon_url LIKE 'https://www.google.com/s2/favicons%')`);
-
   let ok = 0, none = 0;
   for (const c of due) {
-    const key = companyKey(c.company);
     const urls = String(c.urls || "").split(/\s+/).filter(Boolean);
-    const r = await resolveCompanyLogo(c.company, urls, { fetchImpl, stats });
-    upsert.run({ company_key: key, company: c.company, domain: r.domain ?? null, status: r.status,
-                 provider: r.provider ?? null, mime: r.mime ?? null, bytes: r.bytes ?? null,
-                 error: r.status === "ok" ? null : `${r.error}${r.attempts?.length ? ` — ${r.attempts.slice(0, 4).join("; ")}` : ""}`.slice(0, 1000),
-                 checked_at: now });
-    if (r.status === "ok") { ok++; point.run(logoPath(key), c.company, `${LOGO_HOST}/%`, `${LOGO_ROUTE}%`); }
-    else none++;
+    const r = await storeCompanyLogo(db, c.company, urls, { fetchImpl, stats, now });
+    if (r.status === "ok") ok++; else none++;
   }
   // ⛔ A PROVIDER WITH ATTEMPTS AND NO SUCCESS IS NAMED. This is the line that would have caught Clearbit.
   const dead = Object.entries(stats).filter(([, s]) => s.ok === 0 && s.failed >= 5).map(([p]) => p);
   return { scanned: due.length, ok, none, providers: stats, dead };
+}
+
+/** Resolve, store and point ONE company's logo — the pass above and a capture share it. */
+async function storeCompanyLogo(db, company, urls, { fetchImpl = globalThis.fetch, stats = null, now = Math.floor(Date.now() / 1000) } = {}) {
+  const key = companyKey(company);
+  const r = await resolveCompanyLogo(company, urls, { fetchImpl, stats });
+  db.prepare(`
+    INSERT INTO company_logos (company_key, company, domain, status, provider, mime, bytes, error, checked_at)
+    VALUES (@company_key, @company, @domain, @status, @provider, @mime, @bytes, @error, @checked_at)
+    ON CONFLICT(company_key) DO UPDATE SET company = excluded.company, domain = excluded.domain,
+      status = excluded.status, provider = excluded.provider, mime = excluded.mime, bytes = excluded.bytes,
+      error = excluded.error, checked_at = excluded.checked_at`)
+    .run({ company_key: key, company, domain: r.domain ?? null, status: r.status,
+           provider: r.provider ?? null, mime: r.mime ?? null, bytes: r.bytes ?? null,
+           error: r.status === "ok" ? null : `${r.error}${r.attempts?.length ? ` — ${r.attempts.slice(0, 4).join("; ")}` : ""}`.slice(0, 1000),
+           checked_at: now });
+  // A row's own feed logo is kept; NULL, a known-table URL and a retired host are ours to repoint.
+  if (r.status === "ok") {
+    db.prepare(`
+      UPDATE scraped_jobs SET company_icon_url = ?
+      WHERE company = ? AND (company_icon_url IS NULL OR company_icon_url LIKE ? OR company_icon_url LIKE ?
+                             OR company_icon_url LIKE 'https://logo.clearbit.com/%' OR company_icon_url LIKE 'https://www.google.com/s2/favicons%')`)
+      .run(logoPath(key), company, `${LOGO_HOST}/%`, `${LOGO_ROUTE}%`);
+  }
+  return r;
+}
+
+/**
+ * ⭐ D41(c) · A CAPTURED COMPANY'S LOGO IS QUEUED AT CAPTURE TIME. The background pass reaches a
+ * company only every 6 hours, 40 at a time, so a company the board never crawled waited — and showed
+ * its letter tile — for hours. `urls` carries the capture's own addresses and, when the page named
+ * it (JSON-LD hiringOrganization), the EMPLOYER'S SITE — which candidateDomains trusts as the
+ * company's own. ⛔ ATS hosts are never candidates (isAtsHost), so a Greenhouse or Ashby mark is never
+ * any company's logo. Skips a company already stored. Never throws; the letter tile stands meanwhile.
+ * @returns {Promise<{ status: string } | null>} null when nothing was attempted
+ */
+export async function resolveCaptureLogo(db, { company, urls = [] }, { fetchImpl = globalThis.fetch } = {}) {
+  try {
+    const key = companyKey(company);
+    if (!key) return null;
+    const row = db.prepare("SELECT status FROM company_logos WHERE company_key = ?").get(key);
+    if (row?.status === "ok") return null;
+    return await storeCompanyLogo(db, company, urls.filter(Boolean), { fetchImpl });
+  } catch (e) {
+    console.warn(`[logos] capture logo for ${company} failed (the letter tile stands): ${e.message}`);
+    return null;
+  }
 }
 
 /** The stored logo for a key, or null. */

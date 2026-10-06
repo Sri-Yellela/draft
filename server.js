@@ -161,7 +161,7 @@ import { deliverPipelineAlerts } from "./services/jobs/alertDelivery.js";
 import { recordPipelineRun } from "./services/jobs/pipelineRunLog.js";
 import { backfillCompanyLogos } from "./services/jobs/backfillCompanyLogos.js";
 // A77 — per-company logos, resolved during enrichment and stored first-party.
-import { resolveCompanyLogos, storedLogo } from "./services/jobs/companyLogoStore.js";
+import { resolveCompanyLogos, resolveCaptureLogo, storedLogo } from "./services/jobs/companyLogoStore.js";
 import { deriveProfileFilters } from "./services/jobs/profileFilterBridge.js";
 import { suggest } from "./services/jobs/searchSuggestions.js";
 // Bounds the blast radius of one expiry pass — see services/jobs/cleanupBrake.js and cleanup_log 85.
@@ -6838,7 +6838,10 @@ app.use("/api/domain-profiles", requireAuth, createDomainProfilesRouter(db, anth
     if (p) scheduleBoardFit(userId, `profile ${what}`, p);
   },
 }));
-app.use("/api/import", requireAuth, createImportJobRouter(db));
+// D41(c): a captured company's logo is queued at capture time — off wherever A77's pass is off.
+app.use("/api/import", requireAuth, createImportJobRouter(db, {
+  queueLogo: process.env.COMPANY_LOGOS === "off" ? null : (target) => resolveCaptureLogo(db, target),
+}));
 // D12: is this user's extension connected (a live extension token)? Drives Full House's first-run prompt.
 app.get("/api/extension/status", requireAuth, extensionStatusHandler(db));
 app.use("/api/company-kb", requireAuth, createCompanyKbRouter(db, requireAdmin));
@@ -7879,10 +7882,20 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // its extra buckets: an engineering profile's "all" is engineering + data (ROLE_SCOPE_EXTRA).
       const functionChosen = String(req.query.job_functions || "").trim() !== "";
       const scopeExtraSql = roleScopeExtraSql(roleScopeExtra(roleKey));
+      // ⛔ D41(a) (owner, 10-06): ALL IS THE WHOLE SET — ★ Saved, /d Drafted and + Imported are views of
+      // it, not separate stores. The scope is a DISCOVERY default, so it must never hide a row the user
+      // made their own: one they starred, captured or drafted is in ALL whatever its role bucket — and
+      // search and every filter then find it there. The id is inlined as an integer (never text).
+      const ownUid = Number.isSafeInteger(Number(req.user.id)) ? Number(req.user.id) : -1;
+      const ownRowsSql = `uj.starred = 1
+            OR uj.resume_generated = 1
+            OR EXISTS (SELECT 1 FROM job_captures jc WHERE jc.job_id = sj.job_id AND jc.user_id = ${ownUid})
+            OR EXISTS (SELECT 1 FROM application_records ar WHERE ar.job_id = sj.job_id AND ar.user_id = ${ownUid})`;
       const roleSql = (savedTab || boardSearch || functionChosen) ? '' : `AND (
             jrm.role_key IS NOT NULL${scopeExtraSql ? `
             OR ${scopeExtraSql}` : ''}
             OR NOT EXISTS (SELECT 1 FROM job_role_map m WHERE m.job_id = sj.job_id)
+            OR ${ownRowsSql}
           )`;
       const whereClauseFor = (rich) => `
         WHERE ${savedTab ? '1 = 1' : 'sj.is_active = 1'}
@@ -8973,13 +8986,14 @@ app.get("/api/jobs/pending", requireAuth, (req, res) => {
 function pendingJobsQuery(userId, { count = false } = {}) {
   const activeProfile = getOrRepairActiveProfile(userId);
   if (!activeProfile) return count ? 0 : [];
-  const roleKey = roleKeyForProfile(activeProfile);
-  const pendingProfileTitleFilter = profileTitleSql("sj.title", activeProfile);
+  // ⛔ D41(a): /d is the jobs the user DRAFTED — their own act, like ★. It used to INNER JOIN the role
+  // map on the profile's bucket and apply the profile's title filter, so a drafted job the classifier
+  // bucketed elsewhere (or whose title missed a target word) was in no list at all. Both are gone;
+  // ALL admits the same rows (server.js ownRowsSql), so every /d job is also in ALL.
   const stmt = db.prepare(`
     SELECT ${count ? "COUNT(*) AS n" : `sj.*, uj.starred, uj.applied, uj.disliked, uj.visited, uj.resume_generated,
            r.ats_score, r.ats_report, r.html as resume_html, r.apply_mode`}
     FROM scraped_jobs sj
-    JOIN job_role_map jrm ON jrm.job_id = sj.job_id AND jrm.role_key = ?
     JOIN user_jobs uj ON uj.job_id = sj.job_id AND uj.user_id = ? AND uj.domain_profile_id = ?
     LEFT JOIN resumes r ON r.user_id = ? AND r.job_id = sj.job_id
     WHERE sj.is_active = 1
@@ -8993,10 +9007,9 @@ function pendingJobsQuery(userId, { count = false } = {}) {
                         AND ar.state IN ('withdrawn', 'verified'))
       AND (uj.applied IS NULL OR uj.applied = 0)
       AND (uj.disliked IS NULL OR uj.disliked = 0)
-      AND ${pendingProfileTitleFilter.sql}
     ${count ? "" : "ORDER BY uj.updated_at DESC"}
   `);
-  const args = [roleKey, userId, activeProfile.id, userId, ...pendingProfileTitleFilter.params];
+  const args = [userId, activeProfile.id, userId];
   return count ? stmt.get(...args).n : stmt.all(...args);
 }
 

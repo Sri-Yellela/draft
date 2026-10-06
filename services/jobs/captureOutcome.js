@@ -7,18 +7,31 @@
 // worded ONCE, here, and every surface shows that text as given: the extension's toast and popup,
 // and the site's /extension page.
 //
-//   inserted   new to draft — on the board, and in ★ Saved
-//   attached   it matched a posting draft already had — that row is the one in ★ Saved; link to it
-//   held       in ★ Saved, but held off the shared board by the US-only gate, and WHY (the gate's
-//              own reason code, from rejected_jobs — services/jobs/usLocation.js)
-//   closed     in ★ Saved, but the listing has closed
+//   inserted   new to draft — on the board (ALL), and in your imports (+)
+//   attached   it matched a posting draft already had — that row is the one in your imports; link to it
+//   held       a capture from before D41(d), held off the board by the US-only gate, and WHY (the
+//              gate's own reason code, from rejected_jobs — services/jobs/usLocation.js)
+//   closed     in your imports, but the listing has closed
+//   refused    ⛔ D41(d): NOT captured — no US evidence. Nothing was written but the attempt.
+//
+// ⛔ D41(a) (owner, 10-06): a capture no longer stars, so no outcome says "★ Saved" any more.
 //
 // ⛔ The state is READ BACK from the database (jobGateway.boardStateOf), never inferred from which
 // branch ran. Each outcome carries `link` — the job's own address on the site (client/src/lib/
 // jobUrl.js's jobDetailHref, pinned by test) — which opens it by id whether or not it is on a board.
 import { boardStateOf } from "./jobGateway.js";
 
-export const CAPTURE_OUTCOMES = Object.freeze(["inserted", "attached", "held", "closed"]);
+export const CAPTURE_OUTCOMES = Object.freeze(["inserted", "attached", "held", "closed", "refused"]);
+
+// ⛔ D41(d) — two refusals, because they are two different facts. Calling a US remote role "not in
+// the US" would be false, and a false refusal of the owner's own capture is the worst outcome here.
+export const REFUSAL_MESSAGES = Object.freeze({
+  non_us:      "This job is based outside the US, so it was not captured — draft is US-only for now.",
+  unconfirmed: "We couldn't confirm this job is in the US, so it was not captured — the posting names no US location, US pay range or US work-authorisation line.",
+});
+/** Which refusal a gate reason is (usLocation.js captureMarket's kinds). */
+export const refusalKindOf = (reason) =>
+  reason === "non_us_location" || reason === "remote_non_us_by_description" ? "non_us" : "unconfirmed";
 
 // Why the US-only gate holds a posting, in words — keyed by usEligibility's reason codes. ⛔ Every
 // code usEligibility can return must be here (pinned by test): an unworded reason would be a hold
@@ -54,19 +67,19 @@ export function describeCapture(db, { jobId, action, title = null, company = nul
   let outcome, message;
   if (state === "held") {
     outcome = "held";
-    message = `Saved to ★ Saved, but NOT on the shared board: ${label} is held off it because ${HELD_WHY[reason] || `of the US-only gate (${reason})`}.`;
+    message = `In your imports, but NOT on the board: ${label} is held off it because ${HELD_WHY[reason] || `of the US-only gate (${reason})`}.`;
   } else if (state === "closed") {
     outcome = "closed";
-    message = `Saved to ★ Saved, but NOT on the board: the listing for ${label} has closed.`;
+    message = `In your imports, but NOT on the board: the listing for ${label} has closed.`;
   } else if (matchedExisting) {
     outcome = "attached";
-    message = `This posting was already on the board — ${label} matched a job draft already had, and that one is now in ★ Saved.`;
+    message = `This posting was already on the board — ${label} matched a job draft already had, and that one is now in your imports.`;
   } else {
     outcome = "inserted";
-    message = `Added to the board and to ★ Saved: ${label}.`;
+    message = `Added to the board: ${label} — it is in ALL, and in your imports.`;
   }
-  // ★ Saved is scoped to the ACTIVE job profile; with none, the tab cannot show anything yet.
-  if (noActiveProfile) message += " You have no active job profile yet, so ★ Saved cannot show it — create one on Full House.";
+  // The board is scoped to the ACTIVE job profile; with none, it cannot show anything yet.
+  if (noActiveProfile) message += " You have no active job profile yet, so the board cannot show it — create one on Full House.";
   return {
     outcome, matchedExisting, onBoard: state === "on_board",
     reason: state === "held" ? reason : null,
@@ -95,6 +108,12 @@ export function recentCaptures(db, userId, limit = 5) {
   } catch { return []; }   // a database without migration 122 has no captures to list
   return rows.map(r => {
     const base = { jobId: r.jobId, title: r.title || null, company: r.company || null, capturedAt: r.capturedAt * 1000 };
+    // D41(d) · a refused capture has no posting: say it was refused, and which refusal.
+    if (r.action === "refused_not_us") {
+      const reason = String(r.jobId || "").split(":")[2] || null;
+      return { ...base, jobId: null, outcome: "refused", onBoard: false, reason,
+               message: REFUSAL_MESSAGES[refusalKindOf(reason)], link: null };
+    }
     try {
       const d = describeCapture(db, { jobId: r.jobId, action: r.action, title: r.title, company: r.company });
       return { ...base, outcome: d.outcome, onBoard: d.onBoard, reason: d.reason, message: d.message, link: d.link };

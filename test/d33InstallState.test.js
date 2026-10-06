@@ -72,7 +72,7 @@ test("connected: a live token — and the recent captures say what happened to e
   assert.equal(s.state, "connected");
   assert.equal(s.connected, true);
   assert.equal(s.recentCaptures[0].outcome, "held");
-  assert.match(s.recentCaptures[0].message, /NOT on the shared board/);
+  assert.match(s.recentCaptures[0].message, /NOT on the board/);
   assert.equal(s.recentCaptures[0].link, "/app/jobs?job=j1");
 });
 

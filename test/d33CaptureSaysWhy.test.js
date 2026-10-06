@@ -66,7 +66,8 @@ test("the four outcomes, each in its own words, each with a link to the job on d
   const ins = describeCapture(d, { jobId: "greenhouse:northwind:1", action: "inserted", ...t });
   assert.equal(ins.outcome, "inserted");
   assert.equal(ins.onBoard, true);
-  assert.equal(ins.message, "Added to the board and to ★ Saved: Backend Engineer at Northwind.");
+  // D41(a): a capture no longer stars, so no outcome says "★ Saved".
+  assert.equal(ins.message, "Added to the board: Backend Engineer at Northwind — it is in ALL, and in your imports.");
 
   const att = describeCapture(d, { jobId: "greenhouse:northwind:1", action: "attached", ...t });
   assert.equal(att.outcome, "attached");
@@ -78,7 +79,7 @@ test("the four outcomes, each in its own words, each with a link to the job on d
   assert.equal(held.outcome, "held", "an attach to a held row is reported as HELD — 'already on the board' would be false");
   assert.equal(held.onBoard, false);
   assert.equal(held.reason, "remote_region_unstated");
-  assert.match(held.message, /NOT on the shared board/);
+  assert.match(held.message, /NOT on the board/);
   assert.ok(held.message.includes(HELD_WHY.remote_region_unstated));
 
   const closed = describeCapture(d, { jobId: "greenhouse:northwind:3", action: "inserted", ...t });
@@ -88,7 +89,8 @@ test("the four outcomes, each in its own words, each with a link to the job on d
   const noProfile = describeCapture(d, { jobId: "greenhouse:northwind:1", action: "inserted", ...t, noActiveProfile: true });
   assert.match(noProfile.message, /no active job profile/);
   assert.throws(() => describeCapture(d, { jobId: "nope", action: "inserted" }), /never be reported without one/);
-  assert.deepEqual([...CAPTURE_OUTCOMES], ["inserted", "attached", "held", "closed"]);
+  // D41(d) adds "refused": no US evidence, nothing written (recentCaptures words it).
+  assert.deepEqual([...CAPTURE_OUTCOMES], ["inserted", "attached", "held", "closed", "refused"]);
   d.close();
 });
 

@@ -14,6 +14,7 @@
 import {
   reconcileFingerprint, upsertCanonicalJob, fingerprintJob, gateOutOfMarket, previewFingerprint, SOURCE_LABELS,
 } from "./aggregator.js";
+import crypto from "node:crypto";
 import { classifyJob } from "./classifyJob.js";
 import { usEligibility, officeLocations } from "./usLocation.js";
 
@@ -127,6 +128,28 @@ export function recordExistingCapture(db, { jobId, url, origin, userId = null, d
     });
   } catch (e) {
     console.warn(`[jobGateway] capture not recorded for ${jobId}: ${e.message}`);
+  }
+}
+
+/**
+ * D41(d) — a capture REFUSED for want of US evidence. Nothing is written but this record, so the owner
+ * can see what was turned away (`action = 'refused_not_us'`; the gate's reason rides on the job_id
+ * placeholder's suffix rather than stretching another column's meaning). job_id is
+ * NOT NULL in migration 122 and there is no job, so it is `refused:<sha1 of the URL>` — never a real
+ * id, so no join can mistake it for a posting.
+ */
+export const REFUSED_ACTION = "refused_not_us";
+export function recordRefusedCapture(db, { url, origin, userId = null, reason = null, detectKnownAtsMatch = null }) {
+  if (!CAPTURE_ORIGINS.includes(origin)) throw new Error(`unknown capture origin ${origin}`);
+  const key = crypto.createHash("sha1").update(String(url || "")).digest("hex").slice(0, 16);
+  try {
+    recordCapture(db, {
+      user_id: userId, job_id: `refused:${key}${reason ? `:${reason}` : ""}`, url: url || null,
+      ...atsSlugOf(url, detectKnownAtsMatch),
+      origin, action: REFUSED_ACTION, out_of_market: 1, batch_id: null,
+    });
+  } catch (e) {
+    console.warn(`[jobGateway] refused capture not recorded: ${e.message}`);
   }
 }
 

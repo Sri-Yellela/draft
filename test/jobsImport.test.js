@@ -150,7 +150,8 @@ test("a re-import inside the freshness window still attaches the job to the NEW 
 
   const link = db.prepare("SELECT * FROM user_jobs WHERE user_id=42 AND job_id='greenhouse::1'").get();
   assert.ok(link, "the importer must be attached to the row");
-  assert.equal(link.starred, 1, "an import is starred so it lands in the user's saved jobs");
+  // ⛔ D41(a) (owner, 10-06): an import is NOT starred — it is the user's through job_captures (+).
+  assert.equal(link.starred, 0, "a capture must not star the job");
   assert.equal(link.domain_profile_id, 7, "the active profile is recorded on the interaction");
 });
 
@@ -176,6 +177,8 @@ test("re-importing a job you already starred stays starred and does not duplicat
 
   const url = "https://boards.greenhouse.io/acme/jobs/1";
   await importJob({ url }, { db, anthropic: null, userId: 1 });
+  // The user stars it themselves (D41(a): a capture no longer does); a re-import must keep that.
+  db.prepare("UPDATE user_jobs SET starred = 1 WHERE user_id = 1 AND job_id = 'greenhouse::1'").run();
   await importJob({ url }, { db, anthropic: null, userId: 1 });
 
   const rows = db.prepare("SELECT starred FROM user_jobs WHERE user_id=1 AND job_id='greenhouse::1'").all();
