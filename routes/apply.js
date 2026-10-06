@@ -3571,7 +3571,19 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       answerCount: Array.isArray(body.answers) ? body.answers.length : 0,
     });
 
+    // ⛔ D36: THE CANDIDATE IS NOW APPLYING — say so on The Table. A released packet means they are on
+    // the employer's form with our answers in it, and they will submit it themselves. Nothing tagged
+    // the job Pending, and the Pending table lists only application_records rows, so after a gated
+    // handoff there was no place in the UI to record the submission at all — job_applications could
+    // never be written for this path (walked 10-05: the record succeeded only by calling the API).
+    // 'draft' is the server-only origin PENDING_ORIGINS reserves; markPending is a no-op for a job
+    // already submitted or already pending, and never fails the release.
+    let pending = null;
+    try { pending = markPending(db, userId, String(row.job_id), "draft").state; }
+    catch (e) { console.warn(`[applyRoutes] gate exchange pending tag job=${row.job_id}: ${e.message}`); }
+
     res.json({
+      pending,
       packetId: pid,
       // Repeated at the top level because the extension target-matches on it before releasing
       // anything into a page (G2 requirement 3), and it must not have to dig for it.

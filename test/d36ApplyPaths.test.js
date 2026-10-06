@@ -527,3 +527,26 @@ test("D36·6 · the popup stays open when the overlay did not render", () => {
   assert.match(bg, /overlay: r\?\.overlay \? \{ rendered: r\.overlay\.rendered === true \} : null/);
   assert.match(popup, /if \(r\?\.ok && r\?\.overlay\?\.rendered !== false\) setTimeout\(\(\) => window\.close\(\), 1200\);/);
 });
+
+// ── PATH 3 · a released gate packet puts the job in Pending, so the submission can be recorded ────
+// Walked 10-05 in the harness: Draft → sign-in wall → held_gate + packet → token → exchange → the
+// candidate submits on the portal. The job was in NO application_records row, and the Pending table
+// lists only those — so there was nowhere in the UI to record the submission, and job_applications
+// could never be written for the gated path.
+test("D36·3 (gated) · exchanging a gate packet tags the job Pending (origin 'draft')", async () => {
+  const t = mount();
+  try {
+    const run = t.db.prepare("INSERT INTO apply_runs (user_id,mode,status,total_jobs,approval_mode) VALUES (1,'auto','completed',1,'required')").run().lastInsertRowid;
+    const rj = t.db.prepare("INSERT INTO apply_run_jobs (run_id,user_id,job_id,status,reason_code) VALUES (?,1,'gh::1','held_gate','login_required')").run(run).lastInsertRowid;
+    const pk = t.db.prepare(`INSERT INTO apply_gate_packets (user_id,run_id,run_job_id,job_id,apply_url,expected_origin,gate_reason,answers_json,token_hash,expires_at)
+                             VALUES (1,?,?,'gh::1','https://portal.example/apply','https://portal.example','login_required',?,'unminted:x',0)`)
+      .run(run, rj, JSON.stringify({ answers: [], unresolved: [] })).lastInsertRowid;
+    assert.equal(t.db.prepare("SELECT COUNT(*) FROM application_records").pluck().get(), 0);
+    const tok = await (await t.post(`/api/apply/gate-packets/${pk}/token`, {})).json();
+    const ex = await t.post("/api/apply/gate-packet/exchange", { token: tok.token });
+    assert.equal(ex.status, 200);
+    assert.equal((await ex.json()).pending, "pending");
+    const rec = t.db.prepare("SELECT state, origin FROM application_records WHERE user_id=1 AND job_id='gh::1'").get();
+    assert.deepEqual(rec, { state: "pending", origin: "draft" });
+  } finally { t.stop(); }
+});
