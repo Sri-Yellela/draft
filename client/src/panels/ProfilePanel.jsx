@@ -9,6 +9,13 @@ import {
   PROFILE_SUGGESTIONS_UPDATED_EVENT,
 } from "../lib/profileSuggestions.js";
 import { prefillFromResumeText, prefillDiff } from "../../../shared/resumePrefill.js";
+import { EEO_DECLINE } from "../../../shared/savedAnswers.js";
+
+// D55 (f): blank and "Choose not to disclose" are two different statements. Blank is NOT SET — the
+// form's EEO step is left for you. The decline is your answer, and the fill picks the form's own
+// decline option. The old blank option read "Prefer not to say", which said the opposite of what the
+// fill did with it.
+const EEO_UNSET_LABEL = "Not set — I'll answer on each form";
 
 // A33: the labels the prefill review shows. Only PREFILL_FIELDS can appear — eligibility and EEO
 // answers are attestations and are never proposed (shared/resumePrefill.js NEVER_PREFILL).
@@ -994,10 +1001,16 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
             These fields are voluntary and used solely for EEO reporting autofill.
             They do not affect your resume or job search.
           </p>
+          <p data-eeo-decline-note="" style={{ fontSize:12, color:theme.textMuted, lineHeight:1.6, marginBottom:14 }}>
+            <strong>{EEO_DECLINE}</strong> is an answer: the form's own decline option is picked for you
+            ("Decline to self-identify", "I don't wish to answer"). <strong>Not set</strong> leaves the
+            question on the form for you — nothing is ever chosen by default.
+          </p>
           <PRow label="Gender" theme={theme}>
             <select style={selStyle} value={form.gender}
               onChange={e => set("gender", e.target.value)}>
-              <option value="">Prefer not to say</option>
+              <option value="">{EEO_UNSET_LABEL}</option>
+              <option value={EEO_DECLINE}>{EEO_DECLINE}</option>
               <option>Male</option><option>Female</option>
               <option>Non-binary / third gender</option>
             </select>
@@ -1005,7 +1018,8 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
           <PRow label="Race / Ethnicity" theme={theme}>
             <select style={selStyle} value={form.ethnicity}
               onChange={e => set("ethnicity", e.target.value)}>
-              <option value="">Prefer not to say</option>
+              <option value="">{EEO_UNSET_LABEL}</option>
+              <option value={EEO_DECLINE}>{EEO_DECLINE}</option>
               <option>Hispanic or Latino</option>
               <option>White (not Hispanic or Latino)</option>
               <option>Black or African American</option>
@@ -1018,7 +1032,8 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
           <PRow label="Veteran Status" theme={theme}>
             <select style={selStyle} value={form.veteran_status}
               onChange={e => set("veteran_status", e.target.value)}>
-              <option value="">Prefer not to say</option>
+              <option value="">{EEO_UNSET_LABEL}</option>
+              <option value={EEO_DECLINE}>{EEO_DECLINE}</option>
               <option>I am a protected veteran</option>
               <option>I am not a protected veteran</option>
             </select>
@@ -1026,7 +1041,8 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
           <PRow label="Disability Status" theme={theme}>
             <select style={selStyle} value={form.disability_status}
               onChange={e => set("disability_status", e.target.value)}>
-              <option value="">Prefer not to say</option>
+              <option value="">{EEO_UNSET_LABEL}</option>
+              <option value={EEO_DECLINE}>{EEO_DECLINE}</option>
               <option>Yes, I have a disability</option>
               <option>No, I do not have a disability</option>
             </select>
