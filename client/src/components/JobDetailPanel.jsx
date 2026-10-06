@@ -46,8 +46,23 @@ export function AtsNumberBox({ score, open = false, onOpen }) {
  * squares with the day's quota as the Draft badge, a tooltip each, and a caption on touch. Pass · Save ·
  * Draft | Résumé · Cover letter — and, once a résumé exists, Preview · PDF beside it.
  */
+/**
+ * ⭐ D57 · "Résumé ready · 2h ago" — when a résumé is stored for this job, the posting panel SAYS so and
+ * offers it: view · download · regenerate. It never offers to generate again while hiding the one that
+ * exists (after a reload the stored résumé used to surface only as a "Regenerate" button).
+ */
+export function resumeAgo(ms, now = Date.now()) {
+  if (!Number.isFinite(ms)) return null;
+  const s = Math.max(0, (now - ms) / 1000);
+  if (s < 90) return "just now";
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  const d = Math.round(s / 86400);
+  return d === 1 ? "yesterday" : `${d} days ago`;
+}
+
 function PostingActions({ job, meta, slots, onCoverLetter }) {
-  const { g, done, st, canUseGenerate: canGen, onGenerate, onViewSandbox, onExport, onSave, onPass, onDraft, drafted, drafting,
+  const { g, done, st, canUseGenerate: canGen, onGenerate, onViewSandbox, onExport, onRegenerate = null, onSave, onPass, onDraft, drafted, drafting,
           draftBlock = null, onViewDraft = null, onExplainDraft = null, companyNotice = null } = meta;
   // D51: the panel knows the slots too — out of drafts is a reason on the button, not a grey box.
   const block = draftBlock || (slots != null && slots.remaining <= 0 ? { code: "out_of_drafts", label: "Out of drafts",
@@ -58,7 +73,10 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
   const canApply = !!(selectedJob.applyUrl || selectedJob.url);
   // A63: a NEW résumé uses a slot (a cached one does not, so Regenerate says so too).
   const noSlots = slots != null && slots.remaining <= 0;
-  const hasArtifact = done && g?.html !== "__exists__";
+  // D57: a résumé stored on an earlier visit (`__exists__`) is just as viewable — the panel fetches it.
+  const hasArtifact = done && !!g?.html;
+  const ago = hasArtifact ? resumeAgo(g?.generatedAt) : null;
+  const regen = onRegenerate || (() => onGenerate(true));
   const resumeTitle = noSlots
     ? "No drafts left in the last 24 hours — a new résumé uses one, like a Draft."
     : `${done ? "Regenerate" : "Generate"} résumé — uses 1 of your ${slots?.limit ?? 10} drafts (a Draft uses one too)`;
@@ -75,14 +93,19 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
         {onSave && <SaveButton saved={!!selectedJob.starred} onSave={onSave} />}
         {canApply && onDraft && <DraftButton logo drafted={!!drafted} drafting={!!drafting} onDraft={onDraft} {...draftProps} />}
         <span className="pp__div" aria-hidden="true" />
-        {canGen && onGenerate && (
-          <DepthButton icon={ICONS.resume} onClick={() => onGenerate(done && g?.html !== "__exists__")} title={resumeTitle}
+        {canGen && onGenerate && !hasArtifact && (
+          <DepthButton icon={ICONS.resume} onClick={() => onGenerate(false)} title={resumeTitle}
             disabled={!!st || noSlots}>
-            {generateLoading ? "Generating…" : done ? "Regenerate" : "Résumé"}
+            {generateLoading ? "Generating…" : "Résumé"}
           </DepthButton>
         )}
-        {hasArtifact && <DepthButton icon={ICONS.preview} onClick={() => onViewSandbox?.()} title="View the résumé">Preview</DepthButton>}
-        {hasArtifact && <DepthButton icon={ICONS.pdf} onClick={() => onExport?.()} title="Export PDF">PDF</DepthButton>}
+        {hasArtifact && <DepthButton icon={ICONS.preview} onClick={() => onViewSandbox?.()} title="View the résumé">View</DepthButton>}
+        {hasArtifact && <DepthButton icon={ICONS.pdf} onClick={() => onExport?.()} title="Download the résumé as a PDF">Download</DepthButton>}
+        {hasArtifact && canGen && onGenerate && (
+          <DepthButton icon={ICONS.resume} onClick={regen} title={resumeTitle} disabled={!!st || noSlots}>
+            {generateLoading ? "Generating…" : "Regenerate"}
+          </DepthButton>
+        )}
         <DepthButton icon={ICONS.letter} onClick={onCoverLetter} title="Write a cover letter">Cover letter</DepthButton>
       </div>
       {/* B — icon squares, when the panel is condensed. */}
@@ -92,14 +115,20 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
         {canApply && onDraft && <DraftButton logo square drafted={!!drafted} drafting={!!drafting} onDraft={onDraft} {...draftProps}
           badge={slots ? slots.remaining : null} />}
         <span className="pp__div" aria-hidden="true" />
-        {canGen && onGenerate && (
-          <DepthButton size="square" icon={ICONS.resume} onClick={() => onGenerate(done && g?.html !== "__exists__")}
-            title={resumeTitle} caption="Résumé" disabled={!!st || noSlots}>{done ? "Regenerate résumé" : "Generate résumé"}</DepthButton>
+        {canGen && onGenerate && !hasArtifact && (
+          <DepthButton size="square" icon={ICONS.resume} onClick={() => onGenerate(false)}
+            title={resumeTitle} caption="Résumé" disabled={!!st || noSlots}>Generate résumé</DepthButton>
         )}
-        {hasArtifact && <DepthButton size="square" icon={ICONS.preview} onClick={() => onViewSandbox?.()} title="View the résumé" caption="Preview">Preview</DepthButton>}
-        {hasArtifact && <DepthButton size="square" icon={ICONS.pdf} onClick={() => onExport?.()} title="Export PDF" caption="PDF">PDF</DepthButton>}
+        {hasArtifact && <DepthButton size="square" icon={ICONS.preview} onClick={() => onViewSandbox?.()} title="View the résumé" caption="View">View résumé</DepthButton>}
+        {hasArtifact && <DepthButton size="square" icon={ICONS.pdf} onClick={() => onExport?.()} title="Download the résumé as a PDF" caption="PDF">Download résumé</DepthButton>}
+        {hasArtifact && canGen && onGenerate && (
+          <DepthButton size="square" icon={ICONS.resume} onClick={regen}
+            title={resumeTitle} caption="Redo" disabled={!!st || noSlots}>Regenerate résumé</DepthButton>
+        )}
         <DepthButton size="square" icon={ICONS.letter} onClick={onCoverLetter} title="Write a cover letter" caption="Letter">Cover letter</DepthButton>
       </div>
+      {/* ⭐ D57: the state, in words — "Résumé ready · 2h ago". */}
+      {hasArtifact && <p className="pp__ready" data-resume-ready="">{ago ? `Résumé ready · ${ago}` : "Résumé ready"}</p>}
       {/* A63: the shared allowance, said before anything is pressed — a muted line in A, the badge in B. */}
       {quota && <p className="pp__quota" data-draft-slots data-empty={noSlots ? "true" : "false"}>{quota}</p>}
       {/* ⭐ D54: never silent, never a block — the user's other roles at this company, before Draft. */}

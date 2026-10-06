@@ -216,6 +216,8 @@ function buildArtifact(job, data, tool) {
     tool: t,
     toolLabel: data.toolLabel || TOOL_LABELS[t],
     version: data.version || null,
+    // D57: when it was generated — the posting panel's "Résumé ready · 2h ago".
+    generatedAt: data.generatedAt ?? null,
     status: "success",
     // Company KB failsafe gate (Task 9.6) — additive; [] when the backend has nothing to say
     // (the common case), so SandboxPanel renders nothing extra for most generations.
@@ -1979,11 +1981,25 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       // predicate is unconditionally false and the actions it disabled (sandbox, export, star, ATS,
       // resume, queue) are all valid for any board job.
       onGenerate: (force) => generate(selectedJob, force),
+      // ⛔ D57: a résumé stored on an earlier visit (`__exists__`) is VIEWED and DOWNLOADED from the
+      // store — never a dead Preview, and never "Regenerate" as the only way back to it.
       onViewSandbox: () => {
+        if (g2?.html === "__exists__") { generate(selectedJob, false); return; }
         const e2 = { ...g2, company: g2?.company || selectedJob.company, title: g2?.title || selectedJob.title };
         openSandbox(e2); openAtsPanel(buildAtsPayload(selectedJob, g2));
       },
-      onExport: () => exportAndTrack(selectedJob, getActiveArtifact(g2)?.html, selectedJob.company, getActiveArtifact(g2)),
+      onExport: async () => {
+        if (g2?.html === "__exists__") {
+          try {
+            const d = await api(`/api/resumes/${encodeURIComponent(selectedJob.jobId)}`);
+            const art = { ...g2, html: d.html, jobId: selectedJob.jobId, company: d.company || selectedJob.company, title: d.role || selectedJob.title };
+            await exportAndTrack(selectedJob, d.html, selectedJob.company, art);
+          } catch (e) { setSandbox({ generating: false, status:"missing", missing:true, error: e.message, company: selectedJob.company, title: selectedJob.title }); }
+          return;
+        }
+        exportAndTrack(selectedJob, getActiveArtifact(g2)?.html, selectedJob.company, getActiveArtifact(g2));
+      },
+      onRegenerate: () => generate(selectedJob, true),
       onVisit: () => visitUrl(selectedJob),
       // A53: the deck's three decisions, the deck's calls. Save and Pass SET; Undo is the toast.
       onSave: () => decideJob(selectedJob, DECISIONS.SAVED),
@@ -2598,8 +2614,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       setCategories(cats || []);
       if (gr?.length) {
         const map = {};
+        // ⛔ D57: `atsReport` is the PARSED report (/api/resumes sends both) — the raw `ats_report` string
+        // reached the ATS card as a "report" with no score field and no terms after every reload.
         gr.forEach(r => { map[r.job_id] = { html:"__exists__", status:"exists", atsScore:r.ats_score,
-          atsReport:r.ats_report, company:r.company, title:r.role,
+          atsReport:r.atsReport ?? null, company:r.company, title:r.role,
+          generatedAt: r.generated_at ? Number(r.generated_at) * 1000 : null,
           jobId:r.job_id, tool:r.apply_mode === "CUSTOM_SAMPLER" ? A_PLUS_TOOL : GENERATE_TOOL,
           toolLabel:r.apply_mode === "CUSTOM_SAMPLER" ? TOOL_LABELS[A_PLUS_TOOL] : TOOL_LABELS[GENERATE_TOOL] }; });
         setGenerated(map);
@@ -2813,6 +2832,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     },
     resume_generated: () => {
       fetchJobs(currentPage).catch(() => {});
+    },
+    // ⭐ D57: a résumé deleted (Settings → Your data, or another tab) frees the job's Résumé button here.
+    resume_deleted: ({ jobId }) => {
+      if (!jobId) return;
+      setGenerated(p => { if (!p[jobId]) return p; const n = { ...p }; delete n[jobId]; return n; });
     },
     profile_switched: ({ profileId }) => {
       if (profileId) setActiveProfileId?.(Number(profileId));
@@ -3202,7 +3226,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       setLoading(p => ({ ...p, [key]: tool }));
       try {
         const d = await api(`/api/resumes/${key}`);
-        const entry = buildArtifact(job, { html: d.html, ats_score: d.ats_score, atsReport: d.atsReport, company: d.company, role: d.role, tool }, tool);
+        const entry = buildArtifact(job, { html: d.html, ats_score: d.ats_score, atsReport: d.atsReport, company: d.company, role: d.role, tool,
+          generatedAt: existing.generatedAt ?? null }, tool);
         setGenerated(p => ({ ...p, [key]: entry }));
         openSandbox({ ...entry, company: entry.company, title: entry.title });
         openAtsPanel({ score: d.ats_score, report: d.atsReport, company: d.company, title: d.role });
@@ -4234,6 +4259,8 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                 key={key} job={job}
                 score={g?.atsScore ?? job.matchScore ?? job.baseAtsScore ?? null}
                 selected={selectedJobId === key}
+                // ⭐ D57: the card says a résumé is ready for this job — the same card in every view (D46).
+                resumeReady={!!g?.html}
                 saved={!!(job._user?.starred ?? job.starred)}
                 drafted={isJobDrafted(key)}
                 drafting={draftingIds.has(key)}

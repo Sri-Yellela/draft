@@ -179,6 +179,7 @@ test("⛔ D48 guard · a fully-rounded CSS rule is declared NON-interactive (sta
   const NON_INTERACTIVE = new Set([
     ".ah__search", ".ah__status", ".dh-cap__meter", "::-webkit-scrollbar-thumb",
     ".rm-badge", ".rm-tag",
+    ".jb__ready",   // D57: the card's "résumé ready" tag — a status, not a control
   ]);
   const files = [...walk("client/src").filter(f => /\.css$/.test(f)), "client/src/themes/cinematic.js"];
   const offenders = [];
