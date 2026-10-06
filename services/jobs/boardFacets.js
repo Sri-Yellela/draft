@@ -32,7 +32,7 @@ import { buildJobFilters, postedSinceSql } from "./jobQuery.js";
 import { fitBandsSql, FIT_SCORE_SQL } from "./jobCursor.js";
 // D30 · the two open-set dials, over the D29 tag layer.
 import { JOB_FUNCTIONS, PLACES } from "../../shared/jobTagVocabulary.js";
-import { placesFilterSql, LEVEL_SQL, WORKPLACE_SQL, EMPLOYMENT_SQL } from "./tagFilters.js";
+import { placesFilterSql, placeFacetCounts, LEVEL_SQL, WORKPLACE_SQL, EMPLOYMENT_SQL } from "./tagFilters.js";
 
 // Paging and cursor are about WHICH SLICE of the board, never about how many rows it holds, and a
 // facets request must not 400 on a cursor issued for a list. Projection params change no count.
@@ -79,6 +79,20 @@ export function facetClauses({ nowSec }) {
         return { value: o.value, label: o.label,
           count: { sql: f.sql, params: [] }, known: { sql: `(${f.sql}) AND NOT ${f.unknownSql}`, params: [] } };
       }),
+      // ⚡ The SQL above is the definition; this is how it is COUNTED — the board's places read once and
+      // placeFacetCounts applying the same rule per job, instead of 74 options × correlated EXISTS
+      // (9–10 s per facets call, measured 10-06 (33)). test/placeFacetCounts.test.js holds them equal.
+      compute: ({ db, joinClause, whereClause, baseArgs }) => {
+        const byJob = new Map(db.prepare(`SELECT sj.job_id AS id ${joinClause} ${whereClause}`).all(...baseArgs).map(r => [r.id, []]));
+        if (byJob.size) {
+          for (const p of db.prepare(`SELECT p.job_id, p.country, p.state, p.metro FROM job_tag_places p
+              WHERE p.job_id IN (SELECT sj.job_id ${joinClause} ${whereClause})`).all(...baseArgs)) {
+            byJob.get(p.job_id)?.push(p);
+          }
+        }
+        const counts = placeFacetCounts(byJob, PLACES.options.map(o => o.value));
+        return Object.fromEntries(PLACES.options.flatMap((o, i) => [[`c${i}`, counts.get(o.value)?.count ?? 0], [`k${i}`, counts.get(o.value)?.known ?? 0]]));
+      },
     },
     { key: "where", remove: [WORK_MODELS.param],       options: softNullOptions(WORK_MODELS) },
     {
@@ -180,6 +194,7 @@ export async function boardFacetsResponse({ query, measureBoard, nowSec, countPe
   for (const clause of clauses) {
     const baseQuery = { ...withoutKeys(query, clause.remove), ...(clause.base || {}) };
     const r = await measureBoard(baseQuery, (ctx) => {
+      if (clause.compute) return clause.compute(ctx);
       const { db, joinClause, whereClause, baseArgs } = ctx;
       const cols = [], params = [];
       clause.options.forEach((o, i) => {
