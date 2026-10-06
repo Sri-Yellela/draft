@@ -192,5 +192,8 @@ export function packetLife(packet, now = Date.now()) {
   if (packet.stale || !(left > 0)) return { state: "stale", line: "Prepared answers have gone stale — prepare again for fresh ones.", action: "prepare" };
   const h = Math.ceil(left / 3600000);
   const span = h >= 48 ? `${Math.floor(h / 24)} more days` : h >= 24 ? "1 more day" : `${h} more hour${h === 1 ? "" : "s"}`;
-  return { state: "ready", line: `Ready to fill — fresh for ${span}.`, action: "fill" };
+  // O80c: whether the packet carries its résumé (written in the background after the packet is stored).
+  const resume = packet.resumeAvailable === true ? ", with its résumé"
+    : packet.resumeAvailable === false ? " (the résumé is still being written — or could not be; Prepare again writes one)" : "";
+  return { state: "ready", line: `Ready to fill${resume} — fresh for ${span}.`, action: "fill" };
 }
