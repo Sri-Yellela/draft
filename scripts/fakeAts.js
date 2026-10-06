@@ -1122,6 +1122,8 @@ const server = http.createServer(async (req, res) => {
     if (path === '/workday')       return send(200, workdayShell());
     if (path === '/workday/inner') return send(200, workdayInner());
     if (path === '/workday/decoy') return send(200, workdayDecoy());
+    // D56: the two-origin application (posting host ≠ apply host). See the section at the end of the file.
+    if (path.startsWith('/twoorigin/')) return twoOriginRoute(req, res, url, send);
     if (path === '/_submissions')
       return send(200, JSON.stringify({ count: submissions.length, submissions }, null, 2),
                   'application/json; charset=utf-8');
@@ -1176,3 +1178,71 @@ server.listen(PORT, () => {
   console.log('[fakeAts] assert against GET /_submissions — never on status alone.');
   console.log('[fakeAts] uploads are real multipart; check record.files, not record.fields.');
 });
+
+// ═════════════════════════════════════════════════════════════════════════════════════════════════
+// ── D56 · A TWO-ORIGIN APPLICATION — the posting on one origin, the application on another ─────────
+// ═════════════════════════════════════════════════════════════════════════════════════════════════
+// Amazon's shape: the POSTING on www.amazon.jobs, the APPLICATION on account.amazon.jobs. A packet
+// keyed to one origin could never match the other — the defect behind the owner's "Nothing is
+// prepared for https://account.amazon.jobs" (10-07). The Workday replica D55 adds is single-origin and
+// would never have caught it.
+//
+// Locally the two origins are the same process under two names: the POSTING is served on
+// http://localhost:<PORT> and the APPLICATION on http://127.0.0.1:<PORT> — different origins to the
+// browser and to the extension. The job id is in the path on both, as Amazon's is:
+//
+//   GET /twoorigin/jobs/<id>        the posting (meant for the localhost origin), "Apply now" →
+//   GET /twoorigin/apply/<id>       on the POSTING host: 302 to the apply host, as www.amazon.jobs's
+//                                   /applicant/jobs/<id>/apply redirects to account.amazon.jobs
+//                                   on the APPLY host: the application form (name, email, phone,
+//                                   résumé, the two eligibility selects) → POST /_submit/twoorigin
+//
+// The adapter family a test registers for it (routes/apply.js's applyOriginFamilies seam):
+//   { ats: "fake-two-origin", origins: [`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`],
+//     jobIdPattern: /\/twoorigin\/(?:jobs|apply)\/(\d+)/ }
+const TWO_ORIGIN_POSTING_HOST = 'localhost';
+const TWO_ORIGIN_APPLY_HOST = '127.0.0.1';
+
+function twoOriginPosting(id) {
+  return page(`D56 Two-origin Engineer ${id} — Careers`, `
+  <h1>Platform Engineer</h1>
+  <p>Contoso Logistics · Remote — United States · Job ID ${id}</p>
+  <p>The posting lives on this origin; the application lives on another. That is the case under test.</p>
+  <a id="apply" href="http://${TWO_ORIGIN_APPLY_HOST}:${PORT}/twoorigin/apply/${id}">Apply now</a>`);
+}
+
+function twoOriginForm(id) {
+  return page(`D56 Two-origin application ${id}`, `
+  <h1>Apply — Platform Engineer (Job ID ${id})</h1>
+  <form method="POST" action="/_submit/twoorigin" enctype="multipart/form-data">
+    <input type="hidden" name="job_id" value="${escapeHtml(id)}">
+    ${field('First Name', `<input name="first_name" required>`, true)}
+    ${field('Last Name',  `<input name="last_name" required>`, true)}
+    ${field('Email',      `<input name="email" type="email" required>`, true)}
+    ${field('Phone',      `<input name="phone" type="tel">`)}
+    ${field('Resume', `<input type="file" name="resume" accept=".pdf" required>`, true)}
+    ${field('Are you legally authorized to work in the country of employment?',
+      `<select name="work_authorization" aria-required="true">
+         <option value="">Select...</option><option value="Yes">Yes</option><option value="No">No</option>
+       </select>`, true)}
+    ${field('Do you now or in the future require sponsorship for work authorization?',
+      `<select name="requires_sponsorship" aria-required="true">
+         <option value="">Select...</option><option value="Yes">Yes</option><option value="No">No</option>
+       </select>`, true)}
+    <button type="submit">Submit Application</button>
+  </form>`);
+}
+
+function twoOriginRoute(req, res, url, send) {
+  const host = String(req.headers.host || '').split(':')[0];
+  const m = url.pathname.match(/^\/twoorigin\/(jobs|apply)\/(\d+)\/?$/);
+  if (!m) return send(404, page('Not found', '<h1>404</h1>'));
+  const [, kind, id] = m;
+  if (kind === 'jobs') return send(200, twoOriginPosting(id));
+  // The application is only ever served on the APPLY origin; on the posting origin it redirects there.
+  if (host !== TWO_ORIGIN_APPLY_HOST) {
+    res.writeHead(302, { Location: `http://${TWO_ORIGIN_APPLY_HOST}:${PORT}/twoorigin/apply/${id}` });
+    return res.end();
+  }
+  return send(200, twoOriginForm(id));
+}
