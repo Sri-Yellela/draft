@@ -143,7 +143,8 @@ test("panels tile inside the dock, not against the viewport", () => {
   assert.ok(!/right: rightOffset/.test(shell),
     "a panel is anchoring itself to the viewport again instead of tiling inside the dock");
   // The dock's width is the sum of the set plus the gaps — a property of the group, not of a drag.
-  assert.match(host, /const dockWidth = bySlot\.reduce\(\(a, id\) => a \+ widths\[id\], 0\) \+ PANEL_GAP \* \(n - 1\)/);
+  // D39: plus any closed neighbour's space a survivor holds (reserveAfterClose).
+  assert.match(host, /const dockWidth = bySlot\.reduce\(\(a, id\) => a \+ widths\[id\] \+ \(reserve\[id\] \|\| 0\), 0\) \+ PANEL_GAP \* \(n - 1\)/);
   // The dock must not eat clicks meant for the scrim in the gaps between panels.
   assert.match(shell, /pointerEvents: "none",/);
   assert.match(shell, /pointerEvents: "auto",/);

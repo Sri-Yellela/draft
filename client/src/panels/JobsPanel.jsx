@@ -1426,6 +1426,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       slot: p.slot, width: p.width, focused: p.focused, fullScreen: p.fullScreen,
       // D39: Escape and the backdrop close the most recently OPENED panel — one at a time, deterministic.
       closesOnEscape: id === lastOpenedId,
+      // D39: a closed neighbour's space, held so this panel does not slide (usePanelHost reserveAfterClose).
+      reserveRight: p.reserveRight || 0,
       resizeMode: p.resizeMode,
       onFocus: () => focusPanel(id),
       onResizeStart: beginResize,

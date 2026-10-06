@@ -24,7 +24,7 @@ const STEPS = [
   { title: "Sign it in once",
     body: "Open it while you're signed in to draft. It gets a key of its own — not your password, not your browser session — and you can disconnect it at any time." },
   { title: "Capture a job",
-    body: "On any job posting — LinkedIn, Indeed, an employer's own careers page — click the extension, or press Ctrl+Shift+K. The job lands in ★ Saved on Full House." },
+    body: "On any job posting — LinkedIn, Indeed, an employer's own careers page — click the extension, or press Ctrl+Shift+K. The job lands on your board on Full House — under +, the jobs you imported." },
   { title: "Fill an application, then check it",
     body: "On an application form you've opened and signed in to, press Ctrl+Shift+Y. It fills in answers you've already given us and shows you every one. You submit it yourself." },
 ];

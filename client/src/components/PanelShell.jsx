@@ -153,7 +153,7 @@ export function PanelDock({ width, fullScreen = false, children }) {
  */
 export default function PanelShell({
   panelId, slot = 0, width = DEFAULT_WIDTH, fullScreen = false, focused = true,
-  closesOnEscape = undefined,
+  closesOnEscape = undefined, reserveRight = 0,
   resizeMode = "dock", onResizeStart, onResize, onResizeEnd,
   onClose, onFocus, header, actions, children, bodyRef,
 }) {
@@ -236,6 +236,8 @@ export default function PanelShell({
         // can never be laid out against the board or shoved past the viewport's edge.
         position: "relative",
         flex: fullScreen ? "1 1 auto" : `0 0 ${Math.round(width)}px`,
+        // D39: the space a closed neighbour held, kept so this panel stays where it was.
+        marginRight: fullScreen ? 0 : Math.round(reserveRight),
         minWidth: 0,
         height: "100%",
         // Slot 0 is the RIGHTMOST position — where the JD drawer has always appeared — so a newly
