@@ -82,7 +82,7 @@ export function ExtensionFirstRunPrompt() {
         <div data-extension-state="not_installed" style={{ flex: "1 1 260px", minWidth: 0, lineHeight: 1.5 }}>
           <strong>Add jobs from any site.</strong>{" "}
           <span style={{ color: "var(--color-text-muted)" }}>
-            The draft browser extension captures the posting you're viewing into ★ Saved.
+            The draft browser extension captures the posting you're viewing onto your board — find it under +.
           </span>
         </div>
       )}
@@ -108,9 +108,9 @@ export function SavedEmptyState({ theme }) {
       <div style={{ fontSize: 13, textAlign: "center", color: theme?.textDim, maxWidth: 400, lineHeight: 1.7 }}>
         {connected
           ? <>Save a job on the board (★) to keep it here. Your extension is connected: on any job posting,
-              click it or press Ctrl+Shift+K and the job lands here.</>
-          : <>Save a job on the board (★) to keep it here. To save a job you found somewhere else, capture it
-              with the draft browser extension — it lands here.</>}
+              click it or press Ctrl+Shift+K and the job lands on your board, under +.</>
+          : <>Save a job on the board (★) to keep it here. To add a job you found somewhere else, capture it
+              with the draft browser extension — it lands on your board, under +.</>}
       </div>
       {!connected && (
         <Link to={EXTENSION_PAGE} target="_blank" rel="noopener" className="rm-btn rm-btn-secondary rm-btn-sm"

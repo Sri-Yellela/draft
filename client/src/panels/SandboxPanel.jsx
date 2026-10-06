@@ -29,7 +29,7 @@ export default function SandboxPanel({
   entry, onClose, onSave, onExport,
   // Panel-host layout props — this is a PEER of the JD drawer now, rendered through the same
   // PanelShell primitive, not a react-resizable-panels column squeezed in below the search bar.
-  slot = 0, width, focused = true, fullScreen = false, resizeMode = "dock", closesOnEscape,
+  slot = 0, width, focused = true, fullScreen = false, resizeMode = "dock", closesOnEscape, reserveRight = 0,
   onFocus, onResizeStart, onResize, onResizeEnd,
 }) {
   const { theme } = useTheme();
@@ -326,7 +326,7 @@ export default function SandboxPanel({
   return (
     <PanelShell
       panelId="pdf"
-      slot={slot} width={width} focused={focused} fullScreen={fullScreen} closesOnEscape={closesOnEscape}
+      slot={slot} width={width} focused={focused} fullScreen={fullScreen} closesOnEscape={closesOnEscape} reserveRight={reserveRight}
       resizeMode={resizeMode}
       onClose={onClose} onFocus={onFocus}
       onResizeStart={onResizeStart} onResize={onResize} onResizeEnd={onResizeEnd}

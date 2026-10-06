@@ -59,3 +59,21 @@ test("D39 · focus returns to what opened the panel", () => {
   assert.match(shell, /const opener = typeof document !== "undefined" \? document\.activeElement : null;/);
   assert.match(shell, /opener\.isConnected\) opener\.focus\?\.\(\{ preventScroll: true \}\)/);
 });
+
+test("D39 · a lone panel does NOT slide across — the closed neighbour's space is held (found by the A92 browser pass)", async () => {
+  const { reserveAfterClose } = await import("../client/src/hooks/usePanelHost.js");
+  const prev = { ids: ["jd", "ats"], widths: { jd: 560, ats: 560 }, reserve: {} };
+  // The ATS card (right) closes: the posting keeps its place — 560 + the 12px gap held on its right.
+  assert.deepEqual(reserveAfterClose(prev, ["jd"], 12), { jd: 572 });
+  // The posting (left) closes: the ATS card is already rightmost — nothing to hold.
+  assert.deepEqual(reserveAfterClose(prev, ["ats"], 12), { ats: 0 });
+  // The hold lasts while nothing opens…
+  assert.deepEqual(reserveAfterClose({ ids: ["jd"], widths: { jd: 560 }, reserve: { jd: 572 } }, ["jd"], 12), { jd: 572 });
+  // …and a new open re-divides the dock.
+  assert.deepEqual(reserveAfterClose({ ids: ["jd"], widths: { jd: 560 }, reserve: { jd: 572 } }, ["jd", "ats"], 12), { jd: 0, ats: 0 });
+  const shell = fs.readFileSync("client/src/components/PanelShell.jsx", "utf8");
+  assert.match(shell, /marginRight: fullScreen \? 0 : Math\.round\(reserveRight\),/);
+  for (const f of ["client/src/components/JobDetailPanel.jsx", "client/src/panels/AtsReportPanel.jsx", "client/src/panels/SandboxPanel.jsx"]) {
+    assert.match(fs.readFileSync(f, "utf8"), /reserveRight=\{reserveRight\}/, `${f} drops the hold`);
+  }
+});

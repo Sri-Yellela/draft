@@ -74,6 +74,33 @@ export function slotsFor(focusOrder, capacity) {
   return [...leftToRight].reverse();
 }
 
+/**
+ * ⛔ D39 · A LONE PANEL STAYS WHERE IT BELONGS — "it does not slide across to fill the gap". The dock is
+ * right-anchored, so when the ATS card (right) closed, the posting panel slid into its place — found by
+ * the A92 browser pass. When a panel closes and others remain, each survivor RESERVES the closed
+ * neighbours' width (plus the gap) on its right, so nothing moves; the reserve lasts until the next open
+ * or until everything is closed. Pure.
+ * @param {{ ids: string[], widths: Record<string, number>, reserve: Record<string, number> }} prev
+ *        the last layout's left-to-right ids, their widths, and any reserve already held
+ * @param {string[]} nowIds  the panels on screen now, left to right
+ * @returns {Record<string, number>} px reserved to the right of each panel in `nowIds`
+ */
+export function reserveAfterClose(prev, nowIds, gap) {
+  const out = Object.fromEntries(nowIds.map(id => [id, 0]));
+  if (!prev?.ids?.length || !nowIds.length) return out;
+  const added = nowIds.some(id => !prev.ids.includes(id));
+  if (added) return out;                        // a new panel re-divides the dock: no hold
+  const removed = prev.ids.filter(id => !nowIds.includes(id));
+  if (!removed.length) return { ...out, ...Object.fromEntries(nowIds.map(id => [id, prev.reserve?.[id] ?? 0])) };
+  // Walk the previous row: every closed panel's width (and its gap) is held by the survivor on its left.
+  let owner = null;
+  for (const id of prev.ids) {
+    if (nowIds.includes(id)) { owner = id; out[id] += prev.reserve?.[id] ?? 0; continue; }
+    if (owner) out[owner] += (prev.widths[id] ?? 0) + gap + (prev.reserve?.[id] ?? 0);
+  }
+  return out;
+}
+
 /** D39 · what a backdrop click or Escape closes: the most recently OPENED panel still on screen. */
 export function lastOpenedOf(openOrder, visibleIds) {
   return [...openOrder].reverse().find(id => visibleIds.includes(id)) ?? null;
@@ -102,6 +129,8 @@ export function usePanelHost(descriptors, viewportWidth) {
   // paint is already tiled correctly instead of snapping a frame later. Recomputing for the same
   // key is idempotent, so a double render cannot disturb it.
   const widthsRef = useRef({ key: "", map: {} });
+  // D39 · the last layout, for reserveAfterClose (left-to-right ids, widths, reserve).
+  const prevLayoutRef = useRef({ ids: [], widths: {}, reserve: {} });
   const [widthTick, setWidthTick] = useState(0);
   // The widths at the instant a drag started. A drag reports its CUMULATIVE delta, so applying it
   // to a moving base would compound and the panel would run away from the cursor.
@@ -183,12 +212,20 @@ export function usePanelHost(descriptors, viewportWidth) {
     const bySlot = slotsFor(order, capacity);
     const focusedId = order[order.length - 1];
     const n = bySlot.length;
-    if (n === 0) return { visible: [], dockWidth: 0 };
+    if (n === 0) { prevLayoutRef.current = { ids: [], widths: {}, reserve: {} }; return { visible: [], dockWidth: 0 }; }
+    const leftToRight = [...bySlot].reverse();
+    const reserve = fullScreenMode ? {} : reserveAfterClose(prevLayoutRef.current, leftToRight, PANEL_GAP);
+    const holding = Object.values(reserve).some(v => v > 0);
 
     // Keyed on the SET and the viewport, deliberately not on the focus order: reordering slots
     // moves panels sideways, it does not re-divide the budget, and refitting there would make every
     // click on a peer nudge all their widths.
     const setKey = `${[...bySlot].sort().join("|")}:${viewportWidth}`;
+    if (widthsRef.current.key !== setKey && holding) {
+      // D39: while a closed neighbour's space is held, the survivors keep their widths — a refit
+      // would move their left edges, which is the slide the hold exists to prevent.
+      widthsRef.current = { key: setKey, map: Object.fromEntries(bySlot.map(id => [id, prevLayoutRef.current.widths[id] ?? storedPanelWidth(id)])) };
+    }
     if (widthsRef.current.key !== setKey) {
       const fitted = fitPanelWidths(
         bySlot.map(id => storedPanelWidth(id)),
@@ -213,9 +250,11 @@ export function usePanelHost(descriptors, viewportWidth) {
       // the dock (the JD drawer's historical drag, preserved), and when it is not, there is no
       // handle at all — growing it could only push the dock's outer bound leftwards.
       resizeMode: slot + 1 < n ? "neighbour" : (n === 1 ? "dock" : "none"),
+      reserveRight: reserve[id] || 0,
     }));
 
-    const dockWidth = bySlot.reduce((a, id) => a + widths[id], 0) + PANEL_GAP * (n - 1);
+    const dockWidth = bySlot.reduce((a, id) => a + widths[id] + (reserve[id] || 0), 0) + PANEL_GAP * (n - 1);
+    prevLayoutRef.current = { ids: leftToRight, widths: { ...widths }, reserve };
     return { visible, dockWidth };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openIds.join("|"), focusTick, capacity, fullScreenMode, viewportWidth, widthTick]);

@@ -18,7 +18,7 @@ import { C } from "../styles/colorTokens.js";
 // inline version's tabs already sat relative to its content, so the arrangement the user knows is
 // preserved while the chrome around it becomes the shared one.
 export default function AtsReportPanel({
-  slot = 0, width, focused = true, fullScreen = false, resizeMode = "dock", closesOnEscape,
+  slot = 0, width, focused = true, fullScreen = false, resizeMode = "dock", closesOnEscape, reserveRight = 0,
   onFocus, onResizeStart, onResize, onResizeEnd, onClose,
   theme, activeAts, rightTab, setRightTab, genCount,
   jobId, resumeText, activeProfileId,
@@ -93,7 +93,7 @@ export default function AtsReportPanel({
   return (
     <PanelShell
       panelId="ats"
-      slot={slot} width={width} focused={focused} fullScreen={fullScreen} closesOnEscape={closesOnEscape}
+      slot={slot} width={width} focused={focused} fullScreen={fullScreen} closesOnEscape={closesOnEscape} reserveRight={reserveRight}
       resizeMode={resizeMode}
       onClose={onClose} onFocus={onFocus}
       onResizeStart={onResizeStart} onResize={onResize} onResizeEnd={onResizeEnd}
