@@ -30,6 +30,9 @@ export { SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, activeClauseCount, OPEN_SET
 // panels stack. Pressing the open one closes it; pressing another swaps.
 export const BOARD_PANEL = Object.freeze({ SORT: "sort", MORE: "more" });
 export const BOARD_PANEL_DEFAULT = null;
+/** ⭐ D42 · THE STRICT TOGGLE's param: "only jobs known to be in Boston" — known matches, no unknowns. */
+export const STRICT_PARAM = "strict_tags";
+export const isStrict = (params = {}) => ["1", "true", true, 1].includes(params[STRICT_PARAM]);
 export const nextBoardPanel = (current, pressed) => (current === pressed ? null : pressed);
 /** Is this panel one the SENTENCE opens (a clause's, or "+ add"'s) — rendered beneath the sentence? */
 export const isWordPanel = (panel) =>
@@ -161,33 +164,50 @@ export const panelKey = (panel) =>
  *             its place and its 0. One already chosen stays pressable — pressing it removes it.
  *   disabled  dimmed and not already chosen: the press does nothing (aria-disabled, still focusable).
  */
-export function panelRows(clause, params, facets, { defaultDomain = null } = {}) {
+export function panelRows(clause, params, facets, _opts = {}) {
   const usable = facetsUsable(facets);
-  const none = clauseSelection(clause, params).length === 0;
-  const anyLabel = clause.key === "domain"
-    ? (defaultDomain ? `your profile · ${defaultDomain}` : "your profile")
-    : panelAnyWord(clause);
-  const rows = [{ kind: "any", value: "", label: anyLabel, selected: none,
+  const chosen = clauseSelection(clause, params);
+  const none = chosen.length === 0;
+  const strict = isStrict(params);
+  // ⛔ D42: domain's "nothing chosen" pill is "all" — engineering + data for an engineering profile —
+  // and there is no second "every function" pill: lifting the scope to sales and legal is not a view
+  // anyone asked for.
+  const rows = [{ kind: "any", value: "", label: panelAnyWord(clause), selected: none,
                   count: none && usable ? facets.total : null, dimmed: false, disabled: false, note: null }];
-  if (clause.key === "domain") {
-    const all = clauseOptions(clause).every(o => clauseSelection(clause, params).includes(o.value));
-    rows.push({ kind: "all", value: "", label: "all", selected: all, count: null, dimmed: false, disabled: false, note: null });
-  }
   // A zero sinks to the end of the row (header.html: intern, at 0, after lead) — dimmed, never dropped.
   const opts = optionRows(clause, params, facets);
   for (const r of [...opts.filter(o => !o.dimmed), ...opts.filter(o => o.dimmed)]) {
+    // Under the strict toggle an option shows only its KNOWN matches, so its count is `known`.
+    const count = strict && r.known != null ? r.known : r.count;
     rows.push({ kind: "option", value: r.value, label: panelWord(clause, r.value), selected: r.selected,
-      count: r.count, dimmed: r.dimmed, disabled: r.dimmed && !r.selected,
+      count, dimmed: r.dimmed, disabled: r.dimmed && !r.selected,
       note: r.dimmed && !r.selected ? "Would show no jobs" : null });
+  }
+  // ⭐ D42 · THE STRICT TOGGLE, once something is chosen in a clause that keeps unknowns.
+  if (!none && STRICT_CLAUSES.includes(clause.key)) {
+    rows.push({ kind: "strict", value: STRICT_PARAM, label: strictLabel(clause, params), selected: strict,
+      count: null, dimmed: false, disabled: false, note: null });
   }
   return rows;
 }
+
+/** The clauses whose filter keeps rows with no tag on file — the ones a strict toggle changes. */
+export const STRICT_CLAUSES = Object.freeze(["domain", "level", "location", "where"]);
+
+const chosenWords = (clause, params) => or(clauseSelection(clause, params).map(v => panelWord(clause, v)));
+/** "only jobs known to be in Boston" · "only jobs known to be finance" · "…to be remote". */
+export function strictLabel(clause, params) {
+  const w = chosenWords(clause, params);
+  return clause.key === "location" ? `only jobs known to be in ${w}` : `only jobs known to be ${w}`;
+}
+const or = (words) => words.length <= 2 ? words.join(" or ") : `${words.slice(0, -1).join(", ")} or ${words.at(-1)}`;
 
 /** The params patch a pill's press makes — or null when it is not selectable. */
 export function panelPress(clause, params, row) {
   if (row.disabled) return null;
   if (row.kind === "any") return clearClause(clause);
   if (row.kind === "all") return allDomainsPatch(clause);
+  if (row.kind === "strict") return { [STRICT_PARAM]: row.selected ? "" : "1" };
   return pressOption(clause, params, row.value);
 }
 
@@ -198,6 +218,10 @@ export function panelPress(clause, params, row) {
  */
 export function panelNote(panel, params, facets) {
   const usable = facetsUsable(facets);
+  // ⭐ D42 · SAY EXACTLY WHAT HAPPENED: "1 in Boston · 32 with no city on file, shown after." A count that
+  // blends the two is the lie. From the chosen option's own facet (known vs count), so one choice only.
+  const split = knownSplit(panel, params, facets);
+  if (split) return split;
   if (panel === "location") return "The United States is the floor — it can be narrowed, never cleared.";
   if (panel === "where") {
     const p = coverageShare(facets, "where");
@@ -226,6 +250,29 @@ export function panelNote(panel, params, facets) {
       : `Employment type is at ${p}% coverage and cannot carry a filter yet.`;
   }
   return null;
+}
+
+const UNKNOWN_PHRASE = {
+  domain: "no kind of work on file", level: "no level on file", location: "no city on file",
+  where: "no workplace on file",
+};
+/**
+ * D42 · "N in Boston · M with no city on file, shown after." — or, under the strict toggle, "N known to
+ * be in Boston; postings with no city on file are left out." null when nothing (or more than one value)
+ * is chosen, or there is no answer: a blended figure is not said.
+ */
+export function knownSplit(panel, params, facets) {
+  const clause = SENTENCE_CLAUSES.find(c => c.key === panel);
+  if (!clause || !STRICT_CLAUSES.includes(panel) || !facetsUsable(facets)) return null;
+  const chosen = clauseSelection(clause, params);
+  if (chosen.length !== 1) return null;
+  const row = optionRows(clause, params, facets).find(r => r.value === chosen[0]);
+  if (!row || row.count == null) return null;
+  const word = panel === "location" ? `in ${panelWord(clause, chosen[0])}` : panelWord(clause, chosen[0]);
+  if (isStrict(params)) return `${row.known} known to be ${word} — postings with ${UNKNOWN_PHRASE[panel]} are left out.`;
+  return row.unclassified
+    ? `${row.known} ${word} · ${row.unclassified} with ${UNKNOWN_PHRASE[panel]}, shown after.`
+    : `${row.known} ${word}.`;
 }
 
 /**

@@ -1,11 +1,11 @@
 import { Fragment } from "react";
-import { sentenceParts, BOARD_PANEL, isWordPanel } from "../lib/filterSentenceModel.js";
+import { sentenceParts } from "../lib/filterSentenceModel.js";
 import "../styles/type.js";
 import "./FullHouse.css";
 
 // ── D26 + D30 + D35 · THE SENTENCE IS THE HEADLINE, AND ITS WORDS ARE THE CONTROLS ─────────────────
 //
-//   Now showing [all] jobs, at [senior level], [in the United States], [any workplace]. [+ add]
+//   Now showing [all] jobs, at [senior level], [in the United States], [any workplace].
 //
 // ⛔ A PROJECTION OF FILTER STATE, NEVER A SECOND SOURCE OF TRUTH (D30) — sentenceParts derives it from
 // the same params the panels set.
@@ -17,8 +17,8 @@ import "./FullHouse.css";
 //   aria-expanded OPEN — its panel is showing (the outline).
 // ⛔ D34 · ONE FAMILY, ONE SIZE, ONE LINE-HEIGHT: the tokens are lettered exactly like the prose around
 // them (FullHouse.css: `font: inherit`); only the box says which words are controls.
-// `+ add` (dashed, shadowless) opens the panel of what can still be added; it reads open while that
-// panel — or the panel of an optional clause not yet in the sentence — is showing.
+// ⛔ D42 (owner, 10-06): `+ add` LEFT THE SENTENCE — what can still be added is listed inside the panel
+// any word opens (WordPanel's "Add a filter" row).
 //
 // Pure: no hooks, so a test can call it and press its buttons directly.
 //
@@ -28,7 +28,6 @@ export const PANEL_ID = "fh-panel";
 
 export default function BoardHeadline({ params = {}, defaultDomain = null, nothingMatches = false, open = null, onToggle }) {
   const { verb, slots } = sentenceParts(params, { defaultDomain, nothingMatches });
-  const addOpen = open === BOARD_PANEL.MORE || (isWordPanel(open) && !slots.some(s => s.key === open));
   return (
     <h1 className="bh" id={SENTENCE_ID} data-board-headline data-nothing-matches={nothingMatches ? "true" : "false"}>
       <span className="bh__verb">{verb}</span>{" "}
@@ -50,13 +49,7 @@ export default function BoardHeadline({ params = {}, defaultDomain = null, nothi
           </Fragment>
         );
       })}
-      .{" "}
-      <button type="button" className="tok tok--add" data-slot={BOARD_PANEL.MORE}
-        aria-expanded={addOpen} aria-controls={addOpen ? PANEL_ID : undefined}
-        title="Add a filter"
-        onClick={() => onToggle?.(addOpen ? open : BOARD_PANEL.MORE)}>
-        + add
-      </button>
+      .
     </h1>
   );
 }

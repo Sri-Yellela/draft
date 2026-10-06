@@ -144,11 +144,9 @@ test("D35 ① clicking a word OPENS its panel beneath the sentence; clicking the
   assert.equal(b.state.open, null, "pressing the open word again must CLOSE its panel");
   assert.equal(slot(await b.render(), "level").props["aria-expanded"], false);
   assert.equal(html(WordPanel, { open: b.state.open, params: {}, facets: FACETS }), "", "a closed panel still renders");
-  // + add toggles the same way.
-  slot(await b.render(), BOARD_PANEL.MORE).props.onClick();
-  assert.equal(b.state.open, BOARD_PANEL.MORE);
-  slot(await b.render(), BOARD_PANEL.MORE).props.onClick();
-  assert.equal(b.state.open, null);
+  // ⛔ D42 (owner, 10-06): "+ add" LEFT THE SENTENCE — it is the open panel's "Add a filter" row.
+  assert.equal(slot(await b.render(), BOARD_PANEL.MORE), undefined, "+ add is back in the sentence");
+  assert.match(panel, /data-add-section[\s\S]*data-add="posted"[\s\S]*data-add="drawer"/, "the panel does not list what can be added");
   // App.jsx presses through exactly this rule, on the one context value.
   const app = strip(read("client/src/App.jsx"));
   assert.match(app, /onToggle=\{\(key\) => setBoardPanel\(current => nextBoardPanel\(current, key\)\)\}/);
@@ -332,7 +330,7 @@ test("D35 ⑦ every word is reachable by KEYBOARD, and the panel is reachable fr
   const lvl = clause("level");
   const out = html(BoardHeadline, { params: {}, open: "level" });
   const words = out.match(/<button[^>]*>/g) || [];
-  assert.equal(words.length, 4 + 1, "four permanent words and + add, each a button");
+  assert.equal(words.length, 4, "four permanent words, each a button (D42: + add left the sentence)");
   for (const w of words) {
     assert.match(w, /type="button"/);
     assert.doesNotMatch(w, /tabindex="-1"|disabled/, `a word is out of the tab order: ${w}`);

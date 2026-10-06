@@ -137,7 +137,7 @@ import { searchJobs, cacheJobs, cacheJoboFeed, reconcileFingerprint } from "./se
 import { isResumeRelevant } from "./services/jobs/relevanceFilter.js";
 import {
   buildJobFilters, buildSelectColumns, resolveFacetDimensions, computeSkillsFacet,
-  FACET_DIMENSIONS, postedSinceSql,
+  FACET_DIMENSIONS, postedSinceSql, roleScopeExtraSql,
 } from "./services/jobs/jobQuery.js";
 // D24 · GET /api/jobs/facets — the sentence's counts, measured through boardPageResponse itself.
 import { boardFacetsResponse } from "./services/jobs/boardFacets.js";
@@ -156,7 +156,7 @@ import { deriveAutomationTier } from "./services/jobs/automationTier.js";
 import { backfillAutomationTier } from "./services/jobs/backfillAutomationTier.js";
 import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
 import { tagStaleJobs } from "./services/jobs/jobTags.js";
-import { resolvePlaceText } from "./shared/jobTagVocabulary.js";
+import { resolvePlaceText, roleScopeExtra } from "./shared/jobTagVocabulary.js";
 import { deliverPipelineAlerts } from "./services/jobs/alertDelivery.js";
 import { recordPipelineRun } from "./services/jobs/pipelineRunLog.js";
 import { backfillCompanyLogos } from "./services/jobs/backfillCompanyLogos.js";
@@ -7686,6 +7686,8 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
     // ⛔ Only on a board that HAS the jrm join. The Saved tab drops the join, so asking for this
     // key there would reference an alias that does not exist.
     if (!savedTab) appliedDerivedKeys.push('role_key');
+    // D42 · the scope's extra buckets (engineering's is data) rank with the declared one.
+    if (!savedTab) filterParams.role_scope_extra = roleScopeExtra(roleKey);
     // PROVENANCE, carried rather than re-derived. buildJobFilters cannot tell a value the user typed
     // from one this bridge inferred — the merged object looks identical either way — and X2's rule
     // turns entirely on that distinction: a filter the USER SET excludes rows, a filter DERIVED on
@@ -7873,9 +7875,13 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // ⛔ D30 · SO DOES AN EXPLICIT FUNCTION ("design jobs"). The domain dial names the kind of work, so
       // choosing one is the user overriding the profile's declared role for this view, exactly as a
       // typed search does — its own soft-null predicate (jobQuery.js job_functions) then scopes the board.
+      // ⭐ D42 (owner, 10-06) · the dial's "all" — nothing chosen — is the profile's scope WIDENED by
+      // its extra buckets: an engineering profile's "all" is engineering + data (ROLE_SCOPE_EXTRA).
       const functionChosen = String(req.query.job_functions || "").trim() !== "";
+      const scopeExtraSql = roleScopeExtraSql(roleScopeExtra(roleKey));
       const roleSql = (savedTab || boardSearch || functionChosen) ? '' : `AND (
-            jrm.role_key IS NOT NULL
+            jrm.role_key IS NOT NULL${scopeExtraSql ? `
+            OR ${scopeExtraSql}` : ''}
             OR NOT EXISTS (SELECT 1 FROM job_role_map m WHERE m.job_id = sj.job_id)
           )`;
       const whereClauseFor = (rich) => `

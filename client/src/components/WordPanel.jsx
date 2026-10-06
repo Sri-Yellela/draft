@@ -82,6 +82,15 @@ function PanelBody({ open, params = {}, facets = null, facetsStatus = "idle", de
         {noCounts && clause && (
           <p className="fh-cov">Counts aren't available right now — these still filter the board.</p>
         )}
+        {/* ⭐ D42 (owner, 10-06): "+ add" LEFT THE SENTENCE. What can still be added — posted, fit,
+            salary & more — sits here, in the box any filter word opens. */}
+        {clause && (
+          <div className="fh-addrow" data-add-section>
+            <span className="fh-k" id={`${PANEL_ID}-add`}>Add a filter</span>
+            <AddOptions params={params} otherFilterCount={otherFilterCount} labelledBy={`${PANEL_ID}-add`}
+              exclude={open} onOpen={onOpen} onMoreFilters={() => { onClose?.(); onMoreFilters?.(); }} />
+          </div>
+        )}
       </div>
     </section>
   );
@@ -94,11 +103,12 @@ function ClauseOptions({ clause, params, facets, defaultDomain, find, setFind, o
     if (!openSet) return all;
     // An open set: the floor / defaults first, then what is chosen, then the most postings; a zero
     // only sinks and dims, it is never dropped. The find box narrows by the pill's own words.
-    const head = all.filter(r => r.kind !== "option");
+    const head = all.filter(r => r.kind !== "option" && r.kind !== "strict");
+    const tail = all.filter(r => r.kind === "strict");
     const opts = all.filter(r => r.kind === "option")
       .sort((a, b) => (b.selected - a.selected) || ((b.count ?? 0) - (a.count ?? 0)));
     const q = find.trim().toLowerCase();
-    return [...head, ...(q ? opts.filter(r => r.label.toLowerCase().includes(q)) : opts)];
+    return [...head, ...(q ? opts.filter(r => r.label.toLowerCase().includes(q)) : opts), ...tail];
   }, [clause, params, facets, defaultDomain, openSet, find]);
   const findLabel = clause.key === "location" ? "Find a city or state" : "Find a kind of work";
   return (
@@ -119,7 +129,8 @@ export function PanelOptions({ clause, rows, params = {}, onPatch, openSet = fal
     <div className={`fh-opts${openSet ? " fh-opts--open" : ""}`} role="group"
       aria-labelledby={`${PANEL_ID}-key`} aria-describedby={noteId}>
       {rows.map(r => (
-        <button key={`${r.kind}:${r.value}`} type="button" className="fh-op" role={role}
+        <button key={`${r.kind}:${r.value}`} type="button" className={r.kind === "strict" ? "fh-op fh-op--strict" : "fh-op"}
+          role={r.kind === "strict" ? "checkbox" : role}
           data-kind={r.kind} data-value={r.value} aria-checked={r.selected}
           aria-disabled={r.disabled ? "true" : undefined}
           title={r.note || undefined}
@@ -133,10 +144,10 @@ export function PanelOptions({ clause, rows, params = {}, onPatch, openSet = fal
 }
 
 /** "+ add" — what can be added. Pure, like PanelOptions. */
-export function AddOptions({ params = {}, otherFilterCount = 0, onOpen, onMoreFilters, noteId }) {
+export function AddOptions({ params = {}, otherFilterCount = 0, onOpen, onMoreFilters, noteId, labelledBy, exclude = null }) {
   return (
-    <div className="fh-opts" role="group" aria-labelledby={`${PANEL_ID}-key`}>
-      {addRows(params, { otherFilterCount }).map(r => (
+    <div className="fh-opts" role="group" aria-labelledby={labelledBy || `${PANEL_ID}-key`}>
+      {addRows(params, { otherFilterCount }).filter(r => r.key !== exclude).map(r => (
         <button key={r.key} type="button" className="fh-op" data-add={r.key}
           aria-disabled={r.disabled ? "true" : undefined}
           aria-describedby={r.kind === "employment" ? noteId : undefined}

@@ -33,7 +33,7 @@ import { EXPERIENCE_LEVELS, EMPLOYMENT_TYPES, WORK_MODELS, valueSet } from "../.
 import { METROS, JOB_FUNCTIONS, functionForRole } from "../../shared/jobTagVocabulary.js";
 
 /** Bump when a rule changes: every row is re-tagged on the next pass (owner tags survive). */
-export const TAGGER_VERSION = 1;
+export const TAGGER_VERSION = 2;
 
 const LEVELS = valueSet(EXPERIENCE_LEVELS);
 const EMPLOYMENTS = valueSet(EMPLOYMENT_TYPES);
@@ -97,6 +97,14 @@ export function parsePlaces(raw) {
     const tokens = seg.split(",").map(cleanToken).filter(Boolean);
     for (let i = 0; i < tokens.length; i++) {
       const tok = tokens[i];
+      // D42 · "Seattle WA" — a known city and its state with no comma between ("San Francisco, CA,
+      // Seattle WA, New York, NY" lost Seattle, and the city-state pairing below then read "Seattle WA,
+      // New York" as one place). Only a city the vocabulary pairs with that state; checked first.
+      const spaced = /^(.+?)\s+([A-Z]{2})$/.exec(tok);
+      if (spaced && US_STATES[spaced[2]] && CITY_STATE_METRO.has(`${spaced[1].toLowerCase()}|${spaced[2]}`)) {
+        add({ country: "US", state: spaced[2], metro: CITY_STATE_METRO.get(`${spaced[1].toLowerCase()}|${spaced[2]}`) });
+        continue;
+      }
       const next = tokens[i + 1] || "";
       const nextCode = /^[A-Z]{2}$/.test(next) && US_STATES[next] ? next : null;
       const nextName = STATE_BY_NAME[next.toLowerCase()] || null;

@@ -193,7 +193,9 @@ test("D24: NO FACETS ANSWER, NO NUMBERS — a 404 draws no counts, no dims, no w
   const out = html(WordPanel, { open: "level", params: {}, facets: null, facetsStatus: "unavailable" });
   assert.match(out, /Counts aren(?:&#x27;|')t available right now — these still filter the board\./);
   assert.doesNotMatch(out, /class="n"/, "a count was drawn without a facets answer");
-  assert.doesNotMatch(out, /aria-disabled="true"/, "an option was dimmed without a facets answer");
+  // The clause's own options only — D42's "Add a filter" row lists employment type disabled on purpose.
+  const options = out.split("data-add-section")[0];
+  assert.doesNotMatch(options, /aria-disabled="true"/, "an option was dimmed without a facets answer");
 });
 
 // ── 5. The sentence, projected ─────────────────────────────────────────────────────────────────
@@ -203,9 +205,11 @@ test("D30 → D35: THE SENTENCE IS A PROJECTION — four permanent words, posted
   assert.equal(SENTENCE_CLAUSES.filter(c => c.permanent).length, SENTENCE_CAP, "four permanent slots");
   assert.equal(sentenceClauses().length, 6);
   assert.equal(sentenceText({}), "Now showing all jobs, at any level, in the United States, any workplace.");
+  // ⛔ D42 (owner, 10-06): the unset domain reads "all" — for an engineering profile it IS engineering +
+  // data — never the profile's word, whatever the caller passes.
   assert.equal(sentenceText({}, { defaultDomain: "engineering" }),
-    "Now showing engineering jobs, at any level, in the United States, any workplace.",
-    "the unset domain reads the profile's own function — the board IS scoped to it");
+    "Now showing all jobs, at any level, in the United States, any workplace.",
+    "the unset domain reads all (D42)");
   const full = { job_functions: ["design"], experience_levels: ["senior"], places: ["metro:boston"],
     work_models: ["remote"], ageFilter: "1w", fit_bands: ["strong"] };
   assert.equal(sentenceText(full),
@@ -224,13 +228,13 @@ test("D30 → D35: THE SENTENCE IS A PROJECTION — four permanent words, posted
   for (const key of ["where", "posted"]) {
     for (const o of clause(key).dim.options.filter(o => o.value)) assert.ok(PANEL_WORDS[key][o.value], `${key}=${o.value} has no panel word`);
   }
-  // Rendered as the headline: each slot a word-button, then "+ add".
+  // Rendered as the headline: each slot a word-button. ⛔ D42: no "+ add" — it moved into the panel.
   const { html, BoardHeadline } = await loadUi();
   const out = html(BoardHeadline, { params: full });
   const text = out.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
-  assert.equal(text, "Now showing design jobs, at senior level, in Boston, remote only, posted this week, strong fits only. + add");
+  assert.equal(text, "Now showing design jobs, at senior level, in Boston, remote only, posted this week, strong fits only.");
   assert.equal((out.match(/class="tok"/g) || []).length, 6);
-  assert.equal((out.match(/class="tok tok--add"/g) || []).length, 1);
+  assert.equal((out.match(/class="tok tok--add"/g) || []).length, 0);
   assert.match(html(BoardHeadline, { params: four, nothingMatches: true }), /data-nothing-matches="true"/);
   assert.equal(sentenceParts({}).slots.length, 4, "posted and fit are absent at rest");
   assert.deepEqual(clearClause(clause("location")), { [PLACES.param]: [] }, "clearing location is the floor");

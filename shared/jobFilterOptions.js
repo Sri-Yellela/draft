@@ -47,6 +47,8 @@
 import { ATS_BAND, ATS_BAND_LABELS } from "./atsBands.js";
 // D29 · the tag layer's two new dimensions live with the tag vocabulary; registered below.
 import { JOB_FUNCTIONS, PLACES } from "./jobTagVocabulary.js";
+// D42 · the company's sector — a drawer filter, separate from the job's domain.
+import { SECTORS } from "./companySectors.js";
 export { JOB_FUNCTIONS, PLACES };
 
 // ── Experience level — scraped_jobs.experience_level ────────────────────────────────────────────
@@ -358,6 +360,7 @@ export const FILTER_DIMENSIONS = {
   visited:         VISITED,
   jobFunction:     JOB_FUNCTIONS,
   place:           PLACES,
+  sector:          SECTORS,
 };
 
 // ── Readers ────────────────────────────────────────────────────────────────────────────────────
