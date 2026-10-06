@@ -191,9 +191,10 @@ test("the generate -> sandbox flow is untouched", () => {
   assert.match(jobs, /onSave=\{saveSandboxHtml\} onExport=\{exportAndTrack\}/);
 });
 
-test("Escape closes only the focused panel", () => {
+test("Escape closes ONE panel — the most recently opened, as the backdrop does (D39)", () => {
   // One keypress closing every open panel is never what "go back" means.
-  assert.match(shell, /if \(!focused\) return undefined;[\s\S]*?e\.key === "Escape"/);
+  assert.match(shell, /const escapeMine = closesOnEscape \?\? focused;\s+useEffect\(\(\) => \{\s+if \(!escapeMine\) return undefined;[\s\S]*?e\.key === "Escape"/);
+  assert.match(jobs, /closesOnEscape: id === lastOpenedId,/);
 });
 
 // ── The board behind the scrim ────────────────────────────────────────────────────────────────

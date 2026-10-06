@@ -113,7 +113,7 @@ function ActionBtn({ onClick, title, children, accent = C.INFO, active, disabled
 // handling, focus-on-open, the overlay surface, the scrim, the animation and the two pinned regions
 // all live in PanelShell, which is shared with the PDF and ATS panels.
 export default function JobDetailPanel({
-  slot = 0, width, focused = true, fullScreen = false, resizeMode = "dock",
+  slot = 0, width, focused = true, fullScreen = false, resizeMode = "dock", closesOnEscape,
   onFocus, onResizeStart, onResize, onResizeEnd,
 }) {
   const { selectedJob, setSelectedJob, selectedJobMeta } = useJobBoard();
@@ -224,7 +224,7 @@ export default function JobDetailPanel({
   return (
     <PanelShell
       panelId="jd"
-      slot={slot} width={width} focused={focused} fullScreen={fullScreen}
+      slot={slot} width={width} focused={focused} fullScreen={fullScreen} closesOnEscape={closesOnEscape}
       resizeMode={resizeMode}
       onClose={close} onFocus={onFocus}
       onResizeStart={onResizeStart} onResize={onResize} onResizeEnd={onResizeEnd}

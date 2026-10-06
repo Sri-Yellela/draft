@@ -54,10 +54,38 @@ import {
  *   fullScreenMode: boolean,
  * }}
  */
+/**
+ * ⛔ D39 (owner, 10-06): THE PAIR IS RIGID — the posting LEFT, the ATS card RIGHT, always; the PDF
+ * sandbox between them. Positions come from THIS list, never from focus or open order: the slots used
+ * to follow FOCUS ("most recently focused takes slot 0, the rightmost"), so a click inside the left
+ * panel swapped the two, and a press on its X swapped them under the pointer before the click landed —
+ * "the X closes neither, it just swaps their places". Focus now decides only z-order and the keyboard.
+ */
+export const SPATIAL_ORDER = Object.freeze(["jd", "pdf", "ats"]);   // left → right
+
+/**
+ * D39 · the panels on screen, by SLOT (0 = rightmost). Pure, so the rigid rule is tested directly.
+ * `focusOrder` is most-recent LAST; it decides only WHICH panels fit (the `capacity` most recently
+ * focused) — never where they sit.
+ */
+export function slotsFor(focusOrder, capacity) {
+  const shown = [...focusOrder].reverse().slice(0, capacity);
+  const leftToRight = [...SPATIAL_ORDER.filter(id => shown.includes(id)), ...shown.filter(id => !SPATIAL_ORDER.includes(id))];
+  return [...leftToRight].reverse();
+}
+
+/** D39 · what a backdrop click or Escape closes: the most recently OPENED panel still on screen. */
+export function lastOpenedOf(openOrder, visibleIds) {
+  return [...openOrder].reverse().find(id => visibleIds.includes(id)) ?? null;
+}
+
 export function usePanelHost(descriptors, viewportWidth) {
   // Focus order, most-recent LAST. A ref rather than state: it is bookkeeping that must be readable
   // synchronously inside the eviction effect without waiting for a re-render.
   const focusOrderRef = useRef([]);
+  // D39 · OPEN order, most-recent LAST — what a backdrop click and Escape close first (deterministic:
+  // the most recently opened), independent of where the pointer last was.
+  const openOrderRef = useRef([]);
   const [focusTick, setFocusTick] = useState(0);
   // EFFECTIVE widths, in px, for the set that is currently open — not preferences that get refitted
   // on every change.
@@ -96,6 +124,8 @@ export function usePanelHost(descriptors, viewportWidth) {
     const stillOpen = prev.filter(id => openIds.includes(id));
     const newlyOpen = openIds.filter(id => !prev.includes(id));
     const next = [...stillOpen, ...newlyOpen];
+    const prevOpen = openOrderRef.current;
+    openOrderRef.current = [...prevOpen.filter(id => openIds.includes(id)), ...openIds.filter(id => !prevOpen.includes(id))];
     if (next.length !== prev.length || next.some((id, i) => id !== prev[i])) {
       focusOrderRef.current = next;
       setFocusTick(t => t + 1);
@@ -148,10 +178,9 @@ export function usePanelHost(descriptors, viewportWidth) {
   // ── The tiled layout ────────────────────────────────────────────────────────────────────────
   const layout = useMemo(() => {
     const order = focusOrderRef.current.filter(id => openIds.includes(id));
-    // Most recently focused takes SLOT 0 — the rightmost position, which is exactly where the JD
-    // drawer has always appeared. A newly-opened panel therefore shows up where the user already
-    // expects a panel to be, and the one they were not using slides left.
-    const bySlot = [...order].reverse().slice(0, capacity);
+    // WHICH panels are on screen is still the `capacity` most recently focused (eviction's rule) —
+    // but WHERE each sits is SPATIAL_ORDER (D39): slot 0 is the rightmost, so the list is reversed.
+    const bySlot = slotsFor(order, capacity);
     const focusedId = order[order.length - 1];
     const n = bySlot.length;
     if (n === 0) return { visible: [], dockWidth: 0 };
@@ -243,6 +272,8 @@ export function usePanelHost(descriptors, viewportWidth) {
     endResize,
     openCount: openIds.length,
     fullScreenMode,
+    // D39 · the panel a backdrop click or Escape closes: the most recently OPENED that is on screen.
+    lastOpenedId: lastOpenedOf(openOrderRef.current, layout.visible.map(p => p.id)),
   };
 }
 
