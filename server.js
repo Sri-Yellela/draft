@@ -4454,7 +4454,7 @@ function runCacheCleanup() {
 // Declared here (before the ATS cache warm below) so cacheJobs() can pass it through for
 // background job-description enrichment (services/jobs/enrichJob.js) at every call site.
 if (!ANTHROPIC_KEY) {
-  console.error("[startup] WARNING: ANTHROPIC_KEY is not set in .env — PDF parsing and resume generation will fail.");
+  console.error("[startup] WARNING: ANTHROPIC_KEY is not set — the model calls draft still makes itself (cover letters, domain-chip suggestions) will fail. Résumé generation does not use it: it runs in the tools service (A88).");
 }
 const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
 // RESUME_MASTER_URL + RESUME_MASTER_TOKEN. Unset is a supported state: every route that needs the
@@ -9747,7 +9747,12 @@ app.post("/api/generate", requireAuth, async (req, res) => {
   const mode = legacyModeForTool(tool);
   const promptMode = promptModeForTool(tool);
   const eventSubtype = eventSubtypeForTool(tool);
-  if (!ANTHROPIC_KEY) return res.status(500).json({ error:"ANTHROPIC_KEY not configured on server." });
+  // ⛔ A88: this route used to refuse with 500 "ANTHROPIC_KEY not configured" — but nothing in it
+  // calls a model. A new résumé comes from coreGenerateResume → toolsService.generate (the tools
+  // service holds the model key, D17); a cached one is served and re-scored locally. So the key
+  // gated the wrong dependency: a server with the key and no tools service passed it and then
+  // failed inside generation, and one with the tools service and no key refused a working route.
+  // The tools-service gate sits below, on the NEW-generation branch only.
 
   // Guard: reject obviously empty or template-placeholder resume content
   const resumeTrimmed = resumeText.trim();
@@ -9798,6 +9803,14 @@ app.post("/api/generate", requireAuth, async (req, res) => {
 
   // Limit check only applies to new generation (not cache hits)
   if (!cachedArtifact || forceRegen) {
+    // A88: a NEW résumé needs the tools service (RESUME_MASTER_URL + RESUME_MASTER_TOKEN) — say so,
+    // as 503 not-retryable, before a limit is checked or a slot is spent. A cached résumé needs
+    // nothing remote and is still served when the service is not configured.
+    if (!toolsService.configured) {
+      const { status, body } = httpErrorFor(new ToolsServiceError("The résumé tools service is not configured on this server",
+        { code: "tools_service_unconfigured", retryable: false, permanent: true }));
+      return res.status(status).json(body);
+    }
     const limitCheck = checkLimit(db, req.user.id, "resume_generate");
     if (!limitCheck.allowed) {
       return res.status(429).json({
@@ -10461,7 +10474,14 @@ app.post("/api/standalone/apply",
 app.post("/api/cover-letter/generate", requireAuth, async (req, res) => {
   const { resumeText, jobDescription, tone = "professional", jobTitle, company } = req.body;
   if (!resumeText) return res.status(400).json({ error: "resumeText is required" });
-  if (!ANTHROPIC_KEY) return res.status(500).json({ error: "ANTHROPIC_KEY not configured on server." });
+  // A88: this route DOES call the model directly (callModel, purpose cover_letter), so the key
+  // check stays — but a missing setting is the server's configuration, not a crash: 503, said
+  // plainly, not retryable. The setting's name goes to the operator's log, not the user's screen.
+  if (!ANTHROPIC_KEY) {
+    console.warn("[cover-letter] refused: ANTHROPIC_KEY is not set");
+    return res.status(503).json({ error: "Cover letters are not available on this server — its model key is not configured.",
+      code: "model_unconfigured", retryable: false, detail: "Retrying will not help until this is fixed on the server." });
+  }
 
   const resumeTrimmed = resumeText.trim();
   if (resumeTrimmed.length < 50) {

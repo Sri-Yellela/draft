@@ -49,6 +49,10 @@ export class ToolsServiceError extends Error {
   }
 }
 
+// The two 4xx statuses that mean "not now" rather than "fix the request" — the same pair
+// shared/failureAttribution.js files as TRANSIENT_HTTP. 400/401/403/404/413/422 stay permanent.
+const TRANSIENT_4XX = new Set([408, 429]);
+
 const TIMEOUT_MS = { generate: 150_000, enhance: 120_000, "parse-pdf": 90_000, default: 20_000 };
 
 export function createToolsServiceClient({
@@ -94,11 +98,19 @@ export function createToolsServiceClient({
         retryable: false, permanent: true });
     }
     if (res.ok) return json;
+    // ⛔ A88: Resume Master's explicit verdict wins, field by field — and `retryable: true` on its
+    // own IS a verdict. This used to infer `permanent` from `status < 500` whenever the body sent no
+    // `permanent`, so the service's own 429 `{ error: "limit_exceeded", retryable: true }` was filed
+    // permanent=yes, "retry will fail identically", beside a Retry button. Absent any verdict, a 408
+    // (timeout) or 429 (rate limit) is "not now", not "never"; any other 4xx is ours to fix; a 5xx
+    // may clear. The client does not retry on its own (no Retry-After handling — the service sends
+    // none), so nothing here can loop: the verdict only says whether a PERSON's retry can work.
+    const transientStatus = res.status >= 500 || TRANSIENT_4XX.has(res.status);
+    const retryable = typeof json.retryable === "boolean" ? json.retryable : transientStatus;
     throw new ToolsServiceError(json.message || json.error || `The résumé tools service answered ${res.status}`, {
       code: json.error || "tools_service_error", status: res.status,
-      retryable: json.retryable ?? res.status >= 500,
-      // Resume Master's explicit verdict wins; absent one, a 4xx is ours to fix and a 5xx may clear.
-      permanent: json.permanent ?? (json.retryable === false ? true : res.status < 500),
+      retryable,
+      permanent: typeof json.permanent === "boolean" ? json.permanent : !retryable,
       violations: json.violations ?? null, usage: Array.isArray(json.usage) ? json.usage : [],
     });
   }
