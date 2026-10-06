@@ -64,10 +64,48 @@ export function placesFilterSql(values) {
   // An untagged row has no place rows, so it lands in "unknown" by the first part — kept, not hidden.
   const unknown = `(${unknownParts.join(" OR ")})`;
   return {
+    // ⚠ placeFacetCounts below is this predicate in JavaScript, for the facets' 74 options at once —
+    // change one and test/placeFacetCounts.test.js fails until the other matches.
     sql: `(${match} OR ${unknown})`,
     // D42 · the strict toggle ("only jobs known to be in Boston") is the match alone.
     matchSql: match,
     unknownSql: `(NOT ${match} AND ${unknown})`,
     values: parsed.map(p => `${p.kind}:${p.key}`),
   };
+}
+
+/**
+ * ⚡ THE LOCATION FACET, COUNTED IN ONE PASS (10-06 (33)). GET /api/jobs/facets asked placesFilterSql's
+ * predicate once per option — 74 options (23 metros + 51 states), each a handful of correlated EXISTS
+ * over job_tag_places, per row: 9–10 s per facets call on a 2,616-row board, and the client fetches
+ * facets on every word press and every search. This reads the board's places ONCE and applies the SAME
+ * rule per job in memory. ⛔ It must agree with placesFilterSql exactly — test/placeFacetCounts.test.js
+ * runs both over the same fixture for every option.
+ *
+ *   match    some place of the posting is the option's metro / state            → known
+ *   unknown  no place names a state AND (some place is US, or there is no place)  (D42: non-US is not unknown)
+ *            — or, for a metro: no place names a metro AND some place is in that metro's state
+ *   count    match OR unknown
+ *
+ * @param {Map<string, Array<{country:string, state:string|null, metro:string|null}>>} placesByJob
+ *        EVERY job on the board, with [] for one that has no place rows (untagged, or names nothing)
+ * @param {string[]} values  the location dimension's option values ("metro:boston", "state:CA")
+ * @returns {Map<string, { count: number, known: number }>}
+ */
+export function placeFacetCounts(placesByJob, values) {
+  const opts = values.map(v => [v, parsePlaceValue(v)]).filter(([, p]) => p);
+  const out = new Map(opts.map(([v]) => [v, { count: 0, known: 0 }]));
+  for (const places of placesByJob.values()) {
+    const states = new Set(places.map(p => p.state).filter(Boolean));
+    const metros = new Set(places.map(p => p.metro).filter(Boolean));
+    const baseUnknown = states.size === 0 && (places.length === 0 || places.some(p => p.country === "US"));
+    for (const [v, opt] of opts) {
+      const match = opt.kind === "metro" ? metros.has(opt.key) : states.has(opt.key);
+      const unknown = baseUnknown
+        || (opt.kind === "metro" && metros.size === 0 && states.has(METROS.find(m => m.value === opt.key).state));
+      const r = out.get(v);
+      if (match) { r.known++; r.count++; } else if (unknown) r.count++;
+    }
+  }
+  return out;
 }

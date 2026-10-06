@@ -109,18 +109,24 @@ function normaliseRow(title, company, skillsJson, summary, description) {
 // length) moves, so an enriched or re-crawled posting is never matched stale. The function runs up
 // to four times per row per request (the count, the filter, the order, the cursor projection), so
 // without this each pass re-normalised every description — 1.0 s warm for "ai", measured.
+//
+// ⚡ 10-06 (33): THE STAMP IS COMPUTED IN SQL, AND THE DESCRIPTION CROSSES ONLY ON A MISS. The cache made
+// normalising cheap, but SQLite still copied every posting's description (~5 KB) into JS on every pass
+// — ~80 of each ~100 ms pass on 2,616 rows, measured — and a search request makes ~10 passes (the
+// board's count, list, order and cursor, and each facet clause): ~1 s per search. The stamp is now
+// updated_at plus each field's BYTE length (octet_length reads the record header, not the text), and
+// the SQL hands the description over only when draft_search_cached says this row's stamp is not held.
 const rowCache = new Map();
 function cachedRow(jobId, stamp, title, company, skillsJson, summary, description) {
   const key = String(jobId);
-  const len = (v) => String(v ?? "").length;
-  const s = `${stamp ?? ""}|${len(title)}|${len(company)}|${len(skillsJson)}|${len(summary)}|${len(description)}`;
   const hit = rowCache.get(key);
-  if (hit && hit.stamp === s) return hit;
+  if (hit && hit.stamp === stamp) return hit;
   if (rowCache.size >= CACHE_LIMIT) rowCache.clear();
-  const row = { stamp: s, ...normaliseRow(title, company, skillsJson, summary, description) };
+  const row = { stamp, ...normaliseRow(title, company, skillsJson, summary, description) };
   rowCache.set(key, row);
   return row;
 }
+const isCached = (jobId, stamp) => rowCache.get(String(jobId))?.stamp === stamp;
 
 /** THE tier rules — searchTier and the SQL function both come here. */
 function tierOfRow(row, variants) {
@@ -134,6 +140,7 @@ function tierOfRow(row, variants) {
 }
 
 export const SEARCH_TIER_FN = "draft_search_tier";
+export const SEARCH_CACHED_FN = "draft_search_cached";
 
 /** Register the tier function on a database handle. Idempotent per handle. */
 const registered = new WeakSet();
@@ -151,6 +158,9 @@ export function registerBoardSearch(db) {
       if (!lastVariants) return null;
       return tierOfRow(cachedRow(jobId, stamp, title, company, skillsJson, summary, description), lastVariants);
     });
+  // 1 when this row's normalised text is held for this stamp — the SQL then passes NULL for the
+  // description instead of copying it. Not deterministic: its answer changes as the cache fills.
+  db.function(SEARCH_CACHED_FN, (jobId, stamp) => (isCached(jobId, stamp) ? 1 : 0));
   registered.add(db);
 }
 
@@ -158,9 +168,12 @@ export function registerBoardSearch(db) {
  * The tier as a SQL expression over the board's `sj` alias, with its one bound parameter.
  * Used as the WHERE predicate (`IS NOT NULL` — the omission) and as the leading ORDER key.
  */
+const STAMP_SQL = `(COALESCE(sj.updated_at, '') || '|' || COALESCE(octet_length(sj.title), '') || '|' || COALESCE(octet_length(sj.company), '')
+  || '|' || COALESCE(octet_length(sj.skills_json), '') || '|' || COALESCE(octet_length(sj.summary), '') || '|' || COALESCE(octet_length(sj.description), ''))`;
 export function boardSearchSql(variants) {
   return {
-    sql: `${SEARCH_TIER_FN}(sj.job_id, sj.updated_at, sj.title, sj.company, sj.skills_json, sj.summary, sj.description, ?)`,
+    sql: `${SEARCH_TIER_FN}(sj.job_id, ${STAMP_SQL}, sj.title, sj.company, sj.skills_json, sj.summary, `
+       + `CASE WHEN ${SEARCH_CACHED_FN}(sj.job_id, ${STAMP_SQL}) THEN NULL ELSE sj.description END, ?)`,
     params: [JSON.stringify(variants)],
   };
 }
