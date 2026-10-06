@@ -296,7 +296,7 @@ export const RESPONSE_SCHEMAS = Object.freeze({
     fields: { artifactId: "number|null", atsScore: "number|null", available: "boolean" },
     fieldNotes: {
       atsScore:
-        "NOT DISPLAYED YET - the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The engine orders coarsely (rho 0.746 against a human-graded 30, " +
+        "SHOWN ON THE WEB, PROVISIONAL - D50 (owner, 10-07): the web shows this number now and tunes it after; it is NOT validated (rho 0.723 over a US-only graded 24, -0.166 on 21 held-out postings), so every surface that shows it says it is still being tuned and keeps the band beside it; the mobile apps keep the BAND until the owner says otherwise. Earlier: NOT DISPLAYED YET (A75, 10-03). Sorting by it is sanctioned ('ATS match'). The engine orders coarsely (rho 0.746 against a human-graded 30, " +
         "12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from " +
         "shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own " +
         "band, never a zero. Kept in the payload because the auto-apply gate is numeric (30).",
@@ -377,7 +377,7 @@ export const RESPONSE_SCHEMAS = Object.freeze({
     },
     fieldNotes: {
       atsScore:
-        "NOT DISPLAYED YET - the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The engine orders coarsely (rho 0.746 against a human-graded 30, " +
+        "SHOWN ON THE WEB, PROVISIONAL - D50 (owner, 10-07): the web shows this number now and tunes it after; it is NOT validated (rho 0.723 over a US-only graded 24, -0.166 on 21 held-out postings), so every surface that shows it says it is still being tuned and keeps the band beside it; the mobile apps keep the BAND until the owner says otherwise. Earlier: NOT DISPLAYED YET (A75, 10-03). Sorting by it is sanctioned ('ATS match'). The engine orders coarsely (rho 0.746 against a human-graded 30, " +
         "12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from " +
         "shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own " +
         "band, never a zero. Kept in the payload because the auto-apply gate is numeric (30).",

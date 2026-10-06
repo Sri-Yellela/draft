@@ -19,7 +19,7 @@ import CompanyIcon from "./ui/CompanyIcon.jsx";
 import CompanyViewModal from "./CompanyViewModal.jsx";
 import { jobDetailHref } from "../lib/jobUrl.js";
 import CompanyLink from "./CompanyLink.jsx";
-import { atsBandFor, atsBandLabel, ATS_NUMBER_SHOWN } from "../../../shared/atsBands.js";
+import { atsBandFor, atsBandLabel, ATS_NUMBER_SHOWN, ATS_NUMBER_NOTE } from "../../../shared/atsBands.js";
 import { columnsFor } from "../lib/bubbleColumns.js";
 import { DraftMark } from "./DraftMark.jsx";
 import "./JobBubble.css";
@@ -98,8 +98,8 @@ export default function JobBubble({ job, score = null, selected = false, saved =
       <div className="jb__rail">
         <button type="button" className="jb__sq jb__sq--ats" data-score={showNumber ? score : undefined}
           onClick={stop(onAts)}
-          aria-label={showNumber ? `ATS report — ${score}, ${bandLabel}` : `ATS report — ${bandLabel}`}
-          title={showNumber ? `ATS match ${score} — open the report` : `${bandLabel} — open the ATS report`}>
+          aria-label={showNumber ? `ATS report — ${score}, ${bandLabel}. ${ATS_NUMBER_NOTE}` : `ATS report — ${bandLabel}`}
+          title={showNumber ? `ATS match ${score} · ${bandLabel} — ${ATS_NUMBER_NOTE}. Open the report.` : `${bandLabel} — open the ATS report`}>
           {showNumber ? (<><span className="jb__ats-n">{score}</span><span className="jb__ats-cap">ats</span></>) : <BarMark />}
         </button>
         <button type="button" className="jb__sq jb__sq--save" aria-pressed={saved} onClick={stop(saved ? null : onSave)}

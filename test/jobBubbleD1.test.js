@@ -47,7 +47,9 @@ test("⛔ NO BAND AND NO NUMBER on the card body; the ATS button carries the num
   // No score is the bar mark — never a zero.
   assert.match(jsx, /\{showNumber \? \(<><span className="jb__ats-n">\{score\}<\/span><span className="jb__ats-cap">ats<\/span><\/>\) : <BarMark \/>\}/);
   const bands = read("shared/atsBands.js");
-  assert.match(bands, /export const ATS_NUMBER_SHOWN = false;/, "the number is switched on before A76 is complete");
+  // ⭐ D50 (owner, 10-07): ON, provisional — the box's tooltip carries the note.
+  assert.match(bands, /export const ATS_NUMBER_SHOWN = true;/, "D50 turned the number on");
+  assert.match(jsx, /\$\{ATS_NUMBER_NOTE\}\. Open the report\./);
 });
 
 test("the rail: three 52px squares, zero width until hover / focus-within, one motion; always shown on touch", () => {

@@ -60,8 +60,17 @@ export const ATS_BAND = {
  * an optional follow-up"). Every surface that would show the number (D1's ATS button, D2's count-up)
  * reads THIS switch, so turning it on is one edit made with A76's figures in hand — not a sweep.
  * Until then those surfaces show the band's mark. Sorting by the score does not depend on it.
+ *
+ * ⭐ D50 (owner, 10-07): "show ats number not band — we will get around tuning it by end of day." ON, by
+ * the OWNER'S DECISION to show it now and tune after — ⛔ NOT because validation passed: ρ is 0.723 over
+ * the US-only graded set (n = 24) and the engine scored −0.166 on 21 held-out postings. So the number is
+ * PROVISIONAL and says so (ATS_NUMBER_NOTE) wherever it appears; in the ATS card the band, the number and
+ * "N of M" stay together, so the number is never the only claim. A null score is never a digit.
+ * Web only: the mobile contract's annotation says so (services/api/mobileContract.js, 2.2.1).
  */
-export const ATS_NUMBER_SHOWN = false;
+export const ATS_NUMBER_SHOWN = true;
+/** D50 · what every shown number carries — a tooltip on the box, a footnote in the ATS card. */
+export const ATS_NUMBER_NOTE = "Match score — still being tuned";
 
 /** Cutpoints are INCLUSIVE lower bounds on the internal score. */
 export const ATS_BAND_CUTPOINTS = Object.freeze({
