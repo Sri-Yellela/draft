@@ -146,7 +146,7 @@ function probeFormShape() {
 // changed, so the next render puts the old value back. Assigning through the prototype's NATIVE
 // setter and then dispatching input/change is what makes the change real to the framework. G0
 // confirmed activeTab alone reaches the MAIN world.
-async function applyPlan(plan, resume) {
+async function applyPlan(plan, resume, opts) {
   const form = document.querySelector('form');
   const scope = form || document;
   // ⛔ MUST STAY BYTE-IDENTICAL TO probeFormShape'S. See the note there — the plan addresses
@@ -308,6 +308,90 @@ async function applyPlan(plan, resume) {
 
   const filled = [], skipped = [], pending = [];
 
+  // D55 (d): on a wizard step the extension may come back to — after the candidate answered a stop,
+  // or on a re-invoke — a control that already holds something is LEFT ALONE. The candidate's own
+  // answer, or the portal's own prefill, outranks the packet. (The overlay's edit path does not set
+  // this: a correction is meant to overwrite.)
+  const keepExisting = opts?.keepExisting === true;
+  const holds = (el) => {
+    if (el.type === 'checkbox' || el.type === 'radio') return el.checked === true;
+    if (isTypeahead(el)) {
+      const box = el.closest('[data-automation-id^="formField"], [role="group"], fieldset') || el.parentElement;
+      return !!box?.querySelector('[data-automation-id="selectedItem"], [role="listitem"]');
+    }
+    if (isCombo(el)) {
+      const t = String(el.textContent || '').trim();
+      return !!t && !/^(select|choose|please|--)/i.test(t);
+    }
+    if (isEditable(el)) return String(el.textContent || '').trim() !== '';
+    return String(el.value ?? '').trim() !== '';
+  };
+
+  // One control, one value — the body of the plan loop, shared with the repeating sections below so
+  // an entry's field is placed and read back by exactly the same rules as a flat answer.
+  const place = async (step, el) => {
+    if (keepExisting && holds(el)) { skipped.push({ field: step.label, reason: 'kept_existing' }); return; }
+    try {
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        const want = step.value === 'true' || step.value === true;
+        if (el.checked !== want) {
+          el.checked = want;
+          el.dispatchEvent(new Event('input',  { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        pending.push({ step, el, kind: 'toggle', want });
+      } else if (el.tagName === 'SELECT' && el.multiple) {
+        // One answer may carry several values; a multi-select is the only control where "the
+        // value" is a set. Accepts an array or a comma-separated string.
+        const wants = (Array.isArray(step.value) ? step.value : String(step.value).split(','))
+          .map(v => String(v).trim()).filter(Boolean);
+        const hits = wants.map(w =>
+          [...el.options].find(o => o.value === w || same(o.text, w))).filter(Boolean);
+        if (!hits.length) { skipped.push({ field: step.label, reason: 'value_not_in_options' }); return; }
+        for (const o of el.options) o.selected = hits.includes(o);
+        el.dispatchEvent(new Event('input',  { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        pending.push({ step, el, kind: 'multi', want: hits.map(o => o.value) });
+      } else if (el.tagName === 'SELECT') {
+        const match = [...el.options].find(
+          o => o.value === step.value ||
+               (o.text || '').trim().toLowerCase() === String(step.value).trim().toLowerCase()
+        );
+        // No option holds this value. Filling nothing is correct: the old behaviour of assigning
+        // anyway left the select on its blank first option while the run recorded it as answered.
+        if (!match) { skipped.push({ field: step.label, reason: 'value_not_in_options' }); return; }
+        nativeSetter(el, match.value);
+        pending.push({ step, el, kind: 'value', want: match.value });
+      } else if (isTypeahead(el)) {
+        // An array is a multi-select (one chip per value); a string is one pick.
+        const wants = (Array.isArray(step.value) ? step.value : [step.value])
+          .map(v => String(v ?? '').trim()).filter(Boolean);
+        const { picked, missed } = await setTypeahead(el, wants);
+        for (const m of missed) skipped.push({ field: step.label, reason: 'no_close_option', wanted: m.slice(0, 80) });
+        if (!picked.length) return;
+        pending.push({ step, el, kind: 'typeahead', want: picked.map(p => p.got) });
+      } else if (isCombo(el)) {
+        const got = await setCombobox(el, step.value);
+        if (!got) {
+          skipped.push({ field: step.label, reason: 'value_not_in_options' });
+          return;
+        }
+        pending.push({ step, el, kind: 'combo', want: got });
+      } else if (isEditable(el)) {
+        el.focus?.();
+        el.textContent = String(step.value);
+        el.dispatchEvent(new Event('input',  { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        pending.push({ step, el, kind: 'editable', want: String(step.value) });
+      } else {
+        nativeSetter(el, String(step.value));
+        pending.push({ step, el, kind: 'value', want: String(step.value) });
+      }
+    } catch (e) {
+      skipped.push({ field: step.label, reason: `error:${e.message}` });
+    }
+  };
+
   for (const step of plan) {
     const el = controls[step.index];
     // The DOM can move between the probe and the fill on an SPA. Re-verify identity rather than
@@ -329,64 +413,105 @@ async function applyPlan(plan, resume) {
         continue;
       }
     }
-    try {
-      if (el.type === 'checkbox' || el.type === 'radio') {
-        const want = step.value === 'true' || step.value === true;
-        if (el.checked !== want) {
-          el.checked = want;
-          el.dispatchEvent(new Event('input',  { bubbles: true }));
-          el.dispatchEvent(new Event('change', { bubbles: true }));
+    await place(step, el);
+  }
+
+  // ── D55 (b): REPEATING SECTIONS ─────────────────────────────────────────────────────────────
+  // Work Experience / Education / Languages / Websites are sections, not questions: "Add" (then
+  // "Add Another") creates a panel of fields. For each entry the packet carries, the section's own
+  // Add button is pressed, the fill WAITS for the new panel's controls to appear (they arrive a beat
+  // later), and only those new controls are filled — by their labels, inside that one panel, so a
+  // second job's dates can never land in the first job's fields.
+  //
+  // A section is recognised by its Add button and its heading; a section the packet has nothing for
+  // is never opened. Skills (a chip set) is one typeahead, not a section.
+  const sections = {};
+  const textOfIds = (ids) => String(ids || '').split(/\s+/).filter(Boolean)
+    .map(id => document.getElementById(id)?.textContent || '').join(' ');
+  const ownLabel = (el) => {
+    const byFor = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`)?.textContent : '';
+    return String(byFor || el.closest('label')?.textContent || el.getAttribute('aria-label')
+      || textOfIds(el.getAttribute('aria-labelledby')) || el.getAttribute('placeholder') || '')
+      .replace(/\*/g, '').replace(/\s+/g, ' ').trim();
+  };
+  // A small group around a control (From: Month / Year) is context; a panel-sized group is not.
+  const groupLabel = (el) => {
+    const g = el.parentElement?.closest('[role="group"], fieldset');
+    if (!g || g.querySelectorAll('input, select, textarea, button[aria-haspopup="listbox"]').length > 3) return '';
+    return String(textOfIds(g.getAttribute('aria-labelledby')) || g.querySelector('legend')?.textContent
+      || g.getAttribute('aria-label') || '').replace(/\*/g, '').trim();
+  };
+  const two = (n) => (n === null || n === undefined || n === '' ? null : String(n).padStart(2, '0'));
+  const RULES = {
+    work: (e) => [
+      [/(from|start)\b.*month/, two(e.from?.month)], [/(from|start)\b.*year/, e.from?.year],
+      [/(^|\s)(to|end)\b.*month/, e.current ? null : two(e.to?.month)], [/(^|\s)(to|end)\b.*year/, e.current ? null : e.to?.year],
+      [/job title|position|(^|\s)title\b/, e.title], [/company|employer|organi[sz]ation/, e.company],
+      [/location/, e.location], [/currently work|i currently|current (job|role|position)/, e.current ? true : null],
+      [/description|responsibilit|summary|duties/, e.description],
+    ],
+    education: (e) => [
+      [/(from|start)\b.*year/, e.from?.year], [/(^|\s)(to|end)\b.*year|graduat.*year|expected.*year/, e.to?.year],
+      [/school|university|college|institution/, e.school], [/degree/, e.degree],
+      [/field of study|major|discipline|area of study/, e.field], [/gpa|overall result|grade/, e.gpa],
+    ],
+    languages: (e) => [
+      [/^language$|(^|\s)language(\s|$)/, e.language], [/fluent|native/, e.fluent ? true : null],
+      [/reading/, e.reading], [/speaking/, e.speaking], [/writing/, e.writing],
+    ],
+    websites: (e) => [[/url|website|link/, e.url]],
+  };
+  const KINDS = [['education', /education/i], ['languages', /language/i], ['websites', /website|(^|\s)links?\b/i],
+                 ['work', /work experience|employment|experience/i]];
+  const panelControls = (box) => [...box.querySelectorAll(
+    'input, select, textarea, [role="combobox"], button[aria-haspopup="listbox"]'
+  )].filter(el => el.getAttribute('aria-haspopup') === 'listbox' ||
+    !['hidden', 'submit', 'button', 'image', 'reset', 'file'].includes((el.type || '').toLowerCase()));
+
+  const entries = opts?.entries || null;
+  if (entries) {
+    const addRe = /^\s*add(\s+another)?\b/i;
+    const addButtons = [...scope.querySelectorAll('button, [role="button"]')]
+      .filter(b => addRe.test(b.getAttribute('aria-label') || '') || addRe.test(b.textContent || ''));
+    for (const btn of addButtons) {
+      const box = btn.closest('[role="group"], section, fieldset') || btn.parentElement;
+      const heading = String(box?.querySelector('h1, h2, h3, h4, legend, [role="heading"]')?.textContent || '').trim();
+      const kind = KINDS.find(([, re]) => re.test(`${btn.getAttribute('aria-label') || ''} ${heading}`))?.[0];
+      if (!kind || sections[kind]) continue;
+      const list = Array.isArray(entries[kind]) ? entries[kind] : [];
+      sections[kind] = { wanted: list.length, added: 0, fields: 0 };
+      for (let i = 0; i < list.length; i++) {
+        const before = new Set(panelControls(box));
+        btn.click();
+        const opened = await waitFor(() => panelControls(box).some(el => !before.has(el)), 3000);
+        if (!opened) { skipped.push({ field: `${heading || kind} ${i + 1}`, reason: 'section_did_not_open' }); break; }
+        await sleep(80);
+        sections[kind].added += 1;
+        const fresh = panelControls(box).filter(el => !before.has(el));
+        const rules = RULES[kind](list[i] || {});
+        const used = new Set();
+        for (const el of fresh) {
+          const label = ownLabel(el);
+          const said = `${groupLabel(el)} ${label}`.toLowerCase().trim();
+          const r = rules.findIndex(([re, v], k) => !used.has(k) && v !== null && v !== undefined && v !== '' && re.test(said));
+          if (r < 0) continue;
+          used.add(r);
+          sections[kind].fields += 1;
+          await place({
+            label: `${heading || kind} ${i + 1} · ${[groupLabel(el), label].filter(Boolean).join(' ')}`,
+            name: null, value: rules[r][1], provenance: list[i]?.source === 'resume' ? 'resume' : 'profile',
+            entry: `${kind}:${i}`,
+          }, el);
         }
-        pending.push({ step, el, kind: 'toggle', want });
-      } else if (el.tagName === 'SELECT' && el.multiple) {
-        // One answer may carry several values; a multi-select is the only control where "the
-        // value" is a set. Accepts an array or a comma-separated string.
-        const wants = (Array.isArray(step.value) ? step.value : String(step.value).split(','))
-          .map(v => String(v).trim()).filter(Boolean);
-        const hits = wants.map(w =>
-          [...el.options].find(o => o.value === w || same(o.text, w))).filter(Boolean);
-        if (!hits.length) { skipped.push({ field: step.label, reason: 'value_not_in_options' }); continue; }
-        for (const o of el.options) o.selected = hits.includes(o);
-        el.dispatchEvent(new Event('input',  { bubbles: true }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-        pending.push({ step, el, kind: 'multi', want: hits.map(o => o.value) });
-      } else if (el.tagName === 'SELECT') {
-        const match = [...el.options].find(
-          o => o.value === step.value ||
-               (o.text || '').trim().toLowerCase() === String(step.value).trim().toLowerCase()
-        );
-        // No option holds this value. Filling nothing is correct: the old behaviour of assigning
-        // anyway left the select on its blank first option while the run recorded it as answered.
-        if (!match) { skipped.push({ field: step.label, reason: 'value_not_in_options' }); continue; }
-        nativeSetter(el, match.value);
-        pending.push({ step, el, kind: 'value', want: match.value });
-      } else if (isTypeahead(el)) {
-        // An array is a multi-select (one chip per value); a string is one pick.
-        const wants = (Array.isArray(step.value) ? step.value : [step.value])
-          .map(v => String(v ?? '').trim()).filter(Boolean);
-        const { picked, missed } = await setTypeahead(el, wants);
-        for (const m of missed) skipped.push({ field: step.label, reason: 'no_close_option', wanted: m.slice(0, 80) });
-        if (!picked.length) continue;
-        pending.push({ step, el, kind: 'typeahead', want: picked.map(p => p.got) });
-      } else if (isCombo(el)) {
-        const got = await setCombobox(el, step.value);
-        if (!got) {
-          skipped.push({ field: step.label, reason: 'value_not_in_options' });
-          continue;
-        }
-        pending.push({ step, el, kind: 'combo', want: got });
-      } else if (isEditable(el)) {
-        el.focus?.();
-        el.textContent = String(step.value);
-        el.dispatchEvent(new Event('input',  { bubbles: true }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-        pending.push({ step, el, kind: 'editable', want: String(step.value) });
-      } else {
-        nativeSetter(el, String(step.value));
-        pending.push({ step, el, kind: 'value', want: String(step.value) });
       }
-    } catch (e) {
-      skipped.push({ field: step.label, reason: `error:${e.message}` });
+    }
+    // Skills: one chip per confirmed skill, into the typeahead labelled as a skills field.
+    if (Array.isArray(entries.skills) && entries.skills.length) {
+      const box = controls.find(el => isTypeahead(el) && /skill/i.test(ownLabel(el)));
+      if (box) {
+        sections.skills = { wanted: entries.skills.length, added: 0, fields: 1 };
+        await place({ label: ownLabel(box) || 'Skills', name: null, value: entries.skills, provenance: 'profile', entry: 'skills' }, box);
+      }
     }
   }
 
@@ -435,7 +560,8 @@ async function applyPlan(plan, resume) {
       // `placed` is the ATS's own wording when a picker chose it ("Computer and Information
       // Sciences" for "Computer Science") — what the employer will read, so what the review shows.
       filled.push({ field: step.label, name: step.name, provenance: step.provenance, verified: true,
-                    ...(kind === 'combo' || kind === 'typeahead' ? { placed: got } : {}) });
+                    ...(kind === 'combo' || kind === 'typeahead' ? { placed: got } : {}),
+                    ...(step.entry ? { entry: step.entry } : {}) });
     } else {
       // The value did not stick. Named distinctly from `field_moved` because the remedy differs:
       // this one means the page actively rejected or overwrote what we wrote.
@@ -479,7 +605,7 @@ async function applyPlan(plan, resume) {
     }
   }
 
-  return { filled, skipped, resume: resumeResult, fieldCount: controls.length };
+  return { filled, skipped, resume: resumeResult, fieldCount: controls.length, sections };
 }
 
 // ── Matching ─────────────────────────────────────────────────────────────────
@@ -870,6 +996,38 @@ export async function runGatedHandoff({ serverUrl, tab }) {
   return fillFromPacket({ tab, origin, released, serverUrl, reused: false });
 }
 
+/**
+ * D55 (b) — one review row per repeating-section entry that was actually placed, not one per field.
+ *
+ * Each panel's fields were matched by their LABELS inside a panel the extension opened, so the row
+ * is a guess about the FIELD (matchedBy 'label') even though the value is the candidate's own: it
+ * asks for one acknowledgement per job / degree / website, which is the unit the candidate checks,
+ * instead of fifteen. Skills are one row. Nothing here is an attestation.
+ */
+export function entryReviewItems(entries, filled = []) {
+  if (!entries) return [];
+  const placed = new Map();
+  for (const f of filled || []) if (f?.entry) placed.set(f.entry, (placed.get(f.entry) || 0) + 1);
+  const year = (d) => (d?.year ? `${d.month ? String(d.month).padStart(2, '0') + '/' : ''}${d.year}` : '');
+  const rows = [];
+  const add = (kind, label, list, describe) => (list || []).forEach((e, i) => {
+    const n = placed.get(`${kind}:${i}`) || 0;
+    if (!n) return;
+    rows.push({ field: `${label} ${i + 1}`, name: `entry:${kind}:${i}`, value: describe(e) || '—',
+                provenance: 'field_map_exact', matchedBy: 'label', eligibility: false, entryFields: n });
+  });
+  add('work', 'Work experience', entries.work, (e) => [e.title, e.company,
+    [year(e.from), e.current ? 'present' : year(e.to)].filter(Boolean).join('–')].filter(Boolean).join(' · '));
+  add('education', 'Education', entries.education, (e) => [e.degree, e.field, e.school, year(e.to)].filter(Boolean).join(' · '));
+  add('languages', 'Language', entries.languages, (e) => e.language);
+  add('websites', 'Website', entries.websites, (e) => e.url);
+  if (placed.get('skills')) {
+    rows.push({ field: 'Skills', name: 'entry:skills', value: (entries.skills || []).join(', '),
+                provenance: 'field_map_exact', matchedBy: 'label', eligibility: false });
+  }
+  return rows;
+}
+
 async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
   let shape;
   try {
@@ -911,7 +1069,9 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
       target: { tabId: tab.id },
       world: 'MAIN',
       func: applyPlan,
-      args: [plan, resume],
+      // D55 (b): the packet's repeating-section entries travel with the plan; applyPlan opens one
+      // panel per entry with the section's own Add / Add Another.
+      args: [plan, resume, { entries: released.packet?.entries || null }],
     });
     outcome = r?.result;
   } catch (e) {
@@ -928,9 +1088,12 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
     .filter(step => (outcome?.filled || []).some(f => f.name === step.name && f.field === step.label))
     .map(step => ({
       field: step.label, name: step.name, id: step.id, index: step.index,
-      value: step.value, provenance: step.provenance, confidence: step.confidence,
+      // D55 (a): a picker's value is the option it chose — the ATS's wording, what the employer reads.
+      value: (outcome?.filled || []).find(f => f.name === step.name && f.field === step.label)?.placed ?? step.value,
+      provenance: step.provenance, confidence: step.confidence,
       eligibility: step.eligibility, matchedBy: step.matchedBy,
-    }));
+    }))
+    .concat(entryReviewItems(released.packet?.entries, outcome?.filled));
 
   const bands = orderForReview(reviewItems);
   const readiness = readinessOf(reviewItems);
