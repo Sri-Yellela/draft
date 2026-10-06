@@ -232,7 +232,9 @@ async function fillActiveTab() {
   setStatus('Filling…');
   const r = await chrome.runtime.sendMessage({ type: 'FILL_ACTIVE_TAB' }).catch(() => null);
   setStatus(r?.message || (r?.ok ? 'Filled — check every answer, then submit.' : 'Could not fill this page.'), 4000);
-  if (r?.ok) setTimeout(() => window.close(), 1200);
+  // D36: stay open when the fill worked but its review panel did not — that sentence is the only
+  // place the candidate learns the answers were not laid out for checking.
+  if (r?.ok && r?.overlay?.rendered !== false) setTimeout(() => window.close(), 1200);
 }
 document.getElementById('btn-fill-primary').addEventListener('click', fillActiveTab);
 document.getElementById('btn-fill').addEventListener('click', fillActiveTab);

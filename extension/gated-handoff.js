@@ -739,7 +739,12 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
       resume: outcome?.resume || null,
       overlay: { rendered: false, error: e.message },
       review: { ready: readiness.ready, guessCount: readiness.guessCount },
-      message: `Filled ${outcome?.filled?.length || 0} field(s). Review and submit yourself.`,
+      // D36: this used to be the SUCCESS sentence, word for word — so a fill whose review panel never
+      // appeared (no eligibility pinned to the top, no guess to acknowledge) read exactly like one
+      // that did, and the popup closed itself 1.2 s later. The overlay is what makes this
+      // fill-and-review; without it the candidate has to be told to do the reviewing themselves.
+      message: `Filled ${outcome?.filled?.length || 0} field(s), but the review panel could not open. ` +
+        "Check every answer on the page yourself — especially work authorisation and sponsorship — before you submit.",
     };
   }
 
