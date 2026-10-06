@@ -28,6 +28,7 @@
  */
 
 import { orderForReview, readinessOf, renderOverlay } from './review-overlay.js';
+import { renderBadge, findMissingRequired, badgeDismissed } from './autofill-badge.js';
 import { C_LIGHT, C_DARK } from './tokens.js';
 
 // D23 — what the review overlay is painted with: the site's tokens (extension/tokens.js, generated
@@ -997,6 +998,22 @@ export async function runGatedHandoff({ serverUrl, tab }) {
 }
 
 /**
+ * D55 (c) — paint the one-line badge (extension/autofill-badge.js). A courtesy: a page that refuses
+ * the injection still gets its fill and its overlay, so a failure here is reported, never raised.
+ */
+async function showBadge(tabId, state, meta = {}) {
+  try {
+    const [r] = await chrome.scripting.executeScript({
+      target: { tabId }, func: renderBadge,
+      args: [state, { ...meta, theme: { light: C_LIGHT, dark: C_DARK } }],
+    });
+    return r?.result || null;
+  } catch (e) {
+    return { rendered: false, error: e.message };
+  }
+}
+
+/**
  * D55 (b) — one review row per repeating-section entry that was actually placed, not one per field.
  *
  * Each panel's fields were matched by their LABELS inside a panel the extension opened, so the row
@@ -1062,6 +1079,9 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
       }
     } catch { /* the fill is still worth doing without it; reported below */ }
   }
+
+  // D55 (c): the one-line badge says what the page is doing while the fill runs.
+  await showBadge(tab.id, 'progress');
 
   let outcome;
   try {
@@ -1137,6 +1157,9 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
     };
   }
 
+  // D55 (c): painted AFTER the overlay so it sits beside it rather than under it.
+  const badge = await showBadge(tab.id, 'done');
+
   // ── Schema capture (TASK G4) ────────────────────────────────────────────────
   // The extension is standing inside a place the server can never reach. What goes back is the
   // form's SHAPE — labels, types, required flags, option lists, order — so the next candidate
@@ -1170,6 +1193,7 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
     unmatched,
     resume: outcome?.resume || (released.resumeUrl ? { attached: false, reason: 'fetch_failed' } : null),
     overlay: { rendered: true, rows: reviewItems.length },
+    badge,
     capture,
     review: {
       ready: readiness.ready,
