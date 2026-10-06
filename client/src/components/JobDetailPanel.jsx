@@ -48,7 +48,7 @@ export function AtsNumberBox({ score, open = false, onOpen }) {
  */
 function PostingActions({ job, meta, slots, onCoverLetter }) {
   const { g, done, st, canUseGenerate: canGen, onGenerate, onViewSandbox, onExport, onSave, onPass, onDraft, drafted, drafting,
-          draftBlock = null, onViewDraft = null, onExplainDraft = null } = meta;
+          draftBlock = null, onViewDraft = null, onExplainDraft = null, companyNotice = null } = meta;
   // D51: the panel knows the slots too — out of drafts is a reason on the button, not a grey box.
   const block = draftBlock || (slots != null && slots.remaining <= 0 ? { code: "out_of_drafts", label: "Out of drafts",
     reason: `Out of drafts — all ${slots.limit} used in the last 24 hours (a Draft or a new résumé uses one).` } : null);
@@ -102,6 +102,8 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
       </div>
       {/* A63: the shared allowance, said before anything is pressed — a muted line in A, the badge in B. */}
       {quota && <p className="pp__quota" data-draft-slots data-empty={noSlots ? "true" : "false"}>{quota}</p>}
+      {/* ⭐ D54: never silent, never a block — the user's other roles at this company, before Draft. */}
+      {companyNotice && <p className="pp__quota" data-company-notice="">{companyNotice.replace(" Draft this one too?", "")}</p>}
     </div>
   );
 }

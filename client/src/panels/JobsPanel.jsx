@@ -11,6 +11,7 @@ import { planPageFetch, recordPageCursor } from "../lib/boardPaging.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { DECISIONS, DECISION_SURFACES, DECISION_TOAST_MS, commitDecision, undoDecision, undoFlagsFor, flagsFor, isDrafted, draftBlock } from "../lib/jobDecisions.js";
 import { PREREQUISITE_LABELS } from "../lib/applyObstacles.js";
+import { companyRows, companyNotice, matchCompany } from "../../../shared/companyIdentity.js";
 import DecisionToast from "../components/DecisionToast.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
@@ -1496,6 +1497,25 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const [draftSlots, setDraftSlots] = useState(null);
   const [facetsNonce, setFacetsNonce] = useState(0);
   useEffect(() => { api("/api/draft/slots").then(setDraftSlots).catch(() => {}); }, []);
+  // ⭐ D54 · AT THE POINT OF ACTION — the user's applications by company (The Table's own rows, grouped by
+  // shared/companyIdentity.js), so a Draft into a company they already have a sent or active application
+  // at says so first. Non-blocking: a confirm, never a refusal (any cap still enforces itself).
+  const [companyIndex, setCompanyIndex] = useState(null);
+  const loadCompanyIndex = useCallback(() => {
+    api("/api/applications/history").then(d => {
+      const groups = companyRows(d?.rows || []);
+      setCompanyIndex({ groups, members: new Map(groups.map(g => [g.key, g.roles.map(r => ({ company: r.company, url: r.applyUrl }))])) });
+    }).catch(() => {});
+  }, []);
+  useEffect(() => { loadCompanyIndex(); }, [loadCompanyIndex]);
+  const companyNoticeFor = useCallback((job) => {
+    if (!companyIndex || !job) return null;
+    const key = matchCompany({ company: job.company, url: job.applyUrl || job.url }, companyIndex.members);
+    const g = key ? companyIndex.groups.find(x => x.key === key) : null;
+    // Its own row never warns about itself.
+    const others = g ? { ...g, roles: g.roles.filter(r => String(r.jobId) !== String(job.jobId || job.id)) } : null;
+    return others?.roles.length ? companyNotice(others, job.company) : null;
+  }, [companyIndex]);
   const draftBlocked = useMemo(() => draftBlock({
     slots: draftSlots, prereqMissing: applyPrereqMissing, prereqLabels: PREREQUISITE_LABELS,
     paused: !!runBar?.mode?.auto?.killSwitch,
@@ -1973,13 +1993,15 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       drafting: draftingIds.has(selectedJob.jobId),
       // D51: never a dead end — the reason, and the way to Draft House.
       draftBlock: draftBlocked, onViewDraft: draftControls.onView,
+      // D54: the company notice, shown on the panel BEFORE the click.
+      companyNotice: isJobDrafted(selectedJob.jobId) ? null : companyNoticeFor(selectedJob),
       onExplainDraft: (reason) => draftControls.onExplain(selectedJob, reason),
       onAts: () => openAtsPanel(buildAtsPayload(selectedJob, g2)),
       // D48: the posting header's ATS box opens the card beside the posting and shows OPEN as an outline.
       atsOpen: !!rightPanelOpen,
       onResume: () => generate(selectedJob, false),
     });
-  }, [selectedJob, generated, loading, applyMode, canUseGenerate, resumeText, draftedIds, draftingIds, applyStateByJobId, rightPanelOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedJob, generated, loading, applyMode, canUseGenerate, resumeText, draftedIds, draftingIds, applyStateByJobId, rightPanelOpen, companyNoticeFor, draftBlocked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-open resume + ATS panel when a pending job card is selected
   useEffect(() => {
@@ -3324,6 +3346,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (decision === DECISIONS.SAVED && prior.starred) return;
     if (decision === DECISIONS.PASSED && prior.disliked) return;
     if (decision === DECISIONS.DRAFTED && (isJobDrafted(jobId) || draftingIds.has(jobId))) return;
+    // D54: warn at the second role — the user decides; nothing is refused here.
+    if (decision === DECISIONS.DRAFTED) {
+      const notice = companyNoticeFor(job);
+      if (notice && !window.confirm(notice)) return;
+    }
     const at = Date.now();
     if (decision === DECISIONS.DRAFTED) {
       setDraftingIds(prev => new Set(prev).add(jobId));
@@ -3334,6 +3361,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         if (r.slots) setDraftSlots(r.slots);
         setFacetsNonce(n => n + 1);
         loadApplyRuns?.();
+        loadCompanyIndex();
         if (boardTab === "pending") fetchJobs(currentPage);
       } catch (e) {
         // ⛔ Never a success toast for a refused call. "Already drafted" IS the drafted state.
@@ -3353,7 +3381,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       applyFlags(jobId, undoFlagsFor(decision, prior));
       setDecisionToast({ jobId, company: job.company, decision, error: e.message, at: Date.now() });
     }
-  }, [applyFlags, draftTool, draftedIds, draftingIds, applyStateByJobId, loadApplyRuns, boardTab, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [applyFlags, draftTool, draftedIds, draftingIds, applyStateByJobId, loadApplyRuns, boardTab, currentPage, companyNoticeFor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const undoLastDecision = useCallback(async () => {
     const t = decisionToast;
