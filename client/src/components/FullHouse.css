@@ -12,15 +12,21 @@
  * border-radius and box-shadow say which words are controls. test/d35FullHouseHeader.test.js reads
  * this file and fails on any font-family / font-size / line-height in a token rule. */
 
+/* ⛔ D37 (owner, 10-06) · ONE COLUMN, CENTRED AS A BLOCK — not text-align: center. The sentence, the open
+   panel, the bar and the sort panel share this column's width and its left and right edges, and the
+   column sits in the middle of the page. ⭐ The bar is content-sized with a CEILING: on a wide window it
+   stops growing once the four views, the search's text and the sort square fit — "anything longer is
+   not necessary" (the longest placeholder at 13px sets it, ~760px); on a narrow one it fills the window. */
 .fh {
   --fh-t: .34s; --fh-e: cubic-bezier(.3, .8, .25, 1);
-  box-sizing: border-box; width: 100%; max-width: 1180px; margin: 0 auto; padding: 22px 22px 0;
+  /* the column: a 760px ceiling plus the 22px gutters */
+  box-sizing: border-box; width: 100%; max-width: 804px; margin-inline: auto; padding: 22px 22px 0;
   text-align: left;
 }
 
 /* ── 1 · THE SENTENCE ─────────────────────────────────────────────────────────────────────────── */
 .bh {
-  margin: 0 0 4px; max-width: 46ch;
+  margin: 0 0 4px; max-width: none;
   font-family: var(--fh-sentence-family); font-size: var(--fh-sentence-size);
   line-height: var(--fh-sentence-line); font-weight: var(--fh-sentence-weight);
   font-style: normal; letter-spacing: normal; color: var(--c-ink-muted);

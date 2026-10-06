@@ -5,7 +5,7 @@ import "./FullHouse.css";
 
 // ── D26 + D30 + D35 · THE SENTENCE IS THE HEADLINE, AND ITS WORDS ARE THE CONTROLS ─────────────────
 //
-//   Now showing [all] jobs, at [senior level], [in the United States], [any workplace].
+//   discovering [all] roles at [all] career levels and [all] workstyles in [the United States].   (D37)
 //
 // ⛔ A PROJECTION OF FILTER STATE, NEVER A SECOND SOURCE OF TRUTH (D30) — sentenceParts derives it from
 // the same params the panels set.
@@ -30,22 +30,22 @@ export default function BoardHeadline({ params = {}, defaultDomain = null, nothi
   const { verb, slots } = sentenceParts(params, { defaultDomain, nothingMatches });
   return (
     <h1 className="bh" id={SENTENCE_ID} data-board-headline data-nothing-matches={nothingMatches ? "true" : "false"}>
-      <span className="bh__verb">{verb}</span>{" "}
-      {slots.map((s, i) => {
+      <span className="bh__verb">{verb}</span>
+      {slots.map((s) => {
         const expanded = open === s.key;
+        // D37: the connective before the token and the noun after it are prose; only the token is a control.
         return (
           <Fragment key={s.key}>
-            {i > 0 ? ", " : ""}
-            {s.key === "level" ? "at " : ""}
+            {s.lead}
             <button type="button" className="tok" data-slot={s.key}
               aria-pressed={s.active || !!s.clause.floor}
               aria-expanded={expanded}
               aria-controls={expanded ? PANEL_ID : undefined}
               title={`${s.clause.label} — ${expanded ? "close its options" : "change it"}`}
               onClick={() => onToggle?.(s.key)}>
-              {s.key === "level" && s.text.startsWith("at ") ? s.text.slice(3) : s.text}
+              {s.text}
             </button>
-            {i === 0 ? " jobs" : ""}
+            {s.noun ? ` ${s.noun}` : ""}
           </Fragment>
         );
       })}
