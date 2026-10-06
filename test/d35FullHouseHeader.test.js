@@ -214,9 +214,11 @@ test("D35 ③ OPEN (outline) and ACTIVE (fill) are SEPARATE attributes, and a wo
 
 test("D34/D35 ④ prose and token SHARE font-family, font-size and line-height — no token rule letters itself", () => {
   // The three values exist once, in the type tokens, and are published as custom properties.
-  assert.equal(FULL_HOUSE_TYPE.SENTENCE_FAMILY, "Georgia, 'Times New Roman', serif", "header.html sets the sentence in Georgia");
-  assert.equal(FULL_HOUSE_TYPE.SENTENCE_SIZE, "23px");
-  assert.equal(FULL_HOUSE_TYPE.SENTENCE_LINE, "1.85");
+  // ⭐ D47 (owner, 10-07) replaced header.html's Georgia with the LOGO FACE at the MARK'S SIZE; the values
+  // still live once, here, and D34's one-family-one-size rule is what the rest of this test holds.
+  assert.equal(FULL_HOUSE_TYPE.SENTENCE_FAMILY, FULL_HOUSE_TYPE.LOGO_FAMILY, "the sentence is set in the logo face (D47)");
+  assert.match(FULL_HOUSE_TYPE.SENTENCE_SIZE, /^min\(30px, /, "at the app bar mark's size (D47)");
+  assert.equal(FULL_HOUSE_TYPE.SENTENCE_LINE, "1.5");
   const rules = cssRules(read(CSS_FILE));
   const bh = rules.find(r => r.selector === ".bh");
   assert.ok(bh, "the sentence rule is gone");

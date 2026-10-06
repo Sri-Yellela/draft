@@ -45,7 +45,8 @@ test("D10: a two-word label is set on two lines; a ReactNode label is left alone
 test("D10: the bar is ~74px with a ~30px mark", () => {
   assert.match(topBar, /height: 74,/);
   assert.match(topBar, /<StampLogo size="nav"\/>/);
-  assert.match(read("client/src/components/StampLogo.jsx"), /nav: 30/);
+  // D47: the mark's sizes moved to styles/brandMark.js, shared with the sentence.
+  assert.match(read("client/src/styles/brandMark.js"), /nav: 30/);
 });
 
 test("D10: in-app copy names the tabs by their new names", () => {

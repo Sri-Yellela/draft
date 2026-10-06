@@ -28,6 +28,7 @@
 // mark in Windows high-contrast mode, which would otherwise repaint a mask's background colour.
 
 import { WORDMARK } from '../../../shared/brand.js';
+import { MARK_SIZES } from '../styles/brandMark.js';
 import wordmarkSlash   from '../assets/brand/wordmark-slash.png';
 import wordmarkLetters from '../assets/brand/wordmark-letters.png';
 import monogramSlash   from '../assets/brand/monogram-slash.png';
@@ -54,8 +55,8 @@ function MaskedArt({ slash, letters, width, height }) {
 const WORDMARK_ASPECT = 1722 / 605;
 const MONOGRAM_ASPECT = 670 / 605;
 
-/** Mark height per size. The old stamp's four scales, carried over by its rendered height. */
-const SIZES = { mini: 18, sm: 24, md: 28, nav: 30, lg: 34 };  // nav: the app bar's (D10)
+/** Mark height per size — styles/brandMark.js, shared with the Full House sentence (D47). */
+const SIZES = MARK_SIZES;
 
 /**
  * @param {object} p
