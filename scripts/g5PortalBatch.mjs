@@ -87,6 +87,7 @@ function startApi() {
       reason_code TEXT, reason_detail TEXT, started_at INTEGER, finished_at INTEGER,
       created_at INTEGER DEFAULT (unixepoch()), answers_json TEXT, resume_artifact_id INTEGER,
       resume_ats_score INTEGER, screenshot_path TEXT, submit_verified INTEGER, submit_evidence TEXT,
+    posting_title TEXT, posting_company TEXT, posting_url TEXT, posting_location TEXT,
       base_ats_score INTEGER, base_ats_json TEXT,
       open_questions_json TEXT,
     -- gate_review_json is deliberately NOT declared here: migration 080_apply_gate_review, applied

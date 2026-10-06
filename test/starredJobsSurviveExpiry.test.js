@@ -171,7 +171,7 @@ test("mapJobRow reports isActive so the card can say the listing has closed", ()
 
 // ── the source ───────────────────────────────────────────────────────────────
 
-test("the cleanup retires starred rows and exempts them from the DELETE", () => {
+test("the cleanup retires starred rows and exempts them from the DELETE", async () => {
   const fn = server.slice(at(server, "function runExpiredJobsCleanup()"),
                           at(server, "cron.schedule(\"0 3 * * *\""));
   assert.match(fn, /UPDATE scraped_jobs SET is_active = 0/, "starred rows are retired, not removed");
@@ -185,8 +185,13 @@ test("the cleanup retires starred rows and exempts them from the DELETE", () => 
   // DELETE is what interpolates it: matching only the definition would pass on a DELETE that had
   // quietly stopped using it.
   const predicate = fn.slice(at(fn, "const EXPIRED_PREDICATE = "), at(fn, "const boardTotal"));
-  assert.match(predicate, /user_jobs WHERE applied = 1/, "applied stays exempt");
-  assert.match(predicate, /user_jobs WHERE starred = 1/, "starred is now exempt too");
+  // ⛔ D43: both exemptions — and every other user record — are the shared userReferencedSql, which
+  // exempts any posting a user_jobs row (starred, applied or otherwise) or an application references.
+  assert.match(predicate, /AND NOT \$\{userReferencedSql\("scraped_jobs\.job_id"\)\}/, "a user-referenced row is exempt");
+  const { userReferencedSql } = await import("../services/jobs/userReferences.js");
+  for (const t of ["user_jobs", "job_applications", "apply_run_jobs", "application_records", "job_captures"]) {
+    assert.match(userReferencedSql("x"), new RegExp(`FROM ${t} ur_`), `${t} must protect its posting`);
+  }
   assert.match(fn, /DELETE FROM scraped_jobs WHERE \$\{EXPIRED_PREDICATE\}/,
     "and the DELETE must be the predicate's only expression of itself");
 

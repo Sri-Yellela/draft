@@ -81,6 +81,7 @@ db.exec(`
     answers_json TEXT, open_questions_json TEXT, resume_artifact_id INTEGER, resume_ats_score INTEGER,
     base_ats_score INTEGER, base_ats_json TEXT,
     screenshot_path TEXT, submit_verified INTEGER, submit_evidence TEXT,
+    posting_title TEXT, posting_company TEXT, posting_url TEXT, posting_location TEXT,
     ats_score INTEGER, attempt_count INTEGER NOT NULL DEFAULT 0, fields_discovered INTEGER,
     corrections_json TEXT, blanks_json TEXT, gate_review_json TEXT, hidden_at INTEGER, locked_at INTEGER,
     resume_file TEXT, resume_id INTEGER, UNIQUE(run_id, job_id));

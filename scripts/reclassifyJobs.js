@@ -12,6 +12,7 @@ import Database from "better-sqlite3";
 import path     from "path";
 import { fileURLToPath } from "url";
 import { classifyJob } from "../services/jobs/classifyJob.js";
+import { userReferencedSql } from "../services/jobs/userReferences.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH   = path.join(__dirname, "..", "data", "resume_master.db");
@@ -89,8 +90,12 @@ const rejectStmt = DRY_RUN ? null : db.prepare(`
   VALUES (?, ?, ?, ?, 'blue_collar', unixepoch())
 `);
 
-const deleteScraped  = DRY_RUN ? null : db.prepare("DELETE FROM scraped_jobs WHERE job_id = ?");
-const deleteRoleMap  = DRY_RUN ? null : db.prepare("DELETE FROM job_role_map  WHERE job_id = ?");
+// ⛔ D43: a posting a user's record references is RETIRED, never deleted (services/jobs/userReferences.js).
+const deleteOnly     = DRY_RUN ? null : db.prepare(`DELETE FROM scraped_jobs WHERE job_id = ? AND NOT ${userReferencedSql("scraped_jobs.job_id")}`);
+const retireOnly     = DRY_RUN ? null : db.prepare("UPDATE scraped_jobs SET is_active = 0 WHERE job_id = ?");
+const deleteScraped  = DRY_RUN ? null : { run: (id) => { if (!deleteOnly.run(id).changes) retireOnly.run(id); } };
+const deleteRoleMap  = DRY_RUN ? null : db.prepare(`DELETE FROM job_role_map  WHERE job_id = ?
+  AND NOT EXISTS (SELECT 1 FROM scraped_jobs s WHERE s.job_id = job_role_map.job_id)`);
 
 // ── Counters ──────────────────────────────────────────────────────────────────
 let ejected = 0, dropped = 0, reclassified = 0, nowGeneral = 0;

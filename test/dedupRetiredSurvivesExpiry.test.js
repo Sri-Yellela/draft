@@ -15,11 +15,14 @@ import { reconcileFingerprint, upsertCanonicalJob } from "../services/jobs/aggre
 import { normalizeJob } from "../services/jobs/schema.js";
 import { restoreRetiredDuplicate } from "../services/jobs/dedupRetire.js";
 import { at } from "../test-support/sourceAnchors.js";
+import { userReferencedSql } from "../services/jobs/userReferences.js";
 
 const server = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
 const cleanup = server.slice(at(server, "function runExpiredJobsCleanup()"), at(server, 'cron.schedule("0 3 * * *"'));
+// D43: the predicate interpolates the shared user-reference test; substitute it as the template does.
 const PREDICATE = cleanup.slice(at(cleanup, "const EXPIRED_PREDICATE = `") + "const EXPIRED_PREDICATE = `".length,
-                                at(cleanup, "`;", at(cleanup, "const EXPIRED_PREDICATE = `")));
+                                at(cleanup, "`;", at(cleanup, "const EXPIRED_PREDICATE = `")))
+  .replace('${userReferencedSql("scraped_jobs.job_id")}', userReferencedSql("scraped_jobs.job_id"));
 
 const NOW = 1_790_000_000;
 const OLD = NOW - 30 * 86400;

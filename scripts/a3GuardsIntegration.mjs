@@ -49,6 +49,7 @@ const SCHEMA = `
     answers_json TEXT, resume_artifact_id INTEGER, resume_ats_score INTEGER,
     base_ats_score INTEGER, base_ats_json TEXT,
     screenshot_path TEXT, submit_verified INTEGER, submit_evidence TEXT,
+    posting_title TEXT, posting_company TEXT, posting_url TEXT, posting_location TEXT,
     -- migration 073. Omitting it made the audit UPDATE throw, and because every audit column shares
     -- one best-effort statement the ENTIRE audit row was silently lost while the run still reported
     -- success. Same failure mode as an un-migrated deployment.

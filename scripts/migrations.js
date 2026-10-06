@@ -3806,4 +3806,20 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_job_tag_places_state ON job_tag_places(state, job_id);
       `,
     },
+    {
+      // D43 (10-06): AN APPLICATION RECORD MUST SURVIVE ITS POSTING. job_applications already held the
+      // company, title, URL and location; the pay was read from the posting through a LEFT JOIN, so a
+      // deleted posting blanked it. apply_run_jobs held only the job_id. Both now snapshot what the user
+      // applied to at the moment they applied, so the record stands without the posting.
+      id: "129_application_snapshots",
+      sql: `
+        ALTER TABLE job_applications ADD COLUMN salary_min INTEGER;
+        ALTER TABLE job_applications ADD COLUMN salary_max INTEGER;
+        ALTER TABLE job_applications ADD COLUMN salary_currency TEXT;
+        ALTER TABLE apply_run_jobs ADD COLUMN posting_title TEXT;
+        ALTER TABLE apply_run_jobs ADD COLUMN posting_company TEXT;
+        ALTER TABLE apply_run_jobs ADD COLUMN posting_url TEXT;
+        ALTER TABLE apply_run_jobs ADD COLUMN posting_location TEXT;
+      `,
+    },
   ];

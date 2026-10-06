@@ -144,6 +144,8 @@ export function buildHistory({ records = [], applications = [], resumes = [], ap
     h.company = h.company ?? j.company ?? null;
     h.title = h.title ?? j.title ?? null;
     h.applyUrl = h.applyUrl ?? j.apply_url ?? j.url ?? null;
+    // ⛔ D43: the record stands without its posting — it renders from its own snapshot, and says so.
+    h.postingListed = jobInfo.has(h.jobId);
     h.resumeAt = resumeAt.get(h.jobId) ?? null;
     // ⛔ O56(a): WHICH résumé the download serves, read the way the download route reads it
     // (services/applicationArtifacts.js readResumeArtifact): D16's kept copy first — taken when the
