@@ -198,7 +198,8 @@ test("the correlation query splits by scorer version and never pools across one"
 test("the response endpoint is scoped to the caller and rejects an unknown outcome", () => {
   const src = fs.readFileSync("routes/apply.js", "utf8");
   assert.match(src, /app\.patch\("\/api\/apply\/applications\/:jobId\/response", requireAuth/);
-  assert.match(src, /!RESPONSE_OUTCOMES\.includes\(outcome\)[\s\S]{0,200}?status\(400\)/,
+  // D55 F: the funnel's words are normalised onto the vocabulary first; anything else is still refused.
+  assert.match(src, /const outcome = normaliseOutcome\(reported\);\s*if \(outcome === undefined\)[\s\S]{0,200}?status\(400\)/,
     "an outcome outside the vocabulary must be refused, not stored");
   assert.match(src, /SELECT \* FROM job_applications WHERE user_id=\? AND job_id=\?[\s\S]{0,400}?status\(404\)/,
     "a job the caller has not applied to must 404 rather than reveal anything");

@@ -159,7 +159,8 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
 
       {/* ⛔ The chips ARE the counts — there is no summary bar. Each one filters; a second click clears. */}
       <div className="ah__chips" role="group" aria-label="Filter by status">
-        {HISTORY_CHIPS.map(c => (
+        {/* D55 F: one chip per funnel stage; an optional one (a reply with no stage) only when it holds a row. */}
+        {HISTORY_CHIPS.filter(c => !c.optional || view.counts[c.id] || chip === c.id).map(c => (
           <button key={c.id} type="button" className="ah__chip" data-status={c.id}
             aria-pressed={chip === c.id} title={c.title}
             onClick={() => setChip(chip === c.id ? null : c.id)}>
@@ -238,7 +239,7 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
                       {row.postingListed === false ? " · posting no longer listed" : ""}
                     </span>
                   </button>
-                  <span className="ah__status" data-status={row.status} data-ask={row.ask}>{row.label}</span>
+                  <span className="ah__status" data-status={row.status} data-stage={row.stage} data-ask={row.ask}>{row.label}</span>
                   {/* D1's rail: revealed on hover AND keyboard focus; always shown on touch. */}
                   <div className="ah__rail">
                     {row.applyUrl && (
