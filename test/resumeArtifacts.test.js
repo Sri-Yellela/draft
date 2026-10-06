@@ -78,7 +78,8 @@ test("resume sandbox distinguishes idle, error, and missing artifact states", ()
   assert.match(jobsPanel, /status:"missing", missing:true/);
   assert.match(sandbox, /Resume artifact missing/);
   assert.match(sandbox, /activeEntry\?\.error && !activeEntry\?\.missing/);
-  assert.match(server, /uj\.resume_generated = 1\s+AND r\.html IS NOT NULL/);
+  // A91: /d's membership is one shared predicate (PENDING_MEMBERSHIP_SQL), reading the résumé itself.
+  assert.match(server, /uj\.resume_generated = 1\s+AND EXISTS \(SELECT 1 FROM resumes pr WHERE pr\.user_id = uj\.user_id AND pr\.job_id = sj\.job_id AND pr\.html IS NOT NULL\)/);
 });
 
 test("resume sandbox layout keeps scroll ownership inside the preview pane", () => {

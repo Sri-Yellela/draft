@@ -7420,6 +7420,8 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       starred        = '',
       // D40: the + view — ALL restricted to the jobs this user imported (job_captures).
       imported       = '',
+      // A91: the /d view — ALL restricted to the jobs this user drafted (PENDING_MEMBERSHIP_SQL).
+      pending        = '',
       domain         = '',
       applied        = '',
       // Keyset pagination, opt-in. When present it REPLACES page/OFFSET; when absent this endpoint
@@ -7920,6 +7922,10 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // ⭐ D40 · THE + VIEW: the same statement as ALL, restricted to this user's captures. Like ★, a
       // capture whose listing has since closed stays in it, labelled — the one exception.
       const importedTab = imported === '1';
+      // ⭐ A91 · /d IS ALL RESTRICTED BY ONE PREDICATE — the board's search, sentence and drawer filters
+      // now apply to it exactly as to ALL (it used to be /api/jobs/pending, a query of its own).
+      const pendingTab = pending === '1';
+      const pendingSql = pendingTab ? `AND ${PENDING_MEMBERSHIP_SQL}` : '';
       const importedSql = importedTab
         ? `AND EXISTS (SELECT 1 FROM job_captures jc WHERE jc.job_id = sj.job_id AND jc.user_id = ${ownUid})` : '';
       const roleSql = (savedTab || boardSearch || functionChosen) ? '' : `AND (
@@ -7943,6 +7949,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
           ${visitedSql}
           ${starredSql}
           ${importedSql}
+          ${pendingSql}
           ${appliedSql}
           ${ageSql}
           ${yoeSql}
@@ -8065,6 +8072,14 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
           capturedBy.set(c.job_id, c);
         }
       }
+      // A91 · the /d card's résumé fields (the panel opens the generated résumé without a second fetch),
+      // read for THIS PAGE's rows after the list, like the + view's capture meta.
+      const resumeBy = new Map();
+      if (pendingTab && rows.length) {
+        const ids = rows.map(r => r.job_id);
+        for (const r of db.prepare(`SELECT job_id, ats_score, ats_report, html AS resume_html, apply_mode FROM resumes
+            WHERE user_id = ? AND job_id IN (${ids.map(() => "?").join(",")})`).all(req.user.id, ...ids)) resumeBy.set(r.job_id, r);
+      }
       const responseBody = {
         success:    true,
         // ⛔ A52 · A STORED SCORE IS SHOWN ONLY WHILE IT IS STILL ABOUT THIS POSTING AND THIS BASIS.
@@ -8075,7 +8090,8 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
         jobs:       rows.map(j => ({ ...mapJobRow({ ...j, matchScore: presentedScore(j, { basisHash: boardBasisHash }) }),
                                      scrapedAt: j.scraped_at,
                                      // D40 · the + view's one extra line: "captured <date> · from <host>".
-                                     ...(importedTab ? { captured: captureMeta(capturedBy.get(j.job_id)) } : {}) })),
+                                     ...(importedTab ? { captured: captureMeta(capturedBy.get(j.job_id)) } : {}),
+                                     ...(pendingTab && resumeBy.has(j.job_id) ? (({ job_id, ...r }) => r)(resumeBy.get(j.job_id)) : {}) })),
         total,
         // A73 · present only when a user-set filter kept rows it could not judge; they sort last.
         ...(unclassified ? { unclassified } : {}),
@@ -9022,6 +9038,19 @@ app.post("/api/jobs/by-id/:jobId/description", requireAuth, async (req, res) => 
   }
 });
 
+// ⛔ A91 (10-06 (33)) · /d's MEMBERSHIP, ONE COPY — the board's `?pending=1` view and this legacy route
+// both read it, so /d is ALL restricted by this predicate (D41(a)). A63: Pending is a generated résumé
+// OR an application record still pending / not verified (the posting was opened from the board, or a
+// résumé exported); "I did not apply" and a verified submission both leave it. Written over the board's
+// own aliases (sj, uj), and needs no join of its own.
+const PENDING_MEMBERSHIP_SQL = `((uj.resume_generated = 1
+           AND EXISTS (SELECT 1 FROM resumes pr WHERE pr.user_id = uj.user_id AND pr.job_id = sj.job_id AND pr.html IS NOT NULL))
+         OR EXISTS (SELECT 1 FROM application_records ar WHERE ar.user_id = uj.user_id AND ar.job_id = sj.job_id
+                      AND ar.state IN ('pending', 'recorded')))
+      AND NOT EXISTS (SELECT 1 FROM application_records ar WHERE ar.user_id = uj.user_id AND ar.job_id = sj.job_id
+                        AND ar.state IN ('withdrawn', 'verified'))
+      AND (uj.applied IS NULL OR uj.applied = 0)`;
+
 app.get("/api/jobs/pending", requireAuth, (req, res) => {
   res.json(pendingJobsQuery(req.user.id));
 });
@@ -9042,15 +9071,7 @@ function pendingJobsQuery(userId, { count = false } = {}) {
     JOIN user_jobs uj ON uj.job_id = sj.job_id AND uj.user_id = ? AND uj.domain_profile_id = ?
     LEFT JOIN resumes r ON r.user_id = ? AND r.job_id = sj.job_id
     WHERE sj.is_active = 1
-      -- A63: Pending is a generated résumé OR an application record still pending / not verified
-      -- (the posting was opened from the board, or a résumé exported); "I did not apply" and a
-      -- verified submission both leave it.
-      AND ((uj.resume_generated = 1 AND r.html IS NOT NULL)
-           OR EXISTS (SELECT 1 FROM application_records ar WHERE ar.user_id = uj.user_id AND ar.job_id = sj.job_id
-                        AND ar.state IN ('pending', 'recorded')))
-      AND NOT EXISTS (SELECT 1 FROM application_records ar WHERE ar.user_id = uj.user_id AND ar.job_id = sj.job_id
-                        AND ar.state IN ('withdrawn', 'verified'))
-      AND (uj.applied IS NULL OR uj.applied = 0)
+      AND ${PENDING_MEMBERSHIP_SQL}
       AND (uj.disliked IS NULL OR uj.disliked = 0)
     ${count ? "" : "ORDER BY uj.updated_at DESC"}
   `);

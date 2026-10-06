@@ -95,6 +95,8 @@ function boardSql(query, nowSec = NOW) {
   where += ` ${rich.sql}`; args.push(...rich.params);
   const bands = String(query.fit_bands || "").split(",").filter(Boolean);
   if (bands.length) where += ` AND ${fitBandsSql(bands)}`;
+  // A91: /d is the board restricted by its predicate — the harness's stand-in is "a job this user starred".
+  if (query.pending === "1") where += " AND uj.starred = 1";
   where += ` AND (uj.disliked IS NULL OR uj.disliked = 0)`;
   return { joinClause: join, whereClause: where, baseArgs: [USER, PROFILE, USER, PROFILE, ...args],
            unclassifiedSql: rich.established.unclassifiedSql, established: rich.established.keys };
@@ -368,9 +370,9 @@ test("④ ⭐ every facet count IS the board's count with that option chosen —
       assert.equal(body.coverage[k], db.prepare(`SELECT COUNT(*) n ${b.joinClause} ${b.whereClause} AND ${col} IS NOT NULL`).get(...b.baseArgs).n,
         `coverage.${k} under ${JSON.stringify(query)}`);
     }
-    // D35 · the view segment's ALL count is the board's own count; /d is null without countPending.
+    // D35 · the view segment's ALL count is the board's own count — and (A91) so is /d's, with pending on.
     assert.equal(body.views.all, boardCount(db, query));
-    assert.equal(body.views.pending, null);
+    assert.equal(body.views.pending, boardCount(db, { ...query, pending: "1" }));
     for (const clause of sentence.SENTENCE_CLAUSES) {
       const opts = body.clauses[clause.key];
       assert.deepEqual(opts.map(o => o.value), clause.dim.options.map(o => o.value).filter(v => clause.key === "posted" || v !== ""));
@@ -424,13 +426,13 @@ test("④ one statement for the headline and ONE per clause — never one per op
   assert.equal(res.status, 200);
   // D35: + one COUNT each for the ALL and ★ views (the /d count is countPending's, absent here).
   // D40: + adds one view count (ALL · ★ · + measured, /d is its own query) — 4 before the clauses.
-  assert.equal(calls.length, 4 + sentence.SENTENCE_CLAUSES.length);
-  assert.equal(prepares, 4 + sentence.SENTENCE_CLAUSES.length);
+  assert.equal(calls.length, 5 + sentence.SENTENCE_CLAUSES.length);   // A91: + the /d view count
+  assert.equal(prepares, 5 + sentence.SENTENCE_CLAUSES.length);
   // Paging and the cursor are never forwarded (a list cursor must not 400 a facets call).
   for (const q of calls) { assert.ok(!("page" in q) && !("cursor" in q)); }
   // Each clause's base set drops exactly its own params — both of the age control's. (D30: six
   // clauses, so the calls are found by clause key, in SENTENCE_CLAUSES' order after the headline.)
-  const callFor = (key) => calls[4 + sentence.SENTENCE_CLAUSES.findIndex(c => c.key === key)];
+  const callFor = (key) => calls[5 + sentence.SENTENCE_CLAUSES.findIndex(c => c.key === key)];
   assert.deepEqual(Object.keys(callFor("level")).sort(), ["ageFilter", "fit_bands", "posted_after", "work_models"]);
   assert.deepEqual(Object.keys(callFor("posted")).sort(), ["experience_levels", "fit_bands", "work_models"]);
   assert.deepEqual(Object.keys(callFor("fit")).sort(), ["ageFilter", "experience_levels", "posted_after", "work_models"]);
@@ -472,11 +474,15 @@ test("④ server.js: the facets route measures through boardPageResponse — val
   assert.doesNotMatch(SERVER, /postedAge\[bucket\]/);
 });
 
-test("④ D35: the /d count is the Pending list's own query, counted — and a failure there is null, never a guess", async () => {
+test("④ D35 → A91: the /d count is the BOARD's count with pending on — and a failure there is null, never a guess", async () => {
   const db = facetFixture();
-  const ok = await boardFacetsResponse({ query: {}, nowSec: NOW, measureBoard: measureFor(db), countPending: () => 9 });
-  assert.equal(ok.body.views.pending, 9);
-  const boom = await boardFacetsResponse({ query: {}, nowSec: NOW, measureBoard: measureFor(db), countPending: () => { throw new Error("x"); } });
+  const ok = await boardFacetsResponse({ query: { work_models: "remote" }, nowSec: NOW, measureBoard: measureFor(db), countPending: () => 9 });
+  assert.equal(ok.body.views.pending, boardCount(db, { work_models: "remote", pending: "1" }), "the /d count takes the board's filters, as the /d list does");
+  // The board cannot answer → the legacy count, and if that fails too, null.
+  const failing = async (q, m) => (q.pending === "1" ? { status: 500, body: {} } : measureFor(db)(q, m));
+  const fallback = await boardFacetsResponse({ query: {}, nowSec: NOW, measureBoard: failing, countPending: () => 9 });
+  assert.equal(fallback.body.views.pending, 9);
+  const boom = await boardFacetsResponse({ query: {}, nowSec: NOW, measureBoard: failing, countPending: () => { throw new Error("x"); } });
   assert.equal(boom.body.views.pending, null);
   // server.js hands it the SAME function the /api/jobs/pending route lists with.
   assert.ok(SERVER.includes("countPending: () => pendingJobsQuery(req.user.id, { count: true })"));

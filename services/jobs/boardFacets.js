@@ -179,14 +179,19 @@ export async function boardFacetsResponse({ query, measureBoard, nowSec, countPe
   // Saved tab's `starred` param off and on (every other filter as it is); /d is the Pending list's own
   // query, counted (countPending). One COUNT each; null when it cannot be measured, never a guess.
   // D40: + is the same count with `imported` on — ALL restricted to the user's captures.
-  const viewTotal = async (starred, imported = false) => {
-    const q = { ...withoutKeys(query, ["starred", "imported"]), ...(starred ? { starred: "1" } : {}), ...(imported ? { imported: "1" } : {}) };
+  // A91: /d likewise — the board's own count with `pending` on, so the /d count and the /d list are the
+  // same question (countPending, the legacy query's count, is kept only as a fallback).
+  const viewTotal = async (starred, imported = false, pendingView = false) => {
+    const q = { ...withoutKeys(query, ["starred", "imported", "pending"]), ...(starred ? { starred: "1" } : {}),
+                ...(imported ? { imported: "1" } : {}), ...(pendingView ? { pending: "1" } : {}) };
     const r = await measureBoard(q, ({ db, joinClause, whereClause, baseArgs }) =>
       db.prepare(`SELECT COUNT(*) AS n ${joinClause} ${whereClause}`).get(...baseArgs).n);
     return r.status === 200 && r.body?.measured ? r.body.value : (r.status === 200 ? 0 : null);
   };
-  let pending = null;
-  try { pending = typeof countPending === "function" ? countPending() : null; } catch { pending = null; }
+  let pending = await viewTotal(false, false, true);
+  if (!Number.isFinite(pending)) {
+    try { pending = typeof countPending === "function" ? countPending() : null; } catch { pending = null; }
+  }
   const views = { all: await viewTotal(false), saved: await viewTotal(true), pending: Number.isFinite(pending) ? pending : null,
                   imported: await viewTotal(false, true) };
 
