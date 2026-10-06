@@ -295,6 +295,14 @@ const AUTHENTICATED = new Set([
   "GET /api/apply/gate-packets",
   "POST /api/apply/gate-packets/:packetId/token",
   "POST /api/apply/gate-packets/:packetId/reopen",
+  // D56: a PREPARED packet's résumé (no run-job to go through) — owner-checked on packet and artifact.
+  "GET /api/apply/gate-packets/:packetId/resume",
+  // D56: the extension on a page — which packets may fill it (origin list + job id), Prepare this
+  // application, "I submitted it", and §8 row 17's Copy sheet. All the session user's own.
+  "POST /api/apply/handoff/match",
+  "POST /api/apply/prepare",
+  "POST /api/apply/copy-sheet",
+  "POST /api/apply/handoff/submitted",
   "POST /api/apply/gate-packet/exchange",
   "GET /api/apply/form-schema",
   "POST /api/apply/form-schema",

@@ -58,7 +58,8 @@ test("jobs UI opens ATS panel from stored base ATS reports without requiring reg
   assert.match(jobsPanel, /job\?\.baseAtsScore/);
   assert.match(jobsPanel, /job\?\.baseAtsReport/);
   assert.match(jobsPanel, /openAtsPanel\(buildAtsPayload\(job, g\)\)/);
-  assert.match(detailPanel, /const atsScore = g\?\.atsScore \?\? job\?\.baseAtsScore \?\? null/);
+  // D58: the header reads the stored pair (tailored, else the stored base) — still no regeneration needed.
+  assert.match(detailPanel, /atsScorePair\(\{ base: job\?\.baseAtsScore, tailored: g\?\.html \? g\?\.atsScore : null \}\)/);
   // ⛔ CC5 REVERSED BOTH OF THESE, AND THEY WERE THE LEAK.
   //
   // This used to assert that the poll shape reads `sj.ats_report` directly and that the keywords
