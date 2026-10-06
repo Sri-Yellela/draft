@@ -189,6 +189,8 @@ export default function ApplicationHistory({ onOpenPending }) {
                     <span className="ah__meta">
                       {row.sentAt ? `Sent ${fmtDay(row.sentAt)}` : `Added ${fmtDay(row.draftedAt)}`}
                       {row.daysWaiting != null ? ` · ${plural(row.daysWaiting, "day")} waiting` : ""}
+                      {/* D43: the posting was deleted; the record shows what was snapshot when you applied. */}
+                      {row.postingListed === false ? " · posting no longer listed" : ""}
                     </span>
                   </button>
                   <span className="ah__status" data-status={row.status} data-ask={row.ask}>{row.label}</span>

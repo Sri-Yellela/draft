@@ -2155,8 +2155,23 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       INSERT OR IGNORE INTO apply_run_jobs (run_id, user_id, job_id, status, approved_from_run_job_id)
       VALUES (?, ?, ?, 'queued', ?)
     `);
+    // ⛔ D43: the posting is SNAPSHOT onto the run-job — title, company, URL, location — so the record of
+    // what the user applied to stands if the posting is later deleted (migration 129). A database
+    // without 129's columns still queues the run; only the snapshot is skipped.
+    let snapshotJob = null;
+    try {
+      snapshotJob = db.prepare(`
+        UPDATE apply_run_jobs SET
+          posting_title    = (SELECT sj.title FROM scraped_jobs sj WHERE sj.job_id = apply_run_jobs.job_id),
+          posting_company  = (SELECT sj.company FROM scraped_jobs sj WHERE sj.job_id = apply_run_jobs.job_id),
+          posting_url      = (SELECT COALESCE(sj.apply_url, sj.url) FROM scraped_jobs sj WHERE sj.job_id = apply_run_jobs.job_id),
+          posting_location = (SELECT sj.location FROM scraped_jobs sj WHERE sj.job_id = apply_run_jobs.job_id)
+        WHERE run_id = ?
+      `);
+    } catch { /* pre-129 schema */ }
     db.transaction(() => {
       for (const id of filtered) insertJob.run(runId, userId, id, approvedFrom?.[id] ?? null);
+      snapshotJob?.run(runId);
     })();
 
     let run = db.prepare("SELECT * FROM apply_runs WHERE id=?").get(runId);

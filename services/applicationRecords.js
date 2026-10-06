@@ -187,10 +187,15 @@ function writeApplication(db, { userId, jobId, job, record, capturedAtsAtApply }
   db.prepare(`
     INSERT INTO job_applications
       (user_id, job_id, company, role, job_url, source, location, apply_mode, applied_at, notes, auto_status,
-       ats_score_at_apply, ats_scorer_version, ats_report_at_apply, ats_scored_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'verified', ?, ?, ?, ?)
+       ats_score_at_apply, ats_scorer_version, ats_report_at_apply, ats_scored_at,
+       salary_min, salary_max, salary_currency)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'verified', ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(user_id, job_id) DO UPDATE SET
       applied_at = excluded.applied_at, notes = COALESCE(excluded.notes, job_applications.notes),
+      -- D43: the posting's pay, snapshot at apply time — kept if the posting is later deleted.
+      salary_min = COALESCE(job_applications.salary_min, excluded.salary_min),
+      salary_max = COALESCE(job_applications.salary_max, excluded.salary_max),
+      salary_currency = COALESCE(job_applications.salary_currency, excluded.salary_currency),
       auto_status = 'verified',
       ats_score_at_apply = COALESCE(job_applications.ats_score_at_apply, excluded.ats_score_at_apply),
       ats_scorer_version = COALESCE(job_applications.ats_scorer_version, excluded.ats_scorer_version),
@@ -199,7 +204,8 @@ function writeApplication(db, { userId, jobId, job, record, capturedAtsAtApply }
   `).run(userId, String(jobId), job?.company ?? null, job?.title ?? null, job?.apply_url || job?.url || null,
          job?.source ?? null, job?.location ?? null, record.method === "draft" ? "AUTO" : "MANUAL",
          record.submitted_at, notes || null,
-         stamp.score, stamp.version, stamp.report, stamp.score == null ? null : nowSec());
+         stamp.score, stamp.version, stamp.report, stamp.score == null ? null : nowSec(),
+         job?.salary_min ?? null, job?.salary_max ?? null, job?.salary_currency ?? null);
   try {
     const profileId = db.prepare("SELECT id FROM domain_profiles WHERE user_id=? AND is_active=1 ORDER BY id DESC LIMIT 1")
       .pluck().get(userId) ?? null;

@@ -26,6 +26,7 @@ import recruiteePlugin from './sources/recruitee.js';
 // to SOURCES below. cacheJoboFeed() (bottom of this file) imports it directly.
 import joboSource from './sources/jobo.js';
 import { SOURCES as SOURCES_DIMENSION, labelMap } from '../../shared/jobFilterOptions.js';
+import { userReferencedSql } from './userReferences.js';
 // import theMuse   from './sources/themusejobs.js';  // add when ready
 // import usaJobs   from './sources/usajobs.js';      // add when ready
 // import indeed    from './sources/indeed.js';        // add when approved
@@ -77,6 +78,16 @@ const ATS_SOURCE_NAMES = DIRECT_ATS_SOURCES;
  * gets an entry here automatically. Unknown ats_type values are ignored rather than dropped
  * silently into a bucket no plugin reads.
  */
+/**
+ * D43 · `.run(jobId)` like the statement it replaces: deletes an unreferenced posting, RETIRES one a
+ * user's record references (services/jobs/userReferences.js) — never a hard delete under a user.
+ */
+function guardedDelete(db) {
+  const del = db.prepare(`DELETE FROM scraped_jobs WHERE job_id = ? AND NOT ${userReferencedSql("scraped_jobs.job_id", db)}`);
+  const retire = db.prepare(`UPDATE scraped_jobs SET is_active = 0 WHERE job_id = ?`);
+  return { run: (jobId) => { const r = del.run(jobId); if (!r.changes) retire.run(jobId); return r; } };
+}
+
 function groupCompaniesByAtsType(rows) {
   const map = Object.fromEntries([...ATS_SOURCE_NAMES].map(name => [name, []]));
   for (const row of rows || []) {
@@ -360,8 +371,11 @@ function getCacheStmts(db) {
       // Read before re-upserting so a re-crawl can preserve the ORIGINAL first-seen timestamp;
       // INSERT OR REPLACE would otherwise reset it. See upsertCanonicalJob.
       getDiscoveredAt: db.prepare(`SELECT discovered_at FROM scraped_jobs WHERE job_id = ?`),
-      deleteJobStmt:  db.prepare(`DELETE FROM scraped_jobs  WHERE job_id = ?`),
-      deleteRoleStmt: db.prepare(`DELETE FROM job_role_map  WHERE job_id = ?`),
+      // ⛔ D43: a posting a user's record references is never hard-deleted — the blue-collar reject
+      // RETIRES it instead (is_active = 0), and its role map stays with the surviving row.
+      deleteJobStmt:  guardedDelete(db),
+      deleteRoleStmt: db.prepare(`DELETE FROM job_role_map  WHERE job_id = ?
+                                   AND NOT EXISTS (SELECT 1 FROM scraped_jobs s WHERE s.job_id = job_role_map.job_id)`),
       // Cheap "seen, unchanged" touch — see cacheJobs' comment on touchSeenStmt below for why
       // this re-writes fingerprint/sources_seen/req_uid on every crawl even for unchanged rows.
       touchSeenStmt: db.prepare(`

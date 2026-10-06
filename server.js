@@ -157,6 +157,7 @@ import { backfillAutomationTier } from "./services/jobs/backfillAutomationTier.j
 import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
 import { tagStaleJobs } from "./services/jobs/jobTags.js";
 import { resolvePlaceText, roleScopeExtra } from "./shared/jobTagVocabulary.js";
+import { userReferencedSql } from "./services/jobs/userReferences.js";
 import { deliverPipelineAlerts } from "./services/jobs/alertDelivery.js";
 import { recordPipelineRun } from "./services/jobs/pipelineRunLog.js";
 import { backfillCompanyLogos } from "./services/jobs/backfillCompanyLogos.js";
@@ -4191,6 +4192,22 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_job_tag_places_state ON job_tag_places(state, job_id);
       `,
     },
+    {
+      // D43 (10-06): AN APPLICATION RECORD MUST SURVIVE ITS POSTING. job_applications already held the
+      // company, title, URL and location; the pay was read from the posting through a LEFT JOIN, so a
+      // deleted posting blanked it. apply_run_jobs held only the job_id. Both now snapshot what the user
+      // applied to at the moment they applied, so the record stands without the posting.
+      id: "129_application_snapshots",
+      sql: `
+        ALTER TABLE job_applications ADD COLUMN salary_min INTEGER;
+        ALTER TABLE job_applications ADD COLUMN salary_max INTEGER;
+        ALTER TABLE job_applications ADD COLUMN salary_currency TEXT;
+        ALTER TABLE apply_run_jobs ADD COLUMN posting_title TEXT;
+        ALTER TABLE apply_run_jobs ADD COLUMN posting_company TEXT;
+        ALTER TABLE apply_run_jobs ADD COLUMN posting_url TEXT;
+        ALTER TABLE apply_run_jobs ADD COLUMN posting_location TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -4572,10 +4589,13 @@ function runExpiredJobsCleanup() {
   // row is that somebody asked for it.
   //
   // Applied rows are untouched by BOTH statements, exactly as before — they stay active and present.
+  // ⛔ D43 (10-06): widened from STARRED to every row a user's record references — user_jobs of any
+  // kind, job_applications, apply_run_jobs, application_records, a capture (services/jobs/
+  // userReferences.js). Production held 4 + 4 orphaned records the narrower rule let through.
   const retiredStarred = db.prepare(`
     UPDATE scraped_jobs SET is_active = 0
     WHERE scraped_at < ? AND is_active = 1
-      AND job_id IN     (SELECT DISTINCT job_id FROM user_jobs WHERE starred = 1)
+      AND ${userReferencedSql("scraped_jobs.job_id")}
       AND job_id NOT IN (SELECT DISTINCT job_id FROM user_jobs WHERE applied = 1)
   `).run(cutoff);
 
@@ -4591,14 +4611,11 @@ function runExpiredJobsCleanup() {
   // of 1291 rows in one unattended startup pass and there was no point at which anything could have
   // objected, because the DELETE was the first thing that knew how big it was. The same predicate is
   // used for the count and for the statement, so the two cannot disagree.
+  // ⛔ D43: a row any user's record references is NEVER deleted (it was retired above) — the applied
+  // and starred exemptions this held are both inside userReferencedSql, with the rest beside them.
   const EXPIRED_PREDICATE = `
     scraped_at < ?
-    AND job_id NOT IN (
-      SELECT DISTINCT job_id FROM user_jobs WHERE applied = 1
-    )
-    AND job_id NOT IN (
-      SELECT DISTINCT job_id FROM user_jobs WHERE starred = 1
-    )
+    AND NOT ${userReferencedSql("scraped_jobs.job_id")}
     AND NOT (duplicate_of IS NOT NULL
              AND duplicate_of IN (SELECT job_id FROM scraped_jobs))
   `;
@@ -10077,6 +10094,7 @@ app.get("/api/applications", requireAuth, (req, res) => {
       sj.category         AS sj_category,
       sj.work_type        AS sj_work_type,
       sj.company_icon_url AS sj_company_icon_url
+    , sj.job_id AS sj_job_id
     FROM job_applications ja
     LEFT JOIN scraped_jobs sj ON sj.job_id = ja.job_id
     WHERE ja.user_id = ?
@@ -10084,13 +10102,17 @@ app.get("/api/applications", requireAuth, (req, res) => {
   `).all(req.user.id);
   res.json(rows.map(r => ({
     ...r,
+    // ⛔ D43: a record of what the user DID must not depend on a row the system can delete. When the
+    // posting is gone the record renders from its own snapshot (company, role, job_url, location,
+    // pay) and says "posting no longer listed" — never a blank row.
+    postingListed:   r.sj_job_id != null,
     description:     r.sj_description     || null,
     descriptionHtml: r.sj_description_html || null,
     url:             r.sj_url             || null,
     applyUrl:        r.sj_apply_url        || r.job_url || null,
-    salaryMin:       r.sj_salary_min       || null,
-    salaryMax:       r.sj_salary_max       || null,
-    salaryCurrency:  r.sj_salary_currency  || null,
+    salaryMin:       r.sj_salary_min       || r.salary_min      || null,
+    salaryMax:       r.sj_salary_max       || r.salary_max      || null,
+    salaryCurrency:  r.sj_salary_currency  || r.salary_currency || null,
     applicantCount:  r.sj_applicant_count  || null,
     minYearsExp:     r.sj_min_years_exp    || null,
     maxYearsExp:     r.sj_max_years_exp    || null,
