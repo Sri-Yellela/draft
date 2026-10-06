@@ -74,6 +74,10 @@ export const Z = {
   // In-flow application content: the board, the Applications table, panel bodies.
   CONTENT: 0,
 
+  // ⭐ D49 · A STICKY BAR (components/StickyBar.jsx) — the board's bar, the posting panel's action bar.
+  // Above the CONTENT that scrolls beneath it, below NAV so the top bar is never covered by it.
+  STICKY: 150,
+
   // FIXED APPLICATION CHROME (TopBar). Above CONTENT so it stays usable while the board scrolls;
   // below every overlay tier below, so it cannot occlude a popup, dropdown, drawer, scrim or panel.
   //

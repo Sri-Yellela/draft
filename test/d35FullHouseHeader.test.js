@@ -346,8 +346,9 @@ test("D35 ⑦ every word is reachable by KEYBOARD, and the panel is reachable fr
   const app = strip(read("client/src/App.jsx"));
   const slotFn = app.slice(at(app, "function BoardHeadlineSlot()"), at(app, "function RouteCommitSignal"));
   assert.ok(at(slotFn, "<BoardHeadline ") < at(slotFn, "<WordPanel "), "the panel must follow the sentence");
-  const header = app.slice(at(app, '<header className="fh"'), at(app, "</header>"));
-  assert.ok(at(header, "<BoardHeadlineSlot />") < at(header, "<BoardBar />"));
+  // D49: the bar moved to the top of <main> (inside StickyBar) so it can stick; reading order holds.
+  const chrome = app.slice(at(app, '<header className="fh"'), at(app, "</main>"));
+  assert.ok(at(chrome, "<BoardHeadlineSlot />") < at(chrome, "<BoardBar />"));
   // On opening, focus moves INTO the panel: the find box, else the chosen option, else the first one a
   // press can change — never a dimmed one.
   const q = (map) => ({ querySelector: (sel) => map[sel] ?? null });
@@ -398,10 +399,12 @@ test("D35 §1: the filter ICON and its panel are DELETED — no file, no handler
 
 test("D35 §4: the VERTICAL ORDER is the sentence, the open panel, the bar, the jobs", () => {
   const app = strip(read("client/src/App.jsx"));
-  const header = app.slice(at(app, '<header className="fh"'), at(app, "</header>"));
-  const pos = (q) => at(header, q);
+  // D49: the sentence in the header; the bar and the sort panel at the top of <main>, in StickyBar,
+  // BEFORE the board — the same reading order, now able to stick.
+  const chrome = app.slice(at(app, '<header className="fh"'), at(app, "</main>"));
+  const pos = (q) => at(chrome, q);
   assert.ok(pos("<BoardHeadlineSlot />") < pos("<BoardBar />") && pos("<BoardBar />") < pos("<BoardSortSlot />"));
-  // The board itself is <main>, after the chrome — and JobsPanel no longer puts a panel above it.
+  assert.ok(pos("<BoardSortSlot />") < pos("<JobsConsole "), "the jobs come after the bar");
   assert.ok(at(app, "</header>") < at(app, "<main "), "the jobs come after the header");
   const panel = strip(read("client/src/panels/JobsPanel.jsx"));
   assert.doesNotMatch(panel, /<SortPanel\b|<WordPanel\b|<FilterDials\b/, "a panel renders between the bar and the board");
