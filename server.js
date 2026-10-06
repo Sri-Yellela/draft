@@ -10056,8 +10056,19 @@ app.post("/api/generate", requireAuth, async (req, res) => {
       slots = draftSlots(db, req.user.id);
       if (jobId) pending = markPending(db, req.user.id, jobId, "generated").state;
     } catch (e) { console.warn("[generate] slot/pending:", e.message); }
+    // ⭐ D56: THE MANUAL ROUTE PRODUCES A PACKET. Generating a résumé for a job makes that job PREPARED —
+    // the profile's answers plus this résumé — so the extension fills it without a Draft. Never fails
+    // the generation: a job with no fillable address, or an empty profile, simply stays unprepared and
+    // the extension's "Prepare this application" says why.
+    let prepared = null;
+    try {
+      if (jobId) {
+        const p = applyLine.prepareManualPacket({ userId: req.user.id, jobId: String(jobId), via: "generate", toolType: tool });
+        prepared = p.ok ? { packetId: p.packetId, resume: p.resume } : { error: p.error, message: p.message };
+      }
+    } catch (e) { console.warn("[generate] prepare packet:", e.message); }
     res.json({ html: result.html, atsScore: result.atsScore, atsReport: result.atsReport, cached:false, version: result.version, tool, toolLabel: tool === "a_plus_resume" ? "A+ Resume" : "Generate", kbFindings: kbFindingsFor(result.html),
-      draftSlots: slots, pending, generatedAt: result.generatedAt, resumeId: result.resumeId, baseAtsScore: result.baseAtsScore });
+      draftSlots: slots, pending, generatedAt: result.generatedAt, resumeId: result.resumeId, baseAtsScore: result.baseAtsScore, prepared });
   } catch(e) {
     // ⛔ Was `500 { error: e.message }` for everything — an exhausted balance, an overload and a
     // withheld résumé looked identical and none said whether retrying could help.

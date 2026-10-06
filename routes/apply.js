@@ -33,6 +33,10 @@ import { draftSlots, slotsExhausted } from "../services/draftSlots.js";
 import { atsJobInputHash, ATS_JOB_INPUT_FIELDS } from "../services/jobs/boardFitPrecompute.js";
 import { recordSubmissionFromPipeline, markPending, releaseDraftRecord, publicRecord } from "../services/applicationRecords.js";
 import { binRunJobs, listBin, restoreFromBin, purgeNow, BIN_DAYS } from "../services/draftBin.js";
+// D56: a packet's ORIGINS (the adapter table, never the user) and the manual route's page → job.
+import { APPLY_ORIGIN_FAMILIES, pageMatchesPacket, hostsSentence } from "../services/applyOrigins.js";
+import { packetAddressing, resolvePageJob, pageNotice, copySheetRows, handoffMessage } from "../services/manualHandoff.js";
+import { recordSubmission } from "../services/applicationRecords.js";
 
 // Live read through the one shared parser, exactly as server.js does — same flag, same function,
 // so this route and the gates over there cannot disagree. ⛔ See shared/monetisation.js: ON is a
@@ -234,7 +238,10 @@ function publicApplication(row) {
 }
 
 export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, generateResumeForApply, htmlToPdf, generateCoverLetterForApply,
-                                    scoreBaseResumeForApply) {
+                                    scoreBaseResumeForApply, { applyOriginFamilies = APPLY_ORIGIN_FAMILIES } = {}) {
+  // D56: the adapter table a packet's origin list comes from. A parameter only so a test can add the
+  // local fake ATS's two-origin family; server.js passes nothing and gets the table in code.
+  const FAMILIES = applyOriginFamilies;
   // ── Manual tracking endpoints ────────────────────────────────────────────────
 
   // ⛔ A63: THIS NO LONGER RECORDS AN APPLICATION ON A CLICK. Its one caller was the board's Apply
@@ -983,10 +990,20 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * ⛔ The kill switch is read right before the model call. ⛔ Never changes the hold's outcome: a failure
    * is logged and the packet stays as it was, still fillable, still retryable (Prepare again).
    */
-  async function attachPacketResume({ packetId, runId, runJobId, userId, jobId, toolType = "generate" }) {
+  async function attachPacketResume({ packetId, runId, runJobId, userId, jobId, toolType = "generate", allowGenerate = true }) {
     const cur = artifactCurrency(db, { userId, jobId, tool: toolType });
     let artifactId = cur.current ? (cur.artifact?.id ?? null) : null;
     let atsScore = cur.current ? (cur.artifact?.ats_score ?? null) : null;
+    // D56: a packet prepared ON DEMAND (the extension's "Prepare this application", or the manual
+    // route's own generation) reuses the résumé the user made and never starts a model call — a
+    // generation from the manual route is the user's own act and uses a Draft slot (A63), which a
+    // click on an employer's page must not spend behind their back. Said, not swallowed.
+    if (artifactId == null && !allowGenerate) {
+      logEvent(runId, runJobId, userId, jobId, "packet_resume_absent",
+        cur.artifact ? `Your résumé for this job is out of date (${cur.detail || cur.reason}) — the handoff fills without it.`
+                     : "No résumé made for this job yet — the handoff fills your answers; attach a résumé yourself.");
+      return { ok: false, reason: cur.artifact ? "resume_not_current" : "no_resume" };
+    }
     if (artifactId == null) {
       if (fullAutoDisabled()) {
         logEvent(runId, runJobId, userId, jobId, "packet_resume_skipped",
@@ -1091,6 +1108,69 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       console.warn("[applyRoutes] gate packet insert failed:", e.message);
       return null;
     }
+  }
+
+  /**
+   * ⭐ D56 · THE MANUAL ROUTE PRODUCES A PACKET. A job the user made a résumé for by hand — or one the
+   * extension's "Prepare this application" names — becomes PREPARED: the profile's answers (the same
+   * canonical resolution a login wall gets) plus the user's current résumé, fillable without a Draft.
+   * Draft is the queue for batches; manual is a one-off — both must fill.
+   *
+   * No run, no run-job: run_id and run_job_id are NULL, gate_reason 'prepared' (a per-application
+   * handoff, handoffKind 'review'). ⛔ No model call and no Draft slot: the résumé attached is the one
+   * the user already made (attachPacketResume, allowGenerate false). Re-preparing reuses a fresh packet
+   * for the same résumé rather than stacking rows; a stale one is replaced, which is what makes
+   * "Prepare this application" always available and never a dead end (D52 — a packet goes off in 72h).
+   *
+   * The origin list is NOT stored: it is derived from the packet's URLs and the adapter table on every
+   * read (packetAddressing), so a packet prepared before a family was added gains it, and nothing a
+   * request carries can widen it.
+   */
+  const PREPARED_REASON = "prepared";
+  function prepareManualPacket({ userId, jobId, via = "extension", toolType = "generate" }) {
+    const job = db.prepare("SELECT * FROM scraped_jobs WHERE job_id=?").get(String(jobId));
+    if (!job) return { ok: false, error: "job_not_found", message: "draft no longer has this posting." };
+    const cur = artifactCurrency(db, { userId, jobId, tool: toolType });
+    const artifactId = cur.current ? (cur.artifact?.id ?? null) : null;
+    const resume = artifactId != null ? "ready" : cur.artifact ? "out_of_date" : "none";
+    const existing = db.prepare(`SELECT id, created_at, resume_artifact_id FROM apply_gate_packets
+      WHERE user_id=? AND job_id=? AND gate_reason=? AND consumed_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 1`)
+      .get(userId, String(jobId), PREPARED_REASON);
+    if (existing && !packetFreshness(toMs(existing.created_at)).stale && (existing.resume_artifact_id ?? null) === artifactId) {
+      return { ok: true, packetId: existing.id, reused: true, resume };
+    }
+    db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(userId);
+    const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId);
+    let packet;
+    try {
+      packet = buildGatePacket({
+        autofillPayload: buildAutofillPayload(profile, "APPLY", job.company),
+        applyUrl: job.apply_url || job.url, jobId: String(jobId),
+        resumeArtifactId: artifactId, gateReason: PREPARED_REASON,
+      });
+    } catch (e) {
+      return { ok: false, error: e.reasonCode || "prepare_failed",
+        message: e.reasonCode === "gate_packet_no_answers"
+          ? "Your profile has nothing to fill yet — add your name and email in Settings, then prepare again."
+          : "This posting has no address draft can fill on." };
+    }
+    const ins = db.prepare(`
+      INSERT INTO apply_gate_packets
+        (user_id, run_id, run_job_id, job_id, apply_url, expected_origin, gate_reason,
+         answers_json, resume_artifact_id, token_hash, expires_at)
+      VALUES (?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, 0)
+    `).run(userId, String(jobId), packet.applyUrl, packet.expectedOrigin, PREPARED_REASON,
+           JSON.stringify(packet), artifactId, GATE_PACKET_NO_TOKEN());
+    const packetId = Number(ins.lastInsertRowid);
+    logEvent(null, null, userId, jobId, "gate_packet_created",
+      `Prepared ${via === "generate" ? "with the résumé you generated" : "on demand"}: ${packet.answers.length} answer(s) ready, ${packet.unresolved.length} for you to answer`,
+      { packetId, gateReason: PREPARED_REASON, via, expectedOrigin: packet.expectedOrigin,
+        answerCount: packet.answers.length, unresolvedCount: packet.unresolved.length, resumeArtifactId: artifactId });
+    if (artifactId == null) {
+      attachPacketResume({ packetId, runId: null, runJobId: null, userId, jobId, toolType, allowGenerate: false })
+        .catch(e => console.warn(`[applyRoutes] prepared packet résumé job=${jobId}: ${e.message}`));
+    }
+    return { ok: true, packetId, reused: false, resume };
   }
 
   async function processRunJob(runJob, run) {
@@ -3475,35 +3555,104 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * portal is a different order of magnitude, and `total` below makes the truncation visible in
    * every case rather than leaving it to be inferred.
    */
-  app.get("/api/apply/gate-packets", requireAuth, (req, res) => {
-    // One local, used to build BOTH statements below, so the list and its count cannot disagree
-    // about what they are scoped to — a `total` computed over a different scope than the rows would
-    // be worse than no total at all.
-    const origin = String(req.query.origin || "").trim();
-    const where = origin ? "AND p.expected_origin = ?" : "";
-    const args = origin ? [req.user.id, origin] : [req.user.id];
+  // D53: a cleared (binned or hidden) application's packet is not offered — nor fillable, see the mint.
+  const NOT_CLEARED = "AND NOT EXISTS (SELECT 1 FROM apply_run_jobs hx WHERE hx.id = p.run_job_id AND hx.hidden_at IS NOT NULL)";
 
-    const PACKET_LIST_LIMIT = 100;
-    // D53: a cleared (binned or hidden) application's packet is not offered — nor fillable, see the mint.
-    const NOT_CLEARED = "AND NOT EXISTS (SELECT 1 FROM apply_run_jobs hx WHERE hx.id = p.run_job_id AND hx.hidden_at IS NOT NULL)";
-    const rows = db.prepare(`
+  /**
+   * The unconsumed packets for a user, each with its D56 ADDRESSING — `origins` (the expected origin
+   * plus its ATS family, from the adapter table) and `jobIds` — and, when `origin` is given, only the
+   * packets whose LIST holds it. ONE function builds the rows and the count, so the list and its
+   * `total` cannot disagree about what they are scoped to — a `total` computed over a different scope
+   * than the rows would be worse than no total at all.
+   *
+   * Scoped by origin, the filter runs over every unconsumed packet BEFORE the cap (the list is the
+   * family's, which SQL cannot see) — the cap still lands on the set the caller cares about.
+   */
+  function listUnconsumedPackets(userId, { origin = "", limit = 100 } = {}) {
+    const sql = (tail) => `
       SELECT p.id, p.job_id, p.run_id, p.run_job_id, p.apply_url, p.expected_origin, p.gate_reason,
              p.answers_json, p.resume_artifact_id, p.consumed_at, p.created_at,
-             sj.title, sj.company
+             sj.title, sj.company, sj.url AS sj_url, sj.apply_url AS sj_apply_url
       FROM apply_gate_packets p
       LEFT JOIN scraped_jobs sj ON sj.job_id = p.job_id
-      WHERE p.user_id=? AND p.consumed_at IS NULL ${where} ${NOT_CLEARED}
-      ORDER BY p.created_at DESC LIMIT ${PACKET_LIST_LIMIT}
-    `).all(...args);
+      WHERE p.user_id=? AND p.consumed_at IS NULL ${NOT_CLEARED}
+      ORDER BY p.created_at DESC ${tail}`;
+    const address = (r) => ({ ...r, ...packetAddressing(r, FAMILIES) });
+    if (!origin) {
+      const rows = db.prepare(sql(`LIMIT ${limit}`)).all(userId).map(address);
+      const total = db.prepare(`SELECT COUNT(*) AS n FROM apply_gate_packets p
+        WHERE p.user_id=? AND p.consumed_at IS NULL ${NOT_CLEARED}`).get(userId)?.n || 0;
+      return { rows, total };
+    }
+    const all = db.prepare(sql("")).all(userId).map(address).filter(r => r.origins.includes(origin));
+    return { rows: all.slice(0, limit), total: all.length };
+  }
 
-    // How many there REALLY are, over the same scope and before the cap. A list that has been cut
-    // must be able to say so: the previous shape was indistinguishable from a complete one, which
-    // is what let the extension read a truncated answer as an empty batch. Counted rather than
-    // inferred from rows.length, which cannot tell a full list from a capped one.
-    const total = db.prepare(`
-      SELECT COUNT(*) AS n FROM apply_gate_packets p
-      WHERE p.user_id=? AND p.consumed_at IS NULL ${where} ${NOT_CLEARED}
-    `).get(...args)?.n || 0;
+  /** One packet as every list shows it — counts and addressing, never a value (those are behind the token). */
+  function listedPacket(r) {
+    const body = parseJson(r.answers_json, {});
+    const createdAt = toMs(r.created_at);
+    const { ageMs, stale } = packetFreshness(createdAt);
+    return {
+      packetId:       r.id,
+      jobId:          r.job_id,
+      runId:          r.run_id,
+      runJobId:       r.run_job_id,
+      title:          r.title ?? null,
+      company:        r.company ?? null,
+      applyUrl:       r.apply_url,
+      expectedOrigin: r.expected_origin,
+      // ⭐ D56: every address this application may be filled on — the expected origin and its ATS
+      // family, from the adapter table, never the user. The extension matches on THIS, not on
+      // expectedOrigin alone, which is what refused account.amazon.jobs for a www.amazon.jobs packet.
+      origins:        r.origins || [r.expected_origin],
+      jobIds:         r.jobIds || [],
+      gateReason:     r.gate_reason,
+      createdAt,
+      // Whether crossing this releases a batch or finishes one application. The panel groups on
+      // it, so it is stated by the server rather than re-derived from the reason string twice.
+      kind:           handoffKind(r.gate_reason),
+      // AB1 requirement 5. A packet is a snapshot of a decision and the world moves; an old one
+      // must SAY it is old rather than quietly filling three-day-old answers into a live form.
+      ageMs,
+      stale,
+      staleAfterMs:   PACKET_STALE_MS,
+      // AB1 requirement 6. The LEFT JOIN on scraped_jobs misses when the 7-day cleanup has
+      // removed the posting, which is what produced rows reading "4369183334 (posting no longer
+      // on the board)". A held review for a posting that no longer exists cannot be resumed at
+      // all — there is nothing to open — so it is its OWN state, not a row with a broken link.
+      postingGone:    r.title == null && r.company == null,
+      // COUNTS ONLY on the list. The values are behind the token exchange, so opening the queue
+      // does not spray a home address across every row of a list response.
+      answerCount:      Array.isArray(body.answers) ? body.answers.length : 0,
+      unresolvedCount:  Array.isArray(body.unresolved) ? body.unresolved.length : 0,
+      resumeAvailable:  r.resume_artifact_id != null,
+    };
+  }
+
+  /** D56: one stored packet row's addressing, with its posting's URLs read alongside. */
+  function addressingFor(row) {
+    let sj = null;
+    try { sj = db.prepare("SELECT url, apply_url FROM scraped_jobs WHERE job_id=?").get(row.job_id); } catch {}
+    return packetAddressing({ ...row, sj_url: sj?.url ?? null, sj_apply_url: sj?.apply_url ?? null }, FAMILIES);
+  }
+
+  /**
+   * Where the extension fetches a packet's résumé. A run's packet goes through its run-job (the audit
+   * route, unchanged); a PREPARED packet (D56 — no run) through the packet itself.
+   */
+  function resumeUrlFor(row) {
+    if (row.resume_artifact_id == null) return null;
+    return row.run_job_id != null
+      ? `/api/apply/run-jobs/${row.run_job_id}/resume`
+      : `/api/apply/gate-packets/${row.id}/resume`;
+  }
+
+  app.get("/api/apply/gate-packets", requireAuth, (req, res) => {
+    const origin = String(req.query.origin || "").trim();
+
+    const PACKET_LIST_LIMIT = 100;
+    const { rows, total } = listUnconsumedPackets(req.user.id, { origin, limit: PACKET_LIST_LIMIT });
 
     // ── Amortise the gate per PORTAL, not per application (TASK G5) ───────────
     // The architecture doc calls this the highest-leverage item in the design, and it is a
@@ -3554,41 +3703,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       truncated: total > rows.length,
       limit: PACKET_LIST_LIMIT,
       portals,
-      packets: rows.map(r => {
-        const body = parseJson(r.answers_json, {});
-        const createdAt = toMs(r.created_at);
-        const { ageMs, stale } = packetFreshness(createdAt);
-        return {
-          packetId:       r.id,
-          jobId:          r.job_id,
-          runId:          r.run_id,
-          runJobId:       r.run_job_id,
-          title:          r.title ?? null,
-          company:        r.company ?? null,
-          applyUrl:       r.apply_url,
-          expectedOrigin: r.expected_origin,
-          gateReason:     r.gate_reason,
-          createdAt,
-          // Whether crossing this releases a batch or finishes one application. The panel groups on
-          // it, so it is stated by the server rather than re-derived from the reason string twice.
-          kind:           handoffKind(r.gate_reason),
-          // AB1 requirement 5. A packet is a snapshot of a decision and the world moves; an old one
-          // must SAY it is old rather than quietly filling three-day-old answers into a live form.
-          ageMs,
-          stale,
-          staleAfterMs:   PACKET_STALE_MS,
-          // AB1 requirement 6. The LEFT JOIN on scraped_jobs misses when the 7-day cleanup has
-          // removed the posting, which is what produced rows reading "4369183334 (posting no longer
-          // on the board)". A held review for a posting that no longer exists cannot be resumed at
-          // all — there is nothing to open — so it is its OWN state, not a row with a broken link.
-          postingGone:    r.title == null && r.company == null,
-          // COUNTS ONLY on the list. The values are behind the token exchange, so opening the queue
-          // does not spray a home address across every row of a list response.
-          answerCount:      Array.isArray(body.answers) ? body.answers.length : 0,
-          unresolvedCount:  Array.isArray(body.unresolved) ? body.unresolved.length : 0,
-          resumeAvailable:  r.resume_artifact_id != null,
-        };
-      }),
+      packets: rows.map(listedPacket),
     });
   });
 
@@ -3638,9 +3753,26 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         ageMs,
         staleAfterMs: PACKET_STALE_MS,
         // What clears it. The panel turns this into a button rather than leaving the user stuck.
-        remedy: "rerun",
+        // D56: a PREPARED packet is cleared by preparing it again — one click, never a dead end.
+        remedy: row.gate_reason === PREPARED_REASON ? "prepare" : "rerun",
         jobId: row.job_id,
       });
+    }
+
+    // ⛔ D56: NEVER RELEASED OUTSIDE ITS ORIGIN LIST. When the extension says which page it is standing
+    // on (every build from D56 on does), that page must be one of this application's addresses — its
+    // origin in the list and, where the URL carries one, the same job id. Checked HERE, before a token
+    // exists, so a mismatch costs nothing; the extension checks the origin again after the release.
+    const addr = addressingFor(row);
+    const pageUrl = typeof req.body?.url === "string" ? req.body.url.slice(0, 2048) : "";
+    if (pageUrl) {
+      const m = pageMatchesPacket({ url: pageUrl, ...addr }, FAMILIES);
+      if (!m.ok) {
+        return res.status(409).json({
+          error: "not_this_address", reason: m.reason, origins: addr.origins,
+          message: `This page isn't one of this application's addresses. It fills on ${hostsSentence(addr.origins)}.`,
+        });
+      }
     }
 
     if (!GATE_TOKEN_SECRET) {
@@ -3666,12 +3798,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // Returned so the extension knows what to target-match BEFORE it asks for the packet, and so a
       // mismatch costs nothing: it can refuse without ever holding the answers.
       expectedOrigin: row.expected_origin,
+      origins: addr.origins,
       applyUrl: row.apply_url,
       // Where the extension fetches the resume as a blob. This route already existed for the audit
       // trail (requirement 5) and is session-authenticated, so nothing new was added for it.
-      resumeUrl: row.resume_artifact_id != null && row.run_job_id != null
-        ? `/api/apply/run-jobs/${row.run_job_id}/resume`
-        : null,
+      resumeUrl: resumeUrlFor(row),
     });
   });
 
@@ -3773,11 +3904,12 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // Repeated at the top level because the extension target-matches on it before releasing
       // anything into a page (G2 requirement 3), and it must not have to dig for it.
       expectedOrigin: row.expected_origin,
+      // ⭐ D56: the whole list. The extension refuses to fill a page whose origin is not in it — even
+      // with the token already spent (a burnt token is cheap; a misplaced home address is not).
+      origins: addressingFor(row).origins,
       applyUrl: row.apply_url,
       gateReason: row.gate_reason,
-      resumeUrl: row.resume_artifact_id != null && row.run_job_id != null
-        ? `/api/apply/run-jobs/${row.run_job_id}/resume`
-        : null,
+      resumeUrl: resumeUrlFor(row),
       packet: body,
     });
   });
@@ -3927,6 +4059,193 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     logEvent(row.run_id, row.run_job_id, req.user.id, row.job_id, "gate_packet_reopened",
       "Handoff reopened after an incomplete session", { from: packetId, to: newId, expectedOrigin: row.expected_origin });
     res.json({ ok: true, packetId: newId, reopened: true, from: packetId });
+  });
+
+  // ── ⛔⛔ D56 · THE EXTENSION ON A PAGE: which packets may fill it, and what to say when none may ──
+  //
+  // The tab's URL arrives in the BODY (never a query string, so it does not land in request logs —
+  // the same posture as D13's /api/import/context), only after a user gesture on that tab. The server
+  // answers from the database and the adapter table; nothing in the request can widen a packet's
+  // origin list. The extension re-checks every packet's ORIGIN against its list before and after the
+  // release — the server's job-id check is the half only the server can do (one URL parser, D23).
+
+  const pageUrlOf = (req) => {
+    const raw = String(req.body?.url || "").slice(0, 2048);
+    try { const u = new URL(raw); return /^https?:$/.test(u.protocol) ? u.href : null; } catch { return null; }
+  };
+
+  function resumeStateFor(userId, jobId) {
+    try {
+      const cur = artifactCurrency(db, { userId, jobId });
+      return cur.current ? "ready" : cur.artifact ? "out_of_date" : "none";
+    } catch { return "none"; }
+  }
+
+  /** The D56 decision for one page, shared by /match, /prepare and /copy-sheet. */
+  function matchPage(userId, url) {
+    const origin = new URL(url).origin;
+    const { rows } = listUnconsumedPackets(userId, { origin, limit: 100 });
+    const matching = rows.filter(r => pageMatchesPacket({ url, origins: r.origins, jobIds: r.jobIds }, FAMILIES).ok);
+    const packets = matching.map(listedPacket);
+    const page = resolvePageJob(db, userId, url, FAMILIES);
+    const job = page.job ? { jobId: page.job.jobId, title: page.job.title, company: page.job.company } : null;
+    const resume = job ? resumeStateFor(userId, job.jobId) : "none";
+    let state = "ready", addresses = null;
+    if (!packets.some(p => !p.stale)) {
+      // This page's job has a usable packet somewhere else? Then the truth is "not one of its addresses".
+      let elsewhere = [];
+      if (job) {
+        try {
+          elsewhere = db.prepare(`
+            SELECT p.*, sj.url AS sj_url, sj.apply_url AS sj_apply_url FROM apply_gate_packets p
+            LEFT JOIN scraped_jobs sj ON sj.job_id = p.job_id
+            WHERE p.user_id=? AND p.job_id=? AND p.consumed_at IS NULL ${NOT_CLEARED}`).all(userId, job.jobId)
+            .filter(r => !packetFreshness(toMs(r.created_at)).stale)
+            .map(r => ({ ...r, ...packetAddressing(r, FAMILIES) }));
+        } catch { elsewhere = []; }
+      }
+      if (elsewhere.length) {
+        state = "not_this_address";
+        addresses = [...new Set(elsewhere.flatMap(r => r.origins))];
+      } else if (packets.length) state = "stale";
+      else if (job && page.mine) state = "prepare";
+      else if (job) state = "not_on_board";
+      else state = "unknown";
+    }
+    const message = state === "ready" ? null : handoffMessage(state, { job, addresses, resume });
+    // ⭐ §8 row 10: the on-demand notice — this is the only moment it is asked for.
+    let notice = null;
+    try { notice = pageNotice(db, userId, { job: page.job }); } catch { notice = null; }
+    return { origin, state, message, job, mine: !!page.mine, resume, packets, addresses, notice,
+             canPrepare: !!(job && page.mine) && state !== "ready" && state !== "not_this_address" };
+  }
+
+  app.post("/api/apply/handoff/match", requireAuth, (req, res) => {
+    const url = pageUrlOf(req);
+    if (!url) return res.status(400).json({ error: "bad_url", message: "Only http(s) pages can be filled." });
+    res.json(matchPage(req.user.id, url));
+  });
+
+  /**
+   * ⭐ "Prepare this application" — one click. The server maps the page (its URL, or its ATS's job id on
+   * any of that ATS's origins) to the user's job and builds the packet on demand (prepareManualPacket):
+   * the profile's answers and the résumé the user made. The extension then fills it straight away,
+   * under the same gesture's activeTab grant.
+   */
+  app.post("/api/apply/prepare", requireAuth, (req, res) => {
+    const url = pageUrlOf(req);
+    if (!url) return res.status(400).json({ error: "bad_url", message: "Only http(s) pages can be filled." });
+    const page = resolvePageJob(db, req.user.id, url, FAMILIES);
+    if (!page.job || !page.mine) {
+      const state = page.job ? "not_on_board" : "unknown";
+      return res.status(404).json({ error: state, message: handoffMessage(state) });
+    }
+    const out = prepareManualPacket({ userId: req.user.id, jobId: page.job.jobId, via: "extension" });
+    if (!out.ok) return res.status(422).json({ error: out.error, message: out.message });
+    const row = db.prepare("SELECT * FROM apply_gate_packets WHERE id=? AND user_id=?").get(out.packetId, req.user.id);
+    const addr = addressingFor(row);
+    const fillsHere = pageMatchesPacket({ url, ...addr }, FAMILIES).ok;
+    res.json({
+      ok: true, packetId: out.packetId, reused: out.reused, resume: out.resume, origins: addr.origins, fillsHere,
+      job: { jobId: page.job.jobId, title: page.job.title, company: page.job.company },
+      message: fillsHere
+        ? (out.resume === "ready" ? "Prepared — your answers and your résumé for this job." : "Prepared — your answers. No current résumé for this job, so attach one yourself.")
+        : handoffMessage("not_this_address", { addresses: addr.origins }),
+    });
+  });
+
+  /**
+   * ⭐ §8 row 17 · THE COPY SHEET — the prepared answers as a list, for a portal draft cannot fill.
+   * Shown in the extension's own popup and copied by the user's hand: nothing enters any page, so no
+   * page access is needed and no token is spent. The answers are the packet's when one matches this
+   * page; otherwise the same canonical resolution a packet would carry, computed and NOT stored.
+   */
+  app.post("/api/apply/copy-sheet", requireAuth, (req, res) => {
+    const userId = req.user.id;
+    const url = pageUrlOf(req);
+    let body = null, source = "profile", job = null;
+    if (url) {
+      const m = matchPage(userId, url);
+      job = m.job;
+      const fresh = m.packets.find(p => !p.stale);
+      if (fresh) {
+        const row = db.prepare("SELECT answers_json FROM apply_gate_packets WHERE id=? AND user_id=?").get(fresh.packetId, userId);
+        body = parseJson(row?.answers_json, null);
+        if (body) source = "packet";
+      }
+    }
+    if (!body) {
+      db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(userId);
+      const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId);
+      try {
+        body = buildGatePacket({ autofillPayload: buildAutofillPayload(profile, "APPLY", job?.company ?? null),
+          applyUrl: url || "https://jobsviadraft.com/", jobId: job?.jobId ?? "copy-sheet", gateReason: PREPARED_REASON });
+      } catch (e) {
+        return res.json({ source: "profile", job, rows: [], unanswered: [],
+          message: "Your profile has nothing to copy yet — add your details in Settings." });
+      }
+    }
+    // Counts only, never a value — the log is not a second copy of the answers.
+    logEvent(null, null, userId, job?.jobId ?? "-", "copy_sheet_opened", "Copy sheet opened in the extension",
+      { source, answerCount: body.answers?.length ?? 0 });
+    res.json({ source, job, ...copySheetRows(body) });
+  });
+
+  /** A PREPARED packet's résumé (no run-job to go through) — owner-checked on the packet AND the artifact. */
+  app.get("/api/apply/gate-packets/:packetId/resume", requireAuth, async (req, res) => {
+    const row = db.prepare("SELECT job_id, resume_artifact_id FROM apply_gate_packets WHERE id=? AND user_id=?")
+      .get(Number(req.params.packetId), req.user.id);
+    if (!row) return res.status(404).json({ error: "packet_not_found" });
+    if (row.resume_artifact_id == null) return res.status(404).json({ error: "no_resume_artifact" });
+    const artifact = db.prepare("SELECT html FROM resumes WHERE id=? AND user_id=?").get(row.resume_artifact_id, req.user.id);
+    if (!artifact?.html) return res.status(404).json({ error: "resume_artifact_missing" });
+    try {
+      const pdf = await htmlToPdf(artifact.html);
+      const safe = String(row.job_id).replace(/[^a-z0-9._-]+/gi, "_");
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `inline; filename="resume-${safe}.pdf"`);
+      return res.send(pdf);
+    } catch (err) {
+      return res.status(503).json({ error: "pdf_render_failed", message: err?.message || "Could not render the resume to PDF." });
+    }
+  });
+
+  /**
+   * ⭐ D56 / §8 row 8 · "I SUBMITTED" — from the popup and the review overlay, for a job that was never
+   * drafted as much as one that was. The page the user is standing on is the evidence (a confirmation
+   * URL on the employer's application site, A63's rule), so a hand-submitted application VERIFIES and
+   * job_applications is written — with the score capturedAtsAtApply finds, which is the TAILORED
+   * résumé's when one exists. Nothing is recorded on the page's say-so alone: verifyEvidence decides.
+   */
+  app.post("/api/apply/handoff/submitted", requireAuth, (req, res) => {
+    const userId = req.user.id;
+    const url = pageUrlOf(req);
+    if (!url) return res.status(400).json({ error: "bad_url" });
+    let jobId = null;
+    const claimed = req.body?.jobId != null ? String(req.body.jobId) : null;
+    // A job id from the released packet is honoured only when that packet is the user's own.
+    if (claimed && db.prepare("SELECT 1 FROM apply_gate_packets WHERE user_id=? AND job_id=?").get(userId, claimed)) jobId = claimed;
+    if (!jobId) {
+      const page = resolvePageJob(db, userId, url, FAMILIES);
+      if (page.job && page.mine) jobId = page.job.jobId;
+    }
+    if (!jobId) {
+      return res.status(404).json({ error: "unknown_job",
+        message: "draft can't tell which of your jobs this page is — record it from The Table." });
+    }
+    try {
+      const out = recordSubmission(db, { userId, jobId, capturedAtsAtApply,
+        input: { submittedAt: Date.now(), method: "ats_portal", evidenceUrl: url } });
+      const score = db.prepare("SELECT ats_score_at_apply FROM job_applications WHERE user_id=? AND job_id=?").pluck().get(userId, jobId) ?? null;
+      const missing = out.verification.checks.find(c => !c.ok);
+      res.json({ ok: true, jobId, state: out.state, verified: out.verification.verified, atsScoreAtApply: score,
+        message: out.verification.verified
+          ? "Recorded — it's in your Submitted applications."
+          : `Recorded, not verified yet${missing ? ` — ${missing.detail}` : ""}. Add your confirmation in The Table.` });
+    } catch (e) {
+      if (e.code === "already_verified") return res.json({ ok: true, jobId, state: "verified", verified: true, message: "Already in your Submitted applications." });
+      res.status(e.status || 500).json({ error: e.code || "record_failed", message: e.message });
+    }
   });
 
   /**
@@ -4441,5 +4760,5 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
 
   // A59: boot-time hooks, called by server.js — not here, so a test mounting these routes on its own
   // fixture neither recovers its seeded rows nor starts a timer unless it asks to.
-  return { recoverInterruptedRuns, startLineTicker, dispatchAllLines };
+  return { recoverInterruptedRuns, startLineTicker, dispatchAllLines, prepareManualPacket };
 }
