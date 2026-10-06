@@ -234,7 +234,10 @@ test("the env kill switch blocks full-auto while leaving semi mode working", asy
     assert.equal(blocked.status, 503);
     const body = await blocked.json();
     assert.equal(body.error, "full_auto_disabled");
-    assert.equal(body.retryWithMode, "manual");
+    // D36: no longer points at a manual mode the client does not offer.
+    assert.equal(body.retryWithMode, undefined);
+    assert.doesNotMatch(body.message, /manual/i);
+    assert.match(body.message, /paused by the operator/);
     assert.equal(db.prepare("SELECT COUNT(*) n FROM apply_runs").get().n, 0);
 
     const semi = await post(baseUrl, "/api/apply/runs", { jobIds: ["a"], mode: "manual" });
