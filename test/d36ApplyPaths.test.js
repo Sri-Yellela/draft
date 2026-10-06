@@ -461,3 +461,42 @@ test("D36·1 · generation passes the job id to the usage row and closes the lif
   assert.match(core, /usageEventId = recordToolsServiceUsage\(db, generated\.usage, \{\n\s*userId, eventSubtype, jobId: String\(jobId\),[\s\S]{0,120}idFor: "resume_generate",/);
   assert.match(core, /recordAtsOutcome\(db, usageEventId, \{ scoreBefore: atsScoreBefore, scoreAfter: atsScore \}\);/);
 });
+
+// ── 5 · NOTHING SUBMITS ON A GESTURE OR A KEYSTROKE; APPROVAL IS SEPARATE ─────────────────────────
+// Checked 10-05. The deck's keys (D/→ Draft, X/← Pass, S Save, U Undo) and swipe, and the board's
+// Draft, all reach ONE call — POST /api/apply/runs with a surface and no approvalMode — which the
+// server admits only as a preview (approval_mode 'required'; the D36·7 tests above). Sending is
+// POST /api/apply/approve, reached from one client function, wired only to buttons — and the bulk
+// form takes two presses. The extension fills; the last click is always the candidate's.
+test("D36·5 · the decision surfaces can only Draft, and only the approval buttons can send", () => {
+  const deck = read("client/src/panels/DeckView.jsx");
+  const decisions = read("client/src/lib/jobDecisions.js");
+  const ctx = read("client/src/contexts/AutoApplyContext.jsx");
+  const panel = read("client/src/panels/AutoApplyPanel.jsx");
+  // The deck's keyboard map: Draft / Pass / Save / Undo and navigation — no approve.
+  const onKey = deck.slice(anchor(deck, "const onKey = (e) => {"), anchor(deck, 'window.addEventListener("keydown", onKey);'));
+  assert.doesNotMatch(onKey, /approve|decidePending|\/api\/apply\/(?:approve|answers)/i);
+  // A decision never asks for no review.
+  const commit = decisions.slice(anchor(decisions, "export async function commitDecision"), anchor(decisions, "export async function undoDecision"));
+  assert.match(commit, /body: JSON\.stringify\(\{ jobIds: \[jobId\], mode: "auto", tool, surface \}\)/);
+  assert.doesNotMatch(commit, /approvalMode/);
+  // The one client call that sends, and every caller of it is a click handler.
+  const clientSrc = [deck, decisions, ctx, panel].join("\n");
+  assert.equal((clientSrc.match(/\/api\/apply\/\$\{approve \? "approve" : "reject"\}/g) || []).length, 1);
+  const sends = [...panel.matchAll(/decidePending\([^\n]*?, true\)/g)];
+  assert.ok(sends.length >= 3, `expected the three Approve buttons, found ${sends.length}`);
+  for (const m of sends) {
+    const before = panel.slice(Math.max(0, m.index - 30), m.index);
+    assert.match(before, /onClick=\{\(\) => $|onClick: \(\) => $/, `an approve that is not a click: …${before}${m[0]}`);
+  }
+  // Bulk send is two deliberate steps.
+  assert.match(panel, /setConfirmApproveAll\(true\)/);
+  assert.match(panel, /Send all \{scopedPending\.length\} to their employers\?/);
+});
+
+test("D36·5 · the extension never submits a form: no submit(), no requestSubmit(), no submit click", () => {
+  for (const f of ["extension/gated-handoff.js", "extension/review-overlay.js", "extension/background.js", "extension/popup.js", "extension/companion.js"]) {
+    const src = read(f).replace(/^\s*(\/\/|\*).*$/gm, "");   // prose about submitting is allowed
+    assert.doesNotMatch(src, /\.requestSubmit\s*\(|\.submit\s*\(\s*\)|\[type=["']?submit["']?\][^;\n]*\.click\(/, f);
+  }
+});
