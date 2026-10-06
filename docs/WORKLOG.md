@@ -2973,6 +2973,101 @@ Owner: *"show ats number not band — we will get around tuning it by end of day
 
 ---
 
+## ⛔ D51–D54 · THE DRAFT → APPLY → CLEAR LOOP — 2026-10-07
+
+⏸ Queued 2026-10-07 by the owner. **One flow, three failures:** the draft vanishes (D51) · nothing starts it (D52) · nothing can be restored or cleared in bulk (D53) · and nothing shows you that you are applying into the same company twice (D54). ⛔ This is D36's territory — the apply path — seen from the very first click. **Suggested place in the queue:** D51 goes **beside D41**, since it is the same family (a user's own action not appearing where it should); D52 and D53 follow D46.
+
+### D51 · ⛔⛔ A DRAFTED JOB IS SEEN NOWHERE, AND ITS BUTTON IS JUST GREYED OUT
+
+The owner drafted a job. It is *"added or seen nowhere"*, the **Draft button is greyed out**, and there is no sign of where it went.
+
+⛔ **Two defects in one click:** (1) the job cannot be found afterwards; (2) **a disabled button is a dead end** — it says *no* without saying *why* or *where to go.* Same class as D33's *"silence reported as success."*
+
+**PROBE — trace ONE click and report, in order:**
+1. **What the Draft click writes** — which table, which state, which user — and whether the response says so.
+2. **Why the button is disabled:** already drafted · the quota (*"a Draft or a new résumé uses one"*) · or a cap (per-run / per-day / per-company). ⚠ Those mean three different things and need three different sentences.
+3. **Does each place that should show it actually read it?** The **/d chip** (D41(a): ALL restricted to drafted) · **Draft House → Queued** · **The Table → In play** (D15). ⛔ D41(a) says /d is a sub-table of ALL — this may be **the same separate-store defect on the /d chip**, and D46(b) already found /d cards dead.
+4. **Is the row hidden by scope** — the profile, the market gate, `is_active`?
+5. **Did the quota decrement**, and does the UI say so?
+
+**THE FIX, once measured:**
+- ⛔ **A disabled Draft button never appears without a reason.** Its states: *Drafted ✓ — view in Draft House* (click goes to it; a second action undoes it → D53) · *Out of drafts — resets in 3h* · *Per-company cap reached (3/3 at Scale AI)* · *Can't be drafted: <reason>.*
+- ⛔ **One write, three readers** — /d, Queued and In play all read **the same row** (the D41(a) invariant), so a draft appears in all three at once.
+- The card shows its new state **without a reload**; a refused draft says why and **writes nothing half-way.**
+
+✅ **Acceptance:** draft one job → within a second it is in /d, Draft House → Queued and The Table → In play; the button reads *Drafted*; the quota shows one fewer; a reload keeps all of it. ⛔ **Tests:** each reader sees it · a refused draft shows its reason · the button is never disabled without one.
+
+### D52 · ⭐ START THE QUEUE — nothing starts a drafted job today
+
+Owner: *"I should be able to start the queued items for apply, where it starts generating résumés and tries to fill in the details as required — or at least have the data packet ready to be filled using the extension in semi."*
+
+⛔ **Verify first:** a drafted job sits in Queued with **no control that starts it.** If a run can start only from somewhere else, say where.
+
+**WHAT START DOES — per item, and as "Start queue" for all:**
+
+```
+QUEUED → PREPARING (résumé generated) → PREPARING (form found, fields resolved) →
+   direct tier → FILLED, WAITING FOR YOUR APPROVAL      (semi: you approve each submit)
+   gated tier  → PACKET READY — open the page, the extension fills it (⌃⇧Y), the review
+                 overlay shows, YOU submit
+   a step fails, or a question has no confident answer → STOPPED (D14), with the reason
+```
+
+- **Résumé generation is the one model call D17 allows.** ⚠ It uses the draft quota — **show the cost BEFORE starting:** *"Starting 5 uses 5 of your 10 résumés today."*
+- Fields come from the **deterministic resolver.** ⛔ Eligibility fields are exact or flagged, **never guessed** (D36).
+- **Start respects the caps and says so honestly:** *"4 of 7 will start now; Scale AI holds 2 (3/3 today); 1 waits for tomorrow's limit."*
+- ⛔ **Unattended stays locked.** AUTO is **attended** — a human approves each submit — until D36 / O73 have both passed. The toggle may exist; it may not be flipped.
+- ⛔ **The kill switch is checked per run before any model call**, and a **failed step leaves the item retryable** — a 429 or a timeout must not stamp it attempted.
+- **Progress is visible per item** (the four dots, D14) — never a spinner with no state.
+- ⚠ **A packet expires** (the extension's prepared packet lives ~10 minutes). One that lapses while the user is away must be **re-preparable with one click**, shown as *"ready — expires in 8 min / prepare again"* — never silently dead.
+
+✅ **Acceptance:** queue three, press Start; each reaches *filled-awaiting-approval*, *packet ready* or *stopped-with-reason*, and **none stays "queued" without saying why.** Report the real result for **one job per tier.**
+
+### D53 · ⭐ REVIEW AND CLEAR — with a 7-day recycle bin
+
+Owner: items queued for review must be **reviewable and clearable**, and — ✅ **corrected 10-07: removal already works** (the owner can remove items when needed), so this row does not add it; it **makes it recoverable.** *"If I applied it would be moved to that section; if I didn't and am not anymore I should be able to clear them — a 7-day recycle bin if users want to go back."*
+
+**THE RULE:**
+
+```
+APPLIED (you submitted)         → moves to The Table (D15). History. Not clearable here.
+NOT APPLIED, no longer wanted   → CLEAR → recycle bin for 7 days → then purged
+NOT APPLIED, still wanted       → stays in Queued / Stopped / Ready
+```
+
+- **Review.** Every *ready to review* item opens to its résumé and its prepared fields — **exceptions first** (D14) — with **Approve · Skip · Clear.**
+- **Clear** — ✅ **removal already exists and works** (owner, 10-07). **Find it and build on it — do not add a second one.** What changes: it becomes **soft** (to the bin), it gains **multi-select** and *"clear everything older than 7 / 30 days"*, and ⛔ **it behaves the same in every non-terminal state** — report any state where it is missing or behaves differently. ⚠ **Today's removal is probably a HARD delete — verify.** If so, the bin means converting it, and **anything removed before the bin exists is gone**: say so plainly rather than implying it can be restored.
+- **The recycle bin lives inside Draft House** — a *Cleared · 7 days* fold under Queued, **not a new nav item.** It shows the count, and per item *"purges in N days"*, **Restore** (back to its exact prior state, résumé intact) and **Delete now.**
+- ⛔ **Clearing is a SOFT delete** (`cleared_at`, `purge_after`) — never a hard delete in the click path. It removes the **queue entry**, never the posting (D43: a posting a user has a relationship with is never hard-deleted).
+- ⛔ **The purge needs a MECHANISM, not just a policy:** a **scheduled sweep**, plus a **read-time filter** so an expired item is invisible even if the sweep runs late. A57's lesson: a retention rule enforced only at read time is a policy with no mechanism. ⛔ **The sweep carries the brake the 1,288-row `cleanup_log` id 85 deletion lacked** — dry run by default, a ceiling, refuses past it, logs what it purged.
+- **Bulk clear confirms with a count and the promise:** *"Clear 14? They stay in the bin for 7 days."*
+- **Clearing a drafted job frees its Draft button** (D51) and removes it from /d; **Restore** puts it back.
+- ⚠ **Privacy:** the bin holds résumés — state the 7-day retention and delete securely. The privacy page and `PRIVACY_RECONCILIATION` get the line (D44's rule).
+- ⚠ **Clear is not Pass.** It means *not now*; it writes no pass and trains nothing.
+
+⛔ **Tests (each red when removed):** clear → in the bin, absent from Queued and /d · restore → back, same state · an 8-day-old item is invisible **and** purged by the sweep · an applied item **cannot** be cleared · removal behaves the same in **every** non-terminal state · the sweep refuses past its ceiling.
+
+### D54 · ⭐ COMPANY-WISE TRACKING — never apply into the same company twice without knowing
+
+Owner: *"company-wise tables for jobs applied or trying to apply to, to avoid applying for different jobs within the same company without track."*
+
+⛔ **The risk:** two or three applications into one employer, each unaware of the others — different roles, different résumés, possibly contradictory answers — read by one recruiter. Today the only guard is the **per-company cap**, which *counts* but does not *show.*
+
+**THREE SURFACES, ONE DATA SOURCE:**
+1. **The Table → a "By company" view** (D15). A toggle *List | By company.* Each company is a row — logo · name · *3 roles: 1 sent · 1 waiting on you · 1 queued* · last activity · outcomes (replies, rejections) — that **expands to its jobs** with status and dates (D15's timeline). ✅ It covers **applied AND in-play** (drafted, queued, stopped, ready): *"trying to apply"* counts.
+2. **At the point of action.** On **Draft** — card, posting panel, deck — when the company already has any active or sent application, show a **non-blocking notice:** *"You already have 2 roles at Scale AI — 1 sent 28 Sep, 1 queued. Draft this one too?"* ⛔ Never silent, never a hard block — the per-company cap still enforces the limit.
+3. **In Draft House.** Queued is labelled by company; D52's Start summary lists the company holds; a stopped card's fold shows the company's other applications.
+
+**⛔ THE COMPANY KEY IS THE WHOLE PROBLEM.** Key by a **stable company identity, not a display-name string.** *"Scale AI"*, *"Scale"* and `scale.com` must be **one** company; **two different companies that share a name must NOT merge.** The *"Localhost"* and *"Physical Superintelligence → Intel"* defects were exactly this. Use the **ATS company id + the company KB + the domain.** ⛔ **Report how companies are keyed today and list the collisions** — one company on two boards, two companies with one name — **before building.** ⚠ A company on Greenhouse *and* Workday is still one company.
+
+**DATA.** Source is `job_applications` plus the apply queue. ⛔ **Depends on D43:** the company id, company and title are **snapshotted into the application record**, so the table survives a deleted posting — build D43 first. ⚠ A cleared item (D53) is **not** an application; **a sent one is, forever.**
+
+**DEFAULTS, so the build is not blocked** (owner may change any): the notice **warns at the SECOND role** at a company that has any active or sent application · **no new block** — the existing per-company cap (Settings → Applying) does the blocking · the look-back for *"already applied"* is **all time for sent, current for in-play**, with the date shown so the user can judge. A hard *"not twice within N days"* rule can be added later.
+
+⛔ **Tests (each red when removed):** two jobs at one company on different boards appear under **one** company row · two same-named companies stay **separate** · drafting a second role at a company **shows the notice** · the By-company counts equal the List view's rows grouped · a deleted posting's application **still appears** (D43) · clearing a queued item removes it from its company's row.
+
+---
+
 ## ⛔⛔ D36 · EVERY APPLY PATH, END TO END — the same treatment D33 gave capture
 
 **🚀 LIVE 10-06 (29): `65a9838` — 3366 / 3366 / 0, client builds.** **🔨 BUILT, ⛔ NOT DONE — DONE needs the owner's ATTENDED real application on each path (O73), per `docs/D36_ATTENDED_RUNBOOK.md`.** Walked as a user against the LOCAL fake ATS only (synthetic user, keys blanked, a no-model tools stub; FULL AUTO in a harness copy) — nothing reached an employer. **Measured per path** (rows, score, provenance, gates, caps, response, artifact) in the D36 report: MANUAL → `job_applications` with `ats_score_at_apply` 90 (`local_ats_v5`) · SEMI → preview superseded → approved run submitted + verified, score 90 · GATED → held `login_required`, ⚠ no résumé and a NULL score on that path (O73b) · FULL AUTO (harness) → Ashby submitted, Lever/Greenhouse held. ⭐ **Refuted:** "in SEMI the completeness and low-confidence gates don't run" — D25's preview + approve are both unattended and both gates fired live; only the legacy `run.mode='semi'` skips them, and nothing starts it. ⭐ `recordAtsOutcome` DOES fire with the job id — the null rows were user 0's 09-05 scripts. **Fixed, one commit each:** ⛔ the kill switch did not stop a run IN FLIGHT — now checked right before the submit click, fail-closed (`18c6794`) · ⛔ FULL AUTO was admitted via approvalMode `auto` from two routes — locked at admission (403 `full_auto_locked`) and processing (`ed6e7d2`) · ⛔ **eligibility was guessed** — on a trap page the old code submitted ethnicity = city, sponsorship "No" ×3 from a DEFAULT, clearance "no", citizenship = country; now blank + refusal recorded (`8a08222`) · an approved run said "No resume was generated" over one that existed (a `::` in a Windows temp name, swallowed; `8d73869`) · a refused answers-retry lost the held application (`8df5f53`) · approving refunded the Draft slot (`eb4e0c3`) · the contradictory preview log (`bc6cbcf`) · kill-switch copy offered a mode that doesn't exist (`8f75dde`) · a failed review overlay read as success — **extension v1.4.1** (`051958e`; zip built, not uploaded) · a gated handoff never reached Pending (`e7327cc`). Proofs pinned: `ca13b7a` (the row + score), `70abb4b` (429 / dead container / timeout stay retryable), `b7c3051` (nothing submits on a gesture); g3's real-Chrome overlay run passed. Two generation-call defects → **A88**.
