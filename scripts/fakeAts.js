@@ -39,6 +39,11 @@
  *                              static HTML cannot: a discovery pass that does not wait for a
  *                              readiness condition walks an empty DOM here, exactly as it did
  *                              against a real Ashby posting.
+ *   GET  /workday-replica      D55: a WORKDAY-SHAPED six-step wizard (dropdown listboxes in a portal,
+ *                              typeaheads, skill chips, Add Another sections, a drop zone behind a
+ *                              cover-letter decoy, Save and Continue, Review, a RECORDED Submit).
+ *                              GET /_workday-replica/state reads what it saved and whether Submit
+ *                              was ever pressed.
  *   GET  /_submissions         JSON of everything submitted so far (for assertions)
  *   POST /_reset               clear recorded submissions
  *
@@ -907,6 +912,9 @@ function indexPage() {
       <a href="/gated/mixed">/gated/mixed</a> puts a sign-in form and an application form on ONE page,
       both with a control named <code>email</code>: the case where only a per-control rule protects
       the candidate's details from the login box.</li>
+    <li><a href="/workday-replica">/workday-replica</a> — D55: a Workday-shaped six-step wizard
+      (My Information → My Experience → Application Questions → Voluntary Disclosures → Self Identify
+      → Review). Its Submit is recorded at <a href="/_workday-replica/state">/_workday-replica/state</a>.</li>
   </ul>
   <p><a href="/_submissions">/_submissions</a> — recorded submissions (JSON). Each record carries
   <code>fields</code> (text parts), <code>files</code> (uploads — <code>null</code> where the input
@@ -915,6 +923,550 @@ function indexPage() {
   <h2>Traps</h2>
   <pre style="white-space:pre-wrap;font-size:12px">${escapeHtml(JSON.stringify(TRAPS, null, 2))}</pre>`);
 }
+
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+// ── D55 · THE WORKDAY-SHAPED REPLICA — /workday-replica ─────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+// docs/AUTOFILL_TARGET.md §7.7: "(d) needs a Workday replica added there first". The /workday route
+// above is a cross-origin IFRAME fixture for discovery; it is not a wizard. This is: one document,
+// re-rendered step by step the way Workday's own SPA is, carrying every widget the reference video
+// shows the extension driving and that draft's fill could not —
+//
+//   · a SIX-STEP WIZARD  My Information → My Experience → Application Questions → Voluntary
+//                        Disclosures → Self Identify → Review, advanced by the portal's own
+//                        "Save and Continue" (data-automation-id="bottom-navigation-next-button"),
+//                        which VALIDATES the step and refuses to advance over an empty required field.
+//   · DROPDOWN BUTTONS   <button aria-haspopup="listbox"> whose listbox is rendered into a PORTAL at
+//                        the end of <body>, after a delay — not a sibling, not there on click.
+//   · TYPEAHEADS         type → "Searching…" → results after a delay → click one → a chip. The search
+//                        is a plain SUBSTRING match, so a profile value that is not the ATS's own
+//                        wording ("Computer Science") finds nothing until a shorter query is tried.
+//   · MULTI-SELECT CHIPS Skills: one chip per pick, each confirmed.
+//   · ADD / ADD ANOTHER  Work Experience, Education, Languages, Websites: the panel appears a beat
+//                        AFTER the click, and the button relabels itself "Add Another".
+//   · A FILE DROP ZONE   over an input[type=file] — and a COVER LETTER drop zone placed BEFORE the
+//                        résumé's, so "the first file input on the page" is the wrong one.
+//   · REQUIRED, THREE WAYS  aria-required="true" on some controls; on others ONLY the label's
+//                        asterisk (<abbr title="required">*</abbr>), which is all many forms give.
+//   · THE STOPS          work authorisation and sponsorship, a screening question that rules the
+//                        candidate out ("7+ years?"), a marketing opt-in, EEO, a required Terms
+//                        checkbox and the disability self-identification.
+//   · A REVIEW PAGE      whose bottom button is the SAME control as Save and Continue, relabelled
+//                        "Submit" — exactly as Workday does it. Pressing it is RECORDED
+//                        (submitPressed), so a test can prove the extension never did.
+//
+// Markup follows Workday's data-automation-id conventions as far as they are known
+// (legalNameSection_firstName, addressSection_city, phone-number, file-upload-input-ref,
+// selectedItem, promptOption …). ⚠ Not re-measured against a live tenant: this is a replica for
+// measuring the fill, and it cannot prove a real tenant still uses these ids.
+//
+// State lives on the server only as a RECORD of what the page did: every Save and Continue posts the
+// step's values to /_workday-replica/save, and Submit posts to /_submit/workday-replica. Read both
+// at GET /_workday-replica/state; POST /_reset clears them.
+
+const workdayReplica = { saves: [], submitPressed: 0, submitted: [] };
+function resetWorkdayReplica() {
+  workdayReplica.saves.length = 0;
+  workdayReplica.submitted.length = 0;
+  workdayReplica.submitPressed = 0;
+}
+
+const WD_REPLICA_CONFIG = {
+  // Long enough that a fill which reads the listbox synchronously after its click finds nothing,
+  // which is the defect (a) exists to fix; short enough that a run stays quick.
+  listboxDelayMs: 120,
+  searchDelayMs: 450,
+  steps: ['My Information', 'My Experience', 'Application Questions', 'Voluntary Disclosures', 'Self Identify', 'Review'],
+  vocab: {
+    source: ['Career Fair', 'STEM Women Graduate Career Event', 'Company Careers Website', 'LinkedIn',
+             'Employee Referral', 'Job Board', 'Other'],
+    countries: ['Canada', 'India', 'United Kingdom', 'United States of America'],
+    states: ['California', 'Illinois', 'Massachusetts', 'New York', 'Texas', 'Washington'],
+    schools: ['Example State University', 'Example State University - Online', 'Example Technical College',
+              'Northfield College', 'Riverside Institute of Technology'],
+    degrees: ['High School Diploma', 'Associate', "Bachelor's Degree", "Master's Degree", 'Doctorate (PhD)'],
+    fields: ['Computer and Information Sciences', 'Computer Engineering', 'Computational Biology',
+             'Electrical Engineering', 'Mathematics'],
+    languages: ['English', 'French', 'German', 'Hindi', 'Spanish'],
+    proficiency: ['Beginner', 'Intermediate', 'Advanced', 'Fluent'],
+    skills: ['Agile', 'Amazon Web Services (AWS)', 'C++', 'CSS', 'Docker', 'GraphQL', 'HTML', 'Java',
+             'JavaScript', 'Kotlin', 'Node.js', 'PostgreSQL', 'Python (Programming Language)', 'React.js',
+             'REST APIs', 'SQL', 'TypeScript'],
+    ethnicity: ['Hispanic or Latino', 'White', 'Black or African American', 'Asian',
+                'Two or More Races', 'I do not wish to answer'],
+  },
+};
+
+// Runs IN THE PAGE. Serialised with toString(), so it closes over nothing but its argument.
+function workdayReplicaClient(cfg) {
+  const root = document.getElementById('wd-root');
+  const state = { step: 0, values: {}, chips: {}, files: {}, sections: {} };
+  let reg = [];               // the current step's fields: { key, label, required, get, wrap }
+  let uid = 0;
+
+  const h = (tag, attrs, ...kids) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v === false || v === null || v === undefined) continue;
+      if (k === 'text') el.textContent = v;
+      else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v === true ? '' : String(v));
+    }
+    for (const kid of kids.flat()) if (kid) el.append(kid);
+    return el;
+  };
+  const closeLists = () => {
+    document.querySelectorAll('.wd-pop').forEach(p => p.remove());
+    document.querySelectorAll('[aria-expanded="true"]').forEach(a => a.setAttribute('aria-expanded', 'false'));
+  };
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.wd-pop, [aria-haspopup="listbox"], [role="combobox"]')) closeLists();
+  });
+  const position = (pop, anchor) => {
+    const r = anchor.getBoundingClientRect();
+    pop.style.top = `${r.bottom + window.scrollY + 2}px`;
+    pop.style.left = `${r.left + window.scrollX}px`;
+    pop.style.minWidth = `${Math.max(220, r.width)}px`;
+  };
+  const register = (key, label, required, get, wrap) => reg.push({ key, label, required: !!required, get, wrap });
+  const clearError = (key) => { const w = reg.find(f => f.key === key)?.wrap; w?.querySelector('[data-automation-id="errorMessage"]')?.remove(); };
+
+  // A labelled form field the way Workday wraps one: formField-<key>, the label, an asterisk for a
+  // required field, the control, and a slot its validation error is written into.
+  const wrap = (key, label, required, forId, ...controls) => {
+    const w = h('div', { 'data-automation-id': `formField-${key}`, class: 'wd-field' },
+      h('label', { for: forId, id: `${forId}-label` }, label,
+        required ? h('abbr', { title: 'required', 'aria-hidden': 'true', text: '*' }) : null),
+      ...controls);
+    return w;
+  };
+
+  function text(key, label, o = {}) {
+    const id = `input-${key}`;
+    const input = h('input', { type: o.type || 'text', id, 'data-automation-id': o.aid || key,
+      'aria-required': o.aria ? 'true' : null, placeholder: o.placeholder || null, autocomplete: 'off' });
+    input.value = state.values[key] || '';
+    input.addEventListener('input', () => { state.values[key] = input.value; clearError(key); });
+    const w = wrap(key, label, o.required, id, input);
+    register(key, label, o.required, () => state.values[key] || '', w);
+    return w;
+  }
+  function textarea(key, label, o = {}) {
+    const id = `input-${key}`;
+    const ta = h('textarea', { id, 'data-automation-id': o.aid || key, rows: 4 });
+    ta.value = state.values[key] || '';
+    ta.addEventListener('input', () => { state.values[key] = ta.value; clearError(key); });
+    const w = wrap(key, label, o.required, id, ta);
+    register(key, label, o.required, () => state.values[key] || '', w);
+    return w;
+  }
+  function checkbox(key, label, o = {}) {
+    const id = `input-${key}`;
+    const cb = h('input', { type: 'checkbox', id, 'data-automation-id': o.aid || key, 'aria-required': o.aria ? 'true' : null });
+    cb.checked = state.values[key] === true;
+    cb.addEventListener('change', () => { state.values[key] = cb.checked; clearError(key); });
+    const w = h('div', { 'data-automation-id': `formField-${key}`, class: 'wd-field wd-check' }, cb,
+      h('label', { for: id }, label, o.required ? h('abbr', { title: 'required', 'aria-hidden': 'true', text: '*' }) : null));
+    register(key, label, o.required, () => (state.values[key] === true ? 'checked' : ''), w);
+    return w;
+  }
+  function radios(key, label, options, o = {}) {
+    const legendId = `legend-${key}`;
+    const fs = h('fieldset', { role: 'radiogroup', 'data-automation-id': `formField-${key}`, class: 'wd-field',
+      'aria-labelledby': legendId, 'aria-required': o.required ? 'true' : null },
+      h('legend', { id: legendId }, label, o.required ? h('abbr', { title: 'required', 'aria-hidden': 'true', text: '*' }) : null));
+    options.forEach((opt, i) => {
+      const id = `radio-${key}-${i}`;
+      const r = h('input', { type: 'radio', name: key, id, value: opt });
+      r.checked = state.values[key] === opt;
+      r.addEventListener('change', () => { if (r.checked) { state.values[key] = opt; clearError(key); } });
+      fs.append(h('div', { class: 'wd-check' }, r, h('label', { for: id, text: opt })));
+    });
+    register(key, label, o.required, () => state.values[key] || '', fs);
+    return fs;
+  }
+  function dropdown(key, label, options, o = {}) {
+    const id = `dropdown-${key}`;
+    const btn = h('button', { type: 'button', id, 'aria-haspopup': 'listbox', 'aria-expanded': 'false',
+      'data-automation-id': o.aid || key, 'aria-required': o.aria ? 'true' : null,
+      'aria-labelledby': `${id}-label ${id}`, value: state.values[key] || '', class: 'wd-dd',
+      text: state.values[key] || 'Select One' });
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeLists();
+      const lbId = `listbox-${++uid}`;
+      btn.setAttribute('aria-expanded', 'true');
+      btn.setAttribute('aria-controls', lbId);
+      // The listbox arrives LATER, at the end of <body>. A fill that clicks and reads the list in the
+      // same breath finds nothing — the defect that made setCombobox pick only pre-rendered options.
+      setTimeout(() => {
+        if (btn.getAttribute('aria-controls') !== lbId) return;
+        const lb = h('div', { role: 'listbox', id: lbId, class: 'wd-pop', 'data-automation-id': 'activeListContainer' });
+        for (const opt of options) {
+          lb.append(h('div', { role: 'option', 'data-automation-id': 'promptOption', 'aria-selected': state.values[key] === opt ? 'true' : 'false',
+            text: opt, onclick: (ev) => {
+              ev.stopPropagation();
+              state.values[key] = opt; btn.textContent = opt; btn.setAttribute('value', opt);
+              clearError(key); closeLists();
+            } }));
+        }
+        position(lb, btn);
+        document.body.append(lb);
+      }, cfg.listboxDelayMs);
+    });
+    const w = wrap(key, label, o.required, id, btn);
+    register(key, label, o.required, () => state.values[key] || '', w);
+    return w;
+  }
+  function typeahead(key, label, vocab, o = {}) {
+    const id = `typeahead-${key}`;
+    state.chips[key] = state.chips[key] || [];
+    const input = h('input', { type: 'text', id, role: 'combobox', 'aria-autocomplete': 'list', 'aria-expanded': 'false',
+      'data-automation-id': 'searchBox', placeholder: 'Search', autocomplete: 'off',
+      'aria-required': o.aria ? 'true' : null, 'data-multiselect': o.multi ? 'true' : null });
+    const list = h('ul', { 'data-automation-id': 'selectedItemList', role: 'list', class: 'wd-chips' });
+    const renderChips = () => {
+      list.replaceChildren(...state.chips[key].map(c => h('li', { 'data-automation-id': 'selectedItem', role: 'listitem', title: c },
+        h('span', { text: c }),
+        h('button', { type: 'button', 'data-automation-id': 'DELETE_charm', 'aria-label': `Remove ${c}`, text: '×',
+          onclick: () => { state.chips[key] = state.chips[key].filter(x => x !== c); renderChips(); } }))));
+      state.values[key] = o.multi ? state.chips[key].slice() : (state.chips[key][0] || '');
+    };
+    let timer = null;
+    const search = () => {
+      const q = input.value.trim().toLowerCase();
+      closeLists();
+      if (!q) return;
+      const lbId = `listbox-${++uid}`;
+      input.setAttribute('aria-controls', lbId);
+      input.setAttribute('aria-expanded', 'true');
+      const lb = h('div', { role: 'listbox', id: lbId, class: 'wd-pop', 'data-automation-id': 'activeListContainer', 'aria-busy': 'true' },
+        h('div', { 'data-automation-id': 'searching', text: 'Searching…' }));
+      position(lb, input);
+      document.body.append(lb);
+      setTimeout(() => {
+        if (!lb.isConnected) return;
+        // A plain substring search, like most ATS prompts: the ATS's vocabulary, not the profile's.
+        const hits = vocab.filter(v => v.toLowerCase().includes(q));
+        lb.removeAttribute('aria-busy');
+        lb.replaceChildren(...(hits.length
+          ? hits.map(v => h('div', { role: 'option', 'data-automation-id': 'promptOption',
+              'aria-selected': state.chips[key].includes(v) ? 'true' : 'false', text: v,
+              onclick: (ev) => {
+                ev.stopPropagation();
+                if (o.multi) { if (!state.chips[key].includes(v)) state.chips[key].push(v); }
+                else state.chips[key] = [v];
+                input.value = '';
+                renderChips(); clearError(key); closeLists();
+              } }))
+          : [h('div', { 'data-automation-id': 'noItems', text: 'No Items.' })]));
+      }, cfg.searchDelayMs);
+    };
+    input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(search, 150); });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(timer); search(); } });
+    renderChips();
+    const w = wrap(key, label, o.required, id, h('div', { 'data-automation-id': 'multiselectInputContainer' }, input), list);
+    register(key, label, o.required, () => (state.chips[key].length ? state.chips[key].join(', ') : ''), w);
+    return w;
+  }
+  function monthYear(key, label, o = {}) {
+    const lblId = `group-${key}`;
+    const mk = (part, ph, aid) => {
+      const k = `${key}-${part}`;
+      const i = h('input', { type: 'text', id: `input-${k}`, 'aria-label': part === 'month' ? 'Month' : 'Year',
+        'data-automation-id': aid, placeholder: ph, inputmode: 'numeric', size: ph.length + 1 });
+      i.value = state.values[k] || '';
+      i.addEventListener('input', () => { state.values[k] = i.value; clearError(key); });
+      return i;
+    };
+    const g = h('div', { role: 'group', 'aria-labelledby': lblId, 'data-automation-id': `formField-${key}`, class: 'wd-field' },
+      h('span', { id: lblId, class: 'wd-glabel' }, label, o.required ? h('abbr', { title: 'required', 'aria-hidden': 'true', text: '*' }) : null),
+      h('div', { class: 'wd-date' }, mk('month', 'MM', 'dateSectionMonth-input'), mk('year', 'YYYY', 'dateSectionYear-input')));
+    register(key, label, o.required,
+      () => (state.values[`${key}-month`] && state.values[`${key}-year`] ? `${state.values[`${key}-month`]}/${state.values[`${key}-year`]}` : ''), g);
+    return g;
+  }
+  function yearOnly(key, label, o = {}) {
+    const lblId = `group-${key}`;
+    const i = h('input', { type: 'text', id: `input-${key}`, 'aria-label': 'Year', 'data-automation-id': 'dateSectionYear-input',
+      placeholder: 'YYYY', inputmode: 'numeric', size: 5 });
+    i.value = state.values[key] || '';
+    i.addEventListener('input', () => { state.values[key] = i.value; clearError(key); });
+    const g = h('div', { role: 'group', 'aria-labelledby': lblId, 'data-automation-id': `formField-${key}`, class: 'wd-field' },
+      h('span', { id: lblId, class: 'wd-glabel' }, label, o.required ? h('abbr', { title: 'required', 'aria-hidden': 'true', text: '*' }) : null),
+      h('div', { class: 'wd-date' }, i));
+    register(key, label, o.required, () => state.values[key] || '', g);
+    return g;
+  }
+  function dropZone(key, label, o = {}) {
+    const id = `file-${key}`;
+    const status = h('div', { 'data-automation-id': state.files[key] ? 'file-upload-successful' : 'file-upload-status',
+      text: state.files[key] ? `${state.files[key].name} · ${(state.files[key].size / 1024).toFixed(2)} KB · Successfully Uploaded!` : 'Drop file here or Select files' });
+    const input = h('input', { type: 'file', id, 'data-automation-id': 'file-upload-input-ref', accept: '.pdf,.doc,.docx', class: 'wd-file' });
+    const take = (f) => {
+      if (!f) return;
+      state.files[key] = { name: f.name, size: f.size, type: f.type };
+      status.setAttribute('data-automation-id', 'file-upload-successful');
+      status.textContent = `${f.name} · ${(f.size / 1024).toFixed(2)} KB · Successfully Uploaded!`;
+      clearError(key);
+    };
+    input.addEventListener('change', () => take(input.files[0]));
+    const zone = h('div', { 'data-automation-id': 'file-upload-drop-zone', class: 'wd-drop' }, status, input);
+    zone.addEventListener('dragover', (e) => e.preventDefault());
+    zone.addEventListener('drop', (e) => { e.preventDefault(); take(e.dataTransfer?.files?.[0]); });
+    const w = wrap(key, label, o.required, id, zone);
+    register(key, label, o.required, () => state.files[key]?.name || '', w);
+    return w;
+  }
+  // A repeating section. "Add" until there is one entry, "Add Another" after; the new panel appears a
+  // beat after the click, so a fill has to wait for it rather than assume it is there.
+  function section(kind, title, buildPanel) {
+    state.sections[kind] = state.sections[kind] || 0;
+    const headId = `section-${kind}`;
+    const panels = h('div', { class: 'wd-panels' });
+    const btn = h('button', { type: 'button', 'data-automation-id': 'add-button', class: 'wd-add' });
+    const relabel = () => {
+      const n = state.sections[kind];
+      btn.textContent = n ? 'Add Another' : 'Add';
+      btn.setAttribute('aria-label', `${n ? 'Add Another' : 'Add'} ${title}`);
+    };
+    const addPanel = (n) => {
+      const p = h('div', { role: 'group', 'data-automation-id': `${kind}-${n}`, 'aria-labelledby': `${headId}-${n}`, class: 'wd-panel' },
+        h('h4', { id: `${headId}-${n}`, text: `${title} ${n}` }));
+      buildPanel(p, n);
+      panels.append(p);
+    };
+    btn.addEventListener('click', () => {
+      setTimeout(() => { state.sections[kind] += 1; addPanel(state.sections[kind]); relabel(); }, cfg.listboxDelayMs);
+    });
+    for (let n = 1; n <= state.sections[kind]; n++) addPanel(n);
+    relabel();
+    return h('div', { role: 'group', 'data-automation-id': `${kind}Section`, 'aria-labelledby': headId, class: 'wd-section' },
+      h('h3', { id: headId, text: title }), panels, btn);
+  }
+
+  const STEPS = [
+    (body) => body.append(
+      typeahead('source', 'How Did You Hear About Us?', cfg.vocab.source, {}),
+      radios('previousWorker', 'Have you previously worked for this company?', ['Yes', 'No'], {}),
+      dropdown('country', 'Country', cfg.vocab.countries, { required: true, aria: true, aid: 'countryDropdown' }),
+      text('legalNameSection_firstName', 'First Name', { required: true, aria: true }),
+      // Asterisk ONLY — no required, no aria-required. A pre-check that reads attributes alone misses it.
+      text('legalNameSection_lastName', 'Last Name', { required: true }),
+      text('addressSection_addressLine1', 'Address Line 1', {}),
+      text('addressSection_city', 'City', { required: true }),
+      dropdown('addressSection_countryRegion', 'State', cfg.vocab.states, {}),
+      text('addressSection_postalCode', 'Postal Code', {}),
+      text('email', 'Email Address', { required: true, aria: true, type: 'email' }),
+      dropdown('phone-device-type', 'Phone Device Type', ['Home Cellular', 'Mobile', 'Landline'], {}),
+      text('phone-number', 'Phone Number', { required: true }),
+    ),
+    (body) => body.append(
+      section('workExperience', 'Work Experience', (p, n) => p.append(
+        text(`workExperience-${n}-jobTitle`, 'Job Title', { required: true, aid: 'jobTitle' }),
+        text(`workExperience-${n}-company`, 'Company', { required: true, aid: 'company' }),
+        text(`workExperience-${n}-location`, 'Location', { aid: 'location' }),
+        checkbox(`workExperience-${n}-currentlyWorkHere`, 'I currently work here', { aid: 'currentlyWorkHere' }),
+        monthYear(`workExperience-${n}-startDate`, 'From', { required: true }),
+        monthYear(`workExperience-${n}-endDate`, 'To', {}),
+        textarea(`workExperience-${n}-roleDescription`, 'Role Description', { aid: 'description' }),
+      )),
+      section('education', 'Education', (p, n) => p.append(
+        typeahead(`education-${n}-school`, 'School or University', cfg.vocab.schools, { required: true }),
+        dropdown(`education-${n}-degree`, 'Degree', cfg.vocab.degrees, { required: true, aria: true, aid: 'degree' }),
+        typeahead(`education-${n}-fieldOfStudy`, 'Field of Study', cfg.vocab.fields, {}),
+        text(`education-${n}-gradeAverage`, 'Overall Result (GPA)', { aid: 'gradeAverage' }),
+        yearOnly(`education-${n}-firstYearAttended`, 'From', {}),
+        yearOnly(`education-${n}-lastYearAttended`, 'To (Actual or Expected)', {}),
+      )),
+      section('language', 'Languages', (p, n) => p.append(
+        dropdown(`language-${n}-language`, 'Language', cfg.vocab.languages, { required: true, aid: 'language' }),
+        checkbox(`language-${n}-native`, 'I am fluent in this language.', { aid: 'nativeLanguage' }),
+        dropdown(`language-${n}-reading`, 'Reading', cfg.vocab.proficiency, { aid: 'languageProficiency-reading' }),
+        dropdown(`language-${n}-speaking`, 'Speaking', cfg.vocab.proficiency, { aid: 'languageProficiency-speaking' }),
+        dropdown(`language-${n}-writing`, 'Writing', cfg.vocab.proficiency, { aid: 'languageProficiency-writing' }),
+      )),
+      typeahead('skills', 'Type to Add Skills', cfg.vocab.skills, { multi: true }),
+      // THE (e) TRAP: the cover letter's drop zone comes FIRST in document order.
+      dropZone('coverLetter', 'Cover Letter', {}),
+      dropZone('resume', 'Resume/CV', { required: true }),
+      section('websites', 'Websites', (p, n) => p.append(
+        text(`websites-${n}-url`, 'URL', { required: true, aid: 'website' }),
+      )),
+    ),
+    (body) => body.append(
+      dropdown('q-authorized', 'Are you legally authorized to work in the United States?', ['Yes', 'No'], { required: true, aria: true }),
+      dropdown('q-sponsorship', 'Will you now or in the future require sponsorship for employment visa status (e.g., H-1B visa status)?',
+        ['Yes', 'No'], { required: true, aria: true }),
+      // Rules the candidate out if answered "No" for them — §7.3: stop and ask.
+      dropdown('q-seven-years', 'Do you have 7+ years of professional software engineering experience?', ['Yes', 'No'], { required: true, aria: true }),
+      // §7.4: never opt the candidate in.
+      checkbox('q-marketing', 'Yes, I would like to receive text messages and marketing communications about future opportunities.', {}),
+    ),
+    (body) => body.append(
+      dropdown('gender', 'Gender', ['Male', 'Female', 'Non-binary', 'I do not wish to answer'], { required: true }),
+      dropdown('ethnicity', 'Ethnicity', cfg.vocab.ethnicity, { required: true }),
+      dropdown('veteranStatus', 'Veteran Status', ['I am not a protected veteran',
+        'I identify as one or more of the classifications of protected veteran', 'I do not wish to answer'], { required: true }),
+      checkbox('agreementCheckbox', 'I have read and consent to the Terms and Conditions', { required: true }),
+    ),
+    (body) => body.append(
+      text('selfIdentifiedDisabilityData--name', 'Name', { required: true }),
+      text('selfIdentifiedDisabilityData--dateSignedOn', 'Date', { required: true, placeholder: 'MM/DD/YYYY' }),
+      radios('disabilityStatus', 'Please check one of the boxes below:', [
+        'Yes, I have a disability (or previously had a disability)',
+        'No, I do not have a disability and have not had one in the past',
+        'I do not want to answer'], { required: true }),
+    ),
+    (body) => {
+      const sec = h('section', { 'data-automation-id': 'reviewJobApplicationPage' });
+      const dl = h('dl', { class: 'wd-review' });
+      for (const [k, v] of Object.entries(state.values)) {
+        const shown = Array.isArray(v) ? v.join(', ') : v === true ? 'Yes' : v === false ? 'No' : String(v ?? '');
+        if (!shown) continue;
+        dl.append(h('dt', { text: k }), h('dd', { 'data-key': k, text: shown }));
+      }
+      for (const [k, f] of Object.entries(state.files)) dl.append(h('dt', { text: k }), h('dd', { 'data-key': k, text: f.name }));
+      sec.append(h('p', { text: 'Review your application before you submit it.' }), dl);
+      body.append(sec);
+    },
+  ];
+
+  const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+  function render() {
+    closeLists();
+    reg = [];
+    const isReview = state.step === cfg.steps.length - 1;
+    const progress = h('ol', { 'data-automation-id': 'progressBar', class: 'wd-progress' },
+      cfg.steps.map((s, i) => h('li', {
+        'data-automation-id': i === state.step ? 'progressBarActiveStep' : i < state.step ? 'progressBarCompletedStep' : 'progressBarInactiveStep',
+        'aria-current': i === state.step ? 'step' : null, text: s })));
+    const body = h('div', { 'data-automation-id': 'applyFlowStepBody', class: 'wd-body' });
+    STEPS[state.step](body);
+    const banner = h('div', { 'data-automation-id': 'errorBanner', role: 'alert', class: 'wd-banner', hidden: true });
+    const back = state.step > 0 && !isReview
+      ? h('button', { type: 'button', 'data-automation-id': 'bottom-navigation-back-button', class: 'wd-back', text: 'Back',
+          onclick: () => { state.step -= 1; render(); } })
+      : null;
+    // ⛔ ONE control, two meanings — Workday's own design. On every step it reads "Save and Continue";
+    // on Review the SAME automation id reads "Submit". An advance that keys on the id alone submits.
+    const next = h('button', { type: 'button', 'data-automation-id': 'bottom-navigation-next-button', class: 'wd-next',
+      text: isReview ? 'Submit' : 'Save and Continue' });
+    next.addEventListener('click', async () => {
+      if (isReview) {
+        next.disabled = true;
+        await post('/_submit/workday-replica', { values: state.values, files: state.files });
+        root.replaceChildren(h('h2', { 'data-automation-id': 'applicationSubmitted', text: 'Application Submitted' }),
+          h('p', { text: 'Thank you for your application.' }));
+        return;
+      }
+      const missing = reg.filter(f => f.required && !f.get());
+      for (const f of reg) f.wrap.querySelector('[data-automation-id="errorMessage"]')?.remove();
+      if (missing.length) {
+        for (const f of missing) {
+          f.wrap.append(h('p', { 'data-automation-id': 'errorMessage', role: 'alert', class: 'wd-err',
+            text: `Error: The field ${f.label} is required and must have a value.` }));
+        }
+        banner.hidden = false;
+        banner.textContent = `Errors Found: ${missing.length}`;
+        return;
+      }
+      next.disabled = true;          // greys out on the transition, as the video shows
+      const values = {};
+      for (const f of reg) values[f.key] = f.get();
+      await post('/_workday-replica/save', { step: cfg.steps[state.step], values });
+      setTimeout(() => { state.step += 1; render(); window.scrollTo(0, 0); }, 300);
+    });
+    root.replaceChildren(
+      h('div', { class: 'wd-top' }, h('span', { class: 'wd-brand', text: 'Northwind Systems' }), h('span', { text: 'Senior Engineer' })),
+      progress,
+      h('h2', { 'data-automation-id': 'pageHeader', text: cfg.steps[state.step] }),
+      banner, body,
+      h('div', { 'data-automation-id': 'pageFooter', class: 'wd-foot' }, back, next));
+  }
+  render();
+}
+
+function workdayReplicaPage() {
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Senior Engineer — Apply — Workday replica</title>
+<style>
+ body{font-family:system-ui,sans-serif;margin:0;background:#f4f5f7;color:#1d2433}
+ #wd-root{max-width:760px;margin:24px auto;background:#fff;border-radius:8px;padding:20px 28px;box-shadow:0 1px 3px #0002}
+ .wd-top{display:flex;gap:12px;align-items:baseline;border-bottom:1px solid #e3e5e8;padding-bottom:10px}
+ .wd-brand{font-weight:800}
+ .wd-progress{display:flex;gap:6px;list-style:none;padding:0;margin:14px 0;font-size:12px}
+ .wd-progress li{flex:1;padding:6px 4px;border-top:4px solid #d5d8dd;color:#68707d}
+ .wd-progress li[aria-current]{border-color:#0875e1;color:#0875e1;font-weight:700}
+ .wd-progress li[data-automation-id="progressBarCompletedStep"]{border-color:#43a047}
+ .wd-field{margin:14px 0;display:block}
+ .wd-field > label, .wd-glabel, legend{display:block;font-weight:600;font-size:14px;margin-bottom:4px}
+ abbr[title="required"]{color:#de2e21;text-decoration:none;margin-left:2px}
+ input[type=text],input[type=email],textarea{width:100%;padding:8px;font-size:14px;box-sizing:border-box;border:1px solid #a1a8b3;border-radius:4px}
+ .wd-date input{width:auto;margin-right:6px}
+ .wd-dd{min-width:260px;text-align:left;padding:8px;border:1px solid #a1a8b3;border-radius:4px;background:#fff;font-size:14px;cursor:pointer}
+ .wd-pop{position:absolute;z-index:50;background:#fff;border:1px solid #a1a8b3;border-radius:4px;box-shadow:0 4px 12px #0003;max-height:260px;overflow:auto}
+ .wd-pop [role=option],.wd-pop div{padding:7px 10px;font-size:14px}
+ .wd-pop [role=option]:hover{background:#e8f1fc;cursor:pointer}
+ .wd-chips{list-style:none;padding:0;margin:6px 0 0;display:flex;flex-wrap:wrap;gap:6px}
+ .wd-chips li{background:#e8f1fc;border-radius:12px;padding:3px 6px 3px 10px;font-size:13px}
+ .wd-chips button{border:0;background:none;cursor:pointer}
+ .wd-check{display:flex;gap:8px;align-items:center;margin:8px 0}
+ .wd-check label{font-weight:400}
+ fieldset{border:0;padding:0}
+ .wd-section{border-top:1px solid #e3e5e8;margin-top:18px;padding-top:6px}
+ .wd-panel{border:1px solid #e3e5e8;border-radius:6px;padding:4px 14px;margin:10px 0}
+ .wd-add,.wd-back{padding:7px 14px;border:1px solid #0875e1;color:#0875e1;background:#fff;border-radius:16px;cursor:pointer}
+ .wd-drop{position:relative;border:2px dashed #a1a8b3;border-radius:6px;padding:22px;text-align:center;color:#68707d}
+ .wd-file{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+ [data-automation-id="file-upload-successful"]{color:#2e7d32;font-weight:600}
+ .wd-err{color:#de2e21;font-size:13px;margin:4px 0}
+ .wd-banner{background:#fdecea;color:#de2e21;padding:8px 12px;border-radius:4px}
+ .wd-foot{display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #e3e5e8;margin-top:24px;padding-top:14px}
+ .wd-next{padding:9px 20px;border:0;border-radius:16px;background:#0875e1;color:#fff;font-weight:700;cursor:pointer}
+ .wd-next:disabled{background:#a1a8b3}
+ .wd-review dt{font-size:12px;color:#68707d;margin-top:8px}
+ .wd-review dd{margin:0;font-weight:600}
+</style></head><body>
+<div data-automation-id="applyFlowPage" id="wd-root"></div>
+<script>(${workdayReplicaClient.toString()})(${JSON.stringify(WD_REPLICA_CONFIG)});</script>
+</body></html>`;
+}
+
+/**
+ * The replica's routes, in one place so the server dispatch below carries one line per method.
+ * Returns true when it answered.
+ */
+function workdayReplicaRoute(req, res, path, raw, send) {
+  if (req.method === 'GET' && path === '/workday-replica') { send(200, workdayReplicaPage()); return true; }
+  if (req.method === 'GET' && path === '/_workday-replica/state') {
+    send(200, JSON.stringify(workdayReplica, null, 2), 'application/json; charset=utf-8');
+    return true;
+  }
+  if (req.method !== 'POST') return false;
+  const json = () => { try { return JSON.parse(raw.toString('utf8') || '{}'); } catch { return {}; } };
+  if (path === '/_workday-replica/save') {
+    const body = json();
+    workdayReplica.saves.push({ step: String(body.step || ''), at: new Date().toISOString(), values: body.values || {} });
+    send(200, JSON.stringify({ ok: true }), 'application/json');
+    return true;
+  }
+  if (path === '/_submit/workday-replica') {
+    // RECORDED, never assumed: the extension must never press this, and this counter is how a run
+    // proves it did not.
+    workdayReplica.submitPressed += 1;
+    const body = json();
+    const record = { provider: 'workday-replica', at: new Date().toISOString(), fields: body.values || {}, files: body.files || {}, partCount: 0 };
+    workdayReplica.submitted.push(record);
+    submissions.push(record);
+    console.log('[fakeAts] SUBMITTED via workday-replica');
+    send(200, JSON.stringify({ ok: true }), 'application/json');
+    return true;
+  }
+  return false;
+}
+// ══ end of the D55 Workday replica ═════════════════════════════════════════════════════════════
 
 // ── Server ───────────────────────────────────────────────────────────────────
 // Buffers, not a string: a multipart body carries raw PDF bytes, and `raw += chunk` would decode
@@ -1074,6 +1626,9 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(code, { 'Content-Type': type }); res.end(body);
   };
 
+  // D55: the Workday-shaped replica answers its own routes (see workdayReplicaRoute).
+  if (req.method === 'GET' && workdayReplicaRoute(req, res, path, null, send)) return;
+
   if (req.method === 'GET') {
     if (path === '/')           return send(200, indexPage());
     if (path === '/greenhouse') return send(200, greenhouseStep1());
@@ -1135,8 +1690,11 @@ const server = http.createServer(async (req, res) => {
       ? parseMultipart(raw, (boundary[1] || boundary[2]).trim())
       : { fields: parseQuery(raw.toString('utf8')), files: {}, partCount: 0 };
 
+    if (workdayReplicaRoute(req, res, path, raw, send)) return;   // D55: JSON-bodied, so before the generic /_submit/
+
     if (path === '/_reset') {
       submissions.length = 0;
+      resetWorkdayReplica();
       return send(200, JSON.stringify({ ok: true }), 'application/json');
     }
 
