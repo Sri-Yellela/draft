@@ -121,9 +121,9 @@ export function PricingPage() {
                   Coming soon
                 </div>
               ) : (
-                <Link to={t.ctaLink} style={{
+                <Link className="dbx-depth" to={t.ctaLink} style={{
                   display: "block", textAlign: "center", padding: "11px 0",
-                  borderRadius: 999, textDecoration: "none", fontWeight: 700, fontSize: 14,
+                  textDecoration: "none", fontWeight: 700, fontSize: 14,
                   background: t.recommended ? "var(--color-primary)" : "transparent",
                   // Same defect, and worse here because it is the call to action on the card the
                   // page is steering people to. Unrecommended cards keep the accent-on-transparent

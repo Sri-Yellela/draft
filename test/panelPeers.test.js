@@ -74,8 +74,13 @@ test("4. TWO sticky regions — identity header AND action bar — and only the 
     "expected exactly two pinned regions (header + action bar)");
   assert.match(shell, /header=\{header\}|\{header\}/);
   assert.match(shell, /\{actions\}/);
-  // All three panel types supply both slots.
-  for (const [name, src] of [["JD", jd], ["PDF", sandbox], ["ATS", ats]]) {
+  // The PDF and ATS panels supply both slots. ⭐ D48 (owner, 10-07 — posting-header2.html): the posting panel
+  // is `bare` — its header SCROLLS AWAY and its actions stick through the one StickyBar (D49) inside the body,
+  // which is still the only scroller.
+  assert.match(jd, /^\s+bare$/m, "the posting panel renders its own header and sticky actions");
+  assert.match(jd, /<StickyBar top="0px" className="pp__bar"/);
+  assert.match(shell, /\{!bare && \(/, "a bare shell draws neither pinned region");
+  for (const [name, src] of [["PDF", sandbox], ["ATS", ats]]) {
     assert.match(src, /header=\{/, `${name} must fill the identity header slot`);
     assert.match(src, /actions=\{/, `${name} must fill the action bar slot`);
   }
@@ -95,6 +100,10 @@ test("6. one close affordance, top-right of the header, owned by the primitive",
   // Each panel type must NOT ship its own — that is how two divergent drawers started.
   assert.ok(!/aria-label="Close detail"/.test(jd), "JD has its own close button again");
   assert.equal((shell.match(/aria-label="Close panel"/g) || []).length, 1);
+  // D48: the bare posting panel's × is its header's (the sketch's row) — and only because the shell's is not
+  // drawn when bare, so a panel never shows two. Esc and the scrim still close through the shell.
+  assert.equal((jd.match(/aria-label="Close panel"/g) || []).length, 1);
+  assert.match(jd, /^\s+bare$/m);
 });
 
 test("7. modal tier: above the board, the Applications table AND the search overlay", async () => {

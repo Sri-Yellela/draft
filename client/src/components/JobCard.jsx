@@ -348,11 +348,11 @@ function IconBtn({
   const resolvedActiveBg = activeBg || `${bg}22`;
   const resolvedActiveColor = activeColor || bg;
   return (
-    <button title={title} disabled={disabled} onClick={onClick}
+    <button className="dbx-depth" title={title} disabled={disabled} onClick={onClick}
       onMouseEnter={() => !disabled && setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        width:size, height:size, borderRadius:999,
+        width:size, height:size,
         background: disabled
           ? "var(--color-surface-offset)"
           : active
@@ -838,10 +838,10 @@ export default function JobCard({
                               textTransform:"uppercase", letterSpacing:"0.06em" }}>
                 Recruiter
               </span>
-              <button
+              <button className="dbx-depth"
                 onClick={e => { e.stopPropagation(); navigate(`/app/recruiter?company=${encodeURIComponent(job.company)}`); }}
                 title={`Open ${job.company}'s KB reference in Recruiter view`}
-                style={{ fontSize:10, padding:"1px 8px", borderRadius:999, fontWeight:700,
+                style={{ fontSize:10, padding:"1px 8px", fontWeight:700,
                          background:"var(--color-surface-offset)", color:"var(--color-primary-text)",
                          border:"1px solid var(--color-primary)", cursor:"pointer",
                          whiteSpace:"nowrap", letterSpacing:"0.04em" }}>

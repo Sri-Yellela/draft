@@ -60,8 +60,8 @@ export default function SignupAtsHook({ onKeep }) {
           <textarea value={jd} onChange={(e) => setJd(e.target.value)} rows={5} aria-label="The job posting"
             placeholder="Paste a job posting…" style={{ ...field, padding: "10px 14px", resize: "vertical", lineHeight: 1.5 }} />
           {error && <div role="alert" style={{ fontSize: 12.5, color: C.DANGER, fontWeight: 600 }}>{error}</div>}
-          <button type="submit" disabled={busy}
-            style={{ ...glass({ radius: 999 }), padding: "11px 0", fontWeight: 800, fontSize: 14, color: C.INK, cursor: busy ? "default" : "pointer" }}>
+          <button className="dbx-depth" type="submit" disabled={busy}
+            style={{ ...glass({ radius: 10 }), padding: "11px 0", fontWeight: 800, fontSize: 14, color: C.INK, cursor: busy ? "default" : "pointer" }}>
             {busy ? "Reading it…" : "Check the fit"}
           </button>
         </form>
@@ -75,8 +75,8 @@ export default function SignupAtsHook({ onKeep }) {
             and ten good ones are dealt to you each day.
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-            <button type="button" onClick={onKeep}
-              style={{ background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`, borderRadius: 999,
+            <button className="dbx-depth" type="button" onClick={onKeep}
+              style={{ background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`,
                        padding: "10px 18px", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
               Create my account →
             </button>

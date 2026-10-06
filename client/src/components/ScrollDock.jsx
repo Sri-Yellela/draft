@@ -217,10 +217,9 @@ function MarketingToolsDock({ variant }) {
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             {collapsed && <DockDivider theme={theme}/>}
             {ctaLinks.map(({ label, to, primary }) => (
-              <Link key={to} to={to} style={{
+              <Link className="dbx-depth" key={to} to={to} style={{
                 fontSize: 13, fontWeight: 700, textDecoration: "none",
                 padding: collapsed ? "5px 14px" : "7px 18px",
-                borderRadius: 999,
                 background: primary ? theme.accent : "transparent",
                 color: primary ? "var(--c-on-accent)" : theme.accentText,
                 border: primary ? "none" : `1px solid ${theme.accent}55`,

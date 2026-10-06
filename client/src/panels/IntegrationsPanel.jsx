@@ -23,7 +23,7 @@ function StatusPill({ status, healthy, theme }) {
  */
 function ConsentSwitch({ checked, disabled, onChange, label }) {
   return (
-    <button
+    <button className="dbx-depth"
       type="button"
       role="switch"
       aria-checked={!!checked}
@@ -32,7 +32,7 @@ function ConsentSwitch({ checked, disabled, onChange, label }) {
       onClick={() => onChange(!checked)}
       style={{
         position:"relative", width:44, height:24, flex:"none", padding:0,
-        borderRadius:999, cursor: disabled ? "wait" : "pointer",
+        cursor: disabled ? "wait" : "pointer",
         border:`1px solid ${checked ? C.SUCCESS : "var(--color-border)"}`,
         background: checked ? C.SUCCESS : "var(--color-surface-offset)",
         opacity: disabled ? 0.6 : 1, transition:"background .15s, border-color .15s",

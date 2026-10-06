@@ -36,10 +36,12 @@
 .ats-sum__count { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--c-pair-ink-faint); }
 /* D50 · the provisional note under a shown number. */
 .ats-sum__note { margin: 6px 0 0; font-size: 11px; line-height: 1.4; font-style: italic; color: var(--c-pair-ink-faint); }
-/* The number in SERIF ACCENT (.n) — the largest element when A76 lets it show. */
+/* The number in SERIF (.n) — the largest element when A76 lets it show. ⭐ D48 (owner, 10-07): "the ATS number
+   switches colour" — to the sketch's --atx (PAIR_KICKER: #A33200 on cream, where the logo orange fails as text),
+   the same ink as the posting panel's ATS number box. */
 .ats-sum__score {
   font-family: var(--font-display); font-weight: 400; font-size: 46px; line-height: 1; text-align: right;
-  color: var(--c-pair-accent);
+  color: var(--c-pair-kicker);
 }
 .ats-sum__score small {
   display: block; margin-top: 4px; font-family: var(--font-body); font-size: 7.5px; font-weight: 700; line-height: 1;

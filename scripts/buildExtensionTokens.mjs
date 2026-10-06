@@ -76,7 +76,8 @@ export async function renderExtensionTokens() {
   // side — is the site's ONLY dark surface, and a rule rather than a per-screen choice: the extension
   // draws no pair, so it carries none of its tokens (test/inkPairD32.test.js).
   // D35: nor do the Full House header's (FH_*) — the extension draws no board header.
-  const names = Object.keys(C_LIGHT).filter((n) => !n.startsWith("PAIR_") && !n.startsWith("FH_"));
+  // D48: nor do the posting panel's (PP_*) — the extension draws no posting panel.
+  const names = Object.keys(C_LIGHT).filter((n) => !n.startsWith("PAIR_") && !n.startsWith("FH_") && !n.startsWith("PP_"));
   const missing = names.filter((n) => !(n in C_DARK));
   if (missing.length) throw new Error(`colorTokens.js: C_DARK lacks ${missing.join(", ")}`);
 

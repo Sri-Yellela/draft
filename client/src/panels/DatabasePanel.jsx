@@ -209,10 +209,10 @@ function DetailModal({ modal, onClose, theme }) {
 
           {/* Export PDF button — only when viewing resume */}
           {isResume && hasResume && (
-            <button onClick={exportPdf} disabled={exporting}
+            <button className="dbx-depth" onClick={exportPdf} disabled={exporting}
               style={{
                 display:"inline-flex", alignItems:"center", gap:5, flexShrink:0,
-                padding:"6px 16px", borderRadius:999,
+                padding:"6px 16px",
                 fontFamily:"inherit", fontWeight:800,
                 fontSize:12,
                 background:"transparent", border:`1px solid ${theme.borderStrong}`,

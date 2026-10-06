@@ -1,0 +1,60 @@
+/* D48 · THE POSTING PANEL'S HEADER AND ACTIONS — posting-header2.html, on the app's tokens.
+ *
+ * The header (logo · company · ATS number · ×) SCROLLS AWAY; the actions stick (StickyBar, D49). A and B
+ * are one component chosen by the PANEL's width — a container query on .pp, never the window's — so a
+ * narrow dock and a narrow phone condense alike. The sketch's --atx (#A33200 light / the orange dark) is
+ * PP_ATS_NUMBER for the number (the same value as the ATS card's, PAIR_KICKER) and ACCENT_INK for edges and
+ * outlines, as the Full House header maps it (colorTokens.js D35). */
+.pp { container-type: inline-size; container-name: pp; }
+
+.pp__hd { display: flex; align-items: center; gap: 12px; padding: 14px 18px; }
+.pp__logo { flex: 0 0 auto; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 12px; line-height: 0; }
+.pp__logo:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.pp__co { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp__sp { flex: 1 1 auto; }
+
+/* The ATS number box — the number in the display face, a tiny caption under it. */
+.pp__ats {
+  flex: 0 0 auto; width: 50px; height: 50px; border-radius: 12px; padding: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 1px solid var(--c-fh-line); background: var(--c-fh-well); box-shadow: var(--c-depth-rest);
+  cursor: pointer; transition: transform .16s, box-shadow .16s, border-color .16s;
+}
+.pp__ats:hover, .pp__ats:focus-visible { transform: translateY(-2px); box-shadow: var(--c-depth-hover); border-color: var(--c-accent-ink); outline: none; }
+.pp__ats:active { transform: translateY(0); box-shadow: var(--c-depth-press); }
+.pp__ats b { font: 400 26px/1 var(--font-display); color: var(--c-pp-ats-number); }
+.pp__ats small { font: 700 6.5px/1 var(--font-body); letter-spacing: .15em; text-transform: uppercase; color: var(--c-ink-faint); margin-top: 3px; }
+.pp__ats[aria-expanded="true"] { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.pp__ats--none { border-style: dashed; box-shadow: none; }
+.pp__ats--none svg { width: 19px; height: 19px; fill: none; stroke: var(--c-ink-faint); stroke-width: 2; stroke-linecap: round; }
+
+/* × — a depth box, not a glyph on nothing. */
+.pp__x {
+  flex: 0 0 auto; width: 42px; height: 42px; border-radius: 11px; padding: 0;
+  display: grid; place-items: center; cursor: pointer;
+  border: 1px solid var(--c-fh-line); background: var(--c-fh-well); color: var(--c-ink-muted); box-shadow: var(--c-depth-rest);
+  transition: transform .16s, box-shadow .16s, border-color .16s, color .16s;
+}
+.pp__x:hover, .pp__x:focus-visible { transform: translateY(-2px); box-shadow: var(--c-depth-hover); color: var(--c-accent-ink); border-color: var(--c-accent-ink); outline: none; }
+.pp__x:active { transform: translateY(0); box-shadow: var(--c-depth-press); }
+.pp__x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+
+/* Pending is a status that you can act on (it opens Database → Pending), so it is a small box, not a pill (D48). */
+.pp__pending {
+  align-self: flex-start; margin: -4px 18px 8px 76px; padding: 4px 9px; border-radius: 8px; cursor: pointer; box-shadow: var(--c-depth-rest);
+  border: 1px solid var(--c-accent-ink); background: transparent; color: var(--c-accent-ink);
+  font: 800 10px/1.4 var(--font-body); letter-spacing: .02em;
+}
+
+/* The sticky bar takes the panel's surface so the description scrolls UNDER it, not through it. */
+.pp__bar { background: var(--c-surface-solid); border-bottom: 1px solid var(--c-fh-line); }
+
+.pp__a, .pp__b { display: none; align-items: center; gap: 9px; padding: 11px 18px; flex-wrap: wrap; }
+.pp__div { width: 1px; height: 26px; background: var(--c-fh-line); margin: 0 3px; }
+.pp__quota { margin: 0; padding: 0 18px 10px; font-size: 11px; color: var(--c-ink-faint); }
+.pp__quota[data-empty="true"] { color: var(--c-accent-ink); }
+
+@container pp (min-width: 600px) { .pp__a { display: flex; } }
+@container pp (max-width: 599.98px) { .pp__b { display: flex; } .pp__quota { display: none; } }
+
+@media (prefers-reduced-motion: reduce) { .pp__ats, .pp__x { transition: none; } }

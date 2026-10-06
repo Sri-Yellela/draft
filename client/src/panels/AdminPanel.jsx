@@ -44,9 +44,9 @@ function DateRange({ from, to, onFromChange, onToChange }) {
         const pFrom = Math.floor(Date.now()/1000) - p.days * 86400;
         const active = Math.abs(from - pFrom) < 86401;
         return (
-          <button key={p.label} onClick={() => { onFromChange(pFrom); onToChange(Math.floor(Date.now()/1000) + 86400); }}
+          <button className="dbx-depth" key={p.label} onClick={() => { onFromChange(pFrom); onToChange(Math.floor(Date.now()/1000) + 86400); }}
             style={{
-              padding:"4px 12px", borderRadius:999, border:`1px solid ${active ? theme.accent : theme.border}`,
+              padding:"4px 12px", border:`1px solid ${active ? theme.accent : theme.border}`,
               background: active ? theme.accent : "transparent", color: active ? C.ON_ACCENT : theme.text,
               fontSize:11, fontWeight:700, cursor:"pointer",
             }}>
@@ -394,12 +394,12 @@ function LimitsModal({ userId, username, initialLimits, onSave, onClose, theme }
           </div>
         </div>
         <div style={{ display:"flex", gap:8, marginTop:20 }}>
-          <button onClick={onClose}
-            style={{ flex:1, padding:"10px 0", borderRadius:999, border:`1px solid ${theme.border}`,
+          <button className="dbx-depth" onClick={onClose}
+            style={{ flex:1, padding:"10px 0", border:`1px solid ${theme.border}`,
                      background:"transparent", color:theme.text, fontWeight:700, fontSize:13, cursor:"pointer" }}>
             Cancel
           </button>
-          <button disabled={saving} onClick={async () => {
+          <button className="dbx-depth" disabled={saving} onClick={async () => {
             setSaving(true);
             await onSave({
               monthly_resumes: numOrNull(limits.monthly_resumes),
@@ -414,7 +414,7 @@ function LimitsModal({ userId, username, initialLimits, onSave, onClose, theme }
             });
             setSaving(false);
           }}
-            style={{ flex:2, padding:"10px 0", borderRadius:999, border:"none",
+            style={{ flex:2, padding:"10px 0", border:"none",
                      background:theme.accent, color:C.ON_ACCENT, fontWeight:800, fontSize:13,
                      cursor:"pointer", opacity:saving?0.7:1 }}>
             {saving ? "Saving…" : "Save Limits"}
@@ -528,10 +528,10 @@ function UsersTab({ theme }) {
                   {/* Feature flags */}
                   <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12, flexWrap:"wrap" }}>
                     <span style={{ fontSize:11, fontWeight:700, color:theme.textMuted }}>Feature Flags:</span>
-                    <button
+                    <button className="dbx-depth"
                       onClick={() => toggleAplusResume(u.userId, u.aplusResume, u.username)}
                       style={{
-                        fontSize:11, padding:"3px 10px", borderRadius:999, fontWeight:700, cursor:"pointer",
+                        fontSize:11, padding:"3px 10px", fontWeight:700, cursor:"pointer",
                         // Amber, not green: ON is an override of what the user asked for, not a perk.
                         border:`1px solid ${u.aplusResume ? C.WARNING : theme.border}`,
                         background: u.aplusResume ? C.WARNING_QUIET : "transparent",
@@ -860,13 +860,13 @@ function DeleteUserDialog({ preview, onCancel, onDeleted }) {
         </label>
         {err && <div style={{ marginTop:8, fontSize:12, color:theme.danger }}>{err}</div>}
         <div style={{ display:"flex", gap:8, marginTop:16 }}>
-          <button onClick={onCancel} disabled={busy}
-            style={{ flex:1, padding:"9px 0", borderRadius:999, border:`1px solid ${theme.border}`,
+          <button className="dbx-depth" onClick={onCancel} disabled={busy}
+            style={{ flex:1, padding:"9px 0", border:`1px solid ${theme.border}`,
                      background:"transparent", color:theme.text, fontWeight:700, fontSize:13, cursor:"pointer" }}>
             Cancel
           </button>
-          <button onClick={doDelete} disabled={!armed}
-            style={{ flex:2, padding:"9px 0", borderRadius:999, border:"none", background:theme.danger,
+          <button className="dbx-depth" onClick={doDelete} disabled={!armed}
+            style={{ flex:2, padding:"9px 0", border:"none", background:theme.danger,
                      color:C.ON_ACCENT, fontWeight:800, fontSize:13, cursor:armed ? "pointer" : "not-allowed",
                      opacity:armed ? 1 : 0.45 }}>
             {busy ? "Deleting…" : "Delete permanently"}
@@ -1039,9 +1039,9 @@ export function AdminPanel() {
       {/* ── Top-level tabs ── */}
       <div style={{ display:"flex", borderBottom:`2px solid ${ADMIN_ACCENT_TEXT}`, marginBottom:24 }}>
         {TOP_TABS.map(({ id, label }) => (
-          <button key={id}
+          <button className="dbx-depth" key={id}
             style={{
-              padding:"8px 16px", border:"none", cursor:"pointer", borderRadius:999,
+              padding:"8px 16px", border:"none", cursor:"pointer",
               fontFamily:"inherit",
               fontWeight:700, fontSize:12, letterSpacing:"0.08em", textTransform:"uppercase",
               background: topTab===id ? ADMIN_ACCENT : "transparent",

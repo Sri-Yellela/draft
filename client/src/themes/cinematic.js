@@ -157,31 +157,36 @@ export function styles(t) {
            a 2.5px ink box with square corners that rounded on hover over one second. Now: the body
            font, a pill, the glass material at rest; primary is the orange FILL with ink text and an
            ACCENT_INK edge (text on orange is ink — colorTokens.js); ghost is a hairline. */
+        /* ⭐ D48 (owner, 10-07): "probe the entire site for these Apple-styled buttons and replace them with
+           the latest box-styled depth ones." The glass pill is gone: every .rm-btn is the depth box —
+           posting-header2.html's .bx, the same values as DepthButton and the extension overlay's
+           .rm-btn (11px, the well, D1's rest / hover / press, the orange fill's own shadow). */
         .rm-btn {
           display: inline-flex; align-items: center; justify-content: center;
-          gap: 6px; padding: 8px 18px; border-radius: 999px;
+          gap: 6px; padding: 8px 18px; border-radius: 11px;
           font-family: inherit; font-weight: 800; font-size: 13px; letter-spacing: 0.02em;
           cursor: pointer;
-          border: 1px solid ${C.GLASS_RIM};
-          background-color: transparent;
-          background-image: radial-gradient(120% 70% at 12% 0%, ${C.GLASS_SHEEN} 0%, transparent 55%),
-                            linear-gradient(170deg, ${C.GLASS_BODY_TOP} 0%, ${C.GLASS_BODY} 70%);
-          box-shadow: inset 0 1px 0 ${C.GLASS_SPECULAR}, inset 0 -1px 0 ${C.GLASS_UNDERSIDE}, ${C.SHADOW_GLASS};
+          border: 1px solid ${C.FH_LINE};
+          background-color: ${C.FH_WELL}; background-image: none;
+          box-shadow: ${C.DEPTH_REST};
           color: ${t.text};
-          transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+          transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, color 160ms ease, background-color 160ms ease;
           white-space: nowrap; text-decoration: none; box-sizing: border-box;
         }
-        .rm-btn:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: inset 0 1px 0 ${C.GLASS_SPECULAR}, inset 0 -1px 0 ${C.GLASS_UNDERSIDE}, ${C.SHADOW_GLASS_HOVER};
+        .rm-btn:hover:not(:disabled), .rm-btn:focus-visible {
+          transform: translateY(-2px);
+          box-shadow: ${C.DEPTH_HOVER}; border-color: ${C.ACCENT_INK}; color: ${C.ACCENT_INK};
         }
-        .rm-btn:active { transform: scale(0.97); }
+        .rm-btn:focus-visible { outline: 2px solid ${C.ACCENT_INK}; outline-offset: 2px; }
+        .rm-btn:active:not(:disabled) { transform: translateY(0); box-shadow: ${C.DEPTH_PRESS}; }
         .rm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
         .rm-btn-primary {
           background-image: none; background-color: ${C.ACCENT};
           color: ${C.ON_ACCENT}; border-color: ${C.ACCENT_INK};
+          box-shadow: ${C.DEPTH_ACCENT};
         }
-        .rm-btn-primary:hover:not(:disabled) { background-color: ${C.ACCENT_HOVER}; }
+        .rm-btn-primary:hover:not(:disabled), .rm-btn-primary:focus-visible { background-color: ${C.ACCENT_HOVER}; color: ${C.ON_ACCENT}; border-color: ${C.ACCENT_INK}; }
+        @media (prefers-reduced-motion: reduce) { .rm-btn, .rm-btn:hover:not(:disabled) { transition: none; transform: none; } }
         .rm-btn-ghost {
           background-image: none; box-shadow: none;
           border-color: ${t.borderStrong}; color: ${t.textMuted};
@@ -191,7 +196,7 @@ export function styles(t) {
           box-shadow: none;
         }
         .rm-btn-sm { padding: 5px 12px; font-size: 12px; gap: 4px; }
-        .rm-btn-icon { padding: 0; width: 36px; height: 36px; border-radius: 999px; font-size: 16px; border: none; }
+        .rm-btn-icon { padding: 0; width: 36px; height: 36px; border-radius: 10px; font-size: 16px; }
         .rm-btn-icon.sm { width: 28px; height: 28px; font-size: 13px; }
         .rm-input {
           width: 100%; height: 40px; padding: 0 14px;

@@ -31,6 +31,8 @@ import fs from "node:fs";
 
 const read = (p) => fs.readFileSync(p, "utf8");
 const card = read("client/src/components/JobCard.jsx");
+// D48 (10-07): the posting panel's header chips are gone — the visa badge with them — so JobCard holds the one
+// copy. The panel is pinned to carry NO copy, so a second one cannot come back and drift from the first.
 const detail = read("client/src/components/JobDetailPanel.jsx");
 
 /** Both copies of the badge, sliced from their own function. */
@@ -45,11 +47,12 @@ const badgeOf = (src) => {
 // deleted with enrichJob.js's model call (D17). The manual import validates the same tri-state
 // (services/jobs/enrichmentTransfer.js validateColumn).
 
-test("null renders NOTHING — in both copies of the badge", () => {
+test("null renders NOTHING — in the one copy of the badge", () => {
   // FE-1's rule: null means "no signal", never "does not sponsor". This survived the data arriving,
   // which is the thing worth pinning: 1258 of 1261 rows are still null after a full backfill, so a
   // badge that treated null as false would now be lying on 99.8% of the board.
-  for (const [name, src] of [["JobCard", card], ["JobDetailPanel", detail]]) {
+  assert.doesNotMatch(detail, /function VisaBadge/, "a second copy of the badge, free to drift");
+  for (const [name, src] of [["JobCard", card]]) {
     const badge = badgeOf(src);
     assert.match(badge, /if \(isH1bSponsor === 1 \|\| isH1bSponsor === true\)/,
       `${name}: the sponsor branch must test for an explicit true`);

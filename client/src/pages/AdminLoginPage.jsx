@@ -77,8 +77,8 @@ export default function AdminLoginPage({ onLogin }) {
               {error}
             </div>
           )}
-          <button type="submit" disabled={loading}
-            style={{ width:"100%", padding:"12px 0", borderRadius:999, border:"none",
+          <button className="dbx-depth" type="submit" disabled={loading}
+            style={{ width:"100%", padding:"12px 0", border:"none",
                      background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
                      fontSize:14, cursor:"pointer", marginTop:4,
                      opacity:loading?0.7:1, transition:"opacity 0.2s" }}>

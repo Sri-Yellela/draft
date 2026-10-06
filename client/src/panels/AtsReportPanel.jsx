@@ -75,9 +75,9 @@ export default function AtsReportPanel({
   const actions = (
     <>
       {[["ats", "ATS Report"], ["history", `History${genCount > 0 ? ` (${genCount})` : ""}`]].map(([id, lbl]) => (
-        <button key={id} onClick={() => setRightTab(id)}
+        <button className="dbx-depth" key={id} onClick={() => setRightTab(id)}
           style={{
-            padding: "5px 12px", borderRadius: 999, cursor: "pointer",
+            padding: "5px 12px", cursor: "pointer",
             fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
             fontSize: 12, letterSpacing: "0.06em", textTransform: "uppercase",
             background: rightTab === id ? theme.accent : "transparent",

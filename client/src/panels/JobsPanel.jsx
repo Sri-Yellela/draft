@@ -316,15 +316,15 @@ function LucyBtn({ children, onClick, disabled, accent: accentProp,
   const [hov, setHov] = useState(false);
   const live = hov && !disabled;
   return (
-    <button
+    <button className="dbx-depth dbx-depth"
       onClick={onClick} disabled={disabled} title={title}
       onMouseEnter={() => !disabled && setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
         ...(live
           ? { background: accentProp || C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`,
-              borderRadius: 999, boxShadow: C.SHADOW_GLASS_HOVER }
-          : { ...glass({ radius: 999 }), color: C.INK }),
+              boxShadow: C.SHADOW_GLASS_HOVER }
+          : { ...glass({ radius: 10 }), color: C.INK }),
         cursor: disabled ? "not-allowed" : "pointer",
         padding: "7px 18px", fontWeight: 800, fontSize: 12.5, letterSpacing: "0.02em",
         fontFamily: "inherit",
@@ -344,11 +344,11 @@ function IconBtn({ bg, onClick, title, children, disabled = false, size = 28 }) 
   const [hov, setHov] = useState(false);
   const { theme } = useTheme();
   return (
-    <button title={title} disabled={disabled} onClick={onClick}
+    <button className="dbx-depth" title={title} disabled={disabled} onClick={onClick}
       onMouseEnter={() => !disabled && setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        width:size, height:size, borderRadius:999,
+        width:size, height:size,
         background: disabled ? theme.surfaceHigh : hov ? bg : theme.surfaceHigh,
         border:`1px solid ${disabled ? theme.border : hov ? bg+"44" : theme.border}`,
         display:"flex", alignItems:"center", justifyContent:"center",
@@ -538,11 +538,11 @@ function FiltersPanel({
         const bg     = isIn ? theme.accentMuted : isOut ? C.DANGER_QUIET : "transparent";
         const fg     = isIn ? theme.accentText : isOut ? C.DANGER : theme.textMuted;
         return (
-          <button key={opt.value} type="button" onClick={cycle}
+          <button className="dbx-depth" key={opt.value} type="button" onClick={cycle}
             title={[opt.hint, isIn ? "Included — click to exclude" : isOut ? "Excluded — click to clear" : "Click to include"]
               .filter(Boolean).join(" · ")}
             style={{
-              padding:"5px 12px", borderRadius:999, fontSize:11, fontWeight:600,
+              padding:"5px 12px", fontSize:11, fontWeight:600,
               cursor:"pointer", border:`1px solid ${border}`, background:bg, color:fg,
               transition:"all 0.15s", textDecoration: isOut ? "line-through" : "none",
             }}>
@@ -625,11 +625,11 @@ function FiltersPanel({
         <div>
           <div style={labelStyle}>Quick</div>
           <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-            <button type="button"
+            <button className="dbx-depth" type="button"
               onClick={() => setAgeFilter(ageFilter === "1d" ? "" : "1d")}
               title="Show only jobs posted in the last 24 hours"
               style={{
-                padding:"6px 12px", borderRadius:999, fontSize:11, fontWeight:700, cursor:"pointer",
+                padding:"6px 12px", fontSize:11, fontWeight:700, cursor:"pointer",
                 border:`1px solid ${ageFilter === "1d" ? theme.accent : theme.border}`,
                 background: ageFilter === "1d" ? theme.accentMuted : "transparent",
                 color: ageFilter === "1d" ? (theme.accentText || theme.text) : theme.textMuted,
@@ -637,12 +637,12 @@ function FiltersPanel({
               }}>
               New in 24h
             </button>
-            <button type="button"
+            <button className="dbx-depth" type="button"
               onClick={onSaveSearch}
               disabled={!canSaveSearch}
               title="Save the filter set currently applied to the board"
               style={{
-                padding:"6px 12px", borderRadius:999, fontSize:11, fontWeight:700,
+                padding:"6px 12px", fontSize:11, fontWeight:700,
                 border:`1px solid ${theme.border}`, background:"transparent",
                 color: canSaveSearch ? theme.text : theme.textDim,
                 cursor: canSaveSearch ? "pointer" : "not-allowed",
@@ -653,11 +653,11 @@ function FiltersPanel({
           </div>
           {trackedSearch && (
             <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:6 }}>
-              <button type="button" onClick={onApplySearch}
+              <button className="dbx-depth" type="button" onClick={onApplySearch}
                 title={trackedSearch.name || "Apply saved search"}
                 style={{
                   flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
-                  padding:"5px 12px", borderRadius:999, fontSize:11, fontWeight:700, cursor:"pointer",
+                  padding:"5px 12px", fontSize:11, fontWeight:700, cursor:"pointer",
                   border:`1px solid ${theme.accent}`, background:theme.accentMuted || theme.surface,
                   color:theme.accentText || theme.text,
                 }}>
@@ -701,7 +701,7 @@ function FiltersPanel({
             {EMP_TYPE_OPTIONS.map(opt => {
               const active = employmentTypePrefs.includes(opt.value);
               return (
-                <button key={opt.value}
+                <button className="dbx-depth" key={opt.value}
                   type="button"
                   onClick={() => {
                     const next = active
@@ -711,7 +711,7 @@ function FiltersPanel({
                     if (next.length > 0) setEmploymentTypePrefs(next);
                   }}
                   style={{
-                    padding:"5px 12px", borderRadius:999, fontSize:11, fontWeight:600,
+                    padding:"5px 12px", fontSize:11, fontWeight:600,
                     cursor:"pointer", border:`1px solid ${active ? theme.accent : theme.border}`,
                     background: active ? theme.accentMuted : "transparent",
                     color: active ? theme.accentText : theme.textMuted,
@@ -730,13 +730,13 @@ function FiltersPanel({
             {WORK_MODEL_OPTIONS.map(opt => {
               const active = workModels.includes(opt.value);
               return (
-                <button key={opt.value}
+                <button className="dbx-depth" key={opt.value}
                   type="button"
                   onClick={() => setWorkModels(active
                     ? workModels.filter(v => v !== opt.value)
                     : [...workModels, opt.value])}
                   style={{
-                    padding:"5px 12px", borderRadius:999, fontSize:11, fontWeight:600,
+                    padding:"5px 12px", fontSize:11, fontWeight:600,
                     cursor:"pointer", border:`1px solid ${active ? theme.accent : theme.border}`,
                     background: active ? theme.accentMuted : "transparent",
                     color: active ? theme.accentText : theme.textMuted,
@@ -759,13 +759,13 @@ function FiltersPanel({
             {EXPERIENCE_LEVEL_OPTIONS.map(opt => {
               const active = experienceLevels.includes(opt.value);
               return (
-                <button key={opt.value}
+                <button className="dbx-depth" key={opt.value}
                   type="button"
                   onClick={() => setExperienceLevels(active
                     ? experienceLevels.filter(v => v !== opt.value)
                     : [...experienceLevels, opt.value])}
                   style={{
-                    padding:"5px 12px", borderRadius:999, fontSize:11, fontWeight:600,
+                    padding:"5px 12px", fontSize:11, fontWeight:600,
                     cursor:"pointer", border:`1px solid ${active ? theme.accent : theme.border}`,
                     background: active ? theme.accentMuted : "transparent",
                     color: active ? theme.accentText : theme.textMuted,
@@ -894,9 +894,9 @@ function FiltersPanel({
           {skillsInclude.length > 0 && (
             <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:8 }}>
               {skillsInclude.map(skill => (
-                <button key={skill} type="button" onClick={() => setSkillsInclude(skillsInclude.filter(s => s !== skill))}
+                <button className="dbx-depth" key={skill} type="button" onClick={() => setSkillsInclude(skillsInclude.filter(s => s !== skill))}
                   style={{
-                    padding:"4px 10px", borderRadius:999, fontSize:11, fontWeight:600,
+                    padding:"4px 10px", fontSize:11, fontWeight:600,
                     cursor:"pointer", border:`1px solid ${theme.accent}`,
                     background:theme.accentMuted, color:theme.accentText,
                   }}>
@@ -967,10 +967,10 @@ function FiltersPanel({
             {SECTORS.options.map(opt => {
               const active = sectors.includes(opt.value);
               return (
-                <button key={opt.value} type="button" aria-pressed={active}
+                <button className="dbx-depth" key={opt.value} type="button" aria-pressed={active}
                   onClick={() => setSectors(active ? sectors.filter(v => v !== opt.value) : [...sectors, opt.value])}
                   style={{
-                    padding:"5px 12px", borderRadius:999, fontSize:11, fontWeight:600,
+                    padding:"5px 12px", fontSize:11, fontWeight:600,
                     cursor:"pointer", border:`1px solid ${active ? theme.accent : theme.border}`,
                     background: active ? theme.accentMuted : "transparent",
                     color: active ? theme.accentText : theme.textMuted,
@@ -1954,9 +1954,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       drafted: isJobDrafted(selectedJob.jobId),
       drafting: draftingIds.has(selectedJob.jobId),
       onAts: () => openAtsPanel(buildAtsPayload(selectedJob, g2)),
+      // D48: the posting header's ATS box opens the card beside the posting and shows OPEN as an outline.
+      atsOpen: !!rightPanelOpen,
       onResume: () => generate(selectedJob, false),
     });
-  }, [selectedJob, generated, loading, applyMode, canUseGenerate, resumeText, draftedIds, draftingIds, applyStateByJobId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedJob, generated, loading, applyMode, canUseGenerate, resumeText, draftedIds, draftingIds, applyStateByJobId, rightPanelOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-open resume + ATS panel when a pending job card is selected
   useEffect(() => {
@@ -3718,17 +3720,17 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             <div style={{ padding:"16px 24px", borderTop:`1px solid ${theme.border}`,
                            display:"flex", flexDirection:"column", gap:10, alignItems:"center" }}>
               <div style={{ display:"flex", gap:10, width:"100%", justifyContent:"center" }}>
-                <button onClick={handleAdoptEnhanced}
+                <button className="dbx-depth" onClick={handleAdoptEnhanced}
                   style={{
-                    padding:"10px 24px", borderRadius:999, fontWeight:800, fontSize:13,
+                    padding:"10px 24px", fontWeight:800, fontSize:13,
                     background:theme.accent, color:"var(--c-on-accent)", border:"none", cursor:"pointer",
                     fontFamily:"inherit",
                   }}>
                   Adopt Enhanced Version
                 </button>
-                <button onClick={() => setEnhanceModalOpen(false)}
+                <button className="dbx-depth" onClick={() => setEnhanceModalOpen(false)}
                   style={{
-                    padding:"10px 24px", borderRadius:999, fontWeight:800, fontSize:13,
+                    padding:"10px 24px", fontWeight:800, fontSize:13,
                     background:"transparent", color:theme.textMuted,
                     border:`1px solid ${theme.border}`, cursor:"pointer",
                     fontFamily:"inherit",
@@ -4204,7 +4206,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                     …
                   </span>
                 ) : (
-                  <button
+                  <button className="dbx-depth"
                     key={item}
                     type="button"
                     onClick={() => goPage(item)}
@@ -4213,7 +4215,6 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                     style={{
                       minWidth:32,
                       height:32,
-                      borderRadius:999,
                       border:`1px solid ${item === currentPage ? theme.accent : theme.border}`,
                       background:item === currentPage ? theme.accent : theme.surface,
                       color:item === currentPage ? theme.accentText : theme.text,
@@ -4486,8 +4487,8 @@ function SetupGateNotice({ theme, title, body, actionLabel, onAction }) {
         <div style={{ fontSize:13, lineHeight:1.6, color:theme.textMuted, marginBottom:18 }}>
           {body}
         </div>
-        <button onClick={onAction}
-          style={{ border:"none", borderRadius:999, padding:"10px 16px",
+        <button className="dbx-depth" onClick={onAction}
+          style={{ border:"none", padding:"10px 16px",
                    background:theme.accent, color:C.ON_ACCENT, fontWeight:800,
                    cursor:"pointer", fontFamily:"inherit"}}>
           {actionLabel}
@@ -4605,15 +4606,15 @@ function CompanyReuseModal({ company, onUseExisting, onGenerateNew, onCancel, th
           Use your existing resume for this role, or generate a new one?
         </div>
         <div style={{ display:"flex", gap:10, flexDirection:"column" }}>
-          <button onClick={onUseExisting} style={{
-            padding:"10px 0", borderRadius:999, border:`1px solid ${theme.accent}`,
+          <button className="dbx-depth" onClick={onUseExisting} style={{
+            padding:"10px 0", border:`1px solid ${theme.accent}`,
             background:theme.accent, color:C.ON_ACCENT, fontWeight:800, fontSize:13,
             cursor:"pointer", fontFamily:"inherit",
           }}>
             Use Existing Resume
           </button>
-          <button onClick={onGenerateNew} style={{
-            padding:"10px 0", borderRadius:999, border:`1px solid ${theme.border}`,
+          <button className="dbx-depth" onClick={onGenerateNew} style={{
+            padding:"10px 0", border:`1px solid ${theme.border}`,
             background:"transparent", color:theme.text, fontWeight:800, fontSize:13,
             cursor:"pointer", fontFamily:"inherit",
           }}>

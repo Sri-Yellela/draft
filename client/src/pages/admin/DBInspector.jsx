@@ -1627,9 +1627,9 @@ function UserPoolTab({ theme }) {
             {/* Filter pills */}
             <div style={{ display:"flex", gap:6, marginBottom:12 }}>
               {["All","Correct","Wrong","NULL"].map(f => (
-                <button key={f} onClick={() => setPoolFilter(f)}
+                <button className="dbx-depth" key={f} onClick={() => setPoolFilter(f)}
                   style={{
-                    padding:"3px 12px", borderRadius:999, border:`1px solid ${poolFilter===f ? ACCENT_TEXT : theme.border}`,
+                    padding:"3px 12px", border:`1px solid ${poolFilter===f ? ACCENT_TEXT : theme.border}`,
                     background: poolFilter===f ? ACCENT : "transparent",
                     color: poolFilter===f ? C.ON_ACCENT : theme.text,
                     fontSize:11, fontWeight:700, cursor:"pointer",
@@ -2532,9 +2532,9 @@ export default function DBInspector() {
         )}
         <div style={{ display:"flex", gap:4 }}>
           {[{v:0,l:"Off"},{v:30,l:"30s"},{v:60,l:"60s"}].map(({v,l}) => (
-            <button key={v} onClick={() => setAutoRefresh(v)}
+            <button className="dbx-depth" key={v} onClick={() => setAutoRefresh(v)}
               style={{
-                padding:"3px 10px", borderRadius:999, fontSize:10, fontWeight:700, cursor:"pointer",
+                padding:"3px 10px", fontSize:10, fontWeight:700, cursor:"pointer",
                 border:`1px solid ${autoRefresh===v ? ACCENT_TEXT : theme.border}`,
                 background: autoRefresh===v ? ACCENT : "transparent",
                 color: autoRefresh===v ? C.ON_ACCENT : theme.textMuted,

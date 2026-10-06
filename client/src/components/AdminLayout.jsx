@@ -28,11 +28,11 @@ export default function AdminLayout({ user, onLogout, children }) {
           Logged in as{" "}
           <strong style={{ color:theme.text }}>{user?.username}</strong>
         </span>
-        <button
+        <button className="dbx-depth"
           onClick={onLogout}
           style={{
             background:"transparent", border:`1px solid ${theme.border}`,
-            borderRadius:999, padding:"5px 16px", cursor:"pointer",
+            padding:"5px 16px", cursor:"pointer",
             fontSize:12, color:theme.textMuted, fontWeight:600,
             fontFamily:"'DM Sans',system-ui", transition:"all 0.15s",
           }}

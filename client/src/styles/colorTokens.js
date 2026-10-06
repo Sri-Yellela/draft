@@ -193,6 +193,10 @@ export const C_LIGHT = {
   FH_SEG_LIFT:    "0 2px 6px rgba(253,70,0,0.30)",          // the pressed view in the segment
   FH_INSET:       "inset 0 1px 3px rgba(30,25,21,0.07)",    // the views well and the search well
   FH_ADD_HOVER:   "0 7px 17px rgba(253,70,0,0.40)",         // the + square, lifted
+  // ⭐ D48 · the posting header's ATS number (PP_: the posting panel's — it does not travel to the extension) — the sketch's --atx, and the SAME value as PAIR_KICKER (the ATS
+  // card's number, owner 10-07: "the ATS number switches colour"), so the two read as one number. The box is
+  // on the app's surface, outside the pair, so it cannot read the pair's token; test/d48PostingHeader pins equal.
+  PP_ATS_NUMBER:  "#A33200",
 
   // Shadows are ink at low alpha — a warm shadow on paper, not a grey one.
   SHADOW_SM: "0 1px 2px rgba(30,25,21,0.08), 0 1px 1px rgba(30,25,21,0.05)",
@@ -319,6 +323,7 @@ export const C_DARK = {
   FH_SEG_LIFT:         "0 2px 6px rgba(253,70,0,0.36)",
   FH_INSET:            "inset 0 1px 3px rgba(0,0,0,0.38)",
   FH_ADD_HOVER:        "0 8px 20px rgba(253,70,0,0.46)",
+  PP_ATS_NUMBER:       "#FD4600",   // = PAIR_KICKER dark; 4.3:1 on FH_WELL — the number is 26px, large text
   SHADOW_SM:           "0 1px 2px rgba(0,0,0,0.35), 0 1px 1px rgba(0,0,0,0.25)",
   SHADOW_MD:           "0 4px 12px rgba(0,0,0,0.40), 0 2px 4px rgba(0,0,0,0.30)",
   SHADOW_LG:           "0 18px 40px rgba(0,0,0,0.50), 0 6px 14px rgba(0,0,0,0.35)",
@@ -492,6 +497,7 @@ export const CONTRAST_PAIRS = [
   ["INK", "FH_SURFACE", "normal"], ["INK", "FH_WELL", "normal"],
   ["INK_MUTED", "FH_SURFACE", "normal"], ["INK_MUTED", "FH_WELL", "normal"],
   ["INK_FAINT", "FH_SURFACE", "normal"], ["INK_FAINT", "FH_WELL", "normal"],   // + add, a panel's key, the coverage line
+  ["PP_ATS_NUMBER", "FH_WELL", "large"],                                         // D48: the header box's 26px number
   ["ACCENT_INK", "FH_SURFACE", "normal"], ["ACCENT_INK", "FH_WELL", "normal"], // hover text, Close ×
   ["ACCENT_INK", "CANVAS_SHADE", "ui"], ["ACCENT_INK", "FH_SURFACE", "ui"],    // the OPEN outline, a hover edge
   ["FH_ON_ACCENT", "ACCENT", "normal"], ["FH_ON_ACCENT", "ACCENT_HOVER", "normal"],

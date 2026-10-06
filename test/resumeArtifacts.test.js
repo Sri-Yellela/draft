@@ -24,7 +24,9 @@ test("Generate and A+ artifacts are tracked independently in the sandbox", () =>
   // not a JobCard button — it lives in JobDetailPanel — so the card never read that flag. The
   // independent TRACKING this test is actually about is asserted on jobsPanel and sandbox above;
   // the card only needs its own flag for the button it does own.
-  assert.match(detail, /disabled=\{!!st\}/);
+  // ⚠ D48: this matched only a COMMENT once the action bar's button gained `|| noSlots` (A63). It pins the code now:
+  // the résumé button is disabled while any tool is in flight, whichever it is.
+  assert.match(detail, /disabled=\{!!st \|\| noSlots\}/);
 });
 
 test("download/export marks the selected artifact as kept for downstream use", () => {

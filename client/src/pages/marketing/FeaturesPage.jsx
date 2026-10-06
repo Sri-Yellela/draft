@@ -113,8 +113,8 @@ export function FeaturesPage() {
         ))}
 
         <div style={{ textAlign: "center", marginTop: 24 }}>
-          <Link to="/register" style={{ display: "inline-block", background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`,
-                                        borderRadius: 999, padding: "13px 26px", fontWeight: 800, fontSize: 15, textDecoration: "none",
+          <Link className="dbx-depth" to="/register" style={{ display: "inline-block", background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`,
+                                        padding: "13px 26px", fontWeight: 800, fontSize: 15, textDecoration: "none",
                                         boxShadow: C.SHADOW_GLASS }}>
             Get today's draft
           </Link>

@@ -256,7 +256,7 @@
 .usb__clear {
   background: var(--color-surface-offset);
   border: none;
-  border-radius: 9999px;
+  border-radius: 6px; /* D48: an interactive control is a box, never a pill */
   padding: 2px 4px;
   cursor: pointer;
   color: var(--color-text-faint);

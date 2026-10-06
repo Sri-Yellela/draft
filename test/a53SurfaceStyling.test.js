@@ -39,11 +39,13 @@ test("the page titles use the deck's type scale", () => {
   assert.match(read("client/src/panels/JobProfilesPanel.jsx"), /<h1 style=\{\{ \.\.\.TYPE\.PAGE_TITLE/);
 });
 
-test(".rm-btn is the deck's button: a pill in the body font, primary is the orange FILL with ink text", () => {
+test(".rm-btn is the depth box in the body font (D48 — it was a glass pill), primary is the orange FILL with ink text", () => {
   const css = read("client/src/themes/cinematic.js");
   const block = css.slice(at(css, "        .rm-btn {"), at(css, "        .rm-input {"));
   assert.doesNotMatch(block, /Barlow|text-transform: uppercase|2\.5px/, "the Lucy-tin button is back");
-  assert.match(block, /border-radius: 999px/);
+  assert.doesNotMatch(block, /border-radius: 999px/, "the glass pill is back (D48)");
+  assert.match(block, /\.rm-btn \{\s+display: inline-flex;[\s\S]*?border-radius: 11px;[\s\S]*?box-shadow: \$\{C\.DEPTH_REST\};/);
+  assert.match(block, /\.rm-btn:active:not\(:disabled\) \{ transform: translateY\(0\); box-shadow: \$\{C\.DEPTH_PRESS\}; \}/);
   assert.match(block, /\.rm-btn-primary \{\s*background-image: none; background-color: \$\{C\.ACCENT\};\s*color: \$\{C\.ON_ACCENT\}; border-color: \$\{C\.ACCENT_INK\};/);
 });
 
