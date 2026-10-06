@@ -116,7 +116,7 @@ export default function JobBubble({ job, score = null, selected = false, saved =
             disabled={draft.disabled} aria-disabled={draft.ariaDisabled || undefined}
             onClick={stop(draft.action === "draft" ? onDraft : draft.action === "view" ? onViewDraft
               : draft.action === "explain" ? () => onExplainDraft?.(draft.title) : null)}
-            aria-label={`${draft.label} — ${draft.title}`} title={draft.title}>
+            aria-label={draft.title} title={draft.title}>
             <DraftMark />
           </button>
         )}
