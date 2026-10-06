@@ -198,10 +198,10 @@ test("D51 · a refused Draft says why — never the success toast with an Undo",
 
 test("D51 · every Draft control takes its state from the one function, and the board moves without a reload", () => {
   const bubble = read("client/src/components/JobBubble.jsx");
-  assert.match(bubble, /const draft = draftButtonState\(\{ drafted, drafting, block: draftBlocked, canView: !!onViewDraft \}\);/);
+  assert.match(bubble, /const draft = draftButtonState\(\{ drafted, drafting, block: draftBlocked, canView: !!onViewDraft, slots: draftSlots \}\);/);
   assert.doesNotMatch(bubble, /disabled=\{drafted \|\| drafting\}/, "the grey dead end is gone");
   const buttons = read("client/src/components/DecisionButtons.jsx");
-  assert.match(buttons, /const s = draftButtonState\(\{ drafted, drafting, block, canView: !!onView \}\);/);
+  assert.match(buttons, /const s = draftButtonState\(\{ drafted, drafting, block, canView: !!onView, slots \}\);/);
   const panel = read("client/src/panels/JobsPanel.jsx");
   const decide = panel.slice(at(panel, "const decideJob = useCallback("), at(panel, "const undoLastDecision = useCallback("));
   assert.match(decide, /if \(r\.slots\) setDraftSlots\(r\.slots\);\n\s+setFacetsNonce\(n => n \+ 1\);/, "the quota and the /d count move");
