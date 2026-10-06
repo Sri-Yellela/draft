@@ -127,6 +127,25 @@ export function capturedLine(c) {
   return [day ? `captured ${day}` : "captured", c?.from ? `from ${c.from}` : null].filter(Boolean).join(" · ");
 }
 
+/**
+ * ⛔ D45 (owner, 10-07): LOADING IS NOT EMPTY. While the board for the current view has not answered,
+ * this stands in the card's own geometry — the 52px logo, three lines, the same padding and radius —
+ * so the first frame is never "nothing here" when the truth is "not here yet". aria-hidden: the
+ * board's own busy state is what a screen reader hears.
+ */
+export function JobBubbleSkeleton() {
+  return (
+    <div className="jb jb--skeleton" data-skeleton="" aria-hidden="true">
+      <span className="jb__logo jb-sk jb-sk--logo" />
+      <div className="jb__text">
+        <span className="jb-sk jb-sk--line" style={{ width: "42%" }} />
+        <span className="jb-sk jb-sk--line" style={{ width: "78%" }} />
+        <span className="jb-sk jb-sk--line jb-sk--meta" style={{ width: "58%" }} />
+      </div>
+    </div>
+  );
+}
+
 export function JobBubbleRows({ jobs, children }) {
   const ref = useRef(null);
   const [width, setWidth] = useState(0);

@@ -104,3 +104,13 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
                  font-size: 19px; }
 .jb__sq--draft:hover, .jb__sq--draft:focus-visible { box-shadow: var(--c-depth-accent); }
 .jb__sq--draft[data-done="true"] { opacity: .55; }
+
+/* ⛔ D45 · THE SKELETON — the card's own geometry while the current view has not answered. Tokens only. */
+.jb--skeleton { cursor: default; pointer-events: none; }
+.jb--skeleton:hover { flex-grow: 1; box-shadow: var(--c-depth-rest); }
+.jb-sk { display: block; background: var(--c-fh-well); border-radius: 6px; animation: jb-sk-pulse 1.2s ease-in-out infinite; }
+.jb-sk--logo { box-shadow: none; }
+.jb-sk--line { height: 12px; margin: 4px 0; }
+.jb-sk--meta { height: 9px; opacity: .7; }
+@keyframes jb-sk-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .jb-sk { animation: none; } }

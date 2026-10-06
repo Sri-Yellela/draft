@@ -109,7 +109,7 @@ test("A GUESS IS NOT A LOGO — an unknown company resolves to null, not a slug"
 test("D1 (10-03): the listings are bubble ROWS of 2/3/4 — the two-column TileGrid is superseded", () => {
   // AE5 put two listings per row in a TileGrid; D1 (chosen 10-02) replaces the jobs-page card with
   // bubbles in rows, so a growing card's neighbours share its row (test/jobBubbleD1.test.js).
-  assert.match(jobsPanel, /import JobBubble, \{ JobBubbleRows \} from "\.\.\/components\/JobBubble\.jsx";/);
+  assert.match(jobsPanel, /import JobBubble, \{ JobBubbleRows(, JobBubbleSkeleton)? \} from "\.\.\/components\/JobBubble\.jsx";/);
   assert.match(jobsPanel, /<JobBubbleRows jobs=\{jobs\}>/);
   assert.doesNotMatch(jobsPanel, /<TileGrid/);
 });
