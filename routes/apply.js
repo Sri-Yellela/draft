@@ -1966,8 +1966,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     if (resolvedMode === "auto" && fullAutoDisabled()) {
       return respond(503, {
         error: "full_auto_disabled",
-        message: "Automatic submission is currently disabled. Manual review mode is still available.",
-        retryWithMode: "manual",
+        // D36: this offered "Manual review mode", which no client surface has offered since the deck and
+        // board Draft became the only way in (A53) — so the one thing the user was told to do did not exist.
+        // Said as it is: paused by the operator, nothing new starts, nothing already sent is affected.
+        message: "Automatic applications are paused by the operator, so nothing new can be drafted right now. " +
+          "Nothing already sent is affected. Draft it again once they are resumed.",
       });
     }
 
