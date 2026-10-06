@@ -94,6 +94,8 @@ export function AutoApplyPanel() {
     artifactUrl,
     // Abort and remove. Their confirmations arrive on historyMsg, the name AD1 gave the line.
     historyMsg, historyBusyId, abortRunJob, hideRunJob,
+    // D53: the bin.
+    bin = { items: [], binDays: 7 }, binMsg = "", binBusy = false, clearRunJobs, restoreBinItem, purgeBinItem, countOlderThan,
   } = useAutoApply();
 
   const nothingYet =
@@ -137,6 +139,25 @@ export function AutoApplyPanel() {
   const [search, setSearch] = useState("");
   const listedItems = filterItems(stoppedItems, search);
   const [openKey, setOpenKey] = useState(null);
+  // ⭐ D53 · MULTI-SELECT CLEAR. Only items that ARE applications are selectable (an approval, a held or a
+  // broke one); a portal or a question is not one thing to clear.
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
+  const idsOf = (item) => item.kind === "approval" ? [item.ref?.runJobId].filter(Boolean)
+    : (item.kind === "held" || item.kind === "broke") ? (item.ref?.rows || []).map(x => x.id).filter(Boolean) : [];
+  const toggleSelected = (item) => setSelected(prev => { const n = new Set(prev); n.has(item.key) ? n.delete(item.key) : n.add(item.key); return n; });
+  const selectedIds = stoppedItems.filter(i => selected.has(i.key)).flatMap(idsOf);
+  const confirmOlder = async (days) => {
+    const n = await countOlderThan?.(days);
+    if (n === 0) { window.alert(`Nothing unsent is older than ${days} days.`); return; }
+    if (n != null) confirmClear(n, { olderThanDays: days });
+  };
+  const confirmClear = (count, body) => {
+    if (!count) return;
+    if (window.confirm(`Clear ${count}? They stay in the bin for ${bin.binDays} days, then they are purged.`)) {
+      clearRunJobs(body); setSelected(new Set()); setSelecting(false);
+    }
+  };
 
   // D14: Stopped and Queued sit side by side from ~1080px; below that they stack, Stopped first.
   const splitSideBySide = viewportWidth >= 1080;
@@ -364,6 +385,9 @@ export function AutoApplyPanel() {
             onClick: () => openApprovalReview(r) },
           { label: "Reject", glyph: "✕", title: "Reject — nothing is sent", disabled: pendingBusy,
             onClick: () => decidePending([r.runJobId], false) },
+          // D53: Clear behaves the same in every unsent state — here too.
+          { label: "Clear", glyph: "⌫", title: "Clear — into the bin for 7 days, restorable. Not a Pass.",
+            disabled: binBusy, onClick: () => clearRunJobs({ runJobIds: [r.runJobId] }) },
         ];
       case "held": {
         const packet = handoffPacketFor?.(r.primary?.row) || handoffPacketFor?.(r);
@@ -379,7 +403,7 @@ export function AutoApplyPanel() {
             { label: "Prepare again", glyph: "↻", primary: true,
               title: `${life.line} A new Draft prepares them now and waits for you — it uses one of your drafts.`,
               onClick: () => retryJob(r.primary?.row || r) },
-            { label: "Remove", glyph: "✕", title: "Remove from Draft House — the record is kept",
+            { label: "Clear", glyph: "✕", title: "Clear — into the bin for 7 days (Cleared, under Queued), then purged. Not a Pass.",
               disabled: appBusy(r), onClick: () => hideApplication(r) },
           ];
         }
@@ -390,7 +414,7 @@ export function AutoApplyPanel() {
               ? `${life.line} Opens the application in your own browser and fills it with the ${packet.answerCount} answer${packet.answerCount === 1 ? "" : "s"} we already resolved. You review and submit.`
               : "Open this application's review — only this one",
             onClick: resumable ? () => openHandoff(packet, r) : () => openApplicationReview(r) },
-          { label: "Remove", glyph: "✕", title: "Remove from Draft House — the record is kept",
+          { label: "Clear", glyph: "✕", title: "Clear — into the bin for 7 days (Cleared, under Queued), then purged. Not a Pass.",
             disabled: appBusy(r), onClick: () => hideApplication(r) },
         ];
       }
@@ -402,7 +426,7 @@ export function AutoApplyPanel() {
                 onClick: () => retryJob(lead.row || r) }
             : { label: "Details", glyph: "☰", primary: true, title: "Every attempt, and why it stopped",
                 onClick: () => loadApplyRunDetail(lead.row?.runId ?? r.runId) },
-          { label: "Remove", glyph: "✕", title: "Remove from Draft House — the record is kept",
+          { label: "Clear", glyph: "✕", title: "Clear — into the bin for 7 days (Cleared, under Queued), then purged. Not a Pass.",
             disabled: appBusy(r), onClick: () => hideApplication(r) },
         ];
       }
@@ -555,6 +579,28 @@ export function AutoApplyPanel() {
             </div>
           )}
 
+          {/* D53: multi-select, and "clear everything older than 7 / 30 days" — each confirmed with its count. */}
+          {stoppedItems.some(i => idsOf(i).length) && (
+            <div data-bulk-clear="" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 11.5 }}>
+              <button type="button" className="dh-bulk" onClick={() => { setSelecting(v => !v); setSelected(new Set()); }}>
+                {selecting ? "Done selecting" : "Select"}
+              </button>
+              {selecting && (
+                <button type="button" className="dh-bulk" data-primary="true" disabled={!selectedIds.length || binBusy}
+                  onClick={() => confirmClear(selectedIds.length, { runJobIds: selectedIds })}>
+                  Clear {selectedIds.length} selected
+                </button>
+              )}
+              <button type="button" className="dh-bulk" disabled={binBusy}
+                title="Every unsent item drafted more than 7 days ago — into the bin, restorable for 7 days"
+                onClick={() => confirmOlder(7)}>Clear older than 7 days</button>
+              <button type="button" className="dh-bulk" disabled={binBusy}
+                title="Every unsent item drafted more than 30 days ago — into the bin, restorable for 7 days"
+                onClick={() => confirmOlder(30)}>Clear older than 30 days</button>
+            </div>
+          )}
+          {binMsg && <span role="status" data-bin-msg="" style={{ fontSize: 11.5, color: theme.accentText }}>{binMsg}</span>}
+
           {stoppedItems.length >= SEARCH_FROM && (
             <PanelSearch theme={theme} value={search} onChange={setSearch} width={260}
               placeholder="Search what stopped…" />
@@ -578,7 +624,9 @@ export function AutoApplyPanel() {
               const { shown, extra } = foldFor(item);
               return (
                 <StoppedItem key={item.key} item={shown} open={openKey === item.key}
-                  onToggle={() => toggle(item)} rail={railFor(item)}>
+                  onToggle={() => toggle(item)} rail={railFor(item)}
+                  selectable={selecting && idsOf(item).length > 0} selected={selected.has(item.key)}
+                  onSelect={() => toggleSelected(item)}>
                   {extra}
                 </StoppedItem>
               );
@@ -641,6 +689,38 @@ export function AutoApplyPanel() {
                 ))}
               </div>
             </>
+          )}
+
+          {/* ⭐ D53 · CLEARED · 7 DAYS — the recycle bin, a fold under Queued (not a nav item). Each item
+              says when it purges; Restore puts it back exactly as it was (one the clear had stopped
+              comes back as a new Draft); Delete now purges it at once. */}
+          {bin.items.length > 0 && (
+            <details data-draft-bin="" className="dh-bin">
+              <summary>Cleared · {bin.items.length} · {bin.binDays} days</summary>
+              <p className="dh-bin__note">
+                Cleared items stay here for {bin.binDays} days, then their prepared answers, handoff and
+                screenshot are deleted. Clearing is not a Pass — it trains nothing.
+              </p>
+              <ul className="dh-bin__list">
+                {bin.items.map(it => (
+                  <li key={it.id} data-bin-item={it.id}>
+                    <span className="dh-bin__what">
+                      <strong>{companyLabel(it.company)}</strong>{it.title ? ` — ${it.title}` : ""}
+                      <span className="dh-bin__when">
+                        {it.purgesInDays <= 0 ? "purges today" : `purges in ${it.purgesInDays} day${it.purgesInDays === 1 ? "" : "s"}`}
+                        {it.stoppedByClear ? " · was stopped — Restore drafts it again" : ""}
+                      </span>
+                    </span>
+                    <button type="button" className="dh-bulk" disabled={binBusy} onClick={() => restoreBinItem(it)}
+                      title={it.stoppedByClear ? "Restore — it was stopped when cleared, so it is drafted again (uses one of your drafts)"
+                                               : "Restore — back exactly where it was"}>Restore</button>
+                    <button type="button" className="dh-bulk" disabled={binBusy}
+                      onClick={() => { if (window.confirm(`Delete ${companyLabel(it.company)} for good? It cannot be restored.`)) purgeBinItem(it); }}
+                      title="Delete now — its prepared answers and screenshot are deleted and it cannot be restored">Delete now</button>
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
         </aside>
       </div>

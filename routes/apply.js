@@ -32,6 +32,7 @@ import { userHeld, userHoldSince, setUserHold } from "../services/applyUserHold.
 import { draftSlots, slotsExhausted } from "../services/draftSlots.js";
 import { atsJobInputHash, ATS_JOB_INPUT_FIELDS } from "../services/jobs/boardFitPrecompute.js";
 import { recordSubmissionFromPipeline, markPending, releaseDraftRecord, publicRecord } from "../services/applicationRecords.js";
+import { binRunJobs, listBin, restoreFromBin, purgeNow, BIN_DAYS } from "../services/draftBin.js";
 
 // Live read through the one shared parser, exactly as server.js does — same flag, same function,
 // so this route and the gates over there cannot disagree. ⛔ See shared/monetisation.js: ON is a
@@ -2641,6 +2642,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       return true;
     })();
     if (!removed) return notWaiting(res, req.user.id, runId);
+    // D53: removing from the line is CLEARING — the same 7-day bin as every other unsent state.
+    try { binRunJobs(db, req.user.id, db.prepare("SELECT id FROM apply_run_jobs WHERE run_id=? AND user_id=? AND reason_code='removed_from_line'").pluck().all(runId, req.user.id)); }
+    catch (e) { console.warn(`[applyRoutes] bin line run=${runId}: ${e.message}`); }
     releaseDrafted(req.user.id, lineJobIds);
     res.json({ ok: true, message: "Removed from the line. Nothing was opened or sent.", line: publicLine(req.user.id) });
   });
@@ -2669,6 +2673,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     if (outcome === "not_waiting") return notWaiting(res, req.user.id, runId);
     if (outcome === "no_job") return res.status(404).json({ error: "run_job_not_found" });
     const removedJob = db.prepare("SELECT job_id FROM apply_run_jobs WHERE id=? AND user_id=?").pluck().get(runJobId, req.user.id);
+    try { binRunJobs(db, req.user.id, [runJobId]); } catch (e) { console.warn(`[applyRoutes] bin line job=${runJobId}: ${e.message}`); }
     releaseDrafted(req.user.id, removedJob == null ? [] : [removedJob]);
     res.json({ ok: true, line: publicLine(req.user.id) });
   });
@@ -3280,38 +3285,56 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * off the user's screen while its browser carried on filling a real employer's form. "Remove
    * this" cannot mean "stop looking at it while it continues".
    */
-  app.delete("/api/apply/run-jobs/:runJobId", requireAuth, (req, res) => {
-    const rj = ownedRunJob(req.params.runJobId, req.user.id);
-    if (!rj) return res.status(404).json({ error: "not_found" });
-
-    const wasPending = OUTCOME_STATUSES[OUTCOME.PENDING].includes(rj.status);
+  /**
+   * ⭐ D53 · CLEAR ONE RUN-JOB — Remove, removal from the line and the bulk clear all come here, so the
+   * behaviour is the same in every unsent state. Stops it first if it is still pending (AC4), hides it,
+   * and — unless it was SUBMITTED — puts it in the 7-day bin (services/draftBin.js). A submitted row is
+   * history: hiding it from Draft House stays AC4's soft hide, never binned, never purged.
+   */
+  function clearRunJob(userId, rj) {
+    // ⛔ D53: only what is LIVE is stopped (queued, running) — a parked item (held_review, held_gate) is
+    // binned untouched, so Restore puts it back exactly as it was. AC4 cancelled every "pending" row,
+    // which made a held item unrestorable. Its packets are hidden with it (the list and the mint read
+    // hidden_at), not voided. A submitted row is hidden as before and never binned.
+    const LIVE = ["queued", "running"];
+    const wasPending = LIVE.includes(rj.status);
     if (wasPending) {
-      const PENDING = OUTCOME_STATUSES[OUTCOME.PENDING];
+      const PENDING = LIVE;
       db.prepare(`
         UPDATE apply_run_jobs
-        SET status='cancelled', reason_code='user_aborted',
-            reason_detail='You removed this application. Nothing was submitted.',
+        SET status='cancelled', reason_code='cleared',
+            reason_detail='You cleared this application. Nothing was submitted.',
             finished_at=unixepoch()
         WHERE id=? AND user_id=? AND status IN (${PENDING.map(() => "?").join(",")})
-      `).run(rj.id, req.user.id, ...PENDING);
+      `).run(rj.id, userId, ...PENDING);
       db.prepare(`
         UPDATE apply_gate_packets SET consumed_at=unixepoch()
         WHERE user_id=? AND consumed_at IS NULL AND (run_job_id=? OR job_id=?)
-      `).run(req.user.id, rj.id, String(rj.job_id));
+      `).run(userId, rj.id, String(rj.job_id));
       // Not cleared here either — same reason as the abort endpoint above.
       requestAbort(rj.job_id).catch(e => console.warn("[applyRoutes] abort-on-delete:", e.message));
     }
 
     db.prepare("UPDATE apply_run_jobs SET hidden_at=unixepoch() WHERE id=? AND user_id=?")
-      .run(rj.id, req.user.id);
+      .run(rj.id, userId);
+    let binned = false;
+    try { binned = binRunJobs(db, userId, [rj.id]).cleared.length === 1; }
+    catch (e) { console.warn(`[applyRoutes] bin run-job=${rj.id}: ${e.message}`); }   // pre-130 schema
 
-    logEvent(rj.run_id, rj.id, req.user.id, rj.job_id, "run_job_hidden",
+    logEvent(rj.run_id, rj.id, userId, rj.job_id, "run_job_hidden",
       wasPending
-        ? "Removed from your history. It was still pending, so it was stopped first — nothing was submitted."
+        ? `Cleared. It was still pending, so it was stopped first — nothing was submitted.${binned ? ` In the bin for ${BIN_DAYS} days.` : ""}`
+        : binned ? `Cleared — in the bin for ${BIN_DAYS} days, then purged.`
         : "Removed from your history. The record is retained and can be restored by an operator.",
-      { previousStatus: rj.status, aborted: wasPending });
-    releaseDrafted(req.user.id, [rj.job_id]);
+      { previousStatus: rj.status, aborted: wasPending, binned });
+    releaseDrafted(userId, [rj.job_id]);
+    return { wasPending, binned };
+  }
 
+  app.delete("/api/apply/run-jobs/:runJobId", requireAuth, (req, res) => {
+    const rj = ownedRunJob(req.params.runJobId, req.user.id);
+    if (!rj) return res.status(404).json({ error: "not_found" });
+    const { wasPending, binned } = clearRunJob(req.user.id, rj);
     res.json({
       ok: true,
       runJobId: rj.id,
@@ -3320,7 +3343,53 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // implying an erasure that did not happen.
       softHide: true,
       abortedFirst: wasPending,
+      // D53: in the bin (restorable for BIN_DAYS), or — a submitted one — hidden and kept, never purged.
+      binned,
+      binDays: binned ? BIN_DAYS : null,
     });
+  });
+
+  // ── D53 · THE BIN ─────────────────────────────────────────────────────────────────────────────────
+  /** Bulk clear: the ids given, or every unsent item older than 7 / 30 days. Submitted ones are refused. */
+  app.post("/api/apply/bin/clear", requireAuth, (req, res) => {
+    const { runJobIds = null, olderThanDays = null, dryRun = false } = req.body || {};
+    const userId = req.user.id;
+    let ids;
+    if (Array.isArray(runJobIds)) ids = runJobIds.map(Number).filter(Number.isInteger).slice(0, 500);
+    else if (olderThanDays === 7 || olderThanDays === 30) {
+      ids = db.prepare(`SELECT id FROM apply_run_jobs WHERE user_id=? AND hidden_at IS NULL AND status <> 'submitted'
+        AND COALESCE(created_at, 0) < unixepoch() - ? ORDER BY id LIMIT 500`).pluck().all(userId, olderThanDays * 86400);
+    } else return res.status(400).json({ error: "bad_clear", message: "Give runJobIds, or olderThanDays of 7 or 30." });
+    // The count the confirmation states, measured — never guessed client-side.
+    if (dryRun === true) return res.json({ ok: true, dryRun: true, count: ids.length });
+    const cleared = [], refused = [];
+    for (const id of ids) {
+      const rj = ownedRunJob(id, userId);
+      if (!rj || rj.status === "submitted") { refused.push(id); continue; }
+      clearRunJob(userId, rj); cleared.push(id);
+    }
+    res.json({ ok: true, cleared, refused, binDays: BIN_DAYS,
+      message: `Cleared ${cleared.length}. They stay in the bin for ${BIN_DAYS} days.` +
+        (refused.length ? ` ${refused.length} could not be cleared — a sent application is history, kept on The Table.` : "") });
+  });
+
+  app.get("/api/apply/bin", requireAuth, (req, res) => {
+    res.json({ items: listBin(db, req.user.id), binDays: BIN_DAYS });
+  });
+
+  app.post("/api/apply/bin/:runJobId/restore", requireAuth, (req, res) => {
+    const out = restoreFromBin(db, req.user.id, req.params.runJobId);
+    if (!out.ok) return res.status(404).json({ error: out.code, message: "It is not in the bin — restored already, or purged." });
+    logEvent(out.runId, out.id, req.user.id, out.jobId, "run_job_restored", "Restored from the bin.", { status: out.status });
+    res.json({ ok: true, runJobId: out.id, jobId: out.jobId, status: out.status,
+      // One that was still running when cleared was stopped by the clear: it comes back stopped.
+      needsDraft: out.status === "cancelled" });
+  });
+
+  app.delete("/api/apply/bin/:runJobId", requireAuth, (req, res) => {
+    const out = purgeNow(db, req.user.id, req.params.runJobId);
+    if (!out.ok) return res.status(404).json({ error: out.code });
+    res.json({ ok: true, runJobId: out.id, purged: true });
   });
 
   /**
@@ -3351,13 +3420,15 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const args = origin ? [req.user.id, origin] : [req.user.id];
 
     const PACKET_LIST_LIMIT = 100;
+    // D53: a cleared (binned or hidden) application's packet is not offered — nor fillable, see the mint.
+    const NOT_CLEARED = "AND NOT EXISTS (SELECT 1 FROM apply_run_jobs hx WHERE hx.id = p.run_job_id AND hx.hidden_at IS NOT NULL)";
     const rows = db.prepare(`
       SELECT p.id, p.job_id, p.run_id, p.run_job_id, p.apply_url, p.expected_origin, p.gate_reason,
              p.answers_json, p.resume_artifact_id, p.consumed_at, p.created_at,
              sj.title, sj.company
       FROM apply_gate_packets p
       LEFT JOIN scraped_jobs sj ON sj.job_id = p.job_id
-      WHERE p.user_id=? AND p.consumed_at IS NULL ${where}
+      WHERE p.user_id=? AND p.consumed_at IS NULL ${where} ${NOT_CLEARED}
       ORDER BY p.created_at DESC LIMIT ${PACKET_LIST_LIMIT}
     `).all(...args);
 
@@ -3367,7 +3438,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // inferred from rows.length, which cannot tell a full list from a capped one.
     const total = db.prepare(`
       SELECT COUNT(*) AS n FROM apply_gate_packets p
-      WHERE p.user_id=? AND p.consumed_at IS NULL ${where}
+      WHERE p.user_id=? AND p.consumed_at IS NULL ${where} ${NOT_CLEARED}
     `).get(...args)?.n || 0;
 
     // ── Amortise the gate per PORTAL, not per application (TASK G5) ───────────
@@ -3478,6 +3549,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         error: "packet_consumed",
         message: "This handoff was already completed. Re-queue the job to prepare a new one.",
       });
+    }
+    // ⛔ D53: a cleared application is not filled. Restore it from the bin first.
+    if (row.run_job_id != null && db.prepare("SELECT hidden_at FROM apply_run_jobs WHERE id=?").pluck().get(row.run_job_id) != null) {
+      return res.status(410).json({ error: "packet_cleared",
+        message: "You cleared this application. Restore it from Cleared in Draft House to fill it." });
     }
 
     // STALE PACKETS ARE REFUSED HERE, before a token exists (AB1 requirement 5).

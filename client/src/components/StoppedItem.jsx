@@ -13,12 +13,18 @@ import "./DraftHouse.css";
 //   children rendered inside the fold, under the quiet line (an item's own decision buttons)
 // ============================================================
 
-export default function StoppedItem({ item, open = false, onToggle, rail = [], children = null }) {
+export default function StoppedItem({ item, open = false, onToggle, rail = [], children = null,
+                                     selectable = false, selected = false, onSelect = null }) {
   const foldId = `dh-fold-${item.key}`;
   return (
     <article className="dh-item" data-tone={item.tone} data-open={open ? "true" : "false"}
-             data-stopped-item={item.kind}>
+             data-stopped-item={item.kind} data-selected={selected ? "true" : undefined}>
       <div className="dh-item__head">
+        {/* D53: multi-select clear — a plain checkbox, labelled by the item's own title. */}
+        {selectable && (
+          <input type="checkbox" className="dh-item__pick" checked={selected} onChange={() => onSelect?.()}
+            aria-label={`Select ${item.title} to clear`} />
+        )}
         <button type="button" className="dh-item__main" aria-expanded={open} aria-controls={foldId}
           onClick={() => onToggle?.(item.key)}>
           {/* The shared-element title (viewTransitions): the job a Draft flew in from lands here. */}
