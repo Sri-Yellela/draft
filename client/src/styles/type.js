@@ -10,6 +10,7 @@
 // Colours are tokens (colorTokens.js). ⛔ A heading is ink, never the logo orange — orange text is
 // ACCENT_INK, and only where the orange means something.
 import { C } from "./colorTokens.js";
+import { MARK_SIZES, LOGO_FACE } from "./brandMark.js";
 
 export const FONT = Object.freeze({
   DISPLAY: "var(--font-display)",
@@ -46,14 +47,21 @@ export const TYPE = Object.freeze({
 // prose's, the very divergence the row forbids. The token keeps the sentence's line-height; the
 // sketch's 1.3 survives only as the HEIGHT of the box drawn around one line (TOKEN_BOX), so the box
 // is the sketch's size and the type is not touched.
+//
+// ⭐ D47 (owner, 10-07): "use the same font as the draft logo and the same size". The serif is replaced
+// by THE LOGO FACE (brandMark.js LOGO_FACE: Poppins 800 italic) at THE MARK'S SIZE — MARK_SIZES.nav,
+// the same number StampLogo draws the app bar's mark at, so the two cannot drift. D34 still holds: ONE
+// family, size, weight, style and line-height for prose and tokens alike. On a narrow window the size
+// steps down (6.4vw: ~25px at 390) rather than overflowing — measured in the D47 commit.
 export const FULL_HOUSE_TYPE = Object.freeze({
-  SENTENCE_FAMILY: "Georgia, 'Times New Roman', serif",
-  SENTENCE_SIZE: "23px",
-  SENTENCE_LINE: "1.85",
-  SENTENCE_WEIGHT: "400",
+  SENTENCE_FAMILY: LOGO_FACE.family,
+  SENTENCE_SIZE: `min(${MARK_SIZES.nav}px, 6.4vw)`,
+  SENTENCE_LINE: "1.5",
+  SENTENCE_WEIGHT: LOGO_FACE.weight,
+  SENTENCE_STYLE: LOGO_FACE.style,
   TOKEN_BOX: "1.3em",
   // The logo face — the bar's segment, the panel's key, the + (Poppins 800 italic, self-hosted).
-  LOGO_FAMILY: "'Poppins', var(--font-body)",
+  LOGO_FAMILY: LOGO_FACE.family,
   MONO: FONT.MONO,
 });
 

@@ -29,7 +29,7 @@
   margin: 0 0 4px; max-width: none;
   font-family: var(--fh-sentence-family); font-size: var(--fh-sentence-size);
   line-height: var(--fh-sentence-line); font-weight: var(--fh-sentence-weight);
-  font-style: normal; letter-spacing: normal; color: var(--c-ink-muted);
+  font-style: var(--fh-sentence-style); letter-spacing: -.015em; color: var(--c-ink-muted);
 }
 .bh__verb { color: inherit; }
 .bh[data-nothing-matches="true"] .bh__verb { color: var(--c-warning); font-weight: 700; }
