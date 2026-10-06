@@ -64,6 +64,48 @@ export function resumeAgo(ms, now = Date.now()) {
   return d === 1 ? "yesterday" : `${d} days ago`;
 }
 
+/**
+ * ⭐ D56 · "I SUBMITTED" ON THE MANUAL ROUTE. A résumé made by hand and sent by hand still has to land in
+ * job_applications, with the tailored score (capturedAtsAtApply reads the job's résumé first). A63's rule
+ * stands: nothing is "submitted" on a click alone — one piece of evidence (the confirmation link, the
+ * confirmation email's subject, or a reference number) verifies it; without it the record is kept as
+ * "recorded, not verified" and the server's sentence says what is missing.
+ */
+function ManualSubmitted({ jobId }) {
+  const [open, setOpen] = useState(false);
+  const [evidence, setEvidence] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  useEffect(() => { setOpen(false); setEvidence(""); setMsg(null); }, [jobId]);
+  const record = async () => {
+    const e = evidence.trim();
+    const body = { submittedAt: Date.now(), method: "company_site" };
+    if (/^https?:\/\//i.test(e)) body.evidenceUrl = e;
+    else if (/^[A-Za-z0-9][A-Za-z0-9#._/-]{3,63}$/.test(e) && /\d/.test(e)) body.reference = e;
+    else if (e) body.evidenceText = e;
+    setBusy(true);
+    try {
+      const d = await api(`/api/applications/pending/${encodeURIComponent(jobId)}/record`, { method: "POST", body: JSON.stringify(body) });
+      setMsg(d.message || (d.verified ? "Recorded." : "Recorded, not verified yet."));
+      if (d.verified) setOpen(false);
+    } catch (err) { setMsg(err.message || "Could not record it."); }
+    finally { setBusy(false); }
+  };
+  return (
+    <div className="pp__submitted" data-manual-submitted="">
+      {!open && <button type="button" className="pp__submitted-btn" onClick={() => setOpen(true)}>I submitted it</button>}
+      {open && (
+        <form onSubmit={(ev) => { ev.preventDefault(); record(); }}>
+          <input type="text" value={evidence} onChange={(ev) => setEvidence(ev.target.value)} aria-label="Confirmation link, email subject, or reference number"
+            placeholder="Confirmation link, email subject, or reference number" />
+          <button type="submit" disabled={busy}>{busy ? "Recording…" : "Record it"}</button>
+        </form>
+      )}
+      {msg && <p className="pp__submitted-msg" role="status">{msg}</p>}
+    </div>
+  );
+}
+
 function PostingActions({ job, meta, slots, onCoverLetter }) {
   const { g, done, st, canUseGenerate: canGen, onGenerate, onViewSandbox, onExport, onRegenerate = null, onSave, onPass, onDraft, drafted, drafting,
           draftBlock = null, onViewDraft = null, onExplainDraft = null, companyNotice = null } = meta;
@@ -132,6 +174,8 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
       </div>
       {/* ⭐ D57: the state, in words — "Résumé ready · 2h ago". */}
       {hasArtifact && <p className="pp__ready" data-resume-ready="">{ago ? `Résumé ready · ${ago}` : "Résumé ready"}</p>}
+      {/* ⭐ D56: the manual route records its own submission, here too — not only the extension. */}
+      {hasArtifact && job?.jobId && <ManualSubmitted jobId={job.jobId} />}
       {/* A63: the shared allowance, said before anything is pressed — a muted line in A, the badge in B. */}
       {quota && <p className="pp__quota" data-draft-slots data-empty={noSlots ? "true" : "false"}>{quota}</p>}
       {/* ⭐ D54: never silent, never a block — the user's other roles at this company, before Draft. */}

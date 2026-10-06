@@ -305,6 +305,9 @@ export function renderOverlay(bands, meta) {
     <div class="rm-ft">
       <div class="rm-state" data-role="state"></div>
       <div class="rm-s" style="margin-top:6px">Submit the form yourself when you are happy with it.</div>
+      <!-- D56: once YOU have submitted, one click records it — from this page, which is the evidence. -->
+      <button class="rm-btn" data-role="submitted" style="margin-top:8px">I submitted it</button>
+      <div class="rm-s" data-role="submitted-msg"></div>
       ${meta.portal && meta.portal.remaining > 0 ? `
         <div class="rm-next">
           <div><b>${meta.portal.remaining}</b> more ready at ${esc(meta.portal.host)}${
@@ -371,6 +374,28 @@ export function renderOverlay(bands, meta) {
         btn.disabled = false;
         btn.textContent = 'Could not open the next one — try again';
         btn.dataset.error = e.message;
+      }
+      return;
+    }
+
+    // D56: "I submitted it" — recorded by the service worker against this page; the reply is shown, so a
+    // record that did not verify says what is missing rather than reading as done.
+    if (btn.dataset.role === 'submitted') {
+      const msg = root.querySelector('[data-role="submitted-msg"]');
+      btn.disabled = true;
+      btn.textContent = 'recording…';
+      try {
+        chrome.runtime.sendMessage({ type: 'GATE_SUBMITTED' }, (reply) => {
+          const ok = !chrome.runtime.lastError && reply?.ok;
+          btn.textContent = ok ? 'recorded' : 'I submitted it';
+          btn.className = ok ? 'rm-btn done' : 'rm-btn';
+          btn.disabled = !!ok;
+          if (msg) msg.textContent = reply?.message || chrome.runtime.lastError?.message || 'Could not record it — try again.';
+        });
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = 'I submitted it';
+        if (msg) msg.textContent = 'Could not record it — try again.';
       }
       return;
     }

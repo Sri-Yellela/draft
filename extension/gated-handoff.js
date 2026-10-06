@@ -53,6 +53,22 @@ import { authedFetch } from './auth.js';
 /** Matches the server's token TTL. A packet outlives its grant (G0 §9), so it is cleared on purpose. */
 export const PACKET_TTL_MS = 10 * 60 * 1000;
 
+/**
+ * ⛔ D56 · EVERY ADDRESS A PACKET MAY BE FILLED ON. The server states the list (the packet's expected
+ * origin plus its ATS's known apply origins — www.amazon.jobs → account.amazon.jobs — from the adapter
+ * table in code, never from the user). A server that predates D56 sends no list, and then the one
+ * expected origin IS the list, exactly as before. This is the check that keeps a home address on the
+ * application's own addresses: it is applied to the choice AND to the release.
+ */
+export function originsOf(p) {
+  return Array.isArray(p?.origins) && p.origins.length ? p.origins : (p?.expectedOrigin ? [p.expectedOrigin] : []);
+}
+
+/** May this packet be filled on this origin? Origin in its list — nothing else widens it. */
+export function packetFillsOrigin(p, origin) {
+  return !!origin && originsOf(p).includes(origin);
+}
+
 const sessionKey = (tabId) => `gate:${tabId}`;
 
 // ── Injected: phase 1, READ ONLY, isolated world ─────────────────────────────
@@ -484,7 +500,7 @@ export async function portalQueueFor(serverUrl, origin, excludePacketId = null) 
     // that predates ?origin= and ignores it. Filtering twice costs nothing; assuming the server is
     // new enough is how a version skew becomes a wrong-portal fill.
     const mine = (body.packets || [])
-      .filter(p => p.expectedOrigin === origin && p.packetId !== excludePacketId && !p.stale)
+      .filter(p => packetFillsOrigin(p, origin) && p.packetId !== excludePacketId && !p.stale)
       .sort((a, b) => b.createdAt - a.createdAt);
     const portal = (body.portals || []).find(g => g.origin === origin) || null;
     return {
@@ -540,15 +556,22 @@ export async function runGatedHandoff({ serverUrl, tab }) {
   // A packet already released into this tab — a re-invoke after the grant lapsed, or after the portal
   // moved to another step. Reuse it rather than spending a second token.
   const cached = await loadPacketForTab(tab.id);
-  if (cached && cached.expectedOrigin === origin) {
+  if (cached && packetFillsOrigin(cached, origin)) {
     return fillFromPacket({ tab, origin, released: cached, serverUrl, reused: true });
   }
 
   let list;
   try {
-    // Scoped to this tab's origin — the target match below filters on exactly this, and the
-    // unscoped list is capped at 100 across every portal. See portalQueueFor for the full note.
-    const res = await api(serverUrl, `/api/apply/gate-packets?origin=${encodeURIComponent(origin)}`);
+    // ⛔ D56: the page's URL goes in the BODY of one question — "which packets may fill THIS page, and
+    // if none, why?" The server matches on the packet's ORIGIN LIST and, where the URL carries one, the
+    // JOB ID (one URL parser, the server's), and says which of the three truthful cases this is.
+    let res = await api(serverUrl, '/api/apply/handoff/match', {
+      method: 'POST', body: JSON.stringify({ url: tab.url }),
+    });
+    if (res.status === 404) {
+      // A server that predates D56: the origin-scoped list, as before. See portalQueueFor's note.
+      res = await api(serverUrl, `/api/apply/gate-packets?origin=${encodeURIComponent(origin)}`);
+    }
     if (res.status === 401) {
       return { ok: false, reason: 'not_signed_in', message: 'Sign in to Draft first.' };
     }
@@ -560,13 +583,17 @@ export async function runGatedHandoff({ serverUrl, tab }) {
     return { ok: false, reason: 'network_error', message: 'Could not reach Draft.', detail: e.message };
   }
 
-  // TARGET MATCH, first half. The server nominated an origin for each packet; this page has to be one
-  // of them. Nothing has been fetched but counts at this point.
-  const forOrigin = (list.packets || []).filter(p => p.expectedOrigin === origin);
+  // TARGET MATCH, first half. The server nominated the addresses for each packet; this page has to be
+  // one of them — checked HERE too, whatever the server said. Nothing has been fetched but counts.
+  const forOrigin = (list.packets || []).filter(p => packetFillsOrigin(p, origin));
   if (forOrigin.length === 0) {
+    // ⛔ D56: never "from your Draft queue" to someone on the manual route. The server says which case
+    // this is; an old server says nothing, and then the honest sentence is the plain one.
+    const reason = list.state && list.state !== 'ready' ? list.state : 'origin_mismatch';
     return {
-      ok: false, reason: 'origin_mismatch',
-      message: `Nothing is prepared for ${origin}. Open the application from your Draft queue.`,
+      ok: false, reason,
+      message: list.message || "Nothing is prepared for this page. If draft knows this job, press \"Prepare this application\" in the draft popup; if not, capture it first.",
+      canPrepare: !!list.canPrepare, job: list.job || null, addresses: list.addresses || null,
     };
   }
 
@@ -581,7 +608,9 @@ export async function runGatedHandoff({ serverUrl, tab }) {
   if (fresh.length === 0) {
     return {
       ok: false, reason: 'packet_stale',
-      message: 'The answers prepared for this page have expired. Run it again in Draft to prepare fresh ones.',
+      // D56: an expired packet is never a dead end — "Prepare this application" makes a fresh one.
+      message: list.message || 'The answers prepared for this page have expired. Run it again in Draft to prepare fresh ones.',
+      canPrepare: !!list.canPrepare, job: list.job || null,
     };
   }
   // Newest first, but a packet whose POSTING is gone goes last. It is deprioritised rather than
@@ -613,7 +642,11 @@ export async function runGatedHandoff({ serverUrl, tab }) {
   // Only now is a token worth spending.
   let released;
   try {
-    const mintRes = await api(serverUrl, `/api/apply/gate-packets/${chosen.packetId}/token`, { method: 'POST' });
+    // D56: the page's URL travels with the mint, so the server refuses — before a token exists — a
+    // page that is not one of this application's addresses (origin list + job id).
+    const mintRes = await api(serverUrl, `/api/apply/gate-packets/${chosen.packetId}/token`, {
+      method: 'POST', body: JSON.stringify({ url: tab.url }),
+    });
     if (!mintRes.ok) {
       const err = await mintRes.json().catch(() => ({}));
       return { ok: false, reason: err.error || 'mint_failed', message: err.message || 'Could not prepare the handoff.' };
@@ -635,7 +668,8 @@ export async function runGatedHandoff({ serverUrl, tab }) {
   // Defence in depth: the server states the expected origin in the release too. If that disagrees
   // with the page, nothing is filled even though the token has already been spent — a burnt token is
   // cheap and a misplaced home address is not.
-  if (released.expectedOrigin !== origin) {
+  // ⛔ D56: against the packet's ORIGIN LIST — never wider, and never filled outside it.
+  if (!packetFillsOrigin(released, origin)) {
     await clearPacketForTab(tab.id);
     return { ok: false, reason: 'origin_mismatch_after_release', message: 'Origin mismatch. Nothing was filled.' };
   }
@@ -855,6 +889,84 @@ async function captureFormSchema({ serverUrl, origin, shape, released }) {
  * page's next render, and the candidate would be looking at their own value on a form that no longer
  * holds it.
  */
+// ── D56 · the manual route, from the extension ───────────────────────────────
+
+const pageUrlOf = (tab) => {
+  try { const u = new URL(tab?.url || ''); return /^https?:$/.test(u.protocol) ? u.href : null; } catch { return null; }
+};
+
+/**
+ * ⭐ "Prepare this application" — ONE click: the server maps this page to the user's job and builds the
+ * packet on demand, then the SAME handoff runs straight away under the same gesture's grant. Every
+ * check of the ordinary handoff still applies to the fill; nothing here is a second release path.
+ */
+export async function prepareAndFill({ serverUrl, tab }) {
+  const url = pageUrlOf(tab);
+  if (!tab?.id || !url) return { ok: false, reason: 'unsupported_scheme', message: 'Only http(s) pages can be filled.' };
+  let body;
+  try {
+    const res = await api(serverUrl, '/api/apply/prepare', { method: 'POST', body: JSON.stringify({ url }) });
+    if (res.status === 401) return { ok: false, reason: 'not_signed_in', message: 'Sign in to Draft first.' };
+    body = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, reason: body.error || 'prepare_failed', message: body.message || 'Could not prepare this application.' };
+  } catch (e) {
+    return { ok: false, reason: 'network_error', message: 'Could not reach Draft.', detail: e.message };
+  }
+  // Prepared, but this page is not one of its addresses: say so — never fill it anyway.
+  if (!packetFillsOrigin(body, new URL(url).origin)) {
+    return { ok: false, reason: 'not_this_address', message: body.message, prepared: true, addresses: body.origins || null };
+  }
+  const filled = await runGatedHandoff({ serverUrl, tab });
+  return { ...filled, prepared: true, resume: body.resume || null };
+}
+
+/**
+ * ⭐ "I submitted" — from the popup and the review overlay. The job is the released packet's when this
+ * tab holds one, else whatever the server maps the page to; the page's own URL is the evidence. The
+ * server writes job_applications only when that evidence verifies (A63) — with the tailored score.
+ */
+export async function recordSubmitted({ serverUrl, tab }) {
+  const url = pageUrlOf(tab);
+  if (!url) return { ok: false, message: 'Only http(s) pages can be recorded.' };
+  const held = tab?.id ? await loadPacketForTab(tab.id).catch(() => null) : null;
+  try {
+    const res = await api(serverUrl, '/api/apply/handoff/submitted', {
+      method: 'POST', body: JSON.stringify({ url, jobId: held?.packet?.jobId ?? null }),
+    });
+    const body = await res.json().catch(() => ({}));
+    return { ok: res.ok && !!body.ok, ...body, message: body.message || `Server returned ${res.status}.` };
+  } catch (e) {
+    return { ok: false, message: 'Could not reach Draft.' };
+  }
+}
+
+/** ⭐ §8 row 17 — the Copy sheet's rows. Shown in the popup only; nothing enters the page. */
+export async function copySheetFor({ serverUrl, tab }) {
+  try {
+    const res = await api(serverUrl, '/api/apply/copy-sheet', {
+      method: 'POST', body: JSON.stringify({ url: pageUrlOf(tab) }),
+    });
+    if (!res.ok) return { ok: false, rows: [], message: `Server returned ${res.status}.` };
+    return { ok: true, ...(await res.json()) };
+  } catch {
+    return { ok: false, rows: [], message: 'Could not reach Draft.' };
+  }
+}
+
+/** The D56 answer for the popup's companion — packets for this page, or which case it is, and the notice. */
+export async function pageMatchFor(serverUrl, tab) {
+  const url = pageUrlOf(tab);
+  if (!url) return null;
+  try {
+    const res = await api(serverUrl, '/api/apply/handoff/match', { method: 'POST', body: JSON.stringify({ url }) });
+    if (!res.ok) return null;
+    const body = await res.json();
+    const origin = new URL(url).origin;
+    // The same origin check as the handoff: a packet is offered only where it may be filled.
+    return { ...body, packets: (body.packets || []).filter(p => packetFillsOrigin(p, origin)) };
+  } catch { return null; }
+}
+
 export async function applyOverlayEdit({ tabId, field, value }) {
   const step = { index: field.index, name: field.name, id: field.id, label: field.label, value };
   const [r] = await chrome.scripting.executeScript({
