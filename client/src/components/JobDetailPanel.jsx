@@ -68,7 +68,7 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
       <div className="pp__a" role="group" aria-label="Actions">
         {onPass && <PassButton passed={!!selectedJob.disliked} onPass={onPass} />}
         {onSave && <SaveButton saved={!!selectedJob.starred} onSave={onSave} />}
-        {canApply && onDraft && <DraftButton drafted={!!drafted} drafting={!!drafting} onDraft={onDraft} />}
+        {canApply && onDraft && <DraftButton logo drafted={!!drafted} drafting={!!drafting} onDraft={onDraft} />}
         <span className="pp__div" aria-hidden="true" />
         {canGen && onGenerate && (
           <DepthButton icon={ICONS.resume} onClick={() => onGenerate(done && g?.html !== "__exists__")} title={resumeTitle}
@@ -84,7 +84,7 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
       <div className="pp__b" role="group" aria-label="Actions">
         {onPass && <PassButton square passed={!!selectedJob.disliked} onPass={onPass} />}
         {onSave && <SaveButton square saved={!!selectedJob.starred} onSave={onSave} />}
-        {canApply && onDraft && <DraftButton square drafted={!!drafted} drafting={!!drafting} onDraft={onDraft}
+        {canApply && onDraft && <DraftButton logo square drafted={!!drafted} drafting={!!drafting} onDraft={onDraft}
           badge={slots ? slots.remaining : null} />}
         <span className="pp__div" aria-hidden="true" />
         {canGen && onGenerate && (

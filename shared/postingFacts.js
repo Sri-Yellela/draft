@@ -133,7 +133,12 @@ export function deckStrip(job, { experience = null, now = Date.now() } = {}) {
   const location = String(job?.location || "").trim() || null;
   return [
     { key: "experience", label: "Experience", value: years?.label ?? null, met: !!years && experienceState(experience) === "met" },
-    { key: "workstyle", label: "Workstyle", value: workstyleOf(job), sub: location },
+    // Owner 10-07 (36): no visible heading — "Remote / Hybrid / On-site, then the location if any" reads for
+    // itself. `label` stays for screen readers (`labelHidden`); with no workstyle on file the location IS the value.
+    (() => {
+      const ws = workstyleOf(job);
+      return { key: "workstyle", label: "Workstyle", labelHidden: true, value: ws ?? location, sub: ws ? location : null };
+    })(),
     { key: "salary", label: "Salary", value: salaryLabel(job) },
     { key: "posted", label: "Posted", value: postedLabel(job, now) },
   ];
