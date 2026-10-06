@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import CompanyIcon from "./ui/CompanyIcon.jsx";
 import CompanyViewModal from "./CompanyViewModal.jsx";
 import { jobDetailHref } from "../lib/jobUrl.js";
-import { api } from "../lib/api.js";
+import CompanyLink from "./CompanyLink.jsx";
 import { atsBandFor, atsBandLabel, ATS_NUMBER_SHOWN } from "../../../shared/atsBands.js";
 import { columnsFor } from "../lib/bubbleColumns.js";
 import { DraftMark } from "./DraftMark.jsx";
@@ -84,17 +84,8 @@ export default function JobBubble({ job, score = null, selected = false, saved =
       </button>
 
       <div className="jb__text">
-        {applyHref ? (
-          // ⭐ A63: APPLY IS THE COMPANY NAME — opening the posting tags the job Pending.
-          <a className="jb__company" href={applyHref} target="_blank" rel="noopener noreferrer" data-apply-link
-            title={`Apply at ${job.company} — opens the posting`}
-            onClick={(e) => {
-              e.stopPropagation();
-              api("/api/applications/pending", { method: "POST", body: JSON.stringify({ jobId: id, origin: "opened_posting" }) }).catch(() => {});
-            }}>
-            {job.company}
-          </a>
-        ) : <span className="jb__company">{job.company}</span>}
+        {/* ⭐ A63: APPLY IS THE COMPANY NAME — D38: the ONE company link, sized to its text. */}
+        <CompanyLink company={job.company} href={applyHref || null} jobId={id} size="card" className="jb__company" />
         <a className="jb__title" href={jobDetailHref(id)} style={{ color: "inherit", textDecoration: "none" }}
           onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) { e.stopPropagation(); return; } e.preventDefault(); e.stopPropagation(); onOpen?.(); }}>
           {job.title}

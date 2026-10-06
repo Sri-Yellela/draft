@@ -7,6 +7,7 @@
 // (services/applicationRecords.js VERIFY_RULE) and is shown above the table, not paraphrased here.
 import { useState } from "react";
 import { C } from "../styles/colorTokens.js";
+import CompanyLink from "./CompanyLink.jsx";
 
 const ORIGIN = {
   generated: "Résumé generated",
@@ -94,10 +95,8 @@ export default function PendingApplications({ data, theme, onRecord, onWithdraw,
             style={{ border: `1px solid ${theme.border}`, borderRadius: 10, padding: "10px 12px" }}>
             <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 200 }}>
-                {row.applyUrl
-                  ? <a href={row.applyUrl} target="_blank" rel="noopener noreferrer"
-                      style={{ fontWeight: 700, fontSize: 13, color: "var(--color-primary-text)" }}>{row.company || row.jobId} ↗</a>
-                  : <span style={{ fontWeight: 700, fontSize: 13, color: theme.text }}>{row.company || row.jobId}</span>}
+                {/* D38: the ONE company link. No Pending tag here — this row IS the Pending list. */}
+                <CompanyLink company={row.company || row.jobId} href={row.applyUrl || null} size="row" />
                 <span style={{ fontSize: 12, color: theme.textMuted }}> · {row.title || "Untitled role"}</span>
               </div>
               <span style={{ fontSize: 11, color: theme.textMuted }}>{ORIGIN[row.origin] || row.origin}</span>

@@ -246,8 +246,8 @@ test("apply routes convert generated HTML to PDF via htmlToPdf for actual file u
 // posting. The button it replaces sent mode:"semi" to POST /api/apply, which ignored the mode and
 // recorded the job as applied on the click; a visible browser cannot open headless in production.
 test("job detail panel: Apply is the company-name link — no Apply button, no Manual button", () => {
-  assert.match(detailPanel, /<a href=\{postingUrl\} target="_blank" rel="noopener noreferrer"/,
-    "the company name links to the posting");
+  assert.match(detailPanel, /<CompanyLink company=\{selectedJob\.company\} href=\{postingUrl \|\| null\}/,
+    "the company name links to the posting (D38: through the one CompanyLink)");
   assert.doesNotMatch(detailPanel, /: "Apply"/, "no separate Apply button");
   assert.doesNotMatch(detailPanel, /✎ Manual/, "redundant Manual button must stay removed");
   assert.doesNotMatch(detailPanel, /handleAutoApply/, "the click-to-applied handler is gone");

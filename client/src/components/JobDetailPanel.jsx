@@ -6,6 +6,7 @@ import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import CoverLetterModal from "./CoverLetterModal.jsx";
 import CompanyViewModal from "./CompanyViewModal.jsx";
 import PanelShell from "./PanelShell.jsx";
+import CompanyLink from "./CompanyLink.jsx";
 import CompanyIcon from "./ui/CompanyIcon.jsx";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { bandChipStyle } from "../styles/bandStyle.js";
@@ -238,20 +239,9 @@ export default function JobDetailPanel({
               </button>
               <div style={{ flex:1, minWidth:0 }}>
                 {/* ⭐ A63: APPLY IS THE COMPANY NAME — a link to the posting, opened in a new tab. */}
-                {postingUrl ? (
-                  <a href={postingUrl} target="_blank" rel="noopener noreferrer" onClick={openedPosting}
-                    data-apply-link title={`Apply at ${selectedJob.company} — opens the posting`}
-                    style={{ display:"block", fontWeight:700, fontSize:14, color:"var(--color-primary-text)",
-                             textDecoration:"underline", textUnderlineOffset:3,
-                             overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                    {selectedJob.company} ↗
-                  </a>
-                ) : (
-                  <div style={{ fontWeight:700, fontSize:14, color:"var(--color-text)",
-                                overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                    {selectedJob.company}
-                  </div>
-                )}
+                {/* ⛔ D38: the card's treatment, at last — the ONE company link: the logo face, no underline,
+                    no ↗, and a hit area that is the text alone (it was display:block, the whole line). */}
+                <div><CompanyLink company={selectedJob.company} href={postingUrl || null} size="panel" onOpen={openedPosting} /></div>
                 {/* The shared element (lib/viewTransitions.js): the deck card's title lands here. */}
                 <div data-vt-title={selectedJob.id} style={{ fontSize:12, color:"var(--color-text-muted)", marginTop:2,
                               overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
