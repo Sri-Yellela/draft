@@ -26,7 +26,8 @@ test("the sort trigger sits in the board's ONE bar beside the views (D35: the fi
   assert.match(bar, /<BoardControlIcons \/>/);
   // And the board's view tabs, which moved here off the retired pill.
   assert.match(bar, /<BoardTabs \/>/);
-  assert.match(app.slice(at(app, '<header className="fh"'), at(app, "</header>")), /<BoardBar \/>/);
+  // D49: in the StickyBar at the top of <main>, right after the header.
+  assert.match(app.slice(at(app, '<header className="fh"'), at(app, "</main>")), /<StickyBar[^>]*>\s*<BoardBar \/>/);
   // And inside the provider, for the same reason BoardSearchBar is: AppDashboard renders
   // JobBoardProvider and cannot read it.
   assert.match(app, /function BoardControlIcons\(\) \{\s*\n\s*const \{[^}]*\} = useJobBoard\(\);/);

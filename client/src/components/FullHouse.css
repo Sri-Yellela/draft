@@ -196,3 +196,8 @@
   .bh .tok:hover, .bh .tok:focus-visible, .fh-op:hover, .fh-op:focus-visible,
   .fh-ico:hover, .fh-ico:focus-visible { transform: none; }
 }
+
+/* D49 · the board's bar row, in <main> under the header: the same centred column (.fh), no top padding
+   (the bar's own 16px margin keeps D35's distance from the sentence), a little room when stuck. */
+.fh.fh--bar-row { padding-top: 0; padding-bottom: 10px; }
+.fh.fh--bar-row[data-stuck="true"] { border-radius: 0 0 16px 16px; }

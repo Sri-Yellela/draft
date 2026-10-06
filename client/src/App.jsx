@@ -34,6 +34,7 @@ import BoardHeadline             from "./components/BoardHeadline.jsx";
 import WordPanel                 from "./components/WordPanel.jsx";
 import SortPanel                 from "./components/SortPanel.jsx";
 import { ViewSegment, BoardSearch, SortSquare } from "./components/BoardBar.jsx";
+import StickyBar from "./components/StickyBar.jsx";
 import { nextBoardPanel, sortRows, isSortChosen, DEFAULT_SORT, BOARD_PANEL, viewCounts } from "./lib/filterSentenceModel.js";
 import { ATSToolPage }           from "./pages/tools/ATSToolPage.jsx";
 import { GenerateToolPage }      from "./pages/tools/GenerateToolPage.jsx";
@@ -530,17 +531,28 @@ function AppDashboard({ authUser, setAuthUser }) {
                     panel when it is open — and 4 the jobs, below this chrome. */}
                 <header className="fh" style={{ animation:"fadeUp 0.6s ease both" }}>
                   <BoardHeadlineSlot />
-                  <BoardBar />
-                  <BoardSortSlot />
                 </header>
-                {/* D12: until the extension is connected, say where jobs from elsewhere come from. */}
-                <ExtensionFirstRunPrompt />
                 </>
               )}
             </div>
           </div>
 
-          <main style={{ flex:1, paddingTop: 24 }}>
+          <main style={{ flex:1, paddingTop: activeTab === "console" ? 0 : 24 }}>
+            {/* ⭐ D49 · THE BOARD'S BAR STICKS — through the one StickyBar module (the posting panel's
+                action bar is its second consumer, D48). It lives HERE, at the top of <main>, and not
+                in the header above: sticky only works inside its parent's box, and the header ended
+                right under the bar, so the bar scrolled away with the page (measured 202 → −698 px).
+                The order is unchanged: the sentence, its panel, then the bar, the sort panel, the jobs. */}
+            {activeTab === "console" && (
+              <>
+                <StickyBar top="var(--app-chrome-height, 74px)" className="fh fh--bar-row" data-board-sticky="">
+                  <BoardBar />
+                  <BoardSortSlot />
+                </StickyBar>
+                {/* D12: until the extension is connected, say where jobs from elsewhere come from. */}
+                <ExtensionFirstRunPrompt />
+              </>
+            )}
             {activeTab === "console" && (
               <JobsConsole user={authUser} onUserChange={setAuthUser}
                 refreshKey={jobBoardRefreshKey} isActive={activeTab === "console"}/>
