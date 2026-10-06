@@ -973,8 +973,51 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   // meaning "no outstanding token" until /token is called.
   const GATE_PACKET_NO_TOKEN = () => `unminted:${crypto.randomUUID()}`;
 
+  /**
+   * ⭐ O80c (owner, 10-07: "packets should carry a resume — that's the whole point"). A packet is the
+   * candidate finishing the application themselves; without a résumé the extension fills the answers and
+   * leaves the upload empty. A preview DEFERS generation to approval (AL2) — but a packet never reaches an
+   * approval, so its résumé was never written (O73b). Attached here, after the packet is stored, in the
+   * background: a CURRENT artifact is reused (no model call); otherwise the one generation D17 allows.
+   * ⛔ No extra Draft slot — like the approval's generation, it is the same Draft continuing.
+   * ⛔ The kill switch is read right before the model call. ⛔ Never changes the hold's outcome: a failure
+   * is logged and the packet stays as it was, still fillable, still retryable (Prepare again).
+   */
+  async function attachPacketResume({ packetId, runId, runJobId, userId, jobId, toolType = "generate" }) {
+    const cur = artifactCurrency(db, { userId, jobId, tool: toolType });
+    let artifactId = cur.current ? (cur.artifact?.id ?? null) : null;
+    let atsScore = cur.current ? (cur.artifact?.ats_score ?? null) : null;
+    if (artifactId == null) {
+      if (fullAutoDisabled()) {
+        logEvent(runId, runJobId, userId, jobId, "packet_resume_skipped",
+          "Paused by the operator — no résumé was written for this handoff. Prepare it again once resumed.");
+        return { ok: false, reason: "paused" };
+      }
+      logEvent(runId, runJobId, userId, jobId, "packet_resume_started", "Writing the résumé for this handoff");
+      let gen;
+      try { gen = await generateResumeForApply(userId, jobId, toolType); }
+      catch (e) { gen = { error: e.message }; }
+      if (!gen?.html || gen.resumeId == null) {
+        logEvent(runId, runJobId, userId, jobId, "packet_resume_failed",
+          gen?.errorDetail || gen?.error || "Résumé generation returned no résumé — the handoff fills without one.",
+          { errorCode: gen?.errorCode ?? null });
+        return { ok: false, reason: gen?.errorCode || "generation_failed" };
+      }
+      artifactId = gen.resumeId; atsScore = gen.atsScore ?? null;
+    }
+    db.prepare(`UPDATE apply_gate_packets SET resume_artifact_id=?,
+        answers_json=json_set(answers_json, '$.resumeArtifactId', ?)
+      WHERE id=? AND user_id=? AND consumed_at IS NULL`).run(artifactId, artifactId, packetId, userId);
+    db.prepare(`UPDATE apply_run_jobs SET resume_artifact_id=COALESCE(resume_artifact_id, ?),
+        resume_ats_score=COALESCE(resume_ats_score, ?) WHERE id=? AND user_id=?`).run(artifactId, atsScore, runJobId, userId);
+    logEvent(runId, runJobId, userId, jobId, "packet_resume_ready",
+      cur.current ? "The handoff carries your current résumé for this job" : "The handoff carries a résumé written for this job",
+      { resumeArtifactId: artifactId, reused: !!cur.current, atsScore });
+    return { ok: true, artifactId, reused: !!cur.current };
+  }
+
   function createGatePacket({ runId, runJobId, userId, jobId, result, autofillPayload, resumeArtifactId,
-                             reasonCode, jobUrl }) {
+                             reasonCode, jobUrl, toolType = "generate" }) {
     // Where the human has to go, most-specific first:
     //   gate.applyUrl   the URL a gate was observed at — a gated portal redirects to a sign-in on
     //                   the way, so this is not what the run was queued with.
@@ -1034,6 +1077,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           provenanceMix:   packet.answers.reduce((m, a) => { m[a.provenance ?? "none"] = (m[a.provenance ?? "none"] || 0) + 1; return m; }, {}),
           resumeArtifactId,
         });
+      // O80c: a packet without a résumé gets one, in the background (attachPacketResume).
+      if (resumeArtifactId == null) {
+        attachPacketResume({ packetId, runId, runJobId, userId, jobId, toolType })
+          .catch(e => console.warn(`[applyRoutes] packet résumé job=${jobId}: ${e.message}`));
+      }
       return { packetId, packet };
     } catch (e) {
       // Never let a packet failure change the run's outcome: the job is held either way, and a held
@@ -1189,7 +1237,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           createGatePacket({
             runId, runJobId, userId, jobId,
             result: {}, autofillPayload: buildAutofillPayload(p, "APPLY", job?.company),
-            resumeArtifactId: usedArtifactId, reasonCode, jobUrl,
+            // run.tool_type, not toolType: the early holds run BEFORE `const toolType` is declared below,
+            // and reading it here would throw (TDZ) inside this try — losing the packet silently.
+            resumeArtifactId: usedArtifactId, reasonCode, jobUrl, toolType: run.tool_type || "generate",
           });
         } catch (e) {
           console.warn("[applyRoutes] early handoff packet failed:", e.message);
@@ -1475,7 +1525,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         if (shouldBuildPacket({ status: "held_review", reasonCode: "manual_review" })) {
           createGatePacket({
             runId, runJobId, userId, jobId, result, autofillPayload,
-            resumeArtifactId: usedArtifactId, reasonCode: "manual_review", jobUrl,
+            resumeArtifactId: usedArtifactId, reasonCode: "manual_review", jobUrl, toolType,
           });
         }
         return;
@@ -1717,7 +1767,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         createGatePacket({
           runId, runJobId, userId, jobId, result, autofillPayload,
           resumeArtifactId: usedArtifactId,
-          reasonCode, jobUrl,
+          reasonCode, jobUrl, toolType,
         });
       }
 
