@@ -1,6 +1,17 @@
 import { createContext, useContext, useCallback, useRef, useState } from "react";
 
 const JobBoardContext = createContext(null);
+
+// ⭐ D40 · THE FOUR VIEWS of the one board: ALL is the whole set; ★, /d and + are ALL restricted by a
+// predicate (D41(a)). A link may open one by name — /app/jobs?view=imported, from the extension page.
+export const BOARD_VIEWS = Object.freeze(["all", "saved", "pending", "imported"]);
+/** The view a URL names, or null. */
+export function viewFromUrl(search = typeof window !== "undefined" ? window.location.search : "") {
+  try {
+    const v = new URLSearchParams(search).get("view");
+    return BOARD_VIEWS.includes(v) ? v : null;
+  } catch { return null; }
+}
 const PROFILE_UI_CACHE_KEY = "rm_jobs_profile_ui_v1";
 
 // Every field UnifiedSearchBar publishes. Spread over the incoming object on every apply, so a
@@ -9,7 +20,7 @@ const PROFILE_UI_CACHE_KEY = "rm_jobs_profile_ui_v1";
 const EMPTY_BAR_FILTERS = { query: "", location: "", experience: "", domain: "", status: "" };
 
 export function JobBoardProvider({ children }) {
-  const [boardTab,    setBoardTab]    = useState("all");
+  const [boardTab,    setBoardTab]    = useState(() => viewFromUrl() || "all");
   const [localSearch, setLocalSearch] = useState("");
   // D24: "" = the CURATED default — GET /api/jobs is sent NO sort param and answers with the
   // profile's relevance and fit first. An explicit "dateDesc" now means truly newest-first, so it is

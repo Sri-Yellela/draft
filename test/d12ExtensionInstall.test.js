@@ -96,9 +96,11 @@ test("D12: /extension is routed, public, and linked from the footer and the mark
 
 test("D12: Full House — + Add jobs where IMPORT sat, the first-run prompt, the Saved empty state", () => {
   const app = strip(read("client/src/App.jsx"));
-  // D35 §3: ADD JOBS is the condensed bar's "+" square, beside the sort square, to /extension.
+  // ⛔ D40 (owner, 10-06): ADD JOBS is no longer a square — + is the fourth VIEW, and its head carries
+  // Import jobs (to /extension).
   const icons = app.slice(at(app, "function BoardControlIcons()"), at(app, "function BoardSortSlot()"));
-  assert.match(icons, /<SortSquare[\s\S]*<AddSquare to=\{EXTENSION_PAGE\} \/>/, "+ Add jobs is not beside the sort square");
+  assert.doesNotMatch(icons, /<AddSquare\b/, "the standalone + square is back");
+  assert.match(app, /\["imported", "\+", "Imported jobs"\]/);
   const chrome = app.slice(at(app, '<header className="fh"'), at(app, "</main>"));
   assert.match(chrome, /<ExtensionFirstRunPrompt \/>/);
 
@@ -110,7 +112,9 @@ test("D12: Full House — + Add jobs where IMPORT sat, the first-run prompt, the
   assert.match(prompt, /try \{ return localStorage\.getItem\(DISMISS_KEY\) === "1"; \} catch \{ return false; \}/);
 
   const panel = read("client/src/panels/JobsPanel.jsx");
-  assert.match(panel, /: savedTab\s*\n\s*\? <SavedEmptyState theme=\{theme\}\/>/);
+  assert.match(panel, /: savedTab\s*\r?\n\s*\? <SavedEmptyState theme=\{theme\}\/>/);
+  assert.match(panel, /: importedTab\s*\r?\n\s*\? <ImportedEmptyState theme=\{theme\}\/>/, "D40: the empty + view says how to capture");
+  assert.match(panel, /<Link to=\{EXTENSION_PAGE\}[^>]*data-import-jobs="">Import jobs<\/Link>/);
   assert.equal((panel.match(/savedTab=\{boardTab === "saved"\}/g) || []).length, 2, "both JobsColumn call sites");
   assert.doesNotMatch(panel, /posting yourself with <strong>Import<\/strong>/);
 });

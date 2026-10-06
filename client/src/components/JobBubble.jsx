@@ -100,6 +100,8 @@ export default function JobBubble({ job, score = null, selected = false, saved =
           {job.title}
         </a>
         {meta.length > 0 && <div className="jb__meta">{meta.join("  ·  ")}</div>}
+        {/* D40: on the + view, the one line that differs from ALL — when and from where it was captured. */}
+        {job.captured && <div className="jb__meta" data-captured="">{capturedLine(job.captured)}</div>}
       </div>
 
       <div className="jb__rail">
@@ -128,6 +130,12 @@ export default function JobBubble({ job, score = null, selected = false, saved =
 }
 
 /** The board's rows: N per row by the container's width, so a growing card's neighbours share its row. */
+/** D40 · "captured Oct 6 · from jobs.ashbyhq.com" — from the + view's own meta (server.js captureMeta). */
+export function capturedLine(c) {
+  const day = c?.at ? new Date(c.at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : null;
+  return [day ? `captured ${day}` : "captured", c?.from ? `from ${c.from}` : null].filter(Boolean).join(" · ");
+}
+
 export function JobBubbleRows({ jobs, children }) {
   const ref = useRef(null);
   const [width, setWidth] = useState(0);
