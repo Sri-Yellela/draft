@@ -53,6 +53,25 @@ const BY_REASON = {
     action: "Read the score, then approve it anyway or improve the resume",
     protective: true, retryable: false,
   },
+  // D36: a run that would have SENT without the user's review. Locked server-side until Auto has
+  // been proven attended (FULL_AUTO_PROVEN); nothing was opened. Re-drafting makes it a reviewed one.
+  full_auto_locked: {
+    obstacle: "This would have been sent without your review, which is switched off — nothing was opened or sent",
+    action: "Draft it again — it will wait for your approval",
+    protective: true, retryable: true,
+  },
+  // The operator's kill switch. Checked before the run opens anything AND immediately before the
+  // submit click (D36), so this can also be a run that was stopped mid-fill; either way, not sent.
+  full_auto_disabled: {
+    obstacle: "Automatic applications were paused by the operator before this one was sent",
+    action: "Draft it again once they are resumed",
+    protective: true, retryable: true,
+  },
+  submit_check_failed: {
+    obstacle: "We could not confirm it was safe to send, so it was not sent",
+    action: "Draft it again",
+    protective: true, retryable: true,
+  },
   manual_review: {
     obstacle: "The form asked something only you can answer",
     action: "Answer it, and this application continues",
@@ -110,6 +129,14 @@ const BY_REASON = {
     obstacle: "No resume was generated, so there was nothing to attach",
     action: "Generate one for this job, and it will be attached on the next run",
     protective: false, retryable: true, resumeBlocked: true,
+  },
+  // D36: the résumé EXISTS — it was generated and scored — but turning it into the PDF the form
+  // uploads failed. NOT resumeBlocked: offering "Generate a resume" here sends the user to make a
+  // document they already have, which is exactly what `resume_unavailable` used to tell them.
+  resume_pdf_failed: {
+    obstacle: "Your résumé was written, but it could not be turned into a PDF to attach",
+    action: "Draft it again — the résumé is kept and reused, so nothing is regenerated",
+    protective: false, retryable: true, resumeBlocked: false,
   },
   generation_failed: {
     obstacle: "The resume for this job could not be generated",

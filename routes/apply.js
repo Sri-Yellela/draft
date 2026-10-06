@@ -169,6 +169,38 @@ export function capturedAtsAtApply(db, userId, jobId) {
   }
 }
 
+/**
+ * D36 — where a run's résumé / cover-letter PDF is written for upload.
+ *
+ * ⛔ THE JOB ID IS NOT A FILENAME. Real ids are `greenhouse::6110219004`, and `:` is illegal in a
+ * Windows path, so every conversion on a Windows host threw ENOENT inside a `catch { return null; }`.
+ * The run then held as `resume_unavailable` — "No resume was generated" — over a résumé that HAD
+ * been generated and scored (D36 walk, 10-05). Linux accepts the colon, which is why production never
+ * showed it; the silent catch is why nothing else did either. Anything outside [A-Za-z0-9_-] becomes
+ * `_`, so the name is portable and still says which job it was.
+ */
+export function tmpPdfPath(kind, userId, jobId, now = Date.now()) {
+  const safe = (v) => String(v ?? "").replace(/[^A-Za-z0-9_-]+/g, "_").slice(0, 80);
+  return path.join(os.tmpdir(), `${safe(kind)}_${safe(userId)}_${safe(jobId)}_${now}.pdf`);
+}
+
+/**
+ * ⛔ AUTO IS LOCKED, AND THE LOCK IS THE SERVER'S. Full-auto has never run unattended against a
+ * real employer; D22 gates opening it on AF5 AND a supervised full-auto run, and that is an owner
+ * decision, not a code path. When it is made, this is the one line that changes.
+ *
+ * D36: it is READ in three places — the run bar (autoModeState), admission (startRun refuses
+ * approvalMode 'auto' with 403 full_auto_locked) and processing (processRunJob holds an 'auto' row
+ * as full_auto_locked before anything opens). ⛔ It is a literal on purpose: no env var, no
+ * app_settings row and no admin route can flip it, so a deployment cannot be talked into sending
+ * unattended. test/d36ApplyPaths.test.js pins all of that.
+ */
+const FULL_AUTO_PROVEN = false;
+
+/** D36: what a deferred preview says about the résumé it has not written yet. */
+export const DEFERRED_RESUME_SENTENCE =
+  "No résumé exists for this job yet. It is written when you approve — nothing was generated for the preview.";
+
 function publicApplication(row) {
   if (!row) return null;
   return {
@@ -1057,6 +1089,13 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const deferGeneration = needsApproval && !generateAtQueue;
     // 'preview' is full-auto minus the click; 'semi' opens a visible browser for a live human.
     const applyMode = mode !== "auto" ? "semi" : needsApproval ? "preview" : "full";
+    // D36 · the kill switch reaches a run ALREADY IN FLIGHT. Read at the moment before the click
+    // (autoApply's submitBlocker), not only here at the job's start — a full or approved run fills
+    // and waits on generation for up to ~90 s, and the switch thrown in that window used to be
+    // ignored. Only for the mode that clicks: a preview never submits and semi leaves it to a human.
+    const submitBlocker = applyMode === "full"
+      ? () => (fullAutoDisabled() ? "full_auto_disabled" : null)
+      : null;
     // What the human approved, if this run exists because of an approval. autoApply refuses to
     // submit anything that differs from it.
     const approvedAnswers = runJob.approved_from_run_job_id
@@ -1077,6 +1116,14 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // than inheriting whatever failed last. Resume generation runs in parallel with the browser,
     // so without this the browser's outcome silently wins the attribution race.
     let genFailure = null;
+    // D36: set when the résumé WAS generated but its PDF could not be made. Without it the run
+    // reported `resume_unavailable` — "No resume was generated" — which sends the user to generate
+    // a résumé they already have. Ranked just below genFailure in the attribution below.
+    let docFailure = null;
+    const resumePdfFailure = (e) => ({
+      reasonCode: "resume_pdf_failed",
+      detail: `The résumé was written but could not be turned into a PDF to attach: ${String(e?.message || e).slice(0, 300)}`,
+    });
 
     /**
      * Write a terminal status — unless the user has ABORTED this run-job (TASK AC4).
@@ -1152,6 +1199,16 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // Re-checked per job, not just at admission: a run can cross the daily cap mid-flight, and
       // the kill switch can be flipped while a run is in progress. Both HOLD the job with a
       // reasonCode — visible in /api/apply/review — rather than dropping it silently.
+      // D36: the same lock as startRun's, at the door that cannot be walked around — boot recovery,
+      // the line and any hand-written row all arrive here. NULL approval_mode reads as 'auto' above.
+      if (mode === "auto" && approvalMode === "auto" && !FULL_AUTO_PROVEN) {
+        logEvent(runId, runJobId, userId, jobId, "full_auto_locked",
+          "Held: this run would have sent without your review, and that is switched off. Nothing was opened or sent.");
+        setJobStatus("held_review", "full_auto_locked",
+          "Sending without review is switched off until Auto has been proven attended. Nothing was opened or sent.");
+        db.prepare(`UPDATE apply_runs SET held_count=held_count+1 WHERE id=?`).run(runId);
+        return;
+      }
       if (mode === "auto" && fullAutoDisabled()) {
         logEvent(runId, runJobId, userId, jobId, "full_auto_disabled",
           "Full-auto submission is disabled; holding for manual review");
@@ -1230,9 +1287,14 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
        */
       const currency = artifactCurrency(db, { userId, jobId, tool: toolType });
       reuseDecision = { reused: currency.current, reason: currency.reason, detail: currency.detail ?? null };
+      // D36: a DEFERRED preview (CASE D below) writes nothing now, so "…so one was generated" was
+      // false — and the run history printed it directly above "No resume generated yet". Said as
+      // what will happen instead; the event name stays, so every reader of it is unchanged.
+      const willDefer = !currency.current && mode !== "semi" && deferGeneration;
       logEvent(runId, runJobId, userId, jobId,
         currency.current ? "resume_reused" : "resume_regenerating",
-        currencySentence(currency), reuseDecision);
+        willDefer ? DEFERRED_RESUME_SENTENCE : currencySentence(currency),
+        willDefer ? { ...reuseDecision, deferred: true } : reuseDecision);
       const artifact = currency.current ? currency.artifact : null;
 
       let result;
@@ -1271,14 +1333,14 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           }
           try {
             const pdfBuf = await htmlToPdf(cl.html);
-            const tmpPath = path.join(os.tmpdir(), `cl_${userId}_${jobId}_${Date.now()}.pdf`);
+            const tmpPath = tmpPdfPath("cl", userId, jobId);
             writeFileSync(tmpPath, pdfBuf);
             coverLetterTmpPath = tmpPath;
             return tmpPath;
           } catch { return null; }
         }).catch(() => null);
         const pdfBuf = await htmlToPdf(artifact.html);
-        resumeTmpPath = path.join(os.tmpdir(), `resume_${userId}_${jobId}_${Date.now()}.pdf`);
+        resumeTmpPath = tmpPdfPath("resume", userId, jobId);
         writeFileSync(resumeTmpPath, pdfBuf);
         const clPath = await clPromise;
         logEvent(runId, runJobId, userId, jobId, "site_visit_started", "Opening application page in browser");
@@ -1290,6 +1352,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           coverLetterPath: clPath,
           approvedAnswers,
           onCorrections: recordCorrections,
+          submitBlocker,
         });
 
       } else if (mode === "semi") {
@@ -1318,11 +1381,15 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           logEvent(runId, runJobId, userId, jobId, "generation_ready", "Resume generation completed", { atsScore: gen.atsScore });
           try {
             const pdfBuf = await htmlToPdf(gen.html);
-            const tmpPath = path.join(os.tmpdir(), `resume_${userId}_${jobId}_${Date.now()}.pdf`);
+            const tmpPath = tmpPdfPath("resume", userId, jobId);
             writeFileSync(tmpPath, pdfBuf);
             resumeTmpPath = tmpPath;
             return tmpPath;
-          } catch { return null; }
+          } catch (e) {
+            docFailure = resumePdfFailure(e);
+            logEvent(runId, runJobId, userId, jobId, "resume_pdf_failed", docFailure.detail);
+            return null;
+          }
         });
         const coverLetterPathPromise = generateCoverLetterForApply(userId, jobId).then(async (cl) => {
           if (!cl?.html) {
@@ -1331,7 +1398,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           }
           try {
             const pdfBuf = await htmlToPdf(cl.html);
-            const tmpPath = path.join(os.tmpdir(), `cl_${userId}_${jobId}_${Date.now()}.pdf`);
+            const tmpPath = tmpPdfPath("cl", userId, jobId);
             writeFileSync(tmpPath, pdfBuf);
             coverLetterTmpPath = tmpPath;
             return tmpPath;
@@ -1501,11 +1568,15 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           }
           try {
             const pdfBuf = await htmlToPdf(gen.html);
-            const tmpPath = path.join(os.tmpdir(), `resume_${userId}_${jobId}_${Date.now()}.pdf`);
+            const tmpPath = tmpPdfPath("resume", userId, jobId);
             writeFileSync(tmpPath, pdfBuf);
             resumeTmpPath = tmpPath;
             return tmpPath;
-          } catch { return null; }
+          } catch (e) {
+            docFailure = resumePdfFailure(e);
+            logEvent(runId, runJobId, userId, jobId, "resume_pdf_failed", docFailure.detail);
+            return null;
+          }
         });
         const coverLetterPathPromiseCaseC = generateCoverLetterForApply(userId, jobId).then(async (cl) => {
           if (!cl?.html) {
@@ -1514,7 +1585,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           }
           try {
             const pdfBuf = await htmlToPdf(cl.html);
-            const tmpPath = path.join(os.tmpdir(), `cl_${userId}_${jobId}_${Date.now()}.pdf`);
+            const tmpPath = tmpPdfPath("cl", userId, jobId);
             writeFileSync(tmpPath, pdfBuf);
             coverLetterTmpPath = tmpPath;
             return tmpPath;
@@ -1528,6 +1599,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           resumePathPromise,
           coverLetterPathPromise: coverLetterPathPromiseCaseC,
           approvedAnswers,
+          submitBlocker,
         });
         const [,, applySettled] = await Promise.allSettled([resumePathPromise, coverLetterPathPromiseCaseC, applyPromise]);
         result = applySettled.status === "fulfilled" ? applySettled.value : { status: "error", fieldsFilled: 0 };
@@ -1575,6 +1647,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       const reasonCode = cancelled ? (result.reasonCode || "user_aborted")
         : submitted ? null
         : genFailure ? genFailure.reasonCode
+        : docFailure ? docFailure.reasonCode
         : atsHeld ? (result.reasonCode || "ats_below_threshold")
         : previewed ? "awaiting_approval"
         : result.status === "awaiting_user" ? "manual_review"
@@ -1583,7 +1656,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
 
       // Preserve the upstream failure (404 body, error type, request_id) on the row, and say
       // plainly whether a retry can ever work — "permanent" means the same call fails identically.
-      const reasonDetail = genFailure ? genFailure.detail : result.reasonDetail;
+      const reasonDetail = genFailure ? genFailure.detail : docFailure ? docFailure.detail : result.reasonDetail;
       const fallbackUrl = isBrowserFailure(reasonCode) ? jobUrl : null;
       setJobStatus(finalStatus, reasonCode, reasonDetail || (fallbackUrl ? `fallbackUrl:${fallbackUrl}` : null));
 
@@ -1893,8 +1966,25 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     if (resolvedMode === "auto" && fullAutoDisabled()) {
       return respond(503, {
         error: "full_auto_disabled",
-        message: "Automatic submission is currently disabled. Manual review mode is still available.",
-        retryWithMode: "manual",
+        // D36: this offered "Manual review mode", which no client surface has offered since the deck and
+        // board Draft became the only way in (A53) — so the one thing the user was told to do did not exist.
+        // Said as it is: paused by the operator, nothing new starts, nothing already sent is affected.
+        message: "Automatic applications are paused by the operator, so nothing new can be drafted right now. " +
+          "Nothing already sent is affected. Draft it again once they are resumed.",
+      });
+    }
+
+    // ⛔ D36 · FULL AUTO RUNS ATTENDED ONLY. FULL_AUTO_PROVEN shaped only the run bar: the bar showed
+    // AUTO locked while this function still admitted `approvalMode:'auto'` from POST /api/apply/runs
+    // and from POST /api/apply/answers ("answer-and-send in one step") and the run then SUBMITTED to
+    // the employer with nobody having seen it. The lock is now enforced where a run is admitted, and
+    // again where it is processed (processRunJob), so a row written any other way cannot send either.
+    // 'approved' is not this: a human approved exactly those answers.
+    if (resolvedMode === "auto" && resolvedApproval === "auto" && !FULL_AUTO_PROVEN) {
+      return respond(403, {
+        error: "full_auto_locked",
+        message: "Sending without your review is switched off: Auto has never run unattended against a real " +
+          "employer. Draft it without approvalMode and it will wait for your approval.",
       });
     }
 
@@ -2367,13 +2457,10 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   // could each be a poll apart.
 
   /**
-   * ⛔ AUTO IS LOCKED, AND THE LOCK IS THE SERVER'S. Full-auto has never run unattended against a
-   * real employer; D22 gates opening it on AF5 AND a supervised full-auto run, and that is an owner
-   * decision, not a code path. When it is made, this is the one line that changes — the client
-   * renders AUTO selectable only when this says `locked: false`, and never decides it for itself.
-   * The kill switch is reported beside it, because "proven" is not "allowed right now".
+   * ⛔ AUTO IS LOCKED, AND THE LOCK IS THE SERVER'S — see FULL_AUTO_PROVEN at the top of this file.
+   * The client renders AUTO selectable only when this says `locked: false`, and never decides it
+   * for itself. The kill switch is reported beside it, because "proven" is not "allowed right now".
    */
-  const FULL_AUTO_PROVEN = false;
   function autoModeState() {
     const killSwitch = fullAutoDisabled();
     if (!FULL_AUTO_PROVEN) {
@@ -3484,7 +3571,19 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       answerCount: Array.isArray(body.answers) ? body.answers.length : 0,
     });
 
+    // ⛔ D36: THE CANDIDATE IS NOW APPLYING — say so on The Table. A released packet means they are on
+    // the employer's form with our answers in it, and they will submit it themselves. Nothing tagged
+    // the job Pending, and the Pending table lists only application_records rows, so after a gated
+    // handoff there was no place in the UI to record the submission at all — job_applications could
+    // never be written for this path (walked 10-05: the record succeeded only by calling the API).
+    // 'draft' is the server-only origin PENDING_ORIGINS reserves; markPending is a no-op for a job
+    // already submitted or already pending, and never fails the release.
+    let pending = null;
+    try { pending = markPending(db, userId, String(row.job_id), "draft").state; }
+    catch (e) { console.warn(`[applyRoutes] gate exchange pending tag job=${row.job_id}: ${e.message}`); }
+
     res.json({
+      pending,
       packetId: pid,
       // Repeated at the top level because the extension target-matches on it before releasing
       // anything into a page (G2 requirement 3), and it must not have to dig for it.
@@ -4081,18 +4180,33 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           return out.status(409).json({ ...body, error: "no_retryable_jobs", skipped });
         }
         // The held rows are dismissed first: leaving them held_review would keep re-offering
-        // questions that have since been answered.
-        const dismiss = db.prepare(`
-          UPDATE apply_run_jobs SET status='superseded', finished_at=unixepoch()
-          WHERE user_id=? AND job_id=? AND status='held_review'
+        // questions that have since been answered. (And startRun's duplicate check counts a row
+        // awaiting approval, so it has to be out of the way before the retry is admitted.)
+        //
+        // ⛔ D36: KEEP WHAT WAS DISMISSED, and put it back if the retry is refused. This superseded
+        // the held rows and then called startRun; a refusal (the kill switch's 503, a full line, a
+        // cap, FULL AUTO locked) returned an error with the rows already gone — so the application
+        // vanished from Draft House: no longer held, never retried, with nothing to press.
+        const heldNow = db.prepare(`
+          SELECT id, finished_at FROM apply_run_jobs WHERE user_id=? AND job_id=? AND status='held_review'
         `);
-        db.transaction(() => { for (const id of toRetry) dismiss.run(req.user.id, id); })();
+        const dismissed = [];
+        const dismiss = db.prepare(`UPDATE apply_run_jobs SET status='superseded', finished_at=unixepoch() WHERE id=? AND status='held_review'`);
+        db.transaction(() => {
+          for (const id of toRetry) for (const r of heldNow.all(req.user.id, id)) {
+            if (dismiss.run(r.id).changes) dismissed.push(r);
+          }
+        })();
 
         const retry = startRun(req.user.id, normalisePlanTier(req.user?.planTier), toRetry,
           { mode, tool: "generate", approvalMode, retryOfHeld: true });
         // A refusal is surfaced as-is: the answers were still saved, but the retry did not start,
         // and the caller needs the real reason (cap, kill switch, concurrency).
-        if (retry.status !== 202) return out.status(retry.status).json({ ...body, ...retry.body, skipped });
+        if (retry.status !== 202) {
+          const restore = db.prepare(`UPDATE apply_run_jobs SET status='held_review', finished_at=? WHERE id=? AND status='superseded'`);
+          db.transaction(() => { for (const r of dismissed) restore.run(r.finished_at, r.id); })();
+          return out.status(retry.status).json({ ...body, ...retry.body, skipped, stillHeld: dismissed.map(r => r.id) });
+        }
         return out.status(202).json({ ...body, skipped, retry: retry.body });
       }
 
