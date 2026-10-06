@@ -273,7 +273,7 @@ test("D35 ⑤ the LOCATION panel cannot clear the United States floor — it nar
       if (!patch) continue;
       const next = { ...params, ...patch };
       assert.ok(Array.isArray(next[loc.dim.param]), "a location press must leave a place SET (empty = the floor)");
-      assert.match(sentenceText(next), /, in /, `pressing "${r.label}" took the sentence out of the United States`);
+      assert.match(sentenceText(next), / in (the United States|the |[A-Z])/, `pressing "${r.label}" took the sentence out of the United States`);
     }
   }
   assert.deepEqual(clearClause(loc), { [loc.dim.param]: [] }, "clearing location is the floor, nothing else");

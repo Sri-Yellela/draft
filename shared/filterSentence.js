@@ -53,14 +53,27 @@ export const FIT_BANDS = {
 // SENTENCE_CAP stays exported for the sentence's permanent-slot count; it is no longer a ceiling
 // that drops clauses — the two optional ones append, and that is the extreme case by D30's decision.
 export const SENTENCE_CAP = 4;
+// ⭐ D37 (owner, 10-06) · THE SENTENCE, REWORDED — "the sentence with so many commas is vague":
+//
+//   default   discovering [all] roles at [all] career levels and [all] workstyles in [the United States].
+//   narrowed  discovering [finance] roles at [senior] career level and [remote] workstyle in [Boston].
+//
+// The connectives do the work the commas did. Each slot is a TOKEN PLUS ITS NOUN — plural when unset
+// (or several are chosen), singular when one is — so the prose changes with the token. ⛔ The `d` is
+// lower-case, matching the wordmark, in the SAME face and size as every other word (D34). Posted and
+// fit still append only when set, after the location: "…in Boston, posted this week, strong fits only."
+// `any` is what an unset slot reads IN THE SENTENCE; `panelAny` is its "nothing chosen" pill.
+// The order below is the panels' and dials' order; the SENTENCE's order is SENTENCE_ORDER.
 export const SENTENCE_CLAUSES = Object.freeze([
-  { key: "domain",   dim: JOB_FUNCTIONS,     label: "Domain",    permanent: true,  any: "all" },
-  { key: "level",    dim: EXPERIENCE_LEVELS, label: "Level",     permanent: true,  any: "any level" },
-  { key: "location", dim: PLACES,            label: "Location",  permanent: true,  any: "in the United States", floor: true },
-  { key: "where",    dim: WORK_MODELS,       label: "Workplace", permanent: true,  any: "any workplace" },
-  { key: "posted",   dim: POSTING_AGE,       label: "Posted",    permanent: false, any: "any time" },
-  { key: "fit",      dim: FIT_BANDS,         label: "Fit",       permanent: false, any: "any fit" },
+  { key: "domain",   dim: JOB_FUNCTIONS,     label: "Domain",    permanent: true,  any: "all", panelAny: "all", noun: ["roles", "roles"] },
+  { key: "level",    dim: EXPERIENCE_LEVELS, label: "Level",     permanent: true,  any: "all", panelAny: "any level", noun: ["career level", "career levels"] },
+  { key: "location", dim: PLACES,            label: "Location",  permanent: true,  any: "the United States", panelAny: "the United States", floor: true },
+  { key: "where",    dim: WORK_MODELS,       label: "Workplace", permanent: true,  any: "all", panelAny: "any workplace", noun: ["workstyle", "workstyles"] },
+  { key: "posted",   dim: POSTING_AGE,       label: "Posted",    permanent: false, any: "any time", panelAny: "any time" },
+  { key: "fit",      dim: FIT_BANDS,         label: "Fit",       permanent: false, any: "any fit", panelAny: "any fit" },
 ]);
+/** D37 · the verb, lower-case like the wordmark. */
+export const SENTENCE_VERB = Object.freeze({ showing: "discovering", nothing: "nothing matches" });
 // The four closed sets cycle or open an inline list; the two OPEN sets need a picker (D30).
 export const OPEN_SET_CLAUSES = Object.freeze(["domain", "location"]);
 
@@ -68,7 +81,7 @@ export const OPEN_SET_CLAUSES = Object.freeze(["domain", "location"]);
 // own values, so a value added to a dimension without a word here is caught by the D30 test.
 export const SENTENCE_WORDS = Object.freeze({
   level: { intern: "intern", entry: "entry", mid: "mid", senior: "senior", lead: "lead", executive: "executive" },
-  where: { remote: "remote only", hybrid: "hybrid", onsite: "on-site" },
+  where: { remote: "remote", hybrid: "hybrid", onsite: "on-site" },
   posted: { "1d": "posted today", "2d": "posted in the last 2 days", "3d": "posted in the last 3 days",
             "1w": "posted this week", "1m": "posted this month" },
   fit: { [ATS_BAND.STRONG]: "strong", [ATS_BAND.MODERATE]: "moderate", [ATS_BAND.WEAK]: "weak" },
@@ -99,7 +112,13 @@ export function panelWord(clause, value) {
 
 /** What a clause's "nothing chosen" option reads as in its panel — location's is the floor itself. */
 export function panelAnyWord(clause) {
-  return clause.floor ? clause.any.replace(/^in /, "") : clause.any;
+  return clause.panelAny ?? clause.any;
+}
+
+/** D37 · a slot's noun: singular when exactly one value is chosen, plural otherwise. "" when it has none. */
+export function slotNoun(clause, params = {}) {
+  if (!clause.noun) return "";
+  return chosenValues(clause, params).length === 1 ? clause.noun[0] : clause.noun[1];
 }
 
 const or = (words) => words.length <= 2 ? words.join(" or ") : `${words.slice(0, -1).join(", ")} or ${words.at(-1)}`;
@@ -128,14 +147,13 @@ export function slotText(clause, params = {}, { defaultDomain = null } = {}) {
         : all ? "all" : or(chosen.map(v => optionOf(v)?.sentence ?? v));
       break;
     }
-    case "level": {
-      if (!active) { text = clause.any; break; }
-      const words = chosen.map(v => SENTENCE_WORDS.level[v] ?? v);
-      text = words.length === 1 && chosen[0] === "mid" ? "mid-level" : `${or(words)} level`;
+    case "level":
+      // D37: the token is the level alone; "career level(s)" is its noun (slotNoun).
+      text = !active ? clause.any : or(chosen.map(v => SENTENCE_WORDS.level[v] ?? v));
       break;
-    }
     case "location":
-      text = !active ? clause.any : `in ${or(chosen.map(v => (optionOf(v)?.label ?? v)))}`;
+      // D37: the token is the place alone; "in" is the connective before it.
+      text = !active ? clause.any : or(chosen.map(v => (optionOf(v)?.label ?? v)));
       break;
     case "where":
       text = !active ? clause.any : or(chosen.map(v => SENTENCE_WORDS.where[v] ?? v));
@@ -159,18 +177,23 @@ export function slotText(clause, params = {}, { defaultDomain = null } = {}) {
  * optional ones only when set. ⛔ NOTHING MATCHES keeps the same clauses with a different verb, so the
  * reader can see which one to loosen (D30) — "this board has emptied four times".
  */
+// D37 · the sentence's own order — domain, level, workplace, location — then the optional two.
+export const SENTENCE_ORDER = Object.freeze(["domain", "level", "where", "location", "posted", "fit"]);
+// The words BEFORE each slot (after the verb), and after it — its noun, from slotNoun.
+const LEAD = Object.freeze({ domain: " ", level: " at ", where: " and ", location: " in ", posted: ", ", fit: ", " });
+
 export function sentenceParts(params = {}, { defaultDomain = null, nothingMatches = false } = {}) {
-  const slots = SENTENCE_CLAUSES
-    .map(c => ({ clause: c, ...slotText(c, params, { defaultDomain }) }))
+  const byKey = Object.fromEntries(SENTENCE_CLAUSES.map(c => [c.key, c]));
+  const slots = SENTENCE_ORDER.map(k => byKey[k])
+    .map(c => ({ clause: c, ...slotText(c, params, { defaultDomain }), lead: LEAD[c.key], noun: slotNoun(c, params) }))
     .filter(s => s.clause.permanent || s.active);
-  return { verb: nothingMatches ? "Nothing matches" : "Now showing", slots };
+  return { verb: nothingMatches ? SENTENCE_VERB.nothing : SENTENCE_VERB.showing, slots };
 }
 
-/** The sentence as one string: "Now showing all jobs, at any level, in the United States, any workplace." */
+/** The sentence as one string: "discovering all roles at all career levels and all workstyles in the United States." */
 export function sentenceText(params = {}, opts = {}) {
   const { verb, slots } = sentenceParts(params, opts);
-  const [domain, ...rest] = slots;
-  return `${verb} ${domain.text} jobs, ${rest.map(s => (s.key === "level" ? `at ${s.text}` : s.text)).join(", ")}.`;
+  return `${verb}${slots.map(s => `${s.lead}${s.text}${s.noun ? ` ${s.noun}` : ""}`).join("")}.`;
 }
 
 // ── The sort panel ──────────────────────────────────────────────────────────────────────────────

@@ -204,21 +204,27 @@ test("D30 → D35: THE SENTENCE IS A PROJECTION — four permanent words, posted
   assert.deepEqual(SENTENCE_CLAUSES.map(c => c.key), ["domain", "level", "location", "where", "posted", "fit"]);
   assert.equal(SENTENCE_CLAUSES.filter(c => c.permanent).length, SENTENCE_CAP, "four permanent slots");
   assert.equal(sentenceClauses().length, 6);
-  assert.equal(sentenceText({}), "Now showing all jobs, at any level, in the United States, any workplace.");
+  // ⭐ D37 (owner, 10-06): the sentence, verbatim — the connectives do the commas' work, the `d` is
+  // lower-case like the wordmark.
+  assert.equal(sentenceText({}), "discovering all roles at all career levels and all workstyles in the United States.");
   // ⛔ D42 (owner, 10-06): the unset domain reads "all" — for an engineering profile it IS engineering +
   // data — never the profile's word, whatever the caller passes.
   assert.equal(sentenceText({}, { defaultDomain: "engineering" }),
-    "Now showing all jobs, at any level, in the United States, any workplace.",
+    "discovering all roles at all career levels and all workstyles in the United States.",
     "the unset domain reads all (D42)");
   const full = { job_functions: ["design"], experience_levels: ["senior"], places: ["metro:boston"],
     work_models: ["remote"], ageFilter: "1w", fit_bands: ["strong"] };
+  // Plural when unset, SINGULAR when one value is set — the noun moves with its token.
   assert.equal(sentenceText(full),
-    "Now showing design jobs, at senior level, in Boston, remote only, posted this week, strong fits only.");
+    "discovering design roles at senior career level and remote workstyle in Boston, posted this week, strong fits only.");
   const { ageFilter, fit_bands, ...four } = full;
   assert.equal(sentenceText(four, { nothingMatches: true }),
-    "Nothing matches design jobs, at senior level, in Boston, remote only.", "same clauses, different verb");
+    "nothing matches design roles at senior career level and remote workstyle in Boston.", "same clauses, different verb");
+  assert.equal(sentenceText({ experience_levels: ["senior", "lead"], work_models: ["remote", "hybrid"] }),
+    "discovering all roles at senior or lead career levels and remote or hybrid workstyles in the United States.",
+    "two values chosen read plural");
   assert.equal(sentenceText({ job_functions: JOB_FUNCTIONS.options.map(o => o.value) }),
-    "Now showing all jobs, at any level, in the United States, any workplace.", "every function chosen reads 'all'");
+    "discovering all roles at all career levels and all workstyles in the United States.", "every function chosen reads 'all'");
   for (const key of ["level", "where", "posted", "fit"]) {
     for (const o of clause(key).dim.options.filter(o => o.value)) {
       assert.ok(SENTENCE_WORDS[key][o.value], `${key}=${o.value} has no word in the sentence`);
@@ -232,7 +238,7 @@ test("D30 → D35: THE SENTENCE IS A PROJECTION — four permanent words, posted
   const { html, BoardHeadline } = await loadUi();
   const out = html(BoardHeadline, { params: full });
   const text = out.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
-  assert.equal(text, "Now showing design jobs, at senior level, in Boston, remote only, posted this week, strong fits only.");
+  assert.equal(text, "discovering design roles at senior career level and remote workstyle in Boston, posted this week, strong fits only.");
   assert.equal((out.match(/class="tok"/g) || []).length, 6);
   assert.equal((out.match(/class="tok tok--add"/g) || []).length, 0);
   assert.match(html(BoardHeadline, { params: four, nothingMatches: true }), /data-nothing-matches="true"/);
