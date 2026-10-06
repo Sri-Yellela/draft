@@ -1,12 +1,18 @@
-# Chrome Web Store listing — draft v1.4.0
+# Chrome Web Store listing — draft v1.4.1
 
 Copy for the Web Store developer dashboard. Every justification below was written against the
 actual code and cites the file that uses the permission, because the dashboard rejects
 justifications that don't match observable behaviour.
 
-Upload artifact: `extension/submission/resume-master-extension-v1.4.0.zip`
+Upload artifact: `extension/submission/resume-master-extension-v1.4.1.zip`
 (build with `npm run build:extension` — never hand-assemble it; see extension/README.md).
 
+> **v1.4.1 (D36, 10-05) — on top of v1.4.0, also not yet uploaded.** When the review overlay cannot
+> render, the fill no longer reports the success sentence: it says the review panel could not open and
+> to check every answer (work authorisation and sponsorship first) before submitting, and the popup
+> stays open instead of closing itself (`gated-handoff.js`, `background.js`, `popup.js`). No
+> permission, host or data flow changes.
+>
 > **v1.4.0 (D33, 10-05) REPLACES v1.3.0, WHICH WAS NEVER UPLOADED.** The capture result says what
 > happened instead of "Captured" for everything:
 >

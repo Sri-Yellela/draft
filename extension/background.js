@@ -195,7 +195,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // triggers, as capture already is). Opening the popup is the gesture that grants activeTab.
   if (message.type === 'FILL_ACTIVE_TAB') {
     handleGatedHandoff()
-      .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null }))
+      // D36: whether the review panel opened travels with the answer, so the popup can stay open when it did not.
+      .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null, overlay: r?.overlay ? { rendered: r.overlay.rendered === true } : null }))
       .catch(() => sendResponse({ ok: false, message: 'Could not fill this page.' }));
     return true;
   }

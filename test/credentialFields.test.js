@@ -299,9 +299,10 @@ test("EVERY write site in the legacy sweep is credential-guarded", () => {
   const sweep = src.slice(at(src, "const FILL_FN_SRC = `"), at(src, "const DISCOVER_FN_SRC"));
   assert.match(sweep, /function isCredential\(el\)/, "the sweep needs its own in-page predicate");
 
-  // One guard per fill step: generic name/id, placeholder hint, label map, dropdown, radio.
+  // One guard per fill step: generic name/id, placeholder hint, label map, dropdown. (D36 removed the
+  // fifth, the sponsorship/clearance radio step: an eligibility field is never filled by this sweep.)
   const guards = (sweep.match(/if \(isCredential\((?:el|sel|r)\)\) return;/g) || []).length;
-  assert.equal(guards, 5, `expected all 5 fill steps guarded, found ${guards}`);
+  assert.equal(guards, 4, `expected all 4 fill steps guarded, found ${guards}`);
 });
 
 test("the sweep's predicate is the same policy, not a second copy of it", () => {
