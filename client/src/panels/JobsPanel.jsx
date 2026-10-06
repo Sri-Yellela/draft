@@ -2174,6 +2174,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (overrideStarred === "1" || boardTab === "saved") p.set("starred","1");
     // D40: the + view is ALL restricted to the jobs this user imported — the same query, one predicate.
     if (boardTab === "imported") p.set("imported", "1");
+    // A91: and /d, ALL restricted to the jobs this user drafted.
+    if (boardTab === "pending") p.set("pending", "1");
     if (localSearch.trim())   p.set("localSearch",   localSearch.trim().toLowerCase());
     // FE-2: Task-4 filter vocabulary (services/jobs/jobQuery.js) — additive, legacy params
     // above are untouched and remain the override channel.
@@ -2335,19 +2337,12 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // function could never get past its own guard: it always opened the install modal, for an
   // extension capability that v1.2.0 deleted outright. Nothing here could succeed.
 
-  // -- Fetch pending jobs ----------------------------------------
-  const fetchPending = useCallback(async () => {
-    const requestProfileKey = activeProfileKeyRef.current;
-    try {
-      const rows = await api("/api/jobs/pending");
-      if (requestProfileKey !== activeProfileKeyRef.current) return;
-      setPendingJobs(Array.isArray(rows) ? rows : []);
-    } catch {}
-  }, []);
+  // A91: fetchPending (GET /api/jobs/pending) is gone — /d is fetchJobs with `pending=1`.
 
   // -- Fetch jobs — never clears board before data arrives ------
   const fetchJobs = useCallback(async (page = 1, mergeMode = false, options = {}) => {
-    if (boardTab === "pending") { fetchPending(); return; }
+    // ⛔ A91: /d is no longer its own list — it is GET /api/jobs?pending=1, ALL restricted by the /d
+    // predicate, fetched and paged exactly like every other view (buildParams sets the param).
     if (!activeDomainProfile) {
       // "No active profile" has two causes that must not be treated alike: the profile list has
       // genuinely come back empty (a new account — clear the board, setupBlock takes over the
@@ -2469,7 +2464,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     } finally {
       if (requestSeq === jobsFetchSeqRef.current) setBgLoading(false);
     }
-  }, [activeDomainProfile, buildParams, boardTab, fetchPending, jobs, makeProfileSnapshot, setProfileCache]);
+  }, [activeDomainProfile, buildParams, boardTab, jobs, makeProfileSnapshot, setProfileCache]);
   // Keep stable ref in sync so callbacks with empty deps (e.g. startPollLoop) always
   // call the current fetchJobs closure without needing it in their dep arrays.
   fetchJobsRef.current = fetchJobs;
@@ -3351,10 +3346,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   };
 
   // displayJobs: backend handles localSearch filtering across all pages
-  const displayJobs = useMemo(() => {
-    if (boardTab === "pending") return pendingJobs;
-    return jobs;
-  }, [jobs, pendingJobs, boardTab]);
+  // A91: every view — ALL, ★, /d, + — is the one list the board query returned.
+  const displayJobs = useMemo(() => jobs, [jobs]);
   displayJobsRef.current = displayJobs;
 
   const genCount = Object.values(generated).filter(v=>v?.html && v.html !== "__exists__").length;

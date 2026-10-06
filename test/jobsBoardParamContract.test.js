@@ -225,6 +225,8 @@ const TRACKED_SEARCH_EXEMPT = new Map([
   ["starred", "boardTab is a view, not part of the filter set"],
   // D40: the + view, likewise a view.
   ["imported", "boardTab is a view, not part of the filter set"],
+  // A91: /d, likewise a view.
+  ["pending", "boardTab is a view, not part of the filter set"],
   // A per-request opt-out of profile curation that is deliberately reset on every profile switch
   // (see the effect that clears it). Persisting it into a saved search would make it survive the
   // thing it is scoped to.
