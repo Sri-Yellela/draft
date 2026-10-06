@@ -11,7 +11,9 @@ import {
   buildGatePacket, mintPacketToken, verifyPacketToken, hashToken, originOf,
   DEFAULT_TOKEN_TTL_MS,
   handoffKind, shouldBuildPacket, packetFreshness, PACKET_STALE_MS, HANDOFF_STATUSES,
+  buildPacketEntries,
 } from "../services/applyGatePacket.js";
+import { buildStructuredResume } from "../services/resumeFormatter.js";
 import {
   recordFormSchema, formSchemaSummary, hostOf,
 } from "../services/kb/formSchemaLayer.js";
@@ -1033,6 +1035,22 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     return { ok: true, artifactId, reused: !!cur.current };
   }
 
+  /**
+   * D55 (b): the packet's repeating-section entries (education / work / languages / websites /
+   * skills), from what this candidate has STATED — the profile row and the base résumé. Never allowed
+   * to cost a packet: an older schema (no base_resume table, no confirmed_skills column) or an
+   * unparseable résumé yields fewer entries, never a thrown packet build.
+   */
+  function packetEntriesFor(userId) {
+    let profile = null, structuredResume = null;
+    try { profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || null; } catch { /* no profile table */ }
+    try {
+      const base = db.prepare("SELECT content FROM base_resume WHERE user_id=?").get(userId);
+      if (base?.content) structuredResume = buildStructuredResume(base.content);
+    } catch { /* no base résumé, or none we can read: work falls back to the profile's current role */ }
+    try { return buildPacketEntries({ profile, structuredResume }); } catch { return null; }
+  }
+
   function createGatePacket({ runId, runJobId, userId, jobId, result, autofillPayload, resumeArtifactId,
                              reasonCode, jobUrl, toolType = "generate" }) {
     // Where the human has to go, most-specific first:
@@ -1056,6 +1074,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         // mislabelling a held review as a login wall would put it in the wrong group and promise
         // that a sign-in clears it.
         gateReason: reasonCode || result.reasonCode || "login_required",
+        entries: packetEntriesFor(userId),
       });
     } catch (e) {
       // buildGatePacket refuses in exactly two cases, and both leave the run held with no packet —
@@ -1147,6 +1166,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         autofillPayload: buildAutofillPayload(profile, "APPLY", job.company),
         applyUrl: job.apply_url || job.url, jobId: String(jobId),
         resumeArtifactId: artifactId, gateReason: PREPARED_REASON,
+        entries: packetEntriesFor(userId),
       });
     } catch (e) {
       return { ok: false, error: e.reasonCode || "prepare_failed",
