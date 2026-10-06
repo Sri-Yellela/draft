@@ -15,7 +15,8 @@ test("the client: one scoring read per screen", () => {
   // The JD header no longer prints "No signal" for an absent score.
   const jd = read("client/src/components/JobDetailPanel.jsx");
   // D48: the header's ATS number box — no score draws the dashed box with NO digits, never "No signal".
-  assert.match(jd, /const atsScore = g\?\.atsScore \?\? job\?\.baseAtsScore \?\? null;/);
+  // D58: through the ONE pair read (shared/resumeScores.js) — the tailored score when a résumé exists, else the base.
+  assert.match(jd, /const scores = selectedJobMeta\?\.scores \?\? atsScorePair\(\{ base: job\?\.baseAtsScore, tailored: g\?\.html \? g\?\.atsScore : null \}\);/);
   assert.match(jd, /const has = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);
   assert.match(jd, /\{has\s+\? \(<><b>\{Math\.round\(score\)\}<\/b>/);
   assert.doesNotMatch(jd, /No signal/);

@@ -106,6 +106,9 @@ async function init() {
     return;
   }
 
+  // §8 row 15: the today ring — the account's quota, not the page. Fire-and-forget: the popup paints
+  // without it, and a server that cannot answer simply shows no ring.
+  void showTodayRing();
   await showLastCapture();
 
   // ⛔ D23, THE MANUAL CONTEXT TRIGGER (owner, 10-04). Opening the popup reads NOTHING from the page
@@ -125,6 +128,19 @@ async function init() {
   }
   document.getElementById('btn-read-page').style.display = 'flex';
   document.getElementById('read-hint').style.display = 'block';
+}
+
+// ⭐ §8 row 15, decision D — today against YOUR CAP (the day's Draft slots), never a goal.
+async function showTodayRing() {
+  const slots = await chrome.runtime.sendMessage({ type: 'TODAY_RING' }).catch(() => null);
+  const ring = ringState(slots);
+  const box = document.getElementById('today');
+  if (!ring || !box) return;
+  document.getElementById('today-arc').style.strokeDasharray = `${ring.percent} 100`;
+  document.getElementById('today-text').textContent = `${ring.short} today`;
+  box.title = ring.label;
+  box.dataset.full = ring.full ? 'true' : 'false';
+  box.style.display = 'inline-flex';
 }
 
 function isWebPage(tab) {
@@ -190,11 +206,33 @@ function renderCompanion(c) {
   const box = document.getElementById('companion');
   const line = document.getElementById('ctx-line');
   const q = document.getElementById('ctx-questions');
+  // §8 row 10: the on-demand notice — "You applied here 28 Sep · 2 other roles at …". Never a block.
+  if (c.notice) {
+    const n = document.getElementById('ctx-notice');
+    n.textContent = c.notice;
+    n.style.display = 'block';
+    box.style.display = 'block';
+  }
   if (c.mode === 'form') {
     line.textContent = draftedLine(c.packet);
     const ql = questionsLine(c.packet);
     if (ql) { q.textContent = ql; q.style.display = 'block'; }
     document.getElementById('btn-fill-primary').style.display = 'flex';
+    document.getElementById('btn-submitted').style.display = 'flex';
+    box.style.display = 'block';
+    return;
+  }
+  // ⛔ D56: a job of yours with nothing prepared for it — one click prepares it and fills.
+  if (c.mode === 'prepare') {
+    line.textContent = prepareLine(c.handoff);
+    document.getElementById('btn-prepare').style.display = 'flex';
+    document.getElementById('btn-submitted').style.display = 'flex';
+    box.style.display = 'block';
+    return;
+  }
+  // ⛔ D56: prepared, but not for THIS address — say where it fills, never fill it here.
+  if (c.mode === 'elsewhere') {
+    line.textContent = c.handoff?.message || "This page isn't one of this application's addresses.";
     box.style.display = 'block';
     return;
   }
@@ -235,9 +273,74 @@ async function fillActiveTab() {
   // D36: stay open when the fill worked but its review panel did not — that sentence is the only
   // place the candidate learns the answers were not laid out for checking.
   if (r?.ok && r?.overlay?.rendered !== false) setTimeout(() => window.close(), 1200);
+  // D56: nothing prepared, but a job of yours — the button the message names is right here.
+  if (!r?.ok && r?.canPrepare) {
+    document.getElementById('btn-prepare').style.display = 'flex';
+    document.getElementById('companion').style.display = 'block';
+  }
 }
 document.getElementById('btn-fill-primary').addEventListener('click', fillActiveTab);
 document.getElementById('btn-fill').addEventListener('click', fillActiveTab);
+
+// ⭐ D56 · "Prepare this application" — one click: the packet is built on demand and filled.
+document.getElementById('btn-prepare').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-prepare');
+  btn.disabled = true;
+  btn.textContent = 'Preparing…';
+  const r = await chrome.runtime.sendMessage({ type: 'PREPARE_ACTIVE_TAB' }).catch(() => null);
+  btn.disabled = false;
+  btn.textContent = 'Prepare this application';
+  setStatus(r?.message || (r?.ok ? 'Filled — check every answer, then submit.' : 'Could not prepare this application.'));
+  if (r?.ok && r?.overlay?.rendered !== false) setTimeout(() => window.close(), 1200);
+});
+
+// ⭐ D56 · "I submitted it" — the manual route records its own submission; the server says whether it verified.
+document.getElementById('btn-submitted').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-submitted');
+  const msg = document.getElementById('submitted-msg');
+  btn.disabled = true;
+  const r = await chrome.runtime.sendMessage({ type: 'SUBMITTED_ACTIVE_TAB' }).catch(() => null);
+  btn.disabled = !!r?.ok;
+  btn.textContent = r?.ok ? 'Recorded' : 'I submitted it';
+  msg.textContent = r?.message || 'Could not record it — try again.';
+  msg.style.display = 'block';
+});
+
+// ⭐ §8 row 17 · THE COPY SHEET — the prepared answers as a list, a copy button each. Shown here, in the
+// extension's own popup; nothing is written into the page, so it works on a portal draft cannot fill.
+document.getElementById('btn-copy-sheet').addEventListener('click', async () => {
+  const box = document.getElementById('copy-sheet');
+  const list = document.getElementById('copy-sheet-list');
+  const note = document.getElementById('copy-sheet-note');
+  const sheet = await chrome.runtime.sendMessage({ type: 'COPY_SHEET' }).catch(() => null);
+  list.innerHTML = '';
+  for (const row of sheet?.rows || []) {
+    const li = document.createElement('li');
+    if (row.eligibility) li.className = 'elig';
+    const text = document.createElement('span');
+    const k = document.createElement('span');
+    k.className = 'cs-k';
+    k.textContent = row.eligibility ? `${row.label} · you are attesting to this` : row.label;   // textContent: never parsed
+    const v = document.createElement('span');
+    v.className = 'cs-v';
+    v.textContent = row.value;
+    text.append(k, v);
+    const copy = document.createElement('button');
+    copy.className = 'link';
+    copy.textContent = 'copy';
+    copy.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(row.value); copy.textContent = 'copied'; }
+      catch { copy.textContent = 'select and copy'; }
+    });
+    li.append(text, copy);
+    list.append(li);
+  }
+  const n = sheet?.unanswered?.length || 0;
+  note.textContent = !sheet?.ok && !sheet?.rows?.length ? (sheet?.message || 'Could not load your answers.')
+    : (sheet.source === 'packet' ? 'The answers prepared for this application.' : 'Your profile answers.')
+      + (n ? ` ${n} question${n === 1 ? '' : 's'} not answered by your profile — answer ${n === 1 ? 'it' : 'them'} yourself.` : '');
+  box.style.display = 'block';
+});
 
 // The companion's Capture it / Score it are the same handlers as the buttons under "Everything".
 document.getElementById('btn-capture-primary').addEventListener('click', () => captureFrom('btn-capture-primary'));
