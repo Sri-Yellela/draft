@@ -30,9 +30,9 @@ export function MarketingNav() {
             {label}
           </Link>
         ))}
-        <Link to="/login" style={{
+        <Link className="dbx-depth" to="/login" style={{
           fontSize: 13, fontWeight: 700, color: "var(--color-primary-text)",
-          textDecoration: "none", padding: "7px 18px", borderRadius: 999,
+          textDecoration: "none", padding: "7px 18px",
           background: "var(--color-primary-muted)",
           border: "1px solid color-mix(in srgb, var(--color-primary) 25%, transparent)",
         }}>

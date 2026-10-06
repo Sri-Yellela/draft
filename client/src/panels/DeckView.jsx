@@ -129,9 +129,9 @@ function ActionButton({ label, hint, onClick, primary, disabled, ariaKeys, compa
 
 function StepButton({ dir, onClick, disabled }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} aria-keyshortcuts={dir < 0 ? "K ArrowUp" : "J ArrowDown"}
+    <button type="button" className="dbx-depth" onClick={onClick} disabled={disabled} aria-keyshortcuts={dir < 0 ? "K ArrowUp" : "J ArrowDown"}
       aria-label={dir < 0 ? "Previous card" : "Next card"}
-      style={{ ...glass({ radius: 999 }), width: 32, height: 32, display: "grid", placeItems: "center", padding: 0,
+      style={{ ...glass({ radius: 10 }), width: 32, height: 32, display: "grid", placeItems: "center", padding: 0,
                color: C.INK, fontSize: 16, fontWeight: 800, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.4 : 1 }}>
       {dir < 0 ? "‹" : "›"}
     </button>
@@ -260,10 +260,10 @@ function DeckOrderControl({ order, onChoose }) {
 function CollapseButton({ onCollapse, controls }) {
   const [hov, setHov] = useState(false);
   return (
-    <button type="button" onClick={onCollapse} aria-expanded="true" aria-controls={controls} aria-keyshortcuts="Escape"
+    <button type="button" className="dbx-depth" onClick={onCollapse} aria-expanded="true" aria-controls={controls} aria-keyshortcuts="Escape"
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       // The opaque menu surface: it rides over the posting's text as the reader scrolls.
-      style={{ ...glass({ hover: hov, radius: 999 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU,
+      style={{ ...glass({ hover: hov, radius: 10 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU,
                padding: "7px 14px", fontSize: 13, fontWeight: 800, color: C.INK, cursor: "pointer" }}>
       Collapse
     </button>
@@ -296,8 +296,8 @@ function AtsSheet({ card, profileId, onClose, onReport }) {
               {card.job.title} · {card.job.company}
             </div>
           </div>
-          <button type="button" onClick={onClose} aria-keyshortcuts="Escape"
-            style={{ ...glass({ radius: 999 }), padding: "7px 14px", fontSize: 13, fontWeight: 800, color: C.INK, cursor: "pointer" }}>
+          <button type="button" className="dbx-depth" onClick={onClose} aria-keyshortcuts="Escape"
+            style={{ ...glass({ radius: 10 }), padding: "7px 14px", fontSize: 13, fontWeight: 800, color: C.INK, cursor: "pointer" }}>
             Close
           </button>
         </div>

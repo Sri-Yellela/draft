@@ -2,7 +2,8 @@
 //
 // ⛔ ZERO MODEL CALLS (D17) — that is why this version was chosen. Every word on it is already on file:
 //   MASTHEAD  orange kicker (domain · level · workplace — D29's tags) · serif display title · the company
-//             in the logo face · a FOUR-CELL deck strip: Experience · Where · Salary · Posted.
+//             in the logo face · a FOUR-CELL deck strip: Experience · Workstyle · Salary · Posted (D48:
+//             Workstyle replaced Where; location is its muted second line).
 //             ⭐ A fact not on file is printed as an italic-serif "not stated" — a VALUE, never a blank.
 //             The Experience cell tints when the scorer judged the requirement met.
 //   BODY      the employer's ORIGINAL description, formatted plainly (shared/postingFormat.js): a drop
@@ -27,13 +28,15 @@ function Lit({ text, term }) {
 }
 
 /** The masthead. `showTitle` false where the surface already shows the title (the deck card's heading). */
-export function PostingMasthead({ job, experience = null, showTitle = true }) {
+export function PostingMasthead({ job, experience = null, showTitle = true, vtTitle = null }) {
   const kicker = kickerFor(job);
   const cells = deckStrip(job, { experience });
   return (
     <header className="posting__mast" data-posting-masthead data-titled={showTitle ? "true" : "false"}>
       {kicker.length > 0 && <div className="posting__kicker" data-posting-kicker>{kicker.join(" · ")}</div>}
-      {showTitle && <h2 className="posting__title">{job.title}</h2>}
+      {/* vtTitle: the shared-element title name (lib/viewTransitions.js) — passed only by the posting panel, so the
+          deck's expanded copy never carries a second element of the same name. */}
+      {showTitle && <h2 className="posting__title" data-vt-title={vtTitle ?? undefined}>{job.title}</h2>}
       {showTitle && job.company && <div className="posting__company">{job.company}</div>}
       <dl className="posting__strip" data-posting-strip>
         {cells.map(c => (
@@ -42,6 +45,8 @@ export function PostingMasthead({ job, experience = null, showTitle = true }) {
             <dt>{c.label}</dt>
             {/* ⭐ "not stated" is a VALUE — italic serif — never a blank cell. */}
             <dd>{c.value ?? <span className="posting__ns">{NOT_STATED}</span>}</dd>
+            {/* D48: Workstyle's location line — muted, beneath the value. */}
+            {c.sub && <dd className="posting__sub" data-cell-sub="">{c.sub}</dd>}
           </div>
         ))}
       </dl>
@@ -74,12 +79,12 @@ export function PostingBody({ text }) {
  * THE POSTING PANEL. `text` defaults to the stored description; `children` is what a surface shows
  * when there is none (the board's fetch states, the deck's "open it at the source").
  */
-export default function PostingPanel({ job, text = job?.description, experience = null, showTitle = true, children = null }) {
+export default function PostingPanel({ job, text = job?.description, experience = null, showTitle = true, vtTitle = null, children = null }) {
   if (!job) return null;
   const body = String(text || "").trim();
   return (
     <article className="posting ink-pair" data-posting-panel>
-      <PostingMasthead job={job} experience={experience} showTitle={showTitle} />
+      <PostingMasthead job={job} experience={experience} showTitle={showTitle} vtTitle={vtTitle} />
       {body ? <PostingBody text={body} /> : <div className="posting__none">{children}</div>}
     </article>
   );

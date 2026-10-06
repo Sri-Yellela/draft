@@ -119,12 +119,21 @@ function postedLabel(job, now = Date.now()) {
  * The four cells, in the approved order. `value: null` IS THE FALLBACK — the masthead prints it as
  * "not stated". `met` is the Experience cell's tint: true only when the scorer judged it met.
  */
+// ⭐ D48 (owner, 10-07, posting-header2.html): "Workstyle" replaces "Where" — the value is the workstyle
+// (On-site · Hybrid · Remote), and LOCATION keeps a muted second line beneath it (`sub`), because the
+// header chip that carried it is gone and it would otherwise appear nowhere on the panel.
+const WORKSTYLE_WORDS = Object.freeze({ onsite: "On-site", hybrid: "Hybrid", remote: "Remote" });
+export function workstyleOf(job) {
+  const v = String(job?.tagWorkplace || job?.workplaceType || job?.workType || "").toLowerCase().replace(/[^a-z]/g, "");
+  return WORKSTYLE_WORDS[v] || null;
+}
+
 export function deckStrip(job, { experience = null, now = Date.now() } = {}) {
   const years = yearsAsked(job?.description);
-  const where = String(job?.location || "").trim() || null;
+  const location = String(job?.location || "").trim() || null;
   return [
     { key: "experience", label: "Experience", value: years?.label ?? null, met: !!years && experienceState(experience) === "met" },
-    { key: "where", label: "Where", value: where },
+    { key: "workstyle", label: "Workstyle", value: workstyleOf(job), sub: location },
     { key: "salary", label: "Salary", value: salaryLabel(job) },
     { key: "posted", label: "Posted", value: postedLabel(job, now) },
   ];

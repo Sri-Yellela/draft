@@ -1487,7 +1487,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
                   </span>
                 )}
                 {(suggestedSignals.inactiveSkills || []).map(skill => (
-                  <button
+                  <button className="dbx-depth"
                     key={skill.key}
                     type="button"
                     onClick={() => toggleSuggestedSkill(skill.key, true)}
@@ -1495,7 +1495,6 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
                       border:`1px dashed ${theme.border}`,
                       background:theme.bg,
                       color:theme.text,
-                      borderRadius:999,
                       padding:"6px 10px",
                       cursor:"pointer",
                       fontSize:12,
@@ -1540,7 +1539,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
                   </span>
                 )}
                 {(suggestedSignals.selectedSkills || []).map(skill => (
-                  <button
+                  <button className="dbx-depth"
                     key={skill.key}
                     type="button"
                     onClick={() => toggleSuggestedSkill(skill.key, false)}
@@ -1548,7 +1547,6 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
                       border:`1px solid ${theme.accent}`,
                       background:"color-mix(in srgb, var(--color-primary) 13%, transparent)",
                       color:theme.text,
-                      borderRadius:999,
                       padding:"6px 10px",
                       cursor:"pointer",
                       fontSize:12,

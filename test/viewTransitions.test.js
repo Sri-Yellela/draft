@@ -111,7 +111,11 @@ test("⛔ a transition never gates input, is short, and stops for reduced motion
 
 test("the three surfaces carry the shared title, and the tab row navigates through the transition", () => {
   assert.match(read("client/src/panels/DeckView.jsx"), /\{\.\.\.\(isFront \? \{ \[TITLE_ATTR\]: job\.id \} : null\)\}/, "the deck's FRONT card only");
-  assert.match(read("client/src/components/JobDetailPanel.jsx"), /data-vt-title=\{selectedJob\.id\}/);
+  // D48: the panel's title is the masthead's now (the header is logo · company · ATS · ×), so the panel passes the
+  // id down and the masthead's <h2> carries it; the deck's expanded copy passes none.
+  assert.match(read("client/src/components/JobDetailPanel.jsx"), /vtTitle=\{selectedJob\.id\}/);
+  assert.match(read("client/src/components/PostingPanel.jsx"), /<h2 className="posting__title" data-vt-title=\{vtTitle \?\? undefined\}>/);
+  assert.doesNotMatch(read("client/src/panels/DeckView.jsx"), /vtTitle=/, "a second element of the same transition name");
   const queue = read("client/src/panels/AutoApplyPanelSections.jsx");
   // D25: Draft House's lines are an in-flight row (ApplicationRow) and a Stopped item, which carries
   // the job id of the application it stands for (the company tile row that held the second one is gone).

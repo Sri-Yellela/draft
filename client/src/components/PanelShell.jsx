@@ -153,7 +153,7 @@ export function PanelDock({ width, fullScreen = false, children }) {
  */
 export default function PanelShell({
   panelId, slot = 0, width = DEFAULT_WIDTH, fullScreen = false, focused = true,
-  closesOnEscape = undefined, reserveRight = 0,
+  closesOnEscape = undefined, reserveRight = 0, bare = false,
   resizeMode = "dock", onResizeStart, onResize, onResizeEnd,
   onClose, onFocus, header, actions, children, bodyRef,
 }) {
@@ -279,6 +279,10 @@ export default function PanelShell({
           }}/>
       )}
 
+      {/* ⭐ D48 · `bare`: NO pinned regions. The posting panel (posting-header2.html) puts its header INSIDE
+          the scroll body — it scrolls away — and its actions in a StickyBar that sticks to the body's top.
+          The PDF and ATS panels keep the two pinned regions below. */}
+      {!bare && (<>
       {/* PINNED REGION 1 — identity. flexShrink:0 in a fixed-height column: cannot scroll away. */}
       <div style={{
         display: "flex", alignItems: "flex-start", gap: 10,
@@ -304,6 +308,7 @@ export default function PanelShell({
           {actions}
         </div>
       )}
+      </>)}
 
       {/* BODY — the only thing that scrolls, and the keyboard-scroll target (see the focus effect).
           overscrollBehavior:"contain" stops the scroll chaining to the page once the body hits its

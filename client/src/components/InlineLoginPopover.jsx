@@ -77,8 +77,8 @@ export default function InlineLoginPopover({ trigger, onLogin, align = "end", si
                 {error}
               </div>
             )}
-            <button type="submit" disabled={loading} className="liquid-glass"
-              style={{ width: "100%", height: 40, borderRadius: 999, fontSize: 13, fontWeight: 600,
+            <button type="submit" disabled={loading} className="liquid-glass dbx-depth"
+              style={{ width: "100%", height: 40, fontSize: 13, fontWeight: 600,
                 cursor: "pointer", color: "var(--color-text)", opacity: loading ? 0.6 : 1,
                 marginBottom: 12, border: "none" }}>
               {loading ? "Signing in…" : "Sign in"}
@@ -95,8 +95,8 @@ export default function InlineLoginPopover({ trigger, onLogin, align = "end", si
               </div>
               {OAUTH_PROVIDERS.filter(p => oauthStatus[p]?.configured).map(p => (
                 <button key={p} onClick={() => handleOAuth(p)} type="button"
-                  className="liquid-glass"
-                  style={{ width: "100%", height: 36, borderRadius: 999, fontSize: 12, fontWeight: 500,
+                  className="liquid-glass dbx-depth"
+                  style={{ width: "100%", height: 36, fontSize: 12, fontWeight: 500,
                     cursor: "pointer", color: "var(--color-text)", marginBottom: 6,
                     textTransform: "capitalize", border: "none" }}>
                   Continue with {p}

@@ -294,11 +294,11 @@ export default function SandboxPanel({
       <div style={{ display:"flex", gap:2, border:"1px solid var(--color-border)",
                     borderRadius:999, padding:2 }}>
         {[["page","Page"],["reading","Reading"]].map(([id,lbl]) => (
-          <button key={id} onClick={() => setViewChoice(id)}
+          <button className="dbx-depth" key={id} onClick={() => setViewChoice(id)}
             title={id === "page"
               ? "A4 pages, scaled to fit — matches the exported PDF"
               : "Reflow to panel width for legibility — does not show real pagination"}
-            style={{ ...btnStyle(), padding:"3px 10px", borderRadius:999, border:"none",
+            style={{ ...btnStyle(), padding:"3px 10px", border:"none",
                      background: viewMode===id ? "var(--color-primary)" : "transparent",
                      color: viewMode===id ? "var(--color-on-primary)" : "var(--color-text-muted)" }}>
             {lbl}
@@ -366,8 +366,8 @@ export default function SandboxPanel({
             This resume was expected from a previous run, but the stored artifact could not be loaded.
           </div>
           {activeEntry.error && <div style={{ fontSize:11, color:"var(--color-text-faint)" }}>{activeEntry.error}</div>}
-          <button onClick={onClose}
-            style={{ marginTop:8, padding:"7px 20px", borderRadius:999,
+          <button className="dbx-depth" onClick={onClose}
+            style={{ marginTop:8, padding:"7px 20px",
                      background:"var(--color-surface-offset)", border:`1px solid ${"var(--color-border)"}`,
                      cursor:"pointer", fontSize:12, color:"var(--color-text)" }}>
             Dismiss
@@ -382,8 +382,8 @@ export default function SandboxPanel({
           <div style={{ fontSize:32 }}>⚠</div>
           <div style={{ fontSize:13, color:"var(--color-text)", fontWeight:700 }}>Generation failed</div>
           <div style={{ fontSize:12, color:"var(--color-text-muted)" }}>{activeEntry.error}</div>
-          <button onClick={onClose}
-            style={{ marginTop:8, padding:"7px 20px", borderRadius:999,
+          <button className="dbx-depth" onClick={onClose}
+            style={{ marginTop:8, padding:"7px 20px",
                      background:"var(--color-surface-offset)", border:`1px solid ${"var(--color-border)"}`,
                      cursor:"pointer", fontSize:12, color:"var(--color-text)" }}>
             Dismiss

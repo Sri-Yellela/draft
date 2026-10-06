@@ -137,13 +137,13 @@ export function DateFilterButton({
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
-      <button
+      <button className="dbx-depth"
         data-rm-date-filter="1"
         style={{ display: "flex", alignItems: "center", gap: 6,
                  background: value ? theme.accentMuted : theme.surfaceHigh,
                  color: value ? theme.accentText : theme.textMuted,
                  border: `1px solid ${value ? "color-mix(in srgb, var(--color-primary) 25%, transparent)" : theme.border}`,
-                 borderRadius: 999, padding: "6px 14px", cursor: "pointer", fontSize: 12,
+                 padding: "6px 14px", cursor: "pointer", fontSize: 12,
                  fontWeight: 600, whiteSpace: "nowrap" }}
         onClick={() => {
           const opening = !open;

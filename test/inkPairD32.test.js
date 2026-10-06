@@ -91,8 +91,8 @@ test("⭐ the header is band · \"you cover 9 of the 12\" · score · ONE three-
   assert.match(card, /\{ATS_NUMBER_SHOWN && !isUnknown && Number\.isFinite\(report\?\.score\) && \(/);
   assert.match(read("shared/atsBands.js"), /export const ATS_NUMBER_SHOWN = true;/, "D50 turned the number on");
   assert.match(card, /<p data-ats-number-note className="ats-sum__note">\{ATS_NUMBER_NOTE\}/);
-  // The number is the largest element when it is shown — in SERIF ACCENT.
-  assert.match(css, /\.ats-sum__score \{[^}]*font-family: var\(--font-display\);[^}]*font-size: 46px;[^}]*color: var\(--c-pair-accent\);/);
+  // The number is the largest element when it is shown — in SERIF, in the kicker ink (D48: the --atx the owner chose).
+  assert.match(css, /\.ats-sum__score \{[^}]*font-family: var\(--font-display\);[^}]*font-size: 46px;[^}]*color: var\(--c-pair-kicker\);/);
   // ⛔ Generic language is drawn but NOT counted: "9 of 12" is matched over matched + missing only.
   assert.match(asks, /total: onResume\.length \+ missing/);
   assert.match(asks, /const missing = couldClaim\.length;/);
@@ -231,15 +231,16 @@ test("Experience: the row's regex `\\d+\\+?\\s*years?` plus the word-number map 
 
 test("⭐ thin tags: every deck-strip cell has a fallback — a missing fact is the VALUE \"not stated\", in italic serif", () => {
   const bare = deckStrip({});
-  assert.deepEqual(bare.map(c => c.label), ["Experience", "Where", "Salary", "Posted"], "the four cells, in the approved order");
+  assert.deepEqual(bare.map(c => c.label), ["Experience", "Workstyle", "Salary", "Posted"], "the four cells, in the approved order (D48: Where → Workstyle, the place beneath)");
   assert.ok(bare.every(c => c.value === null && !c.met));
   assert.equal(NOT_STATED, "not stated");
   assert.match(POSTING, /<dd>\{c\.value \?\? <span className="posting__ns">\{NOT_STATED\}<\/span>\}<\/dd>/);
   assert.match(POSTING_CSS, /\.posting__ns \{ font-family: var\(--font-display\); font-style: italic;/);
-  const full = deckStrip({ description: "4+ years of experience", location: "Boston, MA", salaryMin: 130000, salaryMax: 170000,
+  const full = deckStrip({ description: "4+ years of experience", location: "Boston, MA", tagWorkplace: "hybrid", salaryMin: 130000, salaryMax: 170000,
                            postedAt: new Date(Date.now() - 3 * 86400000).toISOString() },
                          { experience: { requiredYears: 4, candidateYears: 6, fit: true } });
-  assert.deepEqual(full.map(c => c.value), ["4+ yrs", "Boston, MA", "$130k–$170k", "3d ago"]);
+  assert.deepEqual(full.map(c => c.value), ["4+ yrs", "Hybrid", "$130k–$170k", "3d ago"]);
+  assert.equal(full[1].sub, "Boston, MA", "the location sits under the workstyle");
   assert.equal(full[0].met, true, "the Experience cell tints when met");
   assert.equal(deckStrip({ description: "4+ years of experience" }, { experience: { requiredYears: null, fit: true } })[0].met, false,
     "no tint for 'no years asked', even though the scorer calls it fit");
@@ -286,7 +287,7 @@ test("⛔ the ATS content is OUT of the description — the posting reads no rep
   const posting = strip(POSTING);
   assert.doesNotMatch(posting, /tier1_|competencies_|action_verbs_|decline_reasons|skillsMatched|verbsMissing|AtsReport|AtsBandCard/);
   // It is handed, at most, the scorer's experience judgement — for the Experience cell's tint.
-  assert.match(POSTING, /export default function PostingPanel\(\{ job, text = job\?\.description, experience = null, showTitle = true, children = null \}\)/);
+  assert.match(POSTING, /export default function PostingPanel\(\{ job, text = job\?\.description, experience = null, showTitle = true, vtTitle = null, children = null \}\)/);
 });
 
 test("⛔ D17: zero model calls — the masthead is columns, tags and a regex; the body is the stored text", () => {
@@ -340,7 +341,7 @@ test("⛔ THE ONLY DARK SURFACE IS A RULE: no file but the pair wears it, and no
   // The extension draws no pair, so its generated tokens carry none of the pair's.
   for (const f of ["extension/tokens.css", "extension/tokens.js"]) assert.doesNotMatch(read(f), /PAIR_|--c-pair-/, `${f} carries the pair`);
   // (D35 added the Full House header's FH_* to the same exclusion — the extension draws no board header.)
-  assert.match(read("scripts/buildExtensionTokens.mjs"), /const names = Object\.keys\(C_LIGHT\)\.filter\(\(n\) => !n\.startsWith\("PAIR_"\)(?: && !n\.startsWith\("FH_"\))?\);/);
+  assert.match(read("scripts/buildExtensionTokens.mjs"), /const names = Object\.keys\(C_LIGHT\)\.filter\(\(n\) => !n\.startsWith\("PAIR_"\)(?: && !n\.startsWith\("FH_"\))?(?: && !n\.startsWith\("PP_"\))?\);/);
 });
 
 test("⛔ ONE token set for both themes: cream in light, the darkest ink in dark — and nothing else dark in light", () => {

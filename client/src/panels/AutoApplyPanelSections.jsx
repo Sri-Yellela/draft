@@ -242,8 +242,8 @@ export function ApplicationObstacleCard({
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
         {app.primary?.row?.resumeAvailable ? (
-          <a href={artifactUrl(app.primary.row.id, "resume")} target="_blank" rel="noreferrer"
-            style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+          <a className="dbx-depth" href={artifactUrl(app.primary.row.id, "resume")} target="_blank" rel="noreferrer"
+            style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
                      border: `1px solid ${theme.border}`, background: theme.surface,
                      color: theme.text, textDecoration: "none", whiteSpace: "nowrap" }}>
             Resume PDF ↗
@@ -254,9 +254,9 @@ export function ApplicationObstacleCard({
           // with an obvious fix — so it is a button, not the dead chip it used to be. Offered only
           // when a missing resume is one of the reasons this application is held, and withheld when
           // the posting is gone: there would be nothing to tailor a resume to.
-          <button onClick={() => onGenerateResume(app)}
+          <button className="dbx-depth" onClick={() => onGenerateResume(app)}
             title="Drafts this job again — the new run generates a tailored resume for it before it applies."
-            style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999,
+            style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px",
                      border: "none", background: C.INFO, color: C.SURFACE_SOLID, cursor: "pointer",
                      whiteSpace: "nowrap" }}>
             Generate a resume
@@ -288,8 +288,8 @@ export function ApplicationObstacleCard({
           );
         })()}
         {app.applyUrl && (
-          <a href={app.applyUrl} target="_blank" rel="noreferrer"
-            style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+          <a className="dbx-depth" href={app.applyUrl} target="_blank" rel="noreferrer"
+            style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
                      border: `1px solid ${theme.border}`, background: theme.surface,
                      color: theme.text, textDecoration: "none", whiteSpace: "nowrap" }}>
             The posting ↗
@@ -360,8 +360,8 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
                                  background: bg, color: fg, whiteSpace: "nowrap" }}>{text}</span>
   );
   const link = (href, text) => (
-    <a href={href} target="_blank" rel="noreferrer"
-      style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+    <a className="dbx-depth" href={href} target="_blank" rel="noreferrer"
+      style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
                border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text,
                textDecoration: "none", whiteSpace: "nowrap" }}>{text}</a>
   );
@@ -436,9 +436,9 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
             // row correctly says needs an operator and which no resume will fix.
             : onGenerateResume && d.resumeBlocked
               ? (
-                <button onClick={() => onGenerateResume(job)}
+                <button className="dbx-depth" onClick={() => onGenerateResume(job)}
                   title="Drafts this job again — the new run generates a tailored resume for it before it applies."
-                  style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999,
+                  style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px",
                            border: "none", background: C.INFO, color: C.SURFACE_SOLID, cursor: "pointer",
                            whiteSpace: "nowrap" }}>
                   Generate a resume
@@ -545,9 +545,9 @@ function FillLog({ runJobId, theme }) {
 
   if (state.status === "idle") {
     return (
-      <button onClick={e => { e.stopPropagation(); load(); }}
+      <button className="dbx-depth" onClick={e => { e.stopPropagation(); load(); }}
         title="Every field this run filled, where each answer came from, and every field left blank with the reason."
-        style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+        style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
                  border: `1px solid ${theme.border}`, background: theme.surfaceHigh,
                  color: theme.text, cursor: "pointer", whiteSpace: "nowrap" }}>
         What was filled
@@ -708,9 +708,9 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
           tell whether a resume had even been generated. */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         {job.resumeAvailable ? (
-          <a href={artifactUrl(job.id, "resume")} target="_blank" rel="noreferrer"
+          <a className="dbx-depth" href={artifactUrl(job.id, "resume")} target="_blank" rel="noreferrer"
             onClick={e => e.stopPropagation()}
-            style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+            style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
                      border: `1px solid ${theme.border}`, background: theme.surfaceHigh,
                      color: theme.text, textDecoration: "none", whiteSpace: "nowrap" }}>
             Resume PDF ↗
@@ -728,10 +728,10 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
             application's — one application can have a held attempt and a submitted one, and only
             the second has anything to show. */}
         {job.status === "submitted" && job.screenshotAvailable && (
-          <a href={artifactUrl(job.id, "screenshot")} target="_blank" rel="noreferrer"
+          <a className="dbx-depth" href={artifactUrl(job.id, "screenshot")} target="_blank" rel="noreferrer"
             onClick={e => e.stopPropagation()}
             title="A picture of the form as it was submitted. This is the record of what went out."
-            style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+            style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
                      border: `1px solid ${theme.border}`, background: theme.surfaceHigh,
                      color: theme.textMuted, textDecoration: "none", whiteSpace: "nowrap" }}>
             Screenshot of the form ↗
@@ -757,12 +757,12 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
           }
           const stale = packet.stale;
           return (
-            <button
+            <button className="dbx-depth"
               onClick={e => { e.stopPropagation(); if (stale) onRerun?.(job); else onHandoff?.(packet, job); }}
               title={stale
                 ? "These answers were prepared too long ago to fill safely. A fresh run prepares new ones."
                 : "Opens the real application in your own browser and fills it with the answers we prepared. You review and submit."}
-              style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999,
+              style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px",
                        border: stale ? `1px solid ${theme.border}` : "none",
                        background: stale ? theme.surfaceHigh : C.INFO,
                        color: stale ? theme.text : C.SURFACE_SOLID, cursor: "pointer",

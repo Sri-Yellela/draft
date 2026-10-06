@@ -33,6 +33,8 @@ import "@fontsource/instrument-serif/400-italic.css";
 
 import "./styles/colorTokens.js";   // publishes --c-* before anything paints
 import "./index.css";
+// D48: the depth box — DepthButton's classes AND the .dbx-depth skin every other interactive control wears.
+import "./components/DepthButton.css";
 import { ThemeProvider } from "./styles/theme.jsx";
 import App from "./App.jsx";
 

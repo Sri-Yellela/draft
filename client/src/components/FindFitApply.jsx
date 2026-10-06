@@ -124,11 +124,11 @@ export default function FindFitApply() {
       </ol>
 
       <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginTop: 72 }}>
-        <Link to="/register" style={{ background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`, borderRadius: 999,
+        <Link className="dbx-depth" to="/register" style={{ background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`,
                                       padding: "13px 26px", fontWeight: 800, fontSize: 15, textDecoration: "none", boxShadow: C.SHADOW_GLASS }}>
           Get today's draft
         </Link>
-        <Link to="/tools/ats" style={{ ...glass({ radius: 999 }), padding: "13px 26px", fontWeight: 800, fontSize: 15, color: C.INK, textDecoration: "none" }}>
+        <Link className="dbx-depth" to="/tools/ats" style={{ ...glass({ radius: 10 }), padding: "13px 26px", fontWeight: 800, fontSize: 15, color: C.INK, textDecoration: "none" }}>
           Check a résumé — no account
         </Link>
       </div>

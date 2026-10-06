@@ -168,7 +168,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
     const label = oauthLabel(provider);
     const brand = provider === "linkedin" ? C.PROVIDER_LINKEDIN : provider === "github" ? C.PROVIDER_GITHUB : C.PROVIDER_GOOGLE;
     return (
-      <a href={`/auth/${provider}`} title={`Continue with ${label}`}
+      <a className="dbx-depth" href={`/auth/${provider}`} title={`Continue with ${label}`}
         style={{ ...providerButtonStyle, background:brand, color:C.ON_PROVIDER, border:"none", textDecoration:"none" }}>
         Continue with {label}
       </a>
@@ -252,7 +252,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
   };
   const halfInput = { ...inputStyle, flex:1 };
   const providerButtonStyle = {
-    width:"100%", height:40, borderRadius:999, border:"1px solid var(--border-glass)",
+    width:"100%", height:40, border:"1px solid var(--border-glass)",
     background:"var(--bg-input)", color:theme.text, fontWeight:800, cursor:"pointer",
     fontSize:13, display:"flex", alignItems:"center", justifyContent:"center", gap:8,
   };
@@ -269,8 +269,8 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
                     background:"var(--c-surface)",
                     borderRadius:999, padding:4 }}>
         {["login","register"].map(t => (
-          <button key={t} onClick={() => { setTab(t); setRegStep(1); setError(""); setNotice(""); }}
-            style={{ flex:1, padding:"7px 0", borderRadius:999, border:"none",
+          <button className="dbx-depth" key={t} onClick={() => { setTab(t); setRegStep(1); setError(""); setNotice(""); }}
+            style={{ flex:1, padding:"7px 0", border:"none",
                      fontWeight:700, fontSize:12, cursor:"pointer",
                      background: tab===t ? theme.accent : "transparent",
                      color: tab===t ? "var(--c-on-accent)" : theme.textMuted,
@@ -288,8 +288,8 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
             onChange={e=>setL("password",e.target.value)}/>
           {error && <div style={{ color:theme.danger, fontSize:12 }}>{error}</div>}
           {notice && <div style={{ color:theme.success, fontSize:12 }}>{notice}</div>}
-          <button type="submit" disabled={loading}
-            style={{ width:"100%", padding:"12px 0", borderRadius:999, border:"none",
+          <button className="dbx-depth" type="submit" disabled={loading}
+            style={{ width:"100%", padding:"12px 0", border:"none",
                      background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
                      fontSize:14, cursor:"pointer", marginTop:4,
                      opacity:loading?0.7:1, transition:"opacity 0.2s" }}>
@@ -345,8 +345,8 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
           {error && <div style={{ color:theme.danger, fontSize:12 }}>{error}</div>}
           {notice && <div style={{ color:theme.success, fontSize:12 }}>{notice}</div>}
           {(!resetSent || reset.token) && (
-            <button type="submit" disabled={loading}
-              style={{ width:"100%", padding:"12px 0", borderRadius:999, border:"none",
+            <button className="dbx-depth" type="submit" disabled={loading}
+              style={{ width:"100%", padding:"12px 0", border:"none",
                        background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
                        fontSize:14, cursor:"pointer", marginTop:4,
                        opacity:loading?0.7:1, transition:"opacity 0.2s" }}>
@@ -383,8 +383,8 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
           <input style={inputStyle} placeholder="Apify token (optional, starts with apify_api_…)"
             value={step1.apify_token} onChange={e=>setS1("apify_token",e.target.value)}/>
           {error && <div style={{ color:theme.danger, fontSize:12 }}>{error}</div>}
-          <button type="submit"
-            style={{ width:"100%", padding:"12px 0", borderRadius:999, border:"none",
+          <button className="dbx-depth" type="submit"
+            style={{ width:"100%", padding:"12px 0", border:"none",
                      background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
                      fontSize:14, cursor:"pointer", marginTop:4 }}>
             Continue →
@@ -419,14 +419,14 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
             onChange={e=>setS2("phone",e.target.value)}/>
           {error && <div style={{ color:theme.danger, fontSize:12 }}>{error}</div>}
           <div style={{ display:"flex", gap:8, marginTop:4 }}>
-            <button type="button" onClick={() => { setRegStep(1); setError(""); }}
-              style={{ padding:"12px 20px", borderRadius:999, border:`1px solid ${theme.border}`,
+            <button className="dbx-depth" type="button" onClick={() => { setRegStep(1); setError(""); }}
+              style={{ padding:"12px 20px", border:`1px solid ${theme.border}`,
                        background:"transparent", color:theme.textMuted, fontWeight:700,
                        fontSize:13, cursor:"pointer" }}>
               ← Back
             </button>
-            <button type="submit" disabled={loading}
-              style={{ flex:1, padding:"12px 0", borderRadius:999, border:"none",
+            <button className="dbx-depth" type="submit" disabled={loading}
+              style={{ flex:1, padding:"12px 0", border:"none",
                        background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
                        fontSize:14, cursor:"pointer",
                        opacity:loading?0.7:1, transition:"opacity 0.2s" }}>

@@ -1184,10 +1184,10 @@ export function AutoApplyPanel() {
               padding:"12px 20px", borderTop:`1px solid ${theme.border}`, flexShrink:0,
               display:"flex", justifyContent:"flex-end",
             }}>
-              <button
+              <button className="dbx-depth"
                 onClick={() => closeReview()}
                 style={{
-                  padding:"8px 20px", borderRadius:999, fontWeight:700, fontSize:12,
+                  padding:"8px 20px", fontWeight:700, fontSize:12,
                   background:"transparent", color:theme.textMuted,
                   border:`1px solid ${theme.border}`, cursor:"pointer",
                   fontFamily:"inherit",

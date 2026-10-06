@@ -14,8 +14,11 @@ test("the client: one scoring read per screen", () => {
   const read = (f) => fs.readFileSync(f, "utf8");
   // The JD header no longer prints "No signal" for an absent score.
   const jd = read("client/src/components/JobDetailPanel.jsx");
-  assert.match(jd, /const atsShown = atsScore != null;/);
-  assert.match(jd, /\{atsShown \? <span/);
+  // D48: the header's ATS number box — no score draws the dashed box with NO digits, never "No signal".
+  assert.match(jd, /const atsScore = g\?\.atsScore \?\? job\?\.baseAtsScore \?\? null;/);
+  assert.match(jd, /const has = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);
+  assert.match(jd, /\{has\s+\? \(<><b>\{Math\.round\(score\)\}<\/b>/);
+  assert.doesNotMatch(jd, /No signal/);
   // The panel's own verdict is adopted by the board, the JD header and the panel header.
   const jobs = read("client/src/panels/JobsPanel.jsx");
   assert.match(jobs, /const adoptPanelVerdict = useCallback\(/);

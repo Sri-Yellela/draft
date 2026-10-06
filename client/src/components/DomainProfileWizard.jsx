@@ -27,11 +27,11 @@ function arrayField(value) {
 function Chip({ label, selected, onToggle }) {
   const { theme } = useTheme();
   return (
-    <button
+    <button className="dbx-depth"
       type="button"
       onClick={() => onToggle(label)}
       style={{
-        padding: "4px 12px", borderRadius: 999, border: "none",
+        padding: "4px 12px", border: "none",
         fontSize: 12, fontWeight: 600, cursor: "pointer",
         background: selected ? theme.accent : theme.surfaceHigh,
         color:      selected ? C.ON_ACCENT    : theme.textMuted,

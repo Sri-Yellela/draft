@@ -80,8 +80,8 @@ export default function DeckGeometryControl({ orientation, pref, onChoose, reduc
 
   return (
     <div ref={rootRef} style={{ position: "relative" }}>
-      <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} aria-controls={`${id}-panel`}
-        style={{ ...glass({ radius: 999 }), padding: "6px 12px", fontSize: 13, fontWeight: 800, color: C.INK, cursor: "pointer" }}>
+      <button className="dbx-depth" type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} aria-controls={`${id}-panel`}
+        style={{ ...glass({ radius: 10 }), padding: "6px 12px", fontSize: 13, fontWeight: 800, color: C.INK, cursor: "pointer" }}>
         Layout
       </button>
       {open && at && createPortal(

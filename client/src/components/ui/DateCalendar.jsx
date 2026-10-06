@@ -99,20 +99,20 @@ export function DateCalendar({ value, onChange, onClose, theme, markers = {}, on
     <div data-rm-calendar="1" style={{ padding:16, width:260, maxHeight:"320px", overflowY:"auto" }}>
       <div style={{ display:"flex", alignItems:"center",
                     justifyContent:"space-between", marginBottom:12 }}>
-        <button aria-label="Previous month"
+        <button className="dbx-depth" aria-label="Previous month"
           style={{ background:"transparent",
                    border:`1px solid ${theme.border}`,
-                   color:theme.textMuted, borderRadius:"999px", width:28, height:28,
+                   color:theme.textMuted, width:28, height:28,
                    cursor:"pointer", fontSize:16,
                    display:"flex", alignItems:"center", justifyContent:"center" }}
           onClick={prev}>‹</button>
         <span style={{ fontWeight:700, fontSize:13, color:theme.text }}>
           {MONTHS[view.month]} {view.year}
         </span>
-        <button aria-label="Next month"
+        <button className="dbx-depth" aria-label="Next month"
           style={{ background:"transparent",
                    border:`1px solid ${theme.border}`,
-                   color:theme.textMuted, borderRadius:"999px", width:28, height:28,
+                   color:theme.textMuted, width:28, height:28,
                    cursor:"pointer", fontSize:16,
                    display:"flex", alignItems:"center", justifyContent:"center" }}
           onClick={next}>›</button>

@@ -39,7 +39,8 @@
   pointer-events: auto; /* override zone's pointer-events: none */
   margin-top: 0.75rem;
   padding: 10px 24px;
-  border-radius: 999px;
+  border-radius: 10px; /* D48: a depth box, not a pill */
+  box-shadow: var(--c-depth-rest);
   border: 1px solid var(--border-glass);
   background: var(--c-surface);
   backdrop-filter: var(--bg-blur-sm, blur(20px) saturate(160%));

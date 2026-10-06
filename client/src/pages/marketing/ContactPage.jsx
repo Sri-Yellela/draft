@@ -73,8 +73,8 @@ export function ContactPage() {
                 Something went wrong — please try again.
               </div>
             )}
-            <button type="submit" disabled={status === "sending"}
-              style={{ padding: "12px 0", borderRadius: 999, border: "none",
+            <button className="dbx-depth" type="submit" disabled={status === "sending"}
+              style={{ padding: "12px 0", border: "none",
                         background: "var(--color-primary)", color: "var(--color-on-primary)",
                         fontWeight: 800, fontSize: 14, cursor: "pointer",
                         opacity: status === "sending" ? 0.7 : 1 }}>

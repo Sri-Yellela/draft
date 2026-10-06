@@ -82,7 +82,9 @@ export function serifViolations(postingCss, indexCss) {
   }
   // Nothing beneath the body or the strip may set another face on the employer's words or the values —
   // a later rule, a media block or a shorthand `font:` would all win over the one above.
-  const WORDS = /^\.posting__(body|p|ul)\b(?!.*first-letter)|^\.posting__cell dd|^\.posting__strip dd/;
+  // D48: the Workstyle cell's location line (dd.posting__sub) is NOT a value — posting-header2.html sets it sans
+  // (`.dk .sub{font:400 11px/1.35 ui-sans-serif}`), so it alone is outside the serif rule.
+  const WORDS = /^\.posting__(body|p|ul)\b(?!.*first-letter)|^\.posting__cell dd(?!\.posting__sub)|^\.posting__strip dd/;
   for (const [sel, d] of rules(postingCss)) {
     if (!WORDS.test(sel)) continue;
     if (d.has("font")) out.push(`${sel} sets the font shorthand`);
