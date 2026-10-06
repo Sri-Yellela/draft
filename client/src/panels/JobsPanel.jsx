@@ -40,10 +40,12 @@ import CompanyIcon from "../components/ui/CompanyIcon.jsx";
 import { JOB_URL_PARAM, jobIdFromSearch } from "../lib/jobUrl.js";
 // D35: the Full House header (App.jsx) renders the sentence, its one panel and the sort panel; this
 // panel publishes what they read — the committed clause params and the facets answer.
-import { JOB_FUNCTIONS, PLACES, functionForRole } from "../../../shared/jobTagVocabulary.js";
+import { JOB_FUNCTIONS, PLACES } from "../../../shared/jobTagVocabulary.js";
+// D42 · the company's sector — a drawer filter, separate from the job's domain (the sentence's word).
+import { SECTORS } from "../../../shared/companySectors.js";
 import { useJobFacets } from "../hooks/useJobFacets.js";
 import {
-  SENTENCE_CLAUSES, activeClauseCount as countActiveClauses,
+  SENTENCE_CLAUSES, activeClauseCount as countActiveClauses, STRICT_PARAM,
   sortFromCachedSnapshot,
 } from "../lib/filterSentenceModel.js";
 import { FIT_BANDS } from "../../../shared/filterSentence.js";
@@ -424,6 +426,10 @@ function defaultFilterSnapshot() {
     // set ("location"; empty IS the US floor). Empty is default-off, so the querystring is unchanged.
     jobFunctions: [],
     places: [],
+    // D42: the COMPANY's sector (drawer) and the strict toggle ("only jobs known to match" — the
+    // panels' pill). Default-off, so the querystring is unchanged.
+    sectors: [],
+    strictTags: false,
   };
 }
 
@@ -481,6 +487,7 @@ function FiltersPanel({
   skillsInclude, setSkillsInclude,
   sponsorFriendly, setSponsorFriendly,
   companySponsors, setCompanySponsors,
+  sectors = [], setSectors = () => {},
   sourcesInclude, setSourcesInclude,
   sourcesExclude, setSourcesExclude,
   tiersInclude, setTiersInclude,
@@ -944,6 +951,37 @@ function FiltersPanel({
             From US Department of Labor LCA disclosure data. Removes only employers we matched
             confidently and that filed nothing in the quarters we hold — a company we could not
             identify stays on the board.
+          </div>
+        </div>
+
+        {/* D42 (owner, 10-06): THE COMPANY'S SECTOR — a different thing from the job's domain, which is
+            the sentence's first word. "A finance job at OpenAI is more of a finance job the user cares
+            about than an SDE role at Fidelity": domain is the work, sector is the employer. Read from
+            the company name (shared/companySectors.js), never guessed from a posting's words; a company
+            with no sector on file is kept, after the known matches. */}
+        <div data-filter="sectors">
+          <div style={labelStyle}>Company sector</div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+            {SECTORS.options.map(opt => {
+              const active = sectors.includes(opt.value);
+              return (
+                <button key={opt.value} type="button" aria-pressed={active}
+                  onClick={() => setSectors(active ? sectors.filter(v => v !== opt.value) : [...sectors, opt.value])}
+                  style={{
+                    padding:"5px 12px", borderRadius:999, fontSize:11, fontWeight:600,
+                    cursor:"pointer", border:`1px solid ${active ? theme.accent : theme.border}`,
+                    background: active ? theme.accentMuted : "transparent",
+                    color: active ? theme.accentText : theme.textMuted,
+                    transition:"all 0.15s",
+                  }}>
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ fontSize:10, color:theme.textDim, marginTop:4 }}>
+            The employer's industry, not the kind of work — pick the kind of work in the sentence above.
+            Companies with no sector on file are kept, after the ones we know.
           </div>
         </div>
 
@@ -1594,6 +1632,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const [fitBands,       setFitBands]       = useState([]);
   const [jobFunctions,   setJobFunctions]   = useState([]);
   const [places,         setPlaces]         = useState([]);
+  const [sectors,        setSectors]        = useState([]);
+  const [strictTags,     setStrictTags]     = useState(false);
   const [facetCounts,    setFacetCounts]    = useState(null);
   const [pendingFilters, setPendingFilters] = useState(defaultFilterSnapshot);
 
@@ -1670,12 +1710,14 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     fitBands,
     jobFunctions,
     places,
+    sectors,
+    strictTags,
   }), [
     roleFilter, locationFilter, workType, employmentTypePrefs,
     catFilter, srcFilter, minYoe, maxYoe, maxApplicants, visitedFilter, ageFilter,
     salaryMin, salaryMax, workModels, experienceLevels, skillsInclude, sponsorFriendly,
     companySponsors, sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, fitBands,
-    jobFunctions, places,
+    jobFunctions, places, sectors, strictTags,
   ]);
 
   const stageFilter = useCallback((key, value) => {
@@ -1724,6 +1766,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setFitBands(Array.isArray(next.fitBands) ? next.fitBands : []);
     setJobFunctions(Array.isArray(next.jobFunctions) ? next.jobFunctions : []);
     setPlaces(Array.isArray(next.places) ? next.places : []);
+    setSectors(Array.isArray(next.sectors) ? next.sectors : []);
+    setStrictTags(!!next.strictTags);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyPendingFilters = useCallback(() => {
@@ -2159,6 +2203,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // D30: the domain and location dials, by the contract's param names (D29's tag dimensions).
     if (jobFunctions.length)   p.set(JOB_FUNCTIONS.param, jobFunctions.join(","));
     if (places.length)         p.set(PLACES.param,      places.join(","));
+    // D42: the company sector (drawer) and the strict toggle (the panels' "only known" pill).
+    if (sectors.length)        p.set(SECTORS.param,     sectors.join(","));
+    if (strictTags)            p.set("strict_tags",     "1");
     // posted_after: derived from the SAME named-interval the legacy ageFilter already uses —
     // no new UI control, matching the server's own AGE_MAP (server.js's /api/jobs handler).
     // Redundant with ageFilter's own inline clause (same date, same source of truth) — both
@@ -2173,7 +2220,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       boardTab, localSearch,
       salaryMin, salaryMax, workModels, experienceLevels, skillsInclude, sponsorFriendly,
       sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, curateOff, fitBands,
-      jobFunctions, places]);
+      jobFunctions, places, sectors, strictTags]);
 
   // FE-2: opt-in facet counts for the panel currently being edited — requested against the
   // CURRENTLY-COMMITTED filters (buildParams(1)), not the still-being-staged pendingFilters, so
@@ -2227,14 +2274,19 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     posted:   [ageFilter,        setAgeFilter],
     fit:      [fitBands,         setFitBands],
   };
-  const clauseParams = Object.fromEntries(
-    SENTENCE_CLAUSES.map(c => [c.dim.param, clauseState[c.key]?.[0]]));
-  const clauseCount = countActiveClauses(clauseParams);
+  const clauseCount = countActiveClauses(Object.fromEntries(
+    SENTENCE_CLAUSES.map(c => [c.dim.param, clauseState[c.key]?.[0]])));
+  // D42 · the strict toggle travels with the clauses (the panels' "only known" pill sets it).
+  const clauseParams = {
+    ...Object.fromEntries(SENTENCE_CLAUSES.map(c => [c.dim.param, clauseState[c.key]?.[0]])),
+    [STRICT_PARAM]: strictTags ? "1" : "",
+  };
 
   const applyClausePatch = (patch) => {
     for (const c of SENTENCE_CLAUSES) {
       if (Object.prototype.hasOwnProperty.call(patch, c.dim.param)) clauseState[c.key]?.[1](patch[c.dim.param]);
     }
+    if (Object.prototype.hasOwnProperty.call(patch, STRICT_PARAM)) setStrictTags(!!patch[STRICT_PARAM]);
     setCurrentPage(1);
   };
   // The header holds these across renders; the ref keeps them pointed at THIS render's closures.
@@ -2247,7 +2299,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // Filters that are NOT clauses (the drawer's) and still narrow the board — "+ add" says how many
   // are on. The bar's Domain and Status are left out: they are not drawer filters.
   const otherFilterCount = Math.max(0,
-    activeFilterCount - clauseCount - (domainFilter ? 1 : 0) - (appliedFilter ? 1 : 0));
+    activeFilterCount - clauseCount - (strictTags ? 1 : 0) - (domainFilter ? 1 : 0) - (appliedFilter ? 1 : 0));
 
   // GET /api/jobs/facets, for the board's own querystring. D35: ALWAYS — the bar's view counts and
   // the panels' coverage lines are on the page, not behind a panel.
@@ -2258,10 +2310,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // "Let's get to work." caption was — a projection of exactly these clause params, so the headline
   // and its panels cannot disagree. The unset domain reads the profile's own function (the board IS
   // scoped to it); "Nothing matches" when the board answered with no rows.
-  const defaultDomain = useMemo(() => {
-    const fn = functionForRole(activeDomainProfile?.role_family);
-    return JOB_FUNCTIONS.options.find(o => o.value === fn)?.sentence ?? null;
-  }, [activeDomainProfile?.role_family]);
+  // ⛔ D42 (owner, 10-06): the unset domain reads "all" — for an engineering profile it IS engineering +
+  // data (ROLE_SCOPE_EXTRA) — never the profile's word. So there is no default word to pass.
+  const defaultDomain = null;
   const clauseParamsKey = JSON.stringify(clauseParams);
   const nothingMatches = !bgLoading && !!activeDomainProfile && boardTab === "all" && totalJobs === 0 && jobs.length === 0;
   useEffect(() => {
@@ -2526,6 +2577,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       fitBands,
       // D30's domain and location dials — the same reason again.
       jobFunctions, places,
+      // D42's sector and strict toggle — and again.
+      sectors, strictTags,
   ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // -- The search bar's params land here ------------------------------------------------------
@@ -2811,6 +2864,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setSourcesExclude(csv("sources_exclude"));
     setTiersInclude(csv("tiers_include"));
     setTiersExclude(csv("tiers_exclude"));
+    // D42: the company sector and the strict toggle round-trip the same way.
+    setSectors(csv(SECTORS.param));
+    setStrictTags(p.get("strict_tags") === "1");
     setCurrentPage(1);
   }, [activeDomainProfile]);
 
@@ -3434,6 +3490,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             skillsInclude={pendingFilters.skillsInclude} setSkillsInclude={value => stageFilter("skillsInclude", value)}
             sponsorFriendly={pendingFilters.sponsorFriendly} setSponsorFriendly={value => stageFilter("sponsorFriendly", value)}
             companySponsors={pendingFilters.companySponsors} setCompanySponsors={value => stageFilter("companySponsors", value)}
+            sectors={pendingFilters.sectors || []} setSectors={value => stageFilter("sectors", value)}
             sourcesInclude={pendingFilters.sourcesInclude || []} setSourcesInclude={value => stageFilter("sourcesInclude", value)}
             sourcesExclude={pendingFilters.sourcesExclude || []} setSourcesExclude={value => stageFilter("sourcesExclude", value)}
             tiersInclude={pendingFilters.tiersInclude || []}   setTiersInclude={value => stageFilter("tiersInclude", value)}

@@ -13,6 +13,7 @@ import { normaliseAtsTerm } from '../localAtsScorer.js';
 // row reads its legacy column — see tagFilters.js). Location reads the place SET, never sj.location.
 import { LEVEL_SQL, WORKPLACE_SQL, EMPLOYMENT_SQL, FUNCTION_SQL, placesFilterSql } from './tagFilters.js';
 import { resolvePlaceText } from '../../shared/jobTagVocabulary.js';
+import { sectorSql, validSectors } from '../../shared/companySectors.js';
 
 /**
  * SQL WHERE-clause + facet builder for the /api/jobs board query.
@@ -71,6 +72,22 @@ function toNumber(v) {
   if (v === null || v === undefined || v === '') return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+/** D42 · strict_tags=1 / true asks for known matches only. */
+function isStrict(v) {
+  return v === true || v === 1 || v === '1' || v === 'true';
+}
+
+/**
+ * D42 · the role buckets a profile's scope admits BESIDE its declared one, as a predicate on the role
+ * map. Values are matched against a closed pattern and inlined (the placesFilterSql rule): they come
+ * from shared/jobTagVocabulary.js ROLE_SCOPE_EXTRA, never from a caller's text. '' when there are none.
+ */
+export function roleScopeExtraSql(extra) {
+  const keys = toArray(extra).map(String).filter(k => /^[a-z_]+$/.test(k));
+  if (!keys.length) return '';
+  return `EXISTS (SELECT 1 FROM job_role_map m WHERE m.job_id = sj.job_id AND m.role_key IN (${keys.map(k => `'${k}'`).join(',')}))`;
 }
 
 function toInt(v) {
@@ -439,8 +456,11 @@ function buildJobFilters(params = {}, opts = {}) {
   // passes `role_key` without the LEFT JOIN gets a SQL error at prepare time, which is the loud
   // failure rather than a silently wrong board.
   if (isDerived('role_key')) {
+    // D42 · the scope's EXTRA buckets (an engineering profile's scope is engineering + data) are in
+    // scope, so they rank as matches beside the declared bucket, not among the unclassified.
+    const extra = roleScopeExtraSql(params.role_scope_extra);
     ranks.role_key = {
-      sql: `CASE WHEN jrm.role_key IS NOT NULL THEN ${RANK_MATCH} ELSE ${RANK_UNKNOWN} END`,
+      sql: `CASE WHEN jrm.role_key IS NOT NULL${extra ? ` OR ${extra}` : ''} THEN ${RANK_MATCH} ELSE ${RANK_UNKNOWN} END`,
       params: [],
     };
   }
@@ -480,10 +500,13 @@ function buildJobFilters(params = {}, opts = {}) {
     const v = resolvePlaceText(t);
     if (v) placeValues.push(v); else unresolved.push(t);
   }
+  // ⭐ D42 · THE STRICT TOGGLE ("only jobs known to be in Boston"). Every soft-null tag filter below
+  // keeps its unknown rows (ranked after, labelled) unless the user asks for known matches only.
+  const strict = isStrict(params.strict_tags);
   const places = placesFilterSql(placeValues);
   if (places) {
-    clauses.push(places.sql);
-    established.push({ key: 'places', sql: places.unknownSql });
+    clauses.push(strict ? places.matchSql : places.sql);
+    if (!strict) established.push({ key: 'places', sql: places.unknownSql });
   }
   if (unresolved.length) {
     clauses.push(`(${unresolved.map(() => 'sj.location LIKE ?').join(' OR ')})`);
@@ -494,9 +517,23 @@ function buildJobFilters(params = {}, opts = {}) {
   // Soft-null: 'general' (the classifier's "matched nothing") is tagged NULL and kept, after the matches.
   const jobFunctions = toArray(params.job_functions);
   if (jobFunctions.length) {
-    clauses.push(`(${FUNCTION_SQL} IS NULL OR ${FUNCTION_SQL} IN (${jobFunctions.map(() => '?').join(',')}))`);
+    const inList = `${FUNCTION_SQL} IN (${jobFunctions.map(() => '?').join(',')})`;
+    clauses.push(strict ? inList : `(${FUNCTION_SQL} IS NULL OR ${inList})`);
     args.push(...jobFunctions);
-    established.push({ key: 'job_functions', sql: `${FUNCTION_SQL} IS NULL` });
+    if (!strict) established.push({ key: 'job_functions', sql: `${FUNCTION_SQL} IS NULL` });
+  }
+
+  // ⭐ D42 · THE COMPANY'S SECTOR — a different dimension from the job's domain (owner, 10-06: "a
+  // finance job at OpenAI is more of a finance job the user cares about than an SDE role at
+  // Fidelity"). Read from the company name through shared/companySectors.js, never from the posting's
+  // words. Soft-null like every tag: a company with no sector on file is kept, ranked after, labelled.
+  const sectors = validSectors(toArray(params.sectors));
+  if (sectors.length) {
+    const sec = sectorSql('sj.company');
+    const inList = `${sec} IN (${sectors.map(() => '?').join(',')})`;
+    clauses.push(strict ? inList : `(${sec} IS NULL OR ${inList})`);
+    args.push(...sectors);
+    if (!strict) established.push({ key: 'sectors', sql: `${sec} IS NULL` });
   }
 
   const sources = toArray(params.sources);
@@ -512,9 +549,10 @@ function buildJobFilters(params = {}, opts = {}) {
   // as "no remote jobs exist," which is worse than showing not-yet-classified rows.
   const workModels = toArray(params.work_models);
   if (workModels.length) {
-    clauses.push(`(${WORKPLACE_SQL} IS NULL OR ${WORKPLACE_SQL} IN (${workModels.map(() => '?').join(',')}))`);
+    const inList = `${WORKPLACE_SQL} IN (${workModels.map(() => '?').join(',')})`;
+    clauses.push(strict ? inList : `(${WORKPLACE_SQL} IS NULL OR ${inList})`);
     args.push(...workModels);
-    established.push({ key: 'work_models', sql: `${WORKPLACE_SQL} IS NULL` });
+    if (!strict) established.push({ key: 'work_models', sql: `${WORKPLACE_SQL} IS NULL` });
   }
 
   // Soft-null, same class as work_models above and for the same reason — but reached by a route
@@ -527,9 +565,10 @@ function buildJobFilters(params = {}, opts = {}) {
   // it. Excluded only on an explicit mismatch, never on absence.
   const employmentTypes = toArray(params.employment_types);
   if (employmentTypes.length) {
-    clauses.push(`(${EMPLOYMENT_SQL} IS NULL OR ${EMPLOYMENT_SQL} IN (${employmentTypes.map(() => '?').join(',')}))`);
+    const inList = `${EMPLOYMENT_SQL} IN (${employmentTypes.map(() => '?').join(',')})`;
+    clauses.push(strict ? inList : `(${EMPLOYMENT_SQL} IS NULL OR ${inList})`);
     args.push(...employmentTypes);
-    established.push({ key: 'employment_types', sql: `${EMPLOYMENT_SQL} IS NULL` });
+    if (!strict) established.push({ key: 'employment_types', sql: `${EMPLOYMENT_SQL} IS NULL` });
   }
 
   // EXPLICIT -> excludes (soft-null). DERIVED -> ranks. See DERIVED_RANK_ORDER.
@@ -554,9 +593,9 @@ function buildJobFilters(params = {}, opts = {}) {
         params: [...experienceLevels],
       };
     } else {
-      clauses.push(`(${LEVEL_SQL} IS NULL OR ${LEVEL_SQL} IN (${inList}))`);
+      clauses.push(strict ? `${LEVEL_SQL} IN (${inList})` : `(${LEVEL_SQL} IS NULL OR ${LEVEL_SQL} IN (${inList}))`);
       args.push(...experienceLevels);
-      established.push({ key: 'experience_levels', sql: `${LEVEL_SQL} IS NULL` });
+      if (!strict) established.push({ key: 'experience_levels', sql: `${LEVEL_SQL} IS NULL` });
     }
   }
 

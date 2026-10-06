@@ -35,7 +35,7 @@ export const FUNCTION_SQL   = "sj.tag_function";
  * soft-null "unknown" tests go (the A73 order keys, the facets' known counts) without threading a
  * parameter list through each of them.
  *
- * @returns {{ sql: string, unknownSql: string, values: string[] } | null}
+ * @returns {{ sql: string, matchSql: string, unknownSql: string, values: string[] } | null}
  */
 export function placesFilterSql(values) {
   const parsed = (values || []).map(parsePlaceValue).filter(Boolean);
@@ -50,7 +50,13 @@ export function placesFilterSql(values) {
   if (states.length) matchParts.push(`p.state IN (${lit(states)})`);
   const match = `EXISTS (SELECT 1 FROM job_tag_places p WHERE p.job_id = sj.job_id AND (${matchParts.join(" OR ")}))`;
 
-  const unknownParts = [`NOT EXISTS (SELECT 1 FROM job_tag_places p WHERE p.job_id = sj.job_id AND p.state IS NOT NULL)`];
+  // ⛔ D42 · UNKNOWN IS NOT DIFFERENT — AND NON-US IS NOT UNKNOWN. This read "names no state" alone, and
+  // a NON_US place carries no state, so "Japan", "London" and "Toronto" were KEPT for Boston as if
+  // their city were not on file (716 of 902 "kept" rows on the 10-06 local board). A posting is
+  // unknown for a US metro only when it names no state AND either names the US or names nothing.
+  const unknownParts = [`(NOT EXISTS (SELECT 1 FROM job_tag_places p WHERE p.job_id = sj.job_id AND p.state IS NOT NULL)
+       AND (EXISTS (SELECT 1 FROM job_tag_places p WHERE p.job_id = sj.job_id AND p.country = 'US')
+            OR NOT EXISTS (SELECT 1 FROM job_tag_places p WHERE p.job_id = sj.job_id)))`];
   if (metroStates.length) {
     unknownParts.push(`(NOT EXISTS (SELECT 1 FROM job_tag_places p WHERE p.job_id = sj.job_id AND p.metro IS NOT NULL)
        AND EXISTS (SELECT 1 FROM job_tag_places p WHERE p.job_id = sj.job_id AND p.state IN (${lit(metroStates)})))`);
@@ -59,6 +65,8 @@ export function placesFilterSql(values) {
   const unknown = `(${unknownParts.join(" OR ")})`;
   return {
     sql: `(${match} OR ${unknown})`,
+    // D42 · the strict toggle ("only jobs known to be in Boston") is the match alone.
+    matchSql: match,
     unknownSql: `(NOT ${match} AND ${unknown})`,
     values: parsed.map(p => `${p.kind}:${p.key}`),
   };

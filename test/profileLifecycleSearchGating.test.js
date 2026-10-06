@@ -111,8 +111,9 @@ test("the Saved tab is exempt from discovery narrowing, and only the Saved tab i
   // exclude an explicit mismatch.
   assert.match(server, /\$\{savedTab \? '' : 'LEFT JOIN job_role_map jrm ON jrm\.job_id = sj\.job_id AND jrm\.role_key = \?'\}/,
     "the role join must be a LEFT JOIN, keeping role_key in the ON clause so it cannot duplicate rows");
-  assert.match(server, /jrm\.role_key IS NOT NULL\s*\n\s*OR NOT EXISTS \(SELECT 1 FROM job_role_map m WHERE m\.job_id = sj\.job_id\)/,
-    "scope must survive as a soft-null predicate: in my bucket, OR never classified");
+  // D42: between the two, the scope's EXTRA buckets (an engineering profile's data) — still a scope.
+  assert.match(server, /jrm\.role_key IS NOT NULL\$\{scopeExtraSql \? `\s*\n\s*OR \$\{scopeExtraSql\}` : ''\}\s*\n\s*OR NOT EXISTS \(SELECT 1 FROM job_role_map m WHERE m\.job_id = sj\.job_id\)/,
+    "scope must survive as a soft-null predicate: in my bucket (or its extra buckets), OR never classified");
   assert.match(server, /if \(!savedTab\) appliedDerivedKeys\.push\('role_key'\)/,
     "and the rows the softened join admits must be RANKED, not merely let in");
   assert.match(server, /const derivedFilters = \(req\.query\.curate === 'off' \|\| savedTab\)/,

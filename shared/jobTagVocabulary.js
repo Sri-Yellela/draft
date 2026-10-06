@@ -44,6 +44,16 @@ export const ROLE_TO_FUNCTION = Object.freeze({
   design: "design", pm: "product", product: "product", sales: "sales", marketing: "marketing",
   hr: "people", people: "people", legal: "legal", operations: "operations", finance: "finance",
 });
+/**
+ * ⭐ D42 (owner, 10-06): THE DOMAIN DIAL'S "all" IS ENGINEERING + DATA for an engineering profile. The
+ * board is not engineering-only (10-06 local: 688 engineering, 219 data, 441 sales, 304 product…), so
+ * "all" cannot mean "no scope" — sales and legal would flood an engineer's board — and data work is
+ * engineering's own sub-domain, so it is in. Keyed by the profile's role key (server.js
+ * roleKeyForProfile); a profile with no entry keeps exactly its declared bucket. ⛔ Values must be
+ * role_key values (jobQuery.js roleScopeExtraSql inlines them).
+ */
+export const ROLE_SCOPE_EXTRA = Object.freeze({ engineering: Object.freeze(["data"]) });
+export const roleScopeExtra = (roleKey) => ROLE_SCOPE_EXTRA[String(roleKey || "").toLowerCase()] || [];
 export const functionForRole = (roleKey) => ROLE_TO_FUNCTION[String(roleKey || "").toLowerCase()] || null;
 
 // ── Metros ──────────────────────────────────────────────────────────────────────────────────────

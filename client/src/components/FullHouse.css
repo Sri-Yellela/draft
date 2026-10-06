@@ -104,6 +104,12 @@
 .fh-op[aria-disabled="true"]:focus-visible { transform: none; outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
 .fh-cov { font-size: 11px; color: var(--c-ink-faint); font-style: italic; margin: 11px 0 0; }
 .fh-cov b { font-weight: 700; color: var(--c-ink-muted); }
+/* D42 · "+ add" left the sentence: what can still be added is the panel's last row. */
+.fh-addrow { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--c-fh-line); }
+.fh-addrow .fh-k { display: block; margin-bottom: 8px; }
+/* D42 · the strict toggle reads as a setting, not a value: dashed until it is on. */
+.fh-op--strict { border-style: dashed; }
+.fh-op--strict[aria-checked="true"] { border-style: solid; }
 .fh-find {
   box-sizing: border-box; width: 100%; margin: 0 0 10px; padding: 9px 12px; border-radius: 10px;
   border: 1px solid var(--c-fh-line); background: var(--c-fh-well); box-shadow: var(--c-fh-inset);

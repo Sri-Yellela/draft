@@ -44,10 +44,11 @@ export const FIT_BANDS = {
 // US-only (queue 37), so the sentence states it as a fact instead of letting anyone think the search
 // is global. An empty `places` IS the floor.
 //
-// ⚠ DOMAIN is the KIND OF WORK (the D29 job-function tag), not the old industry select. With nothing
-// chosen the board is scoped to the profile's declared role, so the default reads that role's word
-// ("engineering") when the caller supplies it — "all" would claim a breadth the board does not have.
-// Choosing EVERY function is how the scope is lifted, and that reads "all".
+// ⚠ DOMAIN is the KIND OF WORK (the D29 job-function tag), not the company's industry (that is the
+// drawer's SECTOR, shared/companySectors.js — D42). ⭐ D42 (owner, 10-06): with nothing chosen it reads
+// "all", and for an engineering profile "all" IS engineering + data (ROLE_SCOPE_EXTRA) — the board's
+// engineering sub-domains. It never reads the profile's word ("engineering"), and choosing a domain
+// shows that kind of work.
 //
 // SENTENCE_CAP stays exported for the sentence's permanent-slot count; it is no longer a ceiling
 // that drops clauses — the two optional ones append, and that is the extreme case by D30's decision.
@@ -123,7 +124,7 @@ export function slotText(clause, params = {}, { defaultDomain = null } = {}) {
   switch (clause.key) {
     case "domain": {
       const all = clause.dim.options.every(o => chosen.includes(o.value));
-      text = !active ? (defaultDomain || clause.any)
+      text = !active ? clause.any
         : all ? "all" : or(chosen.map(v => optionOf(v)?.sentence ?? v));
       break;
     }
