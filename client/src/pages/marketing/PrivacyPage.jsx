@@ -31,9 +31,10 @@ import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL } from "../..
 // and to whom. Advance notice is not triggered — no new data leaves, and one recipient path closed
 // — but this is the bump to point at if anyone asks when the token was first disclosed.
 // 2026-09-28: bumped for A4, and unlike every bump above this one ADDS a recipient. Résumé
-// generation, enhancement and PDF reading moved to the résumé tools service (Resume Master), so the
-// résumé, the profile details it draws on and the job description now pass through it on their way
-// to Anthropic. Same operator, and it processes without storing — but it is a new place the data
+// generation and enhancement moved to the résumé tools service (Resume Master), so the résumé, the
+// profile details it draws on and the job description now pass through it on their way to
+// Anthropic. (PDF reading moved there too at the time and has since come back: A80 V1 — draft reads
+// an uploaded PDF's text layer itself and sends it nowhere. See the 2026-10-05 entry.) Same operator, and it processes without storing — but it is a new place the data
 // goes, which is the kind of change the advance-notice commitment exists for. It is not triggered
 // in practice only because there are no users to notify yet (docs/WORKLOG.md: users — none); from
 // the first user on, a change of this shape needs the notice, not just a date.
@@ -42,7 +43,16 @@ import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL } from "../..
 // which the move made false; both now say where each address goes. v1.0.0 was published UNLISTED
 // (owner, 09-28) and posts to the former address, so the policy says its captures are no longer
 // received rather than implying they are.
-const EFFECTIVE_DATE = 'September 28, 2026';
+// 2026-10-05: bumped for O72(b) — five places described flows that no longer exist, or left out
+// ones that do. (1) Captured job descriptions are NOT sent to Anthropic for ATS scoring: scoring is
+// local (@draft/ats-scorer). (2) The tools service no longer reads uploaded PDFs, and there is no
+// fallback, because draft reads them itself. (3) Anthropic does no "ATS analysis". (4) The Anthropic
+// paragraph now names the two direct calls it left out: cover letters (résumé text, job title, company,
+// job description and tone, sent from draft, not through the tools service — D44.1 traced both calls) and the profile wizard's chip
+// suggestions (the domain, role family and chips already chosen). (5) This comment block. Advance
+// notice is not triggered: nothing new leaves. (4) discloses flows that already existed, and the
+// others retract claims about flows that don't. test/privacyO72Corrections.test.js pins all five.
+const EFFECTIVE_DATE = 'October 5, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 function Section({ title, children }) {
@@ -236,9 +246,11 @@ export function PrivacyPage() {
               the same browser.
             </LI>
             <LI>
-              Job descriptions you capture may be sent to Anthropic's API when you use them for
-              ATS scoring or resume generation — for generation, through our résumé tools service —
-              as described under Third-Party Services below.
+              Job descriptions you capture are sent to Anthropic's API only when you use them to
+              generate a résumé (through our résumé tools service) or a cover letter, as described
+              under Third-Party Services below. ATS scoring is <Strong>not</Strong> one of those
+              uses: we score on our own server, and a captured job description is not sent
+              anywhere to be scored.
             </LI>
             <LI>
               It does <Strong>not</Strong> read, store, or transmit your session cookies, login
@@ -438,20 +450,26 @@ export function PrivacyPage() {
             <LI>
               <Strong>Resume Master</Strong> (resumemaster.one) — our résumé tools service. It is a
               separate service that we operate, and it is what generates, enhances and formats
-              résumés and reads uploaded résumé PDFs. When you use one of those features, the
-              material it needs is sent to it: your résumé text or PDF, the profile details the
+              résumés. When you use one of those features, the material it needs is sent to it:
+              your résumé text, the profile details the
               résumé draws on (your name, contact details, stated years of experience, job profile
               and any skills you have claimed) and the job description. It{" "}
               <Strong>processes that and returns the result; it does not store it</Strong> — it has
               no database, and it records only token counts for each request, never its content.
-              It sends the material to Anthropic for the model step, below. If it is unavailable,
-              reading an uploaded PDF falls back to extraction on our own server.
+              It sends the material to Anthropic for the model step, below. It does{" "}
+              <Strong>not</Strong> read résumé PDFs you upload: our own server extracts their text,
+              and the PDF is not sent anywhere.
             </LI>
             <LI>
-              <Strong>Anthropic</Strong> — AI resume generation and ATS analysis.
-              Job descriptions and resume content are sent to Anthropic's API — for résumé
-              generation, through our résumé tools service above. Anthropic does not use API inputs
-              to train models.
+              <Strong>Anthropic</Strong> — the AI model behind three features, and only these.
+              Résumé generation and enhancement: your résumé, the profile details it draws on and
+              the job description, through our résumé tools service above. Cover letters: the
+              text of your résumé, the job title and company, the job description and the tone you
+              pick, sent from our server directly to Anthropic, not through the tools service. "Load more AI
+              suggestions" in the job-profile setup: the domain and role family you picked, and the
+              keywords, action verbs and tools you have already chosen, so the suggestions don't
+              repeat them. Nothing else is sent to Anthropic. ATS scoring runs on our own server. Anthropic does
+              not use API inputs to train models.
             </LI>
             <LI>
               <Strong>SerpApi</Strong> — job search results. Search queries are
