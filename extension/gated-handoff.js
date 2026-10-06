@@ -76,10 +76,15 @@ function probeFormShape() {
   // div, not a <select>: those fields were invisible to the probe and so could never be filled.
   // Adding them does NOT widen what an attestation can match — matchAnswersToFields applies the
   // eligibility exact-match rule to every field uniformly, whatever its type.
+  //
+  // D55 (a): `button[aria-haspopup="listbox"]` is Workday's dropdown — a BUTTON, so the type filter
+  // below dropped it along with every real button. It is let back in by that attribute alone; a
+  // plain button (Save and Continue, Submit, Add) carries no aria-haspopup=listbox and stays out.
   const controls = [...scope.querySelectorAll(
-    'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"]'
+    'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"], button[aria-haspopup="listbox"]'
   )].filter(
-    el => !['hidden', 'submit', 'button', 'image', 'reset'].includes((el.type || '').toLowerCase())
+    el => el.getAttribute('aria-haspopup') === 'listbox' ||
+      !['hidden', 'submit', 'button', 'image', 'reset'].includes((el.type || '').toLowerCase())
   );
 
   const labelFor = (el) => {
@@ -105,6 +110,13 @@ function probeFormShape() {
       required: el.required === true || el.getAttribute('aria-required') === 'true',
       options: el.tagName === 'SELECT'
         ? [...el.options].map(o => ({ value: o.value, text: (o.text || '').trim() })) : null,
+      // D55 (a): which custom widget this is, so the plan and the review can say "typed and picked"
+      // rather than "set". A typeahead is an <input> that announces a popup list; a dropdown is a
+      // non-input that does. Neither has options to report — they exist only once it is opened.
+      widget: el.tagName === 'INPUT' && (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list')
+        ? 'typeahead'
+        : (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-haspopup') === 'listbox') && el.tagName !== 'SELECT'
+          ? 'dropdown' : null,
     })),
   };
 }
@@ -124,14 +136,89 @@ async function applyPlan(plan, resume) {
   // ⛔ MUST STAY BYTE-IDENTICAL TO probeFormShape'S. See the note there — the plan addresses
   // controls by position, so the two enumerations have to agree.
   const controls = [...scope.querySelectorAll(
-    'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"]'
+    'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"], button[aria-haspopup="listbox"]'
   )].filter(
-    el => !['hidden', 'submit', 'button', 'image', 'reset'].includes((el.type || '').toLowerCase())
+    el => el.getAttribute('aria-haspopup') === 'listbox' ||
+      !['hidden', 'submit', 'button', 'image', 'reset'].includes((el.type || '').toLowerCase())
   );
 
   const isEditable = (el) => el.isContentEditable === true;
-  const isCombo    = (el) => el.getAttribute?.('role') === 'combobox' && !('options' in el);
+  // D55 (a): a TYPEAHEAD is an <input> announcing a popup list — its options do not exist until a
+  // query has been typed. Checked BEFORE isCombo, which it would otherwise match.
+  const isTypeahead = (el) => el.tagName === 'INPUT' &&
+    (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list');
+  const isCombo    = (el) => (el.getAttribute?.('role') === 'combobox' || el.getAttribute?.('aria-haspopup') === 'listbox') &&
+    !('options' in el);
   const same       = (a, b) => String(a ?? '').trim().toLowerCase() === String(b ?? '').trim().toLowerCase();
+  const sleep      = (ms) => new Promise(r => setTimeout(r, ms));
+  // Polls rather than observes: a MutationObserver would need tearing down on every exit path, and
+  // a listbox that never arrives must end in a bounded "no option", not a fill that hangs.
+  const waitFor    = async (fn, ms = 2500, every = 50) => {
+    const t0 = Date.now();
+    for (;;) {
+      const v = fn();
+      if (v) return v;
+      if (Date.now() - t0 > ms) return null;
+      await sleep(every);
+    }
+  };
+
+  // ⛔ BYTE-IDENTICAL (modulo indentation) TO THE EXPORTED closestOption BELOW. This function is
+  // serialised into the page and can close over nothing, so it cannot import the tested copy;
+  // test/d55Autofill.test.js asserts the two texts are the same, so the copy the page runs is the
+  // copy the tests ran.
+  function closestOption(want, options) {
+    const STOP = new Set(['and', 'of', 'the', 'in', 'for', 'a', 'an', 'or', 'to', 'with']);
+    const norm = (s) => String(s ?? '').toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9+#]+/g, ' ').trim();
+    const toks = (s) => norm(s).split(' ')
+      .filter(t => t.length > 1 && !STOP.has(t))
+      .map(t => (t.length > 3 && t.endsWith('s') ? t.slice(0, -1) : t));
+    const w = norm(want);
+    if (!w) return -1;
+    const wt = toks(want);
+    let best = -1, bestScore = 0;
+    options.forEach((opt, i) => {
+      const o = norm(opt);
+      if (!o) return;
+      let score = 0;
+      if (o === w) score = 1;
+      else if ((' ' + o + ' ').includes(' ' + w + ' ')) score = 0.9 - Math.min(0.2, (o.length - w.length) / 200);
+      else if ((' ' + w + ' ').includes(' ' + o + ' ')) score = 0.8;
+      else {
+        const ot = toks(opt);
+        const inter = wt.filter(t => ot.includes(t)).length;
+        const union = new Set([...wt, ...ot]).size || 1;
+        if (inter * 2 >= wt.length) score = 0.8 * (inter / union);
+      }
+      if (score > bestScore) { best = i; bestScore = score; }
+    });
+    if (bestScore >= 0.5) return best;
+    // The last resort, and a narrow one: the want's FIRST significant word names exactly one option's
+    // first word ("Bachelor of Science" -> "Bachelor's Degree"). Two candidates is a guess; refuse.
+    const first = wt[0];
+    if (!first) return -1;
+    const hits = options.map((opt, i) => (toks(opt)[0] === first ? i : -1)).filter(i => i >= 0);
+    return hits.length === 1 ? hits[0] : -1;
+  }
+
+  // The listbox a widget owns: by aria-controls / aria-owns first, then a sibling. A Workday popup is
+  // rendered into a portal at the end of <body>, so the id is the only reliable way to it.
+  const listFor = (el) => {
+    const id = el.getAttribute('aria-controls') || el.getAttribute('aria-owns');
+    return (id && document.getElementById(id))
+      || el.parentElement?.querySelector('[role="listbox"]')
+      || document.querySelector('[role="listbox"]');
+  };
+  const readyOptions = (el) => {
+    const list = listFor(el);
+    if (!list || list.getAttribute('aria-busy') === 'true') return null;
+    const opts = [...list.querySelectorAll('[role="option"]')];
+    return opts.length ? opts : null;
+  };
+  const dismiss = (el) => {
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    el.blur?.();
+  };
 
   const nativeSetter = (el, value) => {
     const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype
@@ -144,22 +231,63 @@ async function applyPlan(plan, resume) {
     el.dispatchEvent(new Event('change', { bubbles: true }));
   };
 
-  // A custom combobox (Workday, react-select) is a div with a popup listbox. There is no value to
-  // assign — the widget only changes when its own option is clicked, so this drives it the way a
-  // person would and then reads back what it is displaying.
-  const setCombobox = (el, want) => {
+  // A custom combobox (Workday, react-select) is a div — or Workday's button — with a popup listbox.
+  // There is no value to assign — the widget only changes when its own option is clicked, so this
+  // drives it the way a person would and then reads back what it is displaying.
+  //
+  // D55 (a): it WAITS for the listbox. Workday renders it into a portal a beat after the click, and
+  // the old version read the list in the same breath, found nothing, and reported "not in options"
+  // for a value that was there. Returns the option's own text — the ATS's wording, which is what the
+  // read-back must look for — or null.
+  const setCombobox = async (el, want) => {
     el.click();
-    const id = el.getAttribute('aria-controls') || el.getAttribute('aria-owns');
-    const list = (id && document.getElementById(id))
-      || el.parentElement?.querySelector('[role="listbox"]')
-      || document.querySelector('[role="listbox"]');
-    const options = list ? [...list.querySelectorAll('[role="option"]')] : [];
-    const hit = options.find(o => same(o.textContent, want))
-             || options.find(o => String(o.textContent || '').trim().toLowerCase()
-                                    .includes(String(want).trim().toLowerCase()));
-    if (!hit) { el.blur?.(); return false; }
-    hit.click();
-    return true;
+    const options = (await waitFor(() => readyOptions(el), 2500)) || [];
+    const idx = closestOption(want, options.map(o => o.textContent || ''));
+    if (idx < 0) { dismiss(el); return null; }
+    const text = String(options[idx].textContent || '').trim();
+    options[idx].click();
+    return text;
+  };
+
+  // D55 (a): a TYPEAHEAD — type a query, wait for the portal's own results, pick the closest REAL
+  // option. The ATS's vocabulary wins: a profile's "Computer Science" may only exist there as
+  // "Computer and Information Sciences", and that is what gets picked and reported, never typed in.
+  // Queries narrow when the full value finds nothing (most prompts search by substring): the value,
+  // then its longest word, then its first.
+  //
+  // One want per chip for a multi-select (Skills): each is typed, confirmed and read back on its own.
+  // Synthetic Enter is deliberately NOT sent — an untrusted key event submits nothing, but a page's
+  // own keydown handler could, and the search runs on input anyway.
+  const setTypeahead = async (el, wants) => {
+    const picked = [], missed = [];
+    for (const want of wants) {
+      const words = String(want).split(/[\s,/]+/).filter(t => t.length > 1);
+      const queries = [...new Set([String(want).trim(),
+        [...words].sort((a, b) => b.length - a.length)[0], words[0]].filter(q => q && q.length > 1))];
+      let got = null;
+      for (const q of queries) {
+        el.focus?.();
+        nativeSetter(el, q);
+        await sleep(200);
+        const options = (await waitFor(() => readyOptions(el), 4000)) || [];
+        const idx = closestOption(want, options.map(o => o.textContent || ''));
+        if (idx >= 0) {
+          got = String(options[idx].textContent || '').trim();
+          options[idx].click();
+          break;
+        }
+      }
+      if (got) picked.push({ want: String(want), got });
+      else { missed.push(String(want)); nativeSetter(el, ''); dismiss(el); }
+      await sleep(80);
+    }
+    return { picked, missed };
+  };
+  // Where a typeahead shows what it holds: chips, or a single-value label, in its field's container.
+  const shownNear = (el) => {
+    const box = el.closest('[data-automation-id^="formField"], [role="group"], fieldset')
+      || el.parentElement?.parentElement || el.parentElement;
+    return String(box?.textContent || '').replace(String(el.value || ''), '').toLowerCase();
   };
 
   const filled = [], skipped = [], pending = [];
@@ -216,12 +344,21 @@ async function applyPlan(plan, resume) {
         if (!match) { skipped.push({ field: step.label, reason: 'value_not_in_options' }); continue; }
         nativeSetter(el, match.value);
         pending.push({ step, el, kind: 'value', want: match.value });
+      } else if (isTypeahead(el)) {
+        // An array is a multi-select (one chip per value); a string is one pick.
+        const wants = (Array.isArray(step.value) ? step.value : [step.value])
+          .map(v => String(v ?? '').trim()).filter(Boolean);
+        const { picked, missed } = await setTypeahead(el, wants);
+        for (const m of missed) skipped.push({ field: step.label, reason: 'no_close_option', wanted: m.slice(0, 80) });
+        if (!picked.length) continue;
+        pending.push({ step, el, kind: 'typeahead', want: picked.map(p => p.got) });
       } else if (isCombo(el)) {
-        if (!setCombobox(el, step.value)) {
+        const got = await setCombobox(el, step.value);
+        if (!got) {
           skipped.push({ field: step.label, reason: 'value_not_in_options' });
           continue;
         }
-        pending.push({ step, el, kind: 'combo', want: String(step.value) });
+        pending.push({ step, el, kind: 'combo', want: got });
       } else if (isEditable(el)) {
         el.focus?.();
         el.textContent = String(step.value);
@@ -269,13 +406,20 @@ async function applyPlan(plan, resume) {
                                       // The widget renders its own label, so containment is the
                                       // honest test — an exact match would fail on "Yes ✓".
                                       ok = got.toLowerCase().includes(String(want).trim().toLowerCase()); }
+      else if (kind === 'typeahead') { const shown = shownNear(el);
+                                      // Every pick must be visible as a chip or a selected label.
+                                      ok = want.every(w => shown.includes(String(w).toLowerCase()));
+                                      got = want.join(', '); }
       else                          { got = el.value; ok = same(got, want); }
     } catch (e) {
       skipped.push({ field: step.label, reason: `verify_failed:${e.message}` });
       continue;
     }
     if (ok) {
-      filled.push({ field: step.label, name: step.name, provenance: step.provenance, verified: true });
+      // `placed` is the ATS's own wording when a picker chose it ("Computer and Information
+      // Sciences" for "Computer Science") — what the employer will read, so what the review shows.
+      filled.push({ field: step.label, name: step.name, provenance: step.provenance, verified: true,
+                    ...(kind === 'combo' || kind === 'typeahead' ? { placed: got } : {}) });
     } else {
       // The value did not stick. Named distinctly from `field_moved` because the remedy differs:
       // this one means the page actively rejected or overwrote what we wrote.
@@ -327,6 +471,53 @@ async function applyPlan(plan, resume) {
 const normalise = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 /**
+ * D55 (a) — which of a picker's REAL options is closest to the value we hold. Returns its index, or -1.
+ *
+ * The ATS's vocabulary wins: the option picked is one the portal offered, never the profile's own
+ * string typed in. Exact, then whole-phrase containment ("United States" in "United States of
+ * America", the shortest such option preferred), then word overlap that covers at least half the
+ * value ("Computer Science" -> "Computer and Information Sciences"), then — narrowly — a unique
+ * first-word match. Below that it refuses: a picker filled with a guess reads to the employer as
+ * the candidate's answer.
+ *
+ * ⛔ Exported so it can be tested; applyPlan carries a BYTE-IDENTICAL copy (it is serialised into
+ * the page and can import nothing). test/d55Autofill.test.js asserts the two are the same text.
+ */
+export function closestOption(want, options) {
+  const STOP = new Set(['and', 'of', 'the', 'in', 'for', 'a', 'an', 'or', 'to', 'with']);
+  const norm = (s) => String(s ?? '').toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9+#]+/g, ' ').trim();
+  const toks = (s) => norm(s).split(' ')
+    .filter(t => t.length > 1 && !STOP.has(t))
+    .map(t => (t.length > 3 && t.endsWith('s') ? t.slice(0, -1) : t));
+  const w = norm(want);
+  if (!w) return -1;
+  const wt = toks(want);
+  let best = -1, bestScore = 0;
+  options.forEach((opt, i) => {
+    const o = norm(opt);
+    if (!o) return;
+    let score = 0;
+    if (o === w) score = 1;
+    else if ((' ' + o + ' ').includes(' ' + w + ' ')) score = 0.9 - Math.min(0.2, (o.length - w.length) / 200);
+    else if ((' ' + w + ' ').includes(' ' + o + ' ')) score = 0.8;
+    else {
+      const ot = toks(opt);
+      const inter = wt.filter(t => ot.includes(t)).length;
+      const union = new Set([...wt, ...ot]).size || 1;
+      if (inter * 2 >= wt.length) score = 0.8 * (inter / union);
+    }
+    if (score > bestScore) { best = i; bestScore = score; }
+  });
+  if (bestScore >= 0.5) return best;
+  // The last resort, and a narrow one: the want's FIRST significant word names exactly one option's
+  // first word ("Bachelor of Science" -> "Bachelor's Degree"). Two candidates is a guess; refuse.
+  const first = wt[0];
+  if (!first) return -1;
+  const hits = options.map((opt, i) => (toks(opt)[0] === first ? i : -1)).filter(i => i >= 0);
+  return hits.length === 1 ? hits[0] : -1;
+}
+
+/**
  * Match the packet's answers to the controls actually on this page.
  *
  * ELIGIBILITY ANSWERS ARE MATCHED EXACTLY OR NOT AT ALL. A sponsorship answer dropped into a field
@@ -370,6 +561,7 @@ export function matchAnswersToFields(answers, fields) {
 
   for (const a of answers) {
     if (a.value === null || a.value === undefined || a.value === '') continue;
+    if (Array.isArray(a.value) && a.value.length === 0) continue;   // D55: an empty chip set says nothing
 
     let field = byExact(a);
     let how = field ? 'exact' : null;
