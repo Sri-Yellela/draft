@@ -19,6 +19,7 @@ import fs    from "fs";
 import { fileURLToPath } from "url";
 import { launchBrowser } from "./browserLauncher.js";
 import { classifyRuntimeError } from "../shared/failureAttribution.js";
+import { isEeoDecline, pickDeclineOption } from "../shared/savedAnswers.js";
 import {
   detectPlatformFromUrl, detectPlatformFromPage,
   getPlatformLabelMap,
@@ -567,6 +568,12 @@ export function isDerivedSponsorship(provenance) {
 export function matchOptionValue(value, options = []) {
   const v = String(value ?? '').toLowerCase();
   if (!v) return null;
+  // D55 (f): an EXACT option first. Substring alone let a stored "Male" pick "Female" (listed first on
+  // most EEO forms) and a stored "No" pick "Not a protected veteran" — a false statement either way.
+  const nv = normaliseText(v);
+  for (const o of options || []) {
+    if (normaliseText(o?.label) === nv || normaliseText(o?.value) === nv) return o.value;
+  }
   for (const o of options || []) {
     const ov = String(o?.value ?? '').toLowerCase();
     const ol = String(o?.label ?? '').toLowerCase();
@@ -1229,6 +1236,12 @@ export async function discoverFields(pageOrFrame, provider, derivedLabelMap = nu
   }
 }
 
+/** D55 (f): a Voluntary Self-Identification control — by its words or by the handler discovery gave it. */
+export function isEeoField(field) {
+  return eligibilityClassOf(`${field?.label || ''} ${field?.name || ''}`) === 'eeo'
+      || ELIGIBILITY_HANDLERS.eeo.includes(String(field?.handler_type || ''));
+}
+
 // -- buildAnswers --------------------------------------------------------------
 export function buildAnswers(fields, profilePayload) {
   const { field_map = {}, handler_map = {}, custom_answers = {} } = profilePayload || {};
@@ -1439,8 +1452,26 @@ export function buildAnswers(fields, profilePayload) {
       const affirmative = coerceAffirmative(value);
       value = (polarity === 'invert' ? !affirmative : affirmative) ? 'true' : 'false';
     } else if (OPTION_TYPES.has(field.type) && Array.isArray(field.options) && field.options.length) {
+      // D55 (f) · THE EEO DECLINE IS A STATED ANSWER. "Choose not to disclose" in the profile is the
+      // candidate's own choice, so the Self-ID step FILLS with the form's decline option — however the
+      // ATS words it ("Decline to self-identify", "I don't wish to answer") — instead of stopping.
+      // A form that offers no decline option is refused, never answered with something else; and an
+      // EEO field the candidate never set has no value at all, so it never reaches here (blank stays
+      // blank — the decline is never a default).
+      const eeoDecline = isEeoField(field) && isEeoDecline(value);
       // Constrain the value to an option this field actually offers.
-      let picked = matchOptionValue(value, field.options);
+      let picked = eeoDecline ? pickDeclineOption(field.options) : matchOptionValue(value, field.options);
+      if (picked === null && eeoDecline) {
+        refusals.push('eeo:decline_option_absent');
+        answers.push({
+          field_id: field.field_id, name: field.name, type: field.type, label,
+          required: !!field.is_required,
+          options: field.options,
+          value: null, skipped: true, refusals,
+          provenance: null, confidence: 0, clear_first: false, typeahead_selection: null,
+        });
+        continue;
+      }
 
       // A free-text work-authorization status against a Yes/No question: read the status rather
       // than posting it verbatim into a field that cannot hold it.
