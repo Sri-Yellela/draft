@@ -198,6 +198,115 @@ opens the posting; the extension pulls the packet, matches the origin, fills, an
    2-step `/multistep` form, not a Workday-shaped wizard — (d) needs a Workday replica added there first
    (dropdown listboxes, typeahead, Add Another sections, *Save and Continue*, a Review page).
 
+**✅ DECIDED 10-07 — the owner accepted every recommendation in §7.1–§7.6:**
+1. **Submit stays the candidate's.**
+2. **Build the Workday wizard advance, stopping at Review** — the extension presses the portal's own *Save and Continue*, never Workday's *Submit*.
+3. **Screening questions that would rule the candidate out stop and ask** — answered only where the profile states it, and remembered per company.
+4. **Never opt the candidate in** — leave it, or *No* only if they said so.
+5. **EEO is stated in the profile or left for the candidate — never a default.** (§8's *decline to answer* is a stated answer.)
+6. **The badge has three states:** *Autofill in progress…* · *Complete required fields* · *Filled — review and submit.*
+
+**§7.7's order (a)–(e) is therefore buildable now**, and §8.5 (f)–(l) follows it.
+
+---
+
+## 8 · SpeedyApply — the second reference (its public docs + the owner's two screenshots, 10-07)
+
+**Sources:** docs.speedyapply.com — Introduction, Profile, Autofill, Saved Responses, Application Tracker, Settings (Autofill Options, Applications Account), Premium, Changelog — and the owner's two screenshots (the popup; the Autofill Options page). Described, not quoted. ⚠ The docs say what it **does**, not what permissions it holds — anything about what it can read is **inferred**.
+
+**What it is.** A free extension that autofills an application "in one click" (open the application and it fills; a small status pop-up appears; custom questions are left to you), **auto-saves every application** to a tracker, and **remembers the answers you give.** Premium adds up to 4 profiles, a per-job profile score and AI-generated answers. It has shipped since May 2024 (v2.0 → v2.28, Aug 2026).
+
+**The two screenshots, read.**
+- **Popup:** a ring reading *Applications Today* with a *Goal: 10*; three round icon buttons (stats, profile, settings); *Quick Access* (a side panel); an *Autofill Enabled* master toggle.
+- **Autofill Options:** five rows — *Save Applications* (on) · *Auto-Click Next Page* (**off**) · *Auto-Submit* (**off**) · *Save Responses* (on) · *Daily Application Goal* (10). The two risky options default **off**; the author's own note says they run with everything on, *to see the portal's error messages quickly.*
+
+### 8.1 · Feature by feature — verdict against draft
+
+✅ ADOPT · ◐ ADAPT (changed to fit) · ❓ DECIDE · ⛔ DON'T
+
+| # | SpeedyApply | draft today | Verdict |
+|---|---|---|---|
+| 1 | Open an application → it fills; a status pop-up | `⌃⇧Y` fills; review overlay | ◐ the always-on trigger needs code that runs on every page load. **Keep one gesture per application** (decision A) |
+| 2 | **Auto-Click Next Page** | none | ✅ **= §7.2.** A setting *"Advance steps for me"*, default on, **stops at Review** |
+| 3 | **Auto-Submit** | never (D36, `FULL_AUTO_PROVEN = false`) | ⛔ **Don't.** Its stated benefit — spotting missing required fields fast — comes from advance + the pre-check in 8.2 #3, without submitting |
+| 4 | **Save Responses** — learns from what you answered | the correction loop, after the fact | ◐ at the review overlay, offer *"Save this answer for next time?"* for each question that stopped the fill. **User-stated only** |
+| 5 | Saved responses matched by **keywords + an "appearances" threshold** | exact question text | ◐ **Adapt, don't adopt.** Normalise the text, template the company (`{company}`), match on that. ⛔ **Never fuzzy for eligibility, EEO or opt-ins** — their own worked example is the authorisation question, the class where `work_authorization` once substring-matched an *inverted* sponsorship question (D36) |
+| 6 | **"Test a question"** against your keywords | none | ✅ In Settings → saved answers: paste a question → *which saved answer matches, and why* — or *"no match: it would stop"*. Cheap, and it makes a silent mis-match visible |
+| 7 | Bulk import / export / delete of responses | none | ✅ export as JSON / CSV; import through the five guards (D17) |
+| 8 | **Auto-save on submit**; LinkedIn / Indeed / Naukri saved automatically | the record exists *before* the fill (the queue) | ◐ the extension marks it *filled*; the overlay and popup get one-click **"I submitted"**; The Table then asks the outcome (D15). ⛔ Auto-saving on LinkedIn / Indeed needs access to those sites on every page |
+| 9 | **Right-click → Save page / Save link as application**; a side-panel save form | the capture shortcut only | ❓ decision B. `contextMenus` is a low-warning permission, and *Save link* queues a job from a search page without opening it |
+| 10 | **"Already applied" banner**, bottom-right, always on | none (D54 is the company view) | ◐ **On demand:** at popup open, capture and fill — *"You applied here 28 Sep · 2 other roles at Scale AI"* (D54's notice). The always-on version needs page-load code |
+| 11 | **Applications page:** charts, **Sankey funnel**, table, **Kanban**; statuses *applied · screen · interviewing · offer · rejected · archived* | The Table (D15): *in play · sent · replied · no reply · closed* | ◐ widen the outcome vocabulary to the funnel; add Kanban + funnel. ⭐ **That is the data the ATS score can finally be validated against** — *screen* and *interviewing* are the outcomes that matter |
+| 12 | **CSV export / import**, column mapping, duplicates skipped | none | ✅ in The Table. Dedupe on the **company key** (D54), not the display name. Importing past applications also seeds the outcome data |
+| 13 | Bulk delete; date-range filters | D53 and D15 | ✅ already specified |
+| 14 | **Settings configurations** — named presets (speed vs review each) | none | ◐ *"Careful"* / *"Fast"* presets of the advance and save behaviours — never of submit. Low priority |
+| 15 | **Daily goal** + the *Applications Today* ring | per-day **cap** in Settings → Applying | ◐ decision D — the ring shows today against your **cap**, not a goal to chase |
+| 16 | **Applications Account** — one email + password, reused to create or sign in to portal accounts | none | ⛔ **Don't.** It keeps a credential in the extension, reuses one password across every employer (their docs concede it is insecure), and makes the extension sign in — breaking *"no password, no cookie, no portal credential"* and *"never signs you in"* (E3). **Instead:** when a portal needs an account, **stop and say so**, and offer **copy email** only |
+| 17 | **Quick Access side panel** — copy profile fields for sites that don't autofill | none | ✅ a **Copy sheet:** the prepared packet as a list with a copy button per value. No page access; the fallback for an unknown portal, and the first step towards mobile |
+| 18 | EEO **"Choose not to disclose"** | stated-or-blank (D36) | ✅ **An explicit stated option** per EEO field. A *decline* is the user's own answer, so Voluntary Disclosures and Self-ID steps **fill instead of stopping** — never a default |
+| 19 | Profile: preferred name, languages, websites, address, skills | partly | ✅ confirm the packet carries them (§6, repeating sections) |
+| 20 | Generate a profile from a résumé; résumé previewer | A33 prefill | ✅ built; check the previewer |
+| 21 | Local-only profile + JSON export; Google / LinkedIn cloud sync | the profile is server-side | n/a |
+| 22 | **Premium: up to 4 profiles + per-job profile score** (/5; key qualifications, skills, title, experience) | per-(user, profile, job) scoring already exists (CC5) | ◐ show **"best profile for this job"** in the companion after a capture. Theirs is AI; ours is deterministic (D17 ✓) |
+| 23 | **Premium: AI-generated answers** + *Add context* + default context | none | ❓ decision C. A new model-call class beyond résumé generation and its cover-letter sibling (D17) |
+| 24 | Discord job alerts; a college-jobs list | none | n/a to the extension — a growth idea |
+| 25 | **Constant maintenance** — nearly every release says *"improved autofill for updated ATS sites"*; a LinkedIn change broke saving; a Workday login field stopped taking input | none | ⭐ **The real lesson.** See 8.3 |
+
+### 8.2 · New from this pass — not in §6 or §7
+
+1. **EEO decline as an explicit stated choice** (row 18) — unblocks the Voluntary Disclosures and Self-ID steps.
+2. **Saved answers that actually get reused:** normalised text, a `{company}` placeholder, and a **work-history-derived *"have you worked here before?"*** — answered *Yes* only when the company is in the profile's work history, *No* otherwise: **stated by the profile, never guessed.** Plus the *Test a question* tool and bulk manage (rows 4–7).
+3. **A required-field pre-check.** Workday shows errors on *Save and Continue*; **Greenhouse validates only on Submit** — which the extension never presses. So it must **find the empty required fields itself** (`required`, `aria-required`, an asterisked label) and list them. That is the badge's *"Complete required fields"* logic (§2), made real.
+4. **A Copy sheet** (row 17).
+5. **On-demand already-applied and company notice** (row 10).
+6. **The funnel in The Table + CSV in and out** (rows 11–12).
+7. **A today ring against the cap** (row 15).
+8. **A "form not recognised" state** (8.3).
+
+### 8.3 · The lesson the changelog teaches: ATS forms rot
+
+SpeedyApply's changelog repeats *"improved autofill for updated ATS sites"* in almost every release — a LinkedIn search redesign broke saving, a Chrome release needed fixing, a Workday login field stopped accepting typing. **An autofill's value decays unless someone is tracking the forms.** So the work is not only building fill types; it is staying correct:
+- **One adapter per ATS behind one interface**, each with fixtures — and the **local replica ATS** from §7.7, including the Workday-shaped wizard, so a change is caught by a test, not by an employer.
+- **A visible *"this form isn't recognised"* state** — the extension says so and stops, rather than half-filling.
+- ❓ **A user-invoked *"Report this form"*** (via D7's reporting) that sends the **host and the field *labels*, never the values** — so a changed form is learned about the day it breaks. Decision E.
+
+### 8.4 · Decisions — each with a recommendation
+
+- **A · One gesture per application, or opt-in auto-start per ATS host?** Auto-start needs `optional_host_permissions` for the known ATS domains (the user grants *"always on Workday"* once), so opening an application starts the fill with no click — and nothing runs on any other page. ⭐ **Keep the gesture.** The click is the consent moment, it costs about a second, and optional host permissions deepen the Web Store review that D13 is trying to keep shallow. *Revisit once the fill itself is trusted.*
+- **B · `contextMenus` (Save page / Save link)?** ⭐ **Yes, in the next submission bundle** (with v1.4.1's successor), not before. *Save link* only works server-side for URLs we can refetch.
+- **C · AI-generated answers?** ⭐ **Not now.** If wanted later: a **click-to-draft on a stopped free-text question**, treated as a **cover-letter sibling**, quota-metered, **edited by the user and never auto-inserted**, with the D17 exception recorded.
+- **D · The ring — your cap or a goal?** ⭐ **Against your cap.** A *goal* nudges volume, and D54 exists to stop that.
+- **E · "Report this form" (host + labels only)?** ⭐ **Yes.** It needs one disclosure line and a row in `PRIVACY_RECONCILIATION`.
+- **F · Widen the outcome statuses to the funnel** (*screen · interviewing · offer*)? ⭐ **Yes** — it is the only route to validating the score against what employers actually did.
+
+### 8.5 · Build order — extends §7.7
+
+After (a)–(e): **(f)** EEO decline + saved-answer reuse and management (profile and server work; unblocks more Workday steps) · **(g)** the required-field pre-check, wired to the badge (c) · **(h)** the Copy sheet · **(i)** The Table's funnel + CSV · **(j)** the on-demand already-applied notice · **(k)** the today ring · **(l)** the "not recognised" state. Every one is measured against the **local fake ATS first**, never against a real employer.
+
+### 8.6 · ✅ DECIDED 10-07 — and the HELD-OFF list
+
+**The owner accepted every recommendation in 8.4:**
+- **A** — **keep one gesture per application.**
+- **B** — `contextMenus` **yes, in the next submission bundle**, not before.
+- **C** — AI-generated answers: **not now** → held off, below.
+- **D** — the ring shows **today against your cap**, never a goal.
+- **E** — **"Report this form": yes**, host + field labels only. It needs **one disclosure line and a row in `PRIVACY_RECONCILIATION`.**
+- **F** — **widen the outcome statuses to the funnel** (*screen · interviewing · offer*).
+
+**BUILD:** §7.7 **(a)–(e) first — now unblocked** (§7.1–§7.6 are decided) — then 8.5 **(f)–(l)**, each as its own agent row, in that order.
+
+#### ⏸ HELD OFF — revisit on the stated trigger, not before
+
+| Held | Why it is held | Revisit when |
+|---|---|---|
+| **AI-generated answers** (row 23) | a new model-call class beyond résumé generation and its cover-letter sibling — it would need a **D17 exception** | D17 has been reviewed with the owner **and** cover letters and the draft quota have been stable for a while. *If revived:* a **click-to-draft** on a stopped free-text question, a **cover-letter sibling**, quota-metered, **edited by the user and never auto-inserted** |
+| **Per-ATS auto-start** (decision A's alternative) — optional host permissions so opening an application starts the fill with no click | deepens the Web Store review D13 is keeping shallow, and removes the consent click | the fill is **proven on real attended runs (O73)** **and** the next Web Store review has cleared |
+| **A persistent Quick Access side panel** (`sidePanel`) | a new permission for something the **Copy sheet** may already cover | the Copy sheet has shipped and users ask for more than it gives |
+| **Settings presets** — *Careful* / *Fast* (row 14) | nothing to preset until the advance and save-answer settings exist | those settings exist |
+| **Job alerts / a college-jobs list** (row 24) | growth ideas, not extension work | there are real users to alert |
+
+**Held off is not refused.** These come back when their trigger is met. **Refused — never re-proposed:** ⛔ **Auto-Submit** · ⛔ an **"applications account"** (a reused password that signs in to portals) · ⛔ **auto-saving applications on LinkedIn / Indeed** (needs access to those sites on every page).
+
 ---
 
 *Evidence: the frames were extracted locally with ffmpeg; nothing left the machine. The video's on-screen
