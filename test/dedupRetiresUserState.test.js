@@ -156,6 +156,6 @@ test("a user's import of a posting already on the board ATTACHES to it and says 
   assert.equal(res.existingJobId, `ashby::${UUID}`);
   assert.equal(res.job.id, `ashby::${UUID}`);
   assert.match(res.message, /already on the board/);
-  assert.deepEqual(uj(db, "WHERE user_id = 2"), [{ user_id: 2, job_id: `ashby::${UUID}`, starred: 1, disliked: 0, applied: 0 }],
-    "and it is in the importer's Saved jobs — never silently dropped");
+  assert.deepEqual(uj(db, "WHERE user_id = 2"), [{ user_id: 2, job_id: `ashby::${UUID}`, starred: 0, disliked: 0, applied: 0 }],
+    "and it is the importer's own (D41(a): attached, not starred) — never silently dropped");
 });

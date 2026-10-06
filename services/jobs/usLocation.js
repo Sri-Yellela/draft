@@ -238,3 +238,47 @@ export function usEligibility({ location, description, offices = [] } = {}) {
 
 // The state table, for the cross-source fingerprint (schema.js) — one copy, not two.
 export { STATES as US_STATES };
+
+// ── D41(d) · A CAPTURE HAS THE WHOLE PAGE ─────────────────────────────────────────────────────────
+//
+// ✅ Owner, 10-06: "if it lacks US evidence it shouldn't be captured at all." A crawl has a location
+// string; a capture has the page — so a bare "Remote" is no longer a dead end when the page says
+// "US-based", names a US city, states a USD range or a US work-authorisation line.
+//
+// ⛔ TWO DIFFERENT REFUSALS, because they are different facts:
+//   non_us       the location (or a remote line) names somewhere outside the US — "based outside the US"
+//   unconfirmed  nothing either way — "we couldn't confirm"; ⛔ calling a US remote role "not in the
+//                US" would be false, and a false refusal of the owner's own capture is the worst outcome
+const US_TEXT_RE = /\bUnited States\b|\bU\.S\.A?\.?(?![a-z])|\bUS[- ]based\b|\bbased in the (?:US|U\.S\.)\b|\b(?:within|in|across) the (?:US|U\.S\.)\b|\bUSA\b/;
+// A "$" with a letter before it is another dollar (C$, CA$, A$…), so it is not USD evidence.
+const USD_RE = /\bUSD\b|(?<![A-Za-z])\$\s?\d{2,3}(?:,\d{3}|\s?[kK]\b)/;
+const OTHER_DOLLAR_RE = /\b(?:CAD|AUD|NZD|SGD|MXN|HKD)\b|\b(?:C|CA|A|AU|NZ|S|MX)\$/;
+const CITY_ST_RE = /\b([A-Z][a-zA-Z.'-]+(?: [A-Z][a-zA-Z.'-]+){0,2}), ([A-Z]{2})\b/g;
+
+/** The first piece of US evidence in a page's text, as a short code — or null. */
+export function usEvidenceInText(text) {
+  const t = String(text || "").slice(0, 60000);
+  if (!t.trim()) return null;
+  if (US_TEXT_RE.test(t)) return "us_named";
+  for (const m of t.matchAll(CITY_ST_RE)) {
+    if (STATES[m[2]] && classifyLocation(`${m[1]}, ${m[2]}`).verdict === "us") return "us_city";
+  }
+  if (USD_RE.test(t) && !OTHER_DOLLAR_RE.test(t)) return "usd_pay";
+  return null;
+}
+
+/**
+ * The capture's market verdict: the crawl's own test first (usEligibility), then — only when that
+ * found NO positive non-US evidence — the page's text.
+ * @returns {{ admit: boolean, kind: 'us'|'non_us'|'unconfirmed', reason: string }}
+ */
+export function captureMarket({ location, description, offices = [], pageText = "" } = {}) {
+  const base = usEligibility({ location, description, offices });
+  if (base.admit) return { admit: true, kind: "us", reason: base.reason };
+  if (base.reason === "non_us_location" || base.reason === "remote_non_us_by_description") {
+    return { admit: false, kind: "non_us", reason: base.reason };
+  }
+  const evidence = usEvidenceInText(`${description || ""}\n${pageText || ""}`);
+  if (evidence) return { admit: true, kind: "us", reason: `capture_${evidence}` };
+  return { admit: false, kind: "unconfirmed", reason: base.reason };
+}

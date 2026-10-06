@@ -66,29 +66,34 @@ test("attached: a capture of a posting already on the board writes a job_capture
   assert.equal(cap[0].ats_type, "greenhouse");
   assert.equal(cap[0].ats_slug, "northwind");
   assert.equal(cap[0].out_of_market, 0);
-  assert.ok(inSaved(d, row.job_id), "and it is in ★ Saved for the active profile");
+  // ⛔ D41(a) (owner, 10-06): a capture no longer STARS — it is the user's through job_captures (the
+  // + view) and a user_jobs row on the active profile, and ★ is left to what they save.
+  assert.equal(inSaved(d, row.job_id), false, "a capture must not star the job");
+  assert.ok(d.prepare("SELECT 1 FROM user_jobs WHERE user_id = 1 AND job_id = ? AND domain_profile_id = 7").get(row.job_id),
+    "and it is on the active profile, so ALL admits it as the user's own");
   d.close();
 });
 
-test("missing from ★: a job starred under ANOTHER profile is moved to the active one by a capture", async () => {
+test("a job the user touched under ANOTHER profile is moved to the active one by a capture (D41: not starred)", async () => {
   const d = db();
   const row = seedCrawled(d, { id: "greenhouse:northwind:102" });
   d.prepare("INSERT INTO user_jobs (user_id,job_id,domain_profile_id,starred) VALUES (1,?,5,0)").run(row.job_id);
   assert.equal(inSaved(d, row.job_id), false);
   await importJob({ url: row.url }, { db: d, anthropic: null, userId: 1 });
   const uj = d.prepare("SELECT * FROM user_jobs WHERE user_id = 1 AND job_id = ?").get(row.job_id);
-  assert.equal(uj.starred, 1);
-  assert.equal(uj.domain_profile_id, 7, "starred under profile 5 is invisible to profile 7's ★ Saved");
-  assert.ok(inSaved(d, row.job_id));
+  assert.equal(uj.starred, 0, "D41(a): a capture does not star");
+  assert.equal(uj.domain_profile_id, 7, "a row under profile 5 is invisible to profile 7's board");
   d.close();
 });
 
-test("missing from ★: a job the user passed on is un-passed by a capture, as the ★ button does", async () => {
+test("a job the user passed on is un-passed by a capture — a pass hides it everywhere (D41: not starred)", async () => {
   const d = db();
   const row = seedCrawled(d, { id: "greenhouse:northwind:103" });
   d.prepare("INSERT INTO user_jobs (user_id,job_id,domain_profile_id,starred,disliked) VALUES (1,?,7,0,1)").run(row.job_id);
   await importJob({ url: row.url }, { db: d, anthropic: null, userId: 1 });
-  assert.ok(inSaved(d, row.job_id), "a pass hides the row from ★ Saved; capturing it is the newer act");
+  const uj = d.prepare("SELECT * FROM user_jobs WHERE user_id = 1 AND job_id = ?").get(row.job_id);
+  assert.equal(uj.disliked, 0, "a pass hides the row from every view; capturing it is the newer act");
+  assert.equal(uj.starred, 0, "D41(a): a capture does not star");
   d.close();
 });
 

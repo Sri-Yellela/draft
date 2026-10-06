@@ -35,9 +35,11 @@ import crypto from 'crypto';
 import { lookup as dnsLookup } from 'dns/promises';
 import { normalizeJob } from './schema.js';
 import { stripResumeHtml } from '../resumeFormatter.js';
-import { ingestJob } from './jobGateway.js';
+import { ingestJob, previewIngest, recordRefusedCapture } from './jobGateway.js';
 import { recordExistingCapture } from './jobGateway.js';
-import { describeCapture } from './captureOutcome.js';
+import { captureMarket, officeLocations } from './usLocation.js';
+import { parseSalaryText, salaryFromJsonLd } from './salaryText.js';
+import { describeCapture, REFUSAL_MESSAGES } from './captureOutcome.js';
 import { mapJobRow } from './mapJobRow.js';
 import { BRAND } from '../../shared/brand.js';
 
@@ -53,6 +55,20 @@ class ImportInputError extends Error {
   constructor(message) {
     super(message);
     this.name = 'ImportInputError';
+  }
+}
+
+/**
+ * D41(d) — a capture with no US evidence is REFUSED before anything is written: no job row, no
+ * user_jobs row; only the attempt is recorded (job_captures action 'refused_not_us'). The route
+ * answers 422 with `error` = the message, which every extension build already shows as a failed
+ * capture — so no extension release is needed for the popup to say it.
+ */
+class ImportRefusedError extends Error {
+  constructor(kind, message) {
+    super(message);
+    this.name = 'ImportRefusedError';
+    this.kind = kind;            // 'non_us' | 'unconfirmed'
   }
 }
 
@@ -364,14 +380,22 @@ function jobFromLabelledText({ url, text }) {
     url:             url || `import:${crypto.randomUUID()}`,
     source:          'import',
     description:     description || text.slice(0, 3000) || null,
-    // ⛔ Every inferred field stays NULL. Enrichment fills these correctly later; a guess here
+    // ⛔ Every INFERRED field stays NULL. Enrichment fills these correctly later; a guess here
     // would be indistinguishable from a measurement and would never be revisited.
-    salary_min:      null,
-    salary_max:      null,
-    salary_currency: null,
+    // ⭐ D41(b): but a STATED salary is not a guess. The extractor writes a `Salary:` line when the
+    // page states one, and this read used to drop it — the owner's capture lost its pay range here.
+    ...(parseSalaryText(labels.salary) || { salary_min: null, salary_max: null, salary_currency: null }),
     remote:          null,
     posted_at:       null,
   });
+}
+
+/** The employer's own website from a JobPosting's hiringOrganization (sameAs / url) — for its logo. */
+function employerSiteOf(ld) {
+  const org = ld?.hiringOrganization;
+  const site = typeof org === 'object' ? (org.sameAs || org.url) : null;
+  const first = Array.isArray(site) ? site[0] : site;
+  return typeof first === 'string' && /^https?:\/\//i.test(first) ? first : null;
 }
 
 // ── A schema.org JobPosting, read out of HTML (D33) ──────────────────────────────────────────────
@@ -419,9 +443,22 @@ function jobFromHtml({ url, html }) {
     url: url || `import:${crypto.randomUUID()}`,
     source: 'import',
     description: description || null,
-    // ⛔ Inferred fields stay NULL, as in the labelled read.
-    salary_min: null, salary_max: null, salary_currency: null, remote: null, posted_at: null,
+    // ⛔ Inferred fields stay NULL, as in the labelled read. ⭐ D41(b): `baseSalary` is STATED.
+    ...(salaryFromJsonLd(ld.baseSalary) || { salary_min: null, salary_max: null, salary_currency: null }),
+    remote: null, posted_at: null,
   });
+}
+
+/**
+ * D41(b) · what the CAPTURED PAGE says about pay, for a known-ATS refetch that came back without it
+ * (the ATS API and the page are two readings of one posting; the page is what the user saw).
+ */
+function statedSalaryOfCapture({ text, html }) {
+  const ld = html ? jobPostingFromHtml(html) : null;
+  const fromLd = ld ? salaryFromJsonLd(ld.baseSalary) : null;
+  if (fromLd) return fromLd;
+  const line = /^Salary:\s*(.+)$/m.exec(String(text || ''));
+  return line ? parseSalaryText(line[1]) : null;
 }
 
 /**
@@ -446,9 +483,8 @@ function extractJobDeterministic({ url, text, html }) {
  * Without this an import vanished from its owner's point of view: the row lands in the GLOBAL
  * scraped_jobs pool, so whether the importer ever saw it again depended on their profile filters
  * happening to match the classification — while every OTHER user with a matching profile got it
- * on their board. Starring it makes the import behave the way a user expects ("I added this job,
- * so it's in my saved jobs"), and it is the same mechanism the star button already writes, so it
- * needs no new surface to be visible.
+ * on their board. ⛔ D41(a): it used to be STARRED for that reason; since 10-06 the user's own captures
+ * are admitted to ALL directly and listed in the `+` view, and ★ is left to what the user saves.
  *
  * Uses scraped_jobs.job_id as the user_jobs key, matching what the board actually reads back
  * (server.js's per-row interaction lookup). Note the legacy /api/job-interaction endpoint keys
@@ -472,11 +508,14 @@ function attachImportToUser(db, userId, jobId) {
     // "inserted but missing from ★" outcome. A capture is the newest, most explicit act on the job,
     // so it moves the row to the active profile (keeping the old one only when there is none) and
     // clears a pass, exactly as the ★ button does (PATCH /api/jobs/:id/starred sets disliked = 0).
+    // ⛔ D41(a) (owner, 10-06): A CAPTURE NO LONGER STARS. ★ is what the user chose to save; an import
+    // is a different act, and its membership is job_captures (the `+` view). The row is still written
+    // — on the active profile, with any pass cleared — because the board's ALL admits the user's own
+    // captures through it (server.js ownRowsSql) and a passed job is hidden everywhere.
     db.prepare(`
       INSERT INTO user_jobs (user_id, job_id, domain_profile_id, starred, updated_at)
-      VALUES (?, ?, ?, 1, unixepoch())
+      VALUES (?, ?, ?, 0, unixepoch())
       ON CONFLICT(user_id, job_id) DO UPDATE SET
-        starred           = 1,
         disliked          = 0,
         domain_profile_id = COALESCE(excluded.domain_profile_id, user_jobs.domain_profile_id),
         updated_at        = unixepoch()
@@ -566,6 +605,35 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
     throw new ImportInputError('Could not extract a job from the given input');
   }
 
+  // ⭐ D41(b) · A REFETCH WITHOUT PAY KEEPS THE PAGE'S. A known-ATS refetch is preferred for its
+  // structure, but when its API carried no salary and the captured page STATED one (JSON-LD
+  // baseSalary or the extractor's Salary line), the page's figure is the one the user saw.
+  if (normalizedJob.salary_min == null && normalizedJob.salary_max == null && (text || html)) {
+    const stated = statedSalaryOfCapture({ text, html });
+    if (stated) normalizedJob = withSalary(normalizedJob, stated);
+  }
+
+  // ⛔ D41(d) · NO US EVIDENCE → NO CAPTURE. Only a posting that would be NEW is tested: one that
+  // folds into a row draft already has keeps that row's own market status. The page's whole text is
+  // evidence here (a capture has far more of it than a crawl's location string), and when the page —
+  // not the location field — is what admits it, the gateway's location-only gate is told so.
+  const preview = previewIngest(db, normalizedJob);
+  let gate = true;
+  if (preview.action !== 'attach') {
+    const market = captureMarket({
+      location: normalizedJob.location, description: normalizedJob.description,
+      offices: officeLocations(normalizedJob._raw), pageText: providedText || '',
+    });
+    if (!market.admit) {
+      recordRefusedCapture(db, {
+        url: url || normalizedJob.url, userId, reason: market.reason, detectKnownAtsMatch,
+        origin: url && providedText ? 'capture' : url ? 'import_url' : 'paste',
+      });
+      throw new ImportRefusedError(market.kind, REFUSAL_MESSAGES[market.kind]);
+    }
+    if (market.reason.startsWith('capture_')) gate = false;
+  }
+
   // ⛔ A62: THROUGH THE ONE GATEWAY (services/jobs/jobGateway.js) — the same deduper, canonical write
   // and US-only gate every crawled source uses, plus a job_captures row with the ATS host + slug
   // (A45). Classification is still informational only: an explicit user import never silently
@@ -576,7 +644,7 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
     job: normalizedJob, origin, userId,
     searchQuery: 'import',
     matchedBy: normalizedJob.source === 'import' ? 'import_extract' : 'import_ats_reuse',
-    detectKnownAtsMatch,
+    detectKnownAtsMatch, gate,
   });
   const finalJobId = ingest.jobId;
   const dedup = { action: ingest.action === 'attached' ? 'fold' : 'insert_canonical' };
@@ -626,7 +694,23 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
   // A49 fix 4 + D33 — what happened, worded once (services/jobs/captureOutcome.js): inserted, ATTACHED
   // to a posting already on the board (with a link to it), or held off the board and why. The
   // extension and the site show this text; they no longer word the outcome themselves.
-  return answer(db, row, { action: ingest.action, attachment });
+  const result = answer(db, row, { action: ingest.action, attachment });
+  // D41(c) · the employer's own site, when the captured page names it — the logo is queued from it
+  // at capture time (routes/importJob.js), never from the ATS host.
+  const site = html ? employerSiteOf(jobPostingFromHtml(html)) : null;
+  return site ? { ...result, employerSite: site } : result;
+}
+
+/** D41(b) · a stated salary onto a normalized job, with the USD columns normalizeJob would derive. */
+function withSalary(job, s) {
+  const usd = s.salary_currency === 'USD';
+  return {
+    ...job,
+    salary_min: s.salary_min, salary_max: s.salary_max, salary_currency: s.salary_currency,
+    salary_period: s.salary_period ?? job.salary_period ?? null,
+    salary_min_usd: usd ? s.salary_min : job.salary_min_usd ?? null,
+    salary_max_usd: usd ? s.salary_max : job.salary_max_usd ?? null,
+  };
 }
 
 /**
@@ -647,6 +731,6 @@ function answer(db, row, { action, attachment }) {
 }
 
 export {
-  importJob, ImportInputError, detectKnownAtsMatch, isLoginWalled,
+  importJob, ImportInputError, ImportRefusedError, detectKnownAtsMatch, isLoginWalled,
   isPrivateOrLoopbackIp, findMatchingPosting, jobFromLabelledText, jobFromHtml,
 };

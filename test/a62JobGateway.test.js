@@ -70,12 +70,12 @@ test("the dry-run preview reads the same deduper and agrees with what the apply 
 
 test("importJob uses the gateway — it no longer calls the deduper or the canonical write itself", () => {
   const src = fs.readFileSync("services/jobs/importJob.js", "utf8").replace(/^\s*\/\/.*$/gm, "");
-  assert.match(src, /import \{ ingestJob \} from '\.\/jobGateway\.js';/);
+  assert.match(src, /import \{ ingestJob[^}]*\} from '\.\/jobGateway\.js';/);
   assert.match(src, /ingestJob\(db, \{/);
   assert.doesNotMatch(src, /reconcileFingerprint\(|upsertCanonicalJob\(/, "a second writer is back in importJob");
   // D33: the wording moved to services/jobs/captureOutcome.js, the one place every outcome is said.
   assert.match(src, /describeCapture\(db, \{/, "the gate is said, never silent");
-  assert.match(fs.readFileSync("services/jobs/captureOutcome.js", "utf8"), /NOT on the shared board/);
+  assert.match(fs.readFileSync("services/jobs/captureOutcome.js", "utf8"), /NOT on the board/);
   assert.deepEqual(atsSlugOf("https://jobs.lever.co/acme/0f8a1c2d-1111", detectKnownAtsMatch), { ats_type: "lever", ats_slug: "acme" });
   assert.deepEqual(atsSlugOf("https://example.com/job/1", detectKnownAtsMatch), { ats_type: null, ats_slug: null });
 });

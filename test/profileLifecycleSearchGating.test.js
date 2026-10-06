@@ -68,7 +68,9 @@ test("the QUEUES narrow by target title; the BOARD ranks by it and excludes noth
   //    widening either changes how much a user is interrupted, which is not CC1's question. They
   //    keep the hard matcher until someone decides otherwise on purpose.
   assert.match(server, /const pollProfileTitleFilter = profileTitleSql\("sj\.title", activeProfile\)/);
-  assert.match(server, /const pendingProfileTitleFilter = profileTitleSql\("sj\.title", activeProfile\)/);
+  // ⛔ D41(a) (owner, 10-06) decided /d on purpose: it is the jobs the user DRAFTED — their own act,
+  // a view of ALL — so it no longer narrows by title or role bucket. The poll queue still does.
+  assert.doesNotMatch(server, /const pendingProfileTitleFilter = profileTitleSql/);
 });
 
 test("target_titles ranks in TWO keys, so specialisation demotes instead of disappearing", () => {

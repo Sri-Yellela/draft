@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { importJob, ImportInputError, detectKnownAtsMatch } from "../services/jobs/importJob.js";
+import { importJob, ImportInputError, ImportRefusedError, detectKnownAtsMatch } from "../services/jobs/importJob.js";
 import { recentCaptures } from "../services/jobs/captureOutcome.js";
 
 // Sibling to routes/importedJobs.js, NOT an extension of it — importedJobs.js manages the
@@ -10,7 +10,13 @@ import { recentCaptures } from "../services/jobs/captureOutcome.js";
 // ⛔ D17 / D33: no model client. Import reads deterministically (services/jobs/importJob.js), so it
 // cannot fail on an unfunded balance — the 503 "the AI service this needs is not funded" is gone
 // with the call that produced it.
-export function createImportJobRouter(db) {
+/**
+ * @param {{ queueLogo?: ((target: { company: string, urls: string[] }) => Promise<any>) | null }} [opts]
+ *   D41(c) — called after a successful capture, never awaited: the logo lands in the background and
+ *   the card shows its letter tile until then. Null (tests, COMPANY_LOGOS=off) fetches nothing.
+ */
+export function createImportJobRouter(db, opts = null) {
+  const queueLogo = typeof opts?.queueLogo === "function" ? opts.queueLogo : null;
   const router = Router();
 
   // POST /api/import/job — { url?, text?, html? }, at least one required.
@@ -22,10 +28,20 @@ export function createImportJobRouter(db) {
       // it again, while every other user with a matching profile did. requireAuth is applied at
       // the mount in server.js, so req.user is always present here.
       const result = await importJob({ url, text, html }, { db, userId: req.user?.id || null });
-      res.json(result);
+      if (queueLogo && result?.job?.company) {
+        const urls = [result.employerSite, result.job.url, result.job.applyUrl, url].filter(Boolean);
+        Promise.resolve().then(() => queueLogo({ company: result.job.company, urls })).catch(() => {});
+      }
+      const { employerSite, ...body } = result || {};
+      res.json(body);
     } catch (err) {
       if (err instanceof ImportInputError) {
         return res.status(400).json({ error: err.message });
+      }
+      // ⛔ D41(d): no US evidence → nothing written. 422 with the plain message as `error`, which every
+      // extension build already shows as a failed capture.
+      if (err instanceof ImportRefusedError) {
+        return res.status(422).json({ error: err.message, refused: true, kind: err.kind, retryable: false });
       }
       console.error("[POST /api/import/job] Error:", err.message);
       // What is left to fail is a fetch (the posting's site, an ATS list) or the database, so a

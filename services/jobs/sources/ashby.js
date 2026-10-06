@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { normalizeJob } from '../schema.js';
+import { parseSalaryText } from '../salaryText.js';
 import {
   htmlToText, truncateWithTail, JOB_DESCRIPTION_MAX_LENGTH, JOB_DESCRIPTION_TAIL_LENGTH,
 } from '../htmlToText.js';
@@ -45,6 +46,12 @@ function extractAshbyCompensation(job) {
       salary_period:   ashbyIntervalToPeriod(salaryComponent.interval),
     };
   }
+
+  // ⭐ D41(b) · Ashby's own SUMMARY strings ("$123K – $185K • Offers Equity"), for a board that fills
+  // those and no Salary component — the flat fallback below then read nothing and the row stored NULL
+  // pay while the posting showed a range. Stated text, read deterministically (salaryText.js).
+  const summary = parseSalaryText(comp.scrapeableCompensationSalarySummary || comp.compensationTierSummary || '');
+  if (summary && comp.min == null && comp.minValue == null) return summary;
 
   // Flat fallback, for boards that expose a bare range rather than components.
   return {

@@ -40,12 +40,16 @@ test("a capture is filed with NO model client at all — inserted, recorded, on 
   d.close();
 });
 
-test("the bare-'Remote' capture is filed AND told why it is held — not a 503, not a silent success", async () => {
+// ⛔ D41(d) (owner, 10-06): "if it lacks US evidence it shouldn't be captured at all." The bare-Remote
+// capture this test once filed-and-held is now REFUSED, with nothing written but the attempt.
+test("the bare-'Remote' capture with no US evidence is REFUSED — nothing written, the attempt recorded", async () => {
   const d = db();
-  const r = await importJob({ url: "https://northwind.example.com/careers/platform-2", text: block("Remote") }, { db: d, userId: 1 });
-  assert.equal(r.capture.outcome, "held");
-  assert.equal(r.capture.reason, "remote_region_unstated");
-  assert.match(r.capture.message, /without saying from where/);
+  await assert.rejects(
+    importJob({ url: "https://northwind.example.com/careers/platform-2", text: block("Remote") }, { db: d, userId: 1 }),
+    (e) => e.name === "ImportRefusedError" && e.kind === "unconfirmed" && /couldn't confirm this job is in the US/.test(e.message));
+  assert.equal(d.prepare("SELECT COUNT(*) AS n FROM scraped_jobs").get().n, 0);
+  assert.equal(d.prepare("SELECT COUNT(*) AS n FROM user_jobs").get().n, 0);
+  assert.equal(d.prepare("SELECT action FROM job_captures").get()?.action, "refused_not_us");
   d.close();
 });
 
@@ -99,8 +103,9 @@ test("⛔ no model on the import path: no call, no model id, no client, no 503-o
   assert.doesNotMatch(svc, /callModel\(|IMPORT_MODEL_ID|MODEL_HAIKU|anthropicModels|modelCall\.js|\banthropic\b/);
   const route = read("routes/importJob.js");
   assert.doesNotMatch(route, /status\(503\)|isPermanentModelFailure|not\s+"?\s*\+?\s*"?currently funded/);
-  assert.match(route, /export function createImportJobRouter\(db\) \{/);
-  assert.match(read("server.js"), /app\.use\("\/api\/import", requireAuth, createImportJobRouter\(db\)\);/);
+  // D41(c): the router's one option is the capture-time logo queue — still no model client.
+  assert.match(route, /export function createImportJobRouter\(db, opts = null\) \{/);
+  assert.match(read("server.js"), /app\.use\("\/api\/import", requireAuth, createImportJobRouter\(db, \{\s*queueLogo:/);
 });
 
 test("the D17 ratchets agree: import_job is gone from BOTH the A80 known list and the free-tier route", () => {
