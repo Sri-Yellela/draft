@@ -34,6 +34,7 @@
 import { snapshotResumeForRecord } from "./applicationArtifacts.js";
 
 import { buildHistory, matchesSearch } from "../shared/applicationHistory.js";
+import { groupCompanies, companyNameKey } from "../shared/companyIdentity.js";
 
 /** "Northwind, Inc." and "NORTHWIND" match; "the confirmation for Northwind Traders" contains it. */
 export function normaliseCompanyForMatch(s) {
@@ -367,7 +368,17 @@ export function listHistory(db, userId, { q = "", now = nowSec(), limit = 500 } 
   const artifacts = all(`SELECT aa.record_id, aa.source, aa.created_at FROM application_artifacts aa
                           JOIN application_records ar ON ar.id = aa.record_id
                           WHERE ar.user_id = ? AND aa.kind = 'resume'`, userId);
-  const rows = buildHistory({ records, applications, resumes, approvals, jobs, artifacts }, { now });
+  const snapshots = all(`SELECT job_id, MAX(posting_title) AS title, MAX(posting_company) AS company, MAX(posting_url) AS apply_url
+                          FROM apply_run_jobs WHERE user_id = ? AND posting_company IS NOT NULL GROUP BY job_id`, userId);
+  const rows = buildHistory({ records, applications, resumes, approvals, jobs, artifacts, snapshots }, { now });
+  // ⭐ D54: every row carries its COMPANY — one identity across boards (shared/companyIdentity.js), never
+  // the display string alone. Domains come from the logo store, keyed by the same normalised name.
+  const domainBy = new Map(all("SELECT company, domain FROM company_logos WHERE domain IS NOT NULL")
+    .map(r => [companyNameKey(r.company), r.domain]));
+  const { groups, keyOf } = groupCompanies(rows.map(r => ({ id: r.jobId, company: r.company, url: r.applyUrl,
+    domain: domainBy.get(companyNameKey(r.company)) ?? null })));
+  const nameOf = new Map(groups.map(g => [g.key, g.name]));
+  for (const r of rows) { r.companyKey = keyOf.get(String(r.jobId)) ?? null; r.companyName = nameOf.get(r.companyKey) ?? r.company ?? null; }
   const text = new Map(jobs.map(j => [String(j.job_id), j.description]));
   return rows.filter(r => matchesSearch(r, text.get(r.jobId), q));
 }

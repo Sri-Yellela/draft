@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../lib/api.js";
+import { companyRows, matchCompany } from "../../../shared/companyIdentity.js";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../styles/theme.jsx";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
@@ -139,6 +141,25 @@ export function AutoApplyPanel() {
   const [search, setSearch] = useState("");
   const listedItems = filterItems(stoppedItems, search);
   const [openKey, setOpenKey] = useState(null);
+  // ⭐ D54 · a stopped card's fold names the company's OTHER applications — The Table's rows, grouped by
+  // the one identity (shared/companyIdentity.js). Re-read when the pipeline's feeds change.
+  const [companyIndex, setCompanyIndex] = useState(null);
+  useEffect(() => {
+    api("/api/applications/history").then(d => {
+      const groups = companyRows(d?.rows || []);
+      setCompanyIndex({ groups, members: new Map(groups.map(g => [g.key, g.roles.map(x => ({ company: x.company, url: x.applyUrl }))])) });
+    }).catch(() => {});
+  }, [applyRuns.length, applyPending.length, applyReviewJobs.length]);
+  const companyOthers = (row) => {
+    if (!companyIndex || !row) return null;
+    const key = matchCompany({ company: row.company, url: row.applyUrl }, companyIndex.members);
+    const g = key ? companyIndex.groups.find(x => x.key === key) : null;
+    const others = g ? g.roles.filter(x => String(x.jobId) !== String(row.jobId)) : [];
+    if (!others.length) return null;
+    return `Also at ${g.name || companyLabel(row.company)}: ` +
+      others.map(x => `${x.title || "a role"} — ${x.label.toLowerCase()}`).join("; ") + ".";
+  };
+  const othersLine = (row) => { const t = companyOthers(row); return t ? <p className="dh-fold__quiet" data-company-others="">{t}</p> : null; };
   // ⭐ D53 · MULTI-SELECT CLEAR. Only items that ARE applications are selectable (an approval, a held or a
   // broke one); a portal or a question is not one thing to clear.
   const [selecting, setSelecting] = useState(false);
@@ -448,6 +469,7 @@ export function AutoApplyPanel() {
         : item;
       return { shown, extra: (
         <>
+          {othersLine(r)}
           {pendingDetail?.runJobId === r.runJobId && pendingDetail.loading && (
             <p className="dh-fold__quiet">Reading the answers…</p>
           )}
@@ -475,6 +497,8 @@ export function AutoApplyPanel() {
     }
     if (item.kind === "held") {
       return { shown: item, extra: (
+        <>
+        {othersLine(r.primary?.row || r)}
         <div className="dh-fold__actions">
           <button type="button" className="dh-btn" onClick={() => openApplicationReview(r)}>
             Show {r.rows.length} attempt{r.rows.length === 1 ? "" : "s"}
@@ -489,17 +513,21 @@ export function AutoApplyPanel() {
             <a className="dh-btn" href={r.primary.row.applyUrl} target="_blank" rel="noreferrer">Posting ↗</a>
           )}
         </div>
+        </>
       ) };
     }
     if (item.kind === "broke") {
       const row = r.primary?.row || r;
       return { shown: item, extra: (
+        <>
+        {othersLine(row)}
         <div className="dh-fold__actions">
           <button type="button" className="dh-btn" onClick={() => loadApplyRunDetail(row.runId)}>The run's log</button>
           {row.applyUrl && (
             <a className="dh-btn" href={row.applyUrl} target="_blank" rel="noreferrer">Apply yourself ↗</a>
           )}
         </div>
+        </>
       ) };
     }
     return { shown: item, extra: null };

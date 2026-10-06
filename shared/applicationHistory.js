@@ -110,9 +110,12 @@ export function historyTimeline(row, { now = Math.floor(Date.now() / 1000) } = {
  * Fold the database rows into history rows. Inputs are plain row arrays (snake_case, as SQLite
  * returns them); the output is the panel's shape, camelCase, times in SECONDS.
  */
-export function buildHistory({ records = [], applications = [], resumes = [], approvals = [], jobs = [], artifacts = [] }, { now = Math.floor(Date.now() / 1000) } = {}) {
+export function buildHistory({ records = [], applications = [], resumes = [], approvals = [], jobs = [], artifacts = [], snapshots = [] }, { now = Math.floor(Date.now() / 1000) } = {}) {
   const byJob = new Map();
   const jobInfo = new Map(jobs.map(j => [String(j.job_id), j]));
+  // D54/D43: the posting as the Draft snapshot it (apply_run_jobs.posting_*) — the company and title of a
+  // drafted job whose posting is gone. A fallback only; it never marks the posting as listed.
+  const snapInfo = new Map(snapshots.map(j => [String(j.job_id), j]));
   const resumeAt = new Map(resumes.map(r => [String(r.job_id), r.created_at ?? null]));
   // D16's kept copy, by the record it belongs to (application_artifacts.record_id).
   const artifactBy = new Map(artifacts.map(a => [Number(a.record_id), a]));
@@ -142,7 +145,7 @@ export function buildHistory({ records = [], applications = [], resumes = [], ap
   }
   const out = [];
   for (const h of byJob.values()) {
-    const j = jobInfo.get(h.jobId) || {};
+    const j = jobInfo.get(h.jobId) || snapInfo.get(h.jobId) || {};
     h.company = h.company ?? j.company ?? null;
     h.title = h.title ?? j.title ?? null;
     h.applyUrl = h.applyUrl ?? j.apply_url ?? j.url ?? null;

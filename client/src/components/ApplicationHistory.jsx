@@ -17,6 +17,8 @@ import {
 import {
   RESPONSE_OUTCOME, RESPONSE_OUTCOMES, RESPONSE_LABELS, MATURITY_DAYS,
 } from "../../../shared/applicationResponse.js";
+// ⭐ D54: By company — one identity across boards, never the display string alone.
+import { companyRows, companySummary } from "../../../shared/companyIdentity.js";
 import "./ApplicationHistory.css";
 
 const fmtDay = (sec) => sec == null ? "—"
@@ -58,6 +60,9 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
   const [chip, setChip] = useState(null);
   const [sort, setSort] = useState("newest");
   const [open, setOpen] = useState(null);
+  // D54: List | By company. The same rows, grouped — so the counts are the List's rows grouped.
+  const [layout, setLayout] = useState("list");
+  const [openCompany, setOpenCompany] = useState(null);
   const [busy, setBusy] = useState(null);
   const [notes, setNotes] = useState({});
   const rowRefs = useRef({});
@@ -139,6 +144,12 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
         <label className="ah__date">To
           <input type="date" value={to} min={from || undefined} onChange={e => setTo(e.target.value)}/>
         </label>
+        <div className="ah__layout" role="group" aria-label="Layout">
+          {[["list", "List"], ["company", "By company"]].map(([id, label]) => (
+            <button key={id} type="button" className="ah__chip" aria-pressed={layout === id} data-layout={id}
+              onClick={() => setLayout(id)}>{label}</button>
+          ))}
+        </div>
         <label className="ah__date">Sort
           <select value={sort} onChange={e => setSort(e.target.value)}>
             {HISTORY_SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
@@ -169,6 +180,40 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
 
       {error && <p className="ah__note" data-kind="error" role="alert">{error}</p>}
 
+      {/* ⭐ D54 · BY COMPANY — each company one row (sent AND in play: "trying to apply" counts), expanding
+          to its jobs with their status and dates. */}
+      {layout === "company" && (
+        <div className="ah__list" data-by-company="">
+          {!view.rows.length ? <p className="ah__empty">{loading ? "Loading your applications…" : "Nothing to group yet."}</p>
+            : companyRows(view.rows).map(g => {
+              const expanded = openCompany === g.key;
+              return (
+                <article key={g.key} className="ah__row" data-company-row={g.key} data-open={expanded}>
+                  <div className="ah__head">
+                    <button type="button" className="ah__main" aria-expanded={expanded}
+                      onClick={() => setOpenCompany(expanded ? null : g.key)}>
+                      <span className="ah__company">{g.name || "Unknown company"}</span>
+                      <span className="ah__title">{companySummary(g)}</span>
+                      <span className="ah__meta">{g.last ? `Last activity ${fmtDay(g.last)}` : ""}</span>
+                    </button>
+                  </div>
+                  {expanded && (
+                    <ul className="ah__fold ah__company-jobs">
+                      {g.roles.map(row => (
+                        <li key={row.jobId} data-status={row.status}>
+                          <strong>{row.title || "—"}</strong> — {row.label}
+                          {" · "}{row.sentAt ? `sent ${fmtDay(row.sentAt)}` : `added ${fmtDay(row.draftedAt)}`}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </article>
+              );
+            })}
+        </div>
+      )}
+
+      {layout === "list" && (
       <div className="ah__list">
         {loading && !rows.length ? <p className="ah__empty">Loading your applications…</p>
           : !view.rows.length ? (
@@ -285,6 +330,7 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
             );
           })}
       </div>
+      )}
     </div>
   );
 }
