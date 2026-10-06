@@ -45,7 +45,7 @@ import { OUTCOME, OUTCOME_STATUSES, outcomeGroupFor } from "../shared/applyOutco
 // deliberately separate vocabularies; see the header of shared/applicationResponse.js.
 import {
   RESPONSE_OUTCOMES, RESPONSE_OUTCOME, RESPONSE_LABELS, MATURITY_DAYS,
-  mergeResponse, responseBucket, isResponse,
+  mergeResponse, responseBucket, isResponse, normaliseOutcome, STAGE_RANK,
 } from "../shared/applicationResponse.js";
 
 // Must match services/applyAutomation.js SCREENSHOT_DIR — screenshot_path rows are absolute paths
@@ -291,10 +291,13 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   // reading as a resume rejection. Those rules live in mergeResponse, and a dedicated endpoint is
   // how they are enforced for every caller rather than re-implemented in a click handler.
   app.patch("/api/apply/applications/:jobId/response", requireAuth, (req, res) => {
-    const { outcome = null, respondedAt = null, source = "manual" } = req.body || {};
-    if (outcome != null && !RESPONSE_OUTCOMES.includes(outcome)) {
+    const { outcome: reported = null, respondedAt = null, source = "manual" } = req.body || {};
+    // D55 F: the funnel's words (screen · interviewing · offer) are accepted; what is STORED is always
+    // the shared vocabulary's value, so a row written before the funnel reads exactly as it did.
+    const outcome = normaliseOutcome(reported);
+    if (outcome === undefined) {
       return res.status(400).json({
-        error: `unknown outcome "${outcome}"`,
+        error: `unknown outcome "${reported}"`,
         allowed: RESPONSE_OUTCOMES,
       });
     }
@@ -353,8 +356,13 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       const bucket = responseBucket(r);
       if (bucket === "unresolved") { unresolved++; continue; }
       const key = r.ats_scorer_version || "unknown";
-      if (!byVersion.has(key)) byVersion.set(key, { responded: [], silent: [] });
-      byVersion.get(key)[bucket === "responded" ? "responded" : "silent"].push(r.ats_score_at_apply);
+      if (!byVersion.has(key)) byVersion.set(key, { responded: [], silent: [], screened: [], notScreened: [] });
+      const g = byVersion.get(key);
+      g[bucket === "responded" ? "responded" : "silent"].push(r.ats_score_at_apply);
+      // ⭐ D55 F: the funnel's question — did it get PAST THE SCREEN (screen, interview or offer, ever)?
+      // A rejection is a reply but not a pass; furthest_stage keeps an interview a later rejection ended.
+      const rank = Math.max(STAGE_RANK[r.furthest_stage] ?? 0, STAGE_RANK[r.response_outcome] ?? 0);
+      g[rank >= 1 ? "screened" : "notScreened"].push(r.ats_score_at_apply);
     }
 
     const mean = a => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
@@ -372,6 +380,10 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         meanScoreSilent: ms == null ? null : Number(ms.toFixed(2)),
         // The headline: do applications that scored higher get more replies? Positive means yes.
         scoreDelta: (mr == null || ms == null) ? null : Number((mr - ms).toFixed(2)),
+        // D55 F: the same comparison one step down the funnel — screened (or further) vs not.
+        screened: g.screened.length,
+        meanScoreScreened: mean(g.screened) == null ? null : Number(mean(g.screened).toFixed(2)),
+        meanScoreNotScreened: mean(g.notScreened) == null ? null : Number(mean(g.notScreened).toFixed(2)),
         // Deliberately conservative. Below this, a delta is noise and reporting it invites exactly
         // the confident-and-wrong conclusion this whole task was about avoiding.
         sufficient: g.responded.length >= 20 && g.silent.length >= 20,

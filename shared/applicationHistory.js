@@ -19,20 +19,67 @@
 //             the résumé; an ATS score is a screening score, not a hiring prediction).
 //   no_reply  the user said they never heard back.
 //   closed    the CANDIDATE ended it: "I did not apply" on a record, or outcome withdrawn.
+//
+// ⭐ D55 decision F · THE FUNNEL. `status` above stays exactly as it was (D54's By company and every
+// caller read it), and a second, finer field rides beside it — `stage` — which splits `replied` into
+// the funnel's own steps: screen · interviewing · offer · rejected. Every stage belongs to exactly one
+// status, so the chips (which now count stages), the Kanban columns and the funnel all partition the
+// same rows: their counts are the List's rows grouped, and a test holds them to it.
+//   `reached` is how far DOWN the funnel a sent application got — applied · screen · interviewing ·
+//   offer — from the outcome AND furthest_stage, so screen → interview → rejected counts as having
+//   reached interviewing, not as a rejection off the résumé. An unsent row has reached nothing (null).
 import {
-  RESPONSE_OUTCOME, RESPONSE_LABELS, MATURITY_DAYS, responseBucket,
+  RESPONSE_OUTCOME, RESPONSE_LABELS, MATURITY_DAYS, STAGE_RANK, responseBucket,
 } from "./applicationResponse.js";
 
 export const HISTORY_STATUSES = Object.freeze(["in_play", "sent", "replied", "no_reply", "closed"]);
 
-/** The chips — filters AND counts. ⛔ There is no separate summary bar: the chips are it. */
-export const HISTORY_CHIPS = Object.freeze([
-  { id: "in_play",  label: "In play",  title: "Not sent yet — pending, or recorded and waiting to verify." },
-  { id: "sent",     label: "Sent",     title: `Sent, nothing back yet. After ${MATURITY_DAYS} days it asks whether they replied.` },
-  { id: "replied",  label: "Replied",  title: "They answered — a rejection counts: something read it and replied." },
-  { id: "no_reply", label: "No reply", title: "You told us you never heard back." },
-  { id: "closed",   label: "Closed",   title: "You ended it — did not apply, or withdrew." },
+/**
+ * D55 F: the exclusive STAGE each row sits in — the Kanban's columns, in funnel order. `replied` is the
+ * rare reply with no stage recorded (first_response_at set, outcome cleared): kept rather than guessed
+ * into a stage, and hidden wherever it is empty.
+ */
+export const HISTORY_STAGES = Object.freeze([
+  "in_play", "sent", "screen", "interviewing", "offer", "rejected", "replied", "no_reply", "closed",
 ]);
+/** Which status each stage belongs to — the partition that keeps D15/D54's counts and these equal. */
+export const STAGE_STATUS = Object.freeze({
+  in_play: "in_play", sent: "sent", screen: "replied", interviewing: "replied", offer: "replied",
+  rejected: "replied", replied: "replied", no_reply: "no_reply", closed: "closed",
+});
+/** A stored outcome -> its funnel stage. The stored value `interview` is the funnel's "interviewing". */
+const STAGE_OF_OUTCOME = Object.freeze({
+  [RESPONSE_OUTCOME.SCREEN]: "screen",
+  [RESPONSE_OUTCOME.INTERVIEW]: "interviewing",
+  [RESPONSE_OUTCOME.OFFER]: "offer",
+  [RESPONSE_OUTCOME.REJECTED]: "rejected",
+});
+
+/**
+ * The chips — filters AND counts, one per stage. ⛔ There is no separate summary bar: the chips are it.
+ * `optional` chips are hidden while their count is 0.
+ */
+export const HISTORY_CHIPS = Object.freeze([
+  { id: "in_play",      label: "In play",      title: "Not sent yet — pending, or recorded and waiting to verify." },
+  { id: "sent",         label: "Sent",         title: `Sent, nothing back yet. After ${MATURITY_DAYS} days it asks whether they replied.` },
+  { id: "screen",       label: "Screen",       title: "A recruiter or phone screen — the first real engagement." },
+  { id: "interviewing", label: "Interviewing", title: "Interviewing with them." },
+  { id: "offer",        label: "Offer",        title: "An offer came back." },
+  { id: "rejected",     label: "Rejected",     title: "They replied, and it was no — still a reply: something read it." },
+  { id: "replied",      label: "Replied",      title: "They answered, and no stage was recorded.", optional: true },
+  { id: "no_reply",     label: "No reply",     title: "You told us you never heard back." },
+  { id: "closed",       label: "Closed",       title: "You ended it — did not apply, or withdrew." },
+]);
+
+/** The funnel's steps: how far down a SENT application got. Ranks are STAGE_RANK's (applied = 0). */
+export const FUNNEL_STEPS = Object.freeze([
+  { id: "applied",      label: "Applied",      rank: 0 },
+  { id: "screen",       label: "Screen",       rank: 1 },
+  { id: "interviewing", label: "Interviewing", rank: 2 },
+  { id: "offer",        label: "Offer",        rank: 3 },
+]);
+/** Where an application that stopped at a step ended — the funnel's drop-offs. `active` is still going. */
+export const FUNNEL_ENDINGS = Object.freeze(["active", "rejected", "no_reply", "closed"]);
 
 export const HISTORY_SORTS = Object.freeze([
   { id: "newest",   label: "Newest" },
@@ -41,9 +88,13 @@ export const HISTORY_SORTS = Object.freeze([
   { id: "awaiting", label: "Awaiting longest" },
 ]);
 
-/** The three answers offered on a matured, unanswered row — stored values from the shared vocabulary. */
+/**
+ * The answers offered on a matured, unanswered row — stored values from the shared vocabulary. D55 F
+ * added the screen: the first step of the funnel, and the one an ATS score could most plausibly predict.
+ */
 export const REPLY_ASK = Object.freeze([
-  { outcome: RESPONSE_OUTCOME.INTERVIEW,   label: "Interview" },
+  { outcome: RESPONSE_OUTCOME.SCREEN,      label: "Screen" },
+  { outcome: RESPONSE_OUTCOME.INTERVIEW,   label: "Interviewing" },
   { outcome: RESPONSE_OUTCOME.REJECTED,    label: "Rejected" },
   { outcome: RESPONSE_OUTCOME.NO_RESPONSE, label: "Still nothing" },
 ]);
@@ -57,6 +108,25 @@ const minDefined = (...v) => { const d = v.filter(x => x != null); return d.leng
  * recordState (or null), and the application's applied_at / response_outcome / first_response_at.
  */
 export function historyStatus(row, { now = Math.floor(Date.now() / 1000) } = {}) {
+  const s = statusOf(row, { now });
+  return { ...s, stage: stageOf(row, s.status), reached: reachedOf(row) };
+}
+
+/** D55 F: the stage inside the status. Only `replied` splits; every other status is its own stage. */
+function stageOf(row, status) {
+  if (status !== "replied") return status;
+  const outcome = row.responseOutcome ?? null;
+  return STAGE_OF_OUTCOME[outcome] ?? STAGE_OF_OUTCOME[row.furthestStage] ?? "replied";
+}
+
+/** D55 F: how far down the funnel a SENT application got; null for one never sent. */
+function reachedOf(row) {
+  if (row.applicationId == null) return null;
+  const rank = Math.max(STAGE_RANK[row.responseOutcome] ?? 0, STAGE_RANK[row.furthestStage] ?? 0);
+  return FUNNEL_STEPS.find(s => s.rank === rank)?.id ?? "applied";
+}
+
+function statusOf(row, { now }) {
   const sent = row.applicationId != null;
   if (!sent) {
     if (row.recordState === "withdrawn") return { status: "closed", label: "Did not apply", ask: false };
@@ -177,10 +247,13 @@ export function buildHistory({ records = [], applications = [], resumes = [], ap
   return out;
 }
 
-/** Counts per chip over the rows given (after search and date, before the chip filter). */
+/** A row's stage — read from the row, or derived for a row built before D55 F carried one. */
+const stageOfRow = (r) => r.stage ?? stageOf(r, r.status);
+
+/** Counts per chip (= per stage) over the rows given (after search and date, before the chip filter). */
 export function chipCounts(rows) {
-  const c = Object.fromEntries(HISTORY_STATUSES.map(s => [s, 0]));
-  for (const r of rows) if (c[r.status] != null) c[r.status]++;
+  const c = Object.fromEntries(HISTORY_STAGES.map(s => [s, 0]));
+  for (const r of rows) { const s = stageOfRow(r); if (c[s] != null) c[s]++; }
   return c;
 }
 
@@ -202,7 +275,7 @@ export function oldestUnanswered(rows) {
 export function applyHistoryView(rows, { chip = null, from = null, to = null, sort = "newest" } = {}) {
   let r = rows.filter(x => (from == null || (x.date ?? 0) >= from) && (to == null || (x.date ?? 0) <= to));
   const counts = chipCounts(r);
-  if (chip) r = r.filter(x => x.status === chip);
+  if (chip) r = r.filter(x => stageOfRow(x) === chip);
   const az = (a, b) => String(a.company ?? "").localeCompare(String(b.company ?? ""), undefined, { sensitivity: "base" })
     || String(a.title ?? "").localeCompare(String(b.title ?? ""), undefined, { sensitivity: "base" });
   const cmp = {

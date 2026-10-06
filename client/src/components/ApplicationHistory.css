@@ -64,6 +64,10 @@
 .ah__status[data-status="in_play"]  { background: var(--c-info-quiet);    color: var(--c-info); }
 .ah__status[data-status="sent"]     { background: var(--c-warning-quiet); color: var(--c-warning); }
 .ah__status[data-status="replied"]  { background: var(--c-success-quiet); color: var(--c-success); }
+/* D55 F: the funnel's stages inside "replied" — each its own tone (the Kanban and funnel use the same). */
+.ah__status[data-stage="screen"]       { background: var(--c-info-quiet);    color: var(--c-teal); }
+.ah__status[data-stage="interviewing"] { background: var(--c-violet-quiet);  color: var(--c-violet); }
+.ah__status[data-stage="rejected"]     { background: var(--c-danger-quiet);  color: var(--c-danger); }
 .ah__status[data-ask="true"]        { background: var(--c-accent-quiet);  color: var(--c-accent-ink); }
 
 /* THE RAIL — D1's motion: zero width until hover / focus-within. */
