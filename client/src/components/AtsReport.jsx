@@ -51,7 +51,7 @@
 //   · D1's depth on every control (the pair's own --c-pair-lift / -lift2 / -press); tokens only.
 //   · D32's hover link: inside a pair (lib/pairLink.js), pointing at a box lights its term in the
 //     posting — on request only, never standing, never animated.
-import { atsBandFor, atsBandLabel, ATS_BAND, ATS_NUMBER_SHOWN } from "../../../shared/atsBands.js";
+import { atsBandFor, atsBandLabel, ATS_BAND, ATS_NUMBER_SHOWN, ATS_NUMBER_NOTE } from "../../../shared/atsBands.js";
 import { profileSignalKey } from "../../../shared/profileSignals.js";
 import { experienceState } from "../../../shared/postingFacts.js";
 import { usePairLink } from "../lib/pairLink.js";
@@ -174,11 +174,15 @@ export function AtsBandCard({ report, band: knownBand = null, compact = false, c
             <p data-ats-count className="ats-sum__count">You cover {matched} of the {total} things this posting asks for.</p>
           )}
         </div>
-        {/* ⛔ A75/A76: the number only once A76 has earned it (ATS_NUMBER_SHOWN). Static — nothing counts up. */}
+        {/* ⭐ D50 (owner, 10-07): the number, beside the band and the count — never the only claim — and
+            provisional (ATS_NUMBER_NOTE). Static — nothing counts up. No score → no digit. */}
         {ATS_NUMBER_SHOWN && !isUnknown && Number.isFinite(report?.score) && (
-          <div data-ats-score className="ats-sum__score">{Math.round(report.score)}<small>ats</small></div>
+          <div data-ats-score className="ats-sum__score" title={ATS_NUMBER_NOTE}>{Math.round(report.score)}<small>ats</small></div>
         )}
       </div>
+      {ATS_NUMBER_SHOWN && !isUnknown && Number.isFinite(report?.score) && (
+        <p data-ats-number-note className="ats-sum__note">{ATS_NUMBER_NOTE} — read it with the band and the count above.</p>
+      )}
       {(declineReasons.length > 0 || seniority || hardMisses.length > 0 || children) && (
         <div className="ats-sum__notes">
           {declineReasons.length > 0 && (

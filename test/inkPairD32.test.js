@@ -86,9 +86,11 @@ test("⭐ the header is band · \"you cover 9 of the 12\" · score · ONE three-
   // D32: THREE segments — matched · missing · generic, in that order.
   const segs = askBar.match(/ats-bar__seg--(\w+)/g) || [];
   assert.deepEqual(segs, ["ats-bar__seg--matched", "ats-bar__seg--missing", "ats-bar__seg--generic"]);
-  // ⛔ A75/A76: the number only once A76's corpus has earned it — and it is still switched off.
+  // ⭐ D50 (owner, 10-07): the number is ON — by the owner's decision, not validation — and provisional:
+  // still gated on a score (no score → no digit), with the "still being tuned" note beside it.
   assert.match(card, /\{ATS_NUMBER_SHOWN && !isUnknown && Number\.isFinite\(report\?\.score\) && \(/);
-  assert.match(read("shared/atsBands.js"), /export const ATS_NUMBER_SHOWN = false;/, "the number is on before A76");
+  assert.match(read("shared/atsBands.js"), /export const ATS_NUMBER_SHOWN = true;/, "D50 turned the number on");
+  assert.match(card, /<p data-ats-number-note className="ats-sum__note">\{ATS_NUMBER_NOTE\}/);
   // The number is the largest element when it is shown — in SERIF ACCENT.
   assert.match(css, /\.ats-sum__score \{[^}]*font-family: var\(--font-display\);[^}]*font-size: 46px;[^}]*color: var\(--c-pair-accent\);/);
   // ⛔ Generic language is drawn but NOT counted: "9 of 12" is matched over matched + missing only.

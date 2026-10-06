@@ -62,6 +62,11 @@ import { JOB_FUNCTIONS } from "../../shared/jobTagVocabulary.js";
  * Semver. MAJOR is breaking; MINOR is additive. The rules, and why removing a field is
  * deliberately awkward, are in contract/README.md.
  *
+ * 2.2.1 — D50 (10-07). ANNOTATION ONLY — no field, type or enum changes. The three ATS-score annotations
+ *         change from "NOT DISPLAYED YET" to "SHOWN ON THE WEB, PROVISIONAL": the owner decided to show
+ *         the number now and tune it after (not validation passing — rho 0.723 over n = 24, -0.166 on 21
+ *         held-out postings). The mobile apps are unchanged until the owner says otherwise; a patch so
+ *         the vendored copies have a reason to re-copy the wording.
  * 2.2.0 — D35 (10-05). Additive: `FacetsResponse.coverage` (FacetCoverage — of `total`, the rows whose
  *         level / workplace / employment tag is on file, so a panel's "47.5% coverage" is measured) and
  *         `FacetsResponse.views` (FacetViews — the ALL / Saved / Pending counts the board's view segment
@@ -106,7 +111,7 @@ import { JOB_FUNCTIONS } from "../../shared/jobTagVocabulary.js";
  *         a checksum and need a reason to re-copy.
  * 1.0.0 — initial contract.
  */
-export const CONTRACT_VERSION = "2.2.0";
+export const CONTRACT_VERSION = "2.2.1";
 
 // ------------------------------------------------------------------------------------------------
 // THE JOB SHAPE — derived by executing mapJobRow, not by reading it
@@ -189,7 +194,7 @@ export const JOB_FIELD_TYPES = Object.freeze({
   bucketDomain:        { type: "string",  nullable: true },
   directApply:         { type: "boolean" },
   companyIconUrl:      { type: "string",  nullable: true, format: "uri" },
-  matchScore:          { type: "number",  nullable: true, description: "NOT DISPLAYED YET — the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The local ATS engine orders coarsely and cannot support a shown figure: Spearman rho 0.746 against a human-graded set of 30, with 12.2% of pairs still mis-ordered. \"This job is a 43\" claims a precision it does not have. Render the BAND instead — Strong (>=44) / Moderate (>=26) / Weak / Not enough signal — whose cutpoints and copy are defined once in shared/atsBands.js. A NULL IS NOT A ZERO: null means the scorer declined for want of signal, which is its own band and must never render as a low score. The number stays in the payload because the auto-apply gate is a numeric threshold (30) and mobile needs to show remaining capacity against it; that is the only sanctioned use." },
+  matchScore:          { type: "number",  nullable: true, description: "SHOWN ON THE WEB, PROVISIONAL — D50 (owner, 10-07): the web shows this number now and tunes it after; it is NOT validated (rho 0.723 over a US-only graded 24, -0.166 on 21 held-out postings), so every surface that shows it says it is still being tuned and keeps the band and the 'N of M' count beside it. The mobile apps keep rendering the BAND until the owner says otherwise. Earlier: NOT DISPLAYED YET — the owner's decision (A75, 10-03) was that this number would be shown once A76's larger blind-graded corpus validated it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The local ATS engine orders coarsely and cannot support a shown figure: Spearman rho 0.746 against a human-graded set of 30, with 12.2% of pairs still mis-ordered. \"This job is a 43\" claims a precision it does not have. Render the BAND instead — Strong (>=44) / Moderate (>=26) / Weak / Not enough signal — whose cutpoints and copy are defined once in shared/atsBands.js. A NULL IS NOT A ZERO: null means the scorer declined for want of signal, which is its own band and must never render as a low score. The number stays in the payload because the auto-apply gate is a numeric threshold (30) and mobile needs to show remaining capacity against it; that is the only sanctioned use." },
   starred:             { type: "boolean", description: "Per (user, domain profile). The Saved tab is starred=1." },
   visited:             { type: "boolean", description: "Per (user, domain profile)." },
   disliked:            { type: "boolean", description: "Per (user, domain profile). Excluded from the default board." },

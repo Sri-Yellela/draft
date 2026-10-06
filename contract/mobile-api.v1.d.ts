@@ -1,6 +1,6 @@
 /**
  * Draft — Mobile API types.
- * Contract version 2.2.0.
+ * Contract version 2.2.1.
  *
  * GENERATED — DO NOT EDIT. Regenerate with `node scripts/generateMobileContract.mjs`.
  *
@@ -55,7 +55,7 @@ export interface Job {
   isH1bSponsor: boolean | null;
   /** Free text, as posted. Not normalised, not geocoded. */
   location?: string;
-  /** NOT DISPLAYED YET — the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The local ATS engine orders coarsely and cannot support a shown figure: Spearman rho 0.746 against a human-graded set of 30, with 12.2% of pairs still mis-ordered. "This job is a 43" claims a precision it does not have. Render the BAND instead — Strong (>=44) / Moderate (>=26) / Weak / Not enough signal — whose cutpoints and copy are defined once in shared/atsBands.js. A NULL IS NOT A ZERO: null means the scorer declined for want of signal, which is its own band and must never render as a low score. The number stays in the payload because the auto-apply gate is a numeric threshold (30) and mobile needs to show remaining capacity against it; that is the only sanctioned use. */
+  /** SHOWN ON THE WEB, PROVISIONAL — D50 (owner, 10-07): the web shows this number now and tunes it after; it is NOT validated (rho 0.723 over a US-only graded 24, -0.166 on 21 held-out postings), so every surface that shows it says it is still being tuned and keeps the band and the 'N of M' count beside it. The mobile apps keep rendering the BAND until the owner says otherwise. Earlier: NOT DISPLAYED YET — the owner's decision (A75, 10-03) was that this number would be shown once A76's larger blind-graded corpus validated it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The local ATS engine orders coarsely and cannot support a shown figure: Spearman rho 0.746 against a human-graded set of 30, with 12.2% of pairs still mis-ordered. "This job is a 43" claims a precision it does not have. Render the BAND instead — Strong (>=44) / Moderate (>=26) / Weak / Not enough signal — whose cutpoints and copy are defined once in shared/atsBands.js. A NULL IS NOT A ZERO: null means the scorer declined for want of signal, which is its own band and must never render as a low score. The number stays in the payload because the auto-apply gate is a numeric threshold (30) and mobile needs to show remaining capacity against it; that is the only sanctioned use. */
   matchScore: number | null;
   /** As published by the source. Free text or ISO — not normalised. */
   postedAt: string | null;
@@ -444,7 +444,7 @@ export interface PendingResponse {
 
 export interface PendingResume {
   artifactId: number | null;
-  /** NOT DISPLAYED YET - the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The engine orders coarsely (rho 0.746 against a human-graded 30, 12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own band, never a zero. Kept in the payload because the auto-apply gate is numeric (30). */
+  /** SHOWN ON THE WEB, PROVISIONAL - D50 (owner, 10-07): the web shows this number now and tunes it after; it is NOT validated (rho 0.723 over a US-only graded 24, -0.166 on 21 held-out postings), so every surface that shows it says it is still being tuned and keeps the band beside it; the mobile apps keep the BAND until the owner says otherwise. Earlier: NOT DISPLAYED YET (A75, 10-03). Sorting by it is sanctioned ('ATS match'). The engine orders coarsely (rho 0.746 against a human-graded 30, 12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own band, never a zero. Kept in the payload because the auto-apply gate is numeric (30). */
   atsScore: number | null;
   available: boolean;
 }
@@ -510,7 +510,7 @@ export interface RunDetailResponse {
 /** One application within a run. */
 export interface RunJob {
   applyUrl: string | null;
-  /** NOT DISPLAYED YET - the owner's decision (A75, 10-03) is that this number WILL be shown once A76's larger blind-graded corpus validates it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The engine orders coarsely (rho 0.746 against a human-graded 30, 12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own band, never a zero. Kept in the payload because the auto-apply gate is numeric (30). */
+  /** SHOWN ON THE WEB, PROVISIONAL - D50 (owner, 10-07): the web shows this number now and tunes it after; it is NOT validated (rho 0.723 over a US-only graded 24, -0.166 on 21 held-out postings), so every surface that shows it says it is still being tuned and keeps the band beside it; the mobile apps keep the BAND until the owner says otherwise. Earlier: NOT DISPLAYED YET (A75, 10-03). Sorting by it is sanctioned ('ATS match'). The engine orders coarsely (rho 0.746 against a human-graded 30, 12.2% of pairs mis-ordered) and cannot support a shown number. Render the band from shared/atsBands.js instead. null means the scorer DECLINED for want of signal - its own band, never a zero. Kept in the payload because the auto-apply gate is numeric (30). */
   atsScore: number | null;
   company: string | null;
   createdAt: number | null;

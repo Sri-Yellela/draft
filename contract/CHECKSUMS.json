@@ -1,9 +1,9 @@
 {
-  "contractVersion": "2.2.0",
+  "contractVersion": "2.2.1",
   "algorithm": "sha256 over LF-normalised UTF-8",
   "note": "Newline-normalised on purpose: this repository has core.autocrlf=true, so a raw-byte hash would differ between a Windows and a POSIX checkout of identical content. Mobile repos must normalise CRLF to LF before hashing their copy.",
   "files": {
-    "mobile-api.v1.json": "a40cad6836c49f2170587202c67544a765eaaf849c246d7ccedffa3590ad909c",
-    "mobile-api.v1.d.ts": "217b227a55547178aad8cefb63597fbe3a7064a2dfac8f3eef7090e53851aab7"
+    "mobile-api.v1.json": "c2c030e633fdee2704930fef7efb59fa4f3924eeb03c8b49624680a13b112434",
+    "mobile-api.v1.d.ts": "8899392ac6737ac8c4d653ac022d70b6a1fdfc33cbe824ea1605afeb7d351033"
   }
 }

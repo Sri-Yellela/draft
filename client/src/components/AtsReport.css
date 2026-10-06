@@ -34,6 +34,8 @@
 }
 .ats-sum__cap { margin-left: 8px; font-size: 11px; color: var(--c-pair-ink-faint); }
 .ats-sum__count { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--c-pair-ink-faint); }
+/* D50 · the provisional note under a shown number. */
+.ats-sum__note { margin: 6px 0 0; font-size: 11px; line-height: 1.4; font-style: italic; color: var(--c-pair-ink-faint); }
 /* The number in SERIF ACCENT (.n) — the largest element when A76 lets it show. */
 .ats-sum__score {
   font-family: var(--font-display); font-weight: 400; font-size: 46px; line-height: 1; text-align: right;
