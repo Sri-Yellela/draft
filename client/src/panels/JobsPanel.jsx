@@ -13,7 +13,8 @@ import { DECISIONS, DECISION_SURFACES, DECISION_TOAST_MS, commitDecision, undoDe
 import DecisionToast from "../components/DecisionToast.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
-import JobBubble, { JobBubbleRows } from "../components/JobBubble.jsx";
+import JobBubble, { JobBubbleRows, JobBubbleSkeleton } from "../components/JobBubble.jsx";
+import { viewKey, viewCacheGet, viewCacheSet, otherViewQueries } from "../lib/boardViewCache.js";
 import { SavedEmptyState, useExtensionStatus } from "../components/ExtensionPrompt.jsx";
 import { EXTENSION_PAGE, EXTENSION_STORE_URL } from "../../../shared/extension.js";
 import JobDetailPanel from "../components/JobDetailPanel.jsx";
@@ -1303,6 +1304,15 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // UI state
   const [scraping,    setScraping]    = useState(false);  // Apify live scrape
   const [bgLoading,   setBgLoading]   = useState(false);  // background DB fetch
+  // ⛔ D45 · LOADING IS NOT EMPTY. `requestedKey` is the view the board last ASKED for, `answeredKey`
+  // the one it has an answer for (from the network or the per-view cache). Until they match the
+  // board shows skeletons — never the empty state, and never the previous view's cards.
+  const [requestedKey, setRequestedKey] = useState(null);
+  const [answeredKey,  setAnsweredKey]  = useState(null);
+  const viewCacheRef = useRef(new Map());   // D45 · stale-while-revalidate, per view (lib/boardViewCache.js)
+  const requestedKeyRef = useRef(null);
+  const inFlightRef = useRef(null);
+  const prefetchedRef = useRef(new Set());
   const [categories,  setCategories]  = useState([]);
   const [resumeText,  setResumeText]  = useState("");
   const [fileName,    setFileName]    = useState("");
@@ -2314,7 +2324,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // GET /api/jobs/facets, for the board's own querystring. D35: ALWAYS — the bar's view counts and
   // the panels' coverage lines are on the page, not behind a panel.
   const facetsQs = useMemo(() => buildParams(1), [buildParams]);
-  const facets = useJobFacets(facetsQs, true, api);
+  // ⛔ D45 · AFTER the board, never beside it: the facets call is several board queries run
+  // synchronously on the server, and fired first it held the board's own request behind it (measured:
+  // /api/jobs landed at +860 ms on a cold load). The counts keep their last answer meanwhile.
+  const boardLoading = answeredKey === null || requestedKey !== answeredKey;
+  const facets = useJobFacets(facetsQs, !boardLoading, api);
 
   // ── D26/D30/D35 · THE HEADLINE. The sentence is published upward for App.jsx to render where the
   // "Let's get to work." caption was — a projection of exactly these clause params, so the headline
@@ -2361,6 +2375,12 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       return;
     }
     const requestProfileKey = activeProfileKeyRef.current;
+    // D45 · ONE REQUEST PER VIEW AT A TIME. The refetch effect fired twice on mount (its deps settle
+    // across two commits), so the board asked for the same page twice and threw the first answer
+    // away — a wasted server turn on the request path, measured on every cold load.
+    const flightKey = `${requestProfileKey}|${viewKey(buildParams(page, null, options.overrides || {}))}`;
+    if (!mergeMode && !options.cursor && inFlightRef.current === flightKey) return;
+    if (!mergeMode) inFlightRef.current = flightKey;
     const requestSeq = ++jobsFetchSeqRef.current;
     setBgLoading(true);
     try {
@@ -2386,6 +2406,15 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       }
 
       const qs = buildParams(page, null, options.overrides || {}, cursor);
+      // ⭐ D45 · STALE-WHILE-REVALIDATE. A view seen before renders from the per-view cache at once and is
+      // refreshed behind it; a view not seen yet shows skeletons until it answers.
+      const key = `${requestProfileKey}|${viewKey(qs)}`;
+      if (!mergeMode) {
+        setRequestedKey(key);
+        requestedKeyRef.current = key;
+        const hit = viewCacheGet(viewCacheRef.current, key);
+        if (hit) { setJobs(hit.jobs); setTotalJobs(hit.total); setTotalPages(hit.totalPages); setAnsweredKey(key); }
+      }
       let d;
       try {
         d = await api(`/api/jobs?${qs}`);
@@ -2432,6 +2461,25 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       setTotalJobs(d.total || 0);
       setTotalPages(d.totalPages || 0);
       setCurrentPage(page);
+      if (!mergeMode) {
+        viewCacheSet(viewCacheRef.current, key, { jobs: incoming, total: d.total || 0, totalPages: d.totalPages || 0 });
+        setAnsweredKey(key);
+        // D45 · prefetch the other three views on idle, once per filter set, so a first switch is warm too.
+        if (page === 1 && !prefetchedRef.current.has(viewKey(otherViewQueries(qs).base))) {
+          prefetchedRef.current.add(viewKey(otherViewQueries(qs).base));
+          const idle = typeof requestIdleCallback === "function" ? requestIdleCallback : (fn) => setTimeout(fn, 400);
+          idle(() => {
+            for (const q of otherViewQueries(qs).views) {
+              const k = `${requestProfileKey}|${viewKey(q)}`;
+              if (viewCacheGet(viewCacheRef.current, k)) continue;
+              api(`/api/jobs?${q}`).then(r => {
+                if (requestProfileKey !== activeProfileKeyRef.current) return;
+                viewCacheSet(viewCacheRef.current, k, { jobs: (r.jobs || []).map(normalizeApiJob), total: r.total || 0, totalPages: r.totalPages || 0 });
+              }).catch(() => {});
+            }
+          });
+        }
+      }
       // A73 · this request answered, so a board error from an earlier one no longer describes the screen.
       setScrapeError(prev => (typeof prev === "string" && prev.startsWith(BOARD_ERROR_PREFIX) ? null : prev));
       // Absent whenever the bridge hid nothing (and on ?curate=off), so this clears itself as soon
@@ -2461,10 +2509,13 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       // the callers that await it.
       if (requestSeq === jobsFetchSeqRef.current) {
         setScrapeError(`${BOARD_ERROR_PREFIX} — ${e?.message || "the request failed"}. The jobs shown are from before that change.`);
+        // D45: the request ENDED — show what there is, with the error, rather than skeletons forever.
+        setAnsweredKey(requestedKeyRef.current);
       }
       throw e;
     } finally {
       if (requestSeq === jobsFetchSeqRef.current) setBgLoading(false);
+      if (inFlightRef.current === flightKey) inFlightRef.current = null;
     }
   }, [activeDomainProfile, buildParams, boardTab, jobs, makeProfileSnapshot, setProfileCache]);
   // Keep stable ref in sync so callbacks with empty deps (e.g. startPollLoop) always
@@ -3756,6 +3807,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               emptyReason={emptyReason}
               savedTab={boardTab === "saved"}
               importedTab={boardTab === "imported"}
+              boardLoading={boardLoading}
               cardTier={1}
             />
             {/* The mobile "editor" pane is gone: the PDF sandbox is a popup panel now and renders
@@ -3840,6 +3892,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               emptyReason={emptyReason}
               savedTab={boardTab === "saved"}
               importedTab={boardTab === "imported"}
+              boardLoading={boardLoading}
               cardTier={effectiveTier}
               containerRef={jobsPanelElementRef}
             />
@@ -3987,6 +4040,8 @@ export function ImportedEmptyState({ theme }) {
   );
 }
 
+const SKELETON_CARDS = Array.from({ length: 9 }, (_, i) => i);
+
 function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       pollStatus, onRetryPoll,
                       generated, loading, applyMode, canUseGenerate, canUseAPlusResume,
@@ -4000,10 +4055,12 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       searchActive = false, profileName = null,
                       curation = null, curateOff = false, onToggleCurate, boardReason = null,
                       emptyReason = null, canRankByFit = true, onAddResume,
-                      savedTab = false, importedTab = false,
+                      savedTab = false, importedTab = false, boardLoading = false,
                       cardTier = 1, containerRef }) {
   const [pageInput, setPageInput] = useState("");
-  const shouldShowEmptyState = jobs.length === 0 && !scraping;
+  // ⛔ D45: never while the current view is still loading — "nothing here" when the truth is "not here yet"
+  // is silence reported as success.
+  const shouldShowEmptyState = jobs.length === 0 && !scraping && !boardLoading;
   // An empty board has two completely different causes and only ever admitted to one of them.
   // "Search for a role above" is right when nothing is filtered; when filters ARE narrowing the
   // board it is a lie that costs the user their next move — they go and search again instead of
@@ -4054,7 +4111,10 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
       <FitRankingNotice theme={theme} show={!canRankByFit} onAddResume={onAddResume}/>
       {/* ⭐ D40: the + view's head — Import jobs and the extension page; the list below is ALL's own cards. */}
       {importedTab && <ImportedHeader theme={theme}/>}
-      {shouldShowEmptyState ? (
+      {boardLoading ? (
+        // D45: the card's own geometry from the first frame, until this view answers.
+        <JobBubbleRows jobs={SKELETON_CARDS}>{(_, i) => <JobBubbleSkeleton key={i} />}</JobBubbleRows>
+      ) : shouldShowEmptyState ? (
         pagingProblem
           ? <PagingEmptyState theme={theme} reason={pagingProblem} onFirstPage={() => goPage(1)}/>
           : emptyBecauseNoPool
