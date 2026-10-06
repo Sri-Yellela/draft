@@ -266,7 +266,9 @@ test("migration 091 is byte-identical in both migration sources", () => {
 
 test("the artifact records which profile built it, or the rule has nothing to check", () => {
   const server = fs.readFileSync("server.js", "utf8");
-  assert.match(server, /INSERT INTO resumes \(user_id,job_id,company,role,category,apply_mode,html,ats_score,ats_report,ats_cache_key,ats_prompt_version,domain_profile_id/);
-  assert.match(server, /domain_profile_id=excluded\.domain_profile_id/);
-  assert.match(server, /activeDomainProfile\?\.id \?\? null/);
+  // D57: the store moved to services/generatedResumes.js (one transaction); the server passes the profile.
+  const store = fs.readFileSync("services/generatedResumes.js", "utf8");
+  assert.match(store, /INSERT INTO resumes \(user_id,job_id,company,role,category,apply_mode,html,ats_score,ats_report,ats_cache_key,ats_prompt_version,domain_profile_id/);
+  assert.match(store, /domain_profile_id=excluded\.domain_profile_id/);
+  assert.match(server, /domainProfileId: activeDomainProfile\?\.id \?\? null/);
 });

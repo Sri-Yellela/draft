@@ -53,6 +53,8 @@
 .pp__div { width: 1px; height: 26px; background: var(--c-fh-line); margin: 0 3px; }
 .pp__quota { margin: 0; padding: 0 18px 10px; font-size: 11px; color: var(--c-ink-faint); }
 .pp__quota[data-empty="true"] { color: var(--c-accent-ink); }
+/* ⭐ D57 · "Résumé ready · 2h ago" — the stored résumé said in words, in both renderings (it is the state, not a hint). */
+.pp__ready { margin: 0; padding: 0 18px 6px; font-size: 11px; font-weight: 700; color: var(--c-success); }
 
 @container pp (min-width: 600px) { .pp__a { display: flex; } }
 @container pp (max-width: 599.98px) { .pp__b { display: flex; } .pp__quota { display: none; } }
