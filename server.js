@@ -28,6 +28,7 @@ import applicationRecordRoutes from "./routes/applicationRecords.js";
 import applicationArtifactRoutes from "./routes/applicationArtifacts.js";
 import { draftSlots, slotsExhausted, recordGenerationSlot } from "./services/draftSlots.js";
 import { markPending } from "./services/applicationRecords.js";
+import { purgeSweep } from "./services/draftBin.js";
 import { createAccountRouter } from "./routes/account.js";
 import { loadSecretKey, createSecretBox, saveIntegrationSecret } from "./services/secretBox.js";
 import { createAdminRouter } from "./routes/admin.js";
@@ -4208,6 +4209,19 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE apply_run_jobs ADD COLUMN posting_location TEXT;
       `,
     },
+    {
+      // D53 (10-07): CLEAR GOES TO A 7-DAY BIN. Draft House's Remove was already a SOFT hide (hidden_at);
+      // it now also sets purge_after, so a cleared item can be restored for 7 days and is then purged by
+      // services/draftBin.js's sweep — which sets purged_at once it has scrubbed the row's answers, packets
+      // and screenshot. A row hidden before this migration has purge_after NULL: it is not in the bin and
+      // is never purged (still restorable by an operator, as before).
+      id: "130_draft_bin",
+      sql: `
+        ALTER TABLE apply_run_jobs ADD COLUMN purge_after INTEGER;
+        ALTER TABLE apply_run_jobs ADD COLUMN purged_at INTEGER;
+        CREATE INDEX IF NOT EXISTS idx_apply_run_jobs_bin ON apply_run_jobs(user_id, purge_after);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -4526,6 +4540,19 @@ assertPinnedModelsLive({
   // Schedule daily cleanup
   setInterval(runCacheCleanup, 24 * 60 * 60 * 1000);
 }
+
+// ⛔ D53 · THE BIN'S PURGE IS A MECHANISM: every 6 hours, a REAL pass (dryRun:false) with the ceiling —
+// it refuses past PURGE_CEILING and logs every pass to cleanup_log. The read-time filter already hides an
+// expired item, so a late sweep is a delay in scrubbing, never an item shown past its date.
+function runDraftBinPurge(trigger) {
+  try {
+    const out = purgeSweep(db, { dryRun: false });
+    if (out.refused) console.warn(`[draft-bin] ${trigger}: REFUSED — ${out.due} due, over the ceiling; nothing purged`);
+    else if (out.purged) console.log(`[draft-bin] ${trigger}: purged ${out.purged} cleared item(s) past their 7 days`);
+  } catch (e) { console.warn(`[draft-bin] ${trigger}: ${e.message}`); }
+}
+setTimeout(() => runDraftBinPurge("boot"), 60_000).unref?.();
+setInterval(() => runDraftBinPurge("interval"), 6 * 3600_000).unref?.();
 
 const adminExists = db.prepare("SELECT id FROM users WHERE username=?").get(ADMIN_USER);
 if (!adminExists) {

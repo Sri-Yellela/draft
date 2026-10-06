@@ -120,3 +120,20 @@
 @media (prefers-reduced-motion: reduce) {
   .dh-rail, .dh-sq, .dh-btn, .dh-item, .dh-stop__btn, .dh-mode__seg { transition: none; }
 }
+
+/* ⭐ D53 · CLEAR, MULTI-SELECT AND THE BIN — depth boxes (D48), tokens only. */
+.dh-bulk { border: 1px solid var(--c-fh-line); border-radius: 9px; padding: 5px 11px; background: var(--c-surface-solid);
+           color: var(--c-ink); font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; box-shadow: var(--c-depth-rest); }
+.dh-bulk:hover:not(:disabled), .dh-bulk:focus-visible { box-shadow: var(--c-depth-hover); border-color: var(--c-accent-ink); color: var(--c-accent-ink); }
+.dh-bulk:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.dh-bulk:disabled { opacity: .6; cursor: default; }
+.dh-bulk[data-primary="true"] { background: var(--c-accent); border-color: var(--c-fh-accent-edge); color: var(--c-fh-on-accent); }
+.dh-item__pick { width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--c-accent); }
+.dh-item[data-selected="true"] { box-shadow: inset 0 0 0 2px var(--c-accent); }
+.dh-bin { border-top: 1px solid var(--c-fh-line); padding-top: 10px; font-size: 12px; }
+.dh-bin > summary { cursor: pointer; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--c-ink-muted); }
+.dh-bin__note { color: var(--c-ink-muted); margin: 8px 0; }
+.dh-bin__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.dh-bin__list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.dh-bin__what { flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; }
+.dh-bin__when { display: block; color: var(--c-ink-muted); font-size: 11px; }

@@ -533,9 +533,13 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       const r = { abortedFirst: results.some(x => x?.abortedFirst) };
       await Promise.all([loadHistory(historyDate), loadApplyRuns(), loadApplyPending()]);
       // After the reload, for the same reason as abortRunJob above.
-      setHistoryMsg(r.abortedFirst
+      const binned = results.some(x => x?.binned);
+      setHistoryMsg(binned
+        ? `${r.abortedFirst ? "Stopped and cleared — nothing was submitted. " : "Cleared. "}It stays in the bin for 7 days — restore it from Cleared, under Queued.`
+        : r.abortedFirst
         ? "Stopped and removed from your history. Nothing was submitted."
         : "Removed from your history. The record is kept — nothing that reached an employer is erased.");
+      loadBin();
     } catch (e) {
       setHistoryMsg(e.message || "Could not remove that application.");
     } finally {
@@ -669,7 +673,49 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
   }, [applyLine, lineCall]);
   const removeFromLine = useCallback((runId) =>
     lineCall(runId, `/api/apply/line/${runId}`, { method: "DELETE" },
-      "Removed from the line. Nothing was opened or sent."), [lineCall]);
+      "Cleared from the line — nothing was opened or sent. It stays in the bin for 7 days.")
+      .then(() => loadBin()), [lineCall]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── ⭐ D53 · THE BIN — Cleared · 7 days, under Queued ────────────────────────────────────────
+  // Clear is the one removal in every unsent state (services/draftBin.js): to the bin for 7 days, then
+  // purged. A sent application is not clearable — it is The Table's. Clear is not Pass: it trains nothing.
+  const [bin, setBin] = useState({ items: [], binDays: 7 });
+  const [binMsg, setBinMsg] = useState("");
+  const [binBusy, setBinBusy] = useState(false);
+  const loadBin = useCallback(async () => {
+    try { const d = await api("/api/apply/bin"); setBin({ items: Array.isArray(d?.items) ? d.items : [], binDays: d?.binDays ?? 7 }); }
+    catch { /* the fold keeps what it had */ }
+  }, []);
+  useEffect(() => { loadBin(); }, [loadBin]);
+  const binCall = useCallback(async (fn) => {
+    setBinBusy(true); setBinMsg("");
+    try { await fn(); }
+    catch (e) { setBinMsg(e.message || "That did not go through — nothing changed."); }
+    finally { setBinBusy(false); await Promise.all([loadBin(), loadApplyRuns(), loadApplyPending()]); }
+  }, [loadBin, loadApplyRuns, loadApplyPending]);
+  /** Clear many (multi-select) or every unsent item older than 7 / 30 days. The caller confirms first. */
+  const clearRunJobs = useCallback((body) => binCall(async () => {
+    const r = await api("/api/apply/bin/clear", { method: "POST", body: JSON.stringify(body) });
+    setBinMsg(r?.message || "Cleared.");
+  }), [binCall]);
+  /** How many "older than N days" would clear — the number the confirmation states. */
+  const countOlderThan = useCallback(async (days) => {
+    try { return (await api("/api/apply/bin/clear", { method: "POST", body: JSON.stringify({ olderThanDays: days, dryRun: true }) }))?.count ?? 0; }
+    catch { return null; }
+  }, []);
+  /** Restore — back to its exact prior state. One the clear had stopped comes back as a new Draft. */
+  const restoreBinItem = useCallback((item) => binCall(async () => {
+    const r = await api(`/api/apply/bin/${item.id}/restore`, { method: "POST" });
+    if (r?.needsDraft) {
+      const d = await draftJob({ jobId: item.jobId, company: item.company }, item.company);
+      setBinMsg(d ? `Restored ${item.company || "it"} — it was stopped when cleared, so it is drafted again (uses one of your drafts).`
+                  : `Restored ${item.company || "it"}, but it could not be drafted again — see the message above.`);
+    } else setBinMsg(`Restored ${item.company || "it"} — back exactly where it was.`);
+  }), [binCall, draftJob]);
+  const purgeBinItem = useCallback((item) => binCall(async () => {
+    await api(`/api/apply/bin/${item.id}`, { method: "DELETE" });
+    setBinMsg(`Deleted ${item.company || "it"} for good — its prepared answers and screenshot are gone.`);
+  }), [binCall]);
 
   // Ordered least-to-most current: a job that was stopped and has been re-queued should read as
   // queued, not stopped.
@@ -723,6 +769,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       historyAuto,
       historyMarkers, historyBusyId,
       loadHistory, selectHistoryGroup, loadHistoryMonth, abortRunJob, hideRunJob,
+      bin, binMsg, binBusy, loadBin, clearRunJobs, restoreBinItem, purgeBinItem, countOlderThan,
       // The single number the JOBS-adjacent chrome needs: how many things are waiting on a human.
       // A review queue nobody sees is worse than a cluttered board, so this is what puts a count on
       // the AUTO APPLY tab. Summed here rather than in the tab so the badge and the panel can never

@@ -282,6 +282,11 @@ const AUTHENTICATED = new Set([
   "GET /api/apply/run-jobs/:runJobId/screenshot",
   "POST /api/apply/run-jobs/:runJobId/abort",
   "DELETE /api/apply/run-jobs/:runJobId",
+  // D53: the 7-day bin — the user's own cleared items, bulk clear, restore, delete now.
+  "POST /api/apply/bin/clear",
+  "GET /api/apply/bin",
+  "POST /api/apply/bin/:runJobId/restore",
+  "DELETE /api/apply/bin/:runJobId",
   "GET /api/apply/history",
   // AH6: the date of your most recent activity. One MAX, no rows — the cheap question the panel
   // asks on mount so it can open on the day something last happened instead of on a blank board.

@@ -3822,4 +3822,17 @@ export const MIGRATIONS = [
         ALTER TABLE apply_run_jobs ADD COLUMN posting_location TEXT;
       `,
     },
+    {
+      // D53 (10-07): CLEAR GOES TO A 7-DAY BIN. Draft House's Remove was already a SOFT hide (hidden_at);
+      // it now also sets purge_after, so a cleared item can be restored for 7 days and is then purged by
+      // services/draftBin.js's sweep — which sets purged_at once it has scrubbed the row's answers, packets
+      // and screenshot. A row hidden before this migration has purge_after NULL: it is not in the bin and
+      // is never purged (still restorable by an operator, as before).
+      id: "130_draft_bin",
+      sql: `
+        ALTER TABLE apply_run_jobs ADD COLUMN purge_after INTEGER;
+        ALTER TABLE apply_run_jobs ADD COLUMN purged_at INTEGER;
+        CREATE INDEX IF NOT EXISTS idx_apply_run_jobs_bin ON apply_run_jobs(user_id, purge_after);
+      `,
+    },
   ];

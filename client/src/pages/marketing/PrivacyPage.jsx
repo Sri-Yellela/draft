@@ -437,6 +437,12 @@ export function PrivacyPage() {
             We retain your data for as long as your account is active. If you delete your
             account, all associated data is permanently deleted within 30 days.
           </P>
+          {/* D53 (10-07): the Draft House bin — services/draftBin.js, purgeSweep scheduled in server.js. */}
+          <P>
+            An application you clear in Draft House stays in its Cleared bin for 7 days, where you can
+            restore it. After 7 days its prepared answers, handoff and screenshot are deleted. You can
+            delete one sooner with Delete now. An application you have sent is never cleared.
+          </P>
         </Section>
 
         {/* Third-Party Services */}
