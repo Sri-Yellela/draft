@@ -1,0 +1,23 @@
+/* D38 · THE ONE COMPANY LINK (CompanyLink.jsx) — the logo face, sized to its text. */
+.company-link {
+  /* ⛔ THE HIT AREA IS THE TEXT: never stretched by a flex column or a block box. */
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  align-self: flex-start;
+  vertical-align: bottom;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+
+  font-family: 'Poppins', var(--font-body);
+  font-style: italic; font-weight: 800; letter-spacing: -.015em; line-height: 1.15;
+  color: var(--c-ink);
+  /* ⛔ A78: no underline and no ↗ at rest — so the hover cue must not be colour alone. */
+  text-decoration: none;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+}
+a.company-link:hover, a.company-link:focus-visible { text-decoration: underline; }
+a.company-link:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.company-link--card  { font-size: 17px; }
+.company-link--panel { font-size: 16px; }
+.company-link--row   { font-size: 13px; }

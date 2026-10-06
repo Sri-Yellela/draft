@@ -245,8 +245,10 @@ test("the export routes tag Pending: no route but a verified record writes job_a
 
 test("the board: the company name is the apply link; no Apply button; slots said before pressing", () => {
   const panel = fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8");
-  assert.match(panel, /<a href=\{postingUrl\} target="_blank" rel="noopener noreferrer" onClick=\{openedPosting\}/);
-  assert.match(panel, /\{selectedJob\.company\} ↗/);
+  // D38: the panel's company name is the ONE CompanyLink — to the posting, tagging Pending on open, and
+  // (A78's treatment) no ↗.
+  assert.match(panel, /<CompanyLink company=\{selectedJob\.company\} href=\{postingUrl \|\| null\} size="panel" onOpen=\{openedPosting\} \/>/);
+  assert.doesNotMatch(panel, /\{selectedJob\.company\} ↗/);
   assert.doesNotMatch(panel, /api\("\/api\/apply"/, "the old Apply call is gone");
   assert.doesNotMatch(panel, /handleAutoApply|semiActive|"Opening…"/);
   assert.match(panel, /origin: "opened_posting"/);
@@ -257,7 +259,8 @@ test("the board: the company name is the apply link; no Apply button; slots said
   assert.doesNotMatch(panel, /Apply directly ↗\s*<\/a>/, "no second Apply link in the panel body");
   const card = fs.readFileSync("client/src/components/JobCard.jsx", "utf8");
   assert.doesNotMatch(card, /Apply directly/);
-  assert.match(card, /data-apply-link/);
+  assert.match(card, /<CompanyLink company=\{job\.company\}/, "D38: the card's apply link is the one CompanyLink");
+  assert.match(fs.readFileSync("client/src/components/CompanyLink.jsx", "utf8"), /data-apply-link/);
   const db = fs.readFileSync("client/src/panels/DatabasePanel.jsx", "utf8");
   assert.match(db, /<PendingApplications /);
   assert.match(db, /\/api\/applications\/pending\/\$\{encodeURIComponent\(jobId\)\}\/record/);

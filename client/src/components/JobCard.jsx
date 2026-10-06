@@ -10,6 +10,7 @@ import { DECISIONS, commitDecision } from "../lib/jobDecisions.js";
 import { SaveButton, DraftButton } from "./DecisionButtons.jsx";
 import { jobDetailHref } from "../lib/jobUrl.js";
 import CompanyIcon from "./ui/CompanyIcon.jsx";
+import CompanyLink from "./CompanyLink.jsx";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { bandChipStyle } from "../styles/bandStyle.js";
 import { C } from "../styles/colorTokens.js";
@@ -623,24 +624,10 @@ export default function JobCard({
               {/* ⭐ A63 (owner, O45c): APPLY IS THE COMPANY NAME. The separate Apply link is
                   gone; the name links to the posting and opening it tags the job Pending — it stays
                   Pending until the submission is recorded and verified (Database → Pending). */}
-              {!isLoggedOut && (job.applyUrl || job.url) ? (
-                <a href={job.applyUrl || job.url} target="_blank" rel="noopener noreferrer" data-apply-link
-                  onClick={e => {
-                    e.stopPropagation();
-                    api("/api/applications/pending", { method: "POST",
-                      body: JSON.stringify({ jobId: job.jobId || job.id, origin: "opened_posting" }) }).catch(() => {});
-                  }}
-                  title={`Apply at ${job.company} — opens the posting`}
-                  style={{ fontWeight:700, fontSize:14, color:"var(--color-primary-text)", textDecoration:"underline",
-                           textUnderlineOffset:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                  {job.company} ↗
-                </a>
-              ) : (
-                <span style={{ fontWeight:700, fontSize:14, color:"var(--color-text)",
-                               overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                  {job.company}
-                </span>
-              )}
+              {/* D38: the ONE company link (CompanyLink.jsx) — no underline, no ↗, sized to its text. */}
+              <CompanyLink company={job.company} size="panel"
+                href={!isLoggedOut && (job.applyUrl || job.url) ? (job.applyUrl || job.url) : null}
+                jobId={job.jobId || job.id} />
               {job.alreadyApplied && (
                 <span title="Applied" style={{ fontSize:10, color:C.SUCCESS, fontWeight:700 }}>✓APPLIED</span>
               )}
