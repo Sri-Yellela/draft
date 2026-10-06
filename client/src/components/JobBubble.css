@@ -30,14 +30,17 @@
 .jb__logo { flex-shrink: 0; width: 52px; height: 52px; border-radius: 13px; box-shadow: var(--c-logo-shadow);
             display: inline-flex; background: none; border: 0; padding: 0; cursor: pointer; overflow: hidden; }
 
-/* The text block is EXACTLY the logo's height, so it shares the logo's top and bottom edge. */
-.jb__text { flex: 1 1 auto; min-width: 0; height: 52px; display: flex; flex-direction: column; justify-content: center; }
-.jb__company, .jb__title, .jb__meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The text block is AT LEAST the logo's height, so three lines share the logo's top and bottom edge.
+   ⛔ D46 (owner, 10-07): MIN-height, never a fixed height. D40's + card adds a fourth line (captured ·
+   from); in a fixed 52px column the flex children SHRANK below their text and overflow:hidden cut each
+   line in half. Lines never shrink, and every line is at least 1.2 high, so no glyph is ever clipped. */
+.jb__text { flex: 1 1 auto; min-width: 0; min-height: 52px; display: flex; flex-direction: column; justify-content: center; }
+.jb__company, .jb__title, .jb__meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; line-height: 1.25; }
 
 /* ⭐ THE LOGO FACE — heavy italic geometric sans (Poppins 800 italic, self-hosted: no third-party request). */
 .jb__company {
   font-family: 'Poppins', var(--font-body);
-  font-style: italic; font-weight: 800; font-size: 17px; letter-spacing: -.015em; line-height: 1.15;
+  font-style: italic; font-weight: 800; font-size: 17px; letter-spacing: -.015em; line-height: 1.25;
   color: var(--c-ink);
   /* ⛔ A78: a LINK with no underline and no ↗ — so the hover cue must not be colour alone (it fails for
      colour-blind users): the underline returns on hover and on keyboard focus. */

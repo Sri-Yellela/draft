@@ -9,7 +9,7 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 
   font-family: 'Poppins', var(--font-body);
-  font-style: italic; font-weight: 800; letter-spacing: -.015em; line-height: 1.15;
+  font-style: italic; font-weight: 800; letter-spacing: -.015em; line-height: 1.25;   /* D46: never below 1.2 */
   color: var(--c-ink);
   /* ⛔ A78: no underline and no ↗ at rest — so the hover cue must not be colour alone. */
   text-decoration: none;

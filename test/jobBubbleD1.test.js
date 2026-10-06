@@ -22,11 +22,12 @@ test("⭐ rows of 2 or 3 (D11: never 4) — 3 by default; a hovered or focused c
 
 test("the card: logo 52 / radius 13; the text block is 52px tall; company in the logo face; three single lines", () => {
   assert.match(css, /\.jb__logo \{ flex-shrink: 0; width: 52px; height: 52px; border-radius: 13px; box-shadow: var\(--c-logo-shadow\);/);
-  assert.match(css, /\.jb__text \{[^}]*height: 52px;[^}]*justify-content: center;/);
+  // D46: AT LEAST 52px (min-height) — a fixed height clipped the + card's fourth line.
+  assert.match(css, /\.jb__text \{[^}]*min-height: 52px;[^}]*justify-content: center;/);
   assert.match(css, /font-style: italic; font-weight: 800; font-size: 17px; letter-spacing: -\.015em;/);
   assert.match(css, /\.jb__title \{ font-size: 12\.5px; color: var\(--c-ink-muted\);/);
   assert.match(css, /\.jb__meta  \{ font-size: 11px; color: var\(--c-ink-faint\);/);
-  assert.match(css, /\.jb__company, \.jb__title, \.jb__meta \{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; \}/);
+  assert.match(css, /\.jb__company, \.jb__title, \.jb__meta \{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; line-height: 1\.25; \}/);
 });
 
 test("⛔ A78: the company name is a link with NO underline and NO ↗ — and a NON-COLOUR hover cue", () => {
