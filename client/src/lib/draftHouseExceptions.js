@@ -177,3 +177,20 @@ export function filterItems(items, term) {
 
 /** Above this many Stopped items the column offers a search box (PanelControls' PanelSearch). */
 export const SEARCH_FROM = 6;
+
+/**
+ * ⭐ D52 · A PREPARED PACKET SAYS HOW LONG IT IS GOOD FOR — and a lapsed one is ONE click from fresh.
+ * ⚠ The row assumed "the packet lives ~10 minutes": that is the TOKEN, minted fresh on every Fill. The
+ * packet's answers go stale after PACKET_STALE_MS (72 h, services/applyGatePacket.js), and a stale one
+ * used to offer only "Open" with a message saying "Run it again" — and no button that did.
+ * @returns {{ state: "ready"|"stale"|"gone"|"none", line: string, action: "fill"|"prepare"|"open" }}
+ */
+export function packetLife(packet, now = Date.now()) {
+  if (!packet) return { state: "none", line: "No prepared answers — it was held before the form was reached.", action: "prepare" };
+  if (packet.postingGone) return { state: "gone", line: "The posting is no longer listed — there is no form to fill.", action: "open" };
+  const left = Number(packet.staleAfterMs) - Number(packet.ageMs);
+  if (packet.stale || !(left > 0)) return { state: "stale", line: "Prepared answers have gone stale — prepare again for fresh ones.", action: "prepare" };
+  const h = Math.ceil(left / 3600000);
+  const span = h >= 48 ? `${Math.floor(h / 24)} more days` : h >= 24 ? "1 more day" : `${h} more hour${h === 1 ? "" : "s"}`;
+  return { state: "ready", line: `Ready to fill — fresh for ${span}.`, action: "fill" };
+}

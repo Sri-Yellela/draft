@@ -46,8 +46,8 @@ export function PassButton({ passed, onPass, compact, square }) {
  * (`onExplain`) — touch has no tooltip. Only a Draft on the wire is truly disabled.
  */
 export function DraftButton({ drafted, drafting, onDraft, onView = null, block = null, onExplain = null,
-                              compact, square, badge = null, logo = false }) {
-  const s = draftButtonState({ drafted, drafting, block, canView: !!onView });
+                              compact, square, badge = null, logo = false, slots = null }) {
+  const s = draftButtonState({ drafted, drafting, block, canView: !!onView, slots });
   const { label, title } = s;
   const onClick = s.action === "draft" ? onDraft : s.action === "view" ? onView
     : s.action === "explain" ? () => onExplain?.(title) : undefined;

@@ -52,7 +52,7 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
   // D51: the panel knows the slots too — out of drafts is a reason on the button, not a grey box.
   const block = draftBlock || (slots != null && slots.remaining <= 0 ? { code: "out_of_drafts", label: "Out of drafts",
     reason: `Out of drafts — all ${slots.limit} used in the last 24 hours (a Draft or a new résumé uses one).` } : null);
-  const draftProps = { block, onView: onViewDraft, onExplain: onExplainDraft };
+  const draftProps = { block, onView: onViewDraft, onExplain: onExplainDraft, slots };
   const selectedJob = job;
   const generateLoading = st === "generate";
   const canApply = !!(selectedJob.applyUrl || selectedJob.url);

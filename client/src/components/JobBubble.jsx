@@ -61,9 +61,9 @@ function StarMark({ filled }) {
 
 export default function JobBubble({ job, score = null, selected = false, saved = false, drafted = false, drafting = false,
                                     onOpen, onAts, onSave, onDraft, onViewDraft = null, draftBlocked = null,
-                                    onExplainDraft = null }) {
+                                    onExplainDraft = null, draftSlots = null }) {
   const [companyView, setCompanyView] = useState(false);
-  const draft = draftButtonState({ drafted, drafting, block: draftBlocked, canView: !!onViewDraft });
+  const draft = draftButtonState({ drafted, drafting, block: draftBlocked, canView: !!onViewDraft, slots: draftSlots });
   const id = job.jobId || job.id;
   const applyHref = job.applyUrl || job.url;
   const band = atsBandFor(score);

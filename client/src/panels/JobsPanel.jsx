@@ -1501,11 +1501,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     paused: !!runBar?.mode?.auto?.killSwitch,
   }), [draftSlots, applyPrereqMissing, runBar]);
   const draftControls = useMemo(() => ({
-    block: draftBlocked,
+    block: draftBlocked, slots: draftSlots,
     onView: () => navigate("/app/auto-apply"),
     onExplain: (job, reason) => setDecisionToast({ jobId: job?.jobId || job?.id, company: job?.company,
       decision: DECISIONS.DRAFTED, error: reason, at: Date.now() }),
-  }), [draftBlocked]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [draftBlocked, draftSlots]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // LIVE POLLING: polls /api/jobs/poll every 4s during active scrape.
   // Stops when scraping:false returned or after 3 consecutive failures.
@@ -4216,7 +4216,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                 // A53: the card's decisions are the deck's — Save and Draft SET; Pass is on the detail panel.
                 onSave={() => decideJob?.(job, DECISIONS.SAVED)}
                 onDraft={() => decideJob?.(job, DECISIONS.DRAFTED)}
-                onViewDraft={draftControls?.onView} draftBlocked={draftControls?.block}
+                onViewDraft={draftControls?.onView} draftBlocked={draftControls?.block} draftSlots={draftControls?.slots}
                 onExplainDraft={(reason) => draftControls?.onExplain(job, reason)}
               />
             );

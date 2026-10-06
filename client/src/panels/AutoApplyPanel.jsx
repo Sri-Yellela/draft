@@ -21,7 +21,7 @@ import { TYPE } from "../styles/type.js";
 import WaitingLine from "../components/WaitingLine.jsx";
 import DraftRunBar from "../components/DraftRunBar.jsx";
 import StoppedItem from "../components/StoppedItem.jsx";
-import { buildStoppedItems, splitAnswers, filterItems, SEARCH_FROM } from "../lib/draftHouseExceptions.js";
+import { buildStoppedItems, splitAnswers, filterItems, SEARCH_FROM, packetLife } from "../lib/draftHouseExceptions.js";
 import { useViewport } from "../hooks/useViewport.js";
 import { A_PLUS_TOOL } from "../lib/applyTools.js";
 
@@ -368,11 +368,26 @@ export function AutoApplyPanel() {
       case "held": {
         const packet = handoffPacketFor?.(r.primary?.row) || handoffPacketFor?.(r);
         const resumable = !!packet && !packet.postingGone && !packet.stale && !r.postingGone;
+        // ⭐ D52: a stale (or never-built) packet is ONE click from fresh — a new Draft of the same job,
+        // which prepares the answers again and waits for you. It used to say "Run it again" and offer Open.
+        const life = packetLife(packet);
+        // Only a packet that EXISTED and went stale: a hold with no packet (a cap, the pause) is not
+        // cleared by drafting again.
+        const prepare = !resumable && !r.postingGone && !!packet && life.state === "stale";
+        if (prepare) {
+          return [
+            { label: "Prepare again", glyph: "↻", primary: true,
+              title: `${life.line} A new Draft prepares them now and waits for you — it uses one of your drafts.`,
+              onClick: () => retryJob(r.primary?.row || r) },
+            { label: "Remove", glyph: "✕", title: "Remove from Draft House — the record is kept",
+              disabled: appBusy(r), onClick: () => hideApplication(r) },
+          ];
+        }
         return [
           // THE AC1 DEFECT, STILL FIXED: the non-resumable arm is the SCOPED handler.
           { label: resumable ? "Fill" : "Open", glyph: "↗", primary: true,
             title: resumable
-              ? `Opens the application in your own browser and fills it with the ${packet.answerCount} answer${packet.answerCount === 1 ? "" : "s"} we already resolved. You review and submit.`
+              ? `${life.line} Opens the application in your own browser and fills it with the ${packet.answerCount} answer${packet.answerCount === 1 ? "" : "s"} we already resolved. You review and submit.`
               : "Open this application's review — only this one",
             onClick: resumable ? () => openHandoff(packet, r) : () => openApplicationReview(r) },
           { label: "Remove", glyph: "✕", title: "Remove from Draft House — the record is kept",

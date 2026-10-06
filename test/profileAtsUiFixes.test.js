@@ -18,7 +18,7 @@ test("job card hover preview uses shared active-aware icon helpers for save and 
   // (was Queue Auto) — and it reports its own state rather than firing twice.
   // D51: the state and its sentence come from ONE place (lib/jobDecisions.js draftButtonState); a drafted
   // button opens Draft House rather than going grey.
-  assert.match(buttons, /const s = draftButtonState\(\{ drafted, drafting, block, canView: !!onView \}\);/);
+  assert.match(buttons, /const s = draftButtonState\(\{ drafted, drafting, block, canView: !!onView, slots \}\);/);
   assert.match(buttons, /disabled=\{s\.disabled\}/);
   assert.doesNotMatch(jobCard, /activeLabel="Undo pass"/,
     "the listing must not grow the thumbs-down back — see AE5 for where Pass lives");

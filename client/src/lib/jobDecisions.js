@@ -87,7 +87,7 @@ export function draftBlock({ slots = null, prereqMissing = [], prereqLabels = {}
  * @returns {{ kind: "idle"|"drafting"|"drafted"|"blocked", label: string, title: string,
  *             disabled: boolean, ariaDisabled: boolean, action: "draft"|"view"|"explain"|null }}
  */
-export function draftButtonState({ drafted = false, drafting = false, block = null, canView = true } = {}) {
+export function draftButtonState({ drafted = false, drafting = false, block = null, canView = true, slots = null } = {}) {
   if (drafting) return { kind: "drafting", label: "Drafting…", title: "Drafting — it is on its way to Draft House.",
     disabled: true, ariaDisabled: true, action: null };
   if (drafted) return { kind: "drafted", label: "Drafted ✓",
@@ -96,7 +96,10 @@ export function draftButtonState({ drafted = false, drafting = false, block = nu
     disabled: false, ariaDisabled: !canView, action: canView ? "view" : "explain" };
   if (block) return { kind: "blocked", label: block.label, title: block.reason,
     disabled: false, ariaDisabled: true, action: "explain" };
-  return { kind: "idle", label: "Draft", title: "Draft — queue it for your review. Nothing is sent until you approve it.",
+  // D52: the cost is said BEFORE the click — a Draft uses one of the day's drafts.
+  const cost = slots && Number.isFinite(Number(slots.remaining))
+    ? ` Uses 1 of your ${slots.remaining} draft${Number(slots.remaining) === 1 ? "" : "s"} left (24 hours).` : "";
+  return { kind: "idle", label: "Draft", title: `Draft — queue it for your review.${cost} Nothing is sent until you approve it.`,
     disabled: false, ariaDisabled: false, action: "draft" };
 }
 
