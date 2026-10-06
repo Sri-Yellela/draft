@@ -60,7 +60,7 @@ export function DraftButton({ drafted, drafting, onDraft, onView = null, block =
     return (
       <DepthButton size={square ? "square" : "box"} pressed={drafted} disabled={s.disabled} title={title}
         onClick={onClick} badge={badge} caption={square ? label : null} tip={square ? title : null}
-        className="dbx--logo" aria-label={`${label} — ${title}`} data-draft-logo="" {...flags}
+        className="dbx--logo" aria-label={title} data-draft-logo="" {...flags}
         icon={square ? <StampLogo size="md" progress={1} /> : null}>
         {square ? label : idle ? <StampLogo size="mini" /> : label}
       </DepthButton>

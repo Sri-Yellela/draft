@@ -414,7 +414,9 @@ export function DatabasePanel({ user }) {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { if (activeSheet === "saved") loadSaved(); }, [activeSheet, loadSaved]);
-  useEffect(() => { if (activeSheet === "pending") loadPending(); }, [activeSheet, loadPending]);
+  // Loaded on mount too, not only when the sheet opens: the tab's count is pendingData's length, and
+  // before this it read "0" until clicked — with four Drafts in play (the D51 browser pass, 10-07).
+  useEffect(() => { loadPending(); }, [activeSheet, loadPending]);
   useEffect(() => { if (editCell && inputRef.current) inputRef.current.focus(); }, [editCell]);
 
   // The document mousedown handler that used to close these calendars lived here and tested
