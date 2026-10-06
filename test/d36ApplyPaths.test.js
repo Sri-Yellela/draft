@@ -500,3 +500,30 @@ test("D36·5 · the extension never submits a form: no submit(), no requestSubmi
     assert.doesNotMatch(src, /\.requestSubmit\s*\(|\.submit\s*\(\s*\)|\[type=["']?submit["']?\][^;\n]*\.click\(/, f);
   }
 });
+
+// ── 6 · THE REVIEW OVERLAY APPEARS ON THE GATED PATH — and when it does not, the user is told ──────
+// Walked 10-05 with scripts/g3ReviewOverlay.mjs (real Chrome, the real extension, the fake ATS's
+// /gated/form, a synthetic candidate): "the overlay rendered {rendered:true, rows:7}", eligibility
+// pinned first, a guess blocks "ready" until acknowledged, the inversion checkbox untouched, NOTHING
+// reached the ATS — ALL PASS. The seam it did not cover: if the overlay failed to render, the fill
+// returned the SUCCESS sentence word for word and the popup closed itself 1.2 s later.
+test("D36·6 · the gated fill renders the review overlay after it fills, and only then reports success", () => {
+  const src = read("extension/gated-handoff.js");
+  const fill = src.slice(anchor(src, "async function fillFromPacket("), anchor(src, "async function captureFormSchema("));
+  const applied = anchor(fill, "func: applyPlan,");
+  const overlay = anchor(fill, "func: renderOverlay,");
+  assert.ok(overlay > applied, "the overlay is drawn over the filled form");
+  assert.match(fill, /overlay: \{ rendered: true, rows: reviewItems\.length \}/);
+  // The failure path says something different from success, and tells the candidate what to do.
+  const failed = fill.slice(anchor(fill, "overlay: { rendered: false, error: e.message },"), anchor(fill, "// ── Schema capture"));
+  assert.match(failed, /the review panel could not open/);
+  assert.match(failed, /Check every answer on the page yourself/);
+  assert.doesNotMatch(failed, /message: `Filled \$\{outcome\?\.filled\?\.length \|\| 0\} field\(s\)\. Review and submit yourself\.`/);
+});
+
+test("D36·6 · the popup stays open when the overlay did not render", () => {
+  const bg = read("extension/background.js");
+  const popup = read("extension/popup.js");
+  assert.match(bg, /overlay: r\?\.overlay \? \{ rendered: r\.overlay\.rendered === true \} : null/);
+  assert.match(popup, /if \(r\?\.ok && r\?\.overlay\?\.rendered !== false\) setTimeout\(\(\) => window\.close\(\), 1200\);/);
+});
