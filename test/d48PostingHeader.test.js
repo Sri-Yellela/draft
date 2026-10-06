@@ -38,7 +38,8 @@ test("D48 · the box's number and the ATS card's are ONE colour, in both themes 
 test("D48 · the ATS box: the number in the display face and PP_ATS_NUMBER; no score → dashed, the bars, NO digits", () => {
   const box = jd.slice(at(jd, "export function AtsNumberBox("), at(jd, "function PostingActions("));
   assert.match(box, /const has = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);
-  assert.match(box, /\{has\s+\? \(<><b>\{Math\.round\(score\)\}<\/b><small>ATS<\/small><\/>\)\s+: <svg/);
+  // D58: the caption says "tailored" when the number is the tailored résumé's.
+  assert.match(box, /\{has\s+\? \(<><b>\{Math\.round\(score\)\}<\/b><small>\{tailored \? "tailored" : "ATS"\}<\/small><\/>\)\s+: <svg/);
   assert.match(box, /className=\{`pp__ats\$\{has \? "" : " pp__ats--none"\}`\}/);
   assert.match(box, /aria-expanded=\{open\}/, "open is shown as an outline, from the ATS card's state");
   assert.match(jdCss, /\.pp__ats b \{ font: 400 26px\/1 var\(--font-display\); color: var\(--c-pp-ats-number\); \}/);

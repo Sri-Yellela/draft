@@ -9,6 +9,7 @@ import PanelShell from "./PanelShell.jsx";
 import CompanyLink from "./CompanyLink.jsx";
 import CompanyIcon from "./ui/CompanyIcon.jsx";
 import { ATS_NUMBER_SHOWN, ATS_NUMBER_NOTE } from "../../../shared/atsBands.js";
+import { atsScorePair } from "../../../shared/resumeScores.js";
 import StickyBar from "./StickyBar.jsx";
 import DepthButton, { ICONS } from "./DepthButton.jsx";
 import "./JobDetailPanel.css";
@@ -26,15 +27,17 @@ import { DraftButton, PassButton, SaveButton } from "./DecisionButtons.jsx";
  * far more often than a decline (A52), so it says so, and the card it opens scores the posting fresh.
  * The number is provisional (D50): its title says so.
  */
-export function AtsNumberBox({ score, open = false, onOpen }) {
+export function AtsNumberBox({ score, tailored = false, base = null, open = false, onOpen }) {
   const has = ATS_NUMBER_SHOWN && Number.isFinite(score);
+  // ⭐ D58: the score of the résumé that would be SENT — the tailored one when it exists, marked so.
+  const what = tailored ? `Tailored résumé's ATS match ${Math.round(score)}${Number.isFinite(base) ? ` (base résumé ${Math.round(base)})` : ""}` : `ATS match ${Math.round(score)}`;
   return (
-    <button type="button" className={`pp__ats${has ? "" : " pp__ats--none"}`} data-ats-box="" aria-expanded={open}
+    <button type="button" className={`pp__ats${has ? "" : " pp__ats--none"}`} data-ats-box="" data-ats-tailored={has && tailored ? "true" : undefined} aria-expanded={open}
       onClick={() => onOpen?.()}
-      title={has ? `ATS match ${Math.round(score)} — ${ATS_NUMBER_NOTE}` : "No ATS score yet — open the ATS card to score this posting"}
-      aria-label={has ? `ATS match ${Math.round(score)}. ${ATS_NUMBER_NOTE}. Open the ATS card` : "No ATS score yet. Open the ATS card"}>
+      title={has ? `${what} — ${ATS_NUMBER_NOTE}` : "No ATS score yet — open the ATS card to score this posting"}
+      aria-label={has ? `${what}. ${ATS_NUMBER_NOTE}. Open the ATS card` : "No ATS score yet. Open the ATS card"}>
       {has
-        ? (<><b>{Math.round(score)}</b><small>ATS</small></>)
+        ? (<><b>{Math.round(score)}</b><small>{tailored ? "tailored" : "ATS"}</small></>)
         : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V8"/></svg>}
     </button>
   );
@@ -245,9 +248,10 @@ export default function JobDetailPanel({
   }, [jobId]);
 
   if (!selectedJob) return null;
-  // The score the header's box shows: this résumé's report, else the stored base report — never a guess.
+  // ⭐ D58: the score the header's box shows is the board's ONE read (scoresFor in JobsPanel) — the tailored
+  // résumé's when it exists, else the stored base. Never a guess, and null shows no digit.
   const g = selectedJobMeta?.g, job = selectedJob;
-  const atsScore = g?.atsScore ?? job?.baseAtsScore ?? null;
+  const scores = selectedJobMeta?.scores ?? atsScorePair({ base: job?.baseAtsScore, tailored: g?.html ? g?.atsScore : null });
 
   return (
     <PanelShell
@@ -278,7 +282,7 @@ export default function JobDetailPanel({
                   no ↗, and a hit area that is the text alone (it was display:block, the whole line). */}
               <div className="pp__co"><CompanyLink company={selectedJob.company} href={postingUrl || null} size="panel" onOpen={openedPosting} /></div>
               <span className="pp__sp" />
-              <AtsNumberBox score={atsScore}
+              <AtsNumberBox score={scores.shown} tailored={scores.tailoredShown} base={scores.base}
                 open={!!selectedJobMeta?.atsOpen} onOpen={() => selectedJobMeta?.onAts?.()} />
               <button type="button" className="pp__x" onClick={close} aria-label="Close panel" title="Close">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>

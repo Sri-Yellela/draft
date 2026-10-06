@@ -21,6 +21,11 @@
 //      marked success=0 with the reason) and the route says so; the Draft slot is debited only after a
 //      stored résumé, so it was never taken.
 //
+// ⭐ D58 · THE PAIR IS STORED WITH THE RÉSUMÉ. The base résumé's score for this posting (measured just
+// before the model call, by the same scorer against the same job — AK1's `atsScoreBefore`) is written
+// beside the tailored score, once (migration 131), so "Base 58 → tailored 71" is one stored statement every
+// surface reads — never a stored number beside a freshly computed one (the A52 / O19b disagreement).
+//
 // ⭐ D57 · RETENTION. A résumé not tied to an application is a CONVENIENCE COPY, not evidence: kept for
 // RESUME_RETENTION_DAYS (default 90 — A57's rule; owner may change it) from its latest generation, and
 // shown with "expires in N days". Once the job is DRAFTED or APPLIED it is kept for good — the tie is
@@ -32,6 +37,9 @@ export function resumeRetentionDays(env = process.env) {
   const n = Number(env?.RESUME_RETENTION_DAYS);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : DEFAULT_RESUME_RETENTION_DAYS;
 }
+
+/** A score is a finite number or NULL — a declined score is never stored as 0. */
+const scoreOrNull = (v) => (v == null || !Number.isFinite(Number(v)) ? null : Math.round(Number(v)));
 
 export class ResumeStoreError extends Error {
   constructor(message, { cause = null, refunded = false } = {}) {
@@ -55,27 +63,27 @@ export const STORE_FAILED_SENTENCE =
  */
 export function storeGeneratedResume(db, {
   userId, jobId, job = {}, tool = "generate", mode = "TAILORED", html, atsScore = null, atsReport = null,
-  atsCacheKey = null, promptVersion = null, domainProfileId = null, userJobProfileId = null,
+  baseAtsScore = null, atsCacheKey = null, promptVersion = null, domainProfileId = null, userJobProfileId = null,
 }) {
   const id = String(jobId);
   const report = atsReport == null ? null : (typeof atsReport === "string" ? atsReport : JSON.stringify(atsReport));
   return db.transaction(() => {
     const version = (db.prepare("SELECT MAX(version) AS v FROM resume_versions WHERE user_id=? AND job_id=?")
       .get(userId, id)?.v || 0) + 1;
-    db.prepare(`INSERT INTO resume_versions (user_id,job_id,company,role,category,html,ats_score,ats_report,tool_type,is_kept,version,ats_cache_key,ats_prompt_version)
-      VALUES (?,?,?,?,?,?,?,?,?,0,?,?,?)`)
+    db.prepare(`INSERT INTO resume_versions (user_id,job_id,company,role,category,html,ats_score,ats_report,tool_type,is_kept,version,ats_cache_key,ats_prompt_version,base_ats_score)
+      VALUES (?,?,?,?,?,?,?,?,?,0,?,?,?,?)`)
       .run(userId, id, job.company ?? null, job.title ?? null, job.category ?? null, html, atsScore, report, tool, version,
-           atsCacheKey, promptVersion);
+           atsCacheKey, promptVersion, scoreOrNull(baseAtsScore));
     // ⛔ ALWAYS — the newest generation is the résumé that would be sent (see 1 above). AH5: the
     // profile is STAMPED so the reuse rule can ask whether it was built for the active one.
-    db.prepare(`INSERT INTO resumes (user_id,job_id,company,role,category,apply_mode,html,ats_score,ats_report,ats_cache_key,ats_prompt_version,domain_profile_id,created_at,updated_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,unixepoch(),unixepoch())
+    db.prepare(`INSERT INTO resumes (user_id,job_id,company,role,category,apply_mode,html,ats_score,ats_report,ats_cache_key,ats_prompt_version,domain_profile_id,base_ats_score,created_at,updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,unixepoch(),unixepoch())
       ON CONFLICT(user_id,job_id) DO UPDATE SET html=excluded.html,role=excluded.role,category=excluded.category,
       apply_mode=excluded.apply_mode,ats_score=excluded.ats_score,ats_report=excluded.ats_report,
       ats_cache_key=excluded.ats_cache_key,ats_prompt_version=excluded.ats_prompt_version,
-      domain_profile_id=excluded.domain_profile_id,updated_at=excluded.updated_at`)
+      domain_profile_id=excluded.domain_profile_id,base_ats_score=excluded.base_ats_score,updated_at=excluded.updated_at`)
       .run(userId, id, job.company ?? null, job.title ?? null, job.category ?? null, mode, html, atsScore, report,
-           atsCacheKey, promptVersion, domainProfileId);
+           atsCacheKey, promptVersion, domainProfileId, scoreOrNull(baseAtsScore));
     // The job is the user's own once they generated for it — on the profile that generated it. A job
     // found by search outside the profile's role scope used to get NO user_jobs row at all (the profile
     // resolver answers null for an unmapped job), so resume_generated was never set for it.
@@ -122,12 +130,12 @@ const GENERATED_AT_SQL = `COALESCE((SELECT MAX(v.created_at) FROM resume_version
 
 /**
  * Every generated résumé the user has, newest first — Settings → Your data → Generated résumés.
- * { jobId, company, role, atsScore, generatedAt (ms), versions, tie, keptForGood,
+ * { jobId, company, role, atsScore, baseAtsScore, generatedAt (ms), versions, tie, keptForGood,
  *   expiresAt (ms|null), expiresInDays (int|null) }
  */
 export function listGeneratedResumes(db, userId, { now = Math.floor(Date.now() / 1000), days = resumeRetentionDays() } = {}) {
   const rows = db.prepare(`
-    SELECT r.job_id, r.company, r.role, r.ats_score, ${GENERATED_AT_SQL} AS generated_at,
+    SELECT r.job_id, r.company, r.role, r.ats_score, r.base_ats_score, ${GENERATED_AT_SQL} AS generated_at,
            (SELECT COUNT(*) FROM resume_versions v WHERE v.user_id = r.user_id AND v.job_id = r.job_id) AS versions
     FROM resumes r WHERE r.user_id = ? AND r.html IS NOT NULL
     ORDER BY generated_at DESC
@@ -137,7 +145,7 @@ export function listGeneratedResumes(db, userId, { now = Math.floor(Date.now() /
     const expires = tie ? null : Number(r.generated_at) + days * DAY;
     return {
       jobId: r.job_id, company: r.company, role: r.role,
-      atsScore: r.ats_score ?? null,
+      atsScore: r.ats_score ?? null, baseAtsScore: r.base_ats_score ?? null,
       generatedAt: r.generated_at ? Number(r.generated_at) * 1000 : null,
       versions: r.versions || 0,
       tie, keptForGood: !!tie,

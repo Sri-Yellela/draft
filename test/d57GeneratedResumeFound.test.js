@@ -205,7 +205,7 @@ test("D57 · drafting a job with a stored résumé attaches it to the Draft at o
 test("D57 · after a reload the stored résumé reads 'Résumé ready · 2h ago' with view · download · regenerate", () => {
   const jobs = read("client/src/panels/JobsPanel.jsx");
   // The boot map (GET /api/resumes) carries when it was generated and the PARSED report.
-  assert.match(jobs, /atsReport:r\.atsReport \?\? null, company:r\.company, title:r\.role,\n\s+generatedAt: r\.generated_at \? Number\(r\.generated_at\) \* 1000 : null,/);
+  assert.match(jobs, /atsReport:r\.atsReport \?\? null, company:r\.company, title:r\.role,[^\n]*\n\s+generatedAt: r\.generated_at \? Number\(r\.generated_at\) \* 1000 : null,/);
   assert.match(read("server.js"), /COALESCE\(MAX\(v\.created_at\), r\.created_at\) AS generated_at/);
   // View and Download reach a stored (__exists__) résumé from the store.
   assert.match(jobs, /onViewSandbox: \(\) => \{\n\s+if \(g2\?\.html === "__exists__"\) \{ generate\(selectedJob, false\); return; \}/);

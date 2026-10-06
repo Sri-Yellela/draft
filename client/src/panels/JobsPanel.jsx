@@ -57,6 +57,7 @@ import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { bandChipStyle } from "../styles/bandStyle.js";
 import { C } from "../styles/colorTokens.js";
 import { glass } from "../styles/glass.js";
+import { atsScorePair } from "../../../shared/resumeScores.js";
 
 // The three extension-bridge stubs that stood here (getLinkedInExtensionInstallUrl,
 // isLinkedInExtensionInstalled, sendExtensionRequest) are gone with cleanup 5.3. They returned
@@ -206,6 +207,8 @@ function buildArtifact(job, data, tool) {
   return {
     html: data.html,
     atsScore: data.atsScore ?? data.ats_score,
+    // ⭐ D58: the base résumé's score for this posting, stored WITH the tailored one at generation.
+    baseAtsScore: data.baseAtsScore ?? data.base_ats_score ?? null,
     atsReport: data.atsReport,
     company: data.company || job.company,
     title: data.title || data.role || job.title,
@@ -1234,8 +1237,22 @@ function getCardTier(panelBVisible, panelCVisible, panelDVisible) {
 
 // getPanelDefaults removed — see the note where the rebalancing effect used to be.
 
+/**
+ * ⭐ D58 · ONE READ OF THE SCORE, for every surface on this board: the card badge, the posting header's box
+ * and the ATS card all ask this, with the same stored pair — the tailored score written on the résumé at
+ * generation, and the base (the pair's own base when one was stored with it, else the board's stored base).
+ */
+export function scoresFor(job, artifact = null) {
+  const a = artifact ? getActiveArtifact(artifact, artifact.activeTool || artifact.tool) : null;
+  return atsScorePair({
+    base: a?.baseAtsScore ?? artifact?.baseAtsScore ?? job?.baseAtsScore ?? job?.matchScore ?? null,
+    tailored: a?.html ? (a.atsScore ?? null) : null,
+  });
+}
+
 function buildAtsPayload(job, artifact = null) {
   const activeArtifact = artifact ? getActiveArtifact(artifact, artifact.activeTool || artifact.tool) : null;
+  const pair = scoresFor(job, artifact);
   const score = activeArtifact?.atsScore
     ?? job?.atsScore
     ?? job?.resumeAtsScore
@@ -1257,6 +1274,8 @@ function buildAtsPayload(job, artifact = null) {
     // happened to be selected — or about nothing at all, on a board with no selection, which is
     // when a card's chip is clicked. Now the report says which job it is about.
     jobId: job?.jobId || job?.id || null,
+    // D58: "Base 58 → tailored 71" — the base score stays in the ATS card, beside the tailored one.
+    pair,
     company: activeArtifact?.company || job?.company,
     title: activeArtifact?.title || job?.title || job?.role,
   };
@@ -2013,6 +2032,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       companyNotice: isJobDrafted(selectedJob.jobId) ? null : companyNoticeFor(selectedJob),
       onExplainDraft: (reason) => draftControls.onExplain(selectedJob, reason),
       onAts: () => openAtsPanel(buildAtsPayload(selectedJob, g2)),
+      // D58: the header box reads the same pair the card badge and the ATS card read.
+      scores: scoresFor(selectedJob, g2),
       // D48: the posting header's ATS box opens the card beside the posting and shows OPEN as an outline.
       atsOpen: !!rightPanelOpen,
       onResume: () => generate(selectedJob, false),
@@ -2617,7 +2638,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         // ⛔ D57: `atsReport` is the PARSED report (/api/resumes sends both) — the raw `ats_report` string
         // reached the ATS card as a "report" with no score field and no terms after every reload.
         gr.forEach(r => { map[r.job_id] = { html:"__exists__", status:"exists", atsScore:r.ats_score,
-          atsReport:r.atsReport ?? null, company:r.company, title:r.role,
+          atsReport:r.atsReport ?? null, company:r.company, title:r.role, baseAtsScore: r.base_ats_score ?? null,
           generatedAt: r.generated_at ? Number(r.generated_at) * 1000 : null,
           jobId:r.job_id, tool:r.apply_mode === "CUSTOM_SAMPLER" ? A_PLUS_TOOL : GENERATE_TOOL,
           toolLabel:r.apply_mode === "CUSTOM_SAMPLER" ? TOOL_LABELS[A_PLUS_TOOL] : TOOL_LABELS[GENERATE_TOOL] }; });
@@ -3218,7 +3239,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (existingArtifact?.html && existingArtifact.html !== "__exists__" && !force) {
       const entry = {...existing, ...existingArtifact, company:existingArtifact.company||job.company, title:existingArtifact.title||job.title};
       openSandbox(entry);
-      openAtsPanel({ score:existingArtifact.atsScore, report:existingArtifact.atsReport, company:job.company, title:job.title });
+      openAtsPanel(buildAtsPayload(job, existing));
       return;
     }
     if (existing?.html === "__exists__" && existing.tool === tool && !force) {
@@ -3226,11 +3247,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       setLoading(p => ({ ...p, [key]: tool }));
       try {
         const d = await api(`/api/resumes/${key}`);
-        const entry = buildArtifact(job, { html: d.html, ats_score: d.ats_score, atsReport: d.atsReport, company: d.company, role: d.role, tool,
+        const entry = buildArtifact(job, { html: d.html, ats_score: d.ats_score, base_ats_score: d.base_ats_score, atsReport: d.atsReport, company: d.company, role: d.role, tool,
           generatedAt: existing.generatedAt ?? null }, tool);
         setGenerated(p => ({ ...p, [key]: entry }));
         openSandbox({ ...entry, company: entry.company, title: entry.title });
-        openAtsPanel({ score: d.ats_score, report: d.atsReport, company: d.company, title: d.role });
+        openAtsPanel(buildAtsPayload(job, entry));
       } catch(e) {
         setSandbox({ generating: false, status:"missing", missing:true, error: e.message, company: job.company, title: job.title });
       }
@@ -3272,7 +3293,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       const artifact = buildArtifact(job, d, tool);
       setGenerated(p => ({ ...p, [key]: mergeArtifact(p[key], artifact) }));
       openSandbox(mergeArtifact(generated[key], artifact));
-      openAtsPanel({ score:d.atsScore, report:d.atsReport, company:job.company, title:job.title });
+      openAtsPanel(buildAtsPayload(job, artifact));
     } catch(e) {
       setSandbox({ generating: false, status:"error", error: e.message, company: job.company, title: job.title });
     }
@@ -4257,7 +4278,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
             return (
               <JobBubble
                 key={key} job={job}
-                score={g?.atsScore ?? job.matchScore ?? job.baseAtsScore ?? null}
+                score={scoresFor(job, g).shown}
                 selected={selectedJobId === key}
                 // ⭐ D57: the card says a résumé is ready for this job — the same card in every view (D46).
                 resumeReady={!!g?.html}
