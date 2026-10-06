@@ -9,7 +9,8 @@ import { at as anchor } from "../test-support/sourceAnchors.js";
 import express from "express";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
-import applyRoutes from "../routes/apply.js";
+import applyRoutes, { capturedAtsAtApply } from "../routes/apply.js";
+import { recordSubmissionFromPipeline } from "../services/applicationRecords.js";
 import { draftSlots } from "../services/draftSlots.js";
 import {
   submitBlockedReason, resolveSponsorshipNeed, buildAnswers, eligibilityClassOf, sanitizeDiscoveredFields,
@@ -428,4 +429,35 @@ test("D36·3 · a held or failed attempt never blocks the next Draft, and only a
     assert.equal((src.match(/recordSubmissionFromPipeline\(db,/g) || []).length, 1);
     assert.match(src, /if \(submitted\) \{\n\s*logEvent\(runId, runJobId, userId, jobId, "submitted"[\s\S]{0,900}?recordSubmissionFromPipeline\(db,/);
   } finally { t.stop(); }
+});
+
+// ── 1 · ONE APPLICATION WRITES job_applications WITH THE SCORE AT APPLY ──────────────────────────
+// Walked 10-05: MANUAL (record + reference) → job_applications id 2, ats_score_at_apply 90; SEMI
+// (preview → approve → verified submit on the fake ATS) → id 3, 90; FULL AUTO in the harness → 77.
+// The premise "recordAtsOutcome never fires because job_id is null" is about usage_events, not
+// job_applications: in the DB copy the eight null-job resume_generate rows are user 0 (scripts,
+// 09-05); a user's generation passes the job id, and the lift row is filled (event 1675: 90 → 90).
+test("D36·1 · a verified pipeline submit writes job_applications with the score and scorer version", () => {
+  const db = new Database(":memory:");
+  for (const m of MIGRATIONS) db.exec(m.sql);
+  db.prepare("INSERT INTO users (id,username,password_hash) VALUES (1,'dana','x')").run();
+  db.prepare("INSERT INTO domain_profiles (id,user_id,profile_name,role_family,domain,is_active) VALUES (10,1,'SWE','engineering','software',1)").run();
+  db.prepare(`INSERT INTO scraped_jobs (job_id,title,company,url,apply_url,search_query,_hash,discovered_at)
+              VALUES ('gh::1','Backend','Northwind','https://boards.greenhouse.io/n/1','https://boards.greenhouse.io/n/1','t','h',unixepoch()-3600)`).run();
+  db.prepare(`INSERT INTO resumes (user_id,job_id,company,role,html,ats_score,ats_report,domain_profile_id,created_at,updated_at)
+              VALUES (1,'gh::1','Northwind','Backend','<p>r</p>',90,?,10,unixepoch(),unixepoch())`).run(JSON.stringify({ score: 90, source: "local_ats_v5" }));
+  const run = db.prepare("INSERT INTO apply_runs (user_id,mode,status,total_jobs,approval_mode) VALUES (1,'auto','completed',1,'approved')").run().lastInsertRowid;
+  const rj = db.prepare(`INSERT INTO apply_run_jobs (run_id,user_id,job_id,status,submit_verified,submit_evidence,finished_at)
+                         VALUES (?,1,'gh::1','submitted',1,'confirmation_page,url_changed',unixepoch())`).run(run).lastInsertRowid;
+  const out = recordSubmissionFromPipeline(db, { userId: 1, jobId: "gh::1", runJobId: rj, capturedAtsAtApply });
+  assert.equal(out.state, "verified");
+  const ja = db.prepare("SELECT apply_mode, auto_status, ats_score_at_apply, ats_scorer_version FROM job_applications").get();
+  assert.deepEqual(ja, { apply_mode: "AUTO", auto_status: "verified", ats_score_at_apply: 90, ats_scorer_version: "local_ats_v5" });
+});
+
+test("D36·1 · generation passes the job id to the usage row and closes the lift on that row", () => {
+  const server = read("server.js");
+  const core = server.slice(anchor(server, "async function coreGenerateResume("), anchor(server, "function scoreBaseResumeForApply("));
+  assert.match(core, /usageEventId = recordToolsServiceUsage\(db, generated\.usage, \{\n\s*userId, eventSubtype, jobId: String\(jobId\),[\s\S]{0,120}idFor: "resume_generate",/);
+  assert.match(core, /recordAtsOutcome\(db, usageEventId, \{ scoreBefore: atsScoreBefore, scoreAfter: atsScore \}\);/);
 });
