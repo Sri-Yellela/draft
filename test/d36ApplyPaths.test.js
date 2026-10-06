@@ -398,3 +398,34 @@ test("D36 · response · the deferred preview's first line says what will happen
   assert.match(src, /const willDefer = !currency\.current && mode !== "semi" && deferGeneration;/);
   assert.match(src, /willDefer \? DEFERRED_RESUME_SENTENCE : currencySentence\(currency\)/);
 });
+
+// ── 3 · A FAILED RUN STAYS RETRYABLE AND IS NEVER STAMPED AS ATTEMPTED ───────────────────────────
+// Walked 10-05 in the harness (real routes + autoApply + fake ATS; the tools stub answering 429,
+// dropping the socket, or never answering): each approved run held `generation_failed` with the cause
+// in reason_detail, sent nothing, wrote no job_applications / application_records / user_jobs.applied,
+// and a re-Draft was admitted (202) and reached awaiting_approval. Pinned here without a browser.
+test("D36·3 · a held or failed attempt never blocks the next Draft, and only a SUBMITTED one is recorded", async () => {
+  const t = mount();
+  try {
+    t.db.prepare("DELETE FROM scraped_jobs").run();   // admission only — every run fails fast, no browser
+    const run = t.db.prepare("INSERT INTO apply_runs (user_id,mode,status,total_jobs,approval_mode) VALUES (1,'auto','completed',4,'approved')").run().lastInsertRowid;
+    const cases = [
+      ["j429", "held_review", "generation_failed"], ["jdead", "held_review", "generation_failed"],
+      ["jtimeout", "held_review", "resume_unavailable"], ["jcrash", "failed", "internal_error"],
+      ["jkill", "held_review", "full_auto_disabled"], ["jrestart", "failed", "interrupted_by_restart"],
+    ];
+    for (const [job, status, reason] of cases) {
+      t.db.prepare("INSERT INTO apply_run_jobs (run_id,user_id,job_id,status,reason_code) VALUES (?,1,?,?,?)").run(run, job, status, reason);
+    }
+    for (const [job] of cases) {
+      const r = await t.post("/api/apply/runs", { jobIds: [job], mode: "auto", surface: "board" });
+      assert.equal(r.status, 202, `${job} must stay draftable`);
+    }
+    assert.equal(t.db.prepare("SELECT COUNT(*) FROM job_applications").pluck().get(), 0);
+    assert.equal(t.db.prepare("SELECT COUNT(*) FROM application_records").pluck().get(), 0);
+    // The one writer, and the one condition under which it runs.
+    const src = read("routes/apply.js");
+    assert.equal((src.match(/recordSubmissionFromPipeline\(db,/g) || []).length, 1);
+    assert.match(src, /if \(submitted\) \{\n\s*logEvent\(runId, runJobId, userId, jobId, "submitted"[\s\S]{0,900}?recordSubmissionFromPipeline\(db,/);
+  } finally { t.stop(); }
+});
