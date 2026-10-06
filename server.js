@@ -4225,6 +4225,17 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_apply_run_jobs_bin ON apply_run_jobs(user_id, purge_after);
       `,
     },
+    {
+      // D58 (10-07): BASE → TAILORED, STORED AS ONE PAIR. A generation already measures the base résumé's
+      // score for the posting just before the model call (AK1's atsScoreBefore, the same scorer and job as
+      // the tailored score). It is now kept beside the tailored score on the résumé, so "Base 58 → tailored
+      // 71" is one stored statement every surface reads. NULL: generated before this, or the scorer declined.
+      id: "131_resume_score_pair",
+      sql: `
+        ALTER TABLE resumes ADD COLUMN base_ats_score INTEGER;
+        ALTER TABLE resume_versions ADD COLUMN base_ats_score INTEGER;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -9616,6 +9627,8 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   try {
     stored = storeGeneratedResume(db, {
       userId, jobId: String(jobId), job, tool, mode, html: formattedHtml, atsScore, atsReport,
+      // ⭐ D58: the pair, written once — the base résumé's score measured above (same scorer, same job).
+      baseAtsScore: atsScoreBefore,
       atsCacheKey, promptVersion: ATS_SCORE_PROMPT_VERSION, domainProfileId: activeDomainProfile?.id ?? null,
       userJobProfileId: resolveUserJobDomainProfileId(userId, String(jobId)),
     });
@@ -9632,7 +9645,7 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
     `Resume ready for ${job.company}${atsScore != null ? ` (ATS: ${atsScore})` : ""}`,
     { jobId: String(jobId), company: job.company, atsScore });
 
-  return { html: formattedHtml, atsScore, atsReport, version, resumeId: stored.resumeId, generatedAt: Date.now() };
+  return { html: formattedHtml, atsScore, atsReport, baseAtsScore: atsScoreBefore ?? null, version, resumeId: stored.resumeId, generatedAt: Date.now() };
 }
 
 // ── scoreBaseResumeForApply ────────────────────────────────────────────────────
@@ -9975,6 +9988,7 @@ app.post("/api/generate", requireAuth, async (req, res) => {
         toolLabel: tool === "a_plus_resume" ? "A+ Resume" : "Generate",
         version: cachedArtifact.version || existingVersion?.version || null,
         kbFindings: kbFindingsFor(cachedArtifact.html),
+        baseAtsScore: cachedArtifact.base_ats_score ?? null,
       });
     }
     try {
@@ -10008,6 +10022,7 @@ app.post("/api/generate", requireAuth, async (req, res) => {
         toolLabel: tool === "a_plus_resume" ? "A+ Resume" : "Generate",
         version: cachedArtifact.version || existingVersion?.version || null,
         kbFindings: kbFindingsFor(cachedArtifact.html),
+        baseAtsScore: cachedArtifact.base_ats_score ?? null,
       });
     } catch {
       return res.json({
@@ -10020,6 +10035,7 @@ app.post("/api/generate", requireAuth, async (req, res) => {
         toolLabel: tool === "a_plus_resume" ? "A+ Resume" : "Generate",
         version: cachedArtifact.version || existingVersion?.version || null,
         kbFindings: kbFindingsFor(cachedArtifact.html),
+        baseAtsScore: cachedArtifact.base_ats_score ?? null,
       });
     }
   }
@@ -10041,7 +10057,7 @@ app.post("/api/generate", requireAuth, async (req, res) => {
       if (jobId) pending = markPending(db, req.user.id, jobId, "generated").state;
     } catch (e) { console.warn("[generate] slot/pending:", e.message); }
     res.json({ html: result.html, atsScore: result.atsScore, atsReport: result.atsReport, cached:false, version: result.version, tool, toolLabel: tool === "a_plus_resume" ? "A+ Resume" : "Generate", kbFindings: kbFindingsFor(result.html),
-      draftSlots: slots, pending, generatedAt: result.generatedAt, resumeId: result.resumeId });
+      draftSlots: slots, pending, generatedAt: result.generatedAt, resumeId: result.resumeId, baseAtsScore: result.baseAtsScore });
   } catch(e) {
     // ⛔ Was `500 { error: e.message }` for everything — an exhausted balance, an overload and a
     // withheld résumé looked identical and none said whether retrying could help.
@@ -10115,6 +10131,7 @@ app.get("/api/resumes", requireAuth, (req, res) => {
   const rows = db.prepare(`
     SELECT r.id, r.user_id, r.job_id, r.company, r.role, r.category,
            r.apply_mode, r.ats_score, r.ats_report, r.created_at, r.updated_at,
+           r.base_ats_score,
            COUNT(v.id) as versions,
            -- D57: when this job's résumé was last GENERATED — the posting panel's "Résumé ready · 2h ago"
            COALESCE(MAX(v.created_at), r.created_at) AS generated_at
