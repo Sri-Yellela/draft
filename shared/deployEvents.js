@@ -13,9 +13,13 @@
 //   logged, so the owner's "Test Webhook" shows what Railway actually sends.
 // Shared (server + the admin card) so "is this event an alarm?" has one answer.
 
+// Railway's DeploymentStatus enum PLUS the webhook event names its own webhook form offers (read from the
+// Railway tool's create-webhook enum, 10-07: deployed, redeployed, oom_killed, restarted, resumed, slept are
+// event types, not statuses — the first parser dropped them).
 export const DEPLOYMENT_STATES = Object.freeze(["building", "crashed", "deploying", "failed", "initializing", "needs_approval",
-  "queued", "removed", "removing", "skipped", "sleeping", "success", "waiting"]);
-export const ALARM_STATES = Object.freeze(["failed", "crashed"]);
+  "queued", "removed", "removing", "skipped", "sleeping", "success", "waiting",
+  "deployed", "redeployed", "oom_killed", "restarted", "resumed", "slept"]);
+export const ALARM_STATES = Object.freeze(["failed", "crashed", "oom_killed"]);
 export const MAX_BODY_BYTES = 16 * 1024;
 
 const ID = /^[A-Za-z0-9_-]{1,64}$/;

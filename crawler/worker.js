@@ -66,12 +66,15 @@ async function main() {
   }).listen(Number(process.env.PORT || 8080));
   console.log(`[crawler] up — draft ${base}, dry-run ${dryRun}, browser ${!!browserStage}`);
 
+  let paused = false;                 // logged once per pause, not every poll
   for (;;) {
     let task = null;
     try {
       const r = await fetch(`${base}/api/crawler/next`, { headers: auth });
       if (r.status === 200) task = (await r.json()).task;
+      else if (r.status === 423) { if (!paused) console.log("[crawler] paused by draft — idling"); paused = true; }
       else if (r.status !== 204) console.warn(`[crawler] lease answered ${r.status}`);
+      if (r.status === 200) paused = false;
     } catch (e) { console.warn(`[crawler] lease failed: ${e.message}`); }
     if (!task) { await new Promise(r => setTimeout(r, poll)); continue; }
     // D75 STEP 0b: the MODE comes from draft with each lease (Admin → Crawler); CRAWLER_DRY_RUN=1 forces dry regardless.

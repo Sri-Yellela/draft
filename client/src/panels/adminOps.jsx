@@ -160,7 +160,7 @@ export function DeploymentsSection({ theme }) {
   const rows = (d?.latest || []).map(e => [
     e.service_name || "?",
     `${e.event_type}${e.commit_hash ? ` · ${String(e.commit_hash).slice(0, 7)}` : ""} · ${e.environment_name || "?"} · ${ago(e.received_at)}`,
-    isAlarm(e) ? C.DANGER : (e.state === "success" ? C.SUCCESS : null),
+    isAlarm(e) ? C.DANGER : (["success", "deployed", "redeployed"].includes(e.state) ? C.SUCCESS : null),
   ]);
   return (
     <Card theme={theme} title="Deployments — Railway's webhook (D76)" measured={v ? `this server: ${v.commit ?? "?"} · migration ${v.migrations?.latestApplied ?? "?"}` : null}>

@@ -60,8 +60,9 @@ export function verifyCopy(file) {
     const rows = tables.has("scraped_jobs") ? db.prepare("SELECT COUNT(*) FROM scraped_jobs").pluck().get() : 0;
     const active = tables.has("scraped_jobs") ? db.prepare("SELECT COUNT(*) FROM scraped_jobs WHERE is_active = 1").pluck().get() : 0;
     if (!rows) problems.push("scraped_jobs is empty");
+    // The HIGHEST-NUMBERED id, not the newest applied_at: a deploy applies several in one second.
     const latestMigration = tables.has("schema_migrations")
-      ? db.prepare("SELECT id FROM schema_migrations ORDER BY applied_at DESC, rowid DESC LIMIT 1").pluck().get() : null;
+      ? db.prepare("SELECT id FROM schema_migrations ORDER BY CAST(id AS INTEGER) DESC, id DESC LIMIT 1").pluck().get() : null;
     return { ok: problems.length === 0, problems, rows, active, latestMigration };
   } catch (e) {
     return { ok: false, problems: [...problems, `read failed: ${e.message}`] };
@@ -118,10 +119,12 @@ async function main() {
     const v = verifyCopy(partial);
     if (!v.ok) {
       fs.renameSync(partial, `${final}.FAILED`);
+      for (const side of ["-shm", "-wal"]) fs.rmSync(`${partial}${side}`, { force: true });
       console.error(`⛔ FAILED VERIFICATION — kept as ${final}.FAILED, NOT as a good copy: ${v.problems.join(" · ")}`);
       process.exit(1);
     }
     fs.renameSync(partial, final);
+    for (const side of ["-shm", "-wal"]) fs.rmSync(`${partial}${side}`, { force: true });   // opening it left sidecars
     console.log(`verified: integrity ok · ${v.rows} postings (${v.active} active) · last migration ${v.latestMigration} → ${final}`);
   }
   const { kept, deleted } = pruneGood(dest, keep);
