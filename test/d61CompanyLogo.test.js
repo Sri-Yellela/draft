@@ -16,7 +16,6 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
-import { at } from "../test-support/sourceAnchors.js";
 
 const read = (f) => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
 const CLIENT = path.resolve("client");
@@ -95,15 +94,17 @@ test("D61 · the letter fallback is a token-coloured tile in the depth style, in
 
 test("⛔ D61 · ONE CompanyLogo — every surface that draws a company mark imports it, and no other tile exists", () => {
   for (const f of ["client/src/components/JobBubble.jsx", "client/src/components/JobCard.jsx",
-                   "client/src/components/JobDetailPanel.jsx", "client/src/panels/DeckView.jsx", "client/src/panels/JobsPanel.jsx"]) {
+                   "client/src/components/JobDetailPanel.jsx", "client/src/panels/DeckView.jsx",
+                   "client/src/panels/AtsReportPanel.jsx", "client/src/components/ResumeList.jsx"]) {
     const src = read(f);
     assert.match(src, /import CompanyLogo from "[./]+(components\/)?CompanyLogo\.jsx";/, f);
     assert.match(src, /<CompanyLogo /, f);
   }
-  // The History list's own letter tile (the green "A" for Amazon in the owner's screenshot) is gone.
-  const history = read("client/src/panels/JobsPanel.jsx");
-  const list = history.slice(at(history, "function HistoryList(", 0, "HistoryList"), at(history, "// ── Company Reuse Modal", 0, "the next component"));
-  assert.match(list, /<CompanyLogo company=\{v\.company\}/);
+  // The History list's own letter tile (the green "A" for Amazon in the owner's screenshot) is gone — D62
+  // replaced the whole list with ResumeList, and the ATS panel's header draws CompanyLogo.
+  assert.doesNotMatch(read("client/src/panels/JobsPanel.jsx"), /function HistoryList\(/);
+  assert.match(read("client/src/panels/AtsReportPanel.jsx"), /<CompanyLogo company=\{activeAts\.company\}/);
+  assert.match(read("client/src/components/ResumeList.jsx"), /<CompanyLogo company=\{r\.company\}/);
   // No second letter tile anywhere in the client: a company's initial is drawn by CompanyLogo only.
   const offenders = [];
   const walk = (d) => { for (const n of fs.readdirSync(d)) { const p = path.join(d, n); if (fs.statSync(p).isDirectory()) walk(p); else if (/\.jsx?$/.test(n)) {

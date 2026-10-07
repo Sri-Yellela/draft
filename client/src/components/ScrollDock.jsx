@@ -67,8 +67,7 @@ function HamburgerOverlay({ open, onClose, theme, links, ctaLinks }) {
               fontSize: 22, fontWeight: 700, color: theme.text,
               textDecoration: "none", padding: "12px 0",
               borderBottom: `1px solid ${theme.border}`,
-              fontFamily: "'Barlow Condensed','DM Sans',sans-serif",
-              letterSpacing: "0.04em",
+              fontFamily: "var(--font-display)",
             }}>
             {label}
           </Link>

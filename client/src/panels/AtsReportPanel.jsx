@@ -1,9 +1,12 @@
+import { useState, useEffect } from "react";
 import PanelShell from "../components/PanelShell.jsx";
+import CompanyLogo from "../components/CompanyLogo.jsx";
+import CompanyLink from "../components/CompanyLink.jsx";
+import ResumeList, { ScoreBox, RESUME_ICONS } from "../components/ResumeList.jsx";
+import { api } from "../lib/api.js";
 import { ATSPanel } from "./ATSPanel.jsx";
-import { bandMarkStyle } from "../styles/mark.js";
 import { atsBandLabel } from "../../../shared/atsBands.js";
 import { reportBand } from "../components/AtsReport.jsx";
-import { C } from "../styles/colorTokens.js";
 
 // ── AtsReportPanel — the ATS report + generation history, as a PEER of the JD drawer ──────────
 //
@@ -14,15 +17,16 @@ import { C } from "../styles/colorTokens.js";
 // surface, both sticky regions, its own scrolling body, the close button and the modal z-tier by
 // being a peer rather than by reimplementing any of it.
 //
-// The tab row (ATS Report / History) is the action bar — sticky region 2 — which is where the
-// inline version's tabs already sat relative to its content, so the arrangement the user knows is
-// preserved while the chrome around it becomes the shared one.
+// The tab row (ATS report / History) is the action bar — sticky region 2. ⭐ D62 (owner 10-07): the frame
+// and its History were still the old site — a Strong capsule, a bold "Base 62 → tailored 70" sentence,
+// condensed uppercase capsule tabs, and a History of letter tiles and flat dark squares. They are now the
+// current language: CompanyLogo, the logo face, the number box, depth boxes, and ResumeList.
 export default function AtsReportPanel({
   slot = 0, width, focused = true, fullScreen = false, resizeMode = "dock", closesOnEscape, reserveRight = 0,
   onFocus, onResizeStart, onResize, onResizeEnd, onClose,
   theme, activeAts, rightTab, setRightTab, genCount,
   jobId, resumeText, activeProfileId,
-  historyContent, onReport = null,
+  onOpenVersion = null, onExportVersion = null, onReport = null,
 }) {
   // ⛔ CC5 · THE JOB THE REPORT IS ABOUT, WHICH IS NOT NECESSARILY THE SELECTED ONE.
   //
@@ -33,68 +37,80 @@ export default function AtsReportPanel({
   // unscored row had no route to its term list. The payload names its own job now; the prop stays
   // as the fallback for callers that pass a report without one.
   const reportJobId = activeAts?.jobId ?? jobId;
+  // ⭐ D62 · HISTORY = THE RÉSUMÉ VERSIONS FOR THIS JOB (resume_versions), newest first — not the
+  // account-wide list of generated résumés it used to show. Fetched when the job changes.
+  const [versions, setVersions] = useState(null);
+  useEffect(() => {
+    if (!reportJobId) { setVersions([]); return undefined; }
+    let live = true;
+    setVersions(null);
+    api(`/api/resumes/${encodeURIComponent(reportJobId)}/versions`)
+      .then(rows => { if (live) setVersions(Array.isArray(rows) ? rows : []); })
+      .catch(() => { if (live) setVersions([]); });
+    return () => { live = false; };
+  }, [reportJobId, genCount]);
+
+  // ⭐ D62 · THE HEADER, in the current language: CompanyLogo · the company in the logo face (the ONE
+  // company link, D38) · the number box (D50) — never a band capsule · base → tailored as a two-number
+  // mark in the serif ("62 → 70"), not a bold sentence. ⛔ D58: a tailored score BELOW the base is said.
+  // ⛔ A52 · THE BOX READS THE REPORT THE BODY DRAWS: with a report, its own score governs (null is the
+  // scorer declining → no digits); without one, the score the panel itself computed (adoptPanelVerdict).
+  const r = activeAts?.report;
+  const reportScore = r && Object.prototype.hasOwnProperty.call(r, "score") ? r.score : (activeAts?.score ?? null);
+  const pair = activeAts?.pair || null;
+  const shown = pair?.shown ?? reportScore;
+  const band = (activeAts?.score != null || r) ? reportBand(r && Object.prototype.hasOwnProperty.call(r, "score") ? r : { score: activeAts?.score ?? null }) : null;
   const header = (
-    <div style={{ minWidth: 0 }}>
-      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--color-text)", overflow: "hidden",
-                    textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {activeAts?.company || "ATS Report"}
+    <div className="atsp__hdr" data-ats-panel-header="">
+      {activeAts?.company
+        ? <CompanyLogo company={activeAts.company} iconUrl={activeAts.companyIconUrl} size={40} radius={11} />
+        : <span />}
+      <div className="atsp__who">
+        {activeAts?.company
+          ? <CompanyLink company={activeAts.company} href={activeAts.applyUrl || null} jobId={reportJobId} size="row" />
+          : <span className="company-link company-link--row">ATS report</span>}
+        <div className="atsp__title">{activeAts?.title || "Match analysis"}</div>
+        {pair?.base != null && pair?.tailored != null && (
+          <div className="atsp__pair">
+            <span data-ats-pair="" data-lower={pair.lower ? "true" : undefined}
+              className={`mark ${pair.lower ? "mark--warn" : "mark--dim"}`}
+              title={pair.line || undefined}>
+              {pair.base} → {pair.tailored}{pair.lower ? " · lower than your base" : ""}
+            </span>
+          </div>
+        )}
       </div>
-      <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2, overflow: "hidden",
-                    textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {activeAts?.title || "Match analysis"}
-      </div>
-      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 5, marginTop: 5 }}>
-        {/* A BAND, NOT THE NUMBER. This printed "Score {n}" on the v3 >=80/>=60 ramp — the one
-            surface the band pass (AK2) missed, found by screenshot at UI step 2b. A report with a
-            null score is the scorer DECLINING, and says so (the dashed Not-enough-signal chip —
-            never a blank, which read as "not scored yet"). No report yet renders nothing at all,
-            not even the "ATS" label, which otherwise dangled with nothing after it. */}
-        {/* ⛔ A52 · THE HEADER READS THE REPORT THE BODY DRAWS. It read `activeAts.score` — the
-            stored score the board was loaded with — while the body below drew a report, so the two
-            could disagree inside one panel. With a report, the report's own score governs (null is
-            the scorer declining); without one, the score the panel itself just computed, which
-            JobsPanel adopts into activeAts (adoptPanelVerdict). */}
-        {(activeAts?.score != null || activeAts?.report) && (() => {
-          const r = activeAts.report;
-          const band = reportBand(r && Object.prototype.hasOwnProperty.call(r, "score") ? r : { score: activeAts.score ?? null });
-          return (
-            <>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-primary-text)" }}>ATS</span>
-              <span title={atsBandLabel(band).blurb}
-                style={bandMarkStyle(band)}>
-                {atsBandLabel(band).short}
-              </span>
-            </>
-          );
-        })()}
-      </div>
-      {/* ⭐ D58 · BASE → TAILORED, from the pair stored with the résumé. ⛔ Lower is SAID, never hidden. */}
-      {activeAts?.pair?.line && (
-        <div data-ats-pair="" data-lower={activeAts.pair.lower ? "true" : undefined}
-          style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: activeAts.pair.lower ? C.WARNING : "var(--color-text-muted)" }}>
-          {activeAts.pair.line}
-        </div>
-      )}
+      <span data-ats-band={band || undefined} title={band ? `${atsBandLabel(band).short} — ${atsBandLabel(band).blurb}` : undefined}>
+        <ScoreBox score={Number.isFinite(shown) ? shown : null} caption={pair?.tailoredShown ? "tailored" : "ATS"} />
+      </span>
     </div>
   );
 
+  // ⭐ D62 · TABS ARE DEPTH BOXES in the logo face, the active one filled accent (D60) — not the old
+  // condensed uppercase capsules.
+  const count = versions?.length || 0;
   const actions = (
-    <>
-      {[["ats", "ATS Report"], ["history", `History${genCount > 0 ? ` (${genCount})` : ""}`]].map(([id, lbl]) => (
-        <button className="dbx-depth" key={id} onClick={() => setRightTab(id)}
-          style={{
-            padding: "5px 12px", cursor: "pointer",
-            fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800,
-            fontSize: 12, letterSpacing: "0.06em", textTransform: "uppercase",
-            background: rightTab === id ? theme.accent : "transparent",
-            color: rightTab === id ? C.ON_ACCENT : theme.textMuted,
-            border: `1px solid ${rightTab === id ? theme.accent : theme.border}`,
-          }}>
+    <div className="atsp__tabs" role="tablist" aria-label="ATS panel">
+      {[["ats", "ATS report"], ["history", count ? `History · ${count}` : "History"]].map(([id, lbl]) => (
+        <button key={id} type="button" role="tab" className="atsp__tab" aria-selected={rightTab === id}
+          data-ats-tab={id} onClick={() => setRightTab(id)}>
           {lbl}
         </button>
       ))}
-    </>
+    </div>
   );
+
+  const versionRows = (versions || []).map(v => ({
+    key: `${v.job_id}-${v.version}`,
+    title: `Version ${v.version}`,
+    meta: [v.created_at ? new Date(v.created_at * 1000).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : null,
+           Number.isFinite(v.base_ats_score) ? `base ${Math.round(v.base_ats_score)}` : null].filter(Boolean).join(" · "),
+    score: Number.isFinite(v.ats_score) ? v.ats_score : null,
+    actions: [
+      { id: "view", label: `View version ${v.version}`, icon: RESUME_ICONS.view, onClick: () => onOpenVersion?.(v) },
+      { id: "download", label: `Download version ${v.version} as PDF`, icon: RESUME_ICONS.download, onClick: () => onExportVersion?.(v) },
+    ],
+  }));
 
   return (
     <PanelShell
@@ -119,7 +135,9 @@ export default function AtsReportPanel({
             onReport={onReport}
           />
         )}
-        {rightTab === "history" && historyContent}
+        {rightTab === "history" && (versions === null
+          ? <div className="rl__empty">Loading versions…</div>
+          : <ResumeList rows={versionRows} empty="No résumé generated for this job yet — generate one from the posting panel." />)}
       </div>
     </PanelShell>
   );

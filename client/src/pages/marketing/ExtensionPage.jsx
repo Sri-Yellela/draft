@@ -141,9 +141,9 @@ export function ExtensionPage() {
                   fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <ScrollDock variant="marketing" />
       <main style={{ flex: 1, width: "100%", maxWidth: 800, margin: "0 auto", padding: "64px 24px", boxSizing: "border-box" }}>
-        <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 900, letterSpacing: "-1.5px",
+        <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 400,
                       color: "var(--color-text)", marginBottom: 16, lineHeight: 1.1,
-                      fontFamily: "'Barlow Condensed', 'DM Sans', system-ui" }}>
+                      fontFamily: "var(--font-display)" }}>
           Add any job to your board
         </h1>
         <p style={{ fontSize: 16, color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 28, maxWidth: 560 }}>

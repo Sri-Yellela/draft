@@ -18,8 +18,7 @@ import { createRoot } from "react-dom/client";
 // ⛔ DO NOT SWAP IN @fontsource-variable/dm-sans. It declares the family as 'DM Sans Variable',
 // while ~40 call sites ask for 'DM Sans' — so every one of them would silently fall through to
 // system-ui and nothing would fail. Pinned by test/selfHostedFonts.test.js.
-import "@fontsource/barlow-condensed/700.css";
-import "@fontsource/barlow-condensed/800.css";
+// D62 (10-07): Barlow Condensed retired — the old condensed face no surface uses any more.
 import "@fontsource/dm-sans/400.css";
 import "@fontsource/dm-sans/500.css";
 import "@fontsource/dm-sans/700.css";
