@@ -19,7 +19,9 @@ import fs    from "fs";
 import { fileURLToPath } from "url";
 import { launchBrowser } from "./browserLauncher.js";
 import { classifyRuntimeError } from "../shared/failureAttribution.js";
-import { isEeoDecline, pickDeclineOption } from "../shared/savedAnswers.js";
+import {
+  isEeoDecline, pickDeclineOption, normaliseQuestion, isOptInQuestion, isNegativeAnswer,
+} from "../shared/savedAnswers.js";
 import {
   detectPlatformFromUrl, detectPlatformFromPage,
   getPlatformLabelMap,
@@ -1236,6 +1238,10 @@ export async function discoverFields(pageOrFrame, provider, derivedLabelMap = nu
   }
 }
 
+// D55 (f): the controls through which a candidate can be OPTED IN. A free-text box labelled "Mobile
+// phone (we may text you updates)" is a phone field, not a consent, so text types are not guarded.
+const OPT_IN_CONTROL_TYPES = new Set(['checkbox', 'toggle', 'radio', 'select', 'multi_select']);
+
 /** D55 (f): a Voluntary Self-Identification control — by its words or by the handler discovery gave it. */
 export function isEeoField(field) {
   return eligibilityClassOf(`${field?.label || ''} ${field?.name || ''}`) === 'eeo'
@@ -1324,23 +1330,45 @@ export function buildAnswers(fields, profilePayload) {
     //    The reverse direction (`ql.includes(lbl)`) is DROPPED: a short label matched almost any
     //    longer stored question. An eligibility field may be answered here only on a
     //    normalised-EXACT question match, which is not a guess — the user answered that question.
+    //
+    //    D55 (f): EXACT means equal after normaliseQuestion — punctuation, an asterisk, a "(required)"
+    //    marker and case are not words, so "Why Figma? *" is the question the candidate answered as
+    //    "Why Figma?". Every word still has to agree. Two passes, so an exact match always beats an
+    //    earlier containment match. ⛔ Containment is refused for eligibility, EEO (refuseReason) and
+    //    OPT-INS (below): those are answered only by the question the candidate actually answered.
+    const optInSubject = OPT_IN_CONTROL_TYPES.has(field.type) && isOptInQuestion(`${label} ${field.name || ''}`);
+    let customExact = false;
     if (value === null && label) {
       const lbl = normaliseText(label);
-      for (const [q, a] of Object.entries(custom_answers)) {
-        if (a === undefined || a === null || a === '') continue;
+      const lblQ = normaliseQuestion(label);
+      const entries = Object.entries(custom_answers)
+        .filter(([q, a]) => a !== undefined && a !== null && a !== '' && normaliseText(q));
+      const exactHits = entries.filter(([q]) => normaliseQuestion(q) === lblQ);
+      const forwardHits = entries.filter(([q]) => {
         const ql = normaliseText(q);
-        if (!ql) continue;
-        const exact = ql === lbl;
         // Forward containment only, and only for questions specific enough to mean something.
-        const forward = ql.length >= 8 && lbl.includes(ql);
-        if (!exact && !forward) continue;
+        return normaliseQuestion(q) !== lblQ && ql.length >= 8 && lbl.includes(ql);
+      });
+      for (const [q, a, exact] of [...exactHits.map(e => [...e, true]), ...forwardHits.map(e => [...e, false])]) {
         const reason = refuseReason({ ...guardCtx, key: q, allowEligibilityExactAnswer: exact });
         if (reason) { refusals.push(`custom:${reason}`); continue; }
+        if (optInSubject && !exact) { refusals.push('custom:opt_in_exact_only'); continue; }
         value = String(a);
         provenance = PROVENANCE.CUSTOM_ANSWER;
         matched_on = q;
+        customExact = exact;
         break;
       }
+    }
+
+    // D55 (f) · NEVER OPT THE CANDIDATE IN (§7.4, decided 10-07). An opt-in control — marketing,
+    // WhatsApp/SMS, a talent community, job alerts — is answered ONLY by the candidate's own exact
+    // answer to that question, and only when that answer is No. Anything else (a profile key that
+    // happened to match, a containment hit, a stated Yes) is refused and left for the candidate, so a
+    // required one stops the fill like a work-authorisation question does.
+    if (value !== null && optInSubject && !(provenance === PROVENANCE.CUSTOM_ANSWER && customExact && isNegativeAnswer(value))) {
+      refusals.push(provenance === PROVENANCE.CUSTOM_ANSWER && customExact ? 'opt_in:never_opt_in' : 'opt_in:exact_answer_only');
+      value = null; provenance = null; matched_on = null;
     }
 
     // 4. Fuzzy label match against field_map keys — the weakest path, and the one A1 proved
@@ -1348,7 +1376,7 @@ export function buildAnswers(fields, profilePayload) {
     //    eligibility-class and third-party-subject fields, and refused when the label inverts the
     //    key's sense. An exact label match is trustworthy enough to submit; a token-subset match
     //    stays a guess, cannot auto-submit, and becomes a question the loop can ask.
-    if (value === null && label) {
+    if (value === null && label && !optInSubject) {
       for (const [k, v] of Object.entries(field_map)) {
         if (!v) continue;
         if (!matchesWholeToken(label, k)) continue;
