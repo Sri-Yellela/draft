@@ -317,6 +317,15 @@ export function deriveTags(row) {
     const specificUs = places.some(p => p.country === "US" && (p.state || p.metro));
     if (specificUs) for (let i = places.length - 1; i >= 0; i--) if (places[i].country === "US" && !places[i].state && !places[i].metro) places.splice(i, 1);
   }
+  // ⭐ D71: the place on a pay line ("USA, MA, Boston - 143,700.00 - …") is a place the posting names.
+  for (const l of labels.pay?.locations || []) {
+    for (const p of parsePlaces(l.city ? `${l.city}, ${l.state}` : l.state)) {
+      if (!places.some(q => q.country === p.country && q.state === p.state && q.metro === p.metro)) places.push(p);
+    }
+  }
+  if (places.some(p => p.country === "US" && (p.state || p.metro))) {
+    for (let i = places.length - 1; i >= 0; i--) if (places[i].country === "US" && !places[i].state && !places[i].metro) places.splice(i, 1);
+  }
   // ⭐ D41(d): "Country: United States of America" is positive US evidence for a posting with no place.
   if (labels.countryIsUs && !places.length) places.push({ country: "US", state: null, metro: null });
   const { remote, workplace } = tagWorkplace({ ...row, label_workplace: labels.workplace || null });

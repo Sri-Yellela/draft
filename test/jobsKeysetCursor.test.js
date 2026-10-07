@@ -53,7 +53,7 @@ function board({ rows = 60 } = {}) {
       job_id TEXT PRIMARY KEY, title TEXT, company TEXT,
       scraped_at INTEGER, discovered_at INTEGER, posted_at TEXT,
       is_active INTEGER DEFAULT 1,
-      ats_score INTEGER, salary_min INTEGER, salary_max INTEGER,
+      ats_score INTEGER, salary_min INTEGER, salary_max INTEGER, pay_text_min_usd INTEGER, pay_text_max_usd INTEGER,
       min_years_exp INTEGER, experience_level TEXT, applicant_count INTEGER
     );
     CREATE TABLE user_jobs (job_id TEXT PRIMARY KEY, disliked INTEGER DEFAULT 0);

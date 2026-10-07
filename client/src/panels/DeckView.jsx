@@ -33,6 +33,7 @@ import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
 import { bandMarkStyle } from "../styles/mark.js";
 import { ATS_BAND, atsBandLabel } from "../../../shared/atsBands.js";
+import { salaryLabel } from "../../../shared/postingFacts.js";
 import { ATSPanel } from "../components/ATSPanel.jsx";
 import { AtsBandCard, fromDeckReport } from "../components/AtsReport.jsx";
 import PostingPanel from "../components/PostingPanel.jsx";
@@ -77,10 +78,9 @@ function ago(job) {
   return d === 0 ? "today" : d === 1 ? "yesterday" : `${d}d ago`;
 }
 function salary(job) {
-  const cur = job.salaryCurrency && job.salaryCurrency !== "USD" ? `${job.salaryCurrency} ` : "$";
-  const k = (v) => `${cur}${Math.round(v / 1000)}k`;
-  if (job.salaryMin != null && job.salaryMax != null) return `${k(job.salaryMin)}–${k(job.salaryMax)}`;
-  return null;   // never a range from one bound (SWIPE_FEED_DESIGN §2.2)
+  // never a range from one bound (SWIPE_FEED_DESIGN §2.2); D71: the shared label otherwise.
+  if (job.salaryMin == null || job.salaryMax == null) return null;
+  return salaryLabel(job);
 }
 function workModel(job) {
   const w = String(job.workplaceType || "").toLowerCase();

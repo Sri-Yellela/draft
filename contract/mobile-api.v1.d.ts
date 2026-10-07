@@ -1,6 +1,6 @@
 /**
  * Draft — Mobile API types.
- * Contract version 2.3.0.
+ * Contract version 2.4.0.
  *
  * GENERATED — DO NOT EDIT. Regenerate with `node scripts/generateMobileContract.mjs`.
  *
@@ -37,6 +37,8 @@ export interface Job {
   contractType: string | null;
   /** Full posting body. Large — omit it from a feed request with include_fields. */
   description?: string;
+  /** D71 · true when the posting has no text at all — then a missing salary is "couldn't read", never "not stated". */
+  descriptionMissing: boolean;
   directApply: boolean;
   /** Unix seconds. */
   discoveredAt: number | null;
@@ -57,6 +59,8 @@ export interface Job {
   location: string;
   /** SHOWN ON THE WEB, PROVISIONAL — D50 (owner, 10-07): the web shows this number now and tunes it after; it is NOT validated (rho 0.723 over a US-only graded 24, -0.166 on 21 held-out postings), so every surface that shows it says it is still being tuned and keeps the band and the 'N of M' count beside it. The mobile apps keep rendering the BAND until the owner says otherwise. Earlier: NOT DISPLAYED YET — the owner's decision (A75, 10-03) was that this number would be shown once A76's larger blind-graded corpus validated it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The local ATS engine orders coarsely and cannot support a shown figure: Spearman rho 0.746 against a human-graded set of 30, with 12.2% of pairs still mis-ordered. "This job is a 43" claims a precision it does not have. Render the BAND instead — Strong (>=44) / Moderate (>=26) / Weak / Not enough signal — whose cutpoints and copy are defined once in shared/atsBands.js. A NULL IS NOT A ZERO: null means the scorer declined for want of signal, which is its own band and must never render as a low score. The number stays in the payload because the auto-apply gate is a numeric threshold (30) and mobile needs to show remaining capacity against it; that is the only sanctioned use. */
   matchScore: number | null;
+  /** D71 · one { country, state, city, min, max } per place, when the posting's text lists a range per location. null when it lists one or none. */
+  payLocations: Record<string, unknown>[] | null;
   /** As published by the source. Free text or ISO — not normalised. */
   postedAt: string | null;
   /** D59: the posting's label-block fields that left the body — { travel, relocation, requisitionId, employment, payRange, country, site, street }, each a string or null. null when the posting had no label block. */
@@ -71,6 +75,10 @@ export interface Job {
   salaryCurrency: string | null;
   salaryMax: number | null;
   salaryMin: number | null;
+  /** D71 · annual | hourly | monthly, as the posting states it. Hourly stays hourly — never converted. null means no unit was stated. */
+  salaryPeriod: string | null;
+  /** D71 · where salaryMin/Max came from: provider (the ATS's structured field), label (the posting's leading label block) or description (pay stated in the posting's text). null means no salary. */
+  salarySource: string | null;
   /** Always an array; [] means none extracted. Flattened from two stored shapes (plain strings, and {skill,type} objects). */
   skills: string[];
   /** Where this row was INGESTED from (greenhouse, ashby, import). NOT the ATS the candidate will face. */

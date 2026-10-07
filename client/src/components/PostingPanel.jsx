@@ -15,7 +15,7 @@
 //
 // It sits on the pair's surface (styles/inkPair.css) — cream in light, ink in dark, decided by the
 // theme and nowhere else. Nothing moves.
-import { deckStrip, kickerFor, NOT_STATED } from "../../../shared/postingFacts.js";
+import { deckStrip, kickerFor, NOT_STATED, COULD_NOT_READ } from "../../../shared/postingFacts.js";
 import { formatPosting, markTerm } from "../../../shared/postingFormat.js";
 import { textForRender } from "../../../shared/postingNormalize.js";
 import { requirementPills } from "../../../shared/postingRequirements.js";
@@ -47,7 +47,7 @@ export function PostingMasthead({ job, experience = null, showTitle = true, vtTi
             {/* A cell that reads for itself (Workstyle) keeps its term for screen readers only. */}
             <dt className={c.labelHidden ? "posting__k--sr" : undefined}>{c.label}</dt>
             {/* ⭐ "not stated" is a VALUE — italic serif — never a blank cell. */}
-            <dd>{c.value ?? <span className="posting__ns">{NOT_STATED}</span>}</dd>
+            <dd>{c.value ?? <span className="posting__ns">{c.missing === "unread" ? COULD_NOT_READ : NOT_STATED}</span>}</dd>
             {/* D48: Workstyle's location line — muted, beneath the value. */}
             {c.sub && <dd className="posting__sub" data-cell-sub="">{c.sub}</dd>}
           </div>

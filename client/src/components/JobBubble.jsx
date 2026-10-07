@@ -20,6 +20,7 @@ import CompanyViewModal from "./CompanyViewModal.jsx";
 import { jobDetailHref } from "../lib/jobUrl.js";
 import CompanyLink from "./CompanyLink.jsx";
 import { atsBandFor, atsBandLabel, ATS_NUMBER_SHOWN, ATS_NUMBER_NOTE } from "../../../shared/atsBands.js";
+import { salaryLabel } from "../../../shared/postingFacts.js";
 import { columnsFor } from "../lib/bubbleColumns.js";
 import { DraftMark } from "./DraftMark.jsx";
 import { draftButtonState } from "../lib/jobDecisions.js";
@@ -33,12 +34,8 @@ function ago(postedAt, scrapedAt) {
   return d === 0 ? "today" : `${d}d`;
 }
 
-function salary(job) {
-  const lo = job.salaryMin, hi = job.salaryMax;
-  if (lo == null && hi == null) return null;
-  const k = (v) => `$${Math.round(v / 1000)}k`;
-  return lo != null && hi != null ? `${k(lo)}–${k(hi)}` : k(lo ?? hi);
-}
+// D71: the shared label.
+const salary = salaryLabel;
 
 function BarMark() {
   return (

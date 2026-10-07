@@ -234,7 +234,8 @@ test("⭐ thin tags: every deck-strip cell has a fallback — a missing fact is 
   assert.deepEqual(bare.map(c => c.label), ["Experience", "Workstyle", "Salary", "Posted"], "the four cells, in the approved order (D48: Where → Workstyle, the place beneath)");
   assert.ok(bare.every(c => c.value === null && !c.met));
   assert.equal(NOT_STATED, "not stated");
-  assert.match(POSTING, /<dd>\{c\.value \?\? <span className="posting__ns">\{NOT_STATED\}<\/span>\}<\/dd>/);
+  // D71: "not stated" — or, when there was no text to read, "couldn't read the posting"; never a blank cell.
+  assert.match(POSTING, /<dd>\{c\.value \?\? <span className="posting__ns">\{c\.missing === "unread" \? COULD_NOT_READ : NOT_STATED\}<\/span>\}<\/dd>/);
   assert.match(POSTING_CSS, /\.posting__ns \{ font-family: var\(--font-display\); font-style: italic;/);
   const full = deckStrip({ description: "4+ years of experience", location: "Boston, MA", tagWorkplace: "hybrid", salaryMin: 130000, salaryMax: 170000,
                            postedAt: new Date(Date.now() - 3 * 86400000).toISOString() },

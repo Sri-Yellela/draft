@@ -12,6 +12,7 @@ import { jobDetailHref } from "../lib/jobUrl.js";
 import CompanyLogo from "./CompanyLogo.jsx";
 import CompanyLink from "./CompanyLink.jsx";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
+import { salaryLabel } from "../../../shared/postingFacts.js";
 import { markStyle, bandMarkStyle } from "../styles/mark.js";
 import { C } from "../styles/colorTokens.js";
 import { glass } from "../styles/glass.js";
@@ -463,12 +464,8 @@ export default function JobCard({
   // `st` is still truthy, so the `disabled={!!st}` / `cursor:st ? …` guards below keep disabling
   // this card's buttons exactly as before.
   const generateLoading = st === "generate";
-  const hasSalary  = job.salaryMin != null || job.salaryMax != null;
-  const salaryStr  = hasSalary
-    ? [job.salaryMin, job.salaryMax].filter(Boolean).map(v =>
-        `${job.salaryCurrency || "$"}${(v/1000).toFixed(0)}k`
-      ).join("→")
-    : null;
+  // D71: the shared label (this printed "USD144k→USD194k" for every USD salary).
+  const salaryStr  = salaryLabel(job);
 
   const yoeStr = job.expRaw
     ? job.expRaw

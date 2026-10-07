@@ -27,6 +27,7 @@ import crypto from "node:crypto";
 import { normalizePosting, NORMALIZER_VERSION } from "../../shared/postingNormalize.js";
 import { postingRequirements } from "../../shared/postingRequirements.js";
 import { parseSalaryText } from "./salaryText.js";
+import { payFromText, annualisedUsd, payLocationLabel } from "./payFromText.js";
 
 export const BASIS_PREFIX = `v${NORMALIZER_VERSION}:`;
 // The SQL function the stale query uses — the same descriptionBasis, so SQL and JS cannot disagree.
@@ -51,8 +52,19 @@ export function deriveDescriptionColumns(description) {
   const fields = { ...n.fields };
   if (fields.payRange) {
     const pay = parseSalaryText(fields.payRange);
-    if (pay) fields.pay = pay;
+    if (pay) fields.pay = { ...pay, source: "label" };
   }
+  // ⛔ D71 · pay stated anywhere in the text — the label block first, then this scan over the WHOLE
+  // text. `paySource` is recorded so "not stated" can only ever mean "the whole text was read".
+  if (!fields.pay) {
+    const prose = payFromText(n.text ?? description);
+    if (prose) {
+      fields.pay = prose;
+      const label = payLocationLabel(prose.locations);
+      if (label && !fields.locationLabel) fields.payLocationLabel = label;
+    }
+  }
+  const usd = annualisedUsd(fields.pay);
   const req = postingRequirements(n);
   const hasText = description != null && String(description).trim() !== "";
   return {
@@ -62,13 +74,18 @@ export function deriveDescriptionColumns(description) {
     req_clearance: hasText ? req.clearance : null,
     req_clearance_status: hasText ? req.clearanceStatus : null,
     req_polygraph: hasText ? (req.polygraph ? 1 : 0) : null,
+    // D71 · the text's pay as a USD-per-year ESTIMATE, for the sort and the salary filter only. The
+    // structured salary_* columns are never written here — they stay the provider's.
+    pay_text_min_usd: usd.min,
+    pay_text_max_usd: usd.max,
     description_basis: descriptionBasis(description),
   };
 }
 
 const WRITE_SQL = `UPDATE scraped_jobs SET description_text = @description_text, description_fields = @description_fields,
     req_citizenship = @req_citizenship, req_clearance = @req_clearance, req_clearance_status = @req_clearance_status,
-    req_polygraph = @req_polygraph, description_basis = @description_basis WHERE job_id = @job_id`;
+    req_polygraph = @req_polygraph, pay_text_min_usd = @pay_text_min_usd, pay_text_max_usd = @pay_text_max_usd,
+    description_basis = @description_basis WHERE job_id = @job_id`;
 
 /** Read one posting's description and write its derived columns. Returns the columns, or null. */
 export function refreshDescriptionText(db, jobId) {
@@ -89,7 +106,7 @@ export function refreshDescriptionText(db, jobId) {
 export function backfillDescriptionText(db, { dryRun = true, ceiling = DESCRIPTION_BACKFILL_CEILING, limit = null, log = null } = {}) {
   registerDescriptionBasis(db);
   const due = db.prepare(`SELECT COUNT(*) AS n FROM scraped_jobs WHERE ${DESCRIPTION_STALE_SQL}`).get().n;
-  const rows = db.prepare(`SELECT job_id, description FROM scraped_jobs WHERE ${DESCRIPTION_STALE_SQL} ORDER BY rowid${limit ? " LIMIT ?" : ""}`)
+  const rows = db.prepare(`SELECT job_id, description FROM scraped_jobs WHERE ${DESCRIPTION_STALE_SQL} ORDER BY is_active DESC, rowid${limit ? " LIMIT ?" : ""}`)
     .all(...(limit ? [limit] : []));
   const derived = rows.map(r => ({ job_id: r.job_id, ...deriveDescriptionColumns(r.description) }));
   const requirements = { citizen_only: 0, us_person: 0, clearance: 0, polygraph: 0 };

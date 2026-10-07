@@ -212,10 +212,11 @@ const SORT_KEYS = {
   atsScore:       [NULLS_LAST("aor.ats_score"),      KEY("aor.ats_score", "DESC"),      ...NEWEST, ...COMPANY_AZ, BY_ID],
   applicantCount: [NULLS_LAST("sj.applicant_count"), KEY("sj.applicant_count", "ASC"),  ...RECENCY],
   // D24 · "no stated pay sorts last" is the NULLS_LAST key; ties newest first, then company A–Z.
-  compHigh:       [NULLS_LAST("sj.salary_max"),      KEY("sj.salary_max", "DESC"),      ...NEWEST, ...COMPANY_AZ, BY_ID],
+  // D71 · the provider's figure, else the posting text's USD-per-year estimate (migration 141).
+  compHigh:       [NULLS_LAST("COALESCE(sj.salary_max, sj.pay_text_max_usd)"), KEY("COALESCE(sj.salary_max, sj.pay_text_max_usd)", "DESC"), ...NEWEST, ...COMPANY_AZ, BY_ID],
   // D24 · new. Ties newest first; job_id makes it total.
   companyAsc:     [...COMPANY_AZ, ...NEWEST, BY_ID],
-  compLow:        [NULLS_LAST("sj.salary_min"),      KEY("sj.salary_min", "ASC"),       ...RECENCY],
+  compLow:        [NULLS_LAST("COALESCE(sj.salary_min, sj.pay_text_min_usd)"), KEY("COALESCE(sj.salary_min, sj.pay_text_min_usd)", "ASC"), ...RECENCY],
   yoeLow:         EXP("ASC"),
   yoeHigh:        EXP("DESC"),
 };
