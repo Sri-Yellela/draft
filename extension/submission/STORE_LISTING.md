@@ -16,6 +16,11 @@ Upload artifact: `extension/submission/resume-master-extension-v1.4.1.zip`
 > Re-paste: the `contextMenus` justification below (new field), the *Website content* answer (items
 > 4 and 5), and confirm the privacy page is deployed with *Reporting a Form That Isn't Recognised*
 > first. No new host, no content script, no new storage key — the six are unchanged.
+> **Also in this release (D56):** a fill, *Prepare*, the Copy sheet and *I submitted* send the
+> application page's **full URL** (path and query) to our backend in the request body — used to match
+> the page to the application and not kept, except on *I submitted*, where it is stored with the
+> application record as evidence. Disclosed in the policy's *Filling an Application*; it is
+> *Website content* in the dashboard answers.
 >
 > **v1.4.1 (D36, 10-05) — on top of v1.4.0, also not yet uploaded.** When the review overlay cannot
 > render, the fill no longer reports the success sentence: it says the review panel could not open and

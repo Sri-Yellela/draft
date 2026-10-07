@@ -271,3 +271,15 @@ test("D55 E: the privacy page carries the disclosure; the reconciliation carries
   assert.match(recon, /^\| \*\*Report this form\*\*/m);
   assert.match(recon, /^\| A right-clicked \*\*link\*\*/m);
 });
+
+test("⛔ D56's full-URL transmission is disclosed, while the code still sends it", () => {
+  // The handoff, Prepare, the Copy sheet and "I submitted" post the tab's WHOLE href (path and query).
+  const gh = read("extension/gated-handoff.js");
+  const sendsFull = /JSON\.stringify\(\{ url: tab\.url \}\)/.test(gh) && /return \/\^https\?:\$\/\.test\(u\.protocol\) \? u\.href : null/.test(gh);
+  if (!sendsFull) return;                          // narrowed to the origin? then the line can narrow too
+  const policy = read("client/src/pages/marketing/PrivacyPage.jsx").replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/<[^>]+>/g, " ").replace(/\{" "\}/g, " ").replace(/\s+/g, " ");
+  assert.match(policy, /sends that page's full address \(including its path and any query\)/);
+  assert.match(policy, /used for that check and not kept/);
+  assert.match(policy, /I submitted , that address is kept with the application's record/);
+  assert.match(read("extension/submission/PRIVACY_RECONCILIATION.md"), /^\| The application page's \*\*full URL\*\*/m);
+});
