@@ -7,6 +7,7 @@ import {
   CLIENT_ORIGINS, USER_METHODS, SUBMIT_METHODS, VERIFY_RULE,
 } from "../services/applicationRecords.js";
 import { draftSlots } from "../services/draftSlots.js";
+import { importApplications } from "../services/applicationImport.js";
 
 export default function applicationRecordRoutes(app, db, requireAuth, { capturedAtsAtApply }) {
   const fail = (res, e) => res.status(e.status || 500).json({ error: e.code || "error", message: e.message });
@@ -33,6 +34,26 @@ export default function applicationRecordRoutes(app, db, requireAuth, { captured
   app.get("/api/applications/history", requireAuth, (req, res) => {
     const q = String(req.query.q ?? "").slice(0, 200);
     res.json({ rows: listHistory(db, req.user.id, { q }), q });
+  });
+
+  /**
+   * D55 (i) · import past applications into The Table from a CSV (services/applicationImport.js).
+   * DRY RUN unless apply:true — the panel previews exactly what would land. Always the caller's own
+   * history (req.user.id); rows land as SENT job_applications, never Drafts, never with a score.
+   * Body: { csv: string, mapping: { company, title, applied, outcome?, replied?, url?, location?, notes?, website? }, apply? }
+   * 200 { applied, imported, duplicates, invalid } · 413 too_large / too_many_rows · 400 the rest
+   */
+  app.post("/api/applications/import", requireAuth, (req, res) => {
+    const { csv, mapping = {}, apply = false } = req.body || {};
+    if (typeof csv !== "string") return res.status(400).json({ error: "csv_required", message: "Send the file's text as csv." });
+    if (!mapping || typeof mapping !== "object" || Array.isArray(mapping))
+      return res.status(400).json({ error: "mapping_invalid", message: "mapping is { field: column header }." });
+    const out = importApplications(db, req.user.id, { csv, mapping, apply: apply === true });
+    if (out.error) {
+      return res.status(out.error === "too_large" || out.error === "too_many_rows" ? 413 : 400)
+        .json({ error: out.error, message: out.detail });
+    }
+    res.json(out);
   });
 
   /** Tag a job pending: the user opened its posting, or exported a résumé for it. */

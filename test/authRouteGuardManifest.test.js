@@ -259,6 +259,16 @@ const AUTHENTICATED = new Set([
   "DELETE /api/account/merge",
   "POST /api/account/merge",
   "POST /api/account/delete",
+  // routes/applicationRecords.js (A63 / D15 / D55) — mounted as applicationRecordRoutes(app, db, requireAuth, …);
+  // every one reads or writes the caller's OWN records and history, always req.user.id. Enumerated from
+  // D55 (i), which added the CSV import — before that this file's routes were not scanned at all.
+  "GET /api/draft/slots",
+  "GET /api/applications/pending",
+  "GET /api/applications/history",
+  "POST /api/applications/import",
+  "POST /api/applications/pending",
+  "POST /api/applications/pending/:jobId/record",
+  "POST /api/applications/pending/:jobId/withdraw",
   // routes/apply.js — every one of these is mounted with requireAuth
   "POST /api/apply",
   "GET /api/apply/status/:jobId",
@@ -384,6 +394,7 @@ function collect() {
   const routes = [
     ...directRoutes(SERVER),
     ...directRoutes(fs.readFileSync("routes/apply.js", "utf8")),
+    ...directRoutes(fs.readFileSync("routes/applicationRecords.js", "utf8")),
     // account.js is mounted with app.use(createAccountRouter({...})) at the ROOT, so its routes
     // already carry their full /api path and their own per-route guard.
     ...routerRoutes(fs.readFileSync("routes/account.js", "utf8"), ""),

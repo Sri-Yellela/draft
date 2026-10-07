@@ -211,6 +211,10 @@ export function buildHistory({ records = [], applications = [], resumes = [], ap
       responseOutcome: a.response_outcome ?? null, furthestStage: a.furthest_stage ?? null,
       firstResponseAt: a.first_response_at ?? null, outcomeAt: a.outcome_at ?? null,
       method: h.method ?? (a.apply_mode === "AUTO" ? "draft" : null),
+      // D55 (i): a past application imported from a CSV — sent elsewhere, no résumé or score of ours.
+      imported: a.auto_status === "imported",
+      // Migration 135: the company's website as the import stated it — the D54 key's strongest evidence.
+      companyDomain: a.company_domain ?? null,
     });
   }
   const out = [];

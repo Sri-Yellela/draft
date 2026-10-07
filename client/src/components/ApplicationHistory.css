@@ -138,11 +138,18 @@
 /* D55 F · THE BOARD — one column per stage. The board scrolls sideways inside itself, never the page;
  * at phone width the columns stack. */
 .ah__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* min-width 0 on the board AND on .ah: a flex item's automatic minimum is its content's, so without it
+ * eight 200px columns widen the whole page instead of scrolling inside the board (seen at 1280, 10-07). */
+.ah { min-width: 0; }
 .ah__board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); gap: 12px;
-             overflow-x: auto; padding: 4px 4px 12px; align-items: start; }
+             overflow-x: auto; padding: 4px 4px 12px; align-items: start; min-width: 0; max-width: 100%;
+             /* the containing block for each card's visually-hidden label: an absolute .ah__sr is clipped
+              * by the board only if the board positions it — otherwise it widened the PAGE by 47px at 1280 */
+             position: relative; }
+.ah__move { position: relative; }
 .ah__col { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 10px; border-radius: 16px;
            background: var(--c-hover); }
-.ah__col-head { margin: 0; display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 6px;
+.ah__col-head { margin: 0; font-family: var(--font-body); display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 6px;
                 font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--c-ink-muted);
                 border-bottom: 3px solid var(--c-border); }
 .ah__col-head[data-stage="in_play"]      { border-bottom-color: var(--c-info); }
@@ -188,6 +195,20 @@
 .ah__flegend li[data-seg="rejected"]::before { background: var(--c-danger); }
 .ah__flegend li[data-seg="no_reply"]::before { background: var(--c-ink-faint); }
 .ah__flegend li[data-seg="closed"]::before   { background: var(--c-border-strong); }
+
+/* D55 (i) · CSV import — a depth panel under the toolbar: pick, map, preview, import. */
+.ah__chip:disabled { opacity: .55; cursor: default; transform: none; }
+.ah__import { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 18px;
+              background: var(--c-surface-solid); box-shadow: var(--c-depth-rest); }
+.ah__import-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--c-ink); }
+.ah__import .ah__meta { white-space: normal; }
+.ah__file { position: relative; align-self: flex-start; }
+.ah__file:focus-within { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.ah__map { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 12px; }
+.ah__map .ah__date { justify-content: space-between; }
+.ah__map select { min-width: 0; max-width: 60%; }
+.ah__btn[data-primary] { background: var(--c-accent); color: var(--c-on-accent); }
+.ah__preview { display: flex; flex-direction: column; gap: 6px; }
 
 @media (max-width: 640px) {
   .ah__board { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: 1fr; overflow-x: visible; }

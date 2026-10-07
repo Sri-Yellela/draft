@@ -18,6 +18,10 @@ import {
 import {
   RESPONSE_OUTCOME, RESPONSE_OUTCOMES, RESPONSE_LABELS, MATURITY_DAYS,
 } from "../../../shared/applicationResponse.js";
+// D55 (i): The Table in and out as CSV — the same parser and column guesses the server uses.
+import {
+  historyToCsv, parseCsv, guessMapping, IMPORT_FIELDS, IMPORT_REASONS, IMPORT_LIMITS,
+} from "../../../shared/applicationCsv.js";
 // ⭐ D54: By company — one identity across boards, never the display string alone.
 import { companyRows, companySummary } from "../../../shared/companyIdentity.js";
 import "./ApplicationHistory.css";
@@ -50,6 +54,118 @@ const RESUME_LINK = {
   current_resume:     { title: "No copy was kept when you applied — this downloads your résumé for this job as it is now, which may have changed since", label: "Download current résumé" },
 };
 const resumeLink = (row) => RESUME_LINK[row.resumeSource] || RESUME_LINK.current_resume;
+
+/** Hand the browser a text file to save. */
+function saveText(name, text, type = "text/csv;charset=utf-8") {
+  const url = URL.createObjectURL(new Blob(["﻿" + text], { type }));
+  const a = document.createElement("a");
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * ⭐ D55 (i) · IMPORT PAST APPLICATIONS. Pick a CSV → map its columns (guessed) → Preview (a dry run on
+ * the server: what lands, what is a duplicate by company + title, what is refused and why) → Import.
+ * ⛔ Imported rows are SENT applications with their dates and outcomes — never Drafts, never a score.
+ */
+function ImportPanel({ onClose, onImported }) {
+  const [file, setFile] = useState(null);       // { name, text, headers }
+  const [mapping, setMapping] = useState({});
+  const [preview, setPreview] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  async function pick(e) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    setPreview(null); setMsg(null);
+    if (!f) return;
+    if (f.size > IMPORT_LIMITS.maxBytes) { setMsg({ kind: "error", text: `That file is over ${IMPORT_LIMITS.maxBytes / 1_000_000} MB.` }); return; }
+    const text = await f.text();
+    const headers = (parseCsv(text)[0] || []).map(h => h.trim()).filter(Boolean);
+    if (!headers.length) { setMsg({ kind: "error", text: "That file has no header row." }); return; }
+    setFile({ name: f.name, text, headers });
+    setMapping(guessMapping(headers));
+  }
+
+  async function run(apply) {
+    setBusy(true); setMsg(null);
+    try {
+      const d = await api("/api/applications/import", { method: "POST", body: JSON.stringify({ csv: file.text, mapping, apply }) });
+      if (apply) {
+        setMsg({ kind: "ok", text: `Imported ${plural(d.written ?? d.imported.length, "application")}.` });
+        setPreview(null); setFile(null);
+        onImported?.();
+      } else setPreview(d);
+    } catch (e) {
+      setMsg({ kind: "error", text: `Not imported — ${e.message || "try again"}.` });
+    } finally { setBusy(false); }
+  }
+
+  const missing = IMPORT_FIELDS.filter(f => f.required && !mapping[f.id]);
+  const skipped = preview ? [...preview.duplicates, ...preview.invalid].sort((a, b) => a.row - b.row) : [];
+  return (
+    <section className="ah__import" aria-label="Import past applications" data-import="">
+      <div className="ah__import-head">
+        <strong>Import past applications</strong>
+        <button type="button" className="ah__link" onClick={onClose}>Close</button>
+      </div>
+      <p className="ah__meta">
+        A CSV with one application per row — company, title and the date you applied; an outcome if you have one.
+        They arrive as sent applications, with no ATS score (no résumé of ours was scored for them). Rows already
+        in The Table — the same company and title — are skipped. Up to {IMPORT_LIMITS.maxRows} rows.
+      </p>
+      <label className="ah__btn ah__file">
+        {file ? `File: ${file.name}` : "Choose a CSV…"}
+        <input type="file" accept=".csv,text/csv" onChange={pick} className="ah__sr"/>
+      </label>
+      {file && (
+        <div className="ah__map" data-mapping="">
+          {IMPORT_FIELDS.map(f => (
+            <label key={f.id} className="ah__date">
+              {f.label}{f.required ? " *" : ""}
+              <select value={mapping[f.id] ?? ""} data-field={f.id}
+                onChange={e => { setPreview(null); setMapping(m => ({ ...m, [f.id]: e.target.value || undefined })); }}>
+                <option value="">{f.required ? "Choose a column…" : "— not in the file"}</option>
+                {file.headers.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            </label>
+          ))}
+        </div>
+      )}
+      {file && (
+        <div className="ah__answers">
+          <button type="button" className="ah__btn" disabled={busy || missing.length > 0} onClick={() => run(false)}>
+            {missing.length ? `Choose ${missing.map(f => f.label).join(", ")}` : "Preview"}
+          </button>
+          {preview && preview.imported.length > 0 && (
+            <button type="button" className="ah__btn" data-primary="" disabled={busy} onClick={() => run(true)}>
+              Import {plural(preview.imported.length, "application")}
+            </button>
+          )}
+        </div>
+      )}
+      {preview && (
+        <div className="ah__preview" data-preview="" role="status">
+          <p className="ah__meta">
+            {preview.imported.length} to import · {plural(preview.duplicates.length, "duplicate")} skipped · {preview.invalid.length} refused
+          </p>
+          {skipped.length > 0 && (
+            <ul className="ah__company-jobs">
+              {skipped.slice(0, 50).map(s => (
+                <li key={`${s.row}-${s.reason}`} data-reason={s.reason}>
+                  Row {s.row}{s.company ? ` · ${s.company}` : ""}{s.title ? ` — ${s.title}` : ""}: {IMPORT_REASONS[s.reason] ?? s.reason}
+                </li>
+              ))}
+              {skipped.length > 50 && <li>…and {skipped.length - 50} more.</li>}
+            </ul>
+          )}
+        </div>
+      )}
+      {msg && <p className="ah__note" data-kind={msg.kind} role="status">{msg.text}</p>}
+    </section>
+  );
+}
 
 /** D54 List | By company, and D55's Board (Kanban) and Funnel — four views of the SAME rows. */
 const LAYOUTS = [["list", "List"], ["company", "By company"], ["board", "Board"], ["funnel", "Funnel"]];
@@ -119,6 +235,7 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
   // D54: List | By company. The same rows, grouped — so the counts are the List's rows grouped.
   const [layout, setLayout] = useState("list");
   const [openCompany, setOpenCompany] = useState(null);
+  const [importing, setImporting] = useState(false);
   const [busy, setBusy] = useState(null);
   const [notes, setNotes] = useState({});
   const rowRefs = useRef({});
@@ -211,7 +328,21 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
             {HISTORY_SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
         </label>
+        {/* D55 (i): CSV out — exactly the rows shown (search, dates, chip) — and CSV in. */}
+        <div className="ah__layout" role="group" aria-label="CSV">
+          <button type="button" className="ah__chip" data-csv="export" disabled={!view.rows.length}
+            title="Download the rows shown as a CSV"
+            onClick={() => saveText(`draft-the-table-${new Date().toISOString().slice(0, 10)}.csv`, historyToCsv(view.rows))}>
+            Export CSV
+          </button>
+          <button type="button" className="ah__chip" data-csv="import" aria-pressed={importing}
+            title="Import applications you sent elsewhere" onClick={() => setImporting(v => !v)}>
+            Import CSV
+          </button>
+        </div>
       </div>
+
+      {importing && <ImportPanel onClose={() => setImporting(false)} onImported={() => load(q.trim())}/>}
 
       {/* ⛔ The chips ARE the counts — there is no summary bar. Each one filters; a second click clears. */}
       <div className="ah__chips" role="group" aria-label="Filter by status">
@@ -337,7 +468,8 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
                       {row.sentAt ? `Sent ${fmtDay(row.sentAt)}` : `Added ${fmtDay(row.draftedAt)}`}
                       {row.daysWaiting != null ? ` · ${plural(row.daysWaiting, "day")} waiting` : ""}
                       {/* D43: the posting was deleted; the record shows what was snapshot when you applied. */}
-                      {row.postingListed === false ? " · posting no longer listed" : ""}
+                      {/* D55 (i): sent elsewhere and imported — it has no résumé or score of ours. */}
+                      {row.imported ? " · imported" : row.postingListed === false ? " · posting no longer listed" : ""}
                     </span>
                   </button>
                   <span className="ah__status" data-status={row.status} data-stage={row.stage} data-ask={row.ask}>{row.label}</span>
