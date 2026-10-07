@@ -54,7 +54,9 @@ export function pickDeclineOption(options = []) {
   return null;
 }
 
-// ── Question normalisation ──────────────────────────────────────────────────────────────────────
+// ── Question normalisation and the {company} template ───────────────────────────────────────────
+
+export const COMPANY_TOKEN = "{company}";
 
 /**
  * The comparison form of a question. Collapses what is not a word — curly quotes, an asterisk, a
@@ -75,4 +77,58 @@ export function normaliseQuestion(text) {
     .replace(/[\s?:.!]+$/g, "")
     .trim()
     .toLowerCase();
+}
+
+const LEGAL_SUFFIX_RE = /[\s,]+(?:inc|llc|l\.l\.c|ltd|limited|corp|corporation|co|company|plc|gmbh|sa|ag|bv)\.?$/i;
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** The spellings of an employer a form might use: "Stripe, Inc." → ["Stripe, Inc.", "Stripe"]. */
+export function companyNameVariants(company) {
+  const full = String(company ?? "").trim();
+  if (!full) return [];
+  const out = new Set([full]);
+  let bare = full;
+  while (LEGAL_SUFFIX_RE.test(bare)) bare = bare.replace(LEGAL_SUFFIX_RE, "").trim();
+  if (bare && bare.length >= 2) out.add(bare);
+  return [...out].sort((a, b) => b.length - a.length);
+}
+
+/**
+ * The question with the employer's name replaced by `{company}`, wording otherwise untouched — so the
+ * stored entry reads as the candidate saw it, and expanding it for the same employer gives back the
+ * exact text. Whole-word only: "Box" is not replaced inside "Inbox".
+ * Returns the question unchanged when the company is unknown or not named in it.
+ */
+export function templateQuestion(question, company) {
+  let q = String(question ?? "");
+  for (const name of companyNameVariants(company)) {
+    const re = new RegExp(`(?<![A-Za-z0-9])${escapeRe(name)}(?![A-Za-z0-9])`, "gi");
+    q = q.replace(re, COMPANY_TOKEN);
+  }
+  return q;
+}
+
+/** The key two questions are compared by: normalised, employer templated. */
+export function questionKey(question, company) {
+  return normaliseQuestion(templateQuestion(question, company));
+}
+
+// ── Opt-ins ─────────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Opt-in questions: marketing, messaging channels, talent pools, job alerts. §7.4 decided: NEVER opt
+ * the candidate in — leave it, or answer No only if they said so. Not consent to the privacy policy
+ * or to processing the application, which a form requires and which is not a marketing choice.
+ */
+export const OPT_IN_RE =
+  /\b(?:opt[\s-]?(?:in|out)|subscrib\w*|newsletters?|marketing|promotional|whats\s?app|sms|text\s+messages?|receive\s+(?:\w+\s+){0,4}(?:communications?|updates|e-?mails?|messages|notifications|news|alerts|offers|texts)|talent\s+(?:community|network|pool)|job\s+alerts?|keep\s+me\s+(?:informed|updated|posted)|(?:contact|e-?mail|text|notify)\s+me\s+(?:about|of|regarding|when)\s+(?:future|other|new|similar|relevant))\b/i;
+
+export function isOptInQuestion(text) {
+  return OPT_IN_RE.test(String(text ?? ""));
+}
+
+/** A stored answer that declines: "No", "false", "no thanks", "do not". Anything else is not a No. */
+export function isNegativeAnswer(value) {
+  return /^(?:no|n|false|0|off|no,?\s+thanks?|no\s+thank\s+you|do\s+not|don'?t|i\s+do\s+not\s+(?:consent|agree|wish))$/i
+    .test(normaliseQuestion(value));
 }
