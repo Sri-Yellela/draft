@@ -160,6 +160,7 @@ export function AccountPanel({ onSignedOut }) {
               return { account: null };
             }, "Your data was downloaded.")}>Download my data</button>
           </div>
+          <BaseResumeOnly />
           <GeneratedResumes busy={busy} run={run} />
         </Section>
 
@@ -179,6 +180,40 @@ export function generatedResumeStatus(r) {
   if (r.keptForGood) return r.tie === "applied" ? "Kept — you applied with it" : "Kept — the job is in Draft House";
   if (r.expiresInDays == null) return "";
   return r.expiresInDays <= 0 ? "Expires today" : `Expires in ${r.expiresInDays} day${r.expiresInDays === 1 ? "" : "s"}`;
+}
+
+/**
+ * ⭐ D66 · "Use my base résumé for applications". On → every application carries the base résumé and
+ * no résumé is generated for it (no model call). A plan that forces it says so, and the box is locked.
+ */
+function BaseResumeOnly() {
+  const [s, setS] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  useEffect(() => { api("/api/settings/base-resume-only").then(setS).catch(() => setS({ error: true })); }, []);
+  const toggle = async (on) => {
+    setSaving(true); setErr("");
+    try { setS(await api("/api/settings/base-resume-only", { method: "PUT", body: JSON.stringify({ on }) })); }
+    catch (e) { setErr(e.message || "Could not save that."); }
+    finally { setSaving(false); }
+  };
+  const forced = s?.source === "plan";
+  return (
+    <div data-base-resume-only="" style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+      <label style={{ ...row, fontWeight: 700, fontSize: 13, color: "var(--color-text)", cursor: forced ? "default" : "pointer" }}>
+        <input type="checkbox" checked={!!s?.on} disabled={!s || s.error || saving || forced}
+          onChange={(e) => toggle(e.target.checked)} />
+        Use my base résumé for applications
+      </label>
+      <div style={muted}>
+        {forced ? "Your plan sends your base résumé with every application."
+          : "When this is on, applications carry your base résumé as it is — no résumé is written for each job."}
+        {s && !s.error && !s.hasBaseResume ? " You have not added a base résumé yet, so applications would carry none." : ""}
+      </div>
+      {s?.error && <div style={muted}>This setting could not be loaded just now.</div>}
+      {err && <div role="alert" style={{ ...muted, color: C.DANGER }}>{err}</div>}
+    </div>
+  );
 }
 
 function GeneratedResumes({ busy, run }) {

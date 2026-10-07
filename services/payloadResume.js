@@ -65,6 +65,14 @@ export function payloadResumeParse(db, { userId, resumeId = null }) {
     try { row = db.prepare("SELECT * FROM resumes WHERE id = ? AND user_id = ?").get(resumeId, userId); } catch { row = null; }
     if (row) { table = "resumes"; source = "tailored"; text = row.html; }
   }
+  // The base résumé an application carries: the ACTIVE profile's first (what D66 sends), else the account's.
+  if (!row) {
+    try {
+      row = db.prepare(`SELECT pbr.* FROM profile_base_resumes pbr JOIN domain_profiles dp ON dp.id = pbr.profile_id
+        WHERE pbr.user_id = ? AND dp.is_active = 1 AND TRIM(COALESCE(pbr.content, '')) != '' LIMIT 1`).get(userId) || null;
+    } catch { row = null; }
+    if (row) { table = "profile_base_resumes"; source = "base"; text = row.content; }
+  }
   if (!row) {
     try { row = db.prepare("SELECT * FROM base_resume WHERE user_id = ?").get(userId); } catch { row = null; }
     if (row) { table = "base_resume"; source = "base"; text = row.content; }
@@ -82,7 +90,8 @@ export function payloadResumeParse(db, { userId, resumeId = null }) {
   try { structured = buildStructuredResume(text); } catch { structured = null; }
   if (structured && hasColumn(db, table, "parsed_json")) {
     try {
-      db.prepare(`UPDATE ${table} SET parsed_json = ?, parsed_basis = ? WHERE id = ?`).run(JSON.stringify(structured), basis, row.id);
+      const key = table === "profile_base_resumes" ? "profile_id" : "id";
+      db.prepare(`UPDATE ${table} SET parsed_json = ?, parsed_basis = ? WHERE ${key} = ?`).run(JSON.stringify(structured), basis, row[key]);
     } catch { /* storing is an optimisation; the parse itself is the answer */ }
   }
   return { source, resumeId: source === "tailored" ? row.id : null, structured, ok: parseReadSomething(structured), cached: false };

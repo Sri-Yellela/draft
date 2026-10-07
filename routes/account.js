@@ -4,6 +4,7 @@ import { SPONSORSHIP_NEEDS } from "../services/applyAutomation.js";
 
 import { readAnswerStore } from "../services/customAnswers.js";
 import { normaliseDeckPreference } from "../shared/deckGeometry.js";
+import { baseResumeOnlyState, activeBaseResume } from "../services/baseResumeOnly.js";
 // Shared with server.js's OAuth upsert, which called it without a binding until 09-30.
 import { saveIntegrationSecret } from "../services/secretBox.js";
 
@@ -140,6 +141,19 @@ export function createAccountRouter({
     if (!THEME_PREFERENCES.has(preference)) return res.status(400).json({ error: "preference must be system, light or dark" });
     db.prepare("UPDATE users SET theme_preference=? WHERE id=?").run(preference, req.user.id);
     res.json({ preference });
+  });
+
+  // ⭐ D66 · "Use my base résumé for applications" (migration 139). The plan can force it on
+  // (services/baseResumeOnly.js BASE_ONLY_TIERS) — then the answer says so and the switch cannot undo it.
+  router.get("/api/settings/base-resume-only", requireAuth, (req, res) => {
+    const s = baseResumeOnlyState(db, req.user.id);
+    res.json({ on: s.on, source: s.source, hasBaseResume: !!activeBaseResume(db, req.user.id) });
+  });
+  router.put("/api/settings/base-resume-only", requireAuth, (req, res) => {
+    if (typeof req.body?.on !== "boolean") return res.status(400).json({ error: "on must be true or false" });
+    db.prepare("UPDATE users SET base_resume_only=? WHERE id=?").run(req.body.on ? 1 : 0, req.user.id);
+    const s = baseResumeOnlyState(db, req.user.id);
+    res.json({ on: s.on, source: s.source, hasBaseResume: !!activeBaseResume(db, req.user.id) });
   });
 
   // The deck's geometry, with the account (queue 38, migration 114). Stored in the one shape
