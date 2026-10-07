@@ -63,7 +63,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
-**10-07 (38g) — D70 Phase 0 DONE · A94 · D71 — PUSHED and LIVE (`c0e0217`, migration 141, contract 2.4.0); D71 accepted on production (the Amazon row: Boston, MA · $143.7k–$194.4k; 250 postings gained a salary) · D67 (c) designed (`8ca3482`, pushed) · A95 (`c431baf`, pushed) · D72 P0 started — the registry and measurement tools; local findings below (D72).** ⭐ **Where a résumé's money goes (per call, local, calibrated to the ledger): output 59% · the static prompt written at 1.25× 31% · the job description 6.9% (≤ 0.37¢, it is capped at 5,000 chars) · résumé + profile 3% — 5.36¢, or 3.81¢ when the static prefix is read from cache.** ⭐ **13¢ cannot be one call** (the ceiling is ~10.4¢), so it was two — most likely a refusal + retry, or Generate + A+ on one job. `classify` never runs on draft's job path. → ✅ **A94** built: a withheld generation's ledger row now says so. ⭐ **Production read (owner's go): the 13¢ was a Generate (6.67¢) + an A+ (7.13¢) on ONE job, 6 min apart; 0 refusals in 11 generations; 0 cache reads in 11.** Also fixed: `HEAD` was **3768 / 3767 / 1** — A93's manifest commit put "Auto Apply" in two strings the D6 guard reads; reworded.
+**10-07 (38g) — D70 Phase 0 DONE · A94 · D71 — PUSHED and LIVE (`c0e0217`, migration 141, contract 2.4.0); D71 accepted on production (the Amazon row: Boston, MA · $143.7k–$194.4k; 250 postings gained a salary) · D67 (c) designed (`8ca3482`, pushed) · A95 (`c431baf`, pushed) · D72 P0 measured on production; gold exported for grading · **D74 P0 measured** — 20 companies, one crawl a day, ~4 in 10 "no role" drops are wrong.** ⭐ **Where a résumé's money goes (per call, local, calibrated to the ledger): output 59% · the static prompt written at 1.25× 31% · the job description 6.9% (≤ 0.37¢, it is capped at 5,000 chars) · résumé + profile 3% — 5.36¢, or 3.81¢ when the static prefix is read from cache.** ⭐ **13¢ cannot be one call** (the ceiling is ~10.4¢), so it was two — most likely a refusal + retry, or Generate + A+ on one job. `classify` never runs on draft's job path. → ✅ **A94** built: a withheld generation's ledger row now says so. ⭐ **Production read (owner's go): the 13¢ was a Generate (6.67¢) + an A+ (7.13¢) on ONE job, 6 min apart; 0 refusals in 11 generations; 0 cache reads in 11.** Also fixed: `HEAD` was **3768 / 3767 / 1** — A93's manifest commit put "Auto Apply" in two strings the D6 guard reads; reworded.
 **⭐ NEXT SESSION:** (1) the owner reads D70's Phase 0 — Phase 2's build and the default flip are the owner's call · (2) D67 (c)'s build waits for Workday postings and an attended observation (`docs/D67C_WORKDAY_FAMILY.md` §6) · then 38f's list. Push only on the owner's go.
 
 **10-07 (38e) — D60, D61, D62, D63 BUILT; D67 (1) the manual sweep DONE; the release FINALISED (extension v1.5.0) — all local, NOT pushed.** `extension-latest.html` asked for first (the owner put it in Downloads; read, not committed). ✅ **D60** no pills anywhere — marks, depth-box tabs, a guard over `client/src` + `extension/` incl. injected CSS · ✅ **D61** probe answered (transparent dark marks on a transparent tile — no filter anywhere); ONE `CompanyLogo` on a paper tile · ✅ **D62** the ATS panel's frame + History (this job's résumé versions) in `ResumeList`, the list Settings also uses; Barlow Condensed retired · ✅ **D63** built to the sketch's *Suggested* tab · ✅ **D67 (1)** every ATS the board links to, observed — no new cross-origin pair; Lever / Ashby / Workable rows add the job-id check on their shared hosts · ✅ **release** v1.5.0 bump + zip, policy dated October 7, the Web Store fields written fresh. `npm test` **3760 / 3760 / 0**. ⚠ **No screenshot or browser pass after D60's first shots** — the throwaway server was stopped by the system for low memory (0.3 GB free) and not restarted. ⏸ **O85.**
@@ -3499,6 +3499,88 @@ Owner 10-07: *"it's the user's own payload so shouldn't be an issue — check co
 - **(b)** At **390 px** the top nav clips **"THE TABLE"** — fix, with a guard at 390.
 - **(c)** ✅ **DECIDED by the owner 10-07 (38): keep only the id-type parameters, drop the rest** — the recommendation below, adopted. Build: an allow-list of id parameters on the stored *I submitted* evidence URL; everything else (session / one-time tokens, `utm_*`, `gclid`, emails) dropped before it is written; the privacy text says which are kept. ⛔ Tests: a token, a `utm_*` and an email parameter never reach the row; `gh_jid` / `jobId` / `applicationId` do.
 - ~~**(c)** ❓ **"I submitted" — keep the query string? Owner's question, answered 10-07; decision pending.**~~ *Advantages of keeping it:* the exact confirmation page is the evidence (some portals identify the application only in the query — `?jobId=`, `gh_jid=`, `applicationId=`); it tells two applications on one portal apart; it can link straight back to the portal's status page. *Implications:* query strings also carry **session and one-time tokens, tracking ids (`utm_*`, `gclid`) and sometimes the applicant's email** — keeping them stores credentials-like secrets indefinitely as "evidence", widens what a breach exposes, and must be disclosed. **Recommendation: keep an allow-list of id-like parameters (`jobId`, `gh_jid`, `lever-*` ids, `applicationId`, `req`), drop everything else** — the evidence value without the tokens.
+
+---
+
+## ⛔⛔ D74 · INGESTION — where the jobs come from, and how to get freshness and volume — 2026-10-08
+
+The owner: *"probe the ingestion path and see where we are getting the jobs from — I don't see any. We need freshness and also volume."* ⚠ **A code-and-docs probe, not a production read** (no query was run); the production figures below are **dated** and **must be re-measured** — §P0. Sources read: `services/jobs/aggregator.js` + `sources/`, `ARCHITECTURE.md` §1, `COMPANY_LIST_STRATEGY.md`, `PIPELINE_DIAGNOSIS.md`, the log's CURRENT STATE.
+
+### WHAT THE CODE AND DOCS SAY
+
+| Source | What it is | Rows in production |
+|---|---|---|
+| **greenhouse · ashby · lever · workable** | each polls **a configured company's own board** from `company_ats_list` | **1,142 · 650 · 65 · 1** active (10-06) |
+| **recruitee** | same | ~0 — 8 written in 45 runs |
+| **workday · smartrecruiters** | adapters exist, **scheduled daily, and every run reports `skipped_unconfigured`** — **never one row** (09-24) | **0** |
+| **adzuna · serpapi** | live search only; the one caller is the logged-out page, which gets a 401 — **a dead branch** | **0** |
+| **jobo** | a **paid feed** (~3 credits a job; wallet exhausted) — **deliberately paused** | **0** |
+| **the extension** | one capture at a time; the owner's own | a handful |
+
+**1 · THE CEILING IS THE NUMBER OF COMPANIES.** *"There is no 'all jobs from Ashby' endpoint"* — no ATS publishes a cross-customer feed. **~22 active companies** (`company_ats_list`, local 10-03; production count not read) produce the whole board. **Volume grows by adding companies, not sources** (`COMPANY_LIST_STRATEGY.md`'s own premise). The documented pool is **~2,200 known companies**; D20's harvest found **50 new pairs in 20 searches.**
+
+**2 · A THIRD OF WHAT IS FETCHED IS THROWN AWAY, AND NOBODY HAS LOOKED.** Over 45 production runs (09-24): **greenhouse fetched 54,521 and discarded 16,225 (29.8%); ashby 30.3%; lever 28.4%; workable 77.6%; recruitee 72.3%.** ARCHITECTURE.md calls it *"the largest unexamined number in the system"* and *"the single cheapest high-value audit available."* **I found no record that the audit was done.** ⚠ It may be the classifier correctly dropping non-engineering work, or **eating the best rows.**
+
+**3 · FRESHNESS IS BOUNDED BY A DAILY CRAWL** (one run a day, ~08:00 UTC in the August diagnosis — *confirm*). A job posted at 09:00 appears ~23 hours later. **A posting closed is retired only after TWO consecutive missed crawls** (`PRUNE_AFTER_MISSED_CRAWLS = 2`) — ⛔ **a count, not a time: if the cadence is raised, that rule must become time-based or a short outage will retire live jobs.**
+
+**4 · THE BOARD IS OLD.** The owner's own screenshots show cards aged **78d, 177d, 363d.** A company's posting can stay open for a year; "posted" is the company's date, not when it appeared here.
+
+**5 · ⭐ HYPOTHESIS — THE NEWEST JOBS ARE THE LEAST VISIBLE.** Enrichment has been **dead since 09-17** and is now a manual sweep (D17); `skills_json` sat at **41%** and the ATS number is hidden until a posting has signal. **A job that arrived this morning has no `skills_json` and no score, and *"537 jobs have no ATS score, so they sort last whatever you pick."*** If true, **fresh jobs are in the board and buried** — which is exactly *"I don't see any."* ⛔ **Verify before acting:** the share of rows first seen in the last 7 days that have a score, against older rows, and **where they land in "For you".**
+
+**6 · THE BOARD SHRANK 30% IN TWELVE DAYS.** 2,662 active (09-24) → **1,917 → 1,858 (10-06).** The US-only gate went live in that window and **held out 750 locally** — probably the whole story, but **unverified**: it must be *explained*, not assumed.
+
+### P0 · MEASURE — the agent, read-only, `railway ssh` into the container (never `railway run`). **Report before any change.**
+
+1. **The source map:** rows by source **and by company** — active, first seen in 24h / 7d / 30d, and each company's **yield per crawl**. How many companies are configured, active, **inactive and why.**
+2. **Freshness:** the age distribution of active rows (**`posted_at` vs `first_seen`**) · **new rows per day over the last 30 days** · the real crawl **times and durations** from `pipeline_runs` · median **lag from posting to first sight.**
+3. **The funnel, per source, per run:** fetched → unchanged → **discarded** → written — with the **discard reason** split (*no role match · blue-collar · out of market · duplicate*). ⛔ **Sample 100 discarded rows per source and say how many were wrongly dropped.**
+4. **Dead and quiet slugs:** companies with no new row in N crawls, **a 404 distinguished from an empty-but-alive board** — and the 542h cluster (`lever/openx`, `workable/persado`, `workable/skroutz`) and `recruitee/hygraph`: what happened to them?
+5. **The shrink:** account for **every row** between 2,662 and 1,858 — gate, expiry, prune, retire, delete.
+6. **Scoreability of the new:** the share of rows first seen ≤ 7 days ago with a score and with `skills_json`, against older rows; **their rank in "For you" and in "Best fit".**
+7. **Why `workday` and `smartrecruiters` read `skipped_unconfigured`** — ⚠ two notions of "configured" that do not meet (ARCHITECTURE §1): is any company configured, or is it a wiring defect?
+8. **Headroom:** MB per row and per company · the volume's free space · the crawl's wall-clock — *what 10× the companies would cost.*
+
+### ✅ P0 · MEASURED 10-07 (38g) — production, read-only (`railway ssh`; `scripts/d74IngestionMeasure.mjs`, piped as a plain file) + a live re-fetch for item 3 (`scripts/d74DropSample.mjs`, writes nothing). Nothing changed.
+
+| # | Question | Measured |
+|---|---|---|
+| 1 | **Source map** | **20 active companies** (29 listed: 20 active, 9 inactive — no reason column says why) produce all 1,942 active rows: greenhouse 1,225 (9 companies) · ashby 650 (4) · lever 63 (5) · import 2 · workable 1 · recruitee 1. ⭐ **Three companies are 59% of the board** — OpenAI 481 · Anthropic 358 · Stripe 311 (then Brex 188, Ramp 99, Scale AI 97). First seen in 24h **31** · 7d **142** · 30d 1,307. |
+| 2 | **Freshness** | **One crawl a day, at 08:00:00 UTC exactly** (30 runs in 30 days). **≈ 30 genuinely new rows a day** (09-22 → 10-07: 23–58, ~2 on weekends); the 972 on 09-15 and 116 on 09-09 are companies being ADDED, not postings appearing. **Posted age** of active rows: <7d 301 · 7–30d 757 · 30–60d 413 · **60–180d 323 · 180–365d 82 · >365d 63 (24% older than 60 days)**. Lag posted → first seen: p50 306h / p90 1,556h — ⚠ dominated by those bulk adds (a company's old postings are first seen the day it is added), so it does NOT measure the crawl; the crawl's own lag is bounded by the 24h cadence. |
+| 3 | **The funnel (30 days of runs)** | greenhouse fetched 59,885 → **discarded 33.5%** (no role 26.7% · out of market 6.8%) · ashby 33.4% (28.7 · 4.7) · lever 36.9% (26.9 · 10.0) · workable 76.3% · recruitee 73.0% (EU companies). ⭐ **The big discard is "no role", and it is recorded NOWHERE** (`classifyJob` → `roleKey === null` → `dropped++`). **Live re-fetch of the 20 boards, classified the crawl's way** (greenhouse dropped 489 — the 08:00 run said 485): **sampled 100 / 100 / 32 dropped titles, judged by the agent from the title against the families the board KEEPS** (it keeps sales, marketing, finance, HR, PM, design, legal, data, engineering, *general*): ⛔ **~40 of 100 greenhouse, ~45 of 100 ashby, ~13 of 32 lever are clearly in a kept family** — *"Senior Manager, Platform Product Management (Payments)"*, *"Data Science Intern (2027)"*, *"Data Science Manager, Finance and Strategy"*, five OpenAI *"Agent Post-Training … Research"*, *"RE / RS - Foundations, Search"*, *"Director, Product Design"*, six *"Account Director"*, *"Director, US International Tax"*, *"Senior Technical Sourcer"*, *"Growth Marketing Lead"*. **≈ 4 in 10 drops are wrong → ~320 of the 764 postings dropped right now (+~16% board) at zero crawl cost.** The rest: AV production, executive assistants, data-centre technicians, vague "strategy & operations". Samples: `data/d74-drops.json` (gitignored). ⚠ An agent's reading of titles, not the owner's grading. |
+| 4 | **Quiet / dead** | `workable/blueground`: 0 active rows, last new 13d · `recruitee/hygraph`: active, **never one row**. The 542h cluster: `lever/openx` 2 rows, `workable/persado` 1, `workable/skroutz` inactive. ⚠ **404 vs empty-but-alive is not recorded anywhere** (`pipeline_runs` is per source, not per company). |
+| 5 | **The shrink** | 829 inactive rows of 2,771: **702 held by the US gate** (`rejected_jobs` out_of_market) · 0 retired · 0 expired by date · **409 stale-prunes** since 09-24 (some since re-seen) · **0 deletions** (`cleanup_log`). ✅ **The 30% shrink is the US gate**, as guessed — now measured. |
+| 6 | ⭐ **Scoreability of the new** | Rows first seen ≤7d: **26.8% have `skills_json`** (7–30d 99.1%, older 99.8%) — **the manual enrichment sweep is the gap** · but **81.7% are scored** (the scorer reads the text) vs 98.7–99.8% older. **42 active rows are unscored for every user; 26 of them are this week's** — so "Best fit" (unscored last) **does** bury the newest, though less than feared. Every user with a profile has the same 1,900 scored (the board precompute). |
+| 7 | **Workday / SmartRecruiters** | ✅ **Not a wiring defect:** both plugins report `isConfigured() → true`; `skipped_unconfigured` means **no ACTIVE company of that type** — `workday` 1 (adobe) and `smartrecruiters` 2 (Ubisoft2, BoschGroup) are listed with `active = 0`. |
+| 8 | **Headroom** | DB **56 MB** for 2,771 rows (~5 KB of text a row) · volume 879 MB, **463 MB free (47% used)** · crawl wall-clock **seconds** (greenhouse avg 3.2s, max 7s). ⇒ 10× the companies ≈ +0.5 GB of rows with indexes — **it fits, but not beside the backups on the same volume (A8)**; the crawl time is not a constraint. |
+
+⭐ **WHAT P0 SAYS FOR THE PLAN:** (a) **the fastest volume is the classifier, not new sources** — ~320 wrongly dropped postings today; (b) **volume beyond that is companies** (20 active; three are 59%); (c) **freshness is the daily 08:00 crawl** — raise the cadence before anything clever, with the retire rule made time-based first; (d) **new rows lack `skills_json`** — P1's deterministic extraction at ingest is confirmed as the fix; (e) **24% of the board is older than 60 days** — the owner's *hide vs dim* decision is real.
+
+### THE PLAN — each phase gated by P0's numbers
+
+**P1 · STOP THE LEAKS (no new sources, no new spend).**
+- ⭐ **Make a new posting scoreable the moment it lands** — deterministic term extraction over `description_text` at ingest (D72 P1/P2), so **fresh jobs are not buried.** *Likely the highest-leverage change on this page, because it removes the dependence on a manual sweep for the newest rows.*
+- **The discard audit → fix the classifier** where it drops good rows. At a 30% discard rate, even a modest false-drop rate is a double-digit gain **at zero crawl cost.**
+- **Dead slugs:** auto-deactivate **visibly and reversibly**; 404 vs empty; the 48h health threshold re-checked.
+- **"New since your last visit"** on `first_seen`, not the company's posted date — the lens a daily product needs.
+- **Workday / SmartRecruiters:** settle the two notions of "configured".
+
+**P2 · CADENCE.** The ATS boards are public JSON; polling them more often is cheap. **Adaptive per company** — a board that posted this week is polled more than one that has been silent for a month; **ETag / If-Modified-Since where the vendor supports it.** ⛔ **Retire on a TIME, not a count** (e.g. absent from two *successful* crawls **and** ≥ 48h). Show the **crawl age** in Admin.
+
+**P3 · VOLUME — add companies, in tranches, measured.**
+- **Seed from the ~2,200-company curated lists**, **validated on add** (live, non-empty, **description coverage — never 0%**, US evidence) — `validateBoard` already refuses `no_descriptions` (D20).
+- **Tranche of 25 first**, measure **rows per company, US-relevant yield, MB per row**, extrapolate, then **~100 a week.** ⚠ **Order of magnitude, not a promise:** boards run from a handful to hundreds of postings; after the role, US and dedup filters, only a fraction is relevant.
+- **The other discovery channels, already built:** D20's SerpApi sweep (**≈ 2 new pairs per search, falling**), extension captures (D33/D64), and a user "add a company" request.
+- **Workday is its own project:** the tenant site must be parsed from the URL, and the adapter **caps at 300 postings with a title filter** — poor for the big boards. D4 found **25 of 50 harvested pairs were Workday**; it is where large employers live.
+- ⛔ **Gate every tranche on storage and on the A49 dedup**, not only on enrichment — *enrichment is no longer the throttle if P1's deterministic scoring lands.*
+
+**P4 · NEW FEEDS — each a decision, each through the same gates** (US gate, relevance, dedup tier, description coverage, direct-apply):
+- **Jobo:** a **bounded paid test** — fund a small wallet, measure **unique** postings (not already on a direct ATS), direct-apply fraction and US share. *~3 credits per posting; the default batch is a free-tier 10.* ⛔ A bounded experiment, never an open tap.
+- **Free remote and community feeds** (Remotive, RemoteOK, We Work Remotely, the monthly *Who is hiring*) — mostly **direct links to ATS boards**, so they are **also slug discovery.**
+- ⛔ **Not USAJobs** — federal roles require citizenship (D59's HARD class).
+
+**TARGETS — *proposed; the owner sets them*:** **~150–300 companies · ~8–15k active US-relevant rows · ≥ 60 new relevant US postings a day · median lag from posting to first sight < 6h · ≥ 90% of new rows scoreable at first sight · the share of rows older than 60 days falling.** ⚠ These assume the board stays **engineering-only** — widening the role scope changes every number.
+
+⛔ **THE OWNER DECIDES, after P0:** the targets above · a **Jobo test budget** (or none) · how stale is too stale (*hide* vs *dim* the 363-day postings) · whether to widen beyond engineering.
 
 ---
 
