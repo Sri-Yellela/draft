@@ -69,6 +69,13 @@ export default function AtsReportPanel({
           );
         })()}
       </div>
+      {/* ⭐ D58 · BASE → TAILORED, from the pair stored with the résumé. ⛔ Lower is SAID, never hidden. */}
+      {activeAts?.pair?.line && (
+        <div data-ats-pair="" data-lower={activeAts.pair.lower ? "true" : undefined}
+          style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: activeAts.pair.lower ? C.WARNING : "var(--color-text-muted)" }}>
+          {activeAts.pair.line}
+        </div>
+      )}
     </div>
   );
 

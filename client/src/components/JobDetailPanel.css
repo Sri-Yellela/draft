@@ -53,6 +53,18 @@
 .pp__div { width: 1px; height: 26px; background: var(--c-fh-line); margin: 0 3px; }
 .pp__quota { margin: 0; padding: 0 18px 10px; font-size: 11px; color: var(--c-ink-faint); }
 .pp__quota[data-empty="true"] { color: var(--c-accent-ink); }
+/* ⭐ D57 · "Résumé ready · 2h ago" — the stored résumé said in words, in both renderings (it is the state, not a hint). */
+.pp__ready { margin: 0; padding: 0 18px 6px; font-size: 11px; font-weight: 700; color: var(--c-success); }
+/* ⭐ D56 · "I submitted it" on the manual route — a text control, then one evidence field. */
+.pp__submitted { padding: 0 18px 8px; font-size: 11px; }
+.pp__submitted-btn { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--c-accent-ink);
+  text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.pp__submitted form { display: flex; gap: 6px; }
+.pp__submitted input { flex: 1; min-width: 0; font: inherit; padding: 5px 8px; border-radius: 11px;
+  border: 1px solid var(--c-border-control); background: var(--c-surface-input); color: var(--c-ink); }
+.pp__submitted form button { font: inherit; font-weight: 700; padding: 5px 11px; border: 0; border-radius: 11px;
+  background: var(--c-surface-solid); color: var(--c-ink); box-shadow: var(--c-depth-rest); cursor: pointer; }
+.pp__submitted-msg { margin: 4px 0 0; color: var(--c-ink-muted); }
 
 @container pp (min-width: 600px) { .pp__a { display: flex; } }
 @container pp (max-width: 599.98px) { .pp__b { display: flex; } .pp__quota { display: none; } }

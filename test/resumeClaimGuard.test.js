@@ -422,7 +422,10 @@ test("⛔ a withheld résumé is never persisted, and the refusal reaches the ca
   assert.ok(callAt > 0);
   // The service call precedes every write, so a 422 (thrown as code "resume_claim_violation") leaves
   // nothing behind.
-  for (const write of ["INSERT INTO resume_versions", "INSERT INTO resumes", "INSERT INTO user_jobs", "emitToUser(", "insertNotification("]) {
+  // D57: the three INSERTs are one transaction in services/generatedResumes.js — the kernel's one store call.
+  const store = fs.readFileSync("services/generatedResumes.js", "utf8");
+  for (const write of ["INSERT INTO resume_versions", "INSERT INTO resumes", "INSERT INTO user_jobs"]) assert.ok(store.includes(write), write);
+  for (const write of ["storeGeneratedResume(db, {", "emitToUser(", "insertNotification("]) {
     const at_ = body.indexOf(write);
     assert.ok(at_ > callAt, `${write} must come after the guarded call`);
   }

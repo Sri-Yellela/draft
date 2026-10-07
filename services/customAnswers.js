@@ -25,6 +25,9 @@
  */
 
 import { normaliseText } from "./applyAutomation.js";
+import {
+  normaliseQuestion, templateQuestion, questionKey, SAVED_ANSWER_LIMITS,
+} from "../shared/savedAnswers.js";
 
 /** The placeholder a stored question/answer uses to stand in for the employer's name. */
 export const COMPANY_TOKEN = "{company}";
@@ -177,6 +180,76 @@ export function resolveForCompany(store, company) {
   }
 
   return { answers: resolved, withheld };
+}
+
+/**
+ * D55 (f): does a resolved map answer this question? By normalised text — the comparison buildAnswers
+ * itself makes — so a stored "Why Figma?" counts as answering a form's "Why Figma? *". Exact words
+ * only; this is never a containment test.
+ */
+export function resolvesQuestion(resolved, question) {
+  if (Object.prototype.hasOwnProperty.call(resolved || {}, question)) return true;
+  const want = normaliseQuestion(question);
+  if (!want) return false;
+  return Object.keys(resolved || {}).some(q => normaliseQuestion(q) === want);
+}
+
+class RememberError extends Error {
+  constructor(code, message) { super(message || code); this.code = code; }
+}
+
+/**
+ * D55 (f) · "SAVE THIS ANSWER FOR NEXT TIME?" — record an answer the CANDIDATE gave, for reuse.
+ *
+ * ⛔ USER-STATED ONLY. Nothing in the server calls this with an answer it worked out itself: the
+ * only callers are the routes that receive what the candidate typed or picked (Draft House's
+ * questions, the review overlay, Settings → Saved answers).
+ *
+ *   scope 'all'     — reused at every employer. The employer's name in the question is templated as
+ *                     `{company}`, so "Have you worked for Figma before?" is stored once as
+ *                     "Have you worked for {company} before?" and matches at Linear by exact words.
+ *                     One question has ONE entry: an existing entry with the same normalised template
+ *                     is replaced, not duplicated.
+ *   scope 'company' — this employer only (a per-company override). What a motivation question
+ *                     always gets: "why {company}" answered once and interpolated everywhere is the
+ *                     invented claim the module header forbids, so 'all' is narrowed to 'company'.
+ *
+ * Returns { store, saved: { scope, question, company?, templated?, narrowed? } }. Throws a
+ * RememberError (code: question_required | answer_required | too_long | company_required | too_many).
+ */
+export function rememberAnswer(store, { question, answer, company = null, scope = "all" } = {}) {
+  const q = String(question ?? "").trim();
+  const a = String(answer ?? "").trim();
+  if (!q) throw new RememberError("question_required");
+  if (!a) throw new RememberError("answer_required");
+  if (q.length > SAVED_ANSWER_LIMITS.maxQuestionChars || a.length > SAVED_ANSWER_LIMITS.maxAnswerChars) {
+    throw new RememberError("too_long");
+  }
+  const answers = { ...(store?.answers || {}) };
+  const overrides = {};
+  for (const [c, byQ] of Object.entries(store?.overrides || {})) overrides[c] = { ...byQ };
+  const key = companyKey(company);
+
+  let applied = scope === "company" ? "company" : "all";
+  let narrowed = null;
+  if (applied === "all" && isMotivationQuestion(q)) { applied = "company"; narrowed = "motivation_needs_own_words"; }
+
+  if (applied === "company") {
+    if (!key) throw new RememberError("company_required");
+    const byQ = overrides[key] || {};
+    const k = questionKey(q, company);
+    for (const existing of Object.keys(byQ)) if (questionKey(existing, company) === k) delete byQ[existing];
+    byQ[q] = a;
+    overrides[key] = byQ;
+    return { store: { answers, overrides }, saved: { scope: "company", company: key, question: q, ...(narrowed ? { narrowed } : {}) } };
+  }
+
+  const stored = key ? templateQuestion(q, company) : q;
+  const k = normaliseQuestion(stored);
+  for (const existing of Object.keys(answers)) if (normaliseQuestion(existing) === k) delete answers[existing];
+  if (Object.keys(answers).length >= SAVED_ANSWER_LIMITS.maxEntries) throw new RememberError("too_many");
+  answers[stored] = a;
+  return { store: { answers, overrides }, saved: { scope: "all", question: stored, templated: stored !== q } };
 }
 
 /** The flat map buildAnswers consumes. */

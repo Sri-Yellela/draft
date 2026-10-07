@@ -30,8 +30,9 @@
 
 import crypto from "node:crypto";
 import {
-  buildAnswers, CONFIDENCE_BY_PROVENANCE, ELIGIBILITY_HANDLERS, PROFILE_KEY_TO_HANDLER,
+  buildAnswers, CONFIDENCE_BY_PROVENANCE, ELIGIBILITY_HANDLERS, PROFILE_KEY_TO_HANDLER, eligibilityClassOf,
 } from "./applyAutomation.js";
+import { isOptInQuestion, workedHereAnswer, COMPANY_TOKEN } from "../shared/savedAnswers.js";
 
 // ── Canonical questions ──────────────────────────────────────────────────────────────────────
 // Shaped exactly like discoverFields() output, because buildAnswers() consumes that shape and this
@@ -145,6 +146,7 @@ export function buildGatePacket({
   runJobId = null,
   resumeArtifactId = null,
   gateReason = "login_required",
+  entries = null,                 // D55 (b): buildPacketEntries(); absent on an older caller
 } = {}) {
   const expectedOrigin = originOf(applyUrl);
   if (!expectedOrigin) {
@@ -210,7 +212,167 @@ export function buildGatePacket({
     source: usedCanonical ? "canonical_profile" : "discovered_form",
     answers: packetAnswers,
     unresolved,
+    // D55 (b). Only when there is something in it, so a packet from a profile with no history looks
+    // exactly as it did before rather than carrying five empty lists.
+    ...(hasEntries(entries) ? { entries } : {}),
+    // D55 (f). The candidate's saved answers for THIS employer ({company} already expanded, motivation
+    // templates withheld) and the work-history fact — so the fill can answer a question on the page
+    // that the server never saw, by the same exact-words rule buildAnswers uses. Only when present.
+    ...packetSavedAnswers(autofillPayload),
   };
+}
+
+/**
+ * D55 (f): what the packet carries for questions the server never saw.
+ *   savedAnswers  [{ question, answer, eligibility, optIn }] — matched on the page ONLY by
+ *                 normaliseQuestion equality (shared/savedAnswers.js). ⛔ Never by containment for
+ *                 an eligibility, EEO or opt-in question, and an opt-in only ever with a No.
+ *   workedHere    { company, answer: 'Yes'|'No'|null, reason } — "have you worked here before?" as
+ *                 the stated work history answers it (workedHereAnswer); null answer = leave it.
+ */
+export function packetSavedAnswers(autofillPayload = {}) {
+  const out = {};
+  const saved = Object.entries(autofillPayload?.custom_answers || {})
+    .filter(([q, a]) => String(q).trim() && a !== null && a !== undefined && String(a).trim() !== "")
+    .map(([question, answer]) => ({
+      question, answer: String(answer),
+      eligibility: !!eligibilityClassOf(question),
+      optIn: isOptInQuestion(question),
+    }));
+  if (saved.length) out.savedAnswers = saved;
+  const wh = autofillPayload?.worked_here;
+  if (wh?.company) {
+    const d = workedHereAnswer(`Have you worked for ${COMPANY_TOKEN} before?`, wh.company, wh.history || []);
+    out.workedHere = { company: wh.company, answer: d.answer, reason: d.reason };
+  }
+  return out;
+}
+
+// ── D55 (b): REPEATING SECTIONS — entries, not answers ───────────────────────────────────────
+//
+// A packet's `answers` are one value per question. Workday's My Experience step is not shaped like
+// that: Work Experience, Education, Languages and Websites are SECTIONS, each "Add / Add Another"
+// creating a panel of its own fields, and Skills is a set of chips. A flat answer list cannot say
+// "two jobs, one degree" — so the packet carries `entries` beside its answers, and the extension
+// clicks Add Another once per entry.
+//
+// STATED, NEVER INVENTED. Every entry comes from something the candidate wrote down:
+//   education   the profile's university / highest_degree / field_of_study / graduation_year — ONE
+//               entry, because that is all the profile stores
+//   work        the base résumé's EXPERIENCE section (company, role, dates, bullets), parsed by the
+//               same buildStructuredResume the résumé renderer uses; failing that, the profile's
+//               current_company / current_job_title as one current role
+//   websites    linkedin_url, github_url, website_url, portfolio_url — each its own URL, never one
+//               standing in for another (the `website` field_map rule)
+//   languages   [] — ⚠ the profile stores no languages. An empty list is the honest answer, and the
+//               section is left for the candidate.
+//   skills      confirmed_skills — the ones the candidate confirmed, not the target ones
+// Nothing here is an attestation: no eligibility, EEO or screening answer travels as an entry.
+
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+/** "Jan 2022" / "01/2022" / "2022" -> { month, year }; null when no year can be read. */
+export function parseMonthYear(s) {
+  const t = String(s || "").trim().toLowerCase();
+  if (!t) return null;
+  const year = t.match(/\b(19|20)\d{2}\b/)?.[0];
+  if (!year) return null;
+  let month = null;
+  const named = MONTHS.findIndex(m => new RegExp(`\\b${m}`).test(t));
+  if (named >= 0) month = named + 1;
+  else {
+    const num = t.match(/\b(0?[1-9]|1[0-2])\s*[/.-]\s*(19|20)\d{2}\b/)?.[1];
+    if (num) month = Number(num);
+  }
+  return { month, year: Number(year) };
+}
+
+/** "Jan 2022 – Present" -> { from, to, current }. */
+export function parseDateRange(s) {
+  const t = String(s || "").trim();
+  if (!t) return { from: null, to: null, current: false };
+  const parts = t.split(/\s*(?:–|—|\s-\s|\bto\b|→|(?<=\d{4})-(?=\s*(?:\d|present|current)))\s*/i).filter(Boolean);
+  const current = /\b(present|current|now|today)\b/i.test(t);
+  const from = parseMonthYear(parts[0]);
+  const to = current || parts.length < 2 ? null : parseMonthYear(parts[parts.length - 1]);
+  return { from, to, current };
+}
+
+const clean = (v) => String(v ?? "").trim();
+const asUrl = (raw) => {
+  const t = clean(raw);
+  if (!t) return "";
+  return /^https?:\/\//i.test(t) ? t : `https://${t}`;
+};
+
+/**
+ * Build the packet's entries from what the candidate has stated.
+ * @param {object} opts
+ * @param {object} opts.profile          the user_profile row (may be null)
+ * @param {object} opts.structuredResume buildStructuredResume() of the base résumé (may be null)
+ */
+export function buildPacketEntries({ profile = null, structuredResume = null } = {}) {
+  const p = profile || {};
+
+  const education = [];
+  if (clean(p.university) || clean(p.highest_degree) || clean(p.field_of_study)) {
+    const year = Number(p.graduation_year);
+    education.push({
+      school: clean(p.university) || null,
+      degree: clean(p.highest_degree) || null,
+      field: clean(p.field_of_study) || null,
+      gpa: null,
+      from: null,
+      to: Number.isInteger(year) && year > 1900 ? { month: null, year } : null,
+      source: "profile",
+    });
+  }
+
+  const work = [];
+  const exp = (structuredResume?.sections || []).find(s => s?.type === "entries" && s.title === "EXPERIENCE");
+  for (const e of exp?.entries || []) {
+    const company = clean(e.company);
+    const title = clean(e.role);
+    if (!company && !title) continue;
+    // The date is in `date` when the résumé put it there, or folded into `meta` beside a location.
+    const dated = clean(e.date) || (/\b(19|20)\d{2}\b/.test(e.meta || "") ? clean(e.meta) : "");
+    const range = parseDateRange(dated);
+    const location = clean(e.meta) && clean(e.meta) !== dated ? clean(e.meta) : null;
+    const bullets = (e.bullets || []).map(clean).filter(Boolean);
+    work.push({
+      title: title || null, company: company || null, location,
+      from: range.from, to: range.to, current: range.current,
+      description: bullets.length ? bullets.map(b => `• ${b}`).join("\n").slice(0, 2000) : (clean(e.text) || null),
+      source: "resume",
+    });
+  }
+  if (!work.length && (clean(p.current_company) || clean(p.current_job_title))) {
+    work.push({
+      title: clean(p.current_job_title) || null, company: clean(p.current_company) || null, location: null,
+      from: null, to: null, current: true, description: null, source: "profile",
+    });
+  }
+
+  const websites = [];
+  for (const [kind, col] of [["linkedin", "linkedin_url"], ["github", "github_url"], ["website", "website_url"], ["portfolio", "portfolio_url"]]) {
+    const url = asUrl(p[col]);
+    if (url && !websites.some(w => w.url === url)) websites.push({ kind, url, source: "profile" });
+  }
+
+  let skills = [];
+  try {
+    const raw = Array.isArray(p.confirmed_skills) ? p.confirmed_skills : JSON.parse(p.confirmed_skills || "[]");
+    skills = [...new Set((Array.isArray(raw) ? raw : [])
+      .map(s => clean(typeof s === "string" ? s : s?.name ?? s?.skill)).filter(Boolean))].slice(0, 40);
+  } catch { skills = []; }
+
+  return { education, work, languages: [], websites, skills };
+}
+
+/** True when an entries object has anything in it. */
+export function hasEntries(entries) {
+  return !!entries && ["education", "work", "languages", "websites", "skills"]
+    .some(k => Array.isArray(entries[k]) && entries[k].length > 0);
 }
 
 /** Origin of a URL, or null when it cannot be parsed. Never throws. */

@@ -376,7 +376,7 @@ export function listHistory(db, userId, { q = "", now = nowSec(), limit = 500 } 
   const domainBy = new Map(all("SELECT company, domain FROM company_logos WHERE domain IS NOT NULL")
     .map(r => [companyNameKey(r.company), r.domain]));
   const { groups, keyOf } = groupCompanies(rows.map(r => ({ id: r.jobId, company: r.company, url: r.applyUrl,
-    domain: domainBy.get(companyNameKey(r.company)) ?? null })));
+    domain: r.companyDomain ?? domainBy.get(companyNameKey(r.company)) ?? null })));
   const nameOf = new Map(groups.map(g => [g.key, g.name]));
   for (const r of rows) { r.companyKey = keyOf.get(String(r.jobId)) ?? null; r.companyName = nameOf.get(r.companyKey) ?? r.company ?? null; }
   const text = new Map(jobs.map(j => [String(j.job_id), j.description]));
