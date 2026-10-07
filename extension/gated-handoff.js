@@ -601,11 +601,46 @@ async function applyPlan(plan, resume, opts) {
   // The piece usually assumed impossible (§5): a File can be constructed and handed to a real file
   // input through a DataTransfer. Without this the candidate still has to attach the resume by hand,
   // which is most of the work the handoff was supposed to remove.
+  //
+  // D55 (e): INTO THE RÉSUMÉ'S INPUT, not "the first input[type=file]". A form with a cover-letter
+  // upload ahead of the résumé's (fakeAts /workday-replica, and plenty of real ones) received the
+  // résumé as a cover letter, and the required résumé stayed empty. Each file input is scored on
+  // what names IT — its label, aria-label, name, id, automation id, and its own field wrapper's label
+  // (never a whole step's text, which names every upload on it): a résumé / CV wins, a cover letter,
+  // transcript, portfolio or photo is never chosen, and a lone unnamed upload is taken only when it
+  // is the only candidate. Two unnamed uploads is a guess — nothing is attached, and it says so.
+  //
+  // ⛔ BYTE-IDENTICAL (modulo indentation) TO THE EXPORTED resumeInputScore — asserted by test.
+  function resumeInputScore(context) {
+    const t = String(context || '').toLowerCase();
+    if (/cover[\s_-]*letter|motivation|transcript|portfolio|writing sample|photo|headshot|certificat|reference|supporting|additional/.test(t)) return -1;
+    if (/r[ée]sum[ée]|\bcv\b|curriculum vitae/.test(t)) return 2;
+    return 0;
+  }
+  const fileContext = (el) => {
+    const own = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`)?.textContent : '';
+    const wrap = el.closest('[data-automation-id^="formField"], .field, .application-question');
+    const wrapLabel = wrap?.querySelector('label, legend, h3, h4')?.textContent || '';
+    return [own, el.closest('label')?.textContent, el.getAttribute('aria-label'), el.name, el.id,
+      el.getAttribute('data-automation-id'), wrapLabel].filter(Boolean).join(' ');
+  };
+  const pickResumeInput = () => {
+    const inputs = [...scope.querySelectorAll('input[type="file"]')]
+      .map(el => ({ el, score: resumeInputScore(fileContext(el)) }));
+    if (!inputs.length) return { el: null, reason: 'no_file_input' };
+    const named = inputs.filter(i => i.score === 2);
+    if (named.length) return { el: named[0].el, by: 'named' };
+    const neutral = inputs.filter(i => i.score === 0);
+    if (neutral.length === 1) return { el: neutral[0].el, by: 'only_unnamed_upload' };
+    return { el: null, reason: neutral.length ? 'ambiguous_file_inputs' : 'no_resume_input' };
+  };
+
   let resumeResult = null;
   if (resume && resume.base64) {
-    const fileInput = [...scope.querySelectorAll('input[type="file"]')][0];
+    const target = pickResumeInput();
+    const fileInput = target.el;
     if (!fileInput) {
-      resumeResult = { attached: false, reason: 'no_file_input' };
+      resumeResult = { attached: false, reason: target.reason };
     } else {
       try {
         const bin = atob(resume.base64);
@@ -617,12 +652,20 @@ async function applyPlan(plan, resume, opts) {
         fileInput.files = dt.files;
         fileInput.dispatchEvent(new Event('input',  { bubbles: true }));
         fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+        // The page's own confirmation (G2 requirement 5): its uploader rendering the filename — a
+        // Workday drop zone's "… Successfully Uploaded!", a Greenhouse filename chip. Absent on a
+        // bare native input, which is why it is reported beside `attached`, never instead of it.
+        const wrap = fileInput.closest('[data-automation-id^="formField"], .field') || fileInput.parentElement;
+        const confirmedByPage = !!(await waitFor(() => String(wrap?.textContent || '').includes(resume.filename), 1500));
         resumeResult = {
           // Reported separately from `attached` on purpose. The property being set is not evidence
           // the page noticed; only the page's own rendering of the filename is (G2 requirement 5).
           attached: fileInput.files.length === 1 && fileInput.files[0].name === resume.filename,
           filename: resume.filename,
           size: file.size,
+          target: target.by,
+          field: fileContext(fileInput).replace(/\s+/g, ' ').trim().slice(0, 80),
+          confirmedByPage,
         };
       } catch (e) {
         resumeResult = { attached: false, reason: `error:${e.message}` };
@@ -634,6 +677,18 @@ async function applyPlan(plan, resume, opts) {
 }
 
 // ── Matching ─────────────────────────────────────────────────────────────────
+
+/**
+ * D55 (e) — how strongly the text that names a file input says "résumé": 2 a résumé / CV, -1 an
+ * upload that is something else (cover letter, transcript, portfolio, photo …), 0 unnamed.
+ * ⛔ applyPlan carries a byte-identical copy (it is serialised into the page); a test asserts it.
+ */
+export function resumeInputScore(context) {
+  const t = String(context || '').toLowerCase();
+  if (/cover[\s_-]*letter|motivation|transcript|portfolio|writing sample|photo|headshot|certificat|reference|supporting|additional/.test(t)) return -1;
+  if (/r[ée]sum[ée]|\bcv\b|curriculum vitae/.test(t)) return 2;
+  return 0;
+}
 
 const normalise = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
