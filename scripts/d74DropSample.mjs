@@ -4,6 +4,8 @@
 // role) is counted in pipeline_runs and stored nowhere, so this is the only way to look at one.
 //
 //   node scripts/d74DropSample.mjs --companies <json file of company_ats_list rows> [--per 100] [--out <file>]
+//        [--save-fetch <file>]   also save every US-admitted posting (title, company, description, url) so a
+//                                classifier change can be diffed against ONE fixed fetch (d74ClassifierDiff.mjs)
 //
 // ⛔ WRITES NOTHING to any database. It calls the same source plugins the crawl calls (public board JSON,
 // one request per company, as the daily crawl does), then applies the crawl's two checks in its order:
@@ -27,6 +29,7 @@ const PLUGINS = { greenhouse, lever, ashby, workable, recruitee };
 const order = (s) => crypto.createHash("sha1").update(`d74|${s}`).digest("hex");
 
 const report = {};
+const admitted = [];
 for (const [name, plugin] of Object.entries(PLUGINS)) {
   const cos = companies.filter(c => c.ats_type === name);
   if (!cos.length) continue;
@@ -36,6 +39,7 @@ for (const [name, plugin] of Object.entries(PLUGINS)) {
   for (const job of jobs) {
     const market = usEligibility({ location: job.location, description: job.description, offices: officeLocations(job._raw) });
     if (!market.admit) { counts.outOfMarket++; continue; }
+    admitted.push({ source: name, id: job.id || job.url, title: job.title, company: job.company, url: job.url, description: (job.description || "").slice(0, 600) });
     const v = classifyJob(job.title || "", job.description || "", job.company || "");
     if (v.collar === "blue") { counts.blueCollar++; continue; }
     if (v.roleKey === null) { counts.dropped++; dropped.push({ title: job.title, company: job.company, url: job.url }); continue; }
@@ -44,6 +48,8 @@ for (const [name, plugin] of Object.entries(PLUGINS)) {
   dropped.sort((a, b) => order(a.url || a.title).localeCompare(order(b.url || b.title)));
   report[name] = { companies: cos.length, ...counts, keptRoles, sample: dropped.slice(0, per) };
 }
+const saveFetch = flag("save-fetch");
+if (saveFetch) fs.writeFileSync(saveFetch, JSON.stringify(admitted));
 const out = flag("out");
 if (out) fs.writeFileSync(out, JSON.stringify(report, null, 2));
 for (const [k, v] of Object.entries(report)) console.log(k, JSON.stringify({ ...v, sample: v.sample.length }));

@@ -162,6 +162,7 @@ import { createBoardFitPrecompute, atsBasisHash, atsJobInputHash, storedScoreSql
 import { deriveAutomationTier } from "./services/jobs/automationTier.js";
 import { backfillAutomationTier } from "./services/jobs/backfillAutomationTier.js";
 import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
+import { remapGeneralRows, REMAP_MATCHED_BY } from "./services/jobs/remapGeneralRoles.js";
 import { tagStaleJobs } from "./services/jobs/jobTags.js";
 import { backfillDescriptionText, withPostingText, refreshDescriptionText, postingText, registerDescriptionBasis } from "./services/jobs/descriptionText.js";
 import { listPairs as listLearnedPairs, setPairRevoked, PROMOTE_AT_USERS } from "./services/learnedOrigins.js";
@@ -4460,6 +4461,18 @@ if (String(process.env.ROLE_MAP_BACKFILL || "").toLowerCase() === "off") {
     }
   } catch (e) {
     console.error("[boot] job_role_map backfill failed (unbucketed rows stay visible everywhere):", e.message);
+  }
+  // D74: a stored posting the old anchors filed under 'general' (invisible on every board) is re-filed
+  // when the classifier now names its family. Classifier rows only; reversible by its matched_by.
+  try {
+    const remap = remapGeneralRows(db);
+    if (remap.moved > 0) {
+      console.log(`[boot] job_role_map: re-filed ${remap.moved} of ${remap.scanned} 'general' posting(s) `
+        + `(${Object.entries(remap.byBucket).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k}=${n}`).join(" ")}); `
+        + `reversible: matched_by = '${REMAP_MATCHED_BY}'`);
+    }
+  } catch (e) {
+    console.error("[boot] job_role_map 'general' re-file failed (those rows stay in 'general'):", e.message);
   }
 }
 
