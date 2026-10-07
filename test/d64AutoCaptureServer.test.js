@@ -15,6 +15,7 @@ import {
   AUTO_CAPTURE_ORIGIN, AUTO_CAPTURE_HOURLY_CAP, AUTO_CAPTURE_DISABLED_KEY,
 } from "../services/jobs/autoCapture.js";
 import { CAPTURE_ORIGINS } from "../services/jobs/jobGateway.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 function db(roleFamily = "engineering") {
   const d = new Database(":memory:");
@@ -129,7 +130,7 @@ test("D64 · Captured today + UNDO — off the user's board; a ★ the user adde
 
 test("D64 · the route: kill switch first, then the brakes, then importJob in auto mode — and never a fetch", () => {
   const src = fs.readFileSync("routes/importJob.js", "utf8").replace(/\r\n/g, "\n");
-  const route = src.slice(src.indexOf('router.post("/auto"'), src.indexOf('router.get("/auto"'));
+  const route = src.slice(at(src, 'router.post("/auto"'), at(src, 'router.get("/auto"'));
   const order = ["autoCaptureDisabled(db)", "autoCaptureBrake(db", "importJob({ url, text }, { db, userId: req.user.id, auto: true })"].map(s => route.indexOf(s));
   assert.ok(order.every(i => i > 0), JSON.stringify(order));
   assert.deepEqual([...order].sort((x, y) => x - y), order, "switch → brakes → import");

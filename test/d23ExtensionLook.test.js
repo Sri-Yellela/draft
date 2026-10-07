@@ -28,7 +28,14 @@ test("⛔ D23: the permission set is exactly activeTab + scripting + storage, an
   // + contextMenus by D55 decision B (10-07) — a decided addition, not D23's.
   assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"]);
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
-  for (const k of ["optional_permissions", "optional_host_permissions", "content_scripts",
+  // + optional_host_permissions by D64 (owner, 10-07: automated capture) — a decided addition, not D23's:
+  // granted only when the user switches automatic capture on, public job-posting hosts only, and
+  // exactly extension/autoCapture.js's list (never a gated portal; test/d64AutoCaptureExtension.test.js).
+  assert.deepEqual(manifest.optional_host_permissions, [
+    "https://boards.greenhouse.io/*", "https://job-boards.greenhouse.io/*", "https://jobs.lever.co/*",
+    "https://jobs.ashbyhq.com/*", "https://apply.workable.com/*",
+  ]);
+  for (const k of ["optional_permissions", "content_scripts",
                    "web_accessible_resources", "externally_connectable", "declarative_net_request"]) {
     assert.equal(manifest[k], undefined, `manifest.${k} appeared — that is a new permission or exposure`);
   }
@@ -54,10 +61,14 @@ test("⛔ D23: the storage keys are exactly the six the listing names — no mor
     assert.doesNotMatch(src, /\b(localStorage|sessionStorage|indexedDB)\b|chrome\.cookies|chrome\.storage\.sync\.set/,
       `${f} stores something outside chrome.storage.local/session`);
   }
+  // + local:[AUTO_CAPTURE_SETTING] by D64 (owner, 10-07) — the automatic-capture switch, a decided and
+  // disclosed addition (the privacy page's storage list, STORE_LISTING, PRIVACY_RECONCILIATION).
   assert.deepEqual(keys.sort(), [
+    "local:[AUTO_CAPTURE_SETTING]",
     "local:[IDENTITY_KEY]", "local:[TOKEN_KEY]", "local:lastCapture",
     "session:[batchKey(tabId)]", "session:[sessionKey(tabId)]", "session:lastGatedHandoff",
   ].sort(), "the extension's storage keys changed — that is a new disclosure (D23: none allowed)");
+  assert.match(code["autoCapture.js"], /export const AUTO_CAPTURE_SETTING = "autoCaptureEnabled";/);
   const auth = code["auth.js"];
   assert.match(auth, /const TOKEN_KEY = ['"]authToken['"]/);
   assert.match(auth, /const IDENTITY_KEY = ['"]authIdentity['"]/);

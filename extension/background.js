@@ -12,6 +12,10 @@ import {
 // D23: the site's colour tokens, generated from client/src/styles/colorTokens.js — the toolbar badge
 // and the capture toast take their colours from here, never from a literal.
 import { C_LIGHT, C_DARK } from './tokens.js';
+import {
+  AUTO_CAPTURE_SETTING, AUTO_CAPTURE_ORIGINS, autoCaptureOriginFor, autoCaptureStep, pageHasJobPosting, createSeenSet,
+  setAutoCaptureSetting,
+} from './autoCapture.js';
 
 // Keep in sync with config.js (service workers cannot share plain-script globals).
 // DEV SWITCH: comment line A, uncomment line B.
@@ -181,6 +185,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .then(([tab]) => captureActiveTab(tab))
       .then(sendResponse);
     return true;                                            // async response
+  }
+
+  // D64 · the popup's "Captured today", and its undo — asked when the popup opens its list.
+  if (message.type === 'AUTO_CAPTURES') {
+    authedFetch(RESUME_MASTER_URL, '/api/import/auto')
+      .then(r => (r ? r.json() : null)).then(sendResponse).catch(() => sendResponse(null));
+    return true;
+  }
+  if (message.type === 'AUTO_CAPTURE_UNDO' && message.jobId) {
+    authedFetch(RESUME_MASTER_URL, `/api/import/auto/${encodeURIComponent(message.jobId)}/undo`, { method: 'POST' })
+      .then(r => (r ? r.json() : null)).then(sendResponse).catch(() => sendResponse(null));
+    return true;
   }
 
   if (message.type === 'PREVIEW_ACTIVE_TAB') {
@@ -488,6 +504,61 @@ chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
   }
   const result = await runGatedHandoff({ serverUrl: RESUME_MASTER_URL, tab });
   await reportHandoff(tab, result);
+});
+
+// ── ⭐ D64 · AUTOMATED CAPTURE ─────────────────────────────────────────────────────────────────────
+// A tab finishing a load on one of AUTO_CAPTURE_ORIGINS — only while the user has switched it on AND
+// Chrome holds the optional host access they granted — is considered. autoCaptureStep decides with no
+// page read; a page whose URL does not say "posting" is checked for JobPosting JSON-LD locally. ⛔ A page
+// that is not a posting sends NOTHING. A posting is read with the capture's own extractor and sent to
+// /api/import/auto, where the server decides whether it belongs on the user's board (and stores nothing
+// if not). No toast: the owner asked for it to happen "without the user having to do anything"; the
+// popup lists what was captured today, with an undo. ⛔ Nothing is filled or submitted here (D36).
+const autoSeen = createSeenSet();
+async function autoCaptureEnabled() {
+  try { return !!(await chrome.storage.local.get(AUTO_CAPTURE_SETTING))[AUTO_CAPTURE_SETTING]; } catch { return false; }
+}
+async function hostGranted(url) {
+  const origin = autoCaptureOriginFor(url);
+  if (!origin) return false;
+  try { return await chrome.permissions.contains({ origins: [origin] }); } catch { return false; }
+}
+export async function maybeAutoCapture(tab) {
+  const url = tab?.url;
+  if (!tab?.id || !url || autoSeen.has(url)) return { step: 'skip' };
+  const step = autoCaptureStep({ enabled: await autoCaptureEnabled(), url, granted: await hostGranted(url) });
+  if (step === 'skip') return { step };
+  try {
+    if (step === 'check_page') {
+      const [probe] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: pageHasJobPosting });
+      if (!probe?.result) return { step, posting: false };            // ⛔ not a posting → nothing sent
+    }
+    const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extractJobPayload });
+    const extracted = r?.result;
+    if (!extracted?.ok) return { step, posting: false };
+    autoSeen.add(url);
+    const res = await authedFetch(RESUME_MASTER_URL, '/api/import/auto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: extracted.url || url, text: extracted.text }),
+    });
+    if (!res) return { step, sent: false };                             // not signed in: nothing to do
+    const json = await res.json().catch(() => ({}));
+    return { step, sent: true, status: res.status, discarded: !!json.discarded, already: !!json.already };
+  } catch {
+    return { step, error: true };
+  }
+}
+chrome.tabs.onUpdated.addListener((tabId, info, tab) => {
+  if (info.status !== 'complete') return;
+  void maybeAutoCapture(tab);
+});
+// Switching automatic capture off in Options removes the host access; if the user removes it from
+// chrome://extensions instead, the setting follows, so the two never disagree.
+chrome.permissions?.onRemoved?.addListener(async (removed) => {
+  if ((removed?.origins || []).some(o => AUTO_CAPTURE_ORIGINS.includes(o))) {
+    try { await setAutoCaptureSetting(false); } catch { /* storage gone */ }
+  }
 });
 
 // The packet outlives its activeTab grant (G0 §9 measured this), so nothing expires it on its own.

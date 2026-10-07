@@ -291,10 +291,10 @@ export function PrivacyPage() {
 
           <H3>What the Extension Stores in Your Browser</H3>
           <P>
-            The extension keeps six things in your browser's own extension storage. Three are
+            The extension keeps seven things in your browser's own extension storage. Four are
             ordinary local storage and stay until you uninstall the extension or disconnect it; the
             other three are memory-backed session storage, which your browser discards when you
-            restart it. Only one of the six — the extension's own access token, described last — is
+            restart it. Only one of the seven — the extension's own access token, described last — is
             ever sent anywhere, and it goes only to us. (Earlier versions also stored a custom
             keyboard shortcut; that setting was removed, and any value it left behind is deleted
             when you open the extension's options page. Shortcuts are now managed by Chrome itself.)
@@ -343,6 +343,45 @@ export function PrivacyPage() {
               same browser. You can end it at any time from the extension's popup, or from your
               account, and the extension then holds nothing. Local storage; the ten-minute expiry
               does not apply to it.
+            </LI>
+            <LI>
+              <Strong>Whether automatic capture is switched on</Strong> — a single on/off value,
+              nothing else. Local storage: kept until you change it or uninstall the extension. The
+              ten-minute expiry does not apply to it.
+            </LI>
+          </UL>
+
+          {/* ⭐ D64 (owner, 10-07) — automatic capture. extension/autoCapture.js, services/jobs/autoCapture.js. */}
+          <H3>Capturing Job Pages Automatically (optional, off by default)</H3>
+          <P>
+            If you switch on <Strong>Capture job pages automatically</Strong> in the extension's
+            settings, Chrome asks you to let the extension read pages on a short list of public job
+            sites — Greenhouse, Lever, Ashby and Workable. It never asks for every site, and it does
+            not include sites where you sign in to apply. When you open a page on one of those sites:
+          </P>
+          <UL>
+            <LI>
+              The extension first checks <Strong>in your browser</Strong> whether the page is a job
+              posting. <Strong>If it is not, nothing is sent</Strong> — not the page, not its
+              address.
+            </LI>
+            <LI>
+              If it is, the posting's text and web address are sent to us, exactly as a capture you
+              press would send them. We check it against your board — whether it is in the United
+              States and fits the roles in your active profile. <Strong>If it does not fit, we keep
+              nothing</Strong>: not the posting, not its address, not a record that it was sent.
+            </LI>
+            <LI>
+              If it fits, it is added to your board and marked as captured automatically, and the
+              extension lists today's automatic captures so you can undo any of them.
+            </LI>
+            <LI>
+              Nothing is filled in or submitted for you. Filling an application still waits for
+              your click.
+            </LI>
+            <LI>
+              Switching it off removes the extension's access to those sites. You can also remove
+              it from Chrome's own extension settings.
             </LI>
           </UL>
 

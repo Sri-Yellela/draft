@@ -28,6 +28,11 @@
     .status { font-size: 12px; color: var(--c-success); margin-top: 10px; min-height: 16px; }
     .divider { border: 0; border-top: 1px solid var(--c-border); margin: 18px 0; }
     .note { font-size: 11px; color: var(--c-ink-muted); line-height: 1.5; }
+    /* D64 · the automatic-capture switch. A real checkbox, labelled, so the keyboard and a screen
+       reader get it for free. */
+    .auto-row { display: flex; align-items: center; gap: 10px; margin: 8px 0 6px; font-weight: 700; font-size: 13px; }
+    .auto-row input { width: 16px; height: 16px; accent-color: var(--c-accent); }
+    .auto-hosts { font-size: 11px; color: var(--c-ink-faint); line-height: 1.5; }
   </style>
 </head>
 <body>
@@ -50,6 +55,22 @@
   <p class="status" id="status"></p>
 
   <hr class="divider">
+  <!-- ⭐ D64 · automatic capture — OFF until switched on here (options-auto.js). -->
+  <h1 class="logo-face">Automatic capture</h1>
+  <label class="auto-row" for="auto-capture">
+    <input type="checkbox" id="auto-capture"> Capture job pages automatically
+  </label>
+  <p class="note">
+    When this is on, a job posting you open on one of these sites is read by your browser, checked
+    against your board, and added to it if it fits &mdash; you do not have to press anything. A page
+    that is not a job posting is never sent. A posting that does not fit your board is not stored.
+    Nothing is filled in or submitted for you. Turning it off removes the extension's access to
+    these sites.
+  </p>
+  <p class="auto-hosts" id="auto-hosts"></p>
+  <p class="status" id="auto-status" role="status"></p>
+
+  <hr class="divider">
   <p class="note">
     Shortcuts are set in Chrome's own shortcuts page, which is the only thing that can actually
     rebind one &mdash; an extension cannot reassign its own keys. This page used to record a
@@ -62,5 +83,6 @@
   </p>
 
   <script src="options.js"></script>
+  <script type="module" src="options-auto.js"></script>
 </body>
 </html>
