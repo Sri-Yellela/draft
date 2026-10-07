@@ -28,6 +28,7 @@
  */
 
 import { orderForReview, readinessOf, renderOverlay } from './review-overlay.js';
+import { renderBadge, findMissingRequired, badgeDismissed } from './autofill-badge.js';
 import { C_LIGHT, C_DARK } from './tokens.js';
 
 // D23 — what the review overlay is painted with: the site's tokens (extension/tokens.js, generated
@@ -53,6 +54,22 @@ import { authedFetch } from './auth.js';
 /** Matches the server's token TTL. A packet outlives its grant (G0 §9), so it is cleared on purpose. */
 export const PACKET_TTL_MS = 10 * 60 * 1000;
 
+/**
+ * ⛔ D56 · EVERY ADDRESS A PACKET MAY BE FILLED ON. The server states the list (the packet's expected
+ * origin plus its ATS's known apply origins — www.amazon.jobs → account.amazon.jobs — from the adapter
+ * table in code, never from the user). A server that predates D56 sends no list, and then the one
+ * expected origin IS the list, exactly as before. This is the check that keeps a home address on the
+ * application's own addresses: it is applied to the choice AND to the release.
+ */
+export function originsOf(p) {
+  return Array.isArray(p?.origins) && p.origins.length ? p.origins : (p?.expectedOrigin ? [p.expectedOrigin] : []);
+}
+
+/** May this packet be filled on this origin? Origin in its list — nothing else widens it. */
+export function packetFillsOrigin(p, origin) {
+  return !!origin && originsOf(p).includes(origin);
+}
+
 const sessionKey = (tabId) => `gate:${tabId}`;
 
 // ── Injected: phase 1, READ ONLY, isolated world ─────────────────────────────
@@ -62,7 +79,10 @@ const sessionKey = (tabId) => `gate:${tabId}`;
 //
 // Must be self-contained: executeScript serialises this function, so it can close over nothing.
 function probeFormShape() {
-  const form = document.querySelector('form');
+  // D55 (d): Workday's application is not a <form>; its root is the apply-flow page. Looked for
+  // FIRST, because a Workday page may carry an unrelated <form> (a header search) ahead of it.
+  // ⛔ This line, too, must stay identical to applyPlan's.
+  const form = document.querySelector('[data-automation-id="applyFlowPage"]') || document.querySelector('form');
   const scope = form || document;
   // ⛔ THIS SELECTOR AND THE FILTER BELOW MUST STAY BYTE-IDENTICAL TO applyPlan'S.
   // The plan addresses controls by POSITION, so the two functions have to enumerate the same list
@@ -76,10 +96,15 @@ function probeFormShape() {
   // div, not a <select>: those fields were invisible to the probe and so could never be filled.
   // Adding them does NOT widen what an attestation can match — matchAnswersToFields applies the
   // eligibility exact-match rule to every field uniformly, whatever its type.
+  //
+  // D55 (a): `button[aria-haspopup="listbox"]` is Workday's dropdown — a BUTTON, so the type filter
+  // below dropped it along with every real button. It is let back in by that attribute alone; a
+  // plain button (Save and Continue, Submit, Add) carries no aria-haspopup=listbox and stays out.
   const controls = [...scope.querySelectorAll(
-    'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"]'
+    'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"], button[aria-haspopup="listbox"]'
   )].filter(
-    el => !['hidden', 'submit', 'button', 'image', 'reset'].includes((el.type || '').toLowerCase())
+    el => el.getAttribute('aria-haspopup') === 'listbox' ||
+      !['hidden', 'submit', 'button', 'image', 'reset'].includes((el.type || '').toLowerCase())
   );
 
   const labelFor = (el) => {
@@ -92,19 +117,50 @@ function probeFormShape() {
     return (el.getAttribute('aria-label') || el.getAttribute('placeholder') || '').trim();
   };
 
+  // D55 (d): is this a step of a WIZARD? Only when the page says so — a progress bar, or Workday's
+  // own next-button id — so a single-page form with a stray "Next" link is never advanced. Reports
+  // the step's name and whether it is the Review step: there the same button reads "Submit", and the
+  // run stops.
+  const nextBtn = document.querySelector('[data-automation-id="bottom-navigation-next-button"], [data-automation-id="pageFooterNextButton"]');
+  const progress = document.querySelector('[data-automation-id="progressBar"], [role="progressbar"]');
+  const stepName = String(
+    document.querySelector('[data-automation-id="progressBarActiveStep"], [aria-current="step"]')?.textContent
+    || document.querySelector('[data-automation-id="pageHeader"]')?.textContent || '').replace(/\s+/g, ' ').trim();
+  const nextText = String(nextBtn?.textContent || '').replace(/\s+/g, ' ').trim();
+  const wizard = nextBtn || (progress && stepName) ? {
+    step: stepName.slice(0, 80),
+    nextText: nextText.slice(0, 40),
+    isReview: /submit/i.test(nextText) || /^review$/i.test(stepName)
+      || !!document.querySelector('[data-automation-id="reviewJobApplicationPage"]'),
+  } : null;
+
   return {
     hasForm: !!form,
     url: location.href,
     origin: location.origin,
+    wizard,
     fields: controls.map((el, index) => ({
       index,
       name: el.name || null,
       id: el.id || null,
       type: (el.type || el.tagName).toLowerCase(),
       label: labelFor(el).slice(0, 200),
-      required: el.required === true || el.getAttribute('aria-required') === 'true',
+      // D55 (g): an asterisked label is "required" too — on many forms it is the only signal.
+      required: el.required === true || el.getAttribute('aria-required') === 'true' ||
+        /\*\s*$/.test(labelFor(el)) ||
+        !!(el.id && document.querySelector(`label[for="${CSS.escape(el.id)}"] abbr[title="required" i]`)),
       options: el.tagName === 'SELECT'
         ? [...el.options].map(o => ({ value: o.value, text: (o.text || '').trim() })) : null,
+      // D55 (a): which custom widget this is, so the plan and the review can say "typed and picked"
+      // rather than "set". A typeahead is an <input> that announces a popup list; a dropdown is a
+      // non-input that does. Neither has options to report — they exist only once it is opened.
+      // D55 (d): Workday names its controls by data-automation-id, not name/id — the matcher reads
+      // that convention structurally (WORKDAY_FIELD_IDS), as it unwraps Greenhouse's namespacing.
+      automationId: el.getAttribute('data-automation-id') || null,
+      widget: el.tagName === 'INPUT' && (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list')
+        ? 'typeahead'
+        : (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-haspopup') === 'listbox') && el.tagName !== 'SELECT'
+          ? 'dropdown' : null,
     })),
   };
 }
@@ -118,20 +174,95 @@ function probeFormShape() {
 // changed, so the next render puts the old value back. Assigning through the prototype's NATIVE
 // setter and then dispatching input/change is what makes the change real to the framework. G0
 // confirmed activeTab alone reaches the MAIN world.
-async function applyPlan(plan, resume) {
-  const form = document.querySelector('form');
+async function applyPlan(plan, resume, opts) {
+  const form = document.querySelector('[data-automation-id="applyFlowPage"]') || document.querySelector('form');
   const scope = form || document;
   // ⛔ MUST STAY BYTE-IDENTICAL TO probeFormShape'S. See the note there — the plan addresses
   // controls by position, so the two enumerations have to agree.
   const controls = [...scope.querySelectorAll(
-    'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"]'
+    'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"], button[aria-haspopup="listbox"]'
   )].filter(
-    el => !['hidden', 'submit', 'button', 'image', 'reset'].includes((el.type || '').toLowerCase())
+    el => el.getAttribute('aria-haspopup') === 'listbox' ||
+      !['hidden', 'submit', 'button', 'image', 'reset'].includes((el.type || '').toLowerCase())
   );
 
   const isEditable = (el) => el.isContentEditable === true;
-  const isCombo    = (el) => el.getAttribute?.('role') === 'combobox' && !('options' in el);
+  // D55 (a): a TYPEAHEAD is an <input> announcing a popup list — its options do not exist until a
+  // query has been typed. Checked BEFORE isCombo, which it would otherwise match.
+  const isTypeahead = (el) => el.tagName === 'INPUT' &&
+    (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list');
+  const isCombo    = (el) => (el.getAttribute?.('role') === 'combobox' || el.getAttribute?.('aria-haspopup') === 'listbox') &&
+    !('options' in el);
   const same       = (a, b) => String(a ?? '').trim().toLowerCase() === String(b ?? '').trim().toLowerCase();
+  const sleep      = (ms) => new Promise(r => setTimeout(r, ms));
+  // Polls rather than observes: a MutationObserver would need tearing down on every exit path, and
+  // a listbox that never arrives must end in a bounded "no option", not a fill that hangs.
+  const waitFor    = async (fn, ms = 2500, every = 50) => {
+    const t0 = Date.now();
+    for (;;) {
+      const v = fn();
+      if (v) return v;
+      if (Date.now() - t0 > ms) return null;
+      await sleep(every);
+    }
+  };
+
+  // ⛔ BYTE-IDENTICAL (modulo indentation) TO THE EXPORTED closestOption BELOW. This function is
+  // serialised into the page and can close over nothing, so it cannot import the tested copy;
+  // test/d55Autofill.test.js asserts the two texts are the same, so the copy the page runs is the
+  // copy the tests ran.
+  function closestOption(want, options) {
+    const STOP = new Set(['and', 'of', 'the', 'in', 'for', 'a', 'an', 'or', 'to', 'with']);
+    const norm = (s) => String(s ?? '').toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9+#]+/g, ' ').trim();
+    const toks = (s) => norm(s).split(' ')
+      .filter(t => t.length > 1 && !STOP.has(t))
+      .map(t => (t.length > 3 && t.endsWith('s') ? t.slice(0, -1) : t));
+    const w = norm(want);
+    if (!w) return -1;
+    const wt = toks(want);
+    let best = -1, bestScore = 0;
+    options.forEach((opt, i) => {
+      const o = norm(opt);
+      if (!o) return;
+      let score = 0;
+      if (o === w) score = 1;
+      else if ((' ' + o + ' ').includes(' ' + w + ' ')) score = 0.9 - Math.min(0.2, (o.length - w.length) / 200);
+      else if ((' ' + w + ' ').includes(' ' + o + ' ')) score = 0.8;
+      else {
+        const ot = toks(opt);
+        const inter = wt.filter(t => ot.includes(t)).length;
+        const union = new Set([...wt, ...ot]).size || 1;
+        if (inter * 2 >= wt.length) score = 0.8 * (inter / union);
+      }
+      if (score > bestScore) { best = i; bestScore = score; }
+    });
+    if (bestScore >= 0.5) return best;
+    // The last resort, and a narrow one: the want's FIRST significant word names exactly one option's
+    // first word ("Bachelor of Science" -> "Bachelor's Degree"). Two candidates is a guess; refuse.
+    const first = wt[0];
+    if (!first) return -1;
+    const hits = options.map((opt, i) => (toks(opt)[0] === first ? i : -1)).filter(i => i >= 0);
+    return hits.length === 1 ? hits[0] : -1;
+  }
+
+  // The listbox a widget owns: by aria-controls / aria-owns first, then a sibling. A Workday popup is
+  // rendered into a portal at the end of <body>, so the id is the only reliable way to it.
+  const listFor = (el) => {
+    const id = el.getAttribute('aria-controls') || el.getAttribute('aria-owns');
+    return (id && document.getElementById(id))
+      || el.parentElement?.querySelector('[role="listbox"]')
+      || document.querySelector('[role="listbox"]');
+  };
+  const readyOptions = (el) => {
+    const list = listFor(el);
+    if (!list || list.getAttribute('aria-busy') === 'true') return null;
+    const opts = [...list.querySelectorAll('[role="option"]')];
+    return opts.length ? opts : null;
+  };
+  const dismiss = (el) => {
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    el.blur?.();
+  };
 
   const nativeSetter = (el, value) => {
     const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype
@@ -144,25 +275,150 @@ async function applyPlan(plan, resume) {
     el.dispatchEvent(new Event('change', { bubbles: true }));
   };
 
-  // A custom combobox (Workday, react-select) is a div with a popup listbox. There is no value to
-  // assign — the widget only changes when its own option is clicked, so this drives it the way a
-  // person would and then reads back what it is displaying.
-  const setCombobox = (el, want) => {
+  // A custom combobox (Workday, react-select) is a div — or Workday's button — with a popup listbox.
+  // There is no value to assign — the widget only changes when its own option is clicked, so this
+  // drives it the way a person would and then reads back what it is displaying.
+  //
+  // D55 (a): it WAITS for the listbox. Workday renders it into a portal a beat after the click, and
+  // the old version read the list in the same breath, found nothing, and reported "not in options"
+  // for a value that was there. Returns the option's own text — the ATS's wording, which is what the
+  // read-back must look for — or null.
+  const setCombobox = async (el, want) => {
     el.click();
-    const id = el.getAttribute('aria-controls') || el.getAttribute('aria-owns');
-    const list = (id && document.getElementById(id))
-      || el.parentElement?.querySelector('[role="listbox"]')
-      || document.querySelector('[role="listbox"]');
-    const options = list ? [...list.querySelectorAll('[role="option"]')] : [];
-    const hit = options.find(o => same(o.textContent, want))
-             || options.find(o => String(o.textContent || '').trim().toLowerCase()
-                                    .includes(String(want).trim().toLowerCase()));
-    if (!hit) { el.blur?.(); return false; }
-    hit.click();
-    return true;
+    const options = (await waitFor(() => readyOptions(el), 2500)) || [];
+    const idx = closestOption(want, options.map(o => o.textContent || ''));
+    if (idx < 0) { dismiss(el); return null; }
+    const text = String(options[idx].textContent || '').trim();
+    options[idx].click();
+    return text;
+  };
+
+  // D55 (a): a TYPEAHEAD — type a query, wait for the portal's own results, pick the closest REAL
+  // option. The ATS's vocabulary wins: a profile's "Computer Science" may only exist there as
+  // "Computer and Information Sciences", and that is what gets picked and reported, never typed in.
+  // Queries narrow when the full value finds nothing (most prompts search by substring): the value,
+  // then its longest word, then its first.
+  //
+  // One want per chip for a multi-select (Skills): each is typed, confirmed and read back on its own.
+  // Synthetic Enter is deliberately NOT sent — an untrusted key event submits nothing, but a page's
+  // own keydown handler could, and the search runs on input anyway.
+  const setTypeahead = async (el, wants) => {
+    const picked = [], missed = [];
+    for (const want of wants) {
+      const words = String(want).split(/[\s,/]+/).filter(t => t.length > 1);
+      const queries = [...new Set([String(want).trim(),
+        [...words].sort((a, b) => b.length - a.length)[0], words[0]].filter(q => q && q.length > 1))];
+      let got = null;
+      for (const q of queries) {
+        el.focus?.();
+        nativeSetter(el, q);
+        await sleep(200);
+        const options = (await waitFor(() => readyOptions(el), 4000)) || [];
+        const idx = closestOption(want, options.map(o => o.textContent || ''));
+        if (idx >= 0) {
+          got = String(options[idx].textContent || '').trim();
+          options[idx].click();
+          break;
+        }
+      }
+      if (got) picked.push({ want: String(want), got });
+      else { missed.push(String(want)); nativeSetter(el, ''); dismiss(el); }
+      await sleep(80);
+    }
+    return { picked, missed };
+  };
+  // Where a typeahead shows what it holds: chips, or a single-value label, in its field's container.
+  const shownNear = (el) => {
+    const box = el.closest('[data-automation-id^="formField"], [role="group"], fieldset')
+      || el.parentElement?.parentElement || el.parentElement;
+    return String(box?.textContent || '').replace(String(el.value || ''), '').toLowerCase();
   };
 
   const filled = [], skipped = [], pending = [];
+
+  // D55 (d): on a wizard step the extension may come back to — after the candidate answered a stop,
+  // or on a re-invoke — a control that already holds something is LEFT ALONE. The candidate's own
+  // answer, or the portal's own prefill, outranks the packet. (The overlay's edit path does not set
+  // this: a correction is meant to overwrite.)
+  const keepExisting = opts?.keepExisting === true;
+  const holds = (el) => {
+    if (el.type === 'checkbox' || el.type === 'radio') return el.checked === true;
+    if (isTypeahead(el)) {
+      const box = el.closest('[data-automation-id^="formField"], [role="group"], fieldset') || el.parentElement;
+      return !!box?.querySelector('[data-automation-id="selectedItem"], [role="listitem"]');
+    }
+    if (isCombo(el)) {
+      const t = String(el.textContent || '').trim();
+      return !!t && !/^(select|choose|please|--)/i.test(t);
+    }
+    if (isEditable(el)) return String(el.textContent || '').trim() !== '';
+    return String(el.value ?? '').trim() !== '';
+  };
+
+  // One control, one value — the body of the plan loop, shared with the repeating sections below so
+  // an entry's field is placed and read back by exactly the same rules as a flat answer.
+  const place = async (step, el) => {
+    if (keepExisting && holds(el)) { skipped.push({ field: step.label, reason: 'kept_existing' }); return; }
+    try {
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        const want = step.value === 'true' || step.value === true;
+        if (el.checked !== want) {
+          el.checked = want;
+          el.dispatchEvent(new Event('input',  { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        pending.push({ step, el, kind: 'toggle', want });
+      } else if (el.tagName === 'SELECT' && el.multiple) {
+        // One answer may carry several values; a multi-select is the only control where "the
+        // value" is a set. Accepts an array or a comma-separated string.
+        const wants = (Array.isArray(step.value) ? step.value : String(step.value).split(','))
+          .map(v => String(v).trim()).filter(Boolean);
+        const hits = wants.map(w =>
+          [...el.options].find(o => o.value === w || same(o.text, w))).filter(Boolean);
+        if (!hits.length) { skipped.push({ field: step.label, reason: 'value_not_in_options' }); return; }
+        for (const o of el.options) o.selected = hits.includes(o);
+        el.dispatchEvent(new Event('input',  { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        pending.push({ step, el, kind: 'multi', want: hits.map(o => o.value) });
+      } else if (el.tagName === 'SELECT') {
+        const match = [...el.options].find(
+          o => o.value === step.value ||
+               (o.text || '').trim().toLowerCase() === String(step.value).trim().toLowerCase()
+        );
+        // No option holds this value. Filling nothing is correct: the old behaviour of assigning
+        // anyway left the select on its blank first option while the run recorded it as answered.
+        if (!match) { skipped.push({ field: step.label, reason: 'value_not_in_options' }); return; }
+        nativeSetter(el, match.value);
+        pending.push({ step, el, kind: 'value', want: match.value });
+      } else if (isTypeahead(el)) {
+        // An array is a multi-select (one chip per value); a string is one pick.
+        const wants = (Array.isArray(step.value) ? step.value : [step.value])
+          .map(v => String(v ?? '').trim()).filter(Boolean);
+        const { picked, missed } = await setTypeahead(el, wants);
+        for (const m of missed) skipped.push({ field: step.label, reason: 'no_close_option', wanted: m.slice(0, 80) });
+        if (!picked.length) return;
+        pending.push({ step, el, kind: 'typeahead', want: picked.map(p => p.got) });
+      } else if (isCombo(el)) {
+        const got = await setCombobox(el, step.value);
+        if (!got) {
+          skipped.push({ field: step.label, reason: 'value_not_in_options' });
+          return;
+        }
+        pending.push({ step, el, kind: 'combo', want: got });
+      } else if (isEditable(el)) {
+        el.focus?.();
+        el.textContent = String(step.value);
+        el.dispatchEvent(new Event('input',  { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        pending.push({ step, el, kind: 'editable', want: String(step.value) });
+      } else {
+        nativeSetter(el, String(step.value));
+        pending.push({ step, el, kind: 'value', want: String(step.value) });
+      }
+    } catch (e) {
+      skipped.push({ field: step.label, reason: `error:${e.message}` });
+    }
+  };
 
   for (const step of plan) {
     const el = controls[step.index];
@@ -185,55 +441,105 @@ async function applyPlan(plan, resume) {
         continue;
       }
     }
-    try {
-      if (el.type === 'checkbox' || el.type === 'radio') {
-        const want = step.value === 'true' || step.value === true;
-        if (el.checked !== want) {
-          el.checked = want;
-          el.dispatchEvent(new Event('input',  { bubbles: true }));
-          el.dispatchEvent(new Event('change', { bubbles: true }));
+    await place(step, el);
+  }
+
+  // ── D55 (b): REPEATING SECTIONS ─────────────────────────────────────────────────────────────
+  // Work Experience / Education / Languages / Websites are sections, not questions: "Add" (then
+  // "Add Another") creates a panel of fields. For each entry the packet carries, the section's own
+  // Add button is pressed, the fill WAITS for the new panel's controls to appear (they arrive a beat
+  // later), and only those new controls are filled — by their labels, inside that one panel, so a
+  // second job's dates can never land in the first job's fields.
+  //
+  // A section is recognised by its Add button and its heading; a section the packet has nothing for
+  // is never opened. Skills (a chip set) is one typeahead, not a section.
+  const sections = {};
+  const textOfIds = (ids) => String(ids || '').split(/\s+/).filter(Boolean)
+    .map(id => document.getElementById(id)?.textContent || '').join(' ');
+  const ownLabel = (el) => {
+    const byFor = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`)?.textContent : '';
+    return String(byFor || el.closest('label')?.textContent || el.getAttribute('aria-label')
+      || textOfIds(el.getAttribute('aria-labelledby')) || el.getAttribute('placeholder') || '')
+      .replace(/\*/g, '').replace(/\s+/g, ' ').trim();
+  };
+  // A small group around a control (From: Month / Year) is context; a panel-sized group is not.
+  const groupLabel = (el) => {
+    const g = el.parentElement?.closest('[role="group"], fieldset');
+    if (!g || g.querySelectorAll('input, select, textarea, button[aria-haspopup="listbox"]').length > 3) return '';
+    return String(textOfIds(g.getAttribute('aria-labelledby')) || g.querySelector('legend')?.textContent
+      || g.getAttribute('aria-label') || '').replace(/\*/g, '').trim();
+  };
+  const two = (n) => (n === null || n === undefined || n === '' ? null : String(n).padStart(2, '0'));
+  const RULES = {
+    work: (e) => [
+      [/(from|start)\b.*month/, two(e.from?.month)], [/(from|start)\b.*year/, e.from?.year],
+      [/(^|\s)(to|end)\b.*month/, e.current ? null : two(e.to?.month)], [/(^|\s)(to|end)\b.*year/, e.current ? null : e.to?.year],
+      [/job title|position|(^|\s)title\b/, e.title], [/company|employer|organi[sz]ation/, e.company],
+      [/location/, e.location], [/currently work|i currently|current (job|role|position)/, e.current ? true : null],
+      [/description|responsibilit|summary|duties/, e.description],
+    ],
+    education: (e) => [
+      [/(from|start)\b.*year/, e.from?.year], [/(^|\s)(to|end)\b.*year|graduat.*year|expected.*year/, e.to?.year],
+      [/school|university|college|institution/, e.school], [/degree/, e.degree],
+      [/field of study|major|discipline|area of study/, e.field], [/gpa|overall result|grade/, e.gpa],
+    ],
+    languages: (e) => [
+      [/^language$|(^|\s)language(\s|$)/, e.language], [/fluent|native/, e.fluent ? true : null],
+      [/reading/, e.reading], [/speaking/, e.speaking], [/writing/, e.writing],
+    ],
+    websites: (e) => [[/url|website|link/, e.url]],
+  };
+  const KINDS = [['education', /education/i], ['languages', /language/i], ['websites', /website|(^|\s)links?\b/i],
+                 ['work', /work experience|employment|experience/i]];
+  const panelControls = (box) => [...box.querySelectorAll(
+    'input, select, textarea, [role="combobox"], button[aria-haspopup="listbox"]'
+  )].filter(el => el.getAttribute('aria-haspopup') === 'listbox' ||
+    !['hidden', 'submit', 'button', 'image', 'reset', 'file'].includes((el.type || '').toLowerCase()));
+
+  const entries = opts?.entries || null;
+  if (entries) {
+    const addRe = /^\s*add(\s+another)?\b/i;
+    const addButtons = [...scope.querySelectorAll('button, [role="button"]')]
+      .filter(b => addRe.test(b.getAttribute('aria-label') || '') || addRe.test(b.textContent || ''));
+    for (const btn of addButtons) {
+      const box = btn.closest('[role="group"], section, fieldset') || btn.parentElement;
+      const heading = String(box?.querySelector('h1, h2, h3, h4, legend, [role="heading"]')?.textContent || '').trim();
+      const kind = KINDS.find(([, re]) => re.test(`${btn.getAttribute('aria-label') || ''} ${heading}`))?.[0];
+      if (!kind || sections[kind]) continue;
+      const list = Array.isArray(entries[kind]) ? entries[kind] : [];
+      sections[kind] = { wanted: list.length, added: 0, fields: 0 };
+      for (let i = 0; i < list.length; i++) {
+        const before = new Set(panelControls(box));
+        btn.click();
+        const opened = await waitFor(() => panelControls(box).some(el => !before.has(el)), 3000);
+        if (!opened) { skipped.push({ field: `${heading || kind} ${i + 1}`, reason: 'section_did_not_open' }); break; }
+        await sleep(80);
+        sections[kind].added += 1;
+        const fresh = panelControls(box).filter(el => !before.has(el));
+        const rules = RULES[kind](list[i] || {});
+        const used = new Set();
+        for (const el of fresh) {
+          const label = ownLabel(el);
+          const said = `${groupLabel(el)} ${label}`.toLowerCase().trim();
+          const r = rules.findIndex(([re, v], k) => !used.has(k) && v !== null && v !== undefined && v !== '' && re.test(said));
+          if (r < 0) continue;
+          used.add(r);
+          sections[kind].fields += 1;
+          await place({
+            label: `${heading || kind} ${i + 1} · ${[groupLabel(el), label].filter(Boolean).join(' ')}`,
+            name: null, value: rules[r][1], provenance: list[i]?.source === 'resume' ? 'resume' : 'profile',
+            entry: `${kind}:${i}`,
+          }, el);
         }
-        pending.push({ step, el, kind: 'toggle', want });
-      } else if (el.tagName === 'SELECT' && el.multiple) {
-        // One answer may carry several values; a multi-select is the only control where "the
-        // value" is a set. Accepts an array or a comma-separated string.
-        const wants = (Array.isArray(step.value) ? step.value : String(step.value).split(','))
-          .map(v => String(v).trim()).filter(Boolean);
-        const hits = wants.map(w =>
-          [...el.options].find(o => o.value === w || same(o.text, w))).filter(Boolean);
-        if (!hits.length) { skipped.push({ field: step.label, reason: 'value_not_in_options' }); continue; }
-        for (const o of el.options) o.selected = hits.includes(o);
-        el.dispatchEvent(new Event('input',  { bubbles: true }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-        pending.push({ step, el, kind: 'multi', want: hits.map(o => o.value) });
-      } else if (el.tagName === 'SELECT') {
-        const match = [...el.options].find(
-          o => o.value === step.value ||
-               (o.text || '').trim().toLowerCase() === String(step.value).trim().toLowerCase()
-        );
-        // No option holds this value. Filling nothing is correct: the old behaviour of assigning
-        // anyway left the select on its blank first option while the run recorded it as answered.
-        if (!match) { skipped.push({ field: step.label, reason: 'value_not_in_options' }); continue; }
-        nativeSetter(el, match.value);
-        pending.push({ step, el, kind: 'value', want: match.value });
-      } else if (isCombo(el)) {
-        if (!setCombobox(el, step.value)) {
-          skipped.push({ field: step.label, reason: 'value_not_in_options' });
-          continue;
-        }
-        pending.push({ step, el, kind: 'combo', want: String(step.value) });
-      } else if (isEditable(el)) {
-        el.focus?.();
-        el.textContent = String(step.value);
-        el.dispatchEvent(new Event('input',  { bubbles: true }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-        pending.push({ step, el, kind: 'editable', want: String(step.value) });
-      } else {
-        nativeSetter(el, String(step.value));
-        pending.push({ step, el, kind: 'value', want: String(step.value) });
       }
-    } catch (e) {
-      skipped.push({ field: step.label, reason: `error:${e.message}` });
+    }
+    // Skills: one chip per confirmed skill, into the typeahead labelled as a skills field.
+    if (Array.isArray(entries.skills) && entries.skills.length) {
+      const box = controls.find(el => isTypeahead(el) && /skill/i.test(ownLabel(el)));
+      if (box) {
+        sections.skills = { wanted: entries.skills.length, added: 0, fields: 1 };
+        await place({ label: ownLabel(box) || 'Skills', name: null, value: entries.skills, provenance: 'profile', entry: 'skills' }, box);
+      }
     }
   }
 
@@ -269,13 +575,21 @@ async function applyPlan(plan, resume) {
                                       // The widget renders its own label, so containment is the
                                       // honest test — an exact match would fail on "Yes ✓".
                                       ok = got.toLowerCase().includes(String(want).trim().toLowerCase()); }
+      else if (kind === 'typeahead') { const shown = shownNear(el);
+                                      // Every pick must be visible as a chip or a selected label.
+                                      ok = want.every(w => shown.includes(String(w).toLowerCase()));
+                                      got = want.join(', '); }
       else                          { got = el.value; ok = same(got, want); }
     } catch (e) {
       skipped.push({ field: step.label, reason: `verify_failed:${e.message}` });
       continue;
     }
     if (ok) {
-      filled.push({ field: step.label, name: step.name, provenance: step.provenance, verified: true });
+      // `placed` is the ATS's own wording when a picker chose it ("Computer and Information
+      // Sciences" for "Computer Science") — what the employer will read, so what the review shows.
+      filled.push({ field: step.label, name: step.name, provenance: step.provenance, verified: true,
+                    ...(kind === 'combo' || kind === 'typeahead' ? { placed: got } : {}),
+                    ...(step.entry ? { entry: step.entry } : {}) });
     } else {
       // The value did not stick. Named distinctly from `field_moved` because the remedy differs:
       // this one means the page actively rejected or overwrote what we wrote.
@@ -290,11 +604,46 @@ async function applyPlan(plan, resume) {
   // The piece usually assumed impossible (§5): a File can be constructed and handed to a real file
   // input through a DataTransfer. Without this the candidate still has to attach the resume by hand,
   // which is most of the work the handoff was supposed to remove.
+  //
+  // D55 (e): INTO THE RÉSUMÉ'S INPUT, not "the first input[type=file]". A form with a cover-letter
+  // upload ahead of the résumé's (fakeAts /workday-replica, and plenty of real ones) received the
+  // résumé as a cover letter, and the required résumé stayed empty. Each file input is scored on
+  // what names IT — its label, aria-label, name, id, automation id, and its own field wrapper's label
+  // (never a whole step's text, which names every upload on it): a résumé / CV wins, a cover letter,
+  // transcript, portfolio or photo is never chosen, and a lone unnamed upload is taken only when it
+  // is the only candidate. Two unnamed uploads is a guess — nothing is attached, and it says so.
+  //
+  // ⛔ BYTE-IDENTICAL (modulo indentation) TO THE EXPORTED resumeInputScore — asserted by test.
+  function resumeInputScore(context) {
+    const t = String(context || '').toLowerCase();
+    if (/cover[\s_-]*letter|motivation|transcript|portfolio|writing sample|photo|headshot|certificat|reference|supporting|additional/.test(t)) return -1;
+    if (/r[ée]sum[ée]|\bcv\b|curriculum vitae/.test(t)) return 2;
+    return 0;
+  }
+  const fileContext = (el) => {
+    const own = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`)?.textContent : '';
+    const wrap = el.closest('[data-automation-id^="formField"], .field, .application-question');
+    const wrapLabel = wrap?.querySelector('label, legend, h3, h4')?.textContent || '';
+    return [own, el.closest('label')?.textContent, el.getAttribute('aria-label'), el.name, el.id,
+      el.getAttribute('data-automation-id'), wrapLabel].filter(Boolean).join(' ');
+  };
+  const pickResumeInput = () => {
+    const inputs = [...scope.querySelectorAll('input[type="file"]')]
+      .map(el => ({ el, score: resumeInputScore(fileContext(el)) }));
+    if (!inputs.length) return { el: null, reason: 'no_file_input' };
+    const named = inputs.filter(i => i.score === 2);
+    if (named.length) return { el: named[0].el, by: 'named' };
+    const neutral = inputs.filter(i => i.score === 0);
+    if (neutral.length === 1) return { el: neutral[0].el, by: 'only_unnamed_upload' };
+    return { el: null, reason: neutral.length ? 'ambiguous_file_inputs' : 'no_resume_input' };
+  };
+
   let resumeResult = null;
   if (resume && resume.base64) {
-    const fileInput = [...scope.querySelectorAll('input[type="file"]')][0];
+    const target = pickResumeInput();
+    const fileInput = target.el;
     if (!fileInput) {
-      resumeResult = { attached: false, reason: 'no_file_input' };
+      resumeResult = { attached: false, reason: target.reason };
     } else {
       try {
         const bin = atob(resume.base64);
@@ -306,12 +655,20 @@ async function applyPlan(plan, resume) {
         fileInput.files = dt.files;
         fileInput.dispatchEvent(new Event('input',  { bubbles: true }));
         fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+        // The page's own confirmation (G2 requirement 5): its uploader rendering the filename — a
+        // Workday drop zone's "… Successfully Uploaded!", a Greenhouse filename chip. Absent on a
+        // bare native input, which is why it is reported beside `attached`, never instead of it.
+        const wrap = fileInput.closest('[data-automation-id^="formField"], .field') || fileInput.parentElement;
+        const confirmedByPage = !!(await waitFor(() => String(wrap?.textContent || '').includes(resume.filename), 1500));
         resumeResult = {
           // Reported separately from `attached` on purpose. The property being set is not evidence
           // the page noticed; only the page's own rendering of the filename is (G2 requirement 5).
           attached: fileInput.files.length === 1 && fileInput.files[0].name === resume.filename,
           filename: resume.filename,
           size: file.size,
+          target: target.by,
+          field: fileContext(fileInput).replace(/\s+/g, ' ').trim().slice(0, 80),
+          confirmedByPage,
         };
       } catch (e) {
         resumeResult = { attached: false, reason: `error:${e.message}` };
@@ -319,12 +676,88 @@ async function applyPlan(plan, resume) {
     }
   }
 
-  return { filled, skipped, resume: resumeResult, fieldCount: controls.length };
+  return { filled, skipped, resume: resumeResult, fieldCount: controls.length, sections };
 }
 
 // ── Matching ─────────────────────────────────────────────────────────────────
 
+/**
+ * D55 (e) — how strongly the text that names a file input says "résumé": 2 a résumé / CV, -1 an
+ * upload that is something else (cover letter, transcript, portfolio, photo …), 0 unnamed.
+ * ⛔ applyPlan carries a byte-identical copy (it is serialised into the page); a test asserts it.
+ */
+export function resumeInputScore(context) {
+  const t = String(context || '').toLowerCase();
+  if (/cover[\s_-]*letter|motivation|transcript|portfolio|writing sample|photo|headshot|certificat|reference|supporting|additional/.test(t)) return -1;
+  if (/r[ée]sum[ée]|\bcv\b|curriculum vitae/.test(t)) return 2;
+  return 0;
+}
+
 const normalise = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/**
+ * D55 (a) — which of a picker's REAL options is closest to the value we hold. Returns its index, or -1.
+ *
+ * The ATS's vocabulary wins: the option picked is one the portal offered, never the profile's own
+ * string typed in. Exact, then whole-phrase containment ("United States" in "United States of
+ * America", the shortest such option preferred), then word overlap that covers at least half the
+ * value ("Computer Science" -> "Computer and Information Sciences"), then — narrowly — a unique
+ * first-word match. Below that it refuses: a picker filled with a guess reads to the employer as
+ * the candidate's answer.
+ *
+ * ⛔ Exported so it can be tested; applyPlan carries a BYTE-IDENTICAL copy (it is serialised into
+ * the page and can import nothing). test/d55Autofill.test.js asserts the two are the same text.
+ */
+export function closestOption(want, options) {
+  const STOP = new Set(['and', 'of', 'the', 'in', 'for', 'a', 'an', 'or', 'to', 'with']);
+  const norm = (s) => String(s ?? '').toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9+#]+/g, ' ').trim();
+  const toks = (s) => norm(s).split(' ')
+    .filter(t => t.length > 1 && !STOP.has(t))
+    .map(t => (t.length > 3 && t.endsWith('s') ? t.slice(0, -1) : t));
+  const w = norm(want);
+  if (!w) return -1;
+  const wt = toks(want);
+  let best = -1, bestScore = 0;
+  options.forEach((opt, i) => {
+    const o = norm(opt);
+    if (!o) return;
+    let score = 0;
+    if (o === w) score = 1;
+    else if ((' ' + o + ' ').includes(' ' + w + ' ')) score = 0.9 - Math.min(0.2, (o.length - w.length) / 200);
+    else if ((' ' + w + ' ').includes(' ' + o + ' ')) score = 0.8;
+    else {
+      const ot = toks(opt);
+      const inter = wt.filter(t => ot.includes(t)).length;
+      const union = new Set([...wt, ...ot]).size || 1;
+      if (inter * 2 >= wt.length) score = 0.8 * (inter / union);
+    }
+    if (score > bestScore) { best = i; bestScore = score; }
+  });
+  if (bestScore >= 0.5) return best;
+  // The last resort, and a narrow one: the want's FIRST significant word names exactly one option's
+  // first word ("Bachelor of Science" -> "Bachelor's Degree"). Two candidates is a guess; refuse.
+  const first = wt[0];
+  if (!first) return -1;
+  const hits = options.map((opt, i) => (toks(opt)[0] === first ? i : -1)).filter(i => i >= 0);
+  return hits.length === 1 ? hits[0] : -1;
+}
+
+/**
+ * D55 (d) — Workday's data-automation-id for each canonical contact field (CANONICAL_GATE_FIELDS
+ * names). Structural, like the namespace unwrap: it reads the portal's own naming convention, never
+ * a label. ⚠ Known from Workday's markup as far as it is known; re-measure on a live tenant (O73).
+ */
+export const WORKDAY_FIELD_IDS = Object.freeze({
+  'legalNameSection_firstName': 'first_name',
+  'legalNameSection_lastName': 'last_name',
+  'email': 'email',
+  'phone-number': 'phone',
+  'addressSection_addressLine1': 'address1',
+  'addressSection_city': 'city',
+  'addressSection_countryRegion': 'state',
+  'addressSection_postalCode': 'zip',
+  'countryDropdown': 'country',
+});
 
 /**
  * Match the packet's answers to the controls actually on this page.
@@ -358,7 +791,11 @@ export function matchAnswersToFields(answers, fields) {
     !taken.has(f.index) && (
       nameMatches(f.name, a.name) ||
       nameMatches(f.id, a.name) ||
-      (a.field_id && f.id && f.id === a.field_id)
+      (a.field_id && f.id && f.id === a.field_id) ||
+      // D55 (d): the Workday adapter — its own stable automation ids for the contact fields. ⛔ No
+      // eligibility question is in that table: Workday generates those ids per tenant, so work
+      // authorisation and sponsorship still match exactly or not at all, and on Workday that is NOT.
+      (!!f.automationId && WORKDAY_FIELD_IDS[f.automationId] === a.name)
     ));
 
   const byLabel = (a) => {
@@ -370,6 +807,7 @@ export function matchAnswersToFields(answers, fields) {
 
   for (const a of answers) {
     if (a.value === null || a.value === undefined || a.value === '') continue;
+    if (Array.isArray(a.value) && a.value.length === 0) continue;   // D55: an empty chip set says nothing
 
     let field = byExact(a);
     let how = field ? 'exact' : null;
@@ -383,6 +821,27 @@ export function matchAnswersToFields(answers, fields) {
       continue;
     }
     if (!field) { unmatched.push({ field: a.field, name: a.name, reason: 'no_matching_control' }); continue; }
+
+    // ── D55: the DECIDED rules (AUTOFILL_TARGET.md §7.3–§7.5), applied to the QUESTION ON THE PAGE ──
+    // Read off the field's own label, whatever the answer's name claims, because the page's
+    // question is what the employer will read the answer as.
+    //   §7.4 never opt the candidate in — a "yes" to marketing / WhatsApp / text messages is never
+    //        placed; a "no" only when it is the candidate's own stored answer.
+    //   §7.3 a screening question that can rule them out ("7+ years?") is answered only where they
+    //        STATED it — their own answer, or an exact control match — never by a label guess. Left
+    //        empty, it is a required stop on the badge, like work authorisation.
+    //   §7.5 EEO is stated or blank — never a guessed or defaulted value.
+    const kind = questionKind(field.label);
+    const guessed = ['label_fuzzy', 'default', 'sponsorship_assumed_future'].includes(a.provenance);
+    const yes = a.value === true || /^(yes|true|y|i agree|opt in|subscribe)\b/i.test(String(a.value).trim());
+    let refusal = null;
+    if (kind === 'opt_in' && (yes || a.provenance !== 'custom_answer')) refusal = 'opt_in_left_for_you';
+    else if (kind === 'screening' && (guessed || (how !== 'exact' && a.provenance !== 'custom_answer'))) refusal = 'screening_left_for_you';
+    else if (kind === 'eeo' && guessed) refusal = 'eeo_left_for_you';
+    if (refusal) {
+      unmatched.push({ field: field.label || a.field, name: a.name, reason: refusal, kind });
+      continue;
+    }
 
     taken.add(field.index);
     plan.push({
@@ -484,7 +943,7 @@ export async function portalQueueFor(serverUrl, origin, excludePacketId = null) 
     // that predates ?origin= and ignores it. Filtering twice costs nothing; assuming the server is
     // new enough is how a version skew becomes a wrong-portal fill.
     const mine = (body.packets || [])
-      .filter(p => p.expectedOrigin === origin && p.packetId !== excludePacketId && !p.stale)
+      .filter(p => packetFillsOrigin(p, origin) && p.packetId !== excludePacketId && !p.stale)
       .sort((a, b) => b.createdAt - a.createdAt);
     const portal = (body.portals || []).find(g => g.origin === origin) || null;
     return {
@@ -540,15 +999,22 @@ export async function runGatedHandoff({ serverUrl, tab }) {
   // A packet already released into this tab — a re-invoke after the grant lapsed, or after the portal
   // moved to another step. Reuse it rather than spending a second token.
   const cached = await loadPacketForTab(tab.id);
-  if (cached && cached.expectedOrigin === origin) {
+  if (cached && packetFillsOrigin(cached, origin)) {
     return fillFromPacket({ tab, origin, released: cached, serverUrl, reused: true });
   }
 
   let list;
   try {
-    // Scoped to this tab's origin — the target match below filters on exactly this, and the
-    // unscoped list is capped at 100 across every portal. See portalQueueFor for the full note.
-    const res = await api(serverUrl, `/api/apply/gate-packets?origin=${encodeURIComponent(origin)}`);
+    // ⛔ D56: the page's URL goes in the BODY of one question — "which packets may fill THIS page, and
+    // if none, why?" The server matches on the packet's ORIGIN LIST and, where the URL carries one, the
+    // JOB ID (one URL parser, the server's), and says which of the three truthful cases this is.
+    let res = await api(serverUrl, '/api/apply/handoff/match', {
+      method: 'POST', body: JSON.stringify({ url: tab.url }),
+    });
+    if (res.status === 404) {
+      // A server that predates D56: the origin-scoped list, as before. See portalQueueFor's note.
+      res = await api(serverUrl, `/api/apply/gate-packets?origin=${encodeURIComponent(origin)}`);
+    }
     if (res.status === 401) {
       return { ok: false, reason: 'not_signed_in', message: 'Sign in to Draft first.' };
     }
@@ -560,13 +1026,17 @@ export async function runGatedHandoff({ serverUrl, tab }) {
     return { ok: false, reason: 'network_error', message: 'Could not reach Draft.', detail: e.message };
   }
 
-  // TARGET MATCH, first half. The server nominated an origin for each packet; this page has to be one
-  // of them. Nothing has been fetched but counts at this point.
-  const forOrigin = (list.packets || []).filter(p => p.expectedOrigin === origin);
+  // TARGET MATCH, first half. The server nominated the addresses for each packet; this page has to be
+  // one of them — checked HERE too, whatever the server said. Nothing has been fetched but counts.
+  const forOrigin = (list.packets || []).filter(p => packetFillsOrigin(p, origin));
   if (forOrigin.length === 0) {
+    // ⛔ D56: never "from your Draft queue" to someone on the manual route. The server says which case
+    // this is; an old server says nothing, and then the honest sentence is the plain one.
+    const reason = list.state && list.state !== 'ready' ? list.state : 'origin_mismatch';
     return {
-      ok: false, reason: 'origin_mismatch',
-      message: `Nothing is prepared for ${origin}. Open the application from your Draft queue.`,
+      ok: false, reason,
+      message: list.message || "Nothing is prepared for this page. If draft knows this job, press \"Prepare this application\" in the draft popup; if not, capture it first.",
+      canPrepare: !!list.canPrepare, job: list.job || null, addresses: list.addresses || null,
     };
   }
 
@@ -581,7 +1051,9 @@ export async function runGatedHandoff({ serverUrl, tab }) {
   if (fresh.length === 0) {
     return {
       ok: false, reason: 'packet_stale',
-      message: 'The answers prepared for this page have expired. Run it again in Draft to prepare fresh ones.',
+      // D56: an expired packet is never a dead end — "Prepare this application" makes a fresh one.
+      message: list.message || 'The answers prepared for this page have expired. Run it again in Draft to prepare fresh ones.',
+      canPrepare: !!list.canPrepare, job: list.job || null,
     };
   }
   // Newest first, but a packet whose POSTING is gone goes last. It is deprioritised rather than
@@ -613,7 +1085,11 @@ export async function runGatedHandoff({ serverUrl, tab }) {
   // Only now is a token worth spending.
   let released;
   try {
-    const mintRes = await api(serverUrl, `/api/apply/gate-packets/${chosen.packetId}/token`, { method: 'POST' });
+    // D56: the page's URL travels with the mint, so the server refuses — before a token exists — a
+    // page that is not one of this application's addresses (origin list + job id).
+    const mintRes = await api(serverUrl, `/api/apply/gate-packets/${chosen.packetId}/token`, {
+      method: 'POST', body: JSON.stringify({ url: tab.url }),
+    });
     if (!mintRes.ok) {
       const err = await mintRes.json().catch(() => ({}));
       return { ok: false, reason: err.error || 'mint_failed', message: err.message || 'Could not prepare the handoff.' };
@@ -635,13 +1111,207 @@ export async function runGatedHandoff({ serverUrl, tab }) {
   // Defence in depth: the server states the expected origin in the release too. If that disagrees
   // with the page, nothing is filled even though the token has already been spent — a burnt token is
   // cheap and a misplaced home address is not.
-  if (released.expectedOrigin !== origin) {
+  // ⛔ D56: against the packet's ORIGIN LIST — never wider, and never filled outside it.
+  if (!packetFillsOrigin(released, origin)) {
     await clearPacketForTab(tab.id);
     return { ok: false, reason: 'origin_mismatch_after_release', message: 'Origin mismatch. Nothing was filled.' };
   }
 
   await savePacketForTab(tab.id, released);
   return fillFromPacket({ tab, origin, released, serverUrl, reused: false });
+}
+
+/**
+ * D55 (c) — paint the one-line badge (extension/autofill-badge.js). A courtesy: a page that refuses
+ * the injection still gets its fill and its overlay, so a failure here is reported, never raised.
+ */
+async function showBadge(tabId, state, meta = {}) {
+  try {
+    const [r] = await chrome.scripting.executeScript({
+      target: { tabId }, func: renderBadge,
+      args: [state, { ...meta, theme: { light: C_LIGHT, dark: C_DARK } }],
+    });
+    return r?.result || null;
+  } catch (e) {
+    return { rendered: false, error: e.message };
+  }
+}
+
+// ── D55 (d): the wizard advance ──────────────────────────────────────────────────────────────
+
+/**
+ * What kind of question a label asks — used to say WHY the fill stopped, and (D55 rules) to refuse
+ * to place a value where the candidate must decide. Order matters: an eligibility question that
+ * mentions years ("authorized to work for the next 2 years") is eligibility first.
+ */
+export function questionKind(label) {
+  const t = String(label || '').toLowerCase();
+  if (/authori[sz]ed to work|eligib\w* to work|right to work|work permit|sponsor|visa|immigration|i-9|citizen/.test(t)) return 'eligibility';
+  if (/marketing|newsletter|text messages|sms|whatsapp|promotional|opt[ -]?in|receive (?:\w+ ){0,3}(?:communications|updates|messages|emails|alerts)|talent (?:community|network)|job alerts/.test(t)) return 'opt_in';
+  if (/\bgender\b|\bsex\b|ethnic|\brace\b|racial|hispanic|latino|veteran|disabilit|self[- ]?identif|pronoun|sexual orientation/.test(t)) return 'eeo';
+  if (/terms and conditions|privacy (?:policy|notice)|i (?:have read|consent|agree|acknowledge|certify)|attest/.test(t)) return 'consent';
+  if (/\d+\s*\+?\s*years|years of (?:\w+ ){0,3}experience|do you have (?:\w+ ){0,4}(?:experience|degree|certification|license)|are you (?:able|willing) to|willing to relocate|relocat|on-?site|in[- ]office|travel|security clearance|\bclearance\b|salary|compensation|notice period|previously (?:worked|been employed)|non-?compete|criminal|background check|drug (?:test|screen)/.test(t)) return 'screening';
+  return 'other';
+}
+
+// Injected, ISOLATED world. Presses the portal's own Save and Continue — and nothing else.
+// ⛔ ALLOWLIST, not a denylist: the control's text must READ "Save and Continue", "Continue" or
+// "Next". Workday's Review step renders the SAME control (same automation id) reading "Submit"; a
+// check keyed on the id, or one that merely refused the word "submit", would be one translation or
+// one relabel ("Apply", "Send", "Finish") away from submitting. A control that would submit a
+// <form> by its type is refused whatever it says.
+function advanceWizard() {
+  const continueText = /^(save and continue|save & continue|continue|next)$/i;
+  const btn = document.querySelector('[data-automation-id="bottom-navigation-next-button"], [data-automation-id="pageFooterNextButton"]')
+    || [...document.querySelectorAll('button, [role="button"]')].find(b => continueText.test(String(b.textContent || '').replace(/\s+/g, ' ').trim()));
+  if (!btn) return { ok: false, reason: 'no_next_button' };
+  const text = String(btn.textContent || '').replace(/\s+/g, ' ').trim();
+  if (!continueText.test(text)) return { ok: false, reason: 'next_is_not_continue', text: text.slice(0, 40) };
+  if (String(btn.getAttribute('type') || btn.type || '').toLowerCase() === 'submit' && btn.form) {
+    return { ok: false, reason: 'next_would_submit_a_form', text };
+  }
+  if (btn.disabled || btn.getAttribute('aria-disabled') === 'true') return { ok: false, reason: 'next_disabled', text };
+  btn.click();
+  return { ok: true, text };
+}
+
+// Injected, ISOLATED world. Which step is showing, and whether the portal wrote its own errors.
+function wizardState() {
+  const step = String(
+    document.querySelector('[data-automation-id="progressBarActiveStep"], [aria-current="step"]')?.textContent
+    || document.querySelector('[data-automation-id="pageHeader"]')?.textContent || '').replace(/\s+/g, ' ').trim();
+  const errors = document.querySelectorAll('[data-automation-id="errorMessage"], [data-automation-id="errorBanner"]:not([hidden])').length;
+  return { step, errors };
+}
+
+const sleepMs = (ms) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * The candidate's turn. If a required field on this step is still empty — work authorisation, a
+ * question that would rule them out, an EEO answer the profile does not state — say so on the badge
+ * and wait, re-checking every 1.5 s, and carry on BY ITSELF once it is answered (the video's badge
+ * flipping back to "in progress"). Bounded by the packet's lifetime; ended by the ×, by the tab
+ * leaving the application, or by the grant lapsing.
+ */
+export const CANDIDATE_WAIT_MS = 9 * 60 * 1000;
+async function waitForCandidate(tabId, origin, stepName, wizard) {
+  const deadline = Date.now() + CANDIDATE_WAIT_MS;
+  let recorded = false, lastCount = -1;
+  for (;;) {
+    let missing;
+    try {
+      const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: findMissingRequired });
+      missing = r?.result || [];
+    } catch { return { ok: false, reason: 'grant_lost' }; }
+    if (!missing.length) return { ok: true, waited: recorded };
+    if (!recorded) {
+      recorded = true;
+      wizard.stops.push({ step: stepName, fields: missing.map(m => ({ label: m.label, kind: questionKind(m.label) })) });
+    }
+    if (missing.length !== lastCount) {
+      lastCount = missing.length;
+      const b = await showBadge(tabId, 'required', { missing });
+      if (b?.dismissed) return { ok: false, reason: 'dismissed' };
+    }
+    try {
+      const [d] = await chrome.scripting.executeScript({ target: { tabId }, func: badgeDismissed });
+      if (d?.result === true) return { ok: false, reason: 'dismissed' };
+      const t = await chrome.tabs.get(tabId);
+      if (!t?.url || new URL(t.url).origin !== origin) return { ok: false, reason: 'left_the_application' };
+    } catch { return { ok: false, reason: 'grant_lost' }; }
+    if (Date.now() > deadline) return { ok: false, reason: 'waiting_for_you' };
+    await sleepMs(1500);
+  }
+}
+
+/**
+ * D55 (l) — is this a form we recognise well enough to fill? Pure; decided before anything is typed.
+ *   · a known adapter (a wizard the page announces, or Workday's own field ids) — yes;
+ *   · nothing in the packet matches anything here — no;
+ *   · a SIGN-IN form (a password box) the packet barely matches — no: the extension never signs in,
+ *     and the email box of a login form is exactly where a home-address-carrying packet must not go;
+ *   · two or more matches — yes; a single match is enough only when it is the page's only field.
+ */
+export function formRecognition(shape, plan = []) {
+  const fields = shape?.fields || [];
+  if (shape?.wizard || fields.some(f => f.automationId && WORKDAY_FIELD_IDS[f.automationId])) {
+    return { recognised: true, adapter: 'workday' };
+  }
+  if (!plan.length) return { recognised: false, why: 'nothing in your prepared answers matches a field on this page' };
+  const fillable = fields.filter(f => f.type !== 'file' && f.type !== 'password');
+  if (fields.some(f => f.type === 'password') && plan.length < 3) {
+    return { recognised: false, why: 'this looks like a sign-in form, not the application' };
+  }
+  if (plan.length >= 2 || fillable.length <= 1) return { recognised: true };
+  return { recognised: false, why: `only ${plan.length} of ${fillable.length} fields matched` };
+}
+
+/** The sentence for a wizard run — where it stopped is the thing the candidate needs to know. */
+export function wizardMessage(filledCount, wizard) {
+  const steps = wizard?.steps?.length || 0;
+  const head = `Filled ${filledCount} field(s) across ${steps} step(s)`;
+  switch (wizard?.stoppedAt) {
+    case 'review': return `${head} and stopped at Review. Check it, then submit yourself.`;
+    case 'dismissed': return `${head}. Stopped — you closed the autofill badge.`;
+    case 'waiting_for_you': return `${head}. Stopped waiting for the required fields on this step — answer them and press the shortcut again.`;
+    case 'left_the_application':
+    case 'grant_lost': return `${head}. Stopped — this tab left the application. Press the shortcut on the application to carry on.`;
+    default: return `${head}. Could not move to the next step — check this one, then press Save and Continue yourself.`;
+  }
+}
+
+/** Press Save and Continue, then wait for the next step to show — or for the portal to refuse. */
+async function advanceAndWait(tabId, fromStep) {
+  let pressed;
+  try {
+    const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: advanceWizard });
+    pressed = r?.result;
+  } catch { return { ok: false, reason: 'grant_lost' }; }
+  if (!pressed?.ok) return { ok: false, reason: pressed?.reason || 'no_next_button', text: pressed?.text };
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    await sleepMs(250);
+    let s;
+    try {
+      const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: wizardState });
+      s = r?.result;
+    } catch { return { ok: false, reason: 'grant_lost' }; }
+    if (s?.step && s.step !== fromStep) { await sleepMs(250); return { ok: true, step: s.step }; }
+    if (s?.errors) return { ok: false, reason: 'portal_refused' };
+  }
+  return { ok: false, reason: 'step_did_not_change' };
+}
+
+/**
+ * D55 (b) — one review row per repeating-section entry that was actually placed, not one per field.
+ *
+ * Each panel's fields were matched by their LABELS inside a panel the extension opened, so the row
+ * is a guess about the FIELD (matchedBy 'label') even though the value is the candidate's own: it
+ * asks for one acknowledgement per job / degree / website, which is the unit the candidate checks,
+ * instead of fifteen. Skills are one row. Nothing here is an attestation.
+ */
+export function entryReviewItems(entries, filled = []) {
+  if (!entries) return [];
+  const placed = new Map();
+  for (const f of filled || []) if (f?.entry) placed.set(f.entry, (placed.get(f.entry) || 0) + 1);
+  const year = (d) => (d?.year ? `${d.month ? String(d.month).padStart(2, '0') + '/' : ''}${d.year}` : '');
+  const rows = [];
+  const add = (kind, label, list, describe) => (list || []).forEach((e, i) => {
+    const n = placed.get(`${kind}:${i}`) || 0;
+    if (!n) return;
+    rows.push({ field: `${label} ${i + 1}`, name: `entry:${kind}:${i}`, value: describe(e) || '—',
+                provenance: 'field_map_exact', matchedBy: 'label', eligibility: false, entryFields: n });
+  });
+  add('work', 'Work experience', entries.work, (e) => [e.title, e.company,
+    [year(e.from), e.current ? 'present' : year(e.to)].filter(Boolean).join('–')].filter(Boolean).join(' · '));
+  add('education', 'Education', entries.education, (e) => [e.degree, e.field, e.school, year(e.to)].filter(Boolean).join(' · '));
+  add('languages', 'Language', entries.languages, (e) => e.language);
+  add('websites', 'Website', entries.websites, (e) => e.url);
+  if (placed.get('skills')) {
+    rows.push({ field: 'Skills', name: 'entry:skills', value: (entries.skills || []).join(', '),
+                provenance: 'field_map_exact', matchedBy: 'label', eligibility: false });
+  }
+  return rows;
 }
 
 async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
@@ -656,7 +1326,6 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
   if (shape.origin !== origin) return { ok: false, reason: 'origin_moved', message: 'The page changed. Nothing was released.' };
 
   const answers = released.packet?.answers || [];
-  const { plan, unmatched } = matchAnswersToFields(answers, shape.fields);
 
   // The resume travels as base64 because executeScript arguments must be JSON-serialisable — a Blob
   // cannot cross that boundary. Fetched HERE, in the extension, so the page never sees a credentialed
@@ -679,18 +1348,97 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
     } catch { /* the fill is still worth doing without it; reported below */ }
   }
 
-  let outcome;
-  try {
-    const [r] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      world: 'MAIN',
-      func: applyPlan,
-      args: [plan, resume],
-    });
-    outcome = r?.result;
-  } catch (e) {
-    return { ok: false, reason: 'inject_failed', message: `Could not fill the form: ${e.message}` };
+  // ── D55 (l): A FORM WE DO NOT RECOGNISE IS SAID, AND LEFT ALONE ────────────────────────────
+  // §8.3: "a visible 'this form isn't recognised' state — the extension says so and stops, rather
+  // than half-filling." A page where the packet matches one box (the email field of a sign-in form)
+  // is not an application we know, and typing the candidate's email into it is the half-fill that
+  // reads as the extension working. Checked BEFORE anything is typed. The released packet stays
+  // cached for this tab, so pressing the shortcut again on the real form costs no second token.
+  const recognition = formRecognition(shape, matchAnswersToFields(answers, shape.fields).plan);
+  if (!recognition.recognised) {
+    const badgeNow = await showBadge(tab.id, 'unrecognised', { note: recognition.why });
+    return {
+      ok: false, reason: 'form_not_recognised', reused: !!reused, packetId: released.packetId,
+      filled: [], why: recognition.why, badge: badgeNow,
+      message: "This form isn't recognised — nothing was filled. Fill it yourself, or copy your answers " +
+        'from the Copy sheet in the draft popup.',
+    };
   }
+
+  // D55 (c): the one-line badge says what the page is doing while the fill runs.
+  await showBadge(tab.id, 'progress');
+
+  // ── D55 (d): ONE PAGE, OR A WIZARD STEP BY STEP ─────────────────────────────────────────────
+  // A single-page form is filled once, as it always was. A wizard (Workday) is filled one step at a
+  // time: fill the step → if a REQUIRED field is still empty, stop and wait for the candidate
+  // (badge: "Complete required fields") and carry on by itself once they have answered → press the
+  // portal's OWN Save and Continue → re-probe the next step → repeat — and STOP AT REVIEW.
+  // ⛔ Submit is never pressed (§7.1): advanceWizard presses only a control that reads Save and
+  // Continue / Continue / Next, and Workday's Review button is that same control reading "Submit".
+  //
+  // On a wizard nothing already holding a value is overwritten (keepExisting): the candidate's own
+  // answer, and the portal's prefill, outrank the packet on a step the fill comes back to.
+  const plan = [], unmatched = [];
+  const outcome = { filled: [], skipped: [], resume: null, sections: {} };
+  const wizard = { steps: [], stops: [], advanced: 0, stoppedAt: null };
+  let entriesLeft = released.packet?.entries || null;
+  let step = shape;
+  for (let guard = 0; guard < 12; guard++) {
+    if (step.wizard?.isReview) { wizard.stoppedAt = 'review'; break; }
+    const matched = matchAnswersToFields(answers, step.fields);
+    plan.push(...matched.plan);
+    for (const u of matched.unmatched) if (!unmatched.some(x => x.name === u.name && x.field === u.field)) unmatched.push(u);
+    let r;
+    try {
+      const [res] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        world: 'MAIN',
+        func: applyPlan,
+        // D55 (b): the packet's repeating-section entries travel with the plan; applyPlan opens one
+        // panel per entry with the section's own Add / Add Another.
+        args: [matched.plan, outcome.resume?.attached ? null : resume, { entries: entriesLeft, keepExisting: !!step.wizard }],
+      });
+      r = res?.result || {};
+    } catch (e) {
+      return { ok: false, reason: 'inject_failed', message: `Could not fill the form: ${e.message}` };
+    }
+    outcome.filled.push(...(r.filled || []));
+    outcome.skipped.push(...(r.skipped || []));
+    if (r.resume && !outcome.resume?.attached) outcome.resume = r.resume;
+    Object.assign(outcome.sections, r.sections || {});
+    // A section is filled once: the kinds this step opened are not offered again on later steps.
+    if (entriesLeft && r.sections) {
+      entriesLeft = { ...entriesLeft };
+      for (const k of Object.keys(r.sections)) entriesLeft[k] = [];
+    }
+    if (!step.wizard) break;
+    wizard.steps.push({ step: step.wizard.step, filled: (r.filled || []).length });
+
+    // Stop and wait — then advance. Up to three attempts per step: a portal that writes its own
+    // "is required" error on Save and Continue sends the loop back to waiting.
+    let advanced = null;
+    for (let attempt = 0; attempt < 3 && !advanced; attempt++) {
+      const waited = await waitForCandidate(tab.id, origin, step.wizard.step, wizard);
+      if (!waited.ok) { wizard.stoppedAt = waited.reason; break; }
+      await showBadge(tab.id, 'progress');
+      const moved = await advanceAndWait(tab.id, step.wizard.step);
+      if (moved.ok) advanced = moved;
+      else if (moved.reason !== 'portal_refused') { wizard.stoppedAt = moved.reason; break; }
+    }
+    if (!advanced) { wizard.stoppedAt = wizard.stoppedAt || 'could_not_advance'; break; }
+    wizard.advanced += 1;
+    try {
+      const [p] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: probeFormShape });
+      step = p?.result;
+    } catch {
+      wizard.stoppedAt = 'grant_lost';
+      break;
+    }
+    // Same-origin is the whole permission (G0 §9): a wizard that wanders off the application's
+    // addresses ends the run, and nothing more is filled.
+    if (!step?.hasForm || !packetFillsOrigin(released, step.origin)) { wizard.stoppedAt = 'left_the_application'; break; }
+  }
+  const isWizard = wizard.steps.length > 0 || wizard.stoppedAt === 'review';
 
   // ── The review overlay (TASK G3) ────────────────────────────────────────────
   // What was actually written, with the rule that produced each value, ordered so the candidate
@@ -702,9 +1450,12 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
     .filter(step => (outcome?.filled || []).some(f => f.name === step.name && f.field === step.label))
     .map(step => ({
       field: step.label, name: step.name, id: step.id, index: step.index,
-      value: step.value, provenance: step.provenance, confidence: step.confidence,
+      // D55 (a): a picker's value is the option it chose — the ATS's wording, what the employer reads.
+      value: (outcome?.filled || []).find(f => f.name === step.name && f.field === step.label)?.placed ?? step.value,
+      provenance: step.provenance, confidence: step.confidence,
       eligibility: step.eligibility, matchedBy: step.matchedBy,
-    }));
+    }))
+    .concat(entryReviewItems(released.packet?.entries, outcome?.filled));
 
   const bands = orderForReview(reviewItems);
   const readiness = readinessOf(reviewItems);
@@ -748,6 +1499,18 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
     };
   }
 
+  // D55 (c)·(g): painted AFTER the overlay so it sits beside it rather than under it. "Filled —
+  // review and submit" only when no required field is left empty; otherwise "Complete required
+  // fields" — and on a single page it re-counts live and flips itself once the candidate has
+  // answered, because Greenhouse validates only on Submit, which is never pressed for them.
+  let missingAtEnd = [];
+  try {
+    const [m] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: findMissingRequired });
+    missingAtEnd = m?.result || [];
+  } catch { /* the badge then says done; the overlay still lists what was filled */ }
+  const badge = await showBadge(tab.id, missingAtEnd.length ? 'required' : 'done',
+    { missing: missingAtEnd, live: !isWizard || wizard.stoppedAt === 'review' });
+
   // ── Schema capture (TASK G4) ────────────────────────────────────────────────
   // The extension is standing inside a place the server can never reach. What goes back is the
   // form's SHAPE — labels, types, required flags, option lists, order — so the next candidate
@@ -781,6 +1544,7 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
     unmatched,
     resume: outcome?.resume || (released.resumeUrl ? { attached: false, reason: 'fetch_failed' } : null),
     overlay: { rendered: true, rows: reviewItems.length },
+    badge,
     capture,
     review: {
       ready: readiness.ready,
@@ -791,8 +1555,13 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
       // A fuzzy eligibility match is a resolver defect, not something to ask the candidate about.
       resolverBug: readiness.resolverBug,
     },
+    // D55 (d): which steps were filled and advanced, where the candidate was asked, and where it stopped.
+    wizard: isWizard ? wizard : null,
+    sections: outcome.sections,
     // Never auto-submitted. The last action is the candidate's — §6, without exception.
-    message: `Filled ${outcome?.filled?.length || 0} field(s). Review and submit yourself.`,
+    message: isWizard
+      ? wizardMessage(outcome?.filled?.length || 0, wizard)
+      : `Filled ${outcome?.filled?.length || 0} field(s). Review and submit yourself.`,
   };
 }
 
@@ -855,6 +1624,84 @@ async function captureFormSchema({ serverUrl, origin, shape, released }) {
  * page's next render, and the candidate would be looking at their own value on a form that no longer
  * holds it.
  */
+// ── D56 · the manual route, from the extension ───────────────────────────────
+
+const pageUrlOf = (tab) => {
+  try { const u = new URL(tab?.url || ''); return /^https?:$/.test(u.protocol) ? u.href : null; } catch { return null; }
+};
+
+/**
+ * ⭐ "Prepare this application" — ONE click: the server maps this page to the user's job and builds the
+ * packet on demand, then the SAME handoff runs straight away under the same gesture's grant. Every
+ * check of the ordinary handoff still applies to the fill; nothing here is a second release path.
+ */
+export async function prepareAndFill({ serverUrl, tab }) {
+  const url = pageUrlOf(tab);
+  if (!tab?.id || !url) return { ok: false, reason: 'unsupported_scheme', message: 'Only http(s) pages can be filled.' };
+  let body;
+  try {
+    const res = await api(serverUrl, '/api/apply/prepare', { method: 'POST', body: JSON.stringify({ url }) });
+    if (res.status === 401) return { ok: false, reason: 'not_signed_in', message: 'Sign in to Draft first.' };
+    body = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, reason: body.error || 'prepare_failed', message: body.message || 'Could not prepare this application.' };
+  } catch (e) {
+    return { ok: false, reason: 'network_error', message: 'Could not reach Draft.', detail: e.message };
+  }
+  // Prepared, but this page is not one of its addresses: say so — never fill it anyway.
+  if (!packetFillsOrigin(body, new URL(url).origin)) {
+    return { ok: false, reason: 'not_this_address', message: body.message, prepared: true, addresses: body.origins || null };
+  }
+  const filled = await runGatedHandoff({ serverUrl, tab });
+  return { ...filled, prepared: true, resume: body.resume || null };
+}
+
+/**
+ * ⭐ "I submitted" — from the popup and the review overlay. The job is the released packet's when this
+ * tab holds one, else whatever the server maps the page to; the page's own URL is the evidence. The
+ * server writes job_applications only when that evidence verifies (A63) — with the tailored score.
+ */
+export async function recordSubmitted({ serverUrl, tab }) {
+  const url = pageUrlOf(tab);
+  if (!url) return { ok: false, message: 'Only http(s) pages can be recorded.' };
+  const held = tab?.id ? await loadPacketForTab(tab.id).catch(() => null) : null;
+  try {
+    const res = await api(serverUrl, '/api/apply/handoff/submitted', {
+      method: 'POST', body: JSON.stringify({ url, jobId: held?.packet?.jobId ?? null }),
+    });
+    const body = await res.json().catch(() => ({}));
+    return { ok: res.ok && !!body.ok, ...body, message: body.message || `Server returned ${res.status}.` };
+  } catch (e) {
+    return { ok: false, message: 'Could not reach Draft.' };
+  }
+}
+
+/** ⭐ §8 row 17 — the Copy sheet's rows. Shown in the popup only; nothing enters the page. */
+export async function copySheetFor({ serverUrl, tab }) {
+  try {
+    const res = await api(serverUrl, '/api/apply/copy-sheet', {
+      method: 'POST', body: JSON.stringify({ url: pageUrlOf(tab) }),
+    });
+    if (!res.ok) return { ok: false, rows: [], message: `Server returned ${res.status}.` };
+    return { ok: true, ...(await res.json()) };
+  } catch {
+    return { ok: false, rows: [], message: 'Could not reach Draft.' };
+  }
+}
+
+/** The D56 answer for the popup's companion — packets for this page, or which case it is, and the notice. */
+export async function pageMatchFor(serverUrl, tab) {
+  const url = pageUrlOf(tab);
+  if (!url) return null;
+  try {
+    const res = await api(serverUrl, '/api/apply/handoff/match', { method: 'POST', body: JSON.stringify({ url }) });
+    if (!res.ok) return null;
+    const body = await res.json();
+    const origin = new URL(url).origin;
+    // The same origin check as the handoff: a packet is offered only where it may be filled.
+    return { ...body, packets: (body.packets || []).filter(p => packetFillsOrigin(p, origin)) };
+  } catch { return null; }
+}
+
 export async function applyOverlayEdit({ tabId, field, value }) {
   const step = { index: field.index, name: field.name, id: field.id, label: field.label, value };
   const [r] = await chrome.scripting.executeScript({

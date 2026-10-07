@@ -14,7 +14,7 @@
 // Pure functions, no chrome.* and no DOM, loaded as a classic script before popup.js (and run in a
 // plain VM by test/d13Companion.test.js). Nothing here stores anything.
 
-/* exported companionMode, draftedLine, postingLine, questionsLine, ageWords */
+/* exported companionMode, draftedLine, postingLine, questionsLine, ageWords, prepareLine, ringState */
 
 function ageWords(ms) {
   const mins = Math.max(0, Math.floor(ms / 60000));
@@ -36,7 +36,16 @@ function companionMode({ preview, context } = {}) {
   // (the server refuses to release a stale packet, so offering it would fail).
   const fresh = (context?.packets || []).filter(p => !p.stale)
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  if (fresh.length) return { mode: 'form', primary: ['fill'], packet: fresh[0], others: fresh.length - 1 };
+  const notice = context?.notice || null;
+  if (fresh.length) return { mode: 'form', primary: ['fill'], packet: fresh[0], others: fresh.length - 1, notice };
+
+  // ⛔ D56: no packet fills this page — and the server says which of the three truthful cases it is.
+  //   a job of yours with nothing prepared (or an expired packet) -> Prepare this application
+  //   a job of yours whose packet lives on another address        -> say so, and where it fills
+  // (draft not knowing the job falls through to the posting / recent views, which offer Capture.)
+  const h = context?.handoff || null;
+  if (h?.canPrepare) return { mode: 'prepare', primary: ['prepare'], handoff: h, notice };
+  if (h?.state === 'not_this_address') return { mode: 'elsewhere', primary: [], handoff: h, notice };
 
   if (preview?.capturable && preview.ok) {
     return { mode: 'posting', primary: ['capture', 'score'], posting: context?.posting || null, ats: context?.ats || null };
@@ -46,11 +55,38 @@ function companionMode({ preview, context } = {}) {
 
 function draftedLine(packet, now = Date.now()) {
   if (!packet) return '';
-  const parts = [`You drafted this ${ageWords(now - (packet.createdAt || now))}`];
+  // D56: a packet the manual route prepared was never drafted — say what actually happened.
+  const verb = packet.gateReason === 'prepared' ? 'You prepared this' : 'You drafted this';
+  const parts = [`${verb} ${ageWords(now - (packet.createdAt || now))}`];
   parts.push(packet.resumeAvailable ? 'résumé ready' : 'no résumé attached');
   const n = packet.answerCount || 0;
   parts.push(`${n} ${n === 1 ? 'field' : 'fields'} prepared`);
   return parts.join(' · ');
+}
+
+// D56: the line above "Prepare this application" — what one click will and will not do.
+function prepareLine(h) {
+  if (!h) return '';
+  const what = h.job ? [h.job.title, h.job.company].filter(Boolean).join(' at ') : 'this job';
+  const lead = h.state === 'stale' ? `The answers prepared for ${what} have expired.` : `Nothing is prepared for ${what} yet.`;
+  if (h.resume === 'ready') return `${lead} Your résumé for it is ready — one click prepares your answers and fills them.`;
+  if (h.resume === 'out_of_date') return `${lead} Your résumé for it is out of date, so Prepare fills your answers only — regenerate the résumé on draft.`;
+  return `${lead} No résumé for it yet — Prepare fills your answers; attach a résumé yourself.`;
+}
+
+/**
+ * ⭐ §8 row 15, decision D — THE TODAY RING: what the last 24 hours used of YOUR CAP (the day's Draft
+ * slots: a Draft or a new résumé uses one). ⛔ Never a goal and never a nudge: it reads as a quota, and
+ * a full ring says the cap is reached, not "well done".
+ */
+function ringState(slots) {
+  if (!slots || !Number.isFinite(slots.limit) || slots.limit <= 0) return null;
+  const used = Math.max(0, Math.min(slots.limit, Number(slots.used) || 0));
+  return {
+    used, limit: slots.limit, percent: Math.round((used / slots.limit) * 100), full: used >= slots.limit,
+    short: `${used}/${slots.limit}`,
+    label: `${used} of your ${slots.limit} drafts used in the last 24 hours — a Draft or a new résumé uses one.`,
+  };
 }
 
 function postingLine(posting) {

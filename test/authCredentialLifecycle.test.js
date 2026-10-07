@@ -117,8 +117,12 @@ test("the data directory is overridable so the auth stack can be tested against 
 test("scoped mutations report whether they matched a row, instead of a no-op success", () => {
   // A DELETE aimed at another user's job_id was correctly scoped and deleted nothing, then answered
   // {ok:true}. Safe, and indistinguishable from having deleted your own.
+  // D57: the résumé delete is services/generatedResumes.js's deleteGeneratedResume (shared with Settings'
+  // list), which answers from the two DELETEs' `.changes` — the route 404s on its false.
+  const resumeDelete = block(SERVER, 'app.delete("/api/resumes/:jobId"', 900);
+  assert.match(resumeDelete, /if \(!deleteGeneratedResume\(db, req\.user\.id, req\.params\.jobId\)\) return res\.status\(404\)\.json\(\{ error:"Resume not found" \}\)/);
+  assert.match(fs.readFileSync("services/generatedResumes.js", "utf8"), /return a \+ b > 0;/);
   for (const [needle, notFound] of [
-    ['app.delete("/api/resumes/:jobId"', "Resume not found"],
     ['app.patch("/api/applications/:jobId"', "Application not found"],
     ['app.delete("/api/applications/:jobId"', "Application not found"],
   ]) {

@@ -84,7 +84,12 @@ test("O80c · only packets — a preview waiting for approval still defers its r
   const src = read("routes/apply.js");
   // The attach hangs off createGatePacket alone, and shouldBuildPacket keeps awaiting_approval out of it.
   assert.match(src, /if \(resumeArtifactId == null\) \{\n\s+attachPacketResume\(\{ packetId, runId, runJobId, userId, jobId, toolType \}\)/);
-  assert.equal((src.match(/\n\s+attachPacketResume\(\{ packetId/g) || []).length, 1, "one caller");
+  // One caller that may GENERATE. D56's prepared packet is the second caller, and it never generates:
+  // it passes allowGenerate: false, so a manual packet only ever reuses the résumé the user made.
+  const callers = src.match(/\n\s+attachPacketResume\(\{ packetId[^)]*\)/g) || [];
+  assert.equal(callers.filter(c => !/allowGenerate: false/.test(c)).length, 1, "one generating caller");
+  assert.equal(callers.length, 2, "the generating caller and D56's prepared, non-generating one");
+  assert.match(src, /if \(artifactId == null && !allowGenerate\) \{/);
   // ⛔ The kill switch is read right before the model call.
   assert.match(src, /if \(artifactId == null\) \{\n\s+if \(fullAutoDisabled\(\)\) \{/);
   // ⛔ The early holds run before `const toolType` — they must not read it (TDZ would lose the packet).
