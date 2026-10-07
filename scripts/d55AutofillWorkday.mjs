@@ -145,7 +145,7 @@ function startApi() {
 }
 
 let runJobSeq = 0;
-function seedPacket(db, { jobId, url, fieldMap, entries }) {
+function seedPacket(db, { jobId, url, fieldMap, entries, handlerMap = {}, customAnswers = {}, workedHere = null }) {
   runJobSeq += 1;
   db.prepare(`INSERT INTO scraped_jobs (job_id, title, company, url, apply_url, source) VALUES (?, 'Senior Engineer', 'Northwind Systems', ?, ?, 'workday')`)
     .run(jobId, url, url);
@@ -153,7 +153,8 @@ function seedPacket(db, { jobId, url, fieldMap, entries }) {
   db.prepare(`INSERT INTO apply_run_jobs (id, run_id, user_id, job_id, status, reason_code, resume_artifact_id) VALUES (?, 1, 1, ?, 'held_gate', 'login_required', ?)`)
     .run(runJobSeq, jobId, runJobSeq);
   const packet = buildGatePacket({
-    autofillPayload: { field_map: fieldMap, handler_map: {}, custom_answers: {} },
+    autofillPayload: { field_map: fieldMap, handler_map: handlerMap, custom_answers: customAnswers,
+      ...(workedHere ? { worked_here: workedHere } : {}) },
     applyUrl: url, jobId, runId: 1, runJobId: runJobSeq, resumeArtifactId: runJobSeq, gateReason: 'login_required',
     entries,
   });
@@ -375,6 +376,63 @@ async function main() {
     check('the badge says "This form isn\'t recognised — nothing was filled"', b3?.text === "This form isn't recognised — nothing was filled", b3?.text);
     const typed = await si.evaluate(() => [...document.querySelectorAll('input')].filter(i => i.type !== 'hidden' && i.type !== 'submit' && i.value).length);
     check('…and nothing was typed into it — not even the email box', typed === 0, `${typed} filled`);
+
+    // ══ 4 · D55 (f): saved answers, worked-here and the EEO decline, on the same wizard ════════════
+    console.log('\n── 4 · /workday-replica — saved answers, "have you worked here?", EEO decline ──');
+    await fetch(`${PORTAL}/_reset`, { method: 'POST' });
+    const DECLINE = 'Choose not to disclose';
+    const pkt4 = seedPacket(db, {
+      jobId: 'd55wdf', url: `${PORTAL}/workday-replica`, fieldMap: FIELD_MAP, entries,
+      // The candidate's own saved answers, worded EXACTLY as this form asks — and one opt-in "No".
+      customAnswers: {
+        'Are you legally authorized to work in the United States?': 'Yes',
+        'Will you now or in the future require sponsorship for employment visa status (e.g., H-1B visa status)?': 'No',
+        'Do you have 7+ years of professional software engineering experience?': 'Yes',
+        'Yes, I would like to receive text messages and marketing communications about future opportunities.': 'No',
+      },
+      // The posting's employer is in the stated work history, so "previously worked here?" is Yes.
+      workedHere: { company: 'Northwind Systems', history: ['Analytical Engines', 'Northwind Systems'] },
+      // Declined EVERY EEO field — the fill must pick each form's own decline wording.
+      handlerMap: { gender: DECLINE, ethnicity: DECLINE, veteran: DECLINE, disability: DECLINE },
+    });
+    check('the packet carries the saved answers, worked-here and the four declines',
+      pkt4.savedAnswers?.length === 4 && pkt4.workedHere?.answer === 'Yes' && (pkt4.eeoDeclines || []).length === 4,
+      JSON.stringify({ saved: pkt4.savedAnswers?.length, worked: pkt4.workedHere, declines: pkt4.eeoDeclines }));
+    const wf = await browser.newPage();
+    await wf.goto(`${PORTAL}/workday-replica`, { waitUntil: 'domcontentloaded' });
+    await startFill(control, wf);
+    // Application Questions is answered entirely from saved answers, so the first stop is Voluntary
+    // Disclosures' Terms checkbox (a consent — always the candidate's).
+    const atVD4 = await waitUntil(async () => (await stepOf(wf)) === 'Voluntary Disclosures' && (await badgeOf(wf))?.state === 'required', 90000);
+    check('it went through Application Questions WITHOUT stopping — every question had a saved answer', !!atVD4, await stepOf(wf));
+    const st4a = await (await fetch(`${PORTAL}/_workday-replica/state`)).json();
+    const info4 = st4a.saves.find(s => s.step === 'My Information')?.values || {};
+    const aq4 = st4a.saves.find(s => s.step === 'Application Questions')?.values || {};
+    check('"Have you previously worked for this company?" — Yes, from the work history', info4.previousWorker === 'Yes', info4.previousWorker);
+    check('work authorisation — the saved answer, exactly', aq4['q-authorized'] === 'Yes', aq4['q-authorized']);
+    check('sponsorship — the saved answer, exactly', aq4['q-sponsorship'] === 'No', aq4['q-sponsorship']);
+    check('the "7+ years?" screen — the candidate\'s own saved answer', aq4['q-seven-years'] === 'Yes', aq4['q-seven-years']);
+    check('the marketing opt-in — the saved "No": unticked', aq4['q-marketing'] === '', String(aq4['q-marketing']));
+    const vd4 = await wf.evaluate(() => ['gender', 'ethnicity', 'veteranStatus'].map(k => document.querySelector(`#dropdown-${k}`)?.textContent));
+    check('EEO DECLINE: gender, ethnicity, veteran — each the FORM\'s own decline option',
+      vd4.every(t => t === 'I do not wish to answer'), vd4.join(' | '));
+    await wf.click('#input-agreementCheckbox');
+    const atSI4 = await waitUntil(async () => (await stepOf(wf)) === 'Self Identify' && (await badgeOf(wf))?.state === 'required', 30000);
+    check('…on to Self Identify', !!atSI4, await stepOf(wf));
+    const dis4 = await wf.evaluate(() => [...document.querySelectorAll('input[name="disabilityStatus"]')].find(r => r.checked)?.value || null);
+    check('the disability form (a question that names nothing) — its own decline, "I do not want to answer"',
+      dis4 === 'I do not want to answer', String(dis4));
+    await wf.type('#input-selfIdentifiedDisabilityData--name', 'Ada Lovelace');
+    await wf.type('#input-selfIdentifiedDisabilityData--dateSignedOn', '10/06/2026');
+    const atReview4 = await waitUntil(async () => (await stepOf(wf)) === 'Review', 30000);
+    check('…and to REVIEW', !!atReview4, await stepOf(wf));
+    await sleep(1500);
+    const st4 = await (await fetch(`${PORTAL}/_workday-replica/state`)).json();
+    const vdSaved = st4.saves.find(s => s.step === 'Voluntary Disclosures')?.values || {};
+    check('what the portal SAVED for EEO is the decline, in its own words',
+      vdSaved.gender === 'I do not wish to answer' && vdSaved.ethnicity === 'I do not wish to answer' && vdSaved.veteranStatus === 'I do not wish to answer',
+      JSON.stringify(vdSaved));
+    check('⛔ SUBMIT WAS NEVER PRESSED (scenario 4)', st4.submitPressed === 0 && st4.submitted.length === 0, `submitPressed=${st4.submitPressed}`);
 
     const subs = await (await fetch(`${PORTAL}/_submissions`)).json();
     check('⛔ NOTHING reached the fake ATS as a submission, across all three', subs.count === 0, `count=${subs.count}`);

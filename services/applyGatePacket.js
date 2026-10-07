@@ -32,7 +32,10 @@ import crypto from "node:crypto";
 import {
   buildAnswers, CONFIDENCE_BY_PROVENANCE, ELIGIBILITY_HANDLERS, PROFILE_KEY_TO_HANDLER, eligibilityClassOf,
 } from "./applyAutomation.js";
-import { isOptInQuestion, workedHereAnswer, COMPANY_TOKEN } from "../shared/savedAnswers.js";
+import { isOptInQuestion, workedHereAnswer, COMPANY_TOKEN, isEeoDecline } from "../shared/savedAnswers.js";
+
+/** handler_map's EEO keys (buildAutofillPayload) — what an eeoDeclines entry may name. */
+export const EEO_DECLINE_HANDLERS = Object.freeze(["gender", "ethnicity", "veteran", "disability"]);
 
 // ── Canonical questions ──────────────────────────────────────────────────────────────────────
 // Shaped exactly like discoverFields() output, because buildAnswers() consumes that shape and this
@@ -245,6 +248,12 @@ export function packetSavedAnswers(autofillPayload = {}) {
     const d = workedHereAnswer(`Have you worked for ${COMPANY_TOKEN} before?`, wh.company, wh.history || []);
     out.workedHere = { company: wh.company, answer: d.answer, reason: d.reason };
   }
+  // D55 (f) · the EEO fields the candidate set to "Choose not to disclose" — the KEYS only, never any
+  // other EEO value. The extension then picks the form's own decline option for those fields and
+  // leaves every other EEO field blank (stated-or-blank: a decline is never a default).
+  const hm = autofillPayload?.handler_map || {};
+  const eeoDeclines = EEO_DECLINE_HANDLERS.filter(k => isEeoDecline(hm[k]));
+  if (eeoDeclines.length) out.eeoDeclines = eeoDeclines;
   return out;
 }
 
