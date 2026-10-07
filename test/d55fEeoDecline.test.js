@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 
 // D55 (f) piece 1 — "Choose not to disclose" is a STATED EEO answer (docs/AUTOFILL_TARGET.md §8.1 row
 // 18, §7.5: "decline to answer IS a stated answer"). A Self-ID step fills with the form's own decline
@@ -60,7 +61,7 @@ test("⛔ an EEO field the candidate never set stays BLANK — no option is chos
 
 test("⛔ the payload builder never DEFAULTS an EEO column — an unset one goes out empty", () => {
   const src = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
-  const body = src.slice(src.indexOf("function buildAutofillPayload("), src.indexOf("// ── Auth ──"));
+  const body = src.slice(at(src, "function buildAutofillPayload("), at(src, "// ── Auth ──"));
   assert.ok(body.length > 1000, "buildAutofillPayload found");
   assert.doesNotMatch(body, /EEO_DECLINE|Choose not to disclose|Decline to self/i, "no decline default in the payload");
   for (const [handler, col] of [["gender", "gender"], ["ethnicity", "ethnicity"], ["veteran", "veteran_status"], ["disability", "disability_status"]]) {
@@ -96,7 +97,7 @@ test("a non-EEO field holding the decline text is not treated as a decline", () 
 
 test("the Profile panel offers the decline as its OWN option in all four EEO selects, and blank says 'Not set'", () => {
   const src = fs.readFileSync("client/src/panels/ProfilePanel.jsx", "utf8").replace(/\r\n/g, "\n");
-  const eeo = src.slice(src.indexOf("Voluntary Self-Identification (EEO)"), src.indexOf("Application Extras"));
+  const eeo = src.slice(at(src, "Voluntary Self-Identification (EEO)"), at(src, "Application Extras"));
   assert.ok(eeo.length > 100, "EEO section found");
   assert.equal((eeo.match(/<option value=\{EEO_DECLINE\}>\{EEO_DECLINE\}<\/option>/g) || []).length, EEO_FIELDS.length);
   assert.equal((eeo.match(/<option value="">\{EEO_UNSET_LABEL\}<\/option>/g) || []).length, EEO_FIELDS.length);

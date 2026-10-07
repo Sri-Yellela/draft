@@ -9,10 +9,99 @@
 // Settings → Saved answers.
 
 import { Router } from "express";
-import { readAnswerStore, rememberAnswer } from "../services/customAnswers.js";
+import { readAnswerStore, rememberAnswer, effectiveCustomAnswers as resolveFor } from "../services/customAnswers.js";
+import {
+  listEntries, editEntry, deleteEntry, exportJson, exportCsv, readImportFile, validateImport, testQuestion,
+} from "../services/savedAnswersManage.js";
+import { buildPacketEntries } from "../services/applyGatePacket.js";
+import { buildStructuredResume } from "../services/resumeFormatter.js";
+import { SAVED_ANSWER_LIMITS, workHistoryCompanies } from "../shared/savedAnswers.js";
 
-export function createSavedAnswersRouter({ db, requireAuth }) {
+export function createSavedAnswersRouter({ db, requireAuth, buildAutofillPayload = null }) {
   const router = Router();
+
+  const profileOf = (userId) => db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || {};
+  const sendCode = (res, e) => {
+    if (!e.code) throw e;
+    res.status(e.code === "not_found" ? 404 : 400).json({ error: e.code });
+  };
+
+  /** Settings → Saved answers: every entry, what kind of question it is, and the limits. */
+  router.get("/api/saved-answers", requireAuth, (req, res) => {
+    res.json({ entries: listEntries(storeOf(req.user.id)), limits: SAVED_ANSWER_LIMITS });
+  });
+
+  /** Edit one entry, or rename it. Body: { question, answer, previousQuestion?, company? } */
+  router.put("/api/saved-answers", requireAuth, (req, res) => {
+    try {
+      write(req.user.id, editEntry(storeOf(req.user.id), req.body || {}));
+      res.json({ ok: true, entries: listEntries(storeOf(req.user.id)) });
+    } catch (e) { sendCode(res, e); }
+  });
+
+  /** Delete one entry. Body: { question, company? } */
+  router.delete("/api/saved-answers", requireAuth, (req, res) => {
+    try {
+      write(req.user.id, deleteEntry(storeOf(req.user.id), { question: req.body?.question, company: req.body?.company || null }));
+      res.json({ ok: true, entries: listEntries(storeOf(req.user.id)) });
+    } catch (e) { sendCode(res, e); }
+  });
+
+  /** Bulk export: ?format=json (default) | csv — a download. */
+  router.get("/api/saved-answers/export", requireAuth, (req, res) => {
+    const store = storeOf(req.user.id);
+    if (req.query?.format === "csv") {
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", 'attachment; filename="draft-saved-answers.csv"');
+      return res.send(exportCsv(store));
+    }
+    res.setHeader("Content-Disposition", 'attachment; filename="draft-saved-answers.json"');
+    res.json(exportJson(store));
+  });
+
+  /**
+   * Bulk import through the five guards (services/savedAnswersManage.js). DRY RUN unless apply:true.
+   * Body: { format: 'json'|'csv', content: string, apply?: boolean, overwrite?: boolean }
+   * 200 { applied, accepted: [...], rejected: [{ row, question, reason }] } · 413 too_large · 400
+   */
+  router.post("/api/saved-answers/import", requireAuth, (req, res) => {
+    const { format = "json", content, apply = false, overwrite = false } = req.body || {};
+    if (format !== "json" && format !== "csv") return res.status(400).json({ error: "format_invalid" });
+    if (content === undefined || content === null) return res.status(400).json({ error: "content_required" });
+    const file = readImportFile({ format, content });
+    if (file.error) return res.status(file.error === "too_large" ? 413 : 400).json({ error: file.error });
+    const result = validateImport(storeOf(req.user.id), file.entries, { overwrite: !!overwrite });
+    if (result.fileRefused) return res.status(413).json({ error: "too_large", rejected: result.rejected });
+    const applied = apply === true && result.accepted.length > 0;
+    if (applied) write(req.user.id, result.store);
+    res.json({ applied, dryRun: apply !== true, accepted: result.accepted, rejected: result.rejected });
+  });
+
+  /**
+   * "Test a question": which saved answer matches and why, or "no match: it would stop".
+   * Body: { question, company?, options?: string[] | {value,label}[] }
+   */
+  router.post("/api/saved-answers/test", requireAuth, (req, res) => {
+    const { question, company = null, options = null } = req.body || {};
+    if (!String(question ?? "").trim()) return res.status(400).json({ error: "question_required" });
+    if (String(question).length > SAVED_ANSWER_LIMITS.maxQuestionChars) return res.status(400).json({ error: "too_long" });
+    const profile = profileOf(req.user.id);
+    const store = readAnswerStore(profile);
+    const base = buildAutofillPayload ? buildAutofillPayload(profile, "APPLY", company || null) : null;
+    const payload = base && typeof base === "object"
+      ? base
+      : { field_map: {}, handler_map: {}, custom_answers: {} };
+    // The same work history a run's payload carries (routes/apply.js): current_company + the base
+    // résumé's EXPERIENCE companies.
+    let work = [];
+    try {
+      const b = db.prepare("SELECT content FROM base_resume WHERE user_id=?").get(req.user.id);
+      if (b?.content) work = buildPacketEntries({ profile, structuredResume: buildStructuredResume(b.content) })?.work || [];
+    } catch { /* no base résumé table / none readable */ }
+    if (!base) payload.custom_answers = (resolveFor(store, company));
+    payload.worked_here = { company: company || null, history: workHistoryCompanies({ profile, work }) };
+    res.json(testQuestion({ payload, store, question, company, options }));
+  });
 
   const storeOf = (userId) =>
     readAnswerStore(db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || {});
