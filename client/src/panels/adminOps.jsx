@@ -259,6 +259,9 @@ export function CrawlerTab({ theme }) {
             <Btn theme={theme} primary={st.mode === "live"} danger={st.mode !== "live"} onClick={() => { if (window.confirm("Live: the worker will request real public pages (robots.txt honoured, deny-list enforced). Continue?")) put({ mode: "live" }); }}>Live</Btn>
           </div>
           <KV theme={theme} rows={[
+            // STEP 1c: the worker has no domain and no healthcheck — draft records every call it makes.
+            ["worker last seen", d.worker?.lastSeen ? `${ago(d.worker.lastSeen)} — ${d.worker.lastCall}${d.worker.silent ? " · SILENT: is it running?" : ""}` : "never — the worker has not called draft",
+              d.worker?.silent ? C.WARNING : C.SUCCESS],
             ["per-run cap", `${st.per_run_cap} tasks per enqueue`],
             ["schedule", st.schedule_enabled ? `daily at ${st.schedule_hhmm} UTC · ${st.schedule_tasks} tasks from the captured companies${st.schedule_last_date ? ` · last ${st.schedule_last_date}` : ""}` : "off"],
             ["today", `${b.tasksToday} of ${b.dailyCap} tasks · ${b.pagesToday} pages · ${b.minutesToday} min`, b.tasksToday >= b.dailyCap ? C.WARNING : null],

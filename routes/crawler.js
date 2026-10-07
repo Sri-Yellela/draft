@@ -4,6 +4,8 @@
 //   GET  /api/crawler/next     Bearer CRAWLER_TOKEN → 200 { task } · 204 nothing to do · 423 paused · 429 daily cap
 //   GET  /api/crawler/status   Bearer CRAWLER_TOKEN → { paused } — asked before every page
 //   POST /api/crawler/result   HMAC-signed (crawler/lib/signature.js) → what the result wrote
+//   POST /api/crawler/release  HMAC-signed { taskId } — STEP 1c: a worker shutting down gives its lease back
+// Every authenticated call is recorded as "worker last seen" (STEP 1c — the worker has no domain to probe).
 // No CRAWLER_TOKEN on the server = every worker door answers 503: the feature is off, not open.
 //
 // Admin (requireAdmin):
@@ -16,7 +18,8 @@
 //   DELETE /api/admin/crawler/deny/:domain
 import express, { Router } from "express";
 import { verify, bearerMatches } from "../crawler/lib/signature.js";
-import { leaseNext, acceptResult, pausedNow, enqueueBatch, crawlerSummary, setState, captureCandidates, flagTask, TASK_TYPES } from "../services/crawlerQueue.js";
+import { leaseNext, acceptResult, pausedNow, enqueueBatch, crawlerSummary, setState, captureCandidates, flagTask, TASK_TYPES,
+         noteWorker, releaseTask } from "../services/crawlerQueue.js";
 
 const token = (env) => env.CRAWLER_TOKEN || "";
 
@@ -28,9 +31,14 @@ export function createCrawlerWorkerRouter(db, { env = process.env } = {}) {
     next();
   };
   // Either switch — Admin → Crawler's Pause (the DB) or CRAWLER_PAUSED (the env) — and the worker idles.
-  router.get("/status", authed, (_req, res) => res.json({ paused: pausedNow(db, env).paused }));
+  router.get("/status", authed, (_req, res) => {
+    const paused = pausedNow(db, env).paused;
+    noteWorker(db, `status → ${paused ? "paused" : "running"}`);
+    res.json({ paused });
+  });
   router.get("/next", authed, (_req, res) => {
     const r = leaseNext(db, { env });
+    noteWorker(db, r.paused ? "lease → 423 paused" : r.capped ? "lease → 429 daily cap" : r.task ? `lease → task ${r.task.id}` : "lease → 204 nothing");
     if (r.paused) return res.status(423).json({ paused: true });
     if (r.capped) return res.status(429).json({ error: "daily_cap" });
     if (!r.task) return res.status(204).end();
@@ -42,9 +50,19 @@ export function createCrawlerWorkerRouter(db, { env = process.env } = {}) {
     const v = verify(body, req.headers, token(env));
     if (!v.ok) return res.status(401).json({ error: v.reason });
     let result; try { result = JSON.parse(body); } catch { return res.status(400).json({ error: "invalid_json" }); }
+    noteWorker(db, `result → task ${Number(result?.taskId) || "?"}`);
     const out = acceptResult(db, result);
     if (!out.ok) return res.status(409).json(out);
     res.json(out);
+  });
+  router.post("/release", express.text({ type: "application/json", limit: "4kb" }), (req, res) => {
+    if (!token(env)) return res.status(503).json({ error: "crawler_not_configured" });
+    const body = typeof req.body === "string" ? req.body : "";
+    const v = verify(body, req.headers, token(env));
+    if (!v.ok) return res.status(401).json({ error: v.reason });
+    let id; try { id = JSON.parse(body).taskId; } catch { return res.status(400).json({ error: "invalid_json" }); }
+    noteWorker(db, `release → task ${Number(id) || "?"}`);
+    res.json({ released: releaseTask(db, id) });
   });
   return router;
 }
