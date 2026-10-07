@@ -4,6 +4,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { at, lastAt } from "../test-support/sourceAnchors.js";
 import fs from "node:fs";
 
 import { questionKind, wizardMessage, WORKDAY_FIELD_IDS, matchAnswersToFields, CANDIDATE_WAIT_MS, PACKET_TTL_MS }
@@ -11,7 +12,7 @@ import { questionKind, wizardMessage, WORKDAY_FIELD_IDS, matchAnswersToFields, C
 
 const src = fs.readFileSync("extension/gated-handoff.js", "utf8").replace(/\r\n/g, "\n");
 const anchor = (s, needle) => { const i = s.indexOf(needle); assert.ok(i >= 0, `missing: ${needle}`); return i; };
-const fnText = (name) => { const s = src.slice(anchor(src, `function ${name}(`)); return s.slice(0, s.indexOf("\n}\n") + 2); };
+const fnText = (name) => { const s = src.slice(anchor(src, `function ${name}(`)); return s.slice(0, at(s, "\n}\n") + 2); };
 
 test("(d) ⛔ the advance presses ONLY a control that reads Save and Continue / Continue / Next", () => {
   const adv = fnText("advanceWizard");

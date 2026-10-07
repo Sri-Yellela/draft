@@ -6,6 +6,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { at, lastAt } from "../test-support/sourceAnchors.js";
 import fs from "node:fs";
 
 const badge = fs.readFileSync("extension/autofill-badge.js", "utf8").replace(/\r\n/g, "\n");
@@ -13,14 +14,14 @@ const handoff = fs.readFileSync("extension/gated-handoff.js", "utf8").replace(/\
 const dedent = (s) => s.split("\n").map(l => l.trim()).join("\n");
 
 const exported = (() => {
-  const s = badge.slice(badge.indexOf("export function findMissingRequired("));
-  return s.slice("export ".length, s.indexOf("\n}\n") + 2);
+  const s = badge.slice(at(badge, "export function findMissingRequired("));
+  return s.slice("export ".length, at(s, "\n}\n") + 2);
 })();
 
 test("(g) the badge's live copy of the pre-check is byte-identical to the one the fill runs", () => {
-  const r = badge.slice(badge.indexOf("export function renderBadge("));
-  const inner = r.slice(r.indexOf("function findMissingRequired("));
-  const innerText = inner.slice(0, inner.indexOf("\n  }\n") + 4).trimEnd();
+  const r = badge.slice(at(badge, "export function renderBadge("));
+  const inner = r.slice(at(r, "function findMissingRequired("));
+  const innerText = inner.slice(0, at(inner, "\n  }\n") + 4).trimEnd();
   assert.ok(innerText.length > 1000);
   assert.equal(dedent(innerText), dedent(exported));
 });
@@ -47,7 +48,7 @@ test("(g) it reports LABELS only, never a value, and never our own overlay or ba
 });
 
 test("(g) the final badge is 'required' when anything required is empty — and live on a single page", () => {
-  const fill = handoff.slice(handoff.indexOf("async function fillFromPacket("), handoff.indexOf("async function captureFormSchema("));
+  const fill = handoff.slice(at(handoff, "async function fillFromPacket("), at(handoff, "async function captureFormSchema("));
   assert.match(fill, /const badge = await showBadge\(tab\.id, missingAtEnd\.length \? 'required' : 'done',/);
   assert.match(fill, /\{ missing: missingAtEnd, live: !isWizard \|\| wizard\.stoppedAt === 'review' \}/);
   assert.match(badge, /const s = now\.length \? 'required' : 'done';/, "the live badge flips both ways");

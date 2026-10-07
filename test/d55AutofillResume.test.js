@@ -4,6 +4,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { at, lastAt } from "../test-support/sourceAnchors.js";
 import fs from "node:fs";
 
 import { resumeInputScore } from "../extension/gated-handoff.js";
@@ -23,16 +24,16 @@ test("(e) a résumé / CV is named; a cover letter, transcript, portfolio or pho
 });
 
 test("(e) applyPlan's serialised resumeInputScore is byte-identical to the tested export", () => {
-  const exp = src.slice(src.indexOf("export function resumeInputScore("));
-  const expText = exp.slice("export ".length, exp.indexOf("\n}\n") + 2);
-  const plan = src.slice(src.indexOf("async function applyPlan("));
-  const inner = plan.slice(plan.indexOf("function resumeInputScore("));
-  const innerText = inner.slice(0, inner.indexOf("\n  }\n") + 4).trimEnd();
+  const exp = src.slice(at(src, "export function resumeInputScore("));
+  const expText = exp.slice("export ".length, at(exp, "\n}\n") + 2);
+  const plan = src.slice(at(src, "async function applyPlan("));
+  const inner = plan.slice(at(plan, "function resumeInputScore("));
+  const innerText = inner.slice(0, at(inner, "\n  }\n") + 4).trimEnd();
   assert.equal(dedent(innerText), dedent(expText));
 });
 
 test("(e) never 'the first file input': named wins, a lone unnamed upload only when it is the only one", () => {
-  const plan = src.slice(src.indexOf("async function applyPlan("), src.indexOf("// ── Matching"));
+  const plan = src.slice(at(src, "async function applyPlan("), at(src, "// ── Matching"));
   assert.doesNotMatch(plan, /querySelectorAll\('input\[type="file"\]'\)\]\[0\]/, "the old first-input rule is gone");
   assert.match(plan, /const named = inputs\.filter\(i => i\.score === 2\);/);
   assert.match(plan, /if \(neutral\.length === 1\) return \{ el: neutral\[0\]\.el, by: 'only_unnamed_upload' \};/);
