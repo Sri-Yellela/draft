@@ -3440,9 +3440,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (decision === DECISIONS.DRAFTED) {
       const notice = companyNoticeFor(job);
       if (notice && !window.confirm(notice)) return;
-      // ⛔ D59: and the posting's stated citizenship / clearance — said, never decided; the user decides.
-      const eligibility = eligibilityNoticeFor(job);
-      if (eligibility && !window.confirm(`${eligibility}\n\nDraft it anyway?`)) return;
+      // ⛔ D59 (owner, 10-07 (38): "only in panel"): the posting's stated citizenship / clearance is said
+      // in the posting panel's line beside Draft — never a confirm at the click.
     }
     const at = Date.now();
     if (decision === DECISIONS.DRAFTED) {
@@ -3474,7 +3473,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       applyFlags(jobId, undoFlagsFor(decision, prior));
       setDecisionToast({ jobId, company: job.company, decision, error: e.message, at: Date.now() });
     }
-  }, [applyFlags, draftTool, draftedIds, draftingIds, applyStateByJobId, loadApplyRuns, boardTab, currentPage, companyNoticeFor, eligibilityNoticeFor]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [applyFlags, draftTool, draftedIds, draftingIds, applyStateByJobId, loadApplyRuns, boardTab, currentPage, companyNoticeFor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const undoLastDecision = useCallback(async () => {
     const t = decisionToast;
