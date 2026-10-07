@@ -317,8 +317,8 @@ test("THE RECONCILIATION'S THIRD-PARTY TABLE MATCHES THE SET THE POLICY NAMES", 
   // *italic* = a party named only to say it receives nothing (Clearbit, THEIRSTACK).
   // Both ends via at(), not indexOf: a reworded heading would otherwise return -1, and slice reads
   // -1 as an offset from the end of the file — the region widens instead of failing.
-  const secStart = at(policy, '<Section title="Third-Party Services">', 0, "PrivacyPage.jsx");
-  const section = policy.slice(secStart, at(policy, "</Section>", secStart, "PrivacyPage.jsx"));
+  const secStart = at(policy, '<PolicySection title="Third-Party Services">', 0, "PrivacyPage.jsx");
+  const section = policy.slice(secStart, at(policy, "</PolicySection>", secStart, "PrivacyPage.jsx"));
   // The FIRST <Strong> in each <LI> is the recipient's name; later ones are inline emphasis inside
   // the prose ("It is <Strong>not</Strong> used by ordinary job search"), which is not a party.
   const policyNames = [...section.matchAll(/<LI>([\s\S]*?)<\/LI>/g)]

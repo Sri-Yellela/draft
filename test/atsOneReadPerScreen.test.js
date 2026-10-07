@@ -26,10 +26,10 @@ test("the client: one scoring read per screen", () => {
   assert.match(jobs, /onReport=\{adoptPanelVerdict\}/);
   assert.match(jobs, /report\.report_basis === "generated_resume"\) return;/, "a generated résumé's report is not the base verdict");
   assert.match(read("client/src/panels/AtsReportPanel.jsx"), /onReport=\{onReport\}/);
-  assert.match(read("client/src/panels/ATSPanel.jsx"), /if \(data && onReport\) onReport\(jobId, data\);/);
+  assert.match(read("client/src/components/ATSPanel.jsx"), /if \(data && onReport\) onReport\(jobId, data\);/);
   // The panel header reads the report the body draws, not the stored score alone.
   assert.match(read("client/src/panels/AtsReportPanel.jsx"), /reportBand\(r && Object\.prototype\.hasOwnProperty\.call\(r, "score"\)/);
   // ATSPanel: a declined report's null is the band, never replaced by a stored number.
-  assert.match(read("client/src/panels/ATSPanel.jsx"), /hasOwnProperty\.call\(activeReport, "score"\) \? activeReport\.score : \(score \?\? null\)/);
+  assert.match(read("client/src/components/ATSPanel.jsx"), /hasOwnProperty\.call\(activeReport, "score"\) \? activeReport\.score : \(score \?\? null\)/);
   assert.match(SERVER, /report_basis: "generated_resume"/);
 });

@@ -288,9 +288,9 @@ test("⛔ the privacy policy names the second product ONLY in its Third-Party Se
   // anywhere else on the page naming the old brand would be this product calling itself by it —
   // the regression the guard exists for — and the file entry would otherwise let it through.
   const page = fs.readFileSync("client/src/pages/marketing/PrivacyPage.jsx", "utf8");
-  const start = page.indexOf('<Section title="Third-Party Services">');
+  const start = page.indexOf('<PolicySection title="Third-Party Services">');   // A93: was <Section
   assert.ok(start > 0, "the Third-Party Services section was not found");
-  const end = page.indexOf("</Section>", start);
+  const end = page.indexOf("</PolicySection>", start);
   assert.ok(end > start);
   const outside = (page.slice(0, start) + page.slice(end))
     .replace(/^\s*\/\/.*$/gm, "");                       // the effective-date history comments

@@ -6,7 +6,7 @@
 // it and sends the user's edits. ⛔ A draft that has STARTED is not editable: the server refuses
 // with its own sentence (409 run_started) and that sentence is shown, never a generic failure.
 import { C } from "../styles/colorTokens.js";
-import { SectionHeading } from "../panels/AutoApplyPanelSections.jsx";
+import { SectionHeading } from "./SectionHeading.jsx";
 
 const TOOLS = [
   { value: "generate", label: "Generate" },

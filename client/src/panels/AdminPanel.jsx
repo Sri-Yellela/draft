@@ -8,6 +8,7 @@ import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
 import { OpsTab, GlanceTab, UserApplications } from "./adminOps.jsx";
 import { TYPE } from "../styles/type.js";
+import StatCard from "../components/StatCard.jsx";
 
 const ADMIN_ACCENT = C.ACCENT;
 // ADMIN_ACCENT is the orange, which is 2.96:1 on the paper: a FILL only. Text, edges and strokes use the
@@ -110,23 +111,7 @@ function MiniBarChart({ data, width=300, height=80, color=C.VIOLET }) {
 }
 
 // ── StatCard ──────────────────────────────────────────────────
-function StatCard({ label, value, sub, color, theme }) {
-  return (
-    <div style={{
-      background:theme.surface, border:`1px solid ${theme.border}`,
-      borderRadius:12, padding:"16px 18px", flex:1, minWidth:140,
-    }}>
-      <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase",
-                    letterSpacing:"0.07em", color:theme.textMuted, marginBottom:6 }}>
-        {label}
-      </div>
-      <div style={{ fontSize:22, fontWeight:900, color: color || theme.text, lineHeight:1 }}>
-        {value}
-      </div>
-      {sub && <div style={{ fontSize:11, color:theme.textMuted, marginTop:4 }}>{sub}</div>}
-    </div>
-  );
-}
+// A93: StatCard is components/StatCard.jsx — AdminPanel and the DB inspector drew the same card.
 
 // ── UsageTab ──────────────────────────────────────────────────
 function UsageTab({ theme }) {

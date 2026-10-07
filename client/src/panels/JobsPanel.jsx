@@ -2,6 +2,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
+import EmptyState from "../components/EmptyState.jsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 import { api, printResume, authHeaders, authContextQuery } from "../lib/api.js";
@@ -4170,7 +4171,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
               ? <SavedEmptyState theme={theme}/>
             : emptyBecauseRole
               ? <RoleScopedEmptyState theme={theme} profileName={profileName}/>
-              : <EmptyState theme={theme}/>
+              : <BoardEmptyState theme={theme}/>
       ) : (
         <PullToRefresh onRefresh={onPullRefresh} refreshing={scraping} theme={theme}>
 
@@ -4334,21 +4335,14 @@ function buildVisiblePageItems(currentPage, totalPages) {
 // "Don't sort for me" toggle are removed — owner-confirmed dead weight. The ORDER is unchanged; the
 // sort control is how a user picks a different one.
 
-function EmptyState({ theme }) {
+// A93: the board's genuinely-unfiltered empty state, drawn by the shared EmptyState. It said "Search for a
+// role above · LinkedIn + Indeed" — false since the board became direct-ATS only (greenhouse, ashby,
+// lever, workable, recruitee) and a search box no longer leads it.
+function BoardEmptyState({ theme }) {
   const { theme: t } = useTheme();
-  const th = theme || t;
   return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
-                  justifyContent:"center", gap:16, padding:40, color:th.textDim }}>
-      <div style={{ fontSize:56 }}>Search</div>
-      <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                    fontSize:29, color:th.text }}>
-        Search for a role above
-      </div>
-      <div style={{ fontSize:12, textAlign:"center", color:th.textDim, maxWidth:320, lineHeight:1.8 }}>
-        LinkedIn + Indeed - full-time only - deduplicated - ghost jobs filtered
-      </div>
-    </div>
+    <EmptyState theme={theme || t} title="No jobs on the board yet"
+      body="Nothing in the pool matches the board right now. Add any posting with the extension — it lands under +." />
   );
 }
 

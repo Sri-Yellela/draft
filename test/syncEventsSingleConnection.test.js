@@ -319,7 +319,7 @@ test("no call site constructs its own EventSource", () => {
 test("the five consumers still subscribe through the hook", () => {
   // The fix must not have been achieved by deleting subscribers.
   const callers = ["client/src/App.jsx", "client/src/components/TopBar.jsx",
-                   "client/src/panels/JobsPanel.jsx", "client/src/panels/ATSPanel.jsx"];
+                   "client/src/panels/JobsPanel.jsx", "client/src/components/ATSPanel.jsx"];
   let total = 0;
   for (const f of callers) {
     const n = (fs.readFileSync(f, "utf8").match(/useSyncEvents\(/g) || []).length;

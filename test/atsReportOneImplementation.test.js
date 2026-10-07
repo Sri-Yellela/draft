@@ -77,7 +77,7 @@ test("the four surfaces — board side panel, deck panel, phone sheet, public to
   assert.match(deck, /<ATSPanel report=\{fromDeckReport\(r\)\}/, "the deck draws the frozen report through the one adapter");
   assert.match(deck, /<DeckAtsReport\b[\s\S]*<DeckAtsReport\b/, "the deck's left panel AND its phone sheet");
   // … which is the data container, and draws nothing itself.
-  assert.match(code("panels/ATSPanel.jsx"), /<AtsReport report=\{activeReport\}/);
+  assert.match(code("components/ATSPanel.jsx"), /<AtsReport report=\{activeReport\}/);
   assert.match(code("pages/tools/ATSToolPage.jsx"), /<AtsReport report=\{fromStandaloneResult\(result\)\}/, "the public tool");
   assert.match(code("components/SignupAtsHook.jsx"), /<AtsBandCard\b/, "the signup hook's band card");
 });

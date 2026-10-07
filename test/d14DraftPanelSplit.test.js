@@ -47,8 +47,8 @@ test("D14: each column names itself and says when it is empty", () => {
 });
 
 test("D14: a section heading wraps rather than breaking its title in the narrow column", () => {
-  const sections = read("client/src/panels/AutoApplyPanelSections.jsx");
-  const h = sections.slice(at(sections, "export function SectionHeading"), at(sections, "export function CompanyHeading"));
+  // A93: the heading is shared now — components/SectionHeading.jsx, the whole file.
+  const h = read("client/src/components/SectionHeading.jsx");
   assert.match(h, /flexWrap: "wrap"/);
   assert.match(h, /whiteSpace: "nowrap"/);
 });

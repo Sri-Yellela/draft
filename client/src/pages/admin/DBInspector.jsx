@@ -6,6 +6,7 @@ import { api, authHeaders, authContextQuery } from "../../lib/api.js";
 import { useTheme } from "../../styles/theme.jsx";
 import { C } from "../../styles/colorTokens.js";
 import { atsBandFor, atsBandLabel } from "../../../../shared/atsBands.js";
+import StatCard from "../../components/StatCard.jsx";
 // A50 step 6: the board's bands, not the v3-era 70/50 ramp (under v4 that ramp painted almost every
 // score red). Admin still sees the number beside the band — it is a diagnostic tool.
 const BAND_COLOR = { strong: C.SUCCESS, moderate: C.WARNING, weak: C.DANGER };
@@ -56,19 +57,7 @@ function Pill({ color, children }) {
   );
 }
 
-function StatCard({ label, value, sub, accent, theme }) {
-  return (
-    <div style={{
-      background:theme.surface, border:`1px solid ${theme.border}`,
-      borderRadius:10, padding:"14px 16px", flex:1, minWidth:120,
-    }}>
-      <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase",
-                    letterSpacing:"0.07em", color:theme.textMuted, marginBottom:4 }}>{label}</div>
-      <div style={{ fontSize:20, fontWeight:900, color: accent || theme.text }}>{value}</div>
-      {sub && <div style={{ fontSize:10, color:theme.textMuted, marginTop:2 }}>{sub}</div>}
-    </div>
-  );
-}
+// A93: StatCard is components/StatCard.jsx — AdminPanel and the DB inspector drew the same card.
 
 function Spinner({ theme }) {
   return (

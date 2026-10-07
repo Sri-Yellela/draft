@@ -20,7 +20,7 @@ const host    = read("client/src/hooks/usePanelHost.js");
 const jd      = read("client/src/components/JobDetailPanel.jsx");
 const sandbox = read("client/src/panels/SandboxPanel.jsx");
 const ats     = read("client/src/panels/AtsReportPanel.jsx");
-const atsBody = read("client/src/panels/ATSPanel.jsx");
+const atsBody = read("client/src/components/ATSPanel.jsx");
 const jobs    = read("client/src/panels/JobsPanel.jsx");
 const app     = read("client/src/App.jsx");
 

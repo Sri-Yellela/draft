@@ -61,7 +61,8 @@ import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL } from "../..
 const EFFECTIVE_DATE = 'October 7, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
-function Section({ title, children }) {
+// A93: a POLICY section heading — the document's own, not the settings card (SettingsSection).
+function PolicySection({ title, children }) {
   return (
     <section style={{ marginBottom: 40 }}>
       <h2 style={{
@@ -151,7 +152,7 @@ export function PrivacyPage() {
         </header>
 
         {/* Overview */}
-        <Section title="Overview">
+        <PolicySection title="Overview">
           <P>
             {BRAND} ("we", "us", "our") operates {CANONICAL_HOST} and the {BRAND} browser
             extension. Our former address, {LEGACY_HOST}, no longer serves this application: it now
@@ -163,10 +164,10 @@ export function PrivacyPage() {
             <Strong>We do not sell your personal data.</Strong> We do not share it
             with third parties except as described in this policy.
           </P>
-        </Section>
+        </PolicySection>
 
         {/* Information We Collect */}
-        <Section title="Information We Collect">
+        <PolicySection title="Information We Collect">
           <H3>Account Information</H3>
           <P>
             When you create an account, we collect your email address and a hashed password
@@ -492,10 +493,10 @@ export function PrivacyPage() {
             for security and debugging. We do not use third-party analytics services that
             track you across the web.
           </P>
-        </Section>
+        </PolicySection>
 
         {/* How We Use Your Data */}
-        <Section title="How We Use Your Data">
+        <PolicySection title="How We Use Your Data">
           <UL>
             <LI>To provide the resume builder, ATS scoring, and job search features.</LI>
             <LI>To save your work and sync it across devices.</LI>
@@ -521,10 +522,10 @@ export function PrivacyPage() {
             and do not let people read it except with your consent, for security purposes, to comply
             with the law, or in aggregated and anonymised form for running the service.
           </P>
-        </Section>
+        </PolicySection>
 
         {/* Data Storage & Security */}
-        <Section title="Data Storage and Security">
+        <PolicySection title="Data Storage and Security">
           <P>
             Your data is stored on servers hosted by Railway (railway.app). Data is encrypted
             in transit via TLS. Passwords are hashed using bcrypt. Session tokens are stored
@@ -541,10 +542,10 @@ export function PrivacyPage() {
             restore it. After 7 days its prepared answers, handoff and screenshot are deleted. You can
             delete one sooner with Delete now. An application you have sent is never cleared.
           </P>
-        </Section>
+        </PolicySection>
 
         {/* Third-Party Services */}
-        <Section title="Third-Party Services">
+        <PolicySection title="Third-Party Services">
           <P>We use the following third-party services:</P>
           <UL>
             <LI>
@@ -623,10 +624,10 @@ export function PrivacyPage() {
             because it was a real recipient until that
             date, and because a reader who checks what this page loads should find it accounted for.
           </P>
-        </Section>
+        </PolicySection>
 
         {/* Your Rights */}
-        <Section title="Your Rights">
+        <PolicySection title="Your Rights">
           <UL>
             <LI>
               <Strong>Access:</Strong> You can view data we hold about you
@@ -650,28 +651,28 @@ export function PrivacyPage() {
               Contact us to exercise these rights.
             </LI>
           </UL>
-        </Section>
+        </PolicySection>
 
         {/* Cookies */}
-        <Section title="Cookies">
+        <PolicySection title="Cookies">
           <P>
             We use a single session cookie to keep you logged in. This cookie is HttpOnly
             and Secure — JavaScript cannot read it. We do not use advertising cookies,
             tracking pixels, or third-party analytics cookies.
           </P>
-        </Section>
+        </PolicySection>
 
         {/* Children */}
-        <Section title="Children's Privacy">
+        <PolicySection title="Children's Privacy">
           <P>
             {BRAND} is not directed at children under 13. We do not knowingly collect
             data from anyone under 13. If you believe a child has provided us data, contact
             us and we will delete it promptly.
           </P>
-        </Section>
+        </PolicySection>
 
         {/* Changes */}
-        <Section title="Changes to This Policy">
+        <PolicySection title="Changes to This Policy">
           <P>
             We may update this policy from time to time. The "Effective" date at the top reflects
             when the current version took effect.
@@ -685,7 +686,7 @@ export function PrivacyPage() {
             version of the extension would collect something this policy does not already
             describe, the policy is updated and users are notified first.
           </P>
-        </Section>
+        </PolicySection>
 
         {/* Contact */}
         <section style={{

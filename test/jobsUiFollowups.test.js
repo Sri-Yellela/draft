@@ -25,7 +25,7 @@ test("profile suggestion additions use shared normalized helpers on both server 
 // which is what made the decision permanent. A claimed chip must stay clickable, because that click
 // is how the candidate takes the claim back.
 test("ATS missing chips stay visible, turn green when claimed, and react to profile suggestion updates", () => {
-  const atsPanel = fs.readFileSync("client/src/panels/ATSPanel.jsx", "utf8");
+  const atsPanel = fs.readFileSync("client/src/components/ATSPanel.jsx", "utf8");
   // A52: the chips are drawn by components/AtsReport.jsx; ATSPanel keeps the claim state and events.
   const chips = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
 

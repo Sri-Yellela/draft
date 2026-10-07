@@ -3,12 +3,13 @@ import { api } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { BRAND } from "../../../shared/brand.js";
 import { C } from "../styles/colorTokens.js";
+import { markStyle } from "../styles/mark.js";
+import SettingsSection from "../components/SettingsSection.jsx";
 
 function StatusPill({ status, healthy, theme }) {
   const color = healthy ? C.SUCCESS : status === "missing" || status === "not_connected" ? C.DANGER : C.WARNING;
   return (
-    <span style={{ display:"inline-flex", alignItems:"center", border:`1px solid ${color}55`,
-      background:`${color}14`, color, borderRadius:6, padding:"3px 7px", fontSize:11, fontWeight:800 }}>
+    <span style={markStyle(color)}>
       {healthy ? "Active" : String(status || "pending").replace(/_/g, " ")}
     </span>
   );
@@ -45,23 +46,15 @@ function ConsentSwitch({ checked, disabled, onChange, label }) {
   );
 }
 
+// A93: the section card is components/SettingsSection.jsx (Account draws the same one); the connection
+// status rides in its `aside`.
 function Section({ title, subtitle, status, children, theme }) {
   const resolvedStatus = status || { healthy: false, status: "missing" };
   return (
-    <section style={{ border:`1px solid ${"var(--color-border)"}`, background:"var(--color-surface)",
-      borderRadius:8, padding:18, display:"flex", flexDirection:"column", gap:12 }}>
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12 }}>
-        <div>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 400,
-            fontSize:18, color:"var(--color-text)" }}>
-            {title}
-          </div>
-          <div style={{ fontSize:12, color:"var(--color-text-muted)", lineHeight:1.5, marginTop:2 }}>{subtitle}</div>
-        </div>
-        <StatusPill theme={theme} status={resolvedStatus.status} healthy={resolvedStatus.healthy}/>
-      </div>
+    <SettingsSection title={title} subtitle={subtitle}
+      aside={<StatusPill theme={theme} status={resolvedStatus.status} healthy={resolvedStatus.healthy}/>}>
       {children}
-    </section>
+    </SettingsSection>
   );
 }
 

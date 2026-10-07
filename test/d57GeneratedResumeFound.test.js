@@ -128,7 +128,7 @@ test("D57 · Settings lists every generated résumé — date, 'expires in N day
     assert.equal(j2.expiresInDays, null, "a kept résumé shows no expiry");
   } finally { t.stop(); }
   const panel = read("client/src/panels/AccountPanel.jsx");
-  const yourData = panel.slice(at(panel, '<Section title="Your data"'), at(panel, "<DeleteSection"));
+  const yourData = panel.slice(at(panel, '<SettingsSection title="Your data"'), at(panel, "<DeleteSection"));
   assert.match(yourData, /<GeneratedResumes busy=\{busy\} run=\{run\} \/>/, "the list lives in Your data");
   assert.match(panel, /api\("\/api\/generated-resumes"\)/);
   assert.match(panel, /\$\{list\.length\} kept/);
