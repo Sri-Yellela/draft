@@ -69,7 +69,26 @@ export function classifyCitizenship(...texts) {
 // ── CLEARANCE ────────────────────────────────────────────────────────────────────────────────────
 const CLEARANCE_CONTEXT = /\bclearance\b|\bpolygraph\b|\bpublic trust\b|\bTS\s*\/\s*SCI\b|\bsecret\b/i;
 const NOT_REQUIRED = /\bno\s+(?:security\s+)?clearance\b|\bclearance\s*(?::|is)?\s*(?:not\s+(?:required|applicable|needed)|none|n\/?a)\b|^(?:none|n\/?a|not applicable|not required|no)\.?$/i;
-const PREFERRED = /\bprefer|\bdesir|\ba plus\b|\bnice to have\b|\bbonus\b|\bhighly regarded\b/i;
+const PREFERRED = /\bprefer|\bdesir|\ba plus\b|\bnice[- ]to[- ]haves?\b|\bbonus\b|\bhighly regarded\b/i;
+// A run-on bullet list ("…an active TS security clearance Ideally You'd Have: • 2+ years…") carries the
+// requirement and the wish list in one "sentence". A header that opens the wish list cuts it: only the
+// words BEFORE it are read as required (10-07, found by the local backfill).
+// It is a header only when a colon follows closely: "experience, ideally in government environments" is
+// an ordinary word, and reading it as a header hid every requirement after it (10-07, the backfill).
+const PREFERRED_HEADER = /\b(?:ideally|nice[- ]to[- ]haves?|preferred\s+(?:qualifications|skills|experience)|bonus(?:\s+points)?|plus(?:es)?|(?:may|might) also have)\b(?=[^.:;]{0,40}:)/i;
+// A heading line that opens a wish list ("Nice to haves:", "Bonus", "Strong candidates may also have:").
+const WISH_HEADING = /^[\s•*-]*(?:nice[- ]to[- ]haves?|ideally|preferred|bonus|plus(?:es)?)\b|\b(?:may|might) also have\b/i;
+// "(Top Secret preferred)" — a preference in parentheses qualifies only itself, not the requirement beside it.
+const PREFERRED_ASIDE = /\([^)]*\b(?:prefer\w*|nice[- ]to[- ]haves?|a plus|desir\w*|bonus)\b[^)]*\)/gi;
+// "public trust" is also ordinary English ("…strengthen model reliability and public trust"). It is a
+// clearance only beside the words that make it one — a clearance, a background investigation, a tier,
+// a position of public trust (10-07, a false positive on the local board).
+// A short line that is only a heading ("Nice to haves:", "Must Haves:", "What You'll Do") — and a
+// sentence that opens a requirements section, which ends any wish list before it.
+const HEADING_LINE = /^[\s•*-]*[A-Za-z][\w'’ ,&/()-]{0,50}:\s*$|^[\s•*-]*(?:nice[- ]to[- ]haves?|ideally[\w'’ ]{0,30}|preferred(?: qualifications| skills| experience)?|bonus(?: points)?|[\w ]{0,30}(?:may|might) also have)\s*$/i;
+const REQUIRED_LEAD = /^[\s•*-]*(?:must[- ]haves?|requirements?|required|minimum|basic qualifications|what you(?:'|’)?ll need|you (?:have|bring|will need))\b/i;
+const POLYGRAPH_WISHED = /\b(?:polygraph|poly)\b[^.;•]{0,30}\b(?:nice[- ]to[- ]have|prefer\w*|a plus|desir\w*|bonus)\b/i;
+const PUBLIC_TRUST_CLEARANCE =/\bpublic trust\b\W*(?:\w+\W+){0,3}?(?:clearance|background|investigation|position|suitability|eligib)|\b(?:tier\s*\d|high[- ]risk|moderate[- ]risk|position of)\W+(?:\w+\W+){0,2}?public trust\b/i;
 const LEVEL_RULES = [
   ["ts_sci",       /\bTS\s*\/\s*SCI\b|\btop[- ]secret\s*\/\s*(?:SCI|sensitive compartmented)|\bSCI\b/i],
   ["top_secret",   /\btop[- ]secret\b|\bTS\b(?=\s*(?:clearance|security|level|\/|\(|,|$))/i],
@@ -82,6 +101,23 @@ const POLYGRAPH = /\bpolygraph\b|\b(?:CI|FS|full[- ]scope|lifestyle)\s*poly\b|\b
 function levelOf(s) {
   for (const [level, re] of LEVEL_RULES) if (re.test(s)) return level;
   return null;
+}
+
+/**
+ * The level ONE sentence requires. When it names several — "at least an active Secret clearance and the
+ * willingness to up-level to TS/SCI", "an active Secret or TS/SCI clearance" — the requirement is the
+ * LOWEST: the others are what it may grow into, or alternatives that also satisfy it. Each match is cut
+ * out before the next rule runs, so "Top Secret" is not also read as "Secret".
+ */
+function requiredLevelOf(s) {
+  let rest = String(s), lowest = null;
+  for (const [level, re] of LEVEL_RULES) {
+    if (!re.test(rest)) continue;
+    if (level === "public_trust" && !PUBLIC_TRUST_CLEARANCE.test(rest)) continue;
+    rest = rest.replace(new RegExp(re.source, "gi"), " ");
+    lowest = level;
+  }
+  return lowest;
 }
 
 /** The status, most permissive mention first: the ability to obtain, then interim, then active. */
@@ -116,15 +152,26 @@ export function classifyClearance({ typeValue = null, statusValue = null, atStar
     else if (/^\s*no\b/i.test(atStartValue)) status = status ?? "ability_to_obtain";
   }
   const proseStatus = [];
-  for (const s of sentences(text)) {
+  // A wish-list heading on its own line ("Nice to haves:") covers the bullets beneath it, until the next
+  // heading — those bullets are separate "sentences" and would otherwise be read as required.
+  let inWishList = false;
+  for (const whole of sentences(text)) {
+    if (HEADING_LINE.test(whole)) { inWishList = WISH_HEADING.test(whole); continue; }
+    if (REQUIRED_LEAD.test(whole)) inWishList = false;
+    if (inWishList) continue;
+    const cut = whole.search(PREFERRED_HEADER);
+    const s = (cut >= 0 ? whole.slice(0, cut) : whole).replace(PREFERRED_ASIDE, " ");
+    if (cut >= 0) inWishList = true;
     if (!CLEARANCE_CONTEXT.test(s) || PREFERRED.test(s) || BOILERPLATE.test(s)) continue;
     // A bare "secret" is not a clearance ("our secret sauce"): the sentence has to name one.
-    if (!/\bclearance\b|\bpublic trust\b|\bTS\s*\/\s*SCI\b|\bpolygraph\b/i.test(s)) continue;
+    if (!/\bclearance\b|\bTS\s*\/\s*SCI\b|\bpolygraph\b/i.test(s) && !PUBLIC_TRUST_CLEARANCE.test(s)) continue;
     if (NOT_REQUIRED.test(s)) continue;
-    if (POLYGRAPH.test(s)) polygraph = true;
-    const l = levelOf(s);
+    // "(Full Scope Polygraph is a nice to have)" — the clearance is required, the polygraph is not.
+    if (POLYGRAPH.test(s) && !POLYGRAPH_WISHED.test(whole)) polygraph = true;
+    const l = requiredLevelOf(s);
     if (!typed && l && (level == null || RANK[l] > RANK[level])) level = l;
-    else if (!typed && !l && !level && /\bsecurity clearance\b/i.test(s) && REQUIREMENT_WORDS.test(s)) level = "unspecified";
+    // "An active US security clearance." — a requirement bullet with no level named.
+    else if (!typed && !l && !level && /\bsecurity clearance\b/i.test(s) && (REQUIREMENT_WORDS.test(s) || /\b(?:active|hold|possess|maintain)\b/i.test(s))) level = "unspecified";
     if (l || /\bsecurity clearance\b/i.test(s)) proseStatus.push(s);
   }
   if (polygraph && !level) level = "unspecified";
