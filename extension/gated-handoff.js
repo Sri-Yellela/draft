@@ -145,7 +145,10 @@ function probeFormShape() {
       id: el.id || null,
       type: (el.type || el.tagName).toLowerCase(),
       label: labelFor(el).slice(0, 200),
-      required: el.required === true || el.getAttribute('aria-required') === 'true',
+      // D55 (g): an asterisked label is "required" too — on many forms it is the only signal.
+      required: el.required === true || el.getAttribute('aria-required') === 'true' ||
+        /\*\s*$/.test(labelFor(el)) ||
+        !!(el.id && document.querySelector(`label[for="${CSS.escape(el.id)}"] abbr[title="required" i]`)),
       options: el.tagName === 'SELECT'
         ? [...el.options].map(o => ({ value: o.value, text: (o.text || '').trim() })) : null,
       // D55 (a): which custom widget this is, so the plan and the review can say "typed and picked"
