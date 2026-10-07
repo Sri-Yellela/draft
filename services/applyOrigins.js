@@ -45,6 +45,33 @@ export const APPLY_ORIGIN_FAMILIES = Object.freeze([
     origins: Object.freeze(["https://boards.greenhouse.io", "https://job-boards.greenhouse.io"]),
     jobIdPattern: /\/jobs\/(\d{4,})(?=\/|$)/,
     jobIdParam: "token",
+    // ✅ D67 (1) re-observed 10-07: boards.greenhouse.io/anthropic/jobs/5382518008 → 301 → job-boards.greenhouse.io/…,
+    // and the form posts back to that page (action="/anthropic/jobs/5382518008").
+  }),
+  // ── D67 (1) · THE MANUAL SWEEP, 10-07 — every ATS the board links to (greenhouse · ashby · lever · workable ·
+  // recruitee: 2,616 local postings, no other source). Observed by fetching real postings unauthenticated and
+  // following each Apply control. ⭐ No new CROSS-origin pair exists among them: Lever, Ashby and Workable
+  // apply on the posting's own origin. But each serves EVERY employer on ONE shared origin — the shape the
+  // owner flagged for Workday — so their rows exist for the JOB ID: on jobs.lever.co a page naming another
+  // job's id is refused even though the origin matches. They TIGHTEN matching; they widen nothing.
+  // Recruitee runs on each employer's own domain (jobs.channable.com/o/<slug>/c/new) — no shared host, no row.
+  Object.freeze({
+    // jobs.lever.co/matchgroup/d28a3de6-cd04-483a-9aed-5ba1d2f8c57c → "Apply" → …/d28a3de6-…/apply (same origin).
+    ats: "lever",
+    origins: Object.freeze(["https://jobs.lever.co"]),
+    jobIdPattern: /^\/[^/]+\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?=\/|$)/i,
+  }),
+  Object.freeze({
+    // jobs.ashbyhq.com/ramp/d2beca4a-7409-404b-8382-761e5db6e917 → …/application (same origin).
+    ats: "ashby",
+    origins: Object.freeze(["https://jobs.ashbyhq.com"]),
+    jobIdPattern: /^\/[^/]+\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?=\/|$)/i,
+  }),
+  Object.freeze({
+    // apply.workable.com/j/B0D0ACB369 → 301 → apply.workable.com/blueground/j/B0D0ACB369 → …/apply (same origin).
+    ats: "workable",
+    origins: Object.freeze(["https://apply.workable.com"]),
+    jobIdPattern: /\/j\/([A-Z0-9]{8,12})(?=\/|$)/,
   }),
 ]);
 
