@@ -13,20 +13,7 @@
 .pp__co { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pp__sp { flex: 1 1 auto; }
 
-/* The ATS number box — the number in the display face, a tiny caption under it. */
-.pp__ats {
-  flex: 0 0 auto; width: 50px; height: 50px; border-radius: 12px; padding: 0;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  border: 1px solid var(--c-fh-line); background: var(--c-fh-well); box-shadow: var(--c-depth-rest);
-  cursor: pointer; transition: transform .16s, box-shadow .16s, border-color .16s;
-}
-.pp__ats:hover, .pp__ats:focus-visible { transform: translateY(-2px); box-shadow: var(--c-depth-hover); border-color: var(--c-accent-ink); outline: none; }
-.pp__ats:active { transform: translateY(0); box-shadow: var(--c-depth-press); }
-.pp__ats b { font: 400 26px/1 var(--font-display); color: var(--c-pp-ats-number); }
-.pp__ats small { font: 700 6.5px/1 var(--font-body); letter-spacing: .15em; text-transform: uppercase; color: var(--c-ink-faint); margin-top: 3px; }
-.pp__ats[aria-expanded="true"] { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-.pp__ats--none { border-style: dashed; box-shadow: none; }
-.pp__ats--none svg { width: 19px; height: 19px; fill: none; stroke: var(--c-ink-faint); stroke-width: 2; stroke-linecap: round; }
+/* The ATS number box is components/AtsNumberBox.css (A93) — one box, every surface. */
 
 /* × — a depth box, not a glyph on nothing. */
 .pp__x {
@@ -69,4 +56,4 @@
 @container pp (min-width: 600px) { .pp__a { display: flex; } }
 @container pp (max-width: 599.98px) { .pp__b { display: flex; } .pp__quota { display: none; } }
 
-@media (prefers-reduced-motion: reduce) { .pp__ats, .pp__x { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .pp__x { transition: none; } }

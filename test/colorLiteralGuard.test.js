@@ -81,10 +81,7 @@ const PERMANENT = {
     "Kept unchanged by the redesign (the portalled listbox). Its three literals are FALLBACKS for a " +
     "caller that passes no theme; every caller passes one. Remove them if DockPortal is next edited " +
     "for any other reason — the budget below will then insist the entry goes.",
-  "client/src/components/ui/chart.jsx":
-    "Vendored shadcn/ui chart primitive. Its literals are recharts selector strings " +
-    "(`[stroke='#ccc']`) that MATCH recharts' own defaults in order to restyle them — replacing them " +
-    "with tokens would make the selectors stop matching.",
+  // A93 (10-07): ui/chart.jsx deleted — no importer.
 };
 
 /** Not yet migrated. EMPTY since UI step 2b (09-30) — kept as the place a new exception would be argued. */
@@ -147,7 +144,7 @@ test("the shell, the public pages and the shared surfaces are literal-free", () 
     "client/src/components/NavBar.css", "client/src/pages/LandingPage.css",
     "client/src/components/UnifiedSearchBar.css", "client/src/components/TopBar.jsx",
     "client/src/components/Footer.jsx", "client/src/components/ScrollDock.jsx",
-    "client/src/components/AuthScreen.jsx", "client/src/components/CTAButton.jsx",
+    "client/src/components/AuthScreen.jsx",
     "client/src/components/PanelShell.jsx", "client/src/components/ui/PanelControls.jsx",
     "client/src/components/UsbSelect.jsx", "client/src/components/UsbSuggest.jsx",
     "client/src/pages/tools/ATSToolPage.jsx", "client/src/pages/tools/GenerateToolPage.jsx",
@@ -156,8 +153,8 @@ test("the shell, the public pages and the shared surfaces are literal-free", () 
     "client/src/pages/marketing/PricingPage.jsx", "client/src/pages/marketing/ContactPage.jsx",
     "client/src/pages/marketing/FeaturesPage.jsx", "client/src/pages/AdminLoginPage.jsx",
     "client/src/components/InlineLoginPopover.jsx", "client/src/components/FindFitApply.jsx",   // was BelowFoldContent (queue 31)
-    "client/src/components/ProfileSelectorDropdown.jsx", "client/src/components/MetaChips.jsx",
-    "client/src/components/CountdownDisplay.jsx", "client/src/components/AdminLayout.jsx",
+    "client/src/components/ProfileSelectorDropdown.jsx",
+    "client/src/components/AdminLayout.jsx",
     "client/src/components/ui/TileCard.jsx", "client/src/components/ui/DateCalendar.jsx",
     // Step 2b (09-30): the signed-in app — the 22 files the budget held.
     "client/src/pages/admin/DBInspector.jsx", "client/src/panels/AutoApplyPanel.jsx",

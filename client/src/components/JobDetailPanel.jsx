@@ -8,7 +8,7 @@ import CompanyViewModal from "./CompanyViewModal.jsx";
 import PanelShell from "./PanelShell.jsx";
 import CompanyLink from "./CompanyLink.jsx";
 import CompanyLogo from "./CompanyLogo.jsx";
-import { ATS_NUMBER_SHOWN, ATS_NUMBER_NOTE } from "../../../shared/atsBands.js";
+import { AtsNumberBox } from "./AtsNumberBox.jsx";
 import { atsScorePair } from "../../../shared/resumeScores.js";
 import StickyBar from "./StickyBar.jsx";
 import DepthButton, { ICONS } from "./DepthButton.jsx";
@@ -20,28 +20,7 @@ import { DraftButton, PassButton, SaveButton } from "./DecisionButtons.jsx";
 // drawer, and its width is allocated from the dock's budget rather than owned here. Escape
 // handling, focus-on-open, the overlay surface, the scrim, the animation and the two pinned regions
 // all live in PanelShell, which is shared with the PDF and ATS panels.
-/**
- * ⭐ D48 · THE ATS NUMBER BOX — the number, in the ATS card's own display face, with a tiny ATS caption;
- * the colour is PP_ATS_NUMBER — the sketch's --atx (#A33200 in light, where the logo orange fails as text,
- * the orange in dark), the same value as the ATS card's number (PAIR_KICKER), so the two read as one. Click → the ATS card beside the posting (D39); OPEN is an outline. No score → the dashed box with the bars and NO digits — a board row's missing score is "not scored yet"
- * far more often than a decline (A52), so it says so, and the card it opens scores the posting fresh.
- * The number is provisional (D50): its title says so.
- */
-export function AtsNumberBox({ score, tailored = false, base = null, open = false, onOpen }) {
-  const has = ATS_NUMBER_SHOWN && Number.isFinite(score);
-  // ⭐ D58: the score of the résumé that would be SENT — the tailored one when it exists, marked so.
-  const what = tailored ? `Tailored résumé's ATS match ${Math.round(score)}${Number.isFinite(base) ? ` (base résumé ${Math.round(base)})` : ""}` : `ATS match ${Math.round(score)}`;
-  return (
-    <button type="button" className={`pp__ats${has ? "" : " pp__ats--none"}`} data-ats-box="" data-ats-tailored={has && tailored ? "true" : undefined} aria-expanded={open}
-      onClick={() => onOpen?.()}
-      title={has ? `${what} — ${ATS_NUMBER_NOTE}` : "No ATS score yet — open the ATS card to score this posting"}
-      aria-label={has ? `${what}. ${ATS_NUMBER_NOTE}. Open the ATS card` : "No ATS score yet. Open the ATS card"}>
-      {has
-        ? (<><b>{Math.round(score)}</b><small>{tailored ? "tailored" : "ATS"}</small></>)
-        : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V8"/></svg>}
-    </button>
-  );
-}
+// ⭐ D48 · the ATS number box is components/AtsNumberBox.jsx — one box for every surface (A93).
 
 /**
  * ⭐ D48 · THE ACTIONS — A and B are ONE component with two renderings, chosen by the PANEL's width (a

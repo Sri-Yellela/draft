@@ -36,15 +36,18 @@ test("D48 · the box's number and the ATS card's are ONE colour, in both themes 
 });
 
 test("D48 · the ATS box: the number in the display face and PP_ATS_NUMBER; no score → dashed, the bars, NO digits", () => {
-  const box = jd.slice(at(jd, "export function AtsNumberBox("), at(jd, "function PostingActions("));
+  // A93: the box is ONE component now — components/AtsNumberBox.jsx + .css — and the header imports it.
+  assert.match(jd, /import \{ AtsNumberBox \} from "\.\/AtsNumberBox\.jsx";/);
+  const box = read("client/src/components/AtsNumberBox.jsx");
+  const boxCss = read("client/src/components/AtsNumberBox.css");
   assert.match(box, /const has = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);
-  // D58: the caption says "tailored" when the number is the tailored résumé's.
-  assert.match(box, /\{has\s+\? \(<><b>\{Math\.round\(score\)\}<\/b><small>\{tailored \? "tailored" : "ATS"\}<\/small><\/>\)\s+: <svg/);
-  assert.match(box, /className=\{`pp__ats\$\{has \? "" : " pp__ats--none"\}`\}/);
+  // D58: the caption says "tailored" when the number is the tailored résumé's; no score → the bars.
+  assert.match(box, /\? \(<><b>\{Math\.round\(score\)\}<\/b><small>\{caption \|\| \(tailored \? "tailored" : "ATS"\)\}<\/small><\/>\)\s+: BARS;/);
+  assert.match(box, /const cls = `atsn atsn--\$\{size\}\$\{has \? "" : " atsn--none"\}/);
   assert.match(box, /aria-expanded=\{open\}/, "open is shown as an outline, from the ATS card's state");
-  assert.match(jdCss, /\.pp__ats b \{ font: 400 26px\/1 var\(--font-display\); color: var\(--c-pp-ats-number\); \}/);
-  assert.match(jdCss, /\.pp__ats\[aria-expanded="true"\] \{ outline: 2px solid var\(--c-accent-ink\);/);
-  assert.match(jdCss, /\.pp__ats--none \{ border-style: dashed; box-shadow: none; \}/);
+  assert.match(boxCss, /\.atsn b \{ font: 400 26px\/1 var\(--font-display\); color: var\(--c-pp-ats-number\); \}/);
+  assert.match(boxCss, /\.atsn\[aria-expanded="true"\] \{ outline: 2px solid var\(--c-accent-ink\);/);
+  assert.match(boxCss, /\.atsn--none \{ border-style: dashed; box-shadow: none; \}/);
   // The open state comes from the board, which knows whether the ATS card is beside the posting.
   assert.match(read("client/src/panels/JobsPanel.jsx"), /atsOpen: !!rightPanelOpen/);
 });
