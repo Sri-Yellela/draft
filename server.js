@@ -25,8 +25,11 @@ import { createBackup, listBackups, restoreBackup } from "./scripts/backup.js";
 import { applyPendingMigrations } from "./scripts/applyMigrations.js";
 import applyRoutes, { capturedAtsAtApply } from "./routes/apply.js";
 import applicationRecordRoutes from "./routes/applicationRecords.js";
+import generatedResumeRoutes from "./routes/generatedResumes.js";
 import applicationArtifactRoutes from "./routes/applicationArtifacts.js";
 import { draftSlots, slotsExhausted, recordGenerationSlot } from "./services/draftSlots.js";
+import { storeGeneratedResume, refundGeneration, ResumeStoreError, STORE_FAILED_SENTENCE, listGeneratedResumes,
+         deleteGeneratedResume, sweepExpiredResumes, resumeRetentionDays } from "./services/generatedResumes.js";
 import { markPending } from "./services/applicationRecords.js";
 import { purgeSweep } from "./services/draftBin.js";
 import { createAccountRouter } from "./routes/account.js";
@@ -89,6 +92,8 @@ import { rejectCrossSiteWrites } from "./services/originGuard.js";
 import { AccountError, forgetSessions, recordSession, sidsToRevoke } from "./services/accountService.js";
 import { adminDeletePreview, adminDeleteUser, checkAdminDeleteConfirmed, removeDataFiles } from "./services/adminUserDelete.js";
 import { createAccountManagementRouter } from "./routes/accountManagement.js";
+import { createSavedAnswersRouter } from "./routes/savedAnswers.js";
+import { workHistoryCompanies } from "./shared/savedAnswers.js";
 import { allowedModesForTier, canUseAPlusResume, canUseGenerate, canUseMode, hasPlanAtLeast, nextPlan, normalisePlanTier, planForMode } from "./services/entitlements.js";
 import { monetisationEnabledFromEnv } from "./shared/monetisation.js";
 import { fullAutoState, setSetting, clearSetting, FULL_AUTO_KEY } from "./services/appSettings.js";
@@ -4224,6 +4229,28 @@ console.log(`[boot] database ready: ${DB_PATH}`);
       `,
     },
     {
+      // D58 (10-07): BASE → TAILORED, STORED AS ONE PAIR. A generation already measures the base résumé's
+      // score for the posting just before the model call (AK1's atsScoreBefore, the same scorer and job as
+      // the tailored score). It is now kept beside the tailored score on the résumé, so "Base 58 → tailored
+      // 71" is one stored statement every surface reads. NULL: generated before this, or the scorer declined.
+      id: "131_resume_score_pair",
+      sql: `
+        ALTER TABLE resumes ADD COLUMN base_ats_score INTEGER;
+        ALTER TABLE resume_versions ADD COLUMN base_ats_score INTEGER;
+      `,
+    },
+    {
+      // D55 (i) (10-07): THE TABLE'S CSV IMPORT KEEPS THE COMPANY'S WEBSITE. Duplicates and By company are
+      // keyed by the D54 company identity, whose strongest evidence is the DOMAIN — and a past application
+      // imported from a file has no posting and no logo-store row to carry one. Without this column two
+      // same-named companies imported with different websites would merge the moment they were stored.
+      // NULL: every row written before this, and every row whose domain comes from the logo store instead.
+      id: "135_application_company_domain",
+      sql: `
+        ALTER TABLE job_applications ADD COLUMN company_domain TEXT;
+      `,
+    },
+    {
       // D55 decision E (10-07): "REPORT THIS FORM" — a user-invoked report, from the extension, that an
       // application form is not recognised. It carries the form page's HOST and its field LABELS, never a
       // value and never a URL path or query (services/formReports.js refuses any other key). Linked to the
@@ -4586,6 +4613,20 @@ function runFormReportPurge(trigger) {
 }
 setTimeout(() => runFormReportPurge("boot"), 60_000).unref?.();
 setInterval(() => runFormReportPurge("interval"), 6 * 3600_000).unref?.();
+
+// ⭐ D57 · A CONVENIENCE COPY EXPIRES. A generated résumé not tied to a Draft or an application is kept
+// RESUME_RETENTION_DAYS (90) from its latest generation — the date Settings shows on it — and then
+// deleted; a tied one is kept for good. Daily, with the same refusal shape as the bin: a pass that would
+// delete more than half of all stored résumés (and more than 20) deletes nothing and says so.
+function runResumeRetentionSweep(trigger) {
+  try {
+    const out = sweepExpiredResumes(db, { days: resumeRetentionDays() });
+    if (out.refused) console.warn(`[resume-retention] ${trigger}: REFUSED — ${out.due} of ${out.total} due; nothing deleted`);
+    else if (out.swept.length) console.log(`[resume-retention] ${trigger}: deleted ${out.swept.length} résumé(s) older than ${out.days} days with no Draft or application`);
+  } catch (e) { console.warn(`[resume-retention] ${trigger}: ${e.message}`); }
+}
+setTimeout(() => runResumeRetentionSweep("boot"), 90_000).unref?.();
+setInterval(() => runResumeRetentionSweep("interval"), 24 * 3600_000).unref?.();
 
 const adminExists = db.prepare("SELECT id FROM users WHERE username=?").get(ADMIN_USER);
 if (!adminExists) {
@@ -5106,6 +5147,10 @@ function buildAutofillPayload(profile, mode, company = null) {
     // borrowed enthusiasm. buildAnswers still receives nothing but literal question text, so its
     // exact-match tier is unchanged.
     custom_answers: effectiveCustomAnswers(readAnswerStore(profile), company),
+    // D55 (f): what "have you worked here before?" is answered from — the employers the candidate has
+    // stated. Here only current_company; routes/apply.js adds the base résumé's EXPERIENCE companies
+    // (the packet's entries.work) for every run and packet. See shared/savedAnswers.js.
+    worked_here: { company: company || null, history: workHistoryCompanies({ profile }) },
     dropdown_map:{
       gender:   profile?.gender          ? [profile.gender]          : [],
       work_auth:profile?.work_auth       ? [profile.work_auth]        : [],
@@ -7311,6 +7356,9 @@ app.use(createAccountRouter({
 
 // Account management — profile, picture, sessions, password, email, sign-in methods, export,
 // merge and delete. routes/accountManagement.js; the data layer is services/accountService.js.
+// D55 (f): the candidate's saved answers — remember, list/edit/delete, export/import, test a question.
+app.use(createSavedAnswersRouter({ db, requireAuth, buildAutofillPayload }));
+
 app.use(createAccountManagementRouter({
   db,
   requireAuth,
@@ -9623,41 +9671,36 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   console.log(`[generate] ATS lift: ${atsScoreBefore ?? "n/a"} -> ${atsScore ?? "n/a"}` +
     (atsScoreBefore != null && atsScore != null ? ` (${atsScore - atsScoreBefore >= 0 ? "+" : ""}${atsScore - atsScoreBefore})` : ""));
 
-  const version = (db.prepare("SELECT MAX(version) as v FROM resume_versions WHERE user_id=? AND job_id=?")
-    .get(userId, String(jobId))?.v || 0) + 1;
-  const keptExists = !!db.prepare("SELECT 1 FROM resume_versions WHERE user_id=? AND job_id=? AND is_kept=1 LIMIT 1")
-    .get(userId, String(jobId));
-  db.prepare("INSERT INTO resume_versions (user_id,job_id,company,role,category,html,ats_score,ats_report,tool_type,is_kept,version,ats_cache_key,ats_prompt_version) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)")
-    .run(userId, String(jobId), job.company, job.title, job.category, formattedHtml, atsScore, JSON.stringify(atsReport), tool, 0, version, atsCacheKey, ATS_SCORE_PROMPT_VERSION);
-  if (!keptExists) {
-    // AH5: domain_profile_id is STAMPED, so "was this artifact built for the profile that is
-    // active now?" becomes a question the reuse rule can answer instead of assume.
-    db.prepare(`INSERT INTO resumes (user_id,job_id,company,role,category,apply_mode,html,ats_score,ats_report,ats_cache_key,ats_prompt_version,domain_profile_id,created_at,updated_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,unixepoch(),unixepoch())
-      ON CONFLICT(user_id,job_id) DO UPDATE SET html=excluded.html,role=excluded.role,category=excluded.category,
-      apply_mode=excluded.apply_mode,ats_score=excluded.ats_score,ats_report=excluded.ats_report,
-      ats_cache_key=excluded.ats_cache_key,ats_prompt_version=excluded.ats_prompt_version,
-      domain_profile_id=excluded.domain_profile_id,updated_at=excluded.updated_at`)
-      .run(userId, String(jobId), job.company, job.title, job.category, mode, formattedHtml, atsScore, JSON.stringify(atsReport), atsCacheKey, ATS_SCORE_PROMPT_VERSION, activeDomainProfile?.id ?? null);
+  // ⛔ D57 · ONE STORE, AND IT IS ALWAYS THE NEWEST. The version, the job's current résumé and the
+  // user_jobs flag are one transaction (services/generatedResumes.js). `resumes` used to be written
+  // only while no version was KEPT — so a generation after an exported (kept) one, charged a slot and shown
+  // once, was in resume_versions and nowhere a reader looks. A store that fails gives the plan's
+  // generation count back (the usage row above is the spend; it is marked unsuccessful) and throws a
+  // ResumeStoreError the route answers with STORE_FAILED_SENTENCE — the Draft slot is debited only
+  // after this returns, so none was taken.
+  let stored;
+  try {
+    stored = storeGeneratedResume(db, {
+      userId, jobId: String(jobId), job, tool, mode, html: formattedHtml, atsScore, atsReport,
+      // ⭐ D58: the pair, written once — the base résumé's score measured above (same scorer, same job).
+      baseAtsScore: atsScoreBefore,
+      atsCacheKey, promptVersion: ATS_SCORE_PROMPT_VERSION, domainProfileId: activeDomainProfile?.id ?? null,
+      userJobProfileId: resolveUserJobDomainProfileId(userId, String(jobId)),
+    });
+  } catch (e) {
+    const refunded = refundGeneration(db, usageEventId);
+    console.error(`[generate] the résumé for job=${jobId} could not be stored (${e?.code || e?.name}: ${e?.message}); ` +
+      `generation count ${refunded ? "refunded" : "not found to refund"}`);
+    throw new ResumeStoreError(STORE_FAILED_SENTENCE, { cause: e, refunded });
   }
-
-  const userJobProfileId = resolveUserJobDomainProfileId(userId, String(jobId));
-  if (userJobProfileId) {
-    db.prepare(`
-      INSERT INTO user_jobs (user_id, job_id, domain_profile_id, resume_generated, updated_at)
-      VALUES (?, ?, ?, 1, unixepoch())
-      ON CONFLICT(user_id, job_id) DO UPDATE SET
-        resume_generated = 1, updated_at = unixepoch()
-    `).run(userId, String(jobId), userJobProfileId);
-  }
+  const { version } = stored;
 
   emitToUser(userId, { type: "resume_generated", jobId: String(jobId), atsScore });
   insertNotification(userId, "resume_generated",
     `Resume ready for ${job.company}${atsScore != null ? ` (ATS: ${atsScore})` : ""}`,
     { jobId: String(jobId), company: job.company, atsScore });
 
-  const savedResume = db.prepare("SELECT id FROM resumes WHERE user_id=? AND job_id=?").get(userId, String(jobId));
-  return { html: formattedHtml, atsScore, atsReport, version, resumeId: savedResume?.id ?? null };
+  return { html: formattedHtml, atsScore, atsReport, baseAtsScore: atsScoreBefore ?? null, version, resumeId: stored.resumeId, generatedAt: Date.now() };
 }
 
 // ── scoreBaseResumeForApply ────────────────────────────────────────────────────
@@ -10000,6 +10043,7 @@ app.post("/api/generate", requireAuth, async (req, res) => {
         toolLabel: tool === "a_plus_resume" ? "A+ Resume" : "Generate",
         version: cachedArtifact.version || existingVersion?.version || null,
         kbFindings: kbFindingsFor(cachedArtifact.html),
+        baseAtsScore: cachedArtifact.base_ats_score ?? null,
       });
     }
     try {
@@ -10033,6 +10077,7 @@ app.post("/api/generate", requireAuth, async (req, res) => {
         toolLabel: tool === "a_plus_resume" ? "A+ Resume" : "Generate",
         version: cachedArtifact.version || existingVersion?.version || null,
         kbFindings: kbFindingsFor(cachedArtifact.html),
+        baseAtsScore: cachedArtifact.base_ats_score ?? null,
       });
     } catch {
       return res.json({
@@ -10045,6 +10090,7 @@ app.post("/api/generate", requireAuth, async (req, res) => {
         toolLabel: tool === "a_plus_resume" ? "A+ Resume" : "Generate",
         version: cachedArtifact.version || existingVersion?.version || null,
         kbFindings: kbFindingsFor(cachedArtifact.html),
+        baseAtsScore: cachedArtifact.base_ats_score ?? null,
       });
     }
   }
@@ -10065,12 +10111,30 @@ app.post("/api/generate", requireAuth, async (req, res) => {
       slots = draftSlots(db, req.user.id);
       if (jobId) pending = markPending(db, req.user.id, jobId, "generated").state;
     } catch (e) { console.warn("[generate] slot/pending:", e.message); }
+    // ⭐ D56: THE MANUAL ROUTE PRODUCES A PACKET. Generating a résumé for a job makes that job PREPARED —
+    // the profile's answers plus this résumé — so the extension fills it without a Draft. Never fails
+    // the generation: a job with no fillable address, or an empty profile, simply stays unprepared and
+    // the extension's "Prepare this application" says why.
+    let prepared = null;
+    try {
+      if (jobId) {
+        const p = applyLine.prepareManualPacket({ userId: req.user.id, jobId: String(jobId), via: "generate", toolType: tool });
+        prepared = p.ok ? { packetId: p.packetId, resume: p.resume } : { error: p.error, message: p.message };
+      }
+    } catch (e) { console.warn("[generate] prepare packet:", e.message); }
     res.json({ html: result.html, atsScore: result.atsScore, atsReport: result.atsReport, cached:false, version: result.version, tool, toolLabel: tool === "a_plus_resume" ? "A+ Resume" : "Generate", kbFindings: kbFindingsFor(result.html),
-      draftSlots: slots, pending });
+      draftSlots: slots, pending, generatedAt: result.generatedAt, resumeId: result.resumeId, baseAtsScore: result.baseAtsScore, prepared });
   } catch(e) {
     // ⛔ Was `500 { error: e.message }` for everything — an exhausted balance, an overload and a
     // withheld résumé looked identical and none said whether retrying could help.
     console.error("[generate]", e?.code || e?.name, e?.message);
+    // ⛔ D57: written but not stored → refunded, and SAID: no slot was taken, the count is back.
+    if (e instanceof ResumeStoreError) {
+      let slots = null;
+      try { slots = draftSlots(db, req.user.id); } catch { /* the sentence stands without the count */ }
+      return res.status(503).json({ error: e.message, code: e.code, retryable: true, refunded: true,
+        planRefunded: e.refunded, draftSlots: slots });
+    }
     const { status, body } = httpErrorFor(e, "Resume generation failed");
     res.status(status).json(body);
   }
@@ -10133,7 +10197,10 @@ app.get("/api/resumes", requireAuth, (req, res) => {
   const rows = db.prepare(`
     SELECT r.id, r.user_id, r.job_id, r.company, r.role, r.category,
            r.apply_mode, r.ats_score, r.ats_report, r.created_at, r.updated_at,
-           COUNT(v.id) as versions
+           r.base_ats_score,
+           COUNT(v.id) as versions,
+           -- D57: when this job's résumé was last GENERATED — the posting panel's "Résumé ready · 2h ago"
+           COALESCE(MAX(v.created_at), r.created_at) AS generated_at
     FROM resumes r
     LEFT JOIN resume_versions v ON v.user_id=r.user_id AND v.job_id=r.job_id
     WHERE r.user_id=? GROUP BY r.id ORDER BY r.updated_at DESC
@@ -10160,13 +10227,13 @@ app.delete("/api/resumes/:jobId", requireAuth, (req, res) => {
   // did do was answer {ok:true} for a job_id it had not touched, so a request aimed at somebody
   // else's resume was indistinguishable from a successful deletion of your own. Nothing leaked, but
   // nothing said so either, and "did that work?" is exactly the question an ownership check answers.
-  const removed = db.prepare("DELETE FROM resumes WHERE user_id=? AND job_id=?")
-    .run(req.user.id, req.params.jobId).changes;
-  const removedVersions = db.prepare("DELETE FROM resume_versions WHERE user_id=? AND job_id=?")
-    .run(req.user.id, req.params.jobId).changes;
-  if (!removed && !removedVersions) return res.status(404).json({ error:"Resume not found" });
+  // D57: one delete (services/generatedResumes.js) for this route and Settings' list — and every open
+  // board hears it, so the job's Résumé button is free again at once.
+  if (!deleteGeneratedResume(db, req.user.id, req.params.jobId)) return res.status(404).json({ error:"Resume not found" });
+  emitToUser(req.user.id, { type: "resume_deleted", jobId: String(req.params.jobId) });
   res.json({ ok:true });
 });
+generatedResumeRoutes(app, db, requireAuth, { emitToUser });
 app.get("/api/history", requireAuth, (req, res) => {
   const rows = db.prepare(`SELECT r.job_id,r.company,r.role,r.category,r.ats_score,r.apply_mode,r.updated_at,COUNT(v.id) as versions
     FROM resumes r LEFT JOIN resume_versions v ON v.user_id=r.user_id AND v.job_id=r.job_id

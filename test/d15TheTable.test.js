@@ -45,8 +45,10 @@ test("D15: in play, closed, and the furthest stage survives a later rejection's 
 });
 
 test("D15: the three answers on the ask are stored values of the shared vocabulary", () => {
-  assert.deepEqual(REPLY_ASK.map(a => a.outcome), ["interview", "rejected", "no_response"]);
-  assert.deepEqual(HISTORY_CHIPS.map(c => c.label), ["In play", "Sent", "Replied", "No reply", "Closed"]);
+  // D55 F added the screen to the ask, and split the Replied chip into the funnel stages.
+  assert.deepEqual(REPLY_ASK.map(a => a.outcome), ["screen", "interview", "rejected", "no_response"]);
+  assert.deepEqual(HISTORY_CHIPS.map(c => c.label),
+    ["In play", "Sent", "Screen", "Interviewing", "Offer", "Rejected", "Replied", "No reply", "Closed"]);
 });
 
 test("D15: the timeline counts days between steps and never invents an unreached one", () => {
@@ -76,12 +78,12 @@ test("D15: chips count AFTER the date range and BEFORE the chip; the awaiting so
     ],
     jobs: [{ job_id: "a", company: "Alpha", title: "Eng" }],
   }, { now: NOW });
-  assert.deepEqual(chipCounts(rows), { in_play: 1, sent: 2, replied: 0, no_reply: 0, closed: 0 });
+  assert.deepEqual(chipCounts(rows), { in_play: 1, sent: 2, screen: 0, interviewing: 0, offer: 0, rejected: 0, replied: 0, no_reply: 0, closed: 0 });
   const v = applyHistoryView(rows, { chip: "sent", sort: "awaiting" });
   assert.deepEqual(v.rows.map(r => r.jobId), ["b", "c"]);
   assert.equal(v.counts.in_play, 1, "the chip does not shrink its own neighbours' counts");
   const ranged = applyHistoryView(rows, { from: NOW - 20 * DAY });
-  assert.deepEqual(ranged.counts, { in_play: 1, sent: 1, replied: 0, no_reply: 0, closed: 0 });
+  assert.deepEqual(ranged.counts, { in_play: 1, sent: 1, screen: 0, interviewing: 0, offer: 0, rejected: 0, replied: 0, no_reply: 0, closed: 0 });
   assert.deepEqual(applyHistoryView(rows, { sort: "az" }).rows.map(r => r.company), ["Alpha", "Beta", "Gamma"]);
   assert.equal(oldestUnanswered(rows).jobId, "b");
 });

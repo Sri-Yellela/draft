@@ -22,6 +22,7 @@ import { DraftMark }             from "./components/DraftMark.jsx";
 import { ExtensionFirstRunPrompt } from "./components/ExtensionPrompt.jsx";
 import { ProfilePanel }          from "./panels/ProfilePanel.jsx";
 import { JobProfilesPanel }      from "./panels/JobProfilesPanel.jsx";
+import { SavedAnswersPanel }     from "./panels/SavedAnswersPanel.jsx";
 import { DatabasePanel }         from "./panels/DatabasePanel.jsx";
 import { PlansPanel }            from "./panels/PlansPanel.jsx";
 import DeckView                  from "./panels/DeckView.jsx";
@@ -352,6 +353,8 @@ function AppDashboard({ authUser, setAuthUser }) {
   const NAVIGABLE_TABS = useMemo(
     () => new Set([...appTabs.map(t => t.id).filter(id => id !== "console"),
                    ...(monetisationEnabled ? ["plans"] : []), "profile", "integrations", "account",
+                   // D55 (f): Settings → Saved answers, reached from the Settings group of the menu.
+                   "saved-answers",
                    ...ROUTE_ONLY_TABS]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [monetisationEnabled],
@@ -565,6 +568,7 @@ function AppDashboard({ authUser, setAuthUser }) {
             {activeTab === "plans" && monetisationEnabled && <PlansPanel user={authUser} onUserChange={setAuthUser}/>}
             {activeTab === "profile"      && <ProfilePanel user={authUser} onOpenJobProfiles={() => handlePanelChange("job-profiles")}/>}
             {activeTab === "job-profiles" && <JobProfilesPanel/>}
+            {activeTab === "saved-answers" && <SavedAnswersPanel/>}
             {activeTab === "recruiter"    && <RecruiterPanel/>}
           </main>
 

@@ -139,6 +139,15 @@ const AUTHENTICATED = new Set([
   "POST /api/plans/request-upgrade",
   "GET /api/profile",
   "POST /api/profile",
+  // D55 (f): the caller's OWN saved answers (user_profile.custom_answers / custom_answer_overrides), always
+  // req.user.id. Remember one, manage, export / import, and test a question against them.
+  "POST /api/saved-answers/remember",
+  "GET /api/saved-answers",
+  "PUT /api/saved-answers",
+  "DELETE /api/saved-answers",
+  "GET /api/saved-answers/export",
+  "POST /api/saved-answers/import",
+  "POST /api/saved-answers/test",
   "PATCH /api/profile/skills",
   "GET /api/autofill",
   "GET /api/extension/autofill",
@@ -257,6 +266,16 @@ const AUTHENTICATED = new Set([
   "DELETE /api/account/merge",
   "POST /api/account/merge",
   "POST /api/account/delete",
+  // routes/applicationRecords.js (A63 / D15 / D55) — mounted as applicationRecordRoutes(app, db, requireAuth, …);
+  // every one reads or writes the caller's OWN records and history, always req.user.id. Enumerated from
+  // D55 (i), which added the CSV import — before that this file's routes were not scanned at all.
+  "GET /api/draft/slots",
+  "GET /api/applications/pending",
+  "GET /api/applications/history",
+  "POST /api/applications/import",
+  "POST /api/applications/pending",
+  "POST /api/applications/pending/:jobId/record",
+  "POST /api/applications/pending/:jobId/withdraw",
   // routes/apply.js — every one of these is mounted with requireAuth
   "POST /api/apply",
   "GET /api/apply/status/:jobId",
@@ -302,6 +321,14 @@ const AUTHENTICATED = new Set([
   "GET /api/apply/gate-packets",
   "POST /api/apply/gate-packets/:packetId/token",
   "POST /api/apply/gate-packets/:packetId/reopen",
+  // D56: a PREPARED packet's résumé (no run-job to go through) — owner-checked on packet and artifact.
+  "GET /api/apply/gate-packets/:packetId/resume",
+  // D56: the extension on a page — which packets may fill it (origin list + job id), Prepare this
+  // application, "I submitted it", and §8 row 17's Copy sheet. All the session user's own.
+  "POST /api/apply/handoff/match",
+  "POST /api/apply/prepare",
+  "POST /api/apply/copy-sheet",
+  "POST /api/apply/handoff/submitted",
   "POST /api/apply/gate-packet/exchange",
   "GET /api/apply/form-schema",
   "POST /api/apply/form-schema",
@@ -374,10 +401,12 @@ function collect() {
   const routes = [
     ...directRoutes(SERVER),
     ...directRoutes(fs.readFileSync("routes/apply.js", "utf8")),
+    ...directRoutes(fs.readFileSync("routes/applicationRecords.js", "utf8")),
     // account.js is mounted with app.use(createAccountRouter({...})) at the ROOT, so its routes
     // already carry their full /api path and their own per-route guard.
     ...routerRoutes(fs.readFileSync("routes/account.js", "utf8"), ""),
     ...routerRoutes(fs.readFileSync("routes/accountManagement.js", "utf8"), ""),
+    ...routerRoutes(fs.readFileSync("routes/savedAnswers.js", "utf8"), ""),
     ...routerRoutes(fs.readFileSync("routes/domainProfiles.js", "utf8"), "/api/domain-profiles")
       .map(r => ({ ...r, guard: named(r.guard) || mounts.get("/api/domain-profiles") })),
     ...routerRoutes(fs.readFileSync("routes/importJob.js", "utf8"), "/api/import")

@@ -37,7 +37,10 @@ test("download/export marks the selected artifact as kept for downstream use", (
   assert.match(server, /tool_type TEXT NOT NULL DEFAULT 'generate'/);
   assert.match(server, /is_kept INTEGER NOT NULL DEFAULT 0/);
   assert.match(server, /app\.post\("\/api\/resumes\/:jobId\/keep"/);
-  assert.match(server, /const keptExists = !!db\.prepare/);
+  // ⛔ D57: keeping (exporting) a version no longer LOCKS `resumes` — a later generation is the résumé
+  // that would be sent, so it is always stored there; is_kept stays the record of what was exported.
+  assert.doesNotMatch(server, /keptExists/);
+  assert.match(fs.readFileSync("services/generatedResumes.js", "utf8"), /\/\/ ⛔ ALWAYS — the newest generation is the résumé that would be sent/);
   assert.match(server, /UPDATE resume_versions SET is_kept=1/);
   assert.match(jobsPanel, /\/api\/resumes\/\$\{current\.jobId\}\/keep/);
   // A63: the export then tags the job Pending — it no longer records an application.

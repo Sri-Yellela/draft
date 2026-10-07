@@ -3836,6 +3836,28 @@ export const MIGRATIONS = [
       `,
     },
     {
+      // D58 (10-07): BASE → TAILORED, STORED AS ONE PAIR. A generation already measures the base résumé's
+      // score for the posting just before the model call (AK1's atsScoreBefore, the same scorer and job as
+      // the tailored score). It is now kept beside the tailored score on the résumé, so "Base 58 → tailored
+      // 71" is one stored statement every surface reads. NULL: generated before this, or the scorer declined.
+      id: "131_resume_score_pair",
+      sql: `
+        ALTER TABLE resumes ADD COLUMN base_ats_score INTEGER;
+        ALTER TABLE resume_versions ADD COLUMN base_ats_score INTEGER;
+      `,
+    },
+    {
+      // D55 (i) (10-07): THE TABLE'S CSV IMPORT KEEPS THE COMPANY'S WEBSITE. Duplicates and By company are
+      // keyed by the D54 company identity, whose strongest evidence is the DOMAIN — and a past application
+      // imported from a file has no posting and no logo-store row to carry one. Without this column two
+      // same-named companies imported with different websites would merge the moment they were stored.
+      // NULL: every row written before this, and every row whose domain comes from the logo store instead.
+      id: "135_application_company_domain",
+      sql: `
+        ALTER TABLE job_applications ADD COLUMN company_domain TEXT;
+      `,
+    },
+    {
       // D55 decision E (10-07): "REPORT THIS FORM" — a user-invoked report, from the extension, that an
       // application form is not recognised. It carries the form page's HOST and its field LABELS, never a
       // value and never a URL path or query (services/formReports.js refuses any other key). Linked to the

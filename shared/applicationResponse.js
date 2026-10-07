@@ -32,6 +32,41 @@ export const RESPONSE_OUTCOME = {
 export const RESPONSE_OUTCOMES = Object.freeze(Object.values(RESPONSE_OUTCOME));
 
 /**
+ * ⭐ D55 decision F · THE FUNNEL'S WORDS, mapped onto the STORED values — never the other way.
+ *
+ * The owner's funnel reads *applied · screen · interviewing · offer · rejected*. The stored value for
+ * the interview stage has been `interview` since migration 095, and every existing row, the furthest
+ * stage rank and the AK1 correlation read it. So the funnel's "interviewing" is an ALIAS that is
+ * normalised on the way in (the response endpoint, the CSV import) and the stored vocabulary does not
+ * move: an existing row reads exactly as it did. ⛔ Add aliases here, never a second stored spelling.
+ */
+export const OUTCOME_ALIASES = Object.freeze({
+  interviewing: RESPONSE_OUTCOME.INTERVIEW,
+  interviews: RESPONSE_OUTCOME.INTERVIEW,
+  phone_screen: RESPONSE_OUTCOME.SCREEN,
+  screening: RESPONSE_OUTCOME.SCREEN,
+  offered: RESPONSE_OUTCOME.OFFER,
+  rejection: RESPONSE_OUTCOME.REJECTED,
+  declined: RESPONSE_OUTCOME.REJECTED,
+  no_reply: RESPONSE_OUTCOME.NO_RESPONSE,
+  ghosted: RESPONSE_OUTCOME.NO_RESPONSE,
+  withdrew: RESPONSE_OUTCOME.WITHDRAWN,
+});
+
+/**
+ * A reported outcome -> the stored value, or undefined when it is not one. null / "" stay null
+ * ("nothing recorded"). Case and spacing do not matter: "Phone screen", "phone-screen" and
+ * "phone_screen" are one answer.
+ */
+export function normaliseOutcome(v) {
+  if (v == null) return null;
+  const k = String(v).trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if (!k) return null;
+  if (RESPONSE_OUTCOMES.includes(k)) return k;
+  return OUTCOME_ALIASES[k];
+}
+
+/**
  * The outcomes that PROVE the employer engaged.
  *
  * REJECTED IS IN THIS SET, AND THAT IS THE IMPORTANT CALL. A rejection is a response: something
@@ -129,9 +164,10 @@ export function responseBucket(app = {}, { now = Math.floor(Date.now() / 1000) }
  * Returns the columns to write. Pure — no clock of its own, no database.
  */
 export function mergeResponse(existing = {}, next = {}, { now = Math.floor(Date.now() / 1000) } = {}) {
-  const outcome = next.outcome ?? null;
-  if (outcome != null && !RESPONSE_OUTCOMES.includes(outcome)) {
-    throw new Error(`unknown response outcome: ${outcome}`);
+  // D55 F: the funnel's words ("interviewing") are accepted and stored as the vocabulary's value.
+  const outcome = normaliseOutcome(next.outcome);
+  if (outcome === undefined) {
+    throw new Error(`unknown response outcome: ${next.outcome}`);
   }
   const prevStage = existing.furthest_stage ?? null;
   const nextStage = STAGE_RANK[outcome] ? outcome : null;
