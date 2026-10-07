@@ -52,7 +52,13 @@ import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL } from "../..
 // suggestions (the domain, role family and chips already chosen). (5) This comment block. Advance
 // notice is not triggered: nothing new leaves. (4) discloses flows that already existed, and the
 // others retract claims about flows that don't. test/privacyO72Corrections.test.js pins all five.
-const EFFECTIVE_DATE = 'October 5, 2026';
+// 2026-10-07: bumped at the extension v1.5.0 release finalisation (F 1). The text changed on 10-07 without
+// the date moving: D64's automatic capture (opt-in; five public posting hosts; only postings are sent;
+// an irrelevant one is discarded unstored), D55's Report this form, D56's page address on a fill /
+// Prepare / I submitted, and D68's Copy sheet with the Limited Use affirmation. ⛔ Automatic capture
+// COLLECTS SOMETHING NEW, which is what the "Changes to This Policy" commitment is for: whether
+// registered users must be emailed before it takes effect is the OWNER's call (WORKLOG O85), not code's.
+const EFFECTIVE_DATE = 'October 7, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 function Section({ title, children }) {
