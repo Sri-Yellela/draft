@@ -272,9 +272,13 @@ export function usEvidenceInText(text) {
  * found NO positive non-US evidence — the page's text.
  * @returns {{ admit: boolean, kind: 'us'|'non_us'|'unconfirmed', reason: string }}
  */
-export function captureMarket({ location, description, offices = [], pageText = "" } = {}) {
+export function captureMarket({ location, description, offices = [], pageText = "", statedCountryUs = false } = {}) {
   const base = usEligibility({ location, description, offices });
   if (base.admit) return { admit: true, kind: "us", reason: base.reason };
+  // ⭐ D59 · "Country: United States of America" in the posting's own label block is POSITIVE US
+  // evidence — the employer's field, read by shared/postingNormalize.js. A capture carrying it is
+  // accepted, never refused or called unconfirmed (like a US office, it only ever admits).
+  if (statedCountryUs) return { admit: true, kind: "us", reason: "capture_country_label" };
   if (base.reason === "non_us_location" || base.reason === "remote_non_us_by_description") {
     return { admit: false, kind: "non_us", reason: base.reason };
   }

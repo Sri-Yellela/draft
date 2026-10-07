@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Draft — Mobile API",
-    "version": "2.2.1",
+    "version": "2.3.0",
     "description": "The contract between this repository and the two mobile repositories (iOS, Android), which are native clients over this JSON API and live outside this tree.\n\nGENERATED — DO NOT HAND-EDIT. Regenerate with `node scripts/generateMobileContract.mjs`. The Job schema is produced by EXECUTING services/jobs/mapJobRow.js, so it cannot disagree with what the server actually emits. test/mobileApiContract.test.js fails the build if this file and the source ever disagree.\n\nOnly the endpoints a swipe feed and a review flow need are published. Anything absent is absent on purpose and is not a promise — see x-retired for what a greenfield client must not call, and x-mobile-gaps for what mobile needs that this API does not yet expose."
   },
   "servers": [
@@ -3414,7 +3414,8 @@
           },
           "location": {
             "type": "string",
-            "description": "Free text, as posted. Not normalised, not geocoded."
+            "description": "Free text, as posted. Not normalised, not geocoded.",
+            "x-empty-row-value": null
           },
           "matchScore": {
             "type": [
@@ -3432,10 +3433,26 @@
             "description": "As published by the source. Free text or ISO — not normalised.",
             "x-empty-row-value": null
           },
+          "postingFields": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "D59: the posting's label-block fields that left the body — { travel, relocation, requisitionId, employment, payRange, country, site, street }, each a string or null. null when the posting had no label block.",
+            "x-empty-row-value": null
+          },
           "remote": {
             "type": "boolean",
             "description": "Coerced with Boolean(); never null.",
             "x-empty-row-value": false
+          },
+          "requirements": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "D59: what the POSTING states — { citizenship: citizen_only | us_person | none_stated, clearance: none | unspecified | public_trust | secret | top_secret | ts_sci, clearanceStatus: active_required | interim_ok | ability_to_obtain | null, polygraph: boolean }. null = the description has not been read yet (UNKNOWN, never 'none'). A statement about the posting, NEVER about the candidate's eligibility — do not render it as a verdict on the user, and do not fold it into a score.",
+            "x-empty-row-value": null
           },
           "requiresWorkAuth": {
             "type": [
@@ -3612,9 +3629,12 @@
           "isActive",
           "isClearanceRequired",
           "isH1bSponsor",
+          "location",
           "matchScore",
           "postedAt",
+          "postingFields",
           "remote",
+          "requirements",
           "requiresWorkAuth",
           "salaryCurrency",
           "salaryMax",

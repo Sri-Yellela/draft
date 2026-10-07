@@ -163,6 +163,7 @@ import { deriveAutomationTier } from "./services/jobs/automationTier.js";
 import { backfillAutomationTier } from "./services/jobs/backfillAutomationTier.js";
 import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
 import { tagStaleJobs } from "./services/jobs/jobTags.js";
+import { backfillDescriptionText, withPostingText, refreshDescriptionText, postingText, registerDescriptionBasis } from "./services/jobs/descriptionText.js";
 import { resolvePlaceText, roleScopeExtra } from "./shared/jobTagVocabulary.js";
 import { userReferencedSql } from "./services/jobs/userReferences.js";
 import { deliverPipelineAlerts } from "./services/jobs/alertDelivery.js";
@@ -400,6 +401,8 @@ db.pragma("busy_timeout = 5000");
 registerBoardSearch(db);
 // A85 · the fit filter's "is this stored score current?" — the badge's own test, as a SQL function.
 registerScoreFreshness(db);
+// D59 · the eligibility filter's "was req_* read from THIS description?" — the readers' freshness rule.
+registerDescriptionBasis(db);
 console.log(`[boot] database ready: ${DB_PATH}`);
 
 // ── Inline migration runner (additive only — never drops data) ─
@@ -4273,6 +4276,27 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_form_reports_host ON form_reports(host, received_at);
       `,
     },
+    {
+      // D59 (10-07): POSTINGS THAT ARRIVE AS RAW HTML AND LABEL BLOCKS. The normalised text goes in a NEW
+      // column — `description` and `content_hash` are never rewritten, because A76's grades and the
+      // enrichment imports are keyed on content_hash = sha1(title|description). description_text is NULL
+      // when it would equal description (readers COALESCE); description_fields holds the label block's
+      // fields; req_* the posting's stated citizenship / clearance (NULL = not read yet, never "none").
+      // description_basis is a hash of the description they were read from: a reader serves them only
+      // while it still matches, so a re-crawled posting's old text is never shown, and the next pass
+      // re-reads it. services/jobs/descriptionText.js fills them (boot pass + backfill script).
+      id: "137_description_text",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN description_text TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN description_fields TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN description_basis TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN req_citizenship TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN req_clearance TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN req_clearance_status TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN req_polygraph INTEGER;
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_description_basis ON scraped_jobs(description_basis);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -4386,6 +4410,16 @@ if (String(process.env.ROLE_MAP_BACKFILL || "").toLowerCase() === "off") {
 // Never fatal: an untagged row is NULL on every tag, which every board predicate reads as UNKNOWN
 // and keeps (soft-null). Failing the boot over it would trade precision for an outage.
 function runJobTagPass(trigger) {
+  // ⛔ D59 · the description pass first — the tags read its label fields (workstyle, location). Writes
+  // only description_text / description_fields / req_* (never description or content_hash), at most
+  // 2,000 rows a pass, so a large board fills over a few passes. Migration 137's trigger re-queues a
+  // posting whose description changed.
+  try {
+    const d = backfillDescriptionText(db, { dryRun: false, limit: 2000, ceiling: 2000 });
+    if (d.written > 0) console.log(`[description] (${trigger}) normalised ${d.written} of ${d.due} posting(s) — ${d.changedText} with new text, ${d.withFields} with a label block`);
+  } catch (e) {
+    console.error(`[description] (${trigger}) normalising failed (readers fall back to the stored description):`, e.message);
+  }
   try {
     const r = tagStaleJobs(db);
     if (r.tagged > 0) console.log(`[tags] (${trigger}) tagged ${r.tagged} of ${r.scanned} posting(s)`);
@@ -6232,7 +6266,10 @@ function atsBasisForProfile(userId, profile, { resumeText = null } = {}) {
 }
 
 /** Score one posting against a basis. Local and deterministic: no model call, no network. */
+// ⛔ D59: the scorer reads the NORMALISED text (description_text) — raw HTML's `text-align` and a label
+// block's "Date Posted" are not requirements. withPostingText swaps it in; `description` is never rewritten.
 function scoreJobForBasis(job, runtimeBasis) {
+  job = withPostingText(job);
   return scoreAtsLocally({ job, runtimeBasis, termWeights: atsTermWeightsForJob(job), synonyms: atsSynonyms() });
 }
 
@@ -9098,16 +9135,16 @@ app.post("/api/jobs/by-id/:jobId/description", requireAuth, async (req, res) => 
   if (!jobId) return res.status(400).json({ error: "jobId required" });
 
   const row = db.prepare(`
-    SELECT job_id, source, url, company, title, description, detail_fetch_attempts
+    SELECT job_id, source, url, company, title, description, description_text, description_basis, detail_fetch_attempts
     FROM scraped_jobs WHERE job_id = ?
   `).get(jobId);
   if (!row) return res.status(404).json({ error: "Job not found" });
 
   // CACHED PERMANENTLY. content_hash already exists to notice a posting whose text CHANGED; a
   // description we already hold is never re-bought, so an open on an already-described job costs
-  // nothing and the panel's retry is idempotent.
+  // nothing and the panel's retry is idempotent. ⛔ D59: the normalised text when there is one.
   if (row.description && String(row.description).trim()) {
-    return res.json({ success: true, description: row.description, cached: true });
+    return res.json({ success: true, description: postingText(row), cached: true });
   }
 
   // Not every source needs a second request — greenhouse and the rest carry their text in the
@@ -9130,7 +9167,10 @@ app.post("/api/jobs/by-id/:jobId/description", requireAuth, async (req, res) => 
     persistDetailOutcome(db, jobId, outcome);
 
     if (outcome.ok) {
-      return res.json({ success: true, description: outcome.text, cached: false });
+      // ⛔ D59: read the fresh text through the one normaliser now, rather than at the next pass.
+      let text = outcome.text;
+      try { const cols = refreshDescriptionText(db, jobId); text = cols?.description_text ?? text; } catch { /* the pass will */ }
+      return res.json({ success: true, description: text, cached: false });
     }
     return res.json({
       success: false, reason: outcome.reason,
@@ -9601,7 +9641,7 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   try {
     const beforeProfile = getOrRepairActiveProfile(userId);
     atsScoreBefore = scoreAtsLocally({
-      job,
+      job: withPostingText(job),
       runtimeBasis: buildRuntimeAtsBasis({
         resumeText: authoritativeResumeText,
         signalProfile: beforeProfile
@@ -9658,7 +9698,7 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
     domainProfile: activeProfile,
     claims: atsClaims(activeProfile),
   });
-  const atsReport = scoreAtsLocally({ job, runtimeBasis, termWeights: atsTermWeightsForJob(job), synonyms: atsSynonyms() });
+  const atsReport = scoreAtsLocally({ job: withPostingText(job), runtimeBasis, termWeights: atsTermWeightsForJob(job), synonyms: atsSynonyms() });
   const atsScore = atsReport.score;
   const atsCacheKey = buildAtsCacheKey(formattedHtml, job);
 
@@ -10058,7 +10098,7 @@ app.post("/api/generate", requireAuth, async (req, res) => {
         domainProfile: activeProfile,
         claims: atsClaims(activeProfile),
       });
-      const freshReport = scoreAtsLocally({ job, runtimeBasis, termWeights: atsTermWeightsForJob(job), synonyms: atsSynonyms() });
+      const freshReport = scoreAtsLocally({ job: withPostingText(job), runtimeBasis, termWeights: atsTermWeightsForJob(job), synonyms: atsSynonyms() });
       const freshScoreVal = freshReport.score;
         db.prepare(
           "UPDATE resumes SET ats_score=?,ats_report=?,ats_cache_key=?,ats_prompt_version=?,updated_at=unixepoch() WHERE user_id=? AND job_id=?"

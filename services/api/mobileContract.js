@@ -62,6 +62,12 @@ import { JOB_FUNCTIONS } from "../../shared/jobTagVocabulary.js";
  * Semver. MAJOR is breaking; MINOR is additive. The rules, and why removing a field is
  * deliberately awkward, are in contract/README.md.
  *
+ * 2.3.0 — D59 (10-07). Additive: `Job.requirements` ({ citizenship, clearance, clearanceStatus, polygraph } —
+ *         what the POSTING states, null when it has not been read yet) and `Job.postingFields` (the label
+ *         block's travel / relocation / requisition / employment / pay / country / site / street, null when
+ *         none). `description` is now the normalised text (markup-free, the label block's lines removed)
+ *         when the row has one; `postedAt` prefers the posting's own "Date Posted"; `location` falls back
+ *         to the label block's. Every 2.2.1 field is unchanged in type.
  * 2.2.1 — D50 (10-07). ANNOTATION ONLY — no field, type or enum changes. The three ATS-score annotations
  *         change from "NOT DISPLAYED YET" to "SHOWN ON THE WEB, PROVISIONAL": the owner decided to show
  *         the number now and tune it after (not validation passing — rho 0.723 over n = 24, -0.166 on 21
@@ -111,7 +117,7 @@ import { JOB_FUNCTIONS } from "../../shared/jobTagVocabulary.js";
  *         a checksum and need a reason to re-copy.
  * 1.0.0 — initial contract.
  */
-export const CONTRACT_VERSION = "2.2.1";
+export const CONTRACT_VERSION = "2.3.0";
 
 // ------------------------------------------------------------------------------------------------
 // THE JOB SHAPE — derived by executing mapJobRow, not by reading it
@@ -213,6 +219,8 @@ export const JOB_FIELD_TYPES = Object.freeze({
   discoveredAt:        { type: "number",  nullable: true, description: "Unix seconds." },
   summary:             { type: "string",  nullable: true },
   validThrough:        { type: "string",  nullable: true },
+  requirements:        { type: "object",  nullable: true, description: "D59: what the POSTING states — { citizenship: citizen_only | us_person | none_stated, clearance: none | unspecified | public_trust | secret | top_secret | ts_sci, clearanceStatus: active_required | interim_ok | ability_to_obtain | null, polygraph: boolean }. null = the description has not been read yet (UNKNOWN, never 'none'). A statement about the posting, NEVER about the candidate's eligibility — do not render it as a verdict on the user, and do not fold it into a score." },
+  postingFields:       { type: "object",  nullable: true, description: "D59: the posting's label-block fields that left the body — { travel, relocation, requisitionId, employment, payRange, country, site, street }, each a string or null. null when the posting had no label block." },
 });
 
 // ------------------------------------------------------------------------------------------------

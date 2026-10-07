@@ -12,6 +12,7 @@ import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { DECISIONS, DECISION_SURFACES, DECISION_TOAST_MS, commitDecision, undoDecision, undoFlagsFor, flagsFor, isDrafted, draftBlock } from "../lib/jobDecisions.js";
 import { PREREQUISITE_LABELS } from "../lib/applyObstacles.js";
 import { companyRows, companyNotice, matchCompany } from "../../../shared/companyIdentity.js";
+import { eligibilityNotice, statedEligibility } from "../../../shared/postingRequirements.js";
 import DecisionToast from "../components/DecisionToast.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
@@ -76,7 +77,10 @@ function normalizeApiJob(job) {
     salaryMin:      job.salaryMin      != null ? job.salaryMin      : (job.salary_min  ?? null),
     salaryMax:      job.salaryMax      != null ? job.salaryMax      : (job.salary_max  ?? null),
     salaryCurrency: job.salaryCurrency ?? job.salary_currency ?? null,
-    workType:       job.workType       ?? (job.remote === true ? "Remote" : job.remote === false ? "On-site" : null),
+    // ⛔ "not remote" is not "on-site" (it may be hybrid), and mapJobRow sends remote:false for a posting
+    // that says nothing (Boolean(null)) — so false says nothing here. Only a stated workstyle is shown;
+    // otherwise the deck's Workstyle cell falls back to the location (D59's browser pass, 10-07).
+    workType:       job.workType       ?? (job.remote === true ? "Remote" : null),
     employmentType: job.employmentType ?? job.contract_type ?? null,
     // mapJobRow already emits camelCase automationTier and the `...job` spread above would carry
     // it through untouched — this line is here for the endpoints that hand this function a raw
@@ -421,6 +425,8 @@ function defaultFilterSnapshot() {
     skillsInclude: [],
     sponsorFriendly: false,
     companySponsors: false,
+    // D59: "hide roles that require clearance or citizenship" — default off, so the querystring is unchanged.
+    hideEligibility: false,
     // Provider + automation-tier include/exclude. Empty arrays are the default-off state: buildParams
     // emits nothing at all for them, which is what keeps the default querystring byte-identical.
     sourcesInclude: [],
@@ -496,6 +502,7 @@ function FiltersPanel({
   skillsInclude, setSkillsInclude,
   sponsorFriendly, setSponsorFriendly,
   companySponsors, setCompanySponsors,
+  hideEligibility = false, setHideEligibility = () => {},
   sectors = [], setSectors = () => {},
   sourcesInclude, setSourcesInclude,
   sourcesExclude, setSourcesExclude,
@@ -960,6 +967,31 @@ function FiltersPanel({
             From US Department of Labor LCA disclosure data. Removes only employers we matched
             confidently and that filed nothing in the quarters we hold — a company we could not
             identify stays on the board.
+          </div>
+        </div>
+
+        {/* ⛔ D59 (owner, 10-07): the posting's OWN stated requirements — U.S. citizenship, U.S.-person
+            (export control), a security clearance or a polygraph. It reads what the POSTING says; it never
+            reads or decides the user's eligibility. A posting not yet read is kept. */}
+        <div data-filter="eligibility">
+          <button type="button" aria-pressed={!!hideEligibility} onClick={() => setHideEligibility(!hideEligibility)}
+            style={{
+              display:"flex", alignItems:"center", gap:8, width:"100%",
+              padding:"8px 10px", borderRadius:4, cursor:"pointer",
+              border:`1px solid ${hideEligibility ? theme.accent : theme.border}`,
+              background: hideEligibility ? theme.accentMuted : "transparent",
+              color: hideEligibility ? theme.accentText : theme.text,
+            }}>
+            <span style={{
+              width:16, height:16, borderRadius:3, flexShrink:0,
+              border:`1px solid ${hideEligibility ? theme.accent : theme.border}`,
+              background: hideEligibility ? theme.accent : "transparent",
+            }}/>
+            <span style={{ fontSize:12, fontWeight:600 }}>Hide roles that require clearance or citizenship</span>
+          </button>
+          <div style={{ fontSize:10, color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
+            Hides postings that state U.S. citizenship, U.S.-person (export control), a security clearance or a
+            polygraph. Read from the posting's own words — postings we have not read yet stay on the board.
           </div>
         </div>
 
@@ -1529,6 +1561,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     }).catch(() => {});
   }, []);
   useEffect(() => { loadCompanyIndex(); }, [loadCompanyIndex]);
+  // ⛔ D59 · whether the profile STATES a citizenship / clearance answer (a saved answer, a stated
+  // clearance level) — read once, for the notice at Draft. Never what the answer is, never a verdict.
+  const [eligibilityStated, setEligibilityStated] = useState(null);
+  useEffect(() => { api("/api/profile").then(p => setEligibilityStated(statedEligibility(p))).catch(() => {}); }, []);
+  const eligibilityNoticeFor = useCallback((job) => (job ? eligibilityNotice(job.requirements, eligibilityStated || undefined) : null), [eligibilityStated]);
   const companyNoticeFor = useCallback((job) => {
     if (!companyIndex || !job) return null;
     const key = matchCompany({ company: job.company, url: job.applyUrl || job.url }, companyIndex.members);
@@ -1697,6 +1734,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // X3: the COMPANY-level H-1B filter, separate from the posting-level toggle above because it is
   // a different claim from a different source. Default off — see the drawer copy for what it does.
   const [companySponsors,setCompanySponsors]= useState(false);
+  const [hideEligibility, setHideEligibility] = useState(false);
   // Provider + automation-tier include/exclude. Default [] on all four — buildParams emits nothing
   // for an empty array, so the default querystring is unchanged.
   const [sourcesInclude, setSourcesInclude] = useState([]);
@@ -1777,6 +1815,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     skillsInclude,
     sponsorFriendly,
     companySponsors,
+    hideEligibility,
     sourcesInclude,
     sourcesExclude,
     tiersInclude,
@@ -1790,7 +1829,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     roleFilter, locationFilter, workType, employmentTypePrefs,
     catFilter, srcFilter, minYoe, maxYoe, maxApplicants, visitedFilter, ageFilter,
     salaryMin, salaryMax, workModels, experienceLevels, skillsInclude, sponsorFriendly,
-    companySponsors, sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, fitBands,
+    companySponsors, hideEligibility, sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, fitBands,
     jobFunctions, places, sectors, strictTags,
   ]);
 
@@ -1833,6 +1872,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setSkillsInclude(Array.isArray(next.skillsInclude) ? next.skillsInclude : []);
     setSponsorFriendly(!!next.sponsorFriendly);
     setCompanySponsors(!!next.companySponsors);
+    setHideEligibility(!!next.hideEligibility);
     setSourcesInclude(Array.isArray(next.sourcesInclude) ? next.sourcesInclude : []);
     setSourcesExclude(Array.isArray(next.sourcesExclude) ? next.sourcesExclude : []);
     setTiersInclude(Array.isArray(next.tiersInclude) ? next.tiersInclude : []);
@@ -2030,6 +2070,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       draftBlock: draftBlocked, onViewDraft: draftControls.onView,
       // D54: the company notice, shown on the panel BEFORE the click.
       companyNotice: isJobDrafted(selectedJob.jobId) ? null : companyNoticeFor(selectedJob),
+      // ⛔ D59: the posting's stated citizenship / clearance, at the point of Draft.
+      eligibilityNotice: isJobDrafted(selectedJob.jobId) ? null : eligibilityNoticeFor(selectedJob),
       onExplainDraft: (reason) => draftControls.onExplain(selectedJob, reason),
       onAts: () => openAtsPanel(buildAtsPayload(selectedJob, g2)),
       // D58: the header box reads the same pair the card badge and the ATS card read.
@@ -2038,7 +2080,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       atsOpen: !!rightPanelOpen,
       onResume: () => generate(selectedJob, false),
     });
-  }, [selectedJob, generated, loading, applyMode, canUseGenerate, resumeText, draftedIds, draftingIds, applyStateByJobId, rightPanelOpen, companyNoticeFor, draftBlocked]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedJob, generated, loading, applyMode, canUseGenerate, resumeText, draftedIds, draftingIds, applyStateByJobId, rightPanelOpen, companyNoticeFor, eligibilityNoticeFor, draftBlocked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-open resume + ATS panel when a pending job card is selected
   useEffect(() => {
@@ -2286,6 +2328,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // companies whose employer name we matched with high confidence and that filed nothing in the
     // quarters of DOL data we hold. Unmatched and ambiguous companies survive it by construction.
     if (companySponsors)         p.set("company_sponsorship", "1");
+    if (hideEligibility)         p.set("hide_eligibility_required", "1");
     // "Show everything in my role" — turns off the profile-derived defaults for this request only
     // (server.js's ?curate=off). Emitted solely when the user has asked for it, so the default
     // querystring is unchanged.
@@ -2701,7 +2744,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       // above — they were missing from this list, so changing ONLY one of them (leaving every
       // legacy filter untouched) would build the right querystring but never actually refetch.
       salaryMin, salaryMax, workModels, experienceLevels, skillsInclude, sponsorFriendly,
-      companySponsors,
+      companySponsors, hideEligibility,
       // Same failure, third time this file has been at risk of it: a new filter that feeds
       // buildParams but is missing HERE builds a correct querystring that is never sent, so the
       // control looks dead. FE-3 fixed it for FE-2's params; these four are added in the same
@@ -2999,6 +3042,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setSkillsInclude(p.get("skills_include") ? p.get("skills_include").split(",") : []);
     setSponsorFriendly(p.get("sponsorship_friendly") === "1");
     setCompanySponsors(p.get("company_sponsorship") === "1");
+    setHideEligibility(p.get("hide_eligibility_required") === "1");
     // A saved search stores buildParams' raw querystring, so a param buildParams emits but this
     // function never reads is silently dropped on apply — the saved search would come back
     // subtly wider than the one that was saved. These four round-trip through the same
@@ -3396,6 +3440,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (decision === DECISIONS.DRAFTED) {
       const notice = companyNoticeFor(job);
       if (notice && !window.confirm(notice)) return;
+      // ⛔ D59: and the posting's stated citizenship / clearance — said, never decided; the user decides.
+      const eligibility = eligibilityNoticeFor(job);
+      if (eligibility && !window.confirm(`${eligibility}\n\nDraft it anyway?`)) return;
     }
     const at = Date.now();
     if (decision === DECISIONS.DRAFTED) {
@@ -3427,7 +3474,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       applyFlags(jobId, undoFlagsFor(decision, prior));
       setDecisionToast({ jobId, company: job.company, decision, error: e.message, at: Date.now() });
     }
-  }, [applyFlags, draftTool, draftedIds, draftingIds, applyStateByJobId, loadApplyRuns, boardTab, currentPage, companyNoticeFor]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [applyFlags, draftTool, draftedIds, draftingIds, applyStateByJobId, loadApplyRuns, boardTab, currentPage, companyNoticeFor, eligibilityNoticeFor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const undoLastDecision = useCallback(async () => {
     const t = decisionToast;
@@ -3647,6 +3694,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             skillsInclude={pendingFilters.skillsInclude} setSkillsInclude={value => stageFilter("skillsInclude", value)}
             sponsorFriendly={pendingFilters.sponsorFriendly} setSponsorFriendly={value => stageFilter("sponsorFriendly", value)}
             companySponsors={pendingFilters.companySponsors} setCompanySponsors={value => stageFilter("companySponsors", value)}
+            hideEligibility={!!pendingFilters.hideEligibility} setHideEligibility={value => stageFilter("hideEligibility", value)}
             sectors={pendingFilters.sectors || []} setSectors={value => stageFilter("sectors", value)}
             sourcesInclude={pendingFilters.sourcesInclude || []} setSourcesInclude={value => stageFilter("sourcesInclude", value)}
             sourcesExclude={pendingFilters.sourcesExclude || []} setSourcesExclude={value => stageFilter("sourcesExclude", value)}

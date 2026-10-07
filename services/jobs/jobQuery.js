@@ -14,6 +14,7 @@ import { normaliseAtsTerm } from '../localAtsScorer.js';
 import { LEVEL_SQL, WORKPLACE_SQL, EMPLOYMENT_SQL, FUNCTION_SQL, placesFilterSql } from './tagFilters.js';
 import { resolvePlaceText } from '../../shared/jobTagVocabulary.js';
 import { sectorSql, validSectors } from '../../shared/companySectors.js';
+import { BASIS_FN } from './descriptionText.js';
 
 /**
  * SQL WHERE-clause + facet builder for the /api/jobs board query.
@@ -374,6 +375,19 @@ const RANK_MATCH = 0, RANK_UNKNOWN = 1, RANK_MISS = 2;
  *   `rank.demotedSql` is a boolean matching rows that are explicitly outside at least one derived
  *   window — what the disclosure counts, and what would have been HIDDEN before this change.
  */
+const isTruthyParam = (v) => v === true || v === 1 || v === '1' || v === 'true';
+/**
+ * D59 · a row that states no citizenship or clearance requirement (or has not been read yet).
+ * ⛔ FRESH ONLY: req_* count only while description_basis still matches the description they were read
+ * from — the readers' rule (descriptionText.isFresh). A re-crawl or a detail fetch that rewrites the
+ * description leaves the old reading behind; until the next pass re-reads it, the row is "not read yet"
+ * and is KEPT. One rule here covers every writer of `description`, rather than each writer clearing the
+ * columns. The SQL function is registered on the connection (registerDescriptionBasis) at boot.
+ */
+const ELIGIBILITY_FREE_SQL = `NOT (sj.description_basis IS NOT NULL AND sj.description_basis = ${BASIS_FN}(sj.description) AND (
+    COALESCE(sj.req_citizenship, '') IN ('citizen_only', 'us_person')
+    OR COALESCE(sj.req_clearance, 'none') != 'none' OR COALESCE(sj.req_polygraph, 0) = 1))`;
+
 function buildJobFilters(params = {}, opts = {}) {
   const clauses = [];
   const args = [];
@@ -534,6 +548,14 @@ function buildJobFilters(params = {}, opts = {}) {
     clauses.push(strict ? inList : `(${sec} IS NULL OR ${inList})`);
     args.push(...sectors);
     if (!strict) established.push({ key: 'sectors', sql: `${sec} IS NULL` });
+  }
+
+  // ⛔ D59 · "Hide roles that require clearance or citizenship" (the drawer, behind + add). It hides only
+  // postings that STATE one — citizen_only, us_person (export control), any clearance or a polygraph.
+  // A posting not read yet (req_* NULL) is UNKNOWN and is kept, like every soft-null filter here. It
+  // reads the posting; it never reads or decides the candidate's eligibility (D36).
+  if (isTruthyParam(params.hide_eligibility_required)) {
+    clauses.push(ELIGIBILITY_FREE_SQL);
   }
 
   const sources = toArray(params.sources);

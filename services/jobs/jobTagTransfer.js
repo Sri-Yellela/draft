@@ -53,7 +53,8 @@ export function parseCsv(text) {
 
 const ROW_SQL = `
   SELECT sj.job_id, sj.title, sj.company, sj.location, sj.workplace_type, sj.employment_type, sj.experience_level,
-         sj.enriched_at, LENGTH(sj.description) AS description_length, sj.tag_owner_json,
+         sj.enriched_at, LENGTH(COALESCE(sj.description_text, sj.description)) AS description_length, sj.tag_owner_json,
+         sj.description_basis, sj.description_fields,
          sj.tag_level, sj.tag_function, sj.tag_employment, sj.tag_workplace,
          (SELECT m.role_key FROM job_role_map m WHERE m.job_id = sj.job_id AND m.source_profile_id IS NULL
            ORDER BY m.rowid LIMIT 1) AS role_key
@@ -127,7 +128,7 @@ export function planTagImport(db, csvText) {
 export function applyTagImport(db, plan, { by = "owner" } = {}) {
   if (!plan.ok) throw new Error("refused: the plan has rejected rows — fix the file and plan again");
   const get = db.prepare(`${ROW_SQL} WHERE sj.job_id = ?`);
-  const desc = db.prepare("SELECT description FROM scraped_jobs WHERE job_id = ?");
+  const desc = db.prepare("SELECT COALESCE(description_text, description) AS description FROM scraped_jobs WHERE job_id = ?");
   const setOwner = db.prepare("UPDATE scraped_jobs SET tag_owner_json = ? WHERE job_id = ?");
   db.transaction(() => {
     for (const c of plan.changes) {

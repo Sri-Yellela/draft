@@ -59,6 +59,7 @@
 "use strict";
 
 import crypto from "node:crypto";
+import { freshText } from "./descriptionText.js";
 
 /** Stable JSON: object keys sorted, so a basis re-read from the database hashes identically. */
 function stableStringify(value) {
@@ -100,11 +101,20 @@ export function atsBasisHash(runtimeBasis, { scorerVersion = "" } = {}) {
 export const ATS_JOB_INPUT_FIELDS = Object.freeze([
   "title", "company", "category", "description", "skills_json", "normalized_title",
 ]);
+/**
+ * ⛔ D59 · THE SCORER READS THE NORMALISED TEXT. `description` in the hash is the text the scorer is
+ * handed (services/jobs/descriptionText.js withPostingText): description_text while it is FRESH — read
+ * from the description the row holds now — else the stored description. So the two columns that decide
+ * it travel with the hash inputs (POSTING_TEXT_COLUMNS), and a re-crawl that changes the description
+ * changes the hash at once.
+ */
+export const POSTING_TEXT_COLUMNS = Object.freeze(["description_text", "description_basis"]);
 export function atsJobInputHash(job) {
   if (!job) return null;
   const h = crypto.createHash("sha256").update("job-v1");
+  const text = freshText(job);
   for (const k of ATS_JOB_INPUT_FIELDS) {
-    const v = job[k];
+    const v = k === "description" && text != null ? text : job[k];
     // A separator and an explicit null marker, so ("ab", "") and ("a", "b") cannot collide and a
     // NULL column is not the same posting as an empty one.
     h.update("\u0000").update(k).update("=").update(v == null ? "\u0001" : String(v));
@@ -129,7 +139,7 @@ export function storedScoreSql(jobAlias = "sj", aorAlias = "aor") {
     `${aorAlias}.id AS ${STORED_SCORE_PREFIX}row`,
     `${aorAlias}.job_hash AS ${STORED_SCORE_PREFIX}stored_hash`,
     `${aorAlias}.basis_hash AS ${STORED_SCORE_PREFIX}stored_basis`,
-    ...ATS_JOB_INPUT_FIELDS.map(c => `${jobAlias}.${c} AS ${STORED_SCORE_PREFIX}${c}`),
+    ...[...ATS_JOB_INPUT_FIELDS, ...POSTING_TEXT_COLUMNS].map(c => `${jobAlias}.${c} AS ${STORED_SCORE_PREFIX}${c}`),
   ].join(", ");
 }
 /**
@@ -141,7 +151,7 @@ export function storedScoreIsCurrent(row, { basisHash } = {}) {
   if (!row || row[`${STORED_SCORE_PREFIX}row`] == null) return false;
   if (basisHash !== undefined && row[`${STORED_SCORE_PREFIX}stored_basis`] !== basisHash) return false;
   const inputs = {};
-  for (const c of ATS_JOB_INPUT_FIELDS) inputs[c] = row[`${STORED_SCORE_PREFIX}${c}`];
+  for (const c of [...ATS_JOB_INPUT_FIELDS, ...POSTING_TEXT_COLUMNS]) inputs[c] = row[`${STORED_SCORE_PREFIX}${c}`];
   return row[`${STORED_SCORE_PREFIX}stored_hash`] === atsJobInputHash(inputs);
 }
 export function presentedScore(row, { basisHash, scoreKey = "matchScore" } = {}) {
@@ -160,7 +170,7 @@ const fnRegistered = new WeakSet();
 export function registerScoreFreshness(db) {
   if (fnRegistered.has(db)) return;
   db.function(ATS_INPUT_HASH_FN, { deterministic: true, varargs: true }, (...vals) =>
-    atsJobInputHash(Object.fromEntries(ATS_JOB_INPUT_FIELDS.map((k, i) => [k, vals[i]]))));
+    atsJobInputHash(Object.fromEntries([...ATS_JOB_INPUT_FIELDS, ...POSTING_TEXT_COLUMNS].map((k, i) => [k, vals[i]]))));
   fnRegistered.add(db);
 }
 /**
@@ -171,7 +181,8 @@ export function registerScoreFreshness(db) {
  */
 export function currentScoreSql(basisHash, jobAlias = "sj", aorAlias = "aor") {
   if (typeof basisHash !== "string" || !/^[0-9a-f]{8,128}$/.test(basisHash)) return "NULL";
-  const inputs = ATS_JOB_INPUT_FIELDS.map(c => `${jobAlias}.${c}`).join(", ");
+  // D59: positional — the scorer's inputs, then the two columns that decide which text it reads.
+  const inputs = [...ATS_JOB_INPUT_FIELDS, ...POSTING_TEXT_COLUMNS].map(c => `${jobAlias}.${c}`).join(", ");
   return `(CASE WHEN ${aorAlias}.id IS NOT NULL AND ${aorAlias}.basis_hash = '${basisHash}' ` +
     `AND ${aorAlias}.job_hash = ${ATS_INPUT_HASH_FN}(${inputs}) THEN ${aorAlias}.ats_score END)`;
 }
@@ -207,13 +218,15 @@ export function createBoardFitPrecompute({
   // A52: the basis is still judged in SQL; the POSTING side is judged here in JS, because SQLite has
   // no hash function — every row whose basis matches is read with its scorer inputs and its stored
   // `job_hash` is compared with atsJobInputHash.
+  // D59: a database without migration 137's columns (a hand-built fixture) hashes the stored description.
+  const hasPostingText = db.prepare("PRAGMA table_info(scraped_jobs)").all().some(c => c.name === "description_text");
   const planStmt = db.prepare(`
     SELECT sj.job_id AS job_id,
            CASE WHEN aor.id IS NULL THEN 'missing'
                 WHEN aor.basis_hash IS NOT ? OR ? = 1 THEN 'stale'
                 ELSE 'check' END AS why,
            aor.job_hash AS stored_job_hash,
-           ${ATS_JOB_INPUT_FIELDS.map(c => `sj.${c}`).join(", ")}
+           ${[...ATS_JOB_INPUT_FIELDS, ...(hasPostingText ? POSTING_TEXT_COLUMNS : [])].map(c => `sj.${c}`).join(", ")}
     FROM scraped_jobs sj
     LEFT JOIN ats_only_reports aor
       ON aor.job_id = sj.job_id AND aor.user_id = ? AND aor.domain_profile_id IS ?
