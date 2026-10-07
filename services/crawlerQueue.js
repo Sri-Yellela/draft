@@ -239,6 +239,29 @@ export function budgetToday(db, { env = process.env, now = Math.floor(Date.now()
   return { tasksToday: leased, dailyCap: dailyCap(env), pagesToday: pages, minutesToday: +(ms / 60000).toFixed(1) };
 }
 
+// ── D75 STEP 1c · the worker has no domain and no healthcheck, so draft records when it last heard from it ──
+export const SILENT_AFTER_SECONDS = 180;              // three missed 60 s polls
+export function noteWorker(db, call, now = Math.floor(Date.now() / 1000)) {
+  try { db.prepare("UPDATE crawler_state SET worker_last_seen = ?, worker_last_call = ? WHERE id = 1").run(now, String(call).slice(0, 60)); }
+  catch { /* before migration 145 — never the reason a lease fails */ }
+}
+export function workerSeen(db, now = Math.floor(Date.now() / 1000)) {
+  const st = readState(db);
+  const at = st?.worker_last_seen ?? null;
+  return { lastSeen: at, lastCall: st?.worker_last_call ?? null, ageSeconds: at ? now - at : null,
+           silent: at == null || now - at > SILENT_AFTER_SECONDS };
+}
+
+/**
+ * ⛔ D75 STEP 1c · a worker that is shutting down (SIGTERM — a redeploy) gives its lease BACK, so the task is
+ * re-leased at once rather than after LEASE_SECONDS, and two workers never hold one task. Only a task that is
+ * still leased can be released; the attempt is not refunded (a task that keeps dying still stops at MAX_ATTEMPTS).
+ */
+export function releaseTask(db, taskId) {
+  return db.prepare("UPDATE crawler_tasks SET status = 'queued', lease_until = NULL, mode = NULL WHERE id = ? AND status = 'leased'")
+    .run(Number(taskId)).changes > 0;
+}
+
 /** Admin: the controls, the queue (newest first, with results), the tally, the deny-list, the gauges. */
 export function crawlerSummary(db, { limit = 50, env = process.env } = {}) {
   const tasks = db.prepare(`SELECT id, type, target_host, status, result_status, refused_reason, attempts, mode, source, flagged_wrong, flag_note,
@@ -250,6 +273,6 @@ export function crawlerSummary(db, { limit = 50, env = process.env } = {}) {
     });
   const tally = db.prepare("SELECT type, COALESCE(result_status, status) AS outcome, COUNT(*) AS n FROM crawler_tasks GROUP BY 1, 2").all();
   const wrong = db.prepare("SELECT COUNT(*) FROM crawler_tasks WHERE flagged_wrong = 1").pluck().get();
-  return { state: readState(db), pause: pausedNow(db, env), envPaused: isPaused(env), budget: budgetToday(db, { env }),
+  return { state: readState(db), pause: pausedNow(db, env), envPaused: isPaused(env), budget: budgetToday(db, { env }), worker: workerSeen(db),
            tasks, tally, wrongAnswers: wrong, candidates: captureCandidates(db, { limit: 25 }), denyList: denyList(db) };
 }

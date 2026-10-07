@@ -19,6 +19,19 @@ import { findBoard } from "./lib/j1.js";
 import { followApply } from "./lib/j2.js";
 import { createBrowserStage } from "./lib/browser.js";
 
+/**
+ * ⛔ D75 STEP 1c · what happens to a task when the worker is told to stop (SIGTERM — a redeploy). The running
+ * task already stopped within one page (isPaused answers true once stopping); its lease is then RELEASED, not
+ * reported as a failed result, so draft re-leases it at once and a new worker never shares it with this one.
+ * A task that finished before the signal is posted normally. Exported for the tests.
+ */
+export async function settle(task, result, { stopping, post }) {
+  if (stopping && result.status === "error" && /^paused/.test(result.error || "")) {
+    return { action: "release", answer: await post("/api/crawler/release", { taskId: task.id }) };
+  }
+  return { action: "result", answer: await post("/api/crawler/result", result) };
+}
+
 /** Run ONE leased task. Exported for the tests, which drive it against local fixtures. */
 export async function runTask(task, { fetchImpl, allowHosts, deny = [], isPaused, rateMs, browserStage = null,
                                        dryRun = false, log = () => {}, resolve } = {}) {
@@ -47,8 +60,21 @@ async function main() {
   const poll = Math.max(10, Number(process.env.CRAWLER_POLL_SECONDS || 60)) * 1000;
   const auth = { authorization: `Bearer ${token}` };
 
+  // ⛔ STEP 1c: SIGTERM (Railway's redeploy, draining ~30 s) — stop taking tasks, stop the current one within a
+  // page, give its lease back, exit 0. A paused or idle worker otherwise never exits.
+  let stopping = false, busy = false;
+  const stop = (sig) => {
+    if (stopping) return;
+    stopping = true;
+    console.log(`[crawler] ${sig} — ${busy ? "finishing the current page, then releasing the lease" : "idle; exiting"}`);
+    if (!busy) process.exit(0);
+  };
+  process.on("SIGTERM", () => stop("SIGTERM"));
+  process.on("SIGINT", () => stop("SIGINT"));
+
   let lastPause = { at: 0, paused: false };
   const isPaused = async () => {
+    if (stopping) return true;
     if (Date.now() - lastPause.at < 2000) return lastPause.paused;
     try { const r = await fetch(`${base}/api/crawler/status`, { headers: auth }); const j = await r.json(); lastPause = { at: Date.now(), paused: !!j.paused }; }
     catch { lastPause = { at: Date.now(), paused: true }; }        // cannot reach draft → treat as paused
@@ -67,7 +93,13 @@ async function main() {
   console.log(`[crawler] up — draft ${base}, dry-run ${dryRun}, browser ${!!browserStage}`);
 
   let paused = false;                 // logged once per pause, not every poll
+  const post = async (path, payload) => {
+    const body = JSON.stringify(payload);
+    const r = await fetch(`${base}${path}`, { method: "POST", body, headers: { "content-type": "application/json", ...sign(body, token) } });
+    return r.status;
+  };
   for (;;) {
+    if (stopping) process.exit(0);
     let task = null;
     try {
       const r = await fetch(`${base}/api/crawler/next`, { headers: auth });
@@ -76,15 +108,19 @@ async function main() {
       else if (r.status !== 204) console.warn(`[crawler] lease answered ${r.status}`);
       if (r.status === 200) paused = false;
     } catch (e) { console.warn(`[crawler] lease failed: ${e.message}`); }
-    if (!task) { await new Promise(r => setTimeout(r, poll)); continue; }
+    if (!task) {
+      for (let waited = 0; waited < poll && !stopping; waited += 1000) await new Promise(r => setTimeout(r, 1000));
+      continue;
+    }
+    busy = true;
     // D75 STEP 0b: the MODE comes from draft with each lease (Admin → Crawler); CRAWLER_DRY_RUN=1 forces dry regardless.
     const result = await runTask(task, { deny: task.deny || [], isPaused, browserStage: task.mode === "live" ? browserStage : null,
                                          dryRun: dryRun || task.mode !== "live", log: console.log });
-    const body = JSON.stringify(result);
     try {
-      const r = await fetch(`${base}/api/crawler/result`, { method: "POST", body, headers: { "content-type": "application/json", ...sign(body, token) } });
-      console.log(`[crawler] task ${task.id} ${task.type} → ${result.status} (posted: ${r.status})`);
-    } catch (e) { console.warn(`[crawler] result post failed for task ${task.id}: ${e.message}`); }
+      const s = await settle(task, result, { stopping, post });
+      console.log(`[crawler] task ${task.id} ${task.type} → ${s.action === "release" ? "released (shutting down)" : result.status} (answered ${s.answer})`);
+    } catch (e) { console.warn(`[crawler] could not report task ${task.id}: ${e.message}`); }
+    busy = false;
   }
 }
 

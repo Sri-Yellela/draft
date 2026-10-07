@@ -4053,4 +4053,14 @@ export const MIGRATIONS = [
         ALTER TABLE crawler_tasks ADD COLUMN flag_note TEXT;
       `,
     },
+    {
+      // D75 STEP 1c (owner, 10-09): THE WORKER HAS NO DOMAIN AND NO HEALTHCHECK — so draft records when it last
+      // heard from it, and what it answered, on every authenticated call (lease, status, result, release).
+      // Admin → Crawler shows "worker last seen"; silence past a few polls reads as "not running".
+      id: "145_crawler_worker_seen",
+      sql: `
+        ALTER TABLE crawler_state ADD COLUMN worker_last_seen INTEGER;
+        ALTER TABLE crawler_state ADD COLUMN worker_last_call TEXT;
+      `,
+    },
   ];
