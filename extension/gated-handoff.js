@@ -1203,6 +1203,28 @@ async function waitForCandidate(tabId, origin, stepName, wizard) {
   }
 }
 
+/**
+ * D55 (l) — is this a form we recognise well enough to fill? Pure; decided before anything is typed.
+ *   · a known adapter (a wizard the page announces, or Workday's own field ids) — yes;
+ *   · nothing in the packet matches anything here — no;
+ *   · a SIGN-IN form (a password box) the packet barely matches — no: the extension never signs in,
+ *     and the email box of a login form is exactly where a home-address-carrying packet must not go;
+ *   · two or more matches — yes; a single match is enough only when it is the page's only field.
+ */
+export function formRecognition(shape, plan = []) {
+  const fields = shape?.fields || [];
+  if (shape?.wizard || fields.some(f => f.automationId && WORKDAY_FIELD_IDS[f.automationId])) {
+    return { recognised: true, adapter: 'workday' };
+  }
+  if (!plan.length) return { recognised: false, why: 'nothing in your prepared answers matches a field on this page' };
+  const fillable = fields.filter(f => f.type !== 'file' && f.type !== 'password');
+  if (fields.some(f => f.type === 'password') && plan.length < 3) {
+    return { recognised: false, why: 'this looks like a sign-in form, not the application' };
+  }
+  if (plan.length >= 2 || fillable.length <= 1) return { recognised: true };
+  return { recognised: false, why: `only ${plan.length} of ${fillable.length} fields matched` };
+}
+
 /** The sentence for a wizard run — where it stopped is the thing the candidate needs to know. */
 export function wizardMessage(filledCount, wizard) {
   const steps = wizard?.steps?.length || 0;
@@ -1303,6 +1325,23 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
         };
       }
     } catch { /* the fill is still worth doing without it; reported below */ }
+  }
+
+  // ── D55 (l): A FORM WE DO NOT RECOGNISE IS SAID, AND LEFT ALONE ────────────────────────────
+  // §8.3: "a visible 'this form isn't recognised' state — the extension says so and stops, rather
+  // than half-filling." A page where the packet matches one box (the email field of a sign-in form)
+  // is not an application we know, and typing the candidate's email into it is the half-fill that
+  // reads as the extension working. Checked BEFORE anything is typed. The released packet stays
+  // cached for this tab, so pressing the shortcut again on the real form costs no second token.
+  const recognition = formRecognition(shape, matchAnswersToFields(answers, shape.fields).plan);
+  if (!recognition.recognised) {
+    const badgeNow = await showBadge(tab.id, 'unrecognised', { note: recognition.why });
+    return {
+      ok: false, reason: 'form_not_recognised', reused: !!reused, packetId: released.packetId,
+      filled: [], why: recognition.why, badge: badgeNow,
+      message: "This form isn't recognised — nothing was filled. Fill it yourself, or copy your answers " +
+        'from the Copy sheet in the draft popup.',
+    };
   }
 
   // D55 (c): the one-line badge says what the page is doing while the fill runs.
