@@ -21,6 +21,7 @@
 // every line is kept as { location, min, max }, and the overall range is their min–max.
 // ⛔ HOURLY STAYS HOURLY — the unit is returned as stated, never converted; annualisedUsd() is the
 // sort's explicit ESTIMATE and is named as one.
+import { US_STATES } from "./usLocation.js";   // ONE state list (A93) — the tagger's own
 
 const SIGN_CURRENCY = { "$": "USD", "€": "EUR", "£": "GBP" };
 const DOLLAR_PREFIX = { US: "USD", C: "CAD", CA: "CAD", A: "AUD", AU: "AUD", NZ: "NZD", S: "SGD", MX: "MXN" };
@@ -36,7 +37,6 @@ const RANGE_G = new RegExp(
 const PAY_WORD = /\b(?:salary|salaries|compensation|pay\s*(?:range|scale|rate|band)|base\s*(?:pay|salary|compensation)|wages?|hourly\s*rate|ote|on-target earnings|annual(?:ly)?|per\s+(?:year|annum|hour|month)|hourly)\b|\/\s?(?:yr|hr|year|hour|mo)\b/i;
 const UNIT_RE = /\b(?:per|an?|\/)\s*(hour|hr|year|yr|annum|month|mo)\b|\b(hourly|annually|annual|yearly|monthly)\b|\/\s?(hr|yr|mo)\b/i;
 
-const US_STATES = new Set(("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC PR").split(" "));
 const US_COUNTRY = /^(?:usa|us|u\.s\.a?\.?|united states(?: of america)?)$/i;
 
 function amount(n, k) {
@@ -74,7 +74,7 @@ const PLAUSIBLE = { annual: [10_000, 2_000_000], monthly: [1_000, 200_000], hour
 export function placeOfPayLine(prefix) {
   const t = String(prefix || "").replace(/[\s:–—-]+$/, "").split(",").map(s => s.trim()).filter(Boolean);
   if (t.length < 2 || t.length > 3 || t.some(s => /\d/.test(s) || s.length > 40)) return null;
-  const isState = (s) => US_STATES.has(s.toUpperCase()) && /^[A-Za-z]{2}$/.test(s);
+  const isState = (s) => /^[A-Za-z]{2}$/.test(s) && Object.hasOwn(US_STATES, s.toUpperCase());
   const city = (s) => (/^[A-Za-z .'-]+$/.test(s) ? s.replace(/\b\w/g, c => c.toUpperCase()) : null);
   if (t.length === 3 && US_COUNTRY.test(t[0]) && isState(t[1])) return { country: "US", state: t[1].toUpperCase(), city: city(t[2]) };
   if (t.length === 3 && US_COUNTRY.test(t[2]) && isState(t[1])) return { country: "US", state: t[1].toUpperCase(), city: city(t[0]) };
