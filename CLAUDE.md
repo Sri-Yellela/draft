@@ -46,6 +46,20 @@ Interactive → a depth box (`DepthButton` / `.dbx-depth`). Status and tags → 
 (avatars, dots, spinners, the ring). Never propose a pill. Guard: `test/d60NoPills.test.js`; the table is in
 `docs/BRAND.md`.
 
+## ⛔ Module boundaries: `client/src/modules.manifest.js` (A93, owner 2026-10-07)
+
+**Every shared file in the client is logged in `client/src/modules.manifest.js`**, and
+`test/a93ModuleManifest.test.js` derives the truth from the code and fails when they disagree. Before you
+add or move a component:
+- **The same thing is built once.** A second component with the same name fails the guard; a second
+  *implementation* under another name (the ATS number box was built three times) is the same defect — look
+  for the existing one first (`node scripts/a93ModuleAudit.mjs`).
+- **A page's part stays in its page.** A file marked `module:` may be imported only by that module's members;
+  a panel mounting another panel needs a declared `COMPOSITIONS` entry with why; a stylesheet's classes are
+  worn only by its owner or its module. One page's styles never go in a shared component's stylesheet.
+- **Nothing dead.** A shared file nothing imports fails the guard — delete it.
+- **The extension mirrors** (`MIRRORS`) re-draw client modules in the extension's own CSS; change both.
+
 ## The WORKLOG's three sequences: O##, D## and A##
 
 ⛔ **CORRECTED 2026-10-03. The rule written here on 10-02 was INVERTED and never matched practice** —
