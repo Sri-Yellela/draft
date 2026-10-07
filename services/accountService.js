@@ -187,7 +187,8 @@ const SECRET_COLUMNS = new Set(["password_hash", "apify_token", "secret_enc", "i
 // (usage, scrape, cache events) are summarised, not dumped.
 const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes", "base_resume", "resumes", "resume_versions",
   "job_applications", "user_jobs", "imported_jobs", "user_job_searches", "apply_runs", "apply_run_jobs", "notifications",
-  "simple_apply_profiles", "profile_simple_apply_profiles", "dock_preferences", "daily_drafts", "user_integrations"];
+  "simple_apply_profiles", "profile_simple_apply_profiles", "dock_preferences", "daily_drafts", "user_integrations",
+  "form_reports"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -236,7 +237,7 @@ export const MERGE_PLAN = Object.freeze({
   cache_events: "move", domain_profile_requests: "move", notifications: "move",
   profile_base_resumes: "move", profile_resume_enhancements: "move", profile_signal_suggestions: "move",
   profile_simple_apply_profiles: "move", resume_versions: "move", scrape_events: "move", usage_events: "move",
-  usage_tracking_failures: "move", draft_slot_uses: "move", job_captures: "move",
+  usage_tracking_failures: "move", draft_slot_uses: "move", job_captures: "move", form_reports: "move",
   domain_profiles: "profiles",
   application_records: "keepInto", ats_only_reports: "keepInto", daily_drafts: "keepInto", imported_jobs: "keepInto", job_applications: "keepInto",
   resumes: "keepInto", user_integrations: "keepInto", user_job_searches: "keepInto", user_job_views: "keepInto",

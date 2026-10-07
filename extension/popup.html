@@ -127,6 +127,15 @@
   <div class="links">
     <button class="link" id="btn-linkedin">Sign in with LinkedIn</button>
     <button class="link" id="btn-settings">Keyboard shortcuts</button>
+    <button class="link" id="btn-report-form" title="Tell draft this application form is not recognised">Report this form</button>
+  </div>
+  <!-- D55 decision E: what a report sends is shown BEFORE it is sent; Send is a second click. -->
+  <div id="report-form" style="display:none">
+    <p class="read-hint" id="report-form-line"></p>
+    <div class="btn-row">
+      <button class="btn" id="btn-report-send">Send report</button>
+      <button class="link" id="btn-report-cancel">Cancel</button>
+    </div>
   </div>
 
   <p class="result-text" id="last-capture" style="display:none"></p>

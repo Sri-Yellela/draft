@@ -7,6 +7,16 @@ justifications that don't match observable behaviour.
 Upload artifact: `extension/submission/resume-master-extension-v1.4.1.zip`
 (build with `npm run build:extension` — never hand-assemble it; see extension/README.md).
 
+> ⚠ **IN THE TREE, NOT IN ANY PACKAGE YET — D55 decisions B and E (10-07), for the NEXT release**
+> (one submission with the rest of the D55 stack; the version bump and the zip are the release's,
+> not this change's). **One new permission, `contextMenus`** — right-click **Save this page to draft**
+> (the same capture as the button) and **Save link to draft** (sends only the link's address; the
+> server refetches the posting from the ATS's own listing or refuses the link). **One new data flow,
+> Report this form** — the form page's host and field labels, never values, account-linked, 30 days.
+> Re-paste: the `contextMenus` justification below (new field), the *Website content* answer (items
+> 4 and 5), and confirm the privacy page is deployed with *Reporting a Form That Isn't Recognised*
+> first. No new host, no content script, no new storage key — the six are unchanged.
+>
 > **v1.4.1 (D36, 10-05) — on top of v1.4.0, also not yet uploaded.** When the review overlay cannot
 > render, the fill no longer reports the success sentence: it says the review panel could not open and
 > to check every answer (work authorisation and sponsorship first) before submitting, and the popup
@@ -168,6 +178,17 @@ by the generic path and works. Verified against live postings on all of the abov
 `chrome.tabs.query({active: true, currentWindow: true})` only inside a user-gesture handler.
 `captureActiveTab()`, `previewActiveTab()` and `handleGatedHandoff()` are reached only from there.)*
 
+**`contextMenus`** — ⚠ **NEW in the next release (D55 decision B). Paste this field.**
+> Adds two items to the right-click menu. **Save this page to draft** runs the same capture as the
+> toolbar button, on the page the user right-clicked. **Save link to draft** sends only the address
+> of the link the user right-clicked to our backend, which reads that posting from the job board's
+> own listing — or refuses the link and saves nothing if it is not a posting on a board we read
+> directly. Neither item reads anything until the user picks it, and the permission grants no access
+> to any page.
+
+*(Code: `background.js` `chrome.contextMenus.onClicked` → `captureActiveTab()` / `saveLinkToDraft()`;
+the items are `formReport.js` `CONTEXT_MENUS`.)*
+
 **`scripting`**
 > Injects a one-off script into the invoked tab to (a) read the job posting the user is capturing,
 > (b) collect the visible text when the user asks for an ATS score, and (c) fill the application form
@@ -261,7 +282,7 @@ These are the answers for the **Privacy practices** tab.
      data, sent to the employer's form at the user's instruction, in a tab they opened and signed in
      to. It is held only for the duration of that handoff and is never sent to any third party other
      than the employer's own form.
-- **Website content** — **collected, in three narrow cases.**
+- **Website content** — **collected, in three narrow cases** (five from the next release — items 4 and 5).
   1. The text of a job posting the user explicitly captures, sent to their account.
   2. The visible text of a job page when the user clicks **ATS Score Tool**, passed to their own
      ATS Score page so it arrives prefilled. It travels in the URL of the page that opens, so it
@@ -270,6 +291,12 @@ These are the answers for the **Privacy practices** tab.
      types, required flags and option lists. Never the values in it, never anything about the user.
      This is used to recognise the same form for other users. It is controlled by a per-account
      setting that defaults to OFF and is enforced on our server, not only in the extension.
+  4. *(Next release, D55 B.)* The **address of a link** the user right-clicks and saves with **Save
+     link to draft** — the link only; no page is opened or read. Stored as a capture is, if the
+     server can read the posting from the job board's own listing; otherwise refused, nothing stored.
+  5. *(Next release, D55 E.)* When the user presses **Report this form** and then **Send report**:
+     the form page's **host name** (never its path or query) and the form's **field labels** —
+     never the values in it. Linked to the user's account and deleted after 30 days.
 - **Authentication information** — *not collected.* The extension never reads, stores or transmits
   any portal's session cookie, password, or token. It cannot sign the user in and does not try; the
   user crosses every sign-in and CAPTCHA themselves. It holds no `cookies` permission.
