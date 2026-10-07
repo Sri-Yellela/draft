@@ -3174,6 +3174,45 @@ The owner generated a tailored résumé and the job's score **stayed on the base
 
 ---
 
+## ⛔ D59 · POSTINGS THAT ARRIVE AS RAW HTML AND LABEL BLOCKS — 2026-10-07
+
+The owner pasted the stored text of an imported **RTX posting (Marlborough, MA)**. The description is **raw HTML** — `<p style="text-align:left"><b>Date Posted:</b></p>2026-08-26…` — with the quotes **backslash-escaped** in places (`style=\"…\"`), and it opens with a block of **label : value lines**: *Date Posted · Country · Location · Position Role Type · a citizenship / immigration-status line · Security Clearance Type · Security Clearance Status.* *"We should be able to handle these as well."* **Suggested place in the queue:** after D41 — it feeds D42's location fixtures, D41(d)'s US evidence and D48's deck strip.
+
+⛔ **Today the tags show as literal text — which means the panel ESCAPES the description, and that is why it looks broken.** The tempting fix is to *render* the HTML, and **that would open a stored-XSS hole**: captured and crawled descriptions are third-party content, and a captured job lands in the **shared** pool, so a hostile page would run its markup in **every** user's browser. ⛔ **The fix must not trade ugliness for a vulnerability.**
+
+**1 · MARKUP → STRUCTURED TEXT, deterministic (D17), done at INGEST and re-checked at RENDER.**
+- Decode entities (including `&lt;p&gt;`-style escaped HTML) and **unescape the stray `\"`.**
+- Convert through an **allow-list** — `p br ul ol li b strong i em h1–h6 a` — into **blocks** (paragraphs, lists, bold headings) that the posting panel renders **as React elements, never as injected HTML.** Everything else is dropped; `style`, `on*`, `script`, `iframe` and `javascript:` links never survive.
+- ⛔ **Test with a hostile fixture:** a description carrying `<script>`, `<img onerror>` and a `javascript:` link renders as **inert text.**
+- It applies to **every source** — capture, Greenhouse, Lever, Ashby, Workday — one normaliser, not one per adapter. Report how many stored descriptions today contain `<p`, `&lt;` or `\"`.
+
+**2 · LABEL BLOCKS → FIELDS.** A leading run of *Label: value* lines is **structured data in prose clothing.** Parse it with a **vocabulary of known labels**, take the fields, and **remove those lines from the body** so they are not shown twice. Vocabulary to start: *date posted · country · location · position / role type (Onsite · Hybrid · Remote) · citizenship / immigration status · security clearance type · clearance status · relocation assistance · travel · requisition id · employment type · pay range.* Unknown labels stay in the text.
+- **Date Posted** → the deck's *Posted* cell — the **posting's own date**, not the crawl's.
+- **Position Role Type: Onsite** → the **workstyle tag** (D29) and the deck's *Workstyle* cell (D48) — and it raises the workplace tag's **47.5%** coverage.
+- ⭐ **`Country: United States of America` is POSITIVE US EVIDENCE** (D41(d)): a capture carrying it must be **accepted**, not refused or called ambiguous.
+
+**3 · CODED LOCATIONS.** `US-MA-MARLBOROUGH-MA2 1001 Boston Post Rd BLDG 2` is **`country-state-CITY-sitecode` + a street address.** Parse it to **US · MA · Marlborough · site `MA2`** · street kept apart. ⛔ **THE TRAP, and it is D42's exact bug: the string contains "Boston" — as a STREET (`Boston Post Rd`).** A substring matcher tags this job *"in Boston"* when the city is **Marlborough.** Make it a D42 fixture. ⚠ Whether Marlborough counts as **Greater Boston** is a product call, not a parsing one — it is a **metro** question, never a **city** one.
+
+**4 · CITIZENSHIP AND CLEARANCE ARE FIRST-CLASS FACTS — surfaced, never decided.** Postings state hard eligibility constraints that no score captures. Tag them:
+- `us_citizenship` ∈ **`citizen_only`** (*"U.S. citizenship is required, as only U.S. citizens are eligible for a security clearance"*) · **`us_person`** (*"U.S. citizen, national, permanent resident, refugee or asylee"* — export-control wording) · **`none_stated`.** ⛔ **They are different and both exclude F-1 / OPT and H-1B holders.** Do not collapse them.
+- `clearance` ∈ none · public trust · Secret · Top Secret · TS/SCI · plus **polygraph**, and **status**: *active required* · *interim acceptable* · *ability to obtain.*
+- **Where it shows:** a muted *Requirements* row under the deck strip — *U.S. citizens only · Secret clearance · interim OK* — as **status pills** (non-interactive, D48's rule), **never folded into the ATS score.**
+- **A filter option** behind *+ add*: *hide roles that require clearance or citizenship.*
+- ⛔ **At Draft** (D51's notice): *"This role requires U.S. citizenship and an active Secret clearance. Your profile doesn't state either — draft will stop and ask."* ⛔ **The product never answers or infers the candidate's eligibility** — the resolver stays exact-or-blank (D36).
+
+**5 · DO NOT BREAK THE GRADES.** ⛔ **A76's blind-file grades and the enrichment imports are keyed on `content_hash`, which is a hash of the description text.** Rewriting stored descriptions **changes every affected hash and marks graded rows stale** — and the owner's grading (O69) is **still pending against the current text.** ✅ **Store the normalised text in a NEW column (`description_text`)** and leave `description` untouched; readers prefer the new one. ⚠ **The scorer reads the description, so this changes scores** — raw HTML adds noise terms (`text-align`, `left`) and label lines add words that are not requirements. **Re-measure ρ and the bands after the backfill, and say how many rows moved.**
+
+**6 · FIXTURES — real postings already seen in this project:**
+- **RTX** (this text) — raw HTML, label block, coded location with `Boston Post Rd`, *citizen_only*, Secret.
+- **Northrop Grumman** — *CLEARANCE REQUIRED FOR START: Yes · CLEARANCE TYPE: Polygraph · TRAVEL: Yes, 10% of the Time · RELOCATION ASSISTANCE.*
+- **Lockheed Martin** — *"active TS/SCI clearance"* in running prose, no label block.
+- **Blue Origin** — *Export Control Regulations: U.S. citizen or national, permanent resident, refugee or asylee* → **`us_person`**, not `citizen_only`.
+- a **hostile** description (the XSS fixture).
+
+⛔ **Tests (each red when removed):** the RTX text renders with **no visible tags and no `\"`** · the label block becomes fields and **does not also appear in the body** · `Boston Post Rd` is **not** the city · `citizen_only` and `us_person` stay distinct · the hostile fixture is inert · `description` and `content_hash` are **unchanged** after the backfill · a capture with `Country: United States of America` is accepted.
+
+---
+
 ## ⛔⛔ D36 · EVERY APPLY PATH, END TO END — the same treatment D33 gave capture
 
 **🚀 LIVE 10-06 (29): `65a9838` — 3366 / 3366 / 0, client builds.** **🔨 BUILT, ⛔ NOT DONE — DONE needs the owner's ATTENDED real application on each path (O73), per `docs/D36_ATTENDED_RUNBOOK.md`.** Walked as a user against the LOCAL fake ATS only (synthetic user, keys blanked, a no-model tools stub; FULL AUTO in a harness copy) — nothing reached an employer. **Measured per path** (rows, score, provenance, gates, caps, response, artifact) in the D36 report: MANUAL → `job_applications` with `ats_score_at_apply` 90 (`local_ats_v5`) · SEMI → preview superseded → approved run submitted + verified, score 90 · GATED → held `login_required`, ⚠ no résumé and a NULL score on that path (O73b) · FULL AUTO (harness) → Ashby submitted, Lever/Greenhouse held. ⭐ **Refuted:** "in SEMI the completeness and low-confidence gates don't run" — D25's preview + approve are both unattended and both gates fired live; only the legacy `run.mode='semi'` skips them, and nothing starts it. ⭐ `recordAtsOutcome` DOES fire with the job id — the null rows were user 0's 09-05 scripts. **Fixed, one commit each:** ⛔ the kill switch did not stop a run IN FLIGHT — now checked right before the submit click, fail-closed (`18c6794`) · ⛔ FULL AUTO was admitted via approvalMode `auto` from two routes — locked at admission (403 `full_auto_locked`) and processing (`ed6e7d2`) · ⛔ **eligibility was guessed** — on a trap page the old code submitted ethnicity = city, sponsorship "No" ×3 from a DEFAULT, clearance "no", citizenship = country; now blank + refusal recorded (`8a08222`) · an approved run said "No resume was generated" over one that existed (a `::` in a Windows temp name, swallowed; `8d73869`) · a refused answers-retry lost the held application (`8df5f53`) · approving refunded the Draft slot (`eb4e0c3`) · the contradictory preview log (`bc6cbcf`) · kill-switch copy offered a mode that doesn't exist (`8f75dde`) · a failed review overlay read as success — **extension v1.4.1** (`051958e`; zip built, not uploaded) · a gated handoff never reached Pending (`e7327cc`). Proofs pinned: `ca13b7a` (the row + score), `70abb4b` (429 / dead container / timeout stay retryable), `b7c3051` (nothing submits on a gesture); g3's real-Chrome overlay run passed. Two generation-call defects → **A88**.
