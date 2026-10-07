@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { importJob, ImportInputError, ImportRefusedError, detectKnownAtsMatch } from "../services/jobs/importJob.js";
+import { importJob, ImportInputError, ImportRefusedError, detectKnownAtsMatch, linkRefetchability } from "../services/jobs/importJob.js";
 import { recentCaptures } from "../services/jobs/captureOutcome.js";
 
 // Sibling to routes/importedJobs.js, NOT an extension of it — importedJobs.js manages the
@@ -47,6 +47,38 @@ export function createImportJobRouter(db, opts = null) {
       // What is left to fail is a fetch (the posting's site, an ATS list) or the database, so a
       // retry can genuinely help. Nothing here depends on a model balance any more (D33).
       res.status(502).json({ error: "Could not import this job. Please try again.", retryable: true });
+    }
+  });
+
+  // ⭐ D55 decision B — "Save link to draft", the extension's right-click on a LINK.
+  //
+  // POST /api/import/link { url } — the link's address and nothing else: no page was opened, so
+  // there is no text to send. Accepted ONLY where linkRefetchability() says the server reads the
+  // posting itself, from the ATS's own listing; every other link is refused BEFORE any fetch, with
+  // a 422 whose `error` names the remedy (open it and Save this page). Then the same importJob()
+  // as a capture — same dedup, same US gate, same job_captures row, same answer — with refetchOnly,
+  // so the generic page fetch is never a fallback for a link.
+  router.post("/link", async (req, res) => {
+    const url = typeof req.body?.url === "string" ? req.body.url.slice(0, 2048) : "";
+    const verdict = linkRefetchability(db, url);
+    if (!verdict.ok) {
+      return res.status(422).json({ error: verdict.message, refused: true, kind: `link_${verdict.reason}`, retryable: false });
+    }
+    try {
+      const result = await importJob({ url }, { db, userId: req.user?.id || null, refetchOnly: true });
+      if (queueLogo && result?.job?.company) {
+        const urls = [result.employerSite, result.job.url, result.job.applyUrl, url].filter(Boolean);
+        Promise.resolve().then(() => queueLogo({ company: result.job.company, urls })).catch(() => {});
+      }
+      const { employerSite, ...body } = result || {};
+      res.json(body);
+    } catch (err) {
+      if (err instanceof ImportInputError) return res.status(422).json({ error: err.message, refused: true, kind: "link_not_listed", retryable: false });
+      if (err instanceof ImportRefusedError) {
+        return res.status(422).json({ error: err.message, refused: true, kind: err.kind, retryable: false });
+      }
+      console.error("[POST /api/import/link] Error:", err.message);
+      res.status(502).json({ error: "Could not reach that job board. Please try again.", retryable: true });
     }
   });
 

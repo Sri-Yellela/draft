@@ -445,4 +445,29 @@ document.getElementById('btn-settings')?.addEventListener('click', () => {
   chrome.runtime.openOptionsPage();
 });
 
+// ─── D55 decision E: Report this form ──────────────────────────────────────
+// First press: the service worker reads the form's labels and says what WOULD be sent. Second
+// press (Send report): it reads them again and sends the site's host and those labels — never an
+// answer, never the page's address beyond the site. The popup holds nothing it could add.
+document.getElementById('btn-report-form')?.addEventListener('click', async () => {
+  const box = document.getElementById('report-form');
+  const line = document.getElementById('report-form-line');
+  const r = await chrome.runtime.sendMessage({ type: 'REPORT_FORM', phase: 'preview' }).catch(() => null);
+  if (!r?.ok) { setStatus(r?.message || 'Could not read this form.', 4000); return; }
+  line.textContent = `Sends draft this site's name (${r.host}) and the form's ${r.labelCount} question ` +
+    'label(s) — never your answers, and nothing of the page address beyond the site.';
+  box.style.display = 'block';
+});
+document.getElementById('btn-report-cancel')?.addEventListener('click', () => {
+  document.getElementById('report-form').style.display = 'none';
+});
+document.getElementById('btn-report-send')?.addEventListener('click', async () => {
+  const btn = document.getElementById('btn-report-send');
+  btn.disabled = true;
+  const r = await chrome.runtime.sendMessage({ type: 'REPORT_FORM', phase: 'send' }).catch(() => null);
+  document.getElementById('report-form').style.display = 'none';
+  btn.disabled = false;
+  setStatus(r?.ok ? `Reported — thank you. draft will look at ${r.host}'s form.` : (r?.message || 'Could not send the report.'), 5000);
+});
+
 init();

@@ -186,9 +186,10 @@ export function PrivacyPage() {
             pages you actively visit — we do not access job data without your interaction.
           </P>
           <P>
-            The extension has <Strong>one</Strong> capture action, and the toolbar button and the
-            keyboard shortcut are two ways of triggering it. They send the same data to the same
-            place, so capturing a job twice updates one record rather than creating a second.
+            The extension has <Strong>one</Strong> capture action, and the toolbar button, the
+            keyboard shortcut and the right-click <Strong>Save this page to draft</Strong> are three
+            ways of triggering it. They send the same data to the same place, so capturing a job
+            twice updates one record rather than creating a second.
           </P>
 
           <H3>Browser Extension</H3>
@@ -222,6 +223,13 @@ export function PrivacyPage() {
               is already on your board and whether an application you drafted is waiting on that
               site; the answer is shown in the popup and not kept by the extension. It cannot see the
               address of any other tab, and it does not record where you go.
+            </LI>
+            {/* D55 decision B — background.js saveLinkToDraft(), routes/importJob.js POST /link. */}
+            <LI>
+              If you right-click a link and choose <Strong>Save link to draft</Strong>, the extension
+              sends only that link's address to {CANONICAL_HOST} — no page is opened or read. We save
+              the job only if the link is to a posting on a job board we read directly, fetching it
+              from that board's own listing; we refuse any other link and save nothing.
             </LI>
             <LI>
               If you click <Strong>ATS Score Tool</Strong> in the extension's popup, it copies the
@@ -375,6 +383,15 @@ export function PrivacyPage() {
               The prepared answers are held only while you are working on that application: in
               memory-backed browser storage, for ten minutes, and cleared when the tab closes.
             </LI>
+            {/* D56: gated-handoff.js runGatedHandoff / prepareAndFill / copySheetFor / recordSubmitted —
+                routes/apply.js /handoff/match, /gate-packets/:id/token, /prepare, /copy-sheet, /handoff/submitted. */}
+            <LI>
+              When you fill, prepare or copy answers for an application, the extension sends that
+              page's <Strong>full address</Strong> (including its path and any query) to{" "}
+              {CANONICAL_HOST}, to work out which of your applications the page belongs to; it is
+              used for that check and not kept. When you press <Strong>I submitted</Strong>, that
+              address is kept with the application's record, as the evidence of where you sent it.
+            </LI>
           </UL>
 
           <H3>Learning an Application Form (optional, off by default)</H3>
@@ -396,6 +413,15 @@ export function PrivacyPage() {
               to your account.
             </LI>
           </UL>
+
+          {/* D55 decision E — the one disclosure line. services/formReports.js, migration 136_form_reports. */}
+          <H3>Reporting a Form That Isn't Recognised</H3>
+          <P>
+            If you press <Strong>Report this form</Strong> in the extension's popup and then{" "}
+            <Strong>Send report</Strong>, we receive that site's host name (for example
+            jobs.example.com — never the rest of the page address) and the form's field labels,
+            never your answers; the report is linked to your account and deleted after 30 days.
+          </P>
 
           <H3>Usage Data</H3>
           <P>
