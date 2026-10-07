@@ -208,6 +208,28 @@ test("usage records land in usage_events with the same purpose/event_type draft'
   assert.ok(rows[1].cost_usd > 0, "costed from the model, as before");
 });
 
+test("A94: a claim-guard refusal's billed call says the request was refused — a delivery's does not", () => {
+  const db = usageDb();
+  recordToolsServiceUsage(db, USAGE, { userId: 7, jobId: "j1", requestError: "resume_claim_violation" });
+  recordToolsServiceUsage(db, USAGE, { userId: 7, jobId: "j2", idFor: "resume_generate" });
+  recordToolsServiceUsage(db, [{ ...USAGE[0], success: false }], { userId: 7, jobId: "j3", requestError: "upstream_model_failure" });
+  const rows = db.prepare("SELECT job_id, success, error_text FROM usage_events ORDER BY id").all();
+  assert.deepEqual(rows.slice(0, 2), [
+    { job_id: "j1", success: 1, error_text: "request failed: resume_claim_violation" },  // billed, then withheld
+    { job_id: "j2", success: 1, error_text: null },                                       // delivered
+  ]);
+  // The call itself failed: its own marker wins, and the request's code does not replace it.
+  assert.equal(rows[2].success, 0);
+  assert.match(rows[2].error_text, /^failed inside /);
+});
+
+test("A94: every catch that meters a failed tools-service request passes its code", () => {
+  const src = fs.readFileSync(new URL("../server.js", import.meta.url), "utf8");
+  const catches = src.match(/recordToolsServiceUsage\(db, e\?\.usage, .*$/gm) || [];
+  assert.equal(catches.length, 3, "generate, standalone generate and enhance");
+  for (const c of catches) assert.match(c, /requestError: e\?\.code/, c);
+});
+
 test("a surface keeps its attribution — the standalone generator's spend is not blended into signed-in generation", () => {
   const db = usageDb();
   recordToolsServiceUsage(db, USAGE, { userId: 0, eventSubtype: "standalone", renamePurpose: { resume_generate: "standalone_generate" } });

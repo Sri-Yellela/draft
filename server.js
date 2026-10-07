@@ -9422,7 +9422,7 @@ async function enhanceProfileResume(req, res) {
         selectedAdditions: selectedLabels,
       });
     } catch (e) {
-      recordToolsServiceUsage(db, e?.usage, { userId: req.user.id, eventSubtype: "enhance" });
+      recordToolsServiceUsage(db, e?.usage, { userId: req.user.id, eventSubtype: "enhance", requestError: e?.code });
       throw e;
     }
     recordToolsServiceUsage(db, enhanced.usage, { userId: req.user.id, eventSubtype: "enhance" });
@@ -9736,7 +9736,9 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
     generated = await toolsService.generate(generateBody);
   } catch (e) {
     // Spend the tools service reports on a failed request is still spend — meter it, then rethrow.
-    recordToolsServiceUsage(db, e?.usage, { userId, eventSubtype, jobId: String(jobId), company: job.company });
+    // A94: a claim-guard refusal is a BILLED call that succeeded, so its row says success = 1; the
+    // request's code is what tells it apart from a delivered résumé.
+    recordToolsServiceUsage(db, e?.usage, { userId, eventSubtype, jobId: String(jobId), company: job.company, requestError: e?.code });
     throw e;
   }
   const domainModuleKey = generated.domainModuleKey;
@@ -10762,7 +10764,7 @@ app.post("/api/standalone/generate", requireStandaloneAuth, standaloneRateLimit(
         job: fakeJob, baseResumeText: resumeText, options: { includeSummary },
       });
     } catch (e) {
-      recordToolsServiceUsage(db, e?.usage, meter);
+      recordToolsServiceUsage(db, e?.usage, { ...meter, requestError: e?.code });
       throw e;
     }
     recordToolsServiceUsage(db, generated.usage, meter);

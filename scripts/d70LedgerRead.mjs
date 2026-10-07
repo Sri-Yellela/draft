@@ -16,7 +16,8 @@
 //   unknown    = before set, after missing (the after-score itself failed)
 //   unscored   = no job_id — a script or a row from before AK1/A88 wired the job id, so neither
 //                column says anything about it
-// That is an inference, and the report labels it as one.
+// That is an inference, and the report labels it as one. ⭐ A94 (10-07) records it instead: a row
+// whose error_text starts "request failed:" is a billed call whose request was withheld — read first.
 //
 // Usage: node scripts/d70LedgerRead.mjs [--db <path>] [--since YYYY-MM-DD] [--gap-minutes 15] [--json]
 import path from "node:path";
@@ -46,9 +47,10 @@ const byPurpose = db.prepare(`
 
 const gens = db.prepare(`
   SELECT id, user_id, job_id, event_subtype, success, input_tokens, output_tokens,
-         cache_creation_tokens, cache_read_tokens, cost_usd, ats_score_before, ats_score_after, created_at
+         cache_creation_tokens, cache_read_tokens, cost_usd, ats_score_before, ats_score_after, error_text, created_at
   FROM usage_events WHERE created_at >= ? AND purpose = 'resume_generate' ORDER BY created_at`).all(since);
-const outcome = (r) => !r.job_id ? "unscored" : r.ats_score_after != null ? "delivered"
+const outcome = (r) => String(r.error_text || "").startsWith("request failed:") ? "withheld"
+  : !r.job_id ? "unscored" : r.ats_score_after != null ? "delivered"
   : (r.ats_score_before == null ? "withheld" : "unknown");
 const outcomes = gens.reduce((m, r) => (m[outcome(r)] = (m[outcome(r)] || 0) + 1, m), {});
 
@@ -56,7 +58,7 @@ const outcomes = gens.reduce((m, r) => (m[outcome(r)] = (m[outcome(r)] || 0) + 1
 // refusal followed by a manual retry, or a classify before a generate, land in one group.
 const all = db.prepare(`
   SELECT id, user_id, job_id, purpose, success, input_tokens, output_tokens, cache_creation_tokens,
-         cache_read_tokens, cost_usd, ats_score_before, ats_score_after, created_at
+         cache_read_tokens, cost_usd, ats_score_before, ats_score_after, error_text, created_at
   FROM usage_events WHERE created_at >= ? AND purpose IN (${inList}) ORDER BY user_id, job_id, created_at`).all(since, ...GEN);
 const groups = [];
 for (const r of all) {
