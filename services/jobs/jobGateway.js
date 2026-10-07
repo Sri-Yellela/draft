@@ -18,7 +18,8 @@ import crypto from "node:crypto";
 import { classifyJob } from "./classifyJob.js";
 import { usEligibility, officeLocations } from "./usLocation.js";
 
-export const CAPTURE_ORIGINS = Object.freeze(["capture", "import_url", "paste", "admin_import"]);
+// D64: "auto_capture" — the extension captured the page with no click (services/jobs/autoCapture.js).
+export const CAPTURE_ORIGINS = Object.freeze(["capture", "import_url", "paste", "admin_import", "auto_capture"]);
 
 /** The ATS + board slug a posting URL names, or nulls — the same matchers the importer reuses. */
 export function atsSlugOf(url, detectKnownAtsMatch) {

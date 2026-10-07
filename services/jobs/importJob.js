@@ -52,6 +52,8 @@ import { fetchCompanyJobs as fetchSmartRecruitersJobs } from './sources/smartrec
 import { fetchCompanyJobs as fetchWorkableJobs }        from './sources/workable.js';
 import { fetchCompanyJobs as fetchRecruiteeJobs }       from './sources/recruitee.js';
 import { fetchCompanyJobs as fetchWorkdayJobs }         from './sources/workday.js';
+import { AUTO_CAPTURE_ORIGIN, autoCaptureRelevance } from './autoCapture.js';
+import { boardStateOf } from './jobGateway.js';
 
 class ImportInputError extends Error {
   constructor(message) {
@@ -584,11 +586,17 @@ function attachImportToUser(db, userId, jobId) {
  *   read: the posting may come ONLY from the ATS's own listing (path 1). The generic fetch of the
  *   link's page (path 2) is not attempted, so a link never makes us fetch an arbitrary page; the
  *   route checks linkRefetchability() first.
+ *   auto (⭐ D64, automated capture) — the extension captured this page with no click. ⛔ Relevance to the
+ *   user's board is decided BEFORE anything is written (services/jobs/autoCapture.js): a posting outside
+ *   the US or outside the active profile's roles returns { discarded: true, reason } and leaves NO row —
+ *   no scraped_jobs, no job_captures, no refusal record, not even its URL. A relevant one goes through
+ *   the same gateway as a manual capture, recorded with origin 'auto_capture'.
  */
-async function importJob({ url, text, html } = {}, { db, userId = null, force = false, refetchOnly = false }) {
+async function importJob({ url, text, html } = {}, { db, userId = null, force = false, refetchOnly = false, auto = false }) {
   if (!url && !text && !html) {
     throw new ImportInputError('Provide at least one of url, text, or html');
   }
+  if (auto && !userId) throw new ImportInputError('Automatic capture needs a signed-in user');
 
   if (url && !force) {
     const existing = db.prepare(
@@ -604,19 +612,29 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
       const target = existing.duplicate_of
         ? (db.prepare('SELECT * FROM scraped_jobs WHERE job_id = ?').get(existing.duplicate_of) || existing)
         : existing;
+      // ⛔ D64: an automatic capture of a posting already in the pool joins this user's board only when
+      // the board would show it — the row's own buckets decide — and only on US-admitted rows.
+      if (auto) {
+        const rel = autoCaptureRelevance(db, userId, { existingJobId: target.job_id });
+        if (!rel.relevant) return discarded(rel.reason);
+        if (boardStateOf(db, target.job_id).state !== 'on_board') return discarded('not_on_board');
+      }
       const attachment = attachImportToUser(db, userId, target.job_id);
       // D33: the fast path recorded nothing, so a capture of a posting already on the board left no
       // job_captures row — indistinguishable, in the one table built to answer it, from a capture
       // that never reached the server.
       recordExistingCapture(db, {
         jobId: target.job_id, url, userId, detectKnownAtsMatch,
-        origin: text || html ? 'capture' : 'import_url',
+        origin: auto ? AUTO_CAPTURE_ORIGIN : text || html ? 'capture' : 'import_url',
       });
       return answer(db, target, { action: 'attached', attachment });
     }
   }
 
   const providedText = text || (html ? stripResumeHtml(html) : null);
+  // ⛔ D64: an automatic capture works only from the page the user is viewing — it never makes draft
+  // fetch the posting (or any page) with nothing in hand.
+  if (auto && !providedText) throw new ImportInputError('Automatic capture sends the page it read');
 
   // Login-walled with nothing else to work with → ask the client to capture it instead.
   // If text/html WAS also provided (the extension's own capture, or a manual paste alongside
@@ -654,11 +672,12 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
 
   if (!normalizedJob && providedText) {
     normalizedJob = extractJobDeterministic({ url: url || null, text, html });
-  } else if (!normalizedJob && url && !isLoginWalled(url)) {
+  } else if (!normalizedJob && url && !isLoginWalled(url) && !auto) {
     normalizedJob = extractJobDeterministic({ url, html: await fetchGenericPosting(url) });
   }
 
   if (!normalizedJob) {
+    if (auto) return discarded('not_a_posting');
     throw new ImportInputError('Could not extract a job from the given input');
   }
 
@@ -685,6 +704,8 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
       offices: officeLocations(normalizedJob._raw), pageText: providedText || '',
       statedCountryUs: !!posting.fields.countryIsUs,
     });
+    // ⛔ D64: outside the US, an automatic capture is DISCARDED — nothing recorded, not even the refusal.
+    if (!market.admit && auto) return discarded('outside_us');
     if (!market.admit) {
       recordRefusedCapture(db, {
         url: url || normalizedJob.url, userId, reason: market.reason, detectKnownAtsMatch,
@@ -694,13 +715,21 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
     }
     if (market.reason.startsWith('capture_')) gate = false;
   }
+  // ⛔ D64: relevance to the board, before the gateway writes anything. A posting that folds into an
+  // existing row is judged by that row's buckets (what the board reads); a new one as it would classify.
+  if (auto) {
+    const rel = preview.action === 'attach' && preview.existingJobId
+      ? autoCaptureRelevance(db, userId, { existingJobId: preview.existingJobId })
+      : autoCaptureRelevance(db, userId, { job: normalizedJob });
+    if (!rel.relevant) return discarded(rel.reason);
+  }
 
   // ⛔ A62: THROUGH THE ONE GATEWAY (services/jobs/jobGateway.js) — the same deduper, canonical write
   // and US-only gate every crawled source uses, plus a job_captures row with the ATS host + slug
   // (A45). Classification is still informational only: an explicit user import never silently
   // vanishes. What the gateway adds for an import is queue 37's gate — a capture outside the US is
   // kept for the user (attached below) but held off the shared board, and the response says so.
-  const origin = url && providedText ? 'capture' : url ? 'import_url' : 'paste';
+  const origin = auto ? AUTO_CAPTURE_ORIGIN : url && providedText ? 'capture' : url ? 'import_url' : 'paste';
   const ingest = ingestJob(db, {
     job: normalizedJob, origin, userId,
     searchQuery: 'import',
@@ -763,6 +792,11 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
   // at capture time (routes/importJob.js), never from the ATS host.
   const site = html ? employerSiteOf(jobPostingFromHtml(html)) : null;
   return site ? { ...result, employerSite: site } : result;
+}
+
+/** ⛔ D64 · the answer for an automatic capture that was not kept — and nothing was written for it. */
+function discarded(reason) {
+  return { success: true, discarded: true, auto: true, reason, onBoard: false };
 }
 
 /** D41(b) · a stated salary onto a normalized job, with the USD columns normalizeJob would derive. */
