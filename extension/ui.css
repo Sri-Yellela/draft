@@ -70,12 +70,55 @@ body {
 .sq:disabled, .btn:disabled { cursor: default; color: var(--c-ink-faint); box-shadow: none; }
 .sq--primary:disabled, .btn-primary:disabled { background: var(--c-accent-quiet); color: var(--c-ink-muted); }
 
-/* A text control (Disconnect, the secondary links): no fill, the orange as TEXT is ACCENT_INK. */
-.link {
-  background: none; border: 0; padding: 0; cursor: pointer; font: inherit; font-size: 11px;
-  color: var(--c-accent-ink); text-decoration: underline; text-underline-offset: 2px;
+/* ⛔ D63 · NO UNDERLINED TEXT LINKS. A small action (Disconnect, copy, Cancel) is a compact DEPTH BOX —
+   the sketch's .mb: radius 11, D1's depth, the words in the body face. `.link` is kept as the class name
+   the handlers find, and is drawn as that box. */
+.link, .mb {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 28px; padding: 5px 10px; border-radius: 11px; border: 0; cursor: pointer;
+  font: inherit; font-size: 11px; font-weight: 700; text-decoration: none;
+  background: var(--c-surface-solid); color: var(--c-ink-muted); box-shadow: var(--c-depth-rest);
+  transition: box-shadow .2s ease, transform .2s ease;
 }
-.link:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; border-radius: 4px; }
+.mb { flex: 1 1 0; height: 38px; }
+.mb svg { width: 15px; height: 15px; flex: none; }
+.link:hover:not(:disabled), .link:focus-visible, .mb:hover:not(:disabled), .mb:focus-visible { box-shadow: var(--c-depth-hover); transform: translateY(-2px); color: var(--c-ink); }
+.link:active:not(:disabled), .mb:active:not(:disabled) { transform: translateY(0); box-shadow: var(--c-depth-press); }
+.link:focus-visible, .mb:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.mini { display: flex; gap: 8px; margin-bottom: 12px; }
+
+/* ⛔ D60 · THE MARK — status as a rectangle with a 3px leading bar, never a capsule (the sketch's .mkr). */
+.mkr {
+  --mk: var(--c-ink-faint);
+  display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; padding: 4px 8px 4px 7px;
+  font-family: 'Poppins', 'DM Sans', ui-sans-serif, sans-serif; font-style: italic; font-weight: 800;
+  font-size: 10.5px; line-height: 1; white-space: nowrap;
+  color: var(--mk); border-left: 3px solid var(--mk); background: color-mix(in srgb, var(--mk) 12%, transparent);
+}
+.mkr svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mkr.ok { --mk: var(--c-success); } .mkr.no { --mk: var(--c-danger); } .mkr.warn { --mk: var(--c-warning); }
+.mkr.info { --mk: var(--c-info); } .mkr.dim { --mk: var(--c-ink-faint); }
+
+/* ⭐ D63 · THE JOB CARD — the board card's own language: the paper logo tile (D61), the company in the
+   logo face, and the D50 number box. */
+.job { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center;
+  background: var(--c-surface-2); border-radius: 12px; box-shadow: var(--c-depth-rest); padding: 10px 12px; margin-bottom: 10px; }
+.tile { width: 40px; height: 40px; border-radius: 10px; background: var(--c-logo-tile); display: grid; place-items: center;
+  overflow: hidden; box-shadow: var(--c-logo-shadow); font-family: 'Poppins', 'DM Sans', sans-serif; font-style: italic;
+  font-weight: 800; font-size: 15px; color: var(--c-ink); }
+.tile img { width: 100%; height: 100%; object-fit: contain; padding: 5px; filter: none; }
+.job .co { font-size: 14px; line-height: 1.1; color: var(--c-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.job .ti { font-size: 11px; color: var(--c-ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nb { width: 44px; height: 44px; border-radius: 11px; background: var(--c-surface-solid); box-shadow: var(--c-depth-rest);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.nb b { font: 400 23px/1 'Instrument Serif', Georgia, serif; color: var(--c-pp-ats-number); }
+.nb small { font-size: 6.5px; font-weight: 700; line-height: 1; letter-spacing: .15em; text-transform: uppercase; color: var(--c-ink-faint); margin-top: 3px; }
+.nb.none { box-shadow: none; border: 1px dashed var(--c-border-strong); }
+.facts { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 10px; }
+.pk { background: var(--c-surface-2); border-radius: 12px; box-shadow: var(--c-depth-rest); padding: 10px 12px; margin-bottom: 10px; font-size: 12px; }
+.pk .l { display: flex; justify-content: space-between; padding: 3px 0; color: var(--c-ink-faint); }
+.pk .l b { color: var(--c-ink); }
+.pk .l b.ask { color: var(--c-danger); }
 
 kbd {
   font: inherit; font-size: 10px; font-weight: 700; line-height: 1; padding: 3px 5px; border-radius: 5px;
@@ -83,5 +126,5 @@ kbd {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sq, .btn { transition: none; }
+  .sq, .btn, .link, .mb { transition: none; }
 }

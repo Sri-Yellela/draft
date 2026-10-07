@@ -9,6 +9,8 @@ import {
   resolvesQuestion, rememberAnswer,
 } from "../services/customAnswers.js";
 import { normaliseQuestion, workHistoryCompanies } from "../shared/savedAnswers.js";
+import { atsScorePair } from "../shared/resumeScores.js";
+import { getKnownLogoUrl } from "../shared/companyLogos.js";
 import {
   buildGatePacket, mintPacketToken, verifyPacketToken, hashToken, originOf,
   DEFAULT_TOKEN_TTL_MS,
@@ -3659,7 +3661,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    */
   function listUnconsumedPackets(userId, { origin = "", limit = 100 } = {}) {
     const sql = (tail) => `
-      SELECT p.id, p.job_id, p.run_id, p.run_job_id, p.apply_url, p.expected_origin, p.gate_reason,
+      SELECT p.id, p.user_id, p.job_id, p.run_id, p.run_job_id, p.apply_url, p.expected_origin, p.gate_reason,
              p.answers_json, p.resume_artifact_id, p.consumed_at, p.created_at,
              sj.title, sj.company, sj.url AS sj_url, sj.apply_url AS sj_apply_url
       FROM apply_gate_packets p
@@ -3675,6 +3677,17 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     }
     const all = db.prepare(sql("")).all(userId).map(address).filter(r => r.origins.includes(origin));
     return { rows: all.slice(0, limit), total: all.length };
+  }
+
+  /** ⭐ D63 · a packet's job card: the job's résumé scores (D58) and its logo. Guarded: never fails a list. */
+  function packetCardFacts(r) {
+    let scores = null, logo = null;
+    try {
+      const rs = db.prepare("SELECT ats_score, base_ats_score FROM resumes WHERE user_id = ? AND job_id = ?").get(r.user_id, r.job_id);
+      if (rs && (rs.ats_score != null || rs.base_ats_score != null)) scores = atsScorePair({ base: rs.base_ats_score, tailored: rs.ats_score });
+    } catch { /* an older schema: no scores, the card still draws */ }
+    try { logo = db.prepare("SELECT company_icon_url FROM scraped_jobs WHERE job_id = ?").pluck().get(r.job_id) || null; } catch {}
+    return { scores, logo: logo || getKnownLogoUrl(r.company || "") || null };
   }
 
   /** One packet as every list shows it — counts and addressing, never a value (those are behind the token). */
@@ -3716,6 +3729,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       answerCount:      Array.isArray(body.answers) ? body.answers.length : 0,
       unresolvedCount:  Array.isArray(body.unresolved) ? body.unresolved.length : 0,
       resumeAvailable:  r.resume_artifact_id != null,
+      // ⭐ D63: the popup's job card and its packet summary ("Résumé tailored · 62 → 81") — D58's pair and
+      // the logo, read beside the list (two integers and an address), never a value from the packet.
+      ...packetCardFacts(r),
     };
   }
 
@@ -4170,6 +4186,18 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     } catch { return "none"; }
   }
 
+  /** ⭐ D63 · what the popup's job card shows for one of your jobs: its logo and the score pair (D58). */
+  function jobCardFacts(userId, jobId) {
+    try {
+      const sj = db.prepare("SELECT company, company_icon_url FROM scraped_jobs WHERE job_id = ?").get(jobId);
+      const profileId = db.prepare("SELECT id FROM domain_profiles WHERE user_id = ? AND is_active = 1 ORDER BY id LIMIT 1").pluck().get(userId) ?? null;
+      const base = db.prepare("SELECT ats_score FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ?").pluck().get(userId, profileId, jobId) ?? null;
+      const rs = db.prepare("SELECT ats_score, base_ats_score FROM resumes WHERE user_id = ? AND job_id = ?").get(userId, jobId);
+      return { logo: sj?.company_icon_url || getKnownLogoUrl(sj?.company || "") || null,
+               scores: atsScorePair({ base: rs ? (rs.base_ats_score ?? base) : base, tailored: rs?.ats_score ?? null }) };
+    } catch { return { logo: null, scores: null }; }
+  }
+
   /** The D56 decision for one page, shared by /match, /prepare and /copy-sheet. */
   function matchPage(userId, url) {
     const origin = new URL(url).origin;
@@ -4177,7 +4205,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const matching = rows.filter(r => pageMatchesPacket({ url, origins: r.origins, jobIds: r.jobIds }, familiesFor(userId)).ok);
     const packets = matching.map(listedPacket);
     const page = resolvePageJob(db, userId, url, familiesFor(userId));
-    const job = page.job ? { jobId: page.job.jobId, title: page.job.title, company: page.job.company } : null;
+    // ⭐ D63: the popup leads with the job card — the logo and D58's score pair ride with the job.
+    const job = page.job ? { jobId: page.job.jobId, title: page.job.title, company: page.job.company, ...jobCardFacts(userId, page.job.jobId) } : null;
     const resume = job ? resumeStateFor(userId, job.jobId) : "none";
     let state = "ready", addresses = null;
     if (!packets.some(p => !p.stale)) {

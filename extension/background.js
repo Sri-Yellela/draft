@@ -155,6 +155,8 @@ async function popupContext(tab) {
       packetId: p.packetId, title: p.title, company: p.company, createdAt: p.createdAt, stale: !!p.stale,
       answerCount: p.answerCount ?? 0, unresolvedCount: p.unresolvedCount ?? 0, resumeAvailable: !!p.resumeAvailable,
       gateReason: p.gateReason || null,
+      // D63: the job card and the packet summary — two scores and a logo address, nothing more.
+      scores: p.scores || null, logo: p.logo || null,
     })),
     handoff: queue ? { state: queue.state || null, message: queue.message || null, canPrepare: !!queue.canPrepare,
                        job: queue.job || null, resume: queue.resume || null } : null,

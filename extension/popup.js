@@ -11,12 +11,71 @@ async function getCurrentTab() {
   return tab;
 }
 
-// The company in the logo face (as on the job cards, D1), the title and place beneath it.
-function showJobPreview(jobData) {
-  document.getElementById('preview-company').textContent = jobData.company || '';
-  document.getElementById('preview-title').textContent =
-    (jobData.title || '') + (jobData.location ? ' · ' + jobData.location : '');
-  document.getElementById('job-preview').style.display = 'block';
+// ⭐ D63 · THE JOB CARD — the posting in the board card's own language: the paper logo tile (D61; a
+// first-party logo or the letter, never a third-party request), the company in the logo face, the title,
+// and the D50 number box (no score → the dashed box, no digits). Every string is textContent.
+function showJobPreview(card) {
+  if (!card) return;
+  document.getElementById('preview-company').textContent = card.company || '';
+  document.getElementById('preview-title').textContent = card.title || '';
+  const tile = document.getElementById('preview-tile');
+  tile.textContent = '';
+  const src = firstPartyLogo(card.logo, RESUME_MASTER_URL);
+  if (src) {
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = src;
+    img.addEventListener?.('error', () => { tile.textContent = (card.company || '?')[0].toUpperCase(); });
+    tile.append(img);
+  } else {
+    tile.textContent = (card.company || '?')[0].toUpperCase();
+  }
+  const box = document.getElementById('preview-score');
+  box.textContent = '';
+  if (Number.isFinite(card.score)) {
+    const b = document.createElement('b'); b.textContent = String(Math.round(card.score));
+    const s = document.createElement('small'); s.textContent = card.tailored ? 'tailored' : 'ATS';
+    box.append(b, s);
+    box.className = 'nb';
+    box.setAttribute?.('aria-label', `${card.tailored ? "Tailored résumé's " : ''}ATS match ${Math.round(card.score)}`);
+  } else {
+    const s = document.createElement('small'); s.textContent = 'ATS';
+    box.append(s);
+    box.className = 'nb none';
+  }
+  document.getElementById('job-preview').style.display = 'grid';
+}
+
+const MARK_ICONS = { doc: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7zM14 3v4h4"/></svg>' };
+
+// ⛔ D60 · status as marks: a rectangle with a leading bar in the tone's colour, the words as text.
+function renderFacts(marks) {
+  const box = document.getElementById('facts');
+  box.innerHTML = '';
+  for (const m of marks || []) {
+    const span = document.createElement('span');
+    span.className = `mkr ${m.tone}`;
+    if (m.icon && MARK_ICONS[m.icon]) span.innerHTML = MARK_ICONS[m.icon];   // a fixed icon, never page or server text
+    span.append(m.text);
+    box.append(span);
+  }
+  box.hidden = !(marks || []).length;
+}
+
+// ⭐ D63 (3) · show the packet before you fill — so the click on Fill it is informed.
+function renderPacket(rows) {
+  const box = document.getElementById('packet-summary');
+  box.innerHTML = '';
+  for (const r of rows || []) {
+    const line = document.createElement('div');
+    line.className = 'l';
+    const v = document.createElement('b');
+    if (r.ask) v.className = 'ask';
+    v.textContent = r.value;
+    line.append(r.label, v);
+    box.append(line);
+  }
+  box.hidden = !(rows || []).length;
 }
 
 let currentJobData = null;
@@ -137,7 +196,7 @@ async function showTodayRing() {
   const box = document.getElementById('today');
   if (!ring || !box) return;
   document.getElementById('today-arc').style.strokeDasharray = `${ring.percent} 100`;
-  document.getElementById('today-text').textContent = `${ring.short} today`;
+  document.getElementById('today-text').textContent = ring.capText;   // D63: "3 of 10 · your cap"
   box.title = ring.label;
   box.dataset.full = ring.full ? 'true' : 'false';
   box.style.display = 'inline-flex';
@@ -166,7 +225,12 @@ async function readPage() {
   document.getElementById('read-hint').style.display = 'none';
   document.getElementById('all-divider').style.display = 'block';
   document.getElementById('all-head').style.display = 'block';
-  renderCompanion(companionMode({ preview, context }));
+  const mode = companionMode({ preview, context });
+  renderCompanion(mode);
+  // ⭐ D63: the popup LEADS with the job card, then the marks, then (on a form) the packet.
+  showJobPreview(jobCard(mode, preview));
+  renderFacts(factMarks(mode));
+  if (mode.mode === 'form') renderPacket(packetRows(mode.packet));
 
   if (!preview?.capturable) {
     // D13: all four actions stay VISIBLE — on a page that cannot be read (chrome://, a PDF viewer)
@@ -180,7 +244,6 @@ async function readPage() {
   }
   if (preview.ok) {
     currentJobData = { title: preview.title, company: preview.company, location: preview.location };
-    showJobPreview(currentJobData);
     setStatus('');
   } else if (preview.unreadable) {
     setStatus('Ready to capture');
@@ -214,9 +277,10 @@ function renderCompanion(c) {
     box.style.display = 'block';
   }
   if (c.mode === 'form') {
+    // D63: the marks and the packet summary say this; the sentence stays for a screen reader.
     line.textContent = draftedLine(c.packet);
-    const ql = questionsLine(c.packet);
-    if (ql) { q.textContent = ql; q.style.display = 'block'; }
+    line.className = 'ctx-line sr';
+    void q; void questionsLine;
     document.getElementById('btn-fill-primary').style.display = 'flex';
     document.getElementById('btn-submitted').style.display = 'flex';
     box.style.display = 'block';
@@ -238,7 +302,7 @@ function renderCompanion(c) {
   }
   if (c.mode === 'posting') {
     line.textContent = postingLine(c.posting);
-    line.className = 'ctx-line' + (c.posting?.saved ? ' saved' : '');
+    line.className = 'ctx-line sr';   // D63: said by the mark beside the job card
     document.getElementById('posting-actions').style.display = 'flex';
     if (c.posting?.saved) document.getElementById('btn-capture-primary').textContent = 'Capture again';
     box.style.display = 'block';
@@ -407,11 +471,7 @@ document.getElementById('btn-resume').addEventListener('click', async () => {
   setTimeout(() => window.close(), 800);
 });
 
-document.getElementById('btn-linkedin').addEventListener('click', async () => {
-  await chrome.runtime.sendMessage({ type: 'OPEN_LINKEDIN_IMPORT' });
-  setStatus('Opening sign in...', 1000);
-  setTimeout(() => window.close(), 900);
-});
+// D63 (5): "Sign in with LinkedIn" moved to the options page (options.js) — it is used once.
 
 // Collecting the page text was gated on the same hardcoded six-hostname list the capture button
 // used, so the ATS tool refused to read a Greenhouse posting on a company's own careers domain and
@@ -437,9 +497,9 @@ async function openAtsScore() {
   setTimeout(() => window.close(), 900);
 }
 
-// ─── Settings (keyboard shortcuts) ─────────────────────────────────────────
-// Named for both commands, not just capture: this button was the only route to the shortcuts page
-// and it advertised one of the two hotkeys, which is how the fill shortcut stayed invisible.
+// ─── More → the options page ───────────────────────────────────────────────
+// D63 (5): Keyboard shortcuts and Sign in with LinkedIn live there now; More is the one way in. The
+// shortcuts page names both commands (capture AND fill), which is how the fill shortcut stopped being invisible.
 
 document.getElementById('btn-settings')?.addEventListener('click', () => {
   chrome.runtime.openOptionsPage();

@@ -206,18 +206,20 @@ export function renderOverlay(bands, meta) {
     #${ID} .rm-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0;
       border-top: 1px solid var(--c-border); }
     #${ID} .rm-row:first-of-type { border-top: none; }
-    #${ID} .rm-bar { width: 3px; align-self: stretch; border-radius: 999px; background: var(--c-border-strong); flex: none; }
+    #${ID} .rm-bar { width: 3px; align-self: stretch; border-radius: 2px; background: var(--c-border-strong); flex: none; }
     #${ID} .rm-bar.ok { background: var(--c-success); }
     #${ID} .rm-bar.guess { background: var(--c-warning); }
     #${ID} .rm-main { flex: 1; min-width: 0; }
     #${ID} .rm-f { font-size: 11px; color: var(--c-ink-muted); }
     #${ID} .rm-v { font-size: 12.5px; font-weight: 700; word-break: break-word; }
     #${ID} .rm-side { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex: none; }
-    #${ID} .rm-pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
-      white-space: nowrap; background: var(--c-surface-2); color: var(--c-ink-muted); }
-    #${ID} .rm-pill.ok { background: var(--c-success-quiet); color: var(--c-success); }
-    #${ID} .rm-pill.guess { background: var(--c-warning-quiet); color: var(--c-warning); }
-    #${ID} .rm-pill.elig { background: var(--c-info-quiet); color: var(--c-info); }
+    /* ⛔ D60 / D63: a provenance chip is a MARK — a rectangle with a 3px leading bar, never a capsule. */
+    #${ID} .rm-pill { --mk: var(--c-ink-faint); font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 10.5px;
+      line-height: 1; padding: 4px 8px 4px 7px; border-radius: 6px; white-space: nowrap; color: var(--mk);
+      border-left: 3px solid var(--mk); background: color-mix(in srgb, var(--mk) 12%, transparent); }
+    #${ID} .rm-pill.ok { --mk: var(--c-success); }
+    #${ID} .rm-pill.guess { --mk: var(--c-warning); }
+    #${ID} .rm-pill.elig { --mk: var(--c-info); }
     #${ID} .rm-btn { font: inherit; font-size: 11px; font-weight: 700; padding: 5px 11px; min-height: 28px;
       border-radius: 11px; border: 0; background: var(--c-surface-solid); color: var(--c-ink);
       box-shadow: var(--c-depth-rest); cursor: pointer; transition: box-shadow .2s ease, transform .2s ease; }

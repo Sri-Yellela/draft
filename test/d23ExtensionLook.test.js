@@ -229,7 +229,7 @@ test("⛔ D23: D1's depth on every control, square geometry 11–13, reduced mot
   assert.match(ui, /\.sq:hover:not\(:disabled\), \.sq:focus-visible,\n\.btn:hover:not\(:disabled\), \.btn:focus-visible \{ box-shadow: var\(--c-depth-hover\); transform: translateY\(-2px\); \}/);
   assert.match(ui, /\.sq:active:not\(:disabled\), \.btn:active:not\(:disabled\) \{ transform: translateY\(0\); box-shadow: var\(--c-depth-press\); \}/);
   assert.match(rule(".sq--primary"), /box-shadow: var\(--c-depth-accent\)/, "the primary's shadow is not tinted orange");
-  assert.match(ui, /@media \(prefers-reduced-motion: reduce\) \{\n  \.sq, \.btn \{ transition: none; \}/);
+  assert.match(ui, /@media \(prefers-reduced-motion: reduce\) \{\n  \.sq, \.btn, \.link, \.mb \{ transition: none; \}/);   // D63: the depth links too
   // D1's values are the site's tokens — the extension reads the same names.
   assert.equal(C_LIGHT.DEPTH_REST, "0 3px 8px rgba(30,25,21,0.11), inset 0 1px 0 rgba(255,255,255,0.66)");
   assert.match(C_LIGHT.DEPTH_ACCENT, /^0 3px 9px rgba\(253,70,0,0\.34\)/);
