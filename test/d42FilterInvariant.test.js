@@ -66,6 +66,22 @@ function run(db, params) {
 const ids = (rows) => rows.map(r => r.id);
 const known = (rows) => rows.filter(r => !r.kept).map(r => r.id);
 
+test("⛔ D42 fixture (D59) · 'US-MA-MARLBOROUGH-MA2 1001 Boston Post Rd' is Marlborough — the STREET is not Boston", () => {
+  // The substring trap D42 was about, from a real RTX shape: the city is MARLBOROUGH and "Boston" is a
+  // road. Massachusetts, no metro — whether Marlborough is Greater Boston is a metro question, not this.
+  const raw = "US-MA-MARLBOROUGH-MA2 1001 Boston Post Rd BLDG 2";
+  assert.equal(formatPlaceList(parsePlaces(raw)), "state:MA");
+  const db = new Database(":memory:");
+  db.exec(`CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, title TEXT, company TEXT, location TEXT,
+             tag_basis TEXT, tag_function TEXT, is_active INTEGER DEFAULT 1);
+           CREATE TABLE job_tag_places (job_id TEXT, country TEXT, state TEXT, metro TEXT);
+           CREATE TABLE job_role_map (job_id TEXT, role_key TEXT, source_profile_id INTEGER);`);
+  db.prepare("INSERT INTO scraped_jobs (job_id, title, company, location, tag_basis) VALUES ('rtx', 'Systems Engineer', 'RTX', ?, 'b')").run(raw);
+  for (const p of parsePlaces(raw)) db.prepare("INSERT INTO job_tag_places VALUES ('rtx', ?, ?, ?)").run(p.country, p.state, p.metro);
+  assert.deepEqual(ids(run(db, { places: "metro:boston", strict_tags: "1" })), [], "known to be in Boston — it is not");
+  assert.deepEqual(ids(run(db, { places: "state:MA", strict_tags: "1" })), ["rtx"], "known to be in Massachusetts — it is");
+});
+
 test("D42 · H3: 'Seattle WA' (no comma) is a place — and the tagger re-tags every row for it", () => {
   assert.equal(formatPlaceList(parsePlaces("San Francisco, CA, Seattle WA, New York, NY")),
     "metro:sf_bay_area;metro:seattle;metro:nyc");

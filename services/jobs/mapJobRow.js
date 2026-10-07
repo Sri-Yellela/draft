@@ -2,6 +2,8 @@
 // results) into the single camelCase shape every job-board client consumes. Extracted out of
 // server.js so routes/importJob.js can return the exact same shape the board already uses,
 // without duplicating the mapping.
+import { isFresh } from './descriptionText.js';
+
 function parseSkillsList(raw) {
   if (Array.isArray(raw)) return raw;
   if (!raw) return null;
@@ -16,19 +18,63 @@ function parseSkillsList(raw) {
   } catch { return null; }
 }
 
+function parseFields(raw) {
+  if (!raw) return null;
+  if (typeof raw === 'object') return raw;
+  try { const v = JSON.parse(raw); return v && typeof v === 'object' ? v : null; } catch { return null; }
+}
+
+/**
+ * ⛔ D59 · the posting's stated requirements (migration 137's req_* columns) — what the POSTING asks,
+ * never an answer about the candidate. null when the description has not been read yet (unknown).
+ */
+function requirementsOf(j, fresh) {
+  if (!fresh || (j.req_citizenship == null && j.req_clearance == null)) return j.requirements ?? null;
+  return {
+    citizenship:     j.req_citizenship ?? null,
+    clearance:       j.req_clearance ?? null,
+    clearanceStatus: j.req_clearance_status ?? null,
+    polygraph:       j.req_polygraph == null ? false : !!j.req_polygraph,
+  };
+}
+
+/** D59 · the label block's fields the panel shows (travel, relocation, requisition, site) — or null. */
+function postingFieldsOf(f) {
+  if (!f) return null;
+  const out = {
+    travel:        f.travel ?? null,
+    relocation:    f.relocation ?? null,
+    requisitionId: f.requisitionId ?? null,
+    employment:    f.employmentType ?? null,
+    payRange:      f.payRange ?? null,
+    country:       f.country ?? null,
+    site:          f.codedLocation?.site ?? null,
+    street:        f.codedLocation?.street ?? null,
+  };
+  return Object.values(out).some(v => v != null) ? out : null;
+}
+
 function mapJobRow(j) {
+  // ⛔ D59: the derived columns are served only while they were read from the description held NOW.
+  const fresh = j.description_basis != null && isFresh(j);
+  const fields = fresh ? parseFields(j.description_fields) : null;
+  const pay = fields?.pay || null;
   return {
     id:              j.job_id || j.id,
     title:           j.title,
     company:         j.company,
-    location:        j.location,
-    description:     j.description,
+    // D59: a posting whose location field is empty takes its label block's ("Marlborough, MA").
+    location:        j.location || fields?.locationLabel || null,
+    // ⛔ D59: the NORMALISED text when there is one — markup-free, the label block's lines removed.
+    // `description` itself is never rewritten (content_hash is a hash of it).
+    description:     (fresh ? j.description_text : null) ?? j.description,
     url:             j.url,
     applyUrl:        j.apply_url || j.applyUrl || j.url,
-    salaryMin:       j.salary_min  ?? j.salaryMin  ?? null,
-    salaryMax:       j.salary_max  ?? j.salaryMax  ?? null,
-    salaryCurrency:  j.salary_currency  || j.salaryCurrency  || null,
-    postedAt:        j.posted_at  || j.postedAt  || null,
+    salaryMin:       j.salary_min  ?? j.salaryMin  ?? pay?.salary_min ?? null,
+    salaryMax:       j.salary_max  ?? j.salaryMax  ?? pay?.salary_max ?? null,
+    salaryCurrency:  j.salary_currency  || j.salaryCurrency  || pay?.salary_currency || null,
+    // ⭐ D59: "Date Posted" from the label block is the POSTING's own date, not the crawl's.
+    postedAt:        fields?.postedAt || j.posted_at  || j.postedAt  || null,
     contractType:    j.contract_type || j.contractType || null,
     remote:          Boolean(j.remote),
     source:          j.source,
@@ -90,7 +136,7 @@ function mapJobRow(j) {
     requiresWorkAuth:    j.requires_work_auth    ?? null,
     isClearanceRequired: j.is_clearance_required ?? null,
     experienceLevel:     j.experience_level      ?? null,
-    workplaceType:       j.workplace_type        ?? null,
+    workplaceType:       j.workplace_type        ?? fields?.workplace ?? null,
     // D29's tags, for D32's masthead kicker (domain · level · workplace). NULL means UNKNOWN, never NO —
     // the masthead prints only the tags on file. Closed vocabularies (shared/jobTagVocabulary.js).
     tagFunction:         j.tag_function          ?? null,
@@ -116,6 +162,9 @@ function mapJobRow(j) {
     discoveredAt:        j.discovered_at         ?? null,
     summary:             j.summary               ?? null,
     validThrough:        j.valid_through         ?? null,
+    // ⛔ D59 · the Requirements row (citizenship · clearance · status) and the label block's other fields.
+    requirements:        requirementsOf(j, fresh),
+    postingFields:       postingFieldsOf(fields),
   };
 }
 

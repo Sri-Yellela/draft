@@ -1,6 +1,6 @@
 /**
  * Draft — Mobile API types.
- * Contract version 2.2.1.
+ * Contract version 2.3.0.
  *
  * GENERATED — DO NOT EDIT. Regenerate with `node scripts/generateMobileContract.mjs`.
  *
@@ -54,13 +54,17 @@ export interface Job {
   /** TRI-STATE. null = no signal yet. MUST render as absent, never as 'does not sponsor'. */
   isH1bSponsor: boolean | null;
   /** Free text, as posted. Not normalised, not geocoded. */
-  location?: string;
+  location: string;
   /** SHOWN ON THE WEB, PROVISIONAL — D50 (owner, 10-07): the web shows this number now and tunes it after; it is NOT validated (rho 0.723 over a US-only graded 24, -0.166 on 21 held-out postings), so every surface that shows it says it is still being tuned and keeps the band and the 'N of M' count beside it. The mobile apps keep rendering the BAND until the owner says otherwise. Earlier: NOT DISPLAYED YET — the owner's decision (A75, 10-03) was that this number would be shown once A76's larger blind-graded corpus validated it; until then render the BAND. Sorting by it is sanctioned now ('ATS match'). The local ATS engine orders coarsely and cannot support a shown figure: Spearman rho 0.746 against a human-graded set of 30, with 12.2% of pairs still mis-ordered. "This job is a 43" claims a precision it does not have. Render the BAND instead — Strong (>=44) / Moderate (>=26) / Weak / Not enough signal — whose cutpoints and copy are defined once in shared/atsBands.js. A NULL IS NOT A ZERO: null means the scorer declined for want of signal, which is its own band and must never render as a low score. The number stays in the payload because the auto-apply gate is a numeric threshold (30) and mobile needs to show remaining capacity against it; that is the only sanctioned use. */
   matchScore: number | null;
   /** As published by the source. Free text or ISO — not normalised. */
   postedAt: string | null;
+  /** D59: the posting's label-block fields that left the body — { travel, relocation, requisitionId, employment, payRange, country, site, street }, each a string or null. null when the posting had no label block. */
+  postingFields: Record<string, unknown> | null;
   /** Coerced with Boolean(); never null. */
   remote: boolean;
+  /** D59: what the POSTING states — { citizenship: citizen_only | us_person | none_stated, clearance: none | unspecified | public_trust | secret | top_secret | ts_sci, clearanceStatus: active_required | interim_ok | ability_to_obtain | null, polygraph: boolean }. null = the description has not been read yet (UNKNOWN, never 'none'). A statement about the posting, NEVER about the candidate's eligibility — do not render it as a verdict on the user, and do not fold it into a score. */
+  requirements: Record<string, unknown> | null;
   /** TRI-STATE. null = no signal yet. */
   requiresWorkAuth: boolean | null;
   /** ISO 4217 where stated. null means the posting gave no currency, NOT that it is USD. */

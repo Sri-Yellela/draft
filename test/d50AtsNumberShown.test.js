@@ -33,7 +33,10 @@ test("D50 · the board card's square and the ATS card show it — beside the not
 
 test("D50 · web only — the mobile contract's annotation says so, in the same commit (A75's rule)", () => {
   const contract = read("services/api/mobileContract.js");
-  assert.match(contract, /export const CONTRACT_VERSION = "2\.2\.1";/);
+  // D50 bumped the contract to 2.2.1 for the annotation; a later additive bump (D59: 2.3.0) keeps it.
+  assert.match(contract, / \* 2\.2\.1 — D50 \(10-07\)\. ANNOTATION ONLY/);
+  const [major, minor, patch] = /export const CONTRACT_VERSION = "(\d+)\.(\d+)\.(\d+)";/.exec(contract).slice(1).map(Number);
+  assert.ok(major > 2 || (major === 2 && (minor > 2 || (minor === 2 && patch >= 1))), "the contract went back before D50's annotation");
   assert.match(contract, /matchScore:\s+\{ type: "number",  nullable: true, description: "SHOWN ON THE WEB, PROVISIONAL — D50/);
   assert.doesNotMatch(read("contract/mobile-api.v1.json"), /"NOT DISPLAYED YET/, "a stale annotation contradicts the product");
 });

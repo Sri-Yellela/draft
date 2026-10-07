@@ -41,6 +41,8 @@ import { captureMarket, officeLocations } from './usLocation.js';
 import { parseSalaryText, salaryFromJsonLd } from './salaryText.js';
 import { describeCapture, REFUSAL_MESSAGES } from './captureOutcome.js';
 import { mapJobRow } from './mapJobRow.js';
+import { normalizePosting } from '../../shared/postingNormalize.js';
+import { refreshDescriptionText } from './descriptionText.js';
 import { BRAND } from '../../shared/brand.js';
 
 import { fetchCompanyJobs as fetchGreenhouseJobs }      from './sources/greenhouse.js';
@@ -675,9 +677,13 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
   const preview = previewIngest(db, normalizedJob);
   let gate = true;
   if (preview.action !== 'attach') {
+    // ⭐ D59: the posting read through the one normaliser — its markup decoded (so "United&nbsp;States"
+    // is "United States"), and its label block's `Country:` is the employer's own statement.
+    const posting = normalizePosting(normalizedJob.description);
     const market = captureMarket({
-      location: normalizedJob.location, description: normalizedJob.description,
+      location: normalizedJob.location || posting.fields.location || null, description: posting.text,
       offices: officeLocations(normalizedJob._raw), pageText: providedText || '',
+      statedCountryUs: !!posting.fields.countryIsUs,
     });
     if (!market.admit) {
       recordRefusedCapture(db, {
@@ -722,6 +728,9 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
   // cached" while unconfigured; enrichment stamping rows complete while writing nothing), so the
   // import must not be the next one. A missing row is an internal failure, not bad user input —
   // hence Error, which the route maps to 502, and not ImportInputError.
+  // ⛔ D59: the capture's description is read through the one normaliser NOW, so the answer (and the
+  // panel the user opens next) shows text, fields and requirements — not raw HTML until the next pass.
+  try { refreshDescriptionText(db, finalJobId); } catch (e) { console.warn(`[importJob] description_text: ${e.message}`); }
   const row = db.prepare('SELECT * FROM scraped_jobs WHERE job_id = ?').get(finalJobId);
   if (!row) {
     console.error(
