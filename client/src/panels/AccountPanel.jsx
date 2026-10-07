@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, authContextQuery, authHeaders, downloadBlob } from "../lib/api.js";
+import { api, authContextQuery, authHeaders, downloadBlob, printResume } from "../lib/api.js";
 import { announceAccountChanged, useAccountAvatar } from "../lib/accountAvatar.js";
 import { glass } from "../styles/glass.js";
 import { C } from "../styles/colorTokens.js";
@@ -160,10 +160,65 @@ export function AccountPanel({ onSignedOut }) {
               return { account: null };
             }, "Your data was downloaded.")}>Download my data</button>
           </div>
+          <GeneratedResumes busy={busy} run={run} />
         </Section>
 
         <DeleteSection account={account} busy={busy} run={run} post={post} onSignedOut={onSignedOut} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * ⭐ D57 · Settings → Your data → Generated résumés — every résumé the user generated, per job: when, and
+ * whether it is kept for good (the job was drafted or applied) or a convenience copy that expires
+ * ("expires in 40 days"), with download and delete. Deleting frees the job's Résumé button on the board
+ * (the server's resume_deleted event).
+ */
+export function generatedResumeStatus(r) {
+  if (r.keptForGood) return r.tie === "applied" ? "Kept — you applied with it" : "Kept — the job is in Draft House";
+  if (r.expiresInDays == null) return "";
+  return r.expiresInDays <= 0 ? "Expires today" : `Expires in ${r.expiresInDays} day${r.expiresInDays === 1 ? "" : "s"}`;
+}
+
+function GeneratedResumes({ busy, run }) {
+  const [data, setData] = useState(null);
+  const load = useCallback(() => api("/api/generated-resumes").then(setData).catch(() => setData({ resumes: [], error: true })), []);
+  useEffect(() => { load(); }, [load]);
+  const list = data?.resumes || [];
+  return (
+    <div data-generated-resumes="" style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ ...row, justifyContent: "space-between" }}>
+        <span style={{ fontWeight: 700, fontSize: 13, color: "var(--color-text)" }}>Generated résumés</span>
+        <span style={muted} data-generated-count="">{data ? `${list.length} kept` : "Loading…"}</span>
+      </div>
+      {data && <div style={muted}>A résumé for a job you have not drafted or applied to is kept {data.retentionDays ?? 90} days from when it was generated; once the job is drafted or applied, it is kept for good.</div>}
+      {data?.error && <div style={muted}>The list could not be loaded just now.</div>}
+      {data && !list.length && !data.error && <div style={muted}>No generated résumés yet — generate one from a job's posting panel.</div>}
+      {list.map(r => (
+        <div key={r.jobId} data-generated-resume={r.jobId} style={{ ...row, justifyContent: "space-between", borderTop: `1px solid ${C.BORDER}`, paddingTop: 8 }}>
+          <div style={{ minWidth: 0, flex: "1 1 220px" }}>
+            <div style={{ fontSize: 13, color: "var(--color-text)" }}>{r.company || "Unknown company"}{r.role ? ` — ${r.role}` : ""}</div>
+            <div style={muted}>{[r.generatedAt ? `Generated ${new Date(r.generatedAt).toLocaleDateString()}` : null,
+              generatedResumeStatus(r)].filter(Boolean).join(" · ")}</div>
+          </div>
+          <div style={row}>
+            <button style={btnQuiet} disabled={!!busy} onClick={() => run(`dl-${r.jobId}`, async () => {
+              const d = await api(`/api/resumes/${encodeURIComponent(r.jobId)}`);
+              printResume(d.html, `Resume_${(r.company || "").replace(/\s+/g, "_")}`);
+              return { account: null };
+            })}>Download</button>
+            <button style={btnQuiet} disabled={!!busy} onClick={async () => {
+              if (!window.confirm(`Delete the résumé generated for ${r.company || "this job"}? This can't be undone.`)) return;
+              const out = await run(`rm-${r.jobId}`, async () => {
+                await api(`/api/generated-resumes/${encodeURIComponent(r.jobId)}`, { method: "DELETE" });
+                return { account: null };
+              }, "Résumé deleted.");
+              if (out) load();
+            }}>Delete</button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

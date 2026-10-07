@@ -3835,4 +3835,15 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_apply_run_jobs_bin ON apply_run_jobs(user_id, purge_after);
       `,
     },
+    {
+      // D58 (10-07): BASE → TAILORED, STORED AS ONE PAIR. A generation already measures the base résumé's
+      // score for the posting just before the model call (AK1's atsScoreBefore, the same scorer and job as
+      // the tailored score). It is now kept beside the tailored score on the résumé, so "Base 58 → tailored
+      // 71" is one stored statement every surface reads. NULL: generated before this, or the scorer declined.
+      id: "131_resume_score_pair",
+      sql: `
+        ALTER TABLE resumes ADD COLUMN base_ats_score INTEGER;
+        ALTER TABLE resume_versions ADD COLUMN base_ats_score INTEGER;
+      `,
+    },
   ];
