@@ -62,6 +62,10 @@ import { JOB_FUNCTIONS } from "../../shared/jobTagVocabulary.js";
  * Semver. MAJOR is breaking; MINOR is additive. The rules, and why removing a field is
  * deliberately awkward, are in contract/README.md.
  *
+ * 2.4.0 — D71: `Job.salaryPeriod` (annual | hourly | monthly | null), `Job.salarySource` (provider |
+ *         label | description | null), `Job.payLocations` and `Job.descriptionMissing`. salaryMin/Max may
+ *         now come from pay stated in the posting's own text when the provider gave none — salarySource
+ *         says so. Additive; an existing decoder ignores the new fields.
  * 2.3.0 — D59 (10-07). Additive: `Job.requirements` ({ citizenship, clearance, clearanceStatus, polygraph } —
  *         what the POSTING states, null when it has not been read yet) and `Job.postingFields` (the label
  *         block's travel / relocation / requisition / employment / pay / country / site / street, null when
@@ -117,7 +121,7 @@ import { JOB_FUNCTIONS } from "../../shared/jobTagVocabulary.js";
  *         a checksum and need a reason to re-copy.
  * 1.0.0 — initial contract.
  */
-export const CONTRACT_VERSION = "2.3.0";
+export const CONTRACT_VERSION = "2.4.0";
 
 // ------------------------------------------------------------------------------------------------
 // THE JOB SHAPE — derived by executing mapJobRow, not by reading it
@@ -189,6 +193,10 @@ export const JOB_FIELD_TYPES = Object.freeze({
   salaryMin:           { type: "number",  nullable: true },
   salaryMax:           { type: "number",  nullable: true },
   salaryCurrency:      { type: "string",  nullable: true, description: "ISO 4217 where stated. null means the posting gave no currency, NOT that it is USD." },
+  salaryPeriod:        { type: "string",  nullable: true, description: "D71 · annual | hourly | monthly, as the posting states it. Hourly stays hourly — never converted. null means no unit was stated." },
+  salarySource:        { type: "string",  nullable: true, description: "D71 · where salaryMin/Max came from: provider (the ATS's structured field), label (the posting's leading label block) or description (pay stated in the posting's text). null means no salary." },
+  payLocations:        { type: "object[]", nullable: true, description: "D71 · one { country, state, city, min, max } per place, when the posting's text lists a range per location. null when it lists one or none." },
+  descriptionMissing:  { type: "boolean", description: "D71 · true when the posting has no text at all — then a missing salary is \"couldn't read\", never \"not stated\"." },
   postedAt:            { type: "string",  nullable: true, description: "As published by the source. Free text or ISO — not normalised." },
   contractType:        { type: "string",  nullable: true },
   remote:              { type: "boolean", description: "Coerced with Boolean(); never null." },

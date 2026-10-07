@@ -376,8 +376,8 @@ test("D59 · migration 137 is byte-identical in both runners and adds only new c
     assert.ok(cols.includes(c), c);
   }
   assert.deepEqual(Object.keys(deriveDescriptionColumns("x")).sort(),
-    ["description_basis", "description_fields", "description_text", "req_citizenship", "req_clearance", "req_clearance_status", "req_polygraph"],
-    "the pass writes only migration 137's columns");
+    ["description_basis", "description_fields", "description_text", "pay_text_max_usd", "pay_text_min_usd", "req_citizenship", "req_clearance", "req_clearance_status", "req_polygraph"],
+    "the pass writes only migration 137's columns and D71's two (migration 141) — never description, content_hash or salary_*");
 });
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════

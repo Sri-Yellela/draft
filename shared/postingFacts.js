@@ -97,14 +97,26 @@ export function kickerFor(job) {
 }
 
 // ── The deck strip ──────────────────────────────────────────────────────────────────────────────
-function salaryLabel(job) {
+// D71: THE salary label — the card, the deck, the bubble and the strip all print this one.
+export function salaryLabel(job) {
   const lo = Number(job?.salaryMin), hi = Number(job?.salaryMax);
   const has = (v) => Number.isFinite(v) && v > 0;
   if (!has(lo) && !has(hi)) return null;
   const cur = job.salaryCurrency && job.salaryCurrency !== "USD" ? `${job.salaryCurrency} ` : "$";
-  const k = (v) => `${cur}${Math.round(v / 1000)}k`;
-  if (has(lo) && has(hi) && hi !== lo) return `${k(lo)}–${k(hi)}`;
-  return k(has(lo) ? lo : hi);
+  // D71: one decimal when it carries information ($143.7k), none when it does not ($130k); a figure
+  // under 1,000 is an hourly or monthly rate and is printed as stated ($45). Hourly stays hourly.
+  const k = (v) => v < 1000 ? `${cur}${v}` : `${cur}${String(Math.round(v / 100) / 10)}k`;
+  const unit = job.salaryPeriod === "hourly" ? " /hr" : job.salaryPeriod === "monthly" ? " /mo" : "";
+  if (has(lo) && has(hi) && hi !== lo) return `${k(lo)}–${k(hi)}${unit}`;
+  return `${k(has(lo) ? lo : hi)}${unit}`;
+}
+
+// D71 · where the figure came from, and — when a posting lists one range per place — each place's.
+function salarySub(job) {
+  if (job?.salarySource !== "description") return null;
+  const lines = (job.payLocations || []).map(l =>
+    `${l.city ? `${l.city}, ${l.state}` : l.state} ${salaryLabel({ ...job, salaryMin: l.min, salaryMax: l.max })}`);
+  return lines.length ? lines.join(" · ") : "from the posting text";
 }
 
 function postedLabel(job, now = Date.now()) {
@@ -139,9 +151,13 @@ export function deckStrip(job, { experience = null, now = Date.now() } = {}) {
       const ws = workstyleOf(job);
       return { key: "workstyle", label: "Workstyle", labelHidden: true, value: ws ?? location, sub: ws ? location : null };
     })(),
-    { key: "salary", label: "Salary", value: salaryLabel(job) },
+    // ⛔ D71: "not stated" only after the whole text was read; a posting with no text is "couldn't read".
+    { key: "salary", label: "Salary", value: salaryLabel(job), sub: salarySub(job),
+      missing: job?.descriptionMissing === true ? "unread" : "not_stated" },
     { key: "posted", label: "Posted", value: postedLabel(job, now) },
   ];
 }
 
 export const NOT_STATED = "not stated";
+// D71 · a different statement from NOT_STATED: there was no text to read, so nothing can be "not stated".
+export const COULD_NOT_READ = "couldn't read the posting";

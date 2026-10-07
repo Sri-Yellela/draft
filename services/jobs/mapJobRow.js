@@ -59,12 +59,17 @@ function mapJobRow(j) {
   const fresh = j.description_basis != null && isFresh(j);
   const fields = fresh ? parseFields(j.description_fields) : null;
   const pay = fields?.pay || null;
+  // ⛔ D71: precedence, never an overwrite — the provider's structured salary, then the text's.
+  const structured = (j.salary_min ?? j.salaryMin) != null || (j.salary_max ?? j.salaryMax) != null;
+  // normalizeJob's placeholder is not a location; the posting's own words are.
+  const location = j.location && j.location !== 'Location not specified' ? j.location : null;
   return {
     id:              j.job_id || j.id,
     title:           j.title,
     company:         j.company,
-    // D59: a posting whose location field is empty takes its label block's ("Marlborough, MA").
-    location:        j.location || fields?.locationLabel || null,
+    // D59: a posting whose location field is empty takes its label block's ("Marlborough, MA");
+    // D71: failing that, the place on its pay line ("Boston, MA").
+    location:        location || fields?.locationLabel || fields?.payLocationLabel || j.location || null,
     // ⛔ D59: the NORMALISED text when there is one — markup-free, the label block's lines removed.
     // `description` itself is never rewritten (content_hash is a hash of it).
     description:     (fresh ? j.description_text : null) ?? j.description,
@@ -73,6 +78,13 @@ function mapJobRow(j) {
     salaryMin:       j.salary_min  ?? j.salaryMin  ?? pay?.salary_min ?? null,
     salaryMax:       j.salary_max  ?? j.salaryMax  ?? pay?.salary_max ?? null,
     salaryCurrency:  j.salary_currency  || j.salaryCurrency  || pay?.salary_currency || null,
+    // D71: the unit as stated (hourly stays hourly), and where the figure came from — "description"
+    // lets the panel say "from the posting text"; per-location lines when the posting lists several.
+    salaryPeriod:    structured ? (j.salary_period ?? j.salaryPeriod ?? null) : (pay?.salary_period ?? null),
+    salarySource:    structured ? 'provider' : (pay?.source ?? null),
+    payLocations:    !structured && pay?.locations?.length > 1 ? pay.locations : null,
+    // D71: "not stated" may only be said about a text that exists; with none it is "couldn't read".
+    descriptionMissing: !String(j.description ?? '').trim(),
     // ⭐ D59: "Date Posted" from the label block is the POSTING's own date, not the crawl's.
     postedAt:        fields?.postedAt || j.posted_at  || j.postedAt  || null,
     contractType:    j.contract_type || j.contractType || null,

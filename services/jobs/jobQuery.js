@@ -624,14 +624,16 @@ function buildJobFilters(params = {}, opts = {}) {
   // Salary range-overlap: a job's [salary_min_usd, salary_max_usd] range overlaps the
   // requested range. Jobs with no salary data can't be verified as overlapping, so an
   // active salary filter excludes them (rather than guessing).
+  // ⛔ D71: the provider's figure first; failing it, the pay stated in the posting's text (its
+  // USD-per-year estimate, migration 141) — so a posting that states its pay is not filtered out.
   const salaryMin = toNumber(params.salary_min_usd);
   if (salaryMin != null) {
-    clauses.push(`sj.salary_max_usd IS NOT NULL AND sj.salary_max_usd >= ?`);
+    clauses.push(`COALESCE(sj.salary_max_usd, sj.pay_text_max_usd) IS NOT NULL AND COALESCE(sj.salary_max_usd, sj.pay_text_max_usd) >= ?`);
     args.push(salaryMin);
   }
   const salaryMax = toNumber(params.salary_max_usd);
   if (salaryMax != null) {
-    clauses.push(`sj.salary_min_usd IS NOT NULL AND sj.salary_min_usd <= ?`);
+    clauses.push(`COALESCE(sj.salary_min_usd, sj.pay_text_min_usd) IS NOT NULL AND COALESCE(sj.salary_min_usd, sj.pay_text_min_usd) <= ?`);
     args.push(salaryMax);
   }
 

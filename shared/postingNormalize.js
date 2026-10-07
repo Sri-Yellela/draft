@@ -35,7 +35,8 @@
  */
 
 /** Bump when a rule here changes: every stored description_text is recomputed on the next pass. */
-export const NORMALIZER_VERSION = 1;
+// 2 (D71, 10-07): the derivation pass also reads pay stated anywhere in the text (services/jobs/payFromText.js).
+export const NORMALIZER_VERSION = 2;
 
 // ── ENTITIES ─────────────────────────────────────────────────────────────────────────────────────
 const NAMED = {

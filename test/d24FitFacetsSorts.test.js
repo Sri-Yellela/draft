@@ -221,7 +221,8 @@ test("② the fit filter is HARD and reads the caller's OWN score: unscored and 
 const PRIMARY = {
   atsScore:   [NULLS_LAST("aor.ats_score"), KEY("aor.ats_score", "DESC")],
   dateDesc:   [...NEWEST],
-  compHigh:   [NULLS_LAST("sj.salary_max"), KEY("sj.salary_max", "DESC")],
+  // D71: the provider's figure, else the posting text's USD-per-year estimate.
+  compHigh:   [NULLS_LAST("COALESCE(sj.salary_max, sj.pay_text_max_usd)"), KEY("COALESCE(sj.salary_max, sj.pay_text_max_usd)", "DESC")],
   companyAsc: [...COMPANY_AZ],
 };
 const shape = (keys) => keys.map(k => `${k.sql} ${k.dir}`);

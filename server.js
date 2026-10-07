@@ -4349,6 +4349,17 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // D71 (owner, 10-08): PAY STATED IN THE PROSE. The derivation pass (services/jobs/descriptionText.js)
+      // reads pay anywhere in the text into description_fields.pay (as stated, with its unit, source and
+      // per-location lines); these two hold it as a USD-per-year ESTIMATE for the sort and the salary
+      // filter only. The provider's salary_* columns are never written by it. NULL = none stated / not read.
+      id: "141_pay_from_text",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN pay_text_min_usd INTEGER;
+        ALTER TABLE scraped_jobs ADD COLUMN pay_text_max_usd INTEGER;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");

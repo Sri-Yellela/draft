@@ -36,7 +36,7 @@ function db0() {
       job_id TEXT PRIMARY KEY, title TEXT, company TEXT, location TEXT, source TEXT,
       normalized_title TEXT, summary TEXT, skills_json TEXT,
       experience_level TEXT, workplace_type TEXT, employment_type TEXT, automation_tier TEXT,
-      salary_min_usd INTEGER, salary_max_usd INTEGER,
+      salary_min_usd INTEGER, salary_max_usd INTEGER, pay_text_min_usd INTEGER, pay_text_max_usd INTEGER,
       is_h1b_sponsor INTEGER, requires_work_auth INTEGER, is_clearance_required INTEGER,
       posted_at TEXT, discovered_at INTEGER, scraped_at INTEGER, is_active INTEGER DEFAULT 1, tag_basis TEXT, tag_level TEXT, tag_workplace TEXT, tag_employment TEXT, tag_function TEXT
     );
