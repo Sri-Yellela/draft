@@ -16,6 +16,7 @@ import {
   buildPacketEntries,
 } from "../services/applyGatePacket.js";
 import { buildStructuredResume } from "../services/resumeFormatter.js";
+import { payloadResumeParse } from "../services/payloadResume.js";
 import {
   recordFormSchema, formSchemaSummary, hostOf,
 } from "../services/kb/formSchemaLayer.js";
@@ -1057,6 +1058,13 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       WHERE id=? AND user_id=? AND consumed_at IS NULL`).run(artifactId, artifactId, packetId, userId);
     db.prepare(`UPDATE apply_run_jobs SET resume_artifact_id=COALESCE(resume_artifact_id, ?),
         resume_ats_score=COALESCE(resume_ats_score, ?) WHERE id=? AND user_id=?`).run(artifactId, atsScore, runJobId, userId);
+    // ⭐ D65: the packet was built before this résumé existed, so its work history and skills were read
+    // from the base résumé. Now that it carries this one, they are re-read from it.
+    try {
+      const entries = packetEntriesFor(userId, artifactId);
+      if (entries) db.prepare(`UPDATE apply_gate_packets SET answers_json=json_set(answers_json, '$.entries', json(?))
+          WHERE id=? AND user_id=? AND consumed_at IS NULL`).run(JSON.stringify(entries), packetId, userId);
+    } catch { /* fewer entries, never a lost résumé link */ }
     logEvent(runId, runJobId, userId, jobId, "packet_resume_ready",
       cur.current ? "The handoff carries your current résumé for this job" : "The handoff carries a résumé written for this job",
       { resumeArtifactId: artifactId, reused: !!cur.current, atsScore });
@@ -1069,14 +1077,15 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * to cost a packet: an older schema (no base_resume table, no confirmed_skills column) or an
    * unparseable résumé yields fewer entries, never a thrown packet build.
    */
-  function packetEntriesFor(userId) {
-    let profile = null, structuredResume = null;
+  // ⭐ D65 (owner, 10-07): work history and skills come from the résumé the packet CARRIES — `resumeId`
+  // (the packet's resume_artifact_id), else the base résumé — parsed once and stored with it
+  // (services/payloadResume.js, migration 138). User-claimed skills are added. With no résumé at all
+  // (an answers-only packet) the profile's current role is the one work entry, as before.
+  function packetEntriesFor(userId, resumeId = null) {
+    let profile = null, payload = null;
     try { profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || null; } catch { /* no profile table */ }
-    try {
-      const base = db.prepare("SELECT content FROM base_resume WHERE user_id=?").get(userId);
-      if (base?.content) structuredResume = buildStructuredResume(base.content);
-    } catch { /* no base résumé, or none we can read: work falls back to the profile's current role */ }
-    try { return buildPacketEntries({ profile, structuredResume }); } catch { return null; }
+    try { payload = payloadResumeParse(db, { userId, resumeId }); } catch { payload = null; }
+    try { return buildPacketEntries({ profile, payload }); } catch { return null; }
   }
 
   function createGatePacket({ runId, runJobId, userId, jobId, result, autofillPayload, resumeArtifactId,
@@ -1102,7 +1111,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         // mislabelling a held review as a login wall would put it in the wrong group and promise
         // that a sign-in clears it.
         gateReason: reasonCode || result.reasonCode || "login_required",
-        entries: packetEntriesFor(userId),
+        entries: packetEntriesFor(userId, resumeArtifactId),
       });
     } catch (e) {
       // buildGatePacket refuses in exactly two cases, and both leave the run held with no packet —
@@ -1194,7 +1203,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         autofillPayload: buildAutofillPayload(profile, "APPLY", job.company),
         applyUrl: job.apply_url || job.url, jobId: String(jobId),
         resumeArtifactId: artifactId, gateReason: PREPARED_REASON,
-        entries: packetEntriesFor(userId),
+        entries: packetEntriesFor(userId, artifactId),
       });
     } catch (e) {
       return { ok: false, error: e.reasonCode || "prepare_failed",

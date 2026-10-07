@@ -4297,6 +4297,20 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_scraped_jobs_description_basis ON scraped_jobs(description_basis);
       `,
     },
+    {
+      // D65 (owner, 10-07): WORK HISTORY AND SKILLS COME FROM THE RÉSUMÉ IN THE PAYLOAD. The parse is
+      // stored WITH the résumé it was read from — the tailored one in `resumes`, the base one in
+      // `base_resume` — so a packet references it rather than copying it. parsed_basis is a hash of the
+      // text it was parsed from: a résumé rewritten since is re-parsed on its next read, never served a
+      // stale parse. services/payloadResume.js reads and writes them. NULL = not parsed yet.
+      id: "138_resume_parse",
+      sql: `
+        ALTER TABLE resumes ADD COLUMN parsed_json TEXT;
+        ALTER TABLE resumes ADD COLUMN parsed_basis TEXT;
+        ALTER TABLE base_resume ADD COLUMN parsed_json TEXT;
+        ALTER TABLE base_resume ADD COLUMN parsed_basis TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
