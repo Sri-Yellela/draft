@@ -17,6 +17,7 @@ import {
 } from "../services/applyGatePacket.js";
 import { buildStructuredResume } from "../services/resumeFormatter.js";
 import { payloadResumeParse } from "../services/payloadResume.js";
+import { baseResumeOnlyState, baseOnlyGeneration, activeBaseResume, baseResumeHtml, BASE_RESUME_LABEL } from "../services/baseResumeOnly.js";
 import {
   recordFormSchema, formSchemaSummary, hostOf,
 } from "../services/kb/formSchemaLayer.js";
@@ -249,6 +250,13 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   // the base résumé's EXPERIENCE companies, the same `entries.work` the packet fills Work Experience
   // with. One fact, one source, so the two cannot disagree. (The parameter is re-bound rather than
   // renamed: test/applyPipeline.test.js pins the signature.)
+  // ⭐ D66 · BASE-RÉSUMÉ-ONLY: every résumé this router asks for goes through generateResumeForApply, so
+  // this one wrapper is where the setting holds. On → the base résumé, ⛔ and the model is never called.
+  const generateResumeForApplyModel = generateResumeForApply;
+  generateResumeForApply = async (userId, jobId, toolType) => {
+    if (baseResumeOnlyState(db, userId).on) return baseOnlyGeneration(db, userId);
+    return generateResumeForApplyModel(userId, jobId, toolType);
+  };
   const buildAutofillPayloadBase = buildAutofillPayload;
   buildAutofillPayload = (profile, mode, company = null) => {
     const payload = buildAutofillPayloadBase(profile, mode, company);
@@ -1022,6 +1030,22 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * is logged and the packet stays as it was, still fillable, still retryable (Prepare again).
    */
   async function attachPacketResume({ packetId, runId, runJobId, userId, jobId, toolType = "generate", allowGenerate = true }) {
+    // ⭐ D66: base-résumé-only → the packet carries the base résumé, whatever tailored one exists, and
+    // nothing is generated. Its work history and skills are read from that résumé (D65).
+    if (baseResumeOnlyState(db, userId).on) {
+      if (!activeBaseResume(db, userId)) {
+        logEvent(runId, runJobId, userId, jobId, "packet_resume_absent",
+          "Base-résumé-only is on and there is no base résumé — the handoff fills your answers; attach a résumé yourself.");
+        return { ok: false, reason: "no_base_resume" };
+      }
+      const entries = packetEntriesFor(userId, null);
+      db.prepare(`UPDATE apply_gate_packets SET resume_artifact_id=NULL,
+          answers_json=json_set(json_set(answers_json, '$.resumeSource', 'base'), '$.entries', json(?))
+        WHERE id=? AND user_id=? AND consumed_at IS NULL`).run(JSON.stringify(entries || {}), packetId, userId);
+      logEvent(runId, runJobId, userId, jobId, "packet_resume_ready", `The handoff carries your ${BASE_RESUME_LABEL.toLowerCase()}`,
+        { resumeArtifactId: null, resumeSource: "base" });
+      return { ok: true, artifactId: null, base: true };
+    }
     const cur = artifactCurrency(db, { userId, jobId, tool: toolType });
     let artifactId = cur.current ? (cur.artifact?.id ?? null) : null;
     let atsScore = cur.current ? (cur.artifact?.ats_score ?? null) : null;
@@ -1187,8 +1211,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const job = db.prepare("SELECT * FROM scraped_jobs WHERE job_id=?").get(String(jobId));
     if (!job) return { ok: false, error: "job_not_found", message: "draft no longer has this posting." };
     const cur = artifactCurrency(db, { userId, jobId, tool: toolType });
-    const artifactId = cur.current ? (cur.artifact?.id ?? null) : null;
-    const resume = artifactId != null ? "ready" : cur.artifact ? "out_of_date" : "none";
+    // ⭐ D66: base-résumé-only — the packet carries the base résumé, not a tailored one.
+    const baseOnly = baseResumeOnlyState(db, userId).on;
+    const artifactId = !baseOnly && cur.current ? (cur.artifact?.id ?? null) : null;
+    const resume = baseOnly ? (activeBaseResume(db, userId) ? "base" : "none")
+      : artifactId != null ? "ready" : cur.artifact ? "out_of_date" : "none";
     const existing = db.prepare(`SELECT id, created_at, resume_artifact_id FROM apply_gate_packets
       WHERE user_id=? AND job_id=? AND gate_reason=? AND consumed_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 1`)
       .get(userId, String(jobId), PREPARED_REASON);
@@ -4250,12 +4277,23 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
 
   /** A PREPARED packet's résumé (no run-job to go through) — owner-checked on the packet AND the artifact. */
   app.get("/api/apply/gate-packets/:packetId/resume", requireAuth, async (req, res) => {
-    const row = db.prepare("SELECT job_id, resume_artifact_id FROM apply_gate_packets WHERE id=? AND user_id=?")
+    const row = db.prepare("SELECT job_id, resume_artifact_id, answers_json FROM apply_gate_packets WHERE id=? AND user_id=?")
       .get(Number(req.params.packetId), req.user.id);
     if (!row) return res.status(404).json({ error: "packet_not_found" });
-    if (row.resume_artifact_id == null) return res.status(404).json({ error: "no_resume_artifact" });
-    const artifact = db.prepare("SELECT html FROM resumes WHERE id=? AND user_id=?").get(row.resume_artifact_id, req.user.id);
-    if (!artifact?.html) return res.status(404).json({ error: "resume_artifact_missing" });
+    // ⭐ D66: a packet that carries the BASE résumé has no tailored artifact — it serves the base one.
+    let html = null;
+    if (row.resume_artifact_id == null) {
+      let source = null;
+      try { source = JSON.parse(row.answers_json || "{}").resumeSource || null; } catch { source = null; }
+      const base = source === "base" ? activeBaseResume(db, req.user.id) : null;
+      if (!base) return res.status(404).json({ error: "no_resume_artifact" });
+      html = baseResumeHtml(base.content);
+    } else {
+      const artifact = db.prepare("SELECT html FROM resumes WHERE id=? AND user_id=?").get(row.resume_artifact_id, req.user.id);
+      if (!artifact?.html) return res.status(404).json({ error: "resume_artifact_missing" });
+      html = artifact.html;
+    }
+    const artifact = { html };
     try {
       const pdf = await htmlToPdf(artifact.html);
       const safe = String(row.job_id).replace(/[^a-z0-9._-]+/gi, "_");
@@ -4871,5 +4909,6 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
 
   // A59: boot-time hooks, called by server.js — not here, so a test mounting these routes on its own
   // fixture neither recovers its seeded rows nor starts a timer unless it asks to.
-  return { recoverInterruptedRuns, startLineTicker, dispatchAllLines, prepareManualPacket };
+  // resumeForApply: the D66-wrapped generator, exposed so a test can prove base-only never calls the model.
+  return { recoverInterruptedRuns, startLineTicker, dispatchAllLines, prepareManualPacket, resumeForApply: generateResumeForApply };
 }

@@ -4300,7 +4300,7 @@ console.log(`[boot] database ready: ${DB_PATH}`);
     {
       // D65 (owner, 10-07): WORK HISTORY AND SKILLS COME FROM THE RÉSUMÉ IN THE PAYLOAD. The parse is
       // stored WITH the résumé it was read from — the tailored one in `resumes`, the base one in
-      // `base_resume` — so a packet references it rather than copying it. parsed_basis is a hash of the
+      // `profile_base_resumes` (the active profile's) or `base_resume` — so a packet references it. parsed_basis is a hash of the
       // text it was parsed from: a résumé rewritten since is re-parsed on its next read, never served a
       // stale parse. services/payloadResume.js reads and writes them. NULL = not parsed yet.
       id: "138_resume_parse",
@@ -4309,6 +4309,17 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE resumes ADD COLUMN parsed_basis TEXT;
         ALTER TABLE base_resume ADD COLUMN parsed_json TEXT;
         ALTER TABLE base_resume ADD COLUMN parsed_basis TEXT;
+        ALTER TABLE profile_base_resumes ADD COLUMN parsed_json TEXT;
+        ALTER TABLE profile_base_resumes ADD COLUMN parsed_basis TEXT;
+      `,
+    },
+    {
+      // D66 (owner, 10-07): A BASE-RÉSUMÉ-ONLY PAYLOAD. The user's switch: when 1, an application carries
+      // the base résumé and no model is called for it (services/baseResumeOnly.js). Default 0 — nothing
+      // changes for anyone who has not switched it on.
+      id: "139_base_resume_only",
+      sql: `
+        ALTER TABLE users ADD COLUMN base_resume_only INTEGER NOT NULL DEFAULT 0;
       `,
     },
   ];
