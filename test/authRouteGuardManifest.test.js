@@ -203,6 +203,13 @@ const AUTHENTICATED = new Set([
   "POST /api/import/job",
   "POST /api/import/context",               // D13: the companion popup's board lookup (read-only; URL in the body)
   "GET /api/extension/status",               // D12: is this user's extension connected
+  // D55 decision B: "Save link to draft" — AUTHENTICATED, not PUBLIC, because it SPENDS: it makes an
+  // outbound request to an ATS's listing API and writes a row, so a stranger could drive our traffic.
+  "POST /api/import/link",
+  // D55 decision E: "Report this form" — host + field labels, stored against the reporter's own
+  // account (deleted with it, rate-limited per user). Signed in only: an anonymous report has no one
+  // to rate-limit and no account for its rows to be deleted with.
+  "POST /api/form-reports",
   "GET /api/company-kb/:company/org-units",
   "GET /api/company-kb/:company/form-schemas",
   "GET /api/company-kb/:company/lca",

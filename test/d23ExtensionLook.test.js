@@ -25,7 +25,8 @@ const manifest = JSON.parse(read("extension/manifest.json"));
 // ── 2. The promises that made C win ──────────────────────────────────────────────────────────────
 
 test("⛔ D23: the permission set is exactly activeTab + scripting + storage, and the one host", () => {
-  assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "scripting", "storage"]);
+  // + contextMenus by D55 decision B (10-07) — a decided addition, not D23's.
+  assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"]);
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
   for (const k of ["optional_permissions", "optional_host_permissions", "content_scripts",
                    "web_accessible_resources", "externally_connectable", "declarative_net_request"]) {

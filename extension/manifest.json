@@ -10,6 +10,7 @@
   "description": "Capture the job you're viewing, and fill the application you signed in to reach. You review every answer and submit it yourself.",
   "permissions": [
     "activeTab",
+    "contextMenus",
     "scripting",
     "storage"
   ],

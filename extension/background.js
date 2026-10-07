@@ -5,6 +5,9 @@ import {
 import { extractJobPayload, showCaptureToast } from './extractor.js';
 import { authedFetch, getIdentity, cachedIdentity, disconnect } from './auth.js';
 import { captureResultFrom } from './captureResult.js';
+import {
+  CONTEXT_MENUS, MENU_SAVE_PAGE, MENU_SAVE_LINK, saveableLink, reportHostOf, buildFormReport, collectFormLabels,
+} from './formReport.js';
 // D23: the site's colour tokens, generated from client/src/styles/colorTokens.js — the toolbar badge
 // and the capture toast take their colours from here, never from a literal.
 import { C_LIGHT, C_DARK } from './tokens.js';
@@ -442,3 +445,72 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // is enough to keep that bounded without a polling alarm.
 chrome.runtime.onStartup?.addListener(() => { void sweepExpiredPackets(); });
 chrome.runtime.onInstalled?.addListener(() => { void sweepExpiredPackets(); });
+
+// ── D55 · the right-click menu (decision B) and "Report this form" (decision E) ──────────────
+// Everything that is not a chrome.* call lives in formReport.js. Both menu items act only on the
+// click itself — a user gesture, which is also what grants activeTab for the clicked tab.
+chrome.runtime.onInstalled?.addListener(() => {
+  chrome.contextMenus.removeAll(() => {
+    for (const item of CONTEXT_MENUS) chrome.contextMenus.create({ ...item });
+  });
+});
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  // "Save this page" IS the capture — the same captureActiveTab() the button and Ctrl+Shift+K run.
+  if (info.menuItemId === MENU_SAVE_PAGE) { void captureActiveTab(tab); return; }
+  if (info.menuItemId === MENU_SAVE_LINK) void saveLinkToDraft(info.linkUrl, tab);
+});
+
+/** "Save link to draft": the link's address only — no page is opened or read. The server decides. */
+async function saveLinkToDraft(linkUrl, tab) {
+  const url = saveableLink(linkUrl);
+  let result;
+  if (!url) {
+    result = { success: false, outcome: null, onBoard: false, message: 'That is not a web link draft can save.', link: null, jobId: null };
+  } else {
+    try {
+      const res = await authedFetch(RESUME_MASTER_URL, '/api/import/link', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }),
+      });
+      result = res
+        ? captureResultFrom(res.status, await res.json().catch(() => ({})), RESUME_MASTER_URL)
+        : captureResultFrom(401, {}, RESUME_MASTER_URL);
+    } catch {
+      result = { success: false, outcome: null, onBoard: false, message: 'Could not reach draft', link: null, jobId: null };
+    }
+  }
+  // The same toast and the same lastCapture record a capture leaves — no new storage key.
+  if (tab?.id) await reportCapture(tab.id, result);
+  return result;
+}
+
+// "Report this form", from the popup. Two steps, both the user's: PREVIEW reads the labels (the popup
+// shows the host and how many labels before anything is sent); SEND reads them again and posts
+// host + labels. The page is re-read rather than the preview trusted, so nothing the popup holds
+// can widen what is sent — buildFormReport() emits only host, labels, fieldCount and the version.
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg?.type !== 'REPORT_FORM') return false;
+  (async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const host = reportHostOf(tab?.url);
+    if (!tab?.id || !host) return { ok: false, message: 'Open the application form you want to report.' };
+    let collected;
+    try {
+      const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: collectFormLabels });
+      collected = r?.result;
+    } catch {
+      return { ok: false, message: 'Open the popup again on the form page, then report it.' };
+    }
+    const report = buildFormReport({ host, collected, version: chrome.runtime.getManifest?.().version });
+    if (!report.labels.length) return { ok: false, message: 'No form fields were found on this page.' };
+    if (msg.phase !== 'send') return { ok: true, preview: true, host: report.host, labelCount: report.labels.length };
+    const res = await authedFetch(RESUME_MASTER_URL, '/api/form-reports', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(report),
+    }).catch(() => null);
+    if (!res) return { ok: false, message: 'Sign in to draft first.' };
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, message: body.message || 'Could not send the report.' };
+    return { ok: true, sent: true, host: report.host, labelCount: report.labels.length };
+  })().then(sendResponse, () => sendResponse({ ok: false, message: 'Could not send the report.' }));
+  return true;
+});
