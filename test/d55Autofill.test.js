@@ -8,15 +8,16 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { at, lastAt } from "../test-support/sourceAnchors.js";
 import fs from "node:fs";
 
 import { closestOption, matchAnswersToFields } from "../extension/gated-handoff.js";
 
 const src = fs.readFileSync("extension/gated-handoff.js", "utf8").replace(/\r\n/g, "\n");
 const body = (name) => {
-  const at = src.indexOf(`function ${name}(`);
-  assert.ok(at >= 0, `${name} not found`);
-  return at;
+  const pos = src.indexOf(`function ${name}(`);
+  assert.ok(pos >= 0, `${name} not found`);
+  return pos;
 };
 const dedent = (s) => s.split("\n").map(l => l.trim()).join("\n");
 
@@ -53,11 +54,11 @@ test("(a) nothing close is a refusal, never the first option", () => {
 });
 
 test("(a) applyPlan's serialised closestOption is byte-identical to the tested export", () => {
-  const exported = src.slice(src.indexOf("export function closestOption("));
-  const exportedText = exported.slice("export ".length, exported.indexOf("\n}\n") + 2);
+  const exported = src.slice(at(src, "export function closestOption("));
+  const exportedText = exported.slice("export ".length, at(exported, "\n}\n") + 2);
   const plan = src.slice(body("applyPlan"));
-  const inner = plan.slice(plan.indexOf("function closestOption("));
-  const innerText = inner.slice(0, inner.indexOf("\n  }\n") + 4).trimEnd();
+  const inner = plan.slice(at(plan, "function closestOption("));
+  const innerText = inner.slice(0, at(inner, "\n  }\n") + 4).trimEnd();
   assert.ok(innerText.length > 400, "applyPlan's copy is missing");
   assert.equal(dedent(innerText), dedent(exportedText),
     "the copy the page runs has drifted from the copy these tests run");
@@ -74,7 +75,7 @@ test("(a) the probe and applyPlan still enumerate the SAME controls, dropdown bu
 });
 
 test("(a) a typeahead is typed and WAITED for; a dropdown waits for its late listbox", () => {
-  const plan = src.slice(body("applyPlan"), src.indexOf("// ── Matching"));
+  const plan = src.slice(body("applyPlan"), at(src, "// ── Matching"));
   assert.match(plan, /const setTypeahead = async \(el, wants\) =>/);
   assert.match(plan, /await waitFor\(\(\) => readyOptions\(el\), 4000\)/);
   assert.match(plan, /const setCombobox = async \(el, want\) =>/);
@@ -88,7 +89,7 @@ test("(a) a typeahead is typed and WAITED for; a dropdown waits for its late lis
 });
 
 test("(a) a multi-select is one chip per value, each read back on the page", () => {
-  const plan = src.slice(body("applyPlan"), src.indexOf("// ── Matching"));
+  const plan = src.slice(body("applyPlan"), at(src, "// ── Matching"));
   assert.match(plan, /Array\.isArray\(step\.value\) \? step\.value : \[step\.value\]/);
   assert.match(plan, /ok = want\.every\(w => shown\.includes\(String\(w\)\.toLowerCase\(\)\)\);/);
   assert.match(plan, /\.\.\.\(kind === 'combo' \|\| kind === 'typeahead' \? \{ placed: got \} : \{\}\)/,

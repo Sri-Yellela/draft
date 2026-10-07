@@ -3,6 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { at, lastAt } from "../test-support/sourceAnchors.js";
 import fs from "node:fs";
 
 import { formRecognition } from "../extension/gated-handoff.js";
@@ -35,7 +36,7 @@ test("(l) a known adapter is recognised on any step, even one the packet has not
 });
 
 test("(l) the refusal happens BEFORE anything is typed, and says so on the page", () => {
-  const fill = src.slice(src.indexOf("async function fillFromPacket("), src.indexOf("async function captureFormSchema("));
+  const fill = src.slice(at(src, "async function fillFromPacket("), at(src, "async function captureFormSchema("));
   const refusal = fill.indexOf("reason: 'form_not_recognised'");
   assert.ok(refusal > 0 && refusal < fill.indexOf("func: applyPlan,"), "recognition must be decided before the fill injects");
   assert.match(fill, /await showBadge\(tab\.id, 'unrecognised', \{ note: recognition\.why \}\)/);

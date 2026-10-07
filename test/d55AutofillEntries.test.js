@@ -3,6 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { at, lastAt } from "../test-support/sourceAnchors.js";
 import fs from "node:fs";
 
 import { buildPacketEntries, parseDateRange, parseMonthYear, buildGatePacket } from "../services/applyGatePacket.js";
@@ -79,7 +80,7 @@ test("(b) both packet builders that serve a fill attach entries", () => {
 });
 
 test("(b) the fill presses Add once per entry and fills ONLY the panel that appeared", () => {
-  const plan = src.slice(src.indexOf("async function applyPlan("), src.indexOf("// ── Matching"));
+  const plan = src.slice(at(src, "async function applyPlan("), at(src, "// ── Matching"));
   assert.match(plan, /const before = new Set\(panelControls\(box\)\);\n\s+btn\.click\(\);/);
   assert.match(plan, /await waitFor\(\(\) => panelControls\(box\)\.some\(el => !before\.has\(el\)\), 3000\)/);
   assert.match(plan, /const fresh = panelControls\(box\)\.filter\(el => !before\.has\(el\)\);/);
