@@ -3857,4 +3857,27 @@ export const MIGRATIONS = [
         ALTER TABLE job_applications ADD COLUMN company_domain TEXT;
       `,
     },
+    {
+      // D55 decision E (10-07): "REPORT THIS FORM" — a user-invoked report, from the extension, that an
+      // application form is not recognised. It carries the form page's HOST and its field LABELS, never a
+      // value and never a URL path or query (services/formReports.js refuses any other key). Linked to the
+      // reporter so it is deleted with the account; kept 30 days (expires_at), then purged. The narrow
+      // slice of D3's bug reporting (docs/BUG_REPORTING.md, not yet built) — folds into bug_reports later.
+      id: "136_form_reports",
+      sql: `
+        CREATE TABLE IF NOT EXISTS form_reports (
+          id                INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          host              TEXT NOT NULL,
+          labels_json       TEXT NOT NULL,
+          field_count       INTEGER NOT NULL DEFAULT 0,
+          extension_version TEXT,
+          received_at       INTEGER NOT NULL,
+          expires_at        INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_form_reports_user ON form_reports(user_id, received_at);
+        CREATE INDEX IF NOT EXISTS idx_form_reports_expires ON form_reports(expires_at);
+        CREATE INDEX IF NOT EXISTS idx_form_reports_host ON form_reports(host, received_at);
+      `,
+    },
   ];

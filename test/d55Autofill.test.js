@@ -78,7 +78,8 @@ test("(a) a typeahead is typed and WAITED for; a dropdown waits for its late lis
   const plan = src.slice(body("applyPlan"), at(src, "// ── Matching"));
   assert.match(plan, /const setTypeahead = async \(el, wants\) =>/);
   assert.match(plan, /await waitFor\(\(\) => readyOptions\(el\), 4000\)/);
-  assert.match(plan, /const setCombobox = async \(el, want\) =>/);
+  // D55 (f) added a third argument, the pick mode ('exact' | 'decline' | null) — the wait is unchanged.
+  assert.match(plan, /const setCombobox = async \(el, want, mode = null\) =>/);
   assert.match(plan, /await waitFor\(\(\) => readyOptions\(el\), 2500\)/);
   // "Searching…" is not an answer: a busy listbox has no options yet.
   assert.match(plan, /list\.getAttribute\('aria-busy'\) === 'true'\) return null;/);

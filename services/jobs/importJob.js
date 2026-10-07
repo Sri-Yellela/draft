@@ -186,6 +186,47 @@ function isLoginWalled(rawUrl) {
   }
 }
 
+// ── D55 decision B · "Save link to draft" — which links the server can refetch ─────────────
+// A right-click on a LINK reads no page: the extension sends only the link's address. The server
+// can turn that into a posting only where it reads the employer's listing itself — the known-ATS
+// path above (path 1), which fetches from the ATS's own API with a pattern-validated slug, never
+// from the link's host. Anything else is REFUSED with a reason, rather than fetched generically:
+// a generic fetch of an arbitrary link is an outbound request to a host the user never opened, and
+// most such pages are client-rendered and read as nothing anyway.
+const LINK_REFUSALS = Object.freeze({
+  not_a_link: 'That is not a web link draft can save.',
+  login_walled: 'draft cannot read LinkedIn from a link. Open the job and use Save this page to draft.',
+  not_refetchable:
+    'draft can save a link only to a posting on a job board it reads directly (Greenhouse, Lever, ' +
+    'Ashby, SmartRecruiters, Workable, Recruitee or a Workday site draft knows). ' +
+    'Open the job and use Save this page to draft instead.',
+  workday_unknown:
+    'draft does not read this Workday site yet, so it cannot save it from a link. ' +
+    'Open the job and use Save this page to draft instead.',
+});
+const LINK_NOT_LISTED_MESSAGE =
+  "That posting is not in the employer's current listings — it may have closed. " +
+  'Open it and use Save this page to draft if it is still up.';
+
+/**
+ * @returns {{ ok: true, ats: string } | { ok: false, reason: keyof LINK_REFUSALS, message: string }}
+ */
+function linkRefetchability(db, rawUrl) {
+  const refuse = (reason) => ({ ok: false, reason, message: LINK_REFUSALS[reason] });
+  let parsed;
+  try { parsed = new URL(String(rawUrl || '')); } catch { return refuse('not_a_link'); }
+  if (!/^https?:$/.test(parsed.protocol)) return refuse('not_a_link');
+  if (isLoginWalled(parsed.href)) return refuse('login_walled');
+  const match = detectKnownAtsMatch(parsed.href);
+  if (!match) return refuse('not_refetchable');
+  // Recruitee's matcher accepts any page on a tenant's subdomain; only an offer (/o/…) is a posting.
+  if (match.type === 'recruitee' && !/^\/o\/[^/]+/.test(parsed.pathname)) return refuse('not_refetchable');
+  // Workday needs the tenant's verified site from company_ats_list (fetchKnownAtsJob) — without a
+  // row there is nothing to refetch from, and path 1 would quietly become a generic fetch.
+  if (match.type === 'workday' && !resolveWorkdaySlug(db, match.tenant, match.wdNumber)) return refuse('workday_unknown');
+  return { ok: true, ats: match.type };
+}
+
 // ── SSRF guard (generic-fetch path only — known-ATS paths only ever hit our own hardcoded
 // vendor API base URLs with a regex-validated slug, never an attacker-controlled host) ────────
 const PRIVATE_IPV4_RANGES = [
@@ -537,8 +578,12 @@ function attachImportToUser(db, userId, jobId) {
  *   the re-import silently returns the old row and the fix appears not to work. Not exposed over
  *   HTTP — routes/importJob.js never passes it, so a client cannot use it to force repeated
  *   outbound fetches.
+ *   refetchOnly (D55 decision B, "Save link to draft") — a link saved from a right-click, with no page
+ *   read: the posting may come ONLY from the ATS's own listing (path 1). The generic fetch of the
+ *   link's page (path 2) is not attempted, so a link never makes us fetch an arbitrary page; the
+ *   route checks linkRefetchability() first.
  */
-async function importJob({ url, text, html } = {}, { db, userId = null, force = false }) {
+async function importJob({ url, text, html } = {}, { db, userId = null, force = false, refetchOnly = false }) {
   if (!url && !text && !html) {
     throw new ImportInputError('Provide at least one of url, text, or html');
   }
@@ -583,6 +628,7 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
   }
 
   let normalizedJob = null;
+  let atsFetchFailed = false;
 
   if (url && !isLoginWalled(url)) {
     const match = detectKnownAtsMatch(url);
@@ -591,8 +637,17 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
         normalizedJob = await fetchKnownAtsJob(db, match, url);
       } catch (err) {
         console.warn(`[importJob] Known-ATS reuse failed for ${match.type}: ${err.message}`);
+        atsFetchFailed = true;
       }
     }
+  }
+
+  if (!normalizedJob && refetchOnly) {
+    // An ATS that could not be reached is not a posting that closed — the route answers 502, retryable.
+    if (atsFetchFailed) throw new Error("ats_unreachable");
+    // D55 B: the ATS's own listing did not carry this posting — closed, or a link to something that
+    // is not one posting. Said plainly; the generic page fetch below is not a fallback for a link.
+    throw new ImportInputError(LINK_NOT_LISTED_MESSAGE);
   }
 
   if (!normalizedJob && providedText) {
@@ -732,5 +787,6 @@ function answer(db, row, { action, attachment }) {
 
 export {
   importJob, ImportInputError, ImportRefusedError, detectKnownAtsMatch, isLoginWalled,
+  linkRefetchability, LINK_REFUSALS, LINK_NOT_LISTED_MESSAGE,
   isPrivateOrLoopbackIp, findMatchingPosting, jobFromLabelledText, jobFromHtml,
 };

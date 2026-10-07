@@ -46,6 +46,7 @@ import { createJobTagsRouter } from "./routes/jobTags.js";
 import { createDomainProfilesRouter } from "./routes/domainProfiles.js";
 import { createImportJobRouter } from "./routes/importJob.js";
 import { extensionStatusHandler } from "./routes/extensionStatus.js";
+import { formReportHandler, purgeExpiredFormReports } from "./services/formReports.js";
 import { createCompanyKbRouter } from "./routes/companyKb.js";
 import { runOrgLayerRollup } from "./services/kb/orgLayer.js";
 import { runHiringSignalsRollup } from "./services/jobs/hiringSignals.js";
@@ -4249,6 +4250,29 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE job_applications ADD COLUMN company_domain TEXT;
       `,
     },
+    {
+      // D55 decision E (10-07): "REPORT THIS FORM" — a user-invoked report, from the extension, that an
+      // application form is not recognised. It carries the form page's HOST and its field LABELS, never a
+      // value and never a URL path or query (services/formReports.js refuses any other key). Linked to the
+      // reporter so it is deleted with the account; kept 30 days (expires_at), then purged. The narrow
+      // slice of D3's bug reporting (docs/BUG_REPORTING.md, not yet built) — folds into bug_reports later.
+      id: "136_form_reports",
+      sql: `
+        CREATE TABLE IF NOT EXISTS form_reports (
+          id                INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          host              TEXT NOT NULL,
+          labels_json       TEXT NOT NULL,
+          field_count       INTEGER NOT NULL DEFAULT 0,
+          extension_version TEXT,
+          received_at       INTEGER NOT NULL,
+          expires_at        INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_form_reports_user ON form_reports(user_id, received_at);
+        CREATE INDEX IF NOT EXISTS idx_form_reports_expires ON form_reports(expires_at);
+        CREATE INDEX IF NOT EXISTS idx_form_reports_host ON form_reports(host, received_at);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -4580,6 +4604,15 @@ function runDraftBinPurge(trigger) {
 }
 setTimeout(() => runDraftBinPurge("boot"), 60_000).unref?.();
 setInterval(() => runDraftBinPurge("interval"), 6 * 3600_000).unref?.();
+// D55 decision E: a form report is kept 30 days, then deleted — here as well as on every new report.
+function runFormReportPurge(trigger) {
+  try {
+    const n = purgeExpiredFormReports(db);
+    if (n) console.log(`[form-reports] ${trigger}: purged ${n} report(s) past their 30 days`);
+  } catch (e) { console.warn(`[form-reports] ${trigger}: ${e.message}`); }
+}
+setTimeout(() => runFormReportPurge("boot"), 60_000).unref?.();
+setInterval(() => runFormReportPurge("interval"), 6 * 3600_000).unref?.();
 
 // ⭐ D57 · A CONVENIENCE COPY EXPIRES. A generated résumé not tied to a Draft or an application is kept
 // RESUME_RETENTION_DAYS (90) from its latest generation — the date Settings shows on it — and then
@@ -6940,6 +6973,8 @@ app.use("/api/import", requireAuth, createImportJobRouter(db, {
 }));
 // D12: is this user's extension connected (a live extension token)? Drives Full House's first-run prompt.
 app.get("/api/extension/status", requireAuth, extensionStatusHandler(db));
+// D55 decision E: "Report this form" — the form's HOST and field LABELS, never a value (services/formReports.js).
+app.post("/api/form-reports", requireAuth, formReportHandler(db));
 app.use("/api/company-kb", requireAuth, createCompanyKbRouter(db, requireAdmin));
 // RETIRED (E2). imported_jobs had exactly one writer — save-job, above — and zero rows. Its reading
 // surface was a board panel promising that captured jobs "appear here", which they never did: the

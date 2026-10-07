@@ -151,7 +151,9 @@ test("D13: /api/import/context — recent captures are YOURS, newest first, one 
 // ── The extension half ─────────────────────────────────────────────────────────────────────────
 test("⛔ D13: no new storage, no new permission — and all four actions stay visible", () => {
   const manifest = JSON.parse(read("extension/manifest.json"));
-  assert.deepEqual(manifest.permissions, ["activeTab", "scripting", "storage"]);
+  // D55 decision B (10-07) added contextMenus — the owner's decision, rationalised in
+  // MANIFEST_RATIONALE.md and reconciled in PRIVACY_RECONCILIATION.md. D13 itself still adds none.
+  assert.deepEqual(manifest.permissions, ["activeTab", "contextMenus", "scripting", "storage"]);
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
   assert.equal(manifest.content_scripts, undefined, "a content script appeared");
 
