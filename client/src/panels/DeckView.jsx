@@ -31,13 +31,13 @@ import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
-import { bandChipStyle } from "../styles/bandStyle.js";
+import { bandMarkStyle } from "../styles/mark.js";
 import { ATS_BAND, atsBandLabel } from "../../../shared/atsBands.js";
 import { ATSPanel } from "./ATSPanel.jsx";
 import { AtsBandCard, fromDeckReport } from "../components/AtsReport.jsx";
 import PostingPanel from "../components/PostingPanel.jsx";
 import { PairLinkProvider } from "../lib/pairLink.js";
-import CompanyIcon from "../components/ui/CompanyIcon.jsx";
+import CompanyLogo from "../components/CompanyLogo.jsx";
 import CardBack, { CardBackDefs } from "../components/CardBack.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import { CHROME_HEIGHT_VAR } from "../hooks/useChromeHeight.js";
@@ -166,7 +166,7 @@ function AtsSignal({ band, why = {}, onOpen, cta }) {
     <button type="button" data-deck-signal onClick={onOpen} aria-controls="deck-ats"
       style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "2px 0", background: "transparent",
                border: "none", cursor: "pointer", textAlign: "left", fontSize: 13.5, color: C.INK_MUTED }}>
-      <span style={{ ...bandChipStyle(band), padding: "3px 10px", borderRadius: 999, fontSize: 12.5, fontWeight: 800 }}>{meta.label}</span>
+      <span style={{ ...bandMarkStyle(band), fontSize: 12.5 }}>{meta.label}</span>
       {total > 0 && <span>{matched} of {total} matched</span>}
       {cta && <span style={{ color: C.ACCENT_INK, fontWeight: 700 }}>{cta}</span>}
     </button>
@@ -243,14 +243,14 @@ const DECK_ORDER_KEY = "draft-deck-order";
 function DeckOrderControl({ order, onChoose }) {
   const opt = (value, label) => (
     <button type="button" aria-pressed={order === value} onClick={() => onChoose(value)}
-      style={{ border: "none", borderRadius: 999, padding: "5px 11px", fontSize: 12.5, fontWeight: 800, cursor: "pointer",
+      style={{ border: "none", borderRadius: 7, padding: "5px 11px", fontSize: 12.5, fontWeight: 800, cursor: "pointer",
                background: order === value ? C.INK : "transparent", color: order === value ? C.SURFACE_MENU : C.INK_MUTED }}>
       {label}
     </button>
   );
   return (
     <div role="group" aria-label="Order the deck by" data-deck-order
-      style={{ ...glass({ radius: 999 }), display: "flex", gap: 2, padding: 2 }}>
+      style={{ ...glass({ radius: 10 }), display: "flex", gap: 2, padding: 2 }}>
       {opt("dealt", "Dealt")}{opt("ats", "ATS match")}
     </div>
   );
@@ -332,7 +332,7 @@ function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, o
         </div>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 14, paddingRight: open ? 104 : 0 }}>
-        <CompanyIcon company={job.company} iconUrl={job.companyIconUrl} size={vertical ? 48 : 56} radius={16} />
+        <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={vertical ? 48 : 56} radius={16} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: C.INK_MUTED }}>{job.company}</div>
           {meta.length > 0 && <div style={{ fontSize: 13, color: C.INK_FAINT, marginTop: 2 }}>{meta.join("  ·  ")}</div>}
@@ -531,7 +531,7 @@ function EndOfDeck({ s, tally, needsReview, onUndo }) {
         <motion.ul {...line(2)} aria-label="Drafted today" style={{ listStyle: "none", padding: 0, margin: "0 0 20px", display: "grid", gap: 8 }}>
           {drafted.map(c => (
             <li key={c.job.id} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 14.5, color: C.INK }}>
-              <CompanyIcon company={c.job.company} iconUrl={c.job.companyIconUrl} size={28} radius={8} />
+              <CompanyLogo company={c.job.company} iconUrl={c.job.companyIconUrl} size={28} radius={8} />
               <span style={{ minWidth: 0 }}>
                 <strong {...{ [TITLE_ATTR]: c.job.id }} style={{ fontWeight: 700 }}>{c.job.title}</strong>
                 <span style={{ color: C.INK_MUTED }}> · {c.job.company}</span>
@@ -832,7 +832,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
               )}
               <motion.span ref={counterRef} key={tally.drafted} initial={{ scale: 1.35 }} animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 420, damping: 18 }}
-                style={{ ...glass({ radius: 999 }), padding: "6px 12px", fontSize: 13, fontWeight: 800, color: C.INK, display: "inline-block" }}>
+                style={{ ...glass({ radius: 10 }), padding: "6px 12px", fontSize: 13, fontWeight: 800, color: C.INK, display: "inline-block" }}>
                 Drafted {tally.drafted}
               </motion.span>
             </div>

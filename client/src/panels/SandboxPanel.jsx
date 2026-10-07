@@ -243,7 +243,7 @@ export default function SandboxPanel({
 
   const btnStyle = () => ({
     display:"inline-flex", alignItems:"center", gap:5,
-    padding:"5px 14px", borderRadius:999,
+    padding:"5px 14px", borderRadius:10,
     background:"transparent", color:"var(--color-text-muted)",
     border:`1px solid ${"var(--color-border)"}`,
     fontSize:11, fontWeight:600, cursor:"pointer",
@@ -292,7 +292,7 @@ export default function SandboxPanel({
       {/* View toggle. Page is listed first because it is the faithful view; which one is SELECTED
           on open depends on whether the panel is wide enough for it to be legible. */}
       <div style={{ display:"flex", gap:2, border:"1px solid var(--color-border)",
-                    borderRadius:999, padding:2 }}>
+                    borderRadius:10, padding:2 }}>
         {[["page","Page"],["reading","Reading"]].map(([id,lbl]) => (
           <button className="dbx-depth" key={id} onClick={() => setViewChoice(id)}
             title={id === "page"

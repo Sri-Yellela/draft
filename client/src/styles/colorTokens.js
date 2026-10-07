@@ -214,6 +214,9 @@ export const C_LIGHT = {
   DEPTH_PRESS:  "0 2px 5px rgba(30,25,21,0.13), inset 0 1px 0 rgba(255,255,255,0.5)",
   DEPTH_ACCENT: "0 3px 9px rgba(253,70,0,0.34), inset 0 1px 0 rgba(255,255,255,0.35)",
   LOGO_SHADOW:  "0 2px 6px rgba(30,25,21,0.14)",
+  // ⛔ D61 · THE LOGO TILE — paper in BOTH themes (the sketch's .tile #fbf7f0). A company's mark is drawn on
+  // the paper it was designed for; a transparent dark mark (Mercury, RTX) on a dark card was invisible.
+  LOGO_TILE:    "#FBF7F0",
 };
 
 // ── DARK (UI step 6, 09-30) — the same keys, re-pointed ────────────────────────────────────────
@@ -335,6 +338,7 @@ export const C_DARK = {
   DEPTH_PRESS:         "0 2px 5px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)",
   DEPTH_ACCENT:        "0 3px 9px rgba(253,70,0,0.40), inset 0 1px 0 rgba(255,255,255,0.20)",
   LOGO_SHADOW:         "0 2px 6px rgba(0,0,0,0.45)",
+  LOGO_TILE:           "#FBF7F0",   // D61: the SAME paper as light — a logo's tile never follows the theme
 };
 
 // ── Which palette is live ─────────────────────────────────────────────────────────────────────
@@ -451,7 +455,7 @@ export const CONTRAST_PAIRS = [
   ["VIOLET", "CANVAS_SHADE", "normal"], ["VIOLET", "SURFACE", "normal"], ["VIOLET", "VIOLET_QUIET", "normal"],
   ["TEAL",   "CANVAS_SHADE", "normal"], ["TEAL",   "SURFACE", "normal"],
   ["SURFACE_SOLID", "VIOLET", "normal"], ["SURFACE_SOLID", "TEAL", "normal"],
-  // a company avatar's initial (SURFACE_SOLID) on each avatar tone — CompanyIcon / JobsPanel
+  // a company avatar's initial (SURFACE_SOLID) on each avatar tone — CompanyLogo (D61)
   ["SURFACE_SOLID", "SUCCESS", "normal"], ["SURFACE_SOLID", "DANGER", "normal"], ["SURFACE_SOLID", "WARNING", "normal"],
   // ── the fit bands ─────────────────────────────────────────────────────────────────────────
   // as TEXT on paper and on every glass the band appears on (card, panel, menu)

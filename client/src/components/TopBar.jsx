@@ -248,7 +248,7 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
               minWidth: 16, height: 16, padding: "0 3px",
               background: "var(--c-danger)", color: "var(--c-surface-solid)",
               border: `2px solid ${theme.surfaceBase || theme.surface}`,
-              borderRadius: 999,
+              borderRadius: 6,
               fontSize: 9, fontWeight: 800, lineHeight: "12px", textAlign: "center",
             }}>
             {unread > 9 ? "9+" : unread}
@@ -629,15 +629,18 @@ export default function TopBar({
                   onTabChange?.(t.id);
                 }}
                 aria-current={activeTab === t.id ? "page" : undefined}
+                // ⛔ D60: a tab is a DEPTH BOX in the logo face, the active one filled accent — never a capsule
+                // and never the old uppercase condensed label (extension-latest.html's .tab).
                 style={{
                   display: "inline-block", textDecoration: "none",
-                  padding: tiny ? "3px 4px" : narrow ? "5px 8px" : "5px 14px",
-                  background: activeTab === t.id ? "var(--c-hover)" : "transparent",
-                  border: activeTab === t.id ? "1px solid var(--color-primary)" : "1px solid transparent",
-                  borderRadius: 14, lineHeight: 1.15, textAlign: "center",
-                  color: activeTab === t.id ? "var(--color-text)" : "var(--color-text-muted)",
-                  fontSize: tiny ? 11 : 12, fontWeight: 600, cursor: "pointer",
-                  textTransform: "uppercase", letterSpacing: tiny ? "0" : narrow ? "0.04em" : "0.08em",
+                  padding: tiny ? "3px 4px" : narrow ? "5px 8px" : "6px 13px",
+                  background: activeTab === t.id ? "var(--c-accent)" : "var(--c-fh-well)",
+                  border: activeTab === t.id ? "1px solid var(--c-fh-accent-edge)" : "1px solid var(--c-fh-line)",
+                  boxShadow: activeTab === t.id ? "var(--c-depth-accent)" : "var(--c-depth-rest)",
+                  borderRadius: tiny ? 8 : 10, lineHeight: 1.15, textAlign: "center",
+                  color: activeTab === t.id ? "var(--c-fh-on-accent)" : "var(--c-ink-muted)",
+                  fontFamily: "'Poppins', var(--font-body)", fontStyle: "italic",
+                  fontSize: tiny ? 11 : 12, fontWeight: 800, cursor: "pointer", letterSpacing: 0,
                   whiteSpace: tiny ? "normal" : "nowrap", width: tiny ? "min-content" : undefined, flexShrink: 0,
                 }}><TabLabel label={t.label}/></a>
             ))}

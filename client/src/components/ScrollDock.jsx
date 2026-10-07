@@ -182,7 +182,7 @@ function MarketingToolsDock({ variant }) {
     backdropFilter: "blur(20px)",
     WebkitBackdropFilter: "blur(20px)",
     border: `1px solid ${theme.border}`,
-    borderRadius: 9999,
+    borderRadius: 14,
     boxShadow: "var(--c-shadow-md)",
     maxWidth: "min(720px, calc(100vw - 24px))",
     width: "auto",

@@ -5,6 +5,7 @@ import { useTheme } from "../../styles/theme.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { C } from "../../styles/colorTokens.js";
+import { markStyle } from "../../styles/mark.js";
 
 export function ApplyToolPage() {
   const { theme } = useTheme();
@@ -150,12 +151,7 @@ export function ApplyToolPage() {
                   padding: "10px 14px", borderRadius: 6, background: theme.surface,
                   border: `1px solid ${theme.border}`,
                 }}>
-                  <span style={{
-                    fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                    background: (STATUS_COLOR[r.status] || C.INK_FAINT) + "20",
-                    color: STATUS_COLOR[r.status] || C.INK_FAINT,
-                    flexShrink: 0,
-                  }}>
+                  <span style={{ ...markStyle(STATUS_COLOR[r.status] || C.INK_FAINT), flexShrink: 0 }}>
                     {r.status}
                   </span>
                   <span style={{ fontSize: 12, color: theme.text, flex: 1, overflow: "hidden",

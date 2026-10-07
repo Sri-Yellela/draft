@@ -93,7 +93,7 @@ export function FeaturesPage() {
                     <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{t.name}</h3>
                     {monetisationEnabled && t.tier && (
                       <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
-                                     color: C.ACCENT_INK, background: C.ACCENT_QUIET, padding: "2px 8px", borderRadius: 999 }}>{t.tier}</span>
+                                     color: C.ACCENT_INK, background: C.ACCENT_QUIET, padding: "2px 8px", borderRadius: 6 }}>{t.tier}</span>
                     )}
                   </div>
                   <p style={{ fontSize: 15, lineHeight: 1.6, margin: "0 0 8px" }}>{t.does}</p>

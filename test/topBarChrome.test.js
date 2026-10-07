@@ -206,12 +206,14 @@ test("the tab row moved into the top bar, whole, and from appTabs", () => {
     "TopBar grew its own tab list — that is the fourth copy, and the previous three all drifted");
   assert.match(app, /tabs=\{appTabs\}/, "the bar is no longer fed from appTabs");
 
-  // The styling is UnifiedSearchBar's verbatim, because this is a MOVE.
-  // (D18/O56e: below 560px the spacing tightens to fit a phone; the desktop value is still 0.08em.)
-  for (const kept of [/borderRadius: 999,/, /textTransform: "uppercase", letterSpacing: tiny \? "0" : narrow \? "0\.04em" : "0\.08em"/,
-                      /fontSize: tiny \? 11 : 12, fontWeight: 600, cursor: "pointer"/]) {   // D69 (b): 11px below 440px
-    assert.match(topBarCode, kept, `the tab styling changed on the way across (${kept})`);
+  // ⛔ D60 (10-07) superseded the moved styling: a tab is a depth box in the logo face, the active one
+  // filled accent — never a capsule, never the uppercase condensed label. (D69 (b): 11px below 440px.)
+  for (const kept of [/borderRadius: tiny \? 8 : 10,/, /fontFamily: "'Poppins', var\(--font-body\)", fontStyle: "italic",/,
+                      /fontSize: tiny \? 11 : 12, fontWeight: 800, cursor: "pointer", letterSpacing: 0,/,
+                      /background: activeTab === t\.id \? "var\(--c-accent\)" : "var\(--c-fh-well\)"/]) {
+    assert.match(topBarCode, kept, `the tab is not D60's depth box (${kept})`);
   }
+  assert.doesNotMatch(topBarCode.slice(at(topBarCode, '<nav aria-label="Main"', 0, "the main nav")), /textTransform: "uppercase"/, "D60: no uppercase tab label");
 
   // ...and the search bar no longer renders tabs at all, so there is exactly one tab row.
   assert.ok(!/onTabChange\?\.\(t\.id\)/.test(usb), "the search bar still renders a tab row");

@@ -91,7 +91,7 @@ export function PricingPage() {
                   // empty. --color-on-primary is the token that exists for exactly this pairing,
                   // and is what every other primary-filled control in the app already uses.
                   color: t.recommended ? "var(--color-on-primary)" : "var(--color-text-muted)",
-                  fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 999,
+                  fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 6,
                   border: "1px solid var(--color-border)", whiteSpace: "nowrap",
                 }}>
                   {t.badge}

@@ -45,7 +45,7 @@ function truncate(s, n=40) { if (!s) return "—"; return s.length > n ? s.slice
 function Pill({ color, children }) {
   return (
     <span style={{
-      display:"inline-block", padding:"2px 8px", borderRadius:999,
+      display:"inline-block", padding:"2px 8px", borderRadius:6,
       fontSize:10, fontWeight:700, background:color+"22", color,
       border:`1px solid ${color}44`, letterSpacing:"0.05em",
       // nowrap because a wrapped label breaks OUT of the rounded background rather than growing
@@ -314,7 +314,7 @@ function CoverageBar({ item, theme }) {
   return (
     <div style={{ display:"grid", gridTemplateColumns:"150px 1fr 90px", gap:10, alignItems:"center", fontSize:11 }}>
       <div style={{ color:theme.textMuted, fontFamily:"monospace" }}>{item.column}</div>
-      <div style={{ height:8, background:theme.bg, borderRadius:999, overflow:"hidden", border:`1px solid ${theme.border}` }}>
+      <div style={{ height:8, background:theme.bg, borderRadius:2, overflow:"hidden", border:`1px solid ${theme.border}` }}>
         <div style={{ width:`${Math.max(item.pct, item.pct > 0 ? 1.5 : 0)}%`, height:"100%", background:c, transition:"width 0.2s" }}/>
       </div>
       <div style={{ color:c, fontWeight:700, textAlign:"right" }}>
@@ -1994,7 +1994,7 @@ function QuerySimulatorTab({ theme }) {
             <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
               {data.conditions.map((c, i) => (
                 <span key={i} style={{
-                  padding:"3px 10px", borderRadius:999, fontSize:10, fontWeight:700,
+                  padding:"3px 10px", borderRadius:6, fontSize:10, fontWeight:700,
                   background:ACCENT+"22", color:ACCENT_TEXT, border:`1px solid ${ACCENT_TEXT}44`,
                 }}>
                   {c}

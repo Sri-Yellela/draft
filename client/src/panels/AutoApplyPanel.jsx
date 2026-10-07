@@ -19,6 +19,7 @@ import { PanelSearch } from "../components/ui/PanelControls.jsx";
 import { companyLabel, UNKNOWN_COMPANY } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { C } from "../styles/colorTokens.js";
+import { markStyle } from "../styles/mark.js";
 import { TYPE } from "../styles/type.js";
 import WaitingLine from "../components/WaitingLine.jsx";
 import DraftRunBar from "../components/DraftRunBar.jsx";
@@ -797,14 +798,9 @@ export function AutoApplyPanel() {
                       it had finished, so removing the list would have quietly dropped that. It
                       belongs here anyway: this is the run's detail, and "is this run still going"
                       is the first thing to know when reading one. */}
-                  <span style={{ fontWeight:700, padding:"1px 7px", borderRadius:999,
-                                 whiteSpace:"nowrap",
-                                 background: applyRunDetail.run.status === "completed" ? C.SUCCESS_QUIET
-                                   : applyRunDetail.run.status === "running" ? `${theme.accent}22`
-                                   : applyRunDetail.run.status === "queued" ? C.WARNING_QUIET : C.HOVER,
-                                 color: applyRunDetail.run.status === "completed" ? C.SUCCESS
+                  <span style={markStyle(applyRunDetail.run.status === "completed" ? C.SUCCESS
                                    : applyRunDetail.run.status === "running" ? theme.accent
-                                   : applyRunDetail.run.status === "queued" ? C.WARNING : theme.textMuted }}>
+                                   : applyRunDetail.run.status === "queued" ? C.WARNING : theme.textMuted)}>
                     {applyRunDetail.run.status || "—"}
                   </span>
                   {applyRunDetail.run.submittedCount > 0 && (
@@ -872,9 +868,8 @@ export function AutoApplyPanel() {
                           {/* A guess is the thing worth a human's attention; an exact mapping is not. */}
                           {p.guessCount > 0 && (
                             <span title="Answers matched by a fuzzy label match rather than an exact mapping. Read these."
-                              style={{ fontSize:9, fontWeight:800, padding:"2px 7px", borderRadius:999,
-                                       background:C.WARNING_QUIET, color:C.WARNING, whiteSpace:"nowrap", flexShrink:0 }}>
-                              {p.guessCount} GUESSED
+                              style={{ ...markStyle(C.WARNING), flexShrink:0 }}>
+                              {p.guessCount} guessed
                             </span>
                           )}
                           {/* ── AL2: WHICH BAND THIS IS, AND WHAT IT IS OF ────────────────────
@@ -976,10 +971,7 @@ export function AutoApplyPanel() {
                                                        wordBreak:"break-word" }}>
                                           {String(a.value ?? "")}
                                         </span>
-                                        <span style={{ fontSize:9, fontWeight:800, padding:"1px 6px", borderRadius:999,
-                                                       whiteSpace:"nowrap",
-                                                       background: guess ? C.WARNING_QUIET : `${theme.border}66`,
-                                                       color: guess ? C.WARNING : theme.textDim }}>
+                                        <span style={markStyle(guess ? C.WARNING : theme.textDim)}>
                                           {guess ? "GUESS" : (a.provenance || "").replace(/_/g, " ") || "—"}
                                         </span>
                                       </div>
@@ -1073,15 +1065,13 @@ export function AutoApplyPanel() {
                           </span>
                           {isEligibility && (
                             <span title="Submitted to the employer as your own statement. Never inferred from your profile."
-                              style={{ fontSize:9, fontWeight:800, padding:"2px 7px", borderRadius:999,
-                                       background:C.DANGER_QUIET, color:C.DANGER, whiteSpace:"nowrap", flexShrink:0 }}>
-                              ATTESTATION
+                              style={{ ...markStyle(C.DANGER), flexShrink:0 }}>
+                              Attestation
                             </span>
                           )}
                           {q.answered && (
-                            <span style={{ fontSize:9, fontWeight:700, padding:"2px 7px", borderRadius:999,
-                                           background:C.SUCCESS_QUIET, color:C.SUCCESS, whiteSpace:"nowrap", flexShrink:0 }}>
-                              SAVED
+                            <span style={{ ...markStyle(C.SUCCESS), flexShrink:0 }}>
+                              Saved
                             </span>
                           )}
                         </div>
@@ -1175,8 +1165,7 @@ export function AutoApplyPanel() {
                     <div key={p.origin} style={{
                       border:`1px solid ${theme.border}`, borderRadius:8, padding:"10px 14px",
                       background:theme.surfaceHigh, display:"flex", alignItems:"center", gap:10 }}>
-                      <span style={{ fontSize:9, fontWeight:700, padding:"1px 7px", borderRadius:999,
-                                     background:C.INFO_QUIET, color:C.INFO, whiteSpace:"nowrap" }}>
+                      <span style={markStyle(C.INFO)}>
                         {p.gateReasons?.includes("captcha_required") ? "verify" : "sign in"}
                       </span>
                       <div style={{ flex:1, minWidth:0 }}>

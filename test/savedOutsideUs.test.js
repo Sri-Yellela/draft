@@ -83,7 +83,7 @@ test("Pipeline Health's job list labels an inactive row by why it is off the boa
 });
 
 test("the card says OUTSIDE THE US instead of NO LONGER LISTED for a held row", () => {
-  assert.match(CARD, /OUTSIDE THE US/);
+  assert.match(CARD, /Outside the US/);   // D60: a mark in the logo face, mixed case
   assert.match(CARD, /\{job\.heldOutsideUs \? <OutsideUsPill\/> : job\.isActive === false && <ClosedPill\/>\}/,
     "held takes precedence; otherwise an inactive row is closed");
 });

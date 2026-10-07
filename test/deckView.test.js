@@ -31,7 +31,7 @@ test("every deck motion is under ONE reduced-motion config", () => {
 
 test("the deck shows a band and never a score", () => {
   assert.doesNotMatch(src, /matchScore|atsScore/, "the deck reads a score");
-  assert.match(src, /bandChipStyle\(band\)/);
+  assert.match(src, /bandMarkStyle\(band\)/);   // D60: the band is a mark, never a capsule
 });
 
 test("/app lands on Today, and the board keeps /app/jobs", () => {

@@ -211,12 +211,12 @@ export function styles(t) {
         .rm-input::placeholder { color: ${t.textDim}; }
         .rm-badge {
           display: inline-flex; align-items: center; padding: 3px 10px;
-          border-radius: 999px; font-size: 10px; font-weight: 700;
+          border-radius: 6px; font-size: 10px; font-weight: 700;
           letter-spacing: 0.02em; white-space: nowrap;
         }
         .rm-tag {
           display: inline-flex; align-items: center; gap: 4px;
-          padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+          padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
           background: ${t.accentMuted}; color: ${t.accentText};
           border: 1px solid ${t.accent}22;
         }

@@ -1,6 +1,6 @@
 import PanelShell from "../components/PanelShell.jsx";
 import { ATSPanel } from "./ATSPanel.jsx";
-import { bandChipStyle } from "../styles/bandStyle.js";
+import { bandMarkStyle } from "../styles/mark.js";
 import { atsBandLabel } from "../../../shared/atsBands.js";
 import { reportBand } from "../components/AtsReport.jsx";
 import { C } from "../styles/colorTokens.js";
@@ -61,8 +61,7 @@ export default function AtsReportPanel({
             <>
               <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-primary-text)" }}>ATS</span>
               <span title={atsBandLabel(band).blurb}
-                style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 999,
-                         ...bandChipStyle(band) }}>
+                style={bandMarkStyle(band)}>
                 {atsBandLabel(band).short}
               </span>
             </>

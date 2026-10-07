@@ -1536,7 +1536,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
                       border:`1px dashed ${theme.border}`,
                       background:theme.bg,
                       color:theme.text,
-                      borderRadius:999,
+                      borderRadius:6,
                       padding:"6px 10px",
                       fontSize:12,
                     }}
@@ -1583,7 +1583,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
                   {(suggestedSignals.structuredFacts || []).map(item => (
                     <span key={item.key} style={{
                       border:`1px solid ${theme.border}`,
-                      borderRadius:999,
+                      borderRadius:6,
                       padding:"6px 10px",
                       fontSize:12,
                       color:theme.textMuted,

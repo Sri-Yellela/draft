@@ -164,7 +164,7 @@ test("an eligibility question is flagged so the UI can present it as an attestat
     // The panel must render the attestation treatment off that field, not treat it as an ordinary
     // input. This is the safety property the whole resolution layer is built around.
     assert.match(jobsPanel, /const isEligibility = !!q\.eligibility;/);
-    assert.match(jobsPanel, /ATTESTATION/);
+    assert.match(jobsPanel, /Attestation/);   // D60: a mark in the logo face, no longer an uppercase capsule
     assert.match(jobsPanel, /You are stating this to the employer yourself/);
   } finally { server.close(); }
 });

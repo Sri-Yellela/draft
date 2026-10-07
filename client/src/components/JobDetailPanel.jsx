@@ -7,7 +7,7 @@ import CoverLetterModal from "./CoverLetterModal.jsx";
 import CompanyViewModal from "./CompanyViewModal.jsx";
 import PanelShell from "./PanelShell.jsx";
 import CompanyLink from "./CompanyLink.jsx";
-import CompanyIcon from "./ui/CompanyIcon.jsx";
+import CompanyLogo from "./CompanyLogo.jsx";
 import { ATS_NUMBER_SHOWN, ATS_NUMBER_NOTE } from "../../../shared/atsBands.js";
 import { atsScorePair } from "../../../shared/resumeScores.js";
 import StickyBar from "./StickyBar.jsx";
@@ -322,7 +322,7 @@ export default function JobDetailPanel({
             <div className="pp__hd" data-posting-header="">
               <button type="button" className="pp__logo" onClick={() => setShowCompanyView(true)} title={`View ${selectedJob.company}'s KB profile`}
                 aria-label={`View ${selectedJob.company}'s KB profile`}>
-                <CompanyIcon company={selectedJob.company} iconUrl={selectedJob.companyIconUrl} size={46} radius={12}/>
+                <CompanyLogo company={selectedJob.company} iconUrl={selectedJob.companyIconUrl} size={46} radius={12}/>
               </button>
               {/* ⭐ A63: APPLY IS THE COMPANY NAME — a link to the posting, opened in a new tab. */}
               {/* ⛔ D38: the card's treatment, at last — the ONE company link: the logo face, no underline,

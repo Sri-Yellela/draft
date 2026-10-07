@@ -219,8 +219,8 @@ function UsageTab({ theme }) {
             {overview.topEventTypes.map(ev => (
               <div key={ev.event_type} style={{ display:"flex", alignItems:"center", gap:10 }}>
                 <div style={{ width:160, fontSize:12, color:theme.text }}>{ev.event_type}</div>
-                <div style={{ flex:1, height:6, background:theme.surfaceHigh, borderRadius:999 }}>
-                  <div style={{ height:6, borderRadius:999, background:theme.accent,
+                <div style={{ flex:1, height:6, background:theme.surfaceHigh, borderRadius:2 }}>
+                  <div style={{ height:6, borderRadius:2, background:theme.accent,
                                 width: `${Math.min(100, (ev.count / (overview.topEventTypes[0]?.count||1))*100)}%` }}/>
                 </div>
                 <div style={{ width:50, textAlign:"right", fontSize:12, color:theme.textMuted }}>{ev.count}</div>
@@ -246,8 +246,8 @@ function UsageTab({ theme }) {
                   <div style={{ width:220, fontSize:12, color:theme.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                     {label}
                   </div>
-                  <div style={{ flex:1, height:7, background:theme.surfaceHigh, borderRadius:999 }}>
-                    <div style={{ height:7, borderRadius:999, background:C.DANGER,
+                  <div style={{ flex:1, height:7, background:theme.surfaceHigh, borderRadius:2 }}>
+                    <div style={{ height:7, borderRadius:2, background:C.DANGER,
                                   width: `${Math.min(100, (row.cost / maxCost) * 100)}%` }}/>
                   </div>
                   <div style={{ width:55, textAlign:"right", fontSize:11, color:theme.textMuted }}>{row.calls} calls</div>
@@ -514,7 +514,7 @@ function UsersTab({ theme }) {
                   {u.lastActiveAt ? new Date(u.lastActiveAt*1000).toLocaleDateString() : "—"}
                 </div>
                 <div onClick={e2 => { e2.stopPropagation(); setEditLimits({ userId:u.userId, username:u.username, limits:u.limits||{} }); }}>
-                  <span style={{ fontSize:11, padding:"2px 8px", borderRadius:999,
+                  <span style={{ fontSize:11, padding:"2px 8px", borderRadius:8,
                                  border:`1px solid ${theme.border}`, cursor:"pointer",
                                  color:theme.text, whiteSpace:"nowrap" }}>
                     Limits
@@ -703,7 +703,7 @@ function ContactMessagesSection({ theme }) {
         </h2>
         {unreadCount > 0 && (
           <span style={{ background: theme.danger, color: "var(--c-surface-solid)", fontSize: 11,
-                          fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>
+                          fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
             {unreadCount} unread
           </span>
         )}

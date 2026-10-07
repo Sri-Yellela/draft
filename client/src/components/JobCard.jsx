@@ -9,10 +9,10 @@ import { boardApplicationChip } from "../lib/applyObstacles.js";
 import { DECISIONS, commitDecision } from "../lib/jobDecisions.js";
 import { SaveButton, DraftButton } from "./DecisionButtons.jsx";
 import { jobDetailHref } from "../lib/jobUrl.js";
-import CompanyIcon from "./ui/CompanyIcon.jsx";
+import CompanyLogo from "./CompanyLogo.jsx";
 import CompanyLink from "./CompanyLink.jsx";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
-import { bandChipStyle } from "../styles/bandStyle.js";
+import { markStyle, bandMarkStyle } from "../styles/mark.js";
 import { C } from "../styles/colorTokens.js";
 import { glass } from "../styles/glass.js";
 import { api } from "../lib/api.js";
@@ -90,15 +90,13 @@ function WorkBadge({ t, theme }) {
   const s = map[t] || null;
   if (s) {
     return (
-      <span style={{ background:s.bg, color:s.fg, padding:"2px 8px",
-                     borderRadius:999, fontSize:10, fontWeight:700, whiteSpace:"nowrap" }}>
+      <span style={markStyle(s.fg)}>
         {t}
       </span>
     );
   }
   return (
-    <span style={{ background:"var(--color-surface-offset)", color:"var(--color-text-muted)", padding:"2px 8px",
-                   borderRadius:999, fontSize:10, fontWeight:700, whiteSpace:"nowrap" }}>
+    <span style={markStyle(C.INK_FAINT)}>
       {t || "Onsite"}
     </span>
   );
@@ -109,16 +107,14 @@ function WorkBadge({ t, theme }) {
 function VisaBadge({ isH1bSponsor, requiresWorkAuth }) {
   if (isH1bSponsor === 1 || isH1bSponsor === true) {
     return (
-      <span style={{ background:C.SUCCESS_QUIET, color:C.SUCCESS, padding:"2px 8px",
-                     borderRadius:999, fontSize:10, fontWeight:700, whiteSpace:"nowrap" }}>
+      <span style={markStyle(C.SUCCESS)}>
         Sponsors H-1B
       </span>
     );
   }
   if (requiresWorkAuth === 1 || requiresWorkAuth === true) {
     return (
-      <span style={{ background:"var(--color-surface-offset)", color:"var(--color-text-muted)",
-                     padding:"2px 8px", borderRadius:999, fontSize:10, fontWeight:700, whiteSpace:"nowrap" }}>
+      <span style={markStyle(C.INK_FAINT)}>
         US work auth req.
       </span>
     );
@@ -136,8 +132,7 @@ function ApplyStateChip({ jobId }) {
   if (!chip) return null;
   return (
     <span title={chip.title}
-      style={{ background: `${chip.color}22`, color: chip.color, padding: "2px 8px",
-               borderRadius: 999, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" }}>
+      style={markStyle(chip.color)}>
       {chip.label}
     </span>
   );
@@ -157,8 +152,8 @@ function ApplyStateChip({ jobId }) {
 // "one-click" and never as "needs an account"; a company careers page might be either, and saying
 // so honestly is the whole point of keeping `unknown` out of `manual`.
 //
-// Sizes match the badges it sits beside in this row (WorkBadge/VisaBadge/NewPill: radius 999,
-// 10px, 700) rather than MetaChips' own 11px, so the row reads as one set.
+// D60: every badge in this row is a MARK (styles/mark.js) — WorkBadge, VisaBadge, NewPill and this one —
+// so the row reads as one set and none of it is a capsule.
 const TIER_CHIP = {
   guest:   { label:"Guest apply",  bg:C.INFO_QUIET, fg:C.INFO,
              title:"An account is offered but a guest path exists — autofill can usually complete this." },
@@ -175,8 +170,7 @@ function TierChip({ tier }) {
   const s = TIER_CHIP[tier] || TIER_CHIP.unknown;     // null/unrecognised read as unknown
   return (
     <span title={s.title}
-      style={{ background:s.bg, color:s.fg, padding:"2px 8px",
-               borderRadius:999, fontSize:10, fontWeight:700, whiteSpace:"nowrap" }}>
+      style={markStyle(s.fg)}>
       {s.label}
     </span>
   );
@@ -191,9 +185,8 @@ function isNewJob(discoveredAt) {
 
 function NewPill() {
   return (
-    <span style={{ fontSize:9, fontWeight:800, color:C.SUCCESS, background:C.SUCCESS_QUIET,
-                   padding:"1px 6px", borderRadius:999, whiteSpace:"nowrap", letterSpacing:"0.03em" }}>
-      NEW
+    <span style={markStyle(C.SUCCESS)}>
+      New
     </span>
   );
 }
@@ -209,9 +202,8 @@ function NewPill() {
 function OutsideUsPill() {
   return (
     <span title="Still listed by the employer, but outside the US — so it is kept in your Saved jobs and not shown on the board."
-          style={{ fontSize:9, fontWeight:800, color:C.WARNING, background:C.WARNING_QUIET,
-                   padding:"1px 6px", borderRadius:999, whiteSpace:"nowrap", letterSpacing:"0.03em" }}>
-      OUTSIDE THE US
+          style={markStyle(C.WARNING)}>
+      Outside the US
     </span>
   );
 }
@@ -219,9 +211,8 @@ function OutsideUsPill() {
 function ClosedPill() {
   return (
     <span title="This listing was not seen again for 7 days, so it is probably filled or withdrawn. Kept here because you saved it."
-          style={{ fontSize:9, fontWeight:800, color:C.WARNING, background:C.WARNING_QUIET,
-                   padding:"1px 6px", borderRadius:999, whiteSpace:"nowrap", letterSpacing:"0.03em" }}>
-      NO LONGER LISTED
+          style={markStyle(C.WARNING)}>
+      No longer listed
     </span>
   );
 }
@@ -266,10 +257,10 @@ function AtsSlot({ score, onClick }) {
   if (score != null && !Number.isNaN(score)) return <ATSBadge score={score} onClick={onClick}/>;
   if (!onClick) return null;
   return (
-    <span title="Score this job against your resume and see which terms match"
+    <span title="Score this job against your resume and see which terms match" className="dbx-depth"
       onClick={e => { e.stopPropagation(); onClick(); }}
       style={{ background:"transparent", color:"var(--color-text-muted)",
-               padding:"1px 7px", borderRadius:999, fontSize:10, fontWeight:600,
+               padding:"3px 8px", fontSize:10, fontWeight:600,
                cursor:"pointer", border:"1px dashed var(--color-border)",
                whiteSpace:"nowrap", flexShrink:0 }}>
       Check match
@@ -310,8 +301,7 @@ function ATSBadge({ score, onClick }) {
   return (
     <span title={meta.blurb}
       onClick={onClick ? e => { e.stopPropagation(); onClick(); } : undefined}
-      style={{ ...bandChipStyle(band), padding:"2px 8px", borderRadius:999,
-               fontSize:10, fontWeight:700, cursor:onClick?"pointer":"default" }}>
+      style={{ ...bandMarkStyle(band), cursor:onClick?"pointer":"default" }}>
       {meta.short}
     </span>
   );
@@ -543,7 +533,7 @@ export default function JobCard({
                    minHeight:72 }}>
           {/* Logo — fades in as tier changes */}
           <div style={{ opacity:1, transition:"opacity 0.15s ease 0.05s" }}>
-            <CompanyIcon company={job.company} iconUrl={job.companyIconUrl} size={32}/>
+            <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={32}/>
           </div>
           {/* Company name */}
           <span style={{ fontSize:10, fontWeight:700, color:"var(--color-text)", textAlign:"center",
@@ -554,12 +544,7 @@ export default function JobCard({
           </span>
           {/* Resume badge — only if a resume has been generated */}
           {done && (
-            <span style={{
-              fontSize:9, fontWeight:700, padding:"2px 6px", borderRadius:999,
-              background:"var(--color-primary-muted)", color:"var(--color-primary-text)",
-              border:"1px solid color-mix(in srgb, var(--color-primary) 27%, transparent)", whiteSpace:"nowrap",
-              opacity:1, transition:"opacity 0.2s ease 0.22s",
-            }}>
+            <span style={{ ...markStyle(C.SUCCESS), opacity:1, transition:"opacity 0.2s ease 0.22s" }}>
               ✓ Resume
             </span>
           )}
@@ -572,7 +557,7 @@ export default function JobCard({
           style={{ padding:"10px 12px", display:"flex", alignItems:"center", gap:10,
                    cursor:"pointer", position:"relative", zIndex:1,
                    opacity:1, transition:"opacity 0.15s ease" }}>
-          <CompanyIcon company={job.company} iconUrl={job.companyIconUrl} size={36}/>
+          <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={36}/>
           <div style={{ flex:1, minWidth:0 }}>
             {/* Row 1: company + age + ATS + star + dislike */}
             <div style={{ display:"flex", alignItems:"center", gap:4, marginBottom:3 }}>
@@ -615,7 +600,7 @@ export default function JobCard({
           {/* Company icon — the KB profile lives here now; the NAME is the apply link (A63). */}
           <span onClick={e => { e.stopPropagation(); setShowCompanyView(true); }}
             title={`View ${job.company}'s KB profile`} style={{ cursor:"pointer", display:"inline-flex" }}>
-            <CompanyIcon company={job.company} iconUrl={job.companyIconUrl} size={48}/>
+            <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={48}/>
           </span>
 
           {/* Center info */}
@@ -635,8 +620,7 @@ export default function JobCard({
                 <span title="Applied to this company before" style={{ fontSize:10, color:C.WARNING }}>↩prev</span>
               )}
               {job.visited && (
-                <span style={{ fontSize:9, color:"var(--color-text-faint)", background:"var(--color-surface-offset)",
-                                padding:"1px 6px", borderRadius:999 }}>visited</span>
+                <span style={markStyle(C.INK_FAINT)}>visited</span>
               )}
             </div>
             <JobTitleLink job={job} isLoggedOut={isLoggedOut}
@@ -682,18 +666,12 @@ export default function JobCard({
                 </span>
               )}
               {job.source_label && (
-                <span style={{
-                  fontSize: 9, color: "var(--color-text-faint)",
-                  background: "var(--color-surface-offset)", padding: "1px 6px", borderRadius: 999,
-                }}>
+                <span style={markStyle(C.INK_FAINT)}>
                   {job.source_label}
                 </span>
               )}
               {job.via && (
-                <span style={{
-                  fontSize: 9, color: "var(--color-text-faint)",
-                  background: "var(--color-surface-offset)", padding: "1px 6px", borderRadius: 999,
-                }}>
+                <span style={markStyle(C.INK_FAINT)}>
                   {job.via}
                 </span>
               )}
@@ -711,9 +689,9 @@ export default function JobCard({
               <AtsSlot score={g?.atsScore ?? job?.baseAtsScore ?? null} onClick={onAts}/>
             )}
             {!isLoggedOut && done && (
-              <span onClick={onResume ? e => { e.stopPropagation(); onResume(); } : undefined}
-                style={{ background:C.INFO_QUIET, color:C.INFO, padding:"2px 8px",
-                         borderRadius:999, fontSize:10, fontWeight:700, cursor:"pointer",
+              <span onClick={onResume ? e => { e.stopPropagation(); onResume(); } : undefined} className="dbx-depth"
+                style={{ background:C.INFO_QUIET, color:C.INFO, padding:"3px 8px",
+                         fontSize:10, fontWeight:700, cursor:"pointer",
                          border:`1px solid ${C.INFO}44`, display:"inline-flex", alignItems:"center", gap:3 }}>
                 {st==="loading" ? "⏳" : "📄"} Resume
               </span>
@@ -773,20 +751,12 @@ export default function JobCard({
           {/* Extra meta row */}
           <div style={{ display:"flex", flexWrap:"wrap", gap:8, alignItems:"center", paddingTop:4 }}>
             {job.source_label && (
-              <span style={{
-                fontSize: 11, color: "var(--color-text-faint)",
-                background: "var(--color-surface-offset)", padding: "2px 8px",
-                borderRadius: 9999, border: "1px solid var(--border-glass)",
-              }}>
+              <span style={markStyle(C.INK_FAINT)}>
                 {job.source_label}
               </span>
             )}
             {job.via && (
-              <span style={{
-                fontSize: 11, color: "var(--color-text-faint)",
-                background: "var(--color-surface-offset)", padding: "2px 8px",
-                borderRadius: 9999, border: "1px solid var(--border-glass)",
-              }}>
+              <span style={markStyle(C.INK_FAINT)}>
                 {job.via}
               </span>
             )}

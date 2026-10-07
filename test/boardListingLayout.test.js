@@ -16,11 +16,11 @@ const jobCard   = fs.readFileSync("client/src/components/JobCard.jsx", "utf8");
 const jobsPanel = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
 const detail    = fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8");
 const tile      = fs.readFileSync("client/src/components/ui/TileCard.jsx", "utf8");
-const icon      = fs.readFileSync("client/src/components/ui/CompanyIcon.jsx", "utf8");
+const icon      = fs.readFileSync("client/src/components/CompanyLogo.jsx", "utf8");   // D61: was ui/CompanyIcon.jsx
 
 // ── One CompanyIcon ──────────────────────────────────────────────────────────
 
-test("THE DEFECT THAT HID AE5's LOGO FIX: CompanyIcon exists exactly ONCE", () => {
+test("THE DEFECT THAT HID AE5's LOGO FIX: the company mark exists exactly ONCE (D61: CompanyLogo)", () => {
   // It existed three times — JobCard, JobDetailPanel, JobsPanel — byte-identical apart from a
   // default size and a corner radius. The logo fallback was added to JobsPanel's copy; the board
   // renders JobCard's; the change did nothing at all on the surface it was written for. Three
@@ -28,20 +28,22 @@ test("THE DEFECT THAT HID AE5's LOGO FIX: CompanyIcon exists exactly ONCE", () =
   const defs = [];
   for (const f of [
     "client/src/components/JobCard.jsx", "client/src/components/JobDetailPanel.jsx",
-    "client/src/panels/JobsPanel.jsx", "client/src/components/ui/CompanyIcon.jsx",
+    "client/src/panels/JobsPanel.jsx", "client/src/components/CompanyLogo.jsx", "client/src/panels/DeckView.jsx",
+    "client/src/components/JobBubble.jsx",
   ]) {
     const src = fs.readFileSync(f, "utf8");
-    if (/function CompanyIcon\s*\(/.test(src)) defs.push(f);
+    if (/function Company(Icon|Logo)\s*\(/.test(src)) defs.push(f);
   }
-  assert.deepEqual(defs, ["client/src/components/ui/CompanyIcon.jsx"],
-    `CompanyIcon is defined in more than one place: ${defs.join(", ")}`);
+  assert.deepEqual(defs, ["client/src/components/CompanyLogo.jsx"],
+    `the company mark is defined in more than one place: ${defs.join(", ")}`);
+  assert.equal(fs.existsSync("client/src/components/ui/CompanyIcon.jsx"), false, "D61: the old name is gone, not a second copy");
 });
 
 test("every surface that shows a company avatar imports that one", () => {
   for (const [name, src] of [["JobCard", jobCard], ["JobDetailPanel", detail], ["JobsPanel", jobsPanel]]) {
-    if (!/<CompanyIcon/.test(src)) continue;
-    assert.match(src, /import CompanyIcon from ".*ui\/CompanyIcon\.jsx"/,
-      `${name} renders CompanyIcon without importing the shared one`);
+    if (!/<CompanyLogo/.test(src)) continue;
+    assert.match(src, /import CompanyLogo from ".*\/CompanyLogo\.jsx"/,
+      `${name} renders CompanyLogo without importing the shared one`);
   }
 });
 
@@ -63,7 +65,7 @@ test("a logo URL that fails is not re-requested by the next card, or the next re
   // half. Module scope is load-bearing: inside the component it is the bug.
   assert.match(icon, /^const failedLogoUrls = new Set\(\);$/m,
     "the memo must be module-level so one failure silences every card, not just its own");
-  const componentBody = icon.slice(at(icon, "export default function CompanyIcon"));
+  const componentBody = icon.slice(at(icon, "export default function CompanyLogo"));
   assert.ok(!/new Set\(/.test(componentBody),
     "a Set constructed inside the component is rebuilt on every render and remembers nothing");
   assert.ok(!/useState\(false\)/.test(icon),

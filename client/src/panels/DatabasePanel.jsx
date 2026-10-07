@@ -29,7 +29,7 @@ import {
   RESPONSE_OUTCOME, RESPONSE_OUTCOMES, RESPONSE_LABELS, MATURITY_DAYS, responseBucket,
 } from "../../../shared/applicationResponse.js";
 import { C } from "../styles/colorTokens.js";
-import { bandChipStyle } from "../styles/bandStyle.js";
+import { bandMarkStyle } from "../styles/mark.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 
 // ── Calendar component ────────────────────────────────────────
@@ -202,8 +202,7 @@ function DetailModal({ modal, onClose, theme }) {
           {/* ATS score chip */}
           {modal.atsScore != null && (
             <span title={atsBandLabel(atsBand).blurb}
-              style={{ padding:"4px 12px", borderRadius:999, fontSize:12,
-                       fontWeight:700, flexShrink:0, ...bandChipStyle(atsBand) }}>
+              style={{ ...bandMarkStyle(atsBand), flexShrink:0 }}>
               ATS · {atsBandLabel(atsBand).short}
             </span>
           )}
