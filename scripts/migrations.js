@@ -3963,4 +3963,42 @@ export const MIGRATIONS = [
         ALTER TABLE scraped_jobs ADD COLUMN pay_text_max_usd INTEGER;
       `,
     },
+    {
+      // D75 (owner, 10-08): THE CRAWLER WORKER's queue, deny-list and observations — docs/CRAWLER_WORKER.md.
+      // The worker holds no DB credentials; it leases from crawler_tasks and returns a signed result, and
+      // draft decides what the result writes (services/crawlerQueue.js). crawler_denylist is DATA,
+      // owner-editable, and wins over every task at queue AND lease time; seeded with the owner's list.
+      // apply_origin_pairs gains what the crawler OBSERVED (J2): never promoted by it — the owner promotes.
+      id: "142_crawler_worker",
+      sql: `
+        CREATE TABLE IF NOT EXISTS crawler_tasks (
+          id             INTEGER PRIMARY KEY AUTOINCREMENT,
+          type           TEXT NOT NULL,
+          input_json     TEXT NOT NULL,
+          target_host    TEXT NOT NULL,
+          status         TEXT NOT NULL DEFAULT 'queued',
+          lease_until    INTEGER,
+          attempts       INTEGER NOT NULL DEFAULT 0,
+          result_status  TEXT,
+          result_json    TEXT,
+          refused_reason TEXT,
+          created_by     INTEGER,
+          created_at     INTEGER NOT NULL DEFAULT (unixepoch()),
+          finished_at    INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_crawler_tasks_status ON crawler_tasks(status, id);
+        CREATE TABLE IF NOT EXISTS crawler_denylist (
+          domain   TEXT PRIMARY KEY,
+          reason   TEXT,
+          added_by INTEGER,
+          added_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        INSERT OR IGNORE INTO crawler_denylist (domain, reason) VALUES
+          ('linkedin.com', 'terms restrict automated access'), ('indeed.com', 'terms restrict automated access'),
+          ('glassdoor.com', 'terms restrict automated access'), ('ziprecruiter.com', 'terms restrict automated access'),
+          ('monster.com', 'terms restrict automated access');
+        ALTER TABLE apply_origin_pairs ADD COLUMN crawler_seen_at INTEGER;
+        ALTER TABLE apply_origin_pairs ADD COLUMN crawler_hops_json TEXT;
+      `,
+    },
   ];

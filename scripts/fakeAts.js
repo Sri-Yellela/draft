@@ -1679,6 +1679,9 @@ const server = http.createServer(async (req, res) => {
     if (path === '/workday/decoy') return send(200, workdayDecoy());
     // D56: the two-origin application (posting host ≠ apply host). See the section at the end of the file.
     if (path.startsWith('/twoorigin/')) return twoOriginRoute(req, res, url, send);
+    // D75: the crawler worker's fake careers sites, and the robots.txt that forbids one of them.
+    if (path === '/robots.txt') return send(200, CRAWLER_ROBOTS, 'text/plain; charset=utf-8');
+    if (path.startsWith('/crawler-fixtures/')) return crawlerFixtureRoute(req, res, url, send);
     if (path === '/_submissions')
       return send(200, JSON.stringify({ count: submissions.length, submissions }, null, 2),
                   'application/json; charset=utf-8');
@@ -1803,4 +1806,57 @@ function twoOriginRoute(req, res, url, send) {
     return res.end();
   }
   return send(200, twoOriginForm(id));
+}
+
+// ═════════════════════════════════════════════════════════════════════════════════════════════════
+// ── D75 · FAKE CAREERS SITES — the crawler worker's fixtures (docs/CRAWLER_WORKER.md §6) ──────────────
+// ═════════════════════════════════════════════════════════════════════════════════════════════════
+// Each is a company's careers site in one of the shapes the worker must read — or must refuse:
+//   /crawler-fixtures/static/careers     a plain link to a Greenhouse board                → J1 found (link)
+//   /crawler-fixtures/deep/careers       a careers link to an openings page, which links Lever → found at depth 2
+//   /crawler-fixtures/iframe/careers     an Ashby board in an iframe (with a query string)  → found (iframe), no query kept
+//   /crawler-fixtures/embed/careers      a Greenhouse embed iframe ?for=<slug>&token=…      → found; `for` kept, `token` dropped
+//   /crawler-fixtures/spa/careers        an empty shell whose script FETCHES the board API  → found only by the browser (network)
+//   /crawler-fixtures/challenge/careers  a 403 bot challenge                                 → blocked, never retried
+//   /crawler-fixtures/forbidden/…        disallowed by /robots.txt for DraftCrawler          → NEVER requested
+//   /crawler-fixtures/ssrf/careers       a 302 into the cloud-metadata address              → refused before the hop
+//   /crawler-fixtures/ssrf10/careers     a 302 into a private range                          → refused before the hop
+//   /crawler-fixtures/budget/<n>         an endless chain of careers links                   → error: budget
+//   /crawler-fixtures/j2/posting/<id>    a posting whose Apply goes via /twoorigin/apply/<id> → a two-origin hop (Amazon's shape)
+//   /crawler-fixtures/j2login/posting    a posting whose Apply lands on a sign-in page       → login-wall
+// The ATS URLs are external and are never fetched: the worker only RECOGNISES them.
+const CRAWLER_ROBOTS = 'User-agent: DraftCrawler\nDisallow: /crawler-fixtures/forbidden/\n\nUser-agent: *\nDisallow:\n';
+
+function crawlerFixtureRoute(req, res, url, send) {
+  const p = url.pathname;
+  const site = (title, body) => send(200, page(title, body));
+  if (p === '/crawler-fixtures/static/careers')
+    return site('Acme Static — Careers', '<h1>Careers</h1><p><a href="https://boards.greenhouse.io/acmestatic">See open roles</a></p><p><a href="/about">About</a></p>');
+  if (p === '/crawler-fixtures/deep/careers')
+    return site('Acme Deep — Careers', '<h1>Life at Acme</h1><p><a href="/crawler-fixtures/deep/openings">Current openings</a></p><p><a href="/crawler-fixtures/deep/blog">Blog</a></p>');
+  if (p === '/crawler-fixtures/deep/openings')
+    return site('Acme Deep — Openings', '<h1>Openings</h1><a href="https://jobs.lever.co/acmedeep">View all jobs</a><a href="/">Home</a><a href="/x">X</a>');
+  if (p === '/crawler-fixtures/iframe/careers')
+    return site('Acme Frame — Careers', '<h1>Join us</h1><iframe src="https://jobs.ashbyhq.com/acmeframe/embed?version=2&utm_source=site"></iframe><a href="/a">a</a><a href="/b">b</a><a href="/c">c</a>');
+  if (p === '/crawler-fixtures/embed/careers')
+    return site('Acme Embed — Careers', '<h1>Jobs</h1><iframe src="https://boards.greenhouse.io/embed/job_app?for=acmeembed&amp;token=12345"></iframe><a href="/a">a</a><a href="/b">b</a><a href="/c">c</a>');
+  if (p === '/crawler-fixtures/spa/careers')
+    return site('Acme SPA', '<div id="root"></div><script>fetch("https://boards-api.greenhouse.io/v1/boards/acmespa/jobs").catch(function(){});</script>');
+  if (p === '/crawler-fixtures/challenge/careers') {
+    res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end('<html><head><title>Just a moment...</title></head><body><div id="cf-chl-widget">Checking your browser — verify you are human</div></body></html>');
+  }
+  if (p.startsWith('/crawler-fixtures/forbidden/'))
+    return site('FORBIDDEN', '<a href="https://boards.greenhouse.io/mustnotbeseen">jobs</a>');
+  if (p === '/crawler-fixtures/ssrf/careers') { res.writeHead(302, { Location: 'http://169.254.169.254/latest/meta-data/' }); return res.end(); }
+  if (p === '/crawler-fixtures/ssrf10/careers') { res.writeHead(302, { Location: 'http://10.0.0.5/careers' }); return res.end(); }
+  const b = p.match(/^\/crawler-fixtures\/budget\/(?:careers|(\d+))$/);
+  if (b) { const n = Number(b[1] || 0) + 1; return site(`Budget ${n}`, `<a href="/crawler-fixtures/budget/${n}">More careers</a><a href="/x">x</a><a href="/y">y</a>`); }
+  const j2 = p.match(/^\/crawler-fixtures\/j2\/posting\/(\d+)$/);
+  if (j2) return site('Platform Engineer', `<h1>Platform Engineer</h1><p>Job ID ${j2[1]}</p><a href="/twoorigin/apply/${j2[1]}">Apply for this job</a><a href="/">Home</a>`);
+  if (p === '/crawler-fixtures/j2login/posting')
+    return site('Data Engineer', '<h1>Data Engineer</h1><a href="/crawler-fixtures/j2login/apply">Apply now</a><a href="/">Home</a>');
+  if (p === '/crawler-fixtures/j2login/apply')
+    return site('Sign in', '<h1>Sign in to apply</h1><form method="post" action="/x"><input name="email"><input type="password" name="password"><button>Sign in</button></form>');
+  return send(404, page('Not found', '<h1>404</h1>'));
 }

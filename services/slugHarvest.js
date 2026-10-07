@@ -106,8 +106,31 @@ export function harvestPairOf(rawUrl) {
   }
   const known = detectKnownAtsMatch(rawUrl);
   if (known && known.type !== "workday" && known.slug) return { atsType: known.type, slug: known.slug };
+  const board = boardRootPair(host, seg);
+  if (board) return board;
   for (const [re, vendor] of UNSUPPORTED_HOSTS) if (re.test(host)) return { unsupported: vendor };
   return null;
+}
+
+// ⭐ D75 · a BOARD's own address, not one job's — what the crawler finds on a careers page (a link to the
+// board, an embed, or the page's own API call): boards.greenhouse.io/<slug>, boards-api.greenhouse.io/v1/
+// boards/<slug>, jobs.lever.co/<slug>, api.lever.co/v0/postings/<slug>, jobs.ashbyhq.com/<slug>,
+// api.ashbyhq.com/posting-api/job-board/<slug>, apply.workable.com/<slug>, jobs.smartrecruiters.com/<slug>.
+// A first segment that is the vendor's own path (embed, api, v1 …) is never read as a slug.
+const NOT_A_SLUG = /^(embed|api|v\d+|js|static|assets|posting-api|job-board|postings|boards|jobs|j|o|login|signin|search|careers)$/i;
+const SLUG_RE = /^[a-z0-9][a-z0-9_.-]{0,80}$/i;
+function boardRootPair(host, seg) {
+  const slugAt = (i) => (seg[i] && SLUG_RE.test(seg[i]) && !NOT_A_SLUG.test(seg[i]) ? seg[i] : null);
+  let slug = null, atsType = null;
+  if (/^(boards|job-boards)\.greenhouse\.io$/i.test(host)) { atsType = "greenhouse"; slug = slugAt(0); }
+  else if (/^boards-api\.greenhouse\.io$/i.test(host) && seg[0] === "v1" && seg[1] === "boards") { atsType = "greenhouse"; slug = slugAt(2); }
+  else if (/^jobs\.lever\.co$/i.test(host)) { atsType = "lever"; slug = slugAt(0); }
+  else if (/^api\.lever\.co$/i.test(host) && seg[1] === "postings") { atsType = "lever"; slug = slugAt(2); }
+  else if (/^jobs\.ashbyhq\.com$/i.test(host)) { atsType = "ashby"; slug = slugAt(0); }
+  else if (/^api\.ashbyhq\.com$/i.test(host) && seg[0] === "posting-api" && seg[1] === "job-board") { atsType = "ashby"; slug = slugAt(2); }
+  else if (/^apply\.workable\.com$/i.test(host)) { atsType = "workable"; slug = slugAt(0); }
+  else if (/^jobs\.smartrecruiters\.com$/i.test(host)) { atsType = "smartrecruiters"; slug = slugAt(0); }
+  return slug ? { atsType, slug } : null;
 }
 
 export const keyOf = (atsType, slug) => `${atsType}:${String(slug).toLowerCase()}`;
