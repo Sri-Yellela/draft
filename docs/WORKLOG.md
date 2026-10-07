@@ -63,6 +63,9 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
+**10-07 (37d) — STOPPED FOR A SESSION RESTART.** Six lanes (D55–D58, D57/D58, The Table funnel + CSV, right-click + Report this form) are merged on local `main` `01d575b` (**3664 / 3662 / 2**, the 2 = expected zip checks; migrations 131, 135, 136). D59 is **partly built on its branch, not merged** (`126b3ee`, migration 137). The owner answered every lane decision → **D64–D69** (and wrote D60–D63 the same day). ⏸ **Not pushed** — O82.
+**⭐ NEXT SESSION, in this order, one agent at a time:** (1) finish D59 on its branch (its row lists the 4 steps) and merge · (2) release finalisation — one extension version bump + zip rebuild (clears the 2 reds), the privacy effective-date bump (F 1), a browser pass on the merged stack, CURRENT STATE / test count / migration high-water (137) here and in `CLAUDE.md` · (3) **D64** automated capture · (4) **D65** work history + skills from the payload résumé · (5) **D66** base-résumé-only · (6) **D67** origin-family sweep + shared learning · (7) **D68** Copy sheet compliance · (8) **D69** (a)(b), and (c) once the owner decides · (9) the owner's **D60–D63** in the owner's stated places. Push only on the owner's go.
+
 **10-07 (37c):** the owner's answers to O80 — **(b)** no per-company cap · **(c)** packets carry a résumé → ✅ built (`0ee6f95`) · **(d)** asked what "company collision" means (answered in chat) · **(e)** pre-D53 removals are not surfaced. ✅ **The D51–D54 browser pass** run in Chrome on a throwaway server (`scripts/d51d54BrowserPass.mjs`): every flow seen working; two defects caught and fixed (`0043528`). `npm test` **3495 / 3495 / 0**. ⏸ **Not pushed** — O81.
 
 **10-07 (37b):** ✅ **pushed on the owner's go and LIVE** — `cbe7771` (`/api/version` started 19:13:01Z, migration 130 applied, health 200): D51–D54 and session 36's `62ee9d1` are in production; the bin's purge sweep runs a minute after boot, then every 6 h. ⏸ Still the owner's: O80b–f. This entry itself is unpushed (owner: fold it into the next push).
@@ -213,6 +216,7 @@ component) — **2987 / 2987 / 0** — pushed on the owner's go ("push when merg
 | O79 | **Session 35 — the owner's (10-07).** **(a)** ✅ D48 pushed by the owner (`319b393` live); ⏸ **push `main` again** for `62ee9d1` (the logo Draft button, the unheaded Workstyle cell — no migration). **(b)** the posting panel opens at **558px**, under D48's 600px line, so most windows show **B** (icon squares) and A only when the panel is widened — say if the dock should open at ≥ 600px. **(c)** D48's open defaults, kept: × stays in the header (not the sticky bar); both company lines (header + masthead); the location stays in the strip under Workstyle. **(d)** O78d (the "nothing matches" verb's case, O76d). **(e)** O78e (D45's percentiles are local) | Push deploys |
 | O80 | **Session 37 — the owner's (10-07).** **(a)** ✅ **pushed 10-07 (37b), `cbe7771` live, migration 130 applied.** Was: ⏸ **push `main`** (7 commits, including O79a's `62ee9d1`) — applies **migration 130** and starts the bin's purge sweep; until then production's Draft is still seen only in Draft House and its button still greys out. **(b)** ✅ **ANSWERED 10-07 (37c): no per-company cap** (owner: "i do not want per company cap"). Was: ⛔ **There is no per-company cap.** D51 ("Per-company cap reached 3/3") and D54 ("the existing per-company cap, Settings → Applying, does the blocking") both assume one; the code has three caps — previews, approvals, submissions. Today nothing limits applications per company; D54's notice is the only guard. Want one? Say the number. **(c)** ✅ **BUILT 10-07 (37c), `0ee6f95`** (owner: "yes packets should carry a resume thats the whole point"). Was: the gated (packet) tier carries **no résumé** (D52; the same gap as O73b) — generating one there costs a model call and a slot per packet. **(d)** D54's collisions were measured on the LOCAL board only (22 names); run the same count on production when convenient (the "Localhost" and "Intel" cases). **(e)** ✅ **ANSWERED 10-07 (37c): not surfaced** (owner). Was: removals made before D53 were soft hides — still recoverable by an operator, deliberately NOT put in the bin (they would purge in 7 days). Say if they should be surfaced. **(f)** ✅ **DONE 10-07 (37c)** — the browser pass (`scripts/d51d54BrowserPass.mjs`). Was: look at D51–D54 in the app: none was seen in a browser this session — measured through the API on the throwaway server | Push deploys |
 | O81 | **Session 37c — the owner's (10-07).** **(a)** ⏸ **push `main`** (4 commits: the 37b docs, O80c, the browser-pass fixes, these docs; no migration) — until then production's packets still carry no résumé. **(b)** O80c's success path was proven by test (a stubbed generation), not live: the throwaway server has no tools service, so the browser saw only the failure path. The first real gated Draft after the push is the check — its Draft House item should read "Ready to fill, with its résumé". **(c)** O80d still open: the company-collision count on production | Push deploys |
+| O82 | **Session 37d — the owner's (10-07).** **(a)** ⏸ **push `main`** — everything after `ed113f9`: the 37b/37c docs, O80c, the six lanes (migrations 131, 135, 136), D59 once merged (137), this docs commit. Pushing applies those migrations; ⛔ do the release finalisation first (NOW, step 2). **(b)** the browser pass on the merged stack. **(c)** decide **D69 (c)** — the query string on *I submitted* evidence (recommendation: keep an allow-list of id parameters, drop the rest). **(d)** D59's four questions (its row). **(e)** the Web Store dashboard fields — written fresh at the release (lane F 4), with D64's permissions if D64 ships in it. **(f)** O80d still open (production company-collision count) | Push deploys |
 | O26 | ~~Confirm the deck's four proposals~~ ✅ **confirmed by the owner 09-30** and built (`be26aa7`) | — |
 
 ✅ **Done by the owner:** the A2 file copy · Anthropic balance funded · extension v1.1.1 rebuilt,
@@ -755,6 +759,12 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 
 ## SESSION LOG
 
+### 2026-10-07 (37d) · The six lanes merged; D59 part-built; the owner's answers queued as D64–D69; stopped for a restart
+
+- **Lanes, one at a time after the owner paused parallel work:** A (D57 + D58, migration 131) · B (D56 + popup) · C (the fill engine, Workday replica) · D (saved answers) · E (The Table funnel + CSV, migration 135) · F (right-click save, Report this form, the fill places saved answers / EEO decline, the full-URL disclosure, migration 136). Merged at `01d575b`: **3664 / 3662 / 2** (the expected zip checks); the client builds.
+- **D59** run as its own lane; stopped on the owner's restart at `126b3ee` on `worktree-agent-a240a0b455e2742a2` — branch **3683 / 3681 / 2**; backfill counts, ρ re-measure and browser pass not run (D59 row).
+- **The owner's answers** to every lane question recorded in the D64–D69 table; new builds D64 (automated capture — reverses decision A, the held-off auto-start and the LinkedIn/Indeed refusal, with guard rails), D65, D66, D67, D68, D69. The owner's D60–D63 rows (screenshots; extension redesign) committed with this entry.
+- **Not pushed** (O82). No servers left running.
 ### 2026-10-07 (37c) · O80 answered; packets carry a résumé; the D51–D54 browser pass
 
 - **The owner's answers to O80:** no per-company cap; packets must carry a résumé ("that's the whole point"); pre-D53 removals stay unsurfaced; asked what "company collision" meant (answered in chat — D54's one-company-or-two question; the production count stays O80d).
@@ -2967,7 +2977,7 @@ Sketch: **`posting-header2.html`** — ⛔ **build to the file, not to this pros
 **⛔ THE BUTTON SWEEP — the larger half of this row.** The owner: *"probe the entire site for these Apple-styled buttons and replace them with the latest box-styled depth ones."*
 1. **Find every interactive control in the old pill style** — fully-rounded, dark or flat, no depth: the posting panel's Pass / Saved / Draft / Generate résumé / Cover letter, and wherever else the pill survives. **List every call site and class.**
 2. **Replace them with ONE depth-box button component** — D1's rest / hover / press values, the orange-tinted primary — and have every site use it.
-3. ⛔ **The rule, pinned by a guard:** *pills are for non-interactive tags and status; interactive controls are depth boxes.* A guard that fails when a `<button>` is given a fully-rounded radius outside the allow-list (the segmented views control is the one deliberate exception).
+3. ⛔ **The rule — SUPERSEDED BY D60: NO PILLS ANYWHERE.** Interactive controls are depth boxes; non-interactive tags and status are rectangular *marks* or plain text (D60). The guard is D60's.
 4. ⚠ **Screenshot every surface before and after** — four things were once green and wrong, and the only thing that disagreed was looking at the output.
 
 ### D49 · THE `StickyBar` MODULE — one sticky-at-the-top section, reused
@@ -3022,7 +3032,7 @@ The owner drafted a job. It is *"added or seen nowhere"*, the **Draft button is 
 5. **Did the quota decrement**, and does the UI say so?
 
 **THE FIX, once measured:**
-- ⛔ **A disabled Draft button never appears without a reason.** Its states: *Drafted ✓ — view in Draft House* (click goes to it; a second action undoes it → D53) · *Out of drafts — resets in 3h* · *Per-company cap reached (3/3 at Scale AI)* · *Can't be drafted: <reason>.*
+- ⛔ **A disabled Draft button never appears without a reason.** Its states: ✅ **APPROVED TREATMENT (owner, 10-07): the `/d` button INVERTED** — transparent fill, an accent border and glyph, a small ✓ at its corner — **not greyed out.** Clicking it opens the job's place in Draft House; a second action undoes it (→ D53) · *Out of drafts — resets in 3h* · *Per-company cap reached (3/3 at Scale AI)* · *Can't be drafted: <reason>.*
 - ⛔ **One write, three readers** — /d, Queued and In play all read **the same row** (the D41(a) invariant), so a draft appears in all three at once.
 - The card shows its new state **without a reload**; a refused draft says why and **writes nothing half-way.**
 
@@ -3119,6 +3129,8 @@ The analysis is `docs/AUTOFILL_TARGET.md` **§8**, added beside the video breakd
 
 ## ⛔ D56–D58 · THE MANUAL PATH — a résumé generated by hand, and then nothing works — 2026-10-07
 
+✅ **BUILT 10-07 (37c lanes), on local `main` `01d575b`, NOT PUSHED** — D55 (a)–(l) (badge, Copy sheet, Report this form, the ring, saved answers, Workday advance, right-click save; migration 136) · D56 (Prepare this application, I submitted it, origin families) · D57 (résumé ready everywhere, Settings list, 90-day retention; migration 131) · D58 (base → tailored pair). Suite on `01d575b`: **3664 / 3662 / 2** (the zip checks — clear at the extension bump). ⚠ No browser pass on the merged stack yet (O82b).
+
 ⏸ Queued 2026-10-07 by the owner, with a photo of the extension's tooltip on an Amazon application page (Boston): *"Nothing is prepared for https://account.amazon.jobs. Open the application from your Draft queue."* The owner had **generated a résumé for that job by hand** — and then: **(1)** could not find the résumé on any panel (D57) · **(2)** the ATS did not update (D58) · **(3)** the extension would not fill (D56).
 
 ⛔ **The pattern.** The product has **two routes** — *Draft* (the queue) and *manual* (generate by hand) — and only the first was built end to end. The manual route **creates an artifact and then drops it.** D36 walked "MANUAL → `job_applications` with a score" **locally and without the extension**; this is the live version failing at exactly the seams that walk did not cover. **Suggested place in the queue:** D57 beside D51 (the same family: an action of the user's own that cannot be found afterwards); D56 beside D52; D58 after D54.
@@ -3176,6 +3188,8 @@ The owner generated a tailored résumé and the job's score **stayed on the base
 
 ## ⛔ D59 · POSTINGS THAT ARRIVE AS RAW HTML AND LABEL BLOCKS — 2026-10-07
 
+🔨 **PARTLY BUILT 10-07 (37d), NOT MERGED** — branch `worktree-agent-a240a0b455e2742a2`, last commit `126b3ee` (no push, no merge). Built: `shared/postingNormalize.js` (allow-list → text blocks; posting HTML never rendered), label blocks → fields, coded locations (Marlborough, not Boston; `TAGGER_VERSION` 3), `shared/postingRequirements.js` (citizenship / clearance shown, never decided; drawer filter; notice at Draft), **migration 137 `137_description_text`** (`description` and `content_hash` untouched), a braked backfill, mobile contract 2.3.0. Branch tests **3683 / 3681 / 2** (the 2 = the expected zip checks). **Not done, in order:** (1) backfill dry + live on a `.backup()` copy, record counts · (2) ρ and band re-measure (`scripts/d59NormaliseRho.mjs`) · (3) browser pass (`scripts/d59BrowserPass.mjs`) · (4) clear `req_*` in the three SQL writers on re-crawl. **Owner decisions raised:** keep the grade export raw (O69)? · Draft confirm on every clearance/citizenship role, or panel only? · keep the `unspecified` clearance level? · is Marlborough Greater Boston?
+
 The owner pasted the stored text of an imported **RTX posting (Marlborough, MA)**. The description is **raw HTML** — `<p style="text-align:left"><b>Date Posted:</b></p>2026-08-26…` — with the quotes **backslash-escaped** in places (`style=\"…\"`), and it opens with a block of **label : value lines**: *Date Posted · Country · Location · Position Role Type · a citizenship / immigration-status line · Security Clearance Type · Security Clearance Status.* *"We should be able to handle these as well."* **Suggested place in the queue:** after D41 — it feeds D42's location fixtures, D41(d)'s US evidence and D48's deck strip.
 
 ⛔ **Today the tags show as literal text — which means the panel ESCAPES the description, and that is why it looks broken.** The tempting fix is to *render* the HTML, and **that would open a stored-XSS hole**: captured and crawled descriptions are third-party content, and a captured job lands in the **shared** pool, so a hostile page would run its markup in **every** user's browser. ⛔ **The fix must not trade ugliness for a vulnerability.**
@@ -3210,6 +3224,154 @@ The owner pasted the stored text of an imported **RTX posting (Marlborough, MA)*
 - a **hostile** description (the XSS fixture).
 
 ⛔ **Tests (each red when removed):** the RTX text renders with **no visible tags and no `\"`** · the label block becomes fields and **does not also appear in the body** · `Boston Post Rd` is **not** the city · `citizen_only` and `us_person` stay distinct · the hostile fixture is inert · `description` and `content_hash` are **unchanged** after the backfill · a capture with `Country: United States of America` is accepted.
+
+---
+
+## ⛔ D60–D62 · FROM THE OWNER'S FOUR SCREENSHOTS — 2026-10-07
+
+⏸ Queued 2026-10-07. The screenshots: the **imported-jobs cards**, the **ATS panel's History tab**, and the **All-jobs cards** with two inverted logos. **Suggested place in the queue:** D61 right after D46 (same component family); **the D60 RULE applies from this moment to everything built in D40–D58** — *the sweep of what already exists* waits at its own place, after D48; D62 after D60.
+
+### D60 · ⛔⛔ NO PILLS — PERMANENTLY BARRED FROM ALL FUTURE DESIGNS
+
+Owner: *"I want the pill design to be permanently barred from all future designs."* The offenders in the shots: the **"résumé ready"** capsule on the job cards and in the ATS panel · the **"Strong"** capsules · the orange **"ATS REPORT | HISTORY (1)"** capsule tabs · the orange **"Import jobs"** capsule in the `+` view.
+
+**THE RULE.** **No capsule — no fully-rounded shape — on any element:** tag, badge, status, chip, tab, button, banner, toast, count. ⛔ This **supersedes D48's allowance** (*"pills are for non-interactive tags and status"*) — **that allowance is withdrawn.** The only round shapes left are **perfect circles** — avatars, state dots, the today ring.
+
+**WHAT REPLACES THEM:**
+- **Interactive** → a **depth box** (D1), radius 11–12.
+- **Status and tags (non-interactive)** → a **mark**: a rectangle, **radius 6–8**, flat (a hairline, no drop), text in the **logo face at ~11px**, a **3px leading bar** in the status colour — or plain coloured text. **Never a filled capsule.**
+- **Tabs** → depth boxes in the logo face, the active one filled accent — **not** an uppercase condensed face.
+- **Segmented controls** → one rounded rectangle (radius 10) holding rectangular segments.
+- **Counts** (the nav's `2`, *10 left*) → a small rectangle, radius 6.
+
+⛔ **THE EXTENSION IS COVERED TOO.** The in-page autofill badge is a capsule today — `.pill { border-radius: 999px }` in `extension/autofill-badge.js` — so it is the first thing this rule changes (see the sketch `extension-latest.html`).
+
+⛔ **A GUARD, so it cannot creep back:** a test that fails on any `border-radius` of 50% of the element's height or more (`999px`, `9999px`, `100px`…) **outside an allow-list** (avatar, dot, ring), scanning `client/`, `extension/` **and CSS injected by `executeScript`** — the badge's CSS lives inside a JS template string, so a stylesheet-only scan would miss it. **Record the rule in `BRAND.md` and `CLAUDE.md`'s standing design rules** so no later agent proposes a pill.
+
+### D61 · ⛔ SOME LOGOS ARE INVERTED OR INVISIBLE IN ALL — the same card is fine in `+`
+
+**Observed:** in **All**, the **RTX** tile is nearly invisible and **Mercury** is a dark mark on a dark tile; the same Mercury in the `+` panel sits on a **white** tile and is fine, as are Amazon (orange) and Stripe (purple).
+
+**PROBE — report which:** a **theme-conditional CSS `filter` / `invert` / blend mode** applied in one view · **a different tile background per view** — i.e. **a second card implementation** (D46 requires ONE `JobCard`) · or **transparent dark marks** (RTX, Mercury) landing on a dark tile.
+
+**THE FIX:**
+- ⛔ **Never invert or filter a logo, ever.**
+- ⛔ **One `CompanyLogo` component everywhere** — card, posting header, ATS panel, Draft House, The Table. The History row shows a **green LETTER tile** for Amazon where the card shows the real logo → **a third lookup.** *Three implementations of one mark is how the legacy brand shipped on every page.*
+- **The tile rule:** a logo mark sits on a **white (paper) tile in BOTH themes**, with a few px of padding; an **opaque** logo (Amazon, Duolingo, Stripe — it brings its own background) fills the tile. The letter fallback is a token-coloured tile in the depth style.
+
+⛔ **Tests:** the same company renders **identically in every view** — the tile's computed `background` and `filter` match, and `filter` is `none` · a **transparent dark mark** (RTX, Mercury) is legible in **both** themes · an opaque mark fills its tile. **Fixtures:** RTX, Mercury, Amazon, Duolingo, Stripe in ALL, ★, /d, `+`, the posting header and the ATS panel.
+
+### D62 · THE ATS PANEL'S FRAME AND ITS HISTORY ARE STILL THE OLD SITE
+
+**What the screenshot shows:** a header reading *Amazon / title / ATS [Strong] capsule / **Base 62 → tailored 70** in bold* · tabs **ATS REPORT | HISTORY (1)** in the old condensed uppercase face, the active one an orange capsule · a History row with a **green letter tile**, a **"Strong" capsule**, and **an eye and a share icon in the old dark squares.**
+
+**What it becomes (the current language):**
+- **Header:** `CompanyLogo` · the company in the logo face (a link, D38) · **the number box** (D50) — **not** a *Strong* capsule · *Base 62 → tailored 70* as a **two-number mark in the serif** (`62 → 70`), not a bold sentence.
+- **Tabs** → depth boxes in the logo face (D60).
+- **History = the résumé versions for this job.** Per row: the version and date · its **tailored score in the number box** · *view* and *download* as **depth squares** (D1). The same pattern as The Table's expanded timeline (D15) and D57's résumé list — **no band capsule, no letter tile.** (D57 already puts a résumé list in Settings; **one list component, two homes.**)
+- It is a panel in the pair (D39) — rigid placement, × closes its own.
+
+⛔ **THEN AUDIT THE WHOLE CLIENT** for every other place the older site design survives, and restyle each into the current language (tokens · logo face · depth · no pills): hunt for **the old condensed uppercase face, flat dark icon squares, capsule chips and letter tiles.** Report a table — **surface · what is old · what changed** — and **screenshot before and after in both themes.** ⚠ D48's button sweep overlaps; do them as one pass so no surface is touched twice.
+
+---
+
+## ⛔ D63 · THE EXTENSION, REDESIGNED — the owner accepted all seven suggestions — 2026-10-07
+
+✅ Owner 10-07: *"approving all suggestions."* Sketch: **`extension-latest.html`**, tab **Suggested** — ⛔ **build to the file, not to this prose; ask for it, and if it cannot be reached say so and stop** (D30, D31, D34 and D35 all drifted when built from a description). ⛔ **Applies D60 (no pills) and D61 (the logo tile) inside the extension.** It ships in **ONE Web Store release** with the pending extension work (D13/D23's companion, A35's restyle, `contextMenus` — decision B) and only after D44.2's policy-vs-listing reconciliation.
+
+⚠ **FIRST, A LOG-HYGIENE STEP:** this file's rows for **D55–D59** carry no status, yet the extension tree and the owner's screenshots show them **in place** — D55 (the badge, Copy sheet, *Report this form*, the today ring) · D56 (*Prepare this application*, *I submitted it*) · D57 (the *résumé ready* marker) · D58 (*Base 62 → tailored 70*) · D59 (the RTX capture parsed to *marlborough · On-site*). **Mark each row's real status** (built · live · what remains) so the queue can be read from this file.
+
+**THE SEVEN, as accepted:**
+
+1. **⭐ The in-page badge becomes a depth box, not a capsule.** Today it is `.pill { border-radius: 999px }` inside a **JS template string** in `extension/autofill-badge.js`. New: a **status square** at the left carrying the state's colour **and an icon** (so state never depends on colour alone) · the `/draft` mark · the sentence · a **count as a rectangular mark** (*2*) · **× as a square.** The four states and their wording are unchanged (*Autofill in progress… · Complete required fields (n) · Filled — review and submit · This form isn't recognised — nothing was filled*). ⛔ D60's guard must **scan the injected CSS**, not only stylesheets.
+2. **⭐ The popup leads with the job card and the ATS number.** The posting in the **job card's own language** — the **white logo tile (D61), the company in the logo face** — and **the number box (D50)**, the serif number with its *ATS* caption. ⚠ This needs the **read-page call to return the score** (`POST /api/import/context` — base and tailored — plus the logo and *résumé ready*). It stays **user-invoked** (*Read this page*), so *nothing runs on page load* still holds; the URL is already sent on that press, so the **data sent does not grow**, only the response does.
+3. **⭐ Show the packet before you fill.** On an application form with a packet: *Résumé tailored · 62 → 81 · Fields prepared 14 · Will stop and ask 2* — D58's base-to-tailored line, so the click on **Fill it** is informed.
+4. **Status as marks (D60).** *Résumé ready*, *Not on your board yet*, *Drafted 2d ago*, *Not drafted* become **rectangular marks with a 3px leading bar** — nothing in the popup is a capsule.
+5. **The text links go.** *Copy sheet* and *Report form* become **two depth boxes under Everything** (with a *More* box); **— ⛔ `Sign in with LinkedIn` and `Keyboard shortcuts` move to the options page** — they are used once. No underlined web links remain in the popup.
+6. **The ring says what it counts:** *3 of 10 · your cap* (decision D). It stays a **circle** — one of the shapes D60 allows.
+7. **Capture and Score sit side by side as one row**, the shortcut (*⌃⇧K*) on the primary.
+
+⛔ **ALSO IN SCOPE:** `extension/review-overlay.js` was **not read** when the sketch was made. If it carries capsule chips or old controls it gets the same pass — **report what it contains before changing it**, and fold it into D62's audit so no surface is touched twice.
+
+⛔ **Tests (each red when removed):** the badge has **no `border-radius` of 50% or more** (D60) · each badge state shows its **icon as well as its colour** · the popup contains **no underlined text link** · the packet summary shows the **tailored score** · the ring text says **"your cap"** · `colorLiteralGuard` still passes (tokens only). ⚠ **Screenshot every popup context — posting, packet ready, nothing prepared — and all four badge states, both themes**, against the sketch.
+
+---
+
+## ⛔ D64–D69 · THE OWNER'S ANSWERS TO THE SIX LANES' DECISIONS — 2026-10-07 (37d)
+
+⏸ **Queued 10-07 (37d), nothing built yet** — the session stopped for a restart after the answers were given. The lanes' questions and the owner's answers, in full:
+
+| Lane | Question | Owner's answer | Goes to |
+|---|---|---|---|
+| A 1 | Board order and the fit filter still use the **base** score; only the badge shows tailored | ✅ agreed — keep as built | done |
+| A 2 | A résumé not tied to an application kept **90 days**; the sweep deletes silently | ✅ agreed | done |
+| A 3 | Settings may delete any résumé; the copy kept with a submitted application stays | ✅ agreed | done |
+| B 1 | The today ring calls the server when the popup opens (bends D23's "nothing on open") | ⭐ **phase manual capture out — capture automatically when a tab opens** | **D64** |
+| B 2 | The tab's FULL URL is sent to the server | ✅ fine — *"bigger results bigger risk as far as we are not breaching anything"* (disclosed by `b625d1f`) | done |
+| B 3 | *Prepare this application* works without a résumé (answers only) | ✅ yes — and a **base-résumé-only** option/tier | **D66** |
+| B 4 | The Copy sheet shows the user's own answers (incl. work authorisation) in the popup | ✅ acceptable — *"check compliance wise"* | **D68** |
+| B 5 | The origin table has only Amazon and Greenhouse | ✅ grow it — a **manual sweep now + a self-learning table shared across the platform** | **D67** |
+| E 1–3 | *Archived* on import · same company+title as in-play = duplicate · same company+title on different dates = one | ✅ agreed to all three | **D69 (a)** for *Archived* |
+| E 4 | At 390 px the top nav clips "THE TABLE" | ✅ fix it | **D69 (b)** |
+| D/E | Work history and skills for the fill | ⭐ **from the parsed résumé in the payload**; user-claimed skills filled in; migrate if needed | **D65** |
+| F 1 | Bump the privacy page's effective date at release | ✅ yes | release checklist (O82) |
+| F 2 | A dropdown label can carry its selected answer into *Report this form* | ✅ accept | done |
+| F 3 | *"I submitted"* evidence keeps the URL's query string | ❓ owner asked for the advantages and implications — answered below, **decision pending** | **D69 (c)** |
+| F 4 | Re-paste the Web Store dashboard fields | ⏸ later — *"we might need to write it fresh"* | O82 |
+
+### D64 · ⭐ AUTOMATED CAPTURE — a job page is captured, checked against the board, and migrated with no click
+
+Owner 10-07: *"phasing out manual capture and building an automated one that auto captures when a tab is opened and captures content runs a check if it is relevant to the user's board, and migrates it without the user having to do anything — and if the user chooses to apply then and there, this would enable us to deliver the payload then and there."*
+
+⛔ **This REVERSES three recorded decisions** — say so in the commit and in `AUTOFILL_TARGET.md` §8.6: **decision A** (*one gesture per application*), the **HELD-OFF per-ATS auto-start**, and the **refusal of auto-saving on LinkedIn / Indeed** (*"needs access to those sites on every page"*). The owner has decided; the build carries the guard rails that made those calls cautious:
+
+1. **Opt-in, off by default.** A setting *Capture job pages automatically* that, when turned on, requests **`optional_host_permissions`** at runtime (`chrome.permissions.request`) for the **job-site origin list only** — the D67 family table plus the boards draft already reads. ⛔ **Never `<all_urls>`**, never in the install-time manifest. Turning it off removes the permissions.
+2. **Nothing leaves the browser unless the page IS a posting.** A local pre-check on the page (`JobPosting` JSON-LD, or a known ATS posting URL shape from the family table). A non-posting page sends **nothing** — not the URL, not a hash.
+3. **Relevance is decided on the server, against the user's board** — the same D41 gates the board uses (US admission, the active profile's role family, fit) — and **an irrelevant posting is discarded server-side and never stored.** The relevant one goes through the ONE capture gateway (A62/D33) exactly as a manual capture does: dedup, US gate, enrichment, no second path.
+4. **Migrated means on the board, silently, with a mark** — *Captured automatically* — and the popup lists *Captured today: N* with an undo per item (D53's bin).
+5. **"Apply now" delivers the payload on that page.** If the tab is the application form (or becomes it), the packet is prepared right then (D56's *Prepare*) and the badge offers **Fill** — ⛔ **the fill still takes the user's click** and **Submit is never pressed** (D36). Auto-capture is not auto-apply.
+6. **Rate-braked** — one capture per URL per user per day; a cap per hour; a kill switch beside `fullAutoDisabled()`.
+7. **Manual capture stays as the fallback** until D64 has been seen working on real attended pages (O73); then the *Capture* button is demoted, not deleted.
+
+⛔ **Compliance before the store:** a privacy-page section (what is read, when, that non-postings send nothing, the off switch), a `PRIVACY_RECONCILIATION` row, a `MANIFEST_RATIONALE` entry for the optional host permissions, and the Web Store *single purpose* text rewritten fresh (with F 4). LinkedIn / Indeed pages: **only if** the posting-detection and the server's refetch rules allow it — a page the server cannot refetch is captured from the user's own view, never by draft fetching it with the user's session.
+
+⛔ **Tests:** a non-posting page sends nothing (assert zero requests) · an irrelevant posting stores nothing · a relevant one lands on the board through the gateway · with the setting off, no content script runs · the permission request names only the family origins · the fill still waits for a click. Measured against the local fake ATS only.
+
+### D65 · ⭐ WORK HISTORY AND SKILLS COME FROM THE RÉSUMÉ IN THE PAYLOAD
+
+Owner 10-07: *"work history and skills would come from the parsed résumé currently being used to apply, the one in the payload. If that needs a migration that's what we'll do. The user might claim some skills and these should be filled in."*
+
+- **Source of truth for the fill:** the résumé the packet carries (tailored, or the base under D66) is **parsed** into work history (employer, title, dates, location, bullets), education and skills, and that parse is what the extension fills into *Add Another* sections and skills fields. ⛔ Not the profile's stale copy, not a model call (D17 — parsing is in-house).
+- **Store the parse with the artifact** — a migration if needed (e.g. `resume_parsed_json` on the generated résumé / base résumé row, written once when the résumé is written, re-parsed when it changes). The packet references it; it does not copy it.
+- **User-claimed skills:** a profile list of skills the user claims that the résumé may not show; they are **added** to the fill's skills (deduplicated, never removed by the parse), marked as the user's own claim.
+- *"Have you worked here before?"* (D55 f) reads the same parse — the company is in the payload résumé's work history → *Yes*; otherwise leave it for the user (never guess).
+- ⛔ **Tests:** the fill's work-history entries equal the payload résumé's parse · a tailored résumé that dropped a role does not resurrect it · a claimed skill appears in the fill · a parse failure fills nothing for those sections and says so.
+
+### D66 · A BASE-RÉSUMÉ-ONLY PAYLOAD — a setting now, a plan tier later
+
+Owner 10-07: *"we would potentially have a tier where the user could choose to not have the generated résumé option or choose to disable it, and the payload would simply have the base résumé."*
+
+- A setting *Use my base résumé for applications* (and a plan flag that can force it). When on: **no generation** for packets (O80c's `attachPacketResume` attaches the active profile's base résumé instead), no slot spent, and the packet says *Base résumé*.
+- *Prepare this application* without any résumé (lane B 3) stays valid: answers only, said plainly.
+- ⛔ **Tests:** with the setting on, zero model calls on Draft / Prepare / packet · the packet carries the base résumé's artifact · D58's score line shows the base score only.
+
+### D67 · THE ORIGIN-FAMILY TABLE — a manual sweep now, a self-learning shared table after
+
+Owner 10-07: *"these are things that can be reused cross platform, we could do a manual sweep to cover as many as possible for them to be prepped, and also have a self-learning module which can be saved and shared across the platform."*
+
+1. **Manual sweep:** extend `services/applyOrigins.js` from 2 families (Amazon, Greenhouse) to every ATS and large-employer portal draft's board links to — Workday (`*.myworkdayjobs.com` ↔ `*.wd*.myworkdaysite.com`), Lever, Ashby, SmartRecruiters, iCIMS, Taleo, SuccessFactors, Oracle HCM, Jobvite, BambooHR, Workable, Recruitee, Rippling, plus the employers whose apply hosts differ from their posting hosts. **Each entry from an observed redirect or documented host, with its source noted** — never guessed.
+2. **Self-learning:** when a user on an unknown host presses *Prepare* / *I submitted* for a known job, record the observed (posting host → apply host) pair in a **shared table** (migration). A pair seen from **N distinct users** (start N = 3) is promoted into the live family list; below N it is only offered to the user who saw it. Only hostnames are stored — no paths, no user identity in the shared row.
+3. ⛔ **Tests:** the fill never runs outside the family list · a single user's pair is not shared until N · an admin can revoke a learned pair.
+
+### D68 · COMPLIANCE CHECK — the Copy sheet
+
+Owner 10-07: *"it's the user's own payload so shouldn't be an issue — check compliance wise."* Check and record (in `PRIVACY_RECONCILIATION.md`): the sheet shows the user's own answers only to the signed-in user · nothing is written into the page or sent anywhere by showing it · the work-authorisation and EEO answers are covered by the existing privacy text (or add a line) · clipboard writes happen only on the user's click and are not logged · Web Store *limited use* wording covers it. Fix whatever falls short; no new collection is expected.
+
+### D69 · THREE SMALL ONES
+
+- **(a)** Import maps SpeedyApply's **Archived → withdrawn** (owner agreed to lane E's 1–3).
+- **(b)** At **390 px** the top nav clips **"THE TABLE"** — fix, with a guard at 390.
+- **(c)** ❓ **"I submitted" — keep the query string? Owner's question, answered 10-07; decision pending.** *Advantages of keeping it:* the exact confirmation page is the evidence (some portals identify the application only in the query — `?jobId=`, `gh_jid=`, `applicationId=`); it tells two applications on one portal apart; it can link straight back to the portal's status page. *Implications:* query strings also carry **session and one-time tokens, tracking ids (`utm_*`, `gclid`) and sometimes the applicant's email** — keeping them stores credentials-like secrets indefinitely as "evidence", widens what a breach exposes, and must be disclosed. **Recommendation: keep an allow-list of id-like parameters (`jobId`, `gh_jid`, `lever-*` ids, `applicationId`, `req`), drop everything else** — the evidence value without the tokens.
 
 ---
 
