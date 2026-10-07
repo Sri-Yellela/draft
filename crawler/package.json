@@ -1,0 +1,17 @@
+{
+  "name": "draft-crawler-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "D75 pilot: finds which ATS a company uses and where Apply lands. Public pages only; no database access.",
+  "main": "worker.js",
+  "scripts": {
+    "start": "node worker.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "puppeteer-core": "^24.40.0"
+  }
+}

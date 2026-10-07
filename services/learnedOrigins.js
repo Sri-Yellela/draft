@@ -103,9 +103,24 @@ export function setPairRevoked(db, pairId, revoked, now = Math.floor(Date.now() 
   return db.prepare("UPDATE apply_origin_pairs SET revoked_at = ? WHERE id = ?").run(revoked ? now : null, pairId).changes > 0;
 }
 
+/**
+ * Admin: promote (or un-promote) one pair by hand — D75's crawler OBSERVES pairs and never promotes them.
+ * ⛔ A95: a shared multi-tenant host is refused here too, whoever asks.
+ * @returns {{ ok: boolean, reason?: string }}
+ */
+export function setPairPromoted(db, pairId, promoted, now = Math.floor(Date.now() / 1000)) {
+  const pair = db.prepare("SELECT posting_host, apply_host, revoked_at FROM apply_origin_pairs WHERE id = ?").get(pairId);
+  if (!pair) return { ok: false, reason: "pair_not_found" };
+  if (promoted && (isSharedTenantHost(pair.posting_host) || isSharedTenantHost(pair.apply_host))) return { ok: false, reason: "shared_host" };
+  if (promoted && pair.revoked_at != null) return { ok: false, reason: "revoked" };
+  db.prepare("UPDATE apply_origin_pairs SET promoted_at = ? WHERE id = ?").run(promoted ? now : null, pairId);
+  return { ok: true };
+}
+
 /** Admin: the table, newest first — hostnames and counts only. */
 export function listPairs(db) {
   return db.prepare(`SELECT id, posting_host AS postingHost, apply_host AS applyHost, users_seen AS usersSeen,
-      first_seen_at AS firstSeenAt, promoted_at AS promotedAt, revoked_at AS revokedAt
+      first_seen_at AS firstSeenAt, promoted_at AS promotedAt, revoked_at AS revokedAt,
+      crawler_seen_at AS crawlerSeenAt
     FROM apply_origin_pairs ORDER BY first_seen_at DESC, id DESC`).all();
 }

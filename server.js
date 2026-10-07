@@ -42,6 +42,7 @@ import { createEnrichmentRouter } from "./routes/enrichment.js";
 import { createJobDataRouter } from "./routes/jobData.js";
 import { createCompaniesRouter } from "./routes/companies.js";
 import { createSlugHarvestRouter } from "./routes/slugHarvest.js";
+import { createCrawlerWorkerRouter, createCrawlerAdminRouter } from "./routes/crawler.js";
 import { createJobTagsRouter } from "./routes/jobTags.js";
 import { createDomainProfilesRouter } from "./routes/domainProfiles.js";
 import { createImportJobRouter } from "./routes/importJob.js";
@@ -165,7 +166,8 @@ import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
 import { remapGeneralRows, REMAP_MATCHED_BY } from "./services/jobs/remapGeneralRoles.js";
 import { tagStaleJobs } from "./services/jobs/jobTags.js";
 import { backfillDescriptionText, withPostingText, refreshDescriptionText, postingText, registerDescriptionBasis } from "./services/jobs/descriptionText.js";
-import { listPairs as listLearnedPairs, setPairRevoked, PROMOTE_AT_USERS } from "./services/learnedOrigins.js";
+import { listPairs as listLearnedPairs, setPairRevoked, setPairPromoted, PROMOTE_AT_USERS } from "./services/learnedOrigins.js";
+import { CRAWLER_PAGE_HTML } from "./services/crawlerPage.js";
 import { resolvePlaceText, roleScopeExtra } from "./shared/jobTagVocabulary.js";
 import { userReferencedSql } from "./services/jobs/userReferences.js";
 import { deliverPipelineAlerts } from "./services/jobs/alertDelivery.js";
@@ -4361,6 +4363,44 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE scraped_jobs ADD COLUMN pay_text_max_usd INTEGER;
       `,
     },
+    {
+      // D75 (owner, 10-08): THE CRAWLER WORKER's queue, deny-list and observations — docs/CRAWLER_WORKER.md.
+      // The worker holds no DB credentials; it leases from crawler_tasks and returns a signed result, and
+      // draft decides what the result writes (services/crawlerQueue.js). crawler_denylist is DATA,
+      // owner-editable, and wins over every task at queue AND lease time; seeded with the owner's list.
+      // apply_origin_pairs gains what the crawler OBSERVED (J2): never promoted by it — the owner promotes.
+      id: "142_crawler_worker",
+      sql: `
+        CREATE TABLE IF NOT EXISTS crawler_tasks (
+          id             INTEGER PRIMARY KEY AUTOINCREMENT,
+          type           TEXT NOT NULL,
+          input_json     TEXT NOT NULL,
+          target_host    TEXT NOT NULL,
+          status         TEXT NOT NULL DEFAULT 'queued',
+          lease_until    INTEGER,
+          attempts       INTEGER NOT NULL DEFAULT 0,
+          result_status  TEXT,
+          result_json    TEXT,
+          refused_reason TEXT,
+          created_by     INTEGER,
+          created_at     INTEGER NOT NULL DEFAULT (unixepoch()),
+          finished_at    INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_crawler_tasks_status ON crawler_tasks(status, id);
+        CREATE TABLE IF NOT EXISTS crawler_denylist (
+          domain   TEXT PRIMARY KEY,
+          reason   TEXT,
+          added_by INTEGER,
+          added_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        INSERT OR IGNORE INTO crawler_denylist (domain, reason) VALUES
+          ('linkedin.com', 'terms restrict automated access'), ('indeed.com', 'terms restrict automated access'),
+          ('glassdoor.com', 'terms restrict automated access'), ('ziprecruiter.com', 'terms restrict automated access'),
+          ('monster.com', 'terms restrict automated access');
+        ALTER TABLE apply_origin_pairs ADD COLUMN crawler_seen_at INTEGER;
+        ALTER TABLE apply_origin_pairs ADD COLUMN crawler_hops_json TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -6553,6 +6593,8 @@ function emitToUser(userId, event) {
 // fail behind their HTTPS reverse proxy and all sessions silently break.
 app.set("trust proxy", 1);
 app.use(cors({ origin:corsOrigin, credentials:true }));
+// ⛔ D75: the crawler worker's doors come BEFORE the JSON parser — a result's HMAC is over its exact bytes.
+app.use("/api/crawler", createCrawlerWorkerRouter(db));
 app.use(express.json({ limit:"4mb" }));
 // TODO: reduce cookie maxAge to 30 min + implement sliding renewal
 // once useInactivityLogout (30-min idle) is deployed on the client.
@@ -7452,9 +7494,23 @@ app.post("/api/admin/apply-origins/:id/revoke", requireAdmin, (req, res) => {
     .run(req.user.id, revoked ? "apply_origin_revoke" : "apply_origin_restore", `apply_origin_pairs:${id}`, JSON.stringify(before), JSON.stringify(after));
   res.json({ ok: true, pair: after });
 });
+// D75: a pair the crawler OBSERVED (J2) is never promoted by the crawler — the owner promotes it here, logged.
+app.post("/api/admin/apply-origins/:id/promote", requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  const before = db.prepare("SELECT * FROM apply_origin_pairs WHERE id=?").get(id);
+  if (!before) return res.status(404).json({ error: "pair_not_found" });
+  const r = setPairPromoted(db, id, req.body?.promoted !== false);
+  if (!r.ok) return res.status(409).json({ error: r.reason });
+  const after = db.prepare("SELECT * FROM apply_origin_pairs WHERE id=?").get(id);
+  db.prepare("INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json) VALUES (?, ?, ?, ?, ?)")
+    .run(req.user.id, "apply_origin_promote", `apply_origin_pairs:${id}`, JSON.stringify(before), JSON.stringify(after));
+  res.json({ ok: true, pair: after });
+});
 // D20: the slug harvest in the daily manual sweep — SerpApi searches started by a person, an export the
 // owner reviews, an import that adds companies. No cron, no model call.
 app.use("/api/admin/slug-harvest", requireAdmin, createSlugHarvestRouter(db, requireAdmin));
+// D75: the crawler's queue, deny-list and tally (the owner's controls).
+app.use("/api/admin/crawler", requireAdmin, createCrawlerAdminRouter(db, requireAdmin));
 // D29 · the board's own tags: coverage, and the owner's export -> tag -> import (no model call, D17).
 app.use("/api/admin/job-tags", requireAdmin, createJobTagsRouter(db, requireAdmin));
 
@@ -11038,6 +11094,10 @@ app.get("/api/debug/verify-isolation", requireAuth, (req, res) => {
   });
 });
 
+// ⛔ D75: the page the crawler's User-Agent names — what it is, what it reads, and how to be excluded.
+app.get("/crawler", (_req, res) => {
+  res.type("html").send(CRAWLER_PAGE_HTML);
+});
 app.get("*", (_req, res) => {
   res.sendFile(path.join(CLIENT_DIST, "index.html"));
 });
