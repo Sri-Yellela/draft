@@ -87,3 +87,8 @@ loadShortcuts();
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') void loadShortcuts();
 });
+
+// ⭐ D63 (5): Sign in with LinkedIn, moved here from the popup — the same message the popup sent.
+document.getElementById('btn-linkedin')?.addEventListener('click', () => {
+  chrome.runtime.sendMessage({ type: 'OPEN_LINKEDIN_IMPORT' }).catch(() => {});
+});

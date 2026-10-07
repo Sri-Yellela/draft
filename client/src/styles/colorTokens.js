@@ -193,7 +193,7 @@ export const C_LIGHT = {
   FH_SEG_LIFT:    "0 2px 6px rgba(253,70,0,0.30)",          // the pressed view in the segment
   FH_INSET:       "inset 0 1px 3px rgba(30,25,21,0.07)",    // the views well and the search well
   FH_ADD_HOVER:   "0 7px 17px rgba(253,70,0,0.40)",         // the + square, lifted
-  // ⭐ D48 · the posting header's ATS number (PP_: the posting panel's — it does not travel to the extension) — the sketch's --atx, and the SAME value as PAIR_KICKER (the ATS
+  // ⭐ D48 · the posting header's ATS number (PP_: the posting panel's — D63: this one travels to the extension's job card) — the sketch's --atx, and the SAME value as PAIR_KICKER (the ATS
   // card's number, owner 10-07: "the ATS number switches colour"), so the two read as one number. The box is
   // on the app's surface, outside the pair, so it cannot read the pair's token; test/d48PostingHeader pins equal.
   PP_ATS_NUMBER:  "#A33200",

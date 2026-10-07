@@ -14,7 +14,8 @@
 // Pure functions, no chrome.* and no DOM, loaded as a classic script before popup.js (and run in a
 // plain VM by test/d13Companion.test.js). Nothing here stores anything.
 
-/* exported companionMode, draftedLine, postingLine, questionsLine, ageWords, prepareLine, ringState */
+/* exported companionMode, draftedLine, postingLine, questionsLine, ageWords, prepareLine, ringState,
+            jobCard, factMarks, packetRows, firstPartyLogo, shortAge */
 
 function ageWords(ms) {
   const mins = Math.max(0, Math.floor(ms / 60000));
@@ -85,6 +86,8 @@ function ringState(slots) {
   return {
     used, limit: slots.limit, percent: Math.round((used / slots.limit) * 100), full: used >= slots.limit,
     short: `${used}/${slots.limit}`,
+    // ⭐ D63 (decision D): the ring SAYS what it counts — your cap, never a goal.
+    capText: `${used} of ${slots.limit} · your cap`,
     label: `${used} of your ${slots.limit} drafts used in the last 24 hours — a Draft or a new résumé uses one.`,
   };
 }
@@ -103,4 +106,76 @@ function questionsLine(packet) {
   const n = packet?.unresolvedCount || 0;
   if (!n) return '';
   return `${n} ${n === 1 ? 'question needs' : 'questions need'} your answer — answer once and draft reuses it.`;
+}
+
+// ── ⭐ D63 · THE POPUP LEADS WITH THE JOB CARD (extension-latest.html, "Suggested") ────────────────
+
+/** "2d ago" / "3h ago" / "just now" — the short age a mark carries. */
+function shortAge(ms) {
+  const h = Math.floor(Math.max(0, ms) / 3600000);
+  if (h < 1) return 'just now';
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+/**
+ * ⛔ A logo is drawn ONLY when draft itself serves it (/api/company-logo/…). Any other address — the
+ * logo host the web board uses, an employer's favicon — would be a request from the extension to a
+ * third party that no disclosure names; the letter tile is drawn instead.
+ */
+function firstPartyLogo(logo, base) {
+  if (typeof logo !== 'string' || !logo) return null;
+  if (logo.startsWith('/api/company-logo/')) return `${base}${logo}`;
+  if (base && logo.startsWith(`${base}/api/company-logo/`)) return logo;
+  return null;
+}
+
+/** The posting in the job card's own language: company, title, logo, and the D50 number. */
+function jobCard(c, preview) {
+  const fromScores = (s) => ({ score: Number.isFinite(s?.shown) ? s.shown : null, tailored: !!s?.tailoredShown });
+  if (c?.mode === 'form' && c.packet) {
+    return { company: c.packet.company || '', title: c.packet.title || '', logo: c.packet.logo || null, ...fromScores(c.packet.scores) };
+  }
+  if ((c?.mode === 'prepare' || c?.mode === 'elsewhere') && c.handoff?.job) {
+    const j = c.handoff.job;
+    return { company: j.company || '', title: j.title || '', logo: j.logo || null, ...fromScores(j.scores) };
+  }
+  if (c?.mode === 'posting' && preview?.ok) {
+    return { company: preview.company || c.posting?.company || '', title: [preview.title, preview.location].filter(Boolean).join(' · '),
+             logo: c.posting?.logo || null, ...fromScores(c.posting?.scores) };
+  }
+  return null;
+}
+
+/** ⛔ D60: status as MARKS — a tone, the words and, where the sketch has one, an icon. Never a capsule. */
+function factMarks(c, now = Date.now()) {
+  const out = [];
+  if (c?.mode === 'form' && c.packet) {
+    out.push(c.packet.resumeAvailable ? { tone: 'ok', icon: 'doc', text: 'Résumé ready' } : { tone: 'warn', text: 'No résumé attached' });
+    const verb = c.packet.gateReason === 'prepared' ? 'Prepared' : 'Drafted';
+    out.push({ tone: 'dim', text: `${verb} ${shortAge(now - (c.packet.createdAt || now))}` });
+  } else if (c?.mode === 'prepare') {
+    const r = c.handoff?.resume;
+    out.push(r === 'ready' ? { tone: 'ok', icon: 'doc', text: 'Résumé ready' }
+      : r === 'out_of_date' ? { tone: 'warn', text: 'Résumé out of date' } : { tone: 'dim', text: 'No résumé yet' });
+    out.push({ tone: 'warn', text: c.handoff?.state === 'stale' ? 'Answers expired' : 'Not drafted' });
+  } else if (c?.mode === 'posting' && c.posting) {
+    out.push({ tone: c.posting.saved ? 'ok' : 'info', text: postingLine(c.posting) });
+    if (c.posting.resumeReady) out.push({ tone: 'ok', icon: 'doc', text: 'Résumé ready' });
+  }
+  return out;
+}
+
+/** ⭐ D63 · "show the packet before you fill" — Résumé tailored · 62 → 81 · Fields prepared · Will stop and ask. */
+function packetRows(packet) {
+  if (!packet) return [];
+  const s = packet.scores || null;
+  const resume = s?.base != null && s?.tailored != null ? `tailored · ${s.base} → ${s.tailored}`
+    : s?.tailored != null ? `tailored · ${s.tailored}`
+    : packet.resumeAvailable ? 'ready' : 'none attached';
+  return [
+    { label: 'Résumé', value: resume, lower: !!s?.lower },
+    { label: 'Fields prepared', value: String(packet.answerCount || 0) },
+    { label: 'Will stop and ask', value: String(packet.unresolvedCount || 0), ask: (packet.unresolvedCount || 0) > 0 },
+  ];
 }

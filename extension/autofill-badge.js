@@ -178,31 +178,50 @@ export function renderBadge(state, meta) {
     host.style.cssText = `position:fixed;top:16px;right:${overlayOpen ? 412 : 16}px;z-index:2147483647;`;
     const tone = { progress: 'violet', required: 'warning', done: 'success', unrecognised: 'danger' }[s] || 'info';
     const label = s === 'required' && missing.length ? `${TEXT.required} (${missing.length})` : (TEXT[s] || '');
+    // ⭐ D63 (1): the state reads by colour AND by icon, so it never depends on colour alone.
+    const ICON = {
+      progress: '<path d="M6 12h.01M12 12h.01M18 12h.01"/>',
+      required: '<path d="M12 6v8M12 18h.01"/>',
+      done: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+      unrecognised: '<path d="M6 6l12 12M18 6L6 18"/>',
+    }[s] || '<path d="M12 6v8M12 18h.01"/>';
     root.innerHTML = `
       <style>
         :host { ${varsOf(theme.light)} all: initial; }
         @media (prefers-color-scheme: dark) { :host { ${varsOf(theme.dark)} } }
-        .pill { display: flex; align-items: center; gap: 8px; max-width: 360px; padding: 8px 8px 8px 14px;
-          border-radius: 999px; border: 1px solid var(--c-glass-edge); box-shadow: var(--c-shadow-md);
+        /* ⛔ D60 / D63 (1): a DEPTH BOX, never a capsule — extension-latest.html's .barb. */
+        .bar { display: flex; align-items: center; gap: 10px; max-width: 380px; padding: 8px;
+          border-radius: 12px; border: 1px solid var(--c-glass-edge); border-left: 4px solid var(--c-${tone});
+          box-shadow: var(--c-shadow-md), var(--c-depth-rest);
           font: 600 13px/1.3 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-          background: var(--c-${tone}-quiet); color: var(--c-${tone}); backdrop-filter: blur(10px); }
-        .mark { font-style: italic; font-weight: 800; color: var(--c-logo-word); }
+          background: var(--c-surface-solid); color: var(--c-ink); }
+        .st { width: 30px; height: 30px; flex: none; border-radius: 8px; display: grid; place-items: center;
+          background: var(--c-${tone}-quiet); color: var(--c-${tone}); }
+        .st svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+        .mark { font-family: 'Poppins', 'DM Sans', ui-sans-serif, sans-serif; font-size: 12px; font-style: italic; font-weight: 800; color: var(--c-logo-word); }
         .mark b { color: var(--c-logo-slash); font-weight: 800; }
         .t { flex: 1; min-width: 0; cursor: ${s === 'required' ? 'pointer' : 'default'}; }
-        .x { font: inherit; border: 0; background: transparent; color: inherit; cursor: pointer;
-          width: 24px; height: 24px; border-radius: 999px; }
-        .x:hover, .x:focus-visible { background: var(--c-surface-solid); }
+        .n { font-family: 'Poppins', 'DM Sans', ui-sans-serif, sans-serif; font-size: 11px; font-style: italic; font-weight: 800;
+          border-radius: 6px; padding: 3px 7px; background: var(--c-${tone}-quiet); color: var(--c-${tone}); }
+        .x { font: inherit; font-size: 14px; border: 0; cursor: pointer; width: 28px; height: 28px; flex: none; border-radius: 8px;
+          background: var(--c-surface-2); color: var(--c-ink-muted); box-shadow: var(--c-depth-rest); }
+        .x:hover, .x:focus-visible { box-shadow: var(--c-depth-hover); color: var(--c-ink); }
         .x:focus-visible, .t:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-        @media (prefers-reduced-motion: no-preference) { .pill[data-s="progress"] .mark { animation: p 1.2s ease-in-out infinite; } }
+        @media (prefers-reduced-motion: no-preference) { .bar[data-s="progress"] .st { animation: p 1.2s ease-in-out infinite; } }
         @keyframes p { 50% { opacity: .45; } }
       </style>
-      <div class="pill" data-s="${s}" role="status" aria-live="polite">
+      <div class="bar" data-s="${s}" role="status" aria-live="polite">
+        <span class="st" data-role="icon" aria-hidden="true"><svg viewBox="0 0 24 24">${ICON}</svg></span>
         <span class="mark" aria-hidden="true"><b>/</b>draft</span>
         <span class="t" data-role="text" tabindex="${s === 'required' ? 0 : -1}"></span>
+        ${s === 'required' && missing.length ? '<span class="n" data-role="count" aria-hidden="true"></span>' : ''}
         <button class="x" type="button" data-role="dismiss" aria-label="Dismiss — stop autofill on this page">×</button>
       </div>`;
     const t = root.querySelector('[data-role="text"]');
-    t.textContent = label;
+    // The words are unchanged; on "required" the count is its own rectangular mark beside them (D63).
+    t.textContent = s === 'required' && missing.length ? TEXT.required : label;
+    const cnt = root.querySelector('[data-role="count"]');
+    if (cnt) cnt.textContent = String(missing.length);
     t.title = s === 'required' ? missing.map(m => m.label).join('\n') : (meta?.note || '');
     t.setAttribute('aria-label', s === 'required' ? `${label}: ${missing.map(m => m.label).join(', ')}` : label);
     // "Complete required fields" is one line, but it can take you there: the next empty one.

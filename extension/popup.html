@@ -31,18 +31,17 @@
     #btn-read-page .lbl { display: inline-flex; align-items: center; gap: 8px; }
     .read-hint { font-size: 11px; color: var(--c-ink-faint); margin: -2px 0 12px; }
 
-    #job-preview {
-      display: none; background: var(--c-surface-solid); border-radius: 12px; box-shadow: var(--c-depth-rest);
-      padding: 10px 12px; margin-bottom: 10px; font-size: 12px;
-    }
-    #job-preview .job-company { font-size: 15px; color: var(--c-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #job-preview .job-title { color: var(--c-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* ⭐ D63: the job card (ui.css .job) — shown once the page is read. */
+    #job-preview { display: none; }
+    #job-preview .job-text { min-width: 0; }
 
     /* D13, the companion: what this page is, and the one or two actions it calls for. */
     #companion { display: none; margin-bottom: 4px; }
     #companion .ctx-line { font-size: 11px; color: var(--c-ink-muted); margin: 0 0 8px; }
     #companion .ctx-line.saved { color: var(--c-success); }
-    #companion .questions { font-size: 11px; color: var(--c-ink); background: var(--c-accent-quiet);
+    /* D63: on a posting and a form the line is said by the MARKS (#facts) and kept for screen readers. */
+    #companion .ctx-line.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    #companion .questions { font-size: 11px; color: var(--c-ink); background: var(--c-danger-quiet);
       border-radius: 12px; padding: 7px 9px; margin: 0 0 10px; }
     .btn-row { display: flex; gap: 8px; }
     .btn-row .btn { flex: 1 1 0; }
@@ -58,8 +57,8 @@
     #recent li .co { color: var(--c-ink); font-size: 13px; }
     .all-head { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
       color: var(--c-ink-faint); margin: 0 0 8px; }
-    .squares { display: flex; justify-content: space-between; margin-bottom: 12px; }
-    .links { display: flex; justify-content: space-between; gap: 8px; }
+    .squares { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .links { display: flex; justify-content: flex-start; gap: 8px; flex-wrap: wrap; }
 
     /* §8 row 15, decision D — THE TODAY RING: today against YOUR CAP, never a goal. */
     #today { display: none; align-items: center; gap: 7px; font-size: 11px; color: var(--c-ink-muted); }
@@ -116,10 +115,18 @@
   </button>
   <p class="read-hint" id="read-hint" style="display:none">Nothing on this page is read until you press it.</p>
 
-  <div id="job-preview">
-    <div class="job-company logo-face" id="preview-company"></div>
-    <div class="job-title" id="preview-title"></div>
+  <!-- ⭐ D63 · THE JOB CARD: the paper logo tile (D61), the company in the logo face, the D50 number box. -->
+  <div id="job-preview" class="job">
+    <div class="tile" id="preview-tile" aria-hidden="true"></div>
+    <div class="job-text">
+      <div class="co logo-face" id="preview-company"></div>
+      <div class="ti" id="preview-title"></div>
+    </div>
+    <div class="nb none" id="preview-score" role="img" aria-label="No ATS score yet"><small>ATS</small></div>
   </div>
+  <!-- ⭐ D63 · status as MARKS (D60), and the packet before you fill. -->
+  <div class="facts" id="facts" hidden></div>
+  <div class="pk" id="packet-summary" hidden></div>
 
   <!-- D13, THE COMPANION. companion.js decides which of the four actions this page calls for — after
        the press above, never before. The four stay below ("Everything"): a wrong guess must never
@@ -128,15 +135,16 @@
     <p class="ctx-line" id="ctx-line"></p>
     <p class="questions" id="ctx-questions" style="display:none"></p>
     <p id="ctx-notice" style="display:none"></p>
-    <button class="btn btn-primary" id="btn-fill-primary" style="display:none">Fill it</button>
+    <button class="btn btn-primary" id="btn-fill-primary" style="display:none">Fill it <kbd>⌃⇧Y</kbd></button>
     <!-- D56: no packet, but a job of yours — one click prepares it and fills. -->
     <button class="btn btn-primary" id="btn-prepare" style="display:none">Prepare this application</button>
     <!-- D56: the manual route records its own submission — this page is the evidence. -->
-    <button class="btn" id="btn-submitted" style="display:none">I submitted it</button>
+    <button class="btn" id="btn-submitted" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> I submitted it</button>
     <p id="submitted-msg" style="display:none"></p>
     <div class="btn-row" id="posting-actions" style="display:none">
-      <button class="btn btn-primary" id="btn-capture-primary">Capture it</button>
-      <button class="btn" id="btn-score-primary">Score it</button>
+      <!-- ⭐ D63 (7): Capture and Score side by side, the shortcut on the primary. -->
+      <button class="btn btn-primary" id="btn-capture-primary">Capture it <kbd>⌃⇧K</kbd></button>
+      <button class="btn" id="btn-score-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 19v-5M12 19V7M18 19v-9"/></svg> Score</button>
     </div>
   </div>
   <div id="copy-sheet">
@@ -173,11 +181,15 @@
       <span class="draft-d" aria-hidden="true">/d</span>
     </button>
   </div>
-  <div class="links">
-    <button class="link" id="btn-linkedin">Sign in with LinkedIn</button>
-    <button class="link" id="btn-copy-sheet" title="Your prepared answers, to copy by hand on a portal draft cannot fill">Copy sheet</button>
-    <button class="link" id="btn-settings">Keyboard shortcuts</button>
-    <button class="link" id="btn-report-form" title="Tell draft this application form is not recognised">Report this form</button>
+  <!-- ⭐ D63 (5): the text links go. Copy sheet and Report form are depth boxes under Everything, with More
+       (the options page, where Sign in with LinkedIn and Keyboard shortcuts now live — they are used once). -->
+  <div class="mini">
+    <button class="mb" id="btn-copy-sheet" title="Your prepared answers, to copy by hand on a portal draft cannot fill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg> Copy sheet</button>
+    <button class="mb" id="btn-report-form" title="Tell draft this application form is not recognised">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg> Report form</button>
+    <button class="mb" id="btn-settings" title="Sign in with LinkedIn, keyboard shortcuts and automatic capture">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 12h.01M12 12h.01M18 12h.01"/></svg> More</button>
   </div>
   <!-- D55 decision E: what a report sends is shown BEFORE it is sent; Send is a second click. -->
   <div id="report-form" style="display:none">

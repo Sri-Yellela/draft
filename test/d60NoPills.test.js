@@ -84,14 +84,9 @@ function offenders() {
   return out;
 }
 
-// ⏸ HELD FOR D63 ONLY — the extension's in-page badge and review overlay are rebuilt to extension-latest.html
-// in D63, the next row; restyling them here first would touch each surface twice. SELF-PRUNING: an entry
-// that no longer matches a capsule fails, so this list can only shrink, and D63 empties it.
-const HELD_FOR_D63 = [
-  "extension/autofill-badge.js:186  border-radius: 999px",
-  "extension/review-overlay.js:209  border-radius: 999px",
-  "extension/review-overlay.js:216  border-radius: 999px",
-];
+// ⏸ Was HELD FOR D63 — the extension's in-page badge and review overlay; D63 rebuilt both (10-07) and
+// emptied the list. SELF-PRUNING: an entry that no longer matches a capsule fails, so it can only shrink.
+const HELD_FOR_D63 = [];
 
 test("⛔ D60 guard · no capsule anywhere — every fully-rounded shape in client/src and extension/ is a circle", () => {
   const found = offenders();

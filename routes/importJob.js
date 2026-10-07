@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { importJob, ImportInputError, ImportRefusedError, detectKnownAtsMatch, linkRefetchability } from "../services/jobs/importJob.js";
 import { recentCaptures } from "../services/jobs/captureOutcome.js";
+import { getKnownLogoUrl } from "../shared/companyLogos.js";
+import { atsScorePair } from "../shared/resumeScores.js";
 import { autoCaptureDisabled, autoCaptureBrake, listAutoCaptures, undoAutoCapture } from "../services/jobs/autoCapture.js";
 
 // Sibling to routes/importedJobs.js, NOT an extension of it — importedJobs.js manages the
@@ -99,6 +101,11 @@ export function createImportJobRouter(db, opts = null) {
   //   ats      — what the URL names (detectKnownAtsMatch — D4: the parsing is already live), or null.
   //   recent   — your last five captures, newest first, for a page that is neither a posting nor a
   //              form you drafted.
+  //   ⭐ D63 — for a KNOWN posting, what the popup leads with (the job card's language): `logo` (the
+  //   row's stored icon, else the known-domain table — never a guess), `scores` (D58's pair: the stored
+  //   base score for your ACTIVE profile and your tailored résumé's, `shown` = the one that would be
+  //   sent), and `resumeReady`. Read from rows that already exist; the request is unchanged — the URL
+  //   the press already sent — so the data SENT does not grow, only the answer does.
   router.post("/context", (req, res) => {
     const raw = String(req.body?.url || "").slice(0, 2048);
     let posting = null;
@@ -109,21 +116,36 @@ export function createImportJobRouter(db, opts = null) {
       const candidates = [...new Set([raw, bare, `${bare}/`])];
       const marks = candidates.map(() => "?").join(",");
       let row = db.prepare(`
-        SELECT job_id, title, company, duplicate_of, is_active FROM scraped_jobs
+        SELECT job_id, title, company, duplicate_of, is_active, company_icon_url FROM scraped_jobs
         WHERE url IN (${marks}) OR apply_url IN (${marks})
         ORDER BY updated_at DESC LIMIT 1
       `).get(...candidates, ...candidates);
       if (row?.duplicate_of) {
-        row = db.prepare("SELECT job_id, title, company, duplicate_of, is_active FROM scraped_jobs WHERE job_id = ?")
+        row = db.prepare("SELECT job_id, title, company, duplicate_of, is_active, company_icon_url FROM scraped_jobs WHERE job_id = ?")
           .get(row.duplicate_of) || row;
       }
       const saved = row
         ? !!db.prepare("SELECT 1 FROM user_jobs WHERE user_id = ? AND job_id = ? AND starred = 1").get(req.user.id, row.job_id)
         : false;
+      let extra = { logo: null, scores: null, resumeReady: false };
+      if (row) {
+        const profileId = db.prepare("SELECT id FROM domain_profiles WHERE user_id = ? AND is_active = 1 ORDER BY id LIMIT 1")
+          .pluck().get(req.user.id) ?? null;
+        const base = db.prepare("SELECT ats_score FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ?")
+          .pluck().get(req.user.id, profileId, row.job_id) ?? null;
+        const resume = db.prepare("SELECT ats_score, base_ats_score, length(html) AS n FROM resumes WHERE user_id = ? AND job_id = ?")
+          .get(req.user.id, row.job_id);
+        const ready = !!resume && resume.n > 0;
+        extra = {
+          logo: row.company_icon_url || getKnownLogoUrl(row.company || "") || null,
+          scores: atsScorePair({ base: ready ? (resume.base_ats_score ?? base) : base, tailored: ready ? resume.ats_score : null }),
+          resumeReady: ready,
+        };
+      }
       posting = row
         ? { known: true, saved, jobId: row.job_id, title: row.title || null, company: row.company || null,
-            active: row.is_active !== 0 }
-        : { known: false, saved: false, jobId: null, title: null, company: null, active: null };
+            active: row.is_active !== 0, ...extra }
+        : { known: false, saved: false, jobId: null, title: null, company: null, active: null, logo: null, scores: null, resumeReady: false };
       const m = detectKnownAtsMatch(raw);
       ats = m ? { type: m.type, slug: m.slug || m.tenant || null } : null;
     }
