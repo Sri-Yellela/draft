@@ -79,7 +79,10 @@ const sessionKey = (tabId) => `gate:${tabId}`;
 //
 // Must be self-contained: executeScript serialises this function, so it can close over nothing.
 function probeFormShape() {
-  const form = document.querySelector('form');
+  // D55 (d): Workday's application is not a <form>; its root is the apply-flow page. Looked for
+  // FIRST, because a Workday page may carry an unrelated <form> (a header search) ahead of it.
+  // ⛔ This line, too, must stay identical to applyPlan's.
+  const form = document.querySelector('[data-automation-id="applyFlowPage"]') || document.querySelector('form');
   const scope = form || document;
   // ⛔ THIS SELECTOR AND THE FILTER BELOW MUST STAY BYTE-IDENTICAL TO applyPlan'S.
   // The plan addresses controls by POSITION, so the two functions have to enumerate the same list
@@ -114,10 +117,28 @@ function probeFormShape() {
     return (el.getAttribute('aria-label') || el.getAttribute('placeholder') || '').trim();
   };
 
+  // D55 (d): is this a step of a WIZARD? Only when the page says so — a progress bar, or Workday's
+  // own next-button id — so a single-page form with a stray "Next" link is never advanced. Reports
+  // the step's name and whether it is the Review step: there the same button reads "Submit", and the
+  // run stops.
+  const nextBtn = document.querySelector('[data-automation-id="bottom-navigation-next-button"], [data-automation-id="pageFooterNextButton"]');
+  const progress = document.querySelector('[data-automation-id="progressBar"], [role="progressbar"]');
+  const stepName = String(
+    document.querySelector('[data-automation-id="progressBarActiveStep"], [aria-current="step"]')?.textContent
+    || document.querySelector('[data-automation-id="pageHeader"]')?.textContent || '').replace(/\s+/g, ' ').trim();
+  const nextText = String(nextBtn?.textContent || '').replace(/\s+/g, ' ').trim();
+  const wizard = nextBtn || (progress && stepName) ? {
+    step: stepName.slice(0, 80),
+    nextText: nextText.slice(0, 40),
+    isReview: /submit/i.test(nextText) || /^review$/i.test(stepName)
+      || !!document.querySelector('[data-automation-id="reviewJobApplicationPage"]'),
+  } : null;
+
   return {
     hasForm: !!form,
     url: location.href,
     origin: location.origin,
+    wizard,
     fields: controls.map((el, index) => ({
       index,
       name: el.name || null,
@@ -130,6 +151,9 @@ function probeFormShape() {
       // D55 (a): which custom widget this is, so the plan and the review can say "typed and picked"
       // rather than "set". A typeahead is an <input> that announces a popup list; a dropdown is a
       // non-input that does. Neither has options to report — they exist only once it is opened.
+      // D55 (d): Workday names its controls by data-automation-id, not name/id — the matcher reads
+      // that convention structurally (WORKDAY_FIELD_IDS), as it unwraps Greenhouse's namespacing.
+      automationId: el.getAttribute('data-automation-id') || null,
       widget: el.tagName === 'INPUT' && (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list')
         ? 'typeahead'
         : (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-haspopup') === 'listbox') && el.tagName !== 'SELECT'
@@ -148,7 +172,7 @@ function probeFormShape() {
 // setter and then dispatching input/change is what makes the change real to the framework. G0
 // confirmed activeTab alone reaches the MAIN world.
 async function applyPlan(plan, resume, opts) {
-  const form = document.querySelector('form');
+  const form = document.querySelector('[data-automation-id="applyFlowPage"]') || document.querySelector('form');
   const scope = form || document;
   // ⛔ MUST STAY BYTE-IDENTICAL TO probeFormShape'S. See the note there — the plan addresses
   // controls by position, so the two enumerations have to agree.
@@ -661,6 +685,23 @@ export function closestOption(want, options) {
 }
 
 /**
+ * D55 (d) — Workday's data-automation-id for each canonical contact field (CANONICAL_GATE_FIELDS
+ * names). Structural, like the namespace unwrap: it reads the portal's own naming convention, never
+ * a label. ⚠ Known from Workday's markup as far as it is known; re-measure on a live tenant (O73).
+ */
+export const WORKDAY_FIELD_IDS = Object.freeze({
+  'legalNameSection_firstName': 'first_name',
+  'legalNameSection_lastName': 'last_name',
+  'email': 'email',
+  'phone-number': 'phone',
+  'addressSection_addressLine1': 'address1',
+  'addressSection_city': 'city',
+  'addressSection_countryRegion': 'state',
+  'addressSection_postalCode': 'zip',
+  'countryDropdown': 'country',
+});
+
+/**
  * Match the packet's answers to the controls actually on this page.
  *
  * ELIGIBILITY ANSWERS ARE MATCHED EXACTLY OR NOT AT ALL. A sponsorship answer dropped into a field
@@ -692,7 +733,11 @@ export function matchAnswersToFields(answers, fields) {
     !taken.has(f.index) && (
       nameMatches(f.name, a.name) ||
       nameMatches(f.id, a.name) ||
-      (a.field_id && f.id && f.id === a.field_id)
+      (a.field_id && f.id && f.id === a.field_id) ||
+      // D55 (d): the Workday adapter — its own stable automation ids for the contact fields. ⛔ No
+      // eligibility question is in that table: Workday generates those ids per tenant, so work
+      // authorisation and sponsorship still match exactly or not at all, and on Workday that is NOT.
+      (!!f.automationId && WORKDAY_FIELD_IDS[f.automationId] === a.name)
     ));
 
   const byLabel = (a) => {
@@ -1013,6 +1058,129 @@ async function showBadge(tabId, state, meta = {}) {
   }
 }
 
+// ── D55 (d): the wizard advance ──────────────────────────────────────────────────────────────
+
+/**
+ * What kind of question a label asks — used to say WHY the fill stopped, and (D55 rules) to refuse
+ * to place a value where the candidate must decide. Order matters: an eligibility question that
+ * mentions years ("authorized to work for the next 2 years") is eligibility first.
+ */
+export function questionKind(label) {
+  const t = String(label || '').toLowerCase();
+  if (/authori[sz]ed to work|eligib\w* to work|right to work|work permit|sponsor|visa|immigration|i-9|citizen/.test(t)) return 'eligibility';
+  if (/marketing|newsletter|text messages|sms|whatsapp|promotional|opt[ -]?in|receive (?:\w+ ){0,3}(?:communications|updates|messages|emails|alerts)|talent (?:community|network)|job alerts/.test(t)) return 'opt_in';
+  if (/\bgender\b|\bsex\b|ethnic|\brace\b|racial|hispanic|latino|veteran|disabilit|self[- ]?identif|pronoun|sexual orientation/.test(t)) return 'eeo';
+  if (/terms and conditions|privacy (?:policy|notice)|i (?:have read|consent|agree|acknowledge|certify)|attest/.test(t)) return 'consent';
+  if (/\d+\s*\+?\s*years|years of (?:\w+ ){0,3}experience|do you have (?:\w+ ){0,4}(?:experience|degree|certification|license)|are you (?:able|willing) to|willing to relocate|relocat|on-?site|in[- ]office|travel|security clearance|\bclearance\b|salary|compensation|notice period|previously (?:worked|been employed)|non-?compete|criminal|background check|drug (?:test|screen)/.test(t)) return 'screening';
+  return 'other';
+}
+
+// Injected, ISOLATED world. Presses the portal's own Save and Continue — and nothing else.
+// ⛔ ALLOWLIST, not a denylist: the control's text must READ "Save and Continue", "Continue" or
+// "Next". Workday's Review step renders the SAME control (same automation id) reading "Submit"; a
+// check keyed on the id, or one that merely refused the word "submit", would be one translation or
+// one relabel ("Apply", "Send", "Finish") away from submitting. A control that would submit a
+// <form> by its type is refused whatever it says.
+function advanceWizard() {
+  const continueText = /^(save and continue|save & continue|continue|next)$/i;
+  const btn = document.querySelector('[data-automation-id="bottom-navigation-next-button"], [data-automation-id="pageFooterNextButton"]')
+    || [...document.querySelectorAll('button, [role="button"]')].find(b => continueText.test(String(b.textContent || '').replace(/\s+/g, ' ').trim()));
+  if (!btn) return { ok: false, reason: 'no_next_button' };
+  const text = String(btn.textContent || '').replace(/\s+/g, ' ').trim();
+  if (!continueText.test(text)) return { ok: false, reason: 'next_is_not_continue', text: text.slice(0, 40) };
+  if (String(btn.getAttribute('type') || btn.type || '').toLowerCase() === 'submit' && btn.form) {
+    return { ok: false, reason: 'next_would_submit_a_form', text };
+  }
+  if (btn.disabled || btn.getAttribute('aria-disabled') === 'true') return { ok: false, reason: 'next_disabled', text };
+  btn.click();
+  return { ok: true, text };
+}
+
+// Injected, ISOLATED world. Which step is showing, and whether the portal wrote its own errors.
+function wizardState() {
+  const step = String(
+    document.querySelector('[data-automation-id="progressBarActiveStep"], [aria-current="step"]')?.textContent
+    || document.querySelector('[data-automation-id="pageHeader"]')?.textContent || '').replace(/\s+/g, ' ').trim();
+  const errors = document.querySelectorAll('[data-automation-id="errorMessage"], [data-automation-id="errorBanner"]:not([hidden])').length;
+  return { step, errors };
+}
+
+const sleepMs = (ms) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * The candidate's turn. If a required field on this step is still empty — work authorisation, a
+ * question that would rule them out, an EEO answer the profile does not state — say so on the badge
+ * and wait, re-checking every 1.5 s, and carry on BY ITSELF once it is answered (the video's badge
+ * flipping back to "in progress"). Bounded by the packet's lifetime; ended by the ×, by the tab
+ * leaving the application, or by the grant lapsing.
+ */
+export const CANDIDATE_WAIT_MS = 9 * 60 * 1000;
+async function waitForCandidate(tabId, origin, stepName, wizard) {
+  const deadline = Date.now() + CANDIDATE_WAIT_MS;
+  let recorded = false, lastCount = -1;
+  for (;;) {
+    let missing;
+    try {
+      const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: findMissingRequired });
+      missing = r?.result || [];
+    } catch { return { ok: false, reason: 'grant_lost' }; }
+    if (!missing.length) return { ok: true, waited: recorded };
+    if (!recorded) {
+      recorded = true;
+      wizard.stops.push({ step: stepName, fields: missing.map(m => ({ label: m.label, kind: questionKind(m.label) })) });
+    }
+    if (missing.length !== lastCount) {
+      lastCount = missing.length;
+      const b = await showBadge(tabId, 'required', { missing });
+      if (b?.dismissed) return { ok: false, reason: 'dismissed' };
+    }
+    try {
+      const [d] = await chrome.scripting.executeScript({ target: { tabId }, func: badgeDismissed });
+      if (d?.result === true) return { ok: false, reason: 'dismissed' };
+      const t = await chrome.tabs.get(tabId);
+      if (!t?.url || new URL(t.url).origin !== origin) return { ok: false, reason: 'left_the_application' };
+    } catch { return { ok: false, reason: 'grant_lost' }; }
+    if (Date.now() > deadline) return { ok: false, reason: 'waiting_for_you' };
+    await sleepMs(1500);
+  }
+}
+
+/** The sentence for a wizard run — where it stopped is the thing the candidate needs to know. */
+export function wizardMessage(filledCount, wizard) {
+  const steps = wizard?.steps?.length || 0;
+  const head = `Filled ${filledCount} field(s) across ${steps} step(s)`;
+  switch (wizard?.stoppedAt) {
+    case 'review': return `${head} and stopped at Review. Check it, then submit yourself.`;
+    case 'dismissed': return `${head}. Stopped — you closed the autofill badge.`;
+    case 'waiting_for_you': return `${head}. Stopped waiting for the required fields on this step — answer them and press the shortcut again.`;
+    case 'left_the_application':
+    case 'grant_lost': return `${head}. Stopped — this tab left the application. Press the shortcut on the application to carry on.`;
+    default: return `${head}. Could not move to the next step — check this one, then press Save and Continue yourself.`;
+  }
+}
+
+/** Press Save and Continue, then wait for the next step to show — or for the portal to refuse. */
+async function advanceAndWait(tabId, fromStep) {
+  let pressed;
+  try {
+    const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: advanceWizard });
+    pressed = r?.result;
+  } catch { return { ok: false, reason: 'grant_lost' }; }
+  if (!pressed?.ok) return { ok: false, reason: pressed?.reason || 'no_next_button', text: pressed?.text };
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    await sleepMs(250);
+    let s;
+    try {
+      const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: wizardState });
+      s = r?.result;
+    } catch { return { ok: false, reason: 'grant_lost' }; }
+    if (s?.step && s.step !== fromStep) { await sleepMs(250); return { ok: true, step: s.step }; }
+    if (s?.errors) return { ok: false, reason: 'portal_refused' };
+  }
+  return { ok: false, reason: 'step_did_not_change' };
+}
+
 /**
  * D55 (b) — one review row per repeating-section entry that was actually placed, not one per field.
  *
@@ -1057,7 +1225,6 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
   if (shape.origin !== origin) return { ok: false, reason: 'origin_moved', message: 'The page changed. Nothing was released.' };
 
   const answers = released.packet?.answers || [];
-  const { plan, unmatched } = matchAnswersToFields(answers, shape.fields);
 
   // The resume travels as base64 because executeScript arguments must be JSON-serialisable — a Blob
   // cannot cross that boundary. Fetched HERE, in the extension, so the page never sees a credentialed
@@ -1083,20 +1250,77 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
   // D55 (c): the one-line badge says what the page is doing while the fill runs.
   await showBadge(tab.id, 'progress');
 
-  let outcome;
-  try {
-    const [r] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      world: 'MAIN',
-      func: applyPlan,
-      // D55 (b): the packet's repeating-section entries travel with the plan; applyPlan opens one
-      // panel per entry with the section's own Add / Add Another.
-      args: [plan, resume, { entries: released.packet?.entries || null }],
-    });
-    outcome = r?.result;
-  } catch (e) {
-    return { ok: false, reason: 'inject_failed', message: `Could not fill the form: ${e.message}` };
+  // ── D55 (d): ONE PAGE, OR A WIZARD STEP BY STEP ─────────────────────────────────────────────
+  // A single-page form is filled once, as it always was. A wizard (Workday) is filled one step at a
+  // time: fill the step → if a REQUIRED field is still empty, stop and wait for the candidate
+  // (badge: "Complete required fields") and carry on by itself once they have answered → press the
+  // portal's OWN Save and Continue → re-probe the next step → repeat — and STOP AT REVIEW.
+  // ⛔ Submit is never pressed (§7.1): advanceWizard presses only a control that reads Save and
+  // Continue / Continue / Next, and Workday's Review button is that same control reading "Submit".
+  //
+  // On a wizard nothing already holding a value is overwritten (keepExisting): the candidate's own
+  // answer, and the portal's prefill, outrank the packet on a step the fill comes back to.
+  const plan = [], unmatched = [];
+  const outcome = { filled: [], skipped: [], resume: null, sections: {} };
+  const wizard = { steps: [], stops: [], advanced: 0, stoppedAt: null };
+  let entriesLeft = released.packet?.entries || null;
+  let step = shape;
+  for (let guard = 0; guard < 12; guard++) {
+    if (step.wizard?.isReview) { wizard.stoppedAt = 'review'; break; }
+    const matched = matchAnswersToFields(answers, step.fields);
+    plan.push(...matched.plan);
+    for (const u of matched.unmatched) if (!unmatched.some(x => x.name === u.name && x.field === u.field)) unmatched.push(u);
+    let r;
+    try {
+      const [res] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        world: 'MAIN',
+        func: applyPlan,
+        // D55 (b): the packet's repeating-section entries travel with the plan; applyPlan opens one
+        // panel per entry with the section's own Add / Add Another.
+        args: [matched.plan, outcome.resume?.attached ? null : resume, { entries: entriesLeft, keepExisting: !!step.wizard }],
+      });
+      r = res?.result || {};
+    } catch (e) {
+      return { ok: false, reason: 'inject_failed', message: `Could not fill the form: ${e.message}` };
+    }
+    outcome.filled.push(...(r.filled || []));
+    outcome.skipped.push(...(r.skipped || []));
+    if (r.resume && !outcome.resume?.attached) outcome.resume = r.resume;
+    Object.assign(outcome.sections, r.sections || {});
+    // A section is filled once: the kinds this step opened are not offered again on later steps.
+    if (entriesLeft && r.sections) {
+      entriesLeft = { ...entriesLeft };
+      for (const k of Object.keys(r.sections)) entriesLeft[k] = [];
+    }
+    if (!step.wizard) break;
+    wizard.steps.push({ step: step.wizard.step, filled: (r.filled || []).length });
+
+    // Stop and wait — then advance. Up to three attempts per step: a portal that writes its own
+    // "is required" error on Save and Continue sends the loop back to waiting.
+    let advanced = null;
+    for (let attempt = 0; attempt < 3 && !advanced; attempt++) {
+      const waited = await waitForCandidate(tab.id, origin, step.wizard.step, wizard);
+      if (!waited.ok) { wizard.stoppedAt = waited.reason; break; }
+      await showBadge(tab.id, 'progress');
+      const moved = await advanceAndWait(tab.id, step.wizard.step);
+      if (moved.ok) advanced = moved;
+      else if (moved.reason !== 'portal_refused') { wizard.stoppedAt = moved.reason; break; }
+    }
+    if (!advanced) { wizard.stoppedAt = wizard.stoppedAt || 'could_not_advance'; break; }
+    wizard.advanced += 1;
+    try {
+      const [p] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: probeFormShape });
+      step = p?.result;
+    } catch {
+      wizard.stoppedAt = 'grant_lost';
+      break;
+    }
+    // Same-origin is the whole permission (G0 §9): a wizard that wanders off the application's
+    // addresses ends the run, and nothing more is filled.
+    if (!step?.hasForm || !packetFillsOrigin(released, step.origin)) { wizard.stoppedAt = 'left_the_application'; break; }
   }
+  const isWizard = wizard.steps.length > 0 || wizard.stoppedAt === 'review';
 
   // ── The review overlay (TASK G3) ────────────────────────────────────────────
   // What was actually written, with the rule that produced each value, ordered so the candidate
@@ -1157,8 +1381,17 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
     };
   }
 
-  // D55 (c): painted AFTER the overlay so it sits beside it rather than under it.
-  const badge = await showBadge(tab.id, 'done');
+  // D55 (c)·(g): painted AFTER the overlay so it sits beside it rather than under it. "Filled —
+  // review and submit" only when no required field is left empty; otherwise "Complete required
+  // fields" — and on a single page it re-counts live and flips itself once the candidate has
+  // answered, because Greenhouse validates only on Submit, which is never pressed for them.
+  let missingAtEnd = [];
+  try {
+    const [m] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: findMissingRequired });
+    missingAtEnd = m?.result || [];
+  } catch { /* the badge then says done; the overlay still lists what was filled */ }
+  const badge = await showBadge(tab.id, missingAtEnd.length ? 'required' : 'done',
+    { missing: missingAtEnd, live: !isWizard || wizard.stoppedAt === 'review' });
 
   // ── Schema capture (TASK G4) ────────────────────────────────────────────────
   // The extension is standing inside a place the server can never reach. What goes back is the
@@ -1204,8 +1437,13 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
       // A fuzzy eligibility match is a resolver defect, not something to ask the candidate about.
       resolverBug: readiness.resolverBug,
     },
+    // D55 (d): which steps were filled and advanced, where the candidate was asked, and where it stopped.
+    wizard: isWizard ? wizard : null,
+    sections: outcome.sections,
     // Never auto-submitted. The last action is the candidate's — §6, without exception.
-    message: `Filled ${outcome?.filled?.length || 0} field(s). Review and submit yourself.`,
+    message: isWizard
+      ? wizardMessage(outcome?.filled?.length || 0, wizard)
+      : `Filled ${outcome?.filled?.length || 0} field(s). Review and submit yourself.`,
   };
 }
 

@@ -84,7 +84,8 @@ test("(b) the fill presses Add once per entry and fills ONLY the panel that appe
   assert.match(plan, /await waitFor\(\(\) => panelControls\(box\)\.some\(el => !before\.has\(el\)\), 3000\)/);
   assert.match(plan, /const fresh = panelControls\(box\)\.filter\(el => !before\.has\(el\)\);/);
   assert.match(plan, /if \(!kind \|\| sections\[kind\]\) continue;/, "each section is filled once");
-  assert.match(src, /args: \[plan, resume, \{ entries: released\.packet\?\.entries \|\| null/);
+  assert.match(src, /let entriesLeft = released\.packet\?\.entries \|\| null;/);
+  assert.match(src, /\{ entries: entriesLeft, keepExisting: !!step\.wizard \}/);
 });
 
 test("(b) the review gets ONE row per placed entry, acknowledged once, never per field", () => {
