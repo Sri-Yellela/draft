@@ -11,6 +11,7 @@ import { api, authContextQuery } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 // The second product is named by the one constant that holds its name (shared/brand.js).
 import { LEGACY_BRAND } from "../../../shared/brand.js";
+import { isAlarm } from "../../../shared/deployEvents.js";
 
 // ── shared bits ───────────────────────────────────────────────────────────────────────────────
 const nowSec = () => Math.floor(Date.now() / 1000);
@@ -138,6 +139,35 @@ export function DeploySection({ theme }) {
           ["monetisation", v.monetisationEnabled ? "ON — plan gates enforced" : "off — every tool open"],
         ]}/>
       )}
+      <div style={{ marginTop: 10 }}><Btn theme={theme} onClick={load}>Re-read</Btn></div>
+    </Card>
+  );
+}
+
+// ── D76 · Railway's events — GET /api/admin/deploy-events ──────────────────────────────────────
+// The last event per service, a failed or crashed deploy (or a volume / monitor alert) in red, beside
+// this server's own latest migration — so a push that did NOT deploy is visible, not found by accident.
+export function DeploymentsSection({ theme }) {
+  const [d, setD] = useState(null);
+  const [v, setV] = useState(null);
+  const [err, setErr] = useState(null);
+  const load = useCallback(() => {
+    setErr(null);
+    api("/api/admin/deploy-events").then(setD).catch(e => setErr(e.message));
+    api("/api/version").then(setV).catch(() => {});
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  const rows = (d?.latest || []).map(e => [
+    e.service_name || "?",
+    `${e.event_type}${e.commit_hash ? ` · ${String(e.commit_hash).slice(0, 7)}` : ""} · ${e.environment_name || "?"} · ${ago(e.received_at)}`,
+    isAlarm(e) ? C.DANGER : (e.state === "success" ? C.SUCCESS : null),
+  ]);
+  return (
+    <Card theme={theme} title="Deployments — Railway's webhook (D76)" measured={v ? `this server: ${v.commit ?? "?"} · migration ${v.migrations?.latestApplied ?? "?"}` : null}>
+      <Err msg={err}/>
+      {d && (rows.length
+        ? <KV theme={theme} rows={rows}/>
+        : <div style={{ fontSize: 12, color: C.INK_FAINT }}>No event received yet — the webhook is set in Railway → Project Settings → Webhooks, with the header <code>Authorization: Bearer &lt;RAILWAY_WEBHOOK_TOKEN&gt;</code>.</div>)}
       <div style={{ marginTop: 10 }}><Btn theme={theme} onClick={load}>Re-read</Btn></div>
     </Card>
   );
@@ -781,6 +811,7 @@ export function OpsTab({ theme }) {
   return (
     <div>
       <DeploySection theme={theme}/>
+      <DeploymentsSection theme={theme}/>
       <KillSwitchSection theme={theme}/>
       <BoardFitSection theme={theme}/>
       <EnrichmentSection theme={theme}/>

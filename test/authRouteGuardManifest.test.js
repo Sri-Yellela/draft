@@ -228,6 +228,9 @@ const AUTHENTICATED = new Set([
   "POST /api/admin/apply-origins/:id/revoke",
   // D75: the owner promotes a pair the crawler OBSERVED (the crawler never promotes) — admin only.
   "POST /api/admin/apply-origins/:id/promote",
+  // D76: the Railway deploy events — admin only. (The hook itself, POST /api/hooks/railway, is a mounted
+  // router authenticated by its own Bearer header; it is not a session route.)
+  "GET /api/admin/deploy-events",
   // D55 decision E: "Report this form" — host + field labels, stored against the reporter's own
   // account (deleted with it, rate-limited per user). Signed in only: an anonymous report has no one
   // to rate-limit and no account for its rows to be deleted with.

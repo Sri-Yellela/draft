@@ -4001,4 +4001,29 @@ export const MIGRATIONS = [
         ALTER TABLE apply_origin_pairs ADD COLUMN crawler_hops_json TEXT;
       `,
     },
+    {
+      // D76 (owner, 10-09): RAILWAY WEBHOOK EVENTS — deploy status changes and alerts, so a failed deploy, a
+      // crash or a volume alert is SEEN (a FAILED tools-service deploy went unnoticed; the volume once
+      // reached 481 / 500 MB). Written ONLY by POST /api/hooks/railway (routes/railwayHook.js), which keeps
+      // ids, never a commit message or an author, and never acts on what it records.
+      id: "143_deploy_events",
+      sql: `
+        CREATE TABLE IF NOT EXISTS deploy_events (
+          id               INTEGER PRIMARY KEY AUTOINCREMENT,
+          event_type       TEXT NOT NULL,
+          family           TEXT NOT NULL,
+          state            TEXT,
+          severity         TEXT,
+          project_name     TEXT,
+          environment_name TEXT,
+          service_name     TEXT,
+          service_id       TEXT,
+          deployment_id    TEXT,
+          commit_hash      TEXT,
+          occurred_at      TEXT,
+          received_at      INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_deploy_events_service ON deploy_events(service_name, id);
+      `,
+    },
   ];
