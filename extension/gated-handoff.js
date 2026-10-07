@@ -822,6 +822,27 @@ export function matchAnswersToFields(answers, fields) {
     }
     if (!field) { unmatched.push({ field: a.field, name: a.name, reason: 'no_matching_control' }); continue; }
 
+    // ── D55: the DECIDED rules (AUTOFILL_TARGET.md §7.3–§7.5), applied to the QUESTION ON THE PAGE ──
+    // Read off the field's own label, whatever the answer's name claims, because the page's
+    // question is what the employer will read the answer as.
+    //   §7.4 never opt the candidate in — a "yes" to marketing / WhatsApp / text messages is never
+    //        placed; a "no" only when it is the candidate's own stored answer.
+    //   §7.3 a screening question that can rule them out ("7+ years?") is answered only where they
+    //        STATED it — their own answer, or an exact control match — never by a label guess. Left
+    //        empty, it is a required stop on the badge, like work authorisation.
+    //   §7.5 EEO is stated or blank — never a guessed or defaulted value.
+    const kind = questionKind(field.label);
+    const guessed = ['label_fuzzy', 'default', 'sponsorship_assumed_future'].includes(a.provenance);
+    const yes = a.value === true || /^(yes|true|y|i agree|opt in|subscribe)\b/i.test(String(a.value).trim());
+    let refusal = null;
+    if (kind === 'opt_in' && (yes || a.provenance !== 'custom_answer')) refusal = 'opt_in_left_for_you';
+    else if (kind === 'screening' && (guessed || (how !== 'exact' && a.provenance !== 'custom_answer'))) refusal = 'screening_left_for_you';
+    else if (kind === 'eeo' && guessed) refusal = 'eeo_left_for_you';
+    if (refusal) {
+      unmatched.push({ field: field.label || a.field, name: a.name, reason: refusal, kind });
+      continue;
+    }
+
     taken.add(field.index);
     plan.push({
       index: field.index, name: field.name, id: field.id,
