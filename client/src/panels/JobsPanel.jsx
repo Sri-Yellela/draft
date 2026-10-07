@@ -185,7 +185,6 @@ function ago(ts) {
   return `${Math.floor(d/86400000)}d`;
 }
 
-// ── LinkedIn "in" logo (inline SVG) ──────────────────────────
 // Moved to client/src/lib/applyTools.js so AutoApplyContext can build the same apply-run request
 // from the same constants — two copies of a wire value is how a client and a server drift apart.
 
@@ -231,71 +230,8 @@ function buildArtifact(job, data, tool) {
   };
 }
 
-function LinkedInLogo({ size = 20 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 20 20" aria-label="LinkedIn" role="img">
-      <rect width="20" height="20" rx="3" fill={C.PROVIDER_LINKEDIN}/>
-      <text x="4" y="15" fontFamily="Georgia,serif" fontWeight="900" fontSize="13" fill={C.ON_PROVIDER}>in</text>
-    </svg>
-  );
-}
-
-// ── Indeed logo (inline SVG) ──────────────────────────────────
-function IndeedLogo({ size = 20 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 20 20" aria-label="Indeed" role="img">
-      <rect width="20" height="20" rx="3" fill={C.PROVIDER_INDEED}/>
-      <circle cx="10" cy="8" r="3" fill={C.ON_PROVIDER}/>
-      <rect x="7.5" y="11" width="5" height="6" rx="1" fill={C.ON_PROVIDER}/>
-    </svg>
-  );
-}
-
-// ── Platform logo dispatcher ───────────────────────────────────
-function PlatformLogo({ platform, size = 20, theme }) {
-  const p = (platform || "").toLowerCase();
-  if (p === "linkedin") return <LinkedInLogo size={size}/>;
-  if (p === "indeed")   return <IndeedLogo size={size}/>;
-  return <span style={{ fontSize:size*0.5, color:theme?.textMuted||C.INK_FAINT }}>◆</span>;
-}
-
-// ── Company icon with monogram fallback ───────────────────────
-
-// ── Work type badge ────────────────────────────────────────────
-function WorkBadge({ t, theme }) {
-  // Use semantic colors that work in both light/dark — the fg/bg are theme tokens
-  const map = {
-    Remote: { bg:C.INFO_QUIET, fg:C.INFO },
-    Hybrid: { bg:C.INFO_QUIET, fg:C.INFO },
-  };
-  const s = map[t] || null;
-  if (s) {
-    return (
-      <span style={markStyle(s.fg)}>
-        {t}
-      </span>
-    );
-  }
-  return (
-    <span style={markStyle(C.INK_FAINT)}>
-      {t || "-"}
-    </span>
-  );
-}
-
-// ── Resume badge ──────────────────────────────────────────────
-function ResumeBadge({ onClick, loading }) {
-  return (
-    <span
-      onClick={onClick ? e => { e.stopPropagation(); onClick(); } : undefined} className="dbx-depth"
-      style={{ background:C.INFO_QUIET, color:C.INFO, padding:"3px 8px",
-               fontSize:10, fontWeight:700,
-               cursor:"pointer", border:`1px solid ${C.INFO}44`,
-               display:"inline-flex", alignItems:"center", gap:3 }}>
-      {loading ? "Loading" : "Resume"}
-    </span>
-  );
-}
+// A93: LinkedInLogo, IndeedLogo, PlatformLogo, WorkBadge and ResumeBadge were dead private copies of
+// JobCard's — removed. The board's card is JobBubble; JobCard keeps the only copies.
 
 // ── The board's text button (was the "Lucy" button: rectangle → pill on hover over 1s, Barlow
 //    capitals, a 2.5px ink box). A53: the deck's treatment — a glass pill at rest, the orange FILL
