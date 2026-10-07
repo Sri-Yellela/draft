@@ -33,6 +33,7 @@ import {
   buildAnswers, CONFIDENCE_BY_PROVENANCE, ELIGIBILITY_HANDLERS, PROFILE_KEY_TO_HANDLER, eligibilityClassOf,
 } from "./applyAutomation.js";
 import { isOptInQuestion, workedHereAnswer, COMPANY_TOKEN, isEeoDecline } from "../shared/savedAnswers.js";
+import { skillsOfStructured, PARSE_FAILED_MESSAGE } from "./payloadResume.js";
 
 /** handler_map's EEO keys (buildAutofillPayload) — what an eeoDeclines entry may name. */
 export const EEO_DECLINE_HANDLERS = Object.freeze(["gender", "ethnicity", "veteran", "disability"]);
@@ -319,9 +320,16 @@ const asUrl = (raw) => {
  * @param {object} opts
  * @param {object} opts.profile          the user_profile row (may be null)
  * @param {object} opts.structuredResume buildStructuredResume() of the base résumé (may be null)
+ * @param {object} [opts.payload]        ⭐ D65 — services/payloadResume.js payloadResumeParse(): the parse of
+ *   the résumé the packet CARRIES. When given, it is the ONE source of work history and of the résumé's
+ *   skills: no profile fallback (a tailored résumé that dropped a role must not have it filled), and a
+ *   parse that read nothing fills nothing for those sections and says so (entries.parse). User-claimed
+ *   skills (confirmed_skills) are added either way, deduplicated, and listed in skillsClaimed.
  */
-export function buildPacketEntries({ profile = null, structuredResume = null } = {}) {
+export function buildPacketEntries({ profile = null, structuredResume = null, payload = undefined } = {}) {
   const p = profile || {};
+  const fromPayload = payload !== undefined && payload !== null && payload.source != null;
+  if (fromPayload) structuredResume = payload.ok ? payload.structured : null;
 
   const education = [];
   if (clean(p.university) || clean(p.highest_degree) || clean(p.field_of_study)) {
@@ -355,7 +363,7 @@ export function buildPacketEntries({ profile = null, structuredResume = null } =
       source: "resume",
     });
   }
-  if (!work.length && (clean(p.current_company) || clean(p.current_job_title))) {
+  if (!fromPayload && !work.length && (clean(p.current_company) || clean(p.current_job_title))) {
     work.push({
       title: clean(p.current_job_title) || null, company: clean(p.current_company) || null, location: null,
       from: null, to: null, current: true, description: null, source: "profile",
@@ -375,7 +383,18 @@ export function buildPacketEntries({ profile = null, structuredResume = null } =
       .map(s => clean(typeof s === "string" ? s : s?.name ?? s?.skill)).filter(Boolean))].slice(0, 40);
   } catch { skills = []; }
 
-  return { education, work, languages: [], websites, skills };
+  if (!fromPayload) return { education, work, languages: [], websites, skills };
+
+  // ⭐ D65: the résumé's own skills first, then the user's claims that the résumé does not show.
+  const resumeSkills = payload.ok ? skillsOfStructured(payload.structured) : [];
+  const claimed = skills.filter(c => !resumeSkills.some(r => r.toLowerCase() === c.toLowerCase()));
+  return {
+    education, work, languages: [], websites,
+    skills: [...resumeSkills, ...claimed].slice(0, 60),
+    skillsClaimed: claimed,
+    resumeSource: payload.source,
+    parse: payload.ok ? { ok: true } : { ok: false, message: PARSE_FAILED_MESSAGE },
+  };
 }
 
 /** True when an entries object has anything in it. */
