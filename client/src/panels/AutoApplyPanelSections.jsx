@@ -19,25 +19,9 @@ import { C } from "../styles/colorTokens.js";
 // now, and nothing in this module reads them. The partition still lives in shared/ because
 // routes/apply.js groups rows with it; a copy on each side is how the two come to disagree.
 
-// D14: it WRAPS. In the Draft panel's narrow Queued column (a quarter of the width) a title, its
-// count and its note do not fit on one line; the title stays whole ("Waiting in line", never
-// "Waiting / in line") and the note drops below it.
-export function SectionHeading({ children, count, note, theme }) {
-  return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: "4px 10px", marginTop: 4, flexWrap: "wrap" }}>
-      <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontWeight: 400,
-                   fontSize: 20, whiteSpace: "nowrap",
-                   color: theme.text }}>
-        {children}
-      </h3>
-      {count != null && (
-        <span style={{ fontSize: 12, fontWeight: 700, color: theme.textMuted }}>{count}</span>
-      )}
-      {note && <span style={{ fontSize: 11, color: theme.textDim }}>{note}</span>}
-      <div style={{ flex: "1 1 24px", height: 1, background: theme.border }} />
-    </div>
-  );
-}
+// A93: SectionHeading moved to components/SectionHeading.jsx (shared — WaitingLine and the Draft panel both
+// draw it); re-exported here so this module's callers keep their import.
+export { SectionHeading } from "../components/SectionHeading.jsx";
 
 // D25: ObstacleCard (one obstacle, one action, a count) is gone with the cards it drew. Draft House's
 // Stopped column renders each exception as a StoppedItem (components/StoppedItem.jsx), built from

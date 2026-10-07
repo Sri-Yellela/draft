@@ -1,6 +1,6 @@
 // client/src/components/AtsReport.jsx — THE ATS REPORT. ONE IMPLEMENTATION, EVERY SURFACE (A52).
 //
-// ⛔ THIS IS THE ONLY FILE THAT DRAWS AN ATS REPORT. The board's side panel (panels/ATSPanel.jsx,
+// ⛔ THIS IS THE ONLY FILE THAT DRAWS AN ATS REPORT. The board's side panel (components/ATSPanel.jsx,
 // inside AtsReportPanel), the deck's left panel and the phone's sheet (DeckView, through ATSPanel),
 // the free public tool (/tools/ats) and the signup hook (AtsBandCard) all render from here. It is
 // pure presentation: it takes a report in ONE shape (the scorer's own — tier1_matched,

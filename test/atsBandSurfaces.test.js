@@ -78,7 +78,7 @@ test("no user-facing surface prints the raw ATS number", () => {
     "client/src/panels/JobsPanel.jsx",
     "client/src/panels/AutoApplyPanel.jsx",
     "client/src/panels/AutoApplyPanelSections.jsx",
-    "client/src/panels/ATSPanel.jsx",
+    "client/src/components/ATSPanel.jsx",
     // A52: the one report implementation every ATS surface now draws, and the public tool.
     "client/src/components/AtsReport.jsx",
     "client/src/pages/tools/ATSToolPage.jsx",

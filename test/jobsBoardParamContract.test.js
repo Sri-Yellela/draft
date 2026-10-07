@@ -192,7 +192,7 @@ test("an empty board always says which kind of empty it is", () => {
   assert.match(panel, /Your filters exclude all jobs/);
   assert.match(panel, /function RoleScopedEmptyState/);
   assert.match(panel, /No jobs in your profile/);
-  assert.match(panel, /Search for a role above/);
+  assert.match(panel, /No jobs on the board yet/);   // A93: was "Search for a role above · LinkedIn + Indeed" — false copy
   assert.match(panel, /emptyBecauseFiltered/);
   assert.match(panel, /emptyBecauseRole/);
   // A board emptied only by the search box must land on the filtered message, not on "search above".

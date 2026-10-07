@@ -29,6 +29,7 @@ import {
   RESPONSE_OUTCOME, RESPONSE_OUTCOMES, RESPONSE_LABELS, MATURITY_DAYS, responseBucket,
 } from "../../../shared/applicationResponse.js";
 import { C } from "../styles/colorTokens.js";
+import EmptyState from "../components/EmptyState.jsx";
 import { bandMarkStyle } from "../styles/mark.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 
@@ -695,7 +696,7 @@ export function DatabasePanel({ user }) {
           Loading data…
         </div>
       ) : isTableSheet && displayRows.length === 0 ? (
-        <EmptyState sheet={activeSheet} hasFilter={!!(search || filterDate)} theme={theme}/>
+        <TableEmptyState sheet={activeSheet} hasFilter={!!(search || filterDate)} theme={theme}/>
       ) : isTableSheet ? (
         <div style={{ flex:1, overflow:"auto" }}>
           <table style={{ borderCollapse:"collapse", width:"100%", tableLayout:"fixed" }}>
@@ -1091,23 +1092,13 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
  * predict anything", and a difference computed over four applications would answer it confidently
  * and wrongly, which is the failure the engine work was about avoiding in the first place.
  */
-function EmptyState({ sheet, hasFilter, theme }) {
+// A93: The Table's empty sheet, drawn by the shared EmptyState (components/EmptyState.jsx).
+function TableEmptyState({ sheet, hasFilter, theme }) {
   return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column",
-                  alignItems:"center", justifyContent:"center",
-                  color:theme.textDim, gap:12, padding:40 }}>
-      <div style={{ fontSize:40 }}>{sheet === "applications" ? "📋" : "📄"}</div>
-      <div style={{ fontWeight:700, color:theme.textMuted, fontSize:14 }}>
-        {hasFilter ? "No rows match your filter" :
-          sheet === "applications" ? "No applications tracked yet" : "No resumes generated yet"}
-      </div>
-      <div style={{ fontSize:12, color:theme.textDim,
-                    textAlign:"center", maxWidth:300, lineHeight:1.8 }}>
-        {hasFilter ? "Try clearing the search or date filter." :
-          sheet === "applications"
-            ? "When you export a PDF for a job, it's automatically logged here."
-            : "Generate resumes from Full House — they appear here with ATS scores."}
-      </div>
-    </div>
+    <EmptyState theme={theme}
+      title={hasFilter ? "No rows match your filter" : sheet === "applications" ? "No applications tracked yet" : "No resumes generated yet"}
+      body={hasFilter ? "Try clearing the search or date filter."
+        : sheet === "applications" ? "When you export a PDF for a job, it's automatically logged here."
+        : "Generate resumes from Full House — they appear here with ATS scores."} />
   );
 }

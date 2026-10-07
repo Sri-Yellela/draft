@@ -82,7 +82,7 @@ test("⛔ the LEFT panel is the FULL report — the board's own ATSPanel — fed
   }
   // A card dealt before the full report was frozen says where it is — it does not rebuild one from chips.
   assert.match(panel, /if \(!r\) \{[\s\S]*?Full report on the board →/);
-  assert.match(read("client/src/panels/ATSPanel.jsx"), /const band = knownBand \?\? atsBandFor\(/);
+  assert.match(read("client/src/components/ATSPanel.jsx"), /const band = knownBand \?\? atsBandFor\(/);
 });
 
 test("⛔ the card is still the element that expanded: the report is INSIDE the deck, nothing routes, no old overlay", () => {

@@ -4,7 +4,7 @@ import CompanyLogo from "../components/CompanyLogo.jsx";
 import CompanyLink from "../components/CompanyLink.jsx";
 import ResumeList, { ScoreBox, RESUME_ICONS } from "../components/ResumeList.jsx";
 import { api } from "../lib/api.js";
-import { ATSPanel } from "./ATSPanel.jsx";
+import { ATSPanel } from "../components/ATSPanel.jsx";
 import { atsBandLabel } from "../../../shared/atsBands.js";
 import { reportBand } from "../components/AtsReport.jsx";
 

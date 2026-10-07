@@ -119,7 +119,7 @@ test("an empty board caused by filters says so, and never reads as 'no jobs avai
   assert.match(panel, /Clear all filters/);
   // The generic "search for a role" state must still exist for the genuinely-unfiltered case —
   // the point is that the two are distinguished, not that one replaced the other.
-  assert.match(panel, /Search for a role above/);
+  assert.match(panel, /No jobs on the board yet/);   // A93: was "Search for a role above · LinkedIn + Indeed" — false copy
   assert.match(panel, /emptyBecauseFiltered/);
 });
 

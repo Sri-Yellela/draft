@@ -4,6 +4,7 @@ import { announceAccountChanged, useAccountAvatar } from "../lib/accountAvatar.j
 import { glass } from "../styles/glass.js";
 import { C } from "../styles/colorTokens.js";
 import ResumeList, { RESUME_ICONS } from "../components/ResumeList.jsx";
+import SettingsSection from "../components/SettingsSection.jsx";
 
 // ── Account (/app/account) ──────────────────────────────────────────────────────────────────────
 // Profile and picture, sign-in and security (password, sign-in methods, where you're signed in),
@@ -34,18 +35,7 @@ const input = { border: `1px solid ${C.BORDER_CONTROL}`, background: C.SURFACE_I
 const row = { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" };
 const muted = { color: "var(--color-text-muted)", fontSize: 12, lineHeight: 1.5 };
 
-function Section({ title, subtitle, children, tone }) {
-  return (
-    <section style={{ ...glass({ radius: 14 }), padding: 18, display: "flex", flexDirection: "column", gap: 12,
-      ...(tone === "danger" ? { border: `1px solid ${C.DANGER}55` } : {}) }}>
-      <div>
-        <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontWeight: 400, fontSize: 18, color: tone === "danger" ? C.DANGER : "var(--color-text)" }}>{title}</h2>
-        {subtitle && <div style={{ ...muted, marginTop: 2 }}>{subtitle}</div>}
-      </div>
-      {children}
-    </section>
-  );
-}
+// A93: the section card is components/SettingsSection.jsx — Integrations draws the same one.
 
 function Notice({ kind, children, onClose }) {
   if (!children) return null;
@@ -119,11 +109,11 @@ export function AccountPanel({ onSignedOut }) {
 
         <ProfileSection account={account} avatarUrl={avatarUrl} fileRef={fileRef} busy={busy} run={run} post={post} />
 
-        <Section title="Email" subtitle="Used to sign in and to reset your password.">
+        <SettingsSection title="Email" subtitle="Used to sign in and to reset your password.">
           <EmailEditor account={account} busy={busy} run={run} post={post} say={say} />
-        </Section>
+        </SettingsSection>
 
-        <Section title="Sign-in & security"
+        <SettingsSection title="Sign-in & security"
           subtitle={account.recentAuth ? "You signed in recently, so changes below are unlocked."
             : "Some changes ask you to confirm it's you first."}>
           {!account.recentAuth && <ReauthBox account={account} busy={busy} run={run} post={post} methods={methods} />}
@@ -142,15 +132,15 @@ export function AccountPanel({ onSignedOut }) {
               </div>
             ))}
           </div>
-        </Section>
+        </SettingsSection>
 
-        <Section title="Where you're signed in" subtitle="Sign out of a browser or app you no longer use.">
+        <SettingsSection title="Where you're signed in" subtitle="Sign out of a browser or app you no longer use.">
           <SessionsList sessions={sessions} busy={busy} run={run} post={post} reload={loadSessions} />
-        </Section>
+        </SettingsSection>
 
         <MergeSection account={account} busy={busy} run={run} post={post} say={say} />
 
-        <Section title="Your data" subtitle="A copy of everything Draft keeps for you, as JSON.">
+        <SettingsSection title="Your data" subtitle="A copy of everything Draft keeps for you, as JSON.">
           <div style={row}>
             <button style={btnQuiet} disabled={!!busy} onClick={() => run("export", async () => {
               const r = await fetch("/api/account/export", { credentials: "include", headers: authHeaders() });
@@ -161,7 +151,7 @@ export function AccountPanel({ onSignedOut }) {
           </div>
           <BaseResumeOnly />
           <GeneratedResumes busy={busy} run={run} />
-        </Section>
+        </SettingsSection>
 
         <DeleteSection account={account} busy={busy} run={run} post={post} onSignedOut={onSignedOut} />
       </div>
@@ -268,7 +258,7 @@ function ProfileSection({ account, avatarUrl, fileRef, busy, run, post }) {
     return r;
   }, "Picture updated.");
   return (
-    <Section title="Profile">
+    <SettingsSection title="Profile">
       <div style={{ ...row, gap: 16, alignItems: "flex-start" }}>
         <div style={{ width: 84, height: 84, borderRadius: "50%", overflow: "hidden", flex: "none",
           background: C.ACCENT, color: C.ON_ACCENT, display: "flex", alignItems: "center", justifyContent: "center",
@@ -294,7 +284,7 @@ function ProfileSection({ account, avatarUrl, fileRef, busy, run, post }) {
           <div style={muted}>Username <strong style={{ color: "var(--color-text)" }}>{account.username}</strong> · member since {new Date((account.createdAt || 0) * 1000).toLocaleDateString()}</div>
         </div>
       </div>
-    </Section>
+    </SettingsSection>
   );
 }
 
@@ -425,7 +415,7 @@ function MergeSection({ account, busy, run, post, say }) {
   }, [ready, preview]);
   const counts = Object.entries(preview?.counts || {}).filter(([t]) => TABLE_LABEL[t]);
   return (
-    <Section title="Merge another account into this one"
+    <SettingsSection title="Merge another account into this one"
       subtitle="Signed up twice — say once with a password and once with Google? Bring the other account's jobs, profiles and sign-in here. The other account is then deleted.">
       {!preview ? (
         <>
@@ -462,7 +452,7 @@ function MergeSection({ account, busy, run, post, say }) {
           </div>
         </div>
       )}
-    </Section>
+    </SettingsSection>
   );
 }
 
@@ -470,7 +460,7 @@ function DeleteSection({ account, busy, run, post, onSignedOut }) {
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
   return (
-    <Section title="Delete account" tone="danger"
+    <SettingsSection title="Delete account" tone="danger"
       subtitle="Deletes your account and everything in it — profiles, resumes, applications, history. This can't be undone. Download your data first if you want a copy.">
       {!open
         ? <div style={row}><button style={btnQuiet} onClick={() => setOpen(true)}>Delete my account…</button></div>
@@ -483,7 +473,7 @@ function DeleteSection({ account, busy, run, post, onSignedOut }) {
             <button style={btnDanger} disabled={!!busy || typed !== account.username || !account.recentAuth}>Delete forever</button>
             <button type="button" style={btnQuiet} onClick={() => { setOpen(false); setTyped(""); }}>Cancel</button>
           </form>}
-    </Section>
+    </SettingsSection>
   );
 }
 

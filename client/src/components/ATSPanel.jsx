@@ -1,4 +1,5 @@
-// client/src/panels/ATSPanel.jsx — Design System v4
+// client/src/components/ATSPanel.jsx — the ATS report LOADER (A93: moved from panels/ — the deck and the
+// ATS panel both mount it, so it is shared, not one page's)
 // KEYWORD DATA SOURCE PRIORITY:
 // 1. ats_report from generated resume (most accurate)
 // 2. ats_only_reports cache (avoid redundant Haiku calls)
@@ -18,7 +19,7 @@ import {
 } from "../lib/profileSuggestions.js";
 import { profileSignalKey } from "../../../shared/profileSignals.js";
 import { atsBandFor } from "../../../shared/atsBands.js";
-import { AtsReport } from "../components/AtsReport.jsx";
+import { AtsReport } from "./AtsReport.jsx";
 
 // `band` (A40): a caller that holds the BAND and deliberately not the number — the deck — passes it here,
 // and the report is drawn from it. Everywhere else the band is derived from the report's own score.

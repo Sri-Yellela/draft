@@ -33,7 +33,7 @@ import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
 import { bandMarkStyle } from "../styles/mark.js";
 import { ATS_BAND, atsBandLabel } from "../../../shared/atsBands.js";
-import { ATSPanel } from "./ATSPanel.jsx";
+import { ATSPanel } from "../components/ATSPanel.jsx";
 import { AtsBandCard, fromDeckReport } from "../components/AtsReport.jsx";
 import PostingPanel from "../components/PostingPanel.jsx";
 import { PairLinkProvider } from "../lib/pairLink.js";
