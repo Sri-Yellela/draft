@@ -182,6 +182,9 @@ export function readImport(text, mapping = {}, { now = Math.floor(Date.now() / 1
       if (NEUTRAL.has(k)) outcome = null;
       else if (k === "closed" || k === "did_not_apply") return bad("not_sent");
       else if (k === "in_play" || k === "drafted") return bad("not_sent");
+      // ⭐ D69 (a) (owner, 10-07): SpeedyApply's "Archived" is an application the user withdrew from. Here,
+      // in the import, not in OUTCOME_ALIASES — "archived" means this only in a SpeedyApply export.
+      else if (k === "archived") outcome = "withdrawn";
       else {
         // The Table's own Stage labels ("Interviewing", "No reply") and the stored values both read.
         outcome = normaliseOutcome(rawOutcome);
