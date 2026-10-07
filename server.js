@@ -91,6 +91,7 @@ import { rejectCrossSiteWrites } from "./services/originGuard.js";
 import { AccountError, forgetSessions, recordSession, sidsToRevoke } from "./services/accountService.js";
 import { adminDeletePreview, adminDeleteUser, checkAdminDeleteConfirmed, removeDataFiles } from "./services/adminUserDelete.js";
 import { createAccountManagementRouter } from "./routes/accountManagement.js";
+import { createSavedAnswersRouter } from "./routes/savedAnswers.js";
 import { allowedModesForTier, canUseAPlusResume, canUseGenerate, canUseMode, hasPlanAtLeast, nextPlan, normalisePlanTier, planForMode } from "./services/entitlements.js";
 import { monetisationEnabledFromEnv } from "./shared/monetisation.js";
 import { fullAutoState, setSetting, clearSetting, FULL_AUTO_KEY } from "./services/appSettings.js";
@@ -7304,6 +7305,9 @@ app.use(createAccountRouter({
 
 // Account management — profile, picture, sessions, password, email, sign-in methods, export,
 // merge and delete. routes/accountManagement.js; the data layer is services/accountService.js.
+// D55 (f): the candidate's saved answers — remember, list/edit/delete, export/import, test a question.
+app.use(createSavedAnswersRouter({ db, requireAuth, buildAutofillPayload }));
+
 app.use(createAccountManagementRouter({
   db,
   requireAuth,

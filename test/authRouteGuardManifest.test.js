@@ -139,6 +139,9 @@ const AUTHENTICATED = new Set([
   "POST /api/plans/request-upgrade",
   "GET /api/profile",
   "POST /api/profile",
+  // D55 (f): the caller's OWN saved answers (user_profile.custom_answers / custom_answer_overrides), always
+  // req.user.id. Remember one, manage, export / import, and test a question against them.
+  "POST /api/saved-answers/remember",
   "PATCH /api/profile/skills",
   "GET /api/autofill",
   "GET /api/extension/autofill",
@@ -379,6 +382,7 @@ function collect() {
     // already carry their full /api path and their own per-route guard.
     ...routerRoutes(fs.readFileSync("routes/account.js", "utf8"), ""),
     ...routerRoutes(fs.readFileSync("routes/accountManagement.js", "utf8"), ""),
+    ...routerRoutes(fs.readFileSync("routes/savedAnswers.js", "utf8"), ""),
     ...routerRoutes(fs.readFileSync("routes/domainProfiles.js", "utf8"), "/api/domain-profiles")
       .map(r => ({ ...r, guard: named(r.guard) || mounts.get("/api/domain-profiles") })),
     ...routerRoutes(fs.readFileSync("routes/importJob.js", "utf8"), "/api/import")

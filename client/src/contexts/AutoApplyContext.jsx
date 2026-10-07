@@ -66,6 +66,9 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
   const [applyQuestions, setApplyQuestions] = useState([]);
   const [applyQuestionMeta, setApplyQuestionMeta] = useState({ eligibilityCount: 0, blockedJobs: 0 });
   const [questionDrafts, setQuestionDrafts] = useState({});   // question text -> answer
+  // D55 (f): "Save this answer for next time?" per question — absent reads as YES (the box starts
+  // ticked); false keeps the answer for the blocked employer only.
+  const [questionRemember, setQuestionRemember] = useState({}); // question text -> boolean
   const [answersSaving, setAnswersSaving] = useState(false);
   const [answersMsg, setAnswersMsg] = useState("");
   // Queue-then-approve. An auto run now fills the form, runs every gate and STOPS; these are the
@@ -185,6 +188,8 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       setAnswersMsg("Answer at least one question first.");
       return;
     }
+    const remember = {};
+    for (const q of Object.keys(answers)) remember[q] = questionRemember[q] !== false;
     const blocked = [...new Set(
       applyQuestions
         .filter(q => answers[q.question] !== undefined)
@@ -198,6 +203,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
         method: "POST",
         body: JSON.stringify({
           answers,
+          remember,
           ...(retry ? { retryJobIds: blocked, mode: "auto" } : {}),
         }),
       });
@@ -222,7 +228,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
     } finally {
       setAnswersSaving(false);
     }
-  }, [applyQuestions, questionDrafts, loadApplyQuestions, loadApplyRuns]);
+  }, [applyQuestions, questionDrafts, questionRemember, loadApplyQuestions, loadApplyRuns]);
 
   // ── Queue-then-approve ─────────────────────────────────────────────────────
   const loadApplyPending = useCallback(async () => {
@@ -752,7 +758,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       applyReviewScope, setApplyReviewScope,
       applyReadiness,
       applyQuestions, applyQuestionMeta,
-      questionDrafts, setQuestionDrafts,
+      questionDrafts, setQuestionDrafts, questionRemember, setQuestionRemember,
       answersSaving, answersMsg,
       applyPending, approvalCap, pendingDetail, pendingBusy, pendingMsg,
       confirmApproveAll, setConfirmApproveAll,

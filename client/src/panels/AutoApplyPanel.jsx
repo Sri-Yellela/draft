@@ -88,6 +88,7 @@ export function AutoApplyPanel() {
     applyReadiness,
     applyQuestions = [], applyQuestionMeta,
     questionDrafts, setQuestionDrafts,
+    questionRemember = {}, setQuestionRemember,
     answersSaving, answersMsg,
     applyPending = [], approvalCap, pendingDetail, pendingBusy, pendingMsg,
     confirmApproveAll, setConfirmApproveAll,
@@ -1116,9 +1117,25 @@ export function AutoApplyPanel() {
                           <input value={value} onChange={e => setValue(e.target.value)} style={inputStyle}/>
                         )}
 
+                        {/* D55 (f): "Save this answer for next time?" — ticked keeps it for every
+                            employer (the company's name becomes {company}); unticked keeps it for
+                            the blocked employer only, so this retry still fills. */}
+                        <label data-save-for-next-time="" style={{ display:"flex", alignItems:"center", gap:6,
+                                        fontSize:11, color:theme.textMuted, cursor:"pointer" }}>
+                          <input type="checkbox"
+                            checked={questionRemember[q.question] !== false}
+                            onChange={e => setQuestionRemember?.(prev => ({ ...prev, [q.question]: e.target.checked }))}/>
+                          Save this answer for next time
+                          {questionRemember[q.question] === false && (q.blocking || []).length > 0 && (
+                            <span style={{ color:theme.textDim }}>
+                              — only for {[...new Set(q.blocking.map(b => b.company).filter(Boolean))].join(", ") || "this employer"}
+                            </span>
+                          )}
+                        </label>
+
                         {(q.blocking || []).length > 0 && (
                           <div style={{ fontSize:10, color:theme.textDim }}>
-                            Blocks: {q.blocking.slice(0, 3).map(b => b.company || b.title || b.jobId).join(", ")}
+                            Blocks:{q.blocking.slice(0, 3).map(b => b.company || b.title || b.jobId).join(", ")}
                             {q.blocking.length > 3 ? ` +${q.blocking.length - 3} more` : ""}
                           </div>
                         )}

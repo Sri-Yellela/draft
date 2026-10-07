@@ -268,3 +268,41 @@ test("saving twice merges rather than replaces, across both maps", async () => {
     assert.deepEqual(Object.keys(store.overrides).sort(), ["figma", "linear"]);
   } finally { server.close(); }
 });
+
+// ── D55 (f): "Save this answer for next time?" ───────────────────────────────────────────────
+
+test("D55 (f): remember=true templates the ONE blocking employer's name, and the answer unblocks it", async () => {
+  const { db, server, url } = setup();
+  try {
+    const q = "How did you hear about Figma?";
+    // Only Figma is blocked on this wording: add it to the Figma row's open questions.
+    const row = db.prepare("SELECT id, open_questions_json FROM apply_run_jobs WHERE job_id='fig1'").get();
+    const qs = JSON.parse(row.open_questions_json);
+    qs.push({ question: q, type: "text", reason: "unanswered" });
+    db.prepare("UPDATE apply_run_jobs SET open_questions_json=? WHERE id=?").run(JSON.stringify(qs), row.id);
+
+    const r = await post(url, "/api/apply/answers", { answers: { [q]: "A friend" }, remember: { [q]: true } }).then(x => x.json());
+    assert.deepEqual(r.remembered, [{ scope: "all", question: "How did you hear about {company}?", templated: true }]);
+    assert.equal(storeOf(db).answers["How did you hear about {company}?"], "A friend");
+  } finally { server.close(); }
+});
+
+test("D55 (f): remember=false keeps the answer for the blocked employers ONLY — nothing for next time", async () => {
+  const { db, server, url } = setup();
+  try {
+    const q = "Have you ever worked for Figma before?";
+    const r = await post(url, "/api/apply/answers", { answers: { [q]: "No" }, remember: { [q]: false } }).then(x => x.json());
+    const store = storeOf(db);
+    assert.deepEqual(store.answers, {}, "not saved for next time");
+    assert.equal(store.overrides.figma[q], "No", "but this employer's retry still fills");
+    assert.deepEqual(r.remembered.map(s => s.scope), ["company"]);
+  } finally { server.close(); }
+});
+
+test("D55 (f): a saved answer differing only in punctuation still counts as answering the held question", async () => {
+  const { server, url } = setup({ answers: { "have you ever worked for {company} before": "No" } });
+  try {
+    const q = (await getQuestions(url)).questions.find(x => x.question === "Have you ever worked for Figma before?");
+    assert.equal(q.answered, true);
+  } finally { server.close(); }
+});
