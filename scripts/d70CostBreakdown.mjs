@@ -2,7 +2,7 @@
 // D70 Phase 0 — WHAT A RÉSUMÉ COSTS, per block, WITHOUT calling a model (D17).
 //
 // Builds the EXACT generate request draft sends (services/toolsServiceRequests.js), renders it with
-// Resume Master's OWN prompt code (buildRuntimeInputs + assemblePrompt, imported from the sibling
+// the tools service's OWN prompt code (buildRuntimeInputs + assemblePrompt, imported from the sibling
 // checkout — never a copy, so this cannot drift from what the model reads), splits it into blocks,
 // and prices each block at the repo's verified rates (shared/anthropicModels.js).
 //
@@ -50,7 +50,7 @@ const rmDir = path.resolve(ROOT, opt.rm || "../resume-master");
 const dbPath = path.resolve(ROOT, opt.db || "data/resume_master.db");
 const cacheMode = opt.cache || "write";   // what the static blocks cost on THIS call
 if (!fs.existsSync(path.join(rmDir, "src/generation/promptAssembler.js"))) {
-  console.error(`Resume Master not found at ${rmDir} — pass --rm <path to the resume-master checkout>`);
+  console.error(`the tools service's checkout was not found at ${rmDir} — pass --rm <path to the resume-master checkout>`);
   process.exit(2);
 }
 const rm = (p) => import(pathToFileURL(path.join(rmDir, p)).href);
