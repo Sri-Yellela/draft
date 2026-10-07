@@ -3524,6 +3524,15 @@ USA, MA, Boston - 143,700.00 - 194,400.00 USD annually
 6. ⛔ **Hourly stays hourly** (*$45–$60 /hr*). Never convert silently; the Salary sort uses an explicit **annualised estimate, flagged as an estimate.**
 7. ⛔ **False-positive traps — each a NEGATIVE test:** *"$10,000,000 in revenue"* · *"401(k) matching up to 6%"* · *"10–20 years of experience"* · *"a team of 143,700"* · *"$1–2 million budget"*. **A range counts as pay only with pay context** (*base pay, salary, compensation, pay range, annually, per hour*) **or** a currency plus a pay unit. A wrongly parsed salary is worse than a missing one.
 
+◐ **MEASURED 10-07 (38g), on the owner's go — production and local** (`scripts/d71PayMeasure.mjs`, read-only, counts only; a deliberately simple detector — a numeric range with a pay word on its line or the line before — so it over-counts the traps slightly):
+
+| | active | salary empty | ⭐ **pay in the text, salary empty** | at the 5,000-char cap | no location places |
+|---|---|---|---|---|---|
+| **production** | 1,942 | 675 | ⭐ **260 (38.5% of the empty)** — greenhouse **258**, ashby 1, import 1 | 1,480 (76%) | 29 (greenhouse 26) |
+| local copy | 2,613 | 1,253 | 258 — greenhouse 254, workable 3, ashby 1 | 1,854 | — (older schema) |
+
+⭐ **It is not one posting: ~13% of production's board states pay that the board says is not stated, almost all Greenhouse** (whose structured `pay_input_ranges` is often absent while the description carries a pay-transparency section). Production holds **2 captured (import) rows, both salary-empty; 1 carries the Amazon-shape trailing line** — the owner's. ⚠ **76% of descriptions sit at the 5,000-character cap** (`htmlToText.js`), and pay lines are usually at the END — so the cap can cut off the very fact D71 reads; the parser must run on the longest text the row holds, and the count above is a **floor**.
+
 **MEASURE, THEN BACKFILL — the D59 pattern:**
 - **Count** the rows whose text contains a pay range and whose salary is NULL, **by source and by ATS**, and the same for location. Report it — that is the size of the problem, and it is probably not one posting.
 - **Backfill into NEW columns**; ⛔ **`description` and `content_hash` stay byte-identical** (A76's grades and the enrichment imports are keyed on the hash). **Dry run first, with before/after pairs, a batch row and a revert**, as the enrichment path does.
