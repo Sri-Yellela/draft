@@ -153,7 +153,13 @@ export function recordToolsServiceUsage(db, usage, { userId, eventSubtype = null
                                                                     company = null, domainModule = null, atsScoreBefore = null, idFor = null,
                                                                     // e.g. { resume_generate: "standalone_generate" } — keeps a surface's
                                                                     // spend attributed as it was before the call moved
-                                                                    renamePurpose = {} } = {}) {
+                                                                    renamePurpose = {},
+                                                                    // A94: the failed REQUEST's code (e.g.
+                                                                    // "resume_claim_violation"), passed from a
+                                                                    // catch. A call that completed and was billed
+                                                                    // stays success = 1 — the call did succeed —
+                                                                    // but its row now says the request did not
+                                                                    requestError = null } = {}) {
   let id = null;
   for (const u of Array.isArray(usage) ? usage : []) {
     if (!u || typeof u !== "object") continue;
@@ -161,7 +167,8 @@ export function recordToolsServiceUsage(db, usage, { userId, eventSubtype = null
     const eventId = trackApiCall(db, {
       userId, eventType: purpose, eventSubtype, purpose, model: u.model, provider: "anthropic",
       usage: u, durationMs: u.duration_ms, success: u.success !== false,
-      errorText: u.success === false ? "failed inside Resume Master" : null,
+      errorText: u.success === false ? "failed inside Resume Master"
+        : (typeof requestError === "string" && requestError ? `request failed: ${requestError}` : null),
       jobId, company, domainModule,
       atsScoreBefore: u.purpose === idFor ? atsScoreBefore : null,
     });
