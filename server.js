@@ -163,7 +163,7 @@ import { deriveAutomationTier } from "./services/jobs/automationTier.js";
 import { backfillAutomationTier } from "./services/jobs/backfillAutomationTier.js";
 import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
 import { tagStaleJobs } from "./services/jobs/jobTags.js";
-import { backfillDescriptionText, withPostingText, refreshDescriptionText, postingText } from "./services/jobs/descriptionText.js";
+import { backfillDescriptionText, withPostingText, refreshDescriptionText, postingText, registerDescriptionBasis } from "./services/jobs/descriptionText.js";
 import { resolvePlaceText, roleScopeExtra } from "./shared/jobTagVocabulary.js";
 import { userReferencedSql } from "./services/jobs/userReferences.js";
 import { deliverPipelineAlerts } from "./services/jobs/alertDelivery.js";
@@ -401,6 +401,8 @@ db.pragma("busy_timeout = 5000");
 registerBoardSearch(db);
 // A85 · the fit filter's "is this stored score current?" — the badge's own test, as a SQL function.
 registerScoreFreshness(db);
+// D59 · the eligibility filter's "was req_* read from THIS description?" — the readers' freshness rule.
+registerDescriptionBasis(db);
 console.log(`[boot] database ready: ${DB_PATH}`);
 
 // ── Inline migration runner (additive only — never drops data) ─
