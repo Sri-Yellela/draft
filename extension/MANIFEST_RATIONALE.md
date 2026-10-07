@@ -88,6 +88,38 @@ work properly" by adding `*.myworkdayjobs.com` to `host_permissions` is exactly 
 it would convert a per-invocation grant into standing access to every tenant the user can reach.
 `test/manifestMinimumPermission.test.js` fails if a workday host is ever declared.
 
+## Optional host permissions (D64, 10-07)
+
+**None is granted at install, and none is granted unless the user switches on _Capture job pages
+automatically_ in Settings.** That click calls `chrome.permissions.request` for the hosts below, and
+Chrome shows its own prompt naming them; switching it off calls `chrome.permissions.remove`. Until then
+the paragraph above is still true word for word: no standing access to any site.
+
+The owner decided (10-07) that capture should happen when a posting is opened, with no click — which
+`activeTab` cannot do, because it is granted only by an invocation. So the access is OPTIONAL, asked
+for at the moment the user opts in, and limited to **public job-posting hosts**: places a posting is
+read, never where the user signs in.
+
+⛔ **No gated portal is in this list** — no Workday, Amazon, SmartRecruiters, iCIMS, Taleo or Meta. The
+gated handoff reaches those through `activeTab` alone, and a standing grant there would turn a
+per-invocation grant into standing access to a site the user is signed in to (asserted by
+`test/manifestMinimumPermission.test.js` and `test/d64AutoCaptureExtension.test.js`). LinkedIn and
+Indeed are not in it either. Capture there stays manual.
+
+| Optional host | Required by | What breaks without it |
+|---|---|---|
+| `https://boards.greenhouse.io/*` | `background.js` `maybeAutoCapture()` — reads a Greenhouse posting the user opened, after `autoCaptureStep()` decides it may | Automatic capture does nothing on Greenhouse; manual capture is unchanged. |
+| `https://job-boards.greenhouse.io/*` | the same — Greenhouse's newer board host | The same, on the newer host. |
+| `https://jobs.lever.co/*` | the same — Lever postings | Automatic capture does nothing on Lever. |
+| `https://jobs.ashbyhq.com/*` | the same — Ashby postings | Automatic capture does nothing on Ashby. |
+| `https://apply.workable.com/*` | the same — Workable postings | Automatic capture does nothing on Workable. |
+
+What is read and sent, and when: a page on these hosts is a posting when its URL has a posting's shape
+or it carries JobPosting JSON-LD (checked in the page, locally). ⛔ A page that is not a posting sends
+nothing. A posting's text is sent to `/api/import/auto`; the server keeps it only if it belongs on the
+user's board (US, the active profile's roles) and stores NOTHING otherwise. Nothing is filled or
+submitted.
+
 ## Content scripts
 
 **None.** The extension declares no content script and injects nothing on page load.

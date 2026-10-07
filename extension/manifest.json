@@ -18,6 +18,13 @@
   "host_permissions": [
     "https://jobsviadraft.com/*"
   ],
+  "optional_host_permissions": [
+    "https://boards.greenhouse.io/*",
+    "https://job-boards.greenhouse.io/*",
+    "https://jobs.lever.co/*",
+    "https://jobs.ashbyhq.com/*",
+    "https://apply.workable.com/*"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"

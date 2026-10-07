@@ -144,10 +144,10 @@ export function createImportJobRouter(db, opts = null) {
   //   200 { discarded: true, reason }   not relevant (outside the US, outside the profile's roles…) — nothing stored
   //   200 { already: true }             this URL was auto-captured for you in the last 24 h
   //   200 capture answer, auto: true    on your board, marked "Captured automatically"
-  //   429 auto_capture_cap · 503 auto_capture_disabled
+  //   429 auto_capture_cap · 403 auto_capture_disabled (never 503 on this router — D33: no model failure here)
   router.post("/auto", async (req, res) => {
     if (autoCaptureDisabled(db)) {
-      return res.status(503).json({ error: "Automatic capture is switched off.", code: "auto_capture_disabled", retryable: false });
+      return res.status(403).json({ error: "Automatic capture is switched off.", code: "auto_capture_disabled", retryable: false });
     }
     const url = typeof req.body?.url === "string" ? req.body.url.slice(0, 2048) : "";
     const text = typeof req.body?.text === "string" ? req.body.text : "";

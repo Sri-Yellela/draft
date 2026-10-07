@@ -208,14 +208,15 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 `extractJobPayload()` and `showCaptureToast()`; `gated-handoff.js` `probeFormShape()`, `applyPlan()`
 and `applyOverlayEdit()`; `review-overlay.js` `renderOverlay()`; `popup.js` for the ATS Score Tool.)*
 
-**`storage`** — ⚠ **REVISED AGAIN 2026-09-26. Re-paste this field in the dashboard.**
-> Six values. Five never leave the browser; the sixth is the extension's own access token, which is
+**`storage`** — ⚠ **REVISED 2026-10-07 (D64: the automatic-capture switch). Re-paste this field in the dashboard.**
+> Seven values. Six never leave the browser; the seventh is the extension's own access token, which is
 > sent to our backend and to nowhere else. In `chrome.storage.local`: the result of the user's most
 > recent capture, so the popup can show the outcome of a capture made with the keyboard while the
 > popup was closed; the username of the account the extension is connected to, so the popup can name
 > it before a capture; and that access token, which is how the extension identifies itself to us —
 > it is not the user's password and not their website session, and it is deleted the moment they
-> disconnect the extension. In `chrome.storage.session` (memory-backed, discarded on browser
+> disconnect the extension; and whether the user has switched automatic capture on (a single on/off
+> value). In `chrome.storage.session` (memory-backed, discarded on browser
 > restart): the prepared answers for an application in progress, with a 10-minute expiry and cleared
 > when the tab closes; the result of the most recent form fill, so the popup can report a fill
 > started with the keyboard; and, when several applications are queued for one employer site, that

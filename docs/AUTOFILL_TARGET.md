@@ -305,6 +305,28 @@ After (a)–(e): **(f)** EEO decline + saved-answer reuse and management (profil
 | **Settings presets** — *Careful* / *Fast* (row 14) | nothing to preset until the advance and save-answer settings exist | those settings exist |
 | **Job alerts / a college-jobs list** (row 24) | growth ideas, not extension work | there are real users to alert |
 
+#### ⛔ 8.6a · REVERSED BY THE OWNER, 10-07 (38) — D64, automated capture
+
+The owner decided (WORKLOG D64): *"phasing out manual capture and building an automated one that auto
+captures when a tab is opened … and migrates it without the user having to do anything."* That reverses
+three calls recorded here, and they are marked here rather than quietly overwritten:
+
+- **Decision A** (*one gesture per application*) — for **capture** only: a posting is captured with no
+  gesture. ⛔ **The fill keeps its gesture** — D64 is not auto-apply, and nothing fills or submits
+  without the user's click (D36).
+- **Per-ATS auto-start**, held off above — its mechanism (**optional host permissions**) is now used, for
+  **capture** on public posting hosts (Greenhouse, Lever, Ashby, Workable). It still does **not** start a
+  fill, and ⛔ **no gated portal** (Workday, Amazon, SmartRecruiters, iCIMS, Taleo) is in the list: the
+  handoff's activeTab-only access to sites the user signs in to is unchanged.
+- **Auto-saving on LinkedIn / Indeed**, refused below — **still not built.** D64 makes it possible in
+  principle ("only if posting detection and the server's refetch rules allow"); it is not in the origin
+  list and needs the owner's explicit call before it is.
+
+The guard rails that made those calls cautious ship with it: off by default; access asked for at the
+user's click and removed when switched off; a page that is not a posting sends nothing; an irrelevant
+posting is discarded server-side and never stored; one per URL per day, 30 an hour, and a kill switch
+(`auto_capture_disabled`). Manual capture stays until D64 is seen working on real attended pages (O73).
+
 **Held off is not refused.** These come back when their trigger is met. **Refused — never re-proposed:** ⛔ **Auto-Submit** · ⛔ an **"applications account"** (a reused password that signs in to portals) · ⛔ **auto-saving applications on LinkedIn / Indeed** (needs access to those sites on every page).
 
 ---

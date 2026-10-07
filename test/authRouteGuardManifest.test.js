@@ -215,6 +215,11 @@ const AUTHENTICATED = new Set([
   // D55 decision B: "Save link to draft" — AUTHENTICATED, not PUBLIC, because it SPENDS: it makes an
   // outbound request to an ATS's listing API and writes a row, so a stranger could drive our traffic.
   "POST /api/import/link",
+  // D64: automated capture — AUTHENTICATED: it writes to the user's board (a relevant posting) and is
+  // braked per user; the list and the undo read and change only the caller's own captures.
+  "POST /api/import/auto",
+  "GET /api/import/auto",
+  "POST /api/import/auto/:jobId/undo",
   // D55 decision E: "Report this form" — host + field labels, stored against the reporter's own
   // account (deleted with it, rate-limited per user). Signed in only: an anonymous report has no one
   // to rate-limit and no account for its rows to be deleted with.

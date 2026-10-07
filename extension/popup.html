@@ -47,6 +47,11 @@
     .btn-row { display: flex; gap: 8px; }
     .btn-row .btn { flex: 1 1 0; }
     #recent { display: none; margin-bottom: 4px; }
+    /* D64 · Captured today — shown only while automatic capture is on. */
+    #auto-today { margin-bottom: 4px; }
+    #auto-today summary { cursor: pointer; font-size: 12px; font-weight: 700; padding: 6px 0; }
+    #auto-today ul { list-style: none; }
+    #auto-today li { font-size: 12px; padding: 6px 0; border-bottom: 1px solid var(--c-border); display: flex; justify-content: space-between; gap: 8px; }
     #recent ul { list-style: none; }
     #recent li { font-size: 12px; padding: 6px 0; border-bottom: 1px solid var(--c-border);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--c-ink-muted); }
@@ -143,6 +148,10 @@
     <p class="all-head">Your recent captures</p>
     <ul id="recent-list"></ul>
   </div>
+  <details id="auto-today" hidden>
+    <summary id="auto-today-head">Captured today</summary>
+    <ul id="auto-today-list"></ul>
+  </details>
 
   <hr class="divider" id="all-divider" style="display:none">
   <p class="all-head" id="all-head" style="display:none">Everything</p>
@@ -186,5 +195,6 @@
   <script src="config.js"></script>
   <script src="companion.js"></script>
   <script src="popup.js"></script>
+  <script type="module" src="popup-auto.js"></script>
 </body>
 </html>
