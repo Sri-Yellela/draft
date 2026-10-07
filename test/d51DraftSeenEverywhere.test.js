@@ -213,6 +213,7 @@ test("D51 · every Draft control takes its state from the one function, and the 
 
 test("D51 · The Table labels a Draft — and only a Draft — as in Draft House", () => {
   assert.deepEqual(historyStatus({ recordState: "pending", origin: "drafted" }),
-    { status: "in_play", label: "Drafted — in Draft House", ask: false });
+    // D55 F added the funnel stage (= the status here) and how far it got (nothing: it is unsent).
+    { status: "in_play", label: "Drafted — in Draft House", ask: false, stage: "in_play", reached: null });
   assert.equal(historyStatus({ recordState: "pending", origin: "opened_posting" }).label, "Pending");
 });

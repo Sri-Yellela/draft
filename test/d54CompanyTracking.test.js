@@ -130,7 +130,8 @@ test("D54 · clearing a queued item removes it from its company's row", () => {
 
 test("D54 · The Table has List | By company, and a stopped card names the company's other applications", () => {
   const table = read("client/src/components/ApplicationHistory.jsx");
-  assert.match(table, /\[\["list", "List"\], \["company", "By company"\]\]/);
+  // D55 added Board and Funnel after these two; List | By company still lead the toggle.
+  assert.match(table, /\[\["list", "List"\], \["company", "By company"\],/);
   assert.match(table, /companyRows\(view\.rows\)\.map\(g =>/, "the same rows the List shows, grouped");
   const house = read("client/src/panels/AutoApplyPanel.jsx");
   assert.match(house, /return `Also at \$\{g\.name \|\| companyLabel\(row\.company\)\}: `/);
