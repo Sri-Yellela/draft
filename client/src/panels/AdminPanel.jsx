@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api }      from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
-import { OpsTab, GlanceTab, UserApplications } from "./adminOps.jsx";
+import { OpsTab, GlanceTab, UserApplications, DiskBanner } from "./adminOps.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
 
@@ -1020,6 +1020,9 @@ export function AdminPanel() {
           </div>
         </a>
       </div>
+
+      {/* ⛔ D77: the disk banner — every admin tab, while the volume is amber or red. */}
+      <DiskBanner/>
 
       {/* ── Top-level tabs ── */}
       <div style={{ display:"flex", borderBottom:`2px solid ${ADMIN_ACCENT_TEXT}`, marginBottom:24 }}>

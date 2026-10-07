@@ -4,6 +4,8 @@
 import { traceJobLifecycle } from "../services/jobTrace.js";
 import { Router } from "express";
 import fs from "fs";
+import path from "path";
+import { readGauge, AMBER_AT as DISK_AMBER_AT, RED_AT as DISK_RED_AT } from "../services/diskGauge.js";
 import Database from "better-sqlite3";
 import { redactRow, redactRows, runReadOnlyQuery, secretColumnsMentioned } from "../services/adminSafety.js";
 import { JobReviewError, jobReviewImpact, reassignJob, recentJobReviewChanges, undoJobReview } from "../services/adminJobReview.js";
@@ -611,6 +613,16 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
         if (c.pct === 0 && c.total > 0) {
           push("critical", "coverage", c.column, `0% of ${c.total} active rows have a value`);
         }
+      }
+      // ⛔ D77: the disk — Railway's volume alert is Pro-only, so this line is it. Amber is a warn, red critical.
+      if (dbPath && dbPath !== ":memory:") {
+        try {
+          const g = readGauge(path.dirname(dbPath));
+          const mbs = (n) => `${Math.round(n / 1048576)} MB`;
+          const detail = `${g.usedPct}% used — ${mbs(g.usedBytes)} of ${mbs(g.totalBytes)}, backups ${mbs(g.backups.bytes)} in ${g.backups.count}`;
+          if (g.tone === "red") push("critical", "disk", "volume", `${detail} (red at ${DISK_RED_AT}%)`);
+          else if (g.tone === "amber") push("warn", "disk", "volume", `${detail} (amber at ${DISK_AMBER_AT}%)`);
+        } catch (e) { console.warn("[pipeline-health] disk gauge unavailable:", e.message); }
       }
       // A44: an alert when enrichment has STOPPED. The checks below fire on a failed run and the
       // coverage loop on exactly 0%; neither fires when runs simply cease, which is how local

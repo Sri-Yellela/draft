@@ -173,6 +173,45 @@ export function DeploymentsSection({ theme }) {
   );
 }
 
+// ── D77 · the disk — GET /api/admin/disk ──────────────────────────────────────────────────────
+// Railway's volume alert is Pro-only; this is it. Green below 70%, amber to 85%, red above (the server's
+// toneFor — one rule). The D74 tranche line is what 25 more companies would do, by this database's numbers.
+const DISK_TONE = { green: C.SUCCESS, amber: C.WARNING, red: C.DANGER };
+const mbOf = (n) => `${Math.round((n || 0) / 1048576)} MB`;
+export function DiskSection({ theme }) {
+  const [g, setG] = useState(null);
+  const [err, setErr] = useState(null);
+  const load = useCallback(() => { setErr(null); api("/api/admin/disk").then(setG).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { load(); }, [load]);
+  return (
+    <Card theme={theme} title="Disk — the volume (D77)" measured={g ? `statfs on the data directory · amber ${g.amberAt}% · red ${g.redAt}%` : null}>
+      <Err msg={err}/>
+      {g && (
+        <KV theme={theme} rows={[
+          ["used", `${g.usedPct}% — ${mbOf(g.usedBytes)} of ${mbOf(g.totalBytes)} (${mbOf(g.freeBytes)} free)`, DISK_TONE[g.tone] || null],
+          ["backups", `${g.backups.count} · ${mbOf(g.backups.bytes)} of a ${mbOf(g.backups.budget)} budget`],
+          ["largest", (g.largest || []).slice(0, 5).map(f => `${f.path} ${mbOf(f.bytes)}`).join(" · ") || "—"],
+          g.tranche25 && ["25 more companies", `→ ${g.tranche25.projectedPct}% (${g.tranche25.rowsPerCompany} rows / company × ${Math.round(g.tranche25.bytesPerRow / 1024)} KB / row, backups included) · gate ${g.tranche25.limit}%`,
+            g.tranche25.projectedPct > g.tranche25.limit ? C.DANGER : null],
+        ]}/>
+      )}
+      <div style={{ marginTop: 10 }}><Btn theme={theme} onClick={load}>Re-read</Btn></div>
+    </Card>
+  );
+}
+
+/** The Admin banner — shown on every admin tab while the disk is amber or red. */
+export function DiskBanner() {
+  const [g, setG] = useState(null);
+  useEffect(() => { api("/api/admin/disk").then(setG).catch(() => {}); }, []);
+  if (!g || (g.tone !== "amber" && g.tone !== "red")) return null;
+  return (
+    <div role="alert" data-disk-banner={g.tone} style={{ margin: "0 0 16px", padding: "10px 14px", borderLeft: `4px solid ${DISK_TONE[g.tone]}`, color: DISK_TONE[g.tone], fontWeight: 700, fontSize: 13 }}>
+      The volume is {g.usedPct}% full ({mbOf(g.usedBytes)} of {mbOf(g.totalBytes)}) — {g.tone === "red" ? "free space now" : "plan for it"}. No company tranche is enabled above {g.tranche25?.limit ?? 70}%.
+    </div>
+  );
+}
+
 // ── Full-auto kill switch — GET / PUT / DELETE /api/admin/full-auto ────────────────────────────
 // Three states, not two (see server.js): forced off, pinned on, inherit the deploy. The panel shows
 // which one is in force and WHY, because "disabled: true" alone cannot tell you whether clearing the
@@ -812,6 +851,7 @@ export function OpsTab({ theme }) {
     <div>
       <DeploySection theme={theme}/>
       <DeploymentsSection theme={theme}/>
+      <DiskSection theme={theme}/>
       <KillSwitchSection theme={theme}/>
       <BoardFitSection theme={theme}/>
       <EnrichmentSection theme={theme}/>

@@ -44,6 +44,7 @@ import { createCompaniesRouter } from "./routes/companies.js";
 import { createSlugHarvestRouter } from "./routes/slugHarvest.js";
 import { createCrawlerWorkerRouter, createCrawlerAdminRouter } from "./routes/crawler.js";
 import { createRailwayHookRouter, deployEventsSummary } from "./routes/railwayHook.js";
+import { readGauge, projectTranche, trancheGate, AMBER_AT as DISK_AMBER_AT, RED_AT as DISK_RED_AT } from "./services/diskGauge.js";
 import { createJobTagsRouter } from "./routes/jobTags.js";
 import { createDomainProfilesRouter } from "./routes/domainProfiles.js";
 import { createImportJobRouter } from "./routes/importJob.js";
@@ -7508,7 +7509,7 @@ app.use("/api/admin/enrichment", requireAdmin, createEnrichmentRouter(db, requir
 // A62: the JOBS themselves in and out (NDJSON), through the one gateway; dry by default, revertible.
 app.use("/api/admin/job-data", requireAdmin, createJobDataRouter(db, requireAdmin));
 // A50 step 4: the company list as a surface — probe a board before adding it; enable / disable, logged.
-app.use("/api/admin/companies", requireAdmin, createCompaniesRouter(db, requireAdmin));
+app.use("/api/admin/companies", requireAdmin, createCompaniesRouter(db, requireAdmin, { dataDir: DATA_DIR }));
 // ⭐ D67 (2): the learned origin pairs — hostnames and counts only — and the revoke switch, logged.
 app.get("/api/admin/apply-origins", requireAdmin, (_req, res) => res.json({ pairs: listLearnedPairs(db), promoteAtUsers: PROMOTE_AT_USERS }));
 app.post("/api/admin/apply-origins/:id/revoke", requireAdmin, (req, res) => {
@@ -7536,7 +7537,15 @@ app.post("/api/admin/apply-origins/:id/promote", requireAdmin, (req, res) => {
 });
 // D20: the slug harvest in the daily manual sweep — SerpApi searches started by a person, an export the
 // owner reviews, an import that adds companies. No cron, no model call.
-app.use("/api/admin/slug-harvest", requireAdmin, createSlugHarvestRouter(db, requireAdmin));
+app.use("/api/admin/slug-harvest", requireAdmin, createSlugHarvestRouter(db, requireAdmin, {
+  gate: (companies) => trancheGate(db, DATA_DIR, { companies }) }));
+// ⛔ D77: the disk gauge (in place of Railway's Pro-only volume alert) and what a D74 tranche of 25 would do to it.
+app.get("/api/admin/disk", requireAdmin, (_req, res) => {
+  try {
+    const gauge = readGauge(DATA_DIR);
+    res.json({ ...gauge, amberAt: DISK_AMBER_AT, redAt: DISK_RED_AT, tranche25: projectTranche(db, gauge, { companies: 25 }) });
+  } catch (e) { res.status(500).json({ error: "disk_unreadable", detail: e.message }); }
+});
 // D75: the crawler's queue, deny-list and tally (the owner's controls).
 app.use("/api/admin/crawler", requireAdmin, createCrawlerAdminRouter(db, requireAdmin));
 // D76: the last Railway event per service (a failed or crashed deploy is the card's red) and the stream.

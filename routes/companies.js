@@ -6,8 +6,12 @@
 // answers 404 is never added. Disabling is reversible (active = 0) and logged.
 import express, { Router } from "express";
 import { listCompanies, harvestedSuggestions, validateBoard, addCompany, setCompanyActive, ATS_FETCHERS } from "../services/companyList.js";
+import { trancheGate } from "../services/diskGauge.js";
 
-export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHERS } = {}) {
+const DEFAULT_DATA_DIR = () => process.env.RM_DATA_DIR || "data";
+
+export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHERS, dataDir = DEFAULT_DATA_DIR(),
+                                                            gate = (companies) => trancheGate(db, dataDir, { companies }) } = {}) {
   const router = Router();
   router.use(requireAdmin);
   router.use(express.json({ limit: "64kb" }));
@@ -31,6 +35,9 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
                             : "This board cannot be added." });
     }
     if (!validation.ok) return res.status(409).json({ error: "board_not_alive", validation });
+    // ⛔ D77 → D74 P3: no company is added while the projected disk after it is above the gate.
+    const disk = gate(1);
+    if (!disk.ok) return res.status(507).json({ error: disk.reason, disk });
     if (validation.state !== expectState) {
       return res.status(409).json({ error: "board_changed", validation,
         message: `The board now reads "${validation.state}", not "${expectState}". Look again before adding it.` });
@@ -43,6 +50,10 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
 
   router.patch("/:id", (req, res) => {
     if (typeof req.body?.active !== "boolean") return res.status(400).json({ error: "active_required" });
+    if (req.body.active) {                                     // ⛔ D77: enabling is a tranche of one; disabling is always allowed
+      const disk = gate(1);
+      if (!disk.ok) return res.status(507).json({ error: disk.reason, disk });
+    }
     const out = setCompanyActive(db, { id: req.params.id, active: req.body.active, adminUserId: req.user?.id });
     if (!out.ok) return res.status(404).json({ error: "not_found" });
     res.json(out);
