@@ -30,6 +30,8 @@
 import { orderForReview, readinessOf, renderOverlay } from './review-overlay.js';
 import { renderBadge, findMissingRequired, badgeDismissed } from './autofill-badge.js';
 import { C_LIGHT, C_DARK } from './tokens.js';
+// D55 (f): saved answers, worked-here and the EEO decline — placed by exact question equality only.
+import { placeStatedAnswers } from './savedAnswerMatch.js';
 
 // D23 — what the review overlay is painted with: the site's tokens (extension/tokens.js, generated
 // from client/src/styles/colorTokens.js) and the logo face's bytes, read from the extension's own
@@ -151,6 +153,15 @@ function probeFormShape() {
         !!(el.id && document.querySelector(`label[for="${CSS.escape(el.id)}"] abbr[title="required" i]`)),
       options: el.tagName === 'SELECT'
         ? [...el.options].map(o => ({ value: o.value, text: (o.text || '').trim() })) : null,
+      // D55 (f): a radio's label is its OPTION ("No"); the QUESTION is its group's legend or
+      // aria-labelledby. Saved answers and worked-here are matched on the question, so it is read here.
+      group: el.type === 'radio' ? (() => {
+        const g = el.closest('fieldset, [role="radiogroup"]');
+        if (!g) return null;
+        const lid = (g.getAttribute('aria-labelledby') || '').split(/\s+/)[0];
+        const t = (lid && document.getElementById(lid)?.textContent) || g.querySelector('legend')?.textContent || '';
+        return t.replace(/\s+/g, ' ').trim().slice(0, 200) || null;
+      })() : null,
       // D55 (a): which custom widget this is, so the plan and the review can say "typed and picked"
       // rather than "set". A typeahead is an <input> that announces a popup list; a dropdown is a
       // non-input that does. Neither has options to report — they exist only once it is opened.
@@ -283,10 +294,21 @@ async function applyPlan(plan, resume, opts) {
   // the old version read the list in the same breath, found nothing, and reported "not in options"
   // for a value that was there. Returns the option's own text — the ATS's wording, which is what the
   // read-back must look for — or null.
-  const setCombobox = async (el, want) => {
+  //
+  // D55 (f): two stricter modes. 'exact' — an eligibility, EEO or opt-in answer from the candidate's
+  // saved answers takes only an option whose text IS the answer, never the closest one. 'decline' —
+  // an EEO field the candidate declined takes the form's OWN decline option, however it is worded,
+  // and nothing else; a form with none is left blank.
+  // ⛔ BYTE-IDENTICAL to shared/savedAnswers.js DECLINE_OPTION_RE (serialised; cannot import it).
+  const DECLINE_OPTION_RE =
+    /\b(?:declin(?:e|ed|es|ing)|prefer\s+not|rather\s+not|choose\s+not|wish\s+not\s+to|(?:do\s+not|don'?t|does\s+not|doesn'?t)\s+(?:wish|want|care)\s+to|not\s+(?:to\s+)?(?:disclose|answer|say|specify|identify|self[\s-]?identify|state)|no\s+answer|undisclosed)\b/i;
+  const setCombobox = async (el, want, mode = null) => {
     el.click();
     const options = (await waitFor(() => readyOptions(el), 2500)) || [];
-    const idx = closestOption(want, options.map(o => o.textContent || ''));
+    const texts = options.map(o => String(o.textContent || '').replace(/[‘’ʼ]/g, "'"));
+    const idx = mode === 'decline' ? texts.findIndex(t => DECLINE_OPTION_RE.test(t))
+      : mode === 'exact' ? texts.findIndex(t => same(t, want))
+      : closestOption(want, options.map(o => o.textContent || ''));
     if (idx < 0) { dismiss(el); return null; }
     const text = String(options[idx].textContent || '').trim();
     options[idx].click();
@@ -399,9 +421,9 @@ async function applyPlan(plan, resume, opts) {
         if (!picked.length) return;
         pending.push({ step, el, kind: 'typeahead', want: picked.map(p => p.got) });
       } else if (isCombo(el)) {
-        const got = await setCombobox(el, step.value);
+        const got = await setCombobox(el, step.value, step.declineOption ? 'decline' : step.exactOption ? 'exact' : null);
         if (!got) {
-          skipped.push({ field: step.label, reason: 'value_not_in_options' });
+          skipped.push({ field: step.label, reason: step.declineOption ? 'decline_option_absent' : 'value_not_in_options' });
           return;
         }
         pending.push({ step, el, kind: 'combo', want: got });
@@ -1386,6 +1408,11 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
   for (let guard = 0; guard < 12; guard++) {
     if (step.wizard?.isReview) { wizard.stoppedAt = 'review'; break; }
     const matched = matchAnswersToFields(answers, step.fields);
+    // D55 (f): then the packet's saved answers, worked-here answer and EEO declines, on the
+    // questions the answers above did not take — by exact question equality (savedAnswerMatch.js).
+    const stated = placeStatedAnswers(released.packet, step.fields, matched.plan, questionKind);
+    matched.plan.push(...stated.plan);
+    matched.unmatched.push(...stated.notes);
     plan.push(...matched.plan);
     for (const u of matched.unmatched) if (!unmatched.some(x => x.name === u.name && x.field === u.field)) unmatched.push(u);
     let r;
