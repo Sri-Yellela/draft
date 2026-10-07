@@ -6,7 +6,9 @@ import { writeFileSync, unlinkSync, existsSync } from "fs";
 import { autoApply, requestAbort, isAbortRequested, clearAbort, normaliseText } from "../services/applyAutomation.js";
 import {
   readAnswerStore, resolveForCompany, effectiveCustomAnswers, companyKey,
+  resolvesQuestion, rememberAnswer,
 } from "../services/customAnswers.js";
+import { normaliseQuestion } from "../shared/savedAnswers.js";
 import {
   buildGatePacket, mintPacketToken, verifyPacketToken, hashToken, originOf,
   DEFAULT_TOKEN_TTL_MS,
@@ -4580,7 +4582,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         const entry = byQuestion.get(key);
         // Answered means answered FOR EVERY employer still blocked on it. A template answered for
         // one company does not unblock the same question at another.
-        if (!Object.prototype.hasOwnProperty.call(resolved, q.question)) entry.answered = false;
+        if (!resolvesQuestion(resolved, q.question)) entry.answered = false;
         // A motivation template deliberately produced no answer. Hand back the expanded generic
         // text as a DRAFT — a starting point the candidate edits into their own words — and say
         // which stored template it came from, so saving it can become a per-company override.
@@ -4643,10 +4645,61 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
 
       db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(req.user.id);
       const prior = answerStore(req.user.id);
-      const merged = { ...prior.answers };
-      for (const [q, a] of entries) merged[q] = String(a);
-      const mergedOverrides = {};
+      let merged = { ...prior.answers };
+      let mergedOverrides = {};
       for (const [c, byQ] of Object.entries(prior.overrides)) mergedOverrides[c] = { ...byQ };
+
+      // D55 (f) · "SAVE THIS ANSWER FOR NEXT TIME?" — `remember: { [question]: boolean }`, per answer.
+      //   absent  the answer is stored as before: literal question text, reused wherever it recurs.
+      //   true    reused at every employer — the blocking employer's name templated as {company}, and
+      //           an existing entry for the same normalised question replaced rather than duplicated.
+      //   false   NOT kept for next time: stored only as a per-company override for the employer(s)
+      //           blocked on it, which is what lets this retry fill and nothing beyond it.
+      // User-stated only: these are the answers the candidate typed or picked in Draft House.
+      const remember = (req.body?.remember && typeof req.body.remember === "object" && !Array.isArray(req.body.remember))
+        ? req.body.remember : {};
+      const blockingCompanies = new Map();   // normalised question -> Set of display company names
+      if (Object.keys(remember).length) {
+        for (const row of db.prepare(`
+          SELECT rj.open_questions_json, sj.company FROM apply_run_jobs rj
+          LEFT JOIN scraped_jobs sj ON sj.job_id = rj.job_id
+          WHERE rj.user_id=? AND rj.status='held_review' AND rj.open_questions_json IS NOT NULL
+        `).all(req.user.id)) {
+          for (const q of parseJson(row.open_questions_json, [])) {
+            const k = normaliseQuestion(q.question);
+            if (!k || !row.company) continue;
+            if (!blockingCompanies.has(k)) blockingCompanies.set(k, new Map());
+            blockingCompanies.get(k).set(companyKey(row.company), row.company);
+          }
+        }
+      }
+      const remembered = [];
+      const notKept = [];
+      for (const [q, a] of entries) {
+        const choice = Object.prototype.hasOwnProperty.call(remember, q) ? remember[q] : undefined;
+        if (choice === undefined) { merged[q] = String(a); continue; }
+        const companies = [...(blockingCompanies.get(normaliseQuestion(q))?.values() || [])];
+        try {
+          if (choice === false) {
+            if (!companies.length) { notKept.push(q); continue; }
+            for (const company of companies) {
+              const r = rememberAnswer({ answers: merged, overrides: mergedOverrides }, { question: q, answer: a, company, scope: "company" });
+              merged = r.store.answers; mergedOverrides = r.store.overrides;
+              remembered.push(r.saved);
+            }
+          } else {
+            // One blocking employer: template its name. Several (or none): the wording is shared, so
+            // it is stored as asked — templating against one of them would misstate the others.
+            const company = companies.length === 1 ? companies[0] : null;
+            const r = rememberAnswer({ answers: merged, overrides: mergedOverrides }, { question: q, answer: a, company, scope: "all" });
+            merged = r.store.answers; mergedOverrides = r.store.overrides;
+            remembered.push(r.saved);
+          }
+        } catch (e) {
+          if (!e.code) throw e;
+          return out.status(400).json({ error: e.code, question: q });
+        }
+      }
       for (const [c, q, a] of overrideEntries) {
         if (!mergedOverrides[c]) mergedOverrides[c] = {};
         mergedOverrides[c][q] = a;
@@ -4682,17 +4735,20 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           const qs = parseJson(row.open_questions_json, []);
           if (qs.length === 0) return false;
           const resolved = effectiveCustomAnswers(store, row.company);
-          return qs.every(q => Object.prototype.hasOwnProperty.call(resolved, q.question));
+          // D55 (f): by normalised question, the comparison buildAnswers makes — so an answer stored
+          // as "Why Figma?" unblocks the form's "Why Figma? *". Every word must still agree.
+          return qs.every(q => resolvesQuestion(resolved, q.question));
         })
         .map(row => row.job_id);
 
       const body = {
         ok: true,
-        saved: entries.map(([q]) => q),
+        saved: entries.map(([q]) => q).filter(q => !notKept.includes(q)),
         savedOverrides: overridesPersisted
           ? overrideEntries.map(([c, q]) => ({ company: c, question: q }))
           : [],
         unblocked,
+        ...(Object.keys(remember).length ? { remembered, notKept } : {}),
       };
 
       if (retryJobIds !== null) {

@@ -132,3 +132,12 @@ export function isNegativeAnswer(value) {
   return /^(?:no|n|false|0|off|no,?\s+thanks?|no\s+thank\s+you|do\s+not|don'?t|i\s+do\s+not\s+(?:consent|agree|wish))$/i
     .test(normaliseQuestion(value));
 }
+
+// ── Limits shared by the Settings UI and the import route ───────────────────────────────────────
+
+export const SAVED_ANSWER_LIMITS = Object.freeze({
+  maxEntries: 500,
+  maxQuestionChars: 500,
+  maxAnswerChars: 5000,
+  maxImportBytes: 256 * 1024,
+});
