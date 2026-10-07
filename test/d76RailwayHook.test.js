@@ -128,3 +128,13 @@ test("⛔ D76: a Deployment.failed event is the Admin card's RED, and the card r
   assert.match(card, /isAlarm\(e\) \? C\.DANGER/, "the card colours an alarm with the danger token, from the shared rule");
   assert.match(card, /<DeploymentsSection theme=\{theme\}\/>/, "and the Ops tab shows the card");
 });
+
+test("D76: Railway's webhook event names (deployed, redeployed, oom_killed …) are kept; oom_killed is an alarm", () => {
+  for (const t of ["Deployment.deployed", "Deployment.redeployed", "Deployment.oom_killed", "Deployment.restarted", "Deployment.resumed", "Deployment.slept"]) {
+    assert.equal(parseRailwayEvent(EVENT(t)).ok, true, t);
+  }
+  assert.equal(isAlarm(parseRailwayEvent(EVENT("Deployment.oom_killed")).row), true);
+  assert.equal(isAlarm(parseRailwayEvent(EVENT("Deployment.deployed")).row), false);
+  assert.equal(parseRailwayEvent(EVENT("VolumeAlert.triggered")).row.family, "volume");
+  assert.equal(parseRailwayEvent(EVENT("Monitor.resolved")).row.family, "monitor");
+});
