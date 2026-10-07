@@ -12,12 +12,14 @@ import {
   serpSearch, serpAccount, DAILY_SEARCH_CAP,
 } from "../services/slugHarvest.js";
 import { validateBoard, ATS_FETCHERS } from "../services/companyList.js";
+import { trancheGate } from "../services/diskGauge.js";
 
 export const IMPORT_BODY_LIMIT = "2mb";
 
 export function createSlugHarvestRouter(db, requireAdmin, {
   search = serpSearch, account = serpAccount, validate = validateBoard, fetchers = ATS_FETCHERS,
   configured = () => Boolean(process.env.SERPAPI_KEY),
+  gate = (companies) => trancheGate(db, process.env.RM_DATA_DIR || "data", { companies }),
 } = {}) {
   const router = Router();
   router.use(requireAdmin);
@@ -104,6 +106,11 @@ export function createSlugHarvestRouter(db, requireAdmin, {
       if (Number(src.expectWrites) !== plan.expectWrites) {
         return res.status(409).json({ applied: false, plan: summary,
           error: `Run the dry run first: expectWrites must equal the dry run's count (now ${plan.expectWrites}).` });
+      }
+      // ⛔ D77 → D74 P3: a file that adds companies is a TRANCHE — refused whole if the disk after it is above the gate.
+      if (plan.wouldAdd > 0) {
+        const disk = gate(plan.wouldAdd);
+        if (!disk.ok) return res.status(507).json({ applied: false, plan: summary, written: 0, error: disk.message || disk.reason, disk });
       }
       const out = applyPlan(db, plan, { adminUserId: req.user?.id ?? null });
       if (!out.ok) return res.status(422).json({ applied: false, plan: summary, error: out.reason });

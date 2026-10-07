@@ -315,7 +315,8 @@ test("revert is dry first, disables (never deletes) what the import added, and p
 
 test("the harvest is mounted admin-only and the admin panel carries it", () => {
   const server = read("server.js");
-  assert.match(server, /app\.use\("\/api\/admin\/slug-harvest", requireAdmin, createSlugHarvestRouter\(db, requireAdmin\)\)/);
+  // D77: the router also takes the disk gate (a harvest import that adds companies is a tranche).
+  assert.match(server, /app\.use\("\/api\/admin\/slug-harvest", requireAdmin, createSlugHarvestRouter\(db, requireAdmin[,)]/);
   const ui = read("client/src/panels/adminOps.jsx");
   assert.match(ui, /export function SlugHarvestSection/);
   assert.match(ui, /<SlugHarvestSection theme=\{theme\}\/>/);
