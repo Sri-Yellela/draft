@@ -1,136 +1,71 @@
-# Chrome Web Store listing — draft v1.4.1
+# Chrome Web Store listing — draft v1.5.0
 
-Copy for the Web Store developer dashboard. Every justification below was written against the
-actual code and cites the file that uses the permission, because the dashboard rejects
-justifications that don't match observable behaviour.
+Copy for the Web Store developer dashboard, **written fresh for v1.5.0 on 2026-10-07** (release
+finalisation, after D60–D69). Every justification below was written against the actual code and cites
+the file that uses the permission, because the dashboard rejects justifications that don't match
+observable behaviour. ⛔ **Re-paste every field** — single purpose, every permission justification
+(three changed or are new), the storage field and the whole Privacy practices tab. The previous text
+in the dashboard describes a build that no longer exists.
 
-Upload artifact: `extension/submission/resume-master-extension-v1.4.1.zip`
+Upload artifact: `extension/submission/resume-master-extension-v1.5.0.zip`
 (build with `npm run build:extension` — never hand-assemble it; see extension/README.md).
 
-> ⚠ **IN THE TREE, NOT IN ANY PACKAGE YET — D55 decisions B and E (10-07), for the NEXT release**
-> (one submission with the rest of the D55 stack; the version bump and the zip are the release's,
-> not this change's). **One new permission, `contextMenus`** — right-click **Save this page to draft**
-> (the same capture as the button) and **Save link to draft** (sends only the link's address; the
-> server refetches the posting from the ATS's own listing or refuses the link). **One new data flow,
-> Report this form** — the form page's host and field labels, never values, account-linked, 30 days.
-> Re-paste: the `contextMenus` justification below (new field), the *Website content* answer (items
-> 4 and 5), and confirm the privacy page is deployed with *Reporting a Form That Isn't Recognised*
-> first. No new host, no content script, no new storage key — the six are unchanged.
-> **Also in this release (D56):** a fill, *Prepare*, the Copy sheet and *I submitted* send the
-> application page's **full URL** (path and query) to our backend in the request body — used to match
-> the page to the application and not kept, except on *I submitted*, where it is stored with the
-> application record as evidence. Disclosed in the policy's *Filling an Application*; it is
-> *Website content* in the dashboard answers.
->
-> **v1.4.1 (D36, 10-05) — on top of v1.4.0, also not yet uploaded.** When the review overlay cannot
-> render, the fill no longer reports the success sentence: it says the review panel could not open and
-> to check every answer (work authorisation and sponsorship first) before submitting, and the popup
-> stays open instead of closing itself (`gated-handoff.js`, `background.js`, `popup.js`). No
-> permission, host or data flow changes.
->
-> **v1.4.0 (D33, 10-05) REPLACES v1.3.0, WHICH WAS NEVER UPLOADED.** The capture result says what
-> happened instead of "Captured" for everything:
->
-> 1. **The server's words, shown as given** (`captureResult.js`, new, reached from `background.js`).
->    The toast and the popup show: added to the board · already on the board (with an **Open it on
->    draft** link to that posting) · saved but held off the board, and why · saved but the listing
->    has closed. A 2xx that does not say where the job went is reported as a failure, not a capture.
-> 2. **A remote posting's structured location is read.** The extractor reads JSON-LD
->    `jobLocationType` ("TELECOMMUTE") and `applicantLocationRequirements` from the same JobPosting
->    it already read, so a remote US posting sends `Location: Remote (United States)` in the same
->    labelled block. Same page, same moment (the user's click), same one destination.
->
-> ⛔ **No new permission, no new host, no content script, no new storage key** — `lastCapture` keeps
-> its name and simply carries the outcome and the link. No new disclosure.
+---
 
-> **v1.3.0 (D23 + A35, 10-04) REPLACED v1.2.0, WHICH WAS NEVER UPLOADED.** Two changes, one
-> submission:
->
-> 1. **The manual context trigger.** Opening the popup no longer reads the page or asks the server
->    anything about it: the popup shows the four actions (capture, fill, score, open draft) and a
->    **Read this page** control (or the R key). Only that press runs the local preview and sends the
->    tab's URL for the board check. v1.2.0's "when the popup opens" transmission (below) therefore
->    NARROWS to "when you press Read this page", and the privacy policy's sentence says so — no new
->    disclosure, a smaller one.
-> 2. **The site's visual language (A35).** Popup, options page, capture toast and the review overlay
->    use the site's colour tokens (generated from `client/src/styles/colorTokens.js` into
->    `tokens.css` / `tokens.js`), the self-hosted logo face and body face (`fonts/`, no request to any
->    font service), and the `/draft` mark from the site's own art (`brand/`). New files in the package:
->    `tokens.css`, `tokens.js`, `ui.css`, `fonts/*.woff2`, `brand/*.png` — all static, all reached
->    from `popup.html` / `options.html` / `background.js`.
->
-> ⛔ **No new permission, no new host, no content script, no `web_accessible_resources`, no new
-> storage key** — the six below are unchanged (`test/d23ExtensionLook.test.js` pins the permission
-> set and the six keys by name). The review overlay receives its font as bytes from the service
-> worker (FontFace API), so nothing in the package is exposed to web pages.
->
-> ⚠ **The three screenshots must be regenerated** (`npm run store:screenshots`) on the owner's machine,
-> where the harness checks them against the real profile values — the overlay and popup they show
-> have changed.
+## What changed — read by the reviewer, who compares this package with the published one
 
-> **v1.2.0 (D13, 10-03) REPLACED v1.1.1** (never uploaded; superseded by v1.3.0 above). One user-visible change, **the companion popup**: the
-> popup now leads with the action the page calls for — on an application form the user drafted,
-> **Fill it** (with "You drafted this 2 days ago · résumé ready · 14 fields prepared" and any
-> unanswered questions); on a job posting, **Capture it** and **Score it**, with whether the job is
-> already on the user's board; elsewhere, the user's recent captures. Every action is still listed
-> under "Everything". **Fill application** is now also a popup button — the SAME handoff Ctrl+Shift+Y
-> runs (`background.js` `FILL_ACTIVE_TAB` → `handleGatedHandoff()`), not a second implementation.
->
-> ⛔ **No new permission, no new host, no content script, no new storage key** (the six below are
-> unchanged; `test/d13Companion.test.js` and `test/privacyReconciliation.test.js` hold this).
-> ⚠ **One new transmission, now in the privacy policy:** when the popup opens (a user action, which
-> is also the `activeTab` grant), it sends the active tab's URL to `jobsviadraft.com`
-> (`POST /api/import/context`, in the body — not logged as a query string) to answer "is this on
-> your board" and "is an application waiting here" (`/api/apply/gate-packets?origin=`, which v1.1.1
-> already called on a fill). The answer is shown, never stored. Re-paste the "website content /
-> URL" disclosure if the dashboard asks what is collected and when.
+**The only published build is v1.0.0 — UNLISTED, link-only.** v1.1.1 was uploaded for review on
+2026-09-28 (owner-reported; not published); v1.2.0 through v1.4.1 were built and never uploaded.
+**v1.5.0 replaces all of them in one submission** — ⛔ withdraw v1.1.1 from review if it is still there. It posts to
+the former address, which now serves a separate résumé tools service, so its captures are no longer
+received. Against v1.0.0:
 
-> **v1.1.1 REPLACES v1.1.0, WHICH IS IN REVIEW AND WAS NEVER PUBLISHED.** The only change is the
-> **icon**: the v1.1.0 package still carried the old brand's "RM" mark in all three sizes
-> (`icons/icon16.png`, `icon48.png`, `icon128.png`) while its name, title and listing said
-> **draft**. v1.1.1 ships the `/d` monogram at every size. No code, permission, host, storage key
-> or disclosure changed — every justification and disclosure below is exactly as written for
-> v1.1.0, and the delta against v1.0.0 that follows still describes this package.
->
-> **v1.1.0 REPLACED v1.0.0.** ⚠ Corrected 2026-09-28 (owner): this used to say v1.0.0 "was in
-> review and was never published". **v1.0.0 IS PUBLISHED — UNLISTED, link-only.** It posts to the
-> former address, which since Phase B step 4 (09-28) serves the separate résumé tools service, so its
-> captures are no longer received. No public installs; the delta below is still against it. Earlier
-> version numbers exist in this repo's history (v0.1.0 through v1.3.0); none was ever published and
-> the zips are gone. What changed since the v1.0.0 package, and every one of these is a field a
-> reviewer re-reads:
->
-> 1. **The product was renamed.** "Resume Master" → **draft**, and the listing title with it.
-> 2. **The host permission moved**, from `https://resumemaster.one/*` to
->    `https://jobsviadraft.com/*`. Same server, same operator, new address. The old address still
->    serves and is deliberately NOT redirected — a credentialed `fetch` does not follow redirects,
->    so a 301 would break the v1.0.0 build silently rather than move it.
-> 3. **The privacy policy URL moved with it**, and the policy is live on the new origin.
-> 4. **The extension stopped borrowing the browser's session.** It now holds an access token of its
->    own (`auth.js`). That changes the `storage` disclosure from four values to **six**, and one
->    of the six is transmitted where previously none were. Both are corrected below.
->
-> ⛔ A rename plus a host-permission change is the shape that triggers an in-depth review. Expect a
-> longer queue than the first submission.
+1. **The product was renamed.** "Resume Master" → **draft**, and the listing title with it.
+2. **The host permission moved**, from `https://resumemaster.one/*` to `https://jobsviadraft.com/*`.
+   Same server, same operator, new address. The old address still serves and is deliberately NOT
+   redirected — a credentialed `fetch` does not follow redirects, so a 301 would break v1.0.0 silently.
+3. **The privacy policy URL moved with it**, and the policy is live on the new origin.
+4. **The extension holds an access token of its own** (`auth.js`) instead of borrowing the browser's
+   session — one of the seven stored values, and the only one transmitted (to our backend only).
+5. **No content script, no job-board host permission at install.** v1.0.0 declared six job boards and
+   ran a content script on them; that is gone. Every read starts at a click or a keystroke —
+   **except automatic capture (item 6), which is off until the user switches it on.**
+6. **NEW · Automatic capture (opt-in, off by default).** Switching it on in the extension's options asks
+   Chrome, at that click, for `optional_host_permissions` on **five public job-posting hosts only**
+   (`boards.greenhouse.io`, `job-boards.greenhouse.io`, `jobs.lever.co`, `jobs.ashbyhq.com`,
+   `apply.workable.com`). With it on, a page on those hosts that **is a job posting** (its URL has a
+   posting's shape, or it carries JobPosting structured data) is sent to the user's account, where our
+   server decides whether it fits their board — and **discards an irrelevant posting without storing
+   it**. A page that is not a posting sends **nothing** — not its address, not a hash. Switching it off
+   removes the host access. It never fills or submits anything.
+7. **NEW · `contextMenus`** — right-click **Save this page to draft** and **Save link to draft**.
+8. **NEW · Report this form** — the form page's host and field labels (never values), on two clicks.
+9. **The popup** leads with the posting as a job card (logo, company, the ATS score for the user's
+   résumé), shows what a fill will use before it runs, and offers **Prepare this application** and
+   **I submitted it** on a form; the **Copy sheet** lists the user's own prepared answers to copy by hand.
+10. **The capture result** says what happened — added, already on the board, or held off it and why.
+
+⛔ A rename, a host-permission change and a new optional host permission is the shape that triggers an
+in-depth review. Expect a longer queue.
 
 ---
 
 ## Single purpose
 
-> Help the user complete a job application they have chosen to make: capture the posting they are
-> viewing into their own Draft account, and — when they invoke the extension on an
-> application form they have opened and signed in to themselves — fill it with answers they have
-> already given us, for them to review and submit.
+> Help the user apply to the jobs they choose: get the job postings they are looking at into their own
+> Draft account — when they capture one, or automatically on the job sites they have switched that on
+> for — and, when they invoke the extension on an application form they have opened and signed in to
+> themselves, fill it with answers they have already given us, for them to review and submit.
 
-The capture half and the fill half are the same purpose at two points in one flow: the user finds a
-job, and the user applies to it. Nothing runs without a direct user action — there is no background
-activity of any kind, and **no content script**, so nothing runs on page load either. Every read of
-every page begins with a click or a keystroke.
+Capture (manual or automatic) and fill are the same purpose at two points in one flow: the user finds a
+job, and the user applies to it. Automatic capture is the same capture without the click, on five
+public job-posting sites the user has granted, and only for pages that are postings. Nothing is ever
+submitted by the extension.
 
-The popup's other buttons (Open Resume Builder, ATS Score Tool, Sign in with LinkedIn, Keyboard
-Shortcuts) are not separate features; they open a page of the user's own Draft
-account, or the extension's own options page. They request no permission of their own beyond the
-`scripting` call the ATS Score Tool makes on a job page, which is disclosed below.
+The popup's other controls (Score, Open draft, Copy sheet, Report form, More → the options page with
+keyboard shortcuts, Sign in with LinkedIn and the automatic-capture switch) are not separate features:
+they open a page of the user's own Draft account or the extension's own options page, or they serve
+the application in front of the user.
 
 ---
 
@@ -145,131 +80,104 @@ account, or the extension's own options page. They request no permission of thei
 
 | Trigger | What happens |
 |---|---|
-| Toolbar button → **Capture job** | Reads the job description on the page in view, sends it to the user's Draft account. Works on any job posting, including employers' own careers pages — not a fixed list of sites. |
-| **Ctrl+Shift+K** (rebindable) | **The identical capture.** Same implementation, same destination, same wording of the result. |
-| **Ctrl+Shift+Y** on an application form | The gated handoff: fetches the answers the user already saved in their account, fills the form, shows a review panel. The user submits. |
-| Toolbar → **ATS Score Tool** | Collects the visible text of the page in view and opens the user's ATS Score page with it prefilled. |
-| Toolbar → **Open Resume Builder** / **Sign in with LinkedIn** | Opens a Draft page in a new tab. Nothing is read from the current page. |
-| Toolbar → **Keyboard Shortcuts** | Opens the extension's own options page, which lists both commands with the key currently bound to each, and links to Chrome's own shortcuts page — the only place a command can actually be rebound. Reads no page. |
-
-There is exactly **one** capture implementation. The button and the shortcut are two triggers for
-it, they land in the same place with the same duplicate detection, and they report the same text.
+| Toolbar → **Read this page** (or R) | Reads the posting in view locally and asks our server whether it is on the user's board — the tab's address, in the request body. Shows the job card. Nothing is read before this press. |
+| Toolbar → **Capture it** / **Ctrl+Shift+K** / right-click **Save this page to draft** | **One capture implementation**: reads the job description on the page in view and sends it to the user's Draft account. Works on any job posting, including employers' own careers pages. |
+| Right-click **Save link to draft** | Sends only the link's address; our server reads the posting from the job board's own listing, or refuses the link and saves nothing. |
+| **Automatic capture** (off by default; options page) | On the five granted posting hosts only: a page that is a posting is sent to the user's account; our server keeps it only if it fits their board. A non-posting sends nothing. |
+| **Fill it** / **Ctrl+Shift+Y** on an application form | The gated handoff: fetches the answers the user already saved, checks this page is that application's, fills the form and shows a review panel. The user submits. |
+| **Prepare this application** | For a job of the user's with nothing prepared: builds the answers on demand, then the same handoff. |
+| **I submitted it** | Records the application against the page in view (its address is the evidence). |
+| **Copy sheet** | Lists the user's own prepared answers in the popup, each with a copy button. Writes nothing into the page. |
+| **Report form** → **Send report** | Shows first, then sends: the form page's host and its field labels — never values. |
+| **Score** | Collects the visible text of the page in view and opens the user's ATS Score page with it prefilled. |
+| **Open draft** · More → **Sign in with LinkedIn** | Opens a Draft page in a new tab. Reads nothing. |
+| More → options page | Keyboard shortcuts (both commands, as bound), Sign in with LinkedIn, the automatic-capture switch. |
 
 ### Which sites it works on
 
-**Any job posting the user opens it on.** There is no supported-sites list, because there is no
-mechanism that could enforce one: the extension reads whichever tab the user invoked it on, and it
-holds no permission for any site in advance.
-
-It carries tuned extraction for LinkedIn, Indeed, Glassdoor, Lever, Greenhouse, Workable, Ashby and
-Workday, and falls back to a generic reader everywhere else. That distinction is about extraction
-quality, not access — a Greenhouse posting embedded on an employer's own careers domain is captured
-by the generic path and works. Verified against live postings on all of the above by
-`scripts/e5GreenhouseHost.mjs`, including two employer-hosted pages.
+**Any job posting the user invokes it on.** The extension holds no permission for any site in advance
+except our own backend; it reads the tab the user invoked it on. Automatic capture additionally works
+on the five public posting hosts — and only after the user grants them.
 
 ---
 
 ## Permission justifications
 
 **`activeTab`**
-> Granted only when the user explicitly invokes the extension — clicking the toolbar button or
-> pressing one of the two keyboard shortcuts. It is used for two things: reading the job posting on
-> the page they are viewing, and filling the application form on a page they have opened and signed
-> in to themselves. The extension holds no host permission for any job portal, so it can reach such
-> a page **only** through that per-tab, per-invocation grant. It never accesses a tab the user is not
-> on, and never acts without a direct user action.
+> Granted only when the user explicitly invokes the extension — clicking the toolbar button, a
+> right-click menu item, or pressing one of the two keyboard shortcuts. It is used to read the job
+> posting on the page the user is viewing and to fill the application form on a page they have opened
+> and signed in to themselves. The extension holds no install-time permission for any job site or
+> employer portal, so it reaches such a page only through that per-tab, per-invocation grant.
 
-*(Code: `background.js` `chrome.commands.onCommand` and `popup.js` `getCurrentTab()` both call
-`chrome.tabs.query({active: true, currentWindow: true})` only inside a user-gesture handler.
-`captureActiveTab()`, `previewActiveTab()` and `handleGatedHandoff()` are reached only from there.)*
+*(Code: `background.js` `chrome.commands.onCommand`, `chrome.contextMenus.onClicked` and the popup's
+messages, each calling `chrome.tabs.query({active: true, currentWindow: true})` inside a user-gesture
+handler; `captureActiveTab()`, `previewActiveTab()` and `handleGatedHandoff()` are reached only from there.)*
 
-**`contextMenus`** — ⚠ **NEW in the next release (D55 decision B). Paste this field.**
+**`contextMenus`**
 > Adds two items to the right-click menu. **Save this page to draft** runs the same capture as the
-> toolbar button, on the page the user right-clicked. **Save link to draft** sends only the address
-> of the link the user right-clicked to our backend, which reads that posting from the job board's
-> own listing — or refuses the link and saves nothing if it is not a posting on a board we read
-> directly. Neither item reads anything until the user picks it, and the permission grants no access
-> to any page.
+> toolbar button, on the page the user right-clicked. **Save link to draft** sends only the address of
+> the link the user right-clicked to our backend, which reads that posting from the job board's own
+> listing — or refuses the link and saves nothing if it is not a posting on a board we read directly.
+> Neither item reads anything until the user picks it, and the permission grants no access to any page.
 
 *(Code: `background.js` `chrome.contextMenus.onClicked` → `captureActiveTab()` / `saveLinkToDraft()`;
 the items are `formReport.js` `CONTEXT_MENUS`.)*
 
 **`scripting`**
-> Injects a one-off script into the invoked tab to (a) read the job posting the user is capturing,
-> (b) collect the visible text when the user asks for an ATS score, and (c) fill the application form
-> and render the review panel on a handoff. Nothing is injected into any other tab, and no script is
-> registered to run persistently — the extension declares no content script at all.
->
-> This is how the extension reads a job page without holding a permission for the site. It is also
-> why it can capture a posting on an employer's own careers domain, which no list of declared hosts
-> could ever have covered.
+> Injects a one-off script into a tab to (a) read the job posting the user is capturing, (b) collect
+> the visible text when the user asks for an ATS score, (c) fill the application form and render the
+> review panel on a handoff, and (d) when automatic capture is on, check a page on one of the five
+> granted posting hosts for JobPosting structured data. The extension declares no content script; the
+> automatic check runs only on the hosts the user granted, only while the switch is on.
 
-*(Code: `background.js` `captureActiveTab()` and `reportCapture()`, injecting `extractor.js`
-`extractJobPayload()` and `showCaptureToast()`; `gated-handoff.js` `probeFormShape()`, `applyPlan()`
-and `applyOverlayEdit()`; `review-overlay.js` `renderOverlay()`; `popup.js` for the ATS Score Tool.)*
+*(Code: `background.js` `captureActiveTab()` / `reportCapture()` injecting `extractor.js`
+`extractJobPayload()` and `showCaptureToast()`; the automatic path `chrome.tabs.onUpdated` →
+`autoCapture.js` `autoCaptureStep()` / `pageHasJobPosting()`; `gated-handoff.js` `probeFormShape()`,
+`applyPlan()`, `applyOverlayEdit()`; `review-overlay.js` `renderOverlay()`; `autofill-badge.js`.)*
 
-**`storage`** — ⚠ **REVISED 2026-10-07 (D64: the automatic-capture switch). Re-paste this field in the dashboard.**
+**`storage`**
 > Seven values. Six never leave the browser; the seventh is the extension's own access token, which is
 > sent to our backend and to nowhere else. In `chrome.storage.local`: the result of the user's most
-> recent capture, so the popup can show the outcome of a capture made with the keyboard while the
-> popup was closed; the username of the account the extension is connected to, so the popup can name
-> it before a capture; and that access token, which is how the extension identifies itself to us —
-> it is not the user's password and not their website session, and it is deleted the moment they
-> disconnect the extension; and whether the user has switched automatic capture on (a single on/off
-> value). In `chrome.storage.session` (memory-backed, discarded on browser
-> restart): the prepared answers for an application in progress, with a 10-minute expiry and cleared
-> when the tab closes; the result of the most recent form fill, so the popup can report a fill
-> started with the keyboard; and, when several applications are queued for one employer site, that
-> site's origin and how many remain, so a batch can resume in the same tab — no answers and nothing
-> about the user in that one. Only the prepared-answers packet carries the 10-minute expiry; the
-> other two session values live until the browser restarts, or until the tab closes in the case of
-> the batch.
+> recent capture, so the popup can show the outcome of a capture made with the keyboard while the popup
+> was closed; the username of the account the extension is connected to, so the popup can name it; that
+> access token, which is how the extension identifies itself to us — not the user's password and not
+> their website session, deleted the moment they disconnect the extension; and whether the user has
+> switched automatic capture on (a single on/off value). In `chrome.storage.session` (memory-backed,
+> discarded on browser restart): the prepared answers for an application in progress, with a 10-minute
+> expiry and cleared when the tab closes; the result of the most recent form fill, so the popup can
+> report a fill started with the keyboard; and, when several applications are queued for one employer
+> site, that site's origin and how many remain, so a batch can resume in the same tab — no answers and
+> nothing about the user in that one.
 
-*(Code: `background.js` `reportCapture()` → `lastCapture` (`storage.local`) and `reportHandoff()` →
-`lastGatedHandoff` (`storage.session`); `gated-handoff.js` `savePacketForTab()` /
-`clearPacketForTab()` / `sweepExpiredPackets()` → `gate:{tabId}`, and `saveBatchForTab()` /
-`clearBatchForTab()` → `batch:{tabId}` (`storage.session`); `auth.js` `storeToken()` → `authToken`
-and `getIdentity()` → `authIdentity` (`storage.local`), both cleared by `clearStoredToken()`.
-`options.js` touches `storage.sync` only to delete a value the retired shortcut recorder left
-behind.)*
+*(Code: `background.js` `reportCapture()` → `lastCapture` (local) and `reportHandoff()` →
+`lastGatedHandoff` (session); `gated-handoff.js` → `gate:{tabId}` and `batch:{tabId}` (session);
+`auth.js` → `authToken` and `authIdentity` (local); `autoCapture.js` (set from the options page) → `autoCaptureEnabled` (local).)*
 
-> ⚠ **Why this changed, twice.** On 2026-09-15 this field said two values and the extension kept
-> four. On 2026-09-26 it said four and the extension kept six: `auth.js` added `authToken` and
-> `authIdentity` when the extension moved off the browser's ambient session, and the test that
-> counts storage writes was reading a HARDCODED list of source files which did not include the new
-> one — so it kept asserting four and kept passing. Both corrections went to the DOCUMENTATION,
-> never to the code: undisclosed keys are honest behaviour with dishonest documentation, and
-> deleting a key to make a sentence true is the wrong direction. The count is now derived from the
-> shipped bundle, so the next file that writes a storage key fails the test instead of quietly
-> making this field wrong again. See `PRIVACY_RECONCILIATION.md` § Permissions.
->
-> ⚠ **One claim was RETRACTED, not merely widened.** "Four values, none of them sent anywhere by the
-> extension" became false the moment the extension carried a token of its own, and a reviewer
-> falsifies it by watching a single request. The replacement names which value is sent and where it
-> goes.
+**Host permission** — one, our own backend
+> `https://jobsviadraft.com/*` is our own server. The extension calls it with an access token of its
+> own, obtained once when the user connects the extension. The browser's session cookie is deliberately
+> NOT sent (`credentials: 'omit'` on every call but the one that obtains the token), so the extension
+> acts as the one account the user connected, not as whatever session the browser holds.
 
-**Host permissions** — one, and it is our own backend
-> `https://jobsviadraft.com/*` is our own server. The extension fetches from it with an access
-> token of its own — obtained once, when the user connects the extension, and sent on every call
-> thereafter. The browser's session cookie is deliberately NOT sent (`credentials: 'omit'` on every
-> call but the one that obtains the token). That is what makes the extension act as the single
-> account the user connected it to, rather than as whatever session the browser happens to hold for
-> our origin.
->
-> **No job board and no employer portal is declared, and none will be.** The extension has no
-> standing access to any site it reads a job from. It reads a page only by injecting into the tab
-> the user has just invoked it on, under the `activeTab` grant that invocation creates, and that
-> access ends when the tab leaves the origin. Earlier builds declared six job boards and ran a
-> content script on them automatically; that is gone, and with it the extension's ability to read
-> anything the user has not deliberately pointed it at.
+**Optional host permissions** — five public job-posting hosts, requested only when the user switches
+automatic capture on
+> `boards.greenhouse.io`, `job-boards.greenhouse.io`, `jobs.lever.co`, `jobs.ashbyhq.com`,
+> `apply.workable.com` — the public posting pages of the job boards our service reads. Requested at
+> runtime with `chrome.permissions.request` when the user turns on **Capture job pages automatically**
+> in the options page, and removed when they turn it off. With them, a page on these hosts that is a
+> job posting is sent to the user's account without a click; a page that is not a posting sends
+> nothing. ⛔ Never `<all_urls>`, never at install, and never a site where the user signs in: employer
+> portals stay reachable only through `activeTab`.
 
 | Host | Why |
 |---|---|
-| `https://jobsviadraft.com/*` | Our own backend: capture, the auth probe, the handoff packet |
+| `https://jobsviadraft.com/*` | Our own backend: capture, the auth probe, the handoff packet, the board check |
+| five posting hosts (optional) | Automatic capture, only when the user switches it on |
 
 Full derivation, including every permission deliberately **not** requested and why, is in
-`extension/MANIFEST_RATIONALE.md`. `test/manifestMinimumPermission.test.js` fails the build if that
-file and the manifest ever disagree in either direction.
+`extension/MANIFEST_RATIONALE.md`; `test/manifestMinimumPermission.test.js` fails the build if that file
+and the manifest disagree.
 
 ---
 
@@ -278,44 +186,47 @@ file and the manifest ever disagree in either direction.
 These are the answers for the **Privacy practices** tab.
 
 - **Personally identifiable information** — **collected and transmitted.** Two distinct flows:
-  1. *Capture and ATS scoring.* Job postings the user captures are stored in **their own Draft
-     account**, which is an identified account. The posting text itself is employer-authored,
-     but it is account-linked, so this is collection of personally identifiable information and is
-     declared as such.
-  2. *The handoff.* The extension fetches, from the user's own Draft account, the details
-     they previously saved there — name, email, phone, postal address, and work-authorization
-     answers — and enters them into the application form the user has opened. This is the user's own
-     data, sent to the employer's form at the user's instruction, in a tab they opened and signed in
-     to. It is held only for the duration of that handoff and is never sent to any third party other
-     than the employer's own form.
-- **Website content** — **collected, in three narrow cases** (five from the next release — items 4 and 5).
-  1. The text of a job posting the user explicitly captures, sent to their account.
-  2. The visible text of a job page when the user clicks **ATS Score Tool**, passed to their own
-     ATS Score page so it arrives prefilled. It travels in the URL of the page that opens, so it
-     can appear in ordinary server logs; the privacy policy states this explicitly.
-  3. *Optional and off by default:* the **structure** of an application form — its field labels,
-     types, required flags and option lists. Never the values in it, never anything about the user.
-     This is used to recognise the same form for other users. It is controlled by a per-account
-     setting that defaults to OFF and is enforced on our server, not only in the extension.
-  4. *(Next release, D55 B.)* The **address of a link** the user right-clicks and saves with **Save
-     link to draft** — the link only; no page is opened or read. Stored as a capture is, if the
-     server can read the posting from the job board's own listing; otherwise refused, nothing stored.
-  5. *(Next release, D55 E.)* When the user presses **Report this form** and then **Send report**:
-     the form page's **host name** (never its path or query) and the form's **field labels** —
-     never the values in it. Linked to the user's account and deleted after 30 days.
-- **Authentication information** — *not collected.* The extension never reads, stores or transmits
-  any portal's session cookie, password, or token. It cannot sign the user in and does not try; the
-  user crosses every sign-in and CAPTCHA themselves. It holds no `cookies` permission.
-- **Web history** — *not collected.* The extension reads the URL only of the tab the user has
-  invoked it on, and only to decide whether that page is a supported job posting. It holds no
-  `tabs`, `history` or `webNavigation` permission, so it cannot see any other tab.
+  1. *Capture and ATS scoring.* Job postings the user captures (by hand or automatically) are stored in
+     **their own Draft account**, an identified account — so this is declared as collection of
+     personally identifiable information, though the posting text is employer-authored.
+  2. *The handoff.* The extension fetches, from the user's own Draft account, the details they saved
+     there — name, email, phone, postal address, work-authorization and self-identification answers —
+     and enters them into the application form the user opened, or lists them on the Copy sheet. This
+     is the user's own data, sent to the employer's form at their instruction; it is never sent to any
+     third party other than that form.
+- **Website content** — **collected, in these cases:**
+  1. The text of a job posting the user captures, sent to their account.
+  2. *Automatic capture, when switched on:* the address and text of a page on one of the five granted
+     posting hosts **that is a job posting** — kept only if it fits the user's board, otherwise
+     discarded without being stored. Nothing is sent for any other page.
+  3. The visible text of a job page when the user clicks **Score**, passed to their ATS Score page. It
+     travels in the URL of the page that opens, so it can appear in ordinary server logs (stated in the
+     privacy policy).
+  4. The tab's address when the user presses **Read this page**, and the application page's full
+     address on a fill, Prepare, the Copy sheet and **I submitted it** — used to match the page to the
+     application; kept only on **I submitted it**, as evidence on the application record.
+  5. The address of a link the user saves with **Save link to draft** — the link only.
+  6. On **Report form** → **Send report**: the form page's host name (never its path or query) and its
+     field labels — never values. Linked to the user's account, deleted after 30 days.
+  7. *Optional and off by default:* the **structure** of an application form (labels, types, required
+     flags, option lists — never values), to recognise the same form for other users. A per-account
+     setting, enforced on our server.
+- **Authentication information** — *not collected.* The extension never reads, stores or transmits any
+  portal's session cookie, password or token. It cannot sign the user in and does not try. It holds no
+  `cookies` permission.
+- **Web history** — *not collected.* The extension reads the address only of a tab the user invoked it
+  on, or — with automatic capture on — of a page on the five granted hosts, and sends it only for a
+  posting. It holds no `tabs`, `history` or `webNavigation` permission.
 - **User activity** — *not collected.* No clickstream, no analytics, no telemetry.
 - **Health / financial / personal communications / location** — *not collected.*
 
-Certifications:
+Certifications — tick all four:
 - Not being sold to third parties.
 - Not being used or transferred for purposes unrelated to the item's single purpose.
 - Not being used or transferred to determine creditworthiness or for lending purposes.
+- ⭐ **I certify that this item's use of user data complies with the Chrome Web Store User Data Policy,
+  including the Limited Use requirements.** (D68: the privacy policy carries the same affirmation, in
+  *How We Use Your Data*.)
 
 Privacy policy URL: `https://jobsviadraft.com/privacy` (set in `manifest.json`).
 
@@ -324,89 +235,61 @@ Privacy policy URL: `https://jobsviadraft.com/privacy` (set in `manifest.json`).
 ## Reviewer notes
 
 > The extension never submits an application. It fills the form and shows a review panel; the user
-> presses the employer's own submit button. There is no background activity of any kind: every
-> behaviour begins at a toolbar click or a keyboard shortcut.
+> presses the employer's own submit button.
 >
-> It also never crosses a sign-in or a CAPTCHA. The user authenticates on the portal themselves, in
-> their own browser; only then can they invoke the extension, and that invocation is what grants
-> access to that one tab. The extension requests no host permission for any job portal, so it has no
-> standing access to any of them.
+> It never crosses a sign-in or a CAPTCHA. The user authenticates on a portal themselves; only then can
+> they invoke the extension there, and that invocation is what grants access to that one tab. The
+> extension holds no host permission for any employer portal.
 >
-> Before releasing anything into a page, it checks that the tab's origin matches the origin our
-> server nominated for that application and that a form is actually present. On a mismatch it
-> releases nothing.
+> The only behaviour without a click is **automatic capture**, which is OFF until the user switches it
+> on in the options page — at which point Chrome asks them to grant five public job-posting hosts. It
+> sends a page only when the page is a job posting, and never fills or submits.
 >
-> The extension asks for no site permissions. Capture, the ATS reader and the form fill all reach a
-> page the same way: `chrome.scripting.executeScript` into the tab the user just invoked on, under
-> `activeTab`. There is no content script and no job-board host permission, so there is no page the
-> extension can read without a deliberate gesture on that exact tab.
+> Before releasing anything into a page, it checks that the page is one of that application's own
+> addresses and, where the address names a job, that it is the same job. On a mismatch it releases
+> nothing.
 >
-> No remotely hosted code. Everything executed ships in the package: no `eval`, no `new Function`,
-> no `importScripts`, no remote `<script src>`. The CSP in the manifest is `script-src 'self'`.
+> No remotely hosted code. Everything executed ships in the package: no `eval`, no `new Function`, no
+> `importScripts`, no remote `<script src>`. The CSP in the manifest is `script-src 'self'`.
 >
-> `externally_connectable` is deliberately absent. No website can message this extension; the data
-> flow is outbound-only, from the extension to our own server with the user's own session.
+> `externally_connectable` is deliberately absent. No website can message this extension.
 
 ---
 
-## Test instructions — ⛔ THIS FIELD IS EMPTY AND IT IS A BLOCKER
+## Test instructions — ⛔ OWNER: still required, still not in this file
 
-**The dashboard has a "Test instructions" field for items that cannot be exercised without an
-account, and this item cannot.** Every behaviour the listing describes — capture, the handoff, the
-ATS Score Tool — begins with `authedFetch`, which returns null without a signed-in session to
-bootstrap a token from. A reviewer who cannot sign in sees a popup that says "Sign in to Draft
-first" and nothing else, and "I could not test it" is a rejection rather than a question.
-
-⚠ **No reviewer account exists.** This was checked at P4 rather than assumed: the local database
-holds `system`, `admin`, `johndoe` and the owner's own account, and no account named for Web
-Store review appears anywhere in this repository or its history. Whether one exists in PRODUCTION
-could not be established from here.
-
-**What the owner has to do, and no agent can do any of it:**
-
-1. Create an account on `https://jobsviadraft.com` that exists to be used by a reviewer, with a
-   password that is not reused anywhere. ⛔ Not the owner's own account and not `admin` — a
-   reviewer signs in to it, and the extension's identity model means it then acts as that account.
-2. Give it a completed profile. The handoff fills a form from saved details; an empty profile makes
-   the extension look broken rather than restrictive. Name, email, phone, postal address and the
-   work-authorization answers are what the review panel shows.
-3. Paste the credentials into the dashboard's **Test instructions** field along with the two steps
-   below. ⛔ Do NOT commit them to this file — it is a tracked file in a repository.
+Every behaviour begins with a signed-in account; a reviewer who cannot sign in sees "Sign in to Draft"
+and nothing else. ⛔ **Create a reviewer account on `https://jobsviadraft.com`** (not the owner's, not
+`admin`), give it a completed profile with SYNTHETIC details, and paste its credentials into the
+dashboard's **Test instructions** field with the steps below. ⛔ Never commit them here.
 
 > Sign in at https://jobsviadraft.com with the account above. Then:
 >
-> **To see a capture:** open any job posting in another tab — an employer's own careers page is
-> fine — and press Ctrl+Shift+K, or click the extension's toolbar button and then "Capture job".
-> The posting appears on the account's board.
+> **Capture:** open any job posting and press Ctrl+Shift+K, or click the toolbar button → Read this
+> page → Capture it. The posting appears on the account's board.
 >
-> **To see the form fill:** from the account's board, start an application. The extension opens the
-> employer's form in a tab; sign in to the employer's site yourself if it asks, and then press
-> Ctrl+Shift+Y on the form. The answers appear with a review panel above them. **The extension does
-> not submit** — the panel says so, and you press the employer's own submit button.
+> **Automatic capture:** in the extension's options, switch on "Capture job pages automatically" and
+> grant the five sites. Open a posting on jobs.lever.co or job-boards.greenhouse.io; it is added
+> without a click if it fits the board.
+>
+> **Fill:** from the board, Draft a job and start the application. Sign in to the employer's site if
+> it asks, then press Ctrl+Shift+Y on the form. The answers appear with a review panel. **The extension
+> does not submit.**
 
 ---
 
 ## Pre-submission checklist
 
 - [ ] `npm run build:extension` — regenerates the zip and fails on a flipped dev switch
-- [ ] `npm test` — includes `extensionSubmission.test.js`, which proves the zip is byte-identical
-      to `extension/` and ships nothing unreachable from the manifest, and
-      `manifestMinimumPermission.test.js`, which proves every permission is justified
-- [ ] `node scripts/e3PermissionAudit.mjs` — removes each declared permission in a real Chrome and
-      confirms something actually breaks
-- [ ] ⛔ Confirm `https://jobsviadraft.com/privacy` returns 200 **anonymously** and its Browser
-      Extension section matches the disclosures above. The policy is served by the deployed client
-      build, so a policy change is not live until it is **deployed**, not merely committed — and
-      this release CHANGED THE POLICY TEXT (six stored values, the access token, the retracted
-      "none of them sent anywhere" claim). Deploy before the listing cites the URL; reviewers fetch
-      it, and the wording has to be verified by grepping the deployed bundle rather than by loading
-      the URL, which returns a ~2 kB SPA shell with zero policy text in it.
-- [ ] ⛔ Confirm the reviewer's test account signs in on `https://jobsviadraft.com`. An account
-      that exists only on the developer's machine is not an account a reviewer can use, and
-      "cannot sign in" is a rejection rather than a question.
-- [ ] Read `PRIVACY_RECONCILIATION.md` — the four-column join of manifest, code, policy and the
-      justifications on this page. Every row complete; an orphan in any column is a rejection
-- [ ] Fill the **Privacy practices** tab with the disclosures above
-- [ ] Fill the **single purpose** field with the statement above
-- [ ] Upload `resume-master-extension-v1.1.1.zip` — and ⛔ check the version in the dashboard is
-      higher than the v1.1.0 still sitting in review, or the upload is refused
+- [ ] `npm test` — `extensionSubmission.test.js` proves the zip is byte-identical to `extension/`;
+      `manifestMinimumPermission.test.js` proves every permission is justified
+- [ ] `node scripts/e3PermissionAudit.mjs` — removes each declared permission in a real Chrome
+- [ ] ⛔ Confirm `https://jobsviadraft.com/privacy` serves the policy dated with this release
+      (grep the deployed bundle — the URL returns an SPA shell). **Push before upload.**
+- [ ] ⛔ Confirm the reviewer account signs in on `https://jobsviadraft.com`
+- [ ] Read `PRIVACY_RECONCILIATION.md` — every row complete
+- [ ] Paste: single purpose · every permission justification (`activeTab`, `contextMenus`, `scripting`,
+      `storage`, the host permission, **the optional host permissions**) · the Privacy practices tab ·
+      the four certifications, **including Limited Use**
+- [ ] Regenerate the store screenshots (`npm run store:screenshots`) — the popup, badge and overlay changed (D63)
+- [ ] Upload `resume-master-extension-v1.5.0.zip` — the dashboard's version must be higher than any in review
