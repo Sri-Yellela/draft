@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, authHeaders } from "../lib/api.js";
 import {
   HISTORY_CHIPS, HISTORY_SORTS, REPLY_ASK, applyHistoryView, oldestUnanswered,
+  kanbanColumns, historyFunnel, FUNNEL_ENDINGS,
 } from "../../../shared/applicationHistory.js";
 import {
   RESPONSE_OUTCOME, RESPONSE_OUTCOMES, RESPONSE_LABELS, MATURITY_DAYS,
@@ -49,6 +50,61 @@ const RESUME_LINK = {
   current_resume:     { title: "No copy was kept when you applied — this downloads your résumé for this job as it is now, which may have changed since", label: "Download current résumé" },
 };
 const resumeLink = (row) => RESUME_LINK[row.resumeSource] || RESUME_LINK.current_resume;
+
+/** D54 List | By company, and D55's Board (Kanban) and Funnel — four views of the SAME rows. */
+const LAYOUTS = [["list", "List"], ["company", "By company"], ["board", "Board"], ["funnel", "Funnel"]];
+
+/** The funnel's drop-offs, in the order they are drawn after the share that went on. */
+const ENDING_LABEL = { active: "Still open", rejected: "Rejected", no_reply: "No reply", closed: "Withdrawn" };
+const pct = (n, d) => (d ? `${Math.round((n / d) * 100)}%` : "—");
+
+/**
+ * ⭐ D55 F · THE FUNNEL — a stepped funnel, one SVG bar per step (text stays HTML so it reads at 390px).
+ * Each bar is the applications that REACHED the step, centred, split into the share that went on to
+ * the next step and where the rest stopped. ⛔ Every number is historyFunnel's over the List's rows.
+ */
+function Funnel({ rows }) {
+  const f = historyFunnel(rows);
+  if (!f.sent) {
+    return <p className="ah__empty">Nothing sent yet — the funnel starts at the first application you send.</p>;
+  }
+  return (
+    <section className="ah__funnel" aria-label="Application funnel" data-funnel="" data-sent={f.sent}>
+      {f.steps.map((s, i) => {
+        const next = f.steps[i + 1]?.reached ?? 0;
+        const w = (s.reached / f.sent) * 100;
+        let x = (100 - w) / 2;
+        const segs = [["on", next], ...FUNNEL_ENDINGS.map(e => [e, s.here[e]])].filter(([, n]) => n > 0)
+          .map(([k, n]) => { const sw = (n / f.sent) * 100; const seg = { k, n, x, w: sw }; x += sw; return seg; });
+        const stops = FUNNEL_ENDINGS.filter(e => s.here[e] > 0).map(e => `${s.here[e]} ${ENDING_LABEL[e].toLowerCase()}`);
+        return (
+          <div key={s.id} className="ah__fstep" data-funnel-step={s.id} data-reached={s.reached}>
+            <div className="ah__fhead">
+              <span className="ah__fname">{s.label}</span>
+              <span className="ah__fn">{s.reached}</span>
+              <span className="ah__fpct">{i === 0 ? "of what you sent" : `${pct(s.reached, f.sent)} of applied`}</span>
+            </div>
+            <svg className="ah__fbar" viewBox="0 0 100 10" preserveAspectRatio="none" role="img"
+              aria-label={`${s.label}: ${s.reached} of ${f.sent}${next ? `, ${next} went on` : ""}${stops.length ? `; ${stops.join(", ")}` : ""}`}>
+              <rect className="ah__ftrack" x="0" y="0" width="100" height="10" rx="0"/>
+              {segs.map(g => <rect key={g.k} className="ah__fseg" data-seg={g.k} x={g.x} y="0" width={g.w} height="10"/>)}
+            </svg>
+            {stops.length > 0 && <p className="ah__fstops">Stopped here: {stops.join(" · ")}</p>}
+          </div>
+        );
+      })}
+      <ul className="ah__flegend" aria-label="Legend">
+        <li data-seg="on">Went on to the next step</li>
+        {FUNNEL_ENDINGS.map(e => <li key={e} data-seg={e}>{ENDING_LABEL[e]}</li>)}
+      </ul>
+      <p className="ah__meta">
+        {plural(f.sent, "application")} sent
+        {f.inPlay ? ` · ${f.inPlay} in play, not sent yet` : ""}
+        {f.notSent ? ` · ${f.notSent} you did not apply to` : ""} — the List's {plural(f.total, "row")}.
+      </p>
+    </section>
+  );
+}
 
 export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) {
   const [rows, setRows] = useState([]);
@@ -145,7 +201,7 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
           <input type="date" value={to} min={from || undefined} onChange={e => setTo(e.target.value)}/>
         </label>
         <div className="ah__layout" role="group" aria-label="Layout">
-          {[["list", "List"], ["company", "By company"]].map(([id, label]) => (
+          {LAYOUTS.map(([id, label]) => (
             <button key={id} type="button" className="ah__chip" aria-pressed={layout === id} data-layout={id}
               onClick={() => setLayout(id)}>{label}</button>
           ))}
@@ -212,6 +268,51 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
               );
             })}
         </div>
+      )}
+
+      {/* ⭐ D55 F · THE BOARD — a Kanban of the same rows, one column per stage. A card opens its row in
+          the List; a sent card can be moved by recording its outcome (the merge endpoint, as the List). */}
+      {layout === "board" && (
+        !view.rows.length ? <p className="ah__empty">{loading ? "Loading your applications…" : "Nothing on the board yet."}</p> : (
+          <div className="ah__board" data-board="">
+            {kanbanColumns(view.rows).map(col => (
+              <section key={col.id} className="ah__col" data-kanban-column={col.id} data-count={col.rows.length}
+                aria-label={`${col.label}: ${col.rows.length}`}>
+                <h3 className="ah__col-head" data-stage={col.id}>
+                  {col.label} <span className="ah__chip-n">{col.rows.length}</span>
+                </h3>
+                {col.rows.length === 0 ? <p className="ah__col-empty">None</p> : col.rows.map(row => (
+                  <article key={row.jobId} className="ah__card" data-stage={row.stage}>
+                    <button type="button" className="ah__main" title="Open in the List"
+                      onClick={() => { setLayout("list"); setOpen(row.jobId);
+                        requestAnimationFrame(() => rowRefs.current[row.jobId]?.scrollIntoView({ block: "center" })); }}>
+                      <span className="ah__company">{row.company || "Unknown company"}</span>
+                      <span className="ah__title">{row.title || "—"}</span>
+                      <span className="ah__meta">{row.sentAt ? `Sent ${fmtDay(row.sentAt)}` : `Added ${fmtDay(row.draftedAt)}`}</span>
+                    </button>
+                    {row.applicationId != null && (
+                      <label className="ah__move">
+                        <span className="ah__sr">Record the outcome for {row.company || "this application"}</span>
+                        <select value={row.responseOutcome ?? ""} disabled={busy === row.jobId}
+                          onChange={e => e.target.value && recordReply(row, e.target.value)}>
+                          <option value="">{row.responseOutcome ? "—" : "Record outcome…"}</option>
+                          {RESPONSE_OUTCOMES.map(o => <option key={o} value={o}>{RESPONSE_LABELS[o].label}</option>)}
+                        </select>
+                      </label>
+                    )}
+                    {notes[row.jobId] && (
+                      <p className="ah__note" data-kind={notes[row.jobId].kind} role="status">{notes[row.jobId].text}</p>
+                    )}
+                  </article>
+                ))}
+              </section>
+            ))}
+          </div>
+        )
+      )}
+
+      {layout === "funnel" && (
+        loading && !rows.length ? <p className="ah__empty">Loading your applications…</p> : <Funnel rows={view.rows}/>
       )}
 
       {layout === "list" && (

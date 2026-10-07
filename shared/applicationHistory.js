@@ -257,6 +257,45 @@ export function chipCounts(rows) {
   return c;
 }
 
+/**
+ * ⭐ D55 F · THE KANBAN: the rows given, one column per stage, in funnel order. ⛔ A pure grouping of
+ * the SAME rows the List shows — every row lands in exactly one column, so a column's count IS its
+ * chip's count. The optional `replied` column appears only when it holds a row.
+ */
+export function kanbanColumns(rows) {
+  const by = new Map(HISTORY_STAGES.map(s => [s, []]));
+  for (const r of rows) by.get(stageOfRow(r))?.push(r);
+  return HISTORY_CHIPS
+    .filter(c => !c.optional || by.get(c.id).length)
+    .map(c => ({ id: c.id, label: c.label, status: STAGE_STATUS[c.id], rows: by.get(c.id) }));
+}
+
+/**
+ * ⭐ D55 F · THE FUNNEL: how far the SENT applications got, and where each one stopped.
+ *
+ * steps[i].reached   sent applications that got at least this far (applied ⊇ screen ⊇ …)
+ * steps[i].here      the ones whose furthest step IS this one, by how they ended (FUNNEL_ENDINGS):
+ *                    still active, rejected, no reply, or closed by the candidate.
+ * inPlay / notSent   rows that were never sent: still in play, or "did not apply". In no step.
+ *
+ * ⛔ THE INVARIANT (tested): Σ steps.here = sent = steps[0].reached, and sent + inPlay + notSent is the
+ * number of rows given — the funnel is the List's rows grouped, never a second count.
+ */
+export function historyFunnel(rows) {
+  const steps = FUNNEL_STEPS.map(s => ({ ...s, reached: 0, here: Object.fromEntries(FUNNEL_ENDINGS.map(e => [e, 0])) }));
+  let sent = 0, inPlay = 0, notSent = 0;
+  for (const r of rows) {
+    const reached = r.reached !== undefined ? r.reached : reachedOf(r);
+    if (reached == null) { if (stageOfRow(r) === "in_play") inPlay++; else notSent++; continue; }
+    sent++;
+    const idx = Math.max(0, FUNNEL_STEPS.findIndex(s => s.id === reached));
+    for (let i = 0; i <= idx; i++) steps[i].reached++;
+    const st = stageOfRow(r);
+    steps[idx].here[FUNNEL_ENDINGS.includes(st) ? st : "active"]++;
+  }
+  return { steps, sent, inPlay, notSent, total: rows.length };
+}
+
 /** The nudge: the sent row that has waited longest with nothing recorded, matured or not. */
 export function oldestUnanswered(rows) {
   let best = null;

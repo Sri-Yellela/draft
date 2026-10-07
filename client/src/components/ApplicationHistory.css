@@ -134,3 +134,63 @@
 /* D54 · List | By company — the chips' own idiom; a company row expands to its jobs. */
 .ah__layout { display: inline-flex; gap: 6px; align-items: center; }
 .ah__company-jobs { list-style: none; margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+
+/* D55 F · THE BOARD — one column per stage. The board scrolls sideways inside itself, never the page;
+ * at phone width the columns stack. */
+.ah__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ah__board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); gap: 12px;
+             overflow-x: auto; padding: 4px 4px 12px; align-items: start; }
+.ah__col { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 10px; border-radius: 16px;
+           background: var(--c-hover); }
+.ah__col-head { margin: 0; display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 6px;
+                font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--c-ink-muted);
+                border-bottom: 3px solid var(--c-border); }
+.ah__col-head[data-stage="in_play"]      { border-bottom-color: var(--c-info); }
+.ah__col-head[data-stage="sent"]         { border-bottom-color: var(--c-warning); }
+.ah__col-head[data-stage="screen"]       { border-bottom-color: var(--c-teal); }
+.ah__col-head[data-stage="interviewing"] { border-bottom-color: var(--c-violet); }
+.ah__col-head[data-stage="offer"],
+.ah__col-head[data-stage="replied"]      { border-bottom-color: var(--c-success); }
+.ah__col-head[data-stage="rejected"]     { border-bottom-color: var(--c-danger); }
+.ah__col-head[data-stage="no_reply"],
+.ah__col-head[data-stage="closed"]       { border-bottom-color: var(--c-border-strong); }
+.ah__col-empty { margin: 4px; font-size: 12px; color: var(--c-ink-faint); }
+.ah__card { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 14px;
+            background: var(--c-surface-solid); box-shadow: var(--c-depth-rest); transition: box-shadow .2s ease; }
+.ah__card:hover, .ah__card:focus-within { box-shadow: var(--c-depth-hover); }
+.ah__card .ah__company { font-size: 14px; }
+.ah__move select { width: 100%; border: 0; border-radius: 10px; padding: 6px 8px; font: inherit; font-size: 12px;
+                   background: var(--c-surface-solid); color: var(--c-ink); box-shadow: var(--c-depth-rest); }
+.ah__move select:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+
+/* D55 F · THE FUNNEL — a stepped funnel: each step's bar is what reached it, split into what went on and
+ * where the rest stopped. Fills are tokens; the text around the bars is HTML so it reads at any width. */
+.ah__funnel { display: flex; flex-direction: column; gap: 14px; padding: 16px; border-radius: 18px;
+              background: var(--c-surface-solid); box-shadow: var(--c-depth-rest); }
+.ah__fstep { display: flex; flex-direction: column; gap: 6px; }
+.ah__fhead { display: flex; align-items: baseline; gap: 10px; }
+.ah__fname { font-size: 13px; font-weight: 800; color: var(--c-ink); }
+.ah__fn { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--c-ink); }
+.ah__fpct { font-size: 11.5px; color: var(--c-ink-faint); margin-left: auto; }
+.ah__fbar { display: block; width: 100%; height: 26px; border-radius: 8px; overflow: hidden; }
+.ah__ftrack { fill: var(--c-hover); }
+.ah__fseg[data-seg="on"]       { fill: var(--c-accent); }
+.ah__fseg[data-seg="active"]   { fill: var(--c-info); }
+.ah__fseg[data-seg="rejected"] { fill: var(--c-danger); }
+.ah__fseg[data-seg="no_reply"] { fill: var(--c-ink-faint); }
+.ah__fseg[data-seg="closed"]   { fill: var(--c-border-strong); }
+.ah__fstops { margin: 0; font-size: 12px; color: var(--c-ink-muted); }
+.ah__flegend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 11.5px; color: var(--c-ink-muted); }
+.ah__flegend li { display: inline-flex; align-items: center; gap: 6px; }
+.ah__flegend li::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c-hover); }
+.ah__flegend li[data-seg="on"]::before       { background: var(--c-accent); }
+.ah__flegend li[data-seg="active"]::before   { background: var(--c-info); }
+.ah__flegend li[data-seg="rejected"]::before { background: var(--c-danger); }
+.ah__flegend li[data-seg="no_reply"]::before { background: var(--c-ink-faint); }
+.ah__flegend li[data-seg="closed"]::before   { background: var(--c-border-strong); }
+
+@media (max-width: 640px) {
+  .ah__board { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: 1fr; overflow-x: visible; }
+  .ah__layout { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) { .ah__card { transition: none; } }
