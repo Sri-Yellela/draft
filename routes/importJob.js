@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { importJob, ImportInputError, ImportRefusedError, detectKnownAtsMatch, linkRefetchability } from "../services/jobs/importJob.js";
 import { recentCaptures } from "../services/jobs/captureOutcome.js";
+import { autoCaptureDisabled, autoCaptureBrake, listAutoCaptures, undoAutoCapture } from "../services/jobs/autoCapture.js";
 
 // Sibling to routes/importedJobs.js, NOT an extension of it — importedJobs.js manages the
 // legacy per-user `imported_jobs` table (LinkedIn-extension saved jobs). This router writes
@@ -130,6 +131,57 @@ export function createImportJobRouter(db, opts = null) {
     // services/jobs/captureOutcome.js — the same words the capture itself answered with.
     const recent = recentCaptures(db, req.user.id, 5);
     res.json({ posting, ats, recent });
+  });
+
+  // ⭐ D64 · AUTOMATED CAPTURE — POST /api/import/auto { url, text }.
+  //
+  // The extension sends this only for a page its local check found to BE a posting (JSON-LD JobPosting,
+  // or a known ATS posting URL shape), and only while the user has switched automatic capture on.
+  // Here: the kill switch, then the brakes, then importJob in auto mode — which decides relevance to the
+  // user's board BEFORE writing and discards an irrelevant posting without a trace
+  // (services/jobs/autoCapture.js). ⛔ The text the user's own browser read is required: this route
+  // never makes draft fetch a page.
+  //   200 { discarded: true, reason }   not relevant (outside the US, outside the profile's roles…) — nothing stored
+  //   200 { already: true }             this URL was auto-captured for you in the last 24 h
+  //   200 capture answer, auto: true    on your board, marked "Captured automatically"
+  //   429 auto_capture_cap · 503 auto_capture_disabled
+  router.post("/auto", async (req, res) => {
+    if (autoCaptureDisabled(db)) {
+      return res.status(503).json({ error: "Automatic capture is switched off.", code: "auto_capture_disabled", retryable: false });
+    }
+    const url = typeof req.body?.url === "string" ? req.body.url.slice(0, 2048) : "";
+    const text = typeof req.body?.text === "string" ? req.body.text : "";
+    if (!/^https?:[/][/]/i.test(url) || !text.trim()) {
+      return res.status(400).json({ error: "Automatic capture sends the page's address and the text it read." });
+    }
+    const brake = autoCaptureBrake(db, req.user.id, url);
+    if (brake?.code === "already_today") return res.json({ success: true, auto: true, already: true });
+    if (brake) return res.status(429).json({ error: "Too many automatic captures this hour.", code: "auto_capture_cap", retryable: true });
+    try {
+      const result = await importJob({ url, text }, { db, userId: req.user.id, auto: true });
+      if (!result?.discarded && queueLogo && result?.job?.company) {
+        const urls = [result.employerSite, result.job.url, result.job.applyUrl, url].filter(Boolean);
+        Promise.resolve().then(() => queueLogo({ company: result.job.company, urls })).catch(() => {});
+      }
+      const { employerSite, ...body } = result || {};
+      res.json({ ...body, auto: true });
+    } catch (err) {
+      if (err instanceof ImportInputError) return res.status(400).json({ error: err.message });
+      console.error("[POST /api/import/auto] Error:", err.message);
+      res.status(502).json({ error: "Could not capture this job automatically.", retryable: true });
+    }
+  });
+
+  // D64 · "Captured today: N" — the popup's list, with an undo per item.
+  router.get("/auto", (req, res) => {
+    res.json({ captures: listAutoCaptures(db, req.user.id), disabled: autoCaptureDisabled(db) });
+  });
+
+  // D64 · undo one automatic capture: off your board and your + view (the shared posting stays).
+  router.post("/auto/:jobId/undo", (req, res) => {
+    const r = undoAutoCapture(db, req.user.id, String(req.params.jobId || ""));
+    if (!r.undone) return res.status(404).json({ error: "That posting was not captured automatically for you." });
+    res.json({ success: true, ...r });
   });
 
   return router;
