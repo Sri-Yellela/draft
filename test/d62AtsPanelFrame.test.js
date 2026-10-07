@@ -30,9 +30,10 @@ async function loadUi() {
       contents: `
         import { createElement } from "react";
         import { renderToStaticMarkup } from "react-dom/server.browser";
-        import ResumeList, { ScoreBox, RESUME_ICONS } from ${abs("components/ResumeList.jsx")};
+        import ResumeList, { RESUME_ICONS } from ${abs("components/ResumeList.jsx")};
+        import { AtsNumberBox } from ${abs("components/AtsNumberBox.jsx")};
         export const list = (props) => renderToStaticMarkup(createElement(ResumeList, props));
-        export const box = (props) => renderToStaticMarkup(createElement(ScoreBox, props));
+        export const box = (props) => renderToStaticMarkup(createElement(AtsNumberBox, { readOnly: true, size: "row", ...props }));
         export { RESUME_ICONS };`,
       resolveDir: CLIENT, loader: "jsx",
     },
@@ -56,26 +57,28 @@ test("⭐ D62 · a History row: version and date · the tailored score in the nu
               { id: "download", label: "Download version 2 as PDF", icon: RESUME_ICONS.download, onClick() {} }],
   }] });
   assert.match(html, /<div class="rl__title">Version 2<\/div><div class="rl__meta">7 Oct 2026 · base 62<\/div>/);
-  assert.match(html, /<span class="rl__score" data-resume-score="70" role="img" aria-label="ATS match 70"><b>70<\/b><small>tailored<\/small><\/span>/,
+  // A93: the row's score is the ONE number box (AtsNumberBox, read-only, row size).
+  assert.match(html, /<span class="atsn atsn--row atsn--static" data-ats-box="" data-ats-score="70" role="img" aria-label="ATS match 70\.[^"]*"[^>]*><b>70<\/b><small>tailored<\/small><\/span>/,
     "the number box, the serif number and its caption — never a band capsule");
   assert.match(html, /<button type="button" class="rl__sq" data-resume-action="view" title="View version 2" aria-label="View version 2"><svg/);
   assert.match(html, /data-resume-action="download"/);
   assert.doesNotMatch(html, /👁|📥|data-company-logo="letter"|Strong/, "no emoji squares, no letter tile, no band word");
   // No score → the dashed box, no digits (D50).
-  assert.match((await loadUi()).box({ score: null }), /rl__score rl__score--none/);
+  assert.match((await loadUi()).box({ score: null }), /atsn atsn--row atsn--none atsn--static/);
   const css = read("client/src/components/ResumeList.css");
   assert.match(css, /\.rl__sq \{[^}]*border-radius: 10px;[^}]*box-shadow: var\(--c-depth-rest\)/, "a D1 depth square");
-  assert.match(css, /\.rl__score b \{ font: 400 23px\/1 var\(--font-display\); color: var\(--c-pp-ats-number\); \}/, "the D50 number");
+  assert.match(read("client/src/components/AtsNumberBox.css"), /\.atsn b \{ font: 400 26px\/1 var\(--font-display\); color: var\(--c-pp-ats-number\); \}/, "the D50 number");
+  assert.doesNotMatch(css, /rl__score|atsp__/, "A93: the list's stylesheet holds only the list");
 });
 
 test("⭐ D62 · the header: CompanyLogo · the company link in the logo face · the number box · the serif 62 → 70 mark", () => {
   const src = code(read("client/src/panels/AtsReportPanel.jsx"));
   assert.match(src, /<CompanyLogo company=\{activeAts\.company\} iconUrl=\{activeAts\.companyIconUrl\}/);
   assert.match(src, /<CompanyLink company=\{activeAts\.company\} href=\{activeAts\.applyUrl \|\| null\}/, "the ONE company link (D38)");
-  assert.match(src, /<ScoreBox score=\{Number\.isFinite\(shown\) \? shown : null\}/, "the number box (D50)");
+  assert.match(src, /<AtsNumberBox readOnly score=\{Number\.isFinite\(shown\) \? shown : null\}/, "the ONE number box (D50, A93)");
   assert.match(src, /\{pair\.base\} → \{pair\.tailored\}\{pair\.lower \? " · lower than your base" : ""\}/, "two numbers, and lower is SAID (D58)");
   assert.match(src, /className=\{`mark \$\{pair\.lower \? "mark--warn" : "mark--dim"\}`\}/, "a mark (D60)");
-  assert.match(read("client/src/components/ResumeList.css"), /\.atsp__pair \.mark \{ font-family: var\(--font-display\);/, "in the serif");
+  assert.match(read("client/src/panels/AtsReportPanel.css"), /\.atsp__pair \.mark \{ font-family: var\(--font-display\);/, "in the serif");
   assert.doesNotMatch(src, /bandMarkStyle|bandChipStyle|Barlow|textTransform: "uppercase"/, "no band chip, no condensed capitals");
 });
 
@@ -84,13 +87,13 @@ test("⭐ D62 · the tabs are depth boxes in the logo face, the active one fille
   assert.match(src, /className="atsp__tab" aria-selected=\{rightTab === id\}/);
   assert.match(src, /count \? `History · \$\{count\}` : "History"/);
   assert.match(src, /api\(`\/api\/resumes\/\$\{encodeURIComponent\(reportJobId\)\}\/versions`\)/, "the job's résumé versions");
-  const css = read("client/src/components/ResumeList.css");
+  const css = read("client/src/panels/AtsReportPanel.css");   // A93: the panel's own stylesheet
   assert.match(css, /\.atsp__tab \{[^}]*border-radius: 11px;[^}]*font: 800 italic 12px\/1 'Poppins'/);
   assert.match(css, /\.atsp__tab\[aria-selected="true"\] \{ background: var\(--c-accent\);/);
 });
 
 test("⭐ D62 · ONE list component, two homes: the ATS panel's History and Settings' Generated résumés", () => {
-  assert.match(read("client/src/panels/AtsReportPanel.jsx"), /<ResumeList rows=\{versionRows\}/);
+  assert.match(read("client/src/panels/AtsReportPanel.jsx"), /<ResumeList loading=\{versions === null\} rows=\{versionRows\}/);
   const acct = read("client/src/panels/AccountPanel.jsx");
   assert.match(acct, /import ResumeList, \{ RESUME_ICONS \} from "\.\.\/components\/ResumeList\.jsx";/);
   assert.match(acct, /<ResumeList showLogo scoreCaption="tailored" rows=\{list\.map\(r => \(\{/);

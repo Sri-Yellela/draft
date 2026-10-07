@@ -39,7 +39,6 @@ const dbPanel = read("client/src/panels/DatabasePanel.jsx");
 // rendering it rather than by copying the markup.
 const controls = read("client/src/components/ui/PanelControls.jsx");
 const dateCalendar   = read("client/src/components/ui/DateCalendar.jsx");
-const shadcnCalendar = read("client/src/components/ui/calendar.jsx");
 const applyRoute = applySource;
 const automation = read("services/applyAutomation.js");
 
@@ -593,7 +592,9 @@ test("AC4: the shadcn calendar.jsx was not clobbered by a case-insensitive filen
   // already exists (a shadcn DayPicker wrapper), and git reports the loss as a modification to the
   // lowercase path rather than as a new file. It happened once while building this; the distinct
   // name is what prevents it, and this asserts both files still exist and are different things.
-  assert.match(shadcnCalendar, /from "react-day-picker"/);
+  // A93 (10-07): the shadcn calendar.jsx had no importer and was deleted with the other unused scaffolds,
+  // so the clash cannot recur — and the file must not come back under the clashing name.
+  assert.equal(fs.existsSync("client/src/components/ui/calendar.jsx"), false);
   assert.match(dateCalendar, /export function DateCalendar/);
   assert.ok(!/react-day-picker/.test(dateCalendar));
 });

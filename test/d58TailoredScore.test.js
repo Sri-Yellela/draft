@@ -57,7 +57,7 @@ test("D58 · ONE READ, EVERY SURFACE — the card badge, the posting header and 
     "an ATS card opened from a generation builds its own score — a second read");
   const jd = read("client/src/components/JobDetailPanel.jsx");
   assert.match(jd, /<AtsNumberBox score=\{scores\.shown\} tailored=\{scores\.tailoredShown\} base=\{scores\.base\}/);
-  assert.match(jd, /<small>\{tailored \? "tailored" : "ATS"\}<\/small>/, "the box marks a tailored score");
+  assert.match(read("client/src/components/AtsNumberBox.jsx"), /<small>\{caption \|\| \(tailored \? "tailored" : "ATS"\)\}<\/small>/, "the box marks a tailored score");
   assert.doesNotMatch(jd, /const atsScore = g\?\.atsScore \?\? job\?\.baseAtsScore/);
   // the pair itself: the tailored score is what would be sent
   const p = atsScorePair({ base: 58, tailored: 71 });
@@ -98,7 +98,7 @@ test("D58 · a null score renders no digit — never a 0 — and is stored as NU
   gen(db, null, Number.NaN);
   const r = db.prepare("SELECT ats_score, base_ats_score FROM resumes").get();
   assert.deepEqual([r.ats_score, r.base_ats_score], [null, null]);
-  assert.match(read("client/src/components/JobDetailPanel.jsx"), /const has = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);
+  assert.match(read("client/src/components/AtsNumberBox.jsx"), /const has = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);   // A93: the one box
   assert.match(read("client/src/components/JobBubble.jsx"), /const showNumber = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);
 });
 

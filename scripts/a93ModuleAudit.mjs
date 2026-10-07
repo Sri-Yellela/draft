@@ -107,3 +107,28 @@ if (process.argv[1] && process.argv[1].endsWith("a93ModuleAudit.mjs") && !proces
   console.log(`\nCSS BORROWING — ${b.length} class blocks used outside the component that owns the stylesheet`);
   for (const x of b) console.log(`  .${x.block}__*  (${x.css.join(", ")})  ← ${x.usedBy.join("  ")}`);
 }
+
+export const SHARED_DIRS = ["components", "styles", "lib", "hooks", "contexts", "themes", "consoles"];
+
+/** { sharedFile: [importer…] } for every file under SHARED_DIRS — derived from the code, never hand-kept. */
+export function consumers(files = walkSources()) {
+  const shared = files.map(rel).filter(r => SHARED_DIRS.includes(r.split("/")[0]));
+  const map = Object.fromEntries(shared.map(r => [r, []]));
+  const resolve = (r) => map[r] ? r : ["", ".jsx", ".js", ".css", "/index.js", "/index.jsx"].map(x => r + x).find(x => map[x]);
+  for (const f of files.filter(f => /\.(jsx?|css)$/.test(f))) {
+    const from = rel(f);
+    const s = strip(fs.readFileSync(f, "utf8"));
+    for (const m of s.matchAll(/(?:from\s*|import\s*\(\s*|^\s*import\s+|@import\s+)["'](\.{1,2}\/[^"']+)["']/gm)) {
+      const to = resolve(rel(path.normalize(path.join(path.dirname(f), m[1]))));
+      if (to && to !== from) map[to].push(from);
+    }
+  }
+  return map;
+}
+
+if (process.argv[1] && process.argv[1].endsWith("a93ModuleAudit.mjs") && process.argv.includes("--unused")) {
+  const c = consumers();
+  const dead = Object.entries(c).filter(([, v]) => !v.length).map(([k]) => k);
+  console.log(`\nUNUSED SHARED FILES — ${dead.length}`);
+  for (const d of dead) console.log("  " + d);
+}

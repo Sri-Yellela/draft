@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import PanelShell from "../components/PanelShell.jsx";
 import CompanyLogo from "../components/CompanyLogo.jsx";
 import CompanyLink from "../components/CompanyLink.jsx";
-import ResumeList, { ScoreBox, RESUME_ICONS } from "../components/ResumeList.jsx";
+import ResumeList, { RESUME_ICONS } from "../components/ResumeList.jsx";
+import { AtsNumberBox } from "../components/AtsNumberBox.jsx";
+import "./AtsReportPanel.css";
 import { api } from "../lib/api.js";
 import { ATSPanel } from "../components/ATSPanel.jsx";
 import { atsBandLabel } from "../../../shared/atsBands.js";
@@ -81,7 +83,7 @@ export default function AtsReportPanel({
         )}
       </div>
       <span data-ats-band={band || undefined} title={band ? `${atsBandLabel(band).short} — ${atsBandLabel(band).blurb}` : undefined}>
-        <ScoreBox score={Number.isFinite(shown) ? shown : null} caption={pair?.tailoredShown ? "tailored" : "ATS"} />
+        <AtsNumberBox readOnly score={Number.isFinite(shown) ? shown : null} tailored={!!pair?.tailoredShown} base={pair?.base ?? null} />
       </span>
     </div>
   );
@@ -135,9 +137,8 @@ export default function AtsReportPanel({
             onReport={onReport}
           />
         )}
-        {rightTab === "history" && (versions === null
-          ? <div className="rl__empty">Loading versions…</div>
-          : <ResumeList rows={versionRows} empty="No résumé generated for this job yet — generate one from the posting panel." />)}
+        {rightTab === "history" && (
+          <ResumeList loading={versions === null} rows={versionRows} empty="No résumé generated for this job yet — generate one from the posting panel." />)}
       </div>
     </PanelShell>
   );

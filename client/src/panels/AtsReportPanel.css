@@ -1,0 +1,18 @@
+/* ⭐ D62 · the ATS panel's frame (AtsReportPanel.jsx) — its header and tabs. A93: moved here from
+   ResumeList.css, where one page's look sat inside a shared component's stylesheet. */
+.atsp__hdr { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; min-width: 0; }
+.atsp__who { min-width: 0; }
+.atsp__title { font-size: 12px; color: var(--c-ink-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atsp__pair { margin-top: 6px; }
+.atsp__pair .mark { font-family: var(--font-display); font-style: normal; font-weight: 400; font-size: 14px; }
+.atsp__tabs { display: flex; gap: 8px; }
+.atsp__tab {
+  border: 1px solid var(--c-fh-line); background: var(--c-fh-well); color: var(--c-ink-muted); border-radius: 11px;
+  padding: 8px 13px; font: 800 italic 12px/1 'Poppins', var(--font-body); cursor: pointer; box-shadow: var(--c-depth-rest);
+  transition: transform .16s, box-shadow .16s;
+}
+.atsp__tab:hover:not([aria-selected="true"]) { transform: translateY(-2px); box-shadow: var(--c-depth-hover); }
+.atsp__tab[aria-selected="true"] { background: var(--c-accent); border-color: var(--c-fh-accent-edge); color: var(--c-fh-on-accent); box-shadow: var(--c-depth-accent); }
+.atsp__tab:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) { .atsp__tab { transition: none; } }

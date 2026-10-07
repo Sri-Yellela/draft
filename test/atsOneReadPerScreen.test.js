@@ -17,8 +17,8 @@ test("the client: one scoring read per screen", () => {
   // D48: the header's ATS number box — no score draws the dashed box with NO digits, never "No signal".
   // D58: through the ONE pair read (shared/resumeScores.js) — the tailored score when a résumé exists, else the base.
   assert.match(jd, /const scores = selectedJobMeta\?\.scores \?\? atsScorePair\(\{ base: job\?\.baseAtsScore, tailored: g\?\.html \? g\?\.atsScore : null \}\);/);
-  assert.match(jd, /const has = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);
-  assert.match(jd, /\{has\s+\? \(<><b>\{Math\.round\(score\)\}<\/b>/);
+  assert.match(read("client/src/components/AtsNumberBox.jsx"), /const has = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);   // A93: the one box
+  assert.match(read("client/src/components/AtsNumberBox.jsx"), /\? \(<><b>\{Math\.round\(score\)\}<\/b>/);
   assert.doesNotMatch(jd, /No signal/);
   // The panel's own verdict is adopted by the board, the JD header and the panel header.
   const jobs = read("client/src/panels/JobsPanel.jsx");
