@@ -635,6 +635,52 @@ export const SIGNALS = {
   },
 };
 
+// ── D74 (10-07) · STRONG ANCHORS THE LIVE BOARDS SHOWED WERE MISSING ─────────────────────────────
+// Measured on a re-fetch of the 20 configured boards (scripts/d74DropSample.mjs): ~27% of fetched
+// postings were DROPPED (no family) and ~4 in 10 of those plainly belong to a family the board keeps.
+// Three causes: inverted word order ("Manager, Customer Success" never contains "customer success
+// manager"), noun forms ("Product Management", "Strategic Finance", "Sales Development"), and terms
+// absent entirely ("sourcer", "RE / RS", "post-training"). Every phrase below was checked against
+// the WHOLE fetched board, not only the drops (scripts/d74ClassifierDiff.mjs): a phrase two families
+// would both claim scores "ambiguous" (0.55) and is still dropped, so none is shared across families.
+// Kept apart from the lists above so the provenance stays readable; the scorer reads them as one.
+const D74_STRONG_ANCHORS = {
+  pm:          ["product management", "program management", "technical program", "platform manager",
+                "product strategy", "product operations specialist", "product operations lead"],
+  design:      ["product design", "design manager", "manager, design", "ux writer"],
+  data:        ["data science", "research engineer", "re/rs", "re / rs", "post-training", "economist",
+                "advanced analytics"],
+  finance:     ["strategic finance", "fp&a", "financial planning", "treasury director", "treasury, ", "payroll",
+                "technical revenue accounting", "manager, revenue accounting", "lead, revenue accounting",
+                "technical accounting", "corporate accounting", "product accounting", "lease accounting",
+                "asset accounting", "compute accounting", "capex accounting", "regulatory accounting",
+                "operational accounting", "integration accounting", "accounting ai",
+                "financial reporting", "finance manager", "finance associate", "finance lead",
+                "head of finance", "finance systems", "investor relations", "corporate development",
+                "accounts payable", "tax lead", "tax specialist", "product tax", "international tax",
+                "indirect tax", "tax reporting"],
+  sales:       ["sales development", "sales executive", "sales leader", "sales lead", "sales strategy & operations", "sales strategy and operations", "sales strategy, ",
+                "sales operations", "smb sales", "strategic sales", "growth sales", "market sales",
+                "startup sales", "ad sales", "account director", "seller", "business development",
+                "partner director", "partner manager", "partnership manager", "partnerships associate",
+                "customer success", "technical account management", "relationship manager",
+                "customer activation", "partner development"],
+  marketing:   ["product marketing", "pmm ", "partner marketing", "marketing lead", "marketing operations",
+                "growth marketing", "brand marketing", "campaigns manager", "campaign manager", "social media",
+                "paid social", "marketing analytics manager", "marketing analytics lead", "solutions marketing", "content marketing",
+                "communications manager", "communications lead", "internal communications",
+                "product communications"],
+  hr:          ["sourcer", "manager, recruiting", "head of recruiting", "early career recruiting", "people partner", "people business partner", "talent operations",
+                "talent management", "people programs", "hris", "candidate experience", "talent & culture",
+                "global mobility"],
+  legal:       ["regulatory affairs", "legal operations", "legal contract", "legal specialist", "sanctions",
+                "regulatory compliance", "compliance lead", "compliance risk"],
+  engineering: ["technical staff", "systems administrator", "red team"],
+  operations:  ["payment operations", "fraud operations", "procurement operations", "procurement business partner",
+                "procurement product", "trading operations", "supply category"],
+};
+for (const [family, anchors] of Object.entries(D74_STRONG_ANCHORS)) SIGNALS[family].strongAnchors.push(...anchors);
+
 // ── Title classification ──────────────────────────────────────
 // Scores each role family against the given title (and optionally description).
 // Returns { roleKey, confidence, matchedBy } where:
