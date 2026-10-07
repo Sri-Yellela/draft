@@ -152,3 +152,32 @@ export function getKnownLogoUrl(companyName) {
   if (!isKnown) return null;
   return logoUrlForDomain(domain);
 }
+
+/**
+ * ⛔ D61 (owner 10-07) · WHICH LOGOS BRING THEIR OWN GROUND. A logo sits on a paper tile in BOTH themes;
+ * an OPAQUE one (it carries its own background — Amazon, Duolingo, Stripe) fills the tile, a transparent
+ * MARK gets a few px of paper around it. The logo host sends no CORS header, so the client cannot read a
+ * logo's pixels to decide — this list is that decision, MEASURED, never guessed:
+ *
+ *   2026-10-07, every domain in KNOWN_DOMAINS, the ip3 icon decoded in headless Chrome: OPAQUE = at
+ *   least 90% of pixels with alpha > 128. 91 of 92 decoded (adobe.com's icon would not). 31 opaque;
+ *   15 are transparent DARK marks (mean luminance < 90 — mercury, github, uber, vercel, netflix, …),
+ *   which is what read as "invisible" on a dark card when the tile itself was transparent.
+ *
+ * A domain not listed — including every captured `company_icon_url` — is treated as a mark (padded),
+ * which is legible either way; a padded opaque logo only shows a thin paper margin.
+ */
+export const OPAQUE_LOGO_DOMAINS = new Set([
+  'airbnb.com', 'amazon.com', 'anthropic.com', 'ashbyhq.com', 'brex.com', 'cloudflare.com', 'cursor.com',
+  'duolingo.com', 'fly.io', 'groq.com', 'gusto.com', 'hubspot.com', 'intercom.com', 'lever.co', 'linear.app',
+  'microsoft.com', 'openx.com', 'palantir.com', 'perplexity.ai', 'persado.com', 'planetscale.com',
+  'railway.app', 'replicate.com', 'rippling.com', 'robinhood.com', 'skroutz.gr', 'stripe.com',
+  'supabase.com', 'theblueground.com', 'wealthfront.com', 'x.com',
+]);
+
+/** True when `url` is the logo host's icon for a domain measured opaque (OPAQUE_LOGO_DOMAINS). */
+export function isOpaqueLogoUrl(url) {
+  if (!isKnownLogoUrlHost(url)) return false;
+  const domain = url.slice(LOGO_HOST.length + 1).replace(/\.ico$/, '');
+  return OPAQUE_LOGO_DOMAINS.has(domain);
+}

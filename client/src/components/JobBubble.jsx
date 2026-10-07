@@ -15,7 +15,7 @@
 //
 // The Database panel and the landing page keep JobCard; D1 replaces the JOBS-PAGE card.
 import { useEffect, useRef, useState } from "react";
-import CompanyIcon from "./ui/CompanyIcon.jsx";
+import CompanyLogo from "./CompanyLogo.jsx";
 import CompanyViewModal from "./CompanyViewModal.jsx";
 import { jobDetailHref } from "../lib/jobUrl.js";
 import CompanyLink from "./CompanyLink.jsx";
@@ -83,7 +83,7 @@ export default function JobBubble({ job, score = null, selected = false, saved =
       data-dim={job.disliked ? "passed" : job.visited ? "visited" : undefined} onClick={open}>
       <button type="button" className="jb__logo" onClick={stop(() => setCompanyView(true))}
         aria-label={`${job.company} — company profile`}>
-        <CompanyIcon company={job.company} iconUrl={job.companyIconUrl} size={52} radius={13} />
+        <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={52} radius={13} />
       </button>
 
       <div className="jb__text">

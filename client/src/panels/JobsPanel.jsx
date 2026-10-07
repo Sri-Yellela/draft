@@ -40,7 +40,7 @@ import {
   EXPERIENCE_LEVELS, WORK_MODELS, EMPLOYMENT_TYPES, SOURCES, AUTOMATION_TIERS,
   POSTING_AGE, VISITED, ageDaysMap,
 } from "../../../shared/jobFilterOptions.js";
-import CompanyIcon from "../components/ui/CompanyIcon.jsx";
+import CompanyLogo from "../components/CompanyLogo.jsx";
 // AH2: the job-detail address, shared with JobCard so the href and the param cannot disagree.
 import { JOB_URL_PARAM, jobIdFromSearch } from "../lib/jobUrl.js";
 // D35: the Full House header (App.jsx) renders the sentence, its one panel and the sort panel; this
@@ -55,7 +55,7 @@ import {
 } from "../lib/filterSentenceModel.js";
 import { FIT_BANDS } from "../../../shared/filterSentence.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
-import { bandChipStyle } from "../styles/bandStyle.js";
+import { markStyle, bandMarkStyle } from "../styles/mark.js";
 import { C } from "../styles/colorTokens.js";
 import { glass } from "../styles/glass.js";
 import { atsScorePair } from "../../../shared/resumeScores.js";
@@ -272,15 +272,13 @@ function WorkBadge({ t, theme }) {
   const s = map[t] || null;
   if (s) {
     return (
-      <span style={{ background:s.bg, color:s.fg, padding:"2px 8px",
-                     borderRadius:999, fontSize:10, fontWeight:700, whiteSpace:"nowrap" }}>
+      <span style={markStyle(s.fg)}>
         {t}
       </span>
     );
   }
   return (
-    <span style={{ background:theme?.surfaceHigh, color:theme?.textMuted, padding:"2px 8px",
-                   borderRadius:999, fontSize:10, fontWeight:700, whiteSpace:"nowrap" }}>
+    <span style={markStyle(C.INK_FAINT)}>
       {t || "-"}
     </span>
   );
@@ -297,9 +295,7 @@ function ATSBadge({ score, onClick }) {
     <span
       title={meta.blurb}
       onClick={onClick ? e => { e.stopPropagation(); onClick(); } : undefined}
-      style={{ ...bandChipStyle(band), padding:"2px 8px",
-               borderRadius:999, fontSize:10, fontWeight:700,
-               cursor: onClick ? "pointer" : "default" }}>
+      style={{ ...bandMarkStyle(band), cursor: onClick ? "pointer" : "default" }}>
       {meta.short}
     </span>
   );
@@ -309,9 +305,9 @@ function ATSBadge({ score, onClick }) {
 function ResumeBadge({ onClick, loading }) {
   return (
     <span
-      onClick={onClick ? e => { e.stopPropagation(); onClick(); } : undefined}
-      style={{ background:C.INFO_QUIET, color:C.INFO, padding:"2px 8px",
-               borderRadius:999, fontSize:10, fontWeight:700,
+      onClick={onClick ? e => { e.stopPropagation(); onClick(); } : undefined} className="dbx-depth"
+      style={{ background:C.INFO_QUIET, color:C.INFO, padding:"3px 8px",
+               fontSize:10, fontWeight:700,
                cursor:"pointer", border:`1px solid ${C.INFO}44`,
                display:"inline-flex", alignItems:"center", gap:3 }}>
       {loading ? "Loading" : "Resume"}
@@ -4396,7 +4392,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                   style={{
                     width:64,
                     height:32,
-                    borderRadius:999,
+                    borderRadius:10,
                     border:`1px solid ${theme.border}`,
                     background:theme.surface,
                     color:theme.text,
@@ -4702,19 +4698,11 @@ function HistoryList({ generated, onOpen, onExport, theme: themeProp }) {
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
       {entries.map(([jid,v]) => {
-        const letter = (v.company||"?")[0].toUpperCase();
-        const colors = [C.INFO,C.VIOLET,C.TEAL,C.SUCCESS,C.DANGER,C.WARNING,C.VIOLET];
-        let hash = 0;
-        for (const c of v.company||"") hash = (hash*31+c.charCodeAt(0))&0xffff;
-        const bg = colors[hash%colors.length];
         return (
           <div key={jid} style={{ padding:"12px 16px", borderBottom:`1px solid ${theme.border}`,
                                    display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ width:32, height:32, borderRadius:8, background:bg,
-                           display:"flex", alignItems:"center", justifyContent:"center",
-                           fontWeight:800, fontSize:11, color:C.SURFACE_SOLID, flexShrink:0 }}>
-              {letter}
-            </div>
+            {/* ⛔ D61: the ONE CompanyLogo — this list drew its own letter tile where the card showed the logo. */}
+            <CompanyLogo company={v.company} iconUrl={v.companyIconUrl} size={32} radius={8} />
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontWeight:700, fontSize:12, color:theme.text,
                              overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>

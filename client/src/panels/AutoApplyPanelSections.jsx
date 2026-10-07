@@ -13,7 +13,7 @@ import { api } from "../lib/api.js";
 import { describeApplication, attemptStatusChip } from "../lib/applyObstacles.js";
 import { companyLabel } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
-import { bandChipStyle } from "../styles/bandStyle.js";
+import { markStyle, bandMarkStyle } from "../styles/mark.js";
 import { C } from "../styles/colorTokens.js";
 // AD1: OUTCOME_LABELS moved to AutoApplyPanel with the groups themselves — they name the SUB-TABS
 // now, and nothing in this module reads them. The partition still lives in shared/ because
@@ -62,8 +62,7 @@ export function CompanyHeading({ company, count, theme }) {
         {companyLabel(company)}
       </span>
       {count > 1 && (
-        <span style={{ fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 999,
-                       background: `${theme.border}66`, color: theme.textDim, whiteSpace: "nowrap" }}>
+        <span style={markStyle(theme.textDim)}>
           {count} roles
         </span>
       )}
@@ -281,8 +280,7 @@ export function ApplicationObstacleCard({
           const meta = atsBandLabel(band);
           return (
             <span title={meta.blurb}
-              style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                       ...bandChipStyle(band) }}>
+              style={bandMarkStyle(band)}>
               {meta.short}
             </span>
           );
@@ -356,8 +354,7 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
     : d.protective ? C.INK_FAINT : C.DANGER;
 
   const chip = (bg, fg, text, title) => (
-    <span title={title} style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                                 background: bg, color: fg, whiteSpace: "nowrap" }}>{text}</span>
+    <span title={title} style={markStyle(fg)}>{text}</span>
   );
   const link = (href, text) => (
     <a className="dbx-depth" href={href} target="_blank" rel="noreferrer"
@@ -454,8 +451,7 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
         {variant === "submitted" && job.screenshotAvailable
           && link(artifactUrl(job.id, "screenshot"), "Screenshot of the form ↗")}
         <span title={atsBandLabel(atsBandFor(job.atsScore ?? null)).blurb}
-          style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, whiteSpace: "nowrap",
-                   ...bandChipStyle(atsBandFor(job.atsScore ?? null)) }}>
+          style={bandMarkStyle(atsBandFor(job.atsScore ?? null))}>
           {atsBandLabel(atsBandFor(job.atsScore ?? null)).short}
         </span>
         {job.applyUrl && link(job.applyUrl, "The posting ↗")}
@@ -660,11 +656,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
           {job.finishedAt && `Finished ${new Date(job.finishedAt).toLocaleTimeString()}`}
           {(job.startedAt || job.finishedAt) && " · "}Attempts: {job.attemptCount || 1}
         </div>
-        <span style={{
-          fontSize: 10, fontWeight: 700, padding: "2px 8px",
-          borderRadius: 999, background: `${statusColor}22`,
-          color: statusColor, whiteSpace: "nowrap", flexShrink: 0,
-        }}>
+        <span style={{ ...markStyle(statusColor), flexShrink: 0 }}>
           {statusLabel}
         </span>
       </div>
@@ -685,10 +677,8 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
               </span>
             );
           })()}
-          <span title={atsBandLabel(atsBandFor(job.atsScore ?? null)).blurb} style={{
-            fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 999,
-            ...bandChipStyle(atsBandFor(job.atsScore ?? null)),
-          }}>
+          <span title={atsBandLabel(atsBandFor(job.atsScore ?? null)).blurb}
+            style={bandMarkStyle(atsBandFor(job.atsScore ?? null))}>
             {atsBandLabel(atsBandFor(job.atsScore ?? null)).short}
           </span>
         </div>
@@ -717,8 +707,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
           </a>
         ) : (
           <span title="No resume artifact was recorded for this attempt."
-            style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                     background: `${theme.border}55`, color: theme.textDim, whiteSpace: "nowrap" }}>
+            style={markStyle(theme.textDim)}>
             no resume on this attempt
           </span>
         )}
@@ -749,8 +738,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
           if (packet.postingGone) {
             return (
               <span title="This posting was removed from the board. There is no application left to finish; the record of the attempt stays here."
-                style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                         background: `${theme.border}55`, color: theme.textDim, whiteSpace: "nowrap" }}>
+                style={markStyle(theme.textDim)}>
                 posting gone — cannot be resumed
               </span>
             );
@@ -773,9 +761,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
         })()}
         {job.status === "submitted" && (
           <span title={job.submitEvidence || ""}
-            style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                     background: job.submitVerified ? C.SUCCESS_QUIET : C.WARNING_QUIET,
-                     color: job.submitVerified ? C.SUCCESS : C.WARNING, whiteSpace: "nowrap" }}>
+            style={markStyle(job.submitVerified ? C.SUCCESS : C.WARNING)}>
             {job.submitVerified ? "submission verified" : "unverified submit"}
           </span>
         )}

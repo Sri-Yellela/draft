@@ -4,6 +4,7 @@ import { api } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { StackSection, OrgSection, HiringSection, SponsorshipSection } from "../components/CompanyKbSections.jsx";
 import { C } from "../styles/colorTokens.js";
+import { markStyle } from "../styles/mark.js";
 import { glass } from "../styles/glass.js";
 import { TYPE } from "../styles/type.js";
 
@@ -115,8 +116,7 @@ function ConsistencyCheckCard({ company, theme }) {
       )}
       {result && statusCopy && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <span style={{ alignSelf: "flex-start", fontSize: 11, fontWeight: 800, padding: "3px 10px",
-                         borderRadius: 999, background: statusCopy.bg, color: statusCopy.color }}>
+          <span style={{ ...markStyle(statusCopy.color), alignSelf: "flex-start" }}>
             {statusCopy.label}
           </span>
           {result.findings.map((f, i) => (
@@ -172,7 +172,7 @@ export function RecruiterPanel() {
             onKeyDown={e => e.key === "Enter" && load()}
             placeholder="Company name (e.g. Figma)"
             // An input's edge is a UI boundary: BORDER_CONTROL reaches 3:1, BORDER does not.
-            style={{ flex: 1, minWidth: 0, border: `1px solid ${C.BORDER_CONTROL}`, borderRadius: 999,
+            style={{ flex: 1, minWidth: 0, border: `1px solid ${C.BORDER_CONTROL}`, borderRadius: 12,
                      background: C.SURFACE_INPUT, color: theme.text, fontSize: 13,
                      padding: "10px 16px", outline: "none" }}
           />

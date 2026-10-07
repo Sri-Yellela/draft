@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, authHeaders } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
+import { markStyle } from "../styles/mark.js";
 import { COMPANY_TOKEN } from "../../../shared/savedAnswers.js";
 
 const KIND_TAGS = [
@@ -141,8 +142,7 @@ export function SavedAnswersPanel() {
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 3 }}>
                 {e.company && <span style={{ fontSize: 9, fontWeight: 800, color: theme.textDim }}>ONLY FOR {e.company.toUpperCase()}</span>}
                 {KIND_TAGS.filter(([k]) => e.kind?.[k]).map(([k, label]) => (
-                  <span key={k} style={{ fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 999,
-                                         background: `${theme.border}66`, color: theme.textDim }}>{label}</span>
+                  <span key={k} style={markStyle(theme.textDim)}>{label}</span>
                 ))}
               </div>
             </div>

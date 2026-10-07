@@ -267,7 +267,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
       {/* Tab switcher */}
       <div style={{ display:"flex", gap:4, marginBottom:28,
                     background:"var(--c-surface)",
-                    borderRadius:999, padding:4 }}>
+                    borderRadius:10, padding:4 }}>
         {["login","register"].map(t => (
           <button className="dbx-depth" key={t} onClick={() => { setTab(t); setRegStep(1); setError(""); setNotice(""); }}
             style={{ flex:1, padding:"7px 0", border:"none",

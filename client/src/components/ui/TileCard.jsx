@@ -157,7 +157,7 @@ export function TilePill({ children, tone = null }) {
       letterSpacing: "0.04em",
       color: tone ? "var(--c-surface-solid)" : "var(--color-primary-text)",
       background: tone || "var(--color-primary-muted)",
-      borderRadius: 999,
+      borderRadius: 6,
       padding: "3px 8px",
       whiteSpace: "nowrap",
       flexShrink: 0,

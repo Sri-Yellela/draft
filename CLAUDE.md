@@ -37,6 +37,15 @@ does not retract its history.
 Test fixtures and verification records use SYNTHETIC people. A real person's form answers are
 summarised ("the work-authorisation answer"), never quoted.
 
+## ⛔⛔ Design rule: NO PILLS — permanently (D60, owner 2026-10-07)
+
+**No capsule shape anywhere** — no `border-radius: 999px`, `50%` on a non-square, or `rounded-full` on a
+tag, badge, status, chip, tab, button, banner, toast, count, meter or field, in the client or the extension.
+Interactive → a depth box (`DepthButton` / `.dbx-depth`). Status and tags → a **mark** (`styles/mark.js`,
+`.mark`: a rectangle, radius 6, a 3px leading bar). Counts → `.mark-count`. Only perfect circles stay round
+(avatars, dots, spinners, the ring). Never propose a pill. Guard: `test/d60NoPills.test.js`; the table is in
+`docs/BRAND.md`.
+
 ## The WORKLOG's three sequences: O##, D## and A##
 
 ⛔ **CORRECTED 2026-10-03. The rule written here on 10-02 was INVERTED and never matched practice** —

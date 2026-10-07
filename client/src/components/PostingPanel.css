@@ -59,15 +59,16 @@
 }
 /* ⭐ "not stated" is a VALUE in italic serif — it reads as an answer, not a gap in the layout. */
 .posting__ns { font-family: var(--font-display); font-style: italic; font-weight: 400; font-size: 14px; line-height: 1.3; color: var(--c-pair-ink-faint); }
-/* ⛔ D59 · the Requirements row — muted, non-interactive status pills under the strip (D48's rule). */
+/* ⛔ D59 · the Requirements row — muted, non-interactive status MARKS under the strip (D60: never a capsule). */
 .posting__req { margin: 10px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .posting__req-k {
   font-family: var(--font-body); font-size: 8.5px; font-weight: 700; letter-spacing: .12em;
   text-transform: uppercase; color: var(--c-pair-ink-faint); margin-right: 2px;
 }
 .posting__pill {
-  font-family: var(--font-body); font-size: 11px; line-height: 1; padding: 5px 9px; border-radius: 999px;
-  border: 1px solid var(--c-pair-rule); background: var(--c-pair-raised); color: var(--c-pair-ink-faint);
+  font: 800 italic 10.5px/1 'Poppins', var(--font-body); padding: 4px 8px 4px 7px; border-radius: 6px;
+  border: 0; border-left: 3px solid var(--c-pair-ink-faint); color: var(--c-pair-ink-faint);
+  background: color-mix(in srgb, var(--c-pair-ink-faint) 12%, transparent);
   cursor: default; user-select: text;
 }
 .posting__details { margin: 8px 0 0; font-family: var(--font-body); font-size: 11px; line-height: 1.45; color: var(--c-pair-ink-faint); }

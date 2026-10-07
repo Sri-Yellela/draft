@@ -78,7 +78,7 @@ test("O56e: on a phone the tab row tightens and FADES at the edge that still hid
   // The row has always scrolled; nothing said so, and "The Table" sat wholly past the edge.
   assert.match(topBar, /const narrow = vw < 560;/);
   // D69 (b) adds a tighter phone tier below 440px; the narrow tier is unchanged.
-  assert.match(topBar, /padding: tiny \? "3px 4px" : narrow \? "5px 8px" : "5px 14px"/);
+  assert.match(topBar, /padding: tiny \? "3px 4px" : narrow \? "5px 8px" : "6px 13px"/);   // D60: the desktop box is 6px 13px
   // The cue is driven by a measurement, not by the width alone: nothing fades when everything fits.
   assert.match(topBar, /setTabsMore\(!!el && el\.scrollLeft \+ el\.clientWidth < el\.scrollWidth - 2\)/);
   assert.match(topBar, /<nav aria-label="Main" ref=\{tabRowRef\} onScroll=\{measureTabs\}/);

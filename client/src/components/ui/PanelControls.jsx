@@ -69,14 +69,14 @@ export function PanelSubTabs({ tabs, active, onSelect, theme, layoutId, right = 
                 style={{ background: active === id ? theme.accentMuted : theme.surfaceHigh,
                          color: active === id ? theme.accentText : theme.textMuted,
                          fontSize: 10, fontWeight: 700,
-                         padding: "1px 7px", borderRadius: 999 }}>
+                         padding: "1px 7px", borderRadius: 6 }}>
                 {count}
               </span>
             )}
             {active === id && (
               <motion.div layoutId={layoutId}
                 style={{ position: "absolute", bottom: 0, left: 0, right: 0,
-                         height: 2, background: theme.accent, borderRadius: 999 }} />
+                         height: 2, background: theme.accent, borderRadius: 1 }} />
             )}
           </button>
         ))}
@@ -99,7 +99,7 @@ export function PanelSearch({ value, onChange, placeholder, theme, width = 260 }
         placeholder={placeholder}
         data-rm-panel-search="1"
         className="rm-input"
-        style={{ paddingLeft: 36, borderRadius: 999 }} />
+        style={{ paddingLeft: 36, borderRadius: 12 }} />
       {value && (
         <button style={{ position: "absolute", right: 12, background: "transparent",
                          border: "none", color: theme.textMuted, cursor: "pointer",

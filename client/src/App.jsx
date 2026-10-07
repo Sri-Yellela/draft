@@ -183,7 +183,7 @@ function AppTopBar({ tabs, ...props }) {
                 <span
                   title={attention}
                   style={{
-                    minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999,
+                    minWidth: 16, height: 16, padding: "0 4px", borderRadius: 6,
                     background: "var(--color-primary)", color: "var(--color-on-primary)",
                     fontSize: 10, fontWeight: 800, lineHeight: "16px", textAlign: "center",
                   }}>

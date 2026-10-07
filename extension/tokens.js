@@ -75,6 +75,7 @@ export const C_LIGHT = Object.freeze({
   DEPTH_PRESS: "0 2px 5px rgba(30,25,21,0.13), inset 0 1px 0 rgba(255,255,255,0.5)",
   DEPTH_ACCENT: "0 3px 9px rgba(253,70,0,0.34), inset 0 1px 0 rgba(255,255,255,0.35)",
   LOGO_SHADOW: "0 2px 6px rgba(30,25,21,0.14)",
+  LOGO_TILE: "#FBF7F0",
 });
 
 export const C_DARK = Object.freeze({
@@ -147,6 +148,7 @@ export const C_DARK = Object.freeze({
   DEPTH_PRESS: "0 2px 5px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)",
   DEPTH_ACCENT: "0 3px 9px rgba(253,70,0,0.40), inset 0 1px 0 rgba(255,255,255,0.20)",
   LOGO_SHADOW: "0 2px 6px rgba(0,0,0,0.45)",
+  LOGO_TILE: "#FBF7F0",
 });
 
 export const cssVarName = (name) => `--c-${name.toLowerCase().replace(/_/g, "-")}`;

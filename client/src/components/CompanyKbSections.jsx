@@ -1,4 +1,5 @@
 import { C } from "../styles/colorTokens.js";
+import { markStyle } from "../styles/mark.js";
 // Shared KB-reference rendering (stack / org / hiring signal) — used by both the seeker-facing
 // CompanyViewModal (FE-4) and the RecruiterPanel (FE-6) so the two surfaces render the exact
 // same evidence-labeled blocks instead of maintaining two copies.
@@ -44,7 +45,7 @@ export function StackSection({ stack, postings, theme }) {
           <span key={s.skill}
             title={`Seen in ${s.postingCount} posting${s.postingCount === 1 ? "" : "s"}` +
                    (s.fresh ? "" : " — not reinforced by a recent posting")}
-            style={{ fontSize: 11, padding: "3px 9px", borderRadius: 999,
+            style={{ fontSize: 11, padding: "3px 9px", borderRadius: 6,
                      background: theme.surfaceHigh, color: s.fresh ? theme.text : theme.textMuted,
                      opacity: s.fresh ? 1 : 0.55, border: `1px solid ${theme.border}`,
                      display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -65,7 +66,7 @@ export function StackSection({ stack, postings, theme }) {
 export function ConfidenceBar({ confidence, theme }) {
   const pct = Math.round(Math.max(0, Math.min(1, confidence)) * 100);
   return (
-    <div style={{ width: 48, height: 5, borderRadius: 999, background: theme.border, overflow: "hidden", flexShrink: 0 }}
+    <div style={{ width: 48, height: 5, borderRadius: 2, background: theme.border, overflow: "hidden", flexShrink: 0 }}
       title={`${pct}% confidence`}>
       <div style={{ width: `${pct}%`, height: "100%", background: pct >= 60 ? C.SUCCESS : C.WARNING }} />
     </div>
@@ -98,9 +99,7 @@ export function OrgSection({ orgUnits, total, theme }) {
                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {u.orgUnit}
               </span>
-              <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 999,
-                             background: verified ? C.SUCCESS_QUIET : theme.surfaceHigh,
-                             color: verified ? C.SUCCESS : theme.textMuted, whiteSpace: "nowrap" }}>
+              <span style={markStyle(verified ? C.SUCCESS : C.INK_FAINT)}>
                 {verified ? "verified" : "inferred"}
               </span>
             </div>
@@ -205,7 +204,7 @@ export function SponsorshipSection({ lca, theme }) {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
           {periods.map(([period, n]) => (
             <span key={period} title={`${n} certified in ${formatPeriod(period)}`}
-              style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999,
+              style={{ fontSize: 10, padding: "2px 8px", borderRadius: 6,
                        background: theme.surfaceHigh, color: theme.textMuted,
                        border: `1px solid ${theme.border}` }}>
               {formatPeriod(period)} <strong style={{ color: theme.text }}>{n}</strong>
@@ -225,7 +224,7 @@ export function SponsorshipSection({ lca, theme }) {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
           {lca.topTitles.map(t => (
             <span key={t.title} title={`${t.count} filing${t.count === 1 ? "" : "s"}`}
-              style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999,
+              style={{ fontSize: 10, padding: "2px 8px", borderRadius: 6,
                        background: theme.surfaceHigh, color: theme.textMuted,
                        border: `1px solid ${theme.border}` }}>
               {t.title} <strong style={{ color: theme.text }}>{t.count}</strong>
@@ -271,7 +270,7 @@ export function HiringSection({ signal, theme }) {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
           {domains.map(([domain, n]) => (
             <span key={domain} title={`${n} of ${signal.openCount} open postings`}
-              style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999,
+              style={{ fontSize: 10, padding: "2px 8px", borderRadius: 6,
                        background: theme.surfaceHigh, color: theme.textMuted,
                        border: `1px solid ${theme.border}` }}>
               {domain} <strong style={{ color: theme.text }}>{n}</strong>

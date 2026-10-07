@@ -55,6 +55,29 @@ and its user-facing sentences must use `BRAND`.
 
 ---
 
+## ⛔⛔ NO PILLS — permanently barred (D60, owner 2026-10-07)
+
+> *"I want the pill design to be permanently barred from all future designs."*
+
+**No capsule — no fully-rounded shape — on any element:** tag, badge, status, chip, tab, button, banner,
+toast, count, meter, field. This supersedes D48's allowance for status pills. The only round shapes left
+are **perfect circles** — avatars, state dots, spinners, the today ring.
+
+| What it is | What it is drawn as |
+|---|---|
+| Interactive | a **depth box** (D1) — `DepthButton`, or the `.dbx-depth` skin; radius 10–12 |
+| Status, tag, band (not pressed) | a **mark** — a rectangle, radius 6, the logo face at ~10.5px, a **3px leading bar** in the status colour over a 12% tint (`styles/mark.js`, `.mark`) — or plain coloured text |
+| Tabs | depth boxes in the logo face, the active one filled accent |
+| Segmented control | one rounded rectangle (radius 10) holding rectangular segments |
+| Count | a small rectangle, radius 6 (`.mark-count`) |
+| Toggle | a rectangular switch (radius ≤ 8) |
+
+⛔ `test/d60NoPills.test.js` fails on any radius of 50% or ≥ 100px, or Tailwind `rounded-full`, that is not a
+circle (equal width and height in the same rule) — across `client/src` **and** `extension/`, including the CSS
+the extension injects from JS template strings. Do not add an allow-list entry for a capsule; draw a mark.
+
+---
+
 ## Canonical host — why bare apex
 
 `www.jobsviadraft.com` is configured in DNS and points at the same Railway target, but **is not

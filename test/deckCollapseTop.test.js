@@ -14,7 +14,7 @@ const button = deckSrc.slice(at(deckSrc, "function CollapseButton", 0, "Collapse
 
 test("⭐ an expanded card has Collapse at its TOP, before anything else on the face", () => {
   const top = at(face, "data-deck-collapse-top", 0, "the top control");
-  assert.ok(top < at(face, "<CompanyIcon", 0, "the card's header"), "the top control is not at the top");
+  assert.ok(top < at(face, "<CompanyLogo", 0, "the card's header"), "the top control is not at the top");
   assert.match(face, /\{open && \(\s*<div data-deck-collapse-top/, "shown only while the card is open");
   assert.match(face, /<CollapseButton onCollapse=\{onCollapse\}/);
 });

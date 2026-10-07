@@ -174,15 +174,12 @@ test("⛔ D48 guard · no interactive element is a pill: every <button>, link an
   assert.deepEqual(offenders, [], "an interactive control in the old pill style — use DepthButton or the .dbx-depth skin");
 });
 
-test("⛔ D48 guard · a fully-rounded CSS rule is declared NON-interactive (status, a meter, an input, a scrollbar)", () => {
-  // Every selector here is a tag, a status, a meter or a field — never something you press. A new pill rule
-  // must be added to this list on purpose, which is the moment to ask whether it is a control.
-  const NON_INTERACTIVE = new Set([
-    ".ah__search", ".ah__status", ".dh-cap__meter", "::-webkit-scrollbar-thumb",
-    ".rm-badge", ".rm-tag",
-    ".jb__ready",   // D57: the card's "résumé ready" tag — a status, not a control
-    ".posting__pill", // D59: the posting's Requirements row — status pills (spans), never pressed
-  ]);
+test("⛔ D48 guard · no fully-rounded CSS rule at all — D60 withdrew the non-interactive allowance", () => {
+  // ⛔ D60 (owner 10-07): "the pill design permanently barred". This list used to allow status pills
+  // (.ah__status, .jb__ready, .posting__pill, .rm-badge, .rm-tag, meters, the search field, the scrollbar);
+  // every one is now a mark, a radius ≤ 12 field or a small-radius meter. It stays EMPTY — test/d60NoPills is
+  // the full guard; this one keeps D48's CSS scan honest.
+  const NON_INTERACTIVE = new Set([]);
   const files = [...walk("client/src").filter(f => /\.css$/.test(f)), "client/src/themes/cinematic.js"];
   const offenders = [];
   for (const f of files) {

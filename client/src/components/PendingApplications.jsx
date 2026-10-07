@@ -7,6 +7,7 @@
 // (services/applicationRecords.js VERIFY_RULE) and is shown above the table, not paraphrased here.
 import { useState } from "react";
 import { C } from "../styles/colorTokens.js";
+import { markStyle } from "../styles/mark.js";
 import CompanyLink from "./CompanyLink.jsx";
 
 const ORIGIN = {
@@ -100,8 +101,7 @@ export default function PendingApplications({ data, theme, onRecord, onWithdraw,
                 <span style={{ fontSize: 12, color: theme.textMuted }}> · {row.title || "Untitled role"}</span>
               </div>
               <span style={{ fontSize: 11, color: theme.textMuted }}>{ORIGIN[row.origin] || row.origin}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                             background: C.WARNING_QUIET, color: C.WARNING }}>
+              <span style={markStyle(C.WARNING)}>
                 {row.state === "recorded" ? "Recorded · not verified" : "Pending"}
               </span>
             </div>

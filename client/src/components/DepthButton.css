@@ -27,7 +27,7 @@
 .dbx--square.dbx--p { font-size: 17px; letter-spacing: -.05em; }
 
 .dbx__badge {
-  position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; border-radius: 10px; padding: 0 4px;
+  position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; border-radius: 6px; padding: 0 4px;
   background: var(--c-surface-solid); border: 1.5px solid var(--c-accent); color: var(--c-accent-ink);
   font: 700 10px/17px var(--fh-mono); font-style: normal; text-align: center; letter-spacing: 0;
 }
@@ -52,6 +52,25 @@
 .dbx-depth:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--c-depth-hover); }
 .dbx-depth:active:not(:disabled) { transform: translateY(0); box-shadow: var(--c-depth-press); }
 .dbx-depth:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+
+/* ⛔ D60 · THE MARK — status and tags are never a capsule (styles/mark.js is the inline twin). A rectangle,
+   radius 6, the logo face at 10.5px, a 3px leading bar in the status colour over a 12% tint of it. Set the
+   colour with a tone class or --mk-c. A count is .mark-count: a small rectangle, radius 6. */
+.mark {
+  --mk-c: var(--c-ink-faint);
+  display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; padding: 4px 8px 4px 7px;
+  font: 800 italic 10.5px/1 'Poppins', var(--font-body); letter-spacing: 0; text-transform: none; white-space: nowrap;
+  color: var(--mk-c); border: 0; border-left: 3px solid var(--mk-c); background: color-mix(in srgb, var(--mk-c) 12%, transparent);
+}
+.mark svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mark--ok { --mk-c: var(--c-success); } .mark--no { --mk-c: var(--c-danger); } .mark--warn { --mk-c: var(--c-warning); }
+.mark--info { --mk-c: var(--c-info); } .mark--dim { --mk-c: var(--c-ink-faint); } .mark--accent { --mk-c: var(--c-accent-ink); }
+.mark--strong { --mk-c: var(--c-band-strong); } .mark--moderate { --mk-c: var(--c-band-moderate); } .mark--weak { --mk-c: var(--c-band-weak); }
+.mark--unknown { --mk-c: var(--c-band-unknown); border-left-style: dashed; background: transparent; }
+.mark-count {
+  display: inline-block; min-width: 18px; box-sizing: border-box; text-align: center; border-radius: 6px; padding: 2px 5px;
+  font: 800 italic 10.5px/1.2 'Poppins', var(--font-body); background: var(--c-accent); color: var(--c-on-accent);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .dbx, .dbx__tip { transition: none; }
