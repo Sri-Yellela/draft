@@ -31,9 +31,12 @@ import crypto from "node:crypto";
 import { segments, classifySegment, remoteRegionFromText, US_STATES } from "./usLocation.js";
 import { EXPERIENCE_LEVELS, EMPLOYMENT_TYPES, WORK_MODELS, valueSet } from "../../shared/jobFilterOptions.js";
 import { METROS, JOB_FUNCTIONS, functionForRole } from "../../shared/jobTagVocabulary.js";
+import { parseCodedLocation } from "../../shared/postingNormalize.js";
 
 /** Bump when a rule changes: every row is re-tagged on the next pass (owner tags survive). */
-export const TAGGER_VERSION = 2;
+// 3 (D59): coded locations ("US-MA-MARLBOROUGH-MA2 1001 Boston Post Rd") and the label block's
+// location and workstyle ("Position Role Type: Onsite").
+export const TAGGER_VERSION = 3;
 
 const LEVELS = valueSet(EXPERIENCE_LEVELS);
 const EMPLOYMENTS = valueSet(EMPLOYMENT_TYPES);
@@ -97,6 +100,12 @@ export function parsePlaces(raw) {
     const tokens = seg.split(",").map(cleanToken).filter(Boolean);
     for (let i = 0; i < tokens.length; i++) {
       const tok = tokens[i];
+      // ⭐ D59 · a CODED location — "US-MA-MARLBOROUGH-MA2 1001 Boston Post Rd BLDG 2" is country-state-
+      // CITY-site + a street. ⛔ The street is never read for a city: "Boston Post Rd" is a road in
+      // Marlborough, and the bare-city matcher below would tag it "in Boston" (D42's exact bug). The
+      // metro comes from the CITY's own vocabulary row, or none — membership is not decided here.
+      const coded = parseCodedLocation(tok);
+      if (coded) { add({ country: "US", state: coded.state, metro: metroFor(coded.city, coded.state) }); continue; }
       // D42 · "Seattle WA" — a known city and its state with no comma between ("San Francisco, CA,
       // Seattle WA, New York, NY" lost Seattle, and the city-state pairing below then read "Seattle WA,
       // New York" as one place). Only a city the vocabulary pairs with that state; checked first.
@@ -171,10 +180,13 @@ const DESC_REMOTE = /\b(?:this|the)\s+(?:role|position|job|opportunity)\s+(?:is|
 const DESC_HYBRID = /\b(?:this|the)\s+(?:role|position|job)\s+is\s+(?:a\s+)?hybrid\b|\bhybrid\s+(?:role|position|schedule|work(?:ing)?\s+(?:model|arrangement|schedule))\b|\b(?:\d|two|three|four)\s+days\s+(?:a|per)\s+week\s+(?:in|at)\s+(?:the\s+|our\s+)?(?:office|hq)\b|\b(?:\d|two|three|four)\s+days\s+in\s+(?:the\s+)?office\s+(?:a|per)\s+week\b/i;
 const DESC_ONSITE = /\b(?:this|the)\s+(?:role|position|job)\s+is\s+(?:a\s+)?(?:fully\s+)?(?:on-?site|in[- ]office|in[- ]person)\b|\b(?:5|five)\s+days\s+(?:a|per)\s+week\s+(?:in|at)\s+(?:the\s+|our\s+)?office\b/i;
 
-export function tagWorkplace({ location, title, workplace_type, description }) {
+export function tagWorkplace({ location, title, workplace_type, description, label_workplace = null }) {
   const head = String(description || "").slice(0, 20000);
   const text = `${location || ""} ${title || ""}`;
+  // D59: the label block's "Position Role Type: Onsite" is the employer's own statement, like the
+  // source's workplace_type — read before any phrase in the prose.
   const stored = WORKPLACES.has(workplace_type) ? workplace_type
+    : WORKPLACES.has(label_workplace) ? label_workplace
     : DESC_HYBRID.test(head) ? "hybrid" : DESC_REMOTE.test(head) ? "remote" : DESC_ONSITE.test(head) ? "onsite" : null;
   const remote = REMOTE_RE.test(text) || stored === "remote" ? 1
     : (stored === "hybrid" || stored === "onsite" || HYBRID_RE.test(text) || ONSITE_RE.test(text)) ? 0
@@ -280,14 +292,34 @@ export function tagEmployment({ title, employment_type, description }) {
 /** The inputs a tag depends on, hashed. A change to any of them re-tags the row. */
 export function tagBasis(row) {
   const parts = [TAGGER_VERSION, row.title, row.location, row.workplace_type, row.employment_type,
-    row.experience_level, row.enriched_at ? 1 : 0, row.role_key, row.description_length ?? 0];
+    row.experience_level, row.enriched_at ? 1 : 0, row.role_key, row.description_length ?? 0,
+    row.description_basis ?? null];
   return crypto.createHash("sha1").update(JSON.stringify(parts)).digest("hex").slice(0, 16);
 }
 
 /** Every derived tag for one posting. Pure. */
+/** D59 · the label block's location and workstyle, from description_fields (JSON or object). */
+function labelFieldsOf(row) {
+  const raw = row.description_fields;
+  if (!raw) return {};
+  if (typeof raw === "object") return raw;
+  try { return JSON.parse(raw) || {}; } catch { return {}; }
+}
+
 export function deriveTags(row) {
+  const labels = labelFieldsOf(row);
   const places = parsePlaces(row.location);
-  const { remote, workplace } = tagWorkplace(row);
+  // A label-block location ("Location: US-MA-MARLBOROUGH-MA2 …") is a place the posting names too.
+  if (labels.location && labels.location !== row.location) {
+    for (const p of parsePlaces(labels.location)) {
+      if (!places.some(q => q.country === p.country && q.state === p.state && q.metro === p.metro)) places.push(p);
+    }
+    const specificUs = places.some(p => p.country === "US" && (p.state || p.metro));
+    if (specificUs) for (let i = places.length - 1; i >= 0; i--) if (places[i].country === "US" && !places[i].state && !places[i].metro) places.splice(i, 1);
+  }
+  // ⭐ D41(d): "Country: United States of America" is positive US evidence for a posting with no place.
+  if (labels.countryIsUs && !places.length) places.push({ country: "US", state: null, metro: null });
+  const { remote, workplace } = tagWorkplace({ ...row, label_workplace: labels.workplace || null });
   const us = usVerdict(places, remote, row.description);
   // A remote role whose description establishes the US is a US place at country level.
   if (us === "us" && !places.some(p => p.country === "US")) places.push({ country: "US", state: null, metro: null });
@@ -335,7 +367,8 @@ export function formatPlaceList(places) {
 
 const ROWS_SQL = `
   SELECT sj.job_id, sj.title, sj.location, sj.workplace_type, sj.employment_type, sj.experience_level,
-         sj.enriched_at, LENGTH(sj.description) AS description_length,
+         sj.enriched_at, LENGTH(COALESCE(sj.description_text, sj.description)) AS description_length,
+         sj.description_basis, sj.description_fields,
          sj.tag_basis, sj.tag_version, sj.tag_owner_json,
          (SELECT m.role_key FROM job_role_map m WHERE m.job_id = sj.job_id AND m.source_profile_id IS NULL
            ORDER BY m.rowid LIMIT 1) AS role_key
@@ -375,7 +408,8 @@ export function writeTags(db, jobId, tags, basis) {
  */
 export function tagStaleJobs(db, { all = false } = {}) {
   const rows = db.prepare(ROWS_SQL).all();
-  const descStmt = db.prepare("SELECT description FROM scraped_jobs WHERE job_id = ?");
+  // D59: the normalised text when there is one — raw HTML's `text-align` is not a phrase about the role.
+  const descStmt = db.prepare("SELECT COALESCE(description_text, description) AS description FROM scraped_jobs WHERE job_id = ?");
   let tagged = 0;
   db.transaction(() => {
     for (const row of rows) {

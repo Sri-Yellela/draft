@@ -17,6 +17,8 @@
 // theme and nowhere else. Nothing moves.
 import { deckStrip, kickerFor, NOT_STATED } from "../../../shared/postingFacts.js";
 import { formatPosting, markTerm } from "../../../shared/postingFormat.js";
+import { textForRender } from "../../../shared/postingNormalize.js";
+import { requirementPills } from "../../../shared/postingRequirements.js";
 import { usePairLink } from "../lib/pairLink.js";
 import "../styles/inkPair.css";
 import "./PostingPanel.css";
@@ -51,7 +53,40 @@ export function PostingMasthead({ job, experience = null, showTitle = true, vtTi
           </div>
         ))}
       </dl>
+      <PostingRequirements requirements={job.requirements} />
+      <PostingDetails fields={job.postingFields} />
     </header>
+  );
+}
+
+/**
+ * ⛔ D59 · THE REQUIREMENTS ROW — muted STATUS PILLS under the deck strip: "U.S. citizens only · Secret
+ * clearance · active required". Non-interactive (D48's rule: spans, never buttons), and each is a fact
+ * about the POSTING — never about the reader, and never folded into the ATS score.
+ */
+export function PostingRequirements({ requirements }) {
+  const pills = requirementPills(requirements);
+  if (!pills.length) return null;
+  return (
+    <div className="posting__req" data-posting-requirements="" aria-label="The posting's stated requirements">
+      <span className="posting__req-k">Requirements</span>
+      {pills.map(p => <span key={p.key} className="posting__pill" data-req={p.key} title={p.title}>{p.label}</span>)}
+    </div>
+  );
+}
+
+/** D59 · the label block's other fields, said once here because they left the body. */
+export function PostingDetails({ fields }) {
+  if (!fields) return null;
+  const items = [
+    ["Travel", fields.travel], ["Relocation", fields.relocation], ["Employment", fields.employment],
+    ["Site", fields.site], ["Req", fields.requisitionId],
+  ].filter(([, v]) => v);
+  if (!items.length) return null;
+  return (
+    <p className="posting__details" data-posting-details="">
+      {items.map(([k, v], i) => <span key={k}>{i ? " · " : ""}<span className="posting__details-k">{k}</span> {v}</span>)}
+    </p>
   );
 }
 
@@ -59,7 +94,10 @@ export function PostingMasthead({ job, experience = null, showTitle = true, vtTi
 export function PostingBody({ text }) {
   const link = usePairLink();
   const term = link?.lit || null;
-  const blocks = formatPosting(text);
+  // ⛔ D59 · RE-CHECKED AT RENDER: a description not yet normalised (or fetched just now) that still
+  // carries markup is read through the same normaliser — and is drawn as React TEXT either way, never
+  // as injected HTML.
+  const blocks = formatPosting(textForRender(text));
   const lead = blocks.findIndex(b => b.type === "p");
   return (
     <div className="posting__body" data-posting-body>
