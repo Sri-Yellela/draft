@@ -45,3 +45,15 @@ test("⛔ D69 (b) · on a phone the tabs stack their words, so all four fit at 3
   assert.match(src, /fontSize: tiny \? 11 : 12/);
   assert.match(src, /padding: tiny \? "3px 4px"/);
 });
+
+// D68 · the Copy sheet compliance check (PRIVACY_RECONCILIATION § D68) — the two fixes it needed, pinned.
+test("⛔ D68 · the policy names the Copy sheet and carries the Web Store Limited Use affirmation", () => {
+  const policy = fs.readFileSync("client/src/pages/marketing/PrivacyPage.jsx", "utf8").replace(/<[^>]+>/g, " ").replace(/\{" "\}/g, " ").replace(/\s+/g, " ");
+  assert.match(policy, /Copy sheet shows your own prepared answers — including any work-authorisation or voluntary self-identification answers you saved/);
+  assert.match(policy, /we do not record what you copied/);
+  assert.match(policy, /adheres to the Chrome Web Store User Data Policy, including the Limited Use requirements/);
+  const popup = fs.readFileSync("extension/popup.js", "utf8");
+  assert.equal([...popup.matchAll(/navigator\.clipboard\.writeText/g)].length, 1, "one clipboard write");
+  assert.match(popup, /copy\.addEventListener\('click', async \(\) => \{\s*try \{ await navigator\.clipboard\.writeText\(row\.value\)/, "and only on a click");
+  assert.match(fs.readFileSync("extension/submission/PRIVACY_RECONCILIATION.md", "utf8"), /## ⭐ D68 · THE COPY SHEET, CHECKED/);
+});
