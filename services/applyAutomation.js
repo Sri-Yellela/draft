@@ -21,6 +21,7 @@ import { launchBrowser } from "./browserLauncher.js";
 import { classifyRuntimeError } from "../shared/failureAttribution.js";
 import {
   isEeoDecline, pickDeclineOption, normaliseQuestion, isOptInQuestion, isNegativeAnswer,
+  parseWorkedHereQuestion, workedHereAnswer,
 } from "../shared/savedAnswers.js";
 import {
   detectPlatformFromUrl, detectPlatformFromPage,
@@ -1315,6 +1316,30 @@ export function buildAnswers(fields, profilePayload) {
         matched_on = hit;
       } else if (hit) {
         refusals.push(`${hit}:${refuseReason({ ...guardCtx, key: hit, handler: field.handler_type })}`);
+      }
+    }
+
+    // 2b. D55 (f) · "HAVE YOU WORKED HERE BEFORE?" — answered from the work history the profile and
+    //     base résumé STATE (payload.worked_here: { company, history }), never guessed: Yes only when
+    //     this employer is in it, No only when there IS a history and it is not. Ahead of saved
+    //     answers on purpose: a generic saved "No" to "Have you worked for {company}?" is false at the
+    //     one employer the candidate did work for, and the history is the better statement. When the
+    //     history cannot say (empty, a similar name, a time window, "or its subsidiaries"), it falls
+    //     through to the candidate's own saved answer — or stops.
+    const workedHere = profilePayload?.worked_here;
+    if (value === null && label && workedHere && parseWorkedHereQuestion(label)) {
+      const d = workedHereAnswer(label, workedHere.company, workedHere.history || []);
+      if (d.answer) {
+        value = d.answer;
+        // The field_map_exact tier: a value the profile STATES (its work history), reached through an
+        // enumerated question shape — not a label guess. `matched_on` names the source, so the review
+        // overlay and the fill log say "work_history:in_work_history", never just "exact". (No new
+        // provenance tier: the extension mirrors this table, and the fill engine treats exact tiers
+        // as stated.)
+        provenance = PROVENANCE.FIELD_MAP_EXACT;
+        matched_on = `work_history:${d.reason}`;
+      } else {
+        refusals.push(`worked_here:${d.reason}`);
       }
     }
 

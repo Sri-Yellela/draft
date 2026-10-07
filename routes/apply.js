@@ -8,7 +8,7 @@ import {
   readAnswerStore, resolveForCompany, effectiveCustomAnswers, companyKey,
   resolvesQuestion, rememberAnswer,
 } from "../services/customAnswers.js";
-import { normaliseQuestion } from "../shared/savedAnswers.js";
+import { normaliseQuestion, workHistoryCompanies } from "../shared/savedAnswers.js";
 import {
   buildGatePacket, mintPacketToken, verifyPacketToken, hashToken, originOf,
   DEFAULT_TOKEN_TTL_MS,
@@ -243,6 +243,20 @@ function publicApplication(row) {
 
 export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, generateResumeForApply, htmlToPdf, generateCoverLetterForApply,
                                     scoreBaseResumeForApply, { applyOriginFamilies = APPLY_ORIGIN_FAMILIES } = {}) {
+  // D55 (f) · every payload this module builds — for a run's resolver AND for a packet — carries the
+  // work history "have you worked here before?" is answered from: the profile's current_company plus
+  // the base résumé's EXPERIENCE companies, the same `entries.work` the packet fills Work Experience
+  // with. One fact, one source, so the two cannot disagree. (The parameter is re-bound rather than
+  // renamed: test/applyPipeline.test.js pins the signature.)
+  const buildAutofillPayloadBase = buildAutofillPayload;
+  buildAutofillPayload = (profile, mode, company = null) => {
+    const payload = buildAutofillPayloadBase(profile, mode, company);
+    if (!payload || typeof payload !== "object") return payload;
+    let work = [];
+    try { if (profile?.user_id != null) work = packetEntriesFor(profile.user_id)?.work || []; } catch { /* fewer employers, never a thrown payload */ }
+    return { ...payload, worked_here: { company: company ?? payload.worked_here?.company ?? null,
+      history: [...new Set([...(payload.worked_here?.history || []), ...workHistoryCompanies({ profile, work })])] } };
+  };
   // D56: the adapter table a packet's origin list comes from. A parameter only so a test can add the
   // local fake ATS's two-origin family; server.js passes nothing and gets the table in code.
   const FAMILIES = applyOriginFamilies;
