@@ -23,7 +23,7 @@ import { sign } from "../crawler/lib/signature.js";
 import { isAtsUrl } from "../crawler/lib/atsHosts.js";
 import { createBrowserStage } from "../crawler/lib/browser.js";
 import { harvestPairOf } from "../services/slugHarvest.js";
-import { enqueueTask, leaseNext } from "../services/crawlerQueue.js";
+import { enqueueTask, leaseNext, setState } from "../services/crawlerQueue.js";
 import { createCrawlerWorkerRouter, createCrawlerAdminRouter } from "../routes/crawler.js";
 
 const freePort = () => new Promise((resolve) => {
@@ -174,6 +174,8 @@ const TOKEN = "t".repeat(48);
 function draftApp(env = { CRAWLER_TOKEN: TOKEN }) {
   const db = new Database(":memory:");
   for (const m of MIGRATIONS) db.exec(m.sql);
+  // D75 STEP 0b: a fresh database starts PAUSED and DRY — these tests exercise the live path, so they resume it.
+  setState(db, { paused: false, mode: "live" });
   const app = express();
   app.use("/api/crawler", createCrawlerWorkerRouter(db, { env }));
   app.use(express.json());

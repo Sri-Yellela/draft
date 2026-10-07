@@ -212,6 +212,104 @@ export function DiskBanner() {
   );
 }
 
+// ── D75 STEP 0b · Admin → Crawler — the control panel (GET/PUT /api/admin/crawler…) ─────────────────
+// Pause / Resume, Dry-run / Live, the schedule and the per-run cap live in DRAFT's database — a press here
+// changes them with no redeploy. CRAWLER_PAUSED (the env) is a second, independent kill switch, shown when on.
+const CRAWL_TONE = { found: C.SUCCESS, none: C.INK_FAINT, blocked: C.WARNING, error: C.DANGER, dry_run: C.INK_FAINT };
+export function CrawlerTab({ theme }) {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState(null);
+  const [paste, setPaste] = useState("");
+  const [note, setNote] = useState(null);
+  const load = useCallback(() => { setErr(null); api("/api/admin/crawler").then(setD).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { load(); }, [load]);
+  const put = async (patch) => {
+    try { await api("/api/admin/crawler/state", { method: "PUT", body: JSON.stringify(patch) }); load(); } catch (e) { setErr(e.message); }
+  };
+  const enqueue = async (path, body) => {
+    try {
+      const r = await api(path, { method: "POST", body: JSON.stringify(body || {}) });
+      const q = (r.tasks || []).filter(t => t.status === "queued").length;
+      setNote(`${q} queued${r.capped ? ` · ${r.capped} over the per-run cap of ${r.cap}, not queued` : ""}${(r.tasks || []).some(t => t.status !== "queued") ? ` · ${(r.tasks || []).filter(t => t.status !== "queued").length} refused or invalid` : ""}`);
+      load();
+    } catch (e) { setErr(e.message); }
+  };
+  const flag = async (t) => {
+    const n = window.prompt(t.flagged_wrong ? "Clear the wrong-answer flag? (OK to clear)" : "What is wrong with this answer?", "");
+    if (n === null) return;
+    try { await api(`/api/admin/crawler/tasks/${t.id}/flag`, { method: "POST", body: JSON.stringify({ wrong: !t.flagged_wrong, note: n }) }); load(); } catch (e) { setErr(e.message); }
+  };
+  const st = d?.state, b = d?.budget, paused = d?.pause?.paused;
+  return (
+    <div>
+      <Err msg={err}/>
+      {d && (
+        <Card theme={theme} title="Crawler — the switches (D75)" measured={st?.updated_at ? `last changed ${ago(st.updated_at)}` : "never changed"}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
+            <Btn theme={theme} primary={paused} danger={!paused} onClick={() => put({ paused: !st.paused })}>
+              {st.paused ? "▶ Resume" : "❚❚ Pause"}
+            </Btn>
+            <span style={{ fontWeight: 700, color: paused ? C.WARNING : C.SUCCESS }}>
+              {paused ? `PAUSED${d.pause.by === "env" ? " — by CRAWLER_PAUSED on the server (the second switch)" : ""}` : "RUNNING — the worker may lease tasks"}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+            <span style={{ fontSize: 12, color: theme.textMuted, width: 90 }}>Mode</span>
+            <Btn theme={theme} primary={st.mode === "dry"} onClick={() => put({ mode: "dry" })}>Dry-run — no request leaves</Btn>
+            <Btn theme={theme} primary={st.mode === "live"} danger={st.mode !== "live"} onClick={() => { if (window.confirm("Live: the worker will request real public pages (robots.txt honoured, deny-list enforced). Continue?")) put({ mode: "live" }); }}>Live</Btn>
+          </div>
+          <KV theme={theme} rows={[
+            ["per-run cap", `${st.per_run_cap} tasks per enqueue`],
+            ["schedule", st.schedule_enabled ? `daily at ${st.schedule_hhmm} UTC · ${st.schedule_tasks} tasks from the captured companies${st.schedule_last_date ? ` · last ${st.schedule_last_date}` : ""}` : "off"],
+            ["today", `${b.tasksToday} of ${b.dailyCap} tasks · ${b.pagesToday} pages · ${b.minutesToday} min`, b.tasksToday >= b.dailyCap ? C.WARNING : null],
+            ["wrong answers flagged", String(d.wrongAnswers), d.wrongAnswers ? C.DANGER : null],
+          ]}/>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+            <Btn theme={theme} onClick={() => { const v = window.prompt("Per-run cap (1–100)", String(st.per_run_cap)); if (v) put({ per_run_cap: Number(v) }); }}>Set cap</Btn>
+            <Btn theme={theme} onClick={() => put({ schedule_enabled: !st.schedule_enabled })}>{st.schedule_enabled ? "Schedule off" : "Schedule on"}</Btn>
+            <Btn theme={theme} onClick={() => { const v = window.prompt("Daily at (HH:MM, UTC)", st.schedule_hhmm); if (v) put({ schedule_hhmm: v }); }}>Set time</Btn>
+            <Btn theme={theme} onClick={() => { const v = window.prompt("Tasks per scheduled run (1–100)", String(st.schedule_tasks)); if (v) put({ schedule_tasks: Number(v) }); }}>Set count</Btn>
+            <Btn theme={theme} onClick={load}>Re-read</Btn>
+          </div>
+        </Card>
+      )}
+      {d && (
+        <Card theme={theme} title="Enqueue — J1, find a company's board" measured={`${d.candidates.length} captured compan${d.candidates.length === 1 ? "y" : "ies"} we cannot crawl`}>
+          <textarea value={paste} onChange={e => setPaste(e.target.value)} rows={4} placeholder="https://company.com — one per line"
+            style={{ width: "100%", boxSizing: "border-box", fontFamily: "inherit", fontSize: 12, padding: 8, background: theme.bg, color: theme.text, border: `1px solid ${theme.border || C.INK_FAINT}`, borderRadius: 6 }}/>
+          <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+            <Btn theme={theme} disabled={!paste.trim()} onClick={() => enqueue("/api/admin/crawler/tasks", { type: "j1_find_board", urls: paste.split(/\s+/).filter(Boolean) })}>Queue pasted domains</Btn>
+            <Btn theme={theme} disabled={!d.candidates.length} onClick={() => enqueue("/api/admin/crawler/tasks/captures")}>Queue captured companies ({d.candidates.length})</Btn>
+          </div>
+          {note && <div style={{ fontSize: 12, marginTop: 6, color: theme.textMuted }}>{note}</div>}
+        </Card>
+      )}
+      {d && (
+        <Card theme={theme} title="Queue and results" measured={d.tally.map(t => `${t.type === "j1_find_board" ? "J1" : "J2"} ${t.outcome} ${t.n}`).join(" · ") || "empty"}>
+          <Table theme={theme} cols={["#", "target", "mode", "status", "evidence / landing", ""]}
+            rows={d.tasks.map(t => [
+              t.id, t.target_host, t.mode || "—",
+              <span key="s" style={{ color: CRAWL_TONE[t.result_status] || theme.text, fontWeight: 700 }}>{t.result_status || t.status}{t.refused_reason ? ` — ${t.refused_reason}` : ""}{t.error ? ` — ${t.error}` : ""}</span>,
+              (t.evidence || []).map(e => `${e.url} (${e.how})`).join(" · ") || (t.formOrigin ? `${t.formOrigin} · ${t.stoppedAt}` : "—"),
+              <Btn key="f" theme={theme} danger={!t.flagged_wrong} onClick={() => flag(t)}>{t.flagged_wrong ? `wrong: ${t.flag_note || "flagged"}` : "Flag wrong"}</Btn>,
+            ])}/>
+        </Card>
+      )}
+      {d && (
+        <Card theme={theme} title="Deny-list — wins over every task" measured={`${d.denyList.length} domains`}>
+          <div style={{ fontSize: 12, marginBottom: 8 }}>{d.denyList.join(" · ") || "—"}</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Btn theme={theme} onClick={async () => { const v = window.prompt("Domain to deny (e.g. example.com) — also refuses anything already queued for it"); if (!v) return;
+              try { await api("/api/admin/crawler/deny", { method: "POST", body: JSON.stringify({ domain: v, reason: "owner" }) }); load(); } catch (e) { setErr(e.message); } }}>Add</Btn>
+            <Btn theme={theme} onClick={async () => { const v = window.prompt("Domain to remove from the deny-list"); if (!v) return;
+              try { await api(`/api/admin/crawler/deny/${encodeURIComponent(v)}`, { method: "DELETE" }); load(); } catch (e) { setErr(e.message); } }}>Remove</Btn>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 // ── Full-auto kill switch — GET / PUT / DELETE /api/admin/full-auto ────────────────────────────
 // Three states, not two (see server.js): forced off, pinned on, inherit the deploy. The panel shows
 // which one is in force and WHY, because "disabled: true" alone cannot tell you whether clearing the
