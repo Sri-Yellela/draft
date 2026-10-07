@@ -299,6 +299,12 @@ test("⛔ D59 · the filter hides roles that STATE clearance or citizenship — 
   const f = buildJobFilters({ hide_eligibility_required: "1" });
   const ids = d.prepare(`SELECT job_id FROM scraped_jobs sj WHERE 1 = 1 ${f.sql} ORDER BY job_id`).all(...f.params).map(r => r.job_id);
   assert.deepEqual(ids, ["plain", "unread"]);
+  // ⛔ A re-crawl rewrites the description (here: the clearance sentence is gone). Until the next pass
+  // re-reads it, the old reading is STALE — the row is "not read yet" and is kept, not hidden on the old
+  // text's say-so. The same rule as the readers' (description_basis).
+  d.prepare("UPDATE scraped_jobs SET description = ? WHERE job_id = 'lm'").run("Build radar software in C++.");
+  const after = d.prepare(`SELECT job_id FROM scraped_jobs sj WHERE 1 = 1 ${f.sql} ORDER BY job_id`).all(...f.params).map(r => r.job_id);
+  assert.deepEqual(after, ["lm", "plain", "unread"], "a stale reading never hides a row");
   assert.equal(buildJobFilters({}).sql.includes("req_citizenship"), false, "off by default");
   const panel = read("client/src/panels/JobsPanel.jsx");
   assert.match(panel, /Hide roles that require clearance or citizenship/);
@@ -413,4 +419,15 @@ test("D59 · one normaliser for every source: the panel's formatter, the capture
     if (fs.existsSync(f)) assert.doesNotMatch(read(f), /dangerouslySetInnerHTML/, `${f} injects HTML`);
   }
   assert.equal(formatPosting(normalizePosting(RTX_HTML).text)[0].type, "h");
+});
+
+// D59's browser pass (10-07): the hostile and Blue Origin postings state no workstyle, yet the deck said
+// "On-site" — mapJobRow sends remote:false for an unknown (Boolean(null)) and the board read false as
+// on-site. "Not remote" is not "on-site"; only a stated workstyle is shown.
+test("⛔ D59 · an UNSTATED workstyle is not shown as On-site — remote:false says nothing", () => {
+  const src = fs.readFileSync(path.join("client", "src", "panels", "JobsPanel.jsx"), "utf8");
+  const line = src.split(/\r?\n/).find(l => /^\s*workType:\s+job\.workType\s+\?\?/.test(l));
+  assert.ok(line, "normalizeApiJob's workType line");
+  assert.doesNotMatch(line, /On-site/, "remote === false must not become \"On-site\"");
+  assert.match(line, /remote === true \? "Remote"/);
 });

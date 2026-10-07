@@ -77,7 +77,10 @@ function normalizeApiJob(job) {
     salaryMin:      job.salaryMin      != null ? job.salaryMin      : (job.salary_min  ?? null),
     salaryMax:      job.salaryMax      != null ? job.salaryMax      : (job.salary_max  ?? null),
     salaryCurrency: job.salaryCurrency ?? job.salary_currency ?? null,
-    workType:       job.workType       ?? (job.remote === true ? "Remote" : job.remote === false ? "On-site" : null),
+    // ⛔ "not remote" is not "on-site" (it may be hybrid), and mapJobRow sends remote:false for a posting
+    // that says nothing (Boolean(null)) — so false says nothing here. Only a stated workstyle is shown;
+    // otherwise the deck's Workstyle cell falls back to the location (D59's browser pass, 10-07).
+    workType:       job.workType       ?? (job.remote === true ? "Remote" : null),
     employmentType: job.employmentType ?? job.contract_type ?? null,
     // mapJobRow already emits camelCase automationTier and the `...job` spread above would carry
     // it through untouched — this line is here for the endpoints that hand this function a raw
