@@ -120,3 +120,34 @@ test("D67 · migration 140 is byte-identical in both runners", () => {
   const blk = (f) => { const s = fs.readFileSync(f, "utf8"); const i = at(s, 'id: "140_apply_origin_pairs"'); return s.slice(i, at(s, "`,", i)); };
   assert.equal(blk("server.js"), blk("scripts/migrations.js"));
 });
+
+// ── D67 (1) · THE MANUAL SWEEP (10-07): observed rows only, and on a shared host they TIGHTEN ─────────
+test("⭐ D67 (1) · the swept ATSs: one shared origin each, and a page naming ANOTHER job is refused", async () => {
+  const { APPLY_ORIGIN_FAMILIES, packetJobIds, pageMatchesPacket, packetOrigins } = await import("../services/applyOrigins.js");
+  const by = Object.fromEntries(APPLY_ORIGIN_FAMILIES.map(f => [f.ats, f]));
+  assert.deepEqual(Object.keys(by).sort(), ["amazon", "ashby", "greenhouse", "lever", "workable"]);
+  assert.equal(by.workday, undefined, "⛔ no Workday row (owner, O84 c)");
+  const cases = [
+    ["lever", "https://jobs.lever.co/matchgroup/d28a3de6-cd04-483a-9aed-5ba1d2f8c57c",
+      "https://jobs.lever.co/matchgroup/d28a3de6-cd04-483a-9aed-5ba1d2f8c57c/apply",
+      "https://jobs.lever.co/othercorp/be908eda-1ae9-4563-9252-fe9b35df61d4/apply"],
+    ["ashby", "https://jobs.ashbyhq.com/ramp/d2beca4a-7409-404b-8382-761e5db6e917",
+      "https://jobs.ashbyhq.com/ramp/d2beca4a-7409-404b-8382-761e5db6e917/application",
+      "https://jobs.ashbyhq.com/openai/872ca3d0-c8c0-4585-9a34-7f9ed6b4dbf9/application"],
+    ["workable", "https://apply.workable.com/j/B0D0ACB369",
+      "https://apply.workable.com/blueground/j/B0D0ACB369/apply",
+      "https://apply.workable.com/othercorp/j/D6FB457899/apply"],
+  ];
+  for (const [ats, posting, applyPage, otherJob] of cases) {
+    const origins = packetOrigins({ expectedOrigin: new URL(posting).origin, urls: [posting] });
+    assert.deepEqual(origins, [new URL(posting).origin], `${ats}: widens nothing — one origin`);
+    const jobIds = packetJobIds([posting]);
+    assert.equal(jobIds.length, 1, `${ats}: the posting's job id is read`);
+    assert.deepEqual(pageMatchesPacket({ url: applyPage, origins, jobIds }), { ok: true, reason: "match" }, `${ats}: its own form`);
+    assert.deepEqual(pageMatchesPacket({ url: otherJob, origins, jobIds }), { ok: false, reason: "other_job" },
+      `${ats}: ANOTHER employer's job on the same shared host is refused`);
+  }
+  // Each new row states the redirect it was taken from (the rule at the top of the table).
+  const src = fs.readFileSync("services/applyOrigins.js", "utf8");
+  for (const seen of ["jobs.lever.co/matchgroup/d28a3de6", "jobs.ashbyhq.com/ramp/d2beca4a", "apply.workable.com/j/B0D0ACB369 → 301"]) assert.ok(src.includes(seen), seen);
+});
