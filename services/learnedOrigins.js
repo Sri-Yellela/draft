@@ -22,6 +22,25 @@
 export const PROMOTE_AT_USERS = 3;
 const OWN_HOSTS = new Set(["jobsviadraft.com", "www.jobsviadraft.com"]);
 
+// ⛔ A95 · HOSTS THAT SERVE EVERY EMPLOYER. A pair is a pair of HOSTNAMES, so a learned pair touching one of
+// these would widen far beyond the job it was learned from: `a.wd5.myworkdayjobs.com → wd5.myworkdaysite.com`
+// lets A's packets fill ANY employer's form on wd5 (docs/D67C_WORKDAY_FAMILY.md §5), and
+// `jobs.lever.co → careers.x.com` lets EVERY Lever job's packet fill on X's domain. Refused on either side.
+// On these hosts the code table's job-id / tenant rules decide, never a learned hostname.
+//   · Workday's shared shards — wdN.myworkdaysite.com (the tenant is in the PATH) and a bare
+//     wdN.myworkdayjobs.com. NOT <tenant>.wdN.myworkdayjobs.com: that host is one employer's.
+//   · the shared origins already in services/applyOrigins.js (Lever, Ashby, Workable, Greenhouse).
+const SHARED_TENANT_HOSTS = new Set([
+  "jobs.lever.co", "jobs.ashbyhq.com", "apply.workable.com", "boards.greenhouse.io", "job-boards.greenhouse.io",
+]);
+const SHARED_TENANT_PATTERNS = [/^wd\d+\.myworkdaysite\.com$/, /^wd\d+\.myworkdayjobs\.com$/, /^(?:www\.)?myworkday(?:site|jobs)\.com$/];
+
+/** Does this hostname serve many employers, so that a learned pair on it would cross employers? */
+export function isSharedTenantHost(host) {
+  const h = String(host || "").toLowerCase();
+  return SHARED_TENANT_HOSTS.has(h) || SHARED_TENANT_PATTERNS.some(re => re.test(h));
+}
+
 /** A hostname fit to learn, or null. */
 export function learnableHost(url) {
   let u; try { u = new URL(String(url)); } catch { return null; }
@@ -41,6 +60,7 @@ export function recordSighting(db, { userId, postingUrl, pageUrl, now = Math.flo
   const applyHost = learnableHost(pageUrl);
   if (!postingHost || !applyHost) return { recorded: false, reason: "not_learnable" };
   if (postingHost === applyHost) return { recorded: false, reason: "same_host" };
+  if (isSharedTenantHost(postingHost) || isSharedTenantHost(applyHost)) return { recorded: false, reason: "shared_host" };
   return db.transaction(() => {
     db.prepare(`INSERT OR IGNORE INTO apply_origin_pairs (posting_host, apply_host, first_seen_at) VALUES (?, ?, ?)`)
       .run(postingHost, applyHost, now);
@@ -71,7 +91,8 @@ export function learnedFamilies(db, userId) {
               OR EXISTS (SELECT 1 FROM apply_origin_sightings s WHERE s.pair_id = p.id AND s.user_id = ?))
     `).all(userId);
   } catch { return []; }                                         // a database without the tables learns nothing
-  return rows.map(r => Object.freeze({
+  // A95: a pair learned before the guard existed is never served either.
+  return rows.filter(r => !isSharedTenantHost(r.posting_host) && !isSharedTenantHost(r.apply_host)).map(r => Object.freeze({
     ats: "learned",
     origins: Object.freeze([`https://${r.posting_host}`, `https://${r.apply_host}`]),
   }));

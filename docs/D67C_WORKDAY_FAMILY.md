@@ -2,8 +2,8 @@
 
 **Status: DESIGN ONLY (10-07, 38g). Nothing built.** The board links to no Workday posting today
 (production: greenhouse · ashby · lever · workable · recruitee · import). Build this when Workday
-postings arrive. One part does not wait: **§5, the learned-pair guard**, closes a gap that exists now
-(raised as **A95**).
+postings arrive. One part did not wait: **§5, the learned-pair guard**, closed a gap that existed then. It is
+**A95**, now built.
 
 ---
 
@@ -118,13 +118,13 @@ Suppose three users apply to Employer A's Workday job and submit on `wd5.myworkd
 Employer A packet may fill **any** employer's form on wd5. Below three users, the same holds for the user
 who saw it. This is the §1 problem, reached through learning instead of the table.
 
-The fix is small and only narrows. `learnableHost` refuses, as an **apply** host, any host on a
-**SHARED_TENANT_HOSTS** list:
+✅ **BUILT 10-07 (38g) as A95.** The fix only narrows. A pair is refused when **either** host is on the shared list, because a shared POSTING host crosses employers too: `jobs.lever.co → careers.x.com` would let every Lever job's packet fill on X's domain. The shared list is:
 
-- `*.myworkdaysite.com`, `*.myworkdayjobs.com`
+- Workday's shared shards: `wdN.myworkdaysite.com`, and a bare `wdN.myworkdayjobs.com`. ⚠ Not `<tenant>.wdN.myworkdayjobs.com`; that host is one employer's and stays learnable. (An earlier draft of this section listed `*.myworkdayjobs.com`, which was wrong.)
 - the shared origins already in the table: `jobs.lever.co`, `jobs.ashbyhq.com`, `apply.workable.com`,
   `boards.greenhouse.io`, `job-boards.greenhouse.io`
 
+A pair stored before the guard is filtered out when the families are served.
 The sighting is then recorded as `reason: "shared_host"` and nothing is learned. Test: three users'
 sightings onto `wd5.myworkdaysite.com` promote nothing, and no packet's families contain it.
 **Reachability today is low.** No Workday posting is on the board, and a sighting needs a packet. But a
@@ -150,4 +150,4 @@ captured or imported Workday job would open it.
    - the extension refuses a page outside its scopes
 6. The privacy page needs no change: no new data, and filling still happens only on the user's click.
 
-**§5 (A95) is independent of all of this and can be built now.**
+**§5 (A95) was independent of all of this and is built** (`services/learnedOrigins.js` `isSharedTenantHost`).

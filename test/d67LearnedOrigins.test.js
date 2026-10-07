@@ -11,7 +11,7 @@ import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import applyRoutes from "../routes/apply.js";
 import { APPLY_ORIGIN_FAMILIES, pageMatchesPacket, packetOrigins } from "../services/applyOrigins.js";
-import { recordSighting, learnedFamilies, setPairRevoked, listPairs, learnableHost, PROMOTE_AT_USERS } from "../services/learnedOrigins.js";
+import { recordSighting, learnedFamilies, setPairRevoked, listPairs, learnableHost, isSharedTenantHost, PROMOTE_AT_USERS } from "../services/learnedOrigins.js";
 import { at } from "../test-support/sourceAnchors.js";
 
 const POSTING = "https://jobs.northwind-example.com/careers/jobs/4012";
@@ -150,4 +150,38 @@ test("⭐ D67 (1) · the swept ATSs: one shared origin each, and a page naming A
   // Each new row states the redirect it was taken from (the rule at the top of the table).
   const src = fs.readFileSync("services/applyOrigins.js", "utf8");
   for (const seen of ["jobs.lever.co/matchgroup/d28a3de6", "jobs.ashbyhq.com/ramp/d2beca4a", "apply.workable.com/j/B0D0ACB369 → 301"]) assert.ok(src.includes(seen), seen);
+});
+
+// ⛔ A95 · a host that serves every employer is never learned — on either side of a pair.
+const WD_POSTING = "https://northwind.wd5.myworkdayjobs.com/External/job/Boston-MA/Engineer_JR0000001";
+const WD_SHARED = "https://wd5.myworkdaysite.com/recruiting/northwind/External/job/Boston-MA/Engineer_JR0000001/apply";
+const OTHER_TENANT = "https://wd5.myworkdaysite.com/recruiting/contoso/External/job/Austin-TX/Analyst_JR0000002/apply";
+
+test("⛔ A95 · three users submitting on a shared Workday shard promote nothing, and no packet may fill another tenant there", () => {
+  const d = db();
+  for (const u of [1, 2, 3]) {
+    assert.deepEqual(recordSighting(d, { userId: u, postingUrl: WD_POSTING, pageUrl: WD_SHARED }), { recorded: false, reason: "shared_host" });
+  }
+  assert.deepEqual(listPairs(d), [], "nothing stored");
+  for (const u of [1, 4]) {
+    const fams = familiesFor(d, u);
+    const origins = packetOrigins({ expectedOrigin: new URL(WD_POSTING).origin, urls: [WD_POSTING] }, fams);
+    assert.equal(pageMatchesPacket({ url: OTHER_TENANT, origins, jobIds: [] }, fams).ok, false, `user ${u}: another tenant's form`);
+  }
+});
+
+test("⛔ A95 · a shared POSTING host is refused too — a Lever pair would cross every Lever employer", () => {
+  const d = db();
+  const r = recordSighting(d, { userId: 1, postingUrl: "https://jobs.lever.co/northwind/0b8f6f2e-1111-4222-8333-944455556666", pageUrl: FORM });
+  assert.equal(r.reason, "shared_host");
+  assert.equal(isSharedTenantHost("northwind.wd5.myworkdayjobs.com"), false, "one employer's Workday host is learnable");
+  assert.equal(isSharedTenantHost("wd5.myworkdayjobs.com"), true);
+  assert.equal(isSharedTenantHost("apply.northwind-hire.example"), false);
+});
+
+test("⛔ A95 · a shared-host pair stored BEFORE the guard is never served", () => {
+  const d = db();
+  d.prepare("INSERT INTO apply_origin_pairs (posting_host, apply_host, users_seen, promoted_at) VALUES (?, ?, 3, unixepoch())")
+    .run("northwind.wd5.myworkdayjobs.com", "wd5.myworkdaysite.com");
+  assert.deepEqual(learnedFamilies(d, 1), []);
 });
