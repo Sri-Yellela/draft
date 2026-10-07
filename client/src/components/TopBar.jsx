@@ -377,6 +377,10 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
               style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
               Job Profiles
             </button>
+            <button onClick={() => { setOpen(false); onTabChange?.("saved-answers"); }}
+              style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
+              Saved answers
+            </button>
             <button onClick={() => { setOpen(false); onTabChange?.("account"); }}
               style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
               Account &amp; security

@@ -159,7 +159,9 @@ test("⛔ D13: no new storage, no new permission — and all four actions stay v
   const ctx = bg.slice(at(bg, "async function popupContext"), at(bg, "async function previewActiveTab"));
   assert.doesNotMatch(ctx, /chrome\.storage/, "the companion stores its context");
   assert.match(ctx, /authedFetch\(RESUME_MASTER_URL, '\/api\/import\/context', \{\s*method: 'POST'/);
-  assert.match(ctx, /portalQueueFor\(RESUME_MASTER_URL, origin\)/);
+  // D56: the drafted-application half is now the page MATCH (origin list + job id, server-side) —
+  // still asked only on the press, still stored nowhere.
+  assert.match(ctx, /pageMatchFor\(RESUME_MASTER_URL, tab\)/);
   for (const f of ["extension/companion.js", "extension/popup.js"]) {
     assert.doesNotMatch(read(f), /chrome\.storage\.(local|session)\.set/, `${f} writes storage`);
   }

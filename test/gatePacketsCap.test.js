@@ -175,23 +175,30 @@ test("scoping does not widen access: another user's packets and consumed ones st
 test("the handler scopes BOTH statements identically", () => {
   // A `total` computed over a different scope than the rows would be worse than no total: it would
   // report truncation that is not there, or miss truncation that is.
+  // D56: the origin scope is a packet's ORIGIN LIST (its expected origin plus its ATS family, from the
+  // adapter table) — which SQL cannot see — so ONE function, listUnconsumedPackets, builds the rows and
+  // the total. Scoped, the total IS the filtered list's length, counted before the cap.
   const body = queriesFromSource();
   assert.match(body, /const origin = String\(req\.query\.origin \|\| ""\)\.trim\(\)/);
-  assert.match(body, /const where = origin \? "AND p\.expected_origin = \?" : ""/);
-  assert.match(body, /const args = origin \? \[req\.user\.id, origin\] : \[req\.user\.id\]/);
-  // Both the SELECT and the COUNT interpolate the same `where` and bind the same `args`.
-  const uses = [...body.matchAll(/\$\{where\}/g)].length;
-  assert.equal(uses, 2, `expected the scope on both statements, found ${uses}`);
-  const binds = [...body.matchAll(/\.all\(\.\.\.args\)|\.get\(\.\.\.args\)/g)].length;
-  assert.equal(binds, 2, "both statements must bind the same args");
+  assert.match(body, /const \{ rows, total \} = listUnconsumedPackets\(req\.user\.id, \{ origin, limit: PACKET_LIST_LIMIT \}\)/);
+  const fn = listFnFromSource();
+  assert.match(fn, /const all = db\.prepare\(sql\(""\)\)\.all\(userId\)\.map\(address\)\.filter\(r => r\.origins\.includes\(origin\)\);\s+return \{ rows: all\.slice\(0, limit\), total: all\.length \};/,
+    "scoped, the rows and the total must come from the same filtered list, the cap applied after");
 });
 
 test("the user and consumed predicates are still there, ahead of the origin filter", () => {
-  const body = queriesFromSource();
-  const clauses = [...body.matchAll(/WHERE p\.user_id=\? AND p\.consumed_at IS NULL \$\{where\}/g)];
-  assert.equal(clauses.length, 2,
-    "both statements must keep the ownership and unconsumed predicates and merely NARROW them");
+  const fn = listFnFromSource();
+  const clauses = [...fn.matchAll(/WHERE p\.user_id=\? AND p\.consumed_at IS NULL \$\{NOT_CLEARED\}/g)];
+  assert.equal(clauses.length, 2, "the list and the count must both keep the ownership and unconsumed predicates");
+  assert.match(fn, /WHERE p\.user_id=\? AND p\.consumed_at IS NULL \$\{NOT_CLEARED\}`\)\.get\(userId\)/,
+    "the unscoped count must keep them too");
 });
+
+function listFnFromSource() {
+  const src = fs.readFileSync("routes/apply.js", "utf8").replace(/\r\n/g, "\n");
+  const start = at(src, "function listUnconsumedPackets(");
+  return src.slice(start, at(src, "function listedPacket(", start));
+}
 
 test("the response carries the truncation signal, always", () => {
   const src = fs.readFileSync("routes/apply.js", "utf8");
@@ -227,12 +234,15 @@ test("the extension STILL filters by origin itself — it ships separately from 
   // An extension updates independently of the server it talks to. A build that trusted ?origin= to
   // have been honoured would fill against the wrong portal on a server that predates it. Filtering
   // twice costs nothing; assuming version parity is how a skew becomes a wrong-portal fill.
+  // D56: against the packet's ORIGIN LIST (packetFillsOrigin), which falls back to expectedOrigin alone
+  // for a server that predates the list — the same filter, made correct for two-origin ATSs.
   const gh = fs.readFileSync("extension/gated-handoff.js", "utf8");
-  const matches = [...gh.matchAll(/p\.expectedOrigin === origin/g)];
+  const matches = [...gh.matchAll(/packetFillsOrigin\(p, origin\)/g)];
   assert.ok(matches.length >= 2,
     "the client-side origin filter must remain as well as the server-side one");
+  assert.match(gh, /return Array\.isArray\(p\?\.origins\) && p\.origins\.length \? p\.origins : \(p\?\.expectedOrigin \? \[p\.expectedOrigin\] : \[\]\);/);
   const bg = fs.readFileSync("extension/background.js", "utf8");
-  assert.match(bg, /p\.expectedOrigin === batch\.origin/);
+  assert.match(bg, /packetFillsOrigin\(p, batch\.origin\)/);
 });
 
 test("the panel surfaces truncation, and only when truncated", () => {

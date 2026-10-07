@@ -20,6 +20,10 @@ import { fileURLToPath } from "url";
 import { launchBrowser } from "./browserLauncher.js";
 import { classifyRuntimeError } from "../shared/failureAttribution.js";
 import {
+  isEeoDecline, pickDeclineOption, normaliseQuestion, isOptInQuestion, isNegativeAnswer,
+  parseWorkedHereQuestion, workedHereAnswer,
+} from "../shared/savedAnswers.js";
+import {
   detectPlatformFromUrl, detectPlatformFromPage,
   getPlatformLabelMap,
 } from "./platformDetector.js";
@@ -567,6 +571,12 @@ export function isDerivedSponsorship(provenance) {
 export function matchOptionValue(value, options = []) {
   const v = String(value ?? '').toLowerCase();
   if (!v) return null;
+  // D55 (f): an EXACT option first. Substring alone let a stored "Male" pick "Female" (listed first on
+  // most EEO forms) and a stored "No" pick "Not a protected veteran" — a false statement either way.
+  const nv = normaliseText(v);
+  for (const o of options || []) {
+    if (normaliseText(o?.label) === nv || normaliseText(o?.value) === nv) return o.value;
+  }
   for (const o of options || []) {
     const ov = String(o?.value ?? '').toLowerCase();
     const ol = String(o?.label ?? '').toLowerCase();
@@ -1229,6 +1239,16 @@ export async function discoverFields(pageOrFrame, provider, derivedLabelMap = nu
   }
 }
 
+// D55 (f): the controls through which a candidate can be OPTED IN. A free-text box labelled "Mobile
+// phone (we may text you updates)" is a phone field, not a consent, so text types are not guarded.
+const OPT_IN_CONTROL_TYPES = new Set(['checkbox', 'toggle', 'radio', 'select', 'multi_select']);
+
+/** D55 (f): a Voluntary Self-Identification control — by its words or by the handler discovery gave it. */
+export function isEeoField(field) {
+  return eligibilityClassOf(`${field?.label || ''} ${field?.name || ''}`) === 'eeo'
+      || ELIGIBILITY_HANDLERS.eeo.includes(String(field?.handler_type || ''));
+}
+
 // -- buildAnswers --------------------------------------------------------------
 export function buildAnswers(fields, profilePayload) {
   const { field_map = {}, handler_map = {}, custom_answers = {} } = profilePayload || {};
@@ -1299,6 +1319,30 @@ export function buildAnswers(fields, profilePayload) {
       }
     }
 
+    // 2b. D55 (f) · "HAVE YOU WORKED HERE BEFORE?" — answered from the work history the profile and
+    //     base résumé STATE (payload.worked_here: { company, history }), never guessed: Yes only when
+    //     this employer is in it, No only when there IS a history and it is not. Ahead of saved
+    //     answers on purpose: a generic saved "No" to "Have you worked for {company}?" is false at the
+    //     one employer the candidate did work for, and the history is the better statement. When the
+    //     history cannot say (empty, a similar name, a time window, "or its subsidiaries"), it falls
+    //     through to the candidate's own saved answer — or stops.
+    const workedHere = profilePayload?.worked_here;
+    if (value === null && label && workedHere && parseWorkedHereQuestion(label)) {
+      const d = workedHereAnswer(label, workedHere.company, workedHere.history || []);
+      if (d.answer) {
+        value = d.answer;
+        // The field_map_exact tier: a value the profile STATES (its work history), reached through an
+        // enumerated question shape — not a label guess. `matched_on` names the source, so the review
+        // overlay and the fill log say "work_history:in_work_history", never just "exact". (No new
+        // provenance tier: the extension mirrors this table, and the fill engine treats exact tiers
+        // as stated.)
+        provenance = PROVENANCE.FIELD_MAP_EXACT;
+        matched_on = `work_history:${d.reason}`;
+      } else {
+        refusals.push(`worked_here:${d.reason}`);
+      }
+    }
+
     // 3. custom_answers — the user's own answer to this question.
     //
     //    ORDERED AHEAD OF THE FUZZY STEP, and that ordering is load-bearing for the
@@ -1311,23 +1355,45 @@ export function buildAnswers(fields, profilePayload) {
     //    The reverse direction (`ql.includes(lbl)`) is DROPPED: a short label matched almost any
     //    longer stored question. An eligibility field may be answered here only on a
     //    normalised-EXACT question match, which is not a guess — the user answered that question.
+    //
+    //    D55 (f): EXACT means equal after normaliseQuestion — punctuation, an asterisk, a "(required)"
+    //    marker and case are not words, so "Why Figma? *" is the question the candidate answered as
+    //    "Why Figma?". Every word still has to agree. Two passes, so an exact match always beats an
+    //    earlier containment match. ⛔ Containment is refused for eligibility, EEO (refuseReason) and
+    //    OPT-INS (below): those are answered only by the question the candidate actually answered.
+    const optInSubject = OPT_IN_CONTROL_TYPES.has(field.type) && isOptInQuestion(`${label} ${field.name || ''}`);
+    let customExact = false;
     if (value === null && label) {
       const lbl = normaliseText(label);
-      for (const [q, a] of Object.entries(custom_answers)) {
-        if (a === undefined || a === null || a === '') continue;
+      const lblQ = normaliseQuestion(label);
+      const entries = Object.entries(custom_answers)
+        .filter(([q, a]) => a !== undefined && a !== null && a !== '' && normaliseText(q));
+      const exactHits = entries.filter(([q]) => normaliseQuestion(q) === lblQ);
+      const forwardHits = entries.filter(([q]) => {
         const ql = normaliseText(q);
-        if (!ql) continue;
-        const exact = ql === lbl;
         // Forward containment only, and only for questions specific enough to mean something.
-        const forward = ql.length >= 8 && lbl.includes(ql);
-        if (!exact && !forward) continue;
+        return normaliseQuestion(q) !== lblQ && ql.length >= 8 && lbl.includes(ql);
+      });
+      for (const [q, a, exact] of [...exactHits.map(e => [...e, true]), ...forwardHits.map(e => [...e, false])]) {
         const reason = refuseReason({ ...guardCtx, key: q, allowEligibilityExactAnswer: exact });
         if (reason) { refusals.push(`custom:${reason}`); continue; }
+        if (optInSubject && !exact) { refusals.push('custom:opt_in_exact_only'); continue; }
         value = String(a);
         provenance = PROVENANCE.CUSTOM_ANSWER;
         matched_on = q;
+        customExact = exact;
         break;
       }
+    }
+
+    // D55 (f) · NEVER OPT THE CANDIDATE IN (§7.4, decided 10-07). An opt-in control — marketing,
+    // WhatsApp/SMS, a talent community, job alerts — is answered ONLY by the candidate's own exact
+    // answer to that question, and only when that answer is No. Anything else (a profile key that
+    // happened to match, a containment hit, a stated Yes) is refused and left for the candidate, so a
+    // required one stops the fill like a work-authorisation question does.
+    if (value !== null && optInSubject && !(provenance === PROVENANCE.CUSTOM_ANSWER && customExact && isNegativeAnswer(value))) {
+      refusals.push(provenance === PROVENANCE.CUSTOM_ANSWER && customExact ? 'opt_in:never_opt_in' : 'opt_in:exact_answer_only');
+      value = null; provenance = null; matched_on = null;
     }
 
     // 4. Fuzzy label match against field_map keys — the weakest path, and the one A1 proved
@@ -1335,7 +1401,7 @@ export function buildAnswers(fields, profilePayload) {
     //    eligibility-class and third-party-subject fields, and refused when the label inverts the
     //    key's sense. An exact label match is trustworthy enough to submit; a token-subset match
     //    stays a guess, cannot auto-submit, and becomes a question the loop can ask.
-    if (value === null && label) {
+    if (value === null && label && !optInSubject) {
       for (const [k, v] of Object.entries(field_map)) {
         if (!v) continue;
         if (!matchesWholeToken(label, k)) continue;
@@ -1439,8 +1505,26 @@ export function buildAnswers(fields, profilePayload) {
       const affirmative = coerceAffirmative(value);
       value = (polarity === 'invert' ? !affirmative : affirmative) ? 'true' : 'false';
     } else if (OPTION_TYPES.has(field.type) && Array.isArray(field.options) && field.options.length) {
+      // D55 (f) · THE EEO DECLINE IS A STATED ANSWER. "Choose not to disclose" in the profile is the
+      // candidate's own choice, so the Self-ID step FILLS with the form's decline option — however the
+      // ATS words it ("Decline to self-identify", "I don't wish to answer") — instead of stopping.
+      // A form that offers no decline option is refused, never answered with something else; and an
+      // EEO field the candidate never set has no value at all, so it never reaches here (blank stays
+      // blank — the decline is never a default).
+      const eeoDecline = isEeoField(field) && isEeoDecline(value);
       // Constrain the value to an option this field actually offers.
-      let picked = matchOptionValue(value, field.options);
+      let picked = eeoDecline ? pickDeclineOption(field.options) : matchOptionValue(value, field.options);
+      if (picked === null && eeoDecline) {
+        refusals.push('eeo:decline_option_absent');
+        answers.push({
+          field_id: field.field_id, name: field.name, type: field.type, label,
+          required: !!field.is_required,
+          options: field.options,
+          value: null, skipped: true, refusals,
+          provenance: null, confidence: 0, clear_first: false, typeahead_selection: null,
+        });
+        continue;
+      }
 
       // A free-text work-authorization status against a Yes/No question: read the status rather
       // than posting it verbatim into a field that cannot hold it.
