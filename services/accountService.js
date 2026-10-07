@@ -188,7 +188,7 @@ const SECRET_COLUMNS = new Set(["password_hash", "apify_token", "secret_enc", "i
 const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes", "base_resume", "resumes", "resume_versions",
   "job_applications", "user_jobs", "imported_jobs", "user_job_searches", "apply_runs", "apply_run_jobs", "notifications",
   "simple_apply_profiles", "profile_simple_apply_profiles", "dock_preferences", "daily_drafts", "user_integrations",
-  "form_reports"];
+  "form_reports", "apply_origin_sightings"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -243,6 +243,8 @@ export const MERGE_PLAN = Object.freeze({
   resumes: "keepInto", user_integrations: "keepInto", user_job_searches: "keepInto", user_job_views: "keepInto",
   user_jobs: "userJobs", base_resume: "keepInto", dock_preferences: "keepInto", plan_upgrade_requests: "keepInto",
   simple_apply_profiles: "keepInto", user_limits: "keepInto", user_linkedin_sessions: "keepInto",
+  // D67 (2): one sighting per (pair, user) — a merged person is one person, so a clash keeps one row.
+  apply_origin_sightings: "keepInto",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

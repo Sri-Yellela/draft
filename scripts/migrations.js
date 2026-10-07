@@ -3926,4 +3926,30 @@ export const MIGRATIONS = [
         ALTER TABLE users ADD COLUMN base_resume_only INTEGER NOT NULL DEFAULT 0;
       `,
     },
+    {
+      // D67 (2) (owner, 10-07): THE SELF-LEARNING ORIGIN TABLE. A pair (posting host → apply host) learned
+      // from a user's own verified "I submitted" on a host outside the job's family. apply_origin_pairs is
+      // SHARED and carries no user identity — hostnames and a count; apply_origin_sightings counts the
+      // DISTINCT users (promoted at 3) and offers a pair to the user who saw it, and goes with the account.
+      // Hostnames only — never a path, a query or a URL. services/learnedOrigins.js.
+      id: "140_apply_origin_pairs",
+      sql: `
+        CREATE TABLE IF NOT EXISTS apply_origin_pairs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          posting_host TEXT NOT NULL,
+          apply_host TEXT NOT NULL,
+          users_seen INTEGER NOT NULL DEFAULT 0,
+          first_seen_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          promoted_at INTEGER,
+          revoked_at INTEGER,
+          UNIQUE(posting_host, apply_host)
+        );
+        CREATE TABLE IF NOT EXISTS apply_origin_sightings (
+          pair_id INTEGER NOT NULL REFERENCES apply_origin_pairs(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          seen_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (pair_id, user_id)
+        );
+      `,
+    },
   ];
