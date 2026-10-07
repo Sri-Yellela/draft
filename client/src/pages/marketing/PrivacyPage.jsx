@@ -429,7 +429,18 @@ export function PrivacyPage() {
               page's <Strong>full address</Strong> (including its path and any query) to{" "}
               {CANONICAL_HOST}, to work out which of your applications the page belongs to; it is
               used for that check and not kept. When you press <Strong>I submitted</Strong>, that
-              address is kept with the application's record, as the evidence of where you sent it.
+              address is kept with the application's record, as the evidence of where you sent it —
+              its path and only the parts of the query that identify the application (a job or
+              application number). Anything else in the query, such as a session or tracking code or
+              an email address, is <Strong>dropped before it is stored</Strong>.
+            </LI>
+            {/* D67 (2): services/learnedOrigins.js — hostnames only, the shared row carries no identity. */}
+            <LI>
+              If the page you press <Strong>I submitted</Strong> on is on a site draft did not yet know
+              for that job, we remember the <Strong>two site names</Strong> — the posting's and the
+              application's, never their full addresses — so your next application there can be
+              filled. Once three different people have shown the same pair, it is used for everyone;
+              the shared record holds only the two site names and a count, never who showed it.
             </LI>
           </UL>
 

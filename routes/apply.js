@@ -41,6 +41,8 @@ import { recordSubmissionFromPipeline, markPending, releaseDraftRecord, publicRe
 import { binRunJobs, listBin, restoreFromBin, purgeNow, BIN_DAYS } from "../services/draftBin.js";
 // D56: a packet's ORIGINS (the adapter table, never the user) and the manual route's page → job.
 import { APPLY_ORIGIN_FAMILIES, pageMatchesPacket, hostsSentence } from "../services/applyOrigins.js";
+import { learnedFamilies, recordSighting } from "../services/learnedOrigins.js";
+import { evidenceUrlOf } from "../services/evidenceUrl.js";
 import { packetAddressing, resolvePageJob, pageNotice, copySheetRows, handoffMessage } from "../services/manualHandoff.js";
 import { recordSubmission } from "../services/applicationRecords.js";
 
@@ -269,6 +271,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   // D56: the adapter table a packet's origin list comes from. A parameter only so a test can add the
   // local fake ATS's two-origin family; server.js passes nothing and gets the table in code.
   const FAMILIES = applyOriginFamilies;
+  // ⭐ D67 (2): the code table plus the pairs learned from users — the promoted ones, and the ones THIS
+  // user saw themselves (services/learnedOrigins.js). Every packet-address check reads it per user.
+  const familiesFor = (userId) => [...FAMILIES, ...learnedFamilies(db, userId)];
   // ── Manual tracking endpoints ────────────────────────────────────────────────
 
   // ⛔ A63: THIS NO LONGER RECORDS AN APPLICATION ON A CLICK. Its one caller was the board's Apply
@@ -3661,7 +3666,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       LEFT JOIN scraped_jobs sj ON sj.job_id = p.job_id
       WHERE p.user_id=? AND p.consumed_at IS NULL ${NOT_CLEARED}
       ORDER BY p.created_at DESC ${tail}`;
-    const address = (r) => ({ ...r, ...packetAddressing(r, FAMILIES) });
+    const address = (r) => ({ ...r, ...packetAddressing(r, familiesFor(userId)) });
     if (!origin) {
       const rows = db.prepare(sql(`LIMIT ${limit}`)).all(userId).map(address);
       const total = db.prepare(`SELECT COUNT(*) AS n FROM apply_gate_packets p
@@ -3718,7 +3723,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   function addressingFor(row) {
     let sj = null;
     try { sj = db.prepare("SELECT url, apply_url FROM scraped_jobs WHERE job_id=?").get(row.job_id); } catch {}
-    return packetAddressing({ ...row, sj_url: sj?.url ?? null, sj_apply_url: sj?.apply_url ?? null }, FAMILIES);
+    return packetAddressing({ ...row, sj_url: sj?.url ?? null, sj_apply_url: sj?.apply_url ?? null }, familiesFor(row.user_id));
   }
 
   /**
@@ -3850,7 +3855,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const addr = addressingFor(row);
     const pageUrl = typeof req.body?.url === "string" ? req.body.url.slice(0, 2048) : "";
     if (pageUrl) {
-      const m = pageMatchesPacket({ url: pageUrl, ...addr }, FAMILIES);
+      const m = pageMatchesPacket({ url: pageUrl, ...addr }, familiesFor(row.user_id));
       if (!m.ok) {
         return res.status(409).json({
           error: "not_this_address", reason: m.reason, origins: addr.origins,
@@ -4169,9 +4174,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   function matchPage(userId, url) {
     const origin = new URL(url).origin;
     const { rows } = listUnconsumedPackets(userId, { origin, limit: 100 });
-    const matching = rows.filter(r => pageMatchesPacket({ url, origins: r.origins, jobIds: r.jobIds }, FAMILIES).ok);
+    const matching = rows.filter(r => pageMatchesPacket({ url, origins: r.origins, jobIds: r.jobIds }, familiesFor(userId)).ok);
     const packets = matching.map(listedPacket);
-    const page = resolvePageJob(db, userId, url, FAMILIES);
+    const page = resolvePageJob(db, userId, url, familiesFor(userId));
     const job = page.job ? { jobId: page.job.jobId, title: page.job.title, company: page.job.company } : null;
     const resume = job ? resumeStateFor(userId, job.jobId) : "none";
     let state = "ready", addresses = null;
@@ -4185,7 +4190,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
             LEFT JOIN scraped_jobs sj ON sj.job_id = p.job_id
             WHERE p.user_id=? AND p.job_id=? AND p.consumed_at IS NULL ${NOT_CLEARED}`).all(userId, job.jobId)
             .filter(r => !packetFreshness(toMs(r.created_at)).stale)
-            .map(r => ({ ...r, ...packetAddressing(r, FAMILIES) }));
+            .map(r => ({ ...r, ...packetAddressing(r, familiesFor(userId)) }));
         } catch { elsewhere = []; }
       }
       if (elsewhere.length) {
@@ -4219,7 +4224,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   app.post("/api/apply/prepare", requireAuth, (req, res) => {
     const url = pageUrlOf(req);
     if (!url) return res.status(400).json({ error: "bad_url", message: "Only http(s) pages can be filled." });
-    const page = resolvePageJob(db, req.user.id, url, FAMILIES);
+    const page = resolvePageJob(db, req.user.id, url, familiesFor(req.user.id));
     if (!page.job || !page.mine) {
       const state = page.job ? "not_on_board" : "unknown";
       return res.status(404).json({ error: state, message: handoffMessage(state) });
@@ -4228,7 +4233,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     if (!out.ok) return res.status(422).json({ error: out.error, message: out.message });
     const row = db.prepare("SELECT * FROM apply_gate_packets WHERE id=? AND user_id=?").get(out.packetId, req.user.id);
     const addr = addressingFor(row);
-    const fillsHere = pageMatchesPacket({ url, ...addr }, FAMILIES).ok;
+    const fillsHere = pageMatchesPacket({ url, ...addr }, familiesFor(req.user.id)).ok;
     res.json({
       ok: true, packetId: out.packetId, reused: out.reused, resume: out.resume, origins: addr.origins, fillsHere,
       job: { jobId: page.job.jobId, title: page.job.title, company: page.job.company },
@@ -4320,8 +4325,22 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const claimed = req.body?.jobId != null ? String(req.body.jobId) : null;
     // A job id from the released packet is honoured only when that packet is the user's own.
     if (claimed && db.prepare("SELECT 1 FROM apply_gate_packets WHERE user_id=? AND job_id=?").get(userId, claimed)) jobId = claimed;
+    // ⭐ D67 (2): the user holds a packet for this job and is submitting it on a page OUTSIDE the job's
+    // addresses — their own application shows where this job's form lives. The pair of HOSTNAMES is
+    // learned (services/learnedOrigins.js): offered to them now, to everyone once 3 users have shown it.
+    if (jobId) {
+      try {
+        const sj = db.prepare("SELECT url, apply_url FROM scraped_jobs WHERE job_id=?").get(jobId);
+        const pk = db.prepare("SELECT expected_origin, apply_url FROM apply_gate_packets WHERE user_id=? AND job_id=? ORDER BY id DESC LIMIT 1").get(userId, jobId);
+        const known = packetAddressing({ expected_origin: pk?.expected_origin ?? null, apply_url: pk?.apply_url ?? null, sj_url: sj?.url ?? null, sj_apply_url: sj?.apply_url ?? null }, familiesFor(userId)).origins || [];
+        const originOfUrl = (u) => { try { return new URL(u).origin; } catch { return null; } };
+        const own = [sj?.url, sj?.apply_url, pk?.apply_url].map(originOfUrl).filter(Boolean);
+        const pageOrigin = originOfUrl(url);
+        if (sj?.url && pageOrigin && !known.includes(pageOrigin) && !own.includes(pageOrigin)) recordSighting(db, { userId, postingUrl: sj.url, pageUrl: url });
+      } catch { /* learning is never allowed to cost a submission record */ }
+    }
     if (!jobId) {
-      const page = resolvePageJob(db, userId, url, FAMILIES);
+      const page = resolvePageJob(db, userId, url, familiesFor(userId));
       if (page.job && page.mine) jobId = page.job.jobId;
     }
     if (!jobId) {
@@ -4330,7 +4349,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     }
     try {
       const out = recordSubmission(db, { userId, jobId, capturedAtsAtApply,
-        input: { submittedAt: Date.now(), method: "ats_portal", evidenceUrl: url } });
+        input: { submittedAt: Date.now(), method: "ats_portal", evidenceUrl: evidenceUrlOf(url) || url.split(/[?#]/)[0] } });
       const score = db.prepare("SELECT ats_score_at_apply FROM job_applications WHERE user_id=? AND job_id=?").pluck().get(userId, jobId) ?? null;
       const missing = out.verification.checks.find(c => !c.ok);
       res.json({ ok: true, jobId, state: out.state, verified: out.verification.verified, atsScoreAtApply: score,

@@ -223,6 +223,9 @@ const AUTHENTICATED = new Set([
   // D66: "Use my base résumé for applications" — the caller's own switch.
   "GET /api/settings/base-resume-only",
   "PUT /api/settings/base-resume-only",
+  // D67 (2): the learned origin pairs — admin only.
+  "GET /api/admin/apply-origins",
+  "POST /api/admin/apply-origins/:id/revoke",
   // D55 decision E: "Report this form" — host + field labels, stored against the reporter's own
   // account (deleted with it, rate-limited per user). Signed in only: an anonymous report has no one
   // to rate-limit and no account for its rows to be deleted with.

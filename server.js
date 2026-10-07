@@ -164,6 +164,7 @@ import { backfillAutomationTier } from "./services/jobs/backfillAutomationTier.j
 import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
 import { tagStaleJobs } from "./services/jobs/jobTags.js";
 import { backfillDescriptionText, withPostingText, refreshDescriptionText, postingText, registerDescriptionBasis } from "./services/jobs/descriptionText.js";
+import { listPairs as listLearnedPairs, setPairRevoked, PROMOTE_AT_USERS } from "./services/learnedOrigins.js";
 import { resolvePlaceText, roleScopeExtra } from "./shared/jobTagVocabulary.js";
 import { userReferencedSql } from "./services/jobs/userReferences.js";
 import { deliverPipelineAlerts } from "./services/jobs/alertDelivery.js";
@@ -4322,6 +4323,32 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE users ADD COLUMN base_resume_only INTEGER NOT NULL DEFAULT 0;
       `,
     },
+    {
+      // D67 (2) (owner, 10-07): THE SELF-LEARNING ORIGIN TABLE. A pair (posting host → apply host) learned
+      // from a user's own verified "I submitted" on a host outside the job's family. apply_origin_pairs is
+      // SHARED and carries no user identity — hostnames and a count; apply_origin_sightings counts the
+      // DISTINCT users (promoted at 3) and offers a pair to the user who saw it, and goes with the account.
+      // Hostnames only — never a path, a query or a URL. services/learnedOrigins.js.
+      id: "140_apply_origin_pairs",
+      sql: `
+        CREATE TABLE IF NOT EXISTS apply_origin_pairs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          posting_host TEXT NOT NULL,
+          apply_host TEXT NOT NULL,
+          users_seen INTEGER NOT NULL DEFAULT 0,
+          first_seen_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          promoted_at INTEGER,
+          revoked_at INTEGER,
+          UNIQUE(posting_host, apply_host)
+        );
+        CREATE TABLE IF NOT EXISTS apply_origin_sightings (
+          pair_id INTEGER NOT NULL REFERENCES apply_origin_pairs(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          seen_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (pair_id, user_id)
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7388,6 +7415,19 @@ app.use("/api/admin/enrichment", requireAdmin, createEnrichmentRouter(db, requir
 app.use("/api/admin/job-data", requireAdmin, createJobDataRouter(db, requireAdmin));
 // A50 step 4: the company list as a surface — probe a board before adding it; enable / disable, logged.
 app.use("/api/admin/companies", requireAdmin, createCompaniesRouter(db, requireAdmin));
+// ⭐ D67 (2): the learned origin pairs — hostnames and counts only — and the revoke switch, logged.
+app.get("/api/admin/apply-origins", requireAdmin, (_req, res) => res.json({ pairs: listLearnedPairs(db), promoteAtUsers: PROMOTE_AT_USERS }));
+app.post("/api/admin/apply-origins/:id/revoke", requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  const revoked = req.body?.revoked !== false;
+  const before = db.prepare("SELECT * FROM apply_origin_pairs WHERE id=?").get(id);
+  if (!before) return res.status(404).json({ error: "pair_not_found" });
+  setPairRevoked(db, id, revoked);
+  const after = db.prepare("SELECT * FROM apply_origin_pairs WHERE id=?").get(id);
+  db.prepare("INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json) VALUES (?, ?, ?, ?, ?)")
+    .run(req.user.id, revoked ? "apply_origin_revoke" : "apply_origin_restore", `apply_origin_pairs:${id}`, JSON.stringify(before), JSON.stringify(after));
+  res.json({ ok: true, pair: after });
+});
 // D20: the slug harvest in the daily manual sweep — SerpApi searches started by a person, an export the
 // owner reviews, an import that adds companies. No cron, no model call.
 app.use("/api/admin/slug-harvest", requireAdmin, createSlugHarvestRouter(db, requireAdmin));
