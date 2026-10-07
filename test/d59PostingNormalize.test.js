@@ -226,6 +226,40 @@ test("D59 · clearance level, status and polygraph — label first, then prose; 
   assert.deepEqual(requirementPills(reqOf(RTX_HTML)).map(p => p.label), ["U.S. citizens only", "Secret clearance", "active required"]);
 });
 
+// The local backfill (10-07) read 34 clearance tags off 2,616 real postings; these are the misreadings it
+// found, in the postings' own words.
+test("⛔ D59 · clearance misreadings from the local backfill — public trust as prose, the floor of several levels, the wish list", () => {
+  assert.equal(reqOf("You will partner with researchers to strengthen model reliability and public trust.").clearance, "none",
+    "'public trust' in ordinary English is not a clearance");
+  assert.equal(reqOf("Applicants must be U.S. citizens with the ability to obtain and maintain a Tier 4 (High Risk Public Trust) background investigation.").clearance,
+    "public_trust");
+  const floor = reqOf("Must have: • At least an active secret clearance and the ability & willingness to up level to TS/SCI.");
+  assert.equal(floor.clearance, "secret", "the requirement is the lowest level named — TS/SCI is what it may grow into");
+  assert.equal(floor.clearanceStatus, "active_required");
+  assert.equal(reqOf("• Possession of an active Secret or TS/SCI clearance").clearance, "secret", "either satisfies it, so Secret does");
+  assert.equal(reqOf("This role will require an active TS security clearance Ideally You'd Have: • 2+ years of experience").clearance, "top_secret",
+    "a run-on bullet list still carries the requirement before its wish list");
+  assert.equal(reqOf("This role will require an active TS security clearance Nice to haves: • a desire to mentor").clearance, "top_secret",
+    "the wish list's words do not cancel the requirement before it");
+  assert.equal(reqOf("Requirements:\n• 5+ years of Python\nNice to haves:\n• A Top Secret U.S. security clearance\n• 4+ years of experience").clearance, "none",
+    "a bullet beneath a 'Nice to haves:' heading is not required");
+  assert.equal(reqOf("Nice to haves:\n• Go\nMust Haves:\n• An active TS/SCI clearance").clearance, "ts_sci", "the next heading ends the wish list");
+  const poly = reqOf("Must Haves: • An active TS/SCI clearance (Full Scope Polygraph is a nice to have) • 3+ years");
+  assert.equal(poly.clearance, "ts_sci");
+  assert.equal(poly.polygraph, false, "a polygraph the posting only wishes for is not required");
+  assert.equal(reqOf("You might thrive in this role if you\n - Bring 5+ years of experience, ideally in government environments.\n - Active TS/SCI clearance or equivalent").clearance,
+    "ts_sci", "an ordinary 'ideally' is not a wish-list heading");
+  assert.equal(reqOf("• Have an active Secret security clearance (Top Secret preferred)").clearance, "secret",
+    "a preference in parentheses does not cancel the requirement beside it");
+  assert.equal(reqOf("• An active TS/SCI clearance.\nBonus\n• An active polygraph").polygraph, false, "a bare 'Bonus' line opens a wish list");
+  assert.deepEqual([reqOf("You might thrive in this role if you have:\n - An active US security clearance.").clearance,
+    reqOf("You might thrive in this role if you have:\n - An active US security clearance.").clearanceStatus], ["unspecified", "active_required"],
+    "a clearance bullet with no level is 'Clearance required', not nothing");
+  assert.equal(reqOf("Preferred qualifications\n• Active federal security clearance (Secret or above)").clearance, "none");
+  assert.equal(reqOf("Advance national security Nice to haves: • A Top Secret U.S. security clearance • 4+ years").clearance, "none",
+    "a clearance under 'Nice to haves' is not required");
+});
+
 test("⛔ D59 · the notice at Draft — the row's own sentence; it says what the POSTING asks, never a verdict", () => {
   assert.equal(eligibilityNotice(reqOf(RTX_HTML), { citizenship: false, clearance: false }),
     "This role requires U.S. citizenship and an active Secret clearance. Your profile doesn't state either — draft will stop and ask.");
