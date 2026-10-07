@@ -383,6 +383,15 @@ export function PrivacyPage() {
               The prepared answers are held only while you are working on that application: in
               memory-backed browser storage, for ten minutes, and cleared when the tab closes.
             </LI>
+            {/* D56: gated-handoff.js runGatedHandoff / prepareAndFill / copySheetFor / recordSubmitted —
+                routes/apply.js /handoff/match, /gate-packets/:id/token, /prepare, /copy-sheet, /handoff/submitted. */}
+            <LI>
+              When you fill, prepare or copy answers for an application, the extension sends that
+              page's <Strong>full address</Strong> (including its path and any query) to{" "}
+              {CANONICAL_HOST}, to work out which of your applications the page belongs to; it is
+              used for that check and not kept. When you press <Strong>I submitted</Strong>, that
+              address is kept with the application's record, as the evidence of where you sent it.
+            </LI>
           </UL>
 
           <H3>Learning an Application Form (optional, off by default)</H3>
