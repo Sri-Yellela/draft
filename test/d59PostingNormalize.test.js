@@ -272,7 +272,11 @@ test("⛔ D59 · the notice at Draft — the row's own sentence; it says what th
   assert.deepEqual(statedEligibility({ custom_answers: "{}", clearance_level: null }), { citizenship: false, clearance: false });
   // The panel shows it beside Draft, and Draft asks before it acts.
   assert.match(read("client/src/components/JobDetailPanel.jsx"), /data-eligibility-notice=""/);
-  assert.match(read("client/src/panels/JobsPanel.jsx"), /const eligibility = eligibilityNoticeFor\(job\);\n\s+if \(eligibility && !window\.confirm\(/);
+  // Owner 10-07 (38): "only in panel" — the notice is the panel's line beside Draft, never a confirm at the click.
+  const jp = read("client/src/panels/JobsPanel.jsx");
+  assert.match(jp, /eligibilityNotice: isJobDrafted\(selectedJob\.jobId\) \? null : eligibilityNoticeFor\(selectedJob\)/, "the panel line");
+  assert.doesNotMatch(jp, /window\.confirm\([^)]*eligibility/i, "no confirm at Draft");
+  assert.doesNotMatch(jp, /Draft it anyway\?/, "no confirm at Draft");
 });
 
 test("⛔ D59 · the Requirements row: muted, NON-interactive pills under the deck strip — never in the ATS score", async () => {
@@ -431,3 +435,18 @@ test("⛔ D59 · an UNSTATED workstyle is not shown as On-site — remote:false 
   assert.doesNotMatch(line, /On-site/, "remote === false must not become \"On-site\"");
   assert.match(line, /remote === true \? "Remote"/);
 });
+
+// The owner's answers to D59's questions, 10-07 (38): the grade export stays RAW; "unspecified" stays;
+// Marlborough is Marlborough — not Greater Boston.
+test("D59 · the owner's answers — the grade export reads the RAW description; Marlborough is not in the Boston metro", async () => {
+  const transfer = read("services/jobs/atsGradeTransfer.js");
+  assert.doesNotMatch(transfer, /description_text|withPostingText|postingText\(/, "the grade export keeps the raw text the grades were made against");
+  const { METROS } = await import("../shared/jobTagVocabulary.js");
+  const boston = METROS.find(m => m.value === "boston");
+  assert.ok(boston);
+  assert.equal(boston.cities.some(([c]) => c === "marlborough"), false, "Marlborough is not Greater Boston (owner)");
+  assert.ok(CLEARANCE_LEVELS_INCLUDE_UNSPECIFIED());
+});
+function CLEARANCE_LEVELS_INCLUDE_UNSPECIFIED() {
+  return read("shared/postingRequirements.js").includes('"unspecified"');
+}
