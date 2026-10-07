@@ -74,7 +74,9 @@ async function main() {
       else if (r.status !== 204) console.warn(`[crawler] lease answered ${r.status}`);
     } catch (e) { console.warn(`[crawler] lease failed: ${e.message}`); }
     if (!task) { await new Promise(r => setTimeout(r, poll)); continue; }
-    const result = await runTask(task, { deny: task.deny || [], isPaused, browserStage, dryRun, log: console.log });
+    // D75 STEP 0b: the MODE comes from draft with each lease (Admin → Crawler); CRAWLER_DRY_RUN=1 forces dry regardless.
+    const result = await runTask(task, { deny: task.deny || [], isPaused, browserStage: task.mode === "live" ? browserStage : null,
+                                         dryRun: dryRun || task.mode !== "live", log: console.log });
     const body = JSON.stringify(result);
     try {
       const r = await fetch(`${base}/api/crawler/result`, { method: "POST", body, headers: { "content-type": "application/json", ...sign(body, token) } });

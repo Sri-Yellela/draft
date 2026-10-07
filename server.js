@@ -43,6 +43,7 @@ import { createJobDataRouter } from "./routes/jobData.js";
 import { createCompaniesRouter } from "./routes/companies.js";
 import { createSlugHarvestRouter } from "./routes/slugHarvest.js";
 import { createCrawlerWorkerRouter, createCrawlerAdminRouter } from "./routes/crawler.js";
+import { runSchedule as runCrawlerSchedule } from "./services/crawlerQueue.js";
 import { createRailwayHookRouter, deployEventsSummary } from "./routes/railwayHook.js";
 import { readGauge, projectTranche, trancheGate, AMBER_AT as DISK_AMBER_AT, RED_AT as DISK_RED_AT } from "./services/diskGauge.js";
 import { createJobTagsRouter } from "./routes/jobTags.js";
@@ -4428,6 +4429,33 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_deploy_events_service ON deploy_events(service_name, id);
       `,
     },
+    {
+      // D75 STEP 0b (owner, 10-09): ADMIN → CRAWLER — the controls live in DRAFT's database, not in environment
+      // variables, so changing them needs no redeploy. ONE row. It starts PAUSED and in DRY-RUN: nothing runs
+      // until the owner presses Resume, and nothing reaches a website until the owner chooses Live.
+      // CRAWLER_PAUSED (env) stays a second, independent kill switch. crawler_tasks records the mode a task
+      // was leased in, where it came from, and the owner's "wrong answer" flag.
+      id: "144_crawler_controls",
+      sql: `
+        CREATE TABLE IF NOT EXISTS crawler_state (
+          id                 INTEGER PRIMARY KEY CHECK (id = 1),
+          paused             INTEGER NOT NULL DEFAULT 1,
+          mode               TEXT NOT NULL DEFAULT 'dry',
+          per_run_cap        INTEGER NOT NULL DEFAULT 25,
+          schedule_enabled   INTEGER NOT NULL DEFAULT 0,
+          schedule_hhmm      TEXT NOT NULL DEFAULT '09:00',
+          schedule_tasks     INTEGER NOT NULL DEFAULT 10,
+          schedule_last_date TEXT,
+          updated_at         INTEGER,
+          updated_by         INTEGER
+        );
+        INSERT OR IGNORE INTO crawler_state (id) VALUES (1);
+        ALTER TABLE crawler_tasks ADD COLUMN mode TEXT;
+        ALTER TABLE crawler_tasks ADD COLUMN source TEXT;
+        ALTER TABLE crawler_tasks ADD COLUMN flagged_wrong INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE crawler_tasks ADD COLUMN flag_note TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7548,6 +7576,12 @@ app.get("/api/admin/disk", requireAdmin, (_req, res) => {
 });
 // D75: the crawler's queue, deny-list and tally (the owner's controls).
 app.use("/api/admin/crawler", requireAdmin, createCrawlerAdminRouter(db, requireAdmin));
+// D75 STEP 0b: the crawler's schedule (Admin → Crawler) — once a day at the owner's HH:MM UTC draft ENQUEUES up to N
+// tasks from the captured companies. It never leases: a task still waits for Resume, the mode and a worker.
+setInterval(() => {
+  runCrawlerSchedule(db).then(r => { if (r.ran) console.log(`[crawler] schedule queued ${r.queued} of ${r.offered} candidate(s)`); })
+    .catch(e => console.error("[crawler] schedule failed:", e.message));
+}, 5 * 60 * 1000).unref();
 // D76: the last Railway event per service (a failed or crashed deploy is the card's red) and the stream.
 app.get("/api/admin/deploy-events", requireAdmin, (_req, res) => res.json(deployEventsSummary(db)));
 // D29 · the board's own tags: coverage, and the owner's export -> tag -> import (no model call, D17).

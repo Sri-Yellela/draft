@@ -7,13 +7,16 @@
 // No CRAWLER_TOKEN on the server = every worker door answers 503: the feature is off, not open.
 //
 // Admin (requireAdmin):
-//   GET    /api/admin/crawler                 the queue, the tally, the deny-list, paused
-//   POST   /api/admin/crawler/tasks           { type, urls: [...] } — queue tasks (a denied or SSRF target is recorded refused)
+//   GET    /api/admin/crawler                 the controls, the queue + results, the tally, the deny-list, the gauges
+//   PUT    /api/admin/crawler/state           D75 STEP 0b: { paused, mode, per_run_cap, schedule_* } — no redeploy
+//   POST   /api/admin/crawler/tasks           { type, urls: [...] } — queue tasks, up to the per-run cap (a denied or SSRF target is recorded refused)
+//   POST   /api/admin/crawler/tasks/captures  queue J1 for the captured companies we cannot crawl, up to the cap
+//   POST   /api/admin/crawler/tasks/:id/flag  { wrong, note } — a wrong answer is worse than none
 //   POST   /api/admin/crawler/deny            { domain, reason } — the same-day takedown
 //   DELETE /api/admin/crawler/deny/:domain
 import express, { Router } from "express";
 import { verify, bearerMatches } from "../crawler/lib/signature.js";
-import { leaseNext, acceptResult, isPaused, enqueueTask, crawlerSummary, TASK_TYPES } from "../services/crawlerQueue.js";
+import { leaseNext, acceptResult, pausedNow, enqueueBatch, crawlerSummary, setState, captureCandidates, flagTask, TASK_TYPES } from "../services/crawlerQueue.js";
 
 const token = (env) => env.CRAWLER_TOKEN || "";
 
@@ -24,7 +27,8 @@ export function createCrawlerWorkerRouter(db, { env = process.env } = {}) {
     if (!bearerMatches(req.headers.authorization, token(env))) return res.status(401).json({ error: "unauthorized" });
     next();
   };
-  router.get("/status", authed, (_req, res) => res.json({ paused: isPaused(env) }));
+  // Either switch — Admin → Crawler's Pause (the DB) or CRAWLER_PAUSED (the env) — and the worker idles.
+  router.get("/status", authed, (_req, res) => res.json({ paused: pausedNow(db, env).paused }));
   router.get("/next", authed, (_req, res) => {
     const r = leaseNext(db, { env });
     if (r.paused) return res.status(423).json({ paused: true });
@@ -49,18 +53,24 @@ export function createCrawlerAdminRouter(db, requireAdmin, { allowHosts, resolve
   const router = Router();
   router.use(requireAdmin);
   router.get("/", (_req, res) => res.json(crawlerSummary(db)));
+  router.put("/state", express.json({ limit: "4kb" }), (req, res) => {
+    try { res.json({ state: setState(db, req.body || {}, { by: req.user?.id ?? null }), pause: pausedNow(db) }); }
+    catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+  });
   router.post("/tasks", express.json({ limit: "64kb" }), async (req, res) => {
     const { type, urls } = req.body || {};
     if (!TASK_TYPES.includes(type)) return res.status(400).json({ error: `type must be one of ${TASK_TYPES.join(", ")}` });
     if (!Array.isArray(urls) || !urls.length || urls.length > 100) return res.status(400).json({ error: "urls: 1–100 URLs" });
-    const out = [];
-    for (const url of urls) {
-      try {
-        out.push({ url, ...(await enqueueTask(db, { type, input: type === "j1_find_board" ? { baseUrl: url } : { postingUrl: url },
-                                                    createdBy: req.user?.id ?? null, allowHosts, resolve })) });
-      } catch (e) { out.push({ url, status: "invalid", reason: e.message }); }
-    }
-    res.json({ tasks: out });
+    res.json(await enqueueBatch(db, { type, urls, source: "paste", createdBy: req.user?.id ?? null, allowHosts, resolve }));
+  });
+  router.post("/tasks/captures", async (req, res) => {
+    const picks = captureCandidates(db);
+    res.json(await enqueueBatch(db, { type: "j1_find_board", urls: picks.map(p => p.baseUrl), source: "captures",
+                                      createdBy: req.user?.id ?? null, allowHosts, resolve }));
+  });
+  router.post("/tasks/:id/flag", express.json({ limit: "4kb" }), (req, res) => {
+    const ok = flagTask(db, req.params.id, { wrong: req.body?.wrong !== false, note: req.body?.note ?? null });
+    res.status(ok ? 200 : 404).json({ ok });
   });
   router.post("/deny", express.json({ limit: "8kb" }), (req, res) => {
     const domain = String(req.body?.domain || "").toLowerCase().trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "");

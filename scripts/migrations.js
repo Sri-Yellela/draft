@@ -4026,4 +4026,31 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_deploy_events_service ON deploy_events(service_name, id);
       `,
     },
+    {
+      // D75 STEP 0b (owner, 10-09): ADMIN → CRAWLER — the controls live in DRAFT's database, not in environment
+      // variables, so changing them needs no redeploy. ONE row. It starts PAUSED and in DRY-RUN: nothing runs
+      // until the owner presses Resume, and nothing reaches a website until the owner chooses Live.
+      // CRAWLER_PAUSED (env) stays a second, independent kill switch. crawler_tasks records the mode a task
+      // was leased in, where it came from, and the owner's "wrong answer" flag.
+      id: "144_crawler_controls",
+      sql: `
+        CREATE TABLE IF NOT EXISTS crawler_state (
+          id                 INTEGER PRIMARY KEY CHECK (id = 1),
+          paused             INTEGER NOT NULL DEFAULT 1,
+          mode               TEXT NOT NULL DEFAULT 'dry',
+          per_run_cap        INTEGER NOT NULL DEFAULT 25,
+          schedule_enabled   INTEGER NOT NULL DEFAULT 0,
+          schedule_hhmm      TEXT NOT NULL DEFAULT '09:00',
+          schedule_tasks     INTEGER NOT NULL DEFAULT 10,
+          schedule_last_date TEXT,
+          updated_at         INTEGER,
+          updated_by         INTEGER
+        );
+        INSERT OR IGNORE INTO crawler_state (id) VALUES (1);
+        ALTER TABLE crawler_tasks ADD COLUMN mode TEXT;
+        ALTER TABLE crawler_tasks ADD COLUMN source TEXT;
+        ALTER TABLE crawler_tasks ADD COLUMN flagged_wrong INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE crawler_tasks ADD COLUMN flag_note TEXT;
+      `,
+    },
   ];

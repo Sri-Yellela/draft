@@ -35,7 +35,7 @@ export function createFetcher({
   async function guard(url) {
     const d = deniedBy(url, deny);
     if (d) throw new CrawlStop("denied", d);
-    const c = await checkUrl(url, { allowHosts, resolve });
+    const c = await checkUrl(url, { allowHosts, resolve, staticOnly: dryRun });
     if (!c.ok) throw new CrawlStop("refused", c.reason);
   }
   async function pace(host) {
@@ -83,10 +83,16 @@ export function createFetcher({
     for (let i = 0; i <= maxRedirects; i++) {
       await guard(current);
       const u = new URL(current);
+      // ⛔ D75 STEP 0b: a dry run makes NO network request — not robots.txt, not the page. It records what it would do.
+      if (dryRun) {
+        charge();
+        audit.push({ kind: i === 0 ? kind : "redirect", url: recordUrl(current), dryRun: true });
+        log(`[dry-run] would read robots.txt for ${u.origin}, then GET ${recordUrl(current)}`);
+        return { url: current, status: 0, html: "", hops };
+      }
       if (!(await robotsAllow(u))) throw new CrawlStop("robots", recordUrl(current));
       charge();
       audit.push({ kind: i === 0 ? kind : "redirect", url: recordUrl(current) });
-      if (dryRun) { log(`[dry-run] would GET ${recordUrl(current)}`); return { url: current, status: 0, html: "", hops }; }
       await pace(u.host);
       const r = await raw(current);
       spent.bytes += r.text.length;

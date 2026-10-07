@@ -43,7 +43,7 @@ const FORBIDDEN_NAMES = /^(localhost|metadata|metadata\.google\.internal)$|\.(lo
  * passes for its local fixtures — production constructs the guard with none.
  * @returns {Promise<{ ok: true } | { ok: false, reason: string }>}
  */
-export async function checkUrl(rawUrl, { allowHosts = new Set(), resolve = defaultResolve } = {}) {
+export async function checkUrl(rawUrl, { allowHosts = new Set(), resolve = defaultResolve, staticOnly = false } = {}) {
   let u;
   try { u = new URL(String(rawUrl)); } catch { return { ok: false, reason: "unreadable_url" }; }
   if (u.protocol !== "http:" && u.protocol !== "https:") return { ok: false, reason: "scheme" };
@@ -52,6 +52,9 @@ export async function checkUrl(rawUrl, { allowHosts = new Set(), resolve = defau
   const host = u.hostname.replace(/^\[|\]$/g, "");
   if (FORBIDDEN_NAMES.test(host)) return { ok: false, reason: "private_host" };
   if (net.isIP(host)) return isForbiddenAddress(host) ? { ok: false, reason: "private_address" } : { ok: true };
+  // D75 STEP 0b: a DRY RUN makes no network request at all — not even a DNS lookup. The literal checks above
+  // still run; what the name resolves to is checked when the task runs live.
+  if (staticOnly) return { ok: true };
   let addrs;
   try { addrs = await resolve(host); } catch { return { ok: false, reason: "dns_failed" }; }
   if (!addrs.length) return { ok: false, reason: "dns_failed" };
