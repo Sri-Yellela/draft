@@ -142,6 +142,12 @@ const AUTHENTICATED = new Set([
   // D55 (f): the caller's OWN saved answers (user_profile.custom_answers / custom_answer_overrides), always
   // req.user.id. Remember one, manage, export / import, and test a question against them.
   "POST /api/saved-answers/remember",
+  "GET /api/saved-answers",
+  "PUT /api/saved-answers",
+  "DELETE /api/saved-answers",
+  "GET /api/saved-answers/export",
+  "POST /api/saved-answers/import",
+  "POST /api/saved-answers/test",
   "PATCH /api/profile/skills",
   "GET /api/autofill",
   "GET /api/extension/autofill",
