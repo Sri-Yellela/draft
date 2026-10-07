@@ -3880,4 +3880,25 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_form_reports_host ON form_reports(host, received_at);
       `,
     },
+    {
+      // D59 (10-07): POSTINGS THAT ARRIVE AS RAW HTML AND LABEL BLOCKS. The normalised text goes in a NEW
+      // column — `description` and `content_hash` are never rewritten, because A76's grades and the
+      // enrichment imports are keyed on content_hash = sha1(title|description). description_text is NULL
+      // when it would equal description (readers COALESCE); description_fields holds the label block's
+      // fields; req_* the posting's stated citizenship / clearance (NULL = not read yet, never "none").
+      // description_basis is a hash of the description they were read from: a reader serves them only
+      // while it still matches, so a re-crawled posting's old text is never shown, and the next pass
+      // re-reads it. services/jobs/descriptionText.js fills them (boot pass + backfill script).
+      id: "137_description_text",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN description_text TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN description_fields TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN description_basis TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN req_citizenship TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN req_clearance TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN req_clearance_status TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN req_polygraph INTEGER;
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_description_basis ON scraped_jobs(description_basis);
+      `,
+    },
   ];
