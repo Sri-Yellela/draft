@@ -25,9 +25,9 @@ export function AboutPage() {
                   fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <ScrollDock variant="marketing" />
       <main style={{ flex: 1, maxWidth: 720, margin: "0 auto", padding: "64px 24px" }}>
-        <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 900, letterSpacing: "-1.5px",
+        <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 400,
                       color: "var(--color-text)", marginBottom: 16, lineHeight: 1.1,
-                      fontFamily: "'Barlow Condensed', 'DM Sans', system-ui" }}>
+                      fontFamily: "var(--font-display)" }}>
           Built for job seekers who are serious about landing
         </h1>
         <div style={{ display: "flex", flexDirection: "column", gap: 40, marginTop: 48 }}>

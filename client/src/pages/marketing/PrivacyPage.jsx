@@ -59,11 +59,10 @@ function Section({ title, children }) {
   return (
     <section style={{ marginBottom: 40 }}>
       <h2 style={{
-        fontSize: 18, fontWeight: 800, color: "var(--color-text)",
+        fontSize: 18, fontWeight: 400, color: "var(--color-text)",
         marginBottom: 12, paddingBottom: 8,
         borderBottom: "1px solid var(--color-border)",
-        fontFamily: "'Barlow Condensed', 'DM Sans', system-ui",
-        letterSpacing: "-0.2px",
+        fontFamily: "var(--font-display)",
       }}>
         {title}
       </h2>
@@ -135,9 +134,8 @@ export function PrivacyPage() {
         {/* Header */}
         <header style={{ marginBottom: 48, paddingBottom: 24, borderBottom: "1px solid var(--color-border)" }}>
           <h1 style={{
-            fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 900,
-            letterSpacing: "-1px", color: "var(--color-text)", marginBottom: 8,
-            lineHeight: 1.1, fontFamily: "'Barlow Condensed', 'DM Sans', system-ui",
+            fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 400, color: "var(--color-text)", marginBottom: 8,
+            lineHeight: 1.1, fontFamily: "var(--font-display)",
           }}>
             Privacy Policy
           </h1>
@@ -692,8 +690,8 @@ export function PrivacyPage() {
           marginBottom: 40,
         }}>
           <h2 style={{
-            fontSize: 18, fontWeight: 800, color: "var(--color-text)",
-            marginBottom: 12, fontFamily: "'Barlow Condensed', 'DM Sans', system-ui",
+            fontSize: 18, fontWeight: 400, color: "var(--color-text)",
+            marginBottom: 12, fontFamily: "var(--font-display)",
           }}>
             Contact Us
           </h2>

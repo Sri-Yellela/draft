@@ -52,8 +52,8 @@ function Section({ title, subtitle, status, children, theme }) {
       borderRadius:8, padding:18, display:"flex", flexDirection:"column", gap:12 }}>
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12 }}>
         <div>
-          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
-            fontSize:18, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--color-text)" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 400,
+            fontSize:18, color:"var(--color-text)" }}>
             {title}
           </div>
           <div style={{ fontSize:12, color:"var(--color-text-muted)", lineHeight:1.5, marginTop:2 }}>{subtitle}</div>
@@ -148,8 +148,8 @@ export function IntegrationsPanel() {
     <div style={{ flex:1, overflowY:"auto", background:"var(--color-bg)", padding:"28px 24px 44px" }}>
       <div style={{ maxWidth:980, margin:"0 auto", display:"flex", flexDirection:"column", gap:16 }}>
         <div>
-          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:28,
-            fontWeight:800, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--color-text)" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize:28,
+            fontWeight: 400, color:"var(--color-text)" }}>
             Integrations
           </div>
           <div style={{ color:"var(--color-text-muted)", fontSize:13, lineHeight:1.6 }}>

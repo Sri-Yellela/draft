@@ -40,7 +40,6 @@ import {
   EXPERIENCE_LEVELS, WORK_MODELS, EMPLOYMENT_TYPES, SOURCES, AUTOMATION_TIERS,
   POSTING_AGE, VISITED, ageDaysMap,
 } from "../../../shared/jobFilterOptions.js";
-import CompanyLogo from "../components/CompanyLogo.jsx";
 // AH2: the job-detail address, shared with JobCard so the href and the param cannot disagree.
 import { JOB_URL_PARAM, jobIdFromSearch } from "../lib/jobUrl.js";
 // D35: the Full House header (App.jsx) renders the sentence, its one panel and the sort panel; this
@@ -284,23 +283,6 @@ function WorkBadge({ t, theme }) {
   );
 }
 
-// ── ATS badge ─────────────────────────────────────────────────
-// The second of the two copies of this badge. Both now read their cutpoints and copy from
-// shared/atsBands.js — the duplication is the reason that matters, because the previous pair each
-// hardcoded >=80/>=60 thresholds and would have had to be fixed twice.
-function ATSBadge({ score, onClick }) {
-  const band = atsBandFor(score ?? null);
-  const meta = atsBandLabel(band);
-  return (
-    <span
-      title={meta.blurb}
-      onClick={onClick ? e => { e.stopPropagation(); onClick(); } : undefined}
-      style={{ ...bandMarkStyle(band), cursor: onClick ? "pointer" : "default" }}>
-      {meta.short}
-    </span>
-  );
-}
-
 // ── Resume badge ──────────────────────────────────────────────
 function ResumeBadge({ onClick, loading }) {
   return (
@@ -346,29 +328,6 @@ function LucyBtn({ children, onClick, disabled, accent: accentProp,
   );
 }
 
-// ── Icon button ───────────────────────────────────────────────
-function IconBtn({ bg, onClick, title, children, disabled = false, size = 28 }) {
-  const [hov, setHov] = useState(false);
-  const { theme } = useTheme();
-  return (
-    <button className="dbx-depth" title={title} disabled={disabled} onClick={onClick}
-      onMouseEnter={() => !disabled && setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        width:size, height:size,
-        background: disabled ? theme.surfaceHigh : hov ? bg : theme.surfaceHigh,
-        border:`1px solid ${disabled ? theme.border : hov ? bg+"44" : theme.border}`,
-        display:"flex", alignItems:"center", justifyContent:"center",
-        cursor: disabled ? "not-allowed" : "pointer",
-        fontSize:12, color: hov && !disabled ? "var(--c-surface-solid)" : theme.textMuted,
-        opacity: disabled ? 0.4 : 1,
-        transition:"all 0.15s ease", flexShrink:0,
-        transform: hov && !disabled ? "scale(1.1)" : "scale(1)",
-      }}>
-      {children}
-    </button>
-  );
-}
 
 // Every one of the five option lists this file used to declare is now a reference to the shared
 // contract. They were all correct — that is exactly why they are dangerous as copies: nothing
@@ -1306,6 +1265,9 @@ function buildAtsPayload(job, artifact = null) {
     pair,
     company: activeArtifact?.company || job?.company,
     title: activeArtifact?.title || job?.title || job?.role,
+    // D62: the header draws the company's CompanyLogo and its ONE link (D38).
+    companyIconUrl: job?.companyIconUrl || null,
+    applyUrl: job?.applyUrl || job?.url || null,
   };
 }
 
@@ -4103,14 +4065,10 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               rightTab={rightTab} setRightTab={setRightTab} genCount={genCount}
               jobId={selectedJob?.jobId} resumeText={resumeText} activeProfileId={activeProfileId}
               onReport={adoptPanelVerdict}
-              historyContent={
-                <HistoryList generated={generated} theme={theme}
-                  onOpen={e => {
-                    openSandbox(e);
-                    openAtsPanel({ score:e.atsScore, report:e.atsReport, company:e.company, title:e.title||e.role });
-                  }}
-                  onExport={exportAndTrack}/>
-              }/>
+              /* ⭐ D62: History is this job's résumé VERSIONS (the panel fetches them); a version opens in
+                 the PDF panel beside the ATS card, and downloads as a PDF. */
+              onOpenVersion={v => openSandbox({ ...v, jobId: v.job_id, title: v.role, atsScore: v.ats_score, atsReport: v.atsReport })}
+              onExportVersion={v => exportAndTrack(null, v.html, v.company)}/>
           )}
         </AnimatePresence>
       </PanelDock>
@@ -4684,46 +4642,6 @@ function SearchIntentDialog({ theme, prompt, onConfirm, onCancel }) {
 // startLinkedInImport's always-true "extension not installed" branch, and its Import Now
 // button called back into that same function — an install prompt for a capability v1.2.0
 // deleted from the extension, which no install could ever satisfy.
-
-// ── History list ──────────────────────────────────────────────
-function HistoryList({ generated, onOpen, onExport, theme: themeProp }) {
-  const { theme: t } = useTheme();
-  const theme = themeProp || t;
-  const entries = Object.entries(generated).filter(([,v]) => v?.html && v.html !== "__exists__");
-  if (!entries.length) return (
-    <div style={{ padding:24, color:theme.textDim, fontSize:12, textAlign:"center" }}>
-      No resumes generated yet.
-    </div>
-  );
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
-      {entries.map(([jid,v]) => {
-        return (
-          <div key={jid} style={{ padding:"12px 16px", borderBottom:`1px solid ${theme.border}`,
-                                   display:"flex", alignItems:"center", gap:10 }}>
-            {/* ⛔ D61: the ONE CompanyLogo — this list drew its own letter tile where the card showed the logo. */}
-            <CompanyLogo company={v.company} iconUrl={v.companyIconUrl} size={32} radius={8} />
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontWeight:700, fontSize:12, color:theme.text,
-                             overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                {v.company}
-              </div>
-              <div style={{ fontSize:10, color:theme.textDim, overflow:"hidden",
-                             textOverflow:"ellipsis", whiteSpace:"nowrap", marginBottom:3 }}>
-                {v.title||v.role}
-              </div>
-              <ATSBadge score={v.atsScore}/>
-            </div>
-            <div style={{ display:"flex", gap:5, flexShrink:0 }}>
-              <IconBtn bg={C.INFO} size={26} title="Open in sandbox" onClick={() => onOpen(v)}>👁</IconBtn>
-              <IconBtn bg={C.SUCCESS} size={26} title="Export PDF" onClick={() => onExport(null,v.html,v.company)}>📥</IconBtn>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 // ── Company Reuse Modal ────────────────────────────────────────
 function CompanyReuseModal({ company, onUseExisting, onGenerateNew, onCancel, theme }) {

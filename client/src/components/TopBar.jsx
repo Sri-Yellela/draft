@@ -265,14 +265,13 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
               onClick={() => { setOpen(false); onTabChange?.("profile"); }}
               style={{
                 background: "transparent", border: "none", padding: 0, cursor: "pointer",
-                fontFamily: "'Barlow Condensed','DM Sans',sans-serif",
-                fontWeight: 800, fontSize: 14, letterSpacing: "0.06em",
-                textTransform: "uppercase", color: theme.text,
+                fontFamily: "var(--font-display)",
+                fontWeight: 400, fontSize: 18, color: theme.text,
                 display: "block", width: "100%", textAlign: "left",
               }}
               onMouseEnter={e => e.currentTarget.style.color = theme.accent}
               onMouseLeave={e => e.currentTarget.style.color = theme.text}>
-              PROFILE
+              Profile
             </button>
             <div style={{ fontSize: 10, color: theme.textDim, marginTop: 2 }}>
               {user?.username} - {user?.isAdmin ? "Administrator" : "Member"}

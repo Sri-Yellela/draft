@@ -116,7 +116,7 @@ test("every self-hosted family is one the UI actually asks for, under the name i
   assert.deepEqual(
     imports.map(i => `${i.pkg}/${i.weight}`).sort(),
     [
-      "barlow-condensed/700", "barlow-condensed/800",
+      // barlow-condensed/700 and /800 removed 10-07 (D62): the old condensed face is gone from every surface.
       "dm-sans/400", "dm-sans/500", "dm-sans/700", "dm-sans/800",
       "instrument-serif/400", "instrument-serif/400-italic",
       // D1 (10-03): the job card's company name is "the logo face" — heavy italic geometric sans.

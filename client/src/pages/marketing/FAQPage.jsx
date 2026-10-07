@@ -46,9 +46,9 @@ export function FAQPage() {
                   fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <ScrollDock variant="marketing" />
       <main style={{ flex: 1, maxWidth: 720, margin: "0 auto", padding: "64px 24px" }}>
-        <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 900, letterSpacing: "-1.5px",
+        <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 400,
                       color: "var(--color-text)", marginBottom: 48, lineHeight: 1.1,
-                      fontFamily: "'Barlow Condensed', 'DM Sans', system-ui" }}>
+                      fontFamily: "var(--font-display)" }}>
           Frequently asked questions
         </h1>
         {FAQS.map((f, i) => <FAQItem key={i} q={f.q} a={f.a}/>) }

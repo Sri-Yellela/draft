@@ -42,7 +42,7 @@ export const baseTheme = {
   shadowXl:     C.SHADOW_XL,
   gradAccent:   C.ACCENT,
   gradSubtle:   "linear-gradient(135deg, var(--bg-page) 0%, var(--bg-panel) 100%)",
-  fontDisplay:  "'Barlow Condensed', 'DM Sans', system-ui, sans-serif",
+  fontDisplay:  "var(--font-display)",   // D62: the display serif — the old condensed face is retired
   fontBody:     "'DM Sans', system-ui, sans-serif",
   fontMono:     "'JetBrains Mono', monospace",
   // The admin surface had its own citrus accent. One product, one accent: it is the orange too.
@@ -102,11 +102,9 @@ export function styles(t) {
         @keyframes scrollUp { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
         @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
         .site-title {
-          font-family: 'Barlow Condensed', 'DM Sans', system-ui, sans-serif;
-          font-weight: 800;
+          font-family: var(--font-display);
+          font-weight: 400;
           font-size: 28px;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
           color: ${t.text};
           font-style: italic;
         }

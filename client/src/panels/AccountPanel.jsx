@@ -3,6 +3,7 @@ import { api, authContextQuery, authHeaders, downloadBlob, printResume } from ".
 import { announceAccountChanged, useAccountAvatar } from "../lib/accountAvatar.js";
 import { glass } from "../styles/glass.js";
 import { C } from "../styles/colorTokens.js";
+import ResumeList, { RESUME_ICONS } from "../components/ResumeList.jsx";
 
 // ── Account (/app/account) ──────────────────────────────────────────────────────────────────────
 // Profile and picture, sign-in and security (password, sign-in methods, where you're signed in),
@@ -38,8 +39,7 @@ function Section({ title, subtitle, children, tone }) {
     <section style={{ ...glass({ radius: 14 }), padding: 18, display: "flex", flexDirection: "column", gap: 12,
       ...(tone === "danger" ? { border: `1px solid ${C.DANGER}55` } : {}) }}>
       <div>
-        <h2 style={{ margin: 0, fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800, fontSize: 18,
-          letterSpacing: "0.06em", textTransform: "uppercase", color: tone === "danger" ? C.DANGER : "var(--color-text)" }}>{title}</h2>
+        <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontWeight: 400, fontSize: 18, color: tone === "danger" ? C.DANGER : "var(--color-text)" }}>{title}</h2>
         {subtitle && <div style={{ ...muted, marginTop: 2 }}>{subtitle}</div>}
       </div>
       {children}
@@ -112,8 +112,7 @@ export function AccountPanel({ onSignedOut }) {
       <style>{".rm-account button:disabled{opacity:.45;cursor:not-allowed}"}</style>
       <div style={{ maxWidth: 820, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
-          <h1 style={{ margin: 0, fontFamily: "'Barlow Condensed',sans-serif", fontSize: 28, fontWeight: 800,
-            letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text)" }}>Account</h1>
+          <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 400, color: "var(--color-text)" }}>Account</h1>
           <div style={muted}>Your profile, how you sign in, and your data.</div>
         </div>
         {notice && <Notice kind={notice.kind} onClose={() => setNotice(null)}>{notice.text}</Notice>}
@@ -230,30 +229,31 @@ function GeneratedResumes({ busy, run }) {
       {data && <div style={muted}>A résumé for a job you have not drafted or applied to is kept {data.retentionDays ?? 90} days from when it was generated; once the job is drafted or applied, it is kept for good.</div>}
       {data?.error && <div style={muted}>The list could not be loaded just now.</div>}
       {data && !list.length && !data.error && <div style={muted}>No generated résumés yet — generate one from a job's posting panel.</div>}
-      {list.map(r => (
-        <div key={r.jobId} data-generated-resume={r.jobId} style={{ ...row, justifyContent: "space-between", borderTop: `1px solid ${C.BORDER}`, paddingTop: 8 }}>
-          <div style={{ minWidth: 0, flex: "1 1 220px" }}>
-            <div style={{ fontSize: 13, color: "var(--color-text)" }}>{r.company || "Unknown company"}{r.role ? ` — ${r.role}` : ""}</div>
-            <div style={muted}>{[r.generatedAt ? `Generated ${new Date(r.generatedAt).toLocaleDateString()}` : null,
-              generatedResumeStatus(r)].filter(Boolean).join(" · ")}</div>
-          </div>
-          <div style={row}>
-            <button style={btnQuiet} disabled={!!busy} onClick={() => run(`dl-${r.jobId}`, async () => {
-              const d = await api(`/api/resumes/${encodeURIComponent(r.jobId)}`);
-              printResume(d.html, `Resume_${(r.company || "").replace(/\s+/g, "_")}`);
-              return { account: null };
-            })}>Download</button>
-            <button style={btnQuiet} disabled={!!busy} onClick={async () => {
-              if (!window.confirm(`Delete the résumé generated for ${r.company || "this job"}? This can't be undone.`)) return;
-              const out = await run(`rm-${r.jobId}`, async () => {
-                await api(`/api/generated-resumes/${encodeURIComponent(r.jobId)}`, { method: "DELETE" });
+      {/* ⭐ D62: the ONE résumé list (ResumeList) — the ATS panel's History is its other home. */}
+      {list.length > 0 && (
+        <ResumeList showLogo scoreCaption="tailored" rows={list.map(r => ({
+          key: r.jobId, company: r.company, title: `${r.company || "Unknown company"}${r.role ? ` — ${r.role}` : ""}`,
+          meta: [r.generatedAt ? `Generated ${new Date(r.generatedAt).toLocaleDateString()}` : null, generatedResumeStatus(r)].filter(Boolean).join(" · "),
+          score: Number.isFinite(r.atsScore) ? r.atsScore : null,
+          actions: [
+            { id: "download", label: `Download the résumé for ${r.company || "this job"}`, icon: RESUME_ICONS.download, disabled: !!busy,
+              onClick: () => run(`dl-${r.jobId}`, async () => {
+                const d = await api(`/api/resumes/${encodeURIComponent(r.jobId)}`);
+                printResume(d.html, `Resume_${(r.company || "").replace(/\s+/g, "_")}`);
                 return { account: null };
-              }, "Résumé deleted.");
-              if (out) load();
-            }}>Delete</button>
-          </div>
-        </div>
-      ))}
+              }) },
+            { id: "delete", label: `Delete the résumé for ${r.company || "this job"}`, icon: RESUME_ICONS.remove, disabled: !!busy,
+              onClick: async () => {
+                if (!window.confirm(`Delete the résumé generated for ${r.company || "this job"}? This can't be undone.`)) return;
+                const out = await run(`rm-${r.jobId}`, async () => {
+                  await api(`/api/generated-resumes/${encodeURIComponent(r.jobId)}`, { method: "DELETE" });
+                  return { account: null };
+                }, "Résumé deleted.");
+                if (out) load();
+              } },
+          ],
+        }))} />
+      )}
     </div>
   );
 }

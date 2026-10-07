@@ -75,9 +75,8 @@ export function ApplyToolPage() {
       <ScrollDock variant="tools" />
 
       <main style={{ flex: 1, maxWidth: 720, margin: "0 auto", padding: "48px 24px", width: "100%" }}>
-        <h1 style={{ fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 900,
-                     fontFamily: "'Barlow Condensed', sans-serif",
-                     letterSpacing: "-1px", marginBottom: 10, color: theme.text }}>
+        <h1 style={{ fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 400,
+                     fontFamily: "var(--font-display)", marginBottom: 10, color: theme.text }}>
           Apply to multiple jobs in one click
         </h1>
         <p style={{ fontSize: 15, color: theme.textMuted, marginBottom: 36, lineHeight: 1.6 }}>

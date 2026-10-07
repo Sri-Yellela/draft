@@ -30,9 +30,9 @@ export function HowItWorksPage() {
                   fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <ScrollDock variant="marketing" />
       <main style={{ flex: 1, maxWidth: 800, margin: "0 auto", padding: "64px 24px" }}>
-        <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 900, letterSpacing: "-1.5px",
+        <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 400,
                       color: "var(--color-text)", marginBottom: 16, lineHeight: 1.1,
-                      fontFamily: "'Barlow Condensed', 'DM Sans', system-ui" }}>
+                      fontFamily: "var(--font-display)" }}>
           From job listing to submitted application in minutes
         </h1>
         <p style={{ fontSize: 16, color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 56, maxWidth: 560 }}>

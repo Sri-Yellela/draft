@@ -71,8 +71,10 @@ test("D58 · a tailored score BELOW the base is shown — and said", () => {
   assert.equal(p.lower, true);
   assert.equal(p.line, "Base 58 → tailored 52 — lower than your base résumé");
   const card = read("client/src/panels/AtsReportPanel.jsx");
-  assert.match(card, /\{activeAts\?\.pair\?\.line && \(\n\s+<div data-ats-pair="" data-lower=\{activeAts\.pair\.lower \? "true" : undefined\}/);
-  assert.match(card, /\{activeAts\.pair\.line\}/);
+  // D62: the pair is a two-number serif MARK in the ATS panel's header, and "lower" is still SAID.
+  assert.match(card, /<span data-ats-pair="" data-lower=\{pair\.lower \? "true" : undefined\}/);
+  assert.match(card, /\{pair\.base\} → \{pair\.tailored\}\{pair\.lower \? " · lower than your base" : ""\}/);
+  assert.match(card, /title=\{pair\.line \|\| undefined\}/, "the full sentence stays as the mark's title");
 });
 
 test("D58 · the manual route records the TAILORED score at apply — the newest, even after an export", () => {
