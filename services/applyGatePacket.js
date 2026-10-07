@@ -30,8 +30,9 @@
 
 import crypto from "node:crypto";
 import {
-  buildAnswers, CONFIDENCE_BY_PROVENANCE, ELIGIBILITY_HANDLERS, PROFILE_KEY_TO_HANDLER,
+  buildAnswers, CONFIDENCE_BY_PROVENANCE, ELIGIBILITY_HANDLERS, PROFILE_KEY_TO_HANDLER, eligibilityClassOf,
 } from "./applyAutomation.js";
+import { isOptInQuestion, workedHereAnswer, COMPANY_TOKEN } from "../shared/savedAnswers.js";
 
 // ── Canonical questions ──────────────────────────────────────────────────────────────────────
 // Shaped exactly like discoverFields() output, because buildAnswers() consumes that shape and this
@@ -214,7 +215,37 @@ export function buildGatePacket({
     // D55 (b). Only when there is something in it, so a packet from a profile with no history looks
     // exactly as it did before rather than carrying five empty lists.
     ...(hasEntries(entries) ? { entries } : {}),
+    // D55 (f). The candidate's saved answers for THIS employer ({company} already expanded, motivation
+    // templates withheld) and the work-history fact — so the fill can answer a question on the page
+    // that the server never saw, by the same exact-words rule buildAnswers uses. Only when present.
+    ...packetSavedAnswers(autofillPayload),
   };
+}
+
+/**
+ * D55 (f): what the packet carries for questions the server never saw.
+ *   savedAnswers  [{ question, answer, eligibility, optIn }] — matched on the page ONLY by
+ *                 normaliseQuestion equality (shared/savedAnswers.js). ⛔ Never by containment for
+ *                 an eligibility, EEO or opt-in question, and an opt-in only ever with a No.
+ *   workedHere    { company, answer: 'Yes'|'No'|null, reason } — "have you worked here before?" as
+ *                 the stated work history answers it (workedHereAnswer); null answer = leave it.
+ */
+export function packetSavedAnswers(autofillPayload = {}) {
+  const out = {};
+  const saved = Object.entries(autofillPayload?.custom_answers || {})
+    .filter(([q, a]) => String(q).trim() && a !== null && a !== undefined && String(a).trim() !== "")
+    .map(([question, answer]) => ({
+      question, answer: String(answer),
+      eligibility: !!eligibilityClassOf(question),
+      optIn: isOptInQuestion(question),
+    }));
+  if (saved.length) out.savedAnswers = saved;
+  const wh = autofillPayload?.worked_here;
+  if (wh?.company) {
+    const d = workedHereAnswer(`Have you worked for ${COMPANY_TOKEN} before?`, wh.company, wh.history || []);
+    out.workedHere = { company: wh.company, answer: d.answer, reason: d.reason };
+  }
+  return out;
 }
 
 // ── D55 (b): REPEATING SECTIONS — entries, not answers ───────────────────────────────────────

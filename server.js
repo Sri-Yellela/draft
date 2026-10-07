@@ -92,6 +92,7 @@ import { AccountError, forgetSessions, recordSession, sidsToRevoke } from "./ser
 import { adminDeletePreview, adminDeleteUser, checkAdminDeleteConfirmed, removeDataFiles } from "./services/adminUserDelete.js";
 import { createAccountManagementRouter } from "./routes/accountManagement.js";
 import { createSavedAnswersRouter } from "./routes/savedAnswers.js";
+import { workHistoryCompanies } from "./shared/savedAnswers.js";
 import { allowedModesForTier, canUseAPlusResume, canUseGenerate, canUseMode, hasPlanAtLeast, nextPlan, normalisePlanTier, planForMode } from "./services/entitlements.js";
 import { monetisationEnabledFromEnv } from "./shared/monetisation.js";
 import { fullAutoState, setSetting, clearSetting, FULL_AUTO_KEY } from "./services/appSettings.js";
@@ -5102,6 +5103,10 @@ function buildAutofillPayload(profile, mode, company = null) {
     // borrowed enthusiasm. buildAnswers still receives nothing but literal question text, so its
     // exact-match tier is unchanged.
     custom_answers: effectiveCustomAnswers(readAnswerStore(profile), company),
+    // D55 (f): what "have you worked here before?" is answered from — the employers the candidate has
+    // stated. Here only current_company; routes/apply.js adds the base résumé's EXPERIENCE companies
+    // (the packet's entries.work) for every run and packet. See shared/savedAnswers.js.
+    worked_here: { company: company || null, history: workHistoryCompanies({ profile }) },
     dropdown_map:{
       gender:   profile?.gender          ? [profile.gender]          : [],
       work_auth:profile?.work_auth       ? [profile.work_auth]        : [],
