@@ -51,6 +51,9 @@
 a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
 .jb__title { font-size: 12.5px; color: var(--c-ink-muted); margin-top: 2px; }
 .jb__meta  { font-size: 11px; color: var(--c-ink-faint); margin-top: 2px; }
+/* ⭐ D57 · résumé ready — a small success-toned tag under the meta line, never a button. */
+.jb__ready { align-self: flex-start; margin-top: 3px; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 700;
+  letter-spacing: .02em; color: var(--c-success); background: var(--c-success-quiet); white-space: nowrap; flex-shrink: 0; }
 
 /* THE RAIL — zero width until hover / focus-within. */
 .jb__rail {

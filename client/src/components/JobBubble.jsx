@@ -59,7 +59,7 @@ function StarMark({ filled }) {
   );
 }
 
-export default function JobBubble({ job, score = null, selected = false, saved = false, drafted = false, drafting = false,
+export default function JobBubble({ job, score = null, selected = false, saved = false, drafted = false, drafting = false, resumeReady = false,
                                     onOpen, onAts, onSave, onDraft, onViewDraft = null, draftBlocked = null,
                                     onExplainDraft = null, draftSlots = null }) {
   const [companyView, setCompanyView] = useState(false);
@@ -96,6 +96,8 @@ export default function JobBubble({ job, score = null, selected = false, saved =
         {meta.length > 0 && <div className="jb__meta">{meta.join("  ·  ")}</div>}
         {/* D40: on the + view, the one line that differs from ALL — when and from where it was captured. */}
         {job.captured && <div className="jb__meta" data-captured="">{capturedLine(job.captured)}</div>}
+        {/* ⭐ D57: a résumé generated for this job is stored — said on the card, so it is never "found nowhere". */}
+        {resumeReady && <div className="jb__ready" data-resume-ready="" title="A résumé is ready for this job — open the posting to view, download or regenerate it">résumé ready</div>}
       </div>
 
       <div className="jb__rail">

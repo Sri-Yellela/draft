@@ -239,7 +239,9 @@ test("TARGET MATCH IS UNCHANGED — the packet carries a home address, and origi
   const handoff = read("extension/gated-handoff.js");
   // Order is the security design: origin read -> packet located by origin -> form confirmed present
   // -> only then a token minted and spent. Widening WHICH packets exist must not touch it.
-  assert.match(handoff, /const forOrigin = \(list\.packets \|\| \[\]\)\.filter\(p => p\.expectedOrigin === origin\)/);
+  // D56: "by origin" is now the packet's ORIGIN LIST (expected origin + its ATS family, from the adapter
+  // table) — still checked here, before any token, and still on the release.
+  assert.match(handoff, /const forOrigin = \(list\.packets \|\| \[\]\)\.filter\(p => packetFillsOrigin\(p, origin\)\)/);
   assert.match(handoff, /if \(forOrigin\.length === 0\)/);
   // Once MANY packets share one origin, choosing the newest without checking freshness would fail a
   // whole handoff on an expired packet while a usable one sat behind it.
@@ -248,9 +250,10 @@ test("TARGET MATCH IS UNCHANGED — the packet carries a home address, and origi
   assert.match(handoff, /\(a\.postingGone \? 1 : 0\) - \(b\.postingGone \? 1 : 0\)/);
   assert.match(handoff, /if \(!shape\?\.hasForm \|\| shape\.fields\.length === 0\)/);
   assert.match(handoff, /if \(shape\.origin !== origin\)/);
-  assert.match(handoff, /if \(released\.expectedOrigin !== origin\)/);
+  assert.match(handoff, /if \(!packetFillsOrigin\(released, origin\)\)/);
   // And the refusals happen BEFORE the mint, so a mismatch never spends a token.
-  const mintAt = handoff.indexOf("/token`, { method: 'POST' }");
+  const mintAt = handoff.indexOf("/token`, {");
+  assert.ok(mintAt > 0, "the mint call moved");
   assert.ok(handoff.indexOf("reason: 'origin_mismatch'") < mintAt,
     "the origin refusal moved after the mint — a mismatch now costs a token");
   assert.ok(handoff.indexOf("reason: 'no_form'") < mintAt,

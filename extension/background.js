@@ -1,6 +1,7 @@
 import {
   runGatedHandoff, clearPacketForTab, sweepExpiredPackets, applyOverlayEdit,
   loadBatchForTab, clearBatchForTab, portalQueueFor,
+  prepareAndFill, recordSubmitted, copySheetFor, pageMatchFor, packetFillsOrigin,
 } from './gated-handoff.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
 import { authedFetch, getIdentity, cachedIdentity, disconnect } from './auth.js';
@@ -134,7 +135,9 @@ async function popupContext(tab) {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }),
     })
       .then(r => (r && r.ok ? r.json() : null)).catch(() => null),
-    origin ? portalQueueFor(RESUME_MASTER_URL, origin) : Promise.resolve(null),
+    // D56: which packets may fill THIS page (origin list + job id), or which case it is — and the
+    // on-demand company notice (§8 row 10). Asked only on the press, like the rest of this.
+    origin ? pageMatchFor(RESUME_MASTER_URL, tab) : Promise.resolve(null),
   ]);
   return {
     url, origin,
@@ -144,7 +147,11 @@ async function popupContext(tab) {
     packets: (queue?.packets || []).map(p => ({
       packetId: p.packetId, title: p.title, company: p.company, createdAt: p.createdAt, stale: !!p.stale,
       answerCount: p.answerCount ?? 0, unresolvedCount: p.unresolvedCount ?? 0, resumeAvailable: !!p.resumeAvailable,
+      gateReason: p.gateReason || null,
     })),
+    handoff: queue ? { state: queue.state || null, message: queue.message || null, canPrepare: !!queue.canPrepare,
+                       job: queue.job || null, resume: queue.resume || null } : null,
+    notice: queue?.notice || null,
   };
 }
 
@@ -196,8 +203,49 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'FILL_ACTIVE_TAB') {
     handleGatedHandoff()
       // D36: whether the review panel opened travels with the answer, so the popup can stay open when it did not.
-      .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null, overlay: r?.overlay ? { rendered: r.overlay.rendered === true } : null }))
+      .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null, overlay: r?.overlay ? { rendered: r.overlay.rendered === true } : null,
+        reason: r?.reason || null, canPrepare: !!r?.canPrepare }))
       .catch(() => sendResponse({ ok: false, message: 'Could not fill this page.' }));
+    return true;
+  }
+
+  // ⭐ D56 · "Prepare this application" — one click builds the packet on demand, then the same handoff
+  // fills it. The popup's click is the gesture that grants activeTab.
+  if (message.type === 'PREPARE_ACTIVE_TAB') {
+    chrome.tabs.query({ active: true, currentWindow: true })
+      .then(async ([tab]) => { const r = await prepareAndFill({ serverUrl: RESUME_MASTER_URL, tab }); await reportHandoff(tab, r); return r; })
+      .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null, reason: r?.reason || null,
+        overlay: r?.overlay ? { rendered: r.overlay.rendered === true } : null }))
+      .catch(() => sendResponse({ ok: false, message: 'Could not prepare this application.' }));
+    return true;
+  }
+
+  // ⭐ D56 · "I submitted" from the popup — recorded against the page in view, which is the evidence.
+  if (message.type === 'SUBMITTED_ACTIVE_TAB') {
+    chrome.tabs.query({ active: true, currentWindow: true })
+      .then(([tab]) => recordSubmitted({ serverUrl: RESUME_MASTER_URL, tab }))
+      .then(sendResponse)
+      .catch(() => sendResponse({ ok: false, message: 'Could not record it.' }));
+    return true;
+  }
+
+  // ⭐ §8 row 17 · the Copy sheet — the prepared answers, for the popup to list. Nothing enters the page.
+  if (message.type === 'COPY_SHEET') {
+    chrome.tabs.query({ active: true, currentWindow: true })
+      .then(([tab]) => copySheetFor({ serverUrl: RESUME_MASTER_URL, tab }))
+      .then(sendResponse)
+      .catch(() => sendResponse({ ok: false, rows: [] }));
+    return true;
+  }
+
+  // ⭐ §8 row 15, decision D · THE TODAY RING — today's Drafts and new résumés against the user's CAP
+  // (the day's Draft slots, services/draftSlots.js), never a goal. It asks about the ACCOUNT, not the
+  // page: no tab, no URL, nothing read — so it is allowed on popup open (D23's rule is about the page).
+  if (message.type === 'TODAY_RING') {
+    authedFetch(RESUME_MASTER_URL, '/api/draft/slots')
+      .then(r => (r && r.ok ? r.json() : null))
+      .then(s => sendResponse(s ? { limit: s.limit, used: s.used, remaining: s.remaining, windowHours: s.windowHours ?? 24 } : null))
+      .catch(() => sendResponse(null));
     return true;
   }
 
@@ -332,6 +380,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
+  // D56: "I submitted it" in the review overlay — the overlay's own tab is the page recorded.
+  if (msg?.type === 'GATE_SUBMITTED') {
+    if (!sender.tab?.id) { sendResponse({ ok: false, message: 'No tab.' }); return true; }
+    recordSubmitted({ serverUrl: RESUME_MASTER_URL, tab: sender.tab })
+      .then(r => sendResponse(r)).catch(() => sendResponse({ ok: false, message: 'Could not record it.' }));
+    return true;
+  }
+
   if (msg?.type === 'GATE_REVIEW_STATE') {
     // Recorded against the application's audit row: for a gated application this is the ONLY record
     // of what a human saw before it went out, because the submission happens in a browser we never
@@ -382,7 +438,8 @@ async function advanceBatch(tabId) {
   if (!res?.ok) return { ok: false, reason: 'unreachable' };
   const body = await res.json();
   const next = (body.packets || [])
-    .filter(p => p.expectedOrigin === batch.origin)
+    // D56: the packet's origin LIST — a two-origin ATS batches across both of its addresses.
+    .filter(p => packetFillsOrigin(p, batch.origin))
     .sort((a, b) => b.createdAt - a.createdAt)[0];
   if (!next) { await clearBatchForTab(tabId); return { ok: false, reason: 'batch_empty' }; }
 

@@ -73,7 +73,7 @@ test("hard profile facts and experience misses affect local ATS score", () => {
 test("server precomputed and generated ATS paths use local scorer instead of LLM ATS calls", () => {
   const server = fs.readFileSync("server.js", "utf8");
   const keywordBlock = server.slice(at(server, 'app.post("/api/jobs/:id/keywords"'), at(server, 'app.get("/api/jobs/pending"'));
-  const generateBlock = server.slice(at(server, "const resumeStripped = stripResumeHtml(formattedHtml)"), at(server, "const version = (db.prepare"));
+  const generateBlock = server.slice(at(server, "const resumeStripped = stripResumeHtml(formattedHtml)"), at(server, "stored = storeGeneratedResume(db, {"));
 
   // The scrape path's scorer went with scrapeJobs (deleted 10-02, 18).
   // The panel now scores through scoreJobForBasis — the one scorer call it shares with the board's

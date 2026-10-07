@@ -81,6 +81,7 @@ function fakeEl(id) {
 function bootPopup({ preview, context, tabUrl = "https://jobs.example.test/role/1" }) {
   const els = {};
   const sent = [];
+  const messages = [];
   const injected = [];
   const docListeners = {};
   const document = {
@@ -90,7 +91,7 @@ function bootPopup({ preview, context, tabUrl = "https://jobs.example.test/role/
   };
   const answers = { PROBE_AUTH: { authenticated: true, username: "ada" }, PREVIEW_ACTIVE_TAB: preview, POPUP_CONTEXT: context };
   const chrome = {
-    runtime: { sendMessage: async (m) => { sent.push(m.type); return answers[m.type] ?? null; }, openOptionsPage() {} },
+    runtime: { sendMessage: async (m) => { sent.push(m.type); messages.push(m); return answers[m.type] ?? null; }, openOptionsPage() {} },
     tabs: { query: async () => [{ id: 7, url: tabUrl }], create() {} },
     storage: { local: { get: async () => ({}) } },
     scripting: { executeScript: async (x) => { injected.push(x); return [{ result: "" }]; } },
@@ -101,7 +102,7 @@ function bootPopup({ preview, context, tabUrl = "https://jobs.example.test/role/
   vm.runInContext(read("extension/companion.js"), sandbox);
   vm.runInContext(read("extension/popup.js"), sandbox);
   const settle = () => new Promise((r) => setTimeout(r, 20));
-  return { els, sent, injected, docListeners, settle };
+  return { els, sent, messages, injected, docListeners, settle };
 }
 
 const POSTING = { capturable: true, ok: true, title: "Data Engineer", company: "Fabrikam", location: "Boston, MA" };
@@ -110,7 +111,11 @@ const POSTING_CTX = { packets: [], posting: { known: false, saved: false }, rece
 test("⛔ D23: opening the popup reads NOTHING — no preview, no context call, no injection", async () => {
   const p = bootPopup({ preview: POSTING, context: POSTING_CTX });
   await p.settle();
-  assert.deepEqual(p.sent, ["PROBE_AUTH"], `the popup asked for ${p.sent.join(", ")} on open`);
+  // §8 row 15 / decision D (owner, 10-07): the TODAY RING is asked for on open — it is the ACCOUNT's
+  // quota (the day's Draft slots), not the page: the message carries no tab and no URL (checked below),
+  // and background.js answers it from /api/draft/slots alone. Nothing about the page is read on open.
+  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING"], `the popup asked for ${p.sent.join(", ")} on open`);
+  assert.deepEqual(Object.keys(p.messages.find(m => m.type === "TODAY_RING")), ["type"], "the ring's message carries something about the page");
   assert.equal(p.injected.length, 0, "the popup injected into the page on open");
   // The four actions are there, unchanged and enabled; the companion is not.
   for (const id of ["btn-capture-job", "btn-fill", "btn-ats", "btn-resume"]) {
@@ -127,7 +132,7 @@ test("D23: the press reads the page once — a posting -> Capture it + Score it 
   await p.settle();
   for (const fn of p.els["btn-read-page"].listeners.click) fn({});
   await p.settle();
-  assert.deepEqual(p.sent.slice(1).sort(), ["POPUP_CONTEXT", "PREVIEW_ACTIVE_TAB"]);
+  assert.deepEqual(p.sent.slice(2).sort(), ["POPUP_CONTEXT", "PREVIEW_ACTIVE_TAB"]);
   assert.equal(p.els["posting-actions"].style.display, "flex");
   assert.equal(p.els["ctx-line"].textContent, "Not on your board yet");
   assert.equal(p.els["preview-company"].textContent, "Fabrikam");
@@ -135,7 +140,7 @@ test("D23: the press reads the page once — a posting -> Capture it + Score it 
   // A second press (or a held key) does not read again.
   for (const fn of p.els["btn-read-page"].listeners.click) fn({});
   await p.settle();
-  assert.equal(p.sent.length, 3, "the page was read twice");
+  assert.equal(p.sent.length, 4, "the page was read twice");
 });
 
 test("D23: the keystroke is the same press (R, no modifier); a modified R is not", async () => {
@@ -145,7 +150,7 @@ test("D23: the keystroke is the same press (R, no modifier); a modified R is not
   const key = (o) => { for (const fn of p.docListeners.keydown) fn({ preventDefault() {}, ...o }); };
   key({ key: "r", ctrlKey: true });
   await p.settle();
-  assert.deepEqual(p.sent, ["PROBE_AUTH"], "Ctrl+R read the page");
+  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING"], "Ctrl+R read the page");
   key({ key: "r" });
   await p.settle();
   assert.equal(p.els["btn-fill-primary"].style.display, "flex", "a form you drafted -> Fill it");
