@@ -208,8 +208,8 @@ test("the tab row moved into the top bar, whole, and from appTabs", () => {
 
   // The styling is UnifiedSearchBar's verbatim, because this is a MOVE.
   // (D18/O56e: below 560px the spacing tightens to fit a phone; the desktop value is still 0.08em.)
-  for (const kept of [/borderRadius: 999,/, /textTransform: "uppercase", letterSpacing: narrow \? "0\.04em" : "0\.08em"/,
-                      /fontSize: 12, fontWeight: 600, cursor: "pointer"/]) {
+  for (const kept of [/borderRadius: 999,/, /textTransform: "uppercase", letterSpacing: tiny \? "0" : narrow \? "0\.04em" : "0\.08em"/,
+                      /fontSize: tiny \? 11 : 12, fontWeight: 600, cursor: "pointer"/]) {   // D69 (b): 11px below 440px
     assert.match(topBarCode, kept, `the tab styling changed on the way across (${kept})`);
   }
 

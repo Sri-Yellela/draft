@@ -463,6 +463,10 @@ export default function TopBar({
   // tighter tab spacing on a phone, and a fade on the edge that still hides a tab, so the row reads
   // as scrollable. `tabsMore` is recomputed on scroll and resize; nothing fades when it all fits.
   const narrow = vw < 560;
+  // ⭐ D69 (b) (owner, 10-07): at 390px the row still clipped "THE TABLE" behind the fade. On a phone each
+  // tab's words stack — DAILY / DECK, FULL / HOUSE, DRAFT, THE / TABLE — two 11px lines inside the 46px
+  // bar, so all four fit at 360px and up with no scrolling (measured: scripts/d69NavPass.mjs).
+  const tiny = vw < 440;
   const tabRowRef = useRef(null);
   const [tabsMore, setTabsMore] = useState(false);
   const measureTabs = useCallback(() => {
@@ -608,7 +612,7 @@ export default function TopBar({
               viewport. Scrolling keeps every tab REACHABLE at any width, where wrapping would push
               the second row outside the bar's height and clip it. */}
           <nav aria-label="Main" ref={tabRowRef} onScroll={measureTabs} style={{
-            display: "flex", gap: narrow ? 2 : 4, alignItems: "center", minWidth: 0,
+            display: "flex", gap: tiny ? 1 : narrow ? 2 : 4, alignItems: "center", minWidth: 0,
             overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none",
             ...(tabsMore ? { WebkitMaskImage: TAB_ROW_FADE, maskImage: TAB_ROW_FADE } : null),
           }}>
@@ -627,14 +631,14 @@ export default function TopBar({
                 aria-current={activeTab === t.id ? "page" : undefined}
                 style={{
                   display: "inline-block", textDecoration: "none",
-                  padding: narrow ? "5px 8px" : "5px 14px",
+                  padding: tiny ? "3px 4px" : narrow ? "5px 8px" : "5px 14px",
                   background: activeTab === t.id ? "var(--c-hover)" : "transparent",
                   border: activeTab === t.id ? "1px solid var(--color-primary)" : "1px solid transparent",
                   borderRadius: 14, lineHeight: 1.15, textAlign: "center",
                   color: activeTab === t.id ? "var(--color-text)" : "var(--color-text-muted)",
-                  fontSize: 12, fontWeight: 600, cursor: "pointer",
-                  textTransform: "uppercase", letterSpacing: narrow ? "0.04em" : "0.08em",
-                  whiteSpace: "nowrap", flexShrink: 0,
+                  fontSize: tiny ? 11 : 12, fontWeight: 600, cursor: "pointer",
+                  textTransform: "uppercase", letterSpacing: tiny ? "0" : narrow ? "0.04em" : "0.08em",
+                  whiteSpace: tiny ? "normal" : "nowrap", width: tiny ? "min-content" : undefined, flexShrink: 0,
                 }}><TabLabel label={t.label}/></a>
             ))}
           </nav>
