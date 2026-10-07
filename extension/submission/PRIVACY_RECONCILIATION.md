@@ -29,6 +29,18 @@ from — so this table cannot drift the way the line numbers did.
 
 ---
 
+## ⭐ D68 · THE COPY SHEET, CHECKED (owner, 10-07: "it's the user's own payload so shouldn't be an issue — check compliance wise")
+
+| Check | Finding | Where |
+|---|---|---|
+| Shown only to the signed-in user, their own answers | ✅ `/api/apply/copy-sheet` is `requireAuth`; the packet is read `WHERE id=? AND user_id=?` and the fallback is the caller's own `user_profile` | `routes/apply.js` |
+| Showing it writes nothing into the page and sends nothing anywhere else | ✅ the extension's copy-sheet request is one call to our server; the popup builds the list with `textContent` (never parsed), injects nothing, and stores nothing — no storage key | `extension/gated-handoff.js`, `extension/popup.js` |
+| Work-authorisation and EEO answers covered by the policy | ⚠ → ✅ **fixed**: the policy did not name the Copy sheet. It now says it shows the user's own answers, including work-authorisation and voluntary self-identification answers they saved, in the popup, to them | *Filling an Application* |
+| Clipboard writes only on the user's click, not logged | ✅ `navigator.clipboard.writeText` only in the per-row copy button's click handler; the server logs `copy_sheet_opened` with COUNTS only (`answerCount`), never a value | `extension/popup.js`, `routes/apply.js` |
+| Web Store *Limited Use* wording | ⚠ → ✅ **fixed**: the affirmation was absent from the policy and the listing notes. The policy now carries it in the User Data Policy's own terms (*How We Use Your Data*); the dashboard's Privacy practices certification must match it at the release (F 4) | `PrivacyPage.jsx` |
+
+No new collection: the Copy sheet adds no permission, host, storage key or stored field.
+
 ## Permissions
 
 | Manifest permission | Code that requires it | Policy paragraph | Dashboard justification |

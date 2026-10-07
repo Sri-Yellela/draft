@@ -442,6 +442,15 @@ export function PrivacyPage() {
               filled. Once three different people have shown the same pair, it is used for everyone;
               the shared record holds only the two site names and a count, never who showed it.
             </LI>
+            {/* D68 (owner, 10-07): the Copy sheet, checked — popup.js renders it with textContent; nothing is injected. */}
+            <LI>
+              The <Strong>Copy sheet</Strong> shows your own prepared answers — including any
+              work-authorisation or voluntary self-identification answers you saved — in the
+              extension's popup, to you, while you are signed in. Showing it fills nothing on the
+              page, stores nothing in your browser and sends your answers nowhere else. Pressing
+              <Strong> copy</Strong> puts that one answer on your clipboard; we do not record what
+              you copied — only that the sheet was opened and how many answers it held.
+            </LI>
           </UL>
 
           <H3>Learning an Application Form (optional, off by default)</H3>
@@ -499,6 +508,15 @@ export function PrivacyPage() {
               to train AI models.
             </LI>
           </UL>
+          {/* D68: the Chrome Web Store User Data Policy's Limited Use affirmation — required wording. */}
+          <P>
+            The browser extension's use of information it receives adheres to the{" "}
+            <Strong>Chrome Web Store User Data Policy, including the Limited Use requirements</Strong>.
+            We use that information only to provide the extension's features described above; we do
+            not sell it, do not use or transfer it for advertising, credit-worthiness or lending,
+            and do not let people read it except with your consent, for security purposes, to comply
+            with the law, or in aggregated and anonymised form for running the service.
+          </P>
         </Section>
 
         {/* Data Storage & Security */}
