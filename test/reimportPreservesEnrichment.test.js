@@ -34,7 +34,9 @@ function db0() {
       -- Source-owned column now written by aggregator's upsertStmt (six sources parse an
       -- employment type; none of it was persisted before). Hand-rolled fixtures have to track the
       -- real schema or the upsert fails against them — the same way automation_tier surfaced.
-      employment_type TEXT
+      employment_type TEXT,
+      -- migration 150 (D84 F1): the full text beside the capped description, written by the upsert.
+      description_full TEXT
     );
     CREATE TABLE job_role_map (
       job_id TEXT PRIMARY KEY,

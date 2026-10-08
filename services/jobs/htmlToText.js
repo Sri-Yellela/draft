@@ -45,6 +45,21 @@ const JOB_DESCRIPTION_TAIL_LENGTH = 2000;
 // treat two unrelated sentences as one claim.
 const ELISION = '\n[…]\n';
 
+// ⛔ D84 F1 (owner, 10-09): the capped `description` above cut the middle out of 17 of 20 exported
+// postings — and with it DoorDash's and Zscaler's stated pay. The FULL plain text is kept beside it
+// (`scraped_jobs.description_full`, migration 150) for the enrichment export. This ceiling only guards
+// against a runaway blob; a real posting is far shorter, and nothing here ever cuts the middle.
+const DESCRIPTION_FULL_MAX_LENGTH = 60000;
+
+/** The full plain text of a posting — from plain text if the source has it, else from HTML. Never elided. */
+function fullDescriptionText(plain, html) {
+  const text = typeof plain === 'string' && plain.trim()
+    ? plain.replace(/\r\n?/g, '\n').trim()
+    : htmlToText(html);
+  if (!text) return null;
+  return text.length > DESCRIPTION_FULL_MAX_LENGTH ? text.slice(0, DESCRIPTION_FULL_MAX_LENGTH) : text;
+}
+
 const NAMED_ENTITIES = {
   amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
   ndash: '–', mdash: '—', lsquo: '‘', rsquo: '’',
@@ -126,6 +141,6 @@ function truncateWithTail(text, maxLength, tailLength = 0) {
 }
 
 export {
-  htmlToText, decodeEntities, truncateWithTail,
-  JOB_DESCRIPTION_MAX_LENGTH, JOB_DESCRIPTION_TAIL_LENGTH,
+  htmlToText, decodeEntities, truncateWithTail, fullDescriptionText,
+  JOB_DESCRIPTION_MAX_LENGTH, JOB_DESCRIPTION_TAIL_LENGTH, DESCRIPTION_FULL_MAX_LENGTH,
 };

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { normalizeJob } from '../schema.js';
 import {
-  htmlToText, truncateWithTail, JOB_DESCRIPTION_MAX_LENGTH, JOB_DESCRIPTION_TAIL_LENGTH,
+  htmlToText, truncateWithTail, fullDescriptionText, JOB_DESCRIPTION_MAX_LENGTH, JOB_DESCRIPTION_TAIL_LENGTH,
 } from '../htmlToText.js';
 import { collectCompanyJobs } from './base.js';
 
@@ -41,6 +41,7 @@ function normalizeLeverPosting(posting, companyName) {
           maxLength: JOB_DESCRIPTION_MAX_LENGTH,
           tailLength: JOB_DESCRIPTION_TAIL_LENGTH,
         }),
+    description_full: fullDescriptionText(posting.descriptionPlain, posting.description ?? posting.descriptionBodyHtml),   // D84 F1
     posted_at:      posting.createdAt ? new Date(posting.createdAt).toISOString() : null,
     remote:         posting.workplaceType === 'remote',
     _raw:           posting,

@@ -384,6 +384,12 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
         FROM scraped_jobs j WHERE j.is_active = 1 AND j.discovered_at >= ?`).get(since);
       const imports = db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(rows_written), 0) written
         FROM enrichment_batches WHERE source = 'import' AND kind = 'enrichment' AND reverted_at IS NULL`).get();
+      // D84 F1: rows filled from cut text (back in the backlog), and rows whose only text is still cut — held
+      // out of every export until the next crawl stores their full text.
+      const textState = db.prepare(`SELECT
+          SUM(enrichment_partial = 1) partial,
+          SUM(description_full IS NULL AND instr(description, '[…]') > 0) waiting
+        FROM scraped_jobs WHERE is_active = 1`).get();
       const sources = db.prepare(`SELECT source, COUNT(*) n FROM scraped_jobs
         WHERE is_active = 1 AND source IS NOT NULL AND TRIM(source) != '' GROUP BY source ORDER BY n DESC`).all();
       res.json({
@@ -394,6 +400,7 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
         coverage, groups,
         newPostings: { days: 7, total: fresh.n || 0, scored: fresh.scored || 0 },
         imports: { count: imports.n, rowsWritten: imports.written },
+        text: { partial: textState.partial || 0, waitingForFullText: textState.waiting || 0 },
         sources: sources.map(s => ({ value: s.source, count: s.n })),
         importRowCap: PRACTICAL_IMPORT_ROWS,
       });

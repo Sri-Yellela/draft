@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { normalizeJob } from '../schema.js';
-import { htmlToText, JOB_DESCRIPTION_MAX_LENGTH, JOB_DESCRIPTION_TAIL_LENGTH } from '../htmlToText.js';
+import { htmlToText, fullDescriptionText, JOB_DESCRIPTION_MAX_LENGTH, JOB_DESCRIPTION_TAIL_LENGTH } from '../htmlToText.js';
 import { collectCompanyJobs } from './base.js';
 
 const BASE_URL = 'https://boards-api.greenhouse.io/v1/boards';
@@ -72,6 +72,7 @@ function normalizeGreenhouseJob(job, companyName) {
       maxLength: JOB_DESCRIPTION_MAX_LENGTH,
       tailLength: JOB_DESCRIPTION_TAIL_LENGTH,
     }),
+    description_full: fullDescriptionText(null, job.content),   // D84 F1 — the whole text, never cut
     // ⛔ D78: `first_published` — the posting's own date. `updated_at` is re-stamped whenever the employer touches
     // the board (Stripe's 723 postings all read "today" on 10-07; by first_published 140 were past 120 days),
     // so it made every posting look fresh and the age limit meaningless. updated_at only when it is missing.

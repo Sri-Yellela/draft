@@ -256,6 +256,9 @@ const cacheStmtsCache = new WeakMap();
 function getCacheStmts(db) {
   let stmts = cacheStmtsCache.get(db);
   if (!stmts) {
+    // D84 F1: description_full (migration 150) is written where the column exists — a hand-rolled test schema
+    // without it keeps working, and the parameter is simply unused there.
+    const full = db.prepare('PRAGMA table_info(scraped_jobs)').all().some(c => c.name === 'description_full');
     stmts = {
       // A real upsert, not INSERT OR REPLACE.
       //
@@ -281,7 +284,7 @@ function getCacheStmts(db) {
       upsertStmt: db.prepare(`
         INSERT INTO scraped_jobs
           (job_id, search_query, _hash, title, company, location, url, source, source_label,
-           posted_at, scraped_at, bucket_role, bucket_seniority, bucket_domain, direct_apply, description,
+           posted_at, scraped_at, bucket_role, bucket_seniority, bucket_domain, direct_apply, description${full ? ', description_full' : ''},
            company_icon_url, via, collar, classification_confidence,
            normalized_title, summary, experience_level, workplace_type, valid_through,
            salary_min_usd, salary_max_usd, salary_period, skills_json,
@@ -291,7 +294,7 @@ function getCacheStmts(db) {
            automation_tier, employment_type)
         VALUES
           (@job_id, @search_query, @_hash, @title, @company, @location, @url, @source, @source_label,
-           @posted_at, @scraped_at, @bucket_role, @bucket_seniority, @bucket_domain, @direct_apply, @description,
+           @posted_at, @scraped_at, @bucket_role, @bucket_seniority, @bucket_domain, @direct_apply, @description${full ? ', @description_full' : ''},
            @company_icon_url, @via, @collar, @classification_confidence,
            @normalized_title, @summary, @experience_level, @workplace_type, @valid_through,
            @salary_min_usd, @salary_max_usd, @salary_period, @skills_json,
@@ -315,6 +318,7 @@ function getCacheStmts(db) {
           bucket_domain             = excluded.bucket_domain,
           direct_apply              = excluded.direct_apply,
           description               = excluded.description,
+          ${full ? 'description_full          = excluded.description_full,   -- D84 F1: a source column, the crawl\'s copy wins' : ''}
           company_icon_url          = excluded.company_icon_url,
           via                       = excluded.via,
           collar                    = excluded.collar,
@@ -443,6 +447,7 @@ function upsertCanonicalJob(db, {
     bucket_domain:             verdict.domain || null,
     direct_apply:              canonical.direct_apply === false ? 0 : 1,
     description:               canonical.description || null,
+    description_full:          canonical.description_full || null,
     company_icon_url:          canonical.company_icon_url || null,
     via:                       canonical.via || null,
     // Always 'white': cacheJobs already ejected blue-collar verdicts before
