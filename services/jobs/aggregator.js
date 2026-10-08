@@ -9,6 +9,7 @@ import { recordPipelineRun } from './pipelineRunLog.js';
 import { usEligibility, officeLocations } from './usLocation.js';
 import { retireDuplicate, keptApart } from './dedupRetire.js';
 import { ageGate, readPolicy } from './boardAge.js';
+import { scopeGate, storedFamily } from './boardScope.js';
 
 // ─── REGISTER SOURCES HERE ───────────────────────────────────────────────────
 // To add a new source: import it and add to SOURCES array.
@@ -905,9 +906,9 @@ async function cacheJobs(db, anthropic = null) {
       // ── Upsert in a transaction ───────────────────────────────────────────
       // D78: the board's age policy (board_policy), read once per source pass.
       const agePolicy = readPolicy(db);
-      const { cached, unchanged, ejected, dropped, merged, outOfMarket, tooOld, agedOut, wouldAgeOut } = db.transaction(() => {
+      const { cached, unchanged, ejected, dropped, merged, outOfMarket, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut } = db.transaction(() => {
         let cached = 0, unchanged = 0, ejected = 0, dropped = 0, merged = 0, outOfMarket = 0;
-        let tooOld = 0, agedOut = 0, wouldAgeOut = 0;
+        let tooOld = 0, agedOut = 0, wouldAgeOut = 0, outOfScope = 0, scopedOut = 0, wouldScopeOut = 0;
 
         for (const job of fetchedJobs) {
           const jobId = job.id || job.url || '';
@@ -923,6 +924,15 @@ async function cacheJobs(db, anthropic = null) {
           if (age === "rejected_new") { tooOld++; continue; }
           if (age === "aged_out") { agedOut++; continue; }
           if (age === "would_age_out") wouldAgeOut++;
+
+          // ⛔ D78 B — computer science only. An EXISTING row is judged here, before the hash check, by its
+          // stored family (the unchanged touch would re-activate a retired one); a NEW one after classifying.
+          const exists = existingHashes.has(jobId);
+          if (exists) {
+            const scope = scopeGate(db, job, jobId, { exists, roleKey: storedFamily(db, { job_id: jobId, ...job }), now, policy: agePolicy });
+            if (scope === "scoped_out") { scopedOut++; continue; }
+            if (scope === "would_drop") wouldScopeOut++;
+          }
 
           const contentHash = fingerprintJob(job);
           if (existingHashes.get(jobId) === contentHash) {
@@ -964,6 +974,12 @@ async function cacheJobs(db, anthropic = null) {
             continue;
           }
 
+          if (!exists) {
+            const scope = scopeGate(db, job, jobId, { exists, roleKey: verdict.roleKey, now, policy: agePolicy });
+            if (scope === "rejected_new") { outOfScope++; continue; }
+            if (scope === "would_drop") wouldScopeOut++;
+          }
+
           // Cross-source dedup: collapse this posting into an existing higher-(or-equal-)
           // priority canonical row if the same role already has one from another source.
           const jobForDedup = { ...job, company_icon_url: job.thumbnail || job.companyIconUrl || null };
@@ -983,7 +999,7 @@ async function cacheJobs(db, anthropic = null) {
           cached++;
         }
 
-        return { cached, unchanged, ejected, dropped, merged, outOfMarket, tooOld, agedOut, wouldAgeOut };
+        return { cached, unchanged, ejected, dropped, merged, outOfMarket, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut };
       })();
 
       // ── Expiry pruning (outside the upsert transaction) ───────────────────
@@ -1014,7 +1030,7 @@ async function cacheJobs(db, anthropic = null) {
         startedAt: runStartedAt,
         fetched: fetchedJobs.length, written: cached, unchanged, merged, dropped, ejected,
         details: { companies: companies.length, pruned, prunedExpired: byDate.changes, prunedStale: byStale.changes, outOfMarket,
-                   tooOld, agedOut, wouldAgeOut },
+                   tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut },
       });
       totalCached += cached;
     }

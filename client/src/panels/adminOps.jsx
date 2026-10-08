@@ -219,9 +219,19 @@ export function BoardPolicySection({ theme }) {
       setNote(out.refused ? `Refused: ${out.reason}` : `Retired ${out.retired}.`); load();
     } catch (e) { setErr(e.message); }
   };
-  const p = d?.policy, r = d?.dryRun;
+  // D78 B: the computer-science scope — the same contract as the age sweep (dry run, echo the count, ceiling).
+  const scopeSweep = async () => {
+    const q = d?.scopeDryRun;
+    if (!q || !window.confirm(`Retire ${q.candidates} out-of-scope posting(s) (${Math.round(q.share * 100)}% of the active board)? Applied postings are kept; nothing is deleted.`)) return;
+    const force = q.share > 0.3 && window.confirm("That is above the 30% ceiling. Force it?");
+    try {
+      const out = await api("/api/admin/board-policy/scope-sweep", { method: "POST", body: JSON.stringify({ apply: true, expectCandidates: q.candidates, force }) });
+      setNote(out.refused ? `Refused: ${out.reason}` : `Retired ${out.retired} out of scope.`); load();
+    } catch (e) { setErr(e.message); }
+  };
+  const p = d?.policy, r = d?.dryRun, q = d?.scopeDryRun;
   return (
-    <Card theme={theme} title="Board age policy (D78)" measured={r ? `dry run: ${r.candidates} of ${r.active} active are past ${r.limitDays} days (${Math.round(r.share * 100)}%)` : null}>
+    <Card theme={theme} title="Board policy — age and scope (D78)" measured={r ? `dry run: ${r.candidates} of ${r.active} active are past ${r.limitDays} days (${Math.round(r.share * 100)}%)` : null}>
       <Err msg={err}/>
       {p && r && (
         <KV theme={theme} rows={[
@@ -232,9 +242,20 @@ export function BoardPolicySection({ theme }) {
           ["by source", Object.entries(r.bySource).map(([s, n]) => `${s} ${n}`).join(" · ") || "—"],
         ]}/>
       )}
+      {p && q && (
+        <KV theme={theme} rows={[
+          ["computer science only", p.scope_enforce ? `ENFORCED (rule v${q.version}) — out-of-scope postings are not written, and are retired at the crawl and by the 03:30 sweep` : `report only (rule v${q.version}) — nothing is dropped until you enforce`, p.scope_enforce ? C.WARNING : null],
+          ["would retire", `${q.candidates} of ${q.active} (${Math.round(q.share * 100)}%)${q.appliedKept ? ` · ${q.appliedKept} applied kept` : ""}`, q.share > 0.3 ? C.DANGER : null],
+          ["by family", Object.entries(q.byFamily).sort((a, b) => b[1] - a[1]).map(([f, n]) => `${f} ${n}`).join(" · ") || "—"],
+          ["by rule", Object.entries(q.byReason).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, n]) => `${k} ${n}`).join(" · ") || "—"],
+          ["by company", q.byCompany.slice(0, 8).map(([c, n]) => `${c} ${n}`).join(" · ") || "—"],
+        ]}/>
+      )}
       <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
         {p && <Btn theme={theme} danger={!p.age_enforce} onClick={() => put({ age_enforce: !p.age_enforce })}>{p.age_enforce ? "Stop enforcing" : "Enforce on existing postings"}</Btn>}
         {r && r.candidates > 0 && <Btn theme={theme} onClick={sweep}>Run the sweep now</Btn>}
+        {p && <Btn theme={theme} danger={!p.scope_enforce} onClick={() => put({ scope_enforce: !p.scope_enforce })}>{p.scope_enforce ? "Stop enforcing CS scope" : "Enforce CS scope"}</Btn>}
+        {q && q.candidates > 0 && <Btn theme={theme} onClick={scopeSweep}>Run the scope sweep now</Btn>}
         <Btn theme={theme} onClick={load}>Re-read</Btn>
       </div>
       {note && <div style={{ fontSize: 12, marginTop: 6, color: theme.textMuted }}>{note}</div>}
