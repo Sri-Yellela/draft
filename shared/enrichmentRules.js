@@ -16,8 +16,13 @@ export const ENRICHMENT_COLUMNS = [
   'is_h1b_sponsor', 'requires_work_auth', 'is_clearance_required', 'org_unit_raw',
 ];
 
-/** The most rows one import takes comfortably (measured in routes/enrichment.js, U5.10). */
-export const IMPORT_ROW_CAP = 500;
+/**
+ * The most rows one batch takes. D84 F14 (owner, 10-09: "30 a batch is too small — do it all at once"): 2,000, up from
+ * 500. Checked: the import is ONE transaction (all or nothing) and the upload limit is 32 MB (routes/enrichment.js);
+ * an import row is ~1.2 KB, so 2,000 rows is ~2.4 MB — nothing below 2,000 is a real limit. The pieces exist only for
+ * the chat step, and their size is a separate setting (PIECE_SIZES).
+ */
+export const IMPORT_ROW_CAP = 2000;
 
 // The same two enums schema.js coerces against and enrichJob.js validates the model against, from
 // the same shared table. A third copy of the experience-level vocabulary is exactly what

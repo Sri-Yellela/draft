@@ -23,7 +23,7 @@ import { markStyle, LOGO_FACE } from "../styles/mark.js";
 import DepthButton from "../components/DepthButton.jsx";
 import {
   enrichmentPrompt, buildPieces, checkPiece, redoPiece, mergeFilled, applyGate, refusalCounts, withoutRefused,
-  DEFAULT_CHUNK_ROWS,
+  PIECE_SIZES, DEFAULT_PIECE_SIZE, pieceFileName, matchReplies, notesCsv, zipStore, NOTE_CODES,
 } from "../../../shared/enrichmentChunks.js";
 
 const num = (n) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
@@ -32,6 +32,13 @@ const kb = (bytes) => `about ${Math.max(1, Math.round(bytes / 1024))} KB`;
 const day = (ts) => (ts ? new Date(ts * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short" }) : "—");
 const fileStamp = () => new Date().toISOString().slice(0, 16).replace(/[-:]/g, "").replace("T", "-");
 const PRACTICE_ROWS = 20;
+// The enrichment columns in plain words, for the dry run's per-column table.
+const COLUMN_WORDS = {
+  skills_json: "Skills", experience_level: "Experience level", workplace_type: "Workplace type", summary: "Summary",
+  normalized_title: "Plain title", salary_min_usd: "Salary (low)", salary_max_usd: "Salary (high)", salary_period: "Salary period",
+  is_h1b_sponsor: "Sponsors H-1B", requires_work_auth: "Needs work authorization", is_clearance_required: "Needs clearance",
+  org_unit_raw: "Team",
+};
 
 // ── small parts ──────────────────────────────────────────────────────────────────────────────────
 
@@ -158,8 +165,9 @@ export function EnrichmentTab() {
   const [err, setErr] = useState(null);
   const [rows, setRows] = useState(PRACTICE_ROWS);
   const [source, setSource] = useState("");
-  const [clean, setClean] = useState(true);
-  const [exp, setExp] = useState(null);               // { text, name, rows, pieces:[{…, replies:[], check}] }
+  const [pieceSize, setPieceSize] = useState(DEFAULT_PIECE_SIZE);   // D84 F14: governs only the chat step
+  const [exp, setExp] = useState(null);               // { text, name, rows, meta, truncatedRows, pieces:[{…, replies:[], check}] }
+  const [matchNote, setMatchNote] = useState(null);   // D84 F14: replies that matched no piece, or two for one piece
   const [importText, setImportText] = useState("");   // the joined (or chosen) import file
   const [importName, setImportName] = useState("");
   const [redo, setRedo] = useState("");
@@ -171,7 +179,7 @@ export function EnrichmentTab() {
   const [applied, setApplied] = useState(null);
   const [undoPlan, setUndoPlan] = useState(null);
   const [copied, setCopied] = useState(false);
-  const replyInputs = useRef({});
+  const repliesInput = useRef(null);
   const fileInput = useRef(null);
 
   const load = useCallback(() => {
@@ -199,34 +207,44 @@ export function EnrichmentTab() {
       const r = await fetch(`/api/admin/enrichment/export?${qs}`, { credentials: "include", headers: authHeaders() });
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `Export failed (${r.status})`);
       const text = await r.text();
-      const { rows: n, pieces, removedParagraphs } = buildPieces(text, { size: DEFAULT_CHUNK_ROWS, clean });
-      if (!n) throw new Error("Nothing to export — no posting needs enrichment for this choice.");
+      // D84 F1: the export is already the full text, cleaned on the server — the pieces need no second pass.
+      const { rows: n, pieces, meta, truncatedRows } = buildPieces(text, { size: pieceSize });
+      if (!n) throw new Error(meta?.heldForFullText
+        ? `Nothing to export yet — ${num(meta.heldForFullText)} posting(s) wait for their full text from the next crawl.`
+        : "Nothing to export — no posting needs enrichment for this choice.");
       const name = `enrichment-export-${fileStamp()}.jsonl`;
       await downloadBlob(new Blob([text], { type: "application/x-ndjson" }), name);
-      setExp({ text, name, rows: n, removedParagraphs, pieces: pieces.map((p) => ({ ...p, replies: [], check: null })) });
-      setFile("", ""); setRedo("");
+      setExp({ text, name, rows: n, meta, truncatedRows, pieces: pieces.map((p) => ({ ...p, replies: [], check: null })) });
+      setFile("", ""); setRedo(""); setMatchNote(null);
     } catch (e) { setErr(e.message); }
     finally { setBusy(null); }
   };
 
-  // ── step 3 · pieces ──
-  const pieceName = (p) => `piece-${String(p.n).padStart(2, "0")}-of-${String(p.of).padStart(2, "0")}.jsonl`;
+  // ── step 3 · pieces — ONE download, ONE upload (D84 F14) ──
+  const pieceName = (p) => pieceFileName(p.n, p.of);
   const downloadPiece = (p) => downloadBlob(new Blob([p.text], { type: "application/x-ndjson" }), pieceName(p));
+  const downloadAll = () => downloadBlob(new Blob([zipStore(exp.pieces.map((p) => ({ name: pieceName(p), text: p.text })))],
+    { type: "application/zip" }), exp.name.replace(/\.jsonl$/, "-pieces.zip"));
   const downloadRedoRows = (p) => downloadBlob(new Blob([redoPiece(p.text, p.replies)], { type: "application/x-ndjson" }),
     pieceName(p).replace(".jsonl", "-redo.jsonl"));
-  const uploadReply = async (i, file, { replace }) => {
-    if (!file) return;
-    const text = await file.text();
-    setExp((x) => {
-      const pieces = x.pieces.map((p, k) => {
-        if (k !== i) return p;
-        const replies = [...(replace ? [] : p.replies), { name: file.name, text }];
-        return { ...p, replies, check: checkPiece(p.text, replies) };
-      });
-      return { ...x, pieces };
-    });
+  // Many files at once, matched to their pieces BY NAME. ⛔ A name that matches no piece, or two replies for one
+  // piece, is reported and not used — never guessed. A checked piece's reply is replaced; an unchecked one with
+  // replies gets a second reply (its valid rows are kept).
+  const uploadReplies = async (fileList) => {
+    const files = await Promise.all([...(fileList || [])].map(async (f) => ({ name: f.name, text: await f.text() })));
+    if (!files.length) return;
+    const { assigned, unmatched, duplicates } = matchReplies(exp.pieces.map((p) => p.n), files);
+    setMatchNote(unmatched.length || duplicates.length ? { unmatched, duplicates } : null);
+    setExp((x) => ({ ...x, pieces: x.pieces.map((p) => {
+      const f = assigned.get(p.n);
+      if (!f) return p;
+      const replies = [...(p.check?.checked || !p.replies.length ? [] : p.replies), f];
+      return { ...p, replies, check: checkPiece(p.text, replies) };
+    }) }));
     setFile("", "");          // a changed reply means the joined file is out of date
   };
+  const notes = exp ? exp.pieces.flatMap((p) => p.check?.notes ?? []) : [];
+  const noteCounts = notes.reduce((m, n) => ({ ...m, [n.code]: (m[n.code] || 0) + 1 }), {});
   const allChecked = Boolean(exp?.pieces.length) && exp.pieces.every((p) => p.check?.checked);
   const join = () => {
     const replies = exp.pieces.flatMap((p) => p.replies);
@@ -320,6 +338,12 @@ export function EnrichmentTab() {
               <NumberBox value={num(ov.imports.count)} label="imports so far — each can be undone"/>
               <NumberBox value={backlog ? `≈ ${Math.ceil(backlog / ov.importRowCap)}` : "0"} label={`batches of ${ov.importRowCap} to clear it`} good={!backlog}/>
             </div>
+            {(ov.text?.partial > 0 || ov.text?.waitingForFullText > 0) && (
+              <p style={{ ...quiet, margin: "-8px 0 14px" }}>
+                {ov.text.partial > 0 && <>{num(ov.text.partial)} were filled from cut text and are back in the count. </>}
+                {ov.text.waitingForFullText > 0 && <>{num(ov.text.waitingForFullText)} have only cut text stored — they are left out of exports until the next crawl stores their full text.</>}
+              </p>
+            )}
             <p style={{ font: `800 italic 11.5px/1 ${LOGO_FACE}`, color: C.INK_FAINT, margin: "0 0 8px" }}>
               How full each column is, across the active board ({num(ov.board)} postings){projecting ? " — and after this import" : ""}
             </p>
@@ -338,25 +362,34 @@ export function EnrichmentTab() {
 
       <Step n={2} state={stateOf(2)} title="Export a batch">
         {exp ? (
-          <div style={row}>
-            <p style={{ fontSize: 12.5, color: C.INK_MUTED, margin: 0 }}>
-              Saved as <b>{exp.name}</b> in your <b>Downloads folder</b> — {num(exp.rows)} postings.
-            </p>
-            <DepthButton size="compact" onClick={() => { setExp(null); setFile("", ""); setRedo(""); }}>Start a different batch</DepthButton>
-          </div>
+          <>
+            <div style={row}>
+              <p style={{ fontSize: 12.5, color: C.INK_MUTED, margin: 0 }}>
+                Saved as <b>{exp.name}</b> in your <b>Downloads folder</b> — {num(exp.rows)} postings, full text, cleaned.
+              </p>
+              <DepthButton size="compact" onClick={() => { setExp(null); setFile("", ""); setRedo(""); setMatchNote(null); }}>Start a different batch</DepthButton>
+            </div>
+            {(exp.meta?.heldForFullText > 0 || exp.truncatedRows > 0) && (
+              <p style={{ ...quiet, margin: 0 }}>
+                {exp.meta?.heldForFullText > 0 && <>{num(exp.meta.heldForFullText)} posting(s) were left out: only their cut text is stored, and the next crawl stores the full text. </>}
+                {exp.truncatedRows > 0 && <>{num(exp.truncatedRows)} posting(s) are longer than {num(exp.meta?.textCap)} characters even without boilerplate — their end is cut, they are marked, and they come back for another pass.</>}
+              </p>
+            )}
+          </>
         ) : (
           <>
             <p style={{ fontSize: 12.5, margin: 0 }}><b>Start small.</b> Do a practice batch of <b>{PRACTICE_ROWS}</b> (one piece) to
-              learn the path, then 60, then {cap ?? "the most one import takes"}.</p>
+              learn the path, then 60, then as many as {cap ?? "one import takes"} at once.</p>
             <div style={row}>
               <label style={quiet} htmlFor="enr-rows">How many</label>
               <input id="enr-rows" type="number" value={rows} min={1} max={cap ?? undefined} step={10} style={{ ...field, width: 90 }}
                 onChange={(e) => setRows(Math.max(1, Math.min(cap ?? Infinity, Math.round(+e.target.value || 1))))}/>
-              {cap != null && <Help tip={`${cap} is the most one import takes comfortably.`}/>}
-              <label style={{ ...quiet, display: "flex", alignItems: "center", gap: 6 }}>
-                <input type="checkbox" checked={clean} onChange={(e) => setClean(e.target.checked)}/> Clean the text
-              </label>
-              <Help tip="Removes HTML and boilerplate such as equal-opportunity, benefits and about-us paragraphs from the pieces' copy. Nothing about the role, the pay, eligibility or where the work happens is cut, nothing is shortened, and your stored postings are never changed."/>
+              {cap != null && <Help tip={`${cap} is the most one import takes. The whole batch is one file, one dry run, one Apply and one Undo.`}/>}
+              <label style={quiet} htmlFor="enr-piece">Postings per chat</label>
+              <select id="enr-piece" value={pieceSize} onChange={(e) => setPieceSize(+e.target.value)} style={field}>
+                {PIECE_SIZES.map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <Help tip="The pieces exist only because one chat can read so much. A cleaned posting is about 1,400 tokens (median, measured 10-09), so 20 is about 30,000 tokens in, 50 about 70,000 and 100 about 140,000 — and the reply grows with it. It changes nothing else."/>
               <label style={quiet} htmlFor="enr-source">Source</label>
               <select id="enr-source" value={source} onChange={(e) => setSource(e.target.value)} style={field}>
                 <option value="">Any source</option>
@@ -378,18 +411,18 @@ export function EnrichmentTab() {
         {exp && (
           <>
             <div style={callout(C.SUCCESS)}>
-              <b>No terminal and no API key.</b> This page cut your export into <b>{exp.pieces.length} piece{exp.pieces.length === 1 ? "" : "s"}</b>
-              {exp.removedParagraphs ? ` (and left ${num(exp.removedParagraphs)} boilerplate paragraphs out of the copies)` : ""}, checks
-              each reply against the importer's own rules the moment you upload it, and joins them. The only outside step is an
-              ordinary chat with a model (Claude or any assistant) — <b>nothing in draft calls one.</b>
+              <b>No terminal and no API key.</b> This page cut your export into <b>{exp.pieces.length} piece{exp.pieces.length === 1 ? "" : "s"}</b> of
+              up to {pieceSize} postings — one per chat — checks every reply against the importer's own rules the moment you upload it,
+              and joins them into ONE import. The only outside step is an ordinary chat with a model (Claude or any assistant) —
+              <b> nothing in draft calls one.</b>
             </div>
             <div style={sub}>
-              <h5 style={{ font: `800 italic 13px ${LOGO_FACE}`, color: C.INK, margin: "0 0 4px" }}>How each piece works</h5>
+              <h5 style={{ font: `800 italic 13px ${LOGO_FACE}`, color: C.INK, margin: "0 0 4px" }}>How it works</h5>
               <ol style={{ listStyle: "decimal", paddingLeft: 20, fontSize: 12.5, color: C.INK_MUTED, margin: "0 0 6px" }}>
-                <li><b>Download</b> the piece — it lands in your Downloads folder.</li>
-                <li>In a chat with a model (not inside draft), <b>attach the file</b> and paste the instructions below.</li>
-                <li><b>Save the model's reply as a file</b> (for example <code>piece-01.reply.jsonl</code>).</li>
-                <li><b>Upload the reply here</b> — it is checked straight away.</li>
+                <li><b>Download all pieces</b> — one .zip in your Downloads folder.</li>
+                <li>For each piece, a <b>fresh chat</b> with a model (not inside draft): paste the instructions below, then <b>attach the piece</b>.</li>
+                <li><b>Save each reply as a file whose name keeps the piece number</b> — for example <code>piece-01.reply.jsonl</code>.</li>
+                <li><b>Upload all the replies at once</b> — they are matched to their pieces by name and checked straight away.</li>
               </ol>
               <pre aria-label="The instructions for the model" style={{ background: C.CANVAS_SHADE, border: `1px solid ${C.BORDER}`, borderRadius: 9,
                 padding: "10px 12px", font: "500 11.5px/1.55 ui-monospace, monospace", color: C.INK_MUTED, maxHeight: 160, overflow: "auto",
@@ -400,44 +433,69 @@ export function EnrichmentTab() {
               </div>
             </div>
             <div style={sub}>
-              <h5 style={{ font: `800 italic 13px ${LOGO_FACE}`, color: C.INK, margin: "0 0 4px" }}>
-                Your pieces — {exp.pieces.filter((p) => p.check?.checked).length} of {exp.pieces.length} done
+              <h5 style={{ font: `800 italic 13px ${LOGO_FACE}`, color: C.INK, margin: "0 0 6px" }}>
+                Your pieces — {exp.pieces.filter((p) => p.check?.checked).length} of {exp.pieces.length} checked
               </h5>
-              {exp.pieces.map((p, i) => (
-                <div key={p.n} style={{ borderTop: `1px dashed ${C.BORDER}`, padding: "7px 0" }}>
-                  <div style={{ ...row, fontSize: 12, color: C.INK_FAINT }}>
-                    <b style={{ font: `800 italic 13px ${LOGO_FACE}`, color: C.INK, minWidth: 110 }}>Piece {p.n} of {p.of}</b>
-                    <span>{p.rows} postings · {kb(p.bytes)}</span>
-                    <DepthButton size="compact" onClick={() => downloadPiece(p)}>Download</DepthButton>
-                    <input type="file" accept=".jsonl,.ndjson,.json,.txt,text/plain" hidden ref={(el) => { replyInputs.current[i] = el; }}
-                      onChange={(e) => { uploadReply(i, e.target.files?.[0], { replace: p.check?.checked || !p.replies.length }); e.target.value = ""; }}/>
-                    <DepthButton size="compact" primary={!p.check?.checked} onClick={() => replyInputs.current[i]?.click()}>
-                      {p.check?.checked ? "Replace the reply" : p.replies.length ? "Upload a second reply" : "Upload the reply"}
-                    </DepthButton>
-                    {!p.check ? <Mark tone={C.INK_FAINT}>Waiting</Mark>
-                      : p.check.checked ? <Mark tone={C.SUCCESS}>Checked — {p.check.valid} of {p.check.total} rows valid</Mark>
-                      : <Mark tone={C.WARNING}>{p.check.problems.length} row{p.check.problems.length === 1 ? "" : "s"} to fix</Mark>}
+              <div style={{ ...row, marginBottom: 8 }}>
+                <DepthButton size="compact" onClick={downloadAll}>Download all pieces (.zip)</DepthButton>
+                <input type="file" multiple accept=".jsonl,.ndjson,.json,.txt,text/plain" hidden ref={repliesInput}
+                  onChange={(e) => { uploadReplies(e.target.files); e.target.value = ""; }}/>
+                <DepthButton size="compact" primary={!allChecked} onClick={() => repliesInput.current?.click()}>Upload all the replies</DepthButton>
+                <span style={quiet}>or drop the reply files on the squares below.</span>
+              </div>
+              <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); uploadReplies(e.dataTransfer.files); }}
+                aria-label="The pieces — drop reply files here"
+                style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(46px, 1fr))", gap: 6, padding: 8,
+                  border: `1px dashed ${C.BORDER_STRONG}`, borderRadius: 10 }}>
+                {exp.pieces.map((p) => {
+                  const tone = !p.check ? C.INK_FAINT : p.check.checked ? C.SUCCESS : C.WARNING;
+                  const status = !p.check ? "waiting for its reply" : p.check.checked ? `checked — ${p.check.valid} of ${p.check.total} rows valid`
+                    : `${p.check.problems.length} row(s) to fix`;
+                  return (
+                    <button key={p.n} type="button" onClick={() => downloadPiece(p)}
+                      title={`Piece ${p.n} of ${p.of}: ${p.rows} postings, ${kb(p.bytes)} — ${status}. Click to download this piece alone.`}
+                      aria-label={`Piece ${p.n} of ${p.of}, ${status}. Download this piece.`}
+                      style={{ height: 40, borderRadius: 8, border: `1px solid ${tone}`, cursor: "pointer",
+                        background: p.check?.checked ? `color-mix(in srgb, ${C.SUCCESS} 22%, transparent)` : "transparent",
+                        color: tone, font: `800 italic 12px ${LOGO_FACE}` }}>{p.n}</button>
+                  );
+                })}
+              </div>
+              {matchNote && (
+                <div style={{ ...callout(C.WARNING), marginTop: 8 }}>
+                  <b>Not used — never guessed:</b>
+                  {matchNote.unmatched.length > 0 && <> {matchNote.unmatched.length} file(s) match no piece by name ({matchNote.unmatched.slice(0, 5).join(", ")}{matchNote.unmatched.length > 5 ? "…" : ""}) — keep the piece number in the name.</>}
+                  {matchNote.duplicates.map((d) => <span key={d.piece}> Piece {d.piece} got {d.names.length} replies ({d.names.join(", ")}) — upload one.</span>)}
+                </div>
+              )}
+              {exp.pieces.filter((p) => p.check && !p.check.checked).map((p) => (
+                <div key={p.n} style={{ ...callout(C.WARNING), marginTop: 8 }}>
+                  <b>Piece {p.n} — not accepted yet.</b> {p.check.valid} of {p.check.total} rows are valid and kept. These need another try:
+                  <ul style={{ listStyle: "disc", margin: "4px 0", paddingLeft: 20 }}>
+                    {p.check.problems.slice(0, 8).map((x, k) => <li key={k}><code>{x.jobId ?? `line ${x.line}`}</code> — {x.why}</li>)}
+                    {p.check.problems.length > 8 && <li>… and {p.check.problems.length - 8} more</li>}
+                  </ul>
+                  <div style={row}>
+                    <DepthButton size="compact" onClick={() => downloadRedoRows(p)}>Download just these rows</DepthButton>
+                    <span>Fill them the same way and upload the reply with the piece number in its name — the valid rows are kept.</span>
                   </div>
-                  {p.check && !p.check.checked && (
-                    <div style={{ ...callout(C.WARNING), marginTop: 6 }}>
-                      <b>Not accepted yet.</b> {p.check.valid} of {p.check.total} rows are valid and kept. These need another try:
-                      <ul style={{ listStyle: "disc", margin: "4px 0", paddingLeft: 20 }}>
-                        {p.check.problems.slice(0, 8).map((x, k) => <li key={k}><code>{x.jobId ?? `line ${x.line}`}</code> — {x.why}</li>)}
-                        {p.check.problems.length > 8 && <li>… and {p.check.problems.length - 8} more</li>}
-                      </ul>
-                      <div style={row}>
-                        <DepthButton size="compact" onClick={() => downloadRedoRows(p)}>Download just these rows</DepthButton>
-                        <span>Fill them the same way, then <b>Upload a second reply</b> — the valid rows above are kept.</span>
-                      </div>
-                    </div>
-                  )}
-                  {p.check?.checked && p.check.empty > 0 && (
-                    <div style={{ fontSize: 11.5, color: C.INK_FAINT, marginTop: 4 }}>{p.check.empty} came back with nothing filled — nothing to write for those.</div>
-                  )}
                 </div>
               ))}
-              <p style={{ fontSize: 12, margin: "6px 0 0" }}>A reply with a bad row is <b>not</b> accepted silently: the page lists the rows and keeps the good ones for a second try.</p>
+              <p style={{ fontSize: 12, margin: "8px 0 0" }}>A reply with a bad row is <b>not</b> accepted silently: the page lists the rows and keeps the good ones for a second try.</p>
             </div>
+            {notes.length > 0 && (
+              <div style={sub}>
+                <h5 style={{ font: `800 italic 13px ${LOGO_FACE}`, color: C.INK, margin: "0 0 4px" }}>Things the model flagged — {notes.length}</h5>
+                <div style={{ ...row, marginBottom: 6 }}>
+                  {NOTE_CODES.filter((c) => noteCounts[c]).map((c) => <Mark key={c} tone={C.INFO}>{c} · {noteCounts[c]}</Mark>)}
+                  <DepthButton size="compact" onClick={() => downloadBlob(new Blob([notesCsv(notes)], { type: "text/csv" }), `model-notes-${fileStamp()}.csv`)}>Download as CSV</DepthButton>
+                </div>
+                <ul style={{ listStyle: "disc", margin: 0, paddingLeft: 20, fontSize: 12, color: C.INK_MUTED }}>
+                  {notes.slice(0, 12).map((n, k) => <li key={k}><code>{n.jobId}</code> {n.code}{n.text ? ` — ${n.text}` : ""}</li>)}
+                  {notes.length > 12 && <li>… and {notes.length - 12} more in the CSV</li>}
+                </ul>
+              </div>
+            )}
             <div style={row}>
               <DepthButton primary={!importText} disabled={!allChecked} onClick={join}>Join the pieces</DepthButton>
               {!allChecked && <span style={quiet}>Unlocks when every piece shows Checked.</span>}
@@ -491,6 +549,27 @@ export function EnrichmentTab() {
                 ))}
               </tbody>
             </table>
+            {plan.columns && (
+              // D84 F5: "Would be written 20" hid that three columns wrote 0 and three wrote 10 — so, per column.
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }} aria-label="Per column">
+                <thead><tr>
+                  <th style={th}>Column</th><th style={{ ...th, textAlign: "right" }}>Already filled</th>
+                  <th style={{ ...th, textAlign: "right" }}>In the file</th><th style={{ ...th, textAlign: "right" }}>Would be written</th>
+                  <th style={{ ...th, textAlign: "right" }}>Replacing a placeholder <Help tip="A value the crawler guessed — the first 300 characters as a summary, the lowercased title, a level read from the title. It counts as empty, so the file's value replaces it."/></th>
+                </tr></thead>
+                <tbody>
+                  {Object.entries(plan.columns).filter(([, c]) => c.supplied > 0).map(([col, c]) => (
+                    <tr key={col}>
+                      <td style={td}>{COLUMN_WORDS[col] ?? col}</td>
+                      <td style={tdn}>{num(c.alreadyFilled)}</td>
+                      <td style={tdn}>{num(c.supplied)}</td>
+                      <td style={{ ...tdn, color: c.wouldWrite ? C.SUCCESS : C.WARNING }}>{num(c.wouldWrite)}</td>
+                      <td style={tdn}>{num(c.replacingPlaceholder)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
             {skillsGroup && projecting && (
               <div style={callout(C.SUCCESS)}>
                 <b>Skills coverage {pctOf(skillsGroup.filled, skillsGroup.total)}% → {pctOf(skillsGroup.filled + projectedGain(skillsGroup), skillsGroup.total)}% if you apply</b>

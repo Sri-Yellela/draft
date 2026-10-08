@@ -49,6 +49,14 @@ export function enrichmentPrompt() {
     `  summary: one plain sentence, at most ${TEXT_CAPS.summary} characters.`,
     `  normalized_title: the role's plain title without level or team, at most ${TEXT_CAPS.normalized_title} characters.`,
     `  org_unit_raw: the team or organisation named in the posting, at most ${TEXT_CAPS.org_unit_raw} characters, or null.`,
+    "",
+    "A line with \"truncated\": true carries a posting whose text was cut at the end: fill only what you can see.",
+    "",
+    "AFTER all the JSON lines, you may add notes — one per line, nothing else on the line:",
+    `  #NOTE <job_id> <CODE> <at most 20 words>     CODE is one of: ${NOTE_CODES.join(" · ")}`,
+    "  TRUNCATED the text ends abruptly · PAY-FORMAT pay is stated in a form you could not turn into numbers ·",
+    "  PLACEHOLDER the text is a template or empty · NOT-CS not a computer-science role · NON-US not in the US ·",
+    "  DUPLICATE the same text as another line · ODD anything else worth a human look.",
   ].join("\n");
 }
 
@@ -195,17 +203,31 @@ function utf8Bytes(s) {
 // ── Merge ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 // A model's output: strip code fences and stray prose lines; keep what parses as an object with a job_id.
+// ⛔ D84 F13 · THE NOTES CHANNEL. The model may add `#NOTE <job_id> <CODE> <≤ 20 words>` lines after the JSONL; they
+// are COLLECTED (and shown on the page under "Things the model flagged"), never rejected as unreadable lines.
+export const NOTE_CODES = ["TRUNCATED", "PAY-FORMAT", "PLACEHOLDER", "NOT-CS", "NON-US", "DUPLICATE", "ODD"];
+const NOTE_LINE = /^#\s*NOTE\s+(\S+)\s+(\S+)\s*(.*)$/i;
+export function parseNote(line) {
+  const m = String(line ?? "").trim().match(NOTE_LINE);
+  if (!m) return null;
+  const code = m[2].toUpperCase();
+  return { jobId: m[1], code: NOTE_CODES.includes(code) ? code : "ODD", givenCode: code,
+           text: m[3].split(/\s+/).filter(Boolean).slice(0, 20).join(" ") };
+}
+
 function parseFilled(text) {
-  const out = [], junk = [];
+  const out = [], junk = [], notes = [];
   String(text ?? "").split(/\r?\n/).forEach((raw, i) => {
     const line = raw.trim();
     if (!line || line.startsWith("```")) return;
+    const note = parseNote(line);
+    if (note) { notes.push({ line: i + 1, ...note }); return; }
     const start = line.indexOf("{");
     if (start < 0) { junk.push({ line: i + 1, text: line.slice(0, 80) }); return; }
     try { out.push({ line: i + 1, obj: JSON.parse(line.slice(start)) }); }
     catch { junk.push({ line: i + 1, text: line.slice(0, 80) }); }
   });
-  return { out, junk };
+  return { out, junk, notes };
 }
 
 /**
@@ -220,10 +242,11 @@ export function mergeFilled(exportText, filled = [], { max = DEFAULT_IMPORT_ROWS
   const byId = new Map(exp.rows.map((r) => [String(r.obj.job_id), r.obj]));
   const accepted = new Map();
   let rejected = [], duplicates = [], emptyDropped = [];
-  const junk = [];
+  const junk = [], notes = [];
   for (const { name, text } of filled) {
     const p = parseFilled(text);
     junk.push(...p.junk.map((j) => ({ file: name, ...j })));
+    notes.push(...p.notes.map((n) => ({ file: name, ...n })));
     for (const { line, obj } of p.out) {
       const at = { file: name, line };
       const jobId = obj?.job_id == null ? null : String(obj.job_id);
@@ -262,7 +285,7 @@ export function mergeFilled(exportText, filled = [], { max = DEFAULT_IMPORT_ROWS
   const perColumn = Object.fromEntries(ENRICHMENT_COLUMNS.map((c) => [c, rows.filter((r) => c in r.enrichment).length]));
   return {
     files, redo: redo ? redo + "\n" : "",
-    report: { exported: byId.size, accepted: rows.length, rejected, duplicates, emptyDropped, missing, junk, perColumn, importFiles: files.length },
+    report: { exported: byId.size, accepted: rows.length, rejected, duplicates, emptyDropped, missing, junk, notes, perColumn, importFiles: files.length },
   };
 }
 
@@ -281,7 +304,7 @@ export function checkPiece(pieceText, replies = []) {
     checked: replies.length > 0 && problems.length === 0,
     total: report.exported, valid: report.accepted,
     empty: report.emptyDropped.length,          // every value null: nothing to write, not an error
-    problems, junkLines: report.junk.length,
+    problems, junkLines: report.junk.length, notes: report.notes,
   };
 }
 
@@ -328,4 +351,79 @@ export function withoutRefused(text, rejected = []) {
   const keep = [], out = [];
   String(text ?? "").split(/\r?\n/).forEach((l, i) => { if (!l.trim()) return; (bad.has(i + 1) ? out : keep).push(l); });
   return { text: keep.length ? keep.join("\n") + "\n" : "", refused: out.length ? out.join("\n") + "\n" : "" };
+}
+
+// ── D84 F14 · one batch, one download, one upload ─────────────────────────────────────────────────────────────────
+
+/** The piece sizes the page offers. The size governs ONLY the chat step — the import takes the whole batch at once. */
+export const PIECE_SIZES = [20, 50, 100];
+export const DEFAULT_PIECE_SIZE = 20;      // full text: 30 postings ≈ 100k tokens (D84's batch process)
+
+/** A piece's file name — the number a reply is matched back by. */
+export function pieceFileName(n, of) {
+  const w = Math.max(2, String(of).length);
+  return `piece-${String(n).padStart(w, "0")}-of-${String(of).padStart(w, "0")}.jsonl`;
+}
+
+/**
+ * Match uploaded replies to pieces BY FILE NAME ("piece-07…" → piece 7). ⛔ Never guessed: a name with no piece number,
+ * or a number that is no piece, is UNMATCHED; two replies for one piece are both reported and neither is used.
+ * @param pieceNumbers the pieces' n values
+ * @param files [{ name, text }]
+ */
+export function matchReplies(pieceNumbers, files) {
+  const want = new Set(pieceNumbers);
+  const byPiece = new Map(), unmatched = [];
+  for (const f of files) {
+    const m = String(f.name).match(/piece[-_ ]?0*(\d+)/i);
+    const n = m ? Number(m[1]) : null;
+    if (n == null || !want.has(n)) { unmatched.push(f.name); continue; }
+    byPiece.set(n, [...(byPiece.get(n) ?? []), f]);
+  }
+  const assigned = new Map(), duplicates = [];
+  for (const [n, fs] of byPiece) {
+    if (fs.length > 1) duplicates.push({ piece: n, names: fs.map((f) => f.name) });
+    else assigned.set(n, fs[0]);
+  }
+  return { assigned, unmatched, duplicates };
+}
+
+/** "Things the model flagged" as CSV: job id, code, note, file. */
+export function notesCsv(notes = []) {
+  const q = (s) => `"${String(s ?? "").replace(/"/g, '""')}"`;
+  return ["job_id,code,note,file", ...notes.map((n) => [n.jobId, n.code, n.text, n.file].map(q).join(","))].join("\n") + "\n";
+}
+
+// A store-only ZIP (no compression) — enough to hand over many small text files as one download, with no dependency.
+const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(bytes) { let c = 0xffffffff; for (const b of bytes) c = CRC_TABLE[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+/** @param files [{ name, text }] @returns {Uint8Array} a valid .zip */
+export function zipStore(files) {
+  const enc = new TextEncoder();
+  const parts = [], central = [];
+  let offset = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name), data = enc.encode(f.text), crc = crc32(data);
+    const local = new DataView(new ArrayBuffer(30));
+    [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, 0, 2], [12, 0x21, 2], [14, crc, 4],
+     [18, data.length, 4], [22, data.length, 4], [26, name.length, 2], [28, 0, 2]]
+      .forEach(([o, v, s]) => (s === 4 ? local.setUint32(o, v, true) : local.setUint16(o, v, true)));
+    const cen = new DataView(new ArrayBuffer(46));
+    [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, 0, 2], [14, 0x21, 2], [16, crc, 4],
+     [20, data.length, 4], [24, data.length, 4], [28, name.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2], [36, 0, 2],
+     [38, 0, 4], [42, offset, 4]]
+      .forEach(([o, v, s]) => (s === 4 ? cen.setUint32(o, v, true) : cen.setUint16(o, v, true)));
+    parts.push(new Uint8Array(local.buffer), name, data);
+    central.push(new Uint8Array(cen.buffer), name);
+    offset += 30 + name.length + data.length;
+  }
+  const cenSize = central.reduce((s, p) => s + p.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  [[0, 0x06054b50, 4], [8, files.length, 2], [10, files.length, 2], [12, cenSize, 4], [16, offset, 4]]
+    .forEach(([o, v, s]) => (s === 4 ? end.setUint32(o, v, true) : end.setUint16(o, v, true)));
+  const all = [...parts, ...central, new Uint8Array(end.buffer)];
+  const out = new Uint8Array(all.reduce((s, p) => s + p.length, 0));
+  let at = 0; for (const p of all) { out.set(p, at); at += p.length; }
+  return out;
 }
