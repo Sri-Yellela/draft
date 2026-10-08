@@ -168,7 +168,8 @@ export function splitExport(exportText, { size = DEFAULT_CHUNK_ROWS, clean = fal
   const lines = rows.map((r) => {
     // ⛔ D84: a piece carries only what the model needs — the export header (`_meta`, dropped by parseJsonl),
     // `stored_content_hash` and the character counts stay out; `truncated` travels only when true.
-    const { stored_content_hash, chars_sent, chars_total, truncated, ...obj } = r.obj ?? {};
+    // (D84 F7's `applies_to` stays out too — the join restores it from the export.)
+    const { stored_content_hash, chars_sent, chars_total, truncated, applies_to, ...obj } = r.obj ?? {};
     if (truncated === true) obj.truncated = true;
     if (!clean || !obj.source || typeof obj.source.description !== "string") return JSON.stringify(obj);
     const c = cleanPostingText(obj.source.description);
@@ -268,7 +269,8 @@ export function mergeFilled(exportText, filled = [], { max = DEFAULT_IMPORT_ROWS
       if (bad) { rejected.push({ ...at, jobId, error: bad }); continue; }
       if (!Object.keys(clean).length) { emptyDropped.push({ ...at, jobId }); continue; }
       // hash RESTORED from the export; D84 F1: so is `truncated` — the importer marks such a row partial
-      accepted.set(jobId, { job_id: orig.job_id, content_hash: orig.content_hash, ...(orig.truncated === true ? { truncated: true } : {}), enrichment: clean });
+      accepted.set(jobId, { job_id: orig.job_id, content_hash: orig.content_hash, ...(orig.truncated === true ? { truncated: true } : {}),
+        ...(Array.isArray(orig.applies_to) && orig.applies_to.length ? { applies_to: orig.applies_to } : {}), enrichment: clean });
     }
   }
   // A row that a later reply got right is no longer a problem: drop its earlier rejections and empties.
@@ -338,6 +340,7 @@ export const REFUSAL_WORDS = {
   no_enrichment: "no filled values",
   no_job_id: "a line with no posting id",
   parse: "a line draft can't read",
+  not_identical: "a shared posting's text was not identical",
 };
 export function refusalCounts(rejected = []) {
   const counts = new Map();

@@ -281,3 +281,101 @@ test("F14: the batch is 2,000; the piece size is a setting (20 · 50 · 100, def
   assert.match(PAGE, /matchReplies\(exp\.pieces\.map\(\(p\) => p\.n\), files\)/);
   assert.doesNotMatch(PAGE, /Clean the text/, "cleaning is the export's job now, always on");
 });
+
+// ── P2 · F3 the pay parser · F7 identical text once · F8 not what the board will drop ──────────────────────────────
+import { payFromText } from "../services/jobs/payFromText.js";
+import { deriveDescriptionColumns, backfillDescriptionText } from "../services/jobs/descriptionText.js";
+import { upsertCanonicalJob, reconcileFingerprint } from "../services/jobs/aggregator.js";
+
+test("F3: every pay fixture from the rehearsal parses — and the negatives do not", () => {
+  const cases = [
+    ["Annual salary range: $180,000- $240,000", 180000, 240000],
+    ["Annual salary range:  $180,000-$240,000 USD", 180000, 240000],
+    ["Salary range: $110,000 - $140,000", 110000, 140000],
+    ["Salary range: $190,000 $250,000 + performance-based bonus", 190000, 250000],
+    ["Salary range: $180,000 $260,000 Base Salary + performance-based bonus", 180000, 260000],
+    ["$187,500 - 220,000 USD", 187500, 220000],
+    ["$187,500 - $220,000 USD base salary", 187500, 220000],
+  ];
+  for (const [text, lo, hi] of cases) {
+    const p = payFromText(text);
+    assert.ok(p, `parses: ${text}`);
+    assert.deepEqual([p.salary_min, p.salary_max, p.salary_currency, p.salary_period], [lo, hi, "USD", "annual"], text);
+  }
+  for (const neg of ["401k contributions and 4% match", "We grew revenue from $10,000,000 to $50,000,000", "a team of 200 - 400 engineers"]) {
+    assert.equal(payFromText(neg), null, `not pay: ${neg}`);
+  }
+});
+
+test("F3: the description pass reads pay from the FULL text — the pay the cap cut out is found", () => {
+  const stored = capped(LONG_HTML);
+  assert.equal(deriveDescriptionColumns(stored).pay_text_min_usd, null, "the cut text has no pay");
+  assert.equal(deriveDescriptionColumns(stored, fullDescriptionText(null, LONG_HTML)).pay_text_min_usd, 107400);
+});
+
+test("F3: a crawl that brings the full text re-queues the posting for the description pass", () => {
+  const db = board();
+  const verdict = { roleKey: "engineering", seniority: "mid", domain: "software", collar: "white", confidence: 0.9 };
+  const crawl = (description_full) => {
+    const canonical = { title: "Software Engineer", company: "DoorDash", location: "US", source: "greenhouse",
+      url: "https://boards.greenhouse.io/doordash/jobs/1", description: capped(LONG_HTML), description_full };
+    const dedup = reconcileFingerprint(db, { id: "q", ...canonical });
+    upsertCanonicalJob(db, { jobId: "q", canonical, verdict, contentHash: "h", searchQuery: "s", sourceLabel: "", matchedBy: "t", dedup, now: 1 });
+  };
+  crawl(null);                                           // before the deploy: only the cut text
+  backfillDescriptionText(db, { dryRun: false });
+  assert.equal(db.prepare("SELECT pay_text_min_usd FROM scraped_jobs WHERE job_id='q'").get().pay_text_min_usd, null);
+  crawl(fullDescriptionText(null, LONG_HTML));           // the next crawl stores the full text
+  assert.equal(db.prepare("SELECT description_basis FROM scraped_jobs WHERE job_id='q'").get().description_basis, null, "the upsert cleared the basis");
+  backfillDescriptionText(db, { dryRun: false });
+  assert.equal(db.prepare("SELECT pay_text_min_usd FROM scraped_jobs WHERE job_id='q'").get().pay_text_min_usd, 107400);
+  crawl(fullDescriptionText(null, LONG_HTML));           // an unchanged re-crawl keeps the basis
+  assert.notEqual(db.prepare("SELECT description_basis FROM scraped_jobs WHERE job_id='q'").get().description_basis, null);
+});
+
+test("F7: identical text exports ONCE and the import writes it to every row that shares it", () => {
+  const db = board();
+  for (const id of ["x1", "x2", "x3"]) insert(db, { id, description: "Build APIs in Go. Pay: $150,000 - $190,000." });
+  insert(db, { id: "y", description: "A different role entirely." });
+  const { rows, meta } = buildExport(db);
+  assert.equal(rows.length, 2, "one representative per distinct text");
+  assert.equal(meta.dedupedRows, 2);
+  const rep = rows.find((r) => r.applies_to);
+  assert.deepEqual(rep.applies_to.map((m) => m.job_id).sort(), ["x1", "x2", "x3"].filter((id) => id !== rep.job_id).sort());
+  const exp = toJsonl({ rows, meta });
+  assert.doesNotMatch(buildPieces(exp).pieces[0].text, /applies_to/, "the model never sees it");
+  const file = mergeFilled(exp, rows.map((r) => ({ name: "r", text: JSON.stringify({ job_id: r.job_id, content_hash: "x",
+    enrichment: { skills_json: ["Go"] } }) }))).files[0];
+  assert.match(file, /applies_to/, "the join restores it");
+  const res = applyImport(db, file);
+  assert.equal(res.written, 4, "three identical rows and the other one");
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM scraped_jobs WHERE skills_json IS NOT NULL").get().n, 4);
+});
+
+test("F7: a sibling whose text is NOT identical is refused, never guessed", () => {
+  const db = board();
+  insert(db, { id: "a", description: "Same text." });
+  insert(db, { id: "b", description: "Different text." });
+  const line = JSON.stringify({ job_id: "a", content_hash: computeContentHash("Software Engineer", "Same text."),
+    applies_to: [{ job_id: "b", content_hash: computeContentHash("Software Engineer", "Different text.") }], enrichment: { skills_json: ["Go"] } });
+  const plan = planImport(db, line);
+  assert.equal(plan.valid, false);
+  assert.equal(plan.rejected[0].kind, "not_identical");
+});
+
+test("F8: the backlog and the export leave out what the enforced policy will retire; unscored rows come first", () => {
+  const db = board();
+  db.prepare("INSERT OR REPLACE INTO board_policy (id, age_limit_days, age_enforce, scope_enforce) VALUES (1, 120, 1, 1)").run();
+  insert(db, { id: "new", description: "Build APIs in Go." });
+  insert(db, { id: "scored", description: "Build services in Rust." });
+  insert(db, { id: "old", description: "Build APIs in Python." });
+  db.prepare("UPDATE scraped_jobs SET posted_at = '2026-01-01T00:00:00Z' WHERE job_id = 'old'").run();
+  insert(db, { id: "sales", description: "Sell our product to enterprises." });
+  db.prepare("UPDATE scraped_jobs SET title = 'Account Executive' WHERE job_id = 'sales'").run();
+  db.prepare("UPDATE scraped_jobs SET discovered_at = discovered_at + 100 WHERE job_id = 'scored'").run();
+  db.prepare("INSERT INTO users (id, username, password_hash) VALUES (1, 'u', 'x')").run();
+  db.prepare("INSERT INTO ats_only_reports (user_id, job_id, ats_report, ats_score) VALUES (1, 'scored', '{}', 80)").run();
+  const { rows, meta } = buildExport(db);
+  assert.deepEqual(rows.map((r) => r.job_id), ["new", "scored"], "the unscored row first, even though 'scored' is newer");
+  assert.deepEqual(meta.retiringExcluded, { aged: 1, outOfScope: 1 });
+});

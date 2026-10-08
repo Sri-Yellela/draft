@@ -34,6 +34,14 @@ const SEP = String.raw`\s*(?:-|–|—|to|and)\s*`;
 const RANGE_G = new RegExp(
   String.raw`(?:\b(${CODES})\s*)?(${SIGN})?\s*${NUM}${SEP}(?:\b(${CODES})\s*)?(${SIGN})?\s*${NUM}(?:\s*\b(${CODES})\b)?(\s*(?:million|billion|mm|bn)\b|\s*[mMbB]\b)?`, "g");
 
+// ⛔ D84 F3 (owner, 10-09: 10 of 13 postings that state pay were never captured). Two real formats the range above
+// misses, verbatim from the rehearsal: "Salary range: $190,000 $250,000 + performance-based bonus" (NO separator)
+// and "$187,500 - 220,000 USD" (the second figure has no sign, and the line has no pay word). So:
+//   · two figures with NO separator are a range when BOTH carry a currency sign (a pay label usually precedes them);
+//   · a range anchored by a currency at BOTH ends counts without a pay word on the line.
+// A trailing "+ bonus / equity / USD" is ignored by both; the negatives (401k match, revenue, headcount) still fail.
+const RANGE_NOSEP_G = new RegExp(String.raw`(${SIGN})\s*${NUM}\s+(${SIGN})\s*${NUM}(?:\s*\b(${CODES})\b)?(\s*(?:million|billion|mm|bn)\b|\s*[mMbB]\b)?`, "g");
+
 const PAY_WORD = /\b(?:salary|salaries|compensation|pay\s*(?:range|scale|rate|band)|base\s*(?:pay|salary|compensation)|wages?|hourly\s*rate|ote|on-target earnings|annual(?:ly)?|per\s+(?:year|annum|hour|month)|hourly)\b|\/\s?(?:yr|hr|year|hour|mo)\b/i;
 const UNIT_RE = /\b(?:per|an?|\/)\s*(hour|hr|year|yr|annum|month|mo)\b|\b(hourly|annually|annual|yearly|monthly)\b|\/\s?(hr|yr|mo)\b/i;
 
@@ -95,7 +103,9 @@ function rangesOnLine(line, prevLine) {
     if (!currency) continue;                                     // "10–20 years" has no currency
     const tail = line.slice(m.index, m.index + all.length + 30);
     const unitStated = unitOf(tail) || unitOf(line);
-    if (!context && !unitStated) continue;
+    // D84 F3: currency at BOTH ends ("$187,500 - 220,000 USD") anchors a range without a pay word.
+    const bothEnds = Boolean((sign1 || code1) && (sign2 || code2 || codeAfter));
+    if (!context && !unitStated && !bothEnds) continue;
     // A unit on one end applies to both ("150-180K").
     const lo = amount(n1, k1 || k2), hi = amount(n2, k2 || k1);
     if (!lo || !hi || lo > hi || hi > lo * 5) continue;
@@ -104,6 +114,25 @@ function rangesOnLine(line, prevLine) {
     const [floor, ceil] = PLAUSIBLE[unit];
     if (lo < floor || hi > ceil) continue;
     out.push({ min: lo, max: hi, currency, unit, location: placeOfPayLine(line.slice(0, m.index)) });
+  }
+  // D84 F3: no separator, both figures signed — read only when the separated form found nothing on this line.
+  if (!out.length) {
+    RANGE_NOSEP_G.lastIndex = 0;
+    while ((m = RANGE_NOSEP_G.exec(line))) {
+      const [all, sign1, pre1, n1, k1, sign2, pre2, n2, k2, codeAfter, magnitude] = m;
+      if (magnitude) continue;
+      const currency = currencyOf(null, sign1, pre1, null, sign2, pre2, codeAfter);
+      if (!currency) continue;
+      const tail = line.slice(m.index, m.index + all.length + 30);
+      const unitStated = unitOf(tail) || unitOf(line);
+      const lo = amount(n1, k1 || k2), hi = amount(n2, k2 || k1);
+      if (!lo || !hi || lo > hi || hi > lo * 5) continue;
+      const unit = unitStated || (hi >= 10_000 ? "annual" : null);
+      if (!unit) continue;
+      const [floor, ceil] = PLAUSIBLE[unit];
+      if (lo < floor || hi > ceil) continue;
+      out.push({ min: lo, max: hi, currency, unit, location: placeOfPayLine(line.slice(0, m.index)) });
+    }
   }
   return out;
 }
