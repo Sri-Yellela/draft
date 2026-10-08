@@ -533,71 +533,13 @@ export function BoardFitSection({ theme }) {
   );
 }
 
-// ── Enrichment backlog — POST /api/admin/enrichment/run, counting only (D17, A80 V4) ──────────
-// Was A61's "Enrich N" button: a dry run, then real model calls. D17 (10-03) allows a model for
-// résumé generation only, so this section counts the backlog and the board's coverage, and sends
-// the operator to the round trip that replaced the button — the DB inspector's "Enrichment Round
-// Trip" (export → enrich outside the product → import, every import a revertible batch). The
-// route refuses `apply` (410); nothing here can ask it to.
-const enrichCols = ["summary", "experience_level", "skills_json", "workplace_type", "salary_min_usd", "enriched_at"];
-
-export function EnrichmentSection({ theme }) {
-  const [limit, setLimit] = useState(100);
-  const [source, setSource] = useState("");
-  const [plan, setPlan] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(null);
-  const params = () => ({ limit: Number(limit), ...(source.trim() ? { source: source.trim() } : {}) });
-
-  const count = async () => {
-    setBusy(true); setErr(null);
-    try { setPlan((await api("/api/admin/enrichment/run", { method: "POST", body: JSON.stringify(params()) })).plan); }
-    catch (e) { setErr(e.message); }
-    setBusy(false);
-  };
-  const cov = plan?.coverageNow;
-  return (
-    <Card theme={theme} title="Enrichment backlog" measured="counted here — enriched by the export → import round trip, never by a model (D17)">
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
-        <label style={{ fontSize: 12, display: "flex", gap: 6, alignItems: "center" }}>
-          up to
-          <input type="number" min={1} max={100} value={limit}
-            onChange={e => setLimit(Math.max(1, Math.min(100, Number(e.target.value) || 1)))}
-            style={{ width: 70, background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`,
-                     borderRadius: 6, padding: "5px 8px", fontSize: 12 }}/>
-        </label>
-        <label style={{ fontSize: 12, display: "flex", gap: 6, alignItems: "center" }}>
-          source
-          <input value={source} placeholder="any" onChange={e => setSource(e.target.value)}
-            style={{ width: 140, background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`,
-                     borderRadius: 6, padding: "5px 8px", fontSize: 12 }}/>
-        </label>
-        <Btn theme={theme} primary disabled={busy} onClick={count}>{busy ? "Counting…" : "Count the backlog"}</Btn>
-      </div>
-      <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 8 }}>
-        To enrich rows: <a href="/admin/db" style={{ fontWeight: 700, color: C.ACCENT_INK }}>Database → Enrichment Round Trip</a> —
-        export the file, fill it outside the product, import it back (dry run first; every import is a batch you can revert).
-        New postings stay unenriched until an import covers them.
-      </div>
-      <Err msg={err}/>
-      {plan && (
-        <KV theme={theme} rows={[
-          ["need enrichment", `${num(plan.candidates)} (of ${num(plan.prefilterCount)} before the content check)`],
-          ["listed here", num(plan.wouldSend)],
-        ]}/>
-      )}
-      {cov && (
-        <Table theme={theme} rows={enrichCols.map(c => ({ col: c, now: cov.columns?.[c]?.rate }))} cols={[
-          { key: "col", label: "board coverage" },
-          { key: "now", label: "now", right: true, render: r => pct(r.now) },
-        ]}/>
-      )}
-    </Card>
-  );
-}
+// ── Enrichment backlog — RETIRED by D83 (10-08) ──────────────────────────────────────────────
+// The "Count the backlog" section that stood here is the panel D83 names as the anti-example: a number shown
+// only after a click, a free-text source box, and the real work on another page. Admin → Enrichment
+// (panels/adminEnrichment.jsx) is the whole round trip now, its numbers loaded on open.
 
 // ── Job data in and out — /api/admin/job-data (A62) ───────────────────────────────────────────
-// The JOBS, not their enrichment (that round trip is in the DB inspector). Export the board as
+// The JOBS, not their enrichment (that round trip is Admin → Enrichment). Export the board as
 // NDJSON; import postings through the one gateway — dry run first, "Import N" only for the text
 // that was planned, every import a batch that can be reverted (dry run, then the matching count).
 export function JobDataSection({ theme }) {
@@ -1117,7 +1059,6 @@ export function OpsTab({ theme }) {
       <BoardPolicySection theme={theme}/>
       <KillSwitchSection theme={theme}/>
       <BoardFitSection theme={theme}/>
-      <EnrichmentSection theme={theme}/>
       <JobDataSection theme={theme}/>
       <CompaniesSection theme={theme}/>
       <SlugHarvestSection theme={theme}/>

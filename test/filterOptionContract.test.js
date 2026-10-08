@@ -92,11 +92,14 @@ test("experience level: every option is a value the WRITERS can store", () => {
   // because the point is that a future edit to either writer cannot silently narrow it. (The second
   // writer was enrichJob.js's coerceEnum until A80 deleted the model pass, 10-05.)
   const schema  = read("services/jobs/schema.js");
-  const enrich  = read("services/jobs/enrichmentTransfer.js");
+  // D83 (10-08): the importer's rules moved to shared/enrichmentRules.js, read by the server AND the Admin page.
+  const enrich  = read("shared/enrichmentRules.js");
   assert.match(schema, /const VALID_EXPERIENCE_LEVELS = valueSet\(EXPERIENCE_LEVELS\)/,
     "schema.js re-typed the experience-level enum instead of reading the contract");
   assert.match(enrich, /const VALID_EXPERIENCE_LEVELS = valueSet\(EXPERIENCE_LEVELS\)/,
-    "enrichmentTransfer.js re-typed the experience-level enum instead of reading the contract");
+    "enrichmentRules.js re-typed the experience-level enum instead of reading the contract");
+  assert.match(read("services/jobs/enrichmentTransfer.js"), /import \{ parseJsonl, validateColumn \} from '\.\.\/\.\.\/shared\/enrichmentRules\.js';/,
+    "the importer validates with the shared rules, not a copy");
 
   // normalizeExperienceLevel's own return values are literals in its regex ladder, so they are a
   // real second vocabulary and have to be reconciled rather than assumed.
@@ -147,8 +150,8 @@ test("domain: the control and classifyJob's DOMAIN_PATTERNS name the same domain
 test("work model: the control and the two writers agree", () => {
   for (const [file, src] of [["schema.js", read("services/jobs/schema.js")],
                              // A80 (10-05): the enrichment writer is now the manual import
-                             // (enrichJob.js's model pass was deleted under D17).
-                             ["enrichmentTransfer.js", read("services/jobs/enrichmentTransfer.js")]]) {
+                             // (enrichJob.js's model pass was deleted under D17); D83 moved its rules to shared/.
+                             ["enrichmentRules.js", read("shared/enrichmentRules.js")]]) {
     assert.match(src, /VALID_WORKPLACE_TYPES\s*=\s*valueSet\(WORK_MODELS\)/,
       `${file} re-typed the workplace-type enum instead of reading the contract`);
   }

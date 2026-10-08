@@ -896,6 +896,10 @@ function EnrichmentTransferPanel({ theme }) {
         <button type="button" onClick={() => setOpen(false)} style={btn({ padding: "4px 10px" })}>✕ Close</button>
       </div>
 
+      <div style={{ fontSize: 12, lineHeight: 1.6, marginBottom: 10 }}>
+        The guided version of this round trip — pieces, a check on every reply, Undo on every import — is{" "}
+        <a href="/admin" style={{ fontWeight: 700, color: ACCENT_TEXT }}>Admin → Enrichment</a>.
+      </div>
       <div style={{ fontSize: 11, color: theme.textMuted, lineHeight: 1.6, marginBottom: 14 }}>
         Export candidates as JSONL, fill the <code>enrichment</code> object on each line elsewhere,
         then import the file back. Only the <code>enrichment</code> keys are writable — the{" "}
