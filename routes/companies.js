@@ -42,8 +42,10 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
       return res.status(409).json({ error: "board_changed", validation,
         message: `The board now reads "${validation.state}", not "${expectState}". Look again before adding it.` });
     }
-    const out = addCompany(db, { company, atsType, slug, bucketRole, adminUserId: req.user?.id });
-    if (!out.ok) return res.status(409).json({ error: "already_configured", company: out.company });
+    // D80: the evidence is what the operator saw on the board when they added it.
+    const evidence = `admin add ${new Date().toISOString().slice(0, 10)}: ${validation.message}`;
+    const out = addCompany(db, { company, atsType, slug, bucketRole, adminUserId: req.user?.id, evidence });
+    if (!out.ok) return res.status(409).json({ error: out.code === "exists" ? "already_configured" : out.code, company: out.company });
     res.status(201).json({ ok: true, company: out.company, validation,
       note: "Added and active. The next crawl reads it; its postings pass the same dedup and US-only gate as every source." });
   });

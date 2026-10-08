@@ -486,8 +486,9 @@ export function applyPlan(db, plan, { adminUserId = null, now = Math.floor(Date.
           if (!out.ok) throw new Error(`company ${p.reactivate.id} vanished mid-import`);
           companyId = p.reactivate.id;
         } else {
-          const out = addCompany(db, { company: p.company, atsType: p.ats, slug: p.slug, adminUserId });
-          if (!out.ok) throw new Error(`${p.ats}:${p.slug} was configured mid-import`);
+          const out = addCompany(db, { company: p.company, atsType: p.ats, slug: p.slug, adminUserId,
+            evidence: `slug harvest import (D20) ${new Date(now * 1000).toISOString().slice(0, 10)}: the owner decided "add" on the reviewed pool` });
+          if (!out.ok) throw new Error(out.code === "exists" ? `${p.ats}:${p.slug} was configured mid-import` : `${p.ats}:${p.slug} refused: ${out.code}`);
           companyId = out.company.id;
         }
         added++;

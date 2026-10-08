@@ -43,19 +43,30 @@ async function probe({ atsType, slug, company }) {
   const fetchOnce = async (s, c, w) => (jobs = await ATS_FETCHERS[atsType](s, c, w));
   const v = await validateBoard({ atsType, slug, company: company || slug, fetchers: { [atsType]: fetchOnce } });
   const funnel = { fetched: jobs.length, us: 0, fresh: 0, classified: 0, cs: 0 };
+  const csAges = [];                    // D80 A: the age of every US, in-scope posting, before the age cut
+  let csSalary = 0;
   for (const j of jobs) {
     if (!usEligibility({ location: j.location, description: j.description, offices: officeLocations(j._raw) }).admit) continue;
     funnel.us++;
-    if (ageOf({ posted_at: j.posted_at }, { now, limitDays: DEFAULT_LIMIT_DAYS }).tooOld) continue;
-    funnel.fresh++;
+    const age = ageOf({ posted_at: j.posted_at }, { now, limitDays: DEFAULT_LIMIT_DAYS });
     const verdict = classifyJob(j.title || "", j.description || "", j.company || "");
+    const cs = verdict.collar !== "blue" && verdict.roleKey !== null && csScopeOf({ title: j.title, roleKey: verdict.roleKey }).inScope;
+    if (cs) { csAges.push(age.days); if (j.salary_min_usd != null || j.salary_min != null) csSalary++; }
+    if (age.tooOld) continue;
+    funnel.fresh++;
     if (verdict.collar === "blue" || verdict.roleKey === null) continue;
     funnel.classified++;
-    if (csScopeOf({ title: j.title, roleKey: verdict.roleKey }).inScope) funnel.cs++;
+    if (cs) funnel.cs++;
   }
+  csAges.sort((x, y) => x - y);
+  const share = (n) => (csAges.length ? Math.round((100 * n) / csAges.length) : null);
+  const evidence = { csOpen: csAges.length, cs30: csAges.filter(d => d <= 30).length,
+    pct30: share(csAges.filter(d => d <= 30).length), pct120: share(csAges.filter(d => d <= DEFAULT_LIMIT_DAYS).length),
+    medianAge: csAges.length ? csAges[Math.floor(csAges.length / 2)] : null, salaryPct: share(csSalary),
+    usPct: jobs.length ? Math.round((100 * funnel.us) / jobs.length) : null };
   const dated = jobs.filter(j => ageOf({ posted_at: j.posted_at }, { now }).basis === "posted_at").length;
   return { atsType, slug, company: v.companyGuess || company || slug, state: v.state, ok: v.ok,
-           descriptions: v.descriptions?.note ?? null, dated, ...funnel };
+           descriptions: v.descriptions?.note ?? null, dated, ...funnel, ...evidence };
 }
 
 const todo = candidates.filter(c => !skip.has(`${c.atsType}:${c.slug}`.toLowerCase()));

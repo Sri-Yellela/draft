@@ -124,11 +124,54 @@ function audit(db, adminUserId, action, target, before, after) {
   } catch { /* a database without migration 119 still works; the log is what is lost */ }
 }
 
-export function addCompany(db, { company, atsType, slug, bucketRole = null, adminUserId = null }) {
+// ── D80 · which companies: hiring evidence, never list membership ─────────────────────────────────────
+// ⛔ ONE SLUG, MANY EMPLOYERS corrupts company attribution (the "Localhost" class): a VC / accelerator
+// portfolio board (`Pear-VC`) serves jobs from dozens of companies under one name. Refused by slug or name.
+const PORTFOLIO_SLUG = /(^|[-_.])(vc|ventures?|portfolio|accelerator|incubator)([-_.]|$)/i;
+const PORTFOLIO_SLUGS = new Set(["pear-vc", "pearvc", "a16z", "sequoia", "ycombinator", "workatastartup", "accel", "greylock", "kleinerperkins"]);
+// ⛔ Staffing and recruiting agencies post for "a confidential employer" — not a company a candidate can target.
+const AGENCY_NAME = /\b(staffing|recruit(?:ing|ers|ment)|talent\s+(?:solutions|partners|acquisition\s+partners)|search\s+partners|headhunt\w*|placement)\b/i;
+
+/** Why this company may never be configured, or null. */
+export function excludedCompany({ company = "", slug = "" } = {}) {
+  const s = String(slug).toLowerCase();
+  if (PORTFOLIO_SLUGS.has(s) || PORTFOLIO_SLUG.test(s)) return "portfolio_board";
+  if (AGENCY_NAME.test(String(company))) return "staffing_agency";
+  return null;
+}
+
+/**
+ * ⛔ D80 A · the admission rule over a probe row (scripts/d78TrancheProbe.mjs): a company with NO in-scope
+ * posting, or none within the age limit, is not admitted. `minRecent` is the owner's bar (D80 §A proposes 5;
+ * 1 is the floor the rule itself sets). `approved` — the owner's list; a company not on it is refused.
+ */
+export function admitFromProbe(row, { approved = null, minRecent = 1 } = {}) {
+  const key = `${row.atsType}:${String(row.slug).toLowerCase()}`;
+  if (approved && !approved.has(key)) return { admit: false, reason: "not_approved" };
+  const excluded = excludedCompany({ company: row.company, slug: row.slug });
+  if (excluded) return { admit: false, reason: excluded };
+  if (row.state !== "live") return { admit: false, reason: `board_${row.state}` };
+  if (!(row.csOpen > 0)) return { admit: false, reason: "no_in_scope_postings" };
+  if (!(row.cs >= minRecent)) return { admit: false, reason: row.cs > 0 ? "too_few_recent" : "none_recent" };
+  return { admit: true, reason: "ok" };
+}
+
+/** The evidence line stored with a company (D80 D). */
+export function evidenceLine(row, { source, date = new Date().toISOString().slice(0, 10) } = {}) {
+  const pct = row.pct120 == null ? "" : `, ${row.pct120}% <= 120d`;
+  const recent = row.pct30 == null ? "" : `, ${row.pct30}% <= 30d`;
+  return `${source}; probe ${date}: ${row.cs} in-scope <= 120d of ${row.csOpen} in-scope open${pct}${recent}`;
+}
+
+export function addCompany(db, { company, atsType, slug, bucketRole = null, adminUserId = null, evidence = null }) {
+  // ⛔ D80: no company is configured without a stored reason, and never a portfolio board or an agency.
+  if (!evidence || !String(evidence).trim()) return { ok: false, code: "evidence_required" };
+  const excluded = excludedCompany({ company, slug });
+  if (excluded) return { ok: false, code: excluded };
   const existing = db.prepare("SELECT * FROM company_ats_list WHERE ats_type = ? AND lower(ats_slug) = lower(?)").get(atsType, slug);
   if (existing) return { ok: false, code: "exists", company: existing };
-  const id = db.prepare("INSERT INTO company_ats_list (company, ats_type, ats_slug, active, bucket_role) VALUES (?, ?, ?, 1, ?)")
-    .run(String(company).trim(), atsType, slug, bucketRole).lastInsertRowid;
+  const id = db.prepare("INSERT INTO company_ats_list (company, ats_type, ats_slug, active, bucket_role, evidence) VALUES (?, ?, ?, 1, ?, ?)")
+    .run(String(company).trim(), atsType, slug, bucketRole, String(evidence).trim()).lastInsertRowid;
   const row = db.prepare("SELECT * FROM company_ats_list WHERE id = ?").get(id);
   audit(db, adminUserId, AUDIT.ADD, `${atsType}:${slug}`, null, row);
   return { ok: true, company: row };

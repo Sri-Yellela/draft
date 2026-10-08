@@ -4486,6 +4486,15 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         INSERT OR IGNORE INTO board_policy (id) VALUES (1);
       `,
     },
+    {
+      // D80 (owner, 10-09): WHY IS THIS COMPANY HERE — the evidence stored with each configured company, so any
+      // company's presence can be explained ("hn 2026-10, 4 months hiring; probe: 12 in-scope, 75% <= 120d").
+      // services/companyList.js addCompany refuses an add without it.
+      id: "147_company_evidence",
+      sql: `
+        ALTER TABLE company_ats_list ADD COLUMN evidence TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
