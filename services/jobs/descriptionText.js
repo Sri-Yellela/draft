@@ -39,6 +39,13 @@ export function registerDescriptionBasis(db) {
   db.function(BASIS_FN, { deterministic: true }, (d) => descriptionBasis(d));
   fnRegistered.add(db);
 }
+// D84 F3: description_full (migration 150) is read where the column exists.
+const fullCache = new WeakMap();
+function fullCol(db) {
+  if (!fullCache.has(db)) fullCache.set(db, db.prepare("PRAGMA table_info(scraped_jobs)").all().some(c => c.name === "description_full"));
+  return fullCache.get(db) ? ", description_full" : "";
+}
+
 // ⛔ THE BRAKE (D53's sweep): a backfill refuses to write more rows than this in one call.
 export const DESCRIPTION_BACKFILL_CEILING = 5000;
 
@@ -47,7 +54,7 @@ export function descriptionBasis(description) {
 }
 
 /** Every derived column for one stored description. Pure. */
-export function deriveDescriptionColumns(description) {
+export function deriveDescriptionColumns(description, descriptionFull = null) {
   const n = normalizePosting(description);
   const fields = { ...n.fields };
   if (fields.payRange) {
@@ -57,7 +64,9 @@ export function deriveDescriptionColumns(description) {
   // ⛔ D71 · pay stated anywhere in the text — the label block first, then this scan over the WHOLE
   // text. `paySource` is recorded so "not stated" can only ever mean "the whole text was read".
   if (!fields.pay) {
-    const prose = payFromText(n.text ?? description);
+    // ⛔ D84 F3: the FULL text when the crawl kept one — the capped description cut the middle, and 419 of
+    // 1,557 measured postings had their only stated pay there (10 of the rehearsal's 13 were never captured).
+    const prose = payFromText(descriptionFull ?? n.text ?? description);
     if (prose) {
       fields.pay = prose;
       const label = payLocationLabel(prose.locations);
@@ -89,9 +98,9 @@ const WRITE_SQL = `UPDATE scraped_jobs SET description_text = @description_text,
 
 /** Read one posting's description and write its derived columns. Returns the columns, or null. */
 export function refreshDescriptionText(db, jobId) {
-  const row = db.prepare("SELECT job_id, description FROM scraped_jobs WHERE job_id = ?").get(jobId);
+  const row = db.prepare(`SELECT job_id, description${fullCol(db)} FROM scraped_jobs WHERE job_id = ?`).get(jobId);
   if (!row) return null;
-  const cols = deriveDescriptionColumns(row.description);
+  const cols = deriveDescriptionColumns(row.description, row.description_full ?? null);
   db.prepare(WRITE_SQL).run({ ...cols, job_id: row.job_id });
   return cols;
 }
@@ -106,9 +115,9 @@ export function refreshDescriptionText(db, jobId) {
 export function backfillDescriptionText(db, { dryRun = true, ceiling = DESCRIPTION_BACKFILL_CEILING, limit = null, log = null } = {}) {
   registerDescriptionBasis(db);
   const due = db.prepare(`SELECT COUNT(*) AS n FROM scraped_jobs WHERE ${DESCRIPTION_STALE_SQL}`).get().n;
-  const rows = db.prepare(`SELECT job_id, description FROM scraped_jobs WHERE ${DESCRIPTION_STALE_SQL} ORDER BY is_active DESC, rowid${limit ? " LIMIT ?" : ""}`)
+  const rows = db.prepare(`SELECT job_id, description${fullCol(db)} FROM scraped_jobs WHERE ${DESCRIPTION_STALE_SQL} ORDER BY is_active DESC, rowid${limit ? " LIMIT ?" : ""}`)
     .all(...(limit ? [limit] : []));
-  const derived = rows.map(r => ({ job_id: r.job_id, ...deriveDescriptionColumns(r.description) }));
+  const derived = rows.map(r => ({ job_id: r.job_id, ...deriveDescriptionColumns(r.description, r.description_full ?? null) }));
   const requirements = { citizen_only: 0, us_person: 0, clearance: 0, polygraph: 0 };
   for (const d of derived) {
     if (d.req_citizenship === "citizen_only") requirements.citizen_only++;

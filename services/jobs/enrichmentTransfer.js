@@ -51,6 +51,7 @@ import { parseJsonl, validateColumn } from '../../shared/enrichmentRules.js';
 export { parseJsonl, validateColumn };
 import { exportPostingText, EXPORT_TEXT_CAP } from '../../shared/enrichmentChunks.js';
 import { isPlaceholder, importedColumns, markImported, parseProvenance } from './enrichmentProvenance.js';
+import { excludeRetiring, orderForEnrichment } from './enrichmentScope.js';
 import {
   openBatch, closeBatch, captureBefore, recordBatchRow, columnChanges, batchProvenanceAvailable, optionalTracked,
 } from './enrichmentBatches.js';
@@ -97,6 +98,12 @@ export function buildExport(db, {
     selectionMeta = {
       prefilterCount: sel.prefilterCount, totalMatched: sel.totalMatched, gatedOut: sel.gatedOut,
     };
+    if (fullText) {
+      // ⛔ D84 F8: never the rows the enforced board policy will retire; unscored rows first, then the newest.
+      const { keep, retiring } = excludeRetiring(db, picked);
+      picked = orderForEnrichment(db, keep);
+      selectionMeta.retiringExcluded = retiring;
+    }
   } else {
     // The escape hatch: export rows regardless of whether they need work — the shape a re-import
     // of CORRECTIONS needs, since a row being corrected is by definition already enriched and
@@ -131,17 +138,28 @@ export function buildExport(db, {
   // crawl; else the stored text when it is already whole), cleaned of boilerplate and capped at 12,000 characters
   // from the END. A row whose only text still carries the old cap's "[…]" is HELD BACK — counted, not exported —
   // until the next crawl stores its full text. Each row says whether it was cut (`truncated`) and by how much.
-  let heldForFullText = 0;
+  let heldForFullText = 0, dedupedRows = 0;
   const rows = [];
+  // ⛔ D84 F7: a multi-location company posts one role many times with IDENTICAL text. One representative per distinct
+  // title + text travels, with `applies_to` naming every other row that shares it (each with its own content_hash, for
+  // the import's staleness check); the import expands it after verifying the texts really are identical.
+  const repByText = new Map();
   for (const id of ids) {
     const r = byId.get(id);
     let text = null;
     if (fullText) {
       text = exportPostingText(r.description_full ?? r.description_text ?? r.description);
       if (!text) { heldForFullText++; continue; }
+      const key = computeContentHash(r.title, r.description_full ?? r.description);
+      const rep = repByText.get(key);
+      if (rep) {
+        (rep.applies_to ??= []).push({ job_id: r.job_id, content_hash: computeContentHash(r.title, r.description) });
+        dedupedRows++;
+        continue;
+      }
       if (limit != null && rows.length >= Number(limit)) continue;
     }
-    rows.push({
+    const out = {
       job_id: r.job_id,
       // Recomputed, not read from the column. On a never-enriched row content_hash IS NULL, and
       // exporting null would disable the staleness interlock for precisely the rows most likely to
@@ -152,7 +170,9 @@ export function buildExport(db, {
       ...(text ? { truncated: text.truncated, chars_sent: text.chars_sent, chars_total: text.chars_total } : {}),
       source: { ...Object.fromEntries(SOURCE_FIELDS.map(f => [f, r[f] ?? null])), ...(text ? { description: text.text } : {}) },
       enrichment: Object.fromEntries(ENRICHMENT_COLUMNS.map(c => [c, r[c] ?? null])),
-    });
+    };
+    rows.push(out);
+    if (fullText) repByText.set(computeContentHash(r.title, r.description_full ?? r.description), out);
   }
 
   return {
@@ -161,7 +181,7 @@ export function buildExport(db, {
       exportedAt: Math.floor(Date.now() / 1000),
       count: rows.length,
       candidatesOnly, maxLastSeenDays, source, limit,
-      heldForFullText, textCap: fullText ? EXPORT_TEXT_CAP : null,
+      heldForFullText, dedupedRows, textCap: fullText ? EXPORT_TEXT_CAP : null,
       ...selectionMeta,
       writableColumns: ENRICHMENT_COLUMNS,
       readOnlyColumns: SOURCE_FIELDS,
@@ -216,7 +236,12 @@ export function planImport(db, jsonlText, { overwrite = false, allowStale = fals
   // D84 F5: the per-column table — already filled · supplied · would be written · replacing a placeholder.
   const columns = Object.fromEntries(ENRICHMENT_COLUMNS.map(c => [c, { alreadyFilled: 0, supplied: 0, wouldWrite: 0, replacingPlaceholder: 0 }]));
 
-  for (const { line, obj } of rows) {
+  // ⛔ D84 F7: a representative row's `applies_to` expands to every row that shares its text — each with ITS OWN
+  // content_hash (the staleness check applies per row), and refused unless its text really is identical (below).
+  const expanded = rows.flatMap(({ line, obj }) => [{ line, obj }, ...(Array.isArray(obj?.applies_to) ? obj.applies_to : [])
+    .map(m => ({ line, via: obj.job_id, obj: { job_id: m?.job_id, content_hash: m?.content_hash, enrichment: obj.enrichment,
+      ...(obj.truncated === true ? { truncated: true } : {}) } }))]);
+  for (const { line, obj, via } of expanded) {
     const jobId = obj?.job_id;
     if (typeof jobId !== 'string' || !jobId) {
       rejected.push({ line, jobId: null, kind: 'no_job_id', error: 'row has no job_id' });
@@ -237,6 +262,14 @@ export function planImport(db, jsonlText, { overwrite = false, allowStale = fals
     if (!current) {
       rejected.push({ line, jobId, kind: 'unknown_job_id', error: 'no such job_id on the board — never inserted' });
       continue;
+    }
+    if (via) {
+      const rep = findRow.get(via);
+      if (!rep || rep.title !== current.title || rep.description !== current.description) {
+        rejected.push({ line, jobId, kind: 'not_identical',
+          error: `shares ${via}'s enrichment, but its title or text is not identical to ${via}'s — refused, never guessed` });
+        continue;
+      }
     }
 
     // U3.4 — staleness. The hash of the row's CURRENT text vs the hash the file was exported at.

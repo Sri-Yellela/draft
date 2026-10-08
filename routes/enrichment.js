@@ -30,6 +30,7 @@ import {
 import { buildExport, toJsonl, planImport, applyImport } from "../services/jobs/enrichmentTransfer.js";
 import { listBatches, getBatch, revertBatch, revertPreview } from "../services/jobs/enrichmentBatches.js";
 import { IMPORT_ROW_CAP } from "../shared/enrichmentRules.js";
+import { excludeRetiring } from "../services/jobs/enrichmentScope.js";
 
 // A single manual pass is bounded. The cron's own batch is 25; a manual trigger may ask for more,
 // but not for "everything" in one request — an HTTP handler that runs for 837 sequential model
@@ -364,6 +365,8 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
     try {
       const opts = enrichSelectionOptions();
       const sel = selectCandidates(db, opts);
+      // D84 F8: the backlog leaves out what the enforced board policy will retire — the export does the same.
+      const { keep: toEnrich, retiring } = excludeRetiring(db, sel.candidates);
       const coverage = columnCoverage(db);
       // The salary and eligibility bars are "any of the group", which per-column counts cannot give.
       const g = db.prepare(`SELECT COUNT(*) n,
@@ -397,7 +400,8 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
       const sources = db.prepare(`SELECT source, COUNT(*) n FROM scraped_jobs
         WHERE is_active = 1 AND source IS NOT NULL AND TRIM(source) != '' GROUP BY source ORDER BY n DESC`).all();
       res.json({
-        backlog: sel.totalMatched,
+        backlog: toEnrich.length,
+        retiringExcluded: retiring,
         freshnessGateDays: opts.maxLastSeenDays,
         noDescription: sel.noDescription,
         board: coverage.total,

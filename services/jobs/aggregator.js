@@ -324,6 +324,11 @@ function getCacheStmts(db) {
           direct_apply              = excluded.direct_apply,
           description               = excluded.description,
           ${full ? 'description_full          = excluded.description_full,   -- D84 F1: a source column, the crawl\'s copy wins' : ''}
+          ${full && cols.has('description_basis') ? `-- D84 F3: the description pass reads pay from the FULL text, but its freshness hash covers only the
+          -- description; so when the crawl brings (or changes) the full text, the basis is cleared and the 10-minute
+          -- pass re-reads the posting. (scraped_jobs.* here is the row BEFORE this update.)
+          description_basis = CASE WHEN excluded.description_full IS NOT scraped_jobs.description_full
+                                   THEN NULL ELSE scraped_jobs.description_basis END,` : ''}
           company_icon_url          = excluded.company_icon_url,
           via                       = excluded.via,
           collar                    = excluded.collar,
