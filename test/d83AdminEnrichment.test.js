@@ -95,6 +95,13 @@ test("Apply unlocks only for the exact file of a clean dry run, and re-locks whe
   assert.match(setFile, /setOverwrite\(false\); setAllowStale\(false\)/, "the expert switches reset with the file");
 });
 
+test("the projected coverage is drawn only BEFORE an apply — after it, the reloaded numbers are the after", () => {
+  // Found on the 10-08 screenshots: after Apply the bars read "1.3% → 2.6%", the gain counted twice.
+  assert.match(PAGE, /const projecting = Boolean\(plan\) && !applied;/);
+  assert.match(PAGE, /const projectedGain = \(g\) => \(projecting \?/);
+  assert.match(PAGE, /\{skillsGroup && projecting && \(/);
+});
+
 test("the confirm states exactly how many postings it writes, and that it can be undone", () => {
   assert.match(PAGE, /This writes <b>\{num\(plan\?\.wouldWrite\)\} postings<\/b>\. All or nothing\. You can undo it/);
 });
@@ -246,7 +253,9 @@ test("Clean the text removes HTML and boilerplate, keeps pay / eligibility / wor
     `<p>This role is hybrid, three days in our NYC office.</p>` +
     `<p>Acme is an equal opportunity employer. We consider applicants without regard to race, religion or age.</p>` +
     `<ul><li>401(k) matching</li><li>Health, dental and vision insurance</li></ul>`;
-  const { text, removedParagraphs } = cleanPostingText(raw);
+  const { text, removedParagraphs, removed } = cleanPostingText(raw);
+  assert.equal(removed.length, removedParagraphs, "what was left out is listed, for audit");
+  assert.ok(removed.some((p) => /equal opportunity/i.test(p)));
   assert.doesNotMatch(text, /<[a-z]/i, "no HTML");
   for (const keep of ["5+ years of Go", "Kubernetes in production", "$150,000 - $190,000", "unable to sponsor a visa", "hybrid, three days"]) {
     assert.ok(text.includes(keep), `kept: ${keep}`);

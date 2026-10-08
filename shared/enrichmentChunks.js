@@ -90,7 +90,7 @@ const ABOUT_US = /^(about (us|the company|the team\b(?! you)|[A-Z][\w&.'-]*( [A-
 /**
  * Removes HTML and recognised boilerplate paragraphs (equal opportunity, benefits, about-us). ⛔ No truncation, and a
  * paragraph that mentions pay, eligibility or where the work happens is always kept.
- * @returns {{ text: string, removedParagraphs: number }}
+ * @returns {{ text: string, removedParagraphs: number, removed: string[] }} — `removed` lists what was left out, for audit
  */
 export function cleanPostingText(raw) {
   let s = String(raw ?? "");
@@ -103,15 +103,14 @@ export function cleanPostingText(raw) {
   }
   const paras = s.replace(/\r\n?/g, "\n").replace(/[ \t ]+/g, " ").split(/\n\s*\n|\n(?=\s*[-•*] )/)
     .map((p) => p.split("\n").map((l) => l.trim()).filter(Boolean).join("\n")).filter(Boolean);
-  const kept = [];
-  let removedParagraphs = 0;
+  const kept = [], removed = [];
   for (const p of paras) {
     const boiler = !PROTECTED.test(p) && (
       BOILERPLATE.some((re) => re.test(p)) ||
       (ABOUT_US.test(p) && !ROLE_WORDS.test(p)));
-    if (boiler) removedParagraphs++; else kept.push(p);
+    (boiler ? removed : kept).push(p);
   }
-  return { text: kept.join("\n\n"), removedParagraphs };
+  return { text: kept.join("\n\n"), removedParagraphs: removed.length, removed };
 }
 
 // ── Split ─────────────────────────────────────────────────────────────────────────────────────────────────────────

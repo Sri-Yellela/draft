@@ -291,7 +291,9 @@ export function EnrichmentTab() {
   const plan = dry && dry.forText === importText ? dry.plan : null;
   const refusals = plan ? refusalCounts(plan.rejected) : [];
   const skillsGroup = ov?.groups.find((g) => g.key === "skills");
-  const projectedGain = (g) => (plan ? Math.max(0, ...g.columns.map((c) => plan.perColumn?.[c] || 0)) : 0);
+  // The projection is a dry run's "after" — once applied, the reloaded numbers ARE the after, so it is not added again.
+  const projecting = Boolean(plan) && !applied;
+  const projectedGain = (g) => (projecting ? Math.max(0, ...g.columns.map((c) => plan.perColumn?.[c] || 0)) : 0);
   const backlog = ov?.backlog;
   const scoredShare = ov ? pctOf(ov.newPostings.scored, ov.newPostings.total) : null;
 
@@ -319,7 +321,7 @@ export function EnrichmentTab() {
               <NumberBox value={backlog ? `≈ ${Math.ceil(backlog / ov.importRowCap)}` : "0"} label={`batches of ${ov.importRowCap} to clear it`} good={!backlog}/>
             </div>
             <p style={{ font: `800 italic 11.5px/1 ${LOGO_FACE}`, color: C.INK_FAINT, margin: "0 0 8px" }}>
-              How full each column is, across the active board ({num(ov.board)} postings){plan ? " — and after this import" : ""}
+              How full each column is, across the active board ({num(ov.board)} postings){projecting ? " — and after this import" : ""}
             </p>
             {ov.groups.map((g) => <CoverageBar key={g.key} label={g.label} filled={g.filled} total={g.total} gain={projectedGain(g)}/>)}
           </>
@@ -383,7 +385,7 @@ export function EnrichmentTab() {
             </div>
             <div style={sub}>
               <h5 style={{ font: `800 italic 13px ${LOGO_FACE}`, color: C.INK, margin: "0 0 4px" }}>How each piece works</h5>
-              <ol style={{ paddingLeft: 18, fontSize: 12.5, color: C.INK_MUTED, margin: "0 0 6px" }}>
+              <ol style={{ listStyle: "decimal", paddingLeft: 20, fontSize: 12.5, color: C.INK_MUTED, margin: "0 0 6px" }}>
                 <li><b>Download</b> the piece — it lands in your Downloads folder.</li>
                 <li>In a chat with a model (not inside draft), <b>attach the file</b> and paste the instructions below.</li>
                 <li><b>Save the model's reply as a file</b> (for example <code>piece-01.reply.jsonl</code>).</li>
@@ -419,7 +421,7 @@ export function EnrichmentTab() {
                   {p.check && !p.check.checked && (
                     <div style={{ ...callout(C.WARNING), marginTop: 6 }}>
                       <b>Not accepted yet.</b> {p.check.valid} of {p.check.total} rows are valid and kept. These need another try:
-                      <ul style={{ margin: "4px 0", paddingLeft: 18 }}>
+                      <ul style={{ listStyle: "disc", margin: "4px 0", paddingLeft: 20 }}>
                         {p.check.problems.slice(0, 8).map((x, k) => <li key={k}><code>{x.jobId ?? `line ${x.line}`}</code> — {x.why}</li>)}
                         {p.check.problems.length > 8 && <li>… and {p.check.problems.length - 8} more</li>}
                       </ul>
@@ -489,7 +491,7 @@ export function EnrichmentTab() {
                 ))}
               </tbody>
             </table>
-            {skillsGroup && (
+            {skillsGroup && projecting && (
               <div style={callout(C.SUCCESS)}>
                 <b>Skills coverage {pctOf(skillsGroup.filled, skillsGroup.total)}% → {pctOf(skillsGroup.filled + projectedGain(skillsGroup), skillsGroup.total)}% if you apply</b>
                 {" "}(the bars at the top show every column).
