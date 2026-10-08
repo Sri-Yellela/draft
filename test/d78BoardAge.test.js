@@ -104,5 +104,5 @@ test("⛔ D78 A: the crawl runs the age gate BEFORE the hash check, and records 
   const gate = src.indexOf("const age = ageGate(db, job, jobId");
   const hash = src.indexOf("const contentHash = fingerprintJob(job);");
   assert.ok(gate > 0 && hash > gate, "the gate precedes the hash check");
-  assert.match(src, /tooOld, agedOut, wouldAgeOut \},/);
+  assert.match(src, /tooOld, agedOut, wouldAgeOut[,} ]/);
 });

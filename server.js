@@ -45,6 +45,7 @@ import { createSlugHarvestRouter } from "./routes/slugHarvest.js";
 import { createCrawlerWorkerRouter, createCrawlerAdminRouter } from "./routes/crawler.js";
 import { runSchedule as runCrawlerSchedule } from "./services/crawlerQueue.js";
 import { readPolicy as readBoardPolicy, setPolicy as setBoardPolicy, sweepAged } from "./services/jobs/boardAge.js";
+import { sweepScope } from "./services/jobs/boardScope.js";
 import { createRailwayHookRouter, deployEventsSummary } from "./routes/railwayHook.js";
 import { readGauge, projectTranche, trancheGate, AMBER_AT as DISK_AMBER_AT, RED_AT as DISK_RED_AT } from "./services/diskGauge.js";
 import { createJobTagsRouter } from "./routes/jobTags.js";
@@ -7588,7 +7589,7 @@ app.get("/api/admin/deploy-events", requireAdmin, (_req, res) => res.json(deploy
 // (no redeploy) · POST /sweep = run it — dry unless { apply: true, expectCandidates: <the dry run's count> }, and
 // past the 30% ceiling only with { force: true }. Applied postings are always kept; nothing is deleted.
 app.get("/api/admin/board-policy", requireAdmin, (_req, res) => {
-  res.json({ policy: readBoardPolicy(db), dryRun: sweepAged(db, { dryRun: true }) });
+  res.json({ policy: readBoardPolicy(db), dryRun: sweepAged(db, { dryRun: true }), scopeDryRun: sweepScope(db, { dryRun: true }) });
 });
 app.put("/api/admin/board-policy", requireAdmin, (req, res) => {
   try { res.json({ policy: setBoardPolicy(db, req.body || {}, { by: req.user?.id ?? null }) }); }
@@ -7603,14 +7604,34 @@ app.post("/api/admin/board-policy/sweep", requireAdmin, (req, res) => {
       .run(req.user.id, "board_age_sweep", "scraped_jobs", JSON.stringify({ active: e.active }), JSON.stringify(e)) });
   res.status(out.refused ? 409 : 200).json({ applied: !out.refused, ...out });
 });
+// ⛔ D78 B: the same contract for computer-science scope — dry unless { apply: true, expectCandidates }, past the
+// ceiling only with { force: true }; applied postings kept; retired with reason out_of_scope, never deleted.
+app.post("/api/admin/board-policy/scope-sweep", requireAdmin, (req, res) => {
+  const dry = sweepScope(db, { dryRun: true });
+  if (req.body?.apply !== true) return res.json({ applied: false, ...dry, note: `Nothing changed. POST again with apply: true and expectCandidates: ${dry.candidates}.` });
+  if (Number(req.body.expectCandidates) !== dry.candidates) return res.status(409).json({ applied: false, ...dry, error: `expectCandidates must equal the dry run's ${dry.candidates}` });
+  const out = sweepScope(db, { dryRun: false, force: req.body.force === true,
+    log: (e) => db.prepare("INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json) VALUES (?, ?, ?, ?, ?)")
+      .run(req.user.id, "board_scope_sweep", "scraped_jobs", JSON.stringify({ active: e.active }), JSON.stringify(e)) });
+  res.status(out.refused ? 409 : 200).json({ applied: !out.refused, ...out });
+});
 // D78 A: the daily sweep — 03:30 UTC, after the 03:00 cleanup, and ONLY once the owner switched age_enforce on.
 // Braked (sweepAged's 30% ceiling, never forced from here); retire, never delete; applied postings kept.
 cron.schedule("30 3 * * *", () => {
+  // ⛔ Each sweep is guarded on its own: no early return, so the age switch being off never skips the scope sweep.
   try {
-    if (!readBoardPolicy(db).age_enforce) return;
-    const r = sweepAged(db, { dryRun: false });
-    console.log(`[board-age] daily sweep: ${r.refused ? `REFUSED — ${r.reason}` : `retired ${r.retired} of ${r.active} active (past ${r.limitDays} days)`}`);
+    if (readBoardPolicy(db).age_enforce) {
+      const r = sweepAged(db, { dryRun: false });
+      console.log(`[board-age] daily sweep: ${r.refused ? `REFUSED — ${r.reason}` : `retired ${r.retired} of ${r.active} active (past ${r.limitDays} days)`}`);
+    }
   } catch (e) { console.error("[board-age] daily sweep failed:", e.message); }
+  // D78 B: the scope sweep, in the same tick, ONLY once the owner switched scope_enforce on. Braked the same way.
+  try {
+    if (readBoardPolicy(db).scope_enforce) {
+      const r = sweepScope(db, { dryRun: false });
+      console.log(`[board-scope] daily sweep: ${r.refused ? `REFUSED — ${r.reason}` : `retired ${r.retired} of ${r.active} active (out of scope, v${r.version})`}`);
+    }
+  } catch (e) { console.error("[board-scope] daily sweep failed:", e.message); }
 });
 // D29 · the board's own tags: coverage, and the owner's export -> tag -> import (no model call, D17).
 app.use("/api/admin/job-tags", requireAdmin, createJobTagsRouter(db, requireAdmin));

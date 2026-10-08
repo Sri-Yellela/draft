@@ -64,9 +64,10 @@ export function agedSql(limitDays, now) {
     AND NOT EXISTS (SELECT 1 FROM job_applications ja WHERE ja.job_id = sj.job_id)`;
 }
 
-/** Prepared statements for the crawl's gate — one set per connection. */
+/** Prepared statements for the crawl's gates — one set per connection. Shared with boardScope.js (D78 B):
+ *  the applied exemption and the retire-and-record step are written once. */
 const STMTS = new WeakMap();
-function stmts(db) {
+export function boardStmts(db) {
   let s = STMTS.get(db);
   if (s) return s;
   s = {
@@ -87,7 +88,7 @@ function stmts(db) {
 export function ageGate(db, job, jobId, { exists, now, policy = readPolicy(db) }) {
   const a = ageOf({ posted_at: job.posted_at }, { now, limitDays: policy.age_limit_days });
   if (!a.tooOld) return "keep";
-  const s = stmts(db);
+  const s = boardStmts(db);
   const row = { job_id: jobId, title: job.title || "", company: job.company || "", source: job.source || "", rejected_at: now };
   if (!exists) { s.reject.run({ ...row, reason: "too_old" }); return "rejected_new"; }
   if (s.applied.get(jobId, jobId)) return "keep";              // ⛔ an application keeps its posting
@@ -118,13 +119,18 @@ export function sweepAged(db, { dryRun = true, force = false, now = Math.floor(D
     log?.({ kind: "age_sweep", refused: true, candidates: rows.length, active, share });
     return { ...base, refused: true, reason: `${rows.length} of ${active} (${Math.round(share * 100)}%) is above the ${Math.round(CEILING_SHARE * 100)}% ceiling — run it with force once you have read the dry run` };
   }
-  const s = stmts(db);
+  retireRows(db, rows, "aged_out", now);
+  log?.({ kind: "age_sweep", retired: rows.length, active, share });
+  return { ...base, retired: rows.length };
+}
+
+/** ⛔ RETIRE, NEVER DELETE: is_active = 0 and a rejected_jobs row whose reason is the undo. One transaction. */
+export function retireRows(db, rows, reason, now = Math.floor(Date.now() / 1000)) {
+  const s = boardStmts(db);
   db.transaction(() => {
     for (const r of rows) {
       s.retire.run(r.job_id);
-      s.reject.run({ job_id: r.job_id, title: r.title || "", company: r.company || "", source: r.source || "", reason: "aged_out", rejected_at: now });
+      s.reject.run({ job_id: r.job_id, title: r.title || "", company: r.company || "", source: r.source || "", reason, rejected_at: now });
     }
   })();
-  log?.({ kind: "age_sweep", retired: rows.length, active, share });
-  return { ...base, retired: rows.length };
 }
