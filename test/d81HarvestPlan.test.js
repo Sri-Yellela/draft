@@ -50,10 +50,11 @@ test("⛔ D81: serpSearch sends the place, sends chips only when asked, and the 
   axios.get = async (url, opts) => { seen.push(opts.params); return { data: {} }; };
   try {
     await serpSearch("backend engineer");
-    await serpSearch("backend engineer", "Austin, TX", { chips: "date_posted:week" });
+    await serpSearch("backend engineer", "Austin, TX", { chips: "date_posted:month" });
   } finally { axios.get = saved; }
-  assert.deepEqual([seen[0].location, seen[0].chips, seen[0].num, seen[0].start], ["United States", undefined, undefined, undefined]);
-  assert.deepEqual([seen[1].location, seen[1].chips, seen[1].hl, seen[1].gl], ["Austin, TX", "date_posted:week", "en", "us"]);
+  assert.deepEqual([seen[0].location, seen[0].chips, seen[0].num, seen[0].start], ["United States", "date_posted:week", undefined, undefined],
+    "D81: chips is on by default (the 10-08 experiment); num / start never");
+  assert.deepEqual([seen[1].location, seen[1].chips, seen[1].hl, seen[1].gl], ["Austin, TX", "date_posted:month", "en", "us"]);
 });
 
 test("⛔ D81: a new pair is validated by the D80 probe, and the export carries in-scope roles and recency", async () => {

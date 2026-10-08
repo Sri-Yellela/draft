@@ -149,9 +149,12 @@ export function poolFromResults(data) {
 //
 // Through the plugin's googleJobs — the one place that calls SerpApi's search, which pins hl=en&gl=us AFTER the
 // caller's params (an unpinned call came back in Spanish). Location: the query's metro, else "United States".
-// NO num/start: D4's search #1 with the live plugin's chips/num/start came back "Fully empty". `chips` is sent
-// only when HARVEST_CHIPS says so — ⛔ D81's freshness experiment decides (scripts/d81ChipsExperiment.mjs).
-export const HARVEST_CHIPS = null;
+// ⛔ NEVER num/start: D4's search #1 with the live plugin's chips/num/start came back "Fully empty".
+// ✅ D81's freshness experiment (scripts/d81ChipsExperiment.mjs, production 2026-10-08 03:40Z, 2 searches):
+// "backend engineer" without chips → 10 jobs, 2 ATS links; WITH chips "date_posted:week" alone → 10 jobs,
+// 3 ATS links, en/us. So chips was never what emptied D4's search — and a company with a posting from THIS
+// WEEK is hiring now. Every harvest search sends it.
+export const HARVEST_CHIPS = "date_posted:week";
 export async function serpSearch(q, location = NATIONWIDE, { chips = HARVEST_CHIPS } = {}) {
   return googleJobs({ q, location: location || NATIONWIDE, ...(chips ? { chips } : {}) }, { timeout: 20000 });
 }
