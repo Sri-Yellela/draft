@@ -114,6 +114,13 @@ function sourcePriority(source) {
 // the previous AND current crawl (2 consecutive misses).
 const PRUNE_AFTER_MISSED_CRAWLS = 2;
 
+// ⛔ D82 A: AND at least this long since the row was last seen. The count alone is a rule about
+// CADENCE, not about the posting: at one crawl a day "two missed crawls" meant ~48 h, but at four a
+// day it means twelve hours — a short outage on a company's board (or a half-failed fetch the
+// plugin swallowed) would then retire live postings. Retirement needs BOTH: two successful crawls
+// that did not see it, and two days of not seeing it. Seconds, like updated_at.
+const RETIRE_AFTER_UNSEEN_SECONDS = 48 * 3600;
+
 // Content hash used to skip re-upserting postings that haven't changed since the last crawl
 // of their OWN source. Unrelated to the cross-source `fingerprint` column/computeFingerprint()
 // below — this one is per-row change detection ("did source X's copy of job Y change"), that
@@ -793,8 +800,10 @@ async function searchJobs({ query = '', location = '', country = 'us', page = 1,
  * @param {import('better-sqlite3').Database} db
  * @param {import('@anthropic-ai/sdk').default | null} [anthropic] UNUSED since D17 (A80 V4) — it
  *   fed the background enrichment drain, which no longer runs. Kept so callers need not change.
+ * @param {{ sources?: object[] }} [opts] `sources` replaces the registered plugins — for tests that
+ *   drive whole crawls through the real prune and watermark path (test/d82RetireRule.test.js).
  */
-async function cacheJobs(db, anthropic = null) {
+async function cacheJobs(db, anthropic = null, opts = {}) {
   try {
     const atsCos = db.prepare("SELECT * FROM company_ats_list WHERE active = 1").all();
     if (!atsCos.length) {
@@ -804,7 +813,7 @@ async function cacheJobs(db, anthropic = null) {
 
     const companyMap = groupCompaniesByAtsType(atsCos);
 
-    const atsSources = SOURCES.filter(s => s.isConfigured() && ATS_SOURCE_NAMES.has(s.name));
+    const atsSources = (opts.sources || SOURCES).filter(s => s.isConfigured() && ATS_SOURCE_NAMES.has(s.name));
 
     // ── Prepared statements (reused across all source loops, via getCacheStmts' WeakMap
     // cache — see its definition and comment above) ───────────────────────────────────────
@@ -827,11 +836,13 @@ async function cacheJobs(db, anthropic = null) {
         AND valid_through IS NOT NULL AND valid_through < ?
     `);
 
-    // Mark rows inactive when absent from PRUNE_AFTER_MISSED_CRAWLS consecutive crawls.
+    // Mark rows inactive when absent from PRUNE_AFTER_MISSED_CRAWLS consecutive crawls AND unseen
+    // for RETIRE_AFTER_UNSEEN_SECONDS (D82 A — time, not only a count).
     // updated_at < prevWatermark ⟹ row was absent from both previous and current crawl.
+    // updated_at < now - RETIRE_AFTER_UNSEEN_SECONDS ⟹ and it has not been seen for 48 h.
     const markStale = db.prepare(`
       UPDATE scraped_jobs SET is_active = 0
-      WHERE source = ? AND is_active = 1 AND updated_at < ?
+      WHERE source = ? AND is_active = 1 AND updated_at < ? AND updated_at < ?
     `);
 
     const upsertSyncState = db.prepare(`
@@ -1009,12 +1020,14 @@ async function cacheJobs(db, anthropic = null) {
       // 1. valid_through expiry: listing's own declared end date has passed.
       const byDate = markExpiredByDate.run(source.name, now);
 
-      // 2. Stale-seen prune: row absent from PRUNE_AFTER_MISSED_CRAWLS consecutive crawls.
+      // 2. Stale-seen prune: row absent from PRUNE_AFTER_MISSED_CRAWLS consecutive SUCCESSFUL
+      //    crawls AND unseen for RETIRE_AFTER_UNSEEN_SECONDS (D82 A).
       //    After upsert, seen rows have updated_at = now (> prevWatermark).
-      //    Rows with updated_at < prevWatermark were absent from both previous AND current crawl.
+      //    Rows with updated_at < prevWatermark were absent from both previous AND current crawl —
+      //    "successful" because the watermark only advances below, after a non-empty fetch.
       let byStale = { changes: 0 };
       if (prevWatermark !== null) {
-        byStale = markStale.run(source.name, prevWatermark);
+        byStale = markStale.run(source.name, prevWatermark, now - RETIRE_AFTER_UNSEEN_SECONDS);
       }
 
       // Advance watermark only after a successful fetch + upsert.
