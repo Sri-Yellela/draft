@@ -46,6 +46,7 @@ import { createCrawlerWorkerRouter, createCrawlerAdminRouter } from "./routes/cr
 import { runSchedule as runCrawlerSchedule } from "./services/crawlerQueue.js";
 import { readPolicy as readBoardPolicy, setPolicy as setBoardPolicy, sweepAged } from "./services/jobs/boardAge.js";
 import { sweepScope } from "./services/jobs/boardScope.js";
+import { heatReport } from "./services/companyHeat.js";
 import { createRailwayHookRouter, deployEventsSummary } from "./routes/railwayHook.js";
 import { readGauge, projectTranche, trancheGate, AMBER_AT as DISK_AMBER_AT, RED_AT as DISK_RED_AT } from "./services/diskGauge.js";
 import { createJobTagsRouter } from "./routes/jobTags.js";
@@ -7626,6 +7627,17 @@ app.post("/api/admin/board-policy/scope-sweep", requireAdmin, (req, res) => {
 });
 // D78 A: the daily sweep — 03:30 UTC, after the 03:00 cleanup, and ONLY once the owner switched age_enforce on.
 // Retire, never delete; applied postings kept. No share ceiling (owner, 10-08).
+// ⛔ D80 E: the weekly hiring-heat line — Mondays 05:00, after the crawl. It only REPORTS: dormant companies are
+// proposed in Admin → Companies for the owner to disable; nothing here deactivates anything.
+cron.schedule("0 5 * * 1", () => {
+  try {
+    const h = heatReport(db);
+    const s = h.summary;
+    console.log(`[company-heat] ${s.active} active · hot ${s.hot} · warm ${s.warm} · dormant ${s.dormant} · probation ${s.probation} · ` +
+      `${s.hotShare == null ? "—" : Math.round(s.hotShare * 100) + "%"} with a new in-scope posting in ${h.hotDays} days (target ${Math.round(h.target * 100)}%)` +
+      (h.proposals.length ? ` · PROPOSED for deactivation: ${h.proposals.map((p) => `${p.company} (${p.why})`).join("; ")}` : ""));
+  } catch (e) { console.error("[company-heat] failed:", e.message); }
+});
 cron.schedule("30 3 * * *", () => {
   // ⛔ Each sweep is guarded on its own: no early return, so the age switch being off never skips the scope sweep.
   try {

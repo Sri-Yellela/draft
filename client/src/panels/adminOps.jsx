@@ -9,6 +9,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { api, authContextQuery } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
+import { markStyle } from "../styles/mark.js";
 // The second product is named by the one constant that holds its name (shared/brand.js).
 import { LEGACY_BRAND } from "../../../shared/brand.js";
 import { isAlarm } from "../../../shared/deployEvents.js";
@@ -699,6 +700,8 @@ export function JobDataSection({ theme }) {
 // The growth lever, as a surface. Add = probe the board first (dead / empty / live, with how many
 // postings carry US evidence), then "Add" only for exactly what the probe saw. Disable is reversible.
 // Suggestions are slugs users' captures named that are not configured (A45's harvest, from A62).
+// D80 E: a company's hiring heat, as a mark (D60: never a pill).
+const HEAT_TONE = { hot: C.SUCCESS, warm: C.INK_FAINT, probation: C.INK_FAINT, dormant: C.WARNING };
 export function CompaniesSection({ theme }) {
   const [d, setD] = useState(null);
   const [form, setForm] = useState({ company: "", atsType: "greenhouse", slug: "" });
@@ -760,10 +763,20 @@ export function CompaniesSection({ theme }) {
           ]}/>
         </div>
       )}
+      {d?.heat && (
+        <div data-company-heat style={{ fontSize: 12, marginBottom: 8, color: d.heat.meetsTarget === false ? C.WARNING : theme.text }}>
+          Hiring heat (D80): {d.heat.hot} hot · {d.heat.warm} warm · {d.heat.dormant} dormant · {d.heat.probation} on probation —{" "}
+          {d.heat.hotShare == null ? "nothing to judge yet" : `${Math.round(d.heat.hotShare * 100)}% posted something new in ${d.heat.hotDays} days (target ${Math.round(d.heat.target * 100)}%)`}
+          {d.heat.proposals.length > 0 && <div style={{ color: C.WARNING, marginTop: 4 }}>
+            Proposed for deactivation (no new in-scope posting in {d.heat.dormantDays} days — press Disable to act): {d.heat.proposals.map(p => `${p.company} (${p.why})`).join(" · ")}
+          </div>}
+        </div>
+      )}
       <Table theme={theme} rows={d?.companies || []} empty="No companies configured." cols={[
         { key: "company", label: "company" }, { key: "ats_type", label: "ats" }, { key: "ats_slug", label: "slug" },
         { key: "active_rows", label: "on board", right: true, render: r => num(r.active_rows) },
         { key: "last_new_at", label: "last new posting", render: r => ago(r.last_new_at) },
+        { key: "heat", label: "heat", render: r => r.heat ? <span style={markStyle(HEAT_TONE[r.heat])}>{r.heat}</span> : "—" },
         { key: "active", label: "", render: r => <button type="button" style={{ fontSize: 11, cursor: "pointer", color: r.active ? theme.text : C.WARNING }}
             onClick={() => toggle(r)}>{r.active ? "Disable…" : "Enable…"}</button> },
       ]}/>
