@@ -44,6 +44,7 @@ import { createCompaniesRouter } from "./routes/companies.js";
 import { createSlugHarvestRouter } from "./routes/slugHarvest.js";
 import { createCrawlerWorkerRouter, createCrawlerAdminRouter } from "./routes/crawler.js";
 import { runSchedule as runCrawlerSchedule } from "./services/crawlerQueue.js";
+import { readPolicy as readBoardPolicy, setPolicy as setBoardPolicy, sweepAged } from "./services/jobs/boardAge.js";
 import { createRailwayHookRouter, deployEventsSummary } from "./routes/railwayHook.js";
 import { readGauge, projectTranche, trancheGate, AMBER_AT as DISK_AMBER_AT, RED_AT as DISK_RED_AT } from "./services/diskGauge.js";
 import { createJobTagsRouter } from "./routes/jobTags.js";
@@ -4466,6 +4467,24 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE crawler_state ADD COLUMN worker_last_call TEXT;
       `,
     },
+    {
+      // D78 (owner, 10-09): THE BOARD'S POLICY — one row, changed from Admin with no redeploy. The age limit
+      // (120 days) applies to NEW postings at once (a too-old posting is never written); retiring EXISTING ones
+      // (age_enforce) and the CS-only scope (scope_enforce) start OFF — each waits for the owner's go after its
+      // dry run. services/jobs/boardAge.js reads it.
+      id: "146_board_policy",
+      sql: `
+        CREATE TABLE IF NOT EXISTS board_policy (
+          id             INTEGER PRIMARY KEY CHECK (id = 1),
+          age_limit_days INTEGER NOT NULL DEFAULT 120,
+          age_enforce    INTEGER NOT NULL DEFAULT 0,
+          scope_enforce  INTEGER NOT NULL DEFAULT 0,
+          updated_at     INTEGER,
+          updated_by     INTEGER
+        );
+        INSERT OR IGNORE INTO board_policy (id) VALUES (1);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7594,6 +7613,34 @@ setInterval(() => {
 }, 5 * 60 * 1000).unref();
 // D76: the last Railway event per service (a failed or crashed deploy is the card's red) and the stream.
 app.get("/api/admin/deploy-events", requireAdmin, (_req, res) => res.json(deployEventsSummary(db)));
+// ⛔ D78 A: the board's age policy and its sweep. GET = the policy + a DRY RUN of the sweep · PUT = change the policy
+// (no redeploy) · POST /sweep = run it — dry unless { apply: true, expectCandidates: <the dry run's count> }, and
+// past the 30% ceiling only with { force: true }. Applied postings are always kept; nothing is deleted.
+app.get("/api/admin/board-policy", requireAdmin, (_req, res) => {
+  res.json({ policy: readBoardPolicy(db), dryRun: sweepAged(db, { dryRun: true }) });
+});
+app.put("/api/admin/board-policy", requireAdmin, (req, res) => {
+  try { res.json({ policy: setBoardPolicy(db, req.body || {}, { by: req.user?.id ?? null }) }); }
+  catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+app.post("/api/admin/board-policy/sweep", requireAdmin, (req, res) => {
+  const dry = sweepAged(db, { dryRun: true });
+  if (req.body?.apply !== true) return res.json({ applied: false, ...dry, note: `Nothing changed. POST again with apply: true and expectCandidates: ${dry.candidates}.` });
+  if (Number(req.body.expectCandidates) !== dry.candidates) return res.status(409).json({ applied: false, ...dry, error: `expectCandidates must equal the dry run's ${dry.candidates}` });
+  const out = sweepAged(db, { dryRun: false, force: req.body.force === true,
+    log: (e) => db.prepare("INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json) VALUES (?, ?, ?, ?, ?)")
+      .run(req.user.id, "board_age_sweep", "scraped_jobs", JSON.stringify({ active: e.active }), JSON.stringify(e)) });
+  res.status(out.refused ? 409 : 200).json({ applied: !out.refused, ...out });
+});
+// D78 A: the daily sweep — 03:30 UTC, after the 03:00 cleanup, and ONLY once the owner switched age_enforce on.
+// Braked (sweepAged's 30% ceiling, never forced from here); retire, never delete; applied postings kept.
+cron.schedule("30 3 * * *", () => {
+  try {
+    if (!readBoardPolicy(db).age_enforce) return;
+    const r = sweepAged(db, { dryRun: false });
+    console.log(`[board-age] daily sweep: ${r.refused ? `REFUSED — ${r.reason}` : `retired ${r.retired} of ${r.active} active (past ${r.limitDays} days)`}`);
+  } catch (e) { console.error("[board-age] daily sweep failed:", e.message); }
+});
 // D29 · the board's own tags: coverage, and the owner's export -> tag -> import (no model call, D17).
 app.use("/api/admin/job-tags", requireAdmin, createJobTagsRouter(db, requireAdmin));
 

@@ -4063,4 +4063,22 @@ export const MIGRATIONS = [
         ALTER TABLE crawler_state ADD COLUMN worker_last_call TEXT;
       `,
     },
+    {
+      // D78 (owner, 10-09): THE BOARD'S POLICY — one row, changed from Admin with no redeploy. The age limit
+      // (120 days) applies to NEW postings at once (a too-old posting is never written); retiring EXISTING ones
+      // (age_enforce) and the CS-only scope (scope_enforce) start OFF — each waits for the owner's go after its
+      // dry run. services/jobs/boardAge.js reads it.
+      id: "146_board_policy",
+      sql: `
+        CREATE TABLE IF NOT EXISTS board_policy (
+          id             INTEGER PRIMARY KEY CHECK (id = 1),
+          age_limit_days INTEGER NOT NULL DEFAULT 120,
+          age_enforce    INTEGER NOT NULL DEFAULT 0,
+          scope_enforce  INTEGER NOT NULL DEFAULT 0,
+          updated_at     INTEGER,
+          updated_by     INTEGER
+        );
+        INSERT OR IGNORE INTO board_policy (id) VALUES (1);
+      `,
+    },
   ];
