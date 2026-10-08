@@ -200,6 +200,48 @@ export function DiskSection({ theme }) {
   );
 }
 
+// ── D78 A · the board's age policy — GET/PUT /api/admin/board-policy, POST …/sweep ─────────────────────
+// New postings past the limit are never written (always on). Retiring EXISTING ones waits for the owner's
+// "Enforce" after reading this dry run; applied postings are always kept; nothing is deleted.
+export function BoardPolicySection({ theme }) {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState(null);
+  const [note, setNote] = useState(null);
+  const load = useCallback(() => { setErr(null); api("/api/admin/board-policy").then(setD).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { load(); }, [load]);
+  const put = async (patch) => { try { await api("/api/admin/board-policy", { method: "PUT", body: JSON.stringify(patch) }); load(); } catch (e) { setErr(e.message); } };
+  const sweep = async () => {
+    const r = d?.dryRun;
+    if (!r || !window.confirm(`Retire ${r.candidates} posting(s) older than ${r.limitDays} days (${Math.round(r.share * 100)}% of the active board)? Applied postings are kept; nothing is deleted.`)) return;
+    const force = r.share > 0.3 && window.confirm("That is above the 30% ceiling. Force it?");
+    try {
+      const out = await api("/api/admin/board-policy/sweep", { method: "POST", body: JSON.stringify({ apply: true, expectCandidates: r.candidates, force }) });
+      setNote(out.refused ? `Refused: ${out.reason}` : `Retired ${out.retired}.`); load();
+    } catch (e) { setErr(e.message); }
+  };
+  const p = d?.policy, r = d?.dryRun;
+  return (
+    <Card theme={theme} title="Board age policy (D78)" measured={r ? `dry run: ${r.candidates} of ${r.active} active are past ${r.limitDays} days (${Math.round(r.share * 100)}%)` : null}>
+      <Err msg={err}/>
+      {p && r && (
+        <KV theme={theme} rows={[
+          ["limit", `${p.age_limit_days} days — new postings older than this are never written`],
+          ["existing postings", p.age_enforce ? "ENFORCED — retired at the crawl and by the 03:30 sweep" : "report only — nothing is retired until you enforce", p.age_enforce ? C.WARNING : null],
+          ["would retire", `${r.candidates} (${Object.entries(r.byBasis).map(([k, v]) => `${v} by ${k}`).join(", ") || "—"})`, r.share > 0.3 ? C.DANGER : null],
+          ["by company", r.byCompany.slice(0, 8).map(([c, n]) => `${c} ${n}`).join(" · ") || "—"],
+          ["by source", Object.entries(r.bySource).map(([s, n]) => `${s} ${n}`).join(" · ") || "—"],
+        ]}/>
+      )}
+      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+        {p && <Btn theme={theme} danger={!p.age_enforce} onClick={() => put({ age_enforce: !p.age_enforce })}>{p.age_enforce ? "Stop enforcing" : "Enforce on existing postings"}</Btn>}
+        {r && r.candidates > 0 && <Btn theme={theme} onClick={sweep}>Run the sweep now</Btn>}
+        <Btn theme={theme} onClick={load}>Re-read</Btn>
+      </div>
+      {note && <div style={{ fontSize: 12, marginTop: 6, color: theme.textMuted }}>{note}</div>}
+    </Card>
+  );
+}
+
 /** The Admin banner — shown on every admin tab while the disk is amber or red. */
 export function DiskBanner() {
   const [g, setG] = useState(null);
@@ -953,6 +995,7 @@ export function OpsTab({ theme }) {
       <DeploySection theme={theme}/>
       <DeploymentsSection theme={theme}/>
       <DiskSection theme={theme}/>
+      <BoardPolicySection theme={theme}/>
       <KillSwitchSection theme={theme}/>
       <BoardFitSection theme={theme}/>
       <EnrichmentSection theme={theme}/>

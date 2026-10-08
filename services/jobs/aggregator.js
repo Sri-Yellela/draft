@@ -8,6 +8,7 @@ import { getKnownLogoUrl } from './enrichLogos.js';
 import { recordPipelineRun } from './pipelineRunLog.js';
 import { usEligibility, officeLocations } from './usLocation.js';
 import { retireDuplicate, keptApart } from './dedupRetire.js';
+import { ageGate, readPolicy } from './boardAge.js';
 
 // ─── REGISTER SOURCES HERE ───────────────────────────────────────────────────
 // To add a new source: import it and add to SOURCES array.
@@ -905,8 +906,11 @@ async function cacheJobs(db, anthropic = null) {
       );
 
       // ── Upsert in a transaction ───────────────────────────────────────────
-      const { cached, unchanged, ejected, dropped, merged, outOfMarket } = db.transaction(() => {
+      // D78: the board's age policy (board_policy), read once per source pass.
+      const agePolicy = readPolicy(db);
+      const { cached, unchanged, ejected, dropped, merged, outOfMarket, tooOld, agedOut, wouldAgeOut } = db.transaction(() => {
         let cached = 0, unchanged = 0, ejected = 0, dropped = 0, merged = 0, outOfMarket = 0;
+        let tooOld = 0, agedOut = 0, wouldAgeOut = 0;
 
         for (const job of fetchedJobs) {
           const jobId = job.id || job.url || '';
@@ -914,6 +918,14 @@ async function cacheJobs(db, anthropic = null) {
 
           // Queue 37 — before the hash check, or an unchanged non-US row is re-activated.
           if (holdOutOfMarket(job, jobId, cacheStmts, now)) { outOfMarket++; continue; }
+
+          // ⛔ D78 A — the age limit, also BEFORE the hash check: an unchanged row's "seen" touch re-activates
+          // it, so a posting past the limit must be stopped here. A NEW one is never written; an EXISTING one
+          // is retired only once the owner switched age_enforce on (applied postings are always kept).
+          const age = ageGate(db, job, jobId, { exists: existingHashes.has(jobId), now, policy: agePolicy });
+          if (age === "rejected_new") { tooOld++; continue; }
+          if (age === "aged_out") { agedOut++; continue; }
+          if (age === "would_age_out") wouldAgeOut++;
 
           const contentHash = fingerprintJob(job);
           if (existingHashes.get(jobId) === contentHash) {
@@ -974,7 +986,7 @@ async function cacheJobs(db, anthropic = null) {
           cached++;
         }
 
-        return { cached, unchanged, ejected, dropped, merged, outOfMarket };
+        return { cached, unchanged, ejected, dropped, merged, outOfMarket, tooOld, agedOut, wouldAgeOut };
       })();
 
       // ── Expiry pruning (outside the upsert transaction) ───────────────────
@@ -1004,7 +1016,8 @@ async function cacheJobs(db, anthropic = null) {
         runKind: 'source_sync', source: source.name, status: 'ok',
         startedAt: runStartedAt,
         fetched: fetchedJobs.length, written: cached, unchanged, merged, dropped, ejected,
-        details: { companies: companies.length, pruned, prunedExpired: byDate.changes, prunedStale: byStale.changes, outOfMarket },
+        details: { companies: companies.length, pruned, prunedExpired: byDate.changes, prunedStale: byStale.changes, outOfMarket,
+                   tooOld, agedOut, wouldAgeOut },
       });
       totalCached += cached;
     }
