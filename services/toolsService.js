@@ -35,6 +35,7 @@
  */
 
 import { trackApiCall } from "./usageTracker.js";
+import { retryLedgerText } from "./generationRetry.js";
 
 export class ToolsServiceError extends Error {
   constructor(message, { code, status = null, retryable, permanent, violations = null, usage = [] } = {}) {
@@ -159,7 +160,10 @@ export function recordToolsServiceUsage(db, usage, { userId, eventSubtype = null
                                                                     // catch. A call that completed and was billed
                                                                     // stays success = 1 — the call did succeed —
                                                                     // but its row now says the request did not
-                                                                    requestError = null } = {}) {
+                                                                    requestError = null,
+                                                                    // D70 Phase 3: this request retries a failed one
+                                                                    // (services/generationRetry.js) - said in the row
+                                                                    retryReason = null } = {}) {
   let id = null;
   for (const u of Array.isArray(usage) ? usage : []) {
     if (!u || typeof u !== "object") continue;
@@ -167,8 +171,9 @@ export function recordToolsServiceUsage(db, usage, { userId, eventSubtype = null
     const eventId = trackApiCall(db, {
       userId, eventType: purpose, eventSubtype, purpose, model: u.model, provider: "anthropic",
       usage: u, durationMs: u.duration_ms, success: u.success !== false,
-      errorText: u.success === false ? "failed inside Resume Master"
+      errorText: [u.success === false ? "failed inside Resume Master"
         : (typeof requestError === "string" && requestError ? `request failed: ${requestError}` : null),
+        retryLedgerText(retryReason)].filter(Boolean).join("; ") || null,
       jobId, company, domainModule,
       atsScoreBefore: u.purpose === idFor ? atsScoreBefore : null,
     });

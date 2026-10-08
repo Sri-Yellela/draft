@@ -85,7 +85,7 @@ function ManualSubmitted({ jobId }) {
   );
 }
 
-function PostingActions({ job, meta, slots, onCoverLetter }) {
+function PostingActions({ job, meta, slots, cost = null, onCoverLetter }) {
   const { g, done, st, canUseGenerate: canGen, onGenerate, onViewSandbox, onExport, onRegenerate = null, onSave, onPass, onDraft, drafted, drafting,
           draftBlock = null, onViewDraft = null, onExplainDraft = null, companyNotice = null, eligibilityNotice = null } = meta;
   // D51: the panel knows the slots too — out of drafts is a reason on the button, not a grey box.
@@ -101,9 +101,14 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
   const hasArtifact = done && !!g?.html;
   const ago = hasArtifact ? resumeAgo(g?.generatedAt) : null;
   const regen = onRegenerate || (() => onGenerate(true));
+  // ⭐ D70 Phase 3: the model's cost of the NEXT résumé, and which tool it runs, said before the press
+  // (GET /api/generate/cost — the ledger's median). A+ is a second full résumé, not an add-on.
+  const costLabel = cost ? (cost.runs === "a_plus_resume" ? cost.aPlus?.label : cost.generate?.label) : null;
+  const costLine = cost?.sentence || null;
   const resumeTitle = noSlots
     ? "No drafts left in the last 24 hours — a new résumé uses one, like a Draft."
-    : `${done ? "Regenerate" : "Generate"} résumé — uses 1 of your ${slots?.limit ?? 10} drafts (a Draft uses one too)`;
+    : `${done ? "Regenerate" : "Generate"} résumé${cost?.runs === "a_plus_resume" ? " (A+)" : ""} — uses 1 of your ${slots?.limit ?? 10} drafts (a Draft uses one too)` +
+      (costLabel ? `; one model call, ${costLabel}` : "");
   const quota = slots
     ? (noSlots
         ? `No drafts left — all ${slots.limit} used in the last 24 hours (a Draft or a new résumé uses one).`
@@ -157,6 +162,8 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
       {hasArtifact && job?.jobId && <ManualSubmitted jobId={job.jobId} />}
       {/* A63: the shared allowance, said before anything is pressed — a muted line in A, the badge in B. */}
       {quota && <p className="pp__quota" data-draft-slots data-empty={noSlots ? "true" : "false"}>{quota}</p>}
+      {/* ⭐ D70 Phase 3: the cost, in words, before Generate / Regenerate is pressed — a line, never a capsule (D60). */}
+      {costLine && canGen && onGenerate && <p className="pp__quota" data-generate-cost={cost.runs}>{costLine}</p>}
       {/* ⭐ D54: never silent, never a block — the user's other roles at this company, before Draft. */}
       {companyNotice && <p className="pp__quota" data-company-notice="">{companyNotice.replace(" Draft this one too?", "")}</p>}
       {/* ⛔ D59: what the POSTING requires, and whether the profile STATES an answer — never a block, and
@@ -250,12 +257,15 @@ export default function JobDetailPanel({
   // job the user generated for or opened the posting of is PENDING until they record and verify
   // the submission (Database → Pending); nothing becomes "applied" on a click.
   const [slots, setSlots] = useState(null);
+  const [genCost, setGenCost] = useState(null);
   const [pendingState, setPendingState] = useState(null);
   const generating = selectedJobMeta?.st;
   useEffect(() => {
     if (!jobId) return;
     let cancelled = false;
     api("/api/draft/slots").then(d => { if (!cancelled) setSlots(d); }).catch(() => {});
+    // ⭐ D70 Phase 3: what the next résumé costs, and which tool it runs — said before it is pressed.
+    api("/api/generate/cost").then(d => { if (!cancelled) setGenCost(d); }).catch(() => {});
     api("/api/applications/pending").then(d => {
       if (cancelled) return;
       const r = (d?.pending || []).find(x => String(x.jobId) === String(jobId));
@@ -326,7 +336,7 @@ export default function JobDetailPanel({
                 from anywhere) — the row's default. */}
             {selectedJobMeta && (
               <StickyBar top="0px" className="pp__bar" data-posting-actions-bar="">
-                <PostingActions job={selectedJob} meta={selectedJobMeta} slots={slots}
+                <PostingActions job={selectedJob} meta={selectedJobMeta} slots={slots} cost={genCost}
                   onCoverLetter={() => setShowCoverLetter(true)} />
               </StickyBar>
             )}
