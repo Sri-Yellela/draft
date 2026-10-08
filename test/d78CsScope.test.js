@@ -125,14 +125,26 @@ test("⛔ D78 B: the sweep — dry by default, judges the STORED family, keeps a
   assert.equal(reason(db, "starred"), "out_of_scope", "the reason is the undo");
 });
 
-test("⛔ D78 B: the sweep refuses past its ceiling unless forced", () => {
+test("⛔ D78 B: NO share ceiling (owner 10-08) — a real pass retires every out-of-scope posting, even 60% of the board", () => {
   const db = db0();
   for (let i = 0; i < 6; i++) insert(db, `pm${i}`, PM.title, "pm");
   for (let i = 0; i < 4; i++) insert(db, `swe${i}`, "Software Engineer", "engineering");
   const r = sweepScope(db, { dryRun: false, now: NOW });
-  assert.equal(r.refused, true);
-  assert.equal(db.prepare("SELECT COUNT(*) FROM scraped_jobs WHERE is_active = 1").pluck().get(), 10, "refused = nothing retired");
-  assert.equal(sweepScope(db, { dryRun: false, force: true, now: NOW }).retired, 6);
+  assert.deepEqual([r.retired, "refused" in r], [6, false]);
+  assert.equal(db.prepare("SELECT COUNT(*) FROM scraped_jobs WHERE is_active = 1").pluck().get(), 4);
+  assert.doesNotMatch(fs.readFileSync("services/jobs/boardScope.js", "utf8"), /CEILING_SHARE|\bforce\b/, "the ceiling and its force are gone, not dormant");
+});
+
+test("⛔ D78: the crawl's age and scope counters count only rows that were ON THE BOARD — the gates still run on every stored row", () => {
+  const src = fs.readFileSync("services/jobs/aggregator.js", "utf8").replace(/\r\n/g, "\n");
+  assert.ok(src.includes("SELECT job_id, _hash, is_active FROM scraped_jobs WHERE source = ?"), "the existing-row read carries is_active");
+  assert.ok(src.includes("const activeIds = new Set(existingRows.filter(r => r.is_active === 1)"), "the active set is built from it");
+  for (const c of ["agedOut++", "wouldAgeOut++", "scopedOut++", "wouldScopeOut++"]) {
+    const line = src.split("\n").find(l => l.includes(c));
+    assert.ok(line && line.includes("activeIds.has(jobId)"), `${c} is guarded by activeIds`);
+  }
+  assert.ok(src.includes('if (age === "aged_out") { if (activeIds.has(jobId)) agedOut++; continue; }'), "an inactive aged row still stops before the touch");
+  assert.ok(src.includes('if (scope === "scoped_out") { if (activeIds.has(jobId)) scopedOut++; continue; }'), "an inactive scoped row still stops before the touch");
 });
 
 test("⛔ D78 B: the crawl judges an EXISTING row before the hash check, and a NEW one after classifying", () => {

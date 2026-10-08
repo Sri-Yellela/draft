@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
-import { ageOf, ageGate, sweepAged, readPolicy, setPolicy, CEILING_SHARE } from "../services/jobs/boardAge.js";
+import { ageOf, ageGate, sweepAged, readPolicy, setPolicy } from "../services/jobs/boardAge.js";
 import { normalizeGreenhouseJob } from "../services/jobs/sources/greenhouse.js";
 
 const DAY = 86400;
@@ -79,15 +79,14 @@ test("⛔ D78 A: the sweep retires an old unreferenced row, KEEPS an applied one
   assert.equal(reason(db, "starred"), "aged_out", "the reason is the undo");
 });
 
-test("⛔ D78 A: the sweep refuses past its ceiling unless forced", () => {
+test("⛔ D78 A: NO share ceiling (owner 10-08) — a real pass retires every posting past the limit, even 60% of the board", () => {
   const db = db0();
   for (let i = 0; i < 6; i++) insert(db, `old${i}`, daysAgo(200));
   for (let i = 0; i < 4; i++) insert(db, `fresh${i}`, daysAgo(5));
   const r = sweepAged(db, { dryRun: false, now: NOW });
-  assert.ok(0.6 > CEILING_SHARE);
-  assert.equal(r.refused, true);
-  assert.equal(db.prepare("SELECT COUNT(*) FROM scraped_jobs WHERE is_active = 1").pluck().get(), 10, "refused = nothing retired");
-  assert.equal(sweepAged(db, { dryRun: false, force: true, now: NOW }).retired, 6);
+  assert.deepEqual([r.retired, r.share, "refused" in r], [6, 0.6, false]);
+  assert.equal(db.prepare("SELECT COUNT(*) FROM scraped_jobs WHERE is_active = 1").pluck().get(), 4);
+  assert.doesNotMatch(fs.readFileSync("services/jobs/boardAge.js", "utf8"), /CEILING_SHARE|\bforce\b/, "the ceiling and its force are gone, not dormant");
 });
 
 test("⛔ D78 A: Greenhouse's date is first_published — updated_at is re-stamped and made every posting look fresh", () => {

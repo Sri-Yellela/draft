@@ -213,20 +213,18 @@ export function BoardPolicySection({ theme }) {
   const sweep = async () => {
     const r = d?.dryRun;
     if (!r || !window.confirm(`Retire ${r.candidates} posting(s) older than ${r.limitDays} days (${Math.round(r.share * 100)}% of the active board)? Applied postings are kept; nothing is deleted.`)) return;
-    const force = r.share > 0.3 && window.confirm("That is above the 30% ceiling. Force it?");
     try {
-      const out = await api("/api/admin/board-policy/sweep", { method: "POST", body: JSON.stringify({ apply: true, expectCandidates: r.candidates, force }) });
-      setNote(out.refused ? `Refused: ${out.reason}` : `Retired ${out.retired}.`); load();
+      const out = await api("/api/admin/board-policy/sweep", { method: "POST", body: JSON.stringify({ apply: true, expectCandidates: r.candidates }) });
+      setNote(`Retired ${out.retired}.`); load();
     } catch (e) { setErr(e.message); }
   };
-  // D78 B: the computer-science scope — the same contract as the age sweep (dry run, echo the count, ceiling).
+  // D78 B: the computer-science scope — the same contract as the age sweep (dry run, echo the count).
   const scopeSweep = async () => {
     const q = d?.scopeDryRun;
     if (!q || !window.confirm(`Retire ${q.candidates} out-of-scope posting(s) (${Math.round(q.share * 100)}% of the active board)? Applied postings are kept; nothing is deleted.`)) return;
-    const force = q.share > 0.3 && window.confirm("That is above the 30% ceiling. Force it?");
     try {
-      const out = await api("/api/admin/board-policy/scope-sweep", { method: "POST", body: JSON.stringify({ apply: true, expectCandidates: q.candidates, force }) });
-      setNote(out.refused ? `Refused: ${out.reason}` : `Retired ${out.retired} out of scope.`); load();
+      const out = await api("/api/admin/board-policy/scope-sweep", { method: "POST", body: JSON.stringify({ apply: true, expectCandidates: q.candidates }) });
+      setNote(`Retired ${out.retired} out of scope.`); load();
     } catch (e) { setErr(e.message); }
   };
   const p = d?.policy, r = d?.dryRun, q = d?.scopeDryRun;
@@ -237,7 +235,7 @@ export function BoardPolicySection({ theme }) {
         <KV theme={theme} rows={[
           ["limit", `${p.age_limit_days} days — new postings older than this are never written`],
           ["existing postings", p.age_enforce ? "ENFORCED — retired at the crawl and by the 03:30 sweep" : "report only — nothing is retired until you enforce", p.age_enforce ? C.WARNING : null],
-          ["would retire", `${r.candidates} (${Object.entries(r.byBasis).map(([k, v]) => `${v} by ${k}`).join(", ") || "—"})`, r.share > 0.3 ? C.DANGER : null],
+          ["would retire", `${r.candidates} (${Object.entries(r.byBasis).map(([k, v]) => `${v} by ${k}`).join(", ") || "—"}) · ${Math.round(r.share * 100)}% of the board`],
           ["by company", r.byCompany.slice(0, 8).map(([c, n]) => `${c} ${n}`).join(" · ") || "—"],
           ["by source", Object.entries(r.bySource).map(([s, n]) => `${s} ${n}`).join(" · ") || "—"],
         ]}/>
@@ -245,7 +243,7 @@ export function BoardPolicySection({ theme }) {
       {p && q && (
         <KV theme={theme} rows={[
           ["computer science only", p.scope_enforce ? `ENFORCED (rule v${q.version}) — out-of-scope postings are not written, and are retired at the crawl and by the 03:30 sweep` : `report only (rule v${q.version}) — nothing is dropped until you enforce`, p.scope_enforce ? C.WARNING : null],
-          ["would retire", `${q.candidates} of ${q.active} (${Math.round(q.share * 100)}%)${q.appliedKept ? ` · ${q.appliedKept} applied kept` : ""}`, q.share > 0.3 ? C.DANGER : null],
+          ["would retire", `${q.candidates} of ${q.active} (${Math.round(q.share * 100)}%)${q.appliedKept ? ` · ${q.appliedKept} applied kept` : ""}`],
           ["by family", Object.entries(q.byFamily).sort((a, b) => b[1] - a[1]).map(([f, n]) => `${f} ${n}`).join(" · ") || "—"],
           ["by rule", Object.entries(q.byReason).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, n]) => `${k} ${n}`).join(" · ") || "—"],
           ["by company", q.byCompany.slice(0, 8).map(([c, n]) => `${c} ${n}`).join(" · ") || "—"],
