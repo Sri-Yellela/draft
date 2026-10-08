@@ -21,6 +21,26 @@ export function utcDayStart(now) {
   return now - (now % DAY);
 }
 
+// ── D74 P2 · CRAWL AGE — how long since each source last crawled SUCCESSFULLY ──────────────────────
+// From pipelineHealth()'s lastSuccessAt (pipeline_runs, run_kind 'source_sync', status 'ok' — a failing
+// source still has a recent "last run"; only the last success proves it worked). The crawl is daily, so
+// one missed day plus slack is amber and a second missed day is red.
+export const CRAWL_AGE_AMBER_HOURS = 30;
+export const CRAWL_AGE_RED_HOURS = 54;
+// Sources the daily crawl never calls (or is told not to) have no crawl age to judge.
+const NOT_CRAWLED = new Set(["live_search_only", "not_enabled", "paused"]);
+
+/**
+ * { hours, tone } — tone 'ok' | 'amber' (> 30h) | 'red' (> 54h, or never succeeded) | 'not_crawled'.
+ * @param {{ lastSuccessAt: number|null, health?: string, now: number }} o  seconds
+ */
+export function crawlAge({ lastSuccessAt, health = null, now }) {
+  if (NOT_CRAWLED.has(health)) return { hours: lastSuccessAt ? (now - lastSuccessAt) / 3600 : null, tone: "not_crawled" };
+  if (!lastSuccessAt) return { hours: null, tone: "red" };
+  const hours = Math.max(0, now - lastSuccessAt) / 3600;
+  return { hours, tone: hours > CRAWL_AGE_RED_HOURS ? "red" : hours > CRAWL_AGE_AMBER_HOURS ? "amber" : "ok" };
+}
+
 function tryRead(fn, fallback = null) {
   try { return fn(); } catch { return fallback; }
 }
@@ -47,6 +67,7 @@ export function buildGlance(db, { health, enrichBudget = null, fullAuto = null, 
     unchanged: s.lastRun?.unchanged ?? null,
     refused: s.lastRun ? Number(s.lastRun.dropped || 0) + Number(s.lastRun.ejected || 0) : null,
     lastSuccessAt: s.lastSuccessAt ?? null,
+    crawlAge: crawlAge({ lastSuccessAt: s.lastSuccessAt ?? null, health: s.health, now }),
     active: s.active ?? null,
   }));
   const benign = new Set(["ok", "live_search_only", "not_enabled", "paused"]);
@@ -54,6 +75,7 @@ export function buildGlance(db, { health, enrichBudget = null, fullAuto = null, 
     measuredAt: health.generatedAt ?? now,
     lastCrawlAt: sources.reduce((m, s) => (s.lastRunAt && s.lastRunAt > (m ?? 0) ? s.lastRunAt : m), null),
     sources,
+    crawlAgeHours: { amber: CRAWL_AGE_AMBER_HOURS, red: CRAWL_AGE_RED_HOURS },
     sourcesNeedingAttention: sources.filter(s => !benign.has(s.health)).map(s => s.name),
     alertCounts: health.alertCounts || { critical: 0, warn: 0 },
     alerts: (health.alerts || []).slice(0, 8),
