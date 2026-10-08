@@ -24,7 +24,7 @@ import { columnCoverage } from "../services/jobs/enrichmentSelection.js";
 import {
   buildPieces, checkPiece, mergeFilled, applyGate, refusalCounts, withoutRefused, cleanPostingText, enrichmentPrompt,
 } from "../shared/enrichmentChunks.js";
-import { ALLOWED_VALUES } from "../shared/enrichmentRules.js";
+import { ALLOWED_VALUES, IMPORT_ROW_CAP } from "../shared/enrichmentRules.js";
 
 const PAGE = fs.readFileSync("client/src/panels/adminEnrichment.jsx", "utf8");
 // Comments carry the design vocabulary (D17, A76…) on purpose; the checks read the CODE: whole-line // comments,
@@ -65,7 +65,8 @@ test("GET /overview carries the four numbers, six coverage bars, the real source
     assert.deepEqual(o.groups.map((g) => g.key), ["skills", "level", "workplace", "salary", "flags", "summary"]);
     assert.ok(o.groups.every((g) => g.total === 5 && g.filled === 0));
     assert.deepEqual(o.sources.map((s) => s.value).sort(), ["ashby", "greenhouse"], "the dropdown's values are the board's own");
-    assert.equal(o.importRowCap, 500, "read from the route, not restated in the client");
+    assert.equal(o.importRowCap, IMPORT_ROW_CAP, "read from the route, not restated in the client");
+    assert.equal(IMPORT_ROW_CAP, 2000, "D84 F14: one batch takes 2,000");
     assert.deepEqual(o.newPostings, { days: 7, total: 5, scored: 0 });
     assert.equal(o.imports.count, 0);
   } finally { stop(); }
@@ -75,7 +76,7 @@ test("the page loads its numbers on mount — no click — and never restates th
   assert.match(PAGE, /const load = useCallback\(\(\) => \{\s*api\("\/api\/admin\/enrichment\/overview"\)/);
   assert.match(PAGE, /useEffect\(\(\) => \{ load\(\); \}, \[load\]\);/);
   const code = stripComments(PAGE).replace(/fontWeight: 500\b|"500 [\d.]+px/g, "");     // a font weight is not the cap
-  assert.doesNotMatch(code, /\b500\b/, "the 500-row cap is read from /overview, never copied");
+  assert.doesNotMatch(code, /\b(500|2000|2,000)\b/, "the batch cap is read from /overview, never copied");
 });
 
 // ── Apply's gate ────────────────────────────────────────────────────────────────────────────────

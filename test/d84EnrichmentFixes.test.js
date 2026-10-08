@@ -208,3 +208,76 @@ test("without a map, the importer detects per row — and an import's own record
   assert.equal(isPlaceholder(row, "summary"), true);
   assert.equal(isPlaceholder(row, "summary", new Set(["summary"])), false);
 });
+
+// ── F5 · F13 · F14 — the dry run per column, the notes channel, one batch / one download / one upload ───────────────
+import fs from "node:fs";
+import { checkPiece, parseNote, notesCsv, matchReplies, zipStore, pieceFileName, PIECE_SIZES, DEFAULT_PIECE_SIZE, NOTE_CODES } from "../shared/enrichmentChunks.js";
+import { IMPORT_ROW_CAP } from "../shared/enrichmentRules.js";
+const PAGE = fs.readFileSync("client/src/panels/adminEnrichment.jsx", "utf8");
+
+test("F5: the dry run lists per-column counts — already filled · in the file · would be written · replacing a placeholder", () => {
+  const db = board();
+  insert(db, { id: "c", description: "Build APIs in Go." });
+  db.prepare("UPDATE scraped_jobs SET experience_level = 'senior', enrichment_provenance = ? WHERE job_id = 'c'").run(JSON.stringify({ experience_level: "import" }));
+  const line = JSON.stringify({ job_id: "c", content_hash: computeContentHash("Software Engineer", "Build APIs in Go."),
+    enrichment: { skills_json: ["Go"], experience_level: "mid" } });
+  const { columns } = planImport(db, line);
+  assert.deepEqual(columns.skills_json, { alreadyFilled: 0, supplied: 1, wouldWrite: 1, replacingPlaceholder: 0 });
+  assert.deepEqual(columns.experience_level, { alreadyFilled: 1, supplied: 1, wouldWrite: 0, replacingPlaceholder: 0 });
+  assert.match(PAGE, /Object\.entries\(plan\.columns\)\.filter\(\(\[, c\]\) => c\.supplied > 0\)/, "the page shows the table");
+  assert.match(PAGE, /Replacing a placeholder/);
+});
+
+test("F13: a #NOTE line is COLLECTED, not rejected as unreadable — and an unknown code is kept as ODD", () => {
+  const piece = JSON.stringify({ job_id: "j1", content_hash: "h", source: { title: "SWE", description: "x" } }) + "\n";
+  const reply = JSON.stringify({ job_id: "j1", content_hash: "h", enrichment: { skills_json: ["Go"] } }) +
+    "\n#NOTE j1 PAY-FORMAT pay given as 'competitive' only\n#NOTE j1 WEIRD something odd\n";
+  const c = checkPiece(piece, [{ name: "piece-01.reply.jsonl", text: reply }]);
+  assert.equal(c.checked, true);
+  assert.equal(c.junkLines, 0, "a note is not an unreadable line");
+  assert.deepEqual(c.notes.map((n) => n.code), ["PAY-FORMAT", "ODD"]);
+  assert.equal(parseNote("#NOTE j9 TRUNCATED " + "w ".repeat(40)).text.split(" ").length, 20, "at most 20 words");
+  assert.match(notesCsv(c.notes), /^job_id,code,note,file\n"j1","PAY-FORMAT"/);
+  for (const code of NOTE_CODES) assert.ok(PAGE.includes("NOTE_CODES") && code, code);
+  assert.match(PAGE, /Things the model flagged/);
+});
+
+test("F14: replies are matched to pieces BY NAME — a stray name or two replies for one piece is reported, never guessed", () => {
+  const files = [{ name: "piece-01.reply.jsonl", text: "a" }, { name: "piece-02-of-03.filled.jsonl", text: "b" },
+    { name: "piece-03 (1).jsonl", text: "c" }, { name: "piece-3.jsonl", text: "d" }, { name: "answers.jsonl", text: "e" },
+    { name: "piece-09.jsonl", text: "f" }];
+  const { assigned, unmatched, duplicates } = matchReplies([1, 2, 3], files);
+  assert.deepEqual([...assigned.keys()].sort(), [1, 2]);
+  assert.deepEqual(unmatched, ["answers.jsonl", "piece-09.jsonl"]);
+  assert.deepEqual(duplicates, [{ piece: 3, names: ["piece-03 (1).jsonl", "piece-3.jsonl"] }]);
+  assert.equal(pieceFileName(7, 24), "piece-07-of-24.jsonl");
+});
+
+test("F14: one .zip of every piece — a valid archive (local headers, central directory, CRCs)", () => {
+  const files = [{ name: "piece-01-of-02.jsonl", text: '{"a":1}\n' }, { name: "piece-02-of-02.jsonl", text: "é — ü\n" }];
+  const z = Buffer.from(zipStore(files));
+  const eocd = z.length - 22;
+  assert.equal(z.readUInt32LE(eocd), 0x06054b50);
+  assert.equal(z.readUInt16LE(eocd + 10), 2, "two entries");
+  let at = z.readUInt32LE(eocd + 16);
+  for (const f of files) {
+    assert.equal(z.readUInt32LE(at), 0x02014b50);
+    const size = z.readUInt32LE(at + 20), nameLen = z.readUInt16LE(at + 28), local = z.readUInt32LE(at + 42);
+    assert.equal(z.slice(at + 46, at + 46 + nameLen).toString(), f.name);
+    const data = z.slice(local + 30 + nameLen, local + 30 + nameLen + size).toString();
+    assert.equal(data, f.text);
+    at += 46 + nameLen;
+  }
+});
+
+test("F14: the batch is 2,000; the piece size is a setting (20 · 50 · 100, default 20) that governs only the chat", () => {
+  assert.equal(IMPORT_ROW_CAP, 2000);
+  assert.deepEqual(PIECE_SIZES, [20, 50, 100]);
+  assert.equal(DEFAULT_PIECE_SIZE, 20);
+  assert.match(PAGE, /<select id="enr-piece" value=\{pieceSize\}/);
+  assert.match(PAGE, /Download all pieces \(\.zip\)/);
+  assert.match(PAGE, /<input type="file" multiple/);
+  assert.match(PAGE, /Upload all the replies/);
+  assert.match(PAGE, /matchReplies\(exp\.pieces\.map\(\(p\) => p\.n\), files\)/);
+  assert.doesNotMatch(PAGE, /Clean the text/, "cleaning is the export's job now, always on");
+});

@@ -29,6 +29,7 @@ import {
 } from "../services/jobs/enrichmentSelection.js";
 import { buildExport, toJsonl, planImport, applyImport } from "../services/jobs/enrichmentTransfer.js";
 import { listBatches, getBatch, revertBatch, revertPreview } from "../services/jobs/enrichmentBatches.js";
+import { IMPORT_ROW_CAP } from "../shared/enrichmentRules.js";
 
 // A single manual pass is bounded. The cron's own batch is 25; a manual trigger may ask for more,
 // but not for "everything" in one request — an HTTP handler that runs for 837 sequential model
@@ -61,7 +62,8 @@ const DEFAULT_MANUAL_ROWS = 10;
 // the operator discovers the ceiling the hard way. Chunking is safe and is the intended shape:
 // each chunk is its own batch and is independently revertible.
 const IMPORT_BODY_LIMIT = "32mb";
-const PRACTICAL_IMPORT_ROWS = 500;
+// D84 F14: one constant, shared with the page and the CLI (shared/enrichmentRules.js) — 2,000 rows a batch.
+const PRACTICAL_IMPORT_ROWS = IMPORT_ROW_CAP;
 
 export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = {}) {
   const router = Router();
