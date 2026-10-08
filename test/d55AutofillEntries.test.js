@@ -75,7 +75,8 @@ test("(b) the packet carries entries only when there are some", () => {
 test("(b) both packet builders that serve a fill attach entries", () => {
   const routes = fs.readFileSync("routes/apply.js", "utf8");
   // D65 (10-07): each reads the résumé its packet CARRIES — the run's artifact, or the one prepared.
-  assert.equal([...routes.matchAll(/entries: packetEntriesFor\(userId, (?:resumeArtifactId|artifactId)\),/g)].length, 2,
+  // D65 residual: the entries are read once, before buildGatePacket, so the worked-here answer uses them too.
+  assert.equal([...routes.matchAll(/const entries = packetEntriesFor\(userId, (?:resumeArtifactId|artifactId)\);\s+packet = buildGatePacket\(/g)].length, 2,
     "createGatePacket (run holds) and prepareManualPacket (D56's manual route) both need entries");
   assert.match(routes, /payload = payloadResumeParse\(db, \{ userId, resumeId \}\)/);
 });
