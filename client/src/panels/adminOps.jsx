@@ -1132,6 +1132,14 @@ const HEALTH_COLOR = h => (h === "ok" ? C.SUCCESS
   : ["live_search_only", "not_enabled", "paused", "awaiting_first_crawl"].includes(h) ? C.INK_FAINT
   : ["stale", "all_rejected", "out_of_market", "no_results", "never_ran", "no_rows"].includes(h) ? C.WARNING
   : C.DANGER);
+// D74 P2 · the crawl age's tone (services/adminGlance.js crawlAge) as a mark colour — never a capsule (D60).
+const CRAWL_AGE_COLOR = { ok: C.SUCCESS, amber: C.WARNING, red: C.DANGER, not_crawled: C.INK_FAINT };
+function CrawlAgeMark({ r }) {
+  const a = r.crawlAge || { tone: "not_crawled" };
+  const text = a.tone === "not_crawled" ? "not crawled" : r.lastSuccessAt ? ago(r.lastSuccessAt) : "never";
+  return <span title={r.lastSuccessAt ? `last successful crawl ${stamp(r.lastSuccessAt)}` : "no successful crawl recorded"}
+    style={markStyle(CRAWL_AGE_COLOR[a.tone] || C.INK_FAINT)}>{text}</span>;
+}
 
 export function GlanceTab({ theme }) {
   const [g, setG] = useState(null);
@@ -1174,10 +1182,16 @@ export function GlanceTab({ theme }) {
         <div style={{ ...cell, flex: "2 1 560px" }}>
           <Card theme={theme} title="Ingestion" measured={`last crawl run ${ago(ing.lastCrawlAt)} (${stamp(ing.lastCrawlAt)})`}
             tone={ing.sourcesNeedingAttention.length ? C.WARNING : undefined}>
+            {ing.crawlAgeHours && (
+              <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 8 }}>
+                Last ok crawl: amber past {ing.crawlAgeHours.amber}h, red past {ing.crawlAgeHours.red}h or never.
+              </div>
+            )}
             <Table theme={theme} rows={ing.sources} cols={[
               { key: "name", label: "source" },
               { key: "health", label: "health", color: r => HEALTH_COLOR(r.health) },
               { key: "lastRunAt", label: "last run", render: r => ago(r.lastRunAt) },
+              { key: "crawlAge", label: "last ok crawl", render: r => <CrawlAgeMark r={r}/> },
               { key: "written", label: "written", right: true, render: r => num(r.written) },
               { key: "unchanged", label: "unchanged", right: true, render: r => num(r.unchanged) },
               { key: "refused", label: "refused", right: true, render: r => num(r.refused) },
