@@ -94,7 +94,7 @@ test("⛔ a pool, never a pairing: nothing records which job a slug was found un
   for (const c of cols) assert.doesNotMatch(c, /job|title|employer/, `slug_harvest_pool.${c} would attach a slug to a job`);
 });
 
-test("SerpApi is pinned to hl=en, gl=us, United States — and never sends the chips/num/start that came back empty", async () => {
+test("SerpApi is pinned to hl=en, gl=us, United States — never num/start; chips is D81's date_posted:week", async () => {
   const savedGet = axios.get;
   let seen = null;
   axios.get = async (url, opts) => { seen = { url, params: opts?.params }; return { data: { jobs_results: [] } }; };
@@ -102,7 +102,8 @@ test("SerpApi is pinned to hl=en, gl=us, United States — and never sends the c
   assert.equal(seen.url, "https://serpapi.com/search");
   assert.deepEqual([seen.params.engine, seen.params.hl, seen.params.gl, seen.params.location, seen.params.q],
                    ["google_jobs", "en", "us", "United States", "data engineer"]);
-  for (const k of ["chips", "num", "start"]) assert.equal(seen.params[k], undefined, k);
+  for (const k of ["num", "start"]) assert.equal(seen.params[k], undefined, k);
+  assert.equal(seen.params.chips, "date_posted:week", "D81: the experiment showed chips alone returns results");
   // The pin cannot be overridden by a caller.
   axios.get = async (url, opts) => { seen = { url, params: opts?.params }; return { data: {} }; };
   try { await googleJobs({ q: "x", hl: "es-419", gl: "mx" }); } finally { axios.get = savedGet; }
