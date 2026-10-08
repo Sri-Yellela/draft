@@ -4155,4 +4155,16 @@ export const MIGRATIONS = [
                            WHERE b.source = 'import' AND b.reverted_at IS NULL);
       `,
     },
+    {
+      // D84 F2 (owner, 10-09): CRAWLER PLACEHOLDERS ARE NOT ENRICHMENT. A JSON map, enrichment column -> where its
+      // value came from: crawler_fallback (a guess — the first 300 characters as summary, the lowercased title, the
+      // title's level), source (the ATS stated it), board_location (the board's own location), import, owner.
+      // A crawler_fallback value counts as EMPTY for the importer's "fill empty only"; an import or owner value is
+      // never replaced without OVERWRITE. Written on insert by the crawl and by every import; a row from before this
+      // migration is backfilled by DETECTION at boot (services/jobs/enrichmentProvenance.js).
+      id: "151_enrichment_provenance",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN enrichment_provenance TEXT;
+      `,
+    },
   ];

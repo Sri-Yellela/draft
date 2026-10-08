@@ -8,6 +8,7 @@
  */
 
 import { EXPERIENCE_LEVELS, WORK_MODELS, valueSet } from '../../shared/jobFilterOptions.js';
+import { levelFromTitle } from '../../shared/levelMapping.js';
 import { segments as locationSegments, US_STATES } from './usLocation.js';
 
 const JOB_SCHEMA_VERSION = '1.1';
@@ -20,17 +21,13 @@ const JOB_SCHEMA_VERSION = '1.1';
 // against each other — see shared/jobFilterOptions.js.
 const VALID_EXPERIENCE_LEVELS = valueSet(EXPERIENCE_LEVELS);
 
+// ⛔ D84 F2: the title ladder is shared/levelMapping.js — the SAME mapping the enrichment prompt states, so Staff and
+// Principal are `lead` in both (they were stored as `senior` here). A title that says nothing is still 'mid', and
+// that guess is recorded as a crawler placeholder (enrichment_provenance), which an import may replace.
 function normalizeExperienceLevel(explicit, title) {
   if (explicit && VALID_EXPERIENCE_LEVELS.has(explicit)) return explicit;
   if (!title) return null;
-  const t = title.toLowerCase();
-  if (/\b(intern(?:ship)?|co.?op)\b/.test(t)) return 'intern';
-  if (/\b(c-suite|chief\s+executive|ceo\b|cto\b|cfo\b|coo\b|cpo\b)\b/.test(t)) return 'executive';
-  if (/\b(director|vice\s+president|\bvp\b|head\s+of)\b/.test(t)) return 'lead';
-  if (/\b(manager|lead\b)\b/.test(t)) return 'lead';
-  if (/\b(senior|sr\.?|principal|staff)\b/.test(t)) return 'senior';
-  if (/\b(junior|jr\.?|entry.?level|new.?grad|graduate\b|associate\b)\b/.test(t)) return 'entry';
-  return 'mid';
+  return levelFromTitle(title) ?? 'mid';
 }
 
 const VALID_WORKPLACE_TYPES = valueSet(WORK_MODELS);
@@ -81,6 +78,15 @@ function normalizeSalaryPeriod(period) {
 function inferClearanceRequired(title) {
   if (!title) return null;
   return /\b(security\s+clearance|clearance\s+required|active\s+clearance|top.?secret|ts\/sci)\b/i.test(title) ? 1 : null;
+}
+
+/** D84 F2: which branch of normalizeWorkplaceType answered — stated by the source, by the board's location, or a guess. */
+function workplaceProvenance(explicit, remoteBool, title, location) {
+  if (!normalizeWorkplaceType(explicit, remoteBool, title, location)) return null;
+  if (explicit && normalizeWorkplaceType(explicit, null, '', '')) return 'source';
+  if (remoteBool === true) return 'source';
+  if (normalizeWorkplaceType(null, null, '', location)) return 'board_location';
+  return 'crawler_fallback';
 }
 
 // ── Cross-source fingerprint ────────────────────────────────────────────────
@@ -357,6 +363,23 @@ function normalizeJob({
     requires_work_auth:    requires_work_auth != null ? (requires_work_auth ? 1 : 0) : null,
     is_clearance_required: is_clearance_required != null ? (is_clearance_required ? 1 : 0)
                          : inferClearanceRequired(cleanTitle),
+    // ⛔ D84 F2 · where each enrichment value came from. `crawler_fallback` (a guess from the title or the first
+    // 300 characters) counts as EMPTY for the importer's "fill empty only"; `source` (the ATS stated it) and
+    // `board_location` (the board's own location says Remote / Hybrid / On-site) are stated values and are kept.
+    enrichment_provenance: JSON.stringify(Object.fromEntries(Object.entries({
+      summary:               cleanDesc ? 'crawler_fallback' : null,
+      normalized_title:      'crawler_fallback',
+      experience_level:      experience_level && VALID_EXPERIENCE_LEVELS.has(experience_level) ? 'source'
+                           : cleanTitle ? 'crawler_fallback' : null,
+      workplace_type:        workplaceProvenance(workplace_type, remote != null ? Boolean(remote) : null, cleanTitle, location),
+      skills_json:           Array.isArray(skills) && skills.length ? 'source' : null,
+      salary_min_usd:        salary_min_usd != null || (isUsd && resolvedSalMin != null) ? 'source' : null,
+      salary_max_usd:        salary_max_usd != null || (isUsd && resolvedSalMax != null) ? 'source' : null,
+      salary_period:         normalizeSalaryPeriod(salary_period) ? 'source' : null,
+      is_h1b_sponsor:        is_h1b_sponsor != null ? 'source' : null,
+      requires_work_auth:    requires_work_auth != null ? 'source' : null,
+      is_clearance_required: is_clearance_required != null ? 'source' : inferClearanceRequired(cleanTitle) != null ? 'crawler_fallback' : null,
+    }).filter(([, v]) => v))),
     req_id:                req_id != null ? String(req_id) : null,
   };
 }
@@ -411,4 +434,5 @@ function normalizeEmploymentType(raw) {
       ?? null;
 }
 
-export { normalizeJob, stripInternalFields, JOB_SCHEMA_VERSION, computeFingerprint, normalizeForFingerprint, computeReqUid, reqUidNamespace, atsPostingIdentity, normalizeEmploymentType };
+export { normalizeJob, stripInternalFields, JOB_SCHEMA_VERSION, computeFingerprint, normalizeForFingerprint, computeReqUid, reqUidNamespace, atsPostingIdentity, normalizeEmploymentType,
+  normalizeWorkplaceType, inferClearanceRequired };
