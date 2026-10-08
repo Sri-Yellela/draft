@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// The manual enrichment round trip's two tedious steps (services/jobs/enrichmentChunks.js):
+// The manual enrichment round trip's two tedious steps (shared/enrichmentChunks.js — the SAME functions the Admin →
+// Enrichment page runs in the browser, so the owner never needs this; it stays for the agent and developers):
 //
-//   SPLIT — the export from Admin → Database → Enrichment Round Trip → ⬇ Export JSONL, into model-sized chunks:
-//     node scripts/enrichmentChunks.mjs split enrichment-export.jsonl [--size 30] [--out <dir>]
+//   SPLIT — an enrichment export (Admin → Enrichment, step 2) into model-sized chunks:
+//     node scripts/enrichmentChunks.mjs split enrichment-export.jsonl [--size 30] [--out <dir>] [--raw]
+//   each chunk's posting text is CLEANED (HTML and boilerplate removed, never truncated) unless --raw — as on the page;
 //   writes <dir>/chunk-001.jsonl … and <dir>/PROMPT.txt. Give the model PROMPT.txt + one chunk at a time, and save
 //   each answer beside its chunk as chunk-001.filled.jsonl, chunk-002.filled.jsonl, …
 //
@@ -10,18 +12,18 @@
 //     node scripts/enrichmentChunks.mjs merge enrichment-export.jsonl <dir> [--max 500]
 //   reads every *.filled.jsonl in <dir>; writes <dir>/import-001.jsonl … (≤ 500 rows each, job_id + content_hash +
 //   enrichment only) and, when any row failed or never came back, <dir>/redo.jsonl — in EXPORT format, so it can be
-//   split again. Then upload each import-NNN.jsonl in the same panel: Dry Run, then Apply Import.
+//   split again. Then choose each import-NNN.jsonl in Admin → Enrichment, step 4: dry run, then Apply.
 //
 // Default <dir>: data/enrichment-chunks/<timestamp>/ (data/ is gitignored — posting text, nothing personal).
 // It never touches a database, and never calls a model.
 import fs from "node:fs";
 import path from "node:path";
-import { splitExport, mergeFilled, enrichmentPrompt, DEFAULT_CHUNK_ROWS, DEFAULT_IMPORT_ROWS } from "../services/jobs/enrichmentChunks.js";
+import { splitExport, mergeFilled, enrichmentPrompt, DEFAULT_CHUNK_ROWS, DEFAULT_IMPORT_ROWS } from "../shared/enrichmentChunks.js";
 
 const [cmd, exportFile, dirArg] = process.argv.slice(2);
 const flag = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 ? process.argv[i + 1] : d; };
 const pad = (n) => String(n).padStart(3, "0");
-const usage = () => { console.error("usage:\n  split <export.jsonl> [--size 30] [--out dir]\n  merge <export.jsonl> <dir> [--max 500]"); process.exit(2); };
+const usage = () => { console.error("usage:\n  split <export.jsonl> [--size 30] [--out dir] [--raw]\n  merge <export.jsonl> <dir> [--max 500]"); process.exit(2); };
 if (!cmd || !exportFile || !fs.existsSync(exportFile)) usage();
 const exportText = fs.readFileSync(exportFile, "utf8");
 
@@ -29,11 +31,12 @@ if (cmd === "split") {
   const size = Number(flag("size", DEFAULT_CHUNK_ROWS));
   const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
   const out = flag("out", path.join("data", "enrichment-chunks", stamp));
-  const { rows, chunks } = splitExport(exportText, { size });
+  const { rows, chunks, removedParagraphs } = splitExport(exportText, { size, clean: !process.argv.includes("--raw") });
   fs.mkdirSync(out, { recursive: true });
   chunks.forEach((c, i) => fs.writeFileSync(path.join(out, `chunk-${pad(i + 1)}.jsonl`), c.join("\n") + "\n"));
   fs.writeFileSync(path.join(out, "PROMPT.txt"), enrichmentPrompt() + "\n");
-  console.log(`${rows} posting(s) → ${chunks.length} chunk(s) of ≤ ${size} in ${out}`);
+  console.log(`${rows} posting(s) → ${chunks.length} chunk(s) of ≤ ${size} in ${out}` +
+    (removedParagraphs ? ` (${removedParagraphs} boilerplate paragraph(s) left out of the copies)` : ""));
   console.log(`Next: give the model PROMPT.txt + one chunk at a time; save each answer as chunk-NNN.filled.jsonl beside it.`);
   console.log(`Then: node scripts/enrichmentChunks.mjs merge ${exportFile} ${out}`);
 } else if (cmd === "merge") {
@@ -57,5 +60,5 @@ if (cmd === "split") {
   list("MISSING (never returned)", report.missing, (id) => id);
   list("UNREADABLE LINES (skipped)", report.junk, (j) => `${j.file}:${j.line} ${j.text}`);
   if (redo) console.log(`→ redo.jsonl holds the ${redo.trim().split("\n").length} posting(s) to fill again (split it like an export).`);
-  console.log(`Upload each import-NNN.jsonl in Admin → Database → Enrichment Round Trip: Dry Run, then Apply Import.`);
+  console.log(`Choose each import-NNN.jsonl in Admin → Enrichment, step 4: dry run, then Apply.`);
 } else usage();

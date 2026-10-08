@@ -38,20 +38,17 @@ test("the backlog count carries the candidates, the per-request cap and the cove
   } finally { stop(); }
 });
 
-test("the Operations tab's section counts the backlog and sends the operator to export → import — no Enrich button", () => {
-  const src = fs.readFileSync("client/src/panels/adminOps.jsx", "utf8");
-  assert.match(src, /<EnrichmentSection theme=\{theme\}\/>/, "mounted in OpsTab");
-  const sec = src.slice(at(src, "export function EnrichmentSection"), at(src, "export function JobDataSection"));
-  assert.ok(sec.length > 100, "the section exists");
-  // It only ever posts the count — never apply.
-  assert.match(sec, /api\("\/api\/admin\/enrichment\/run", \{ method: "POST", body: JSON\.stringify\(params\(\)\) \}\)/);
-  assert.doesNotMatch(sec, /apply: true/, "the section can ask for a model run again");
-  assert.doesNotMatch(sec, /Enrich \$\{|>Enrich…</, "an Enrich button came back");
-  // It names the replacement and links to it.
-  assert.match(sec, /href="\/admin\/db"/);
-  assert.match(sec, /Enrichment Round Trip/);
-  // The columns it reads are real enrichment columns.
-  const sel = fs.readFileSync("services/jobs/enrichmentSelection.js", "utf8");
-  const cols = JSON.parse(src.match(/const enrichCols = (\[[^\]]+\]);/)[1]);
-  for (const c of cols.filter(c => c !== "enriched_at")) assert.ok(sel.includes(`'${c}'`), `${c} is an ENRICHMENT_COLUMN`);
+// D83 (10-08) retired the Operations tab's "Count the backlog" section — the panel D83 names as the anti-example
+// (a number only after a click, a free-text source box, the real work on another page). Admin → Enrichment
+// (panels/adminEnrichment.jsx, test/d83AdminEnrichment.test.js) is the whole round trip now. What A61 guarded still
+// holds there: no admin surface can ask for a model run.
+test("the Operations tab no longer carries the backlog section; Admin → Enrichment replaces it — and no Enrich button anywhere", () => {
+  const ops = fs.readFileSync("client/src/panels/adminOps.jsx", "utf8");
+  assert.doesNotMatch(ops, /<EnrichmentSection|export function EnrichmentSection/, "the retired section came back");
+  const admin = fs.readFileSync("client/src/panels/AdminPanel.jsx", "utf8");
+  assert.ok(at(admin, '{ id:"enrichment",      label:"Enrichment" }') >= 0);
+  assert.match(admin, /\{topTab === "enrichment" && <EnrichmentTab\/>\}/);
+  const page = fs.readFileSync("client/src/panels/adminEnrichment.jsx", "utf8");
+  assert.doesNotMatch(page, /enrichment\/run/, "the page never posts to the retired model trigger");
+  assert.doesNotMatch(page, /Enrich \$\{|>Enrich…</, "an Enrich button came back");
 });

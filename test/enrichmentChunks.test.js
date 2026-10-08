@@ -1,4 +1,4 @@
-// The manual enrichment round trip's split / merge (services/jobs/enrichmentChunks.js). Each red when removed:
+// The manual enrichment round trip's split / merge (shared/enrichmentChunks.js). Each red when removed:
 // split keeps every posting line and drops the _meta header · merge restores content_hash from the EXPORT (a model
 // that drops or mangles it neither loses a good row nor launders a stale one) · source is dropped · a bad enum, an
 // unknown column, an unknown job_id and a duplicate are caught BEFORE upload · an all-null row is dropped · code
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import { buildExport, toJsonl, planImport } from "../services/jobs/enrichmentTransfer.js";
-import { splitExport, mergeFilled, enrichmentPrompt } from "../services/jobs/enrichmentChunks.js";
+import { splitExport, mergeFilled, enrichmentPrompt } from "../shared/enrichmentChunks.js";
 
 function board(n = 6) {
   const db = new Database(":memory:");

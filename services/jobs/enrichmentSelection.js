@@ -64,6 +64,7 @@
 // which is precisely the condition that produced cleanup_log id 85.
 
 import crypto from 'crypto';
+import { ENRICHMENT_COLUMNS } from '../../shared/enrichmentRules.js';
 
 /**
  * Days since a posting was LAST SEEN (`scraped_at`) beyond which it is not worth enriching.
@@ -71,12 +72,8 @@ import crypto from 'crypto';
  */
 export const DEFAULT_MAX_LAST_SEEN_DAYS = 7;
 
-/** The columns enrichment writes. Coverage is reported per column, never as one total. */
-export const ENRICHMENT_COLUMNS = [
-  'summary', 'normalized_title', 'experience_level', 'workplace_type',
-  'salary_min_usd', 'salary_max_usd', 'salary_period', 'skills_json',
-  'is_h1b_sponsor', 'requires_work_auth', 'is_clearance_required', 'org_unit_raw',
-];
+/** The columns enrichment writes — shared/enrichmentRules.js, so the Admin page reads the same list (D83). */
+export { ENRICHMENT_COLUMNS };
 
 // Haiku 4.5 list pricing, for estimates and run summaries only — never billed or persisted.
 export const USD_PER_INPUT_MTOK = 1.0;

@@ -304,11 +304,16 @@ function revertGradeBatch(db, batchId) {
 }
 
 /** Recent batches, newest first — the provenance view. */
-export function listBatches(db, { limit = 20 } = {}) {
+export function listBatches(db, { limit = 20, source = null, kind = null } = {}) {
+  // Each filter is added only when asked for, so the unfiltered read still runs on a schema without `kind`.
+  const where = [], params = { limit };
+  if (source) { where.push('b.source = @source'); params.source = source; }
+  if (kind) { where.push('b.kind = @kind'); params.kind = kind; }
   return db.prepare(`
     SELECT b.*, (SELECT COUNT(*) FROM enrichment_batch_rows r WHERE r.batch_id = b.id) recorded_rows
-    FROM enrichment_batches b ORDER BY b.started_at DESC, b.id DESC LIMIT ?
-  `).all(limit);
+    FROM enrichment_batches b ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+    ORDER BY b.started_at DESC, b.id DESC LIMIT @limit
+  `).all(params);
 }
 
 /** One batch with its rows — what it touched and what it filled. */

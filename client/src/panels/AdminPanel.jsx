@@ -7,6 +7,7 @@ import { api }      from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
 import { OpsTab, GlanceTab, UserApplications, DiskBanner, CrawlerTab } from "./adminOps.jsx";
+import { EnrichmentTab } from "./adminEnrichment.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
 
@@ -972,6 +973,7 @@ export function AdminPanel() {
   const TOP_TABS = [
     { id:"glance",          label:"Today" },
     { id:"ops",             label:"Operations" },
+    { id:"enrichment",      label:"Enrichment" },
     { id:"crawler",         label:"Crawler" },
     { id:"system",          label:"System" },
     { id:"usage",           label:"Usage" },
@@ -1046,6 +1048,8 @@ export function AdminPanel() {
       {/* ── The daily glance, and the surfaces that used to be curl-only (A50) ── */}
       {topTab === "glance" && <GlanceTab theme={theme}/>}
       {topTab === "ops" && <OpsTab theme={theme}/>}
+      {/* D83: the enrichment round trip as one page of six steps — numbers on open, Undo on every import. */}
+      {topTab === "enrichment" && <EnrichmentTab/>}
       {/* D75 STEP 0b: the crawler's control panel — the switches live in draft's database, no redeploy. */}
       {topTab === "crawler" && <CrawlerTab theme={theme}/>}
 

@@ -293,7 +293,12 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
   // ── U4 — provenance ──────────────────────────────────────────────────────────────────────────
   router.get("/batches", (req, res) => {
     try {
-      res.json({ batches: listBatches(db, { limit: req.query.limit != null ? Number(req.query.limit) : 20 }) });
+      const limit = req.query.limit != null ? Number(req.query.limit) : 20;
+      // ?source=import&kind=enrichment — the Admin page's Past imports (D83: a grade import is source
+      // 'import' too, so the kind is what separates them); unfiltered keeps the old shape.
+      const source = req.query.source ? String(req.query.source) : null;
+      const kind = req.query.kind ? String(req.query.kind) : null;
+      res.json({ batches: listBatches(db, { limit, source, kind }) });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
@@ -343,6 +348,55 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
       const result = revertBatch(db, id);
       if (!result.ok) return res.status(409).json({ applied: false, error: result.reason });
       res.json({ applied: true, batchId: id, restored: result.restored, missing: result.missing });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── GET /overview — everything the Admin Enrichment page shows on open, without a click (D83) ──
+  //
+  // Read-only. The four number boxes, the per-column coverage bars, the real source list for the
+  // export's dropdown, and the importer's own limits — READ here, never copied into the client,
+  // so the page cannot drift from the importer. Past imports come from GET /batches?source=import.
+  router.get("/overview", (_req, res) => {
+    try {
+      const opts = enrichSelectionOptions();
+      const sel = selectCandidates(db, opts);
+      const coverage = columnCoverage(db);
+      // The salary and eligibility bars are "any of the group", which per-column counts cannot give.
+      const g = db.prepare(`SELECT COUNT(*) n,
+          SUM(salary_min_usd IS NOT NULL OR salary_max_usd IS NOT NULL) salary,
+          SUM(is_h1b_sponsor IS NOT NULL OR requires_work_auth IS NOT NULL OR is_clearance_required IS NOT NULL) flags
+        FROM scraped_jobs WHERE is_active = 1`).get();
+      const col = (c) => coverage.columns[c].filled;
+      const groups = [
+        { key: "skills", label: "Skills", columns: ["skills_json"], filled: col("skills_json") },
+        { key: "level", label: "Experience level", columns: ["experience_level"], filled: col("experience_level") },
+        { key: "workplace", label: "Workplace type", columns: ["workplace_type"], filled: col("workplace_type") },
+        { key: "salary", label: "Salary", columns: ["salary_min_usd", "salary_max_usd"], filled: g.salary || 0 },
+        { key: "flags", label: "Eligibility flags", columns: ["is_h1b_sponsor", "requires_work_auth", "is_clearance_required"], filled: g.flags || 0 },
+        { key: "summary", label: "Summary", columns: ["summary"], filled: col("summary") },
+      ].map(x => ({ ...x, total: coverage.total }));
+      // "New postings with a fit score": active postings first seen in the last 7 days that carry a
+      // score in the board's fit cache for at least one user. A posting without skills often scores
+      // "not enough signal" (NULL) — which is what enrichment fixes.
+      const since = Math.floor(Date.now() / 1000) - 7 * 86400;
+      const fresh = db.prepare(`SELECT COUNT(*) n,
+          SUM(EXISTS (SELECT 1 FROM ats_only_reports a WHERE a.job_id = j.job_id AND a.ats_score IS NOT NULL)) scored
+        FROM scraped_jobs j WHERE j.is_active = 1 AND j.discovered_at >= ?`).get(since);
+      const imports = db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(rows_written), 0) written
+        FROM enrichment_batches WHERE source = 'import' AND kind = 'enrichment' AND reverted_at IS NULL`).get();
+      const sources = db.prepare(`SELECT source, COUNT(*) n FROM scraped_jobs
+        WHERE is_active = 1 AND source IS NOT NULL AND TRIM(source) != '' GROUP BY source ORDER BY n DESC`).all();
+      res.json({
+        backlog: sel.totalMatched,
+        freshnessGateDays: opts.maxLastSeenDays,
+        noDescription: sel.noDescription,
+        board: coverage.total,
+        coverage, groups,
+        newPostings: { days: 7, total: fresh.n || 0, scored: fresh.scored || 0 },
+        imports: { count: imports.n, rowsWritten: imports.written },
+        sources: sources.map(s => ({ value: s.source, count: s.n })),
+        importRowCap: PRACTICAL_IMPORT_ROWS,
+      });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
