@@ -383,7 +383,7 @@ function getCacheStmts(db) {
         WHERE job_id = ?
       `),
       demoteStmt: db.prepare(`UPDATE scraped_jobs SET is_active = 0 WHERE job_id = ?`),
-      getExistingHashes: db.prepare(`SELECT job_id, _hash FROM scraped_jobs WHERE source = ?`),
+      getExistingHashes: db.prepare(`SELECT job_id, _hash, is_active FROM scraped_jobs WHERE source = ?`),
       // A posting that was out of market and now names a US location (an employer edit) is no
       // longer held out — its old record must not keep hiding it from hiring signals.
       clearOutOfMarketStmt: db.prepare(`DELETE FROM rejected_jobs WHERE job_id = ? AND reason LIKE '${OUT_OF_MARKET_PREFIX}%'`),
@@ -899,9 +899,11 @@ async function cacheJobs(db, anthropic = null) {
 
       // Fingerprints from the last crawl — lets us skip the full upsert (and re-classification)
       // for postings that haven't changed, so repeat crawls are dramatically cheaper than backfill.
-      const existingHashes = new Map(
-        getExistingHashes.all(source.name).map(r => [r.job_id, r._hash])
-      );
+      const existingRows = getExistingHashes.all(source.name);
+      const existingHashes = new Map(existingRows.map(r => [r.job_id, r._hash]));
+      // D78: the gates run on EVERY stored row (a retired one must not be re-activated by the unchanged touch),
+      // but their counters count only rows that were ON THE BOARD — a row a sweep already retired is not news.
+      const activeIds = new Set(existingRows.filter(r => r.is_active === 1).map(r => r.job_id));
 
       // ── Upsert in a transaction ───────────────────────────────────────────
       // D78: the board's age policy (board_policy), read once per source pass.
@@ -922,16 +924,16 @@ async function cacheJobs(db, anthropic = null) {
           // is retired only once the owner switched age_enforce on (applied postings are always kept).
           const age = ageGate(db, job, jobId, { exists: existingHashes.has(jobId), now, policy: agePolicy });
           if (age === "rejected_new") { tooOld++; continue; }
-          if (age === "aged_out") { agedOut++; continue; }
-          if (age === "would_age_out") wouldAgeOut++;
+          if (age === "aged_out") { if (activeIds.has(jobId)) agedOut++; continue; }
+          if (age === "would_age_out" && activeIds.has(jobId)) wouldAgeOut++;
 
           // ⛔ D78 B — computer science only. An EXISTING row is judged here, before the hash check, by its
           // stored family (the unchanged touch would re-activate a retired one); a NEW one after classifying.
           const exists = existingHashes.has(jobId);
           if (exists) {
             const scope = scopeGate(db, job, jobId, { exists, roleKey: storedFamily(db, { job_id: jobId, ...job }), now, policy: agePolicy });
-            if (scope === "scoped_out") { scopedOut++; continue; }
-            if (scope === "would_drop") wouldScopeOut++;
+            if (scope === "scoped_out") { if (activeIds.has(jobId)) scopedOut++; continue; }
+            if (scope === "would_drop" && activeIds.has(jobId)) wouldScopeOut++;
           }
 
           const contentHash = fingerprintJob(job);

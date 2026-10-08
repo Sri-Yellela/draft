@@ -10,12 +10,12 @@
 //   · ⛔ A posting a user APPLIED to is exempt, always. Starred / drafted / imported ones leave the board and
 //     stay in the user's own lists (D43: "no longer listed"). ⛔ RETIRE, NEVER DELETE: `aged_out` is the undo.
 //   · ⛔ A NULL date is never a reason to drop: the age falls back to first seen (for a new row: now).
-//   · ⛔ THE SWEEP CARRIES A BRAKE: a dry run by default, and it refuses to retire more than CEILING_SHARE of
-//     the active board in one pass unless explicitly forced.
+//   · The sweep is a dry run by default, and a real pass needs the dry run's count echoed back (the route).
+//     ⛔ NO SHARE CEILING — removed on the owner's word 10-08: *"remove the 30% limit — if it's not good enough
+//     it's not, don't need to keep futile ones for volume."* A pass retires every posting past the limit.
 // The policy is one row (board_policy, migration 146) — changed from Admin with no redeploy.
 
 export const DEFAULT_LIMIT_DAYS = 120;
-export const CEILING_SHARE = 0.30;
 const DAY = 86400;
 
 export function readPolicy(db) {
@@ -100,10 +100,10 @@ export function ageGate(db, job, jobId, { exists, now, policy = readPolicy(db) }
 
 /**
  * ⛔ The SWEEP: every active posting past the limit that no crawl will see again (or that the crawl has not
- * reached yet). DRY BY DEFAULT. Refuses more than CEILING_SHARE of the active board unless `force`.
- * @returns {{ dryRun, enforced, limitDays, active, candidates, retired, refused, share, byCompany, bySource, byBasis }}
+ * reached yet). DRY BY DEFAULT; no share ceiling (owner, 10-08).
+ * @returns {{ dryRun, enforced, limitDays, active, candidates, retired, share, byCompany, bySource, byBasis }}
  */
-export function sweepAged(db, { dryRun = true, force = false, now = Math.floor(Date.now() / 1000), policy = readPolicy(db), log = null } = {}) {
+export function sweepAged(db, { dryRun = true, now = Math.floor(Date.now() / 1000), policy = readPolicy(db), log = null } = {}) {
   const limitDays = policy.age_limit_days;
   const active = db.prepare("SELECT COUNT(*) FROM scraped_jobs WHERE is_active = 1").pluck().get();
   const rows = db.prepare(`SELECT sj.job_id, sj.title, sj.company, sj.source, sj.posted_at,
@@ -112,13 +112,9 @@ export function sweepAged(db, { dryRun = true, force = false, now = Math.floor(D
   const tally = (key) => rows.reduce((m, r) => (m[r[key] || "?"] = (m[r[key] || "?"] || 0) + 1, m), {});
   const byCompany = Object.entries(tally("company")).sort((a, b) => b[1] - a[1]).slice(0, 25);
   const share = active ? +(rows.length / active).toFixed(3) : 0;
-  const base = { dryRun, enforced: !!policy.age_enforce, limitDays, active, candidates: rows.length, retired: 0, refused: false, share,
+  const base = { dryRun, enforced: !!policy.age_enforce, limitDays, active, candidates: rows.length, retired: 0, share,
                  byCompany, bySource: tally("source"), byBasis: tally("basis") };
   if (dryRun || !rows.length) return base;
-  if (share > CEILING_SHARE && !force) {
-    log?.({ kind: "age_sweep", refused: true, candidates: rows.length, active, share });
-    return { ...base, refused: true, reason: `${rows.length} of ${active} (${Math.round(share * 100)}%) is above the ${Math.round(CEILING_SHARE * 100)}% ceiling — run it with force once you have read the dry run` };
-  }
   retireRows(db, rows, "aged_out", now);
   log?.({ kind: "age_sweep", retired: rows.length, active, share });
   return { ...base, retired: rows.length };

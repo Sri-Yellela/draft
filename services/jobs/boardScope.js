@@ -1,19 +1,18 @@
 // services/jobs/boardScope.js — ⛔ D78 B · COMPUTER SCIENCE ONLY, at the crawl and at a braked sweep.
 //
 // The rule is csScope.js (pure, over the classifier's family + the title). This file applies it, the way
-// boardAge.js applies the age limit — and shares its applied exemption, its retire-and-record step and its
-// ceiling, so the two board rules cannot drift apart (A93: built once).
+// boardAge.js applies the age limit — and shares its applied exemption and its retire-and-record step, so the two board rules cannot drift apart (A93: built once).
 //   · ⛔ OFF until the owner's go: while board_policy.scope_enforce = 0 the crawl only COUNTS what the rule
 //     would drop (`wouldScopeOut`) and writes every posting as before. The production dry run (10-08:
 //     945 of 1,942 out, 48.7%) is the reason it does not start on.
 //   · Enforced: a NEW out-of-scope posting is never written (rejected_jobs `out_of_scope`); an EXISTING one
 //     is retired at the crawl — BEFORE the hash check, by its stored family, because the "seen, unchanged"
 //     touch would re-activate it — and by the sweep. ⛔ An APPLIED posting is kept, always.
-//   · ⛔ THE SWEEP CARRIES THE BRAKE: dry by default, refuses past CEILING_SHARE unless forced, retires and
-//     never deletes; the reason column is the undo.
+//   · The sweep is dry by default, retires and never deletes; the reason column is the undo. ⛔ No share
+//     limit (removed on the owner's word 10-08, as for the age sweep).
 import { csScopeOf, CS_SCOPE_VERSION } from './csScope.js';
 import { classifyJob } from './classifyJob.js';
-import { readPolicy, boardStmts, retireRows, CEILING_SHARE } from './boardAge.js';
+import { readPolicy, boardStmts, retireRows } from './boardAge.js';
 
 export const SCOPE_REASON = 'out_of_scope';
 
@@ -56,9 +55,8 @@ export function scopeGate(db, job, jobId, { exists, roleKey, now, policy = readP
 
 /**
  * ⛔ The SWEEP: every active, un-applied posting the rule puts out of scope. DRY BY DEFAULT.
- * Refuses more than CEILING_SHARE of the active board unless `force`.
  */
-export function sweepScope(db, { dryRun = true, force = false, now = Math.floor(Date.now() / 1000), policy = readPolicy(db), log = null } = {}) {
+export function sweepScope(db, { dryRun = true, now = Math.floor(Date.now() / 1000), policy = readPolicy(db), log = null } = {}) {
   const active = db.prepare('SELECT COUNT(*) FROM scraped_jobs WHERE is_active = 1').pluck().get();
   const rows = db.prepare(`SELECT sj.job_id, sj.title, sj.company, sj.source, sj.description,
       EXISTS (SELECT 1 FROM user_jobs uj WHERE uj.job_id = sj.job_id AND uj.applied = 1)
@@ -81,13 +79,9 @@ export function sweepScope(db, { dryRun = true, force = false, now = Math.floor(
   }
   const share = active ? +(out.length / active).toFixed(3) : 0;
   const base = { dryRun, enforced: !!policy.scope_enforce, version: CS_SCOPE_VERSION, active, candidates: out.length, appliedKept,
-                 retired: 0, refused: false, share,
+                 retired: 0, share,
                  byReason, byFamily, byCompany: Object.entries(byCompany).sort((a, b) => b[1] - a[1]).slice(0, 25) };
   if (dryRun || !out.length) return base;
-  if (share > CEILING_SHARE && !force) {
-    log?.({ kind: 'scope_sweep', refused: true, candidates: out.length, active, share });
-    return { ...base, refused: true, reason: `${out.length} of ${active} (${Math.round(share * 100)}%) is above the ${Math.round(CEILING_SHARE * 100)}% ceiling — run it with force once you have read the dry run` };
-  }
   retireRows(db, out, SCOPE_REASON, now);
   log?.({ kind: 'scope_sweep', retired: out.length, active, share, version: CS_SCOPE_VERSION });
   return { ...base, retired: out.length };

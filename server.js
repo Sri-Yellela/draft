@@ -7586,8 +7586,8 @@ setInterval(() => {
 // D76: the last Railway event per service (a failed or crashed deploy is the card's red) and the stream.
 app.get("/api/admin/deploy-events", requireAdmin, (_req, res) => res.json(deployEventsSummary(db)));
 // ⛔ D78 A: the board's age policy and its sweep. GET = the policy + a DRY RUN of the sweep · PUT = change the policy
-// (no redeploy) · POST /sweep = run it — dry unless { apply: true, expectCandidates: <the dry run's count> }, and
-// past the 30% ceiling only with { force: true }. Applied postings are always kept; nothing is deleted.
+// (no redeploy) · POST /sweep = run it — dry unless { apply: true, expectCandidates: <the dry run's count> }. No share
+// ceiling (removed on the owner's word 10-08). Applied postings are always kept; nothing is deleted.
 app.get("/api/admin/board-policy", requireAdmin, (_req, res) => {
   res.json({ policy: readBoardPolicy(db), dryRun: sweepAged(db, { dryRun: true }), scopeDryRun: sweepScope(db, { dryRun: true }) });
 });
@@ -7599,37 +7599,37 @@ app.post("/api/admin/board-policy/sweep", requireAdmin, (req, res) => {
   const dry = sweepAged(db, { dryRun: true });
   if (req.body?.apply !== true) return res.json({ applied: false, ...dry, note: `Nothing changed. POST again with apply: true and expectCandidates: ${dry.candidates}.` });
   if (Number(req.body.expectCandidates) !== dry.candidates) return res.status(409).json({ applied: false, ...dry, error: `expectCandidates must equal the dry run's ${dry.candidates}` });
-  const out = sweepAged(db, { dryRun: false, force: req.body.force === true,
+  const out = sweepAged(db, { dryRun: false,
     log: (e) => db.prepare("INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json) VALUES (?, ?, ?, ?, ?)")
       .run(req.user.id, "board_age_sweep", "scraped_jobs", JSON.stringify({ active: e.active }), JSON.stringify(e)) });
-  res.status(out.refused ? 409 : 200).json({ applied: !out.refused, ...out });
+  res.json({ applied: true, ...out });
 });
-// ⛔ D78 B: the same contract for computer-science scope — dry unless { apply: true, expectCandidates }, past the
-// ceiling only with { force: true }; applied postings kept; retired with reason out_of_scope, never deleted.
+// ⛔ D78 B: the same contract for computer-science scope — dry unless { apply: true, expectCandidates }; applied
+// postings kept; retired with reason out_of_scope, never deleted.
 app.post("/api/admin/board-policy/scope-sweep", requireAdmin, (req, res) => {
   const dry = sweepScope(db, { dryRun: true });
   if (req.body?.apply !== true) return res.json({ applied: false, ...dry, note: `Nothing changed. POST again with apply: true and expectCandidates: ${dry.candidates}.` });
   if (Number(req.body.expectCandidates) !== dry.candidates) return res.status(409).json({ applied: false, ...dry, error: `expectCandidates must equal the dry run's ${dry.candidates}` });
-  const out = sweepScope(db, { dryRun: false, force: req.body.force === true,
+  const out = sweepScope(db, { dryRun: false,
     log: (e) => db.prepare("INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json) VALUES (?, ?, ?, ?, ?)")
       .run(req.user.id, "board_scope_sweep", "scraped_jobs", JSON.stringify({ active: e.active }), JSON.stringify(e)) });
-  res.status(out.refused ? 409 : 200).json({ applied: !out.refused, ...out });
+  res.json({ applied: true, ...out });
 });
 // D78 A: the daily sweep — 03:30 UTC, after the 03:00 cleanup, and ONLY once the owner switched age_enforce on.
-// Braked (sweepAged's 30% ceiling, never forced from here); retire, never delete; applied postings kept.
+// Retire, never delete; applied postings kept. No share ceiling (owner, 10-08).
 cron.schedule("30 3 * * *", () => {
   // ⛔ Each sweep is guarded on its own: no early return, so the age switch being off never skips the scope sweep.
   try {
     if (readBoardPolicy(db).age_enforce) {
       const r = sweepAged(db, { dryRun: false });
-      console.log(`[board-age] daily sweep: ${r.refused ? `REFUSED — ${r.reason}` : `retired ${r.retired} of ${r.active} active (past ${r.limitDays} days)`}`);
+      console.log(`[board-age] daily sweep: retired ${r.retired} of ${r.active} active (past ${r.limitDays} days)`);
     }
   } catch (e) { console.error("[board-age] daily sweep failed:", e.message); }
-  // D78 B: the scope sweep, in the same tick, ONLY once the owner switched scope_enforce on. Braked the same way.
+  // D78 B: the scope sweep, in the same tick, ONLY once the owner switched scope_enforce on.
   try {
     if (readBoardPolicy(db).scope_enforce) {
       const r = sweepScope(db, { dryRun: false });
-      console.log(`[board-scope] daily sweep: ${r.refused ? `REFUSED — ${r.reason}` : `retired ${r.retired} of ${r.active} active (out of scope, v${r.version})`}`);
+      console.log(`[board-scope] daily sweep: retired ${r.retired} of ${r.active} active (out of scope, v${r.version})`);
     }
   } catch (e) { console.error("[board-scope] daily sweep failed:", e.message); }
 });
