@@ -47,6 +47,7 @@ import { runSchedule as runCrawlerSchedule } from "./services/crawlerQueue.js";
 import { readPolicy as readBoardPolicy, setPolicy as setBoardPolicy, sweepAged } from "./services/jobs/boardAge.js";
 import { sweepScope } from "./services/jobs/boardScope.js";
 import { heatReport } from "./services/companyHeat.js";
+import { runHnDiscovery, runCandidateProbe } from "./services/companyCandidates.js";
 import { createRailwayHookRouter, deployEventsSummary } from "./routes/railwayHook.js";
 import { readGauge, projectTranche, trancheGate, AMBER_AT as DISK_AMBER_AT, RED_AT as DISK_RED_AT } from "./services/diskGauge.js";
 import { createJobTagsRouter } from "./routes/jobTags.js";
@@ -4496,6 +4497,44 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE company_ats_list ADD COLUMN evidence TEXT;
       `,
     },
+    {
+      // D82 B/C (owner, 10-09): THE CANDIDATE POOL — companies a discovery job FOUND, never companies it
+      // added. Fed by HN "Who is hiring?" (services/jobs/hnDiscovery.js); probed read-only each night
+      // (services/companyCandidates.js); approved or rejected by the owner in Admin -> Companies ->
+      // Candidates. status: new -> probed -> approved / rejected -> added / dormant. A rejected row stays,
+      // so the next sweep never re-queues it. discovery_breakers: one row per discovery source, opened
+      // after 3 consecutive failures (D82 E); only the owner closes it.
+      id: "148_company_candidates",
+      sql: `
+        CREATE TABLE IF NOT EXISTS company_candidates (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          company       TEXT    NOT NULL,
+          ats_type      TEXT    NOT NULL,
+          ats_slug      TEXT    NOT NULL COLLATE NOCASE,
+          source        TEXT    NOT NULL,
+          source_json   TEXT,
+          evidence_json TEXT,
+          rank_score    INTEGER,
+          status        TEXT    NOT NULL DEFAULT 'new',
+          status_reason TEXT,
+          first_seen    INTEGER NOT NULL DEFAULT (unixepoch()),
+          last_seen     INTEGER NOT NULL DEFAULT (unixepoch()),
+          probed_at     INTEGER,
+          decided_at    INTEGER,
+          decided_by    INTEGER,
+          UNIQUE (ats_type, ats_slug)
+        );
+        CREATE INDEX IF NOT EXISTS idx_company_candidates_status ON company_candidates(status, rank_score DESC);
+        CREATE TABLE IF NOT EXISTS discovery_breakers (
+          source     TEXT    PRIMARY KEY,
+          failures   INTEGER NOT NULL DEFAULT 0,
+          open       INTEGER NOT NULL DEFAULT 0,
+          opened_at  INTEGER,
+          last_error TEXT,
+          updated_at INTEGER
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7637,6 +7676,20 @@ cron.schedule("0 5 * * 1", () => {
       `${s.hotShare == null ? "—" : Math.round(s.hotShare * 100) + "%"} with a new in-scope posting in ${h.hotDays} days (target ${Math.round(h.target * 100)}%)` +
       (h.proposals.length ? ` · PROPOSED for deactivation: ${h.proposals.map((p) => `${p.company} (${p.why})`).join("; ")}` : ""));
   } catch (e) { console.error("[company-heat] failed:", e.message); }
+});
+// ⛔ D82 B/C: company DISCOVERY — HN "Who is hiring?" weekly (Mondays 06:00, after the crawl and the heat line) and the
+// read-only probe of new candidates nightly (06:30, 25 a night, ≥ 1 s between boards). Both write ONLY the candidate
+// pool (company_candidates) and a pipeline_runs row; adding a company stays the owner's approval in Admin → Companies →
+// Candidates. DISCOVERY_PAUSED=1 stops both; three consecutive failures open that source's breaker until the owner resets it.
+cron.schedule("0 6 * * 1", () => {
+  runHnDiscovery(db).then((r) => console.log(`[discovery:hn] ${r.ran === false ? `skipped (${r.reason})` : r.failed ? `FAILED: ${r.error}` :
+    `${r.candidates} companies from ${r.threads} threads (${r.requests} requests) → ${r.inserted} new candidate(s), ${r.refreshed} seen again`}`))
+    .catch((e) => console.error("[discovery:hn] failed:", e.message));
+});
+cron.schedule("30 6 * * *", () => {
+  runCandidateProbe(db).then((r) => console.log(`[discovery:probe] ${r.ran === false ? `skipped (${r.reason})` : r.failed ? `FAILED: ${r.error}` :
+    `probed ${r.probed} of ${r.considered} candidate(s), ${r.errored} errored`}`))
+    .catch((e) => console.error("[discovery:probe] failed:", e.message));
 });
 cron.schedule("30 3 * * *", () => {
   // ⛔ Each sweep is guarded on its own: no early return, so the age switch being off never skips the scope sweep.

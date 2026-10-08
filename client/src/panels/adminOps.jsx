@@ -780,7 +780,94 @@ export function CompaniesSection({ theme }) {
         { key: "active", label: "", render: r => <button type="button" style={{ fontSize: 11, cursor: "pointer", color: r.active ? theme.text : C.WARNING }}
             onClick={() => toggle(r)}>{r.active ? "Disable…" : "Enable…"}</button> },
       ]}/>
+      <DiscoveryCandidates theme={theme} onAdded={load}/>
     </Card>
+  );
+}
+
+// ── D82 C · Candidates — /api/admin/companies/candidates ─────────────────────────────────────
+// What the discovery jobs FOUND (HN weekly) and the nightly read-only probe MEASURED, ranked by fresh
+// in-scope roles. The jobs never add a company: Approve is dry first (what would be added, what is
+// refused and why, the disk gate), then a backup and each add WITH its evidence. Reject keeps the row so
+// the next sweep never re-queues it. Status is a mark (D60: never a pill).
+const CANDIDATE_TONE = { new: C.INK_FAINT, probed: C.SUCCESS, approved: C.WARNING, rejected: C.INK_FAINT, added: C.SUCCESS, dormant: C.WARNING };
+function DiscoveryCandidates({ theme, onAdded }) {
+  const [d, setD] = useState(null);
+  const [picked, setPicked] = useState(() => new Set());
+  const [busy, setBusy] = useState(null);
+  const [err, setErr] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const load = useCallback(() => { api("/api/admin/companies/candidates").then(setD).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { load(); }, [load]);
+  const ids = [...picked];
+  const flip = (id) => setPicked(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const approve = async () => {
+    setBusy("approve"); setErr(null); setMsg(null);
+    try {
+      const dry = await api("/api/admin/companies/candidates/approve", { method: "POST", body: JSON.stringify({ ids }) });
+      const refused = dry.refused.map(r => `${r.company || "#" + r.id} (${r.reason})`).join(", ");
+      if (!dry.eligible.length) { setErr(`None can be added: ${refused}`); setBusy(null); return; }
+      if (!dry.disk?.ok) { setErr(`The disk gate refuses ${dry.eligible.length}: ${dry.disk?.reason}`); setBusy(null); return; }
+      if (!confirm(`Add ${dry.eligible.length} company(ies)?\n\n${dry.eligible.map(e => `${e.company} — ${e.cs} in-scope <= 120d of ${e.csOpen}`).join("\n")}` +
+                   `${refused ? `\n\nRefused: ${refused}` : ""}\n\nA backup is taken first; each add carries its evidence and Disable reverses it.`)) { setBusy(null); return; }
+      const r = await api("/api/admin/companies/candidates/approve", { method: "POST",
+        body: JSON.stringify({ ids, confirm: true, expectIds: dry.eligible.map(e => e.id) }) });
+      setMsg(`${r.added.length} added${r.failed.length ? `, ${r.failed.length} refused at add` : ""}. ${r.note}`);
+      setPicked(new Set()); load(); onAdded?.();
+    } catch (e) { setErr(e.payload?.message || e.payload?.error || e.message); }
+    setBusy(null);
+  };
+  const reject = async () => {
+    if (!confirm(`Reject ${ids.length} candidate(s)? They stay in the pool as rejected and are never queued again.`)) return;
+    setBusy("reject"); setErr(null);
+    try { const r = await api("/api/admin/companies/candidates/reject", { method: "POST", body: JSON.stringify({ ids }) }); setMsg(`${r.rejected} rejected.`); setPicked(new Set()); load(); }
+    catch (e) { setErr(e.message); }
+    setBusy(null);
+  };
+  const reset = async (source) => {
+    if (!confirm(`Close the ${source} breaker? The job runs again at its next scheduled time.`)) return;
+    try { await api(`/api/admin/companies/candidates/breakers/${source}/reset`, { method: "POST", body: "{}" }); load(); }
+    catch (e) { setErr(e.message); }
+  };
+  const disc = d?.discovery;
+  const open = (disc?.breakers || []).filter(b => b.open);
+  const pctOf = (v) => (v == null ? "—" : `${v}%`);
+  return (
+    <div data-discovery-candidates style={{ marginTop: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 4 }}>CANDIDATES — FOUND BY DISCOVERY, NOT CONFIGURED (D82)</div>
+      {disc?.paused && <div style={{ fontSize: 12, color: C.WARNING, marginBottom: 6 }}>Discovery is paused (DISCOVERY_PAUSED) — no job runs.</div>}
+      {open.map(b => (
+        <div key={b.source} data-discovery-breaker style={{ fontSize: 12, color: C.DANGER, marginBottom: 6 }}>
+          The {b.source} job is stopped: {b.failures} consecutive failures (circuit breaker, after {disc.breakerAfter}). Last error: {b.last_error || "—"}{" "}
+          <button type="button" style={{ fontSize: 11, cursor: "pointer" }} onClick={() => reset(b.source)}>Reset…</button>
+        </div>
+      ))}
+      <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 6 }}>
+        {Object.entries(d?.counts || {}).map(([k, v]) => `${v} ${k}`).join(" · ") || "The pool is empty."}
+        {(disc?.lastRuns || []).map(r => ` · last ${r.source} run ${ago(r.started_at)}: ${r.status}${r.error_text ? ` (${r.error_text})` : ""}`).join("")}
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+        <Btn theme={theme} primary disabled={!ids.length || !!busy} onClick={approve}>{busy === "approve" ? "Checking…" : `Approve ${ids.length || ""}…`}</Btn>
+        <Btn theme={theme} disabled={!ids.length || !!busy} onClick={reject}>{`Reject ${ids.length || ""}…`}</Btn>
+      </div>
+      <Err msg={err}/>
+      {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 6 }}>{msg}</div>}
+      <Table theme={theme} rows={d?.candidates || []} empty="No candidates yet — the HN job runs weekly." cols={[
+        { key: "pick", label: "", render: r => ["probed", "new", "approved"].includes(r.status)
+            ? <input type="checkbox" checked={picked.has(r.id)} onChange={() => flip(r.id)} aria-label={`select ${r.company}`}/> : "" },
+        { key: "company", label: "company" },
+        { key: "board", label: "board", render: r => `${r.ats_type}:${r.ats_slug}` },
+        { key: "status", label: "status", render: r => <span style={markStyle(CANDIDATE_TONE[r.status] || C.INK_FAINT)}>{r.status}</span> },
+        { key: "cs", label: "in-scope ≤120d", right: true, render: r => r.evidence ? `${num(r.evidence.cs)} / ${num(r.evidence.csOpen)}` : "—" },
+        { key: "pct30", label: "≤30d", right: true, render: r => pctOf(r.evidence?.pct30) },
+        { key: "pct120", label: "≤120d", right: true, render: r => pctOf(r.evidence?.pct120) },
+        { key: "us", label: "US", right: true, render: r => pctOf(r.evidence?.usPct) },
+        { key: "age", label: "median age", right: true, render: r => r.evidence?.medianAge == null ? "—" : `${r.evidence.medianAge}d` },
+        { key: "found", label: "how found", render: r => r.found ? `${r.source} · ${r.found.n_months || 0} mo${r.found.last ? ` (last ${r.found.last})` : ""}${r.found.yc ? ` · YC ${r.found.yc}` : ""}` : r.source },
+        { key: "why", label: "verdict", render: r => r.evidence?.bar ? (r.evidence.bar.meets ? "meets the D80 bar" : r.evidence.bar.misses.join(", ")) : (r.status_reason || "—") },
+        { key: "sample", label: "titles", render: r => (r.evidence?.sample || []).slice(0, 3).join(" · ") },
+      ]}/>
+    </div>
   );
 }
 
