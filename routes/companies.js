@@ -7,6 +7,7 @@
 import express, { Router } from "express";
 import { listCompanies, harvestedSuggestions, validateBoard, addCompany, setCompanyActive, ATS_FETCHERS } from "../services/companyList.js";
 import { trancheGate } from "../services/diskGauge.js";
+import { heatReport } from "../services/companyHeat.js";
 
 const DEFAULT_DATA_DIR = () => process.env.RM_DATA_DIR || "data";
 
@@ -17,7 +18,12 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
   router.use(express.json({ limit: "64kb" }));
 
   router.get("/", (_req, res) => {
-    res.json({ companies: listCompanies(db), suggestions: harvestedSuggestions(db), atsTypes: Object.keys(fetchers) });
+    // D80 E: each active company's hiring heat and the deactivation PROPOSALS — read-only; the owner presses Disable.
+    const heat = heatReport(db);
+    const byId = new Map(heat.companies.map((c) => [c.id, c]));
+    const companies = listCompanies(db).map((c) => ({ ...c, heat: byId.get(c.id)?.heat ?? null, new_30d: byId.get(c.id)?.new_30d ?? null }));
+    res.json({ companies, suggestions: harvestedSuggestions(db), atsTypes: Object.keys(fetchers),
+               heat: { ...heat.summary, hotDays: heat.hotDays, dormantDays: heat.dormantDays, target: heat.target, proposals: heat.proposals } });
   });
 
   router.post("/validate", async (req, res) => {
