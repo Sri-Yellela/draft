@@ -142,7 +142,7 @@ import {
   getAutomationReadiness,
   publicIntegrationRow,
 } from "./services/integrationReadiness.js";
-import { searchJobs, cacheJobs, cacheJoboFeed, reconcileFingerprint } from "./services/jobs/aggregator.js";
+import { searchJobs, cacheJobs, reconcileFingerprint } from "./services/jobs/aggregator.js";
 // profileMatcher.js deleted in cleanup 5.7. filterAndRankForProfile was imported here and never
 // called — the board has been ranked in SQL (ORDER BY in the /api/jobs query) since the pivot,
 // so scoreJob's in-memory weighting had no call site. Flagged as dead in bb24241; removed now.
@@ -5085,40 +5085,11 @@ cron.schedule("0 4 * * *", async () => {
     },
     webhookUrl: process.env.PIPELINE_ALERT_WEBHOOK || null,
   }).catch(e => console.error("[alerts] delivery threw:", e.message));
-  // Jobo feed sync — cron-only (never on boot/restart) so it never burns wallet credits just
-  // because the server restarted. Runs after the ATS refresh, sequentially, in the same tick.
-  try {
-    const jobo = await cacheJoboFeed(db, ANTHROPIC_KEY ? anthropic : null);
-    // A provider that never ran must never again read as a healthy empty sync. The old line
-    // logged "complete — 0 jobs cached" for an unconfigured key, a hard failure, and a genuine
-    // no-op alike, which is why Jobo's absence went undetected.
-    if (jobo.status === 'skipped_unconfigured') {
-      console.error('[Cron] Jobo feed sync SKIPPED — JOBO_API_KEY is not set. The provider did NOT run; this is NOT a zero-result sync.');
-    } else if (jobo.status === 'failed') {
-      console.error(`[Cron] Jobo feed sync FAILED (${jobo.error}) — watermark not advanced; ${jobo.cached} cached before the error`);
-    } else {
-      console.log(
-        `[Cron] Jobo feed sync complete (${jobo.mode}) — fetched ${jobo.fetched}, cached ${jobo.cached}, ` +
-        `unchanged ${jobo.unchanged}, merged ${jobo.merged}, ejected ${jobo.ejected}, dropped ${jobo.dropped}, ` +
-        `failed ${jobo.failed}, expired ${jobo.expired}`
-      );
-      // The specific blind spot that hid Jobo's real behaviour: rows CAN be fetched and then all
-      // folded into ATS duplicates or dropped by the classifier, writing nothing. That is a very
-      // different state from "the feed had nothing for us", and both used to print as 0.
-      if (jobo.fetched && !jobo.cached) {
-        console.warn(
-          `[Cron] Jobo returned ${jobo.fetched} jobs but cached NONE — all were merged into existing ` +
-          `rows (${jobo.merged}), dropped as unclassifiable (${jobo.dropped}), ejected as blue-collar ` +
-          `(${jobo.ejected}) or malformed (${jobo.failed}). No source='jobo' rows will exist.`
-        );
-      }
-    }
-  } catch(e) {
-    console.error('[Cron] Jobo feed sync error:', e.message);
-  }
+  // D78 C: Jobo's paid feed sync ran here, after the ATS refresh. Retired — we run our own crawls,
+  // and production held 0 source='jobo' rows. 'jobo' survives only as filter/tier vocabulary.
   // ── The board's fit, brought up to date with what the crawl just added ─────────────────────
   //
-  // After BOTH crawls, so one pass covers every new posting. Incremental: each (user, active
+  // After the crawl, so one pass covers every new posting. Incremental: each (user, active
   // profile) scores only the postings it has no fresh row for — on a quiet night that is the day's
   // arrivals, not the board. Sequential across users and yielding inside each, so it shares the
   // event loop with live requests rather than taking it. Its summary line says how many profiles
@@ -5126,8 +5097,8 @@ cron.schedule("0 4 * * *", async () => {
   scheduleBoardFitForAll("crawl");
   // Company KB rollups (Tasks 9.5/9.7) — reuse this same cron tick, no new scheduler. Both are
   // read-only aggregations over scraped_jobs/its enrichment columns. ⛔ Nothing in this tick fills
-  // org_unit_raw any more: the model enrichment pass that did (once fired inside cacheJobs/
-  // cacheJoboFeed) lost its triggers in A80 V4 and was deleted under D17 (A80, 10-05). The column
+  // org_unit_raw any more: the model enrichment pass that did (once fired inside cacheJobs and
+  // the since-retired cacheJoboFeed) lost its triggers in A80 V4 and was deleted under D17 (A80, 10-05). The column
   // fills only through the manual export → import (routes/enrichment.js), so the org rollup sees
   // whatever has been imported as of now and picks up newly imported rows on the next day's run.
   try {

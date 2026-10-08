@@ -29,8 +29,7 @@ const STALE_AFTER_HOURS = 48;
 // A44: enrichment runs after each nightly sync. Three missed nights with enrichable rows waiting
 // is a stop, not a queue — local enrichment stopped 2026-08-24 and nothing on this panel said so.
 const ENRICHMENT_STOPPED_AFTER_HOURS = 72;
-// A44: sources the owner has deliberately paused (jobo: wallet exhausted, 402, "waiting,
-// deliberately" — owner 10-01). Comma-separated names. A paused source is shown, never alerted:
+// A44: sources the owner has deliberately paused. Comma-separated names. A paused source is shown, never alerted:
 // a permanent critical for a decision already taken is the alarm nobody reads.
 const pausedSources = () => new Set(String(process.env.PIPELINE_PAUSED_SOURCES || "")
   .split(",").map(s => s.trim()).filter(Boolean));
@@ -43,12 +42,12 @@ const ENRICHMENT_COLUMNS = [
   "skills_json", "salary_max_usd", "is_h1b_sponsor", "requires_work_auth",
 ];
 
-// Sources the DAILY CRAWL actually calls: cacheJobs iterates the direct-ATS set, and jobo has its
-// own whole-catalogue feed via cacheJoboFeed. adzuna and serpapi are live-search-only — they are
+// Sources the DAILY CRAWL actually calls: cacheJobs iterates the direct-ATS set. (Jobo's paid
+// whole-catalogue feed was the one other member until D78 C retired it.) adzuna and serpapi are live-search-only — they are
 // configured and healthy and will never appear in a crawl, so "never ran" is not a finding about
 // them. DERIVED from DIRECT_ATS_SOURCES rather than restated, so a provider added there joins the
 // crawl here too and this cannot drift into the second copy of the list it exists to avoid.
-const CRAWL_SOURCES = new Set([...DIRECT_ATS_SOURCES, "jobo"]);
+const CRAWL_SOURCES = new Set(DIRECT_ATS_SOURCES);
 
 export function createAdminDbRouter(db, { dbPath } = {}) {
   const router = Router();
@@ -190,8 +189,8 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
         const lastSuccess = lastOk.get(name) || null;
         const lastActivityAt = lastSuccess?.started_at ?? rows?.last_row_at ?? null;
 
-        // Does the DAILY CRAWL call this source at all? cacheJobs iterates ATS_SOURCE_NAMES plus
-        // jobo's separate feed; adzuna and serpapi are live-search-only and `cacheJobs` never
+        // Does the DAILY CRAWL call this source at all? cacheJobs iterates ATS_SOURCE_NAMES;
+        // adzuna and serpapi are live-search-only and `cacheJobs` never
         // touches them. Without this distinction both read `never_ran` — a warning shape
         // indistinguishable from Jobo's real months-long failure, which is the confusion AC item 3
         // exists to remove. "Never ran" must mean "should have run and did not".

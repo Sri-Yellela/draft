@@ -95,14 +95,14 @@ test("queue 37: the ingestion gate retires and records a held-out row, and clear
   ]);
 });
 
-test("queue 37: ⛔ the gate runs BEFORE the content-hash check in both ingestion loops", () => {
+test("queue 37: ⛔ the gate runs BEFORE the content-hash check in the ingestion loop", () => {
   // The cheap "unchanged" path calls touchSeenStmt, which sets is_active = 1. A gate after it lets
   // every stored non-US row ride back onto the board on each crawl.
   const agg = read("../services/jobs/aggregator.js");
   const loop = (start, end) => agg.slice(at(agg, start), at(agg, end, at(agg, start)));
   for (const [name, body] of [
+    // cacheJoboFeed's loop was the second one here until D78 C retired the Jobo feed.
     ["cacheJobs", loop("for (const job of fetchedJobs) {", "upsertCanonicalJob(db, {")],
-    ["cacheJoboFeed", loop("function processJob(rawJob) {", "upsertCanonicalJob(db, {")],
   ]) {
     const gate = at(body, "holdOutOfMarket(", 0, name);
     assert.ok(gate < at(body, "fingerprintJob(job)", 0, name), `${name}: the gate must precede the hash`);

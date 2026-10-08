@@ -23,9 +23,6 @@ import workdayPlugin   from './sources/workday.js';
 import smartrecruitersPlugin from './sources/smartrecruiters.js';
 import workablePlugin  from './sources/workable.js';
 import recruiteePlugin from './sources/recruitee.js';
-// Jobo is a feed-sync source, not a per-query search plugin — it is intentionally NOT added
-// to SOURCES below. cacheJoboFeed() (bottom of this file) imports it directly.
-import joboSource from './sources/jobo.js';
 import { SOURCES as SOURCES_DIMENSION, labelMap } from '../../shared/jobFilterOptions.js';
 import { userReferencedSql } from './userReferences.js';
 // import theMuse   from './sources/themusejobs.js';  // add when ready
@@ -243,10 +240,10 @@ function holdOutOfMarket(job, jobId, stmts, now) {
   return true;
 }
 
-// Per-job upsert/classify statements shared by cacheJobs() (per-company ATS loop) and
-// cacheJoboFeed() (global feed sync) — same WeakMap-per-connection pattern as
-// getFingerprintStmts above, so both callers reuse one prepared set instead of each preparing
-// their own copy of the same SQL.
+// Per-job upsert/classify statements used by cacheJobs() (per-company ATS loop) — same
+// WeakMap-per-connection pattern as getFingerprintStmts above, so repeated crawls on one
+// connection reuse one prepared set instead of preparing the same SQL again. (Jobo's feed sync,
+// cacheJoboFeed, shared these until D78 C retired it.)
 const cacheStmtsCache = new WeakMap();
 function getCacheStmts(db) {
   let stmts = cacheStmtsCache.get(db);
@@ -395,11 +392,11 @@ function getCacheStmts(db) {
   return stmts;
 }
 
-// Shared by cacheJobs(), cacheJoboFeed(), and services/jobs/importJob.js — writes one
+// Shared by cacheJobs() and services/jobs/importJob.js — writes one
 // canonical scraped_jobs row + its job_role_map entry. This is ONLY the write; the *gating*
 // decision (whether a null verdict.roleKey or blue-collar verdict should skip the write
 // entirely) stays with each caller, since that's exactly the behavior that differs: crawled
-// sources (cacheJobs/cacheJoboFeed) already filter those out before ever calling this, while
+// sources (cacheJobs) already filter those out before ever calling this, while
 // an explicit user import (importJob.js) never gates — it can legitimately reach here with
 // verdict.roleKey === null or verdict.collar === 'blue', which is why bucket_role/collar below
 // reflect the verdict as-is instead of assuming "always classified, always white" like the
@@ -440,7 +437,7 @@ function upsertCanonicalJob(db, {
     description:               canonical.description || null,
     company_icon_url:          canonical.company_icon_url || null,
     via:                       canonical.via || null,
-    // Always 'white': cacheJobs/cacheJoboFeed already ejected blue-collar verdicts before
+    // Always 'white': cacheJobs already ejected blue-collar verdicts before
     // ever reaching here, and importJob.js's "never gate" decision means a blue-collar-
     // classified import should still render like any other board row, not get hidden behind
     // a collar filter elsewhere — bucket_role/classification_confidence already carry the
@@ -472,7 +469,7 @@ function upsertCanonicalJob(db, {
     fingerprint:               dedup.fingerprint,
     sources_seen:              dedup.sourcesSeen,
     req_uid:                   dedup.reqUid,
-    // The single write shared by cacheJobs(), cacheJoboFeed() and importJob.js, so all three
+    // The single write shared by cacheJobs() and importJob.js, so both
     // route through the one derivation. No apply_url column is written on this path — canonical.url
     // IS the apply destination here, which is what mapJobRow hands the client as applyUrl.
     // This is also why source alone would not do: every `jobo` row in production carries a
@@ -808,8 +805,8 @@ async function cacheJobs(db, anthropic = null) {
 
     const atsSources = SOURCES.filter(s => s.isConfigured() && ATS_SOURCE_NAMES.has(s.name));
 
-    // ── Prepared statements (reused across all source loops, and shared with cacheJoboFeed
-    // via getCacheStmts' WeakMap cache — see its definition and comment above) ─────────────
+    // ── Prepared statements (reused across all source loops, via getCacheStmts' WeakMap
+    // cache — see its definition and comment above) ───────────────────────────────────────
     // touchSeenStmt: cheap "seen, unchanged" touch — refreshes updated_at (so the stale-prune
     // watermark logic doesn't mark it absent) and reactivates it if a prior crawl had pruned
     // it, without re-running classification or rewriting every column. Also (re)writes the
@@ -1063,362 +1060,17 @@ async function cacheJobs(db, anthropic = null) {
   }
 }
 
-const JOBO_SOURCE_NAME             = 'jobo';
-const JOBO_BOUNDED_BACKFILL_BATCH  = 10;   // free quickstart size — the credit-safe default
-const JOBO_FULL_BACKFILL_BATCH     = 1000;
-const JOBO_EXPIRED_BATCH           = 10000;
-
-// Jobo bills ~3 credits ($0.003) per job RETURNED, so batch size is literally the per-request
-// price: a 1000-job page costs 3000 credits ($3). This used to be a hardcoded 1000, which meant
-// an unconfigured deployment on a free-tier wallet issued a $3 request it could not pay for,
-// got HTTP 402, and — because the error was swallowed into a "0 jobs cached" log line — looked
-// like a healthy empty sync forever. The default is now the free quickstart size (matching
-// JOBO_BOUNDED_BACKFILL_BATCH) so an unconfigured deployment cannot silently spend money;
-// a funded wallet raises it via the JOBO_INCREMENTAL_BATCH env var.
-const JOBO_INCREMENTAL_BATCH_DEFAULT = 10;
-const JOBO_INCREMENTAL_BATCH_MAX     = 1000;  // the API's own per-page ceiling
-const JOBO_CREDITS_PER_JOB           = 3;     // observed from a live 402: 1000 jobs -> 3000 credits
-
-// A small batch trades credit cost for REQUEST COUNT, and Jobo enforces a per-minute JobFeed
-// request limit — a live run at batch_size=10 paged 30 times in seconds and died on HTTP 429.
-// That is worse than it sounds: the throw leaves the watermark unadvanced, so the next run
-// re-fetches the same pages and re-spends the same credits without ever making progress.
-// Pacing the loop keeps the small-batch default viable instead of rate-limiting itself.
-const JOBO_PAGE_DELAY_MS = 2000;
-const JOBO_MAX_BACKFILL_PAGES      = 500;  // generous cap — see workday.js for the same idea
-const JOBO_MAX_INCREMENTAL_PAGES   = 100;
-
-function isoFromEpoch(sec) {
-  return new Date(sec * 1000).toISOString();
-}
-
-/**
- * Resolves the incremental page size from its env override. Pure and exported for the same
- * reason decideJoboBackfillMode is: the cost-guard behaviour should be unit-testable without a
- * real network or env mutation. A malformed or out-of-range value falls back LOUDLY rather than
- * silently — a typo'd batch size is a spend decision, so it must never be applied quietly.
- * @param {string|undefined} raw the raw JOBO_INCREMENTAL_BATCH env value
- * @returns {number} a usable batch size in [1, JOBO_INCREMENTAL_BATCH_MAX]
- */
-function resolveJoboIncrementalBatch(raw) {
-  const provided = raw != null && String(raw).trim() !== '';
-  if (!provided) return JOBO_INCREMENTAL_BATCH_DEFAULT;
-
-  const n = Number(raw);
-  if (!Number.isInteger(n) || n < 1) {
-    console.warn(`[cacheJoboFeed] Ignoring invalid JOBO_INCREMENTAL_BATCH="${raw}" — falling back to the free-tier default ${JOBO_INCREMENTAL_BATCH_DEFAULT}.`);
-    return JOBO_INCREMENTAL_BATCH_DEFAULT;
-  }
-  if (n > JOBO_INCREMENTAL_BATCH_MAX) {
-    console.warn(`[cacheJoboFeed] JOBO_INCREMENTAL_BATCH=${n} exceeds the API maximum ${JOBO_INCREMENTAL_BATCH_MAX} — clamping.`);
-    return JOBO_INCREMENTAL_BATCH_MAX;
-  }
-  return n;
-}
-
-// Pure decision logic for cacheJoboFeed's backfill branch — extracted so the cost-guard
-// behavior (bounded default vs opt-in full stable_scan, and resuming an in-progress full
-// backfill regardless of the CURRENT env value) is unit-testable without a real db/network.
-// An in-progress full backfill (cursor already saved) always resumes as 'full', even if
-// JOBO_FULL_BACKFILL isn't set on this particular run — finishing what was already started
-// and paid for beats silently reverting to a bounded page.
-function decideJoboBackfillMode({ cursor, fullBackfillEnv }) {
-  if (cursor) return { mode: 'full', resumeCursor: cursor };
-  if (fullBackfillEnv === '1') return { mode: 'full', resumeCursor: null };
-  return { mode: 'bounded' };
-}
-
-/**
- * Syncs Jobo's whole-catalogue feed into scraped_jobs. Unlike cacheJobs()'s per-company ATS
- * loop, Jobo has no company scoping — it's driven entirely by sync_state('jobo'):
- *   - last_watermark IS NULL → backfill not done yet. Bounded by default (one
- *     JOBO_BOUNDED_BACKFILL_BATCH page, no paging) — set JOBO_FULL_BACKFILL=1 to run the
- *     unbounded stable_scan instead (consumes Jobo wallet credits; a warning is logged before
- *     it starts). Either way, once backfill finishes, last_watermark is set and Jobo stays in
- *     incremental mode permanently — JOBO_FULL_BACKFILL only matters on this first run. `cursor`
- *     persists an in-progress FULL backfill's next_cursor after every page so a crash resumes
- *     instead of restarting; a crashed BOUNDED backfill just retries the same single page.
- *   - last_watermark set → incremental mode: page updated_after from that watermark, then page
- *     /api/jobs/expired from the SAME (pre-run) watermark and is_active=0 the matched local
- *     rows. The next watermark is captured as `now` BEFORE any network call and is only
- *     persisted after BOTH steps succeed — same "advance only on full success" rule Task 2's
- *     ATS sync uses. A failed page anywhere logs and returns without advancing anything, so the
- *     next run retries the same window (idempotent — re-upserting an unchanged row is a no-op
- *     via the same content-hash touch path cacheJobs uses).
- * Every job goes through the SAME normalize → classify → reconcileFingerprint → upsert path as
- * the ATS sources (via getCacheStmts(db), shared with cacheJobs above), so cross-source dedup,
- * req_uid identity, and blue-collar ejection all apply identically. sourcePriority() in this
- * file already defaults an unlisted source name (jobo isn't in DIRECT_ATS_SOURCES or
- * AGGREGATOR_SOURCES) to tier 2 — below direct ATS, above aggregators — with no code change.
- * @param {import('better-sqlite3').Database} db
- * @param {import('@anthropic-ai/sdk').default | null} [anthropic] UNUSED since D17 (A80 V4), as in cacheJobs().
- */
-// Shape returned by cacheJoboFeed. `status` exists so a caller can tell "the provider never ran"
-// from "the provider ran and legitimately had nothing to add" — those were indistinguishable
-// when this returned a bare `cached` count, which is how a completely unconfigured provider read
-// as a healthy empty sync for its entire lifetime.
-function joboResult(status, fields = {}) {
-  return {
-    status, mode: null, error: null,
-    fetched: 0, cached: 0, unchanged: 0, merged: 0, ejected: 0, dropped: 0, failed: 0, expired: 0,
-    ...fields,
-  };
-}
-
-async function cacheJoboFeed(db, anthropic = null) {
-  const runStartedAt = Math.floor(Date.now() / 1000);
-  // Records whatever cacheJoboFeed returns, so every exit path — including the unconfigured
-  // skip and the swallowed HTTP 402 — lands in pipeline_runs rather than only in a log line.
-  const record = (result) => {
-    recordPipelineRun(db, {
-      runKind: 'source_sync', source: JOBO_SOURCE_NAME, status: result.status,
-      startedAt: runStartedAt,
-      fetched: result.fetched, written: result.cached, unchanged: result.unchanged,
-      merged: result.merged, dropped: result.dropped, ejected: result.ejected,
-      failed: result.failed, expired: result.expired,
-      errorText: result.error,
-      details: result.mode ? { mode: result.mode } : null,
-    });
-    return result;
-  };
-
-  if (!joboSource.isConfigured()) {
-    // warn, not log: this is a misconfiguration that silently disables an entire provider, not a
-    // routine skip. Nothing downstream can detect it — no rows appear, no error is raised.
-    console.warn('[cacheJoboFeed] MISCONFIGURED: JOBO_API_KEY is not set — the Jobo provider did NOT run. This is not an empty sync; no jobs were fetched at all.');
-    return record(joboResult('skipped_unconfigured'));
-  }
-
-  const cacheStmts = getCacheStmts(db);
-  const {
-    rejectStmt, deleteJobStmt, deleteRoleStmt,
-    touchSeenStmt, demoteStmt, getExistingHashes,
-  } = cacheStmts;
-
-  const getSyncState = db.prepare('SELECT cursor, last_watermark FROM sync_state WHERE source = ?');
-  const upsertSyncState = db.prepare(`
-    INSERT INTO sync_state (source, cursor, last_watermark, updated_at)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(source) DO UPDATE SET
-      cursor         = excluded.cursor,
-      last_watermark = excluded.last_watermark,
-      updated_at     = excluded.updated_at
-  `);
-  // source='jobo' guard: only a row still canonically owned by Jobo can be expired here — a
-  // Jobo duplicate that lost the dedup fold to an ATS/import row never had a row of its own,
-  // so there's nothing for this statement to touch for it (Task-8 requirement 3).
-  const expireJoboRow = db.prepare(`
-    UPDATE scraped_jobs SET is_active = 0
-    WHERE job_id = ? AND source = 'jobo' AND is_active = 1
-  `);
-
-  const now   = Math.floor(Date.now() / 1000);
-  const state = getSyncState.get(JOBO_SOURCE_NAME);
-  const existingHashes = new Map(getExistingHashes.all(JOBO_SOURCE_NAME).map(r => [r.job_id, r._hash]));
-
-  let cached = 0, unchanged = 0, ejected = 0, dropped = 0, merged = 0, failed = 0, fetched = 0, outOfMarket = 0;
-
-  // Classify + dedup + upsert one raw Jobo job — mirrors cacheJobs' per-job inner-loop body.
-  function processJob(rawJob) {
-    let job;
-    try {
-      job = joboSource.normalizeJoboJob(rawJob);
-    } catch (err) {
-      console.warn(`[cacheJoboFeed] Skipping malformed job: ${err.message}`);
-      failed++;
-      return;
-    }
-    const jobId       = job.id;
-    // Queue 37 — before the hash check, as in cacheJobs.
-    if (holdOutOfMarket(job, jobId, cacheStmts, now)) { outOfMarket++; return; }
-    const contentHash = fingerprintJob(job);
-
-    if (existingHashes.get(jobId) === contentHash) {
-      const jobForDedup = { ...job, company_icon_url: job.thumbnail || null };
-      const dedup = reconcileFingerprint(db, jobForDedup);
-      if (dedup.action === 'fold') {
-        demoteStmt.run(jobId);
-        merged++;
-      } else {
-        touchSeenStmt.run(now, now, dedup.fingerprint, dedup.sourcesSeen, dedup.reqUid, jobId);
-        unchanged++;
-      }
-      return;
-    }
-
-    const verdict = classifyJob(job.title || '', job.description || '', job.company || '');
-
-    if (verdict.collar === 'blue') {
-      deleteJobStmt.run(jobId);
-      deleteRoleStmt.run(jobId);
-      rejectStmt.run({
-        job_id: jobId, title: job.title || '', company: job.company || '',
-        source: 'jobo', reason: 'blue_collar', rejected_at: now,
-      });
-      ejected++;
-      return;
-    }
-    if (verdict.roleKey === null) {
-      dropped++;
-      return;
-    }
-
-    const jobForDedup = { ...job, company_icon_url: job.thumbnail || null };
-    const dedup = reconcileFingerprint(db, jobForDedup);
-    if (dedup.action === 'fold') {
-      merged++;
-      return;
-    }
-    const canonical = dedup.job;
-
-    upsertCanonicalJob(db, {
-      jobId, canonical, verdict, contentHash, dedup, now,
-      searchQuery: 'jobo',
-      sourceLabel: SOURCE_LABELS.jobo,
-      matchedBy:   'jobo_feed',
-    });
-    cached++;
-  }
-
-  const runPage = (jobs) => {
-    fetched += jobs.length;
-    db.transaction(() => jobs.forEach(processJob))();
-  };
-
-  // No enrichment is scheduled from here (D17, A80 V4): it is the manual export → import round trip.
-
-  try {
-    if (state?.last_watermark == null) {
-      // ── Backfill ────────────────────────────────────────────────────────────
-      const decision = decideJoboBackfillMode({
-        cursor: state?.cursor || null,
-        fullBackfillEnv: process.env.JOBO_FULL_BACKFILL,
-      });
-
-      if (decision.mode === 'bounded') {
-        console.log(`[cacheJoboFeed] Bounded backfill (batch_size=${JOBO_BOUNDED_BACKFILL_BATCH}) — set JOBO_FULL_BACKFILL=1 for the full stable_scan backfill (consumes Jobo credits).`);
-        const page = await joboSource.fetchFeedPage({ batch_size: JOBO_BOUNDED_BACKFILL_BATCH, stable_scan: true });
-        runPage(page.jobs);
-        upsertSyncState.run(JOBO_SOURCE_NAME, null, now, now);
-        console.log(`[cacheJoboFeed] Bounded backfill complete — fetched ${page.jobs.length}, cached ${cached}, merged ${merged}, ejected ${ejected}, dropped ${dropped}, failed ${failed}`);
-      } else {
-        let cursor = decision.resumeCursor;
-        console.warn(cursor
-          ? '[cacheJoboFeed] Resuming in-progress full backfill from saved cursor.'
-          : '[cacheJoboFeed] JOBO_FULL_BACKFILL=1 — running the UNBOUNDED stable_scan backfill. This will consume Jobo wallet credits.');
-        let hasMore = true, pageCount = 0;
-        while (hasMore) {
-          if (++pageCount > JOBO_MAX_BACKFILL_PAGES) {
-            console.warn(`[cacheJoboFeed] Hit backfill page cap (${JOBO_MAX_BACKFILL_PAGES}) — stopping early; cursor is saved, next run resumes.`);
-            break;
-          }
-          // batch_size repeated on cursor pages for the same reason as the incremental loop
-          // below — an omitted batch_size silently reverts the page to the API default.
-          const body = cursor
-            ? { cursor, batch_size: JOBO_FULL_BACKFILL_BATCH }
-            : { batch_size: JOBO_FULL_BACKFILL_BATCH, stable_scan: true };
-          const page = await joboSource.fetchFeedPage(body);
-          runPage(page.jobs);
-          cursor  = page.nextCursor;
-          hasMore = page.hasMore && !!cursor;
-          // Persist progress after every page so a crash (or hitting the page cap) resumes
-          // from here next run instead of restarting the whole backfill.
-          upsertSyncState.run(JOBO_SOURCE_NAME, hasMore ? cursor : null, hasMore ? null : now, now);
-          console.log(`[cacheJoboFeed] Full backfill page ${pageCount}: fetched ${page.jobs.length}, running totals — cached ${cached}, merged ${merged}, ejected ${ejected}, dropped ${dropped}`);
-          // Same per-minute request limit applies here; this loop can run up to 500 pages.
-          if (hasMore && JOBO_PAGE_DELAY_MS > 0) await new Promise(r => setTimeout(r, JOBO_PAGE_DELAY_MS));
-        }
-        console.log(`[cacheJoboFeed] Full backfill ${hasMore ? 'paused (page cap)' : 'complete'} after ${pageCount} page(s)`);
-      }
-      return record(joboResult('ok', {
-        mode: decision.mode === 'bounded' ? 'bounded_backfill' : 'full_backfill',
-        fetched, cached, unchanged, merged, ejected, dropped, failed, outOfMarket,
-      }));
-    }
-
-    // ── Incremental ─────────────────────────────────────────────────────────
-    const watermark = state.last_watermark; // pre-run watermark; `now` above is the next one
-    // Read at call time, not module load, so changing the env var takes effect on the next cron
-    // tick without depending on when this module happened to be imported relative to dotenv.
-    const incrementalBatch = resolveJoboIncrementalBatch(process.env.JOBO_INCREMENTAL_BATCH);
-    console.log(
-      `[cacheJoboFeed] Incremental sync starting — batch_size=${incrementalBatch} ` +
-      `(~${incrementalBatch * JOBO_CREDITS_PER_JOB} credits/page, max ${JOBO_MAX_INCREMENTAL_PAGES} pages ` +
-      `= ~$${((incrementalBatch * JOBO_CREDITS_PER_JOB * JOBO_MAX_INCREMENTAL_PAGES) / 1000).toFixed(2)} worst case). ` +
-      `Set JOBO_INCREMENTAL_BATCH to raise it on a funded wallet.`
-    );
-    let cursor = null, hasMore = true, pageCount = 0;
-    while (hasMore) {
-      if (++pageCount > JOBO_MAX_INCREMENTAL_PAGES) {
-        throw new Error(`Hit incremental page cap (${JOBO_MAX_INCREMENTAL_PAGES}) without has_more=false — aborting without advancing watermark`);
-      }
-      // batch_size MUST be repeated on cursor pages. Jobo honours it there (verified live), but
-      // omitting it — as this did — makes the continuation fall back to the API default of 1000
-      // jobs, i.e. 3000 credits ($3) per page. Capping the batch therefore only ever made page 1
-      // cheap while every page after it silently reverted to full price.
-      const body = cursor
-        ? { cursor, batch_size: incrementalBatch }
-        : { batch_size: incrementalBatch, updated_after: isoFromEpoch(watermark) };
-      const page = await joboSource.fetchFeedPage(body);
-      runPage(page.jobs);
-      cursor  = page.nextCursor;
-      hasMore = page.hasMore && !!cursor;
-      // Pace only BETWEEN pages — never after the last one, so a single-page sync (the common
-      // incremental case) pays no delay at all.
-      if (hasMore && JOBO_PAGE_DELAY_MS > 0) await new Promise(r => setTimeout(r, JOBO_PAGE_DELAY_MS));
-    }
-
-    // ── Expiry — same pre-run watermark, never hard-deletes ─────────────────
-    let expiredCursor = null, expiredHasMore = true, expiredCount = 0, expiredPages = 0;
-    while (expiredHasMore) {
-      if (++expiredPages > JOBO_MAX_INCREMENTAL_PAGES) {
-        throw new Error(`Hit expired-feed page cap (${JOBO_MAX_INCREMENTAL_PAGES}) without has_more=false — aborting without advancing watermark`);
-      }
-      const page = await joboSource.fetchExpiredPage({
-        expiredSince: isoFromEpoch(watermark), batchSize: JOBO_EXPIRED_BATCH, cursor: expiredCursor,
-      });
-      db.transaction(() => {
-        for (const externalId of page.jobIds) {
-          const info = expireJoboRow.run(`jobo::${String(externalId)}`);
-          if (info.changes) expiredCount++;
-        }
-      })();
-      expiredCursor  = page.nextCursor;
-      expiredHasMore = page.hasMore && !!expiredCursor;
-    }
-
-    // Both steps succeeded — advance the watermark now, not before.
-    upsertSyncState.run(JOBO_SOURCE_NAME, null, now, now);
-    console.log(`[cacheJoboFeed] Incremental sync complete — cached ${cached}, unchanged ${unchanged}, merged ${merged}, ejected ${ejected}, dropped ${dropped}, expired ${expiredCount}`);
-
-    return record(joboResult('ok', {
-      mode: 'incremental',
-      fetched, cached, unchanged, merged, ejected, dropped, failed, outOfMarket, expired: expiredCount,
-    }));
-  } catch (err) {
-    console.error('[cacheJoboFeed] Failed — watermark NOT advanced:', err.message);
-    return record(joboResult('failed', {
-      error: err.message,
-      fetched, cached, unchanged, merged, ejected, dropped, failed, outOfMarket,
-    }));
-  }
-}
-
 /**
  * Returns readiness status of all registered sources.
- * Used by integrationReadiness.js and admin panel. Jobo is appended separately since it isn't
- * a member of SOURCES (it's a feed sync, not a query-time search plugin — see cacheJoboFeed).
+ * Used by integrationReadiness.js and admin panel. Exactly SOURCES — Jobo's feed sync was
+ * appended here until D78 C retired it (we run our own crawls; the paid feed is gone).
  */
 function getSourceStatus() {
-  return [
-    ...SOURCES.map(source => ({ name: source.name, configured: source.isConfigured() })),
-    { name: 'jobo', configured: joboSource.isConfigured() },
-  ];
+  return SOURCES.map(source => ({ name: source.name, configured: source.isConfigured() }));
 }
 
 export {
-  searchJobs, cacheJobs, cacheJoboFeed, getSourceStatus, reconcileFingerprint,
-  decideJoboBackfillMode, resolveJoboIncrementalBatch, upsertCanonicalJob, fingerprintJob,
+  searchJobs, cacheJobs, getSourceStatus, reconcileFingerprint,
+  upsertCanonicalJob, fingerprintJob,
   groupCompaniesByAtsType, holdOutOfMarket, previewFingerprint, gateOutOfMarket,
-  JOBO_INCREMENTAL_BATCH_DEFAULT, JOBO_INCREMENTAL_BATCH_MAX,
 };
