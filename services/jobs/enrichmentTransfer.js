@@ -50,6 +50,7 @@ import {
 import { parseJsonl, validateColumn } from '../../shared/enrichmentRules.js';
 export { parseJsonl, validateColumn };
 import { exportPostingText, EXPORT_TEXT_CAP } from '../../shared/enrichmentChunks.js';
+import { isPlaceholder, importedColumns, markImported, parseProvenance } from './enrichmentProvenance.js';
 import {
   openBatch, closeBatch, captureBefore, recordBatchRow, columnChanges, batchProvenanceAvailable, optionalTracked,
 } from './enrichmentBatches.js';
@@ -204,12 +205,16 @@ export function planImport(db, jsonlText, { overwrite = false, allowStale = fals
 
   // D84 F1: the partial flag, where the column exists (migration 150).
   const hasPartial = optionalTracked(db).includes('enrichment_partial');
+  // D84 F2: the provenance map, where the column exists (migration 151).
+  const hasProv = optionalTracked(db).includes('enrichment_provenance');
   const findRow = db.prepare(
-    `SELECT job_id, title, description, content_hash, enriched_at, ${ENRICHMENT_COLUMNS.join(', ')}
-            ${hasPartial ? ', enrichment_partial' : ''}
+    `SELECT job_id, title, location, description, content_hash, enriched_at, ${ENRICHMENT_COLUMNS.join(', ')}
+            ${hasPartial ? ', enrichment_partial' : ''}${hasProv ? ', enrichment_provenance' : ''}
      FROM scraped_jobs WHERE job_id = ?`
   );
   const seen = new Set();
+  // D84 F5: the per-column table — already filled · supplied · would be written · replacing a placeholder.
+  const columns = Object.fromEntries(ENRICHMENT_COLUMNS.map(c => [c, { alreadyFilled: 0, supplied: 0, wouldWrite: 0, replacingPlaceholder: 0 }]));
 
   for (const { line, obj } of rows) {
     const jobId = obj?.job_id;
@@ -265,7 +270,10 @@ export function planImport(db, jsonlText, { overwrite = false, allowStale = fals
 
     const writes = {};
     const skippedNonNull = [];
+    const replacedPlaceholders = [];
     let rowInvalid = null;
+    let imported = null;     // the columns a live import wrote on this row — read only when a map is missing
+    const rowColumns = [];
     for (const col of ENRICHMENT_COLUMNS) {
       const v = validateColumn(col, supplied[col]);
       if (!v.ok) { rowInvalid = { column: col, error: v.error }; break; }
@@ -275,10 +283,26 @@ export function planImport(db, jsonlText, { overwrite = false, allowStale = fals
       // a filler can see their value was not taken.
       // ⛔ D84 F1: a row enriched from CUT text (enrichment_partial) may have its skills_json replaced — only
       // that column, only for that row, recorded in the batch like any write, so it reverts.
-      const replaceable = overwrite || (col === 'skills_json' && current.enrichment_partial === 1);
+      // ⛔ D84 F2: a CRAWLER PLACEHOLDER counts as empty — the first 300 characters as summary, the lowercased
+      // title, the title's guessed level. A value an import or the owner wrote is never replaced without OVERWRITE.
+      // Detection (no map entry) needs the row's import record, so a missing map cannot relabel an import a guess.
+      if (current[col] != null && imported == null && !(col in (parseProvenance(current.enrichment_provenance) ?? {}))) {
+        imported = importedColumns(db, jobId);
+      }
+      const placeholder = current[col] != null && isPlaceholder(current, col, imported ?? new Set());
+      const replaceable = overwrite || placeholder || (col === 'skills_json' && current.enrichment_partial === 1);
+      rowColumns.push([col, current[col] != null, placeholder]);
       if (current[col] != null && !replaceable) { skippedNonNull.push(col); continue; }
       if (String(current[col] ?? '') === String(v.value)) { continue; }
       writes[col] = v.value;
+      if (placeholder) replacedPlaceholders.push(col);
+    }
+    if (!rowInvalid) {
+      for (const [col, filled, placeholder] of rowColumns) {
+        columns[col].supplied++;
+        if (filled && !placeholder) columns[col].alreadyFilled++;
+        if (col in writes) { columns[col].wouldWrite++; if (replacedPlaceholders.includes(col)) columns[col].replacingPlaceholder++; }
+      }
     }
     if (rowInvalid) {
       rejected.push({ line, jobId, kind: 'invalid_value',
@@ -306,6 +330,9 @@ export function planImport(db, jsonlText, { overwrite = false, allowStale = fals
       currentHash,
       // D84 F1: the row was filled from text the export had to cut — it stays in the backlog as partial.
       partial: hasPartial ? (obj.truncated === true ? 1 : 0) : null,
+      // D84 F2: what the write does to the provenance map — every written column becomes `import`.
+      provenance: hasProv ? markImported(current.enrichment_provenance, Object.keys(writes)) : null,
+      replacedPlaceholders,
     });
   }
 
@@ -325,6 +352,7 @@ export function planImport(db, jsonlText, { overwrite = false, allowStale = fals
     unchanged,
     rejected,
     perColumn,
+    columns,
     planned,
     // U3.2 — a malformed batch fails AS A WHOLE. This is the flag `applyImport` refuses on, and it
     // is computed here so the dry run reports the same verdict the apply would reach.
@@ -396,6 +424,7 @@ export function applyImport(db, jsonlText, {
       if (!p.stale) { sets.push('content_hash = @content_hash'); params.content_hash = p.currentHash; }
       if (batchId != null) { sets.push('enrichment_batch_id = @batch_id'); params.batch_id = batchId; }
       if (p.partial != null) { sets.push('enrichment_partial = @partial'); params.partial = p.partial; }
+      if (p.provenance != null) { sets.push('enrichment_provenance = @provenance'); params.provenance = p.provenance; }
       db.prepare(`UPDATE scraped_jobs SET ${sets.join(', ')} WHERE job_id = @job_id`).run(params);
 
       if (batchId != null) {

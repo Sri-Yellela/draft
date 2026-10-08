@@ -130,3 +130,81 @@ test("migration 150 marks the rows a live import already filled from cut text as
   db.exec(sql.slice(at(sql, "UPDATE scraped_jobs")));
   assert.deepEqual(db.prepare("SELECT job_id FROM scraped_jobs WHERE enrichment_partial = 1").all().map((r) => r.job_id), ["a"]);
 });
+
+// ── F2 · crawler placeholders are not enrichment ───────────────────────────────────────────────────────────────────
+import { backfillProvenance, isPlaceholder } from "../services/jobs/enrichmentProvenance.js";
+import { levelFromTitle, LEVEL_RULES } from "../shared/levelMapping.js";
+import { enrichmentPrompt } from "../shared/enrichmentChunks.js";
+
+test("ONE level mapping: Staff / Principal are lead in the crawler AND in the prompt", () => {
+  const job = (title) => normalizeJob({ id: "1", title, company: "Acme", url: "https://x", source: "greenhouse", description: "x" });
+  for (const t of ["Staff Software Engineer", "Principal Engineer", "Engineering Manager", "Director, Platform"]) {
+    assert.equal(job(t).experience_level, "lead", t);
+  }
+  assert.equal(job("Senior Software Engineer").experience_level, "senior");
+  assert.equal(job("VP, Engineering").experience_level, "executive");
+  assert.equal(job("Software Engineer II").experience_level, "mid");
+  assert.equal(job("New Grad Software Engineer").experience_level, "entry");
+  assert.equal(levelFromTitle("Software Engineer"), null, "a title that says nothing has no level of its own");
+  const prompt = enrichmentPrompt();
+  for (const rule of LEVEL_RULES) assert.ok(prompt.includes(rule), `the prompt states: ${rule}`);
+});
+
+test("the crawl records provenance on insert: guesses are placeholders, the board's own location is stated", () => {
+  const j = normalizeJob({ id: "1", title: "Staff Engineer", company: "Acme", url: "https://x", source: "greenhouse",
+    location: "Remote - US", description: "ABOUT US. We build things." });
+  const map = JSON.parse(j.enrichment_provenance);
+  assert.equal(map.summary, "crawler_fallback");
+  assert.equal(map.normalized_title, "crawler_fallback");
+  assert.equal(map.experience_level, "crawler_fallback");
+  assert.equal(map.workplace_type, "board_location");
+});
+
+test("a crawler_fallback summary is REPLACED on import; an import value is NOT (without OVERWRITE)", () => {
+  const db = board();
+  const description = "ABOUT US. " + "We build logistics software. ".repeat(20);
+  insert(db, { id: "s", description });
+  db.prepare("UPDATE scraped_jobs SET summary = ?, normalized_title = 'software engineer', experience_level = 'mid', enrichment_provenance = ? WHERE job_id = 's'")
+    .run(description.trim().slice(0, 300), JSON.stringify({ summary: "crawler_fallback", normalized_title: "crawler_fallback", experience_level: "crawler_fallback" }));
+  const line = (enr) => JSON.stringify({ job_id: "s", content_hash: computeContentHash("Software Engineer", description), enrichment: enr });
+  const plan = planImport(db, line({ summary: "Builds logistics software.", experience_level: "senior" }));
+  assert.equal(plan.perColumn.summary, 1, "the placeholder summary counts as empty");
+  assert.equal(plan.columns.summary.replacingPlaceholder, 1);
+  assert.equal(plan.columns.summary.alreadyFilled, 0, "a placeholder is not 'already filled'");
+  applyImport(db, line({ summary: "Builds logistics software.", experience_level: "senior" }));
+  const map = JSON.parse(db.prepare("SELECT enrichment_provenance FROM scraped_jobs WHERE job_id='s'").get().enrichment_provenance);
+  assert.equal(map.summary, "import");
+  assert.equal(map.experience_level, "import");
+  const again = planImport(db, line({ summary: "Something else.", experience_level: "lead" }));
+  assert.equal(again.perColumn.summary, undefined, "an imported summary is never replaced without OVERWRITE");
+  assert.equal(again.columns.summary.alreadyFilled, 1);
+  assert.equal(planImport(db, line({ summary: "Something else." }), { overwrite: true }).perColumn.summary, 1);
+});
+
+test("the boot backfill detects placeholders, keeps what an import wrote, and re-maps a guessed Staff level", () => {
+  const db = board();
+  const description = "ABOUT US. " + "We build logistics software. ".repeat(20);
+  insert(db, { id: "a", description });
+  insert(db, { id: "b", description });
+  db.prepare("UPDATE scraped_jobs SET title = 'Staff Software Engineer', summary = ?, experience_level = 'senior', enrichment_provenance = NULL WHERE job_id = 'a'")
+    .run(description.trim().slice(0, 300));
+  db.prepare("UPDATE scraped_jobs SET title = 'Staff Software Engineer', summary = 'Imported summary.', experience_level = 'senior', enrichment_provenance = NULL WHERE job_id = 'b'").run();
+  const batch = db.prepare("INSERT INTO enrichment_batches (source, started_at) VALUES ('import', 1)").run().lastInsertRowid;
+  db.prepare("INSERT INTO enrichment_batch_rows (batch_id, job_id, before_json, filled_json, written_at) VALUES (?, 'b', '{}', ?, 1)")
+    .run(batch, JSON.stringify({ filled: ["summary", "experience_level"], corrected: [] }));
+  const res = backfillProvenance(db);
+  assert.equal(res.written, 2);
+  const row = (id) => db.prepare("SELECT experience_level, enrichment_provenance FROM scraped_jobs WHERE job_id = ?").get(id);
+  assert.equal(JSON.parse(row("a").enrichment_provenance).summary, "crawler_fallback");
+  assert.equal(row("a").experience_level, "lead", "the crawl's OWN guess is re-mapped");
+  assert.equal(JSON.parse(row("b").enrichment_provenance).summary, "import", "an import's record beats detection");
+  assert.equal(row("b").experience_level, "senior", "an imported level is never touched");
+  assert.equal(backfillProvenance(db).written, 0, "NULL-only: a no-op on the next boot");
+});
+
+test("without a map, the importer detects per row — and an import's own record still wins", () => {
+  const description = "ABOUT US. We build things.";
+  const row = { title: "Software Engineer", description, summary: description.slice(0, 300), enrichment_provenance: null };
+  assert.equal(isPlaceholder(row, "summary"), true);
+  assert.equal(isPlaceholder(row, "summary", new Set(["summary"])), false);
+});

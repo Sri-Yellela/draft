@@ -258,7 +258,12 @@ function getCacheStmts(db) {
   if (!stmts) {
     // D84 F1: description_full (migration 150) is written where the column exists — a hand-rolled test schema
     // without it keeps working, and the parameter is simply unused there.
-    const full = db.prepare('PRAGMA table_info(scraped_jobs)').all().some(c => c.name === 'description_full');
+    const cols = new Set(db.prepare('PRAGMA table_info(scraped_jobs)').all().map(c => c.name));
+    const full = cols.has('description_full');
+    // D84 F2: the provenance map is written on INSERT only. An existing row keeps its own map — the crawl's map
+    // describes the crawl's guesses, and on a re-crawl the stored values (kept by the COALESCEs below) may be an
+    // import's, which must never be relabelled a placeholder.
+    const prov = cols.has('enrichment_provenance');
     stmts = {
       // A real upsert, not INSERT OR REPLACE.
       //
@@ -291,7 +296,7 @@ function getCacheStmts(db) {
            salary_min, salary_max, salary_currency,
            is_h1b_sponsor, requires_work_auth, is_clearance_required,
            discovered_at, updated_at, is_active, fingerprint, sources_seen, req_uid,
-           automation_tier, employment_type)
+           automation_tier, employment_type${prov ? ', enrichment_provenance' : ''})
         VALUES
           (@job_id, @search_query, @_hash, @title, @company, @location, @url, @source, @source_label,
            @posted_at, @scraped_at, @bucket_role, @bucket_seniority, @bucket_domain, @direct_apply, @description${full ? ', @description_full' : ''},
@@ -301,7 +306,7 @@ function getCacheStmts(db) {
            @salary_min, @salary_max, @salary_currency,
            @is_h1b_sponsor, @requires_work_auth, @is_clearance_required,
            @discovered_at, @updated_at, 1, @fingerprint, @sources_seen, @req_uid,
-           @automation_tier, @employment_type)
+           @automation_tier, @employment_type${prov ? ', @enrichment_provenance' : ''})
         ON CONFLICT(job_id) DO UPDATE SET
           search_query              = excluded.search_query,
           _hash                     = excluded._hash,
@@ -448,6 +453,7 @@ function upsertCanonicalJob(db, {
     direct_apply:              canonical.direct_apply === false ? 0 : 1,
     description:               canonical.description || null,
     description_full:          canonical.description_full || null,
+    enrichment_provenance:     canonical.enrichment_provenance || null,
     company_icon_url:          canonical.company_icon_url || null,
     via:                       canonical.via || null,
     // Always 'white': cacheJobs already ejected blue-collar verdicts before

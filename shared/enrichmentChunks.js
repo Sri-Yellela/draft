@@ -22,6 +22,7 @@
 //     character count hides requirements that follow a long company introduction (owner, 10-09).
 // ⛔ Pure: no Node built-ins, no database, no network. It never calls a model.
 import { ENRICHMENT_COLUMNS, ALLOWED_VALUES, TEXT_CAPS, IMPORT_ROW_CAP, validateColumn, parseJsonl } from "./enrichmentRules.js";
+import { LEVEL_RULES } from "./levelMapping.js";
 
 export const DEFAULT_CHUNK_ROWS = 30;
 export const DEFAULT_IMPORT_ROWS = IMPORT_ROW_CAP;
@@ -37,7 +38,8 @@ export function enrichmentPrompt() {
     "does not say. Allowed keys — no others:",
     "  skills_json: array of {\"skill\": \"<name>\", \"type\": \"hard\" | \"soft\"} — hard = a named tool, language, framework,",
     "    platform or technique the posting asks for (checkable on a résumé); soft = a way of working. 5–25 entries.",
-    `  experience_level: one of ${ALLOWED_VALUES.experience_level.join(" | ")} | null`,
+    `  experience_level: one of ${ALLOWED_VALUES.experience_level.join(" | ")} | null — by this mapping (the same one draft uses):`,
+    ...LEVEL_RULES.map((r) => `    ${r}`),
     `  workplace_type: one of ${ALLOWED_VALUES.workplace_type.join(" | ")} | null`,
     "  salary_min_usd, salary_max_usd: whole numbers in US dollars (not strings), only when the posting states pay;",
     "    otherwise null. Never estimate.",

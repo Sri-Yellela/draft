@@ -102,10 +102,14 @@ test("experience level: every option is a value the WRITERS can store", () => {
     "the importer validates with the shared rules, not a copy");
 
   // normalizeExperienceLevel's own return values are literals in its regex ladder, so they are a
-  // real second vocabulary and have to be reconciled rather than assumed.
+  // real second vocabulary and have to be reconciled rather than assumed. D84 F2: the ladder is
+  // shared/levelMapping.js (the crawler and the prompt read one mapping); schema.js adds the 'mid' fallback.
   const ladder = schema.slice(at(schema, "function normalizeExperienceLevel"),
                              at(schema, "const VALID_WORKPLACE_TYPES"));
-  const returned = [...ladder.matchAll(/return '([a-z_]+)'/g)].map(m => m[1]);
+  const shared = read("shared/levelMapping.js");
+  const mapping = shared.slice(at(shared, "export function levelFromTitle"));
+  assert.match(ladder, /levelFromTitle\(title\) \?\? 'mid'/, "the crawler reads the shared mapping");
+  const returned = [...ladder.matchAll(/'([a-z_]+)'/g), ...mapping.matchAll(/return "([a-z_]+)"/g)].map(m => m[1]);
   assert.ok(returned.length >= 6, `expected the ladder's returns, found ${returned.length}`);
   for (const level of returned) {
     assert.ok(valueSet(EXPERIENCE_LEVELS).has(level),

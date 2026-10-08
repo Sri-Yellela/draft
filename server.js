@@ -176,6 +176,7 @@ import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
 import { remapGeneralRows, REMAP_MATCHED_BY } from "./services/jobs/remapGeneralRoles.js";
 import { tagStaleJobs } from "./services/jobs/jobTags.js";
 import { backfillDescriptionText, withPostingText, refreshDescriptionText, postingText, registerDescriptionBasis } from "./services/jobs/descriptionText.js";
+import { backfillProvenance } from "./services/jobs/enrichmentProvenance.js";
 import { listPairs as listLearnedPairs, setPairRevoked, setPairPromoted, PROMOTE_AT_USERS } from "./services/learnedOrigins.js";
 import { CRAWLER_PAGE_HTML } from "./services/crawlerPage.js";
 import { resolvePlaceText, roleScopeExtra } from "./shared/jobTagVocabulary.js";
@@ -4565,6 +4566,18 @@ console.log(`[boot] database ready: ${DB_PATH}`);
                            WHERE b.source = 'import' AND b.reverted_at IS NULL);
       `,
     },
+    {
+      // D84 F2 (owner, 10-09): CRAWLER PLACEHOLDERS ARE NOT ENRICHMENT. A JSON map, enrichment column -> where its
+      // value came from: crawler_fallback (a guess — the first 300 characters as summary, the lowercased title, the
+      // title's level), source (the ATS stated it), board_location (the board's own location), import, owner.
+      // A crawler_fallback value counts as EMPTY for the importer's "fill empty only"; an import or owner value is
+      // never replaced without OVERWRITE. Written on insert by the crawl and by every import; a row from before this
+      // migration is backfilled by DETECTION at boot (services/jobs/enrichmentProvenance.js).
+      id: "151_enrichment_provenance",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN enrichment_provenance TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -4611,6 +4624,22 @@ try {
   }
 } catch (e) {
   console.error("[boot] automation_tier backfill failed (board falls back to 'unknown'):", e.message);
+}
+
+// ── D84 F2 · enrichment provenance backfill ────────────────────────────────────────────────────────
+// Every row with no provenance map gets one by DETECTION (a summary equal to the first 300 characters, a
+// lowercased title, the title's guessed level — each a crawler placeholder the import may replace; an import
+// batch's own record wins over every rule). NULL-only and bounded, so a no-op after the first boot. A guessed
+// level is re-derived with the shared mapping (Staff / Principal were stored as `senior`). Never fatal: without
+// a map the importer detects the same thing per row at plan time.
+try {
+  const provFill = backfillProvenance(db);
+  if (provFill.written > 0) {
+    console.log(`[boot] enrichment provenance backfilled: ${provFill.written} row(s), ${provFill.placeholders} ` +
+      `crawler placeholder value(s) found, ${provFill.remappedLevels} guessed level(s) re-mapped`);
+  }
+} catch (e) {
+  console.error("[boot] enrichment provenance backfill failed (the importer detects per row instead):", e.message);
 }
 
 // ── job_role_map backfill (CC1b's follow-up) ────────────────────────────────────────────────────

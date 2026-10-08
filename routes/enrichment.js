@@ -205,6 +205,8 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
       const planSummary = {
         rowsInFile: plan.rowsInFile, matched: plan.matched, wouldWrite: plan.wouldWrite,
         unchanged: plan.unchanged, perColumn: plan.perColumn, valid: plan.valid,
+        // D84 F5: per column — already filled · supplied · would be written · replacing a crawler placeholder.
+        columns: plan.columns,
         rejected: plan.rejected,
         skippedNonNull: plan.planned
           .filter(p => p.skippedNonNull.length)
