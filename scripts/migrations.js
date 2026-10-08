@@ -4090,4 +4090,42 @@ export const MIGRATIONS = [
         ALTER TABLE company_ats_list ADD COLUMN evidence TEXT;
       `,
     },
+    {
+      // D82 B/C (owner, 10-09): THE CANDIDATE POOL — companies a discovery job FOUND, never companies it
+      // added. Fed by HN "Who is hiring?" (services/jobs/hnDiscovery.js); probed read-only each night
+      // (services/companyCandidates.js); approved or rejected by the owner in Admin -> Companies ->
+      // Candidates. status: new -> probed -> approved / rejected -> added / dormant. A rejected row stays,
+      // so the next sweep never re-queues it. discovery_breakers: one row per discovery source, opened
+      // after 3 consecutive failures (D82 E); only the owner closes it.
+      id: "148_company_candidates",
+      sql: `
+        CREATE TABLE IF NOT EXISTS company_candidates (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          company       TEXT    NOT NULL,
+          ats_type      TEXT    NOT NULL,
+          ats_slug      TEXT    NOT NULL COLLATE NOCASE,
+          source        TEXT    NOT NULL,
+          source_json   TEXT,
+          evidence_json TEXT,
+          rank_score    INTEGER,
+          status        TEXT    NOT NULL DEFAULT 'new',
+          status_reason TEXT,
+          first_seen    INTEGER NOT NULL DEFAULT (unixepoch()),
+          last_seen     INTEGER NOT NULL DEFAULT (unixepoch()),
+          probed_at     INTEGER,
+          decided_at    INTEGER,
+          decided_by    INTEGER,
+          UNIQUE (ats_type, ats_slug)
+        );
+        CREATE INDEX IF NOT EXISTS idx_company_candidates_status ON company_candidates(status, rank_score DESC);
+        CREATE TABLE IF NOT EXISTS discovery_breakers (
+          source     TEXT    PRIMARY KEY,
+          failures   INTEGER NOT NULL DEFAULT 0,
+          open       INTEGER NOT NULL DEFAULT 0,
+          opened_at  INTEGER,
+          last_error TEXT,
+          updated_at INTEGER
+        );
+      `,
+    },
   ];

@@ -7,12 +7,15 @@
 import express, { Router } from "express";
 import { listCompanies, harvestedSuggestions, validateBoard, addCompany, setCompanyActive, ATS_FETCHERS } from "../services/companyList.js";
 import { trancheGate } from "../services/diskGauge.js";
+import { createBackup } from "../scripts/backup.js";       // D82 C: an approved candidate batch is added only after a backup
 import { heatReport } from "../services/companyHeat.js";
+import { listCandidates, discoveryStatus, planApproval, approveCandidates, rejectCandidates, resetBreaker } from "../services/companyCandidates.js";
 
 const DEFAULT_DATA_DIR = () => process.env.RM_DATA_DIR || "data";
 
 export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHERS, dataDir = DEFAULT_DATA_DIR(),
-                                                            gate = (companies) => trancheGate(db, dataDir, { companies }) } = {}) {
+                                                            gate = (companies) => trancheGate(db, dataDir, { companies }),
+                                                            backup = (label) => createBackup(label), env = process.env } = {}) {
   const router = Router();
   router.use(requireAdmin);
   router.use(express.json({ limit: "64kb" }));
@@ -54,6 +57,53 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
     if (!out.ok) return res.status(409).json({ error: out.code === "exists" ? "already_configured" : out.code, company: out.company });
     res.status(201).json({ ok: true, company: out.company, validation,
       note: "Added and active. The next crawl reads it; its postings pass the same dedup and US-only gate as every source." });
+  });
+
+  // ⛔ D82 C · THE CANDIDATE POOL — what the discovery jobs FOUND (they never add). Read: ranked, with the probe's
+  // evidence and the guards' state. Approve: dry first (what would be added, what is refused and why, the disk
+  // gate); then confirm:true with expectIds = the dry run's eligible ids → a backup, the disk gate, and each add
+  // through addCompany WITH its evidence (D80). Reject keeps the row, so the next sweep never re-queues it.
+  router.get("/candidates", (req, res) => {
+    const status = typeof req.query.status === "string" && req.query.status ? req.query.status : null;
+    res.json({ ...listCandidates(db, { status }), discovery: discoveryStatus(db, env) });
+  });
+
+  router.post("/candidates/approve", (req, res) => {
+    const { ids = [], confirm = false, expectIds = null } = req.body || {};
+    if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: "ids_required" });
+    const plan = planApproval(db, ids);
+    const want = plan.eligible.map((e) => e.id);
+    const disk = gate(Math.max(1, want.length));
+    if (!confirm) {
+      return res.json({ dryRun: true, ...plan, disk,
+        note: want.length ? `Nothing was added. POST again with confirm: true and expectIds: [${want.join(", ")}] to add ${want.length}.`
+                          : "None of these can be added." });
+    }
+    const expected = Array.isArray(expectIds) ? expectIds.map(Number).sort((a, b) => a - b) : null;
+    if (!expected || expected.join(",") !== want.join(",")) {
+      return res.status(409).json({ error: "plan_changed", ...plan, message: "What would be added changed since the dry run. Look again." });
+    }
+    if (!want.length) return res.status(409).json({ error: "nothing_eligible", ...plan });
+    if (!disk.ok) return res.status(507).json({ error: disk.reason, disk });              // ⛔ D77
+    if (typeof backup !== "function") return res.status(503).json({ error: "backup_unavailable", message: "No backup could be taken; nothing was added." });
+    let snapshot;
+    try { snapshot = backup("pre-d82-candidates"); }
+    catch (e) { return res.status(500).json({ error: "backup_failed", message: e.message }); }
+    const out = approveCandidates(db, plan, { adminUserId: req.user?.id ?? null });
+    res.json({ ok: true, backup: snapshot?.filename ?? null, ...out, refused: plan.refused,
+      note: "Added and active. Each carries its evidence; Disable on the company list reverses it." });
+  });
+
+  router.post("/candidates/reject", (req, res) => {
+    const { ids = [], reason = "owner" } = req.body || {};
+    if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: "ids_required" });
+    res.json(rejectCandidates(db, ids, { adminUserId: req.user?.id ?? null, reason }));
+  });
+
+  router.post("/candidates/breakers/:source/reset", (req, res) => {
+    const out = resetBreaker(db, req.params.source);
+    if (!out.ok) return res.status(404).json({ error: out.code });
+    res.json(out);
   });
 
   router.patch("/:id", (req, res) => {
