@@ -1,5 +1,7 @@
 # VM / Remote Browser Profiles — execution
 
+> ⛔ **UPDATE 2026-10-09 (D79): read `docs/APPLY_WORKER.md` first.** It supersedes **V2 (the extension captures the session)** — capture is **mobile-first, in the Android app**, and **draft stores ciphertext it cannot read** (a per-session key minted by the worker). The security principles below stand: **device sign-in, then session upload; never a password.** **Step one is a spike (`APPLY_WORKER.md` §9), not this build list.**
+
 **Build document.** The security design is `E3_SECURITY_DESIGN.md` — ⛔ **read it first and do not
 re-derive it.** This is the work that follows from it.
 
