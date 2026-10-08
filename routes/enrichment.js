@@ -210,6 +210,8 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
         unchanged: plan.unchanged, perColumn: plan.perColumn, valid: plan.valid,
         // D84 F5: per column — already filled · supplied · would be written · replacing a crawler placeholder.
         columns: plan.columns,
+        // D84 F6: skills renamed to their canonical form, and the terms the vocabulary does not hold.
+        skillsAliased: plan.skillsAliased, unknownSkills: plan.unknownSkills,
         rejected: plan.rejected,
         skippedNonNull: plan.planned
           .filter(p => p.skippedNonNull.length)

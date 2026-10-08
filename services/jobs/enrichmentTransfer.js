@@ -52,6 +52,27 @@ export { parseJsonl, validateColumn };
 import { exportPostingText, EXPORT_TEXT_CAP } from '../../shared/enrichmentChunks.js';
 import { isPlaceholder, importedColumns, markImported, parseProvenance } from './enrichmentProvenance.js';
 import { excludeRetiring, orderForEnrichment } from './enrichmentScope.js';
+import { canonicalSkill } from '../../shared/skillAliases.js';
+import { skillVocabularyTerms } from '@draft/ats-scorer';
+
+// D84 F6: the scorer's skills vocabulary, lowercase → its own display form — read once.
+let vocabMap = null;
+function skillVocabulary() {
+  if (!vocabMap) vocabMap = new Map(skillVocabularyTerms().map(t => [t.toLowerCase(), t]));
+  return vocabMap;
+}
+/** A validated skills_json string with every name canonical and duplicates merged (first type wins). */
+function canonicalSkillsJson(json, counts) {
+  const out = new Map();
+  for (const e of JSON.parse(json)) {
+    const c = canonicalSkill(e.skill, skillVocabulary());
+    if (c.aliased) counts.aliased++;
+    if (!c.known) counts.unknown.set(c.name, (counts.unknown.get(c.name) || 0) + 1);
+    const key = c.name.toLowerCase();
+    if (!out.has(key)) out.set(key, { skill: c.name, type: e.type });
+  }
+  return JSON.stringify([...out.values()]);
+}
 import {
   openBatch, closeBatch, captureBefore, recordBatchRow, columnChanges, batchProvenanceAvailable, optionalTracked,
 } from './enrichmentBatches.js';
@@ -233,6 +254,7 @@ export function planImport(db, jsonlText, { overwrite = false, allowStale = fals
      FROM scraped_jobs WHERE job_id = ?`
   );
   const seen = new Set();
+  const skillCounts = { aliased: 0, unknown: new Map() };   // D84 F6
   // D84 F5: the per-column table — already filled · supplied · would be written · replacing a placeholder.
   const columns = Object.fromEntries(ENRICHMENT_COLUMNS.map(c => [c, { alreadyFilled: 0, supplied: 0, wouldWrite: 0, replacingPlaceholder: 0 }]));
 
@@ -308,9 +330,12 @@ export function planImport(db, jsonlText, { overwrite = false, allowStale = fals
     let imported = null;     // the columns a live import wrote on this row — read only when a map is missing
     const rowColumns = [];
     for (const col of ENRICHMENT_COLUMNS) {
-      const v = validateColumn(col, supplied[col]);
+      let v = validateColumn(col, supplied[col]);
       if (!v.ok) { rowInvalid = { column: col, error: v.error }; break; }
       if (v.value === undefined) continue;
+      // ⛔ D84 F6: every skill is written under its CANONICAL name (shared/skillAliases.js → the scorer's vocabulary),
+      // duplicates merged; a skill the vocabulary does not hold is counted for its review, never dropped.
+      if (col === 'skills_json') v = { ok: true, value: canonicalSkillsJson(v.value, skillCounts) };
       // U3.3 — FILL NULLS ONLY by default, matching enrichJob's own COALESCE rule. An existing
       // value is only replaced when --overwrite was passed, and the skip is REPORTED either way so
       // a filler can see their value was not taken.
@@ -386,6 +411,9 @@ export function planImport(db, jsonlText, { overwrite = false, allowStale = fals
     rejected,
     perColumn,
     columns,
+    // D84 F6: skills renamed to their canonical form, and the terms the vocabulary does not hold (by frequency).
+    skillsAliased: skillCounts.aliased,
+    unknownSkills: [...skillCounts.unknown].sort((a, b) => b[1] - a[1]).slice(0, 500).map(([skill, count]) => ({ skill, count })),
     planned,
     // U3.2 — a malformed batch fails AS A WHOLE. This is the flag `applyImport` refuses on, and it
     // is computed here so the dry run reports the same verdict the apply would reach.

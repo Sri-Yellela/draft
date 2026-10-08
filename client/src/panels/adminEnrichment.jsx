@@ -570,6 +570,22 @@ export function EnrichmentTab() {
                 </tbody>
               </table>
             )}
+            {(plan.skillsAliased > 0 || plan.unknownSkills?.length > 0) && (
+              // D84 F6: canonical names, and the skills the vocabulary does not hold yet (for its review).
+              <div style={callout(C.INFO)}>
+                {plan.skillsAliased > 0 && <>{num(plan.skillsAliased)} skill name(s) will be written in their canonical form (for example Postgres → PostgreSQL). </>}
+                {plan.unknownSkills?.length > 0 && (
+                  <>
+                    <b>{num(plan.unknownSkills.length)} skill(s) are not in the vocabulary yet</b> — they are written as given and listed here for review:{" "}
+                    {plan.unknownSkills.slice(0, 15).map((u) => `${u.skill} (${u.count})`).join(", ")}{plan.unknownSkills.length > 15 ? "…" : ""}
+                    <div style={{ marginTop: 6 }}>
+                      <DepthButton size="compact" onClick={() => downloadBlob(new Blob(["skill,count\n" + plan.unknownSkills.map((u) => `"${u.skill.replace(/"/g, '""')}",${u.count}`).join("\n") + "\n"],
+                        { type: "text/csv" }), `unknown-skills-${fileStamp()}.csv`)}>Download the list (CSV)</DepthButton>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             {skillsGroup && projecting && (
               <div style={callout(C.SUCCESS)}>
                 <b>Skills coverage {pctOf(skillsGroup.filled, skillsGroup.total)}% → {pctOf(skillsGroup.filled + projectedGain(skillsGroup), skillsGroup.total)}% if you apply</b>
