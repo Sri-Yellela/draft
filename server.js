@@ -71,6 +71,8 @@ import { recordAtsOutcome } from "./services/usageTracker.js";
 // A4 — generation, the A+ rewrite and PDF parsing belong to the résumé tools service; draft calls it as a client.
 import { createToolsServiceClient, recordToolsServiceUsage, httpErrorFor, ToolsServiceError } from "./services/toolsService.js";
 import { generateRequest as toolsGenerateRequest } from "./services/toolsServiceRequests.js";
+import { retryReasonFor } from "./services/generationRetry.js";
+import { generationCostSummary } from "./services/generationCost.js";
 import { drainInto as drainTrackingFailureSink } from "./services/trackingFailureSink.js";
 import { MODEL_SONNET, MODEL_HAIKU } from "./shared/anthropicModels.js";
 import { assertPinnedModelsLive } from "./services/modelCatalogue.js";
@@ -9929,7 +9931,9 @@ const pendingGenerationPromises = new Map();
 // Shared generation kernel used by the HTTP /api/generate handler AND the apply
 // worker via generateResumeForApply().  Does NOT do HTTP req/res or rate-limit
 // checks — those live in the caller.  Throws on error; returns artifact on success.
-async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", employers = [] }) {
+// D70 Phase 3: `cache` is the CALLER's prompt-cache choice — false from the interactive route (a one-shot:
+// 0 cache reads in 11 in production), unset from the apply worker (bursts). services/toolsServiceRequests.js.
+async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", employers = [], cache = undefined }) {
   const mode         = legacyModeForTool(tool);
   const promptMode   = promptModeForTool(tool);
   const eventSubtype = eventSubtypeForTool(tool);
@@ -9963,7 +9967,7 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   const includeSummary = activeDomainProfile?.include_summary === 1;
   const generateBody = toolsGenerateRequest({
     profile, job, baseResumeText: authoritativeResumeText, mode: promptMode, employers,
-    domainProfile: activeDomainProfile, claims: profileClaims, includeSummary,
+    domainProfile: activeDomainProfile, claims: profileClaims, includeSummary, cache,
   });
 
   // ── AK1: measure the LIFT, not just the spend ────────────────────────────────────────────────
@@ -10008,6 +10012,10 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   // violation returns 422 with the violations and NO document — which the client throws as
   // code "resume_claim_violation", the same code failureAttribution has always classified. So a
   // withheld résumé still never reaches the writes below: nothing is persisted, scored or sent.
+  // ⭐ D70 Phase 3: a generation that follows a FAILED one for this job is a retry, and says why — in
+  // its ledger row and in the response. Draft makes no AUTOMATIC retry (services/generationRetry.js:
+  // the cap is 1, draft makes 0); this is the person's own. ONE tools-service call below, no loop.
+  const retryReason = retryReasonFor(db, { userId, jobId: String(jobId) });
   let generated;
   try {
     generated = await toolsService.generate(generateBody);
@@ -10015,13 +10023,13 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
     // Spend the tools service reports on a failed request is still spend — meter it, then rethrow.
     // A94: a claim-guard refusal is a BILLED call that succeeded, so its row says success = 1; the
     // request's code is what tells it apart from a delivered résumé.
-    recordToolsServiceUsage(db, e?.usage, { userId, eventSubtype, jobId: String(jobId), company: job.company, requestError: e?.code });
+    recordToolsServiceUsage(db, e?.usage, { userId, eventSubtype, jobId: String(jobId), company: job.company, requestError: e?.code, retryReason });
     throw e;
   }
   const domainModuleKey = generated.domainModuleKey;
   usageEventId = recordToolsServiceUsage(db, generated.usage, {
     userId, eventSubtype, jobId: String(jobId), company: job.company, domainModule: domainModuleKey,
-    atsScoreBefore, idFor: "resume_generate",
+    atsScoreBefore, idFor: "resume_generate", retryReason,
   });
   const formattedHtml = generated.html;
   console.log(
@@ -10084,7 +10092,8 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
     `Resume ready for ${job.company}${atsScore != null ? ` (ATS: ${atsScore})` : ""}`,
     { jobId: String(jobId), company: job.company, atsScore });
 
-  return { html: formattedHtml, atsScore, atsReport, baseAtsScore: atsScoreBefore ?? null, version, resumeId: stored.resumeId, generatedAt: Date.now() };
+  return { html: formattedHtml, atsScore, atsReport, baseAtsScore: atsScoreBefore ?? null, version, resumeId: stored.resumeId, generatedAt: Date.now(),
+    retry: retryReason ? { reason: retryReason } : null };
 }
 
 // ── scoreBaseResumeForApply ────────────────────────────────────────────────────
@@ -10309,6 +10318,14 @@ REQUIREMENTS:
   }
 }
 
+// ⭐ D70 Phase 3 · what the caller's next résumé costs, BEFORE it runs — and which tool the button will
+// actually run (the admin A+ flag below silently upgrades a Generate). Ledger medians, no model call.
+app.get("/api/generate/cost", requireAuth, (req, res) => {
+  let aplusFlag = false;
+  try { aplusFlag = !!db.prepare("SELECT aplus_resume FROM users WHERE id=?").get(req.user.id)?.aplus_resume; } catch { /* no flag column: a plain Generate */ }
+  res.json(generationCostSummary(db, { aplusFlag }));
+});
+
 app.post("/api/generate", requireAuth, async (req, res) => {
   const { jobId, job, resumeText, forceRegen } = req.body;
   // Strip excluded companies from employer list before any processing
@@ -10486,7 +10503,8 @@ app.post("/api/generate", requireAuth, async (req, res) => {
   generationInFlight.add(inFlightKey);
 
   try {
-    const result = await coreGenerateResume({ userId: req.user.id, jobId: String(jobId), job, tool, resumeText, employers });
+    // D70 Phase 3: the interactive route is a one-shot — it asks for no prompt cache.
+    const result = await coreGenerateResume({ userId: req.user.id, jobId: String(jobId), job, tool, resumeText, employers, cache: false });
     // A63: debit the slot on SUCCESS, and tag the job Pending — a résumé made for a job is the
     // first sign the user may apply; it stays Pending until they record and verify a submission.
     let slots = null, pending = null;
@@ -10507,7 +10525,8 @@ app.post("/api/generate", requireAuth, async (req, res) => {
       }
     } catch (e) { console.warn("[generate] prepare packet:", e.message); }
     res.json({ html: result.html, atsScore: result.atsScore, atsReport: result.atsReport, cached:false, version: result.version, tool, toolLabel: tool === "a_plus_resume" ? "A+ Resume" : "Generate", kbFindings: kbFindingsFor(result.html),
-      draftSlots: slots, pending, generatedAt: result.generatedAt, resumeId: result.resumeId, baseAtsScore: result.baseAtsScore, prepared });
+      draftSlots: slots, pending, generatedAt: result.generatedAt, resumeId: result.resumeId, baseAtsScore: result.baseAtsScore, prepared,
+      retry: result.retry ?? null });
   } catch(e) {
     // ⛔ Was `500 { error: e.message }` for everything — an exhausted balance, an overload and a
     // withheld résumé looked identical and none said whether retrying could help.

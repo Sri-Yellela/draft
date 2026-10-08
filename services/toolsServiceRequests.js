@@ -40,12 +40,36 @@ export function jobForResumeMaster(job = {}) {
 }
 
 /**
+ * ⭐ D70 Phase 3 · THE PROMPT CACHE IS A PER-CALLER CHOICE — bursts on, one-shots off.
+ *
+ * Phase 0 read production's ledger: 11 resume_generate rows, every one WROTE the ~6,700-token static
+ * prefix at 1.25x and NONE read it (0 of 11) — an interactive Generate is a one-shot, and the next one
+ * is minutes away, past the 5-minute TTL. So the interactive caller asks for `cache: false` (saves
+ * ~0.35¢ a call); a burst caller (the apply worker, D52's N approvals in a row) leaves it unset and
+ * keeps the breakpoints, which is where AL6 measured caching paying for itself.
+ *
+ * ⛔ IT IS ONLY PUT ON THE WIRE ONCE RESUME MASTER DECLARES IT. Resume Master's assemblePrompt has had
+ * the lever since AL6 (`options.cache`, default true), but its HTTP contract (1.4.0) declares only
+ * `options.includeSummary` and generate.js does not forward a `cache` option to assemblePrompt. An
+ * undeclared key would be silently ignored there AND fail draft's own strict contract check
+ * (test/toolsService.test.js). So the choice is computed per caller here and withheld until the
+ * vendored contract declares `GenerateRequest.options.cache`; test/d70Phase3.test.js holds this
+ * constant equal to the vendored contract, so re-vendoring a contract that declares it turns that test
+ * red until this is flipped.
+ */
+export const RESUME_MASTER_ACCEPTS_CACHE_OPTION = false;
+
+/**
  * The generate request coreGenerateResume sends. With an active job profile the caller supplies the
  * role family and domain, and Resume Master resolves the domain module exactly as draft's
  * qualificationResolver did for that path; without one, Resume Master classifies.
+ *
+ * `cache`: false from a one-shot caller (D70 Phase 3, above); anything else leaves the body
+ * byte-for-byte what it was, so a batch caller is unchanged.
  */
 export function generateRequest({ profile, job, baseResumeText, mode, employers = [], domainProfile = null,
-                                  claims = null, includeSummary = false }) {
+                                  claims = null, includeSummary = false, cache = undefined },
+                                { cacheOptionAccepted = RESUME_MASTER_ACCEPTS_CACHE_OPTION } = {}) {
   return {
     mode,
     // With a profile, draft NEVER classified: a missing role_family resolved straight to "general".
@@ -58,6 +82,6 @@ export function generateRequest({ profile, job, baseResumeText, mode, employers 
     employers: employers || [],
     job: jobForResumeMaster(job),
     baseResumeText,
-    options: { includeSummary: includeSummary === true },
+    options: { includeSummary: includeSummary === true, ...(cache === false && cacheOptionAccepted === true ? { cache: false } : {}) },
   };
 }
