@@ -379,3 +379,29 @@ test("F8: the backlog and the export leave out what the enforced policy will ret
   assert.deepEqual(rows.map((r) => r.job_id), ["new", "scored"], "the unscored row first, even though 'scored' is newer");
   assert.deepEqual(meta.retiringExcluded, { aged: 1, outOfScope: 1 });
 });
+
+// ── P3 · F6 canonical skill names ──────────────────────────────────────────────────────────────────────────────────
+import { canonicalSkill, SKILL_GROUPS } from "../shared/skillAliases.js";
+
+test("F6: aliases map to the vocabulary's canonical form; the import merges duplicates and lists unknown terms", () => {
+  const vocab = new Map([["postgresql", "PostgreSQL"], ["gcp", "GCP"], ["kubernetes", "Kubernetes"]]);
+  assert.equal(canonicalSkill("Postgres", vocab).name, "PostgreSQL");
+  assert.equal(canonicalSkill("k8s", vocab).name, "Kubernetes");
+  assert.equal(canonicalSkill("Google Cloud Platform", vocab).name, "GCP", "the vocabulary's own form wins");
+  assert.deepEqual(canonicalSkill("Zapier", vocab), { name: "Zapier", known: false, aliased: false });
+  const seen = new Set();
+  for (const g of SKILL_GROUPS) for (const n of g) { assert.ok(!seen.has(n.toLowerCase()), `${n} is in one group only`); seen.add(n.toLowerCase()); }
+
+  const db = board();
+  insert(db, { id: "k", description: "Build APIs." });
+  const line = JSON.stringify({ job_id: "k", content_hash: computeContentHash("Software Engineer", "Build APIs."),
+    enrichment: { skills_json: [{ skill: "Postgres", type: "hard" }, { skill: "PostgreSQL", type: "hard" }, { skill: "K8s", type: "hard" },
+      { skill: "Zapierish Tooling", type: "hard" }] } });
+  const plan = planImport(db, line);
+  assert.ok(plan.skillsAliased >= 2);
+  assert.deepEqual(plan.unknownSkills, [{ skill: "Zapierish Tooling", count: 1 }]);
+  applyImport(db, line);
+  const skills = JSON.parse(db.prepare("SELECT skills_json FROM scraped_jobs WHERE job_id = 'k'").get().skills_json).map((s) => s.skill);
+  assert.deepEqual(skills, ["PostgreSQL", "Kubernetes", "Zapierish Tooling"], "canonical, merged, the unknown kept as given");
+  assert.match(enrichmentPrompt(), /PostgreSQL \(not Postgres\)/, "the prompt asks for canonical names");
+});
