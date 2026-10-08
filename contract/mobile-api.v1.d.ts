@@ -1,6 +1,6 @@
 /**
  * Draft — Mobile API types.
- * Contract version 2.4.0.
+ * Contract version 2.5.0.
  *
  * GENERATED — DO NOT EDIT. Regenerate with `node scripts/generateMobileContract.mjs`.
  *
@@ -18,7 +18,7 @@ export type EmploymentType = "full-time" | "contract" | "internship" | "part-tim
 export type ExperienceLevel = "intern" | "entry" | "mid" | "senior" | "lead" | "executive";
 export type FitBand = "strong" | "moderate" | "weak";
 export type JobFunction = "engineering" | "data" | "design" | "product" | "marketing" | "sales" | "operations" | "finance" | "people" | "legal";
-export type PostingAge = "1d" | "2d" | "3d" | "1w" | "1m";
+export type PostingAge = "visit" | "1d" | "2d" | "3d" | "1w" | "1m";
 export type Sort = "dateDesc" | "dateAsc" | "compHigh" | "compLow" | "yoeLow" | "yoeHigh" | "atsScore" | "companyAsc";
 export type WorkplaceType = "remote" | "hybrid" | "onsite";
 

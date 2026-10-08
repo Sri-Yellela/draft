@@ -83,7 +83,7 @@ export const SENTENCE_WORDS = Object.freeze({
   level: { intern: "intern", entry: "entry", mid: "mid", senior: "senior", lead: "lead", executive: "executive" },
   where: { remote: "remote", hybrid: "hybrid", onsite: "on-site" },
   posted: { "1d": "posted today", "2d": "posted in the last 2 days", "3d": "posted in the last 3 days",
-            "1w": "posted this week", "1m": "posted this month" },
+            "1w": "posted this week", "1m": "posted this month", visit: "new since your last visit" },
   fit: { [ATS_BAND.STRONG]: "strong", [ATS_BAND.MODERATE]: "moderate", [ATS_BAND.WEAK]: "weak" },
 });
 
@@ -93,7 +93,7 @@ export const SENTENCE_WORDS = Object.freeze({
 // vocabulary. Keyed by the dimension's values, so a value with no word here is caught by the D35 test.
 export const PANEL_WORDS = Object.freeze({
   where: { remote: "remote", hybrid: "hybrid", onsite: "on-site" },
-  posted: { "1d": "today", "2d": "the last 2 days", "3d": "the last 3 days", "1w": "this week", "1m": "this month" },
+  posted: { "1d": "today", "2d": "the last 2 days", "3d": "the last 3 days", "1w": "this week", "1m": "this month", visit: "since your last visit" },
 });
 
 /** What one option reads as in its panel (D35). */

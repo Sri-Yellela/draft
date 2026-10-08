@@ -46,6 +46,7 @@ import { createCrawlerWorkerRouter, createCrawlerAdminRouter } from "./routes/cr
 import { runSchedule as runCrawlerSchedule } from "./services/crawlerQueue.js";
 import { readPolicy as readBoardPolicy, setPolicy as setBoardPolicy, sweepAged } from "./services/jobs/boardAge.js";
 import { sweepScope } from "./services/jobs/boardScope.js";
+import { touchBoardVisit, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
 import { heatReport } from "./services/companyHeat.js";
 import { runHnDiscovery, runCandidateProbe } from "./services/companyCandidates.js";
 import { createRailwayHookRouter, deployEventsSummary } from "./routes/railwayHook.js";
@@ -4537,6 +4538,16 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // D74 P1 (owner, 10-08): "NEW SINCE YOUR LAST VISIT" — on FIRST SEEN, not the company's posted date.
+      // board_seen_at is the last board load; board_prev_seen_at is the one before the current visit (a
+      // gap of 30 minutes or more starts a new visit). services/boardVisit.js reads and rolls them.
+      id: "149_board_visit",
+      sql: `
+        ALTER TABLE users ADD COLUMN board_seen_at INTEGER;
+        ALTER TABLE users ADD COLUMN board_prev_seen_at INTEGER;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7776,6 +7787,8 @@ app.get("/api/jobs/facets", requireAuth, async (req, res) => {
   const nowSec = Math.floor(Date.now() / 1000);
   const { status, body } = await boardFacetsResponse({
     query: req.query, nowSec,
+    // D74 P1: the "since your last visit" option's cutoff — read, never rolled (counting is not visiting).
+    visitSinceSec: visitSince(db, req.user.id, { now: nowSec }),
     measureBoard: (query, measure) => boardPageResponse({ ...req, query }, { measure, nowSec }),
     // D35 · the /d view's count — the Pending list's own query, counted.
     countPending: () => pendingJobsQuery(req.user.id, { count: true }),
@@ -7863,6 +7876,7 @@ function rejectInvalidFilterValues(query) {
 }
 
 app.get("/api/jobs", requireAuth, async (req, res) => {
+  touchBoardVisit(db, req.user.id);   // D74 P1: a board load is a visit (never in boardPageResponse — see boardVisit.js)
   const { status, body } = await boardPageResponse(req);
   res.status(status).json(body);
 });
@@ -8110,6 +8124,11 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       const since = postedSinceSql((nowSec ?? Math.floor(Date.now() / 1000)) - ageDays * 86400);
       ageSql  = `AND ${since.sql}`;
       ageArgs = since.params;
+    } else if (ageFilter === "visit") {
+      // ⭐ D74 P1: FIRST SEEN since this user's previous visit (services/boardVisit.js), resolved here so a
+      // client — web or mobile — sends only the value.
+      ageSql  = `AND ${FIRST_SEEN_SQL}`;
+      ageArgs = [visitSince(db, req.user.id, { now: nowSec ?? Math.floor(Date.now() / 1000) })];
     }
 
     // D24 · the fit filter, fit_bands=strong,moderate,weak. HARD: an unscored row matches no band

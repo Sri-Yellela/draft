@@ -4128,4 +4128,14 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // D74 P1 (owner, 10-08): "NEW SINCE YOUR LAST VISIT" — on FIRST SEEN, not the company's posted date.
+      // board_seen_at is the last board load; board_prev_seen_at is the one before the current visit (a
+      // gap of 30 minutes or more starts a new visit). services/boardVisit.js reads and rolls them.
+      id: "149_board_visit",
+      sql: `
+        ALTER TABLE users ADD COLUMN board_seen_at INTEGER;
+        ALTER TABLE users ADD COLUMN board_prev_seen_at INTEGER;
+      `,
+    },
   ];
