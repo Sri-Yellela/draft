@@ -8,4 +8,4 @@
 //
 // DEV SWITCH: comment line A, uncomment line B to point at localhost.
 const RESUME_MASTER_URL = 'https://jobsviadraft.com'; // A: production
-// const RESUME_MASTER_URL = 'http://localhost:3000'; // B: local dev
+// const RESUME_MASTER_URL = 'http://localhost:3001'; // B: local dev (npm start serves :3001)

@@ -158,6 +158,13 @@ export function collectRequiredFiles(manifest) {
   return [...need].sort();
 }
 
+/** The README's first line with its version replaced by `version`; null when it carries none. */
+export function syncReadmeVersion(readme, version) {
+  const m = readme.match(/^(#[^\r\n]*\bv)(\d+(?:\.\d+){0,3})(?=[^\r\n]*(?:\r?\n|$))/);
+  if (!m) return null;
+  return m[1] + version + readme.slice(m[0].length);
+}
+
 // ── CLI ──────────────────────────────────────────────────────────────────────────────────────
 // Guarded so collectRequiredFiles can be imported without building anything. test/
 // extensionSubmission.test.js used to carry its OWN copy of the reachability rules, and the two
@@ -187,6 +194,20 @@ async function main() {
   const version = manifest.version;
   if (!/^\d+(\.\d+){0,3}$/.test(String(version || ''))) {
     fail(`manifest version "${version}" is not a valid Chrome extension version string`);
+  }
+
+  // D87 (6): the README's header said v1.1.1 through four releases. The version has ONE source —
+  // the manifest — and a build writes it into the header; --check, which writes nothing, refuses a
+  // header that disagrees. Only the first line is touched, so the file's line endings survive.
+  const readmePath = path.join(SRC_DIR, 'README.md');
+  if (fs.existsSync(readmePath)) {
+    const readme = fs.readFileSync(readmePath, 'utf8');
+    const synced = syncReadmeVersion(readme, version);
+    if (synced === null) fail('extension/README.md has no "# … v<version>" header on its first line');
+    else if (synced !== readme) {
+      if (process.argv.includes('--check')) fail(`extension/README.md's header is not v${version} — run the build, which writes it`);
+      else { fs.writeFileSync(readmePath, synced); console.log(`[buildExtension] README.md header → v${version}`); }
+    }
   }
 
   const required = collectRequiredFiles(manifest);
