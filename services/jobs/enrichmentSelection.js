@@ -83,6 +83,14 @@ export const USD_PER_OUTPUT_MTOK = 5.0;
 export const PROMPT_DESC_CHAR_CAP = 4000;
 export const MAX_OUTPUT_TOKENS = 500;
 
+// Whether a column exists — the D84 columns are read only where their migration ran (a test may build its own table).
+const columnCache = new WeakMap();
+export function scrapedJobsHas(db, column) {
+  if (!columnCache.has(db)) columnCache.set(db, new Set(db.prepare('PRAGMA table_info(scraped_jobs)').all().map(c => c.name)));
+  return columnCache.get(db).has(column);
+}
+const hasPartialColumn = (db) => scrapedJobsHas(db, 'enrichment_partial');
+
 /** sha1 of title|description — the "has this posting's text changed?" fingerprint. */
 export function computeContentHash(title, description) {
   return crypto.createHash('sha1').update(`${title || ''}|${description || ''}`).digest('hex');
@@ -119,10 +127,12 @@ export function selectCandidates(db, {
   limit = null,
   now = Math.floor(Date.now() / 1000),
 } = {}) {
+  // ⛔ D84 F1: a row enriched from CUT text (enrichment_partial, migration 150) is back in the backlog.
+  const partial = hasPartialColumn(db);
   const where = [
     'is_active = 1',
     "description IS NOT NULL AND TRIM(description) != ''",
-    '(enriched_at IS NULL OR content_hash IS NULL OR updated_at > enriched_at)',
+    `(enriched_at IS NULL OR content_hash IS NULL OR updated_at > enriched_at${partial ? ' OR enrichment_partial = 1' : ''})`,
   ];
   const params = {};
 
@@ -148,14 +158,14 @@ export function selectCandidates(db, {
 
   const prefiltered = db.prepare(`
     SELECT job_id, title, company, description, content_hash, source,
-           enriched_at, updated_at, discovered_at, posted_at, scraped_at
+           enriched_at, updated_at, discovered_at, posted_at, scraped_at${partial ? ', enrichment_partial' : ''}
     FROM scraped_jobs
     WHERE ${where.join(' AND ')}
     ORDER BY discovered_at DESC
   `).all(params);
 
   // Step two, and the reason the counts above are not the answer.
-  const matched = prefiltered.filter(r => computeContentHash(r.title, r.description) !== r.content_hash);
+  const matched = prefiltered.filter(r => r.enrichment_partial === 1 || computeContentHash(r.title, r.description) !== r.content_hash);
 
   // What the gate actually excluded, measured the same way — the identical query minus the gate —
   // so "the gate refused N rows" is a number rather than a claim.

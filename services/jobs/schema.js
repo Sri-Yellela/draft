@@ -278,7 +278,8 @@ function normalizeJob({
   url,             // string — canonical apply URL
   source,          // string — source plugin name e.g. 'adzuna'
   description,     // string|null — plain text job description (no HTML)
-  salary_min,      // number|null — minimum salary (annual, USD)
+  description_full, // string|null — the WHOLE plain text, never cut (D84 F1); kept only when `description` was cut
+  salary_min,     // number|null — minimum salary (annual, USD)
   salary_max,      // number|null — maximum salary (annual, USD)
   salary_currency, // string|null — ISO 4217 e.g. 'USD'
   posted_at,       // string|null — ISO 8601 date string
@@ -327,6 +328,8 @@ function normalizeJob({
     url:             String(url),
     source,
     description:     cleanDesc,
+    // NULL when the stored description is already the whole text — a second copy only where the cap cut it.
+    description_full: description_full && String(description_full).trim() !== cleanDesc ? String(description_full).trim() : null,
     salary_min:      resolvedSalMin,
     salary_max:      resolvedSalMax,
     salary_currency: cleanCurrency,

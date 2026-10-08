@@ -2,7 +2,7 @@ import axios from 'axios';
 import { normalizeJob } from '../schema.js';
 import { parseSalaryText } from '../salaryText.js';
 import {
-  htmlToText, truncateWithTail, JOB_DESCRIPTION_MAX_LENGTH, JOB_DESCRIPTION_TAIL_LENGTH,
+  htmlToText, truncateWithTail, fullDescriptionText, JOB_DESCRIPTION_MAX_LENGTH, JOB_DESCRIPTION_TAIL_LENGTH,
 } from '../htmlToText.js';
 import { collectCompanyJobs } from './base.js';
 
@@ -94,6 +94,7 @@ function normalizeAshbyJob(job, companyName) {
     url:            job.applyUrl,
     source:         'ashby',
     description:    descriptionText,
+    description_full: fullDescriptionText(job.descriptionPlain, job.descriptionHtml),   // D84 F1 — never cut
     // The posting API's field is `publishedAt`, on every posting (1,155 of 1,155 across openai, ramp,
     // notion and linear, probed 10-02). `publishedDate` does not exist, so reading it — as this did
     // from the first version — left every Ashby row undated: no "posted N days ago", and recency

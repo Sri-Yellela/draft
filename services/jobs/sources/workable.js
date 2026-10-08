@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { normalizeJob } from '../schema.js';
-import { htmlToText, JOB_DESCRIPTION_MAX_LENGTH, JOB_DESCRIPTION_TAIL_LENGTH } from '../htmlToText.js';
+import { htmlToText, fullDescriptionText, JOB_DESCRIPTION_MAX_LENGTH, JOB_DESCRIPTION_TAIL_LENGTH } from '../htmlToText.js';
 import { collectCompanyJobs } from './base.js';
 
 const BASE_URL = 'https://apply.workable.com/api/v1/widget/accounts';
@@ -34,6 +34,7 @@ function normalizeWorkableJob(job, companyName) {
       maxLength: JOB_DESCRIPTION_MAX_LENGTH,
       tailLength: JOB_DESCRIPTION_TAIL_LENGTH,
     }),
+    description_full: fullDescriptionText(null, job.description),   // D84 F1
     posted_at:       job.published_on || job.created_at || null,
     remote:          !!job.telecommuting,
     workplace_type:  job.telecommuting ? 'remote' : null,

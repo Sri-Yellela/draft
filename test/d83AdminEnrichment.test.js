@@ -275,9 +275,9 @@ test("Clean the text removes HTML and boilerplate, keeps pay / eligibility / wor
 test("pieces hold a CLEANED copy; job_id and content_hash are the export's, and the stored posting is unchanged", () => {
   const db = board(2);
   const before = db.prepare("SELECT job_id, description, content_hash FROM scraped_jobs ORDER BY job_id").all();
+  // D84 F1: the EXPORT cleans now (server side), so the pieces need no second pass.
   const exp = exportOf(db);
-  const { pieces, removedParagraphs } = buildPieces(exp, { clean: true });
-  assert.equal(removedParagraphs, 2, "the equal-opportunity paragraph left each copy");
+  const { pieces } = buildPieces(exp);
   const expRows = exp.trim().split("\n").map((l) => JSON.parse(l)).filter((o) => o.job_id);
   pieces[0].text.trim().split("\n").map((l) => JSON.parse(l)).forEach((o, i) => {
     assert.equal(o.job_id, expRows[i].job_id);
@@ -286,7 +286,9 @@ test("pieces hold a CLEANED copy; job_id and content_hash are the export's, and 
     assert.match(o.source.description, /Build APIs in Go and Python/);
   });
   assert.deepEqual(db.prepare("SELECT job_id, description, content_hash FROM scraped_jobs ORDER BY job_id").all(), before);
-  assert.match(buildPieces(exp, { clean: false }).pieces[0].text, /equal opportunity/, "clean off leaves the text as stored");
+  const raw = toJsonl(buildExport(db, { candidatesOnly: true, fullText: false }));
+  assert.match(raw, /equal opportunity/, "without the D84 text step the export carries the text as stored");
+  assert.equal(buildPieces(raw, { clean: true }).removedParagraphs, 2, "the CLI's clean step still removes it from an old export");
 });
 
 // ── the dry run, read for the page ──────────────────────────────────────────────────────────────

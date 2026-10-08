@@ -43,14 +43,15 @@
 // on a row where nothing was filled.
 
 import {
-  ENRICHMENT_COLUMNS, computeContentHash, selectCandidates, DEFAULT_MAX_LAST_SEEN_DAYS,
+  ENRICHMENT_COLUMNS, computeContentHash, selectCandidates, DEFAULT_MAX_LAST_SEEN_DAYS, scrapedJobsHas,
 } from './enrichmentSelection.js';
 // D83 BUILD 1c: the column rules live in shared/ so the Admin page checks a reply with the SAME code; re-exported
 // here so every server caller is unchanged.
 import { parseJsonl, validateColumn } from '../../shared/enrichmentRules.js';
 export { parseJsonl, validateColumn };
+import { exportPostingText, EXPORT_TEXT_CAP } from '../../shared/enrichmentChunks.js';
 import {
-  openBatch, closeBatch, captureBefore, recordBatchRow, columnChanges, batchProvenanceAvailable,
+  openBatch, closeBatch, captureBefore, recordBatchRow, columnChanges, batchProvenanceAvailable, optionalTracked,
 } from './enrichmentBatches.js';
 import { notifyEnrichmentApplied } from './enrichJob.js';
 
@@ -85,10 +86,12 @@ export function buildExport(db, {
   source = null,
   limit = null,
   jobIds = null,
+  fullText = true,
 } = {}) {
   let picked, selectionMeta;
   if (candidatesOnly) {
-    const sel = selectCandidates(db, { maxLastSeenDays, source, jobIds, limit });
+    // D84 F1: the limit is applied AFTER rows without complete text are held back (below), so it is not here.
+    const sel = selectCandidates(db, { maxLastSeenDays, source, jobIds, limit: fullText ? null : limit });
     picked = sel.candidates;
     selectionMeta = {
       prefilterCount: sel.prefilterCount, totalMatched: sel.totalMatched, gatedOut: sel.gatedOut,
@@ -115,26 +118,41 @@ export function buildExport(db, {
   const ids = picked.map(r => r.job_id);
   // The selector returns a projection, not the whole row, so re-read exactly the columns the
   // export shape needs rather than assuming which are present.
+  const textCols = ['description_full', 'description_text'].filter(c => scrapedJobsHas(db, c));
   const full = ids.length
-    ? db.prepare(`SELECT job_id, content_hash, ${[...SOURCE_FIELDS, ...ENRICHMENT_COLUMNS].join(', ')}
+    ? db.prepare(`SELECT job_id, content_hash, ${[...SOURCE_FIELDS, ...ENRICHMENT_COLUMNS, ...textCols].join(', ')}
                   FROM scraped_jobs WHERE job_id IN (${ids.map((_, i) => `@i${i}`).join(', ')})`)
         .all(Object.fromEntries(ids.map((id, i) => [`i${i}`, id])))
     : [];
   const byId = new Map(full.map(r => [r.job_id, r]));
 
-  const rows = ids.map(id => {
+  // ⛔ D84 F1 · THE EXPORT NEVER CUTS THE MIDDLE. The text is the FULL posting (description_full, filled by the
+  // crawl; else the stored text when it is already whole), cleaned of boilerplate and capped at 12,000 characters
+  // from the END. A row whose only text still carries the old cap's "[…]" is HELD BACK — counted, not exported —
+  // until the next crawl stores its full text. Each row says whether it was cut (`truncated`) and by how much.
+  let heldForFullText = 0;
+  const rows = [];
+  for (const id of ids) {
     const r = byId.get(id);
-    return {
+    let text = null;
+    if (fullText) {
+      text = exportPostingText(r.description_full ?? r.description_text ?? r.description);
+      if (!text) { heldForFullText++; continue; }
+      if (limit != null && rows.length >= Number(limit)) continue;
+    }
+    rows.push({
       job_id: r.job_id,
       // Recomputed, not read from the column. On a never-enriched row content_hash IS NULL, and
       // exporting null would disable the staleness interlock for precisely the rows most likely to
       // be enriched externally. The hash of the text as exported is always computable, so compute it.
+      // (It stays the hash of the STORED description — the one the import compares — not of the text sent.)
       content_hash: computeContentHash(r.title, r.description),
       stored_content_hash: r.content_hash ?? null,
-      source: Object.fromEntries(SOURCE_FIELDS.map(f => [f, r[f] ?? null])),
+      ...(text ? { truncated: text.truncated, chars_sent: text.chars_sent, chars_total: text.chars_total } : {}),
+      source: { ...Object.fromEntries(SOURCE_FIELDS.map(f => [f, r[f] ?? null])), ...(text ? { description: text.text } : {}) },
       enrichment: Object.fromEntries(ENRICHMENT_COLUMNS.map(c => [c, r[c] ?? null])),
-    };
-  });
+    });
+  }
 
   return {
     rows,
@@ -142,6 +160,7 @@ export function buildExport(db, {
       exportedAt: Math.floor(Date.now() / 1000),
       count: rows.length,
       candidatesOnly, maxLastSeenDays, source, limit,
+      heldForFullText, textCap: fullText ? EXPORT_TEXT_CAP : null,
       ...selectionMeta,
       writableColumns: ENRICHMENT_COLUMNS,
       readOnlyColumns: SOURCE_FIELDS,
@@ -183,8 +202,11 @@ export function planImport(db, jsonlText, { overwrite = false, allowStale = fals
   const planned = [];
   let unchanged = 0;
 
+  // D84 F1: the partial flag, where the column exists (migration 150).
+  const hasPartial = optionalTracked(db).includes('enrichment_partial');
   const findRow = db.prepare(
     `SELECT job_id, title, description, content_hash, enriched_at, ${ENRICHMENT_COLUMNS.join(', ')}
+            ${hasPartial ? ', enrichment_partial' : ''}
      FROM scraped_jobs WHERE job_id = ?`
   );
   const seen = new Set();
@@ -251,7 +273,10 @@ export function planImport(db, jsonlText, { overwrite = false, allowStale = fals
       // U3.3 — FILL NULLS ONLY by default, matching enrichJob's own COALESCE rule. An existing
       // value is only replaced when --overwrite was passed, and the skip is REPORTED either way so
       // a filler can see their value was not taken.
-      if (current[col] != null && !overwrite) { skippedNonNull.push(col); continue; }
+      // ⛔ D84 F1: a row enriched from CUT text (enrichment_partial) may have its skills_json replaced — only
+      // that column, only for that row, recorded in the batch like any write, so it reverts.
+      const replaceable = overwrite || (col === 'skills_json' && current.enrichment_partial === 1);
+      if (current[col] != null && !replaceable) { skippedNonNull.push(col); continue; }
       if (String(current[col] ?? '') === String(v.value)) { continue; }
       writes[col] = v.value;
     }
@@ -261,6 +286,13 @@ export function planImport(db, jsonlText, { overwrite = false, allowStale = fals
       continue;
     }
 
+    // D84 F1: a partial row re-read from COMPLETE text is no longer partial, even when nothing else changed —
+    // otherwise it would sit in the backlog for ever. Clearing the flag is a recorded write (it reverts).
+    if (!Object.keys(writes).length && hasPartial && current.enrichment_partial === 1 && obj.truncated !== true) {
+      planned.push({ line, jobId, writes: {}, skippedNonNull, wouldWrite: true, stale: exportedHash !== currentHash,
+                     currentHash, partial: 0, clearsPartial: true });
+      continue;
+    }
     if (!Object.keys(writes).length) {
       unchanged++;
       // Not a rejection: a row with nothing to write is the correct outcome of a no-op round trip,
@@ -272,6 +304,8 @@ export function planImport(db, jsonlText, { overwrite = false, allowStale = fals
       line, jobId, writes, skippedNonNull, wouldWrite: true,
       stale: exportedHash !== currentHash,
       currentHash,
+      // D84 F1: the row was filled from text the export had to cut — it stays in the backlog as partial.
+      partial: hasPartial ? (obj.truncated === true ? 1 : 0) : null,
     });
   }
 
@@ -361,6 +395,7 @@ export function applyImport(db, jsonlText, {
       const params = { ...p.writes, job_id: p.jobId, enriched_at: Math.floor(Date.now() / 1000) };
       if (!p.stale) { sets.push('content_hash = @content_hash'); params.content_hash = p.currentHash; }
       if (batchId != null) { sets.push('enrichment_batch_id = @batch_id'); params.batch_id = batchId; }
+      if (p.partial != null) { sets.push('enrichment_partial = @partial'); params.partial = p.partial; }
       db.prepare(`UPDATE scraped_jobs SET ${sets.join(', ')} WHERE job_id = @job_id`).run(params);
 
       if (batchId != null) {

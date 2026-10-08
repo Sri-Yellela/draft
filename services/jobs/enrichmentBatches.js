@@ -107,8 +107,21 @@ export function openBatch(db, { source, provider = null, model = null, notes = n
 /** Reads the tracked columns for one row, for the before-image. Returns null if the row is gone. */
 export function captureBefore(db, jobId) {
   return db.prepare(
-    `SELECT ${BATCH_TRACKED_COLUMNS.join(', ')} FROM scraped_jobs WHERE job_id = ?`
+    `SELECT ${[...BATCH_TRACKED_COLUMNS, ...optionalTracked(db)].join(', ')} FROM scraped_jobs WHERE job_id = ?`
   ).get(jobId) ?? null;
+}
+
+// D84: columns a batch also restores WHERE THEY EXIST — the partial flag (migration 150) and the provenance map
+// (151). Optional because a before-image recorded before they existed lacks them (revert then leaves the current
+// value alone rather than writing NULL into a NOT NULL column), and a hand-built test schema may not have them.
+export const OPTIONAL_TRACKED_COLUMNS = ['enrichment_partial', 'enrichment_provenance'];
+const optionalCache = new WeakMap();
+export function optionalTracked(db) {
+  if (!optionalCache.has(db)) {
+    const have = new Set(db.prepare('PRAGMA table_info(scraped_jobs)').all().map(c => c.name));
+    optionalCache.set(db, OPTIONAL_TRACKED_COLUMNS.filter(c => have.has(c)));
+  }
+  return optionalCache.get(db);
 }
 
 /**
@@ -207,6 +220,10 @@ export function revertBatch(db, batchId) {
       const params = { job_id: r.job_id };
       for (const c of BATCH_TRACKED_COLUMNS) params[c] = before[c] ?? null;
       restored += restore.run(params).changes;
+      // D84: the optional columns, only when this before-image recorded them.
+      for (const c of optionalTracked(db)) {
+        if (c in before) db.prepare(`UPDATE scraped_jobs SET ${c} = ? WHERE job_id = ?`).run(before[c], r.job_id);
+      }
     }
     db.prepare('UPDATE enrichment_batches SET reverted_at = ? WHERE id = ?')
       .run(Math.floor(Date.now() / 1000), batchId);

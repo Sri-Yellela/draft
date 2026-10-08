@@ -4548,6 +4548,23 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE users ADD COLUMN board_prev_seen_at INTEGER;
       `,
     },
+    {
+      // D84 F1 (owner, 10-09): THE EXPORT MUST NOT CUT THE MIDDLE. `description` is capped at ingest (5,000
+      // characters, head + tail, "[…]" between — services/jobs/htmlToText.js) and `content_hash` is computed
+      // from it, so it stays as it is: a rewrite would mark every enrichment and grade stale. The FULL plain
+      // text goes in a new column, filled by the crawl; the enrichment export reads it, cleaned of boilerplate.
+      // enrichment_partial = 1: the row's enrichment was read from CUT text, so it re-enters the backlog and its
+      // skills_json may be replaced by the next import. Backfilled for every live import that read a cut text.
+      id: "150_description_full",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN description_full TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN enrichment_partial INTEGER NOT NULL DEFAULT 0;
+        UPDATE scraped_jobs SET enrichment_partial = 1
+         WHERE enriched_at IS NOT NULL AND instr(description, '[…]') > 0
+           AND job_id IN (SELECT r.job_id FROM enrichment_batch_rows r JOIN enrichment_batches b ON b.id = r.batch_id
+                           WHERE b.source = 'import' AND b.reverted_at IS NULL);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
