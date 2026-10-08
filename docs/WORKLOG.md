@@ -3721,6 +3721,16 @@ Columns: **company · vendor / slug · in-scope open roles · % ≤ 30 / 120 day
 
 **E · REPORT:** before / after board counts, per source and per company · the age distribution · how many rows each rule removed.
 
+✅ **E · THE REPORT — a crawl run on the owner's *"manually override and do the crawl now"*, 2026-10-08 02:09 UTC** (`cacheJobs` in the container over `railway ssh`, the first pass with the age gate, `scope_enforce` = 1 and the 25 new companies). **Active 997 → 2,431** (greenhouse 565 → 1,630 · ashby 389 → 559 · lever 41 → 240). **The full arc: 1,942 (before D78) → 997 (scope sweep) → 2,431 (the tranche).** The new companies landed at the probe's numbers to the posting (Shield AI 134, Roblox 126, Waymo 87, Databricks 81, Snowflake 81 …).
+
+| source | fetched | written | out of market | too old (new) | out of scope (new) | dropped | would age out |
+|---|---|---|---|---|---|---|---|
+| greenhouse | 7,851 | 1,556 | 2,383 | 1,048 | 1,306 | 833 | 392 |
+| ashby | 1,954 | 172 | 489 | 113 | 339 | 201 | 215 |
+| lever | 1,014 | 203 | 231 | 210 | 204 | 107 | 14 |
+
+**Ages now:** ≤30 d 860 · 31–60 d 519 · 61–120 d 654 · **>120 d 398.** ✅ **The age dry run, re-run with Greenhouse re-dated by `first_published`: 411 of 2,431 (16.9%, under the ceiling)** — greenhouse 218 · ashby 179 · lever 14; OpenAI 146 · Anthropic 86 · Scale AI 35 · Brex 27 · Stripe 24 · Ramp 22. `age_enforce` is still **0** — **the owner's call.** The scope dry run now reads **0** (the gate holds). ⚠ **Read the counters with care:** `scopedOut` (greenhouse 635) and `wouldAgeOut` count EXISTING rows **including already-inactive ones** (the gate re-records a row the sweep already retired, harmlessly — it is what stops the unchanged touch re-activating it); the dry runs are the true board numbers. ⚠ **Board fit for the 1,434 new rows is computed by the 04:00 cron** (`scheduleBoardFitForAll` runs only in the server's tick) — until then they sort as unscored.
+
 ⛔ **Tests (each red when removed):** a 121-day-old posting is rejected at ingest · **a NULL-dated posting is kept** · the sweep retires an old unreferenced row, **keeps an applied one, and retires (never deletes) a starred one** · the sweep **refuses past its ceiling** and its dry run changes nothing · a non-CS role is dropped as `out_of_scope` · **no Jobo code path remains reachable** and the contract enum still contains `jobo`.
 
 ---
