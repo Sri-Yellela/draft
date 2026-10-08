@@ -1,0 +1,45 @@
+{
+  "_about": [
+    "D75 J1 acceptance (docs/CRAWLER_WORKER.md section 7): the KNOWN-ANSWER set. For each company, the public website J1 is given",
+    "(queue `url` as a j1_find_board task) and the board it should name: (ats_type, slug) exactly as services/slugHarvest.js",
+    "harvestPairOf would read it from the board's URL (boards.greenhouse.io/<slug>, jobs.ashbyhq.com/<slug>, jobs.lever.co/<slug>).",
+    "Company names and public URLs only. Scored by scripts/d75J1Score.mjs; matched to a task by the url's host (a leading www. ignored).",
+    "Written 2026-10-08 from public knowledge, NOT probed (no network in this change). Companies move ATS: before a scored run,",
+    "confirm each board still answers (the owner's d78TrancheProbe / companyProbe path) and correct a stale row here, not in the scorer.",
+    "`check` marks the rows least certain when written."
+  ],
+  "companies": [
+    { "company": "Stripe",     "url": "https://stripe.com",          "ats_type": "greenhouse", "slug": "stripe" },
+    { "company": "Airbnb",     "url": "https://careers.airbnb.com",  "ats_type": "greenhouse", "slug": "airbnb" },
+    { "company": "Figma",      "url": "https://www.figma.com",       "ats_type": "greenhouse", "slug": "figma" },
+    { "company": "Databricks", "url": "https://www.databricks.com",  "ats_type": "greenhouse", "slug": "databricks" },
+    { "company": "Cloudflare", "url": "https://www.cloudflare.com",  "ats_type": "greenhouse", "slug": "cloudflare" },
+    { "company": "Coinbase",   "url": "https://www.coinbase.com",    "ats_type": "greenhouse", "slug": "coinbase" },
+    { "company": "Reddit",     "url": "https://www.redditinc.com",   "ats_type": "greenhouse", "slug": "reddit" },
+    { "company": "Pinterest",  "url": "https://www.pinterestcareers.com", "ats_type": "greenhouse", "slug": "pinterest" },
+    { "company": "Robinhood",  "url": "https://robinhood.com",       "ats_type": "greenhouse", "slug": "robinhood" },
+    { "company": "Discord",    "url": "https://discord.com",         "ats_type": "greenhouse", "slug": "discord" },
+    { "company": "Lyft",       "url": "https://www.lyft.com",        "ats_type": "greenhouse", "slug": "lyft" },
+    { "company": "Okta",       "url": "https://www.okta.com",        "ats_type": "greenhouse", "slug": "okta" },
+    { "company": "Dropbox",    "url": "https://www.dropbox.com",     "ats_type": "greenhouse", "slug": "dropbox" },
+    { "company": "GitLab",     "url": "https://about.gitlab.com",    "ats_type": "greenhouse", "slug": "gitlab" },
+
+    { "company": "OpenAI",     "url": "https://openai.com",          "ats_type": "ashby", "slug": "openai" },
+    { "company": "Notion",     "url": "https://www.notion.com",      "ats_type": "ashby", "slug": "notion" },
+    { "company": "Linear",     "url": "https://linear.app",          "ats_type": "ashby", "slug": "linear" },
+    { "company": "Ramp",       "url": "https://ramp.com",            "ats_type": "ashby", "slug": "ramp" },
+    { "company": "Snowflake",  "url": "https://www.snowflake.com",   "ats_type": "ashby", "slug": "snowflake", "check": "moved ATS in recent years" },
+    { "company": "Harvey",     "url": "https://www.harvey.ai",       "ats_type": "ashby", "slug": "harvey" },
+    { "company": "Plaid",      "url": "https://plaid.com",           "ats_type": "ashby", "slug": "plaid", "check": "was on Lever earlier" },
+    { "company": "Perplexity", "url": "https://www.perplexity.ai",   "ats_type": "ashby", "slug": "perplexity", "check": "slug spelling" },
+    { "company": "Cursor",     "url": "https://cursor.com",          "ats_type": "ashby", "slug": "cursor", "check": "the board may be under the legal name (anysphere)" },
+    { "company": "Replit",     "url": "https://replit.com",          "ats_type": "ashby", "slug": "replit" },
+    { "company": "Supabase",   "url": "https://supabase.com",        "ats_type": "ashby", "slug": "supabase" },
+
+    { "company": "Spotify",    "url": "https://www.lifeatspotify.com", "ats_type": "lever", "slug": "spotify" },
+    { "company": "Palantir",   "url": "https://www.palantir.com",    "ats_type": "lever", "slug": "palantir" },
+    { "company": "Shield AI",  "url": "https://shield.ai",           "ats_type": "lever", "slug": "shieldai" },
+    { "company": "Zoox",       "url": "https://zoox.com",            "ats_type": "lever", "slug": "zoox" },
+    { "company": "Mistral AI", "url": "https://mistral.ai",          "ats_type": "lever", "slug": "mistral" }
+  ]
+}
