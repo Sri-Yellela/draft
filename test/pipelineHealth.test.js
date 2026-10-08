@@ -159,8 +159,8 @@ test("a configured provider that never ran is not reported as a healthy empty sy
 });
 
 test("pipeline health distinguishes a hard failure from a quiet zero", async () => {
-  // Uses greenhouse because its isConfigured() is unconditionally true; jobo's depends on
-  // JOBO_API_KEY being present in the environment, and an unset key correctly outranks the
+  // Uses greenhouse because its isConfigured() is unconditionally true; a keyed source's depends
+  // on its key being present in the environment, and an unset key correctly outranks the
   // failure in the severity ordering (a missing key IS the primary problem, not a symptom).
   const db = makeDb();
   const now = Math.floor(Date.now() / 1000);
@@ -177,20 +177,21 @@ test("pipeline health distinguishes a hard failure from a quiet zero", async () 
 
 test("an unset API key outranks a downstream failure in the health ordering", async () => {
   // Jobo's key was believed set for months while the provider never ran. If a misconfiguration
-  // is present it must be the reported cause, never masked by the error it produces.
+  // is present it must be the reported cause, never masked by the error it produces. (Jobo was
+  // retired under D78 C; serpapi is the keyed source that carries the same ordering now.)
   const db = makeDb();
   const now = Math.floor(Date.now() / 1000);
-  const hadKey = process.env.JOBO_API_KEY;
-  delete process.env.JOBO_API_KEY;
+  const hadKey = process.env.SERPAPI_KEY;
+  delete process.env.SERPAPI_KEY;
   try {
     recordPipelineRun(db, {
-      runKind: "source_sync", source: "jobo", status: "failed", startedAt: now,
+      runKind: "source_sync", source: "serpapi", status: "failed", startedAt: now,
       errorText: "some downstream error",
     });
     const { body } = await getHealth(db);
-    assert.equal(sourceNamed(body, "jobo").health, "not_configured");
+    assert.equal(sourceNamed(body, "serpapi").health, "not_configured");
   } finally {
-    if (hadKey !== undefined) process.env.JOBO_API_KEY = hadKey;
+    if (hadKey !== undefined) process.env.SERPAPI_KEY = hadKey;
   }
 });
 
@@ -851,13 +852,16 @@ test("A44: a keyed source with no active companies is NOT ENABLED, and a paused 
   const now = Math.floor(Date.now() / 1000);
   recordPipelineRun(db, { runKind: "source_sync", source: "workday", status: "skipped_unconfigured", startedAt: now - 60 });
   const before = process.env.PIPELINE_PAUSED_SOURCES;
-  process.env.PIPELINE_PAUSED_SOURCES = "jobo";
+  // The pause was Jobo's (wallet exhausted) until D78 C retired it; the mechanism is generic.
+  process.env.PIPELINE_PAUSED_SOURCES = "recruitee";
+  recordPipelineRun(db, { runKind: "source_sync", source: "recruitee", status: "failed", startedAt: now - 60,
+    errorText: "HTTP 402 — PAYMENT REQUIRED" });
   try {
     const { body } = await getHealth(db);
     assert.equal(sourceNamed(body, "workday").health, "not_enabled");
     assert.equal(alertFor(body, "source", "workday"), undefined);
-    assert.equal(sourceNamed(body, "jobo").health, "paused");
-    assert.equal(alertFor(body, "source", "jobo"), undefined);
+    assert.equal(sourceNamed(body, "recruitee").health, "paused");
+    assert.equal(alertFor(body, "source", "recruitee"), undefined);
   } finally {
     if (before === undefined) delete process.env.PIPELINE_PAUSED_SOURCES; else process.env.PIPELINE_PAUSED_SOURCES = before;
   }

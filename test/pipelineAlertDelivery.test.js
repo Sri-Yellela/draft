@@ -28,7 +28,8 @@ import {
 
 const A = (severity, kind, subject, detail = "something") => ({ severity, kind, subject, detail });
 const CREDIT = A("critical", "enrichment", "last run", "recorded status 'ok' but wrote 0 of 25 fetched");
-const JOBO   = A("critical", "source", "jobo", "last run failed: HTTP 402 — PAYMENT REQUIRED");
+// A paid source's 402 wallet. It was Jobo's until D78 C retired that feed; any keyed source fits.
+const PAID   = A("critical", "source", "serpapi", "last run failed: HTTP 402 — PAYMENT REQUIRED");
 const STALE  = A("warn", "company", "lever/openx", "no row seen in 234h (threshold 48h)");
 
 function db0() {
@@ -58,13 +59,13 @@ test("⛔ a STANDING alert is delivered once, not every night", () => {
   const db = db0();
   return (async () => {
     try {
-      const h1 = harness([CREDIT, JOBO]);
+      const h1 = harness([CREDIT, PAID]);
       const first = await deliverPipelineAlerts(db, h1.opts);
       assert.equal(first.delivered, true);
       assert.equal(h1.sent.length, 1);
 
       for (let night = 0; night < 5; night++) {
-        const h = harness([CREDIT, JOBO]);
+        const h = harness([CREDIT, PAID]);
         const r = await deliverPipelineAlerts(db, h.opts);
         assert.equal(r.delivered, false, `night ${night + 2} must be silent`);
         assert.equal(h.sent.length, 0);
@@ -100,11 +101,11 @@ test("a NEW alert beside a standing one delivers only the new one", async () => 
   const db = db0();
   try {
     await deliverPipelineAlerts(db, harness([CREDIT]).opts);
-    const h = harness([CREDIT, JOBO]);
+    const h = harness([CREDIT, PAID]);
     const r = await deliverPipelineAlerts(db, h.opts);
     assert.equal(r.delivered, true);
     assert.equal(r.appeared, 1);
-    assert.match(h.sent[0].message, /jobo/);
+    assert.match(h.sent[0].message, /serpapi/);
     assert.doesNotMatch(h.sent[0].message, /wrote 0 of 25/, "the standing alert must not be repeated");
   } finally { db.close(); }
 });
@@ -112,20 +113,20 @@ test("a NEW alert beside a standing one delivers only the new one", async () => 
 test("⛔ RECOVERY is delivered too — one-directional alerting cannot tell fixed from forgotten", async () => {
   const db = db0();
   try {
-    await deliverPipelineAlerts(db, harness([CREDIT, JOBO]).opts);
-    const h = harness([CREDIT]);                       // jobo topped up
+    await deliverPipelineAlerts(db, harness([CREDIT, PAID]).opts);
+    const h = harness([CREDIT]);                       // serpapi topped up
     const r = await deliverPipelineAlerts(db, h.opts);
     assert.equal(r.delivered, true);
     assert.equal(r.cleared, 1);
     assert.match(h.sent[0].message, /RECOVERED/);
-    assert.match(h.sent[0].message, /source\/jobo/);
+    assert.match(h.sent[0].message, /source\/serpapi/);
   } finally { db.close(); }
 });
 
 test("everything clearing is itself a message", async () => {
   const db = db0();
   try {
-    await deliverPipelineAlerts(db, harness([CREDIT, JOBO, STALE]).opts);
+    await deliverPipelineAlerts(db, harness([CREDIT, PAID, STALE]).opts);
     const h = harness([]);
     const r = await deliverPipelineAlerts(db, h.opts);
     assert.equal(r.delivered, true);
@@ -227,10 +228,10 @@ test("⛔ the cron reads the ROUTE's alerts, not a second implementation", () =>
 });
 
 test("the message is legible in one line per alert", () => {
-  const msg = formatMessage({ appeared: [CREDIT, STALE], cleared: [fingerprint(JOBO)] });
+  const msg = formatMessage({ appeared: [CREDIT, STALE], cleared: [fingerprint(PAID)] });
   const lines = msg.split("\n");
   assert.equal(lines.length, 3);
   assert.match(lines[0], /^🔴 enrichment\/last run: /);
   assert.match(lines[1], /^🟠 company\/lever\/openx: /);
-  assert.match(lines[2], /^✅ RECOVERED — source\/jobo$/);
+  assert.match(lines[2], /^✅ RECOVERED — source\/serpapi$/);
 });

@@ -27,12 +27,9 @@ import { validateAdapter } from './adapters/base.js';
 
 import theirstackAdapter from './adapters/theirstack.js';
 
-// The Jobo eval adapter was deleted in cleanup 5.2. It targeted a guessed endpoint that turned
-// out to be wrong (its own header said so), and Jobo is no longer a candidate under evaluation —
-// it is an integrated source whose REAL request shape and field mapping are now known and
-// corrected in services/jobs/sources/jobo.js. Keeping a second, wrong-endpoint client would have
-// produced garbage numbers for the one provider we already have live measurements for, and its
-// freshness verdict is recorded in docs/PIPELINE_DIAGNOSIS.md §7 instead.
+// The Jobo eval adapter was deleted in cleanup 5.2 (it targeted a guessed, wrong endpoint), and
+// the live Jobo feed itself was retired under D78 C — we run our own crawls. Its freshness
+// verdict is recorded in docs/PIPELINE_DIAGNOSIS.md §7.
 const PROVIDERS = [theirstackAdapter];
 PROVIDERS.forEach(validateAdapter);
 
@@ -67,7 +64,7 @@ async function main() {
 
   for (const adapter of PROVIDERS) {
     if (!adapter.isConfigured()) {
-      const envVar = adapter.name === 'theirstack' ? 'THEIRSTACK_API_KEY' : 'JOBO_API_KEY';
+      const envVar = `${adapter.name.toUpperCase()}_API_KEY`;
       console.log(`[providerEval] ${PROVIDER_META[adapter.name]?.label || adapter.name}: SKIPPED — ${envVar} not set`);
       skipped.push({ name: adapter.name, envVar });
       continue;

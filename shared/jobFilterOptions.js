@@ -172,7 +172,6 @@ export const SOURCES = {
     { value: "smartrecruiters",    label: "SmartRecruiters" },
     { value: "workable",           label: "Workable"        },
     { value: "recruitee",          label: "Recruitee"       },
-    { value: "jobo",               label: "Jobo"            },
     { value: "adzuna",             label: "Adzuna"          },
     { value: "serpapi",            label: "Google Jobs"     },
     { value: "linkedin_extension", label: "LinkedIn (Saved)" },
@@ -181,6 +180,10 @@ export const SOURCES = {
     { value: "import", label: "Imported", why:
       "A job the user imported by hand. Not a provider you would browse the board by — it is the " +
       "user's own act, and the star Saved tab already answers 'the ones I chose'." },
+    { value: "jobo", label: "Jobo", why:
+      "D78 C retired the Jobo feed (we run our own crawls), so nothing writes it and offering it " +
+      "could only return zero rows. Kept as a VALID value, not deleted: vendored clients and saved " +
+      "filters still send it, and a stored row's source must still render." },
   ],
 };
 
