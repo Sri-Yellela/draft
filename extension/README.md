@@ -1,4 +1,4 @@
-# draft — Chrome Extension v1.1.1
+# draft — Chrome Extension v1.5.0
 
 Companion extension for Draft. It asks for permission to no job site at all, and reads a
 page only at the moment you point it at one.
@@ -84,7 +84,14 @@ site's tokens in the generated `tokens.css` — see `scripts/buildExtensionToken
 build if a referenced file is
 missing, if `manifest.json` carries a UTF-8 BOM, or if any bundled script has an **active**
 `localhost` URL — i.e. the DEV SWITCH in `config.js`/`background.js` is flipped. Bump `version`
-in `manifest.json` before building; the version comes from there, not from the filename.
+in `manifest.json` before building; the version comes from there, not from the filename — and the
+build writes it into this README's first line (`--check` refuses a header that disagrees).
+
+**Local dev (D87):** line B of the DEV SWITCH points at `http://localhost:3001`, the port `npm start`
+serves and `npm run verify:harness` expects. Flip line B in BOTH files, reload the unpacked
+extension, and flip it back before any build — the build refuses an active localhost URL. The
+browser harnesses in `scripts/` do not use the switch; each rewrites the declaration in a temporary
+copy to point at the server it boots.
 
 ## Publish (Chrome Web Store)
 ```

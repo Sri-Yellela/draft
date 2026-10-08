@@ -20,7 +20,7 @@ import {
 // Keep in sync with config.js (service workers cannot share plain-script globals).
 // DEV SWITCH: comment line A, uncomment line B.
 const RESUME_MASTER_URL = 'https://jobsviadraft.com'; // A: production
-// const RESUME_MASTER_URL = 'http://localhost:3000'; // B: local dev
+// const RESUME_MASTER_URL = 'http://localhost:3001'; // B: local dev (npm start serves :3001)
 
 // ── Capture (E2) ─────────────────────────────────────────────────────────────
 // THE ONE NETWORK PATH FOR CAPTURE, and it lives in the service worker rather than the content
