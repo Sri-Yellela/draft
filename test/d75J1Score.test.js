@@ -53,7 +53,7 @@ test("nothing personal in the fixture: company names and public URLs only", () =
   const values = KNOWN.flatMap(k => Object.values(k)).join(" | ");
   assert.doesNotMatch(values, /@[a-z0-9-]+\.[a-z]/i, "no email address");
   assert.doesNotMatch(values, /\+?\d[\d ()-]{8,}\d/, "no phone number");
-  for (const k of KNOWN) assert.deepEqual(Object.keys(k).filter(x => !["company", "url", "ats_type", "slug", "check"].includes(x)), [], k.company);
+  for (const k of KNOWN) assert.deepEqual(Object.keys(k).filter(x => !["company", "url", "ats_type", "slug", "check", "verified"].includes(x)), [], k.company);
 });
 
 // ── the scoring rules ───────────────────────────────────────────────────────────────────────────────
