@@ -62,6 +62,9 @@ import { JOB_FUNCTIONS } from "../../shared/jobTagVocabulary.js";
  * Semver. MAJOR is breaking; MINOR is additive. The rules, and why removing a field is
  * deliberately awkward, are in contract/README.md.
  *
+ * 2.5.0 — D74 P1 (10-08): `ageFilter` gains `visit` — "since your last visit", jobs FIRST SEEN since the
+ *         caller's previous board visit (the server resolves the cutoff per user; a client sends only the value).
+ *         ⚠ A new ENUM VALUE: a closed decoder of postingAge must accept it. Additive.
  * 2.4.0 — D71: `Job.salaryPeriod` (annual | hourly | monthly | null), `Job.salarySource` (provider |
  *         label | description | null), `Job.payLocations` and `Job.descriptionMissing`. salaryMin/Max may
  *         now come from pay stated in the posting's own text when the provider gave none — salarySource
@@ -121,7 +124,7 @@ import { JOB_FUNCTIONS } from "../../shared/jobTagVocabulary.js";
  *         a checksum and need a reason to re-copy.
  * 1.0.0 — initial contract.
  */
-export const CONTRACT_VERSION = "2.4.0";
+export const CONTRACT_VERSION = "2.5.0";
 
 // ------------------------------------------------------------------------------------------------
 // THE JOB SHAPE — derived by executing mapJobRow, not by reading it

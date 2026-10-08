@@ -285,9 +285,17 @@ test("posting age: one table, and both consumers derive from it", () => {
   assert.equal(ageDays("1w"), 7);
   assert.equal(ageDays(""), null);
   assert.equal(ageDays("nonsense"), null);
-  // Every non-empty option carries a day count, or it is a control that cannot filter.
+  // Every non-empty option carries a day count, or it is a control that cannot filter — except D74 P1's
+  // "since your last visit", which is a per-user cutoff the SERVER resolves: it may be day-less only
+  // because server.js answers it (and the facets count it), which this holds.
   for (const o of POSTING_AGE.options) {
     if (o.value === "") continue;
+    if (o.sinceVisit) {
+      assert.equal(o.days, null, "the visit lens has no fixed window");
+      assert.match(read("server.js"), new RegExp(`ageFilter === "${o.value}"`), "server.js does not resolve the visit lens");
+      assert.match(read("services/jobs/boardFacets.js"), /o\.sinceVisit/, "the facets do not count the visit lens");
+      continue;
+    }
     assert.ok(Number.isInteger(o.days) && o.days > 0, `age option "${o.value}" has no day count`);
   }
 });

@@ -262,6 +262,9 @@ export const POSTING_AGE = {
   multi: false,
   options: [
     { value: "",   label: "Any time",     days: null },
+    // ⭐ D74 P1: FIRST SEEN since the user's previous board visit (services/boardVisit.js) — not a posted
+    // date, and not a fixed window: the server resolves it per user, so a client sends only the value.
+    { value: "visit", label: "Since your last visit", days: null, sinceVisit: true },
     { value: "1d", label: "Past 24h",     days: 1    },
     { value: "2d", label: "Past 2 days",  days: 2    },
     { value: "3d", label: "Past 3 days",  days: 3    },

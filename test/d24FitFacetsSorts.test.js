@@ -23,6 +23,7 @@ import {
 import * as sentence from "../shared/filterSentence.js";
 import { atsBandFor, ATS_BAND } from "../shared/atsBands.js";
 import { buildJobFilters, postedSinceSql } from "../services/jobs/jobQuery.js";
+import { FIRST_SEEN_SQL, FIRST_VISIT_SEC } from "../services/boardVisit.js";
 import {
   SORT_KEYS, KEY, NULLS_LAST, NEWEST, BEST_FIT, COMPANY_AZ, CURATED_TAIL, FIT_KEYS, tieBreakKeys,
   buildOrderKeys, orderByClause, cursorProjection, cursorPredicate, encodeCursor, decodeCursor,
@@ -91,6 +92,10 @@ function boardSql(query, nowSec = NOW) {
   if (query.ageFilter && days) {
     const since = postedSinceSql(nowSec - days * DAY);
     where += ` AND ${since.sql}`; args.push(...since.params);
+  } else if (query.ageFilter === "visit") {
+    // D74 P1, as server.js resolves it: FIRST SEEN since the previous visit — this fixture's user has none,
+    // so the first-visit window (services/boardVisit.js).
+    where += ` AND ${FIRST_SEEN_SQL}`; args.push(nowSec - FIRST_VISIT_SEC);
   }
   where += ` ${rich.sql}`; args.push(...rich.params);
   const bands = String(query.fit_bands || "").split(",").filter(Boolean);

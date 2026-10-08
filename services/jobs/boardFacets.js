@@ -28,6 +28,7 @@
  * five statements whatever the option count, never one per option.
  */
 import { EXPERIENCE_LEVELS, WORK_MODELS, POSTING_AGE, FIT_BANDS, labelFor } from "../../shared/jobFilterOptions.js";
+import { FIRST_SEEN_SQL, FIRST_VISIT_SEC } from "../boardVisit.js";
 import { buildJobFilters, postedSinceSql } from "./jobQuery.js";
 import { fitBandsSql, FIT_SCORE_SQL } from "./jobCursor.js";
 // D30 · the two open-set dials, over the D29 tag layer.
@@ -60,7 +61,7 @@ function softNullOptions(dim) {
  * The six clauses (D30), in SENTENCE_CLAUSES' order, each with the params that encode its choice (all of
  * them are removed to form the clause's base set) and its options' predicates.
  */
-export function facetClauses({ nowSec }) {
+export function facetClauses({ nowSec, visitSinceSec = null }) {
   return [
     // D30 · DOMAIN (the job function). Choosing one LIFTS the profile's role scope (server.js
     // functionChosen), so its base set is the board with the scope lifted and nothing narrowed —
@@ -101,7 +102,9 @@ export function facetClauses({ nowSec }) {
       // choice means removing both — leaving posted_after behind would cap every option at it.
       remove: [POSTING_AGE.param, POSTING_AGE.derivedParam],
       options: POSTING_AGE.options.map(o => {
-        const p = o.days == null ? { sql: "1 = 1", params: [] } : postedSinceSql(nowSec - o.days * 86400);
+        // D74 P1: "since your last visit" counts FIRST SEEN since the caller's previous visit (a day, when unknown).
+        const p = o.sinceVisit ? { sql: FIRST_SEEN_SQL, params: [visitSinceSec ?? nowSec - FIRST_VISIT_SEC] }
+          : o.days == null ? { sql: "1 = 1", params: [] } : postedSinceSql(nowSec - o.days * 86400);
         // Hard filter (a row's age is always known — it falls back to first-seen), so known === count.
         return { value: o.value, label: o.label, count: p, known: p };
       }),
@@ -147,8 +150,8 @@ const EMPTY = (clauses) => ({
  *        pendingJobsQuery, the /d list's own query, counted). Absent → `views.pending` is null.
  * @returns {Promise<{status:number, body:any}>}
  */
-export async function boardFacetsResponse({ query, measureBoard, nowSec, countPending = null }) {
-  const clauses = facetClauses({ nowSec });
+export async function boardFacetsResponse({ query, measureBoard, nowSec, countPending = null, visitSinceSec = null }) {
+  const clauses = facetClauses({ nowSec, visitSinceSec });
 
   const head = await measureBoard(withoutKeys(query, []), ({ db, joinClause, whereClause, baseArgs, unclassifiedSql, fitScoreSql }) => {
     // A85 · "no score" means no CURRENT score — what the badge shows nothing for.
