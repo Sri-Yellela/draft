@@ -9,7 +9,7 @@ import express, { Router } from "express";
 import {
   planSweep, openSweep, runSweep, listSweeps, poolSummary, familyConversion, buildExport, toJsonl,
   planImport, summarizePlan, applyPlan, listImports, revertPreview, revertImport,
-  serpSearch, serpAccount, DAILY_SEARCH_CAP,
+  serpSearch, serpAccount, DAILY_SEARCH_CAP, queryKey, probeValidate,
 } from "../services/slugHarvest.js";
 import { validateBoard, ATS_FETCHERS } from "../services/companyList.js";
 import { trancheGate } from "../services/diskGauge.js";
@@ -17,7 +17,7 @@ import { trancheGate } from "../services/diskGauge.js";
 export const IMPORT_BODY_LIMIT = "2mb";
 
 export function createSlugHarvestRouter(db, requireAdmin, {
-  search = serpSearch, account = serpAccount, validate = validateBoard, fetchers = ATS_FETCHERS,
+  search = serpSearch, account = serpAccount, validate = probeValidate, fetchers = ATS_FETCHERS,
   configured = () => Boolean(process.env.SERPAPI_KEY),
   gate = (companies) => trancheGate(db, process.env.RM_DATA_DIR || "data", { companies }),
 } = {}) {
@@ -44,7 +44,7 @@ export function createSlugHarvestRouter(db, requireAdmin, {
       const plan = planSweep(db, { queries });
       let quota = null, quotaError = null;
       try { quota = await account(); } catch (e) { quotaError = `the SerpApi account could not be read (${e?.response?.status ?? e?.code ?? "error"})`; }
-      const names = plan.queries.map(q => q.q);
+      const names = plan.queries.map(q => queryKey(q));     // D81: a title AND its place
       if (!confirm) {
         return res.json({ dryRun: true, plan, quota, quotaError, expectQueries: names,
           note: names.length

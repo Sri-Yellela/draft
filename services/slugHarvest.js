@@ -31,6 +31,8 @@ import axios from "axios";
 import { detectKnownAtsMatch } from "./jobs/importJob.js";
 import { googleJobs } from "./jobs/sources/serpapi.js";
 import { validateBoard, addCompany, setCompanyActive, ATS_FETCHERS } from "./companyList.js";
+import { probeBoard } from "./companyProbe.js";
+import { HARVEST_QUERY_PLAN } from "./harvestQueryPlan.js";
 
 export const DAILY_SEARCH_CAP = 8;
 export const EXHAUSTED_AFTER = 3;
@@ -39,32 +41,15 @@ export const DECISIONS = Object.freeze(["add", "skip"]);
 const STALE_SWEEP_SECONDS = 15 * 60;
 
 /**
- * The searches a sweep chooses from: the 20 D4 measured, one or more per role family
- * (services/jobs/jobTaxonomy.js). Their yield is docs/SERPAPI_SLUG_YIELD.md.
+ * The searches a sweep chooses from — ⛔ D81: the CS-only plan (services/harvestQueryPlan.js, 99 searches,
+ * 13 families; the six out-of-scope families of D4's 20 are gone). A query may carry a `location` (a US metro);
+ * none means nationwide. Its identity is `queryKey` — the title AND the place — so two cities for one title are
+ * two searches with two `lastRun` entries, never one.
  */
-export const HARVEST_QUERIES = Object.freeze([
-  { q: "software engineer", family: "engineering" },
-  { q: "backend engineer", family: "engineering" },
-  { q: "frontend engineer", family: "engineering" },
-  { q: "full stack engineer", family: "engineering" },
-  { q: "site reliability engineer devops", family: "engineering" },
-  { q: "security engineer", family: "engineering" },
-  { q: "mobile engineer ios android", family: "engineering" },
-  { q: "new grad software engineer", family: "engineering" },
-  { q: "machine learning engineer", family: "data" },
-  { q: "data scientist", family: "data" },
-  { q: "data analyst", family: "data" },
-  { q: "data engineer", family: "data" },
-  { q: "product manager", family: "product" },
-  { q: "technical program manager", family: "product" },
-  { q: "embedded firmware engineer", family: "embedded_firmware" },
-  { q: "product designer", family: "design" },
-  { q: "marketing manager", family: "marketing" },
-  { q: "account executive", family: "sales" },
-  { q: "financial analyst", family: "finance" },
-  { q: "technical recruiter", family: "hr" },
-]);
-const FAMILY_OF = new Map(HARVEST_QUERIES.map(x => [x.q, x.family]));
+export const HARVEST_QUERIES = HARVEST_QUERY_PLAN;
+export const NATIONWIDE = "United States";
+export const queryKey = (x) => (x.location && x.location !== NATIONWIDE ? `${x.q} @ ${x.location}` : x.q);
+const FAMILY_OF = new Map(HARVEST_QUERIES.map(x => [queryKey(x), x.family]));
 
 // ── URL → (ats_type, slug) ──────────────────────────────────────────────────────────────────────
 //
@@ -162,11 +147,13 @@ export function poolFromResults(data) {
 
 // ── SerpApi ─────────────────────────────────────────────────────────────────────────────────────
 //
-// Through the plugin's googleJobs — the one place that calls SerpApi's search, which pins hl=en&gl=us (an
-// unpinned call came back in Spanish). Location "United States", and NO chips/num/start: D4's search
-// #1 with the live plugin's chips/num/start came back "Fully empty".
-export async function serpSearch(q) {
-  return googleJobs({ q, location: "United States" }, { timeout: 20000 });
+// Through the plugin's googleJobs — the one place that calls SerpApi's search, which pins hl=en&gl=us AFTER the
+// caller's params (an unpinned call came back in Spanish). Location: the query's metro, else "United States".
+// NO num/start: D4's search #1 with the live plugin's chips/num/start came back "Fully empty". `chips` is sent
+// only when HARVEST_CHIPS says so — ⛔ D81's freshness experiment decides (scripts/d81ChipsExperiment.mjs).
+export const HARVEST_CHIPS = null;
+export async function serpSearch(q, location = NATIONWIDE, { chips = HARVEST_CHIPS } = {}) {
+  return googleJobs({ q, location: location || NATIONWIDE, ...(chips ? { chips } : {}) }, { timeout: 20000 });
 }
 
 /** The account's quota. Free — account.json does not count as a search. */
@@ -246,26 +233,28 @@ export function planSweep(db, { queries = null, now = Math.floor(Date.now() / 10
   const remainingToday = Math.max(0, DAILY_SEARCH_CAP - used);
   const fams = new Map(familyConversion(db).map(f => [f.family, f]));
   const lastRun = new Map();
-  for (const r of sweepQueryRuns(db)) lastRun.set(r.q, r.at);
+  for (const r of sweepQueryRuns(db)) lastRun.set(queryKey(r), r.at);
   const skipped = [];
   let chosen;
   if (Array.isArray(queries) && queries.length) {
+    // D81: "title @ place" names a metro — the same form queryKey writes.
     chosen = [...new Set(queries.map(q => String(q).trim()).filter(Boolean))]
-      .map(q => ({ q, family: FAMILY_OF.get(q) || "custom" }));
+      .map(k => { const [q, location] = k.split(" @ ").map(x => x.trim());
+                  return { q, ...(location ? { location } : {}), family: FAMILY_OF.get(k) || "custom" }; });
   } else {
     chosen = [];
     for (const x of HARVEST_QUERIES) {
-      if (fams.get(x.family)?.exhausted) { skipped.push({ q: x.q, family: x.family, reason: `the last ${EXHAUSTED_AFTER} ${x.family} searches found nothing new` }); continue; }
+      if (fams.get(x.family)?.exhausted) { skipped.push({ q: queryKey(x), family: x.family, reason: `the last ${EXHAUSTED_AFTER} ${x.family} searches found nothing new` }); continue; }
       chosen.push({ ...x });
     }
     // Least recently searched first; among equals, each family's first query before any family's
     // second — so a fresh pool spends one search per family, not eight on engineering.
     const rank = new Map(), perFamily = {};
-    for (const x of HARVEST_QUERIES) rank.set(x.q, perFamily[x.family] = (perFamily[x.family] ?? -1) + 1);
-    chosen.sort((a, b) => ((lastRun.get(a.q) ?? -1) - (lastRun.get(b.q) ?? -1)) || (rank.get(a.q) - rank.get(b.q)));
+    for (const x of HARVEST_QUERIES) rank.set(queryKey(x), perFamily[x.family] = (perFamily[x.family] ?? -1) + 1);
+    chosen.sort((a, b) => ((lastRun.get(queryKey(a)) ?? -1) - (lastRun.get(queryKey(b)) ?? -1)) || (rank.get(queryKey(a)) - rank.get(queryKey(b))));
   }
   const over = chosen.slice(remainingToday);
-  for (const x of over) skipped.push({ q: x.q, family: x.family, reason: `over today's cap of ${DAILY_SEARCH_CAP}` });
+  for (const x of over) skipped.push({ q: queryKey(x), family: x.family, reason: `over today's cap of ${DAILY_SEARCH_CAP}` });
   return { queries: chosen.slice(0, remainingToday), cap: DAILY_SEARCH_CAP, usedToday: used, remainingToday, skipped,
            running: runningSweep(db, now) };
 }
@@ -273,14 +262,16 @@ export function planSweep(db, { queries = null, now = Math.floor(Date.now() / 10
 // ── the sweep ───────────────────────────────────────────────────────────────────────────────────
 export function openSweep(db, { queries, adminUserId = null, now = Math.floor(Date.now() / 1000) }) {
   return Number(db.prepare("INSERT INTO slug_harvest_sweeps (started_at, admin_user_id, queries_json) VALUES (?, ?, ?)")
-    .run(now, adminUserId, JSON.stringify(queries.map(x => ({ q: x.q, family: x.family, ran: false })))).lastInsertRowid);
+    .run(now, adminUserId, JSON.stringify(queries.map(x => ({ q: x.q, ...(x.location ? { location: x.location } : {}), family: x.family, ran: false })))).lastInsertRowid);
 }
 
 /**
  * Runs the searches of an opened sweep, one at a time, then validates the pairs it found new. Stops
  * at the first failed search rather than spending the rest. Never throws: the outcome is the row.
  */
-export async function runSweep(db, sweepId, { search = serpSearch, validate = validateBoard, fetchers = ATS_FETCHERS,
+// D81: a new pair is validated with the D80 A probe — validateBoard's verdict plus in-scope roles and recency.
+export const probeValidate = ({ atsType, slug, fetchers }) => probeBoard({ atsType, slug }, { fetchers });
+export async function runSweep(db, sweepId, { search = serpSearch, validate = probeValidate, fetchers = ATS_FETCHERS,
                                               now = () => Math.floor(Date.now() / 1000) } = {}) {
   const sweep = db.prepare("SELECT * FROM slug_harvest_sweeps WHERE id = ?").get(sweepId);
   const queries = JSON.parse(sweep.queries_json);
@@ -302,10 +293,10 @@ export async function runSweep(db, sweepId, { search = serpSearch, validate = va
   for (const q of queries) {
     let data;
     try {
-      data = await search(q.q);
+      data = await search(q.q, q.location || NATIONWIDE);
     } catch (e) {
       const status = e?.response?.status ?? null;
-      save(`search "${q.q}" failed (${status ?? e?.code ?? e?.message ?? "error"}); the remaining searches were not spent`, true);
+      save(`search "${queryKey(q)}" failed (${status ?? e?.code ?? e?.message ?? "error"}); the remaining searches were not spent`, true);
       return { ok: false, sweepId };
     }
     totals.searches++;
@@ -321,7 +312,7 @@ export async function runSweep(db, sweepId, { search = serpSearch, validate = va
       if (isConfigured(p.atsType, p.slug)) { q.configured++; continue; }
       const slugKey = p.slug.toLowerCase();
       const isNew = !inPool.get(p.atsType, slugKey);
-      upsert.run({ atsType: p.atsType, slugKey, slug: p.slug, url: p.url, sweepId, q: q.q, at: now() });
+      upsert.run({ atsType: p.atsType, slugKey, slug: p.slug, url: p.url, sweepId, q: queryKey(q), at: now() });
       if (isNew) { q.newPairs++; totals.newPairs++; fresh.push(p); }
     }
     save();
@@ -364,6 +355,8 @@ export function buildExport(db, { now = Math.floor(Date.now() / 1000) } = {}) {
         ats_type: r.ats_type, slug: r.ats_slug, decision: null, company: v?.companyGuess || null,
         exported_state: r.state || "unvalidated",
         jobs: v?.jobs ?? null, us: v?.us ?? null, descriptions: v?.descriptions?.note ?? null,
+        // ⛔ D81 / D80 A: decide on EVIDENCE — in-scope US roles within the age limit, of how many in scope, how recent.
+        in_scope_recent: v?.cs ?? null, in_scope_open: v?.csOpen ?? null, pct_30d: v?.pct30 ?? null, pct_120d: v?.pct120 ?? null,
         sample_titles: (v?.sample || []).map(s => s.title).slice(0, 3),
         sample_url: r.sample_url, first_query: r.first_query, times_seen: r.times_seen,
       };

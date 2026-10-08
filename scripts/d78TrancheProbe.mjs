@@ -10,11 +10,8 @@
 // Without --candidates it probes CANDIDATES below — tech-heavy boards, D74 P3's advice ("the stricter filter
 // makes a non-tech company yield almost nothing"). A wrong slug simply reads `dead`.
 import fs from "node:fs";
-import { ATS_FETCHERS, validateBoard } from "../services/companyList.js";
-import { usEligibility, officeLocations } from "../services/jobs/usLocation.js";
-import { ageOf, DEFAULT_LIMIT_DAYS } from "../services/jobs/boardAge.js";
-import { classifyJob } from "../services/jobs/classifyJob.js";
-import { csScopeOf } from "../services/jobs/csScope.js";
+import { probeBoard } from "../services/companyProbe.js";
+import { DEFAULT_LIMIT_DAYS } from "../services/jobs/boardAge.js";
 
 const CANDIDATES = [
   ...["databricks", "cloudflare", "datadog", "robinhood", "coinbase", "discord", "dropbox", "instacart", "lyft",
@@ -39,34 +36,10 @@ const skip = new Set(String(flag("skip") || "").split(",").map(s => s.trim().toL
 const now = Math.floor(Date.now() / 1000);
 
 async function probe({ atsType, slug, company }) {
-  let jobs = [];
-  const fetchOnce = async (s, c, w) => (jobs = await ATS_FETCHERS[atsType](s, c, w));
-  const v = await validateBoard({ atsType, slug, company: company || slug, fetchers: { [atsType]: fetchOnce } });
-  const funnel = { fetched: jobs.length, us: 0, fresh: 0, classified: 0, cs: 0 };
-  const csAges = [];                    // D80 A: the age of every US, in-scope posting, before the age cut
-  let csSalary = 0;
-  for (const j of jobs) {
-    if (!usEligibility({ location: j.location, description: j.description, offices: officeLocations(j._raw) }).admit) continue;
-    funnel.us++;
-    const age = ageOf({ posted_at: j.posted_at }, { now, limitDays: DEFAULT_LIMIT_DAYS });
-    const verdict = classifyJob(j.title || "", j.description || "", j.company || "");
-    const cs = verdict.collar !== "blue" && verdict.roleKey !== null && csScopeOf({ title: j.title, roleKey: verdict.roleKey }).inScope;
-    if (cs) { csAges.push(age.days); if (j.salary_min_usd != null || j.salary_min != null) csSalary++; }
-    if (age.tooOld) continue;
-    funnel.fresh++;
-    if (verdict.collar === "blue" || verdict.roleKey === null) continue;
-    funnel.classified++;
-    if (cs) funnel.cs++;
-  }
-  csAges.sort((x, y) => x - y);
-  const share = (n) => (csAges.length ? Math.round((100 * n) / csAges.length) : null);
-  const evidence = { csOpen: csAges.length, cs30: csAges.filter(d => d <= 30).length,
-    pct30: share(csAges.filter(d => d <= 30).length), pct120: share(csAges.filter(d => d <= DEFAULT_LIMIT_DAYS).length),
-    medianAge: csAges.length ? csAges[Math.floor(csAges.length / 2)] : null, salaryPct: share(csSalary),
-    usPct: jobs.length ? Math.round((100 * funnel.us) / jobs.length) : null };
-  const dated = jobs.filter(j => ageOf({ posted_at: j.posted_at }, { now }).basis === "posted_at").length;
-  return { atsType, slug, company: v.companyGuess || company || slug, state: v.state, ok: v.ok,
-           descriptions: v.descriptions?.note ?? null, dated, ...funnel, ...evidence };
+  const p = await probeBoard({ atsType, slug, company }, { now });
+  const { fetched, us, fresh, classified, cs, csOpen, cs30, pct30, pct120, medianAge, salaryPct, usPct, dated } = p;
+  return { atsType, slug, company: p.companyGuess || company || slug, state: p.state, ok: p.ok, descriptions: p.descriptions?.note ?? null,
+           dated, fetched, us, fresh, classified, cs, csOpen, cs30, pct30, pct120, medianAge, salaryPct, usPct };
 }
 
 const todo = candidates.filter(c => !skip.has(`${c.atsType}:${c.slug}`.toLowerCase()));

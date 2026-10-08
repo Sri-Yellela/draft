@@ -133,7 +133,9 @@ test("a sweep is dry first, spends exactly the searches the operator saw, and po
     assert.ok(done.new_pairs > 0);
     assert.equal(s.db.prepare("SELECT COUNT(*) FROM slug_harvest_pool").pluck().get(), done.new_pairs);
     assert.equal(s.db.prepare("SELECT COUNT(*) FROM slug_harvest_pool WHERE state = 'live'").pluck().get(), done.new_pairs, "every new pair validated");
-    assert.ok(done.queries.every(q => q.language === "en/us"));
+    // D81: the recorded fixtures are D4's 20 searches; a plan search with no fixture answers empty, with no language.
+    const answered = done.queries.filter(q => q.language);
+    assert.ok(answered.length > 0 && answered.every(q => q.language === "en/us"));
     // Today's cap is spent: the next plan searches nothing.
     const after = await s.call("POST", "/h/sweep", {});
     assert.deepEqual([after.body.expectQueries.length, after.body.plan.remainingToday], [0, 0]);
@@ -169,16 +171,16 @@ test("a failed search stops the sweep — the rest are not spent", async () => {
 test("⛔ the stopping rule: a family whose last searches found nothing new leaves the default plan", async () => {
   const s = mount({ search: async () => ({ jobs_results: [] }) });
   try {
-    const hr = HARVEST_QUERIES.filter(x => x.family === "hr").map(x => x.q);
+    const hr = HARVEST_QUERIES.filter(x => x.family === "qa").map(x => x.q).slice(0, 1);   // D81: "hr" left the plan; any family will do
     for (let i = 0; i < EXHAUSTED_AFTER; i++) {
       await sweep(s, hr);
       s.db.prepare("UPDATE slug_harvest_sweeps SET started_at = started_at - 86400 * 2").run();   // yesterday's sweeps
     }
-    const fam = familyConversion(s.db).find(f => f.family === "hr");
+    const fam = familyConversion(s.db).find(f => f.family === "qa");
     assert.deepEqual([fam.searches, fam.newPairs, fam.exhausted], [EXHAUSTED_AFTER, 0, true]);
     const plan = planSweep(s.db);
-    assert.ok(!plan.queries.some(q => q.family === "hr"));
-    assert.ok(plan.skipped.some(x => x.family === "hr" && /found nothing new/.test(x.reason)));
+    assert.ok(!plan.queries.some(q => q.family === "qa"));
+    assert.ok(plan.skipped.some(x => x.family === "qa" && /found nothing new/.test(x.reason)));
     assert.ok(plan.queries.length === DAILY_SEARCH_CAP, "the cap is spent on families still converting");
   } finally { s.stop(); }
 });
