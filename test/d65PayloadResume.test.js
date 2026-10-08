@@ -142,8 +142,8 @@ test("D65 · skills are read from the résumé's SKILLS rows", () => {
 
 test("D65 · the packet reads the résumé it CARRIES — at build, and again when attachPacketResume attaches one", () => {
   const src = fs.readFileSync("routes/apply.js", "utf8").replace(/\r\n/g, "\n");
-  assert.match(src, /entries: packetEntriesFor\(userId, resumeArtifactId\),/);
-  assert.match(src, /entries: packetEntriesFor\(userId, artifactId\),/);
+  assert.match(src, /const entries = packetEntriesFor\(userId, resumeArtifactId\);/);
+  assert.match(src, /const entries = packetEntriesFor\(userId, artifactId\);\s+packet = buildGatePacket/);
   const attach = src.slice(at(src, "async function attachPacketResume("), at(src, "function packetEntriesFor("));
   assert.match(attach, /const entries = packetEntriesFor\(userId, artifactId\);/);
   assert.match(attach, /json_set\(answers_json, '\$\.entries', json\(\?\)\)/);

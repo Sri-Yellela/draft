@@ -15,7 +15,7 @@ import {
   buildGatePacket, mintPacketToken, verifyPacketToken, hashToken, originOf,
   DEFAULT_TOKEN_TTL_MS,
   handoffKind, shouldBuildPacket, packetFreshness, PACKET_STALE_MS, HANDOFF_STATUSES,
-  buildPacketEntries,
+  buildPacketEntries, packetSavedAnswers,
 } from "../services/applyGatePacket.js";
 import { buildStructuredResume } from "../services/resumeFormatter.js";
 import { payloadResumeParse } from "../services/payloadResume.js";
@@ -1049,6 +1049,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       db.prepare(`UPDATE apply_gate_packets SET resume_artifact_id=NULL,
           answers_json=json_set(json_set(answers_json, '$.resumeSource', 'base'), '$.entries', json(?))
         WHERE id=? AND user_id=? AND consumed_at IS NULL`).run(JSON.stringify(entries || {}), packetId, userId);
+      try { refreshPacketWorkedHere(packetId, userId, entries); } catch { /* the answer stays as built */ }
       logEvent(runId, runJobId, userId, jobId, "packet_resume_ready", `The handoff carries your ${BASE_RESUME_LABEL.toLowerCase()}`,
         { resumeArtifactId: null, resumeSource: "base" });
       return { ok: true, artifactId: null, base: true };
@@ -1095,6 +1096,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       const entries = packetEntriesFor(userId, artifactId);
       if (entries) db.prepare(`UPDATE apply_gate_packets SET answers_json=json_set(answers_json, '$.entries', json(?))
           WHERE id=? AND user_id=? AND consumed_at IS NULL`).run(JSON.stringify(entries), packetId, userId);
+      // D65 residual: "have you worked here?" is re-read from the same résumé.
+      refreshPacketWorkedHere(packetId, userId, entries);
     } catch { /* fewer entries, never a lost résumé link */ }
     logEvent(runId, runJobId, userId, jobId, "packet_resume_ready",
       cur.current ? "The handoff carries your current résumé for this job" : "The handoff carries a résumé written for this job",
@@ -1119,6 +1122,32 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     try { return buildPacketEntries({ profile, payload }); } catch { return null; }
   }
 
+  // ⭐ D65 residual · "HAVE YOU WORKED HERE BEFORE?" READS THE RÉSUMÉ THE PACKET CARRIES. The autofill
+  // payload is built before the packet's résumé is known, so its worked_here history came from the BASE
+  // résumé — a tailored résumé that dropped a role still answered Yes for that employer. The history is
+  // re-derived from the packet's own entries.work (the carried résumé's parse) plus the profile's
+  // current_company, the same workHistoryCompanies rule as before. No entries → the payload unchanged.
+  function withCarriedWorkHistory(userId, autofillPayload, entries) {
+    const wh = autofillPayload?.worked_here;
+    if (!wh || !entries) return autofillPayload;
+    let profile = null;
+    try { profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || null; } catch { /* no profile table */ }
+    return { ...autofillPayload,
+      worked_here: { company: wh.company ?? null, history: workHistoryCompanies({ profile, work: entries.work || [] }) } };
+  }
+  // …and once attachPacketResume knows the résumé, the stored packet's workedHere is rebuilt from it.
+  function refreshPacketWorkedHere(packetId, userId, entries) {
+    if (!entries) return;
+    const row = db.prepare("SELECT answers_json FROM apply_gate_packets WHERE id=? AND user_id=? AND consumed_at IS NULL")
+      .get(packetId, userId);
+    let company = null;
+    try { company = JSON.parse(row?.answers_json || "null")?.workedHere?.company ?? null; } catch { /* unreadable packet: leave it */ }
+    if (!company) return;
+    const wh = packetSavedAnswers(withCarriedWorkHistory(userId, { worked_here: { company, history: [] } }, entries)).workedHere;
+    if (wh) db.prepare(`UPDATE apply_gate_packets SET answers_json=json_set(answers_json, '$.workedHere', json(?))
+        WHERE id=? AND user_id=? AND consumed_at IS NULL`).run(JSON.stringify(wh), packetId, userId);
+  }
+
   function createGatePacket({ runId, runJobId, userId, jobId, result, autofillPayload, resumeArtifactId,
                              reasonCode, jobUrl, toolType = "generate" }) {
     // Where the human has to go, most-specific first:
@@ -1131,9 +1160,10 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const applyUrl = result.gate?.applyUrl || result.landedUrl || result.gate?.startedFrom || jobUrl || null;
     let packet;
     try {
+      const entries = packetEntriesFor(userId, resumeArtifactId);
       packet = buildGatePacket({
         resolvedAnswers: result.answers,
-        autofillPayload,
+        autofillPayload: withCarriedWorkHistory(userId, autofillPayload, entries),
         applyUrl,
         jobId, runId, runJobId,
         resumeArtifactId,
@@ -1142,7 +1172,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         // mislabelling a held review as a login wall would put it in the wrong group and promise
         // that a sign-in clears it.
         gateReason: reasonCode || result.reasonCode || "login_required",
-        entries: packetEntriesFor(userId, resumeArtifactId),
+        entries,
       });
     } catch (e) {
       // buildGatePacket refuses in exactly two cases, and both leave the run held with no packet —
@@ -1233,11 +1263,12 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId);
     let packet;
     try {
+      const entries = packetEntriesFor(userId, artifactId);
       packet = buildGatePacket({
-        autofillPayload: buildAutofillPayload(profile, "APPLY", job.company),
+        autofillPayload: withCarriedWorkHistory(userId, buildAutofillPayload(profile, "APPLY", job.company), entries),
         applyUrl: job.apply_url || job.url, jobId: String(jobId),
         resumeArtifactId: artifactId, gateReason: PREPARED_REASON,
-        entries: packetEntriesFor(userId, artifactId),
+        entries,
       });
     } catch (e) {
       return { ok: false, error: e.reasonCode || "prepare_failed",
