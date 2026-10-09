@@ -72,15 +72,15 @@ body {
 
 /* ⛔ D63 · NO UNDERLINED TEXT LINKS. A small action (Disconnect, copy, Cancel) is a compact DEPTH BOX —
    the sketch's .mb: radius 11, D1's depth, the words in the body face. `.link` is kept as the class name
-   the handlers find, and is drawn as that box. */
+   the handlers find, and is drawn as that box. ⛔ D60: the 28px `.link` takes radius 8 — 11 on 28 read as a capsule. */
 .link, .mb {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  min-height: 28px; padding: 5px 10px; border-radius: 11px; border: 0; cursor: pointer;
+  min-height: 28px; padding: 5px 10px; border-radius: 8px; border: 0; cursor: pointer;
   font: inherit; font-size: 11px; font-weight: 700; text-decoration: none;
   background: var(--c-surface-solid); color: var(--c-ink-muted); box-shadow: var(--c-depth-rest);
   transition: box-shadow .2s ease, transform .2s ease;
 }
-.mb { flex: 1 1 0; height: 38px; }
+.mb { flex: 1 1 0; height: 38px; border-radius: 11px; }
 .mb svg { width: 15px; height: 15px; flex: none; }
 .link:hover:not(:disabled), .link:focus-visible, .mb:hover:not(:disabled), .mb:focus-visible { box-shadow: var(--c-depth-hover); transform: translateY(-2px); color: var(--c-ink); }
 .link:active:not(:disabled), .mb:active:not(:disabled) { transform: translateY(0); box-shadow: var(--c-depth-press); }
