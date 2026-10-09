@@ -60,7 +60,8 @@ test("A88 · a NEW résumé is refused 503 when the tools service is not configu
   assert.equal(status, 503);
   assert.equal(body.code, "tools_service_unconfigured");
   assert.equal(body.retryable, false);
-  assert.match(body.error, /tools service is not configured/);
+  // Cost visibility (10-09): the user's words are the generic sentence; the code still names the cause.
+  assert.equal(body.error, "Résumé generation is unavailable right now — try again shortly.");
   assert.match(body.detail, /Retrying will not help/);
 });
 
@@ -69,7 +70,7 @@ test("A88 · the cover letter calls the model itself, so the key check stays THE
   const gate = at(c, "if (!ANTHROPIC_KEY) {");
   const answer = c.slice(at(c, "return res.status(503).json(", gate), at(c, "});", gate));
   assert.match(answer, /code: "model_unconfigured", retryable: false/);
-  assert.match(answer, /Cover letters are not available on this server/);
+  assert.match(answer, /Cover letters are unavailable right now\./);
   assert.doesNotMatch(answer, /ANTHROPIC_KEY/, "the setting's name is for the operator's log, not the user's screen");
   assert.ok(at(c, "return res.status(503).json(", gate) < at(c, "});", gate), "the 503 is the gate's own answer");
   // the apply path's cover letter: non-fatal, the run proceeds without one

@@ -166,12 +166,11 @@ test("D70 P3 (c): the summary says which tool the button RUNS — the admin A+ f
   assert.match(route, /generationCostSummary\(db, \{ aplusFlag \}\)/);
 });
 
-test("D70 P3 (c): the posting panel shows the cost BEFORE Generate / Regenerate is pressed — a line, never a capsule", () => {
+// ⛔ SUPERSEDED (owner, 10-09, cost visibility): the cost line moved from the posting panel to Admin → Costs &
+// quotas — a user sees drafts left and "about 10–20 seconds". test/costVisibility.test.js holds both sides.
+test("D70 P3 (c): the cost is said where the ADMIN looks — Admin → Costs & quotas reads the same summary", () => {
   const panel = lf("client/src/components/JobDetailPanel.jsx");
-  assert.match(panel, /api\("\/api\/generate\/cost"\)\.then\(d => \{ if \(!cancelled\) setGenCost\(d\); \}\)/);
-  assert.match(panel, /<PostingActions [^>]*cost=\{genCost\}/);
-  assert.match(panel, /\{costLine && canGen && onGenerate && <p className="pp__quota" data-generate-cost=\{cost\.runs\}>\{costLine\}<\/p>\}/);
-  assert.match(panel, /\(costLabel \? `; one model call, \$\{costLabel\}` : ""\)/, "the button's own title carries it too");
-  const line = panel.slice(at(panel, "data-generate-cost"), at(panel, "data-generate-cost") + 200);
-  assert.doesNotMatch(line, /999px|rounded-full|borderRadius/, "D60: no pill");
+  assert.doesNotMatch(panel, /api\/generate\/cost|data-generate-cost|costLine/);
+  const admin = SERVER.slice(at(SERVER, 'app.get("/api/admin/costs"'), at(SERVER, 'app.post("/api/admin/costs/funding-alert/clear"'));
+  assert.match(admin, /summary: generationCostSummary\(db\)/);
 });

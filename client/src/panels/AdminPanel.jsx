@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api }      from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
-import { OpsTab, GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, NoticesTab } from "./adminOps.jsx";
+import { OpsTab, GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, NoticesTab, CostsTab } from "./adminOps.jsx";
 import { EnrichmentTab } from "./adminEnrichment.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
@@ -977,6 +977,7 @@ export function AdminPanel() {
     { id:"crawler",         label:"Crawler" },
     { id:"system",          label:"System" },
     { id:"usage",           label:"Usage" },
+    { id:"costs",           label:"Costs & quotas" },
     { id:"users_analytics", label:"Users" },
     { id:"cache",           label:"Cache" },
   ];
@@ -1055,6 +1056,8 @@ export function AdminPanel() {
 
       {/* ── Usage analytics tab ── */}
       {topTab === "usage" && <UsageTab theme={theme}/>}
+      {/* Cost visibility (owner, 10-09): résumé economics are the admin's alone. */}
+      {topTab === "costs" && <CostsTab theme={theme}/>}
       {topTab === "users_analytics" && <UsersTab theme={theme}/>}
       {topTab === "cache" && <CacheTab theme={theme}/>}
 

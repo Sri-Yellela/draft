@@ -28,6 +28,7 @@ import applicationRecordRoutes from "./routes/applicationRecords.js";
 import generatedResumeRoutes from "./routes/generatedResumes.js";
 import applicationArtifactRoutes from "./routes/applicationArtifacts.js";
 import { draftSlots, slotsExhausted, recordGenerationSlot } from "./services/draftSlots.js";
+import { GENERATION_EXPECT_SECONDS, userSafeGeneration, userCostView } from "./services/costVisibility.js";
 import { storeGeneratedResume, refundGeneration, ResumeStoreError, STORE_FAILED_SENTENCE, listGeneratedResumes,
          deleteGeneratedResume, sweepExpiredResumes, resumeRetentionDays } from "./services/generatedResumes.js";
 import { markPending } from "./services/applicationRecords.js";
@@ -70,7 +71,7 @@ import { callModel, SYSTEM_USER_ID } from "./services/modelCall.js";
 // (call sites that recorded spend independently, and went unrecorded) does not apply to it.
 import { recordAtsOutcome } from "./services/usageTracker.js";
 // A4 — generation, the A+ rewrite and PDF parsing belong to the résumé tools service; draft calls it as a client.
-import { createToolsServiceClient, recordToolsServiceUsage, httpErrorFor, ToolsServiceError } from "./services/toolsService.js";
+import { createToolsServiceClient, recordToolsServiceUsage, httpErrorFor, ToolsServiceError, isFundingFailure } from "./services/toolsService.js";
 import { generateRequest as toolsGenerateRequest } from "./services/toolsServiceRequests.js";
 import { retryReasonFor } from "./services/generationRetry.js";
 import { generationCostSummary } from "./services/generationCost.js";
@@ -108,6 +109,7 @@ import { workHistoryCompanies } from "./shared/savedAnswers.js";
 import { allowedModesForTier, canUseAPlusResume, canUseGenerate, canUseMode, hasPlanAtLeast, nextPlan, normalisePlanTier, planForMode } from "./services/entitlements.js";
 import { monetisationEnabledFromEnv } from "./shared/monetisation.js";
 import { fullAutoState, setSetting, clearSetting, FULL_AUTO_KEY } from "./services/appSettings.js";
+import { getSetting } from "./services/appSettings.js";
 import { stripResumeHtml as formatterStripResumeHtml } from "./services/resumeFormatter.js";
 import {
   buildAtsResumeBasis,
@@ -10005,7 +10007,7 @@ async function enhanceProfileResume(req, res) {
       improvements: enhReport?.improvements || [],
     });
   } catch(e) {
-    console.error("[enhance]", e.code || e.name, e.message);
+    noteGenerationFailure(e, "enhance");
     const { status, body } = httpErrorFor(e, "Enhancement failed");
     res.status(status).json(body);
   }
@@ -10269,7 +10271,9 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   let generated;
   try {
     generated = await toolsService.generate(generateBody);
+    clearFundingAlert();
   } catch (e) {
+    noteGenerationFailure(e, "generate");
     // Spend the tools service reports on a failed request is still spend — meter it, then rethrow.
     // A94: a claim-guard refusal is a BILLED call that succeeded, so its row says success = 1; the
     // request's code is what tells it apart from a delivered résumé.
@@ -10344,6 +10348,26 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
 
   return { html: formattedHtml, atsScore, atsReport, baseAtsScore: atsScoreBefore ?? null, version, resumeId: stored.resumeId, generatedAt: Date.now(),
     retry: retryReason ? { reason: retryReason } : null };
+}
+
+// ── COST VISIBILITY (owner, 10-09): a generation failure's RAW reason is the admin's, never the user's ──────
+// The user gets one of a few fixed sentences (services/toolsService.js USER_GENERATION_MESSAGES). The raw text
+// goes to the server log; a FUNDING failure (an exhausted credit balance, a bad key) also raises the admin's
+// banner (Admin → Costs and quotas), cleared by the next generation that succeeds.
+const FUNDING_ALERT_KEY = "generation_funding_alert";
+function noteGenerationFailure(e, where) {
+  console.error(`[generation] ${where} failed:`, e?.code || e?.name, String(e?.message || "").slice(0, 300));
+  if (!isFundingFailure(e)) return;
+  try {
+    setSetting(db, FUNDING_ALERT_KEY, JSON.stringify({ at: Math.floor(Date.now() / 1000), where, code: e?.code ?? null,
+      message: String(e?.message || "").slice(0, 200) }));
+  } catch { /* the banner is best effort; the log line above stands */ }
+}
+function clearFundingAlert() {
+  try { if (getSetting(db, FUNDING_ALERT_KEY) !== null) clearSetting(db, FUNDING_ALERT_KEY); } catch { /* best effort */ }
+}
+function fundingAlert() {
+  try { const v = getSetting(db, FUNDING_ALERT_KEY); return v ? JSON.parse(v) : null; } catch { return null; }
 }
 
 // ── D86 · BRING-YOUR-OWN-MODEL: what the tools need from this file's closure ─────────────────────
@@ -10624,14 +10648,42 @@ REQUIREMENTS:
 
 // ⭐ D70 Phase 3 · what the caller's next résumé costs, BEFORE it runs — and which tool the button will
 // actually run (the admin A+ flag below silently upgrades a Generate). Ledger medians, no model call.
+// ⛔ COST VISIBILITY (owner, 10-09): what a résumé costs US is the admin's. A non-admin gets only what is
+// theirs — the allowance, in the unit they already have (drafts in the last 24 hours), and what to expect.
 app.get("/api/generate/cost", requireAuth, (req, res) => {
+  const allowance = draftSlots(db, req.user.id);
+  if (!mayActAsAdmin(req)) return res.json(userCostView(allowance));
   let aplusFlag = false;
   // D88 P1: the same flag /api/generate upgrades with — the resolver's a_plus_default.
   try { aplusFlag = resolveEntitlement(db, req.user.id, "a_plus_default").value === true; } catch { /* no flag column: a plain Generate */ }
-  res.json(generationCostSummary(db, { aplusFlag }));
+  res.json({ ...generationCostSummary(db, { aplusFlag }), allowance, expectSeconds: GENERATION_EXPECT_SECONDS });
+});
+
+// ⭐ COST VISIBILITY · Admin → Costs & quotas: everything the user surfaces no longer show — the per-résumé
+// medians, the recent generation calls with their cost, tokens, cache and retry notes, and the funding banner
+// (set when the model account ran out of credit or lost its key; cleared by the next success, or here).
+const GENERATION_PURPOSES_SQL = "(e.purpose LIKE '%generate%' OR e.purpose LIKE '%enhance%' OR e.purpose LIKE 'cover_letter%' OR e.purpose = 'a_plus_resume')";
+app.get("/api/admin/costs", requireAdmin, (req, res) => {
+  const recent = db.prepare(`SELECT e.id, e.user_id AS userId, u.username, e.purpose, e.event_subtype AS kind, e.model,
+      e.input_tokens AS inputTokens, e.output_tokens AS outputTokens, e.cache_read_tokens AS cacheReadTokens,
+      e.cached, e.cost_usd AS costUsd, e.duration_ms AS durationMs, e.success, e.error_text AS note, e.created_at AS at
+    FROM usage_events e LEFT JOIN users u ON u.id = e.user_id
+    WHERE ${GENERATION_PURPOSES_SQL}
+    ORDER BY e.id DESC LIMIT 50`).all();
+  const day = Math.floor(Date.now() / 1000) - 86400;
+  const today = db.prepare(`SELECT COUNT(*) AS calls, COALESCE(SUM(e.cost_usd), 0) AS costUsd FROM usage_events e
+    WHERE ${GENERATION_PURPOSES_SQL} AND e.created_at >= ?`).get(day);
+  res.json({ summary: generationCostSummary(db), last24h: today, recent, fundingAlert: fundingAlert() });
+});
+app.post("/api/admin/costs/funding-alert/clear", requireAdmin, (req, res) => {
+  clearFundingAlert();
+  res.json({ ok: true });
 });
 
 app.post("/api/generate", requireAuth, async (req, res) => {
+  // ⛔ COST VISIBILITY: every answer below passes through the filter — a non-admin never sees the tool that ran
+  // (an admin's silent A+ swap shows as Generate), the retry reason, or usage / cost / tokens / model / cache.
+  { const json = res.json.bind(res); res.json = (body) => json(userSafeGeneration(body, { admin: mayActAsAdmin(req) })); }
   const { jobId, job, resumeText, forceRegen } = req.body;
   // Strip excluded companies from employer list before any processing
   const employers = sanitiseEmployers(req.body.employers);
@@ -11383,6 +11435,7 @@ app.post("/api/standalone/generate", requireStandaloneAuth, standaloneRateLimit(
 
     res.json({ html, ats });
   } catch(e) {
+    noteGenerationFailure(e, "standalone");
     const { status, body } = httpErrorFor(e, "Resume generation failed");
     res.status(status).json(body);
   }
@@ -11410,7 +11463,7 @@ app.post("/api/cover-letter/generate", requireAuth, async (req, res) => {
   // plainly, not retryable. The setting's name goes to the operator's log, not the user's screen.
   if (!ANTHROPIC_KEY) {
     console.warn("[cover-letter] refused: ANTHROPIC_KEY is not set");
-    return res.status(503).json({ error: "Cover letters are not available on this server — its model key is not configured.",
+    return res.status(503).json({ error: "Cover letters are unavailable right now.",
       code: "model_unconfigured", retryable: false, detail: "Retrying will not help until this is fixed on the server." });
   }
 
