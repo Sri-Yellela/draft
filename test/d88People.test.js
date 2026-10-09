@@ -147,3 +147,19 @@ test("D88 · the router is admin-only twice over, sets no password, and imperson
   assert.doesNotMatch(routes.replace(/^\/\/.*$/gm, ""), /password_hash|hashPassword|impersonat/i);
   assert.ok(UserAdminError);
 });
+
+test("D88 P5 · Settings shows the user's own allowance — an override as theirs, never money, never the A+ swap or its source", async () => {
+  const { selfAllowance, SELF_FEATURES } = await import("../services/userAdmin.js");
+  const db = people();
+  setOverride(db, { userId: 2, featureKey: "draft_slots", value: 25, reason: "support ticket 9", actorId: 1 });
+  setOverride(db, { userId: 2, featureKey: "a_plus_default", value: true, reason: "testing the swap", actorId: 1 });
+  db.prepare("INSERT INTO usage_events (user_id, event_type, purpose, cost_usd, success) VALUES (2, 'resume_generate', 'resume_generate', 0.07, 1)").run();
+  const s = selfAllowance(db, 2);
+  assert.equal(s.drafts.limit, 25);
+  assert.equal(s.plan, "basic");
+  const all = JSON.stringify(s);
+  assert.doesNotMatch(all, /a_plus_default|swap|override|support ticket|testing the swap|cost|usd|\$|¢|source|detail/i);
+  assert.ok(!SELF_FEATURES.includes("a_plus_default"));
+  assert.equal(s.features.find(f => f.key === "auto_apply_mode").value, "not available yet");
+  assert.match(SERVER, /app\.get\("\/api\/account\/allowance", requireAuth, \(req, res\) => \{\n  try \{ res\.json\(selfAllowance\(db, req\.user\.id\)\); \}/);
+});

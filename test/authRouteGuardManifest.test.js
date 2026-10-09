@@ -194,6 +194,7 @@ const AUTHENTICATED = new Set([
   "POST /api/simple-apply/profile/refresh",
   "POST /api/parse-pdf",
   "POST /api/generate",
+  "GET /api/account/allowance",           // D88 P5: the user's own plan and allowance, read-only
   "GET /api/generate/cost",                // D70 Phase 3: what the caller's next résumé costs, before it runs
   "POST /api/export-pdf",
   "GET /api/export/excel",

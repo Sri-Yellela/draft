@@ -29,7 +29,7 @@ import generatedResumeRoutes from "./routes/generatedResumes.js";
 import applicationArtifactRoutes from "./routes/applicationArtifacts.js";
 import { draftSlots, slotsExhausted, recordGenerationSlot } from "./services/draftSlots.js";
 import { GENERATION_EXPECT_SECONDS, userSafeGeneration, userCostView, userSafeResumeRow } from "./services/costVisibility.js";
-import { isSuspended, UserAdminError } from "./services/userAdmin.js";
+import { isSuspended, UserAdminError, selfAllowance } from "./services/userAdmin.js";
 import { createAdminPeopleRouter } from "./routes/adminPeople.js";
 import { createSupportRouters } from "./routes/tickets.js";
 import { purgeSolvedTickets } from "./services/tickets.js";
@@ -7886,6 +7886,10 @@ async function adminSendResetLink(userId, req) {
   }
   return { sent: true, why: null };
 }
+// ⭐ D88 P5 · Settings → Your plan and allowance: the user's own, read-only — never money, never the A+ swap.
+app.get("/api/account/allowance", requireAuth, (req, res) => {
+  try { res.json(selfAllowance(db, req.user.id)); } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
 // ⭐ D88 P3 · support tickets — the user's own (Settings → Help) and the admin queue (Admin → People → Support).
 {
   const support = createSupportRouters({ db, requireAuth, requireAdmin, sendEmail, supportEmail: SUPPORT_EMAIL,

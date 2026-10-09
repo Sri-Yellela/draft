@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { api, authContextQuery, authHeaders, downloadBlob, printResume } from "../lib/api.js";
 import { announceAccountChanged, useAccountAvatar } from "../lib/accountAvatar.js";
 import { glass } from "../styles/glass.js";
@@ -178,6 +178,9 @@ export function AccountPanel({ onSignedOut }) {
           <BaseResumeOnly />
           <GeneratedResumes busy={busy} run={run} />
         </SettingsSection>
+
+        {/* ⭐ D88 P5: the user's own plan and allowance, read-only. */}
+        <AllowanceSection />
 
         {/* ⭐ D88 P3: contact support, and your requests with their replies. */}
         <HelpSection say={say} />
@@ -591,6 +594,33 @@ function HelpSection({ say }) {
             ))}
           </div>
         )}
+      </div>
+    </SettingsSection>
+  );
+}
+
+
+/**
+ * ⭐ D88 P5 · Settings → Your plan and allowance — the user's own, read-only. ⛔ Never money; never the admin's A+
+ * swap; an allowance support raised for you reads as your allowance. (GET /api/account/allowance)
+ */
+function AllowanceSection() {
+  const [d, setD] = useState(null);
+  useEffect(() => { api("/api/account/allowance").then(setD).catch(() => {}); }, []);
+  if (!d) return null;
+  const freeAt = d.drafts?.remaining === 0 && d.drafts.nextFreeAt
+    ? new Date(d.drafts.nextFreeAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase() : null;
+  return (
+    <SettingsSection title="Your plan and allowance" subtitle="What you can use and how much of it is left. Need more? Ask in Help below.">
+      <div data-allowance-section="" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ fontSize: 13, color: "var(--color-text)" }}>Plan: <b>{d.plan}</b></div>
+        {d.drafts && <div style={{ fontSize: 13, color: "var(--color-text)" }}>
+          <b>{d.drafts.remaining} of {d.drafts.limit}</b> drafts left in the last 24 hours{freeAt ? ` — the next frees up at ${freeAt}` : ""}.</div>}
+        <div style={muted}>{d.resumesToday} résumé{d.resumesToday === 1 ? "" : "s"} today · {d.resumesMonth} in the last 30 days</div>
+        <div style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 8, display: "grid", gridTemplateColumns: "1fr auto", gap: "4px 12px" }}>
+          {d.features.map(f => <Fragment key={f.key}><span style={{ fontSize: 13, color: "var(--color-text)" }}>{f.label}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)" }}>{f.value}</span></Fragment>)}
+        </div>
       </div>
     </SettingsSection>
   );
