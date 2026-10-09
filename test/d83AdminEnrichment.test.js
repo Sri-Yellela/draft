@@ -150,10 +150,13 @@ test("no project code (D17, D72, A76…) appears outside a ? tooltip", () => {
 });
 
 test("every action is a <button> (DepthButton or button) — no clickable div besides the dialog's scrim", () => {
-  const clickables = [...stripComments(PAGE).matchAll(/<(\w+)[^<>]*?\bonClick=/g)].map((m) => m[1]);
-  const notButtons = clickables.filter((t) => t !== "DepthButton" && t !== "button");
-  assert.deepEqual(notButtons, ["div", "div"], "only the scrim (Escape also closes it) and the dialog's stopPropagation");
-  assert.match(PAGE, /if \(e\.key === "Escape"\) onCancel\(\);/);
+  const notButtons = (src) => [...stripComments(src).matchAll(/<(\w+)[^<>]*?\bonClick=/g)].map((m) => m[1])
+    .filter((t) => t !== "DepthButton" && t !== "button");
+  assert.deepEqual(notButtons(PAGE), [], "the page itself has no clickable div");
+  // D83 map (39d): the dialog moved to the shared admin kit with the page's other parts.
+  const KIT = fs.readFileSync("client/src/panels/adminKit.jsx", "utf8");
+  assert.deepEqual(notButtons(KIT), ["div", "div"], "only the scrim (Escape also closes it) and the dialog's stopPropagation");
+  assert.match(KIT, /if \(e\.key === "Escape"\) onCancel\(\);/);
 });
 
 // ── 1c · pieces checked in the browser ──────────────────────────────────────────────────────────
