@@ -53,6 +53,17 @@ No new collection: the Copy sheet adds no permission, host, storage key or store
 | Logs | ✅ `mcp_audit` holds tool, outcome and refusal CODES — never résumé text; Settings and Admin read only that | `routes/byom.js` |
 | ⏸ Notice to users | Is this a material change that needs notice before the operator's switch goes on? The owner's call (WORKLOG O87), as O85 was for automatic capture | — |
 
+## ⭐ D88 · SUPPORT REQUESTS AND ACCOUNT ADMINISTRATION (10-09, 39d; the web app, not the extension)
+
+| What | Where in code | Kept | Policy |
+|---|---|---|---|
+| A support request: category, subject, the messages; the page and the app version | `services/tickets.js` `openTicket` (the context is three named fields — `test/d88Tickets.test.js`) | deleted with the account (ON DELETE CASCADE, migration 156) or 24 months after solved (`purgeSolvedTickets`) | Data Storage and Security, "If you contact support…" |
+| An admin's internal note on a request | `ticket_messages.internal = 1` — never in the user's reads | as the request | — (not about the user's data beyond the request) |
+| An admin's change to an account, with its reason | `admin_audit_log.reason` (migration 155), `services/userAdmin.js` `writeAudit` | the audit log (never edited) | "we keep a record of the change and why" |
+| Per-user overrides and admin notes | `user_entitlement_overrides`, `user_notes` | deleted with the account (`deleteAccount`) | as above |
+
+Not collected: no form answer, eligibility answer or résumé is attached to a request; no attachments in v1.
+
 ## Permissions
 
 | Manifest permission | Code that requires it | Policy paragraph | Dashboard justification |

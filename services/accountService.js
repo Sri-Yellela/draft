@@ -222,6 +222,9 @@ export function deleteAccount(db, userId) {
   const sids = db.prepare("SELECT sid FROM user_sessions WHERE user_id = ?").all(userId).map(r => r.sid);
   db.transaction(() => {
     try { db.prepare("DELETE FROM usage_tracking_failures WHERE user_id = ?").run(userId); } catch {}
+    // D88 (39d): migration 155's tables carry no foreign key — cleared here; tickets cascade (156).
+    try { db.prepare("DELETE FROM user_entitlement_overrides WHERE user_id = ?").run(userId); } catch {}
+    try { db.prepare("DELETE FROM user_notes WHERE user_id = ?").run(userId); } catch {}
     db.prepare("DELETE FROM users WHERE id = ?").run(userId);
   })();
   return { files, sids };
@@ -250,6 +253,8 @@ export const MERGE_PLAN = Object.freeze({
   mcp_audit: "move", oauth_connections: "drop", byom_briefs: "drop",
   // D88 (39d): an admin's notes are about the person and move; the merged-away account's overrides are ITS grants and go.
   user_notes: "move", user_entitlement_overrides: "drop",
+  // D88 P3: a person's support requests are their history and move with them.
+  tickets: "move",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

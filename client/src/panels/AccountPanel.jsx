@@ -179,6 +179,9 @@ export function AccountPanel({ onSignedOut }) {
           <GeneratedResumes busy={busy} run={run} />
         </SettingsSection>
 
+        {/* ⭐ D88 P3: contact support, and your requests with their replies. */}
+        <HelpSection say={say} />
+
         <DeleteSection account={account} busy={busy} run={run} post={post} onSignedOut={onSignedOut} />
       </div>
     </div>
@@ -499,6 +502,96 @@ function DeleteSection({ account, busy, run, post, onSignedOut }) {
             <button style={btnDanger} disabled={!!busy || typed !== account.username || !account.recentAuth}>Delete forever</button>
             <button type="button" style={btnQuiet} onClick={() => { setOpen(false); setTyped(""); }}>Cancel</button>
           </form>}
+    </SettingsSection>
+  );
+}
+
+
+/**
+ * ⭐ D88 P3 · Settings → Help — contact support, and your requests with their replies. The app attaches the page
+ * you were on and its version; nothing from your profile or your forms. No attachments (they carry personal data).
+ * A reply from us also arrives by email from support@; replying to that email reaches the same inbox.
+ */
+const HELP_STATUS = { open: "Open — we'll reply", waiting_on_user: "Waiting on you", solved: "Solved" };
+function HelpSection({ say }) {
+  const [d, setD] = useState(null);
+  const [form, setForm] = useState(null);           // { category, subject, message } while writing
+  const [openId, setOpenId] = useState(null);
+  const [thread, setThread] = useState(null);
+  const [reply, setReply] = useState("");
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(() => api("/api/support/tickets").then(setD).catch(() => {}), []);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (window.location.hash === "#help") document.getElementById("help")?.scrollIntoView({ block: "start" }); }, [d]);
+  const openThread = async (id) => {
+    setOpenId(id); setThread(null);
+    try { setThread(await api(`/api/support/tickets/${id}`)); } catch (e) { say("error", e.message); }
+  };
+  const send = async () => {
+    setBusy(true);
+    try {
+      await api("/api/support/tickets", { method: "POST", body: JSON.stringify({ ...form,
+        context: { page: window.location.pathname, appVersion: "web" } }) });
+      setForm(null); say("ok", "Sent. We reply here and by email — usually within two days."); load();
+    } catch (e) { say("error", e.message); }
+    setBusy(false);
+  };
+  const sendReply = async () => {
+    setBusy(true);
+    try { await api(`/api/support/tickets/${openId}/messages`, { method: "POST", body: JSON.stringify({ body: reply }) }); setReply(""); await openThread(openId); load(); }
+    catch (e) { say("error", e.message); }
+    setBusy(false);
+  };
+  const cats = d?.categories || {};
+  const ready = form && cats[form.category] && form.subject.trim().length >= 3 && form.message.trim().length >= 10;
+  return (
+    <SettingsSection title="Help" subtitle="Ask us anything about your account, résumés, drafts or applications. We reply here and by email.">
+      <div id="help" data-help-section="" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {!form && <div style={row}><button style={btn} onClick={() => setForm({ category: "", subject: "", message: "" })}>Contact support</button></div>}
+        {form && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }} data-help-form="">
+            <label style={muted}>What is it about?
+              <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} style={{ ...input, display: "block", marginTop: 4 }}>
+                <option value="">Choose one…</option>{Object.entries(cats).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+            <label style={muted}>Subject
+              <input value={form.subject} maxLength={140} onChange={e => setForm({ ...form, subject: e.target.value })} style={{ ...input, display: "block", width: "100%", marginTop: 4, boxSizing: "border-box" }}/></label>
+            <label style={muted}>Message
+              <textarea rows={5} value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} style={{ ...input, display: "block", width: "100%", marginTop: 4, boxSizing: "border-box" }}/></label>
+            <div style={muted}>We attach your account and the page you're on, nothing else. Please don't include passwords. No attachments.</div>
+            {form.category === "privacy_request" && <div style={muted}>You can also download your data or delete your account yourself, right now, further down this page.</div>}
+            <div style={row}>
+              <button style={btn} disabled={!ready || busy} onClick={send}>{busy ? "Sending…" : "Send"}</button>
+              <button style={btnQuiet} disabled={busy} onClick={() => setForm(null)}>Cancel</button>
+            </div>
+          </div>
+        )}
+        {d?.tickets?.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--color-text)" }}>Your requests</div>
+            {d.tickets.map(t => (
+              <div key={t.id} style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 8 }}>
+                <div style={{ ...row, justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 13, color: "var(--color-text)" }}><b>{t.subject}</b>
+                    <span style={{ ...muted, marginLeft: 8 }}>{HELP_STATUS[t.status] || t.status} · {ago(t.updated_at)}</span></span>
+                  <button style={btnQuiet} onClick={() => (openId === t.id ? setOpenId(null) : openThread(t.id))}>{openId === t.id ? "Close" : "Open"}</button>
+                </div>
+                {openId === t.id && thread && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }} data-help-thread={t.id}>
+                    {thread.messages.map(m => (
+                      <div key={m.id} style={{ border: `1px solid ${C.BORDER}`, borderRadius: 10, padding: "8px 11px", marginLeft: m.author_type === "user" ? 32 : 0 }}>
+                        <div style={muted}>{m.author_type === "user" ? "You" : "draft support"} · {ago(m.created_at)}</div>
+                        <div style={{ whiteSpace: "pre-wrap", fontSize: 13, color: "var(--color-text)" }}>{m.body}</div>
+                      </div>
+                    ))}
+                    <textarea rows={3} aria-label="Your reply" value={reply} onChange={e => setReply(e.target.value)} placeholder="Reply…" style={{ ...input, width: "100%", boxSizing: "border-box" }}/>
+                    <div style={row}><button style={btn} disabled={busy || reply.trim().length < 2} onClick={sendReply}>Reply</button></div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </SettingsSection>
   );
 }

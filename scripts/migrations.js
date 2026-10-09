@@ -4322,4 +4322,38 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_user_notes_user ON user_notes(user_id, created_at);
       `,
     },
+    {
+      // ⭐ D88 P3 · support tickets: a user's request and its thread. Deleted with the account (cascade) and 24
+      // months after it is solved (services/tickets.js). An internal note is a message with internal = 1.
+      id: "156_support_tickets",
+      sql: `
+        CREATE TABLE IF NOT EXISTS tickets (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          category TEXT NOT NULL,
+          subject TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'open',
+          priority TEXT NOT NULL DEFAULT 'normal',
+          assignee INTEGER,
+          source TEXT NOT NULL DEFAULT 'app',
+          context_json TEXT,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          due_at INTEGER,
+          solved_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_tickets_queue ON tickets(status, due_at);
+        CREATE INDEX IF NOT EXISTS idx_tickets_user ON tickets(user_id, updated_at);
+        CREATE TABLE IF NOT EXISTS ticket_messages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          ticket_id INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+          author_type TEXT NOT NULL,
+          author_id INTEGER,
+          body TEXT NOT NULL,
+          internal INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket ON ticket_messages(ticket_id, id);
+      `,
+    },
   ];

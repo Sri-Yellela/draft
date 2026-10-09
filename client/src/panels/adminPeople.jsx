@@ -11,7 +11,7 @@ import { useState, useEffect, useCallback } from "react";
 import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
-import { Panel, Help, Dialog, h2, row, quiet, field, callout } from "./adminKit.jsx";
+import { Panel, Help, Dialog, useConfirm, h2, row, quiet, field, callout } from "./adminKit.jsx";
 import { Btn, Table, Err, KV, ago, stamp, usd, num, UserApplications } from "./adminOps.jsx";
 
 const STATUS_TONE = { active: C.SUCCESS, suspended: C.DANGER };
@@ -117,6 +117,7 @@ const ACTION_WORDS = {
   "user.override.set": "set an override", "user.override.clear": "cleared an override", "user.suspend": "suspended the account",
   "user.unsuspend": "restored the account", "user.plan": "changed the plan", "user.note": "added a note",
   "user.sign_out_everywhere": "signed the account out everywhere", "user.reset_link": "sent a password-reset link",
+  "ticket.reply": "replied to a support request", "ticket.note": "added an internal note to a request", "ticket.update": "updated a support request",
 };
 const changeLine = (a) => {
   const b = a.before, t = a.after;
@@ -275,6 +276,149 @@ export function PeopleUsers({ theme, onDelete, reloadKey = 0 }) {
   };
   return openId ? <PersonPage key={`${openId}:${reloadKey}`} theme={theme} id={openId} onBack={() => open(null)} onDelete={onDelete}/>
                 : <PeopleList key={reloadKey} theme={theme} onOpen={open}/>;
+}
+
+
+// ── ⭐ D88 P3 · Admin → People → Support: the queue and one ticket ───────────────────────────────────────────────
+const TICKET_TONE = { open: C.WARNING, waiting_on_user: C.INFO, solved: C.SUCCESS };
+const dueWords = (t) => {
+  if (t.status === "solved") return t.solved_at ? `solved ${ago(t.solved_at)}` : "solved";
+  if (!t.due_at) return "—";
+  const s = t.due_at - Math.floor(Date.now() / 1000);
+  if (s < 0) return `overdue ${ago(t.due_at).replace(" ago", "")}`;
+  return s < 86400 ? `due in ${Math.max(1, Math.round(s / 3600))}h` : `due in ${Math.round(s / 86400)} days`;
+};
+export function SupportQueue({ theme, onOpenPerson }) {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState(null);
+  const [status, setStatus] = useState("unsolved");
+  const [category, setCategory] = useState("");
+  const [openId, setOpenId] = useState(() => { try { return Number(new URLSearchParams(window.location.search).get("t")) || null; } catch { return null; } });
+  const load = useCallback(() => {
+    setErr(null);
+    api(`/api/admin/tickets?${new URLSearchParams({ status, category })}`).then(setD).catch(e => setErr(e.message));
+  }, [status, category]);
+  useEffect(() => { load(); }, [load]);
+  const open = (id) => {
+    setOpenId(id);
+    try { const qs = new URLSearchParams(window.location.search); if (id) qs.set("t", String(id)); else qs.delete("t"); window.history.replaceState(null, "", `${window.location.pathname}?${qs}`); } catch { /* no history */ }
+    if (!id) load();
+  };
+  if (openId) return <TicketView theme={theme} id={openId} meta={d} onBack={() => open(null)} onOpenPerson={onOpenPerson}/>;
+  const c = d?.counts;
+  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "6px 9px", fontSize: 12 };
+  return (
+    <Panel title="Support" data-support-queue=""
+      code="D88 P3: tickets opened from Settings → Help. A reply is emailed from support@ with Reply-To support@; an internal note never reaches the user. Due: 2 days from the user's last message; a privacy request 30 days from opening (GDPR's month). Solved tickets are deleted after 24 months."
+      purpose="People's requests for help, oldest due first. Reply in the thread — the person gets it by email and in their Settings — or leave an internal note only admins see."
+      numbers={c ? [[num(c.open), "open — your turn"], [num(c.waiting), "waiting on the user"], [num(c.overdue), "overdue", c.overdue === 0], [num(c.privacy), "privacy requests open", c.privacy === 0]] : []}>
+      <Err msg={err}/>
+      <div style={{ ...row, marginBottom: 10 }}>
+        <select aria-label="Status" value={status} onChange={e => setStatus(e.target.value)} style={input}>
+          <option value="unsolved">Not solved</option><option value="open">Open</option><option value="waiting_on_user">Waiting on the user</option>
+          <option value="solved">Solved</option><option value="all">All</option>
+        </select>
+        <select aria-label="Category" value={category} onChange={e => setCategory(e.target.value)} style={input}>
+          <option value="">Every category</option>{Object.entries(d?.categories || {}).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+      </div>
+      <Table theme={theme} rows={d?.rows || []} empty={d ? "Nothing here." : "Loading…"} cols={[
+        { key: "id", label: "#" },
+        { key: "subject", label: "subject", render: t => <b>{t.subject}</b> },
+        { key: "username", label: "from" },
+        { key: "category", label: "about", render: t => d?.categories?.[t.category] || t.category },
+        { key: "status", label: "status", render: t => <span style={markStyle(TICKET_TONE[t.status] || C.INK_FAINT)}>{d?.statuses?.[t.status] || t.status}</span> },
+        { key: "priority", label: "priority", render: t => (t.priority === "high" ? <span style={markStyle(C.DANGER)}>high</span> : t.priority) },
+        { key: "due", label: "due", render: t => <span style={{ color: t.status !== "solved" && t.due_at < Date.now() / 1000 ? C.DANGER : theme.text }}>{dueWords(t)}</span> },
+        { key: "last_from", label: "last word", render: t => (t.last_from === "user" ? "theirs" : "ours") },
+        { key: "open", label: "", render: t => <Btn theme={theme} onClick={() => open(t.id)}>Open</Btn> },
+      ]}/>
+    </Panel>
+  );
+}
+
+function TicketView({ theme, id, meta, onBack, onOpenPerson }) {
+  const [t, setT] = useState(null);
+  const [err, setErr] = useState(null);
+  const [body, setBody] = useState("");
+  const [internal, setInternal] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const { ask, dialog } = useConfirm();
+  const load = useCallback(() => { setErr(null); api(`/api/admin/tickets/${id}`).then(setT).catch(e => setErr(e.message)); }, [id]);
+  useEffect(() => { load(); }, [load]);
+  const send = async (solve) => {
+    if (!body.trim()) return;
+    if (!internal && !await ask({ title: solve ? "Send and mark it solved?" : "Send this reply?", label: solve ? "Send and solve" : "Send",
+      body: <>{t.username} gets it {t.email ? <>by email at <b>{t.email}</b> and</> : null} in their Settings → Help. {solve ? "The ticket is marked solved; their next reply opens it again." : "The ticket then waits on them."}</> })) return;
+    setBusy(true); setErr(null);
+    try {
+      const r = await api(`/api/admin/tickets/${id}/messages`, { method: "POST", body: JSON.stringify({ body, internal, solve: !!solve }) });
+      setBody(""); setInternal(false); setMsg(r.internal ? "Internal note added." : r.mailed ? "Sent — and emailed." : "Sent — shown in their Settings (email not sent).");
+      load();
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+  const setField = async (patch) => {
+    try { await api(`/api/admin/tickets/${id}`, { method: "POST", body: JSON.stringify(patch) }); load(); } catch (e) { setErr(e.message); }
+  };
+  if (!t) return <div><Btn theme={theme} onClick={onBack}>← The queue</Btn><Err msg={err}/></div>;
+  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "6px 9px", fontSize: 12 };
+  return (
+    <div data-ticket-view={id}>
+      {dialog}
+      <div style={{ ...row, marginBottom: 12 }}>
+        <Btn theme={theme} onClick={onBack}>← The queue</Btn>
+        <h2 style={{ ...h2, fontSize: 22 }}>#{t.id} · {t.subject}</h2>
+        <span style={markStyle(TICKET_TONE[t.status] || C.INK_FAINT)}>{meta?.statuses?.[t.status] || t.status}</span>
+      </div>
+      <Panel title="The request" data-module="ticket"
+        code="The context is what the app attached when the request was opened: the account id, the app version and the page. No form answer is ever attached."
+        purpose={`${t.username} asked about ${meta?.categories?.[t.category]?.toLowerCase() || t.category}. Reply below; an internal note stays among admins.`}
+        numbers={[[dueWords({ ...t, due_at: t.dueAt, solved_at: t.solvedAt }), "the response target"], [num(t.messages.filter(m => !m.internal).length), "messages in the thread"],
+          [num(t.messages.filter(m => m.internal).length), "internal notes"]]}>
+        {t.category === "privacy_request" && <div style={{ ...callout(C.WARNING), marginBottom: 10 }}>A privacy request: answer within 30 days of {stamp(t.createdAt).slice(0, 10)}.
+          Their export and delete are in Settings for them; on their page here you can delete the account for them.</div>}
+        <div style={{ ...row, marginBottom: 10 }}>
+          <Btn theme={theme} onClick={() => onOpenPerson(t.userId)}>Open {t.username}'s page</Btn>
+          <label style={{ fontSize: 12 }}>Status{" "}
+            <select aria-label="Status" value={t.status} onChange={e => setField({ status: e.target.value })} style={input}>
+              {Object.entries(meta?.statuses || {}).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+          <label style={{ fontSize: 12 }}>Priority{" "}
+            <select aria-label="Priority" value={t.priority} onChange={e => setField({ priority: e.target.value })} style={input}>
+              {(meta?.priorities || ["low", "normal", "high"]).map(p => <option key={p} value={p}>{p}</option>)}</select></label>
+          <span style={quiet}>{t.context?.page ? `opened from ${t.context.page}` : ""}{t.context?.appVersion ? ` · app ${t.context.appVersion}` : ""}</span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {t.messages.map(m => (
+            <div key={m.id} data-internal={m.internal ? "true" : "false"}
+              style={{ ...(m.internal ? callout(C.WARNING) : { border: `1px solid ${theme.border}`, borderRadius: 10, padding: "8px 11px" }),
+                       marginLeft: m.author_type === "admin" ? 40 : 0, marginRight: m.author_type === "admin" ? 0 : 40 }}>
+              <div style={quiet}>{m.author_type === "admin" ? (m.author || "admin") : t.username} · {stamp(m.created_at)}{m.internal ? " · internal note — not sent" : ""}</div>
+              <div style={{ whiteSpace: "pre-wrap", fontSize: 13 }}>{m.body}</div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+      <Panel title={internal ? "Add an internal note" : "Reply"} data-module="reply"
+        code="Canned replies are a start, never sent as they are — edit them first."
+        purpose={internal ? "Only admins see this. Nothing is sent." : `${t.username} gets this by email and in their Settings → Help.`}>
+        <Err msg={err}/>
+        {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 8 }} role="status">{msg}</div>}
+        <div style={{ ...row, marginBottom: 6 }}>
+          <select aria-label="Start from a canned reply" value="" onChange={e => { const c = (meta?.canned || [])[Number(e.target.value)]; if (c) setBody(c[1]); }} style={input}>
+            <option value="">Start from a canned reply…</option>{(meta?.canned || []).map(([l], i) => <option key={l} value={i}>{l}</option>)}</select>
+          <label style={{ fontSize: 12, display: "flex", gap: 6, alignItems: "center", color: internal ? C.WARNING : theme.text }}>
+            <input type="checkbox" checked={internal} onChange={e => setInternal(e.target.checked)}/> internal note (the user never sees it)</label>
+        </div>
+        <textarea aria-label="Message" rows={5} value={body} onChange={e => setBody(e.target.value)} style={{ ...field, width: "100%", boxSizing: "border-box" }}/>
+        <div style={{ ...row, marginTop: 8 }}>
+          <Btn theme={theme} primary disabled={busy || !body.trim()} onClick={() => send(false)}>{internal ? "Add the note" : "Send…"}</Btn>
+          {!internal && <Btn theme={theme} disabled={busy || !body.trim()} onClick={() => send(true)}>Send and mark solved…</Btn>}
+        </div>
+      </Panel>
+    </div>
+  );
 }
 
 // ── the legacy usage limits (user_limits) — moved from AdminPanel.jsx with the per-user table (D88) ──
