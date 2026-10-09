@@ -1,7 +1,7 @@
 // client/src/pages/marketing/TermsPage.jsx
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { Footer } from "../../components/Footer.jsx";
-import { BRAND } from "../../../../shared/brand.js";
+import { BRAND, SUPPORT_EMAIL } from "../../../../shared/brand.js";
 
 const SECTIONS = [
   {
@@ -30,7 +30,7 @@ const SECTIONS = [
   },
   {
     title: "Contact",
-    body: `Questions about these terms? Use the contact form at /contact.`,
+    body: `Questions about these terms? Email ${SUPPORT_EMAIL}, or use the contact form at /contact.`,
   },
 ];
 

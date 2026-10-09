@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { Footer } from "../../components/Footer.jsx";
-import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL } from "../../../../shared/brand.js";
+import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL, SUPPORT_EMAIL } from "../../../../shared/brand.js";
 
 // Effective date, not just "last touched". The Chrome Web Store rules that took effect on
 // 2026-08-01 require a policy to state when it takes effect and to commit to telling users about
@@ -62,7 +62,12 @@ import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL } from "../..
 // résumé (no contact details), claims and the job's details under the user's own account. Off unless the
 // user turns it on, and off for everyone until the operator's switch is on. Whether registered users are
 // emailed before it is switched on is the OWNER's call (WORKLOG O87), as O85 was for automatic capture.
-const EFFECTIVE_DATE = 'October 8, 2026';
+// 2026-10-09: bumped at the extension release check (Task A2). Corrections, nothing new collected: the
+// email line said "account confirmation" (there is none — the two emails are the reset link and the
+// new-address code) and "no marketing emails without explicit opt-in" (there is no marketing email at
+// all); Resend (outbound) and Cloudflare Email Routing (inbound contact mail) were recipients the policy
+// never named; support@ is published beside privacy@.
+const EFFECTIVE_DATE = 'October 9, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 // A93: a POLICY section heading — the document's own, not the settings card (SettingsSection).
@@ -506,8 +511,9 @@ export function PrivacyPage() {
             <LI>To save your work and sync it across devices.</LI>
             <LI>To authenticate you securely.</LI>
             <LI>
-              To send transactional emails (password reset, account confirmation) —
-              no marketing emails without explicit opt-in.
+              To send account emails — and only two kinds: a password-reset link when you ask for one,
+              and a one-time code that confirms a new email address when you change yours. We send{" "}
+              <Strong>no marketing email</Strong>: there is no mailing list and no marketing sign-up.
             </LI>
             <LI>
               To improve the service using aggregate, anonymized usage patterns only.
@@ -608,6 +614,15 @@ export function PrivacyPage() {
             <LI>
               <Strong>Adzuna</Strong> — job listings via their official publisher API. Your search
               terms and filters are sent to Adzuna when you search; no personal data is included.
+            </LI>
+            <LI>
+              <Strong>Resend</Strong> — sends our account emails (the password-reset link and the
+              new-address code above). It receives your email address and that message, and nothing else.
+            </LI>
+            <LI>
+              <Strong>Cloudflare Email Routing</Strong> — receives mail you send to {CONTACT_EMAIL} or{" "}
+              {SUPPORT_EMAIL} and forwards it to the inbox we read. It handles the message as you wrote it,
+              including your address; we send nothing to it ourselves.
             </LI>
             <LI>
               <Strong>Job boards we search directly</Strong> — Greenhouse, Lever, Ashby, Workday,
@@ -730,6 +745,8 @@ export function PrivacyPage() {
           onMouseLeave={e => e.currentTarget.style.borderBottomColor = "transparent"}>
             {CONTACT_EMAIL}
           </a>
+          <P>For help with the app or the extension: <a href={`mailto:${SUPPORT_EMAIL}`}
+            style={{ color: "var(--color-primary-text)", fontWeight: 600, textDecoration: "none" }}>{SUPPORT_EMAIL}</a>.</P>
         </section>
 
         {/* Footer nav */}
