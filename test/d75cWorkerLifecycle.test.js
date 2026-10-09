@@ -90,5 +90,7 @@ test("⛔ D75 1c: the worker handles SIGTERM — stops taking tasks, stops the c
 
 test("D75 1c: Admin → Crawler shows 'worker last seen'", () => {
   const ops = fs.readFileSync("client/src/panels/adminOps.jsx", "utf8");
-  assert.match(ops, /\["worker last seen", d\.worker\?\.lastSeen/);
+  // D83 rebuild #2 (39d): a sentence, not a key-value row — it still says when the worker last called, and flags silence.
+  assert.match(ops, /d\.worker\?\.lastSeen \? `The worker last called \$\{ago\(d\.worker\.lastSeen\)\}/);
+  assert.match(ops, /silent since: is it running\?/);
 });

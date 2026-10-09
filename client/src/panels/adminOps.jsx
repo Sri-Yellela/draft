@@ -10,7 +10,7 @@ import { useState, useEffect, useCallback } from "react";
 import { api, authContextQuery } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
-import { Panel, Step, Help, useConfirm, h2, what, row, quiet } from "./adminKit.jsx";
+import { Panel, Step, Help, Dialog, useConfirm, h2, what, row, quiet, field } from "./adminKit.jsx";
 // The second product is named by the one constant that holds its name (shared/brand.js).
 import { LEGACY_BRAND } from "../../../shared/brand.js";
 import { isAlarm } from "../../../shared/deployEvents.js";
@@ -279,12 +279,20 @@ export function DiskBanner() {
 // Pause / Resume, Dry-run / Live, the schedule and the per-run cap live in DRAFT's database — a press here
 // changes them with no redeploy. CRAWLER_PAUSED (the env) is a second, independent kill switch, shown when on.
 const CRAWL_TONE = { found: C.SUCCESS, none: C.INK_FAINT, blocked: C.WARNING, error: C.DANGER, dry_run: C.INK_FAINT };
+// ⭐ D83 rebuild #2 (39d) · THE BOARD → CRAWLER, to the six rules: the state as numbers on open; ONE accent — Resume,
+// and only while paused (Pause and Live are ordinary buttons; Live confirms in the page); the cap, the time and the
+// count are real fields with one Save (they were browser prompts); the deny-list's Remove picks from the list itself;
+// Flag wrong asks for its note in a dialog.
 export function CrawlerTab({ theme }) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
   const [paste, setPaste] = useState("");
   const [note, setNote] = useState(null);
-  const load = useCallback(() => { setErr(null); api("/api/admin/crawler").then(setD).catch(e => setErr(e.message)); }, []);
+  const [settings, setSettings] = useState(null);       // the editable copy of cap / time / count
+  const [deny, setDeny] = useState({ add: "", remove: "" });
+  const [flagging, setFlagging] = useState(null);       // { task, note }
+  const { ask, dialog } = useConfirm();
+  const load = useCallback(() => { setErr(null); api("/api/admin/crawler").then(r => { setD(r); setSettings(null); }).catch(e => setErr(e.message)); }, []);
   useEffect(() => { load(); }, [load]);
   const put = async (patch) => {
     try { await api("/api/admin/crawler/state", { method: "PUT", body: JSON.stringify(patch) }); load(); } catch (e) { setErr(e.message); }
@@ -297,82 +305,112 @@ export function CrawlerTab({ theme }) {
       load();
     } catch (e) { setErr(e.message); }
   };
-  const flag = async (t) => {
-    const n = window.prompt(t.flagged_wrong ? "Clear the wrong-answer flag? (OK to clear)" : "What is wrong with this answer?", "");
-    if (n === null) return;
-    try { await api(`/api/admin/crawler/tasks/${t.id}/flag`, { method: "POST", body: JSON.stringify({ wrong: !t.flagged_wrong, note: n }) }); load(); } catch (e) { setErr(e.message); }
+  const sendFlag = async () => {
+    const { task: t, note: n } = flagging;
+    try { await api(`/api/admin/crawler/tasks/${t.id}/flag`, { method: "POST", body: JSON.stringify({ wrong: !t.flagged_wrong, note: n }) }); setFlagging(null); load(); }
+    catch (e) { setErr(e.message); }
+  };
+  const goLive = async () => {
+    if (await ask({ title: "Switch the crawler to Live?", label: "Go live",
+      body: "The worker will request real public pages — robots.txt is honoured and the deny-list wins over every task. Dry-run switches it back." })) put({ mode: "live" });
+  };
+  const addDeny = async () => {
+    const v = deny.add.trim(); if (!v) return;
+    if (!await ask({ title: `Deny ${v}?`, label: "Deny it", body: `No task may request ${v}; anything already queued for it is refused. Remove undoes it.` })) return;
+    try { await api("/api/admin/crawler/deny", { method: "POST", body: JSON.stringify({ domain: v, reason: "owner" }) }); setDeny({ ...deny, add: "" }); load(); } catch (e) { setErr(e.message); }
+  };
+  const removeDeny = async () => {
+    const v = deny.remove; if (!v) return;
+    if (!await ask({ title: `Allow ${v} again?`, label: "Remove from the deny-list", body: `Tasks may request ${v} again. Deny undoes it.` })) return;
+    try { await api(`/api/admin/crawler/deny/${encodeURIComponent(v)}`, { method: "DELETE" }); setDeny({ ...deny, remove: "" }); load(); } catch (e) { setErr(e.message); }
   };
   const st = d?.state, b = d?.budget, paused = d?.pause?.paused;
+  const s = settings || (st ? { per_run_cap: st.per_run_cap, schedule_hhmm: st.schedule_hhmm, schedule_tasks: st.schedule_tasks } : null);
+  const dirty = !!(settings && st && (Number(settings.per_run_cap) !== st.per_run_cap || settings.schedule_hhmm !== st.schedule_hhmm || Number(settings.schedule_tasks) !== st.schedule_tasks));
+  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "5px 8px", fontSize: 12 };
+  const lbl = { fontSize: 12, color: theme.textMuted, display: "flex", flexDirection: "column", gap: 4 };
   return (
-    <div>
+    <Panel title="Crawler" data-admin-crawler=""
+      code="D75: the crawler worker. J1 finds a company's job board from its home page; J2 learns where Apply lands. The switches live in draft's database (STEP 0b), so no redeploy; CRAWLER_PAUSED on the server is a second, harder switch."
+      purpose="A separate worker that visits public pages to find a company's job board. It works only while running, sends nothing in Dry-run, and every task it ran waits here with what it found."
+      numbers={d ? [[paused ? "Paused" : "Running", paused ? "the worker leases nothing" : "the worker may lease tasks", !paused],
+        [st.mode === "live" ? "Live" : "Dry-run", st.mode === "live" ? "requests real public pages" : "no request leaves"],
+        [`${num(b.tasksToday)} / ${num(b.dailyCap)}`, `tasks today · ${num(b.pagesToday)} pages · ${num(b.minutesToday)} min`],
+        [num(d.candidates.length), "captured companies we cannot crawl"],
+        [num(d.wrongAnswers), "answers flagged wrong"]] : []}>
+      {dialog}
+      {flagging && (
+        <Dialog title={flagging.task.flagged_wrong ? `Clear the flag on task ${flagging.task.id}?` : `What is wrong with task ${flagging.task.id}?`}
+          confirmLabel={flagging.task.flagged_wrong ? "Clear the flag" : "Flag it wrong"} onCancel={() => setFlagging(null)} onConfirm={sendFlag}>
+          <div style={{ marginBottom: 8 }}>{flagging.task.target_host}</div>
+          {!flagging.task.flagged_wrong && <textarea aria-label="What is wrong" rows={3} value={flagging.note} autoFocus
+            onChange={e => setFlagging({ ...flagging, note: e.target.value })} style={{ ...field, width: "100%", boxSizing: "border-box" }}/>}
+        </Dialog>
+      )}
       <Err msg={err}/>
-      {d && (
-        <Card theme={theme} title="Crawler — the switches (D75)" measured={st?.updated_at ? `last changed ${ago(st.updated_at)}` : "never changed"}>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
-            <Btn theme={theme} primary={paused} danger={!paused} onClick={() => put({ paused: !st.paused })}>
-              {st.paused ? "▶ Resume" : "❚❚ Pause"}
-            </Btn>
-            <span style={{ fontWeight: 700, color: paused ? C.WARNING : C.SUCCESS }}>
-              {paused ? `PAUSED${d.pause.by === "env" ? " — by CRAWLER_PAUSED on the server (the second switch)" : ""}` : "RUNNING — the worker may lease tasks"}
-            </span>
-          </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
-            <span style={{ fontSize: 12, color: theme.textMuted, width: 90 }}>Mode</span>
-            <Btn theme={theme} primary={st.mode === "dry"} onClick={() => put({ mode: "dry" })}>Dry-run — no request leaves</Btn>
-            <Btn theme={theme} primary={st.mode === "live"} danger={st.mode !== "live"} onClick={() => { if (window.confirm("Live: the worker will request real public pages (robots.txt honoured, deny-list enforced). Continue?")) put({ mode: "live" }); }}>Live</Btn>
-          </div>
-          <KV theme={theme} rows={[
-            // STEP 1c: the worker has no domain and no healthcheck — draft records every call it makes.
-            ["worker last seen", d.worker?.lastSeen ? `${ago(d.worker.lastSeen)} — ${d.worker.lastCall}${d.worker.silent ? " · SILENT: is it running?" : ""}` : "never — the worker has not called draft",
-              d.worker?.silent ? C.WARNING : C.SUCCESS],
-            ["per-run cap", `${st.per_run_cap} tasks per enqueue`],
-            ["schedule", st.schedule_enabled ? `daily at ${st.schedule_hhmm} UTC · ${st.schedule_tasks} tasks from the captured companies${st.schedule_last_date ? ` · last ${st.schedule_last_date}` : ""}` : "off"],
-            ["today", `${b.tasksToday} of ${b.dailyCap} tasks · ${b.pagesToday} pages · ${b.minutesToday} min`, b.tasksToday >= b.dailyCap ? C.WARNING : null],
-            ["wrong answers flagged", String(d.wrongAnswers), d.wrongAnswers ? C.DANGER : null],
-          ]}/>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
-            <Btn theme={theme} onClick={() => { const v = window.prompt("Per-run cap (1–100)", String(st.per_run_cap)); if (v) put({ per_run_cap: Number(v) }); }}>Set cap</Btn>
-            <Btn theme={theme} onClick={() => put({ schedule_enabled: !st.schedule_enabled })}>{st.schedule_enabled ? "Schedule off" : "Schedule on"}</Btn>
-            <Btn theme={theme} onClick={() => { const v = window.prompt("Daily at (HH:MM, UTC)", st.schedule_hhmm); if (v) put({ schedule_hhmm: v }); }}>Set time</Btn>
-            <Btn theme={theme} onClick={() => { const v = window.prompt("Tasks per scheduled run (1–100)", String(st.schedule_tasks)); if (v) put({ schedule_tasks: Number(v) }); }}>Set count</Btn>
-            <Btn theme={theme} onClick={load}>Re-read</Btn>
-          </div>
-        </Card>
-      )}
-      {d && (
-        <Card theme={theme} title="Enqueue — J1, find a company's board" measured={`${d.candidates.length} captured compan${d.candidates.length === 1 ? "y" : "ies"} we cannot crawl`}>
-          <textarea value={paste} onChange={e => setPaste(e.target.value)} rows={4} placeholder="https://company.com — one per line"
-            style={{ width: "100%", boxSizing: "border-box", fontFamily: "inherit", fontSize: 12, padding: 8, background: theme.bg, color: theme.text, border: `1px solid ${theme.border || C.INK_FAINT}`, borderRadius: 6 }}/>
-          <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-            <Btn theme={theme} disabled={!paste.trim()} onClick={() => enqueue("/api/admin/crawler/tasks", { type: "j1_find_board", urls: paste.split(/\s+/).filter(Boolean) })}>Queue pasted domains</Btn>
-            <Btn theme={theme} disabled={!d.candidates.length} onClick={() => enqueue("/api/admin/crawler/tasks/captures")}>Queue captured companies ({d.candidates.length})</Btn>
-          </div>
-          {note && <div style={{ fontSize: 12, marginTop: 6, color: theme.textMuted }}>{note}</div>}
-        </Card>
-      )}
-      {d && (
-        <Card theme={theme} title="Queue and results" measured={d.tally.map(t => `${t.type === "j1_find_board" ? "J1" : "J2"} ${t.outcome} ${t.n}`).join(" · ") || "empty"}>
-          <Table theme={theme} cols={["#", "target", "mode", "status", "evidence / landing", ""]}
-            rows={d.tasks.map(t => [
-              t.id, t.target_host, t.mode || "—",
-              <span key="s" style={{ color: CRAWL_TONE[t.result_status] || theme.text, fontWeight: 700 }}>{t.result_status || t.status}{t.refused_reason ? ` — ${t.refused_reason}` : ""}{t.error ? ` — ${t.error}` : ""}</span>,
-              (t.evidence || []).map(e => `${e.url} (${e.how})`).join(" · ") || (t.formOrigin ? `${t.formOrigin} · ${t.stoppedAt}` : "—"),
-              <Btn key="f" theme={theme} danger={!t.flagged_wrong} onClick={() => flag(t)}>{t.flagged_wrong ? `wrong: ${t.flag_note || "flagged"}` : "Flag wrong"}</Btn>,
-            ])}/>
-        </Card>
-      )}
-      {d && (
-        <Card theme={theme} title="Deny-list — wins over every task" measured={`${d.denyList.length} domains`}>
-          <div style={{ fontSize: 12, marginBottom: 8 }}>{d.denyList.join(" · ") || "—"}</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Btn theme={theme} onClick={async () => { const v = window.prompt("Domain to deny (e.g. example.com) — also refuses anything already queued for it"); if (!v) return;
-              try { await api("/api/admin/crawler/deny", { method: "POST", body: JSON.stringify({ domain: v, reason: "owner" }) }); load(); } catch (e) { setErr(e.message); } }}>Add</Btn>
-            <Btn theme={theme} onClick={async () => { const v = window.prompt("Domain to remove from the deny-list"); if (!v) return;
-              try { await api(`/api/admin/crawler/deny/${encodeURIComponent(v)}`, { method: "DELETE" }); load(); } catch (e) { setErr(e.message); } }}>Remove</Btn>
-          </div>
-        </Card>
-      )}
-    </div>
+      {d && (<>
+        <div style={{ ...row, marginBottom: 6 }}>
+          {paused
+            ? <Btn theme={theme} primary disabled={d.pause.by === "env"} onClick={() => put({ paused: false })}>▶ Resume</Btn>
+            : <Btn theme={theme} onClick={() => put({ paused: true })}>❚❚ Pause</Btn>}
+          {st.mode === "live"
+            ? <Btn theme={theme} onClick={() => put({ mode: "dry" })}>Dry-run — no request leaves</Btn>
+            : <Btn theme={theme} onClick={goLive}>Live…</Btn>}
+          <span style={quiet}>{d.pause.by === "env" ? "Paused by CRAWLER_PAUSED on the server — Resume here cannot override it." : st.updated_at ? `last changed ${ago(st.updated_at)}` : "never changed"}</span>
+        </div>
+        <div style={{ fontSize: 12, marginBottom: 14, color: d.worker?.silent ? C.WARNING : theme.textMuted }}>
+          {d.worker?.lastSeen ? `The worker last called ${ago(d.worker.lastSeen)} (${d.worker.lastCall})${d.worker.silent ? " — silent since: is it running?" : "."}` : "The worker has never called draft."}
+        </div>
+
+        <h3 style={{ ...h2, fontSize: 15, margin: "0 0 8px" }}>Settings</h3>
+        <div style={{ ...row, alignItems: "flex-end", marginBottom: 6 }}>
+          <label style={lbl}>Tasks per enqueue (1–100)
+            <input type="number" min={1} max={100} value={s.per_run_cap} onChange={e => setSettings({ ...s, per_run_cap: e.target.value })} style={{ ...input, width: 90 }}/></label>
+          <label style={lbl}>Daily run at (UTC)
+            <input type="time" value={s.schedule_hhmm} onChange={e => setSettings({ ...s, schedule_hhmm: e.target.value })} style={input}/></label>
+          <label style={lbl}>Tasks per daily run (1–100)
+            <input type="number" min={1} max={100} value={s.schedule_tasks} onChange={e => setSettings({ ...s, schedule_tasks: e.target.value })} style={{ ...input, width: 90 }}/></label>
+          <Btn theme={theme} disabled={!dirty} onClick={() => put({ per_run_cap: Number(s.per_run_cap), schedule_hhmm: s.schedule_hhmm, schedule_tasks: Number(s.schedule_tasks) })}>Save settings</Btn>
+          <Btn theme={theme} onClick={() => put({ schedule_enabled: !st.schedule_enabled })}>{st.schedule_enabled ? "Turn the daily run off" : "Turn the daily run on"}</Btn>
+        </div>
+        <div style={{ ...quiet, marginBottom: 16 }}>
+          {st.schedule_enabled ? `The daily run is on: ${st.schedule_tasks} tasks from the captured companies at ${st.schedule_hhmm} UTC${st.schedule_last_date ? `; last ran ${st.schedule_last_date}` : ""}.` : "The daily run is off."}
+        </div>
+
+        <h3 style={{ ...h2, fontSize: 15, margin: "0 0 8px" }}>Queue tasks</h3>
+        <div style={{ ...row, marginBottom: 6 }}>
+          <Btn theme={theme} disabled={!d.candidates.length} onClick={() => enqueue("/api/admin/crawler/tasks/captures")}>Queue captured companies ({d.candidates.length})</Btn>
+        </div>
+        <textarea aria-label="Domains to queue" value={paste} onChange={e => setPaste(e.target.value)} rows={3} placeholder="https://company.com — one per line"
+          style={{ width: "100%", boxSizing: "border-box", fontFamily: "inherit", fontSize: 12, padding: 8, background: theme.bg, color: theme.text, border: `1px solid ${theme.border || C.INK_FAINT}`, borderRadius: 6 }}/>
+        <div style={{ ...row, marginTop: 6, marginBottom: 6 }}>
+          <Btn theme={theme} disabled={!paste.trim()} onClick={() => enqueue("/api/admin/crawler/tasks", { type: "j1_find_board", urls: paste.split(/\s+/).filter(Boolean) })}>Queue pasted domains</Btn>
+          {note && <span style={quiet}>{note}</span>}
+        </div>
+
+        <h3 style={{ ...h2, fontSize: 15, margin: "16px 0 8px" }}>Queue and results</h3>
+        <div style={{ ...quiet, marginBottom: 6 }}>{d.tally.map(t => `${t.type === "j1_find_board" ? "find a board" : "where Apply lands"}: ${t.outcome} ${t.n}`).join(" · ") || "Nothing has run yet."}</div>
+        <Table theme={theme} rows={d.tasks} empty="No tasks yet." cols={[
+          { key: "id", label: "#" }, { key: "target_host", label: "target" }, { key: "mode", label: "mode", render: t => t.mode || "—" },
+          { key: "status", label: "status", render: t => <span style={markStyle(CRAWL_TONE[t.result_status] || C.INK_FAINT)}>{t.result_status || t.status}</span> },
+          { key: "why", label: "why", render: t => [t.refused_reason, t.error].filter(Boolean).join(" — ") || "—" },
+          { key: "evidence", label: "evidence / landing", render: t => (t.evidence || []).map(e => `${e.url} (${e.how})`).join(" · ") || (t.formOrigin ? `${t.formOrigin} · ${t.stoppedAt}` : "—") },
+          { key: "flag", label: "", render: t => <Btn theme={theme} onClick={() => setFlagging({ task: t, note: "" })}>{t.flagged_wrong ? `wrong: ${t.flag_note || "flagged"} — clear…` : "Flag wrong…"}</Btn> },
+        ]}/>
+
+        <h3 style={{ ...h2, fontSize: 15, margin: "16px 0 4px" }}>Deny-list</h3>
+        <div style={{ ...quiet, marginBottom: 8 }}>Domains no task may request — this wins over every task. {d.denyList.length} listed{d.denyList.length ? `: ${d.denyList.join(" · ")}` : ""}.</div>
+        <div style={row}>
+          <input aria-label="Domain to deny" placeholder="example.com" value={deny.add} onChange={e => setDeny({ ...deny, add: e.target.value })} style={{ ...input, width: 200 }}/>
+          <Btn theme={theme} disabled={!deny.add.trim()} onClick={addDeny}>Deny…</Btn>
+          <select aria-label="Domain to allow again" value={deny.remove} onChange={e => setDeny({ ...deny, remove: e.target.value })} style={input} disabled={!d.denyList.length}>
+            <option value="">{d.denyList.length ? "Pick a denied domain" : "Nothing denied"}</option>
+            {d.denyList.map(x => <option key={x} value={x}>{x}</option>)}
+          </select>
+          <Btn theme={theme} disabled={!deny.remove} onClick={removeDeny}>Remove…</Btn>
+        </div>
+      </>)}
+    </Panel>
   );
 }
 

@@ -98,7 +98,7 @@ export function Panel({ title, purpose, code, numbers, children, ...rest }) {
       <h2 style={h2}>{title}{code && <Help tip={code}/>}</h2>
       <p style={what}>{purpose}</p>
       {numbers?.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, marginBottom: 18 }}>
           {numbers.map(([value, label, good]) => <NumberBox key={label} value={value} label={label} good={good}/>)}
         </div>
       )}
