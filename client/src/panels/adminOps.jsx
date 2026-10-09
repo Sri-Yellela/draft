@@ -241,15 +241,22 @@ export function DiskPanel({ theme }) {
 // New postings past the limit are never written (always on). Retiring EXISTING ones waits for the owner's
 // "Enforce" after reading this dry run; applied postings are always kept; nothing is deleted.
 export function BoardPolicySection({ theme }) {
+  // ⭐ D83 rebuild #6 (39d) · THE BOARD → SCOPE AND AGE: the two rules side by side, each with its numbers, its
+  // state and its one write — no red button is the loudest thing on the page any more (the audit); every switch and
+  // sweep confirms in the page and says what it changes, what undoes it, and that a sweep has no undo button.
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
   const [note, setNote] = useState(null);
+  const { ask, dialog } = useConfirm();
   const load = useCallback(() => { setErr(null); api("/api/admin/board-policy").then(setD).catch(e => setErr(e.message)); }, []);
   useEffect(() => { load(); }, [load]);
   const put = async (patch) => { try { await api("/api/admin/board-policy", { method: "PUT", body: JSON.stringify(patch) }); load(); } catch (e) { setErr(e.message); } };
+  const pct = (x) => (x > 0 && x < 0.005 ? "under 1%" : `${Math.round((x || 0) * 100)}%`);
+  const KEPT = "Applied postings are always kept, and nothing is deleted — a retired posting stays in the database, off the board. There is no undo button for a sweep.";
   const sweep = async () => {
     const r = d?.dryRun;
-    if (!r || !window.confirm(`Retire ${r.candidates} posting(s) older than ${r.limitDays} days (${Math.round(r.share * 100)}% of the active board)? Applied postings are kept; nothing is deleted.`)) return;
+    if (!r || !await ask({ title: `Retire ${num(r.candidates)} old posting${r.candidates === 1 ? "" : "s"}?`, label: `Retire ${num(r.candidates)}`,
+      body: <>These are older than {r.limitDays} days — {pct(r.share)} of the active board. {KEPT}</> })) return;
     try {
       const out = await api("/api/admin/board-policy/sweep", { method: "POST", body: JSON.stringify({ apply: true, expectCandidates: r.candidates }) });
       setNote(`Retired ${out.retired}.`); load();
@@ -258,43 +265,68 @@ export function BoardPolicySection({ theme }) {
   // D78 B: the computer-science scope — the same contract as the age sweep (dry run, echo the count).
   const scopeSweep = async () => {
     const q = d?.scopeDryRun;
-    if (!q || !window.confirm(`Retire ${q.candidates} out-of-scope posting(s) (${Math.round(q.share * 100)}% of the active board)? Applied postings are kept; nothing is deleted.`)) return;
+    if (!q || !await ask({ title: `Retire ${num(q.candidates)} out-of-scope posting${q.candidates === 1 ? "" : "s"}?`, label: `Retire ${num(q.candidates)}`,
+      body: <>These are outside computer science — {pct(q.share)} of the active board. {KEPT}</> })) return;
     try {
       const out = await api("/api/admin/board-policy/scope-sweep", { method: "POST", body: JSON.stringify({ apply: true, expectCandidates: q.candidates }) });
       setNote(`Retired ${out.retired} out of scope.`); load();
     } catch (e) { setErr(e.message); }
   };
+  const toggle = async (key, on, what) => {
+    if (!await ask({ title: on ? `Start enforcing ${what}?` : `Stop enforcing ${what}?`, label: on ? "Enforce it" : "Stop enforcing",
+      body: on ? <>From now on, existing postings that break it are retired at each crawl and by the 03:30 sweep. Stop enforcing undoes the switch; postings
+        already retired stay retired. {KEPT.split(" — ")[0]}.</>
+        : <>Nothing more is retired for this rule; the dry run below keeps counting. Postings already retired stay retired.</> })) return;
+    put({ [key]: on });
+  };
   const p = d?.policy, r = d?.dryRun, q = d?.scopeDryRun;
+  const sub = { border: `1px solid ${theme.border}`, borderRadius: 11, padding: "12px 14px", marginBottom: 12 };
   return (
-    <Card theme={theme} title="Board policy — age and scope (D78)" measured={r ? `dry run: ${r.candidates} of ${r.active} active are past ${r.limitDays} days (${Math.round(r.share * 100)}%)` : null}>
+    <Panel title="Scope and age" data-admin-scope=""
+      code="D78: the board's scope — computer science only (D78 B, the rule's version is shown) and the 120-day age limit (D78 A). New postings that break either are never written; these switches decide whether EXISTING ones are retired too."
+      purpose="Which postings the board keeps: computer-science roles, no older than the age limit. New postings that break a rule are never added; the counts below are what retiring the existing ones would do."
+      numbers={p && r && q ? [[`${p.age_limit_days} days`, "the age limit"],
+        [num(r.candidates), `older than that · ${pct(r.share)} of the board`],
+        [num(q.candidates), `outside computer science · ${pct(q.share)}`],
+        [`${p.age_enforce ? "On" : "Off"} · ${p.scope_enforce ? "On" : "Off"}`, "retiring existing ones: age · scope"]] : []}>
+      {dialog}
       <Err msg={err}/>
+      {note && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 8 }}>{note}</div>}
       {p && r && (
-        <KV theme={theme} rows={[
-          ["limit", `${p.age_limit_days} days — new postings older than this are never written`],
-          ["existing postings", p.age_enforce ? "ENFORCED — retired at the crawl and by the 03:30 sweep" : "report only — nothing is retired until you enforce", p.age_enforce ? C.WARNING : null],
-          ["would retire", `${r.candidates} (${Object.entries(r.byBasis).map(([k, v]) => `${v} by ${k}`).join(", ") || "—"}) · ${Math.round(r.share * 100)}% of the board`],
-          ["by company", r.byCompany.slice(0, 8).map(([c, n]) => `${c} ${n}`).join(" · ") || "—"],
-          ["by source", Object.entries(r.bySource).map(([s, n]) => `${s} ${n}`).join(" · ") || "—"],
-        ]}/>
+        <div style={sub} data-policy-age="">
+          <h3 style={{ ...h2, fontSize: 15, margin: "0 0 6px" }}>Age — {p.age_limit_days} days</h3>
+          <div style={{ fontSize: 12, marginBottom: 8, color: p.age_enforce ? C.WARNING : theme.text }}>
+            {p.age_enforce ? "Enforced — old postings are retired at the crawl and by the 03:30 sweep." : "Report only — nothing is retired until you enforce."}</div>
+          <KV theme={theme} rows={[
+            ["would retire", `${num(r.candidates)} (${Object.entries(r.byBasis).map(([k, v]) => `${v} by ${k}`).join(", ") || "—"})`],
+            ["by company", r.byCompany.slice(0, 8).map(([c, n]) => `${c} ${n}`).join(" · ") || "—"],
+            ["by source", Object.entries(r.bySource).map(([s, n]) => `${s} ${n}`).join(" · ") || "—"],
+          ]}/>
+          <div style={{ ...row, marginTop: 8 }}>
+            <Btn theme={theme} onClick={() => toggle("age_enforce", !p.age_enforce, "the age limit")}>{p.age_enforce ? "Stop enforcing…" : "Enforce on existing postings…"}</Btn>
+            {r.candidates > 0 && <Btn theme={theme} onClick={sweep}>Run the sweep now…</Btn>}
+          </div>
+        </div>
       )}
       {p && q && (
-        <KV theme={theme} rows={[
-          ["computer science only", p.scope_enforce ? `ENFORCED (rule v${q.version}) — out-of-scope postings are not written, and are retired at the crawl and by the 03:30 sweep` : `report only (rule v${q.version}) — nothing is dropped until you enforce`, p.scope_enforce ? C.WARNING : null],
-          ["would retire", `${q.candidates} of ${q.active} (${Math.round(q.share * 100)}%)${q.appliedKept ? ` · ${q.appliedKept} applied kept` : ""}`],
-          ["by family", Object.entries(q.byFamily).sort((a, b) => b[1] - a[1]).map(([f, n]) => `${f} ${n}`).join(" · ") || "—"],
-          ["by rule", Object.entries(q.byReason).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, n]) => `${k} ${n}`).join(" · ") || "—"],
-          ["by company", q.byCompany.slice(0, 8).map(([c, n]) => `${c} ${n}`).join(" · ") || "—"],
-        ]}/>
+        <div style={sub} data-policy-scope="">
+          <h3 style={{ ...h2, fontSize: 15, margin: "0 0 6px" }}>Computer science only<Help tip={`The scope rule, version ${q.version}.`}/></h3>
+          <div style={{ fontSize: 12, marginBottom: 8, color: p.scope_enforce ? C.WARNING : theme.text }}>
+            {p.scope_enforce ? "Enforced — out-of-scope postings are not written, and existing ones are retired at the crawl and by the 03:30 sweep." : "Report only — nothing is dropped until you enforce."}</div>
+          <KV theme={theme} rows={[
+            ["would retire", `${num(q.candidates)} of ${num(q.active)}${q.appliedKept ? ` · ${q.appliedKept} applied kept` : ""}`],
+            ["by family", Object.entries(q.byFamily).sort((a, b) => b[1] - a[1]).map(([f, n]) => `${f} ${n}`).join(" · ") || "—"],
+            ["by rule", Object.entries(q.byReason).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, n]) => `${k} ${n}`).join(" · ") || "—"],
+            ["by company", q.byCompany.slice(0, 8).map(([c, n]) => `${c} ${n}`).join(" · ") || "—"],
+          ]}/>
+          <div style={{ ...row, marginTop: 8 }}>
+            <Btn theme={theme} onClick={() => toggle("scope_enforce", !p.scope_enforce, "the computer-science scope")}>{p.scope_enforce ? "Stop enforcing…" : "Enforce the scope…"}</Btn>
+            {q.candidates > 0 && <Btn theme={theme} onClick={scopeSweep}>Run the scope sweep now…</Btn>}
+          </div>
+        </div>
       )}
-      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-        {p && <Btn theme={theme} danger={!p.age_enforce} onClick={() => put({ age_enforce: !p.age_enforce })}>{p.age_enforce ? "Stop enforcing" : "Enforce on existing postings"}</Btn>}
-        {r && r.candidates > 0 && <Btn theme={theme} onClick={sweep}>Run the sweep now</Btn>}
-        {p && <Btn theme={theme} danger={!p.scope_enforce} onClick={() => put({ scope_enforce: !p.scope_enforce })}>{p.scope_enforce ? "Stop enforcing CS scope" : "Enforce CS scope"}</Btn>}
-        {q && q.candidates > 0 && <Btn theme={theme} onClick={scopeSweep}>Run the scope sweep now</Btn>}
-        <Btn theme={theme} onClick={load}>Re-read</Btn>
-      </div>
-      {note && <div style={{ fontSize: 12, marginTop: 6, color: theme.textMuted }}>{note}</div>}
-    </Card>
+      <Btn theme={theme} onClick={load}>Re-read</Btn>
+    </Panel>
   );
 }
 
