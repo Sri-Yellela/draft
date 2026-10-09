@@ -24,6 +24,7 @@ export function panelBody(name) {
 // name → the parts it is made of (a panel may hand its candidates table to a child that shares its rules)
 export const REBUILT = {
   CompaniesSection: ["CompaniesSection", "DiscoveryCandidates"],
+  CrawlerTab: ["CrawlerTab"],
 };
 
 for (const [name, parts] of Object.entries(REBUILT)) {
