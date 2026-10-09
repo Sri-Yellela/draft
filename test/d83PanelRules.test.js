@@ -30,6 +30,7 @@ export const REBUILT = {
   DiskPanel: ["DiskPanel"],
   CostsTab: ["CostsTab", "SpendPart"],
   SlugHarvestSection: ["SlugHarvestSection"],
+  BoardPolicySection: ["BoardPolicySection"],
 };
 
 for (const [name, parts] of Object.entries(REBUILT)) {
