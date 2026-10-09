@@ -6,6 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 
 const SOURCES = ["client/src/panels/adminOps.jsx", "client/src/panels/AdminPanel.jsx"].map(p => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n"));
 
@@ -28,6 +29,7 @@ export const REBUILT = {
   DeploymentsPanel: ["DeploymentsPanel"],
   DiskPanel: ["DiskPanel"],
   CostsTab: ["CostsTab", "SpendPart"],
+  SlugHarvestSection: ["SlugHarvestSection"],
 };
 
 for (const [name, parts] of Object.entries(REBUILT)) {
@@ -49,3 +51,13 @@ for (const [name, parts] of Object.entries(REBUILT)) {
     assert.doesNotMatch(all, /999px|borderRadius: "50%"|rounded-full/, "⑥ no capsule");
   });
 }
+
+test("D83 rules · the slug harvest names every role family of the query plan in words, not codes", () => {
+  const plan = fs.readFileSync("services/harvestQueryPlan.js", "utf8");
+  const families = [...new Set([...plan.matchAll(/family: *"([a-z_]+)"/g)].map(m => m[1]))];
+  assert.ok(families.length >= 10, "the query plan's families were not found");
+  const ops = SOURCES[0];
+  const start = at(ops, "const FAMILY_WORDS = {");
+  const words = ops.slice(start, at(ops, "};", start));
+  assert.deepEqual(families.filter(f => !new RegExp(`(?:\\{|,)\\s*${f}: "`).test(words)), []);
+});
