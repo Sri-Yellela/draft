@@ -3,7 +3,7 @@
 **This file is the only place work is tracked.** Every other doc is reference material for a task
 named here. If a task is not in this file, it is not being worked on.
 
-**Last updated:** 2026-10-09 (session 39c)
+**Last updated:** 2026-10-09 (session 39d)
 
 ---
 
@@ -62,6 +62,8 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 ---
 
 ## NOW
+
+**10-09 (39d) — the owner's /loop "finish all pending tasks; go with your recommended decisions; record them" — IN PROGRESS, LOCAL.** ⭐ **DECISIONS TAKEN (the agent's, under that instruction — each reversible):** **(1)** the admin's A+ swap stays SILENT on a reload too (`0b34312`) · **(2)** D83: the audit's PROPOSED marks are the marks (O86 b) — the map is five groups (*Today · The board · People · Data · System*), Operations / Cache / the repeated contact messages are gone (`fcccae8`) · **(3)** the rebuild order: *Companies → Crawler → Today (deploy, disk, costs) → Slug harvest → Tags → Data → People*, and **D88's user management is built as People** (one Users page, not a second one) · **(4)** the shared admin kit (`adminKit.jsx`) + a per-panel six-rules test (`d83PanelRules`) · ✅ rebuilt: **Companies and candidates** (`980be41`). ⛔ **NOT done — needs the owner:** O86 (c) the read-only production query (the auto-mode classifier refused it as a production read; the audit's *Used?* column stays code-derived).
 
 **10-09 (39c) — extension v1.5.1 — ✅ MERGED and PUSHED on the owner's "merge it and push": `3628acb` LIVE (`/api/version`, 16:34Z). The extension itself ships only when the owner uploads the zip.** The owner picked the overlay's capsule-shaped small buttons (O90 g). Three 28px controls drawn at radius 11 (39% of their height) are now radius 8 / 6 — the overlay's `.rm-btn` and `.rm-edit`, the popup's `.link` (*Disconnect*). New guard `test/d60CompactRadius.test.js`: no extension control's radius may exceed 30% of its height (the client's compact depth box is 9 on 30). Manifest + README + listing → **v1.5.1**, zip rebuilt, the three store screenshots regenerated (ALL PASS) and installed. Suite on the branch **4015 / 4015 / 0**. ⏸ **The owner:** **if v1.5.0 was never uploaded, upload v1.5.1 instead** (the listing's fields stand — no permission or data change).
 
