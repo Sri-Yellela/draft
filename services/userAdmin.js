@@ -212,3 +212,35 @@ export function personDetail(db, userId) {
     usage, features, activity, notes,
   };
 }
+
+// ── P5 · the self-service subset: what a user sees of their own plan and allowance (Settings) ──────────────────
+// ⛔ Never money (cost visibility, 10-09), never the admin's A+ swap (it stays silent — 39d), never where a value came
+// from beyond "your plan" (an override is support's business), and nothing operator-only.
+export const SELF_FEATURES = Object.freeze(["draft_slots", "generate_enabled", "a_plus_enabled", "plugin_byo", "byo_daily_cap",
+  "apply_daily_queue_cap", "apply_daily_approval_cap", "apply_daily_submission_cap", "auto_apply_mode"]);
+const SELF_LABELS = Object.freeze({
+  draft_slots: "Drafts in any 24 hours (a Draft or a new résumé uses one)", generate_enabled: "Generate a résumé", a_plus_enabled: "A+ résumé",
+  plugin_byo: "Write résumés in your own ChatGPT or Claude", byo_daily_cap: "Résumés a day written in ChatGPT or Claude",
+  apply_daily_queue_cap: "Previews in 24 hours", apply_daily_approval_cap: "Approvals in 24 hours", apply_daily_submission_cap: "Applications sent in 24 hours",
+  auto_apply_mode: "Sending applications automatically",
+});
+export function selfAllowance(db, userId) {
+  const u = db.prepare("SELECT plan_tier FROM users WHERE id = ?").get(userId);
+  if (!u) throw new UserAdminError("No such user.", 404);
+  let slots = null;
+  try { slots = draftSlots(db, userId); } catch { /* none */ }
+  const count = (sql) => { try { return db.prepare(sql).get(userId)?.n ?? 0; } catch { return 0; } };
+  const features = SELF_FEATURES.map(key => {
+    const r = resolveEntitlement(db, userId, key);
+    const value = key === "auto_apply_mode" ? (r.value === "locked" ? "not available yet" : "available")
+      : FEATURES[key].kind === "boolean" ? (r.value ? "yes" : "no") : r.value == null ? "no limit" : String(r.value);
+    return { key, label: SELF_LABELS[key], value };
+  });
+  return {
+    plan: String(u.plan_tier || "BASIC").toLowerCase(),
+    drafts: slots ? { used: slots.used, limit: slots.limit, remaining: slots.remaining, nextFreeAt: slots.nextFreeAt } : null,
+    resumesToday: count("SELECT COUNT(*) AS n FROM resumes WHERE user_id = ? AND created_at > unixepoch() - 86400"),
+    resumesMonth: count("SELECT COUNT(*) AS n FROM resumes WHERE user_id = ? AND created_at > unixepoch() - 30 * 86400"),
+    features,
+  };
+}
