@@ -1202,3 +1202,82 @@ export function GlanceTab({ theme }) {
     </div>
   );
 }
+
+// ⭐ D86 · ADMIN → SYSTEM → PLUGIN — bring-your-own-model résumés, for the operator (D83's rules: a purpose
+// sentence, numbers on open, the switches say what they do, recent calls — never résumé content).
+export function PluginTab({ theme }) {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState(null);
+  const [cap, setCap] = useState("");
+  const load = useCallback(() => { setErr(null); api("/api/admin/byom").then(r => { setD(r); setCap(String(r.settings.dailyCap)); }).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { load(); }, [load]);
+  const put = async (patch) => {
+    try { await api("/api/admin/byom", { method: "PUT", body: JSON.stringify(patch) }); load(); } catch (e) { setErr(e.message); }
+  };
+  if (!d) return <Err msg={err}/>;
+  const { settings: s, numbers: n } = d;
+  const stat = (label, value) => (
+    <div style={{ background: theme.surfaceHigh, borderRadius: 6, padding: "10px 12px", minWidth: 140 }}>
+      <div style={{ fontSize: 20, fontWeight: 800, color: theme.text }}>{value ?? "—"}</div>
+      <div style={{ fontSize: 11, color: theme.textMuted }}>{label}</div>
+    </div>
+  );
+  return (
+    <div data-admin-plugin="">
+      <Err msg={err}/>
+      <div style={{ fontSize: 12, color: theme.textMuted, lineHeight: 1.6, marginBottom: 12, maxWidth: 760 }}>
+        Users can have their own ChatGPT or Claude write a tailored résumé: draft hands the model a brief, checks the patch it
+        returns against the base résumé and the claims, scores it and saves it. draft makes no model call and pays nothing for these.
+      </div>
+      <Card theme={theme} title="The switch" tone={s.enabled ? C.SUCCESS : C.WARNING}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <Btn theme={theme} primary={!s.enabled} danger={s.enabled} onClick={() => put({ enabled: !s.enabled })}>
+            {s.enabled ? "Turn the plugin OFF" : "Turn the plugin ON"}
+          </Btn>
+          <span style={{ fontSize: 12, color: theme.text }}>
+            {s.enabled ? "On — users who turn it on in Settings can connect Claude or ChatGPT."
+              : "Off — every tool call is refused, the consent screen offers only “Not now”, and Settings reads “unavailable”."}
+          </span>
+        </div>
+      </Card>
+      <Card theme={theme} title="Numbers — the last 7 days">
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {stat("users with an app connected", n.usersConnected)}
+          {stat("users who turned it on", n.usersOn)}
+          {stat("résumés written this way", n.resumesThisWeek)}
+          {stat("passed the claim check first time", n.firstTimePass == null ? null : `${n.firstTimePass}%`)}
+          {stat("refused, then fixed", n.refusedThenFixed)}
+          {stat("closed after 3 refusals", n.closedAfterThree)}
+        </div>
+      </Card>
+      <Card theme={theme} title="Hosts and the daily cap">
+        <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+          {Object.entries(s.hosts).map(([h, on]) => (
+            <label key={h} style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12, color: theme.text }}>
+              <input type="checkbox" checked={on} onChange={e => put({ hosts: { [h]: e.target.checked } })}/>
+              {h === "claude" ? "Claude" : "ChatGPT"} may connect
+            </label>
+          ))}
+          <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12, color: theme.text }}>
+            Daily cap per user
+            <input value={cap} onChange={e => setCap(e.target.value)} inputMode="numeric"
+              style={{ width: 64, padding: "4px 6px", borderRadius: 6, border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text }}/>
+            <Btn theme={theme} onClick={() => put({ dailyCap: Number(cap) })}>Save</Btn>
+          </label>
+        </div>
+        <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 8 }}>
+          A host that is off cannot connect and its connections' calls are refused. The cap counts saved résumés per user since midnight UTC.
+        </div>
+      </Card>
+      <Card theme={theme} title="Recent tool calls — never content">
+        <Table theme={theme} rows={d.recent} empty="No calls yet." cols={[
+          { key: "at", label: "When", render: r => ago(r.at) },
+          { key: "username", label: "User" },
+          { key: "tool", label: "Tool" },
+          { key: "outcome", label: "Result", color: r => r.outcome === "ok" ? C.SUCCESS : r.outcome === "refused" ? C.WARNING : r.outcome === "error" ? C.DANGER : theme.textMuted },
+          { key: "detail", label: "Detail" },
+        ]}/>
+      </Card>
+    </div>
+  );
+}

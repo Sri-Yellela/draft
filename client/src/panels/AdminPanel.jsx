@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api }      from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
-import { OpsTab, GlanceTab, UserApplications, DiskBanner, CrawlerTab } from "./adminOps.jsx";
+import { OpsTab, GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab } from "./adminOps.jsx";
 import { EnrichmentTab } from "./adminEnrichment.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
@@ -960,7 +960,7 @@ export function AdminPanel() {
     ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
     : `${(bytes / 1024).toFixed(0)} KB`;
 
-  const SECTIONS = [["users","Users"],["backups","Backups"]];
+  const SECTIONS = [["users","Users"],["backups","Backups"],["plugin","Plugin"]];
 
   const thStyle = {
     padding:"10px 14px", textAlign:"left", fontSize:10,
@@ -1249,6 +1249,14 @@ export function AdminPanel() {
               </motion.div>
             )}
 
+            {/* ⭐ D86: bring-your-own-model résumés — the kill switch, the hosts, the cap, the numbers. */}
+            {section === "plugin" && (
+              <motion.div key="plugin"
+                initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
+                exit={{ opacity:0, y:-6 }} transition={{ duration:0.18 }}>
+                <PluginTab theme={theme}/>
+              </motion.div>
+            )}
             {section === "backups" && (
               <motion.div key="backups"
                 initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}

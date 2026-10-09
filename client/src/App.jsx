@@ -59,6 +59,7 @@ import { FAQPage }         from "./pages/marketing/FAQPage.jsx";
 import { PrivacyPage }     from "./pages/marketing/PrivacyPage.jsx";
 import { TermsPage }       from "./pages/marketing/TermsPage.jsx";
 import { Toaster }         from "./components/ui/toaster.jsx";
+import { oauthNext }       from "./lib/oauthNext.js";
 
 const CONSOLE_ROUTE = "jobs";
 const LEGACY_CONSOLE_ROUTES = new Set(["simple-apply", "tailored", "custom-sampler"]);
@@ -92,8 +93,14 @@ function AdminRouteGate({ authStatus, authUser, children }) {
   return children;
 }
 
+// ⭐ D86: after sign-in, back to a host's consent screen — lib/oauthNext.js says which `next` is honoured.
 function PublicLoginRoute({ authStatus, authUser, children, admin = false }) {
   if (authStatus === "unknown") return null;
+  const next = typeof window !== "undefined" ? oauthNext(window.location.search) : null;
+  if (authStatus === "authenticated" && authUser && next) {
+    window.location.replace(next);
+    return null;
+  }
   if (authStatus === "authenticated" && authUser) {
     if (admin) return authUser.isAdmin ? <Navigate to="/admin" replace/> : children;
     return authUser.isAdmin ? <Navigate to="/admin" replace/> : <Navigate to="/app" replace/>;

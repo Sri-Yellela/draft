@@ -58,6 +58,125 @@ function Section({ title, subtitle, status, children, theme }) {
   );
 }
 
+// ⭐ D86 · CONNECTED APPS — the one persistent home for writing résumés in the user's own ChatGPT or Claude.
+// Sign-in runs the other way from "Sign in with OpenAI": the user adds draft INSIDE the host, and the host
+// sends them to draft's own consent screen. So this page controls and SHOWS the connection; it cannot make it.
+const BYOM_STEPS = {
+  claude: (url) => ["In Claude, open Settings → Connectors and choose Add custom connector.", `Paste the plugin link: ${url}`,
+    "Claude sends you to draft to sign in and choose Allow."],
+  chatgpt: (url) => ["In ChatGPT, open Settings → Apps → Advanced settings and turn on Developer mode (today: Business, Enterprise or Edu workspaces only).",
+    `Create an app with the plugin link: ${url}`, "ChatGPT sends you to draft to sign in and choose Allow."],
+};
+const BYOM_OPEN = { claude: "https://claude.ai/settings/connectors", chatgpt: "https://chatgpt.com/" };
+const ACTIVITY_WORDS = {
+  get_generation_brief: "read your base résumé for a job", submit_resume: "saved a résumé", score_resume: "scored a résumé",
+  list_my_drafts: "listed your drafted jobs", get_my_resumes: "listed your résumés", connect: "was connected", disconnect: "was disconnected",
+};
+function activityLine(a) {
+  const who = a.host === "claude" ? "Claude" : a.host === "chatgpt" ? "ChatGPT" : "An app";
+  const what = ACTIVITY_WORDS[a.tool] || a.tool;
+  if (a.outcome === "ok") return `${who} ${what}`;
+  if (a.outcome === "refused") return a.tool === "submit_resume" ? `${who}'s résumé was refused — nothing was saved` : `${who} was refused (${what})`;
+  if (a.outcome === "denied") return `${who} was stopped — switched off or not allowed`;
+  return `${who}: draft failed on its side — nothing was saved`;
+}
+
+function ConnectedApps({ theme, buttonStyle, secondaryButton }) {
+  const [s, setS] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const load = () => api("/api/byom").then(setS).catch(() => setS({ error: true }));
+  useEffect(() => { load(); }, []);
+  if (!s) return null;
+  const unavailable = s.error || !s.available;
+  const setOn = async (next) => {
+    setBusy(true);
+    try { await api("/api/byom", { method: "PUT", body: JSON.stringify({ enabled: next }) }); await load(); }
+    catch (e) { setNote(e.message || "Could not save that setting."); }
+    finally { setBusy(false); }
+  };
+  const disconnect = async (id) => {
+    await api(`/api/byom/connections/${id}`, { method: "DELETE" });
+    setNote("Disconnected. Its next call is refused.");
+    load();
+  };
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(s.connectorUrl); setNote("Plugin link copied."); }
+    catch { setNote(`Copy this link: ${s.connectorUrl}`); }
+  };
+  const box = { background:"var(--color-surface-offset)", borderRadius:6, padding:"10px 12px", minWidth:150 };
+  return (
+    <Section theme={theme} title="Connected apps"
+      subtitle="Write your résumés in your own ChatGPT or Claude — draft checks and saves what they write, and makes no model call itself."
+      status={unavailable ? { healthy:false, status:"unavailable" } : { healthy: s.enabled, status: s.enabled ? "on" : "off" }}>
+      {unavailable ? (
+        <div style={{ fontSize:12, color:"var(--color-text-muted)" }} data-byom-unavailable="">
+          This is unavailable right now — draft has it switched off. Nothing can connect.
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:14 }} data-byom-settings="">
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <ConsentSwitch checked={s.enabled} disabled={busy} onChange={setOn} label="Write my résumés in ChatGPT or Claude" />
+            <strong style={{ fontSize:13, color:"var(--color-text)" }}>Write my résumés in ChatGPT or Claude</strong>
+          </div>
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+            <div style={box}><div style={{ fontSize:20, fontWeight:800 }}>{s.usedToday} / {s.dailyCap}</div><div style={{ fontSize:11, color:"var(--color-text-muted)" }}>résumés written this way today</div></div>
+            <div style={box}><div style={{ fontSize:20, fontWeight:800 }}>{s.connections.length}</div><div style={{ fontSize:11, color:"var(--color-text-muted)" }}>apps connected</div></div>
+          </div>
+          <div style={{ fontSize:12, color:"var(--color-text-muted)", lineHeight:1.6 }}>
+            A connected app can <strong style={{ color:"var(--color-text)" }}>read your base résumé and the skills you have claimed, and save a résumé</strong>;
+            it never sees your contact details, your passwords, your applications or your other jobs; and what leaves draft — the
+            résumé content and the job's details (title, company, level, location and matched keywords) — is processed <strong style={{ color:"var(--color-text)" }}>under your own account and that provider's terms</strong>.
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(280px, 1fr))", gap:10 }}>
+            {["chatgpt", "claude"].map(host => {
+              const h = s.hosts[host];
+              const conns = s.connections.filter(c => c.host === host);
+              return (
+                <div key={host} style={{ border:"1px solid var(--color-border)", borderRadius:6, padding:12 }} data-byom-host={host}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                    <strong>{h.label}</strong>
+                    <span style={markStyle(!h.enabled ? C.WARNING : conns.length ? C.SUCCESS : C.INK_FAINT)}>
+                      {!h.enabled ? "unavailable" : conns.length ? "connected" : "not connected"}
+                    </span>
+                  </div>
+                  {conns.map(c => (
+                    <div key={c.id} style={{ fontSize:12, color:"var(--color-text-muted)", marginBottom:8 }}>
+                      Last used {c.last_used_at ? new Date(c.last_used_at * 1000).toLocaleString() : "never"} · {c.resumes} résumé{c.resumes === 1 ? "" : "s"}
+                      {c.scopes.includes("resume:write") ? "" : " · read only"}
+                      <div style={{ marginTop:6 }}><button style={secondaryButton} onClick={() => disconnect(c.id)} title="Stops its next call at once">Disconnect</button></div>
+                    </div>
+                  ))}
+                  {!conns.length && h.enabled && (
+                    <div style={{ fontSize:12, color:"var(--color-text-muted)", lineHeight:1.6 }}>
+                      <div style={{ fontWeight:700, color:"var(--color-text)" }}>How to connect — you do this in {h.label}, not here</div>
+                      <ol style={{ margin:"6px 0 8px", paddingLeft:18 }}>{BYOM_STEPS[host](s.connectorUrl).map(x => <li key={x}>{x}</li>)}</ol>
+                      <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                        <button style={buttonStyle} onClick={() => window.open(BYOM_OPEN[host], "_blank", "noopener")}>Open {h.label} to connect</button>
+                        <button style={secondaryButton} onClick={copy}>Copy the plugin link</button>
+                      </div>
+                      {s.privateTesting && <div style={{ marginTop:8, color:C.WARNING }} data-byom-private="">In private testing — draft is not yet listed in {h.label}'s directory.</div>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {note && <div style={{ fontSize:12, color:"var(--color-text)" }} role="status">{note}</div>}
+          <div>
+            <div style={{ fontSize:12, fontWeight:700, marginBottom:4 }}>Recent activity</div>
+            {s.activity.length ? (
+              <ul style={{ margin:0, paddingLeft:18, fontSize:12, color:"var(--color-text-muted)" }} data-byom-activity="">
+                {s.activity.map((a, i) => <li key={i}>{new Date(a.at * 1000).toLocaleString()} — {activityLine(a)}</li>)}
+              </ul>
+            ) : <div style={{ fontSize:12, color:"var(--color-text-muted)" }}>Nothing yet.</div>}
+          </div>
+        </div>
+      )}
+    </Section>
+  );
+}
+
 export function IntegrationsPanel() {
   const { theme } = useTheme();
   const [status, setStatus] = useState(null);
@@ -152,6 +271,8 @@ export function IntegrationsPanel() {
 
         {msg && <div style={{ border:`1px solid ${"var(--color-border)"}`, background:"var(--color-surface-offset)",
           color:"var(--color-text)", borderRadius:6, padding:"9px 12px", fontSize:12 }}>{msg}</div>}
+
+        <ConnectedApps theme={theme} buttonStyle={buttonStyle} secondaryButton={secondaryButton} />
 
         <Section theme={theme} title="LinkedIn Profile Import"
           subtitle="Import your name and email to pre-fill your resume."

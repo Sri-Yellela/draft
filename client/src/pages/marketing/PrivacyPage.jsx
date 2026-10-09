@@ -58,7 +58,11 @@ import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL } from "../..
 // Prepare / I submitted, and D68's Copy sheet with the Limited Use affirmation. ⛔ Automatic capture
 // COLLECTS SOMETHING NEW, which is what the "Changes to This Policy" commitment is for: whether
 // registered users must be emailed before it takes effect is the OWNER's call (WORKLOG O85), not code's.
-const EFFECTIVE_DATE = 'October 7, 2026';
+// 2026-10-08: bumped for D86 — the user's own ChatGPT or Claude, connected by the user, receives the base
+// résumé (no contact details), claims and the job's details under the user's own account. Off unless the
+// user turns it on, and off for everyone until the operator's switch is on. Whether registered users are
+// emailed before it is switched on is the OWNER's call (WORKLOG O87), as O85 was for automatic capture.
+const EFFECTIVE_DATE = 'October 8, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 // A93: a POLICY section heading — the document's own, not the settings card (SettingsSection).
@@ -575,6 +579,18 @@ export function PrivacyPage() {
               keywords, action verbs and tools you have already chosen, so the suggestions don't
               repeat them. Nothing else is sent to Anthropic. ATS scoring runs on our own server. Anthropic does
               not use API inputs to train models.
+            </LI>
+            <LI>
+              <Strong>Your own ChatGPT or Claude</Strong> (optional, and off unless you turn it on in
+              Settings → Integrations → Connected apps, then connect the app yourself from inside it) — the
+              app writes a tailored résumé on your own account, and we check and save what it returns. When
+              it asks, we give it your base résumé's work history and skills <Strong>without your contact
+              details</Strong>, the skills you have claimed, and the job's title, company, level, location
+              and the keywords your résumé matched. If you use draft through ChatGPT or Claude, that résumé
+              content and those job details are processed by that provider{" "}
+              <Strong>under your own account and its terms</Strong>, not ours. The app never receives your
+              contact details, passwords, applications or other jobs. We make no model call for these
+              résumés. Disconnect the app in the same settings and its next request is refused.
             </LI>
             <LI>
               <Strong>SerpApi</Strong> — job search results. Search queries are

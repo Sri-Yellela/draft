@@ -14,6 +14,7 @@ import StickyBar from "./StickyBar.jsx";
 import DepthButton, { ICONS } from "./DepthButton.jsx";
 import "./JobDetailPanel.css";
 import { DraftButton, PassButton, SaveButton } from "./DecisionButtons.jsx";
+import ByomResumeChoice, { ByomStatus, useByomFlow } from "./ByomResumeChoice.jsx";
 
 // Layout props (slot, width, focused, fullScreen, resizeMode and the three resize callbacks) come
 // from usePanelHost via JobsPanel — this panel is one peer in an ordered set now, not the only
@@ -109,6 +110,12 @@ function PostingActions({ job, meta, slots, cost = null, onCoverLetter }) {
     ? "No drafts left in the last 24 hours — a new résumé uses one, like a Draft."
     : `${done ? "Regenerate" : "Generate"} résumé${cost?.runs === "a_plus_resume" ? " (A+)" : ""} — uses 1 of your ${slots?.limit ?? 10} drafts (a Draft uses one too)` +
       (costLabel ? `; one model call, ${costLabel}` : "");
+  // ⭐ D86: the caret beside Résumé — write it with draft, or in the user's own ChatGPT or Claude. Absent
+  // while the operator's switch is off; the one click stays draft's Generate.
+  const byom = useByomFlow(selectedJob);
+  const byomChoice = (square) => canGen && onGenerate && (
+    <ByomResumeChoice byom={byom} square={square} onGenerate={() => (hasArtifact ? regen() : onGenerate(false))} generateDisabled={!!st || noSlots} />
+  );
   const quota = slots
     ? (noSlots
         ? `No drafts left — all ${slots.limit} used in the last 24 hours (a Draft or a new résumé uses one).`
@@ -135,6 +142,7 @@ function PostingActions({ job, meta, slots, cost = null, onCoverLetter }) {
             {generateLoading ? "Generating…" : "Regenerate"}
           </DepthButton>
         )}
+        {byomChoice(false)}
         <DepthButton icon={ICONS.letter} onClick={onCoverLetter} title="Write a cover letter">Cover letter</DepthButton>
       </div>
       {/* B — icon squares, when the panel is condensed. */}
@@ -154,10 +162,13 @@ function PostingActions({ job, meta, slots, cost = null, onCoverLetter }) {
           <DepthButton size="square" icon={ICONS.resume} onClick={regen}
             title={resumeTitle} caption="Redo" disabled={!!st || noSlots}>Regenerate résumé</DepthButton>
         )}
+        {byomChoice(true)}
         <DepthButton size="square" icon={ICONS.letter} onClick={onCoverLetter} title="Write a cover letter" caption="Letter">Cover letter</DepthButton>
       </div>
       {/* ⭐ D57: the state, in words — "Résumé ready · 2h ago". */}
       {hasArtifact && <p className="pp__ready" data-resume-ready="">{ago ? `Résumé ready · ${ago}` : "Résumé ready"}</p>}
+      {/* ⭐ D86: Open → Waiting for your résumé… → Checks → Done, updating itself while the user is in the chat. */}
+      <ByomStatus byom={byom} />
       {/* ⭐ D56: the manual route records its own submission, here too — not only the extension. */}
       {hasArtifact && job?.jobId && <ManualSubmitted jobId={job.jobId} />}
       {/* A63: the shared allowance, said before anything is pressed — a muted line in A, the badge in B. */}

@@ -245,6 +245,9 @@ export const MERGE_PLAN = Object.freeze({
   simple_apply_profiles: "keepInto", user_limits: "keepInto", user_linkedin_sessions: "keepInto",
   // D67 (2): one sighting per (pair, user) — a merged person is one person, so a clash keeps one row.
   apply_origin_sightings: "keepInto",
+  // D86: the per-call audit is history and moves; a merged-away account's connections and open briefs are
+  // its grants, not its data — they go (its tokens then match no connection, so they stop at once).
+  mcp_audit: "move", oauth_connections: "drop", byom_briefs: "drop",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

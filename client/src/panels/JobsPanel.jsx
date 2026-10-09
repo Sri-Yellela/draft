@@ -2579,7 +2579,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           atsReport:r.atsReport ?? null, company:r.company, title:r.role, baseAtsScore: r.base_ats_score ?? null,
           generatedAt: r.generated_at ? Number(r.generated_at) * 1000 : null,
           jobId:r.job_id, tool:r.apply_mode === "CUSTOM_SAMPLER" ? A_PLUS_TOOL : GENERATE_TOOL,
-          toolLabel:r.apply_mode === "CUSTOM_SAMPLER" ? TOOL_LABELS[A_PLUS_TOOL] : TOOL_LABELS[GENERATE_TOOL] }; });
+          toolLabel:r.apply_mode === "CUSTOM_SAMPLER" ? TOOL_LABELS[A_PLUS_TOOL] : r.apply_mode === "BYO_MODEL" ? "Your own model" : TOOL_LABELS[GENERATE_TOOL] }; });
         setGenerated(map);
       }
     }).catch(console.error);
@@ -2789,8 +2789,15 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           : j
       ));
     },
-    resume_generated: () => {
+    // ⭐ D86: a résumé can now arrive from OUTSIDE the panel — the user's own ChatGPT or Claude saved it. Mark it
+    // stored ("__exists__", D57) so the panel offers View and Download, which READ the store and never generate.
+    // A résumé this tab is generating already has its html here and is left alone.
+    resume_generated: ({ jobId, atsScore } = {}) => {
       fetchJobs(currentPage).catch(() => {});
+      if (!jobId) return;
+      setGenerated(p => (p[jobId]?.html && p[jobId].html !== "__exists__") ? p : { ...p, [jobId]: { ...(p[jobId] || {}),
+        html: "__exists__", status: "exists", atsScore: atsScore ?? null, jobId, tool: GENERATE_TOOL,
+        toolLabel: TOOL_LABELS[GENERATE_TOOL], generatedAt: Date.now() } });
     },
     // ⭐ D57: a résumé deleted (Settings → Your data, or another tab) frees the job's Résumé button here.
     resume_deleted: ({ jobId }) => {
