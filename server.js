@@ -28,7 +28,7 @@ import applicationRecordRoutes from "./routes/applicationRecords.js";
 import generatedResumeRoutes from "./routes/generatedResumes.js";
 import applicationArtifactRoutes from "./routes/applicationArtifacts.js";
 import { draftSlots, slotsExhausted, recordGenerationSlot } from "./services/draftSlots.js";
-import { GENERATION_EXPECT_SECONDS, userSafeGeneration, userCostView } from "./services/costVisibility.js";
+import { GENERATION_EXPECT_SECONDS, userSafeGeneration, userCostView, userSafeResumeRow } from "./services/costVisibility.js";
 import { storeGeneratedResume, refundGeneration, ResumeStoreError, STORE_FAILED_SENTENCE, listGeneratedResumes,
          deleteGeneratedResume, sweepExpiredResumes, resumeRetentionDays } from "./services/generatedResumes.js";
 import { markPending } from "./services/applicationRecords.js";
@@ -10954,6 +10954,13 @@ app.get("/api/resumes/:jobId/pdf", requireAuth, (_req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // RESUME HISTORY
 // ═══════════════════════════════════════════════════════════════
+// ⛔ The admin's A+ swap stays silent on a reload (services/costVisibility.js userSafeResumeRow).
+function resumeRowView(req) {
+  let swapActive = false;
+  try { swapActive = resolveEntitlement(db, req.user.id, "a_plus_default").value === true; } catch { /* no flag: nothing to hide */ }
+  const admin = mayActAsAdmin(req);
+  return (row) => userSafeResumeRow(row, { admin, swapActive });
+}
 app.get("/api/resumes", requireAuth, (req, res) => {
   const rows = db.prepare(`
     SELECT r.id, r.user_id, r.job_id, r.company, r.role, r.category,
@@ -10966,7 +10973,8 @@ app.get("/api/resumes", requireAuth, (req, res) => {
     LEFT JOIN resume_versions v ON v.user_id=r.user_id AND v.job_id=r.job_id
     WHERE r.user_id=? GROUP BY r.id ORDER BY r.updated_at DESC
   `).all(req.user.id);
-  res.json(rows.map(r => ({ ...r, atsReport: JSON.parse(r.ats_report || "null"), html: undefined })));
+  const view = resumeRowView(req);
+  res.json(rows.map(r => view({ ...r, atsReport: JSON.parse(r.ats_report || "null"), html: undefined })));
 });
 app.get("/api/resumes/:jobId", requireAuth, (req, res) => {
   const row = db.prepare(`
@@ -10977,11 +10985,12 @@ app.get("/api/resumes/:jobId", requireAuth, (req, res) => {
     GROUP BY r.id
   `).get(req.user.id, req.params.jobId);
   if (!row) return res.status(404).json({ error: "Resume not found" });
-  res.json({ ...row, atsReport: JSON.parse(row.ats_report || "null") });
+  res.json(resumeRowView(req)({ ...row, atsReport: JSON.parse(row.ats_report || "null") }));
 });
 app.get("/api/resumes/:jobId/versions", requireAuth, (req, res) => {
   const rows = db.prepare("SELECT * FROM resume_versions WHERE user_id=? AND job_id=? ORDER BY version DESC").all(req.user.id, req.params.jobId);
-  res.json(rows.map(r=>({...r,atsReport:JSON.parse(r.ats_report||"null")})));
+  const view = resumeRowView(req);
+  res.json(rows.map(r => view({ ...r, atsReport: JSON.parse(r.ats_report || "null") })));
 });
 app.delete("/api/resumes/:jobId", requireAuth, (req, res) => {
   // The DELETE was always correctly SCOPED — it could never remove another user's resume. What it

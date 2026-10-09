@@ -146,3 +146,16 @@ test("cost (h): the new line is an ordinary quota line — the panel's own class
   const tab = lf("client/src/panels/adminOps.jsx").slice(at(lf("client/src/panels/adminOps.jsx"), "export function CostsTab("));
   assert.doesNotMatch(tab, /999px|rounded-full|#[0-9a-fA-F]{3,6}\b/, "theme tokens and C.* only");
 });
+
+// ── (i) the swap stays silent on a reload ──────────────────────────────────────────────────────
+
+test("cost (i): a swapped résumé is listed as Generate to its non-admin owner; an admin and an unswapped user see the stored mode", async () => {
+  const { userSafeResumeRow } = await import("../services/costVisibility.js");
+  const row = { job_id: "j1", apply_mode: "CUSTOM_SAMPLER", html: "<p/>" };
+  assert.equal(userSafeResumeRow(row, { admin: false, swapActive: true }).apply_mode, "TAILORED");
+  assert.equal(userSafeResumeRow(row, { admin: true, swapActive: true }).apply_mode, "CUSTOM_SAMPLER");
+  assert.equal(userSafeResumeRow(row, { admin: false, swapActive: false }).apply_mode, "CUSTOM_SAMPLER", "an A+ the user chose stays A+");
+  const listing = SERVER.slice(at(SERVER, 'app.get("/api/resumes", requireAuth'), at(SERVER, 'app.delete("/api/resumes/:jobId"'));
+  assert.equal((listing.match(/view\(\{ \.\.\.r|resumeRowView\(req\)\(\{ \.\.\.row/g) || []).length, 3, "all three listings pass through it");
+  assert.match(SERVER, /swapActive = resolveEntitlement\(db, req\.user\.id, "a_plus_default"\)\.value === true/);
+});
