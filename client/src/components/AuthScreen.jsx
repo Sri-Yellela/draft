@@ -104,6 +104,8 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
   const [step1,   setStep1]   = useState({ username:"", password:"", confirmPassword:"", apify_token:"" });
   // Registration step 2
   const [step2,   setStep2]   = useState({ first_name:"", middle_name:"", last_name:"", name_suffix:"", email:"", phone:"" });
+  // ⭐ D73 §B 2: product news by email — a separate, OPTIONAL box that starts UNTICKED; never tied to the terms.
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [reset,   setReset]   = useState({ email:"", otp:"", password:"", confirmPassword:"", token:"" });
   const [resetSent, setResetSent] = useState(false);
   const [oauthStatus, setOauthStatus] = useState(null);
@@ -200,6 +202,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
           email:       step2.email.trim(),
           phone:       step2.phone.trim() || undefined,
         },
+        marketingOptIn: marketingOptIn === true,
       }) });
       if (d.user) { setAuthContext(d.authContext); onLogin(d.user); }
       else setError(d.error || "Registration failed");
@@ -417,6 +420,10 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
             onChange={e=>setS2("email",e.target.value)}/>
           <input style={inputStyle} placeholder="Phone (optional)" type="tel" value={step2.phone}
             onChange={e=>setS2("phone",e.target.value)}/>
+          <label data-marketing-opt-in="" style={{ display:"flex", gap:8, alignItems:"flex-start", fontSize:12, color:theme.textMuted, lineHeight:1.5, cursor:"pointer" }}>
+            <input type="checkbox" checked={marketingOptIn} onChange={e => setMarketingOptIn(e.target.checked)} style={{ marginTop:2 }}/>
+            <span>Email me product news (optional). Account emails, like a password reset, come either way. You can switch this off at any time.</span>
+          </label>
           {error && <div style={{ color:theme.danger, fontSize:12 }}>{error}</div>}
           <div style={{ display:"flex", gap:8, marginTop:4 }}>
             <button className="dbx-depth" type="button" onClick={() => { setRegStep(1); setError(""); }}

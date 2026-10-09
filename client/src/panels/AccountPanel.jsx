@@ -35,6 +35,27 @@ const input = { border: `1px solid ${C.BORDER_CONTROL}`, background: C.SURFACE_I
 const row = { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" };
 const muted = { color: "var(--color-text-muted)", fontSize: 12, lineHeight: 1.5 };
 
+/** D73 §B: the user's own marketing consent — the same record the sign-up box and the unsubscribe link write. */
+function MarketingSwitch({ say }) {
+  const [state, setState] = useState(null);
+  useEffect(() => { api("/api/account/marketing").then(setState).catch(() => setState({ error: true })); }, []);
+  if (!state) return null;
+  if (state.error) return <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>This setting is unavailable right now.</div>;
+  const set = async (optIn) => {
+    try {
+      setState(await api("/api/account/marketing", { method: "PUT", body: JSON.stringify({ optIn }) }));
+      say?.("ok", optIn ? "Product news is on." : "Product news is off.");
+    } catch (e) { say?.("error", e.message || "Could not save that."); }
+  };
+  const since = state.optedIn && state.since ? ` — on since ${new Date(state.since * 1000).toLocaleDateString()}` : "";
+  return (
+    <label data-marketing-switch="" style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, cursor: "pointer" }}>
+      <input type="checkbox" checked={state.optedIn} onChange={e => set(e.target.checked)} />
+      <span>Email me product news{since}</span>
+    </label>
+  );
+}
+
 // A93: the section card is components/SettingsSection.jsx — Integrations draws the same one.
 
 function Notice({ kind, children, onClose }) {
@@ -111,6 +132,11 @@ export function AccountPanel({ onSignedOut }) {
 
         <SettingsSection title="Email" subtitle="Used to sign in and to reset your password.">
           <EmailEditor account={account} busy={busy} run={run} post={post} say={say} />
+        </SettingsSection>
+
+        {/* ⭐ D73 §B: product news is opt-in; switching it off here is the same as the email's unsubscribe link. */}
+        <SettingsSection title="Product news" subtitle="Occasional email about what's new in draft. Account and policy notices come either way — they are about your account.">
+          <MarketingSwitch say={say} />
         </SettingsSection>
 
         <SettingsSection title="Sign-in & security"
