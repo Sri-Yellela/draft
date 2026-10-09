@@ -21,3 +21,12 @@ export function userSafeGeneration(body, { admin = false } = {}) {
 export function userCostView(allowance) {
   return { allowance, expectSeconds: GENERATION_EXPECT_SECONDS };
 }
+
+/**
+ * ⛔ The admin's A+ swap stays SILENT on a reload too (owner's go, 39d): a stored résumé whose Generate the
+ * `a_plus_default` flag upgraded is listed with the Generate mode for a non-admin — the stored HTML is the same.
+ */
+export function userSafeResumeRow(row, { admin = false, swapActive = false } = {}) {
+  if (admin || !swapActive || !row || row.apply_mode !== "CUSTOM_SAMPLER") return row;
+  return { ...row, apply_mode: "TAILORED" };
+}
