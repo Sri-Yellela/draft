@@ -1,4 +1,5 @@
-import { BRAND, SENDER_FROM } from "../shared/brand.js";
+import { BRAND, SENDER_FROM, SUPPORT_EMAIL } from "../shared/brand.js";
+import { isSuppressed } from "./emailSuppression.js";
 
 // ── Outbound email — one sender, honest about whether it can send ──────────────────────────────
 //
@@ -15,13 +16,21 @@ export function emailConfigured(env = process.env) {
  * Send one message. Returns { ok, provider } — ok:false (reason "email_unconfigured") when nothing
  * can be sent; throws only on a provider that answered with an error.
  */
-export async function sendEmail({ to, subject, text, fetchImpl = fetch, env = process.env }) {
+//
+// ⭐ D73 §B (10-09): `html`, `headers` and `replyTo` are carried; SERVICE mail (the default) stays plain text
+// and replies go to support@ (noreply@ has no inbox). ⛔ A SUPPRESSED address (a hard bounce or a spam
+// complaint, recorded by the Resend webhook) is never sent to — pass `db` and the check is made here, for
+// every caller, transactional included.
+export async function sendEmail({ to, subject, text, html = null, headers = null, replyTo = SUPPORT_EMAIL, db = null,
+                                  fetchImpl = fetch, env = process.env }) {
   if (!to || !subject || !text) return { ok: false, reason: "invalid_message" };
+  if (db && isSuppressed(db, to)) return { ok: false, reason: "suppressed" };
   if (env.RESEND_API_KEY) {
     const response = await fetchImpl("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: env.EMAIL_FROM || env.PASSWORD_RESET_FROM || SENDER_FROM, to, subject, text }),
+      body: JSON.stringify({ from: env.EMAIL_FROM || env.PASSWORD_RESET_FROM || SENDER_FROM, to, subject, text,
+        ...(html ? { html } : {}), ...(replyTo ? { reply_to: replyTo } : {}), ...(headers ? { headers } : {}) }),
     });
     if (!response.ok) throw new Error(`email send failed: ${response.status}`);
     return { ok: true, provider: "resend" };

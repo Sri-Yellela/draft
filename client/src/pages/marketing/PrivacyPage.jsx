@@ -511,9 +511,16 @@ export function PrivacyPage() {
             <LI>To save your work and sync it across devices.</LI>
             <LI>To authenticate you securely.</LI>
             <LI>
-              To send account emails — and only two kinds: a password-reset link when you ask for one,
-              and a one-time code that confirms a new email address when you change yours. We send{" "}
-              <Strong>no marketing email</Strong>: there is no mailing list and no marketing sign-up.
+              To send account emails: a password-reset link when you ask for one, a one-time code that
+              confirms a new email address when you change yours, and <Strong>service notices</Strong> —
+              about this policy, the terms or the service — sent to every account they concern. A service
+              notice says why you are receiving it, and it is not marketing.
+            </LI>
+            <LI>
+              <Strong>Product news, only if you ask for it.</Strong> An optional box at sign-up — unticked
+              unless you tick it, and separate from accepting the terms — or Settings → Account → Product
+              news. We record when and where you said yes. Every product email would carry a one-click
+              unsubscribe link, and switching it off never stops account emails. We have not sent any yet.
             </LI>
             <LI>
               To improve the service using aggregate, anonymized usage patterns only.
@@ -616,8 +623,9 @@ export function PrivacyPage() {
               terms and filters are sent to Adzuna when you search; no personal data is included.
             </LI>
             <LI>
-              <Strong>Resend</Strong> — sends our account emails (the password-reset link and the
-              new-address code above). It receives your email address and that message, and nothing else.
+              <Strong>Resend</Strong> — sends our account emails (the password-reset link, the new-address
+              code and service notices above). It receives your email address and that message, and tells us
+              when an address bounces or reports a message as spam, so that we stop sending to it.
             </LI>
             <LI>
               <Strong>Cloudflare Email Routing</Strong> — receives mail you send to {CONTACT_EMAIL} or{" "}

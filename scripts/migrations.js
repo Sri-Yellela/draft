@@ -4258,4 +4258,34 @@ export const MIGRATIONS = [
         ALTER TABLE auth_contexts ADD COLUMN auth_at INTEGER;
       `,
     },
+    {
+      // ⭐ D73 §B (owner, 10-09: email set up — Cloudflare Email Routing, Resend verified, EMAIL_FROM set). Marketing
+      // consent stored honestly (a sign-up checkbox, OFF by default; when and where), the one-click unsubscribe's
+      // stamp, the suppression list the Resend webhook fills (hard bounces, spam complaints — nothing is sent to an
+      // address on it), and the notice log (who, when, which audience, how many — never the content).
+      id: "154_email_consent",
+      sql: `
+        ALTER TABLE users ADD COLUMN marketing_opt_in INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE users ADD COLUMN marketing_opt_in_at INTEGER;
+        ALTER TABLE users ADD COLUMN marketing_opt_in_source TEXT;
+        ALTER TABLE users ADD COLUMN unsubscribed_at INTEGER;
+        CREATE TABLE IF NOT EXISTS email_suppressions (
+          email TEXT PRIMARY KEY,
+          reason TEXT NOT NULL,
+          event_id TEXT,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS notice_log (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          admin_user_id INTEGER,
+          audience TEXT NOT NULL,
+          recipients INTEGER NOT NULL,
+          sent INTEGER NOT NULL DEFAULT 0,
+          skipped INTEGER NOT NULL DEFAULT 0,
+          failed INTEGER NOT NULL DEFAULT 0,
+          test INTEGER NOT NULL DEFAULT 0,
+          at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];

@@ -209,6 +209,8 @@ import { validateResumeClaims, checkCandidateConsistency } from "./services/kb/f
 // guard's finding form for the kbFindings review surface.
 import { profileContradictionFindings, checkResumeClaims } from "./services/resumeClaimGuard.js";
 import { createByomRouters } from "./routes/byom.js";
+import { createEmailRouters } from "./routes/email.js";
+import { setMarketingConsent } from "./services/emailConsent.js";
 import { resolveEntitlement } from "./services/entitlementResolver.js";
 import { buildStructuredResume } from "./services/resumeFormatter.js";
 import { skillVocabularyTerms } from "./services/skillVocabulary.js";
@@ -4673,6 +4675,36 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE auth_contexts ADD COLUMN auth_at INTEGER;
       `,
     },
+    {
+      // ⭐ D73 §B (owner, 10-09: email set up — Cloudflare Email Routing, Resend verified, EMAIL_FROM set). Marketing
+      // consent stored honestly (a sign-up checkbox, OFF by default; when and where), the one-click unsubscribe's
+      // stamp, the suppression list the Resend webhook fills (hard bounces, spam complaints — nothing is sent to an
+      // address on it), and the notice log (who, when, which audience, how many — never the content).
+      id: "154_email_consent",
+      sql: `
+        ALTER TABLE users ADD COLUMN marketing_opt_in INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE users ADD COLUMN marketing_opt_in_at INTEGER;
+        ALTER TABLE users ADD COLUMN marketing_opt_in_source TEXT;
+        ALTER TABLE users ADD COLUMN unsubscribed_at INTEGER;
+        CREATE TABLE IF NOT EXISTS email_suppressions (
+          email TEXT PRIMARY KEY,
+          reason TEXT NOT NULL,
+          event_id TEXT,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS notice_log (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          admin_user_id INTEGER,
+          audience TEXT NOT NULL,
+          recipients INTEGER NOT NULL,
+          sent INTEGER NOT NULL DEFAULT 0,
+          skipped INTEGER NOT NULL DEFAULT 0,
+          failed INTEGER NOT NULL DEFAULT 0,
+          test INTEGER NOT NULL DEFAULT 0,
+          at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -6875,6 +6907,9 @@ app.use(cors({ origin:corsOrigin, credentials:true }));
 app.use("/api/crawler", createCrawlerWorkerRouter(db));
 // ⛔ D76: Railway's webhook — public, header-authenticated, its own 16 KB cap, read-only (deploy_events).
 app.use("/api/hooks", createRailwayHookRouter(db));
+// ⭐ D73 §B: Resend's webhook (Svix-signed over the RAW body) — before the JSON parser, like Railway's.
+const emailRouters = createEmailRouters({ db, requireAuth, requireAdmin });
+app.use(emailRouters.hooksRouter);
 // ⛔ D86: bring-your-own-model résumés. The doors a host calls server-to-server (OAuth metadata, register,
 // token, revoke, /mcp) come BEFORE the session and auth-context middleware — an OAuth token is the only
 // credential they read; the consent screen and the settings come after, on the person's session.
@@ -6945,6 +6980,7 @@ app.use(bindAuthContext);
 // cross-origin POST, so the attack cannot simply omit it.
 app.use(rejectCrossSiteWrites({ allowedOrigins: ALLOWED_CORS_ORIGINS, hasHeaderToken: (req) => !!getRequestAuthContextToken(req) }));
 app.use(byomRouters.sessionRouter);
+app.use(emailRouters.appRouter);
 
 const CLIENT_DIST = path.join(__dirname,"client","dist");
 app.use(express.static(CLIENT_DIST));
@@ -7050,6 +7086,9 @@ app.post("/api/auth/register", (req, res) => {
         profile.clearance_level||null, profile.visa_type||null, profile.work_auth||null
       );
     db.prepare("UPDATE users SET apify_token=? WHERE id=?").run(apifyToken||null, newUser.id);
+    // ⭐ D73 §B 2: product news only when the sign-up box was TICKED (it starts unticked) — never inferred,
+    // never bundled with the terms; recorded with when and where.
+    if (req.body?.marketingOptIn === true) setMarketingConsent(db, newUser.id, true, "signup");
     const sessionUser = { id:newUser.id, username, isAdmin:false, applyMode:"SIMPLE", planTier:"BASIC", domainProfileComplete:false };
     req.logIn(sessionUser, e => {
       if (e) return res.status(500).json({ error:"Account created but login failed. Please sign in." });
@@ -7259,7 +7298,7 @@ app.post("/api/auth/password-reset/request", async (req, res) => {
           resetUrl,
           otp: reset.otp,
           expiresAt: reset.expiresAt,
-        });
+        }, { db });   // D73 §B: never to a suppressed address
       } catch(e) {
         console.error("[password-reset] email send failed:", e.message);
       }

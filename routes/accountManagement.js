@@ -187,7 +187,7 @@ export function createAccountManagementRouter({
     const recent = db.prepare("SELECT COUNT(*) n FROM email_codes WHERE user_id = ? AND created_at > unixepoch() - 3600").get(req.user.id).n;
     if (recent >= 5) throw new AccountError(429, "too_many_codes", "Too many codes in the last hour. Try again later.");
     const code = issueEmailCode(db, req.user.id, { purpose: "email", email, pepper: codePepper });
-    const sent = await sendVerificationCodeEmail({ to: email, code, purpose: "confirm your new Draft email address" });
+    const sent = await sendVerificationCodeEmail({ to: email, code, purpose: "confirm your new Draft email address" }, { db });
     if (!sent?.ok) throw new AccountError(503, "email_unconfigured", "The code couldn't be sent. Try again later.");
     res.json({ ok: true, sentTo: email });
   }));

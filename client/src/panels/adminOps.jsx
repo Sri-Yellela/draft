@@ -1298,3 +1298,92 @@ export function PluginTab({ theme }) {
     </div>
   );
 }
+
+// ⭐ D73 §B 5 · ADMIN → SYSTEM → NOTICES — policy, terms and service notices (D83's rules: a purpose, the
+// numbers first, the action stating what it does, a history). Dry run first; a ceiling; test-to-me.
+export function NoticesTab({ theme }) {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState(null);
+  const [form, setForm] = useState({ audience: "all", subject: "", body: "", why: "" });
+  const [dry, setDry] = useState(null);
+  const [ceiling, setCeiling] = useState("");
+  const [result, setResult] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(() => { setErr(null); api("/api/admin/notices").then(setD).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { load(); }, [load]);
+  const set = (k) => (e) => { setForm(f => ({ ...f, [k]: e.target.value })); setDry(null); setResult(null); };
+  const run = async (path, body) => {
+    setBusy(true); setErr(null);
+    try { return await api(path, { method: "POST", body: JSON.stringify(body) }); }
+    catch (e) { setErr(e.message); return null; }
+    finally { setBusy(false); }
+  };
+  if (!d) return <Err msg={err}/>;
+  const input = { width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 6, border: `1px solid ${theme.border}`,
+    background: theme.surface, color: theme.text, fontSize: 13, fontFamily: "inherit" };
+  const ready = form.subject.trim() && form.body.trim() && form.why.trim();
+  const needsRaise = dry && dry.overCeiling;
+  return (
+    <div data-admin-notices="">
+      <Err msg={err}/>
+      <Card theme={theme} title="Send a notice">
+        <div style={{ fontSize: 13, color: theme.textMuted, marginBottom: 12, maxWidth: 760 }}>
+          A policy, terms or service notice to users' account email. It is not marketing: no opt-in is needed, and each one says
+          why the user is receiving it. Suppressed addresses (hard bounces, spam complaints) are skipped. Count first — sending refuses
+          above the ceiling of {d.defaultCeiling} unless you raise it to at least the count.
+          {!d.configured && <span style={{ color: C.WARNING }}> Email is not configured on this server — nothing would be sent.</span>}
+        </div>
+        <div style={{ display: "grid", gap: 10, maxWidth: 720 }}>
+          <label style={{ fontSize: 12, color: theme.textMuted }}>Audience
+            <select value={form.audience} onChange={set("audience")} style={{ ...input, marginTop: 4 }}>
+              {Object.entries(d.audiences).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </label>
+          <label style={{ fontSize: 12, color: theme.textMuted }}>Subject
+            <input value={form.subject} onChange={set("subject")} style={{ ...input, marginTop: 4 }} maxLength={140}/></label>
+          <label style={{ fontSize: 12, color: theme.textMuted }}>Message (plain text)
+            <textarea value={form.body} onChange={set("body")} rows={8} style={{ ...input, marginTop: 4 }}/></label>
+          <label style={{ fontSize: 12, color: theme.textMuted }}>Why they receive it (printed at the end)
+            <input value={form.why} onChange={set("why")} placeholder="our privacy policy is changing on 1 November" style={{ ...input, marginTop: 4 }}/></label>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <Btn theme={theme} disabled={busy} onClick={async () => setDry(await run("/api/admin/notices/dry-run", { audience: form.audience }))}>Count recipients (sends nothing)</Btn>
+            <Btn theme={theme} disabled={busy || !ready} onClick={async () => setResult(await run("/api/admin/notices/send", { ...form, test: true }))}>Send a test to me</Btn>
+            {dry && (
+              <span style={{ fontSize: 12, color: theme.text }} data-notice-dry="">
+                <b>{dry.recipients}</b> recipient{dry.recipients === 1 ? "" : "s"} · {dry.suppressed} suppressed
+                {needsRaise ? <span style={{ color: C.WARNING }}> — above the ceiling of {dry.ceiling}</span> : null}
+              </span>
+            )}
+          </div>
+          {dry && (
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              {needsRaise && (
+                <label style={{ fontSize: 12, color: theme.textMuted }}>Raise the ceiling to
+                  <input value={ceiling} onChange={e => setCeiling(e.target.value)} inputMode="numeric" style={{ ...input, width: 90, marginLeft: 6, display: "inline-block" }}/></label>
+              )}
+              <Btn theme={theme} danger disabled={busy || !ready || (needsRaise && Number(ceiling) < dry.recipients)}
+                onClick={async () => { if (!window.confirm(`Send this notice to ${dry.recipients} people now?`)) return;
+                  setResult(await run("/api/admin/notices/send", { ...form, ceiling: needsRaise ? Number(ceiling) : null })); load(); }}>
+                Send to {dry.recipients}
+              </Btn>
+            </div>
+          )}
+          {result && <div style={{ fontSize: 12, color: theme.text }} role="status">
+            {result.test ? "Test" : "Sent"}: {result.sent} sent · {result.skipped} skipped · {result.failed} failed{result.reason ? ` (${result.reason})` : ""}</div>}
+        </div>
+      </Card>
+      <Card theme={theme} title="History — who, when, how many (never the content)">
+        <Table theme={theme} rows={d.log} empty="No notices sent yet." cols={[
+          { key: "at", label: "When", render: r => ago(r.at) },
+          { key: "username", label: "By" },
+          { key: "audience", label: "Audience" },
+          { key: "recipients", label: "Recipients", right: true },
+          { key: "sent", label: "Sent", right: true },
+          { key: "skipped", label: "Skipped", right: true },
+          { key: "failed", label: "Failed", right: true },
+          { key: "test", label: "Test", render: r => (r.test ? "yes" : "") },
+        ]}/>
+      </Card>
+    </div>
+  );
+}
