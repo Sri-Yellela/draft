@@ -249,7 +249,8 @@ In the order the developer dashboard asks. ⛔ The owner pastes, ticks and uploa
 4. **Language** — English.
 5. **Store icon** — 128×128: `extension/icons/icon128.png` (uploaded separately from the zip; the package does not carry the listing icon).
 6. **Screenshots** — 1280×800 PNG: `docs/store-screenshots/1-review-overlay.png`, `2-popup.png`, `3-options.png`.
-   ⛔ **Taken 2026-09-26, before D63 redesigned the popup, badge and overlay** — regenerate (`npm run store:screenshots`) before upload.
+   ✅ **Regenerated 2026-10-09** (`npm run store:screenshots`, ALL PASS, the synthetic Ada Lovelace fixture) — they show
+   the D63 popup, overlay and options page.
 7. **Small promo tile** — 440×280: **none in the repository.** ⚠ Check whether the dashboard requires it.
 8. **Marquee promo tile** — 1400×560, optional: none.
 9. **Official URL / homepage** — `https://jobsviadraft.com`.

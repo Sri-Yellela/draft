@@ -10,9 +10,11 @@ it lands.
 
 | file | dimensions | colour type | bits | bytes |
 |---|---|---|---|---|
-| `docs/store-screenshots/1-review-overlay.png` | 1280×800 | 2 (truecolour, no alpha) | 24 | 46,604 |
-| `docs/store-screenshots/2-popup.png` | 1280×800 | 2 (truecolour, no alpha) | 24 | 30,373 |
-| `docs/store-screenshots/3-options.png` | 1280×800 | 2 (truecolour, no alpha) | 24 | 29,785 |
+| `docs/store-screenshots/1-review-overlay.png` | 1280×800 | 2 (truecolour, no alpha) | 24 | 61,372 |
+| `docs/store-screenshots/2-popup.png` | 1280×800 | 2 (truecolour, no alpha) | 24 | 48,175 |
+| `docs/store-screenshots/3-options.png` | 1280×800 | 2 (truecolour, no alpha) | 24 | 58,645 |
+
+✅ **Regenerated 2026-10-09 for the v1.5.0 release** (after D63 redesigned the popup, badge and overlay; ALL PASS, synthetic candidate). ⚠ The overlay's small buttons (`.rm-btn`, radius 11 on a ~26px control) read as capsules — a D60 finding, logged, not changed mid-release.
 
 ⚠ **Regenerated 2026-09-26 for P4.** The byte counts above are the post-rebrand ones; the shots
 taken on 2026-08-27 were 47,052 / 30,177 / 31,109 and showed the old brand in frame. ⛔ Do not read
