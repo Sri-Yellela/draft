@@ -11,16 +11,19 @@
 // cap is abuse protection, not cost.
 import { getSetting, setSetting, settingTruthy } from "../appSettings.js";
 import { HOSTS } from "./oauthServer.js";
+import { resolveEntitlement } from "../entitlementResolver.js";
+import { BYO_DAILY_CAP_DEFAULT } from "../../shared/entitlements.js";
 
 export const KEYS = Object.freeze({
   enabled: "byom_enabled",
   cap: "byom_daily_cap",
   host: (h) => `byom_host_${h}`,
 });
-export const DEFAULT_DAILY_CAP = 50;
+export const DEFAULT_DAILY_CAP = BYO_DAILY_CAP_DEFAULT;
 export const CALLS_PER_HOUR = 120;
 
-export function globalEnabled(db) { return settingTruthy(getSetting(db, KEYS.enabled)); }
+// ⭐ D88 P1: the switch and the cap are the resolver's (plugin_byo, byo_daily_cap) — the same settings, read in one place.
+export function globalEnabled(db) { return resolveEntitlement(db, null, "plugin_byo").value === true; }
 
 export function hostEnabled(db, host) {
   if (host === "local") return process.env.NODE_ENV !== "production";
@@ -29,10 +32,7 @@ export function hostEnabled(db, host) {
   return v === null ? true : settingTruthy(v);
 }
 
-export function dailyCap(db) {
-  const n = Number(getSetting(db, KEYS.cap));
-  return Number.isInteger(n) && n > 0 && n <= 1000 ? n : DEFAULT_DAILY_CAP;
-}
+export function dailyCap(db) { return resolveEntitlement(db, null, "byo_daily_cap").value; }
 
 export function userEnabled(db, userId) {
   try { return db.prepare("SELECT byom_enabled FROM users WHERE id = ?").pluck().get(userId) === 1; }

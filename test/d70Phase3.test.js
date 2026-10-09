@@ -160,7 +160,9 @@ test("D70 P3 (c): the summary says which tool the button RUNS — the admin A+ f
   assert.match(aplus.sentence, /a plain Generate is about 7¢/);
   const route = SERVER.slice(at(SERVER, 'app.get("/api/generate/cost"'), at(SERVER, 'app.post("/api/generate"'));
   assert.match(route, /requireAuth/);
-  assert.match(route, /SELECT aplus_resume FROM users WHERE id=\?/, "the same flag /api/generate upgrades with");
+  // D88 P1: both read the resolver's a_plus_default — one source for the flag.
+  assert.match(route, /resolveEntitlement\(db, req\.user\.id, "a_plus_default"\)/, "the same flag /api/generate upgrades with");
+  assert.match(SERVER, /const userFlags = \{ aplus_resume: resolveEntitlement\(db, req\.user\.id, "a_plus_default"\)\.value \};/);
   assert.match(route, /generationCostSummary\(db, \{ aplusFlag \}\)/);
 });
 

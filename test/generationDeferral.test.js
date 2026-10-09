@@ -249,7 +249,8 @@ test("the queue cap no longer claims each queued application generates a resume"
   assert.doesNotMatch(capBlock, /Each queued application generates a resume/,
     "queueing no longer generates anything on the default path");
   assert.match(capBlock, /opened and previewed/);
-  assert.match(applyRoute, /APPLY_DAILY_QUEUE_CAP", 40\)/,
+  // D88 P1: the default lives in the feature registry now; the number is the same.
+  assert.match(fs.readFileSync("shared/entitlements.js", "utf8"), /envInt\(env, "APPLY_DAILY_QUEUE_CAP", 40\)/,
     "the LIMIT itself must not have been changed unilaterally — that is the owner's call");
 });
 

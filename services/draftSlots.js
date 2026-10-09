@@ -20,6 +20,7 @@
 // The window is the trailing 24 hours — the same window as every other apply cap (queuedLast24h,
 // approvedLast24h, submittedLast24h) — and the copy says "in the last 24 hours", not "today".
 import { DECK_SIZE } from "./dailyDraft.js";
+import { resolveEntitlement } from "./entitlementResolver.js";
 
 export function draftSlotLimit(env = process.env) {
   const n = Number(env?.DAILY_DRAFT_SLOTS);
@@ -74,7 +75,9 @@ export function draftSlots(db, userId, { now = Math.floor(Date.now() / 1000), en
   const since = now - WINDOW_SECONDS;
   const drafts = draftsUsed(db, userId, since);
   const generations = generationsUsed(db, userId, since);
-  const limit = draftSlotLimit(env);
+  // ⭐ D88 P1: the limit is the resolver's (global → override → plan → system); its system default is
+  // draftSlotLimit(env) below, unchanged.
+  const limit = resolveEntitlement(db, userId, "draft_slots", { env }).value;
   const used = drafts + generations;
   const oldest = used > 0 ? oldestUse(db, userId, since) : null;
   return { limit, used, remaining: Math.max(0, limit - used), drafts, generations, windowHours: 24,
