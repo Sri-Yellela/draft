@@ -4238,6 +4238,7 @@ export const MIGRATIONS = [
           user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
           connection_id INTEGER,
           tool TEXT NOT NULL,
+          job_id TEXT,
           outcome TEXT NOT NULL,
           detail TEXT,
           at INTEGER NOT NULL DEFAULT (unixepoch())

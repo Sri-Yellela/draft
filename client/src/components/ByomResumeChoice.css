@@ -1,29 +1,41 @@
-/* ⭐ D86 · the Résumé button's choice and its four steps. Rectangles, radius 6 — no pills (D60). */
+/* ⭐ D86 · the Résumé split button and its four steps (plugin-ui.html, tab 2). Rectangles — no pills (D60). */
 .byom { position: relative; display: inline-flex; }
-.byom__caret svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.byom__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.byom__menu {
-  position: absolute; top: calc(100% + 6px); right: 0; z-index: 40; min-width: 260px;
+/* The split: the two halves share an edge. */
+.byom .byom__main { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: 0; }
+.byom .byom__car { border-top-left-radius: 0; border-bottom-left-radius: 0; width: 36px; padding: 0; }
+.byom .byom__car svg { width: 15px; height: 15px; }
+.byom--sq .byom__car { height: auto; align-self: stretch; }
+.byom__pop {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; width: 320px; max-width: calc(100vw - 32px);
   display: flex; flex-direction: column; padding: 6px;
-  background: var(--c-surface-menu); border: 1px solid var(--c-border-control); border-radius: 6px;
-  box-shadow: 0 8px 24px var(--c-scrim);
+  background: var(--c-surface-menu); border: 1px solid var(--c-border-control); border-radius: 6px; box-shadow: var(--c-depth-hover);
 }
-.byom__item {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
-  padding: 8px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--c-ink);
-  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+.byom__opt {
+  display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; text-align: left;
+  padding: 9px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--c-ink-muted);
+  font: inherit; font-size: 12.5px; cursor: pointer;
 }
-.byom__item small { font-size: 11px; font-weight: 400; color: var(--c-ink-muted); }
-.byom__item:hover:not(:disabled), .byom__item:focus-visible { background: var(--c-hover); outline: none; }
-.byom__item:disabled { cursor: not-allowed; color: var(--c-ink-faint); }
-.byom__item--link span { color: var(--c-accent-ink); }
-.byom__flow { padding: 0 18px 10px; font-size: 11px; }
-.byom__steps { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 4px; padding: 0; list-style: none; counter-reset: byom; }
-.byom__steps li { counter-increment: byom; color: var(--c-ink-faint); }
-.byom__steps li::before { content: counter(byom) ". "; }
-.byom__steps li[data-state="done"] { color: var(--c-success); font-weight: 700; }
-.byom__steps li[data-state="now"] { color: var(--c-ink); font-weight: 700; }
-.byom__note { margin: 2px 0 0; color: var(--c-ink-muted); }
-.byom__note--warn { color: var(--c-warning); font-weight: 700; }
-.byom__note--ok { color: var(--c-success); font-weight: 700; }
-@container pp (max-width: 599.98px) { .byom__menu { right: auto; left: 0; } }
+.byom__opt b { display: block; color: var(--c-ink); font-family: 'Poppins', var(--font-body); font-style: italic; font-weight: 800; font-size: 13px; }
+.byom__opt:hover:not(:disabled), .byom__opt:focus-visible { background: var(--c-hover); outline: none; }
+.byom__opt[aria-checked="true"] { box-shadow: inset 3px 0 0 var(--c-accent-ink); }
+.byom__opt:disabled { cursor: not-allowed; opacity: .55; }
+.byom__foot { padding: 7px 10px; font-size: 11.5px; color: var(--c-ink-faint); }
+.byom__link { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--c-accent-ink); cursor: pointer; }
+.byom__link:hover { text-decoration: underline; }
+/* The four steps. */
+.byom__flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 4px 18px 12px; }
+@container pp (max-width: 699.98px) { .byom__flow { grid-template-columns: 1fr 1fr; } }
+.byom__fs {
+  --s: var(--c-border);
+  background: var(--c-surface-solid); border: 1px solid var(--c-border); border-top: 4px solid var(--s); border-radius: 6px;
+  padding: 10px 11px; font-size: 11.5px; line-height: 1.45; color: var(--c-ink-muted); box-shadow: var(--c-depth-rest); min-height: 104px;
+}
+.byom__fs h5 { margin: 0 0 4px; color: var(--c-ink); font-family: 'Poppins', var(--font-body); font-style: italic; font-weight: 800; font-size: 12.5px; }
+.byom__fs p { margin: 0; }
+.byom__fs p + p { margin-top: 6px; }
+.byom__fs[data-s="active"] { --s: var(--c-accent); border-color: var(--c-accent-ink); }
+.byom__fs[data-s="done"] { --s: var(--c-success); }
+.byom__fs[data-s="wait"] { opacity: .55; }
+.byom__fs--bad { --s: var(--c-danger); }
+.byom__fs b { color: var(--c-ink); }
+.byom__go { margin-top: 8px; height: 32px; font-size: 11px; }

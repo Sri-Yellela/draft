@@ -110,11 +110,12 @@ function PostingActions({ job, meta, slots, cost = null, onCoverLetter }) {
     ? "No drafts left in the last 24 hours — a new résumé uses one, like a Draft."
     : `${done ? "Regenerate" : "Generate"} résumé${cost?.runs === "a_plus_resume" ? " (A+)" : ""} — uses 1 of your ${slots?.limit ?? 10} drafts (a Draft uses one too)` +
       (costLabel ? `; one model call, ${costLabel}` : "");
-  // ⭐ D86: the caret beside Résumé — write it with draft, or in the user's own ChatGPT or Claude. Absent
-  // while the operator's switch is off; the one click stays draft's Generate.
+  // ⭐ D86: while the operator's switch is on, the Résumé (and Regenerate) control is a SPLIT button — the
+  // caret chooses draft or the user's own ChatGPT / Claude (plugin-ui.html, tab 2). While it is off, the plain
+  // buttons below are drawn exactly as before; the default method is draft's Generate either way.
   const byom = useByomFlow(selectedJob);
-  const byomChoice = (square) => canGen && onGenerate && (
-    <ByomResumeChoice byom={byom} square={square} onGenerate={() => (hasArtifact ? regen() : onGenerate(false))} generateDisabled={!!st || noSlots} />
+  const split = (square, label, onRun) => (
+    <ByomResumeChoice byom={byom} square={square} label={label} onGenerate={onRun} disabled={!!st || noSlots} busy={generateLoading} />
   );
   const quota = slots
     ? (noSlots
@@ -129,7 +130,8 @@ function PostingActions({ job, meta, slots, cost = null, onCoverLetter }) {
         {onSave && <SaveButton saved={!!selectedJob.starred} onSave={onSave} />}
         {canApply && onDraft && <DraftButton logo drafted={!!drafted} drafting={!!drafting} onDraft={onDraft} {...draftProps} />}
         <span className="pp__div" aria-hidden="true" />
-        {canGen && onGenerate && !hasArtifact && (
+        {canGen && onGenerate && !hasArtifact && byom.available && split(false, "Résumé", () => onGenerate(false))}
+        {canGen && onGenerate && !hasArtifact && !byom.available && (
           <DepthButton icon={ICONS.resume} onClick={() => onGenerate(false)} title={resumeTitle}
             disabled={!!st || noSlots}>
             {generateLoading ? "Generating…" : "Résumé"}
@@ -137,12 +139,12 @@ function PostingActions({ job, meta, slots, cost = null, onCoverLetter }) {
         )}
         {hasArtifact && <DepthButton icon={ICONS.preview} onClick={() => onViewSandbox?.()} title="View the résumé">View</DepthButton>}
         {hasArtifact && <DepthButton icon={ICONS.pdf} onClick={() => onExport?.()} title="Download the résumé as a PDF">Download</DepthButton>}
-        {hasArtifact && canGen && onGenerate && (
+        {hasArtifact && canGen && onGenerate && byom.available && split(false, "Regenerate", regen)}
+        {hasArtifact && canGen && onGenerate && !byom.available && (
           <DepthButton icon={ICONS.resume} onClick={regen} title={resumeTitle} disabled={!!st || noSlots}>
             {generateLoading ? "Generating…" : "Regenerate"}
           </DepthButton>
         )}
-        {byomChoice(false)}
         <DepthButton icon={ICONS.letter} onClick={onCoverLetter} title="Write a cover letter">Cover letter</DepthButton>
       </div>
       {/* B — icon squares, when the panel is condensed. */}
@@ -152,23 +154,24 @@ function PostingActions({ job, meta, slots, cost = null, onCoverLetter }) {
         {canApply && onDraft && <DraftButton logo square drafted={!!drafted} drafting={!!drafting} onDraft={onDraft} {...draftProps}
           badge={slots ? slots.remaining : null} />}
         <span className="pp__div" aria-hidden="true" />
-        {canGen && onGenerate && !hasArtifact && (
+        {canGen && onGenerate && !hasArtifact && byom.available && split(true, "Résumé", () => onGenerate(false))}
+        {canGen && onGenerate && !hasArtifact && !byom.available && (
           <DepthButton size="square" icon={ICONS.resume} onClick={() => onGenerate(false)}
             title={resumeTitle} caption="Résumé" disabled={!!st || noSlots}>Generate résumé</DepthButton>
         )}
         {hasArtifact && <DepthButton size="square" icon={ICONS.preview} onClick={() => onViewSandbox?.()} title="View the résumé" caption="View">View résumé</DepthButton>}
         {hasArtifact && <DepthButton size="square" icon={ICONS.pdf} onClick={() => onExport?.()} title="Download the résumé as a PDF" caption="PDF">Download résumé</DepthButton>}
-        {hasArtifact && canGen && onGenerate && (
+        {hasArtifact && canGen && onGenerate && byom.available && split(true, "Redo", regen)}
+        {hasArtifact && canGen && onGenerate && !byom.available && (
           <DepthButton size="square" icon={ICONS.resume} onClick={regen}
             title={resumeTitle} caption="Redo" disabled={!!st || noSlots}>Regenerate résumé</DepthButton>
         )}
-        {byomChoice(true)}
         <DepthButton size="square" icon={ICONS.letter} onClick={onCoverLetter} title="Write a cover letter" caption="Letter">Cover letter</DepthButton>
       </div>
       {/* ⭐ D57: the state, in words — "Résumé ready · 2h ago". */}
       {hasArtifact && <p className="pp__ready" data-resume-ready="">{ago ? `Résumé ready · ${ago}` : "Résumé ready"}</p>}
       {/* ⭐ D86: Open → Waiting for your résumé… → Checks → Done, updating itself while the user is in the chat. */}
-      <ByomStatus byom={byom} />
+      <ByomStatus byom={byom} onView={() => onViewSandbox?.()} onDownload={() => onExport?.()} />
       {/* ⭐ D56: the manual route records its own submission, here too — not only the extension. */}
       {hasArtifact && job?.jobId && <ManualSubmitted jobId={job.jobId} />}
       {/* A63: the shared allowance, said before anything is pressed — a muted line in A, the badge in B. */}

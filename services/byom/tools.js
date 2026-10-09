@@ -117,7 +117,8 @@ export function createByomTools(deps) {
       if (brief.status === "used") {
         if (brief.patch_hash === hash) {
           const row = db.prepare("SELECT ats_score FROM resume_versions WHERE user_id = ? AND job_id = ? AND version = ?").get(userId, brief.job_id, brief.resume_version);
-          return { saved: true, repeated: true, job_id: brief.job_id, ats_score: row?.ats_score ?? null, base_ats_score: brief.base_ats_score,
+          const j = deps.jobFor(brief.job_id) || {};
+          return { saved: true, repeated: true, job_id: brief.job_id, title: j.title ?? null, company: j.company ?? null, ats_score: row?.ats_score ?? null, base_ats_score: brief.base_ats_score,
             link: jobLink(deps.appUrl, brief.job_id), message: "This patch was already saved; nothing new was written." };
         }
         throw new ToolRefusal("brief_used", "This brief was already used for a saved résumé. Call get_generation_brief again to write another.");
@@ -153,7 +154,7 @@ export function createByomTools(deps) {
         const attempts = brief.attempts + 1;
         const status = attempts >= MAX_ATTEMPTS ? "exhausted" : "open";
         db.prepare("UPDATE byom_briefs SET attempts = ?, status = ?, last_refusal = ? WHERE id = ?")
-          .run(attempts, status, JSON.stringify(reasons.map(r => ({ code: r.code, message: r.message }))), brief.id);
+          .run(attempts, status, JSON.stringify(reasons.map(r => ({ code: r.code, message: r.message, ...(r.term ? { term: r.term } : {}) }))), brief.id);
         notify(userId, brief.job_id, "refused", { reasons: reasons.map(r => r.message), attemptsLeft: MAX_ATTEMPTS - attempts });
         throw new ToolRefusal("refused", status === "exhausted"
           ? `Refused, and this was attempt ${attempts} of ${MAX_ATTEMPTS}: the brief is closed. Nothing was saved.`
@@ -169,7 +170,7 @@ export function createByomTools(deps) {
       const below = report?.score != null && brief.base_ats_score != null && report.score < brief.base_ats_score;
       notify(userId, brief.job_id, "done", { atsScore: report?.score ?? null, baseAtsScore: brief.base_ats_score, belowBase: below });
       return {
-        saved: true, job_id: brief.job_id, version: stored.version,
+        saved: true, job_id: brief.job_id, title: job.title ?? null, company: job.company ?? null, version: stored.version,
         ats_score: report?.score ?? null, base_ats_score: brief.base_ats_score,
         ...(below ? { warning: `The tailored résumé scores ${report.score}, below the base résumé's ${brief.base_ats_score}. The candidate may prefer the base résumé.` } : {}),
         scorable: report?.scorable !== false,
