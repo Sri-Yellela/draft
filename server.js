@@ -4662,6 +4662,17 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE users ADD COLUMN byom_enabled INTEGER NOT NULL DEFAULT 0;
       `,
     },
+    {
+      // ⛔ Sessions A′ (owner, 10-09): THE STEP-UP CHECK READS THE IDENTITY THAT IS ACTING. A tab's token and the
+      // browser's cookie can belong to two different accounts (two tabs, two sign-ins); the recent-sign-in check
+      // for sensitive account changes read the COOKIE session's authAt while acting as the TOKEN's user. Each
+      // auth context now carries its own sign-in time: set when a browser sign-in issues it, refreshed by
+      // POST /api/account/reauth, NULL for session-less tokens (the extension, the phone).
+      id: "153_auth_context_auth_at",
+      sql: `
+        ALTER TABLE auth_contexts ADD COLUMN auth_at INTEGER;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -5664,8 +5675,8 @@ function issueAuthContext(userId, req, options = {}) {
   const now = Math.floor(Date.now() / 1000);
   db.prepare("DELETE FROM auth_contexts WHERE expires_at <= ? OR revoked_at IS NOT NULL").run(now - 86400);
   db.prepare(`
-    INSERT INTO auth_contexts (token_hash, user_id, created_at, last_seen_at, expires_at, user_agent, session_sid)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO auth_contexts (token_hash, user_id, created_at, last_seen_at, expires_at, user_agent, session_sid, auth_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     authContextHash(token),
     userId,
@@ -5677,8 +5688,26 @@ function issueAuthContext(userId, req, options = {}) {
     // browser's tokens and nobody else's. sessionLess:true is for the extension token, which is
     // deliberately not tied to a browser session and is revoked on its own endpoint.
     options.sessionLess ? null : (req.sessionID || null),
+    // Sessions A′ (153): a browser token is issued AT a sign-in, so that is its sign-in time — the
+    // step-up check reads it for the identity that is acting. A session-less token was not a sign-in.
+    options.sessionLess ? null : now * 1000,
   );
   return token;
+}
+
+// Sessions A′: the acting token's own sign-in time (ms) and the session it was issued under — "this browser"
+// for that tab — and the refresh of the sign-in time by POST /api/account/reauth.
+function authContextAuthAt(token) {
+  if (!token) return null;
+  try {
+    const r = db.prepare("SELECT auth_at, session_sid FROM auth_contexts WHERE token_hash = ? AND revoked_at IS NULL").get(authContextHash(token));
+    return r ? { authAt: r.auth_at ?? null, sid: r.session_sid ?? null } : null;
+  } catch { return null; }
+}
+function stampAuthContextAuthAt(token, atMs = Date.now()) {
+  if (!token) return;
+  try { db.prepare("UPDATE auth_contexts SET auth_at = ? WHERE token_hash = ? AND revoked_at IS NULL").run(atMs, authContextHash(token)); }
+  catch { /* the stamp is a convenience; the check fails closed without it */ }
 }
 
 // Revoke every credential belonging to ONE browser: the token the request presented, plus every
@@ -7276,8 +7305,22 @@ app.post("/api/auth/password-reset/confirm", async (req, res) => {
 //
 // A DIFFERENT browser profile keeps its own cookie jar and its own sid, so it is unaffected —
 // that is the guarantee that matters, not per-tab scoping within one profile.
+//
+// ⛔ SESSIONS A′ (owner, 10-09): ONE EXCEPTION — TWO ACCOUNTS IN ONE BROWSER. Each tab carries its own token,
+// and the shared cookie belongs to whichever account signed in last. Measured on a throwaway server: the admin
+// in tab A, the owner's own account in tab B — when the ADMIN signed out, tab B was signed out too, because
+// this route destroyed the cookie, which was tab B's. So when the tab's token belongs to a DIFFERENT account
+// than the cookie, the sign-out takes that tab's account — its token, and anything issued under that
+// account's own session — and leaves the cookie (the other account) alone. In every other case, the rule
+// above: the machine.
 app.post("/api/auth/logout", (req, res) => {
   const token = getRequestAuthContextToken(req);
+  const cookieUserId = req.session?.passport?.user ?? null;
+  if (token && cookieUserId != null && req.authContextToken && req.user && req.user.id !== cookieUserId) {
+    const ctx = authContextAuthAt(token);
+    revokeBrowserAuthContexts(ctx?.sid && ctx.sid !== req.sessionID ? ctx.sid : null, token);
+    return res.json({ ok:true, scope:"tab" });
+  }
   // req.logout() regenerates the session, so read the sid we are revoking against BEFORE it runs.
   const sid = req.sessionID;
   revokeBrowserAuthContexts(sid, token);
@@ -7903,6 +7946,8 @@ app.use(createAccountManagementRouter({
   sendVerificationCodeEmail,
   codePepper: PASSWORD_RESET_SECRET,
   revokeBrowserAuthContexts,
+  authContextAuthAt,
+  stampAuthContextAuthAt,
   clearSessionCookie: (res) => res.clearCookie("connect.sid", { httpOnly:true, secure:process.env.NODE_ENV === "production", sameSite:SESSION_SAMESITE }),
   findLoginUser: (identifier) => identifier ? db.prepare(`
     SELECT u.* FROM users u LEFT JOIN user_profile up ON up.user_id = u.id

@@ -33,7 +33,8 @@ test("admin route guards never fall through to the regular user app", () => {
   //   AdminRouteGate    — unauthenticated or non-admin  -> /admin/login
   //   PublicLoginRoute  — an already-signed-in admin    -> /admin (never falls through to /app)
   assert.match(app, /function AdminRouteGate[\s\S]{0,400}?<Navigate to="\/admin\/login" replace\/>/);
-  assert.match(app, /function PublicLoginRoute[\s\S]{0,400}?authUser\.isAdmin \? <Navigate to="\/admin" replace\/>/);
+  // 10-09: the window grew with D86's consent return and the A′ notice; the redirect itself is unchanged.
+  assert.match(app, /function PublicLoginRoute[\s\S]{0,1400}?authUser\.isAdmin \? <Navigate to="\/admin" replace\/>/);
   assert.doesNotMatch(adminBlock, /Navigate to="\/app"/);
 });
 

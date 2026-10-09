@@ -102,10 +102,25 @@ function PublicLoginRoute({ authStatus, authUser, children, admin = false }) {
     return null;
   }
   if (authStatus === "authenticated" && authUser) {
-    if (admin) return authUser.isAdmin ? <Navigate to="/admin" replace/> : children;
-    return authUser.isAdmin ? <Navigate to="/admin" replace/> : <Navigate to="/app" replace/>;
+    // ⭐ Sessions A′ (owner, 10-09): the admin and the owner's own account can be open at once, one per tab.
+    // A tab arriving at the OTHER kind's sign-in page signs that account in here and leaves the first tab
+    // alone — so it is shown the form, and told plainly whose session this browser already has.
+    if (admin) return authUser.isAdmin ? <Navigate to="/admin" replace/> : <><SignedInElsewhere user={authUser} admin/>{children}</>;
+    return authUser.isAdmin ? <><SignedInElsewhere user={authUser}/>{children}</> : <Navigate to="/app" replace/>;
   }
   return children;
+}
+
+/** Sessions A′: "this browser is signed in as … in another tab" — above the other kind of sign-in form. */
+export function SignedInElsewhere({ user, admin = false }) {
+  return (
+    <div role="status" data-signed-in-elsewhere="" style={{ position: "relative", zIndex: 5, boxSizing: "border-box",
+      width: "min(560px, calc(100% - 32px))", margin: "12px auto 0", padding: "10px 14px", borderRadius: 6, fontSize: 13, lineHeight: 1.5,
+      background: "var(--color-surface-offset)", color: "var(--color-text)", border: "1px solid var(--color-border)", borderLeft: "3px solid var(--color-primary)" }}>
+      This browser is signed in as <strong>{user.username}</strong>{user.isAdmin ? " (admin)" : ""} in another tab.{" "}
+      {admin ? "Sign in as an admin here" : "Sign in with your own account here"} — that tab stays signed in.
+    </div>
+  );
 }
 // The board's search field. A separate component purely because AppDashboard RENDERS
 // <JobBoardProvider> and therefore sits outside it — useJobBoard() called up there would read a
