@@ -21,6 +21,7 @@ import { api, authHeaders, authContextQuery, downloadBlob } from "../lib/api.js"
 import { C } from "../styles/colorTokens.js";
 import { markStyle, LOGO_FACE } from "../styles/mark.js";
 import DepthButton from "../components/DepthButton.jsx";
+import { Help, Mark, NumberBox, Step, Dialog, panel, h2, what, row, quiet, sub, callout, field } from "./adminKit.jsx";
 import {
   enrichmentPrompt, buildPieces, checkPiece, redoPiece, mergeFilled, applyGate, refusalCounts, withoutRefused,
   PIECE_SIZES, DEFAULT_PIECE_SIZE, pieceFileName, matchReplies, notesCsv, zipStore, NOTE_CODES,
@@ -40,37 +41,7 @@ const COLUMN_WORDS = {
   org_unit_raw: "Team",
 };
 
-// ── small parts ──────────────────────────────────────────────────────────────────────────────────
-
-// A ? that holds the project vocabulary (and any detail) out of the main text. A perfect circle — allowed (D60).
-function Help({ tip }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <span style={{ position: "relative", display: "inline-block", verticalAlign: "middle", marginLeft: 5 }}>
-      <button type="button" aria-label={tip} title={tip} data-tip={tip}
-        onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
-        onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
-        style={{ width: 18, height: 18, borderRadius: "50%", border: `1px solid ${C.BORDER_STRONG}`, padding: 0,
-                 background: "transparent", color: C.INK_FAINT, fontWeight: 700, fontSize: 11, lineHeight: 1, cursor: "help" }}>?</button>
-      {open && (
-        <span role="tooltip" style={{ position: "absolute", left: "50%", bottom: "calc(100% + 8px)", transform: "translateX(-50%)",
-          width: 240, background: C.INK, color: C.SURFACE_SOLID, fontWeight: 500, fontSize: 11.5, lineHeight: 1.4, padding: "8px 10px",
-          borderRadius: 8, zIndex: 9, textAlign: "left" }}>{tip}</span>
-      )}
-    </span>
-  );
-}
-
-function Mark({ tone, children }) { return <span style={markStyle(tone)}>{children}</span>; }
-
-function NumberBox({ value, label, good }) {
-  return (
-    <div style={{ background: C.SURFACE_SOLID, border: `1px solid ${C.BORDER}`, borderRadius: 12, padding: "12px 14px" }}>
-      <b style={{ display: "block", font: "400 34px/1 'Instrument Serif', Georgia, serif", color: good ? C.SUCCESS : C.ACCENT_INK }}>{value}</b>
-      <span style={{ fontSize: 11.5, color: C.INK_FAINT }}>{label}</span>
-    </div>
-  );
-}
+// ── the enrichment page's own part ──
 
 function CoverageBar({ label, filled, total, gain = 0 }) {
   const p = pctOf(filled, total), add = pctOf(gain, total);
@@ -85,59 +56,6 @@ function CoverageBar({ label, filled, total, gain = 0 }) {
       <span style={{ textAlign: "right", font: "700 12px ui-monospace, monospace" }}>
         {p}%{add > 0 && <span style={{ color: C.SUCCESS }}> → {Math.round((p + add) * 10) / 10}%</span>}
       </span>
-    </div>
-  );
-}
-
-const panel = { background: C.SURFACE_SOLID, border: `1px solid ${C.BORDER}`, borderRadius: 16, padding: "18px 20px", marginBottom: 14 };
-const h2 = { font: `800 italic 20px/1.1 ${LOGO_FACE}`, color: C.INK, margin: 0 };
-const what = { fontSize: 13, color: C.INK_MUTED, margin: "6px 0 16px", maxWidth: "80ch" };
-const row = { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" };
-const quiet = { fontSize: 12, color: C.INK_FAINT };
-const sub = { border: `1px solid ${C.BORDER}`, borderRadius: 11, padding: "11px 13px", background: C.CANVAS };
-const callout = (tone) => ({ borderLeft: `3px solid ${tone}`, background: `color-mix(in srgb, ${tone} 10%, transparent)`,
-  borderRadius: "0 9px 9px 0", padding: "8px 11px", fontSize: 12, color: C.INK_MUTED });
-const field = { background: C.SURFACE_INPUT, border: `1px solid ${C.BORDER_CONTROL}`, color: C.INK, borderRadius: 9,
-  padding: "8px 10px", fontWeight: 500, fontSize: 12.5 };
-
-function Step({ n, state, title, children }) {
-  const active = state === "active", done = state === "done";
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "40px 1fr", gap: 12, marginBottom: 10 }}>
-      <div style={{ width: 34, height: 34, borderRadius: 9, display: "grid", placeItems: "center", marginTop: 10,
-        font: `800 italic 14px ${LOGO_FACE}`, border: `1px solid ${active ? C.ACCENT : done ? C.SUCCESS : C.BORDER}`,
-        background: active ? C.ACCENT : done ? C.SUCCESS_QUIET : C.CANVAS, color: active ? C.ON_ACCENT : done ? C.SUCCESS : C.INK_FAINT }}>{n}</div>
-      <section aria-current={active ? "step" : undefined} aria-label={`Step ${n}: ${title}`}
-        style={{ background: C.SURFACE_SOLID, border: `1px solid ${active ? C.ACCENT_INK : C.BORDER}`,
-          borderLeft: `4px solid ${active ? C.ACCENT : done ? C.SUCCESS : C.BORDER}`, borderRadius: 13, padding: "12px 15px",
-          opacity: state === "locked" ? 0.6 : 1 }}>
-        <div style={{ ...row }}>
-          <h3 style={{ font: `800 italic 15px/1.1 ${LOGO_FACE}`, color: C.INK, flex: 1, margin: 0 }}>{title}</h3>
-          {done ? <Mark tone={C.SUCCESS}>Done</Mark> : active ? <Mark tone={C.ACCENT_INK}>Your turn</Mark> : <Mark tone={C.INK_FAINT}>Waiting</Mark>}
-        </div>
-        {state !== "locked" && <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>{children}</div>}
-      </section>
-    </div>
-  );
-}
-
-function Dialog({ title, children, onCancel, confirmLabel, onConfirm, busy }) {
-  useEffect(() => {
-    const k = (e) => { if (e.key === "Escape") onCancel(); };
-    window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
-  }, [onCancel]);
-  return (
-    <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: C.SCRIM, display: "grid", placeItems: "center", zIndex: 50 }}>
-      <div role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}
-        style={{ background: C.SURFACE_MODAL, border: `1px solid ${C.BORDER}`, borderRadius: 16, padding: 20, maxWidth: 440 }}>
-        <h4 style={{ font: `800 italic 17px ${LOGO_FACE}`, color: C.INK, margin: "0 0 8px" }}>{title}</h4>
-        <div style={{ fontSize: 12.5, color: C.INK_MUTED }}>{children}</div>
-        <div style={{ ...row, marginTop: 14 }}>
-          <DepthButton onClick={onCancel}>Go back</DepthButton>
-          <DepthButton primary disabled={busy} onClick={onConfirm} autoFocus>{busy ? "Working…" : confirmLabel}</DepthButton>
-        </div>
-      </div>
     </div>
   );
 }
