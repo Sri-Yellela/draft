@@ -219,9 +219,10 @@ test("(b) Re-tag Pool is gone; Hide is Unclassify and its confirm states the eff
   assert.match(ui, />\s*Unclassify\s*</);
   assert.match(ui, /SHOWN ON EVERY BOARD/);
   const reassign = ui.slice(at(ui, "const reassign = async"), at(ui, "const undoLast"));
-  for (const needle of ["/api/admin/db/job-review/impact/", "confirm(", "/api/admin/db/job-review/reassign"]) assert.ok(reassign.includes(needle), needle);
-  assert.ok(reassign.indexOf("/api/admin/db/job-review/impact/") < reassign.indexOf("confirm("), "the count is read before the confirm");
-  assert.ok(reassign.indexOf("confirm(") < reassign.indexOf("/api/admin/db/job-review/reassign"), "and the confirm comes before the write");
+  // D83 (39d): the confirm is the in-page one (useConfirm), still between the count and the write.
+  for (const needle of ["/api/admin/db/job-review/impact/", "await ask(", "/api/admin/db/job-review/reassign"]) assert.ok(reassign.includes(needle), needle);
+  assert.ok(reassign.indexOf("/api/admin/db/job-review/impact/") < reassign.indexOf("await ask("), "the count is read before the confirm");
+  assert.ok(reassign.indexOf("await ask(") < reassign.indexOf("/api/admin/db/job-review/reassign"), "and the confirm comes before the write");
   assert.match(reassign, /describeImpact\(impact\)/);
 });
 
@@ -321,11 +322,17 @@ test("(d) ⛔ the route refuses an apply that did not quote its dry run; the but
   const route = read("routes/enrichment.js");
   const body = route.slice(at(route, 'router.post("/batches/:id/revert"'));
   assert.ok(body.indexOf("req.body?.expectRestorable !== preview.restorable") < body.indexOf("revertBatch(db, id)"));
-  const ui = code(read("client/src/pages/admin/DBInspector.jsx"));
-  const revert = ui.slice(at(ui, "const revert = async (batchId)"), at(ui, "const confirmRevert"));
+  // D83 audit #21 (39d): the inspector's round trip is retired; Admin → Enrichment's Undo is the one revert button.
+  assert.doesNotMatch(code(read("client/src/pages/admin/DBInspector.jsx")), /enrichment\/batches\/.*\/revert/);
+  const ui = code(read("client/src/panels/adminEnrichment.jsx"));
+  const revert = ui.slice(at(ui, "const askUndo = async (b)"), at(ui, "const doUndo"));
   assert.doesNotMatch(revert, /apply: true/, "the first click is the dry run");
-  const confirmRevert = ui.slice(at(ui, "const confirmRevert"), at(ui, "const plan      = dry?.body?.plan;"));
-  assert.ok(confirmRevert.includes("confirm(") && confirmRevert.indexOf("confirm(") < confirmRevert.indexOf("apply: true"));
-  assert.match(confirmRevert, /JSON\.stringify\(\{ apply: true, expectRestorable: p\.restorable \}\)/);
-  assert.match(confirmRevert, /p\.changedSince/);
+  assert.match(revert, /body: "\{\}"/);
+  const doUndo = ui.slice(at(ui, "const doUndo"), at(ui, "};", at(ui, "const doUndo")));
+  assert.match(doUndo, /JSON\.stringify\(\{ apply: true, expectRestorable: undoPlan\.restorable \}\)/);
+  // the apply is reachable only from the confirm dialog, which states what is restored and what changed since
+  const dialog = ui.slice(at(ui, "{undoPlan && ("), at(ui, "{undoPlan && (") + 900);
+  assert.match(dialog, /<Dialog title=\{`Undo import #\$\{undoPlan\.batchId\}\?`\}/);
+  assert.match(dialog, /onConfirm=\{doUndo\}|doUndo/);
+  assert.match(dialog, /undoPlan\.changedSince/);
 });
