@@ -7,6 +7,7 @@ import { useTheme } from "../../styles/theme.jsx";
 import { C } from "../../styles/colorTokens.js";
 import { atsBandFor, atsBandLabel } from "../../../../shared/atsBands.js";
 import StatCard from "../../components/StatCard.jsx";
+import { useConfirm } from "../../panels/adminKit.jsx";
 // A50 step 6: the board's bands, not the v3-era 70/50 ramp (under v4 that ramp painted almost every
 // score red). Admin still sees the number beside the band — it is a diagnostic tool.
 const BAND_COLOR = { strong: C.SUCCESS, moderate: C.WARNING, weak: C.DANGER };
@@ -24,7 +25,6 @@ const ROW_STRIPE = C.HOVER;
 const TABS = [
   { id: "scrape",   label: "Pipeline Health" },
   { id: "schema",   label: "Schema Explorer" },
-  { id: "tables",   label: "Table Browser" },
   { id: "pool",     label: "User Pool" },
   { id: "review",   label: "Job Review" },
   { id: "trace",    label: "Job Trace" },
@@ -290,29 +290,6 @@ const HEALTH_STYLE = {
   paused:          { color:C.INK_FAINT, label:"PAUSED" },
 };
 
-// 0% must be visually alarming — skills_json sat at 0/684 while nothing surfaced it.
-function coverageColor(pct, theme) {
-  if (pct === 0)  return C.DANGER;
-  if (pct < 25)   return C.WARNING;
-  if (pct >= 75)  return C.SUCCESS;
-  return theme.text;
-}
-
-function CoverageBar({ item, theme }) {
-  const c = coverageColor(item.pct, theme);
-  return (
-    <div style={{ display:"grid", gridTemplateColumns:"150px 1fr 90px", gap:10, alignItems:"center", fontSize:11 }}>
-      <div style={{ color:theme.textMuted, fontFamily:"monospace" }}>{item.column}</div>
-      <div style={{ height:8, background:theme.bg, borderRadius:2, overflow:"hidden", border:`1px solid ${theme.border}` }}>
-        <div style={{ width:`${Math.max(item.pct, item.pct > 0 ? 1.5 : 0)}%`, height:"100%", background:c, transition:"width 0.2s" }}/>
-      </div>
-      <div style={{ color:c, fontWeight:700, textAlign:"right" }}>
-        {item.pct}% <span style={{ color:theme.textDim, fontWeight:400 }}>{fmt(item.nonNull)}</span>
-      </div>
-    </div>
-  );
-}
-
 function ScrapeMonitorTab({ theme }) {
   const [health, setHealth] = useState(null);
   const [data, setData] = useState(null);
@@ -379,7 +356,7 @@ function ScrapeMonitorTab({ theme }) {
           ))}
         </select>
         <button onClick={load}
-          style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
+          style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
                    padding:"5px 14px", fontWeight:700, fontSize:11, cursor:"pointer" }}>
           Refresh
         </button>
@@ -568,7 +545,7 @@ function ScrapeMonitorTab({ theme }) {
         <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, padding:"14px 16px", marginBottom:16 }}>
           <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em",
                         color:theme.textMuted, marginBottom:12 }}>
-            Enrichment Coverage — % of {fmt(health.enrichment.activeTotal)} active rows with a value
+            Enrichment — {fmt(health.enrichment.activeTotal)} active rows
           </div>
           {/* A48: unenriched rows are the ones that score "not enough signal" (~30% of them; enriched
               rows 0%), so skills_json's share below sets how much of the board can get a band. */}
@@ -577,9 +554,8 @@ function ScrapeMonitorTab({ theme }) {
             “not enough signal”. {fmt(health.enrichment.waitingForEnrichment ?? 0)} active rows wait;
             last enriched {ago(health.enrichment.lastEnrichedAt)}.
           </div>
-          <div style={{ display:"grid", gap:7 }}>
-            {health.enrichment.coverage.map(c => <CoverageBar key={c.column} item={c} theme={theme}/>)}
-          </div>
+          {/* D83 audit #20: the per-column coverage bars are Admin → The board → Enrichment's — the third copy is gone. */}
+          <a href="/admin?g=board&s=enrichment" style={{ fontSize:12, color:theme.text }}>Coverage per column → Admin → The board → Enrichment</a>
           {health.enrichment.recentRuns.length > 0 && (
             <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${theme.border}`, fontSize:11, color:theme.textMuted }}>
               <span style={{ fontWeight:700 }}>Last enrichment run: </span>
@@ -749,440 +725,9 @@ function ScrapeMonitorTab({ theme }) {
   );
 }
 
-// ── Enrichment round trip: export → enrich elsewhere → import ────────────────────────────────
-//
-// U5.1 — THE INJECTION SIDE, AS A CONTROL AND NOT ONLY AN ENDPOINT. The Schema Explorer shipped
-// Export CSV and Download .sql and nothing that writes back, so the owner went looking for a way
-// to inject externally-enriched rows and found none. POST /api/admin/enrichment/import existed the
-// whole time. An endpoint nobody can find is a feature that does not exist, so it lives here, next
-// to the two export controls, where somebody looking for the other half of the round trip is
-// already standing.
-//
-// ⛔ THE TWO DANGEROUS FLAGS ARE NOT CHECKBOXES. `overwrite` replaces values that are already
-// there and `allowStale` applies enrichment derived from text that has since changed. A checkbox
-// sitting next to the Apply button is a thing you tick without deciding. Both are rendered as
-// armed/disarmed switches that state the consequence in the label and turn red when armed, and
-// both reset to disarmed whenever the file changes — an arming decision belongs to the file it was
-// made for, not to the panel.
-//
-// ⛔ APPLY IS UNREACHABLE UNTIL A DRY RUN HAS PASSED ON THE EXACT TEXT IN THE BOX. Not "a dry run
-// was run at some point" — the panel keeps the text the plan was computed from and re-locks the
-// moment a byte differs. Otherwise an operator dry-runs a good file, pastes a different one, and
-// applies the first file's verdict to the second file's rows.
-function EnrichmentTransferPanel({ theme }) {
-  const [open, setOpen]           = useState(false);
-  const [text, setText]           = useState("");
-  const [overwrite, setOverwrite] = useState(false);
-  const [allowStale, setAllowStale] = useState(false);
-  const [busy, setBusy]           = useState(null);   // 'dry' | 'apply' | 'revert' | null
-  const [dry, setDry]             = useState(null);   // { forText, body }
-  const [result, setResult]       = useState(null);
-  const [err, setErr]             = useState(null);
-  const [exportRows, setExportRows] = useState(100);
-  const [allRows, setAllRows]     = useState(false);
-  const fileRef = useRef(null);
+// D83 audit #21 (39d): the enrichment round trip that lived here (EnrichmentTransferPanel, its armed switches and its
+// plan / result views) is RETIRED — Admin → The board → Enrichment does the same import, dry run first, with Undo.
 
-  // Any change to the file invalidates the plan AND disarms both flags. See the header comment:
-  // a verdict belongs to the bytes it was computed from.
-  const setFile = (t) => {
-    setText(t); setDry(null); setResult(null); setErr(null);
-    setOverwrite(false); setAllowStale(false);
-  };
-
-  // Raw application/x-ndjson rather than {"jsonl":"…"} in a JSON body. At the volume the owner
-  // intends (the whole board) the JSON-string form is ~5% larger AND is capped by the global 4mb
-  // express.json limit, which 790 exported rows exceed — a 413 with a non-JSON body, i.e. an
-  // unexplained failure at exactly the scale that matters. See routes/enrichment.js.
-  const post = async ({ apply }) => {
-    const qs = new URLSearchParams();
-    if (apply) qs.set("apply", "1");
-    if (overwrite) qs.set("overwrite", "1");
-    if (allowStale) qs.set("allowStale", "1");
-    const ctx = authContextQuery();
-    if (ctx) for (const [k, v] of new URLSearchParams(ctx)) qs.set(k, v);
-    const r = await fetch(`/api/admin/enrichment/import?${qs}`, {
-      method: "POST", credentials: "include",
-      headers: authHeaders({ "Content-Type": "application/x-ndjson" }),
-      body: text,
-    });
-    // 422 is the malformed-batch refusal and its body carries the rejected rows — the most useful
-    // response this panel can render, so it is read rather than thrown away as an HTTP error.
-    const payload = await r.json().catch(() => ({ error: `HTTP ${r.status} (no JSON body)` }));
-    return { ok: r.ok, status: r.status, payload };
-  };
-
-  const runDry = async () => {
-    setBusy("dry"); setErr(null); setResult(null);
-    try {
-      const { ok, payload } = await post({ apply: false });
-      if (!ok) { setErr(payload.error || "Dry run failed."); setDry(null); }
-      else setDry({ forText: text, body: payload });
-    } catch (e) { setErr(e.message); }
-    finally { setBusy(null); }
-  };
-
-  const runApply = async () => {
-    setBusy("apply"); setErr(null);
-    try {
-      const { ok, payload } = await post({ apply: true });
-      if (!ok) { setErr(payload.error || "Import refused."); setResult(null); }
-      else { setResult(payload); setDry(null); }
-    } catch (e) { setErr(e.message); }
-    finally { setBusy(null); }
-  };
-
-  // A58 (d): Revert runs the route's DRY RUN first and shows what it would restore — how many rows,
-  // and how many were re-enriched or re-imported since (a revert clobbers those back). Only then can
-  // it be confirmed, and the apply quotes the dry run's count back, so the server refuses a stale one.
-  const [revertPlan, setRevertPlan] = useState(null);
-  const revert = async (batchId) => {
-    setBusy("revert"); setErr(null); setRevertPlan(null);
-    try {
-      setRevertPlan(await api(`/api/admin/enrichment/batches/${batchId}/revert`, {
-        method: "POST", body: JSON.stringify({}),
-      }));
-    } catch (e) { setErr(e.message); }
-    finally { setBusy(null); }
-  };
-  const confirmRevert = async () => {
-    const p = revertPlan;
-    if (!p) return;
-    if (!confirm(`Revert batch #${p.batchId}: restore ${p.restorable} row(s) to their state before it.` +
-        (p.changedSince ? `\n\n${p.changedSince} of them were changed AFTER this batch; that later change is lost.` : "") +
-        "\n\nContinue?")) return;
-    setBusy("revert"); setErr(null);
-    try {
-      await api(`/api/admin/enrichment/batches/${p.batchId}/revert`, {
-        method: "POST", body: JSON.stringify({ apply: true, expectRestorable: p.restorable }),
-      });
-      setResult(r => ({ ...r, reverted: true })); setRevertPlan(null);
-    } catch (e) { setErr(e.message); }
-    finally { setBusy(null); }
-  };
-
-  const plan      = dry?.body?.plan;
-  const planFresh = dry && dry.forText === text;
-  const canApply  = Boolean(planFresh && plan?.valid && plan?.wouldWrite > 0) && !busy;
-
-  const exportHref = () => {
-    const qs = new URLSearchParams();
-    if (allRows) qs.set("allRows", "1");
-    if (exportRows) qs.set("limit", String(exportRows));
-    const ctx = authContextQuery();
-    if (ctx) for (const [k, v] of new URLSearchParams(ctx)) qs.set(k, v);
-    return `/api/admin/enrichment/export?${qs}`;
-  };
-
-  const btn = (extra = {}) => ({
-    padding: "6px 14px", borderRadius: 8, border: `1px solid ${theme.border}`,
-    background: theme.surfaceHigh, color: theme.text, cursor: "pointer",
-    fontSize: 12, fontWeight: 600, ...extra,
-  });
-
-  if (!open) {
-    return (
-      <button type="button" onClick={() => setOpen(true)} style={btn()}>
-        ⬆ Import Enrichment
-      </button>
-    );
-  }
-
-  return (
-    <div style={{ flexBasis: "100%", order: 99, marginTop: 12, padding: 16,
-                  border: `1px solid ${theme.border}`, borderRadius: 10, background: theme.surfaceHigh }}>
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-        <span style={{ fontSize: 13, fontWeight: 800 }}>Enrichment Round Trip</span>
-        <div style={{ flex: 1 }} />
-        <button type="button" onClick={() => setOpen(false)} style={btn({ padding: "4px 10px" })}>✕ Close</button>
-      </div>
-
-      <div style={{ fontSize: 12, lineHeight: 1.6, marginBottom: 10 }}>
-        The guided version of this round trip — pieces, a check on every reply, Undo on every import — is{" "}
-        <a href="/admin" style={{ fontWeight: 700, color: ACCENT_TEXT }}>Admin → Enrichment</a>.
-      </div>
-      <div style={{ fontSize: 11, color: theme.textMuted, lineHeight: 1.6, marginBottom: 14 }}>
-        Export candidates as JSONL, fill the <code>enrichment</code> object on each line elsewhere,
-        then import the file back. Only the <code>enrichment</code> keys are writable — the{" "}
-        <code>source</code> block is context and is ignored on import. Rows are matched on{" "}
-        <code>job_id</code>; unknown ids are rejected, never inserted.
-      </div>
-
-      {/* Step 1 — export */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-                      letterSpacing: "0.07em", color: theme.textMuted, marginBottom: 6 }}>
-          1 · Export
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <label style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 5 }}>
-            rows
-            <input type="number" min={1} max={5000} value={exportRows}
-              onChange={e => setExportRows(Number(e.target.value))}
-              style={{ width: 70, background: theme.surface, color: theme.text,
-                       border: `1px solid ${theme.border}`, borderRadius: 6, padding: "3px 6px", fontSize: 11 }}/>
-          </label>
-          <label style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 5 }}>
-            <input type="checkbox" checked={allRows} onChange={e => setAllRows(e.target.checked)}/>
-            all rows (not just candidates)
-          </label>
-          <a href={exportHref()} style={{ ...btn({ textDecoration: "none", color: ACCENT_TEXT }), display: "inline-block" }}>
-            ⬇ Export JSONL
-          </a>
-        </div>
-        {/* Measured, not guessed — see routes/enrichment.js. 790 rows with their source blocks is
-            5.06 MB as a JSON body, over the 4mb limit; this panel uploads raw, but chunking still
-            keeps each batch individually revertible. */}
-        <div style={{ fontSize: 10, color: theme.textMuted, marginTop: 6 }}>
-          JSONL, not CSV — CSV cannot represent <code>skills_json</code>'s nested array or tell a
-          blank cell from a null. Keep batches to ~500 rows; each import is its own revertible batch.
-        </div>
-      </div>
-
-      {/* Step 2 — the file */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-                      letterSpacing: "0.07em", color: theme.textMuted, marginBottom: 6 }}>
-          2 · Enriched file
-        </div>
-        <input ref={fileRef} type="file" accept=".jsonl,.ndjson,.json,text/plain"
-          onChange={async e => {
-            const f = e.target.files?.[0];
-            if (f) setFile(await f.text());
-          }}
-          style={{ fontSize: 11, color: theme.textMuted, marginBottom: 8, display: "block" }}/>
-        <textarea value={text} onChange={e => setFile(e.target.value)} rows={6}
-          placeholder='{"job_id":"…","content_hash":"…","enrichment":{"summary":"…","skills_json":[{"skill":"Python","type":"hard"}]}}'
-          style={{ width: "100%", boxSizing: "border-box", background: C.SURFACE_SOLID, color: C.INK,
-                   border: `1px solid ${theme.border}`, borderRadius: 8, padding: "8px 10px",
-                   fontSize: 11, fontFamily: "monospace", lineHeight: 1.5, resize: "vertical" }}/>
-        <div style={{ fontSize: 10, color: theme.textMuted, marginTop: 4 }}>
-          {text ? `${text.split("\n").filter(l => l.trim()).length} non-empty line(s), ${(new Blob([text]).size / 1024).toFixed(1)} KB` : "no file loaded"}
-        </div>
-      </div>
-
-      {/* Step 3 — the two armed switches */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-                      letterSpacing: "0.07em", color: theme.textMuted, marginBottom: 6 }}>
-          3 · Write mode
-        </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <ArmedSwitch theme={theme} armed={overwrite} onToggle={() => setOverwrite(v => !v)}
-            disarmedLabel="Fill empty columns only"
-            armedLabel="⚠ OVERWRITE existing values"
-            hint={overwrite
-              ? "Values already on the board WILL be replaced by this file."
-              : "A column that already has a value is left alone and the skip is reported."}/>
-          <ArmedSwitch theme={theme} armed={allowStale} onToggle={() => setAllowStale(v => !v)}
-            disarmedLabel="Refuse changed postings"
-            armedLabel="⚠ APPLY to changed postings"
-            hint={allowStale
-              ? "Rows whose text changed since export WILL be written from stale enrichment."
-              : "A row whose content_hash moved since export is refused and reported."}/>
-        </div>
-      </div>
-
-      {/* Step 4 — dry run, then apply */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
-        <button type="button" onClick={runDry} disabled={!text || !!busy}
-          style={btn({ background: ACCENT, color: C.ON_ACCENT, border: "none", fontWeight: 700,
-                       opacity: !text || busy ? 0.5 : 1 })}>
-          {busy === "dry" ? "Planning…" : "Dry Run"}
-        </button>
-        <button type="button" onClick={runApply} disabled={!canApply}
-          style={btn({ background: canApply ? C.DANGER : "transparent",
-                       color: canApply ? C.SURFACE_SOLID : theme.textMuted,
-                       border: `1px solid ${canApply ? C.DANGER : theme.border}`,
-                       fontWeight: 700, cursor: canApply ? "pointer" : "not-allowed" })}>
-          {busy === "apply" ? "Applying…" : "Apply Import"}
-        </button>
-        <span style={{ fontSize: 10, color: theme.textMuted }}>
-          {!text ? "Load a file to begin."
-            : !planFresh ? "Dry run required — Apply unlocks only after a clean plan for this exact file."
-            : !plan?.valid ? "This file is rejected. Apply stays locked until every row validates."
-            : plan.wouldWrite === 0 ? "Nothing to write — the board already matches this file."
-            : `Ready: ${plan.wouldWrite} row(s) would be written.`}
-        </span>
-      </div>
-
-      <ErrBox msg={err} theme={theme}/>
-      {planFresh && <ImportPlanView body={dry.body} theme={theme}/>}
-      {result && <ImportResultView result={result} theme={theme}
-                    onRevert={revert} reverting={busy === "revert"}
-                    revertPlan={revertPlan} onConfirmRevert={confirmRevert} onCancelRevert={() => setRevertPlan(null)}/>}
-    </div>
-  );
-}
-
-// A two-state switch whose label states the CONSEQUENCE, not the setting name. Red when armed so
-// the dangerous state is visible from across the panel rather than being a tick in a box.
-function ArmedSwitch({ theme, armed, onToggle, disarmedLabel, armedLabel, hint }) {
-  return (
-    <button type="button" onClick={onToggle}
-      // Capped rather than flex:1 — stretched across a 1300px admin panel these read as two lines
-      // of prose, and a control that does not look like a control does not get treated as a choice.
-      style={{ flex: "1 1 300px", maxWidth: 460, textAlign: "left", padding: "8px 12px", borderRadius: 8,
-               border: `1px solid ${armed ? C.DANGER : theme.border}`,
-               background: armed ? C.DANGER_QUIET : theme.surface,
-               color: armed ? C.DANGER : theme.text, cursor: "pointer" }}>
-      <div style={{ fontSize: 11, fontWeight: 700 }}>{armed ? armedLabel : disarmedLabel}</div>
-      <div style={{ fontSize: 10, color: armed ? `${C.DANGER}99` : theme.textMuted, marginTop: 2 }}>{hint}</div>
-    </button>
-  );
-}
-
-// The dry run, rendered. Coverage first and counts second, deliberately: "790 rows matched" is the
-// number that proves nothing, and putting it above the per-column delta is how a null-extraction
-// batch gets waved through.
-function ImportPlanView({ body, theme }) {
-  const p = body.plan;
-  const cell = { padding: "3px 8px", fontSize: 11 };
-  return (
-    <div style={{ marginTop: 12, padding: 12, border: `1px solid ${theme.border}`, borderRadius: 8 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 8 }}>
-        DRY RUN — nothing was written
-      </div>
-      {body.warning && (
-        <div style={{ background: C.DANGER_QUIET, border: `1px solid ${C.DANGER}55`, borderRadius: 6,
-                      padding: "8px 10px", fontSize: 11, color: C.DANGER, marginBottom: 10 }}>
-          {body.warning}
-        </div>
-      )}
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 11, marginBottom: 10 }}>
-        <span>rows in file <b>{fmt(p.rowsInFile)}</b></span>
-        <span>matched <b>{fmt(p.matched)}</b></span>
-        <span>would write <b style={{ color: ACCENT_TEXT }}>{fmt(p.wouldWrite)}</b></span>
-        <span>nothing to write <b>{fmt(p.unchanged)}</b></span>
-        <span>rejected <b style={{ color: p.rejected.length ? C.DANGER : theme.text }}>{fmt(p.rejected.length)}</b></span>
-        <span style={{ color: theme.textMuted }}>{p.mode}</span>
-      </div>
-
-      {/* U5.9 — the per-column fill delta, which is the only thing that distinguishes a real
-          batch from 790 rows of nulls. */}
-      {body.coverage?.length > 0 && (
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: theme.textMuted, marginBottom: 4 }}>
-            PROJECTED FILL RATE over the {fmt(p.matched)} matched row(s) — columns would climb:{" "}
-            <b style={{ color: body.columnsWouldClimb ? C.SUCCESS : C.DANGER }}>{body.columnsWouldClimb}</b>
-          </div>
-          <table style={{ borderCollapse: "collapse" }}>
-            <tbody>
-              {body.coverage.filter(c => c.delta !== 0).map(c => (
-                <tr key={c.column}>
-                  <td style={{ ...cell, color: theme.textMuted }}>{c.column}</td>
-                  <td style={cell}>{c.before} → <b>{c.after}</b></td>
-                  <td style={{ ...cell, color: c.delta > 0 ? C.SUCCESS : C.DANGER }}>
-                    {c.delta > 0 ? `+${c.delta}` : c.delta}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {p.skippedNonNull?.length > 0 && (
-        <div style={{ fontSize: 10, color: theme.textMuted, marginBottom: 8 }}>
-          {p.skippedNonNull.length} row(s) had values skipped because the column was already
-          non-null — arm OVERWRITE to replace them.
-        </div>
-      )}
-
-      {p.rejected.length > 0 && (
-        <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: C.DANGER, marginBottom: 4 }}>
-            REJECTED — the file is applied as a whole or not at all
-          </div>
-          <div style={{ maxHeight: 180, overflowY: "auto" }}>
-            {p.rejected.slice(0, 50).map((r, i) => (
-              <div key={i} style={{ fontSize: 10, fontFamily: "monospace", color: C.DANGER, padding: "1px 0" }}>
-                line {r.line}{r.jobId ? ` (${r.jobId})` : ""} [{r.kind}]: {r.error}
-              </div>
-            ))}
-            {p.rejected.length > 50 && (
-              <div style={{ fontSize: 10, color: theme.textMuted }}>…and {p.rejected.length - 50} more</div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ImportResultView({ result, theme, onRevert, reverting, revertPlan, onConfirmRevert, onCancelRevert }) {
-  const cell = { padding: "3px 8px", fontSize: 11 };
-  return (
-    <div style={{ marginTop: 12, padding: 12, borderRadius: 8,
-                  border: `1px solid ${result.warning ? `${C.DANGER}55` : `${C.SUCCESS}55`}`,
-                  background: result.warning ? C.DANGER_QUIET : C.SUCCESS_QUIET }}>
-      <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 8 }}>
-        IMPORTED — {fmt(result.written)} row(s) written
-        {result.batchId != null && <span style={{ color: theme.textMuted, fontWeight: 400 }}> · batch #{result.batchId}</span>}
-      </div>
-      {result.warning && (
-        <div style={{ background: C.DANGER_QUIET, border: `1px solid ${C.DANGER}55`, borderRadius: 6,
-                      padding: "8px 10px", fontSize: 11, color: C.DANGER, marginBottom: 10 }}>
-          {result.warning}
-        </div>
-      )}
-      {result.coverage?.length > 0 && (
-        <table style={{ borderCollapse: "collapse", marginBottom: 10 }}>
-          <tbody>
-            {result.coverage.filter(c => c.delta !== 0).map(c => (
-              <tr key={c.column}>
-                <td style={{ ...cell, color: theme.textMuted }}>{c.column}</td>
-                <td style={cell}>{c.before} → <b>{c.after}</b></td>
-                <td style={{ ...cell, color: c.delta > 0 ? C.SUCCESS : C.DANGER }}>
-                  {c.delta > 0 ? `+${c.delta}` : c.delta}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {result.batchId != null && (
-        result.reverted
-          ? <span style={{ fontSize: 11, color: C.SUCCESS }}>✓ Batch #{result.batchId} reverted to its before-image.</span>
-          : <button type="button" onClick={() => onRevert(result.batchId)} disabled={reverting}
-              style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${theme.border}`,
-                       background: "transparent", color: theme.text, cursor: "pointer", fontSize: 11 }}>
-              {reverting ? "Checking…" : `↩ Revert batch #${result.batchId}…`}
-            </button>
-      )}
-      {revertPlan && !result.reverted && (
-        <div style={{ marginTop: 10, padding: 10, borderRadius: 8, border: `1px solid ${C.DANGER}55`, background: C.DANGER_QUIET }}>
-          <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 6 }}>
-            DRY RUN — revert batch #{revertPlan.batchId} would restore {fmt(revertPlan.restorable)} row(s)
-          </div>
-          <div style={{ fontSize: 11, color: theme.textMuted, lineHeight: 1.6 }}>
-            {fmt(revertPlan.recordedRows)} recorded · {fmt(revertPlan.missing)} cannot be restored (deleted or no before-image)
-            {revertPlan.changedSince > 0 && (
-              <div style={{ color: C.DANGER, fontWeight: 700 }}>
-                {fmt(revertPlan.changedSince)} row(s) were changed after this batch — the revert overwrites that later change.
-              </div>
-            )}
-            {revertPlan.alreadyReverted && <div style={{ color: C.DANGER, fontWeight: 700 }}>Already reverted.</div>}
-          </div>
-          {(revertPlan.changedSinceSample?.length ? revertPlan.changedSinceSample : revertPlan.sample || []).map(r => (
-            <div key={r.jobId} style={{ fontSize: 11, color: theme.text }}>· {r.title || r.jobId}{r.company ? ` — ${r.company}` : ""}</div>
-          ))}
-          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <button type="button" onClick={onConfirmRevert} disabled={reverting || revertPlan.alreadyReverted || !revertPlan.restorable}
-              style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${C.DANGER}`, background: "transparent",
-                       color: C.DANGER, cursor: "pointer", fontSize: 11, fontWeight: 800 }}>
-              {reverting ? "Reverting…" : `Revert ${fmt(revertPlan.restorable)} row(s)`}
-            </button>
-            <button type="button" onClick={onCancelRevert}
-              style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${theme.border}`, background: "transparent",
-                       color: theme.text, cursor: "pointer", fontSize: 11 }}>Cancel</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Tab 2: Schema Explorer ───────────────────────────────────
 function SchemaExplorerTab({ theme }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -1287,9 +832,10 @@ function SchemaExplorerTab({ theme }) {
         }}>
         ⬇ Download .sql
       </button>
-      {/* The other half of the round trip, beside the two exports rather than in a tab of its own —
-          see EnrichmentTransferPanel's header comment. */}
-      <EnrichmentTransferPanel theme={theme}/>
+      {/* D83 audit #21: importing enrichment lives in ONE place — Admin → The board → Enrichment (the six steps, Undo on
+          every batch). The round trip that used to sit here is retired. */}
+      <a href="/admin?g=board&s=enrichment" data-enrichment-moved=""
+        style={{ fontSize:12, color:theme.text, alignSelf:"center" }}>Import enrichment → Admin → The board → Enrichment</a>
     </div>
     {schemaView === "map" ? <SchemaMapView theme={theme}/> : (
     <div style={{ display:"flex", gap:0, height:"calc(100vh - 260px)", minHeight:400 }}>
@@ -1544,7 +1090,7 @@ function UserPoolTab({ theme }) {
           ))}
         </select>
         <button onClick={() => loadPool(selectedUser)} disabled={!selectedUser || loading}
-          style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
+          style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
                    padding:"6px 16px", fontWeight:700, fontSize:11, cursor:"pointer", opacity:!selectedUser?0.5:1 }}>
           Load
         </button>
@@ -1700,7 +1246,7 @@ function JobTraceTab({ theme, initialJobId }) {
                    borderRadius:6, padding:"7px 12px", color:theme.text, fontSize:12, width:360 }}
         />
         <button onClick={trace} disabled={!jobId.trim() || loading}
-          style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
+          style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
                    padding:"7px 20px", fontWeight:700, fontSize:12, cursor:"pointer" }}>
           {loading ? "Tracing…" : "Trace"}
         </button>
@@ -1946,7 +1492,7 @@ function QuerySimulatorTab({ theme }) {
           ))}
         </select>
         <button onClick={simulate} disabled={!selectedUser || loading}
-          style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
+          style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
                    padding:"6px 20px", fontWeight:700, fontSize:12, cursor:"pointer",
                    opacity:!selectedUser?0.5:1 }}>
           {loading ? "Simulating…" : "Simulate"}
@@ -2092,7 +1638,7 @@ function QuerySimulatorTab({ theme }) {
                 </pre>
                 <button
                   onClick={() => navigator.clipboard.writeText(data.rawSql)}
-                  style={{ marginTop:8, background:ACCENT, color:C.ON_ACCENT, border:"none",
+                  style={{ marginTop:8, background:"transparent", color:theme.text, border:`1px solid ${theme.border}`,
                            borderRadius:6, padding:"4px 14px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
                   Copy SQL
                 </button>
@@ -2122,7 +1668,7 @@ function QuerySimulatorTab({ theme }) {
         />
         <div style={{ display:"flex", gap:8, marginBottom:12 }}>
           <button onClick={runRawQuery} disabled={rawLoading}
-            style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
+            style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
                      padding:"6px 18px", fontWeight:700, fontSize:11, cursor:"pointer" }}>
             {rawLoading ? "Running…" : "Run"}
           </button>
@@ -2303,6 +1849,7 @@ function TableBrowserTab({ theme }) {
 }
 
 function JobReviewTab({ theme }) {
+  const { ask, dialog } = useConfirm();
   const [data, setData] = useState({ jobs: [], profiles: [] });
   const [query, setQuery] = useState("");
   const [roleKey, setRoleKey] = useState("");
@@ -2338,13 +1885,9 @@ function JobReviewTab({ theme }) {
     const effect = nextRoleKey === "unclassified"
       ? "Unclassify removes its role classification. An unclassified posting is SHOWN ON EVERY BOARD (ranked as unknown) — this does not hide it."
       : `Classify as "${nextRoleKey}": it is then shown on ${nextRoleKey} boards and on no other role's board.`;
-    if (!confirm(`${job.title}
-
-${effect}
-
-${describeImpact(impact)}
-
-The previous classification is logged and can be undone. Continue?`)) return;
+    if (!await ask({ title: job.title, label: nextRoleKey === "unclassified" ? "Unclassify it" : `Classify as ${nextRoleKey}`,
+      body: <><p style={{ margin:"0 0 8px" }}>{effect}</p><p style={{ margin:"0 0 8px" }}>{describeImpact(impact)}</p>
+        The previous classification is logged; Undo last change restores it.</> })) return;
     setSaving(job.job_id);
     try {
       const r = await api("/api/admin/db/job-review/reassign", {
@@ -2366,7 +1909,7 @@ The previous classification is logged and can be undone. Continue?`)) return;
   };
 
   const undoLast = async () => {
-    if (!lastChange || !confirm(`Undo the last change to "${lastChange.title}"? Its previous classification is restored.`)) return;
+    if (!lastChange || !await ask({ title: `Undo the change to "${lastChange.title}"?`, label: "Undo it", body: "Its previous classification is restored." })) return;
     try {
       await api(`/api/admin/db/job-review/undo/${lastChange.logId}`, { method: "POST" });
       setStatus(`Undid the change to ${lastChange.title}`); setLastChange(null); load();
@@ -2378,6 +1921,7 @@ The previous classification is logged and can be undone. Continue?`)) return;
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+      {dialog}
       <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
         <input value={query} onChange={e => setQuery(e.target.value)}
           placeholder="Search title, company, query"
@@ -2389,8 +1933,8 @@ The previous classification is logged and can be undone. Continue?`)) return;
           {roleOptions.map(r => <option key={r || "all"} value={r}>{r || "all roles"}</option>)}
         </select>
         <button onClick={load}
-          style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
-                   padding:"7px 14px", fontWeight:800, cursor:"pointer" }}>
+          style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
+                   padding:"7px 14px", fontWeight:700, cursor:"pointer" }}>
           Refresh
         </button>
         {status && <span style={{ fontSize:12, color:theme.textMuted }}>{status}</span>}
@@ -2439,7 +1983,8 @@ The previous classification is logged and can be undone. Continue?`)) return;
                       onChange={e => { job._nextRoleKey = e.target.value; }}
                       style={{ padding:"5px 8px", borderRadius:6, border:`1px solid ${theme.border}`,
                                background:theme.surface, color:theme.text }}>
-                      {roleOptions.filter(Boolean).map(r => <option key={r} value={r}>{r}</option>)}
+                      {/* the suggestion is always one of the choices — a role the list lacked (sales) showed as engineering and saved as sales */}
+                      {[...new Set([...roleOptions.filter(Boolean), job.suggestedRoleKey].filter(Boolean))].map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </td>
                   <td style={{ padding:"8px 10px" }}>
@@ -2456,16 +2001,16 @@ The previous classification is logged and can be undone. Continue?`)) return;
                   <td style={{ padding:"8px 10px", whiteSpace:"nowrap" }}>
                     <button disabled={saving === job.job_id}
                       onClick={() => reassign(job, job._nextRoleKey || job.suggestedRoleKey, job._nextProfileId ?? selectedId)}
-                      style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
-                               padding:"5px 10px", fontWeight:800, cursor:"pointer", opacity:saving === job.job_id ? 0.5 : 1 }}>
-                      Save
+                      style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
+                               padding:"5px 10px", fontWeight:700, cursor:"pointer", opacity:saving === job.job_id ? 0.5 : 1 }}>
+                      Save…
                     </button>
                     <button disabled={saving === job.job_id}
                       onClick={() => reassign(job, "unclassified", "")}
                       title="Removes the classification. Unclassified postings are shown on every board."
-                      style={{ marginLeft:6, background:"transparent", color:C.DANGER,
-                               border:`1px solid ${C.DANGER}66`, borderRadius:6,
-                               padding:"5px 10px", fontWeight:800, cursor:"pointer" }}>
+                      style={{ marginLeft:6, background:"transparent", color:theme.textMuted,
+                               border:`1px solid ${theme.border}`, borderRadius:6,
+                               padding:"5px 10px", fontWeight:700, cursor:"pointer" }}>
                       Unclassify
                     </button>
                   </td>
@@ -2523,19 +2068,15 @@ export default function DBInspector() {
         {lastUpdated && (
           <span style={{ fontSize:11, color:theme.textMuted }}>Updated: {lastUpdated}</span>
         )}
-        <div style={{ display:"flex", gap:4 }}>
-          {[{v:0,l:"Off"},{v:30,l:"30s"},{v:60,l:"60s"}].map(({v,l}) => (
-            <button className="dbx-depth" key={v} onClick={() => setAutoRefresh(v)}
-              style={{
-                padding:"3px 10px", fontSize:10, fontWeight:700, cursor:"pointer",
-                border:`1px solid ${autoRefresh===v ? ACCENT_TEXT : theme.border}`,
-                background: autoRefresh===v ? ACCENT : "transparent",
-                color: autoRefresh===v ? C.ON_ACCENT : theme.textMuted,
-              }}>{l}</button>
-          ))}
-        </div>
+        {/* D83 (39d): a dropdown of the real values — three small toggles drew as capsules (D60). */}
+        <label style={{ fontSize:11, color:theme.textMuted }}>Auto-refresh{" "}
+          <select aria-label="Auto-refresh" value={autoRefresh} onChange={e => setAutoRefresh(Number(e.target.value))}
+            style={{ padding:"4px 6px", borderRadius:6, border:`1px solid ${theme.border}`, background:theme.surface, color:theme.text, fontSize:11 }}>
+            <option value={0}>off</option><option value={30}>every 30 s</option><option value={60}>every 60 s</option>
+          </select>
+        </label>
         <button onClick={doRefresh}
-          style={{ background:ACCENT, color:C.ON_ACCENT, border:"none", borderRadius:6,
+          style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
                    padding:"5px 14px", fontWeight:700, fontSize:11, cursor:"pointer" }}>
           Refresh
         </button>
@@ -2562,8 +2103,8 @@ export default function DBInspector() {
       {/* Tab content */}
       <div key={refreshKey}>
         {activeTab === "scrape" && <ScrapeMonitorTab theme={theme}/>}
-        {activeTab === "schema" && <SchemaExplorerTab theme={theme}/>}
-        {activeTab === "tables" && <TableBrowserTab theme={theme}/>}
+        {/* D83 audit #22: the table browser is part of the schema page — one list of tables, not two. */}
+        {activeTab === "schema" && <><SchemaExplorerTab theme={theme}/><div style={{ marginTop:24 }}><TableBrowserTab theme={theme}/></div></>}
         {activeTab === "pool" && <UserPoolTab theme={theme}/>}
         {activeTab === "review" && <JobReviewTab theme={theme}/>}
         {activeTab === "trace" && <JobTraceTab theme={theme} initialJobId={traceJobId}/>}

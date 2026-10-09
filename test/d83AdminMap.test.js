@@ -4,6 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 import { ADMIN_GROUPS, readAdminPlace, writeAdminPlace } from "../client/src/panels/adminMap.js";
 
 const panel = fs.readFileSync("client/src/panels/AdminPanel.jsx", "utf8").replace(/\r\n/g, "\n");
@@ -37,4 +38,18 @@ test("D83 map: the URL names a place; an unknown one lands on a real panel, neve
   assert.deepEqual(readAdminPlace("?g=ops"), { g: "today", s: "glance" });
   assert.deepEqual(readAdminPlace(""), { g: "today", s: "glance" });
   assert.deepEqual(writeAdminPlace("people"), { g: "people", s: "users" });
+});
+
+test("D83 map: the database inspector keeps the audit's marks (#20–#26)", () => {
+  const ins = fs.readFileSync("client/src/pages/admin/DBInspector.jsx", "utf8").replace(/\r\n/g, "\n");
+  const code = ins.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/^\s*\/\/.*$/gm, "");
+  assert.doesNotMatch(code, /id: "tables"/, "#22: the Table Browser is part of Schema Explorer, not a tab");
+  assert.match(code, /activeTab === "schema" && <><SchemaExplorerTab theme=\{theme\}\/>.*<TableBrowserTab theme=\{theme\}\/>/);
+  assert.doesNotMatch(code, /EnrichmentTransferPanel|enrichment\/import/, "#21: the old round trip is retired — Admin → Enrichment is the one place");
+  assert.match(code, /href="\/admin\?g=board&s=enrichment"/);
+  assert.doesNotMatch(code, /CoverageBar/, "#20: the third coverage view is gone");
+  const review = code.slice(at(code, "function JobReviewTab("), at(code, "export default function DBInspector"));
+  assert.doesNotMatch(review, /\bconfirm\(/, "#24: the browser confirm");
+  assert.match(review, /const \{ ask, dialog \} = useConfirm\(\);/);
+  assert.doesNotMatch(code, /background:ACCENT, color:C\.ON_ACCENT, border:"none"/, "#24/#26: a harmless read or a per-row action drawn as the accent");
 });
