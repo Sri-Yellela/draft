@@ -26,9 +26,9 @@ export function ago(ts) {
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
 }
-const stamp = ts => (ts ? new Date(ts * 1000).toISOString().replace("T", " ").slice(0, 16) + "Z" : "—");
-const usd = n => (n == null ? "—" : `$${Number(n).toFixed(n >= 1 ? 2 : 4)}`);
-const num = n => (n == null ? "—" : Number(n).toLocaleString());
+export const stamp = ts => (ts ? new Date(ts * 1000).toISOString().replace("T", " ").slice(0, 16) + "Z" : "—");
+export const usd = n => (n == null ? "—" : `$${Number(n).toFixed(n >= 1 ? 2 : 4)}`);
+export const num = n => (n == null ? "—" : Number(n).toLocaleString());
 const pct = f => (f == null ? "—" : `${(f * 100).toFixed(1)}%`);
 
 function Card({ theme, title, measured, children, tone }) {
@@ -45,7 +45,7 @@ function Card({ theme, title, measured, children, tone }) {
   );
 }
 
-function KV({ theme, rows }) {
+export function KV({ theme, rows }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: "4px 12px", fontSize: 12 }}>
       {rows.filter(Boolean).map(([k, v, color]) => (
@@ -58,7 +58,7 @@ function KV({ theme, rows }) {
   );
 }
 
-function Btn({ theme, onClick, disabled, danger, primary, children, title }) {
+export function Btn({ theme, onClick, disabled, danger, primary, children, title }) {
   const bg = disabled ? "transparent" : danger ? C.DANGER : primary ? C.ACCENT : theme.surfaceHigh;
   const fg = disabled ? theme.textMuted : danger ? C.SURFACE_SOLID : primary ? C.ON_ACCENT : theme.text;
   return (
@@ -71,12 +71,12 @@ function Btn({ theme, onClick, disabled, danger, primary, children, title }) {
   );
 }
 
-function Err({ msg }) {
+export function Err({ msg }) {
   if (!msg) return null;
   return <div style={{ color: C.DANGER, fontSize: 12, margin: "8px 0" }}>{msg}</div>;
 }
 
-function Table({ theme, cols, rows, empty = "Nothing recorded." }) {
+export function Table({ theme, cols, rows, empty = "Nothing recorded." }) {
   if (!rows?.length) return <div style={{ fontSize: 12, color: theme.textMuted }}>{empty}</div>;
   return (
     <div style={{ overflowX: "auto", border: `1px solid ${theme.border}`, borderRadius: 8 }}>

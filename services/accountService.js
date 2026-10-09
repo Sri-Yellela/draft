@@ -248,6 +248,8 @@ export const MERGE_PLAN = Object.freeze({
   // D86: the per-call audit is history and moves; a merged-away account's connections and open briefs are
   // its grants, not its data — they go (its tokens then match no connection, so they stop at once).
   mcp_audit: "move", oauth_connections: "drop", byom_briefs: "drop",
+  // D88 (39d): an admin's notes are about the person and move; the merged-away account's overrides are ITS grants and go.
+  user_notes: "move", user_entitlement_overrides: "drop",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

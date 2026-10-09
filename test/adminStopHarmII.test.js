@@ -113,9 +113,14 @@ test("(a) the route: preview, typed confirm, sessions revoked BEFORE the cascade
 test("(a) the UI hides Delete for the system account and arms the delete only with the typed username", () => {
   const ui = code(read("client/src/panels/AdminPanel.jsx"));
   assert.match(ui, /export const isSystemAccount = \(u\) => u\?\.id === 0 \|\| u\?\.username === "system"/);
-  const del = at(ui, "onClick={() => deleteUser(u.id)}");
-  const btn = ui.slice(lastAt(ui, "{", del) - 200, del);
-  assert.match(btn, /!u\.is_admin && !isSystemAccount\(u\) && \(/);
+  // D88 (39d): Delete is on a person's page (panels/adminPeople.jsx), hidden for an admin or the system account
+  // (the server marks `system` with the same rule), and it opens the same typed-username dialog below.
+  const people = code(read("client/src/panels/adminPeople.jsx"));
+  assert.match(people, /const locked = a\.isAdmin \|\| a\.system;/);
+  assert.match(people, /\{!locked && <Btn theme=\{theme\} danger onClick=\{\(\) => onDelete\(id\)\}>Delete the account…<\/Btn>\}/);
+  assert.match(ui, /<PeopleUsers theme=\{theme\} onDelete=\{deleteUser\}/);
+  assert.match(read("services/userAdmin.js"), /const isSystem = \(u\) => u\?\.id === 0 \|\| u\?\.username === "system";/);
+  assert.ok(lastAt);
   assert.doesNotMatch(ui, /confirm\("Delete this user and all their data\?"\)/, "the generic confirm is gone");
   assert.match(ui, /const armed = typed === preview\.confirmWith && !busy;/);
   assert.match(ui, /body:JSON\.stringify\(\{ confirmUsername: typed \}\)/);

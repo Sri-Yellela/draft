@@ -29,6 +29,8 @@ import generatedResumeRoutes from "./routes/generatedResumes.js";
 import applicationArtifactRoutes from "./routes/applicationArtifacts.js";
 import { draftSlots, slotsExhausted, recordGenerationSlot } from "./services/draftSlots.js";
 import { GENERATION_EXPECT_SECONDS, userSafeGeneration, userCostView, userSafeResumeRow } from "./services/costVisibility.js";
+import { isSuspended, UserAdminError } from "./services/userAdmin.js";
+import { createAdminPeopleRouter } from "./routes/adminPeople.js";
 import { storeGeneratedResume, refundGeneration, ResumeStoreError, STORE_FAILED_SENTENCE, listGeneratedResumes,
          deleteGeneratedResume, sweepExpiredResumes, resumeRetentionDays } from "./services/generatedResumes.js";
 import { markPending } from "./services/applicationRecords.js";
@@ -4707,6 +4709,40 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⭐ D88 P2 · user management: an account's status (suspend with a reason), per-user entitlement
+      // overrides with a reason and an expiry (the resolver's second override source), private notes, and
+      // the reason behind every admin write. Additive only.
+      id: "155_user_management",
+      sql: `
+        ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'active';
+        ALTER TABLE users ADD COLUMN suspended_reason TEXT;
+        ALTER TABLE users ADD COLUMN suspended_at INTEGER;
+        ALTER TABLE admin_audit_log ADD COLUMN reason TEXT;
+        CREATE TABLE IF NOT EXISTS user_entitlement_overrides (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          feature_key TEXT NOT NULL,
+          value_json TEXT NOT NULL,
+          reason TEXT NOT NULL,
+          set_by INTEGER,
+          set_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          expires_at INTEGER,
+          revoked_at INTEGER,
+          revoked_by INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_user_entitlement_overrides_live
+          ON user_entitlement_overrides(user_id, feature_key, revoked_at);
+        CREATE TABLE IF NOT EXISTS user_notes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          body TEXT NOT NULL,
+          author_id INTEGER,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_user_notes_user ON user_notes(user_id, created_at);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -5630,6 +5666,8 @@ passport.use(new LocalStrategy((username, password, done) => {
     });
     return done(null, false, { message:"Invalid credentials." });
   }
+  // ⭐ D88 (39d): a suspended account cannot sign in — the same words every time, and no hint of why to the caller.
+  if (user.status === "suspended") return done(null, false, { message:"This account is suspended. Write to support@jobsviadraft.com." });
   return done(null, {
     id:user.id,
     username:user.username,
@@ -5905,7 +5943,12 @@ function requireAuth(req, res, next) {
   // Without this second check, users whose Passport session was wiped (e.g. server
   // restart on ephemeral storage) but whose auth context token is still valid in
   // resume.db would always receive 401 even though they are authenticated.
-  if (req.isAuthenticated() || req.authContextToken) return next();
+  if (req.isAuthenticated() || req.authContextToken) {
+    // ⭐ D88 (39d): a suspended account is refused on every request, whichever credential it holds (an admin
+    // cannot be suspended — services/userAdmin.js setStatus refuses it).
+    if (req.user?.id != null && isSuspended(db, req.user.id)) return res.status(403).json({ error:"This account is suspended.", code:"account_suspended" });
+    return next();
+  }
   const hasCookie = !!req.headers.cookie?.includes("connect.sid");
   const hasToken  = !!getRequestAuthContextToken(req);
   console.warn(`[auth] 401 ${req.method} ${req.path} | cookie:${hasCookie} token_sent:${hasToken} ip:${req.ip}`);
@@ -7785,6 +7828,29 @@ app.get("/api/admin/users/:id/applications", requireAdmin, (req, res) => {
 
 // Analytics admin routes (usage tracking, limits, timeseries)
 app.use("/api/admin/analytics", createAdminRouter(db));
+// ⭐ D88 P2 + P4 · Admin → People → Users: the list, a person's page, the utilities (routes/adminPeople.js).
+// "Send a password-reset link" is the same reset the user can ask for themselves — D88: never set a password.
+async function adminSendResetLink(userId, req) {
+  const row = db.prepare("SELECT u.id, p.email FROM users u LEFT JOIN user_profile p ON p.user_id = u.id WHERE u.id = ?").get(userId);
+  if (!row) throw new UserAdminError("No such user.", 404);
+  if (!row.email) return { sent: false, why: "The account has no email address to send a link to." };
+  const user = findUserForPasswordReset(db, row.email);
+  if (!user || user.id !== userId) return { sent: false, why: "That email address does not lead back to this account alone." };
+  const reset = createPasswordReset(db, user, { pepper: PASSWORD_RESET_SECRET, requestIp: req.ip, userAgent: "admin: reset link" });
+  const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
+  const resetUrl = `${baseUrl.replace(/\/$/, "")}/login?resetToken=${encodeURIComponent(reset.token)}`;
+  let mail = null;
+  try { mail = await sendPasswordResetEmail({ to: user.email, resetUrl, otp: reset.otp, expiresAt: reset.expiresAt }, { db }); }
+  catch (e) { console.error("[admin-people] reset link send failed:", e.message); }
+  if (!mail?.ok) {
+    db.prepare("UPDATE password_reset_tokens SET used_at=unixepoch() WHERE id=?").run(reset.id);
+    return { sent: false, why: "Email is not configured on this server, or the send failed — nothing was sent." };
+  }
+  return { sent: true, why: null };
+}
+app.use("/api/admin/people", requireAdmin, createAdminPeopleRouter({
+  db, requireAdmin, signOutEverywhere: (id, why) => revokeAllUserSessions(id, why), sendResetLink: adminSendResetLink,
+}));
 // Captured, not just mounted: the nightly alert delivery calls `adminDbRouter.pipelineHealth()` —
 // the SAME computation this route serves. See the note above that function in routes/adminDb.js.
 const adminDbRouter = createAdminDbRouter(db, { dbPath: DB_PATH });
