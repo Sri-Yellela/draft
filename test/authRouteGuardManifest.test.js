@@ -91,6 +91,8 @@ const ADMIN = new Set([
   "POST /api/admin/board-fit/precompute",
   // A50 step 3: the daily glance. Read-only, but it reads every user's apply outcomes and spend.
   "GET /api/admin/glance",
+  "GET /api/admin/costs",                   // cost visibility (10-09): résumé economics, admin-only
+  "POST /api/admin/costs/funding-alert/clear",
   "GET /api/admin/tools-service",
   "GET /api/admin/users",
   "POST /api/admin/users",

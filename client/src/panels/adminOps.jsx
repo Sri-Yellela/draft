@@ -1387,3 +1387,52 @@ export function NoticesTab({ theme }) {
     </div>
   );
 }
+
+// ⭐ COST VISIBILITY (owner, 10-09) · Admin → Costs & quotas. What a résumé costs, which model ran, the cache and
+// the retry notes live HERE and nowhere a user can see; users see only their drafts left and "about 10–20 seconds".
+// The banner is set when the model account ran out of credit or lost its key — users saw only "unavailable".
+export function CostsTab({ theme }) {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState(null);
+  const load = useCallback(() => { setErr(null); api("/api/admin/costs").then(setD).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { load(); }, [load]);
+  if (!d) return <Err msg={err}/>;
+  const s = d.summary || {};
+  const cents = (x) => (x?.cents == null ? "—" : `${Number(x.cents).toFixed(2)}¢ (${x.basis === "ledger" ? `median of ${x.samples}` : "measured at D70 Phase 0"})`);
+  const a = d.fundingAlert;
+  return (
+    <div data-admin-costs="">
+      <Err msg={err}/>
+      {a && (
+        <Card theme={theme} title="Generation is failing — the model account needs attention" tone={C.DANGER}>
+          <div style={{ fontSize: 13, color: theme.text, marginBottom: 10 }} data-funding-alert="">
+            Since {stamp(a.at)} ({a.where}): <code>{a.message}</code> — users are told only that résumé
+            generation is unavailable. Top up or fix the key; the next successful generation clears this.
+          </div>
+          <Btn theme={theme} onClick={async () => { try { await api("/api/admin/costs/funding-alert/clear", { method: "POST" }); load(); } catch (e) { setErr(e.message); } }}>Dismiss</Btn>
+        </Card>
+      )}
+      <Card theme={theme} title="Per résumé" measured="usage_events, delivered calls only">
+        <KV theme={theme} rows={[
+          ["Generate", cents(s.generate)],
+          ["A+ résumé", cents(s.aPlus)],
+          ["Last 24 hours", `${num(d.last24h?.calls)} calls · ${usd(d.last24h?.costUsd)}`],
+        ]}/>
+      </Card>
+      <Card theme={theme} title="Recent generation calls" measured="newest 50">
+        <Table theme={theme} rows={d.recent} cols={[
+          { key: "at", label: "When", render: r => ago(r.at) },
+          { key: "username", label: "User", render: r => r.username || `#${r.userId}` },
+          { key: "purpose", label: "Purpose", render: r => [r.purpose, r.kind].filter(Boolean).join(" · ") },
+          { key: "model", label: "Model" },
+          { key: "inputTokens", label: "In", right: true, render: r => num(r.inputTokens) },
+          { key: "outputTokens", label: "Out", right: true, render: r => num(r.outputTokens) },
+          { key: "cacheReadTokens", label: "Cache read", right: true, render: r => num(r.cacheReadTokens) },
+          { key: "costUsd", label: "Cost", right: true, render: r => usd(r.costUsd) },
+          { key: "success", label: "OK", render: r => (r.success ? "yes" : "no"), color: r => (r.success ? null : C.DANGER) },
+          { key: "note", label: "Note (retry reason, failure)", render: r => r.note || "—" },
+        ]}/>
+      </Card>
+    </div>
+  );
+}

@@ -44,6 +44,15 @@ export function resumeAgo(ms, now = Date.now()) {
   return d === 1 ? "yesterday" : `${d} days ago`;
 }
 
+/** When the next draft frees up, on the viewer's own clock: "4:12 pm" today, "Tue 4:12 pm" later. */
+export function clockLabel(ms, now = Date.now()) {
+  if (!Number.isFinite(ms)) return null;
+  const at = new Date(ms);
+  const time = at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase();
+  return at.toDateString() === new Date(now).toDateString() ? time
+    : `${at.toLocaleDateString([], { weekday: "short" })} ${time}`;
+}
+
 /**
  * ⭐ D56 · "I SUBMITTED" ON THE MANUAL ROUTE. A résumé made by hand and sent by hand still has to land in
  * job_applications, with the tailored score (capturedAtsAtApply reads the job's résumé first). A63's rule
@@ -86,7 +95,7 @@ function ManualSubmitted({ jobId }) {
   );
 }
 
-function PostingActions({ job, meta, slots, cost = null, onCoverLetter }) {
+function PostingActions({ job, meta, slots, onCoverLetter }) {
   const { g, done, st, canUseGenerate: canGen, onGenerate, onViewSandbox, onExport, onRegenerate = null, onSave, onPass, onDraft, drafted, drafting,
           draftBlock = null, onViewDraft = null, onExplainDraft = null, companyNotice = null, eligibilityNotice = null } = meta;
   // D51: the panel knows the slots too — out of drafts is a reason on the button, not a grey box.
@@ -102,14 +111,12 @@ function PostingActions({ job, meta, slots, cost = null, onCoverLetter }) {
   const hasArtifact = done && !!g?.html;
   const ago = hasArtifact ? resumeAgo(g?.generatedAt) : null;
   const regen = onRegenerate || (() => onGenerate(true));
-  // ⭐ D70 Phase 3: the model's cost of the NEXT résumé, and which tool it runs, said before the press
-  // (GET /api/generate/cost — the ledger's median). A+ is a second full résumé, not an add-on.
-  const costLabel = cost ? (cost.runs === "a_plus_resume" ? cost.aPlus?.label : cost.generate?.label) : null;
-  const costLine = cost?.sentence || null;
+  // ⛔ Cost visibility (owner, 10-09): a user sees their ALLOWANCE and what to expect — never what a résumé
+  // costs, which tool or model runs, or whether it was cached. Those are the admin's (Admin → Costs & quotas).
+  const freeAt = noSlots && slots?.nextFreeAt ? clockLabel(slots.nextFreeAt) : null;
   const resumeTitle = noSlots
-    ? "No drafts left in the last 24 hours — a new résumé uses one, like a Draft."
-    : `${done ? "Regenerate" : "Generate"} résumé${cost?.runs === "a_plus_resume" ? " (A+)" : ""} — uses 1 of your ${slots?.limit ?? 10} drafts (a Draft uses one too)` +
-      (costLabel ? `; one model call, ${costLabel}` : "");
+    ? `You've used your drafts for now — the next one frees up ${freeAt ? `at ${freeAt}` : "within 24 hours"}.`
+    : `${done ? "Regenerate" : "Generate"} résumé — uses 1 of your ${slots?.limit ?? 10} drafts (a Draft uses one too). Takes about 10–20 seconds.`;
   // ⭐ D86: while the operator's switch is on, the Résumé (and Regenerate) control is a SPLIT button — the
   // caret chooses draft or the user's own ChatGPT / Claude (plugin-ui.html, tab 2). While it is off, the plain
   // buttons below are drawn exactly as before; the default method is draft's Generate either way.
@@ -119,7 +126,7 @@ function PostingActions({ job, meta, slots, cost = null, onCoverLetter }) {
   );
   const quota = slots
     ? (noSlots
-        ? `No drafts left — all ${slots.limit} used in the last 24 hours (a Draft or a new résumé uses one).`
+        ? `You've used your drafts for now — the next one frees up ${freeAt ? `at ${freeAt}` : "within 24 hours"}.`
         : `${slots.remaining} of ${slots.limit} drafts left in the last 24 hours — a Draft or a new résumé uses one.`)
     : null;
   return (
@@ -177,7 +184,7 @@ function PostingActions({ job, meta, slots, cost = null, onCoverLetter }) {
       {/* A63: the shared allowance, said before anything is pressed — a muted line in A, the badge in B. */}
       {quota && <p className="pp__quota" data-draft-slots data-empty={noSlots ? "true" : "false"}>{quota}</p>}
       {/* ⭐ D70 Phase 3: the cost, in words, before Generate / Regenerate is pressed — a line, never a capsule (D60). */}
-      {costLine && canGen && onGenerate && <p className="pp__quota" data-generate-cost={cost.runs}>{costLine}</p>}
+      {canGen && onGenerate && !noSlots && <p className="pp__quota" data-generate-expect="">Takes about 10–20 seconds.</p>}
       {/* ⭐ D54: never silent, never a block — the user's other roles at this company, before Draft. */}
       {companyNotice && <p className="pp__quota" data-company-notice="">{companyNotice.replace(" Draft this one too?", "")}</p>}
       {/* ⛔ D59: what the POSTING requires, and whether the profile STATES an answer — never a block, and
@@ -271,15 +278,12 @@ export default function JobDetailPanel({
   // job the user generated for or opened the posting of is PENDING until they record and verify
   // the submission (Database → Pending); nothing becomes "applied" on a click.
   const [slots, setSlots] = useState(null);
-  const [genCost, setGenCost] = useState(null);
   const [pendingState, setPendingState] = useState(null);
   const generating = selectedJobMeta?.st;
   useEffect(() => {
     if (!jobId) return;
     let cancelled = false;
     api("/api/draft/slots").then(d => { if (!cancelled) setSlots(d); }).catch(() => {});
-    // ⭐ D70 Phase 3: what the next résumé costs, and which tool it runs — said before it is pressed.
-    api("/api/generate/cost").then(d => { if (!cancelled) setGenCost(d); }).catch(() => {});
     api("/api/applications/pending").then(d => {
       if (cancelled) return;
       const r = (d?.pending || []).find(x => String(x.jobId) === String(jobId));
@@ -350,7 +354,7 @@ export default function JobDetailPanel({
                 from anywhere) — the row's default. */}
             {selectedJobMeta && (
               <StickyBar top="0px" className="pp__bar" data-posting-actions-bar="">
-                <PostingActions job={selectedJob} meta={selectedJobMeta} slots={slots} cost={genCost}
+                <PostingActions job={selectedJob} meta={selectedJobMeta} slots={slots}
                   onCoverLetter={() => setShowCoverLetter(true)} />
               </StickyBar>
             )}

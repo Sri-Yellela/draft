@@ -138,10 +138,26 @@ export function httpErrorFor(e, fallback = "The request failed") {
   if (e instanceof ToolsServiceError) {
     const retryable = e.retryable === true && e.permanent !== true;
     const status = e.code === "invalid_request" ? 400 : e.code === "payload_too_large" ? 413 : 503;
-    return { status, body: { error: e.message || fallback, code: e.code, retryable,
+    // ⛔ Cost visibility (owner, 10-09): the tools service's message is NEVER the user's — it can carry the
+    // model provider's own words ("Your credit balance is too low…"). A small fixed set of user messages;
+    // the raw one goes to the server log and, for a funding failure, the admin banner (isFundingFailure).
+    return { status, body: { error: USER_GENERATION_MESSAGES[status] || USER_GENERATION_MESSAGES[503], code: e.code, retryable,
       ...(retryable ? {} : { detail: "Retrying will not help until this is fixed on the server." }) } };
   }
   return { status: 500, body: { error: fallback, code: "internal_error", retryable: false } };
+}
+
+/** The only words a user is shown when generation fails on the tools service's side. */
+export const USER_GENERATION_MESSAGES = Object.freeze({
+  503: "Résumé generation is unavailable right now — try again shortly.",
+  400: "That résumé or posting couldn't be processed. Check that both have text, then try again.",
+  413: "That résumé or posting is too large to process.",
+});
+
+/** A failure that means the model account needs FUNDING or a key — the admin's problem, never the user's. */
+export function isFundingFailure(e) {
+  const text = `${e?.message ?? ""} ${e?.cause?.message ?? ""}`;
+  return /credit balance|billing|insufficient[_ ]quota|payment required|invalid[_ ]api[_ ]key|authentication[_ ]error/i.test(text);
 }
 
 /**
