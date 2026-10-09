@@ -1,0 +1,29 @@
+/* ⭐ D86 · the Résumé button's choice and its four steps. Rectangles, radius 6 — no pills (D60). */
+.byom { position: relative; display: inline-flex; }
+.byom__caret svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.byom__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.byom__menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 40; min-width: 260px;
+  display: flex; flex-direction: column; padding: 6px;
+  background: var(--c-surface-menu); border: 1px solid var(--c-border-control); border-radius: 6px;
+  box-shadow: 0 8px 24px var(--c-scrim);
+}
+.byom__item {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+  padding: 8px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--c-ink);
+  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.byom__item small { font-size: 11px; font-weight: 400; color: var(--c-ink-muted); }
+.byom__item:hover:not(:disabled), .byom__item:focus-visible { background: var(--c-hover); outline: none; }
+.byom__item:disabled { cursor: not-allowed; color: var(--c-ink-faint); }
+.byom__item--link span { color: var(--c-accent-ink); }
+.byom__flow { padding: 0 18px 10px; font-size: 11px; }
+.byom__steps { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 4px; padding: 0; list-style: none; counter-reset: byom; }
+.byom__steps li { counter-increment: byom; color: var(--c-ink-faint); }
+.byom__steps li::before { content: counter(byom) ". "; }
+.byom__steps li[data-state="done"] { color: var(--c-success); font-weight: 700; }
+.byom__steps li[data-state="now"] { color: var(--c-ink); font-weight: 700; }
+.byom__note { margin: 2px 0 0; color: var(--c-ink-muted); }
+.byom__note--warn { color: var(--c-warning); font-weight: 700; }
+.byom__note--ok { color: var(--c-success); font-weight: 700; }
+@container pp (max-width: 599.98px) { .byom__menu { right: auto; left: 0; } }

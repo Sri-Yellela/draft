@@ -4167,4 +4167,83 @@ export const MIGRATIONS = [
         ALTER TABLE scraped_jobs ADD COLUMN enrichment_provenance TEXT;
       `,
     },
+    {
+      // ⛔ D86 (owner, 10-09): BRING-YOUR-OWN-MODEL RÉSUMÉ. draft is an OAuth 2.1 authorization server for an MCP
+      // client (Claude, ChatGPT): a CONNECTION is one user's grant to one client, revocable from Settings → Connected
+      // apps; codes and tokens hang off it and are stored as SHA-256 hashes, never the value. A BRIEF is single-use,
+      // bound to (user, job, base-résumé hash), expires, and allows 3 submissions. mcp_audit is one row per tool call.
+      // users.byom_enabled is the user's master switch, OFF by default: nothing connects until they turn it on.
+      // No column holds a model's output except through the résumé store. services/byom/.
+      id: "152_byom_oauth",
+      sql: `
+        CREATE TABLE IF NOT EXISTS oauth_clients (
+          client_id TEXT PRIMARY KEY,
+          client_name TEXT,
+          host TEXT NOT NULL,
+          redirect_uris TEXT NOT NULL,
+          registration TEXT NOT NULL DEFAULT 'dcr',
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS oauth_connections (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          client_id TEXT NOT NULL,
+          scope TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          last_used_at INTEGER,
+          revoked_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_oauth_connections_user ON oauth_connections(user_id);
+        CREATE TABLE IF NOT EXISTS oauth_codes (
+          code_hash TEXT PRIMARY KEY,
+          connection_id INTEGER NOT NULL REFERENCES oauth_connections(id) ON DELETE CASCADE,
+          redirect_uri TEXT NOT NULL,
+          code_challenge TEXT NOT NULL,
+          resource TEXT NOT NULL,
+          scope TEXT NOT NULL,
+          expires_at INTEGER NOT NULL,
+          used_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS oauth_tokens (
+          token_hash TEXT PRIMARY KEY,
+          connection_id INTEGER NOT NULL REFERENCES oauth_connections(id) ON DELETE CASCADE,
+          kind TEXT NOT NULL,
+          scope TEXT NOT NULL,
+          resource TEXT NOT NULL,
+          expires_at INTEGER NOT NULL,
+          revoked_at INTEGER,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_oauth_tokens_connection ON oauth_tokens(connection_id);
+        CREATE TABLE IF NOT EXISTS byom_briefs (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          connection_id INTEGER,
+          job_id TEXT NOT NULL,
+          base_hash TEXT NOT NULL,
+          base_json TEXT NOT NULL,
+          base_ats_score INTEGER,
+          attempts INTEGER NOT NULL DEFAULT 0,
+          status TEXT NOT NULL DEFAULT 'open',
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          expires_at INTEGER NOT NULL,
+          used_at INTEGER,
+          last_refusal TEXT,
+          patch_hash TEXT,
+          resume_version INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_byom_briefs_user ON byom_briefs(user_id, created_at);
+        CREATE TABLE IF NOT EXISTS mcp_audit (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          connection_id INTEGER,
+          tool TEXT NOT NULL,
+          outcome TEXT NOT NULL,
+          detail TEXT,
+          at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_mcp_audit_user ON mcp_audit(user_id, at);
+        ALTER TABLE users ADD COLUMN byom_enabled INTEGER NOT NULL DEFAULT 0;
+      `,
+    },
   ];

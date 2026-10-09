@@ -207,7 +207,10 @@ import { isExtensionRequest, mayActAsAdmin } from "./shared/authPolicy.js";
 import { validateResumeClaims, checkCandidateConsistency } from "./services/kb/failsafe.js";
 // The generation-time assertion (assertResumeClaims) runs in the tools service since A4; draft keeps the
 // guard's finding form for the kbFindings review surface.
-import { profileContradictionFindings } from "./services/resumeClaimGuard.js";
+import { profileContradictionFindings, checkResumeClaims } from "./services/resumeClaimGuard.js";
+import { createByomRouters } from "./routes/byom.js";
+import { buildStructuredResume } from "./services/resumeFormatter.js";
+import { skillVocabularyTerms } from "./services/skillVocabulary.js";
 import { getCompanyProfile } from "./services/kb/companyProfile.js";
 import { artifactCurrency, currencySentence, modeForTool } from "./services/resumeCurrency.js";
 
@@ -4578,6 +4581,85 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE scraped_jobs ADD COLUMN enrichment_provenance TEXT;
       `,
     },
+    {
+      // ⛔ D86 (owner, 10-09): BRING-YOUR-OWN-MODEL RÉSUMÉ. draft is an OAuth 2.1 authorization server for an MCP
+      // client (Claude, ChatGPT): a CONNECTION is one user's grant to one client, revocable from Settings → Connected
+      // apps; codes and tokens hang off it and are stored as SHA-256 hashes, never the value. A BRIEF is single-use,
+      // bound to (user, job, base-résumé hash), expires, and allows 3 submissions. mcp_audit is one row per tool call.
+      // users.byom_enabled is the user's master switch, OFF by default: nothing connects until they turn it on.
+      // No column holds a model's output except through the résumé store. services/byom/.
+      id: "152_byom_oauth",
+      sql: `
+        CREATE TABLE IF NOT EXISTS oauth_clients (
+          client_id TEXT PRIMARY KEY,
+          client_name TEXT,
+          host TEXT NOT NULL,
+          redirect_uris TEXT NOT NULL,
+          registration TEXT NOT NULL DEFAULT 'dcr',
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS oauth_connections (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          client_id TEXT NOT NULL,
+          scope TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          last_used_at INTEGER,
+          revoked_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_oauth_connections_user ON oauth_connections(user_id);
+        CREATE TABLE IF NOT EXISTS oauth_codes (
+          code_hash TEXT PRIMARY KEY,
+          connection_id INTEGER NOT NULL REFERENCES oauth_connections(id) ON DELETE CASCADE,
+          redirect_uri TEXT NOT NULL,
+          code_challenge TEXT NOT NULL,
+          resource TEXT NOT NULL,
+          scope TEXT NOT NULL,
+          expires_at INTEGER NOT NULL,
+          used_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS oauth_tokens (
+          token_hash TEXT PRIMARY KEY,
+          connection_id INTEGER NOT NULL REFERENCES oauth_connections(id) ON DELETE CASCADE,
+          kind TEXT NOT NULL,
+          scope TEXT NOT NULL,
+          resource TEXT NOT NULL,
+          expires_at INTEGER NOT NULL,
+          revoked_at INTEGER,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_oauth_tokens_connection ON oauth_tokens(connection_id);
+        CREATE TABLE IF NOT EXISTS byom_briefs (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          connection_id INTEGER,
+          job_id TEXT NOT NULL,
+          base_hash TEXT NOT NULL,
+          base_json TEXT NOT NULL,
+          base_ats_score INTEGER,
+          attempts INTEGER NOT NULL DEFAULT 0,
+          status TEXT NOT NULL DEFAULT 'open',
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          expires_at INTEGER NOT NULL,
+          used_at INTEGER,
+          last_refusal TEXT,
+          patch_hash TEXT,
+          resume_version INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_byom_briefs_user ON byom_briefs(user_id, created_at);
+        CREATE TABLE IF NOT EXISTS mcp_audit (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          connection_id INTEGER,
+          tool TEXT NOT NULL,
+          outcome TEXT NOT NULL,
+          detail TEXT,
+          at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_mcp_audit_user ON mcp_audit(user_id, at);
+        ALTER TABLE users ADD COLUMN byom_enabled INTEGER NOT NULL DEFAULT 0;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -6761,6 +6843,14 @@ app.use(cors({ origin:corsOrigin, credentials:true }));
 app.use("/api/crawler", createCrawlerWorkerRouter(db));
 // ⛔ D76: Railway's webhook — public, header-authenticated, its own 16 KB cap, read-only (deploy_events).
 app.use("/api/hooks", createRailwayHookRouter(db));
+// ⛔ D86: bring-your-own-model résumés. The doors a host calls server-to-server (OAuth metadata, register,
+// token, revoke, /mcp) come BEFORE the session and auth-context middleware — an OAuth token is the only
+// credential they read; the consent screen and the settings come after, on the person's session.
+const byomRouters = createByomRouters({
+  db, deps: byomDeps(), production: IS_PRODUCTION, requireAuth, requireAdmin,
+  issuerFor: (req) => APP_BASE_ORIGIN || `${req.protocol}://${req.get("host")}`,
+});
+app.use(byomRouters.tokenRouter);
 app.use(express.json({ limit:"4mb" }));
 // TODO: reduce cookie maxAge to 30 min + implement sliding renewal
 // once useInactivityLogout (30-min idle) is deployed on the client.
@@ -6822,6 +6912,7 @@ app.use(bindAuthContext);
 // one — and server-to-server calls, which send no Origin. Browsers always send Origin on a
 // cross-origin POST, so the attack cannot simply omit it.
 app.use(rejectCrossSiteWrites({ allowedOrigins: ALLOWED_CORS_ORIGINS, hasHeaderToken: (req) => !!getRequestAuthContextToken(req) }));
+app.use(byomRouters.sessionRouter);
 
 const CLIENT_DIST = path.join(__dirname,"client","dist");
 app.use(express.static(CLIENT_DIST));
@@ -10159,6 +10250,54 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
 
   return { html: formattedHtml, atsScore, atsReport, baseAtsScore: atsScoreBefore ?? null, version, resumeId: stored.resumeId, generatedAt: Date.now(),
     retry: retryReason ? { reason: retryReason } : null };
+}
+
+// ── D86 · BRING-YOUR-OWN-MODEL: what the tools need from this file's closure ─────────────────────
+//
+// ⛔ No model call anywhere below (D17): the user's own model wrote the patch. Scoring is the same basis
+// and scorer as the ATS panel; storing is D57's one store, as coreGenerateResume's; the job becomes
+// Pending and Prepared exactly as a Generate makes it (A63, D56) — but NO Draft slot is debited and no
+// plan generation is counted: draft paid nothing for this résumé. The per-user daily cap is policy.js's.
+function byomDeps() {
+  const textOf = (t) => /<(html|body|div|ul|p)[\s>]/i.test(String(t || "")) ? stripResumeHtml(t) : String(t || "");
+  return {
+    db,
+    appUrl: APP_BASE_ORIGIN || `http://localhost:${PORT}`,
+    jobFor: (jobId) => db.prepare("SELECT * FROM scraped_jobs WHERE job_id=?").get(String(jobId)) || null,
+    baseFor(userId) {
+      const dp = getOrRepairActiveProfile(userId);
+      if (!dp) return null;
+      const text = getBaseResumeRecord(db, { userId, profileId: dp.id })?.content || "";
+      if (!text.trim()) return null;
+      return {
+        text, structured: buildStructuredResume(text), domainProfile: dp,
+        userProfile: db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || {},
+        claims: listProfileClaims(db, { userId, profileId: dp.id }), allowSummary: dp.include_summary === 1,
+      };
+    },
+    scoreText(userId, job, text) {
+      const basis = atsBasisForProfile(userId, getOrRepairActiveProfile(userId), { resumeText: textOf(text) });
+      return basis ? scoreJobForBasis(job, basis.runtimeBasis) : null;
+    },
+    claimCheck: (args) => checkResumeClaims(args),
+    vocabulary: (_job, baseReport) => [...Array.from(skillVocabularyTerms()), ...(baseReport?.tier1_matched || []), ...(baseReport?.tier1_missing || [])],
+    storeResume({ userId, jobId, job, html, atsScore, atsReport, baseAtsScore, domainProfileId }) {
+      const stored = storeGeneratedResume(db, {
+        userId, jobId: String(jobId), job, tool: "byo_model", mode: "BYO_MODEL", html, atsScore, atsReport, baseAtsScore,
+        atsCacheKey: buildAtsCacheKey(html, job), promptVersion: ATS_SCORE_PROMPT_VERSION, domainProfileId,
+        userJobProfileId: resolveUserJobDomainProfileId(userId, String(jobId)),
+      });
+      try { markPending(db, userId, jobId, "generated"); } catch (e) { console.warn("[byom] pending:", e.message); }
+      try { applyLine.prepareManualPacket({ userId, jobId: String(jobId), via: "generate", toolType: "byo_model" }); }
+      catch (e) { console.warn("[byom] prepare packet:", e.message); }
+      emitToUser(userId, { type: "resume_generated", jobId: String(jobId), atsScore });
+      insertNotification(userId, "resume_generated",
+        `Resume ready for ${job.company}${atsScore != null ? ` (ATS: ${atsScore})` : ""} — written with your own model`,
+        { jobId: String(jobId), company: job.company, atsScore });
+      return stored;
+    },
+    notify: (userId, event) => emitToUser(userId, event),
+  };
 }
 
 // ── scoreBaseResumeForApply ────────────────────────────────────────────────────

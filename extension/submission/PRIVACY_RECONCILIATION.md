@@ -41,6 +41,18 @@ from — so this table cannot drift the way the line numbers did.
 
 No new collection: the Copy sheet adds no permission, host, storage key or stored field.
 
+## ⭐ D86 · BRING-YOUR-OWN-MODEL RÉSUMÉS — the user's own ChatGPT or Claude (10-08; a web-app flow, not the extension)
+
+| Check | Finding | Where |
+|---|---|---|
+| What the host receives | Only through `get_generation_brief`: the base résumé's sections as bullets with ids — **no header**, and every string scrubbed of email / phone / URL shapes — the claimed skills and verbs, and the job's title, company, level, location and the base résumé's MATCHED keywords. Not the posting's full text | `services/byom/resumePatch.js` `buildBrief`, `scrubContact`; test `d86Byom` |
+| Policy paragraph | ✅ *Your own ChatGPT or Claude* names exactly those items, *under your own account and its terms*, the never list, no model call by draft, and Disconnect. ⚠ The row's draft sentence said *the job description*; narrowed to what the code sends (*A policy claim with no code → narrow the claim*) | `PrivacyPage.jsx` |
+| Consent screen | ✅ The same sentence, the *It never sees* list (contact details, passwords, applications, other jobs) and the scopes, on draft's own page and session; no script; not frameable | `services/byom/consentPage.js` |
+| Off by default, twice | ✅ The operator's switch (`byom_enabled`) and the user's (`users.byom_enabled`) both start OFF; every tool call re-checks both and the host allow-list | `services/byom/policy.js` |
+| Credentials | ✅ Codes and tokens stored as SHA-256 hashes; tokens bound to `/mcp`; Disconnect revokes the connection and every token at once; a replayed code or refresh token revokes the connection | `services/byom/oauthServer.js` |
+| Logs | ✅ `mcp_audit` holds tool, outcome and refusal CODES — never résumé text; Settings and Admin read only that | `routes/byom.js` |
+| ⏸ Notice to users | Is this a material change that needs notice before the operator's switch goes on? The owner's call (WORKLOG O87), as O85 was for automatic capture | — |
+
 ## Permissions
 
 | Manifest permission | Code that requires it | Policy paragraph | Dashboard justification |
@@ -139,6 +151,7 @@ disclosure in the same way an undisclosed one is a gap, so each entry now carrie
 | **Job boards we search directly** | search terms and filters | the seven ATS plugins, all now reached via `services/jobs/aggregator.js` `groupCompaniesByAtsType()` | **live** |
 | **DuckDuckGo Icons** | a company domain, in an image URL | `LOGO_HOST` in `shared/companyLogos.js` | **live** — the only logo provider |
 | **LinkedIn OAuth** | name, email, on opt-in sign-in | OAuth callback | **live, optional** |
+| **Your own ChatGPT or Claude** | the base résumé's work history and skills **without contact details**, claimed skills, and the job's title, company, level, location and matched keywords — under the USER's own account and that provider's terms | `routes/byom.js` `/mcp` → `services/byom/tools.js` `get_generation_brief` (`resumePatch.js` `buildBrief`); reached only by a host the user connected themselves | **built 10-08 (D86), OFF** — the operator's switch and the user's both start off; see the D86 section above |
 | *Clearbit Logo API* | **nothing** | appears only in `services/jobs/backfillCompanyLogos.js` `RETIRED_LOGO_HOSTS`, a repair list that rewrites bad rows | **retired.** Named in the policy only as the thing DuckDuckGo replaced, which is the correct way to name it |
 | *THEIRSTACK* | **nothing** | only consumer is the offline `scripts/providerEval` harness | **vestigial, and correctly NOT named in the policy** |
 | *Google Fonts* | **nothing** — self-hosted since 2026-09-15 | four `@fontsource/*` packages imported in `client/src/main.jsx`, served from our own origin. Guarded by `test/selfHostedFonts.test.js` | **retired.** Was a real recipient of every visitor's IP and user-agent until that date, on every page, and the policy had never named it. Now named the way Clearbit is — as a former recipient that receives nothing |
