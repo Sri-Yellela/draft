@@ -10,7 +10,7 @@ import { useState, useEffect, useCallback } from "react";
 import { api, authContextQuery } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
-import { Panel, Step, Help, Dialog, useConfirm, h2, what, row, quiet, field } from "./adminKit.jsx";
+import { Panel, Step, Help, Dialog, useConfirm, h2, what, row, quiet, field, callout } from "./adminKit.jsx";
 // The second product is named by the one constant that holds its name (shared/brand.js).
 import { LEGACY_BRAND } from "../../../shared/brand.js";
 import { isAlarm } from "../../../shared/deployEvents.js";
@@ -116,19 +116,37 @@ function refreshLine(r) {
 }
 
 // ── /api/version — the deploy ─────────────────────────────────────────────────────────────────
-export function DeploySection({ theme }) {
+// ⭐ D83 rebuild #3 (39d) · TODAY → DEPLOYMENTS — audit #2 + #3 as one panel: what this server is running, what
+// Railway last did, and whether the two agree (a push that did not deploy reads as a mismatch, not by accident).
+// Read-only, so the only control is a quiet Re-read.
+export function DeploymentsPanel({ theme }) {
   const [v, setV] = useState(null);
-  const [at, setAt] = useState(null);
+  const [d, setD] = useState(null);
+  const [readAt, setReadAt] = useState(null);
   const [err, setErr] = useState(null);
   const load = useCallback(() => {
     setErr(null);
-    api("/api/version").then(d => { setV(d); setAt(nowSec()); }).catch(e => setErr(e.message));
+    api("/api/version").then(x => { setV(x); setReadAt(nowSec()); }).catch(e => setErr(e.message));
+    api("/api/admin/deploy-events").then(setD).catch(e => setErr(e.message));
   }, []);
   useEffect(() => { load(); }, [load]);
   const w = v?.atsWeights;
+  const latest = d?.latest || [];
+  const deploy = latest.find(e => /deploy/i.test(e.event_type || "")) || latest[0];
+  const short = (c) => (c ? String(c).slice(0, 7) : "?");
+  const agrees = deploy?.commit_hash && v?.commit ? short(deploy.commit_hash) === short(v.commit) : null;
+  const alarm = latest.some(e => isAlarm(e));
   return (
-    <Card theme={theme} title="Deploy — /api/version" measured={at ? `read ${stamp(at)} from this server` : null}>
+    <Panel title="Deployments" data-admin-deployments=""
+      code="/api/version is this server's own answer; the events are Railway's webhook (D76), stored as they arrive. RAILWAY_WEBHOOK_TOKEN signs them."
+      purpose="What this server is running, and what Railway last did. If the two disagree, a push has not deployed yet — or failed to."
+      numbers={v ? [[short(v.commit), `running · started ${ago(Math.floor(Date.parse(v.startedAt) / 1000))}`, !!v.commit],
+        [num(v.migrations?.count), `migrations · last ${v.migrations?.latestApplied ?? "—"}`],
+        [deploy ? (deploy.state || deploy.event_type) : "—", deploy ? `Railway, ${ago(deploy.received_at)}` : "no Railway event yet", deploy && !isAlarm(deploy)],
+        [agrees == null ? "—" : agrees ? "Yes" : "No", "running = last deployed", agrees === true]] : []}>
       <Err msg={err}/>
+      {alarm && <div style={{ ...callout(C.DANGER), marginBottom: 10 }} data-deploy-alarm="">A deploy failed or crashed, or a volume alert fired — the red row below says which.</div>}
+      {agrees === false && <div style={{ ...callout(C.WARNING), marginBottom: 10 }}>This server runs {short(v.commit)}; Railway's last event names {short(deploy.commit_hash)}.</div>}
       {v && (
         <KV theme={theme} rows={[
           ["commit", v.commit ? `${v.commit} (${v.commitSource})` : `unknown (${v.commitSource})`, v.commit ? null : C.WARNING],
@@ -141,64 +159,81 @@ export function DeploySection({ theme }) {
           ["monetisation", v.monetisationEnabled ? "ON — plan gates enforced" : "off — every tool open"],
         ]}/>
       )}
-      <div style={{ marginTop: 10 }}><Btn theme={theme} onClick={load}>Re-read</Btn></div>
-    </Card>
+      <h3 style={{ ...h2, fontSize: 15, margin: "14px 0 6px" }}>Railway's last event, per service</h3>
+      {d && (latest.length
+        ? <KV theme={theme} rows={latest.map(e => [
+            e.service_name || "?",
+            `${e.event_type}${e.commit_hash ? ` · ${short(e.commit_hash)}` : ""} · ${e.environment_name || "?"} · ${ago(e.received_at)}`,
+            isAlarm(e) ? C.DANGER : (["success", "deployed", "redeployed"].includes(e.state) ? C.SUCCESS : null),
+          ])}/>
+        : <div style={quiet}>No event received yet — the webhook is set in Railway → Project Settings → Webhooks, with the header <code>Authorization: Bearer &lt;RAILWAY_WEBHOOK_TOKEN&gt;</code>.</div>)}
+      <div style={{ marginTop: 10, ...row }}><Btn theme={theme} onClick={load}>Re-read</Btn>{readAt && <span style={quiet}>read {stamp(readAt)}</span>}</div>
+    </Panel>
   );
 }
 
-// ── D76 · Railway's events — GET /api/admin/deploy-events ──────────────────────────────────────
-// The last event per service, a failed or crashed deploy (or a volume / monitor alert) in red, beside
-// this server's own latest migration — so a push that did NOT deploy is visible, not found by accident.
-export function DeploymentsSection({ theme }) {
-  const [d, setD] = useState(null);
-  const [v, setV] = useState(null);
+// ⭐ D83 rebuild #3 (39d) · TODAY → DISK AND BACKUPS — audit #4 + #15b. Railway's volume alert is Pro-only; this is
+// it: green below 70%, amber to 85%, red above (the server's toneFor — one rule). The D74 tranche line is what 25
+// more companies would do, by this database's numbers. Backup now is the one accent; Restore confirms in the page,
+// says the current data is saved first, and that restoring that safety copy undoes it.
+const DISK_TONE = { green: C.SUCCESS, amber: C.WARNING, red: C.DANGER };
+const mbOf = (n) => (n >= 10 * 1073741824 ? `${num(Math.round(n / 1073741824))} GB` : `${num(Math.round((n || 0) / 1048576))} MB`);
+const sizeOf = (b) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+const BACKUP_TONE = { "auto-daily": C.INFO, manual: C.INK_FAINT, "pre-restore": C.WARNING };
+export function DiskPanel({ theme }) {
+  const [g, setG] = useState(null);
+  const [backups, setBackups] = useState(null);
+  const [busy, setBusy] = useState(null);
   const [err, setErr] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const { ask, dialog } = useConfirm();
   const load = useCallback(() => {
     setErr(null);
-    api("/api/admin/deploy-events").then(setD).catch(e => setErr(e.message));
-    api("/api/version").then(setV).catch(() => {});
+    api("/api/admin/disk").then(setG).catch(e => setErr(e.message));
+    api("/api/admin/backups").then(b => setBackups(Array.isArray(b) ? b : [])).catch(e => setErr(e.message));
   }, []);
   useEffect(() => { load(); }, [load]);
-  const rows = (d?.latest || []).map(e => [
-    e.service_name || "?",
-    `${e.event_type}${e.commit_hash ? ` · ${String(e.commit_hash).slice(0, 7)}` : ""} · ${e.environment_name || "?"} · ${ago(e.received_at)}`,
-    isAlarm(e) ? C.DANGER : (["success", "deployed", "redeployed"].includes(e.state) ? C.SUCCESS : null),
-  ]);
+  const backupNow = async () => {
+    setBusy("backup"); setErr(null); setMsg(null);
+    try { const r = await api("/api/admin/backups", { method: "POST", body: JSON.stringify({ label: "manual" }) }); setMsg(`Backup created: ${r.filename}`); load(); }
+    catch (e) { setErr(e.message); }
+    setBusy(null);
+  };
+  const restore = async (b) => {
+    if (!await ask({ title: "Restore this backup?", label: "Restore it",
+      body: <>The database is replaced with <code>{b.filename}</code> ({new Date(b.created).toLocaleString()}). The current data is backed up first, as a
+        <b> pre-restore</b> copy — restoring that copy undoes this. The server must be restarted afterwards for the restore to take effect.</> })) return;
+    setBusy("restore"); setErr(null); setMsg(null);
+    try { const r = await api("/api/admin/backups/restore", { method: "POST", body: JSON.stringify({ filename: b.filename }) }); setMsg(`${r.message} Restart the server now to apply it.`); load(); }
+    catch (e) { setErr(`Restore failed: ${e.message}`); }
+    setBusy(null);
+  };
+  const newest = backups?.[0];
   return (
-    <Card theme={theme} title="Deployments — Railway's webhook (D76)" measured={v ? `this server: ${v.commit ?? "?"} · migration ${v.migrations?.latestApplied ?? "?"}` : null}>
+    <Panel title="Disk and backups" data-admin-disk=""
+      code="D77: the gauge reads statfs on the data directory. Retention is a byte budget, not a count: at most 30 snapshots and at most 40% of the volume (BACKUP_MAX_COUNT, BACKUP_DISK_SHARE, BACKUP_MAX_BYTES), never fewer than 3 (BACKUP_MIN_KEEP) unless the disk itself cannot hold them."
+      purpose="How full the data volume is, and the database backups that can restore it. A daily backup runs at 2:00 server time; the newest of each kind is always kept."
+      numbers={g ? [[`${g.usedPct}%`, `of ${mbOf(g.totalBytes)} used · ${mbOf(g.freeBytes)} free`, g.tone === "green"],
+        [num(backups?.length ?? g.backups.count), `backups · ${mbOf(g.backups.bytes)} of a ${mbOf(g.backups.budget)} budget`],
+        [newest ? ago(Math.floor(new Date(newest.created).getTime() / 1000)) : "never", "the newest backup", !!newest],
+        g.tranche25 ? [`${g.tranche25.projectedPct}%`, `after 25 more companies (gate ${g.tranche25.limit}%)`, g.tranche25.projectedPct <= g.tranche25.limit] : null].filter(Boolean) : []}>
+      {dialog}
       <Err msg={err}/>
-      {d && (rows.length
-        ? <KV theme={theme} rows={rows}/>
-        : <div style={{ fontSize: 12, color: C.INK_FAINT }}>No event received yet — the webhook is set in Railway → Project Settings → Webhooks, with the header <code>Authorization: Bearer &lt;RAILWAY_WEBHOOK_TOKEN&gt;</code>.</div>)}
-      <div style={{ marginTop: 10 }}><Btn theme={theme} onClick={load}>Re-read</Btn></div>
-    </Card>
-  );
-}
-
-// ── D77 · the disk — GET /api/admin/disk ──────────────────────────────────────────────────────
-// Railway's volume alert is Pro-only; this is it. Green below 70%, amber to 85%, red above (the server's
-// toneFor — one rule). The D74 tranche line is what 25 more companies would do, by this database's numbers.
-const DISK_TONE = { green: C.SUCCESS, amber: C.WARNING, red: C.DANGER };
-const mbOf = (n) => `${Math.round((n || 0) / 1048576)} MB`;
-export function DiskSection({ theme }) {
-  const [g, setG] = useState(null);
-  const [err, setErr] = useState(null);
-  const load = useCallback(() => { setErr(null); api("/api/admin/disk").then(setG).catch(e => setErr(e.message)); }, []);
-  useEffect(() => { load(); }, [load]);
-  return (
-    <Card theme={theme} title="Disk — the volume (D77)" measured={g ? `statfs on the data directory · amber ${g.amberAt}% · red ${g.redAt}%` : null}>
-      <Err msg={err}/>
-      {g && (
-        <KV theme={theme} rows={[
-          ["used", `${g.usedPct}% — ${mbOf(g.usedBytes)} of ${mbOf(g.totalBytes)} (${mbOf(g.freeBytes)} free)`, DISK_TONE[g.tone] || null],
-          ["backups", `${g.backups.count} · ${mbOf(g.backups.bytes)} of a ${mbOf(g.backups.budget)} budget`],
-          ["largest", (g.largest || []).slice(0, 5).map(f => `${f.path} ${mbOf(f.bytes)}`).join(" · ") || "—"],
-          g.tranche25 && ["25 more companies", `→ ${g.tranche25.projectedPct}% (${g.tranche25.rowsPerCompany} rows / company × ${Math.round(g.tranche25.bytesPerRow / 1024)} KB / row, backups included) · gate ${g.tranche25.limit}%`,
-            g.tranche25.projectedPct > g.tranche25.limit ? C.DANGER : null],
-        ]}/>
-      )}
-      <div style={{ marginTop: 10 }}><Btn theme={theme} onClick={load}>Re-read</Btn></div>
-    </Card>
+      {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 8 }}>{msg}</div>}
+      {g && g.tone !== "green" && <div style={{ ...callout(DISK_TONE[g.tone] || C.WARNING), marginBottom: 10 }}>The volume is {g.tone} at {g.usedPct}% (amber {g.amberAt}%, red {g.redAt}%).</div>}
+      <div style={{ ...row, marginBottom: 12 }}>
+        <Btn theme={theme} primary disabled={!!busy} onClick={backupNow}>{busy === "backup" ? "Creating…" : "Back up now"}</Btn>
+        <Btn theme={theme} onClick={load}>Re-read</Btn>
+      </div>
+      {g && <div style={{ ...quiet, marginBottom: 12 }}>Largest files: {(g.largest || []).slice(0, 5).map(f => `${f.path} ${mbOf(f.bytes)}`).join(" · ") || "—"}</div>}
+      <Table theme={theme} rows={backups || []} empty="No backups yet — Back up now makes the first one." cols={[
+        { key: "filename", label: "file", render: b => <span title={b.filename} style={{ fontFamily: "monospace" }}>{b.filename}</span> },
+        { key: "label", label: "kind", render: b => <span style={markStyle(BACKUP_TONE[b.label] || C.INK_FAINT)}>{b.label}</span> },
+        { key: "created", label: "created", render: b => new Date(b.created).toLocaleString() },
+        { key: "size", label: "size", right: true, render: b => (b.size ? sizeOf(b.size) : "—") },
+        { key: "restore", label: "", render: b => <Btn theme={theme} disabled={!!busy} onClick={() => restore(b)}>Restore…</Btn> },
+      ]}/>
+    </Panel>
   );
 }
 
@@ -1058,57 +1093,6 @@ export function ToolsServiceSection({ theme }) {
 }
 
 // ── /api/admin/analytics/spend ─────────────────────────────────────────────────────────────────
-export function SpendSection({ theme }) {
-  const [days, setDays] = useState(1);
-  const [d, setD] = useState(null);
-  const [err, setErr] = useState(null);
-  useEffect(() => {
-    const to = nowSec() + 60;
-    const from = days === 1 ? to - (to % 86400) : to - days * 86400;
-    setErr(null);
-    api(`/api/admin/analytics/spend?from=${from}&to=${to}`).then(setD).catch(e => setErr(e.message));
-  }, [days]);
-  const cov = d?.coverage;
-  return (
-    <Card theme={theme} title="Spend — /api/admin/analytics/spend"
-      measured={d ? `${stamp(d.range.from)} → now · newest ledger row ${ago(d.dataSpan?.newestEventAt)}` : null}
-      tone={cov && !cov.healthy ? C.DANGER : undefined}>
-      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-        {[[1, "Today (UTC)"], [7, "7 days"], [30, "30 days"]].map(([n, l]) => (
-          <Btn key={n} theme={theme} primary={days === n} onClick={() => setDays(n)}>{l}</Btn>
-        ))}
-      </div>
-      <Err msg={err}/>
-      {d && (
-        <>
-          {d.empty && <div style={{ fontSize: 12, color: C.WARNING, marginBottom: 8 }}>{d.emptyReason}</div>}
-          <KV theme={theme} rows={[
-            ["cost", usd(d.totals.cost_usd)],
-            ["model calls", `${num(d.totals.calls)}${d.totals.failed_calls ? ` · ${num(d.totals.failed_calls)} FAILED` : ""}`,
-              d.totals.failed_calls ? C.DANGER : null],
-            ["tokens", num(d.totals.total_tokens)],
-            ["tracking coverage", cov ? (cov.healthy ? "healthy — " : "GAP — ") + cov.note : "—", cov && !cov.healthy ? C.DANGER : C.SUCCESS],
-          ]}/>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 12, marginTop: 12 }}>
-            <Table theme={theme} rows={d.byPurpose} cols={[
-              { key: "purpose", label: "call site (purpose)" },
-              { key: "calls", label: "calls", right: true, render: r => num(r.calls) },
-              { key: "cost_usd", label: "cost", right: true, render: r => usd(r.cost_usd) },
-            ]}/>
-            <Table theme={theme} rows={d.byProvider} cols={[
-              { key: "provider", label: "provider" },
-              { key: "calls", label: "calls", right: true, render: r => num(r.calls) },
-              { key: "failed_calls", label: "failed", right: true, render: r => num(r.failed_calls || 0),
-                color: r => (r.failed_calls ? C.DANGER : null) },
-              { key: "cost_usd", label: "cost", right: true, render: r => usd(r.cost_usd) },
-            ]}/>
-          </div>
-        </>
-      )}
-    </Card>
-  );
-}
-
 // ── /api/admin/users/:id/applications — read-only, inside a user's expanded row ───────────────
 export function UserApplications({ userId, theme }) {
   const [rows, setRows] = useState(null);
@@ -1466,51 +1450,111 @@ export function NoticesTab({ theme }) {
   );
 }
 
-// ⭐ COST VISIBILITY (owner, 10-09) · Admin → Costs & quotas. What a résumé costs, which model ran, the cache and
+// ⭐ COST VISIBILITY (owner, 10-09) · Admin → Today → Costs & quotas. What a résumé costs, which model ran, the cache and
 // the retry notes live HERE and nowhere a user can see; users see only their drafts left and "about 10–20 seconds".
 // The banner is set when the model account ran out of credit or lost its key — users saw only "unavailable".
+// D83 rebuild #3 (39d): the Panel shell, the numbers on open, and the ledger's spend (audit #12) in the same panel.
+const SPEND_PERIODS = [[1, "Today (UTC)"], [7, "The last 7 days"], [30, "The last 30 days"]];
 export function CostsTab({ theme }) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
+  const { ask, dialog } = useConfirm();
   const load = useCallback(() => { setErr(null); api("/api/admin/costs").then(setD).catch(e => setErr(e.message)); }, []);
   useEffect(() => { load(); }, [load]);
-  if (!d) return <Err msg={err}/>;
-  const s = d.summary || {};
+  const s = d?.summary || {};
   const cents = (x) => (x?.cents == null ? "—" : `${Number(x.cents).toFixed(2)}¢ (${x.basis === "ledger" ? `median of ${x.samples}` : "measured at D70 Phase 0"})`);
-  const a = d.fundingAlert;
+  const a = d?.fundingAlert;
+  const dismiss = async () => {
+    if (!await ask({ title: "Dismiss the banner?", label: "Dismiss", body: "It comes back with the next funding failure; nothing else changes." })) return;
+    try { await api("/api/admin/costs/funding-alert/clear", { method: "POST" }); load(); } catch (e) { setErr(e.message); }
+  };
   return (
-    <div data-admin-costs="">
+    <Panel title="Costs & quotas" data-admin-costs=""
+      code="Cost visibility (owner, 10-09): résumé economics are the admin's alone. Figures are the usage ledger (usage_events); a résumé's price is the median of recent delivered calls, or D70 Phase 0's measurement until there are enough."
+      purpose="What résumé generation and search cost us, call by call. Users never see these figures — only how many drafts they have left."
+      numbers={d ? [[s.generate?.cents == null ? "—" : `${Math.round(s.generate.cents)}¢`, "per Generate résumé"],
+        [s.aPlus?.cents == null ? "—" : `${Math.round(s.aPlus.cents)}¢`, "per A+ résumé"],
+        [num(d.last24h?.calls), "generation calls, last 24 hours"],
+        [usd(d.last24h?.costUsd), "their cost, last 24 hours"],
+        [a ? "Failing" : "OK", a ? "the model account needs attention" : "the model account", !a]] : []}>
+      {dialog}
       <Err msg={err}/>
       {a && (
-        <Card theme={theme} title="Generation is failing — the model account needs attention" tone={C.DANGER}>
-          <div style={{ fontSize: 13, color: theme.text, marginBottom: 10 }} data-funding-alert="">
-            Since {stamp(a.at)} ({a.where}): <code>{a.message}</code> — users are told only that résumé
-            generation is unavailable. Top up or fix the key; the next successful generation clears this.
-          </div>
-          <Btn theme={theme} onClick={async () => { try { await api("/api/admin/costs/funding-alert/clear", { method: "POST" }); load(); } catch (e) { setErr(e.message); } }}>Dismiss</Btn>
-        </Card>
+        <div style={{ ...callout(C.DANGER), marginBottom: 12 }} data-funding-alert="">
+          <b>Generation is failing — the model account needs attention.</b> Since {stamp(a.at)} ({a.where}): <code>{a.message}</code> — users are told only
+          that résumé generation is unavailable. Top up or fix the key; the next successful generation clears this.
+          <div style={{ marginTop: 8 }}><Btn theme={theme} onClick={dismiss}>Dismiss…</Btn></div>
+        </div>
       )}
-      <Card theme={theme} title="Per résumé" measured="usage_events, delivered calls only">
-        <KV theme={theme} rows={[
-          ["Generate", cents(s.generate)],
-          ["A+ résumé", cents(s.aPlus)],
-          ["Last 24 hours", `${num(d.last24h?.calls)} calls · ${usd(d.last24h?.costUsd)}`],
-        ]}/>
-      </Card>
-      <Card theme={theme} title="Recent generation calls" measured="newest 50">
-        <Table theme={theme} rows={d.recent} cols={[
-          { key: "at", label: "When", render: r => ago(r.at) },
-          { key: "username", label: "User", render: r => r.username || `#${r.userId}` },
-          { key: "purpose", label: "Purpose", render: r => [r.purpose, r.kind].filter(Boolean).join(" · ") },
-          { key: "model", label: "Model" },
-          { key: "inputTokens", label: "In", right: true, render: r => num(r.inputTokens) },
-          { key: "outputTokens", label: "Out", right: true, render: r => num(r.outputTokens) },
-          { key: "cacheReadTokens", label: "Cache read", right: true, render: r => num(r.cacheReadTokens) },
-          { key: "costUsd", label: "Cost", right: true, render: r => usd(r.costUsd) },
-          { key: "success", label: "OK", render: r => (r.success ? "yes" : "no"), color: r => (r.success ? null : C.DANGER) },
-          { key: "note", label: "Note (retry reason, failure)", render: r => r.note || "—" },
-        ]}/>
-      </Card>
+      {d && <KV theme={theme} rows={[["Generate", cents(s.generate)], ["A+ résumé", cents(s.aPlus)]]}/>}
+      <h3 style={{ ...h2, fontSize: 15, margin: "14px 0 6px" }}>Recent generation calls</h3>
+      <Table theme={theme} rows={d?.recent || []} cols={[
+        { key: "at", label: "When", render: r => ago(r.at) },
+        { key: "username", label: "User", render: r => r.username || `#${r.userId}` },
+        { key: "purpose", label: "Purpose", render: r => [r.purpose, r.kind].filter(Boolean).join(" · ") },
+        { key: "model", label: "Model" },
+        { key: "inputTokens", label: "In", right: true, render: r => num(r.inputTokens) },
+        { key: "outputTokens", label: "Out", right: true, render: r => num(r.outputTokens) },
+        { key: "cacheReadTokens", label: "Cache read", right: true, render: r => num(r.cacheReadTokens) },
+        { key: "costUsd", label: "Cost", right: true, render: r => usd(r.costUsd) },
+        { key: "success", label: "OK", render: r => (r.success ? "yes" : "no"), color: r => (r.success ? null : C.DANGER) },
+        { key: "note", label: "Note (retry reason, failure)", render: r => r.note || "—" },
+      ]}/>
+      <SpendPart theme={theme}/>
+    </Panel>
+  );
+}
+
+// The ledger's whole spend — every purpose and provider, search included (audit #12, merged into Costs & quotas).
+function SpendPart({ theme }) {
+  const [days, setDays] = useState(1);
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState(null);
+  useEffect(() => {
+    const to = nowSec() + 60;
+    const from = days === 1 ? to - (to % 86400) : to - days * 86400;
+    setErr(null);
+    api(`/api/admin/analytics/spend?from=${from}&to=${to}`).then(setD).catch(e => setErr(e.message));
+  }, [days]);
+  const cov = d?.coverage;
+  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "5px 8px", fontSize: 12 };
+  return (
+    <div data-admin-spend="" style={{ marginTop: 18 }}>
+      <h3 style={{ ...h2, fontSize: 15, margin: "0 0 6px" }}>All spend in the ledger</h3>
+      <div style={{ ...row, marginBottom: 10 }}>
+        <select aria-label="Period" value={days} onChange={e => setDays(Number(e.target.value))} style={input}>
+          {SPEND_PERIODS.map(([n, l]) => <option key={n} value={n}>{l}</option>)}
+        </select>
+        {d && <span style={quiet}>{stamp(d.range.from)} → now · newest ledger row {ago(d.dataSpan?.newestEventAt)}</span>}
+      </div>
+      <Err msg={err}/>
+      {d && (
+        <>
+          {d.empty && <div style={{ fontSize: 12, color: C.WARNING, marginBottom: 8 }}>{d.emptyReason}</div>}
+          <KV theme={theme} rows={[
+            ["cost", usd(d.totals.cost_usd)],
+            ["model calls", `${num(d.totals.calls)}${d.totals.failed_calls ? ` · ${num(d.totals.failed_calls)} FAILED` : ""}`,
+              d.totals.failed_calls ? C.DANGER : null],
+            ["tokens", num(d.totals.total_tokens)],
+            ["tracking coverage", cov ? (cov.healthy ? "healthy — " : "GAP — ") + cov.note : "—", cov && !cov.healthy ? C.DANGER : C.SUCCESS],
+          ]}/>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12, marginTop: 12 }}>
+            <Table theme={theme} rows={d.byPurpose} cols={[
+              { key: "purpose", label: "call site (purpose)" },
+              { key: "calls", label: "calls", right: true, render: r => num(r.calls) },
+              { key: "cost_usd", label: "cost", right: true, render: r => usd(r.cost_usd) },
+            ]}/>
+            <Table theme={theme} rows={d.byProvider} cols={[
+              { key: "provider", label: "provider" },
+              { key: "calls", label: "calls", right: true, render: r => num(r.calls) },
+              { key: "failed_calls", label: "failed", right: true, render: r => num(r.failed_calls || 0),
+                color: r => (r.failed_calls ? C.DANGER : null) },
+              { key: "cost_usd", label: "cost", right: true, render: r => usd(r.cost_usd) },
+            ]}/>
+          </div>
+        </>
+      )}
     </div>
   );
 }
+

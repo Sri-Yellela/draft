@@ -11,7 +11,8 @@ export default function AdminLayout({ user, onLogout, children }) {
                   background:theme.bg, minHeight:"100vh", color:theme.text }}>
       {/* Header */}
       <div style={{
-        height:56, background:theme.surface,
+        // D83 (39d): opaque — the glass surface let a scrolled panel show through the sticky header.
+        height:56, background:"var(--c-surface-solid)",
         borderBottom:`3px solid ${theme.accent}`,
         display:"flex", alignItems:"center",
         padding:"0 24px", gap:16, flexShrink:0,

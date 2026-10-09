@@ -6,9 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api }      from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
-import { GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, NoticesTab, CostsTab, DeploySection, DeploymentsSection,
-         DiskSection, BoardPolicySection, KillSwitchSection, BoardFitSection, JobDataSection, CompaniesSection, SlugHarvestSection,
-         ToolsServiceSection, SpendSection } from "./adminOps.jsx";
+import { GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, NoticesTab, CostsTab, DeploymentsPanel, DiskPanel,
+         BoardPolicySection, KillSwitchSection, BoardFitSection, JobDataSection, CompaniesSection, SlugHarvestSection,
+         ToolsServiceSection } from "./adminOps.jsx";
 import { ADMIN_GROUPS, readAdminPlace, writeAdminPlace } from "./adminMap.js";
 import { EnrichmentTab } from "./adminEnrichment.jsx";
 import { TYPE } from "../styles/type.js";
@@ -792,11 +792,8 @@ export function AdminPanel() {
   const [users,    setUsers]    = useState([]);
   const [upgradeRequests, setUpgradeRequests] = useState([]);
   const [profileRequests, setProfileRequests] = useState([]);
-  const [backups,  setBackups]  = useState([]);
   const [newU,     setNewU]     = useState({ username:"", password:"", isAdmin:false });
   const [status,   setStatus]   = useState("");
-  const [bStatus,  setBStatus]  = useState("");
-  const [backing,  setBacking]  = useState(false);
 
   // ⭐ D83 · THE MAP — five groups, each answering one question; a group holds the panels that answer it
   // (adminMap.js). The glance still opens first (A50 step 3): "is the system healthy right now?" needs no click.
@@ -807,10 +804,9 @@ export function AdminPanel() {
   const at = (g, s) => place.g === g && place.s === s;
   const group = ADMIN_GROUPS.find(x => x.id === place.g) || ADMIN_GROUPS[0];
 
-  useEffect(() => { loadUsers(); loadBackups(); loadUpgradeRequests(); loadProfileRequests(); }, []);
+  useEffect(() => { loadUsers(); loadUpgradeRequests(); loadProfileRequests(); }, []);
 
   const loadUsers   = () => api("/api/admin/users").then(setUsers).catch(() => {});
-  const loadBackups = () => api("/api/admin/backups").then(setBackups).catch(() => {});
   const loadUpgradeRequests = () => api("/api/admin/upgrade-requests").then(setUpgradeRequests).catch(() => {});
   const loadProfileRequests = () => api("/api/admin/domain-profile-requests").then(setProfileRequests).catch(() => {});
 
@@ -858,34 +854,6 @@ export function AdminPanel() {
     });
     loadProfileRequests();
   };
-
-  const triggerBackup = async () => {
-    setBacking(true); setBStatus("");
-    try {
-      const r = await api("/api/admin/backups", {
-        method:"POST", body:JSON.stringify({ label:"manual" }),
-      });
-      setBStatus(`✓ Backup created: ${r.filename}`);
-      loadBackups();
-    } catch(e) { setBStatus("✗ " + e.message); }
-    setBacking(false);
-    setTimeout(() => setBStatus(""), 6000);
-  };
-
-  const restoreBackup = async filename => {
-    if (!confirm(`Restore from:\n${filename}\n\nCurrent data will be backed up first, then overwritten. The server must be restarted after restore. Continue?`)) return;
-    try {
-      const r = await api("/api/admin/backups/restore", {
-        method:"POST", body:JSON.stringify({ filename }),
-      });
-      alert(`${r.message}\n\nRestart the server now to apply the restored database.`);
-      loadBackups();
-    } catch(e) { alert("Restore failed: " + e.message); }
-  };
-
-  const fmtSize = bytes => bytes > 1024 * 1024
-    ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
-    : `${(bytes / 1024).toFixed(0)} KB`;
 
   const thStyle = {
     padding:"10px 14px", textAlign:"left", fontSize:10,
@@ -969,10 +937,11 @@ export function AdminPanel() {
 
       {/* Today — what needs me? */}
       {at("today", "glance") && <GlanceTab theme={theme}/>}
-      {at("today", "deploys") && <><DeploySection theme={theme}/><DeploymentsSection theme={theme}/></>}
-      {at("today", "disk") && <DiskSection theme={theme}/>}
-      {/* Cost visibility (owner, 10-09): résumé economics are the admin's alone; search spend beside them. */}
-      {at("today", "costs") && <><CostsTab theme={theme}/><SpendSection theme={theme}/></>}
+      {at("today", "deploys") && <DeploymentsPanel theme={theme}/>}
+      {/* D83 audit #4 + #15b: the volume and its backups, one panel. */}
+      {at("today", "disk") && <DiskPanel theme={theme}/>}
+      {/* Cost visibility (owner, 10-09): résumé economics are the admin's alone; the ledger's spend in the same panel. */}
+      {at("today", "costs") && <CostsTab theme={theme}/>}
       {at("today", "activity") && <UsageTab theme={theme}/>}
 
       {/* The board — what is on it, and why? */}
@@ -1178,130 +1147,6 @@ export function AdminPanel() {
                 initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
                 exit={{ opacity:0, y:-6 }} transition={{ duration:0.18 }}>
                 <NoticesTab theme={theme}/>
-              </motion.div>
-            )}
-            {/* D83 audit #4 + #15b: the volume and the backups on one panel (D86's plugin moved to System → Feature switches). */}
-            {at("today", "disk") && (
-              <motion.div key="backups"
-                initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
-                exit={{ opacity:0, y:-6 }} transition={{ duration:0.18 }}>
-
-                {/* Backup card */}
-                <div className="rm-card" style={{ marginBottom:24, maxWidth:560 }}>
-                  <div style={{ fontWeight:700, fontSize:14, color:theme.text, marginBottom:10 }}>
-                    Database Backup
-                  </div>
-                  <div style={{ fontSize:12, color:theme.textMuted, lineHeight:1.6, marginBottom:14 }}>
-                    Backups are saved to{" "}
-                    <code style={{ color:theme.accentText, fontFamily:"monospace" }}>data/backups/</code>.{" "}
-                    {/* A50: this said "kept for the last 30 snapshots". Retention has been a BYTE budget
-                        since the DB outgrew the volume (scripts/backup.js selectRetained): 30 is only the
-                        count cap, and on a large database far fewer survive. */}
-                    Retention is a byte budget, not a count: at most 30 snapshots and at most 40% of the
-                    volume (<code>BACKUP_MAX_COUNT</code>, <code>BACKUP_DISK_SHARE</code>,{" "}
-                    <code>BACKUP_MAX_BYTES</code>), never fewer than 3 (<code>BACKUP_MIN_KEEP</code>) unless
-                    the disk itself cannot hold them. The newest backup and the newest of each type are
-                    kept first, so a tight budget loses depth, not kinds. The list below is what survived.
-                    An automatic backup runs daily at 2:00 (server time). Restore creates a safety backup
-                    of the current DB before overwriting.
-                    After restoring, <strong style={{ color:theme.text }}>restart the server</strong> to apply.
-                  </div>
-                  <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-                    <button
-                      disabled={backing} onClick={triggerBackup}
-                      style={{
-                        background: backing ? theme.border : ADMIN_ACCENT,
-                        color: ADMIN_TEXT, border:"none", borderRadius:2,
-                        padding:"8px 20px", cursor:"pointer",
-                        fontFamily:"inherit",
-                        fontWeight:700, fontSize:12, letterSpacing:"0.08em",
-                        textTransform:"uppercase",
-                        transition:"border-radius 1s ease",
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.borderRadius="999px"}
-                      onMouseLeave={e => e.currentTarget.style.borderRadius="2px"}>
-                      {backing ? "Creating…" : "Backup Now"}
-                    </button>
-                    {bStatus && (
-                      <span style={{ fontSize:12,
-                        color:bStatus.startsWith("✓") ? theme.success : theme.danger }}>
-                        {bStatus}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Backup list */}
-                <div style={{ background:theme.surface, border:`1px solid ${theme.border}`,
-                              borderRadius:16, overflow:"hidden", maxWidth:700 }}>
-                  <div style={{ background:theme.surfaceHigh, padding:"10px 16px",
-                                display:"flex", alignItems:"center",
-                                justifyContent:"space-between",
-                                borderBottom:`1px solid ${theme.border}` }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:theme.textMuted }}>
-                      Restore Points ({backups.length})
-                    </span>
-                    <button className="rm-btn rm-btn-ghost rm-btn-sm"
-                      onClick={loadBackups}>
-                      ↻ Refresh
-                    </button>
-                  </div>
-                  {backups.length === 0 ? (
-                    <div style={{ padding:"32px", color:theme.textDim,
-                                  fontSize:13, textAlign:"center" }}>
-                      No backups yet — click "Backup Now" to create the first one.
-                    </div>
-                  ) : (
-                    <table style={{ width:"100%", borderCollapse:"collapse" }}>
-                      <thead>
-                        <tr style={{ background:theme.surfaceHigh, borderBottom:`1px solid ${theme.border}` }}>
-                          {["File","Type","Created","Size",""].map(h => (
-                            <th key={h} style={thStyle}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {backups.map((b, i) => (
-                          <tr key={i} className="rm-table-row"
-                            style={{ borderBottom:`1px solid ${theme.border}` }}>
-                            <td style={{ padding:"10px 14px", fontSize:11,
-                                         color:theme.textMuted, fontFamily:"monospace",
-                                         maxWidth:260, overflow:"hidden",
-                                         textOverflow:"ellipsis", whiteSpace:"nowrap" }}
-                              title={b.filename}>
-                              {b.filename}
-                            </td>
-                            <td style={{ padding:"10px 14px" }}>
-                              <span className="rm-badge" style={{
-                                background: b.label==="auto-daily" ? theme.infoMuted
-                                          : b.label==="manual"     ? theme.surfaceHigh
-                                          : theme.dangerMuted,
-                                color: b.label==="auto-daily" ? theme.info
-                                     : b.label==="manual"     ? theme.textMuted
-                                     : theme.danger,
-                              }}>
-                                {b.label}
-                              </span>
-                            </td>
-                            <td style={{ padding:"10px 14px", fontSize:11, color:theme.textMuted }}>
-                              {new Date(b.created).toLocaleString()}
-                            </td>
-                            <td style={{ padding:"10px 14px", fontSize:11, color:theme.textDim }}>
-                              {b.size ? fmtSize(b.size) : "—"}
-                            </td>
-                            <td style={{ padding:"10px 14px" }}>
-                              <button className="rm-btn rm-btn-ghost rm-btn-sm"
-                                style={{ color:theme.success, borderColor:theme.success+"44" }}
-                                onClick={() => restoreBackup(b.filename)}>
-                                Restore
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
               </motion.div>
             )}
           </AnimatePresence>
