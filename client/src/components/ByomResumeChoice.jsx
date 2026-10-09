@@ -1,22 +1,20 @@
-// ⭐ D86 · THE RÉSUMÉ BUTTON'S CHOICE — write it with draft, or in the user's own ChatGPT or Claude.
+// ⭐ D86 · THE RÉSUMÉ BUTTON — a SPLIT BUTTON: write it with draft, or in the user's own ChatGPT or Claude.
 //
-// The Résumé button's ONE click is unchanged: it is draft's Generate. This adds the caret beside it, and
-// only when the operator has the feature on — a user who never turns it on sees the panel exactly as it
-// was. The caret chooses:
-//   · Write it with draft — uses a draft credit (the existing Generate)
-//   · Write it in ChatGPT / Claude — free to the user: their own model writes it through draft's connector
-//   · or, when the user's switch is off, a way to Settings → Integrations → Connected apps.
-// Choosing a host opens it with the request filled in (claude.ai/new?q= · chatgpt.com/?q= — neither is
-// documented by its maker, so the request is ALSO copied, and the line says so) and then shows four steps
-// that update THEMSELVES while the user is in the chat: Open → Waiting for your résumé… → Checks → Done. A
-// refusal is said in plain words with "Nothing was saved".
-//
-// One state (useByomFlow) for the panel; the caret is drawn in both of its layouts (labelled boxes and
-// icon squares) and the status line once, beneath them.
+// Built to the owner's sketch (plugin-ui.html, tab 2). The split replaces the plain Résumé button ONLY while
+// the operator has the feature on — a user who never turns it on sees the panel exactly as it was, and the
+// default method is draft's Generate, so the one click is unchanged until the user chooses otherwise.
+//   · the caret CHOOSES the method (Write it with draft — uses a draft credit · Write it in ChatGPT / Claude —
+//     free to you) and the main half's label follows it ("Résumé · Claude"); the choice is remembered
+//     per browser. "Don't see them?" leads to Settings.
+//   · choosing a host shows the four steps — Open → Waiting for your résumé… → Checks → Done — which update
+//     THEMSELVES while the user is in the chat. "Open {host}" opens it with the request prefilled
+//     (claude.ai/new?q= · chatgpt.com/?q= — neither documented by its maker, so the request is ALSO copied,
+//     and the card says so). A refusal names the term and says "Nothing was saved"; Done says base → tailored
+//     with View and Download.
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";
-import DepthButton from "./DepthButton.jsx";
+import DepthButton, { ICONS } from "./DepthButton.jsx";
 import "./ByomResumeChoice.css";
 
 const HOST_URL = {
@@ -25,6 +23,7 @@ const HOST_URL = {
 };
 const POLL_MS = 3000;
 const POLL_FOR_MS = 30 * 60 * 1000;
+const METHOD_KEY = "draft-byom-method";
 
 let settingsPromise = null;
 /** /api/byom, once per page load — the panel opens and closes often. */
@@ -32,7 +31,8 @@ function loadSettings() {
   settingsPromise = settingsPromise || api("/api/byom").catch(() => null);
   return settingsPromise;
 }
-export function forgetByomSettings() { settingsPromise = null; }
+const readMethod = () => { try { return localStorage.getItem(METHOD_KEY) || "draft"; } catch { return "draft"; } };
+const writeMethod = (m) => { try { localStorage.setItem(METHOD_KEY, m); } catch { /* a convenience, never required */ } };
 
 export function requestText(job) {
   const id = String(job?.jobId ?? "");
@@ -44,6 +44,7 @@ export function requestText(job) {
 /** The panel's one bring-your-own-model state. */
 export function useByomFlow(job) {
   const [settings, setSettings] = useState(null);
+  const [chosen, setChosen] = useState(readMethod);
   const [flow, setFlow] = useState(null);      // { host, label, since, copied }
   const [status, setStatus] = useState(null);
   useEffect(() => { let live = true; loadSettings().then(s => { if (live) setSettings(s); }); return () => { live = false; }; }, []);
@@ -63,6 +64,10 @@ export function useByomFlow(job) {
     tick();
     return () => { live = false; clearTimeout(timer); };
   }, [flow, job?.jobId]);
+  // A remembered host that is now off falls back to draft: the one click never points at a dead path.
+  const usable = (m) => m === "draft" || (!!settings?.enabled && !!settings?.hosts?.[m]?.enabled);
+  const method = usable(chosen) ? chosen : "draft";
+  const choose = useCallback((m) => { setChosen(m); writeMethod(m); setFlow(null); setStatus(null); }, []);
   const start = useCallback(async (host) => {
     const text = requestText(job);
     let copied = false;
@@ -71,13 +76,16 @@ export function useByomFlow(job) {
     setStatus(null);
     setFlow({ host, label: settings?.hosts?.[host]?.label ?? host, since: Math.floor(Date.now() / 1000) - 5, copied });
   }, [job, settings]);
-  return { settings, available: !!settings?.available, flow, status, start };
+  const connected = (h) => (settings?.connections || []).some(c => c.host === h);
+  return { settings, available: !!settings?.available, method, choose, flow, status, start, connected };
 }
 
-const caretIcon = <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>;
-
-/** The caret and its menu. Renders nothing while the operator's switch is off. */
-export default function ByomResumeChoice({ byom, square = false, onGenerate, generateDisabled = false }) {
+/**
+ * The split button: the main half runs the chosen method; the caret chooses. Renders nothing while the
+ * operator's switch is off — the caller then draws its plain Résumé button.
+ * @param {{ byom, label: string, square?: boolean, onGenerate: () => void, disabled?: boolean, busy?: boolean }} p
+ */
+export default function ByomResumeChoice({ byom, label, square = false, onGenerate, disabled = false, busy = false }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const wrap = useRef(null);
@@ -90,74 +98,84 @@ export default function ByomResumeChoice({ byom, square = false, onGenerate, gen
     return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", esc); };
   }, [open]);
   if (!byom?.available) return null;
-  const { settings } = byom;
+  const { settings, method } = byom;
+  const hostLabel = method === "draft" ? null : settings.hosts?.[method]?.label;
+  const runMain = () => (method === "draft" ? onGenerate?.() : byom.start(method));
+  const mainLabel = busy ? "Generating…" : hostLabel ? `${label} · ${hostLabel}` : label;
 
-  const hostItem = (host) => {
-    const h = settings.hosts?.[host];
-    const off = !settings.enabled || !h?.enabled;
+  const opt = (m, title, sub, mark) => {
+    const off = m !== "draft" && (!settings.enabled || !settings.hosts?.[m]?.enabled);
     return (
-      <button key={host} type="button" role="menuitem" className="byom__item" disabled={off}
-        onClick={() => { setOpen(false); byom.start(host); }}>
-        <span>Write it in {h?.label ?? host}</span>
-        <small>{!h?.enabled ? `${h?.label ?? host} is not available right now` : `free to you — your own ${h.label}`}</small>
+      <button key={m} type="button" role="menuitemradio" aria-checked={method === m} className="byom__opt" disabled={off}
+        onClick={() => { setOpen(false); byom.choose(m); }}>
+        <span><b>{title}</b>{sub}</span>{mark}
       </button>
     );
   };
+  const hostMark = (h) => !settings.hosts?.[h]?.enabled ? <span className="mark mark--warn">Unavailable</span>
+    : byom.connected(h) ? <span className="mark mark--ok">Connected</span> : <span className="mark mark--dim">Not connected</span>;
 
   return (
-    <span className="byom" ref={wrap} data-byom-choice="">
-      <DepthButton size={square ? "square" : "box"} icon={caretIcon} onClick={() => setOpen(o => !o)}
-        title="Choose how to write the résumé" caption={square ? "Choose" : null} aria-haspopup="menu" aria-expanded={open}
-        className="byom__caret">{square ? "Choose how to write the résumé" : <span className="byom__sr">Choose how to write the résumé</span>}</DepthButton>
+    <span className={`byom${square ? " byom--sq" : ""}`} ref={wrap} data-byom-choice="">
+      <DepthButton size={square ? "square" : "box"} icon={ICONS.resume} onClick={runMain} disabled={disabled && method === "draft"}
+        title={hostLabel ? `Write it in ${hostLabel} — free to you` : `${label} — uses a draft credit`} caption={square ? (hostLabel || "Résumé") : null}
+        className="byom__main">{square ? mainLabel : mainLabel}</DepthButton>
+      <DepthButton size="box" icon={<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>} onClick={() => setOpen(o => !o)}
+        title="Choose how to write it" aria-haspopup="menu" aria-expanded={open} aria-label="Choose how to write it" className="byom__car">{null}</DepthButton>
       {open && (
-        <div className="byom__menu" role="menu" aria-label="Write the résumé">
-          <button type="button" role="menuitem" className="byom__item" disabled={generateDisabled}
-            onClick={() => { setOpen(false); onGenerate?.(); }}>
-            <span>Write it with draft</span><small>uses a draft credit</small>
-          </button>
-          {hostItem("chatgpt")}
-          {hostItem("claude")}
-          {!settings.enabled && (
-            <button type="button" role="menuitem" className="byom__item byom__item--link" onClick={() => navigate("/app/integrations")}>
-              <span>Turn on ChatGPT and Claude</span><small>Settings → Integrations → Connected apps</small>
-            </button>
-          )}
+        <div className="byom__pop" role="menu" aria-label="Write the résumé">
+          {opt("draft", "Write it with draft", "Uses a draft credit · about 10 seconds", <span className="mark mark--dim">default</span>)}
+          {opt("chatgpt", "Write it in ChatGPT", "Free to you · uses your own ChatGPT", hostMark("chatgpt"))}
+          {opt("claude", "Write it in Claude", "Free to you · uses your own Claude", hostMark("claude"))}
+          <div className="byom__foot">Don't see them?{" "}
+            <button type="button" className="byom__link" onClick={() => { setOpen(false); navigate("/app/integrations"); }}>Turn on Connected apps in Settings</button>
+          </div>
         </div>
       )}
     </span>
   );
 }
 
-const STEPS = ["Waiting for your résumé…", "Checks", "Done"];
-const reached = (status) => ({ refused: 2, done: 3 }[status] ?? 1);
-
-/** The four steps, under the actions. */
-export function ByomStatus({ byom }) {
-  const { flow, status } = byom || {};
-  if (!flow) return null;
-  const at = reached(status?.status);
+/** The four steps, under the actions — shown once a host is the chosen method. */
+export function ByomStatus({ byom, onView, onDownload }) {
+  const navigate = useNavigate();
+  if (!byom?.available || byom.method === "draft") return null;
+  const { flow, status, method, settings } = byom;
+  const label = settings.hosts?.[method]?.label ?? method;
+  const s = status?.status;
+  const at = !flow ? 0 : s === "refused" || s === "closed" || s === "expired" ? 2 : s === "done" ? 4 : 1;
+  const state = (i) => (i < at ? "done" : i === at ? "active" : "wait");
+  const terms = status?.terms || [];
+  const card = (i, title, body) => (
+    <div className={`byom__fs${i === 2 && ["refused", "closed", "expired"].includes(s) ? " byom__fs--bad" : ""}`} data-s={state(i)} key={i}>
+      <h5>{i + 1} · {title}</h5>{body}
+    </div>
+  );
   return (
-    <div className="byom__flow" role="status" aria-live="polite" data-byom-status={status?.status ?? "opened"}>
-      <ol className="byom__steps">
-        <li data-state="done">Open {flow.label}</li>
-        {STEPS.map((s, i) => <li key={s} data-state={status?.status === "done" || i + 1 < at ? "done" : i + 1 === at ? "now" : "next"}>{s}</li>)}
-      </ol>
-      {flow.copied && !["done", "refused"].includes(status?.status) && (
-        <p className="byom__note">The request is copied too — paste it if {flow.label} opens empty.</p>
-      )}
-      {status?.status === "refused" && (
-        <p className="byom__note byom__note--warn">Nothing was saved. draft refused it: {status.reasons.join(" ")} {flow.label} can fix this and try again.</p>
-      )}
-      {status?.status === "done" && (
-        <p className="byom__note byom__note--ok" data-byom-done="">
-          Résumé ready{status.baseAtsScore != null && status.atsScore != null ? ` · base ${status.baseAtsScore} → ${status.atsScore}` : ""} · claims checked
-        </p>
-      )}
-      {["closed", "expired"].includes(status?.status) && (
-        <p className="byom__note byom__note--warn">
-          {status.status === "closed" ? "Refused three times — nothing was saved." : "The request expired — nothing was saved."} Choose “Write it in {flow.label}” to start again.
-        </p>
-      )}
+    <div className="byom__flow" role="status" aria-live="polite" data-byom-status={s ?? (flow ? "opened" : "chosen")}>
+      {card(0, `Open ${label}`, !flow ? (
+        byom.connected(method)
+          ? <><p>We open {label} with your request ready. You press send.</p>
+              <button type="button" className="dbx dbx--box dbx--p byom__go" onClick={() => byom.start(method)}>Open {label} →</button></>
+          : <><p>{label} isn't connected yet — connect it in Settings first.</p>
+              <button type="button" className="byom__link" onClick={() => navigate("/app/integrations")}>Settings → Connected apps</button></>
+      ) : <p>{flow.copied ? `Opened, and the request is copied too — paste it if ${label} opens empty.` : `Opened ${label} with your request.`}</p>)}
+      {card(1, "Waiting for your résumé…", <p>{label} is writing it. This page updates by itself — you can keep working.</p>)}
+      {card(2, "Checks", s === "refused" ? (
+        <><p><span className="mark mark--warn">Needs a fix</span></p>
+          <p className="byom__why">{terms.length
+            ? <>{label} included <b>{terms.join(", ")}</b>, which {terms.length === 1 ? "isn't" : "aren't"} in your résumé or claims. It was told and is revising. <b>Nothing was saved.</b></>
+            : <>draft refused it: {status.reasons.join(" ")} <b>Nothing was saved.</b></>}</p></>
+      ) : s === "closed" || s === "expired" ? (
+        <><p><span className="mark mark--no">{s === "closed" ? "Refused three times" : "Expired"}</span></p>
+          <p className="byom__why"><b>Nothing was saved.</b>{" "}
+            <button type="button" className="byom__link" onClick={() => byom.start(method)}>Open {label} again</button></p></>
+      ) : <p>draft checks every claim and scores it.</p>)}
+      {card(3, "Done", s === "done" ? (
+        <><p><span className="mark mark--ok">Résumé ready</span></p>
+          <p className="byom__why" data-byom-done="">{status.baseAtsScore != null && status.atsScore != null ? <>Base <b>{status.baseAtsScore} → {status.atsScore}</b>. </> : null}Claims checked.{" "}
+            <button type="button" className="byom__link" onClick={onView}>View</button> · <button type="button" className="byom__link" onClick={onDownload}>Download</button></p></>
+      ) : <p>Your résumé is attached to this job.</p>)}
     </div>
   );
 }

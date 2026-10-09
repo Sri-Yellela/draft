@@ -58,27 +58,40 @@ function Section({ title, subtitle, status, children, theme }) {
   );
 }
 
-// ⭐ D86 · CONNECTED APPS — the one persistent home for writing résumés in the user's own ChatGPT or Claude.
-// Sign-in runs the other way from "Sign in with OpenAI": the user adds draft INSIDE the host, and the host
-// sends them to draft's own consent screen. So this page controls and SHOWS the connection; it cannot make it.
-const BYOM_STEPS = {
-  claude: (url) => ["In Claude, open Settings → Connectors and choose Add custom connector.", `Paste the plugin link: ${url}`,
-    "Claude sends you to draft to sign in and choose Allow."],
-  chatgpt: (url) => ["In ChatGPT, open Settings → Apps → Advanced settings and turn on Developer mode (today: Business, Enterprise or Edu workspaces only).",
-    `Create an app with the plugin link: ${url}`, "ChatGPT sends you to draft to sign in and choose Allow."],
-};
+// ⭐ D86 · CONNECTED APPS — the one persistent home (plugin-ui.html, tab 1). Sign-in runs the other way from
+// "Sign in with OpenAI": the user adds draft INSIDE the host, and the host sends them to draft's own consent
+// screen. So this page controls and SHOWS the connection; it cannot make it. Everything below the switch is
+// dimmed and inert while the switch is off.
 const BYOM_OPEN = { claude: "https://claude.ai/settings/connectors", chatgpt: "https://chatgpt.com/" };
-const ACTIVITY_WORDS = {
-  get_generation_brief: "read your base résumé for a job", submit_resume: "saved a résumé", score_resume: "scored a résumé",
-  list_my_drafts: "listed your drafted jobs", get_my_resumes: "listed your résumés", connect: "was connected", disconnect: "was disconnected",
+const BYOM_TESTER_HOW = {
+  claude: "in Claude, Settings → Connectors → Add custom connector, with the plugin link",
+  chatgpt: "in ChatGPT, Settings → Apps → developer mode (Business, Enterprise or Edu workspaces only, today), with the plugin link",
 };
-function activityLine(a) {
-  const who = a.host === "claude" ? "Claude" : a.host === "chatgpt" ? "ChatGPT" : "An app";
-  const what = ACTIVITY_WORDS[a.tool] || a.tool;
-  if (a.outcome === "ok") return `${who} ${what}`;
-  if (a.outcome === "refused") return a.tool === "submit_resume" ? `${who}'s résumé was refused — nothing was saved` : `${who} was refused (${what})`;
-  if (a.outcome === "denied") return `${who} was stopped — switched off or not allowed`;
-  return `${who}: draft failed on its side — nothing was saved`;
+const ARROW = <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width:14, height:14, fill:"none", stroke:"currentColor", strokeWidth:2, strokeLinecap:"round", strokeLinejoin:"round" }}><path d="M5 12h14M13 6l6 6-6 6"/></svg>;
+const LOCK = <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width:18, height:18, flex:"none", fill:"none", stroke:C.SUCCESS, strokeWidth:2 }}><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>;
+function byomAgo(at) {
+  const s = Math.max(0, Math.floor(Date.now() / 1000) - at);
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  return `${Math.floor(s / 86400)} d ago`;
+}
+const jobOf = (a) => [a.title, a.company].filter(Boolean).join(", ");
+/** The sketch's activity row: What, and a Result mark — in words, never résumé content. */
+function activityRow(a) {
+  const job = jobOf(a);
+  const on = job ? ` · ${job}` : "";
+  if (a.tool === "submit_resume" && a.outcome === "ok") return { what: `Wrote a résumé${on}`, mark: [C.SUCCESS, `Saved · ${String(a.detail || "").replace("→", " → ")}`] };
+  if (a.tool === "submit_resume" && a.outcome === "refused") {
+    const why = a.detail === "new_term" ? "a skill not in your résumé" : a.detail === "years_exceed_profile" ? "more years than you stated" : "a check failed";
+    return { what: `${a.fixed ? "First try refused" : "Refused"}: ${why}${on}`, mark: a.fixed ? [C.WARNING, "Fixed and resent"] : [C.DANGER, "Refused — nothing saved"] };
+  }
+  const words = { get_generation_brief: `Read your base résumé${on}`, score_resume: `Scored a résumé${on}`, list_my_drafts: "Listed your drafted jobs",
+    get_my_resumes: "Listed your résumés", connect: "Connected", disconnect: "Disconnected" }[a.tool] || a.tool;
+  if (a.outcome === "denied") return { what: words, mark: [C.INK_FAINT, "Stopped — switched off"] };
+  if (a.outcome === "error") return { what: words, mark: [C.DANGER, "Failed on draft's side"] };
+  if (a.outcome === "refused") return { what: words, mark: [C.WARNING, "Refused"] };
+  return { what: words, mark: [C.INK_FAINT, "OK"] };
 }
 
 function ConnectedApps({ theme, buttonStyle, secondaryButton }) {
@@ -104,72 +117,105 @@ function ConnectedApps({ theme, buttonStyle, secondaryButton }) {
     try { await navigator.clipboard.writeText(s.connectorUrl); setNote("Plugin link copied."); }
     catch { setNote(`Copy this link: ${s.connectorUrl}`); }
   };
-  const box = { background:"var(--color-surface-offset)", borderRadius:6, padding:"10px 12px", minWidth:150 };
+  const box = { background:"var(--color-surface-offset)", border:"1px solid var(--color-border)", borderRadius:6, padding:"10px 13px" };
+  const num = { display:"block", fontFamily:"var(--font-display)", fontSize:30, lineHeight:1, color:C.ACCENT_INK };
+  const dangerButton = { ...secondaryButton, color:C.DANGER };
   return (
     <Section theme={theme} title="Connected apps"
-      subtitle="Write your résumés in your own ChatGPT or Claude — draft checks and saves what they write, and makes no model call itself."
+      subtitle="Let ChatGPT or Claude write your résumés using your own subscription. draft keeps the checks and stores the result; the AI provider only does the writing."
       status={unavailable ? { healthy:false, status:"unavailable" } : { healthy: s.enabled, status: s.enabled ? "on" : "off" }}>
       {unavailable ? (
         <div style={{ fontSize:12, color:"var(--color-text-muted)" }} data-byom-unavailable="">
           This is unavailable right now — draft has it switched off. Nothing can connect.
         </div>
       ) : (
-        <div style={{ display:"flex", flexDirection:"column", gap:14 }} data-byom-settings="">
-          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }} data-byom-settings="">
+          <div style={{ ...box, display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ flex:1 }}>
+              <strong style={{ fontSize:14, color:"var(--color-text)" }}>Write my résumés in ChatGPT or Claude</strong>
+              <div style={{ fontSize:12, color:"var(--color-text-muted)" }}>Off by default. Turning it on lets you connect an app below — nothing connects by itself.</div>
+            </div>
             <ConsentSwitch checked={s.enabled} disabled={busy} onChange={setOn} label="Write my résumés in ChatGPT or Claude" />
-            <strong style={{ fontSize:13, color:"var(--color-text)" }}>Write my résumés in ChatGPT or Claude</strong>
           </div>
-          <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-            <div style={box}><div style={{ fontSize:20, fontWeight:800 }}>{s.usedToday} / {s.dailyCap}</div><div style={{ fontSize:11, color:"var(--color-text-muted)" }}>résumés written this way today</div></div>
-            <div style={box}><div style={{ fontSize:20, fontWeight:800 }}>{s.connections.length}</div><div style={{ fontSize:11, color:"var(--color-text-muted)" }}>apps connected</div></div>
-          </div>
-          <div style={{ fontSize:12, color:"var(--color-text-muted)", lineHeight:1.6 }}>
-            A connected app can <strong style={{ color:"var(--color-text)" }}>read your base résumé and the skills you have claimed, and save a résumé</strong>;
-            it never sees your contact details, your passwords, your applications or your other jobs; and what leaves draft — the
-            résumé content and the job's details (title, company, level, location and matched keywords) — is processed <strong style={{ color:"var(--color-text)" }}>under your own account and that provider's terms</strong>.
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(280px, 1fr))", gap:10 }}>
+          <div style={s.enabled ? null : { opacity:.5, pointerEvents:"none" }} aria-disabled={!s.enabled} data-byom-body={s.enabled ? "on" : "off"}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))", gap:10, marginBottom:10 }}>
+              <div style={box}><b style={num}>{s.usedToday}<small style={{ fontSize:15, color:"var(--color-text-muted)" }}> / {s.dailyCap}</small></b><span style={{ fontSize:11.5, color:"var(--color-text-muted)" }}>résumés written this way today</span></div>
+              <div style={box}><b style={num}>{s.connections.length}</b><span style={{ fontSize:11.5, color:"var(--color-text-muted)" }}>apps connected</span></div>
+            </div>
+            <div style={{ ...box, display:"flex", gap:10, alignItems:"flex-start", fontSize:12.3, lineHeight:1.5, color:"var(--color-text-muted)", marginBottom:10 }}>
+              {LOCK}
+              <span><strong style={{ color:"var(--color-text)" }}>What an app can do:</strong> read your base résumé and claims, and save a résumé to draft.{" "}
+                <strong style={{ color:"var(--color-text)" }}>What it never sees:</strong> your contact details, passwords, applications or other jobs.{" "}
+                <strong style={{ color:"var(--color-text)" }}>What leaves draft:</strong> your résumé content and the job's details (title, company, level, location and matched keywords) go to the provider,{" "}
+                <strong style={{ color:"var(--color-text)" }}>under your own account and its terms</strong>.</span>
+            </div>
             {["chatgpt", "claude"].map(host => {
               const h = s.hosts[host];
-              const conns = s.connections.filter(c => c.host === host);
+              const conn = s.connections.find(c => c.host === host);
               return (
-                <div key={host} style={{ border:"1px solid var(--color-border)", borderRadius:6, padding:12 }} data-byom-host={host}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-                    <strong>{h.label}</strong>
-                    <span style={markStyle(!h.enabled ? C.WARNING : conns.length ? C.SUCCESS : C.INK_FAINT)}>
-                      {!h.enabled ? "unavailable" : conns.length ? "connected" : "not connected"}
-                    </span>
+                <div key={host} style={{ border:"1px solid var(--color-border)", borderRadius:6, marginBottom:10, background:"var(--color-surface)" }} data-byom-host={host}>
+                  <div style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px" }}>
+                    <div aria-hidden="true" style={{ width:44, height:44, borderRadius:6, display:"grid", placeItems:"center", background:C.SURFACE_SOLID,
+                      border:"1px solid var(--color-border)", fontFamily:"'Poppins', var(--font-body)", fontStyle:"italic", fontWeight:800, fontSize:17, color:C.INK }}>
+                      {host === "chatgpt" ? "G" : "C"}
+                    </div>
+                    <strong style={{ flex:1, fontSize:15 }}>{h.label}</strong>
+                    <span style={markStyle(!h.enabled ? C.WARNING : conn ? C.SUCCESS : C.INK_FAINT)}>{!h.enabled ? "Unavailable" : conn ? "Connected" : "Not connected"}</span>
                   </div>
-                  {conns.map(c => (
-                    <div key={c.id} style={{ fontSize:12, color:"var(--color-text-muted)", marginBottom:8 }}>
-                      Last used {c.last_used_at ? new Date(c.last_used_at * 1000).toLocaleString() : "never"} · {c.resumes} résumé{c.resumes === 1 ? "" : "s"}
-                      {c.scopes.includes("resume:write") ? "" : " · read only"}
-                      <div style={{ marginTop:6 }}><button style={secondaryButton} onClick={() => disconnect(c.id)} title="Stops its next call at once">Disconnect</button></div>
-                    </div>
-                  ))}
-                  {!conns.length && h.enabled && (
-                    <div style={{ fontSize:12, color:"var(--color-text-muted)", lineHeight:1.6 }}>
-                      <div style={{ fontWeight:700, color:"var(--color-text)" }}>How to connect — you do this in {h.label}, not here</div>
-                      <ol style={{ margin:"6px 0 8px", paddingLeft:18 }}>{BYOM_STEPS[host](s.connectorUrl).map(x => <li key={x}>{x}</li>)}</ol>
-                      <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-                        <button style={buttonStyle} onClick={() => window.open(BYOM_OPEN[host], "_blank", "noopener")}>Open {h.label} to connect</button>
-                        <button style={secondaryButton} onClick={copy}>Copy the plugin link</button>
-                      </div>
-                      {s.privateTesting && <div style={{ marginTop:8, color:C.WARNING }} data-byom-private="">In private testing — draft is not yet listed in {h.label}'s directory.</div>}
-                    </div>
-                  )}
+                  <div style={{ padding:"0 14px 14px 70px", display:"flex", flexDirection:"column", gap:9, fontSize:12.5, color:"var(--color-text-muted)" }}>
+                    {!h.enabled ? <div>draft is not accepting connections from {h.label} right now.</div> : conn ? (
+                      <>
+                        <div>Connected from <strong style={{ color:"var(--color-text)" }}>{h.label}</strong> · last used {conn.last_used_at ? byomAgo(conn.last_used_at) : "never"} · {conn.resumes} résumé{conn.resumes === 1 ? "" : "s"} written{conn.scopes.includes("resume:write") ? "" : " · read only"}.</div>
+                        <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
+                          <button style={dangerButton} onClick={() => disconnect(conn.id)}>Disconnect</button>
+                          <span style={{ fontSize:11.5 }}>Disconnecting stops its next call at once.</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div><strong style={{ color:"var(--color-text)" }}>How to connect — you do this in {h.label}, not here:</strong></div>
+                        <ol style={{ margin:0, paddingLeft:18, listStyle:"decimal" }}>
+                          <li>Open {h.label} and add the <strong style={{ color:"var(--color-text)" }}>draft</strong> plugin.</li>
+                          <li>{h.label} sends you to <strong style={{ color:"var(--color-text)" }}>draft's sign-in and consent screen</strong>.</li>
+                          <li>Approve it. This card turns green.</li>
+                        </ol>
+                        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                          <button style={{ ...buttonStyle, display:"inline-flex", alignItems:"center", gap:6 }} onClick={() => window.open(BYOM_OPEN[host], "_blank", "noopener")}>Open {h.label} to connect {ARROW}</button>
+                          <button style={secondaryButton} onClick={copy}>Copy the plugin link</button>
+                        </div>
+                        {s.privateTesting && (
+                          <div style={{ fontSize:11.5, color:C.WARNING }} data-byom-private="">
+                            ⚠ <strong>In private testing:</strong> the plugin isn't in {h.label}'s public directory yet — the link works for testers only ({BYOM_TESTER_HOW[host]}).
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               );
             })}
-          </div>
-          {note && <div style={{ fontSize:12, color:"var(--color-text)" }} role="status">{note}</div>}
-          <div>
-            <div style={{ fontSize:12, fontWeight:700, marginBottom:4 }}>Recent activity</div>
-            {s.activity.length ? (
-              <ul style={{ margin:0, paddingLeft:18, fontSize:12, color:"var(--color-text-muted)" }} data-byom-activity="">
-                {s.activity.map((a, i) => <li key={i}>{new Date(a.at * 1000).toLocaleString()} — {activityLine(a)}</li>)}
-              </ul>
-            ) : <div style={{ fontSize:12, color:"var(--color-text-muted)" }}>Nothing yet.</div>}
+            {note && <div style={{ fontSize:12, color:"var(--color-text)", marginBottom:8 }} role="status">{note}</div>}
+            <div style={{ border:"1px solid var(--color-border)", borderRadius:6, padding:"12px 14px", background:"var(--color-surface)" }}>
+              <strong style={{ fontSize:14 }}>Recent activity</strong>
+              {s.activity.length ? (
+                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, marginTop:6 }} data-byom-activity="">
+                  <thead><tr>{["When", "App", "What", "Result"].map(x => (
+                    <th key={x} style={{ textAlign:"left", padding:"6px 8px", fontSize:11, letterSpacing:".08em", textTransform:"uppercase", color:"var(--color-text-muted)", borderBottom:"1px solid var(--color-border)" }}>{x}</th>
+                  ))}</tr></thead>
+                  <tbody>{s.activity.map((a, i) => {
+                    const r = activityRow(a);
+                    return (
+                      <tr key={i}>
+                        <td style={{ padding:"7px 8px", borderBottom:"1px dashed var(--color-border)", whiteSpace:"nowrap" }}>{byomAgo(a.at)}</td>
+                        <td style={{ padding:"7px 8px", borderBottom:"1px dashed var(--color-border)" }}>{a.host === "claude" ? "Claude" : a.host === "chatgpt" ? "ChatGPT" : "A test app"}</td>
+                        <td style={{ padding:"7px 8px", borderBottom:"1px dashed var(--color-border)" }}>{r.what}</td>
+                        <td style={{ padding:"7px 8px", borderBottom:"1px dashed var(--color-border)" }}><span style={markStyle(r.mark[0])}>{r.mark[1]}</span></td>
+                      </tr>
+                    );
+                  })}</tbody>
+                </table>
+              ) : <div style={{ fontSize:12, color:"var(--color-text-muted)", marginTop:6 }}>Nothing yet.</div>}
+            </div>
           </div>
         </div>
       )}

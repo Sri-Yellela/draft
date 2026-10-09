@@ -253,9 +253,11 @@ test("⛔ D86: a disabled host cannot connect, and an unknown host cannot even r
 });
 
 test("⛔ D86: the consent screen shows the Never list and the privacy sentence, and offers the switch when it is off", () => {
-  const html = renderConsentPage({ hostLabel: "Claude", username: "avery", scopes: ["resume:read", "resume:write"], userOn: false, unavailable: null, nonce: "n" });
+  const html = renderConsentPage({ host: "claude", hostLabel: "Claude", who: "avery@example.com", username: "avery", scopes: ["resume:read", "resume:write"], userOn: false, unavailable: null, nonce: "n" });
   for (const n of NEVER_LIST) assert.ok(html.includes(n), n);
-  assert.match(html, /processed by Claude under your own account and its terms/);
+  assert.match(html, /processed by Anthropic under your own Claude account and its terms/);
+  assert.match(html, /Signed in as <b>avery@example\.com<\/b>/);
+  assert.match(html, /Not you\?/);
   assert.match(html, /name="turn_on" value="1" required/);
   assert.doesNotMatch(html, /<script/i);
   assert.doesNotMatch(html, /999px|border-radius:\s*50%/, "no pills (D60)");
@@ -282,6 +284,11 @@ test("⛔ D86: no résumé content appears in the activity list or the admin log
   const both = JSON.stringify([await (await fetch(`${base}/api/byom`)).json(), await (await fetch(`${base}/api/admin/byom`)).json()]);
   assert.doesNotMatch(both, /shipments|Python service|Kafka service|avery@example/);
   assert.match(both, /submit_resume/);
+  const activity = (await (await fetch(`${base}/api/byom`)).json()).activity;
+  const refusedRow = activity.find(a => a.tool === "submit_resume" && a.outcome === "refused");
+  assert.equal(refusedRow.fixed, true, "a refusal a later submit saved reads Fixed and resent");
+  assert.equal(refusedRow.detail, "new_term");
+  assert.equal(activity.find(a => a.tool === "submit_resume" && a.outcome === "ok").title, "Backend Engineer", "the activity names the job");
 });
 
 test("⛔ D86: a replayed authorization code revokes the tokens it issued", async (t) => {
@@ -316,6 +323,9 @@ test("⛔ D86 UI: the Résumé button's one click is unchanged, and the caret re
   const choice = src("client/src/components/ByomResumeChoice.jsx");
   assert.match(choice, /if \(!byom\?\.available\) return null;/, "no caret while the feature is off");
   assert.match(choice, /available: !!settings\?\.available/);
+  assert.match(choice, /localStorage\.getItem\(METHOD_KEY\) \|\| "draft"/, "the default method is draft");
+  assert.match(choice, /const method = usable\(chosen\) \? chosen : "draft";/, "a remembered host that is off falls back to draft");
+  assert.match(panel, /!byom\.available && \(\s*<DepthButton icon=\{ICONS\.resume\} onClick=\{\(\) => onGenerate\(false\)\}/, "the plain button is drawn while the feature is off");
 });
 
 test("⛔ D86 UI: Settings reads \"unavailable\" when the operator's switch is off, and its switch starts from the server's value", () => {

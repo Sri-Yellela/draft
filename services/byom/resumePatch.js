@@ -247,7 +247,7 @@ export function termGuard({ changedText = [], baseText = "", claims = {}, vocabu
       if (!containsTerm(norm, text, term)) continue;
       if (containsTerm(baseNorm, baseText, term)) continue;
       flagged.add(n);
-      reasons.push(reason("new_term", `"${term}" is not in the candidate's base résumé or claims (in ${id}). Remove it or describe the work without it.`, id));
+      reasons.push({ ...reason("new_term", `"${term}" is not in the candidate's base résumé or claims (in ${id}). Remove it or describe the work without it.`, id), term });
     }
   }
   return reasons;

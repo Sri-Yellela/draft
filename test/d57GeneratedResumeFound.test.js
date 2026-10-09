@@ -151,7 +151,10 @@ test("D57 · deleting frees the button: the delete answers, the board hears resu
   assert.match(jobs, /resume_deleted: \(\{ jobId \}\) => \{[\s\S]{0,200}?delete n\[jobId\]/);
   assert.match(read("server.js"), /emitToUser\(req\.user\.id, \{ type: "resume_deleted", jobId: String\(req\.params\.jobId\) \}\)/);
   const jd = read("client/src/components/JobDetailPanel.jsx");
-  assert.match(jd, /\{canGen && onGenerate && !hasArtifact && \(/, "no résumé → the Résumé button");
+  // D86: two renderings of the same control — the plain button, or the split while bring-your-own-model is on.
+  // Both stay gated on !hasArtifact, which is what this pins.
+  assert.match(jd, /\{canGen && onGenerate && !hasArtifact && !byom\.available && \(/, "no résumé → the Résumé button");
+  assert.match(jd, /\{canGen && onGenerate && !hasArtifact && byom\.available && split\(false, "Résumé"/, "no résumé → the Résumé split");
 });
 
 test("D57 · the retention sweep deletes an expired convenience copy and never a drafted/applied one", () => {

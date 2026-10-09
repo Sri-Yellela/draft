@@ -30,10 +30,12 @@ export const MCP_INSTRUCTIONS = [
   "Never put contact details in a patch. A score that declines (not enough signal) is \"could not be scored\", not a poor fit.",
 ].join(" ");
 
-const audit = (db, { userId, connectionId, tool, outcome, detail = null }) => {
+// One row per call: the tool, the job it was about, the outcome and refusal CODES — never résumé text.
+const audit = (db, { userId, connectionId, tool, outcome, detail = null, jobId = null }) => {
   try {
-    db.prepare("INSERT INTO mcp_audit (user_id, connection_id, tool, outcome, detail) VALUES (?,?,?,?,?)")
-      .run(userId ?? null, connectionId ?? null, String(tool).slice(0, 64), outcome, detail ? String(detail).slice(0, 200) : null);
+    db.prepare("INSERT INTO mcp_audit (user_id, connection_id, tool, job_id, outcome, detail) VALUES (?,?,?,?,?,?)")
+      .run(userId ?? null, connectionId ?? null, String(tool).slice(0, 64), jobId == null ? null : String(jobId).slice(0, 200),
+        outcome, detail ? String(detail).slice(0, 200) : null);
   } catch { /* an audit write never fails the call it records */ }
 };
 
@@ -41,12 +43,16 @@ const toolResult = (structured, lead) => ({ content: [{ type: "text", text: `${l
 const toolRefusal = (code, message, extra = {}) => ({ isError: true, content: [{ type: "text", text: `${message}\n${JSON.stringify({ error: code, message, ...extra })}` }],
   structuredContent: { error: code, message, ...extra } });
 
+// The text a host shows. The sketch's result is a card — score, base → tailored, Open in draft; a host
+// that renders no widget shows this line, written so any model can repeat it plainly.
 const LEADS = {
-  get_generation_brief: "Brief ready. Write a patch that follows its instructions and output_schema, then call submit_resume.",
-  submit_resume: "Saved to the candidate's draft account.",
-  score_resume: "Scored against the job.",
-  list_my_drafts: "The candidate's drafted jobs.",
-  get_my_resumes: "The candidate's saved résumés.",
+  get_generation_brief: () => "Brief ready. Write a patch that follows its instructions and output_schema, then call submit_resume.",
+  submit_resume: (out) => `Résumé saved to draft — ${[out?.title, out?.company].filter(Boolean).join(" · ")}` +
+    `${out?.base_ats_score != null && out?.ats_score != null ? ` · base ${out.base_ats_score} → ${out.ats_score}` : ""} · claims checked. ` +
+    `Open in draft: ${out?.link ?? ""}${out?.warning ? ` ⚠ ${out.warning}` : ""}`,
+  score_resume: () => "Scored against the job.",
+  list_my_drafts: () => "The candidate's drafted jobs.",
+  get_my_resumes: () => "The candidate's saved résumés.",
 };
 
 /**
@@ -103,7 +109,13 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
     server.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
       const name = String(params?.name ?? "");
       if (!Object.hasOwn(handlers, name)) throw new McpError(ErrorCode.InvalidParams, `unknown tool: ${name.slice(0, 64)}`);
-      const who = { userId: auth.userId, connectionId: auth.connectionId };
+      const args = params.arguments ?? {};
+      // The job the call is about, for the activity list: named directly, or through the brief.
+      let jobId = args.job_id ?? null;
+      if (jobId == null && args.brief_id) {
+        try { jobId = db.prepare("SELECT job_id FROM byom_briefs WHERE id = ? AND user_id = ?").pluck().get(String(args.brief_id), auth.userId) ?? null; } catch { jobId = null; }
+      }
+      const who = { userId: auth.userId, connectionId: auth.connectionId, jobId };
       // Every switch, every call: Disconnect, the master switch and the global switch stop the NEXT call.
       const off = refusalFor(db, { userId: auth.userId, host: auth.host });
       if (off) { audit(db, { ...who, tool: name, outcome: "denied", detail: off.code }); return toolRefusal(off.code, off.message); }
@@ -116,9 +128,10 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
         return toolRefusal("rate_limited", `Too many calls in the last hour (limit ${CALLS_PER_HOUR}). Try again later.`);
       }
       try {
-        const out = handlers[name](who, params.arguments ?? {});
-        audit(db, { ...who, tool: name, outcome: "ok", detail: name === "submit_resume" ? `score ${out?.ats_score ?? "n/a"}` : null });
-        return toolResult(out, LEADS[name]);
+        const out = handlers[name](who, args);
+        audit(db, { ...who, tool: name, outcome: "ok",
+          detail: name === "submit_resume" ? `${out?.base_ats_score ?? "–"}→${out?.ats_score ?? "–"}` : null });
+        return toolResult(out, LEADS[name](out));
       } catch (e) {
         if (e instanceof ToolRefusal) {
           audit(db, { ...who, tool: name, outcome: "refused", detail: [e.code, ...(e.extra?.reasons || []).map(r => r.code)].join(",") });
@@ -169,8 +182,10 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
     const nonce = crypto.randomUUID();
     req.session.byomConsent = { nonce, query: { ...req.query }, at: Date.now() };
     consentHeaders(res, a.redirectUri);
+    let email = null;
+    try { email = db.prepare("SELECT email FROM user_profile WHERE user_id = ?").pluck().get(req.user.id) || null; } catch { email = null; }
     res.type("html").send(renderConsentPage({
-      hostLabel: HOSTS[host]?.label ?? "A local test client", username: req.user?.username ?? "",
+      host, hostLabel: HOSTS[host]?.label ?? "A local test client", who: email, username: req.user?.username ?? "",
       scopes: a.scope.split(" "), userOn: userEnabled(db, req.user.id), unavailable, nonce,
     }));
   });
@@ -211,9 +226,16 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
   });
 
   // ── SETTINGS → CONNECTED APPS (the person's own).
-  const activityFor = (userId) => db.prepare(`SELECT a.tool, a.outcome, a.at, cl.host FROM mcp_audit a
+  // The sketch's activity table: When · App · What (the job's title and company — never résumé text) ·
+  // Result. A refused submit that a later submit for the same job saved reads "Fixed and resent".
+  const activityFor = (userId) => db.prepare(`SELECT a.tool, a.outcome, a.at, a.detail, cl.host, sj.title, sj.company,
+        (a.tool = 'submit_resume' AND a.outcome = 'refused' AND EXISTS (SELECT 1 FROM mcp_audit b WHERE b.user_id = a.user_id
+          AND b.job_id = a.job_id AND b.tool = 'submit_resume' AND b.outcome = 'ok' AND b.id > a.id)) AS fixed
+      FROM mcp_audit a
       LEFT JOIN oauth_connections oc ON oc.id = a.connection_id LEFT JOIN oauth_clients cl ON cl.client_id = oc.client_id
-      WHERE a.user_id = ? ORDER BY a.id DESC LIMIT 20`).all(userId);
+      LEFT JOIN scraped_jobs sj ON sj.job_id = a.job_id
+      WHERE a.user_id = ? ORDER BY a.id DESC LIMIT 20`).all(userId)
+    .map(r => ({ ...r, fixed: !!r.fixed, detail: r.tool === "submit_resume" && r.outcome === "ok" ? r.detail : (r.detail || "").split(",")[1] || r.detail || null }));
 
   sessionRouter.get("/api/byom", requireAuth, (req, res) => {
     const userId = req.user.id;
@@ -249,7 +271,8 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
     const expired = b.status === "open" && b.expires_at <= Math.floor(Date.now() / 1000);
     const status = b.status === "used" ? "done" : b.status === "exhausted" ? "closed" : expired ? "expired" : b.last_refusal ? "refused" : "waiting";
     const row = b.status === "used" ? db.prepare("SELECT ats_score FROM resume_versions WHERE user_id = ? AND job_id = ? AND version = ?").get(req.user.id, b.job_id, b.resume_version) : null;
-    res.json({ status, attempts: b.attempts, reasons: b.last_refusal ? JSON.parse(b.last_refusal).map(r => r.message) : [],
+    const refusal = b.last_refusal ? JSON.parse(b.last_refusal) : [];
+    res.json({ status, attempts: b.attempts, reasons: refusal.map(r => r.message), terms: refusal.filter(r => r.term).map(r => r.term),
       atsScore: row?.ats_score ?? null, baseAtsScore: b.base_ats_score });
   });
 

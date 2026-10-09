@@ -1203,80 +1203,97 @@ export function GlanceTab({ theme }) {
   );
 }
 
-// ⭐ D86 · ADMIN → SYSTEM → PLUGIN — bring-your-own-model résumés, for the operator (D83's rules: a purpose
-// sentence, numbers on open, the switches say what they do, recent calls — never résumé content).
+// ⭐ D86 · ADMIN → SYSTEM → PLUGIN — bring-your-own-model résumés, for the operator (plugin-ui.html, tab 5; D83's
+// rules: a purpose sentence, numbers on open, one switch that says what off means, the allow-list, the cap, a
+// history — never résumé content).
+function PluginSwitch({ on, onChange, label, theme }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)}
+      style={{ position: "relative", width: 50, height: 28, flex: "none", padding: 0, cursor: "pointer", borderRadius: 6,
+        border: `1px solid ${on ? C.ACCENT : theme.border}`, background: on ? `color-mix(in srgb, ${C.ACCENT} 30%, ${theme.surfaceHigh})` : theme.surfaceHigh }}>
+      <span style={{ position: "absolute", top: 3, left: on ? 25 : 3, width: 20, height: 20, borderRadius: 4,
+        background: on ? C.ACCENT : theme.textMuted, transition: "left .2s" }}/>
+    </button>
+  );
+}
+
+const RESULT_WORDS = { new_term: "term not in résumé", years_exceed_profile: "years over the profile", brief_used: "brief already used",
+  brief_exhausted: "brief closed", feature_off: "switched off", user_off: "user's switch off", host_off: "host off", insufficient_scope: "read-only connection" };
+
 export function PluginTab({ theme }) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
-  const [cap, setCap] = useState("");
-  const load = useCallback(() => { setErr(null); api("/api/admin/byom").then(r => { setD(r); setCap(String(r.settings.dailyCap)); }).catch(e => setErr(e.message)); }, []);
+  const load = useCallback(() => { setErr(null); api("/api/admin/byom").then(setD).catch(e => setErr(e.message)); }, []);
   useEffect(() => { load(); }, [load]);
   const put = async (patch) => {
     try { await api("/api/admin/byom", { method: "PUT", body: JSON.stringify(patch) }); load(); } catch (e) { setErr(e.message); }
   };
   if (!d) return <Err msg={err}/>;
   const { settings: s, numbers: n } = d;
+  const killed = !s.enabled;
   const stat = (label, value) => (
-    <div style={{ background: theme.surfaceHigh, borderRadius: 6, padding: "10px 12px", minWidth: 140 }}>
-      <div style={{ fontSize: 20, fontWeight: 800, color: theme.text }}>{value ?? "—"}</div>
-      <div style={{ fontSize: 11, color: theme.textMuted }}>{label}</div>
+    <div style={{ background: theme.surfaceHigh, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "10px 13px" }}>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1, color: C.ACCENT_INK }}>{killed ? "—" : (value ?? "—")}</div>
+      <div style={{ fontSize: 11.5, color: theme.textMuted }}>{label}</div>
+    </div>
+  );
+  const resultMark = (r) => {
+    const why = String(r.detail || "").split(",").map(c => RESULT_WORDS[c]).find(Boolean);
+    if (r.outcome === "ok") return <span style={markStyle(C.SUCCESS)}>{r.tool === "submit_resume" ? `Saved · ${String(r.detail || "").replace("→", " → ")}` : "OK"}</span>;
+    if (r.outcome === "refused") return <span style={markStyle(C.DANGER)}>Refused{why ? ` — ${why}` : ""}</span>;
+    if (r.outcome === "denied") return <span style={markStyle(C.INK_FAINT)}>Stopped{why ? ` — ${why}` : ""}</span>;
+    return <span style={markStyle(C.DANGER)}>Failed</span>;
+  };
+  const hostRow = (h, label) => (
+    <div key={h} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: `1px solid ${theme.border}`, borderRadius: 6, marginBottom: 8 }}>
+      <span style={{ flex: 1, fontSize: 12.5 }}><b style={{ color: theme.text }}>Allow {label}</b> <span style={{ color: theme.textMuted, fontSize: 12 }}>· host allow-list</span></span>
+      <PluginSwitch theme={theme} on={s.hosts[h]} label={`Allow ${label}`} onChange={(on) => put({ hosts: { [h]: on } })}/>
     </div>
   );
   return (
     <div data-admin-plugin="">
       <Err msg={err}/>
-      <div style={{ fontSize: 12, color: theme.textMuted, lineHeight: 1.6, marginBottom: 12, maxWidth: 760 }}>
-        Users can have their own ChatGPT or Claude write a tailored résumé: draft hands the model a brief, checks the patch it
-        returns against the base résumé and the claims, scores it and saves it. draft makes no model call and pays nothing for these.
-      </div>
-      <Card theme={theme} title="The switch" tone={s.enabled ? C.SUCCESS : C.WARNING}>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <Btn theme={theme} primary={!s.enabled} danger={s.enabled} onClick={() => put({ enabled: !s.enabled })}>
-            {s.enabled ? "Turn the plugin OFF" : "Turn the plugin ON"}
-          </Btn>
-          <span style={{ fontSize: 12, color: theme.text }}>
-            {s.enabled ? "On — users who turn it on in Settings can connect Claude or ChatGPT."
-              : "Off — every tool call is refused, the consent screen offers only “Not now”, and Settings reads “unavailable”."}
-          </span>
+      <Card theme={theme} title="Plugin">
+        <div style={{ fontSize: 13, color: theme.textMuted, marginBottom: 12, maxWidth: 760 }}>
+          The bring-your-own-model résumé feature. Turn it off here and every connection stops at once.
         </div>
-      </Card>
-      <Card theme={theme} title="Numbers — the last 7 days">
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {stat("users with an app connected", n.usersConnected)}
-          {stat("users who turned it on", n.usersOn)}
-          {stat("résumés written this way", n.resumesThisWeek)}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 12 }}>
+          {stat("users connected", n.usersConnected)}
+          {stat("résumés written this week", n.resumesThisWeek)}
           {stat("passed the claim check first time", n.firstTimePass == null ? null : `${n.firstTimePass}%`)}
-          {stat("refused, then fixed", n.refusedThenFixed)}
-          {stat("closed after 3 refusals", n.closedAfterThree)}
+          {stat("refused and fixed", n.refusedThenFixed)}
         </div>
-      </Card>
-      <Card theme={theme} title="Hosts and the daily cap">
-        <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-          {Object.entries(s.hosts).map(([h, on]) => (
-            <label key={h} style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12, color: theme.text }}>
-              <input type="checkbox" checked={on} onChange={e => put({ hosts: { [h]: e.target.checked } })}/>
-              {h === "claude" ? "Claude" : "ChatGPT"} may connect
-            </label>
-          ))}
-          <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12, color: theme.text }}>
-            Daily cap per user
-            <input value={cap} onChange={e => setCap(e.target.value)} inputMode="numeric"
-              style={{ width: 64, padding: "4px 6px", borderRadius: 6, border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text }}/>
-            <Btn theme={theme} onClick={() => put({ dailyCap: Number(cap) })}>Save</Btn>
-          </label>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: theme.surfaceHigh,
+          border: `1px solid ${killed ? C.DANGER : theme.border}`, borderRadius: 6, marginBottom: 10 }}>
+          <div style={{ flex: 1 }}>
+            <b style={{ fontSize: 14, color: theme.text }}>Feature switch</b>
+            <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>
+              {killed
+                ? <><span style={markStyle(C.DANGER)}>Stopped</span> — every tool call is refused, the consent screen offers only “Not now”, and Settings shows “unavailable”.</>
+                : <><span style={markStyle(C.SUCCESS)}>Running</span> — apps can connect and write résumés.</>}
+            </div>
+          </div>
+          <PluginSwitch theme={theme} on={!killed} label="Feature switch" onChange={(on) => put({ enabled: on })}/>
         </div>
-        <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 8 }}>
-          A host that is off cannot connect and its connections' calls are refused. The cap counts saved résumés per user since midnight UTC.
+        <div style={killed ? { opacity: .5, pointerEvents: "none" } : null} aria-disabled={killed}>
+          {hostRow("chatgpt", "ChatGPT")}
+          {hostRow("claude", "Claude")}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "4px 0 14px" }}>
+            <label style={{ fontSize: 12, color: theme.textMuted }} htmlFor="byom-cap">Résumés per user per day</label>
+            <select id="byom-cap" value={String(s.dailyCap)} onChange={e => put({ dailyCap: Number(e.target.value) })}
+              style={{ background: theme.surfaceHigh, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: 6, padding: "7px 10px" }}>
+              {[...new Set([50, 25, 100, s.dailyCap])].map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+            <span style={{ fontSize: 11, color: theme.textMuted }}>Stops abuse; users see this number.</span>
+          </div>
+          <div style={{ fontSize: 11.5, fontWeight: 800, fontStyle: "italic", color: theme.textMuted, marginBottom: 6 }}>Recent tool calls</div>
+          <Table theme={theme} rows={d.recent} empty="No calls yet." cols={[
+            { key: "at", label: "Time", render: r => ago(r.at) },
+            { key: "username", label: "User" },
+            { key: "tool", label: "Tool" },
+            { key: "outcome", label: "Result", render: resultMark },
+          ]}/>
         </div>
-      </Card>
-      <Card theme={theme} title="Recent tool calls — never content">
-        <Table theme={theme} rows={d.recent} empty="No calls yet." cols={[
-          { key: "at", label: "When", render: r => ago(r.at) },
-          { key: "username", label: "User" },
-          { key: "tool", label: "Tool" },
-          { key: "outcome", label: "Result", color: r => r.outcome === "ok" ? C.SUCCESS : r.outcome === "refused" ? C.WARNING : r.outcome === "error" ? C.DANGER : theme.textMuted },
-          { key: "detail", label: "Detail" },
-        ]}/>
       </Card>
     </div>
   );
