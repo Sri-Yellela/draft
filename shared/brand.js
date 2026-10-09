@@ -115,7 +115,10 @@ export const PRIVACY_POLICY_URL  = `${CANONICAL_ORIGIN}${PRIVACY_POLICY_PATH}`;
  *     which appears in no migration document and may never have been held at all. Production
  *     overrides this via PASSWORD_RESET_FROM, so the default is a fallback, not the live value.
  */
+// ✅ 10-09 (owner): mail is routed — Cloudflare Email Routing receives privacy@ and support@ (and
+// postmaster@, abuse@, dmarc@) at this domain, and Resend is verified for sending (EMAIL_FROM set).
 export const PRIVACY_CONTACT_EMAIL = `privacy@${CANONICAL_HOST}`;
+export const SUPPORT_EMAIL         = `support@${CANONICAL_HOST}`;
 export const SENDER_EMAIL          = `noreply@${CANONICAL_HOST}`;
 export const SENDER_FROM           = `${BRAND} <${SENDER_EMAIL}>`;
 

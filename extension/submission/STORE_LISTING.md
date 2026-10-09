@@ -232,6 +232,54 @@ Privacy policy URL: `https://jobsviadraft.com/privacy` (set in `manifest.json`).
 
 ---
 
+## ⭐ The dashboard, field by field — paste-ready (checked 2026-10-09, release check A3)
+
+In the order the developer dashboard asks. ⛔ The owner pastes, ticks and uploads — never an agent.
+⚠ = the dashboard's exact wording or requirement was not verifiable from this repository.
+
+**Package**
+1. **Upload** `extension/submission/resume-master-extension-v1.5.0.zip` — 193,616 bytes, SHA-256
+   `0e7c6c4efa8eedc3967c17bd7ed3d3ff93efcfefff32bbf79b7f3011faad5bd2` (built 2026-10-08 19:33, byte-identical
+   to `extension/` per `test/extensionSubmission.test.js`). The version must be higher than anything in review.
+
+**Store listing tab**
+2. **Description** — the summary is *Description* above (it is the manifest's). The detailed description is
+   *What the extension does, end to end* above, which names automatic capture (off by default).
+3. **Category** — ⏸ the owner picks. Suggested: *Productivity → Workflow & Planning* (⚠ the list's current names).
+4. **Language** — English.
+5. **Store icon** — 128×128: `extension/icons/icon128.png` (uploaded separately from the zip; the package does not carry the listing icon).
+6. **Screenshots** — 1280×800 PNG: `docs/store-screenshots/1-review-overlay.png`, `2-popup.png`, `3-options.png`.
+   ⛔ **Taken 2026-09-26, before D63 redesigned the popup, badge and overlay** — regenerate (`npm run store:screenshots`) before upload.
+7. **Small promo tile** — 440×280: **none in the repository.** ⚠ Check whether the dashboard requires it.
+8. **Marquee promo tile** — 1400×560, optional: none.
+9. **Official URL / homepage** — `https://jobsviadraft.com`.
+10. **Support URL** — `https://jobsviadraft.com/contact` · **support email** `support@jobsviadraft.com` (routed by Cloudflare Email Routing, 10-09).
+
+**Privacy practices tab**
+11. **Single purpose** — *Single purpose* above.
+12. **Permission justifications** — *Permission justifications* above: `activeTab`, `contextMenus`, `scripting`,
+    `storage`, the host permission `https://jobsviadraft.com/*`, and the five optional hosts.
+13. **Remote code** — **"No, I am not using remote code."** Justification if asked: every script is in the package;
+    the manifest's CSP is `script-src 'self'; object-src 'self'`; `chrome.scripting.executeScript` runs only
+    packaged functions (`func:`), never a string or a fetched file; there is no `eval` or `new Function`.
+14. **Data usage** — *Data usage disclosures* above.
+15. **Certifications** — the four above. ⛔ **The owner certifies**, including Limited Use.
+16. **Privacy policy URL** — `https://jobsviadraft.com/privacy` (dated October 9, 2026 once pushed).
+
+**Distribution tab**
+17. **Visibility** — ⏸ the owner: v1.0.0 is published *unlisted*; keep unlisted or go public.
+18. **Regions** — ⏸ the owner (the board is US-only, D78).
+
+**Account**
+19. **Trader declaration** (EU) — ⏸ **the owner decides**: a *trader* must show a verified address and contact
+    publicly on the listing; a *non-trader* declaration is for non-commercial publishers. This is a personal
+    and legal call, not engineering — decided outside this repository.
+
+**Test instructions**
+20. *Test instructions* below — with a reviewer account the owner creates. Never commit its credentials.
+
+---
+
 ## Reviewer notes
 
 > The extension never submits an application. It fills the form and shows a review panel; the user
