@@ -484,11 +484,12 @@ export function CrawlerTab({ theme }) {
 // ── Full-auto kill switch — GET / PUT / DELETE /api/admin/full-auto ────────────────────────────
 // Three states, not two (see server.js): forced off, pinned on, inherit the deploy. The panel shows
 // which one is in force and WHY, because "disabled: true" alone cannot tell you whether clearing the
-// override changes anything.
+// override changes anything. D83 rebuild #7 (39d): the Panel shell, the numbers, the confirms in the page.
 export function KillSwitchSection({ theme }) {
   const [s, setS] = useState(null);
   const [err, setErr] = useState(null);
   const [busy, setBusy] = useState(false);
+  const { ask, dialog } = useConfirm();
   const load = useCallback(() => {
     setErr(null);
     api("/api/admin/full-auto").then(setS).catch(e => setErr(e.message));
@@ -498,17 +499,16 @@ export function KillSwitchSection({ theme }) {
   const act = async (kind) => {
     if (!s) return;
     const msg = {
-      disable: "STOP full-auto submission?\n\nWrites app_settings.apply_full_auto_disabled = true. " +
-               "Every full-auto run stops submitting at its next job (checked per job, not only at start). " +
-               "Semi mode keeps working. Nothing is deleted. Reversible from here.",
-      pin:     "PIN full-auto ON?\n\n⚠ Real applications will be submitted to employers by full-auto runs.\n\n" +
-               "Writes app_settings.apply_full_auto_disabled = false, which OVERRIDES the deploy: even if a later " +
-               `deploy sets APPLY_FULL_AUTO_DISABLED=1, full-auto stays on until this is cleared.`,
-      clear:   `CLEAR the override and inherit the deploy?\n\nDeletes the app_settings row. Full-auto will then be ` +
-               `${s.envDefault ? "DISABLED" : "ENABLED"} (APPLY_FULL_AUTO_DISABLED=${s.envRaw ?? "unset"}).` +
-               (s.envDefault ? "" : "\n\n⚠ That means real applications resume being submitted."),
+      disable: { title: "Stop full-auto submission?", label: "Stop full-auto",
+        body: "Every full-auto run stops submitting at its next job (it is checked per job, not only at the start). Semi mode keeps working. Nothing is deleted; Pin or Clear undoes it." },
+      pin: { title: "Pin full-auto ON?", label: "Pin it on",
+        body: <>⚠ Real applications will be submitted to employers by full-auto runs. This OVERRIDES the deploy: even if a later deploy sets
+          APPLY_FULL_AUTO_DISABLED=1, full-auto stays on until the override is cleared here.</> },
+      clear: { title: "Clear the override and follow the deploy?", label: "Clear the override",
+        body: <>Full-auto will then be {s.envDefault ? "STOPPED" : "ON"} (APPLY_FULL_AUTO_DISABLED={s.envRaw ?? "unset"}).
+          {s.envDefault ? "" : " ⚠ That means real applications resume being submitted."}</> },
     }[kind];
-    if (!confirm(msg)) return;
+    if (!await ask(msg)) return;
     setBusy(true); setErr(null);
     try {
       const body = kind === "clear" ? undefined : JSON.stringify({ disabled: kind === "disable" });
@@ -518,39 +518,29 @@ export function KillSwitchSection({ theme }) {
   };
 
   return (
-    <Card theme={theme} title="Full-auto kill switch" measured={s ? "read at request time — never cached" : null}
-      tone={s && !s.disabled ? C.WARNING : undefined}>
+    <Panel title="Full-auto submission" data-admin-killswitch=""
+      code="The kill switch (A50, AF residual): app_settings.apply_full_auto_disabled overrides the deploy's APPLY_FULL_AUTO_DISABLED. Read at request time, never cached."
+      purpose="Whether full-auto runs may submit applications to employers by themselves. Stopping is the safe direction and never destructive; semi mode is unaffected either way."
+      numbers={s ? [[s.disabled ? "Stopped" : "On", s.disabled ? "no run submits by itself" : "runs submit to employers", s.disabled],
+        [s.source === "override" ? "Here" : "The deploy", "decides it"],
+        [s.envDefault ? "Stopped" : "On", `what the deploy says (APPLY_FULL_AUTO_DISABLED=${s.envRaw ?? "unset"})`]] : []}>
+      {dialog}
       <Err msg={err}/>
       {s && (
-        <>
-          <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 8,
-                        color: s.disabled ? C.SUCCESS : C.WARNING }}>
-            Full-auto submission is {s.disabled ? "STOPPED" : "ON — runs submit to employers"}
-          </div>
-          <KV theme={theme} rows={[
-            ["decided by", s.source === "override" ? `admin override (app_settings = "${s.override}")` : "the deploy (no override)"],
-            ["deploy default", `${s.envDefault ? "disabled" : "enabled"} (APPLY_FULL_AUTO_DISABLED=${s.envRaw ?? "unset"})`],
-          ]}/>
-          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-            <Btn theme={theme} primary disabled={busy || (s.disabled && s.source === "override")}
-              onClick={() => act("disable")}>Stop full-auto</Btn>
-            <Btn theme={theme} danger disabled={busy || (!s.disabled && s.source === "override")}
-              onClick={() => act("pin")}>Pin full-auto ON…</Btn>
-            <Btn theme={theme} disabled={busy || s.source !== "override"}
-              onClick={() => act("clear")}>Clear override (inherit deploy)…</Btn>
-          </div>
-          <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 8 }}>
-            Stopping is the safe direction and is never destructive. Semi mode is unaffected either way.
-          </div>
-        </>
+        <div style={row}>
+          <Btn theme={theme} primary disabled={busy || (s.disabled && s.source === "override")} onClick={() => act("disable")}>Stop full-auto…</Btn>
+          <Btn theme={theme} disabled={busy || (!s.disabled && s.source === "override")} onClick={() => act("pin")}>Pin full-auto ON…</Btn>
+          <Btn theme={theme} disabled={busy || s.source !== "override"} onClick={() => act("clear")}>Clear the override (follow the deploy)…</Btn>
+        </div>
       )}
-    </Card>
+    </Panel>
   );
 }
 
 // ── Board-fit precompute — POST /api/admin/board-fit/precompute ───────────────────────────────
 // The route is dry-run by default and so is this: Score is unreachable until a dry run of the SAME
 // parameters has been read, and its label is the number of postings it will score.
+// D83 rebuild #7 (39d): the dry run is harmless, so it runs on open — the numbers need no click.
 export function BoardFitSection({ theme }) {
   const [users, setUsers] = useState([]);
   const [userId, setUserId] = useState("");
@@ -559,6 +549,7 @@ export function BoardFitSection({ theme }) {
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(null);
   const [err, setErr] = useState(null);
+  const { ask, dialog } = useConfirm();
   useEffect(() => {
     // id 0 is the 'system' user (migration 075): it has no profile and nothing to rank.
     api("/api/admin/users").then(d => setUsers((Array.isArray(d) ? d : []).filter(u => u.id !== 0))).catch(() => {});
@@ -566,60 +557,63 @@ export function BoardFitSection({ theme }) {
   const key = `${userId}|${force}`;
   const params = () => ({ ...(userId ? { userId: Number(userId) } : {}), ...(force ? { force: true } : {}) });
 
-  const runDry = async () => {
+  const runDry = useCallback(async () => {
     setBusy("dry"); setErr(null); setResult(null);
     try { setDry({ key, body: await api("/api/admin/board-fit/precompute", { method: "POST", body: JSON.stringify({ ...params(), dryRun: true }) }) }); }
     catch (e) { setErr(e.message); }
     setBusy(null);
-  };
+  }, [key]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { runDry(); }, [runDry]);
   const planFresh = dry && dry.key === key;
   const todo = planFresh ? dry.body.summary?.todo ?? 0 : 0;
   const runReal = async () => {
     const profiles = dry.body.summary?.profiles ?? 0;
-    if (!confirm(`Score ${num(todo)} posting(s) across ${profiles} profile(s)${force ? " (FORCE: fresh rows re-scored too)" : ""}?\n\n` +
-                 "Writes the board's fit cache (ats_only_reports) only — zero model calls, no user data touched. " +
-                 `~7 ms per posting: roughly ${Math.max(1, Math.round(todo * 0.007))} s. The board's order changes when the pass commits.`)) return;
+    if (!await ask({ title: `Score ${num(todo)} posting(s)?`, label: `Score ${num(todo)}`,
+      body: <>Across {profiles} profile(s){force ? " — including postings that already had a fresh score" : ""}. This writes only the board's fit cache:
+        no model call, no user's data. About {Math.max(1, Math.round(todo * 0.007))} s. Each board's order changes when the pass commits; the next
+        nightly pass recomputes the same scores, so there is nothing to undo.</> })) return;
     setBusy("real"); setErr(null);
     try { setResult(await api("/api/admin/board-fit/precompute", { method: "POST", body: JSON.stringify({ ...params(), dryRun: false }) })); setDry(null); }
     catch (e) { setErr(e.message); }
     setBusy(null);
   };
   const body = result || (planFresh ? dry.body : null);
+  const sum = body?.summary || {};
+  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "5px 8px", fontSize: 12 };
   return (
-    <Card theme={theme} title="Board-fit precompute" measured="dry run by default — nothing is scored until you press Score">
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
-        <select value={userId} onChange={e => setUserId(e.target.value)}
-          style={{ background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`,
-                   borderRadius: 6, padding: "5px 8px", fontSize: 12 }}>
+    <Panel title="Board-fit scoring" data-admin-boardfit=""
+      code="The board-fit precompute: the local ATS scorer (no model, D17) fills ats_only_reports for each active profile; the nightly pass does the same. A score is stale when the profile or the posting changed."
+      purpose="Each user's board is ranked by how well every posting fits their active profile. The scores are worked out ahead of time; this shows how many are missing or out of date, and fills them in."
+      numbers={sum.profiles != null ? [[num(sum.profiles), "active profiles"], [num(sum.todo ?? 0), result ? "were to score" : "postings to score"],
+        [result ? num(sum.scored) : "—", result ? "scored just now" : "scored this session"]] : []}>
+      {dialog}
+      <div style={{ ...row, marginBottom: 10 }}>
+        <select aria-label="Whose profiles" value={userId} onChange={e => setUserId(e.target.value)} style={input}>
           <option value="">every user's active profile</option>
           {users.map(u => <option key={u.id} value={u.id}>{u.username} (id {u.id})</option>)}
         </select>
-        <label style={{ fontSize: 12, display: "flex", gap: 6, alignItems: "center",
-                        color: force ? C.DANGER : theme.text }}>
+        <label style={{ fontSize: 12, display: "flex", gap: 6, alignItems: "center", color: force ? C.WARNING : theme.text }}>
           <input type="checkbox" checked={force} onChange={e => setForce(e.target.checked)}/>
-          force — re-score fresh rows too (picks up a term-weight refresh)
+          also re-score postings that already have a fresh score (after a term-weight refresh)
         </label>
       </div>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <Btn theme={theme} primary disabled={!!busy} onClick={runDry}>{busy === "dry" ? "Planning…" : "Dry run"}</Btn>
-        <Btn theme={theme} danger disabled={!planFresh || todo === 0 || !!busy} onClick={runReal}>
+      <div style={row}>
+        <Btn theme={theme} disabled={!!busy} onClick={runDry}>{busy === "dry" ? "Counting…" : "Count again"}</Btn>
+        <Btn theme={theme} primary disabled={!planFresh || todo === 0 || !!busy} onClick={runReal}>
           {busy === "real" ? "Scoring…" : planFresh ? `Score ${num(todo)} posting(s)…` : "Score…"}
         </Btn>
-        <span style={{ fontSize: 11, color: theme.textMuted }}>
-          {!dry && !result ? "Dry run first — Score unlocks for exactly the parameters it planned."
-            : dry && !planFresh ? "Parameters changed since the dry run — run it again."
-            : planFresh && todo === 0 ? "Nothing to do — every active posting already has a fresh score."
-            : null}
+        <span style={quiet}>
+          {dry && !planFresh ? "The choices changed — counting again." : planFresh && todo === 0 ? "Nothing to do — every active posting already has a fresh score." : null}
         </span>
       </div>
       <Err msg={err}/>
       {body && (
         <div style={{ marginTop: 12 }}>
           <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 6, color: result ? C.SUCCESS : theme.text }}>
-            {result ? "RAN — " : "DRY RUN — nothing was scored or written · "}
-            {body.summary?.profiles ?? 0} profile(s) ·{" "}
-            {Object.entries(body.summary?.byStatus || {}).map(([k, n]) => `${k} ${n}`).join(", ") || "no profiles"}
-            {result ? ` · ${num(body.summary?.scored)} scored` : ` · ${num(body.summary?.todo)} to score`}
+            {result ? "RAN — " : "COUNTED — nothing was scored or written · "}
+            {sum.profiles ?? 0} profile(s) ·{" "}
+            {Object.entries(sum.byStatus || {}).map(([k, n]) => `${k} ${n}`).join(", ") || "no profiles"}
+            {result ? ` · ${num(sum.scored)} scored` : ` · ${num(sum.todo)} to score`}
           </div>
           <Table theme={theme} rows={body.results || []} cols={[
             { key: "userId", label: "user" },
@@ -628,14 +622,14 @@ export function BoardFitSection({ theme }) {
             { key: "active", label: "active", right: true, render: r => num(r.active) },
             { key: "fresh", label: "fresh", right: true, render: r => num(r.fresh) },
             { key: "missing", label: "missing", right: true, render: r => num(r.missing) },
-            { key: "stale", label: "stale", right: true, render: r => num(r.stale) },
+            { key: "stale", label: "out of date", right: true, render: r => num(r.stale) },
             { key: "todo", label: "to score", right: true, render: r => num(r.todo) },
             { key: "scored", label: "scored", right: true, render: r => (r.scored == null ? "—" : num(r.scored)) },
             { key: "why", label: "note", render: r => r.why || r.error || "" },
           ]}/>
         </div>
       )}
-    </Card>
+    </Panel>
   );
 }
 
@@ -648,6 +642,7 @@ export function BoardFitSection({ theme }) {
 // The JOBS, not their enrichment (that round trip is Admin → Enrichment). Export the board as
 // NDJSON; import postings through the one gateway — dry run first, "Import N" only for the text
 // that was planned, every import a batch that can be reverted (dry run, then the matching count).
+// D83 rebuild #7 (39d): the one place for postings in and out (audit #8) — a path, Revert beside each batch.
 export function JobDataSection({ theme }) {
   const [text, setText] = useState("");
   const [dry, setDry] = useState(null);       // { forText, body }
@@ -655,6 +650,7 @@ export function JobDataSection({ theme }) {
   const [batches, setBatches] = useState([]);
   const [busy, setBusy] = useState(null);
   const [err, setErr] = useState(null);
+  const { ask, dialog } = useConfirm();
   const loadBatches = useCallback(() => {
     api("/api/admin/job-data/import/batches").then(d => setBatches(d?.batches || [])).catch(() => {});
   }, []);
@@ -675,10 +671,10 @@ export function JobDataSection({ theme }) {
   const n = plan?.valid ?? 0;
   const runReal = async () => {
     const p = plan.plan;
-    if (!confirm(`Import ${num(n)} posting(s) through the gateway?\n\n` +
-                 `${num(p.insert)} new · ${num(p.replace)} replace a lower-priority copy · ${num(p.attach)} attach to a posting already on the board · ` +
-                 `${num(p.outOfMarket)} held off the board (outside the US).\n${plan.refused.length} line(s) refused.\n\n` +
-                 "Revertible as a batch (the new rows are retired). " + plan.cannotUndo)) return;
+    if (!await ask({ title: `Import ${num(n)} posting(s)?`, label: `Import ${num(n)}`,
+      body: <>{num(p.insert)} new · {num(p.replace)} replace a lower-priority copy · {num(p.attach)} attach to a posting already on the board ·{" "}
+        {num(p.outOfMarket)} held off the board (outside the US). {plan.refused.length} line(s) refused. Revert, beside the batch below, retires the new
+        rows. {plan.cannotUndo}</> })) return;
     setBusy("real"); setErr(null);
     try {
       setResult(await api("/api/admin/job-data/import", { method: "POST", body: JSON.stringify({ jsonl: text, apply: true }) }));
@@ -690,43 +686,52 @@ export function JobDataSection({ theme }) {
     setErr(null);
     try {
       const d = await api(`/api/admin/job-data/import/batches/${b.id}/revert`, { method: "POST", body: JSON.stringify({}) });
-      if (!confirm(`Revert batch ${b.id}?\n\n${d.note}`)) return;
+      if (!await ask({ title: `Revert batch ${b.id}?`, label: "Revert it", body: d.note })) return;
       await api(`/api/admin/job-data/import/batches/${b.id}/revert`, { method: "POST", body: JSON.stringify({ expectRows: d.wouldRetire }) });
       loadBatches();
     } catch (e) { setErr(e.payload?.note || e.message); }
   };
   const shown = result || plan;
+  const open = batches.filter(b => !b.reverted_at);
   return (
-    <Card theme={theme} title="Job data — in and out" measured="import is dry by default — nothing is written until you press Import">
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
-        <a href={exportHref()} style={{ fontSize: 12, fontWeight: 700, color: C.ACCENT_INK }}>Export the active board (NDJSON) ↓</a>
-        <span style={{ fontSize: 11, color: theme.textMuted }}>one posting per line: title, company, url required; source one of the known sources (default import)</span>
+    <Panel title="Job data in and out" data-admin-jobdata=""
+      code="A62: the one gateway every posting enters through. Enrichment (a posting's tags and pay) is a different round trip — Admin → The board → Enrichment."
+      purpose="Postings themselves, in and out: export the active board as a file, or import postings into it. An import is checked first and becomes a batch you can revert."
+      numbers={[[num(batches.length), "import batches"], [num(open.reduce((s, b) => s + (b.inserted || 0), 0)), "postings added by batches still in force"],
+        [batches[0] ? ago(batches[0].created_at) : "never", "the last import"]]}>
+      {dialog}
+      <div style={{ ...row, marginBottom: 12 }}>
+        <a className="dbx-depth" href={exportHref()} style={{ fontSize: 12, fontWeight: 700, color: theme.text, padding: "6px 12px", textDecoration: "none" }}>Export the active board (NDJSON) ↓</a>
       </div>
-      <textarea value={text} onChange={e => setText(e.target.value)} rows={5} placeholder='{"title":"…","company":"…","url":"https://…","location":"…","description":"…"}'
-        style={{ width: "100%", boxSizing: "border-box", fontFamily: "ui-monospace, monospace", fontSize: 11,
-                 background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: 8 }}/>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
-        <Btn theme={theme} primary disabled={!!busy || !text.trim()} onClick={runDry}>{busy === "dry" ? "Planning…" : "Dry run"}</Btn>
-        <Btn theme={theme} danger disabled={!plan || n === 0 || !!busy} onClick={runReal}>
-          {busy === "real" ? "Importing…" : plan ? `Import ${num(n)} posting(s)…` : "Import…"}
-        </Btn>
-        <span style={{ fontSize: 11, color: theme.textMuted }}>
-          {dry && !plan ? "The text changed since the dry run — run it again." : !dry && !result ? "Dry run first — Import unlocks for exactly the text it planned." : null}
-        </span>
-      </div>
-      <Err msg={err}/>
-      {shown && (
-        <div style={{ marginTop: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 6, color: result ? C.SUCCESS : theme.text }}>
-            {result ? `IMPORTED — batch ${result.batchId}: ${num(result.inserted)} inserted · ${num(result.attached)} attached · ${num(result.held)} held off the board`
-                    : `DRY RUN — nothing written · ${num(shown.valid)} valid of ${num(shown.rows)} · ${num(shown.plan.insert)} new · ${num(shown.plan.replace)} replace · ${num(shown.plan.attach)} attach · ${num(shown.plan.outOfMarket)} outside the US`}
-          </div>
-          {shown.refused?.length > 0 && <Err msg={`Refused: ${shown.refused.slice(0, 5).map(r => `line ${r.line}: ${r.reason}`).join(" · ")}${shown.refused.length > 5 ? " …" : ""}`}/>}
-          {result?.note && <div style={{ fontSize: 11, color: theme.textMuted }}>{result.note}</div>}
+      <Step n={1} state={text.trim() ? "done" : "active"} title="Paste postings — one JSON object per line">
+        <div style={quiet}>title, company and url are required; source is one of the known sources (default: import).</div>
+        <textarea aria-label="Postings to import" value={text} onChange={e => setText(e.target.value)} rows={5} placeholder='{"title":"…","company":"…","url":"https://…","location":"…","description":"…"}'
+          style={{ width: "100%", boxSizing: "border-box", fontFamily: "ui-monospace, monospace", fontSize: 11,
+                   background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: 8 }}/>
+      </Step>
+      <Step n={2} state={!text.trim() ? "locked" : plan ? "done" : "active"} title="Check it — writes nothing">
+        <div style={row}>
+          <Btn theme={theme} disabled={!!busy || !text.trim()} onClick={runDry}>{busy === "dry" ? "Checking…" : "Check the postings"}</Btn>
+          {dry && !plan && <span style={quiet}>The text changed since the check — check it again.</span>}
         </div>
-      )}
+        {plan && <div style={{ fontSize: 12 }}>{num(plan.valid)} valid of {num(plan.rows)} · {num(plan.plan.insert)} new · {num(plan.plan.replace)} replace ·
+          {" "}{num(plan.plan.attach)} attach · {num(plan.plan.outOfMarket)} outside the US</div>}
+        {shown?.refused?.length > 0 && <Err msg={`Refused: ${shown.refused.slice(0, 5).map(r => `line ${r.line}: ${r.reason}`).join(" · ")}${shown.refused.length > 5 ? " …" : ""}`}/>}
+      </Step>
+      <Step n={3} state={plan && n > 0 ? "active" : result ? "done" : "locked"} title="Import it">
+        <div style={row}>
+          <Btn theme={theme} primary disabled={!plan || n === 0 || !!busy} onClick={runReal}>
+            {busy === "real" ? "Importing…" : plan ? `Import ${num(n)} posting(s)…` : "Import…"}
+          </Btn>
+          <span style={quiet}>Unlocks for exactly the text that was checked.</span>
+        </div>
+        {result && <div style={{ fontSize: 12, color: C.SUCCESS }}>Batch {result.batchId}: {num(result.inserted)} inserted · {num(result.attached)} attached · {num(result.held)} held off the board.
+          {result.note ? ` ${result.note}` : ""}</div>}
+      </Step>
+      <Err msg={err}/>
       {batches.length > 0 && (
         <div style={{ marginTop: 12 }}>
+          <h3 style={{ ...h2, fontSize: 15, margin: "0 0 6px" }}>Past imports</h3>
           <Table theme={theme} rows={batches} cols={[
             { key: "id", label: "batch" },
             { key: "created_at", label: "when", render: r => stamp(r.created_at) },
@@ -736,11 +741,11 @@ export function JobDataSection({ theme }) {
             { key: "refused", label: "refused", right: true },
             { key: "reverted_at", label: "", render: r => (r.reverted_at
               ? `reverted ${stamp(r.reverted_at)} (${r.reverted_rows})`
-              : <button type="button" onClick={() => revert(r)} style={{ fontSize: 11, cursor: "pointer" }}>Revert…</button>) },
+              : <Btn theme={theme} onClick={() => revert(r)}>Revert…</Btn>) },
           ]}/>
         </div>
       )}
-    </Card>
+    </Panel>
   );
 }
 

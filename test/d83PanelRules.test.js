@@ -31,6 +31,9 @@ export const REBUILT = {
   CostsTab: ["CostsTab", "SpendPart"],
   SlugHarvestSection: ["SlugHarvestSection"],
   BoardPolicySection: ["BoardPolicySection"],
+  KillSwitchSection: ["KillSwitchSection"],
+  BoardFitSection: ["BoardFitSection"],
+  JobDataSection: ["JobDataSection"],
 };
 
 for (const [name, parts] of Object.entries(REBUILT)) {
