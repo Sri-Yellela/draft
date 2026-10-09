@@ -76,7 +76,8 @@ test("suggestions are slugs captures named that are not configured", async () =>
 
 test("the Operations tab draws it, with Add gated on a probe of exactly the typed board", () => {
   const ops = fs.readFileSync("client/src/panels/adminOps.jsx", "utf8");
-  assert.match(ops, /<CompaniesSection theme=\{theme\}\/>/);
+  // D83's map (39d): the card is The board → Companies and candidates.
+  assert.match(fs.readFileSync("client/src/panels/AdminPanel.jsx", "utf8"), /\{at\("board", "companies"\) && <CompaniesSection theme=\{theme\}\/>\}/);
   assert.match(ops, /const seen = probe && probe\.key === key \? probe\.body\.validation : null;/);
   assert.match(ops, /disabled=\{!seen\?\.ok \|\| !!busy\} onClick=\{add\}/);
   assert.match(ops, /confirm: true, expectState: seen\.state/);
@@ -89,5 +90,5 @@ test("A50 step 7: the tools service status — public routes only, a yes/no for 
   assert.match(route, /tokenHeld: !!process\.env\.RESUME_MASTER_TOKEN/);
   assert.doesNotMatch(route, /authorization|Bearer/i, "no token is sent to read health and version");
   assert.match(route, /get\("\/health"\), get\("\/v1\/version"\)/);
-  assert.match(fs.readFileSync("client/src/panels/adminOps.jsx", "utf8"), /<ToolsServiceSection theme=\{theme\}\/>/);
+  assert.match(fs.readFileSync("client/src/panels/AdminPanel.jsx", "utf8"), /\{at\("system", "tools"\) && <ToolsServiceSection theme=\{theme\}\/>\}/);   // D83's map: System → Tools service
 });

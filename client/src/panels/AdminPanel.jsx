@@ -6,7 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api }      from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
-import { OpsTab, GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, NoticesTab, CostsTab } from "./adminOps.jsx";
+import { GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, NoticesTab, CostsTab, DeploySection, DeploymentsSection,
+         DiskSection, BoardPolicySection, KillSwitchSection, BoardFitSection, JobDataSection, CompaniesSection, SlugHarvestSection,
+         ToolsServiceSection, SpendSection } from "./adminOps.jsx";
+import { ADMIN_GROUPS, readAdminPlace, writeAdminPlace } from "./adminMap.js";
 import { EnrichmentTab } from "./adminEnrichment.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
@@ -154,7 +157,6 @@ function UsageTab({ theme }) {
   const shortModel = model => (model || "-").replace("claude-", "").replace("-20250514", "").replace("-20251001", "");
 
   const failedCalls = modelCalls.filter(callFailed).length;
-  const cacheColor = overview.cacheHitRate >= 0.7 ? C.SUCCESS : overview.cacheHitRate >= 0.4 ? C.WARNING : C.DANGER;
 
   return (
     <div style={{ padding:"20px", display:"flex", flexDirection:"column", gap:20 }}>
@@ -173,10 +175,7 @@ function UsageTab({ theme }) {
           sub={overview.crawlRuns == null ? "no pipeline_runs table"
             : `${overview.crawlRuns} crawl runs${overview.crawlRunsFailed ? ` · ${overview.crawlRunsFailed} failed` : ""}`}
           theme={theme}/>
-        <StatCard label="Token Usage" value={fmtNum(overview.totalTokensUsed)} sub="tokens" theme={theme}/>
-        <StatCard label="API Cost" value={fmtUsd(overview.totalCostUsd)} theme={theme} color={C.DANGER}/>
-        <StatCard label="Cache Savings" value={fmtUsd(overview.totalCostSaved)} theme={theme} color={C.SUCCESS}/>
-        <StatCard label="Cache Hit Rate" value={fmtPct(overview.cacheHitRate)} theme={theme} color={cacheColor}/>
+        {/* D83 audit #16: the token, cost and cache tiles are RETIRED here — Today → Costs & quotas holds the figures. */}
         <StatCard label="Avg ATS Δ"
           value={overview.avgAtsImprovement != null ? `+${overview.avgAtsImprovement.toFixed(1)}` : "—"}
           sub={overview.avgAtsScoreBefore != null ? `${overview.avgAtsScoreBefore?.toFixed(0)} → ${overview.avgAtsScoreAfter?.toFixed(0)}` : null}
@@ -575,83 +574,8 @@ function UsersTab({ theme }) {
   );
 }
 
-// ── CacheTab ──────────────────────────────────────────────────
-function CacheTab({ theme }) {
-  const [data, setData] = useState(null);
-  useEffect(() => {
-    api("/api/admin/analytics/cache").then(setData).catch(()=>{});
-  }, []);
-  if (!data) return <div style={{ padding:32, color:theme.textMuted }}>Loading…</div>;
-  const fmtPct = n => `${(n*100).toFixed(1)}%`;
-  const fmtUsd = n => `$${Number(n||0).toFixed(4)}`;
-  return (
-    <div style={{ padding:20, display:"flex", flexDirection:"column", gap:16 }}>
-      {/* Cache-state summary */}
-      <div style={{ background:theme.surface, border:`1px solid ${theme.border}`,
-                    borderRadius:12, padding:20, display:"flex", alignItems:"center", gap:20 }}>
-        <div style={{ textAlign:"center" }}>
-          <div style={{ fontSize:40, fontWeight:900,
-                        color: data.warmthScore >= 70 ? C.SUCCESS : data.warmthScore >= 40 ? C.WARNING : C.DANGER }}>
-            {data.warmthScore}
-          </div>
-          <div style={{ fontSize:10, color:theme.textMuted, fontWeight:700 }}>CACHE READ CALLS</div>
-        </div>
-        <div>
-          <div style={{ fontSize:13, color:theme.text, lineHeight:1.6 }}>
-            {fmtPct(data.hitRate)} of recorded model calls had some cache read tokens.
-            Full warm calls: {fmtPct(data.fullHitRate || 0)}. Partial cache calls: {fmtPct(data.partialHitRate || 0)}.
-            Cache writes: {data.totalCacheWrites || 0}. Cold calls: {data.totalCacheMisses || 0}.
-            Token cache-read ratio: {fmtPct(data.cacheReadTokenRatio || 0)}.
-          </div>
-          <div style={{ fontSize:11, color:theme.textMuted, marginTop:4 }}>
-            {data.totalCacheHits} hits · {data.totalCacheMisses} misses · {(data.totalTokensSaved||0).toLocaleString()} tokens saved
-          </div>
-        </div>
-      </div>
-      {/* By layer */}
-      {data.byLayer?.length > 0 && (
-        <div style={{ background:theme.surface, border:`1px solid ${theme.border}`, borderRadius:12, overflow:"hidden" }}>
-          <div style={{ padding:"10px 16px", background:theme.surfaceHigh, fontSize:10,
-                        fontWeight:700, textTransform:"uppercase", letterSpacing:"0.06em",
-                        color:theme.textMuted }}>By Layer</div>
-          {data.byLayer.map(l => (
-            <div key={l.layer} style={{ display:"flex", gap:12, padding:"10px 16px",
-                                         borderTop:`1px solid ${theme.border}`, fontSize:12 }}>
-              <div style={{ width:160, color:theme.text, fontWeight:600 }}>{l.layer || "unknown"}</div>
-              <div style={{ color:theme.textMuted }}>{l.hits} hits</div>
-              <div style={{ color:theme.textMuted }}>{l.partials || 0} partial</div>
-              <div style={{ color:theme.textMuted }}>{l.writes || 0} writes</div>
-              <div style={{ color:theme.textMuted }}>{l.misses} misses</div>
-              <div style={{ color:theme.textMuted }}>{l.hits + l.misses > 0 ? fmtPct(l.hits / (l.hits + l.misses)) : "—"}</div>
-              <div style={{ color:C.SUCCESS }}>{fmtUsd(l.cost_saved)}</div>
-            </div>
-          ))}
-        </div>
-      )}
-      {/* By domain */}
-      {data.byDomain?.length > 0 && (
-        <div style={{ background:theme.surface, border:`1px solid ${theme.border}`, borderRadius:12, overflow:"hidden" }}>
-          <div style={{ padding:"10px 16px", background:theme.surfaceHigh, fontSize:10,
-                        fontWeight:700, textTransform:"uppercase", letterSpacing:"0.06em",
-                        color:theme.textMuted }}>By Domain Module</div>
-          {data.byDomain.map(d => (
-            <div key={d.domain_module} style={{ display:"flex", gap:12, padding:"10px 16px",
-                                                 borderTop:`1px solid ${theme.border}`, fontSize:12 }}>
-              <div style={{ width:160, color:theme.text, fontWeight:600 }}>{d.domain_module}</div>
-              <div style={{ color:theme.textMuted }}>{d.calls} calls</div>
-              <div style={{ color:theme.textMuted }}>{d.hits} hits</div>
-              <div style={{ color:theme.textMuted }}>{d.partials || 0} partial</div>
-              <div style={{ color:theme.textMuted }}>{d.writes || 0} writes</div>
-              <div style={{ color:theme.textMuted }}>{d.misses || 0} cold</div>
-              <div style={{ color:theme.textMuted }}>{d.calls > 0 ? fmtPct(d.hits / d.calls) : "—"}</div>
-              <div style={{ color:C.SUCCESS }}>{fmtUsd(d.cost_saved)}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+// D83 audit #18: the Cache tab is RETIRED — it measured the prompt cache of draft's own model calls, and since D17
+// draft makes none (generation is the tools service's; its cache figures are in Today → Costs & quotas).
 
 function ContactMessagesSection({ theme }) {
   const [messages, setMessages]   = useState([]);
@@ -873,12 +797,15 @@ export function AdminPanel() {
   const [status,   setStatus]   = useState("");
   const [bStatus,  setBStatus]  = useState("");
   const [backing,  setBacking]  = useState(false);
-  const [section,  setSection]  = useState("users");
 
-  // Top-level tab: "glance" | "ops" | "system" | "usage" | "users_analytics" | "cache".
-  // The glance opens first (A50 step 3): "is the system healthy right now?" is the question this
-  // panel is opened to answer, and it should not need a click.
-  const [topTab, setTopTab] = useState("glance");
+  // ⭐ D83 · THE MAP — five groups, each answering one question; a group holds the panels that answer it
+  // (adminMap.js). The glance still opens first (A50 step 3): "is the system healthy right now?" needs no click.
+  // The place is kept in the URL (?g=&s=) so a link and a reload land on the same panel.
+  const [place, setPlace] = useState(() => readAdminPlace(typeof window !== "undefined" ? window.location.search : ""));
+  const go = (g, s) => { const p = writeAdminPlace(g, s); setPlace(p);
+    try { window.history.replaceState(null, "", `${window.location.pathname}?g=${p.g}&s=${p.s}`); } catch { /* no history */ } };
+  const at = (g, s) => place.g === g && place.s === s;
+  const group = ADMIN_GROUPS.find(x => x.id === place.g) || ADMIN_GROUPS[0];
 
   useEffect(() => { loadUsers(); loadBackups(); loadUpgradeRequests(); loadProfileRequests(); }, []);
 
@@ -960,8 +887,6 @@ export function AdminPanel() {
     ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
     : `${(bytes / 1024).toFixed(0)} KB`;
 
-  const SECTIONS = [["users","Users"],["backups","Backups"],["plugin","Plugin"],["notices","Notices"]];
-
   const thStyle = {
     padding:"10px 14px", textAlign:"left", fontSize:10,
     fontWeight:700, color:theme.textDim,
@@ -969,18 +894,6 @@ export function AdminPanel() {
     borderBottom:`1px solid ${theme.border}`,
     whiteSpace:"nowrap",
   };
-
-  const TOP_TABS = [
-    { id:"glance",          label:"Today" },
-    { id:"ops",             label:"Operations" },
-    { id:"enrichment",      label:"Enrichment" },
-    { id:"crawler",         label:"Crawler" },
-    { id:"system",          label:"System" },
-    { id:"usage",           label:"Usage" },
-    { id:"costs",           label:"Costs & quotas" },
-    { id:"users_analytics", label:"Users" },
-    { id:"cache",           label:"Cache" },
-  ];
 
   return (
     <div style={{ padding:"32px 24px", overflowY:"auto", height:"100%",
@@ -1028,66 +941,71 @@ export function AdminPanel() {
       {/* ⛔ D77: the disk banner — every admin tab, while the volume is amber or red. */}
       <DiskBanner/>
 
-      {/* ── Top-level tabs ── */}
-      <div style={{ display:"flex", borderBottom:`2px solid ${ADMIN_ACCENT_TEXT}`, marginBottom:24 }}>
-        {TOP_TABS.map(({ id, label }) => (
-          <button className="dbx-depth" key={id}
-            style={{
-              padding:"8px 16px", border:"none", cursor:"pointer",
-              fontFamily:"inherit",
-              fontWeight:700, fontSize:12, letterSpacing:"0.08em", textTransform:"uppercase",
-              background: topTab===id ? ADMIN_ACCENT : "transparent",
-              color: topTab===id ? ADMIN_TEXT : theme.textMuted,
-              transition:"all 0.15s", borderRadius:"2px 2px 0 0",
-            }}
-            onClick={() => setTopTab(id)}>
+      {/* ── The five groups (D83's map) ── */}
+      <nav aria-label="Admin groups" data-admin-groups="" style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:12 }}>
+        {ADMIN_GROUPS.map(g => (
+          <button key={g.id} type="button" className="dbx-depth" data-admin-group={g.id} aria-current={place.g === g.id ? "page" : undefined}
+            onClick={() => go(g.id)}
+            style={{ border:"none", cursor:"pointer", fontFamily:"inherit", padding:"10px 16px", textAlign:"left",
+                     background: place.g === g.id ? ADMIN_ACCENT : theme.surface, color: place.g === g.id ? ADMIN_TEXT : theme.text }}>
+            <div style={{ fontWeight:800, fontSize:13 }}>{g.label}</div>
+            <div style={{ fontSize:11, opacity:0.8 }}>{g.question}</div>
+          </button>
+        ))}
+      </nav>
+      {/* ── The group's panels ── */}
+      <div role="tablist" aria-label={group.label} data-admin-sections="" style={{ display:"flex", flexWrap:"wrap", gap:4,
+           borderBottom:`2px solid ${ADMIN_ACCENT_TEXT}`, marginBottom:24 }}>
+        {group.sections.map(([id, label]) => (
+          <button key={id} type="button" role="tab" aria-selected={place.s === id} data-admin-section={id}
+            onClick={() => go(group.id, id)}
+            style={{ padding:"8px 14px", border:"none", cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:12,
+                     background:"transparent", color: place.s === id ? theme.text : theme.textMuted,
+                     borderBottom: place.s === id ? `3px solid ${ADMIN_ACCENT_TEXT}` : "3px solid transparent", marginBottom:-2 }}>
             {label}
           </button>
         ))}
       </div>
 
-      {/* ── The daily glance, and the surfaces that used to be curl-only (A50) ── */}
-      {topTab === "glance" && <GlanceTab theme={theme}/>}
-      {topTab === "ops" && <OpsTab theme={theme}/>}
-      {/* D83: the enrichment round trip as one page of six steps — numbers on open, Undo on every import. */}
-      {topTab === "enrichment" && <EnrichmentTab/>}
+      {/* Today — what needs me? */}
+      {at("today", "glance") && <GlanceTab theme={theme}/>}
+      {at("today", "deploys") && <><DeploySection theme={theme}/><DeploymentsSection theme={theme}/></>}
+      {at("today", "disk") && <DiskSection theme={theme}/>}
+      {/* Cost visibility (owner, 10-09): résumé economics are the admin's alone; search spend beside them. */}
+      {at("today", "costs") && <><CostsTab theme={theme}/><SpendSection theme={theme}/></>}
+      {at("today", "activity") && <UsageTab theme={theme}/>}
+
+      {/* The board — what is on it, and why? */}
+      {at("board", "companies") && <CompaniesSection theme={theme}/>}
+      {at("board", "scope") && <BoardPolicySection theme={theme}/>}
       {/* D75 STEP 0b: the crawler's control panel — the switches live in draft's database, no redeploy. */}
-      {topTab === "crawler" && <CrawlerTab theme={theme}/>}
+      {at("board", "crawler") && <CrawlerTab theme={theme}/>}
+      {at("board", "harvest") && <SlugHarvestSection theme={theme}/>}
+      {/* D83: the enrichment round trip as one page of six steps — numbers on open, Undo on every import. */}
+      {at("board", "enrichment") && <EnrichmentTab/>}
 
-      {/* ── Usage analytics tab ── */}
-      {topTab === "usage" && <UsageTab theme={theme}/>}
-      {/* Cost visibility (owner, 10-09): résumé economics are the admin's alone. */}
-      {topTab === "costs" && <CostsTab theme={theme}/>}
-      {topTab === "users_analytics" && <UsersTab theme={theme}/>}
-      {topTab === "cache" && <CacheTab theme={theme}/>}
+      {/* People — who is using it? */}
+      {at("people", "messages") && <ContactMessagesSection theme={theme}/>}
 
-      {/* ── CONTACT MESSAGES SECTION ──────────────────────────────── */}
-      <ContactMessagesSection theme={theme}/>
-
-      {/* ── System tab (existing user management + backups) ── */}
-      {topTab === "system" && (
-        <>
-          {/* ── Section tabs ── */}
-          <div style={{ display:"flex", borderBottom:`1px solid ${theme.border}`, marginBottom:24 }}>
-            {SECTIONS.map(([id, lbl]) => (
-              <button key={id}
-                style={{
-                  padding:"8px 16px", border:"none", cursor:"pointer",
-                  fontFamily:"inherit",
-                  fontWeight:700, fontSize:12, letterSpacing:"0.08em", textTransform:"uppercase",
-                  background: section===id ? theme.surfaceHigh : "transparent",
-                  color: section===id ? theme.text : theme.textMuted,
-                  transition:"all 0.15s", borderRadius:"4px 4px 0 0",
-                  borderBottom: section===id ? `2px solid ${theme.accent}` : "2px solid transparent",
-                }}
-                onClick={() => setSection(id)}>
-                {lbl}
-              </button>
-            ))}
+      {/* Data — what is stored? */}
+      {at("data", "jobdata") && <JobDataSection theme={theme}/>}
+      {at("data", "scoring") && <BoardFitSection theme={theme}/>}
+      {at("data", "database") && (
+        <div className="rm-card" data-admin-database="" style={{ maxWidth:640 }}>
+          <div style={{ fontWeight:700, fontSize:14, color:theme.text, marginBottom:8 }}>The database, read-only</div>
+          <div style={{ fontSize:13, color:theme.textMuted, marginBottom:12 }}>
+            Pipeline health, the schema, any table's rows, one posting's path, a user's pool and a read-only query — on their own page.
           </div>
+          <a href="/admin/db" className="rm-btn rm-btn-ghost rm-btn-sm">Open the database inspector →</a>
+        </div>
+      )}
+
+      {/* System — is it set up right? */}
+      {at("system", "switches") && <><KillSwitchSection theme={theme}/><PluginTab theme={theme}/></>}
+      {at("system", "tools") && <ToolsServiceSection theme={theme}/>}
 
           <AnimatePresence mode="wait">
-            {section === "users" && (
+            {at("people", "users") && (
               <motion.div key="users"
                 initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
                 exit={{ opacity:0, y:-6 }} transition={{ duration:0.18 }}>
@@ -1249,26 +1167,21 @@ export function AdminPanel() {
                     </tbody>
                   </table>
                 </div>
+                {/* D83 audit #17 merged here: per-user activity and Limits, under the accounts. */}
+                <div style={{ marginTop:24 }}><UsersTab theme={theme}/></div>
               </motion.div>
             )}
 
             {/* ⭐ D73 §B: policy, terms and service notices — dry run, ceiling, test-to-me. */}
-            {section === "notices" && (
+            {at("system", "notices") && (
               <motion.div key="notices"
                 initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
                 exit={{ opacity:0, y:-6 }} transition={{ duration:0.18 }}>
                 <NoticesTab theme={theme}/>
               </motion.div>
             )}
-            {/* ⭐ D86: bring-your-own-model résumés — the kill switch, the hosts, the cap, the numbers. */}
-            {section === "plugin" && (
-              <motion.div key="plugin"
-                initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
-                exit={{ opacity:0, y:-6 }} transition={{ duration:0.18 }}>
-                <PluginTab theme={theme}/>
-              </motion.div>
-            )}
-            {section === "backups" && (
+            {/* D83 audit #4 + #15b: the volume and the backups on one panel (D86's plugin moved to System → Feature switches). */}
+            {at("today", "disk") && (
               <motion.div key="backups"
                 initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
                 exit={{ opacity:0, y:-6 }} transition={{ duration:0.18 }}>
@@ -1392,8 +1305,6 @@ export function AdminPanel() {
               </motion.div>
             )}
           </AnimatePresence>
-        </>
-      )}
     </div>
   );
 }

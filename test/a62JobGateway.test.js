@@ -145,7 +145,7 @@ test("server mounts the job-data router behind requireAdmin, and the Operations 
   const server = fs.readFileSync("server.js", "utf8");
   assert.match(server, /app\.use\("\/api\/admin\/job-data", requireAdmin, createJobDataRouter\(db, requireAdmin\)\);/);
   const ops = fs.readFileSync("client/src/panels/adminOps.jsx", "utf8");
-  assert.match(ops, /<JobDataSection theme=\{theme\}\/>/);
+  assert.match(fs.readFileSync("client/src/panels/AdminPanel.jsx", "utf8"), /\{at\("data", "jobdata"\) && <JobDataSection theme=\{theme\}\/>\}/);   // D83's map: Data → Job data in and out
   assert.match(ops, /const plan = dry && dry\.forText === text \? dry\.body : null;/, "Import unlocks only for the planned text");
   assert.match(ops, /expectRows: d\.wouldRetire/, "revert sends the count its own dry run reported");
 });

@@ -46,8 +46,9 @@ test("the Operations tab no longer carries the backlog section; Admin → Enrich
   const ops = fs.readFileSync("client/src/panels/adminOps.jsx", "utf8");
   assert.doesNotMatch(ops, /<EnrichmentSection|export function EnrichmentSection/, "the retired section came back");
   const admin = fs.readFileSync("client/src/panels/AdminPanel.jsx", "utf8");
-  assert.ok(at(admin, '{ id:"enrichment",      label:"Enrichment" }') >= 0);
-  assert.match(admin, /\{topTab === "enrichment" && <EnrichmentTab\/>\}/);
+  // D83's map (39d): The board → Enrichment.
+  assert.match(fs.readFileSync("client/src/panels/adminMap.js", "utf8"), /\["enrichment", "Enrichment"\]/);
+  assert.match(admin, /\{at\("board", "enrichment"\) && <EnrichmentTab\/>\}/);
   const page = fs.readFileSync("client/src/panels/adminEnrichment.jsx", "utf8");
   assert.doesNotMatch(page, /enrichment\/run/, "the page never posts to the retired model trigger");
   assert.doesNotMatch(page, /Enrich \$\{|>Enrich…</, "an Enrich button came back");

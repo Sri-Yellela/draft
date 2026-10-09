@@ -1050,23 +1050,8 @@ export function UserApplications({ userId, theme }) {
   );
 }
 
-export function OpsTab({ theme }) {
-  return (
-    <div>
-      <DeploySection theme={theme}/>
-      <DeploymentsSection theme={theme}/>
-      <DiskSection theme={theme}/>
-      <BoardPolicySection theme={theme}/>
-      <KillSwitchSection theme={theme}/>
-      <BoardFitSection theme={theme}/>
-      <JobDataSection theme={theme}/>
-      <CompaniesSection theme={theme}/>
-      <SlugHarvestSection theme={theme}/>
-      <ToolsServiceSection theme={theme}/>
-      <SpendSection theme={theme}/>
-    </div>
-  );
-}
+// D83 · the Operations tab (eleven unrelated cards in one scroll) is gone: each card is a panel in its group —
+// AdminPanel.jsx + adminMap.js say where.
 
 // ── The daily glance — GET /api/admin/glance (+ /api/version for the deploy line) ──────────────
 const HEALTH_COLOR = h => (h === "ok" ? C.SUCCESS

@@ -106,8 +106,9 @@ test("D75 0b: the wrong-answer flag is counted; bad input to the controls is ref
 
 test("D75 0b: Admin has a Crawler tab with the switch, the mode, the enqueue, the queue and the deny-list", () => {
   const panel = fs.readFileSync("client/src/panels/AdminPanel.jsx", "utf8");
-  assert.match(panel, /\{ id:"crawler",\s+label:"Crawler" \}/);
-  assert.match(panel, /topTab === "crawler" && <CrawlerTab theme=\{theme\}\/>/);
+  // D83's map (39d): The board → Crawler.
+  assert.match(fs.readFileSync("client/src/panels/adminMap.js", "utf8"), /\["crawler", "Crawler"\]/);
+  assert.match(panel, /\{at\("board", "crawler"\) && <CrawlerTab theme=\{theme\}\/>\}/);
   const ops = fs.readFileSync("client/src/panels/adminOps.jsx", "utf8");
   for (const s of ["/api/admin/crawler/state", "Resume", "Pause", "Dry-run", "Live", "/api/admin/crawler/tasks/captures", "Flag wrong", "Deny-list"]) {
     assert.ok(ops.includes(s), `the tab carries ${s}`);
