@@ -945,6 +945,14 @@ function DiscoveryCandidates({ theme, onAdded }) {
 // The daily manual sweep's second half: a few SerpApi searches → a pool of ATS boards we do not
 // crawl → an export the owner reviews → an import that adds the ones marked "add". Every step is dry
 // first. The searches are the free plan's (250 a month), so the run button names how many it spends.
+// ⭐ D83 rebuild #4 (39d): the four steps as a path, the one accent on the spend, confirms in the page, Revert
+// confirmed and kept beside every import, and the role families in words instead of codes.
+// services/harvestQueryPlan.js's families, in words (the audit: "families named as codes").
+const FAMILY_WORDS = { data_analyst: "Data analyst", data_eng: "Data engineering", data_sci: "Data science", embedded: "Embedded",
+  eng_backend: "Back-end engineering", eng_frontend: "Front-end engineering", eng_fullstack: "Full-stack engineering",
+  eng_infra: "Infrastructure", eng_mobile: "Mobile", eng_security: "Security", mgmt_tpm: "Technical programme management",
+  ml_ai: "Machine learning and AI", qa: "Quality", custom: "Other searches" };
+export const familyWords = (f) => FAMILY_WORDS[f] || String(f || "—").replace(/_/g, " ");
 export function SlugHarvestSection({ theme }) {
   const [d, setD] = useState(null);
   const [dry, setDry] = useState(null);
@@ -952,6 +960,7 @@ export function SlugHarvestSection({ theme }) {
   const [busy, setBusy] = useState(null);
   const [err, setErr] = useState(null);
   const [msg, setMsg] = useState(null);
+  const { ask, dialog } = useConfirm();
   const load = useCallback(() => { api("/api/admin/slug-harvest").then(setD).catch(e => setErr(e.message)); }, []);
   useEffect(() => { load(); }, [load]);
   const running = d?.sweeps?.find(s => !s.finished_at);
@@ -968,7 +977,9 @@ export function SlugHarvestSection({ theme }) {
   };
   const runSweep = async () => {
     const n = dry.expectQueries.length;
-    if (!confirm(`Spend ${n} SerpApi search${n === 1 ? "" : "es"}?\n\n${dry.expectQueries.join("\n")}\n\n${dry.quota?.left ?? "?"} left this month.`)) return;
+    if (!await ask({ title: `Spend ${n} search${n === 1 ? "" : "es"}?`, label: `Run ${n}`,
+      body: <><ul style={{ margin: "0 0 8px", paddingLeft: 18 }}>{dry.expectQueries.map(q => <li key={q}><code>{q}</code></li>)}</ul>
+        {dry.quota?.left ?? "?"} searches are left on this month's plan. Searches cannot be refunded; nothing is added to the board by a sweep.</> })) return;
     setBusy("run"); setErr(null);
     try {
       const r = await api("/api/admin/slug-harvest/sweep", { method: "POST", body: JSON.stringify({ confirm: true, expectQueries: dry.expectQueries }) });
@@ -988,7 +999,9 @@ export function SlugHarvestSection({ theme }) {
   };
   const applyImport = async () => {
     const p = imp.body.plan;
-    if (!confirm(`Apply this file?\n\nAdd ${p.wouldAdd} compan${p.wouldAdd === 1 ? "y" : "ies"} (active; the next crawl reads them), skip ${p.wouldSkip}.`)) return;
+    if (!await ask({ title: "Apply this file?", label: `Add ${p.wouldAdd}, skip ${p.wouldSkip}`,
+      body: <>This adds <b>{p.wouldAdd} compan{p.wouldAdd === 1 ? "y" : "ies"}</b> (active — the next crawl reads them) and records {p.wouldSkip} skip{p.wouldSkip === 1 ? "" : "s"}.
+        Revert, beside the import below, undoes it.</> })) return;
     setBusy("apply"); setErr(null);
     try {
       const r = await api("/api/admin/slug-harvest/import", { method: "POST", body: JSON.stringify({ jsonl: imp.text, apply: true, expectWrites: p.expectWrites }) });
@@ -1000,70 +1013,96 @@ export function SlugHarvestSection({ theme }) {
     setErr(null);
     try {
       const p = await api(`/api/admin/slug-harvest/imports/${i.id}/revert`, { method: "POST", body: JSON.stringify({}) });
-      const lines = p.pairs.map(x => `${x.pair}: ${x.now.decision}${x.now.company ? ` · ${x.now.company}` : ""} → ${typeof x.after === "string" ? x.after : `${x.after.decision ?? "undecided"}${x.after.company ? ` · ${x.after.company}` : ""}`}`);
-      if (!confirm(`Revert import ${i.id}?\n\n${lines.join("\n")}\n\nCompanies are disabled, never deleted.`)) return;
+      if (!await ask({ title: `Revert import ${i.id}?`, label: "Revert it",
+        body: <><ul style={{ margin: "0 0 8px", paddingLeft: 18 }}>{p.pairs.map(x => <li key={x.pair}>{x.pair}: {x.now.decision}{x.now.company ? ` · ${x.now.company}` : ""} →{" "}
+          {typeof x.after === "string" ? x.after : `${x.after.decision ?? "undecided"}${x.after.company ? ` · ${x.after.company}` : ""}`}</li>)}</ul>
+          Companies it added are disabled, never deleted.</> })) return;
       const r = await api(`/api/admin/slug-harvest/imports/${i.id}/revert`, { method: "POST", body: JSON.stringify({ apply: true, expectRestorable: p.restorable }) });
       setMsg(`Reverted import ${i.id}: ${r.restored} pair(s) undecided again, ${r.companiesDisabled} compan${r.companiesDisabled === 1 ? "y" : "ies"} disabled.`); load();
     } catch (e) { fail(e); }
   };
   const plan = d?.plan;
+  const pool = d?.pool || [];
+  const toReview = pool.reduce((s, p) => s + (p.undecided || 0), 0);
+  const added = pool.reduce((s, p) => s + (p.added || 0), 0);
+  const hasRun = (d?.sweeps || []).length > 0;
+  const stepState = (n) => n === 1 ? (dry ? "done" : "active") : n === 2 ? (!dry ? "locked" : "active")
+    : n === 3 ? (hasRun ? (toReview ? "active" : "done") : "locked") : (hasRun ? (imp ? "active" : toReview ? "active" : "done") : "locked");
   return (
-    <Card theme={theme} title="Slug harvest"
-      measured={plan ? `${plan.usedToday} / ${plan.cap} searches today · nothing runs until you press Run` : "measuring…"}>
-      {d && !d.configured && <div style={{ fontSize: 12, color: C.WARNING, marginBottom: 8 }}>SERPAPI_KEY is not set — no search can run.</div>}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
-        <Btn theme={theme} primary disabled={!!busy || !!running || !d?.configured} onClick={planSweep}>{busy === "plan" ? "Reading the quota…" : "Plan today's sweep"}</Btn>
-        <Btn theme={theme} disabled={!dry?.expectQueries?.length || !!busy} onClick={runSweep}>
-          {busy === "run" ? "Starting…" : `Run ${dry?.expectQueries?.length ?? 0} search${dry?.expectQueries?.length === 1 ? "" : "es"}…`}</Btn>
-        <a href={`/api/admin/slug-harvest/export${authContextQuery() ? `?${authContextQuery()}` : ""}`} style={{ fontSize: 12, color: theme.text }}>Export for review (JSONL)</a>
-        <label style={{ fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
-          {busy === "import" ? "Checking the file…" : "Import decisions…"}
-          <input type="file" accept=".jsonl,.ndjson,.txt" onChange={pickFile} style={{ display: "none" }}/>
-        </label>
-      </div>
-      {running && <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 8 }}>Sweep {running.id} running — {running.searches} search(es) done.</div>}
-      {dry && <div style={{ fontSize: 12, marginBottom: 8 }}>
-        {dry.note} {dry.quota && <span style={{ color: theme.textMuted }}>SerpApi: {dry.quota.left ?? "?"} left this month.</span>}
-        {dry.quotaError && <span style={{ color: C.DANGER }}> {dry.quotaError}.</span>}
-        {dry.plan.skipped.length > 0 && <div style={{ color: theme.textMuted }}>Not searched: {dry.plan.skipped.map(x => `${x.q} (${x.reason})`).join(" · ")}</div>}
-      </div>}
-      {imp && <div style={{ fontSize: 12, marginBottom: 8 }}>
-        <div style={{ color: imp.body.plan.valid ? theme.text : C.DANGER }}>{imp.body.note}</div>
-        {imp.body.plan.rejected.map((r, i) => <div key={i} style={{ color: C.DANGER }}>line {r.line} · {r.pair || "—"} · {r.kind}: {r.error}</div>)}
-        {imp.body.plan.valid && imp.body.plan.expectWrites > 0 && <div style={{ marginTop: 6 }}>
-          <Btn theme={theme} disabled={!!busy} onClick={applyImport}>{busy === "apply" ? "Applying…" : `Apply: add ${imp.body.plan.wouldAdd}, skip ${imp.body.plan.wouldSkip}…`}</Btn>
-        </div>}
-      </div>}
+    <Panel title="Slug harvest" data-admin-harvest=""
+      code="D20 slug harvest · D81 the computer-science query plan. Searches are SerpApi's (SERPAPI_KEY; the free plan is 250 a month). A board is an ATS type plus its slug, e.g. greenhouse:acme."
+      purpose="Finds company job boards the crawl does not read yet, by web search. A sweep only fills a pool; you review the pool and import the boards to add — nothing joins the board without that."
+      numbers={plan ? [[`${num(plan.usedToday)} / ${num(plan.cap)}`, "searches today"],
+        [dry?.quota?.left == null ? "—" : num(dry.quota.left), dry?.quota?.left == null ? "left this month (plan to read it)" : "searches left this month"],
+        [num(toReview), "boards waiting for review"], [num(added), "companies added from the harvest"]] : []}>
+      {dialog}
+      {d && !d.configured && <div style={{ ...callout(C.WARNING), marginBottom: 10 }}>SERPAPI_KEY is not set — no search can run.</div>}
       <Err msg={err}/>
       {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 8 }}>{msg}</div>}
-      <div style={{ fontSize: 11, fontWeight: 800, margin: "6px 0 4px" }}>NEW BOARDS PER SEARCH, BY ROLE FAMILY</div>
-      <Table theme={theme} rows={d?.families || []} cols={[
-        { key: "family", label: "family" }, { key: "searches", label: "searches", right: true },
-        { key: "newPairs", label: "new boards", right: true }, { key: "rate", label: "per search", right: true, render: r => r.rate ?? "—" },
-        { key: "exhausted", label: "", render: r => r.exhausted ? <span style={{ color: C.WARNING }}>stopped — nothing new lately</span> : "" },
-      ]}/>
-      <div style={{ fontSize: 11, fontWeight: 800, margin: "10px 0 4px" }}>SWEEPS</div>
-      <Table theme={theme} rows={d?.sweeps || []} empty="No sweep yet." cols={[
-        { key: "id", label: "#" }, { key: "started_at", label: "started", render: r => ago(r.started_at) },
-        { key: "searches", label: "searches", right: true }, { key: "ats_links", label: "ATS links", right: true },
-        { key: "new_pairs", label: "new", right: true }, { key: "conversion", label: "per search", right: true, render: r => r.conversion ?? "—" },
-        { key: "error", label: "", render: r => r.error ? <span style={{ color: C.DANGER }}>{r.error}</span> : "" },
-      ]}/>
-      <div style={{ fontSize: 11, fontWeight: 800, margin: "10px 0 4px" }}>POOL</div>
-      <Table theme={theme} rows={d?.pool || []} empty="Nothing harvested yet." cols={[
-        { key: "ats_type", label: "ats" }, { key: "pairs", label: "boards", right: true }, { key: "live", label: "live", right: true },
-        { key: "undecided", label: "to review", right: true }, { key: "added", label: "added", right: true }, { key: "skipped", label: "skipped", right: true },
-      ]}/>
+      <Step n={1} state={stepState(1)} title="Plan today's sweep — reads the quota, spends nothing">
+        <div style={row}><Btn theme={theme} disabled={!!busy || !!running || !d?.configured} onClick={planSweep}>{busy === "plan" ? "Reading the quota…" : "Plan today's sweep"}</Btn></div>
+        {dry && <div style={{ fontSize: 12 }}>
+          {dry.note} {dry.quota && <span style={{ color: theme.textMuted }}>{dry.quota.left ?? "?"} searches left this month.</span>}
+          {dry.quotaError && <span style={{ color: C.DANGER }}> {dry.quotaError}.</span>}
+          {dry.plan.skipped.length > 0 && <div style={{ color: theme.textMuted }}>Not searched: {dry.plan.skipped.map(x => `${x.q} (${x.reason})`).join(" · ")}</div>}
+        </div>}
+      </Step>
+      <Step n={2} state={stepState(2)} title="Run the searches — this spends them">
+        <div style={row}>
+          <Btn theme={theme} primary disabled={!dry?.expectQueries?.length || !!busy} onClick={runSweep}>
+            {busy === "run" ? "Starting…" : `Run ${dry?.expectQueries?.length ?? 0} search${dry?.expectQueries?.length === 1 ? "" : "es"}…`}</Btn>
+          {running && <span style={quiet}>Sweep {running.id} running — {running.searches} search(es) done.</span>}
+        </div>
+      </Step>
+      <Step n={3} state={stepState(3)} title="Export the pool and mark each board add or skip">
+        <div style={row}>
+          <a className="dbx-depth" href={`/api/admin/slug-harvest/export${authContextQuery() ? `?${authContextQuery()}` : ""}`}
+            style={{ fontSize: 12, fontWeight: 700, color: theme.text, padding: "6px 12px", textDecoration: "none" }}>Export for review (JSONL)</a>
+          <span style={quiet}>{num(toReview)} boards to review. Set each line's decision to "add" or "skip" in the file.</span>
+        </div>
+      </Step>
+      <Step n={4} state={stepState(4)} title="Import your decisions — checked first, applied on your confirm">
+        <div style={row}>
+          <label className="dbx-depth" style={{ fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "6px 12px" }}>
+            {busy === "import" ? "Checking the file…" : "Choose the file…"}
+            <input type="file" accept=".jsonl,.ndjson,.txt" onChange={pickFile} style={{ display: "none" }}/>
+          </label>
+        </div>
+        {imp && <div style={{ fontSize: 12 }}>
+          <div style={{ color: imp.body.plan.valid ? theme.text : C.DANGER }}>{imp.body.note}</div>
+          {imp.body.plan.rejected.map((r, i) => <div key={i} style={{ color: C.DANGER }}>line {r.line} · {r.pair || "—"} · {r.kind}: {r.error}</div>)}
+          {imp.body.plan.valid && imp.body.plan.expectWrites > 0 && <div style={{ marginTop: 6 }}>
+            <Btn theme={theme} disabled={!!busy} onClick={applyImport}>{busy === "apply" ? "Applying…" : `Apply: add ${imp.body.plan.wouldAdd}, skip ${imp.body.plan.wouldSkip}…`}</Btn>
+          </div>}
+        </div>}
+      </Step>
       {d?.imports?.length > 0 && <>
-        <div style={{ fontSize: 11, fontWeight: 800, margin: "10px 0 4px" }}>IMPORTS</div>
+        <h3 style={{ ...h2, fontSize: 15, margin: "14px 0 6px" }}>Past imports</h3>
         <Table theme={theme} rows={d.imports} cols={[
           { key: "id", label: "#" }, { key: "imported_at", label: "when", render: r => ago(r.imported_at) },
           { key: "rows_written", label: "decisions", right: true }, { key: "companies_added", label: "added", right: true },
-          { key: "reverted_at", label: "", render: r => r.reverted_at ? `reverted ${ago(r.reverted_at)}`
-              : <button type="button" style={{ fontSize: 11, cursor: "pointer" }} onClick={() => revert(r)}>Revert…</button> },
+          { key: "reverted_at", label: "", render: r => r.reverted_at ? `reverted ${ago(r.reverted_at)}` : <Btn theme={theme} onClick={() => revert(r)}>Revert…</Btn> },
         ]}/>
       </>}
-    </Card>
+      <h3 style={{ ...h2, fontSize: 15, margin: "14px 0 6px" }}>What the searches find</h3>
+      <Table theme={theme} rows={d?.families || []} cols={[
+        { key: "family", label: "role family", render: r => familyWords(r.family) }, { key: "searches", label: "searches", right: true },
+        { key: "newPairs", label: "new boards", right: true }, { key: "rate", label: "per search", right: true, render: r => r.rate ?? "—" },
+        { key: "exhausted", label: "", render: r => r.exhausted ? <span style={markStyle(C.WARNING)}>stopped — nothing new lately</span> : "" },
+      ]}/>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 12, marginTop: 12 }}>
+        <Table theme={theme} rows={d?.sweeps || []} empty="No sweep yet." cols={[
+          { key: "id", label: "sweep" }, { key: "started_at", label: "started", render: r => ago(r.started_at) },
+          { key: "searches", label: "searches", right: true }, { key: "ats_links", label: "board links", right: true },
+          { key: "new_pairs", label: "new", right: true }, { key: "conversion", label: "per search", right: true, render: r => r.conversion ?? "—" },
+          { key: "error", label: "", render: r => r.error ? <span style={{ color: C.DANGER }}>{r.error}</span> : "" },
+        ]}/>
+        <Table theme={theme} rows={pool} empty="Nothing harvested yet." cols={[
+          { key: "ats_type", label: "board type" }, { key: "pairs", label: "boards", right: true }, { key: "live", label: "live", right: true },
+          { key: "undecided", label: "to review", right: true }, { key: "added", label: "added", right: true }, { key: "skipped", label: "skipped", right: true },
+        ]}/>
+      </div>
+    </Panel>
   );
 }
 
