@@ -11,6 +11,7 @@ import { GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, Notices
          ToolsServiceSection } from "./adminOps.jsx";
 import { ADMIN_GROUPS, readAdminPlace, writeAdminPlace } from "./adminMap.js";
 import { EnrichmentTab } from "./adminEnrichment.jsx";
+import { PeopleUsers } from "./adminPeople.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
 
@@ -319,260 +320,8 @@ function UsageTab({ theme }) {
   );
 }
 
-// ── LimitsModal ───────────────────────────────────────────────
-function LimitsModal({ userId, username, initialLimits, onSave, onClose, theme }) {
-  const [limits, setLimits] = useState({
-    monthly_resumes: initialLimits.monthly_resumes ?? "",
-    monthly_ats_scores: initialLimits.monthly_ats_scores ?? "",
-    monthly_job_scrapes: initialLimits.monthly_job_scrapes ?? "",
-    monthly_pdf_exports: initialLimits.monthly_pdf_exports ?? "",
-    monthly_apply_runs: initialLimits.monthly_apply_runs ?? "",
-    monthly_token_budget: initialLimits.monthly_token_budget ?? "",
-    daily_resumes: initialLimits.daily_resumes ?? "",
-    daily_job_scrapes: initialLimits.daily_job_scrapes ?? "",
-    notes: initialLimits.notes ?? "",
-  });
-  const [saving, setSaving] = useState(false);
-
-  const numOrNull = v => v === "" || v == null ? null : parseInt(v);
-  const fields = [
-    { key:"monthly_resumes",     label:"Monthly resumes",         unit:"resumes/mo" },
-    { key:"daily_resumes",       label:"Daily resumes",           unit:"resumes/day" },
-    { key:"monthly_ats_scores",  label:"Monthly ATS scores",      unit:"scores/mo" },
-    { key:"monthly_job_scrapes", label:"Monthly job scrapes",     unit:"scrapes/mo" },
-    { key:"daily_job_scrapes",   label:"Daily job scrapes",       unit:"scrapes/day" },
-    { key:"monthly_pdf_exports", label:"Monthly PDF exports",     unit:"exports/mo" },
-    { key:"monthly_apply_runs",  label:"Monthly apply runs",      unit:"runs/mo" },
-    { key:"monthly_token_budget",label:"Monthly token budget",    unit:"tokens" },
-  ];
-  const inp = {
-    height:36, padding:"0 12px", borderRadius:8, border:`1px solid ${theme.border}`,
-    background:theme.surface, color:theme.text, fontSize:12, outline:"none", width:"100%",
-    boxSizing:"border-box",
-  };
-  return (
-    <div style={{ position:"fixed", inset:0, zIndex:1100, display:"flex",
-                  alignItems:"center", justifyContent:"center",
-                  background:C.SCRIM }}
-      onClick={e => { if(e.target===e.currentTarget) onClose(); }}>
-      <div style={{ background:theme.surface, borderRadius:16, padding:28,
-                    maxWidth:420, width:"90%", maxHeight:"80vh", overflowY:"auto",
-                    border:`1px solid ${theme.border}` }}>
-        <div style={{ fontSize:16, fontWeight:800, marginBottom:16, color:theme.text }}>
-          Limits: {username}
-        </div>
-        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-          {fields.map(f => (
-            <div key={f.key}>
-              <div style={{ fontSize:11, fontWeight:700, color:theme.textMuted, marginBottom:4 }}>
-                {f.label} <span style={{ fontWeight:400 }}>({f.unit}, blank = unlimited)</span>
-              </div>
-              <input style={inp} type="number" min={0}
-                value={limits[f.key]} placeholder="Unlimited"
-                onChange={e => setLimits(l => ({ ...l, [f.key]: e.target.value }))}/>
-            </div>
-          ))}
-          <div>
-            <div style={{ fontSize:11, fontWeight:700, color:theme.textMuted, marginBottom:4 }}>Admin notes</div>
-            <textarea style={{ ...inp, height:72, padding:"8px 12px", resize:"vertical" }}
-              value={limits.notes} onChange={e => setLimits(l => ({ ...l, notes: e.target.value }))}/>
-          </div>
-        </div>
-        <div style={{ display:"flex", gap:8, marginTop:20 }}>
-          <button className="dbx-depth" onClick={onClose}
-            style={{ flex:1, padding:"10px 0", border:`1px solid ${theme.border}`,
-                     background:"transparent", color:theme.text, fontWeight:700, fontSize:13, cursor:"pointer" }}>
-            Cancel
-          </button>
-          <button className="dbx-depth" disabled={saving} onClick={async () => {
-            setSaving(true);
-            await onSave({
-              monthly_resumes: numOrNull(limits.monthly_resumes),
-              monthly_ats_scores: numOrNull(limits.monthly_ats_scores),
-              monthly_job_scrapes: numOrNull(limits.monthly_job_scrapes),
-              monthly_pdf_exports: numOrNull(limits.monthly_pdf_exports),
-              monthly_apply_runs: numOrNull(limits.monthly_apply_runs),
-              monthly_token_budget: numOrNull(limits.monthly_token_budget),
-              daily_resumes: numOrNull(limits.daily_resumes),
-              daily_job_scrapes: numOrNull(limits.daily_job_scrapes),
-              notes: limits.notes || null,
-            });
-            setSaving(false);
-          }}
-            style={{ flex:2, padding:"10px 0", border:"none",
-                     background:theme.accent, color:C.ON_ACCENT, fontWeight:800, fontSize:13,
-                     cursor:"pointer", opacity:saving?0.7:1 }}>
-            {saving ? "Saving…" : "Save Limits"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── UsersTab ──────────────────────────────────────────────────
-function UsersTab({ theme }) {
-  const [from, setFrom] = useState(Math.floor(Date.now()/1000) - 30*86400);
-  const [to,   setTo]   = useState(Math.floor(Date.now()/1000) + 86400);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [editLimits, setEditLimits] = useState(null);
-  const [expanded, setExpanded] = useState(null);
-  const [events, setEvents] = useState({});
-
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await api(`/api/admin/analytics/users?from=${from}&to=${to}`);
-      setUsers(data);
-    } catch(e) {}
-    setLoading(false);
-  }, [from, to]);
-
-  useEffect(() => { loadUsers(); }, [loadUsers]);
-
-  const loadEvents = async (userId) => {
-    if (events[userId]) return;
-    try {
-      const data = await api(`/api/admin/analytics/users/${userId}/events?pageSize=20`);
-      setEvents(e => ({ ...e, [userId]: data }));
-    } catch(e) {}
-  };
-
-  // A50: this flag is not a feature grant. server.js /api/generate SILENTLY replaces the user's
-  // Generate with the A+ Resume prompt while it is on — and with monetisation enabled, a user below
-  // PRO then gets a 403 ("A+ Resume requires the PRO plan") from the Generate button. So the toggle
-  // states the consequence and asks before it changes anything.
-  const toggleAplusResume = async (userId, current, username) => {
-    const next = !current;
-    if (!confirm(next
-      ? `Turn the A+ override ON for ${username}?\n\nEvery Generate this user runs will silently use the A+ Resume prompt instead. If monetisation is on and their plan is below PRO, Generate will be refused (403) until this is turned off.`
-      : `Turn the A+ override OFF for ${username}?\n\nTheir Generate goes back to the standard Generate prompt.`)) return;
-    try {
-      const d = await api(`/api/admin/analytics/users/${userId}/flags`, {
-        method: "PATCH",
-        body: JSON.stringify({ aplus_resume: next }),
-      });
-      setUsers(prev => prev.map(u => u.userId === userId ? { ...u, aplusResume: d.aplus_resume } : u));
-    } catch(e) {}
-  };
-
-  const fmtNum = n => n == null ? "—" : n >= 1e6 ? `${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `${(n/1e3).toFixed(1)}k` : String(Math.round(n));
-  const fmtUsd = n => n == null ? "—" : `$${Number(n).toFixed(4)}`;
-  const fmtPct = n => n == null ? "—" : `${(n*100).toFixed(0)}%`;
-
-  return (
-    <div style={{ padding:20, display:"flex", flexDirection:"column", gap:16 }}>
-      <DateRange from={from} to={to} onFromChange={setFrom} onToChange={setTo}/>
-
-      {loading ? <div style={{ color:theme.textMuted, fontSize:12 }}>Loading…</div> : (
-        <div style={{ background:theme.surface, border:`1px solid ${theme.border}`, borderRadius:12, overflow:"hidden" }}>
-          {/* Table header */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 60px 80px 80px 70px 70px 80px 80px",
-                        padding:"10px 16px", background:theme.surfaceHigh,
-                        fontSize:10, fontWeight:700, textTransform:"uppercase",
-                        letterSpacing:"0.06em", color:theme.textMuted }}>
-            {/* "Scrapes" removed (A50): per-user scraping ended at the pivot and the column read
-                scrape_events, which nothing has written since cleanup 5.8 — 0 for every user. */}
-            <div>User</div><div>Resumes</div>
-            <div>Tokens</div><div>Cost</div><div>Cache%</div>
-            <div>ATS Δ</div><div>Last Active</div><div>Actions</div>
-          </div>
-          {users.map(u => (
-            <div key={u.userId}>
-              <div onClick={() => { setExpanded(e => e===u.userId?null:u.userId); loadEvents(u.userId); }}
-                style={{ display:"grid", gridTemplateColumns:"1fr 60px 80px 80px 70px 70px 80px 80px",
-                         padding:"12px 16px", borderTop:`1px solid ${theme.border}`,
-                         cursor:"pointer", fontSize:12,
-                         background: expanded===u.userId ? theme.surfaceHigh : "transparent" }}>
-                <div style={{ fontWeight:700, color:theme.text }}>{u.username}</div>
-                <div style={{ color:theme.textMuted }}>{u.resumesGenerated}</div>
-                <div style={{ color:theme.textMuted }}>{fmtNum(u.totalTokens)}</div>
-                <div style={{ color:C.DANGER }}>{fmtUsd(u.totalCost)}</div>
-                <div style={{ color:theme.textMuted }}>{fmtPct(u.cacheHitRate)}</div>
-                <div style={{ color:theme.accentText }}>
-                  {u.avgAtsScoreAfter != null && u.avgAtsScoreBefore != null
-                    ? `+${(u.avgAtsScoreAfter - u.avgAtsScoreBefore).toFixed(0)}`
-                    : "—"}
-                </div>
-                <div style={{ color:theme.textMuted, fontSize:11 }}>
-                  {u.lastActiveAt ? new Date(u.lastActiveAt*1000).toLocaleDateString() : "—"}
-                </div>
-                <div onClick={e2 => { e2.stopPropagation(); setEditLimits({ userId:u.userId, username:u.username, limits:u.limits||{} }); }}>
-                  <span style={{ fontSize:11, padding:"2px 8px", borderRadius:8,
-                                 border:`1px solid ${theme.border}`, cursor:"pointer",
-                                 color:theme.text, whiteSpace:"nowrap" }}>
-                    Limits
-                  </span>
-                </div>
-              </div>
-              {/* Expanded row */}
-              {expanded === u.userId && (
-                <div style={{ padding:"12px 16px 16px", borderTop:`1px solid ${theme.border}`,
-                              background:theme.surfaceHigh }}>
-                  {/* Feature flags */}
-                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12, flexWrap:"wrap" }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:theme.textMuted }}>Feature Flags:</span>
-                    <button className="dbx-depth"
-                      onClick={() => toggleAplusResume(u.userId, u.aplusResume, u.username)}
-                      style={{
-                        fontSize:11, padding:"3px 10px", fontWeight:700, cursor:"pointer",
-                        // Amber, not green: ON is an override of what the user asked for, not a perk.
-                        border:`1px solid ${u.aplusResume ? C.WARNING : theme.border}`,
-                        background: u.aplusResume ? C.WARNING_QUIET : "transparent",
-                        color: u.aplusResume ? C.WARNING : theme.textMuted,
-                      }}>
-                      A+ override: {u.aplusResume ? "ON" : "OFF"}
-                    </button>
-                    <span style={{ fontSize:11, color: u.aplusResume ? C.WARNING : theme.textMuted }}>
-                      {u.aplusResume
-                        ? "This user's Generate is silently replaced by the A+ Resume prompt (needs PRO when monetisation is on, else Generate is refused)."
-                        : "Off — Generate runs the standard prompt. Turning it on swaps this user's Generate for A+ Resume."}
-                    </span>
-                  </div>
-                  <UserApplications userId={u.userId} theme={theme}/>
-                  <div style={{ fontSize:11, fontWeight:700, color:theme.textMuted, marginBottom:8 }}>
-                    Recent Events
-                  </div>
-                  {(events[u.userId] || []).slice(0,10).map(ev => (
-                    <div key={ev.id} style={{ display:"flex", gap:12, fontSize:11,
-                                              color:theme.textMuted, padding:"3px 0",
-                                              borderBottom:`1px solid ${theme.border}` }}>
-                      <span style={{ color:theme.text, fontWeight:600, width:140 }}>{ev.event_type}</span>
-                      <span>{ev.model?.replace("claude-","")}</span>
-                      <span>{(ev.input_tokens||0)+(ev.output_tokens||0)} tok</span>
-                      <span style={{ color:C.DANGER }}>${Number(ev.cost_usd||0).toFixed(5)}</span>
-                      <span>{new Date(ev.created_at*1000).toLocaleString()}</span>
-                    </div>
-                  ))}
-                  {!events[u.userId] && <div style={{ color:theme.textDim, fontSize:11 }}>Loading…</div>}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Limits editor modal */}
-      {editLimits && (
-        <LimitsModal
-          userId={editLimits.userId}
-          username={editLimits.username}
-          initialLimits={editLimits.limits}
-          theme={theme}
-          onSave={async (limits) => {
-            await api(`/api/admin/analytics/limits/${editLimits.userId}`, {
-              method:"PUT", body:JSON.stringify(limits),
-            });
-            setEditLimits(null);
-            loadUsers();
-          }}
-          onClose={() => setEditLimits(null)}
-        />
-      )}
-    </div>
-  );
-}
+// D83 audit #17 + D88 (39d): the per-user analytics table (UsersTab) is RETIRED — its Limits editor and the A+ override
+// live on a person's page (panels/adminPeople.jsx), and its token / cost columns are Today → Costs & quotas.
 
 // D83 audit #18: the Cache tab is RETIRED — it measured the prompt cache of draft's own model calls, and since D17
 // draft makes none (generation is the tools service's; its cache figures are in Today → Costs & quotas).
@@ -827,18 +576,13 @@ export function AdminPanel() {
     try { setDeletePreview(await api(`/api/admin/users/${id}/delete-preview`)); }
     catch (e) { alert("Cannot delete: " + e.message); }
   };
+  // D88: a delete refreshes the People list and returns to it.
+  const [peopleKey, setPeopleKey] = useState(0);
   const onUserDeleted = id => {
     setDeletePreview(null);
     setUsers(u => u.filter(x => x.id !== id));
-  };
-
-  const grantPlan = async (userId, planTier) => {
-    await api(`/api/admin/users/${userId}/plan`, {
-      method:"PATCH",
-      body:JSON.stringify({ planTier }),
-    });
-    loadUsers();
-    loadUpgradeRequests();
+    try { const qs = new URLSearchParams(window.location.search); qs.delete("u"); window.history.replaceState(null, "", `${window.location.pathname}?${qs}`); } catch { /* no history */ }
+    setPeopleKey(k => k + 1);
   };
 
   const grantUpgradeRequest = async (id) => {
@@ -979,40 +723,6 @@ export function AdminPanel() {
                 initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
                 exit={{ opacity:0, y:-6 }} transition={{ duration:0.18 }}>
 
-                {/* Create user card */}
-                <div className="rm-card" style={{ marginBottom:24, maxWidth:440 }}>
-                  <div style={{ fontWeight:700, fontSize:14, color:theme.text, marginBottom:16 }}>
-                    Create User
-                  </div>
-                  <form onSubmit={createUser} style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                    <input className="rm-input" value={newU.username}
-                      onChange={e => setNewU(u => ({ ...u, username:e.target.value }))}
-                      placeholder="Username"/>
-                    <input className="rm-input" type="password" value={newU.password}
-                      onChange={e => setNewU(u => ({ ...u, password:e.target.value }))}
-                      placeholder="Password (min 8 chars)"/>
-                    <label style={{ display:"flex", alignItems:"center", gap:8,
-                                    fontSize:13, color:theme.text, cursor:"pointer" }}>
-                      <input type="checkbox" checked={newU.isAdmin}
-                        onChange={e => setNewU(u => ({ ...u, isAdmin:e.target.checked }))}
-                        style={{ accentColor:theme.accent, width:16, height:16 }}/>
-                      Admin user
-                    </label>
-                    <div style={{ display:"flex", gap:10, alignItems:"center", marginTop:4 }}>
-                      <button type="submit" className="rm-btn rm-btn-primary rm-btn-sm">
-                        Create
-                      </button>
-                      {status && (
-                        <span style={{ fontSize:12,
-                          color:status.startsWith("✓") ? theme.success : theme.danger }}>
-                          {status}
-                        </span>
-                      )}
-                    </div>
-                  </form>
-                </div>
-
-                {/* User table */}
                 {upgradeRequests.filter(r => r.status === "pending").length > 0 && (
                   <div className="rm-card" style={{ marginBottom:24 }}>
                     <div style={{ fontWeight:700, fontSize:14, color:theme.text, marginBottom:12 }}>
@@ -1070,74 +780,42 @@ export function AdminPanel() {
                     </div>
                   </div>
                 )}
-                <div style={{ background:theme.surface, border:`1px solid ${theme.border}`,
-                              borderRadius:16, overflow:"hidden" }}>
-                  <table style={{ width:"100%", borderCollapse:"collapse" }}>
-                    <thead>
-                      <tr style={{ background:theme.surfaceHigh, borderBottom:`1px solid ${theme.border}` }}>
-                        {["Username","Role","Plan","Tools","Created","Actions"].map(h => (
-                          <th key={h} style={thStyle}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.map((u, i) => (
-                        <tr key={u.id} className="rm-table-row"
-                          style={{ borderBottom:`1px solid ${theme.border}` }}>
-                          <td style={{ padding:"12px 14px", fontSize:13,
-                                       color:theme.text, fontWeight:600 }}>
-                            {u.username}
-                          </td>
-                          <td style={{ padding:"12px 14px" }}>
-                            <span className="rm-badge" style={{
-                              background: u.is_admin ? C.VIOLET_QUIET : theme.surfaceHigh,
-                              color: u.is_admin ? C.VIOLET : theme.textMuted,
-                              border:`1px solid ${u.is_admin ? `${C.VIOLET}33` : theme.border}`,
-                            }}>
-                              {u.is_admin ? "Admin" : "User"}
-                            </span>
-                          </td>
-                          <td style={{ padding:"12px 14px", fontSize:12, color:theme.textMuted }}>
-                            {u.plan_tier || "BASIC"}
-                          </td>
-                          <td style={{ padding:"12px 14px", fontSize:12, color:theme.textMuted }}>
-                            {(u.plan_tier || "BASIC") === "PRO"
-                              ? "Generate + A+ Resume"
-                              : (u.plan_tier || "BASIC") === "PLUS"
-                                ? "Generate"
-                                : "Baseline console"}
-                          </td>
-                          <td style={{ padding:"12px 14px", fontSize:11, color:theme.textDim }}>
-                            {new Date(u.created_at * 1000).toLocaleDateString()}
-                          </td>
-                          <td style={{ padding:"12px 14px" }}>
-                            <div style={{ display:"flex", gap:6 }}>
-                              {!u.is_admin && !isSystemAccount(u) && (
-                                <select value={u.plan_tier || "BASIC"} onChange={e => grantPlan(u.id, e.target.value)}
-                                  style={{ background:theme.surfaceHigh, color:theme.text,
-                                           border:`1px solid ${theme.border}`, borderRadius:6,
-                                           fontSize:11, padding:"4px 6px" }}>
-                                  <option value="BASIC">Basic</option>
-                                  <option value="PLUS">Plus</option>
-                                  <option value="PRO">Pro</option>
-                                </select>
-                              )}
-                              {!u.is_admin && !isSystemAccount(u) && (
-                                <button className="rm-btn rm-btn-ghost rm-btn-sm"
-                                  style={{ color:theme.danger, borderColor:theme.danger+"44" }}
-                                  onClick={() => deleteUser(u.id)}>
-                                  Delete
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                {/* ⭐ D88 P2 + P4: the list, and a person's page made of modules (panels/adminPeople.jsx). */}
+                <PeopleUsers theme={theme} onDelete={deleteUser} reloadKey={peopleKey}/>
+                <div style={{ marginTop:24 }}/>
+                {/* Add an account — a utility, below the list */}
+                <div className="rm-card" style={{ marginBottom:24, maxWidth:440 }}>
+                  <div style={{ fontWeight:700, fontSize:14, color:theme.text, marginBottom:16 }}>
+                    Create User
+                  </div>
+                  <form onSubmit={createUser} style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                    <input className="rm-input" value={newU.username}
+                      onChange={e => setNewU(u => ({ ...u, username:e.target.value }))}
+                      placeholder="Username"/>
+                    <input className="rm-input" type="password" value={newU.password}
+                      onChange={e => setNewU(u => ({ ...u, password:e.target.value }))}
+                      placeholder="Password (min 8 chars)"/>
+                    <label style={{ display:"flex", alignItems:"center", gap:8,
+                                    fontSize:13, color:theme.text, cursor:"pointer" }}>
+                      <input type="checkbox" checked={newU.isAdmin}
+                        onChange={e => setNewU(u => ({ ...u, isAdmin:e.target.checked }))}
+                        style={{ accentColor:theme.accent, width:16, height:16 }}/>
+                      Admin user
+                    </label>
+                    <div style={{ display:"flex", gap:10, alignItems:"center", marginTop:4 }}>
+                      <button type="submit" className="rm-btn rm-btn-primary rm-btn-sm">
+                        Create
+                      </button>
+                      {status && (
+                        <span style={{ fontSize:12,
+                          color:status.startsWith("✓") ? theme.success : theme.danger }}>
+                          {status}
+                        </span>
+                      )}
+                    </div>
+                  </form>
                 </div>
-                {/* D83 audit #17 merged here: per-user activity and Limits, under the accounts. */}
-                <div style={{ marginTop:24 }}><UsersTab theme={theme}/></div>
+
               </motion.div>
             )}
 

@@ -70,7 +70,7 @@ export function Step({ n, state, title, children }) {
   );
 }
 
-export function Dialog({ title, children, onCancel, confirmLabel, onConfirm, busy }) {
+export function Dialog({ title, children, onCancel, confirmLabel, onConfirm, busy, disabled = false }) {
   useEffect(() => {
     const k = (e) => { if (e.key === "Escape") onCancel(); };
     window.addEventListener("keydown", k);
@@ -84,7 +84,7 @@ export function Dialog({ title, children, onCancel, confirmLabel, onConfirm, bus
         <div style={{ fontSize: 12.5, color: C.INK_MUTED }}>{children}</div>
         <div style={{ ...row, marginTop: 14 }}>
           <DepthButton onClick={onCancel}>Go back</DepthButton>
-          <DepthButton primary disabled={busy} onClick={onConfirm} autoFocus>{busy ? "Working…" : confirmLabel}</DepthButton>
+          <DepthButton primary disabled={busy || disabled} onClick={onConfirm} autoFocus>{busy ? "Working…" : confirmLabel}</DepthButton>
         </div>
       </div>
     </div>

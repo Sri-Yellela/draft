@@ -213,6 +213,8 @@ export function verifyAccessToken(db, token, { resource }) {
     WHERE t.token_hash = ? AND t.kind = 'access'`).get(hashSecret(token));
   if (!row || row.revoked_at || row.conn_revoked || row.expires_at <= now()) return null;
   if (!sameResource(row.resource, resource)) return null;
+  // ⭐ D88 (39d): a suspended account's connected apps stop working with it.
+  try { if (db.prepare("SELECT status FROM users WHERE id = ?").get(row.user_id)?.status === "suspended") return null; } catch { /* no status column */ }
   db.prepare("UPDATE oauth_connections SET last_used_at = unixepoch() WHERE id = ?").run(row.connection_id);
   return { userId: row.user_id, connectionId: row.connection_id, clientId: row.client_id, host: row.host, scopes: row.scope.split(" ") };
 }

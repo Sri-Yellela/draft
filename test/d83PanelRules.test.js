@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { at } from "../test-support/sourceAnchors.js";
 
-const SOURCES = ["client/src/panels/adminOps.jsx", "client/src/panels/AdminPanel.jsx"].map(p => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n"));
+const SOURCES = ["client/src/panels/adminOps.jsx", "client/src/panels/AdminPanel.jsx", "client/src/panels/adminPeople.jsx"].map(p => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n"));
 
 /** The body of `export function Name(` (or `function Name(`) up to the next top-level function. */
 export function panelBody(name) {
@@ -34,6 +34,8 @@ export const REBUILT = {
   KillSwitchSection: ["KillSwitchSection"],
   BoardFitSection: ["BoardFitSection"],
   JobDataSection: ["JobDataSection"],
+  PeopleList: ["PeopleList"],
+  PersonPage: ["PersonPage", "ActionDialog"],
 };
 
 for (const [name, parts] of Object.entries(REBUILT)) {

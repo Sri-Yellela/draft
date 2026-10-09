@@ -4288,4 +4288,38 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D88 P2 · user management: an account's status (suspend with a reason), per-user entitlement
+      // overrides with a reason and an expiry (the resolver's second override source), private notes, and
+      // the reason behind every admin write. Additive only.
+      id: "155_user_management",
+      sql: `
+        ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'active';
+        ALTER TABLE users ADD COLUMN suspended_reason TEXT;
+        ALTER TABLE users ADD COLUMN suspended_at INTEGER;
+        ALTER TABLE admin_audit_log ADD COLUMN reason TEXT;
+        CREATE TABLE IF NOT EXISTS user_entitlement_overrides (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          feature_key TEXT NOT NULL,
+          value_json TEXT NOT NULL,
+          reason TEXT NOT NULL,
+          set_by INTEGER,
+          set_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          expires_at INTEGER,
+          revoked_at INTEGER,
+          revoked_by INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_user_entitlement_overrides_live
+          ON user_entitlement_overrides(user_id, feature_key, revoked_at);
+        CREATE TABLE IF NOT EXISTS user_notes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          body TEXT NOT NULL,
+          author_id INTEGER,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_user_notes_user ON user_notes(user_id, created_at);
+      `,
+    },
   ];

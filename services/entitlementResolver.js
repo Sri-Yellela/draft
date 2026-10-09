@@ -9,7 +9,8 @@
 //   override user_limits.daily_resumes / monthly_resumes (Admin → Users → Limits), users.aplus_resume
 //   plan     users.plan_tier, only while monetisation is on (requireToolEntitlement's rule)
 //   system   shared/entitlements.js (the env variables the old code read, with the same fallbacks)
-// D88 P2 adds `user_entitlement_overrides` as a second override source; nothing here assumes it yet.
+// ⭐ D88 P2 (39d): `user_entitlement_overrides` (migration 155) is the FIRST override source — an admin's per-user
+// value with a reason and an expiry (Admin → People → a user → Feature access); the legacy columns are read after it.
 import { FEATURES } from "../shared/entitlements.js";
 import { getSetting, settingTruthy, fullAutoDisabled } from "./appSettings.js";
 import { monetisationEnabledFromEnv } from "../shared/monetisation.js";
@@ -46,6 +47,16 @@ const OVERRIDE = {
   },
 };
 
+/** The live per-user override for one feature (not revoked, not expired), or null. A database without migration 155 has none. */
+export function liveOverride(db, userId, featureKey) {
+  try {
+    const r = db.prepare(`SELECT id, value_json, reason, set_by, set_at, expires_at FROM user_entitlement_overrides
+      WHERE user_id = ? AND feature_key = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > unixepoch())
+      ORDER BY id DESC LIMIT 1`).get(userId, featureKey);
+    return r ? { ...r, value: JSON.parse(r.value_json) } : null;
+  } catch { return null; }
+}
+
 /**
  * @param ctx { planTier?, monetisation?, fullAutoProven? } — planTier is read from users when absent;
  *   monetisation from the env (MONETISATION_ENABLED) when absent.
@@ -65,6 +76,11 @@ export function resolveEntitlement(db, userId, feature, { env = process.env, ctx
   const g = GLOBAL[feature]?.(db, c, env);
   if (g !== undefined) return { source: "global", detail: null, ...g };
   if (!f.hard && userId != null) {
+    const set = liveOverride(db, userId, feature);
+    if (set) {
+      const until = set.expires_at ? `, until ${new Date(set.expires_at * 1000).toISOString().slice(0, 10)}` : "";
+      return clamp({ source: "override", value: set.value, detail: `override by an admin${until} — ${set.reason}` });
+    }
     const o = OVERRIDE[feature]?.(db, userId);
     if (o !== undefined) return clamp({ source: "override", detail: null, ...o });
   }

@@ -121,13 +121,16 @@ test("A50 #1: 'A+ Resume' says it SWAPS the user's Generate, and asks first", ()
   // The copy is only true while the server still swaps — if the swap goes, this fails and says so.
   assert.match(read("server.js"), /if \(userFlags\?\.aplus_resume\) tool = "a_plus_resume";/,
     "the silent swap in /api/generate is gone — update the A+ override copy in AdminPanel.jsx");
-  const panel = code(read("client/src/panels/AdminPanel.jsx"));
-  const fnStart = at(panel, "const toggleAplusResume");
-  const fn = panel.slice(fnStart, at(panel, "const fmtNum", fnStart));
-  assert.ok(fn.indexOf("confirm(") > -1 && fn.indexOf("confirm(") < fn.indexOf("api("),
-    "the A+ toggle writes before (or without) asking");
-  assert.match(fn, /\n\s*if \(!confirm\(next/, "the confirm must GATE the write (return when declined)");
-  assert.match(fn, /silently use the A\+ Resume prompt/);
+  // D88 (39d): the A+ override is the a_plus_default row of a person's Feature access (panels/adminPeople.jsx).
+  const panel = code(read("client/src/panels/adminPeople.jsx"));
+  const fnStart = at(panel, "const setOverride = (f) => setAction({");
+  const fn = panel.slice(fnStart, at(panel, "const clearOverride", fnStart));
+  // the write is the action's `run`, which only ActionDialog's confirm calls — and only once a reason is given
+  assert.match(fn, /run: \(v\) => post\("\/overrides", \{ feature: f\.key, reason: v\.reason,/);
+  const dialog = panel.slice(at(panel, "function ActionDialog("), at(panel, "export function PeopleList("));
+  assert.match(dialog, /if \(!ready\) return;/, "the confirm must GATE the write");
+  assert.ok(at(dialog, "if (!ready) return;") < at(dialog, "await action.run("));
+  assert.match(fn, /f\.key === "a_plus_default" && <> When on, this user's Generate is silently replaced by the A\+ Resume prompt/);
   assert.match(panel, /silently replaced by the A\+ Resume prompt/);
 });
 
@@ -245,7 +248,7 @@ test("A50 #2: every mutating control in the Operations tab asks first and states
   // D83's map (39d): Operations is split across the groups; Today's glance still opens first.
   assert.match(panel, /\{at\("today", "glance"\) && <GlanceTab theme=\{theme\}\/>\}/);
   assert.match(fs.readFileSync("client/src/panels/adminMap.js", "utf8"), /\{ id: "today", label: "Today", question: "What needs me\?", sections: \[\s*\["glance", "At a glance"\]/);
-  assert.match(panel, /<UserApplications userId=\{u\.userId\}/);
+  assert.match(read("client/src/panels/adminPeople.jsx"), /<UserApplications userId=\{id\} theme=\{theme\}\/>/);   // D88: on a person's page
 });
 
 test("A50 #2: a board-fit DRY RUN with force plans the forced pass (it used to drop `force`)", async () => {
