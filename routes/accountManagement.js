@@ -23,6 +23,7 @@ export function createAccountManagementRouter({
   db, requireAuth, store, dataDir, multer,
   hashPassword, verifyPassword, emailConfigured, sendVerificationCodeEmail, codePepper,
   revokeBrowserAuthContexts, clearSessionCookie, findLoginUser,
+  authContextAuthAt = () => null, stampAuthContextAuthAt = () => {},
 }) {
   const router = Router();
   const avatarDir = path.join(dataDir, "avatars");
@@ -49,7 +50,19 @@ export function createAccountManagementRouter({
       fs.promises.unlink(abs).catch(() => {});
     }
   };
-  const recentAuth = (req) => !!req.session?.authAt && Date.now() - req.session.authAt <= RECENT_AUTH_MS;
+  // ⛔ Sessions A′ (10-09): the RECENT sign-in is the ACTING identity's. A request carrying a tab token acts as
+  // that token's user, and the browser's cookie may belong to another account (two tabs, two sign-ins) — so a
+  // token's own sign-in time is read (auth_contexts.auth_at), never the cookie session's. A cookie-only
+  // request (no tab token) is its session's user, and reads the session's stamp as before.
+  // The acting identity's sign-in record — what requireRecentAuth reads, and which session is "this browser".
+  const acting = (req) => {
+    const info = req.authContextToken ? authContextAuthAt(req.authContextToken) : null;
+    return req.authContextToken
+      ? { authAt: info?.authAt ?? null, sid: info?.sid ?? null }
+      : { authAt: req.session?.authAt ?? null, sid: req.sessionID ?? null };
+  };
+  const recentAuth = (req) => { const at = acting(req).authAt; return !!at && Date.now() - at <= RECENT_AUTH_MS; };
+  const sessionUserId = (req) => req.session?.passport?.user ?? null;
   const mergeCandidate = (req) => {
     const c = req.session?.mergeCandidate;
     if (!c || c.intoId !== req.user.id || Date.now() - c.at > MERGE_PROOF_MS) return null;
@@ -72,7 +85,12 @@ export function createAccountManagementRouter({
     const u = db.prepare("SELECT password_hash, password_set FROM users WHERE id = ?").get(req.user.id);
     if (!u?.password_set) throw new AccountError(400, "no_password", "This account has no password. Sign in again with Google instead.");
     if (!verifyPassword(String(req.body?.password || ""), u.password_hash)) throw new AccountError(403, "wrong_password", "That password is not right.");
-    req.session.authAt = Date.now();
+    const now = Date.now();
+    // Sessions A′: stamp the identity that re-authenticated — its tab token — and the cookie session ONLY
+    // when the session is the same account. Otherwise confirming the admin's password would hand the OTHER
+    // tab's account a recent sign-in it never made.
+    if (req.authContextToken) stampAuthContextAuthAt(req.authContextToken, now);
+    if (!req.authContextToken || sessionUserId(req) === req.user.id) req.session.authAt = now;
     res.json({ ok: true });
   }));
 
@@ -123,19 +141,19 @@ export function createAccountManagementRouter({
   router.get("/api/account/sessions", requireAuth, h((req, res) => {
     // Rows older than the cookie's 7-day rolling life are sessions that already expired.
     db.prepare("DELETE FROM user_sessions WHERE user_id = ? AND last_seen_at < unixepoch() - 7 * 86400").run(req.user.id);
-    res.json({ sessions: listSessions(db, req.user.id, req.sessionID), apps: listAppTokens(db, req.user.id) });
+    res.json({ sessions: listSessions(db, req.user.id, acting(req).sid), apps: listAppTokens(db, req.user.id) });
   }));
 
   router.delete("/api/account/sessions/:id", requireAuth, h(async (req, res) => {
     const sids = sidsToRevoke(db, req.user.id, { publicId: String(req.params.id) });
     if (!sids.length) throw new AccountError(404, "not_found", "That session was not found.");
-    if (sids.includes(req.sessionID)) throw new AccountError(400, "current_session", "That is this browser — use Sign out instead.");
+    if (sids.includes(acting(req).sid)) throw new AccountError(400, "current_session", "That is this browser — use Sign out instead.");
     await destroySessions(sids);
     res.json({ ok: true });
   }));
 
   router.post("/api/account/sessions/revoke-others", requireAuth, h(async (req, res) => {
-    const sids = sidsToRevoke(db, req.user.id, { exceptSid: req.sessionID });
+    const sids = sidsToRevoke(db, req.user.id, { exceptSid: acting(req).sid });
     await destroySessions(sids);
     res.json({ ok: true, signedOut: sids.length });
   }));
@@ -148,13 +166,16 @@ export function createAccountManagementRouter({
   // ── password ───────────────────────────────────────────────────────────────────────────────
   router.post("/api/account/password", requireAuth, h(async (req, res) => {
     changePassword(db, req.user.id, { current: req.body?.current, next: req.body?.next },
-      { verify: verifyPassword, hash: hashPassword, session: req.session });
+      { verify: verifyPassword, hash: hashPassword, session: acting(req) });
     // A new password signs out everywhere else — the reason to change one is usually that someone
     // else might have the old one. This browser stays signed in, freshly authenticated.
-    await destroySessions(sidsToRevoke(db, req.user.id, { exceptSid: req.sessionID }));
+    // Sessions A′: "this browser" is the ACTING tab's session (its token's), which may not be the cookie's.
+    const keep = acting(req).sid;
+    await destroySessions(sidsToRevoke(db, req.user.id, { exceptSid: keep }));
     db.prepare("UPDATE auth_contexts SET revoked_at = unixepoch() WHERE user_id = ? AND revoked_at IS NULL AND (session_sid IS NULL OR session_sid != ?)")
-      .run(req.user.id, req.sessionID || "");
-    req.session.authAt = Date.now();
+      .run(req.user.id, keep || "");
+    if (req.authContextToken) stampAuthContextAuthAt(req.authContextToken);
+    if (!req.authContextToken || sessionUserId(req) === req.user.id) req.session.authAt = Date.now();
     res.json({ ok: true, account: accountSummary(db, req.user.id) });
   }));
 
@@ -179,7 +200,7 @@ export function createAccountManagementRouter({
 
   // ── sign-in methods (linking goes through /auth/:provider?mode=link) ───────────────────────
   router.delete("/api/account/sign-in/:provider", requireAuth, h((req, res) => {
-    requireRecentAuth(req.session);
+    requireRecentAuth(acting(req));
     unlinkProvider(db, req.user.id, String(req.params.provider));
     res.json({ ok: true, account: accountSummary(db, req.user.id) });
   }));
@@ -228,7 +249,7 @@ export function createAccountManagementRouter({
 
   // ── delete the account ─────────────────────────────────────────────────────────────────────
   router.post("/api/account/delete", requireAuth, h(async (req, res) => {
-    requireRecentAuth(req.session);
+    requireRecentAuth(acting(req));
     const me = db.prepare("SELECT username FROM users WHERE id = ?").get(req.user.id);
     if (String(req.body?.confirm || "").trim() !== me?.username) {
       throw new AccountError(400, "confirm_required", `Type your username (${me?.username}) to confirm.`);
@@ -238,6 +259,8 @@ export function createAccountManagementRouter({
     removeFiles(files);
     await destroySessions(sids.filter(s => s !== currentSid));
     console.log(`[account] user ${req.user.id} deleted their account`);
+    // Sessions A′: deleted from a tab whose cookie belongs to ANOTHER account — that account stays signed in.
+    if (req.authContextToken && sessionUserId(req) !== req.user.id) return res.json({ ok: true });
     req.logout(() => req.session?.destroy?.(() => { clearSessionCookie(res); res.json({ ok: true }); }));
   }));
 

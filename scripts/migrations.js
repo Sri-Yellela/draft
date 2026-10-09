@@ -4247,4 +4247,15 @@ export const MIGRATIONS = [
         ALTER TABLE users ADD COLUMN byom_enabled INTEGER NOT NULL DEFAULT 0;
       `,
     },
+    {
+      // ⛔ Sessions A′ (owner, 10-09): THE STEP-UP CHECK READS THE IDENTITY THAT IS ACTING. A tab's token and the
+      // browser's cookie can belong to two different accounts (two tabs, two sign-ins); the recent-sign-in check
+      // for sensitive account changes read the COOKIE session's authAt while acting as the TOKEN's user. Each
+      // auth context now carries its own sign-in time: set when a browser sign-in issues it, refreshed by
+      // POST /api/account/reauth, NULL for session-less tokens (the extension, the phone).
+      id: "153_auth_context_auth_at",
+      sql: `
+        ALTER TABLE auth_contexts ADD COLUMN auth_at INTEGER;
+      `,
+    },
   ];
