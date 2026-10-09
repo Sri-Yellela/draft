@@ -31,6 +31,8 @@ import { draftSlots, slotsExhausted, recordGenerationSlot } from "./services/dra
 import { GENERATION_EXPECT_SECONDS, userSafeGeneration, userCostView, userSafeResumeRow } from "./services/costVisibility.js";
 import { isSuspended, UserAdminError } from "./services/userAdmin.js";
 import { createAdminPeopleRouter } from "./routes/adminPeople.js";
+import { createSupportRouters } from "./routes/tickets.js";
+import { purgeSolvedTickets } from "./services/tickets.js";
 import { storeGeneratedResume, refundGeneration, ResumeStoreError, STORE_FAILED_SENTENCE, listGeneratedResumes,
          deleteGeneratedResume, sweepExpiredResumes, resumeRetentionDays } from "./services/generatedResumes.js";
 import { markPending } from "./services/applicationRecords.js";
@@ -100,7 +102,7 @@ import { resolveSponsorshipNeed } from "./services/applyAutomation.js";
 import { readAnswerStore, effectiveCustomAnswers } from "./services/customAnswers.js";
 import { hashPassword, verifyPassword, validatePassword } from "./services/authSecurity.js";
 import { createPasswordReset, consumePasswordReset, findUserForPasswordReset } from "./services/passwordResetService.js";
-import { sendPasswordResetEmail, sendVerificationCodeEmail, emailConfigured } from "./services/emailService.js";
+import { sendPasswordResetEmail, sendVerificationCodeEmail, emailConfigured, sendEmail } from "./services/emailService.js";
 import { EncryptedSessionStore } from "./services/encryptedSessionStore.js";
 import { rejectCrossSiteWrites } from "./services/originGuard.js";
 import { AccountError, forgetSessions, recordSession, sidsToRevoke } from "./services/accountService.js";
@@ -206,7 +208,7 @@ import { fetchDescription, persistDetailOutcome, hasDetailFetcher } from "./serv
 // GET /api/jobs validates against it (rejectInvalidFilterValues below) so an unknown value is a
 // 400 rather than a board that silently matches nothing. See shared/jobFilterOptions.js.
 import { FILTER_DIMENSIONS, invalidEntries, ageDaysMap } from "./shared/jobFilterOptions.js";
-import { BRAND } from "./shared/brand.js";
+import { BRAND, SUPPORT_EMAIL } from "./shared/brand.js";
 import { isExtensionRequest, mayActAsAdmin } from "./shared/authPolicy.js";
 import { validateResumeClaims, checkCandidateConsistency } from "./services/kb/failsafe.js";
 // The generation-time assertion (assertResumeClaims) runs in the tools service since A4; draft keeps the
@@ -4743,6 +4745,40 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_user_notes_user ON user_notes(user_id, created_at);
       `,
     },
+    {
+      // ⭐ D88 P3 · support tickets: a user's request and its thread. Deleted with the account (cascade) and 24
+      // months after it is solved (services/tickets.js). An internal note is a message with internal = 1.
+      id: "156_support_tickets",
+      sql: `
+        CREATE TABLE IF NOT EXISTS tickets (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          category TEXT NOT NULL,
+          subject TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'open',
+          priority TEXT NOT NULL DEFAULT 'normal',
+          assignee INTEGER,
+          source TEXT NOT NULL DEFAULT 'app',
+          context_json TEXT,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          due_at INTEGER,
+          solved_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_tickets_queue ON tickets(status, due_at);
+        CREATE INDEX IF NOT EXISTS idx_tickets_user ON tickets(user_id, updated_at);
+        CREATE TABLE IF NOT EXISTS ticket_messages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          ticket_id INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+          author_type TEXT NOT NULL,
+          author_id INTEGER,
+          body TEXT NOT NULL,
+          internal INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket ON ticket_messages(ticket_id, id);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -5120,6 +5156,8 @@ function runFormReportPurge(trigger) {
   } catch (e) { console.warn(`[form-reports] ${trigger}: ${e.message}`); }
 }
 setTimeout(() => runFormReportPurge("boot"), 60_000).unref?.();
+// D88 P3: a ticket solved more than 24 months ago is deleted with its thread (services/tickets.js).
+setInterval(() => { try { const n = purgeSolvedTickets(db); if (n) console.log(`[tickets] purged ${n} solved ticket(s) past 24 months`); } catch (e) { console.warn("[tickets] purge:", e.message); } }, 24 * 3600_000).unref?.();
 setInterval(() => runFormReportPurge("interval"), 6 * 3600_000).unref?.();
 
 // ⭐ D57 · A CONVENIENCE COPY EXPIRES. A generated résumé not tied to a Draft or an application is kept
@@ -7847,6 +7885,13 @@ async function adminSendResetLink(userId, req) {
     return { sent: false, why: "Email is not configured on this server, or the send failed — nothing was sent." };
   }
   return { sent: true, why: null };
+}
+// ⭐ D88 P3 · support tickets — the user's own (Settings → Help) and the admin queue (Admin → People → Support).
+{
+  const support = createSupportRouters({ db, requireAuth, requireAdmin, sendEmail, supportEmail: SUPPORT_EMAIL,
+    appUrl: (req) => (process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "") });
+  app.use("/api/support", requireAuth, support.user);
+  app.use("/api/admin/tickets", requireAdmin, support.admin);
 }
 app.use("/api/admin/people", requireAdmin, createAdminPeopleRouter({
   db, requireAdmin, signOutEverywhere: (id, why) => revokeAllUserSessions(id, why), sendResetLink: adminSendResetLink,

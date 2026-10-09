@@ -19,6 +19,7 @@ export const ADMIN_GROUPS = Object.freeze([
   ] },
   { id: "people", label: "People", question: "Who is using it?", sections: [
     ["users", "Users"],                 // #15a + #17
+    ["support", "Support"],             // D88 P3 — tickets
     ["messages", "Messages"],           // #19 — was under every tab
   ] },
   { id: "data", label: "Data", question: "What is stored?", sections: [

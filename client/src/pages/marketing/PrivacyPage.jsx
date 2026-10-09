@@ -67,6 +67,10 @@ import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL, SUPPORT_EMAI
 // new-address code) and "no marketing emails without explicit opt-in" (there is no marketing email at
 // all); Resend (outbound) and Cloudflare Email Routing (inbound contact mail) were recipients the policy
 // never named; support@ is published beside privacy@.
+// 2026-10-09 (later, 39d — the same date): D88 support requests and account administration disclosed — what a
+// request from Settings → Help keeps (the messages, the page and the app version; never a form answer), that it is
+// deleted with the account or 24 months after it is solved, and that an admin's changes to an account are kept
+// with the reason given. Nothing new is collected from anyone who does not write to support.
 const EFFECTIVE_DATE = 'October 9, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
@@ -552,6 +556,14 @@ export function PrivacyPage() {
           <P>
             We retain your data for as long as your account is active. If you delete your
             account, all associated data is permanently deleted within 30 days.
+          </P>
+          {/* D88 P3 (39d): services/tickets.js — retention RETENTION_SECONDS, the cascade in migration 156. */}
+          <P>
+            If you contact support from Settings → Help, we keep your request and the replies, with the page you
+            were on and the app's version — never your profile or form answers. A request is deleted with your
+            account, or 24 months after it is solved. Replies come by email from support@jobsviadraft.com.
+            When we change something on your account for you (your allowance, your plan, a suspension), we keep
+            a record of the change and why it was made.
           </P>
           {/* D53 (10-07): the Draft House bin — services/draftBin.js, purgeSweep scheduled in server.js. */}
           <P>

@@ -11,7 +11,7 @@ import { GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, Notices
          ToolsServiceSection } from "./adminOps.jsx";
 import { ADMIN_GROUPS, readAdminPlace, writeAdminPlace } from "./adminMap.js";
 import { EnrichmentTab } from "./adminEnrichment.jsx";
-import { PeopleUsers } from "./adminPeople.jsx";
+import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
 
@@ -551,6 +551,8 @@ export function AdminPanel() {
   const go = (g, s) => { const p = writeAdminPlace(g, s); setPlace(p);
     try { window.history.replaceState(null, "", `${window.location.pathname}?g=${p.g}&s=${p.s}`); } catch { /* no history */ } };
   const at = (g, s) => place.g === g && place.s === s;
+  const openPerson = (id) => { setPlace(writeAdminPlace("people", "users"));
+    try { window.history.replaceState(null, "", `${window.location.pathname}?g=people&s=users&u=${id}`); } catch { /* no history */ } };
   const group = ADMIN_GROUPS.find(x => x.id === place.g) || ADMIN_GROUPS[0];
 
   useEffect(() => { loadUsers(); loadUpgradeRequests(); loadProfileRequests(); }, []);
@@ -698,6 +700,8 @@ export function AdminPanel() {
       {at("board", "enrichment") && <EnrichmentTab/>}
 
       {/* People — who is using it? */}
+      {/* D88 P3: the support queue; a ticket links to the person's page. */}
+      {at("people", "support") && <SupportQueue theme={theme} onOpenPerson={openPerson}/>}
       {at("people", "messages") && <ContactMessagesSection theme={theme}/>}
 
       {/* Data — what is stored? */}
