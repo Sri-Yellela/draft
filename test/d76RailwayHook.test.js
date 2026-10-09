@@ -126,7 +126,8 @@ test("⛔ D76: a Deployment.failed event is the Admin card's RED, and the card r
   } finally { h.close(); }
   const card = fs.readFileSync("client/src/panels/adminOps.jsx", "utf8");
   assert.match(card, /isAlarm\(e\) \? C\.DANGER/, "the card colours an alarm with the danger token, from the shared rule");
-  assert.match(card, /<DeploymentsSection theme=\{theme\}\/>/, "and the Ops tab shows the card");
+  assert.match(fs.readFileSync("client/src/panels/AdminPanel.jsx", "utf8"), /\{at\("today", "deploys"\) && <><DeploySection theme=\{theme\}\/><DeploymentsSection theme=\{theme\}\/><\/>\}/,
+    "and Today → Deployments shows the card (D83's map)");
 });
 
 test("D76: Railway's webhook event names (deployed, redeployed, oom_killed …) are kept; oom_killed is an alarm", () => {

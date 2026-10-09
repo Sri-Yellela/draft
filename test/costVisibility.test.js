@@ -108,8 +108,8 @@ test("cost (e): Admin → Costs & quotas is admin-only and shows the figures, th
   assert.match(tab, /Note \(retry reason, failure\)/);
   assert.match(tab, /data-funding-alert/);
   const admin = lf("client/src/panels/AdminPanel.jsx");
-  assert.match(admin, /\{ id:"costs",\s+label:"Costs & quotas" \}/);
-  assert.match(admin, /\{topTab === "costs" && <CostsTab theme=\{theme\}\/>\}/);
+  assert.match(lf("client/src/panels/adminMap.js"), /\["costs", "Costs & quotas"\]/);
+  assert.match(admin, /\{at\("today", "costs"\) && <><CostsTab theme=\{theme\}\/>/);
 });
 
 // ── (f) the allowance still works ───────────────────────────────────────────────────────────────

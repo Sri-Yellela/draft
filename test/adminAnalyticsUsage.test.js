@@ -220,5 +220,6 @@ test("admin usage panel includes model-call token ledger", () => {
   assert.match(panel, /Cost by Generation Action/);
   assert.match(panel, /Cache Read/);
   assert.match(panel, /Cache Create/);
-  assert.match(panel, /Partial cache calls/);
+  // D83 audit #18 (39d): the Cache tab is RETIRED — it measured draft's own model calls, and D17 removed them.
+  assert.doesNotMatch(panel, /function CacheTab|Partial cache calls/);
 });

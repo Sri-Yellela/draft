@@ -322,5 +322,5 @@ test("the harvest is mounted admin-only and the admin panel carries it", () => {
   assert.match(server, /app\.use\("\/api\/admin\/slug-harvest", requireAdmin, createSlugHarvestRouter\(db, requireAdmin[,)]/);
   const ui = read("client/src/panels/adminOps.jsx");
   assert.match(ui, /export function SlugHarvestSection/);
-  assert.match(ui, /<SlugHarvestSection theme=\{theme\}\/>/);
+  assert.match(read("client/src/panels/AdminPanel.jsx"), /\{at\("board", "harvest"\) && <SlugHarvestSection theme=\{theme\}\/>\}/);   // D83's map
 });

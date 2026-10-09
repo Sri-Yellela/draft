@@ -241,8 +241,9 @@ test("A50 #2: every mutating control in the Operations tab asks first and states
     assert.ok(ops.includes(route), `${route} has no UI`);
   }
   const panel = read("client/src/panels/AdminPanel.jsx");
-  assert.match(panel, /topTab === "ops" && <OpsTab/);
-  assert.match(panel, /topTab === "glance" && <GlanceTab/);
+  // D83's map (39d): Operations is split across the groups; Today's glance still opens first.
+  assert.match(panel, /\{at\("today", "glance"\) && <GlanceTab theme=\{theme\}\/>\}/);
+  assert.match(fs.readFileSync("client/src/panels/adminMap.js", "utf8"), /\{ id: "today", label: "Today", question: "What needs me\?", sections: \[\s*\["glance", "At a glance"\]/);
   assert.match(panel, /<UserApplications userId=\{u\.userId\}/);
 });
 
