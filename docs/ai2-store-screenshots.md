@@ -14,7 +14,7 @@ it lands.
 | `docs/store-screenshots/2-popup.png` | 1280×800 | 2 (truecolour, no alpha) | 24 | 48,175 |
 | `docs/store-screenshots/3-options.png` | 1280×800 | 2 (truecolour, no alpha) | 24 | 58,645 |
 
-✅ **Regenerated 2026-10-09 for the v1.5.0 release** (after D63 redesigned the popup, badge and overlay; ALL PASS, synthetic candidate). ⚠ The overlay's small buttons (`.rm-btn`, radius 11 on a ~26px control) read as capsules — a D60 finding, logged, not changed mid-release.
+✅ **Regenerated 2026-10-09 for v1.5.1** (ALL PASS, synthetic candidate) — the overlay's small buttons and the popup's compact links are now rounded rectangles (radius 8 on 28px; they were 11 and read as capsules, a D60 finding). Before that, regenerated the same day for v1.5.0, after D63 redesigned the popup, badge and overlay.
 
 ⚠ **Regenerated 2026-09-26 for P4.** The byte counts above are the post-rebrand ones; the shots
 taken on 2026-08-27 were 47,052 / 30,177 / 31,109 and showed the old brand in frame. ⛔ Do not read

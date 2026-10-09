@@ -1,4 +1,9 @@
-# Chrome Web Store listing — draft v1.5.0
+# Chrome Web Store listing — draft v1.5.1
+
+> **v1.5.1 (2026-10-09) is v1.5.0 plus one visual fix (D60):** three small controls — the review overlay's buttons
+> and edit field, and the popup's compact links — had corners so round they read as capsules; they are now
+> rounded rectangles. No permission, data use or behaviour changed, so every field below stands as written for
+> v1.5.0. **If v1.5.0 was never uploaded, upload v1.5.1 in its place;** if it was, v1.5.1 is the update.
 
 Copy for the Web Store developer dashboard, **written fresh for v1.5.0 on 2026-10-07** (release
 finalisation, after D60–D69). Every justification below was written against the actual code and cites
@@ -7,7 +12,7 @@ observable behaviour. ⛔ **Re-paste every field** — single purpose, every per
 (three changed or are new), the storage field and the whole Privacy practices tab. The previous text
 in the dashboard describes a build that no longer exists.
 
-Upload artifact: `extension/submission/resume-master-extension-v1.5.0.zip`
+Upload artifact: `extension/submission/resume-master-extension-v1.5.1.zip`
 (build with `npm run build:extension` — never hand-assemble it; see extension/README.md).
 
 ---

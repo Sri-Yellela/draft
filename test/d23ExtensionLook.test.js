@@ -235,7 +235,9 @@ test("⛔ D23: D1's depth on every control, square geometry 11–13, reduced mot
   assert.match(C_LIGHT.DEPTH_ACCENT, /^0 3px 9px rgba\(253,70,0,0\.34\)/);
 
   const ov = read("extension/review-overlay.js");
-  assert.match(ov, /\.rm-btn \{[^}]*border-radius: 11px;[^}]*box-shadow: var\(--c-depth-rest\)/);
+  // v1.5.1 (D60): the 28px overlay button is radius 8 — 11 on 28 read as a capsule; the near-capsule guard
+  // (test/d60CompactRadius.test.js) holds the proportion. The 11–13 rule above is for the full-size controls.
+  assert.match(ov, /\.rm-btn \{[^}]*border-radius: 8px;[^}]*box-shadow: var\(--c-depth-rest\)/);
   assert.match(ov, /\.rm-btn:hover:not\(:disabled\), #\$\{ID\} \.rm-btn:focus-visible \{ box-shadow: var\(--c-depth-hover\); transform: translateY\(-2px\); \}/);
   assert.match(ov, /\.rm-btn:active:not\(:disabled\) \{ transform: translateY\(0\); box-shadow: var\(--c-depth-press\); \}/);
   assert.match(ov, /\.rm-btn\.primary \{[^}]*box-shadow: var\(--c-depth-accent\)/);

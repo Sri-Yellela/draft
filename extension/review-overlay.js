@@ -220,8 +220,9 @@ export function renderOverlay(bands, meta) {
     #${ID} .rm-pill.ok { --mk: var(--c-success); }
     #${ID} .rm-pill.guess { --mk: var(--c-warning); }
     #${ID} .rm-pill.elig { --mk: var(--c-info); }
+    /* ⛔ D60: a 28px control at radius 11 read as a capsule (39%); 8 is the client's compact depth box (9 on 30). */
     #${ID} .rm-btn { font: inherit; font-size: 11px; font-weight: 700; padding: 5px 11px; min-height: 28px;
-      border-radius: 11px; border: 0; background: var(--c-surface-solid); color: var(--c-ink);
+      border-radius: 8px; border: 0; background: var(--c-surface-solid); color: var(--c-ink);
       box-shadow: var(--c-depth-rest); cursor: pointer; transition: box-shadow .2s ease, transform .2s ease; }
     #${ID} .rm-btn:hover:not(:disabled), #${ID} .rm-btn:focus-visible { box-shadow: var(--c-depth-hover); transform: translateY(-2px); }
     #${ID} .rm-btn:active:not(:disabled) { transform: translateY(0); box-shadow: var(--c-depth-press); }
@@ -233,7 +234,7 @@ export function renderOverlay(bands, meta) {
       margin-top: 8px; }
     #${ID} .rm-btn.primary:hover:not(:disabled), #${ID} .rm-btn.primary:focus-visible { box-shadow: var(--c-depth-accent); }
     #${ID} .rm-edit { width: 100%; font: inherit; font-size: 12px; padding: 5px 8px; margin-top: 4px;
-      color: var(--c-ink); background: var(--c-surface-input); border: 1px solid var(--c-border-control); border-radius: 11px; }
+      color: var(--c-ink); background: var(--c-surface-input); border: 1px solid var(--c-border-control); border-radius: 6px; }
     #${ID} .rm-edit:focus { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
     #${ID} .rm-ft { position: sticky; bottom: 0; padding: 12px 16px; background: var(--c-surface-modal);
       border-top: 1px solid var(--c-border); }
