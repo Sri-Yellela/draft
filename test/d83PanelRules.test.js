@@ -25,6 +25,9 @@ export function panelBody(name) {
 export const REBUILT = {
   CompaniesSection: ["CompaniesSection", "DiscoveryCandidates"],
   CrawlerTab: ["CrawlerTab"],
+  DeploymentsPanel: ["DeploymentsPanel"],
+  DiskPanel: ["DiskPanel"],
+  CostsTab: ["CostsTab", "SpendPart"],
 };
 
 for (const [name, parts] of Object.entries(REBUILT)) {
