@@ -226,13 +226,14 @@ test("A50 #2: every mutating control in the Operations tab asks first and states
   // kill switch: one function, confirm before the write
   const actStart = at(ops, "const act = async");
   const act = ops.slice(actStart, at(ops, "return (", actStart));
-  assert.ok(act.indexOf("confirm(") > -1 && act.indexOf("confirm(") < act.indexOf('api("/api/admin/full-auto"'),
+  // D83 rebuild #7 (39d): the confirm is the in-page one (useConfirm's ask) — still before the write.
+  assert.ok(act.indexOf("await ask(") > -1 && act.indexOf("await ask(") < act.indexOf('api("/api/admin/full-auto"'),
     "the kill switch writes before (or without) asking");
   assert.match(act, /Real applications will be submitted to employers/, "pinning ON must say what it resumes");
   // board-fit: Dry run sends dryRun:true EXPLICITLY; the real run asks and names the count
   assert.match(ops, /JSON\.stringify\(\{ \.\.\.params\(\), dryRun: true \}\)/);
   const real = ops.slice(at(ops, "const runReal"), at(ops, "const body = result"));
-  assert.ok(real.indexOf("confirm(") > -1 && real.indexOf("confirm(") < real.indexOf("api("),
+  assert.ok(real.indexOf("await ask(") > -1 && real.indexOf("await ask(") < real.indexOf("api("),
     "the board-fit pass runs without asking");
   assert.match(real, /Score \$\{num\(todo\)\} posting/);
   assert.match(ops, /disabled=\{!planFresh \|\| todo === 0/, "Score must stay locked until a dry run of the SAME parameters");
