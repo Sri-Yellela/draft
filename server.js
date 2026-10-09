@@ -7685,8 +7685,15 @@ app.patch("/api/admin/domain-profile-requests/:id/status", requireAdmin, (req, r
   if (!result.changes) return res.status(404).json({ error:"Not found" });
   res.json({ ok:true, status });
 });
+// ⛔ 10-09 (release check / D88: "eligibility answers (sponsorship, work authorisation, clearance, EEO) are NEVER
+// shown"): this was `SELECT *` — every self-identification and eligibility answer, the phone, the street
+// address and the saved custom answers, to any admin. Now an ALLOW-LIST of what support work needs.
+const ADMIN_PROFILE_FIELDS = Object.freeze(["user_id", "full_name", "first_name", "last_name", "email", "location", "city", "state",
+  "country", "current_job_title", "current_company", "years_of_experience", "seniority_level", "target_domains",
+  "target_locations", "onboarded", "updated_at"]);
 app.get("/api/admin/users/:id/profile", requireAdmin, (req, res) => {
-  res.json(db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(parseInt(req.params.id))||{});
+  const row = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(parseInt(req.params.id)) || {};
+  res.json(Object.fromEntries(ADMIN_PROFILE_FIELDS.filter(k => k in row).map(k => [k, row[k]])));
 });
 // ── AF residual: A WRITE PATH FOR THE FULL-AUTO KILL SWITCH ────────────────────────────
 //
@@ -10516,12 +10523,18 @@ async function generateCoverLetterForApply(userId, jobId) {
   const jobRow = db.prepare("SELECT * FROM scraped_jobs WHERE job_id=?").get(String(jobId));
   if (!jobRow) return { error: 'job_not_found' };
 
-  const resumeRow = db.prepare(
-    "SELECT html FROM resumes WHERE user_id=? ORDER BY updated_at DESC LIMIT 1"
-  ).get(userId);
-  const resumeText = resumeRow?.html
+  // ⛔ 10-09 (release check A2): THIS job's résumé — it was `ORDER BY updated_at DESC LIMIT 1` over every job,
+  // so a cover letter for job B could be written from the résumé tailored for job A. The apply line generates
+  // this job's résumé before the letter; without one, the base résumé — never another job's.
+  const resumeRow = db.prepare("SELECT html FROM resumes WHERE user_id=? AND job_id=?").get(userId, String(jobId));
+  let resumeText = resumeRow?.html
     ? resumeRow.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 3000)
     : '';
+  if (!resumeText) {
+    const dp = getOrRepairActiveProfile(userId);
+    const base = dp ? getBaseResumeRecord(db, { userId, profileId: dp.id })?.content : null;
+    resumeText = base ? String(base).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 3000) : '';
+  }
   if (!resumeText || resumeText.length < 50) return { error: 'no_resume_text' };
 
   const jd = (jobRow.description || '').slice(0, 2000);
