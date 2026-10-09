@@ -57,7 +57,9 @@ export function jobForResumeMaster(job = {}) {
  * constant equal to the vendored contract, so re-vendoring a contract that declares it turns that test
  * red until this is flipped.
  */
-export const RESUME_MASTER_ACCEPTS_CACHE_OPTION = false;
+// ✅ 10-09: the tools service's contract 1.5.0 declares GenerateRequest.options.cache and forwards it (live,
+// `4e89300`); the contract is re-vendored here, so the interactive Generate now sends `cache: false`.
+export const RESUME_MASTER_ACCEPTS_CACHE_OPTION = true;
 
 /**
  * The generate request coreGenerateResume sends. With an active job profile the caller supplies the
