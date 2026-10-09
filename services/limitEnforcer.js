@@ -6,6 +6,8 @@
 // TO ADD A NEW LIMITABLE OPERATION: add a case to LIMIT_MAP and call
 //   checkLimit() in the relevant route.
 
+import { resolveEntitlement } from "./entitlementResolver.js";
+
 const LIMIT_MAP = {
   resume_generate:  { daily: 'daily_resumes',     monthly: 'monthly_resumes' },
   ats_score:        { monthly: 'monthly_ats_scores' },
@@ -16,7 +18,14 @@ const LIMIT_MAP = {
 
 export function checkLimit(db, userId, eventType) {
   try {
-    const limits = db.prepare('SELECT * FROM user_limits WHERE user_id = ?').get(userId);
+    let limits = db.prepare('SELECT * FROM user_limits WHERE user_id = ?').get(userId);
+    // ⭐ D88 P1: the résumé limits are the resolver's (today: user_limits as the override, unlimited by
+    // default) — the other event types still read their user_limits columns directly.
+    if (limits && eventType === 'resume_generate') {
+      limits = { ...limits,
+        daily_resumes: resolveEntitlement(db, userId, 'resume_generations_per_day').value,
+        monthly_resumes: resolveEntitlement(db, userId, 'resume_generations_per_month').value };
+    }
     if (!limits) return { allowed: true };
 
     const map = LIMIT_MAP[eventType];

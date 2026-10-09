@@ -113,12 +113,19 @@ test("the entitlement machinery is intact and still computes tiers", () => {
 
 test("the apply caps are independent of the lever in both states", () => {
   const apply = fs.readFileSync("routes/apply.js", "utf8");
-  for (const cap of ["APPLY_DAILY_CAP", "APPLY_DAILY_QUEUE_CAP", "APPLY_DAILY_APPROVAL_CAP"]) {
+  // D88 P1: each cap is the resolver's, whose registry row is env-driven and has NO plan rule — so it
+  // cannot read the lever or a tier.
+  const registry = fs.readFileSync("shared/entitlements.js", "utf8");
+  for (const [cap, key] of [["APPLY_DAILY_CAP", "apply_daily_submission_cap"], ["APPLY_DAILY_QUEUE_CAP", "apply_daily_queue_cap"],
+                            ["APPLY_DAILY_APPROVAL_CAP", "apply_daily_approval_cap"]]) {
     const start = at(apply, `const ${cap}`, 0, cap);
     const decl  = apply.slice(start, start + 160);
-    assert.match(decl, /envInt\(/, `${cap} must stay env-driven`);
+    assert.match(decl, new RegExp(`resolveEntitlement\\(db, null, "${key}"\\)`), `${cap} reads the resolver`);
     assert.doesNotMatch(decl, /monetisationEnabled|planTier|plan_tier/,
       `${cap} is a COST control and must not read the lever or a tier`);
+    const row = registry.slice(at(registry, `${key}: {`, 0, key), at(registry, `${key}: {`, 0, key) + 220);
+    assert.match(row, new RegExp(`envInt\\(env, "${cap}"`), `${cap} must stay env-driven`);
+    assert.doesNotMatch(row, /plan:/, `${cap} has no plan rule`);
   }
   const server = fs.readFileSync("server.js", "utf8");
   const start = at(server, "function standaloneRateLimit", 0, "standalone limiter");

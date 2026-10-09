@@ -289,18 +289,17 @@ test("the client renders the approval budget on the approval card", () => {
 
 // ── 4. THE THREE CAPS DO NOT MAKE EACH OTHER UNREACHABLE (requirement 4) ────
 
-test("the default caps are ordered so every one of them can actually bind", () => {
+test("the default caps are ordered so every one of them can actually bind", async () => {
   // queue >= approval >= submission is the pipeline's own order: a submission needs an approval, an
   // approval needs a preview. Read from the source rather than restated, so a change to a default
   // has to come past this.
-  const num = (name) => {
-    const m = new RegExp(`envInt\\("${name}", (\\d+)\\)`).exec(applyRoute);
-    assert.ok(m, `${name} default not found`);
-    return Number(m[1]);
-  };
-  const queue = num("APPLY_DAILY_QUEUE_CAP");
-  const approval = num("APPLY_DAILY_APPROVAL_CAP");
-  const submission = num("APPLY_DAILY_CAP");
+  // D88 P1: the defaults moved into the feature registry (shared/entitlements.js) — read them there, from
+  // the same function the resolver runs, with no env set.
+  const { FEATURES } = await import("../shared/entitlements.js");
+  const queue = FEATURES.apply_daily_queue_cap.system({});
+  const approval = FEATURES.apply_daily_approval_cap.system({});
+  const submission = FEATURES.apply_daily_submission_cap.system({});
+  assert.match(applyRoute, /const APPLY_DAILY_QUEUE_CAP = resolveEntitlement\(db, null, "apply_daily_queue_cap"\)/);
 
   assert.ok(queue >= approval, `queue ${queue} must be >= approval ${approval}, or no approval cap is reachable`);
   assert.ok(approval >= submission, `approval ${approval} must be >= submission ${submission}, or APPLY_DAILY_CAP is dead code`);

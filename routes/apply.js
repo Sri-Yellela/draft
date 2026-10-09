@@ -1,6 +1,7 @@
 import os from "os";
 import crypto from "node:crypto";
 import path from "path";
+import { resolveEntitlement } from "../services/entitlementResolver.js";
 import { fileURLToPath } from "url";
 import { writeFileSync, unlinkSync, existsSync } from "fs";
 import { autoApply, requestAbort, isAbortRequested, clearAbort, normaliseText } from "../services/applyAutomation.js";
@@ -455,7 +456,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : dflt;
   };
   const APPLY_WORKER_LIMIT   = envInt("APPLY_WORKER_LIMIT", 2);
-  const APPLY_DAILY_CAP      = envInt("APPLY_DAILY_CAP", 25);
+  // ⭐ D88 P1: the three apply caps are the resolver's (apply_daily_*), whose system defaults are these env
+  // variables with these fallbacks — read at boot, as before.
+  const APPLY_DAILY_CAP      = resolveEntitlement(db, null, "apply_daily_submission_cap").value;
   const APPLY_MAX_ACTIVE_RUNS = envInt("APPLY_MAX_ACTIVE_RUNS_PER_USER", 1);
   // A59: how many runs may WAIT behind the active one. A line is not a cap on spend — each waiting
   // job already counted against the daily queue cap when it was drafted — it bounds how much a user
@@ -488,7 +491,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * submission needs an approval, so a queue cap at or under either would make them unreachable.
    * assertCapOrdering() checks that rather than trusting this comment.
    */
-  const APPLY_DAILY_QUEUE_CAP = envInt("APPLY_DAILY_QUEUE_CAP", 40);
+  const APPLY_DAILY_QUEUE_CAP = resolveEntitlement(db, null, "apply_daily_queue_cap").value;
   /**
    * ⛔ THE SPEND CAP, and the one this pipeline was missing (TASK Q).
    *
@@ -508,7 +511,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * requires a preview to approve. The 5 over 25 is for approvals that do not end in a submission:
    * a hold, a form that stopped resolving, a retry through the answers path.
    */
-  const APPLY_DAILY_APPROVAL_CAP = envInt("APPLY_DAILY_APPROVAL_CAP", 30);
+  const APPLY_DAILY_APPROVAL_CAP = resolveEntitlement(db, null, "apply_daily_approval_cap").value;
 
   /**
    * ⛔ THE THREE CAPS MUST STAY REACHABLE (task Q requirement 4), AND ALL THREE ARE env-OVERRIDABLE.
@@ -2760,11 +2763,14 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    */
   function autoModeState() {
     const killSwitch = fullAutoDisabled();
-    if (!FULL_AUTO_PROVEN) {
+    // ⭐ D88 P1: the lock is the resolver's auto_apply_mode — GLOBAL only (FULL_AUTO_PROVEN, the kill switch);
+    // no override can lift it. The reasons below are the same two, in the same order.
+    const mode = resolveEntitlement(db, null, "auto_apply_mode", { ctx: { fullAutoProven: FULL_AUTO_PROVEN } }).value;
+    if (mode === "locked" && !FULL_AUTO_PROVEN) {
       return { locked: true, reason: "never_run_unattended",
                message: "Auto has never run unattended against a real employer.", killSwitch };
     }
-    if (killSwitch) {
+    if (mode === "locked") {
       return { locked: true, reason: "kill_switch",
                message: "Automatic sending is paused by the operator.", killSwitch };
     }

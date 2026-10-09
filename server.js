@@ -209,6 +209,7 @@ import { validateResumeClaims, checkCandidateConsistency } from "./services/kb/f
 // guard's finding form for the kbFindings review surface.
 import { profileContradictionFindings, checkResumeClaims } from "./services/resumeClaimGuard.js";
 import { createByomRouters } from "./routes/byom.js";
+import { resolveEntitlement } from "./services/entitlementResolver.js";
 import { buildStructuredResume } from "./services/resumeFormatter.js";
 import { skillVocabularyTerms } from "./services/skillVocabulary.js";
 import { getCompanyProfile } from "./services/kb/companyProfile.js";
@@ -6280,9 +6281,10 @@ function requireModeEntitlement(req, res, mode = req.user?.applyMode) {
 function requireToolEntitlement(req, res, tool) {
   if (!monetisationEnabled()) return true;
   const planTier = normalisePlanTier(req.user?.planTier);
-  const allowed = tool === "a_plus_resume"
-    ? canUseAPlusResume(planTier)
-    : canUseGenerate(planTier);
+  // ⭐ D88 P1: the decision is the resolver's (generate_enabled / a_plus_enabled: the same plan rule —
+  // PLUS for Generate, PRO for A+ — while monetisation is on).
+  const allowed = resolveEntitlement(db, req.user?.id, tool === "a_plus_resume" ? "a_plus_enabled" : "generate_enabled",
+    { ctx: { planTier, monetisation: true } }).value === true;
   if (allowed) return true;
   const requiredTier = tool === "a_plus_resume" ? "PRO" : "PLUS";
   res.status(403).json({
@@ -10527,7 +10529,8 @@ REQUIREMENTS:
 // actually run (the admin A+ flag below silently upgrades a Generate). Ledger medians, no model call.
 app.get("/api/generate/cost", requireAuth, (req, res) => {
   let aplusFlag = false;
-  try { aplusFlag = !!db.prepare("SELECT aplus_resume FROM users WHERE id=?").get(req.user.id)?.aplus_resume; } catch { /* no flag column: a plain Generate */ }
+  // D88 P1: the same flag /api/generate upgrades with — the resolver's a_plus_default.
+  try { aplusFlag = resolveEntitlement(db, req.user.id, "a_plus_default").value === true; } catch { /* no flag column: a plain Generate */ }
   res.json(generationCostSummary(db, { aplusFlag }));
 });
 
@@ -10539,7 +10542,8 @@ app.post("/api/generate", requireAuth, async (req, res) => {
   let tool = req.body?.tool === "a_plus_resume" ? "a_plus_resume" : "generate";
   // If the user has the admin-granted A+ flag, silently upgrade "generate" to A+ pipeline
   if (tool === "generate") {
-    const userFlags = db.prepare("SELECT aplus_resume FROM users WHERE id=?").get(req.user.id);
+    // ⭐ D88 P1: the swap flag is the resolver's a_plus_default (override: users.aplus_resume).
+    const userFlags = { aplus_resume: resolveEntitlement(db, req.user.id, "a_plus_default").value };
     if (userFlags?.aplus_resume) tool = "a_plus_resume";
   }
   if (!requireToolEntitlement(req, res, tool)) return;
