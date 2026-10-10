@@ -51,6 +51,8 @@ No new collection: the Copy sheet adds no permission, host, storage key or store
 | Off by default, twice | ✅ The operator's switch (`byom_enabled`) and the user's (`users.byom_enabled`) both start OFF; every tool call re-checks both and the host allow-list | `services/byom/policy.js` |
 | Credentials | ✅ Codes and tokens stored as SHA-256 hashes; tokens bound to `/mcp`; Disconnect revokes the connection and every token at once; a replayed code or refresh token revokes the connection | `services/byom/oauthServer.js` |
 | Logs | ✅ `mcp_audit` holds tool, outcome and refusal CODES — never résumé text; Settings and Admin read only that | `routes/byom.js` |
+| Retention (D86 compliance, 10-09) | ✅ A brief's copy of the base résumé (`byom_briefs.base_json`) and its refusal text are emptied a day after the brief is used, closed or expired; `mcp_audit` rows are deleted after 12 months; the policy paragraph states both and that connector content never trains a model | `services/byom/policy.js` `purgeByomData` (every 6 h, `server.js`); test `d86ConnectorCompliance` |
+| Instructions (D86 compliance, 10-09) | ✅ The connector sends data only — no `instructions` in the brief or at initialize (Anthropic Directory Policy §2F); the guidance is the static Skill in the separate public plugin repository | `routes/byom.js` `SERVER_INFO`; test `d86ConnectorCompliance` |
 | ⏸ Notice to users | Is this a material change that needs notice before the operator's switch goes on? The owner's call (WORKLOG O87), as O85 was for automatic capture | — |
 
 ## ⭐ D88 · SUPPORT REQUESTS AND ACCOUNT ADMINISTRATION (10-09, 39d; the web app, not the extension)
