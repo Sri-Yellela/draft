@@ -1,0 +1,63 @@
+/* ⭐ D90 P2 · "What we changed" — the side-by-side panel the owner approved (docs/what-we-changed.html, 10-10).
+   Two panels, the left résumé and the right, every section, role and bullet on one row. Tokens only (no literals);
+   marks are .mark (D60, never a capsule); on a narrow screen the two panels become a left / right switch. */
+/* A full-screen takeover: the 9000 series (styles/zLayers.js — like CoverLetterModal), above the posting panel it opens from. */
+.rc__scrim { position: fixed; inset: 0; background: var(--c-scrim); z-index: 9000;
+  display: flex; align-items: stretch; justify-content: center; padding: 24px 16px; }
+.rc { position: relative; width: 100%; max-width: 1180px; max-height: 100%; overflow: auto;
+  background: var(--c-surface-solid); color: var(--c-ink); border: 1px solid var(--c-border); border-radius: 6px; padding: 18px 20px 24px; }
+.rc__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.rc__head h2 { margin: 0; font: italic 800 18px 'Poppins', var(--font-body); }
+.rc__purpose { margin: 2px 0 14px; color: var(--c-ink-muted); font-size: 13px; }
+.rc__link { background: none; border: 0; padding: 0; color: var(--c-accent-ink); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }
+.rc__pick { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: end; margin-bottom: 14px; }
+.rc__pick label { display: block; font-size: 11px; color: var(--c-ink-faint); margin-bottom: 3px; }
+.rc__pick select { width: 100%; background: var(--c-canvas); color: var(--c-ink); border: 1px solid var(--c-border-control); border-radius: 6px; padding: 7px 8px; font: inherit; font-size: 13px; }
+.rc__pick .rc__swap { color: var(--c-ink-faint); padding-bottom: 8px; }
+.rc__alarm { border-left: 3px solid var(--c-danger); background: color-mix(in srgb, var(--c-danger) 12%, transparent); border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; font-size: 13px; }
+.rc__alarm b { color: var(--c-danger); }
+.rc__note { border-left: 3px solid var(--c-warning); background: color-mix(in srgb, var(--c-warning) 10%, transparent); border-radius: 6px; padding: 8px 11px; margin-bottom: 12px; color: var(--c-ink-muted); font-size: 13px; }
+.rc__nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(82px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.rc__num { border: 1px solid var(--c-border); border-radius: 6px; padding: 8px 10px; background: var(--c-canvas); }
+.rc__num--big { grid-column: span 2; }
+.rc__num .v { font: 400 22px/1.1 var(--font-display); color: var(--c-accent-ink); white-space: nowrap; }
+.rc__num .l { font-size: 11px; color: var(--c-ink-muted); }
+.rc__strip { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 14px; font-size: 12px; color: var(--c-ink-muted); }
+.rc__strip .s { border: 1px solid var(--c-border); border-radius: 6px; padding: 4px 8px; background: var(--c-canvas); }
+.rc__strip .s b { color: var(--c-ink); }
+.rc__cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0 6px; }
+.rc__colh { border: 1px solid var(--c-border); border-radius: 6px; padding: 8px 12px; background: var(--c-canvas); display: flex; justify-content: space-between; gap: 8px; align-items: baseline; font-size: 13px; }
+.rc__colh span { color: var(--c-ink-faint); font-size: 12px; }
+.rc__tabs { display: none; margin: 12px 0 4px; border: 1px solid var(--c-border-control); border-radius: 6px; overflow: hidden; }
+.rc__tabs button { border: 0; background: transparent; color: var(--c-ink); font: inherit; font-size: 12px; padding: 6px 10px; cursor: pointer; }
+.rc__tabs button[aria-pressed="true"] { background: var(--c-accent); color: var(--c-on-accent); font-weight: 700; }
+.rc__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+.rc__sec { grid-column: 1 / -1; margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--c-border); font-size: 12px; letter-spacing: .04em; color: var(--c-ink-faint); font-weight: 700; }
+.rc__role { grid-column: 1 / -1; margin-top: 6px; font-weight: 700; font-size: 13px; }
+.rc__role span { font-weight: 400; color: var(--c-ink-faint); }
+.rc__cell { border: 1px solid var(--c-border); border-radius: 6px; padding: 8px 10px; background: var(--c-canvas); min-height: 38px; font-size: 13px; line-height: 1.5; }
+.rc__cell--blank { border-style: dashed; background: transparent; color: var(--c-ink-faint); display: flex; align-items: center; font-size: 12px; }
+.rc__cell--add { border-left: 3px solid var(--c-success); }
+.rc__cell--del { border-left: 3px solid var(--c-danger); }
+.rc__cell--rew { border-left: 3px solid var(--c-warning); }
+.rc__cell .rc__row { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; flex-wrap: wrap; }
+.rc__terms { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.rc del { color: var(--c-danger); text-decoration: line-through; background: color-mix(in srgb, var(--c-danger) 10%, transparent); border-radius: 3px; padding: 0 2px; }
+.rc ins { color: var(--c-success); text-decoration: none; background: color-mix(in srgb, var(--c-success) 14%, transparent); border-radius: 3px; padding: 0 2px; font-weight: 600; }
+.rc__more { grid-column: 1 / -1; width: 100%; text-align: left; border: 1px dashed var(--c-border); border-radius: 6px; background: transparent; color: var(--c-ink-muted); font: inherit; font-size: 13px; padding: 7px 10px; cursor: pointer; }
+.rc__empty { padding: 30px 6px; color: var(--c-ink-muted); font-size: 13px; }
+.rc__empty b { color: var(--c-ink); }
+.rc__actions { display: flex; gap: 10px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+.rc__copied { font-size: 12px; color: var(--c-success); }
+.rc button:focus-visible, .rc select:focus-visible, .rc__open:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+/* The posting panel's way in — beside "Résumé ready". */
+.rc__open { background: none; border: 0; padding: 0 0 0 4px; color: var(--c-accent-ink); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }
+@media (max-width: 720px) {
+  .rc__scrim { padding: 0; }
+  .rc { border-radius: 0; padding: 14px 16px 20px; }
+  .rc__pick { grid-template-columns: 1fr; }
+  .rc__pick .rc__swap, .rc__cols { display: none; }
+  .rc__tabs { display: inline-flex; }
+  .rc__grid { grid-template-columns: 1fr; }
+  .rc[data-side="left"] .rc__right, .rc[data-side="right"] .rc__left { display: none; }
+}

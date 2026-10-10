@@ -15,6 +15,7 @@ import DepthButton, { ICONS } from "./DepthButton.jsx";
 import "./JobDetailPanel.css";
 import { DraftButton, PassButton, SaveButton } from "./DecisionButtons.jsx";
 import ByomResumeChoice, { ByomStatus, useByomFlow } from "./ByomResumeChoice.jsx";
+import { WhatWeChangedLink } from "./ResumeChangesPanel.jsx";
 
 // Layout props (slot, width, focused, fullScreen, resizeMode and the three resize callbacks) come
 // from usePanelHost via JobsPanel — this panel is one peer in an ordered set now, not the only
@@ -176,7 +177,8 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
         <DepthButton size="square" icon={ICONS.letter} onClick={onCoverLetter} title="Write a cover letter" caption="Letter">Cover letter</DepthButton>
       </div>
       {/* ⭐ D57: the state, in words — "Résumé ready · 2h ago". */}
-      {hasArtifact && <p className="pp__ready" data-resume-ready="">{ago ? `Résumé ready · ${ago}` : "Résumé ready"}</p>}
+      {/* ⭐ D90 P2: beside the state, the way into "What we changed" — the tailored résumé against the one it was made from. */}
+      {hasArtifact && <p className="pp__ready" data-resume-ready="">{ago ? `Résumé ready · ${ago}` : "Résumé ready"} · <WhatWeChangedLink jobId={job?.jobId} jobLabel={[job?.title, job?.company].filter(Boolean).join(" · ")} /></p>}
       {/* ⭐ D86: Open → Waiting for your résumé… → Checks → Done, updating itself while the user is in the chat. */}
       <ByomStatus byom={byom} onView={() => onViewSandbox?.()} onDownload={() => onExport?.()} />
       {/* ⭐ D56: the manual route records its own submission, here too — not only the extension. */}

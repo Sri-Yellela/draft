@@ -46,8 +46,9 @@ function namesInScope(src) {
       }
     }
   }
-  // function Foo / const Foo = / class Foo — anywhere, including nested helpers
-  for (const m of src.matchAll(/(?:^|\n)\s*(?:export\s+)?(?:async\s+)?function\s+([A-Za-z0-9_$]+)/g)) names.add(m[1]);
+  // function Foo / export default function Foo / const Foo = / class Foo — anywhere, including nested helpers
+  // (`default` 10-10: a component that renders its own default export was reported as never declared)
+  for (const m of src.matchAll(/(?:^|\n)\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?function\s+([A-Za-z0-9_$]+)/g)) names.add(m[1]);
   for (const m of src.matchAll(/(?:^|\n)\s*(?:export\s+)?(?:const|let|var|class)\s+([A-Za-z0-9_$]+)/g)) names.add(m[1]);
   // Destructured locals, e.g. `const { Foo } = x`
   for (const m of src.matchAll(/(?:const|let|var)\s*\{([^}]+)\}\s*=/g))
