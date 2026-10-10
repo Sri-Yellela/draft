@@ -125,7 +125,7 @@ export function compareResumes({ before, after, base = before, claims = {}, afte
       const added = b.filter((v, i) => !ak.includes(bk[i])), removed = a.filter((v, i) => !bk.includes(ak[i]));
       const common = bk.filter(x => ak.includes(x));
       const reordered = common.join("|") !== ak.filter(x => bk.includes(x)).join("|");
-      sections.push({ type: "skills", title: s.title, status: added.length || removed.length || reordered ? "changed" : "unchanged", added, removed, reordered,
+      sections.push({ type: "skills", title: s.title, status: added.length || removed.length || reordered ? "changed" : "unchanged", added, removed, reordered, before: a, after: b,
         termsGained: gainedIn(a.join(", "), b.join(", ")) });
     } else {
       const prevEntries = [...(prev?.entries || [])];

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What we changed — D90 sketch</title>
+<!-- D90 SKETCH for the owner's approval (docs/WHAT_WE_CHANGED_SPEC.md §5). Every number and diff below was produced by
+     the REAL comparison (services/resumeChanges.js) on a synthetic résumé — not drawn by hand. Draft's colour tokens,
+     both themes; marks, never pills (D60); one main action. Use the bar at the top to switch state, theme and width. -->
+<style>
+:root{--canvas:#F3ECE0;--shade:#DFD6C9;--surface:#FBF7F0;--ink:#1E1915;--muted:#4A423B;--faint:#62574D;--border:#DDD2C3;--control:#7F7263;
+  --accent:#FD4600;--accent-ink:#A33200;--on-accent:#1E1915;--ok:#1A6B33;--warn:#855000;--no:#B3261E;color-scheme:light}
+:root[data-theme=dark]{--canvas:#1C1815;--shade:#2C2621;--surface:#26201C;--ink:#F2EADF;--muted:#CFC2B3;--faint:#ADA090;--border:#3B332C;--control:#8E8072;
+  --accent:#FD4600;--accent-ink:#FF7D4A;--on-accent:#1E1915;--ok:#5FCB8C;--warn:#E6AA4E;--no:#F27F72;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--canvas);color:var(--ink);font:13px/1.5 "DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+.bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;background:var(--shade);border-bottom:1px solid var(--border)}
+.bar b{font-size:12px;margin-right:4px}.bar label{font-size:12px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--control);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--ink);font:inherit;font-size:12px;padding:5px 9px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--on-accent);font-weight:700}
+.stage{padding:24px 16px;display:flex;justify-content:center}
+.frame{width:100%;max-width:1180px;display:grid;grid-template-columns:1fr 560px;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--surface);min-height:640px}
+.frame.phone{max-width:390px;grid-template-columns:1fr}
+.panel{padding:20px;border-right:1px solid var(--border);color:var(--faint)}
+.frame.phone .panel{display:none}
+.panel h3{margin:0 0 4px;color:var(--ink);font-size:16px}.panel .ats{margin-top:14px;padding:12px;border:1px solid var(--border);border-radius:6px}
+.link{background:none;border:0;padding:0;color:var(--accent-ink);font:inherit;font-weight:700;cursor:pointer;text-decoration:underline}
+.drawer{padding:18px 20px 28px;overflow:auto}
+.dh{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.dh h2{margin:0;font:italic 800 18px Poppins,system-ui,sans-serif}
+.purpose{margin:2px 0 14px;color:var(--muted)}
+.pick{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end;margin-bottom:14px}
+.frame.phone .pick{grid-template-columns:1fr}
+.pick label{display:block;font-size:11px;color:var(--faint);margin-bottom:3px}
+.pick select{width:100%;background:var(--canvas);color:var(--ink);border:1px solid var(--control);border-radius:6px;padding:7px 8px;font:inherit}
+.pick .arrow{color:var(--faint);padding-bottom:8px}.frame.phone .pick .arrow{display:none}
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(82px,1fr));gap:8px;margin-bottom:12px}.num.big{grid-column:span 2}
+.num{border:1px solid var(--border);border-radius:6px;padding:8px 10px;background:var(--canvas)}
+.num .v{font:400 22px/1.1 "Instrument Serif",Georgia,serif;color:var(--accent-ink);white-space:nowrap}.num .l{font-size:11px;color:var(--muted)}
+.strip{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:14px;font-size:12px;color:var(--muted)}
+.strip .s{border:1px solid var(--border);border-radius:6px;padding:4px 8px;background:var(--canvas)}.strip .s b{color:var(--ink)}
+.mark{display:inline-flex;align-items:center;gap:5px;border-radius:6px;padding:4px 8px 4px 7px;font:italic 800 10.5px/1 Poppins,system-ui,sans-serif;white-space:nowrap;
+  border-left:3px solid currentColor;background:color-mix(in srgb,currentColor 12%,transparent)}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.no{color:var(--no)}.dim{color:var(--faint)}.acc{color:var(--accent-ink)}
+.alarm{border-left:3px solid var(--no);background:color-mix(in srgb,var(--no) 12%,transparent);border-radius:6px;padding:10px 12px;margin-bottom:14px}
+.alarm b{color:var(--no)}
+.note{border-left:3px solid var(--warn);background:color-mix(in srgb,var(--warn) 10%,transparent);border-radius:6px;padding:8px 11px;margin-bottom:12px;color:var(--muted)}
+.sec{border-top:1px solid var(--border);padding-top:10px;margin-top:12px}
+.sec>h4{margin:0 0 6px;font-size:12px;letter-spacing:.04em;color:var(--faint)}
+.role{margin:8px 0 4px;font-weight:700}.role span{font-weight:400;color:var(--faint)}
+.chg{border:1px solid var(--border);border-radius:6px;padding:9px 10px;margin:6px 0;background:var(--canvas)}
+.chg .row{display:flex;gap:8px;align-items:center;margin-bottom:5px;flex-wrap:wrap}
+.before{color:var(--faint)}.before:before{content:"Before  ";font-size:10.5px;font-weight:700}
+.after:before{content:"After  ";font-size:10.5px;font-weight:700;color:var(--faint)}
+del{color:var(--no);text-decoration:line-through;background:color-mix(in srgb,var(--no) 10%,transparent);border-radius:3px;padding:0 2px}
+ins{color:var(--ok);text-decoration:none;background:color-mix(in srgb,var(--ok) 14%,transparent);border-radius:3px;padding:0 2px;font-weight:600}
+.terms{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.collapsed{width:100%;text-align:left;border:1px dashed var(--border);border-radius:6px;background:transparent;color:var(--muted);font:inherit;padding:7px 10px;cursor:pointer;margin-top:6px}
+.unch{color:var(--faint);padding:3px 2px}
+.actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.btn{font:italic 800 12px Poppins,system-ui,sans-serif;height:36px;padding:0 14px;border-radius:6px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent)}
+.empty{padding:30px 6px;color:var(--muted)}.empty b{color:var(--ink)}
+.legend{max-width:1180px;margin:0 auto 32px;padding:0 16px;color:var(--muted);font-size:12px}
+.legend li{margin-bottom:4px}
+button:focus-visible,select:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="bar" role="toolbar" aria-label="Sketch controls">
+  <b>D90 sketch</b>
+  <label>State</label><span class="seg" id="state"></span>
+  <label>Theme</label><span class="seg" id="theme"></span>
+  <label>Width</label><span class="seg" id="width"></span>
+</div>
+<div class="stage"><div class="frame" id="frame">
+  <div class="panel" aria-hidden="true">
+    <h3>Backend Engineer</h3><div>Fabrikam · Remote · Senior</div>
+    <div class="ats"><div style="color:var(--ink);font-weight:700">ATS match</div>
+      <div>Base 62 → tailored 78 · <button class="link" tabindex="-1">What we changed ↗</button></div></div>
+    <p style="margin-top:18px">The posting panel, behind the drawer (spec §3.1). In Draft House the same view is one line before
+      Approve &amp; send: <i>“4 bullets rewritten · ATS +16 · 2 requirements still missing — What we changed ↗”</i> (§3.2).</p>
+  </div>
+  <section class="drawer" id="drawer" aria-label="What we changed"></section>
+</div></div>
+<ul class="legend">
+  <li><b>Built (P1, local):</b> every number, diff and term on this page comes from the real comparison run on a synthetic résumé.</li>
+  <li><b>To approve:</b> the layout, the words, the default pair (a version against the upload it came from), the picker, and that unchanged bullets start collapsed.</li>
+  <li><b>Not in v1:</b> per-bullet revert (P5), a side-by-side whole-document view.</li>
+</ul>
+<script>
+const DATA = {"states":{"none":{"kind":"none"},"identical":{"kind":"result","from":{"label":"Your résumé","ref":"upload:1"},"to":{"label":"Tailored v1","ref":"version:1"},"scores":[{"label":"Base","atsScore":62},{"label":"Tailored v1","atsScore":62}],"baseKnown":true,"summary":{"rewritten":0,"added":0,"removed":0,"unchanged":8,"termsGained":[],"untraced":0,"requirementsMissing":["Kafka","Terraform"],"roleChanges":0,"identical":true},"roleChanges":[],"sections":[{"type":"summary","title":"SUMMARY","status":"unchanged","before":"Backend engineer building logistics services for six years.","after":"Backend engineer building logistics services for six years.","termsGained":[]},{"type":"skills","title":"TECHNICAL SKILLS","status":"unchanged","added":[],"removed":[],"reordered":false,"before":["Python","Go","SQL","PostgreSQL","Docker","Redis","AWS"],"after":["Python","Go","SQL","PostgreSQL","Docker","Redis","AWS"],"termsGained":[]},{"type":"entries","title":"EXPERIENCE","status":"unchanged","entries":[{"company":"Northwind Logistics","role":"Senior Software Engineer | Jan 2022 – Present","date":"","status":"unchanged","bullets":[{"status":"unchanged","before":"Built a Python service that routes 40,000 shipments a day","after":"Built a Python service that routes 40,000 shipments a day","termsGained":[]},{"status":"unchanged","before":"Cut PostgreSQL query time by 60% by redesigning indexes","after":"Cut PostgreSQL query time by 60% by redesigning indexes","termsGained":[]},{"status":"unchanged","before":"Ran the on-call rotation for the platform team","after":"Ran the on-call rotation for the platform team","termsGained":[]},{"status":"unchanged","before":"Wrote the onboarding guide for new engineers","after":"Wrote the onboarding guide for new engineers","termsGained":[]}]},{"company":"Contoso Retail","role":"Software Engineer | Jun 2019 – Dec 2021","date":"","status":"unchanged","bullets":[{"status":"unchanged","before":"Maintained Go microservices for checkout","after":"Maintained Go microservices for checkout","termsGained":[]},{"status":"unchanged","before":"Added Redis caching that halved page response time","after":"Added Redis caching that halved page response time","termsGained":[]},{"status":"unchanged","before":"Wrote integration tests that caught 30 regressions before release","after":"Wrote integration tests that caught 30 regressions before release","termsGained":[]}]}]},{"type":"entries","title":"EDUCATION","status":"unchanged","entries":[{"company":"State University","role":"","date":"","status":"unchanged","bullets":[]}]}]},"many":{"kind":"result","from":{"label":"Your résumé","ref":"upload:1"},"to":{"label":"Tailored v2","ref":"version:2"},"scores":[{"label":"Base","atsScore":62},{"label":"Tailored v1","atsScore":71},{"label":"Tailored v2","atsScore":78}],"baseKnown":true,"summary":{"rewritten":4,"added":1,"removed":1,"unchanged":3,"termsGained":[],"untraced":0,"requirementsMissing":["Kafka","Terraform"],"roleChanges":0,"identical":false},"roleChanges":[],"sections":[{"type":"summary","title":"SUMMARY","status":"rewritten","before":"Backend engineer building logistics services for six years.","after":"Backend engineer with six years building high-volume Python and Go services on AWS.","wordDiff":[{"op":"same","text":"Backend engineer"},{"op":"del","text":"building logistics services for"},{"op":"add","text":"with"},{"op":"same","text":"six years"},{"op":"add","text":"building high-volume Python and Go services on AWS."}],"termsGained":[{"term":"Python","source":"resume"},{"term":"Go","source":"resume"},{"term":"AWS","source":"resume"}]},{"type":"skills","title":"TECHNICAL SKILLS","status":"changed","added":[],"removed":[],"reordered":true,"before":["Python","Go","SQL","PostgreSQL","Docker","Redis","AWS"],"after":["Go","Python","SQL","PostgreSQL","Docker","Redis","AWS"],"termsGained":[]},{"type":"entries","title":"EXPERIENCE","status":"changed","entries":[{"company":"Northwind Logistics","role":"Senior Software Engineer | Jan 2022 – Present","date":"","status":"changed","bullets":[{"status":"rewritten","before":"Built a Python service that routes 40,000 shipments a day","after":"Built a Python service on PostgreSQL that routes 40,000 shipments a day across three regions","score":0.62,"wordDiff":[{"op":"same","text":"Built a Python service"},{"op":"add","text":"on PostgreSQL"},{"op":"same","text":"that routes 40,000 shipments a day"},{"op":"add","text":"across three regions"}],"termsGained":[{"term":"PostgreSQL","source":"resume"}]},{"status":"rewritten","before":"Cut PostgreSQL query time by 60% by redesigning indexes","after":"Cut PostgreSQL query latency by 60% by redesigning indexes for the tracking tables","score":0.54,"wordDiff":[{"op":"same","text":"Cut PostgreSQL query"},{"op":"del","text":"time"},{"op":"add","text":"latency"},{"op":"same","text":"by 60% by redesigning indexes"},{"op":"add","text":"for the tracking tables"}],"termsGained":[]},{"status":"unchanged","before":"Ran the on-call rotation for the platform team","after":"Ran the on-call rotation for the platform team","termsGained":[]},{"status":"removed","before":"Wrote the onboarding guide for new engineers","after":null,"termsGained":[]}]},{"company":"Contoso Retail","role":"Software Engineer | Jun 2019 – Dec 2021","date":"","status":"changed","bullets":[{"status":"rewritten","before":"Maintained Go microservices for checkout","after":"Maintained Go microservices for checkout, deployed on AWS with Docker","score":0.5,"wordDiff":[{"op":"same","text":"Maintained Go microservices for checkout,"},{"op":"add","text":"deployed on AWS with Docker"}],"termsGained":[{"term":"AWS","source":"resume"},{"term":"Docker","source":"resume"}]},{"status":"unchanged","before":"Added Redis caching that halved page response time","after":"Added Redis caching that halved page response time","termsGained":[]},{"status":"unchanged","before":"Wrote integration tests that caught 30 regressions before release","after":"Wrote integration tests that caught 30 regressions before release","termsGained":[]},{"status":"added","before":null,"after":"Moved the build to Docker images, cutting deploys from 40 to 8 minutes","termsGained":[{"term":"Docker","source":"resume"}]}]}]},{"type":"entries","title":"EDUCATION","status":"unchanged","entries":[{"company":"State University","role":"","date":"","status":"unchanged","bullets":[]}]}]},"untraced":{"kind":"result","from":{"label":"Your résumé","ref":"upload:1"},"to":{"label":"Tailored v3","ref":"version:3"},"scores":[{"label":"Base","atsScore":62},{"label":"Tailored v2","atsScore":78},{"label":"Tailored v3","atsScore":80}],"baseKnown":true,"summary":{"rewritten":5,"added":1,"removed":1,"unchanged":2,"termsGained":[{"term":"Kubernetes","source":"claims"},{"term":"Kafka","source":"untraced"}],"untraced":1,"requirementsMissing":["Terraform"],"roleChanges":0,"identical":false},"roleChanges":[],"sections":[{"type":"summary","title":"SUMMARY","status":"rewritten","before":"Backend engineer building logistics services for six years.","after":"Backend engineer with six years building high-volume Python and Go services on AWS.","wordDiff":[{"op":"same","text":"Backend engineer"},{"op":"del","text":"building logistics services for"},{"op":"add","text":"with"},{"op":"same","text":"six years"},{"op":"add","text":"building high-volume Python and Go services on AWS."}],"termsGained":[{"term":"Python","source":"resume"},{"term":"Go","source":"resume"},{"term":"AWS","source":"resume"}]},{"type":"skills","title":"TECHNICAL SKILLS","status":"changed","added":[],"removed":[],"reordered":true,"before":["Python","Go","SQL","PostgreSQL","Docker","Redis","AWS"],"after":["Go","Python","SQL","PostgreSQL","Docker","Redis","AWS"],"termsGained":[]},{"type":"entries","title":"EXPERIENCE","status":"changed","entries":[{"company":"Northwind Logistics","role":"Senior Software Engineer | Jan 2022 – Present","date":"","status":"changed","bullets":[{"status":"rewritten","before":"Built a Python service that routes 40,000 shipments a day","after":"Built a Python service on PostgreSQL that routes 40,000 shipments a day across three regions","score":0.62,"wordDiff":[{"op":"same","text":"Built a Python service"},{"op":"add","text":"on PostgreSQL"},{"op":"same","text":"that routes 40,000 shipments a day"},{"op":"add","text":"across three regions"}],"termsGained":[{"term":"PostgreSQL","source":"resume"}]},{"status":"rewritten","before":"Cut PostgreSQL query time by 60% by redesigning indexes","after":"Cut PostgreSQL query latency by 60% by redesigning indexes for the tracking tables","score":0.54,"wordDiff":[{"op":"same","text":"Cut PostgreSQL query"},{"op":"del","text":"time"},{"op":"add","text":"latency"},{"op":"same","text":"by 60% by redesigning indexes"},{"op":"add","text":"for the tracking tables"}],"termsGained":[]},{"status":"rewritten","before":"Ran the on-call rotation for the platform team","after":"Ran the on-call rotation for the platform team on Kubernetes and Kafka","score":0.64,"wordDiff":[{"op":"same","text":"Ran the on-call rotation for the platform team"},{"op":"add","text":"on Kubernetes and Kafka"}],"termsGained":[{"term":"Kubernetes","source":"claims"},{"term":"Kafka","source":"untraced"}]},{"status":"removed","before":"Wrote the onboarding guide for new engineers","after":null,"termsGained":[]}]},{"company":"Contoso Retail","role":"Software Engineer | Jun 2019 – Dec 2021","date":"","status":"changed","bullets":[{"status":"rewritten","before":"Maintained Go microservices for checkout","after":"Maintained Go microservices for checkout, deployed on AWS with Docker","score":0.5,"wordDiff":[{"op":"same","text":"Maintained Go microservices for checkout,"},{"op":"add","text":"deployed on AWS with Docker"}],"termsGained":[{"term":"AWS","source":"resume"},{"term":"Docker","source":"resume"}]},{"status":"unchanged","before":"Added Redis caching that halved page response time","after":"Added Redis caching that halved page response time","termsGained":[]},{"status":"unchanged","before":"Wrote integration tests that caught 30 regressions before release","after":"Wrote integration tests that caught 30 regressions before release","termsGained":[]},{"status":"added","before":null,"after":"Moved the build to Docker images, cutting deploys from 40 to 8 minutes","termsGained":[{"term":"Docker","source":"resume"}]}]}]},{"type":"entries","title":"EDUCATION","status":"unchanged","entries":[{"company":"State University","role":"","date":"","status":"unchanged","bullets":[]}]}]},"sent":{"kind":"result","sent":true,"from":{"label":"Your résumé","ref":"upload:1"},"to":{"label":"What we sent · Oct 6","ref":"sent:12"},"scores":[{"label":"Base","atsScore":62},{"label":"Sent (v2)","atsScore":78}],"baseKnown":true,"summary":{"rewritten":4,"added":1,"removed":1,"unchanged":3,"termsGained":[],"untraced":0,"requirementsMissing":["Kafka","Terraform"],"roleChanges":0,"identical":false},"roleChanges":[],"sections":[{"type":"summary","title":"SUMMARY","status":"rewritten","before":"Backend engineer building logistics services for six years.","after":"Backend engineer with six years building high-volume Python and Go services on AWS.","wordDiff":[{"op":"same","text":"Backend engineer"},{"op":"del","text":"building logistics services for"},{"op":"add","text":"with"},{"op":"same","text":"six years"},{"op":"add","text":"building high-volume Python and Go services on AWS."}],"termsGained":[{"term":"Python","source":"resume"},{"term":"Go","source":"resume"},{"term":"AWS","source":"resume"}]},{"type":"skills","title":"TECHNICAL SKILLS","status":"changed","added":[],"removed":[],"reordered":true,"before":["Python","Go","SQL","PostgreSQL","Docker","Redis","AWS"],"after":["Go","Python","SQL","PostgreSQL","Docker","Redis","AWS"],"termsGained":[]},{"type":"entries","title":"EXPERIENCE","status":"changed","entries":[{"company":"Northwind Logistics","role":"Senior Software Engineer | Jan 2022 – Present","date":"","status":"changed","bullets":[{"status":"rewritten","before":"Built a Python service that routes 40,000 shipments a day","after":"Built a Python service on PostgreSQL that routes 40,000 shipments a day across three regions","score":0.62,"wordDiff":[{"op":"same","text":"Built a Python service"},{"op":"add","text":"on PostgreSQL"},{"op":"same","text":"that routes 40,000 shipments a day"},{"op":"add","text":"across three regions"}],"termsGained":[{"term":"PostgreSQL","source":"resume"}]},{"status":"rewritten","before":"Cut PostgreSQL query time by 60% by redesigning indexes","after":"Cut PostgreSQL query latency by 60% by redesigning indexes for the tracking tables","score":0.54,"wordDiff":[{"op":"same","text":"Cut PostgreSQL query"},{"op":"del","text":"time"},{"op":"add","text":"latency"},{"op":"same","text":"by 60% by redesigning indexes"},{"op":"add","text":"for the tracking tables"}],"termsGained":[]},{"status":"unchanged","before":"Ran the on-call rotation for the platform team","after":"Ran the on-call rotation for the platform team","termsGained":[]},{"status":"removed","before":"Wrote the onboarding guide for new engineers","after":null,"termsGained":[]}]},{"company":"Contoso Retail","role":"Software Engineer | Jun 2019 – Dec 2021","date":"","status":"changed","bullets":[{"status":"rewritten","before":"Maintained Go microservices for checkout","after":"Maintained Go microservices for checkout, deployed on AWS with Docker","score":0.5,"wordDiff":[{"op":"same","text":"Maintained Go microservices for checkout,"},{"op":"add","text":"deployed on AWS with Docker"}],"termsGained":[{"term":"AWS","source":"resume"},{"term":"Docker","source":"resume"}]},{"status":"unchanged","before":"Added Redis caching that halved page response time","after":"Added Redis caching that halved page response time","termsGained":[]},{"status":"unchanged","before":"Wrote integration tests that caught 30 regressions before release","after":"Wrote integration tests that caught 30 regressions before release","termsGained":[]},{"status":"added","before":null,"after":"Moved the build to Docker images, cutting deploys from 40 to 8 minutes","termsGained":[{"term":"Docker","source":"resume"}]}]}]},{"type":"entries","title":"EDUCATION","status":"unchanged","entries":[{"company":"State University","role":"","date":"","status":"unchanged","bullets":[]}]}]}},"picker":[{"ref":"upload:1","label":"Your résumé — uploaded Sep 28"},{"ref":"upload:2","label":"Your résumé — uploaded Oct 8"},{"ref":"version:1","label":"Tailored v1 — Oct 2 · ATS 71"},{"ref":"version:2","label":"Tailored v2 — Oct 5 · ATS 78"},{"ref":"version:3","label":"Tailored v3 — Oct 9 · ATS 80"},{"ref":"sent:12","label":"What we sent — Oct 6"}]};
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const STATES = [["none", "No tailored version yet"], ["identical", "Identical"], ["many", "Many changes"], ["untraced", "An untraced change"], ["sent", "An applied record"]];
+let st = { state: "many", theme: "light", width: "desktop" };
+function seg(id, opts, key) {
+  const el = document.getElementById(id);
+  el.innerHTML = opts.map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="${st[key] === v}">${esc(l)}</button>`).join("");
+  el.onclick = e => { const b = e.target.closest("button"); if (!b) return; st[key] = b.dataset.v; render(); };
+}
+const SOURCE = { resume: ["ok", "from your résumé"], claims: ["dim", "from your claims"], untraced: ["no", "Not traced to your résumé or claims"] };
+const term = t => { const [c, w] = SOURCE[t.source]; return `<span class="mark ${c}">now mentions ${esc(t.term)} · ${w}</span>`; };
+const diff = ops => ops.map(o => o.op === "same" ? esc(o.text) : o.op === "add" ? `<ins>${esc(o.text)}</ins>` : `<del>${esc(o.text)}</del>`).join(" ");
+const STATUS = { rewritten: ["warn", "Rewritten"], added: ["ok", "Added"], removed: ["no", "Removed"] };
+function change(b) {
+  const [c, l] = STATUS[b.status];
+  const body = b.status === "rewritten"
+    ? `<div class="before">${esc(b.before)}</div><div class="after">${diff(b.wordDiff)}</div>`
+    : b.status === "added" ? `<div class="after"><ins>${esc(b.after)}</ins></div>` : `<div class="before"><del>${esc(b.before)}</del></div>`;
+  return `<div class="chg"><div class="row"><span class="mark ${c}">${l}</span></div>${body}${b.termsGained?.length ? `<div class="terms">${b.termsGained.map(term).join("")}</div>` : ""}</div>`;
+}
+function sections(d) {
+  return d.sections.map(s => {
+    if (s.type === "summary") {
+      if (s.status === "unchanged") return "";
+      return `<div class="sec"><h4>${esc(s.title)}</h4>${change({ status: s.status, before: s.before, after: s.after, wordDiff: s.wordDiff, termsGained: s.termsGained })}</div>`;
+    }
+    if (s.type === "skills") {
+      if (s.status === "unchanged") return "";
+      const parts = [s.added.length ? `<span class="mark ok">Added: ${esc(s.added.join(", "))}</span>` : "", s.removed.length ? `<span class="mark no">Removed: ${esc(s.removed.join(", "))}</span>` : "",
+        s.reordered ? `<span class="mark warn">Reordered</span> <span style="color:var(--muted)">now ${esc(s.after.join(", "))} — was ${esc(s.before.join(", "))}</span>` : ""].filter(Boolean).join(" ");
+      return `<div class="sec"><h4>${esc(s.title)}</h4><div class="chg"><div class="row">${parts}</div></div></div>`;
+    }
+    if (!s.entries || s.status === "unchanged") return "";
+    return `<div class="sec"><h4>${esc(s.title)}</h4>${s.entries.map(e => {
+      const changed = e.bullets.filter(b => b.status !== "unchanged"), same = e.bullets.filter(b => b.status === "unchanged");
+      if (!changed.length) return "";
+      return `<div class="role">${esc(e.company)} <span>· ${esc(e.role)}</span> <span class="mark dim">employer, title and dates unchanged</span></div>${changed.map(change).join("")}
+        ${same.length ? `<button type="button" class="collapsed" aria-expanded="false" onclick="this.outerHTML=this.dataset.full" data-full="${esc(same.map(b => `<div class='unch'>— ${esc(b.after)}</div>`).join(""))}">${same.length} unchanged — show</button>` : ""}`;
+    }).join("")}</div>`;
+  }).join("");
+}
+function drawer() {
+  const s = DATA.states[st.state];
+  const head = `<div class="dh"><h2>What we changed</h2><button class="link" type="button">Close</button></div>
+    <p class="purpose">Every change we made to your résumé for this job — and why.</p>`;
+  const picker = `<div class="pick"><div><label for="from">Compare</label><select id="from">${DATA.picker.map(p => `<option ${p.ref === (s.from?.ref || "upload:1") ? "selected" : ""}>${esc(p.label)}</option>`).join("")}</select></div>
+    <div class="arrow">→</div><div><label for="to">with</label><select id="to">${DATA.picker.map(p => `<option ${p.ref === (s.to?.ref || "version:2") ? "selected" : ""}>${esc(p.label)}</option>`).join("")}</select></div></div>`;
+  if (s.kind === "none") return head + `<div class="empty"><b>No tailored résumé for this job yet.</b><br>When you tailor one, every change appears here, beside your résumé. <br><br><button class="btn" type="button">Tailor my résumé</button></div>`;
+  const sum = s.summary, first = s.scores[0].atsScore, last = s.scores.at(-1).atsScore, delta = last - first;
+  const alarm = sum.untraced ? `<div class="alarm" role="alert"><b>${sum.untraced} change ${sum.untraced === 1 ? "is" : "are"} not traced to your résumé or claims.</b> ${sum.termsGained.filter(t => t.source === "untraced").map(t => `“${esc(t.term)}”`).join(", ")} — read ${sum.untraced === 1 ? "it" : "them"} before you send this. draft's check should have stopped it; it is counted and reported.</div>` : "";
+  const sent = s.sent ? `<div class="note"><b style="color:var(--ink)">What we sent</b> — the résumé exactly as it went to Fabrikam on Oct 6, kept unchanged. A later regeneration does not alter it.</div>` : "";
+  const nums = sum.identical ? "" : `<div class="nums">
+    <div class="num big"><div class="v">${first} → ${last}</div><div class="l">ATS ${delta >= 0 ? "+" : ""}${delta}</div></div>
+    <div class="num"><div class="v">${sum.rewritten}</div><div class="l">bullets rewritten</div></div>
+    <div class="num"><div class="v">${sum.added}</div><div class="l">added</div></div>
+    <div class="num"><div class="v">${sum.removed}</div><div class="l">removed</div></div>
+    <div class="num"><div class="v">${sum.unchanged}</div><div class="l">unchanged</div></div>
+    <div class="num"><div class="v">${sum.requirementsMissing.length}</div><div class="l">requirements still missing</div></div></div>`;
+  const strip = `<div class="strip" aria-label="ATS history">${s.scores.map((x, i) => `${i ? "→" : ""}<span class="s">${esc(x.label)} <b>${x.atsScore}</b></span>`).join(" ")}</div>`;
+  const missing = sum.requirementsMissing.length ? `<div class="terms" style="margin:-4px 0 10px">${sum.requirementsMissing.map(t => `<span class="mark dim">still missing: ${esc(t)}</span>`).join("")}</div>` : "";
+  const body = sum.identical ? `<div class="empty"><b>Nothing was changed for this job.</b><br>This tailored résumé is the same as your uploaded résumé.</div>` : sections(s);
+  return head + picker + alarm + sent + nums + strip + missing + body + (sum.identical ? "" : `<div class="actions"><button class="btn" type="button">Copy the changes</button></div>`);
+}
+function render() {
+  document.documentElement.dataset.theme = st.theme;
+  document.getElementById("frame").className = `frame${st.width === "phone" ? " phone" : ""}`;
+  seg("state", STATES, "state"); seg("theme", [["light", "Light"], ["dark", "Dark"]], "theme"); seg("width", [["desktop", "Desktop"], ["phone", "Phone"]], "width");
+  document.getElementById("drawer").innerHTML = drawer();
+}
+render();
+</script>
+</body>
+</html>
