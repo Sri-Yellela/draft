@@ -38,7 +38,7 @@ export function requestText(job) {
   const id = String(job?.jobId ?? "");
   const what = [job?.title, job?.company].filter(Boolean).join(" at ");
   return `Use the draft connector to tailor my résumé for ${what ? `"${what}"` : "this job"} (draft job id ${id}): ` +
-    `call get_generation_brief with job_id "${id}", follow its instructions, then call submit_resume.`;
+    `get a brief with get_generation_brief (job_id "${id}"), rewrite my bullets using only facts in my résumé, then save it with submit_resume.`;
 }
 
 /** The panel's one bring-your-own-model state. */
@@ -174,7 +174,8 @@ export function ByomStatus({ byom, onView, onDownload }) {
       {card(3, "Done", s === "done" ? (
         <><p><span className="mark mark--ok">Résumé ready</span></p>
           <p className="byom__why" data-byom-done="">{status.baseAtsScore != null && status.atsScore != null ? <>Base <b>{status.baseAtsScore} → {status.atsScore}</b>. </> : null}Claims checked.{" "}
-            <button type="button" className="byom__link" onClick={onView}>View</button> · <button type="button" className="byom__link" onClick={onDownload}>Download</button></p></>
+            <button type="button" className="byom__link" onClick={onView}>View</button> · <button type="button" className="byom__link" onClick={onDownload}>Download</button></p>
+          <p className="byom__why" data-byom-ai-notice="">Written with AI assistance in your own {label}. Read it before you send it.</p></>
       ) : <p>Your résumé is attached to this job.</p>)}
     </div>
   );

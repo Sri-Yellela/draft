@@ -23,12 +23,12 @@ import { refusalFor, userEnabled, setUserEnabled, usedToday, dailyCap, globalEna
 import { createByomTools, ToolRefusal } from "../services/byom/tools.js";
 import { renderConsentPage, renderConsentMessage } from "../services/byom/consentPage.js";
 
-export const MCP_INSTRUCTIONS = [
-  "draft's résumé tools. The candidate's own model (you) writes the tailored résumé; draft supplies a brief and checks what comes back. draft makes no model call.",
-  "Flow: list_my_drafts → get_generation_brief(job_id) → write a patch that follows the brief's instructions and output_schema → submit_resume(brief_id, patch).",
-  "If submit_resume refuses, tell the candidate the reasons in plain words, fix exactly those, and submit again. Nothing is saved on a refusal.",
-  "Never put contact details in a patch. A score that declines (not enough signal) is \"could not be scored\", not a poor fit.",
-].join(" ");
+// ⛔ D86 COMPLIANCE (10-09): the server sends NO `instructions` at initialize. Anthropic's Software Directory
+// Policy §2F forbids a connector making Claude pull behavioural instructions from an external source at
+// runtime; the "how to write it" guidance is a static Skill in the separate public plugin repository
+// (draft-claude-plugin). Tool descriptions and result lines say what happened, never what to do next —
+// test/d86ConnectorCompliance.test.js lints every string the connector speaks.
+export const SERVER_INFO = Object.freeze({ name: "draft", version: "1.1.0" });
 
 // One row per call: the tool, the job it was about, the outcome and refusal CODES — never résumé text.
 const audit = (db, { userId, connectionId, tool, outcome, detail = null, jobId = null }) => {
@@ -44,12 +44,12 @@ const toolRefusal = (code, message, extra = {}) => ({ isError: true, content: [{
   structuredContent: { error: code, message, ...extra } });
 
 // The text a host shows. The sketch's result is a card — score, base → tailored, Open in draft; a host
-// that renders no widget shows this line, written so any model can repeat it plainly.
+// that renders no widget shows this line: what happened, in plain words.
 const LEADS = {
-  get_generation_brief: () => "Brief ready. Write a patch that follows its instructions and output_schema, then call submit_resume.",
+  get_generation_brief: (out) => `Brief ${out?.brief_id ?? ""} for ${[out?.job?.title, out?.job?.company].filter(Boolean).join(" · ") || "the job"}.`,
   submit_resume: (out) => `Résumé saved to draft — ${[out?.title, out?.company].filter(Boolean).join(" · ")}` +
     `${out?.base_ats_score != null && out?.ats_score != null ? ` · base ${out.base_ats_score} → ${out.ats_score}` : ""} · claims checked. ` +
-    `Open in draft: ${out?.link ?? ""}${out?.warning ? ` ⚠ ${out.warning}` : ""}`,
+    `In draft: ${out?.link ?? ""}${out?.warning ? ` ⚠ ${out.warning}` : ""} ${out?.notice ?? ""}`.trim(),
   score_resume: () => "Scored against the job.",
   list_my_drafts: () => "The candidate's drafted jobs.",
   get_my_resumes: () => "The candidate's saved résumés.",
@@ -104,7 +104,7 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
     const auth = verifyAccessToken(db, bearer, { resource: resourceFor(req) });
     if (!auth) return unauthorized(req, res);
 
-    const server = new Server({ name: "draft", version: "1.0.0" }, { capabilities: { tools: {} }, instructions: MCP_INSTRUCTIONS });
+    const server = new Server({ ...SERVER_INFO }, { capabilities: { tools: {} } });
     server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: served }));
     server.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
       const name = String(params?.name ?? "");

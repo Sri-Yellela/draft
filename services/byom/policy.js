@@ -49,6 +49,22 @@ export function usedToday(db, userId, nowSec = Math.floor(Date.now() / 1000)) {
   return db.prepare("SELECT COUNT(*) FROM byom_briefs WHERE user_id = ? AND status = 'used' AND used_at >= ?").pluck().get(userId, midnight);
 }
 
+// ⛔ D86 COMPLIANCE (10-09) — collect only what a tool needs, and keep it only while it is needed (Policy §1D,
+// §1F; the privacy policy states both periods). A brief's copy of the base résumé (`base_json`) and its
+// refusal reasons exist to check a submission; once the brief is used, closed or expired, a day later they
+// are emptied — the row stays, ids and counts only, for the daily cap and the per-connection count.
+// The audit (ids, outcomes, refusal codes — never content) is kept 12 months.
+export const BRIEF_CONTENT_GRACE_SECONDS = 24 * 3600;
+export const AUDIT_RETENTION_SECONDS = 365 * 86400;
+
+export function purgeByomData(db, nowSec = Math.floor(Date.now() / 1000)) {
+  const cutoff = nowSec - BRIEF_CONTENT_GRACE_SECONDS;
+  const briefs = db.prepare(`UPDATE byom_briefs SET base_json = '{}', last_refusal = NULL
+    WHERE base_json != '{}' AND ((status IN ('used', 'exhausted') AND COALESCE(used_at, created_at) < ?) OR expires_at < ?)`).run(cutoff, cutoff).changes;
+  const audit = db.prepare("DELETE FROM mcp_audit WHERE at < ?").run(nowSec - AUDIT_RETENTION_SECONDS).changes;
+  return { briefs, audit };
+}
+
 export function callsLastHour(db, userId, nowSec = Math.floor(Date.now() / 1000)) {
   return db.prepare("SELECT COUNT(*) FROM mcp_audit WHERE user_id = ? AND at > ?").pluck().get(userId, nowSec - 3600);
 }
