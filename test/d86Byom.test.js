@@ -13,7 +13,7 @@ import { MIGRATIONS } from "../scripts/migrations.js";
 import { createByomRouters } from "../routes/byom.js";
 import { buildStructuredResume } from "../services/resumeFormatter.js";
 import { buildBrief, applyPatch, termGuard, immutablesChanged, scrubContact, idsFor } from "../services/byom/resumePatch.js";
-import { registerClient, issueCode, tokenGrant, getClient, hostForRedirect } from "../services/byom/oauthServer.js";
+import { registerClient, issueCode, tokenGrant, getClient, hostForRedirect, parseScope } from "../services/byom/oauthServer.js";
 import { renderConsentPage, NEVER_LIST } from "../services/byom/consentPage.js";
 
 const RESUME = `Avery Sample
@@ -378,4 +378,33 @@ test("⛔ D86 §5: an unauthenticated initialize is 401 with WWW-Authenticate; a
   const body = await none.json();
   assert.equal(body.result.instructions, undefined, "DR-1: no instructions at initialize");
   assert.match(body.result.serverInfo.name, /^draft$/);
+});
+
+test("⛔ D86 auth (Claude's connector authentication page): offline_access is accepted as a no-op; an unknown scope is still refused", () => {
+  assert.equal(parseScope("resume:read resume:write offline_access"), "resume:read resume:write");
+  assert.equal(parseScope("offline_access"), "resume:read resume:write", "offline_access alone means the default scopes");
+  assert.throws(() => parseScope("resume:read admin:all"), /Unknown scope: admin:all/);
+});
+
+test("⛔ D86 auth (the MCP spec): the consent screen names the host it returns to, and warns on a loopback return", () => {
+  const hosted = renderConsentPage({ host: "claude", hostLabel: "Claude", who: "a@example.com", scopes: ["resume:read"], userOn: true, nonce: "n", returnHost: "claude.ai" });
+  assert.match(hosted, /data-return-host[^>]*>.*you go back to <b>claude\.ai<\/b>/s);
+  assert.doesNotMatch(hosted, /data-loopback-warning/);
+  const local = renderConsentPage({ host: "claude", hostLabel: "Claude Code on this computer", who: "a@example.com", scopes: ["resume:read"], userOn: true, nonce: "n",
+    returnHost: "localhost:53122", loopback: true });
+  assert.match(local, /localhost:53122/);
+  assert.match(local, /data-loopback-warning[^>]*>.*Continue only if you just started connecting from Claude Code/s);
+});
+
+test("⛔ D86 (OpenAI's plugin portal): /.well-known/openai-apps-challenge serves the owner's token, and is 404 until it is set", async (t) => {
+  const env = setup();
+  const { base } = await serve(t, env);
+  const prior = process.env.OPENAI_APPS_CHALLENGE;
+  t.after(() => { if (prior === undefined) delete process.env.OPENAI_APPS_CHALLENGE; else process.env.OPENAI_APPS_CHALLENGE = prior; });
+  delete process.env.OPENAI_APPS_CHALLENGE;
+  assert.equal((await fetch(`${base}/.well-known/openai-apps-challenge`)).status, 404);
+  process.env.OPENAI_APPS_CHALLENGE = "challenge-token-abc";
+  const r = await fetch(`${base}/.well-known/openai-apps-challenge`);
+  assert.equal(r.status, 200);
+  assert.equal(await r.text(), "challenge-token-abc");
 });

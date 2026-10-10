@@ -75,7 +75,7 @@ export function renderConsentMessage({ title, body }) {
  * @param {{ host, hostLabel, who, username, scopes: string[], userOn: boolean, unavailable: string|null, nonce }} p
  *   who — the signed-in account as shown: the profile's email, else the username
  */
-export function renderConsentPage({ host = "local", hostLabel, who = "", username = "", scopes = [], userOn, unavailable = null, nonce }) {
+export function renderConsentPage({ host = "local", hostLabel, who = "", username = "", scopes = [], userOn, unavailable = null, nonce, returnHost = "", loopback = false }) {
   const p = PROVIDERS[host] || PROVIDERS.local;
   const tiles = `<div class="tiles" aria-hidden="true"><div class="tile host logo">${esc(p.letter)}</div><i>→</i><div class="tile d logo">/d</div></div>`;
   const signedIn = `<div class="sub"><span>Signed in as <b>${esc(who || username)}</b></span><span>·</span>
@@ -89,6 +89,8 @@ export function renderConsentPage({ host = "local", hostLabel, who = "", usernam
   const wantsWrite = scopes.includes("resume:write");
   const body = `<div class="cons">${tiles}
 <h1 class="logo">${esc(hostLabel)} wants to connect to your draft account</h1>${signedIn}
+${returnHost ? `<p class="sub" data-return-host=""><span>After you choose, you go back to <b>${esc(returnHost)}</b>.</span></p>` : ""}
+${loopback ? `<p class="note" data-loopback-warning=""><b>This returns to an app on this computer.</b> Any program on your computer can ask for this. Continue only if you just started connecting from Claude Code.</p>` : ""}
 <form method="post" action="/oauth/authorize" id="allow">
 <input type="hidden" name="nonce" value="${esc(nonce)}"><input type="hidden" name="decision" value="allow">
 <div class="scope"><span class="ck">✓</span><span><b>Read your base résumé and claims</b><br>So it can tailor a résumé. <i>Required.</i></span></div>
