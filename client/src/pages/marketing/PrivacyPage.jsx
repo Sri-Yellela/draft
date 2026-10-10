@@ -78,6 +78,8 @@ import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyPro
 // 2026-10-09 (later, D86 v1 tools — the same date): the connected app can also search the user's board, read one
 // public posting and see the user's own ATS scores (draft_search_jobs, draft_get_job, draft_score_resume_for_job);
 // the paragraph names them. Read-only, the user's own data and public postings — nothing new is collected.
+// 2026-10-10 (D90): the uploaded résumés are all kept, not only the newest, so a tailored version can be compared with
+// the one it was made from (Data Storage and Security). Nothing new is collected — the same text, kept longer.
 const EFFECTIVE_DATE = 'October 9, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
@@ -497,6 +499,12 @@ export function PrivacyPage() {
           <P>
             We retain your data for as long as your account is active. If you delete your
             account, all associated data is permanently deleted within 30 days.
+          </P>
+          {/* D90 (10-10): services/baseResumeHistory.js — every distinct upload kept; migration 157. */}
+          <P>
+            We keep each résumé you upload — not only the newest — so a tailored résumé can always be compared
+            with the one it was made from. Uploading the same résumé again adds nothing. They are deleted with
+            your account.
           </P>
           {/* D88 P3 (39d): services/tickets.js — retention RETENTION_SECONDS, the cascade in migration 156. */}
           <P>

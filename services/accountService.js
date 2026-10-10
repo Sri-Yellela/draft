@@ -255,6 +255,8 @@ export const MERGE_PLAN = Object.freeze({
   user_notes: "move", user_entitlement_overrides: "drop",
   // D88 P3: a person's support requests are their history and move with them.
   tickets: "move",
+  // D90: every base the person uploaded is their history and moves with them.
+  base_resume_uploads: "move",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

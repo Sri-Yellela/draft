@@ -31,6 +31,8 @@
 // shown with "expires in N days". Once the job is DRAFTED or APPLIED it is kept for good — the tie is
 // read when the sweep runs, so a résumé an application points at is never swept.
 
+import { currentBaseUploadId } from "./baseResumeHistory.js";
+
 export const DEFAULT_RESUME_RETENTION_DAYS = 90;
 
 export function resumeRetentionDays(env = process.env) {
@@ -64,16 +66,27 @@ export const STORE_FAILED_SENTENCE =
 export function storeGeneratedResume(db, {
   userId, jobId, job = {}, tool = "generate", mode = "TAILORED", html, atsScore = null, atsReport = null,
   baseAtsScore = null, atsCacheKey = null, promptVersion = null, domainProfileId = null, userJobProfileId = null,
+  baseUploadId = undefined,
 }) {
   const id = String(jobId);
+  // ⭐ D90: the upload this version is made from — the profile's base right now, unless the caller says otherwise.
+  let baseUpload = baseUploadId;
+  if (baseUpload === undefined) {
+    try { baseUpload = currentBaseUploadId(db, { userId, profileId: domainProfileId ?? null }); }
+    catch (e) { if (!/no such table/.test(String(e?.message))) throw e; baseUpload = null; }
+  }
   const report = atsReport == null ? null : (typeof atsReport === "string" ? atsReport : JSON.stringify(atsReport));
   return db.transaction(() => {
     const version = (db.prepare("SELECT MAX(version) AS v FROM resume_versions WHERE user_id=? AND job_id=?")
       .get(userId, id)?.v || 0) + 1;
-    db.prepare(`INSERT INTO resume_versions (user_id,job_id,company,role,category,html,ats_score,ats_report,tool_type,is_kept,version,ats_cache_key,ats_prompt_version,base_ats_score)
+    const versionId = db.prepare(`INSERT INTO resume_versions (user_id,job_id,company,role,category,html,ats_score,ats_report,tool_type,is_kept,version,ats_cache_key,ats_prompt_version,base_ats_score)
       VALUES (?,?,?,?,?,?,?,?,?,0,?,?,?,?)`)
       .run(userId, id, job.company ?? null, job.title ?? null, job.category ?? null, html, atsScore, report, tool, version,
-           atsCacheKey, promptVersion, scoreOrNull(baseAtsScore));
+           atsCacheKey, promptVersion, scoreOrNull(baseAtsScore)).lastInsertRowid;
+    if (baseUpload != null) {
+      try { db.prepare("UPDATE resume_versions SET base_upload_id = ? WHERE id = ?").run(baseUpload, versionId); }
+      catch (e) { if (!/no such column/.test(String(e?.message))) throw e; }
+    }
     // ⛔ ALWAYS — the newest generation is the résumé that would be sent (see 1 above). AH5: the
     // profile is STAMPED so the reuse rule can ask whether it was built for the active one.
     db.prepare(`INSERT INTO resumes (user_id,job_id,company,role,category,apply_mode,html,ats_score,ats_report,ats_cache_key,ats_prompt_version,domain_profile_id,base_ats_score,created_at,updated_at)

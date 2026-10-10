@@ -1,3 +1,4 @@
+import { recordBaseUpload } from "./baseResumeHistory.js";
 import crypto from "crypto";
 
 const STOP_WORDS = new Set([
@@ -258,6 +259,9 @@ export function getBaseResumeRecord(db, scopeOrUserId) {
 
 export function saveBaseResumeRecord(db, scopeOrUserId, content, name = "resume.txt") {
   const { userId, profileId } = resolveScope(scopeOrUserId);
+  // ⭐ D90: every distinct base the user saves is kept, so a tailored résumé can be compared with the one it was made from.
+  try { recordBaseUpload(db, { userId, profileId: profileId ?? null, content, name }); }
+  catch (e) { if (!/no such table/.test(String(e?.message))) throw e; }
   if (profileId) {
     db.prepare(`
       INSERT INTO profile_base_resumes (profile_id, user_id, content, name, updated_at)
