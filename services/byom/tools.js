@@ -78,7 +78,7 @@ export const TOOL_DEFS = Object.freeze([
   {
     name: "draft_get_resume_brief",
     title: "Get a résumé brief",
-    description: "Returns the data used to tailor a résumé for one job: the candidate's base résumé as bullets with ids, the skills the candidate has claimed, the job's matched keywords, the job's basics and the JSON schema a patch must match. Contains no contact details. The brief id is valid for 30 minutes and up to 3 submissions. detail \"short\" leaves out each entry's location line, technology line and free text.",
+    description: "Returns the data used to tailor a résumé for one job: the candidate's base résumé as bullets with ids, the skills the candidate has claimed, the job's matched keywords, the job's basics and the JSON schema of a patch. Contains no contact details. The brief id is valid for 30 minutes and up to 3 submissions. detail \"short\" leaves out each entry's location line, technology line and free text.",
     inputSchema: { type: "object", additionalProperties: false, required: ["job_id"], properties: {
       job_id: jobIdParam,
       detail: { type: "string", enum: [...BRIEF_DETAIL], description: "full (the default) or short." },

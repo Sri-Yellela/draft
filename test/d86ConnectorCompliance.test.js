@@ -41,6 +41,8 @@ function spokenStrings() {
 // A sentence that opens with one of these is an order to the model, not a statement of what the tool does.
 const IMPERATIVE = /(?:^|[.:;!?—]\s+)(?:call|use|tell|write|fix|submit|report|prefer|ask|remember|ignore|always|never|do not|don't|make sure|be sure|next)\b/i;
 const SECOND_PERSON = /\b(?:you|your|yours)\b/i;
+// DR-2's own list (docs/CLAUDE_CONNECTOR_COMPLIANCE.md §2): these words anywhere in a description read as steering.
+const DR2_WORDS = /\b(?:must|always|never|ignore|instead|you should)\b/i;
 const OFF_SITE = /https?:\/\/|\bwww\.|\.com\b/i;
 const PROMOTION = /\b(?:upgrade|premium|pro plan|pricing|price|subscribe|subscription|free trial|discount|buy|purchase|checkout|credits?)\b|\$\s?\d/i;
 
@@ -73,6 +75,7 @@ test("⛔ D86 compliance (2): every description says what the tool does — no o
   for (const { where, text } of spoken) {
     assert.doesNotMatch(text, IMPERATIVE, `${where} steers the model: "${text}"`);
     assert.doesNotMatch(text, SECOND_PERSON, `${where} addresses the model: "${text}"`);
+    assert.doesNotMatch(text, DR2_WORDS, `${where} uses a DR-2 steering word: "${text}"`);
     assert.doesNotMatch(text, OFF_SITE, `${where} links off-site: "${text}"`);
   }
 });
