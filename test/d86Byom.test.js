@@ -48,7 +48,8 @@ function setup({ base = RESUME } = {}) {
   db.prepare("INSERT INTO apply_run_jobs (user_id, job_id, status) VALUES (1, 'j1', 'queued')").run();
   const state = { base, stored: [], modelCalls: 0 };
   const deps = {
-    db, appUrl: "http://draft.test",
+    db, appUrl: "http://draft.test", briefSecret: "test-brief-secret",
+    searchBoard: async () => ({ jobs: [], total: 0 }),
     jobFor: (id) => db.prepare("SELECT * FROM scraped_jobs WHERE job_id = ?").get(id) || null,
     baseFor: () => state.base ? { text: state.base, structured: buildStructuredResume(state.base), domainProfile: { id: 7 },
       userProfile: { years_of_experience: 4 }, claims: { skills: ["Terraform"], actionVerbs: [] }, allowSummary: false } : null,
@@ -150,25 +151,25 @@ test("⛔ D86: submit — a new term is refused, a clean patch saves, a second u
   const env = setup(); on(env.db); userOn(env.db);
   const { base } = await serve(t, env);
   const { access_token } = mint(env.db, base);
-  const brief = (await callTool(base, access_token, "get_generation_brief", { job_id: "j1" })).structuredContent;
+  const brief = (await callTool(base, access_token, "draft_get_resume_brief", { job_id: "j1" })).structuredContent;
   const b0 = brief.resume.sections.find(s => s.type === "entries").entries[0].bullets[0].id;
 
-  const refused = await callTool(base, access_token, "submit_resume", { brief_id: brief.brief_id, patch: { bullets: [{ id: b0, text: "Built a Kafka service" }] } });
+  const refused = await callTool(base, access_token, "draft_submit_resume_patch", { brief_id: brief.brief_id, patch: { bullets: [{ id: b0, text: "Built a Kafka service" }] } });
   assert.equal(refused.isError, true);
   assert.match(JSON.stringify(refused.structuredContent.reasons), /Kafka/);
   assert.equal(env.state.stored.length, 0, "nothing is saved on a refusal");
 
   const patch = { bullets: [{ id: b0, text: "Built a Python service on PostgreSQL routing 40,000 shipments a day" }] };
-  const saved = await callTool(base, access_token, "submit_resume", { brief_id: brief.brief_id, patch });
+  const saved = await callTool(base, access_token, "draft_submit_resume_patch", { brief_id: brief.brief_id, patch });
   assert.equal(saved.structuredContent.saved, true);
   assert.equal(saved.structuredContent.base_ats_score, 70);
   assert.equal(env.state.stored.length, 1);
   assert.match(env.state.stored[0].html, /avery@example\.com/, "the server writes the header back");
 
-  const again = await callTool(base, access_token, "submit_resume", { brief_id: brief.brief_id, patch });
+  const again = await callTool(base, access_token, "draft_submit_resume_patch", { brief_id: brief.brief_id, patch });
   assert.equal(again.structuredContent.repeated, true);
   assert.equal(env.state.stored.length, 1);
-  const other = await callTool(base, access_token, "submit_resume", { brief_id: brief.brief_id, patch: { bullets: [{ id: b0, text: "Built a Python service" }] } });
+  const other = await callTool(base, access_token, "draft_submit_resume_patch", { brief_id: brief.brief_id, patch: { bullets: [{ id: b0, text: "Built a Python service" }] } });
   assert.equal(other.structuredContent.error, "brief_used");
 });
 
@@ -176,9 +177,9 @@ test("⛔ D86: the claim guard's refusal (years) reaches the model in plain word
   const env = setup(); on(env.db); userOn(env.db);
   const { base } = await serve(t, env);
   const { access_token } = mint(env.db, base);
-  const brief = (await callTool(base, access_token, "get_generation_brief", { job_id: "j1" })).structuredContent;
+  const brief = (await callTool(base, access_token, "draft_get_resume_brief", { job_id: "j1" })).structuredContent;
   const b0 = brief.resume.sections.find(s => s.type === "entries").entries[0].bullets[0].id;
-  const r = await callTool(base, access_token, "submit_resume", { brief_id: brief.brief_id, patch: { bullets: [{ id: b0, text: "Brought 9 years of Python to a service routing shipments" }] } });
+  const r = await callTool(base, access_token, "draft_submit_resume_patch", { brief_id: brief.brief_id, patch: { bullets: [{ id: b0, text: "Brought 9 years of Python to a service routing shipments" }] } });
   assert.equal(r.isError, true);
   assert.match(r.structuredContent.reasons[0].message, /9 years/);
 });
@@ -187,10 +188,10 @@ test("⛔ D86: a third failed attempt ends the brief", async (t) => {
   const env = setup(); on(env.db); userOn(env.db);
   const { base } = await serve(t, env);
   const { access_token } = mint(env.db, base);
-  const brief = (await callTool(base, access_token, "get_generation_brief", { job_id: "j1" })).structuredContent;
-  for (let i = 0; i < 3; i++) await callTool(base, access_token, "submit_resume", { brief_id: brief.brief_id, patch: { bullets: [{ id: "s9.e9.b9", text: "x" }] } });
+  const brief = (await callTool(base, access_token, "draft_get_resume_brief", { job_id: "j1" })).structuredContent;
+  for (let i = 0; i < 3; i++) await callTool(base, access_token, "draft_submit_resume_patch", { brief_id: brief.brief_id, patch: { bullets: [{ id: "s9.e9.b9", text: "x" }] } });
   const b0 = brief.resume.sections.find(s => s.type === "entries").entries[0].bullets[0].id;
-  const r = await callTool(base, access_token, "submit_resume", { brief_id: brief.brief_id, patch: { bullets: [{ id: b0, text: "Built a Python service" }] } });
+  const r = await callTool(base, access_token, "draft_submit_resume_patch", { brief_id: brief.brief_id, patch: { bullets: [{ id: b0, text: "Built a Python service" }] } });
   assert.equal(r.structuredContent.error, "brief_exhausted");
   assert.equal(env.state.stored.length, 0);
 });
@@ -199,9 +200,9 @@ test("⛔ D86: a token without resume:write cannot submit", async (t) => {
   const env = setup(); on(env.db); userOn(env.db);
   const { base } = await serve(t, env);
   const { access_token } = mint(env.db, base, { scope: "resume:read" });
-  const brief = (await callTool(base, access_token, "get_generation_brief", { job_id: "j1" })).structuredContent;
+  const brief = (await callTool(base, access_token, "draft_get_resume_brief", { job_id: "j1" })).structuredContent;
   assert.ok(brief.brief_id, "reading is allowed");
-  const r = await callTool(base, access_token, "submit_resume", { brief_id: brief.brief_id, patch: {} });
+  const r = await callTool(base, access_token, "draft_submit_resume_patch", { brief_id: brief.brief_id, patch: {} });
   assert.equal(r.structuredContent.error, "insufficient_scope");
 });
 
@@ -209,10 +210,10 @@ test("⛔ D86: revoking a connection stops its next call", async (t) => {
   const env = setup(); on(env.db); userOn(env.db);
   const { base } = await serve(t, env);
   const { access_token, connectionId } = mint(env.db, base);
-  assert.equal((await callTool(base, access_token, "list_my_drafts")).status, 200);
+  assert.equal((await callTool(base, access_token, "draft_list_my_drafts")).status, 200);
   const del = await fetch(`${base}/api/byom/connections/${connectionId}`, { method: "DELETE" });
   assert.equal(del.status, 200);
-  assert.equal((await callTool(base, access_token, "list_my_drafts")).status, 401);
+  assert.equal((await callTool(base, access_token, "draft_list_my_drafts")).status, 401);
 });
 
 test("⛔ D86: a revoked CONNECTION stops its tokens even when the tokens themselves were not revoked (a merge drops connections)", async (t) => {
@@ -220,7 +221,7 @@ test("⛔ D86: a revoked CONNECTION stops its tokens even when the tokens themse
   const { base } = await serve(t, env);
   const { access_token, connectionId } = mint(env.db, base);
   env.db.prepare("UPDATE oauth_connections SET revoked_at = unixepoch() WHERE id = ?").run(connectionId);
-  assert.equal((await callTool(base, access_token, "list_my_drafts")).status, 401);
+  assert.equal((await callTool(base, access_token, "draft_list_my_drafts")).status, 401);
 });
 
 test("⛔ D86: the global switch is OFF by default and refuses every tool call; the user's switch is OFF by default", async (t) => {
@@ -228,10 +229,10 @@ test("⛔ D86: the global switch is OFF by default and refuses every tool call; 
   const { base } = await serve(t, env);
   const { access_token } = mint(env.db, base);
   assert.equal(env.db.prepare("SELECT byom_enabled FROM users WHERE id = 1").pluck().get(), 0);
-  const r = await callTool(base, access_token, "list_my_drafts");
+  const r = await callTool(base, access_token, "draft_list_my_drafts");
   assert.equal(r.structuredContent.error, "feature_off");
   on(env.db);
-  assert.equal((await callTool(base, access_token, "list_my_drafts")).structuredContent.error, "user_off");
+  assert.equal((await callTool(base, access_token, "draft_list_my_drafts")).structuredContent.error, "user_off");
   const settings = await (await fetch(`${base}/api/byom`)).json();
   assert.equal(settings.enabled, false);
 });
@@ -269,7 +270,7 @@ test("⛔ D86: the per-user daily cap holds", async (t) => {
   env.db.prepare("INSERT INTO byom_briefs (id, user_id, job_id, base_hash, base_json, status, used_at, expires_at) VALUES ('old', 1, 'j1', 'h', '{}', 'used', unixepoch(), 0)").run();
   const { base } = await serve(t, env);
   const { access_token } = mint(env.db, base);
-  const r = await callTool(base, access_token, "get_generation_brief", { job_id: "j1" });
+  const r = await callTool(base, access_token, "draft_get_resume_brief", { job_id: "j1" });
   assert.equal(r.structuredContent.error, "daily_cap");
 });
 
@@ -277,18 +278,18 @@ test("⛔ D86: no résumé content appears in the activity list or the admin log
   const env = setup(); on(env.db); userOn(env.db);
   const { base } = await serve(t, env);
   const { access_token } = mint(env.db, base);
-  const brief = (await callTool(base, access_token, "get_generation_brief", { job_id: "j1" })).structuredContent;
+  const brief = (await callTool(base, access_token, "draft_get_resume_brief", { job_id: "j1" })).structuredContent;
   const b0 = brief.resume.sections.find(s => s.type === "entries").entries[0].bullets[0].id;
-  await callTool(base, access_token, "submit_resume", { brief_id: brief.brief_id, patch: { bullets: [{ id: b0, text: "Built a Kafka service" }] } });
-  await callTool(base, access_token, "submit_resume", { brief_id: brief.brief_id, patch: { bullets: [{ id: b0, text: "Built a Python service on PostgreSQL" }] } });
+  await callTool(base, access_token, "draft_submit_resume_patch", { brief_id: brief.brief_id, patch: { bullets: [{ id: b0, text: "Built a Kafka service" }] } });
+  await callTool(base, access_token, "draft_submit_resume_patch", { brief_id: brief.brief_id, patch: { bullets: [{ id: b0, text: "Built a Python service on PostgreSQL" }] } });
   const both = JSON.stringify([await (await fetch(`${base}/api/byom`)).json(), await (await fetch(`${base}/api/admin/byom`)).json()]);
   assert.doesNotMatch(both, /shipments|Python service|Kafka service|avery@example/);
   assert.match(both, /submit_resume/);
   const activity = (await (await fetch(`${base}/api/byom`)).json()).activity;
-  const refusedRow = activity.find(a => a.tool === "submit_resume" && a.outcome === "refused");
+  const refusedRow = activity.find(a => a.tool === "draft_submit_resume_patch" && a.outcome === "refused");
   assert.equal(refusedRow.fixed, true, "a refusal a later submit saved reads Fixed and resent");
   assert.equal(refusedRow.detail, "new_term");
-  assert.equal(activity.find(a => a.tool === "submit_resume" && a.outcome === "ok").title, "Backend Engineer", "the activity names the job");
+  assert.equal(activity.find(a => a.tool === "draft_submit_resume_patch" && a.outcome === "ok").title, "Backend Engineer", "the activity names the job");
 });
 
 test("⛔ D86: a replayed authorization code revokes the tokens it issued", async (t) => {
@@ -301,7 +302,7 @@ test("⛔ D86: a replayed authorization code revokes the tokens it issued", asyn
   const body = { grant_type: "authorization_code", code, redirect_uri: "http://localhost:9/cb", client_id: reg.client_id, code_verifier: verifier };
   const first = tokenGrant(env.db, body, { resource: `${base}/mcp` });
   assert.throws(() => tokenGrant(env.db, body, { resource: `${base}/mcp` }), /already used/);
-  assert.equal((await callTool(base, first.access_token, "list_my_drafts")).status, 401);
+  assert.equal((await callTool(base, first.access_token, "draft_list_my_drafts")).status, 401);
 });
 
 test("⛔ D86: no model call is made by draft anywhere in this path", () => {
@@ -346,4 +347,35 @@ test("⛔ D86 UI: after sign-in only an /oauth/authorize return is honoured", as
 test("⛔ D86 UI: an externally saved résumé is marked stored, so View reads the store and never generates", () => {
   const p = src("client/src/panels/JobsPanel.jsx");
   assert.match(p, /resume_generated: \(\{ jobId, atsScore \} = \{\}\) => \{[\s\S]{0,400}html: "__exists__"/);
+});
+
+test("⛔ D86 §5: Claude's callback is matched exactly; Claude Code's loopback /callback is accepted in production; nothing else is", () => {
+  assert.equal(hostForRedirect("https://claude.ai/api/mcp/auth_callback"), "claude");
+  assert.equal(hostForRedirect("https://claude.ai/somewhere/else"), null, "another path on claude.ai is not a callback");
+  assert.equal(hostForRedirect("https://claude.ai/api/mcp/auth_callback?next=x"), null, "no query on an exact callback");
+  assert.equal(hostForRedirect("http://localhost:53122/callback"), "claude", "Claude Code's loopback, in production");
+  assert.equal(hostForRedirect("http://127.0.0.1:8080/callback"), "claude");
+  assert.equal(hostForRedirect("http://localhost:53122/other"), null, "a loopback that is not /callback is refused in production");
+  assert.equal(hostForRedirect("https://localhost:53122/callback"), null, "loopback is http only");
+});
+
+test("⛔ D86 §5: an unauthenticated initialize is 401 with WWW-Authenticate; a foreign Origin is 403; no Origin passes", async (t) => {
+  const env = setup(); on(env.db); userOn(env.db);
+  const { base } = await serve(t, env);
+  const init = { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "1" } } };
+  const headers = { "content-type": "application/json", accept: "application/json, text/event-stream" };
+  const anon = await fetch(`${base}/mcp`, { method: "POST", headers, body: JSON.stringify(init) });
+  assert.equal(anon.status, 401);
+  assert.match(anon.headers.get("www-authenticate") || "", /^Bearer resource_metadata="[^"]+\/\.well-known\/oauth-protected-resource\/mcp"/);
+  const { access_token } = mint(env.db, base);
+  const auth = { ...headers, authorization: `Bearer ${access_token}` };
+  const evil = await fetch(`${base}/mcp`, { method: "POST", headers: { ...auth, origin: "https://evil.example" }, body: JSON.stringify(init) });
+  assert.equal(evil.status, 403);
+  const claude = await fetch(`${base}/mcp`, { method: "POST", headers: { ...auth, origin: "https://claude.ai" }, body: JSON.stringify(init) });
+  assert.equal(claude.status, 200);
+  const none = await fetch(`${base}/mcp`, { method: "POST", headers: auth, body: JSON.stringify(init) });
+  assert.equal(none.status, 200, "a server-to-server call carries no Origin");
+  const body = await none.json();
+  assert.equal(body.result.instructions, undefined, "DR-1: no instructions at initialize");
+  assert.match(body.result.serverInfo.name, /^draft$/);
 });

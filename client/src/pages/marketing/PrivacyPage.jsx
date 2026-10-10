@@ -74,6 +74,9 @@ import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL, SUPPORT_EMAI
 // 2026-10-09 (later, D86 compliance — the same date): the connected-app paragraph gains its retention (a request's
 // copy of the base résumé emptied a day after it is finished; the activity record — ids and outcomes, never content —
 // kept 12 months) and the statement that connector content is never used to train a model. Nothing new is collected.
+// 2026-10-09 (later, D86 v1 tools — the same date): the connected app can also search the user's board, read one
+// public posting and see the user's own ATS scores (draft_search_jobs, draft_get_job, draft_score_resume_for_job);
+// the paragraph names them. Read-only, the user's own data and public postings — nothing new is collected.
 const EFFECTIVE_DATE = 'October 9, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
@@ -614,7 +617,8 @@ export function PrivacyPage() {
               app writes a tailored résumé on your own account, and we check and save what it returns. When
               it asks, we give it your base résumé's work history and skills <Strong>without your contact
               details</Strong>, the skills you have claimed, and the job's title, company, level, location
-              and the keywords your résumé matched. If you use draft through ChatGPT or Claude, that résumé
+              and the keywords your résumé matched. It can also search the jobs on your draft board, read a
+              job's public posting, and see the ATS scores draft has worked out for you. If you use draft through ChatGPT or Claude, that résumé
               content and those job details are processed by that provider{" "}
               <Strong>under your own account and its terms</Strong>, not ours. The app never receives your
               contact details, passwords, applications or other jobs. We make no model call for these

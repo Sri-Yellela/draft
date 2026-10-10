@@ -25,6 +25,9 @@ export const PRIVACY_SENTENCE = (host) => {
     `are processed by ${p.provider} under your own ${p.product} account and its terms.`;
 };
 
+// ⛔ D86 DR-13 — the AI-assistance notice, on the screen where the user agrees (and in tools.js AI_NOTICE).
+export const CONSENT_AI_NOTICE = "Résumés written this way are AI-assisted. Some employers restrict AI-assisted applications — check theirs before you apply.";
+
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 const vars = (c) => `--canvas:${c.CANVAS};--surface:${c.SURFACE_SOLID};--ink:${c.INK};--muted:${c.INK_MUTED};--border:${c.BORDER};` +
@@ -93,7 +96,8 @@ ${wantsWrite ? `<div class="scope"><label><input class="ck" type="checkbox" name
 <div class="scope"><span class="ck n">✕</span><span><b>Never: ${esc(NEVER_LIST.join(", "))}</b></span></div>
 ${userOn ? "" : `<div class="note"><p style="margin:0 0 6px"><b>Writing résumés in ChatGPT or Claude is off</b> in your draft settings. Turn it on to connect.</p>
 <div class="scope" style="border:0;padding:0"><label><input class="ck" type="checkbox" name="turn_on" value="1" required aria-label="Turn it on"><span><b>Turn it on</b></span></label></div></div>`}
-<div class="seal">${esc(PRIVACY_SENTENCE(host))} draft makes no model call for these résumés. You can disconnect any time in <b>Settings → Integrations → Connected apps</b>.</div>
+<div class="seal">${esc(PRIVACY_SENTENCE(host))} draft makes no model call for these résumés and never uses them to train a model. You can disconnect any time in <b>Settings → Integrations → Connected apps</b>.</div>
+<p class="note" data-ai-notice="">${esc(CONSENT_AI_NOTICE)}</p>
 </form>
 <div class="actions">${deny}<button class="btn p" type="submit" form="allow">Allow</button></div></div>`;
   return shell(`Connect ${hostLabel}`, body);

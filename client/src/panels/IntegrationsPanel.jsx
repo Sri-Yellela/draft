@@ -81,13 +81,15 @@ const jobOf = (a) => [a.title, a.company].filter(Boolean).join(", ");
 function activityRow(a) {
   const job = jobOf(a);
   const on = job ? ` · ${job}` : "";
-  if (a.tool === "submit_resume" && a.outcome === "ok") return { what: `Wrote a résumé${on}`, mark: [C.SUCCESS, `Saved · ${String(a.detail || "").replace("→", " → ")}`] };
-  if (a.tool === "submit_resume" && a.outcome === "refused") {
+  if (a.tool === "draft_submit_resume_patch" && a.outcome === "ok") return { what: `Wrote a résumé${on}`, mark: [C.SUCCESS, `Saved · ${String(a.detail || "").replace("→", " → ")}`] };
+  if (a.tool === "draft_submit_resume_patch" && a.outcome === "refused") {
     const why = a.detail === "new_term" ? "a skill not in your résumé" : a.detail === "years_exceed_profile" ? "more years than you stated" : "a check failed";
     return { what: `${a.fixed ? "First try refused" : "Refused"}: ${why}${on}`, mark: a.fixed ? [C.WARNING, "Fixed and resent"] : [C.DANGER, "Refused — nothing saved"] };
   }
-  const words = { get_generation_brief: `Read your base résumé${on}`, score_resume: `Scored a résumé${on}`, list_my_drafts: "Listed your drafted jobs",
-    get_my_resumes: "Listed your résumés", connect: "Connected", disconnect: "Disconnected" }[a.tool] || a.tool;
+  // The server reports each row under the tool's current name (routes/byom.js maps the pre-10-09 names).
+  const words = { draft_get_resume_brief: `Read your base résumé${on}`, draft_score_resume_for_job: `Scored your résumé${on}`,
+    draft_search_jobs: "Searched your board", draft_get_job: `Read a job${on}`, draft_list_my_drafts: "Listed your drafted jobs",
+    draft_list_my_resumes: "Listed your résumés", connect: "Connected", disconnect: "Disconnected" }[a.tool] || a.tool;
   if (a.outcome === "denied") return { what: words, mark: [C.INK_FAINT, "Stopped — switched off"] };
   if (a.outcome === "error") return { what: words, mark: [C.DANGER, "Failed on draft's side"] };
   if (a.outcome === "refused") return { what: words, mark: [C.WARNING, "Refused"] };

@@ -1377,7 +1377,7 @@ export function PluginTab({ theme }) {
   );
   const resultMark = (r) => {
     const why = String(r.detail || "").split(",").map(c => RESULT_WORDS[c]).find(Boolean);
-    if (r.outcome === "ok") return <span style={markStyle(C.SUCCESS)}>{r.tool === "submit_resume" ? `Saved · ${String(r.detail || "").replace("→", " → ")}` : "OK"}</span>;
+    if (r.outcome === "ok") return <span style={markStyle(C.SUCCESS)}>{r.tool === "draft_submit_resume_patch" ? `Saved · ${String(r.detail || "").replace("→", " → ")}` : "OK"}</span>;
     if (r.outcome === "refused") return <span style={markStyle(C.DANGER)}>Refused{why ? ` — ${why}` : ""}</span>;
     if (r.outcome === "denied") return <span style={markStyle(C.INK_FAINT)}>Stopped{why ? ` — ${why}` : ""}</span>;
     return <span style={markStyle(C.DANGER)}>Failed</span>;
