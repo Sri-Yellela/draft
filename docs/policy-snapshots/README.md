@@ -15,6 +15,30 @@ Each file names its source URL in its first line. The live page is always the co
 | `claude-connector-authentication.md` | claude.com/docs/connectors/building/authentication | the site's Markdown |
 | `claude-plugin-pre-submission-checklist.md` | claude.com/docs/plugins/pre-submission-checklist | the site's Markdown |
 | `openai-submit-claude-plugin.md` | developers.openai.com/plugins/guides/submit-claude-plugin | the site's Markdown |
+| `openai-sign-in-with-chatgpt-docs.md` | developers.openai.com/siwc/llms-full.txt (D89) | OpenAI's single-file export |
+| ⚠ *(not saved)* the Sign in with ChatGPT **Terms** | openai.com/policies/sign-in-with-chatgpt-terms/ | openai.com answers scripted fetches with 403 — **the owner saves the page from a browser** (O93) |
+
+## D89 · what the Sign in with ChatGPT docs settle (2026-10-09)
+
+- **"Continue with ChatGPT" inside a plugin is switched on by OpenAI's partnerships team** after the integration is
+  built (*"contact your OpenAI representative on the partnerships team to enable Continue with ChatGPT in your
+  ChatGPT plugin's modal"*) — D86's open "verify" item, confirmed. The integration is two separate OAuth
+  transactions: ChatGPT → draft (the connector, as built) and draft → OpenAI (identity, `openid profile email`).
+  ChatGPT's request carries `login_hint` (the user's email) and `target_flow=chatgpt_siwc`.
+- **Plan usage is documented for open-source and locally hosted apps only**; *"If you're interested in offering it
+  in a paid or remotely hosted app, complete the interest form."* — architecture H stays ruled out, as D89 says.
+- **Eligibility: the docs name ChatGPT Plus and Pro.** ⚠ D89 and `SIWC_INTEREST_FORM.md` say **Go**, Plus and Pro
+  (from a help page). The developer docs do not mention Go — check the help page before relying on Go for the
+  prototype.
+- **The local prototype (G2) needs** `client_id=dynamic_agent_client` on first registration, a persisted opaque
+  `ext_agent_host_id` per host (`urn:uuid:…` or a JWK thumbprint URI — never an email or user id), and
+  `agent_name_hint` set to the app's real name. Requests: `store: false`, `stream: true`, `input` as an array;
+  `temperature`, `max_output_tokens`, `metadata`, `user`, `previous_response_id` and others are rejected.
+- **UI rules if plan usage ever ships:** a one-time *"You're using your ChatGPT plan"* confirmation, *"Using
+  ChatGPT plan"* near the control with **Manage usage** (chatgpt.com/settings/usage), a usage-limit state whose
+  primary action is Manage usage, and — ⚠ — **"your app must clearly show which of its plans support ChatGPT plan
+  usage"** on its pricing page. That last one meets D86's rule of no plan talk in the connector only because it
+  is draft's own website, not the connector.
 
 ## What reading them changed (2026-10-09)
 
