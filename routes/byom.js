@@ -26,7 +26,7 @@ import { renderConsentPage, renderConsentMessage } from "../services/byom/consen
 // ⛔ D86 COMPLIANCE (10-09): the server sends NO `instructions` at initialize. Anthropic's Software Directory
 // Policy §2F forbids a connector making Claude pull behavioural instructions from an external source at
 // runtime; the "how to write it" guidance is a static Skill in the separate public plugin repository
-// (draft-claude-plugin). Tool descriptions and result lines say what happened, never what to do next —
+// (draft-plugin). Tool descriptions and result lines say what happened, never what to do next —
 // test/d86ConnectorCompliance.test.js lints every string the connector speaks.
 export const SERVER_INFO = Object.freeze({ name: "draft", version: "1.1.0" });
 

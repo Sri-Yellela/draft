@@ -75,7 +75,7 @@ function scrubDeep(v) {
 // Anthropic's Software Directory Policy §2F forbids a connector making Claude pull behavioural instructions
 // from an external source at runtime, so the brief is DATA ONLY — there is no `instructions` field. The
 // "how to write it" guidance is a static Skill in the separate public plugin repository
-// (draft-claude-plugin), and test/d86ConnectorCompliance.test.js holds the brief and the server to it.
+// (draft-plugin), and test/d86ConnectorCompliance.test.js holds the brief and the server to it.
 export const OUTPUT_SCHEMA = Object.freeze({
   type: "object",
   additionalProperties: false,
