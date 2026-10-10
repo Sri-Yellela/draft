@@ -61,7 +61,7 @@ test("⛔ D90: without ids, a lightly reworded bullet aligns to ITS original; a 
 
 test("⛔ D90: the word diff marks exactly the changed words", () => {
   assert.deepEqual(wordDiff("Built a service across three regions", "Built a fast service across three regions, in Docker"), [
-    { op: "same", text: "Built a" }, { op: "add", text: "fast" }, { op: "same", text: "service across three regions," }, { op: "add", text: "in Docker" }]);
+    { op: "same", text: "Built a" }, { op: "add", text: "fast" }, { op: "same", text: "service across three regions,", was: "service across three regions" }, { op: "add", text: "in Docker" }]);
   assert.deepEqual(alignBullets(["a b c"], ["a b c"])[0].status, "unchanged");
 });
 
