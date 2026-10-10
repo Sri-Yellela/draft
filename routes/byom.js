@@ -81,6 +81,13 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
   const prm = (req, res) => res.json(protectedResourceMetadata({ issuer: issuerFor(req), resource: resourceFor(req) }));
   tokenRouter.get("/.well-known/oauth-protected-resource", prm);
   tokenRouter.get("/.well-known/oauth-protected-resource/mcp", prm);
+  // OpenAI's plugin portal verifies the MCP host by fetching its exact token from this path. The owner sets
+  // OPENAI_APPS_CHALLENGE when the portal shows the token; until then the path is 404.
+  tokenRouter.get("/.well-known/openai-apps-challenge", (_req, res) => {
+    const token = String(process.env.OPENAI_APPS_CHALLENGE || "").trim();
+    if (!token) return res.status(404).type("text/plain").send("not configured");
+    res.set("Cache-Control", "no-store").type("text/plain").send(token);
+  });
   tokenRouter.get("/.well-known/oauth-authorization-server", (req, res) => res.json(authorizationServerMetadata({ issuer: issuerFor(req) })));
 
   tokenRouter.post("/oauth/register", express.json({ limit: "16kb" }), (req, res) => {
@@ -200,6 +207,8 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
     res.type("html").send(renderConsentPage({
       host, hostLabel: isLoopbackCallback(a.redirectUri) ? "Claude Code on this computer" : HOSTS[host]?.label ?? "A local test client", who: email, username: req.user?.username ?? "",
       scopes: a.scope.split(" "), userOn: userEnabled(db, req.user.id), unavailable, nonce,
+      // The MCP authorization spec: show the redirect URI's host clearly, and warn when it is a loopback address.
+      returnHost: (() => { try { return new URL(a.redirectUri).host; } catch { return ""; } })(), loopback: isLoopbackCallback(a.redirectUri),
     }));
   });
 

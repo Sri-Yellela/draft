@@ -71,8 +71,12 @@ export function hostForRedirect(uri, { production = true } = {}) {
   return null;
 }
 
+// `offline_access` asks for a refresh token. draft always issues one, so it is accepted and dropped — Claude
+// appends it when it is advertised, and OpenAI's help advises it; refusing it would fail the connection.
+const NO_OP_SCOPES = new Set(["offline_access"]);
+
 export function parseScope(scope) {
-  const asked = String(scope ?? "").split(/\s+/).filter(Boolean);
+  const asked = String(scope ?? "").split(/\s+/).filter(s => s && !NO_OP_SCOPES.has(s));
   const unknown = asked.filter(s => !SCOPES.includes(s));
   if (unknown.length) throw new OAuthError("invalid_scope", `Unknown scope: ${unknown.join(" ")}`);
   return [...new Set(asked.length ? asked : DEFAULT_SCOPE.split(" "))].sort().join(" ");
