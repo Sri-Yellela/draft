@@ -56,6 +56,15 @@ No new collection: the Copy sheet adds no permission, host, storage key or store
 | Instructions (D86 compliance, 10-09) | ✅ The connector sends data only — no `instructions` in the brief or at initialize (Anthropic Directory Policy §2F); the guidance is the static Skill in the separate public plugin repository | `routes/byom.js` `SERVER_INFO`; test `d86ConnectorCompliance` |
 | ⏸ Notice to users | Is this a material change that needs notice before the operator's switch goes on? The owner's call (WORKLOG O87), as O85 was for automatic capture | — |
 
+## ⭐ D90 · EVERY UPLOADED RÉSUMÉ IS KEPT (10-10; the web app, not the extension)
+
+| Check | Finding | Where |
+|---|---|---|
+| What is kept | each DISTINCT base résumé the user saves (deduplicated by hash), and on each tailored version the id of the upload it was made from | `services/baseResumeHistory.js`; migration 157 `base_resume_uploads`, `resume_versions.base_upload_id` |
+| Policy | ✅ Data Storage and Security: "We keep each résumé you upload — not only the newest … deleted with your account" | `PrivacyPage.jsx` |
+| Deletion / merge | ✅ cascades from `users`; moves with the person on a merge | migration 157; `services/accountService.js` MERGE map |
+| Who sees it | the user only — the comparison endpoints are authenticated and own-data (a 404 otherwise); no eligibility or EEO field is in any response | `routes/resumeChanges.js`; test `d90ResumeChanges` |
+
 ## ⭐ D88 · SUPPORT REQUESTS AND ACCOUNT ADMINISTRATION (10-09, 39d; the web app, not the extension)
 
 | What | Where in code | Kept | Policy |

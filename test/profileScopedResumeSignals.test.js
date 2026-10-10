@@ -13,6 +13,11 @@ test("profile-scoped base resume storage writes and reads by profile_id", () => 
   const store = { profileResume: null };
   const db = {
     prepare(sql) {
+      // D90: saving a base also records the upload (services/baseResumeHistory.js) — not what these tests are about.
+      if (sql.includes("base_resume_uploads")) {
+        const st = { all: () => [], get: () => undefined, run: () => ({ lastInsertRowid: 1 }), pluck: () => st };
+        return st;
+      }
       if (sql.includes("INSERT INTO profile_base_resumes")) {
         return {
           run(profileId, userId, content, name) {
@@ -39,6 +44,11 @@ test("profile A base resume upload does not affect profile B", () => {
   const store = new Map();
   const db = {
     prepare(sql) {
+      // D90: saving a base also records the upload (services/baseResumeHistory.js) — not what these tests are about.
+      if (sql.includes("base_resume_uploads")) {
+        const st = { all: () => [], get: () => undefined, run: () => ({ lastInsertRowid: 1 }), pluck: () => st };
+        return st;
+      }
       if (sql.includes("INSERT INTO profile_base_resumes")) {
         return {
           run(profileId, userId, content, name) {

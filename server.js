@@ -32,6 +32,7 @@ import { GENERATION_EXPECT_SECONDS, userSafeGeneration, userCostView, userSafeRe
 import { isSuspended, UserAdminError, selfAllowance } from "./services/userAdmin.js";
 import { createAdminPeopleRouter } from "./routes/adminPeople.js";
 import { createSupportRouters } from "./routes/tickets.js";
+import { createResumeChangesRouter } from "./routes/resumeChanges.js";
 import { purgeSolvedTickets } from "./services/tickets.js";
 import { storeGeneratedResume, refundGeneration, ResumeStoreError, STORE_FAILED_SENTENCE, listGeneratedResumes,
          deleteGeneratedResume, sweepExpiredResumes, resumeRetentionDays } from "./services/generatedResumes.js";
@@ -4781,6 +4782,31 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket ON ticket_messages(ticket_id, id);
       `,
     },
+    {
+      // ⭐ D90 (owner 10-10): "base is the résumé the user uploaded — any change is compared against that, or the user
+      // picks which two to compare." So no upload is lost: every distinct base the user saves is kept here (the
+      // profile's base_resumes row is still the CURRENT one), and each tailored version records the upload it was
+      // made from. content_hash is filled by the app (services/baseResumeHistory.js); the backfill's rows get theirs
+      // on first read. Deleted with the account (cascade); moved on an account merge.
+      id: "157_base_resume_uploads",
+      sql: `
+        CREATE TABLE IF NOT EXISTS base_resume_uploads (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          profile_id INTEGER,
+          name TEXT,
+          content TEXT NOT NULL,
+          content_hash TEXT,
+          source TEXT NOT NULL DEFAULT 'upload',
+          uploaded_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_base_resume_uploads_user ON base_resume_uploads(user_id, profile_id, uploaded_at);
+        INSERT INTO base_resume_uploads (user_id, profile_id, name, content, source, uploaded_at)
+          SELECT user_id, profile_id, name, content, 'backfill', COALESCE(updated_at, unixepoch())
+          FROM profile_base_resumes WHERE TRIM(COALESCE(content, '')) != '';
+        ALTER TABLE resume_versions ADD COLUMN base_upload_id INTEGER;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7901,6 +7927,8 @@ app.get("/api/account/allowance", requireAuth, (req, res) => {
   app.use("/api/support", requireAuth, support.user);
   app.use("/api/admin/tickets", requireAdmin, support.admin);
 }
+// ⭐ D90 P1 · "what we changed" — any two of a job's résumés compared (routes/resumeChanges.js). Read-only, own data only.
+app.use(createResumeChangesRouter({ db, requireAuth }));
 app.use("/api/admin/people", requireAdmin, createAdminPeopleRouter({
   db, requireAdmin, signOutEverywhere: (id, why) => revokeAllUserSessions(id, why), sendResetLink: adminSendResetLink,
 }));
