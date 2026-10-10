@@ -10499,7 +10499,21 @@ function byomDeps() {
   return {
     db,
     appUrl: APP_BASE_ORIGIN || `http://localhost:${PORT}`,
+    // D86 DR-3: the brief is a signed token; its key is derived from the session secret, never stored.
+    briefSecret: crypto.createHmac("sha256", SESSION_SECRET || "dev-session-secret-change-me").update("byom-brief-v1").digest(),
     jobFor: (jobId) => db.prepare("SELECT * FROM scraped_jobs WHERE job_id=?").get(String(jobId)) || null,
+    mapJob: (row) => mapJobRow(row),
+    // D86 draft_search_jobs: the BOARD itself — boardPageResponse, the same query and order as GET /api/jobs.
+    async searchBoard(userId, { query, location, level, postedWithin, limit }) {
+      const q = { pageSize: String(limit || 10) };
+      if (query) q.role = query;
+      if (location) q.location = location;
+      if (level) q.experience_levels = level;
+      if (postedWithin) q.ageFilter = postedWithin;
+      const { status, body } = await boardPageResponse({ query: q, user: { id: userId } });
+      if (status !== 200) throw new Error(body?.error || `board ${status}`);
+      return { jobs: body.jobs || [], total: body.total ?? (body.jobs || []).length, needsProfile: !!body.needsProfileSetup };
+    },
     baseFor(userId) {
       const dp = getOrRepairActiveProfile(userId);
       if (!dp) return null;

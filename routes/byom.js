@@ -16,11 +16,11 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { ListToolsRequestSchema, CallToolRequestSchema, McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import {
   OAuthError, HOSTS, registerClient, validateAuthorize, issueCode, tokenGrant, revokeToken, verifyAccessToken,
-  listConnections, revokeConnection, protectedResourceMetadata, authorizationServerMetadata,
+  listConnections, revokeConnection, protectedResourceMetadata, authorizationServerMetadata, isLoopbackCallback,
 } from "../services/byom/oauthServer.js";
 import { refusalFor, userEnabled, setUserEnabled, usedToday, dailyCap, globalEnabled, hostEnabled, callsLastHour,
   CALLS_PER_HOUR, adminSettings, writeAdminSettings } from "../services/byom/policy.js";
-import { createByomTools, ToolRefusal } from "../services/byom/tools.js";
+import { createByomTools, ToolRefusal, LEGACY_TOOL_NAMES } from "../services/byom/tools.js";
 import { renderConsentPage, renderConsentMessage } from "../services/byom/consentPage.js";
 
 // ⛔ D86 COMPLIANCE (10-09): the server sends NO `instructions` at initialize. Anthropic's Software Directory
@@ -46,14 +46,19 @@ const toolRefusal = (code, message, extra = {}) => ({ isError: true, content: [{
 // The text a host shows. The sketch's result is a card — score, base → tailored, Open in draft; a host
 // that renders no widget shows this line: what happened, in plain words.
 const LEADS = {
-  get_generation_brief: (out) => `Brief ${out?.brief_id ?? ""} for ${[out?.job?.title, out?.job?.company].filter(Boolean).join(" · ") || "the job"}.`,
-  submit_resume: (out) => `Résumé saved to draft — ${[out?.title, out?.company].filter(Boolean).join(" · ")}` +
+  draft_search_jobs: (out) => `${out?.returned ?? 0} of ${out?.total ?? 0} jobs on the candidate's board.`,
+  draft_get_job: (out) => `${[out?.title, out?.company].filter(Boolean).join(" · ") || "The job"}.`,
+  draft_score_resume_for_job: (out) => out?.score != null ? `Base résumé score: ${out.score}.` : "The posting carries too little signal to score.",
+  draft_get_resume_brief: (out) => `Brief for ${[out?.job?.title, out?.job?.company].filter(Boolean).join(" · ") || "the job"}, valid for 30 minutes.`,
+  draft_submit_resume_patch: (out) => `Résumé saved to draft — ${[out?.title, out?.company].filter(Boolean).join(" · ")}` +
     `${out?.base_ats_score != null && out?.ats_score != null ? ` · base ${out.base_ats_score} → ${out.ats_score}` : ""} · claims checked. ` +
     `In draft: ${out?.link ?? ""}${out?.warning ? ` ⚠ ${out.warning}` : ""} ${out?.notice ?? ""}`.trim(),
-  score_resume: () => "Scored against the job.",
-  list_my_drafts: () => "The candidate's drafted jobs.",
-  get_my_resumes: () => "The candidate's saved résumés.",
+  draft_list_my_resumes: () => "The candidate's saved résumés.",
+  draft_list_my_drafts: () => "The candidate's drafted jobs.",
 };
+const SUBMIT = "draft_submit_resume_patch";
+/** An audit row's tool under its current name — rows written before the v1 catalogue carry the old ones. */
+const toolName = (t) => LEGACY_TOOL_NAMES[t] || t;
 
 /**
  * @param {{ db, deps, issuerFor(req), production, requireAuth, requireAdmin, log? }} opts
@@ -90,7 +95,7 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
   });
 
   // ── /mcp — stateless Streamable HTTP, one server per request (the tools service's pattern).
-  const { handlers, defs } = createByomTools(deps);
+  const { handlers, defs, jobIdOf } = createByomTools(deps);
   const served = defs.map(({ scope, justification, ...t }) => ({ ...t, securitySchemes: [{ type: "oauth2", scopes: [scope] }] }));
   const scopeOf = Object.fromEntries(defs.map(d => [d.name, d.scope]));
 
@@ -99,7 +104,14 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
     return res.status(401).json({ error: "invalid_token", error_description: description });
   }
 
-  tokenRouter.post("/mcp", express.json({ limit: "512kb" }), async (req, res, next) => {
+  // ⛔ D86 §5 / the MCP transport rule: validate Origin (DNS-rebinding defence). A host's server-to-server call
+  // carries none and passes; a browser page may call only from draft itself or a known host's origin.
+  const allowedOrigins = (req) => new Set([new URL(issuerFor(req)).origin, ...Object.values(HOSTS).flatMap(h => h.origins)]);
+  tokenRouter.post("/mcp", (req, res, next) => {
+    const origin = req.get("origin");
+    if (origin && !allowedOrigins(req).has(origin)) return res.status(403).json({ error: "forbidden_origin", error_description: "Requests from this origin are not accepted." });
+    next();
+  }, express.json({ limit: "512kb" }), async (req, res, next) => {
     const bearer = (req.get("authorization") || "").match(/^Bearer\s+(.+)$/i)?.[1];
     const auth = verifyAccessToken(db, bearer, { resource: resourceFor(req) });
     if (!auth) return unauthorized(req, res);
@@ -110,11 +122,9 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
       const name = String(params?.name ?? "");
       if (!Object.hasOwn(handlers, name)) throw new McpError(ErrorCode.InvalidParams, `unknown tool: ${name.slice(0, 64)}`);
       const args = params.arguments ?? {};
-      // The job the call is about, for the activity list: named directly, or through the brief.
-      let jobId = args.job_id ?? null;
-      if (jobId == null && args.brief_id) {
-        try { jobId = db.prepare("SELECT job_id FROM byom_briefs WHERE id = ? AND user_id = ?").pluck().get(String(args.brief_id), auth.userId) ?? null; } catch { jobId = null; }
-      }
+      // The job the call is about, for the activity list: named directly, or inside the signed brief.
+      let jobId = null;
+      try { jobId = jobIdOf(args); } catch { jobId = null; }
       const who = { userId: auth.userId, connectionId: auth.connectionId, jobId };
       // Every switch, every call: Disconnect, the master switch and the global switch stop the NEXT call.
       const off = refusalFor(db, { userId: auth.userId, host: auth.host });
@@ -128,9 +138,9 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
         return toolRefusal("rate_limited", `Too many calls in the last hour (limit ${CALLS_PER_HOUR}). Try again later.`);
       }
       try {
-        const out = handlers[name](who, args);
+        const out = await handlers[name](who, args);
         audit(db, { ...who, tool: name, outcome: "ok",
-          detail: name === "submit_resume" ? `${out?.base_ats_score ?? "–"}→${out?.ats_score ?? "–"}` : null });
+          detail: name === SUBMIT ? `${out?.base_ats_score ?? "–"}→${out?.ats_score ?? "–"}` : null });
         return toolResult(out, LEADS[name](out));
       } catch (e) {
         if (e instanceof ToolRefusal) {
@@ -185,7 +195,7 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
     let email = null;
     try { email = db.prepare("SELECT email FROM user_profile WHERE user_id = ?").pluck().get(req.user.id) || null; } catch { email = null; }
     res.type("html").send(renderConsentPage({
-      host, hostLabel: HOSTS[host]?.label ?? "A local test client", who: email, username: req.user?.username ?? "",
+      host, hostLabel: isLoopbackCallback(a.redirectUri) ? "Claude Code on this computer" : HOSTS[host]?.label ?? "A local test client", who: email, username: req.user?.username ?? "",
       scopes: a.scope.split(" "), userOn: userEnabled(db, req.user.id), unavailable, nonce,
     }));
   });
@@ -229,13 +239,14 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
   // The sketch's activity table: When · App · What (the job's title and company — never résumé text) ·
   // Result. A refused submit that a later submit for the same job saved reads "Fixed and resent".
   const activityFor = (userId) => db.prepare(`SELECT a.tool, a.outcome, a.at, a.detail, cl.host, sj.title, sj.company,
-        (a.tool = 'submit_resume' AND a.outcome = 'refused' AND EXISTS (SELECT 1 FROM mcp_audit b WHERE b.user_id = a.user_id
-          AND b.job_id = a.job_id AND b.tool = 'submit_resume' AND b.outcome = 'ok' AND b.id > a.id)) AS fixed
+        (a.tool IN ('submit_resume', '${SUBMIT}') AND a.outcome = 'refused' AND EXISTS (SELECT 1 FROM mcp_audit b WHERE b.user_id = a.user_id
+          AND b.job_id = a.job_id AND b.tool IN ('submit_resume', '${SUBMIT}') AND b.outcome = 'ok' AND b.id > a.id)) AS fixed
       FROM mcp_audit a
       LEFT JOIN oauth_connections oc ON oc.id = a.connection_id LEFT JOIN oauth_clients cl ON cl.client_id = oc.client_id
       LEFT JOIN scraped_jobs sj ON sj.job_id = a.job_id
       WHERE a.user_id = ? ORDER BY a.id DESC LIMIT 20`).all(userId)
-    .map(r => ({ ...r, fixed: !!r.fixed, detail: r.tool === "submit_resume" && r.outcome === "ok" ? r.detail : (r.detail || "").split(",")[1] || r.detail || null }));
+    .map(r => ({ ...r, tool: toolName(r.tool) }))
+    .map(r => ({ ...r, fixed: !!r.fixed, detail: r.tool === SUBMIT && r.outcome === "ok" ? r.detail : (r.detail || "").split(",")[1] || r.detail || null }));
 
   sessionRouter.get("/api/byom", requireAuth, (req, res) => {
     const userId = req.user.id;
@@ -291,7 +302,7 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
         closedAfterThree: db.prepare("SELECT COUNT(*) FROM byom_briefs WHERE status = 'exhausted' AND created_at >= ?").pluck().get(week),
       },
       recent: db.prepare(`SELECT a.at, u.username, a.tool, a.outcome, a.detail FROM mcp_audit a LEFT JOIN users u ON u.id = a.user_id
-        ORDER BY a.id DESC LIMIT 50`).all(),
+        ORDER BY a.id DESC LIMIT 50`).all().map(r => ({ ...r, tool: toolName(r.tool) })),
     });
   });
   sessionRouter.put("/api/admin/byom", requireAdmin, express.json(), (req, res) => {

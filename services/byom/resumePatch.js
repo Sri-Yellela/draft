@@ -97,20 +97,30 @@ export const OUTPUT_SCHEMA = Object.freeze({
  *   baseReport — the scorer's report on the BASE résumé for this job; only its MATCHED terms and verbs
  *   go in (D70's keywords-only context: never the posting's unclaimed requirements).
  */
-export function buildBrief({ briefId, expiresAt, job = {}, structured, claims = {}, baseReport = null, allowSummary = false }) {
+export const BRIEF_DETAIL = Object.freeze(["full", "short"]);
+
+export function buildBrief({ briefId, expiresAt, job = {}, structured, claims = {}, baseReport = null, allowSummary = false, detail = "full" }) {
   const claimedSkills = [...new Set((claims?.skills || []).map(String))];
   const claimedVerbs = [...new Set((claims?.actionVerbs || []).map(String))];
+  const short = detail === "short";
+  const resume = idsFor(structured);
+  // DR-6 · `short` is the frugal form: each entry keeps its ids, employer, title, date and bullets, and
+  // drops its location line, technology line and free text; the action verbs are left out.
+  if (short) for (const s of resume.sections) for (const e of s.entries || []) { delete e.meta; delete e.tech; delete e.text; }
   const body = {
     job: { id: String(job.job_id ?? job.id ?? ""), title: job.title || "", company: job.company || "",
-      level: job.seniority || job.experience_level || "", location: job.location || "" },
-    resume: idsFor(structured),
-    claims: { skills: claimedSkills, action_verbs: claimedVerbs },
+      level: job.seniority || job.experience_level || "", location: job.location || "",
+      // DR-1 · the job's family is DATA (the Skill carries the static rules) — never a per-job prompt.
+      family: job.bucket_role || null },
+    resume,
+    claims: { skills: claimedSkills, ...(short ? {} : { action_verbs: claimedVerbs }) },
     keywords: {
       matched: [...(baseReport?.tier1_matched || [])],
       claimed: claimedSkills,
-      verbs: [...new Set([...(baseReport?.action_verbs_matched || []), ...claimedVerbs])],
+      ...(short ? {} : { verbs: [...new Set([...(baseReport?.action_verbs_matched || []), ...claimedVerbs])] }),
     },
     allow_summary: !!allowSummary,
+    detail: short ? "short" : "full",
   };
   return { brief_id: briefId, expires_at: expiresAt, max_attempts: MAX_ATTEMPTS, ...scrubDeep(body), output_schema: OUTPUT_SCHEMA };
 }

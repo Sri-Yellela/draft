@@ -25,10 +25,23 @@ export const ACCESS_TTL = 60 * 60;
 export const REFRESH_TTL = 30 * 24 * 60 * 60;
 export const CODE_TTL = 10 * 60;
 
+// ⛔ D86 §5 (docs/CLAUDE_CONNECTOR_COMPLIANCE.md): Claude registers its ONE callback, matched exactly — it covers
+// Claude web, Desktop, mobile and Cowork — and Claude Code's loopback `http://localhost:<port>/callback` (RFC 8252
+// §7.3: a native app's port is ephemeral, so the port is the one part not matched). The loopback is Anthropic's
+// own client, so it is the "claude" host and the same Allow-Claude switch governs it; the consent screen names it
+// "Claude Code on this computer". ChatGPT's callback has a per-callback form, so it is matched by origin.
 export const HOSTS = Object.freeze({
-  claude: { label: "Claude", origins: ["https://claude.ai", "https://claude.com"] },
+  claude: { label: "Claude", origins: ["https://claude.ai", "https://claude.com"],
+    callbacks: ["https://claude.ai/api/mcp/auth_callback", "https://claude.com/api/mcp/auth_callback"], loopbackPath: "/callback" },
   chatgpt: { label: "ChatGPT", origins: ["https://chatgpt.com", "https://chat.openai.com"] },
 });
+
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+/** A Claude Code loopback callback (any port, exact path, no query). */
+export const isLoopbackCallback = (uri) => {
+  try { const u = new URL(String(uri)); return u.protocol === "http:" && LOOPBACK_HOSTS.has(u.hostname) && u.pathname === HOSTS.claude.loopbackPath && !u.search && !u.hash; }
+  catch { return false; }
+};
 
 export class OAuthError extends Error {
   constructor(error, description, status = 400) {
@@ -48,7 +61,12 @@ export function hostForRedirect(uri, { production = true } = {}) {
   let u;
   try { u = new URL(String(uri)); } catch { return null; }
   if (u.hash) return null;
-  for (const [host, { origins }] of Object.entries(HOSTS)) if (origins.includes(u.origin)) return host;
+  for (const [host, { origins, callbacks }] of Object.entries(HOSTS)) {
+    if (!origins.includes(u.origin)) continue;
+    if (callbacks && (u.search || !callbacks.includes(`${u.origin}${u.pathname}`))) return null;
+    return host;
+  }
+  if (isLoopbackCallback(uri)) return "claude";
   if (!production && u.protocol === "http:" && ["localhost", "127.0.0.1"].includes(u.hostname)) return "local";
   return null;
 }
