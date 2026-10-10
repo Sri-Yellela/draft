@@ -5,7 +5,7 @@
 //   node scripts/reviewerDemo.mjs --db data/resume_master.db reset
 //
 // The password comes from the environment, never an argument (it would land in shell history). The same code
-// runs behind Admin → System → Plugin (POST /api/admin/byom/reviewer). ⛔ Against PRODUCTION this is a write:
+// runs behind Admin → People → Users → Reviewer account (POST /api/admin/byom/reviewer). ⛔ Against PRODUCTION this is a write:
 // the owner's go first (WORKLOG O93).
 import Database from "better-sqlite3";
 import { seedReviewerDemo, resetReviewerDemo, DEMO_USERNAME, DEMO_POSTINGS } from "../services/reviewerDemo.js";

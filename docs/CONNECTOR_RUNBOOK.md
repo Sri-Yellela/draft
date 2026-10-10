@@ -20,7 +20,7 @@ ids and outcomes only, never résumé text (`mcp_audit`, kept 12 months).
 ## Reviewer feedback
 
 1. Read it in the developer portal (claude.ai/directory/manage). Anthropic's review team: `mcp-review@anthropic.com`.
-2. Reset the reviewer account before a re-review: Admin → System → Plugin → Reviewer account → **Reset it**
+2. Reset the reviewer account before a re-review: Admin → People → Users → Reviewer account → **Reset demo account**
    (or `node scripts/reviewerDemo.mjs --db <path> reset`).
 3. A change to **what a tool does or is called** is a deploy *and* a listing edit: the listing's tool names change
    only through a listing edit a reviewer approves. Keep `/docs/claude` and the plugin README's tool tables in step —

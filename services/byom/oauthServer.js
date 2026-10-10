@@ -109,6 +109,19 @@ export function registerClient(db, body = {}, { production = true } = {}) {
   };
 }
 
+/**
+ * Exact match — except a LOOPBACK redirect, whose port is ephemeral (RFC 8252 §7.3): Claude Code's metadata
+ * document registers `http://localhost/callback` and calls back on `http://localhost:<port>/callback`. Scheme,
+ * host and path must still match exactly.
+ */
+export function redirectRegistered(registered, uri) {
+  if (registered.includes(uri)) return true;
+  let u;
+  try { u = new URL(uri); } catch { return false; }
+  if (u.protocol !== "http:" || !["localhost", "127.0.0.1", "[::1]"].includes(u.hostname) || u.search || u.hash) return false;
+  return registered.some(r => { try { const v = new URL(r); return v.protocol === u.protocol && v.hostname === u.hostname && v.pathname === u.pathname && !v.search; } catch { return false; } });
+}
+
 export function getClient(db, clientId) {
   const row = db.prepare("SELECT * FROM oauth_clients WHERE client_id = ?").get(String(clientId ?? ""));
   return row ? { ...row, redirect_uris: JSON.parse(row.redirect_uris) } : null;
@@ -124,7 +137,7 @@ export function validateAuthorize(db, q = {}, { resource }) {
   const client = getClient(db, q.client_id);
   if (!client) throw new OAuthError("invalid_client", "This app is not registered with draft.");
   const redirectUri = String(q.redirect_uri ?? "");
-  if (!client.redirect_uris.includes(redirectUri)) throw new OAuthError("invalid_request", "redirect_uri is not one this app registered.");
+  if (!redirectRegistered(client.redirect_uris, redirectUri)) throw new OAuthError("invalid_request", "redirect_uri is not one this app registered.");
   // From here on, errors may go back to the client's redirect URI.
   const redirectable = (e) => Object.assign(e, { redirectUri, state: q.state });
   if (q.response_type !== "code") throw redirectable(new OAuthError("unsupported_response_type", "Only response_type=code is supported."));
@@ -283,6 +296,8 @@ export function authorizationServerMetadata({ issuer }) {
     grant_types_supported: ["authorization_code", "refresh_token"],
     code_challenge_methods_supported: ["S256"],
     token_endpoint_auth_methods_supported: ["none"],
+    // A96 · CIMD (services/byom/cimd.js) — Claude and OpenAI prefer it; DCR stays as the fallback.
+    client_id_metadata_document_supported: true,
     revocation_endpoint_auth_methods_supported: ["none"],
     authorization_response_iss_parameter_supported: true,
   };
