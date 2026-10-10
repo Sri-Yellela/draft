@@ -81,6 +81,7 @@ export const SHARED = Object.freeze({
   "components/ProfileSelectorDropdown.jsx": { what: "the active-profile picker — top bar and board" },
   "components/ExtensionPrompt.jsx":     { what: "the get-the-extension prompt — app, extension page, board" },
   "components/ScrollDock.jsx":          { what: "the marketing and tools pages' dock" },
+  "components/PolicyProse.jsx":         { what: "the public documents' prose parts — the privacy policy and the connector docs (/docs/claude)" },
   "components/Footer.jsx":              { what: "the site footer" },
   "components/StampLogo.jsx":           { what: "THE /draft mark" },
   "components/DraftMark.jsx":           { what: "the /d mark (D1)" },

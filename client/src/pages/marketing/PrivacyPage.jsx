@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL, SUPPORT_EMAIL } from "../../../../shared/brand.js";
+import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyProse.jsx";
 
 // Effective date, not just "last touched". The Chrome Web Store rules that took effect on
 // 2026-08-01 require a policy to state when it takes effect and to commit to telling users about
@@ -79,72 +80,6 @@ import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL, SUPPORT_EMAI
 // the paragraph names them. Read-only, the user's own data and public postings — nothing new is collected.
 const EFFECTIVE_DATE = 'October 9, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
-
-// A93: a POLICY section heading — the document's own, not the settings card (SettingsSection).
-function PolicySection({ title, children }) {
-  return (
-    <section style={{ marginBottom: 40 }}>
-      <h2 style={{
-        fontSize: 18, fontWeight: 400, color: "var(--color-text)",
-        marginBottom: 12, paddingBottom: 8,
-        borderBottom: "1px solid var(--color-border)",
-        fontFamily: "var(--font-display)",
-      }}>
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-function P({ children }) {
-  return (
-    <p style={{
-      fontSize: 14, color: "var(--color-text-muted)",
-      lineHeight: 1.8, margin: "0 0 12px",
-      maxWidth: "66ch",
-    }}>
-      {children}
-    </p>
-  );
-}
-
-function UL({ children }) {
-  return (
-    <ul style={{
-      paddingLeft: 22, margin: "0 0 12px",
-      display: "flex", flexDirection: "column", gap: 6,
-    }}>
-      {children}
-    </ul>
-  );
-}
-
-function LI({ children }) {
-  return (
-    <li style={{
-      fontSize: 14, color: "var(--color-text-muted)",
-      lineHeight: 1.75, maxWidth: "64ch",
-    }}>
-      {children}
-    </li>
-  );
-}
-
-function H3({ children }) {
-  return (
-    <h3 style={{
-      fontSize: 15, fontWeight: 700, color: "var(--color-text)",
-      margin: "20px 0 8px",
-    }}>
-      {children}
-    </h3>
-  );
-}
-
-function Strong({ children }) {
-  return <strong style={{ fontWeight: 700, color: "var(--color-text)" }}>{children}</strong>;
-}
 
 export function PrivacyPage() {
   return (

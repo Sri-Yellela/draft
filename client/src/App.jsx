@@ -58,6 +58,7 @@ import { ContactPage }     from "./pages/marketing/ContactPage.jsx";
 import { FAQPage }         from "./pages/marketing/FAQPage.jsx";
 import { PrivacyPage }     from "./pages/marketing/PrivacyPage.jsx";
 import { TermsPage }       from "./pages/marketing/TermsPage.jsx";
+import { ConnectorDocsPage } from "./pages/marketing/ConnectorDocsPage.jsx";
 import { Toaster }         from "./components/ui/toaster.jsx";
 import { oauthNext }       from "./lib/oauthNext.js";
 
@@ -741,6 +742,7 @@ function AppRouter() {
         <Route path="/faq"          element={<FAQPage/>}/>
         <Route path="/privacy"      element={<PrivacyPage/>}/>
         <Route path="/terms"        element={<TermsPage/>}/>
+        <Route path="/docs/claude"  element={<ConnectorDocsPage/>}/>
 
         {/* New public pages with NavBar */}
         <Route path="/products" element={<>{navBar}<ProductsPage/></>}/>

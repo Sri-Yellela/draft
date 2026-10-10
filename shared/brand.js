@@ -120,6 +120,10 @@ export const PRIVACY_POLICY_URL  = `${CANONICAL_ORIGIN}${PRIVACY_POLICY_PATH}`;
 export const PRIVACY_CONTACT_EMAIL = `privacy@${CANONICAL_HOST}`;
 export const SUPPORT_EMAIL         = `support@${CANONICAL_HOST}`;
 export const SENDER_EMAIL          = `noreply@${CANONICAL_HOST}`;
+// ⚠ D86 §6 (10-09): the connector directory requires a SECURITY contact. Published in /.well-known/security.txt
+// and on /docs/claude. ⛔ Its Cloudflare Email Routing rule is the owner's (WORKLOG O93) — until it exists,
+// mail to it bounces; do not push the pages that publish it before the route is live.
+export const SECURITY_EMAIL        = `security@${CANONICAL_HOST}`;
 export const SENDER_FROM           = `${BRAND} <${SENDER_EMAIL}>`;
 
 /**

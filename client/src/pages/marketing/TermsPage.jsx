@@ -1,4 +1,9 @@
 // client/src/pages/marketing/TermsPage.jsx
+//
+// 2026-10-09 (D86, docs/CLAUDE_CONNECTOR_COMPLIANCE.md §4 / §6): four sections added — who may use draft (18+),
+// applicant-side use only (the Usage Policy's high-risk Employment area is employers screening people), true
+// content only (no fabricated credentials — the Usage Policy's falsified-records clause), and AI-assisted
+// content. ⚠ Wording is product text pending counsel (WORKLOG O93, the compliance document's Q1, Q2, Q5, Q6).
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import { BRAND, SUPPORT_EMAIL } from "../../../../shared/brand.js";
@@ -11,6 +16,22 @@ const SECTIONS = [
   {
     title: "Use of Service",
     body: `${BRAND} is provided for personal, non-commercial use. You may use the service to generate and manage resumes, search for job listings, and track applications. You may not: resell or redistribute the service; use the service to generate false, misleading, or fraudulent information; attempt to reverse-engineer or exploit the platform; or use automated means to access the service outside of provided APIs.`,
+  },
+  {
+    title: "Who May Use It",
+    body: `You must be at least 18 years old to use ${BRAND}. ${BRAND} is for people looking for work: you may use it for your own job search only.`,
+  },
+  {
+    title: "For Applicants, Not Employers",
+    body: `${BRAND} helps a candidate find jobs and prepare their own applications. You may not use it to screen, rank, assess or make decisions about other people, or to process another person's résumé.`,
+  },
+  {
+    title: "True Content Only",
+    body: `A résumé or application you prepare with ${BRAND} must describe you truthfully. You may not use the service to invent or overstate experience, employers, titles, dates, qualifications or credentials. ${BRAND} checks generated résumés for claims your own résumé does not support and refuses them, but you are responsible for everything you send to an employer — read it first.`,
+  },
+  {
+    title: "AI-Assisted Content",
+    body: `Résumés written by ${BRAND}, or by an AI assistant you connect to it, are AI-assisted. Some employers restrict AI-assisted applications; check an employer's rules before you apply. If you connect your own AI assistant, its provider processes what you send under your own account and its terms.`,
   },
   {
     title: "Account Responsibilities",
@@ -47,7 +68,7 @@ export function TermsPage() {
           Terms of Service
         </h1>
         <p style={{ fontSize: 13, color: "var(--color-text-faint)", marginBottom: 48 }}>
-          Last updated: April 2025
+          Last updated: October 9, 2026
         </p>
         {SECTIONS.map((s, i) => (
           <div key={i} style={{ marginBottom: 40 }}>
