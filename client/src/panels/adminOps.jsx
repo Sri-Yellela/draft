@@ -1356,7 +1356,7 @@ function PluginSwitch({ on, onChange, label, theme }) {
 }
 
 const RESULT_WORDS = { new_term: "term not in résumé", years_exceed_profile: "years over the profile", brief_used: "brief already used",
-  brief_exhausted: "brief closed", feature_off: "switched off", user_off: "user's switch off", host_off: "host off", insufficient_scope: "read-only connection" };
+  brief_exhausted: "brief closed", feature_off: "switched off", user_off: "user's switch off", account_off: "off for this account", host_off: "host off", insufficient_scope: "read-only connection" };
 
 export function PluginTab({ theme }) {
   const [d, setD] = useState(null);
@@ -1433,7 +1433,50 @@ export function PluginTab({ theme }) {
           ]}/>
         </div>
       </Card>
+      <ReviewerAccount theme={theme}/>
     </div>
+  );
+}
+
+// ⭐ D86 §6 · THE REVIEWER ACCOUNT — the fictional candidate the connector directory reviews with
+// (services/reviewerDemo.js). Create it once with a password (it goes only into the review portal), reset it after a
+// review's destructive tests. Every use is in the admin audit log.
+function ReviewerAccount({ theme }) {
+  const { ask, dialog } = useConfirm();
+  const [pw, setPw] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [err, setErr] = useState(null);
+  const run = async (action) => {
+    const reset = action === "reset";
+    if (!await ask({ title: reset ? "Reset the reviewer account?" : "Create or refresh the reviewer account?", label: reset ? "Reset it" : "Create it",
+      body: reset
+        ? <>Removes the reviewer account's saved résumés, briefs and connector activity, and restores its résumé, three claims, cap of 100 and twelve sample postings. Its password and connections stay.</>
+        : <>Creates <code>draft-reviewer</code> (Alex Rivera, fictional) with a base résumé, three claims, the plugin on, a cap of 100 a day and twelve sample postings that appear on no board. {pw ? "The password you typed replaces any earlier one." : "With no password, an existing account keeps its own."}</> })) return;
+    setBusy(true); setErr(null); setMsg(null);
+    try {
+      const r = await api("/api/admin/byom/reviewer", { method: "POST", body: JSON.stringify({ action, ...(pw && !reset ? { password: pw } : {}) }) });
+      setMsg(`${reset ? "Reset" : r.created ? "Created" : "Refreshed"}: ${r.username} — ${r.postings} sample postings.`);
+      setPw("");
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+  return (
+    <Card theme={theme} title="Reviewer account">
+      {dialog}
+      <div style={{ fontSize: 13, color: theme.textMuted, marginBottom: 12, maxWidth: 760 }}>
+        The account the connector directory's reviewers sign in with — a fictional candidate, sample postings with stable ids
+        (<code>demo-job-001</code> … <code>demo-job-012</code>), no second factor. Its password goes only into the review portal.
+      </div>
+      <Err msg={err}/>
+      {msg && <div style={{ ...callout(C.SUCCESS), marginBottom: 10 }}>{msg}</div>}
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <input type="password" autoComplete="new-password" aria-label="Reviewer password (12 or more characters)" placeholder="Password, to create it (12+ characters)"
+          value={pw} onChange={e => setPw(e.target.value)} style={{ ...field, minWidth: 260 }}/>
+        <Btn theme={theme} disabled={busy || (pw && pw.length < 12)} onClick={() => run("seed")}>Create or refresh</Btn>
+        <Btn theme={theme} disabled={busy} onClick={() => run("reset")}>Reset it</Btn>
+      </div>
+    </Card>
   );
 }
 
