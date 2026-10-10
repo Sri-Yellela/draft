@@ -179,7 +179,7 @@ export function createByomTools(deps) {
     return base;
   }
   function requireCap(userId) {
-    const cap = dailyCap(db);
+    const cap = dailyCap(db, userId);
     const used = usedToday(db, userId);
     if (used >= cap) throw new ToolRefusal("daily_cap", `Daily limit reached: ${used} of ${cap} résumés written this way today. It resets at 00:00 UTC.`);
   }

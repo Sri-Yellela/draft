@@ -125,7 +125,8 @@ test("D88 P1: the call sites read the resolver", () => {
   assert.match(read("services/draftSlots.js"), /resolveEntitlement\(db, userId, "draft_slots", \{ env \}\)\.value/);
   assert.match(read("services/limitEnforcer.js"), /resolveEntitlement\(db, userId, 'resume_generations_per_day'\)/);
   assert.match(read("services/byom/policy.js"), /resolveEntitlement\(db, null, "plugin_byo"\)/);
-  assert.match(read("services/byom/policy.js"), /resolveEntitlement\(db, null, "byo_daily_cap"\)/);
+  // 10-09: the cap is read PER USER (an admin's override is enforced); still through the resolver.
+  assert.match(read("services/byom/policy.js"), /resolveEntitlement\(db, (?:null|userId), "byo_daily_cap"\)/);
   const server = read("server.js");
   assert.match(server, /resolveEntitlement\(db, req\.user\?\.id, tool === "a_plus_resume" \? "a_plus_enabled" : "generate_enabled"/);
   const apply = read("routes/apply.js");

@@ -18,10 +18,12 @@ import {
   OAuthError, HOSTS, registerClient, validateAuthorize, issueCode, tokenGrant, revokeToken, verifyAccessToken,
   listConnections, revokeConnection, protectedResourceMetadata, authorizationServerMetadata, isLoopbackCallback,
 } from "../services/byom/oauthServer.js";
-import { refusalFor, userEnabled, setUserEnabled, usedToday, dailyCap, globalEnabled, hostEnabled, callsLastHour,
+import { refusalFor, userEnabled, setUserEnabled, usedToday, dailyCap, globalEnabled, enabledFor, hostEnabled, callsLastHour,
   CALLS_PER_HOUR, adminSettings, writeAdminSettings } from "../services/byom/policy.js";
 import { createByomTools, ToolRefusal, LEGACY_TOOL_NAMES } from "../services/byom/tools.js";
 import { renderConsentPage, renderConsentMessage } from "../services/byom/consentPage.js";
+import { seedReviewerDemo, resetReviewerDemo, DemoError, DEMO_USERNAME } from "../services/reviewerDemo.js";
+import { writeAudit } from "../services/userAdmin.js";
 
 // ⛔ D86 COMPLIANCE (10-09): the server sends NO `instructions` at initialize. Anthropic's Software Directory
 // Policy §2F forbids a connector making Claude pull behavioural instructions from an external source at
@@ -188,6 +190,7 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
     }
     const host = a.client.host;
     const unavailable = !globalEnabled(db) ? "Writing résumés with your own model is switched off on draft right now."
+      : !enabledFor(db, req.user.id) ? "Writing résumés with your own model is switched off for this draft account. draft support can say why."
       : !hostEnabled(db, host) ? `draft is not accepting connections from ${HOSTS[host]?.label ?? "this app"} right now.` : null;
     const nonce = crypto.randomUUID();
     req.session.byomConsent = { nonce, query: { ...req.query }, at: Date.now() };
@@ -212,7 +215,7 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
     catch (e) { return res.status(400).type("html").send(renderConsentMessage({ title: "This connection link is not valid", body: e.message })); }
     const iss = issuerFor(req);
     if (req.body.decision !== "allow") return redirectWith(res, a.redirectUri, { error: "access_denied", error_description: "The user chose Not now.", state: a.state, iss });
-    if (refusalFor(db, { userId: req.user.id, host: a.client.host })?.code === "feature_off" || !hostEnabled(db, a.client.host)) {
+    if (["feature_off", "account_off"].includes(refusalFor(db, { userId: req.user.id, host: a.client.host })?.code) || !hostEnabled(db, a.client.host)) {
       return redirectWith(res, a.redirectUri, { error: "access_denied", error_description: "This is switched off on draft.", state: a.state, iss });
     }
     if (!userEnabled(db, req.user.id)) {
@@ -254,7 +257,7 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
       available: globalEnabled(db),
       hosts: Object.fromEntries(Object.entries(HOSTS).map(([h, v]) => [h, { label: v.label, enabled: hostEnabled(db, h) }])),
       enabled: userEnabled(db, userId),
-      usedToday: usedToday(db, userId), dailyCap: dailyCap(db),
+      usedToday: usedToday(db, userId), dailyCap: dailyCap(db, userId), accountEnabled: enabledFor(db, userId),
       connections: listConnections(db, userId),
       activity: activityFor(userId),
       connectorUrl: resourceFor(req),
@@ -304,6 +307,22 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
       recent: db.prepare(`SELECT a.at, u.username, a.tool, a.outcome, a.detail FROM mcp_audit a LEFT JOIN users u ON u.id = a.user_id
         ORDER BY a.id DESC LIMIT 50`).all().map(r => ({ ...r, tool: toolName(r.tool) })),
     });
+  });
+  // ⭐ D86 §6 · the reviewer account: create it (a password is needed the first time) or reset it after a review's
+  // destructive tests. Synthetic data only (services/reviewerDemo.js); every use is in the admin audit log.
+  sessionRouter.post("/api/admin/byom/reviewer", requireAdmin, express.json({ limit: "4kb" }), (req, res) => {
+    const action = req.body?.action;
+    if (!["seed", "reset"].includes(action)) return res.status(400).json({ error: "action must be seed or reset" });
+    try {
+      const out = action === "reset" ? resetReviewerDemo(db, { actorId: req.user?.id ?? null })
+        : seedReviewerDemo(db, { password: req.body?.password || null, actorId: req.user?.id ?? null });
+      try { writeAudit(db, { actorId: req.user?.id ?? null, action: `reviewer.${action}`, target: `user:${out.userId}`, reason: "reviewer account (D86 §6)" }); } catch { /* audit table absent in a bare test db */ }
+      res.json({ ok: true, ...out, username: DEMO_USERNAME });
+    } catch (e) {
+      if (e instanceof DemoError) return res.status(409).json({ error: e.message });
+      log.error?.("[byom] reviewer account:", e?.message);
+      res.status(500).json({ error: "The reviewer account could not be prepared." });
+    }
   });
   sessionRouter.put("/api/admin/byom", requireAdmin, express.json(), (req, res) => {
     try { res.json({ ok: true, settings: writeAdminSettings(db, req.body || {}) }); }

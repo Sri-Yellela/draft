@@ -16,7 +16,8 @@ import { renderConsentPage } from "../services/byom/consentPage.js";
 import { buildBrief, OUTPUT_SCHEMA } from "../services/byom/resumePatch.js";
 import { buildStructuredResume } from "../services/resumeFormatter.js";
 import { SERVER_INFO } from "../routes/byom.js";
-import { purgeByomData } from "../services/byom/policy.js";
+import { purgeByomData, dailyCap, refusalFor } from "../services/byom/policy.js";
+import { setOverride } from "../services/userAdmin.js";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
 
@@ -300,4 +301,23 @@ test("⛔ D86 DR-13: the consent screen carries the AI-assistance notice and say
   const html = renderConsentPage({ host: "claude", hostLabel: "Claude", who: "a@example.com", scopes: ["resume:read", "resume:write"], userOn: true, nonce: "n" });
   assert.match(html, /Some employers restrict AI-assisted applications/);
   assert.match(html, /never uses them to train a model/);
+});
+
+test("⛔ D88 × D86: an admin's per-user cap and per-user switch-off are ENFORCED by the connector, not only shown", () => {
+  const { db, tools } = v1();
+  for (const id of ["119_", "155_"]) db.exec(MIGRATIONS.find(m => m.id.startsWith(id)).sql);
+  db.prepare("INSERT INTO app_settings (key, value) VALUES ('byom_enabled', '1')").run();
+  db.prepare("UPDATE users SET byom_enabled = 1").run();
+  assert.equal(dailyCap(db, 1), 50, "the system default");
+  setOverride(db, { userId: 1, featureKey: "byo_daily_cap", value: 1, reason: "reviewer test", actorId: null });
+  assert.equal(dailyCap(db, 1), 1, "the override is the cap for that account");
+  assert.equal(dailyCap(db, 2), 50, "and only for that account");
+  const brief = tools.handlers.draft_get_resume_brief(who, { job_id: "j1" });
+  const b0 = brief.resume.sections.find(s => s.type === "entries").entries[0].bullets[0].id;
+  tools.handlers.draft_submit_resume_patch(who, { brief_id: brief.brief_id, patch: { bullets: [{ id: b0, text: "Built a Python service routing shipments" }] } });
+  assert.throws(() => tools.handlers.draft_get_resume_brief(who, { job_id: "j1" }), (e) => e.code === "daily_cap", "a cap of 1 stops the second");
+  assert.equal(refusalFor(db, { userId: 1, host: "claude" }), null);
+  setOverride(db, { userId: 1, featureKey: "plugin_byo", value: false, reason: "abuse report", actorId: null });
+  assert.equal(refusalFor(db, { userId: 1, host: "claude" })?.code, "account_off", "switched off for this account");
+  assert.equal(refusalFor(db, { userId: 2, host: "claude" }), null, "another account is unaffected");
 });

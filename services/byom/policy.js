@@ -32,7 +32,13 @@ export function hostEnabled(db, host) {
   return v === null ? true : settingTruthy(v);
 }
 
-export function dailyCap(db) { return resolveEntitlement(db, null, "byo_daily_cap").value; }
+// ⛔ PER USER (10-09). D88 lets an admin override byo_daily_cap for one account, and Settings shows that value;
+// this read the GLOBAL value (user null), so the override was displayed and never enforced. With no userId it is
+// still the global value (the admin page's own setting).
+export function dailyCap(db, userId = null) { return resolveEntitlement(db, userId, "byo_daily_cap").value; }
+
+/** plugin_byo for ONE account: the global switch, then an admin's per-user override (D88). */
+export function enabledFor(db, userId) { return resolveEntitlement(db, userId, "plugin_byo").value === true; }
 
 export function userEnabled(db, userId) {
   try { return db.prepare("SELECT byom_enabled FROM users WHERE id = ?").pluck().get(userId) === 1; }
@@ -75,6 +81,9 @@ export function callsLastHour(db, userId, nowSec = Math.floor(Date.now() / 1000)
  */
 export function refusalFor(db, { userId, host }) {
   if (!globalEnabled(db)) return { code: "feature_off", message: "Writing résumés with your own model is switched off on draft right now." };
+  // ⛔ D88: an admin can switch the feature off for one account (People → a person → Feature access). Until 10-09 the
+  // connector checked only the global switch and the user's own, so that override was shown and not enforced.
+  if (userId != null && !enabledFor(db, userId)) return { code: "account_off", message: "Writing résumés with your own model is switched off for this draft account. draft support can say why." };
   if (!hostEnabled(db, host)) return { code: "host_off", message: `draft is not accepting connections from ${HOSTS[host]?.label ?? "this app"} right now.` };
   if (!userEnabled(db, userId)) return { code: "user_off", message: "This is switched off in your draft settings. Turn on \"Write my résumés in ChatGPT or Claude\" in Settings → Connected apps." };
   return null;
