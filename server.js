@@ -216,6 +216,7 @@ import { validateResumeClaims, checkCandidateConsistency } from "./services/kb/f
 import { profileContradictionFindings, checkResumeClaims } from "./services/resumeClaimGuard.js";
 import { createByomRouters } from "./routes/byom.js";
 import { purgeByomData } from "./services/byom/policy.js";
+import { securityTxt } from "./services/securityTxt.js";
 import { createEmailRouters } from "./routes/email.js";
 import { setMarketingConsent } from "./services/emailConsent.js";
 import { resolveEntitlement } from "./services/entitlementResolver.js";
@@ -11665,6 +11666,8 @@ REQUIREMENTS:
 // HEALTH + SPA
 // ═══════════════════════════════════════════════════════════════
 app.get("/api/health", (_req,res) => res.json({ ok:true, time:new Date().toISOString() }));
+// D86 §6: RFC 9116 security.txt — the security contact the connector directory requires (shared/brand.js).
+app.get("/.well-known/security.txt", (_req, res) => res.type("text/plain").send(securityTxt()));
 
 // PUBLIC, AND DELIBERATELY SO. The marketing pages that carry the commercial copy — /pricing,
 // /features, /how-it-works — are reachable logged out, so the client has to be able to learn the
