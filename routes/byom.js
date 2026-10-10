@@ -23,6 +23,7 @@ import { refusalFor, userEnabled, setUserEnabled, usedToday, dailyCap, globalEna
 import { createByomTools, ToolRefusal, LEGACY_TOOL_NAMES } from "../services/byom/tools.js";
 import { renderConsentPage, renderConsentMessage } from "../services/byom/consentPage.js";
 import { seedReviewerDemo, resetReviewerDemo, DemoError, DEMO_USERNAME } from "../services/reviewerDemo.js";
+import { ensureCimdClient } from "../services/byom/cimd.js";
 import { writeAudit } from "../services/userAdmin.js";
 
 // ⛔ D86 COMPLIANCE (10-09): the server sends NO `instructions` at initialize. Anthropic's Software Directory
@@ -66,7 +67,7 @@ const toolName = (t) => LEGACY_TOOL_NAMES[t] || t;
  * @param {{ db, deps, issuerFor(req), production, requireAuth, requireAdmin, log? }} opts
  *   deps — services/byom/tools.js's dependencies (jobFor, baseFor, scoreText, storeResume, claimCheck, vocabulary, notify)
  */
-export function createByomRouters({ db, deps, issuerFor, production = true, requireAuth, requireAdmin, log = console }) {
+export function createByomRouters({ db, deps, issuerFor, production = true, requireAuth, requireAdmin, log = console, cimdFetch = globalThis.fetch }) {
   const resourceFor = (req) => `${issuerFor(req)}/mcp`;
   const tokenRouter = express.Router();
   const sessionRouter = express.Router();
@@ -183,9 +184,12 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
     return res.redirect(302, u.toString());
   };
 
-  sessionRouter.get("/oauth/authorize", (req, res) => {
+  sessionRouter.get("/oauth/authorize", async (req, res) => {
     let a;
-    try { a = validateAuthorize(db, req.query, { resource: resourceFor(req) }); }
+    try {
+      await ensureCimdClient(db, req.query?.client_id, { fetchImpl: cimdFetch, production });
+      a = validateAuthorize(db, req.query, { resource: resourceFor(req) });
+    }
     catch (e) {
       if (e instanceof OAuthError && e.redirectUri) return redirectWith(res, e.redirectUri, { error: e.error, error_description: e.message, state: e.state, iss: issuerFor(req) });
       consentHeaders(res, null);

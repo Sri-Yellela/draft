@@ -1433,15 +1433,14 @@ export function PluginTab({ theme }) {
           ]}/>
         </div>
       </Card>
-      <ReviewerAccount theme={theme}/>
     </div>
   );
 }
 
 // ⭐ D86 §6 · THE REVIEWER ACCOUNT — the fictional candidate the connector directory reviews with
-// (services/reviewerDemo.js). Create it once with a password (it goes only into the review portal), reset it after a
+// (services/reviewerDemo.js). It lives in Admin → People (D88: an account action), under the user list. Create it once with a password (it goes only into the review portal), reset it after a
 // review's destructive tests. Every use is in the admin audit log.
-function ReviewerAccount({ theme }) {
+export function ReviewerAccount({ theme }) {
   const { ask, dialog } = useConfirm();
   const [pw, setPw] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1474,7 +1473,7 @@ function ReviewerAccount({ theme }) {
         <input type="password" autoComplete="new-password" aria-label="Reviewer password (12 or more characters)" placeholder="Password, to create it (12+ characters)"
           value={pw} onChange={e => setPw(e.target.value)} style={{ ...field, minWidth: 260 }}/>
         <Btn theme={theme} disabled={busy || (pw && pw.length < 12)} onClick={() => run("seed")}>Create or refresh</Btn>
-        <Btn theme={theme} disabled={busy} onClick={() => run("reset")}>Reset it</Btn>
+        <Btn theme={theme} disabled={busy} onClick={() => run("reset")}>Reset demo account</Btn>
       </div>
     </Card>
   );

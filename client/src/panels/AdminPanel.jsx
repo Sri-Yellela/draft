@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api }      from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
-import { GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, NoticesTab, CostsTab, DeploymentsPanel, DiskPanel,
+import { GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, NoticesTab, CostsTab, DeploymentsPanel, DiskPanel, ReviewerAccount,
          BoardPolicySection, KillSwitchSection, BoardFitSection, JobDataSection, CompaniesSection, SlugHarvestSection,
          ToolsServiceSection } from "./adminOps.jsx";
 import { ADMIN_GROUPS, readAdminPlace, writeAdminPlace } from "./adminMap.js";
@@ -820,6 +820,8 @@ export function AdminPanel() {
                   </form>
                 </div>
 
+                {/* ⭐ D86 §6: the connector directory's reviewer account — create and Reset demo account. */}
+                <ReviewerAccount theme={theme}/>
               </motion.div>
             )}
 
