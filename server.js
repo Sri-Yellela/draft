@@ -215,6 +215,7 @@ import { validateResumeClaims, checkCandidateConsistency } from "./services/kb/f
 // guard's finding form for the kbFindings review surface.
 import { profileContradictionFindings, checkResumeClaims } from "./services/resumeClaimGuard.js";
 import { createByomRouters } from "./routes/byom.js";
+import { purgeByomData } from "./services/byom/policy.js";
 import { createEmailRouters } from "./routes/email.js";
 import { setMarketingConsent } from "./services/emailConsent.js";
 import { resolveEntitlement } from "./services/entitlementResolver.js";
@@ -5159,6 +5160,8 @@ setTimeout(() => runFormReportPurge("boot"), 60_000).unref?.();
 // D88 P3: a ticket solved more than 24 months ago is deleted with its thread (services/tickets.js).
 setInterval(() => { try { const n = purgeSolvedTickets(db); if (n) console.log(`[tickets] purged ${n} solved ticket(s) past 24 months`); } catch (e) { console.warn("[tickets] purge:", e.message); } }, 24 * 3600_000).unref?.();
 setInterval(() => runFormReportPurge("interval"), 6 * 3600_000).unref?.();
+// D86 compliance: a finished brief's résumé copy is emptied a day later; the audit is kept 12 months (services/byom/policy.js).
+setInterval(() => { try { const n = purgeByomData(db); if (n.briefs || n.audit) console.log(`[byom] emptied ${n.briefs} finished brief(s), deleted ${n.audit} audit row(s) past 12 months`); } catch (e) { console.warn("[byom] purge:", e.message); } }, 6 * 3600_000).unref?.();
 
 // ⭐ D57 · A CONVENIENCE COPY EXPIRES. A generated résumé not tied to a Draft or an application is kept
 // RESUME_RETENTION_DAYS (90) from its latest generation — the date Settings shows on it — and then

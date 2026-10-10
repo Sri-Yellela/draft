@@ -71,6 +71,9 @@ import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL, SUPPORT_EMAI
 // request from Settings → Help keeps (the messages, the page and the app version; never a form answer), that it is
 // deleted with the account or 24 months after it is solved, and that an admin's changes to an account are kept
 // with the reason given. Nothing new is collected from anyone who does not write to support.
+// 2026-10-09 (later, D86 compliance — the same date): the connected-app paragraph gains its retention (a request's
+// copy of the base résumé emptied a day after it is finished; the activity record — ids and outcomes, never content —
+// kept 12 months) and the statement that connector content is never used to train a model. Nothing new is collected.
 const EFFECTIVE_DATE = 'October 9, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
@@ -615,7 +618,11 @@ export function PrivacyPage() {
               content and those job details are processed by that provider{" "}
               <Strong>under your own account and its terms</Strong>, not ours. The app never receives your
               contact details, passwords, applications or other jobs. We make no model call for these
-              résumés. Disconnect the app in the same settings and its next request is refused.
+              résumés, and we never use what the app sends or receives to train a model. To check what the
+              app returns, we keep a copy of your base résumé with each request and empty it a day after the
+              request is finished; the record of each request (which tool, which job, the outcome — never the
+              résumé text) is kept for 12 months. Disconnect the app in the same settings and its next request
+              is refused.
             </LI>
             <LI>
               <Strong>SerpApi</Strong> — job search results. Search queries are

@@ -13,14 +13,18 @@ import { dailyCap, usedToday } from "./policy.js";
 const now = () => Math.floor(Date.now() / 1000);
 const READ = "resume:read", WRITE = "resume:write";
 
+// ⛔ D86 compliance: the AI-assistance notice (employment is a high-risk use) — on every saved result, and the
+// same words in draft's own panel, so the candidate is told before the résumé goes to an employer.
+export const AI_NOTICE = "Written with AI assistance in the candidate's own assistant, and checked by draft for claims the candidate never made. The candidate reads it before sending it to an employer.";
+
 /** Each tool's annotations are explicit booleans, and each carries the justification the review asks for. */
 export const TOOL_DEFS = Object.freeze([
   {
     name: "get_generation_brief",
     title: "Get a résumé brief",
-    description: "Start a tailored résumé for one job. Returns the candidate's base résumé as bullets with ids, the skills they have claimed, the job's matched keywords, instructions and the output schema. Contact details are never included. The brief is single-use and expires in 30 minutes. Next: write a patch and call submit_resume.",
+    description: "Returns a single-use résumé brief for one of the candidate's jobs: the base résumé as bullets with ids, the skills the candidate has claimed, the job's matched keywords, and the JSON schema a patch must match. Contact details are not included. A brief expires 30 minutes after it is made.",
     inputSchema: { type: "object", additionalProperties: false, required: ["job_id"],
-      properties: { job_id: { type: "string", description: "A job id from list_my_drafts." } } },
+      properties: { job_id: { type: "string", description: "A job id, as list_my_drafts returns it." } } },
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     scope: READ,
     justification: "Reads the user's own base résumé, claims and one job so their model can tailor the résumé. It changes nothing the user can see; it records a short-lived brief so the result can be checked against the same base.",
@@ -28,9 +32,9 @@ export const TOOL_DEFS = Object.freeze([
   {
     name: "submit_resume",
     title: "Save the tailored résumé",
-    description: "Submit the patch for a brief. draft applies it to the base résumé, checks that it adds nothing the candidate never stated (no new skill, employer, title, date, years or seniority), scores it against the job and saves it to the candidate's draft account. If it is refused, the reasons are in plain words: fix exactly those and submit again — at most 3 attempts per brief. Nothing is saved on a refusal.",
+    description: "Applies a patch to the base résumé a brief was made from, checks that the result adds no skill, employer, title, date, years or seniority the candidate never stated, scores it against the job, and saves it as a new version in the candidate's draft account. A refused patch is not saved, and the result lists each reason. A brief accepts at most 3 attempts.",
     inputSchema: { type: "object", additionalProperties: false, required: ["brief_id", "patch"],
-      properties: { brief_id: { type: "string" }, patch: { type: "object", description: "Matches the brief's output_schema." } } },
+      properties: { brief_id: { type: "string" }, patch: { type: "object", description: "An object matching the brief's output_schema." } } },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     scope: WRITE,
     justification: "Saves a résumé to the user's own draft account. It adds a new version and never deletes or overwrites an earlier one; sending the same patch again returns the same result.",
@@ -38,7 +42,7 @@ export const TOOL_DEFS = Object.freeze([
   {
     name: "score_resume",
     title: "Score résumé text against a job",
-    description: "Score plain résumé text against one job with draft's ATS scorer. It may decline to score when the posting carries too little signal — report that as \"could not be scored\", never as a poor fit. Nothing is saved.",
+    description: "Scores plain résumé text against one job with draft's ATS scorer and returns the score with the matched and missing terms, or the reasons it declined when the posting carries too little signal to score. Nothing is saved.",
     inputSchema: { type: "object", additionalProperties: false, required: ["job_id", "content"],
       properties: { job_id: { type: "string" }, content: { type: "string", maxLength: 30000 } } },
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
@@ -48,7 +52,7 @@ export const TOOL_DEFS = Object.freeze([
   {
     name: "list_my_drafts",
     title: "List my drafted jobs",
-    description: "The jobs in the candidate's Draft House, newest first: job id, title, company and whether a résumé exists. Use a job id from here with get_generation_brief.",
+    description: "Lists the jobs in the candidate's Draft House, newest first: job id, title, company and whether a résumé exists.",
     inputSchema: { type: "object", additionalProperties: false, properties: {} },
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     scope: READ,
@@ -57,7 +61,7 @@ export const TOOL_DEFS = Object.freeze([
   {
     name: "get_my_resumes",
     title: "List my saved résumés",
-    description: "The candidate's saved tailored résumés: job, company, ATS score and when it was made, with a link to open each in draft. Résumé content is not returned.",
+    description: "Lists the candidate's saved tailored résumés: job, company, ATS score and when each was made, with a link to each in draft. Résumé content is not returned.",
     inputSchema: { type: "object", additionalProperties: false, properties: {} },
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     scope: READ,
@@ -82,13 +86,13 @@ export function createByomTools(deps) {
 
   function requireJob(jobId) {
     const job = deps.jobFor(String(jobId ?? ""));
-    if (!job) throw new ToolRefusal("unknown_job", "There is no job with that id. Use list_my_drafts to find one.");
+    if (!job) throw new ToolRefusal("unknown_job", "There is no job with that id among the candidate's jobs (list_my_drafts lists them).");
     return job;
   }
   function requireBase(userId) {
     const base = deps.baseFor(userId);
     if (!base?.text || !base.structured?.sections?.length) {
-      throw new ToolRefusal("no_base_resume", "This candidate has no base résumé draft can read. They need to upload one in draft first.");
+      throw new ToolRefusal("no_base_resume", "This candidate has no base résumé draft can read. A base résumé is uploaded in draft itself.");
     }
     return base;
   }
@@ -112,7 +116,7 @@ export function createByomTools(deps) {
 
     submit_resume({ userId }, { brief_id, patch }) {
       const brief = db.prepare("SELECT * FROM byom_briefs WHERE id = ? AND user_id = ?").get(String(brief_id ?? ""), userId);
-      if (!brief) throw new ToolRefusal("unknown_brief", "There is no brief with that id for this candidate. Call get_generation_brief first.");
+      if (!brief) throw new ToolRefusal("unknown_brief", "There is no brief with that id for this candidate. A brief comes from get_generation_brief.");
       const hash = patchHash(patch);
       if (brief.status === "used") {
         if (brief.patch_hash === hash) {
@@ -121,16 +125,16 @@ export function createByomTools(deps) {
           return { saved: true, repeated: true, job_id: brief.job_id, title: j.title ?? null, company: j.company ?? null, ats_score: row?.ats_score ?? null, base_ats_score: brief.base_ats_score,
             link: jobLink(deps.appUrl, brief.job_id), message: "This patch was already saved; nothing new was written." };
         }
-        throw new ToolRefusal("brief_used", "This brief was already used for a saved résumé. Call get_generation_brief again to write another.");
+        throw new ToolRefusal("brief_used", "This brief was already used for a saved résumé. Another résumé needs a new brief from get_generation_brief.");
       }
-      if (brief.status === "exhausted") throw new ToolRefusal("brief_exhausted", `This brief was refused ${MAX_ATTEMPTS} times and is closed. Call get_generation_brief again to start over.`);
-      if (brief.expires_at <= now()) throw new ToolRefusal("brief_expired", "This brief has expired (30 minutes). Call get_generation_brief again.");
+      if (brief.status === "exhausted") throw new ToolRefusal("brief_exhausted", `This brief was refused ${MAX_ATTEMPTS} times and is closed. A new brief comes from get_generation_brief.`);
+      if (brief.expires_at <= now()) throw new ToolRefusal("brief_expired", "This brief has expired (30 minutes). A new brief comes from get_generation_brief.");
 
       const job = requireJob(brief.job_id);
       const base = requireBase(userId);
       if (baseHash(base.text) !== brief.base_hash) {
         db.prepare("UPDATE byom_briefs SET status = 'exhausted' WHERE id = ?").run(brief.id);
-        throw new ToolRefusal("base_changed", "The candidate's base résumé changed after this brief was made. Call get_generation_brief again.");
+        throw new ToolRefusal("base_changed", "The candidate's base résumé changed after this brief was made, so the brief is closed. A new brief comes from get_generation_brief.");
       }
       const baseStructured = JSON.parse(brief.base_json);
       notify(userId, brief.job_id, "checks");
@@ -158,7 +162,7 @@ export function createByomTools(deps) {
         notify(userId, brief.job_id, "refused", { reasons: reasons.map(r => r.message), attemptsLeft: MAX_ATTEMPTS - attempts });
         throw new ToolRefusal("refused", status === "exhausted"
           ? `Refused, and this was attempt ${attempts} of ${MAX_ATTEMPTS}: the brief is closed. Nothing was saved.`
-          : `Refused — nothing was saved. Fix these and submit again (${MAX_ATTEMPTS - attempts} attempt${MAX_ATTEMPTS - attempts === 1 ? "" : "s"} left).`,
+          : `Refused — nothing was saved. ${MAX_ATTEMPTS - attempts} attempt${MAX_ATTEMPTS - attempts === 1 ? "" : "s"} left on this brief.`,
           { reasons, attempts_left: MAX_ATTEMPTS - attempts });
       }
 
@@ -172,10 +176,11 @@ export function createByomTools(deps) {
       return {
         saved: true, job_id: brief.job_id, title: job.title ?? null, company: job.company ?? null, version: stored.version,
         ats_score: report?.score ?? null, base_ats_score: brief.base_ats_score,
-        ...(below ? { warning: `The tailored résumé scores ${report.score}, below the base résumé's ${brief.base_ats_score}. The candidate may prefer the base résumé.` } : {}),
+        ...(below ? { warning: `The tailored résumé scores ${report.score}, below the base résumé's ${brief.base_ats_score}.` } : {}),
         scorable: report?.scorable !== false,
         link: jobLink(deps.appUrl, brief.job_id),
         message: "Saved to the candidate's draft account. Claims checked: nothing was added that the candidate never stated.",
+        notice: AI_NOTICE,
       };
     },
 

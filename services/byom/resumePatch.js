@@ -71,32 +71,28 @@ function scrubDeep(v) {
   return v;
 }
 
+// ⛔ D86 COMPLIANCE (10-09): the schema's descriptions say what a field HOLDS, never what a model should do.
+// Anthropic's Software Directory Policy §2F forbids a connector making Claude pull behavioural instructions
+// from an external source at runtime, so the brief is DATA ONLY — there is no `instructions` field. The
+// "how to write it" guidance is a static Skill in the separate public plugin repository
+// (draft-claude-plugin), and test/d86ConnectorCompliance.test.js holds the brief and the server to it.
 export const OUTPUT_SCHEMA = Object.freeze({
   type: "object",
   additionalProperties: false,
   properties: {
-    bullets: { type: "array", maxItems: LIMITS.bullets, description: "Only the bullets you rewrite or drop.",
+    bullets: { type: "array", maxItems: LIMITS.bullets, description: "The bullets that change: each by id, with new text or drop: true.",
       items: { type: "object", additionalProperties: false, required: ["id"],
         properties: { id: { type: "string" }, text: { type: "string", maxLength: LIMITS.bullet }, drop: { type: "boolean" } } } },
-    skills: { type: "array", description: "A skills row's values, reordered or trimmed. Never a value the row does not have.",
+    skills: { type: "array", description: "A skills row's existing values, reordered or trimmed. A value the row does not have is refused.",
       items: { type: "object", additionalProperties: false, required: ["id", "values"],
         properties: { id: { type: "string" }, values: { type: "array", items: { type: "string" } } } } },
-    skills_order: { type: "array", items: { type: "string" }, description: "Every skills row id, once each, in the order to show them." },
-    summary: { type: "string", maxLength: LIMITS.summary, description: "Only when the brief allows a summary." },
+    skills_order: { type: "array", items: { type: "string" }, description: "Every skills row id of a section, once each, in display order." },
+    summary: { type: "string", maxLength: LIMITS.summary, description: "Accepted only when the brief's allow_summary is true or the résumé already has a summary." },
   },
 });
 
-export const INSTRUCTIONS = Object.freeze([
-  "Tailor this candidate's résumé to the job by REWRITING EXISTING BULLETS. Return a patch that matches output_schema — never a whole résumé.",
-  "Use only facts already in the résumé. You may emphasise, reorder and rephrase; you may not add a skill, tool, employer, title, date, number or achievement that is not already there.",
-  "Prefer the terms in keywords.matched and keywords.claimed where they truthfully describe the work. A term that is in neither the résumé nor the claims is refused.",
-  "Each bullet: one line, an action verb first, at most 400 characters, plain text (**bold** is allowed).",
-  "Do not include contact details. draft writes the header itself.",
-  "If draft refuses the patch, it says why in plain words. Fix exactly those points and submit again — at most 3 attempts per brief.",
-]);
-
 /**
- * The brief: what the model needs and nothing else.
+ * The brief: the data the model needs and nothing else — no instructions (§2F, above).
  * @param {{ briefId, expiresAt, job, structured, claims, baseReport, allowSummary }} args
  *   baseReport — the scorer's report on the BASE résumé for this job; only its MATCHED terms and verbs
  *   go in (D70's keywords-only context: never the posting's unclaimed requirements).
@@ -116,7 +112,7 @@ export function buildBrief({ briefId, expiresAt, job = {}, structured, claims = 
     },
     allow_summary: !!allowSummary,
   };
-  return { brief_id: briefId, expires_at: expiresAt, ...scrubDeep(body), instructions: [...INSTRUCTIONS], output_schema: OUTPUT_SCHEMA };
+  return { brief_id: briefId, expires_at: expiresAt, max_attempts: MAX_ATTEMPTS, ...scrubDeep(body), output_schema: OUTPUT_SCHEMA };
 }
 
 /** A refusal reason the model can act on, and a person can read. */
