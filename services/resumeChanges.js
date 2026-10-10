@@ -41,15 +41,21 @@ export function wordDiff(before, after) {
     L[i][j] = eq(a[i], b[j]) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
   }
   const out = [];
-  const push = (op, w) => { const last = out[out.length - 1]; if (last?.op === op) last.text += ` ${w}`; else out.push({ op, text: w }); };
+  // A "same" run keeps the BEFORE side's spelling too (`was`) when punctuation or case differs, so each side shows its own words.
+  const push = (op, w, was = w) => {
+    const last = out[out.length - 1];
+    if (last?.op === op) { last.text += ` ${w}`; if (op === "same") last.was += ` ${was}`; }
+    else out.push(op === "same" ? { op, text: w, was } : { op, text: w });
+  };
   let i = 0, j = 0;
   while (i < n && j < m) {
-    if (eq(a[i], b[j])) { push("same", b[j]); i++; j++; }
+    if (eq(a[i], b[j])) { push("same", b[j], a[i]); i++; j++; }
     else if (L[i + 1][j] >= L[i][j + 1]) push("del", a[i++]);
     else push("add", b[j++]);
   }
   while (i < n) push("del", a[i++]);
   while (j < m) push("add", b[j++]);
+  for (const o of out) if (o.op === "same" && o.was === o.text) delete o.was;
   return out;
 }
 
