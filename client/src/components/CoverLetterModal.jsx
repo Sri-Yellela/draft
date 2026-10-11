@@ -140,8 +140,9 @@ export default function CoverLetterModal({ resumeText, jobDescription, jobTitle,
             <div>
               <div style={{ fontSize:11, fontWeight:700, color:theme.textMuted, marginBottom:6,
                             textTransform:"uppercase", letterSpacing:"0.06em" }}>Your Cover Letter</div>
-              <div style={{ background:theme.bg, border:`1px solid ${theme.border}`, borderRadius:6,
-                            padding:"12px 14px", fontSize:13, color:theme.text,
+              {/* ⛔ D91: a DOCUMENT — black on white in every theme (DOC_PAPER / DOC_INK never change). */}
+              <div data-doc-surface="" style={{ background:C.DOC_PAPER, border:`1px solid ${theme.border}`, borderRadius:6,
+                            padding:"12px 14px", fontSize:13, color:C.DOC_INK,
                             lineHeight:1.7, whiteSpace:"pre-wrap", maxHeight:320, overflowY:"auto" }}>
                 {result}
               </div>

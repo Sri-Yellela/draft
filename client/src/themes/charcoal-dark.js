@@ -123,6 +123,8 @@ const tokens = Object.freeze({
   DEPTH_ACCENT:        "0 3px 9px rgba(253,70,0,0.40), inset 0 1px 0 rgba(255,255,255,0.20)",
   LOGO_SHADOW:         "0 2px 6px rgba(0,0,0,0.45)",
   LOGO_TILE:           "#FBF7F0",   // D61: the SAME paper as light — a logo's tile never follows the theme
+  DOC_PAPER:           "#FFFFFF",   // D91: a document is black on white in every theme
+  DOC_INK:             "#1A1A1A",
 });
 
 export default Object.freeze({

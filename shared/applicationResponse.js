@@ -102,14 +102,18 @@ export const STAGE_RANK = Object.freeze({
   [RESPONSE_OUTCOME.OFFER]: 3,
 });
 
-/** Human labels. Kept beside the vocabulary so a UI cannot invent its own wording for a stored value. */
+/**
+ * Human labels. Kept beside the vocabulary so a UI cannot invent its own wording for a stored value.
+ * `tone` names the MEANING (neutral · danger · warning · info · success); the client paints it from its theme
+ * tokens (D91 P2). It used to be raw hex (#d97706 is ≈ 2.7:1 on the cream), outside every token and pair.
+ */
 export const RESPONSE_LABELS = Object.freeze({
-  [RESPONSE_OUTCOME.NO_RESPONSE]: { label: "No response", note: "never heard back", color: "#6b7280" },
-  [RESPONSE_OUTCOME.REJECTED]:    { label: "Rejected",    note: "they replied, and it was no", color: "#dc2626" },
-  [RESPONSE_OUTCOME.SCREEN]:      { label: "Screen",      note: "recruiter or phone screen", color: "#d97706" },
-  [RESPONSE_OUTCOME.INTERVIEW]:   { label: "Interview",   color: "#2563eb", note: "interviewing" },
-  [RESPONSE_OUTCOME.OFFER]:       { label: "Offer",       note: "offer received", color: "#16a34a" },
-  [RESPONSE_OUTCOME.WITHDRAWN]:   { label: "Withdrawn",   note: "you ended it", color: "#6b7280" },
+  [RESPONSE_OUTCOME.NO_RESPONSE]: { label: "No response", note: "never heard back", tone: "neutral" },
+  [RESPONSE_OUTCOME.REJECTED]:    { label: "Rejected",    note: "they replied, and it was no", tone: "danger" },
+  [RESPONSE_OUTCOME.SCREEN]:      { label: "Screen",      note: "recruiter or phone screen", tone: "warning" },
+  [RESPONSE_OUTCOME.INTERVIEW]:   { label: "Interview",   note: "interviewing", tone: "info" },
+  [RESPONSE_OUTCOME.OFFER]:       { label: "Offer",       note: "offer received", tone: "success" },
+  [RESPONSE_OUTCOME.WITHDRAWN]:   { label: "Withdrawn",   note: "you ended it", tone: "neutral" },
 });
 
 /**

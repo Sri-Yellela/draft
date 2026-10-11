@@ -29,6 +29,8 @@ import {
   RESPONSE_OUTCOME, RESPONSE_OUTCOMES, RESPONSE_LABELS, MATURITY_DAYS, responseBucket,
 } from "../../../shared/applicationResponse.js";
 import { C } from "../styles/colorTokens.js";
+// D91 P2: a reply outcome names its MEANING (shared/applicationResponse.js `tone`); the live theme paints it.
+const RESPONSE_TONE_COLOUR = Object.freeze({ neutral: C.INK_FAINT, danger: C.DANGER, warning: C.WARNING, info: C.INFO, success: C.SUCCESS });
 import EmptyState from "../components/EmptyState.jsx";
 import { bandMarkStyle } from "../styles/mark.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
@@ -247,8 +249,8 @@ function DetailModal({ modal, onClose, theme }) {
         <div style={{ flex:1, overflow:"hidden", display:"flex" }}>
           {isResume ? (
             <iframe
-              srcDoc={modal.html || `<p style='padding:40px;font-family:sans-serif;color:${C.INK_FAINT}'>No resume HTML stored.</p>`}
-              style={{ width:"100%", height:"100%", border:"none", background:C.SURFACE_SOLID }}
+              srcDoc={modal.html || `<p style='padding:40px;font-family:sans-serif;color:${C.DOC_INK}'>No resume HTML stored.</p>`}
+              style={{ width:"100%", height:"100%", border:"none", background:C.DOC_PAPER }}
               title="Resume Preview"
               sandbox="allow-same-origin"/>
           ) : (
@@ -860,8 +862,8 @@ export function DatabasePanel({ user }) {
                                   ? `Nothing recorded yet — counted as unresolved until ${MATURITY_DAYS} days after applying`
                                   : meta?.note || "Record what the employer did"}
                                 style={{ background:meta ? "transparent" : "transparent",
-                                         border:`1px ${meta ? "solid" : "dashed"} ${meta ? meta.color : theme.border}`,
-                                         borderRadius:8, color:meta ? meta.color : theme.textDim,
+                                         border:`1px ${meta ? "solid" : "dashed"} ${meta ? RESPONSE_TONE_COLOUR[meta.tone] : theme.border}`,
+                                         borderRadius:8, color:meta ? RESPONSE_TONE_COLOUR[meta.tone] : theme.textDim,
                                          fontSize:11, padding:"3px 10px", cursor:"pointer",
                                          whiteSpace:"nowrap", maxWidth:"100%", overflow:"hidden",
                                          textOverflow:"ellipsis" }}
@@ -893,7 +895,7 @@ export function DatabasePanel({ user }) {
                                                      border:"none", borderRadius:6, cursor:"pointer",
                                                      padding:"6px 10px", color:theme.text, fontSize:12 }}>
                                             <span style={{ width:7, height:7, borderRadius:"50%",
-                                                           background:m.color, flexShrink:0 }}/>
+                                                           background:RESPONSE_TONE_COLOUR[m.tone], flexShrink:0 }}/>
                                             <span style={{ fontWeight:active ? 700 : 500 }}>{m.label}</span>
                                             <span style={{ color:theme.textDim, fontSize:10, marginLeft:"auto" }}>
                                               {m.note}

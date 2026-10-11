@@ -62,11 +62,30 @@ function sourceFiles(dir = ROOT) {
   return out;
 }
 
+// ⭐ D91 P2 (10-11): the scan reached only client/src, and the audit (docs/THEME_AUDIT.md §1) found what
+// that hid — shared/applicationResponse.js carried raw Tailwind hex that The Table painted, outside every
+// token and contrast pair, and client/index.html a dead dark-era rule. So the scan now also reads the
+// page shell and EVERY shared/ module the client imports (transitively), with HTML comments stripped.
+export function sharedImportedByClient() {
+  const seen = new Set();
+  const queue = sourceFiles().filter((f) => /\.(jsx?|tsx?)$/.test(f));
+  while (queue.length) {
+    const f = queue.pop();
+    for (const m of fs.readFileSync(f, "utf8").matchAll(/from\s+["']([^"']+)["']/g)) {
+      if (!m[1].startsWith(".")) continue;
+      const p = path.posix.normalize(path.posix.join(path.posix.dirname(f), m[1]));
+      if (p.startsWith("shared/") && fs.existsSync(p) && !seen.has(p)) { seen.add(p); queue.push(p); }
+    }
+  }
+  return [...seen].sort();
+}
+const stripHtml = (s) => s.replace(/<!--[\s\S]*?-->/g, "");
+
 export function literalCounts() {
   const counts = {};
-  for (const f of sourceFiles()) {
+  for (const f of [...sourceFiles(), "client/index.html", ...sharedImportedByClient()]) {
     if (TOKEN_FILES.has(f)) continue;
-    const n = (stripComments(fs.readFileSync(f, "utf8")).match(LITERAL) || []).length;
+    const n = (stripComments(stripHtml(fs.readFileSync(f, "utf8"))).match(LITERAL) || []).length;
     if (n) counts[f] = n;
   }
   return counts;
@@ -82,10 +101,7 @@ export function literalCounts() {
  * Permanent entries, each with its reason. These are not "not yet migrated"; they are decided.
  */
 const PERMANENT = {
-  "client/src/components/DockPortal.jsx":
-    "Kept unchanged by the redesign (the portalled listbox). Its three literals are FALLBACKS for a " +
-    "caller that passes no theme; every caller passes one. Remove them if DockPortal is next edited " +
-    "for any other reason — the budget below will then insist the entry goes.",
+  // D91 P2 (10-11): DockPortal's three dark-era fallbacks became tokens — the entry went with them.
   // A93 (10-07): ui/chart.jsx deleted — no importer.
 };
 
@@ -109,6 +125,9 @@ test("the scanner works — it finds the token file's own values and the known b
     assert.ok(tokenHits >= 30, `the scanner found only ${tokenHits} literals in the theme file ${t}`);
   }
   assert.ok(sourceFiles().length > 100, "the client/src walk found almost nothing");
+  // D91 P2: the widened scan really reaches shared/ — the modules the audit found painted by the client.
+  const shared = sharedImportedByClient();
+  for (const f of ["shared/applicationResponse.js", "shared/atsBands.js"]) assert.ok(shared.includes(f), `the shared/ walk missed ${f}`);
   // Comments are stripped, strings with // are not truncated.
   assert.equal((stripComments('a: "#abcdef"; // #123456').match(LITERAL) || []).length, 1);
   assert.equal((stripComments('url("http://x/#fff")').match(LITERAL) || []).length, 1);

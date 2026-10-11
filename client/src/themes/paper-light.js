@@ -194,6 +194,10 @@ const tokens = Object.freeze({
   // ⛔ D61 · THE LOGO TILE — paper in BOTH themes (the sketch's .tile #fbf7f0). A company's mark is drawn on
   // the paper it was designed for; a transparent dark mark (Mercury, RTX) on a dark card was invisible.
   LOGO_TILE:    "#FBF7F0",
+  // ⛔ D91 · THE DOCUMENT SURFACE — never themed. A document an employer will read (the cover letter as it is
+  // shown; the résumé carries its own) is black on white in EVERY theme: these two are the same in all four.
+  DOC_PAPER:    "#FFFFFF",
+  DOC_INK:      "#1A1A1A",   // = the résumé's own --color-text (services/resumeFormatter.js)
 });
 
 export default Object.freeze({
