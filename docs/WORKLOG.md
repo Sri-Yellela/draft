@@ -2902,6 +2902,8 @@ which P5 had already deleted.
 | `docs/ROADMAP.md` | sequencing across all phases and both products |
 | `docs/PRODUCT_MODEL.md` | the reasoning behind the two-product split and the daily draft |
 | `docs/BRAND.md` | naming, canonical host, permanent identifiers — and the vendor-naming rule for A4 |
+| `docs/THEMES.md` | ⭐ D91: how colour reaches the screen, the theme contract, **add a theme in five steps**, shape cues, system preferences |
+| `docs/THEME_MODULE.md` · `docs/THEME_AUDIT.md` · `docs/themes-contrast.html` | D91's spec, its P0 audit (10-11), and the sketch (the specification) |
 | `ARCHITECTURE.md` | ⚠ **repo root**, not `docs/`. What the system actually does, measured |
 | `HANDOFF.md` | ⚠ **repo root**. Orientation for a new session |
 | `docs/CORRECTIONS_REGISTER.md` | ⭐ every wrong claim and what replaced it. **Read as method, not fact** |
