@@ -4,6 +4,7 @@ import { SPONSORSHIP_NEEDS } from "../services/applyAutomation.js";
 
 import { readAnswerStore } from "../services/customAnswers.js";
 import { normaliseDeckPreference } from "../shared/deckGeometry.js";
+import { LEGACY_THEME_PREFERENCES, APPEARANCE_THEMES, parseStoredAppearance, formatStoredAppearance } from "../shared/appearance.js";
 import { baseResumeOnlyState, activeBaseResume } from "../services/baseResumeOnly.js";
 // Shared with server.js's OAuth upsert, which called it without a binding until 09-30.
 import { saveIntegrationSecret } from "../services/secretBox.js";
@@ -131,16 +132,32 @@ export function createAccountRouter({
 
   // The light/dark preference, with the account (follow-up 18, 09-30). Web-only, so it is not on the
   // published PublicUser (a mobile contract change for a setting mobile does not have).
-  const THEME_PREFERENCES = new Set(["system", "light", "dark"]);
+  // D91: the column holds the full appearance (shared/appearance.js); this older pair of routes answers in
+  // system / light / dark only, and keeps the stored cues flag when it writes.
+  const THEME_PREFERENCES = new Set(LEGACY_THEME_PREFERENCES);
   router.get("/api/settings/theme", requireAuth, (req, res) => {
     const row = db.prepare("SELECT theme_preference FROM users WHERE id=?").get(req.user.id);
-    res.json({ preference: THEME_PREFERENCES.has(row?.theme_preference) ? row.theme_preference : null });
+    const { theme } = parseStoredAppearance(row?.theme_preference);
+    res.json({ preference: THEME_PREFERENCES.has(theme) ? theme : null });
   });
   router.put("/api/settings/theme", requireAuth, (req, res) => {
     const preference = req.body?.preference;
     if (!THEME_PREFERENCES.has(preference)) return res.status(400).json({ error: "preference must be system, light or dark" });
-    db.prepare("UPDATE users SET theme_preference=? WHERE id=?").run(preference, req.user.id);
+    const row = db.prepare("SELECT theme_preference FROM users WHERE id=?").get(req.user.id);
+    const { cues } = parseStoredAppearance(row?.theme_preference);
+    db.prepare("UPDATE users SET theme_preference=? WHERE id=?").run(formatStoredAppearance({ theme: preference, cues }), req.user.id);
     res.json({ preference });
+  });
+  // ⭐ D91 P5 · the full appearance: { theme, cues } — Settings → Appearance writes it, every device adopts it.
+  router.get("/api/settings/appearance", requireAuth, (req, res) => {
+    const row = db.prepare("SELECT theme_preference FROM users WHERE id=?").get(req.user.id);
+    res.json(parseStoredAppearance(row?.theme_preference));
+  });
+  router.put("/api/settings/appearance", requireAuth, (req, res) => {
+    const stored = formatStoredAppearance({ theme: req.body?.theme, cues: req.body?.cues === true });
+    if (!stored) return res.status(400).json({ error: `theme must be one of ${APPEARANCE_THEMES.join(", ")}` });
+    db.prepare("UPDATE users SET theme_preference=? WHERE id=?").run(stored, req.user.id);
+    res.json(parseStoredAppearance(stored));
   });
 
   // ⭐ D66 · "Use my base résumé for applications" (migration 139). The plan can force it on
