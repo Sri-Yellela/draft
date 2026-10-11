@@ -7,9 +7,13 @@
 // differed by accent, so a visual diff needed a same-origin control to tell a change from noise.
 // The accent is now the logo orange, always. The menu that let a user pick one of the four went
 // with it (TopBar's "Accent Color" row).
-import { useState, createContext, useContext } from "react";
-import { getTheme, DEFAULT_THEME_ID, AVAILABLE_THEMES } from "../themes/index.js";
-import { baseTheme as cinematicBase } from "../themes/cinematic.js";
+//
+// D91 (10-11): the PALETTE is chosen in themes/index.js, once, at load — not here. This provider only
+// hands out the theme.* name map (themes/cinematic.js, every value a token) and the global stylesheet.
+// It used to keep a second registry of one theme with its own storage key (rm_theme_id), an isDark
+// nobody read, and a hidden picker; those went with D91 P1 (docs/THEME_AUDIT.md §3).
+import { createContext, useContext } from "react";
+import cinematic, { baseTheme as cinematicBase } from "../themes/cinematic.js";
 import "./colorTokens.js";
 
 // Preserved for backward-compat consumers (e.g. TopBar pillBg uses THEMES.dark.surfaceBase). The
@@ -19,22 +23,7 @@ export const THEMES = { dark: cinematicBase };
 export const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [themeId, setThemeIdRaw] = useState(() => {
-    try {
-      const saved = localStorage.getItem("rm_theme_id");
-      if (saved) return saved;
-    } catch {}
-    return DEFAULT_THEME_ID;
-  });
-
-  const setThemeId = (id) => {
-    setThemeIdRaw(id);
-    try { localStorage.setItem("rm_theme_id", id); } catch {}
-  };
-
-  const activeTheme = getTheme(themeId);
-  // The paper substrate is a LIGHT surface. Callers that branch on isDark pick their light value.
-  const isDark = false;
+  const activeTheme = cinematic;
   const theme = activeTheme.baseTheme;
 
   const cssVarEntries = Object.entries(activeTheme.cssVars || {})
@@ -49,10 +38,6 @@ export function ThemeProvider({ children }) {
     <ThemeContext.Provider value={{
       theme,
       tokens: theme,
-      isDark,
-      themeId,
-      setThemeId,
-      availableThemes: AVAILABLE_THEMES,
     }}>
       <style>{`
         /* ── Color token bridge: --color-* → styles/colorTokens.js ──
@@ -81,7 +66,7 @@ export function ThemeProvider({ children }) {
 
         /* ══ Theme CSS vars ══ */
         html {
-          color-scheme: light;
+          /* color-scheme is set inline by themes/index.js installColorVars, from the live theme. */
           min-height: 100vh;
           /* Transparent so body's background propagates to the canvas and PaperBackground's
              fixed, negative-z layer paints ABOVE it. An html background would put body's own

@@ -103,9 +103,9 @@ test("owner 10-07 (36) · the posting panel's Draft button IS the logo — the o
   // Draft House". (Label + title read the state twice; the browser pass caught it.)
   assert.match(logo, /aria-label=\{title\}/, "named Draft / Drafting… / Drafted, not \"/draft\"");
   // The colours are the mark's tokens: orange and ink in light, all orange in dark (D19).
-  const t = read("client/src/styles/colorTokens.js");
-  assert.match(t, /LOGO_SLASH:\s+"#FD4600",[^\n]*\n\s+LOGO_WORD:\s+"#1E1915"/);
-  assert.match(t, /LOGO_SLASH:\s+"#FD4600",[^\n]*\n\s+LOGO_WORD:\s+"#FD4600"/);
+  // (D91: each palette is its own theme file now.)
+  assert.match(read("client/src/themes/paper-light.js"), /LOGO_SLASH:\s+"#FD4600",[^\n]*\n\s+LOGO_WORD:\s+"#1E1915"/);
+  assert.match(read("client/src/themes/charcoal-dark.js"), /LOGO_SLASH:\s+"#FD4600",[^\n]*\n\s+LOGO_WORD:\s+"#FD4600"/);
 });
 
 test("owner 10-07 (36) · the Workstyle cell has no visible heading: Remote / Hybrid / On-site, then the location", async () => {

@@ -181,8 +181,10 @@ export const SHARED = Object.freeze({
   "styles/theme.jsx":                   { what: "THE theme provider" },
   "styles/type.js":                     { what: "THE type scale" },
   "styles/zLayers.js":                  { what: "THE z-scale" },
-  "themes/cinematic.js":                { what: "the theme's injected CSS" },
-  "themes/index.js":                    { what: "the theme list" },
+  "themes/charcoal-dark.js":            { what: "a theme: Charcoal Dark's tokens and substrate (D91)" },
+  "themes/cinematic.js":                { what: "the theme.* name map and the injected CSS" },
+  "themes/index.js":                    { what: "THE theme registry — the one place a theme is chosen (D91)" },
+  "themes/paper-light.js":              { what: "a theme: Paper Light's tokens and substrate (D91)" },
 });
 
 // ── COMPOSITIONS: a panel or page mounting ANOTHER panel whole. Allowed only when declared, with why.

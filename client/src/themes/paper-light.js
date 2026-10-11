@@ -1,0 +1,207 @@
+// ── PAPER LIGHT — the default theme: cream paper, the logo's orange, glass ──────────────────────
+//
+// D91 (10-11): a theme is DATA, one file (docs/THEME_MODULE.md §5); themes/index.js is the only place
+// one is chosen. These are the values that were C_LIGHT in styles/colorTokens.js, MOVED here in P1
+// with their notes — test/d91ThemeModule.test.js pins them to the pre-move palette by hash, so Paper
+// Light cannot drift while the module is built around it. The rules every value obeys (the orange is
+// a fill, never text; ink on the fill; 6-digit hex wherever an alpha suffix may follow) are stated in
+// colorTokens.js's header, beside CONTRAST_PAIRS, which every theme is proved against.
+const tokens = Object.freeze({
+  // ── CANVAS — the paper. The substrate everything sits on. ─────────────────────────────────
+  CANVAS:        "#F3ECE0",   // cream paper, the logo's ground
+  // The DARKEST tone the grain can produce. Not painted anywhere: it is the worst case that every
+  // contrast check below is computed against, so a pair that passes here passes over any grain
+  // pixel. PaperBackground's grain is tuned to stay lighter than this.
+  // Moved 09-30 (#E6DDCF → #DFD6C9) for the crisp leather grain the owner chose, which reaches 12%
+  // toward GRAIN. Every declared pair was re-proved against the darker floor; one failed and moved
+  // (WARNING #8F5200 → #855000). The floor follows the substrate, never the reverse.
+  CANVAS_SHADE:  "#DFD6C9",
+  GRAIN:         "#5A4632",   // the fibre tone the noise is tinted with (drawn at low alpha)
+  SHEEN_TINT:    "#FFFFFF",   // the lit side of each pebble (PaperBackground's sheen layer)
+
+  // ── SURFACE — glass over the paper. Cards, panels, the dock. ──────────────────────────────
+  SURFACE_TINT:  "#FFFBF5",   // the glass's colour; drawn at the alphas below
+  SURFACE:       "rgba(255,251,245,0.58)",   // cards, the resting glass
+  SURFACE_2:     "rgba(255,251,245,0.72)",   // raised panels, panel headers
+  SURFACE_MENU:  "rgba(255,251,245,0.96)",   // menus and dropdowns: must read over anything
+  SURFACE_MODAL: "rgba(255,251,245,0.97)",
+  SURFACE_INPUT: "rgba(255,255,255,0.55)",
+  SURFACE_SOLID: "#FBF7F0",   // an opaque stand-in for the glass, where a hex is required
+  HOVER:         "rgba(30,25,21,0.05)",      // ink wash for hover rows and ghost buttons
+  SCRIM:         "rgba(30,25,21,0.28)",      // dims the page under a modal
+  GLASS_EDGE:    "rgba(30,25,21,0.10)",      // the glass hairline
+  GLASS_HIGHLIGHT: "rgba(255,255,255,0.70)", // the inset top highlight on glass
+  // ── THE GLASS MATERIAL (09-30: "the glossy effect can be more apparent"). Consumed only through
+  //    styles/glass.js. Every text colour is proved against CANVAS_SHADE, and the body below is
+  //    CLEARER than SURFACE, so text on it sits between the two proven cases.
+  GLASS_SPECULAR:  "rgba(255,255,255,0.95)",   // the 1px lit top edge
+  GLASS_SHEEN:     "rgba(255,255,255,0.55)",   // the radial highlight from the upper left
+  GLASS_BODY_TOP:  "rgba(255,253,249,0.70)",   // body gradient, top
+  GLASS_BODY:      "rgba(255,251,245,0.36)",   // body gradient, bottom — the leather shows through
+  GLASS_RIM:       "rgba(255,255,255,0.50)",   // the hairline all round
+  GLASS_UNDERSIDE: "rgba(60,40,20,0.10)",      // the darker bottom edge
+
+  // ── INK — text. ⛔ NOT pure black on cream; it vibrates. ─────────────────────────────────
+  INK:           "#1E1915",
+  INK_MUTED:     "#4A423B",
+  INK_FAINT:     "#62574D",   // the faintest TEXT allowed; still AA on CANVAS_SHADE
+  BORDER:        "#DDD2C3",   // decorative hairlines (cards, dividers) — not a control edge
+  BORDER_STRONG: "#C7B9A7",
+  BORDER_CONTROL: "#7F7263",  // an input's edge: a UI component boundary, so it must reach 3:1
+
+  // ── ACCENT — the logo orange, #FD4600, keyed from the source. A FILL. ──────────────────────
+  ACCENT:        "#FD4600",
+  ACCENT_HOVER:  "#FF6424",   // LIGHTER on hover: a darker orange drops ink-on-fill below 4.5:1
+  ON_ACCENT:     "#1E1915",   // text/icons on an ACCENT fill (= INK; named so the pairing is explicit)
+  ACCENT_INK:    "#A33200",   // orange as TEXT, icons, focus rings, active edges
+  // ACCENT-QUIET: a desaturated orange for states that are not calls to action — the selected
+  // tab, a tag, an active filter. A fill; its text is ACCENT_INK.
+  ACCENT_QUIET:  "#EBD5C6",
+  // ── THE MARK (D19, owner 10-03) — StampLogo draws the "/" and the letters as two masks, each
+  //    filled from a token. LIGHT: the "/" stays the orange, "draft" is ink (orange on cream is 2.96:1,
+  //    which is why orange is fill-only; the ink word is the legible half). DARK keeps the all-orange mark.
+  LOGO_SLASH:    "#FD4600",   // = ACCENT
+  LOGO_WORD:     "#1E1915",   // = INK
+
+  // ── State. Each has a text tone that passes on paper and a quiet fill it also passes on. ──────
+  SUCCESS:       "#1A6B33",
+  SUCCESS_QUIET: "#D5E8D8",
+  WARNING:       "#855000",   // was #8F5200: 4.33:1 on the 09-30 floor
+  WARNING_QUIET: "#F2E2C4",
+  DANGER:        "#B3261E",
+  DANGER_QUIET:  "#F5D9D3",
+  INFO:          "#1E5E94",
+  INFO_QUIET:    "#D7E4F0",
+
+  // ── Two categorical tones for things that are neither a state nor the brand: competencies in
+  //    the ATS report, the cover-letter action, a foreign-key column, a company avatar. Same rule
+  //    as the states: a text tone that passes on paper, and a quiet fill it also passes on.
+  VIOLET:        "#6A3DB0",
+  VIOLET_QUIET:  "#E6DCF2",
+  TEAL:          "#0E6470",
+
+  // ── FIT BANDS — Strong / Moderate / Weak / Not enough signal (shared/atsBands.js). ───────────
+  //
+  // Their own names rather than SUCCESS / WARNING / DANGER, although Strong and Weak sit near
+  // those hues: a band is a statement about fit, a state is a statement about an operation, and a
+  // later palette change to one must not silently move the other. The dark-era values these
+  // replace failed on the cream as text (#16a34a 2.81:1, #d97706 2.71:1, measured at step 2).
+  //
+  // Each fit band has a TEXT tone (≥ 4.5:1 on paper and on glass) and a QUIET fill it passes on,
+  // which also carries INK at ≥ 4.5:1 — so a chip reads with either text colour.
+  BAND_STRONG:         "#17663A",
+  BAND_STRONG_QUIET:   "#D3E8D9",
+  BAND_MODERATE:       "#7A5300",
+  BAND_MODERATE_QUIET: "#F2E3C0",
+  BAND_WEAK:           "#A3281E",
+  BAND_WEAK_QUIET:     "#F6D9D2",
+  // ⛔ NOT ENOUGH SIGNAL IS NOT A FOURTH, WORSE GRADE. It is the scorer declining for want of
+  // evidence — a correctness state — so it deliberately has NO FILL and NO HUE: muted ink inside a
+  // DASHED outline, on whatever surface it sits on. A paler red (or any tint on the green-amber-red
+  // axis) would read as "below Weak", which is the one thing it must never say. The edge is a UI
+  // boundary and reaches 3:1; the text reaches 4.5:1. See client/src/styles/bandStyle.js.
+  BAND_UNKNOWN:        "#4A423B",
+  BAND_UNKNOWN_EDGE:   "#7F7263",
+
+  // ── Third-party sign-in buttons. Their owners' brand colours, so they are tokens too — and
+  //    checked like every other pair. ⛔ Google's #4285F4 carries white text at 3.56:1, which FAILS
+  //    AA; the button uses Google's darker #1A73E8 (4.51:1) instead.
+  PROVIDER_LINKEDIN: "#0A66C2",
+  PROVIDER_GITHUB:   "#24292E",
+  PROVIDER_GOOGLE:   "#1A73E8",
+  // Not a sign-in button: the two source marks the board draws beside a posting (LinkedIn's "in"
+  // square reuses PROVIDER_LINKEDIN). Same pairing rule — ON_PROVIDER on the fill.
+  PROVIDER_INDEED:   "#003A9B",
+  ON_PROVIDER:       "#FFFFFF",
+
+  // ── D32 · THE INK PAIR — the posting and the score, side by side (PostingPanel + AtsReport). ────
+  //
+  // ⛔ THE PRODUCT'S ONLY DARK SURFACE, AND A RULE RATHER THAN A PER-SCREEN CHOICE. These keys are the
+  // pair's ONE token set; the theme (resolved once, below) is the ONE place that decides which values
+  // are live — cream here, ink in C_DARK. They are consumed ONLY through the `.ink-pair` surface
+  // (styles/inkPair.css) and the pair's two stylesheets; test/inkPairD32.test.js refuses any other
+  // consumer, any other dark surface, and any second place that picks a theme.
+  // ⚠ The dark greens, reds and blues are NOT these values converted: each was re-derived against the
+  // ink surface, and every pair below is declared in CONTRAST_PAIRS and proved in both themes.
+  // ⭐ A86 (10-05): THE VALUES ARE THE OWNER'S SKETCH (pair2.html), key for key — D32 was built from the
+  // row's prose and drifted. The sketch's name is in each comment. Where a sketch value FAILS its
+  // declared pair it moved the least distance that passes, and the comment says from what.
+  PAIR_SURFACE:   "#FBF7F0",   // --surf: the card
+  PAIR_RAISED:    "#F2ECE1",   // --surf2: a depth box, the deck strip, the count chip
+  PAIR_INK:       "#171512",   // --tx
+  PAIR_INK_MUTED: "#3D362E",   // --tx2: the employer's description
+  PAIR_INK_FAINT: "#726960",   // --dim #8A8075 → #726960: 3.6:1 on --surf, 3.25:1 on --okbg; now ≥ 4.5 on all four grounds
+  PAIR_RULE:      "#DED5C4",   // --line: every hairline (decorative, not a control edge)
+  PAIR_KICKER:    "#A33200",   // --atx: the kicker, as TEXT (the logo orange fails as text)
+  PAIR_ACCENT:    "#FC4600",   // --accent #FD4600 → #FC4600: 2.98:1 under the masthead tint (large needs 3)
+  PAIR_MATCHED:   "#1D6B43",   // --ok
+  PAIR_MISSING:   "#8A3B2E",   // --no: a claim box's text, its filled + square, the bar's missing segment
+  PAIR_GENERIC:   "#6B6257",   // --gen: generic boxes and the bar's generic segment (grey, never a gap)
+  PAIR_MET_QUIET: "#DFF0DA",   // --okbg: "already yours", a claimed box, the met Experience cell and row
+  PAIR_LIT:       "#F6DCC6",   // the hover link: a term lit in the posting while its box is pointed at
+  PAIR_HI:        "#0F0D0B",   // --hi: the title, the band's heading
+  PAIR_MATCHED_EDGE: "#BCDCB4",   // --okbd
+  PAIR_MISSING_QUIET: "#F6E2DB",  // --nobg: Experience short
+  PAIR_MISSING_EDGE: "#E6CAC1",   // --nobd: a claim box's border (decorative — the filled + square is the indicator)
+  PAIR_GENERIC_QUIET: "#EFEAE0",  // --genbg
+  PAIR_GENERIC_EDGE: "#DED5C4",   // --genbd
+  PAIR_MAST_TINT: "rgba(253,70,0,0.07)",   // the masthead's and the score header's orange wash, top → transparent
+  PAIR_CARD_SHADOW: "0 12px 34px rgba(0,0,0,0.18)",   // .card
+  PAIR_KIND_ALPHA: "0.91",   // the `kind` label's opacity: sketch .62 → .91, the least that keeps it ≥ 4.5 on every box
+  // D1's depth — the sketch's --lift / --lift2 (light).
+  PAIR_LIFT:      "0 3px 8px rgba(0,0,0,0.11), inset 0 1px 0 rgba(255,255,255,0.66)",
+  PAIR_LIFT2:     "0 7px 17px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.72)",
+  PAIR_PRESS:     "0 2px 5px rgba(30,25,21,0.13), inset 0 1px 0 rgba(255,255,255,0.5)",
+
+  // ── D35 · THE FULL HOUSE HEADER — the sentence, its one panel, the condensed bar (header.html). ──
+  //
+  // ⛔ THE SKETCH IS THE SPECIFICATION. Each key is a value header.html names that no existing token
+  // already holds; where one does, the header uses it (the sketch's --tx is INK, --tx2 INK_MUTED,
+  // --atx ACCENT_INK, --accent ACCENT, --lift / --lift2 / the orange shadow D1's DEPTH_REST /
+  // DEPTH_HOVER / DEPTH_ACCENT, --surf SURFACE_SOLID's #FBF7F0). ⚠ The sketch's --dim #8a8075 is NOT
+  // used for text: on --surf it is 3.6:1 and fails AA, so the header's faint text is INK_FAINT.
+  // ⚠ The dark values are RE-DERIVED against the app's charcoal canvas, not converted from the light
+  // ones and not copied from the sketch's darker ground; every text pair is in CONTRAST_PAIRS.
+  FH_SURFACE:     "#FBF7F0",   // --surf: a token at rest, the panel, the bar
+  FH_WELL:        "#F2ECE1",   // --surf2: the search well, the views segment, the two squares, an option
+  FH_LINE:        "#DED5C4",   // --line: every hairline in the header (decorative, not a control edge)
+  FH_ACCENT_EDGE: "#E03D00",   // the orange fill's own edge — an active token, a checked option, the +
+  FH_ON_ACCENT:   "#2A0D00",   // text on the orange fill in the header (the sketch's #2a0d00)
+  FH_SEG_LIFT:    "0 2px 6px rgba(253,70,0,0.30)",          // the pressed view in the segment
+  FH_INSET:       "inset 0 1px 3px rgba(30,25,21,0.07)",    // the views well and the search well
+  FH_ADD_HOVER:   "0 7px 17px rgba(253,70,0,0.40)",         // the + square, lifted
+  // ⭐ D48 · the posting header's ATS number (PP_: the posting panel's — D63: this one travels to the extension's job card) — the sketch's --atx, and the SAME value as PAIR_KICKER (the ATS
+  // card's number, owner 10-07: "the ATS number switches colour"), so the two read as one number. The box is
+  // on the app's surface, outside the pair, so it cannot read the pair's token; test/d48PostingHeader pins equal.
+  PP_ATS_NUMBER:  "#A33200",
+
+  // Shadows are ink at low alpha — a warm shadow on paper, not a grey one.
+  SHADOW_SM: "0 1px 2px rgba(30,25,21,0.08), 0 1px 1px rgba(30,25,21,0.05)",
+  SHADOW_MD: "0 4px 12px rgba(30,25,21,0.10), 0 2px 4px rgba(30,25,21,0.06)",
+  SHADOW_LG: "0 18px 40px rgba(30,25,21,0.14), 0 6px 14px rgba(30,25,21,0.08)",
+  SHADOW_XL: "0 36px 80px rgba(30,25,21,0.18), 0 14px 30px rgba(30,25,21,0.10)",
+  // Warm, soft, offset down: a glass object resting ON the leather, lit from above.
+  SHADOW_GLASS:       "0 1px 1px rgba(60,40,20,0.05), 0 12px 28px -10px rgba(90,55,25,0.28)",
+  SHADOW_GLASS_HOVER: "0 2px 2px rgba(60,40,20,0.06), 0 22px 40px -14px rgba(90,55,25,0.36)",
+  // D1 (10-03) — DEPTH ON EVERY CONTROL. The inset top highlight is what makes a control read as LIT
+  // rather than merely dropped; DEPTH_ACCENT tints the orange control's shadow orange, so it reads as
+  // orange rather than grey-made-orange. Ink-warm like the shadows above, not the sketch's pure black.
+  DEPTH_REST:   "0 3px 8px rgba(30,25,21,0.11), inset 0 1px 0 rgba(255,255,255,0.66)",
+  DEPTH_HOVER:  "0 7px 17px rgba(30,25,21,0.15), inset 0 1px 0 rgba(255,255,255,0.66)",
+  DEPTH_PRESS:  "0 2px 5px rgba(30,25,21,0.13), inset 0 1px 0 rgba(255,255,255,0.5)",
+  DEPTH_ACCENT: "0 3px 9px rgba(253,70,0,0.34), inset 0 1px 0 rgba(255,255,255,0.35)",
+  LOGO_SHADOW:  "0 2px 6px rgba(30,25,21,0.14)",
+  // ⛔ D61 · THE LOGO TILE — paper in BOTH themes (the sketch's .tile #fbf7f0). A company's mark is drawn on
+  // the paper it was designed for; a transparent dark mark (Mercury, RTX) on a dark card was invisible.
+  LOGO_TILE:    "#FBF7F0",
+});
+
+export default Object.freeze({
+  id: "paper-light",
+  label: "Paper Light",
+  scheme: "light",
+  contrast: "aa",
+  tokens,
+  // PaperBackground's grain (was styles/paper.js PAPER.light): bench C, "crisp leather" (owner, 09-30).
+  substrate: Object.freeze({ freq: 0.34, octaves: 2, gain: 2.2, bias: 0.85, grain: 0.12, fibre: 0, sheen: 0.55 }),
+});

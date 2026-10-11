@@ -1,4 +1,4 @@
-import { C, THEME } from "../styles/colorTokens.js";
+import { C, ACTIVE_THEME } from "../styles/colorTokens.js";
 import { PAPER } from "../styles/paper.js";
 import { Z } from "../styles/zLayers.js";
 
@@ -33,8 +33,9 @@ import { Z } from "../styles/zLayers.js";
  * nothing for prefers-reduced-motion to suppress and nothing to pause on a hidden tab.
  */
 const TILE = 320;
-// The numbers live in styles/paper.js, per theme (step 6), so the floor test can prove each one.
-const P = PAPER[THEME] || PAPER.light;
+// The numbers are each theme's own substrate (D91: in its theme file, indexed by id in styles/paper.js),
+// so the floor test proves every registered theme. Not a branch on the theme: the live theme's data.
+const P = PAPER[ACTIVE_THEME.id];
 const MATRIX_GAIN = P.gain;
 const MATRIX_BIAS = P.bias;
 export const GRAIN_OPACITY = P.grain;

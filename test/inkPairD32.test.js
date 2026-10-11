@@ -305,7 +305,12 @@ test("⛔ D17: zero model calls — the masthead is columns, tags and a regex; t
 const PAIR_FILES = { surface: "client/src/styles/inkPair.css",
   consumers: ["client/src/styles/inkPair.css", "client/src/components/AtsReport.css", "client/src/components/PostingPanel.css"],
   wearers: ["client/src/components/AtsReport.jsx", "client/src/components/PostingPanel.jsx"] };
-const DECIDER = "client/src/styles/colorTokens.js";
+// D91 (10-11): the one place that decides moved to the theme registry (docs/THEME_MODULE.md §5 — "index.js is
+// the ONLY place a theme is chosen"). The palettes are DATA, one file per theme, re-exported by colorTokens.js
+// under their old names: those files DEFINE tokens, the pair's included, and decide nothing.
+const DECIDER = "client/src/themes/index.js";
+const TOKEN_DEFS = new Set(["client/src/styles/colorTokens.js",
+  ...[...read(DECIDER).matchAll(/^import \w+ from "\.\/([\w-]+\.js)";$/gm)].map((m) => `client/src/themes/${m[1]}`)]);
 // PaperBackground draws the SUBSTRATE (the leather) per theme, from styles/paper.js — not a surface choice.
 const SUBSTRATE = "client/src/components/PaperBackground.jsx";
 
@@ -315,6 +320,10 @@ export function darkSurfaceViolations(sources) {
   for (const [file, raw] of Object.entries(sources)) {
     const src = /\.css$/.test(file) ? raw.replace(/\/\*[\s\S]*?\*\//g, " ") : strip(raw);
     if (file === DECIDER) continue;
+    if (TOKEN_DEFS.has(file)) {
+      if (/prefers-color-scheme|matchMedia|localStorage|dataset\.theme|data-theme|color-scheme/.test(src)) out.push(`${file}: a token definition decides a theme`);
+      continue;
+    }
     if (/--c-pair-/.test(src) && !PAIR_FILES.consumers.includes(file)) out.push(`${file}: reads the pair's tokens`);
     if (/\bC\.PAIR_|\bPAIR_[A-Z_]+\b/.test(src) && !/\.css$/.test(file)) out.push(`${file}: reads a PAIR_ token in code`);
     if (/["'\s]ink-pair["'\s]/.test(src) && !PAIR_FILES.wearers.includes(file)) out.push(`${file}: wears the pair's surface`);
@@ -329,11 +338,14 @@ const CLIENT = Object.fromEntries(fs.readdirSync("client/src", { recursive: true
   .filter(f => /\.(jsx?|css)$/.test(f)).map(f => path.join("client/src", f).replace(/\\/g, "/"))
   .map(f => [f, read(f)]));
 
-test("⛔ THE ONLY DARK SURFACE IS A RULE: no file but the pair wears it, and no file but colorTokens.js decides a theme", () => {
+test("⛔ THE ONLY DARK SURFACE IS A RULE: no file but the pair wears it, and no file but themes/index.js decides a theme", () => {
   assert.ok(Object.keys(CLIENT).length > 100, "the scan found the client");
   assert.deepEqual(darkSurfaceViolations(CLIENT), []);
   // The one place that decides: the palette is resolved ONCE, at load, from the one preference.
-  assert.match(read(DECIDER), /export const C = THEME === "dark" \? C_DARK : C_LIGHT;/);
+  assert.match(read(DECIDER), /export const ACTIVE_THEME = resolve\(\);/);
+  assert.match(read(DECIDER), /export const C = ACTIVE_THEME\.tokens;/);
+  assert.ok(TOKEN_DEFS.has("client/src/themes/paper-light.js") && TOKEN_DEFS.has("client/src/themes/charcoal-dark.js"),
+    "the registry scan found the theme files");
   assert.match(PAIR_CSS, /\.ink-pair \{\s*background: var\(--c-pair-surface\);\s*color: var\(--c-pair-ink\);/);
   // Both halves wear it — the report's card, its band card (the signup hook draws that alone), the posting.
   assert.match(JSX, /<div data-ats-report className="ats-card ink-pair">/);

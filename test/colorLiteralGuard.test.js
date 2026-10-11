@@ -35,6 +35,11 @@ import path from "node:path";
 
 const ROOT = "client/src";
 const TOKEN_FILE = "client/src/styles/colorTokens.js";
+// D91: the palettes moved into one file per theme (client/src/themes/<id>.js). Exempt is exactly what
+// the REGISTRY imports — a file merely dropped into themes/ is scanned like any other.
+export const THEME_FILES = new Set([...fs.readFileSync("client/src/themes/index.js", "utf8")
+  .matchAll(/^import \w+ from "\.\/([\w-]+\.js)";$/gm)].map((m) => `client/src/themes/${m[1]}`));
+const TOKEN_FILES = new Set([TOKEN_FILE, ...THEME_FILES]);
 // Plus the two NAMED colours this client actually used as paint — quoted "white"/"black" in JS, and
 // `: white;` in CSS. They were added to the scan after the first pass MISSED them: the login button
 // and the "your next" hero tile carried color:"white" on the orange fill (3.47:1, fails AA),
@@ -60,7 +65,7 @@ function sourceFiles(dir = ROOT) {
 export function literalCounts() {
   const counts = {};
   for (const f of sourceFiles()) {
-    if (f === TOKEN_FILE) continue;
+    if (TOKEN_FILES.has(f)) continue;
     const n = (stripComments(fs.readFileSync(f, "utf8")).match(LITERAL) || []).length;
     if (n) counts[f] = n;
   }
@@ -95,8 +100,14 @@ const BUDGET = {};
 
 test("the scanner works — it finds the token file's own values and the known budgeted files", () => {
   // A zero-hit scan is a broken scan, not a clean tree.
-  const tokenHits = (stripComments(fs.readFileSync(TOKEN_FILE, "utf8")).match(LITERAL) || []).length;
-  assert.ok(tokenHits >= 30, `the scanner found only ${tokenHits} literals in the token file itself`);
+  // D91: every registered theme file is a palette — the walk must see each one, and the registry must
+  // name at least the two themes the product shipped with.
+  assert.ok(THEME_FILES.has("client/src/themes/paper-light.js") && THEME_FILES.has("client/src/themes/charcoal-dark.js"),
+    `the registry scan found ${[...THEME_FILES].join(", ") || "no theme file"}`);
+  for (const t of THEME_FILES) {
+    const tokenHits = (stripComments(fs.readFileSync(t, "utf8")).match(LITERAL) || []).length;
+    assert.ok(tokenHits >= 30, `the scanner found only ${tokenHits} literals in the theme file ${t}`);
+  }
   assert.ok(sourceFiles().length > 100, "the client/src walk found almost nothing");
   // Comments are stripped, strings with // are not truncated.
   assert.equal((stripComments('a: "#abcdef"; // #123456').match(LITERAL) || []).length, 1);

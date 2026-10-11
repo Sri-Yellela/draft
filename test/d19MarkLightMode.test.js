@@ -49,7 +49,9 @@ test("D19: nothing outside StampLogo and the token file paints the mark — no p
   const files = execFileSync("git", ["ls-files", "--", "client/src"], { encoding: "utf8" })
     .split("\n").filter(f => /\.(jsx?|css)$/.test(f));
   assert.ok(files.length > 100);
-  const allowed = new Set(["client/src/components/StampLogo.jsx", "client/src/styles/colorTokens.js"]);
+  // D91: the palettes are the theme files now; colorTokens.js keeps the pairs that name the mark's tokens.
+  const allowed = new Set(["client/src/components/StampLogo.jsx", "client/src/styles/colorTokens.js",
+    "client/src/themes/paper-light.js", "client/src/themes/charcoal-dark.js"]);
   // (--c-logo-shadow is a COMPANY logo's shadow on the job card, not the mark.)
   const hits = files.filter(f => !allowed.has(f) && /--c-logo-(slash|word)\b|LOGO_SLASH|LOGO_WORD|-slash\.png|-letters\.png/.test(read(f)));
   assert.deepEqual(hits, [], "a surface special-cases the mark's colours");

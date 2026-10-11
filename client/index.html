@@ -15,13 +15,11 @@
          fonts.gstatic.com that used to sit here handed Google every visitor's IP and user-agent on
          every page load, undisclosed. Do not re-add them; test/selfHostedFonts.test.js fails. -->
 
-    <!-- Apply saved bg-mode + dark class before React renders to avoid FOUC -->
-    <script>
-    (function(){
-      var bg = localStorage.getItem('rm-bg-mode') || 'glass-light';
-      document.documentElement.setAttribute('data-bg', bg);
-    })();
-    </script>
+    <!-- D91 · NO FLASH: the theme's ground, scheme and attributes, set before first paint. vite.config.js
+         replaces the marker below with themes/index.js prePaintScript() — generated from the theme
+         registry, so it holds no colour and cannot drift. (It replaced a script that set a data-bg
+         attribute nothing read.) -->
+    <!--d91-pre-paint-->
 
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
