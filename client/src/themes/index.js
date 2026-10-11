@@ -13,8 +13,10 @@
 // device ("system" by default, which follows the OS) and follows the ACCOUNT once signed in.
 import paperLight from "./paper-light.js";
 import charcoalDark from "./charcoal-dark.js";
+import contrastLight from "./contrast-light.js";
+import contrastDark from "./contrast-dark.js";
 
-export const THEME_LIST = Object.freeze([paperLight, charcoalDark]);
+export const THEME_LIST = Object.freeze([paperLight, charcoalDark, contrastLight, contrastDark]);
 export const THEMES = Object.freeze(Object.fromEntries(THEME_LIST.map((t) => [t.id, t])));
 export const DEFAULT_THEME_ID = paperLight.id;
 

@@ -73,7 +73,9 @@ test("⛔ the forbidden pairs really are below AA — orange on cream, white on 
 
 test("the palette is the logo's: ACCENT is #FD4600, INK is near-black and NOT pure black", () => {
   assert.equal(C.ACCENT, "#FD4600", "the accent is keyed from the logo source");
-  assert.notEqual(C.INK.toUpperCase(), "#000000", "pure black on cream vibrates — the doc forbids it");
+  // D91 (owner 10-11): this rule is PAPER LIGHT's — pure black on CREAM vibrates. Contrast Light is pure black
+  // on pure white by design (test/d91ContrastThemes.test.js), so the rule is scoped to the paper theme.
+  assert.notEqual(C_LIGHT.INK.toUpperCase(), "#000000", "pure black on cream vibrates — the doc forbids it");
   assert.ok(contrast("INK", "CANVAS") < 18, "INK is so dark it is effectively black");
   assert.equal(C.ON_ACCENT, C.INK, "text on the orange fill is ink — white fails AA on #FD4600");
   // Hex tokens are 6-digit so `${token}44` alpha suffixes stay valid CSS.
