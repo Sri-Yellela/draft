@@ -728,7 +728,7 @@ export function DatabasePanel({ user }) {
                       {c.editable && <span style={{ fontSize:9, color:theme.textDim }}>✎</span>}
                       {c.sortable && (
                         <span style={{ fontSize:9,
-                          color:sortCol===c.key ? theme.accent : theme.textDim }}>
+                          color:sortCol===c.key ? theme.accentText : theme.textDim }}>
                           {sortCol===c.key ? (sortDir==="asc" ? "▲" : "▼") : "⇅"}
                         </span>
                       )}
@@ -752,7 +752,7 @@ export function DatabasePanel({ user }) {
                     style={{
                       background:isFlash ? `${theme.accent}22` : "transparent",
                       borderBottom:`1px solid ${theme.border}`,
-                      outline:isFlash ? `2px solid ${theme.accent}` : "none",
+                      outline:isFlash ? `2px solid ${theme.accentText}` : "none",
                     }}>
                     <td style={{ padding:"12px 14px", fontSize:11,
                                  color:theme.textDim, width:36 }}>{i+1}</td>
@@ -774,7 +774,7 @@ export function DatabasePanel({ user }) {
                               <button
                                 style={{ background:"transparent",
                                          border:`1px ${isoVal ? "solid" : "dashed"} ${isoVal ? "color-mix(in srgb, var(--color-primary) 40%, transparent)" : theme.border}`,
-                                         borderRadius:8, color:isoVal ? theme.accent : theme.textDim,
+                                         borderRadius:8, color:isoVal ? theme.accentText : theme.textDim,
                                          fontSize:11, padding:"3px 10px",
                                          cursor:"pointer", whiteSpace:"nowrap" }}
                                 onClick={e => setCalCell(isCalOpen ? null : {

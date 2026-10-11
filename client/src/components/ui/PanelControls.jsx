@@ -56,7 +56,9 @@ export function PanelSubTabs({ tabs, active, onSelect, theme, layoutId, right = 
         {tabs.map(({ id, label, count, title }) => (
           <button key={id} title={title} data-rm-subtab={id} data-rm-subtab-active={active === id ? "1" : ""}
             style={{ background: "transparent",
-                     color: active === id ? theme.accent : theme.textMuted,
+                     // D91 P6: orange TEXT is accentText (ACCENT_INK). theme.accent is the FILL — 3.3:1 on Paper Light's
+                     // glass and below AAA in the contrast themes; the matrix's contrast scan found it.
+                     color: active === id ? theme.accentText : theme.textMuted,
                      border: "none", padding: "12px 16px",
                      cursor: "pointer", fontSize: 13,
                      fontWeight: active === id ? 700 : 500,

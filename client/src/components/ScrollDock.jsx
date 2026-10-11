@@ -270,7 +270,7 @@ function NavLinkItem({ to, label, collapsed, theme }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         fontSize: collapsed ? 12 : 13, fontWeight: 600,
-        color: hovered ? theme.accent : theme.textMuted,
+        color: hovered ? theme.accentText : theme.textMuted,
         textDecoration: "none",
         padding: collapsed ? "0 10px" : "6px 12px",
         borderRadius: 8, transition: "color 0.15s",

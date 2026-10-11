@@ -94,7 +94,7 @@ const tokens = Object.freeze({
   FH_WELL:             "#191919",   // grey at 9% canvas→ink
   FH_LINE:             "#2C2C2C",   // grey at 18% canvas→ink
   FH_ACCENT_EDGE:      "#E03D00",   // the brand edge, as Charcoal Dark
-  FH_ON_ACCENT:        "#2A0D00",   // orange, from #2A0D00
+  FH_ON_ACCENT:        "#000000",   // = ON_ACCENT — the darkest label the brand fill takes (6.05)
   FH_SEG_LIFT:         "0 2px 6px rgba(253,70,0,0.36)",   // neutrals snapped to black / white, alpha kept
   FH_INSET:            "inset 0 1px 3px rgba(0,0,0,0.38)",   // neutrals snapped to black / white, alpha kept
   FH_ADD_HOVER:        "0 8px 20px rgba(253,70,0,0.46)",   // neutrals snapped to black / white, alpha kept

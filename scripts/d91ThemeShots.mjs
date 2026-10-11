@@ -44,6 +44,7 @@ async function compare(a, b) {
     const browser = await puppeteer.launch({ executablePath: (await resolveBrowserExecutable()).path, headless: "new", pipe: true });
     const page = await browser.newPage();
     for (const n of differ) {
+      const pa = path.join(A, n), pb = path.join(B, n);
       const uri = (p) => "data:image/png;base64," + fs.readFileSync(p).toString("base64");
       const r = await page.evaluate(async (x, y) => {
         const load = (s) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = s; });
@@ -97,8 +98,14 @@ function contrastScan() {
   const ch = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
   const lum = (c) => 0.2126 * ch(c[0]) + 0.7152 * ch(c[1]) + 0.0722 * ch(c[2]);
   const ratio = (a, b) => { const [h, l] = [lum(a), lum(b)].sort((x, y) => y - x); return (h + 0.05) / (l + 0.05); };
-  const probe = document.createElement("i"); probe.style.color = "var(--c-canvas-shade)"; document.body.appendChild(probe);
-  const floor = parse(getComputedStyle(probe).color) || [255, 255, 255, 1]; probe.remove();
+  const tokenRgb = (name) => { const p = document.createElement("i"); p.style.color = `var(${name})`; document.body.appendChild(p);
+    const v = parse(getComputedStyle(p).color); p.remove(); return v; };
+  const floor = tokenRgb("--c-canvas-shade") || [255, 255, 255, 1];
+  // The two grounds an AAA theme holds at AA (styles/colorTokens.js AA_HELD, owner 10-11): the brand orange fill
+  // and third-party sign-in buttons. Text on them needs 4.5 (3 large), as the contract test requires.
+  const held = ["--c-accent", "--c-accent-hover", "--c-provider-google", "--c-provider-linkedin", "--c-provider-github", "--c-provider-indeed"]
+    .map(tokenRgb).filter(Boolean);
+  const isHeld = (g) => held.some((h) => Math.abs(h[0] - g[0]) + Math.abs(h[1] - g[1]) + Math.abs(h[2] - g[2]) <= 6);
   const failures = []; let checked = 0, unmeasured = 0;
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   const seen = new Set();
@@ -128,7 +135,7 @@ function contrastScan() {
     const c = ratio(over(fg, ground), ground);
     const px = parseFloat(cs.fontSize), bold = +cs.fontWeight >= 700;
     const large = px >= 24 || (px >= 18.66 && bold);
-    const need = aaa ? (large ? 4.5 : 7) : (large ? 3 : 4.5);
+    const need = aaa && !isHeld(ground) ? (large ? 4.5 : 7) : (large ? 3 : 4.5);
     checked++;
     if (c + 0.005 < need) failures.push({ ratio: +c.toFixed(2), need, text: n.textContent.trim().slice(0, 40),
       where: `${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? "." + el.className.split(" ")[0] : ""}` });

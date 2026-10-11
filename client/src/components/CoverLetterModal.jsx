@@ -106,7 +106,7 @@ export default function CoverLetterModal({ resumeText, jobDescription, jobTitle,
                   style={{ ...btn(theme.accent, tone !== t.value), padding:"6px 12px",
                            border:`1px solid ${tone === t.value ? theme.accent : theme.border}`,
                            background: tone === t.value ? "color-mix(in srgb, var(--color-primary) 13%, transparent)" : "transparent",
-                           color: tone === t.value ? theme.accent : theme.textMuted }}>
+                           color: tone === t.value ? theme.accentText : theme.textMuted }}>
                   {t.label}
                 </button>
               ))}
