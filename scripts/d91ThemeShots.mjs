@@ -222,7 +222,11 @@ async function shootSet(routes, who, pref, vp, cues) {
       await page.evaluate(() => document.fonts?.ready);
       await page.screenshot({ path: path.join(OUT, `${name}.png`), fullPage: false });
       shots++;
-      if (SCAN) scans.push({ name, ...(await page.evaluate(contrastScan)), focus: await focusScan(page) });
+      if (SCAN) {
+        scans.push({ name, ...(await page.evaluate(contrastScan)), focus: await focusScan(page) });
+        // Written after EVERY shot: a run stopped part-way (10-11: reaped for low memory at 278 / 512) keeps its findings.
+        fs.writeFileSync(path.join(OUT, "_scan.partial.json"), JSON.stringify(scans, null, 2));
+      }
     } catch (e) { errors.push(`${name}: ${String(e.message).slice(0, 100)}`); }
   }
   await page.close();
