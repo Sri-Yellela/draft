@@ -50,8 +50,11 @@ test("D19: nothing outside StampLogo and the token file paints the mark — no p
     .split("\n").filter(f => /\.(jsx?|css)$/.test(f));
   assert.ok(files.length > 100);
   // D91: the palettes are the theme files now; colorTokens.js keeps the pairs that name the mark's tokens.
-  const allowed = new Set(["client/src/components/StampLogo.jsx", "client/src/styles/colorTokens.js",
-    "client/src/themes/paper-light.js", "client/src/themes/charcoal-dark.js"]);
+  // Every theme file the registry imports is a palette, and defines the mark's two tokens.
+  const themeFiles = [...read("client/src/themes/index.js").matchAll(/^import \w+ from "\.\/([\w-]+\.js)";$/gm)]
+    .map((m) => `client/src/themes/${m[1]}`);
+  assert.ok(themeFiles.length >= 4, "the registry scan found the theme files");
+  const allowed = new Set(["client/src/components/StampLogo.jsx", "client/src/styles/colorTokens.js", ...themeFiles]);
   // (--c-logo-shadow is a COMPANY logo's shadow on the job card, not the mark.)
   const hits = files.filter(f => !allowed.has(f) && /--c-logo-(slash|word)\b|LOGO_SLASH|LOGO_WORD|-slash\.png|-letters\.png/.test(read(f)));
   assert.deepEqual(hits, [], "a surface special-cases the mark's colours");

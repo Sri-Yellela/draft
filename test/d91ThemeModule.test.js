@@ -13,7 +13,7 @@ import path from "node:path";
 
 const REG = await import("../client/src/themes/index.js");
 const { THEME_LIST, THEMES, resolve, prePaintScript, installColorVars, ACTIVE_THEME, cssVarName } = REG;
-const { CONTRAST_PAIRS, C_LIGHT, C_DARK } = await import("../client/src/styles/colorTokens.js");
+const { CONTRAST_PAIRS, C_LIGHT, C_DARK, pairTarget } = await import("../client/src/styles/colorTokens.js");
 const read = (f) => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
 
 // ── WCAG 2.x, translucent grounds composited over the theme's CANVAS_SHADE (as colorTokens.test.js) ──
@@ -33,7 +33,7 @@ function contrastIn(T, fg, bg) {
   return (hi + 0.05) / (lo + 0.05);
 }
 // The targets (§3): AA themes 4.5 text / 3 large and UI; AAA themes 7 text / 4.5 large and UI.
-const TARGET = { aa: { normal: 4.5, large: 3, ui: 3 }, aaa: { normal: 7, large: 4.5, ui: 4.5 } };
+// The targets (§3) and the two AA exceptions are styles/colorTokens.js pairTarget(), shared with the derivation.
 
 test("the registry: one file per theme, the contract's six fields, unique ids that name their files", () => {
   assert.ok(THEME_LIST.length >= 2, "the registry lost a theme");
@@ -65,10 +65,10 @@ test("⛔ every declared pair passes at the theme's OWN target", () => {
   assert.ok(CONTRAST_PAIRS.length >= 100, "the pair list has been emptied — a vacuous pass");
   const failures = [];
   for (const t of THEME_LIST) {
-    const need = TARGET[t.contrast];
+    const need = (fg, bg, size) => pairTarget(t.contrast, fg, bg, size);
     for (const [fg, bg, size] of CONTRAST_PAIRS) {
       const r = contrastIn(t.tokens, fg, bg);
-      if (r < need[size]) failures.push(`${t.id}: ${fg} on ${bg} (${size}) ${r.toFixed(2)} < ${need[size]}`);
+      if (r < need(fg, bg, size)) failures.push(`${t.id}: ${fg} on ${bg} (${size}) ${r.toFixed(2)} < ${need(fg, bg, size)}`);
     }
   }
   assert.deepEqual(failures, []);

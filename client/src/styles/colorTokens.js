@@ -160,6 +160,20 @@ export const CONTRAST_PAIRS = [
 ];
 
 // Pairs that are FORBIDDEN, asserted to fail so nobody "fixes" the test by adding them above.
+// ── D91 · the AAA targets, and the ONLY pairs an AAA theme holds at AA ──────────────────────────────
+// A theme declares contrast "aa" (text 4.5, large and UI 3) or "aaa" (text 7, large and UI 4.5). Two pairs
+// stay at AA in an AAA theme, each approved by the owner (10-11): the label on the brand orange fill (black
+// on #FD4600 is 6.05 — reaching 7 would mean a lighter, off-brand orange), and third-party sign-in buttons
+// (their owners' colours; white on Google's #1A73E8 is 4.51).
+export const CONTRAST_TARGETS = Object.freeze({
+  aa:  Object.freeze({ normal: 4.5, large: 3, ui: 3 }),
+  aaa: Object.freeze({ normal: 7, large: 4.5, ui: 4.5 }),
+});
+export const AA_HELD = (fg, bg) => /^(ON_PROVIDER)$/.test(fg) && /^PROVIDER_/.test(bg) ? "a third party's brand colour"
+  : /^(ON_ACCENT|FH_ON_ACCENT)$/.test(fg) && /^ACCENT(_HOVER)?$/.test(bg) ? "the label on the brand orange fill" : null;
+/** The ratio a declared pair needs in a theme of this contrast level. */
+export const pairTarget = (contrast, fg, bg, size) => CONTRAST_TARGETS[AA_HELD(fg, bg) ? "aa" : contrast][size];
+
 export const FORBIDDEN_PAIRS = [
   ["ACCENT", "CANVAS",       "normal", "the logo orange as text on paper"],
   ["ACCENT", "CANVAS",       "ui",     "the logo orange as a focus ring or input edge on paper"],
