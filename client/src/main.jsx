@@ -34,6 +34,7 @@ import "./styles/colorTokens.js";   // publishes --c-* before anything paints
 import "./index.css";
 // D48: the depth box — DepthButton's classes AND the .dbx-depth skin every other interactive control wears.
 import "./components/DepthButton.css";
+import "./styles/cues.css";   // D91: shape cues and the system preferences (reduced transparency, forced colours)
 import { ThemeProvider } from "./styles/theme.jsx";
 import App from "./App.jsx";
 

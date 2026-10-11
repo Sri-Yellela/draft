@@ -105,7 +105,7 @@ export const STAGE_RANK = Object.freeze({
 /**
  * Human labels. Kept beside the vocabulary so a UI cannot invent its own wording for a stored value.
  * `tone` names the MEANING (neutral · danger · warning · info · success); the client paints it from its theme
- * tokens (D91 P2). It used to be raw hex (#d97706 is ≈ 2.7:1 on the cream), outside every token and pair.
+ * tokens (D91 P2). It used to be raw Tailwind hex (its amber ≈ 2.7:1 on the cream), outside every token and pair.
  */
 export const RESPONSE_LABELS = Object.freeze({
   [RESPONSE_OUTCOME.NO_RESPONSE]: { label: "No response", note: "never heard back", tone: "neutral" },

@@ -14,12 +14,21 @@
 import { C } from "./colorTokens.js";
 import { ATS_BAND } from "../../../shared/atsBands.js";
 
+// `cue` is the band's shape cue (D91 P4, styles/cues.css): its glyph as a mark (styles/mark.js) and, as a
+// chip, its fill style — Strong filled, Moderate hatched, Weak outlined, Not enough signal dashed.
 const STYLES = {
-  [ATS_BAND.STRONG]:   { fg: C.BAND_STRONG,   bg: C.BAND_STRONG_QUIET,   edge: C.BAND_STRONG,   edgeStyle: "solid" },
-  [ATS_BAND.MODERATE]: { fg: C.BAND_MODERATE, bg: C.BAND_MODERATE_QUIET, edge: C.BAND_MODERATE, edgeStyle: "solid" },
-  [ATS_BAND.WEAK]:     { fg: C.BAND_WEAK,     bg: C.BAND_WEAK_QUIET,     edge: C.BAND_WEAK,     edgeStyle: "solid" },
+  [ATS_BAND.STRONG]:   { fg: C.BAND_STRONG,   bg: C.BAND_STRONG_QUIET,   edge: C.BAND_STRONG,   edgeStyle: "solid", cue: "ok" },
+  [ATS_BAND.MODERATE]: { fg: C.BAND_MODERATE, bg: C.BAND_MODERATE_QUIET, edge: C.BAND_MODERATE, edgeStyle: "solid", cue: "warn" },
+  [ATS_BAND.WEAK]:     { fg: C.BAND_WEAK,     bg: C.BAND_WEAK_QUIET,     edge: C.BAND_WEAK,     edgeStyle: "solid", cue: "bad" },
   [ATS_BAND.NOT_ENOUGH_SIGNAL]:
-                       { fg: C.BAND_UNKNOWN,  bg: "transparent",         edge: C.BAND_UNKNOWN_EDGE, edgeStyle: "dashed" },
+                       { fg: C.BAND_UNKNOWN,  bg: "transparent",         edge: C.BAND_UNKNOWN_EDGE, edgeStyle: "dashed", cue: "info" },
+};
+// The chip's fill under shape cues (custom properties, inert until <html data-cues="shape">).
+const CHIP_CUE = {
+  ok:   (s) => ({ "--band-bg": s.bg, "--band-fill": "none", "--band-edge": "solid" }),
+  warn: (s) => ({ "--band-bg": s.bg, "--band-fill": `repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, ${s.fg} 22%, transparent) 3px 5px)`, "--band-edge": "solid" }),
+  bad:  ()  => ({ "--band-bg": "transparent", "--band-fill": "none", "--band-edge": "solid" }),
+  info: ()  => ({ "--band-bg": "transparent", "--band-fill": "none", "--band-edge": "dashed" }),
 };
 
 /** { fg, bg, edge, edgeStyle } for a band id; an unknown id paints as Not enough signal. */
@@ -39,5 +48,6 @@ export function bandChipStyle(band, { edgeAlpha = "55" } = {}) {
     background: s.bg,
     color: s.fg,
     border: `1px ${s.edgeStyle} ${dashed ? s.edge : `${s.edge}${edgeAlpha}`}`,
+    ...CHIP_CUE[s.cue](s),
   };
 }

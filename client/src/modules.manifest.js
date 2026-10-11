@@ -173,6 +173,7 @@ export const SHARED = Object.freeze({
   // ── styles ──
   "styles/bandStyle.js":                { what: "a fit band's colours (read by mark.js)" },
   "styles/brandMark.js":                { what: "the mark's geometry" },
+  "styles/cues.css":                    { what: "THE shape cues + system preferences (D91) — global, loaded by main.jsx", owner: "main.jsx" },
   "styles/colorTokens.js":              { what: "THE colour tokens" },
   "styles/glass.js":                    { what: "THE glass surface" },
   "styles/inkPair.css":                 { what: "the D32 ink pair surface", owner: "components/AtsReport.jsx", alsoBy: ["components/PostingPanel.jsx"] },
