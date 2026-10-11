@@ -13,7 +13,7 @@ import { api } from "../lib/api.js";
 import { describeApplication, attemptStatusChip } from "../lib/applyObstacles.js";
 import { companyLabel } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
-import { markStyle, bandMarkStyle } from "../styles/mark.js";
+import { markStyle, bandMarkStyle, dotCue } from "../styles/mark.js";
 import { C } from "../styles/colorTokens.js";
 // AD1: OUTCOME_LABELS moved to AutoApplyPanel with the groups themselves — they name the SUB-TABS
 // now, and nothing in this module reads them. The partition still lives in shared/ because
@@ -192,7 +192,7 @@ export function ApplicationObstacleCard({
             <div key={item.key} data-rm-plan="single"
                  style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
               <span style={{ width: 5, height: 5, borderRadius: "50%", marginTop: 6, flexShrink: 0,
-                             background: item.protective ? C.WARNING : C.DANGER }} />
+                             background: item.protective ? C.WARNING : C.DANGER, ...dotCue(item.protective ? "warn" : "bad") }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.45 }}>
                   {item.headline}
@@ -207,7 +207,7 @@ export function ApplicationObstacleCard({
           : app.reasons.map((r, i) => (
             <div key={`${r.code}-${i}`} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
               <span style={{ width: 5, height: 5, borderRadius: "50%", marginTop: 6, flexShrink: 0,
-                             background: r.protective ? C.WARNING : C.DANGER }} />
+                             background: r.protective ? C.WARNING : C.DANGER, ...dotCue(r.protective ? "warn" : "bad") }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.45 }}>
                   {r.obstacle}

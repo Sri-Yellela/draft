@@ -1,0 +1,79 @@
+/* ── D91 P4 · SHAPE CUES — meaning that never rides on hue alone ─────────────────────────────────────────
+   A USER SETTING, not a theme (default off): themes/index.js sets data-cues="shape" on <html> when it is on,
+   for ANY theme. Implemented ONCE, here, for the shared components — styles/mark.js (inline marks carry
+   --mark-glyph / --mark-edge), the .mark classes (DepthButton.css), bandStyle.js's chips (--band-*), the
+   pair's three-segment bar — plus the few screens docs/THEME_AUDIT.md §5 found drawing hue-only meaning.
+   ⛔ NO REFLOW: a glyph sits INSIDE the mark's existing 7px left padding (absolutely positioned), an edge
+   changes style not width, a fill changes pattern not size. test/d91ShapeCues.test.js pins it.
+     ✓ solid   — ok, success, strong          ! dashed — warning, moderate
+     ✕ double  — danger, weak, missing        i dotted — info, not enough signal */
+
+/* the inline mark (styles/mark.js) */
+html[data-cues="shape"] [style*="--mark-glyph"] { border-left-style: var(--mark-edge) !important; }
+html[data-cues="shape"] [style*="--mark-glyph"]::before {
+  content: var(--mark-glyph); position: absolute; left: 1px; top: 50%; transform: translateY(-50%);
+  width: 6px; text-align: center; font: 800 normal 8px/1 var(--font-body); color: inherit;
+}
+
+/* a status dot (styles/mark.js dotCue): the glyph, in the dot's colour, centred in the dot's own box */
+html[data-cues="shape"] [style*="--dot-glyph"] { background: none !important; position: relative; overflow: visible; }
+html[data-cues="shape"] [style*="--dot-glyph"]::before {
+  content: var(--dot-glyph); position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font: 800 normal 9px/1 var(--font-body); color: var(--dot-c);
+}
+
+/* the class mark (.mark, DepthButton.css) */
+html[data-cues="shape"] .mark { position: relative; }
+html[data-cues="shape"] :is(.mark--ok, .mark--strong, .mark--warn, .mark--moderate, .mark--no, .mark--weak, .mark--info, .mark--unknown)::before {
+  position: absolute; left: 1px; top: 50%; transform: translateY(-50%);
+  width: 6px; text-align: center; font: 800 normal 8px/1 var(--font-body); color: inherit;
+}
+html[data-cues="shape"] :is(.mark--ok, .mark--strong)::before { content: "✓"; }
+html[data-cues="shape"] :is(.mark--warn, .mark--moderate) { border-left-style: dashed; }
+html[data-cues="shape"] :is(.mark--warn, .mark--moderate)::before { content: "!"; }
+html[data-cues="shape"] :is(.mark--no, .mark--weak) { border-left-style: double; }
+html[data-cues="shape"] :is(.mark--no, .mark--weak)::before { content: "✕"; }
+html[data-cues="shape"] :is(.mark--info, .mark--unknown) { border-left-style: dotted; }
+html[data-cues="shape"] :is(.mark--info, .mark--unknown)::before { content: "i"; }
+
+/* the fit-band chip (bandStyle.js bandChipStyle): filled · hatched · outlined · dashed */
+html[data-cues="shape"] [style*="--band-fill"] {
+  background-color: var(--band-bg) !important; background-image: var(--band-fill) !important; border-style: var(--band-edge) !important;
+}
+
+/* the pair's three-segment bar (AtsReport.css): yours solid · missing hatched · generic dotted */
+html[data-cues="shape"] .ats-bar__seg--missing {
+  background-image: repeating-linear-gradient(135deg, transparent 0 2px, var(--c-canvas) 2px 3.5px);
+}
+html[data-cues="shape"] .ats-bar__seg--generic {
+  background-image: radial-gradient(var(--c-canvas) 0.8px, transparent 1px); background-size: 4px 4px;
+}
+
+/* The Table's funnel (ApplicationHistory.css): rejected is hatched by its stroke pattern */
+html[data-cues="shape"] .ah__fseg[data-seg="rejected"] { stroke: var(--c-surface-solid); stroke-width: 1.5; stroke-dasharray: 2 2; }
+html[data-cues="shape"] .ah__flegend li[data-seg="rejected"]::before { outline: 1px dashed currentColor; outline-offset: -3px; }
+
+/* Draft House: a tone edge (danger · warning · info) changes style, not width */
+html[data-cues="shape"] .dh-item[data-tone="danger"]  { border-left-style: double; }
+html[data-cues="shape"] .dh-item[data-tone="warning"] { border-left-style: dashed; }
+html[data-cues="shape"] .dh-item[data-tone="info"]    { border-left-style: dotted; }
+html[data-cues="shape"] .dh-bar[data-held="true"]     { outline-style: dashed; }
+
+/* "What we changed": added · removed · rewritten cells */
+html[data-cues="shape"] .rc__cell--del { border-left-style: double; }
+html[data-cues="shape"] .rc__cell--rew { border-left-style: dashed; }
+html[data-cues="shape"] .rc ins { text-decoration: underline; text-underline-offset: 2px; }
+
+/* ── D91 P5 · SYSTEM PREFERENCES — the same stylesheet, because both are accessibility settings, not themes ── */
+
+/* prefers-reduced-transparency: themes/index.js already resolved the glass tokens to opaque composites and
+   set data-transparency="reduced"; here the blur goes too, everywhere, so nothing behind a panel shows through. */
+html[data-transparency="reduced"] *, html[data-transparency="reduced"] *::before, html[data-transparency="reduced"] *::after { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+
+/* forced-colors (Windows High Contrast): the mode DROPS box-shadow, which is all a depth box, a glass card or a
+   mark has for an edge — so each gets a real system-colour border and nothing disappears. */
+@media (forced-colors: active) {
+  button, [role="button"], .dbx, input, select, textarea, [data-settings-section] { border: 1px solid ButtonText !important; }
+  .mark, [style*="--mark-glyph"] { border: 1px solid CanvasText !important; border-left-width: 3px !important; }
+  :focus-visible { outline: 2px solid Highlight !important; outline-offset: 2px; }
+}

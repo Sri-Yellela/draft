@@ -343,7 +343,8 @@ test("⛔ THE ONLY DARK SURFACE IS A RULE: no file but the pair wears it, and no
   assert.deepEqual(darkSurfaceViolations(CLIENT), []);
   // The one place that decides: the palette is resolved ONCE, at load, from the one preference.
   assert.match(read(DECIDER), /export const ACTIVE_THEME = resolve\(\);/);
-  assert.match(read(DECIDER), /export const C = ACTIVE_THEME\.tokens;/);
+  // (D91 P5: under prefers-reduced-transparency the same theme's glass is composited opaque — still one decider.)
+  assert.match(read(DECIDER), /export const C = REDUCED_TRANSPARENCY \? opaqueTokens\(ACTIVE_THEME\.tokens\) : ACTIVE_THEME\.tokens;/);
   assert.ok(TOKEN_DEFS.has("client/src/themes/paper-light.js") && TOKEN_DEFS.has("client/src/themes/charcoal-dark.js"),
     "the registry scan found the theme files");
   assert.match(PAIR_CSS, /\.ink-pair \{\s*background: var\(--c-pair-surface\);\s*color: var\(--c-pair-ink\);/);

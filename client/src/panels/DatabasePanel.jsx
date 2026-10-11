@@ -31,8 +31,10 @@ import {
 import { C } from "../styles/colorTokens.js";
 // D91 P2: a reply outcome names its MEANING (shared/applicationResponse.js `tone`); the live theme paints it.
 const RESPONSE_TONE_COLOUR = Object.freeze({ neutral: C.INK_FAINT, danger: C.DANGER, warning: C.WARNING, info: C.INFO, success: C.SUCCESS });
+// …and its shape cue (D91 P4): the menu's dots carry a glyph when cues are on; "neutral" carries none.
+const RESPONSE_TONE_CUE = Object.freeze({ danger: "bad", warning: "warn", info: "info", success: "ok" });
 import EmptyState from "../components/EmptyState.jsx";
-import { bandMarkStyle } from "../styles/mark.js";
+import { bandMarkStyle, dotCue } from "../styles/mark.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 
 // ── Calendar component ────────────────────────────────────────
@@ -895,7 +897,7 @@ export function DatabasePanel({ user }) {
                                                      border:"none", borderRadius:6, cursor:"pointer",
                                                      padding:"6px 10px", color:theme.text, fontSize:12 }}>
                                             <span style={{ width:7, height:7, borderRadius:"50%",
-                                                           background:RESPONSE_TONE_COLOUR[m.tone], flexShrink:0 }}/>
+                                                           background:RESPONSE_TONE_COLOUR[m.tone], flexShrink:0, ...dotCue(RESPONSE_TONE_CUE[m.tone]) }}/>
                                             <span style={{ fontWeight:active ? 700 : 500 }}>{m.label}</span>
                                             <span style={{ color:theme.textDim, fontSize:10, marginLeft:"auto" }}>
                                               {m.note}
