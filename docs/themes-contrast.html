@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@1,600;1,700;1,800&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<title>draft — two high-contrast themes</title>
+<style>
+:root{--logo:'Poppins',ui-sans-serif,system-ui,sans-serif;--ser:'Instrument Serif',Georgia,serif;--ui:'DM Sans',ui-sans-serif,system-ui,sans-serif;--E:cubic-bezier(.3,.8,.25,1)}
+/* ───────── THE FOUR THEMES: the same token NAMES, re-pointed. (Names mirror colorTokens.js.) ───────── */
+[data-theme=paper-light]{--canvas:#F3ECE0;--shade:#DFD6C9;--grain:.10;--grainRGB:90,70,50;
+ --surf:rgba(255,251,245,.58);--surf2:rgba(255,251,245,.72);--menu:rgba(255,251,245,.96);--solid:#FBF7F0;--hover:rgba(30,25,21,.05);--scrim:rgba(30,25,21,.28);--input:rgba(255,255,255,.55);
+ --spec:rgba(255,255,255,.95);--sheen:rgba(255,255,255,.55);--bodyTop:rgba(255,253,249,.70);--body:rgba(255,251,245,.36);--rim:rgba(255,255,255,.50);
+ --ink:#1E1915;--muted:#4A423B;--faint:#62574D;--border:#DDD2C3;--borderS:#C7B9A7;--borderC:#7F7263;
+ --accent:#FD4600;--accentH:#FF6424;--onAccent:#1E1915;--accentInk:#A33200;--accentQ:#EBD5C6;
+ --ok:#1A6B33;--okq:#D5E8D8;--warn:#855000;--warnq:#F2E2C4;--no:#B3261E;--noq:#F5D9D3;--info:#1E5E94;--infoq:#D7E4F0;
+ --bS:#17663A;--bSq:#D3E8D9;--bM:#7A5300;--bMq:#F2E3C0;--bW:#A3281E;--bWq:#F6D9D2;--bU:#4A423B;--bUe:#7F7263;
+ --d1:0 3px 8px rgba(30,25,21,.11),inset 0 1px 0 rgba(255,255,255,.66);--d2:0 7px 17px rgba(30,25,21,.15),inset 0 1px 0 rgba(255,255,255,.66);--dA:0 3px 9px rgba(253,70,0,.34),inset 0 1px 0 rgba(255,255,255,.35);--gl:0 1px 1px rgba(60,40,20,.05),0 12px 28px -10px rgba(90,55,25,.28);
+ --logoSlash:#FD4600;--logoWord:#1E1915;--tile:#FBF7F0;--seg1:#1D6B43;--seg2:#8A3B2E;--seg3:#6B6257}
+[data-theme=charcoal-dark]{--canvas:#1C1815;--shade:#2C2621;--grain:.16;--grainRGB:140,122,102;
+ --surf:rgba(46,39,34,.62);--surf2:rgba(52,44,38,.78);--menu:rgba(34,29,25,.97);--solid:#26201C;--hover:rgba(255,240,225,.07);--scrim:rgba(0,0,0,.55);--input:rgba(255,240,225,.06);
+ --spec:rgba(255,240,225,.22);--sheen:rgba(255,240,225,.07);--bodyTop:rgba(58,49,42,.74);--body:rgba(38,32,28,.50);--rim:rgba(255,240,225,.11);
+ --ink:#F2EADF;--muted:#CFC2B3;--faint:#ADA090;--border:#3B332C;--borderS:#53483F;--borderC:#8E8072;
+ --accent:#FD4600;--accentH:#FF6424;--onAccent:#1E1915;--accentInk:#FF7D4A;--accentQ:#3D2519;
+ --ok:#5FCB8C;--okq:#163120;--warn:#E6AA4E;--warnq:#35280F;--no:#F27F72;--noq:#3B1C18;--info:#7BB4EA;--infoq:#15263A;
+ --bS:#72D59D;--bSq:#173423;--bM:#EAB95E;--bMq:#362913;--bW:#F48F83;--bWq:#3D1D19;--bU:#CFC2B3;--bUe:#8E8072;
+ --d1:0 3px 8px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,240,225,.10);--d2:0 7px 17px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,240,225,.12);--dA:0 3px 9px rgba(253,70,0,.34),inset 0 1px 0 rgba(255,255,255,.25);--gl:0 1px 1px rgba(0,0,0,.4),0 12px 28px -10px rgba(0,0,0,.7);
+ --logoSlash:#FD4600;--logoWord:#FD4600;--tile:#FBF7F0;--seg1:#7FC79A;--seg2:#E58F7C;--seg3:#A39A8C}
+/* CONTRAST DARK — pure black and white NEUTRALS; the brand orange and the green / red / amber / blue indicators KEPT and re-tuned to ≥ 7:1.
+   Depth by LIGHT (a hairline + a soft white bloom): black cannot cast a visible shadow. */
+[data-theme=contrast-dark]{--canvas:#000000;--shade:#1A1A1A;--grain:.10;--grainRGB:255,255,255;
+ --surf:rgba(26,26,26,.72);--surf2:rgba(36,36,36,.84);--menu:rgba(12,12,12,.98);--solid:#121212;--hover:rgba(255,255,255,.12);--scrim:rgba(0,0,0,.78);--input:rgba(255,255,255,.08);
+ --spec:rgba(255,255,255,.50);--sheen:rgba(255,255,255,.09);--bodyTop:rgba(40,40,40,.80);--body:rgba(16,16,16,.58);--rim:rgba(255,255,255,.32);
+ --ink:#FFFFFF;--muted:#E6E6E6;--faint:#BDBDBD;--border:#404040;--borderS:#737373;--borderC:#BDBDBD;
+ --accent:#FD4600;--accentH:#FF6424;--onAccent:#000000;--accentInk:#FF9466;--accentQ:#3A1A0C;
+ --ok:#46D683;--okq:#0C2A1A;--warn:#FFC044;--warnq:#2C2208;--no:#FF8080;--noq:#301010;--info:#6DB8FF;--infoq:#0E2236;
+ --bS:#46D683;--bSq:#0C2A1A;--bM:#FFC044;--bMq:#2C2208;--bW:#FF8080;--bWq:#301010;--bU:#E6E6E6;--bUe:#BDBDBD;
+ --d1:0 0 0 1px rgba(255,255,255,.16),0 6px 16px rgba(255,255,255,.07),inset 0 1px 0 rgba(255,255,255,.30);--d2:0 0 0 1px rgba(255,255,255,.28),0 10px 26px rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.40);--dA:0 0 0 1px #FF6424,0 6px 20px rgba(253,70,0,.45),inset 0 1px 0 rgba(255,255,255,.35);--gl:0 0 0 1px rgba(255,255,255,.14),0 18px 40px -14px rgba(255,255,255,.16);
+ --logoSlash:#FD4600;--logoWord:#FD4600;--tile:#FFFFFF;--seg1:#46D683;--seg2:#FF8080;--seg3:#A8A8A8}
+/* CONTRAST LIGHT — black on white. Depth by shadow plus a hairline so no edge depends on the shadow. */
+[data-theme=contrast-light]{--canvas:#FFFFFF;--shade:#EDEDED;--grain:.06;--grainRGB:0,0,0;
+ --surf:rgba(255,255,255,.72);--surf2:rgba(250,250,250,.86);--menu:rgba(255,255,255,.98);--solid:#FFFFFF;--hover:rgba(0,0,0,.07);--scrim:rgba(0,0,0,.60);--input:rgba(0,0,0,.04);
+ --spec:rgba(255,255,255,1);--sheen:rgba(255,255,255,.7);--bodyTop:rgba(255,255,255,.88);--body:rgba(246,246,246,.60);--rim:rgba(0,0,0,.26);
+ --ink:#000000;--muted:#1A1A1A;--faint:#404040;--border:#C8C8C8;--borderS:#8C8C8C;--borderC:#404040;
+ --accent:#FD4600;--accentH:#FF6424;--onAccent:#000000;--accentInk:#8A2A00;--accentQ:#FFE3D5;
+ --ok:#005A26;--okq:#E6F4EC;--warn:#6B4500;--warnq:#FBF0D9;--no:#9E0B0B;--noq:#FDEEEE;--info:#0B4F8A;--infoq:#E4EEF9;
+ --bS:#005A26;--bSq:#E6F4EC;--bM:#6B4500;--bMq:#FBF0D9;--bW:#9E0B0B;--bWq:#FDEEEE;--bU:#1A1A1A;--bUe:#404040;
+ --d1:0 0 0 1px rgba(0,0,0,.20),0 4px 10px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.95);--d2:0 0 0 1px rgba(0,0,0,.32),0 9px 20px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.95);--dA:0 0 0 1px #A32E00,0 5px 14px rgba(253,70,0,.45),inset 0 1px 0 rgba(255,255,255,.35);--gl:0 0 0 1px rgba(0,0,0,.16),0 14px 30px -10px rgba(0,0,0,.34);
+ --logoSlash:#FD4600;--logoWord:#000000;--tile:#FFFFFF;--seg1:#005A26;--seg2:#9E0B0B;--seg3:#5A5A5A}
+
+*{box-sizing:border-box;margin:0}
+body{background:#0b0b0b;color:#ddd;font:13px/1.5 var(--ui)}
+.shell{max-width:1240px;margin:0 auto;padding:18px 20px 70px}
+.hd{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}.hd h1{font:800 italic 21px/1 var(--logo);color:#fff}.hd h1 i{color:#FD4600;font-style:inherit}
+.note{color:#b9b9b9;font-size:12.5px;max-width:112ch;margin:8px 0 14px}.note b{color:#fff}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.tb{border:1px solid #3a3a3a;background:#161616;color:#cfcfcf;border-radius:10px;padding:8px 13px;font:800 italic 11.5px/1 var(--logo);cursor:pointer}
+.tb[aria-pressed=true],.tb[aria-selected=true]{background:#fff;color:#000;border-color:#fff}
+.tb:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.gap{flex:1}.sep{width:1px;height:22px;background:#333;margin:0 4px}
+.lab{font:800 10.5px var(--ui);letter-spacing:.1em;text-transform:uppercase;color:#888}
+.cmp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}@media(max-width:1100px){.cmp{grid-template-columns:1fr}}
+.cap{font:800 italic 12px var(--logo);color:#9a9a9a;margin:0 0 6px}
+.ann{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:14px}
+.ann div{background:#141414;border:1px solid #2c2c2c;border-radius:12px;padding:11px 13px;font-size:12px;color:#bdbdbd}.ann b{color:#fff;display:block;font:800 italic 12.5px var(--logo);margin-bottom:3px}
+.good{color:#9be0b4}.warn2{color:#f0c674}
+
+/* ───────── THE SITE (every colour is a token) ───────── */
+.app{position:relative;background:var(--canvas);color:var(--ink);border:1px solid var(--borderS);border-radius:16px;overflow:hidden;isolation:isolate;font:13px/1.5 var(--ui)}
+.app::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:var(--grain);
+ background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");mix-blend-mode:multiply}
+[data-theme=contrast-dark] .app::before,[data-theme=charcoal-dark] .app::before{mix-blend-mode:screen}
+.app::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(900px 380px at 12% -6%,var(--sheen),transparent 70%)}
+.glass{background:linear-gradient(180deg,var(--bodyTop),var(--body));backdrop-filter:blur(14px) saturate(1.1);-webkit-backdrop-filter:blur(14px) saturate(1.1);border:1px solid var(--rim);box-shadow:var(--gl),inset 0 1px 0 var(--spec);border-radius:14px}
+.top{display:flex;align-items:center;gap:14px;padding:11px 16px;margin:10px;border-radius:14px}
+.logo{font:800 italic 20px/1 var(--logo);letter-spacing:-.01em}.logo b{color:var(--logoSlash);font-weight:800}.logo span{color:var(--logoWord)}
+.nav{display:flex;gap:6px;margin-left:10px}.nav a{padding:6px 11px;border-radius:9px;font:800 italic 12px var(--logo);color:var(--muted);text-decoration:none;border:1px solid transparent}
+.nav a[aria-current]{background:var(--accentQ);color:var(--ink);border-color:var(--borderC);box-shadow:inset 0 -2px 0 var(--accentInk)}
+.sp{flex:1}
+.bx{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:11px;border:1px solid var(--borderS);background:var(--solid);color:var(--ink);font:800 italic 12px/1 var(--logo);cursor:pointer;box-shadow:var(--d1);transition:transform .16s,box-shadow .16s}
+.bx:hover{transform:translateY(-2px);box-shadow:var(--d2);border-color:var(--accentInk)}
+.bx.p{background:var(--accent);color:var(--onAccent);border-color:var(--accent);box-shadow:var(--dA)}.bx.p:hover{background:var(--accentH)}
+.bx.g{background:transparent;box-shadow:none}.bx.g:hover{background:var(--hover);box-shadow:none}
+.bx.d{color:var(--no);border-color:var(--no)}
+.bx[disabled]{opacity:.5;border-style:dashed;cursor:not-allowed;box-shadow:none;transform:none}
+.bx:focus-visible,.fld:focus-visible,.sw:focus-visible{outline:2px solid var(--accentInk);outline-offset:2px;box-shadow:0 0 0 5px var(--canvas)}
+.focus{outline:2px solid var(--accentInk);outline-offset:2px;box-shadow:0 0 0 5px var(--canvas)}
+.cols{display:grid;grid-template-columns:260px 1fr;gap:12px;padding:0 10px 12px}@media(max-width:900px){.cols{grid-template-columns:1fr}}
+.list{display:flex;flex-direction:column;gap:10px}
+.card{padding:12px;border-radius:14px;cursor:pointer;transition:transform .16s,box-shadow .16s}
+.card:hover{transform:translateY(-2px)}.card[aria-selected=true]{outline:2px solid var(--accentInk);outline-offset:1px}
+.row{display:flex;gap:10px;align-items:center}.tile{width:38px;height:38px;border-radius:10px;background:var(--tile);color:#1E1915;display:grid;place-items:center;font:800 italic 15px var(--logo);box-shadow:var(--d1);flex:0 0 auto;border:1px solid var(--borderS)}
+.t1{font:800 italic 13.5px/1.2 var(--logo)}.t2{font-size:12px;color:var(--muted)}.t3{font-size:11.5px;color:var(--faint)}
+.num{font:400 28px/1 var(--ser);color:var(--accentInk)}
+.nb{background:var(--solid);border:1px solid var(--border);border-radius:12px;box-shadow:var(--d1);padding:9px 12px;min-width:92px}.nb span{display:block;font-size:11px;color:var(--faint)}
+/* marks and bands — colour carries the meaning; the OPTIONAL shape cues (a glyph, an edge style, a pattern) sit on top for anyone who needs them */
+.mk{display:inline-flex;align-items:center;gap:6px;border-radius:6px;padding:4px 9px 4px 8px;font:800 italic 11px/1 var(--logo);border-left:3px solid var(--c);color:var(--c);background:var(--q)}
+.mk.ok{--c:var(--ok);--q:var(--okq)}.mk.warn{--c:var(--warn);--q:var(--warnq)}.mk.no{--c:var(--no);--q:var(--noq)}.mk.info{--c:var(--info);--q:var(--infoq)}
+.mk::before{content:attr(data-g);display:none;font-style:normal}
+[data-cues=shape] .mk{border:1.5px solid var(--c);border-left-width:1.5px}
+[data-cues=shape] .mk::before{display:inline-block;width:1.15em;text-align:center}
+[data-cues=shape] .mk.warn{border-style:dashed}
+[data-cues=shape] .mk.no{border-style:double;border-width:4px;padding:2px 7px 2px 6px}
+[data-cues=shape] .mk.info{border-style:dotted;border-width:2px}
+.band{display:inline-flex;align-items:center;gap:7px;border-radius:7px;padding:4px 9px;font:800 italic 11px/1 var(--logo);color:var(--bc);background:var(--bq);border:1px solid transparent}
+.band .bars{display:inline-flex;gap:2px}.band .bars u{width:5px;height:10px;border-radius:1px;background:currentColor;opacity:.25;display:block}.band .bars u.on{opacity:1}
+.band.S{--bc:var(--bS);--bq:var(--bSq)}.band.M{--bc:var(--bM);--bq:var(--bMq)}.band.W{--bc:var(--bW);--bq:var(--bWq)}
+.band.U{--bc:var(--bU);background:transparent;border:1px dashed var(--bUe)}
+[data-cues=shape] .band.S{background:var(--bc);color:var(--canvas);border-color:var(--bc)}
+[data-cues=shape] .band.M{background:repeating-linear-gradient(135deg,transparent 0 5px,var(--hover) 5px 7px),var(--bMq);border:2px solid var(--bc)}
+[data-cues=shape] .band.W{border:1px solid var(--bc)}
+.seg{display:flex;height:12px;border-radius:4px;overflow:hidden;border:1px solid var(--borderS);background:var(--solid)}
+.seg i{display:block}.seg .s1{background:var(--seg1)}.seg .s2{background:var(--seg2)}.seg .s3{background:var(--seg3)}
+[data-cues=shape] .seg .s2{background:repeating-linear-gradient(135deg,var(--seg2) 0 2px,var(--solid) 2px 5px)}
+[data-cues=shape] .seg .s3{background:radial-gradient(circle,var(--seg3) 1px,var(--solid) 1.6px) 0 0/5px 5px}
+.key{display:flex;gap:12px;font-size:11.5px;color:var(--muted);margin-top:6px}.key i{display:inline-block;width:12px;height:12px;border:1px solid var(--borderS);vertical-align:-2px;margin-right:5px;border-radius:3px}
+.fld{background:var(--input);color:var(--ink);border:1px solid var(--borderC);border-radius:10px;padding:8px 11px;font:13px var(--ui);width:100%}.fld::placeholder{color:var(--faint)}
+.sw{all:unset;width:46px;height:26px;border-radius:8px;border:1px solid var(--borderC);background:var(--solid);position:relative;cursor:pointer;display:inline-block;box-shadow:var(--d1)}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:5px;background:var(--faint);transition:transform .25s var(--E),background .2s}
+.sw[aria-checked=true]{background:var(--accentQ);border-color:var(--accentInk)}.sw[aria-checked=true]::after{transform:translateX(20px);background:var(--accentInk)}
+[data-cues=shape] .sw[aria-checked=true]::before{content:"ON";position:absolute;left:6px;top:4px;font:800 9px var(--ui);color:var(--ink)}
+[data-cues=shape] .sw[aria-checked=false]::before{content:"OFF";position:absolute;right:5px;top:4px;font:800 9px var(--ui);color:var(--faint)}
+.pair{padding:14px;border-radius:16px}.pair h3{font:800 italic 15px/1.2 var(--logo)}
+.ring{width:84px;height:84px;border-radius:50%;background:conic-gradient(var(--accentInk) calc(var(--p)*1%),var(--shade) 0);display:grid;place-items:center;flex:0 0 auto;box-shadow:var(--d1)}
+.ring div{width:64px;height:64px;border-radius:50%;background:var(--solid);display:grid;place-items:center;font:400 28px var(--ser);color:var(--accentInk)}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}.tbl th{font:800 10.5px var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--faint);text-align:left;padding:6px 8px;border-bottom:1px solid var(--borderS)}.tbl td{padding:7px 8px;border-bottom:1px dashed var(--border);color:var(--muted)}
+.tip{display:inline-block;background:var(--ink);color:var(--canvas);padding:6px 10px;border-radius:8px;font-size:11.5px}
+.toast{display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:12px;box-shadow:var(--d2);background:var(--menu);border:1px solid var(--borderS)}
+.ov{position:absolute;inset:0;background:var(--scrim);display:grid;place-items:center;z-index:5}
+.modal{width:min(380px,86%);padding:18px;border-radius:16px;background:var(--menu);border:1px solid var(--borderC);box-shadow:var(--d2)}
+a.lk{color:var(--accentInk);text-decoration:underline;text-underline-offset:3px}
+::selection{background:var(--ink);color:var(--canvas)}
+.gal{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;padding:0 10px 14px}.gal .box{padding:14px;border-radius:14px}.box h4{font:800 italic 12px var(--logo);color:var(--faint);margin-bottom:9px;letter-spacing:.02em}
+.stack{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tw{background:#141414;border:1px solid #2c2c2c;border-radius:14px;padding:14px;overflow:auto}.tw table{border-collapse:collapse;width:100%;font-size:12px;color:#ccc}.tw th{text-align:left;color:#888;font:800 10.5px var(--ui);letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid #333}.tw td{padding:6px 8px;border-bottom:1px dashed #2a2a2a}
+.pass{color:#9be0b4;font-weight:700}.fail{color:#f08a8a;font-weight:700}
+.tx{background:#141414;border:1px solid #2c2c2c;border-radius:14px;padding:16px 18px;color:#c6c6c6;max-width:112ch}.tx h3{font:800 italic 15px var(--logo);color:#fff;margin:14px 0 6px}.tx h3:first-child{margin-top:0}.tx li{margin:0 0 5px 18px}.tx code{background:#222;padding:1px 6px;border-radius:5px;color:#fff;font-size:12px}
+.tx pre{background:#0c0c0c;border:1px solid #2a2a2a;border-radius:10px;padding:12px;overflow:auto;color:#d6d6d6;font:12px/1.55 ui-monospace,monospace;margin:8px 0}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body><div class="shell">
+<div class="hd"><h1><i>/</i>draft — two high-contrast themes</h1></div>
+<p class="note"><b>What changes:</b> only the <b>colour tokens</b>. The neutrals — canvas, surfaces, text, borders — go to <b>pure black and white</b> (no cream, no warm charcoal). <b>The brand stays:</b> the logo orange, and green, red, amber and blue for indicators — each re-tuned so its text clears <b>7:1</b>. Depth, glass, grain, radii, type and layout are untouched: the same <code style="background:#222;padding:1px 6px;border-radius:5px;color:#fff">--c-*</code> names are re-pointed, exactly as <code style="background:#222;padding:1px 6px;border-radius:5px;color:#fff">colorTokens.js</code> was designed for. <b>Contrast Light</b> and <b>Contrast Dark</b> are inverses on the neutrals. <b>Shape cues</b> (a glyph, an edge style, a pattern) are now an <b>optional switch</b> that works on every theme — turn it on above to see it. All values are samples to approve.</p>
+<div class="bar" id="bar"></div><div id="stage"></div></div>
+<script>
+const TH=[['paper-light','Paper Light · today'],['charcoal-dark','Charcoal Dark · in the tokens'],['contrast-light','Contrast Light'],['contrast-dark','Contrast Dark']];
+const HEX={ // solid values the contrast table is computed from (mirrors the CSS above). text / ui = each theme's own targets
+ 'paper-light':{text:4.5,ui:3,shade:'#DFD6C9',solid:'#FBF7F0',ink:'#1E1915',muted:'#4A423B',faint:'#62574D',accent:'#FD4600',accentH:'#FF6424',onAccent:'#1E1915',accentInk:'#A33200',accentQ:'#EBD5C6',borderC:'#7F7263',ok:'#1A6B33',okq:'#D5E8D8',warn:'#855000',warnq:'#F2E2C4',no:'#B3261E',noq:'#F5D9D3',info:'#1E5E94',infoq:'#D7E4F0',bU:'#4A423B',seg1:'#1D6B43',seg2:'#8A3B2E',seg3:'#6B6257'},
+ 'charcoal-dark':{text:4.5,ui:3,shade:'#2C2621',solid:'#26201C',ink:'#F2EADF',muted:'#CFC2B3',faint:'#ADA090',accent:'#FD4600',accentH:'#FF6424',onAccent:'#1E1915',accentInk:'#FF7D4A',accentQ:'#3D2519',borderC:'#8E8072',ok:'#5FCB8C',okq:'#163120',warn:'#E6AA4E',warnq:'#35280F',no:'#F27F72',noq:'#3B1C18',info:'#7BB4EA',infoq:'#15263A',bU:'#CFC2B3',seg1:'#7FC79A',seg2:'#E58F7C',seg3:'#A39A8C'},
+ 'contrast-light':{text:7,ui:4.5,shade:'#EDEDED',solid:'#FFFFFF',ink:'#000000',muted:'#1A1A1A',faint:'#404040',accent:'#FD4600',accentH:'#FF6424',onAccent:'#000000',accentInk:'#8A2A00',accentQ:'#FFE3D5',borderC:'#404040',ok:'#005A26',okq:'#E6F4EC',warn:'#6B4500',warnq:'#FBF0D9',no:'#9E0B0B',noq:'#FDEEEE',info:'#0B4F8A',infoq:'#E4EEF9',bU:'#1A1A1A',seg1:'#005A26',seg2:'#9E0B0B',seg3:'#5A5A5A'},
+ 'contrast-dark':{text:7,ui:4.5,shade:'#1A1A1A',solid:'#121212',ink:'#FFFFFF',muted:'#E6E6E6',faint:'#BDBDBD',accent:'#FD4600',accentH:'#FF6424',onAccent:'#000000',accentInk:'#FF9466',accentQ:'#3A1A0C',borderC:'#BDBDBD',ok:'#46D683',okq:'#0C2A1A',warn:'#FFC044',warnq:'#2C2208',no:'#FF8080',noq:'#301010',info:'#6DB8FF',infoq:'#0E2236',bU:'#E6E6E6',seg1:'#46D683',seg2:'#FF8080',seg3:'#A8A8A8'}};
+// type: text = the theme's text target · ui = control edges and chart segments · cta = the label on the orange fill (the brand fill is kept)
+const PAIRS=[['INK on the substrate','ink','shade','text'],['INK_MUTED','muted','shade','text'],['INK_FAINT','faint','shade','text'],['INK on a solid surface','ink','solid','text'],['INK_FAINT on a solid surface','faint','solid','text'],
+ ['ON_ACCENT on the orange fill (CTA)','onAccent','accent','cta'],['ON_ACCENT on the hovered fill','onAccent','accentH','cta'],['ACCENT_INK (orange as text)','accentInk','shade','text'],['ACCENT_INK on the selected tab','accentInk','accentQ','text'],
+ ['BORDER_CONTROL (input edge)','borderC','shade','ui'],
+ ['SUCCESS text','ok','solid','text'],['SUCCESS on its quiet fill','ok','okq','text'],['WARNING text','warn','solid','text'],['WARNING on its quiet fill','warn','warnq','text'],['DANGER text','no','solid','text'],['DANGER on its quiet fill','no','noq','text'],['INFO text','info','solid','text'],['INFO on its quiet fill','info','infoq','text'],['BAND_UNKNOWN','bU','shade','text'],
+ ['Chart: already yours','seg1','solid','ui'],['Chart: missing','seg2','solid','ui'],['Chart: generic','seg3','solid','ui']];
+const lum=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*c[0]+.7152*c[1]+.0722*c[2];};
+const cr=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
+const need=(h,k)=>k==='ui'?h.ui:k==='cta'?4.5:h.text;
+let S={theme:'contrast-dark',view:'screen',cmp:false,modal:false,sel:0,sw:true,cues:false};
+const cues=()=>S.cues?'shape':'color';
+const bar=(n,on)=>`<i class="bars">${[0,1,2].map(i=>`<u class="${i<n?'on':''}"></u>`).join('')}</i>`;
+const band=(k,l)=>`<span class="band ${k}">${bar({S:3,M:2,W:1,U:0}[k],0)}${l}</span>`;
+const mk=(k,g,l)=>`<span class="mk ${k}" data-g="${g}">${l}</span>`;
+const JOBS=[['A','Backend Engineer','Atria · New York · $180–240k','S',84],['L','Software Engineer, AI','LangChain · Remote · $180–240k','M',71],['Z','Staff SDE, Microservices','Zscaler · Santa Clara · hybrid','W',52],['S','Platform Engineer','Seeq · Remote','U',null]];
+function screen(t){
+ const sel=JOBS[S.sel];
+ return `<div class="app" data-theme="${t}" data-cues="${cues(t)}" style="min-height:560px">
+ <div class="glass top"><span class="logo"><b>/</b><span>draft</span></span>
+  <nav class="nav"><a aria-current="page" href="#">The board</a><a href="#">Draft House</a><a href="#">The Table</a><a href="#">Settings</a></nav><span class="sp"></span>
+  <button class="bx g" onclick="S.modal=!S.modal;draw()">Menu</button><button class="bx p">Draft</button></div>
+ <div class="cols"><div class="list">
+  <div class="glass" style="padding:10px"><input class="fld" placeholder="Search roles, companies…" aria-label="Search"></div>
+  ${JOBS.map((j,i)=>`<div class="glass card" aria-selected="${i===S.sel}" onclick="S.sel=${i};draw()"><div class="row"><div class="tile">${j[0]}</div><div style="flex:1;min-width:0"><div class="t1">${j[1]}</div><div class="t3">${j[2]}</div></div></div>
+   <div class="row" style="margin-top:9px;justify-content:space-between">${band(j[3],{S:'Strong',M:'Moderate',W:'Weak',U:'Not enough signal'}[j[3]])}<span class="t2">${j[4]==null?'—':'ATS <b style="color:var(--accentInk)">'+j[4]+'</b>'}</span></div></div>`).join('')}
+ </div>
+ <div class="glass pair"><div class="row" style="align-items:flex-start;gap:14px"><div style="flex:1"><h3>${sel[1]}</h3><div class="t2">${sel[2]}</div>
+   <div class="stack" style="margin-top:9px">${mk('ok','✓','Verified')} ${mk('warn','!','Needs a fix')} ${mk('no','✕','Refused')} ${mk('info','i','Preview')}</div></div>
+   <div class="ring" style="--p:${sel[4]||0}"><div>${sel[4]==null?'—':sel[4]}</div></div></div>
+  <div style="margin-top:14px"><div class="t2" style="margin-bottom:5px">Your résumé against this posting</div>
+   <div class="seg"><i class="s1" style="width:52%"></i><i class="s2" style="width:30%"></i><i class="s3" style="width:18%"></i></div>
+   <div class="key"><span><i style="background:var(--seg1)"></i>Already yours</span><span><i style="background:var(--seg2)"></i>Missing</span><span><i style="background:var(--seg3)"></i>Generic</span></div></div>
+  <div class="row" style="margin:14px 0 10px;gap:12px;flex-wrap:wrap"><div class="nb"><div class="num">9</div><span>bullets rewritten</span></div><div class="nb"><div class="num">+16</div><span>ATS gained</span></div><div class="nb"><div class="num">2</div><span>still missing</span></div></div>
+  <div class="stack"><button class="bx">Pass</button><button class="bx">Save</button><button class="bx p">/d Draft</button><button class="bx">Résumé</button><button class="bx g" disabled>Cover letter</button><a class="lk" href="#">What we changed</a></div>
+  <div class="toast" style="margin-top:14px">${mk('ok','✓','Drafted')}<span class="t2">Nothing is sent until you approve it.</span></div>
+ </div></div>
+ ${S.modal?`<div class="ov" onclick="S.modal=false;draw()"><div class="modal" onclick="event.stopPropagation()"><h3 class="t1" style="font-size:15px">Approve and send?</h3><p class="t2" style="margin:6px 0 12px">This sends 1 application to Atria. You can't unsend it.</p><div class="stack"><button class="bx p" onclick="S.modal=false;draw()">Approve &amp; send</button><button class="bx" onclick="S.modal=false;draw()">Not yet</button></div></div></div>`:''}
+ </div>`;}
+function comps(t){
+ return `<div class="app" data-theme="${t}" data-cues="${cues(t)}"><div class="glass top"><span class="logo"><b>/</b><span>draft</span></span><span class="sp"></span><span class="t2">${TH.find(x=>x[0]===t)[1]}</span></div><div class="gal">
+ <div class="glass box"><h4>BUTTONS</h4><div class="stack"><button class="bx p">Primary</button><button class="bx">Secondary</button><button class="bx g">Ghost</button><button class="bx d">Destructive</button><button class="bx" disabled>Disabled</button></div></div>
+ <div class="glass box"><h4>INPUT · FOCUS · SWITCH</h4><input class="fld" value="Typed text" aria-label="x"><div style="height:8px"></div><input class="fld focus" value="Keyboard focus" aria-label="y"><div class="row" style="margin-top:10px"><button class="sw" role="switch" aria-checked="${S.sw}" onclick="S.sw=!S.sw;draw()"></button><span class="t2">Write my résumés in Claude</span></div></div>
+ <div class="glass box"><h4>STATUS MARKS</h4><div class="stack">${mk('ok','✓','Verified')} ${mk('warn','!','Needs a fix')} ${mk('no','✕','Refused')} ${mk('info','i','Preview')}</div><p class="t3" style="margin-top:8px">Colour carries it. Switch <b>Shape cues</b> on for a glyph <b>and</b> an edge style as well — solid · dashed · double · dotted.</p></div>
+ <div class="glass box"><h4>FIT BANDS</h4><div class="stack">${band('S','Strong')} ${band('M','Moderate')} ${band('W','Weak')} ${band('U','Not enough signal')}</div><p class="t3" style="margin-top:8px">Green · amber · red · dashed grey, with a 3-step meter. Shape cues add filled · hatched · outlined.</p></div>
+ <div class="glass box"><h4>CHART SEGMENTS</h4><div class="seg"><i class="s1" style="width:50%"></i><i class="s2" style="width:30%"></i><i class="s3" style="width:20%"></i></div><div class="key"><span><i style="background:var(--seg1)"></i>Yours</span><span><i style="background:var(--seg2)"></i>Missing</span><span><i style="background:var(--seg3)"></i>Generic</span></div></div>
+ <div class="glass box"><h4>NUMBERS · TABLE</h4><div class="row" style="gap:10px"><div class="nb"><div class="num">78</div><span>ATS</span></div><div class="nb"><div class="num">14%</div><span>skills</span></div></div><table class="tbl" style="margin-top:10px"><tr><th>When</th><th>What</th></tr><tr><td>2 h ago</td><td>Saved a résumé</td></tr><tr><td>2 h ago</td><td>First try refused</td></tr></table></div>
+ <div class="glass box"><h4>TOOLTIP · LINK · TOAST</h4><span class="tip">Resets at 00:00 UTC</span><p style="margin:10px 0"><a class="lk" href="#">A link is always underlined</a></p><div class="toast">${mk('ok','✓','Saved')}<span class="t2">Résumé saved</span></div></div>
+ <div class="glass box"><h4>THE MARK · AVATARS</h4><div class="row" style="gap:12px"><span class="logo" style="font-size:26px"><b>/</b><span>draft</span></span><div class="tile">A</div><div class="tile">L</div></div><p class="t3" style="margin-top:8px">The orange slash stays; the word is ink in Light, orange in Dark — as today.</p></div>
+ </div></div>`;}
+function contrast(){
+ const rows=PAIRS.map(p=>`<tr><td>${p[0]}</td>${TH.map(([id])=>{const h=HEX[id];const r=cr(h[p[1]],h[p[2]]);const n=need(h,p[3]);const ok=r>=n;return `<td class="${ok?'pass':'fail'}">${r.toFixed(1)}:1 ${ok?'✓':'✕'}</td>`}).join('')}</tr>`).join('');
+ return `<div class="tw"><p style="color:#bbb;margin-bottom:10px"><b style="color:#fff">Computed live</b> from the hex values with the WCAG 2.x formula. <b style="color:#fff">Today's themes are held to AA — 4.5:1 for text, 3:1 for control edges and chart segments. The contrast themes are held to AAA — 7:1 for text, 4.5:1 for edges and segments</b> — and every pair clears its own bar. Translucent glass is composited over the substrate's worst-case pixel (<code style="background:#222;padding:1px 6px;border-radius:5px;color:#fff">--shade</code>), as the site's own test does.</p>
+ <table><tr><th>Pair</th>${TH.map(t=>`<th>${t[1]}</th>`).join('')}</tr>${rows}</table>
+ <p style="color:#999;margin-top:12px;font-size:12px"><b style="color:#fff">One honest exception — the brand fill.</b> Black text on the logo orange (#FD4600) is <b>6.1:1</b>: better than today's 5.0:1, and AA, but <b>not AAA</b>. Reaching 7:1 would need a lighter orange fill (about #FF6A1F), which changes the brand. It is held to 4.5:1 here; the owner decides whether to bend the fill. The hovered fill (#FF6424) already clears 7:1.</p></div>`;}
+function module(){
+ return `<div class="tx"><h3>What the audit found</h3><ul>
+ <li><b>The seam already exists.</b> <code>client/src/styles/colorTokens.js</code> holds <b>C_LIGHT</b> and <b>C_DARK</b> (~90 named tokens each), published once as <code>--c-*</code> custom properties, with <b>CONTRAST_PAIRS</b> proved in both themes by a test. Its own header says dark mode "has to be a matter of RE-POINTING these names".</li>
+ <li><b>A registry exists but holds one theme.</b> <code>themes/index.js</code> → <code>{ cinematic }</code>; <code>theme.jsx</code> hard-codes <code>isDark = false</code>, stores <code>rm_theme_id</code> in localStorage, and publishes <code>activeTheme.cssVars</code>.</li>
+ <li><b>Depth and glass are tokens already</b> — <code>DEPTH_*</code>, <code>SHADOW_*</code>, <code>GLASS_*</code> — plus the paper-grain substrate. They are what stays untouched.</li>
+ <li><b>Not yet covered:</b> literals still in components (counted by <code>colorLiteralGuard</code>; the audit reports the number), the extension's generated <code>tokens.css/js</code>, admin consoles, marketing pages, and third-party sign-in brand colours.</li></ul>
+ <h3>The module — a theme is data, one file</h3>
+ <pre>client/src/themes/
+  index.js            registry + resolve(preference, system)   ← the only place a theme is chosen
+  paper-light.js      { id, label, scheme:'light', contrast:'aa',  tokens:{…every C key…}, substrate:{grain,tint} }
+  charcoal-dark.js    { …scheme:'dark',  contrast:'aa'  }
+  contrast-light.js   { …scheme:'light', contrast:'aaa' }
+  contrast-dark.js    { …scheme:'dark',  contrast:'aaa' }</pre>
+ <ul><li><b>Adding a theme = one new file + one line in the registry.</b> No component changes.</li>
+ <li><b>The contract is enforced by tests:</b> every theme supplies <b>every</b> token key · the contrast list passes at the theme's own target (AA or AAA) · <b>neutral tokens are pure grey (R=G=B)</b> in a contrast theme and <b>chromatic tokens are only the brand set</b> (orange, green, red, amber, blue, violet, teal) · forbidden pairs still fail · <b>no colour literal in any component</b> (the guard's ratchet goes to zero).</li>
+ <li><b>Effects are a separate axis</b> from colour — glass, depth, grain stay as they are, so a theme can never break them.</li>
+ <li><b>Shape cues are a user setting, not a theme:</b> <code>data-cues="shape"</code> turns on glyphs, edge styles and patterns for <b>any</b> theme, implemented <b>once</b> in the shared mark, band and segment components — not screen by screen.</li></ul>
+ <h3>How a user gets it</h3>
+ <ul><li><b>Settings → Appearance:</b> four preview cards plus the Shape-cues switch; saved to the <b>account</b> and cached locally so it follows the user and never flashes.</li>
+ <li><b>Defaults respect the system:</b> <code>prefers-color-scheme</code> picks light or dark; <code>prefers-contrast: more</code> <b>offers</b> the contrast pair (never forces it); <code>prefers-reduced-transparency</code> makes glass opaque; <code>forced-colors</code> (Windows High Contrast) is honoured, so borders must exist.</li>
+ <li><b>The extension</b> receives the chosen theme id with its token and builds from the same registry.</li></ul>
+ <h3>Whole-site scope</h3>
+ <ul><li>marketing and pricing · sign-in and sign-up · the board · Draft House · The Table · the posting panel and ATS report · Settings and Help · every Admin panel · menus, modals, toasts, tooltips · the extension's popup, options, badge and review overlay.</li>
+ <li><b>Out of scope for now:</b> Resume Master's own site, the Android app, emails, exported PDFs.</li></ul>
+ <h3>Decisions for the owner</h3>
+ <ul><li><b>Names:</b> "Contrast Light" and "Contrast Dark"? (or "Paper Plain" / "Ink Plain", "High Contrast")</li>
+ <li><b>The brand fill:</b> keep #FD4600 with black text (6.1:1, AA) or lighten it slightly to clear AAA?</li>
+ <li><b>Amber and blue:</b> kept for warning and info, as today. Orange and amber are close — shape cues help there.</li>
+ <li><b>The mark in Contrast Dark:</b> all-orange, as in today's dark theme (shown), or white word?</li>
+ <li><b>Grain:</b> keep the subtle neutral grain (shown) or make the contrast themes truly flat?</li>
+ <li><b>Third-party sign-in buttons</b> keep their brand colours — each was proved in today's tests and stays.</li></ul></div>`;}
+function draw(){
+ const th=TH.map(([id,l])=>`<button class="tb" aria-pressed="${S.theme===id&&!S.cmp}" onclick="S.theme='${id}';S.cmp=false;draw()">${l}</button>`).join('');
+ const vw=[['screen','The screen'],['components','Components'],['contrast','Contrast'],['module','The module']].map(([id,l])=>`<button class="tb" aria-selected="${S.view===id}" onclick="S.view='${id}';draw()">${l}</button>`).join('');
+ document.getElementById('bar').innerHTML=`<span class="lab">Theme</span>${th}<button class="tb" aria-pressed="${S.cmp}" onclick="S.cmp=!S.cmp;draw()">Compare all four</button><span class="sep"></span><span class="lab">Shape cues</span><button class="tb" aria-pressed="${S.cues}" onclick="S.cues=!S.cues;draw()">${S.cues?'On':'Off'}</button><span class="sep"></span><span class="lab">View</span>${vw}`;
+ let out='';
+ if(S.view==='contrast')out=contrast(); else if(S.view==='module')out=module();
+ else{const fn=S.view==='screen'?screen:comps;
+  out=S.cmp?`<div class="cmp">${TH.map(([id,l])=>`<div><div class="cap">${l}</div>${fn(id)}</div>`).join('')}</div>`:fn(S.theme);
+  out+=`<div class="ann"><div><b>Depth keeps working</b>Light themes lift with shadow; <b>Contrast Dark lifts with light</b> — a hairline plus a soft white bloom — because black cannot cast a visible shadow. The orange control keeps its orange glow.</div><div><b>Glass keeps working</b>Same blur, same specular edge, same sheen; the tint is a neutral grey.</div><div><b>The brand is intact</b>Orange fills, the mark, green and red indicators. Orange stays a <b>fill</b>; orange <i>text</i> uses a deeper tone in light and a lighter one in dark.</div><div><b>Focus never disappears</b>A two-tone ring: it reads on any surface in either theme.</div></div>`;}
+ document.getElementById('stage').innerHTML=out;}
+draw();
+</script></body></html>
