@@ -77,8 +77,12 @@ test("⛔ every declared pair passes at the theme's OWN target", () => {
 test("⭐ P1 changed nothing: Paper Light and Charcoal Dark are the pre-move palettes, value for value", () => {
   const h = (o) => crypto.createHash("sha256").update(JSON.stringify(o)).digest("hex");
   // Measured 10-11 on f04c927, from styles/colorTokens.js C_LIGHT / C_DARK and styles/paper.js PAPER, before the move.
-  assert.equal(h(THEMES["paper-light"].tokens), "84bef674ad453c97adff47f2829456aa701083fc038ebaec204b1e14af263ccc", "Paper Light's tokens moved");
-  assert.equal(h(THEMES["charcoal-dark"].tokens), "20dadd282f307ec9437e74766aab7e025cfee6089e348775c074f1170dd108c2", "Charcoal Dark's tokens moved");
+  // Keys ADDED since the move, each with its reason — the pin covers every value that existed before it, so
+  // an addition is allowed and a change to an existing value is not.
+  const ADDED_SINCE_P1 = new Set(["DOC_PAPER", "DOC_INK"]);   // D91 P2: the document surface (cover letter)
+  const pre = (t) => Object.fromEntries(Object.entries(t).filter(([k]) => !ADDED_SINCE_P1.has(k)));
+  assert.equal(h(pre(THEMES["paper-light"].tokens)), "84bef674ad453c97adff47f2829456aa701083fc038ebaec204b1e14af263ccc", "Paper Light's tokens moved");
+  assert.equal(h(pre(THEMES["charcoal-dark"].tokens)), "20dadd282f307ec9437e74766aab7e025cfee6089e348775c074f1170dd108c2", "Charcoal Dark's tokens moved");
   assert.equal(h(THEMES["paper-light"].substrate), "45bb1c5a0ffefb4506661eca615ff30df3e0017c9ae2e6bca1bd8cfee739883b", "Paper Light's grain moved");
   assert.equal(h(THEMES["charcoal-dark"].substrate), "fda58e8ae1c8f36797e69d93c0f85c7f71caee4475171b18e10fa340ceb093b6", "Charcoal Dark's grain moved");
   // The old names are the theme sets themselves, not copies that could drift.

@@ -155,6 +155,8 @@ export const CONTRAST_PAIRS = [
   ["ACCENT_INK", "FH_SURFACE", "normal"], ["ACCENT_INK", "FH_WELL", "normal"], // hover text, Close ×
   ["ACCENT_INK", "CANVAS_SHADE", "ui"], ["ACCENT_INK", "FH_SURFACE", "ui"],    // the OPEN outline, a hover edge
   ["FH_ON_ACCENT", "ACCENT", "normal"], ["FH_ON_ACCENT", "ACCENT_HOVER", "normal"],
+  // ── D91 · the document surface (the cover letter as shown) — the same black on white in every theme ──
+  ["DOC_INK", "DOC_PAPER", "normal"],
 ];
 
 // Pairs that are FORBIDDEN, asserted to fail so nobody "fixes" the test by adding them above.

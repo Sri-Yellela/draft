@@ -66,24 +66,25 @@ export const OUTCOME_STATUSES = Object.freeze({
   [OUTCOME.ABORTED]:   Object.freeze(["failed", "dismissed", "superseded", "cancelled"]),
 });
 
-/** How each group is named and coloured, in the user's terms rather than the schema's. */
+/** How each group is named, in the user's terms rather than the schema's. `tone` names the meaning and the
+ *  client paints it from its theme tokens (D91 P2 — this held raw hex, which no client reader painted). */
 export const OUTCOME_LABELS = Object.freeze({
   [OUTCOME.COMPLETED]: {
     label: "Completed",
     note: "sent to the employer",
-    color: "#16a34a",
+    tone: "success",
   },
   [OUTCOME.PENDING]: {
     label: "Pending",
     note: "queued, in flight, or waiting on you",
-    color: "#d97706",
+    tone: "warning",
   },
   [OUTCOME.ABORTED]: {
     // Not "failed": three of the four statuses in this group are not failures. The group is
     // "ended without being sent", and each row still says which of those it was.
     label: "Aborted",
     note: "ended without being sent",
-    color: "#dc2626",
+    tone: "danger",
   },
 });
 

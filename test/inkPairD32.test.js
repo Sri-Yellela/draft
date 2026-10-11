@@ -354,7 +354,7 @@ test("⛔ THE ONLY DARK SURFACE IS A RULE: no file but the pair wears it, and no
   // The extension draws no pair, so its generated tokens carry none of the pair's.
   for (const f of ["extension/tokens.css", "extension/tokens.js"]) assert.doesNotMatch(read(f), /PAIR_|--c-pair-/, `${f} carries the pair`);
   // (D35 added the Full House header's FH_* to the same exclusion — the extension draws no board header.)
-  assert.match(read("scripts/buildExtensionTokens.mjs"), /const names = Object\.keys\(C_LIGHT\)\.filter\(\(n\) => !n\.startsWith\("PAIR_"\)(?: && !n\.startsWith\("FH_"\))?(?: && !n\.startsWith\("PP_"\)| && \(!n\.startsWith\("PP_"\) \|\| n === "PP_ATS_NUMBER"\))?\);/);
+  assert.match(read("scripts/buildExtensionTokens.mjs"), /const names = Object\.keys\(C_LIGHT\)\.filter\(\(n\) => !n\.startsWith\("PAIR_"\)(?: && !n\.startsWith\("FH_"\))?(?: && !n\.startsWith\("PP_"\)| && \(!n\.startsWith\("PP_"\) \|\| n === "PP_ATS_NUMBER"\))?(?: && !n\.startsWith\("DOC_"\))?\);/);
   // D63: the ONE posting-panel token the extension carries is the ATS number (the popup's number box).
   for (const f of ["extension/tokens.css"]) assert.doesNotMatch(read(f).replace(/--c-pp-ats-number/g, ""), /--c-pp-/, `${f} carries the posting panel`);
 });

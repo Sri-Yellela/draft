@@ -4,6 +4,7 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Z } from "../styles/zLayers.js";
+import { C } from "../styles/colorTokens.js";
 
 function getPortalPosition(anchorRect, panelWidth) {
   const anchorCenter = anchorRect.left + anchorRect.width / 2;
@@ -77,10 +78,11 @@ export function DockPortal({ children, anchorRect, theme, onClose, style = {}, t
       // The caller's tier (client/src/styles/zLayers.js), POPOVER by default. Portalled to
       // document.body either way, so no ancestor's overflow:hidden or transform can clip it.
       zIndex: tier,
-      background: theme?.menuSurface || theme?.surface || "rgba(20,20,20,0.98)",
-      border: `1px solid ${theme?.border || "rgba(255,255,255,0.1)"}`,
+      // D91 P2: the fallbacks (for a caller passing no theme — none does) are tokens, not dark-era literals.
+      background: theme?.menuSurface || theme?.surface || C.SURFACE_MENU,
+      border: `1px solid ${theme?.border || C.BORDER}`,
       borderRadius: 8,
-      boxShadow: theme?.shadowLg || "0 8px 32px rgba(0,0,0,0.3)",
+      boxShadow: theme?.shadowLg || C.SHADOW_LG,
       backdropFilter: "blur(20px)",
       WebkitBackdropFilter: "blur(20px)",
       padding: "8px 0 16px",
