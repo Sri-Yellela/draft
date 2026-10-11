@@ -126,16 +126,25 @@ test("the leather can never cross either theme's contrast floor, however it is t
     const [c, s, g] = [hex(P.CANVAS), hex(P.CANVAS_SHADE), hex(P[toward])];
     return Math.min(...c.map((ci, i) => (s[i] - ci) / (g[i] - ci)));
   };
-  const L = PAPER.light, D = PAPER.dark;
-  const lightWorst = 1 - (1 - alphaMax(L) * L.grain) * (1 - alphaMax(L) * L.fibre);
-  assert.ok(lightWorst < floor(C_LIGHT, "GRAIN"),
-    `light: the darkest pebble covers ${(lightWorst * 100).toFixed(2)}% — the floor is ${(floor(C_LIGHT, "GRAIN") * 100).toFixed(2)}%`);
-  const darkWorst = alphaMax(D) * D.sheen;
-  assert.ok(darkWorst < floor(C_DARK, "SHEEN_TINT"),
-    `dark: the lightest sheen covers ${(darkWorst * 100).toFixed(2)}% — the floor is ${(floor(C_DARK, "SHEEN_TINT") * 100).toFixed(2)}%`);
+  // D91: EVERY registered theme, by its scheme — a light theme's shadow, a dark theme's sheen.
+  const { THEME_LIST } = await import("../client/src/themes/index.js");
+  assert.ok(THEME_LIST.length >= 2, "the registry lost a theme");
+  for (const t of THEME_LIST) {
+    const P = PAPER[t.id], T = t.tokens;
+    assert.ok(P, `${t.id} has no substrate`);
+    if (t.scheme === "light") {
+      const worst = 1 - (1 - alphaMax(P) * P.grain) * (1 - alphaMax(P) * P.fibre);
+      assert.ok(worst < floor(T, "GRAIN"),
+        `${t.id}: the darkest pebble covers ${(worst * 100).toFixed(2)}% — the floor is ${(floor(T, "GRAIN") * 100).toFixed(2)}%`);
+    } else {
+      const worst = alphaMax(P) * P.sheen;
+      assert.ok(worst < floor(T, "SHEEN_TINT"),
+        `${t.id}: the lightest sheen covers ${(worst * 100).toFixed(2)}% — the floor is ${(floor(T, "SHEEN_TINT") * 100).toFixed(2)}%`);
+    }
+  }
   // The component reads these, not its own copies.
   const src = fs.readFileSync("client/src/components/PaperBackground.jsx", "utf8");
-  assert.match(src, /const P = PAPER\[THEME\]/);
+  assert.match(src, /const P = PAPER\[ACTIVE_THEME\.id\]/);
 });
 
 // ── DARK MODE (UI step 6, 09-30) ────────────────────────────────────────────────────────────────

@@ -192,7 +192,6 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
   // Notifications moved in here from their own bell in the bar. The COUNT stays outside, on the
   // avatar — see the badge below.
   const { notifs, unread, load: loadNotifs, markAll } = useNotifications();
-  const { themeId, setThemeId, availableThemes } = useTheme();
   const { url: avatarUrl } = useAccountAvatar(!!user);
   const planTier = user?.planTier || "BASIC";
   const planLabel = planTier === "PRO" ? "Pro" : planTier === "PLUS" ? "Plus" : "Basic";
@@ -326,29 +325,6 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
               })}
             </div>
           </div>
-
-          {/* Theme picker — hidden until more than one theme is registered */}
-          {availableThemes.length > 1 && (
-            <div style={{ padding: "10px 16px 8px", borderBottom: `1px solid ${theme.border}` }}>
-              <div className="rm-section-label">Theme</div>
-              {availableThemes.map(t => (
-                <button key={t.id} onClick={() => setThemeId(t.id)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    padding: "8px 12px", marginBottom: 4, width: "100%",
-                    background: themeId === t.id ? "var(--c-hover)" : "transparent",
-                    border: themeId === t.id ? `1px solid var(--color-primary)` : "1px solid var(--border-glass)",
-                    borderRadius: 8, cursor: "pointer", color: "var(--color-text)",
-                    fontSize: 12, textAlign: "left",
-                  }}>
-                  <span style={{ fontWeight: 600 }}>{t.label}</span>
-                  <span style={{ marginLeft: "auto", color: "var(--color-text-faint)", fontSize: 10 }}>
-                    {themeId === t.id ? "Active" : "Switch"}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
 
           {/* Plan heading, tier label, tool label and "View Plans" are all tier claims and go
               together when the lever is off. INTEGRATIONS IS NOT ONE and stays either way — it

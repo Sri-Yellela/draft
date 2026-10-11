@@ -180,10 +180,14 @@ test("legacy light/dark mode toggle is removed and theming is registry-driven", 
   // list, and after the removal that assertion still PASSED, on theme.jsx's own comment describing
   // what was removed. Read comment-stripped source, and assert the list is gone.
   const themeCode = theme.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-  assert.match(themeCode, /rm_theme_id/);
-  assert.match(themeCode, /setThemeId/);
-  assert.match(themeCode, /AVAILABLE_THEMES/);
   assert.doesNotMatch(themeCode, /ACCENT_OPTIONS|rm_session_accent/);
+  // ⭐ D91 (10-11): the registry is client/src/themes/index.js — one file per theme, resolved once at load
+  // from the stored preference. The provider's own one-theme registry (rm_theme_id, setThemeId,
+  // AVAILABLE_THEMES) was vestigial and went with D91 P1; test/d91ThemeModule.test.js is the contract.
+  assert.doesNotMatch(themeCode, /rm_theme_id|setThemeId|AVAILABLE_THEMES/);
+  const registry = fs.readFileSync("client/src/themes/index.js", "utf8");
+  assert.match(registry, /export const THEME_LIST = Object\.freeze\(\[/);
+  assert.match(registry, /export const ACTIVE_THEME = resolve\(\);/);
 });
 
 // Was "light theme surfaces and text tokens are readable", asserting a light palette

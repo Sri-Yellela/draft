@@ -72,9 +72,12 @@ test("⭐ depth on every control, from TOKENS (rest, hover lift, press, the oran
   assert.match(css, /\.jb__sq:active \{ transform: translateY\(0\); box-shadow: var\(--c-depth-press\); \}/);
   assert.match(css, /\.jb__sq--draft \{ background: var\(--c-accent\); color: var\(--c-on-accent\); box-shadow: var\(--c-depth-accent\);/);
   assert.doesNotMatch(css, /#[0-9a-f]{3,8}\b|rgba?\(/i, "a colour literal outside the token file");
-  const tokens = read("client/src/styles/colorTokens.js");
-  for (const t of ["DEPTH_REST", "DEPTH_HOVER", "DEPTH_PRESS", "DEPTH_ACCENT", "LOGO_SHADOW"]) {
-    assert.equal((tokens.match(new RegExp(`\\b${t}:`, "g")) || []).length, 2, `${t} in both themes`);
+  // (D91: one file per theme — each defines every depth token exactly once.)
+  for (const f of ["client/src/themes/paper-light.js", "client/src/themes/charcoal-dark.js"]) {
+    const tokens = read(f);
+    for (const t of ["DEPTH_REST", "DEPTH_HOVER", "DEPTH_PRESS", "DEPTH_ACCENT", "LOGO_SHADOW"]) {
+      assert.equal((tokens.match(new RegExp(`\\b${t}:`, "g")) || []).length, 1, `${t} in ${f}`);
+    }
   }
 });
 
