@@ -129,7 +129,7 @@ export function brandFamily(rgb) {
 //   edge  — a decorative tinted hairline: the Paper Light hue at a mid lightness, so it still reads as an edge
 //   brand — the orange fill's own edge: the same-scheme source value, unchanged
 export const HUE_KEYS = Object.freeze({
-  VIOLET: "text", TEAL: "text", PAIR_KICKER: "text", PAIR_ACCENT: "text", FH_ON_ACCENT: "text",
+  VIOLET: "text", TEAL: "text", PAIR_KICKER: "text", PAIR_ACCENT: "text",
   VIOLET_QUIET: "fill", PAIR_MET_QUIET: "fill", PAIR_LIT: "fill", PAIR_MISSING_QUIET: "fill",
   PAIR_MATCHED_EDGE: "edge", PAIR_MISSING_EDGE: "edge", FH_ACCENT_EDGE: "brand",
 });
@@ -168,6 +168,7 @@ export function derive(id) {
     if (THIRD_PARTY.test(k)) { T[k] = v; notes[k] = "third party — copied"; continue; }
     if (DOCUMENT.test(k)) { T[k] = v; notes[k] = "the document surface — never themed"; continue; }
     if (k === "PAIR_KIND_ALPHA") { T[k] = "1"; notes[k] = "full opacity — a reduced label cannot reach 7:1"; continue; }
+    if (k === "FH_ON_ACCENT") { T[k] = fixed.ON_ACCENT; notes[k] = "= ON_ACCENT — the darkest label the brand fill takes (6.05)"; continue; }
     const p = /^#[0-9a-f]{6}$/i.test(v) ? parse(v) : null;
     if (!p) { T[k] = snapNeutralsIn(v); notes[k] = "neutrals snapped to black / white, alpha kept"; continue; }
     const role = HUE_KEYS[k];

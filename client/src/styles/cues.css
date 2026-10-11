@@ -77,3 +77,11 @@ html[data-transparency="reduced"] *, html[data-transparency="reduced"] *::before
   .mark, [style*="--mark-glyph"] { border: 1px solid CanvasText !important; border-left-width: 3px !important; }
   :focus-visible { outline: 2px solid Highlight !important; outline-offset: 2px; }
 }
+
+/* ── D91 P6 · FOCUS IS VISIBLE EVERYWHERE — a floor under every theme ─────────────────────────────────────
+   The matrix's focus scan found ~20 controls (the avatar, the board's ALL chip and sentence tokens, selects,
+   inputs) that set an inline `outline: none` and draw nothing else on keyboard focus — in every theme, since
+   before D91. This floor gives every keyboard focus a ring in ACCENT_INK, the token that passes as a UI
+   indicator on every surface of every theme. !important because the suppressions are inline styles; it is
+   :focus-visible only, so a mouse click on a button draws nothing new. Depth boxes keep their lift too. */
+:focus-visible { outline: 2px solid var(--c-accent-ink) !important; outline-offset: 2px !important; }

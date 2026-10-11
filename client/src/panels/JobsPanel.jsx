@@ -3896,7 +3896,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
                   background:"transparent", display:"flex", flexDirection:"column",
                   alignItems:"center", gap:2,
                   opacity: enabled ? 1 : 0.4,
-                  color: active ? theme.accent : theme.textMuted,
+                  color: active ? theme.accentText : theme.textMuted,
                   fontSize:10, fontWeight:700,
                 }}>
                 <span style={{ fontSize:18 }}>{icon}</span>
