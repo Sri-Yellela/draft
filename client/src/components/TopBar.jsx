@@ -21,7 +21,8 @@ import { StampLogo } from "./StampLogo.jsx";
 import { DockPortal } from "./DockPortal.jsx";
 import ProfileSelectorDropdown from "./ProfileSelectorDropdown.jsx";
 import { Z } from "../styles/zLayers.js";
-import { C, themePreference, setThemePreference } from "../styles/colorTokens.js";
+import { C } from "../styles/colorTokens.js";
+import { ACTIVE_THEME, appearance } from "../themes/index.js";
 import { useAccountAvatar } from "../lib/accountAvatar.js";
 
 // The slideDown keyframes and injectKeyframes() were removed with the pill (Y4).
@@ -304,26 +305,19 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
             )}
           </div>
 
-          {/* Appearance (UI step 6): System follows the OS. A change RELOADS — the palette resolves once
-              at load, so the whole app (inline tokens, CSS variables, alpha suffixes) switches together. */}
+          {/* Appearance (D91 P5): four themes and shape cues live in Settings → Appearance now (the Account
+              page) — this row says which theme is on and goes there. Three radios cannot hold four themes. */}
           <div style={{ padding: "10px 16px 10px", borderBottom: `1px solid ${theme.border}` }}>
             <div className="rm-section-label">Appearance</div>
-            <div role="radiogroup" aria-label="Appearance" style={{ display: "flex", gap: 6, marginTop: 6 }}>
-              {[["system", "System"], ["light", "Light"], ["dark", "Dark"]].map(([id, label]) => {
-                const on = themePreference() === id;
-                return (
-                  <button key={id} type="button" role="radio" aria-checked={on}
-                    // Saved with the ACCOUNT first (so it follows you to other devices), then applied.
-                    onClick={() => { if (!on) api("/api/settings/theme", { method: "PUT", body: JSON.stringify({ preference: id }) })
-                      .catch(() => {}).finally(() => setThemePreference(id)); }}
-                    style={{ flex: 1, padding: "7px 0", borderRadius: 8, cursor: on ? "default" : "pointer", fontSize: 12, fontWeight: 700,
-                             background: on ? "var(--c-hover)" : "transparent", color: "var(--color-text)",
-                             border: on ? "1px solid var(--c-accent-ink)" : "1px solid var(--border-glass)" }}>
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
+            <button type="button" data-appearance-link=""
+              onClick={() => { setOpen(false); onTabChange?.("account");
+                setTimeout(() => document.getElementById("appearance")?.scrollIntoView({ block: "start" }), 300); }}
+              style={{ width: "100%", marginTop: 6, padding: "7px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700,
+                       display: "flex", justifyContent: "space-between", background: "transparent", color: "var(--color-text)",
+                       border: "1px solid var(--border-glass)" }}>
+              <span>{ACTIVE_THEME.label}{appearance().cues ? " · shape cues" : ""}</span>
+              <span aria-hidden="true">Change →</span>
+            </button>
           </div>
 
           {/* Plan heading, tier label, tool label and "View Plans" are all tier claims and go

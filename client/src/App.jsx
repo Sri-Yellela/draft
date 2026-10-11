@@ -3,6 +3,7 @@ import { useState, useEffect, useLayoutEffect, useCallback, useMemo } from "reac
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { api, setAuthContext }   from "./lib/api.js";
 import { adoptAccountTheme }     from "./styles/colorTokens.js";
+import { ContrastOffer }         from "./components/AppearanceSettings.jsx";
 import { useTheme }              from "./styles/theme.jsx";
 import { useInactivityLogout }   from "./hooks/useInactivityLogout.js";
 import { useSyncEvents }         from "./hooks/useSyncEvents.js";
@@ -422,10 +423,11 @@ function AppDashboard({ authUser, setAuthUser }) {
 
   useInactivityLogout(handleLogout, true);
 
-  // The account's light/dark preference follows the user between devices (follow-up 18): read once
-  // per signed-in session; adoptAccountTheme reloads only if it changes what is on screen.
+  // The account's appearance — theme and shape cues (D91 P5) — follows the user between devices
+  // (follow-up 18): read once per signed-in session; adoptAccountTheme reloads only if it changes what
+  // is on screen.
   useEffect(() => {
-    api("/api/settings/theme").then(r => { if (r?.preference) adoptAccountTheme(r.preference); }).catch(() => {});
+    api("/api/settings/appearance").then(r => { if (r?.theme) adoptAccountTheme(r); }).catch(() => {});
   }, []);
 
   useSyncEvents({
@@ -703,6 +705,8 @@ function AppRouter() {
 
   return (
     <AppShell>
+      {/* D91 P5: when the system asks for more contrast, a one-line OFFER of the Contrast pair — never a switch. */}
+      <ContrastOffer />
       <Routes>
         {/* Standalone tool pages — always public */}
         <Route path="/tools/ats"      element={<ATSToolPage/>}/>

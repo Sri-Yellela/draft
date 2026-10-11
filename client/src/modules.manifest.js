@@ -92,7 +92,8 @@ export const SHARED = Object.freeze({
   "components/ui/toast.jsx":            { what: "toast primitives (shadcn)" },
   "components/ui/toaster.jsx":          { what: "the app's toaster" },
   // ── module-private parts ──
-  "components/AppShell.jsx":            { what: "the signed-in frame", module: "shell" },
+  "components/AppearanceSettings.jsx":  { what: "Settings → Appearance and the prefers-contrast offer (D91 P5)" },
+  "components/AppShell.jsx":           { what: "the signed-in frame", module: "shell" },
   "components/TopBar.jsx":              { what: "the top bar", module: "shell" },
   "components/NavBar.jsx":              { what: "the marketing nav", module: "shell" },
   "components/NavBar.css":              { what: "its look", owner: "components/NavBar.jsx" },
