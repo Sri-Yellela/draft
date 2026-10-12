@@ -50,8 +50,12 @@ export function checkClientMetadata(url, doc, { production = true } = {}) {
   if (!doc || typeof doc !== "object" || Array.isArray(doc)) throw new OAuthError("invalid_client", "The client metadata document is not a JSON object.");
   if (doc.client_id !== url) throw new OAuthError("invalid_client", "The client metadata document does not name itself as this client_id.");
   if ((doc.token_endpoint_auth_method ?? "none") !== "none") throw new OAuthError("invalid_client", "draft accepts public clients only (token_endpoint_auth_method none).");
+  // RFC 7591 §2: a server may ignore grant types it does not support. A metadata document is published ONCE for
+  // every server its client talks to, so it may name grants draft never offers (Claude's lists jwt-bearer, 10-12).
+  // It must include authorization_code; every other entry is ignored. The client still gets only
+  // authorization_code + refresh_token — the token endpoint refuses anything else.
   const grants = doc.grant_types ?? ["authorization_code"];
-  if (!Array.isArray(grants) || grants.some(g => !["authorization_code", "refresh_token"].includes(g))) throw new OAuthError("invalid_client", "grant_types may be authorization_code and refresh_token only.");
+  if (!Array.isArray(grants) || !grants.includes("authorization_code")) throw new OAuthError("invalid_client", "grant_types must include authorization_code.");
   const uris = Array.isArray(doc.redirect_uris) ? doc.redirect_uris.map(String) : [];
   if (!uris.length || uris.length > 5) throw new OAuthError("invalid_client", "redirect_uris must list 1 to 5 URIs.");
   const docHost = Object.entries(HOSTS).find(([, h]) => h.origins.includes(new URL(url).origin))?.[0];
