@@ -21,7 +21,9 @@ const ACCENT_TEXT = C.ACCENT_INK;
 // STRING "var(--bg-card)", so appending a hex alpha yields "var(--bg-card)80" — invalid CSS that
 // browsers drop, meaning the stripe silently never rendered. (I reintroduced that same bug in the
 // pipeline-health table by copying the surrounding idiom before spotting it.)
-const ROW_STRIPE = C.HOVER;
+// D91 P6: the raised-panel tone — every text tone is proved on it in every theme (CONTRAST_PAIRS). HOVER was an
+// ink / white wash with no declared text pair, and in Contrast Dark it pulled faint and red text below 7:1.
+const ROW_STRIPE = C.SURFACE_2;
 const TABS = [
   { id: "scrape",   label: "Pipeline Health" },
   { id: "schema",   label: "Schema Explorer" },
@@ -43,11 +45,17 @@ function ago(ts) {
 function fmt(n) { return n == null ? "—" : Number(n).toLocaleString(); }
 function truncate(s, n=40) { if (!s) return "—"; return s.length > n ? s.slice(0,n)+"…" : s; }
 
+// D91 P6: a status colour sits on ITS OWN declared quiet fill (each pair is in CONTRAST_PAIRS and proved in
+// every theme). A 13% tint of itself was an undeclared pair — NOT CONFIGURED read 4.42:1 in the matrix's scan.
+const PILL_QUIET = new Map([[C.SUCCESS, C.SUCCESS_QUIET], [C.WARNING, C.WARNING_QUIET], [C.DANGER, C.DANGER_QUIET],
+  [C.INFO, C.INFO_QUIET], [C.VIOLET, C.VIOLET_QUIET], [C.ACCENT_INK, C.ACCENT_QUIET],
+  [C.BAND_STRONG, C.BAND_STRONG_QUIET], [C.BAND_MODERATE, C.BAND_MODERATE_QUIET], [C.BAND_WEAK, C.BAND_WEAK_QUIET]]);
 function Pill({ color, children }) {
   return (
     <span style={{
       display:"inline-block", padding:"2px 8px", borderRadius:6,
-      fontSize:10, fontWeight:700, background:color+"22", color,
+      // A colour with no quiet fill (INK_FAINT — "NOT ENABLED") takes no tint: it sits on the panel, its proven ground.
+      fontSize:10, fontWeight:700, background:PILL_QUIET.get(color) ?? "transparent", color,
       border:`1px solid ${color}44`, letterSpacing:"0.05em",
       // nowrap because a wrapped label breaks OUT of the rounded background rather than growing
       // it — two-line "LIVE SEARCH ONLY" and "NOT CONFIGURED" spilled over the pill's own border,
@@ -385,7 +393,9 @@ function ScrapeMonitorTab({ theme }) {
               <div key={`${a.kind}-${a.subject}-${i}`} style={{
                 display:"grid", gridTemplateColumns:"84px 190px 1fr", gap:10,
                 padding:"8px 14px", fontSize:11, alignItems:"baseline",
-                background: i % 2 ? ROW_STRIPE : "transparent",
+                // D91 P6: no stripe — a HOVER wash over the alert box lifted the red "critical" to 5.02:1 in
+                // Contrast Dark (an undeclared pair). The row's own top rule separates the rows.
+                background: "transparent",
                 borderTop:`1px solid ${theme.border}`,
               }}>
                 <span style={{ fontWeight:800, fontSize:9, letterSpacing:0.5,
