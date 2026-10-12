@@ -41,9 +41,11 @@ test("⛔ D69 (a) · a SpeedyApply export's \"Archived\" imports as WITHDRAWN �
 test("⛔ D69 (b) · on a phone the tabs stack their words, so all four fit at 390px (and 360) — no scrolling", () => {
   const src = fs.readFileSync("client/src/components/TopBar.jsx", "utf8");
   assert.match(src, /const tiny = vw < 440;/);
-  assert.match(src, /whiteSpace: tiny \? "normal" : "nowrap", width: tiny \? "min-content" : undefined/);
-  assert.match(src, /fontSize: tiny \? 11 : 12/);
-  assert.match(src, /padding: tiny \? "3px 4px"/);
+  // ⭐ D92: the phone tier is CSS now (TopBar.css, the nav's data-size), the same values.
+  assert.match(src, /data-size=\{tiny \? "tiny" : narrow \? "narrow" : "wide"\}/);
+  const css = fs.readFileSync("client/src/components/TopBar.css", "utf8");
+  assert.match(css, /\.tbar-nav\[data-size="tiny"\] \.tbar-tab \{ padding: 3px 4px; border-radius: 8px; font-size: 11px; white-space: normal; width: min-content; \}/);
+  assert.match(css, /\.tbar-tab \{[^}]*white-space: nowrap;[^}]*font-size: 12px;/);
 });
 
 // D68 · the Copy sheet compliance check (PRIVACY_RECONCILIATION § D68) — the two fixes it needed, pinned.

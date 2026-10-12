@@ -208,11 +208,14 @@ test("the tab row moved into the top bar, whole, and from appTabs", () => {
 
   // ⛔ D60 (10-07) superseded the moved styling: a tab is a depth box in the logo face, the active one
   // filled accent — never a capsule, never the uppercase condensed label. (D69 (b): 11px below 440px.)
-  for (const kept of [/borderRadius: tiny \? 8 : 10,/, /fontFamily: "'Poppins', var\(--font-body\)", fontStyle: "italic",/,
-                      /fontSize: tiny \? 11 : 12, fontWeight: 800, cursor: "pointer", letterSpacing: 0,/,
-                      /background: activeTab === t\.id \? "var\(--c-accent\)" : "var\(--c-fh-well\)"/]) {
-    assert.match(topBarCode, kept, `the tab is not D60's depth box (${kept})`);
+  // ⭐ D92/D93 (owner, 10-11): the boxed tab — a well, hairline and shadow on EVERY tab — is REMOVED. The look is
+  // TopBar.css: the logo face, the page you are on the one orange depth box, the others ghost (or in one track).
+  const tabCss = read("client/src/components/TopBar.css");
+  for (const kept of [/border-radius: 10px;/, /font-family: 'Poppins', var\(--font-body\); font-style: italic; font-weight: 800; font-size: 12px;/,
+                      /\.tbar-tab\[aria-current="page"\],\s*\.tbar-tab\[aria-current="page"\]:hover \{\s*background: var\(--c-accent\);/]) {
+    assert.match(tabCss, kept, `the tab lost its D60 / D92 look (${kept})`);
   }
+  assert.doesNotMatch(tabCss.slice(at(tabCss, ".tbar-tab {")), /var\(--c-fh-well\)/, "a tab is a well again — the old boxed tabs (D93: not offered)");
   assert.doesNotMatch(topBarCode.slice(at(topBarCode, '<nav aria-label="Main"', 0, "the main nav")), /textTransform: "uppercase"/, "D60: no uppercase tab label");
 
   // ...and the search bar no longer renders tabs at all, so there is exactly one tab row.
@@ -240,6 +243,7 @@ test("the AUTO APPLY needs-review count survived the move", () => {
   // browser offers). What this assertion is actually pinning is unchanged: the tab renders
   // {t.label} as a NODE, so the badge still travels inside it.
   // D10: through TabLabel, which returns a ReactNode label untouched (test/d10NavRenames.test.js).
-  assert.match(topBarCode, /\}\}><TabLabel label=\{t\.label\}\/><\/a>/);
+  // D92: the tab's look moved to TopBar.css, so the element closes on its className, not an inline style.
+  assert.match(topBarCode, /className="tbar-tab"><TabLabel label=\{t\.label\}\/><\/a>/);
   assert.match(app, /<AppTopBar/, "the decorator is defined but never rendered");
 });

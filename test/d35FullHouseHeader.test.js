@@ -224,7 +224,8 @@ test("D34/D35 ④ prose and token SHARE font-family, font-size and line-height �
   assert.ok(bh, "the sentence rule is gone");
   assert.equal(bh.decls["font-family"], `var(${typeVarName("SENTENCE_FAMILY")})`);
   assert.equal(bh.decls["font-size"], `var(${typeVarName("SENTENCE_SIZE")})`);
-  assert.equal(bh.decls["line-height"], `var(${typeVarName("SENTENCE_LINE")})`);
+  // D93: × --bh-room — 1 for marked words (the default), more for the calm boxes; the tokens inherit either way.
+  assert.equal(bh.decls["line-height"], `calc(var(${typeVarName("SENTENCE_LINE")}) * var(--bh-room, 1))`);
   // Every token rule INHERITS. The base rule says so with `font: inherit`; no rule that matches a token
   // names a family, a size or a line-height of its own (the D30 defect: Poppins 800 italic at .78em).
   const tok = rules.filter(r => /\.tok\b/.test(r.selector));

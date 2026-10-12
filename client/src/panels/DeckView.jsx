@@ -794,7 +794,10 @@ export default function DeckView({ canUseAPlusResume = true }) {
       <div data-deck-orientation={orientation} data-deck-two-panel={twoPanel ? "" : undefined}
         style={{ maxWidth: twoPanel ? TWO_PANEL.maxWidth + 2 * TWO_PANEL.pad : vertical ? 560 : 760, margin: "0 auto",
                  padding: vertical ? "20px 16px 120px" : "28px 16px 140px",
-                 position: "relative", isolation: "isolate", overflowX: vertical ? "clip" : "visible",
+                 // ⛔ D92: never `clip` here, in either layout. Clipping this 560px column sliced the vertical fan's
+                 // outer cards with two hard vertical lines (the "cut out and pasted" deck); the full-width
+                 // data-deck-clip above already stops a sideways page scroll, at the SCREEN's edge.
+                 position: "relative", isolation: "isolate", overflowX: "visible",
                  // ⭐ THE ONE CLOCK (A40): every rule in the expansion reads these two; none restates a
                  // duration. Reduced motion stops all four movements at once.
                  "--deck-t": reduced ? "0s" : EXPAND_CLOCK.duration, "--deck-ease": EXPAND_CLOCK.ease }}>

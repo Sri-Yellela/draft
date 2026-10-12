@@ -5,7 +5,6 @@ import { glass } from "../styles/glass.js";
 import { C } from "../styles/colorTokens.js";
 import ResumeList, { RESUME_ICONS } from "../components/ResumeList.jsx";
 import SettingsSection from "../components/SettingsSection.jsx";
-import AppearanceSettings from "../components/AppearanceSettings.jsx";
 
 // ── Account (/app/account) ──────────────────────────────────────────────────────────────────────
 // Profile and picture, sign-in and security (password, sign-in methods, where you're signed in),
@@ -131,8 +130,8 @@ export function AccountPanel({ onSignedOut }) {
 
         <ProfileSection account={account} avatarUrl={avatarUrl} fileRef={fileRef} busy={busy} run={run} post={post} />
 
-        {/* D91 P5: Settings → Appearance — the four themes and shape cues, saved to the account. */}
-        <div id="appearance"><AppearanceSettings /></div>
+        {/* ⭐ D93: Appearance MOVED to its own page, Customise (/app/customise, the avatar menu) — nothing of it
+            is left here. */}
 
         <SettingsSection title="Email" subtitle="Used to sign in and to reset your password.">
           <EmailEditor account={account} busy={busy} run={run} post={post} say={say} />

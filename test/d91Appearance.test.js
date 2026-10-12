@@ -18,9 +18,11 @@ const mm = (dark) => () => ({ matches: dark });
 test("the server and the client know the same preferences — and the legacy route still speaks only light / dark", () => {
   assert.deepEqual([...APPEARANCE_THEMES].sort(), [...THEME_PREFERENCES].sort());
   assert.deepEqual([...LEGACY_THEME_PREFERENCES], ["system", "light", "dark"]);
-  assert.deepEqual(parseStoredAppearance("contrast-dark;cues"), { theme: "contrast-dark", cues: true });
-  assert.deepEqual(parseStoredAppearance("dark"), { theme: "dark", cues: false });
-  assert.deepEqual(parseStoredAppearance("neon"), { theme: null, cues: false });
+  // D93 extends the answer ADDITIVELY with the layout options, at their defaults when nothing is stored.
+  const D = { nav: "ghost", sentence: "marked" };
+  assert.deepEqual(parseStoredAppearance("contrast-dark;cues"), { theme: "contrast-dark", cues: true, ...D });
+  assert.deepEqual(parseStoredAppearance("dark"), { theme: "dark", cues: false, ...D });
+  assert.deepEqual(parseStoredAppearance("neon"), { theme: null, cues: false, ...D });
   assert.equal(formatStoredAppearance({ theme: "contrast", cues: true }), "contrast;cues");
   assert.equal(formatStoredAppearance({ theme: "neon", cues: true }), null);
   const route = read("routes/account.js");
@@ -79,18 +81,23 @@ test("⛔ no flash: the pre-paint script reads the same stored value — theme, 
   }
 });
 
-test("Settings → Appearance: four preview cards, follow-the-system, the shape-cues switch — saved to the account", () => {
+test("Appearance: four preview cards, follow-the-system, the shape-cues switch — saved to the account (on Customise since D93)", () => {
   const ui = read("client/src/components/AppearanceSettings.jsx");
   assert.match(ui, /THEME_LIST\.map\(\(t\) =>/, "the cards come from the registry, not a list of their own");
-  assert.match(ui, /role="radiogroup" aria-label="Theme"/);
+  assert.match(ui, /<RadioCards label="Theme"/);
+  assert.match(read("client/src/components/RadioCards.jsx"), /role="radiogroup" aria-label=\{label\}/);
   assert.match(ui, /role="switch"/);
   assert.match(ui, /api\("\/api\/settings\/appearance", \{ method: "PUT"/);
   assert.doesNotMatch(ui, /<select/, "no dropdown (THEME_MODULE §6)");
-  assert.match(read("client/src/panels/AccountPanel.jsx"), /<AppearanceSettings \/>/);
-  // The avatar menu no longer holds its own System / Light / Dark radios — it points at Settings.
+  // ⭐ D93: Appearance lives on the Customise page, and NOTHING of it is left on Account.
+  const page = read("client/src/panels/CustomisePanel.jsx");
+  assert.match(page, /<ThemeSection \/>/);
+  assert.match(page, /<AccessibilitySection \/>/);
+  assert.doesNotMatch(read("client/src/panels/AccountPanel.jsx"), /AppearanceSettings|ThemeSection|AccessibilitySection|id="appearance"/);
+  // The avatar menu keeps a QUICK system / light / dark switch (D93's recommendation) and links to Customise.
   const top = read("client/src/components/TopBar.jsx");
-  assert.doesNotMatch(top, /\["system", "System"\], \["light", "Light"\], \["dark", "Dark"\]/);
-  assert.match(top, /data-appearance-link/);
+  assert.match(top, /data-quick-scheme=""/);
+  assert.match(top, /onTabChange\?\.\("customise"\)/);
 });
 
 test("prefers-contrast: more OFFERS the Contrast pair in one line — never switches by itself", () => {

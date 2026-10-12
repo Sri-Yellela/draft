@@ -1028,8 +1028,8 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
   );
 
   return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden",
-                  background: `linear-gradient(160deg, ${theme.accentMuted}40 0%, transparent 45%)` }}>
+    // ⛔ D92: nothing paints behind the page's content — the same 160° tint as the board's, the same seam.
+    <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
       {/* toolbar */}
       <div style={{ padding:"8px 16px", display:"flex", alignItems:"center", gap:8,
                     borderBottom:`1px solid ${theme.border}`, flexShrink:0,

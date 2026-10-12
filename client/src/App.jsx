@@ -30,6 +30,7 @@ import DeckView                  from "./panels/DeckView.jsx";
 import { routeCommitted, transitionTo } from "./lib/viewTransitions.js";
 import { IntegrationsPanel }     from "./panels/IntegrationsPanel.jsx";
 import { AccountPanel }          from "./panels/AccountPanel.jsx";
+import CustomisePanel            from "./panels/CustomisePanel.jsx";
 import { RecruiterPanel }        from "./panels/RecruiterPanel.jsx";
 import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
 import BoardHeadline             from "./components/BoardHeadline.jsx";
@@ -379,6 +380,8 @@ function AppDashboard({ authUser, setAuthUser }) {
                    ...(monetisationEnabled ? ["plans"] : []), "profile", "integrations", "account",
                    // D55 (f): Settings → Saved answers, reached from the Settings group of the menu.
                    "saved-answers",
+                   // ⭐ D93: Customise — theme, shape cues and the layout options, from the avatar menu.
+                   "customise",
                    ...ROUTE_ONLY_TABS]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [monetisationEnabled],
@@ -594,6 +597,7 @@ function AppDashboard({ authUser, setAuthUser }) {
             {activeTab === "profile"      && <ProfilePanel user={authUser} onOpenJobProfiles={() => handlePanelChange("job-profiles")}/>}
             {activeTab === "job-profiles" && <JobProfilesPanel/>}
             {activeTab === "saved-answers" && <SavedAnswersPanel/>}
+            {activeTab === "customise"    && <CustomisePanel/>}
             {activeTab === "recruiter"    && <RecruiterPanel/>}
           </main>
 
