@@ -1,4 +1,6 @@
-// D91 P5 · SETTINGS → APPEARANCE — four preview cards, "follow my system", and the shape-cues switch.
+// D91 P5 · APPEARANCE — four preview cards, "follow my system", and the shape-cues switch.
+// ⭐ D93 · MOVED to the Customise page (panels/CustomisePanel.jsx, /app/customise): the Theme and Accessibility
+// cards there are these two sections. Nothing of Appearance is left on the Account page.
 //
 // Every choice is saved to the ACCOUNT first (PUT /api/settings/appearance, so it follows the person to their
 // other devices), then applied: the palette resolves ONCE at load (themes/index.js), so applying is a reload.
@@ -8,11 +10,14 @@
 import { useState } from "react";
 import SettingsSection from "./SettingsSection.jsx";
 import DepthButton from "./DepthButton.jsx";
+import RadioCards from "./RadioCards.jsx";
 import { api } from "../lib/api.js";
-import { THEME_LIST, ACTIVE_THEME, appearance, setAppearance, pairPreference, CONTRAST_OFFER, dismissContrastOffer } from "../themes/index.js";
+import { THEME_LIST, ACTIVE_THEME, appearance, layout, setAppearance, pairPreference, CONTRAST_OFFER, dismissContrastOffer } from "../themes/index.js";
 
-function save(next) {
-  api("/api/settings/appearance", { method: "PUT", body: JSON.stringify({ theme: next.pref, cues: next.cues }) })
+/** Save the whole appearance to the account (theme, cues and the layout options), then apply it (a reload). */
+export function saveAppearance(next) {
+  const lay = next.layout || layout();
+  api("/api/settings/appearance", { method: "PUT", body: JSON.stringify({ theme: next.pref, cues: next.cues, ...lay }) })
     .catch(() => {}).finally(() => setAppearance(next));
 }
 
@@ -33,41 +38,37 @@ function Preview({ t }) {
   );
 }
 
-export default function AppearanceSettings() {
+/** The Theme card: the four themes (from the registry) and "follow my system". */
+export function ThemeSection() {
   const cur = appearance();
   const [follow, setFollow] = useState(cur.pref === "system" || cur.pref === "contrast");
-  const choose = (t) => save({ pref: follow ? pairPreference(t) : t.id, cues: cur.cues });
+  const choose = (id) => { const t = THEME_LIST.find((x) => x.id === id); saveAppearance({ pref: follow ? pairPreference(t) : t.id, cues: cur.cues }); };
   return (
-    <SettingsSection title="Appearance"
+    <SettingsSection title="Theme"
       subtitle="How draft looks on this account, on every device. Documents — your résumé and cover letter — always stay black on white.">
-      <div role="radiogroup" aria-label="Theme" data-appearance-cards=""
-        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
-        {THEME_LIST.map((t) => {
-          const on = t.id === ACTIVE_THEME.id;
-          return (
-            <button key={t.id} type="button" role="radio" aria-checked={on} onClick={() => !on && choose(t)}
-              data-appearance-card={t.id}
-              style={{ textAlign: "left", cursor: on ? "default" : "pointer", padding: 8, borderRadius: 10, display: "grid", gap: 6,
-                background: "var(--c-surface-solid)", color: "var(--c-ink)", font: "inherit",
-                border: on ? "2px solid var(--c-accent-ink)" : "2px solid var(--c-border)" }}>
-              <Preview t={t} />
-              <span style={{ fontSize: 13, fontWeight: 700 }}>{t.label}</span>
-              <span style={{ fontSize: 11, color: "var(--c-ink-faint)" }}>
-                {t.contrast === "aaa" ? "High contrast · " : ""}{t.scheme === "dark" ? "Dark" : "Light"}{on ? " · in use" : ""}
-              </span>
-            </button>
-          );
-        })}
+      <div data-appearance-cards="">
+        <RadioCards label="Theme" name="theme" value={ACTIVE_THEME.id} onChange={choose}
+          items={THEME_LIST.map((t) => ({ id: t.id, label: t.label, preview: <Preview t={t} />,
+            description: `${t.contrast === "aaa" ? "High contrast · " : ""}${t.scheme === "dark" ? "Dark" : "Light"}${t.id === ACTIVE_THEME.id ? " · in use" : ""}` }))} />
       </div>
       <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, color: "var(--c-ink)" }}>
         <input type="checkbox" checked={follow} data-appearance-follow=""
           onChange={(e) => { const f = e.target.checked; setFollow(f);
-            save({ pref: f ? pairPreference(ACTIVE_THEME) : ACTIVE_THEME.id, cues: cur.cues }); }} />
+            saveAppearance({ pref: f ? pairPreference(ACTIVE_THEME) : ACTIVE_THEME.id, cues: cur.cues }); }} />
         Follow my system's light / dark setting
       </label>
+    </SettingsSection>
+  );
+}
+
+/** The Accessibility card: shape cues. */
+export function AccessibilitySection() {
+  const cur = appearance();
+  return (
+    <SettingsSection title="Accessibility">
       <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, color: "var(--c-ink)" }}>
         <input type="checkbox" role="switch" checked={cur.cues} aria-checked={cur.cues} data-appearance-cues=""
-          onChange={(e) => save({ pref: cur.pref, cues: e.target.checked })} />
+          onChange={(e) => saveAppearance({ pref: cur.pref, cues: e.target.checked })} />
         <span>Shape cues<br />
           <span style={{ fontSize: 11, color: "var(--c-ink-faint)" }}>
             Adds a symbol and a line style to every status and fit band — ✓ solid, ! dashed, ✕ double, i dotted — so
@@ -89,7 +90,7 @@ export function ContrastOffer() {
       style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "center", flexWrap: "wrap", padding: "8px 16px",
         background: "var(--c-surface-solid)", color: "var(--c-ink)", borderBottom: "1px solid var(--c-border-strong)", fontSize: 13 }}>
       <span>Your system asks for more contrast. draft has high-contrast themes.</span>
-      <DepthButton size="compact" primary onClick={() => save({ pref: "contrast", cues: cur.cues })}>Use high contrast</DepthButton>
+      <DepthButton size="compact" primary onClick={() => saveAppearance({ pref: "contrast", cues: cur.cues })}>Use high contrast</DepthButton>
       <DepthButton size="compact" onClick={() => { dismissContrastOffer(); setGone(true); }}>Not now</DepthButton>
     </div>
   );

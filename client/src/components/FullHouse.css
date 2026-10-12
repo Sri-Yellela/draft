@@ -25,38 +25,60 @@
 }
 
 /* ── 1 · THE SENTENCE ─────────────────────────────────────────────────────────────────────────── */
+/* ⭐ D92 + D93 · TWO LOOKS, the owner's choice on the Customise page, read off the <html> attribute
+   data-sentence (themes/layoutOptions.js). The boxed words — a box taller than the line, each with its own
+   border and shadow, crowding the rows around it — are REMOVED and not offered (D93).
+     marked (default) — the sentence stays TEXT; a highlighter underline marks a word you can change, and only
+                        a filter that is SET becomes the one orange box.
+     calm             — every changeable word is a box, but one height, room around it (the line opens up),
+                        and no shadow until hover.
+   The attribute sets CUSTOM PROPERTIES and the rules below only read them, so a preview carrying its own
+   data-sentence is drawn in its own look whatever <html> carries. ⛔ Neither look letters a token: both are
+   INLINE boxes in the sentence's own type (D34) — an inline box's padding and border never change the line. */
+[data-sentence="marked"] {
+  --bh-room: 1;
+  --tok-pad: 0 .08em; --tok-margin: 0; --tok-edge: transparent; --tok-fill: transparent; --tok-radius: 2px;
+  --tok-depth: inset 0 -.16em 0 var(--c-accent-quiet);
+  --tok-hover-fill: var(--c-accent-quiet); --tok-hover-edge: transparent; --tok-hover-depth: inset 0 -.16em 0 var(--c-accent-ink);
+  --tok-on-pad: 0 .3em; --tok-on-margin: 0 .04em;
+}
+[data-sentence="calm"] {
+  --bh-room: 1.2;
+  --tok-pad: 0 .42em; --tok-margin: 0 .1em; --tok-edge: var(--c-fh-line); --tok-fill: var(--c-fh-surface); --tok-radius: 10px;
+  --tok-depth: none;
+  --tok-hover-fill: var(--c-fh-surface); --tok-hover-edge: var(--c-accent-ink); --tok-hover-depth: var(--c-depth-hover);
+  --tok-on-pad: 0 .42em; --tok-on-margin: 0 .1em;
+}
 .bh {
   margin: 0 0 4px; max-width: none;
   font-family: var(--fh-sentence-family); font-size: var(--fh-sentence-size);
-  line-height: var(--fh-sentence-line); font-weight: var(--fh-sentence-weight);
+  line-height: calc(var(--fh-sentence-line) * var(--bh-room, 1)); font-weight: var(--fh-sentence-weight);
   font-style: var(--fh-sentence-style); letter-spacing: -.015em; color: var(--c-ink-muted);
 }
 .bh__verb { color: inherit; }
 .bh[data-nothing-matches="true"] .bh__verb { color: var(--c-warning); font-weight: 700; }
 
-/* A token: the SAME type as the words around it. The box is the whole signal. The sketch's internal
-   `line-height:1.3` would have made the token's line-height differ from the prose's; the box keeps
-   that size (--fh-token-box, the height of one line of the type inside it) and the type keeps the
-   sentence's line-height. inline-flex centres the line in the box and aligns on its baseline. */
+/* A token: the SAME type as the words around it (D34). An INLINE box — never taller than the line it sits
+   in (the D92 finding: a box 6px taller than its line crowded the rows above and below). */
 .bh .tok {
   font: inherit;
-  display: inline-flex; align-items: center; box-sizing: border-box;
-  height: calc(var(--fh-token-box) + 6px); max-width: 100%; vertical-align: baseline;
-  margin: 0 2px; padding: 0 12px; white-space: nowrap;
-  border: 1px solid var(--c-fh-line); border-radius: 10px;
-  background: var(--c-fh-surface); color: var(--c-ink); box-shadow: var(--c-depth-rest);
+  display: inline; box-decoration-break: clone; -webkit-box-decoration-break: clone; vertical-align: baseline;
+  margin: var(--tok-margin, 0); padding: var(--tok-pad, 0 .08em); white-space: nowrap;
+  border: 1px solid var(--tok-edge, transparent); border-radius: var(--tok-radius, 2px);
+  background: var(--tok-fill, transparent); color: var(--c-ink); box-shadow: var(--tok-depth, none);
   cursor: pointer;
-  transition: transform .15s, box-shadow .15s, border-color .15s, color .15s, background .15s;
+  transition: box-shadow .15s, border-color .15s, color .15s, background .15s;
 }
 /* Hover AND keyboard focus — D1's rule: a hover-only affordance is unreachable by keyboard. */
 .bh .tok:hover, .bh .tok:focus-visible {
-  transform: translateY(-2px); box-shadow: var(--c-depth-hover);
-  border-color: var(--c-accent-ink); color: var(--c-accent-ink); outline: none;
+  background: var(--tok-hover-fill); box-shadow: var(--tok-hover-depth);
+  border-color: var(--tok-hover-edge); color: var(--c-accent-ink); outline: none;
 }
-/* ACTIVE — a filter is set: the orange fill, its own orange depth, dark text. */
+/* ACTIVE — a filter is set: the ONE orange box, its own orange depth, dark text. */
 .bh .tok[aria-pressed="true"] {
   background: var(--c-accent); border-color: var(--c-fh-accent-edge); color: var(--c-fh-on-accent);
-  box-shadow: var(--c-depth-accent);
+  box-shadow: var(--c-depth-accent); border-radius: 10px;
+  padding: var(--tok-on-pad, 0 .3em); margin: var(--tok-on-margin, 0 .04em);
 }
 .bh .tok[aria-pressed="true"]:hover, .bh .tok[aria-pressed="true"]:focus-visible { color: var(--c-fh-on-accent); }
 /* OPEN — its panel is showing: an OUTLINE, a different signal from the fill, and a word can carry both. */
@@ -124,14 +146,16 @@
 .fh-find:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
 
 /* ── 3 · THE CONDENSED BAR — one row: the views, the search, sort, + ─────────────────────────── */
+/* ⭐ D92 · ONE SURFACE with hairline dividers — not a surface holding wells holding buttons (the "box · box ·
+   box" of rule 1). Only the active view is filled. No alternate: this is simply the design. */
 .fh-bar {
-  display: flex; align-items: center; gap: 9px; margin-top: 16px;
+  display: flex; align-items: center; gap: 0; margin-top: 16px;
   background: var(--c-fh-surface); border: 1px solid var(--c-fh-line); border-radius: 14px;
-  padding: 9px 10px; box-shadow: var(--c-depth-rest);
+  padding: 5px; box-shadow: var(--c-depth-rest);
 }
 .fh-views {
-  display: flex; flex: 0 0 auto; padding: 3px;
-  background: var(--c-fh-well); border: 1px solid var(--c-fh-line); border-radius: 10px; box-shadow: var(--c-fh-inset);
+  display: flex; flex: 0 0 auto; gap: 2px; padding: 0 8px 0 2px; margin-right: 4px;
+  border-right: 1px solid var(--c-fh-line);
 }
 .fh-views button {
   display: flex; align-items: center; gap: 6px; border: 0; background: transparent; border-radius: 8px;
@@ -143,10 +167,9 @@
 .fh-views button[aria-pressed="true"] { background: var(--c-accent); color: var(--c-fh-on-accent); box-shadow: var(--c-fh-seg-lift); }
 .fh-views .fh-ct { font: 700 9.5px/1 var(--fh-mono); font-style: normal; }
 .fh-srch {
-  flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; padding: 0 12px;
-  background: var(--c-fh-well); border: 1px solid var(--c-fh-line); border-radius: 10px; box-shadow: var(--c-fh-inset);
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; padding: 0 12px; border-radius: 10px;
 }
-.fh-srch:focus-within { border-color: var(--c-accent-ink); }
+.fh-srch:focus-within { box-shadow: inset 0 0 0 2px var(--c-accent-ink); }
 .fh-srch > svg { width: 15px; height: 15px; fill: none; stroke: var(--c-ink-faint); stroke-width: 2; flex: 0 0 auto; }
 .fh-srch .usb__suggest { flex: 1; min-width: 0; display: flex; position: relative; }
 .fh-srch input {
@@ -159,20 +182,21 @@
   border-radius: 6px; background: transparent; color: var(--c-ink-faint); cursor: pointer;
 }
 .fh-srch__clear:hover, .fh-srch__clear:focus-visible { color: var(--c-accent-ink); outline: 2px solid var(--c-accent-ink); outline-offset: 0; }
-/* The two 40px squares — the same size as each other, one rhythm. */
+/* The 40px square — behind a hairline divider, not a box of its own (D92). */
 .fh-ico {
-  width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; padding: 0;
-  border: 1px solid var(--c-fh-line); background: var(--c-fh-well); border-radius: 10px;
-  color: var(--c-ink-muted); box-shadow: var(--c-depth-rest); cursor: pointer;
-  transition: transform .16s, box-shadow .16s, border-color .16s, color .16s;
+  width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; padding: 0; margin-left: 4px;
+  border: 0; border-left: 1px solid var(--c-fh-line); background: transparent; border-radius: 0 10px 10px 0;
+  color: var(--c-ink-muted); cursor: pointer;
+  transition: background .16s, box-shadow .16s, color .16s;
 }
 .fh-ico:hover, .fh-ico:focus-visible {
-  transform: translateY(-2px); box-shadow: var(--c-depth-hover); border-color: var(--c-accent-ink); color: var(--c-accent-ink); outline: none;
+  background: var(--c-hover); color: var(--c-accent-ink); outline: none;
 }
+.fh-ico:focus-visible { box-shadow: inset 0 0 0 2px var(--c-accent-ink); }
 /* A chosen order (anything but the curated default) holds the hover's edge and glyph. */
 .fh-ico[data-active="true"] { border-color: var(--c-accent-ink); color: var(--c-accent-ink); }
 .fh-ico[aria-expanded="true"] {
-  background: var(--c-accent); border-color: var(--c-fh-accent-edge); color: var(--c-fh-on-accent); box-shadow: var(--c-depth-accent);
+  background: var(--c-accent); color: var(--c-fh-on-accent); border-radius: 10px; border-left-color: transparent;
 }
 .fh-ico svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 /* ⛔ D40 (owner, 10-06): the standalone + square is GONE — + is the fourth VIEW in the segment. */
@@ -187,17 +211,35 @@
   .fh-views { order: 1; }
   .fh-ico { order: 2; margin-left: auto; }
   .fh-srch { order: 4; flex: 1 1 100%; }
+  .fh-bar .fh-srch { border-top: 1px solid var(--c-fh-line); border-radius: 0 0 10px 10px; }
   .fh-pin { padding: 13px 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .bh .tok, .fh-op, .fh-ico, .fh-views button { transition: none; }
   .fh-pan, .fh-sortp { animation: none; }
-  .bh .tok:hover, .bh .tok:focus-visible, .fh-op:hover, .fh-op:focus-visible,
-  .fh-ico:hover, .fh-ico:focus-visible { transform: none; }
+  .fh-op:hover, .fh-op:focus-visible { transform: none; }
 }
 
 /* D49 · the board's bar row, in <main> under the header: the same centred column (.fh), no top padding
    (the bar's own 16px margin keeps D35's distance from the sentence), a little room when stuck. */
 .fh.fh--bar-row { padding-top: 0; padding-bottom: 10px; }
-.fh.fh--bar-row[data-stuck="true"] { border-radius: 0 0 16px 16px; }
+/* ⭐ D92 · STUCK, THE BAR BLENDS IN (rule 4): StickyBar's stuck surface (a hard-edged frosted band with a
+   hairline and a shadow) is replaced, for the board's bar, by a frost on the bar's OWN COLUMN whose edges
+   feather into the page — no line, no band. The mask reads alpha only; ink is opaque. */
+.fh.fh--bar-row[data-stuck="true"] {
+  background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; border-bottom: 0;
+}
+.fh.fh--bar-row[data-stuck="true"]::before {
+  content: ""; position: absolute; inset: -8px -28px -12px; z-index: -1; pointer-events: none;
+  background: color-mix(in srgb, var(--c-surface-solid) 70%, transparent);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  -webkit-mask-image: linear-gradient(to right, transparent, var(--c-ink) 6%, var(--c-ink) 94%, transparent), linear-gradient(to bottom, var(--c-ink) 72%, transparent);
+  mask-image: linear-gradient(to right, transparent, var(--c-ink) 6%, var(--c-ink) 94%, transparent), linear-gradient(to bottom, var(--c-ink) 72%, transparent);
+  -webkit-mask-composite: source-in; mask-composite: intersect;
+}
+/* Where the column fills the window (804px + the two 28px fringes), the fringes would widen the PAGE — a sideways
+   scroll on a phone (measured: 418px in a 390px window). There the frost spans the window and feathers inside it. */
+@media (max-width: 860px) {
+  .fh.fh--bar-row[data-stuck="true"]::before { left: 0; right: 0; }
+}

@@ -4153,8 +4153,9 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
     setPageInput(String(nextPage));
   };
   return (
-    <div ref={containerRef} style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden",
-                  background: `linear-gradient(160deg, ${theme.accentMuted}40 0%, transparent 45%)` }}>  {/* fades to the leather, not to theme.bg (the glass) — 09-30 */}
+    // ⛔ D92: NOTHING paints behind the jobs. This box drew a 160° accent tint from its own hard top edge — the
+    // "tint behind the cards" and the page read in two parts, split by a line (measured on the running app).
+    <div ref={containerRef} style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
       {/* Rendered OUTSIDE the empty/non-empty branch on purpose: the bridge can narrow a board to a
           short list or to nothing at all, and both need to say so. Left inside the non-empty branch
           it would go silent in the very case where the user has least to go on. */}
@@ -4413,13 +4414,14 @@ function FitRankingNotice({ theme, show, onAddResume }) {
   if (!show) return null;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-                  padding: "6px 14px", fontSize: 11, color: th.textDim,
-                  borderBottom: `1px solid ${th.border}` }}>
+                  padding: "6px 14px", fontSize: 11, color: th.textDim }}>
+      {/* ⛔ D92: no full-width hairline under it — one line ruled across the whole window is a seam. */}
       <span>Sorting by fit needs this profile's base resume — the rest of the board works without it.</span>
       {onAddResume && (
         <button type="button" onClick={onAddResume}
           style={{ background: "none", border: "none", padding: 0, cursor: "pointer",
-                   color: th.accent, fontSize: 11, fontWeight: 700, textDecoration: "underline" }}>
+                   // the ACCENT_INK text token, not the orange fill (2.41:1 as text — D93's matrix scan)
+                   color: "var(--c-accent-ink)", fontSize: 11, fontWeight: 700, textDecoration: "underline" }}>
           Add one
         </button>
       )}

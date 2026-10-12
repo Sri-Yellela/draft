@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@1,600;1,700;1,800&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<title>draft — the Customise page</title>
+<style>
+
+:root{--logo:'Poppins',ui-sans-serif,system-ui,sans-serif;--ser:'Instrument Serif',Georgia,serif;--ui:'DM Sans',ui-sans-serif,system-ui,sans-serif;--E:cubic-bezier(.3,.8,.25,1)}
+[data-theme=paper-light]{--canvas:#F3ECE0;--shade:#DFD6C9;--grain:.10;--grainRGB:90,70,50;
+ --surf:rgba(255,251,245,.58);--surf2:rgba(255,251,245,.72);--menu:rgba(255,251,245,.96);--solid:#FBF7F0;--hover:rgba(30,25,21,.05);--scrim:rgba(30,25,21,.28);--input:rgba(255,255,255,.55);
+ --spec:rgba(255,255,255,.95);--sheen:rgba(255,255,255,.55);--bodyTop:rgba(255,253,249,.70);--body:rgba(255,251,245,.36);--rim:rgba(255,255,255,.50);
+ --ink:#1E1915;--muted:#4A423B;--faint:#62574D;--border:#DDD2C3;--borderS:#C7B9A7;--borderC:#7F7263;
+ --accent:#FD4600;--accentH:#FF6424;--onAccent:#1E1915;--accentInk:#A33200;--accentQ:#EBD5C6;
+ --ok:#1A6B33;--okq:#D5E8D8;--warn:#855000;--warnq:#F2E2C4;--no:#B3261E;--noq:#F5D9D3;--info:#1E5E94;--infoq:#D7E4F0;
+ --bS:#17663A;--bSq:#D3E8D9;--bM:#7A5300;--bMq:#F2E3C0;--bW:#A3281E;--bWq:#F6D9D2;--bU:#4A423B;--bUe:#7F7263;
+ --d1:0 3px 8px rgba(30,25,21,.11),inset 0 1px 0 rgba(255,255,255,.66);--d2:0 7px 17px rgba(30,25,21,.15),inset 0 1px 0 rgba(255,255,255,.66);--dA:0 3px 9px rgba(253,70,0,.34),inset 0 1px 0 rgba(255,255,255,.35);--gl:0 1px 1px rgba(60,40,20,.05),0 12px 28px -10px rgba(90,55,25,.28);
+ --logoSlash:#FD4600;--logoWord:#1E1915;--tile:#FBF7F0;--seg1:#1D6B43;--seg2:#8A3B2E;--seg3:#6B6257}
+[data-theme=charcoal-dark]{--canvas:#1C1815;--shade:#2C2621;--grain:.16;--grainRGB:140,122,102;
+ --surf:rgba(46,39,34,.62);--surf2:rgba(52,44,38,.78);--menu:rgba(34,29,25,.97);--solid:#26201C;--hover:rgba(255,240,225,.07);--scrim:rgba(0,0,0,.55);--input:rgba(255,240,225,.06);
+ --spec:rgba(255,240,225,.22);--sheen:rgba(255,240,225,.07);--bodyTop:rgba(58,49,42,.74);--body:rgba(38,32,28,.50);--rim:rgba(255,240,225,.11);
+ --ink:#F2EADF;--muted:#CFC2B3;--faint:#ADA090;--border:#3B332C;--borderS:#53483F;--borderC:#8E8072;
+ --accent:#FD4600;--accentH:#FF6424;--onAccent:#1E1915;--accentInk:#FF7D4A;--accentQ:#3D2519;
+ --ok:#5FCB8C;--okq:#163120;--warn:#E6AA4E;--warnq:#35280F;--no:#F27F72;--noq:#3B1C18;--info:#7BB4EA;--infoq:#15263A;
+ --bS:#72D59D;--bSq:#173423;--bM:#EAB95E;--bMq:#362913;--bW:#F48F83;--bWq:#3D1D19;--bU:#CFC2B3;--bUe:#8E8072;
+ --d1:0 3px 8px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,240,225,.10);--d2:0 7px 17px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,240,225,.12);--dA:0 3px 9px rgba(253,70,0,.34),inset 0 1px 0 rgba(255,255,255,.25);--gl:0 1px 1px rgba(0,0,0,.4),0 12px 28px -10px rgba(0,0,0,.7);
+ --logoSlash:#FD4600;--logoWord:#FD4600;--tile:#FBF7F0;--seg1:#7FC79A;--seg2:#E58F7C;--seg3:#A39A8C}
+/* CONTRAST DARK — pure black and white NEUTRALS; the brand orange and the green / red / amber / blue indicators KEPT and re-tuned to ≥ 7:1.
+   Depth by LIGHT (a hairline + a soft white bloom): black cannot cast a visible shadow. */
+[data-theme=contrast-dark]{--canvas:#000000;--shade:#1A1A1A;--grain:.10;--grainRGB:255,255,255;
+ --surf:rgba(26,26,26,.72);--surf2:rgba(36,36,36,.84);--menu:rgba(12,12,12,.98);--solid:#121212;--hover:rgba(255,255,255,.12);--scrim:rgba(0,0,0,.78);--input:rgba(255,255,255,.08);
+ --spec:rgba(255,255,255,.50);--sheen:rgba(255,255,255,.09);--bodyTop:rgba(40,40,40,.80);--body:rgba(16,16,16,.58);--rim:rgba(255,255,255,.32);
+ --ink:#FFFFFF;--muted:#E6E6E6;--faint:#BDBDBD;--border:#404040;--borderS:#737373;--borderC:#BDBDBD;
+ --accent:#FD4600;--accentH:#FF6424;--onAccent:#000000;--accentInk:#FF9466;--accentQ:#3A1A0C;
+ --ok:#46D683;--okq:#0C2A1A;--warn:#FFC044;--warnq:#2C2208;--no:#FF8080;--noq:#301010;--info:#6DB8FF;--infoq:#0E2236;
+ --bS:#46D683;--bSq:#0C2A1A;--bM:#FFC044;--bMq:#2C2208;--bW:#FF8080;--bWq:#301010;--bU:#E6E6E6;--bUe:#BDBDBD;
+ --d1:0 0 0 1px rgba(255,255,255,.16),0 6px 16px rgba(255,255,255,.07),inset 0 1px 0 rgba(255,255,255,.30);--d2:0 0 0 1px rgba(255,255,255,.28),0 10px 26px rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.40);--dA:0 0 0 1px #FF6424,0 6px 20px rgba(253,70,0,.45),inset 0 1px 0 rgba(255,255,255,.35);--gl:0 0 0 1px rgba(255,255,255,.14),0 18px 40px -14px rgba(255,255,255,.16);
+ --logoSlash:#FD4600;--logoWord:#FD4600;--tile:#FFFFFF;--seg1:#46D683;--seg2:#FF8080;--seg3:#A8A8A8}
+/* CONTRAST LIGHT — black on white. Depth by shadow plus a hairline so no edge depends on the shadow. */
+[data-theme=contrast-light]{--canvas:#FFFFFF;--shade:#EDEDED;--grain:.06;--grainRGB:0,0,0;
+ --surf:rgba(255,255,255,.72);--surf2:rgba(250,250,250,.86);--menu:rgba(255,255,255,.98);--solid:#FFFFFF;--hover:rgba(0,0,0,.07);--scrim:rgba(0,0,0,.60);--input:rgba(0,0,0,.04);
+ --spec:rgba(255,255,255,1);--sheen:rgba(255,255,255,.7);--bodyTop:rgba(255,255,255,.88);--body:rgba(246,246,246,.60);--rim:rgba(0,0,0,.26);
+ --ink:#000000;--muted:#1A1A1A;--faint:#404040;--border:#C8C8C8;--borderS:#8C8C8C;--borderC:#404040;
+ --accent:#FD4600;--accentH:#FF6424;--onAccent:#000000;--accentInk:#8A2A00;--accentQ:#FFE3D5;
+ --ok:#005A26;--okq:#E6F4EC;--warn:#6B4500;--warnq:#FBF0D9;--no:#9E0B0B;--noq:#FDEEEE;--info:#0B4F8A;--infoq:#E4EEF9;
+ --bS:#005A26;--bSq:#E6F4EC;--bM:#6B4500;--bMq:#FBF0D9;--bW:#9E0B0B;--bWq:#FDEEEE;--bU:#1A1A1A;--bUe:#404040;
+ --d1:0 0 0 1px rgba(0,0,0,.20),0 4px 10px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.95);--d2:0 0 0 1px rgba(0,0,0,.32),0 9px 20px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.95);--dA:0 0 0 1px #A32E00,0 5px 14px rgba(253,70,0,.45),inset 0 1px 0 rgba(255,255,255,.35);--gl:0 0 0 1px rgba(0,0,0,.16),0 14px 30px -10px rgba(0,0,0,.34);
+ --logoSlash:#FD4600;--logoWord:#000000;--tile:#FFFFFF;--seg1:#005A26;--seg2:#9E0B0B;--seg3:#5A5A5A}
+
+
+/* the Full House tokens the real CSS uses (FH_*) — per theme */
+[data-theme=paper-light]{--fhS:#FBF7F0;--fhW:#F4EDE1;--fhL:#DDD2C3;--inset:inset 0 1px 2px rgba(30,25,21,.10);--fhEdge:#E03D00;--accentQ2:#F6DCCB}
+[data-theme=charcoal-dark]{--fhS:#26201C;--fhW:#1E1916;--fhL:#3B332C;--inset:inset 0 1px 3px rgba(0,0,0,.45);--fhEdge:#FF6424;--accentQ2:#4A2A1A}
+[data-theme=contrast-light]{--fhS:#FFFFFF;--fhW:#F2F2F2;--fhL:#C8C8C8;--inset:inset 0 1px 2px rgba(0,0,0,.16);--fhEdge:#A32E00;--accentQ2:#FFD2BC}
+[data-theme=contrast-dark]{--fhS:#121212;--fhW:#080808;--fhL:#404040;--inset:inset 0 1px 3px rgba(255,255,255,.08);--fhEdge:#FF6424;--accentQ2:#552A14}
+
+*{box-sizing:border-box;margin:0}
+body{background:#0b0b0b;color:#ddd;font:13px/1.5 var(--ui)}
+.shell{max-width:1180px;margin:0 auto;padding:18px 20px 70px}
+h1{font:800 italic 21px/1 var(--logo);color:#fff}h1 i{color:#FD4600;font-style:inherit}
+.note{color:#b9b9b9;font-size:12.5px;max-width:112ch;margin:8px 0 14px}.note b{color:#fff}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.tb{border:1px solid #3a3a3a;background:#161616;color:#cfcfcf;border-radius:10px;padding:8px 13px;font:800 italic 11.5px/1 var(--logo);cursor:pointer}
+.tb[aria-pressed=true],.tb[aria-selected=true]{background:#fff;color:#000;border-color:#fff}.tb:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.sep{width:1px;height:22px;background:#333;margin:0 4px}.lab{font:800 10.5px var(--ui);letter-spacing:.1em;text-transform:uppercase;color:#888}
+.pairs{display:grid;gap:14px}.cap{display:flex;gap:10px;align-items:center;margin:0 0 6px;font:800 italic 12.5px var(--logo);color:#fff}
+.cap small{font:500 11.5px var(--ui);color:#9a9a9a;font-style:normal}.cap .tagb{background:#3a1a1a;color:#ffb0a8;padding:2px 8px;border-radius:5px;font-size:10.5px}.cap .taga{background:#12301f;color:#9be0b4;padding:2px 8px;border-radius:5px;font-size:10.5px}
+.why{background:#141414;border:1px solid #2c2c2c;border-radius:12px;padding:11px 14px;margin-top:10px;color:#bdbdbd;font-size:12.5px;max-width:112ch}.why b{color:#fff}.why code{background:#222;padding:1px 6px;border-radius:5px;color:#fff;font-size:11.5px}
+/* ───── the frame: the page substrate (grain + sheen), exactly one layer ───── */
+.fr{position:relative;background:var(--canvas);color:var(--ink);border:1px solid var(--borderS);border-radius:14px;overflow:hidden;isolation:isolate;font:13px/1.5 var(--ui)}
+.fr::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:var(--grain);background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");mix-blend-mode:multiply}
+[data-theme=contrast-dark] .fr::before,[data-theme=charcoal-dark] .fr::before{mix-blend-mode:screen}
+.fr::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(900px 380px at 12% -6%,var(--sheen),transparent 70%)}
+.logo{font:800 italic 20px/1 var(--logo);letter-spacing:-.01em}.logo b{color:var(--logoSlash);font-weight:800}.logo span{color:var(--logoWord)}
+
+.badge{display:inline-block;background:var(--accent);color:var(--onAccent);border-radius:6px;padding:1px 6px;font:800 10px var(--logo);margin-left:5px;font-style:normal}
+.av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#e8b9a6,#5a86b5);border:1px solid var(--borderS)}
+.views1 button{display:flex;align-items:center;gap:6px;border:0;background:transparent;border-radius:8px;padding:7px 12px;font:800 italic 11px/1 var(--logo);color:var(--faint);cursor:pointer}
+.views1 button.on{background:var(--accent);color:var(--onAccent)}.views1 em{font:700 9.5px var(--ui);font-style:normal}
+.srch1 svg{width:15px;height:15px;fill:none;stroke:var(--faint);stroke-width:2;flex:0 0 auto}.srch1 span{padding:10px 0}
+.ico1 svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.fhwrap{max-width:804px;margin:0 auto;padding:18px 20px 14px}
+.bh1,.bh2{font-size:30px}
+/* AFTER · A — ghost tabs: inactive tabs are not a surface; only the active tab is a depth box; nothing clips a shadow */
+.tb1{height:74px;background:var(--surf2);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border-bottom:1px solid var(--rim);display:flex;align-items:center;justify-content:space-between;padding:0 20px}
+.grp1{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 auto;clip-path:inset(-18px 0)}
+.nav1{display:flex;gap:4px;align-items:center;min-width:0}
+.tab1{display:inline-block;padding:6px 13px;background:transparent;border:1px solid transparent;border-radius:10px;line-height:1.15;text-align:center;color:var(--muted);font:800 italic 12px/1.15 var(--logo);white-space:nowrap;flex-shrink:0;text-decoration:none;transition:background .16s,color .16s,transform .16s,box-shadow .16s}
+.tab1:hover{background:var(--hover);color:var(--ink)}
+.tab1.on{background:var(--accent);border-color:var(--fhEdge);box-shadow:var(--dA);color:var(--onAccent)}
+/* AFTER · B — one track: a single well, hairline-free tabs inside */
+.track{display:flex;gap:2px;padding:3px;background:var(--fhW);border:1px solid var(--fhL);border-radius:12px;box-shadow:var(--inset)}
+.track .tab1:hover{background:var(--hover)}
+/* AFTER · A — marked words: the sentence stays text; a set filter is the one box */
+.bh1{font:800 italic 34px/1.5 var(--logo);letter-spacing:-.015em;color:var(--muted);margin:0 0 12px}
+.tok1{display:inline;padding:0 .08em;color:var(--ink);box-shadow:inset 0 -.16em 0 var(--accentQ2);border-radius:2px;cursor:pointer;transition:background .15s}
+.tok1:hover{background:var(--accentQ2)}
+.tok1.on{display:inline-block;line-height:1.25;padding:0 .3em;margin:0 .04em;background:var(--accent);color:var(--onAccent);border-radius:10px;box-shadow:var(--dA);border:1px solid var(--fhEdge)}
+/* AFTER · B — calm boxes: still boxes, but one height, room around them, and no shadow until hover */
+.bh2{font:800 italic 34px/1.8 var(--logo);letter-spacing:-.015em;color:var(--muted);margin:0 0 8px}
+.tok2{display:inline-block;line-height:1.2;padding:0 .42em;margin:0 .1em;border:1px solid var(--fhL);border-radius:10px;background:var(--fhS);color:var(--ink);vertical-align:baseline;white-space:nowrap}
+.tok2.on{background:var(--accent);border-color:var(--fhEdge);color:var(--onAccent);box-shadow:var(--dA)}
+/* AFTER — one surface, hairline dividers; only the active view is filled */
+.bar1{display:flex;align-items:center;margin-top:16px;background:var(--fhS);border:1px solid var(--fhL);border-radius:14px;padding:5px;box-shadow:var(--d1)}
+.views1{display:flex;flex:0 0 auto;gap:2px;padding:0 8px 0 2px;border-right:1px solid var(--fhL);margin-right:4px}
+.srch1{flex:1;min-width:0;display:flex;align-items:center;gap:9px;padding:0 12px;color:var(--faint);font-size:13.5px}
+.ico1{width:40px;height:40px;flex:0 0 auto;display:grid;place-items:center;border-left:1px solid var(--fhL);color:var(--muted);margin-left:4px;padding-left:2px}
+
+/* ───── the Customise page ───── */
+.sx{max-width:1180px;margin:0 auto}
+.lay{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:18px;align-items:start}@media(max-width:980px){.lay{grid-template-columns:1fr}}
+.card{background:#141414;border:1px solid #2c2c2c;border-radius:14px;padding:16px 18px;margin-bottom:14px}
+.card h3{font:800 italic 15px/1.2 var(--logo);color:#fff}.card .sub{color:#a8a8a8;font-size:12.5px;margin:4px 0 12px;max-width:62ch}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.opt{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:7px;padding:9px;border-radius:12px;border:2px solid #2f2f2f;background:#101010;color:#ddd;transition:border-color .15s,transform .15s}
+.opt:hover{transform:translateY(-2px);border-color:#777}.opt:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.opt[aria-checked=true]{border-color:#FD4600;background:#1a120e}
+.opt b{font:800 italic 13px var(--logo);color:#fff}.opt small{font-size:11.5px;color:#a0a0a0;line-height:1.4}
+.opt .rec{display:inline-block;background:#12301f;color:#9be0b4;border-radius:5px;padding:1px 6px;font:800 10px var(--ui);margin-left:6px;font-style:normal}
+.mini{height:66px;overflow:hidden;border-radius:8px;position:relative}
+.mini .in{transform:scale(.5);transform-origin:left top;width:200%;pointer-events:none}
+.row{display:flex;gap:10px;align-items:flex-start}
+.sw2{all:unset;cursor:pointer;width:46px;height:26px;border-radius:8px;border:1px solid #666;background:#222;position:relative;flex:0 0 auto;margin-top:2px}
+.sw2::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:5px;background:#999;transition:transform .25s var(--E),background .2s}
+.sw2[aria-checked=true]{background:#3a1a0c;border-color:#FF9466}.sw2[aria-checked=true]::after{transform:translateX(20px);background:#FF9466}
+.sw2:focus-visible,.chk:focus-visible,.rb:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.chk{display:flex;gap:8px;align-items:center;margin-top:11px;color:#ddd;font-size:13px}.chk input{width:16px;height:16px;accent-color:#FD4600}
+.btn2{all:unset;cursor:pointer;background:#1c1c1c;border:1px solid #555;color:#eee;padding:9px 14px;border-radius:10px;font:800 italic 12px var(--logo)}.btn2:hover{border-color:#fff}.btn2:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.stick{position:sticky;top:12px}.pvh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.pvh b{font:800 italic 13px var(--logo);color:#fff}.pvh small{color:#9a9a9a}
+/* menu mock */
+.stage2{display:grid;grid-template-columns:1fr 320px;gap:18px}@media(max-width:900px){.stage2{grid-template-columns:1fr}}
+.menu{background:#181818;border:1px solid #3a3a3a;border-radius:14px;padding:6px;box-shadow:0 18px 40px rgba(0,0,0,.6)}
+.menu .who{display:flex;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid #2a2a2a}.menu .who b{color:#fff;font-size:13px}.menu .who small{color:#9a9a9a;display:block}
+.mi{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:9px;color:#ddd;font-size:13px}.mi:hover{background:#242424}
+.mi.new{background:#1a120e;outline:1px solid #FD4600;color:#fff}.mi .tagn{background:#FD4600;color:#000;border-radius:5px;padding:1px 6px;font:800 10px var(--ui)}
+.mi .qs{display:flex;gap:4px}.mi .qs i{font-style:normal;padding:2px 7px;border:1px solid #444;border-radius:6px;font-size:11px;color:#bbb}.mi .qs i.on{background:#fff;color:#000;border-color:#fff}
+.sepl{height:1px;background:#2a2a2a;margin:5px 4px}
+.why{background:#141414;border:1px solid #2c2c2c;border-radius:12px;padding:11px 14px;margin-top:10px;color:#bdbdbd;font-size:12.5px;max-width:112ch}.why b{color:#fff}.why code{background:#222;padding:1px 6px;border-radius:5px;color:#fff;font-size:11.5px}
+
+</style></head><body><div class="shell">
+<h1><i>/</i>draft — the Customise page</h1>
+<p class="note"><b>What this is:</b> Appearance <b>moves out of Account</b> onto <b>its own page</b>, linked from the avatar menu. Every <b>recommendation and its alternate</b> from the surface review is a <b>choice you make here</b> — the older designs are gone and are not offered. A <b>live preview</b> redraws as you choose. Change the options on the left and watch the right.</p>
+<div class="bar" id="bar"></div><div id="stage"></div></div>
+<script>
+const TH=[['paper-light','Paper Light','Light'],['charcoal-dark','Charcoal Dark','Dark'],['contrast-light','Contrast Light','High contrast · Light'],['contrast-dark','Contrast Dark','High contrast · Dark']];
+let S={view:'page',theme:'paper-light',cues:false,follow:false,nav:'ghost',sent:'marked',qs:'System'};
+const DEFAULTS={theme:'paper-light',cues:false,follow:false,nav:'ghost',sent:'marked'};
+const SRCH='<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg>';
+const SORT='<svg viewBox="0 0 24 24"><path d="M7 4v16M7 20l-3-3M7 4l3 3M17 20V4M17 4l3 3M17 20l-3-3"/></svg>';
+const lg='<span class="logo"><b>/</b><span>draft</span></span>';
+const TABN=[['Daily<br>Deck',0],['Full<br>House',1],['Draft<br>House <em class="badge">10</em>',0],['The<br>Table',0]];
+const VIEWS=[['ALL','2748',1],['★','3',0],['/d','6',0],['+','3',0]];
+const tabsH=()=>TABN.map(t=>`<a class="tab1${t[1]?' on':''}" href="#">${t[0]}</a>`).join('');
+const topbar=(nav)=>`<div class="tb1"><div class="grp1">${lg}<nav class="nav1${nav==='track'?' track':''}">${tabsH()}</nav></div><span class="av"></span></div>`;
+const sentence=(v)=>v==='marked'
+ ?`<h2 class="bh1">discovering <span class="tok1">all</span> roles at <span class="tok1">all</span> career levels in <span class="tok1 on">the United States</span>.</h2>`
+ :`<h2 class="bh2">discovering <b class="tok2">all</b> roles at <b class="tok2">all</b> career levels in <b class="tok2 on">the United States</b>.</h2>`;
+const bar1=()=>`<div class="bar1"><div class="views1">${VIEWS.map(v=>`<button class="${v[2]?'on':''}">${v[0]} <em>${v[1]}</em></button>`).join('')}</div><div class="srch1">${SRCH}<span>Job title, company, or anything…</span></div><div class="ico1">${SORT}</div></div>`;
+const frame=(theme,cues,nav,sent)=>`<div class="fr" data-theme="${theme}" data-cues="${cues?'shape':'color'}">${topbar(nav)}<div class="fhwrap">${sentence(sent)}${bar1()}</div></div>`;
+const mini=(kind,val)=>kind==='nav'
+ ?`<div class="mini"><div class="in"><div class="fr" data-theme="${S.theme}" data-cues="color" style="border-radius:8px">${topbar(val)}</div></div></div>`
+ :`<div class="mini"><div class="in"><div class="fr" data-theme="${S.theme}" data-cues="color" style="border-radius:8px"><div class="fhwrap" style="padding:10px 16px 6px">${sentence(val)}</div></div></div></div>`;
+function radio(group,label,items,cur,key){
+ return `<div role="radiogroup" aria-label="${label}" class="opts">${items.map(i=>`<button class="opt" role="radio" aria-checked="${cur===i.id}" onclick="S.${key}='${i.id}';draw()">${i.mini||''}<b>${i.label}${i.rec?'<span class="rec">recommended</span>':''}</b><small>${i.desc}</small></button>`).join('')}</div>`;}
+function previewCard(theme,pv){
+ return `<div class="card stick"><div class="pvh"><b>Live preview</b><small>${TH.find(t=>t[0]===theme)[1]} · tabs: ${S.nav==='ghost'?'ghost':'one track'} · sentence: ${S.sent==='marked'?'marked words':'calm boxes'}${S.cues?' · shape cues on':''}</small></div>${pv}
+ <p class="sub" style="margin:10px 0 0">The preview is drawn with the same styles as the page; choosing here changes only this preview until you leave — your choice is saved to your account at once.</p></div>`;}
+function pageView(){
+ const themeItems=TH.map(t=>({id:t[0],label:t[1],desc:t[2],mini:`<div class="mini"><div class="in" style="width:100%;transform:none"><div class="fr" data-theme="${t[0]}" style="height:66px;border-radius:8px"><div style="padding:8px"><div class="bar1" style="margin:0;padding:3px"><div class="views1"><button class="on" style="padding:3px 8px;font-size:9px">ALL</button></div><div class="srch1"><span style="padding:3px 0;font-size:10px">Search…</span></div></div></div></div></div></div>`}));
+ return `<div class="lay"><div>
+  <div class="card"><h3>Theme</h3><p class="sub">How draft looks on this account, on every device. Documents — your résumé and cover letter — always stay black on white.</p>
+   ${radio('theme','Theme',themeItems,S.theme,'theme')}
+   <label class="chk"><input type="checkbox" ${S.follow?'checked':''} onchange="S.follow=this.checked;draw()"> Follow my system's light / dark setting</label></div>
+  <div class="card"><h3>Accessibility</h3><div class="row" style="margin-top:8px"><button class="sw2" role="switch" aria-checked="${S.cues}" aria-label="Shape cues" onclick="S.cues=!S.cues;draw()"></button><div><b style="color:#fff;font-size:13px">Shape cues</b><p class="sub" style="margin:3px 0 0">Adds a symbol and a line style to every status and fit band — ✓ solid, ! dashed, ✕ double, i dotted — so nothing depends on telling colours apart. Recommended if orange and amber, or red and green, look alike to you.</p></div></div></div>
+  <div class="card"><h3>Top bar</h3><p class="sub">How the four pages are laid out across the top.</p>
+   ${radio('nav','Top bar tabs',[{id:'ghost',label:'Ghost tabs',rec:1,desc:'Only the page you are on is a box. The others stay quiet until you point at them.',mini:mini('nav','ghost')},{id:'track',label:'One track',desc:'All four sit in a single recessed track; the page you are on is filled.',mini:mini('nav','track')}],S.nav,'nav')}</div>
+  <div class="card"><h3>Filter sentence</h3><p class="sub">The sentence at the top of Full House — "discovering all roles at all career levels…".</p>
+   ${radio('sent','Filter sentence',[{id:'marked',label:'Marked words',rec:1,desc:'The sentence stays text. A highlighter underline marks a word you can change; only a filter you have set becomes a box.',mini:mini('sent','marked')},{id:'calm',label:'Calm boxes',desc:'Every changeable word is a box — one height, room around each, no shadow until you point at it.',mini:mini('sent','calm')}],S.sent,'sent')}</div>
+  <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span class="sub" style="margin:0">Back to how draft ships.</span><button class="btn2" onclick="Object.assign(S,DEFAULTS);draw()">Reset to defaults</button></div>
+ </div><div>${previewCard(S.theme,frame(S.theme,S.cues,S.nav,S.sent))}</div></div>`;}
+function menuView(){
+ return `<div class="stage2"><div><div class="fr" data-theme="${S.theme}" data-cues="color"><div class="tb1"><div class="grp1">${lg}<nav class="nav1">${tabsH()}</nav></div><span class="av"></span></div><div style="height:260px"></div></div>
+  <div class="why"><b>The link.</b> The avatar menu gains <b>Customise</b>. The existing <b>quick light / dark / system</b> switch stays as a shortcut; <b>everything else</b> lives on the page. Item order and wording follow the menu's existing style — the agent places it beside the existing items.</div></div>
+  <div class="menu" role="menu" aria-label="Account menu"><div class="who"><span class="av"></span><div><b>Ada Synthetic</b><small>ada@example.invalid</small></div></div>
+   <div class="mi" role="menuitem">Account</div><div class="mi" role="menuitem">Job profiles</div>
+   <div class="mi new" role="menuitem">Customise <span class="tagn">NEW</span></div>
+   <div class="mi" role="menuitem">Notifications <span style="color:#9a9a9a">9+</span></div>
+   <div class="sepl"></div>
+   <div class="mi" role="menuitem">Appearance <span class="qs">${['System','Light','Dark'].map(q=>`<i class="${S.qs===q?'on':''}" onclick="S.qs='${q}';draw()">${q}</i>`).join('')}</span></div>
+   <div class="sepl"></div><div class="mi" role="menuitem">Sign out</div></div></div>`;}
+function notesView(){
+ return `<div class="why" style="max-width:none"><b>What moves, what is new</b><ul style="margin:8px 0 0 20px;display:grid;gap:6px">
+  <li><b>Moves:</b> Appearance (the theme cards, "follow my system", shape cues) <b>leaves the Account page</b> and lives here. Nothing is left behind on Account.</li>
+  <li><b>New:</b> two layout choices — <b>top bar tabs</b> (ghost · one track) and the <b>filter sentence</b> (marked words · calm boxes). <b>The older designs are removed; they are not offered.</b> The one-surface search bar and the feathered stuck bar have no alternate, so they are not choices.</li>
+  <li><b>Saved to the account,</b> so it follows you to every device; applied <b>before first paint</b> so it never flashes.</li>
+  <li><b>Plug and play:</b> an option is one entry in a registry plus the styles under its attribute — the page draws itself from the registry, so the next option needs no page change.</li>
+  <li><b>Candidate to add (your call):</b> <b>Deck layout</b> (auto · vertical · horizontal) and <b>deck order</b> — they exist today as controls on the deck page; mirroring them here would gather every personal setting in one place. The deck's own quick control would stay.</li>
+  <li><b>On a phone:</b> the preview sits above the options and can be collapsed; option cards stack.</li></ul></div>`;}
+function draw(){
+ const th=TH.map(t=>`<button class="tb" aria-pressed="${S.theme===t[0]}" onclick="S.theme='${t[0]}';draw()">${t[1]}</button>`).join('');
+ const vw=[['page','The page'],['menu','The menu link'],['notes','What moves']].map(([id,l])=>`<button class="tb" aria-selected="${S.view===id}" onclick="S.view='${id}';draw()">${l}</button>`).join('');
+ document.getElementById('bar').innerHTML=`<span class="lab">View</span>${vw}${S.view==='notes'?'':`<span class="sep"></span><span class="lab">Preview theme</span>${th}`}`;
+ document.getElementById('stage').innerHTML='<div class="sx">'+({page:pageView,menu:menuView,notes:notesView})[S.view]()+'</div>';}
+draw();
+</script></body></html>

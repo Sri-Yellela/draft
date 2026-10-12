@@ -129,9 +129,14 @@ test("D60 · the named offenders are gone: the nav tabs, résumé ready, the ban
   const top = read("client/src/components/TopBar.jsx");
   const navAt = at(top, '<nav aria-label="Main"', 0, "the main nav");
   const nav = top.slice(navAt, at(top, "</nav>", navAt, "the nav's end"));
-  assert.match(nav, /borderRadius: tiny \? 8 : 10,/, "the nav tab is a box (it was radius 14 on a ~26px tab — a capsule)");
-  assert.match(nav, /boxShadow: activeTab === t\.id \? "var\(--c-depth-accent\)" : "var\(--c-depth-rest\)"/, "with D1's depth");
-  assert.doesNotMatch(nav, /textTransform: "uppercase"/);
+  // ⭐ D92/D93: the tab's look is TopBar.css now — still a box (radius 10, 8 on a phone), and the page you are on
+  // carries D1's depth; the others are ghost (or sit in one track) by the owner's choice.
+  assert.match(nav, /className="tbar-tab"/);
+  const css = read("client/src/components/TopBar.css");
+  assert.match(css, /\.tbar-tab \{[^}]*border-radius: 10px;/, "the nav tab is a box (it was radius 14 on a ~26px tab — a capsule)");
+  assert.match(css, /\.tbar-nav\[data-size="tiny"\] \.tbar-tab \{[^}]*border-radius: 8px;/);
+  assert.match(css, /\.tbar-tab\[aria-current="page"\],\s*\.tbar-tab\[aria-current="page"\]:hover \{[^}]*box-shadow: var\(--c-depth-accent\);/, "with D1's depth");
+  assert.doesNotMatch(nav + css, /text-transform: uppercase|textTransform: "uppercase"/);
   assert.match(read("client/src/components/JobBubble.css"), /\.jb__ready \{[^}]*border-radius: 6px;[^}]*border-left: 3px solid var\(--c-success\)/);
   assert.match(read("client/src/components/PostingPanel.css"), /\.posting__pill \{[^}]*border-radius: 6px;[^}]*border-left: 3px solid/);
   assert.match(read("client/src/components/ApplicationHistory.css"), /\.ah__status \{[^}]*border-radius: 6px;[^}]*border-left: 3px solid currentColor;/);

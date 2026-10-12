@@ -29,8 +29,11 @@ test("D47 · prose and tokens share it all (D34) — the sentence rule reads eve
   const css = fs.readFileSync("client/src/components/FullHouse.css", "utf8");
   const bh = css.slice(at(css, ".bh {"), at(css, "}", at(css, ".bh {")));
   for (const v of ["font-family: var(--fh-sentence-family)", "font-size: var(--fh-sentence-size)",
-                   "font-weight: var(--fh-sentence-weight)", "font-style: var(--fh-sentence-style)", "line-height: var(--fh-sentence-line)"]) {
+                   "font-weight: var(--fh-sentence-weight)", "font-style: var(--fh-sentence-style)",
+                   // D93: the calm boxes open the line up by a factor; marked words (the default) keep it at 1.
+                   "line-height: calc(var(--fh-sentence-line) * var(--bh-room, 1))"]) {
     assert.ok(bh.includes(v), `.bh lost ${v}`);
   }
+  assert.match(css, /\[data-sentence="marked"\] \{\s*--bh-room: 1;/, "the default look keeps the token's line-height exactly");
   assert.match(css, /\.bh \.tok \{\s*font: inherit;/, "the token inherits every one of them");
 });

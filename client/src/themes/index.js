@@ -14,14 +14,16 @@ import paperLight from "./paper-light.js";
 import charcoalDark from "./charcoal-dark.js";
 import contrastLight from "./contrast-light.js";
 import contrastDark from "./contrast-dark.js";
+import { LAYOUT_OPTION_IDS, LAYOUT_KEYS, LAYOUT_DEFAULTS, parseLayoutFlags, formatLayoutFlags } from "../../../shared/appearance.js";
 
 export const THEME_LIST = Object.freeze([paperLight, charcoalDark, contrastLight, contrastDark]);
 export const THEMES = Object.freeze(Object.fromEntries(THEME_LIST.map((t) => [t.id, t])));
 export const DEFAULT_THEME_ID = paperLight.id;
 
 // ── The preference ────────────────────────────────────────────────────────────────────────────────────
-// Stored in ONE key (no new storage key for D91): "<pref>" plus optional ";cues" (shape cues on) and
-// ";no-offer" (the prefers-contrast banner dismissed). <pref> is a theme id, or a PAIR that follows the OS:
+// Stored in ONE key (no new storage key for D91): "<pref>" plus optional ";cues" (shape cues on),
+// ";no-offer" (the prefers-contrast banner dismissed) and — D93 — ";nav=<id>" / ";sentence=<id>" for a layout
+// option away from its default (shared/appearance.js, the same flags the account stores). <pref> is a theme id, or a PAIR that follows the OS:
 // "system" (Paper Light / Charcoal Dark), "contrast" (Contrast Light / Contrast Dark); "light" and "dark"
 // are the older names for the Paper pair and still resolve.
 export const THEME_STORAGE_KEY = "draft-theme";
@@ -36,13 +38,17 @@ const store = () => (typeof localStorage !== "undefined" ? localStorage : null);
 function readRaw(storage = store()) { try { return storage?.getItem(THEME_STORAGE_KEY) || ""; } catch { return ""; } }
 function parseRaw(raw) {
   const [pref, ...flags] = String(raw || "").split(";");
-  return { pref: THEME_PREFERENCES.includes(pref) ? pref : "system", cues: flags.includes("cues"), noOffer: flags.includes("no-offer") };
+  return { pref: THEME_PREFERENCES.includes(pref) ? pref : "system", cues: flags.includes("cues"), noOffer: flags.includes("no-offer"),
+           layout: parseLayoutFlags(flags) };
 }
-const formatRaw = ({ pref, cues, noOffer }) => [pref, cues ? "cues" : null, noOffer ? "no-offer" : null].filter(Boolean).join(";");
+const formatRaw = ({ pref, cues, noOffer, layout }) =>
+  [pref, cues ? "cues" : null, noOffer ? "no-offer" : null, ...formatLayoutFlags(layout)].filter(Boolean).join(";");
 
 export function themePreference(storage = store()) { return parseRaw(readRaw(storage)).pref; }
 /** { pref, cues } as stored on this device. */
 export function appearance(storage = store()) { const a = parseRaw(readRaw(storage)); return { pref: a.pref, cues: a.cues }; }
+/** D93: { nav, sentence } as stored on this device — every option filled, defaults where nothing is stored. */
+export function layout(storage = store()) { return parseRaw(readRaw(storage)).layout; }
 
 const osDark = (matchMedia) => {
   try { return !!matchMedia?.call(typeof window !== "undefined" ? window : undefined, "(prefers-color-scheme: dark)")?.matches; }
@@ -63,8 +69,26 @@ export function pairPreference(theme) { return theme.contrast === "aaa" ? "contr
 
 export function setAppearance({ pref, cues }, { reload = () => location.reload() } = {}) {
   const cur = parseRaw(readRaw());
-  try { store()?.setItem(THEME_STORAGE_KEY, formatRaw({ pref, cues: !!cues, noOffer: cur.noOffer })); } catch {}
+  try { store()?.setItem(THEME_STORAGE_KEY, formatRaw({ pref, cues: !!cues, noOffer: cur.noOffer, layout: cur.layout })); } catch {}
   if (typeof location !== "undefined") reload();
+}
+/**
+ * D93 · a LAYOUT choice applies LIVE — no reload. Unlike the palette (resolved once, at load), a layout option
+ * is only an attribute on <html> that stylesheets key off, so changing it is changing the attribute.
+ * `apply: false` stores it without touching <html> — the Customise page saves at once but changes only its
+ * preview until you leave (it applies on unmount).
+ */
+export function setLayout(next, { apply = true, doc = typeof document !== "undefined" ? document : null } = {}) {
+  const cur = parseRaw(readRaw());
+  const merged = { ...cur.layout, ...next };
+  try { store()?.setItem(THEME_STORAGE_KEY, formatRaw({ ...cur, layout: merged })); } catch {}
+  if (apply) applyLayout(merged, doc);
+  return merged;
+}
+/** Sets each option's attribute (data-nav, data-sentence) on an element — <html>, or a preview's own box. */
+export function applyLayout(values, doc = typeof document !== "undefined" ? document : null, el = doc?.documentElement) {
+  if (!el?.setAttribute) return;
+  for (const k of LAYOUT_KEYS) el.setAttribute(LAYOUT_OPTION_IDS[k].attribute, values?.[k] || LAYOUT_DEFAULTS[k]);
 }
 /** The older, theme-only entry point (the avatar menu before D91). */
 export function setThemePreference(pref) { setAppearance({ pref, cues: appearance().cues }); }
@@ -82,8 +106,13 @@ export function adoptAccountTheme(account, { reload = () => location.reload() } 
   const next = typeof account === "string" ? { pref: account, cues: appearance().cues } : { pref: account?.theme, cues: !!account?.cues };
   if (!THEME_PREFERENCES.includes(next.pref)) return false;
   const cur = parseRaw(readRaw());
+  // D93: the account's layout options come along. They apply live (an attribute), so they never cost a reload.
+  const nextLayout = account && typeof account === "object"
+    ? { ...cur.layout, ...parseLayoutFlags(LAYOUT_KEYS.filter((k) => account[k] !== undefined).map((k) => `${k}=${account[k]}`)) }
+    : cur.layout;
+  if (LAYOUT_KEYS.some((k) => nextLayout[k] !== cur.layout[k])) setLayout(nextLayout);
   if (next.pref === cur.pref && next.cues === cur.cues) return false;
-  try { store()?.setItem(THEME_STORAGE_KEY, formatRaw({ ...next, noOffer: cur.noOffer })); } catch { return false; }
+  try { store()?.setItem(THEME_STORAGE_KEY, formatRaw({ ...next, noOffer: cur.noOffer, layout: nextLayout })); } catch { return false; }
   if (resolve(next.pref).id === ACTIVE_THEME.id && next.cues === CUES) return false;
   reload();
   return true;
@@ -135,6 +164,7 @@ export function installColorVars(doc = typeof document !== "undefined" ? documen
     if (CUES) d.cues = "shape"; else delete d.cues;
     if (REDUCED_TRANSPARENCY) d.transparency = "reduced"; else delete d.transparency;
   }
+  applyLayout(layout(), doc);
   doc.documentElement.style.setProperty("color-scheme", THEME);
 }
 
@@ -149,10 +179,14 @@ export function prePaintScript() {
   const themes = Object.fromEntries(THEME_LIST.map((t) => [t.id, [t.contrast, t.scheme, t.tokens.CANVAS]]));
   const alias = { ...LEGACY };
   for (const [p, pair] of Object.entries(PAIRS)) alias[p] = [pair.light, pair.dark];
-  return `(function(){try{var T=${JSON.stringify(themes)},A=${JSON.stringify(alias)},r="";try{r=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)})||""}catch(e){}` +
+  // D93: each layout option's attribute, its values and its default — set before first paint, so a chosen
+  // layout never flashes the default first.
+  const L = Object.fromEntries(LAYOUT_KEYS.map((k) => [k, [LAYOUT_OPTION_IDS[k].attribute, LAYOUT_OPTION_IDS[k].values, LAYOUT_OPTION_IDS[k].default]]));
+  return `(function(){try{var T=${JSON.stringify(themes)},A=${JSON.stringify(alias)},L=${JSON.stringify(L)},r="";try{r=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)})||""}catch(e){}` +
     `var f=r.split(";"),p=f[0],id=T[p]?p:null;if(!id){var a=A[p]||A.system;id=typeof a==="string"?a:a[window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?1:0]}` +
     `var t=T[id],d=document.documentElement;d.setAttribute("data-theme",id);d.setAttribute("data-contrast",t[0]);if(f.indexOf("cues")>0)d.setAttribute("data-cues","shape");` +
-    `d.style.setProperty("color-scheme",t[1]);d.style.setProperty("--c-canvas",t[2])}catch(e){}})();`;
+    `d.style.setProperty("color-scheme",t[1]);d.style.setProperty("--c-canvas",t[2]);` +
+    `for(var k in L){var v=L[k][2];for(var i=1;i<f.length;i++){var kv=f[i].split("=");if(kv[0]===k&&L[k][1].indexOf(kv[1])>-1)v=kv[1]}d.setAttribute(L[k][0],v)}}catch(e){}})();`;
 }
 
 installColorVars();

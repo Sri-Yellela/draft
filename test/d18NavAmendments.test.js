@@ -77,12 +77,19 @@ test("O56e: on a phone the tab row tightens and FADES at the edge that still hid
   // Four two-line tabs + the full wordmark + the avatar need ~470px; a 390px phone shows ~3.5 tabs.
   // The row has always scrolled; nothing said so, and "The Table" sat wholly past the edge.
   assert.match(topBar, /const narrow = vw < 560;/);
-  // D69 (b) adds a tighter phone tier below 440px; the narrow tier is unchanged.
-  assert.match(topBar, /padding: tiny \? "3px 4px" : narrow \? "5px 8px" : "6px 13px"/);   // D60: the desktop box is 6px 13px
+  // D69 (b) adds a tighter phone tier below 440px; the narrow tier is unchanged. ⭐ D92: the tiers are CSS now
+  // (TopBar.css, keyed off the nav's data-size), the same paddings.
+  assert.match(topBar, /data-size=\{tiny \? "tiny" : narrow \? "narrow" : "wide"\}/);
+  const css = read("client/src/components/TopBar.css");
+  assert.match(css, /\.tbar-tab \{[^}]*padding: 6px 13px;/);
+  assert.match(css, /\.tbar-nav\[data-size="narrow"\] \.tbar-tab \{ padding: 5px 8px; \}/);
+  assert.match(css, /\.tbar-nav\[data-size="tiny"\] \.tbar-tab \{ padding: 3px 4px;/);
   // The cue is driven by a measurement, not by the width alone: nothing fades when everything fits.
   assert.match(topBar, /setTabsMore\(!!el && el\.scrollLeft \+ el\.clientWidth < el\.scrollWidth - 2\)/);
   assert.match(topBar, /<nav aria-label="Main" ref=\{tabRowRef\} onScroll=\{measureTabs\}/);
   assert.match(topBar, /\.\.\.\(tabsMore \? \{ WebkitMaskImage: TAB_ROW_FADE, maskImage: TAB_ROW_FADE \} : null\)/);
-  // Scrolling, not wrapping, still keeps every tab reachable.
-  assert.match(topBar, /overflowX: "auto"/);
+  // Scrolling, not wrapping, still keeps every tab reachable — ⭐ D92: switched on only when the tabs genuinely
+  // overflow (an overflow container clips every shadow in it).
+  assert.match(topBar, /setOverflows\(!!el && el\.scrollWidth > el\.clientWidth \+ 1\)/);
+  assert.match(css, /\.tbar-nav\[data-overflow="true"\] \{ overflow-x: auto;/);
 });

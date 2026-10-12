@@ -22,8 +22,9 @@ import { DockPortal } from "./DockPortal.jsx";
 import ProfileSelectorDropdown from "./ProfileSelectorDropdown.jsx";
 import { Z } from "../styles/zLayers.js";
 import { C } from "../styles/colorTokens.js";
-import { ACTIVE_THEME, appearance } from "../themes/index.js";
+import { ACTIVE_THEME, appearance, setAppearance } from "../themes/index.js";
 import { useAccountAvatar } from "../lib/accountAvatar.js";
+import "./TopBar.css";
 
 // The slideDown keyframes and injectKeyframes() were removed with the pill (Y4).
 //
@@ -185,6 +186,37 @@ function NotificationsSection({ theme, notifs, unread, markAll }) {
 // which called window.print() on the whole application chrome. Nothing here is preserved elsewhere
 // because there was no behaviour to preserve.
 
+// ⭐ D93 · THE QUICK SCHEME SWITCH — System | Light | Dark, inside the family of the theme in use (Paper Light /
+// Charcoal Dark, or Contrast Light / Contrast Dark). Saved to the account like every appearance choice, then
+// applied (the palette resolves once, at load, so applying is a reload). The full choice is on Customise.
+const SCHEMES = [["system", "System"], ["light", "Light"], ["dark", "Dark"]];
+function QuickScheme() {
+  const cur = appearance();
+  const contrast = ACTIVE_THEME.contrast === "aaa";
+  const on = cur.pref === "system" || cur.pref === "contrast" ? "system" : ACTIVE_THEME.scheme;
+  const prefFor = (s) => (s === "system" ? (contrast ? "contrast" : "system")
+    : contrast ? (s === "dark" ? "contrast-dark" : "contrast-light") : (s === "dark" ? "charcoal-dark" : "paper-light"));
+  const pick = (s) => {
+    if (s === on) return;
+    const pref = prefFor(s);
+    api("/api/settings/appearance", { method: "PUT", body: JSON.stringify({ theme: pref, cues: cur.cues }) })
+      .catch(() => {}).finally(() => setAppearance({ pref, cues: cur.cues }));
+  };
+  return (
+    <div role="radiogroup" aria-label="Light or dark" data-quick-scheme=""
+      style={{ display: "flex", gap: 4, marginTop: 6 }}>
+      {SCHEMES.map(([id, label]) => (
+        <button key={id} type="button" role="radio" aria-checked={on === id} onClick={() => pick(id)}
+          style={{ flex: 1, padding: "6px 8px", borderRadius: 8, cursor: on === id ? "default" : "pointer", fontSize: 12, fontWeight: 700,
+                   background: on === id ? "var(--c-accent)" : "transparent", color: on === id ? "var(--c-fh-on-accent)" : "var(--c-ink)",
+                   border: on === id ? "1px solid var(--c-fh-accent-edge)" : "1px solid var(--c-border-strong)" }}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, profiles, onActivateProfile, onDeleteProfile }) {
   const monetisationEnabled = useMonetisationEnabled();
   const [open,        setOpen]        = useState(false);
@@ -305,19 +337,12 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
             )}
           </div>
 
-          {/* Appearance (D91 P5): four themes and shape cues live in Settings → Appearance now (the Account
-              page) — this row says which theme is on and goes there. Three radios cannot hold four themes. */}
+          {/* Appearance — ⭐ D93: the QUICK switch stays here as a shortcut (system / light / dark, within the
+              family of the theme in use: Paper, or Contrast); everything else — the four themes, shape cues, the
+              layout options — lives on the Customise page (the Settings group below). */}
           <div style={{ padding: "10px 16px 10px", borderBottom: `1px solid ${theme.border}` }}>
             <div className="rm-section-label">Appearance</div>
-            <button type="button" data-appearance-link=""
-              onClick={() => { setOpen(false); onTabChange?.("account");
-                setTimeout(() => document.getElementById("appearance")?.scrollIntoView({ block: "start" }), 300); }}
-              style={{ width: "100%", marginTop: 6, padding: "7px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700,
-                       display: "flex", justifyContent: "space-between", background: "transparent", color: "var(--color-text)",
-                       border: "1px solid var(--border-glass)" }}>
-              <span>{ACTIVE_THEME.label}{appearance().cues ? " · shape cues" : ""}</span>
-              <span aria-hidden="true">Change →</span>
-            </button>
+            <QuickScheme />
           </div>
 
           {/* Plan heading, tier label, tool label and "View Plans" are all tier claims and go
@@ -353,6 +378,11 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
             <button onClick={() => { setOpen(false); onTabChange?.("account"); }}
               style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
               Account &amp; security
+            </button>
+            {/* ⭐ D93: Customise — its own page (theme, shape cues, the layout options), beside the other settings. */}
+            <button onClick={() => { setOpen(false); onTabChange?.("customise"); }} data-customise-link=""
+              style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
+              Customise
             </button>
             <button onClick={() => { setOpen(false); onTabChange?.("integrations"); }}
               style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
@@ -438,8 +468,12 @@ export default function TopBar({
   const tiny = vw < 440;
   const tabRowRef = useRef(null);
   const [tabsMore, setTabsMore] = useState(false);
+  // ⭐ D92: the row scrolls ONLY when the tabs genuinely overflow (an overflow container clips every shadow in
+  // it), so `overflows` turns scrolling on; `tabsMore` is the fade on an edge that still hides a tab.
+  const [overflows, setOverflows] = useState(false);
   const measureTabs = useCallback(() => {
     const el = tabRowRef.current;
+    setOverflows(!!el && el.scrollWidth > el.clientWidth + 1);
     setTabsMore(!!el && el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
   }, []);
   useEffect(() => { measureTabs(); }, [measureTabs, vw, tabs]);
@@ -561,9 +595,10 @@ export default function TopBar({
         }}>
         {/* Left group: the mark, then the app's primary navigation.
             logo | DAILY DECK | FULL HOUSE | DRAFT | THE TABLE (D10) */}
-        {/* flex 1 + overflow hidden: the tab row must give way to the avatar, never slide under it —
-            at 390px the avatar sat on top of "AUTO APPLY" (seen in the 10-02 reshoot). */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: "1 1 auto", overflow: "hidden" }}>
+        {/* flex 1 + clipped sides: the tab row must give way to the avatar, never slide under it — at 390px the
+            avatar sat on top of "AUTO APPLY" (seen in the 10-02 reshoot). ⛔ D92: it clips its SIDES only
+            (TopBar.css .tbar-group, clip-path) — `overflow: hidden` here cut the tabs' shadows into a rectangle. */}
+        <div className="tbar-group">
           {/* Logo — "R" always visible, "esume Master" collapses */}
           <AnimatedLucyLogo/>
 
@@ -576,13 +611,13 @@ export default function TopBar({
               needs-review count, which AppDashboard decorates onto the tab before passing it down
               (see AppTopBar there). A review queue nobody sees is worse than a cluttered bar.
 
-              `overflowX: auto` with a hidden scrollbar rather than wrapping: the bar is a fixed
-              46px tall and five tabs plus the mark plus the avatar do not fit below about 700px of
-              viewport. Scrolling keeps every tab REACHABLE at any width, where wrapping would push
-              the second row outside the bar's height and clip it. */}
-          <nav aria-label="Main" ref={tabRowRef} onScroll={measureTabs} style={{
-            display: "flex", gap: tiny ? 1 : narrow ? 2 : 4, alignItems: "center", minWidth: 0,
-            overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none",
+              Scrolling with a hidden scrollbar rather than wrapping, when the row does not fit: the bar is
+              a fixed height and the tabs plus the mark plus the avatar do not fit everywhere. Scrolling keeps
+              every tab REACHABLE at any width, where wrapping would push the second row outside the bar.
+              ⭐ D92 + D93: the look is TopBar.css — ghost tabs or one track, the owner's choice (data-nav on
+              <html>, the Customise page); scrolling is on only while `overflows`. */}
+          <nav aria-label="Main" ref={tabRowRef} onScroll={measureTabs} className="tbar-nav"
+            data-size={tiny ? "tiny" : narrow ? "narrow" : "wide"} data-overflow={overflows ? "true" : "false"} style={{
             ...(tabsMore ? { WebkitMaskImage: TAB_ROW_FADE, maskImage: TAB_ROW_FADE } : null),
           }}>
             {(tabs || []).map(t => (
@@ -598,20 +633,9 @@ export default function TopBar({
                   onTabChange?.(t.id);
                 }}
                 aria-current={activeTab === t.id ? "page" : undefined}
-                // ⛔ D60: a tab is a DEPTH BOX in the logo face, the active one filled accent — never a capsule
-                // and never the old uppercase condensed label (extension-latest.html's .tab).
-                style={{
-                  display: "inline-block", textDecoration: "none",
-                  padding: tiny ? "3px 4px" : narrow ? "5px 8px" : "6px 13px",
-                  background: activeTab === t.id ? "var(--c-accent)" : "var(--c-fh-well)",
-                  border: activeTab === t.id ? "1px solid var(--c-fh-accent-edge)" : "1px solid var(--c-fh-line)",
-                  boxShadow: activeTab === t.id ? "var(--c-depth-accent)" : "var(--c-depth-rest)",
-                  borderRadius: tiny ? 8 : 10, lineHeight: 1.15, textAlign: "center",
-                  color: activeTab === t.id ? "var(--c-fh-on-accent)" : "var(--c-ink-muted)",
-                  fontFamily: "'Poppins', var(--font-body)", fontStyle: "italic",
-                  fontSize: tiny ? 11 : 12, fontWeight: 800, cursor: "pointer", letterSpacing: 0,
-                  whiteSpace: tiny ? "normal" : "nowrap", width: tiny ? "min-content" : undefined, flexShrink: 0,
-                }}><TabLabel label={t.label}/></a>
+                // ⛔ D60: never a capsule, never the old uppercase condensed label. ⭐ D92: the page you are on is
+                // the ONE depth box (the orange fill); the others are ghost until pointed at (TopBar.css).
+                className="tbar-tab"><TabLabel label={t.label}/></a>
             ))}
           </nav>
         </div>

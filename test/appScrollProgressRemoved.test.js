@@ -77,7 +77,7 @@ test("the bar's geometry is the constants it always rendered, not an interpolati
   // time it silently stops testing what it names.
   const style = topBarCode.slice(
     at(topBarCode, 'data-app-chrome=""'),
-    at(topBarCode, '<div style={{ display: "flex", alignItems: "center", gap: 10'),
+    at(topBarCode, '<div className="tbar-group">'),   // D92: the left group's look moved to TopBar.css
   );
   assert.match(style, /top: 0,/);
   assert.match(style, /width: vw,/);

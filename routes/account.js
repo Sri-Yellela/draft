@@ -4,7 +4,7 @@ import { SPONSORSHIP_NEEDS } from "../services/applyAutomation.js";
 
 import { readAnswerStore } from "../services/customAnswers.js";
 import { normaliseDeckPreference } from "../shared/deckGeometry.js";
-import { LEGACY_THEME_PREFERENCES, APPEARANCE_THEMES, parseStoredAppearance, formatStoredAppearance } from "../shared/appearance.js";
+import { LEGACY_THEME_PREFERENCES, APPEARANCE_THEMES, LAYOUT_OPTION_IDS, LAYOUT_KEYS, isLayoutValue, parseStoredAppearance, formatStoredAppearance } from "../shared/appearance.js";
 import { baseResumeOnlyState, activeBaseResume } from "../services/baseResumeOnly.js";
 // Shared with server.js's OAuth upsert, which called it without a binding until 09-30.
 import { saveIntegrationSecret } from "../services/secretBox.js";
@@ -144,17 +144,31 @@ export function createAccountRouter({
     const preference = req.body?.preference;
     if (!THEME_PREFERENCES.has(preference)) return res.status(400).json({ error: "preference must be system, light or dark" });
     const row = db.prepare("SELECT theme_preference FROM users WHERE id=?").get(req.user.id);
-    const { cues } = parseStoredAppearance(row?.theme_preference);
-    db.prepare("UPDATE users SET theme_preference=? WHERE id=?").run(formatStoredAppearance({ theme: preference, cues }), req.user.id);
+    // Keeps the stored cues flag and the D93 layout options: this route only knows the theme.
+    const { theme: _old, ...kept } = parseStoredAppearance(row?.theme_preference);
+    db.prepare("UPDATE users SET theme_preference=? WHERE id=?").run(formatStoredAppearance({ ...kept, theme: preference }), req.user.id);
     res.json({ preference });
   });
   // ⭐ D91 P5 · the full appearance: { theme, cues } — Settings → Appearance writes it, every device adopts it.
+  // ⭐ D93 · plus the layout options { nav, sentence } (shared/appearance.js LAYOUT_OPTION_IDS), additively: the
+  // PUT MERGES onto what is stored, so a client that sends only { theme, cues } (every client before D93) keeps
+  // the account's layout, and a value the registry does not list is REFUSED, never stored.
   router.get("/api/settings/appearance", requireAuth, (req, res) => {
     const row = db.prepare("SELECT theme_preference FROM users WHERE id=?").get(req.user.id);
     res.json(parseStoredAppearance(row?.theme_preference));
   });
   router.put("/api/settings/appearance", requireAuth, (req, res) => {
-    const stored = formatStoredAppearance({ theme: req.body?.theme, cues: req.body?.cues === true });
+    const body = req.body || {};
+    for (const k of LAYOUT_KEYS) {
+      if (body[k] !== undefined && !isLayoutValue(k, body[k])) {
+        return res.status(400).json({ error: `${k} must be one of ${LAYOUT_OPTION_IDS[k].values.join(", ")}` });
+      }
+    }
+    const row = db.prepare("SELECT theme_preference FROM users WHERE id=?").get(req.user.id);
+    const cur = parseStoredAppearance(row?.theme_preference);
+    const next = { theme: body.theme ?? cur.theme, cues: body.cues === undefined ? cur.cues : body.cues === true };
+    for (const k of LAYOUT_KEYS) next[k] = body[k] ?? cur[k];
+    const stored = formatStoredAppearance(next);
     if (!stored) return res.status(400).json({ error: `theme must be one of ${APPEARANCE_THEMES.join(", ")}` });
     db.prepare("UPDATE users SET theme_preference=? WHERE id=?").run(stored, req.user.id);
     res.json(parseStoredAppearance(stored));

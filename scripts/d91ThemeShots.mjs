@@ -25,7 +25,7 @@ const PUBLIC = ["/", "/pricing", "/features", "/how-it-works", "/about", "/faq",
   "/privacy", "/terms", "/products", "/blog", "/tools/ats", "/tools/generate", "/tools/apply", "/docs/claude",
   "/login", "/register", "/admin/login", "/no-such-page"];
 const APP = ["/app/today", "/app/jobs", "/app/auto-apply", "/app/database", "/app/profile", "/app/integrations",
-  "/app/account", "/app/saved-answers", "/app/job-profiles", "/app/recruiter"];
+  "/app/account", "/app/saved-answers", "/app/job-profiles", "/app/recruiter", "/app/customise"];
 const ADMIN = ["/admin", "/admin/db"];
 const VIEWPORTS = { desktop: { width: 1440, height: 900 }, phone: { width: 390, height: 844, isMobile: true, hasTouch: true } };
 
