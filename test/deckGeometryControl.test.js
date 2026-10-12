@@ -193,7 +193,9 @@ test("⚠ presets FIRST, the three sliders behind \"Customise\" — and their en
 test("⭐ framed as accessibility; ⛔ under reduced motion it says so and the choice is disabled", () => {
   const src = read("client/src/components/DeckGeometryControl.jsx");
   assert.match(src, /Tight is the calmest and the easiest to follow/);
-  assert.match(src, /A step moves every card least/);
+  // D93: the presets' words moved to shared/deckGeometry.js (the Customise page shows the same three).
+  assert.match(read("shared/deckGeometry.js"), /A step moves every card least/);
+  assert.match(src, /const PRESET_COPY = DECK_PRESET_COPY;/);
   assert.match(src, /<fieldset disabled=\{reduced\}/);
   assert.match(src, /Your device asks for reduced motion, so the deck stays Tight and does not animate, whatever is chosen here\./);
   // Portalled: in the header it sat UNDER the front card (same tier, earlier in the DOM).

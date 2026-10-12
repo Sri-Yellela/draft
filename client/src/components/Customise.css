@@ -36,6 +36,9 @@
 .cz-mini > .cz-pv { transform: scale(.5); transform-origin: left top; width: 200%; border-radius: 16px; }
 .cz-mini .cz-pv[data-part="sentence"] .fh { padding: 10px 16px 6px; }
 
+/* A card holding two choices (Daily Deck): a small label over each group. */
+.cz-sub { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--c-ink-faint); margin-top: 4px; }
+
 /* The radio cards. */
 .cz-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
 .cz-opt {

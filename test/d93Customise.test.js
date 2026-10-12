@@ -198,7 +198,33 @@ test("D93 · radio groups are keyboard-operable: one tab stop, arrows move and s
 test("D93 · nothing new leaves the page: the one settings route, no new storage key", () => {
   for (const f of ["client/src/panels/CustomisePanel.jsx", "client/src/components/AppearanceSettings.jsx", "client/src/components/CustomisePreview.jsx", "client/src/components/RadioCards.jsx"]) {
     const src = read(f);
-    assert.deepEqual([...new Set([...src.matchAll(/api\("([^"]+)"/g)].map((m) => m[1]))].filter((u) => u !== "/api/settings/appearance"), [], `${f} calls another route`);
+    // (the deck mirror writes the deck's EXISTING route — Reset awaits it; no new endpoint)
+    assert.deepEqual([...new Set([...src.matchAll(/api\("([^"]+)"/g)].map((m) => m[1]))].filter((u) => u !== "/api/settings/appearance" && u !== "/api/settings/deck-geometry"), [], `${f} calls another route`);
     assert.doesNotMatch(src, /localStorage|sessionStorage/, `${f} keeps its own storage`);
   }
+});
+
+test("D93 · the deck's layout and order are mirrored on Customise — through the SAME stores as the deck's own controls", async () => {
+  const page = read("client/src/panels/CustomisePanel.jsx");
+  // The layout: the deck's own hook (with the account), the shared preset names and words.
+  assert.match(page, /const \[geometry, chooseGeometry\] = useDeckGeometry\(\);/);
+  assert.match(page, /DECK_PRESET_NAMES\.map\(\(id\) => \(\{ id, label: DECK_PRESET_COPY\[id\]\[0\], description: DECK_PRESET_COPY\[id\]\[1\]/);
+  assert.match(read("client/src/components/DeckGeometryControl.jsx"), /const PRESET_COPY = DECK_PRESET_COPY;/, "the deck's control says the same words");
+  // The order: one key, one read / write, used by both.
+  const lib = await import("../client/src/lib/deckOrder.js");
+  assert.equal(lib.DECK_ORDER_KEY, "draft-deck-order", "the key the deck has always used — a chosen order survives");
+  assert.deepEqual(lib.DECK_ORDERS.map((o) => o.id), ["dealt", "ats"]);
+  const deck = read("client/src/panels/DeckView.jsx");
+  assert.match(deck, /import \{ readDeckOrder, writeDeckOrder \} from "\.\.\/lib\/deckOrder\.js";/);
+  assert.doesNotMatch(deck, /"draft-deck-order"/, "the deck keeps its own copy of the key");
+  assert.match(page, /DECK_ORDERS\.map/); assert.match(page, /writeDeckOrder\(next\)/);
+  // A custom layout (the deck's sliders) is named, not silently shown as a preset.
+  assert.match(page, /data-deck-custom=""/);
+  // The deck keeps its quick controls; Reset restores the deck too, its layout awaited before the reload.
+  assert.match(deck, /<DeckGeometryControl /); assert.match(deck, /<DeckOrderControl /);
+  assert.match(page, /chooseOrder\("dealt"\); chooseLayout\("standard"\);[^\n]*\n\s*await api\("\/api\/settings\/deck-geometry", \{ method: "PUT"/);
+  // A round trip of the order through the shared helpers.
+  const store = new Map(); globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
+  try { assert.equal(lib.readDeckOrder(), "dealt"); lib.writeDeckOrder("ats"); assert.equal(store.get("draft-deck-order"), "ats"); assert.equal(lib.readDeckOrder(), "ats"); }
+  finally { delete globalThis.localStorage; }
 });

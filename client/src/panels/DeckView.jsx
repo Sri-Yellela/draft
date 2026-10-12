@@ -52,6 +52,7 @@ import DecisionToast from "../components/DecisionToast.jsx";
 import { CARD, EXPAND_CLOCK, TWO_PANEL, cardSize, fanTransform, geometryFor, orientationFor, twoPanelColumn, twoPanelFor } from "../lib/fanGeometry.js";
 import DeckGeometryControl from "../components/DeckGeometryControl.jsx";
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
+import { readDeckOrder, writeDeckOrder } from "../lib/deckOrder.js";
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
 const TOAST_MS = DECISION_TOAST_MS;
@@ -238,8 +239,8 @@ function DeckAtsReport({ card, profileId, onReport }) {
                    jobId={card.job.id} activeProfileId={profileId} />;
 }
 
-// A75 · the deck's sort: the dealt order (the board's own — position IS the fit signal) or ATS match.
-const DECK_ORDER_KEY = "draft-deck-order";
+// A75 · the deck's sort: the dealt order (the board's own — position IS the fit signal) or ATS match. The key and
+// the read / write are lib/deckOrder.js (D93: Customise mirrors this control).
 function DeckOrderControl({ order, onChoose }) {
   const opt = (value, label) => (
     <button type="button" aria-pressed={order === value} onClick={() => onChoose(value)}
@@ -583,12 +584,10 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const [deckProfileId, setDeckProfileId] = useState(null);
   // A75 (owner, 10-03): "ATS match" as a sort on the daily draft. The deal is frozen; the server reads it
   // back in ATS order when asked (the score itself never reaches the client). Remembered per browser.
-  const [deckOrder, setDeckOrder] = useState(() => {
-    try { return localStorage.getItem(DECK_ORDER_KEY) === "ats" ? "ats" : "dealt"; } catch { return "dealt"; }
-  });
+  const [deckOrder, setDeckOrder] = useState(readDeckOrder);
   const chooseDeckOrder = useCallback((next) => {
     setDeckOrder(next);
-    try { localStorage.setItem(DECK_ORDER_KEY, next); } catch { /* a private window: this session only */ }
+    writeDeckOrder(next);
   }, []);
   const headingRef = useRef(null);
   const faceRef = useRef(null);

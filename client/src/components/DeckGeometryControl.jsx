@@ -13,14 +13,11 @@ import { createPortal } from "react-dom";
 import { C } from "../styles/colorTokens.js";
 import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
-import { DECK_LIMITS, DECK_PRESET_NAMES } from "../../../shared/deckGeometry.js";
+import { DECK_LIMITS, DECK_PRESET_NAMES, DECK_PRESET_COPY } from "../../../shared/deckGeometry.js";
 import { clampGeometry, geometryFor, reachBounds, spreadBounds } from "../lib/fanGeometry.js";
 
-const PRESET_COPY = {
-  tight:    ["Tight",    "The calmest: cards close together on a flat arc. A step moves every card least."],
-  standard: ["Standard", "The deck as designed."],
-  wide:     ["Wide",     "The most sweep: the cards fan out further, on a tighter curve."],
-};
+// The presets' words live in shared/deckGeometry.js (D93: the Customise page shows the same three).
+const PRESET_COPY = DECK_PRESET_COPY;
 const PANEL_W = 340;
 const AXIS_COPY = {
   zoom:   ["Size",   "How large the cards behind the front one are"],
