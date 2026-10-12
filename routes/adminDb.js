@@ -6,6 +6,7 @@ import { Router } from "express";
 import fs from "fs";
 import path from "path";
 import { readGauge, AMBER_AT as DISK_AMBER_AT, RED_AT as DISK_RED_AT } from "../services/diskGauge.js";
+import { emailHealthAlerts } from "../services/emailHealth.js";
 import Database from "better-sqlite3";
 import { redactRow, redactRows, runReadOnlyQuery, secretColumnsMentioned } from "../services/adminSafety.js";
 import { JobReviewError, jobReviewImpact, reassignJob, recentJobReviewChanges, undoJobReview } from "../services/adminJobReview.js";
@@ -623,6 +624,9 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
           else if (g.tone === "amber") push("warn", "disk", "volume", `${detail} (amber at ${DISK_AMBER_AT}%)`);
         } catch (e) { console.warn("[pipeline-health] disk gauge unavailable:", e.message); }
       }
+      // ⭐ D94: email health — failed sends (louder at 3 inside an hour) and a sending domain that stopped being
+      // verified, from the Resend webhook's own record (services/emailHealth.js). Silence here meant resets stopped.
+      for (const a of emailHealthAlerts(db)) push(a.severity, a.kind, a.subject, a.detail);
       // A44: an alert when enrichment has STOPPED. The checks below fire on a failed run and the
       // coverage loop on exactly 0%; neither fires when runs simply cease, which is how local
       // enrichment stopped on 2026-08-24 with nothing raised — and A48 found that unenriched rows are

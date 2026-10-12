@@ -31,6 +31,7 @@ export const ADMIN_GROUPS = Object.freeze([
     ["switches", "Feature switches"],   // #6 + D86's plugin
     ["tools", "Tools service"],         // #11
     ["notices", "Notices"],             // D73 §B
+    ["email", "Email health"],          // D94 — the Resend webhook's failed sends, suppressions, domain status
   ] },
 ]);
 

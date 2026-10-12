@@ -219,6 +219,7 @@ import { createByomRouters } from "./routes/byom.js";
 import { purgeByomData } from "./services/byom/policy.js";
 import { securityTxt } from "./services/securityTxt.js";
 import { createEmailRouters } from "./routes/email.js";
+import { sweepEmailEvents } from "./services/emailHealth.js";
 import { setMarketingConsent } from "./services/emailConsent.js";
 import { resolveEntitlement } from "./services/entitlementResolver.js";
 import { buildStructuredResume } from "./services/resumeFormatter.js";
@@ -4807,6 +4808,30 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE resume_versions ADD COLUMN base_upload_id INTEGER;
       `,
     },
+    {
+      // ⭐ D94 (owner 10-11): EMAIL HEALTH. Each verified Resend webhook event of a HANDLED type, keyed by its Svix id
+      // so a retried delivery is recorded once — type, time, Resend's email_id and the provider's reason, NEVER the
+      // recipient (services/emailHealth.js). Deleted after 90 days by the daily sweep. email_domain_status holds the
+      // sending domain's last reported verification (domain.updated), so Admin can be told when it lapses.
+      id: "158_email_events",
+      sql: `
+        CREATE TABLE IF NOT EXISTS email_events (
+          svix_id TEXT PRIMARY KEY,
+          type TEXT NOT NULL,
+          received_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          email_id TEXT,
+          detail TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_email_events_type_time ON email_events(type, received_at);
+        CREATE TABLE IF NOT EXISTS email_domain_status (
+          domain_id TEXT PRIMARY KEY,
+          name TEXT,
+          status TEXT NOT NULL,
+          sending_ok INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -8084,6 +8109,9 @@ cron.schedule("30 6 * * *", () => {
     .catch((e) => console.error("[discovery:probe] failed:", e.message));
 });
 cron.schedule("30 3 * * *", () => {
+  // ⭐ D94: email_events are kept 90 days (type, time, email_id, reason — never a recipient).
+  try { const n = sweepEmailEvents(db); if (n) console.log(`[email-health] daily sweep: deleted ${n} event(s) older than 90 days`); }
+  catch (e) { console.error("[email-health] daily sweep failed:", e.message); }
   // ⛔ Each sweep is guarded on its own: no early return, so the age switch being off never skips the scope sweep.
   try {
     if (readBoardPolicy(db).age_enforce) {
