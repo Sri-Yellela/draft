@@ -93,9 +93,11 @@ export function registerClient(db, body = {}, { production = true } = {}) {
   if (hosts.size !== 1) throw new OAuthError("invalid_redirect_uri", "All redirect URIs must belong to one host.");
   const method = body.token_endpoint_auth_method ?? "none";
   if (method !== "none") throw new OAuthError("invalid_client_metadata", "draft registers public clients only (token_endpoint_auth_method none, with PKCE).");
-  const grants = body.grant_types ?? ["authorization_code", "refresh_token"];
-  if (!Array.isArray(grants) || grants.some(g => !["authorization_code", "refresh_token"].includes(g))) {
-    throw new OAuthError("invalid_client_metadata", "grant_types may be authorization_code and refresh_token only.");
+  // RFC 7591 §2: grants draft does not support are IGNORED, not refused — but authorization_code must be among them.
+  // The registered client is returned with authorization_code + refresh_token only (below), whatever was asked.
+  const grants = body.grant_types ?? ["authorization_code"];
+  if (!Array.isArray(grants) || !grants.includes("authorization_code")) {
+    throw new OAuthError("invalid_client_metadata", "grant_types must include authorization_code.");
   }
   const clientId = `dft_client_${crypto.randomBytes(16).toString("hex")}`;
   const name = String(body.client_name ?? "").slice(0, 100) || null;
