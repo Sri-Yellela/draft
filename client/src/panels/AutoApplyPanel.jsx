@@ -27,6 +27,7 @@ import StoppedItem from "../components/StoppedItem.jsx";
 import { buildStoppedItems, splitAnswers, filterItems, SEARCH_FROM, packetLife } from "../lib/draftHouseExceptions.js";
 import { useViewport } from "../hooks/useViewport.js";
 import { A_PLUS_TOOL } from "../lib/applyTools.js";
+import { ChangesSummaryLine } from "../components/ResumeChangesPanel.jsx";
 
 // ============================================================
 // AutoApplyPanel — DRAFT HOUSE, the workspace (D14, D18, D25)
@@ -481,6 +482,8 @@ export function AutoApplyPanel() {
               : `Résumé: ${atsBandLabel(atsBandFor(r.resume?.atsScore ?? null)).short}.`}
             {approvalCap ? ` ${approvalCap.remaining} of ${approvalCap.limit} approvals left today.` : ""}
           </p>
+          {/* D90 P3: the CHANGES, read before Approve & send — nothing to show until the résumé is written. */}
+          {!r.generationDeferred && <ChangesSummaryLine jobId={r.jobId} jobLabel={companyLabel(r.company)} />}
           <div className="dh-fold__actions">
             <button type="button" className="dh-btn" onClick={() => openApprovalReview(r)}>Review every answer</button>
             {r.screenshotAvailable && (
@@ -905,6 +908,9 @@ export function AutoApplyPanel() {
                             )}
                           </div>
                         )}
+
+                        {/* D90 P3: what we changed in the résumé, read before Approve & send. */}
+                        {!p.generationDeferred && <ChangesSummaryLine jobId={p.jobId} jobLabel={companyLabel(p.company)} />}
 
                         <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
                           <button onClick={() => openPendingDetail(p.runJobId)}

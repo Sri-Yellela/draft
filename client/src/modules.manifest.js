@@ -29,7 +29,7 @@ export const MODULES = Object.freeze({
     // owner kept the card back as decided, 10-07). It is the one place outside the deck that may use them.
     members: ["panels/DeckView.jsx", "components/DeckGeometryControl.jsx", "components/CardBack.jsx", "components/DealBackdrop.jsx"] },
   board: { why: "Full House — the board, its cards and its posting panel",
-    members: ["panels/JobsPanel.jsx", "components/JobBubble.jsx", "components/JobDetailPanel.jsx", "components/CoverLetterModal.jsx", "components/ByomResumeChoice.jsx", "components/ResumeChangesPanel.jsx"] },
+    members: ["panels/JobsPanel.jsx", "components/JobBubble.jsx", "components/JobDetailPanel.jsx", "components/CoverLetterModal.jsx", "components/ByomResumeChoice.jsx"] },
   fullHouseHeader: { why: "the Full House header — the sentence, its words, the sort, the bar",
     css: ["components/FullHouse.css"],
     members: ["App.jsx", "components/BoardBar.jsx", "components/BoardHeadline.jsx", "components/SortPanel.jsx", "components/WordPanel.jsx"] },
@@ -112,7 +112,8 @@ export const SHARED = Object.freeze({
   "components/CoverLetterModal.jsx":    { what: "the posting panel's cover letter", module: "board" },
   "components/ByomResumeChoice.jsx":    { what: "the posting panel's Résumé choice — draft, or the user's own ChatGPT / Claude (D86)", module: "board" },
   "components/ByomResumeChoice.css":    { what: "its look", owner: "components/ByomResumeChoice.jsx" },
-  "components/ResumeChangesPanel.jsx":  { what: "the posting panel's What we changed — the tailored résumé beside the one it was made from, side by side (D90)", module: "board" },
+  // D90 P3: shared — the posting panel (board), Draft House's review line and The Table's What we sent all open it.
+  "components/ResumeChangesPanel.jsx":  { what: "What we changed — any two résumés side by side, its summary line, and What we sent (D90)" },
   "components/ResumeChangesPanel.css":  { what: "its look", owner: "components/ResumeChangesPanel.jsx" },
   "components/BoardBar.jsx":            { what: "the Full House bar", module: "fullHouseHeader" },
   "components/BoardHeadline.jsx":       { what: "the filter sentence", module: "fullHouseHeader" },
