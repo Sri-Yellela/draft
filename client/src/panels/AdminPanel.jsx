@@ -11,6 +11,7 @@ import { GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, Notices
          ToolsServiceSection } from "./adminOps.jsx";
 import { ADMIN_GROUPS, readAdminPlace, writeAdminPlace } from "./adminMap.js";
 import { EnrichmentTab } from "./adminEnrichment.jsx";
+import { EmailHealthTab } from "./adminEmail.jsx";
 import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
@@ -832,6 +833,15 @@ export function AdminPanel() {
                 initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
                 exit={{ opacity:0, y:-6 }} transition={{ duration:0.18 }}>
                 <NoticesTab theme={theme}/>
+              </motion.div>
+            )}
+
+            {/* ⭐ D94: Email health — is draft's email getting out (Resend's failed sends, suppressions, domain). */}
+            {at("system", "email") && (
+              <motion.div key="email"
+                initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
+                exit={{ opacity:0, y:-6 }} transition={{ duration:0.18 }}>
+                <EmailHealthTab/>
               </motion.div>
             )}
           </AnimatePresence>

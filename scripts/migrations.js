@@ -4381,4 +4381,28 @@ export const MIGRATIONS = [
         ALTER TABLE resume_versions ADD COLUMN base_upload_id INTEGER;
       `,
     },
+    {
+      // ⭐ D94 (owner 10-11): EMAIL HEALTH. Each verified Resend webhook event of a HANDLED type, keyed by its Svix id
+      // so a retried delivery is recorded once — type, time, Resend's email_id and the provider's reason, NEVER the
+      // recipient (services/emailHealth.js). Deleted after 90 days by the daily sweep. email_domain_status holds the
+      // sending domain's last reported verification (domain.updated), so Admin can be told when it lapses.
+      id: "158_email_events",
+      sql: `
+        CREATE TABLE IF NOT EXISTS email_events (
+          svix_id TEXT PRIMARY KEY,
+          type TEXT NOT NULL,
+          received_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          email_id TEXT,
+          detail TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_email_events_type_time ON email_events(type, received_at);
+        CREATE TABLE IF NOT EXISTS email_domain_status (
+          domain_id TEXT PRIMARY KEY,
+          name TEXT,
+          status TEXT NOT NULL,
+          sending_ok INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];

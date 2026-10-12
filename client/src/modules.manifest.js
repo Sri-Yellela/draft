@@ -48,7 +48,7 @@ export const MODULES = Object.freeze({
   theTable: { why: "The Table (the database panel)",
     members: ["panels/DatabasePanel.jsx", "components/ApplicationHistory.jsx", "components/PendingApplications.jsx"] },
   landing: { why: "the landing page", members: ["pages/LandingPage.jsx", "components/FindFitApply.jsx"] },
-  admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx"] },
+  admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx"] },
 });
 
 // ── SHARED: every file under components/, styles/, lib/, hooks/, contexts/, themes/, consoles/.
