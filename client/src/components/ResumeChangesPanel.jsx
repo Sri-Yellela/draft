@@ -105,7 +105,8 @@ export function changesAsText(d, jobLabel = "") {
   return lines.join("\n");
 }
 
-export default function ResumeChangesPanel({ jobId, jobLabel = "", onClose }) {
+// `initialTo` opens on a given right-hand side — The Table's What we sent passes "sent:<application record id>".
+export default function ResumeChangesPanel({ jobId, jobLabel = "", onClose, initialTo = null }) {
   const [list, setList] = useState(null);
   const [from, setFrom] = useState("base");
   const [to, setTo] = useState(null);
@@ -125,10 +126,12 @@ export default function ResumeChangesPanel({ jobId, jobLabel = "", onClose }) {
     let live = true;
     setErr(null);
     api(`/api/jobs/${encodeURIComponent(jobId)}/resume-versions`)
-      .then(r => { if (!live) return; setList(r); setFrom(r.default?.from || "base"); setTo(r.default?.to || null); })
+      .then(r => { if (!live) return; setList(r); setFrom(r.default?.from || "base");
+        const known = initialTo && [...(r.versions || []), ...(r.sent || [])].some(x => x.ref === initialTo);
+        setTo(known ? initialTo : r.default?.to || null); })
       .catch(e => { if (live) { setList({ empty: true }); setErr(/404|no tailored/i.test(String(e?.message)) ? null : e.message); } });
     return () => { live = false; };
-  }, [jobId]);
+  }, [jobId, initialTo]);
   useEffect(() => {
     if (!to) return;
     let live = true;
@@ -215,6 +218,55 @@ export default function ResumeChangesPanel({ jobId, jobLabel = "", onClose }) {
       </section>
     </div>,
     document.body,
+  );
+}
+
+/**
+ * D90 P3 · The Table's way in: "What we sent" — the résumé kept AT APPLY (immutable) beside the one it was made
+ * from. Only for a kept copy (snapshot_at_record / backfill): the server refuses the current résumé as "sent".
+ */
+export function WhatWeSentLink({ jobId, recordId, jobLabel, className = "rc__open" }) {
+  const [open, setOpen] = useState(false);
+  if (!jobId || recordId == null) return null;
+  return (
+    <>
+      <button type="button" className={className} onClick={() => setOpen(true)} data-what-we-sent="">What we sent</button>
+      {open && <ResumeChangesPanel jobId={jobId} jobLabel={jobLabel} initialTo={`sent:${recordId}`} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+/**
+ * D90 P3 · Draft House's review line, read BEFORE Approve & send (spec §3): "9 bullets rewritten · ATS +16 · 2
+ * requirements still missing — What we changed ↗". The same stored comparison the panel shows — no model call, no
+ * recompute. An untraced change leads the line, loudest. Nothing is drawn while there is no tailored résumé yet.
+ */
+export function ChangesSummaryLine({ jobId, jobLabel }) {
+  const [d, setD] = useState(null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!jobId) return;
+    let live = true;
+    api(`/api/jobs/${encodeURIComponent(jobId)}/resume-changes`).then(r => { if (live) setD(r); }).catch(() => {});
+    return () => { live = false; };
+  }, [jobId]);
+  if (!d?.summary) return null;
+  const s = d.summary;
+  const untraced = s.termsGained.filter(t => t.source === "untraced").length;
+  const first = d.scores?.[0]?.atsScore ?? d.from?.atsScore ?? null, last = d.to?.atsScore ?? null;
+  const parts = s.identical ? ["Nothing was changed for this job"] : [
+    `${s.rewritten} bullet${s.rewritten === 1 ? "" : "s"} rewritten`,
+    ...(s.added ? [`${s.added} added`] : []), ...(s.removed ? [`${s.removed} removed`] : []),
+    ...(first != null && last != null ? [`ATS ${last - first >= 0 ? "+" : ""}${last - first}`] : []),
+    ...(s.requirementsMissing.length ? [`${s.requirementsMissing.length} requirement${s.requirementsMissing.length === 1 ? "" : "s"} still missing`] : []),
+  ];
+  return (
+    <p className="rc__line" data-changes-summary="">
+      {untraced > 0 && <b className="rc__line-alarm" role="alert">⚠ {untraced} change{untraced === 1 ? "" : "s"} not traced to your résumé or claims · </b>}
+      <span>{parts.join(" · ")}</span>{" — "}
+      <button type="button" className="rc__open" onClick={() => setOpen(true)} data-what-we-changed="">What we changed ↗</button>
+      {open && <ResumeChangesPanel jobId={jobId} jobLabel={jobLabel} onClose={() => setOpen(false)} />}
+    </p>
   );
 }
 

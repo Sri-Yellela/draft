@@ -25,6 +25,7 @@ import {
 // ⭐ D54: By company — one identity across boards, never the display string alone.
 import { companyRows, companySummary } from "../../../shared/companyIdentity.js";
 import "./ApplicationHistory.css";
+import { WhatWeSentLink } from "./ResumeChangesPanel.jsx";
 
 const fmtDay = (sec) => sec == null ? "—"
   : new Date(sec * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -553,6 +554,10 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
                       <p className="ah__ask">
                         <button type="button" className="ah__btn" onClick={() => downloadResume(row)}
                           title={resumeLink(row).title}>{resumeLink(row).label}</button>
+                        {/* D90 P3: the résumé AS SENT beside the one it was made from — only for a kept copy. */}
+                        {row.resumeSource !== "current_resume" && (
+                          <WhatWeSentLink jobId={row.jobId} recordId={row.recordId} jobLabel={row.company || ""} className="ah__btn" />
+                        )}
                       </p>
                     )}
                   </div>
