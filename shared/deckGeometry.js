@@ -16,6 +16,12 @@
 // `standard` is FAN in fanGeometry.js — the look queue 27 settled — restated nowhere.
 
 export const DECK_PRESET_NAMES = Object.freeze(["tight", "standard", "wide"]);
+// Each preset's [label, description] — the deck's own control and the Customise page (D93) say the same thing.
+export const DECK_PRESET_COPY = Object.freeze({
+  tight:    Object.freeze(["Tight",    "The calmest: cards close together on a flat arc. A step moves every card least."]),
+  standard: Object.freeze(["Standard", "The deck as designed."]),
+  wide:     Object.freeze(["Wide",     "The most sweep: the cards fan out further, on a tighter curve."]),
+});
 
 // The presets that are not the default, per orientation. Each is inside its limits AND fits the
 // layout (pinned by test/deckGeometryControl.test.js against the same constraints the clamp uses).

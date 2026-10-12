@@ -170,6 +170,7 @@ export const SHARED = Object.freeze({
   "lib/boardViewCache.js":              { what: "the board's view cache (D45)" },
   "lib/bubbleColumns.js":               { what: "the card rows' columns" },
   "lib/deckState.js":                   { what: "the deck's reducer" },
+  "lib/deckOrder.js":                   { what: "the deck's order (dealt | ATS match) — the deck's control and Customise read one store (D93)" },
   "lib/draftHouseExceptions.js":        { what: "Draft House's exceptions" },
   "lib/fanGeometry.js":                 { what: "the deck fan's geometry" },
   "lib/filterSentenceModel.js":         { what: "the filter sentence's model" },
