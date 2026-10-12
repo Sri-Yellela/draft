@@ -45,7 +45,7 @@ const tokens = Object.freeze({
   SUCCESS_QUIET:       "#0C2A1A",   // §3 (the sketch)
   WARNING:             "#FFC044",   // §3 (the sketch)
   WARNING_QUIET:       "#2C2208",   // §3 (the sketch)
-  DANGER:              "#FF8080",   // §3 (the sketch)
+  DANGER:              "#FF8C8C",   // §3 #FF8080 → #FF8C8C: the least move that passes every pair it is in
   DANGER_QUIET:        "#301010",   // §3 (the sketch)
   INFO:                "#6DB8FF",   // §3 (the sketch)
   INFO_QUIET:          "#0E2236",   // §3 (the sketch)

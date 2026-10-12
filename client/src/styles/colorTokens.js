@@ -155,6 +155,9 @@ export const CONTRAST_PAIRS = [
   ["ACCENT_INK", "FH_SURFACE", "normal"], ["ACCENT_INK", "FH_WELL", "normal"], // hover text, Close ×
   ["ACCENT_INK", "CANVAS_SHADE", "ui"], ["ACCENT_INK", "FH_SURFACE", "ui"],    // the OPEN outline, a hover edge
   ["FH_ON_ACCENT", "ACCENT", "normal"], ["FH_ON_ACCENT", "ACCENT_HOVER", "normal"],
+  // ── D91 P6 · status text on a raised panel or a striped row (SURFACE_2) — the matrix's scan found it undeclared ──
+  ["SUCCESS", "SURFACE_2", "normal"], ["WARNING", "SURFACE_2", "normal"], ["DANGER", "SURFACE_2", "normal"],
+  ["INFO", "SURFACE_2", "normal"],
   // ── D91 · the document surface (the cover letter as shown) — the same black on white in every theme ──
   ["DOC_INK", "DOC_PAPER", "normal"],
 ];

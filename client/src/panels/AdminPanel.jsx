@@ -663,7 +663,8 @@ export function AdminPanel() {
             style={{ border:"none", cursor:"pointer", fontFamily:"inherit", padding:"10px 16px", textAlign:"left",
                      background: place.g === g.id ? ADMIN_ACCENT : theme.surface, color: place.g === g.id ? ADMIN_TEXT : theme.text }}>
             <div style={{ fontWeight:800, fontSize:13 }}>{g.label}</div>
-            <div style={{ fontSize:11, opacity:0.8 }}>{g.question}</div>
+            {/* D91 P6: full strength on the orange fill — 0.8 there was 3.95:1 (the matrix's scan). */}
+            <div style={{ fontSize:11, opacity: place.g === g.id ? 1 : 0.8 }}>{g.question}</div>
           </button>
         ))}
       </nav>
