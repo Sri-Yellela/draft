@@ -31,6 +31,14 @@
 const TOKEN_KEY = 'authToken';
 const IDENTITY_KEY = 'authIdentity';
 
+// ⭐ D96 §3: the jobs' remembered progress belongs to the account that made it — cleared on Disconnect, on sign-out,
+// and when another account connects (extension/progress.js). Nothing else of it passes through here.
+import { progress } from './progress.js';
+
+// Why the last bootstrap produced no token: 'signed_out' (the website answered and there is no session) or
+// 'unreachable' (it could not be asked). Only the first is a sign-out — an offline popup must not forget anything.
+let lastBootstrap = null;
+
 /** Read the stored token, or null. Never throws — storage can be unavailable during teardown. */
 async function storedToken() {
   try { return (await chrome.storage.local.get(TOKEN_KEY))?.[TOKEN_KEY] || null; }
@@ -55,12 +63,14 @@ async function clearStoredToken() {
 async function bootstrapToken(serverUrl) {
   try {
     const res = await fetch(`${serverUrl}/api/auth/extension-token`, { credentials: 'include' });
-    if (!res.ok) return null;
+    if (!res.ok) { lastBootstrap = res.status === 401 || res.status === 403 ? 'signed_out' : 'unreachable'; return null; }
     const { token } = await res.json();
-    if (!token) return null;
+    if (!token) { lastBootstrap = 'signed_out'; return null; }
+    lastBootstrap = null;
     await storeToken(token);
     return token;
   } catch {
+    lastBootstrap = 'unreachable';
     return null;
   }
 }
@@ -109,16 +119,20 @@ export async function authedFetch(serverUrl, path, init = {}) {
  * is deliberately not one.
  */
 export async function getIdentity(serverUrl) {
+  lastBootstrap = null;
   const res = await authedFetch(serverUrl, '/api/auth/me');
-  if (!res || !res.ok) return { authenticated: false };
+  // ⭐ Signed out — no credential, and the website says there is no session to trade: forget the jobs' progress.
+  if (!res) { if (lastBootstrap === 'signed_out') await progress.clearAll(); return { authenticated: false }; }
+  if (!res.ok) return { authenticated: false };
   const body = await res.json().catch(() => null);
-  if (!body?.authenticated) return { authenticated: false };
+  if (!body?.authenticated) { await progress.clearAll(); return { authenticated: false }; }
   const identity = {
     authenticated: true,
     username: body.user?.username || '',
     accountIsAdmin: body.user?.isAdmin === true,
   };
   try { await chrome.storage.local.set({ [IDENTITY_KEY]: identity }); } catch { /* best effort */ }
+  await progress.claim(identity.username || null);   // another account's records are cleared first
   return identity;
 }
 
@@ -139,4 +153,5 @@ export async function disconnect(serverUrl) {
   try { await authedFetch(serverUrl, '/api/auth/revoke-extension-token', { method: 'POST' }); }
   catch { /* the local clear below is what the user asked for */ }
   await clearStoredToken();
+  await progress.clearAll();
 }

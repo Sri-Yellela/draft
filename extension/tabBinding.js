@@ -70,3 +70,18 @@ export function bindingLine(b) {
   if (!b) return '';
   return `Using ${bindingLabel(b)}, ${b.via === 'capture' ? 'captured' : 'recognised'} ${hhmm(b.boundAt || Date.now())}`;
 }
+
+/**
+ * ⭐ D96 §2 · what a fill that found nothing to fill says on a BOUND tab. "Capture it first" is said ONLY when there is
+ * truly no binding and no match (owner, 10-13: it said so while the popup said the job was in the imports). On a bound
+ * tab the job is named: not on your board yet → capture it to fill; not found any more → capture it again, or Unlink.
+ * Any other server sentence ("Press Prepare this application", "not one of this application's addresses") stands.
+ */
+export function boundMissMessage(b, reason, serverMessage) {
+  if (!b) return serverMessage || null;
+  if (serverMessage && !/capture it first/i.test(serverMessage)) return serverMessage;
+  const job = bindingLabel(b);
+  if (reason === 'not_on_board') return `${job} isn't on your board yet — capture it to fill this page.`;
+  if (reason === 'unknown') return `This tab is linked to ${job}, but draft can't find it in your imports — capture it again, or press "Unlink this page".`;
+  return `Nothing is prepared for ${job} on this page — press "Prepare this application" in the draft popup.`;
+}
