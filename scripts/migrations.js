@@ -4627,4 +4627,70 @@ export const MIGRATIONS = [
             AND EXISTS (SELECT 1 FROM json_each(user_profile.custom_answers) WHERE trim(CAST(value AS TEXT)) != '');
       `,
     },
+    {
+      // ⭐ D98 P1 (lane J3, 10-13): a résumé generated ON THE PAGE, asked for by the extension and made by the same
+      // generation the web app uses (services/extensionResume.js). One row per request: its job, the hash of the base
+      // résumé it is made from (once per job and base — the partial unique index), its status (queued · generating ·
+      // ready · refused · failed · cancelled), the Draft slot it spent (a draft_slot_uses id, NULL-safe: a refund deletes
+      // that row and stamps slot_refunded_at with the reason), the version it produced, the score pair, and the claim
+      // guard's plain-words result. No content: the résumé itself is the resume_versions row. Cascades with the account.
+      id: "165_extension_resume_generations",
+      sql: `
+        CREATE TABLE IF NOT EXISTS extension_resume_generations (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          job_id TEXT NOT NULL,
+          base_hash TEXT NOT NULL,
+          status TEXT NOT NULL CHECK (status IN ('queued','generating','ready','refused','failed','cancelled')),
+          regenerate INTEGER NOT NULL DEFAULT 0,
+          reused INTEGER NOT NULL DEFAULT 0,
+          slot_use_id INTEGER,
+          slot_refunded_at INTEGER,
+          refund_reason TEXT,
+          resume_version INTEGER,
+          score_before INTEGER,
+          score_after INTEGER,
+          guard_json TEXT,
+          error_code TEXT,
+          superseded_at INTEGER,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          started_at INTEGER,
+          finished_at INTEGER,
+          cancelled_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_ext_resume_gen_user_job ON extension_resume_generations(user_id, job_id, base_hash);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_ext_resume_gen_live ON extension_resume_generations(user_id, job_id, base_hash)
+          WHERE superseded_at IS NULL AND status IN ('queued','generating','ready');
+      `,
+    },
+    {
+      // ⭐ D98 P1: the PDF the extension attaches, KEPT — ⚠ the one path where D16's "never store a PDF" is reversed,
+      // so What we sent can show the exact file the page received (services/resumePdfArtifacts.js). The bytes with their
+      // sha256 (checked on read), D16's 2 MB cap, the generation and version it was printed from (and the hash of that
+      // HTML), when it was attached, and — once the application is recorded — its record and HTML snapshot row. A PDF on
+      // a record lives as long as the record (cascade); one not on a record goes with the job's résumé or the account.
+      id: "166_resume_pdf_artifacts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS resume_pdf_artifacts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          job_id TEXT NOT NULL,
+          generation_id TEXT REFERENCES extension_resume_generations(id) ON DELETE SET NULL,
+          resume_version INTEGER,
+          html_sha256 TEXT NOT NULL,
+          file_name TEXT NOT NULL,
+          media_type TEXT NOT NULL DEFAULT 'application/pdf',
+          sha256 TEXT NOT NULL,
+          byte_size INTEGER NOT NULL,
+          body BLOB NOT NULL,
+          attached_at INTEGER,
+          record_id INTEGER REFERENCES application_records(id) ON DELETE CASCADE,
+          snapshot_artifact_id INTEGER REFERENCES application_artifacts(id) ON DELETE SET NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_resume_pdf_user_job ON resume_pdf_artifacts(user_id, job_id);
+        CREATE INDEX IF NOT EXISTS idx_resume_pdf_generation ON resume_pdf_artifacts(generation_id);
+        CREATE INDEX IF NOT EXISTS idx_resume_pdf_record ON resume_pdf_artifacts(record_id);
+      `,
+    },
   ];
