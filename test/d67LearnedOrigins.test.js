@@ -113,7 +113,8 @@ test("D67 · every packet-address check reads the per-user families, and the adm
   const server = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
   const block = server.slice(at(server, 'app.get("/api/admin/apply-origins", requireAdmin'), at(server, "res.json({ ok: true, pair: after });"));
   assert.match(block, /app\.post\("\/api\/admin\/apply-origins\/:id\/revoke", requireAdmin/);
-  assert.match(block, /INSERT INTO admin_audit_log/);
+  // D95: logged through writeAudit, which records the actor's kind (admin_audit_log.actor_kind / actor).
+  assert.match(block, /writeAudit\(db, \{ actor: actorOf\(req\), action: revoked \? "apply_origin_revoke" : "apply_origin_restore"/);
 });
 
 test("D67 · migration 140 is byte-identical in both runners", () => {

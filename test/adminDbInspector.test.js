@@ -58,7 +58,9 @@ function setupServer() {
       target TEXT,
       before_json TEXT,
       after_json TEXT,
-      undone_at INTEGER
+      undone_at INTEGER,
+      actor_kind TEXT,  -- migration 159 (D95): who acted, with its kind
+      actor TEXT
     );
     INSERT INTO users VALUES (1, 'admin');
     INSERT INTO domain_profiles VALUES (10, 1, 'Data', 'data', 'data', 1);

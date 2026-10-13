@@ -29,7 +29,12 @@ import generatedResumeRoutes from "./routes/generatedResumes.js";
 import applicationArtifactRoutes from "./routes/applicationArtifacts.js";
 import { draftSlots, slotsExhausted, recordGenerationSlot } from "./services/draftSlots.js";
 import { GENERATION_EXPECT_SECONDS, userSafeGeneration, userCostView, userSafeResumeRow } from "./services/costVisibility.js";
-import { isSuspended, UserAdminError, selfAllowance } from "./services/userAdmin.js";
+import { isSuspended, UserAdminError, selfAllowance, writeAudit } from "./services/userAdmin.js";
+// ⛔ D95 · an admin is not a user: its own accounts, sessions and sign-in; every admin write names a coded actor.
+import { ADMIN_REFUSAL, ensureOwnerAdmin, emailBelongsToAdmin } from "./services/adminAccounts.js";
+import { adminEnforced, createAdminSessionBinder, createRequireAdmin, refuseAdmin } from "./services/adminGuard.js";
+import { actorOf, actorRef, actorUserId } from "./services/actor.js";
+import { createAdminAuthRouters } from "./routes/adminAuth.js";
 import { createAdminPeopleRouter } from "./routes/adminPeople.js";
 import { createSupportRouters } from "./routes/tickets.js";
 import { createResumeChangesRouter } from "./routes/resumeChanges.js";
@@ -209,7 +214,7 @@ import { fetchDescription, persistDetailOutcome, hasDetailFetcher } from "./serv
 // GET /api/jobs validates against it (rejectInvalidFilterValues below) so an unknown value is a
 // 400 rather than a board that silently matches nothing. See shared/jobFilterOptions.js.
 import { FILTER_DIMENSIONS, invalidEntries, ageDaysMap } from "./shared/jobFilterOptions.js";
-import { BRAND, SUPPORT_EMAIL } from "./shared/brand.js";
+import { BRAND, SUPPORT_EMAIL, EXTENSION_USER_AGENT, MOBILE_USER_AGENT } from "./shared/brand.js";
 import { isExtensionRequest, mayActAsAdmin } from "./shared/authPolicy.js";
 import { validateResumeClaims, checkCandidateConsistency } from "./services/kb/failsafe.js";
 // The generation-time assertion (assertResumeClaims) runs in the tools service since A4; draft keeps the
@@ -4832,6 +4837,89 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⛔ D95 (owner 10-12): AN ADMIN IS NOT A USER. Admin accounts get their own table, their own sign-in links and
+      // their own sessions — never a users row, so never a profile, résumé, draft, ticket, token or connected app.
+      // Identities carry their kind in their shape: public_id adm_…, session tokens dft_adm_…, links dft_adml_…
+      // (services/adminAccounts.js). Every admin-side write names its actor as a coded string — admin:adm_… · user:N ·
+      // system (services/actor.js) — in admin_audit_log.actor and in an *_actor column beside each older integer
+      // column, which keeps holding a users.id or NULL, never an admin id. The backfill is truthful: rows written by a
+      // users row acting under the legacy is_admin flag are user:N; rows with no actor are system. Additive; the
+      // switch (ADMIN_ACCOUNTS_ENFORCE) is off until the owner has proved the new sign-in.
+      id: "159_admin_accounts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS admin_accounts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          public_id TEXT NOT NULL UNIQUE,
+          email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+          password_hash TEXT,
+          password_set_at INTEGER,
+          is_owner INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          created_by TEXT,
+          disabled_at INTEGER,
+          disabled_reason TEXT,
+          last_sign_in_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS admin_sessions (
+          token_hash TEXT PRIMARY KEY,
+          admin_id INTEGER NOT NULL REFERENCES admin_accounts(id) ON DELETE CASCADE,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          expires_at INTEGER NOT NULL,
+          last_seen_at INTEGER,
+          revoked_at INTEGER,
+          user_agent TEXT,
+          ip_hint TEXT,
+          break_glass INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS idx_admin_sessions_admin ON admin_sessions(admin_id, revoked_at);
+        CREATE TABLE IF NOT EXISTS admin_sign_in_links (
+          token_hash TEXT PRIMARY KEY,
+          admin_id INTEGER NOT NULL REFERENCES admin_accounts(id) ON DELETE CASCADE,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          expires_at INTEGER NOT NULL,
+          used_at INTEGER
+        );
+        ALTER TABLE admin_audit_log ADD COLUMN actor_kind TEXT;
+        ALTER TABLE admin_audit_log ADD COLUMN actor TEXT;
+        UPDATE admin_audit_log
+          SET actor_kind = CASE WHEN admin_user_id IS NULL THEN 'system' ELSE 'user' END,
+              actor = CASE WHEN admin_user_id IS NULL THEN 'system' ELSE 'user:' || admin_user_id END
+          WHERE actor_kind IS NULL;
+        ALTER TABLE user_entitlement_overrides ADD COLUMN set_by_actor TEXT;
+        ALTER TABLE user_entitlement_overrides ADD COLUMN revoked_by_actor TEXT;
+        UPDATE user_entitlement_overrides SET set_by_actor = 'user:' || set_by WHERE set_by IS NOT NULL AND set_by_actor IS NULL;
+        UPDATE user_entitlement_overrides SET revoked_by_actor = 'user:' || revoked_by WHERE revoked_by IS NOT NULL AND revoked_by_actor IS NULL;
+        ALTER TABLE user_notes ADD COLUMN author_actor TEXT;
+        UPDATE user_notes SET author_actor = 'user:' || author_id WHERE author_id IS NOT NULL AND author_actor IS NULL;
+        ALTER TABLE tickets ADD COLUMN assignee_actor TEXT;
+        UPDATE tickets SET assignee_actor = 'user:' || assignee WHERE assignee IS NOT NULL AND assignee_actor IS NULL;
+        ALTER TABLE ticket_messages ADD COLUMN author_actor TEXT;
+        UPDATE ticket_messages SET author_actor = 'user:' || author_id WHERE author_id IS NOT NULL AND author_actor IS NULL;
+        ALTER TABLE plan_upgrade_requests ADD COLUMN decided_by_actor TEXT;
+        UPDATE plan_upgrade_requests SET decided_by_actor = 'user:' || decided_by WHERE decided_by IS NOT NULL AND decided_by_actor IS NULL;
+        ALTER TABLE user_limits ADD COLUMN updated_by_actor TEXT;
+        UPDATE user_limits SET updated_by_actor = 'user:' || updated_by WHERE updated_by IS NOT NULL AND updated_by_actor IS NULL;
+        ALTER TABLE board_policy ADD COLUMN updated_by_actor TEXT;
+        UPDATE board_policy SET updated_by_actor = 'user:' || updated_by WHERE updated_by IS NOT NULL AND updated_by_actor IS NULL;
+        ALTER TABLE crawler_state ADD COLUMN updated_by_actor TEXT;
+        UPDATE crawler_state SET updated_by_actor = 'user:' || updated_by WHERE updated_by IS NOT NULL AND updated_by_actor IS NULL;
+        ALTER TABLE crawler_tasks ADD COLUMN created_by_actor TEXT;
+        UPDATE crawler_tasks SET created_by_actor = 'user:' || created_by WHERE created_by IS NOT NULL AND created_by_actor IS NULL;
+        ALTER TABLE crawler_denylist ADD COLUMN added_by_actor TEXT;
+        UPDATE crawler_denylist SET added_by_actor = 'user:' || added_by WHERE added_by IS NOT NULL AND added_by_actor IS NULL;
+        ALTER TABLE company_candidates ADD COLUMN decided_by_actor TEXT;
+        UPDATE company_candidates SET decided_by_actor = 'user:' || decided_by WHERE decided_by IS NOT NULL AND decided_by_actor IS NULL;
+        ALTER TABLE slug_harvest_sweeps ADD COLUMN actor TEXT;
+        UPDATE slug_harvest_sweeps SET actor = CASE WHEN admin_user_id IS NULL THEN 'system' ELSE 'user:' || admin_user_id END WHERE actor IS NULL;
+        ALTER TABLE slug_harvest_imports ADD COLUMN actor TEXT;
+        UPDATE slug_harvest_imports SET actor = CASE WHEN admin_user_id IS NULL THEN 'system' ELSE 'user:' || admin_user_id END WHERE actor IS NULL;
+        ALTER TABLE job_import_batches ADD COLUMN actor TEXT;
+        UPDATE job_import_batches SET actor = CASE WHEN admin_user_id IS NULL THEN 'system' ELSE 'user:' || admin_user_id END WHERE actor IS NULL;
+        ALTER TABLE notice_log ADD COLUMN actor TEXT;
+        UPDATE notice_log SET actor = CASE WHEN admin_user_id IS NULL THEN 'system' ELSE 'user:' || admin_user_id END WHERE actor IS NULL;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -5229,7 +5317,10 @@ function runResumeRetentionSweep(trigger) {
 setTimeout(() => runResumeRetentionSweep("boot"), 90_000).unref?.();
 setInterval(() => runResumeRetentionSweep("interval"), 24 * 3600_000).unref?.();
 
-const adminExists = db.prepare("SELECT id FROM users WHERE username=?").get(ADMIN_USER);
+// ⛔ D95 break glass (i): ADMIN_OWNER_EMAIL names the owner's ADMIN ACCOUNT; boot makes sure it exists (no password —
+// a sign-in link sets one). The legacy ADMIN_USER row below is created only while the switch is off; Phase 2 removes it.
+ensureOwnerAdmin(db, process.env.ADMIN_OWNER_EMAIL);
+const adminExists = adminEnforced() || db.prepare("SELECT id FROM users WHERE username=?").get(ADMIN_USER);
 if (!adminExists) {
   db.prepare("INSERT INTO users (username,password_hash,is_admin) VALUES (?,?,1)")
     .run(ADMIN_USER, hashPassword(ADMIN_PASSWORD));
@@ -5761,6 +5852,9 @@ passport.use(new LocalStrategy((username, password, done) => {
   }
   // ⭐ D88 (39d): a suspended account cannot sign in — the same words every time, and no hint of why to the caller.
   if (user.status === "suspended") return done(null, false, { message:"This account is suspended. Write to support@jobsviadraft.com." });
+  // ⛔ D95: once the switch is on, the legacy admin row cannot sign in as a user — the SAME answer as a wrong password,
+  // so the user sign-in never says which addresses are admin.
+  if (user.is_admin && adminEnforced()) return done(null, false, { message:"Invalid credentials." });
   return done(null, {
     id:user.id,
     username:user.username,
@@ -5836,6 +5930,7 @@ const AUTH_CONTEXT_IDLE_SECONDS = 7 * 24 * 60 * 60;        // 7 days without a r
 const AUTH_CONTEXT_ABSOLUTE_SECONDS = 90 * 24 * 60 * 60;   // 90 days from issue, whatever happens
 
 function issueAuthContext(userId, req, options = {}) {
+  if (options.sessionLess && isAdminUserRow(userId)) throw Object.assign(new Error(ADMIN_REFUSAL), { status: 403 });   // ⛔ D95
   const token = crypto.randomBytes(32).toString("base64url");
   const now = Math.floor(Date.now() / 1000);
   db.prepare("DELETE FROM auth_contexts WHERE expires_at <= ? OR revoked_at IS NOT NULL").run(now - 86400);
@@ -5989,6 +6084,12 @@ function bindAuthContext(req, _res, next) {
       console.warn(`[auth-context] token valid but user_id=${row.user_id} not in users table`);
       return next();
     }
+    // ⛔ D95: a session-LESS token (the extension's, the phone's) is a user credential and never an admin's. One that
+    // was issued to the legacy admin row before D95 is not honoured: requireAuth answers it with the plain refusal.
+    if (user.isAdmin && (row.user_agent === EXTENSION_USER_AGENT || row.user_agent === MOBILE_USER_AGENT)) {
+      req.adminCredentialRefused = true;
+      return next();
+    }
     req.user = user;
     req.authContextToken = token;
     // WHICH KIND of credential this is, carried forward so an authorisation decision can depend on
@@ -6036,10 +6137,14 @@ function requireAuth(req, res, next) {
   // Without this second check, users whose Passport session was wiped (e.g. server
   // restart on ephemeral storage) but whose auth context token is still valid in
   // resume.db would always receive 401 even though they are authenticated.
+  // ⛔ D95: an extension or phone token held by the legacy admin row — "This is an administrator account. Use a personal account."
+  if (req.adminCredentialRefused) return refuseAdmin(res);
   if (req.isAuthenticated() || req.authContextToken) {
     // ⭐ D88 (39d): a suspended account is refused on every request, whichever credential it holds (an admin
     // cannot be suspended — services/userAdmin.js setStatus refuses it).
     if (req.user?.id != null && isSuspended(db, req.user.id)) return res.status(403).json({ error:"This account is suspended.", code:"account_suspended" });
+    // ⛔ D95: once the switch is on, the legacy admin row is not a user either — user routes refuse it.
+    if (req.adminEnforced && req.user?.isAdmin) return refuseAdmin(res);
     return next();
   }
   const hasCookie = !!req.headers.cookie?.includes("connect.sid");
@@ -6054,13 +6159,21 @@ function requireAuth(req, res, next) {
 // Refused on the KIND of credential rather than by omitting isAdmin from the hydrated user,
 // because req.user is shared with every other consumer and a half-populated user object reads as
 // a data bug three files away. This says no in one place, for one reason.
+//
+// ⛔ D95: the admin is an ADMIN ACCOUNT — its own table, its own draft_admin cookie (services/adminGuard.js sets
+// req.admin). The legacy is_admin users row passes only while ADMIN_ACCOUNTS_ENFORCE is off.
 function requireAdmin(req, res, next) {
-  if (isExtensionRequest(req)) {
-    console.warn(`[auth] admin route refused to the extension | ${req.method} ${req.path} | user:${req.user?.id}`);
-    return res.status(403).json({ error:"Forbidden." });
-  }
-  if ((req.isAuthenticated() || req.authContextToken) && mayActAsAdmin(req)) return next();
-  res.status(403).json({ error:"Forbidden." });
+  return adminGuard(req, res, next);
+}
+// The legacy question, asked only while the switch is off: a signed-in users row that the shared predicate admits.
+function legacyAdmin(req) {
+  return (req.isAuthenticated() || !!req.authContextToken) && mayActAsAdmin(req);
+}
+const adminGuard = createRequireAdmin({ isExtensionRequest, legacy: legacyAdmin });
+// ⛔ D95: is this users row the legacy admin? Every door that turns a session into a token refuses it.
+function isAdminUserRow(userId) {
+  if (userId == null) return false;
+  try { return !!db.prepare("SELECT is_admin FROM users WHERE id = ?").get(userId)?.is_admin; } catch { return false; }
 }
 
 function envOrigin(value) {
@@ -6279,7 +6392,12 @@ async function findOrCreateOAuthUser({ provider, providerId, email, name, emailV
 }
 
 function completeProviderAuth(provider, identity, { linkUserId = null, tokenSet = null } = {}) {
-  return findOrCreateOAuthUser({
+  // ⛔ D95: once the switch is on, a provider sign-in never lands on the legacy admin row (the same failure as any other).
+  const refuseAdminRow = (out) => {
+    if (out?.user?.is_admin && adminEnforced()) throw Object.assign(new Error("Sign-in failed."), { status: 401 });
+    return out;
+  };
+  return Promise.resolve(findOrCreateOAuthUser({
     provider,
     providerId: identity.providerUserId,
     email: identity.email,
@@ -6288,7 +6406,7 @@ function completeProviderAuth(provider, identity, { linkUserId = null, tokenSet 
     picture: identity.picture,
     tokenSet,
     linkUserId,
-  });
+  })).then(refuseAdminRow);
 }
 
 function authUserFromDbRow(row) {
@@ -7111,6 +7229,8 @@ app.use((req, res, next) => {
   next();
 });
 app.use(bindAuthContext);
+// ⛔ D95: the admin's own session (the draft_admin cookie, Path=/api/admin) — and no admin credential anywhere else.
+app.use(createAdminSessionBinder({ db }));
 // ⛔ CROSS-SITE REQUEST FORGERY, refused at the door (09-30). A state-changing request that carries
 // an Origin (or, failing that, a Referer) from anywhere but this site is a 403. Exempt: requests
 // authenticated by a HEADER token (the extension, mobile) — a forged cross-site request cannot set
@@ -7187,6 +7307,8 @@ app.post("/api/auth/register", (req, res) => {
   if (!profile.email)       return res.status(400).json({ error:"email is required" });
   if (!profile.first_name)  return res.status(400).json({ error:"first name is required" });
   if (!profile.last_name)   return res.status(400).json({ error:"last name is required" });
+  // ⛔ D95: an admin account's email is never a user account's — a person who is both has two emails.
+  if (emailBelongsToAdmin(db, profile.email)) return res.status(400).json({ error:"This email can't be used to create an account here." });
 
   // Build full_name from parts for backwards compat
   const fullName = [
@@ -7523,6 +7645,7 @@ app.get("/api/auth/me", (req, res) =>
 );
 
 app.get("/api/auth/extension-token", requireAuth, (req, res) => {
+  if (req.user?.isAdmin) return refuseAdmin(res);   // ⛔ D95: never a user token for an admin identity
   // sessionLess: the extension is not a tab of this browser profile, so signing out of the
   // browser must not silently kill it. It has its own revoke endpoint below.
   const token = issueAuthContext(req.user.id, req, { userAgent: "resume-master-extension", sessionLess: true });
@@ -7561,6 +7684,7 @@ app.post("/api/auth/revoke-extension-token", requireAuth, (req, res) => {
 // the extension's guarantees as source strings INSIDE its route block, and hiding them behind a
 // shared helper would weaken a guard in order to save four lines.
 app.get("/api/auth/mobile-token", requireAuth, (req, res) => {
+  if (req.user?.isAdmin) return refuseAdmin(res);   // ⛔ D95: an admin identity is never given a user token
   const token = issueAuthContext(req.user.id, req, { userAgent: "resume-master-mobile", sessionLess: true });
   res.json({ token, idleSeconds: AUTH_CONTEXT_IDLE_SECONDS, absoluteSeconds: AUTH_CONTEXT_ABSOLUTE_SECONDS });
 });
@@ -7737,18 +7861,21 @@ app.post("/api/admin/backups/restore", requireAdmin, (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // ADMIN USER MANAGEMENT
 // ═══════════════════════════════════════════════════════════════
+// ⛔ D95: user lists are USER accounts — never an admin, never the system row.
 app.get("/api/admin/users", requireAdmin, (req, res) => {
-  res.json(db.prepare("SELECT id,username,is_admin,apply_mode,plan_tier,created_at FROM users ORDER BY created_at DESC").all());
+  res.json(db.prepare("SELECT id,username,apply_mode,plan_tier,created_at FROM users WHERE id != 0 AND COALESCE(is_admin,0) = 0 ORDER BY created_at DESC").all());
 });
+// ⛔ D95: this creates a USER account and nothing else. There is no admin flag to set — an admin is an admin account
+// (Admin → System → Admins), never a users row. An `isAdmin` in the body is ignored.
 app.post("/api/admin/users", requireAdmin, (req, res) => {
-  const { username, password, isAdmin, planTier } = req.body;
+  const { username, password, planTier } = req.body;
   if (!username||!password) return res.status(400).json({ error:"username and password required" });
   const passwordError = validatePassword(password);
   if (passwordError) return res.status(400).json({ error:passwordError });
   const tier = normalisePlanTier(planTier || "BASIC");
   try {
-    db.prepare("INSERT INTO users (username,password_hash,password_set,is_admin,apply_mode,plan_tier) VALUES (?,?,1,?,?,?)")
-      .run(username, hashPassword(password), isAdmin?1:0, allowedModesForTier(tier)[0], tier);
+    db.prepare("INSERT INTO users (username,password_hash,password_set,is_admin,apply_mode,plan_tier) VALUES (?,?,1,0,?,?)")
+      .run(username, hashPassword(password), allowedModesForTier(tier)[0], tier);
     const u = db.prepare("SELECT id FROM users WHERE username=?").get(username);
     db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(u.id);
     res.json({ ok:true });
@@ -7761,19 +7888,19 @@ const adminDeleteError = (res, e) => e instanceof AccountError
   ? res.status(e.status).json({ error: e.message, code: e.code })
   : res.status(500).json({ error: e.message });
 app.get("/api/admin/users/:id/delete-preview", requireAdmin, (req, res) => {
-  try { res.json(adminDeletePreview(db, Number(req.params.id), req.user.id)); }
+  try { res.json(adminDeletePreview(db, Number(req.params.id), actorOf(req))); }
   catch (e) { adminDeleteError(res, e); }
 });
 app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   const confirmUsername = req.body?.confirmUsername;
   try {
-    checkAdminDeleteConfirmed(db, id, { actorId: req.user.id, confirmUsername });
+    checkAdminDeleteConfirmed(db, id, { actorId: actorOf(req), confirmUsername });
     // Sessions first: the sealed store is found through rows the cascade is about to remove.
     await revokeAllUserSessions(id, "admin_delete");
-    const { files, counts } = adminDeleteUser(db, id, { actorId: req.user.id, confirmUsername });
+    const { files, counts } = adminDeleteUser(db, id, { actorId: actorOf(req), confirmUsername });
     removeDataFiles(DATA_DIR, files);
-    console.log(`[admin] user ${id} deleted by admin ${req.user.id}`);
+    console.log(`[admin] user ${id} deleted by ${actorRef(req)}`);
     res.json({ ok:true, counts, filesRemoved: files.length });
   } catch (e) { adminDeleteError(res, e); }
 });
@@ -7783,6 +7910,7 @@ app.patch("/api/admin/users/:id/password", requireAdmin, async (req, res) => {
   const passwordError = validatePassword(password);
   if (passwordError) return res.status(400).json({ error:passwordError });
   const targetId = parseInt(req.params.id);
+  if (isAdminUserRow(targetId)) return res.status(404).json({ error:"No such user." });   // ⛔ D95: user accounts only
   db.prepare("UPDATE users SET password_hash=?, password_set=1 WHERE id=?")
     .run(hashPassword(password), targetId);
   // Same reasoning as the self-service reset: an admin resetting someone's password is locking an
@@ -7796,12 +7924,13 @@ app.patch("/api/admin/users/:id/plan", requireAdmin, (req, res) => {
   if (!["BASIC","PLUS","PRO"].includes(rawTier)) return res.status(400).json({ error:"Invalid plan tier" });
   const tier = normalisePlanTier(rawTier);
   const mode = allowedModesForTier(tier)[0];
+  if (isAdminUserRow(userId)) return res.status(404).json({ error:"No such user." });   // ⛔ D95: user accounts only
   db.prepare("UPDATE users SET plan_tier=?, apply_mode=? WHERE id=?").run(tier, mode, userId);
   db.prepare(`
     UPDATE plan_upgrade_requests
-    SET status='approved', decided_at=unixepoch(), decided_by=?
+    SET status='approved', decided_at=unixepoch(), decided_by=?, decided_by_actor=?
     WHERE user_id=? AND status='pending'
-  `).run(req.user.id, userId);
+  `).run(actorUserId(req), actorRef(req), userId);
   emitToUser(userId, { type:"plan_updated", planTier:tier, applyMode:mode });
   res.json({ ok:true, planTier:tier, applyMode:mode });
 });
@@ -7822,14 +7951,14 @@ app.patch("/api/admin/upgrade-requests/:id/grant", requireAdmin, (req, res) => {
   db.prepare("UPDATE users SET plan_tier=?, apply_mode=? WHERE id=?").run(tier, mode, request.user_id);
   db.prepare(`
     UPDATE plan_upgrade_requests
-    SET status='approved', decided_at=unixepoch(), decided_by=?
+    SET status='approved', decided_at=unixepoch(), decided_by=?, decided_by_actor=?
     WHERE id=?
-  `).run(req.user.id, request.id);
+  `).run(actorUserId(req), actorRef(req), request.id);
   db.prepare(`
     UPDATE plan_upgrade_requests
-    SET status='superseded', decided_at=unixepoch(), decided_by=?
+    SET status='superseded', decided_at=unixepoch(), decided_by=?, decided_by_actor=?
     WHERE user_id=? AND status='pending'
-  `).run(req.user.id, request.user_id);
+  `).run(actorUserId(req), actorRef(req), request.user_id);
   emitToUser(request.user_id, { type:"plan_updated", planTier:tier, applyMode:mode });
   res.json({ ok:true, userId:request.user_id, planTier:tier, applyMode:mode });
 });
@@ -7903,14 +8032,14 @@ app.put("/api/admin/full-auto", requireAdmin, (req, res) => {
   // Logged rather than silent: this is the one setting whose change has a real-world consequence
   // — applications going out to employers — and app_settings keeps only the current value, so the
   // log is the only record that it moved and who moved it.
-  console.warn(`[killswitch] full-auto ${state.disabled ? "DISABLED" : "ENABLED"} by admin ${req.user?.id} (override)`);
+  console.warn(`[killswitch] full-auto ${state.disabled ? "DISABLED" : "ENABLED"} by ${actorRef(req)} (override)`);
   res.json(state);
 });
 
 app.delete("/api/admin/full-auto", requireAdmin, (req, res) => {
   clearSetting(db, FULL_AUTO_KEY);
   const state = fullAutoState(db);
-  console.warn(`[killswitch] full-auto override CLEARED by admin ${req.user?.id}; now ${state.disabled ? "disabled" : "enabled"} from env`);
+  console.warn(`[killswitch] full-auto override CLEARED by ${actorRef(req)}; now ${state.disabled ? "disabled" : "enabled"} from env`);
   res.json(state);
 });
 
@@ -7954,6 +8083,13 @@ app.get("/api/account/allowance", requireAuth, (req, res) => {
 }
 // ⭐ D90 P1 · "what we changed" — any two of a job's résumés compared (routes/resumeChanges.js). Read-only, own data only.
 app.use(createResumeChangesRouter({ db, requireAuth }));
+// ⛔ D95 · the admin's own door (public: sign-in, links, break glass) and Admin → System → Admins (owner only).
+{
+  const adminAuth = createAdminAuthRouters({ db, requireAdmin, production: IS_PRODUCTION, sendEmail,
+    baseUrl: (req) => process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}` });
+  app.use("/api/admin/auth", adminAuth.authRouter);
+  app.use("/api/admin/admins", adminAuth.adminsRouter);
+}
 app.use("/api/admin/people", requireAdmin, createAdminPeopleRouter({
   db, requireAdmin, signOutEverywhere: (id, why) => revokeAllUserSessions(id, why), sendResetLink: adminSendResetLink,
 }));
@@ -8013,8 +8149,7 @@ app.post("/api/admin/apply-origins/:id/revoke", requireAdmin, (req, res) => {
   if (!before) return res.status(404).json({ error: "pair_not_found" });
   setPairRevoked(db, id, revoked);
   const after = db.prepare("SELECT * FROM apply_origin_pairs WHERE id=?").get(id);
-  db.prepare("INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json) VALUES (?, ?, ?, ?, ?)")
-    .run(req.user.id, revoked ? "apply_origin_revoke" : "apply_origin_restore", `apply_origin_pairs:${id}`, JSON.stringify(before), JSON.stringify(after));
+  writeAudit(db, { actor: actorOf(req), action: revoked ? "apply_origin_revoke" : "apply_origin_restore", target: `apply_origin_pairs:${id}`, before, after });
   res.json({ ok: true, pair: after });
 });
 // D75: a pair the crawler OBSERVED (J2) is never promoted by the crawler — the owner promotes it here, logged.
@@ -8025,8 +8160,7 @@ app.post("/api/admin/apply-origins/:id/promote", requireAdmin, (req, res) => {
   const r = setPairPromoted(db, id, req.body?.promoted !== false);
   if (!r.ok) return res.status(409).json({ error: r.reason });
   const after = db.prepare("SELECT * FROM apply_origin_pairs WHERE id=?").get(id);
-  db.prepare("INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json) VALUES (?, ?, ?, ?, ?)")
-    .run(req.user.id, "apply_origin_promote", `apply_origin_pairs:${id}`, JSON.stringify(before), JSON.stringify(after));
+  writeAudit(db, { actor: actorOf(req), action: "apply_origin_promote", target: `apply_origin_pairs:${id}`, before, after });
   res.json({ ok: true, pair: after });
 });
 // D20: the slug harvest in the daily manual sweep — SerpApi searches started by a person, an export the
@@ -8057,7 +8191,7 @@ app.get("/api/admin/board-policy", requireAdmin, (_req, res) => {
   res.json({ policy: readBoardPolicy(db), dryRun: sweepAged(db, { dryRun: true }), scopeDryRun: sweepScope(db, { dryRun: true }) });
 });
 app.put("/api/admin/board-policy", requireAdmin, (req, res) => {
-  try { res.json({ policy: setBoardPolicy(db, req.body || {}, { by: req.user?.id ?? null }) }); }
+  try { res.json({ policy: setBoardPolicy(db, req.body || {}, { by: actorOf(req) }) }); }
   catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 app.post("/api/admin/board-policy/sweep", requireAdmin, (req, res) => {
@@ -8065,8 +8199,7 @@ app.post("/api/admin/board-policy/sweep", requireAdmin, (req, res) => {
   if (req.body?.apply !== true) return res.json({ applied: false, ...dry, note: `Nothing changed. POST again with apply: true and expectCandidates: ${dry.candidates}.` });
   if (Number(req.body.expectCandidates) !== dry.candidates) return res.status(409).json({ applied: false, ...dry, error: `expectCandidates must equal the dry run's ${dry.candidates}` });
   const out = sweepAged(db, { dryRun: false,
-    log: (e) => db.prepare("INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json) VALUES (?, ?, ?, ?, ?)")
-      .run(req.user.id, "board_age_sweep", "scraped_jobs", JSON.stringify({ active: e.active }), JSON.stringify(e)) });
+    log: (e) => writeAudit(db, { actor: actorOf(req), action: "board_age_sweep", target: "scraped_jobs", before: { active: e.active }, after: e }) });
   res.json({ applied: true, ...out });
 });
 // ⛔ D78 B: the same contract for computer-science scope — dry unless { apply: true, expectCandidates }; applied
@@ -8076,8 +8209,7 @@ app.post("/api/admin/board-policy/scope-sweep", requireAdmin, (req, res) => {
   if (req.body?.apply !== true) return res.json({ applied: false, ...dry, note: `Nothing changed. POST again with apply: true and expectCandidates: ${dry.candidates}.` });
   if (Number(req.body.expectCandidates) !== dry.candidates) return res.status(409).json({ applied: false, ...dry, error: `expectCandidates must equal the dry run's ${dry.candidates}` });
   const out = sweepScope(db, { dryRun: false,
-    log: (e) => db.prepare("INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json) VALUES (?, ?, ?, ?, ?)")
-      .run(req.user.id, "board_scope_sweep", "scraped_jobs", JSON.stringify({ active: e.active }), JSON.stringify(e)) });
+    log: (e) => writeAudit(db, { actor: actorOf(req), action: "board_scope_sweep", target: "scraped_jobs", before: { active: e.active }, after: e }) });
   res.json({ applied: true, ...out });
 });
 // D78 A: the daily sweep — 03:30 UTC, after the 03:00 cleanup, and ONLY once the owner switched age_enforce on.

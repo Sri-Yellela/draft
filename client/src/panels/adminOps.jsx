@@ -1424,6 +1424,17 @@ export function PluginTab({ theme }) {
             </select>
             <span style={{ fontSize: 11, color: theme.textMuted }}>Stops abuse; users see this number.</span>
           </div>
+          {/* ⭐ D86/D88 follow-up: who is connected — by the account's email, the host, and when it was last used. */}
+          <div style={{ fontSize: 11.5, fontWeight: 800, fontStyle: "italic", color: theme.textMuted, marginBottom: 6 }}>Connected accounts</div>
+          <div data-plugin-connections="" style={{ marginBottom: 14 }}>
+            <Table theme={theme} rows={d.connections || []} empty="No account is connected." cols={[
+              { key: "email", label: "Account", render: r => <>{r.email || <span style={{ color: theme.textMuted }}>no email — {r.username}</span>}
+                {r.isAdmin && <> <span style={markStyle(C.DANGER)}>administrator — should not be connected</span></>}</> },
+              { key: "hostLabel", label: "Host" },
+              { key: "connectedAt", label: "Connected", render: r => ago(r.connectedAt) },
+              { key: "lastUsedAt", label: "Last used", render: r => (r.lastUsedAt ? ago(r.lastUsedAt) : "never") },
+            ]}/>
+          </div>
           <div style={{ fontSize: 11.5, fontWeight: 800, fontStyle: "italic", color: theme.textMuted, marginBottom: 6 }}>Recent tool calls</div>
           <Table theme={theme} rows={d.recent} empty="No calls yet." cols={[
             { key: "at", label: "Time", render: r => ago(r.at) },

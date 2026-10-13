@@ -16,6 +16,7 @@
 //   POST   /api/admin/crawler/tasks/:id/flag  { wrong, note } — a wrong answer is worse than none
 //   POST   /api/admin/crawler/deny            { domain, reason } — the same-day takedown
 //   DELETE /api/admin/crawler/deny/:domain
+import { actorOf, actorUserId, actorRef } from "../services/actor.js";
 import express, { Router } from "express";
 import { verify, bearerMatches } from "../crawler/lib/signature.js";
 import { leaseNext, acceptResult, pausedNow, enqueueBatch, crawlerSummary, setState, captureCandidates, flagTask, TASK_TYPES,
@@ -72,19 +73,19 @@ export function createCrawlerAdminRouter(db, requireAdmin, { allowHosts, resolve
   router.use(requireAdmin);
   router.get("/", (_req, res) => res.json(crawlerSummary(db)));
   router.put("/state", express.json({ limit: "4kb" }), (req, res) => {
-    try { res.json({ state: setState(db, req.body || {}, { by: req.user?.id ?? null }), pause: pausedNow(db) }); }
+    try { res.json({ state: setState(db, req.body || {}, { by: actorOf(req) }), pause: pausedNow(db) }); }
     catch (e) { res.status(e.status || 500).json({ error: e.message }); }
   });
   router.post("/tasks", express.json({ limit: "64kb" }), async (req, res) => {
     const { type, urls } = req.body || {};
     if (!TASK_TYPES.includes(type)) return res.status(400).json({ error: `type must be one of ${TASK_TYPES.join(", ")}` });
     if (!Array.isArray(urls) || !urls.length || urls.length > 100) return res.status(400).json({ error: "urls: 1–100 URLs" });
-    res.json(await enqueueBatch(db, { type, urls, source: "paste", createdBy: req.user?.id ?? null, allowHosts, resolve }));
+    res.json(await enqueueBatch(db, { type, urls, source: "paste", createdBy: actorOf(req), allowHosts, resolve }));
   });
   router.post("/tasks/captures", async (req, res) => {
     const picks = captureCandidates(db);
     res.json(await enqueueBatch(db, { type: "j1_find_board", urls: picks.map(p => p.baseUrl), source: "captures",
-                                      createdBy: req.user?.id ?? null, allowHosts, resolve }));
+                                      createdBy: actorOf(req), allowHosts, resolve }));
   });
   router.post("/tasks/:id/flag", express.json({ limit: "4kb" }), (req, res) => {
     const ok = flagTask(db, req.params.id, { wrong: req.body?.wrong !== false, note: req.body?.note ?? null });
@@ -93,8 +94,8 @@ export function createCrawlerAdminRouter(db, requireAdmin, { allowHosts, resolve
   router.post("/deny", express.json({ limit: "8kb" }), (req, res) => {
     const domain = String(req.body?.domain || "").toLowerCase().trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "");
     if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) return res.status(400).json({ error: "a bare domain, e.g. example.com" });
-    db.prepare("INSERT INTO crawler_denylist (domain, reason, added_by) VALUES (?, ?, ?) ON CONFLICT(domain) DO UPDATE SET reason = excluded.reason")
-      .run(domain, String(req.body?.reason || "").slice(0, 200) || null, req.user?.id ?? null);
+    db.prepare("INSERT INTO crawler_denylist (domain, reason, added_by, added_by_actor) VALUES (?, ?, ?, ?) ON CONFLICT(domain) DO UPDATE SET reason = excluded.reason")
+      .run(domain, String(req.body?.reason || "").slice(0, 200) || null, actorUserId(req), actorRef(req));
     // Refuse anything already queued for it — the deny-list wins over every task, not only new ones.
     const refused = db.prepare(`UPDATE crawler_tasks SET status = 'refused', refused_reason = ?, finished_at = unixepoch()
                                  WHERE status IN ('queued','leased') AND (target_host = ? OR target_host LIKE ?)`)

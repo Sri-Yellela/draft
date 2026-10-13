@@ -5,6 +5,7 @@
 //   POST /import             dry: the plan, every rejection named          → apply + expectWrites
 //   POST /imports/:id/revert dry: before/after per pair                    → apply + expectRestorable
 // A sweep is started by a person and runs in the background of that request; nothing schedules it.
+import { actorOf } from "../services/actor.js";
 import express, { Router } from "express";
 import {
   planSweep, openSweep, runSweep, listSweeps, poolSummary, familyConversion, buildExport, toJsonl,
@@ -63,7 +64,7 @@ export function createSlugHarvestRouter(db, requireAdmin, {
       if (quota.left != null && quota.left < names.length) {
         return res.status(409).json({ error: "quota_exhausted", quota, message: `${quota.left} search(es) left this month; this sweep needs ${names.length}.` });
       }
-      const sweepId = openSweep(db, { queries: plan.queries, adminUserId: req.user?.id ?? null });
+      const sweepId = openSweep(db, { queries: plan.queries, adminUserId: actorOf(req) });
       runSweep(db, sweepId, { search, validate, fetchers }).catch(e => {
         try { db.prepare("UPDATE slug_harvest_sweeps SET error = ?, finished_at = unixepoch() WHERE id = ?").run(String(e?.message || e), sweepId); } catch { /* the row stays open; it goes stale after 15 minutes */ }
       });
@@ -112,7 +113,7 @@ export function createSlugHarvestRouter(db, requireAdmin, {
         const disk = gate(plan.wouldAdd);
         if (!disk.ok) return res.status(507).json({ applied: false, plan: summary, written: 0, error: disk.message || disk.reason, disk });
       }
-      const out = applyPlan(db, plan, { adminUserId: req.user?.id ?? null });
+      const out = applyPlan(db, plan, { adminUserId: actorOf(req) });
       if (!out.ok) return res.status(422).json({ applied: false, plan: summary, error: out.reason });
       res.json({ applied: true, importId: out.importId, written: out.written, companiesAdded: out.added, plan: summary,
         revert: out.importId ? `POST /api/admin/slug-harvest/imports/${out.importId}/revert` : null,
@@ -134,7 +135,7 @@ export function createSlugHarvestRouter(db, requireAdmin, {
         return res.status(409).json({ applied: false, restorable: preview.restorable,
           error: `Run the dry run first: expectRestorable must equal the dry run's count (now ${preview.restorable}).` });
       }
-      const out = revertImport(db, id, { adminUserId: req.user?.id ?? null });
+      const out = revertImport(db, id, { adminUserId: actorOf(req) });
       if (!out.ok) return res.status(409).json({ applied: false, error: out.reason });
       res.json({ applied: true, importId: id, restored: out.restored, companiesDisabled: out.disabled });
     } catch (e) { res.status(500).json({ error: e.message }); }

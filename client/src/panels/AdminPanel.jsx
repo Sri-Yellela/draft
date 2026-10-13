@@ -12,6 +12,7 @@ import { GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, Notices
 import { ADMIN_GROUPS, readAdminPlace, writeAdminPlace } from "./adminMap.js";
 import { EnrichmentTab } from "./adminEnrichment.jsx";
 import { EmailHealthTab } from "./adminEmail.jsx";
+import { AdminsTab } from "./adminAdmins.jsx";
 import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
@@ -542,7 +543,7 @@ export function AdminPanel() {
   const [users,    setUsers]    = useState([]);
   const [upgradeRequests, setUpgradeRequests] = useState([]);
   const [profileRequests, setProfileRequests] = useState([]);
-  const [newU,     setNewU]     = useState({ username:"", password:"", isAdmin:false });
+  const [newU,     setNewU]     = useState({ username:"", password:"" });
   const [status,   setStatus]   = useState("");
 
   // ⭐ D83 · THE MAP — five groups, each answering one question; a group holds the panels that answer it
@@ -566,7 +567,7 @@ export function AdminPanel() {
     e.preventDefault();
     try {
       await api("/api/admin/users", { method:"POST", body:JSON.stringify(newU) });
-      setNewU({ username:"", password:"", isAdmin:false });
+      setNewU({ username:"", password:"" });
       setStatus("✓ User created");
       loadUsers();
     } catch(e2) { setStatus("✗ " + e2.message); }
@@ -801,13 +802,6 @@ export function AdminPanel() {
                     <input className="rm-input" type="password" value={newU.password}
                       onChange={e => setNewU(u => ({ ...u, password:e.target.value }))}
                       placeholder="Password (min 8 chars)"/>
-                    <label style={{ display:"flex", alignItems:"center", gap:8,
-                                    fontSize:13, color:theme.text, cursor:"pointer" }}>
-                      <input type="checkbox" checked={newU.isAdmin}
-                        onChange={e => setNewU(u => ({ ...u, isAdmin:e.target.checked }))}
-                        style={{ accentColor:theme.accent, width:16, height:16 }}/>
-                      Admin user
-                    </label>
                     <div style={{ display:"flex", gap:10, alignItems:"center", marginTop:4 }}>
                       <button type="submit" className="rm-btn rm-btn-primary rm-btn-sm">
                         Create
@@ -842,6 +836,15 @@ export function AdminPanel() {
                 initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
                 exit={{ opacity:0, y:-6 }} transition={{ duration:0.18 }}>
                 <EmailHealthTab/>
+              </motion.div>
+            )}
+
+            {/* ⛔ D95: Admins — the admin ACCOUNTS (never users): add, disable, last sign-in. Owner only. */}
+            {at("system", "admins") && (
+              <motion.div key="admins"
+                initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
+                exit={{ opacity:0, y:-6 }} transition={{ duration:0.18 }}>
+                <AdminsTab/>
               </motion.div>
             )}
           </AnimatePresence>

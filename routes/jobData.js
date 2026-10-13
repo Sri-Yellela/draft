@@ -13,6 +13,7 @@
 //                     only after a dry run whose count matches (409 otherwise, A58's pattern);
 //   says what it cannot undo  a row that ATTACHED to an existing posting donated its blank-filling
 //                     fields to that row, and a revert does not take them back.
+import { actorOf, actorUserId, actorRef } from "../services/actor.js";
 import express, { Router } from "express";
 import crypto from "node:crypto";
 import { ingestJob, previewIngest } from "../services/jobs/jobGateway.js";
@@ -115,8 +116,8 @@ export function createJobDataRouter(db, requireAdmin) {
     if (!valid.length) return res.status(400).json({ ...base, applied: false, error: "no_valid_rows" });
 
     const out = db.transaction(() => {
-      const batchId = db.prepare("INSERT INTO job_import_batches (admin_user_id, rows_in, refused, notes) VALUES (?, ?, ?, ?)")
-        .run(req.user?.id ?? null, parsed.length, refused.length, `by ${req.user?.username ?? "admin"}`).lastInsertRowid;
+      const batchId = db.prepare("INSERT INTO job_import_batches (admin_user_id, actor, rows_in, refused, notes) VALUES (?, ?, ?, ?, ?)")
+        .run(actorUserId(req), actorRef(req), parsed.length, refused.length, `by ${actorOf(req).label}`).lastInsertRowid;
       let inserted = 0, attached = 0, held = 0;
       for (const v of valid) {
         const r = ingestJob(db, { job: v.job, origin: "admin_import", batchId, searchQuery: "admin_import",

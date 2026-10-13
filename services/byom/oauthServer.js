@@ -151,8 +151,17 @@ export function validateAuthorize(db, q = {}, { resource }) {
   return { client, redirectUri, scope, codeChallenge: String(q.code_challenge), resource, state: q.state ?? null };
 }
 
+/**
+ * ⛔ D95: is this users row the legacy admin? An admin identity never holds a connection, a code or a token — the
+ * consent screen refuses it, and every door below refuses it again, so an older grant stops working too.
+ */
+export function isAdminUser(db, userId) {
+  try { return !!db.prepare("SELECT is_admin FROM users WHERE id = ?").get(userId)?.is_admin; } catch { return false; }
+}
+
 /** The user said Allow: one connection per (user, client), its scope widened to what was granted, and a code. */
 export function issueCode(db, { userId, client, redirectUri, scope, codeChallenge, resource }) {
+  if (isAdminUser(db, userId)) throw new OAuthError("access_denied", "This is an administrator account. Connectors use a personal account.");
   const existing = db.prepare("SELECT id FROM oauth_connections WHERE user_id = ? AND client_id = ? AND revoked_at IS NULL").get(userId, client.client_id);
   const connectionId = existing?.id ?? db.prepare("INSERT INTO oauth_connections (user_id, client_id, scope) VALUES (?,?,?)")
     .run(userId, client.client_id, scope).lastInsertRowid;
@@ -196,6 +205,9 @@ export function tokenGrant(db, body = {}, { resource }) {
       const row = db.prepare(`SELECT c.*, oc.client_id, oc.revoked_at AS conn_revoked FROM oauth_codes c
         JOIN oauth_connections oc ON oc.id = c.connection_id WHERE c.code_hash = ?`).get(hashSecret(body.code ?? ""));
       if (!row || row.client_id !== client.client_id) return fail(new OAuthError("invalid_grant", "The authorization code is not valid."));
+      if (isAdminUser(db, db.prepare("SELECT user_id FROM oauth_connections WHERE id = ?").pluck().get(row.connection_id))) {
+        return fail(new OAuthError("invalid_grant", "This is an administrator account. Connectors use a personal account."));
+      }
       if (row.used_at) {
         revokeConnectionTokens(db, row.connection_id);
         return fail(new OAuthError("invalid_grant", "The authorization code was already used; its tokens are revoked."));
@@ -213,6 +225,9 @@ export function tokenGrant(db, body = {}, { resource }) {
       const row = db.prepare(`SELECT t.*, oc.client_id, oc.revoked_at AS conn_revoked FROM oauth_tokens t
         JOIN oauth_connections oc ON oc.id = t.connection_id WHERE t.token_hash = ? AND t.kind = 'refresh'`).get(hashSecret(body.refresh_token ?? ""));
       if (!row || row.client_id !== client.client_id) return fail(new OAuthError("invalid_grant", "The refresh token is not valid."));
+      if (isAdminUser(db, db.prepare("SELECT user_id FROM oauth_connections WHERE id = ?").pluck().get(row.connection_id))) {
+        return fail(new OAuthError("invalid_grant", "This is an administrator account. Connectors use a personal account."));
+      }
       if (row.revoked_at) {
         // A rotated-out refresh token used again: someone holds a copy. Stop the whole connection.
         revokeConnectionTokens(db, row.connection_id);
@@ -250,6 +265,7 @@ export function verifyAccessToken(db, token, { resource }) {
     WHERE t.token_hash = ? AND t.kind = 'access'`).get(hashSecret(token));
   if (!row || row.revoked_at || row.conn_revoked || row.expires_at <= now()) return null;
   if (!sameResource(row.resource, resource)) return null;
+  if (isAdminUser(db, row.user_id)) return null;   // ⛔ D95: an admin identity's token is never honoured
   // ⭐ D88 (39d): a suspended account's connected apps stop working with it.
   try { if (db.prepare("SELECT status FROM users WHERE id = ?").get(row.user_id)?.status === "suspended") return null; } catch { /* no status column */ }
   db.prepare("UPDATE oauth_connections SET last_used_at = unixepoch() WHERE id = ?").run(row.connection_id);

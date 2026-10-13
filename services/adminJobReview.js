@@ -17,6 +17,8 @@
 // EVERY WRITE IS LOGGED WITH THE VALUE IT REPLACED (admin_audit_log, migration 119), and the newest
 // change to a posting can be undone from that record.
 
+import { auditActorColumns } from "./actor.js";
+
 export const JOB_REVIEW_ACTION = "job_review.reassign";
 export const JOB_REVIEW_UNDO = "job_review.undo";
 
@@ -84,9 +86,10 @@ export function reassignJob(db, { jobId, roleKey, domainProfileId = null, adminU
   let logId;
   db.transaction(() => {
     writeState(db, jobId, after);
-    logId = db.prepare(`INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json)
-                        VALUES (?, ?, ?, ?, ?)`)
-      .run(adminUserId, JOB_REVIEW_ACTION, jobId, JSON.stringify(before), JSON.stringify({ ...after, impact })).lastInsertRowid;
+    const a = auditActorColumns(adminUserId);
+    logId = db.prepare(`INSERT INTO admin_audit_log (admin_user_id, actor_kind, actor, action, target, before_json, after_json)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run(a.admin_user_id, a.actor_kind, a.actor, JOB_REVIEW_ACTION, jobId, JSON.stringify(before), JSON.stringify({ ...after, impact })).lastInsertRowid;
   })();
   return { ok: true, jobId, roleKey, domainProfileId: after.domainProfileId, logId: Number(logId), impact };
 }
@@ -110,8 +113,9 @@ export function undoJobReview(db, logId, { adminUserId = null } = {}) {
   db.transaction(() => {
     writeState(db, row.target, before);
     db.prepare("UPDATE admin_audit_log SET undone_at = unixepoch() WHERE id = ?").run(logId);
-    db.prepare(`INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json)
-                VALUES (?, ?, ?, ?, ?)`).run(adminUserId, JOB_REVIEW_UNDO, row.target, JSON.stringify(current), JSON.stringify({ ...before, undoes: logId }));
+    const a = auditActorColumns(adminUserId);
+    db.prepare(`INSERT INTO admin_audit_log (admin_user_id, actor_kind, actor, action, target, before_json, after_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?)`).run(a.admin_user_id, a.actor_kind, a.actor, JOB_REVIEW_UNDO, row.target, JSON.stringify(current), JSON.stringify({ ...before, undoes: logId }));
   })();
   return { ok: true, jobId: row.target, restored: before };
 }

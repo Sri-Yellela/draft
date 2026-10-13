@@ -103,7 +103,8 @@ test("(a) the route: preview, typed confirm, sessions revoked BEFORE the cascade
   const start = at(server, 'app.delete("/api/admin/users/:id"');
   const route = server.slice(start, at(server, "\napp.", start + 10));
   assert.doesNotMatch(route, /DELETE FROM users/, "the raw delete bypassed files, sessions and the system refusal");
-  assert.match(route, /checkAdminDeleteConfirmed\(db, id, \{ actorId: req\.user\.id, confirmUsername \}\)/);
+  // D95: the actor is a coded identity (an admin account, or the legacy users row) — never a bare req.user.id.
+  assert.match(route, /checkAdminDeleteConfirmed\(db, id, \{ actorId: actorOf\(req\), confirmUsername \}\)/);
   assert.ok(route.indexOf("revokeAllUserSessions(id") < route.indexOf("adminDeleteUser("),
     "the sealed store is found through rows the cascade removes — revoke first");
   assert.match(route, /removeDataFiles\(DATA_DIR, files\)/);
@@ -113,10 +114,11 @@ test("(a) the route: preview, typed confirm, sessions revoked BEFORE the cascade
 test("(a) the UI hides Delete for the system account and arms the delete only with the typed username", () => {
   const ui = code(read("client/src/panels/AdminPanel.jsx"));
   assert.match(ui, /export const isSystemAccount = \(u\) => u\?\.id === 0 \|\| u\?\.username === "system"/);
-  // D88 (39d): Delete is on a person's page (panels/adminPeople.jsx), hidden for an admin or the system account
-  // (the server marks `system` with the same rule), and it opens the same typed-username dialog below.
+  // D88 (39d): Delete is on a person's page (panels/adminPeople.jsx), hidden for the system account (the server marks
+  // `system` with the same rule), and it opens the same typed-username dialog below. D95: an admin never reaches a
+  // person's page at all (the list excludes it and /api/admin/people/:id answers 404), so only `system` locks.
   const people = code(read("client/src/panels/adminPeople.jsx"));
-  assert.match(people, /const locked = a\.isAdmin \|\| a\.system;/);
+  assert.match(people, /const locked = a\.system;/);
   assert.match(people, /\{!locked && <Btn theme=\{theme\} danger onClick=\{\(\) => onDelete\(id\)\}>Delete the account…<\/Btn>\}/);
   assert.match(ui, /<PeopleUsers theme=\{theme\} onDelete=\{deleteUser\}/);
   assert.match(read("services/userAdmin.js"), /const isSystem = \(u\) => u\?\.id === 0 \|\| u\?\.username === "system";/);

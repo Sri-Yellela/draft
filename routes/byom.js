@@ -9,19 +9,20 @@
 //     with the app's other routes, behind the session.
 // ⛔ An OAuth token is checked only by verifyAccessToken (oauth_tokens); draft's own API never accepts one,
 // and /mcp never accepts a draft session or extension token.
+import { actorOf } from "../services/actor.js";
 import crypto from "node:crypto";
 import express from "express";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { ListToolsRequestSchema, CallToolRequestSchema, McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import {
-  OAuthError, HOSTS, registerClient, validateAuthorize, issueCode, tokenGrant, revokeToken, verifyAccessToken,
+  OAuthError, HOSTS, registerClient, validateAuthorize, issueCode, tokenGrant, revokeToken, verifyAccessToken, isAdminUser,
   listConnections, revokeConnection, protectedResourceMetadata, authorizationServerMetadata, isLoopbackCallback,
 } from "../services/byom/oauthServer.js";
 import { refusalFor, userEnabled, setUserEnabled, usedToday, dailyCap, globalEnabled, enabledFor, hostEnabled, callsLastHour,
   CALLS_PER_HOUR, adminSettings, writeAdminSettings } from "../services/byom/policy.js";
 import { createByomTools, ToolRefusal, LEGACY_TOOL_NAMES } from "../services/byom/tools.js";
-import { renderConsentPage, renderConsentMessage } from "../services/byom/consentPage.js";
+import { renderConsentPage, renderConsentMessage, renderAdminRefusal } from "../services/byom/consentPage.js";
 import { seedReviewerDemo, resetReviewerDemo, DemoError, DEMO_USERNAME } from "../services/reviewerDemo.js";
 import { ensureCimdClient } from "../services/byom/cimd.js";
 import { writeAudit } from "../services/userAdmin.js";
@@ -199,6 +200,15 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
     if (!req.isAuthenticated?.()) {
       return res.redirect(302, `/login?next=${encodeURIComponent(req.originalUrl)}`);
     }
+    // ⛔ D95 (owner 10-12: the Claude connection bound to the admin, because the browser held an admin session):
+    // an administrator account is REFUSED here, plainly, with one way on — a personal account, back to this screen.
+    if (req.user?.isAdmin || isAdminUser(db, req.user?.id)) {
+      req.session.byomConsent = { nonce: crypto.randomUUID(), query: { ...req.query }, at: Date.now(), refused: "admin" };
+      consentHeaders(res, null);
+      let adminWho = null;
+      try { adminWho = db.prepare("SELECT email FROM user_profile WHERE user_id = ?").pluck().get(req.user.id) || null; } catch { adminWho = null; }
+      return res.status(403).type("html").send(renderAdminRefusal({ who: adminWho || req.user?.username || "" }));
+    }
     const host = a.client.host;
     const unavailable = !globalEnabled(db) ? "Writing résumés with your own model is switched off on draft right now."
       : !enabledFor(db, req.user.id) ? "Writing résumés with your own model is switched off for this draft account. draft support can say why."
@@ -221,6 +231,9 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
     consentHeaders(res, null);
     if (!req.isAuthenticated?.() || !pending || pending.nonce !== req.body?.nonce || Date.now() - pending.at > 10 * 60 * 1000) {
       return res.status(400).type("html").send(renderConsentMessage({ title: "This consent screen has expired", body: "Go back to the app and connect draft again." }));
+    }
+    if (pending.refused === "admin" || req.user?.isAdmin || isAdminUser(db, req.user?.id)) {
+      return res.status(403).type("html").send(renderAdminRefusal({ who: req.user?.username || "" }));
     }
     delete req.session.byomConsent;
     let a;
@@ -317,6 +330,14 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
         refusedThenFixed: used.filter(a => a > 1).length,
         closedAfterThree: db.prepare("SELECT COUNT(*) FROM byom_briefs WHERE status = 'exhausted' AND created_at >= ?").pluck().get(week),
       },
+      // ⭐ D86/D88 follow-up (owner 10-12): each live connection by the ACCOUNT'S EMAIL, with the host and when it was
+      // last used — not a bare user id. An admin row is marked, so a connection that should never exist is plain to see.
+      connections: (() => { try { return db.prepare(`SELECT oc.id, oc.user_id AS userId, u.username, COALESCE(u.is_admin, 0) AS isAdmin, p.email, cl.host,
+          oc.created_at AS connectedAt, oc.last_used_at AS lastUsedAt
+        FROM oauth_connections oc JOIN users u ON u.id = oc.user_id LEFT JOIN user_profile p ON p.user_id = oc.user_id
+        LEFT JOIN oauth_clients cl ON cl.client_id = oc.client_id
+        WHERE oc.revoked_at IS NULL ORDER BY COALESCE(oc.last_used_at, oc.created_at) DESC LIMIT 200`).all()
+        .map(r => ({ ...r, isAdmin: !!r.isAdmin, hostLabel: HOSTS[r.host]?.label ?? r.host ?? "unknown" })); } catch { return []; } })(),   // a schema without profiles
       recent: db.prepare(`SELECT a.at, u.username, a.tool, a.outcome, a.detail FROM mcp_audit a LEFT JOIN users u ON u.id = a.user_id
         ORDER BY a.id DESC LIMIT 50`).all().map(r => ({ ...r, tool: toolName(r.tool) })),
     });
@@ -327,9 +348,9 @@ export function createByomRouters({ db, deps, issuerFor, production = true, requ
     const action = req.body?.action;
     if (!["seed", "reset"].includes(action)) return res.status(400).json({ error: "action must be seed or reset" });
     try {
-      const out = action === "reset" ? resetReviewerDemo(db, { actorId: req.user?.id ?? null })
-        : seedReviewerDemo(db, { password: req.body?.password || null, actorId: req.user?.id ?? null });
-      try { writeAudit(db, { actorId: req.user?.id ?? null, action: `reviewer.${action}`, target: `user:${out.userId}`, reason: "reviewer account (D86 §6)" }); } catch { /* audit table absent in a bare test db */ }
+      const out = action === "reset" ? resetReviewerDemo(db, { actorId: actorOf(req) })
+        : seedReviewerDemo(db, { password: req.body?.password || null, actorId: actorOf(req) });
+      try { writeAudit(db, { actorId: actorOf(req), action: `reviewer.${action}`, target: `user:${out.userId}`, reason: "reviewer account (D86 §6)" }); } catch { /* audit table absent in a bare test db */ }
       res.json({ ok: true, ...out, username: DEMO_USERNAME });
     } catch (e) {
       if (e instanceof DemoError) return res.status(409).json({ error: e.message });

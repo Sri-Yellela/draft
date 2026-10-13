@@ -3,6 +3,7 @@
 //   /api/admin/tickets  the queue (Admin → People → Support) — admin only, checked on every route
 // Mail: a new request and every user reply go to support@ (the owner's inbox); an admin's reply goes to the user,
 // Reply-To support@, with a link back to the thread. An internal note sends nothing. ⛔ No model writes a reply (D17).
+import { actorOf } from "../services/actor.js";
 import express from "express";
 import {
   openTicket, userTickets, userTicket, userReply, ticketQueue, adminTicket, adminReply, setTicketFields,
@@ -51,8 +52,8 @@ export function createSupportRouters({ db, requireAuth, requireAdmin, sendEmail,
       const internal = req.body?.internal === true;
       const solve = req.body?.solve === true && !internal;
       const t = adminTicket(db, tid(req));
-      adminReply(db, { ticketId: t.id, actorId: req.user.id, body: req.body?.body, internal, solve });
-      writeAudit(db, { actorId: req.user.id, action: internal ? "ticket.note" : "ticket.reply", target: `user:${t.userId}`,
+      adminReply(db, { ticketId: t.id, actorId: actorOf(req), body: req.body?.body, internal, solve });
+      writeAudit(db, { actorId: actorOf(req), action: internal ? "ticket.note" : "ticket.reply", target: `user:${t.userId}`,
         after: { ticket: t.id, solved: solve } });
       let mailed = false;
       if (!internal && t.email) {
@@ -69,7 +70,7 @@ export function createSupportRouters({ db, requireAuth, requireAdmin, sendEmail,
       const t = adminTicket(db, tid(req));
       const { status, priority, assignee } = req.body || {};
       const out = setTicketFields(db, { ticketId: t.id, status, priority, assignee: assignee === undefined ? undefined : (assignee == null ? null : Number(assignee)) });
-      writeAudit(db, { actorId: req.user.id, action: "ticket.update", target: `user:${t.userId}`,
+      writeAudit(db, { actorId: actorOf(req), action: "ticket.update", target: `user:${t.userId}`,
         before: { ticket: t.id, status: out.before.status, priority: out.before.priority }, after: { ticket: t.id, status: out.after.status, priority: out.after.priority } });
       res.json({ ok: true });
     } catch (e) { fail(res, e); }

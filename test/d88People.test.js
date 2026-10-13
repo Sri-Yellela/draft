@@ -128,13 +128,14 @@ test("D88 · the list: the system account is never listed; search and filters; t
   setStatus(db, { userId: 3, status: "suspended", reason: REASON, actorId: 1 });
   setOverride(db, { userId: 2, featureKey: "draft_slots", value: 4, reason: REASON, actorId: 1 });
   const all = listPeople(db, {});
-  assert.deepEqual(all.rows.map(r => r.username).sort(), ["ada", "admin", "grace"]);
-  assert.deepEqual(all.counts, { total: 3, activeWeek: 0, suspended: 1, withOverride: 1 });
+  // ⛔ D95 (owner 10-12): the list is USER accounts only — the legacy admin row is neither listed nor counted.
+  assert.deepEqual(all.rows.map(r => r.username).sort(), ["ada", "grace"]);
+  assert.deepEqual(all.counts, { total: 2, activeWeek: 0, suspended: 1, withOverride: 1 });
   assert.deepEqual(listPeople(db, { q: "lovelace" }).rows.map(r => r.id), [2]);
   assert.deepEqual(listPeople(db, { q: "ada@example" }).rows.map(r => r.id), [2]);
   assert.deepEqual(listPeople(db, { filter: "suspended" }).rows.map(r => r.id), [3]);
   assert.deepEqual(listPeople(db, { filter: "override" }).rows.map(r => r.id), [2]);
-  assert.deepEqual(listPeople(db, { filter: "admins" }).rows.map(r => r.id), [1]);
+  assert.deepEqual(listPeople(db, { filter: "admins" }).rows.map(r => r.id).includes(1), false, "D95: no filter reaches an admin");
   assert.equal(listPeople(db, {}).rows.find(r => r.id === 2).drafts.limit, 4);
 });
 

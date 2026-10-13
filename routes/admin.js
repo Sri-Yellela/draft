@@ -2,6 +2,7 @@
 // (The "SCRAPING — SCHEDULED FOR REMOVAL" banner that headed this file was stale: per-user scraping
 // was removed at the pivot and this router outlived it. Its last scraping read — scrape_events —
 // went in A50.)
+import { actorUserId, actorRef } from "../services/actor.js";
 import { Router } from "express";
 import { getTrackingStats } from "../services/usageTracker.js";
 import { pendingCount as sinkPendingCount, sinkPath } from "../services/trackingFailureSink.js";
@@ -673,14 +674,14 @@ export function createAdminRouter(db) {
         monthly_resumes=?, monthly_ats_scores=?, monthly_job_scrapes=?,
         monthly_pdf_exports=?, monthly_apply_runs=?, monthly_token_budget=?,
         daily_resumes=?, daily_job_scrapes=?, notes=?,
-        updated_at=unixepoch(), updated_by=?
+        updated_at=unixepoch(), updated_by=?, updated_by_actor=?
         WHERE user_id=?`)
       .run(
         monthly_resumes ?? null, monthly_ats_scores ?? null,
         monthly_job_scrapes ?? null, monthly_pdf_exports ?? null,
         monthly_apply_runs ?? null, monthly_token_budget ?? null,
         daily_resumes ?? null, daily_job_scrapes ?? null,
-        notes ?? null, req.user.id, userId
+        notes ?? null, actorUserId(req), actorRef(req), userId
       );
       res.json(db.prepare("SELECT * FROM user_limits WHERE user_id=?").get(userId));
     } catch(e) { res.status(500).json({ error: e.message }); }

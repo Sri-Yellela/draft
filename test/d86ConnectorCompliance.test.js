@@ -309,6 +309,9 @@ test("⛔ D86 DR-13: the consent screen carries the AI-assistance notice and say
 test("⛔ D88 × D86: an admin's per-user cap and per-user switch-off are ENFORCED by the connector, not only shown", () => {
   const { db, tools } = v1();
   for (const id of ["119_", "155_"]) db.exec(MIGRATIONS.find(m => m.id.startsWith(id)).sql);
+  // the columns migration 159 (D95) adds to these two tables: every admin write names its actor's kind
+  db.exec(`ALTER TABLE admin_audit_log ADD COLUMN actor_kind TEXT; ALTER TABLE admin_audit_log ADD COLUMN actor TEXT;
+    ALTER TABLE user_entitlement_overrides ADD COLUMN set_by_actor TEXT; ALTER TABLE user_entitlement_overrides ADD COLUMN revoked_by_actor TEXT;`);
   db.prepare("INSERT INTO app_settings (key, value) VALUES ('byom_enabled', '1')").run();
   db.prepare("UPDATE users SET byom_enabled = 1").run();
   assert.equal(dailyCap(db, 1), 50, "the system default");

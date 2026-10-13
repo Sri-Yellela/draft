@@ -12,6 +12,8 @@
 // sends no email. ⛔ No model writes a reply (D17). ⛔ No attachments in v1 — they carry personal data.
 // The context attached to a ticket is the account id, the app version and the page — never a form answer.
 
+import { toActor } from "./actor.js";
+
 export const TICKET_CATEGORIES = Object.freeze({
   account: "My account",
   resumes: "Résumés and drafts",
@@ -100,7 +102,7 @@ export function ticketQueue(db, { status = "open", category = "" } = {}) {
     else if (TICKET_STATUSES[status]) { where.push("t.status = ?"); args.push(status); }
   }
   if (category && TICKET_CATEGORIES[category]) { where.push("t.category = ?"); args.push(category); }
-  const rows = db.prepare(`SELECT t.id, t.user_id, u.username, t.category, t.subject, t.status, t.priority, t.assignee, a.username AS assignee_name,
+  const rows = db.prepare(`SELECT t.id, t.user_id, u.username, t.category, t.subject, t.status, t.priority, t.assignee, t.assignee_actor, COALESCE(a.username, (SELECT 'admin ' || x.email FROM admin_accounts x WHERE 'admin:' || x.public_id = t.assignee_actor)) AS assignee_name,
       t.created_at, t.updated_at, t.due_at, t.solved_at,
       (SELECT m.author_type FROM ticket_messages m WHERE m.ticket_id = t.id AND m.internal = 0 ORDER BY m.id DESC LIMIT 1) AS last_from
     FROM tickets t JOIN users u ON u.id = t.user_id LEFT JOIN users a ON a.id = t.assignee
@@ -119,7 +121,7 @@ export function adminTicket(db, ticketId) {
   const t = db.prepare(`SELECT t.*, u.username, p.email FROM tickets t JOIN users u ON u.id = t.user_id
     LEFT JOIN user_profile p ON p.user_id = t.user_id WHERE t.id = ?`).get(ticketId);
   if (!t) throw new TicketError("No such ticket.", 404);
-  const messages = db.prepare(`SELECT m.id, m.author_type, m.body, m.internal, m.created_at, a.username AS author
+  const messages = db.prepare(`SELECT m.id, m.author_type, m.body, m.internal, m.created_at, COALESCE(a.username, (SELECT 'admin ' || x.email FROM admin_accounts x WHERE 'admin:' || x.public_id = m.author_actor)) AS author
     FROM ticket_messages m LEFT JOIN users a ON a.id = m.author_id AND m.author_type = 'admin' WHERE m.ticket_id = ? ORDER BY m.id`).all(ticketId);
   let context = null;
   try { context = JSON.parse(t.context_json || "null"); } catch { /* none */ }
@@ -130,14 +132,15 @@ export function adminTicket(db, ticketId) {
 
 /** An admin writes. A reply waits on the user; an internal note changes nothing the user can see. */
 export function adminReply(db, { ticketId, actorId, body, internal = false, solve = false }) {
+  const by = toActor(actorId);   // D95: an admin account (admin:adm_…) or, before the switch, the legacy users row
   const t = db.prepare("SELECT id, status FROM tickets WHERE id = ?").get(ticketId);
   if (!t) throw new TicketError("No such ticket.", 404);
   const m = clean(body, 8000);
   if (m.length < 2) throw new TicketError("The message is empty.");
   const tm = now();
   db.transaction(() => {
-    db.prepare("INSERT INTO ticket_messages (ticket_id, author_type, author_id, body, internal, created_at) VALUES (?, 'admin', ?, ?, ?, ?)")
-      .run(t.id, actorId ?? null, m, internal ? 1 : 0, tm);
+    db.prepare("INSERT INTO ticket_messages (ticket_id, author_type, author_id, author_actor, body, internal, created_at) VALUES (?, 'admin', ?, ?, ?, ?, ?)")
+      .run(t.id, by.userId, by.ref, m, internal ? 1 : 0, tm);
     if (!internal) {
       db.prepare("UPDATE tickets SET status = ?, solved_at = ?, updated_at = ? WHERE id = ?")
         .run(solve ? "solved" : "waiting_on_user", solve ? tm : null, tm, t.id);
@@ -150,11 +153,21 @@ export function setTicketFields(db, { ticketId, status, priority, assignee }) {
   const t = db.prepare("SELECT id, status, priority, assignee, solved_at FROM tickets WHERE id = ?").get(ticketId);
   if (!t) throw new TicketError("No such ticket.", 404);
   const next = { status: status ?? t.status, priority: priority ?? t.priority, assignee: assignee === undefined ? t.assignee : assignee };
+  // ⛔ D95: the assignee is an ADMIN — an admin account by its public id (adm_…), or, before the switch, a legacy
+  // is_admin users row by its id. Stored as a coded actor (assignee_actor); the integer column keeps only a users.id.
+  let assigneeActor;
+  if (assignee === undefined) assigneeActor = undefined;
+  else if (assignee == null) assigneeActor = null;
+  else if (/^adm_/.test(String(assignee))) {
+    if (!db.prepare("SELECT 1 FROM admin_accounts WHERE public_id = ? AND disabled_at IS NULL").get(String(assignee))) throw new TicketError("Only an admin can be assigned.");
+    assigneeActor = `admin:${assignee}`; next.assignee = null;
+  } else assigneeActor = `user:${Number(assignee)}`;
   if (!TICKET_STATUSES[next.status]) throw new TicketError("Unknown status.");
   if (!TICKET_PRIORITIES.includes(next.priority)) throw new TicketError("Unknown priority.");
   if (next.assignee != null && !db.prepare("SELECT 1 FROM users WHERE id = ? AND is_admin = 1").get(next.assignee)) throw new TicketError("Only an admin can be assigned.");
   db.prepare("UPDATE tickets SET status = ?, priority = ?, assignee = ?, solved_at = ?, updated_at = unixepoch() WHERE id = ?")
     .run(next.status, next.priority, next.assignee, next.status === "solved" ? (t.status === "solved" ? t.solved_at : now()) : null, t.id);
+  if (assigneeActor !== undefined) db.prepare("UPDATE tickets SET assignee_actor = ? WHERE id = ?").run(assigneeActor, t.id);
   return { before: t, after: next };
 }
 

@@ -15,6 +15,8 @@
 //     it's not, don't need to keep futile ones for volume."* A pass retires every posting past the limit.
 // The policy is one row (board_policy, migration 146) — changed from Admin with no redeploy.
 
+import { toActor } from "../actor.js";
+
 export const DEFAULT_LIMIT_DAYS = 120;
 const DAY = 86400;
 
@@ -38,7 +40,7 @@ export function setPolicy(db, patch = {}, { by = null, now = Math.floor(Date.now
     next.age_limit_days = n;
   }
   db.prepare(`UPDATE board_policy SET age_limit_days = @age_limit_days, age_enforce = @age_enforce, scope_enforce = @scope_enforce,
-              updated_at = @now, updated_by = @by WHERE id = 1`).run({ ...next, now, by });
+              updated_at = @now, updated_by = @by, updated_by_actor = @byActor WHERE id = 1`).run({ ...next, now, by: toActor(by).userId, byActor: toActor(by).ref });
   return readPolicy(db);
 }
 

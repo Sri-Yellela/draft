@@ -112,7 +112,8 @@ export async function api(path, opts = {}) {
   });
   if (r.status === 401) {
     const payload = await r.json().catch(() => ({}));
-    if (path === "/api/auth/login") {
+    // D95: the admin's own sign-in answers 401 for a wrong password too — that is not a user session expiring.
+    if (path === "/api/auth/login" || path.startsWith("/api/admin/auth/")) {
       throw Object.assign(new Error(errorMessage(payload, "Invalid credentials.")), { status: 401, payload });
     }
     // Clear the stale auth context so subsequent requests don't keep sending it.

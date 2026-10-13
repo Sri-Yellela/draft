@@ -4,6 +4,7 @@
 // probes the board and reports what it found; only a second POST with confirm:true AND the state the
 // operator saw (expectState) writes, and only when the board is alive (live or empty). A board that
 // answers 404 is never added. Disabling is reversible (active = 0) and logged.
+import { actorOf } from "../services/actor.js";
 import express, { Router } from "express";
 import { listCompanies, harvestedSuggestions, validateBoard, addCompany, setCompanyActive, ATS_FETCHERS } from "../services/companyList.js";
 import { trancheGate } from "../services/diskGauge.js";
@@ -53,7 +54,7 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
     }
     // D80: the evidence is what the operator saw on the board when they added it.
     const evidence = `admin add ${new Date().toISOString().slice(0, 10)}: ${validation.message}`;
-    const out = addCompany(db, { company, atsType, slug, bucketRole, adminUserId: req.user?.id, evidence });
+    const out = addCompany(db, { company, atsType, slug, bucketRole, adminUserId: actorOf(req), evidence });
     if (!out.ok) return res.status(409).json({ error: out.code === "exists" ? "already_configured" : out.code, company: out.company });
     res.status(201).json({ ok: true, company: out.company, validation,
       note: "Added and active. The next crawl reads it; its postings pass the same dedup and US-only gate as every source." });
@@ -89,7 +90,7 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
     let snapshot;
     try { snapshot = backup("pre-d82-candidates"); }
     catch (e) { return res.status(500).json({ error: "backup_failed", message: e.message }); }
-    const out = approveCandidates(db, plan, { adminUserId: req.user?.id ?? null });
+    const out = approveCandidates(db, plan, { adminUserId: actorOf(req) });
     res.json({ ok: true, backup: snapshot?.filename ?? null, ...out, refused: plan.refused,
       note: "Added and active. Each carries its evidence; Disable on the company list reverses it." });
   });
@@ -97,7 +98,7 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
   router.post("/candidates/reject", (req, res) => {
     const { ids = [], reason = "owner" } = req.body || {};
     if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: "ids_required" });
-    res.json(rejectCandidates(db, ids, { adminUserId: req.user?.id ?? null, reason }));
+    res.json(rejectCandidates(db, ids, { adminUserId: actorOf(req), reason }));
   });
 
   router.post("/candidates/breakers/:source/reset", (req, res) => {
@@ -112,7 +113,7 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
       const disk = gate(1);
       if (!disk.ok) return res.status(507).json({ error: disk.reason, disk });
     }
-    const out = setCompanyActive(db, { id: req.params.id, active: req.body.active, adminUserId: req.user?.id });
+    const out = setCompanyActive(db, { id: req.params.id, active: req.body.active, adminUserId: actorOf(req) });
     if (!out.ok) return res.status(404).json({ error: "not_found" });
     res.json(out);
   });

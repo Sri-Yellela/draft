@@ -6,6 +6,7 @@
 //                     ⭐ D94: failed sends, provider suppressions and the domain's status → services/emailHealth.js.
 //   · appRouter     — the signed-out unsubscribe page (GET and the one-click POST, /u/:token), the user's own
 //                     marketing switch, and Admin → Send a notice (dry run, send, log).
+import { actorOf } from "../services/actor.js";
 import express from "express";
 import { verifySvixSignature } from "../services/emailSuppression.js";
 import { handleEmailEvent, emailHealthSummary, listSuppressions, removeSuppression, undoSuppressionRemoval, TEST_ADDRESSES } from "../services/emailHealth.js";
@@ -65,10 +66,11 @@ export function createEmailRouters({ db, requireAuth, requireAdmin, env = proces
   appRouter.post("/api/admin/notices/send", requireAdmin, express.json(), async (req, res) => {
     const b = req.body || {};
     try {
-      const testTo = b.test === true ? adminEmail(req.user.id) : null;
+      // D95: an admin account's own email; before the switch, the legacy admin row's profile email
+      const testTo = b.test === true ? (req.admin?.email ?? (req.user ? adminEmail(req.user.id) : null)) : null;
       if (b.test === true && !testTo) return res.status(400).json({ error: "Your admin account has no email address to test with." });
       res.json(await sendNotice(db, { audience: b.audience, subject: b.subject, body: b.body, why: b.why, testTo,
-        ceiling: b.ceiling ?? null, adminUserId: req.user.id, env }));
+        ceiling: b.ceiling ?? null, adminUserId: actorOf(req), env }));
     } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
   });
 
@@ -78,7 +80,7 @@ export function createEmailRouters({ db, requireAuth, requireAdmin, env = proces
   appRouter.get("/api/admin/email-health/suppressions", requireAdmin, (req, res) =>
     res.json({ rows: listSuppressions(db, { q: String(req.query.q || "") }) }));
   appRouter.post("/api/admin/email-health/suppressions/remove", requireAdmin, express.json(), (req, res) => {
-    try { res.json(removeSuppression(db, { email: req.body?.email, reason: req.body?.reason, adminUserId: req.user?.id })); }
+    try { res.json(removeSuppression(db, { email: req.body?.email, reason: req.body?.reason, adminUserId: actorOf(req) })); }
     catch (e) { res.status(e.status || 500).json({ error: e.message }); }
   });
   appRouter.post("/api/admin/email-health/suppressions/undo", requireAdmin, express.json(), (req, res) => {

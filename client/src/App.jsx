@@ -9,7 +9,7 @@ import { useInactivityLogout }   from "./hooks/useInactivityLogout.js";
 import { useSyncEvents }         from "./hooks/useSyncEvents.js";
 import AuthScreen                from "./components/AuthScreen.jsx";
 import AdminLayout               from "./components/AdminLayout.jsx";
-import AdminLoginPage            from "./pages/AdminLoginPage.jsx";
+import AdminLoginPage, { AdminSetPasswordPage } from "./pages/AdminLoginPage.jsx";
 import DBInspector               from "./pages/admin/DBInspector.jsx";
 import TopBar, { TabLabel }      from "./components/TopBar.jsx";
 import AppShell                  from "./components/AppShell.jsx";
@@ -88,17 +88,19 @@ function UserRouteGate({ authStatus, authUser, children }) {
   return children;
 }
 
-function AdminRouteGate({ authStatus, authUser, children }) {
-  if (authStatus === "unknown") return null;
-  if (authStatus !== "authenticated" || !authUser || !authUser.isAdmin) {
-    return <Navigate to="/admin/login" replace/>;
-  }
-  return children;
+// ⛔ D95: the console opens for an ADMIN ACCOUNT's session (GET /api/admin/auth/me) — and, only while the switch is
+// off, for the legacy admin users row.
+function AdminRouteGate({ authStatus, authUser, adminSession, children }) {
+  if (authStatus === "unknown" || !adminSession) return null;
+  if (adminSession.authenticated) return children;
+  if (!adminSession.enforced && authStatus === "authenticated" && authUser?.isAdmin) return children;
+  return <Navigate to="/admin/login" replace/>;
 }
 
 // ⭐ D86: after sign-in, back to a host's consent screen — lib/oauthNext.js says which `next` is honoured.
-function PublicLoginRoute({ authStatus, authUser, children, admin = false }) {
+function PublicLoginRoute({ authStatus, authUser, children, admin = false, adminSession = null }) {
   if (authStatus === "unknown") return null;
+  if (admin && adminSession?.authenticated) return <Navigate to="/admin" replace/>;   // D95: already an admin here
   const next = typeof window !== "undefined" ? oauthNext(window.location.search) : null;
   if (authStatus === "authenticated" && authUser && next) {
     window.location.replace(next);
@@ -646,13 +648,25 @@ function AppRouter() {
   const { theme } = useTheme();
   const [authUser,    setAuthUser]    = useState(null);
   const [authStatus,  setAuthStatus]  = useState("unknown");
+  // ⛔ D95: the admin's own session, separate from the person's — never the same state, never the same cookie.
+  const [adminSession, setAdminSession] = useState(null);
+  const loadAdminSession = useCallback(() => {
+    api("/api/admin/auth/me").then(setAdminSession).catch(() => setAdminSession({ authenticated: false, enforced: false, legacyAvailable: true }));
+  }, []);
+  useEffect(() => { loadAdminSession(); }, [loadAdminSession]);
 
   const handleAdminLogout = useCallback(async () => {
+    if (adminSession?.authenticated) {
+      try { await api("/api/admin/auth/logout", { method:"POST" }); } catch {}
+      setAdminSession(s => ({ ...(s || {}), authenticated: false, admin: null }));
+      return;
+    }
     try { await api("/api/auth/logout", { method:"POST" }); } catch {}
     setAuthContext("");
     setAuthUser(null);
     setAuthStatus("unauthenticated");
-  }, []);
+  }, [adminSession]);
+  const adminDisplay = adminSession?.authenticated ? { username: adminSession.admin?.email, kind: "admin" } : authUser;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -758,25 +772,31 @@ function AppRouter() {
 
         {/* Admin login — redirect if already authenticated */}
         <Route path="/admin/login" element={
-          <PublicLoginRoute authStatus={authStatus} authUser={authUser} admin>
-            <AdminLoginPage onLogin={(user) => {
-              setAuthUser(user);
-              setAuthStatus("authenticated");
-            }}/>
+          <PublicLoginRoute authStatus={authStatus} authUser={authUser} admin adminSession={adminSession}>
+            <AdminLoginPage session={adminSession}
+              onAdminLogin={(admin) => setAdminSession(s => ({ ...(s || {}), authenticated: true, admin }))}
+              onLegacyLogin={(user) => {
+                setAuthUser(user);
+                setAuthStatus("authenticated");
+              }}/>
           </PublicLoginRoute>
+        }/>
+        {/* ⛔ D95: the one-time link sets the admin's password and signs the ADMIN in (not a person). */}
+        <Route path="/admin/set-password" element={
+          <AdminSetPasswordPage onAdminLogin={(admin) => { setAdminSession(s => ({ ...(s || {}), authenticated: true, admin })); window.location.replace("/admin"); }}/>
         }/>
 
         {/* Admin dashboard — requires auth + isAdmin */}
         <Route path="/admin" element={
-          <AdminRouteGate authStatus={authStatus} authUser={authUser}>
-            <AdminLayout user={authUser} onLogout={handleAdminLogout}/>
+          <AdminRouteGate authStatus={authStatus} authUser={authUser} adminSession={adminSession}>
+            <AdminLayout user={adminDisplay} onLogout={handleAdminLogout}/>
           </AdminRouteGate>
         }/>
 
         {/* Admin DB Inspector */}
         <Route path="/admin/db" element={
-          <AdminRouteGate authStatus={authStatus} authUser={authUser}>
-            <AdminLayout user={authUser} onLogout={handleAdminLogout}><DBInspector/></AdminLayout>
+          <AdminRouteGate authStatus={authStatus} authUser={authUser} adminSession={adminSession}>
+            <AdminLayout user={adminDisplay} onLogout={handleAdminLogout}><DBInspector/></AdminLayout>
           </AdminRouteGate>
         }/>
 
