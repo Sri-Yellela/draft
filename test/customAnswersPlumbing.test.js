@@ -38,7 +38,9 @@ test("087 is appended after 086 and does not disturb custom_answers", () => {
   assert.ok(ids.indexOf("087_user_profile_answer_overrides") > ids.indexOf("086_user_profile_sponsorship_need"));
   assert.equal(new Set(ids).size, ids.length, "migration ids must be unique");
   // The original column is untouched — an existing store keeps resolving after the upgrade.
-  const touchingAnswers = MIGRATIONS.filter(m => /custom_answers/.test(m.sql));
+  // A migration that WRITES or reshapes the column — 164 only reads it (to date the existing answers) and adds
+  // custom_answers_acknowledged_at, a different column.
+  const touchingAnswers = MIGRATIONS.filter(m => /(?:ADD|DROP|RENAME)\s+COLUMN\s+custom_answers\b|SET\s+custom_answers\s*=/i.test(m.sql));
   assert.deepEqual(touchingAnswers.map(m => m.id), ["060_user_profile_extended"]);
 });
 

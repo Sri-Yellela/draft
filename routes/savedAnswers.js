@@ -16,6 +16,10 @@ import {
 import { buildPacketEntries } from "../services/applyGatePacket.js";
 import { buildStructuredResume } from "../services/resumeFormatter.js";
 import { SAVED_ANSWER_LIMITS, workHistoryCompanies } from "../shared/savedAnswers.js";
+import {
+  acknowledgeAnswer, changeAnswer, editLifecycleAnswer, deleteLifecycleAnswer, listLifecycle, reviewDueOf, recordReview,
+  packetLifecycleAnswers, lifecycleInputs,
+} from "../services/answerLifecycle.js";
 
 export function createSavedAnswersRouter({ db, requireAuth, buildAutofillPayload = null }) {
   const router = Router();
@@ -25,10 +29,26 @@ export function createSavedAnswersRouter({ db, requireAuth, buildAutofillPayload
     if (!e.code) throw e;
     res.status(e.code === "not_found" ? 404 : 400).json({ error: e.code });
   };
+  // Migration 164: the label-only answers count as acknowledged from the migration (or the last review).
+  const legacyAcknowledgedAt = (userId) => {
+    const s = profileOf(userId).custom_answers_acknowledged_at;
+    return s == null ? null : new Date(Number(s) * 1000).toISOString();
+  };
 
-  /** Settings → Saved answers: every entry, what kind of question it is, and the limits. */
+  /**
+   * Settings → Saved answers: every entry, what kind of question it is, and the limits.
+   * ⭐ D96 §4: `entries` are the label-only answers (acknowledged, source legacy, dated by migration 164);
+   * `lifecycle` the keyed answers with their state, date and history; `reviewDue` the 90-day reminder or null.
+   */
   router.get("/api/saved-answers", requireAuth, (req, res) => {
-    res.json({ entries: listEntries(storeOf(req.user.id)), limits: SAVED_ANSWER_LIMITS });
+    const userId = req.user.id;
+    const legacyAt = legacyAcknowledgedAt(userId);
+    res.json({
+      entries: listEntries(storeOf(userId)).map(e => ({ ...e, state: "acknowledged", source: "legacy", acknowledgedAt: legacyAt })),
+      lifecycle: listLifecycle(db, userId),
+      reviewDue: reviewDueOf(db, userId),
+      limits: SAVED_ANSWER_LIMITS,
+    });
   });
 
   /** Edit one entry, or rename it. Body: { question, answer, previousQuestion?, company? } */
@@ -110,6 +130,80 @@ export function createSavedAnswersRouter({ db, requireAuth, buildAutofillPayload
     db.prepare("UPDATE user_profile SET custom_answers=?, custom_answer_overrides=? WHERE user_id=?")
       .run(JSON.stringify(store.answers), JSON.stringify(store.overrides), userId);
   };
+
+  // ── D96 §4 · THE LIFECYCLE — the on-page panel (lane J4, the extension's own token) and Settings ─────────
+  // Each takes the question AS THE PAGE SHOWS IT: { question, widgetKind, options? } is the key
+  // (shared/answerKey.js); `company` only resolves a {company} template in the label-only store.
+  const lifecycleError = (res, e) => {
+    if (!e.code) throw e;
+    const status = e.code === "not_found" ? 404 : e.code === "never_remembered" ? 422 : e.code === "lifecycle_unavailable" ? 503 : 400;
+    res.status(status).json({ error: e.code, ...(e.reason ? { reason: e.reason } : {}) });
+  };
+  const jobIdOf = (b) => (b?.jobId == null || b.jobId === "" ? null : String(b.jobId).slice(0, 200));
+
+  /**
+   * Acknowledge — one tick, remembered for every later fill and the Copy sheet (eligibility included).
+   * Body: { question, answer, widgetKind, options?, source?: 'you_typed'|'you_acknowledged', jobId?, company? }
+   * 200 { ok, answer: <row> } · 422 { error: 'never_remembered', reason } · 400 { error }
+   */
+  router.post("/api/saved-answers/acknowledge", requireAuth, (req, res) => {
+    const b = req.body || {};
+    try {
+      res.json({ ok: true, answer: acknowledgeAnswer(db, req.user.id, {
+        question: b.question, answer: b.answer, widgetKind: b.widgetKind, options: b.options ?? null,
+        source: b.source || "you_acknowledged", jobId: jobIdOf(b), company: b.company || null,
+      }) });
+    } catch (e) { lifecycleError(res, e); }
+  });
+
+  /**
+   * Change — the person edited a remembered answer on the page. A history row; the new value is NOT stored
+   * (it serves this application only); the old one stops being auto-used; the next application asks again.
+   * Body: { question, answer (the new value), widgetKind, options?, jobId?, company? }
+   * 200 { ok, stored: false, servesThisApplicationOnly: true, state: 'changed'|'unremembered', ...row }
+   */
+  router.post("/api/saved-answers/change", requireAuth, (req, res) => {
+    const b = req.body || {};
+    try {
+      res.json({ ok: true, ...changeAnswer(db, req.user.id, {
+        question: b.question, answer: b.answer, widgetKind: b.widgetKind, options: b.options ?? null,
+        jobId: jobIdOf(b), company: b.company || null,
+      }) });
+    } catch (e) { lifecycleError(res, e); }
+  });
+
+  /** Settings → Edit a keyed answer: typed in Settings, so stored and acknowledged. Body: { answer } */
+  router.put("/api/saved-answers/lifecycle/:id", requireAuth, (req, res) => {
+    try { res.json({ ok: true, answer: editLifecycleAnswer(db, req.user.id, req.params.id, { answer: req.body?.answer }) }); }
+    catch (e) { lifecycleError(res, e); }
+  });
+
+  /** Delete a keyed answer and its history — the next fill asks again. */
+  router.delete("/api/saved-answers/lifecycle/:id", requireAuth, (req, res) => {
+    try { res.json(deleteLifecycleAnswer(db, req.user.id, req.params.id)); }
+    catch (e) { lifecycleError(res, e); }
+  });
+
+  /**
+   * What a fill may use NOW, in the packet's savedAnswers shape — for the panel after an acknowledgement, without
+   * re-preparing. ?company= expands {company} templates. 200 { savedAnswers: [...] }
+   */
+  router.get("/api/saved-answers/fillable", requireAuth, (req, res) => {
+    const company = typeof req.query?.company === "string" && req.query.company.trim() ? req.query.company.trim().slice(0, 200) : null;
+    const { records, legacyAcknowledgedAt: legacyAt } = lifecycleInputs(db, req.user.id);
+    res.json({ savedAnswers: packetLifecycleAnswers({ legacy: resolveFor(storeOf(req.user.id), company), records, legacyAcknowledgedAt: legacyAt }) });
+  });
+
+  /** The 90-day review reminder: 200 { reviewDue: null | { due, lastReviewedAt, dueAt, categories, count, showInPanel } } */
+  router.get("/api/saved-answers/review", requireAuth, (req, res) => {
+    res.json({ reviewDue: reviewDueOf(db, req.user.id) });
+  });
+
+  /** Body: { action: 'confirmed' (Still right — reviewed now) | 'dismissed' (the panel showed it once) } */
+  router.post("/api/saved-answers/review", requireAuth, (req, res) => {
+    try { res.json({ ok: true, reviewDue: recordReview(db, req.user.id, req.body?.action) }); }
+    catch (e) { lifecycleError(res, e); }
+  });
 
   /**
    * "Save this answer for next time?" — for a question that STOPPED a fill. Called by the review
