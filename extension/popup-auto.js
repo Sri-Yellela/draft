@@ -30,7 +30,7 @@ function row(c) {
 async function load() {
   const r = await ask({ type: 'AUTO_CAPTURES' });
   const caps = r?.captures || [];
-  head.textContent = r?.disabled ? 'Automatic capture is paused by draft' : `Captured today: ${caps.length}`;
+  head.textContent = r?.disabled ? 'Automatic capture is paused by draft' : `Captured automatically today: ${caps.length}`;
   list.textContent = '';
   if (!r) { list.append(Object.assign(document.createElement('li'), { textContent: 'Sign in to see them.' })); return; }
   for (const c of caps) list.append(row(c));

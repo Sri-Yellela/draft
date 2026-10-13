@@ -1,9 +1,12 @@
 import {
   runGatedHandoff, clearPacketForTab, sweepExpiredPackets, applyOverlayEdit,
   loadBatchForTab, clearBatchForTab, portalQueueFor,
-  prepareAndFill, recordSubmitted, copySheetFor, pageMatchFor, packetFillsOrigin,
+  prepareAndFill, recordSubmitted, copySheetFor, pageMatchFor, packetFillsOrigin, overlayTheme,
 } from './gated-handoff.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
+// ⭐ One job per tab across every stage of its application, and the Copy sheet as an in-page panel (owner, 10-12).
+import { bindTab, bindingForTab, clearBinding, setBindingDock, bindingLine } from './tabBinding.js';
+import { renderCopySheetPanel } from './copy-sheet-panel.js';
 import { authedFetch, getIdentity, cachedIdentity, disconnect } from './auth.js';
 import { captureResultFrom } from './captureResult.js';
 import {
@@ -101,6 +104,11 @@ async function captureActiveTab(tab) {
   }
 
   const result = await importCapturedJob({ url: extracted.url, text: extracted.text });
+  // ⭐ THE TAB BINDING: this tab is now on this job — whatever stage of the application it moves to next, and even
+  // where Workday changes steps without changing the address. Session-only; cleared when the tab closes.
+  if (result?.success && result.jobId) {
+    await bindTab(tab, { jobId: result.jobId, title: extracted.title || null, company: extracted.company || null, via: 'capture' }).catch(() => null);
+  }
   await reportCapture(tab.id, result);
   return result;
 }
@@ -146,8 +154,14 @@ async function popupContext(tab) {
     // on-demand company notice (§8 row 10). Asked only on the press, like the rest of this.
     origin ? pageMatchFor(RESUME_MASTER_URL, tab) : Promise.resolve(null),
   ]);
+  // ⭐ A posting draft recognises binds the tab too; a DIFFERENT recognised posting replaces the binding.
+  if (board?.posting?.known && board.posting.jobId) {
+    await bindTab(tab, { jobId: board.posting.jobId, title: board.posting.title, company: board.posting.company, via: 'recognised' }).catch(() => null);
+  }
+  const binding = await bindingForTab(tab);
   return {
     url, origin,
+    binding: binding ? { jobId: binding.jobId, title: binding.title, company: binding.company, via: binding.via, boundAt: binding.boundAt } : null,
     posting: board?.posting || null,
     ats: board?.ats || null,
     recent: board?.recent || [],
@@ -247,6 +261,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .then(([tab]) => recordSubmitted({ serverUrl: RESUME_MASTER_URL, tab }))
       .then(sendResponse)
       .catch(() => sendResponse({ ok: false, message: 'Could not record it.' }));
+    return true;
+  }
+
+  // ⭐ The Copy sheet as a PANEL IN THE PAGE (owner 10-12: the popup closed on every paste, and had no close). The
+  // popup's press is the gesture that grants activeTab; the panel is drawn under it and the popup closes itself.
+  if (message.type === 'COPY_SHEET_PANEL') {
+    chrome.tabs.query({ active: true, currentWindow: true })
+      .then(async ([tab]) => {
+        const sheet = await copySheetFor({ serverUrl: RESUME_MASTER_URL, tab });
+        const bound = await bindingForTab(tab);
+        const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: renderCopySheetPanel,
+          args: [{ ...sheet, dock: bound?.dock || 'right' }, await overlayTheme()] });
+        return { ok: !!r?.result?.rendered, rows: r?.result?.rows ?? 0, message: sheet?.message || null };
+      })
+      .then(sendResponse)
+      .catch(() => sendResponse({ ok: false, message: 'Open the popup on the application page, then press Copy sheet.' }));
+    return true;
+  }
+  // The panel's dock side, remembered with the tab's binding (no storage key of its own).
+  if (message.type === 'COPY_SHEET_DOCK' && sender?.tab?.id) {
+    void setBindingDock(sender.tab.id, message.side);
+    sendResponse({ ok: true });
+    return true;
+  }
+  // "Unlink this page" — forget which job this tab is on.
+  if (message.type === 'UNBIND_TAB') {
+    chrome.tabs.query({ active: true, currentWindow: true })
+      .then(([tab]) => clearBinding(tab?.id)).then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+  // ⭐ "N today · M already on your board" — distinct jobs captured in 24 h by ANY route. Account-level, like the ring.
+  if (message.type === 'CAPTURED_TODAY') {
+    authedFetch(RESUME_MASTER_URL, '/api/import/today')
+      .then(r => (r && r.ok ? r.json() : null)).then(sendResponse).catch(() => sendResponse(null));
     return true;
   }
 
@@ -356,6 +404,9 @@ async function handleGatedHandoff() {
   void sweepExpiredPackets();
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const result = await runGatedHandoff({ serverUrl: RESUME_MASTER_URL, tab });
+  // ⭐ When the tab's binding is what told draft which job this is, the fill says so.
+  const bound = await bindingForTab(tab).catch(() => null);
+  if (bound && result?.ok) result.message = `${bindingLine(bound)}. ${result.message || ''}`.trim();
   await reportHandoff(tab, result);
   return result;
 }
@@ -568,6 +619,7 @@ chrome.permissions?.onRemoved?.addListener(async (removed) => {
 chrome.tabs.onRemoved.addListener((tabId) => {
   void clearPacketForTab(tabId);
   void clearBatchForTab(tabId);
+  void clearBinding(tabId);
 });
 
 // And a sweep for the rest: a handoff the candidate walked away from leaves a packet holding a home

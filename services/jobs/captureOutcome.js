@@ -59,7 +59,7 @@ function labelOf({ title, company }) {
  *           noActiveProfile?: boolean }} c
  * @returns {{ outcome, matchedExisting, onBoard, reason, message, jobId, link }}
  */
-export function describeCapture(db, { jobId, action, title = null, company = null, noActiveProfile = false }) {
+export function describeCapture(db, { jobId, action, title = null, company = null, noActiveProfile = false, alreadyCaptured = false }) {
   const { state, reason } = boardStateOf(db, jobId);
   if (state === "missing") throw new Error(`describeCapture: no row for ${jobId} — a capture must never be reported without one`);
   const label = labelOf({ title, company });
@@ -73,7 +73,9 @@ export function describeCapture(db, { jobId, action, title = null, company = nul
     message = `In your imports, but NOT on the board: the listing for ${label} has closed.`;
   } else if (matchedExisting) {
     outcome = "attached";
-    message = `This posting was already on the board — ${label} matched a job draft already had, and that one is now in your imports.`;
+    // ⭐ ONE wording everywhere after a capture that matched a board job (owner 10-12) — and a repeat capture
+    // says it was already captured, so the second press is not a new question.
+    message = alreadyCaptured ? `Already captured — ${label} is on your board and in your imports.` : `${label} is on your board and in your imports.`;
   } else {
     outcome = "inserted";
     message = `Added to the board: ${label} — it is in ALL, and in your imports.`;
@@ -81,7 +83,7 @@ export function describeCapture(db, { jobId, action, title = null, company = nul
   // The board is scoped to the ACTIVE job profile; with none, it cannot show anything yet.
   if (noActiveProfile) message += " You have no active job profile yet, so the board cannot show it — create one on Full House.";
   return {
-    outcome, matchedExisting, onBoard: state === "on_board",
+    outcome, matchedExisting, alreadyCaptured: matchedExisting && !!alreadyCaptured, onBoard: state === "on_board",
     reason: state === "held" ? reason : null,
     message, jobId, link: jobLink(jobId),
   };

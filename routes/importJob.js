@@ -4,6 +4,8 @@ import { recentCaptures } from "../services/jobs/captureOutcome.js";
 import { getKnownLogoUrl } from "../shared/companyLogos.js";
 import { atsScorePair } from "../shared/resumeScores.js";
 import { autoCaptureDisabled, autoCaptureBrake, listAutoCaptures, undoAutoCapture } from "../services/jobs/autoCapture.js";
+import { resolvePageJob } from "../services/manualHandoff.js";
+import { pageKeyOf } from "../services/jobPageKey.js";
 
 // Sibling to routes/importedJobs.js, NOT an extension of it — importedJobs.js manages the
 // legacy per-user `imported_jobs` table (LinkedIn-extension saved jobs). This router writes
@@ -111,22 +113,22 @@ export function createImportJobRouter(db, opts = null) {
     let posting = null;
     let ats = null;
     if (/^https?:\/\//i.test(raw)) {
-      let bare = raw;
-      try { const u = new URL(raw); bare = `${u.origin}${u.pathname}`.replace(/\/+$/, ""); } catch {}
-      const candidates = [...new Set([raw, bare, `${bare}/`])];
-      const marks = candidates.map(() => "?").join(",");
-      let row = db.prepare(`
-        SELECT job_id, title, company, duplicate_of, is_active, company_icon_url FROM scraped_jobs
-        WHERE url IN (${marks}) OR apply_url IN (${marks})
-        ORDER BY updated_at DESC LIMIT 1
-      `).get(...candidates, ...candidates);
-      if (row?.duplicate_of) {
-        row = db.prepare("SELECT job_id, title, company, duplicate_of, is_active, company_icon_url FROM scraped_jobs WHERE job_id = ?")
-          .get(row.duplicate_of) || row;
-      }
+      // ⭐ The SAME resolution the fill uses (services/manualHandoff.js resolvePageJob): the page's address, its job
+      // KEY at any stage (a Workday requisition — /apply, /applyManually …), or its ATS's job id. Before this the popup
+      // matched the exact URL only, so a stage page read "Capture it" for a job the fill could find.
+      const page = resolvePageJob(db, req.user.id, raw);
+      const row = page.job
+        ? db.prepare("SELECT job_id, title, company, duplicate_of, is_active, company_icon_url FROM scraped_jobs WHERE job_id = ?").get(page.job.jobId)
+        : null;
       const saved = row
         ? !!db.prepare("SELECT 1 FROM user_jobs WHERE user_id = ? AND job_id = ? AND starred = 1").get(req.user.id, row.job_id)
         : false;
+      // ⭐ Captured by you already (any route — the hotkey, the popup, automatic): the popup shows "Captured ✓", not "Capture it".
+      let captured = null;
+      if (row) {
+        try { captured = db.prepare("SELECT MAX(created_at) FROM job_captures WHERE user_id = ? AND job_id = ? AND (action IS NULL OR action NOT LIKE 'refused%')").pluck().get(req.user.id, row.job_id) ?? null; }
+        catch { captured = null; }
+      }
       let extra = { logo: null, scores: null, resumeReady: false };
       if (row) {
         const profileId = db.prepare("SELECT id FROM domain_profiles WHERE user_id = ? AND is_active = 1 ORDER BY id LIMIT 1")
@@ -143,11 +145,13 @@ export function createImportJobRouter(db, opts = null) {
         };
       }
       posting = row
-        ? { known: true, saved, jobId: row.job_id, title: row.title || null, company: row.company || null,
-            active: row.is_active !== 0, ...extra }
-        : { known: false, saved: false, jobId: null, title: null, company: null, active: null, logo: null, scores: null, resumeReady: false };
+        ? { known: true, saved, captured: captured != null, capturedAt: captured != null ? captured * 1000 : null, how: page.how || null,
+            jobId: row.job_id, title: row.title || null, company: row.company || null, active: row.is_active !== 0, ...extra }
+        : { known: false, saved: false, captured: false, capturedAt: null, how: null, jobId: null, title: null, company: null, active: null, logo: null, scores: null, resumeReady: false };
       const m = detectKnownAtsMatch(raw);
-      ats = m ? { type: m.type, slug: m.slug || m.tenant || null } : null;
+      const pk = pageKeyOf(raw);
+      ats = m ? { type: m.type, slug: m.slug || m.tenant || null,
+        ...(pk ? { requisition: pk.requisition, rev: pk.rev, stage: pk.stage } : {}) } : null;
     }
     // D33: each with what happened to it (on the board · held off it and why · closed), worded by
     // services/jobs/captureOutcome.js — the same words the capture itself answered with.
@@ -192,6 +196,20 @@ export function createImportJobRouter(db, opts = null) {
       console.error("[POST /api/import/auto] Error:", err.message);
       res.status(502).json({ error: "Could not capture this job automatically.", retryable: true });
     }
+  });
+
+  // ⭐ "Captured today" (owner 10-12: it read 0 after two captures of one job) — DISTINCT jobs captured in the last
+  // 24 hours by ANY route (the hotkey, the popup, the right-click, automatic), and how many of them were already on
+  // the board. A second capture of one job counts once. Account-level, like the Today ring: allowed on popup open.
+  router.get("/today", (req, res) => {
+    let row = { n: 0, already: 0 };
+    try {
+      row = db.prepare(`SELECT COUNT(*) AS n, SUM(first_action = 'attached') AS already FROM (
+          SELECT job_id, (SELECT c2.action FROM job_captures c2 WHERE c2.user_id = c.user_id AND c2.job_id = c.job_id ORDER BY c2.id ASC LIMIT 1) AS first_action
+          FROM job_captures c WHERE c.user_id = ? AND c.created_at > unixepoch() - 86400 AND (c.action IS NULL OR c.action NOT LIKE 'refused%')
+          GROUP BY job_id)`).get(req.user.id);
+    } catch { /* no captures table */ }
+    res.json({ today: row?.n || 0, alreadyOnBoard: row?.already || 0, windowHours: 24 });
   });
 
   // D64 · "Captured today: N" — the popup's list, with an undo per item.

@@ -18,15 +18,23 @@
 import { APPLY_ORIGIN_FAMILIES, familyOf, jobIdOf, originOf, packetJobIds, packetOrigins, hostsSentence } from "./applyOrigins.js";
 import { listHistory } from "./applicationRecords.js";
 import { companyRows, matchCompany } from "../shared/companyIdentity.js";
+import { pageKeyOf } from "./jobPageKey.js";
 
 const one = (db, sql, ...args) => { try { return db.prepare(sql).get(...args) ?? null; } catch { return null; } };
 
 /** A stored packet row (with the posting's sj_url / sj_apply_url joined) → { origins, jobIds }. */
 export function packetAddressing(row, families = APPLY_ORIGIN_FAMILIES) {
-  const urls = [row.apply_url, row.sj_url, row.sj_apply_url].filter(Boolean);
+  // ⭐ own_urls: the pages the user captured this job from (ownPageUrls) — a Workday tenant joins the packet's
+  // addresses only through the user's own capture, and then only for this requisition (pageKeys below).
+  const own = Array.isArray(row.own_urls) ? row.own_urls : [];
+  const urls = [row.apply_url, row.sj_url, row.sj_apply_url, ...own].filter(Boolean);
+  const origins = packetOrigins({ expectedOrigin: row.expected_origin, urls }, families);
+  // the tenant itself: packetOrigins adds only an ATS family's origins, and Workday has no family row (D67C)
+  for (const u of own) { try { const o = new URL(u).origin; if (!origins.includes(o)) origins.push(o); } catch { /* skip */ } }
   return {
-    origins: packetOrigins({ expectedOrigin: row.expected_origin, urls }, families),
+    origins,
     jobIds: packetJobIds(urls, families),
+    pageKeys: [...new Set(urls.map(u => pageKeyOf(u)?.key).filter(Boolean))],
   };
 }
 
@@ -43,7 +51,25 @@ export function userHasJob(db, userId, jobId) {
     "SELECT 1 FROM apply_run_jobs WHERE user_id=? AND job_id=?",
     "SELECT 1 FROM apply_gate_packets WHERE user_id=? AND job_id=?",
     "SELECT 1 FROM job_applications WHERE user_id=? AND job_id=?",
+    // ⭐ Extension (owner 10-12): a capture puts the job in the user's imports — so it is theirs. Before this, a
+    // capture (which writes starred = 0) read "isn't on your board yet" on the very page it was captured from.
+    "SELECT 1 FROM job_captures WHERE user_id=? AND job_id=? AND (action IS NULL OR action NOT LIKE 'refused%')",
   ].some(sql => !!one(db, sql, userId, id));
+}
+
+export { recordPageKey } from "./jobPageKey.js";
+
+/**
+ * The addresses THIS USER showed belong to this job: the pages they captured it from, when those pages carry a
+ * job key (a Workday tenant). Per user, never shared — the user's own capture is the evidence, as D67's learned
+ * pairs are for submissions. Returned as canonical posting URLs.
+ */
+export function ownPageUrls(db, userId, jobId) {
+  if (userId == null || jobId == null) return [];
+  let rows = [];
+  try { rows = db.prepare("SELECT DISTINCT url FROM job_captures WHERE user_id=? AND job_id=? AND url IS NOT NULL").pluck().all(userId, String(jobId)); }
+  catch { return []; }
+  return [...new Set(rows.map(u => pageKeyOf(u)?.canonicalUrl).filter(Boolean))];
 }
 
 const JOB_COLS = "job_id, title, company, url, apply_url, duplicate_of";
@@ -85,6 +111,28 @@ export function resolvePageJob(db, userId, url, families = APPLY_ORIGIN_FAMILIES
   }
   const byUrl = pick(rows, "url");
   if (byUrl) return byUrl;
+
+  // ⭐ The page's JOB KEY — the same requisition at any stage (/apply, /apply/applyManually, …), with the locale
+  // and tracking dropped: first what a capture recorded, then a posting whose own address carries the key.
+  const pk = pageKeyOf(url);
+  if (pk) {
+    const keyed = one(db, "SELECT job_id FROM job_page_keys WHERE page_key=?", pk.key);
+    if (keyed) {
+      const row = one(db, `SELECT ${JOB_COLS} FROM scraped_jobs WHERE job_id=?`, keyed.job_id);
+      const got = row && pick([row], "page_key");
+      if (got) return got;
+    }
+    let host = "";
+    try { host = new URL(url).host.toLowerCase(); } catch {}
+    let keyRows = [];
+    try {
+      keyRows = db.prepare(`SELECT ${JOB_COLS} FROM scraped_jobs WHERE (url LIKE ? OR apply_url LIKE ?) AND (url LIKE ? OR apply_url LIKE ?) LIMIT 50`)
+        .all(`https://${host}/%`, `https://${host}/%`, `%${pk.requisition}%`, `%${pk.requisition}%`);
+    } catch { keyRows = []; }
+    const same = keyRows.filter(r => [r.url, r.apply_url].some(u => u && pageKeyOf(u)?.key === pk.key));
+    const got = pick(same, "page_key");
+    if (got) return got;
+  }
 
   // The same job on another of its ATS's origins: account.amazon.jobs/en-US/applicant/jobs/2912345/apply
   // is www.amazon.jobs/en/jobs/2912345/<slug>. Narrowed in SQL by origin and id, confirmed by the rule.
@@ -144,6 +192,25 @@ export function copySheetRows(packet = {}) {
     label: a.field || a.name || "Answer", value: String(a.value), name: a.name ?? null,
     eligibility: !!a.eligibility, provenance: a.provenance ?? null,
   }));
+  rows.sort((a, b) => Number(b.eligibility) - Number(a.eligibility));
+  // ⭐ (owner 10-12: "the Copy sheet lists only 4 answers") — everything the packet carries, not only the 16
+  // canonical fields: the saved answers for this employer, the worked-here fact, and the work and education history.
+  for (const s of packet.savedAnswers || []) {
+    if (s?.question && s.answer != null && String(s.answer).trim() !== "" && !s.optIn) {
+      rows.push({ label: s.question, value: String(s.answer), name: null, eligibility: !!s.eligibility, provenance: "saved_answer" });
+    }
+  }
+  if (packet.workedHere?.answer) rows.push({ label: `Worked at ${packet.workedHere.company} before?`, value: packet.workedHere.answer, name: null, eligibility: false, provenance: "work_history" });
+  const when = (d) => (d?.year ? `${d.month ? String(d.month).padStart(2, "0") + "/" : ""}${d.year}` : "");
+  (packet.entries?.work || []).forEach((w, i) => {
+    const span = [when(w.from), w.current ? "present" : when(w.to)].filter(Boolean).join(" – ");
+    const v = [w.title, w.company, w.location, span].filter(Boolean).join(" · ");
+    if (v) rows.push({ label: `Work ${i + 1}`, value: v, name: null, eligibility: false, provenance: "work_history", group: "work" });
+  });
+  (packet.entries?.education || []).forEach((e, i) => {
+    const v = [e.degree, e.field, e.school, when(e.to)].filter(Boolean).join(" · ");
+    if (v) rows.push({ label: `Education ${i + 1}`, value: v, name: null, eligibility: false, provenance: "education", group: "education" });
+  });
   rows.sort((a, b) => Number(b.eligibility) - Number(a.eligibility));
   const unanswered = (packet.unresolved || []).map(u => ({ label: u.field || u.name, eligibility: !!u.eligibility }));
   return { rows, unanswered };

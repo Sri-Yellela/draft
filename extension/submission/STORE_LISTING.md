@@ -1,4 +1,11 @@
-# Chrome Web Store listing — draft v1.5.1
+# Chrome Web Store listing — draft v1.5.2
+
+> **v1.5.2 (2026-10-13) — one job across every stage of an application, and the Copy sheet in the page.** A tab now
+> remembers the job it captured or recognised (`bind:{tabId}`, session storage — **the storage field below changed:
+> eight values, re-paste it**, and the privacy policy's storage list gained the item, effective October 13, 2026);
+> the Copy sheet opens as a panel in the page with Close, Esc, Minimise and a dock side instead of in the popup;
+> "Captured today" counts distinct jobs by any route. No permission changed (still activeTab, contextMenus,
+> scripting, storage and the one host). Upload v1.5.2 in place of any earlier build not yet uploaded.
 
 > **v1.5.1 (2026-10-09) is v1.5.0 plus one visual fix (D60):** three small controls — the review overlay's buttons
 > and edit field, and the popup's compact links — had corners so round they read as capsules; they are now
@@ -12,7 +19,7 @@ observable behaviour. ⛔ **Re-paste every field** — single purpose, every per
 (three changed or are new), the storage field and the whole Privacy practices tab. The previous text
 in the dashboard describes a build that no longer exists.
 
-Upload artifact: `extension/submission/resume-master-extension-v1.5.1.zip`
+Upload artifact: `extension/submission/resume-master-extension-v1.5.2.zip`
 (build with `npm run build:extension` — never hand-assemble it; see extension/README.md).
 
 ---
@@ -31,7 +38,7 @@ received. Against v1.0.0:
    redirected — a credentialed `fetch` does not follow redirects, so a 301 would break v1.0.0 silently.
 3. **The privacy policy URL moved with it**, and the policy is live on the new origin.
 4. **The extension holds an access token of its own** (`auth.js`) instead of borrowing the browser's
-   session — one of the seven stored values, and the only one transmitted (to our backend only).
+   session — one of the eight stored values, and the only one transmitted (to our backend only).
 5. **No content script, no job-board host permission at install.** v1.0.0 declared six job boards and
    ran a content script on them; that is gone. Every read starts at a click or a keystroke —
    **except automatic capture (item 6), which is off until the user switches it on.**
@@ -142,7 +149,7 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 `applyPlan()`, `applyOverlayEdit()`; `review-overlay.js` `renderOverlay()`; `autofill-badge.js`.)*
 
 **`storage`**
-> Seven values. Six never leave the browser; the seventh is the extension's own access token, which is
+> Eight values. Seven never leave the browser; the eighth is the extension's own access token, which is
 > sent to our backend and to nowhere else. In `chrome.storage.local`: the result of the user's most
 > recent capture, so the popup can show the outcome of a capture made with the keyboard while the popup
 > was closed; the username of the account the extension is connected to, so the popup can name it; that
@@ -151,13 +158,17 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 > switched automatic capture on (a single on/off value). In `chrome.storage.session` (memory-backed,
 > discarded on browser restart): the prepared answers for an application in progress, with a 10-minute
 > expiry and cleared when the tab closes; the result of the most recent form fill, so the popup can
-> report a fill started with the keyboard; and, when several applications are queued for one employer
+> report a fill started with the keyboard; when several applications are queued for one employer
 > site, that site's origin and how many remain, so a batch can resume in the same tab — no answers and
-> nothing about the user in that one.
+> nothing about the user in that one; and which job a tab is on (the job's draft id, title and company,
+> when it was linked, and the Copy sheet's dock side) once the user captures a job there or draft recognises
+> the posting, so the later pages of that application are known to be the same job — no answers, never
+> shared between tabs, deleted when the tab closes, shows a different job, or the user unlinks it.
 
 *(Code: `background.js` `reportCapture()` → `lastCapture` (local) and `reportHandoff()` →
 `lastGatedHandoff` (session); `gated-handoff.js` → `gate:{tabId}` and `batch:{tabId}` (session);
-`auth.js` → `authToken` and `authIdentity` (local); `autoCapture.js` (set from the options page) → `autoCaptureEnabled` (local).)*
+`auth.js` → `authToken` and `authIdentity` (local); `autoCapture.js` (set from the options page) → `autoCaptureEnabled` (local);
+`tabBinding.js` `bindTab()` / `setBindingDock()` → `bind:{tabId}` (session), removed by `clearBinding()` on tab close and "Unlink this page".)*
 
 **Host permission** — one, our own backend
 > `https://jobsviadraft.com/*` is our own server. The extension calls it with an access token of its

@@ -52,6 +52,8 @@ export async function overlayTheme() {
   return { light: C_LIGHT, dark: C_DARK, logoFont };
 }
 import { authedFetch } from './auth.js';
+// The tab binding: the job this tab captured or recognised, sent as a HINT the server checks (tabBinding.js).
+import { bindingForTab } from './tabBinding.js';
 
 /** Matches the server's token TTL. A packet outlives its grant (G0 §9), so it is cleared on purpose. */
 export const PACKET_TTL_MS = 10 * 60 * 1000;
@@ -1030,8 +1032,11 @@ export async function runGatedHandoff({ serverUrl, tab }) {
     // ⛔ D56: the page's URL goes in the BODY of one question — "which packets may fill THIS page, and
     // if none, why?" The server matches on the packet's ORIGIN LIST and, where the URL carries one, the
     // JOB ID (one URL parser, the server's), and says which of the three truthful cases this is.
+    // ⭐ The tab binding rides along: on a stage whose address names no job (a sign-in page, a step that changed
+    // without changing the URL), the server can still say which of YOUR jobs this is.
+    const bound = await bindingForTab(tab);
     let res = await api(serverUrl, '/api/apply/handoff/match', {
-      method: 'POST', body: JSON.stringify({ url: tab.url }),
+      method: 'POST', body: JSON.stringify({ url: tab.url, boundJobId: bound?.jobId ?? null }),
     });
     if (res.status === 404) {
       // A server that predates D56: the origin-scoped list, as before. See portalQueueFor's note.
@@ -1667,7 +1672,8 @@ export async function prepareAndFill({ serverUrl, tab }) {
   if (!tab?.id || !url) return { ok: false, reason: 'unsupported_scheme', message: 'Only http(s) pages can be filled.' };
   let body;
   try {
-    const res = await api(serverUrl, '/api/apply/prepare', { method: 'POST', body: JSON.stringify({ url }) });
+    const bound = await bindingForTab(tab);
+    const res = await api(serverUrl, '/api/apply/prepare', { method: 'POST', body: JSON.stringify({ url, boundJobId: bound?.jobId ?? null }) });
     if (res.status === 401) return { ok: false, reason: 'not_signed_in', message: 'Sign in to Draft first.' };
     body = await res.json().catch(() => ({}));
     if (!res.ok) return { ok: false, reason: body.error || 'prepare_failed', message: body.message || 'Could not prepare this application.' };
@@ -1691,9 +1697,10 @@ export async function recordSubmitted({ serverUrl, tab }) {
   const url = pageUrlOf(tab);
   if (!url) return { ok: false, message: 'Only http(s) pages can be recorded.' };
   const held = tab?.id ? await loadPacketForTab(tab.id).catch(() => null) : null;
+  const bound = await bindingForTab(tab);
   try {
     const res = await api(serverUrl, '/api/apply/handoff/submitted', {
-      method: 'POST', body: JSON.stringify({ url, jobId: held?.packet?.jobId ?? null }),
+      method: 'POST', body: JSON.stringify({ url, jobId: held?.packet?.jobId ?? null, boundJobId: bound?.jobId ?? null }),
     });
     const body = await res.json().catch(() => ({}));
     return { ok: res.ok && !!body.ok, ...body, message: body.message || `Server returned ${res.status}.` };
@@ -1702,11 +1709,12 @@ export async function recordSubmitted({ serverUrl, tab }) {
   }
 }
 
-/** ⭐ §8 row 17 — the Copy sheet's rows. Shown in the popup only; nothing enters the page. */
+/** ⭐ §8 row 17 — the Copy sheet's rows: the bound job's PREPARED answers when the tab is bound. Nothing enters a field. */
 export async function copySheetFor({ serverUrl, tab }) {
+  const bound = await bindingForTab(tab);
   try {
     const res = await api(serverUrl, '/api/apply/copy-sheet', {
-      method: 'POST', body: JSON.stringify({ url: pageUrlOf(tab) }),
+      method: 'POST', body: JSON.stringify({ url: pageUrlOf(tab), boundJobId: bound?.jobId ?? null }),
     });
     if (!res.ok) return { ok: false, rows: [], message: `Server returned ${res.status}.` };
     return { ok: true, ...(await res.json()) };
@@ -1719,8 +1727,9 @@ export async function copySheetFor({ serverUrl, tab }) {
 export async function pageMatchFor(serverUrl, tab) {
   const url = pageUrlOf(tab);
   if (!url) return null;
+  const bound = await bindingForTab(tab);
   try {
-    const res = await api(serverUrl, '/api/apply/handoff/match', { method: 'POST', body: JSON.stringify({ url }) });
+    const res = await api(serverUrl, '/api/apply/handoff/match', { method: 'POST', body: JSON.stringify({ url, boundJobId: bound?.jobId ?? null }) });
     if (!res.ok) return null;
     const body = await res.json();
     const origin = new URL(url).origin;

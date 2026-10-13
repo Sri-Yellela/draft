@@ -4920,6 +4920,40 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         UPDATE notice_log SET actor = CASE WHEN admin_user_id IS NULL THEN 'system' ELSE 'user:' || admin_user_id END WHERE actor IS NULL;
       `,
     },
+    {
+      // ⭐ D86/D88 follow-up (owner 10-12, item 3): People → Users shows EVERY account by default; an account an admin
+      // marks internal, test or beta can be hidden by a filter, and the list then says how many are hidden. One row per
+      // (user, tag); who set it is a coded actor (D95). Gone with the account (cascade).
+      id: "160_user_tags",
+      sql: `
+        CREATE TABLE IF NOT EXISTS user_tags (
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          tag TEXT NOT NULL,
+          set_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          set_by_actor TEXT,
+          PRIMARY KEY (user_id, tag)
+        );
+      `,
+    },
+    {
+      // ⭐ Extension, owner 10-12 (Zoom's Workday posting): ONE JOB, ONE KEY across the posting, /apply,
+      // /apply/applyManually and /apply/useMyLastApplication (services/jobPageKey.js — workday|tenant|site|requisition).
+      // A capture records which board job its key folded into, so every later stage resolves to the same job — even
+      // when the board's copy of the job came from another ATS. Shared like the posting pool: a key and a job id,
+      // never who captured it (job_captures keeps that, per user).
+      id: "161_job_page_keys",
+      sql: `
+        CREATE TABLE IF NOT EXISTS job_page_keys (
+          page_key TEXT PRIMARY KEY,
+          job_id TEXT NOT NULL,
+          rev INTEGER,
+          canonical_url TEXT,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_job_page_keys_job ON job_page_keys(job_id);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");

@@ -15,7 +15,7 @@
 // plain VM by test/d13Companion.test.js). Nothing here stores anything.
 
 /* exported companionMode, draftedLine, postingLine, questionsLine, ageWords, prepareLine, ringState,
-            jobCard, factMarks, packetRows, firstPartyLogo, shortAge */
+            jobCard, factMarks, packetRows, firstPartyLogo, shortAge, boundLine, capturedTodayLine */
 
 function ageWords(ms) {
   const mins = Math.max(0, Math.floor(ms / 60000));
@@ -94,6 +94,7 @@ function ringState(slots) {
 
 function postingLine(posting) {
   if (!posting) return '';                          // the board check failed: say nothing rather than guess
+  if (posting.captured) return 'Captured ✓';
   if (posting.saved) return 'Saved on your board';
   if (posting.known) return 'On draft, not saved by you yet';
   return 'Not on your board yet';
@@ -106,6 +107,26 @@ function questionsLine(packet) {
   const n = packet?.unresolvedCount || 0;
   if (!n) return '';
   return `${n} ${n === 1 ? 'question needs' : 'questions need'} your answer — answer once and draft reuses it.`;
+}
+
+/**
+ * ⭐ THE TAB BINDING, said in one line (owner 10-12): on a bound or known job the popup says "Captured ✓ —
+ * <title> at <company>", never "Capture it" — on the posting and on every later stage of its application.
+ */
+function boundLine(context) {
+  const b = context?.binding || null;
+  const p = context?.posting || null;
+  const job = b || (p?.captured ? p : null);
+  if (!job) return '';
+  const what = [job.title, job.company].filter(Boolean).join(' at ') || 'this job';
+  return (b?.via === 'recognised' && !p?.captured) ? `On draft — ${what}` : `Captured ✓ — ${what}`;
+}
+
+/** "Captured: 2 today · 1 already on your board" — distinct jobs captured in the last 24 hours, by any route. */
+function capturedTodayLine(t) {
+  if (!t || !Number.isFinite(t.today)) return '';
+  const n = t.today, m = t.alreadyOnBoard || 0;
+  return `Captured: ${n} today · ${m} already on your board`;
 }
 
 // ── ⭐ D63 · THE POPUP LEADS WITH THE JOB CARD (extension-latest.html, "Suggested") ────────────────

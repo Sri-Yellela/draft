@@ -63,11 +63,15 @@ test("⛔ D23: the storage keys are exactly the six the listing names — no mor
   }
   // + local:[AUTO_CAPTURE_SETTING] by D64 (owner, 10-07) — the automatic-capture switch, a decided and
   // disclosed addition (the privacy page's storage list, STORE_LISTING, PRIVACY_RECONCILIATION).
+  // + session:[bindKey(tabId)] by v1.5.2 (owner, 10-12) — the tab binding, which job a tab is on; disclosed in the
+  // privacy page's storage list, STORE_LISTING and PRIVACY_RECONCILIATION in the same change.
   assert.deepEqual(keys.sort(), [
     "local:[AUTO_CAPTURE_SETTING]",
     "local:[IDENTITY_KEY]", "local:[TOKEN_KEY]", "local:lastCapture",
-    "session:[batchKey(tabId)]", "session:[sessionKey(tabId)]", "session:lastGatedHandoff",
+    "session:[batchKey(tabId)]", "session:[bindKey(tabId)]", "session:[sessionKey(tabId)]", "session:lastGatedHandoff",
   ].sort(), "the extension's storage keys changed — that is a new disclosure (D23: none allowed)");
+  assert.match(code["tabBinding.js"], /const bindKey = \(tabId\) => `\$\{BIND_PREFIX\}\$\{tabId\}`;/);
+  assert.match(code["tabBinding.js"], /export const BIND_PREFIX = 'bind:';/);
   assert.match(code["autoCapture.js"], /export const AUTO_CAPTURE_SETTING = "autoCaptureEnabled";/);
   const auth = code["auth.js"];
   assert.match(auth, /const TOKEN_KEY = ['"]authToken['"]/);
@@ -126,8 +130,11 @@ test("⛔ D23: opening the popup reads NOTHING — no preview, no context call, 
   // §8 row 15 / decision D (owner, 10-07): the TODAY RING is asked for on open — it is the ACCOUNT's
   // quota (the day's Draft slots), not the page: the message carries no tab and no URL (checked below),
   // and background.js answers it from /api/draft/slots alone. Nothing about the page is read on open.
-  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING"], `the popup asked for ${p.sent.join(", ")} on open`);
+  // v1.5.2 (owner, 10-12): "Captured: N today · M already on your board" is asked for on open on the same terms — the
+  // ACCOUNT's captures (GET /api/import/today), no tab and no URL in the message.
+  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING", "CAPTURED_TODAY"], `the popup asked for ${p.sent.join(", ")} on open`);
   assert.deepEqual(Object.keys(p.messages.find(m => m.type === "TODAY_RING")), ["type"], "the ring's message carries something about the page");
+  assert.deepEqual(Object.keys(p.messages.find(m => m.type === "CAPTURED_TODAY")), ["type"], "the count's message carries something about the page");
   assert.equal(p.injected.length, 0, "the popup injected into the page on open");
   // The four actions are there, unchanged and enabled; the companion is not.
   for (const id of ["btn-capture-job", "btn-fill", "btn-ats", "btn-resume"]) {
@@ -144,7 +151,7 @@ test("D23: the press reads the page once — a posting -> Capture it + Score it 
   await p.settle();
   for (const fn of p.els["btn-read-page"].listeners.click) fn({});
   await p.settle();
-  assert.deepEqual(p.sent.slice(2).sort(), ["POPUP_CONTEXT", "PREVIEW_ACTIVE_TAB"]);
+  assert.deepEqual(p.sent.slice(3).sort(), ["POPUP_CONTEXT", "PREVIEW_ACTIVE_TAB"]);
   assert.equal(p.els["posting-actions"].style.display, "flex");
   assert.equal(p.els["ctx-line"].textContent, "Not on your board yet");
   assert.equal(p.els["preview-company"].textContent, "Fabrikam");
@@ -152,7 +159,7 @@ test("D23: the press reads the page once — a posting -> Capture it + Score it 
   // A second press (or a held key) does not read again.
   for (const fn of p.els["btn-read-page"].listeners.click) fn({});
   await p.settle();
-  assert.equal(p.sent.length, 4, "the page was read twice");
+  assert.equal(p.sent.length, 5, "the page was read twice");
 });
 
 test("D23: the keystroke is the same press (R, no modifier); a modified R is not", async () => {
@@ -162,7 +169,7 @@ test("D23: the keystroke is the same press (R, no modifier); a modified R is not
   const key = (o) => { for (const fn of p.docListeners.keydown) fn({ preventDefault() {}, ...o }); };
   key({ key: "r", ctrlKey: true });
   await p.settle();
-  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING"], "Ctrl+R read the page");
+  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING", "CAPTURED_TODAY"], "Ctrl+R read the page");
   key({ key: "r" });
   await p.settle();
   assert.equal(p.els["btn-fill-primary"].style.display, "flex", "a form you drafted -> Fill it");

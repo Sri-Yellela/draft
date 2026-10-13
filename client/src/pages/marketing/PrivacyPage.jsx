@@ -80,7 +80,7 @@ import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyPro
 // the paragraph names them. Read-only, the user's own data and public postings — nothing new is collected.
 // 2026-10-10 (D90): the uploaded résumés are all kept, not only the newest, so a tailored version can be compared with
 // the one it was made from (Data Storage and Security). Nothing new is collected — the same text, kept longer.
-const EFFECTIVE_DATE = 'October 9, 2026';
+const EFFECTIVE_DATE = 'October 13, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 export function PrivacyPage() {
@@ -252,10 +252,10 @@ export function PrivacyPage() {
 
           <H3>What the Extension Stores in Your Browser</H3>
           <P>
-            The extension keeps seven things in your browser's own extension storage. Four are
+            The extension keeps eight things in your browser's own extension storage. Four are
             ordinary local storage and stay until you uninstall the extension or disconnect it; the
-            other three are memory-backed session storage, which your browser discards when you
-            restart it. Only one of the seven — the extension's own access token, described last — is
+            other four are memory-backed session storage, which your browser discards when you
+            restart it. Only one of the eight — the extension's own access token, described below — is
             ever sent anywhere, and it goes only to us. (Earlier versions also stored a custom
             keyboard shortcut; that setting was removed, and any value it left behind is deleted
             when you open the extension's options page. Shortcuts are now managed by Chrome itself.)
@@ -287,6 +287,16 @@ export function PrivacyPage() {
               stating plainly: it holds no answers and nothing about you. Session storage: deleted
               when that tab closes or when the queue for that site empties, and gone when you
               restart your browser. The ten-minute expiry does not apply to it either.
+            </LI>
+            <LI>
+              <Strong>Which job a tab is on</Strong> — the job's draft id, its title and company, the
+              time it was linked, and which side of the page the Copy sheet sits on — once you capture
+              a job in that tab or draft recognises the posting there, so the later pages of the same
+              application (signing in, the application's steps) are known to be that job. It holds no
+              answers and nothing about you, and it is never shared between tabs. Session storage:
+              deleted when that tab closes, when the tab shows a different job, or when you press
+              "Unlink this page", and gone when you restart your browser. The ten-minute expiry does
+              not apply to it.
             </LI>
             <LI>
               <Strong>The account the extension is connected to</Strong> — your username, so the

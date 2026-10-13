@@ -255,6 +255,8 @@ export const MERGE_PLAN = Object.freeze({
   user_notes: "move", user_entitlement_overrides: "drop",
   // D88 P3: a person's support requests are their history and move with them.
   tickets: "move",
+  // Item 3 (10-12): an internal / test / beta tag is an admin's label for THAT account — the merged-away one's go.
+  user_tags: "drop",
   // D90: every base the person uploaded is their history and moves with them.
   base_resume_uploads: "move",
   user_profile: "fill",
