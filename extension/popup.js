@@ -489,6 +489,9 @@ document.getElementById('btn-disconnect')?.addEventListener('click', async () =>
   // The companion spoke for the account that just disconnected; it says nothing for nobody.
   document.getElementById('companion').style.display = 'none';
   document.getElementById('recent').style.display = 'none';
+  // ⭐ D96 §3: the remembered progress was cleared with the credential; so is what showed it.
+  document.getElementById('progress').hidden = true;
+  document.getElementById('in-progress').hidden = true;
   setStatus('Disconnected. Sign in to reconnect.');
 });
 
