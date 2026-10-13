@@ -1777,15 +1777,20 @@ function workdayShapedRoute(path, send) {
   const m = p.match(WORKDAY_SHAPED);
   if (!m) return false;
   const stage = p.includes('/apply') ? (m[1] || 'apply') : null;
-  const header = `<header data-automation-id="jobPostingHeader"><h2>Software Engineer</h2><p>Zoom · Remote (US) · R19749-1</p></header>`;
+  // Workday's own automation ids for the header, the location and the description (as on the owner's posting).
+  const header = `<h2 data-automation-id="jobPostingHeader">Software Engineer</h2>
+  <p data-automation-id="locations">Remote (US) · R19749-1</p>`;
+  const description = `<div data-automation-id="jobPostingDescription"><p>Build Zoom's next video platform in TypeScript and Go.
+  You will design services, review code and ship weekly with a small team. Requirements: three or more years building
+  distributed systems. This role is remote within the United States.</p></div>`;
   if (!stage) {
-    send(200, page('Software Engineer — Zoom Careers', `${header}
-  <p>Build Zoom's next video platform. Remote — United States.</p>
+    send(200, page('Software Engineer — Zoom Careers', `${header}${description}
   <a data-automation-id="adventureButton" href="${p.replace(/\/$/, '')}/apply">Apply</a>`));
     return true;
   }
-  send(200, page('Software Engineer — Apply — Zoom', `${header}
+  send(200, page('Software Engineer — Apply', `${header}
   <p data-stage="${stage}">Step: ${stage}</p>
+  <aside>${description}</aside>
   <form data-automation-id="applyFlowPage" onsubmit="return false">
     <label>First name <input name="firstName" data-automation-id="legalNameSection_firstName"></label>
     <label>Last name <input name="lastName" data-automation-id="legalNameSection_lastName"></label>

@@ -277,7 +277,13 @@ export function extractJobPayload() {
     }
     if (!title) title = firstText(['h1']);
 
-    if (location.hostname.includes('myworkdayjobs.com')) company = workdayCompany(company);
+    if (location.hostname.includes('myworkdayjobs.com')) {
+      // ⭐ (owner 10-12) Workday's own job header names the role on the posting AND on the application's stages,
+      // where <title> reads "… — Apply" or the step's name — the same role, so the same job.
+      const header = firstText(['[data-automation-id="jobPostingHeader"]']);
+      if (header && !ld?.title) title = header;
+      company = workdayCompany(company);
+    }
     if (!company) company = companyFromEmployerHost();
 
     // "<role> - Databricks". Once the company is known it can be taken off the end of the title,
