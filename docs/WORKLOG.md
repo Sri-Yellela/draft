@@ -926,6 +926,8 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 
 ### 2026-10-13 (42i) · "delete the suspended admin row"
 
+✅ **LIVE — measured:** `/api/version` commit `7ec0f70`, `latestApplied: 163_delete_former_admin_row`; Railway logs 17:55:26Z `[migrate] backup taken before 163_delete_former_admin_row`, 17:55:28Z `[migrate] ✓ 163_delete_former_admin_row`.
+
 Migration **`163_delete_former_admin_row`** (both runners): deletes ONLY a row 162 retired (suspended with the "Former admin row (D95)" reason). Measured on a copy of the `pre-162` backup (17:31:40Z) with 162 applied: the row held 21 notifications, 2 tokens, 1 session, the revoked Claude connection and 3 plugin-call rows (all go by the existing cascades) and ONE blocking reference — a plan request it decided (`plan_upgrade_requests.decided_by`, a foreign key with no cascade), now NULL with `decided_by_actor` still `user:1`. History rows that name it (4 audit rows, an override's `set_by`, a crawler setting's `updated_by`) are not constraints and stay. An audit row `user.delete` (actor system) records it. On that copy: users 13 → 12, nothing left behind, `foreign_key_check` empty, integrity ok, the owner's personal account and the admin account untouched. `server.js`'s backup-first rule now covers every pending data migration (162, 163): one backup, and all held back if it cannot be taken. `test/d95AdminAccounts.test.js` extended (only that row goes — another suspended account stays — the reference cleared, its own rows gone, FK clean, audited). Suite **4197 / 4197 / 0**.
 
 ### 2026-10-13 (42h) · D95 PHASE 2 — "password set and signed in with the admin email, now enforce"
