@@ -33,7 +33,13 @@ const read = (p) => fs.readFileSync(p, "utf8");
 
 /** Last `id: "NNN_..."` in a migration runner — the high-water mark. */
 function highWater(file) {
-  const ids = [...read(file).matchAll(/id: "(\d{3}_[a-z0-9_]+)"/g)].map(m => m[1]);
+  // server.js: the MIGRATIONS list only. After it come the boot runner's DATA_MIGRATIONS (162, 163 — the ones backed
+  // up first), whose `{ id: "163_…" }` entries read as the last id once a later, additive migration (164) exists.
+  let src = read(file);
+  const start = src.indexOf("const MIGRATIONS = [");
+  const end = start >= 0 ? src.indexOf('console.log("[boot] migrations', start) : -1;
+  if (file === "server.js" && start >= 0 && end > start) src = src.slice(start, end);
+  const ids = [...src.matchAll(/id: "(\d{3}_[a-z0-9_]+)"/g)].map(m => m[1]);
   assert.ok(ids.length > 0, `${file}: found no migration ids — the regex has drifted, not the doc`);
   return ids[ids.length - 1];
 }

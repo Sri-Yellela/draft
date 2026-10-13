@@ -10,6 +10,7 @@ import {
   resolvesQuestion, rememberAnswer,
 } from "../services/customAnswers.js";
 import { normaliseQuestion, workHistoryCompanies } from "../shared/savedAnswers.js";
+import { lifecycleInputs } from "../services/answerLifecycle.js";
 import { atsScorePair } from "../shared/resumeScores.js";
 import { getKnownLogoUrl } from "../shared/companyLogos.js";
 import {
@@ -1138,6 +1139,31 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     return { ...autofillPayload,
       worked_here: { company: wh.company ?? null, history: workHistoryCompanies({ profile, work: entries.work || [] }) } };
   }
+  // ⭐ D96 §4: the keyed lifecycle answers (migration 164) ride on the payload, so a packet's savedAnswers carry only
+  // ACKNOWLEDGED answers, each with its source and date (services/answerLifecycle.js packetLifecycleAnswers).
+  function withSavedAnswerRecords(userId, autofillPayload) {
+    let inputs = { records: [], legacyAcknowledgedAt: null };
+    try { inputs = lifecycleInputs(db, userId); } catch { /* no lifecycle table: the label-only answers, as before */ }
+    return { ...autofillPayload, saved_answer_records: inputs.records, saved_answers_legacy_at: inputs.legacyAcknowledgedAt };
+  }
+  // ⭐ D96 §4: a STORED packet's savedAnswers are re-derived whenever it is released or shown, so a change or a delete
+  // since it was prepared takes effect at once (the old value is no longer auto-used) and a new acknowledgement is in.
+  function withLiveSavedAnswers(userId, body, jobId) {
+    if (!body || typeof body !== "object") return body;
+    try {
+      let company = body.workedHere?.company ?? null;
+      if (!company && jobId != null) {
+        try { company = db.prepare("SELECT company FROM scraped_jobs WHERE job_id=?").get(String(jobId))?.company ?? null; } catch { /* no jobs table */ }
+      }
+      const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || {};
+      const live = packetSavedAnswers(withSavedAnswerRecords(userId, buildAutofillPayload(profile, "APPLY", company))).savedAnswers;
+      const { savedAnswers: _old, ...rest } = body;
+      return live?.length ? { ...rest, savedAnswers: live } : rest;
+    } catch (e) {
+      console.warn(`[applyRoutes] live saved answers job=${jobId}: ${e.message}`);
+      return body;
+    }
+  }
   // …and once attachPacketResume knows the résumé, the stored packet's workedHere is rebuilt from it.
   function refreshPacketWorkedHere(packetId, userId, entries) {
     if (!entries) return;
@@ -1166,7 +1192,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       const entries = packetEntriesFor(userId, resumeArtifactId);
       packet = buildGatePacket({
         resolvedAnswers: result.answers,
-        autofillPayload: withCarriedWorkHistory(userId, autofillPayload, entries),
+        autofillPayload: withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, autofillPayload, entries)),
         applyUrl,
         jobId, runId, runJobId,
         resumeArtifactId,
@@ -1268,7 +1294,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     try {
       const entries = packetEntriesFor(userId, artifactId);
       packet = buildGatePacket({
-        autofillPayload: withCarriedWorkHistory(userId, buildAutofillPayload(profile, "APPLY", job.company), entries),
+        autofillPayload: withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, buildAutofillPayload(profile, "APPLY", job.company), entries)),
         applyUrl: job.apply_url || job.url, jobId: String(jobId),
         resumeArtifactId: artifactId, gateReason: PREPARED_REASON,
         entries,
@@ -4054,7 +4080,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       applyUrl: row.apply_url,
       gateReason: row.gate_reason,
       resumeUrl: resumeUrlFor(row),
-      packet: body,
+      // ⭐ D96 §4: the saved answers as they stand NOW, not as they stood when the packet was prepared.
+      packet: withLiveSavedAnswers(userId, body, row.job_id),
     });
   });
 
@@ -4346,7 +4373,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       if (fresh) {
         const row = db.prepare("SELECT answers_json FROM apply_gate_packets WHERE id=? AND user_id=?").get(fresh.packetId, userId);
         body = parseJson(row?.answers_json, null);
-        if (body) source = "packet";
+        if (body) { source = "packet"; body = withLiveSavedAnswers(userId, body, job?.jobId ?? null); }
       }
       // ⭐ The sheet shows the PREPARED answers for the bound job even where no packet fills this page (the sheet
       // fills nothing, so its address does not matter) — the newest fresh packet for that job, including one a fill
@@ -4355,7 +4382,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         try {
           const rows = db.prepare(`SELECT p.id, p.answers_json, p.created_at FROM apply_gate_packets p WHERE p.user_id=? AND p.job_id=? ${NOT_CLEARED} ORDER BY p.id DESC LIMIT 5`)
             .all(userId, job.jobId).filter(r => !packetFreshness(toMs(r.created_at)).stale);
-          if (rows[0]) { body = parseJson(rows[0].answers_json, null); if (body) source = "packet"; }
+          if (rows[0]) { body = parseJson(rows[0].answers_json, null); if (body) { source = "packet"; body = withLiveSavedAnswers(userId, body, job.jobId); } }
         } catch { /* no packets table */ }
       }
     }
@@ -4363,7 +4390,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(userId);
       const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId);
       try {
-        body = buildGatePacket({ autofillPayload: buildAutofillPayload(profile, "APPLY", job?.company ?? null),
+        body = buildGatePacket({ autofillPayload: withSavedAnswerRecords(userId, buildAutofillPayload(profile, "APPLY", job?.company ?? null)),
           applyUrl: url || "https://jobsviadraft.com/", jobId: job?.jobId ?? "copy-sheet", gateReason: PREPARED_REASON });
       } catch (e) {
         return res.json({ source: "profile", job, rows: [], unanswered: [],

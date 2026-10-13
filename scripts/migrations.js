@@ -4575,4 +4575,56 @@ export const MIGRATIONS = [
         DELETE FROM users WHERE status = 'suspended' AND suspended_reason LIKE 'Former admin row (D95)%';
       `,
     },
+    {
+      // ⭐ D96 §4 (owner 10-13): THE SAVED-ANSWER LIFECYCLE — one tick and an answer is remembered (eligibility and
+      // disclosures included: the person's own stated answer, never a guess); an edit is RECORDED, the new value NOT
+      // stored until re-acknowledged, the old one no longer auto-used. A TABLE, not more JSON on the profile: the key
+      // is the normalised label + widget kind + option wording (shared/answerKey.js), so one label can hold two
+      // questions (a different option list is a new question), and each answer needs its own state, source and dates.
+      // custom_answers (label-only, the web's answers) stays as it is and keeps filling: those entries are marked
+      // acknowledged at migration time, source legacy. answer_history: every change, from → to · when · which job.
+      // The 90-day review reminder reads acknowledged_at / reviewed_at; answer_review_reminded_at makes the panel say
+      // it once. Additive; both cascade with the account. services/answerLifecycle.js.
+      id: "164_saved_answer_lifecycle",
+      sql: `
+        CREATE TABLE IF NOT EXISTS saved_answers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          question_key TEXT NOT NULL,
+          widget_kind TEXT NOT NULL CHECK (widget_kind IN ('text','select','radio','checkbox','date')),
+          options_key TEXT NOT NULL DEFAULT '',
+          question TEXT NOT NULL,
+          answer TEXT,
+          state TEXT NOT NULL CHECK (state IN ('acknowledged','changed')),
+          source TEXT NOT NULL CHECK (source IN ('you_typed','you_acknowledged','legacy')),
+          category TEXT,
+          acknowledged_at INTEGER,
+          reviewed_at INTEGER,
+          changed_at INTEGER,
+          last_job_id TEXT,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          UNIQUE (user_id, question_key, widget_kind, options_key)
+        );
+        CREATE TABLE IF NOT EXISTS answer_history (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          question_key TEXT NOT NULL,
+          widget_kind TEXT NOT NULL,
+          options_key TEXT NOT NULL DEFAULT '',
+          question TEXT NOT NULL,
+          event TEXT NOT NULL CHECK (event IN ('changed','acknowledged','edited')),
+          from_value TEXT,
+          to_value TEXT,
+          job_id TEXT,
+          at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_answer_history_key ON answer_history(user_id, question_key, widget_kind, options_key);
+        ALTER TABLE user_profile ADD COLUMN custom_answers_acknowledged_at INTEGER;
+        ALTER TABLE user_profile ADD COLUMN answer_review_reminded_at INTEGER;
+        UPDATE user_profile SET custom_answers_acknowledged_at = unixepoch()
+          WHERE custom_answers IS NOT NULL AND json_valid(custom_answers) AND json_type(custom_answers) = 'object'
+            AND EXISTS (SELECT 1 FROM json_each(user_profile.custom_answers) WHERE trim(CAST(value AS TEXT)) != '');
+      `,
+    },
   ];
