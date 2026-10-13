@@ -924,6 +924,10 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 
 ## SESSION LOG
 
+### 2026-10-13 (42j) · the owner's URLs — the Workday stage (twice) and the LinkedIn search page it came from
+
+**What they answered:** there is NO separate sign-in / create-account address — Workday showed sign-in on the same `/apply/applyManually?source=linkedin` URL (the step changes, the URL does not), which the key and the tab binding already cover; no fixture URL was invented. **What they added:** the job was found on LinkedIn (`/jobs/search-results/?currentJobId=4478302778`) — a capture there stores the job under LinkedIn's address, which shares neither address nor key with the Workday page, so Workday still said "capture it first", and a second capture on Workday would fingerprint-miss on the location wording and make a SECOND job. **Built (the addendum's "the key or (company, title)", whose second half was missing):** `ownJobByTitleCompany` (services/jobPageKey.js) — the job THIS user captured in the last 60 days whose title is the page's title slug and whose company is the tenant, only when exactly ONE matches; never another user's, never the shared pool. `resolvePageJob` uses it after the key (`how: title_company`), and a Workday capture with an unknown key JOINS that job (key recorded), so Prepare then fills on Workday through the user's own capture there. `test/workdayStages.test.js` +1 with the owner's exact URLs (resolution, another user refused, Prepare offered, the capture joins, fills; two candidates → no guess); 3 injections, all red. Suite **4198 / 4198 / 0**. ⏸ Still the owner's: R19749-1 = R19749 (treated so).
+
 ### 2026-10-13 (42i) · "delete the suspended admin row"
 
 ✅ **LIVE — measured:** `/api/version` commit `7ec0f70`, `latestApplied: 163_delete_former_admin_row`; Railway logs 17:55:26Z `[migrate] backup taken before 163_delete_former_admin_row`, 17:55:28Z `[migrate] ✓ 163_delete_former_admin_row`.

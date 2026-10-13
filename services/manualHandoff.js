@@ -18,7 +18,7 @@
 import { APPLY_ORIGIN_FAMILIES, familyOf, jobIdOf, originOf, packetJobIds, packetOrigins, hostsSentence } from "./applyOrigins.js";
 import { listHistory } from "./applicationRecords.js";
 import { companyRows, matchCompany } from "../shared/companyIdentity.js";
-import { pageKeyOf } from "./jobPageKey.js";
+import { pageKeyOf, ownJobByTitleCompany } from "./jobPageKey.js";
 
 const one = (db, sql, ...args) => { try { return db.prepare(sql).get(...args) ?? null; } catch { return null; } };
 
@@ -132,6 +132,14 @@ export function resolvePageJob(db, userId, url, families = APPLY_ORIGIN_FAMILIES
     const same = keyRows.filter(r => [r.url, r.apply_url].some(u => u && pageKeyOf(u)?.key === pk.key));
     const got = pick(same, "page_key");
     if (got) return got;
+    // ⭐ (company, title): a job THIS user captured elsewhere (LinkedIn) whose title is the page's and whose company is
+    // the tenant — exactly one, or none (services/jobPageKey.js ownJobByTitleCompany).
+    const own = ownJobByTitleCompany(db, userId, pk);
+    if (own) {
+      const row = one(db, `SELECT ${JOB_COLS} FROM scraped_jobs WHERE job_id=?`, own);
+      const hit = row && pick([row], "title_company");
+      if (hit) return hit;
+    }
   }
 
   // The same job on another of its ATS's origins: account.amazon.jobs/en-US/applicant/jobs/2912345/apply
