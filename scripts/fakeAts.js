@@ -1789,15 +1789,387 @@ function workdayShapedRoute(path, send) {
     return true;
   }
   send(200, page('Software Engineer — Apply', `${header}
-  <p data-stage="${stage}">Step: ${stage}</p>
+  <p data-stage="${stage}" data-ws-step="${WS_FIRST_STEP}">Step: ${WS_STEPS.find(s => s.id === WS_FIRST_STEP).title.toLowerCase()}</p>
   <aside>${description}</aside>
-  <form data-automation-id="applyFlowPage" onsubmit="return false">
-    <label>First name <input name="firstName" data-automation-id="legalNameSection_firstName"></label>
-    <label>Last name <input name="lastName" data-automation-id="legalNameSection_lastName"></label>
-    <label>Email <input name="email" type="email" data-automation-id="email"></label>
-    <button type="button" id="next-step" onclick="document.querySelector('[data-stage]').textContent='Step: my experience'">Save and Continue</button>
-  </form>`));
+  ${workdayShapedStyle()}
+  <form data-automation-id="applyFlowPage" id="ws-root" onsubmit="return false">
+    <ol data-automation-id="progressBar" class="ws-progress"></ol>
+    <h2 data-automation-id="pageHeader"></h2>
+    <div data-automation-id="applyFlowStepBody" id="ws-body"></div>
+    <div data-automation-id="pageFooter" class="ws-foot">
+      <button type="button" id="back-step" data-automation-id="bottom-navigation-back-button">Back</button>
+      <button type="button" id="next-step" data-automation-id="bottom-navigation-next-button">Save and Continue</button>
+    </div>
+  </form>
+  ${WS_STEPS.map(s => `<template data-ws-step="${s.id}" data-ws-title="${escapeHtml(s.title)}"${s.onPath ? ' data-ws-on-path=""' : ''}>${s.body()}</template>`).join('\n  ')}
+  <script>(${workdayShapedClient.toString()})(${JSON.stringify(WS_CONFIG)});</script>`));
   return true;
+}
+
+// ── J2 · THE STAGES INSIDE THE WORKDAY-SHAPED APPLICATION (D96 §5–§8, D98 §5) ───────────────────────────────────
+// One document per URL, its STEP changing without the URL changing — Workday's own single-page navigation. Each step
+// is a <template data-ws-step="…"> (inert: no fill, no extractor and no querySelector sees it) cloned into
+// #ws-body by workdayShapedClient; the values a step held are kept in the page and shown on Review.
+//
+//   ON THE PATH (Save and Continue, #next-step):
+//     myInformation → myExperience → applicationQuestions → voluntaryDisclosures → selfIdentify → review
+//   OFF THE PATH (reached with window.__wd.go(id), the harness's goStep — the URL never changes):
+//     signIn        — sign-in on the SAME applyManually URL (d53fbd7: there is no separate sign-in address), with a
+//                     PASSWORD input pre-filled with WS_CONFIG.passwordSentinel, so a run can prove it never left
+//                     the page (test-support/extensionBrowser.mjs: leaked()).
+//     unrecognised  — no control draft can recognise: the "Nothing was filled" case (D96 §5).
+//
+// What the SPEC states (D96 §1, §5, §7; D98 §5) and this draws: labels carrying a trailing required asterisk
+// ("First Name*"); My Information with address line 1, city, state (a dropdown), postal code, country (a dropdown),
+// phone device type (a dropdown), phone number and country phone code (a typeahead); Application Questions with radio
+// and checkbox groups; Voluntary Disclosures with EEO dropdowns AND an "I have read and consent" checkbox; a
+// self-identification step with a NAME + DATE signature; Review; a hidden input[type=file] behind a drop zone.
+//
+// ⚠ shape assumed, re-measure on a live tenant (O73): EVERY data-automation-id below follows D55's replica
+// conventions (themselves "not re-measured against a live tenant"), and each control marked ⚠ further down is a
+// shape nobody has measured on Zoom's tenant. A test may rely on the controls existing; it may not cite this markup
+// as evidence of what Workday renders.
+//
+// ⛔ Save and Continue does NOT validate here (D55's /workday-replica does): a lane's run must be able to walk every
+// step with only what draft filled. On Review the SAME button reads "Submit"; pressing it posts to
+// /_submit/workday-shaped and is RECORDED in GET /_submissions, so a run can prove the extension never pressed it.
+// ⛔ D60: no capsule in this CSS — every radius is 6px or less.
+const WS_FIRST_STEP = 'myInformation';
+const WS_CONFIG = {
+  listboxDelayMs: 120,      // the listbox arrives LATER, in a portal at the end of <body> (as D55's replica)
+  searchDelayMs: 450,       // a typeahead answers after "Searching…"
+  passwordSentinel: 'ws-PASSWORD-SENTINEL-7d1c0e',
+};
+const WS_REQ = '<abbr title="required" aria-hidden="true">*</abbr>';
+const wsAttrJson = (v) => escapeHtml(JSON.stringify(v));
+const wsLabel = (id, text, req) => `<label for="${id}" id="${id}-label">${text}${req ? WS_REQ : ''}</label>`;
+const wsField = (aid, inner) => `<div data-automation-id="formField-${aid}" class="ws-field">${inner}</div>`;
+function wsText(id, aid, label, o = {}) {
+  const tag = o.textarea ? 'textarea' : 'input';
+  const attrs = [`id="${id}"`, `data-automation-id="${aid}"`, o.textarea ? 'rows="3"' : `type="${o.type || 'text'}"`,
+    o.name ? `name="${o.name}"` : '', o.aria ? 'aria-required="true"' : '', o.placeholder ? `placeholder="${o.placeholder}"` : '',
+    o.autocomplete ? `autocomplete="${o.autocomplete}"` : ''].filter(Boolean).join(' ');
+  return wsField(aid, `${wsLabel(id, label, o.req)}<${tag} ${attrs}>${o.textarea ? '</textarea>' : ''}`);
+}
+// The combobox: a BUTTON that opens a listbox (role=option, promptOption) rendered into a portal after a delay.
+function wsDropdown(id, aid, label, options, o = {}) {
+  return wsField(aid, `${wsLabel(id, label, o.req)}<button type="button" id="${id}" class="ws-dd" data-automation-id="${aid}"
+    aria-haspopup="listbox" aria-expanded="false" aria-labelledby="${id}-label ${id}" value=""${o.req ? ' aria-required="true"' : ''}
+    data-ws-options="${wsAttrJson(options)}">Select One</button>`);
+}
+// The typeahead: type → "Searching…" → options → a selectedItem chip (a rectangle, never a capsule).
+function wsTypeahead(id, aid, label, vocab, o = {}) {
+  return wsField(aid, `${wsLabel(id, label, o.req)}<div data-automation-id="multiselectInputContainer">
+    <input type="text" id="${id}" role="combobox" aria-autocomplete="list" aria-expanded="false" autocomplete="off"
+      data-automation-id="searchBox" data-ws-for="${aid}" placeholder="Search"${o.req ? ' aria-required="true"' : ''}
+      data-ws-vocab="${wsAttrJson(vocab)}"></div>
+    <ul data-automation-id="selectedItemList" role="list" class="ws-chips" data-ws-chips="${id}"></ul>`);
+}
+function wsGroup(kind, id, aid, legend, options, o = {}) {
+  const role = kind === 'radio' ? 'radiogroup' : 'group';
+  const items = options.map((opt, i) => `<div class="ws-check"><input type="${kind}" id="${id}-${i}" name="${id}" value="${escapeHtml(opt)}">` +
+    `<label for="${id}-${i}">${escapeHtml(opt)}</label></div>`).join('');
+  return `<fieldset role="${role}" data-automation-id="formField-${aid}" class="ws-field" aria-labelledby="${id}-legend"${o.req ? ' aria-required="true"' : ''}>` +
+    `<legend id="${id}-legend">${legend}${o.req ? WS_REQ : ''}</legend>${items}</fieldset>`;
+}
+function wsDate(id, aid, label, parts, o = {}) {
+  const PART = { month: ['MM', 'Month', 'dateSectionMonth-input'], day: ['DD', 'Day', 'dateSectionDay-input'], year: ['YYYY', 'Year', 'dateSectionYear-input'] };
+  const inputs = parts.map(p => `<input type="text" id="${id}-${p}" aria-label="${PART[p][1]}" data-automation-id="${PART[p][2]}"
+    placeholder="${PART[p][0]}" inputmode="numeric" size="${PART[p][0].length + 1}">`).join('');
+  return `<div role="group" data-automation-id="formField-${aid}" class="ws-field" aria-labelledby="${id}-label">` +
+    `<span id="${id}-label" class="ws-glabel">${label}${o.req ? WS_REQ : ''}</span><div class="ws-date">${inputs}</div></div>`;
+}
+const WS_COUNTRIES = ['Canada', 'India', 'United Kingdom', 'United States of America'];
+const WS_STATES = ['California', 'Illinois', 'Massachusetts', 'New York', 'Texas', 'Washington'];
+const WS_PHONE_CODES = ['Canada (+1)', 'India (+91)', 'United Kingdom (+44)', 'United States of America (+1)'];
+const WS_STEPS = [
+  { id: 'signIn', title: 'Sign In', onPath: false, body: () => [
+    // ⚠ shape assumed, re-measure on a live tenant (O73): Workday's sign-in panel on the applyManually URL — the
+    // owner saw sign-in there (d53fbd7); its markup and automation ids were never measured.
+    wsText('ws-signIn-email', 'email', 'Email Address', { req: true, type: 'email', autocomplete: 'username' }),
+    wsText('ws-signIn-password', 'password', 'Password', { req: true, type: 'password', autocomplete: 'current-password' }),
+    `<button type="button" data-automation-id="signInSubmitButton" data-ws-go="myInformation">Sign In</button>`,
+  ].join('\n') },
+  { id: 'myInformation', title: 'My Information', onPath: true, body: () => [
+    wsTypeahead('ws-source', 'source', 'How Did You Hear About Us?', ['Company Careers Website', 'Employee Referral', 'Job Board', 'LinkedIn', 'Other'], { req: true }),
+    wsGroup('radio', 'ws-previousWorker', 'previousWorker', 'Have you previously worked for Zoom?', ['Yes', 'No'], { req: true }),
+    wsDropdown('ws-country', 'countryDropdown', 'Country', WS_COUNTRIES, { req: true }),
+    // The owner's symptom 4: "First Name*" — the label's text ends in the asterisk. name= kept for the walk's checks.
+    wsText('ws-firstName', 'legalNameSection_firstName', 'First Name', { req: true, aria: true, name: 'firstName' }),
+    // Asterisk ONLY — no aria-required (D55: "all many forms give").
+    wsText('ws-lastName', 'legalNameSection_lastName', 'Last Name', { req: true, name: 'lastName' }),
+    wsText('ws-addressLine1', 'addressSection_addressLine1', 'Address Line 1', { req: true }),
+    wsText('ws-city', 'addressSection_city', 'City', { req: true }),
+    wsDropdown('ws-state', 'addressSection_countryRegion', 'State', WS_STATES, { req: true }),
+    wsText('ws-postalCode', 'addressSection_postalCode', 'Postal Code', { req: true }),
+    wsText('ws-email', 'email', 'Email Address', { req: true, aria: true, type: 'email', name: 'email' }),
+    wsDropdown('ws-phoneDeviceType', 'phone-device-type', 'Phone Device Type', ['Home Cellular', 'Landline', 'Mobile'], { req: true }),
+    wsTypeahead('ws-phoneCode', 'country-phone-code', 'Country Phone Code', WS_PHONE_CODES, { req: true }),
+    wsText('ws-phoneNumber', 'phone-number', 'Phone Number', { req: true, type: 'tel' }),
+  ].join('\n') },
+  { id: 'myExperience', title: 'My Experience', onPath: true, body: () => [
+    `<div role="group" data-automation-id="workExperience-1" class="ws-panel" aria-labelledby="ws-we1-h"><h4 id="ws-we1-h">Work Experience 1</h4>`,
+    wsText('ws-we1-jobTitle', 'jobTitle', 'Job Title', { req: true }),
+    wsText('ws-we1-company', 'company', 'Company', { req: true }),
+    wsText('ws-we1-location', 'location', 'Location'),
+    `<div data-automation-id="formField-currentlyWorkHere" class="ws-field ws-check"><input type="checkbox" id="ws-we1-current" data-automation-id="currentlyWorkHere"><label for="ws-we1-current">I currently work here</label></div>`,
+    wsDate('ws-we1-from', 'startDate', 'From', ['month', 'year'], { req: true }),
+    wsDate('ws-we1-to', 'endDate', 'To', ['month', 'year']),
+    wsText('ws-we1-description', 'description', 'Role Description', { textarea: true }),
+    `</div>`,
+    `<div role="group" data-automation-id="education-1" class="ws-panel" aria-labelledby="ws-ed1-h"><h4 id="ws-ed1-h">Education 1</h4>`,
+    wsTypeahead('ws-ed1-school', 'school', 'School or University', ['Example State University', 'Northfield College', 'Riverside Institute of Technology'], { req: true }),
+    wsDropdown('ws-ed1-degree', 'degree', 'Degree', ["Associate", "Bachelor's Degree", "Master's Degree", 'Doctorate (PhD)'], { req: true }),
+    `</div>`,
+    // The résumé: a HIDDEN input[type=file] inside a custom drop zone (D98 §5's "likely case"). The file name shows in
+    // file-upload-successful when the input's change fires, so a run can verify an attach took.
+    // ⚠ shape assumed, re-measure on a live tenant (O73): how the input is hidden, and the status text.
+    wsField('resumeUpload', `<span class="ws-glabel" id="ws-resume-label">Resume/CV${WS_REQ}</span>
+      <div data-automation-id="file-upload-drop-zone" class="ws-drop" aria-labelledby="ws-resume-label">
+        <div data-automation-id="file-upload-status" id="ws-resume-status">Drop file here</div>
+        <button type="button" data-automation-id="select-files" data-ws-pick="ws-resume">Select files</button>
+        <input type="file" id="ws-resume" data-automation-id="file-upload-input-ref" accept=".pdf,.doc,.docx" class="ws-hidden-file" tabindex="-1">
+      </div>`),
+  ].join('\n') },
+  { id: 'applicationQuestions', title: 'Application Questions', onPath: true, body: () => [
+    wsGroup('radio', 'ws-q-authorized', 'q-authorized', 'Are you legally authorized to work in the United States?', ['Yes', 'No'], { req: true }),
+    wsGroup('radio', 'ws-q-sponsorship', 'q-sponsorship',
+      'Will you now or in the future require sponsorship for employment visa status (e.g., H-1B visa status)?', ['Yes', 'No'], { req: true }),
+    // ⚠ shape assumed, re-measure on a live tenant (O73): a multi-answer checkbox group on Application Questions.
+    wsGroup('checkbox', 'ws-q-locations', 'q-locations', 'Which locations would you consider? (select all that apply)',
+      ['Remote (US)', 'San Jose, CA', 'Seattle, WA'], { req: true }),
+  ].join('\n') },
+  { id: 'voluntaryDisclosures', title: 'Voluntary Disclosures', onPath: true, body: () => [
+    wsDropdown('ws-gender', 'gender', 'Gender', ['Female', 'Male', 'Non-binary', 'I do not wish to answer'], { req: true }),
+    wsDropdown('ws-ethnicity', 'ethnicity', 'Ethnicity', ['Asian', 'Black or African American', 'Hispanic or Latino', 'Two or More Races', 'White', 'I do not wish to answer'], { req: true }),
+    wsDropdown('ws-veteranStatus', 'veteranStatus', 'Veteran Status', ['I am not a protected veteran',
+      'I identify as one or more of the classifications of protected veteran', 'I do not wish to answer'], { req: true }),
+    // ⛔ D96 §4 safeguard 1: a terms / consent control — ALWAYS the user's own click, never draft's.
+    `<div data-automation-id="formField-agreementCheckbox" class="ws-field ws-check"><input type="checkbox" id="ws-consent" data-automation-id="agreementCheckbox" aria-required="true">` +
+      `<label for="ws-consent">I have read and consent to the Terms and Conditions${WS_REQ}</label></div>`,
+  ].join('\n') },
+  { id: 'selfIdentify', title: 'Self Identify', onPath: true, body: () => [
+    `<p>Voluntary Self-Identification of Disability</p>`,
+    wsGroup('radio', 'ws-disability', 'disabilityStatus', 'Please check one of the boxes below:', [
+      'Yes, I have a disability (or previously had a disability)',
+      'No, I do not have a disability and have not had one in the past',
+      'I do not want to answer'], { req: true }),
+    // ⛔ D96 §4 safeguard 1: the SIGNATURE — a name and a date the candidate signs. Never filled by draft.
+    wsText('ws-sig-name', 'selfIdentifiedDisabilityData--name', 'Name', { req: true }),
+    // ⚠ shape assumed, re-measure on a live tenant (O73): the signature date as month / day / year inputs.
+    wsDate('ws-sig-date', 'selfIdentifiedDisabilityData--dateSignedOn', 'Date', ['month', 'day', 'year'], { req: true }),
+  ].join('\n') },
+  { id: 'unrecognised', title: 'Questionnaire', onPath: false, body: () => [
+    // ⚠ SYNTHETIC, not a Workday shape: three controls with no label, no name, no aria-label and no placeholder —
+    // nothing a matcher can recognise, so a fill fills NOTHING ("Nothing was filled", D96 §5). The first is
+    // aria-required, so the wizard stops here for the candidate instead of advancing — D96 §1 symptom 3's page.
+    `<div class="ws-field"><input type="text" id="ws-u1" data-automation-id="q-7f3a2c" aria-required="true"></div>`,
+    `<div class="ws-field"><textarea id="ws-u2" data-automation-id="q-9b1e04" rows="2"></textarea></div>`,
+    `<div class="ws-field"><button type="button" id="ws-u3" class="ws-dd" data-automation-id="q-c40d11" aria-haspopup="listbox"
+      aria-expanded="false" value="" data-ws-options="${wsAttrJson(['7', '8', '9'])}">Select One</button></div>`,
+  ].join('\n') },
+  { id: 'review', title: 'Review', onPath: true, body: () =>
+    `<section data-automation-id="reviewJobApplicationPage"><p>Review your application before you submit it.</p><dl class="ws-review" id="ws-review"></dl></section>` },
+];
+function workdayShapedStyle() {
+  // ⛔ D60: rectangles only — the largest radius here is 6px.
+  return `<style>
+ #ws-root{border:1px solid #d5d8dd;border-radius:6px;padding:12px 18px;margin-top:16px}
+ .ws-progress{display:flex;gap:6px;list-style:none;padding:0;margin:4px 0 10px;font-size:12px}
+ .ws-progress li{flex:1;padding:4px;border-top:4px solid #d5d8dd;color:#68707d}
+ .ws-progress li[aria-current]{border-color:#0875e1;color:#0875e1;font-weight:700}
+ .ws-field{margin:12px 0;display:block}
+ .ws-glabel,legend{display:block;font-weight:600;font-size:14px;margin-bottom:4px}
+ abbr[title="required"]{color:#c00;text-decoration:none;margin-left:2px}
+ fieldset{border:0;padding:0;margin:12px 0}
+ .ws-check{display:flex;gap:8px;align-items:center;margin:6px 0}
+ .ws-check input{width:auto}
+ .ws-check label{font-weight:400;margin:0}
+ .ws-date{display:flex;gap:6px}
+ .ws-date input{width:auto}
+ .ws-dd{margin:0;min-width:260px;text-align:left;padding:8px;border:1px solid #a1a8b3;border-radius:4px;background:#fff;font-size:14px}
+ .ws-pop{position:absolute;z-index:50;background:#fff;border:1px solid #a1a8b3;border-radius:4px;max-height:240px;overflow:auto}
+ .ws-pop div{padding:6px 10px;font-size:14px;cursor:pointer}
+ .ws-chips{list-style:none;padding:0;margin:6px 0 0;display:flex;flex-wrap:wrap;gap:6px}
+ .ws-chips li{background:#e8f1fc;border-radius:4px;padding:2px 8px;font-size:13px}
+ .ws-panel{border:1px solid #e3e5e8;border-radius:6px;padding:4px 12px;margin:10px 0}
+ .ws-drop{position:relative;border:2px dashed #a1a8b3;border-radius:6px;padding:16px;text-align:center;color:#68707d}
+ .ws-hidden-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
+ [data-automation-id="file-upload-successful"]{color:#2e7d32;font-weight:600}
+ .ws-foot{display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #e3e5e8;margin-top:16px}
+ .ws-foot button{border-radius:6px}
+ .ws-review dt{font-size:12px;color:#68707d;margin-top:6px}
+ .ws-review dd{margin:0;font-weight:600}
+</style>`;
+}
+// Runs IN THE PAGE. Serialised with toString(), so it closes over nothing but its argument.
+function workdayShapedClient(cfg) {
+  const body = document.getElementById('ws-body');
+  const stageLine = document.querySelector('[data-stage]');
+  const header = document.querySelector('#ws-root [data-automation-id="pageHeader"]');
+  const progress = document.querySelector('#ws-root [data-automation-id="progressBar"]');
+  const next = document.getElementById('next-step');
+  const back = document.getElementById('back-step');
+  const steps = [...document.querySelectorAll('template[data-ws-step]')].map(t => ({ id: t.dataset.wsStep, title: t.dataset.wsTitle, onPath: t.hasAttribute('data-ws-on-path'), t }));
+  const path = steps.filter(s => s.onPath);
+  const state = { step: null, values: {}, chips: {}, files: {}, submitPressed: 0, history: [] };
+  let uid = 0;
+  const el = (tag, attrs, text) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v); if (text != null) e.textContent = text; return e; };
+  const closeLists = () => {
+    document.querySelectorAll('.ws-pop').forEach(p => p.remove());
+    document.querySelectorAll('#ws-body [aria-expanded="true"]').forEach(a => a.setAttribute('aria-expanded', 'false'));
+  };
+  const position = (pop, anchor) => {
+    const r = anchor.getBoundingClientRect();
+    pop.style.top = `${r.bottom + window.scrollY + 2}px`; pop.style.left = `${r.left + window.scrollX}px`; pop.style.minWidth = `${Math.max(220, r.width)}px`;
+  };
+  const renderChips = (id) => {
+    const list = body.querySelector(`[data-ws-chips="${id}"]`);
+    if (!list) return;
+    list.replaceChildren(...(state.chips[id] || []).map(c => { const li = el('li', { 'data-automation-id': 'selectedItem', role: 'listitem', title: c }); li.append(el('span', {}, c)); return li; }));
+  };
+  // Keep what the step held — by element id — when it is left, and put it back when it is shown again.
+  const save = () => {
+    for (const c of body.querySelectorAll('input, textarea, button[aria-haspopup="listbox"]')) {
+      if (!c.id) continue;
+      if (c.matches('button')) { state.values[c.id] = c.getAttribute('value') || ''; continue; }
+      if (c.type === 'file' || c.getAttribute('role') === 'combobox') continue;   // kept as they happen
+      if (c.type === 'radio') { if (c.checked) state.values[c.name] = c.value; continue; }
+      if (c.type === 'checkbox') { state.values[c.id] = c.checked; continue; }
+      state.values[c.id] = c.value;
+    }
+  };
+  const restore = () => {
+    for (const c of body.querySelectorAll('input, textarea, button[aria-haspopup="listbox"]')) {
+      if (c.type === 'password' && !(c.id in state.values)) { c.value = cfg.passwordSentinel; continue; }   // as a password manager would
+      if (c.matches('button')) { const v = state.values[c.id]; if (v) { c.setAttribute('value', v); c.textContent = v; } continue; }
+      if (c.type === 'radio') { c.checked = state.values[c.name] === c.value; continue; }
+      if (c.type === 'checkbox') { c.checked = state.values[c.id] === true; continue; }
+      if (c.type === 'file' || c.getAttribute('role') === 'combobox') continue;
+      if (c.id in state.values) c.value = state.values[c.id];
+    }
+    for (const id of Object.keys(state.chips)) renderChips(id);
+    for (const [id, f] of Object.entries(state.files)) {
+      const status = document.getElementById(`${id}-status`);
+      if (status) { status.setAttribute('data-automation-id', 'file-upload-successful'); status.textContent = `${f.name} · Successfully Uploaded!`; }
+    }
+  };
+  const fillReview = () => {
+    const dl = document.getElementById('ws-review');
+    if (!dl) return;
+    const rows = [];
+    for (const [k, v] of Object.entries(state.values)) if (v !== '' && v !== false && !/password/i.test(k)) rows.push([k, v === true ? 'Yes' : String(v)]);
+    for (const [k, v] of Object.entries(state.chips)) if (v.length) rows.push([k, v.join(', ')]);
+    for (const [k, f] of Object.entries(state.files)) rows.push([k, f.name]);
+    dl.replaceChildren(...rows.flatMap(([k, v]) => [el('dt', {}, k), el('dd', { 'data-key': k }, v)]));
+  };
+  function go(id) {
+    const s = steps.find(x => x.id === id);
+    if (!s) throw new Error(`no step ${id}`);
+    if (state.step) save();
+    closeLists();
+    state.step = id;
+    state.history.push(id);
+    body.replaceChildren(s.t.content.cloneNode(true));
+    restore();
+    if (id === 'review') fillReview();
+    header.textContent = s.title;
+    stageLine.textContent = `Step: ${s.title.toLowerCase()}`;
+    stageLine.dataset.wsStep = id;
+    progress.replaceChildren(...path.map(p => { const li = el('li', { 'data-automation-id': p.id === id ? 'progressBarActiveStep' : 'progressBarInactiveStep' }, p.title); if (p.id === id) li.setAttribute('aria-current', 'step'); return li; }));
+    next.textContent = id === 'review' ? 'Submit' : 'Save and Continue';
+    // Sign-in has its own "Sign In" button and no Save and Continue footer (⚠ shape assumed, re-measure on a live tenant (O73)).
+    next.hidden = id === 'signIn';
+    back.hidden = id === 'signIn' || path.indexOf(s) <= 0;
+  }
+  next.addEventListener('click', async () => {
+    if (state.step === 'review') {
+      // ⛔ Recorded, never assumed: the extension must never press this (GET /_submissions, provider workday-shaped).
+      state.submitPressed += 1;
+      save();
+      await fetch('/_submit/workday-shaped', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(Object.entries(state.values).map(([k, v]) => [k, String(v)])).toString() }).catch(() => {});
+      return;
+    }
+    const i = path.findIndex(p => p.id === state.step);
+    go(i < 0 ? path[0].id : path[Math.min(i + 1, path.length - 1)].id);
+  });
+  back.addEventListener('click', () => { const i = path.findIndex(p => p.id === state.step); if (i > 0) go(path[i - 1].id); });
+  document.addEventListener('click', (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t) return;
+    const goBtn = t.closest('[data-ws-go]');
+    if (goBtn) { go(goBtn.dataset.wsGo); return; }
+    const pick = t.closest('[data-ws-pick]');
+    if (pick) { document.getElementById(pick.dataset.wsPick)?.click(); return; }
+    const opt = t.closest('.ws-pop [role="option"]');
+    if (opt) {
+      const pop = opt.closest('.ws-pop');
+      const owner = document.getElementById(pop.dataset.owner);
+      if (owner?.matches('button')) { owner.setAttribute('value', opt.textContent); owner.textContent = opt.textContent; state.values[owner.id] = opt.textContent; }
+      else if (owner) { state.chips[owner.id] = [opt.textContent]; owner.value = ''; renderChips(owner.id); }
+      closeLists();
+      return;
+    }
+    const dd = t.closest('#ws-body button[aria-haspopup="listbox"]');
+    if (dd) {
+      closeLists();
+      const lbId = `ws-listbox-${++uid}`;
+      dd.setAttribute('aria-expanded', 'true'); dd.setAttribute('aria-controls', lbId);
+      setTimeout(() => {
+        if (dd.getAttribute('aria-controls') !== lbId || !dd.isConnected) return;
+        const lb = el('div', { role: 'listbox', id: lbId, class: 'ws-pop', 'data-automation-id': 'activeListContainer', 'data-owner': dd.id });
+        for (const o of JSON.parse(dd.dataset.wsOptions || '[]')) lb.append(el('div', { role: 'option', 'data-automation-id': 'promptOption', 'aria-selected': String(dd.getAttribute('value') === o) }, o));
+        position(lb, dd); document.body.append(lb);
+      }, cfg.listboxDelayMs);
+      return;
+    }
+    if (!t.closest('.ws-pop, [role="combobox"]')) closeLists();
+  });
+  let timer = null;
+  const search = (input) => {
+    const q = input.value.trim().toLowerCase();
+    closeLists();
+    if (!q) return;
+    const lbId = `ws-listbox-${++uid}`;
+    input.setAttribute('aria-controls', lbId); input.setAttribute('aria-expanded', 'true');
+    const lb = el('div', { role: 'listbox', id: lbId, class: 'ws-pop', 'data-automation-id': 'activeListContainer', 'data-owner': input.id, 'aria-busy': 'true' });
+    lb.append(el('div', { 'data-automation-id': 'searching' }, 'Searching…'));
+    position(lb, input); document.body.append(lb);
+    setTimeout(() => {
+      if (!lb.isConnected) return;
+      const hits = JSON.parse(input.dataset.wsVocab || '[]').filter(v => v.toLowerCase().includes(q));
+      lb.removeAttribute('aria-busy');
+      lb.replaceChildren(...(hits.length ? hits.map(v => el('div', { role: 'option', 'data-automation-id': 'promptOption', 'aria-selected': 'false' }, v))
+        : [el('div', { 'data-automation-id': 'noItems' }, 'No Items.')]));
+    }, cfg.searchDelayMs);
+  };
+  document.addEventListener('input', (e) => {
+    const t = e.target;
+    if (t instanceof HTMLInputElement && t.closest('#ws-body') && t.getAttribute('role') === 'combobox') { clearTimeout(timer); timer = setTimeout(() => search(t), 150); }
+  });
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (e.key === 'Enter' && t instanceof HTMLInputElement && t.getAttribute('role') === 'combobox') { e.preventDefault(); clearTimeout(timer); search(t); }
+  });
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLInputElement) || t.type !== 'file' || !t.closest('#ws-body')) return;
+    const f = t.files && t.files[0];
+    if (!f) return;
+    state.files[t.id] = { name: f.name, size: f.size, type: f.type };
+    const status = document.getElementById(`${t.id}-status`);
+    if (status) { status.setAttribute('data-automation-id', 'file-upload-successful'); status.textContent = `${f.name} · Successfully Uploaded!`; }
+  });
+  // The harness's hook (test-support/extensionBrowser.mjs). Main world only — the extension's isolated world never sees it.
+  window.__wd = {
+    steps: steps.map(s => ({ id: s.id, title: s.title, onPath: s.onPath })),
+    go, step: () => state.step, history: () => state.history.slice(),
+    values: () => { save(); return JSON.parse(JSON.stringify({ values: state.values, chips: state.chips, files: state.files })); },
+    submitPressed: () => state.submitPressed,
+    passwordSentinel: cfg.passwordSentinel,
+  };
+  go(stageLine.dataset.wsStep || path[0].id);
 }
 
 function twoOriginPosting(id) {
