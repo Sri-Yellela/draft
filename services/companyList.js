@@ -17,6 +17,7 @@ import { fetchCompanyJobs as recruitee } from "./jobs/sources/recruitee.js";
 import { fetchCompanyJobs as workday } from "./jobs/sources/workday.js";
 import { usEligibility } from "./jobs/usLocation.js";
 import { fetchDescription, hasDetailFetcher } from "./jobs/detailFetch.js";
+import { auditActorColumns } from "./actor.js";
 
 export const ATS_FETCHERS = Object.freeze({ greenhouse, lever, ashby, smartrecruiters, workable, recruitee, workday });
 const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._|-]{0,119}$/;
@@ -119,8 +120,9 @@ export async function descriptionCoverage(list, atsType, describe = defaultDescr
 
 function audit(db, adminUserId, action, target, before, after) {
   try {
-    db.prepare("INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json) VALUES (?, ?, ?, ?, ?)")
-      .run(adminUserId ?? null, action, String(target), before == null ? null : JSON.stringify(before), JSON.stringify(after));
+    const a = auditActorColumns(adminUserId);   // D95: an actor — admin:adm_… · user:N · system
+    db.prepare("INSERT INTO admin_audit_log (admin_user_id, actor_kind, actor, action, target, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      .run(a.admin_user_id, a.actor_kind, a.actor, action, String(target), before == null ? null : JSON.stringify(before), JSON.stringify(after));
   } catch { /* a database without migration 119 still works; the log is what is lost */ }
 }
 

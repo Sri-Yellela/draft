@@ -22,6 +22,7 @@
 // stay on scraped_jobs; provenance is a pointer. See migration 101's comment for the cost of the
 // alternative.
 
+import { actorOf } from "../services/actor.js";
 import express, { Router } from "express";
 import {
   selectCandidates, estimateCost, columnCoverage, diffCoverage,
@@ -266,7 +267,7 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
 
       const result = applyImport(db, text, {
         ...options,
-        notes: `POST /api/admin/enrichment/import by ${req.user?.username ?? "admin"}`,
+        notes: `POST /api/admin/enrichment/import by ${actorOf(req).ref}`,
       });
       if (!result.ok) return res.status(422).json({ applied: false, plan: planSummary, error: result.reason });
       // Measured over the SAME row set the dry run projected — every row in the file that matched a

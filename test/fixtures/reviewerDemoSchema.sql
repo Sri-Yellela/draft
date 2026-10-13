@@ -187,7 +187,7 @@ CREATE TABLE admin_audit_log (
           before_json TEXT,
           after_json TEXT,
           undone_at INTEGER
-        , reason TEXT);
+        , reason TEXT, actor_kind TEXT, actor TEXT);
 
 CREATE TABLE byom_briefs (
           id TEXT PRIMARY KEY,
@@ -229,4 +229,5 @@ CREATE TABLE user_entitlement_overrides (
           expires_at INTEGER,
           revoked_at INTEGER,
           revoked_by INTEGER
+        , set_by_actor TEXT, revoked_by_actor TEXT
         );

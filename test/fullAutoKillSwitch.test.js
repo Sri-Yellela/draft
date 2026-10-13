@@ -119,7 +119,8 @@ test("the write route refuses anything that is not a real boolean", () => {
   assert.match(body, /status\(400\)/);
   assert.match(body, /console\.warn/, "a change with real-world consequences must leave a record");
   // app_settings keeps only the current value, so the log is the only trace that it moved.
-  assert.match(body, /req\.user\?\.id/, "the record must name who did it");
+  // D95: by its coded actor — admin:adm_… for an admin account, user:N for the legacy row — never a bare id.
+  assert.match(body, /by \$\{actorRef\(req\)\}/, "the record must name who did it");
 });
 
 test("all three admin routes exist and are admin-guarded", () => {

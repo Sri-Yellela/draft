@@ -22,6 +22,7 @@ import { probeBoard } from "./companyProbe.js";
 import { addCompany, admitFromProbe, evidenceLine, excludedCompany } from "./companyList.js";
 import { recordPipelineRun } from "./jobs/pipelineRunLog.js";
 import { fetchDescription } from "./jobs/detailFetch.js";
+import { toActor } from "./actor.js";
 
 export const STATUSES = Object.freeze(["new", "probed", "approved", "rejected", "added", "dormant"]);
 export const PROBE_BATCH = 25;
@@ -254,21 +255,23 @@ export function candidateEvidence(r, ev, { now = nowS() } = {}) {
  */
 export function approveCandidates(db, plan, { adminUserId = null, now = nowS() } = {}) {
   const added = [], failed = [];
-  const mark = db.prepare("UPDATE company_candidates SET status = ?, status_reason = ?, decided_at = ?, decided_by = ? WHERE id = ?");
+  const mark = db.prepare("UPDATE company_candidates SET status = ?, status_reason = ?, decided_at = ?, decided_by = ?, decided_by_actor = ? WHERE id = ?");
+  const by = toActor(adminUserId);
   for (const e of plan.eligible) {
     const r = db.prepare("SELECT * FROM company_candidates WHERE id = ?").get(e.id);
     const out = addCompany(db, { company: r.company, atsType: r.ats_type, slug: r.ats_slug, adminUserId,
       evidence: candidateEvidence(r, parse(r.evidence_json), { now }) });
-    if (out.ok) { mark.run("added", `company #${out.company.id}`, now, adminUserId, r.id); added.push({ id: r.id, companyId: out.company.id }); }
-    else { mark.run("approved", out.code, now, adminUserId, r.id); failed.push({ id: r.id, reason: out.code }); }
+    if (out.ok) { mark.run("added", `company #${out.company.id}`, now, by.userId, by.ref, r.id); added.push({ id: r.id, companyId: out.company.id }); }
+    else { mark.run("approved", out.code, now, by.userId, by.ref, r.id); failed.push({ id: r.id, reason: out.code }); }
   }
   return { added, failed };
 }
 
 export function rejectCandidates(db, ids, { adminUserId = null, reason = "owner", now = nowS() } = {}) {
-  const st = db.prepare(`UPDATE company_candidates SET status = 'rejected', status_reason = ?, decided_at = ?, decided_by = ?
+  const by = toActor(adminUserId);
+  const st = db.prepare(`UPDATE company_candidates SET status = 'rejected', status_reason = ?, decided_at = ?, decided_by = ?, decided_by_actor = ?
                          WHERE id = ? AND status IN ('new', 'probed', 'approved')`);
   let n = 0;
-  for (const id of (ids || []).map(Number).filter(Number.isInteger)) n += st.run(String(reason).slice(0, 120), now, adminUserId, id).changes;
+  for (const id of (ids || []).map(Number).filter(Number.isInteger)) n += st.run(String(reason).slice(0, 120), now, by.userId, by.ref, id).changes;
   return { rejected: n };
 }

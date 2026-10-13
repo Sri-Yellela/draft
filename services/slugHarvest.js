@@ -33,6 +33,7 @@ import { googleJobs } from "./jobs/sources/serpapi.js";
 import { validateBoard, addCompany, setCompanyActive, ATS_FETCHERS } from "./companyList.js";
 import { probeBoard } from "./companyProbe.js";
 import { HARVEST_QUERY_PLAN } from "./harvestQueryPlan.js";
+import { toActor } from "./actor.js";
 
 export const DAILY_SEARCH_CAP = 8;
 export const EXHAUSTED_AFTER = 3;
@@ -264,8 +265,8 @@ export function planSweep(db, { queries = null, now = Math.floor(Date.now() / 10
 
 // ── the sweep ───────────────────────────────────────────────────────────────────────────────────
 export function openSweep(db, { queries, adminUserId = null, now = Math.floor(Date.now() / 1000) }) {
-  return Number(db.prepare("INSERT INTO slug_harvest_sweeps (started_at, admin_user_id, queries_json) VALUES (?, ?, ?)")
-    .run(now, adminUserId, JSON.stringify(queries.map(x => ({ q: x.q, ...(x.location ? { location: x.location } : {}), family: x.family, ran: false })))).lastInsertRowid);
+  return Number(db.prepare("INSERT INTO slug_harvest_sweeps (started_at, admin_user_id, actor, queries_json) VALUES (?, ?, ?, ?)")
+    .run(now, toActor(adminUserId).userId, toActor(adminUserId).ref, JSON.stringify(queries.map(x => ({ q: x.q, ...(x.location ? { location: x.location } : {}), family: x.family, ran: false })))).lastInsertRowid);
 }
 
 /**
@@ -467,8 +468,8 @@ export function applyPlan(db, plan, { adminUserId = null, now = Math.floor(Date.
   if (!plan.valid) return { ok: false, reason: "the plan has rejections" };
   if (!plan.planned.length) return { ok: true, importId: null, written: 0, added: 0 };
   return db.transaction(() => {
-    const importId = Number(db.prepare("INSERT INTO slug_harvest_imports (imported_at, admin_user_id, file_sha256) VALUES (?, ?, ?)")
-      .run(now, adminUserId, plan.sha256).lastInsertRowid);
+    const importId = Number(db.prepare("INSERT INTO slug_harvest_imports (imported_at, admin_user_id, actor, file_sha256) VALUES (?, ?, ?, ?)")
+      .run(now, toActor(adminUserId).userId, toActor(adminUserId).ref, plan.sha256).lastInsertRowid);
     const upd = db.prepare(`UPDATE slug_harvest_pool SET decision = @decision, company = @company, decided_at = @decided_at,
                               import_id = @import_id, company_id = @company_id WHERE ats_type = @ats AND slug_key = @slugKey`);
     const rec = db.prepare(`INSERT INTO slug_harvest_import_rows (import_id, ats_type, slug_key, before_json, after_json, company_id)

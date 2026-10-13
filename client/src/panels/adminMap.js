@@ -32,6 +32,7 @@ export const ADMIN_GROUPS = Object.freeze([
     ["tools", "Tools service"],         // #11
     ["notices", "Notices"],             // D73 §B
     ["email", "Email health"],          // D94 — the Resend webhook's failed sends, suppressions, domain status
+    ["admins", "Admins"],               // D95 — the admin accounts (never users): add, disable, last sign-in; owner only
   ] },
 ]);
 

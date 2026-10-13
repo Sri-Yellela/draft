@@ -66,6 +66,17 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent-ink);out
 }
 
 /** A plain message page — an invalid link, an expired screen. */
+/**
+ * ⛔ D95: the consent screen for an ADMINISTRATOR session — a plain refusal, and the one way on: sign in with a
+ * personal account and come back to this same screen. Nothing here can grant a connection.
+ */
+export function renderAdminRefusal({ who = "" } = {}) {
+  return shell("This is an administrator account", `<div class="cons"><p class="logo" style="font-size:20px;margin-bottom:12px"><span style="color:var(--accent-ink)">/</span>draft</p>` +
+    `<h1 style="text-align:left">This is an administrator account</h1>` +
+    `<p>${esc(who ? `You are signed in to draft as ${who}, an administrator account.` : "You are signed in to draft with an administrator account.")} Connectors use a personal account.</p>` +
+    `<form method="post" action="/oauth/switch-account"><button type="submit" class="btn p" data-use-personal="">Use a personal account</button></form></div>`);
+}
+
 export function renderConsentMessage({ title, body }) {
   return shell(title, `<div class="cons"><p class="logo" style="font-size:20px;margin-bottom:12px"><span style="color:var(--accent-ink)">/</span>draft</p>` +
     `<h1 style="text-align:left">${esc(title)}</h1><p>${esc(body)}</p></div>`);

@@ -1,6 +1,7 @@
 // routes/adminDb.js — DB Inspector API routes for admin diagnostics
 // (A50: the "SCRAPING — SCHEDULED FOR REMOVAL" banner was stale. pipelineHealth() here is the ONE
 // computation the nightly alert reads; nothing schedules this file's removal.)
+import { actorOf } from "../services/actor.js";
 import { traceJobLifecycle } from "../services/jobTrace.js";
 import { Router } from "express";
 import fs from "fs";
@@ -884,7 +885,7 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
         jobId: req.body?.jobId,
         roleKey: req.body?.roleKey,
         domainProfileId: req.body?.domainProfileId ? parseInt(req.body.domainProfileId) : null,
-        adminUserId: req.user?.id ?? null,
+        adminUserId: actorOf(req),
         validRoleKeys: VALID_REVIEW_ROLE_KEYS,
       }));
     } catch(e) { jobReviewFail(res, e); }
@@ -902,7 +903,7 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
     catch(e) { jobReviewFail(res, e); }
   });
   router.post("/job-review/undo/:logId", requireAdmin, (req, res) => {
-    try { res.json(undoJobReview(db, Number(req.params.logId), { adminUserId: req.user?.id ?? null })); }
+    try { res.json(undoJobReview(db, Number(req.params.logId), { adminUserId: actorOf(req) })); }
     catch(e) { jobReviewFail(res, e); }
   });
 

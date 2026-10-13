@@ -19,6 +19,7 @@
 // never the recipient. The suppression list already holds the addresses it must.
 // ⭐ IDEMPOTENT: the event is keyed by its Svix id, so a retried delivery is recorded — and acted on — once.
 import { recordEmailEvent } from "./emailSuppression.js";
+import { auditActorColumns } from "./actor.js";
 
 export const HANDLED_EVENT_TYPES = Object.freeze(["email.bounced", "email.complained", "email.failed", "email.suppressed", "domain.updated"]);
 export const RETENTION_DAYS = 90;
@@ -142,8 +143,9 @@ export function removeSuppression(db, { email, reason, adminUserId }) {
     const row = db.prepare("SELECT email, reason, event_id, created_at FROM email_suppressions WHERE email = ?").get(e);
     if (!row) throw new EmailHealthError(404, "That address is not on the suppression list.");
     db.prepare("DELETE FROM email_suppressions WHERE email = ?").run(e);
-    const log = db.prepare(`INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json, reason)
-                            VALUES (?, 'email_suppression_remove', ?, ?, NULL, ?)`).run(adminUserId ?? null, e, JSON.stringify(row), why);
+    const a = auditActorColumns(adminUserId);
+    const log = db.prepare(`INSERT INTO admin_audit_log (admin_user_id, actor_kind, actor, action, target, before_json, after_json, reason)
+                            VALUES (?, ?, ?, 'email_suppression_remove', ?, ?, NULL, ?)`).run(a.admin_user_id, a.actor_kind, a.actor, e, JSON.stringify(row), why);
     return { removed: e, auditId: Number(log.lastInsertRowid) };
   })();
 }

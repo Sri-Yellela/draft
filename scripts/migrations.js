@@ -4405,4 +4405,87 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⛔ D95 (owner 10-12): AN ADMIN IS NOT A USER. Admin accounts get their own table, their own sign-in links and
+      // their own sessions — never a users row, so never a profile, résumé, draft, ticket, token or connected app.
+      // Identities carry their kind in their shape: public_id adm_…, session tokens dft_adm_…, links dft_adml_…
+      // (services/adminAccounts.js). Every admin-side write names its actor as a coded string — admin:adm_… · user:N ·
+      // system (services/actor.js) — in admin_audit_log.actor and in an *_actor column beside each older integer
+      // column, which keeps holding a users.id or NULL, never an admin id. The backfill is truthful: rows written by a
+      // users row acting under the legacy is_admin flag are user:N; rows with no actor are system. Additive; the
+      // switch (ADMIN_ACCOUNTS_ENFORCE) is off until the owner has proved the new sign-in.
+      id: "159_admin_accounts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS admin_accounts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          public_id TEXT NOT NULL UNIQUE,
+          email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+          password_hash TEXT,
+          password_set_at INTEGER,
+          is_owner INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          created_by TEXT,
+          disabled_at INTEGER,
+          disabled_reason TEXT,
+          last_sign_in_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS admin_sessions (
+          token_hash TEXT PRIMARY KEY,
+          admin_id INTEGER NOT NULL REFERENCES admin_accounts(id) ON DELETE CASCADE,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          expires_at INTEGER NOT NULL,
+          last_seen_at INTEGER,
+          revoked_at INTEGER,
+          user_agent TEXT,
+          ip_hint TEXT,
+          break_glass INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS idx_admin_sessions_admin ON admin_sessions(admin_id, revoked_at);
+        CREATE TABLE IF NOT EXISTS admin_sign_in_links (
+          token_hash TEXT PRIMARY KEY,
+          admin_id INTEGER NOT NULL REFERENCES admin_accounts(id) ON DELETE CASCADE,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          expires_at INTEGER NOT NULL,
+          used_at INTEGER
+        );
+        ALTER TABLE admin_audit_log ADD COLUMN actor_kind TEXT;
+        ALTER TABLE admin_audit_log ADD COLUMN actor TEXT;
+        UPDATE admin_audit_log
+          SET actor_kind = CASE WHEN admin_user_id IS NULL THEN 'system' ELSE 'user' END,
+              actor = CASE WHEN admin_user_id IS NULL THEN 'system' ELSE 'user:' || admin_user_id END
+          WHERE actor_kind IS NULL;
+        ALTER TABLE user_entitlement_overrides ADD COLUMN set_by_actor TEXT;
+        ALTER TABLE user_entitlement_overrides ADD COLUMN revoked_by_actor TEXT;
+        UPDATE user_entitlement_overrides SET set_by_actor = 'user:' || set_by WHERE set_by IS NOT NULL AND set_by_actor IS NULL;
+        UPDATE user_entitlement_overrides SET revoked_by_actor = 'user:' || revoked_by WHERE revoked_by IS NOT NULL AND revoked_by_actor IS NULL;
+        ALTER TABLE user_notes ADD COLUMN author_actor TEXT;
+        UPDATE user_notes SET author_actor = 'user:' || author_id WHERE author_id IS NOT NULL AND author_actor IS NULL;
+        ALTER TABLE tickets ADD COLUMN assignee_actor TEXT;
+        UPDATE tickets SET assignee_actor = 'user:' || assignee WHERE assignee IS NOT NULL AND assignee_actor IS NULL;
+        ALTER TABLE ticket_messages ADD COLUMN author_actor TEXT;
+        UPDATE ticket_messages SET author_actor = 'user:' || author_id WHERE author_id IS NOT NULL AND author_actor IS NULL;
+        ALTER TABLE plan_upgrade_requests ADD COLUMN decided_by_actor TEXT;
+        UPDATE plan_upgrade_requests SET decided_by_actor = 'user:' || decided_by WHERE decided_by IS NOT NULL AND decided_by_actor IS NULL;
+        ALTER TABLE user_limits ADD COLUMN updated_by_actor TEXT;
+        UPDATE user_limits SET updated_by_actor = 'user:' || updated_by WHERE updated_by IS NOT NULL AND updated_by_actor IS NULL;
+        ALTER TABLE board_policy ADD COLUMN updated_by_actor TEXT;
+        UPDATE board_policy SET updated_by_actor = 'user:' || updated_by WHERE updated_by IS NOT NULL AND updated_by_actor IS NULL;
+        ALTER TABLE crawler_state ADD COLUMN updated_by_actor TEXT;
+        UPDATE crawler_state SET updated_by_actor = 'user:' || updated_by WHERE updated_by IS NOT NULL AND updated_by_actor IS NULL;
+        ALTER TABLE crawler_tasks ADD COLUMN created_by_actor TEXT;
+        UPDATE crawler_tasks SET created_by_actor = 'user:' || created_by WHERE created_by IS NOT NULL AND created_by_actor IS NULL;
+        ALTER TABLE crawler_denylist ADD COLUMN added_by_actor TEXT;
+        UPDATE crawler_denylist SET added_by_actor = 'user:' || added_by WHERE added_by IS NOT NULL AND added_by_actor IS NULL;
+        ALTER TABLE company_candidates ADD COLUMN decided_by_actor TEXT;
+        UPDATE company_candidates SET decided_by_actor = 'user:' || decided_by WHERE decided_by IS NOT NULL AND decided_by_actor IS NULL;
+        ALTER TABLE slug_harvest_sweeps ADD COLUMN actor TEXT;
+        UPDATE slug_harvest_sweeps SET actor = CASE WHEN admin_user_id IS NULL THEN 'system' ELSE 'user:' || admin_user_id END WHERE actor IS NULL;
+        ALTER TABLE slug_harvest_imports ADD COLUMN actor TEXT;
+        UPDATE slug_harvest_imports SET actor = CASE WHEN admin_user_id IS NULL THEN 'system' ELSE 'user:' || admin_user_id END WHERE actor IS NULL;
+        ALTER TABLE job_import_batches ADD COLUMN actor TEXT;
+        UPDATE job_import_batches SET actor = CASE WHEN admin_user_id IS NULL THEN 'system' ELSE 'user:' || admin_user_id END WHERE actor IS NULL;
+        ALTER TABLE notice_log ADD COLUMN actor TEXT;
+        UPDATE notice_log SET actor = CASE WHEN admin_user_id IS NULL THEN 'system' ELSE 'user:' || admin_user_id END WHERE actor IS NULL;
+      `,
+    },
   ];

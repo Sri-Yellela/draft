@@ -11,6 +11,7 @@
 import { FEATURES } from "../shared/entitlements.js";
 import { resolveEntitlement, liveOverride } from "./entitlementResolver.js";
 import { draftSlots } from "./draftSlots.js";
+import { toActor, auditActorColumns } from "./actor.js";
 
 const now = () => Math.floor(Date.now() / 1000);
 const isSystem = (u) => u?.id === 0 || u?.username === "system";
@@ -19,10 +20,15 @@ export class UserAdminError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
 }
 
-/** The audit row every write in this file makes. Returns its id. */
-export function writeAudit(db, { actorId, action, target, before = null, after = null, reason = null }) {
-  return db.prepare(`INSERT INTO admin_audit_log (admin_user_id, action, target, before_json, after_json, reason) VALUES (?, ?, ?, ?, ?, ?)`)
-    .run(actorId ?? null, action, target, before == null ? null : JSON.stringify(before), after == null ? null : JSON.stringify(after),
+/**
+ * The audit row every admin write makes. Returns its id. ⛔ D95: `actorId` is an actor (services/actor.js) — an admin
+ * account, a users row, or the system — and the row records its KIND and its coded name; admin_user_id keeps only a
+ * users.id. A bare number from an older caller still means a users row.
+ */
+export function writeAudit(db, { actorId, actor, action, target, before = null, after = null, reason = null }) {
+  const a = auditActorColumns(actor ?? actorId);
+  return db.prepare(`INSERT INTO admin_audit_log (admin_user_id, actor_kind, actor, action, target, before_json, after_json, reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(a.admin_user_id, a.actor_kind, a.actor, action, target, before == null ? null : JSON.stringify(before), after == null ? null : JSON.stringify(after),
       reason ? String(reason).slice(0, 500) : null).lastInsertRowid;
 }
 
@@ -60,9 +66,9 @@ export function setOverride(db, { userId, featureKey, value, reason, expiresAt =
   return db.transaction(() => {
     const before = resolveEntitlement(db, userId, featureKey);
     const prior = liveOverride(db, userId, featureKey);
-    if (prior) db.prepare("UPDATE user_entitlement_overrides SET revoked_at = unixepoch(), revoked_by = ? WHERE id = ?").run(actorId ?? null, prior.id);
-    const id = db.prepare(`INSERT INTO user_entitlement_overrides (user_id, feature_key, value_json, reason, set_by, expires_at) VALUES (?, ?, ?, ?, ?, ?)`)
-      .run(userId, featureKey, JSON.stringify(v), why, actorId ?? null, expiresAt).lastInsertRowid;
+    if (prior) db.prepare("UPDATE user_entitlement_overrides SET revoked_at = unixepoch(), revoked_by = ?, revoked_by_actor = ? WHERE id = ?").run(toActor(actorId).userId, toActor(actorId).ref, prior.id);
+    const id = db.prepare(`INSERT INTO user_entitlement_overrides (user_id, feature_key, value_json, reason, set_by, set_by_actor, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run(userId, featureKey, JSON.stringify(v), why, toActor(actorId).userId, toActor(actorId).ref, expiresAt).lastInsertRowid;
     const after = resolveEntitlement(db, userId, featureKey);
     writeAudit(db, { actorId, action: "user.override.set", target: `user:${userId}`, reason: why,
       before: { feature: featureKey, value: before.value, source: before.source }, after: { feature: featureKey, value: after.value, source: after.source, expiresAt, overrideId: id } });
@@ -77,7 +83,7 @@ export function clearOverride(db, { userId, featureKey, reason, actorId }) {
     const prior = liveOverride(db, userId, featureKey);
     if (!prior) throw new UserAdminError("There is no override to clear.", 404);
     const before = resolveEntitlement(db, userId, featureKey);
-    db.prepare("UPDATE user_entitlement_overrides SET revoked_at = unixepoch(), revoked_by = ? WHERE id = ?").run(actorId ?? null, prior.id);
+    db.prepare("UPDATE user_entitlement_overrides SET revoked_at = unixepoch(), revoked_by = ?, revoked_by_actor = ? WHERE id = ?").run(toActor(actorId).userId, toActor(actorId).ref, prior.id);
     const after = resolveEntitlement(db, userId, featureKey);
     writeAudit(db, { actorId, action: "user.override.clear", target: `user:${userId}`, reason: why,
       before: { feature: featureKey, value: before.value, source: before.source, overrideId: prior.id }, after: { feature: featureKey, value: after.value, source: after.source } });
@@ -93,7 +99,7 @@ export function setStatus(db, { userId, status, reason, actorId }) {
   if (!u) throw new UserAdminError("No such user.", 404);
   if (isSystem(u)) throw new UserAdminError("The system account cannot be suspended.");
   if (u.is_admin && status === "suspended") throw new UserAdminError("An admin account cannot be suspended here — remove its admin role first.");
-  if (u.id === actorId) throw new UserAdminError("You cannot suspend your own account.");
+  if (u.id === toActor(actorId).userId) throw new UserAdminError("You cannot suspend your own account.");
   if ((u.status || "active") === status) throw new UserAdminError(`The account is already ${status}.`);
   db.transaction(() => {
     db.prepare("UPDATE users SET status = ?, suspended_reason = ?, suspended_at = ? WHERE id = ?")
@@ -108,7 +114,7 @@ export function addNote(db, { userId, body, actorId }) {
   const text = String(body ?? "").trim();
   if (!text) throw new UserAdminError("The note is empty.");
   if (!db.prepare("SELECT 1 FROM users WHERE id = ?").get(userId)) throw new UserAdminError("No such user.", 404);
-  const id = db.prepare("INSERT INTO user_notes (user_id, body, author_id) VALUES (?, ?, ?)").run(userId, text.slice(0, 4000), actorId ?? null).lastInsertRowid;
+  const id = db.prepare("INSERT INTO user_notes (user_id, body, author_id, author_actor) VALUES (?, ?, ?, ?)").run(userId, text.slice(0, 4000), toActor(actorId).userId, toActor(actorId).ref).lastInsertRowid;
   writeAudit(db, { actorId, action: "user.note", target: `user:${userId}`, after: { noteId: id } });
   return { id };
 }
@@ -124,12 +130,15 @@ export function isSuspended(db, userId) {
 const LAST_ACTIVE_SQL = `MAX(COALESCE((SELECT MAX(last_seen_at) FROM user_sessions s WHERE s.user_id = u.id), 0),
                             COALESCE((SELECT MAX(last_seen_at) FROM auth_contexts a WHERE a.user_id = u.id), 0))`;
 
-export const PEOPLE_FILTERS = Object.freeze(["all", "active", "suspended", "admins", "override", "inactive30", "new7"]);
+// ⛔ D95: People → Users lists USER accounts only. No admin is listed, counted, opened, exported, merged or deleted here —
+// the legacy is_admin row is excluded until the switch clears it, and admin accounts were never in `users` at all.
+export const PEOPLE_FILTERS = Object.freeze(["all", "active", "suspended", "override", "inactive30", "new7"]);
+export const USERS_ONLY_SQL = "u.id != 0 AND u.username != 'system' AND COALESCE(u.is_admin, 0) = 0";
 export const PEOPLE_SORTS = Object.freeze({ recent: "last_active DESC", newest: "u.created_at DESC", name: "LOWER(u.username) ASC" });
 
 /** Admin → People → Users: the numbers on top, and one page of the list. */
 export function listPeople(db, { q = "", filter = "all", sort = "recent", page = 1, pageSize = 25 } = {}) {
-  const where = ["u.id != 0", "u.username != 'system'"];
+  const where = [USERS_ONLY_SQL];
   const args = [];
   const term = String(q || "").trim().toLowerCase();
   if (term) {
@@ -139,7 +148,6 @@ export function listPeople(db, { q = "", filter = "all", sort = "recent", page =
   const f = PEOPLE_FILTERS.includes(filter) ? filter : "all";
   if (f === "active") where.push("COALESCE(u.status, 'active') = 'active'");
   if (f === "suspended") where.push("u.status = 'suspended'");
-  if (f === "admins") where.push("u.is_admin = 1");
   if (f === "override") where.push("EXISTS (SELECT 1 FROM user_entitlement_overrides o WHERE o.user_id = u.id AND o.revoked_at IS NULL AND (o.expires_at IS NULL OR o.expires_at > unixepoch()))");
   if (f === "inactive30") where.push(`${LAST_ACTIVE_SQL} < unixepoch() - 30 * 86400`);
   if (f === "new7") where.push("u.created_at > unixepoch() - 7 * 86400");
@@ -147,7 +155,7 @@ export function listPeople(db, { q = "", filter = "all", sort = "recent", page =
   const pg = Math.max(1, Number(page) || 1);
   const base = `FROM users u LEFT JOIN user_profile p ON p.user_id = u.id WHERE ${where.join(" AND ")}`;
   const total = db.prepare(`SELECT COUNT(*) AS n ${base}`).get(...args).n;
-  const rows = db.prepare(`SELECT u.id, u.username, u.is_admin, u.plan_tier, COALESCE(u.status, 'active') AS status, u.created_at, u.email_verified_at,
+  const rows = db.prepare(`SELECT u.id, u.username, u.plan_tier, COALESCE(u.status, 'active') AS status, u.created_at, u.email_verified_at,
       p.email, COALESCE(NULLIF(p.full_name, ''), NULLIF(TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '')), '')) AS name,
       ${LAST_ACTIVE_SQL} AS last_active,
       (SELECT COUNT(*) FROM resumes r WHERE r.user_id = u.id AND r.created_at > unixepoch() - 7 * 86400) AS resumes_week,
@@ -163,7 +171,7 @@ export function listPeople(db, { q = "", filter = "all", sort = "recent", page =
       SUM(CASE WHEN ${LAST_ACTIVE_SQL} > unixepoch() - 7 * 86400 THEN 1 ELSE 0 END) AS active_week,
       SUM(CASE WHEN u.status = 'suspended' THEN 1 ELSE 0 END) AS suspended,
       SUM(CASE WHEN EXISTS (SELECT 1 FROM user_entitlement_overrides o WHERE o.user_id = u.id AND o.revoked_at IS NULL AND (o.expires_at IS NULL OR o.expires_at > unixepoch())) THEN 1 ELSE 0 END) AS with_override
-    FROM users u WHERE u.id != 0 AND u.username != 'system'`).get();
+    FROM users u WHERE ${USERS_ONLY_SQL}`).get();
   return { total, page: pg, pageSize: size, rows, counts: { total: counts.total || 0, activeWeek: counts.active_week || 0, suspended: counts.suspended || 0, withOverride: counts.with_override || 0 } };
 }
 
@@ -174,7 +182,7 @@ export function personDetail(db, userId) {
       COALESCE(NULLIF(p.full_name, ''), NULLIF(TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '')), '')) AS name,
       ${LAST_ACTIVE_SQL} AS last_active
     FROM users u LEFT JOIN user_profile p ON p.user_id = u.id WHERE u.id = ?`).get(userId);
-  if (!u) throw new UserAdminError("No such user.", 404);
+  if (!u || u.is_admin) throw new UserAdminError("No such user.", 404);
   const count = (sql, ...a) => { try { return db.prepare(sql).get(...a)?.n ?? 0; } catch { return 0; } };
   let slots = null;
   try { slots = draftSlots(db, userId); } catch { /* none */ }
@@ -195,18 +203,18 @@ export function personDetail(db, userId) {
   });
   let activity = [];
   try {
-    activity = db.prepare(`SELECT l.id, l.at, l.action, l.before_json, l.after_json, l.reason, l.undone_at, a.username AS actor
+    activity = db.prepare(`SELECT l.id, l.at, l.action, l.before_json, l.after_json, l.reason, l.undone_at, l.actor_kind, COALESCE(a.username, (SELECT 'admin ' || x.email FROM admin_accounts x WHERE 'admin:' || x.public_id = l.actor), CASE WHEN l.actor = 'system' THEN 'system' END) AS actor
       FROM admin_audit_log l LEFT JOIN users a ON a.id = l.admin_user_id WHERE l.target = ? ORDER BY l.id DESC LIMIT 100`).all(`user:${userId}`)
-      .map(r => ({ id: r.id, at: r.at, action: r.action, actor: r.actor, reason: r.reason, undoneAt: r.undone_at,
+      .map(r => ({ id: r.id, at: r.at, action: r.action, actor: r.actor, actorKind: r.actor_kind || null, reason: r.reason, undoneAt: r.undone_at,
         before: r.before_json ? JSON.parse(r.before_json) : null, after: r.after_json ? JSON.parse(r.after_json) : null }));
   } catch { /* no audit table */ }
   let notes = [];
-  try { notes = db.prepare("SELECT n.id, n.body, n.created_at, a.username AS author FROM user_notes n LEFT JOIN users a ON a.id = n.author_id WHERE n.user_id = ? ORDER BY n.id DESC LIMIT 50").all(userId); }
+  try { notes = db.prepare("SELECT n.id, n.body, n.created_at, COALESCE(a.username, (SELECT 'admin ' || x.email FROM admin_accounts x WHERE 'admin:' || x.public_id = n.author_actor), CASE WHEN n.author_actor = 'system' THEN 'system' END) AS author FROM user_notes n LEFT JOIN users a ON a.id = n.author_id WHERE n.user_id = ? ORDER BY n.id DESC LIMIT 50").all(userId); }
   catch { /* none */ }
   let sessions = 0;
   try { sessions = db.prepare("SELECT COUNT(*) AS n FROM auth_contexts WHERE user_id = ? AND revoked_at IS NULL AND expires_at > unixepoch()").get(userId).n; } catch { /* none */ }
   return {
-    account: { id: u.id, username: u.username, name: u.name, email: u.email, isAdmin: !!u.is_admin, system: isSystem(u), plan: u.plan_tier || "BASIC",
+    account: { id: u.id, username: u.username, name: u.name, email: u.email, system: isSystem(u), plan: u.plan_tier || "BASIC",
       status: u.status, suspendedReason: u.suspended_reason, suspendedAt: u.suspended_at, createdAt: u.created_at,
       emailVerifiedAt: u.email_verified_at, lastActive: u.last_active || null, pluginOn: !!u.byom_enabled, productNews: !!u.marketing_opt_in, sessions },
     usage, features, activity, notes,

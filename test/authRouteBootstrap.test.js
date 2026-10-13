@@ -26,13 +26,15 @@ test("admin route guards never fall through to the regular user app", () => {
   // <AdminRouteGate> component. Assert the routes are wrapped AND that the gate itself enforces
   // isAdmin, which is a stronger guarantee than string-matching the check inside the route block:
   // wrapping without enforcement, or enforcement without wrapping, both now fail.
-  assert.match(adminBlock, /<AdminRouteGate authStatus=\{authStatus\} authUser=\{authUser\}>/);
-  assert.match(app, /function AdminRouteGate[\s\S]{0,400}?!authUser\.isAdmin/);
+  // D95: the gate opens for an ADMIN ACCOUNT's session, and for the legacy is_admin user only while the switch is off.
+  assert.match(adminBlock, /<AdminRouteGate authStatus=\{authStatus\} authUser=\{authUser\} adminSession=\{adminSession\}>/);
+  assert.match(app, /function AdminRouteGate[\s\S]{0,400}?if \(adminSession\.authenticated\) return children;/);
+  assert.match(app, /function AdminRouteGate[\s\S]{0,500}?!adminSession\.enforced && authStatus === "authenticated" && authUser\?\.isAdmin/);
   // These redirects also moved out of the route block and into the gate components, for the same
   // refactor. Assert them where they now live, so the guarantee is still pinned:
   //   AdminRouteGate    — unauthenticated or non-admin  -> /admin/login
   //   PublicLoginRoute  — an already-signed-in admin    -> /admin (never falls through to /app)
-  assert.match(app, /function AdminRouteGate[\s\S]{0,400}?<Navigate to="\/admin\/login" replace\/>/);
+  assert.match(app, /function AdminRouteGate[\s\S]{0,600}?<Navigate to="\/admin\/login" replace\/>/);
   // 10-09: the window grew with D86's consent return and the A′ notice; the redirect itself is unchanged.
   assert.match(app, /function PublicLoginRoute[\s\S]{0,1400}?authUser\.isAdmin \? <Navigate to="\/admin" replace\/>/);
   assert.doesNotMatch(adminBlock, /Navigate to="\/app"/);
@@ -61,8 +63,8 @@ test("login and admin routes wait for auth bootstrap instead of redirecting from
   const adminBlock = app.slice(at(app, '<Route path="/admin/login"'), at(app, "{/* Admin dashboard"));
   const loginBlock = app.slice(at(app, '<Route path="/login"'), at(app, "{/* User app"));
 
-  assert.match(app, /function PublicLoginRoute\(\{ authStatus, authUser, children, admin = false \}\)/);
+  assert.match(app, /function PublicLoginRoute\(\{ authStatus, authUser, children, admin = false, adminSession = null \}\)/);
   assert.match(app, /if \(authStatus === "unknown"\) return null/);
-  assert.match(adminBlock, /<PublicLoginRoute authStatus=\{authStatus\} authUser=\{authUser\} admin>/);
+  assert.match(adminBlock, /<PublicLoginRoute authStatus=\{authStatus\} authUser=\{authUser\} admin adminSession=\{adminSession\}>/);
   assert.match(loginBlock, /<PublicLoginRoute authStatus=\{authStatus\} authUser=\{authUser\}>/);
 });

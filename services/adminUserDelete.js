@@ -17,6 +17,7 @@
 
 import { deleteAccount, AccountError } from "./accountService.js";
 import { SYSTEM_USER_ID } from "./modelCall.js";
+import { auditActorColumns, toActor } from "./actor.js";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -48,7 +49,7 @@ export function checkAdminDeletable(db, targetId, actorId) {
   if (targetId === SYSTEM_USER_ID) {
     fail(409, "system_account", "The system account owns every background usage record and cannot be deleted.");
   }
-  if (targetId === actorId) fail(400, "self", "Cannot delete yourself.");
+  if (targetId === toActor(actorId).userId) fail(400, "self", "Cannot delete yourself.");
   const u = db.prepare("SELECT id, username, is_admin, created_at FROM users WHERE id = ?").get(targetId);
   if (!u) fail(404, "not_found", "User not found.");
   if (u.username === "system") fail(409, "system_account", "The system account cannot be deleted.");
@@ -87,8 +88,9 @@ export function adminDeleteUser(db, targetId, { actorId, confirmUsername }) {
   const counts = userRowCounts(db, targetId);
   const { files, sids } = deleteAccount(db, targetId);
   try {
-    db.prepare(`INSERT INTO admin_audit_log (admin_user_id, action, target, before_json)
-                VALUES (?, 'user.delete', ?, ?)`).run(actorId ?? null, String(targetId), JSON.stringify({ counts }));
+    const a = auditActorColumns(actorId);
+    db.prepare(`INSERT INTO admin_audit_log (admin_user_id, actor_kind, actor, action, target, before_json)
+                VALUES (?, ?, ?, 'user.delete', ?, ?)`).run(a.admin_user_id, a.actor_kind, a.actor, String(targetId), JSON.stringify({ counts }));
   } catch (e) {
     // The delete has happened; a missing log table (pre-119 schema) must not report it as failed.
     console.warn("[admin] user delete not recorded in admin_audit_log:", e.message);

@@ -5,13 +5,18 @@
 import express from "express";
 import { listPeople, personDetail, setOverride, clearOverride, setStatus, addNote, writeAudit, UserAdminError } from "../services/userAdmin.js";
 import { normalisePlanTier } from "../services/entitlements.js";
+import { actorOf } from "../services/actor.js";
 
 const PLANS = ["BASIC", "PLUS", "PRO"];
 
 export function createAdminPeopleRouter({ db, requireAdmin, signOutEverywhere, sendResetLink }) {
   const r = express.Router();
   const id = (req) => Number.parseInt(req.params.id, 10);
-  const actor = (req) => req.user?.id ?? null;
+  // ⛔ D95: who acted — an admin account (admin:adm_…) or, before the switch, the legacy users row — never a bare id.
+  const actor = (req) => actorOf(req);
+  // ⛔ D95: every write here is to a USER account. An admin row is "no such user", as it is in the list.
+  const isUser = (uid) => !!db.prepare("SELECT 1 FROM users WHERE id = ? AND id != 0 AND COALESCE(is_admin, 0) = 0").get(uid);
+  r.use("/:id", (req, res, next) => (isUser(id(req)) ? next() : res.status(404).json({ error: "No such user." })));
   const fail = (res, e) => (e instanceof UserAdminError
     ? res.status(e.status).json({ error: e.message })
     : (console.error("[admin-people]", e.message), res.status(500).json({ error: "The change failed." })));

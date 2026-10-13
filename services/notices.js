@@ -6,6 +6,7 @@
 // limit is 2 requests a second) · a LOG of who, when, which audience and how many — never the content.
 import { sendEmail } from "./emailService.js";
 import { isSuppressed } from "./emailSuppression.js";
+import { toActor } from "./actor.js";
 
 export const NOTICE_DEFAULT_CEILING = 100;
 export const NOTICE_MAX_CEILING = 5000;
@@ -55,8 +56,8 @@ export async function sendNotice(db, { audience, subject, body, why, testTo = nu
   if (!String(why ?? "").trim()) fail(400, "Say why the user is receiving it — it is printed in the notice.");
   const text = String(body).trim() + noticeFooter(String(why).trim());
   const send = (to) => sendEmail({ to, subject: String(subject).trim(), text, db, env, ...(fetchImpl ? { fetchImpl } : {}) });
-  const log = (counts) => db.prepare("INSERT INTO notice_log (admin_user_id, audience, recipients, sent, skipped, failed, test) VALUES (?,?,?,?,?,?,?)")
-    .run(adminUserId, audience, counts.recipients, counts.sent, counts.skipped, counts.failed, counts.test ? 1 : 0);
+  const log = (counts) => db.prepare("INSERT INTO notice_log (admin_user_id, actor, audience, recipients, sent, skipped, failed, test) VALUES (?,?,?,?,?,?,?,?)")
+    .run(toActor(adminUserId).userId, toActor(adminUserId).ref, audience, counts.recipients, counts.sent, counts.skipped, counts.failed, counts.test ? 1 : 0);
 
   if (testTo) {
     const r = await send(testTo);

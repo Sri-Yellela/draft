@@ -15,6 +15,7 @@ import { checkUrl, deniedBy } from "../crawler/lib/guards.js";
 import { harvestPairOf, keyOf } from "./slugHarvest.js";
 import { isSharedTenantHost, learnableHost } from "./learnedOrigins.js";
 import { isAtsUrl } from "../crawler/lib/atsHosts.js";
+import { toActor } from "./actor.js";
 
 export const TASK_TYPES = Object.freeze(["j1_find_board", "j2_apply_hop"]);
 export const LEASE_SECONDS = 600;
@@ -56,8 +57,8 @@ export function setState(db, patch = {}, { by = null, now = Math.floor(Date.now(
   if ("schedule_enabled" in patch) next.schedule_enabled = patch.schedule_enabled ? 1 : 0;
   if ("schedule_hhmm" in patch) { if (!HHMM.test(String(patch.schedule_hhmm))) throw bad("schedule_hhmm: HH:MM (UTC)"); next.schedule_hhmm = patch.schedule_hhmm; }
   db.prepare(`UPDATE crawler_state SET paused = @paused, mode = @mode, per_run_cap = @per_run_cap, schedule_enabled = @schedule_enabled,
-              schedule_hhmm = @schedule_hhmm, schedule_tasks = @schedule_tasks, updated_at = @now, updated_by = @by WHERE id = 1`)
-    .run({ ...next, now, by });
+              schedule_hhmm = @schedule_hhmm, schedule_tasks = @schedule_tasks, updated_at = @now, updated_by = @by, updated_by_actor = @byActor WHERE id = 1`)
+    .run({ ...next, now, by: toActor(by).userId, byActor: toActor(by).ref });
   return readState(db);
 }
 export const dailyCap = (env = process.env) => Math.max(0, Number(env.CRAWLER_DAILY_TASKS ?? 25) || 0);
@@ -84,9 +85,9 @@ export async function enqueueTask(db, { type, input, createdBy = null, allowHost
   const denied = deniedBy(u.hostname, denyList(db));
   const ssrf = denied ? null : await checkUrl(u.href, { allowHosts, resolve });
   const reason = denied ? `denied:${denied}` : ssrf && !ssrf.ok ? `refused:${ssrf.reason}` : null;
-  const id = Number(db.prepare(`INSERT INTO crawler_tasks (type, input_json, target_host, status, refused_reason, created_by, finished_at, source)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(type, JSON.stringify(clean), u.host.toLowerCase(), reason ? "refused" : "queued", reason, createdBy,
+  const id = Number(db.prepare(`INSERT INTO crawler_tasks (type, input_json, target_host, status, refused_reason, created_by, created_by_actor, finished_at, source)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(type, JSON.stringify(clean), u.host.toLowerCase(), reason ? "refused" : "queued", reason, toActor(createdBy).userId, createdBy == null ? null : toActor(createdBy).ref,
          reason ? Math.floor(Date.now() / 1000) : null, source).lastInsertRowid);
   return reason ? { id, status: "refused", reason } : { id, status: "queued" };
 }

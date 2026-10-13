@@ -7,6 +7,7 @@
 //   POST /retag            re-derive every posting's tags now (owner tags survive)
 //
 // No model call anywhere on this surface (D17): the owner reads a posting and picks a value.
+import { actorOf } from "../services/actor.js";
 import express, { Router } from "express";
 import { tagCoverage, tagStaleJobs } from "../services/jobs/jobTags.js";
 import { buildTagExport, planTagImport, applyTagImport, EXPORT_COLUMNS } from "../services/jobs/jobTagTransfer.js";
@@ -35,7 +36,7 @@ export function createJobTagsRouter(db, requireAdmin) {
       const plan = planTagImport(db, String(req.body?.csv || ""));
       if (!req.body?.apply) return res.json({ dryRun: true, ...plan });
       if (!plan.ok) return res.status(422).json({ dryRun: false, applied: false, ...plan });
-      const r = applyTagImport(db, plan, { by: req.user?.username || "admin" });
+      const r = applyTagImport(db, plan, { by: actorOf(req).ref });
       res.json({ dryRun: false, applied: true, ...plan, ...r, coverage: tagCoverage(db) });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });

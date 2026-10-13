@@ -81,5 +81,9 @@ export function isExtensionRequest(req) {
  */
 export function mayActAsAdmin(req) {
   if (isExtensionRequest(req)) return false;
+  // ⛔ D95: an ADMIN ACCOUNT (its own table, its own cookie — services/adminGuard.js sets req.admin) is the admin.
+  // The legacy is_admin USER counts only until ADMIN_ACCOUNTS_ENFORCE turns on.
+  if (req?.admin) return true;
+  if (req?.adminEnforced) return false;
   return !!req?.user?.isAdmin;
 }

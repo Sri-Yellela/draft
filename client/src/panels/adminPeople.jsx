@@ -15,7 +15,8 @@ import { Panel, Help, Dialog, useConfirm, h2, row, quiet, field, callout } from 
 import { Btn, Table, Err, KV, ago, stamp, usd, num, UserApplications } from "./adminOps.jsx";
 
 const STATUS_TONE = { active: C.SUCCESS, suspended: C.DANGER };
-const FILTERS = [["all", "Everyone"], ["active", "Active"], ["suspended", "Suspended"], ["admins", "Admins"], ["override", "With an override"],
+// ⛔ D95: user accounts only — an admin is not a person on this list, so there is no "Admins" filter.
+const FILTERS = [["all", "Everyone"], ["active", "Active"], ["suspended", "Suspended"], ["override", "With an override"],
   ["inactive30", "Inactive 30 days"], ["new7", "Joined this week"]];
 const SORTS = [["recent", "Last active"], ["newest", "Newest"], ["name", "Name"]];
 const PLANS = ["BASIC", "PLUS", "PRO"];
@@ -91,7 +92,7 @@ export function PeopleList({ theme, onOpen }) {
       <Table theme={theme} rows={d?.rows || []} empty={d ? "No one matches." : "Loading…"} cols={[
         { key: "username", label: "person", render: r => <span><b>{r.name || r.username}</b>{r.name && <span style={{ color: theme.textMuted }}> · {r.username}</span>}
             {r.email && <div style={{ color: theme.textMuted }}>{r.email}</div>}</span> },
-        { key: "plan_tier", label: "plan", render: r => (r.is_admin ? "admin" : (r.plan_tier || "BASIC").toLowerCase()) },
+        { key: "plan_tier", label: "plan", render: r => (r.plan_tier || "BASIC").toLowerCase() },
         { key: "status", label: "status", render: r => <span style={markStyle(STATUS_TONE[r.status] || C.INK_FAINT)}>{r.status}</span> },
         { key: "last_active", label: "last active", render: r => (r.last_active ? ago(r.last_active) : "never") },
         { key: "drafts", label: "drafts used", right: true, render: r => (r.drafts ? `${r.drafts.used} / ${r.drafts.limit}` : "—") },
@@ -141,7 +142,7 @@ export function PersonPage({ theme, id, onBack, onDelete }) {
   if (!d) return <div><Btn theme={theme} onClick={onBack}>← All users</Btn><Err msg={err}/></div>;
   const a = d.account, u = d.usage;
   const who = a.name || a.username;
-  const locked = a.isAdmin || a.system;
+  const locked = a.system;
 
   const suspend = () => setAction({ title: a.status === "suspended" ? `Restore ${who}?` : `Suspend ${who}?`, label: a.status === "suspended" ? "Restore the account" : "Suspend the account",
     body: a.status === "suspended" ? "They can sign in and use draft again. Their data was never touched." :
@@ -192,7 +193,6 @@ export function PersonPage({ theme, id, onBack, onDelete }) {
         <Btn theme={theme} onClick={onBack}>← All users</Btn>
         <h2 style={{ ...h2, fontSize: 24 }}>{who}</h2>
         <span style={markStyle(STATUS_TONE[a.status] || C.INK_FAINT)}>{a.status}</span>
-        {a.isAdmin && <span style={markStyle(C.INFO)}>admin</span>}
       </div>
       <Err msg={err}/>
       {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 10 }} role="status">{msg}</div>}
