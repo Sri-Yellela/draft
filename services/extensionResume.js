@@ -1,7 +1,7 @@
 // services/extensionResume.js — ⭐ D98 P1 · A RÉSUMÉ GENERATED ON THE PAGE, the server's half.
 //
 // The extension asks draft's server for a tailored résumé for the job its tab is bound to. It never calls a model
-// and never calls Resume Master: this file calls the SAME generation the web app's Generate uses (server.js passes
+// and never calls the tools service: this file calls the SAME generation the web app's Generate uses (server.js passes
 // coreGenerateResume in as `generate`), so the claim guard and the ATS scorer run, the result is stored as a normal
 // tailored résumé linked to the job, and a Draft slot is spent. D17 holds: résumé generation is the one model call.
 //
