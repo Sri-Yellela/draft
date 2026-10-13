@@ -188,7 +188,7 @@ const SECRET_COLUMNS = new Set(["password_hash", "apify_token", "secret_enc", "i
 const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes", "base_resume", "resumes", "resume_versions",
   "job_applications", "user_jobs", "imported_jobs", "user_job_searches", "apply_runs", "apply_run_jobs", "notifications",
   "simple_apply_profiles", "profile_simple_apply_profiles", "dock_preferences", "daily_drafts", "user_integrations",
-  "form_reports", "apply_origin_sightings"];
+  "form_reports", "apply_origin_sightings", "saved_answers", "answer_history"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -259,6 +259,8 @@ export const MERGE_PLAN = Object.freeze({
   user_tags: "drop",
   // D90: every base the person uploaded is their history and moves with them.
   base_resume_uploads: "move",
+  // D96 §4 (164): a person's remembered answers — INTO's answer to a question wins on a clash; the history moves.
+  saved_answers: "keepInto", answer_history: "move",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

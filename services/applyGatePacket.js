@@ -34,6 +34,7 @@ import {
 } from "./applyAutomation.js";
 import { isOptInQuestion, workedHereAnswer, COMPANY_TOKEN, isEeoDecline } from "../shared/savedAnswers.js";
 import { skillsOfStructured, PARSE_FAILED_MESSAGE } from "./payloadResume.js";
+import { packetLifecycleAnswers } from "./answerLifecycle.js";
 
 /** handler_map's EEO keys (buildAutofillPayload) — what an eeoDeclines entry may name. */
 export const EEO_DECLINE_HANDLERS = Object.freeze(["gender", "ethnicity", "veteran", "disability"]);
@@ -236,13 +237,14 @@ export function buildGatePacket({
  */
 export function packetSavedAnswers(autofillPayload = {}) {
   const out = {};
-  const saved = Object.entries(autofillPayload?.custom_answers || {})
-    .filter(([q, a]) => String(q).trim() && a !== null && a !== undefined && String(a).trim() !== "")
-    .map(([question, answer]) => ({
-      question, answer: String(answer),
-      eligibility: !!eligibilityClassOf(question),
-      optIn: isOptInQuestion(question),
-    }));
+  // ⭐ D96 §4: only ACKNOWLEDGED answers, each with its source and the date it was acknowledged — the label-only
+  // store (`custom_answers`, legacy) and the keyed lifecycle rows (`saved_answer_records`, migration 164). ⛔ Never a
+  // terms / consent / privacy / attestation / signature question, whatever is stored (services/answerLifecycle.js).
+  const saved = packetLifecycleAnswers({
+    legacy: autofillPayload?.custom_answers || {},
+    records: autofillPayload?.saved_answer_records || [],
+    legacyAcknowledgedAt: autofillPayload?.saved_answers_legacy_at ?? null,
+  });
   if (saved.length) out.savedAnswers = saved;
   const wh = autofillPayload?.worked_here;
   if (wh?.company) {
