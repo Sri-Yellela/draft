@@ -53,7 +53,9 @@ export async function overlayTheme() {
 }
 import { authedFetch } from './auth.js';
 // The tab binding: the job this tab captured or recognised, sent as a HINT the server checks (tabBinding.js).
-import { bindingForTab } from './tabBinding.js';
+import { bindingForTab, boundMissMessage } from './tabBinding.js';
+// ⭐ D96 §3: where each application stands, remembered — counts and times only, never an answer (progress.js).
+import { noteFill, notePrepared, noteSubmitted } from './progress.js';
 
 /** Matches the server's token TTL. A packet outlives its grant (G0 §9), so it is cleared on purpose. */
 export const PACKET_TTL_MS = 10 * 60 * 1000;
@@ -1010,6 +1012,16 @@ const api = async (serverUrl, path, init = {}) => {
  *   spent. Every refusal above happens before a token exists, so a mismatch costs nothing.
  */
 export async function runGatedHandoff({ serverUrl, tab }) {
+  const result = await handoffOnce({ serverUrl, tab });
+  // ⭐ D96 §3: the fill's outcome is remembered for the job — how many filled of how many, how many need you. The job
+  // is the released packet's, else the tab's binding. Counts only; a failure here never changes the result.
+  const held = tab?.id ? await loadPacketForTab(tab.id).catch(() => null) : null;
+  const bound = await bindingForTab(tab).catch(() => null);
+  await noteFill(result, { jobId: held?.packet?.jobId ?? null, bound });
+  return result;
+}
+
+async function handoffOnce({ serverUrl, tab }) {
   if (!tab?.id) return { ok: false, reason: 'no_active_tab', message: 'No active tab.' };
 
   let origin;
@@ -1028,13 +1040,13 @@ export async function runGatedHandoff({ serverUrl, tab }) {
   }
 
   let list;
+  const bound = await bindingForTab(tab).catch(() => null);
   try {
     // ⛔ D56: the page's URL goes in the BODY of one question — "which packets may fill THIS page, and
     // if none, why?" The server matches on the packet's ORIGIN LIST and, where the URL carries one, the
     // JOB ID (one URL parser, the server's), and says which of the three truthful cases this is.
     // ⭐ The tab binding rides along: on a stage whose address names no job (a sign-in page, a step that changed
     // without changing the URL), the server can still say which of YOUR jobs this is.
-    const bound = await bindingForTab(tab);
     let res = await api(serverUrl, '/api/apply/handoff/match', {
       method: 'POST', body: JSON.stringify({ url: tab.url, boundJobId: bound?.jobId ?? null }),
     });
@@ -1062,7 +1074,9 @@ export async function runGatedHandoff({ serverUrl, tab }) {
     const reason = list.state && list.state !== 'ready' ? list.state : 'origin_mismatch';
     return {
       ok: false, reason,
-      message: list.message || "Nothing is prepared for this page. If draft knows this job, press \"Prepare this application\" in the draft popup; if not, capture it first.",
+      // ⭐ D96 §2: on a bound tab the job is named — "capture it first" only with no binding and no match.
+      message: boundMissMessage(bound, reason, list.message)
+        || "Nothing is prepared for this page. If draft knows this job, press \"Prepare this application\" in the draft popup; if not, capture it first.",
       canPrepare: !!list.canPrepare, job: list.job || null, addresses: list.addresses || null,
     };
   }
@@ -1521,6 +1535,7 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
       filled: outcome?.filled || [], skipped: outcome?.skipped || [], unmatched,
       resume: outcome?.resume || null,
       overlay: { rendered: false, error: e.message },
+      fieldCount: shape.fields.length,
       review: { ready: readiness.ready, guessCount: readiness.guessCount },
       // D36: this used to be the SUCCESS sentence, word for word — so a fill whose review panel never
       // appeared (no eligibility pinned to the top, no guess to acknowledge) read exactly like one
@@ -1574,6 +1589,9 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
     filled: outcome?.filled || [],
     skipped: outcome?.skipped || [],
     unmatched,
+    // ⭐ D96 §3: "Filled 14 of 18 · 2 need you" — the form's field count and the required fields still empty.
+    fieldCount: shape.fields.length,
+    missingCount: missingAtEnd.length,
     resume: outcome?.resume || (released.resumeUrl ? { attached: false, reason: 'fetch_failed' } : null),
     overlay: { rendered: true, rows: reviewItems.length },
     badge,
@@ -1680,6 +1698,7 @@ export async function prepareAndFill({ serverUrl, tab }) {
   } catch (e) {
     return { ok: false, reason: 'network_error', message: 'Could not reach Draft.', detail: e.message };
   }
+  await notePrepared(body);   // ⭐ D96 §3: "Answers prepared" — the packet's id, the packet itself stays on the server
   // Prepared, but this page is not one of its addresses: say so — never fill it anyway.
   if (!packetFillsOrigin(body, new URL(url).origin)) {
     return { ok: false, reason: 'not_this_address', message: body.message, prepared: true, addresses: body.origins || null };
@@ -1703,7 +1722,9 @@ export async function recordSubmitted({ serverUrl, tab }) {
       method: 'POST', body: JSON.stringify({ url, jobId: held?.packet?.jobId ?? null, boundJobId: bound?.jobId ?? null }),
     });
     const body = await res.json().catch(() => ({}));
-    return { ok: res.ok && !!body.ok, ...body, message: body.message || `Server returned ${res.status}.` };
+    const result = { ok: res.ok && !!body.ok, ...body, message: body.message || `Server returned ${res.status}.` };
+    await noteSubmitted(result, { jobId: held?.packet?.jobId ?? bound?.jobId ?? null });   // ⭐ D96 §3: "Submitted"
+    return result;
   } catch (e) {
     return { ok: false, message: 'Could not reach Draft.' };
   }

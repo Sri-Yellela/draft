@@ -83,6 +83,20 @@
     #copy-sheet li .cs-v { display: block; color: var(--c-ink); font-weight: 700; word-break: break-word; }
     #copy-sheet li.elig .cs-k { color: var(--c-info); }
     #copy-sheet .cs-note { font-size: 11px; color: var(--c-ink-faint); margin: 6px 0 0; }
+
+    /* ⭐ D96 §3 · progress */
+    /* Where this tab's job stands, and the jobs in progress — what the browser REMEMBERS, read on open (D23: no page
+       read, no server call). The job box is the packet summary's surface (.pk); the list is the recent captures'. */
+    #progress .pg-job { font-size: 13px; font-weight: 700; color: var(--c-ink); margin: 0 0 3px; }
+    #progress .pg-line { font-size: 11px; color: var(--c-ink-muted); margin: 0; }
+    #in-progress { margin-bottom: 4px; }
+    #in-progress ul { list-style: none; }
+    #in-progress li { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 6px 0;
+      border-bottom: 1px solid var(--c-border); }
+    #in-progress li .ip-job { flex: 1 1 auto; min-width: 0; color: var(--c-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #in-progress li .ip-where { flex: 0 0 auto; color: var(--c-ink-muted); font-size: 11px; }
+    #in-progress li.here .ip-job { font-weight: 700; }
+    /* ⭐ D96 §3 end */
   </style>
 </head>
 <body>
@@ -116,6 +130,17 @@
   <p class="read-hint" id="read-hint" style="display:none">Nothing on this page is read until you press it.</p>
   <!-- ⭐ Captured today: distinct jobs, any route — "2 today · 1 already on your board". -->
   <p class="read-hint" id="captured-today" style="display:none"></p>
+
+  <!-- ⭐ D96 §3 · the popup REMEMBERS: this tab's job and where it stands, and the last five jobs in progress. Read from
+       the extension's own storage on open (popup-progress.js) — nothing on the page is read, nothing is asked. -->
+  <div id="progress" class="pk" hidden>
+    <p class="pg-job" id="progress-job"></p>
+    <p class="pg-line" id="progress-line"></p>
+  </div>
+  <div id="in-progress" hidden>
+    <p class="all-head">In progress</p>
+    <ul id="in-progress-list"></ul>
+  </div>
 
   <!-- ⭐ D63 · THE JOB CARD: the paper logo tile (D61), the company in the logo face, the D50 number box. -->
   <div id="job-preview" class="job">
@@ -215,5 +240,6 @@
   <script src="companion.js"></script>
   <script src="popup.js"></script>
   <script type="module" src="popup-auto.js"></script>
+  <script type="module" src="popup-progress.js"></script>
 </body>
 </html>
