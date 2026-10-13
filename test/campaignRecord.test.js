@@ -40,7 +40,7 @@ test("the migration applies, and both columns default to NULL", () => {
   const db = new Database(":memory:");
   db.exec("CREATE TABLE schema_migrations (id TEXT PRIMARY KEY, applied_at INTEGER)");
   for (const m of MIGRATIONS) {
-    for (const stmt of m.sql.split(";").map(s => s.trim()).filter(Boolean)) db.exec(stmt);
+    db.exec(m.sql);   // whole, as the runner does — a CREATE TRIGGER body (162) holds a ";"
   }
   const cols = db.prepare("PRAGMA table_info(apply_run_jobs)").all();
   const byName = Object.fromEntries(cols.map(c => [c.name, c]));

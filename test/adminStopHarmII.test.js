@@ -5,6 +5,7 @@
 //   (c) restoreBackup checkpoints the WAL before its safety copy.
 //   (d) Revert batch goes through the route's dry run first.
 //   (e) The dead force-scrape route (a user's own Apify token) is gone.
+import { allowLegacyAdminRows } from "../test-support/legacyAdminRows.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -25,6 +26,7 @@ function freshDb() {
   const db = new Database(":memory:");
   db.pragma("foreign_keys = ON");
   for (const m of MIGRATIONS) db.exec(m.sql);
+  allowLegacyAdminRows(db);   // these fixtures model a pre-162 admin row (test-support/legacyAdminRows.js)
   return db;
 }
 

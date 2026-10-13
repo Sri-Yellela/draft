@@ -1,5 +1,6 @@
 // ⭐ D88 P2 + P4 · user management — the row's ⛔ TESTS that apply to this phase (39d). Each was mutated red and
 // restored (the commit message lists them). Synthetic people only.
+import { allowLegacyAdminRows } from "../test-support/legacyAdminRows.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -17,6 +18,7 @@ const SERVER = lf("server.js");
 function people() {
   const db = new Database(":memory:");
   for (const m of MIGRATIONS) db.exec(m.sql);
+  allowLegacyAdminRows(db);   // a pre-162 admin row, to prove it is never listed (test-support/legacyAdminRows.js)
   db.prepare("INSERT INTO users (id, username, password_hash, is_admin, plan_tier) VALUES (1, 'admin', 'x', 1, 'PRO')").run();
   db.prepare("INSERT INTO users (id, username, password_hash, plan_tier) VALUES (2, 'ada', 'x', 'BASIC'), (3, 'grace', 'x', 'PLUS')").run();
   db.prepare("INSERT OR IGNORE INTO users (id, username, password_hash) VALUES (0, 'system', 'x')").run();

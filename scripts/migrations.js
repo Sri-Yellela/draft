@@ -4522,4 +4522,36 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_job_page_keys_job ON job_page_keys(job_id);
       `,
     },
+    {
+      // ⛔ D95 PHASE 2 (owner 10-13: "password set and signed in with the admin email, now enforce"). An admin is an
+      // admin account; no users row is one. The former admin row loses every credential it held (connected apps,
+      // their tokens, its tab / extension / phone tokens) BEFORE its flag is cleared — cleared first, its Claude
+      // connection would have started working as a person's — and is suspended (kept, with its reason, until it is
+      // deleted after a backup; it owns no user data — WORKLOG 42). Each cleared row leaves an audit row. Then the
+      // database itself refuses an admin flag on any users row, on insert and on update. server.js takes a backup
+      // on the volume before this migration and holds it back if the backup fails.
+      id: "162_no_admin_in_users",
+      sql: `
+        UPDATE oauth_tokens SET revoked_at = unixepoch()
+          WHERE revoked_at IS NULL AND connection_id IN (SELECT id FROM oauth_connections WHERE user_id IN (SELECT id FROM users WHERE is_admin = 1));
+        UPDATE oauth_connections SET revoked_at = unixepoch()
+          WHERE revoked_at IS NULL AND user_id IN (SELECT id FROM users WHERE is_admin = 1);
+        UPDATE auth_contexts SET revoked_at = unixepoch()
+          WHERE revoked_at IS NULL AND user_id IN (SELECT id FROM users WHERE is_admin = 1);
+        INSERT INTO admin_audit_log (admin_user_id, actor_kind, actor, action, target, before_json, after_json, reason)
+          SELECT NULL, 'system', 'system', 'user.admin_flag_cleared', 'user:' || id,
+                 '{"is_admin":1}', '{"is_admin":0,"status":"suspended"}', 'D95 Phase 2: admins are admin accounts'
+          FROM users WHERE is_admin = 1;
+        UPDATE users SET status = 'suspended', suspended_at = unixepoch(),
+          suspended_reason = 'Former admin row (D95): admins are admin accounts now. Kept until it is deleted after a backup.'
+          WHERE is_admin = 1;
+        UPDATE users SET is_admin = 0 WHERE is_admin = 1;
+        CREATE TRIGGER IF NOT EXISTS users_no_admin_insert BEFORE INSERT ON users
+          WHEN NEW.is_admin IS NOT NULL AND NEW.is_admin != 0
+          BEGIN SELECT RAISE(ABORT, 'D95: an admin is an admin account, never a users row'); END;
+        CREATE TRIGGER IF NOT EXISTS users_no_admin_update BEFORE UPDATE OF is_admin ON users
+          WHEN NEW.is_admin IS NOT NULL AND NEW.is_admin != 0
+          BEGIN SELECT RAISE(ABORT, 'D95: an admin is an admin account, never a users row'); END;
+      `,
+    },
   ];

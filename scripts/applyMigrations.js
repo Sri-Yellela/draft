@@ -59,7 +59,7 @@
  *         have, and "FAILED: no such column: foo" without the id is a worse message than the one
  *         this replaced.
  */
-export function applyPendingMigrations(db, migrations, { onSkip, onApplied } = {}) {
+export function applyPendingMigrations(db, migrations, { onSkip, onApplied, hold = null } = {}) {
   const applied = new Set(
     db.prepare("SELECT id FROM schema_migrations").all().map(r => r.id)
   );
@@ -78,6 +78,9 @@ export function applyPendingMigrations(db, migrations, { onSkip, onApplied } = {
       onSkip?.(migration);
       continue;
     }
+    // `hold`: ids the caller has decided must not run THIS time (D95: 162 waits for its backup). Not recorded, so the
+    // next run applies it.
+    if (hold?.has?.(migration.id)) continue;
     try {
       applyOne(migration);
     } catch (e) {

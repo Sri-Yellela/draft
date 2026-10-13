@@ -1,4 +1,5 @@
 // ⭐ D88 P3 · support tickets — the row's ⛔ TESTS for tickets (39d). Each was mutated red and restored.
+import { allowLegacyAdminRows } from "../test-support/legacyAdminRows.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -16,6 +17,7 @@ function db0() {
   const db = new Database(":memory:");
   db.pragma("foreign_keys = ON");
   for (const m of MIGRATIONS) db.exec(m.sql);
+  allowLegacyAdminRows(db);   // a pre-162 admin row (test-support/legacyAdminRows.js)
   db.prepare("INSERT INTO users (id, username, password_hash, is_admin) VALUES (1, 'admin', 'x', 1), (2, 'ada', 'x', 0), (3, 'grace', 'x', 0)").run();
   return db;
 }
