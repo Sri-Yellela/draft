@@ -252,10 +252,10 @@ export function PrivacyPage() {
 
           <H3>What the Extension Stores in Your Browser</H3>
           <P>
-            The extension keeps eight things in your browser's own extension storage. Four are
+            The extension keeps nine things in your browser's own extension storage. Five are
             ordinary local storage and stay until you uninstall the extension or disconnect it; the
             other four are memory-backed session storage, which your browser discards when you
-            restart it. Only one of the eight — the extension's own access token, described below — is
+            restart it. Only one of the nine — the extension's own access token, described below — is
             ever sent anywhere, and it goes only to us. (Earlier versions also stored a custom
             keyboard shortcut; that setting was removed, and any value it left behind is deleted
             when you open the extension's options page. Shortcuts are now managed by Chrome itself.)
@@ -314,6 +314,16 @@ export function PrivacyPage() {
               same browser. You can end it at any time from the extension's popup, or from your
               account, and the extension then holds nothing. Local storage; the ten-minute expiry
               does not apply to it.
+            </LI>
+            <LI>
+              <Strong>Where each application stands</Strong> — for each job you capture, read, prepare,
+              fill or submit with the extension: the job's draft id, its title and company, the address
+              of its posting, when each of those steps happened, and how many fields were filled and how
+              many still need you — so the popup can show where you left off. It holds no answers — never
+              what you typed, chose or filled — and nothing else of the page. It is never sent anywhere.
+              Local storage: each job is kept 30 days from its last change, and all of it is deleted when
+              you disconnect the extension, when you sign out, or when a different account is connected.
+              The ten-minute expiry does not apply to it.
             </LI>
             <LI>
               <Strong>Whether automatic capture is switched on</Strong> — a single on/off value,
