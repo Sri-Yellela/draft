@@ -44,7 +44,7 @@ function adminWithPassword(d, email = "ops@example.org", { owner = true } = {}) 
 }
 
 /** An express app with the REAL binder and REAL requireAdmin; `legacyUser` stands in for a passport session. */
-async function serve(t, d, { enforced = false, legacyUser = null } = {}) {
+async function serve(t, d, { enforced = false, legacyUser = null, emailReady = () => true } = {}) {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => { if (legacyUser) req.user = legacyUser; req.isAuthenticated = () => !!req.user; next(); });
@@ -52,7 +52,7 @@ async function serve(t, d, { enforced = false, legacyUser = null } = {}) {
   const requireAdmin = createRequireAdmin({ isExtensionRequest: () => false, log: quietLog,
     legacy: (req) => req.isAuthenticated() && mayActAsAdmin(req) });
   const { authRouter, adminsRouter } = createAdminAuthRouters({ db: d, requireAdmin, production: false, log: quietLog,
-    sendEmail: async () => ({ ok: true }), baseUrl: () => "http://draft.test", env: {} });
+    sendEmail: async () => ({ ok: true }), baseUrl: () => "http://draft.test", env: {}, emailReady });
   app.use("/api/admin/auth", authRouter);
   app.use("/api/admin/admins", adminsRouter);
   app.use("/api/admin/people", requireAdmin, createAdminPeopleRouter({ db: d, requireAdmin, signOutEverywhere: async () => ({}), sendResetLink: async () => ({}) }));
@@ -360,6 +360,41 @@ test("⛔ D95 (owner 10-13): until an admin account exists, the sign-in leads wi
   assert.match(login, /if \(!chosen && session\?\.legacyAvailable && session\.accountsExist === false\) \{\s*setMode\("legacy"\);/, "no account → the old login leads");
   assert.match(login, /if \(!form\.email\.includes\("@"\)\) \{\s*if \(session\?\.legacyAvailable\) \{/, "a username in the new form is taken to the old login");
   assert.match(login, /placeholder="Admin email" type="text" inputMode="email"/, "no browser email validation blocking a username");
+});
+
+test("⛔ D95 (owner 10-13, no email in production): the legacy admin finishes the setup — resend, and the FIRST password — then the door shuts", async (t) => {
+  const d = db();
+  const legacyAdmin = { id: 1, username: "admin", isAdmin: true };
+  const base = await serve(t, d, { legacyUser: legacyAdmin, emailReady: () => false });
+  const post = (p, body) => fetch(`${base}${p}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+    .then(async r => ({ status: r.status, body: await r.json() }));
+  const add = await post("/api/admin/admins", { email: "ops@example.org" });
+  assert.equal(add.status, 200);
+  assert.equal(add.body.admin.isOwner, true, "the first is an owner");
+  assert.equal(add.body.linkSent, false);
+  assert.match(add.body.message, /Email is not set up on this server/, "said plainly — not 'the link did not go out'");
+  const id = add.body.admin.publicId;
+  const resend = await post(`/api/admin/admins/${id}/link`, {});
+  assert.equal(resend.status, 200, "the legacy admin may send the link again (it was refused before)");
+  const list = await (await fetch(`${base}/api/admin/admins`)).json();
+  assert.equal(list.settingUp, true);
+  assert.equal(list.emailReady, false);
+  assert.equal((await post(`/api/admin/admins/${id}/password`, { password: "short" })).status, 400);
+  const set = await post(`/api/admin/admins/${id}/password`, { password: "a-long-admin-passphrase" });
+  assert.equal(set.status, 200, JSON.stringify(set.body));
+  assert.equal(verifyAdminSignIn(d, "ops@example.org", "a-long-admin-passphrase")?.public_id, id, "the new account signs in with it");
+  assert.equal(d.prepare("SELECT actor FROM admin_audit_log WHERE action = 'admin.password_set_bootstrap'").pluck().get(), "user:1", "audited, with its actor");
+  // ⛔ once ONE admin account has a password, the legacy admin can no longer manage admin accounts
+  assert.equal((await post(`/api/admin/admins/${id}/link`, {})).status, 403);
+  assert.equal((await post("/api/admin/admins", { email: "second@example.org" })).status, 403);
+  assert.equal((await post(`/api/admin/admins/${id}/password`, { password: "another-long-passphrase" })).status, 403);
+  // the sign-in page's link request says email is not set up — a server fact, the same for every address
+  const anon = await serve(t, d, { emailReady: () => false });
+  for (const email of ["ops@example.org", "nobody@example.org"]) {
+    const r = await fetch(`${anon}/api/admin/auth/link`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) });
+    assert.equal(r.status, 503, email);
+    assert.match((await r.json()).error, /Email is not set up on this server/);
+  }
 });
 
 test("⛔ D95 UI: the client keeps the admin session apart, and People shows no admin", () => {
