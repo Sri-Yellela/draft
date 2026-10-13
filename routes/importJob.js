@@ -112,6 +112,10 @@ export function createImportJobRouter(db, opts = null) {
     const raw = String(req.body?.url || "").slice(0, 2048);
     let posting = null;
     let ats = null;
+    // ⭐ J1 (D96 §2–§3): the page's KEY and its canonical posting — so the extension's remembered progress names the job
+    // and its posting without parsing a URL of its own (one parser, services/jobPageKey.js). Derived from the URL the
+    // press already sent; null where the ATS gives no key.
+    let pageKey = null;
     if (/^https?:\/\//i.test(raw)) {
       // ⭐ The SAME resolution the fill uses (services/manualHandoff.js resolvePageJob): the page's address, its job
       // KEY at any stage (a Workday requisition — /apply, /applyManually …), or its ATS's job id. Before this the popup
@@ -152,11 +156,12 @@ export function createImportJobRouter(db, opts = null) {
       const pk = pageKeyOf(raw);
       ats = m ? { type: m.type, slug: m.slug || m.tenant || null,
         ...(pk ? { requisition: pk.requisition, rev: pk.rev, stage: pk.stage } : {}) } : null;
+      pageKey = pk ? { key: pk.key, rev: pk.rev, canonicalUrl: pk.canonicalUrl } : null;
     }
     // D33: each with what happened to it (on the board · held off it and why · closed), worded by
     // services/jobs/captureOutcome.js — the same words the capture itself answered with.
     const recent = recentCaptures(db, req.user.id, 5);
-    res.json({ posting, ats, recent });
+    res.json({ posting, ats, recent, pageKey });
   });
 
   // ⭐ D64 · AUTOMATED CAPTURE — POST /api/import/auto { url, text }.

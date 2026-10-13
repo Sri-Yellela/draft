@@ -65,13 +65,17 @@ test("⛔ D23: the storage keys are exactly the six the listing names — no mor
   // disclosed addition (the privacy page's storage list, STORE_LISTING, PRIVACY_RECONCILIATION).
   // + session:[bindKey(tabId)] by v1.5.2 (owner, 10-12) — the tab binding, which job a tab is on; disclosed in the
   // privacy page's storage list, STORE_LISTING and PRIVACY_RECONCILIATION in the same change.
+  // + local:[PROGRESS_KEY] by D96 §3 (owner, 10-13) — where each application stands (captured · read · prepared ·
+  // filled n of m · reviewed · submitted), no answer value, 30 days, cleared on Disconnect / sign-out; disclosed in the
+  // privacy page's storage list, STORE_LISTING and PRIVACY_RECONCILIATION in the same change.
   assert.deepEqual(keys.sort(), [
     "local:[AUTO_CAPTURE_SETTING]",
-    "local:[IDENTITY_KEY]", "local:[TOKEN_KEY]", "local:lastCapture",
+    "local:[IDENTITY_KEY]", "local:[PROGRESS_KEY]", "local:[TOKEN_KEY]", "local:lastCapture",
     "session:[batchKey(tabId)]", "session:[bindKey(tabId)]", "session:[sessionKey(tabId)]", "session:lastGatedHandoff",
   ].sort(), "the extension's storage keys changed — that is a new disclosure (D23: none allowed)");
   assert.match(code["tabBinding.js"], /const bindKey = \(tabId\) => `\$\{BIND_PREFIX\}\$\{tabId\}`;/);
   assert.match(code["tabBinding.js"], /export const BIND_PREFIX = 'bind:';/);
+  assert.match(code["progress.js"], /export const PROGRESS_KEY = 'jobProgress';/);
   assert.match(code["autoCapture.js"], /export const AUTO_CAPTURE_SETTING = "autoCaptureEnabled";/);
   const auth = code["auth.js"];
   assert.match(auth, /const TOKEN_KEY = ['"]authToken['"]/);
