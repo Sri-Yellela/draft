@@ -12,8 +12,8 @@
 //     canonical https://zoom.wd5.myworkdayjobs.com/Zoom/job/Remote--(US)/Software-Engineer_R19749-1
 //
 // ⭐ A repost suffix (-1, -2) is kept as `rev` and is NOT part of the key: the owner's question was whether
-// R19749-1 is the same job as R19749 — the agent's recommendation, taken under "complete all tasks", is yes
-// (Workday's own reposting of a requisition), reported in the WORKLOG for the owner to overrule.
+// R19749-1 is the same job as R19749 — DECIDED by the owner, 10-13: "R19749-1 is the same job, keep it" (Workday's
+// own reposting of a requisition). A -2 is the same job too.
 // A page with no requisition (login, create account) has no key — the extension's tab binding names its job.
 // The parsers are pure (no database, no network); recordPageKey / jobForPageKey below are the key table's two doors.
 
