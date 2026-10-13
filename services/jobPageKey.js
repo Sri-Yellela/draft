@@ -104,3 +104,32 @@ export function jobForPageKey(db, key) {
   if (!key) return null;
   try { return db.prepare("SELECT job_id FROM job_page_keys WHERE page_key = ?").pluck().get(key) ?? null; } catch { return null; }
 }
+
+const alnum = (s) => String(s || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").trim();
+
+/**
+ * ⭐ (company, title) — owner, 10-13: the job was found on LinkedIn (…/jobs/search-results/?currentJobId=4478302778) and
+ * applied to on Workday. A capture on LinkedIn stores the job under LinkedIn's address, which shares neither address
+ * nor key with the Workday page — so the Workday page asks "which job is this?" and the answer is the job THIS USER
+ * captured whose title is the page's title slug and whose company is the tenant. ⛔ Only the user's OWN captures
+ * (last 60 days), and only when exactly ONE matches — two candidates is a question, not an answer. Never another
+ * user's jobs, never the shared pool. Returns the job id or null.
+ */
+export function ownJobByTitleCompany(db, userId, pk) {
+  if (userId == null || !pk?.title || !pk?.tenant) return null;
+  let rows = [];
+  try {
+    rows = db.prepare(`SELECT DISTINCT COALESCE(sj.duplicate_of, sj.job_id) AS job_id, sj.title, sj.company
+      FROM job_captures c JOIN scraped_jobs sj ON sj.job_id = c.job_id
+      WHERE c.user_id = ? AND c.created_at > unixepoch() - 60 * 86400 AND (c.action IS NULL OR c.action NOT LIKE 'refused%')`).all(userId);
+  } catch { return null; }
+  const title = alnum(pk.title);
+  const tenant = alnum(pk.tenant).replace(/ /g, "");
+  const same = rows.filter(r => {
+    if (alnum(r.title) !== title) return false;
+    const co = alnum(r.company);
+    return co.replace(/ /g, "") === tenant || co.split(" ")[0] === tenant;
+  });
+  const ids = [...new Set(same.map(r => String(r.job_id)))];
+  return ids.length === 1 ? ids[0] : null;
+}

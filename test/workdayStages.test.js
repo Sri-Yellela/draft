@@ -152,6 +152,34 @@ test("⛔ the walk's two findings: the canonical posting keeps the page's scheme
   assert.match(read("extension/extractor.js"), /const header = firstText\(\['\[data-automation-id="jobPostingHeader"\]'\]\);\s*if \(header && !ld\?\.title\) title = header;/);
 });
 
+test("⛔ (owner 10-13) found on LinkedIn, applied on Workday: the Workday page is the job YOU captured on LinkedIn — and one capture there joins it", async (t) => {
+  const { db, post, stop } = mount(); t.after(stop);
+  // the owner's LinkedIn page: …/jobs/search-results/?currentJobId=4478302778 — captured there, stored under LinkedIn's address
+  db.prepare(`INSERT INTO scraped_jobs (job_id,title,company,location,url,apply_url,search_query,_hash,discovered_at)
+    VALUES ('li-4478302778','Software Engineer','Zoom','United States (Remote)','https://www.linkedin.com/jobs/view/4478302778','https://www.linkedin.com/jobs/view/4478302778','t','h9',unixepoch()-3600)`).run();
+  captured(db, 1, "li-4478302778", "https://www.linkedin.com/jobs/view/4478302778");
+  const p = resolvePageJob(db, 1, OWNER_URL);
+  assert.equal(p.job?.jobId, "li-4478302778", "the Workday stage is the job the user captured on LinkedIn");
+  assert.equal(p.how, "title_company");
+  assert.equal(resolvePageJob(db, 2, OWNER_URL).job, null, "never another user's capture");
+  const m = await post("/api/apply/handoff/match", { url: OWNER_URL });
+  assert.equal(m.body.state, "prepare", "Fill on Workday offers Prepare — not 'capture it first'");
+  // one capture on the Workday page JOINS the LinkedIn job (location wording differs, so a fingerprint would not)
+  const text = "Title: Software Engineer\nCompany: Zoom\nLocation: Remote (US)\n\nBuild Zoom's next video platform in TypeScript and Go. You will design services, review code and ship weekly. This role is remote within the United States.";
+  const cap = await post("/api/import/job", { url: OWNER_URL, text });
+  assert.equal(cap.body.capture?.jobId, "li-4478302778", "joined, not a second job");
+  assert.equal(db.prepare("SELECT job_id FROM job_page_keys WHERE page_key = 'workday|zoom|zoom|R19749'").pluck().get(), "li-4478302778", "the key now names it");
+  const prep = await post("/api/apply/prepare", { url: OWNER_URL });
+  assert.equal(prep.body.fillsHere, true, "and the packet fills on the Workday page, through the user's own capture there");
+  // two captured jobs with that title at that company is a question, not an answer
+  const { db: db2, stop: stop2 } = mount(); t.after(stop2);
+  for (const id of ["li-a", "li-b"]) {
+    db2.prepare(`INSERT INTO scraped_jobs (job_id,title,company,location,url,search_query,_hash,discovered_at) VALUES (?, 'Software Engineer','Zoom','Remote',?, 't', ?, unixepoch())`).run(id, `https://www.linkedin.com/jobs/view/${id}`, `h-${id}`);
+    captured(db2, 1, id, `https://www.linkedin.com/jobs/view/${id}`);
+  }
+  assert.equal(resolvePageJob(db2, 1, OWNER_URL).job, null, "ambiguous → no guess");
+});
+
 test("⛔ the Copy sheet carries everything the packet does — not only the canonical fields", () => {
   const sheet = copySheetRows({
     answers: [{ field: "First name", name: "first_name", value: "Ada" }, { field: "Work authorization", name: "work_auth", value: "Yes", eligibility: true }],

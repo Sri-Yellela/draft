@@ -54,7 +54,7 @@ import { fetchCompanyJobs as fetchRecruiteeJobs }       from './sources/recruite
 import { fetchCompanyJobs as fetchWorkdayJobs }         from './sources/workday.js';
 import { AUTO_CAPTURE_ORIGIN, autoCaptureRelevance } from './autoCapture.js';
 import { boardStateOf } from './jobGateway.js';
-import { pageKeyOf, recordPageKey, jobForPageKey } from '../jobPageKey.js';
+import { pageKeyOf, recordPageKey, jobForPageKey, ownJobByTitleCompany } from '../jobPageKey.js';
 
 class ImportInputError extends Error {
   constructor(message) {
@@ -611,7 +611,9 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
     catch { return false; }
   };
   if (pageKey && !force && !auto) {
-    const keyed = jobForPageKey(db, pageKey.key);
+    // the key, or — the first time this requisition is seen — the job THIS user captured elsewhere with the same title
+    // at the same company (LinkedIn → Workday, owner 10-13), so the Workday capture joins it instead of making a second
+    const keyed = jobForPageKey(db, pageKey.key) || ownJobByTitleCompany(db, userId, pageKey);
     const krow = keyed ? db.prepare('SELECT * FROM scraped_jobs WHERE job_id = ?').get(keyed) : null;
     if (krow) {
       const target = krow.duplicate_of ? (db.prepare('SELECT * FROM scraped_jobs WHERE job_id = ?').get(krow.duplicate_of) || krow) : krow;
