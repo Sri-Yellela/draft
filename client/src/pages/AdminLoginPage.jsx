@@ -112,9 +112,29 @@ export default function AdminLoginPage({ onAdminLogin, onLegacyLogin, session })
   const [mode,    setMode]    = useState("password");   // password | breakglass | legacy
   const [glass,   setGlass]   = useState("");
   const [legacy,  setLegacy]  = useState({ username:"", password:"" });
+  const [note,    setNote]    = useState("");
+  // (owner 10-13) Until the first admin account exists, the old login is the only one that works — so it is the one
+  // shown, with what to do next. Once an admin account exists, the new form leads.
+  const [chosen,  setChosen]  = useState(false);
+  useEffect(() => {
+    if (!chosen && session?.legacyAvailable && session.accountsExist === false) {
+      setMode("legacy");
+      setNote("No admin account exists yet. Sign in with your current admin login, then add your admin account (its own email) in Admin → System → Admins.");
+    }
+  }, [session, chosen]);
 
   const signIn = async e => {
-    e.preventDefault(); setError(""); setSaid(""); setLoading(true);
+    e.preventDefault(); setError(""); setSaid("");
+    // A plain username ("admin") is the OLD login, not an admin account's email: take it there instead of failing.
+    if (!form.email.includes("@")) {
+      if (session?.legacyAvailable) {
+        setLegacy(l => ({ ...l, username: form.email.trim() }));
+        setMode("legacy"); setChosen(true);
+        setNote("That is the old admin login — enter its password here. Admin accounts sign in with their own email.");
+      } else setError("Admin accounts sign in with their email address.");
+      return;
+    }
+    setLoading(true);
     try {
       const d = mode === "breakglass"
         ? await api("/api/admin/auth/break-glass", { method:"POST", body:JSON.stringify({ email:form.email, passphrase:glass }) })
@@ -148,7 +168,7 @@ export default function AdminLoginPage({ onAdminLogin, onLegacyLogin, session })
     <AdminCard subtitle="Admin Access">
       {mode !== "legacy" ? (
         <form onSubmit={signIn} style={{ display:"flex", flexDirection:"column", gap:12 }} data-admin-signin="">
-          <input style={inputStyle} placeholder="Admin email" type="email" autoComplete="username" value={form.email}
+          <input style={inputStyle} placeholder="Admin email" type="text" inputMode="email" autoComplete="username" value={form.email}
             onChange={e => setForm(f => ({ ...f, email:e.target.value }))} autoFocus/>
           {mode === "password" ? (
             <input style={inputStyle} placeholder="Password" type="password" autoComplete="current-password" value={form.password}
@@ -174,7 +194,7 @@ export default function AdminLoginPage({ onAdminLogin, onLegacyLogin, session })
         </form>
       ) : (
         <form onSubmit={legacySignIn} style={{ display:"flex", flexDirection:"column", gap:12 }} data-admin-legacy="">
-          <Note tone="info">The old admin sign-in retires when admin accounts are switched on.</Note>
+          <Note tone="info">{note || "The old admin sign-in retires when admin accounts are switched on."}</Note>
           <input style={inputStyle} placeholder="Username or email" value={legacy.username}
             onChange={e => setLegacy(f => ({ ...f, username:e.target.value }))} autoFocus/>
           <input style={inputStyle} placeholder="Password" type="password" value={legacy.password}
@@ -185,7 +205,7 @@ export default function AdminLoginPage({ onAdminLogin, onLegacyLogin, session })
       )}
       {session?.legacyAvailable && (
         <div style={{ textAlign:"center", marginTop:14 }}>
-          <QuietButton onClick={() => { setMode(m => m === "legacy" ? "password" : "legacy"); setError(""); }}>
+          <QuietButton onClick={() => { setMode(m => m === "legacy" ? "password" : "legacy"); setChosen(true); setNote(""); setError(""); }}>
             {mode === "legacy" ? "← Admin account sign-in" : "Old admin sign-in (retiring)"}
           </QuietButton>
         </div>

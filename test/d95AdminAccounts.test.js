@@ -348,6 +348,20 @@ test("⛔ D95: Admins — owner only, never locks the last owner out, sessions e
   assert.match(list, /"you":"adm_/);
 });
 
+test("⛔ D95 (owner 10-13): until an admin account exists, the sign-in leads with the old login; a username goes there", async (t) => {
+  const d = db();
+  const base = await serve(t, d);
+  const me = await (await fetch(`${base}/api/admin/auth/me`)).json();
+  assert.equal(me.accountsExist, false, "no admin account yet");
+  assert.equal(me.legacyAvailable, true);
+  adminWithPassword(d);
+  assert.equal((await (await fetch(`${base}/api/admin/auth/me`)).json()).accountsExist, true);
+  const login = read("client/src/pages/AdminLoginPage.jsx");
+  assert.match(login, /if \(!chosen && session\?\.legacyAvailable && session\.accountsExist === false\) \{\s*setMode\("legacy"\);/, "no account → the old login leads");
+  assert.match(login, /if \(!form\.email\.includes\("@"\)\) \{\s*if \(session\?\.legacyAvailable\) \{/, "a username in the new form is taken to the old login");
+  assert.match(login, /placeholder="Admin email" type="text" inputMode="email"/, "no browser email validation blocking a username");
+});
+
 test("⛔ D95 UI: the client keeps the admin session apart, and People shows no admin", () => {
   const app = read("client/src/App.jsx");
   assert.match(app, /api\("\/api\/admin\/auth\/me"\)/);

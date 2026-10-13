@@ -68,7 +68,11 @@ export function createAdminAuthRouters({ db, requireAdmin, production, sendEmail
     const enforced = !!req.adminEnforced;
     res.set("Cache-Control", "no-store");
     if (req.admin) return res.json({ authenticated: true, admin: publicAdmin(req.admin), enforced, legacyAvailable: !enforced });
-    res.json({ authenticated: false, enforced, legacyAvailable: !enforced, breakGlassAvailable: !!env.ADMIN_BREAK_GLASS_HASH });
+    // accountsExist (owner 10-13: "it's asking for an @ while the admin was never an email"): until the first admin
+    // account is made, the sign-in page leads with the old login that still works — not with a form nobody can use.
+    let accountsExist = true;
+    try { accountsExist = countAdmins(db) > 0; } catch { accountsExist = true; }
+    res.json({ authenticated: false, enforced, legacyAvailable: !enforced, accountsExist, breakGlassAvailable: !!env.ADMIN_BREAK_GLASS_HASH });
   });
 
   authRouter.post("/login", (req, res) => {
