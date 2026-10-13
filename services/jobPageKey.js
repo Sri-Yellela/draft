@@ -65,7 +65,8 @@ export function workdayKeyOf(url) {
   const canonicalPath = ["", site, "job", ...(locationSeg ? [seg(locationSeg)] : []), seg(titleSeg)].join("/");
   return {
     ats: "workday", key: `workday|${tenant.toLowerCase()}|${site.toLowerCase()}|${requisition}`, rev,
-    canonicalUrl: `https://${u.hostname.toLowerCase()}${canonicalPath}`,
+    // the page's own scheme (Workday serves https; a scheme of our own would be an address the page is not on)
+    canonicalUrl: `${u.protocol}//${u.hostname.toLowerCase()}${canonicalPath}`,
     tenant: tenant.toLowerCase(), dc: dc.toLowerCase(), site, requisition, stage, locale,
     title: tidySlug(titleSeg.slice(0, titleSeg.lastIndexOf("_"))) || null,
     location: locationSeg ? tidySlug(locationSeg) : null,

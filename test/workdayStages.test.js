@@ -140,6 +140,16 @@ test("⛔ the TAB BINDING names the job where the address cannot — honoured on
   assert.equal(s.body.source, "packet", "the PREPARED answers, not the profile's");
   assert.equal(s.body.job?.jobId, "gh-zoom-1");
   assert.ok(s.body.rows.some(r => r.label === "Why do you want to work at Zoom?"), "saved answers are on the sheet");
+  // a fill releases (consumes) the packet — the sheet still shows the answers prepared for this application
+  db.prepare("UPDATE apply_gate_packets SET consumed_at = unixepoch() WHERE user_id = 1").run();
+  const after = await post("/api/apply/copy-sheet", { url: NO_REQ, boundJobId: "gh-zoom-1" });
+  assert.equal(after.body.source, "packet", "after the fill, still the PREPARED answers (the walk found this)");
+});
+
+test("⛔ the walk's two findings: the canonical posting keeps the page's scheme; the extractor reads Workday's own header", () => {
+  assert.equal(pageKeyOf("http://zoom.wd5.myworkdayjobs.com/Zoom/job/Software-Engineer_R19749-1/apply").canonicalUrl, "http://zoom.wd5.myworkdayjobs.com/Zoom/job/Software-Engineer_R19749-1",
+    "an address the page is on — a forced https made the packet refuse the stage page");
+  assert.match(read("extension/extractor.js"), /const header = firstText\(\['\[data-automation-id="jobPostingHeader"\]'\]\);\s*if \(header && !ld\?\.title\) title = header;/);
 });
 
 test("⛔ the Copy sheet carries everything the packet does — not only the canonical fields", () => {

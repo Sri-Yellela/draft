@@ -4349,10 +4349,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         if (body) source = "packet";
       }
       // ⭐ The sheet shows the PREPARED answers for the bound job even where no packet fills this page (the sheet
-      // fills nothing, so its address does not matter) — the newest fresh packet for that job.
+      // fills nothing, so its address does not matter) — the newest fresh packet for that job, including one a fill
+      // has already released into the page: those are still the answers prepared for this application.
       if (!body && job && m.mine) {
         try {
-          const rows = db.prepare(`SELECT id, answers_json, created_at FROM apply_gate_packets WHERE user_id=? AND job_id=? AND consumed_at IS NULL ${NOT_CLEARED} ORDER BY id DESC LIMIT 5`)
+          const rows = db.prepare(`SELECT p.id, p.answers_json, p.created_at FROM apply_gate_packets p WHERE p.user_id=? AND p.job_id=? ${NOT_CLEARED} ORDER BY p.id DESC LIMIT 5`)
             .all(userId, job.jobId).filter(r => !packetFreshness(toMs(r.created_at)).stale);
           if (rows[0]) { body = parseJson(rows[0].answers_json, null); if (body) source = "packet"; }
         } catch { /* no packets table */ }
