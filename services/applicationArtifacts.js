@@ -34,6 +34,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
+import { linkAttachedPdfToRecord } from "./resumePdfArtifacts.js";
 
 export const ARTIFACT_KIND_RESUME = "resume";
 export const ENCODINGS = Object.freeze(["br", "gzip", "identity"]);
@@ -160,9 +161,10 @@ export function snapshotResumeForRecord(db, { userId, jobId, source = SOURCES.SN
       VALUES (?, ?, 'text/html', ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(record.id, ARTIFACT_KIND_RESUME, enc.encoding, enc.sha256, enc.rawBytes, enc.storedBytes, enc.body,
            source, resume.id ?? null, resume.updated_at ?? null);
-    return info.changes
-      ? { stored: true, artifactId: Number(info.lastInsertRowid), rawBytes: enc.rawBytes, storedBytes: enc.storedBytes }
-      : { stored: false, reason: "already_stored" };
+    if (!info.changes) return { stored: false, reason: "already_stored" };
+    // ⭐ D98: the PDF the extension attached for this job joins the record beside this HTML copy — What we sent.
+    const pdfId = linkAttachedPdfToRecord(db, { userId, jobId, recordId: record.id, snapshotArtifactId: Number(info.lastInsertRowid) });
+    return { stored: true, artifactId: Number(info.lastInsertRowid), rawBytes: enc.rawBytes, storedBytes: enc.storedBytes, ...(pdfId ? { pdfId } : {}) };
   } catch (e) {
     console.warn(`[artifacts] snapshot failed for job ${jobId}: ${e.message}`);
     return { stored: false, reason: "error", message: e.message };

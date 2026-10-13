@@ -38,6 +38,8 @@ import { createAdminAuthRouters } from "./routes/adminAuth.js";
 import { createAdminPeopleRouter } from "./routes/adminPeople.js";
 import { createSupportRouters } from "./routes/tickets.js";
 import { createResumeChangesRouter } from "./routes/resumeChanges.js";
+import { createExtensionResumeService, GenerationCancelledError, baseResumeFor as extensionBaseResumeFor } from "./services/extensionResume.js";
+import { createExtensionResumeRouter } from "./routes/extensionResume.js";
 import { purgeSolvedTickets } from "./services/tickets.js";
 import { storeGeneratedResume, refundGeneration, ResumeStoreError, STORE_FAILED_SENTENCE, listGeneratedResumes,
          deleteGeneratedResume, sweepExpiredResumes, resumeRetentionDays } from "./services/generatedResumes.js";
@@ -215,7 +217,7 @@ import { fetchDescription, persistDetailOutcome, hasDetailFetcher } from "./serv
 // 400 rather than a board that silently matches nothing. See shared/jobFilterOptions.js.
 import { FILTER_DIMENSIONS, invalidEntries, ageDaysMap } from "./shared/jobFilterOptions.js";
 import { BRAND, SUPPORT_EMAIL, EXTENSION_USER_AGENT, MOBILE_USER_AGENT } from "./shared/brand.js";
-import { isExtensionRequest, mayActAsAdmin } from "./shared/authPolicy.js";
+import { isExtensionRequest, isExtensionCredential, mayActAsAdmin } from "./shared/authPolicy.js";
 import { validateResumeClaims, checkCandidateConsistency } from "./services/kb/failsafe.js";
 // The generation-time assertion (assertResumeClaims) runs in the tools service since A4; draft keeps the
 // guard's finding form for the kbFindings review surface.
@@ -5055,6 +5057,72 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         UPDATE user_profile SET custom_answers_acknowledged_at = unixepoch()
           WHERE custom_answers IS NOT NULL AND json_valid(custom_answers) AND json_type(custom_answers) = 'object'
             AND EXISTS (SELECT 1 FROM json_each(user_profile.custom_answers) WHERE trim(CAST(value AS TEXT)) != '');
+      `,
+    },
+    {
+      // ⭐ D98 P1 (lane J3, 10-13): a résumé generated ON THE PAGE, asked for by the extension and made by the same
+      // generation the web app uses (services/extensionResume.js). One row per request: its job, the hash of the base
+      // résumé it is made from (once per job and base — the partial unique index), its status (queued · generating ·
+      // ready · refused · failed · cancelled), the Draft slot it spent (a draft_slot_uses id, NULL-safe: a refund deletes
+      // that row and stamps slot_refunded_at with the reason), the version it produced, the score pair, and the claim
+      // guard's plain-words result. No content: the résumé itself is the resume_versions row. Cascades with the account.
+      id: "165_extension_resume_generations",
+      sql: `
+        CREATE TABLE IF NOT EXISTS extension_resume_generations (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          job_id TEXT NOT NULL,
+          base_hash TEXT NOT NULL,
+          status TEXT NOT NULL CHECK (status IN ('queued','generating','ready','refused','failed','cancelled')),
+          regenerate INTEGER NOT NULL DEFAULT 0,
+          reused INTEGER NOT NULL DEFAULT 0,
+          slot_use_id INTEGER,
+          slot_refunded_at INTEGER,
+          refund_reason TEXT,
+          resume_version INTEGER,
+          score_before INTEGER,
+          score_after INTEGER,
+          guard_json TEXT,
+          error_code TEXT,
+          superseded_at INTEGER,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          started_at INTEGER,
+          finished_at INTEGER,
+          cancelled_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_ext_resume_gen_user_job ON extension_resume_generations(user_id, job_id, base_hash);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_ext_resume_gen_live ON extension_resume_generations(user_id, job_id, base_hash)
+          WHERE superseded_at IS NULL AND status IN ('queued','generating','ready');
+      `,
+    },
+    {
+      // ⭐ D98 P1: the PDF the extension attaches, KEPT — ⚠ the one path where D16's "never store a PDF" is reversed,
+      // so What we sent can show the exact file the page received (services/resumePdfArtifacts.js). The bytes with their
+      // sha256 (checked on read), D16's 2 MB cap, the generation and version it was printed from (and the hash of that
+      // HTML), when it was attached, and — once the application is recorded — its record and HTML snapshot row. A PDF on
+      // a record lives as long as the record (cascade); one not on a record goes with the job's résumé or the account.
+      id: "166_resume_pdf_artifacts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS resume_pdf_artifacts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          job_id TEXT NOT NULL,
+          generation_id TEXT REFERENCES extension_resume_generations(id) ON DELETE SET NULL,
+          resume_version INTEGER,
+          html_sha256 TEXT NOT NULL,
+          file_name TEXT NOT NULL,
+          media_type TEXT NOT NULL DEFAULT 'application/pdf',
+          sha256 TEXT NOT NULL,
+          byte_size INTEGER NOT NULL,
+          body BLOB NOT NULL,
+          attached_at INTEGER,
+          record_id INTEGER REFERENCES application_records(id) ON DELETE CASCADE,
+          snapshot_artifact_id INTEGER REFERENCES application_artifacts(id) ON DELETE SET NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_resume_pdf_user_job ON resume_pdf_artifacts(user_id, job_id);
+        CREATE INDEX IF NOT EXISTS idx_resume_pdf_generation ON resume_pdf_artifacts(generation_id);
+        CREATE INDEX IF NOT EXISTS idx_resume_pdf_record ON resume_pdf_artifacts(record_id);
       `,
     },
   ];
@@ -10651,7 +10719,9 @@ const pendingGenerationPromises = new Map();
 // checks — those live in the caller.  Throws on error; returns artifact on success.
 // D70 Phase 3: `cache` is the CALLER's prompt-cache choice — false from the interactive route (a one-shot:
 // 0 cache reads in 11 in production), unset from the apply worker (bursts). services/toolsServiceRequests.js.
-async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", employers = [], cache = undefined }) {
+// ⭐ D98 P1: `isCancelled` — the extension's Cancel. Checked before the model call (nothing sent: the caller refunds the
+// slot) and before the store (the work was done: nothing is stored). The web route and the apply worker pass none.
+async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", employers = [], cache = undefined, isCancelled = null }) {
   const mode         = legacyModeForTool(tool);
   const promptMode   = promptModeForTool(tool);
   const eventSubtype = eventSubtypeForTool(tool);
@@ -10734,6 +10804,7 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   // its ledger row and in the response. Draft makes no AUTOMATIC retry (services/generationRetry.js:
   // the cap is 1, draft makes 0); this is the person's own. ONE tools-service call below, no loop.
   const retryReason = retryReasonFor(db, { userId, jobId: String(jobId) });
+  if (isCancelled?.()) throw new GenerationCancelledError("before_model");
   let generated;
   try {
     generated = await toolsService.generate(generateBody);
@@ -10790,6 +10861,7 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   // generation count back (the usage row above is the spend; it is marked unsuccessful) and throws a
   // ResumeStoreError the route answers with STORE_FAILED_SENTENCE — the Draft slot is debited only
   // after this returns, so none was taken.
+  if (isCancelled?.()) throw new GenerationCancelledError("after_model");
   let stored;
   try {
     stored = storeGeneratedResume(db, {
@@ -11661,6 +11733,49 @@ applyLine.startLineTicker();
 applicationRecordRoutes(app, db, requireAuth, { capturedAtsAtApply });
 // D16: the résumé an application sent, expanded from its compressed copy (HTML; the browser prints it).
 applicationArtifactRoutes(app, db, requireAuth);
+
+// ⭐ D98 P1 · A RÉSUMÉ GENERATED ON THE PAGE — the extension asks, and THIS server generates (services/extensionResume.js,
+// routes/extensionResume.js). The same generation as POST /api/generate: the A+ swap and its silence, the tool's plan
+// rule, the plan's limit, the Draft slot, coreGenerateResume (claim guard + ATS scorer + D57's one store), then the job
+// is Pending and Prepared as a Generate leaves it. The extension's own token only; user-triggered only.
+const extensionResume = createExtensionResumeService({
+  db,
+  generate: async ({ userId, jobId, job, isCancelled }) => {
+    const tool = resolveEntitlement(db, userId, "a_plus_default").value === true ? "a_plus_resume" : "generate";
+    const result = await coreGenerateResume({ userId, jobId: String(jobId), job, tool,
+      resumeText: extensionBaseResumeFor(db, userId)?.text || "", employers: [], cache: false, isCancelled });
+    try { markPending(db, userId, jobId, "generated"); } catch (e) { console.warn("[extension-resume] pending:", e.message); }
+    try { applyLine.prepareManualPacket({ userId, jobId: String(jobId), via: "generate", toolType: tool }); }
+    catch (e) { console.warn("[extension-resume] prepare packet:", e.message); }
+    return result;
+  },
+  preflight: (userId) => {
+    if (!toolsService.configured) return "unavailable";
+    const tool = resolveEntitlement(db, userId, "a_plus_default").value === true ? "a_plus_resume" : "generate";
+    if (monetisationEnabled()) {
+      const planTier = normalisePlanTier(db.prepare("SELECT plan_tier FROM users WHERE id = ?").pluck().get(userId));
+      const allowed = resolveEntitlement(db, userId, tool === "a_plus_resume" ? "a_plus_enabled" : "generate_enabled",
+        { ctx: { planTier, monetisation: true } }).value === true;
+      if (!allowed) return "upgrade_required";
+    }
+    if (!checkLimit(db, userId, "resume_generate").allowed) return "plan_limit";
+    return null;
+  },
+  renderPdf: htmlToPdf,
+  // draft's additive check on what it serves, as the web route's kbFindings
+  guardFindings: (userId, html) => {
+    let findings = [];
+    try { findings = validateResumeClaims(db, html); } catch { findings = []; }
+    try {
+      const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || {};
+      const dp = db.prepare("SELECT * FROM domain_profiles WHERE user_id=? AND is_active=1").get(userId);
+      const base = dp ? getBaseResumeRecord(db, { userId, profileId: dp.id }) : null;
+      findings = findings.concat(profileContradictionFindings({ html, profile, baseResumeText: base?.content || "", domainProfile: dp }));
+    } catch { /* the check is additive; it never fails a read */ }
+    return findings;
+  },
+});
+app.use(createExtensionResumeRouter({ service: extensionResume, requireAuth, isExtension: isExtensionCredential }));
 
 // ── Contact form (public — no auth required) ──────────────────
 app.post("/api/contact", (req, res) => {
