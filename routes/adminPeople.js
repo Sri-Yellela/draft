@@ -3,7 +3,7 @@
 // Every write takes a reason and leaves an admin_audit_log row the person's timeline shows (services/userAdmin.js).
 // ⛔ No route here sets a password (D88: send a reset link, never set one) and none impersonates a user.
 import express from "express";
-import { listPeople, personDetail, setOverride, clearOverride, setStatus, addNote, writeAudit, UserAdminError } from "../services/userAdmin.js";
+import { listPeople, personDetail, setOverride, clearOverride, setStatus, addNote, setTag, writeAudit, UserAdminError } from "../services/userAdmin.js";
 import { normalisePlanTier } from "../services/entitlements.js";
 import { actorOf } from "../services/actor.js";
 
@@ -23,7 +23,8 @@ export function createAdminPeopleRouter({ db, requireAdmin, signOutEverywhere, s
   const reasonOf = (req) => String(req.body?.reason ?? "").trim();
 
   r.get("/", requireAdmin, (req, res) => {
-    try { res.json(listPeople(db, { q: req.query.q, filter: req.query.filter, sort: req.query.sort, page: req.query.page, pageSize: req.query.pageSize })); }
+    try { res.json(listPeople(db, { q: req.query.q, filter: req.query.filter, sort: req.query.sort, page: req.query.page, pageSize: req.query.pageSize,
+      hideTagged: req.query.hideTagged === "1" })); }
     catch (e) { fail(res, e); }
   });
 
@@ -67,6 +68,11 @@ export function createAdminPeopleRouter({ db, requireAdmin, signOutEverywhere, s
       })();
       res.json({ plan });
     } catch (e) { fail(res, e); }
+  });
+
+  r.post("/:id/tags", requireAdmin, (req, res) => {
+    try { res.json(setTag(db, { userId: id(req), tag: String(req.body?.tag || ""), on: req.body?.on === true, reason: reasonOf(req), actorId: actor(req) })); }
+    catch (e) { fail(res, e); }
   });
 
   r.post("/:id/notes", requireAdmin, (req, res) => {

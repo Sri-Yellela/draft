@@ -54,6 +54,7 @@ import { fetchCompanyJobs as fetchRecruiteeJobs }       from './sources/recruite
 import { fetchCompanyJobs as fetchWorkdayJobs }         from './sources/workday.js';
 import { AUTO_CAPTURE_ORIGIN, autoCaptureRelevance } from './autoCapture.js';
 import { boardStateOf } from './jobGateway.js';
+import { pageKeyOf, recordPageKey, jobForPageKey } from '../jobPageKey.js';
 
 class ImportInputError extends Error {
   constructor(message) {
@@ -598,6 +599,30 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
   }
   if (auto && !userId) throw new ImportInputError('Automatic capture needs a signed-in user');
 
+  // ⭐ ONE JOB, ONE KEY (owner 10-12, Zoom's Workday posting opened straight from LinkedIn at
+  // /apply/applyManually?source=linkedin). A page that names its requisition is captured as its POSTING — the
+  // stage, the locale and the tracking stripped (services/jobPageKey.js) — and a key draft has already seen is
+  // that job again, whichever stage it is captured from. The extension never parses an ATS URL; this does.
+  const pageKey = url ? pageKeyOf(url) : null;
+  if (pageKey) url = pageKey.canonicalUrl;
+  const capturedBefore = (jobId) => {
+    if (!userId || !jobId) return false;
+    try { return !!db.prepare("SELECT 1 FROM job_captures WHERE user_id = ? AND job_id = ? AND (action IS NULL OR action NOT LIKE 'refused%')").get(userId, String(jobId)); }
+    catch { return false; }
+  };
+  if (pageKey && !force && !auto) {
+    const keyed = jobForPageKey(db, pageKey.key);
+    const krow = keyed ? db.prepare('SELECT * FROM scraped_jobs WHERE job_id = ?').get(keyed) : null;
+    if (krow) {
+      const target = krow.duplicate_of ? (db.prepare('SELECT * FROM scraped_jobs WHERE job_id = ?').get(krow.duplicate_of) || krow) : krow;
+      const already = capturedBefore(target.job_id);
+      const attachment = attachImportToUser(db, userId, target.job_id);
+      recordExistingCapture(db, { jobId: target.job_id, url, userId, detectKnownAtsMatch, origin: text || html ? 'capture' : 'import_url' });
+      recordPageKey(db, url, target.job_id);
+      return answer(db, target, { action: 'attached', attachment, already });
+    }
+  }
+
   if (url && !force) {
     const existing = db.prepare(
       'SELECT * FROM scraped_jobs WHERE url = ? ORDER BY updated_at DESC LIMIT 1'
@@ -619,6 +644,7 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
         if (!rel.relevant) return discarded(rel.reason);
         if (boardStateOf(db, target.job_id).state !== 'on_board') return discarded('not_on_board');
       }
+      const already = capturedBefore(target.job_id);
       const attachment = attachImportToUser(db, userId, target.job_id);
       // D33: the fast path recorded nothing, so a capture of a posting already on the board left no
       // job_captures row — indistinguishable, in the one table built to answer it, from a capture
@@ -627,7 +653,8 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
         jobId: target.job_id, url, userId, detectKnownAtsMatch,
         origin: auto ? AUTO_CAPTURE_ORIGIN : text || html ? 'capture' : 'import_url',
       });
-      return answer(db, target, { action: 'attached', attachment });
+      recordPageKey(db, url, target.job_id);
+      return answer(db, target, { action: 'attached', attachment, already });
     }
   }
 
@@ -694,6 +721,9 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
   // evidence here (a capture has far more of it than a crawl's location string), and when the page —
   // not the location field — is what admits it, the gateway's location-only gate is told so.
   const preview = previewIngest(db, normalizedJob);
+  // ⭐ a repeat capture of a job already in this user's imports says so (idempotent — no new prompt)
+  const alreadyId = preview.action === 'attach' ? preview.existingJobId : null;
+  const alreadyBefore = alreadyId ? capturedBefore(alreadyId) : false;
   let gate = true;
   if (preview.action !== 'attach') {
     // ⭐ D59: the posting read through the one normaliser — its markup decoded (so "United&nbsp;States"
@@ -787,7 +817,8 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
   // A49 fix 4 + D33 — what happened, worded once (services/jobs/captureOutcome.js): inserted, ATTACHED
   // to a posting already on the board (with a link to it), or held off the board and why. The
   // extension and the site show this text; they no longer word the outcome themselves.
-  const result = answer(db, row, { action: ingest.action, attachment });
+  recordPageKey(db, url, finalJobId);
+  const result = answer(db, row, { action: ingest.action, attachment, already: alreadyBefore && String(alreadyId) === String(finalJobId) });
   // D41(c) · the employer's own site, when the captured page names it — the logo is queued from it
   // at capture time (routes/importJob.js), never from the ATS host.
   const site = html ? employerSiteOf(jobPostingFromHtml(html)) : null;
@@ -816,10 +847,10 @@ function withSalary(job, s) {
  * beside it are kept for the callers that already read them (the mobile contract, an extension
  * build from before v1.4.0), and `message` is capture.message for the same reason.
  */
-function answer(db, row, { action, attachment }) {
+function answer(db, row, { action, attachment, already = false }) {
   const capture = describeCapture(db, {
     jobId: row.job_id, action, title: row.title, company: row.company,
-    noActiveProfile: !!attachment?.noActiveProfile,
+    noActiveProfile: !!attachment?.noActiveProfile, alreadyCaptured: !!already,
   });
   return {
     job: mapJobRow(row), capture, message: capture.message,

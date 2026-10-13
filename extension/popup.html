@@ -114,6 +114,8 @@
     <kbd>R</kbd>
   </button>
   <p class="read-hint" id="read-hint" style="display:none">Nothing on this page is read until you press it.</p>
+  <!-- ⭐ Captured today: distinct jobs, any route — "2 today · 1 already on your board". -->
+  <p class="read-hint" id="captured-today" style="display:none"></p>
 
   <!-- ⭐ D63 · THE JOB CARD: the paper logo tile (D61), the company in the logo face, the D50 number box. -->
   <div id="job-preview" class="job">
@@ -132,6 +134,11 @@
        the press above, never before. The four stay below ("Everything"): a wrong guess must never
        hide an action. -->
   <div id="companion">
+    <!-- ⭐ The tab binding (owner 10-12): the job this tab is on, whatever stage of its application it shows. -->
+    <div id="bound" style="display:none">
+      <p class="ctx-line" id="bound-line"></p>
+      <button class="link" id="btn-unbind">Unlink this page</button>
+    </div>
     <p class="ctx-line" id="ctx-line"></p>
     <p class="questions" id="ctx-questions" style="display:none"></p>
     <p id="ctx-notice" style="display:none"></p>
@@ -157,7 +164,7 @@
     <ul id="recent-list"></ul>
   </div>
   <details id="auto-today" hidden>
-    <summary id="auto-today-head">Captured today</summary>
+    <summary id="auto-today-head">Captured automatically today</summary>
     <ul id="auto-today-list"></ul>
   </details>
 

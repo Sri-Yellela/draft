@@ -119,6 +119,28 @@ export function addNote(db, { userId, body, actorId }) {
   return { id };
 }
 
+// ⭐ D86/D88 follow-up item 3: an admin marks an account internal, test or beta. Shown by default; the list's
+// "Hide internal and test" filter hides the first two and says how many it hid. Every change asks why.
+export const USER_TAGS = Object.freeze({ internal: "internal", test: "test", beta: "beta" });
+export const HIDDEN_TAGS = Object.freeze(["internal", "test"]);
+
+export function setTag(db, { userId, tag, on, reason, actorId }) {
+  const why = needReason(reason);
+  if (!USER_TAGS[tag]) throw new UserAdminError(`The tag is one of ${Object.keys(USER_TAGS).join(", ")}.`);
+  if (!db.prepare("SELECT 1 FROM users WHERE id = ? AND id != 0 AND COALESCE(is_admin, 0) = 0").get(userId)) throw new UserAdminError("No such user.", 404);
+  const has = !!db.prepare("SELECT 1 FROM user_tags WHERE user_id = ? AND tag = ?").get(userId, tag);
+  if (has === !!on) throw new UserAdminError(on ? `The account is already tagged ${tag}.` : `The account is not tagged ${tag}.`);
+  db.transaction(() => {
+    if (on) db.prepare("INSERT INTO user_tags (user_id, tag, set_by_actor) VALUES (?, ?, ?)").run(userId, tag, toActor(actorId).ref);
+    else db.prepare("DELETE FROM user_tags WHERE user_id = ? AND tag = ?").run(userId, tag);
+    writeAudit(db, { actorId, action: on ? "user.tag.add" : "user.tag.remove", target: `user:${userId}`, reason: why, before: { tag, on: has }, after: { tag, on: !!on } });
+  })();
+  return { tag, on: !!on };
+}
+
+const tagsOf = (db, userId) => { try { return db.prepare("SELECT tag FROM user_tags WHERE user_id = ? ORDER BY tag").pluck().all(userId); } catch { return []; } };
+const HIDDEN_SQL = `EXISTS (SELECT 1 FROM user_tags t WHERE t.user_id = u.id AND t.tag IN (${HIDDEN_TAGS.map(t => `'${t}'`).join(", ")}))`;
+
 /** Is this account suspended? Read on every authenticated request (requireAuth) and at sign-in. */
 export function isSuspended(db, userId) {
   try { return db.prepare("SELECT status FROM users WHERE id = ?").get(userId)?.status === "suspended"; }
@@ -137,7 +159,7 @@ export const USERS_ONLY_SQL = "u.id != 0 AND u.username != 'system' AND COALESCE
 export const PEOPLE_SORTS = Object.freeze({ recent: "last_active DESC", newest: "u.created_at DESC", name: "LOWER(u.username) ASC" });
 
 /** Admin → People → Users: the numbers on top, and one page of the list. */
-export function listPeople(db, { q = "", filter = "all", sort = "recent", page = 1, pageSize = 25 } = {}) {
+export function listPeople(db, { q = "", filter = "all", sort = "recent", page = 1, pageSize = 25, hideTagged = false } = {}) {
   const where = [USERS_ONLY_SQL];
   const args = [];
   const term = String(q || "").trim().toLowerCase();
@@ -153,6 +175,12 @@ export function listPeople(db, { q = "", filter = "all", sort = "recent", page =
   if (f === "new7") where.push("u.created_at > unixepoch() - 7 * 86400");
   const size = Math.min(100, Math.max(5, Number(pageSize) || 25));
   const pg = Math.max(1, Number(page) || 1);
+  // item 3: how many the filter hides, among what the rest of the query would show — said beside the filter
+  let hidden = 0;
+  if (hideTagged) {
+    try { hidden = db.prepare(`SELECT COUNT(*) AS n FROM users u LEFT JOIN user_profile p ON p.user_id = u.id WHERE ${where.join(" AND ")} AND ${HIDDEN_SQL}`).get(...args).n; } catch { hidden = 0; }
+    if (hidden) where.push(`NOT ${HIDDEN_SQL}`);
+  }
   const base = `FROM users u LEFT JOIN user_profile p ON p.user_id = u.id WHERE ${where.join(" AND ")}`;
   const total = db.prepare(`SELECT COUNT(*) AS n ${base}`).get(...args).n;
   const rows = db.prepare(`SELECT u.id, u.username, u.plan_tier, COALESCE(u.status, 'active') AS status, u.created_at, u.email_verified_at,
@@ -165,14 +193,14 @@ export function listPeople(db, { q = "", filter = "all", sort = "recent", page =
     .map(r => {
       let slots = null;
       try { const s = draftSlots(db, r.id); slots = { used: s.used, limit: s.limit }; } catch { /* no slot tables */ }
-      return { ...r, last_active: r.last_active || null, drafts: slots };
+      return { ...r, last_active: r.last_active || null, drafts: slots, tags: tagsOf(db, r.id) };
     });
   const counts = db.prepare(`SELECT COUNT(*) AS total,
       SUM(CASE WHEN ${LAST_ACTIVE_SQL} > unixepoch() - 7 * 86400 THEN 1 ELSE 0 END) AS active_week,
       SUM(CASE WHEN u.status = 'suspended' THEN 1 ELSE 0 END) AS suspended,
       SUM(CASE WHEN EXISTS (SELECT 1 FROM user_entitlement_overrides o WHERE o.user_id = u.id AND o.revoked_at IS NULL AND (o.expires_at IS NULL OR o.expires_at > unixepoch())) THEN 1 ELSE 0 END) AS with_override
     FROM users u WHERE ${USERS_ONLY_SQL}`).get();
-  return { total, page: pg, pageSize: size, rows, counts: { total: counts.total || 0, activeWeek: counts.active_week || 0, suspended: counts.suspended || 0, withOverride: counts.with_override || 0 } };
+  return { total, page: pg, pageSize: size, rows, hidden, counts: { total: counts.total || 0, activeWeek: counts.active_week || 0, suspended: counts.suspended || 0, withOverride: counts.with_override || 0 } };
 }
 
 /** One person's page — every module's data, from an allow-list. */
@@ -217,7 +245,7 @@ export function personDetail(db, userId) {
     account: { id: u.id, username: u.username, name: u.name, email: u.email, system: isSystem(u), plan: u.plan_tier || "BASIC",
       status: u.status, suspendedReason: u.suspended_reason, suspendedAt: u.suspended_at, createdAt: u.created_at,
       emailVerifiedAt: u.email_verified_at, lastActive: u.last_active || null, pluginOn: !!u.byom_enabled, productNews: !!u.marketing_opt_in, sessions },
-    usage, features, activity, notes,
+    usage, features, activity, notes, tags: tagsOf(db, userId),
   };
 }
 

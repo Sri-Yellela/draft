@@ -226,6 +226,8 @@ const AUTHENTICATED = new Set([
   "POST /api/import/auto",
   "GET /api/import/auto",
   "POST /api/import/auto/:jobId/undo",
+  // v1.5.2: "Captured: N today · M already on your board" — the caller's own captures, counted.
+  "GET /api/import/today",
   // D66: "Use my base résumé for applications" — the caller's own switch.
   "GET /api/settings/base-resume-only",
   "PUT /api/settings/base-resume-only",

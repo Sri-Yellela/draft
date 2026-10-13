@@ -72,8 +72,9 @@ test("O72b·5 — the effective-date comment no longer says PDF reading lives in
   assert.doesNotMatch(policy, /generation, enhancement and PDF reading moved to the résumé tools service/,
     "the A4 comment still says PDF reading moved to the tools service without the A80 V1 correction");
   assert.match(policy, /A80 V1 — draft reads\s*\n?\/\/\s*an uploaded PDF's text layer itself/);
-  // Moved again on 10-07 (the v1.5.0 release, F 1) , 10-08 (D86) and 10-09 (the release check) — never back to before the O72(b) corrections.
-  assert.match(policy, /const EFFECTIVE_DATE = 'October (5|7|8|9), 2026'/,
+  // Moved again on 10-07 (the v1.5.0 release, F 1) , 10-08 (D86), 10-09 (the release check) and 10-13 (v1.5.2: the tab
+  // binding is a new stored item) — never back to before the O72(b) corrections.
+  assert.match(policy, /const EFFECTIVE_DATE = 'October (5|7|8|9|13), 2026'/,
     "five user-visible corrections need the effective date moved with them");
 });
 

@@ -155,7 +155,7 @@ test("a user's import of a posting already on the board ATTACHES to it and says 
   assert.equal(res.attachedToExisting, true, "the response must say the capture matched an existing row");
   assert.equal(res.existingJobId, `ashby::${UUID}`);
   assert.equal(res.job.id, `ashby::${UUID}`);
-  assert.match(res.message, /already on the board/);
+  assert.match(res.message, /is on your board and in your imports/);   // v1.5.2: the one wording for a matched capture
   assert.deepEqual(uj(db, "WHERE user_id = 2"), [{ user_id: 2, job_id: `ashby::${UUID}`, starred: 0, disliked: 0, applied: 0 }],
     "and it is the importer's own (D41(a): attached, not starred) — never silently dropped");
 });

@@ -72,7 +72,8 @@ test("the four outcomes, each in its own words, each with a link to the job on d
   const att = describeCapture(d, { jobId: "greenhouse:northwind:1", action: "attached", ...t });
   assert.equal(att.outcome, "attached");
   assert.equal(att.matchedExisting, true);
-  assert.match(att.message, /already on the board/);
+  // v1.5.2 (owner 10-12): ONE wording after a capture that matched a board job
+  assert.equal(att.message, "Backend Engineer at Northwind is on your board and in your imports.");
   assert.equal(att.link, "/app/jobs?job=greenhouse%3Anorthwind%3A1");
 
   const held = describeCapture(d, { jobId: "greenhouse:northwind:2", action: "attached", ...t });

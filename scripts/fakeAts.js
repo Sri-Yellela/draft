@@ -1679,6 +1679,7 @@ const server = http.createServer(async (req, res) => {
     if (path === '/workday/decoy') return send(200, workdayDecoy());
     // D56: the two-origin application (posting host ≠ apply host). See the section at the end of the file.
     if (path.startsWith('/twoorigin/')) return twoOriginRoute(req, res, url, send);
+    if (workdayShapedRoute(path, send)) return;   // the owner's Zoom URL shape: the posting and its apply stages
     // D75: the crawler worker's fake careers sites, and the robots.txt that forbids one of them.
     if (path === '/robots.txt') return send(200, CRAWLER_ROBOTS, 'text/plain; charset=utf-8');
     if (path.startsWith('/crawler-fixtures/')) return crawlerFixtureRoute(req, res, url, send);
@@ -1763,6 +1764,36 @@ server.listen(PORT, () => {
 //     jobIdPattern: /\/twoorigin\/(?:jobs|apply)\/(\d+)/ }
 const TWO_ORIGIN_POSTING_HOST = 'localhost';
 const TWO_ORIGIN_APPLY_HOST = '127.0.0.1';
+
+// ── Workday-SHAPED — the owner's Zoom URL (10-12), its stages only ──────────────────────────────────────
+// The posting and /apply, /apply/applyManually, /apply/useMyLastApplication, each with or without the en-US locale
+// and ?source=linkedin — ONE job (services/jobPageKey.js: workday|zoom|zoom|R19749). The paths are the owner's;
+// the host is localhost (a real tenant host is mapped onto it by the browser run's resolver rule). ⛔ No sign-in or
+// create-account page is drawn: those URLs are added only from what the owner pastes, never invented.
+const WORKDAY_SHAPED = /^(?:\/en-US)?\/Zoom\/job\/Remote--\(US\)\/Software-Engineer_R19749-1(?:\/apply(?:\/(applyManually|useMyLastApplication))?)?$/;
+function workdayShapedRoute(path, send) {
+  let p = path;
+  try { p = decodeURIComponent(path); } catch { /* keep it */ }
+  const m = p.match(WORKDAY_SHAPED);
+  if (!m) return false;
+  const stage = p.includes('/apply') ? (m[1] || 'apply') : null;
+  const header = `<header data-automation-id="jobPostingHeader"><h2>Software Engineer</h2><p>Zoom · Remote (US) · R19749-1</p></header>`;
+  if (!stage) {
+    send(200, page('Software Engineer — Zoom Careers', `${header}
+  <p>Build Zoom's next video platform. Remote — United States.</p>
+  <a data-automation-id="adventureButton" href="${p.replace(/\/$/, '')}/apply">Apply</a>`));
+    return true;
+  }
+  send(200, page('Software Engineer — Apply — Zoom', `${header}
+  <p data-stage="${stage}">Step: ${stage}</p>
+  <form data-automation-id="applyFlowPage" onsubmit="return false">
+    <label>First name <input name="firstName" data-automation-id="legalNameSection_firstName"></label>
+    <label>Last name <input name="lastName" data-automation-id="legalNameSection_lastName"></label>
+    <label>Email <input name="email" type="email" data-automation-id="email"></label>
+    <button type="button" id="next-step" onclick="document.querySelector('[data-stage]').textContent='Step: my experience'">Save and Continue</button>
+  </form>`));
+  return true;
+}
 
 function twoOriginPosting(id) {
   return page(`D56 Two-origin Engineer ${id} — Careers`, `

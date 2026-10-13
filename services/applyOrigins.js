@@ -30,6 +30,8 @@
  *   jobIdPattern  the job id in the PATH, first capture group
  *   jobIdParam    or in the query (Greenhouse's embed form: ?token=<id>)
  */
+import { pageKeyOf } from "./jobPageKey.js";
+
 export const APPLY_ORIGIN_FAMILIES = Object.freeze([
   Object.freeze({
     // www.amazon.jobs/en/jobs/<id>/<slug> → "Apply now" → www.amazon.jobs/applicant/jobs/<id>/apply,
@@ -127,12 +129,17 @@ export function packetJobIds(urls = [], families = APPLY_ORIGIN_FAMILIES) {
  * packet's job carry an id — the same id.
  * @returns {{ ok: boolean, reason: "match"|"origin_not_listed"|"other_job"|"unreadable_url" }}
  */
-export function pageMatchesPacket({ url, origins = [], jobIds = [] }, families = APPLY_ORIGIN_FAMILIES) {
+export function pageMatchesPacket({ url, origins = [], jobIds = [], pageKeys = [] }, families = APPLY_ORIGIN_FAMILIES) {
   const origin = originOf(url);
   if (!origin) return { ok: false, reason: "unreadable_url" };
   if (!origins.includes(origin)) return { ok: false, reason: "origin_not_listed" };
   const pageId = jobIdOf(url, families);
   if (pageId && jobIds.length && !jobIds.includes(pageId)) return { ok: false, reason: "other_job" };
+  // ⭐ A page that names its requisition (a Workday tenant: services/jobPageKey.js) must name THIS one — another
+  // job on the same employer's tenant never receives this packet. A stage with no requisition (sign-in) falls back
+  // to the origin, which is the employer's own tenant and reached only through the user's own capture.
+  const pageKey = pageKeyOf(url)?.key;
+  if (pageKey && pageKeys.length && !pageKeys.includes(pageKey)) return { ok: false, reason: "other_job" };
   return { ok: true, reason: "match" };
 }
 

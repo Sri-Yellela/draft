@@ -1,0 +1,72 @@
+// ── THE TAB BINDING — which job THIS tab is on, across every stage of its application ────────────
+//
+// Owner, 10-12 (Zoom's Workday posting): the posting, /apply, /apply/applyManually, the sign-in and the account
+// pages are one job, and Workday can change steps without changing the address at all. So once a tab has
+// captured a job — or draft recognised the posting in it — the tab REMEMBERS that job, and fill, prepare, the
+// Copy sheet and "I submitted it" use it first.
+//
+//   bind:{tabId} → { origin, jobId, title, company, via: 'capture' | 'recognised', boundAt, dock }
+//
+//   · chrome.storage.session — memory-backed, discarded when the browser closes; cleared when the tab closes,
+//     when a DIFFERENT posting is recognised in it, or by "Unlink this page".
+//   · ⛔ Valid only on the ORIGIN it was made on: the activeTab grant persists across same-origin navigation,
+//     and so does the binding — a tab that leaves the employer's site leaves its binding behind.
+//   · ⛔ Never written to the server as such: the job id rides with the next request as a HINT the server honours
+//     only for a job that is already this user's own (routes/apply.js boundJob). Never shared across tabs.
+//   · No new permission: no `tabs`, no `webNavigation` — tabs.onRemoved needs neither.
+
+export const BIND_PREFIX = 'bind:';
+const bindKey = (tabId) => `${BIND_PREFIX}${tabId}`;
+// The ONE write site for the key (the privacy count is of write sites — test/privacyReconciliation.test.js).
+const writeBinding = (tabId, entry) => chrome.storage.session.set({ [bindKey(tabId)]: entry });
+
+export function originOfUrl(url) {
+  try { const u = new URL(url || ''); return /^https?:$/.test(u.protocol) ? u.origin : null; } catch { return null; }
+}
+
+/** Bind this tab to a job. A different job replaces the old binding; the same job keeps its first time and dock. */
+export async function bindTab(tab, { jobId, title = null, company = null, via = 'capture' } = {}) {
+  const origin = originOfUrl(tab?.url);
+  if (!tab?.id || !origin || jobId == null) return null;
+  const prior = await loadBinding(tab.id);
+  const same = prior && String(prior.jobId) === String(jobId) && prior.origin === origin;
+  const entry = {
+    origin, jobId: String(jobId), title: title || prior?.title || null, company: company || prior?.company || null,
+    via: same ? prior.via : via, boundAt: same ? prior.boundAt : Date.now(), dock: prior?.dock || 'right',
+  };
+  await writeBinding(tab.id, entry);
+  return entry;
+}
+
+export async function loadBinding(tabId) {
+  if (tabId == null) return null;
+  try { return (await chrome.storage.session.get(bindKey(tabId)))?.[bindKey(tabId)] || null; } catch { return null; }
+}
+
+/** The binding for this tab AS IT IS NOW — null when the tab is on another origin than the one it was made on. */
+export async function bindingForTab(tab) {
+  const b = await loadBinding(tab?.id);
+  if (!b) return null;
+  return b.origin === originOfUrl(tab?.url) ? b : null;
+}
+
+export async function clearBinding(tabId) {
+  if (tabId == null) return;
+  try { await chrome.storage.session.remove(bindKey(tabId)); } catch { /* storage gone */ }
+}
+
+/** The Copy sheet panel's dock side, remembered with the tab's binding (no key of its own). */
+export async function setBindingDock(tabId, dock) {
+  const b = await loadBinding(tabId);
+  if (!b || !['left', 'right'].includes(dock)) return;
+  await writeBinding(tabId, { ...b, dock });
+}
+
+const hhmm = (ms) => { const d = new Date(ms); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+export const bindingLabel = (b) => [b?.title, b?.company].filter(Boolean).join(' at ') || 'this job';
+
+/** "Using Software Engineer at Zoom, captured 10:42" — what the fill says when it used the binding. */
+export function bindingLine(b) {
+  if (!b) return '';
+  return `Using ${bindingLabel(b)}, ${b.via === 'capture' ? 'captured' : 'recognised'} ${hhmm(b.boundAt || Date.now())}`;
+}

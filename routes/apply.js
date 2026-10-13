@@ -46,7 +46,7 @@ import { binRunJobs, listBin, restoreFromBin, purgeNow, BIN_DAYS } from "../serv
 import { APPLY_ORIGIN_FAMILIES, pageMatchesPacket, hostsSentence } from "../services/applyOrigins.js";
 import { learnedFamilies, recordSighting } from "../services/learnedOrigins.js";
 import { evidenceUrlOf } from "../services/evidenceUrl.js";
-import { packetAddressing, resolvePageJob, pageNotice, copySheetRows, handoffMessage } from "../services/manualHandoff.js";
+import { packetAddressing, resolvePageJob, pageNotice, copySheetRows, handoffMessage, ownPageUrls, userHasJob } from "../services/manualHandoff.js";
 import { recordSubmission } from "../services/applicationRecords.js";
 
 // Live read through the one shared parser, exactly as server.js does — same flag, same function,
@@ -3705,7 +3705,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       LEFT JOIN scraped_jobs sj ON sj.job_id = p.job_id
       WHERE p.user_id=? AND p.consumed_at IS NULL ${NOT_CLEARED}
       ORDER BY p.created_at DESC ${tail}`;
-    const address = (r) => ({ ...r, ...packetAddressing(r, familiesFor(userId)) });
+    // ⭐ own_urls: the pages the user captured this job from (a Workday tenant joins only that way)
+    const address = (r) => ({ ...r, ...packetAddressing({ ...r, own_urls: ownPageUrls(db, userId, r.job_id) }, familiesFor(userId)) });
     if (!origin) {
       const rows = db.prepare(sql(`LIMIT ${limit}`)).all(userId).map(address);
       const total = db.prepare(`SELECT COUNT(*) AS n FROM apply_gate_packets p
@@ -3776,7 +3777,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   function addressingFor(row) {
     let sj = null;
     try { sj = db.prepare("SELECT url, apply_url FROM scraped_jobs WHERE job_id=?").get(row.job_id); } catch {}
-    return packetAddressing({ ...row, sj_url: sj?.url ?? null, sj_apply_url: sj?.apply_url ?? null }, familiesFor(row.user_id));
+    return packetAddressing({ ...row, sj_url: sj?.url ?? null, sj_apply_url: sj?.apply_url ?? null,
+      own_urls: ownPageUrls(db, row.user_id, row.job_id) }, familiesFor(row.user_id));
   }
 
   /**
@@ -4235,13 +4237,30 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     } catch { return { logo: null, scores: null }; }
   }
 
+  /**
+   * ⭐ THE TAB BINDING'S HINT (extension, owner 10-12): the job this tab captured or recognised, sent with the page
+   * so a stage whose address names no job (Workday's sign-in, a step that changed without changing the URL) is
+   * still that job. Honoured ONLY for a job that is already the user's own — it can never reach someone else's.
+   */
+  function boundJob(userId, hint) {
+    if (hint == null || hint === "") return null;
+    const id = String(hint).slice(0, 128);
+    if (!userHasJob(db, userId, id)) return null;
+    const row = db.prepare("SELECT job_id, title, company, url, apply_url, duplicate_of FROM scraped_jobs WHERE job_id=?").get(id);
+    if (!row) return null;
+    return { job: { jobId: String(row.job_id), title: row.title ?? null, company: row.company ?? null, url: row.url ?? null, applyUrl: row.apply_url ?? null },
+             mine: true, how: "binding" };
+  }
+  const hintOf = (req) => (req.body?.boundJobId != null ? String(req.body.boundJobId) : null);
+
   /** The D56 decision for one page, shared by /match, /prepare and /copy-sheet. */
-  function matchPage(userId, url) {
+  function matchPage(userId, url, hint = null) {
     const origin = new URL(url).origin;
     const { rows } = listUnconsumedPackets(userId, { origin, limit: 100 });
-    const matching = rows.filter(r => pageMatchesPacket({ url, origins: r.origins, jobIds: r.jobIds }, familiesFor(userId)).ok);
+    const matching = rows.filter(r => pageMatchesPacket({ url, origins: r.origins, jobIds: r.jobIds, pageKeys: r.pageKeys }, familiesFor(userId)).ok);
     const packets = matching.map(listedPacket);
-    const page = resolvePageJob(db, userId, url, familiesFor(userId));
+    let page = resolvePageJob(db, userId, url, familiesFor(userId));
+    if (!page.job) page = boundJob(userId, hint) || page;
     // ⭐ D63: the popup leads with the job card — the logo and D58's score pair ride with the job.
     const job = page.job ? { jobId: page.job.jobId, title: page.job.title, company: page.job.company, ...jobCardFacts(userId, page.job.jobId) } : null;
     const resume = job ? resumeStateFor(userId, job.jobId) : "none";
@@ -4271,14 +4290,14 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // ⭐ §8 row 10: the on-demand notice — this is the only moment it is asked for.
     let notice = null;
     try { notice = pageNotice(db, userId, { job: page.job }); } catch { notice = null; }
-    return { origin, state, message, job, mine: !!page.mine, resume, packets, addresses, notice,
+    return { origin, state, message, job, mine: !!page.mine, how: page.how || null, resume, packets, addresses, notice,
              canPrepare: !!(job && page.mine) && state !== "ready" && state !== "not_this_address" };
   }
 
   app.post("/api/apply/handoff/match", requireAuth, (req, res) => {
     const url = pageUrlOf(req);
     if (!url) return res.status(400).json({ error: "bad_url", message: "Only http(s) pages can be filled." });
-    res.json(matchPage(req.user.id, url));
+    res.json(matchPage(req.user.id, url, hintOf(req)));
   });
 
   /**
@@ -4290,7 +4309,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   app.post("/api/apply/prepare", requireAuth, (req, res) => {
     const url = pageUrlOf(req);
     if (!url) return res.status(400).json({ error: "bad_url", message: "Only http(s) pages can be filled." });
-    const page = resolvePageJob(db, req.user.id, url, familiesFor(req.user.id));
+    let page = resolvePageJob(db, req.user.id, url, familiesFor(req.user.id));
+    if (!page.job) page = boundJob(req.user.id, hintOf(req)) || page;
     if (!page.job || !page.mine) {
       const state = page.job ? "not_on_board" : "unknown";
       return res.status(404).json({ error: state, message: handoffMessage(state) });
@@ -4320,13 +4340,22 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const url = pageUrlOf(req);
     let body = null, source = "profile", job = null;
     if (url) {
-      const m = matchPage(userId, url);
+      const m = matchPage(userId, url, hintOf(req));
       job = m.job;
       const fresh = m.packets.find(p => !p.stale);
       if (fresh) {
         const row = db.prepare("SELECT answers_json FROM apply_gate_packets WHERE id=? AND user_id=?").get(fresh.packetId, userId);
         body = parseJson(row?.answers_json, null);
         if (body) source = "packet";
+      }
+      // ⭐ The sheet shows the PREPARED answers for the bound job even where no packet fills this page (the sheet
+      // fills nothing, so its address does not matter) — the newest fresh packet for that job.
+      if (!body && job && m.mine) {
+        try {
+          const rows = db.prepare(`SELECT id, answers_json, created_at FROM apply_gate_packets WHERE user_id=? AND job_id=? AND consumed_at IS NULL ${NOT_CLEARED} ORDER BY id DESC LIMIT 5`)
+            .all(userId, job.jobId).filter(r => !packetFreshness(toMs(r.created_at)).stale);
+          if (rows[0]) { body = parseJson(rows[0].answers_json, null); if (body) source = "packet"; }
+        } catch { /* no packets table */ }
       }
     }
     if (!body) {
@@ -4391,6 +4420,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const claimed = req.body?.jobId != null ? String(req.body.jobId) : null;
     // A job id from the released packet is honoured only when that packet is the user's own.
     if (claimed && db.prepare("SELECT 1 FROM apply_gate_packets WHERE user_id=? AND job_id=?").get(userId, claimed)) jobId = claimed;
+    // ⭐ …or the tab binding's job, when it is the user's own (a confirmation page rarely names its requisition).
+    const bindingHint = req.body?.boundJobId != null ? String(req.body.boundJobId) : null;
     // ⭐ D67 (2): the user holds a packet for this job and is submitting it on a page OUTSIDE the job's
     // addresses — their own application shows where this job's form lives. The pair of HOSTNAMES is
     // learned (services/learnedOrigins.js): offered to them now, to everyone once 3 users have shown it.
@@ -4409,6 +4440,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       const page = resolvePageJob(db, userId, url, familiesFor(userId));
       if (page.job && page.mine) jobId = page.job.jobId;
     }
+    if (!jobId && bindingHint && boundJob(userId, bindingHint)) jobId = bindingHint;
     if (!jobId) {
       return res.status(404).json({ error: "unknown_job",
         message: "draft can't tell which of your jobs this page is — record it from The Table." });

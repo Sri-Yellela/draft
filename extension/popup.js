@@ -168,6 +168,7 @@ async function init() {
   // §8 row 15: the today ring — the account's quota, not the page. Fire-and-forget: the popup paints
   // without it, and a server that cannot answer simply shows no ring.
   void showTodayRing();
+  void showCapturedToday();
   await showLastCapture();
 
   // ⛔ D23, THE MANUAL CONTEXT TRIGGER (owner, 10-04). Opening the popup reads NOTHING from the page
@@ -202,6 +203,30 @@ async function showTodayRing() {
   box.style.display = 'inline-flex';
 }
 
+// ⭐ "Captured today" (owner 10-12: it read 0 after two captures) — DISTINCT jobs captured in 24 h by any route.
+async function showCapturedToday() {
+  const t = await chrome.runtime.sendMessage({ type: 'CAPTURED_TODAY' }).catch(() => null);
+  const el = document.getElementById('captured-today');
+  if (!t || !el) return;
+  el.textContent = capturedTodayLine(t);
+  el.style.display = el.textContent ? 'block' : 'none';
+}
+
+// ⭐ The tab binding: "Captured ✓ — Software Engineer at Zoom", whatever stage of the application this page is.
+function renderBinding(context) {
+  const line = boundLine(context);
+  const box = document.getElementById('bound');
+  if (!line || !box) return;
+  document.getElementById('bound-line').textContent = line;
+  box.style.display = 'block';
+  document.getElementById('companion').style.display = 'block';
+}
+document.getElementById('btn-unbind')?.addEventListener('click', async () => {
+  await chrome.runtime.sendMessage({ type: 'UNBIND_TAB' }).catch(() => null);
+  document.getElementById('bound').style.display = 'none';
+  setStatus('Unlinked — this page is not tied to a job any more.', 3000);
+});
+
 function isWebPage(tab) {
   try { return !tab?.url || /^https?:$/.test(new URL(tab.url).protocol); } catch { return false; }
 }
@@ -227,6 +252,7 @@ async function readPage() {
   document.getElementById('all-head').style.display = 'block';
   const mode = companionMode({ preview, context });
   renderCompanion(mode);
+  renderBinding(context);
   // ⭐ D63: the popup LEADS with the job card, then the marks, then (on a form) the packet.
   showJobPreview(jobCard(mode, preview));
   renderFacts(factMarks(mode));
@@ -304,7 +330,9 @@ function renderCompanion(c) {
     line.textContent = postingLine(c.posting);
     line.className = 'ctx-line sr';   // D63: said by the mark beside the job card
     document.getElementById('posting-actions').style.display = 'flex';
-    if (c.posting?.saved) document.getElementById('btn-capture-primary').textContent = 'Capture again';
+    // ⭐ Captured already (by any route): say so — a second press is idempotent and answers "Already captured".
+    if (c.posting?.captured) document.getElementById('btn-capture-primary').textContent = 'Captured ✓';
+    else if (c.posting?.saved) document.getElementById('btn-capture-primary').textContent = 'Capture again';
     box.style.display = 'block';
     return;
   }
@@ -373,6 +401,10 @@ document.getElementById('btn-submitted').addEventListener('click', async () => {
 // ⭐ §8 row 17 · THE COPY SHEET — the prepared answers as a list, a copy button each. Shown here, in the
 // extension's own popup; nothing is written into the page, so it works on a portal draft cannot fill.
 document.getElementById('btn-copy-sheet').addEventListener('click', async () => {
+  // ⭐ (owner 10-12) The sheet opens IN THE PAGE — a panel that stays while you paste, with Close and Esc — and
+  // this popup closes. Only where the page cannot take the panel (chrome://, a PDF) is it listed here instead.
+  const panel = await chrome.runtime.sendMessage({ type: 'COPY_SHEET_PANEL' }).catch(() => null);
+  if (panel?.ok) { window.close(); return; }
   const box = document.getElementById('copy-sheet');
   const list = document.getElementById('copy-sheet-list');
   const note = document.getElementById('copy-sheet-note');

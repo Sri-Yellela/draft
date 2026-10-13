@@ -68,11 +68,13 @@ export function PeopleList({ theme, onOpen }) {
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("recent");
   const [page, setPage] = useState(1);
+  // item 3: every account shows by default; this hides the internal and test ones, and the list says how many
+  const [hideTagged, setHideTagged] = useState(false);
   const load = useCallback(() => {
     setErr(null);
-    const qs = new URLSearchParams({ q, filter, sort, page: String(page), pageSize: "25" });
+    const qs = new URLSearchParams({ q, filter, sort, page: String(page), pageSize: "25", hideTagged: hideTagged ? "1" : "0" });
     api(`/api/admin/people?${qs}`).then(setD).catch(e => setErr(e.message));
-  }, [q, filter, sort, page]);
+  }, [q, filter, sort, page, hideTagged]);
   useEffect(() => { const t = setTimeout(load, q ? 250 : 0); return () => clearTimeout(t); }, [load, q]);
   const c = d?.counts;
   const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "6px 9px", fontSize: 12 };
@@ -87,11 +89,16 @@ export function PeopleList({ theme, onOpen }) {
         <input aria-label="Find a person" placeholder="Name, email, username or id" value={q} onChange={e => { setQ(e.target.value); setPage(1); }} style={{ ...input, width: 260 }}/>
         <select aria-label="Show" value={filter} onChange={e => { setFilter(e.target.value); setPage(1); }} style={input}>{FILTERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
         <select aria-label="Sort" value={sort} onChange={e => setSort(e.target.value)} style={input}>{SORTS.map(([v, l]) => <option key={v} value={v}>Sort: {l}</option>)}</select>
+        <label style={{ fontSize: 12, display: "flex", gap: 6, alignItems: "center", color: theme.text }}>
+          <input type="checkbox" checked={hideTagged} onChange={e => { setHideTagged(e.target.checked); setPage(1); }}/> Hide internal and test accounts
+        </label>
+        {hideTagged && d && <span data-people-hidden={d.hidden || 0} style={markStyle(d.hidden ? C.WARNING : C.INK_FAINT)}>{num(d.hidden || 0)} hidden</span>}
         {d && <span style={quiet}>{num(d.total)} {filter === "all" && !q ? "accounts" : "match"}</span>}
       </div>
       <Table theme={theme} rows={d?.rows || []} empty={d ? "No one matches." : "Loading…"} cols={[
         { key: "username", label: "person", render: r => <span><b>{r.name || r.username}</b>{r.name && <span style={{ color: theme.textMuted }}> · {r.username}</span>}
-            {r.email && <div style={{ color: theme.textMuted }}>{r.email}</div>}</span> },
+            {r.email && <div style={{ color: theme.textMuted }}>{r.email}</div>}
+            {(r.tags || []).map(t => <span key={t} style={{ ...markStyle(C.INFO), marginRight: 4 }}>{t}</span>)}</span> },
         { key: "plan_tier", label: "plan", render: r => (r.plan_tier || "BASIC").toLowerCase() },
         { key: "status", label: "status", render: r => <span style={markStyle(STATUS_TONE[r.status] || C.INK_FAINT)}>{r.status}</span> },
         { key: "last_active", label: "last active", render: r => (r.last_active ? ago(r.last_active) : "never") },
@@ -118,6 +125,7 @@ const ACTION_WORDS = {
   "user.override.set": "set an override", "user.override.clear": "cleared an override", "user.suspend": "suspended the account",
   "user.unsuspend": "restored the account", "user.plan": "changed the plan", "user.note": "added a note",
   "user.sign_out_everywhere": "signed the account out everywhere", "user.reset_link": "sent a password-reset link",
+  "user.tag.add": "tagged the account", "user.tag.remove": "removed a tag",
   "ticket.reply": "replied to a support request", "ticket.note": "added an internal note to a request", "ticket.update": "updated a support request",
 };
 const changeLine = (a) => {
@@ -193,6 +201,7 @@ export function PersonPage({ theme, id, onBack, onDelete }) {
         <Btn theme={theme} onClick={onBack}>← All users</Btn>
         <h2 style={{ ...h2, fontSize: 24 }}>{who}</h2>
         <span style={markStyle(STATUS_TONE[a.status] || C.INK_FAINT)}>{a.status}</span>
+        {(d.tags || []).map(t => <span key={t} data-person-tag={t} style={markStyle(C.INFO)}>{t}</span>)}
       </div>
       <Err msg={err}/>
       {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 10 }} role="status">{msg}</div>}
@@ -211,6 +220,12 @@ export function PersonPage({ theme, id, onBack, onDelete }) {
         <div style={{ ...row, marginTop: 12 }}>
           {!locked && <Btn theme={theme} onClick={suspend}>{a.status === "suspended" ? "Restore…" : "Suspend…"}</Btn>}
           {!locked && <Btn theme={theme} onClick={changePlan}>Change the plan…</Btn>}
+          {!locked && ["internal", "test", "beta"].map(t => {
+            const on = (d.tags || []).includes(t);
+            return <Btn key={t} theme={theme} onClick={() => setAction({ title: on ? `Remove the ${t} tag?` : `Tag ${who} ${t}?`, label: on ? "Remove the tag" : "Add the tag",
+              body: t === "beta" ? "A note for admins; nothing about the account changes." : `Shown in the list as always; the "Hide internal and test accounts" filter hides it and counts it.`,
+              run: (v) => post("/tags", { tag: t, on: !on, reason: v.reason }), onDone: done(on ? "Tag removed." : "Tagged.") })}>{on ? `Untag ${t}…` : `Tag ${t}…`}</Btn>;
+          })}
           <Btn theme={theme} onClick={signOut}>Sign out everywhere…</Btn>
           <Btn theme={theme} onClick={resetLink}>Send a password-reset link…</Btn>
           {!locked && <Btn theme={theme} danger onClick={() => onDelete(id)}>Delete the account…</Btn>}
