@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@1,600;1,700;1,800&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<title>draft — the extension on the page</title>
+<style>
+:root{--logo:'Poppins',ui-sans-serif,system-ui,sans-serif;--ser:'Instrument Serif',Georgia,serif;--ui:'DM Sans',ui-sans-serif,system-ui,sans-serif;--E:cubic-bezier(.3,.8,.25,1)}
+[data-theme=paper-light]{--canvas:#F3ECE0;--shade:#DFD6C9;--grain:.10;--grainRGB:90,70,50;
+ --surf:rgba(255,251,245,.58);--surf2:rgba(255,251,245,.72);--menu:rgba(255,251,245,.96);--solid:#FBF7F0;--hover:rgba(30,25,21,.05);--scrim:rgba(30,25,21,.28);--input:rgba(255,255,255,.55);
+ --spec:rgba(255,255,255,.95);--sheen:rgba(255,255,255,.55);--bodyTop:rgba(255,253,249,.70);--body:rgba(255,251,245,.36);--rim:rgba(255,255,255,.50);
+ --ink:#1E1915;--muted:#4A423B;--faint:#62574D;--border:#DDD2C3;--borderS:#C7B9A7;--borderC:#7F7263;
+ --accent:#FD4600;--accentH:#FF6424;--onAccent:#1E1915;--accentInk:#A33200;--accentQ:#EBD5C6;
+ --ok:#1A6B33;--okq:#D5E8D8;--warn:#855000;--warnq:#F2E2C4;--no:#B3261E;--noq:#F5D9D3;--info:#1E5E94;--infoq:#D7E4F0;
+ --bS:#17663A;--bSq:#D3E8D9;--bM:#7A5300;--bMq:#F2E3C0;--bW:#A3281E;--bWq:#F6D9D2;--bU:#4A423B;--bUe:#7F7263;
+ --d1:0 3px 8px rgba(30,25,21,.11),inset 0 1px 0 rgba(255,255,255,.66);--d2:0 7px 17px rgba(30,25,21,.15),inset 0 1px 0 rgba(255,255,255,.66);--dA:0 3px 9px rgba(253,70,0,.34),inset 0 1px 0 rgba(255,255,255,.35);--gl:0 1px 1px rgba(60,40,20,.05),0 12px 28px -10px rgba(90,55,25,.28);
+ --logoSlash:#FD4600;--logoWord:#1E1915;--tile:#FBF7F0;--seg1:#1D6B43;--seg2:#8A3B2E;--seg3:#6B6257}
+[data-theme=charcoal-dark]{--canvas:#1C1815;--shade:#2C2621;--grain:.16;--grainRGB:140,122,102;
+ --surf:rgba(46,39,34,.62);--surf2:rgba(52,44,38,.78);--menu:rgba(34,29,25,.97);--solid:#26201C;--hover:rgba(255,240,225,.07);--scrim:rgba(0,0,0,.55);--input:rgba(255,240,225,.06);
+ --spec:rgba(255,240,225,.22);--sheen:rgba(255,240,225,.07);--bodyTop:rgba(58,49,42,.74);--body:rgba(38,32,28,.50);--rim:rgba(255,240,225,.11);
+ --ink:#F2EADF;--muted:#CFC2B3;--faint:#ADA090;--border:#3B332C;--borderS:#53483F;--borderC:#8E8072;
+ --accent:#FD4600;--accentH:#FF6424;--onAccent:#1E1915;--accentInk:#FF7D4A;--accentQ:#3D2519;
+ --ok:#5FCB8C;--okq:#163120;--warn:#E6AA4E;--warnq:#35280F;--no:#F27F72;--noq:#3B1C18;--info:#7BB4EA;--infoq:#15263A;
+ --bS:#72D59D;--bSq:#173423;--bM:#EAB95E;--bMq:#362913;--bW:#F48F83;--bWq:#3D1D19;--bU:#CFC2B3;--bUe:#8E8072;
+ --d1:0 3px 8px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,240,225,.10);--d2:0 7px 17px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,240,225,.12);--dA:0 3px 9px rgba(253,70,0,.34),inset 0 1px 0 rgba(255,255,255,.25);--gl:0 1px 1px rgba(0,0,0,.4),0 12px 28px -10px rgba(0,0,0,.7);
+ --logoSlash:#FD4600;--logoWord:#FD4600;--tile:#FBF7F0;--seg1:#7FC79A;--seg2:#E58F7C;--seg3:#A39A8C}
+/* CONTRAST DARK — pure black and white NEUTRALS; the brand orange and the green / red / amber / blue indicators KEPT and re-tuned to ≥ 7:1.
+   Depth by LIGHT (a hairline + a soft white bloom): black cannot cast a visible shadow. */
+[data-theme=contrast-dark]{--canvas:#000000;--shade:#1A1A1A;--grain:.10;--grainRGB:255,255,255;
+ --surf:rgba(26,26,26,.72);--surf2:rgba(36,36,36,.84);--menu:rgba(12,12,12,.98);--solid:#121212;--hover:rgba(255,255,255,.12);--scrim:rgba(0,0,0,.78);--input:rgba(255,255,255,.08);
+ --spec:rgba(255,255,255,.50);--sheen:rgba(255,255,255,.09);--bodyTop:rgba(40,40,40,.80);--body:rgba(16,16,16,.58);--rim:rgba(255,255,255,.32);
+ --ink:#FFFFFF;--muted:#E6E6E6;--faint:#BDBDBD;--border:#404040;--borderS:#737373;--borderC:#BDBDBD;
+ --accent:#FD4600;--accentH:#FF6424;--onAccent:#000000;--accentInk:#FF9466;--accentQ:#3A1A0C;
+ --ok:#46D683;--okq:#0C2A1A;--warn:#FFC044;--warnq:#2C2208;--no:#FF8080;--noq:#301010;--info:#6DB8FF;--infoq:#0E2236;
+ --bS:#46D683;--bSq:#0C2A1A;--bM:#FFC044;--bMq:#2C2208;--bW:#FF8080;--bWq:#301010;--bU:#E6E6E6;--bUe:#BDBDBD;
+ --d1:0 0 0 1px rgba(255,255,255,.16),0 6px 16px rgba(255,255,255,.07),inset 0 1px 0 rgba(255,255,255,.30);--d2:0 0 0 1px rgba(255,255,255,.28),0 10px 26px rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.40);--dA:0 0 0 1px #FF6424,0 6px 20px rgba(253,70,0,.45),inset 0 1px 0 rgba(255,255,255,.35);--gl:0 0 0 1px rgba(255,255,255,.14),0 18px 40px -14px rgba(255,255,255,.16);
+ --logoSlash:#FD4600;--logoWord:#FD4600;--tile:#FFFFFF;--seg1:#46D683;--seg2:#FF8080;--seg3:#A8A8A8}
+/* CONTRAST LIGHT — black on white. Depth by shadow plus a hairline so no edge depends on the shadow. */
+[data-theme=contrast-light]{--canvas:#FFFFFF;--shade:#EDEDED;--grain:.06;--grainRGB:0,0,0;
+ --surf:rgba(255,255,255,.72);--surf2:rgba(250,250,250,.86);--menu:rgba(255,255,255,.98);--solid:#FFFFFF;--hover:rgba(0,0,0,.07);--scrim:rgba(0,0,0,.60);--input:rgba(0,0,0,.04);
+ --spec:rgba(255,255,255,1);--sheen:rgba(255,255,255,.7);--bodyTop:rgba(255,255,255,.88);--body:rgba(246,246,246,.60);--rim:rgba(0,0,0,.26);
+ --ink:#000000;--muted:#1A1A1A;--faint:#404040;--border:#C8C8C8;--borderS:#8C8C8C;--borderC:#404040;
+ --accent:#FD4600;--accentH:#FF6424;--onAccent:#000000;--accentInk:#8A2A00;--accentQ:#FFE3D5;
+ --ok:#005A26;--okq:#E6F4EC;--warn:#6B4500;--warnq:#FBF0D9;--no:#9E0B0B;--noq:#FDEEEE;--info:#0B4F8A;--infoq:#E4EEF9;
+ --bS:#005A26;--bSq:#E6F4EC;--bM:#6B4500;--bMq:#FBF0D9;--bW:#9E0B0B;--bWq:#FDEEEE;--bU:#1A1A1A;--bUe:#404040;
+ --d1:0 0 0 1px rgba(0,0,0,.20),0 4px 10px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.95);--d2:0 0 0 1px rgba(0,0,0,.32),0 9px 20px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.95);--dA:0 0 0 1px #A32E00,0 5px 14px rgba(253,70,0,.45),inset 0 1px 0 rgba(255,255,255,.35);--gl:0 0 0 1px rgba(0,0,0,.16),0 14px 30px -10px rgba(0,0,0,.34);
+ --logoSlash:#FD4600;--logoWord:#000000;--tile:#FFFFFF;--seg1:#005A26;--seg2:#9E0B0B;--seg3:#5A5A5A}
+
+
+*{box-sizing:border-box;margin:0}
+body{background:#0b0b0b;color:#ddd;font:13px/1.5 var(--ui)}
+.shell{max-width:1200px;margin:0 auto;padding:18px 20px 70px}
+h1{font:800 italic 21px/1 var(--logo);color:#fff}h1 i{color:#FD4600;font-style:inherit}
+.note{color:#b9b9b9;font-size:12.5px;max-width:112ch;margin:8px 0 14px}.note b{color:#fff}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.tb{border:1px solid #3a3a3a;background:#161616;color:#cfcfcf;border-radius:10px;padding:8px 13px;font:800 italic 11.5px/1 var(--logo);cursor:pointer}
+.tb[aria-pressed=true],.tb[aria-selected=true]{background:#fff;color:#000;border-color:#fff}.tb:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.sep{width:1px;height:22px;background:#333;margin:0 4px}.lab{font:800 10.5px var(--ui);letter-spacing:.1em;text-transform:uppercase;color:#888}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}@media(max-width:1000px){.two{grid-template-columns:1fr}}
+.cap{display:flex;gap:10px;align-items:center;margin:0 0 6px;font:800 italic 12.5px var(--logo);color:#fff}
+.tagb{background:#3a1a1a;color:#ffb0a8;padding:2px 8px;border-radius:5px;font:800 10.5px var(--ui)}.taga{background:#12301f;color:#9be0b4;padding:2px 8px;border-radius:5px;font:800 10.5px var(--ui)}
+.why{background:#141414;border:1px solid #2c2c2c;border-radius:12px;padding:11px 14px;margin-top:10px;color:#bdbdbd;font-size:12.5px;max-width:112ch}.why b{color:#fff}.why li{margin:0 0 4px 18px}
+/* the employer's page: it is LIGHT, whatever our theme is */
+.site{position:relative;background:#fff;color:#222;border:1px solid #444;border-radius:12px;overflow:hidden;min-height:560px;font:13px/1.45 Arial,sans-serif}
+.site .steps{display:flex;justify-content:space-between;padding:14px 26px;border-bottom:1px solid #ddd;color:#555;font-size:12px}
+.site .form{padding:16px 26px;max-width:420px}.site h3{font:700 20px Arial;margin:4px 0 10px;color:#111}
+.site label{display:block;font-weight:700;font-size:12px;margin:10px 0 3px;color:#333}.site label em{color:#c00;font-style:normal}
+.site .f{height:34px;border:1px solid #6b7a8c;border-radius:4px;padding:7px 9px;font-size:13px;background:#fff;color:#111}
+.site .f.e{background:#fff}
+/* ───── THE PANEL ───── */
+.ov{position:absolute;right:12px;top:12px;width:330px;max-height:calc(100% - 24px);display:flex;flex-direction:column;background:var(--solid);color:var(--ink);border:1px solid var(--borderS);border-radius:16px;box-shadow:0 18px 44px rgba(0,0,0,.45),inset 0 1px 0 var(--spec);overflow:hidden;font-size:12.5px;z-index:4}
+.ovh{display:flex;align-items:center;gap:8px;padding:11px 14px 8px}.lg{font:800 italic 17px/1 var(--logo)}.lg b{color:var(--accent)}.lg span{color:var(--accentInk)}
+.sp{flex:1}.ib{all:unset;cursor:pointer;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:var(--muted);border:1px solid var(--border);font:800 13px var(--ui)}.ib:hover{background:var(--hover);color:var(--ink)}.ib:focus-visible{outline:2px solid var(--accentInk);outline-offset:2px}
+.ovt{padding:0 14px 8px;font:800 italic 14px var(--logo);color:var(--ink)}
+.prog{padding:0 14px 10px;color:var(--muted);font-size:11.5px}.pb{height:6px;border-radius:3px;background:var(--shade);margin-top:6px;overflow:hidden;border:1px solid var(--border)}.pb i{display:block;height:100%;background:var(--ok)}
+.sc{overflow:auto;padding:0 6px 6px}
+.gh{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;width:100%;padding:8px 8px;font:800 10.5px var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);border-top:1px solid var(--border)}.gh:focus-visible{outline:2px solid var(--accentInk);outline-offset:-2px}
+.gh b{font:800 11px var(--ui);color:var(--ink);background:var(--shade);border-radius:5px;padding:1px 7px;letter-spacing:0}
+.rw{padding:8px 10px;border-left:3px solid var(--c,var(--border));margin:0 4px 4px;border-radius:0 8px 8px 0;background:var(--surf)}.rw.need{--c:var(--no)}.rw.chk{--c:var(--warn)}.rw.ok{--c:var(--ok)}
+.rw .l{font-size:11px;color:var(--faint)}.rw .v{font-weight:700;color:var(--ink);word-break:break-word}.rw .acts{display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap}
+.src{display:inline-block;font:800 9.5px var(--ui);letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--borderS);border-radius:5px;padding:1px 6px;color:var(--muted)}
+.src.g{border-style:dashed;color:var(--warn)}.src.t{color:var(--accentInk);border-color:var(--accentInk)}
+.mb{all:unset;cursor:pointer;border:1px solid var(--borderS);border-radius:8px;padding:4px 9px;font:800 italic 10.5px var(--logo);color:var(--ink);background:var(--solid)}.mb:hover{border-color:var(--accentInk)}.mb:focus-visible{outline:2px solid var(--accentInk);outline-offset:2px}
+.mb.p{background:var(--accent);color:var(--onAccent);border-color:var(--accent)}
+.inp{flex:1;min-width:110px;background:var(--input);border:1px solid var(--borderC);border-radius:8px;padding:5px 8px;color:var(--ink);font:12.5px var(--ui)}
+.mem{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)}.mem input{accent-color:#FD4600}
+.ft{padding:10px 14px;border-top:1px solid var(--border);color:var(--muted);font-size:11.5px}.ft .st{font-weight:700;margin-bottom:6px}.ft .st.go{color:var(--ok)}.ft .st.no{color:var(--warn)}
+.slim{position:absolute;right:12px;top:12px;display:flex;align-items:center;gap:10px;background:var(--solid);color:var(--ink);border:1px solid var(--borderS);border-radius:12px;padding:8px 12px;box-shadow:0 10px 24px rgba(0,0,0,.4);z-index:4;font-size:12px}
+.slim b{color:var(--warn)}
+/* ───── THE POPUP ───── */
+.pop{width:340px;background:var(--solid);color:var(--ink);border:1px solid var(--borderS);border-radius:16px;padding:14px;box-shadow:0 18px 40px rgba(0,0,0,.5);font-size:12.5px;margin:0 auto}
+.pop .id{color:var(--muted);font-size:12px;margin:8px 0}.pop .id b{color:var(--ink)}
+.tl{display:grid;gap:0;margin:10px 0;border-left:2px solid var(--border);padding-left:12px}.tl div{position:relative;padding:5px 0;color:var(--muted)}.tl div::before{content:"";position:absolute;left:-18px;top:11px;width:10px;height:10px;border-radius:50%;background:var(--shade);border:2px solid var(--border)}
+.tl div.done{color:var(--ink)}.tl div.done::before{background:var(--ok);border-color:var(--ok)}.tl div.now::before{background:var(--accent);border-color:var(--accent)}.tl small{color:var(--faint);margin-left:6px}
+.zero{border:1px dashed var(--borderS);border-radius:10px;padding:10px;color:var(--muted);margin:10px 0}
+.prep{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.bx{all:unset;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 12px;border-radius:10px;border:1px solid var(--borderS);background:var(--solid);color:var(--ink);font:800 italic 11.5px var(--logo);box-shadow:var(--d1)}.bx.p{background:var(--accent);color:var(--onAccent);border-color:var(--accent);box-shadow:var(--dA)}.bx:focus-visible{outline:2px solid var(--accentInk);outline-offset:2px}
+.ip{margin-top:12px;border-top:1px solid var(--border);padding-top:8px}.ip h5{font:800 10.5px var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:5px}.ip div{display:flex;justify-content:space-between;padding:3px 0;color:var(--muted)}.ip div b{color:var(--ink)}
+/* ───── RÉSUMÉ OPTIONS ───── */
+.opts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}@media(max-width:1000px){.opts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.oc{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:7px;padding:10px;border-radius:12px;border:2px solid #2f2f2f;background:#121212;color:#ddd;transition:border-color .15s,transform .15s;align-content:start}
+.oc:hover{transform:translateY(-2px);border-color:#777}.oc:focus-visible{outline:2px solid #fff;outline-offset:2px}.oc[aria-pressed=true]{border-color:#FD4600;background:#1a120e}
+.oc b{font:800 italic 13px var(--logo);color:#fff}.oc small{color:#a8a8a8;font-size:11.5px;line-height:1.4}.oc .rec{display:inline-block;background:#12301f;color:#9be0b4;border-radius:5px;padding:1px 6px;font:800 10px var(--ui);margin-left:6px;font-style:normal}
+.mini{height:84px;border-radius:8px;background:#fff;border:1px solid #444;position:relative;overflow:hidden}
+.mini .a{position:absolute;right:4px;top:4px;bottom:4px;width:44%;background:#262626;border-radius:6px;border:1px solid #666}
+.mini .d{position:absolute;left:10px;top:8px;right:10px;bottom:8px;background:#fff;border:1px solid #bbb}.mini .ln{height:4px;background:#ccc;margin:5px 6px;border-radius:2px}
+.mini .tab{position:absolute;left:6px;right:6px;top:6px;height:12px;background:#ddd;border-radius:4px 4px 0 0}
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}@media(max-width:820px){.pc{grid-template-columns:1fr}}
+.pc>div{background:#141414;border:1px solid #2c2c2c;border-radius:12px;padding:12px 14px}.pc h4{font:800 italic 13px var(--logo);margin-bottom:6px}.pc .up h4{color:#9be0b4}.pc .dn h4{color:#f0b3a9}.pc li{margin:0 0 5px 18px;color:#c6c6c6}
+.mx{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}.mx th{font:800 10.5px var(--ui);letter-spacing:.08em;text-transform:uppercase;color:#888;text-align:left;padding:6px 8px;border-bottom:1px solid #333}.mx td{padding:6px 8px;border-bottom:1px dashed #2a2a2a;color:#c6c6c6}.mx td:first-child{color:#fff}
+.r3{font-weight:800}.r3.s{color:#9be0b4}.r3.p{color:#f0c674}.r3.w{color:#f08a8a}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body><div class="shell">
+<h1><i>/</i>draft — the extension, on the page</h1>
+<p class="note">Three things to decide or approve: <b>(1) the review panel</b> that stays out of your way, lists every field, and remembers what you confirm · <b>(2) a popup that remembers</b> where you were · <b>(3) where a generated résumé appears</b> — four options with their upsides and downsides. All names and values are samples. The employer's page is shown <b>light</b> whatever draft's theme is, because that is what you see.</p>
+<div class="bar" id="bar"></div><div id="stage"></div></div>
+<script>
+const THEMES=[['charcoal-dark','Charcoal Dark'],['paper-light','Paper Light'],['contrast-dark','Contrast Dark'],['contrast-light','Contrast Light']];
+const VIEWS=[['panel','1 · The review panel'],['popup','2 · The popup remembers'],['resume','3 · The résumé on the page']];
+let S={theme:'charcoal-dark',view:'panel',collapsed:false,open:{need:true,chk:true,ok:false},ack:{fn:false,ln:false,pc:false},typed:{addr:'',phone:''},remember:true,reopened:false,opt:'hybrid'};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SITE=`<div class="site"><div class="steps"><span>My Information</span><span>My Experience</span><span>Application Questions</span><span>Voluntary Disclosures</span><span>Review</span></div><div class="form"><h3>My Information</h3>
+ <label>Country<em>*</em></label><div class="f">United States of America</div>
+ <label>First Name<em>*</em></label><div class="f">Sri</div><label>Last Name<em>*</em></label><div class="f">Yellela</div>
+ <label>Address Line 1<em>*</em></label><div class="f e"></div><label>City<em>*</em></label><div class="f">Boston</div>
+ <label>State<em>*</em></label><div class="f e">Select One</div><label>Postal Code<em>*</em></label><div class="f">02125</div></div>`;
+function rowsBefore(){return `<div class="ov"><div class="ovh"><span class="lg"><b>/</b><span>draft</span></span></div><div class="ovt">Review before you submit</div>
+ <div style="padding:0 14px 8px;color:var(--muted);font-size:11.5px">4 field(s) filled. Draft never submits for you.</div><div class="sc">
+ <div class="gh" style="cursor:default">Worth checking</div>
+ ${[['First Name*','Sri'],['Last Name*','Yellela'],['Postal Code*','02125']].map(r=>`<div class="rw chk"><div class="l">${r[0]} <span class="src g">guessed field</span></div><div class="v">${r[1]}</div><div class="acts"><button class="mb">edit</button><button class="mb">acknowledge</button></div></div>`).join('')}
+ <div style="padding:6px 12px;color:var(--faint)">▸ 1 more, resolved exactly</div></div>
+ <div class="ft"><div class="st no">Not ready — 1 guess(es) still to acknowledge.</div>Submit the form yourself when you are happy with it.<div style="margin-top:8px"><button class="mb">I submitted it</button></div></div></div>`;}
+function panelAfter(){
+ const need=[],chk=[],ok=[];
+ // address and phone are unfilled until the owner types them; once typed they become remembered answers
+ if(S.typed.addr) ok.push(['Address Line 1','"'+esc(S.typed.addr)+'"','t','you typed']); else need.push(['addr','Address Line 1','nothing in your profile yet']);
+ ok.push(['State','Massachusetts','p','your profile · dropdown']);
+ if(S.typed.phone) ok.push(['Phone','"'+esc(S.typed.phone)+'"','t','you typed']); else need.push(['phone','Phone number','nothing in your profile yet']);
+ [['fn','First Name','Sri'],['ln','Last Name','Yellela'],['pc','Postal Code','02125']].forEach(([k,l,v])=>{ if(S.ack[k]) ok.push([l,v,'t','you acknowledged']); else chk.push([k,l,v]); });
+ ok.push(['Country','United States of America','p','your profile · dropdown'],['City','Boston','p','your profile']);
+ const total=need.length+chk.length+ok.length, filled=ok.length+chk.length;
+ const ready=need.length===0&&chk.length===0&&filled>0;
+ const grp=(id,label,items,fn)=>`<button class="gh" aria-expanded="${S.open[id]}" onclick="S.open.${id}=!S.open.${id};draw()">${S.open[id]?'▾':'▸'} ${label} <b>${items.length}</b></button>${S.open[id]?items.map(fn).join(''):''}`;
+ const needRow=r=>`<div class="rw need"><div class="l">${r[1]} <span class="src">${r[2]}</span></div><div class="acts"><input class="inp" id="in_${r[0]}" placeholder="type it here" aria-label="${r[1]}"><button class="mb p" onclick="S.typed.${r[0]}=document.getElementById('in_${r[0]}').value||'(typed)';draw()">use it</button></div><div class="acts"><label class="mem"><input type="checkbox" ${S.remember?'checked':''} onchange="S.remember=this.checked;draw()"> Remember for next time</label></div></div>`;
+ const chkRow=r=>`<div class="rw chk"><div class="l">${r[1]} <span class="src g">matched loosely</span></div><div class="v">${r[2]}</div><div class="acts"><button class="mb">edit</button><button class="mb p" onclick="S.ack.${r[0]}=true;draw()">acknowledge</button></div></div>`;
+ const okRow=r=>`<div class="rw ok"><div class="l">${r[0]} <span class="src ${r[2]==='t'?'t':''}">${r[3]}</span></div><div class="v">${r[1]}</div>${r[2]==='t'&&S.remember?'<div class="acts"><span class="mem">✓ remembered for next time</span></div>':''}</div>`;
+ const head=`<div class="ovh"><span class="lg"><b>/</b><span>draft</span></span><span class="sp"></span><button class="ib" title="Collapse" aria-label="Collapse the panel" onclick="S.collapsed=true;draw()">–</button><button class="ib" title="Close" aria-label="Close the panel">×</button></div>`;
+ if(S.collapsed) return `<div class="slim"><span class="lg"><b>/</b><span>draft</span></span><span>${need.length?'<b>'+need.length+' need you</b>':'nothing needs you'} · ${filled} of ${total} filled</span><button class="ib" aria-label="Expand the panel" onclick="S.collapsed=false;draw()">▢</button></div>`;
+ return `<div class="ov">${head}<div class="ovt">Review before you submit</div><div class="prog">${filled} of ${total} filled · ${need.length} need you · ${chk.length} to check<div class="pb"><i style="width:${Math.round(filled/total*100)}%"></i></div></div><div class="sc">
+  ${need.length?grp('need','Needs you',need,needRow):''}${chk.length?grp('chk','Check',chk,chkRow):''}${grp('ok','Filled',ok,okRow)}</div>
+  <div class="ft"><div class="st ${ready?'go':'no'}">${ready?'Ready. Everything uncertain has been checked.':filled===0?'Nothing was filled — the page has no fields draft recognises yet.':need.length?'Not ready — '+need.length+' need you.':'Not ready — '+chk.length+' to acknowledge.'}</div>Submit the form yourself when you are happy with it.<div style="margin-top:8px"><button class="mb" ${ready?'':'disabled style="opacity:.5;border-style:dashed"'}>I submitted it</button></div></div></div>`;}
+function panelView(){
+ return `<div class="two"><div><div class="cap"><span class="tagb">TODAY</span>The panel on Workday</div><div data-theme="charcoal-dark" style="position:relative">${SITE}${rowsBefore()}</div></div></div>
+ <div class="why"><b>Today:</b> only the "guessed" rows show; <b>no collapse</b>; it never lists what it could <b>not</b> fill (address, state, phone); "Ready" can appear with <b>0 filled</b>; a confirmed answer is not remembered.</div>
+ <div style="height:14px"></div>
+ <div class="cap"><span class="taga">PROPOSED</span>Try it — type an address, acknowledge a row, collapse the panel</div>
+ <div data-theme="${S.theme}" style="position:relative">${SITE}${panelAfter()}</div></div>
+ <div class="why"><b>What changed:</b><ul><li><b>Collapse</b> to a slim bar that still says what needs you; <b>Close</b> and Esc.</li><li><b>Every field is listed</b> — Needs you · Check · Filled — with its <b>source</b> (profile · saved · you typed · matched loosely), so nothing is silent.</li><li><b>Type or acknowledge once, it is remembered:</b> a typed address becomes a saved answer, shown with "remembered for next time" and offered in the Copy sheet and the next autofill. <b>Eligibility and voluntary-disclosure answers are saved only on an explicit tick each time.</b></li><li><b>"Ready" means ready:</b> nothing needs you <b>and</b> at least one field was filled; with 0 filled it says so.</li><li><b>Required labels like "First Name*"</b> match exactly — the asterisk is ignored — so they are no longer "guessed".</li></ul></div>`;}
+function popupView(){
+ const first=`<div class="pop" data-theme="${S.theme}"><span class="lg" style="font:800 italic 20px var(--logo)"><b style="color:var(--accent)">/</b><span style="color:var(--accentInk)">draft</span></span><div class="id">Signed in as <b>sriyellela</b></div><div class="zero">Nothing on this page is read until you press it.<br>No answers prepared yet.</div><div class="prep"><button class="bx p">Read this page</button></div></div>`;
+ const remembered=`<div class="pop" data-theme="${S.theme}"><span class="lg" style="font:800 italic 20px var(--logo)"><b style="color:var(--accent)">/</b><span style="color:var(--accentInk)">draft</span></span><div class="id">Signed in as <b>sriyellela</b></div>
+  <div style="font:800 italic 13px var(--logo)">Software Engineer · Zoom</div><div class="tl"><div class="done">Captured<small>10:41 · on your board</small></div><div class="done">Page read<small>10:42 · My Information</small></div><div class="done">Answers prepared<small>10:42</small></div><div class="now">Filled — 14 of 18<small>2 need you</small></div><div>Reviewed</div><div>Submitted</div></div>
+  <div class="prep"><button class="bx p">Open the panel</button><button class="bx">Copy sheet</button><button class="bx">Read again</button></div>
+  <div class="ip"><h5>In progress</h5><div><span>Software Engineer · Zoom</span><b>14 of 18</b></div><div><span>Staff SDE · Zscaler</span><b>Prepared</b></div><div><span>Backend · Atria</span><b>Captured</b></div></div></div>`;
+ return `<div class="bar"><span class="lab">Popup</span><button class="tb" aria-pressed="${!S.reopened}" onclick="S.reopened=false;draw()">Today — after closing and reopening</button><button class="tb" aria-pressed="${S.reopened}" onclick="S.reopened=true;draw()">Proposed — it remembers</button></div>${S.reopened?remembered:first}
+ <div class="why"><b>${S.reopened?'Proposed':'Today'}:</b> ${S.reopened?'the popup opens knowing the job, where you are in it, and what is left. The progress is kept <b>per job</b> on your machine (and the prepared packet on the server), so it survives closing the popup, reloading, a restart, and opening another job; an <b>In progress</b> list brings you back.':'every time the popup closes, it forgets: no page read, no prepared answers, and you press Read again. Chrome closes a popup whenever the page gets focus — which is exactly when you paste.'}</div>`;}
+const OPTS={
+ panel:{t:'A · In-page panel',rec:0,d:'A résumé preview docked beside the form, with a diff, Regenerate and an Attach button.',mini:'<div class="mini"><div class="a"></div></div>',
+  up:['Stays on the form: no tab switch, no lost place, nothing closes when you click a field','Shows <b>"What we changed"</b> and the claim-guard result inline, so you read the changes before you attach','One click to <b>attach</b>; progress and the résumé stay visible while you fill','Consistent with the review panel and the Copy sheet — one surface'],
+  dn:['A narrow canvas: fine to <b>review</b>, poor to <b>edit</b>','Rendering HTML inside someone else\'s page needs careful isolation (shadow DOM, sanitised markup)','Generation takes 10–20 s; the panel must show persistent progress and survive Workday\'s step changes','No editor — a change means regenerate or open another tab']},
+ pdf:{t:'B · A PDF',rec:0,d:'Generate a PDF, open or download it, and attach it to the upload field.',mini:'<div class="mini"><div class="d"><div class="ln"></div><div class="ln"></div><div class="ln"></div><div class="ln"></div></div></div>',
+  up:['It <b>is</b> the artifact the employer receives — what you see is what is sent','Print-ready and easy to keep; the apply snapshot can store the exact file','Familiar: nothing new to learn'],
+  dn:['<b>Not editable</b> — every change is a regeneration','A viewer tab pulls you off the form; the popup closes; Workday sessions can time out','Attaching means setting a file on the page\'s upload control — works on a plain file input, <b>fragile on Workday\'s custom drop zone</b>','No diff, no guard message, no score next to it']},
+ html:{t:'C · Editable HTML, new tab',rec:0,d:'Open draft\'s résumé editor for this job in a new tab, with the tools our API already provides.',mini:'<div class="mini"><div class="tab"></div><div class="d" style="top:22px"><div class="ln"></div><div class="ln"></div><div class="ln"></div></div></div>',
+  up:['The <b>best editing</b>: a full canvas, reorder, rewrite a bullet, <b>re-score live</b> with the deterministic scorer, export PDF or DOCX','It is the editor the web app already uses — little new to build','Versions, autosave and a shareable link come with it'],
+  dn:['<b>Leaves the application</b>: a second window to manage, the popup closes, the place is lost','You must come back and attach — two round trips per résumé','Every edit has to be re-checked by the claim guard on save','The slowest path to "attached"']},
+ hybrid:{t:'D · Panel first, editor on demand',rec:1,d:'The panel is the main path: preview, diff, Regenerate, Attach (a PDF is made on Attach). An Edit button opens the full editor in a new tab only when you want one.',mini:'<div class="mini"><div class="a"></div><div class="tab" style="width:34%;right:auto"></div></div>',
+  up:['Fast by default: <b>generate, read the changes, attach</b> without leaving the form','The editor is one click away <b>when you need it</b>, not in the way when you do not','The attached file is a PDF made on Attach and <b>stored in the apply snapshot</b> — the same file appears in <i>What we sent</i>','Builds in two steps: the panel first, the edit link second'],
+  dn:['The most to build (the panel <b>and</b> the editor link)','Two ways to the same résumé needs clear wording ("Edit in a full page")','Attaching on custom upload zones still needs a fallback: <b>Download PDF</b> and a "drag it here" hint']}
+};
+function resumeView(){
+ const o=OPTS[S.opt];
+ const cards=Object.entries(OPTS).map(([k,v])=>`<button class="oc" aria-pressed="${S.opt===k}" onclick="S.opt='${k}';draw()">${v.mini}<b>${v.t}${v.rec?'<span class="rec">recommended</span>':''}</b><small>${v.d}</small></button>`).join('');
+ const R=(a)=>`<span class="r3 ${a[0]}">${a[1]}</span>`;
+ const row=(l,c)=>`<tr><td>${l}</td>${c.map(x=>`<td>${R(x)}</td>`).join('')}</tr>`;
+ return `<div class="opts">${cards}</div>
+ <div class="pc"><div class="up"><h4>Upsides — ${o.t}</h4><ul>${o.up.map(x=>`<li>${x}</li>`).join('')}</ul></div><div class="dn"><h4>Downsides — ${o.t}</h4><ul>${o.dn.map(x=>`<li>${x}</li>`).join('')}</ul></div></div>
+ <table class="mx"><tr><th>What matters</th><th>A · Panel</th><th>B · PDF</th><th>C · Editor tab</th><th>D · Hybrid</th></tr>
+ ${row('Stays on the application page',[['s','Yes'],['w','No'],['w','No'],['s','Yes']])}
+ ${row('Editing',[['w','Weak'],['w','None'],['s','Full'],['s','Full, on demand']])}
+ ${row('Shows what changed (the guard\'s promise)',[['s','Inline'],['w','No'],['p','In the editor'],['s','Inline']])}
+ ${row('Speed to "attached"',[['s','Fast'],['p','Medium'],['w','Slow'],['s','Fast']])}
+ ${row('Attaches to the upload field',[['p','Needs a fallback'],['p','Needs a fallback'],['w','Manual'],['p','PDF made on Attach; fallback']])}
+ ${row('Survives Workday step changes',[['p','With care'],['s','Yes'],['s','Yes'],['p','With care']])}
+ ${row('Build effort',[['p','Medium'],['s','Small'],['s','Small'],['w','Largest']])}
+ </table>
+ <div class="why"><b>How it would run, in every option:</b> the extension asks <b>draft's server</b> to generate — the same route the web app uses — never a model directly, so keys never reach the browser, the claim guard and ATS scorer still run, a Draft slot is spent, and the user sees no cost. It uses the <b>tab's job binding</b> (so the right job and its keywords), is <b>cancellable</b>, and the result is stored as a normal tailored résumé — it appears in <b>What we changed</b> and <b>What we sent</b>. The generation is user-triggered, never automatic.<br><b>My suggestion: D.</b> Build the panel first (A) — it is the part you use every application — then add the Edit link. Option B is a feature of the panel (the PDF made on Attach), not a separate surface. Option C alone costs you a window switch on every application.</div>`;}
+function draw(){
+ const th=THEMES.map(([id,l])=>`<button class="tb" aria-pressed="${S.theme===id}" onclick="S.theme='${id}';draw()">${l}</button>`).join('');
+ const vw=VIEWS.map(([id,l])=>`<button class="tb" aria-selected="${S.view===id}" onclick="S.view='${id}';draw()">${l}</button>`).join('');
+ document.getElementById('bar').innerHTML=`<span class="lab">View</span>${vw}${S.view==='resume'?'':`<span class="sep"></span><span class="lab">Panel theme</span>${th}`}`;
+ document.getElementById('stage').innerHTML=({panel:panelView,popup:popupView,resume:resumeView})[S.view]();}
+draw();
+</script></body></html>
