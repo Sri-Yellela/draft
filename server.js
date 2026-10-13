@@ -4984,6 +4984,27 @@ console.log(`[boot] database ready: ${DB_PATH}`);
           BEGIN SELECT RAISE(ABORT, 'D95: an admin is an admin account, never a users row'); END;
       `,
     },
+    {
+      // ⛔ D95, the owner's word (10-13): "delete the suspended admin row". Only a row 162 retired — suspended with the
+      // "Former admin row (D95)" reason — and nothing else. It owned no user data (WORKLOG 42); what it does hold goes
+      // with it by the existing cascades (its notifications, sessions, tokens, its revoked connection, its plugin-call
+      // log). The one reference that would block the delete — a plan request it decided (decided_by, a foreign key with
+      // no cascade) — is cleared; the decision keeps its coded actor (decided_by_actor 'user:1'). History rows that name
+      // it (the audit log, an override's set_by, a crawler setting's updated_by) are not constraints and stay as written,
+      // each with its *_actor. An audit row records the delete. server.js backs up first and holds this back if it cannot.
+      id: "163_delete_former_admin_row",
+      sql: `
+        UPDATE plan_upgrade_requests SET decided_by = NULL
+          WHERE decided_by IN (SELECT id FROM users WHERE status = 'suspended' AND suspended_reason LIKE 'Former admin row (D95)%');
+        UPDATE user_limits SET updated_by = NULL
+          WHERE updated_by IN (SELECT id FROM users WHERE status = 'suspended' AND suspended_reason LIKE 'Former admin row (D95)%');
+        INSERT INTO admin_audit_log (admin_user_id, actor_kind, actor, action, target, before_json, reason)
+          SELECT NULL, 'system', 'system', 'user.delete', 'user:' || id, '{"username":"' || username || '","status":"suspended"}',
+                 'D95: the former admin row, deleted on the owner''s word (10-13)'
+          FROM users WHERE status = 'suspended' AND suspended_reason LIKE 'Former admin row (D95)%';
+        DELETE FROM users WHERE status = 'suspended' AND suspended_reason LIKE 'Former admin row (D95)%';
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -4999,18 +5020,26 @@ console.log(`[boot] database ready: ${DB_PATH}`);
   // ⛔ D95 PHASE 2: migration 162 CHANGES data (it clears the admin flag, revokes and suspends the former admin row).
   // A backup is taken on the volume first; if it cannot be taken, 162 is held back this boot and says so — the site
   // still starts, on today's behaviour, and the next boot tries again.
+  // The same rule for 163 (the former admin row deleted, the owner's word 10-13): ONE backup before every pending
+  // data migration that has something to change, and all of them held back if it cannot be taken.
+  const DATA_MIGRATIONS = [
+    { id: "162_no_admin_in_users", changes: "SELECT 1 FROM users WHERE is_admin = 1 LIMIT 1" },
+    { id: "163_delete_former_admin_row", changes: "SELECT 1 FROM users WHERE status = 'suspended' AND suspended_reason LIKE 'Former admin row (D95)%' LIMIT 1" },
+  ];
   const heldBack = new Set();
-  let pending162 = true;
-  try { pending162 = !db.prepare("SELECT 1 FROM schema_migrations WHERE id = '162_no_admin_in_users'").get(); } catch { pending162 = true; }
-  const hasAdminRows = (() => { try { return !!db.prepare("SELECT 1 FROM users WHERE is_admin = 1 LIMIT 1").get(); } catch { return false; } })();
-  if (pending162 && hasAdminRows) {   // a fresh database has nothing for 162 to change, so nothing to back up
+  const isPending = (id) => { try { return !db.prepare("SELECT 1 FROM schema_migrations WHERE id = ?").get(id); } catch { return true; } };
+  const hasWork = (sql) => { try { return !!db.prepare(sql).get(); } catch { return false; } };
+  // 162 leaves the row 163 deletes, so 163 has work whenever 162 does
+  const due = DATA_MIGRATIONS.filter(m => isPending(m.id) && (hasWork(m.changes) || (m.id.startsWith("163") && isPending("162_no_admin_in_users") && hasWork(DATA_MIGRATIONS[0].changes))));
+  if (due.length) {   // a fresh database has nothing for them to change, so nothing to back up
+    const label = `pre-${due.map(m => m.id.slice(0, 3)).join("-")}`;
     try {
-      const b = createBackup("pre-162");
+      const b = createBackup(label);
       if (!b) throw new Error("the backup returned nothing");
-      console.log("[migrate] backup taken before 162_no_admin_in_users");
+      console.log(`[migrate] backup taken before ${due.map(m => m.id).join(", ")}`);
     } catch (e) {
-      console.error(`[migrate] ⛔ 162_no_admin_in_users HELD BACK — no backup could be taken first: ${e.message}`);
-      heldBack.add("162_no_admin_in_users");
+      console.error(`[migrate] ⛔ ${due.map(m => m.id).join(", ")} HELD BACK — no backup could be taken first: ${e.message}`);
+      for (const m of due) heldBack.add(m.id);
     }
   }
   try {
