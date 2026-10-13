@@ -1,8 +1,10 @@
 import {
   runGatedHandoff, clearPacketForTab, sweepExpiredPackets, applyOverlayEdit,
   loadBatchForTab, clearBatchForTab, portalQueueFor,
-  prepareAndFill, recordSubmitted, copySheetFor, pageMatchFor, packetFillsOrigin, overlayTheme,
+  prepareAndFill, recordSubmitted, copySheetFor, pageMatchFor, packetFillsOrigin, overlayTheme, loadPacketForTab,
 } from './gated-handoff.js';
+// D96 §3 (J1): where each application stands — local, per job, no answer values.
+import { noteCapture, noteContext, noteReviewed } from './progress.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
 // ⭐ One job per tab across every stage of its application, and the Copy sheet as an in-page panel (owner, 10-12).
 import { bindTab, bindingForTab, clearBinding, setBindingDock, bindingLine } from './tabBinding.js';
@@ -109,6 +111,7 @@ async function captureActiveTab(tab) {
   if (result?.success && result.jobId) {
     await bindTab(tab, { jobId: result.jobId, title: extracted.title || null, company: extracted.company || null, via: 'capture' }).catch(() => null);
   }
+  await noteCapture(result, extracted);
   await reportCapture(tab.id, result);
   return result;
 }
@@ -159,6 +162,7 @@ async function popupContext(tab) {
     await bindTab(tab, { jobId: board.posting.jobId, title: board.posting.title, company: board.posting.company, via: 'recognised' }).catch(() => null);
   }
   const binding = await bindingForTab(tab);
+  await noteContext(board, binding);
   return {
     url, origin,
     binding: binding ? { jobId: binding.jobId, title: binding.title, company: binding.company, via: binding.via, boundAt: binding.boundAt } : null,
@@ -465,6 +469,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // of what a human saw before it went out, because the submission happens in a browser we never
     // observe. Best-effort — a failure here must never block the candidate from submitting.
     void recordGateReview(sender.tab?.id, msg);
+    void loadPacketForTab(sender.tab?.id).then(h => noteReviewed(msg, { jobId: h?.packet?.jobId ?? null })).catch(() => {});
     sendResponse({ ok: true });
     return true;
   }

@@ -149,13 +149,17 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 `applyPlan()`, `applyOverlayEdit()`; `review-overlay.js` `renderOverlay()`; `autofill-badge.js`.)*
 
 **`storage`**
-> Eight values. Seven never leave the browser; the eighth is the extension's own access token, which is
+> Nine values. Eight never leave the browser; the ninth is the extension's own access token, which is
 > sent to our backend and to nowhere else. In `chrome.storage.local`: the result of the user's most
 > recent capture, so the popup can show the outcome of a capture made with the keyboard while the popup
 > was closed; the username of the account the extension is connected to, so the popup can name it; that
 > access token, which is how the extension identifies itself to us — not the user's password and not
 > their website session, deleted the moment they disconnect the extension; and whether the user has
-> switched automatic capture on (a single on/off value). In `chrome.storage.session` (memory-backed,
+> switched automatic capture on (a single on/off value); and where each application stands — for each job
+> the user captures, reads, prepares, fills or submits with the extension, its draft id, title, company and
+> posting address, when each step happened and how many fields were filled or still need the user — no
+> answers, kept 30 days from its last change, deleted on disconnect, sign-out or another account connecting.
+> In `chrome.storage.session` (memory-backed,
 > discarded on browser restart): the prepared answers for an application in progress, with a 10-minute
 > expiry and cleared when the tab closes; the result of the most recent form fill, so the popup can
 > report a fill started with the keyboard; when several applications are queued for one employer
@@ -168,7 +172,8 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 *(Code: `background.js` `reportCapture()` → `lastCapture` (local) and `reportHandoff()` →
 `lastGatedHandoff` (session); `gated-handoff.js` → `gate:{tabId}` and `batch:{tabId}` (session);
 `auth.js` → `authToken` and `authIdentity` (local); `autoCapture.js` (set from the options page) → `autoCaptureEnabled` (local);
-`tabBinding.js` `bindTab()` / `setBindingDock()` → `bind:{tabId}` (session), removed by `clearBinding()` on tab close and "Unlink this page".)*
+`tabBinding.js` `bindTab()` / `setBindingDock()` → `bind:{tabId}` (session), removed by `clearBinding()` on tab close and "Unlink this page";
+`progress.js` `progress.patch()` / `set()` / `claim()` → `jobProgress` (local), removed by `progress.clearAll()` from `auth.js` `disconnect()` and `getIdentity()` (sign-out, another account).)*
 
 **Host permission** — one, our own backend
 > `https://jobsviadraft.com/*` is our own server. The extension calls it with an access token of its
