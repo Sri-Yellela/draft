@@ -1,6 +1,7 @@
 // D95 (owner, 10-12) — AN ADMIN IS NOT A USER. "The admin account is NEVER a user account and must not show up in the
 // users list. Admin and general user accounts must never mix." Each guard below is red when its rule is removed.
 // Fixtures are synthetic; no real person appears.
+import { allowLegacyAdminRows } from "../test-support/legacyAdminRows.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -29,6 +30,7 @@ const quietLog = { warn() {}, error() {}, info() {} };
 function db() {
   const d = new Database(":memory:");
   for (const m of MIGRATIONS) d.exec(m.sql);
+  allowLegacyAdminRows(d);   // Phase 1's tests model the pre-162 legacy row; Phase 2's tests below build their own
   // a person (row 3), the LEGACY admin row (row 1), and the system row 0 that migration 075 adds
   d.prepare("INSERT INTO users (id, username, password_hash, is_admin) VALUES (1, 'admin', 'h', 1), (3, 'avery', 'h', 0)").run();
   d.prepare("INSERT INTO user_profile (user_id, email) VALUES (3, 'avery@example.com')").run();
@@ -67,19 +69,54 @@ const cookieOf = (r) => (r.headers.get("set-cookie") || "").split(";")[0];
 test("⛔ D95: the migration is ADDITIVE and IDEMPOTENT, and its backfill is truthful", () => {
   const d = new Database(":memory:");
   d.exec("CREATE TABLE schema_migrations (id TEXT PRIMARY KEY, applied_at INTEGER DEFAULT (unixepoch()))");
-  const before = MIGRATIONS.filter(m => m.id !== "159_admin_accounts");
-  applyPendingMigrations(d, before);
-  d.prepare("INSERT INTO users (id, username, password_hash, is_admin) VALUES (1, 'admin', 'h', 1)").run();
+  const upTo = MIGRATIONS.findIndex(m => m.id === "159_admin_accounts");
+  applyPendingMigrations(d, MIGRATIONS.slice(0, upTo));
+  d.prepare("INSERT INTO users (id, username, password_hash, is_admin) VALUES (1, 'admin', 'h', 1), (3, 'avery', 'h', 0)").run();
   d.prepare("INSERT INTO admin_audit_log (admin_user_id, action, target) VALUES (1, 'user.plan', 'user:3'), (NULL, 'company_add', 'x')").run();
   const rowsBefore = d.prepare("SELECT COUNT(*) FROM admin_audit_log").pluck().get();
-  assert.equal(applyPendingMigrations(d, MIGRATIONS), 1, "exactly 159 applies");
-  assert.equal(applyPendingMigrations(d, MIGRATIONS), 0, "and never twice");
-  assert.equal(d.prepare("SELECT COUNT(*) FROM admin_audit_log").pluck().get(), rowsBefore, "no row lost");
+  const p1 = MIGRATIONS.slice(0, MIGRATIONS.findIndex(m => m.id === "162_no_admin_in_users"));
+  assert.equal(applyPendingMigrations(d, p1), 3, "159, 160, 161 apply");
   assert.equal(d.prepare("SELECT COUNT(*) FROM users WHERE is_admin = 1").pluck().get(), 1, "Phase 1 does not touch users.is_admin");
+  assert.equal(d.prepare("SELECT COUNT(*) FROM admin_audit_log").pluck().get(), rowsBefore, "no row lost");
   const rows = d.prepare("SELECT admin_user_id, actor_kind, actor FROM admin_audit_log ORDER BY id").all();
   assert.deepEqual(rows, [{ admin_user_id: 1, actor_kind: "user", actor: "user:1" }, { admin_user_id: null, actor_kind: "system", actor: "system" }]);
   const sql = MIGRATIONS.find(m => m.id === "159_admin_accounts").sql;
-  assert.doesNotMatch(sql, /\bDROP\b|\bDELETE FROM\b|UPDATE users/i, "nothing destructive, and users is left alone");
+  assert.doesNotMatch(sql, /\bDROP\b|\bDELETE FROM\b|UPDATE users/i, "159: nothing destructive, and users is left alone");
+  assert.equal(applyPendingMigrations(d, MIGRATIONS), 1, "then 162");
+  assert.equal(applyPendingMigrations(d, MIGRATIONS), 0, "and never twice");
+});
+
+test("⛔ D95 PHASE 2 (162): the former admin row loses its credentials FIRST, is suspended and audited, and the database refuses an admin flag", () => {
+  const d = new Database(":memory:");
+  d.exec("CREATE TABLE schema_migrations (id TEXT PRIMARY KEY, applied_at INTEGER DEFAULT (unixepoch()))");
+  applyPendingMigrations(d, MIGRATIONS.slice(0, MIGRATIONS.findIndex(m => m.id === "162_no_admin_in_users")));
+  d.prepare("INSERT INTO users (id, username, password_hash, is_admin) VALUES (1, 'admin', 'h', 1), (3, 'avery', 'h', 0)").run();
+  d.prepare("INSERT INTO oauth_clients (client_id, client_name, redirect_uris, host) VALUES ('c', 'Claude', '[]', 'claude')").run();
+  d.prepare("INSERT INTO oauth_connections (id, user_id, client_id, scope) VALUES (1, 1, 'c', 'resume:read'), (2, 3, 'c', 'resume:read')").run();
+  d.prepare("INSERT INTO oauth_tokens (token_hash, connection_id, kind, scope, resource, expires_at) VALUES ('t1', 1, 'access', 'resume:read', 'r', unixepoch()+3600), ('t3', 2, 'access', 'resume:read', 'r', unixepoch()+3600)").run();
+  d.prepare("INSERT INTO auth_contexts (token_hash, user_id, created_at, last_seen_at, expires_at, user_agent) VALUES ('a1', 1, unixepoch(), unixepoch(), unixepoch()+3600, 'resume-master-extension'), ('a3', 3, unixepoch(), unixepoch(), unixepoch()+3600, 'resume-master-extension')").run();
+  assert.equal(applyPendingMigrations(d, MIGRATIONS), 1);
+  const u1 = d.prepare("SELECT is_admin, status, suspended_reason FROM users WHERE id = 1").get();
+  assert.equal(u1.is_admin, 0, "no users row is an admin");
+  assert.equal(u1.status, "suspended", "the former admin row cannot sign in or call the API as a person");
+  assert.match(u1.suspended_reason, /Former admin row \(D95\)/);
+  assert.ok(d.prepare("SELECT revoked_at FROM oauth_connections WHERE id = 1").pluck().get(), "its connected app is revoked — or it would start working as a person's");
+  assert.ok(d.prepare("SELECT revoked_at FROM oauth_tokens WHERE token_hash = 't1'").pluck().get());
+  assert.ok(d.prepare("SELECT revoked_at FROM auth_contexts WHERE token_hash = 'a1'").pluck().get(), "and its extension token");
+  assert.equal(d.prepare("SELECT revoked_at FROM oauth_connections WHERE id = 2").pluck().get(), null, "a person's connection is untouched");
+  assert.equal(d.prepare("SELECT revoked_at FROM auth_contexts WHERE token_hash = 'a3'").pluck().get(), null);
+  assert.equal(d.prepare("SELECT status FROM users WHERE id = 3").pluck().get(), "active");
+  assert.deepEqual(d.prepare("SELECT actor_kind, action, target FROM admin_audit_log WHERE action = 'user.admin_flag_cleared'").all(),
+    [{ actor_kind: "system", action: "user.admin_flag_cleared", target: "user:1" }]);
+  assert.throws(() => d.prepare("INSERT INTO users (username, password_hash, is_admin) VALUES ('x', 'h', 1)").run(), /D95: an admin is an admin account/);
+  assert.throws(() => d.prepare("UPDATE users SET is_admin = 1 WHERE id = 3").run(), /D95: an admin is an admin account/);
+  d.prepare("INSERT INTO users (username, password_hash, is_admin) VALUES ('y', 'h', 0)").run();   // a person still can be made
+  // and server.js backs up first, holding 162 back if it cannot
+  const server = read("server.js");
+  assert.match(server, /if \(pending162 && hasAdminRows\) \{[\s\S]{0,200}createBackup\("pre-162"\)/);
+  assert.match(server, /heldBack\.add\("162_no_admin_in_users"\)/);
+  assert.match(server, /applyPendingMigrations\(db, MIGRATIONS, \{ hold: heldBack,/);
+  assert.doesNotMatch(server, /ADMIN_PASSWORD \|\| "changeme"/, "the legacy admin/changeme bootstrap is gone");
 });
 
 test("⛔ D95: admin identities are TOKENISED — their kind is readable from their shape", () => {
@@ -129,7 +166,8 @@ test("⛔ D95: no route can set an admin flag on a user", () => {
   assert.match(block, /VALUES \(\?,\?,1,0,\?,\?\)/, "is_admin is the literal 0");
   for (const f of ["server.js", ...fs.readdirSync("routes").map(x => `routes/${x}`).filter(x => x.endsWith(".js")), ...fs.readdirSync("services").map(x => `services/${x}`).filter(x => x.endsWith(".js"))]) {
     const s = read(f);
-    assert.doesNotMatch(s, /SET[^;"`]*\bis_admin\s*=\s*(1|\?)/i, `${f} sets is_admin`);
+    // a SET that turns the flag ON (not 162's `SET status … WHERE is_admin = 1`, which reads it)
+    for (const m of s.matchAll(/SET\s[^;"`]*?\bis_admin\s*=\s*(1|\?)/gi)) assert.match(m[0], /\bWHERE\b/i, `${f} sets is_admin: ${m[0].slice(0, 120)}`);
     for (const ins of s.match(/INSERT[^;`"]*INTO users \([^)]*is_admin[^)]*\) VALUES \([^)]*\)/g) || []) {
       const cols = ins.match(/\(([^)]*)\) VALUES/)[1].split(",").map(c => c.trim());
       const vals = ins.match(/VALUES \(([^)]*)\)/)[1].split(",").map(v => v.trim());
@@ -189,8 +227,10 @@ test("⛔ D95: a user session is refused on admin routes once enforced; the flag
   guard({ adminEnforced: false }, res, () => { status = 200; });
   assert.equal(status, 200, "off: the legacy path is unchanged");
   assert.equal(mayActAsAdmin({ adminEnforced: true, user: { isAdmin: true } }), false, "the predicate refuses too");
-  assert.equal(adminEnforced({}), false, "default OFF");
+  // ⛔ Phase 2 (owner 10-13, "now enforce"): ON by default; the variable exists only to roll back
+  assert.equal(adminEnforced({}), true, "default ON");
   assert.equal(adminEnforced({ ADMIN_ACCOUNTS_ENFORCE: "1" }), true);
+  assert.equal(adminEnforced({ ADMIN_ACCOUNTS_ENFORCE: "0" }), false, "the rollback");
 });
 
 test("⛔ D95: the admin sign-in gives ONE answer for unknown, disabled, unset and wrong — and user sign-in never knows admins", async (t) => {

@@ -1,6 +1,7 @@
 // D86/D88 follow-up, item 3 (owner 10-12): "People → Users: show ALL accounts by default; if internal/test accounts
 // are hidden by a filter, say how many ("3 hidden") beside the filter." Each guard red when its rule is removed.
 // Synthetic accounts only.
+import { allowLegacyAdminRows } from "../test-support/legacyAdminRows.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -14,6 +15,7 @@ function db() {
   const d = new Database(":memory:");
   d.pragma("foreign_keys = ON");
   for (const m of MIGRATIONS) d.exec(m.sql);
+  allowLegacyAdminRows(d);   // a pre-162 admin row, to prove a tag never reaches one
   d.prepare(`INSERT INTO users (id, username, password_hash, is_admin) VALUES
     (1, 'admin', 'h', 1), (2, 'ada', 'h', 0), (3, 'grace', 'h', 0), (4, 'reviewer', 'h', 0), (5, 'qa-bot', 'h', 0)`).run();
   return d;

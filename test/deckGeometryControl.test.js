@@ -134,7 +134,7 @@ test("⛔ migration 114 adds the column, additively, byte-identical in both migr
 
 function accountApp(userId = 1) {
   const db = new Database(":memory:");
-  for (const m of MIGRATIONS) for (const stmt of m.sql.split(";").map(s => s.trim()).filter(Boolean)) db.exec(stmt);
+  for (const m of MIGRATIONS) db.exec(m.sql);   // whole, as the runner does — a CREATE TRIGGER body (162) holds a ";"
   db.prepare("INSERT INTO users (id, username, password_hash) VALUES (1,'ada','x'), (2,'bo','y')").run();
   const app = express();
   app.use(express.json());

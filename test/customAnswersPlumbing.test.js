@@ -46,7 +46,7 @@ test("the migration actually applies to a database built from the same list", ()
   const db = new Database(":memory:");
   db.exec("CREATE TABLE schema_migrations (id TEXT PRIMARY KEY, applied_at INTEGER)");
   for (const m of MIGRATIONS) {
-    for (const stmt of m.sql.split(";").map(s => s.trim()).filter(Boolean)) db.exec(stmt);
+    db.exec(m.sql);   // whole, as the runner does — a CREATE TRIGGER body (162) holds a ";"
   }
   const cols = db.prepare("PRAGMA table_info(user_profile)").all().map(c => c.name);
   assert.ok(cols.includes("custom_answers"));
@@ -64,7 +64,7 @@ function accountApp() {
   const db = new Database(":memory:");
   db.exec("CREATE TABLE schema_migrations (id TEXT PRIMARY KEY, applied_at INTEGER)");
   for (const m of MIGRATIONS) {
-    for (const stmt of m.sql.split(";").map(s => s.trim()).filter(Boolean)) db.exec(stmt);
+    db.exec(m.sql);   // whole, as the runner does — a CREATE TRIGGER body (162) holds a ";"
   }
   db.prepare("INSERT INTO users (id, username, password_hash) VALUES (1,'ada','x')").run();
   const app = express();

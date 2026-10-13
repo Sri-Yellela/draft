@@ -184,8 +184,16 @@ test("no migration contains a statement that cannot run inside a transaction", (
   // BEGIN/COMMIT/SAVEPOINT in a migration's SQL would fight the wrapper — committing the work
   // early, which is precisely the behaviour this change removes. All 115 were checked before the
   // wrapper was added; this is what stops number 116 reintroducing it.
+  // A CREATE TRIGGER's body is written BEGIN … END — trigger syntax, not a transaction, and legal inside one (162,
+  // D95 Phase 2). Its body is taken out before the word test, and checked on its own for a real transaction statement.
+  const TRIGGER = /CREATE\s+TRIGGER[\s\S]*?\bBEGIN\b([\s\S]*?)\bEND\s*;/gi;
+  for (const m of MIGRATIONS) {
+    for (const [, body] of m.sql.matchAll(TRIGGER)) {
+      assert.doesNotMatch(body, /\b(PRAGMA|VACUUM|ANALYZE|BEGIN|COMMIT|ROLLBACK|SAVEPOINT)\b/i, `${m.id}: a transaction statement inside a trigger`);
+    }
+  }
   const offenders = MIGRATIONS
-    .filter(m => /\b(PRAGMA|VACUUM|ANALYZE|BEGIN|COMMIT|ROLLBACK|SAVEPOINT)\b/i.test(m.sql))
+    .filter(m => /\b(PRAGMA|VACUUM|ANALYZE|BEGIN|COMMIT|ROLLBACK|SAVEPOINT)\b/i.test(m.sql.replace(TRIGGER, "")))
     .map(m => m.id);
   assert.deepEqual(offenders, [],
     "these cannot be wrapped in a transaction — the migration needs splitting, or the runner needs "

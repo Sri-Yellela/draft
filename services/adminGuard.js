@@ -12,9 +12,15 @@ import { adminActor, userActor } from "./actor.js";
 
 export const ADMIN_SESSION_REFUSAL = "Administrator sign-in happens at /admin/login, in its own session.";
 
-/** ADMIN_ACCOUNTS_ENFORCE: "1" / "true" / "on" → only admin accounts reach the console. Default OFF (Phase 1). */
+/**
+ * ADMIN_ACCOUNTS_ENFORCE — only admin accounts reach the console. ⛔ Phase 2 (owner 10-13, "now enforce"): ON by
+ * default. The variable exists only to roll back: "0" / "false" / "off" restores the Phase 1 legacy path (which, after
+ * migration 162, no users row can satisfy anyway — the rollback also needs 162's triggers dropped; WORKLOG 42).
+ */
 export function adminEnforced(env = process.env) {
-  return /^(1|true|on|yes)$/i.test(String(env.ADMIN_ACCOUNTS_ENFORCE ?? "").trim());
+  const v = String(env.ADMIN_ACCOUNTS_ENFORCE ?? "").trim();
+  if (!v) return true;
+  return !/^(0|false|off|no)$/i.test(v);
 }
 
 export function readCookie(req, name) {

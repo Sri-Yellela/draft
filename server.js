@@ -250,8 +250,6 @@ if (IS_PRODUCTION && process.env.COOKIE_DOMAIN) {
   console.warn("[auth] COOKIE_DOMAIN is set but ignored; host-only session cookies are used for domain migration safety");
 }
 const PASSWORD_RESET_SECRET = process.env.PASSWORD_RESET_SECRET || SESSION_SECRET;
-const ADMIN_USER     = process.env.ADMIN_USER     || "admin";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "changeme";
 const OAUTH_PROVIDER_CONFIG = {
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_OAUTH_CLIENT_ID || "",
@@ -4954,6 +4952,38 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_job_page_keys_job ON job_page_keys(job_id);
       `,
     },
+    {
+      // ⛔ D95 PHASE 2 (owner 10-13: "password set and signed in with the admin email, now enforce"). An admin is an
+      // admin account; no users row is one. The former admin row loses every credential it held (connected apps,
+      // their tokens, its tab / extension / phone tokens) BEFORE its flag is cleared — cleared first, its Claude
+      // connection would have started working as a person's — and is suspended (kept, with its reason, until it is
+      // deleted after a backup; it owns no user data — WORKLOG 42). Each cleared row leaves an audit row. Then the
+      // database itself refuses an admin flag on any users row, on insert and on update. server.js takes a backup
+      // on the volume before this migration and holds it back if the backup fails.
+      id: "162_no_admin_in_users",
+      sql: `
+        UPDATE oauth_tokens SET revoked_at = unixepoch()
+          WHERE revoked_at IS NULL AND connection_id IN (SELECT id FROM oauth_connections WHERE user_id IN (SELECT id FROM users WHERE is_admin = 1));
+        UPDATE oauth_connections SET revoked_at = unixepoch()
+          WHERE revoked_at IS NULL AND user_id IN (SELECT id FROM users WHERE is_admin = 1);
+        UPDATE auth_contexts SET revoked_at = unixepoch()
+          WHERE revoked_at IS NULL AND user_id IN (SELECT id FROM users WHERE is_admin = 1);
+        INSERT INTO admin_audit_log (admin_user_id, actor_kind, actor, action, target, before_json, after_json, reason)
+          SELECT NULL, 'system', 'system', 'user.admin_flag_cleared', 'user:' || id,
+                 '{"is_admin":1}', '{"is_admin":0,"status":"suspended"}', 'D95 Phase 2: admins are admin accounts'
+          FROM users WHERE is_admin = 1;
+        UPDATE users SET status = 'suspended', suspended_at = unixepoch(),
+          suspended_reason = 'Former admin row (D95): admins are admin accounts now. Kept until it is deleted after a backup.'
+          WHERE is_admin = 1;
+        UPDATE users SET is_admin = 0 WHERE is_admin = 1;
+        CREATE TRIGGER IF NOT EXISTS users_no_admin_insert BEFORE INSERT ON users
+          WHEN NEW.is_admin IS NOT NULL AND NEW.is_admin != 0
+          BEGIN SELECT RAISE(ABORT, 'D95: an admin is an admin account, never a users row'); END;
+        CREATE TRIGGER IF NOT EXISTS users_no_admin_update BEFORE UPDATE OF is_admin ON users
+          WHEN NEW.is_admin IS NOT NULL AND NEW.is_admin != 0
+          BEGIN SELECT RAISE(ABORT, 'D95: an admin is an admin account, never a users row'); END;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -4966,8 +4996,25 @@ console.log(`[boot] database ready: ${DB_PATH}`);
   // The loop is shared with scripts/migration.js; the MIGRATIONS list above is still deliberately
   // its own copy, guarded by test/migrationListsAgree.test.js.
   let migrationCount = 0;
+  // ⛔ D95 PHASE 2: migration 162 CHANGES data (it clears the admin flag, revokes and suspends the former admin row).
+  // A backup is taken on the volume first; if it cannot be taken, 162 is held back this boot and says so — the site
+  // still starts, on today's behaviour, and the next boot tries again.
+  const heldBack = new Set();
+  let pending162 = true;
+  try { pending162 = !db.prepare("SELECT 1 FROM schema_migrations WHERE id = '162_no_admin_in_users'").get(); } catch { pending162 = true; }
+  const hasAdminRows = (() => { try { return !!db.prepare("SELECT 1 FROM users WHERE is_admin = 1 LIMIT 1").get(); } catch { return false; } })();
+  if (pending162 && hasAdminRows) {   // a fresh database has nothing for 162 to change, so nothing to back up
+    try {
+      const b = createBackup("pre-162");
+      if (!b) throw new Error("the backup returned nothing");
+      console.log("[migrate] backup taken before 162_no_admin_in_users");
+    } catch (e) {
+      console.error(`[migrate] ⛔ 162_no_admin_in_users HELD BACK — no backup could be taken first: ${e.message}`);
+      heldBack.add("162_no_admin_in_users");
+    }
+  }
   try {
-    migrationCount = applyPendingMigrations(db, MIGRATIONS, {
+    migrationCount = applyPendingMigrations(db, MIGRATIONS, { hold: heldBack,
       onApplied: (m) => console.log(`[migrate] ✓ ${m.id}`),
     });
   } catch (e) {
@@ -5352,13 +5399,10 @@ setTimeout(() => runResumeRetentionSweep("boot"), 90_000).unref?.();
 setInterval(() => runResumeRetentionSweep("interval"), 24 * 3600_000).unref?.();
 
 // ⛔ D95 break glass (i): ADMIN_OWNER_EMAIL names the owner's ADMIN ACCOUNT; boot makes sure it exists (no password —
-// a sign-in link sets one). The legacy ADMIN_USER row below is created only while the switch is off; Phase 2 removes it.
+// a sign-in link sets one). ⛔ Phase 2 (10-13): the legacy ADMIN_USER / ADMIN_PASSWORD bootstrap into `users` is gone —
+// an admin is never a users row (migration 162 makes the database refuse one), and its "admin" / "changeme" default
+// was a standing hazard. A server with no admin account is set up with ADMIN_OWNER_EMAIL.
 ensureOwnerAdmin(db, process.env.ADMIN_OWNER_EMAIL);
-const adminExists = adminEnforced() || db.prepare("SELECT id FROM users WHERE username=?").get(ADMIN_USER);
-if (!adminExists) {
-  db.prepare("INSERT INTO users (username,password_hash,is_admin) VALUES (?,?,1)")
-    .run(ADMIN_USER, hashPassword(ADMIN_PASSWORD));
-}
 
 // PRICING lives in shared/anthropicModels.js — see that file to update per-token costs.
 // This module used to carry its own ANTHROPIC_PRICING table plus a calculateCost() that had
