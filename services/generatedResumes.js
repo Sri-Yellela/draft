@@ -32,6 +32,7 @@
 // read when the sweep runs, so a résumé an application points at is never swept.
 
 import { currentBaseUploadId } from "./baseResumeHistory.js";
+import { deleteUnlinkedPdfs } from "./resumePdfArtifacts.js";
 
 export const DEFAULT_RESUME_RETENTION_DAYS = 90;
 
@@ -173,6 +174,8 @@ export function deleteGeneratedResume(db, userId, jobId) {
   return db.transaction(() => {
     const a = db.prepare("DELETE FROM resumes WHERE user_id=? AND job_id=?").run(userId, String(jobId)).changes;
     const b = db.prepare("DELETE FROM resume_versions WHERE user_id=? AND job_id=?").run(userId, String(jobId)).changes;
+    // ⭐ D98: a PDF the extension made for this résumé goes with it — unless an application record keeps it.
+    deleteUnlinkedPdfs(db, userId, jobId);
     // The job is no longer "a job I generated for" — the flag the board's own-rows and /d read.
     try { db.prepare("UPDATE user_jobs SET resume_generated = 0, updated_at = unixepoch() WHERE user_id=? AND job_id=?").run(userId, String(jobId)); }
     catch { /* a fixture without user_jobs */ }
