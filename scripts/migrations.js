@@ -4554,4 +4554,25 @@ export const MIGRATIONS = [
           BEGIN SELECT RAISE(ABORT, 'D95: an admin is an admin account, never a users row'); END;
       `,
     },
+    {
+      // ⛔ D95, the owner's word (10-13): "delete the suspended admin row". Only a row 162 retired — suspended with the
+      // "Former admin row (D95)" reason — and nothing else. It owned no user data (WORKLOG 42); what it does hold goes
+      // with it by the existing cascades (its notifications, sessions, tokens, its revoked connection, its plugin-call
+      // log). The one reference that would block the delete — a plan request it decided (decided_by, a foreign key with
+      // no cascade) — is cleared; the decision keeps its coded actor (decided_by_actor 'user:1'). History rows that name
+      // it (the audit log, an override's set_by, a crawler setting's updated_by) are not constraints and stay as written,
+      // each with its *_actor. An audit row records the delete. server.js backs up first and holds this back if it cannot.
+      id: "163_delete_former_admin_row",
+      sql: `
+        UPDATE plan_upgrade_requests SET decided_by = NULL
+          WHERE decided_by IN (SELECT id FROM users WHERE status = 'suspended' AND suspended_reason LIKE 'Former admin row (D95)%');
+        UPDATE user_limits SET updated_by = NULL
+          WHERE updated_by IN (SELECT id FROM users WHERE status = 'suspended' AND suspended_reason LIKE 'Former admin row (D95)%');
+        INSERT INTO admin_audit_log (admin_user_id, actor_kind, actor, action, target, before_json, reason)
+          SELECT NULL, 'system', 'system', 'user.delete', 'user:' || id, '{"username":"' || username || '","status":"suspended"}',
+                 'D95: the former admin row, deleted on the owner''s word (10-13)'
+          FROM users WHERE status = 'suspended' AND suspended_reason LIKE 'Former admin row (D95)%';
+        DELETE FROM users WHERE status = 'suspended' AND suspended_reason LIKE 'Former admin row (D95)%';
+      `,
+    },
   ];

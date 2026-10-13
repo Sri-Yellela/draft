@@ -82,7 +82,7 @@ test("⛔ D95: the migration is ADDITIVE and IDEMPOTENT, and its backfill is tru
   assert.deepEqual(rows, [{ admin_user_id: 1, actor_kind: "user", actor: "user:1" }, { admin_user_id: null, actor_kind: "system", actor: "system" }]);
   const sql = MIGRATIONS.find(m => m.id === "159_admin_accounts").sql;
   assert.doesNotMatch(sql, /\bDROP\b|\bDELETE FROM\b|UPDATE users/i, "159: nothing destructive, and users is left alone");
-  assert.equal(applyPendingMigrations(d, MIGRATIONS), 1, "then 162");
+  assert.equal(applyPendingMigrations(d, MIGRATIONS), 2, "then 162 and 163");
   assert.equal(applyPendingMigrations(d, MIGRATIONS), 0, "and never twice");
 });
 
@@ -95,7 +95,7 @@ test("⛔ D95 PHASE 2 (162): the former admin row loses its credentials FIRST, i
   d.prepare("INSERT INTO oauth_connections (id, user_id, client_id, scope) VALUES (1, 1, 'c', 'resume:read'), (2, 3, 'c', 'resume:read')").run();
   d.prepare("INSERT INTO oauth_tokens (token_hash, connection_id, kind, scope, resource, expires_at) VALUES ('t1', 1, 'access', 'resume:read', 'r', unixepoch()+3600), ('t3', 2, 'access', 'resume:read', 'r', unixepoch()+3600)").run();
   d.prepare("INSERT INTO auth_contexts (token_hash, user_id, created_at, last_seen_at, expires_at, user_agent) VALUES ('a1', 1, unixepoch(), unixepoch(), unixepoch()+3600, 'resume-master-extension'), ('a3', 3, unixepoch(), unixepoch(), unixepoch()+3600, 'resume-master-extension')").run();
-  assert.equal(applyPendingMigrations(d, MIGRATIONS), 1);
+  assert.equal(applyPendingMigrations(d, MIGRATIONS.slice(0, MIGRATIONS.findIndex(m => m.id === "163_delete_former_admin_row"))), 1, "162 alone");
   const u1 = d.prepare("SELECT is_admin, status, suspended_reason FROM users WHERE id = 1").get();
   assert.equal(u1.is_admin, 0, "no users row is an admin");
   assert.equal(u1.status, "suspended", "the former admin row cannot sign in or call the API as a person");
@@ -113,10 +113,24 @@ test("⛔ D95 PHASE 2 (162): the former admin row loses its credentials FIRST, i
   d.prepare("INSERT INTO users (username, password_hash, is_admin) VALUES ('y', 'h', 0)").run();   // a person still can be made
   // and server.js backs up first, holding 162 back if it cannot
   const server = read("server.js");
-  assert.match(server, /if \(pending162 && hasAdminRows\) \{[\s\S]{0,200}createBackup\("pre-162"\)/);
-  assert.match(server, /heldBack\.add\("162_no_admin_in_users"\)/);
+  assert.match(server, /\{ id: "162_no_admin_in_users", changes: "SELECT 1 FROM users WHERE is_admin = 1 LIMIT 1" \}/);
+  assert.match(server, /const b = createBackup\(label\);/);
+  assert.match(server, /for \(const m of due\) heldBack\.add\(m\.id\);/, "held back if the backup cannot be taken");
   assert.match(server, /applyPendingMigrations\(db, MIGRATIONS, \{ hold: heldBack,/);
   assert.doesNotMatch(server, /ADMIN_PASSWORD \|\| "changeme"/, "the legacy admin/changeme bootstrap is gone");
+  // ⛔ 163 (owner 10-13, "delete the suspended admin row"): that row, and only that row, goes — cleanly
+  d.prepare("INSERT INTO users (id, username, password_hash, status, suspended_reason) VALUES (9, 'someone', 'h', 'suspended', 'Abuse report 12')").run();
+  d.prepare("INSERT INTO plan_upgrade_requests (user_id, requested_tier, status, decided_by, decided_by_actor) VALUES (3, 'PRO', 'approved', 1, 'user:1')").run();
+  d.pragma("foreign_keys = ON");
+  assert.equal(applyPendingMigrations(d, MIGRATIONS), 1, "163");
+  assert.equal(d.prepare("SELECT COUNT(*) FROM users WHERE id = 1").pluck().get(), 0, "the former admin row is gone");
+  assert.equal(d.prepare("SELECT status FROM users WHERE id = 9").pluck().get(), "suspended", "another suspended account is NOT touched");
+  assert.equal(d.prepare("SELECT status FROM users WHERE id = 3").pluck().get(), "active");
+  assert.deepEqual(d.prepare("SELECT decided_by, decided_by_actor FROM plan_upgrade_requests").get(), { decided_by: null, decided_by_actor: "user:1" },
+    "the blocking reference is cleared; the decision keeps who made it");
+  assert.equal(d.prepare("SELECT COUNT(*) FROM auth_contexts WHERE user_id = 1").pluck().get(), 0, "its own rows go with it");
+  assert.deepEqual(d.pragma("foreign_key_check"), []);
+  assert.equal(d.prepare("SELECT COUNT(*) FROM admin_audit_log WHERE action = 'user.delete' AND target = 'user:1'").pluck().get(), 1, "audited");
 });
 
 test("⛔ D95: admin identities are TOKENISED — their kind is readable from their shape", () => {
