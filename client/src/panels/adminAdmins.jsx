@@ -21,6 +21,7 @@ export function AdminsTab() {
   const [owner, setOwner] = useState(false);
   const [busy, setBusy] = useState(false);
   const [disabling, setDisabling] = useState(null);   // { publicId, action: "disable" | "enable", reason }
+  const [setting, setSetting] = useState(null);       // { publicId, a, b } — the FIRST password, while setting up
 
   const load = useCallback(() => { setErr(null); api("/api/admin/admins").then(setD).catch((e) => setErr(e.message)); }, []);
   useEffect(() => { load(); }, [load]);
@@ -29,7 +30,8 @@ export function AdminsTab() {
     setBusy(true); setSaid(null);
     try {
       const r = await api("/api/admin/admins", { method: "POST", body: JSON.stringify({ email, owner }) });
-      setSaid({ ok: true, text: r.linkSent ? `${r.admin.email} was added — a sign-in link is on its way to that address.` : `${r.admin.email} was added. The link email did not go out — send it again below.` });
+      setSaid({ ok: true, text: r.linkSent ? `${r.admin.email} was added — a sign-in link is on its way to that address.`
+        : r.message ? `${r.admin.email} was added. ${r.message}` : `${r.admin.email} was added. The link email did not go out — send it again below.` });
       setEmail(""); setOwner(false); load();
     } catch (e) { setSaid({ ok: false, text: e.message }); }
     finally { setBusy(false); }
@@ -38,7 +40,9 @@ export function AdminsTab() {
     setErr(null);
     try {
       const r = await api(`/api/admin/admins/${encodeURIComponent(publicId)}/${what}`, { method: "POST", body: JSON.stringify(body) });
-      if (what === "link") setSaid({ ok: !!r.linkSent, text: r.linkSent ? "A new sign-in link is on its way." : "The link email did not go out." });
+      if (what === "link") setSaid({ ok: !!r.linkSent, text: r.linkSent ? "A new sign-in link is on its way." : (r.message || "The link email did not go out.") });
+      if (what === "password") setSaid({ ok: true, text: `Password set for ${r.admin.email}. Sign out, then sign in at /admin/login with that email and password.` });
+      setSetting(null);
       setDisabling(null); load();
     } catch (e) { setErr(e.message); }
   };
@@ -55,6 +59,12 @@ export function AdminsTab() {
       purpose="The administrator accounts. An admin is never a user account: it has no profile, résumé, draft, ticket or connected app, and signs in here only."
       code="D95 · admin_accounts (adm_…) · admin_sessions (dft_adm_…, the draft_admin cookie, Path=/api/admin) · one-time links (dft_adml_…, 30 min) · every change in admin_audit_log with its actor"
       numbers={numbers}>
+      {d.settingUp && !d.emailReady && (
+        <div data-admins-no-email="" style={{ ...callout(C.WARNING), marginBottom: 12 }}>
+          Email is not set up on this server (<code>RESEND_API_KEY</code>), so no sign-in link can be sent. While no admin account has a
+          password yet, set it here with <b>Set the password…</b> — then sign in at /admin/login with that email.
+        </div>
+      )}
       {d.bootstrap && (
         <div style={{ ...callout(C.INFO), marginBottom: 12 }}>
           No admin account exists yet. The first one you add is an <b>owner</b>. Use an email that no user account uses — a person who is both has two accounts.
@@ -86,7 +96,17 @@ export function AdminsTab() {
               {a.disabledAt ? <Mark tone={C.DANGER}>disabled</Mark> : <Mark tone={C.SUCCESS}>enabled</Mark>}
               {!a.passwordSet && !a.disabledAt && <Mark tone={C.WARNING}>no password yet</Mark>}
               <span style={quiet}>last sign-in {when(a.lastSignInAt)}</span>
-              {disabling?.publicId === a.publicId ? (
+              {setting?.publicId === a.publicId ? (
+                <span style={{ ...row, flexBasis: "100%" }} data-admin-set-first="">
+                  <input type="password" autoComplete="new-password" aria-label={`New password for ${a.email}`} placeholder="New password (12 characters or more)" autoFocus
+                    value={setting.a} onChange={(e) => setSetting({ ...setting, a: e.target.value })} style={{ ...field, flex: "1 1 200px" }} />
+                  <input type="password" autoComplete="new-password" aria-label="The same again" placeholder="The same again"
+                    value={setting.b} onChange={(e) => setSetting({ ...setting, b: e.target.value })} style={{ ...field, flex: "1 1 160px" }} />
+                  <DepthButton size="compact" primary disabled={setting.a.length < 12 || setting.a !== setting.b}
+                    onClick={() => act(a.publicId, "password", { password: setting.a })}>Set the password</DepthButton>
+                  <DepthButton size="compact" onClick={() => setSetting(null)}>Cancel</DepthButton>
+                </span>
+              ) : disabling?.publicId === a.publicId ? (
                 <span style={{ ...row, flexBasis: "100%" }}>
                   <input aria-label={`Why ${disabling.action} ${a.email}?`} placeholder="Why? (required — it is in the audit log)" autoFocus value={disabling.reason}
                     onChange={(e) => setDisabling({ ...disabling, reason: e.target.value })} style={{ ...field, flex: "1 1 240px" }} />
@@ -98,6 +118,7 @@ export function AdminsTab() {
                 <DepthButton size="compact" onClick={() => setDisabling({ publicId: a.publicId, action: "enable", reason: "" })}>Enable…</DepthButton>
               ) : (
                 <>
+                  {d.settingUp && !a.passwordSet && <DepthButton size="compact" primary onClick={() => setSetting({ publicId: a.publicId, a: "", b: "" })}>Set the password…</DepthButton>}
                   <DepthButton size="compact" onClick={() => act(a.publicId, "link")}>Send a sign-in link</DepthButton>
                   {d.you !== a.publicId && <DepthButton size="compact" onClick={() => setDisabling({ publicId: a.publicId, action: "disable", reason: "" })}>Disable…</DepthButton>}
                 </>

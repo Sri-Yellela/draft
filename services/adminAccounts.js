@@ -218,3 +218,30 @@ export function enableAdminAccount(db, { publicId }) {
   db.prepare("UPDATE admin_accounts SET disabled_at = NULL, disabled_reason = NULL WHERE id = ?").run(a.id);
   return publicAdmin(getAdminById(db, a.id));
 }
+
+/**
+ * ⭐ BOOTSTRAP (owner, 10-13: no email reached them — production has no RESEND_API_KEY). Until ANY enabled admin
+ * account has a password, the switch-off legacy admin (already signed in to the console) may finish setting the
+ * first ones up: send links, and set an account's FIRST password directly. Nothing secret is displayed — the person
+ * types their own new password — and once one admin account has a password this door is shut for good.
+ */
+export function adminBootstrapping(db) {
+  try { return !db.prepare("SELECT 1 FROM admin_accounts WHERE password_hash IS NOT NULL AND disabled_at IS NULL").get(); }
+  catch { return false; }
+}
+
+/** The FIRST password of an admin account that has none (bootstrap only — the route checks adminBootstrapping). */
+export function setFirstAdminPassword(db, { publicId, password }) {
+  if (typeof password !== "string" || password.length < ADMIN_PASSWORD_MIN) {
+    throw new AdminAccountError(`An admin password is at least ${ADMIN_PASSWORD_MIN} characters.`);
+  }
+  const a = getAdminByPublicId(db, publicId);
+  if (!a) throw new AdminAccountError("No such admin account.", 404);
+  if (a.disabled_at) throw new AdminAccountError("That admin account is disabled.");
+  if (a.password_hash) throw new AdminAccountError("That admin account already has a password — it changes from a sign-in link.", 409);
+  db.transaction(() => {
+    db.prepare("UPDATE admin_accounts SET password_hash = ?, password_set_at = ? WHERE id = ?").run(hashPassword(password), now(), a.id);
+    db.prepare("UPDATE admin_sign_in_links SET used_at = ? WHERE admin_id = ? AND used_at IS NULL").run(now(), a.id);
+  })();
+  return getAdminById(db, a.id);
+}

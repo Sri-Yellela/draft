@@ -11,7 +11,7 @@ import express from "express";
 import {
   ADMIN_COOKIE, ADMIN_COOKIE_PATH, ADMIN_PASSWORD_MIN, AdminAccountError, publicAdmin, listAdminAccounts, createAdminAccount,
   disableAdminAccount, enableAdminAccount, getAdminByPublicId, countAdmins, issueSignInLink, consumeSignInLink, verifyAdminSignIn,
-  verifyBreakGlass, createAdminSession, revokeAdminSession,
+  verifyBreakGlass, createAdminSession, revokeAdminSession, adminBootstrapping, setFirstAdminPassword,
 } from "../services/adminAccounts.js";
 import { adminCookieOptions, readCookie } from "../services/adminGuard.js";
 import { adminActor, actorOf } from "../services/actor.js";
@@ -35,7 +35,8 @@ function limiter({ max = 10, windowMs = 15 * 60 * 1000 } = {}) {
 /**
  * @param {{ db, requireAdmin, production: boolean, sendEmail: Function, baseUrl: (req) => string, env?: object, log? }} o
  */
-export function createAdminAuthRouters({ db, requireAdmin, production, sendEmail, baseUrl, env = process.env, log = console }) {
+export function createAdminAuthRouters({ db, requireAdmin, production, sendEmail, baseUrl, env = process.env, log = console,
+  emailReady = () => !!env.RESEND_API_KEY || !production }) {
   const authRouter = express.Router();
   const adminsRouter = express.Router();
   const allow = limiter();
@@ -52,7 +53,10 @@ export function createAdminAuthRouters({ db, requireAdmin, production, sendEmail
     try { writeAudit(db, { actor: adminActor(admin), action, target: `admin:${admin.public_id}`, ...extra }); }
     catch (e) { log.warn?.("[admin-auth] audit failed:", e.message); }
   };
+  // Email not set up at all is said plainly — a fact about the server, not about any address.
+  const NO_EMAIL = "Email is not set up on this server (RESEND_API_KEY), so no link can be sent. Sign in with the old admin login and set the password in Admin → System → Admins.";
   const sendLink = async (req, admin) => {
+    if (!emailReady()) return { sent: false, why: "email_unconfigured" };
     const issued = issueSignInLink(db, admin.id);
     if (!issued) return { sent: false };
     const url = `${baseUrl(req).replace(/\/$/, "")}/admin/set-password?token=${encodeURIComponent(issued.token)}`;
@@ -89,6 +93,7 @@ export function createAdminAuthRouters({ db, requireAdmin, production, sendEmail
   authRouter.post("/link", async (req, res) => {
     const email = String(req.body?.email || "").trim().toLowerCase();
     if (!allow(`link|${ipOf(req)}|${email}`)) return res.status(429).json({ error: "Too many tries. Wait a few minutes." });
+    if (!emailReady()) return res.status(503).json({ error: NO_EMAIL, code: "email_unconfigured" });
     const admin = db.prepare("SELECT * FROM admin_accounts WHERE email = ? AND disabled_at IS NULL").get(email);
     if (admin) await sendLink(req, admin);
     res.json({ ok: true, said: LINK_SAID });
@@ -130,19 +135,26 @@ export function createAdminAuthRouters({ db, requireAdmin, production, sendEmail
     res.json({ ok: true });
   });
 
-  // ── Admin → System → Admins. Owner only. Bootstrap: while NO admin account exists, a legacy admin may create the
-  // first one, and it is an owner — so the switch can be proved without touching the server's variables.
+  // ── Admin → System → Admins. Owner only. BOOTSTRAP: until any enabled admin account has a password, the legacy admin
+  // (switch off, already in the console) may list, add (the first is an owner), resend a link and set a FIRST password
+  // — so the switch can be proved without email and without touching the server's variables. (Owner 10-13: the
+  // first rule allowed only the first add, so a link that never arrived could not even be sent again.)
+  const BOOTSTRAP_ROUTES = [["GET", /^\/$/], ["POST", /^\/$/], ["POST", /^\/[^/]+\/link$/], ["POST", /^\/[^/]+\/password$/]];
   const ownerOnly = (req, res, next) => {
     if (req.admin?.is_owner) return next();
-    if (!req.admin && !req.adminEnforced && countAdmins(db) === 0 && req.method === "POST" && req.path === "/") { req.bootstrapOwner = true; return next(); }
-    if (!req.admin && !req.adminEnforced && countAdmins(db) === 0 && req.method === "GET" && req.path === "/") return next();
+    if (!req.admin && !req.adminEnforced && adminBootstrapping(db) && BOOTSTRAP_ROUTES.some(([m, p]) => m === req.method && p.test(req.path))) {
+      req.bootstrap = true;
+      if (req.method === "POST" && req.path === "/" && countAdmins(db) === 0) req.bootstrapOwner = true;
+      return next();
+    }
     res.status(403).json({ error: "Only an owner admin account can manage admin accounts." });
   };
   const fail = (res, e) => (e instanceof AdminAccountError ? res.status(e.status).json({ error: e.message })
     : (log.error?.("[admins]", e.message), res.status(500).json({ error: "The change failed." })));
 
   adminsRouter.get("/", requireAdmin, ownerOnly, (req, res) => {
-    res.json({ admins: listAdminAccounts(db), you: req.admin ? req.admin.public_id : null, bootstrap: !req.admin && countAdmins(db) === 0 });
+    res.json({ admins: listAdminAccounts(db), you: req.admin ? req.admin.public_id : null,
+      bootstrap: !req.admin && countAdmins(db) === 0, settingUp: !!req.bootstrap, emailReady: emailReady() });
   });
 
   adminsRouter.post("/", requireAdmin, ownerOnly, async (req, res) => {
@@ -152,7 +164,7 @@ export function createAdminAuthRouters({ db, requireAdmin, production, sendEmail
       const created = createAdminAccount(db, { email: req.body?.email, isOwner, createdBy: by.ref });
       writeAudit(db, { actor: by, action: "admin.create", target: `admin:${created.public_id}`, after: { email: created.email, owner: !!created.is_owner } });
       const mail = await sendLink(req, created);
-      res.json({ ok: true, admin: publicAdmin(created), linkSent: mail.sent });
+      res.json({ ok: true, admin: publicAdmin(created), linkSent: mail.sent, ...(mail.why === "email_unconfigured" ? { message: NO_EMAIL } : {}) });
     } catch (e) { fail(res, e); }
   });
 
@@ -181,7 +193,18 @@ export function createAdminAuthRouters({ db, requireAdmin, production, sendEmail
       if (a.disabled_at) throw new AdminAccountError("That admin account is disabled.");
       const mail = await sendLink(req, a);
       writeAudit(db, { actor: actorOf(req), action: "admin.link_sent", target: `admin:${a.public_id}`, after: { sent: mail.sent } });
-      res.json({ ok: true, linkSent: mail.sent });
+      res.json({ ok: true, linkSent: mail.sent, ...(mail.why === "email_unconfigured" ? { message: NO_EMAIL } : {}) });
+    } catch (e) { fail(res, e); }
+  });
+
+  // BOOTSTRAP ONLY: the first password of an account that has none, typed by the person in the console. Audited.
+  adminsRouter.post("/:publicId/password", requireAdmin, ownerOnly, (req, res) => {
+    try {
+      if (!req.bootstrap) throw new AdminAccountError("A password is set from the account's own sign-in link.", 403);
+      const a = setFirstAdminPassword(db, { publicId: req.params.publicId, password: req.body?.password });
+      writeAudit(db, { actor: actorOf(req), action: "admin.password_set_bootstrap", target: `admin:${a.public_id}`,
+        reason: "first admin password, set in the console while no admin account had one" });
+      res.json({ ok: true, admin: publicAdmin(a) });
     } catch (e) { fail(res, e); }
   });
 
