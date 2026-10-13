@@ -1,4 +1,10 @@
-FROM node:20-bookworm-slim
+# ⛔ PINNED (10-13): a moving `node:20-bookworm-slim` tag rolled to Node 20.20.2 and every build failed in
+# `npm install`. better-sqlite3 12.11.1 ships no prebuilt binary for Node 20 (ABI 115 — its Linux x64 prebuilds
+# are ABI 127 / 137 / 141 / 147: Node 22 / 24 / 25 / 26), so on Node 20 it compiles from source, and node-gyp
+# fetches Node's headers from nodejs.org — which answered 502 during two deploys (939cff4, ece6731). Node 22 has
+# the prebuilt binary, so the build no longer depends on nodejs.org; the digest pins the exact image, so a tag
+# that moves cannot change the build under us. Move it on purpose, with a better-sqlite3 prebuild for its ABI.
+FROM node:22.23.2-bookworm-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9
 
 WORKDIR /app
 
