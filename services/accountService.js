@@ -261,6 +261,9 @@ export const MERGE_PLAN = Object.freeze({
   base_resume_uploads: "move",
   // D96 §4 (164): a person's remembered answers — INTO's answer to a question wins on a clash; the history moves.
   saved_answers: "keepInto", answer_history: "move",
+  // D98 (165–166): an on-page generation is a request log and goes (its résumé is a resume_versions row, which moves);
+  // the PDF the person attached is their file and moves (its generation link is cleared with the request).
+  extension_resume_generations: "drop", resume_pdf_artifacts: "move",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

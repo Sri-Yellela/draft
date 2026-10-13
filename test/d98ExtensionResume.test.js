@@ -16,6 +16,7 @@ import { sanitiseResumeHtml } from "../services/resumePreviewSanitiser.js";
 import { storeGeneratedResume } from "../services/generatedResumes.js";
 import { snapshotResumeForRecord } from "../services/applicationArtifacts.js";
 import { USER_HIDDEN_GENERATION_FIELDS } from "../services/costVisibility.js";
+import { at, lastAt } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const BASE = "Ada Example — Software Engineer. Built distributed systems in Go and Python for six years; led a team of four; " +
@@ -209,7 +210,7 @@ test("⛔ cancel during the work: nothing is stored or attached; the slot stays 
   assert.equal(m.slots(), 1, "the model call was sent — the slot is not refunded");
   // coreGenerateResume honours the hook: before the model call and before the store
   const src = read("server.js");
-  const core = src.slice(src.indexOf("async function coreGenerateResume("), src.indexOf("// ── COST VISIBILITY (owner, 10-09)"));
+  const core = src.slice(at(src, "async function coreGenerateResume("), at(src, "// ── COST VISIBILITY (owner, 10-09)"));
   const before = core.indexOf('if (isCancelled?.()) throw new GenerationCancelledError("before_model");');
   const call = core.indexOf("generated = await toolsService.generate(generateBody);");
   const after = core.indexOf('if (isCancelled?.()) throw new GenerationCancelledError("after_model");');
@@ -399,7 +400,7 @@ test("a generation left queued by a restart is failed and refunded — recovery,
 test("migrations 165 and 166 are additive and byte-identical in both runners", () => {
   const raw = (p) => fs.readFileSync(p, "utf8");
   // the whole entry, from its opening brace (its comment included) to its closing one — raw bytes, CRLF and all
-  const block = (s, id) => { const i = s.indexOf(`      id: "${id}"`); assert.ok(i > 0, id); return s.slice(s.lastIndexOf("    {", i), s.indexOf("\n    },", i)); };
+  const block = (s, id) => { const i = at(s, `      id: "${id}"`); return s.slice(lastAt(s, "    {", i), at(s, "\n    },", i)); };
   for (const id of ["165_extension_resume_generations", "166_resume_pdf_artifacts"]) {
     assert.equal(block(raw("server.js"), id), block(raw("scripts/migrations.js"), id), `${id} differs between the runners`);
     assert.doesNotMatch(block(raw("server.js"), id), /\bDROP\b|DELETE FROM|UPDATE \w+ SET|ALTER TABLE/i, `${id} is additive`);
