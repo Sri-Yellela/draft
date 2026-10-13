@@ -205,7 +205,9 @@ export function copySheetRows(packet = {}) {
   // canonical fields: the saved answers for this employer, the worked-here fact, and the work and education history.
   for (const s of packet.savedAnswers || []) {
     if (s?.question && s.answer != null && String(s.answer).trim() !== "" && !s.optIn) {
-      rows.push({ label: s.question, value: String(s.answer), name: null, eligibility: !!s.eligibility, provenance: "saved_answer" });
+      // ⭐ D96 §4: where it came from and when it was acknowledged; an eligibility row says "you are attesting to this".
+      rows.push({ label: s.question, value: String(s.answer), name: null, eligibility: !!s.eligibility, provenance: "saved_answer",
+        source: s.source ?? null, acknowledgedAt: s.acknowledgedAt ?? null, attesting: !!(s.attesting ?? s.eligibility) });
     }
   }
   if (packet.workedHere?.answer) rows.push({ label: `Worked at ${packet.workedHere.company} before?`, value: packet.workedHere.answer, name: null, eligibility: false, provenance: "work_history" });

@@ -14,6 +14,25 @@ const KIND_TAGS = [
   ["motivation", "Own words"], ["workedHere", "Work history"], ["template", COMPANY_TOKEN],
 ];
 
+// ⭐ D96 §4 · the lifecycle: a remembered answer's state, the date it was acknowledged, and its history.
+const CATEGORY_WORDS = {
+  work_auth: "work authorisation", sponsorship: "sponsorship", visa: "visa", citizenship: "citizenship",
+  clearance: "clearance", criminal: "criminal history", eeo: "voluntary disclosure",
+};
+const SOURCE_WORDS = { you_typed: "you typed it", you_acknowledged: "you acknowledged it", legacy: "saved before the review panel" };
+const EVENT_WORDS = { changed: "Changed on the page", acknowledged: "Acknowledged", edited: "Edited in Settings" };
+function answerDate(isoString, opts = { day: "numeric", month: "short", year: "numeric" }) {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", opts);
+}
+/** "You last reviewed your work-authorisation answers in July" — the quiet 90-day line, or null. */
+function reviewLine(reviewDue) {
+  if (!reviewDue?.due) return null;
+  const what = (reviewDue.categories || []).map(c => CATEGORY_WORDS[c] || c.replace(/_/g, " ")).join(", ") || "eligibility";
+  return `You last reviewed your ${what} answers in ${answerDate(reviewDue.lastReviewedAt, { month: "long", year: "numeric" })}. Are they still right?`;
+}
+
 function download(name, text, type) {
   const url = URL.createObjectURL(new Blob([text], { type }));
   const a = document.createElement("a");
@@ -33,9 +52,15 @@ export function SavedAnswersPanel() {
   const [testQ, setTestQ] = useState("");
   const [testCompany, setTestCompany] = useState("");
   const [testResult, setTestResult] = useState(null);
+  const [lifecycle, setLifecycle] = useState([]);
+  const [reviewDue, setReviewDue] = useState(null);
+  const [editingKeyed, setEditingKeyed] = useState(null);   // { id, answer }
 
   const load = useCallback(async () => {
-    try { setEntries((await api("/api/saved-answers")).entries || []); }
+    try {
+      const d = await api("/api/saved-answers");
+      setEntries(d.entries || []); setLifecycle(d.lifecycle || []); setReviewDue(d.reviewDue || null);
+    }
     catch (e) { setMsg(e.message || "Could not load your saved answers."); }
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -53,6 +78,18 @@ export function SavedAnswersPanel() {
   const remove = (e) => run(async () => {
     const d = await api("/api/saved-answers", { method: "DELETE", body: JSON.stringify({ question: e.question, company: e.company }) });
     setEntries(d.entries || []); setMsg("Deleted.");
+  });
+  const saveKeyed = () => run(async () => {
+    await api(`/api/saved-answers/lifecycle/${editingKeyed.id}`, { method: "PUT", body: JSON.stringify({ answer: editingKeyed.answer }) });
+    setEditingKeyed(null); await load(); setMsg("Saved — remembered for next time.");
+  });
+  const removeKeyed = (row) => run(async () => {
+    await api(`/api/saved-answers/lifecycle/${row.id}`, { method: "DELETE" });
+    await load(); setMsg("Deleted — the next form that asks will ask you again.");
+  });
+  const stillRight = () => run(async () => {
+    const d = await api("/api/saved-answers/review", { method: "POST", body: JSON.stringify({ action: "confirmed" }) });
+    setReviewDue(d.reviewDue || null); setMsg("Thanks — reviewed.");
   });
   const exportAs = (format) => run(async () => {
     const r = await fetch(`/api/saved-answers/export?format=${format}`, { credentials: "include", headers: authHeaders() });
@@ -91,7 +128,67 @@ export function SavedAnswersPanel() {
           to exactly that wording — never by a similar one — and draft never opts you in.
         </div>
         {msg && <div style={{ ...sub, color: theme.accentText, marginTop: 6 }}>{msg}</div>}
+        {reviewLine(reviewDue) && (
+          <div data-review-due="" style={{ ...sub, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 6 }}>
+            <span style={markStyle(theme.textDim, { kind: "info" })}>Review</span>
+            <span>{reviewLine(reviewDue)}</span>
+            <button style={btn} disabled={busy} onClick={stillRight}>Still right</button>
+          </div>
+        )}
       </div>
+
+      {/* ── D96 §4 · Remembered on application pages: state, date acknowledged, history ── */}
+      <section style={box} data-lifecycle-answers="">
+        <div style={h}>Remembered on application pages</div>
+        <div style={sub}>
+          Answers you acknowledged in the review panel — used by every later fill and shown in the Copy sheet. Change one
+          on a page and it is not used again until you acknowledge the new value. Terms, consent and signature boxes are
+          never remembered: those are always your own click.
+        </div>
+        {lifecycle.length === 0 && <div style={sub}>Nothing remembered from a page yet.</div>}
+        {lifecycle.map(row => (
+          <div key={row.id} data-lifecycle-row={row.state} style={{ borderTop: `1px solid ${theme.border}`, paddingTop: 8,
+                                                                    display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: theme.text }}>{row.question}</div>
+              {editingKeyed?.id === row.id ? (
+                <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+                  <input value={editingKeyed.answer} onChange={e => setEditingKeyed({ ...editingKeyed, answer: e.target.value })} style={{ ...input, maxWidth: 320 }} placeholder="Your answer"/>
+                  <button style={btn} disabled={busy || !editingKeyed.answer.trim()} onClick={saveKeyed}>Save and remember</button>
+                  <button style={btn} disabled={busy} onClick={() => setEditingKeyed(null)}>Cancel</button>
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: theme.textMuted, wordBreak: "break-word" }}>
+                  {row.state === "acknowledged" ? row.answer : <em>changed on a page — you will be asked again</em>}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 3, alignItems: "center" }}>
+                <span style={markStyle(row.state === "acknowledged" ? C.SUCCESS : C.WARNING)}>
+                  {row.state === "acknowledged" ? "Acknowledged" : "Changed"}
+                </span>
+                {row.attesting && <span style={markStyle(theme.textDim)}>You are attesting to this</span>}
+                <span style={{ fontSize: 11, color: theme.textDim }}>
+                  {row.state === "acknowledged"
+                    ? `${SOURCE_WORDS[row.source] || "saved"} · acknowledged ${answerDate(row.acknowledgedAt)}`
+                    : `changed ${answerDate(row.changedAt)}`}
+                </span>
+              </div>
+              {row.history?.length > 0 && (
+                <details style={{ marginTop: 4 }}>
+                  <summary style={{ fontSize: 11, color: theme.textMuted, cursor: "pointer" }}>History ({row.history.length})</summary>
+                  {row.history.map((ev, i) => (
+                    <div key={i} style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>
+                      {answerDate(ev.at)} · {EVENT_WORDS[ev.event] || ev.event}: {ev.from ?? "—"} → {ev.to ?? "—"}{ev.jobId ? ` · job ${ev.jobId}` : ""}
+                    </div>
+                  ))}
+                </details>
+              )}
+            </div>
+            <button style={btn} disabled={busy} onClick={() => setEditingKeyed({ id: row.id, answer: row.answer || "" })}>Edit</button>
+            <button style={{ ...btn, color: C.DANGER }} disabled={busy} onClick={() => removeKeyed(row)}>Delete</button>
+          </div>
+        ))}
+      </section>
 
       {/* ── Test a question ── */}
       <section style={box} data-test-a-question="">
@@ -144,6 +241,7 @@ export function SavedAnswersPanel() {
                 {KIND_TAGS.filter(([k]) => e.kind?.[k]).map(([k, label]) => (
                   <span key={k} style={markStyle(theme.textDim)}>{label}</span>
                 ))}
+                {e.acknowledgedAt && <span style={{ fontSize: 11, color: theme.textDim }}>acknowledged {answerDate(e.acknowledgedAt)}</span>}
               </div>
             </div>
             <button style={btn} disabled={busy} onClick={() => setEditing({ question: e.question, answer: e.answer, company: e.company, previousQuestion: e.question })}>Edit</button>

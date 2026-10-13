@@ -82,8 +82,10 @@ test("⛔ D95: the migration is ADDITIVE and IDEMPOTENT, and its backfill is tru
   assert.deepEqual(rows, [{ admin_user_id: 1, actor_kind: "user", actor: "user:1" }, { admin_user_id: null, actor_kind: "system", actor: "system" }]);
   const sql = MIGRATIONS.find(m => m.id === "159_admin_accounts").sql;
   assert.doesNotMatch(sql, /\bDROP\b|\bDELETE FROM\b|UPDATE users/i, "159: nothing destructive, and users is left alone");
-  assert.equal(applyPendingMigrations(d, MIGRATIONS), 2, "then 162 and 163");
-  assert.equal(applyPendingMigrations(d, MIGRATIONS), 0, "and never twice");
+  // Up to 163, not "every migration": a later, unrelated migration (164) must not break a test about D95.
+  const through163 = MIGRATIONS.slice(0, MIGRATIONS.findIndex(m => m.id === "163_delete_former_admin_row") + 1);
+  assert.equal(applyPendingMigrations(d, through163), 2, "then 162 and 163");
+  assert.equal(applyPendingMigrations(d, through163), 0, "and never twice");
 });
 
 test("⛔ D95 PHASE 2 (162): the former admin row loses its credentials FIRST, is suspended and audited, and the database refuses an admin flag", () => {
@@ -122,7 +124,7 @@ test("⛔ D95 PHASE 2 (162): the former admin row loses its credentials FIRST, i
   d.prepare("INSERT INTO users (id, username, password_hash, status, suspended_reason) VALUES (9, 'someone', 'h', 'suspended', 'Abuse report 12')").run();
   d.prepare("INSERT INTO plan_upgrade_requests (user_id, requested_tier, status, decided_by, decided_by_actor) VALUES (3, 'PRO', 'approved', 1, 'user:1')").run();
   d.pragma("foreign_keys = ON");
-  assert.equal(applyPendingMigrations(d, MIGRATIONS), 1, "163");
+  assert.equal(applyPendingMigrations(d, MIGRATIONS.slice(0, MIGRATIONS.findIndex(m => m.id === "163_delete_former_admin_row") + 1)), 1, "163");
   assert.equal(d.prepare("SELECT COUNT(*) FROM users WHERE id = 1").pluck().get(), 0, "the former admin row is gone");
   assert.equal(d.prepare("SELECT status FROM users WHERE id = 9").pluck().get(), "suspended", "another suspended account is NOT touched");
   assert.equal(d.prepare("SELECT status FROM users WHERE id = 3").pluck().get(), "active");
