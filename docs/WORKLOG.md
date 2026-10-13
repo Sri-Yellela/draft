@@ -926,6 +926,8 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 
 ### 2026-10-13 (42h) · D95 PHASE 2 — "password set and signed in with the admin email, now enforce"
 
+✅ **LIVE — measured:** `/api/version` commit `dfddf04`, `latestApplied: 162_no_admin_in_users`; Railway logs 17:31:42Z `[migrate] backup taken before 162_no_admin_in_users`, 17:31:44Z `[migrate] ✓ 162_no_admin_in_users`; `/api/admin/auth/me` → `{ enforced: true, legacyAvailable: false, accountsExist: true }`.
+
 The owner proved the new path (an admin account, its password set in the console, signed in with its email). **Enforced:**
 - **`adminEnforced()` is ON by default** (`services/adminGuard.js`) — enforcement ships with the deploy; no Railway variable was touched. `ADMIN_ACCOUNTS_ENFORCE=0` is the rollback. Admin routes now read ONLY an admin session; the "Old admin sign-in" disappears from `/admin/login`; the legacy row cannot reach the console or a user route.
 - **Migration `162_no_admin_in_users`:** the former admin row's connected apps and their tokens, and its tab / extension / phone tokens, are revoked FIRST (cleared first, the Claude connection on row 1 would have started working as a person's); the row is **suspended** with its reason (kept until it is deleted after a backup — it owns no user data, WORKLOG 42); an audit row `user.admin_flag_cleared` per row (actor system); `is_admin` cleared; triggers **`users_no_admin_insert` / `users_no_admin_update`** make the database refuse an admin flag on any users row.
