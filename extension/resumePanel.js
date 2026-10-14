@@ -48,7 +48,8 @@
 
 import { authedFetch } from './auth.js';
 import { tabJob } from './answerMemory.js';
-import { bindingForTab, bindingLabel } from './tabBinding.js';
+import { bindTab, bindingForTab, bindingLabel } from './tabBinding.js';
+import { lookupBoardJob } from './boardJob.js';
 import { overlayTheme, fetchPdf } from './gated-handoff.js';
 import { noteResume, resumeFor } from './progress.js';
 import { C_LIGHT } from './tokens.js';
@@ -122,7 +123,29 @@ const ACTION = {
   edit: { role: 'edit', label: 'Edit in a full page' },
   download: { role: 'download', label: 'Download PDF' },
   downloadPrimary: { role: 'download', label: 'Download PDF', primary: true },
+  // D99: an unlinked tab's message is a button, not an instruction to go somewhere else
+  readPage: { role: 'read', label: 'Read this page now', primary: true },
 };
+
+// ⭐ D99 J12 · ATS ON THE PAGE — draft's own report on the user's base résumé, for the tab's job, shown at once. A
+// signed-in user is never sent to the free checker. The words are the web app's (shared/atsBands.js labels).
+const BAND_WORDS = Object.freeze({ strong: ['Strong match', 'ok'], moderate: ['Moderate match', 'info'], weak: ['Weak match', 'warn'],
+  not_enough_signal: ['Not enough signal', ''] });
+/** The report block, from boardJob.js atsFacts() — or null (nothing is shown rather than a guess). */
+export function reportModel(ats) {
+  if (!ats || typeof ats !== 'object') return null;
+  if (ats.state === 'no_base_resume') {
+    return { state: 'no_base_resume', line: 'Add your résumé in draft to see how it scores for this job.',
+      action: { role: 'add-resume', label: 'Add your résumé in draft' } };
+  }
+  if (ats.state === 'unavailable') return { state: 'unavailable', line: 'The ATS score is not available right now.' };
+  if (ats.state !== 'ready') return null;
+  const band = BAND_WORDS[Number.isFinite(ats.score) ? ats.band : 'not_enough_signal'] || BAND_WORDS.not_enough_signal;
+  const list = (xs) => (Array.isArray(xs) ? xs.map(x => plain(x, 60)).filter(Boolean).slice(0, 12) : []);
+  return { state: 'ready', head: Number.isFinite(ats.score) ? `ATS ${Math.round(ats.score)} · ${band[0]}` : `ATS · ${band[0]}`, tone: band[1],
+    note: 'Your base résumé, scored for this job.', matched: list(ats.matched), missing: list(ats.missing),
+    action: { role: 'report', label: 'Full report in draft' } };
+}
 
 /**
  * The panel's model for one moment. Inputs:
@@ -134,7 +157,11 @@ const ACTION = {
  *   warning    the server's regenerate warning, or null
  * ⛔ Only these named fields are read; nothing of the server's answer is copied wholesale into what is shown.
  */
-export function resumePanelModel({ job = null, view = null, allowance = null, error = null, attach = null, warning = null } = {}) {
+export function resumePanelModel(args = {}) {
+  const m = modelCore(args);
+  return { ...m, report: m.state === 'nojob' ? null : reportModel(args.report) };
+}
+function modelCore({ job = null, view = null, allowance = null, error = null, attach = null, warning = null } = {}) {
   const j = view?.job?.jobId ? { jobId: view.job.jobId, title: view.job.title ?? job?.title ?? null, company: view.job.company ?? job?.company ?? null } : job;
   const a = view?.allowance || allowance || null;
   const base = {
@@ -149,7 +176,8 @@ export function resumePanelModel({ job = null, view = null, allowance = null, er
 
   if (!j?.jobId) {
     return { ...base, state: 'nojob', title: 'Résumé for this job', job: null,
-      lines: [{ text: 'This tab is not linked to a job yet — capture the job, or press "Read this page" in the draft popup, then open this again.', tone: 'warn' }] };
+      lines: [{ text: 'This tab is not linked to a job yet. Read this page now and draft finds the job on your board — or capture it.', tone: 'warn' }],
+      actions: [ACTION.readPage] };
   }
   if (error && !view) {
     line(safe(error.error, UNAVAILABLE), 'warn');
@@ -230,7 +258,8 @@ export function modelWords(m) {
   if (!m) return '';
   return [m.title, m.job, m.changes, m.guard?.text, m.fileName, m.progress?.label,
     ...(m.lines || []).map(l => l.text), ...(m.reasons || []), ...(m.findings || []), ...(m.actions || []).map(x => x.label),
-    m.score ? `ATS ${m.score.before ?? '–'} → ${m.score.after ?? '–'}` : null].filter(Boolean).join('\n');
+    m.score ? `ATS ${m.score.before ?? '–'} → ${m.score.after ?? '–'}` : null,
+    m.report?.head, m.report?.line, m.report?.note, m.report?.action?.label].filter(Boolean).join('\n');
 }
 
 // ── the injected panel ─────────────────────────────────────────────────────────────────────────────────────────
@@ -283,6 +312,7 @@ export function renderResumePanel(model, meta) {
     .ib:focus-visible, .btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
     .sc { overflow: auto; padding: 10px 14px; flex: 1; min-height: 0; display: grid; gap: 8px; }
     .ln { margin: 0; font-size: 12.5px; }
+    .rpt { display: grid; gap: 6px; padding-bottom: 8px; border-bottom: 1px solid var(--c-border); }
     .ln.warn { color: var(--c-warning); font-weight: 700; }
     .ln.ok { color: var(--c-success); font-weight: 700; }
     .prog { font-size: 11.5px; color: var(--c-ink-muted); }
@@ -413,6 +443,14 @@ export function renderResumePanel(model, meta) {
         ${m.job ? `<div class="s" data-role="job">${esc(m.job)}</div>` : ''}
       </div>
       <div class="sc">
+        ${m.report ? `<div class="rpt" data-role="ats-report" data-state="${esc(m.report.state)}">${
+          m.report.head ? `<div class="marks"><span class="mark ${esc(m.report.tone || '')}" data-role="ats-score">${esc(m.report.head)}</span></div>` : ''}${
+          m.report.note ? `<p class="note">${esc(m.report.note)}</p>` : ''}${
+          m.report.line ? `<p class="ln">${esc(m.report.line)}</p>` : ''}${
+          m.report.matched?.length ? `<p class="ln" data-role="ats-matched"><b>Matched:</b> ${esc(m.report.matched.join(', '))}</p>` : ''}${
+          m.report.missing?.length ? `<p class="ln" data-role="ats-missing"><b>Missing:</b> ${esc(m.report.missing.join(', '))}</p>` : ''}${
+          m.report.action ? `<div class="acts"><button class="btn" data-role="${esc(m.report.action.role)}">${esc(m.report.action.label)}</button></div>` : ''}
+        </div>` : ''}
         ${lines}${prog}
         ${marks.length ? `<div class="marks">${marks.join('')}</div>` : ''}
         ${m.changes ? `<p class="ln" data-role="changes">${esc(m.changes)}</p>` : ''}
@@ -445,7 +483,8 @@ export function renderResumePanel(model, meta) {
   };
   const take = (reply, fallback) => {
     confirmRegenerate = false;
-    if (reply?.model) m = reply.model;
+    // the report is asked for when the panel opens; a later model (a status, a cancel) keeps it
+    if (reply?.model) m = { ...reply.model, report: reply.model.report ?? (reply.model.state === 'nojob' ? null : m.report) };
     draw(); schedule();
     if (!reply?.ok) say(reply?.message || fallback, true);
   };
@@ -494,6 +533,11 @@ export function renderResumePanel(model, meta) {
     if (role === 'cancel') { say('Cancelling…'); return take(await send({ type: 'RESUME_CANCEL', id: m.id }), 'Could not cancel — try again.'); }
     if (role === 'attach') { say('Attaching…'); return take(await send({ type: 'RESUME_ATTACH', id: m.id }), 'Could not attach — try Download PDF.'); }
     if (role === 'edit') { const r = await send({ type: 'RESUME_OPEN_EDITOR', id: m.id }); btn.disabled = false; if (!r?.ok) say(r?.message || 'Could not open draft.', true); else say('Opened in a new tab.'); }
+    if (role === 'read') { say('Reading this page…'); return take(await send({ type: 'RESUME_READ_PAGE', trigger: 'click' }), 'Could not reach draft — try again.'); }
+    if (role === 'report' || role === 'add-resume') {
+      const r = await send({ type: 'RESUME_OPEN_REPORT', to: role === 'report' ? 'report' : 'resume' }); btn.disabled = false;
+      if (!r?.ok) say(r?.message || 'Could not open draft.', true); else say('Opened in a new tab.');
+    }
   };
 
   const onKey = (ev) => {
@@ -653,6 +697,12 @@ export function handlersFor(serverUrl = null) {
   // have one, but it is not an application page, so neither counts as "the panel's click".
   const tabOf = (sender) => (sender?.tab?.id != null && /^https?:/.test(String(sender.tab.url || '')) ? sender.tab : null);
   const refuse = (message, extra = {}) => ({ ok: false, message, ...extra });
+  /** D99 J12: draft's report for the tab's job — asked of draft's server each time the panel opens, never stored. */
+  const reportFor = async (job) => {
+    if (!job?.jobId || !url()) return null;
+    const found = await lookupBoardJob(url(), job.jobId).catch(() => null);
+    return found?.ok ? found.ats : null;
+  };
 
   /** The tab's job and the generation the message names — which must be the tab's own job's current one. */
   async function scope(msg, sender) {
@@ -675,7 +725,7 @@ export function handlersFor(serverUrl = null) {
       const job = await jobOfTab(tab);
       const { view, error } = job ? await currentView(url(), job) : { view: null };
       const allowance = job && !view ? await allowanceNow(url()) : null;
-      const model = resumePanelModel({ job, view, allowance, error });
+      const model = resumePanelModel({ job, view, allowance, error, report: await reportFor(job) });
       try {
         const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: renderResumePanel, args: [model, await meta()] });
         return { ok: !!r?.result?.rendered, state: model.state };
@@ -761,6 +811,44 @@ export function handlersFor(serverUrl = null) {
       if (!r.ok || typeof pdfUrl !== 'string' || !pdfUrl.startsWith('/api/extension/resume/')) return refuse(r.body?.error || 'The PDF could not be made right now.');
       const pdf = await fetchPdf(url(), pdfUrl, r.body.pdf.fileName);
       return pdf ? { ok: true, base64: pdf.base64, fileName: pdf.fileName } : refuse('The PDF could not be fetched right now.');
+    },
+
+    /**
+     * ⭐ D99 · "Read this page now" — the unlinked panel's button (a trusted click on the page). The same read as the
+     * popup's "Read this page": the page's ADDRESS to draft (POST /api/import/context), and a posting draft knows binds
+     * the tab ('recognised'). Then the panel is drawn again for the job it found.
+     */
+    RESUME_READ_PAGE: async (msg, sender) => {
+      if (msg?.trigger !== 'click') return refuse('The page is read only from its button.');
+      const tab = tabOf(sender);
+      if (!tab) return refuse('Read the page from the panel on it.');
+      if (!url()) return refuse('Not configured.');
+      const r = await post(url(), '/api/import/context', { url: String(tab.url || '').slice(0, 2048) });
+      const p = r.ok ? r.body?.posting : null;
+      if (p?.known && p.jobId) await bindTab(tab, { jobId: p.jobId, title: p.title, company: p.company, via: 'recognised' }).catch(() => null);
+      const job = await jobOfTab(tab);
+      if (!job) {
+        return { ok: false, message: r.ok ? 'draft does not know this page yet — capture the job from the popup.' : 'Could not reach draft — try again.',
+          model: resumePanelModel({}) };
+      }
+      const { view, error } = await currentView(url(), job);
+      const allowance = !view ? await allowanceNow(url()) : null;
+      return { ok: true, model: resumePanelModel({ job, view, allowance, error, report: await reportFor(job) }) };
+    },
+
+    /** The report's "Full report in draft" (the job in the web app) or "Add your résumé in draft" (job profiles). */
+    RESUME_OPEN_REPORT: async (msg, sender) => {
+      const tab = tabOf(sender);
+      if (!tab) return refuse('Open the résumé panel on the application page.');
+      if (!url()) return refuse('Not configured.');
+      let path = '/app/job-profiles';
+      if (msg?.to === 'report') {
+        const job = await jobOfTab(tab);
+        if (!job) return refuse('This tab is not linked to a job.');
+        const found = await lookupBoardJob(url(), job.jobId);
+        path = found.ok && found.job.reportPath ? found.job.reportPath : `/app/jobs?job=${encodeURIComponent(job.jobId)}`;
+      }
+      try { await chrome.tabs.create({ url: `${url()}${path}` }); return { ok: true }; } catch { return refuse('Could not open draft.'); }
     },
 
     /** Edit in a full page: the server's openUrl for this job, on draft's own site, in a new tab. */

@@ -47,7 +47,7 @@ import { binRunJobs, listBin, restoreFromBin, purgeNow, BIN_DAYS } from "../serv
 import { APPLY_ORIGIN_FAMILIES, pageMatchesPacket, hostsSentence } from "../services/applyOrigins.js";
 import { learnedFamilies, recordSighting } from "../services/learnedOrigins.js";
 import { evidenceUrlOf } from "../services/evidenceUrl.js";
-import { packetAddressing, resolvePageJob, pageNotice, copySheetRows, handoffMessage, ownPageUrls, userHasJob } from "../services/manualHandoff.js";
+import { packetAddressing, resolvePageJob, pageNotice, copySheetRows, handoffMessage, ownPageUrls, jobOnUsersBoard } from "../services/manualHandoff.js";
 import { recordSubmission } from "../services/applicationRecords.js";
 
 // Live read through the one shared parser, exactly as server.js does — same flag, same function,
@@ -4267,12 +4267,13 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   /**
    * ⭐ THE TAB BINDING'S HINT (extension, owner 10-12): the job this tab captured or recognised, sent with the page
    * so a stage whose address names no job (Workday's sign-in, a step that changed without changing the URL) is
-   * still that job. Honoured ONLY for a job that is already the user's own — it can never reach someone else's.
+   * still that job. Honoured ONLY for a job that is the user's own or live on the board (D99: a tab the board opened
+   * is bound to a board job the user may never have saved) — never a retired or held-out posting that is not theirs.
    */
   function boundJob(userId, hint) {
     if (hint == null || hint === "") return null;
     const id = String(hint).slice(0, 128);
-    if (!userHasJob(db, userId, id)) return null;
+    if (!jobOnUsersBoard(db, userId, id)) return null;
     const row = db.prepare("SELECT job_id, title, company, url, apply_url, duplicate_of FROM scraped_jobs WHERE job_id=?").get(id);
     if (!row) return null;
     return { job: { jobId: String(row.job_id), title: row.title ?? null, company: row.company ?? null, url: row.url ?? null, applyUrl: row.apply_url ?? null },

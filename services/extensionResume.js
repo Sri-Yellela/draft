@@ -33,7 +33,7 @@ import { hashBase } from "./baseResumeHistory.js";
 import { getBaseResumeRecord } from "./simpleApplyProfile.js";
 import { compareResumes } from "./resumeChanges.js";
 import { listProfileClaims } from "./profileSignalAggregator.js";
-import { userHasJob } from "./manualHandoff.js";
+import { jobOnUsersBoard } from "./manualHandoff.js";
 import { USER_HIDDEN_GENERATION_FIELDS } from "./costVisibility.js";
 import { sanitiseResumeHtml } from "./resumePreviewSanitiser.js";
 import { findPdf, storePdf, readPdf, linkPdfToRecord, PdfStoreError } from "./resumePdfArtifacts.js";
@@ -216,13 +216,14 @@ export function createExtensionResumeService({ db, generate, preflight = () => n
   }
 
   /**
-   * Starts (or returns) the generation for this job. `jobId` must already be the user's own job.
+   * Starts (or returns) the generation for this job. `jobId` must be the user's own job or live on the board (D99:
+   * a tab the board opened — manualHandoff.js jobOnUsersBoard).
    * → { status, body } for the route.
    */
   function start(userId, { jobId, regenerate = false }) {
     if (!jobId) return userError("no_job");
     const id = String(jobId).slice(0, 128);
-    if (!userHasJob(db, userId, id) || !db.prepare("SELECT 1 FROM scraped_jobs WHERE job_id = ?").get(id)) return userError("not_your_job");
+    if (!jobOnUsersBoard(db, userId, id)) return userError("not_your_job");
     const base = baseResumeFor(db, userId);
     if (!base) return userError("no_base_resume");
 
