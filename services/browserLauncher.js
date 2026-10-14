@@ -107,7 +107,8 @@ export function buildLaunchArgs({ mode = "auto" } = {}) {
     "--disable-dev-shm-usage",
     "--disable-gpu",
     "--no-zygote",
-    "--single-process",
+    // ⛔ NOT --single-process (10-14, measured in the production container): Chromium 155 dies on a breakpoint trap
+    // (exit 133) with it and runs with --no-zygote alone. Its absence is pinned in test/browserLauncher.test.js.
     "--disable-extensions",
     "--disable-background-networking",
     "--disable-default-apps",
@@ -120,7 +121,7 @@ export function buildLaunchArgs({ mode = "auto" } = {}) {
   ];
   if (mode === "manual") {
     return args
-      .filter((arg) => arg !== "--single-process" && arg !== "--no-zygote")
+      .filter((arg) => arg !== "--no-zygote")
       .concat("--remote-debugging-port=0");
   }
   return args;
