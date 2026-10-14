@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback } from "react";
 import { api, authContextQuery } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
+import IngestFunnel from "../components/IngestFunnel.jsx";
 import { Panel, Step, Help, Dialog, useConfirm, h2, what, row, quiet, field, callout } from "./adminKit.jsx";
 // The second product is named by the one constant that holds its name (shared/brand.js).
 import { LEGACY_BRAND } from "../../../shared/brand.js";
@@ -1271,10 +1272,25 @@ export function GlanceTab({ theme }) {
               { key: "health", label: "health", color: r => HEALTH_COLOR(r.health) },
               { key: "lastRunAt", label: "last run", render: r => ago(r.lastRunAt) },
               { key: "crawlAge", label: "last ok crawl", render: r => <CrawlAgeMark r={r}/> },
-              { key: "written", label: "written", right: true, render: r => num(r.written) },
-              { key: "unchanged", label: "unchanged", right: true, render: r => num(r.unchanged) },
-              { key: "refused", label: "refused", right: true, render: r => num(r.refused) },
+              // 10-14: the headline is what is ON THE BOARD (new + changed + unchanged + merged duplicates) beside
+              // the fetch — not `written` (new or changed only) beside two gates' refusals, which read
+              // "accepted 80 / refused 1,878" on a run that kept 2,408. The funnel below says where the rest went.
+              { key: "fetched", label: "fetched", right: true, render: r => num(r.funnel?.fetched) },
+              { key: "onBoard", label: "on the board", right: true, render: r => num(r.onBoard) },
+              { key: "heldOff", label: "held off", right: true, render: r => num(r.heldOff) },
             ]}/>
+            {ing.sources.some(s => s.funnel?.fetched > 0) && (
+              <>
+                <div style={{ fontSize: 11, color: theme.textMuted, margin: "10px 0 6px" }}>
+                  Last run, per source: where every fetched posting went. {ing.funnelNote}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: 10 }}>
+                  {ing.sources.filter(s => s.funnel?.fetched > 0).map(s => (
+                    <IngestFunnel key={s.name} name={s.name} funnel={s.funnel} theme={theme}/>
+                  ))}
+                </div>
+              </>
+            )}
           </Card>
         </div>
         <div style={cell}>

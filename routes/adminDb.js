@@ -13,6 +13,7 @@ import { redactRow, redactRows, runReadOnlyQuery, secretColumnsMentioned } from 
 import { JobReviewError, jobReviewImpact, reassignJob, recentJobReviewChanges, undoJobReview } from "../services/adminJobReview.js";
 import { classifyTitle } from "../services/jobClassifier.js";
 import { getSourceStatus } from "../services/jobs/aggregator.js";
+import { runFunnel, RECUR_NOTE } from "../services/ingestFunnel.js";
 import { BRAND } from "../shared/brand.js";
 import { mayActAsAdmin } from "../shared/authPolicy.js";
 import { DIRECT_ATS_SOURCES } from "../services/jobs/directApplyFilter.js";
@@ -222,21 +223,22 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
         //                                                  this run, or confirmed still on it
         //   rejected     = dropped + ejected             — rows the CLASSIFIER refused on purpose
         //                                                  (unclassifiable role, blue-collar)
-        const fetchedRows  = Number(lastRun?.fetched   || 0);
-        const accountedFor = Number(lastRun?.written   || 0)
-                           + Number(lastRun?.unchanged || 0)
-                           + Number(lastRun?.merged    || 0);
+        //
+        // ⛔ BOTH ARE READ FROM runFunnel() (services/ingestFunnel.js) — the same partition the glance
+        // and the inspector DRAW, so the panel's "on the board" and this verdict are one computation.
+        const funnel       = runFunnel(lastRun);
+        const fetchedRows  = funnel?.fetched ?? 0;
+        const accountedFor = funnel?.onBoard ?? 0;
         // A44: rows the US-only gate holds out (A37) are refusals too. They are counted only in
         // details_json.outOfMarket, so without this a run whose yield was part classifier-refused
         // and part held out read `wrote_nothing` CRITICAL — "lost rows silently" — when every row
         // was accounted for. A source whose whole yield is non-US is `all_rejected`, a warn.
-        const heldOut      = (() => {
-          try { return Number(JSON.parse(lastRun?.details_json || "null")?.outOfMarket || 0); }
-          catch { return 0; }
-        })();
-        const rejected     = Number(lastRun?.dropped   || 0)
-                           + Number(lastRun?.ejected   || 0)
-                           + heldOut;
+        const heldOut      = funnel?.refused.find(p => p.key === "outOfMarket")?.n ?? 0;
+        // 10-14: and so are D78's gates — too old, outside computer science, and the on-board postings
+        // retired for either. They too live only in details_json, and A44 added outOfMarket alone, so a
+        // run whose whole fetch was too old or out of scope read `wrote_nothing` CRITICAL instead of
+        // `all_rejected`, and rejectedShare understated every source's refusals by the two largest gates.
+        const rejected     = funnel?.heldOff ?? 0;
 
         // Fetched rows, boarded none, and the classifier refused all of them. Nothing is broken in
         // the fetch; the source's entire yield is off-board. A different cause needs a different
@@ -293,6 +295,9 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
           // source contributes nothing at all) is the part that earns an alert.
           rejectedShare:   fetchedRows > 0 ? Number((rejected / fetchedRows).toFixed(3)) : null,
           heldOutOfMarket: heldOut,
+          // Where the last run put every posting it fetched — refused (by gate), retired, on the board,
+          // and the uncounted remainder named. The glance and the inspector both draw this object.
+          funnel,
           lastRun:         lastRun && {
             status: lastRun.status, at: lastRun.started_at,
             fetched: lastRun.fetched, written: lastRun.written,
@@ -366,8 +371,15 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
         if (assertReadableTable("rejected_jobs")) {
           for (const h of db.prepare(`
             SELECT source, company, MAX(rejected_at) AS last_seen_at,
-                   SUM(reason LIKE 'out_of_market:%') AS out_of_market
-            FROM rejected_jobs GROUP BY source, company
+                   COUNT(*) AS out_of_market
+            FROM rejected_jobs
+            -- 10-14: ONLY the US gate's rows. Its rejected_at is rewritten on every crawl that re-sees
+            -- the posting, which is what makes it a liveness proof for a company with no board rows.
+            -- Unfiltered, every other reason moved lastSeenAt too — and since ing-crawl-fixes writes
+            -- no_role for ~1,840 greenhouse postings a day, nearly every company would read "seen
+            -- tonight" off a refusal, hiding the stale slug this column exists to catch.
+            WHERE reason LIKE 'out_of_market:%'
+            GROUP BY source, company
           `).all()) {
             heldOutByCompany.set(`${h.source}|${h.company}`,
               { lastSeenAt: h.last_seen_at ?? null, outOfMarket: h.out_of_market || 0 });
@@ -574,11 +586,17 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
           // was true of two sources that were working, and gave a reader nothing to check it with.
           wrote_nothing:  `last run reported '${s.lastRun?.status}' and put none of its ` +
                           `${s.lastRun?.fetched ?? 0} fetched rows on the board ` +
-                          `(written 0, unchanged 0, merged 0, refused ${(s.lastRun?.dropped ?? 0) + (s.lastRun?.ejected ?? 0)})`,
+                          `(written 0, unchanged 0, merged 0, refused ${(s.lastRun?.dropped ?? 0) + (s.lastRun?.ejected ?? 0)}` +
+                          // 10-14: the gates' refusals too, so the gap this alert is about is a number to check.
+                          (s.funnel ? `, held off in all ${s.funnel.heldOff}, uncounted ${s.funnel.uncounted}` : "") + `)`,
           all_rejected:   `fetched ${s.lastRun?.fetched ?? 0} rows and the classifier refused ` +
                           `every one of them (${s.lastRun?.dropped ?? 0} unclassifiable, ` +
                           `${s.lastRun?.ejected ?? 0} blue-collar` +
                           (s.heldOutOfMarket ? `, ${s.heldOutOfMarket} outside the US` : "") +
+                          // 10-14: D78's gates, named the same way (services/ingestFunnel.js).
+                          (s.funnel?.refused || []).concat(s.funnel?.retired || [])
+                            .filter(p => p.n > 0 && !["outOfMarket", "noRoleFamily", "blueCollar"].includes(p.key))
+                            .map(p => `, ${p.n} ${p.label}`).join("") +
                           `) — the source works, its whole yield is off-board`,
           stale:          `no successful run in ${s.staleHours}h (threshold ${STALE_AFTER_HOURS}h)`,
           no_rows:        "has run but holds no active rows",
@@ -703,6 +721,36 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
   router.get("/pipeline-health", requireAdmin, (_req, res) => {
     try { res.json(pipelineHealth()); }
     catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── Route 0b: Refusal reasons — rejected_jobs, distinct postings by source × reason (10-14) ──────
+  // The funnel above is ONE run; this is the standing record of every posting held off the board and
+  // why. job_id is the table's PRIMARY KEY, so a row IS a distinct posting (a re-seen refusal rewrites
+  // its row, never adds one) and COUNT(*) is the distinct count.
+  //
+  // ⛔ NO ALLOW-LIST OF REASONS. Whatever string a gate wrote is grouped and returned as written — a new
+  // reason (`no_role`, being added for the classifier's dropped postings) appears the day it is first
+  // written, instead of being filtered out by a list that predates it. `out_of_market:<why>` keeps its
+  // detail; `family` is the part before the colon, for grouping. Read-only, and not part of
+  // pipelineHealth(): the nightly alert does not need it, so it does not pay for it.
+  router.get("/refusal-reasons", requireAdmin, (_req, res) => {
+    try {
+      if (!assertReadableTable("rejected_jobs")) return res.json({ measuredAt: Math.floor(Date.now() / 1000), available: false, rows: [], note: RECUR_NOTE });
+      const rows = db.prepare(`
+        SELECT COALESCE(NULLIF(source, ''), '(none)') AS source,
+               COALESCE(NULLIF(reason, ''), '(none)') AS reason,
+               COUNT(*) AS postings, MAX(rejected_at) AS last_at
+        FROM rejected_jobs
+        GROUP BY 1, 2
+        ORDER BY source, postings DESC, reason
+      `).all().map(r => ({
+        source: r.source, reason: r.reason, family: String(r.reason).split(":")[0],
+        postings: r.postings, lastAt: r.last_at ?? null,
+      }));
+      const bySource = {};
+      for (const r of rows) bySource[r.source] = (bySource[r.source] || 0) + r.postings;
+      res.json({ measuredAt: Math.floor(Date.now() / 1000), available: true, rows, bySource, note: RECUR_NOTE });
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
   // ── Route 1: Scrape Monitor ───────────────────────────────────
