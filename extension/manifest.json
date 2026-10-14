@@ -31,6 +31,18 @@
     "service_worker": "background.js",
     "type": "module"
   },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://jobsviadraft.com/*"
+      ],
+      "js": [
+        "boardBridge.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

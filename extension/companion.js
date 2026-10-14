@@ -119,6 +119,12 @@ function boundLine(context) {
   const job = b || (p?.captured ? p : null);
   if (!job) return '';
   const what = [job.title, job.company].filter(Boolean).join(' at ') || 'this job';
+  // D99 J11: the draft board opened this tab and handed the job over — with the score draft gave it then.
+  if (b?.via === 'board') {
+    const a = b.ats;
+    const score = a?.state === 'ready' && Number.isFinite(a.score) ? ` · ATS ${a.score}` : '';
+    return `From your board — ${what}${score}`;
+  }
   return (b?.via === 'recognised' && !p?.captured) ? `On draft — ${what}` : `Captured ✓ — ${what}`;
 }
 
