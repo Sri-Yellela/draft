@@ -22,7 +22,7 @@
  * Throughout: consent / signature / password untouched; nothing submitted; no request outside draft's server; no answer
  * value in chrome.storage; both themes paint from tokens; no capsule shapes. Synthetic person (Ada Example) only.
  */
-import { defaultSeed, freePort, waitUntil, sleep, OWNER_STAGE, TENANT } from '../extensionBrowser.mjs';
+import { defaultSeed, freePort, waitUntil, sleep, OWNER_STAGE, TENANT, BUSY_MS } from '../extensionBrowser.mjs';
 import { mountExtensionResume, seedBaseResume } from '../extensionResumeStub.mjs';
 import { fresh } from './panelLifecycle.mjs';
 
@@ -37,9 +37,9 @@ async function prepareAndRead(h, { dismiss = true } = {}) {
   const panel = await waitUntil(() => h.readPanel(), 20000, 200);
   let reply = r;
   if (r?.pending && dismiss) {
-    await waitUntil(() => h.readBadge().then(b => (b && b.state !== 'progress' ? b : null)), 8000);
+    await waitUntil(() => h.readBadge().then(b => (b && b.state !== 'progress' ? b : null)), BUSY_MS);
     await h.dismissBadge();
-    reply = await Promise.race([r.reply, sleep(20000).then(() => ({ timeout: true }))]);
+    reply = await Promise.race([r.reply, sleep(BUSY_MS).then(() => ({ timeout: true }))]);
   }
   return { reply, panel, pending: !!r?.pending };
 }
@@ -187,7 +187,7 @@ export default async function run(h, { check, observe, section }) {
   section('2 · read ("Read this page")');
   const ctx = await h.popupContext();
   check('the page is read as this job, captured', ctx?.posting?.jobId === jobId && ctx?.posting?.captured === true, JSON.stringify(ctx?.posting || null).slice(0, 160));
-  const recRead = await waitUntil(async () => { const r = await progressRecord(); return r?.read?.at ? r : null; }, 3000);
+  const recRead = await waitUntil(async () => { const r = await progressRecord(); return r?.read?.at ? r : null; }, BUSY_MS);
   check('the progress record says the page was read', !!recRead?.read?.at, JSON.stringify(recRead?.read || null));
 
   section('3 · prepare → fill → the review panel (My Information)');
@@ -210,25 +210,27 @@ export default async function run(h, { check, observe, section }) {
 
   section('4 · acknowledge the guess; type a needed answer with Remember');
   check('acknowledge pressed on Postal Code', await clickInRow('Postal Code', 'ack'));
-  const ackSaved = await waitUntil(() => db.prepare("SELECT answer, source, state FROM saved_answers WHERE question_key = 'postal code'").get(), 4000);
+  const ackSaved = await waitUntil(() => db.prepare("SELECT answer, source, state FROM saved_answers WHERE question_key = 'postal code'").get(), BUSY_MS);
   check('…REMEMBERED: one saved answer, you acknowledged, acknowledged', ackSaved?.answer === '01101' && ackSaved?.source === 'you_acknowledged' && ackSaved?.state === 'acknowledged', JSON.stringify(ackSaved));
-  const afterAck = await waitUntil(async () => { const p = await h.readPanel(); return row(p, 'Postal Code')?.band === 'ok' ? p : null; }, 4000) || await h.readPanel();
+  const afterAck = await waitUntil(async () => { const p = await h.readPanel(); return row(p, 'Postal Code')?.band === 'ok' ? p : null; }, BUSY_MS) || await h.readPanel();
   check('…the row moves to Filled', row(afterAck, 'Postal Code')?.band === 'ok', JSON.stringify(row(afterAck, 'Postal Code')));
   await page.type('#rm-gate-review-overlay >>> .rm-row[data-group="need"] [aria-label="Address Line 1"]', '1 Example Way');
   const rememberOn = await h.readShadow('rm-gate-review-overlay', (root) => [...root.querySelectorAll('.rm-row')]
     .find(x => x.querySelector('[data-role="label"]')?.textContent === 'Address Line 1')?.querySelector('[data-role="remember"]')?.checked ?? null);
   check('"Remember for next time" is ticked on the row', rememberOn === true);
   await page.click('#rm-gate-review-overlay >>> [aria-label="Address Line 1"] ~ [data-role="use"]');
-  await waitUntil(() => page.$eval('#ws-addressLine1', el => el.value === '1 Example Way'), 4000);
+  await waitUntil(() => page.$eval('#ws-addressLine1', el => el.value === '1 Example Way'), BUSY_MS);
   check('"use it" puts it in the page\'s own field', await page.$eval('#ws-addressLine1', el => el.value) === '1 Example Way');
-  const typed = await waitUntil(() => db.prepare("SELECT answer, source, state FROM saved_answers WHERE question_key = 'address line 1'").get(), 4000);
+  const typed = await waitUntil(() => db.prepare("SELECT answer, source, state FROM saved_answers WHERE question_key = 'address line 1'").get(), BUSY_MS);
   check('…REMEMBERED: you typed, acknowledged', typed?.answer === '1 Example Way' && typed?.source === 'you_typed' && typed?.state === 'acknowledged', JSON.stringify(typed));
-  const afterType = await waitUntil(async () => { const p = await h.readPanel(); return row(p, 'Address Line 1')?.band === 'ok' ? p : null; }, 4000) || await h.readPanel();
+  const afterType = await waitUntil(async () => { const p = await h.readPanel(); return row(p, 'Address Line 1')?.band === 'ok' ? p : null; }, BUSY_MS) || await h.readPanel();
   check('the panel recounts: one fewer needs you, nothing to check', /^\d+ of 13 filled · \d+ needs? you · 0 to check/.test(afterType?.subtitle || '') && readyIsTrue(afterType), afterType?.subtitle);
   await h.dismissBadge();
-  await Promise.race([p1.reply, sleep(20000)]);
+  await Promise.race([p1.reply, sleep(BUSY_MS)]);
   await guardedOk('My Information');
-  const recFill = await waitUntil(async () => { const r = await progressRecord(); return r?.filled?.of ? r : null; }, 4000);
+  // Wait for THIS fill's counts — the first fill's record (6 of 13) is already there, so 'any counts' could read it.
+  const WANT_FILL = JSON.stringify({ check: 0, n: 7, needYou: 6, of: 13 });
+  const recFill = await waitUntil(async () => { const r = await progressRecord(); return JSON.stringify(r?.filled) === WANT_FILL ? r : null; }, BUSY_MS) || await progressRecord();
   observe('the progress record after the My Information fill', recFill);
   check('the progress record holds the counts — prepared, filled N of 13', !!recFill?.prepared?.at && recFill?.filled?.of === 13, JSON.stringify(recFill?.filled || null));
   check('…and they are the panel\'s AFTER the acknowledgement and the typed answer: 7 of 13 · 6 need you · 0 to check', JSON.stringify(recFill?.filled) === JSON.stringify({ check: 0, n: 7, needYou: 6, of: 13 }), JSON.stringify(recFill?.filled));
@@ -246,20 +248,28 @@ export default async function run(h, { check, observe, section }) {
         return true;
       } catch { return false; }
     }, 6000, 250);
-    await waitUntil(() => page.$eval(input, el => el.checked), 4000);
-    await waitUntil(async () => row(await h.readPanel(), label)?.band === 'ok', 4000);
+    await waitUntil(() => page.$eval(input, el => el.checked), BUSY_MS);
+    await waitUntil(async () => row(await h.readPanel(), label)?.band === 'ok', BUSY_MS);
     check(`"${label.slice(0, 40)}…" → ${value}, on the page`, await page.$eval(input, el => el.checked) === true);
   }
   const elig = db.prepare("SELECT question_key, answer, state FROM saved_answers WHERE question_key LIKE 'are you legally authorized%' OR question_key LIKE 'will you now or in the future%' OR question_key LIKE 'which locations%'").all();
   check('…all three REMEMBERED on one acknowledgement each (eligibility included)', elig.length === 3 && elig.every(e => e.state === 'acknowledged'), JSON.stringify(elig));
   await h.dismissBadge();
-  await Promise.race([aq.reply, sleep(20000)]);
+  await Promise.race([aq.reply, sleep(BUSY_MS)]);
 
   section('5 · reopen the popup — it remembers');
   const readPopup = async () => {
+    // The popup names the job of the window's ACTIVE tab, read once when it loads. Under a loaded suite the harness's
+    // own control tab could still be the active one, and the popup then honestly shows no job — so the fixture is
+    // brought to the front and Chrome is asked until it agrees, before the popup opens.
+    await page.bringToFront();
+    await waitUntil(() => h.control.evaluate(async (u) => {
+      const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
+      return !!t && t.url.split('#')[0] === u;
+    }, page.url().split('#')[0]), BUSY_MS);
     const before = new Set(browser.targets());
     await h.control.evaluate(() => chrome.tabs.create({ url: chrome.runtime.getURL('popup.html'), active: false }));
-    const t = await browser.waitForTarget((x) => !before.has(x) && x.url().endsWith('/popup.html'), { timeout: 8000 });
+    const t = await browser.waitForTarget((x) => !before.has(x) && x.url().endsWith('/popup.html'), { timeout: BUSY_MS });
     const pp = await t.page();
     const got = await waitUntil(() => pp.evaluate(() => {
       const box = document.getElementById('progress');
@@ -267,7 +277,7 @@ export default async function run(h, { check, observe, section }) {
       return { job: document.getElementById('progress-job').textContent, line: document.getElementById('progress-line').textContent,
         list: [...document.querySelectorAll('#in-progress-list li')].map(li => ({ job: li.querySelector('.ip-job')?.textContent, where: li.querySelector('.ip-where')?.textContent, here: li.className === 'here' })),
         listShown: !document.getElementById('in-progress').hidden };
-    }), 6000);
+    }), BUSY_MS);
     await pp.close();
     await page.bringToFront();
     return got;
@@ -293,17 +303,17 @@ export default async function run(h, { check, observe, section }) {
   section('7 · generate a résumé (the panel\'s own click) → attach');
   const opened = await h.send({ type: 'RESUME_PANEL_OPEN' });
   check('the résumé panel opens on the page — not generated', opened?.ok === true && opened.state === 'none', JSON.stringify(opened));
-  await waitUntil(() => h.readShadow('rm-resume-panel', (root, host) => host.dataset.state === 'none'), 6000);
+  await waitUntil(() => h.readShadow('rm-resume-panel', (root, host) => host.dataset.state === 'none'), BUSY_MS);
   check('opening it started nothing', CTL.generations().length === 0);
   await page.click('#rm-resume-panel >>> [data-role="generate"]');
-  const ready = await waitUntil(() => h.readShadow('rm-resume-panel', (root, host) => (host.dataset.state === 'ready' ? true : null)), 20000);
+  const ready = await waitUntil(() => h.readShadow('rm-resume-panel', (root, host) => (host.dataset.state === 'ready' ? true : null)), BUSY_MS);
   check('one trusted click → Ready (one generation, one slot)', ready === true && CTL.generations().length === 1 && CTL.slots() === 1, `${CTL.generations().length} / ${CTL.slots()}`);
   const rp = norm(await page.evaluate(bgOf, 'rm-resume-panel', '.rp'));
   check(`the résumé panel paints from the ${theme} tokens (SURFACE_MENU)`, rp === norm(C.SURFACE_MENU), `${rp} vs ${C.SURFACE_MENU}`);
   await sweepCapsules();
   await h.goStep('myExperience');
   await page.click('#rm-resume-panel >>> [data-role="attach"]');
-  const attached = await waitUntil(() => h.readShadow('rm-resume-panel', (root, host) => (['attached', 'fallback'].includes(host.dataset.state) ? { state: host.dataset.state, title: root.querySelector('[data-role="title"]')?.textContent } : null)), 10000);
+  const attached = await waitUntil(() => h.readShadow('rm-resume-panel', (root, host) => (['attached', 'fallback'].includes(host.dataset.state) ? { state: host.dataset.state, title: root.querySelector('[data-role="title"]')?.textContent } : null)), BUSY_MS);
   check(`Attach → "Attached: ${FILE}"`, attached?.state === 'attached' && attached?.title === `Attached: ${FILE}`, JSON.stringify(attached));
   const status = await page.$eval('#ws-resume-status', el => el.textContent).catch(() => '');
   check('…and the fixture\'s upload shows the name', new RegExp(`${FILE.replace(/\./g, '\\.')} · Successfully Uploaded!`).test(status), status);
