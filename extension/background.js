@@ -9,6 +9,8 @@ import { noteCapture, noteContext, noteReviewed } from './progress.js';
 import { handlers as ANSWER_MEMORY_HANDLERS, configureAnswerMemory } from './answerMemory.js';
 // D98 §4–§5 (J6): the résumé on the page — generate (the panel's own trusted click only), preview, attach, fallback.
 import { handlers as RESUME_PANEL_HANDLERS, configureResumePanel } from './resumePanel.js';
+// D99 J11: the board hands a job to the extension (boardBridge.js, the one content script, on draft's origin only).
+import { handlers as BOARD_OPEN_HANDLERS, configureBoardOpen } from './boardOpen.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
 // ⭐ One job per tab across every stage of its application, and the Copy sheet as an in-page panel (owner, 10-12).
 import { bindTab, bindingForTab, clearBinding, setBindingDock, bindingLine } from './tabBinding.js';
@@ -169,7 +171,8 @@ async function popupContext(tab) {
   await noteContext(board, binding);
   return {
     url, origin,
-    binding: binding ? { jobId: binding.jobId, title: binding.title, company: binding.company, via: binding.via, boundAt: binding.boundAt } : null,
+    binding: binding ? { jobId: binding.jobId, title: binding.title, company: binding.company, via: binding.via, boundAt: binding.boundAt,
+               ...(binding.via === 'board' && binding.board?.ats ? { ats: binding.board.ats } : {}) } : null,
     posting: board?.posting || null,
     ats: board?.ats || null,
     recent: board?.recent || [],
@@ -693,6 +696,17 @@ chrome.tabs.onRemoved.addListener((tabId) => { forgetTab(tabId); });
 configureResumePanel({ serverUrl: RESUME_MASTER_URL });
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const handle = RESUME_PANEL_HANDLERS[msg?.type];
+  if (!handle) return false;
+  handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
+  return true;
+});
+
+// ── D99 J11: the board hands a job to the extension ───────────────────────────────────────────────────────────────
+// boardOpen.js's handlers: OPEN_JOB only from boardBridge.js on draft's own origin (the server confirms the job and
+// names the address the new tab opens); BOARD_TAB only from the popup, which reads the extension's own binding.
+configureBoardOpen({ serverUrl: RESUME_MASTER_URL });
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  const handle = BOARD_OPEN_HANDLERS[msg?.type];
   if (!handle) return false;
   handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
   return true;

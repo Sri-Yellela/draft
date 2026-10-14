@@ -142,7 +142,16 @@ What is read and sent, and when:
 
 ## Content scripts
 
-**None declared.** The manifest declares no content script.
+**One declared, on draft's own origin only (D99 J11, owner 10-14: "build the bridge"):** `boardBridge.js`,
+`matches: ["https://jobsviadraft.com/*"]` — already the one host, so **no permission is added** — top frame only,
+`document_start`. It lets the draft website hand a job from the board to the extension: the page posts a **job id**
+(never an address), the script forwards it to the service worker, and `boardOpen.js` asks draft's server whether
+the job is on this user's board, opens **the address the server returns** with `chrome.tabs.create` (no `tabs`
+permission is needed to open a tab) and binds that tab to the job. It reads nothing from the page and sends nothing
+anywhere itself. It accepts a message only from the same window, draft's origin, carrying this load's nonce, a
+well-formed job id, during a real click (user activation); the worker re-checks the sender (a top-frame content
+script of this extension on draft's origin) and rate-limits (10 a minute). No script is declared on any job board —
+pinned exactly by `test/manifestMinimumPermission.test.js`.
 
 ⭐ **One is REGISTERED at run time, and only where the user asked (D97, owner 10-13):** `autoReadWatcher.js`,
 by `chrome.scripting.registerContentScripts`, for a site the user switched on in Options and Chrome granted —
@@ -179,9 +188,12 @@ they exist for, and a test rejects build-hashed class names outright.
 ## Deliberate absences
 
 - **`externally_connectable` is ABSENT AND MUST STAY ABSENT.** With it, a website could message the
-  extension. The design inverts that on purpose: nothing pushes inward, the extension *pulls* from
+  extension. The design inverts that on purpose: nothing pushes data inward, the extension *pulls* from
   our server with the user's own session. Adding this key would not "fix" anything; it would remove a
   security property. Asserted by `test/extensionGatedHandoff.test.js`.
+  ⭐ **The one inward path is D99's bridge (above):** draft's own page, through the declared content script, may
+  ask the extension to open **a job id** — no data, no address, no answer. What the tab opens and whether it opens
+  at all is decided by draft's server for the signed-in user, never by the page.
 - **No remotely hosted code.** MV3 forbids it and nothing loads any — no `eval`, no `new Function`,
   no `importScripts`, no remote `<script src>`.
 - **`popup.css` is deleted, not unshipped.** It was the v0.1.0 stylesheet, superseded by the inline

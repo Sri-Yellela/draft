@@ -5,7 +5,14 @@
 // captured a job — or draft recognised the posting in it — the tab REMEMBERS that job, and fill, prepare, the
 // Copy sheet and "I submitted it" use it first.
 //
-//   bind:{tabId} → { origin, jobId, title, company, via: 'capture' | 'recognised', boundAt, dock }
+//   bind:{tabId} → { origin, jobId, title, company, via: 'capture' | 'recognised' | 'board', boundAt, dock,
+//                    origins?, board? }
+//
+//   · ⭐ D99 J11 · via 'board': the draft board handed the job over and the extension opened the tab itself
+//     (boardOpen.js) — the server confirmed the job and gave the address. `board` is what the server said then:
+//     { logo, reportPath, ats } (the score, band and matched / missing TERMS — words from the posting, never an
+//     answer or a page value). `origins` is the address's origin plus its known redirect twin (Greenhouse's two hosts),
+//     because the opened tab's address is not readable until the user opens the popup on it.
 //
 //   · chrome.storage.session — memory-backed, discarded when the browser closes; cleared when the tab closes,
 //     when a DIFFERENT posting is recognised in it, or by "Unlink this page".
@@ -24,16 +31,26 @@ export function originOfUrl(url) {
   try { const u = new URL(url || ''); return /^https?:$/.test(u.protocol) ? u.origin : null; } catch { return null; }
 }
 
+// Hosts that redirect to each other for the SAME posting (a board URL opened by draft can land on either).
+const ORIGIN_TWINS = [['https://boards.greenhouse.io', 'https://job-boards.greenhouse.io']];
+export function originTwins(origin) {
+  const pair = ORIGIN_TWINS.find(p => p.includes(origin));
+  return pair ? [...pair] : (origin ? [origin] : []);
+}
+
 /** Bind this tab to a job. A different job replaces the old binding; the same job keeps its first time and dock. */
-export async function bindTab(tab, { jobId, title = null, company = null, via = 'capture' } = {}) {
+export async function bindTab(tab, { jobId, title = null, company = null, via = 'capture', board = null } = {}) {
   const origin = originOfUrl(tab?.url);
   if (!tab?.id || !origin || jobId == null) return null;
   const prior = await loadBinding(tab.id);
-  const same = prior && String(prior.jobId) === String(jobId) && prior.origin === origin;
+  const same = prior && String(prior.jobId) === String(jobId) && onOrigin(prior, origin);
+  const boardFacts = board || (same ? prior.board : null) || null;
   const entry = {
     origin, jobId: String(jobId), title: title || prior?.title || null, company: company || prior?.company || null,
     via: same ? prior.via : via, boundAt: same ? prior.boundAt : Date.now(), dock: prior?.dock || 'right',
     ...(prior?.panelDock ? { panelDock: prior.panelDock } : {}),
+    ...((same ? prior.via : via) === 'board' ? { origins: originTwins(origin) } : {}),
+    ...(boardFacts ? { board: boardFacts } : {}),
   };
   await writeBinding(tab.id, entry);
   return entry;
@@ -45,10 +62,12 @@ export async function loadBinding(tabId) {
 }
 
 /** The binding for this tab AS IT IS NOW — null when the tab is on another origin than the one it was made on. */
+const onOrigin = (b, origin) => !!origin && (b.origin === origin || (Array.isArray(b.origins) && b.origins.includes(origin)));
+
 export async function bindingForTab(tab) {
   const b = await loadBinding(tab?.id);
   if (!b) return null;
-  return b.origin === originOfUrl(tab?.url) ? b : null;
+  return onOrigin(b, originOfUrl(tab?.url)) ? b : null;
 }
 
 export async function clearBinding(tabId) {
@@ -72,7 +91,7 @@ export const bindingLabel = (b) => [b?.title, b?.company].filter(Boolean).join('
 /** "Using Software Engineer at Zoom, captured 10:42" — what the fill says when it used the binding. */
 export function bindingLine(b) {
   if (!b) return '';
-  return `Using ${bindingLabel(b)}, ${b.via === 'capture' ? 'captured' : 'recognised'} ${hhmm(b.boundAt || Date.now())}`;
+  return `Using ${bindingLabel(b)}, ${b.via === 'capture' ? 'captured' : b.via === 'board' ? 'opened from your board' : 'recognised'} ${hhmm(b.boundAt || Date.now())}`;
 }
 
 /**

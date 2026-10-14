@@ -183,6 +183,10 @@ async function init() {
   // the browser already handed the popup. On a page that cannot be captured at all (chrome://, the
   // PDF viewer) Capture is shown DISABLED with its reason — never hidden (D13).
   const tab = await getCurrentTab().catch(() => null);
+  // D99 J11: a tab the draft board opened says so at once — "From your board — <job> · ATS 72". The extension's
+  // own record of the tab (boardOpen.js BOARD_TAB), not a page read and not a request.
+  const fromBoard = await chrome.runtime.sendMessage({ type: 'BOARD_TAB' }).catch(() => null);
+  if (fromBoard?.board) renderBinding({ binding: fromBoard.board });
   const cap = document.getElementById('btn-capture-job');
   if (!isWebPage(tab)) {
     cap.disabled = true;

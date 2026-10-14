@@ -155,7 +155,8 @@ test("⛔ D13: no new storage, no new permission — and all four actions stay v
   // MANIFEST_RATIONALE.md and reconciled in PRIVACY_RECONCILIATION.md. D13 itself still adds none.
   assert.deepEqual(manifest.permissions, ["activeTab", "contextMenus", "scripting", "storage"]);
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
-  assert.equal(manifest.content_scripts, undefined, "a content script appeared");
+  // D99 J11 (owner, 10-14: "build the bridge"): the ONE content script is the bridge, on draft's own origin only.
+  assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"], run_at: "document_start", all_frames: false }], "a content script other than D99's bridge appeared");
 
   const bg = read("extension/background.js");
   const ctx = bg.slice(at(bg, "async function popupContext"), at(bg, "async function previewActiveTab"));

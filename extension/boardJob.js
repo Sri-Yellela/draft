@@ -5,8 +5,7 @@
 // (the matched and missing terms), a number and a band, never an answer or a page value — and is not stored.
 //
 // Used by the on-page résumé panel (J12: a signed-in user with a base résumé sees draft's report, never the free
-// checker). ⚠ The board → extension bridge (J11's content script on jobsviadraft.com) would use it too; that part
-// waits on the owner's word (WORKLOG, 43d).
+// checker) and by the board → extension bridge (J11, boardOpen.js: the tab it opens is the address returned here).
 import { authedFetch } from './auth.js';
 
 const JOB_ID_RE = /^[\w.:|@\-]{1,128}$/;
