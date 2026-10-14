@@ -1,6 +1,6 @@
 import {
   runGatedHandoff, clearPacketForTab, sweepExpiredPackets, applyOverlayEdit,
-  loadBatchForTab, clearBatchForTab, portalQueueFor,
+  loadBatchForTab, clearBatchForTab, portalQueueFor, armBatchAdvance, takeBatchAdvance,
   prepareAndFill, recordSubmitted, copySheetFor, pageMatchFor, packetFillsOrigin, overlayTheme, loadPacketForTab,
 } from './gated-handoff.js';
 // D96 §3 (J1): where each application stands — local, per job, no answer values.
@@ -538,6 +538,8 @@ async function advanceBatch(tabId) {
     return { ok: true, packetId: next.packetId, applyUrl: next.applyUrl, navigated: false };
   }
 
+  // J11: arm the one load this advance causes — onUpdated below fills that load and no other (not a reload).
+  await armBatchAdvance(tabId, next.applyUrl);
   await chrome.tabs.update(tabId, { url: next.applyUrl });
   return { ok: true, packetId: next.packetId, applyUrl: next.applyUrl, navigated: true };
 }
@@ -564,6 +566,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
     await clearBatchForTab(tabId);
     return;
   }
+  // ⭐ J11: only the load the candidate's own "Next application" caused. A reload of a batched tab, or a same-URL
+  // re-navigation, is not an advance — it used to re-run a fill nobody asked for. (A same-URL advance never reaches
+  // here: advanceBatch runs that fill directly, since tabs.update to the URL already showing fires no load.)
+  if (!(await takeBatchAdvance(tabId))) return;
   const result = await runGatedHandoff({ serverUrl: RESUME_MASTER_URL, tab });
   await reportHandoff(tab, result);
 });
