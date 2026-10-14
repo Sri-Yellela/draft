@@ -180,7 +180,10 @@ export function createImportJobRouter(db, opts = null) {
     if (autoCaptureDisabled(db)) {
       return res.status(403).json({ error: "Automatic capture is switched off.", code: "auto_capture_disabled", retryable: false });
     }
-    const url = typeof req.body?.url === "string" ? req.body.url.slice(0, 2048) : "";
+    const raw = typeof req.body?.url === "string" ? req.body.url.slice(0, 2048) : "";
+    // ⭐ D97 (J5): the page's CANONICAL posting address where its ATS has one (services/jobPageKey.js — Workday: the
+    // locale, the stage and ?source= stripped), so the per-URL brake below keys per JOB, not per tracking link.
+    const url = pageKeyOf(raw)?.canonicalUrl || raw;
     const text = typeof req.body?.text === "string" ? req.body.text : "";
     if (!/^https?:[/][/]/i.test(url) || !text.trim()) {
       return res.status(400).json({ error: "Automatic capture sends the page's address and the text it read." });

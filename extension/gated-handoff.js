@@ -1782,9 +1782,11 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused, opts =
   //
   // Opt-in and default off. Asked every time rather than cached: consent that cannot be withdrawn
   // until a cache expires is not consent, and this is one request against our own server.
-  const capture = await captureFormSchema({
-    serverUrl, origin, shape, released,
-  }).catch(() => null);
+  // ⛔ D97 (J5): an AUTOMATIC fill never sends the form's structure — it runs without a click, so the opt-in capture
+  // (which is for the next candidate, not this one) stays a thing only a fill the user started can do.
+  const capture = opts.auto
+    ? { attempted: false, reason: 'automatic_fill' }
+    : await captureFormSchema({ serverUrl, origin, shape, released }).catch(() => null);
 
   const portal = portalForOverlay;
   if (portal.remaining > 0) {
@@ -1844,7 +1846,9 @@ let FILL_SEQ = 0;
 
 /** applyPlan's options that every fill passes — the never-fill rule's text, for the page-side last line. */
 function fillOptions(opts = {}) {
-  // `opts` is the fill's own options object (J5's `auto` mode will travel here); none of it widens what is filled.
+  // `opts` is the fill's own options object; none of it widens what is filled. D97 (J5): `auto` marks a fill draft started
+  // by itself (Options → Fill automatically) — applyPlan's never-fill rule is the same either way.
+  if (opts.auto) return { neverFillSource: NEVER_FILL_RE.source, auto: true };
   return { neverFillSource: NEVER_FILL_RE.source };
 }
 
@@ -1983,7 +1987,7 @@ const pageUrlOf = (tab) => {
  * packet on demand, then the SAME handoff runs straight away under the same gesture's grant. Every
  * check of the ordinary handoff still applies to the fill; nothing here is a second release path.
  */
-export async function prepareAndFill({ serverUrl, tab }) {
+export async function prepareAndFill({ serverUrl, tab, ...opts }) {
   const url = pageUrlOf(tab);
   if (!tab?.id || !url) return { ok: false, reason: 'unsupported_scheme', message: 'Only http(s) pages can be filled.' };
   let body;
@@ -2001,7 +2005,10 @@ export async function prepareAndFill({ serverUrl, tab }) {
   if (!packetFillsOrigin(body, new URL(url).origin)) {
     return { ok: false, reason: 'not_this_address', message: body.message, prepared: true, addresses: body.origins || null };
   }
-  const filled = await runGatedHandoff({ serverUrl, tab });
+  // D97 (J5): "Prepare automatically" builds the packet and stops — the fill is its own switch (`fill: false`).
+  if (opts.fill === false) return { ok: true, prepared: true, packetId: body.packetId ?? null, job: body.job || null, message: body.message || null };
+  const { fill: _fill, ...fillOpts } = opts;
+  const filled = await runGatedHandoff({ serverUrl, tab, ...fillOpts });
   return { ...filled, prepared: true, resume: body.resume || null };
 }
 

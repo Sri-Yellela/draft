@@ -1,9 +1,9 @@
 // ⭐ D64 · "Captured today: N" — the automatic captures, with an undo per item.
 //
-// Shown only while automatic capture is switched on (a local storage read — nothing goes to the server
-// when the popup opens, D23). The list is asked for when the user OPENS it, through the background
+// Shown only while automatic capture is switched on for at least one site (D97: the Capture column of Options'
+// table — a local storage read; nothing goes to the server when the popup opens, D23). The list is asked for when the user OPENS it, through the background
 // worker (AUTO_CAPTURES), and each Undo takes the posting off their board (AUTO_CAPTURE_UNDO).
-import { AUTO_CAPTURE_SETTING } from './autoCapture.js';
+import { AUTO_READ_KEY, normaliseSettings, SITES, consentCovers } from './autoRead.js';
 
 const box = document.getElementById('auto-today');
 const head = document.getElementById('auto-today-head');
@@ -36,7 +36,9 @@ async function load() {
   for (const c of caps) list.append(row(c));
 }
 
-chrome.storage.local.get(AUTO_CAPTURE_SETTING).then(({ [AUTO_CAPTURE_SETTING]: on }) => {
+chrome.storage.local.get(AUTO_READ_KEY).then(({ [AUTO_READ_KEY]: raw }) => {
+  const s = normaliseSettings(raw);
+  const on = !s.kill && SITES.some(site => s.sites[site.id].capture && consentCovers(s, site.id, 'capture'));
   if (!on) return;
   box.hidden = false;
   box.addEventListener('toggle', () => { if (box.open) void load(); });
