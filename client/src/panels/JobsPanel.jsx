@@ -59,6 +59,7 @@ import { markStyle, bandMarkStyle } from "../styles/mark.js";
 import { C } from "../styles/colorTokens.js";
 import { glass } from "../styles/glass.js";
 import { atsScorePair } from "../../../shared/resumeScores.js";
+import { openPosting } from "../lib/openPosting.js";
 
 // The three extension-bridge stubs that stood here (getLinkedInExtensionInstallUrl,
 // isLinkedInExtensionInstalled, sendExtensionRequest) are gone with cleanup 5.3. They returned
@@ -3416,7 +3417,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       await api(`/api/jobs/${job.jobId}/visited`, { method:"PATCH" });
     } catch {}
     markVisited(job);
-    window.open(job.url, "_blank", "noreferrer");
+    void openPosting(job, { url: job.url });   // D99 J11: through the extension when it is here
   }, [markVisited]);
 
   // -- Pagination --------------------------------------------

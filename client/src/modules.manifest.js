@@ -167,6 +167,7 @@ export const SHARED = Object.freeze({
   "lib/applyObstacles.js":              { what: "the apply line's vocabulary" },
   "lib/applyTools.js":                  { what: "the apply-run request constants" },
   "lib/oauthNext.js":                  { what: "the one return path after sign-in to a host's consent screen (D86)" },
+  "lib/openPosting.js":                 { what: "THE way a posting is opened — handed to the extension when it is here (D99 J11)" },
   "lib/boardPaging.js":                 { what: "the board's paging" },
   "lib/boardViewCache.js":              { what: "the board's view cache (D45)" },
   "lib/bubbleColumns.js":               { what: "the card rows' columns" },

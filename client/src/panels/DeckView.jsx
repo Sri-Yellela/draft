@@ -53,6 +53,7 @@ import { CARD, EXPAND_CLOCK, TWO_PANEL, cardSize, fanTransform, geometryFor, ori
 import DeckGeometryControl from "../components/DeckGeometryControl.jsx";
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
 import { readDeckOrder, writeDeckOrder } from "../lib/deckOrder.js";
+import { postingClick } from "../lib/openPosting.js";
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
 const TOAST_MS = DECISION_TOAST_MS;
@@ -205,7 +206,7 @@ function CollapsedScore({ card, onOpen }) {
 function PostingLinks({ job, onReport }) {
   return (
     <div style={{ display: "flex", gap: 18, marginTop: 16, flexWrap: "wrap", fontSize: 13.5, fontWeight: 700 }}>
-      {(job.applyUrl || job.url) && <a href={job.applyUrl || job.url} target="_blank" rel="noreferrer" style={{ color: C.ACCENT_INK }}>The posting ↗</a>}
+      {(job.applyUrl || job.url) && <a href={job.applyUrl || job.url} target="_blank" rel="noreferrer" onClick={(e) => postingClick(job, e)} style={{ color: C.ACCENT_INK }}>The posting ↗</a>}
       <Link to={jobDetailHref(job.id)} onClick={onReport} style={{ color: C.ACCENT_INK }}>Full report on the board →</Link>
     </div>
   );

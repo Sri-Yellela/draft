@@ -26,6 +26,7 @@ import {
 import { companyRows, companySummary } from "../../../shared/companyIdentity.js";
 import "./ApplicationHistory.css";
 import { WhatWeSentLink } from "./ResumeChangesPanel.jsx";
+import { postingClick } from "../lib/openPosting.js";
 
 const fmtDay = (sec) => sec == null ? "—"
   : new Date(sec * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -477,7 +478,7 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
                   {/* D1's rail: revealed on hover AND keyboard focus; always shown on touch. */}
                   <div className="ah__rail">
                     {row.applyUrl && (
-                      <a className="ah__sq" href={row.applyUrl} target="_blank" rel="noopener noreferrer"
+                      <a className="ah__sq" href={row.applyUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => postingClick(row, e)}
                         title="Open the posting" aria-label={`Open the posting for ${row.company || "this job"}`}>
                         <span aria-hidden="true">⌂</span><span className="ah__sq-cap">posting</span>
                       </a>

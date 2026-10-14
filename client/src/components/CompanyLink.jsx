@@ -1,4 +1,5 @@
 import { api } from "../lib/api.js";
+import { postingClick } from "../lib/openPosting.js";
 import "./CompanyLink.css";
 
 // ── D38 (owner, 10-06) · ONE COMPANY LINK, ON EVERY SURFACE ───────────────────────────────────────────
@@ -18,6 +19,9 @@ import "./CompanyLink.css";
 // Props: company, href (no href → plain text, same face), jobId (tags Pending on open), size
 //        ("card" | "panel" | "row"), className, onOpen (replaces the default Pending tag — the posting
 //        panel keeps its own state from the answer)
+//
+// ⭐ D99 J11: with the draft extension installed, a plain click hands the job to it (lib/openPosting.js) — the
+// extension opens the posting itself, already bound to this job. A modified click, or no extension, follows the link.
 export default function CompanyLink({ company, href = null, jobId = null, size = "card", className = "", onOpen = null }) {
   const cls = `company-link company-link--${size}${className ? ` ${className}` : ""}`;
   if (!href) return <span className={cls}>{company}</span>;
@@ -28,6 +32,7 @@ export default function CompanyLink({ company, href = null, jobId = null, size =
         e.stopPropagation();
         if (onOpen) onOpen();
         else if (jobId) api("/api/applications/pending", { method: "POST", body: JSON.stringify({ jobId, origin: "opened_posting" }) }).catch(() => {});
+        postingClick({ jobId, url: href }, e, { url: href });
       }}>
       {company}
     </a>

@@ -28,6 +28,7 @@ import { buildStoppedItems, splitAnswers, filterItems, SEARCH_FROM, packetLife }
 import { useViewport } from "../hooks/useViewport.js";
 import { A_PLUS_TOOL } from "../lib/applyTools.js";
 import { ChangesSummaryLine } from "../components/ResumeChangesPanel.jsx";
+import { postingClick } from "../lib/openPosting.js";
 
 // ============================================================
 // AutoApplyPanel — DRAFT HOUSE, the workspace (D14, D18, D25)
@@ -515,7 +516,7 @@ export function AutoApplyPanel() {
             </button>
           )}
           {r.primary?.row?.applyUrl && (
-            <a className="dh-btn" href={r.primary.row.applyUrl} target="_blank" rel="noreferrer">Posting ↗</a>
+            <a className="dh-btn" href={r.primary.row.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(r.primary.row, e)}>Posting ↗</a>
           )}
         </div>
         </>
@@ -529,7 +530,7 @@ export function AutoApplyPanel() {
         <div className="dh-fold__actions">
           <button type="button" className="dh-btn" onClick={() => loadApplyRunDetail(row.runId)}>The run's log</button>
           {row.applyUrl && (
-            <a className="dh-btn" href={row.applyUrl} target="_blank" rel="noreferrer">Apply yourself ↗</a>
+            <a className="dh-btn" href={row.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(row, e)}>Apply yourself ↗</a>
           )}
         </div>
         </>
