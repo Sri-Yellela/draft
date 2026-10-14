@@ -360,11 +360,17 @@ test("⛔ J1: Prepare → fill → I submitted it write the job's progress — c
   assert.ok(r?.prepared?.at, "Prepare is remembered");
   assert.ok(r.prepared.packetId, "with the packet's id (the packet stays on the server)");
   assert.equal(r.title, "Platform Engineer");
-  assert.equal(r.filled.n, filled.filled.length);
+  // ⭐ J4 (D96 §5): the counts ARE the review panel's — filled · of · needs you · to check — so the popup and the
+  // panel say the same three numbers. Every field on the page is a panel row, so "needs you" counts each one draft
+  // could not fill, not only the required one the badge names.
+  assert.ok(filled.panel, "the fill reports the panel's counts");
+  assert.equal(r.filled.n, filled.panel.filled);
   assert.ok(r.filled.n > 0);
-  assert.equal(r.filled.of, (await probeFromFixture(tab.url)).fields.length, "of how many fields the form has");
-  assert.equal(r.filled.needYou, 1, "a required field left empty needs you");
-  assert.equal(r.read.fieldCount, r.filled.of);
+  assert.equal(r.filled.of, filled.panel.of, "of how many questions the panel lists");
+  assert.equal(r.filled.needYou, filled.panel.needYou, "what the panel lists under Needs you");
+  assert.ok(r.filled.needYou >= 1, "a required field left empty needs you");
+  assert.equal(r.filled.check, filled.panel.check);
+  assert.equal(r.read.fieldCount, (await probeFromFixture(tab.url)).fields.length, "the page's field count, read");
   const sub = await gh.recordSubmitted({ serverUrl: srv.base, tab });
   assert.equal(sub.ok, true, sub.message);
   r = await progress.get({ jobId: "two::45" });

@@ -133,7 +133,14 @@ test("a non-eligibility answer may match on a normalised label", () => {
     [field({ index: 0, name: "org", label: "Current Company" })],
   );
   assert.equal(plan.length, 1);
-  assert.equal(plan[0].matchedBy, "label");
+  // ⭐ D96 §4/§5 (owner 10-13): a label EQUAL once case, "*" and punctuation are set aside is an exact match.
+  assert.equal(plan[0].matchedBy, "label_exact");
+  // Only the looser fallback — the control's NAME resembling the answer's — is still a guess about the field.
+  const loose = matchAnswersToFields(
+    [{ name: "current_company", field: "Employer now", value: "Acme", provenance: "field_map_exact" }],
+    [field({ index: 0, name: "current-company", label: "Organisation" })],
+  );
+  assert.equal(loose.plan[0].matchedBy, "label");
 });
 
 test("an answer with no value is not a fill instruction", () => {
