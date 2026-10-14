@@ -3,7 +3,7 @@
 // Since D11 there is no IMPORT button on Full House: the extension is how a job from anywhere gets
 // onto your board. So this page has to do two jobs — explain what the extension does, honestly, and
 // install it. Every claim below is one extension/submission/STORE_LISTING.md makes and cites code
-// for (single purpose, activeTab, no content script, the one host). If the extension changes, this
+// for (single purpose, activeTab, no job-site content script — only D99's bridge on our own site — the one host). If the extension changes, this
 // page and that listing change together.
 //
 // ⛔ The install control reads shared/extension.js. While EXTENSION_STORE_URL is null (the owner has
@@ -30,7 +30,7 @@ const STEPS = [
 ];
 
 const FACTS = [
-  ["Only when you ask", "It reads a page only when you click it or press a shortcut, and only the tab you're on. Nothing runs in the background or when a page loads."],
+  ["Only when you ask", "It reads a page only when you click it or press a shortcut, and only the tab you're on. Nothing runs in the background or when a job page loads."],
   ["Talks to draft only", `The one site it holds a permission for is ${CANONICAL_HOST}. What it captures goes to your draft account and nowhere else.`],
   ["You submit", "It fills and shows you the answers. It never presses submit for you."],
 ];

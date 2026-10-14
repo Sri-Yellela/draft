@@ -17,6 +17,7 @@ import { markStyle, bandMarkStyle } from "../styles/mark.js";
 import { C } from "../styles/colorTokens.js";
 import { glass } from "../styles/glass.js";
 import { api } from "../lib/api.js";
+import { openPosting } from "../lib/openPosting.js";
 
 // AH2: a job's title is a LINK to that job's own address.
 //
@@ -476,8 +477,7 @@ export default function JobCard({
   const handleCardClick = (e) => {
     if (e.target.closest("a") || e.target.closest("button")) return;
     if (isLoggedOut) {
-      const url = job.url || job.applyUrl;
-      if (url) window.open(url, "_blank", "noreferrer");
+      void openPosting(job, { url: job.url || job.applyUrl });   // D99 J11
       return;
     }
     if (onSelect) { onSelect(); return; }
@@ -499,7 +499,7 @@ export default function JobCard({
       role={isLoggedOut ? "link" : undefined}
       tabIndex={isLoggedOut ? 0 : undefined}
       aria-label={isLoggedOut ? `${job.title} at ${job.company} — view job` : undefined}
-      onKeyDown={isLoggedOut ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); const url = job.url || job.applyUrl; if (url) window.open(url, "_blank", "noreferrer"); } } : undefined}
+      onKeyDown={isLoggedOut ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); void openPosting(job, { url: job.url || job.applyUrl }); } } : undefined}
       style={{
         ...material,
         // Selection is the one state the orange marks; the rim is the material's otherwise. The
