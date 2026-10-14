@@ -31,9 +31,12 @@ test("⛔ D23: the permission set is exactly activeTab + scripting + storage, an
   // + optional_host_permissions by D64 (owner, 10-07: automated capture) — a decided addition, not D23's:
   // granted only when the user switches automatic capture on, public job-posting hosts only, and
   // exactly extension/autoCapture.js's list (never a gated portal; test/d64AutoCaptureExtension.test.js).
+  // + Workday's two public hosts by D97, owner 10-13 (a deliberate reversal of D64's "no gated portal" line): optional,
+  // asked for only when the user switches Workday on in Options, and exactly extension/autoRead.js's site table.
   assert.deepEqual(manifest.optional_host_permissions, [
     "https://boards.greenhouse.io/*", "https://job-boards.greenhouse.io/*", "https://jobs.lever.co/*",
     "https://jobs.ashbyhq.com/*", "https://apply.workable.com/*",
+    "https://*.myworkdayjobs.com/*", "https://*.myworkdaysite.com/*",
   ]);
   for (const k of ["optional_permissions", "content_scripts",
                    "web_accessible_resources", "externally_connectable", "declarative_net_request"]) {
@@ -68,8 +71,11 @@ test("⛔ D23: the storage keys are exactly the six the listing names — no mor
   // + local:[PROGRESS_KEY] by D96 §3 (owner, 10-13) — where each application stands (captured · read · prepared ·
   // filled n of m · reviewed · submitted), no answer value, 30 days, cleared on Disconnect / sign-out; disclosed in the
   // privacy page's storage list, STORE_LISTING and PRIVACY_RECONCILIATION in the same change.
+  // ⇄ local:[AUTO_CAPTURE_SETTING] → local:[AUTO_READ_KEY] by D97 (owner, 10-13): D64's switch became one of four
+  // per-site switches; the one key holds the switches, the consent, and the read-quality labels and counts (30 days,
+  // never a value). autoCaptureEnabled is migrated once and removed, never written again — the count is unchanged.
   assert.deepEqual(keys.sort(), [
-    "local:[AUTO_CAPTURE_SETTING]",
+    "local:[AUTO_READ_KEY]",
     "local:[IDENTITY_KEY]", "local:[PROGRESS_KEY]", "local:[TOKEN_KEY]", "local:lastCapture",
     "session:[batchKey(tabId)]", "session:[bindKey(tabId)]", "session:[sessionKey(tabId)]", "session:lastGatedHandoff",
   ].sort(), "the extension's storage keys changed — that is a new disclosure (D23: none allowed)");
@@ -77,6 +83,7 @@ test("⛔ D23: the storage keys are exactly the six the listing names — no mor
   assert.match(code["tabBinding.js"], /export const BIND_PREFIX = 'bind:';/);
   assert.match(code["progress.js"], /export const PROGRESS_KEY = 'jobProgress';/);
   assert.match(code["autoCapture.js"], /export const AUTO_CAPTURE_SETTING = "autoCaptureEnabled";/);
+  assert.match(code["autoRead.js"], /export const AUTO_READ_KEY = 'autoRead';/);
   const auth = code["auth.js"];
   assert.match(auth, /const TOKEN_KEY = ['"]authToken['"]/);
   assert.match(auth, /const IDENTITY_KEY = ['"]authIdentity['"]/);

@@ -35,6 +35,10 @@ export const BADGE_TEXT = Object.freeze({
   required: 'Complete required fields',
   done: 'Filled — review and submit',
   unrecognised: "This form isn't recognised — nothing was filled",
+  // ⭐ D97 (J5): the automatic READ's small line — "14 of 18 fields recognised — good read", or with answers prepared
+  // "… — press Ctrl+Shift+Y". Its words arrive as meta.text (extension/autoRead.js readBadgeText); this is the fallback.
+  // Not a fill state: dismissing it never stops a fill (no stop signal is left).
+  ready: 'Read by draft',
 });
 
 // ── Injected: the required-field pre-check (g). ISOLATED world, read-only. ─────────────────────
@@ -105,6 +109,7 @@ export function renderBadge(state, meta) {
     required: 'Complete required fields',
     done: 'Filled — review and submit',
     unrecognised: "This form isn't recognised — nothing was filled",
+    ready: 'Read by draft',
   };
 
   // ⛔ BYTE-IDENTICAL (modulo indentation) TO THE EXPORTED findMissingRequired — see its note.
@@ -158,6 +163,8 @@ export function renderBadge(state, meta) {
 
   let host = document.getElementById(ID);
   if (host?.dataset.dismissed === '1') return { rendered: false, dismissed: true };
+  // D97: the read's line never paints over a fill's own state (progress · required · done · unrecognised).
+  if (state === 'ready' && host?.dataset.state && host.dataset.state !== 'ready' && host.shadowRoot?.innerHTML) return { rendered: false, busy: true };
   if (!host) {
     host = document.createElement('div');
     host.id = ID;
@@ -176,14 +183,16 @@ export function renderBadge(state, meta) {
     // Beside the review overlay rather than under it, when that is open.
     const overlayOpen = !!document.getElementById('rm-gate-review-overlay');
     host.style.cssText = `position:fixed;top:16px;right:${overlayOpen ? 412 : 16}px;z-index:2147483647;`;
-    const tone = { progress: 'violet', required: 'warning', done: 'success', unrecognised: 'danger' }[s] || 'info';
-    const label = s === 'required' && missing.length ? `${TEXT.required} (${missing.length})` : (TEXT[s] || '');
+    const tone = { progress: 'violet', required: 'warning', done: 'success', unrecognised: 'danger', ready: 'info' }[s] || 'info';
+    const label = s === 'required' && missing.length ? `${TEXT.required} (${missing.length})`
+      : s === 'ready' ? String(meta?.text || TEXT.ready).slice(0, 140) : (TEXT[s] || '');
     // ⭐ D63 (1): the state reads by colour AND by icon, so it never depends on colour alone.
     const ICON = {
       progress: '<path d="M6 12h.01M12 12h.01M18 12h.01"/>',
       required: '<path d="M12 6v8M12 18h.01"/>',
       done: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
       unrecognised: '<path d="M6 6l12 12M18 6L6 18"/>',
+      ready: '<path d="M7 4h7l4 4v12H7zM10 12h5M10 16h5"/>',
     }[s] || '<path d="M12 6v8M12 18h.01"/>';
     root.innerHTML = `
       <style>
@@ -215,7 +224,7 @@ export function renderBadge(state, meta) {
         <span class="mark" aria-hidden="true"><b>/</b>draft</span>
         <span class="t" data-role="text" tabindex="${s === 'required' ? 0 : -1}"></span>
         ${s === 'required' && missing.length ? '<span class="n" data-role="count" aria-hidden="true"></span>' : ''}
-        <button class="x" type="button" data-role="dismiss" aria-label="Dismiss — stop autofill on this page">×</button>
+        <button class="x" type="button" data-role="dismiss" aria-label="${s === 'ready' ? 'Dismiss' : 'Dismiss — stop autofill on this page'}">×</button>
       </div>`;
     const t = root.querySelector('[data-role="text"]');
     // The words are unchanged; on "required" the count is its own rectangular mark beside them (D63).
@@ -234,6 +243,8 @@ export function renderBadge(state, meta) {
     t.onclick = s === 'required' ? go : null;
     t.onkeydown = s === 'required' ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } } : null;
     root.querySelector('[data-role="dismiss"]').onclick = () => {
+      // D97: the read's line is only information — closing it leaves no stop signal, so a later fill still runs.
+      if (s === 'ready') { root.innerHTML = ''; return; }
       host.dataset.dismissed = '1';
       clearInterval(Number(host.dataset.timer || 0));
       root.innerHTML = '';

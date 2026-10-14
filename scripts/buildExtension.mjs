@@ -154,6 +154,14 @@ export function collectRequiredFiles(manifest) {
       need.add(resolved);
       queue.push(resolved);
     }
+    // D97: a content script REGISTERED at run time (chrome.scripting.registerContentScripts — extension/autoRead.js)
+    // is named by a `js: ['file.js']` literal, relative to the extension root, and imported by nothing.
+    for (const m of text.matchAll(/\bjs:\s*\[([^\]]*)\]/g)) {
+      for (const f of m[1].matchAll(/["']([^"']+\.js)["']/g)) {
+        const resolved = path.posix.normalize(f[1].replace(/^\.?\//, ''));
+        if (!need.has(resolved)) { need.add(resolved); queue.push(resolved); }
+      }
+    }
   }
   return [...need].sort();
 }
