@@ -367,6 +367,26 @@ function namesThisEmployer(parsed, company) {
  * @param {(label: string) => string} kindOf  gated-handoff.js questionKind
  * @returns {{ plan: object[], notes: object[] }}
  */
+/**
+ * ⭐ D96 §4 (J9's browser pass, 10-14): A GUESS YIELDS TO THE CANDIDATE'S OWN ANSWER. The packet keeps carrying the
+ * profile's guess for a question (a whole-token label match — "Postal Code" from a `postal` key) after the candidate
+ * acknowledged an answer to that very question; the guess took the control first, the acknowledged answer behind it
+ * never reached the field, and the next fill asked again — "tick once and it is remembered" broken on the second
+ * application. So: every planned value that is a guess (its value guessed, or its control matched loosely) is taken
+ * back off a control that placeStatedAnswers would give one of the candidate's own stated answers (the SAME question,
+ * by the key — nothing looser), and that answer fills it. An exact profile answer is never displaced; a guess with no
+ * stated answer for its question stays, and is still a guess the panel asks about.
+ */
+const GUESSED_PROVENANCE = new Set(['label_fuzzy', 'default', 'sponsorship_assumed_future']);
+const isGuess = (p) => GUESSED_PROVENANCE.has(p?.provenance) || p?.matchedBy === 'label';
+export function yieldGuessesToStated(plan = [], packet, fields, kindOf = () => 'other') {
+  const guesses = (plan || []).filter(isGuess);
+  if (!guesses.length) return plan;
+  const firm = plan.filter(p => !isGuess(p));
+  const claimed = new Set(placeStatedAnswers(packet, fields, firm, kindOf).plan.map(p => p.index));
+  return plan.filter(p => !isGuess(p) || !claimed.has(p.index));
+}
+
 export function placeStatedAnswers(packet, fields, plan = [], kindOf = () => 'other') {
   const out = [], notes = [];
   const saved = Array.isArray(packet?.savedAnswers) ? packet.savedAnswers : [];
