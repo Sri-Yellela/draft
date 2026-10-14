@@ -40,6 +40,7 @@ import { createSupportRouters } from "./routes/tickets.js";
 import { createResumeChangesRouter } from "./routes/resumeChanges.js";
 import { createExtensionResumeService, GenerationCancelledError, baseResumeFor as extensionBaseResumeFor } from "./services/extensionResume.js";
 import { createExtensionResumeRouter } from "./routes/extensionResume.js";
+import { createExtensionJobRouter } from "./routes/extensionJob.js";
 import { purgeSolvedTickets } from "./services/tickets.js";
 import { storeGeneratedResume, refundGeneration, ResumeStoreError, STORE_FAILED_SENTENCE, listGeneratedResumes,
          deleteGeneratedResume, sweepExpiredResumes, resumeRetentionDays } from "./services/generatedResumes.js";
@@ -11776,6 +11777,11 @@ const extensionResume = createExtensionResumeService({
   },
 });
 app.use(createExtensionResumeRouter({ service: extensionResume, requireAuth, isExtension: isExtensionCredential }));
+// ⭐ D99 J11 · the board hands a job to the extension: the canonical address, the card and draft's own ATS report
+// (routes/extensionJob.js). The same score as the approval screen — scoreBaseResumeForApply.
+app.use(createExtensionJobRouter({ db, requireAuth, isExtension: isExtensionCredential,
+  scoreFor: (userId, jobId) => scoreBaseResumeForApply(userId, jobId),
+  hasBaseResume: (userId) => !!extensionBaseResumeFor(db, userId) }));
 
 // ── Contact form (public — no auth required) ──────────────────
 app.post("/api/contact", (req, res) => {
