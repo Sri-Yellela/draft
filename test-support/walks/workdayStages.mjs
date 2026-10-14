@@ -13,7 +13,7 @@
  *   7. the step changes WITHOUT the URL changing → the Copy sheet panel opens in the page with the PREPARED answers
  *   8. the tab closes → its binding is gone
  */
-import { OWNER_STAGE, OTHER_STAGE, POSTING, waitUntil } from '../extensionBrowser.mjs';
+import { OWNER_STAGE, OTHER_STAGE, POSTING, waitUntil, BUSY_MS } from '../extensionBrowser.mjs';
 
 export const description = "v1.5.2 — one job across Workday's stages, the real extension in headless Chrome";
 
@@ -56,12 +56,12 @@ export default async function run(h, { check, section }) {
   // does not answer — so the extension's wizard fills what it can, then WAITS FOR THE CANDIDATE (the badge). The
   // candidate's × ends the wait; only then does Prepare reply.
   let prep = await h.prepare({ timeoutMs: 6000 });
-  const filled = await waitUntil(() => page.evaluate(() => document.querySelector('input[name="firstName"]')?.value), 8000);
+  const filled = await waitUntil(() => page.evaluate(() => document.querySelector('input[name="firstName"]')?.value), BUSY_MS);
   check('the form carries the prepared answer', filled === 'Ada', String(filled));
   const prepFill = await page.evaluate(() => ({ last: document.querySelector('input[name="lastName"]')?.value, email: document.querySelector('input[name="email"]')?.value }));
   check('…every field the packet answers', prepFill.last === 'Example' && prepFill.email === 'ada@example.test', JSON.stringify(prepFill));
   if (prep?.pending) {
-    const badge = await waitUntil(() => h.readBadge().then(b => (b?.state === 'required' ? b : null)), 8000);
+    const badge = await waitUntil(() => h.readBadge().then(b => (b?.state === 'required' ? b : null)), BUSY_MS);
     check('…and the wizard waits for the candidate on the required fields it could not answer', badge?.missing > 0, JSON.stringify(badge));
     check('the candidate dismisses the badge', await h.dismissBadge());
     prep = await prep.reply;
@@ -83,6 +83,6 @@ export default async function run(h, { check, section }) {
   section('8 · the tab closes');
   const tabCount = (await h.bindings()).length;
   await page.close();
-  const gone = await waitUntil(async () => (await h.bindings()).length === 0, 4000);
+  const gone = await waitUntil(async () => (await h.bindings()).length === 0, BUSY_MS);
   check('its binding is gone', tabCount === 1 && !!gone, `before ${tabCount}`);
 }
