@@ -129,6 +129,11 @@ export function buildLaunchArgs({ mode = "auto" } = {}) {
 
 // ── Error classification ──────────────────────────────────────────────────────
 
+/** True when puppeteer reports the browser PROCESS exited — it was found, started and died. */
+export function isLaunchCrash(message) {
+  return /failed to launch the browser process:\s*code:\s*(null|\d+)/i.test(String(message || ""));
+}
+
 /**
  * Classify a raw Puppeteer launch error into a structured reason code.
  * Keeps raw OS-level detail out of user-facing messages.
@@ -137,13 +142,24 @@ export function classifyLaunchError(err) {
   const msg      = String(err.message || "");
   const extra    = String(err.stderr   || "");
   const combined = (msg + " " + extra).toLowerCase();
+  // ⛔ 43d: puppeteer's message is a HEADER, then the browser's own stderr. Only the header may say the
+  // binary is missing. Chromium's stderr routinely carries "Failed to connect to socket
+  // /run/dbus/system_bus_socket: No such file or directory", so matching "no such file" across the whole
+  // message reported Chromium 155's --single-process crash (exit 133, 10-13 → 10-14) as
+  // browser_binary_not_found on every boot — an operator chasing a missing file that was there.
+  const header   = msg.split(/\n\s*stderr:/i)[0].toLowerCase();
 
   // Shared-library failures — the crash that prompted this module
   if (/cannot open shared object file|error while loading shared lib|\.so\b.*no such file/i.test(combined)) {
     return "browser_runtime_missing_dependency";
   }
+  // The process started and exited ("Code: null" = killed by a signal, "Code: 133" = an exit status):
+  // the binary exists and crashed. A crash, not a missing file.
+  if (isLaunchCrash(msg)) {
+    return "browser_launch_failed";
+  }
   if (err.reasonCode === "browser_binary_not_found"
-      || /chrome not found|no such file or directory|binary not found|could not find chromium/i.test(combined)) {
+      || /chrome not found|no such file or directory|binary not found|could not find chromium|\benoent\b/i.test(header)) {
     return "browser_binary_not_found";
   }
   if (/timeout/i.test(combined)) {
@@ -198,7 +214,7 @@ export async function probeBrowserAvailability() {
     };
   } catch (e) {
     const reasonCode = classifyLaunchError(e);
-    console.warn(`[browserLauncher] probe failed — ${reasonCode}: ${e.message}`);
+    console.warn(`[browserLauncher] probe failed — ${reasonCode}${isLaunchCrash(e.message) ? " (the browser crashed on start)" : ""}: ${e.message}`);
     _readinessCache = {
       available: false,
       reasonCode,
@@ -250,15 +266,19 @@ export async function launchBrowser({ headless = "new", mode = "auto", viewport 
     });
   } catch (e) {
     const reasonCode = classifyLaunchError(e);
-    console.error(`[browserLauncher] launch failed — ${reasonCode}: ${e.message}`);
+    const crashed = isLaunchCrash(e.message);
+    console.error(`[browserLauncher] launch failed — ${reasonCode}${crashed ? " (the browser crashed on start)" : ""}: ${e.message}`);
     const classified = new Error(
       reasonCode === "browser_runtime_missing_dependency"
         ? "Browser is missing required system libraries (e.g. libnspr4). Check server dependencies."
         : reasonCode === "browser_binary_not_found"
           ? "Browser binary not found. Install Chrome or set BROWSER_EXECUTABLE_PATH (or PUPPETEER_EXECUTABLE_PATH)."
-          : `Browser launch failed: ${e.message}`
+          : crashed
+            ? `Browser launch failed: the browser was found and crashed on start — check its launch flags and version. ${e.message}`
+            : `Browser launch failed: ${e.message}`
     );
     classified.reasonCode = reasonCode;
+    classified.crashed = crashed;
     classified.originalError = e.message;
     throw classified;
   }
