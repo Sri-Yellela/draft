@@ -7,6 +7,8 @@ import {
 import { noteCapture, noteContext, noteReviewed } from './progress.js';
 // D96 §4–§5 (J4): the review panel's acknowledge / change / dock — answers go to the user's own Saved answers.
 import { handlers as ANSWER_MEMORY_HANDLERS, configureAnswerMemory } from './answerMemory.js';
+// D98 §4–§5 (J6): the résumé on the page — generate (the panel's own trusted click only), preview, attach, fallback.
+import { handlers as RESUME_PANEL_HANDLERS, configureResumePanel } from './resumePanel.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
 // ⭐ One job per tab across every stage of its application, and the Copy sheet as an in-page panel (owner, 10-12).
 import { bindTab, bindingForTab, clearBinding, setBindingDock, bindingLine } from './tabBinding.js';
@@ -676,3 +678,16 @@ chrome.runtime.onStartup?.addListener(() => { void reconcileAutoRead(); });
 chrome.permissions?.onAdded?.addListener(() => { void syncRegistrations(); });
 chrome.permissions?.onRemoved?.addListener((removed) => { void onPermissionsRemoved(removed); });
 chrome.tabs.onRemoved.addListener((tabId) => { forgetTab(tabId); });
+
+// ── D98 §4–§5 (J6): the résumé on the page ─────────────────────────────────────────────────────────
+// The handlers are resumePanel.js's: the popup and the review panel may only OPEN the panel; a generation starts
+// only from the panel's own trusted click on a web-page tab. Every request goes to RESUME_MASTER_URL, draft's own
+// server — the extension never calls a model or the résumé service itself. The generation's id is kept in the
+// job's progress record (no new key).
+configureResumePanel({ serverUrl: RESUME_MASTER_URL });
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  const handle = RESUME_PANEL_HANDLERS[msg?.type];
+  if (!handle) return false;
+  handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
+  return true;
+});

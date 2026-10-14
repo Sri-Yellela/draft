@@ -136,7 +136,7 @@ test("⛔ J6: a résumé is generated only by the panel's own click — never fr
 });
 
 // ── ⛔ NO NETWORK TARGET BUT DRAFT'S OWN SERVER ──────────────────────────────────────────────────────────────────
-test("⛔ J6: every request goes to draft's own server — never a model, never Resume Master", async (t) => {
+test("⛔ J6: every request goes to draft's own server — never a model, never the résumé service directly", async (t) => {
   const s = await server(t);
   const urls = recordFetch(t);
   const { out } = chromeStub();
@@ -162,7 +162,7 @@ test("⛔ J6: every request goes to draft's own server — never a model, never 
   }
   // the extension as a whole names no model provider and no tools-service host
   for (const f of fs.readdirSync("extension").filter(f => /\.(js|html)$/.test(f))) {
-    assert.doesNotMatch(read(`extension/${f}`).replace(/\/\/.*$/gm, ""), /api\.anthropic|api\.openai|generativelanguage|\/v1\/resumes\/generate|RESUME_MASTER_API/i, `${f} reaches a model or Resume Master`);
+    assert.doesNotMatch(read(`extension/${f}`).replace(/\/\/.*$/gm, ""), /api\.anthropic|api\.openai|generativelanguage|\/v1\/resumes\/generate|RESUME_MASTER_API/i, `${f} reaches a model or the résumé service directly`);
   }
   // the opened editor is draft's own site
   assert.deepEqual(out.opened, [s.origin + "/app/jobs?job=wd-zoom-1"]);

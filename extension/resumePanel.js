@@ -10,7 +10,7 @@
 //        ▲                         │ Cancel       │ Regenerate (another slot, said first) · Edit in a full page
 //        └── Try again ◄── Cancelled · Failed · Refused (the claim guard's reasons — NOTHING is attached)
 //
-// ⛔ THE EXTENSION NEVER CALLS A MODEL AND NEVER CALLS RESUME MASTER. Every request below goes to draft's own server
+// ⛔ THE EXTENSION NEVER CALLS A MODEL AND NEVER CALLS THE RÉSUMÉ SERVICE ITSELF. Every request below goes to draft's own server
 //   through auth.js authedFetch (the extension's own token) — POST /api/extension/resume and its status / cancel / pdf
 //   routes (routes/extensionResume.js). The server runs the web app's own generation: a Draft slot, the claim guard,
 //   the ATS scorer, a normal tailored résumé linked to the job. test/j6ResumePanel.test.js greps every network target.
