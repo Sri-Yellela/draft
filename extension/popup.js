@@ -155,9 +155,11 @@ function renderIdentity(identity) {
   if (btn) btn.style.display = 'inline';
 }
 
+let signedIn = false;   // D99 J12: the ATS button sends a signed-in user to draft's own report, never the free checker
 async function init() {
   const identity = await probeAuth();
   renderIdentity(identity);
+  signedIn = !!identity?.authenticated;
 
   if (!identity?.authenticated) {
     document.getElementById('btn-sign-in').style.display = 'flex';
@@ -516,6 +518,15 @@ document.getElementById('btn-resume').addEventListener('click', async () => {
 document.getElementById('btn-ats').addEventListener('click', () => openAtsScore());
 
 async function openAtsScore() {
+  // ⛔ D99 J12: signed in → the on-page panel, which shows draft's own report for this tab's job (score, band, matched and
+  // missing terms) — or "Add your résumé in draft", or "Read this page now" when the tab is not linked to a job yet.
+  // The free checker below is for signed-out visitors only. Nothing of the page is read for this.
+  if (signedIn) {
+    const r = await chrome.runtime.sendMessage({ type: 'RESUME_PANEL_OPEN' }).catch(() => null);
+    if (r?.ok) { window.close(); return; }
+    setStatus(r?.message || 'Open the popup on the job page, then press score.', 3000);
+    return;
+  }
   const tab = await getCurrentTab();
   let jobText = '';
   if (tab?.id) {

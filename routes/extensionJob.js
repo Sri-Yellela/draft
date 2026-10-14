@@ -2,11 +2,12 @@
 //
 //   GET /api/extension/job/:id   → 200 { job: { jobId, title, company, url, logo, reportPath }, ats }
 //                                  404 { error: "not_on_board" } · 403 extension_only · 429 rate_limited
+//                                  (`url` is null when the posting has no https address — nothing to open, the report stands)
 //
-// The web app's "open the posting" (client/src/lib/openPosting.js) posts a job id to the extension's one content
-// script on jobsviadraft.com; the extension asks HERE before it opens anything. ⛔ The address the page sent is never
-// trusted — the page sends only the id, and the address the tab opens is the one THIS returns, for a job that is the
-// user's own or live on the board (services/manualHandoff.js jobOnUsersBoard); anything else opens nothing.
+// Read today by the on-page résumé panel (extension/boardJob.js, J12: the report). ⚠ D99 J11's bridge — the web app
+// handing a job id to the extension, which opens the address THIS returns — waits on the owner's word (WORKLOG 43d).
+// ⛔ Whoever opens a tab from this answer opens the SERVER's address, for a job that is the user's own or live on the
+// board (services/manualHandoff.js jobOnUsersBoard) — never an address a page sent.
 //
 // `ats` is draft's own report on the user's base résumé (D99 J12 — the free checker is for signed-out visitors only):
 //   { state: "ready", score, band, scorable, matched, missing }   the scorer judged it (score null = not enough signal)
@@ -29,8 +30,9 @@ export function boardJobForExtension(db, userId, jobId, { scoreFor, hasBaseResum
   const id = String(jobId ?? "").slice(0, 128);
   if (!id || !jobOnUsersBoard(db, userId, id)) return null;
   const row = db.prepare("SELECT job_id, title, company, url, apply_url, company_icon_url FROM scraped_jobs WHERE job_id = ?").get(id);
-  const url = httpsOnly(row?.apply_url) || httpsOnly(row?.url);
-  if (!row || !url) return null;
+  if (!row) return null;
+  // null when the posting has no https address: the report still stands, but there is nothing safe to open
+  const url = httpsOnly(row.apply_url) || httpsOnly(row.url);
   let ats;
   if (!hasBaseResume(userId)) ats = { state: "no_base_resume" };
   else {

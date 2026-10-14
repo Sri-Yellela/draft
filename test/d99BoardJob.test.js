@@ -73,13 +73,16 @@ test("⛔ GET /api/extension/job/:id: the server's address, the card and draft's
 
 test("⛔ not on this user's board → 404 and nothing to open; a browser tab's credential → 403; rate-limited", async (t) => {
   const m = mount(); t.after(m.stop);
-  for (const id of ["gh-retired-2", "gh-dup-3", "nope", "gh-http-4"]) {
+  for (const id of ["gh-retired-2", "gh-dup-3", "nope"]) {
     const r = await m.get(id);
     assert.equal(r.status, 404, id);
     assert.equal(r.body.error, "not_on_board", id);
     assert.equal("job" in r.body, false, `${id}: no address`);
   }
   assert.equal((await m.get("gh-retired-2", { user: 2 })).status, 200, "the user who captured it may open it");
+  const plain = await m.get("gh-http-4");
+  assert.equal(plain.status, 200, "on the board: the report stands");
+  assert.equal(plain.body.job.url, null, "but an http address is never handed over to be opened");
   assert.equal((await m.get("gh-live-1", { ext: false })).status, 403, "the extension's credential only");
   const m2 = mount({ limit: { limit: 3, windowMs: 60_000 } }); t.after(m2.stop);
   for (let i = 0; i < 3; i++) assert.equal((await m2.get("gh-live-1")).status, 200);
