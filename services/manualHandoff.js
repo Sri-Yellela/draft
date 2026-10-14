@@ -58,6 +58,19 @@ export function userHasJob(db, userId, jobId) {
   ].some(sql => !!one(db, sql, userId, id));
 }
 
+/**
+ * ⛔ D99 (owner 10-13): "a job from the board is on the board". The user's own job (userHasJob), OR a posting that
+ * is LIVE on the board — active and canonical (not folded into another source's row), which every signed-in user
+ * is shown. Before this, a job the user had only seen on the board, opened in a tab the board bound, was "not on
+ * your board" to fill, the Copy sheet and résumé generation. A retired or held-out posting still needs the user's
+ * own record; an id that names nothing is false.
+ */
+export function jobOnUsersBoard(db, userId, jobId) {
+  if (jobId == null || jobId === "") return false;
+  if (userHasJob(db, userId, jobId)) return !!one(db, "SELECT 1 FROM scraped_jobs WHERE job_id=?", String(jobId));
+  return !!one(db, "SELECT 1 FROM scraped_jobs WHERE job_id=? AND is_active=1 AND duplicate_of IS NULL", String(jobId));
+}
+
 export { recordPageKey } from "./jobPageKey.js";
 
 /**
