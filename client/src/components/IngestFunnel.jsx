@@ -58,6 +58,17 @@ export default function IngestFunnel({ name, funnel, theme }) {
         <Row key={p.key} theme={theme} label={p.label} n={p.n} of={f.fetched} color={C.SUCCESS} indent={12}/>
       ))}
 
+      {/* 43d: the crawl counts these now — re-seen retired postings (held off on purpose) and id-less ones. */}
+      {f.skippedTotal > 0 && (
+        <>
+          <div style={head}>Skipped</div>
+          {f.skipped.filter(p => p.n > 0).map(p => (
+            <Row key={p.key} theme={theme} label={p.label} n={p.n} of={f.fetched}
+              color={p.key === "noId" ? C.DANGER : C.INK_FAINT}/>
+          ))}
+        </>
+      )}
+
       {f.uncounted !== 0 && (
         <>
           <div style={head}>Not counted</div>

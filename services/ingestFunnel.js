@@ -29,11 +29,18 @@
 // on the board, under that row. routes/adminDb.js classifies a source on THIS object, so the panel and the
 // nightly alert cannot come to disagree about what a run put on the board.
 //
-// ⛔ THE PARTS NEED NOT SUM TO `fetched`, AND THE REMAINDER IS SAID, NOT HIDDEN. cacheJobs counts an aged-out
-// or scoped-out posting only when it was still ON the board; one a sweep retired earlier, re-seen tonight,
-// stops at the same gate and is counted nowhere. A posting with no id is skipped uncounted too. Production
-// greenhouse 10-14: 853 of 15,998. That gap is reported as `uncounted` with what it is, because a funnel
-// whose parts silently fail to add up is the shape every other figure on this panel exists to catch.
+// ⛔ THE PARTS NEED NOT SUM TO `fetched`, AND THE REMAINDER IS SAID, NOT HIDDEN. Until 43d cacheJobs counted
+// an aged-out or scoped-out posting only when it was still ON the board; one a sweep retired earlier,
+// re-seen tonight, stopped at the same gate and was counted nowhere, and a posting with no id likewise.
+// Production greenhouse 10-14: 853 of 15,998. Since 43d both are counted (details.retiredReseen,
+// details.noId) and shown as SKIPPED, so a run recorded since then sums to its fetch; a remainder still
+// left is reported as `uncounted` with what it is, because a funnel whose parts silently fail to add up is
+// the shape every other figure on this panel exists to catch.
+//
+// ⛔ The two skips are not alike. An already-retired posting is held off the board ON PURPOSE (it is in
+// `heldOff`, so a run that re-sees only retired postings is all_rejected, a warn). A posting with no id is a
+// parse failure — nothing could be written — so it is NOT in `heldOff`, and a run of nothing else still
+// reads wrote_nothing.
 //
 // ⛔ REFUSALS ARE A STANDING POOL, NOT NEWS. Every posting a provider still lists is fetched and re-checked
 // on every daily crawl, so tonight's 4,874 "outside the US" are, almost all, last night's 4,874 again.
@@ -73,6 +80,10 @@ export function runFunnel(run) {
     { key: "unchanged", label: "unchanged, still listed", n: n(run.unchanged) },
     { key: "duplicate", label: "duplicate — on the board under another source", n: n(run.merged) },
   ];
+  const skipped = [
+    { key: "retiredReseen", label: "already retired earlier (age or scope), re-seen", n: n(d.retiredReseen) },
+    { key: "noId", label: "no posting id — nothing to key a row on", n: n(d.noId) },
+  ];
   // Shown under "on the board", NOT summed: each is already inside one of the parts above.
   const onBoardIncludes = [
     { key: "rescued", label: "of which rescued — a CS title with no role family, filed under general", n: n(d.rescued) },
@@ -81,7 +92,8 @@ export function runFunnel(run) {
   const refusedTotal = sum(refused);
   const retiredTotal = sum(retired);
   const onBoard = sum(onBoardParts);
-  const uncounted = fetched - refusedTotal - retiredTotal - onBoard;
+  const skippedTotal = sum(skipped);
+  const uncounted = fetched - refusedTotal - retiredTotal - onBoard - skippedTotal;
   return {
     fetched,
     onBoard,
@@ -91,11 +103,14 @@ export function runFunnel(run) {
     refusedTotal,
     retired,
     retiredTotal,
-    // Everything the run held off the board on purpose — what pipelineHealth calls `rejected`.
-    heldOff: refusedTotal + retiredTotal,
+    skipped,
+    skippedTotal,
+    // Everything the run held off the board on purpose — what pipelineHealth calls `rejected`. A no-id
+    // posting is not "on purpose" (see above), so it stays out.
+    heldOff: refusedTotal + retiredTotal + n(d.retiredReseen),
     uncounted,
     uncountedNote: uncounted > 0
-      ? "not counted by the crawl — postings already retired earlier (for age or scope) re-seen tonight, or with no posting id"
+      ? "not counted by the crawl — a run recorded before 43d: postings already retired earlier (for age or scope) re-seen, or with no posting id"
       : uncounted < 0 ? "the counters exceed the fetch — a counting defect in the crawl" : null,
     note: RECUR_NOTE,
   };
