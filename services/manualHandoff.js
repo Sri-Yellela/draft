@@ -19,6 +19,7 @@ import { APPLY_ORIGIN_FAMILIES, familyOf, jobIdOf, originOf, packetJobIds, packe
 import { listHistory } from "./applicationRecords.js";
 import { companyRows, matchCompany } from "../shared/companyIdentity.js";
 import { pageKeyOf, ownJobByTitleCompany } from "./jobPageKey.js";
+import { normaliseQuestion } from "../shared/savedAnswers.js";
 
 const one = (db, sql, ...args) => { try { return db.prepare(sql).get(...args) ?? null; } catch { return null; } };
 
@@ -195,7 +196,16 @@ export function pageNotice(db, userId, { job = null, company = null } = {}) {
  * §6), with no value invented for an unanswered question — those are listed as unanswered.
  */
 export function copySheetRows(packet = {}) {
-  const answers = (packet.answers || []).filter(a => a && a.value != null && a.value !== "");
+  // ⭐ D96 §4 (J9's browser pass, 10-14): ONE row per question. A packet GUESS whose question the candidate has an
+  // answer of their own to (a saved answer, below) — the sheet listed both, the guess labelled "profile" beside "you
+  // acknowledged". The candidate's own answer is the one that fills (the extension's yieldGuessesToStated), so it is
+  // the one the sheet shows.
+  const own = new Set((packet.savedAnswers || []).filter(s => s?.question && s.answer != null && String(s.answer).trim() !== "" && !s.optIn)
+    .map(s => normaliseQuestion(s.question)));
+  // Only a GUESS is dropped — an exact profile answer keeps its control in the fill, so it keeps its row here.
+  const guessed = (a) => ["label_fuzzy", "default", "sponsorship_assumed_future"].includes(a.provenance);
+  const answers = (packet.answers || []).filter(a => a && a.value != null && a.value !== ""
+    && !(guessed(a) && own.has(normaliseQuestion(a.field || ""))));
   const rows = answers.map(a => ({
     label: a.field || a.name || "Answer", value: String(a.value), name: a.name ?? null,
     eligibility: !!a.eligibility, provenance: a.provenance ?? null,
