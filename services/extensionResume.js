@@ -89,6 +89,28 @@ export function userSafe(value) {
     .map(([k, v]) => [k, userSafe(v)]));
 }
 
+/**
+ * ⭐ T6 (field report 10-14) · WHY a generation failed, as "<stage>:<code>" — stored in `cause` (migration 167) and shown in
+ * the extension's "Show details" view, never in the user's sentence. A CODE, never a message: the owner's failure was the
+ * tools service refusing the model call ("tools_service:upstream_model_failure"), which read as "unavailable" like a crash.
+ *   stage  tools_service (a ToolsServiceError, or a code the service names) · job · server
+ */
+export function causeOf(e) {
+  const code = (v) => (typeof v === "string" && /^[a-z][a-z0-9_]{0,47}$/.test(v) ? v : null);
+  const c = code(e?.code);
+  if (c === "job_vanished") return "job:job_vanished";
+  if (e?.name === "ToolsServiceError" || (c && /^(tools_service_|upstream_|model_|auth_unconfigured|limit_exceeded|internal_error|invalid_request)/.test(c))) {
+    return `tools_service:${c || "error"}`;
+  }
+  return `server:${c || code(String(e?.name || "").toLowerCase()) || "error"}`;
+}
+
+/** The stored cause, read back as { stage, code } — or null. */
+export function causeView(cause) {
+  const m = typeof cause === "string" ? cause.match(/^([a-z_]{1,24}):([a-z0-9_]{1,48})$/) : null;
+  return m ? { stage: m[1], code: m[2] } : null;
+}
+
 /** `FirstName_LastName_Company_Role.pdf` — ASCII letters, digits and underscores only (⚠ provisional pattern). */
 export function pdfFileName({ firstName, lastName, company, role } = {}) {
   const part = (s) => String(s ?? "").normalize("NFKD").replace(/[̀-ͯ]/g, "")
@@ -156,6 +178,7 @@ export function createExtensionResumeService({ db, generate, preflight = () => n
   try {
     for (const r of db.prepare("SELECT id FROM extension_resume_generations WHERE status IN ('queued','generating')").all()) {
       db.prepare("UPDATE extension_resume_generations SET status = 'failed', error_code = 'unavailable', finished_at = unixepoch() WHERE id = ?").run(r.id);
+      try { db.prepare("UPDATE extension_resume_generations SET cause = 'server:restarted' WHERE id = ?").run(r.id); } catch { /* before migration 167 */ }
       refund(r.id, "server restarted before it finished");
     }
   } catch (e) { if (!/no such table/.test(String(e?.message))) throw e; }
@@ -195,6 +218,8 @@ export function createExtensionResumeService({ db, generate, preflight = () => n
       }
       log.error?.(`[extension-resume] generation ${id} failed:`, e?.code || e?.name, String(e?.message || "").slice(0, 200));
       db.prepare("UPDATE extension_resume_generations SET status = 'failed', error_code = 'unavailable', finished_at = unixepoch() WHERE id = ? AND status = 'generating'").run(id);
+      // T6: the cause, apart from the user's sentence (a database before migration 167 simply does not keep it)
+      try { db.prepare("UPDATE extension_resume_generations SET cause = ? WHERE id = ?").run(causeOf(e), id); } catch { /* before 167 */ }
       refund(id, "server failure");
     } finally {
       cancelledNow.delete(id);
@@ -307,7 +332,12 @@ export function createExtensionResumeService({ db, generate, preflight = () => n
     };
     const guard = parseJson(g.guard_json);
     if (g.status === "refused") out.guard = { passed: false, reasons: guard?.reasons || [] };
-    if (g.status === "failed") out.error = { code: "unavailable", message: USER_ERRORS.unavailable.message };
+    if (g.status === "failed") {
+      out.error = { code: "unavailable", message: USER_ERRORS.unavailable.message };
+      // T6: the code behind it, for the extension's "Show details" view only — the panel never shows it
+      const cause = causeView(g.cause);
+      if (cause) out.cause = cause;
+    }
     if (g.status === "ready") {
       const v = versionRow(g);
       if (!v) { out.status = "failed"; out.error = { code: "unavailable", message: USER_ERRORS.unavailable.message }; return userSafe(out); }

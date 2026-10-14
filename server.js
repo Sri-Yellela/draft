@@ -5126,6 +5126,16 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_resume_pdf_record ON resume_pdf_artifacts(record_id);
       `,
     },
+    {
+      // ⭐ T6 (field report 10-14): WHY a generation failed. Every failure was written error_code 'unavailable', so the owner's
+      // Stripe failure (the tools service refused the model call) read the same as a crash. `cause` is "<stage>:<code>"
+      // (services/extensionResume.js causeOf) — a code, never a message, a model name or money. The user's sentence stays
+      // the generic one; the extension's "Show details" view shows the code.
+      id: "167_extension_resume_cause",
+      sql: `
+        ALTER TABLE extension_resume_generations ADD COLUMN cause TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -11019,6 +11029,27 @@ function scoreBaseResumeForApply(userId, jobId) {
   }
 }
 
+/**
+ * ⭐ T3 (field report 10-14) · the base résumé scored against a page draft does not hold — THE PAGE'S OWN TEXT, read by
+ * the capture's reader (routes/extensionJob.js pageJobForExtension). The same basis and the same scorer as
+ * scoreBaseResumeForApply above, so a page and the board job it later becomes read the same number. Nothing is stored.
+ */
+function scorePageTextForBase(userId, job) {
+  try {
+    if (!job?.description && !job?.description_text) return null;
+    const activeProfile = getOrRepairActiveProfile(userId);
+    if (!activeProfile) return null;
+    const basis = atsBasisForProfile(userId, activeProfile);
+    if (!basis) return null;
+    const report = scoreJobForBasis(job, basis.runtimeBasis);
+    return { score: report.score, band: atsBandFor(report), scorable: report.scorable,
+             matched: report.tier1_matched || [], missing: report.tier1_missing || [] };
+  } catch (e) {
+    console.warn(`[scorePageTextForBase] ${e.message}`);
+    return null;
+  }
+}
+
 // ── generateResumeForApply ─────────────────────────────────────────────────────
 // Called by the apply worker to resolve or trigger a resume artifact in the
 // background.  Returns a Promise that resolves to { html, atsScore, resumeId }
@@ -11781,6 +11812,7 @@ app.use(createExtensionResumeRouter({ service: extensionResume, requireAuth, isE
 // (routes/extensionJob.js). The same score as the approval screen — scoreBaseResumeForApply.
 app.use(createExtensionJobRouter({ db, requireAuth, isExtension: isExtensionCredential,
   scoreFor: (userId, jobId) => scoreBaseResumeForApply(userId, jobId),
+  scoreText: (userId, job) => scorePageTextForBase(userId, job),
   hasBaseResume: (userId) => !!extensionBaseResumeFor(db, userId) }));
 
 // ── Contact form (public — no auth required) ──────────────────

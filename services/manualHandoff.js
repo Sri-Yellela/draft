@@ -18,7 +18,7 @@
 import { APPLY_ORIGIN_FAMILIES, familyOf, jobIdOf, originOf, packetJobIds, packetOrigins, hostsSentence } from "./applyOrigins.js";
 import { listHistory } from "./applicationRecords.js";
 import { companyRows, matchCompany } from "../shared/companyIdentity.js";
-import { pageKeyOf, ownJobByTitleCompany } from "./jobPageKey.js";
+import { pageKeyOf, ownJobByTitleCompany, jobIdForAtsKey } from "./jobPageKey.js";
 import { normaliseQuestion } from "../shared/savedAnswers.js";
 
 const one = (db, sql, ...args) => { try { return db.prepare(sql).get(...args) ?? null; } catch { return null; } };
@@ -125,6 +125,18 @@ export function resolvePageJob(db, userId, url, families = APPLY_ORIGIN_FAMILIES
   }
   const byUrl = pick(rows, "url");
   if (byUrl) return byUrl;
+
+  // ⭐ T2 (field report 10-14): the ATS's OWN job id in the address — the board's id for that job is
+  // `${ats}::${id}` (services/jobPageKey.js atsJobKeyOf). Stripe's careers page carries ?gh_jid=8198280; the board holds
+  // greenhouse::8198280 under another path on the same site. ⛔ An id read from a query parameter on a host that is NOT
+  // the ATS's (`embedded`) is accepted only for a job of THAT site — its stored address is on the same site, or its
+  // company is the site's name — since any page can carry the parameter.
+  const atsId = jobIdForAtsKey(db, url);
+  if (atsId) {
+    const row = one(db, `SELECT ${JOB_COLS} FROM scraped_jobs WHERE job_id=?`, atsId);
+    const got = row && pick([row], "ats_id");
+    if (got) return got;
+  }
 
   // ⭐ The page's JOB KEY — the same requisition at any stage (/apply, /apply/applyManually, …), with the locale
   // and tracking dropped: first what a capture recorded, then a posting whose own address carries the key.

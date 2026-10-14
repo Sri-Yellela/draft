@@ -4,7 +4,9 @@ import {
   prepareAndFill, recordSubmitted, copySheetFor, pageMatchFor, packetFillsOrigin, overlayTheme, loadPacketForTab,
 } from './gated-handoff.js';
 // D96 §3 (J1): where each application stands — local, per job, no answer values.
-import { noteCapture, noteContext, noteReviewed } from './progress.js';
+import { noteCapture, noteContext, noteReviewed, progress, resumeFor } from './progress.js';
+// T6: Options → "Show details" — what draft answered, per tab and per server path (memory only)
+import { notePageRead, detailsOf, readTabIds } from './diagnostics.js';
 // D96 §4–§5 (J4): the review panel's acknowledge / change / dock — answers go to the user's own Saved answers.
 import { handlers as ANSWER_MEMORY_HANDLERS, configureAnswerMemory } from './answerMemory.js';
 // D98 §4–§5 (J6): the résumé on the page — generate (the panel's own trusted click only), preview, attach, fallback.
@@ -12,8 +14,9 @@ import { handlers as RESUME_PANEL_HANDLERS, configureResumePanel } from './resum
 // D99 J11: the board hands a job to the extension (boardBridge.js, the one content script, on draft's origin only).
 import { handlers as BOARD_OPEN_HANDLERS, configureBoardOpen } from './boardOpen.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
+import { lookupPage } from './boardJob.js';
 // ⭐ One job per tab across every stage of its application, and the Copy sheet as an in-page panel (owner, 10-12).
-import { bindTab, bindingForTab, clearBinding, setBindingDock, bindingLine } from './tabBinding.js';
+import { bindTab, bindingForTab, clearBinding, setBindingDock, bindingLine, loadBinding, BIND_PREFIX } from './tabBinding.js';
 import { renderCopySheetPanel } from './copy-sheet-panel.js';
 import { authedFetch, getIdentity, cachedIdentity, disconnect } from './auth.js';
 import { captureResultFrom } from './captureResult.js';
@@ -163,18 +166,35 @@ async function popupContext(tab) {
     // on-demand company notice (§8 row 10). Asked only on the press, like the rest of this.
     origin ? pageMatchFor(RESUME_MASTER_URL, tab) : Promise.resolve(null),
   ]);
+  // ⭐ T2 + T3 (field report 10-14): the address alone did not name the job (Stripe's careers page vs the board's copy
+  // of it), or named it with no score — so the page the user is looking at is read (the same extractor a capture uses,
+  // under this press's grant) and draft is asked which job its TEXT is, by the capture's own matcher, and how the base
+  // résumé scores for it. A score never waits for a capture.
+  const page = url && (!board?.posting?.known || !Number.isFinite(board.posting.scores?.shown)) ? await pageLookup(tab, url) : null;
+  if (page?.ok && board?.posting) {
+    const p = page.posting;
+    const score = page.ats?.state === 'ready' && Number.isFinite(page.ats.score) ? page.ats.score : null;
+    const scores = score != null ? { base: score, tailored: null, shown: score, tailoredShown: false } : board.posting.scores || null;
+    if (p?.known && !board.posting.known) {
+      board.posting = { ...board.posting, known: true, jobId: p.jobId, title: p.title, company: p.company, how: p.how, active: true, scores };
+    } else if (score != null) board.posting = { ...board.posting, scores };
+  }
   // ⭐ A posting draft recognises binds the tab too; a DIFFERENT recognised posting replaces the binding.
   if (board?.posting?.known && board.posting.jobId) {
     await bindTab(tab, { jobId: board.posting.jobId, title: board.posting.title, company: board.posting.company, via: 'recognised' }).catch(() => null);
   }
   const binding = await bindingForTab(tab);
   await noteContext(board, binding);
+  notePageRead(tab?.id, { url, known: !!board?.posting?.known, jobId: board?.posting?.jobId ?? null, how: board?.posting?.how || null,
+    pageKey: board?.pageKey?.key || null, basis: page?.basis || null, atsState: page?.ats?.state || null });
   return {
     url, origin,
     binding: binding ? { jobId: binding.jobId, title: binding.title, company: binding.company, via: binding.via, boundAt: binding.boundAt,
                ...(binding.via === 'board' && binding.board?.ats ? { ats: binding.board.ats } : {}) } : null,
     posting: board?.posting || null,
     ats: board?.ats || null,
+    // T3: draft's report for this page — `basis` "board" (the board job's) or "page" (the page's own text)
+    report: page?.ok && page.ats ? { ...page.ats, basis: page.basis } : null,
     recent: board?.recent || [],
     packets: (queue?.packets || []).map(p => ({
       packetId: p.packetId, title: p.title, company: p.company, createdAt: p.createdAt, stale: !!p.stale,
@@ -204,6 +224,47 @@ async function previewActiveTab(tab) {
   }
 }
 
+const WORKER_STARTED = Date.now();
+
+/**
+ * ⭐ T6 · Options → "Show details": every tab draft knows about (bound, or read since the worker started) with its binding,
+ * what draft last answered about its page, its remembered progress and its last generation (the server's status and
+ * cause code, asked now), and each server path's last answer. ⛔ Named fields only — extension/diagnostics.js.
+ */
+async function diagnostics() {
+  let bound = [];
+  try { bound = Object.keys(await chrome.storage.session.get(null)).filter(k => k.startsWith(BIND_PREFIX)).map(k => Number(k.slice(BIND_PREFIX.length))); }
+  catch { bound = []; }
+  const ids = [...new Set([...readTabIds(), ...bound])].filter(Number.isFinite).slice(0, 8);
+  const tabs = [];
+  for (const id of ids) {
+    const binding = await loadBinding(id);
+    const jobId = binding?.jobId ?? null;
+    const prog = jobId != null ? await progress.get({ jobId }).catch(() => null) : null;
+    const resume = jobId != null ? await resumeFor(jobId).catch(() => null) : null;
+    let view = null;
+    if (resume?.id) {
+      const r = await authedFetch(RESUME_MASTER_URL, `/api/extension/resume/${encodeURIComponent(resume.id)}`).catch(() => null);
+      view = r && r.ok ? await r.json().catch(() => null) : null;
+    }
+    tabs.push({ id, binding, progress: prog, resume, view });
+  }
+  let hasToken = false;
+  try { hasToken = !!(await chrome.storage.local.get('authToken'))?.authToken; } catch { hasToken = false; }
+  return detailsOf({ version: chrome.runtime.getManifest().version, hasToken, identity: await cachedIdentity().catch(() => null),
+    tabs, workerStartedAt: WORKER_STARTED });
+}
+
+/** T2 + T3: the page's text, read by the capture's extractor under the press's grant, and draft's answer for it. */
+async function pageLookup(tab, url) {
+  let text = '';
+  try {
+    const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extractJobPayload });
+    if (r?.result?.ok) text = r.result.text || '';
+  } catch { /* no grant on this tab: the address alone is asked */ }
+  return lookupPage(RESUME_MASTER_URL, { url, text }).catch(() => null);
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Capture, from the popup button. The hotkey reaches the same function through onCommand below;
   // neither trigger has an implementation of its own.
@@ -223,6 +284,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'AUTO_CAPTURE_UNDO' && message.jobId) {
     authedFetch(RESUME_MASTER_URL, `/api/import/auto/${encodeURIComponent(message.jobId)}/undo`, { method: 'POST' })
       .then(r => (r ? r.json() : null)).then(sendResponse).catch(() => sendResponse(null));
+    return true;
+  }
+
+  // T6 — only the extension's own Options page may ask (a web page's message never reaches this listener anyway)
+  if (message.type === 'DIAGNOSTICS') {
+    if (sender?.id !== chrome.runtime.id || !String(sender?.url || '').startsWith(chrome.runtime.getURL('options.html'))) {
+      sendResponse(null); return false;
+    }
+    diagnostics().then(sendResponse, () => sendResponse(null));
     return true;
   }
 

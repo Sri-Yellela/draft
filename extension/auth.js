@@ -34,6 +34,8 @@ const IDENTITY_KEY = 'authIdentity';
 // ⭐ D96 §3: the jobs' remembered progress belongs to the account that made it — cleared on Disconnect, on sign-out,
 // and when another account connects (extension/progress.js). Nothing else of it passes through here.
 import { progress } from './progress.js';
+// T6: every answer's status and code, for Options → "Show details" (memory only, never a body or a token)
+import { noteAnswer } from './diagnostics.js';
 
 // Why the last bootstrap produced no token: 'signed_out' (the website answered and there is no session) or
 // 'unreachable' (it could not be asked). Only the first is a sign-out — an offline popup must not forget anything.
@@ -90,7 +92,7 @@ export async function authedFetch(serverUrl, path, init = {}) {
   let token = await storedToken();
   if (!token) {
     token = await bootstrapToken(serverUrl);
-    if (!token) return null;
+    if (!token) { noteAnswer(path, 0, { code: lastBootstrap || 'signed_out' }); return null; }
   }
 
   const send = (t) => fetch(`${serverUrl}${path}`, {
@@ -100,13 +102,21 @@ export async function authedFetch(serverUrl, path, init = {}) {
     headers: { ...(init.headers || {}), 'X-RM-Auth-Context': t },
   });
 
-  let res = await send(token);
+  let res;
+  try { res = await send(token); }
+  catch (e) { noteAnswer(path, 0, { code: 'unreachable' }); throw e; }
   if (res.status === 401) {
     await clearStoredToken();
     const fresh = await bootstrapToken(serverUrl);
-    if (!fresh) return null;
-    res = await send(fresh);
+    if (!fresh) { noteAnswer(path, 401, { code: lastBootstrap === 'unreachable' ? 'reconnect_unreachable' : 'token_refused' }); return null; }
+    try { res = await send(fresh); }
+    catch (e) { noteAnswer(path, 0, { code: 'unreachable' }); throw e; }
   }
+  // a refusal's code only — read from a copy, so the caller still gets the whole body. ⛔ The record never fails a request.
+  try {
+    if (res.ok) noteAnswer(path, res.status);
+    else res.clone().json().then((j) => noteAnswer(path, res.status, j), () => noteAnswer(path, res.status));
+  } catch { /* a response with no copy to read: the request stands */ }
   return res;
 }
 

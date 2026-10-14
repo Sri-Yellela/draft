@@ -4693,4 +4693,14 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_resume_pdf_record ON resume_pdf_artifacts(record_id);
       `,
     },
+    {
+      // ⭐ T6 (field report 10-14): WHY a generation failed. Every failure was written error_code 'unavailable', so the owner's
+      // Stripe failure (the tools service refused the model call) read the same as a crash. `cause` is "<stage>:<code>"
+      // (services/extensionResume.js causeOf) — a code, never a message, a model name or money. The user's sentence stays
+      // the generic one; the extension's "Show details" view shows the code.
+      id: "167_extension_resume_cause",
+      sql: `
+        ALTER TABLE extension_resume_generations ADD COLUMN cause TEXT;
+      `,
+    },
   ];

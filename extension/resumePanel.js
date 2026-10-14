@@ -49,7 +49,9 @@
 import { authedFetch } from './auth.js';
 import { tabJob } from './answerMemory.js';
 import { bindTab, bindingForTab, bindingLabel } from './tabBinding.js';
-import { lookupBoardJob } from './boardJob.js';
+import { lookupBoardJob, lookupPage } from './boardJob.js';
+import { extractJobPayload } from './extractor.js';
+import { notePageRead } from './diagnostics.js';
 import { overlayTheme, fetchPdf } from './gated-handoff.js';
 import { noteResume, resumeFor } from './progress.js';
 import { C_LIGHT } from './tokens.js';
@@ -142,9 +144,12 @@ export function reportModel(ats) {
   if (ats.state !== 'ready') return null;
   const band = BAND_WORDS[Number.isFinite(ats.score) ? ats.band : 'not_enough_signal'] || BAND_WORDS.not_enough_signal;
   const list = (xs) => (Array.isArray(xs) ? xs.map(x => plain(x, 60)).filter(Boolean).slice(0, 12) : []);
+  // T3: a page draft does not hold is scored against ITS OWN TEXT — said so, and there is no board report to open
+  const fromPage = ats.basis === 'page';
   return { state: 'ready', head: Number.isFinite(ats.score) ? `ATS ${Math.round(ats.score)} · ${band[0]}` : `ATS · ${band[0]}`, tone: band[1],
-    note: 'Your base résumé, scored for this job.', matched: list(ats.matched), missing: list(ats.missing),
-    action: { role: 'report', label: 'Full report in draft' } };
+    note: fromPage ? 'Your base résumé, scored against this page.' : 'Your base résumé, scored for this job.',
+    matched: list(ats.matched), missing: list(ats.missing),
+    action: fromPage ? null : { role: 'report', label: 'Full report in draft' } };
 }
 
 /**
@@ -159,7 +164,8 @@ export function reportModel(ats) {
  */
 export function resumePanelModel(args = {}) {
   const m = modelCore(args);
-  return { ...m, report: m.state === 'nojob' ? null : reportModel(args.report) };
+  // T3: an unlinked tab still shows a score read from the page itself — never a board report for a job it is not on
+  return { ...m, report: m.state === 'nojob' && args.report?.basis !== 'page' ? null : reportModel(args.report) };
 }
 function modelCore({ job = null, view = null, allowance = null, error = null, attach = null, warning = null } = {}) {
   const j = view?.job?.jobId ? { jobId: view.job.jobId, title: view.job.title ?? job?.title ?? null, company: view.job.company ?? job?.company ?? null } : job;
@@ -823,13 +829,31 @@ export function handlersFor(serverUrl = null) {
       const tab = tabOf(sender);
       if (!tab) return refuse('Read the page from the panel on it.');
       if (!url()) return refuse('Not configured.');
-      const r = await post(url(), '/api/import/context', { url: String(tab.url || '').slice(0, 2048) });
+      const pageUrl = String(tab.url || '').slice(0, 2048);
+      const r = await post(url(), '/api/import/context', { url: pageUrl });
       const p = r.ok ? r.body?.posting : null;
       if (p?.known && p.jobId) await bindTab(tab, { jobId: p.jobId, title: p.title, company: p.company, via: 'recognised' }).catch(() => null);
-      const job = await jobOfTab(tab);
+      let job = await jobOfTab(tab);
+      // ⭐ T2 + T3: the address did not name it — read the page (the capture's extractor, under this click's grant) and ask
+      // which job its text is, by the capture's own matcher; a page draft does not hold is still scored, from its text.
+      let page = null;
       if (!job) {
+        let text = '';
+        try { const [x] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extractJobPayload }); if (x?.result?.ok) text = x.result.text || ''; }
+        catch { /* the address alone */ }
+        page = await lookupPage(url(), { url: pageUrl, text }).catch(() => null);
+        const q = page?.ok ? page.posting : null;
+        if (q?.known && q.jobId) {
+          await bindTab(tab, { jobId: q.jobId, title: q.title, company: q.company, via: 'recognised' }).catch(() => null);
+          job = await jobOfTab(tab);
+        }
+      }
+      notePageRead(tab.id, { url: pageUrl, known: !!job, jobId: job?.jobId ?? null, how: page?.posting?.how || p?.how || null,
+        pageKey: r.body?.pageKey?.key || null, basis: page?.basis || null, atsState: page?.ats?.state || null });
+      if (!job) {
+        const report = page?.ok && page.basis === 'page' && page.ats ? { ...page.ats, basis: 'page' } : null;
         return { ok: false, message: r.ok ? 'draft does not know this page yet — capture the job from the popup.' : 'Could not reach draft — try again.',
-          model: resumePanelModel({}) };
+          model: resumePanelModel({ report }) };
       }
       const { view, error } = await currentView(url(), job);
       const allowance = !view ? await allowanceNow(url()) : null;

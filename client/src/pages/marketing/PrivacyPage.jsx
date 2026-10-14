@@ -190,7 +190,11 @@ export function PrivacyPage() {
               <Strong>Read this page</Strong> in the extension's popup (opening the popup alone reads
               nothing), it also sends that one address to {CANONICAL_HOST}, to show you whether the job
               is already on your board and whether an application you drafted is waiting on that
-              site; the answer is shown in the popup and not kept by the extension. It cannot see the
+              site; the answer is shown in the popup and not kept by the extension. When that address
+              alone does not identify the job, the same press also sends the posting's text it read
+              (the title, company and description a capture would send), so draft can tell which job on
+              your board it is and score your résumé against it; that text is used for the answer and
+              not kept, and no job is saved unless you capture it. It cannot see the
               address of any other tab, and it does not record where you go.
             </LI>
             {/* D55 decision B — background.js saveLinkToDraft(), routes/importJob.js POST /link. */}

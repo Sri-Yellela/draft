@@ -40,3 +40,29 @@ export async function lookupBoardJob(serverUrl, jobId) {
            job: { jobId: String(body.job.jobId), title: body.job.title ?? null, company: body.job.company ?? null, url,
                   logo: httpsOnly(body.job.logo), reportPath: safePath(body.job.reportPath) } };
 }
+
+/**
+ * ⭐ T2 + T3 (field report 10-14) · "Read this page" — POST /api/extension/page { url, text }: which job this page is (by
+ * its address, else by the capture's own matcher on the text the extractor read) and draft's ATS report — the board
+ * job's, or the base résumé against THIS PAGE'S TEXT when draft does not hold it. Sent only on the press; the server
+ * keeps nothing. → { ok: true, posting, ats, basis } · { ok: false, error }
+ */
+export async function lookupPage(serverUrl, { url = '', text = '' } = {}) {
+  if (!serverUrl || !/^https?:\/\//i.test(String(url))) return { ok: false, error: 'bad_page' };
+  let r;
+  try {
+    r = await authedFetch(serverUrl, '/api/extension/page', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: String(url).slice(0, 2048), text: typeof text === 'string' ? text.slice(0, 60000) : '' }) });
+  } catch { r = null; }
+  if (!r) return { ok: false, error: 'signed_out' };
+  let body = null;
+  try { body = await r.json(); } catch { body = null; }
+  if (!r.ok) return { ok: false, error: typeof body?.error === 'string' ? body.error.slice(0, 40) : 'unavailable' };
+  const p = body?.posting;
+  const words = (v) => (typeof v === 'string' ? v.slice(0, 200) : null);
+  const posting = !p || typeof p !== 'object' ? null
+    : p.known === true && JOB_ID_RE.test(String(p.jobId ?? ''))
+      ? { known: true, jobId: String(p.jobId), title: words(p.title), company: words(p.company), how: words(p.how), onBoard: p.onBoard === true }
+      : { known: false, title: words(p.title), company: words(p.company) };
+  return { ok: true, posting, ats: atsFacts(body?.ats), basis: body?.basis === 'board' || body?.basis === 'page' ? body.basis : null };
+}
