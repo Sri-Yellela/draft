@@ -213,6 +213,12 @@
       <span class="draft-d" aria-hidden="true">/d</span>
     </button>
   </div>
+  <!-- ⭐ D98 (J6): opens the Résumé panel ON THE PAGE for this tab's job — its own row, so the labels below keep one
+       line. It generates nothing: the panel's own Generate button does. -->
+  <div class="mini">
+    <button class="mb" id="btn-resume-onpage" title="A résumé made for this job, on the page — generated only when you press Generate there">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 15.5h7M9 19h4"/></svg> Résumé for this job</button>
+  </div>
   <!-- ⭐ D63 (5): the text links go. Copy sheet and Report form are depth boxes under Everything, with More
        (the options page, where Sign in with LinkedIn and Keyboard shortcuts now live — they are used once). -->
   <div class="mini">
@@ -241,5 +247,6 @@
   <script src="popup.js"></script>
   <script type="module" src="popup-auto.js"></script>
   <script type="module" src="popup-progress.js"></script>
+  <script type="module" src="popup-resume.js"></script>
 </body>
 </html>
