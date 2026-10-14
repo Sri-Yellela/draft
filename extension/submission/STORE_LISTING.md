@@ -51,8 +51,9 @@ received. Against v1.0.0:
 3. **The privacy policy URL moved with it**, and the policy is live on the new origin.
 4. **The extension holds an access token of its own** (`auth.js`) instead of borrowing the browser's
    session — one of the eight stored values, and the only one transmitted (to our backend only).
-5. **No content script and no job-board host permission at install.** v1.0.0 declared six job boards and
-   ran a content script on them; that is gone. Every read starts at a click or a keystroke —
+5. **No job-board content script and no job-board host permission at install.** v1.0.0 declared six job boards
+   and ran a content script on them; that is gone. **One small script runs on jobsviadraft.com only (D99), so the
+   draft website can hand a job from your board to the extension** — it reads nothing from the page. Every read starts at a click or a keystroke —
    **except automatic reading (item 6), which is off until the user switches it on, site by site.**
 6. **Automatic reading (opt-in, off by default; D64, extended by D97 on 2026-10-14).** The options page
    has FOUR switches per site — **Read · Prepare · Capture · Fill** — all off, usable only after the user
@@ -360,7 +361,9 @@ In the order the developer dashboard asks. ⛔ The owner pastes, ticks and uploa
 > No remotely hosted code. Everything executed ships in the package: no `eval`, no `new Function`, no
 > `importScripts`, no remote `<script src>`. The CSP in the manifest is `script-src 'self'`.
 >
-> `externally_connectable` is deliberately absent. No website can message this extension.
+> `externally_connectable` is deliberately absent. No website can message this extension — except draft's own site
+> (jobsviadraft.com), through one small declared content script, which can ask it to open a job from your board: it
+> sends a job id only, and the extension checks with draft's server before it opens the address the server returns.
 
 ---
 

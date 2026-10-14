@@ -127,8 +127,12 @@ extension needs no standing access to any site in order to capture from it — a
 |---|---|---|---|
 | `https://jobsviadraft.com/*` | `auth.js` `authedFetch()` is the single network path, and `bootstrapToken()` is the single credentialed one. Through it: `background.js` `importCapturedJob()` posts `/api/import/job`, the `PROBE_AUTH` handler calls `/api/auth/me`, `recordGateReview()` posts `/api/apply/gate-review`, `advanceBatch()` calls `/api/apply/gate-packets`; `gated-handoff.js` `api()` and its resume fetch. Every one of them is `credentials:'omit'` and carries the extension's own bearer token; no secret is embedded in the package. | *Browser Extension* — "Data extracted by the extension is sent to … and associated with the account you connected the extension to … it sends the token and not the browser cookie". | Our own backend. The extension identifies itself with a token it obtained for itself, not with the browser's session cookie, so it acts only as the account the user connected it to. |
 
-**No content script is declared**, so there is no origin the extension runs on automatically. The
-policy's central claim — "reads nothing until you invoke it" — is true because of that absence, and
+**One content script is declared, and only on draft's own site** (D99 J11, 10-14): `boardBridge.js` on
+`https://jobsviadraft.com/*`, so the draft website can hand a board job to the extension. It reads nothing from the
+page and sends nothing itself — it forwards a **job id**, during a click, to the service worker, which asks draft's
+server and opens the address the server returns. **No script is declared on any other origin**, so there is no
+employer or job-board page the extension runs on automatically. The policy's central claim — "reads nothing until you
+invoke it" — is true because of that, and
 `test/privacyReconciliation.test.js` fails if any non-`jobsviadraft.com` host is declared again,
 because the claim would stop being true the moment one is.
 
@@ -162,10 +166,10 @@ and each still needs a policy paragraph.
 |---|---|
 | No browsing-history collection | No `history`, `tabs` or `webNavigation` permission, and now no host permission for any site either — a tab's URL is readable only after the user invokes the extension on it. `e2CaptureConvergence.mjs` asserts the negative directly: before invocation the extension cannot see the job tab at all. |
 | No scraping of job lists or saved-job lists | `saved-jobs-content.js` and `SCRAPE_SAVED_JOBS` are absent from source and from the packed zip — asserted by `test/extensionSubmission.test.js`. |
-| Nothing is read until you invoke it, and only that tab | No content script and no job-board host permission exist, so there is no origin the extension can run on unbidden. Every read — capture, ATS, handoff — is an `executeScript` into the tab an invocation just granted. |
+| Nothing is read until you invoke it, and only that tab | No job-board content script and no job-board host permission exist, so there is no employer or job-board origin the extension can run on unbidden (the one declared script is D99's bridge on draft's own site; it reads nothing from the page). Every read — capture, ATS, handoff — is an `executeScript` into the tab an invocation just granted. |
 | No remotely hosted code | CSP `script-src 'self'`; no `eval`, `new Function`, `importScripts` or remote `<script src>` anywhere in the bundle. |
 | No sale of personal data; no unrelated transfer; no creditworthiness use | No such code path exists. Third parties are enumerated in *Third-Party Services* — see the verified table below, which replaces the stale enumeration this row used to carry. |
-| Nothing pushes data into the extension | `externally_connectable` absent — no website can message it. |
+| Nothing pushes data into the extension | `externally_connectable` absent — no website can message it. The one inward path is draft's own site, through D99's bridge (`boardBridge.js`): a **job id**, during a click, which the extension checks with draft's server before it opens the address the server returns — no data, no address and no answer comes from the page. |
 
 ## Third-party recipients — verified against live code, 2026-09-15
 

@@ -38,7 +38,11 @@ test("⛔ D23: the permission set is exactly activeTab + scripting + storage, an
     "https://jobs.ashbyhq.com/*", "https://apply.workable.com/*",
     "https://*.myworkdayjobs.com/*", "https://*.myworkdaysite.com/*",
   ]);
-  for (const k of ["optional_permissions", "content_scripts",
+  // + ONE content script by D99 J11 (owner, 10-14: "build the bridge") — the bridge, on draft's own origin only, top
+  // frame only. It is not a permission (jobsviadraft.com is already the one host) and is pinned exactly here.
+  assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"],
+    run_at: "document_start", all_frames: false }], "the content scripts are exactly D99's bridge");
+  for (const k of ["optional_permissions",
                    "web_accessible_resources", "externally_connectable", "declarative_net_request"]) {
     assert.equal(manifest[k], undefined, `manifest.${k} appeared — that is a new permission or exposure`);
   }
@@ -142,7 +146,13 @@ test("⛔ D23: opening the popup reads NOTHING — no preview, no context call, 
   // and background.js answers it from /api/draft/slots alone. Nothing about the page is read on open.
   // v1.5.2 (owner, 10-12): "Captured: N today · M already on your board" is asked for on open on the same terms — the
   // ACCOUNT's captures (GET /api/import/today), no tab and no URL in the message.
-  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING", "CAPTURED_TODAY"], `the popup asked for ${p.sent.join(", ")} on open`);
+  // D99 J11 (10-14): BOARD_TAB — "From your board" on a tab the board opened — is asked on open on the same terms: no tab
+  // and no URL in the message, and the worker answers it from the extension's OWN binding record (no request, no injection).
+  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING", "CAPTURED_TODAY", "BOARD_TAB"], `the popup asked for ${p.sent.join(", ")} on open`);
+  assert.deepEqual(Object.keys(p.messages.find(m => m.type === "BOARD_TAB")), ["type"], "BOARD_TAB's message carries something about the page");
+  const boardSrc = read("extension/boardOpen.js"), bt = at(boardSrc, "BOARD_TAB: async");
+  const boardTab = boardSrc.slice(bt, at(boardSrc, "\n  },", bt));
+  assert.doesNotMatch(boardTab, /fetch|authedFetch|lookupBoardJob|executeScript/, "BOARD_TAB reads the page or asks the server");
   assert.deepEqual(Object.keys(p.messages.find(m => m.type === "TODAY_RING")), ["type"], "the ring's message carries something about the page");
   assert.deepEqual(Object.keys(p.messages.find(m => m.type === "CAPTURED_TODAY")), ["type"], "the count's message carries something about the page");
   assert.equal(p.injected.length, 0, "the popup injected into the page on open");
@@ -161,7 +171,7 @@ test("D23: the press reads the page once — a posting -> Capture it + Score it 
   await p.settle();
   for (const fn of p.els["btn-read-page"].listeners.click) fn({});
   await p.settle();
-  assert.deepEqual(p.sent.slice(3).sort(), ["POPUP_CONTEXT", "PREVIEW_ACTIVE_TAB"]);
+  assert.deepEqual(p.sent.slice(4).sort(), ["POPUP_CONTEXT", "PREVIEW_ACTIVE_TAB"]);
   assert.equal(p.els["posting-actions"].style.display, "flex");
   assert.equal(p.els["ctx-line"].textContent, "Not on your board yet");
   assert.equal(p.els["preview-company"].textContent, "Fabrikam");
@@ -169,7 +179,7 @@ test("D23: the press reads the page once — a posting -> Capture it + Score it 
   // A second press (or a held key) does not read again.
   for (const fn of p.els["btn-read-page"].listeners.click) fn({});
   await p.settle();
-  assert.equal(p.sent.length, 5, "the page was read twice");
+  assert.equal(p.sent.length, 6, "the page was read twice");
 });
 
 test("D23: the keystroke is the same press (R, no modifier); a modified R is not", async () => {
@@ -179,7 +189,7 @@ test("D23: the keystroke is the same press (R, no modifier); a modified R is not
   const key = (o) => { for (const fn of p.docListeners.keydown) fn({ preventDefault() {}, ...o }); };
   key({ key: "r", ctrlKey: true });
   await p.settle();
-  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING", "CAPTURED_TODAY"], "Ctrl+R read the page");
+  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING", "CAPTURED_TODAY", "BOARD_TAB"], "Ctrl+R read the page");
   key({ key: "r" });
   await p.settle();
   assert.equal(p.els["btn-fill-primary"].style.display, "flex", "a form you drafted -> Fill it");

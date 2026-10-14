@@ -53,9 +53,9 @@ test("⛔ D55 B: contextMenus is declared — and rationalised, reconciled, just
   assert.match(read("extension/MANIFEST_RATIONALE.md"), /^\| `contextMenus` \|/m);
   assert.match(read("extension/submission/PRIVACY_RECONCILIATION.md"), /^\| `contextMenus` \|/m);
   assert.match(read("extension/submission/STORE_LISTING.md"), /\*\*`contextMenus`\*\*/);
-  // It came with no host and no content script.
+  // It came with no host and no content script (the one content script since is D99 J11's bridge, on draft's origin).
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
-  assert.equal(manifest.content_scripts, undefined);
+  assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"], run_at: "document_start", all_frames: false }]);
 });
 
 test("D55 B: two items — Save this page (pages) and Save link (http(s) links only)", () => {

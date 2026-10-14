@@ -10,6 +10,8 @@ import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
 import CompanyLink from "./CompanyLink.jsx";
 
+const NO_TAG = () => {};   // this row IS the Pending list — opening the posting does not tag it again
+
 const ORIGIN = {
   generated: "Résumé generated",
   opened_posting: "Posting opened",
@@ -96,8 +98,9 @@ export default function PendingApplications({ data, theme, onRecord, onWithdraw,
             style={{ border: `1px solid ${theme.border}`, borderRadius: 10, padding: "10px 12px" }}>
             <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 200 }}>
-                {/* D38: the ONE company link. No Pending tag here — this row IS the Pending list. */}
-                <CompanyLink company={row.company || row.jobId} href={row.applyUrl || null} size="row" />
+                {/* D38: the ONE company link. No Pending tag here — this row IS the Pending list (onOpen does nothing);
+                    the job id is for D99 J11 — the extension opens the posting bound to it. */}
+                <CompanyLink company={row.company || row.jobId} href={row.applyUrl || null} jobId={row.jobId} onOpen={NO_TAG} size="row" />
                 <span style={{ fontSize: 12, color: theme.textMuted }}> · {row.title || "Untitled role"}</span>
               </div>
               <span style={{ fontSize: 11, color: theme.textMuted }}>{ORIGIN[row.origin] || row.origin}</span>

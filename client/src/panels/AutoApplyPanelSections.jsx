@@ -15,6 +15,7 @@ import { companyLabel } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { markStyle, bandMarkStyle, dotCue } from "../styles/mark.js";
 import { C } from "../styles/colorTokens.js";
+import { postingClick } from "../lib/openPosting.js";
 // AD1: OUTCOME_LABELS moved to AutoApplyPanel with the groups themselves — they name the SUB-TABS
 // now, and nothing in this module reads them. The partition still lives in shared/ because
 // routes/apply.js groups rows with it; a copy on each side is how the two come to disagree.
@@ -270,7 +271,7 @@ export function ApplicationObstacleCard({
           );
         })()}
         {app.applyUrl && (
-          <a className="dbx-depth" href={app.applyUrl} target="_blank" rel="noreferrer"
+          <a className="dbx-depth" href={app.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(app, e)}
             style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
                      border: `1px solid ${theme.border}`, background: theme.surface,
                      color: theme.text, textDecoration: "none", whiteSpace: "nowrap" }}>
@@ -340,8 +341,9 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
   const chip = (bg, fg, text, title) => (
     <span title={title} style={markStyle(fg)}>{text}</span>
   );
-  const link = (href, text) => (
-    <a className="dbx-depth" href={href} target="_blank" rel="noreferrer"
+  // posting: the job whose posting this is (D99 J11 — handed to the extension); artifacts pass none
+  const link = (href, text, posting = null) => (
+    <a className="dbx-depth" href={href} target="_blank" rel="noreferrer" onClick={posting ? (e) => postingClick(posting, e) : undefined}
       style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
                border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text,
                textDecoration: "none", whiteSpace: "nowrap" }}>{text}</a>
@@ -438,7 +440,7 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
           style={bandMarkStyle(atsBandFor(job.atsScore ?? null))}>
           {atsBandLabel(atsBandFor(job.atsScore ?? null)).short}
         </span>
-        {job.applyUrl && link(job.applyUrl, "The posting ↗")}
+        {job.applyUrl && link(job.applyUrl, "The posting ↗", job)}
 
         <span style={{ flex: 1 }} />
 
@@ -755,7 +757,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
       {/* apply URL */}
       {job.applyUrl && (
         <a href={job.applyUrl} target="_blank" rel="noopener noreferrer"
-          onClick={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); postingClick(job, e); }}
           style={{ fontSize: 10, color: theme.accentText, textDecoration: "none", wordBreak: "break-all" }}>
           {job.applyUrl.length > 90 ? job.applyUrl.slice(0, 90) + "…" : job.applyUrl}
         </a>
