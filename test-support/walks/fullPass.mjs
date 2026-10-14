@@ -274,6 +274,9 @@ export default async function run(h, { check, observe, section }) {
     const got = await waitUntil(() => pp.evaluate(() => {
       const box = document.getElementById('progress');
       if (!box || box.hidden) return null;
+      // renderProgress paints the job line, THEN awaits the list — under a loaded suite the read could land between
+      // the two (43e: "In progress … — []"). This pass always has one job in progress, so wait for the list as well.
+      if (document.getElementById('in-progress').hidden) return null;
       return { job: document.getElementById('progress-job').textContent, line: document.getElementById('progress-line').textContent,
         list: [...document.querySelectorAll('#in-progress-list li')].map(li => ({ job: li.querySelector('.ip-job')?.textContent, where: li.querySelector('.ip-where')?.textContent, here: li.className === 'here' })),
         listShown: !document.getElementById('in-progress').hidden };
