@@ -52,6 +52,14 @@ export const OFF_PATH_STEPS = ['signIn', 'unrecognised'];
 
 export const DEFAULT_OUT_DIR = path.join(os.tmpdir(), 'draft-extension-walk');
 export const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+/**
+ * ⭐ J11 · the bound on a wait for something the walk EXPECTS to happen. A condition wait returns the moment its
+ * condition holds, so a generous bound costs nothing when the machine is quick — it only decides how long a slow one
+ * may take before the check fails. `npm test` runs test files in parallel, several of them real Chromes, and timed on
+ * this machine under load the J4 panel took 24–29 s to appear after Prepare (≈0.25 s idle): the old 6 s + 8 s budget
+ * failed that check once in a full run. Not for waits that expect NOTHING to happen — those are sleeps, said so.
+ */
+export const BUSY_MS = 60000;
 export const waitUntil = async (fn, ms = 5000, every = 150) => {
   const t0 = Date.now();
   for (;;) { const v = await fn(); if (v) return v; if (Date.now() - t0 > ms) return null; await sleep(every); }
@@ -363,9 +371,9 @@ export async function launchExtensionBrowser(opts = {}) {
       theme: () => theme,
       // ── readers ──
       readPanel: (selectors = {}) => page.evaluate(readPanelInPage, { ...READ_PANEL_SELECTORS, ...selectors }),
-      waitForPanel: (ms = 8000) => waitUntil(() => h.readPanel(), ms),
+      waitForPanel: (ms = BUSY_MS) => waitUntil(() => h.readPanel(), ms),
       readCopySheet: () => page.evaluate(readCopySheetInPage),
-      waitForCopySheet: (ms = 8000) => waitUntil(() => h.readCopySheet(), ms),
+      waitForCopySheet: (ms = BUSY_MS) => waitUntil(() => h.readCopySheet(), ms),
       /** Read any shadow host's root with your own page function: readShadow('rm-…', (root) => …). */
       readShadow: (hostId, fn) => page.evaluate((id, src) => {
         const host = document.getElementById(id);
