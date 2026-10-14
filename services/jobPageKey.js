@@ -133,3 +133,86 @@ export function ownJobByTitleCompany(db, userId, pk) {
   const ids = [...new Set(same.map(r => String(r.job_id)))];
   return ids.length === 1 ? ids[0] : null;
 }
+
+// ── ⭐ T2 (field report 10-14) · THE ATS'S OWN JOB ID — ONE KEY FOR EVERY FAMILY THE BOARD HOLDS ─────────────────────────
+//
+// The owner opened Stripe's Backend posting from the board. The page was
+// stripe.com/careers/listing/software-engineer-backend/8198280?gh_jid=8198280; Greenhouse's absolute_url for job 8198280
+// (what the feed stores) is stripe.com/jobs/search?gh_jid=8198280. Same job, two paths — so the popup's URL lookup said
+// "Not on your board yet" while the capture, reading the page's text, found it. The board's own id for a feed job is
+// `${source}::${the ATS's id}` (services/jobs/schema.js normalizeJob), and the ATS's id is in the address:
+//
+//   greenhouse       boards.greenhouse.io/<co>/jobs/<id> · job-boards.greenhouse.io/<co>/jobs/<id> · …/embed/job_app?token=<id>
+//                    · ⭐ ANY host with ?gh_jid=<id> — an employer's careers page embedding the Greenhouse board (Stripe)
+//   lever            jobs.lever.co/<co>/<uuid>[/apply]
+//   ashby            jobs.ashbyhq.com/<co>/<uuid>[/application] · ANY host with ?ashby_jid=<uuid> (the embed)
+//   workable         apply.workable.com/[<co>/]j/<SHORTCODE>[/apply]
+//   smartrecruiters  jobs.smartrecruiters.com/<Co>/<id>-<slug>
+//
+// `embedded` is true when the id came from a query parameter on a host that is NOT the ATS's — the caller must then
+// confirm the job belongs to that site (services/manualHandoff.js resolvePageJob), because any page can carry the
+// parameter. Pure: no database, no network. ⛔ This is IDENTITY only — it never widens where answers may be filled
+// (that list is services/applyOrigins.js, and it is not read from here).
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const GH_HOSTS = new Set(["boards.greenhouse.io", "job-boards.greenhouse.io"]);
+
+/** @returns {null | { ats: string, externalId: string, jobId: string, embedded: boolean }} */
+export function atsJobKeyOf(url) {
+  let u;
+  try { u = new URL(url); } catch { return null; }
+  if (!/^https?:$/.test(u.protocol)) return null;
+  const host = u.hostname.toLowerCase();
+  const parts = u.pathname.split("/").filter(Boolean);
+  const key = (ats, externalId, embedded = false) => ({ ats, externalId, jobId: `${ats}::${externalId}`, embedded });
+  const digits = (v) => (typeof v === "string" && /^\d{4,20}$/.test(v) ? v : null);
+
+  if (GH_HOSTS.has(host)) {
+    const at = parts.indexOf("jobs");
+    const id = (at >= 1 && digits(parts[at + 1])) || digits(u.searchParams.get("token")) || digits(u.searchParams.get("gh_jid"));
+    return id ? key("greenhouse", id) : null;
+  }
+  if (host === "jobs.lever.co") return parts[1] && UUID.test(parts[1]) ? key("lever", parts[1].toLowerCase()) : null;
+  if (host === "jobs.ashbyhq.com") return parts[1] && UUID.test(parts[1]) ? key("ashby", parts[1].toLowerCase()) : null;
+  if (host === "apply.workable.com") {
+    const at = parts.indexOf("j");
+    const code = at !== -1 ? parts[at + 1] : null;
+    return code && /^[A-Z0-9]{6,12}$/.test(code) ? key("workable", code) : null;
+  }
+  if (host === "jobs.smartrecruiters.com") {
+    const m = parts[1] ? parts[1].match(/^(\d{6,20})(?:-|$)/) : null;
+    return m ? key("smartrecruiters", m[1]) : null;
+  }
+  const gh = digits(u.searchParams.get("gh_jid"));
+  if (gh) return key("greenhouse", gh, true);
+  const ash = u.searchParams.get("ashby_jid");
+  if (ash && UUID.test(ash)) return key("ashby", ash.toLowerCase(), true);
+  return null;
+}
+
+/** The site a host belongs to, for the embedded check — its last two labels (careers.stripe.com → stripe.com). */
+export function siteOf(urlOrHost) {
+  let h = String(urlOrHost || "");
+  try { if (/^https?:\/\//i.test(h)) h = new URL(h).hostname; } catch { return null; }
+  const labels = h.toLowerCase().split(".").filter(Boolean);
+  return labels.length >= 2 ? labels.slice(-2).join(".") : null;
+}
+
+/**
+ * The board job this address names by its ATS's id — the job id, or null. One rule for the popup's lookup
+ * (resolvePageJob) and the capture (importJob), so the two can never disagree about the same page again.
+ * ⛔ An `embedded` id (a query parameter on the employer's own host) is accepted only for a job of THAT site: its
+ * stored url / apply_url is on the same site, or its company is the site's name.
+ */
+export function jobIdForAtsKey(db, url) {
+  const ak = atsJobKeyOf(url);
+  if (!ak) return null;
+  let row;
+  try { row = db.prepare("SELECT job_id, company, url, apply_url FROM scraped_jobs WHERE job_id = ?").get(ak.jobId); } catch { return null; }
+  if (!row) return null;
+  if (!ak.embedded) return String(row.job_id);
+  const site = siteOf(url);
+  if (!site) return null;
+  const sameSite = [row.url, row.apply_url].some(u => u && siteOf(u) === site);
+  const named = alnum(row.company).replace(/ /g, "") === site.split(".")[0];
+  return sameSite || named ? String(row.job_id) : null;
+}

@@ -49,7 +49,8 @@ function companionMode({ preview, context } = {}) {
   if (h?.state === 'not_this_address') return { mode: 'elsewhere', primary: [], handoff: h, notice };
 
   if (preview?.capturable && preview.ok) {
-    return { mode: 'posting', primary: ['capture', 'score'], posting: context?.posting || null, ats: context?.ats || null };
+    return { mode: 'posting', primary: ['capture', 'score'], posting: context?.posting || null, ats: context?.ats || null,
+             report: context?.report || null };
   }
   return { mode: 'neither', primary: [], recent: (context?.recent || []).slice(0, 5) };
 }
@@ -189,6 +190,8 @@ function factMarks(c, now = Date.now()) {
   } else if (c?.mode === 'posting' && c.posting) {
     out.push({ tone: c.posting.saved ? 'ok' : 'info', text: postingLine(c.posting) });
     if (c.posting.resumeReady) out.push({ tone: 'ok', icon: 'doc', text: 'Résumé ready' });
+    // T3: a score for a page draft does not hold is the base résumé against THIS page's text — said, so it is not read as the board's
+    if (c.report?.basis === 'page' && Number.isFinite(c.report.score)) out.push({ tone: 'dim', text: 'ATS scored from this page' });
   }
   return out;
 }

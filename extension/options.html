@@ -43,6 +43,12 @@
     .auto-reads { font-size: 11px; color: var(--c-ink-muted); line-height: 1.5; padding-left: 16px; margin: 6px 0; }
     details summary { font-size: 12px; font-weight: 700; cursor: pointer; }
     .btn-stop { color: var(--c-danger); }
+    /* T6 · the details read-out: plain text, scrolls inside itself, a rectangle (D60) */
+    .check { display: flex; gap: 8px; align-items: center; font-weight: 700; margin-top: 8px; }
+    .check input { width: 16px; height: 16px; accent-color: var(--c-accent); }
+    .details { font: 11px/1.45 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-word; max-height: 320px;
+      overflow: auto; padding: 10px; margin-top: 10px; border: 1px solid var(--c-border); border-radius: 6px;
+      background: var(--c-surface-2); color: var(--c-ink); }
   </style>
 </head>
 <body>
@@ -98,6 +104,22 @@
     <p class="status" id="auto-status" role="status"></p>
   </section>
 
+  <!-- T6 (field report 10-14): why something failed, without a guess. Off unless ticked; nothing about it is remembered. -->
+  <section id="details" aria-labelledby="details-h">
+    <h1 class="logo-face" id="details-h">Details for troubleshooting</h1>
+    <p class="hint">What draft answered for each job tab and each request &mdash; status codes and draft&rsquo;s own codes only.
+      Never your token, your answers, a page&rsquo;s text or your résumé. Nothing leaves your browser unless you copy it.</p>
+    <label class="check"><input type="checkbox" id="details-show"> Show details</label>
+    <div id="details-body" hidden>
+      <pre class="details" id="details-text" tabindex="0" aria-label="Details"></pre>
+      <div class="btn-row">
+        <button class="btn" id="details-refresh" type="button">Refresh</button>
+        <button class="btn btn-primary" id="details-copy" type="button">Copy details</button>
+      </div>
+      <p class="status" id="details-status" role="status"></p>
+    </div>
+  </section>
+
   <hr class="divider">
   <p class="note">
     Shortcuts are set in Chrome's own shortcuts page, which is the only thing that can actually
@@ -112,5 +134,6 @@
 
   <script src="options.js"></script>
   <script type="module" src="options-auto.js"></script>
+  <script type="module" src="options-details.js"></script>
 </body>
 </html>

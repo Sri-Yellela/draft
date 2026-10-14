@@ -54,7 +54,7 @@ import { fetchCompanyJobs as fetchRecruiteeJobs }       from './sources/recruite
 import { fetchCompanyJobs as fetchWorkdayJobs }         from './sources/workday.js';
 import { AUTO_CAPTURE_ORIGIN, autoCaptureRelevance } from './autoCapture.js';
 import { boardStateOf } from './jobGateway.js';
-import { pageKeyOf, recordPageKey, jobForPageKey, ownJobByTitleCompany } from '../jobPageKey.js';
+import { pageKeyOf, recordPageKey, jobForPageKey, ownJobByTitleCompany, jobIdForAtsKey } from '../jobPageKey.js';
 
 class ImportInputError extends Error {
   constructor(message) {
@@ -623,6 +623,19 @@ async function importJob({ url, text, html } = {}, { db, userId = null, force = 
       recordPageKey(db, url, target.job_id);
       return answer(db, target, { action: 'attached', attachment, already });
     }
+  }
+
+  // ⭐ T2 (field report 10-14): the page names its ATS's own job id (?gh_jid= on Stripe's careers page; a Lever, Ashby,
+  // Workable or SmartRecruiters address) and the board holds that job — the capture LINKS to it, by the same rule the
+  // popup's lookup uses (services/jobPageKey.js jobIdForAtsKey), and never makes a second row.
+  const atsId = url && !force && !auto ? jobIdForAtsKey(db, url) : null;
+  const arow = atsId ? db.prepare('SELECT * FROM scraped_jobs WHERE job_id = ?').get(atsId) : null;
+  if (arow) {
+    const target = arow.duplicate_of ? (db.prepare('SELECT * FROM scraped_jobs WHERE job_id = ?').get(arow.duplicate_of) || arow) : arow;
+    const already = capturedBefore(target.job_id);
+    const attachment = attachImportToUser(db, userId, target.job_id);
+    recordExistingCapture(db, { jobId: target.job_id, url, userId, detectKnownAtsMatch, origin: text || html ? 'capture' : 'import_url' });
+    return answer(db, target, { action: 'attached', attachment, already });
   }
 
   if (url && !force) {
