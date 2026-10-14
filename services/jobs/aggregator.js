@@ -946,14 +946,18 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
       // ── Upsert in a transaction ───────────────────────────────────────────
       // D78: the board's age policy (board_policy), read once per source pass.
       const agePolicy = readPolicy(db);
-      const { cached, unchanged, ejected, dropped, rescued, merged, outOfMarket, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut } = db.transaction(() => {
+      const { cached, unchanged, ejected, dropped, rescued, merged, outOfMarket, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut, retiredReseen, noId } = db.transaction(() => {
         let cached = 0, unchanged = 0, ejected = 0, dropped = 0, merged = 0, outOfMarket = 0;
         let tooOld = 0, agedOut = 0, wouldAgeOut = 0, outOfScope = 0, scopedOut = 0, wouldScopeOut = 0;
         let rescued = 0;   // no role family, but a clear CS title — written under ROLE_KEY_FALLBACK
+        // 43d: the two skips that were counted nowhere, so the admin funnel had to state an "uncounted"
+        // remainder (greenhouse 853 of 15,998 on 10-14) and a run boarding nothing read wrote_nothing.
+        let retiredReseen = 0;   // aged or scoped out by an EARLIER sweep, re-seen and stopped at the same gate
+        let noId = 0;            // no id and no url — nothing to key a row on
 
         for (const job of fetchedJobs) {
           const jobId = job.id || job.url || '';
-          if (!jobId) continue;
+          if (!jobId) { noId++; continue; }
 
           // Queue 37 — before the hash check, or an unchanged non-US row is re-activated.
           if (holdOutOfMarket(job, jobId, cacheStmts, now)) { outOfMarket++; continue; }
@@ -963,7 +967,7 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
           // is retired only once the owner switched age_enforce on (applied postings are always kept).
           const age = ageGate(db, job, jobId, { exists: existingHashes.has(jobId), now, policy: agePolicy });
           if (age === "rejected_new") { tooOld++; continue; }
-          if (age === "aged_out") { if (activeIds.has(jobId)) agedOut++; continue; }
+          if (age === "aged_out") { if (activeIds.has(jobId)) agedOut++; else retiredReseen++; continue; }
           if (age === "would_age_out" && activeIds.has(jobId)) wouldAgeOut++;
 
           // ⛔ D78 B — computer science only. An EXISTING row is judged here, before the hash check, by its
@@ -971,7 +975,7 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
           const exists = existingHashes.has(jobId);
           if (exists) {
             const scope = scopeGate(db, job, jobId, { exists, roleKey: storedFamily(db, { job_id: jobId, ...job }), now, policy: agePolicy });
-            if (scope === "scoped_out") { if (activeIds.has(jobId)) scopedOut++; continue; }
+            if (scope === "scoped_out") { if (activeIds.has(jobId)) scopedOut++; else retiredReseen++; continue; }
             if (scope === "would_drop" && activeIds.has(jobId)) wouldScopeOut++;
           }
 
@@ -1068,7 +1072,7 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
           cached++;
         }
 
-        return { cached, unchanged, ejected, dropped, rescued, merged, outOfMarket, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut };
+        return { cached, unchanged, ejected, dropped, rescued, merged, outOfMarket, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut, retiredReseen, noId };
       })();
 
       // ── Expiry pruning (outside the upsert transaction) ───────────────────
@@ -1102,7 +1106,7 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
         startedAt: runStartedAt,
         fetched: fetchedJobs.length, written: cached, unchanged, merged, dropped, ejected,
         details: { companies: companies.length, pruned, prunedExpired: byDate.changes, prunedStale: byStale.changes, outOfMarket,
-                   rescued, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut },
+                   rescued, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut, retiredReseen, noId },
       });
       totalCached += cached;
     }

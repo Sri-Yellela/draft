@@ -143,8 +143,9 @@ test("⛔ D78: the crawl's age and scope counters count only rows that were ON T
     const line = src.split("\n").find(l => l.includes(c));
     assert.ok(line && line.includes("activeIds.has(jobId)"), `${c} is guarded by activeIds`);
   }
-  assert.ok(src.includes('if (age === "aged_out") { if (activeIds.has(jobId)) agedOut++; continue; }'), "an inactive aged row still stops before the touch");
-  assert.ok(src.includes('if (scope === "scoped_out") { if (activeIds.has(jobId)) scopedOut++; continue; }'), "an inactive scoped row still stops before the touch");
+  // 43d: the inactive row still stops before the touch — and is counted as retiredReseen, not lost.
+  assert.ok(src.includes('if (age === "aged_out") { if (activeIds.has(jobId)) agedOut++; else retiredReseen++; continue; }'), "an inactive aged row still stops before the touch");
+  assert.ok(src.includes('if (scope === "scoped_out") { if (activeIds.has(jobId)) scopedOut++; else retiredReseen++; continue; }'), "an inactive scoped row still stops before the touch");
 });
 
 test("⛔ D78 B: the crawl judges an EXISTING row before the hash check, and a NEW one after classifying", () => {
@@ -155,7 +156,7 @@ test("⛔ D78 B: the crawl judges an EXISTING row before the hash check, and a N
   const verdict = src.indexOf("const verdict = classifyJob(");
   assert.ok(pre > 0 && hash > pre, "the existing-row gate precedes the hash check");
   assert.ok(post > verdict, "the new-row gate follows classification");
-  assert.match(src, /outOfScope, scopedOut, wouldScopeOut \},/, "the run details carry the counts");
+  assert.match(src, /outOfScope, scopedOut, wouldScopeOut, retiredReseen, noId \},/, "the run details carry the counts");
 });
 
 test("⛔ D78 B: the 03:30 cron guards each sweep on its own — no early return skips the scope sweep", () => {
