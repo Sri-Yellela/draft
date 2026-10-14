@@ -170,7 +170,8 @@ const HEALTH = {
   alertCounts: { critical: 1, warn: 0 },
   alerts: [{ severity: "critical", kind: "source", subject: "lever", detail: "last run failed" }],
   sources: [
-    { name: "greenhouse", health: "ok", active: 10, lastRun: { at: 900, status: "ok", written: 3, unchanged: 7, dropped: 1, ejected: 0 }, lastSuccessAt: 900 },
+    { name: "greenhouse", health: "ok", active: 10, lastRun: { at: 900, status: "ok", written: 3, unchanged: 7, dropped: 1, ejected: 0 }, lastSuccessAt: 900,
+      funnel: { fetched: 11, onBoard: 10, heldOff: 1 } },
     { name: "lever", health: "failed", active: 0, lastRun: { at: 950, status: "failed", written: 0, unchanged: 0, dropped: 0, ejected: 0 } },
     { name: "adzuna", health: "live_search_only", active: 0, lastRun: null },
   ],
@@ -200,7 +201,10 @@ test("A50 #3: every glance section states when it was measured, and today's numb
   }
   assert.equal(g.ingestion.lastCrawlAt, 950);
   assert.deepEqual(g.ingestion.sourcesNeedingAttention, ["lever"], "live_search_only is benign, failed is not");
-  assert.equal(g.ingestion.sources[0].refused, 1);
+  // 10-14: `refused` (dropped + ejected, two gates of seven) is gone; the glance SELECTS health's funnel.
+  assert.equal(g.ingestion.sources[0].onBoard, 10);
+  assert.equal(g.ingestion.sources[0].heldOff, 1);
+  assert.equal(g.ingestion.sources[0].funnel, HEALTH.sources[0].funnel, "selected, not recomputed");
   assert.equal(g.enrichment.waiting, 40);
   assert.deepEqual(g.enrichment.columnsAtZero, ["salary_min"]);
   assert.equal(g.enrichment.today.costUsd, 0.25, "yesterday's enrichment spend leaked into today");
