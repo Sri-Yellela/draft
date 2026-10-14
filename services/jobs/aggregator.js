@@ -10,6 +10,7 @@ import { usEligibility, officeLocations } from './usLocation.js';
 import { retireDuplicate, keptApart } from './dedupRetire.js';
 import { ageGate, readPolicy } from './boardAge.js';
 import { scopeGate, storedFamily } from './boardScope.js';
+import { csScopeOf } from './csScope.js';
 
 // ─── REGISTER SOURCES HERE ───────────────────────────────────────────────────
 // To add a new source: import it and add to SOURCES array.
@@ -235,6 +236,13 @@ function getFingerprintStmts(db) {
 // admitted (services/jobs/usLocation.js).
 export const OUT_OF_MARKET_PREFIX = 'out_of_market:';
 
+// The crawl's record of a posting refused because the classifier found no role family AND the
+// computer-science rescue (csScope.js CS_TITLE / TPM_TITLE over a null family) did not bring it in.
+// One row per posting (rejected_jobs.job_id is the PRIMARY KEY), re-stamped each crawl that re-refuses
+// it, and DELETED when a later crawl writes the posting — so it never outlives the refusal and nothing
+// that counts rejected_jobs sees a live posting as refused. Nothing reads it to skip a posting.
+export const NO_ROLE_REASON = 'no_role';
+
 function holdOutOfMarket(job, jobId, stmts, now) {
   const market = usEligibility({
     location: job.location, description: job.description, offices: officeLocations(job._raw),
@@ -408,6 +416,9 @@ function getCacheStmts(db) {
       // A posting that was out of market and now names a US location (an employer edit) is no
       // longer held out — its old record must not keep hiding it from hiring signals.
       clearOutOfMarketStmt: db.prepare(`DELETE FROM rejected_jobs WHERE job_id = ? AND reason LIKE '${OUT_OF_MARKET_PREFIX}%'`),
+      // A posting a crawl writes is no longer refused for having no role family (see NO_ROLE_REASON).
+      // Scoped to that one reason: another gate's record is that gate's to keep or clear.
+      clearNoRoleStmt: db.prepare(`DELETE FROM rejected_jobs WHERE job_id = ? AND reason = '${NO_ROLE_REASON}'`),
     };
     cacheStmtsCache.set(db, stmts);
   }
@@ -842,7 +853,7 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
     const cacheStmts = getCacheStmts(db);
     const {
       rejectStmt, deleteJobStmt, deleteRoleStmt,
-      touchSeenStmt, demoteStmt, getExistingHashes,
+      touchSeenStmt, demoteStmt, getExistingHashes, clearNoRoleStmt,
     } = cacheStmts;
 
     // Mark rows inactive when their listing date has passed
@@ -935,9 +946,10 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
       // ── Upsert in a transaction ───────────────────────────────────────────
       // D78: the board's age policy (board_policy), read once per source pass.
       const agePolicy = readPolicy(db);
-      const { cached, unchanged, ejected, dropped, merged, outOfMarket, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut } = db.transaction(() => {
+      const { cached, unchanged, ejected, dropped, rescued, merged, outOfMarket, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut } = db.transaction(() => {
         let cached = 0, unchanged = 0, ejected = 0, dropped = 0, merged = 0, outOfMarket = 0;
         let tooOld = 0, agedOut = 0, wouldAgeOut = 0, outOfScope = 0, scopedOut = 0, wouldScopeOut = 0;
+        let rescued = 0;   // no role family, but a clear CS title — written under ROLE_KEY_FALLBACK
 
         for (const job of fetchedJobs) {
           const jobId = job.id || job.url || '';
@@ -976,6 +988,8 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
               merged++;
             } else {
               touchSeenStmt.run(now, now, dedup.fingerprint, dedup.sourcesSeen, dedup.reqUid, jobId);
+              // Its stored text was written with a family; a no_role record from an edit since reverted is stale.
+              clearNoRoleStmt.run(jobId);
               unchanged++;
             }
             continue;
@@ -998,10 +1012,36 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
             continue;
           }
 
+          // No role family. The CS scope rule rescues a clear CS title the classifier could not place
+          // (csScope.js: UNPLACED includes null) — but only if it is ASKED here: a bare `continue` ran
+          // before the scope gate below, so "Full-Stack SWE, Data Acquisition", "TPM Manager,
+          // Infrastructure", "SWE Fellow" were dropped every crawl. In scope → filed under
+          // ROLE_KEY_FALLBACK ('general'), the classifier's own "white collar, not confidently bucketed"
+          // key, which csScopeOf judges exactly as it judges null — so the gate below keeps it and the
+          // stored family (boardScope.storedFamily) keeps it on later crawls. No family is invented.
+          // Not in scope → dropped, and recorded (NO_ROLE_REASON) so the refusals can be broken down.
+          let matchedBy = 'ats_cache';
           if (verdict.roleKey === null) {
-            dropped++;
-            continue;
+            if (csScopeOf({ title: job.title, roleKey: null }).inScope) {
+              verdict.roleKey = ROLE_KEY_FALLBACK;
+              matchedBy = 'ats_cache_cs_rescue';
+              rescued++;
+            } else {
+              rejectStmt.run({
+                job_id:      jobId,
+                title:       job.title   || '',
+                company:     job.company || '',
+                source:      job.source  || '',
+                reason:      NO_ROLE_REASON,
+                rejected_at: now,
+              });
+              dropped++;
+              continue;
+            }
           }
+          // It has a family now: an earlier crawl's no_role record (the employer retitled it, or the
+          // classifier learned) must not survive to be counted as a refusal of a live posting.
+          clearNoRoleStmt.run(jobId);
 
           if (!exists) {
             const scope = scopeGate(db, job, jobId, { exists, roleKey: verdict.roleKey, now, policy: agePolicy });
@@ -1023,12 +1063,12 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
             jobId, canonical, verdict, contentHash, dedup, now,
             searchQuery: canonical.source || 'ats',
             sourceLabel: '',
-            matchedBy:   'ats_cache',
+            matchedBy,
           });
           cached++;
         }
 
-        return { cached, unchanged, ejected, dropped, merged, outOfMarket, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut };
+        return { cached, unchanged, ejected, dropped, rescued, merged, outOfMarket, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut };
       })();
 
       // ── Expiry pruning (outside the upsert transaction) ───────────────────
@@ -1051,7 +1091,8 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
 
       const pruned = byDate.changes + byStale.changes;
       if (ejected > 0) console.log(`[cacheJobs:${source.name}] Ejected ${ejected} blue-collar jobs`);
-      if (dropped > 0) console.log(`[cacheJobs:${source.name}] Dropped ${dropped} unclassifiable jobs`);
+      if (dropped > 0) console.log(`[cacheJobs:${source.name}] Dropped ${dropped} unclassifiable jobs (rejected_jobs '${NO_ROLE_REASON}')`);
+      if (rescued > 0) console.log(`[cacheJobs:${source.name}] Rescued ${rescued} unclassified jobs with a clear CS title (filed under '${ROLE_KEY_FALLBACK}')`);
       if (merged  > 0) console.log(`[cacheJobs:${source.name}] Merged ${merged} cross-source duplicates into existing canonical rows`);
       if (outOfMarket > 0) console.log(`[cacheJobs:${source.name}] Held out ${outOfMarket} postings outside the US or with no readable location`);
       if (pruned  > 0) console.log(`[cacheJobs:${source.name}] Pruned ${pruned} jobs inactive (${byDate.changes} expired, ${byStale.changes} stale)`);
@@ -1061,7 +1102,7 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
         startedAt: runStartedAt,
         fetched: fetchedJobs.length, written: cached, unchanged, merged, dropped, ejected,
         details: { companies: companies.length, pruned, prunedExpired: byDate.changes, prunedStale: byStale.changes, outOfMarket,
-                   tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut },
+                   rescued, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut },
       });
       totalCached += cached;
     }
