@@ -145,7 +145,7 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 
 *(Code: `background.js` `captureActiveTab()` / `reportCapture()` injecting `extractor.js`
 `extractJobPayload()` and `showCaptureToast()`; the automatic path `chrome.tabs.onUpdated` →
-`autoCapture.js` `autoCaptureStep()` / `pageHasJobPosting()`; `gated-handoff.js` `probeFormShape()`,
+`autoReadWatcher.js` → `autoRead.js` `runAutoPass()` / `autoStep()` / `pageHasJobPosting()`; `gated-handoff.js` `probeFormShape()`,
 `applyPlan()`, `applyOverlayEdit()`; `review-overlay.js` `renderOverlay()`; `autofill-badge.js`.)*
 
 **`storage`**
@@ -171,7 +171,7 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 
 *(Code: `background.js` `reportCapture()` → `lastCapture` (local) and `reportHandoff()` →
 `lastGatedHandoff` (session); `gated-handoff.js` → `gate:{tabId}` and `batch:{tabId}` (session);
-`auth.js` → `authToken` and `authIdentity` (local); `autoCapture.js` (set from the options page) → `autoCaptureEnabled` (local);
+`auth.js` → `authToken` and `authIdentity` (local); `autoRead.js` `updateSettings()` (set from the options page) → `autoRead` (local), which replaced D64's `autoCaptureEnabled` (migrated once by `migrateLegacy()`, then removed);
 `tabBinding.js` `bindTab()` / `setBindingDock()` → `bind:{tabId}` (session), removed by `clearBinding()` on tab close and "Unlink this page";
 `progress.js` `progress.patch()` / `set()` / `claim()` → `jobProgress` (local), removed by `progress.clearAll()` from `auth.js` `disconnect()` and `getIdentity()` (sign-out, another account).)*
 

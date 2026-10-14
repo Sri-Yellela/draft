@@ -30,7 +30,7 @@ test("⛔ D23: the permission set is exactly activeTab + scripting + storage, an
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
   // + optional_host_permissions by D64 (owner, 10-07: automated capture) — a decided addition, not D23's:
   // granted only when the user switches automatic capture on, public job-posting hosts only, and
-  // exactly extension/autoCapture.js's list (never a gated portal; test/d64AutoCaptureExtension.test.js).
+  // exactly D64's list (never a gated portal) — since D97 derived from extension/autoRead.js's site table.
   // + Workday's two public hosts by D97, owner 10-13 (a deliberate reversal of D64's "no gated portal" line): optional,
   // asked for only when the user switches Workday on in Options, and exactly extension/autoRead.js's site table.
   assert.deepEqual(manifest.optional_host_permissions, [
@@ -82,7 +82,6 @@ test("⛔ D23: the storage keys are exactly the six the listing names — no mor
   assert.match(code["tabBinding.js"], /const bindKey = \(tabId\) => `\$\{BIND_PREFIX\}\$\{tabId\}`;/);
   assert.match(code["tabBinding.js"], /export const BIND_PREFIX = 'bind:';/);
   assert.match(code["progress.js"], /export const PROGRESS_KEY = 'jobProgress';/);
-  assert.match(code["autoCapture.js"], /export const AUTO_CAPTURE_SETTING = "autoCaptureEnabled";/);
   assert.match(code["autoRead.js"], /export const AUTO_READ_KEY = 'autoRead';/);
   const auth = code["auth.js"];
   assert.match(auth, /const TOKEN_KEY = ['"]authToken['"]/);

@@ -13,10 +13,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+// D97 (coordinator, J5 merge): extension/autoCapture.js — D64's names kept as a shim over autoRead.js — is deleted;
+// nothing shipped imported it once background.js's D64 block gave way to autoRead.js (A93: nothing dead).
 import {
-  AUTO_CAPTURE_ORIGINS, AUTO_CAPTURE_SETTING, autoCaptureStep, autoCaptureOriginFor, hasPostingUrlShape, pageHasJobPosting,
-} from "../extension/autoCapture.js";
-import { AUTO_READ_KEY, OPTIONAL_ORIGINS, runAutoPass } from "../extension/autoRead.js";
+  AUTO_READ_KEY, LEGACY_CAPTURE_KEY, OPTIONAL_ORIGINS, runAutoPass, siteFor, hasPostingUrlShape, pageHasJobPosting,
+} from "../extension/autoRead.js";
+const AUTO_CAPTURE_ORIGINS = OPTIONAL_ORIGINS;
 import { installAutoReadChrome, settingsWith } from "../test-support/autoReadChrome.mjs";
 import { at } from "../test-support/sourceAnchors.js";
 
@@ -115,7 +117,6 @@ test("⛔ D64 · capture never fills, prepares or submits — capture on alone r
 
 test("⛔ D64 → D97 · the permission request names ONLY the table's origins — optional, never LinkedIn / Indeed / Glassdoor", () => {
   assert.deepEqual(manifest.optional_host_permissions, [...AUTO_CAPTURE_ORIGINS], "the manifest and the code are one list");
-  assert.deepEqual([...AUTO_CAPTURE_ORIGINS], [...OPTIONAL_ORIGINS]);
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"], "nothing new at install time");
   for (const o of AUTO_CAPTURE_ORIGINS) {
     // D97, owner 10-13: Workday's two public hosts are the ONLY wildcard, one level under the vendor's own domain.
@@ -128,19 +129,18 @@ test("⛔ D64 → D97 · the permission request names ONLY the table's origins �
   assert.doesNotMatch(read("extension/options.html"), /type="checkbox"[^>]*\bchecked\b/, "off by default");
 });
 
-test("D64 · the decision before any read — pure, and every way to 'skip'", () => {
-  assert.equal(autoCaptureStep({ enabled: true, granted: true, url: GH_POSTING }), "by_url");
-  assert.equal(autoCaptureStep({ enabled: true, granted: true, url: GH_LIST }), "check_page");
-  assert.equal(autoCaptureStep({ enabled: false, granted: true, url: GH_POSTING }), "skip");
-  assert.equal(autoCaptureStep({ enabled: true, granted: false, url: GH_POSTING }), "skip");
-  assert.equal(autoCaptureStep({ enabled: true, granted: true, url: "http://boards.greenhouse.io/x/jobs/1" }), "skip", "https only");
-  assert.equal(autoCaptureOriginFor("https://jobs.lever.co/acme/3f6a2c1e-0b1d-4c55-9a7e-2d4f8b6c9e01"), "https://jobs.lever.co/*");
-  assert.equal(autoCaptureOriginFor("https://zoom.wd5.myworkdayjobs.com/Zoom/job/X_R1"), "https://*.myworkdayjobs.com/*", "D97, owner 10-13");
-  assert.equal(autoCaptureOriginFor("https://www.linkedin.com/jobs/view/1"), null);
+test("D64 · the URL checks before any read — pure: which site, and whether the URL itself says posting", () => {
+  // The switch / grant half of D64's old decision is autoRead.js autoStep's, pinned in test/j5AutoRead.test.js.
+  assert.equal(hasPostingUrlShape(GH_POSTING), true);
+  assert.equal(hasPostingUrlShape(GH_LIST), false, "a board list is checked in the page, not taken from the URL");
+  assert.equal(siteFor("http://boards.greenhouse.io/x/jobs/1"), null, "https only");
+  assert.equal(siteFor("https://jobs.lever.co/acme/3f6a2c1e-0b1d-4c55-9a7e-2d4f8b6c9e01")?.id, "lever");
+  assert.equal(siteFor("https://zoom.wd5.myworkdayjobs.com/Zoom/job/X_R1")?.id, "workday", "D97, owner 10-13");
+  assert.equal(siteFor("https://www.linkedin.com/jobs/view/1"), null);
   assert.equal(hasPostingUrlShape("https://jobs.lever.co/acme/3f6a2c1e-0b1d-4c55-9a7e-2d4f8b6c9e01"), true);
   assert.equal(hasPostingUrlShape("https://jobs.lever.co/acme/3f6a2c1e-0b1d-4c55-9a7e-2d4f8b6c9e01/apply"), false, "an application step is not the posting");
   assert.equal(hasPostingUrlShape("https://apply.workable.com/acme/j/9A1B2C3D4E/"), true);
-  assert.equal(AUTO_CAPTURE_SETTING, "autoCaptureEnabled", "D64's key, kept only to migrate it");
+  assert.equal(LEGACY_CAPTURE_KEY, "autoCaptureEnabled", "D64's key, kept only to migrate it");
 });
 
 test("D64 · the in-page posting check is self-contained and reads only JSON-LD", () => {
