@@ -73,6 +73,18 @@ test("buildLaunchArgs always includes container-safe no-sandbox flags", () => {
   assert.match(launcher, /--disable-gpu/);
 });
 
+// ⛔ 10-14 (43), measured in the production container: Chromium 155 (Debian bookworm, picked up by the 10-13 rebuild)
+// dies on a breakpoint trap (exit 133) when started with --single-process, and runs with --no-zygote alone — so every
+// browser launch in production had failed since 10-13 04:47Z, reported as browser_binary_not_found. Never again.
+test("⛔ buildLaunchArgs never passes --single-process — Chromium 155 crashes on it (exit 133, production 10-14)", async () => {
+  const { buildLaunchArgs } = await import("../services/browserLauncher.js");
+  for (const mode of ["auto", "manual"]) {
+    const args = buildLaunchArgs({ mode });
+    assert.ok(!args.includes("--single-process"), `${mode}: --single-process crashes Chromium 155`);
+    assert.ok(args.includes("--no-sandbox"), `${mode}: still container-safe`);
+  }
+});
+
 // ── Readiness probe ───────────────────────────────────────────────────────────
 
 test("probeBrowserAvailability caches result to avoid repeated launches", () => {
