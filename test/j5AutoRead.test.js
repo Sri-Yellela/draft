@@ -30,7 +30,10 @@ const WD = ["https://*.myworkdayjobs.com/*", "https://*.myworkdaysite.com/*"];
 const T = "https://zoom.wd5.myworkdayjobs.com";
 const POSTING = `${T}/Zoom/job/Remote--(US)/Software-Engineer_R19749-1`;
 const APPLY = `${T}/en-US/Zoom/job/Remote--(US)/Software-Engineer_R19749-1/apply/applyManually?source=linkedin`;
-const OPTIONS_PAGE = { url: "chrome-extension://test/options.html" };   // a sender that IS an extension page
+// ⛔ D99 J13: the sender Chrome really gives the Options page. `options_page` opens it IN A TAB, so `tab` is set —
+// this constant used to leave `tab` out, and so pinned the defect that refused every switch in real Chrome.
+const OPTIONS_PAGE = { id: "test", url: "chrome-extension://test/options.html",
+                       tab: { id: 4242, url: "chrome-extension://test/options.html" } };
 const SERVER = "https://draft.test";
 let tabN = 0;
 const tabOf = (url) => ({ id: 5000 + (++tabN), url });
@@ -192,6 +195,25 @@ test("⛔ D97 · ON is refused without consent, and without Chrome's grant; a co
     assert.equal((await handlers[type](msg, page)).error, "not_allowed", type);
   }
   assert.equal(normaliseSettings(h.stores.local.get(AUTO_READ_KEY)).sites.workday.fill, false);
+  h.restore();
+});
+
+test("⛔ D99 J13 · the Options page IN A TAB can agree and switch a site on — the sender's address decides, not its tab", async () => {
+  const h = installAutoReadChrome({ granted: WD });
+  h.stores.local.set(AUTO_READ_KEY, settingsWith({}, { consent: null }));
+  assert.equal((await handlers.AUTO_READ_STATE({}, OPTIONS_PAGE)).ok, true, "the table loads");
+  assert.equal((await handlers.AUTO_READ_CONSENT({ agree: true }, OPTIONS_PAGE)).ok, true, "\"I agree\" is recorded");
+  const r = await handlers.AUTO_READ_SET({ site: "workday", behaviour: "read", on: true }, OPTIONS_PAGE);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.settings.sites.workday.read, true);
+  // embedded Options (no tab) is the same page
+  const embedded = { id: "test", url: "chrome-extension://test/options.html" };
+  assert.equal((await handlers.AUTO_READ_SET({ site: "workday", behaviour: "read", on: false }, embedded)).ok, true);
+  // ⛔ still refused: a web page (its own address, in a tab) and another extension's page
+  const page = { tab: { id: 1, url: APPLY }, url: APPLY, frameId: 0 };
+  assert.equal((await handlers.AUTO_READ_CONSENT({ agree: true }, page)).error, "not_allowed");
+  const other = { id: "someone-else", url: "chrome-extension://test/options.html", tab: { id: 2 } };
+  assert.equal((await handlers.AUTO_READ_CONSENT({ agree: true }, other)).error, "not_allowed");
   h.restore();
 });
 
