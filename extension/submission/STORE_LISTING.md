@@ -1,5 +1,17 @@
 # Chrome Web Store listing — draft v1.5.2
 
+> **v1.5.2, folded further (2026-10-14, D96–D98 — still v1.5.2 by the owner's rule, NOT yet uploaded).** ⛔ **Re-paste
+> at the next upload: the single purpose, `scripting`, `storage`, the optional host permissions, the Privacy practices
+> tab and the reviewer notes and test instructions** — each changed below. What changed: **(1) automatic reading
+> (D97)** — Capture became one of FOUR per-site switches (Read · Prepare · Capture · Fill), all off, behind an in-UI
+> disclosure and "I agree", with a kill switch; Workday's public hosts `*.myworkdayjobs.com` and `*.myworkdaysite.com`
+> join the optional list (a deliberate reversal of "no gated portal", owner 10-13); a content script (the watcher) is
+> registered at runtime only for a site the user switched on. **(2) answer memory (D96 §4)** — an answer the user
+> acknowledges in the review panel is sent to their own Saved answers. **(3) the résumé on the page (D98)** —
+> generated on draft's server only when the user presses Generate, previewed and attached. The storage field still
+> lists nine values (D64's switch is now the automatic-reading settings; the progress record also keeps a generated
+> résumé's id). The privacy policy is effective October 14, 2026. Required permissions are unchanged.
+
 > **v1.5.2 (2026-10-13) — one job across every stage of an application, and the Copy sheet in the page.** A tab now
 > remembers the job it captured or recognised (`bind:{tabId}`, session storage — **the storage field below changed:
 > eight values, re-paste it**, and the privacy policy's storage list gained the item, effective October 13, 2026);
@@ -39,17 +51,23 @@ received. Against v1.0.0:
 3. **The privacy policy URL moved with it**, and the policy is live on the new origin.
 4. **The extension holds an access token of its own** (`auth.js`) instead of borrowing the browser's
    session — one of the eight stored values, and the only one transmitted (to our backend only).
-5. **No content script, no job-board host permission at install.** v1.0.0 declared six job boards and
+5. **No content script and no job-board host permission at install.** v1.0.0 declared six job boards and
    ran a content script on them; that is gone. Every read starts at a click or a keystroke —
-   **except automatic capture (item 6), which is off until the user switches it on.**
-6. **NEW · Automatic capture (opt-in, off by default).** Switching it on in the extension's options asks
-   Chrome, at that click, for `optional_host_permissions` on **five public job-posting hosts only**
+   **except automatic reading (item 6), which is off until the user switches it on, site by site.**
+6. **Automatic reading (opt-in, off by default; D64, extended by D97 on 2026-10-14).** The options page
+   has FOUR switches per site — **Read · Prepare · Capture · Fill** — all off, usable only after the user
+   has read the in-extension disclosure and pressed "I agree". Switching a site on asks Chrome, at that
+   click, for that site's `optional_host_permissions`: five public job-posting hosts
    (`boards.greenhouse.io`, `job-boards.greenhouse.io`, `jobs.lever.co`, `jobs.ashbyhq.com`,
-   `apply.workable.com`). With it on, a page on those hosts that **is a job posting** (its URL has a
-   posting's shape, or it carries JobPosting structured data) is sent to the user's account, where our
-   server decides whether it fits their board — and **discards an irrelevant posting without storing
-   it**. A page that is not a posting sends **nothing** — not its address, not a hash. Switching it off
-   removes the host access. It never fills or submits anything.
+   `apply.workable.com`) and Workday's `*.myworkdayjobs.com` and `*.myworkdaysite.com`. **Read** sends
+   nothing. **Prepare** runs only on a tab already linked to one of the user's own jobs. **Capture**: a
+   page that **is a job posting** (its URL has a posting's shape, or it carries JobPosting structured
+   data — never an application step) is sent to the user's account, where our server decides whether it
+   fits their board — and **discards an irrelevant posting without storing it**. A page that is not a
+   posting sends **nothing** — not its address, not a hash. **Fill** may press the form's own Save and
+   Continue but **never submits**, never ticks a terms, consent, attestation or signature box, and never
+   saves the form's structure for other users. A kill switch turns all of it off and gives every host
+   back. Never LinkedIn, Indeed or Glassdoor.
 7. **NEW · `contextMenus`** — right-click **Save this page to draft** and **Save link to draft**.
 8. **NEW · Report this form** — the form page's host and field labels (never values), on two clicks.
 9. **The popup** leads with the posting as a job card (logo, company, the ATS score for the user's
@@ -66,13 +84,15 @@ in-depth review. Expect a longer queue.
 
 > Help the user apply to the jobs they choose: get the job postings they are looking at into their own
 > Draft account — when they capture one, or automatically on the job sites they have switched that on
-> for — and, when they invoke the extension on an application form they have opened and signed in to
-> themselves, fill it with answers they have already given us, for them to review and submit.
+> for — and, on an application form they have opened and signed in to themselves, fill it with answers
+> they have already given us (when they invoke the extension, or automatically on the sites they have
+> switched that on for), with a résumé tailored for that job if they ask for one, for them to review and
+> submit.
 
 Capture (manual or automatic) and fill are the same purpose at two points in one flow: the user finds a
-job, and the user applies to it. Automatic capture is the same capture without the click, on five
-public job-posting sites the user has granted, and only for pages that are postings. Nothing is ever
-submitted by the extension.
+job, and the user applies to it. Automatic reading is the same capture, preparation and fill without the
+click, on the sites the user has switched on and granted, and capture only for pages that are postings.
+Nothing is ever submitted by the extension.
 
 The popup's other controls (Score, Open draft, Copy sheet, Report form, More → the options page with
 keyboard shortcuts, Sign in with LinkedIn and the automatic-capture switch) are not separate features:
@@ -108,8 +128,9 @@ the application in front of the user.
 ### Which sites it works on
 
 **Any job posting the user invokes it on.** The extension holds no permission for any site in advance
-except our own backend; it reads the tab the user invoked it on. Automatic capture additionally works
-on the five public posting hosts — and only after the user grants them.
+except our own backend; it reads the tab the user invoked it on. Automatic reading additionally works
+on the five public posting hosts and Workday's two public hosts — and only on those the user switches on
+and grants.
 
 ---
 
@@ -139,13 +160,15 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 **`scripting`**
 > Injects a one-off script into a tab to (a) read the job posting the user is capturing, (b) collect
 > the visible text when the user asks for an ATS score, (c) fill the application form and render the
-> review panel on a handoff, and (d) when automatic capture is on, check a page on one of the five
-> granted posting hosts for JobPosting structured data. The extension declares no content script; the
-> automatic check runs only on the hosts the user granted, only while the switch is on.
+> review panel on a handoff, and (d) when automatic reading is on for a site, register a small watcher
+> script on that site only (`chrome.scripting.registerContentScripts`) that notices a new application
+> step and reads no values, check a page there for JobPosting structured data, and run the switched-on
+> steps. The manifest declares no content script; the watcher is registered only for hosts the user
+> switched on and granted, and unregistered when they switch it off.
 
 *(Code: `background.js` `captureActiveTab()` / `reportCapture()` injecting `extractor.js`
-`extractJobPayload()` and `showCaptureToast()`; the automatic path `chrome.tabs.onUpdated` →
-`autoReadWatcher.js` → `autoRead.js` `runAutoPass()` / `autoStep()` / `pageHasJobPosting()`; `gated-handoff.js` `probeFormShape()`,
+`extractJobPayload()` and `showCaptureToast()`; the automatic path, `autoReadWatcher.js` (the watcher) →
+`autoRead.js` `syncRegistrations()` / `runAutoPass()` / `autoStep()` / `pageHasJobPosting()`; `gated-handoff.js` `probeFormShape()`,
 `applyPlan()`, `applyOverlayEdit()`; `review-overlay.js` `renderOverlay()`; `autofill-badge.js`.)*
 
 **`storage`**
@@ -154,11 +177,14 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 > recent capture, so the popup can show the outcome of a capture made with the keyboard while the popup
 > was closed; the username of the account the extension is connected to, so the popup can name it; that
 > access token, which is how the extension identifies itself to us — not the user's password and not
-> their website session, deleted the moment they disconnect the extension; and whether the user has
-> switched automatic capture on (a single on/off value); and where each application stands — for each job
-> the user captures, reads, prepares, fills or submits with the extension, its draft id, title, company and
-> posting address, when each step happened and how many fields were filled or still need the user — no
-> answers, kept 30 days from its last change, deleted on disconnect, sign-out or another account connecting.
+> their website session, deleted the moment they disconnect the extension; the automatic-reading settings
+> (which of Read, Prepare, Capture and Fill the user switched on for each site, when they agreed to the
+> disclosure, and — while Read is on — the question labels, never answers, and field counts of pages read,
+> 30 days); and where each application stands — for each job the user captures, reads, prepares, fills or
+> submits with the extension, its draft id, title, company and posting address, when each step happened,
+> how many fields were filled or still need the user, and the id and status of a résumé generated for it —
+> no answers and no résumé content, kept 30 days from its last change, deleted on disconnect, sign-out or
+> another account connecting.
 > In `chrome.storage.session` (memory-backed,
 > discarded on browser restart): the prepared answers for an application in progress, with a 10-minute
 > expiry and cleared when the tab closes; the result of the most recent form fill, so the popup can
@@ -181,20 +207,24 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 > NOT sent (`credentials: 'omit'` on every call but the one that obtains the token), so the extension
 > acts as the one account the user connected, not as whatever session the browser holds.
 
-**Optional host permissions** — five public job-posting hosts, requested only when the user switches
-automatic capture on
+**Optional host permissions** — five public job-posting hosts and Workday's two public hosts, each requested
+only when the user switches that site on for automatic reading
 > `boards.greenhouse.io`, `job-boards.greenhouse.io`, `jobs.lever.co`, `jobs.ashbyhq.com`,
-> `apply.workable.com` — the public posting pages of the job boards our service reads. Requested at
-> runtime with `chrome.permissions.request` when the user turns on **Capture job pages automatically**
-> in the options page, and removed when they turn it off. With them, a page on these hosts that is a
-> job posting is sent to the user's account without a click; a page that is not a posting sends
-> nothing. ⛔ Never `<all_urls>`, never at install, and never a site where the user signs in: employer
-> portals stay reachable only through `activeTab`.
+> `apply.workable.com` — the public posting pages of the job boards our service reads — and
+> `*.myworkdayjobs.com` and `*.myworkdaysite.com`, where Workday serves employers' postings and
+> application forms. Requested at runtime with `chrome.permissions.request` when the user switches that
+> site on in the options page (after the in-extension disclosure and "I agree"), and removed when they
+> switch it off or press the kill switch. With them, and only for the switches the user turned on: a
+> posting is captured to the user's own account (a page that is not a posting sends nothing), an
+> application page's structure is read locally, answers are prepared for a tab linked to the user's own
+> job, and the form is filled for the user to review and submit. ⛔ Never `<all_urls>`, never at install,
+> never LinkedIn, Indeed or Glassdoor; every other employer portal stays reachable only through
+> `activeTab`.
 
 | Host | Why |
 |---|---|
 | `https://jobsviadraft.com/*` | Our own backend: capture, the auth probe, the handoff packet, the board check |
-| five posting hosts (optional) | Automatic capture, only when the user switches it on |
+| five posting hosts + Workday's two (optional) | Automatic reading — Read · Prepare · Capture · Fill — only for the sites and switches the user turns on |
 
 Full derivation, including every permission deliberately **not** requested and why, is in
 `extension/MANIFEST_RATIONALE.md`; `test/manifestMinimumPermission.test.js` fails the build if that file
@@ -236,8 +266,8 @@ These are the answers for the **Privacy practices** tab.
   portal's session cookie, password or token. It cannot sign the user in and does not try. It holds no
   `cookies` permission.
 - **Web history** — *not collected.* The extension reads the address only of a tab the user invoked it
-  on, or — with automatic capture on — of a page on the five granted hosts, and sends it only for a
-  posting. It holds no `tabs`, `history` or `webNavigation` permission.
+  on, or — with automatic reading on — of a page on a site the user switched on and granted, and sends it
+  only for a posting, or for preparing a tab already linked to the user's own job. It holds no `tabs`, `history` or `webNavigation` permission.
 - **User activity** — *not collected.* No clickstream, no analytics, no telemetry.
 - **Health / financial / personal communications / location** — *not collected.*
 
@@ -309,11 +339,19 @@ In the order the developer dashboard asks. ⛔ The owner pastes, ticks and uploa
 >
 > It never crosses a sign-in or a CAPTCHA. The user authenticates on a portal themselves; only then can
 > they invoke the extension there, and that invocation is what grants access to that one tab. The
-> extension holds no host permission for any employer portal.
+> extension holds no host permission at install for any employer portal; Workday's public hosts are
+> optional and granted only if the user switches Workday on for automatic reading.
 >
-> The only behaviour without a click is **automatic capture**, which is OFF until the user switches it
-> on in the options page — at which point Chrome asks them to grant five public job-posting hosts. It
-> sends a page only when the page is a job posting, and never fills or submits.
+> The only behaviour without a click is **automatic reading**, which is OFF until the user agrees to the
+> in-extension disclosure and switches a site on in the options page — at which point Chrome asks them
+> to grant that site's hosts. Four switches per site (Read · Prepare · Capture · Fill), each off. Capture
+> sends a page only when the page is a job posting; Fill may press Save and Continue but never submits;
+> a kill switch turns everything off.
+>
+> A résumé is generated on the page only when the user presses Generate in the résumé panel; the
+> extension asks our server, which does the work — the extension never calls a model or any other
+> service. An answer is sent to the user's own Saved answers only when they acknowledge it in the review
+> panel or type it with "Remember for next time" ticked.
 >
 > Before releasing anything into a page, it checks that the page is one of that application's own
 > addresses and, where the address names a job, that it is the same job. On a mismatch it releases
@@ -338,9 +376,12 @@ dashboard's **Test instructions** field with the steps below. ⛔ Never commit t
 > **Capture:** open any job posting and press Ctrl+Shift+K, or click the toolbar button → Read this
 > page → Capture it. The posting appears on the account's board.
 >
-> **Automatic capture:** in the extension's options, switch on "Capture job pages automatically" and
-> grant the five sites. Open a posting on jobs.lever.co or job-boards.greenhouse.io; it is added
-> without a click if it fits the board.
+> **Automatic reading:** in the extension's options, read the explanation and press "I agree", then switch
+> on Capture for Lever or Greenhouse and grant the site. Open a posting on jobs.lever.co or
+> job-boards.greenhouse.io; it is added without a click if it fits the board.
+>
+> **Résumé on the page:** on an application form linked to a job (Fill or Prepare it first), open the
+> popup → "Résumé for this job" → Generate. Preview it, then Attach.
 >
 > **Fill:** from the board, Draft a job and start the application. Sign in to the employer's site if
 > it asks, then press Ctrl+Shift+Y on the form. The answers appear with a review panel. **The extension

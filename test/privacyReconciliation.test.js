@@ -209,8 +209,8 @@ test("THE POLICY'S COUNT OF STORED ITEMS MATCHES THE NUMBER OF KEYS THE CODE WRI
     ["authIdentity",     /account the extension is connected to/i],
     ["authToken",        /extension's own access token/i],
     // D64's autoCaptureEnabled became D97's autoRead (owner, 10-13: the switches, the consent, and the read-quality
-    // labels and counts). ⚠ J10 rewords the policy's line for it; until then the D64 sentence is what it says.
-    ["autoRead", /whether automatic capture is switched on/i],   // D64 → D97
+    // labels and counts) — the policy's line reworded at J10 (10-14).
+    ["autoRead", /automatic-reading settings/i],   // D64 → D97
     ["bind:{tabId}",     /Which job a tab is on/i],   // v1.5.2 — the tab binding
     ["jobProgress",      /Where each application stands/i],   // D96 §3 — the remembered progress
   ]) {

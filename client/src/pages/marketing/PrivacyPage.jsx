@@ -80,7 +80,14 @@ import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyPro
 // the paragraph names them. Read-only, the user's own data and public postings — nothing new is collected.
 // 2026-10-10 (D90): the uploaded résumés are all kept, not only the newest, so a tailored version can be compared with
 // the one it was made from (Data Storage and Security). Nothing new is collected — the same text, kept longer.
-const EFFECTIVE_DATE = 'October 13, 2026';
+// 2026-10-14 (D96–D98, the extension run): THREE NEW THINGS ARE KEPT, each only after the user acts. (1) Answer memory
+// (services/answerLifecycle.js, migration 164): an answer the user acknowledges on an application page, with a history
+// of changes; never terms / consent / attestation / signature, passwords, payment details or SSNs. (2) The on-page
+// résumé (services/extensionResume.js, migrations 165–166): a record of each generation request and, on Attach, the
+// PDF linked to the job and the application. (3) D97's automatic reading (extension/autoRead.js): four per-site
+// switches, all off, Workday's two public hosts added to the optional list; the extension-storage item for D64's
+// switch is now the automatic-reading settings (labels and counts while Read is on, 30 days, never sent).
+const EFFECTIVE_DATE = 'October 14, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 export function PrivacyPage() {
@@ -155,9 +162,10 @@ export function PrivacyPage() {
 
           <H3>Browser Extension</H3>
           <P>
-            <Strong>The extension reads nothing until you invoke it.</Strong> It requests no
-            permission for any job site, runs no code on any page automatically, and cannot see what
-            you are browsing. When you press its keyboard shortcut or open it from the toolbar, and
+            <Strong>The extension reads nothing until you invoke it</Strong> — unless you switch on
+            automatic reading for a site yourself (below). Out of the box it holds no permission for
+            any job site, runs no code on any page automatically, and cannot see what you are
+            browsing. When you press its keyboard shortcut or open it from the toolbar, and
             only then, it reads the one tab you are looking at — and its access to that tab ends
             when you navigate away from that site.
           </P>
@@ -323,46 +331,59 @@ export function PrivacyPage() {
               what you typed, chose or filled — and nothing else of the page. It is never sent anywhere.
               Local storage: each job is kept 30 days from its last change, and all of it is deleted when
               you disconnect the extension, when you sign out, or when a different account is connected.
-              The ten-minute expiry does not apply to it.
+              The ten-minute expiry does not apply to it. If you generate a résumé on the page, the
+              same record also remembers that résumé's ID, its status and when you attached it — no
+              résumé text, file or file name — so the panel comes back after you close the popup or
+              reload, and a later fill attaches the same file.
             </LI>
             <LI>
-              <Strong>Whether automatic capture is switched on</Strong> — a single on/off value,
-              nothing else. Local storage: kept until you change it or uninstall the extension. The
+              <Strong>Your automatic-reading settings</Strong> — which of Read, Prepare, Capture and
+              Fill you switched on for each site, when you agreed to the explanation shown before any
+              of them can be switched on, and — while Read is on — the question labels (never your
+              answers) and field counts of application pages draft read, kept on this computer for 30
+              days to show how well a page was read. Local storage; never sent anywhere. The
               ten-minute expiry does not apply to it.
             </LI>
           </UL>
 
-          {/* ⭐ D64 (owner, 10-07) — automatic capture. extension/autoCapture.js, services/jobs/autoCapture.js. */}
-          <H3>Capturing Job Pages Automatically (optional, off by default)</H3>
+          {/* ⭐ D64 (owner, 10-07) → D97 (owner, 10-13) — automatic reading. extension/autoRead.js, services/jobs/autoCapture.js. */}
+          <H3>Reading Application Pages Automatically (optional, off by default)</H3>
           <P>
-            If you switch on <Strong>Capture job pages automatically</Strong> in the extension's
-            settings, Chrome asks you to let the extension read pages on a short list of public job
-            sites — Greenhouse, Lever, Ashby and Workable. It never asks for every site, and it does
-            not include sites where you sign in to apply. When you open a page on one of those sites:
+            In the extension's settings you can let draft work on a short list of job sites without a
+            click — Greenhouse, Lever, Ashby, Workable and Workday (including Workday's shared
+            myworkdaysite.com pages). <Strong>Nothing is on until you turn it on</Strong>, site by
+            site, after the extension has shown you what each switch does and you have agreed. Turning
+            a site on asks Chrome for access to that site only; it never asks for every site, and never
+            for LinkedIn, Indeed or Glassdoor. There are four separate switches per site:
           </P>
           <UL>
             <LI>
-              The extension first checks <Strong>in your browser</Strong> whether the page is a job
-              posting. <Strong>If it is not, nothing is sent</Strong> — not the page, not its
-              address.
+              <Strong>Read</Strong> — notices when an application page or step opens and reads the
+              form's structure (its questions and fields, never what you have typed). Nothing is sent.
             </LI>
             <LI>
-              If it is, the posting's text and web address are sent to us, exactly as a capture you
-              press would send them. We check it against your board — whether it is in the United
-              States and fits the roles in your active profile. <Strong>If it does not fit, we keep
-              nothing</Strong>: not the posting, not its address, not a record that it was sent.
+              <Strong>Prepare</Strong> — prepares your answers for that application, only on a tab
+              already linked to one of your own jobs; the page's address is sent to us to do it, as
+              when you press Prepare.
             </LI>
             <LI>
-              If it fits, it is added to your board and marked as captured automatically, and the
-              extension lists today's automatic captures so you can undo any of them.
+              <Strong>Capture</Strong> — on a job posting (never an application step), checks{' '}
+              <Strong>in your browser</Strong> whether the page is a posting. <Strong>If it is not,
+              nothing is sent</Strong> — not the page, not its address. If it is, its text and address
+              are sent to us and checked against your board. <Strong>If it does not fit, we keep
+              nothing</Strong>: not the posting, not its address, not a record that it was sent. If it
+              fits, it is added to your board, and the extension lists today's automatic captures so
+              you can undo any of them.
             </LI>
             <LI>
-              Nothing is filled in or submitted for you. Filling an application still waits for
-              your click.
+              <Strong>Fill</Strong> — fills the prepared answers and may press the form's own
+              "Save and Continue" between steps. <Strong>It never submits an application</Strong>, never
+              ticks a terms, consent, attestation or signature box, and never saves the form's
+              structure for anyone else.
             </LI>
             <LI>
-              Switching it off removes the extension's access to those sites. You can also remove
-              it from Chrome's own extension settings.
+              One button switches everything off at once and gives back the extension's access to
+              every site. You can also remove it from Chrome's own extension settings.
             </LI>
           </UL>
 
@@ -525,6 +546,29 @@ export function PrivacyPage() {
             We keep each résumé you upload — not only the newest — so a tailored résumé can always be compared
             with the one it was made from. Uploading the same résumé again adds nothing. They are deleted with
             your account.
+          </P>
+          {/* D96 §4 (J8, J4): services/answerLifecycle.js, migration 164; extension/answerMemory.js. */}
+          <P>
+            When you acknowledge an answer on an application page — or type one and keep "Remember for next
+            time" ticked — the extension sends it to your account and draft remembers it: the question as the
+            form words it, the type of control and its options, your answer, the date you acknowledged it and
+            whether you typed it or confirmed a prepared value. It is used to fill the same question next time.
+            This includes eligibility and voluntary-disclosure answers you choose to acknowledge. If you change
+            a remembered answer, draft records the change (the previous and the new value, when, and which job)
+            and stops using the old value; the new value is not remembered until you acknowledge it. Terms,
+            consent, privacy-notice, attestation and signature boxes, passwords, payment details and social
+            security numbers are never remembered. You can see, edit and delete every remembered answer and its
+            history in Settings → Saved answers; deleting an answer deletes its history. Remembered answers and
+            their history are included in your account export and are deleted with your account.
+          </P>
+          {/* D98 (J3): services/extensionResume.js, services/resumePdfArtifacts.js, migrations 165–166. */}
+          <P>
+            When you generate a résumé from the extension and attach it to an application page, we keep the PDF
+            file you attached, linked to that job — and, once you record the application, to that application —
+            so you can see exactly what you sent. It is deleted with the job's résumé, with the application
+            record, or with your account. We also keep a short record of each request (the job, when it was
+            made, whether it finished, and whether it used one of your drafts) — never the posting page's
+            content.
           </P>
           {/* D88 P3 (39d): services/tickets.js — retention RETENTION_SECONDS, the cascade in migration 156. */}
           <P>
