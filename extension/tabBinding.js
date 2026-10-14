@@ -33,6 +33,7 @@ export async function bindTab(tab, { jobId, title = null, company = null, via = 
   const entry = {
     origin, jobId: String(jobId), title: title || prior?.title || null, company: company || prior?.company || null,
     via: same ? prior.via : via, boundAt: same ? prior.boundAt : Date.now(), dock: prior?.dock || 'right',
+    ...(prior?.panelDock ? { panelDock: prior.panelDock } : {}),
   };
   await writeBinding(tab.id, entry);
   return entry;
@@ -55,11 +56,14 @@ export async function clearBinding(tabId) {
   try { await chrome.storage.session.remove(bindKey(tabId)); } catch { /* storage gone */ }
 }
 
-/** The Copy sheet panel's dock side, remembered with the tab's binding (no key of its own). */
-export async function setBindingDock(tabId, dock) {
+/**
+ * A panel's dock side, remembered with the tab's binding (no key of its own): `dock` is the Copy sheet's,
+ * `panelDock` the review panel's (D96 §5, lane J4) — two fields, so the two panels can sit on different sides.
+ */
+export async function setBindingDock(tabId, dock, which = 'dock') {
   const b = await loadBinding(tabId);
-  if (!b || !['left', 'right'].includes(dock)) return;
-  await writeBinding(tabId, { ...b, dock });
+  if (!b || !['left', 'right'].includes(dock) || !['dock', 'panelDock'].includes(which)) return;
+  await writeBinding(tabId, { ...b, [which]: dock });
 }
 
 const hhmm = (ms) => { const d = new Date(ms); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };

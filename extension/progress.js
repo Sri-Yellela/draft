@@ -272,7 +272,11 @@ export const noteFill = quiet(async (result, { jobId = null, bound = null } = {}
     company: bound && String(bound.jobId) === String(id) ? bound.company : null,
     read: of != null ? { fieldCount: of } : null,
     prepared: result.packetId != null ? { packetId: result.packetId } : null,
-    filled: { n: result.filled.length, of, needYou: result.missingCount ?? 0, check: result.review?.uncertainCount ?? 0 },
+    // ⭐ D96 §5 (J4): the review PANEL's own counts when the fill reports them — so "Filled 14 of 18 · 2 need you" in
+    // the popup is the same three numbers the panel shows (filled · needs you · to check), not a second count.
+    filled: result.panel && Number.isFinite(result.panel.filled)
+      ? { n: result.panel.filled, of: Number.isFinite(result.panel.of) ? result.panel.of : of, needYou: result.panel.needYou ?? 0, check: result.panel.check ?? 0 }
+      : { n: result.filled.length, of, needYou: result.missingCount ?? 0, check: result.review?.uncertainCount ?? 0 },
   });
 });
 

@@ -32,13 +32,14 @@ test("the harness boots the real extension, drives the fixture and reads the rev
   // the review panel, read
   const panel = await h.waitForPanel();
   assert.ok(panel, "the review panel is on the page");
-  assert.match(panel.subtitle, /^3 field\(s\) filled/);
+  // J4 (D96 §5): the progress line — every field on the step is listed, so the unfilled required ones show too.
+  assert.match(panel.subtitle, /^3 of \d+ filled · \d+ needs? you · \d+ to check/);
   assert.ok(panel.rows.some(r => /^First Name/.test(r.label) && r.value === "Ada"), JSON.stringify(panel.rows));
   assert.ok(panel.state, "the state line is read");
   assert.doesNotMatch(panel.text, /#rm-gate-review-overlay|\{/, "the panel's text excludes its stylesheet");
 
   // both themes: the panel's computed surface changes with prefers-color-scheme
-  const bg = () => h.page.evaluate(() => getComputedStyle(document.getElementById("rm-gate-review-overlay")).backgroundColor);
+  const bg = () => h.page.evaluate(() => getComputedStyle(document.getElementById("rm-gate-review-overlay").shadowRoot.getElementById("rm-gate-review-overlay")).backgroundColor);
   const light = await bg();
   assert.equal(await h.setTheme("dark"), "dark");
   const dark = await bg();

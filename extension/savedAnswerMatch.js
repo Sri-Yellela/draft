@@ -1,3 +1,5 @@
+import { answerKeyOf, optionsKey, questionLabelKey, widgetKindOf } from './answerKey.js';
+
 // ── D55 (f), the extension's half: saved answers, "have you worked here?" and the EEO decline ─────
 //
 // docs/AUTOFILL_TARGET.md §8.1 rows 4–7 and 18, §8.2 items 1–2. The server (services/applyGatePacket.js
@@ -152,7 +154,11 @@ function eeoClassOfOptions(labels) {
   return classes.length >= 2 && distinct.length === 1 ? distinct[0] : null;
 }
 
-/** The page's questions: one per control, except a radio group, which is one question. */
+/**
+ * The page's questions: one per control, except a radio group, which is one question — and (D96 §7, lane J4) a
+ * CHECKBOX GROUP (several boxes under one legend, probeFormShape's `group`) and a DATE (Workday's month / day / year
+ * inputs under one group label, probeFormShape's `dateGroup`), which are one question each too.
+ */
 export function questionUnits(fields, taken = new Set()) {
   const units = [];
   const groups = new Map();
@@ -165,10 +171,78 @@ export function questionUnits(fields, taken = new Set()) {
       u.radios.push(f);
       continue;
     }
+    if (f.type === 'checkbox' && f.group) {
+      const key = `cb:${f.name || f.group}`;
+      let u = groups.get(key);
+      if (!u) { u = { kind: 'checkbox-group', question: f.group, boxes: [] }; groups.set(key, u); units.push(u); }
+      u.boxes.push(f);
+      continue;
+    }
+    if (f.dateGroup) {
+      const key = `date:${f.dateGroup.id}`;
+      let u = groups.get(key);
+      if (!u) { u = { kind: 'date', question: f.dateGroup.label || '', parts: [] }; groups.set(key, u); units.push(u); }
+      u.parts.push(f);
+      continue;
+    }
     units.push({ kind: f.type, question: f.label || '', field: f });
   }
   return units;
 }
+
+/** Every control a unit is made of. */
+export const unitFields = (u) => u.radios || u.boxes || u.parts || (u.field ? [u.field] : []);
+
+/** The options a unit SHOWS on the page now — null when they exist only once it is opened (Workday's widgets). */
+export function unitOptions(u) {
+  if (u.kind === 'radio') return u.radios.map(r => r.label);
+  if (u.kind === 'checkbox-group') return u.boxes.map(b => b.label);
+  const f = u.field;
+  if (f && Array.isArray(f.options)) return f.options.map(o => o.text);
+  return null;
+}
+
+/** The D96 §4 widget kind of a unit (extension/answerKey.js WIDGET_KINDS). */
+export function unitWidgetKind(u) {
+  if (u.kind === 'radio') return 'radio';
+  if (u.kind === 'checkbox-group' || u.kind === 'checkbox') return 'checkbox';
+  if (u.kind === 'date' || u.kind === 'date-input') return 'date';
+  const f = u.field;
+  if (f?.type === 'date') return 'date';
+  if (f?.widget === 'dropdown' || f?.widget === 'typeahead' || /^select/.test(String(f?.type || ''))) return 'select';
+  return 'text';
+}
+
+/**
+ * ⭐ D96 §4 · THE KEY OF A QUESTION AS THIS PAGE SHOWS IT — answerKeyOf over the unit's label, kind and options.
+ * `optionsKnown` is false for a Workday dropdown or typeahead: its options exist only once it is opened, so the
+ * option-wording half of the key is checked when the fill opens it (applyPlan's `expectOptions`), never skipped.
+ * null when the unit has no label (nothing to key it by).
+ */
+export function unitAnswerKey(u) {
+  try {
+    const options = unitOptions(u);
+    const k = answerKeyOf({ question: u.question, widgetKind: unitWidgetKind(u), options });
+    return { ...k, optionsKnown: options !== null || k.widgetKind === 'text' || k.widgetKind === 'date' };
+  } catch { return null; }
+}
+
+/**
+ * Is this saved answer the SAME question as the unit? A keyed answer: label, widget kind and (where the page shows
+ * them) the option wording all equal — a different country or different wording is a NEW question (safeguard 2). A
+ * legacy label-only answer (widgetKind 'any'): the label alone, as before.
+ */
+export function savedAnswerFits(s, uk) {
+  if (!s || !uk) return false;
+  const sq = s.questionKey || questionLabelKey(s.question);
+  if (sq !== uk.questionKey) return false;
+  if (!s.widgetKind || s.widgetKind === 'any') return true;
+  if (widgetKindOf(s.widgetKind) !== uk.widgetKind) return false;
+  return uk.optionsKnown ? optionsKey(s.options) === uk.optionsKey : true;
+}
+
+/** Conflicts (safeguard 6): the newest acknowledged answer for a question wins. */
+const newestFirst = (a, b) => String(b.acknowledgedAt || '').localeCompare(String(a.acknowledgedAt || ''));
 
 const isCombo = (f) => f.widget === 'dropdown';
 const isTypeahead = (f) => f.widget === 'typeahead';
@@ -177,7 +251,37 @@ const stepFor = (f, value, extra) => ({
   confidence: 1, eligibility: !!extra.eligibility, matchedBy: extra.provenance, provenance: extra.provenance,
   ...(extra.exactOption ? { exactOption: true } : {}),
   ...(extra.declineOption ? { declineOption: true } : {}),
+  // ⭐ D96 §4: where a saved answer came from and when it was acknowledged — the panel says so on its row.
+  ...(extra.saved ? { saved: extra.saved } : {}),
+  ...(extra.expectOptions ? { expectOptions: extra.expectOptions } : {}),
+  ...(extra.unit ? { unit: extra.unit } : {}),
 });
+
+// ⭐ D96 §7 · A DATE, typed in the page's own format. `parts` are the page's inputs (month / day / year), each read off
+// its placeholder or label; the answer is read as ISO (2026-11-01), M/D/YYYY, MM/YYYY or YYYY. null when the answer
+// is not a date the parts can hold — never a guess at a format.
+export function dateParts(answer) {
+  const s = String(answer ?? '').trim();
+  let m;
+  if ((m = s.match(/^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$/))) return { year: m[1], month: m[2], day: m[3] || null };
+  if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))) return { month: m[1], day: m[2], year: m[3] };
+  if ((m = s.match(/^(\d{1,2})\/(\d{4})$/))) return { month: m[1], day: null, year: m[2] };
+  if ((m = s.match(/^(\d{4})$/))) return { year: m[1], month: null, day: null };
+  return null;
+}
+export function dateStepsFor(unit, answer, extra) {
+  const d = dateParts(answer);
+  if (!d) return null;
+  const two = (n) => String(Number(n)).padStart(2, '0');
+  const steps = [];
+  for (const f of unit.parts) {
+    const part = f.dateGroup?.part;
+    const v = part === 'year' ? d.year : part === 'month' ? d.month : part === 'day' ? d.day : null;
+    if (v == null) return null;            // the page asks for a part the answer does not have
+    steps.push(stepFor(f, part === 'year' ? String(v) : two(v), { ...extra, label: `${unit.question} · ${part}` }));
+  }
+  return steps.length ? steps : null;
+}
 
 /**
  * The step that places `answer` on a unit, or null when the control cannot hold it EXACTLY.
@@ -190,7 +294,32 @@ function valueStep(unit, answer, { exact, optIn, ...extra }) {
     const r = unit.radios.find(x => normaliseQuestion(x.label) === want || normaliseQuestion(x.label) === normaliseQuestion(answer));
     return r ? stepFor(r, 'true', { ...extra, label: unit.question }) : null;
   }
+  // ⭐ D96 §7: a checkbox GROUP takes a list ("Remote (US), Seattle, WA" or a JSON array) — each named box ticked
+  // EXACTLY, the others left as they are. A name that is not one of the boxes refuses the whole answer.
+  if (unit.kind === 'checkbox-group') {
+    let wants;
+    try { wants = String(answer).trim().startsWith('[') ? JSON.parse(String(answer)) : null; } catch { wants = null; }
+    const labels = unit.boxes.map(b => normaliseQuestion(b.label));
+    if (!Array.isArray(wants)) {
+      // A label may itself hold a comma ("Seattle, WA"): match the boxes' own labels inside the answer, longest first.
+      let rest = `, ${normaliseQuestion(answer)},`;
+      wants = [];
+      for (const l of [...labels].sort((a, b) => b.length - a.length)) {
+        if (l && rest.includes(`, ${l},`)) { wants.push(l); rest = rest.replace(`, ${l},`, ','); }
+      }
+      if (rest.replace(/[\s,]+/g, '')) return null;
+    }
+    const picks = wants.map(w => unit.boxes[labels.indexOf(normaliseQuestion(w))]);
+    if (!picks.length || picks.some(p => !p)) return null;
+    return picks.map(b => stepFor(b, 'true', { ...extra, label: unit.question }));
+  }
+  if (unit.kind === 'date') return dateStepsFor(unit, answer, extra);
   const f = unit.field;
+  if (f.type === 'date') {
+    const d = dateParts(answer);
+    if (!d || !d.month || !d.day) return null;
+    return stepFor(f, `${d.year}-${String(Number(d.month)).padStart(2, '0')}-${String(Number(d.day)).padStart(2, '0')}`, extra);
+  }
   if (f.type === 'checkbox') {
     if (isNegativeAnswer(answer)) return stepFor(f, 'false', extra);
     if (!optIn && /^(?:yes|y|true)$/i.test(want)) return stepFor(f, 'true', extra);
@@ -208,6 +337,7 @@ function valueStep(unit, answer, { exact, optIn, ...extra }) {
 
 /** The step that picks the form's own decline option on an EEO unit, or null (leave it blank). */
 function declineStep(unit, extra) {
+  if (unit.kind === 'checkbox-group' || unit.kind === 'date') return null;   // a decline is one option, never a set or a date
   if (unit.kind === 'radio') {
     const v = pickDeclineOption(unit.radios.map((r, i) => ({ label: r.label, value: String(i) })));
     return v === null ? null : stepFor(unit.radios[Number(v)], 'true', { ...extra, label: unit.question });
@@ -248,19 +378,25 @@ export function placeStatedAnswers(packet, fields, plan = [], kindOf = () => 'ot
   for (const unit of questionUnits(fields, taken)) {
     const question = unit.question;
     if (!question) continue;
-    const key = normaliseQuestion(question);
     const kind = kindOf(question);
-    const optionLabels = unit.kind === 'radio' ? unit.radios.map(r => r.label) : (unit.field.options || []).map(o => o.text);
+    const optionLabels = unitOptions(unit) || [];
     const eeo = kind === 'eeo' || !!eeoClassOf(question) || !!eeoClassOfOptions(optionLabels);
 
-    // 1 · the candidate's own saved answer — the SAME question, nothing looser.
-    const sa = saved.find(s => normaliseQuestion(s.question) === key);
+    // 1 · the candidate's own saved answer — the SAME question, nothing looser. ⭐ D96 §4: by the KEY — label + widget
+    // kind + option wording (a legacy label-only answer by its label) — and the newest acknowledgement wins.
+    const uk = unitAnswerKey(unit);
+    const sa = saved.filter(s => savedAnswerFits(s, uk)).sort(newestFirst)[0] || null;
     if (sa) {
       const optIn = !!sa.optIn || kind === 'opt_in' || isOptInQuestion(question);
       if (optIn && !isNegativeAnswer(sa.answer)) { notes.push({ field: question, reason: 'opt_in_left_for_you', kind: 'opt_in' }); continue; }
       const eligibility = !!sa.eligibility || kind === 'eligibility';
-      const step = valueStep(unit, sa.answer, { exact: eligibility || eeo || optIn, optIn, eligibility, provenance: 'saved_answer' });
-      if (step) out.push(step);
+      const saved = { source: sa.source || 'legacy', acknowledgedAt: sa.acknowledgedAt || null, id: sa.id ?? null,
+        attesting: !!(sa.attesting ?? eligibility), questionKey: uk?.questionKey ?? null };
+      // A dropdown whose options exist only once opened: the fill checks the option wording when it opens it.
+      const expectOptions = uk && !uk.optionsKnown && sa.widgetKind && sa.widgetKind !== 'any' && Array.isArray(sa.options) && sa.options.length
+        ? sa.options.map(String) : null;
+      const step = valueStep(unit, sa.answer, { exact: eligibility || eeo || optIn, optIn, eligibility, provenance: 'saved_answer', saved, expectOptions });
+      if (step) out.push(...(Array.isArray(step) ? step : [step]));
       else notes.push({ field: question, reason: 'saved_answer_not_an_option', kind });
       continue;
     }
@@ -272,7 +408,7 @@ export function placeStatedAnswers(packet, fields, plan = [], kindOf = () => 'ot
         && !(parsed.widened && worked.answer === 'No') && !(parsed.timeBound && worked.answer === 'Yes');
       if (!ok) { notes.push({ field: question, reason: 'worked_here_left_for_you', kind }); continue; }
       const step = valueStep(unit, worked.answer, { exact: true, provenance: 'work_history' });
-      if (step) out.push(step);
+      if (step) out.push(...(Array.isArray(step) ? step : [step]));
       else notes.push({ field: question, reason: 'worked_here_not_an_option', kind });
       continue;
     }

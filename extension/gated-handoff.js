@@ -27,11 +27,16 @@
  * click is the candidate's, always.
  */
 
-import { orderForReview, readinessOf, renderOverlay } from './review-overlay.js';
+import {
+  orderForReview, readinessOf, renderOverlay, panelRowsForStep, panelRowsFromItems, settleStepRows, panelSummary, removeReviewPanel,
+} from './review-overlay.js';
 import { renderBadge, findMissingRequired, badgeDismissed } from './autofill-badge.js';
 import { C_LIGHT, C_DARK } from './tokens.js';
 // D55 (f): saved answers, worked-here and the EEO decline — placed by exact question equality only.
-import { placeStatedAnswers } from './savedAnswerMatch.js';
+import { placeStatedAnswers, normaliseQuestion, dateParts } from './savedAnswerMatch.js';
+// ⭐ D96 §4: the saved-answer key and the never-fillable guard — a byte-identical copy of shared/answerKey.js.
+import { questionLabelKey, NEVER_FILL_RE, neverFillReasonOfField, isSignatureField, withoutNeverFill } from './answerKey.js';
+export { neverFillReasonOfField, isSignatureField, withoutNeverFill };
 
 // D23 — what the review overlay is painted with: the site's tokens (extension/tokens.js, generated
 // from client/src/styles/colorTokens.js) and the logo face's bytes, read from the extension's own
@@ -109,8 +114,9 @@ function probeFormShape() {
   const controls = [...scope.querySelectorAll(
     'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"], button[aria-haspopup="listbox"]'
   )].filter(
-    el => el.getAttribute('aria-haspopup') === 'listbox' ||
-      !['hidden', 'submit', 'button', 'image', 'reset'].includes((el.type || '').toLowerCase())
+    el => (el.getAttribute('aria-haspopup') === 'listbox' ||
+      !['hidden', 'submit', 'button', 'image', 'reset', 'password'].includes((el.type || '').toLowerCase())) &&
+      !/^cc-|one-time-code|-password$/i.test(el.getAttribute('autocomplete') || '')
   );
 
   const labelFor = (el) => {
@@ -140,11 +146,60 @@ function probeFormShape() {
       || !!document.querySelector('[data-automation-id="reviewJobApplicationPage"]'),
   } : null;
 
+  // ⛔ D96 §7: password and payment controls are NOT in `controls` (the filter above, the same in applyPlan) — never
+  // read, filled or listed. Only their PRESENCE is reported: a page with a password box is a sign-in or an account
+  // page, never an application step, and the fill and the wizard both stop there (formRecognition, advanceWizard).
+  const visibleEl = (el) => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  const hasPassword = [...scope.querySelectorAll('input[type="password"]')].some(visibleEl);
+  // D96 §7: whether a control HOLDS something — emptiness only, never the value (as findMissingRequired reads it).
+  const holdsSomething = (el) => {
+    const t = (el.type || '').toLowerCase();
+    if (t === 'radio') return !!(el.name && scope.querySelector(`input[type="radio"][name="${CSS.escape(el.name)}"]:checked`));
+    if (t === 'checkbox') return el.checked === true;
+    if (t === 'file') {
+      const wrap = el.closest('[data-automation-id^="formField"], .field') || el.parentElement;
+      return !!(el.files && el.files.length) || !!wrap?.querySelector('[data-automation-id="file-upload-successful"]');
+    }
+    if (el.tagName === 'INPUT' && (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list')) {
+      const box = el.closest('[data-automation-id^="formField"], [role="group"], fieldset') || el.parentElement;
+      return !!box?.querySelector('[data-automation-id="selectedItem"], [role="listitem"], li') || String(el.value || '').trim() !== '';
+    }
+    if (el.tagName !== 'INPUT' && el.tagName !== 'SELECT' && el.tagName !== 'TEXTAREA') {
+      const tx = String(el.textContent || '').trim();
+      return !!tx && !/^(select|choose|please|--)/i.test(tx);
+    }
+    return String(el.value ?? '').trim() !== '';
+  };
+  const groupText = (g) => {
+    if (!g) return '';
+    const lid = (g.getAttribute('aria-labelledby') || '').split(/\s+/)[0];
+    return String((lid && document.getElementById(lid)?.textContent) || g.querySelector('legend')?.textContent
+      || g.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+  };
+  // D96 §7: Workday's date — month / day / year inputs under one group label — is ONE question. ⚠ The part is read
+  // off the automation id (D55 replica conventions, not re-measured on a live tenant), the placeholder or the label.
+  const allGroups = [...scope.querySelectorAll('[role="group"], fieldset')];
+  const dateGroupOf = (el) => {
+    if (el.tagName !== 'INPUT' || !['text', 'tel', 'number', ''].includes((el.type || '').toLowerCase())) return null;
+    const aid = el.getAttribute('data-automation-id') || '';
+    const ph = (el.getAttribute('placeholder') || '').trim().toUpperCase();
+    const al = (el.getAttribute('aria-label') || '').trim().toLowerCase();
+    const part = /dateSectionMonth/i.test(aid) || ph === 'MM' || al === 'month' ? 'month'
+      : /dateSectionDay/i.test(aid) || ph === 'DD' || al === 'day' ? 'day'
+      : /dateSectionYear/i.test(aid) || ph === 'YYYY' || al === 'year' ? 'year' : null;
+    if (!part) return null;
+    const g = el.closest('[role="group"], fieldset');
+    if (!g) return null;
+    return { id: g.id || g.getAttribute('aria-labelledby') || `g${allGroups.indexOf(g)}`, label: groupText(g), part,
+      aid: g.getAttribute('data-automation-id') || null };
+  };
+
   return {
     hasForm: !!form,
     url: location.href,
     origin: location.origin,
     wizard,
+    hasPassword,
     fields: controls.map((el, index) => ({
       index,
       name: el.name || null,
@@ -154,6 +209,9 @@ function probeFormShape() {
       // D55 (g): an asterisked label is "required" too — on many forms it is the only signal.
       required: el.required === true || el.getAttribute('aria-required') === 'true' ||
         /\*\s*$/.test(labelFor(el)) ||
+        // D96 §5: a radio / checkbox GROUP says it is required on the group itself (Workday: the fieldset).
+        (['radio', 'checkbox'].includes((el.type || '').toLowerCase()) &&
+          el.closest('fieldset, [role="radiogroup"], [role="group"]')?.getAttribute('aria-required') === 'true') ||
         !!(el.id && document.querySelector(`label[for="${CSS.escape(el.id)}"] abbr[title="required" i]`)),
       options: el.tagName === 'SELECT'
         ? [...el.options].map(o => ({ value: o.value, text: (o.text || '').trim() })) : null,
@@ -165,7 +223,15 @@ function probeFormShape() {
         const lid = (g.getAttribute('aria-labelledby') || '').split(/\s+/)[0];
         const t = (lid && document.getElementById(lid)?.textContent) || g.querySelector('legend')?.textContent || '';
         return t.replace(/\s+/g, ' ').trim().slice(0, 200) || null;
+      })() : el.type === 'checkbox' ? (() => {
+        // D96 §7: a checkbox GROUP — two or more boxes under one legend — is one question; a lone box is its label.
+        const g = el.closest('fieldset, [role="group"]');
+        if (!g || g.querySelectorAll('input[type="checkbox"]').length < 2) return null;
+        return groupText(g) || null;
       })() : null,
+      dateGroup: dateGroupOf(el),
+      hasValue: holdsSomething(el),
+      visible: visibleEl(el),
       // D55 (a): which custom widget this is, so the plan and the review can say "typed and picked"
       // rather than "set". A typeahead is an <input> that announces a popup list; a dropdown is a
       // non-input that does. Neither has options to report — they exist only once it is opened.
@@ -197,8 +263,9 @@ async function applyPlan(plan, resume, opts) {
   const controls = [...scope.querySelectorAll(
     'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"], button[aria-haspopup="listbox"]'
   )].filter(
-    el => el.getAttribute('aria-haspopup') === 'listbox' ||
-      !['hidden', 'submit', 'button', 'image', 'reset'].includes((el.type || '').toLowerCase())
+    el => (el.getAttribute('aria-haspopup') === 'listbox' ||
+      !['hidden', 'submit', 'button', 'image', 'reset', 'password'].includes((el.type || '').toLowerCase())) &&
+      !/^cc-|one-time-code|-password$/i.test(el.getAttribute('autocomplete') || '')
   );
 
   const isEditable = (el) => el.isContentEditable === true;
@@ -306,10 +373,23 @@ async function applyPlan(plan, resume, opts) {
   // ⛔ BYTE-IDENTICAL to shared/savedAnswers.js DECLINE_OPTION_RE (serialised; cannot import it).
   const DECLINE_OPTION_RE =
     /\b(?:declin(?:e|ed|es|ing)|prefer\s+not|rather\s+not|choose\s+not|wish\s+not\s+to|(?:do\s+not|don'?t|does\s+not|doesn'?t)\s+(?:wish|want|care)\s+to|not\s+(?:to\s+)?(?:disclose|answer|say|specify|identify|self[\s-]?identify|state)|no\s+answer|undisclosed)\b/i;
+  // ⭐ D96 §4 safeguard 2, for a widget whose options exist only once it is opened: the saved answer's option
+  // wording (`expectNow`, set by place() from step.expectOptions) must be the wording this list shows, or it is a NEW
+  // question — nothing is picked and the row asks again. ⚠ The page-side wording key approximates
+  // shared/answerKey.js optionsKey (this function can import nothing); a near miss ASKS again, which is the safe way
+  // to be wrong. `lastOptions` is what the list offered, so the panel can key an acknowledgement by it.
+  let expectNow = null, lastOptions = null, optionsChanged = false;
+  const optWord = (s) => String(s ?? '').normalize('NFKC').replace(/[‘’ʼ]/g, "'").replace(/[“”]/g, '"')
+    .replace(/\(\s*(?:required|optional)\s*\)/gi, ' ').replace(/\*/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
+    .replace(/^[\s*:;,.!?¿¡…–—_"'`|-]+|[\s*:;,.!?¿¡…–—_"'`|-]+$/g, '').trim();
+  const PLACEHOLDER_OPT = /^(?:select(?: one| an option| an answer)?|choose(?: one| an option)?|please (?:select|choose)(?: one| an option)?|none selected|-+)$/;
+  const wordingOf = (list) => JSON.stringify([...new Set(list.map(optWord).filter(w => w && !PLACEHOLDER_OPT.test(w)))].sort());
   const setCombobox = async (el, want, mode = null) => {
     el.click();
     const options = (await waitFor(() => readyOptions(el), 2500)) || [];
     const texts = options.map(o => String(o.textContent || '').replace(/[‘’ʼ]/g, "'"));
+    lastOptions = texts.map(t => t.trim()).filter(Boolean).slice(0, 100);
+    if (expectNow && wordingOf(texts) !== wordingOf(expectNow)) { optionsChanged = true; dismiss(el); return null; }
     const idx = mode === 'decline' ? texts.findIndex(t => DECLINE_OPTION_RE.test(t))
       : mode === 'exact' ? texts.findIndex(t => same(t, want))
       : closestOption(want, options.map(o => o.textContent || ''));
@@ -381,9 +461,36 @@ async function applyPlan(plan, resume, opts) {
     return String(el.value ?? '').trim() !== '';
   };
 
+  // ⛔ D96 §4 safeguard 1, THE LAST LINE: whatever the plan says — a stored answer, an edit typed in the panel — a
+  // terms / consent / privacy-notice / attestation / signature control is never ticked or filled. The rule's text
+  // arrives as opts.neverFillSource (extension/answerKey.js NEVER_FILL_RE); fillFromPacket and applyOverlayEdit have
+  // already refused these, and this refuses again on the control's own label inside the page.
+  const neverFill = opts?.neverFillSource ? new RegExp(opts.neverFillSource, 'i') : null;
+  const ownText = (el) => {
+    const byFor = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`)?.textContent : '';
+    const g = el.closest('fieldset, [role="radiogroup"], [role="group"]');
+    const lid = (g?.getAttribute('aria-labelledby') || '').split(/\s+/)[0];
+    return [byFor, el.closest('label')?.textContent, el.getAttribute('aria-label'),
+      (el.type === 'checkbox' || el.type === 'radio') ? ((lid && document.getElementById(lid)?.textContent) || g?.querySelector('legend')?.textContent) : '']
+      .filter(Boolean).join(' • ').replace(/[‘’ʼ]/g, "'");
+  };
+  const isSignatureId = (el) => /signature|signedOn|dateSigned|e-?sign/i.test(`${el.getAttribute('data-automation-id') || ''} ${el.name || ''} ${el.id || ''} ${
+    el.closest('[role="group"], fieldset')?.getAttribute('data-automation-id') || ''}`);
+  const inSignatureBlock = (el) => {
+    const aid = el.getAttribute('data-automation-id') || '';
+    const pre = aid.split('--')[0];
+    if (!pre || pre === aid) return false;
+    return [...document.querySelectorAll(`[data-automation-id*="${CSS.escape(pre)}--"]`)]
+      .some(o => o !== el && /signature|signedOn|dateSigned|e-?sign/i.test(o.getAttribute('data-automation-id') || ''));
+  };
+
   // One control, one value — the body of the plan loop, shared with the repeating sections below so
   // an entry's field is placed and read back by exactly the same rules as a flat answer.
   const place = async (step, el) => {
+    if ((neverFill && neverFill.test(ownText(el))) || isSignatureId(el) || inSignatureBlock(el)) {
+      skipped.push({ field: step.label, name: step.name, reason: 'never_filled_yours_to_do' });
+      return;
+    }
     if (keepExisting && holds(el)) { skipped.push({ field: step.label, reason: 'kept_existing' }); return; }
     try {
       if (el.type === 'checkbox' || el.type === 'radio') {
@@ -425,12 +532,16 @@ async function applyPlan(plan, resume, opts) {
         if (!picked.length) return;
         pending.push({ step, el, kind: 'typeahead', want: picked.map(p => p.got) });
       } else if (isCombo(el)) {
+        expectNow = Array.isArray(step.expectOptions) && step.expectOptions.length ? step.expectOptions : null;
+        optionsChanged = false;
         const got = await setCombobox(el, step.value, step.declineOption ? 'decline' : step.exactOption ? 'exact' : null);
+        expectNow = null;
         if (!got) {
-          skipped.push({ field: step.label, reason: step.declineOption ? 'decline_option_absent' : 'value_not_in_options' });
+          skipped.push({ field: step.label, name: step.name, reason: optionsChanged ? 'options_changed' : step.declineOption ? 'decline_option_absent' : 'value_not_in_options',
+            wanted: String(step.value ?? '').slice(0, 80), ...(lastOptions ? { options: lastOptions } : {}) });
           return;
         }
-        pending.push({ step, el, kind: 'combo', want: got });
+        pending.push({ step, el, kind: 'combo', want: got, options: lastOptions });
       } else if (isEditable(el)) {
         el.focus?.();
         el.textContent = String(step.value);
@@ -590,7 +701,7 @@ async function applyPlan(plan, resume, opts) {
     }
   });
 
-  for (const { step, el, kind, want } of pending) {
+  for (const { step, el, kind, want, options: shownOptions } of pending) {
     let ok = false, got = '';
     try {
       if (kind === 'toggle')        { ok = el.checked === want; got = String(el.checked); }
@@ -615,12 +726,14 @@ async function applyPlan(plan, resume, opts) {
       // Sciences" for "Computer Science") — what the employer will read, so what the review shows.
       filled.push({ field: step.label, name: step.name, provenance: step.provenance, verified: true,
                     ...(kind === 'combo' || kind === 'typeahead' ? { placed: got } : {}),
-                    ...(step.entry ? { entry: step.entry } : {}) });
+                    ...(step.entry ? { entry: step.entry } : {}),
+                    ...(step.index !== undefined ? { index: step.index } : {}),
+                    ...(Array.isArray(shownOptions) && shownOptions.length ? { options: shownOptions } : {}) });
     } else {
       // The value did not stick. Named distinctly from `field_moved` because the remedy differs:
       // this one means the page actively rejected or overwrote what we wrote.
       skipped.push({
-        field: step.label, reason: 'reverted_after_set',
+        field: step.label, name: step.name, reason: 'reverted_after_set',
         wanted: String(want).slice(0, 80), got: String(got).slice(0, 80),
       });
     }
@@ -720,6 +833,9 @@ export function resumeInputScore(context) {
 }
 
 const normalise = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** ⭐ D96 §4: a label as it is COMPARED — the trailing "*", "(required)" and end punctuation set aside (answerKey.js). */
+export const labelKey = (s) => normalise(questionLabelKey(s));
 
 /**
  * D55 (a) — which of a picker's REAL options is closest to the value we hold. Returns its index, or -1.
@@ -824,11 +940,17 @@ export function matchAnswersToFields(answers, fields) {
       (!!f.automationId && WORKDAY_FIELD_IDS[f.automationId] === a.name)
     ));
 
+  // ⭐ D96 §4 / §5 (owner 10-13, symptom 4): a label EQUAL to the answer's once the trailing "*", "(required)" and
+  // the punctuation are set aside — "First Name*", "First Name *" for "First Name" — is an EXACT match, not a guess
+  // ('label_exact'). Only the looser fallback (the control's NAME resembling the answer's) is still a guess ('label').
+  // ⛔ Eligibility is unchanged: it never takes a label match of either kind (below).
   const byLabel = (a) => {
-    const want = normalise(a.field);
+    const want = labelKey(a.field);
     if (!want) return null;
-    return fields.find(f => !taken.has(f.index) && normalise(f.label) === want)
-        || fields.find(f => !taken.has(f.index) && f.name && normalise(f.name) === normalise(a.name));
+    const exact = fields.find(f => !taken.has(f.index) && labelKey(f.label) === want);
+    if (exact) return { field: exact, how: 'label_exact' };
+    const loose = fields.find(f => !taken.has(f.index) && f.name && normalise(f.name) === normalise(a.name));
+    return loose ? { field: loose, how: 'label' } : null;
   };
 
   for (const a of answers) {
@@ -838,7 +960,7 @@ export function matchAnswersToFields(answers, fields) {
     let field = byExact(a);
     let how = field ? 'exact' : null;
 
-    if (!field && !a.eligibility) { field = byLabel(a); how = field ? 'label' : null; }
+    if (!field && !a.eligibility) { const hit = byLabel(a); field = hit?.field || null; how = hit?.how || null; }
     if (!field && a.eligibility) {
       unmatched.push({
         field: a.field, name: a.name, eligibility: true,
@@ -861,7 +983,11 @@ export function matchAnswersToFields(answers, fields) {
     const guessed = ['label_fuzzy', 'default', 'sponsorship_assumed_future'].includes(a.provenance);
     const yes = a.value === true || /^(yes|true|y|i agree|opt in|subscribe)\b/i.test(String(a.value).trim());
     let refusal = null;
-    if (kind === 'opt_in' && (yes || a.provenance !== 'custom_answer')) refusal = 'opt_in_left_for_you';
+    // ⛔ D96 §4 safeguard 1 / §7: a terms / consent / attestation / signature control, or a password / payment one, is
+    // never given a value — whatever the packet holds. First, so no other rule can let one through.
+    const never = neverFillReasonOfField(field, fields);
+    if (never) refusal = never === 'secret' ? 'secret_never_filled' : 'consent_left_for_you';
+    else if (kind === 'opt_in' && (yes || a.provenance !== 'custom_answer')) refusal = 'opt_in_left_for_you';
     else if (kind === 'screening' && (guessed || (how !== 'exact' && a.provenance !== 'custom_answer'))) refusal = 'screening_left_for_you';
     else if (kind === 'eeo' && guessed) refusal = 'eeo_left_for_you';
     if (refusal) {
@@ -889,10 +1015,31 @@ export function matchAnswersToFields(answers, fields) {
 // lapses can resume without spending another token, and nothing else will ever clear this. It has to
 // be cleared deliberately.
 
-export async function savePacketForTab(tabId, payload) {
+export async function savePacketForTab(tabId, payload, { keepExpiry = false } = {}) {
+  // ONE write site for gate:{tabId} (test/privacyReconciliation.test.js counts them). A patch keeps the packet's
+  // own expiry: refreshing its saved answers must never extend how long a released packet lives.
+  const at = Date.now();
   await chrome.storage.session.set({
-    [sessionKey(tabId)]: { ...payload, storedAt: Date.now(), expiresAt: Date.now() + PACKET_TTL_MS },
+    [sessionKey(tabId)]: keepExpiry && payload?.expiresAt
+      ? payload
+      : { ...payload, storedAt: at, expiresAt: at + PACKET_TTL_MS },
   });
+}
+
+/**
+ * ⭐ D96 §4 · after an acknowledgement or a change in the panel, the packet already released into this tab carries the
+ * saved answers AS THEY STAND NOW (GET /api/saved-answers/fillable) — so the NEXT fill on this tab uses a just-
+ * acknowledged answer and no longer uses a just-changed one, without re-preparing and without a second token.
+ * Nothing else in the packet changes; its expiry is kept.
+ */
+export async function patchPacketSavedAnswers(tabId, savedAnswers) {
+  if (tabId == null || !Array.isArray(savedAnswers)) return false;
+  const held = await loadPacketForTab(tabId);
+  if (!held?.packet) return false;
+  const packet = { ...held.packet };
+  if (savedAnswers.length) packet.savedAnswers = savedAnswers; else delete packet.savedAnswers;
+  await savePacketForTab(tabId, { ...held, packet }, { keepExpiry: true });
+  return true;
 }
 
 export async function loadPacketForTab(tabId) {
@@ -1011,8 +1158,12 @@ const api = async (serverUrl, path, init = {}) => {
  *   origin read -> packet located by origin -> form confirmed present -> ONLY THEN token minted and
  *   spent. Every refusal above happens before a token exists, so a mismatch costs nothing.
  */
-export async function runGatedHandoff({ serverUrl, tab }) {
-  const result = await handoffOnce({ serverUrl, tab });
+export async function runGatedHandoff({ serverUrl, tab, ...opts }) {
+  // `opts`: the fill's own options (lane J5's auto mode travels here) — none of them widens what may be filled.
+  // ⭐ ONE fill per tab, from the moment it is asked for: any earlier fill still waiting here stops (ACTIVE_FILL).
+  const runId = `${tab?.id ?? 't'}-${Date.now()}-${++FILL_SEQ}`;
+  if (tab?.id != null) ACTIVE_FILL.set(tab.id, runId);
+  const result = await handoffOnce({ serverUrl, tab, opts: { ...opts, runId } });
   // ⭐ D96 §3: the fill's outcome is remembered for the job — how many filled of how many, how many need you. The job
   // is the released packet's, else the tab's binding. Counts only; a failure here never changes the result.
   const held = tab?.id ? await loadPacketForTab(tab.id).catch(() => null) : null;
@@ -1021,7 +1172,7 @@ export async function runGatedHandoff({ serverUrl, tab }) {
   return result;
 }
 
-async function handoffOnce({ serverUrl, tab }) {
+async function handoffOnce({ serverUrl, tab, opts = {} }) {
   if (!tab?.id) return { ok: false, reason: 'no_active_tab', message: 'No active tab.' };
 
   let origin;
@@ -1036,7 +1187,7 @@ async function handoffOnce({ serverUrl, tab }) {
   // moved to another step. Reuse it rather than spending a second token.
   const cached = await loadPacketForTab(tab.id);
   if (cached && packetFillsOrigin(cached, origin)) {
-    return fillFromPacket({ tab, origin, released: cached, serverUrl, reused: true });
+    return fillFromPacket({ tab, origin, released: cached, serverUrl, reused: true, opts });
   }
 
   let list;
@@ -1159,7 +1310,7 @@ async function handoffOnce({ serverUrl, tab }) {
   }
 
   await savePacketForTab(tab.id, released);
-  return fillFromPacket({ tab, origin, released, serverUrl, reused: false });
+  return fillFromPacket({ tab, origin, released, serverUrl, reused: false, opts });
 }
 
 /**
@@ -1203,8 +1354,17 @@ export function questionKind(label) {
 // <form> by its type is refused whatever it says.
 function advanceWizard() {
   const continueText = /^(save and continue|save & continue|continue|next)$/i;
-  const btn = document.querySelector('[data-automation-id="bottom-navigation-next-button"], [data-automation-id="pageFooterNextButton"]')
-    || [...document.querySelectorAll('button, [role="button"]')].find(b => continueText.test(String(b.textContent || '').replace(/\s+/g, ' ').trim()));
+  // ⛔ D96 (J2 measured, 10-13): it pressed a HIDDEN Save and Continue on the sign-in step. Only a control the
+  // candidate can SEE, enabled, is ever pressed — and never on a page with a password box (a sign-in or account page).
+  const seen = (el) => {
+    if (!el || !(el.offsetWidth || el.offsetHeight || el.getClientRects().length)) return false;
+    if (el.closest('[hidden], [aria-hidden="true"]')) return false;
+    const cs = getComputedStyle(el);
+    return cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0;
+  };
+  if ([...document.querySelectorAll('input[type="password"]')].some(seen)) return { ok: false, reason: 'sign_in_page' };
+  const btn = [...document.querySelectorAll('[data-automation-id="bottom-navigation-next-button"], [data-automation-id="pageFooterNextButton"]')].find(seen)
+    || [...document.querySelectorAll('button, [role="button"]')].find(b => seen(b) && continueText.test(String(b.textContent || '').replace(/\s+/g, ' ').trim()));
   if (!btn) return { ok: false, reason: 'no_next_button' };
   const text = String(btn.textContent || '').replace(/\s+/g, ' ').trim();
   if (!continueText.test(text)) return { ok: false, reason: 'next_is_not_continue', text: text.slice(0, 40) };
@@ -1235,10 +1395,11 @@ const sleepMs = (ms) => new Promise(r => setTimeout(r, ms));
  * leaving the application, or by the grant lapsing.
  */
 export const CANDIDATE_WAIT_MS = 9 * 60 * 1000;
-async function waitForCandidate(tabId, origin, stepName, wizard) {
+async function waitForCandidate(tabId, origin, stepName, wizard, isCurrent = () => true) {
   const deadline = Date.now() + CANDIDATE_WAIT_MS;
   let recorded = false, lastCount = -1;
   for (;;) {
+    if (!isCurrent()) return { ok: false, reason: 'superseded' };
     let missing;
     try {
       const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: findMissingRequired });
@@ -1275,6 +1436,12 @@ async function waitForCandidate(tabId, origin, stepName, wizard) {
  */
 export function formRecognition(shape, plan = []) {
   const fields = shape?.fields || [];
+  // ⛔ D96 (J2 measured, 10-13): on Workday's sign-in step the fill typed the candidate's email into the sign-in box —
+  // the wizard shortcut below said "recognised" before the password rule could speak. A page with a password box is a
+  // sign-in or account page whatever else it is: never filled, and the wizard never advances from it.
+  if (shape?.hasPassword || fields.some(f => f.type === 'password')) {
+    return { recognised: false, why: 'this looks like a sign-in form, not the application — draft never signs in for you' };
+  }
   if (shape?.wizard || fields.some(f => f.automationId && WORKDAY_FIELD_IDS[f.automationId])) {
     return { recognised: true, adapter: 'workday' };
   }
@@ -1355,7 +1522,7 @@ export function entryReviewItems(entries, filled = []) {
   return rows;
 }
 
-async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
+async function fillFromPacket({ tab, origin, released, serverUrl, reused, opts = {} }) {
   let shape;
   try {
     const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: probeFormShape });
@@ -1397,6 +1564,9 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
   // cached for this tab, so pressing the shortcut again on the real form costs no second token.
   const recognition = formRecognition(shape, matchAnswersToFields(answers, shape.fields).plan);
   if (!recognition.recognised) {
+    // A panel an earlier fill drew for another step (measured on the fixture: G5's batch re-run on a reload painted
+    // My Information's panel, then the step became Sign In) would describe a page that is not this one — it goes.
+    try { await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: removeReviewPanel }); } catch { /* none there */ }
     const badgeNow = await showBadge(tab.id, 'unrecognised', { note: recognition.why });
     return {
       ok: false, reason: 'form_not_recognised', reused: !!reused, packetId: released.packetId,
@@ -1424,14 +1594,29 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
   const wizard = { steps: [], stops: [], advanced: 0, stoppedAt: null };
   let entriesLeft = released.packet?.entries || null;
   let step = shape;
+  // ⭐ D96 §5 · THE PANEL IS DRAWN AT EVERY STEP, BEFORE THE WAIT. The wizard waits up to nine minutes for the
+  // candidate on a step with an empty required field (J2 measured: the panel only appeared after that wait) — so the
+  // step's rows are drawn first, and the candidate sees what needs them while draft waits. Rows of a step the wizard
+  // has left are settled (settleStepRows); `panelRows` is the whole run's.
+  let settledRows = [], stepRows = [];
+  const panelMeta = await panelMetaFor({ tab, released, serverUrl, runId: opts.runId });
+  // ⭐ ONE fill per tab: this run supersedes any earlier one still waiting here (ACTIVE_FILL, below).
+  if (!opts.runId) ACTIVE_FILL.set(tab.id, panelMeta.runId);
+  const isCurrent = () => ACTIVE_FILL.get(tab.id) === panelMeta.runId;
   for (let guard = 0; guard < 12; guard++) {
     if (step.wizard?.isReview) { wizard.stoppedAt = 'review'; break; }
+    if (!isCurrent()) { wizard.stoppedAt = 'superseded'; break; }
     const matched = matchAnswersToFields(answers, step.fields);
     // D55 (f): then the packet's saved answers, worked-here answer and EEO declines, on the
     // questions the answers above did not take — by exact question equality (savedAnswerMatch.js).
     const stated = placeStatedAnswers(released.packet, step.fields, matched.plan, questionKind);
     matched.plan.push(...stated.plan);
     matched.unmatched.push(...stated.notes);
+    // ⛔ D96 §4 safeguard 1, ENFORCED on the whole step's plan: no terms / consent / attestation / signature control,
+    // and no password / payment one, is ever given a value — from the packet, a saved answer, or anything else.
+    const guarded = withoutNeverFill(matched.plan, step.fields);
+    matched.plan = guarded.plan;
+    matched.unmatched.push(...guarded.refused);
     plan.push(...matched.plan);
     for (const u of matched.unmatched) if (!unmatched.some(x => x.name === u.name && x.field === u.field)) unmatched.push(u);
     let r;
@@ -1442,7 +1627,7 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
         func: applyPlan,
         // D55 (b): the packet's repeating-section entries travel with the plan; applyPlan opens one
         // panel per entry with the section's own Add / Add Another.
-        args: [matched.plan, outcome.resume?.attached ? null : resume, { entries: entriesLeft, keepExisting: !!step.wizard }],
+        args: [matched.plan, outcome.resume?.attached ? null : resume, Object.assign({ entries: entriesLeft, keepExisting: !!step.wizard }, fillOptions(opts))],
       });
       r = res?.result || {};
     } catch (e) {
@@ -1457,15 +1642,25 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
       entriesLeft = { ...entriesLeft };
       for (const k of Object.keys(r.sections)) entriesLeft[k] = [];
     }
+    // The step as it stands AFTER the fill — what each control holds now (emptiness only, never a value).
+    const after = await probeAgain(tab.id);
+    const stepName = step.wizard?.step || '';
+    stepRows = panelRowsForStep({
+      stepName, fields: withHoldsFrom(step.fields, after?.fields), plan: matched.plan,
+      filled: r.filled || [], skipped: r.skipped || [], unmatched: matched.unmatched, resume: r.resume || null, kindOf: questionKind,
+    }).concat(panelRowsFromItems(entryReviewItems(released.packet?.entries, r.filled || []), stepName));
     if (!step.wizard) break;
     wizard.steps.push({ step: step.wizard.step, filled: (r.filled || []).length });
+    if (isCurrent()) await drawReviewPanel(tab.id, [...settledRows, ...stepRows], { ...panelMeta, currentStep: stepName, waiting: true,
+      resumeAttached: outcome.resume?.attached === true });
 
     // Stop and wait — then advance. Up to three attempts per step: a portal that writes its own
     // "is required" error on Save and Continue sends the loop back to waiting.
     let advanced = null;
     for (let attempt = 0; attempt < 3 && !advanced; attempt++) {
-      const waited = await waitForCandidate(tab.id, origin, step.wizard.step, wizard);
+      const waited = await waitForCandidate(tab.id, origin, step.wizard.step, wizard, isCurrent);
       if (!waited.ok) { wizard.stoppedAt = waited.reason; break; }
+      if (!isCurrent()) { wizard.stoppedAt = 'superseded'; break; }
       await showBadge(tab.id, 'progress');
       const moved = await advanceAndWait(tab.id, step.wizard.step);
       if (moved.ok) advanced = moved;
@@ -1473,6 +1668,8 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
     }
     if (!advanced) { wizard.stoppedAt = wizard.stoppedAt || 'could_not_advance'; break; }
     wizard.advanced += 1;
+    settledRows = settleStepRows([...settledRows, ...stepRows]);
+    stepRows = [];
     try {
       const [p] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: probeFormShape });
       step = p?.result;
@@ -1485,6 +1682,8 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
     if (!step?.hasForm || !packetFillsOrigin(released, step.origin)) { wizard.stoppedAt = 'left_the_application'; break; }
   }
   const isWizard = wizard.steps.length > 0 || wizard.stoppedAt === 'review';
+  const panelRows = [...settledRows, ...stepRows];
+  const panel = panelSummary(panelRows);
 
   // ── The review overlay (TASK G3) ────────────────────────────────────────────
   // What was actually written, with the rule that produced each value, ordered so the candidate
@@ -1492,6 +1691,7 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
   // matchedBy travels with each item: the overlay combines it with the value's provenance, because
   // a certain value placed into a field matched only by its label is uncertain overall, and showing
   // it as "resolved exactly" would be the more dangerous half of the truth.
+  // ⭐ D96 §5: the PANEL lists every field (panelRows, above); these items remain the audit's and the result's.
   const reviewItems = plan
     .filter(step => (outcome?.filled || []).some(f => f.name === step.name && f.field === step.label))
     .map(step => ({
@@ -1512,21 +1712,31 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
     ? await portalQueueFor(serverUrl, origin, released.packetId)
     : { remaining: 0, next: null, packets: [] };
 
+  // A newer fill took this tab over while this one waited: it draws nothing over the newer one's panel.
+  if (!isCurrent()) {
+    return { ok: false, reason: 'superseded', reused: !!reused, packetId: released.packetId, filled: outcome.filled, skipped: outcome.skipped,
+      message: 'A newer fill on this page took over from this one.' };
+  }
+  ACTIVE_FILL.delete(tab.id);
+
   try {
-    await chrome.scripting.executeScript({
+    const [drawn] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       // ISOLATED, unlike the fill: the overlay needs chrome.runtime to send edits back, and only the
       // isolated world has it. The DOM is shared either way, so it is still a real element on the
       // real page.
       func: renderOverlay,
-      args: [bands, {
-        filledCount: outcome?.filled?.length || 0,
+      args: [{ rows: panelRows }, {
+        ...panelMeta,
+        currentStep: wizard.stoppedAt === 'review' ? null : (step?.wizard?.step || ''),
+        filledCount: panel.filled,
         resumeAttached: outcome?.resume?.attached === true,
         resolverBug: readiness.resolverBug,
         portal: portalForOverlay,
         theme: await overlayTheme(),
       }],
     });
+    if (drawn?.result?.ok === false) throw new Error(drawn.result.error || 'not drawn');
   } catch (e) {
     // A form filled without an overlay is degraded, not broken — the values are in the page and the
     // candidate can still read them. Reported rather than swallowed.
@@ -1536,7 +1746,8 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
       resume: outcome?.resume || null,
       overlay: { rendered: false, error: e.message },
       fieldCount: shape.fields.length,
-      review: { ready: readiness.ready, guessCount: readiness.guessCount },
+      panel: { filled: panel.filled, of: panel.total, needYou: panel.need, check: panel.check, ready: panel.ready },
+      review: { ready: panel.ready, guessCount: readiness.guessCount },
       // D36: this used to be the SUCCESS sentence, word for word — so a fill whose review panel never
       // appeared (no eligibility pinned to the top, no guess to acknowledge) read exactly like one
       // that did, and the popup closed itself 1.2 s later. The overlay is what makes this
@@ -1545,6 +1756,8 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
         "Check every answer on the page yourself — especially work authorisation and sponsorship — before you submit.",
     };
   }
+  // The 90-day reminder is shown in the panel ONCE per due period: reported shown (J8: POST review 'dismissed').
+  if (panelMeta.review?.showInPanel) await dismissReviewReminder(serverUrl);
 
   // D55 (c)·(g): painted AFTER the overlay so it sits beside it rather than under it. "Filled —
   // review and submit" only when no required field is left empty; otherwise "Complete required
@@ -1592,12 +1805,15 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
     // ⭐ D96 §3: "Filled 14 of 18 · 2 need you" — the form's field count and the required fields still empty.
     fieldCount: shape.fields.length,
     missingCount: missingAtEnd.length,
+    // ⭐ D96 §3 / §5: the PANEL's own counts — what progress.js remembers, so the popup and the panel agree.
+    panel: { filled: panel.filled, of: panel.total, needYou: panel.need, check: panel.check, ready: panel.ready },
     resume: outcome?.resume || (released.resumeUrl ? { attached: false, reason: 'fetch_failed' } : null),
     overlay: { rendered: true, rows: reviewItems.length },
     badge,
     capture,
     review: {
-      ready: readiness.ready,
+      // ⛔ D96 §5: "Ready" only when nothing needs you AND at least one field was filled — the panel's rule.
+      ready: panel.ready,
       guessCount: readiness.guessCount,
       eligibilityCount: bands.eligibility.length,
       uncertainCount: bands.uncertain.length,
@@ -1613,6 +1829,88 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused }) {
       ? wizardMessage(outcome?.filled?.length || 0, wizard)
       : `Filled ${outcome?.filled?.length || 0} field(s). Review and submit yourself.`,
   };
+}
+
+/**
+ * ⭐ D96 §5 (J4) · ONE FILL PER TAB. A fill started on a tab supersedes an earlier one still waiting there for the
+ * candidate: the older stops, never presses Save and Continue, and draws nothing more. Measured on the fixture (10-13):
+ * a fill left waiting kept polling after the page was reloaded, and later painted its stale panel over the new one.
+ * Service-worker memory only — nothing stored.
+ */
+const ACTIVE_FILL = new Map();
+let FILL_SEQ = 0;
+
+// ── D96 §5 · the panel's helpers ─────────────────────────────────────────────────────────────────────────────────
+
+/** applyPlan's options that every fill passes — the never-fill rule's text, for the page-side last line. */
+function fillOptions(opts = {}) {
+  // `opts` is the fill's own options object (J5's `auto` mode will travel here); none of it widens what is filled.
+  return { neverFillSource: NEVER_FILL_RE.source };
+}
+
+/** A re-read of the step after the fill — the probe again (labels and emptiness only). null when it cannot. */
+async function probeAgain(tabId) {
+  try {
+    const [p] = await chrome.scripting.executeScript({ target: { tabId }, func: probeFormShape });
+    return p?.result || null;
+  } catch { return null; }
+}
+
+/**
+ * The step's fields with `hasValue` as the page holds it AFTER the fill. Matched by id, else by name and label — a
+ * section the fill opened adds controls, so positions after the fill are not positions before it.
+ */
+export function withHoldsFrom(before = [], after = null) {
+  if (!Array.isArray(after) || !after.length) return before;
+  const byId = new Map(after.filter(f => f.id).map(f => [f.id, f]));
+  return before.map(f => {
+    const a = (f.id && byId.get(f.id)) || after.find(x => !x.id && x.name === f.name && x.label === f.label && x.type === f.type);
+    return a ? { ...f, hasValue: !!a.hasValue } : f;
+  });
+}
+
+/** What every draw of the panel shares: one run id, the remembered dock side, the review reminder. */
+async function panelMetaFor({ tab, released, serverUrl, runId = null }) {
+  const bound = await bindingForTab(tab).catch(() => null);
+  const review = await reviewReminderFor(serverUrl);
+  return {
+    runId: runId || `${released?.packetId ?? 'p'}-${Date.now()}`,
+    dock: bound?.panelDock === 'left' ? 'left' : 'right',
+    review,
+    theme: await overlayTheme(),
+  };
+}
+
+/** One draw of the panel at a wizard step. A failure here never stops the fill — the final draw reports. */
+async function drawReviewPanel(tabId, rows, meta) {
+  try {
+    const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: renderOverlay, args: [{ rows }, meta] });
+    return r?.result || null;
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+/**
+ * ⭐ D96 §4 safeguard 4 · the quiet 90-day reminder for eligibility and disclosure answers (J8: GET
+ * /api/saved-answers/review). The panel shows it once per due period; never blocking. null when there is none.
+ */
+export function reviewReminderText(reviewDue) {
+  if (!reviewDue?.due) return null;
+  let when = '';
+  try { when = new Date(reviewDue.lastReviewedAt).toLocaleDateString('en-US', { month: 'long' }); } catch { /* no date */ }
+  return `You last reviewed your eligibility and disclosure answers${when ? ` in ${when}` : ''} — check them in draft Settings → Saved answers.`;
+}
+async function reviewReminderFor(serverUrl) {
+  if (!serverUrl) return null;
+  try {
+    const res = await api(serverUrl, '/api/saved-answers/review');
+    if (!res.ok) return null;
+    const body = await res.json();
+    const d = body?.reviewDue;
+    return d?.showInPanel ? { showInPanel: true, text: reviewReminderText(d) } : null;
+  } catch { return null; }
+}
+async function dismissReviewReminder(serverUrl) {
+  try { await api(serverUrl, '/api/saved-answers/review', { method: 'POST', body: JSON.stringify({ action: 'dismissed' }) }); } catch { /* shown again next time */ }
 }
 
 /**
@@ -1759,10 +2057,53 @@ export async function pageMatchFor(serverUrl, tab) {
   } catch { return null; }
 }
 
+/**
+ * ⭐ D96 §5 · the steps that put ONE panel value into the page's control(s): a radio group picks the option whose
+ * label IS the value; a checkbox group ticks exactly the named boxes and unticks the rest; a date types each part in
+ * the page's own order (month / day / year); anything else is one value. [] when the value is not one the control
+ * can hold — never a nearest guess. ⛔ A never-fillable control yields no step at all.
+ */
+export function overlayEditSteps(field = {}, value = '') {
+  const loc = Array.isArray(field.locator) && field.locator.length ? field.locator : [field];
+  const asStep = (l, v) => ({ index: l.index, name: l.name ?? null, id: l.id ?? null, label: l.label ?? field.label ?? '', value: v });
+  const n = (s) => normaliseQuestion(s);
+  if (neverFillReasonOfField({ label: field.question || field.label, name: field.name, id: field.id, automationId: field.automationId })) return [];
+  if (field.unitKind === 'radio') {
+    const t = loc.find(l => n(l.choice ?? l.label) === n(value));
+    return t ? [asStep(t, 'true')] : [];
+  }
+  if (field.unitKind === 'checkbox-group') {
+    const want = String(value).split(/s*,s*/).map(n).filter(Boolean);
+    const choices = loc.map(l => n(l.choice ?? l.label));
+    if (!want.length || want.some(w => !choices.includes(w))) return [];
+    return loc.map(l => asStep(l, want.includes(n(l.choice ?? l.label)) ? 'true' : 'false'));
+  }
+  if (field.unitKind === 'date') {
+    const d = dateParts(value);
+    if (!d) return [];
+    const two = (x) => String(Number(x)).padStart(2, '0');
+    const out = [];
+    for (const l of loc) {
+      const v = l.part === 'year' ? d.year : l.part === 'month' ? d.month : l.part === 'day' ? d.day : null;
+      if (v == null) return [];
+      out.push(asStep(l, l.part === 'year' ? String(v) : two(v)));
+    }
+    return out;
+  }
+  return [asStep(loc[0], String(value))];
+}
+
 export async function applyOverlayEdit({ tabId, field, value }) {
-  const step = { index: field.index, name: field.name, id: field.id, label: field.label, value };
+  const steps = overlayEditSteps(field, value);
+  if (!steps.length) return { filled: [], skipped: [{ field: field?.label ?? null, reason: 'value_not_in_options' }] };
   const [r] = await chrome.scripting.executeScript({
-    target: { tabId }, world: 'MAIN', func: applyPlan, args: [[step], null],
+    target: { tabId }, world: 'MAIN', func: applyPlan, args: [steps, null, { neverFillSource: NEVER_FILL_RE.source }],
   });
   return r?.result || null;
 }
+
+// For the real-Chrome tests only (test/j4PanelBrowser.test.js): the page-side functions as the fill serialises them.
+export const __probeSource = probeFormShape.toString();
+export const __applyPlanSource = applyPlan.toString();
+export const __advanceWizardSource = advanceWizard.toString();
+export const NEVER_FILL_SOURCE = NEVER_FILL_RE.source;
