@@ -22,7 +22,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { waitUntil, sleep, defaultSeed } from '../extensionBrowser.mjs';
+import { waitUntil, sleep, defaultSeed, BUSY_MS } from '../extensionBrowser.mjs';
 import { mountExtensionResume, seedBaseResume } from '../extensionResumeStub.mjs';
 import { prepareAndRead, fresh } from './panelLifecycle.mjs';
 import { C_LIGHT, C_DARK } from '../../extension/tokens.js';
@@ -76,7 +76,7 @@ const readPanel = (h) => h.readShadow(HOST, (root, host) => ({
   previewTags: [...(root.querySelector('[data-role="preview"]')?.shadowRoot?.querySelectorAll('*') || [])].map(e => e.tagName.toLowerCase()),
   bg: getComputedStyle(root.querySelector('.rp')).backgroundColor,
 }));
-const waitState = (h, want, ms = 15000) => waitUntil(async () => { const p = await readPanel(h); return p && want.includes(p.state) ? p : null; }, ms, 150);
+const waitState = (h, want, ms = BUSY_MS) => waitUntil(async () => { const p = await readPanel(h); return p && want.includes(p.state) ? p : null; }, ms, 150);
 const starts = (h) => h.api.requests.filter(r => r.method === 'POST' && r.path === '/api/extension/resume').length;
 const hex = (rgb) => '#' + String(rgb).match(/\d+/g).slice(0, 3).map(n => Number(n).toString(16).padStart(2, '0')).join('').toUpperCase();
 
@@ -124,7 +124,7 @@ export default async function run(h, { check, observe, section }) {
   const p3b = await waitState(h, ['generating']);
   check('…the popup\'s button brings it back Generating — the SAME generation, nothing spent again', reopened?.ok && p3b?.id === p2?.id && CTL.slots() === 1 && starts(h) === 1, JSON.stringify(reopened));
   release();
-  const p4 = await waitState(h, ['ready'], 20000);
+  const p4 = await waitState(h, ['ready']);
   check('…and it lands on Ready by itself (the panel polls)', p4?.state === 'ready', p4?.state);
 
   section('4 · Ready — the preview, the score, what changed, the guard');
@@ -142,7 +142,7 @@ export default async function run(h, { check, observe, section }) {
   section('5 · Attach on My Experience — Workday\'s drop zone');
   await h.goStep('myExperience');
   await click(h, '[data-role="attach"]');
-  const p5 = await waitState(h, ['attached', 'fallback'], 10000);
+  const p5 = await waitState(h, ['attached', 'fallback']);
   observe('after Attach', { state: p5?.state, title: p5?.title });
   check('"Attached: Ada_Example_Zoom_Software_Engineer.pdf"', p5?.state === 'attached' && p5.title === 'Attached: Ada_Example_Zoom_Software_Engineer.pdf', p5?.title);
   const shown = await page.$eval('#ws-resume-status', el => el.textContent).catch(() => '');
@@ -190,7 +190,7 @@ export default async function run(h, { check, observe, section }) {
   h.db.prepare("UPDATE profile_base_resumes SET content = content || ' Also: Kubernetes.' WHERE profile_id = 10").run();
   CTL.mode = 'refuse';
   await click(h, '[data-role="generate"]');
-  const p8 = await waitState(h, ['refused'], 20000);
+  const p8 = await waitState(h, ['refused']);
   check('Refused: the reasons in plain words', p8?.state === 'refused' && p8.reasons[0] === 'The résumé claims 9 years of experience; your profile states 6.', JSON.stringify(p8?.reasons));
   check('…"Nothing was attached." — and Attach is not offered', /Nothing was attached\./.test(p8?.text || '') && !p8?.actions.includes('Attach'), p8?.actions.join());
   check('…no PDF made for it', CTL.pdfs().length === 1);

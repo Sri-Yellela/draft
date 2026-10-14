@@ -8,7 +8,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { findChrome, freePort, waitUntil } from "../test-support/extensionBrowser.mjs";
+import { findChrome, freePort, waitUntil, BUSY_MS } from "../test-support/extensionBrowser.mjs";
 import { runScenario } from "../test-support/walkExtension.mjs";
 import { renderResumePanel, attachResumeFile, resumePanelModel } from "../extension/resumePanel.js";
 import { C_LIGHT, C_DARK } from "../extension/tokens.js";
@@ -121,7 +121,7 @@ test("⛔ J6: the panel in both themes — the site's tokens, no capsule, the pr
     assert.match(warn || "", /^Generating again uses another of your Draft slots\. 9 left\. Press Regenerate again to go ahead\.$/);
     assert.deepEqual(await page.evaluate(() => (window.__sent || []).map(m => m.type)), [], "Regenerate asked before warning");
     await page.click("#rm-resume-panel >>> [data-role='regenerate']");
-    await waitUntil(() => page.evaluate(() => (window.__sent || []).length > 0), 2000);
+    await waitUntil(() => page.evaluate(() => (window.__sent || []).length > 0), BUSY_MS);
     assert.deepEqual(await page.evaluate(() => window.__sent.map(m => [m.type, m.trigger, m.regenerate])), [["RESUME_GENERATE", "click", true]]);
     await new Promise(r => setTimeout(r, 150));   // the reply re-draws the panel
     // Collapse keeps a slim bar; Esc inside closes; Close closes
@@ -160,7 +160,7 @@ test("⛔ J6: Generating — persistent progress that polls, survives a Workday 
   assert.match(g.text, /You can close the draft popup or go to the next step; it keeps going\./);
   // a Workday step change (the fixture's own go(), no navigation) — the panel stays and keeps polling
   await page.evaluate(() => window.__wd.go("myExperience"));
-  await waitUntil(() => page.evaluate(() => document.getElementById("rm-resume-panel")?.dataset.state === "ready"), 5000);
+  await waitUntil(() => page.evaluate(() => document.getElementById("rm-resume-panel")?.dataset.state === "ready"), BUSY_MS);
   assert.equal(await page.evaluate(() => document.getElementById("rm-resume-panel")?.dataset.state), "ready", "the panel did not survive the step change");
   assert.ok(await page.evaluate(() => window.__polls) >= 3);
   assert.deepEqual([...new Set(await page.evaluate(() => window.__sent.map(m => m.type)))], ["RESUME_STATUS"], "the poll only ever asks for status");
@@ -204,7 +204,7 @@ test("⛔ J6: Attach — a plain input is set and verified, Workday's drop zone 
   const client = await page.target().createCDPSession();
   await client.send("Browser.setDownloadBehavior", { behavior: "deny" }).catch(() => {});
   await page.click("#rm-resume-panel >>> [data-role='download']");
-  await waitUntil(() => page.evaluate(() => document.getElementById("rm-resume-panel").dataset.downloaded || null), 3000);
+  await waitUntil(() => page.evaluate(() => document.getElementById("rm-resume-panel").dataset.downloaded || null), BUSY_MS);
   assert.equal(await page.evaluate(() => document.getElementById("rm-resume-panel").dataset.downloaded), file.fileName);
   assert.match(await inPanel(page, (root) => root.querySelector('[data-role="say"]').textContent), /^Downloaded Ada_Example_Zoom_Software_Engineer\.pdf.*drag it onto the upload box\.$/);
 
