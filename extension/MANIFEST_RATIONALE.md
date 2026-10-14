@@ -78,56 +78,84 @@ the same page opened as an ordinary tab, which is not an invocation — can do n
 `scripts/e2CaptureConvergence.mjs` then captures from a fixture origin the manifest does not cover,
 from both triggers, and asserts first that the extension cannot even see that tab until invoked.
 
-**No portal origin is declared** — not Workday, not Amazon, not Meta. Nor any job board. Every page
-the extension reads is reached per-tab, per-invocation, by the user's own gesture.
+**No portal origin is declared in `host_permissions`** — not Workday, not Amazon, not Meta. Nor any job
+board. Every page the extension reads at install is reached per-tab, per-invocation, by the user's own
+gesture. (Since D97, owner 10-13, Workday's two public hosts are **optional** host permissions — granted
+only when the user switches Workday on in Options; see the next section.)
 
 **`extractor.js` has a Workday entry, and that is not a contradiction.** The selector map says how to
 read a page IF the user invokes capture on one; it grants nothing and is consulted only after access
 already exists. Workday is also the portal the gated handoff fills, so the temptation to "make it
 work properly" by adding `*.myworkdayjobs.com` to `host_permissions` is exactly the mistake to avoid:
 it would convert a per-invocation grant into standing access to every tenant the user can reach.
-`test/manifestMinimumPermission.test.js` fails if a workday host is ever declared.
+`test/manifestMinimumPermission.test.js` fails if a workday host is ever declared there. ⭐ D97 (owner,
+10-13) offers Workday as an **optional** host instead — standing access only after the user's own click
+in Options, given back when they switch it off; `host_permissions` is unchanged.
 
-## Optional host permissions (D64, 10-07)
+## Optional host permissions (D64, 10-07; D97, 10-13)
 
-**None is granted at install, and none is granted unless the user switches on _Capture job pages
-automatically_ in Settings.** That click calls `chrome.permissions.request` for the hosts below, and
-Chrome shows its own prompt naming them; switching it off calls `chrome.permissions.remove`. Until then
-the paragraph above is still true word for word: no standing access to any site.
+**None is granted at install, and none is granted unless the user switches a site on** in Settings →
+*Read application pages automatically* — after reading the in-extension disclosure and pressing *I agree*.
+Each site's switch calls `chrome.permissions.request` for **that site's** hosts, as the first call of the
+click handler (`options-auto.js` `onSwitch`), and Chrome shows its own prompt naming them; turning the
+site's last switch off — or *Turn off everything* — calls `chrome.permissions.remove`. Until then the
+paragraph above is still true word for word: no standing access to any site.
 
 The owner decided (10-07) that capture should happen when a posting is opened, with no click — which
-`activeTab` cannot do, because it is granted only by an invocation. So the access is OPTIONAL, asked
-for at the moment the user opts in, and limited to **public job-posting hosts**: places a posting is
-read, never where the user signs in.
+`activeTab` cannot do, because it is granted only by an invocation. D97 (10-13) extended that to four
+per-site switches, all off by default: **Read** (the form's labels and counts, kept on this computer),
+**Prepare** (only on a tab already linked to one of the user's jobs), **Capture to my account** (D64), and
+**Fill** (never submits). So the access is OPTIONAL, asked for at the moment the user opts in, per site.
 
-⛔ **No gated portal is in this list** — no Workday, Amazon, SmartRecruiters, iCIMS, Taleo or Meta. The
-gated handoff reaches those through `activeTab` alone, and a standing grant there would turn a
-per-invocation grant into standing access to a site the user is signed in to (asserted by
-`test/manifestMinimumPermission.test.js` and `test/d64AutoCaptureExtension.test.js`). LinkedIn and
-Indeed are not in it either. Capture there stays manual.
+⭐ **D97 REVERSES D64's "no gated portal" line for Workday only (owner, 10-13):** `*.myworkdayjobs.com`
+and `*.myworkdaysite.com` are offered, because Workday changes steps without changing the address and a
+watcher has to be in the page to notice. They stay out of `host_permissions`. Amazon, SmartRecruiters,
+iCIMS, Taleo and Meta are not offered. ⛔ **LinkedIn, Indeed and Glassdoor are never offered** — not in
+the list, excluded from every registered content script (`excludeMatches`), and refused in code.
+
+The list is ONE table, `extension/autoRead.js` `SITES`; the manifest's `optional_host_permissions` is
+pinned to it by `test/j5AutoRead.test.js`.
 
 | Optional host | Required by | What breaks without it |
 |---|---|---|
-| `https://boards.greenhouse.io/*` | `background.js` `maybeAutoCapture()` — reads a Greenhouse posting the user opened, after `autoCaptureStep()` decides it may | Automatic capture does nothing on Greenhouse; manual capture is unchanged. |
+| `https://boards.greenhouse.io/*` | `autoRead.js` — the registered watcher and `runAutoPass()` on Greenhouse, after `autoStep()` decides it may | The automatic switches do nothing on Greenhouse; manual capture and fill are unchanged. |
 | `https://job-boards.greenhouse.io/*` | the same — Greenhouse's newer board host | The same, on the newer host. |
-| `https://jobs.lever.co/*` | the same — Lever postings | Automatic capture does nothing on Lever. |
-| `https://jobs.ashbyhq.com/*` | the same — Ashby postings | Automatic capture does nothing on Ashby. |
-| `https://apply.workable.com/*` | the same — Workable postings | Automatic capture does nothing on Workable. |
+| `https://jobs.lever.co/*` | the same — Lever | The automatic switches do nothing on Lever. |
+| `https://jobs.ashbyhq.com/*` | the same — Ashby | The automatic switches do nothing on Ashby. |
+| `https://apply.workable.com/*` | the same — Workable | The automatic switches do nothing on Workable. |
+| `https://*.myworkdayjobs.com/*` | the same — Workday's tenants (D97) | The automatic switches do nothing on Workday; Ctrl+Shift+Y and the popup still work through `activeTab`. |
+| `https://*.myworkdaysite.com/*` | the same — Workday's second public host (D97) | The same, on that host. |
 
-What is read and sent, and when: a page on these hosts is a posting when its URL has a posting's shape
-or it carries JobPosting JSON-LD (checked in the page, locally). ⛔ A page that is not a posting sends
-nothing. A posting's text is sent to `/api/import/auto`; the server keeps it only if it belongs on the
-user's board (US, the active profile's roles) and stores NOTHING otherwise. Nothing is filled or
-submitted.
+What is read and sent, and when:
+- **Read** sends nothing. The labels (never a value — a label's text is read from a clone with every
+  control removed) and the counts stay in `chrome.storage.local` for 30 days, for the read-quality line.
+- **Prepare** sends the page's address and the tab's linked job to `/api/apply/prepare` — only when the
+  tab is already linked to one of the user's own jobs; otherwise nothing.
+- **Capture**: a page is a posting when its URL has a posting's shape or it carries JobPosting JSON-LD
+  (checked in the page, locally), and never when it is an application page (Workday's `applyFlowPage`,
+  an `/apply` stage). ⛔ A page that is not a posting sends nothing. A posting's text is sent to
+  `/api/import/auto`; the server keeps it only if it belongs on the user's board (US, the active
+  profile's roles) and stores NOTHING otherwise.
+- **Fill** is the Ctrl+Shift+Y handoff with `auto: true`: it may press the page's own Save and Continue,
+  never Submit, never past Review, never a terms / consent / attestation / signature control, and never
+  sends the form's structure (`captureFormSchema` is skipped).
 
 ## Content scripts
 
-**None.** The extension declares no content script and injects nothing on page load.
+**None declared.** The manifest declares no content script.
+
+⭐ **One is REGISTERED at run time, and only where the user asked (D97, owner 10-13):** `autoReadWatcher.js`,
+by `chrome.scripting.registerContentScripts`, for a site the user switched on in Options and Chrome granted —
+never anywhere else, never on LinkedIn, Indeed or Glassdoor (`excludeMatches`). It reads no value and makes
+no request: it tells the service worker "the step changed" (debounced — ten rapid changes are one message),
+and the service worker re-checks the switch and the permission on every message. Registrations are
+reconciled on install, update, startup and every permission change; turning a site off unregisters it.
 
 This is the change that removed the six job-board host permissions, and it is worth stating as a
 privacy property rather than a refactor: there is no longer any page the extension runs on
 automatically. Before, six sites were read whenever a tab of theirs was open. Now nothing is read
-until the user presses the shortcut or opens the popup, and only the tab they did it on.
+until the user presses the shortcut or opens the popup, and only the tab they did it on — or, since
+D97, on a site the user switched on themselves (above).
 
 The extractor lives in `extractor.js` and is injected by `chrome.scripting.executeScript`. Its
 per-site selector map is an OPTIMISATION, not a gate — an unlisted site falls through to a generic

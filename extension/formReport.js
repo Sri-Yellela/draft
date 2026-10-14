@@ -76,12 +76,19 @@ export function buildFormReport({ host, collected, version = null }) {
  * otherwise carry the candidate's own words in its textContent. Password fields are not counted.
  */
 export function collectFormLabels() {
-  const form = document.querySelector('form');
+  // D97 (J5): Workday's application is not a <form> — its root is the apply-flow page, looked for FIRST (as
+  // probeFormShape does), because a Workday page may carry an unrelated <form> (a header search) ahead of it.
+  const form = document.querySelector('[data-automation-id="applyFlowPage"]') || document.querySelector('form');
   const scope = form || document;
-  const CONTROLS = 'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"]';
-  const INSIDE = 'input, select, textarea, option, [role="combobox"], [role="listbox"], [role="option"], [contenteditable=""], [contenteditable="true"]';
+  // Workday's dropdown is a BUTTON (aria-haspopup=listbox); it is let in by that attribute alone, as in probeFormShape.
+  const CONTROLS = 'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"], button[aria-haspopup="listbox"]';
+  // ⛔ `button` is removed from a label's clone too: a Workday dropdown button's own text IS the chosen option.
+  const INSIDE = 'input, select, textarea, option, button, [role="combobox"], [role="listbox"], [role="option"], [contenteditable=""], [contenteditable="true"]';
+  const isListbox = (el) => el.getAttribute('aria-haspopup') === 'listbox';
   const controls = [...scope.querySelectorAll(CONTROLS)].filter(
-    (el) => !['hidden', 'submit', 'button', 'image', 'reset', 'password'].includes((el.type || '').toLowerCase())
+    (el) => (isListbox(el) || !['hidden', 'submit', 'button', 'image', 'reset', 'password'].includes((el.type || '').toLowerCase())) &&
+      // ⛔ payment and one-time codes are not counted, as password fields are not
+      !/^cc-|one-time-code|-password$/i.test(el.getAttribute('autocomplete') || '')
   );
   const textWithoutControls = (node) => {
     const copy = node.cloneNode(true);
@@ -95,6 +102,13 @@ export function collectFormLabels() {
     }
     const wrap = el.closest('label');
     if (wrap) return textWithoutControls(wrap);
+    if (isListbox(el)) {
+      // ⛔ Never the button's own text or aria-label (both carry the chosen option): only the OTHER elements it is
+      // labelled by — Workday lists the button itself in its aria-labelledby — each read without its controls.
+      const ids = String(el.getAttribute('aria-labelledby') || '').split(/\s+/).filter((id) => id && id !== el.id);
+      return ids.map((id) => document.querySelector(`[id="${CSS.escape(id)}"]`)).filter(Boolean)
+        .map(textWithoutControls).join(' ').trim();
+    }
     return (el.getAttribute('aria-label') || el.getAttribute('placeholder') || '').trim();
   };
   const labels = controls.map(labelOf).map((t) => t.slice(0, 120)).filter(Boolean);
