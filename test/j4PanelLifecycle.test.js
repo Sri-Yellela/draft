@@ -418,9 +418,12 @@ test("⛔ J4: no new storage key, no new permission — and the router wiring ha
   assert.doesNotMatch(read("extension/review-overlay.js"), /localStorage|sessionStorage|indexedDB/);
   const manifest = JSON.parse(fs.readFileSync("extension/manifest.json", "utf8"));
   assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"]);
-  const { BACKGROUND_WIRING } = await import("../test-support/walks/panelLifecycle.mjs");
-  assert.match(BACKGROUND_WIRING, /import \{ handlers as ANSWER_MEMORY_HANDLERS, configureAnswerMemory \} from '\.\/answerMemory\.js';/);
-  assert.match(BACKGROUND_WIRING, /configureAnswerMemory\(\{ serverUrl: RESUME_MASTER_URL \}\);/);
+  // Wired into the shipped router (the coordinator, at the J4 merge) — the browser pass runs exactly this file.
+  const router = read("extension/background.js");
+  assert.match(router, /import \{ handlers as ANSWER_MEMORY_HANDLERS, configureAnswerMemory \} from '\.\/answerMemory\.js';/);
+  assert.match(router, /configureAnswerMemory\(\{ serverUrl: RESUME_MASTER_URL \}\);/);
+  assert.match(router, /const handle = ANSWER_MEMORY_HANDLERS\[msg\?\.type\];/);
+  assert.doesNotMatch(read("test-support/walks/panelLifecycle.mjs"), /backgroundAppend/, "the walk must not append a second copy of the wiring");
   const mem = await import("../extension/answerMemory.js");
   assert.deepEqual(Object.keys(mem.handlers).sort(), ["ANSWER_ACKNOWLEDGE", "ANSWER_CHANGE", "PANEL_DOCK"]);
 });

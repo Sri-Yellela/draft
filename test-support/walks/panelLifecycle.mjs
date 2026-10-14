@@ -3,8 +3,8 @@
  * ==========================================================================================================
  *   npm run walk:extension -- panelLifecycle [--theme dark]
  *
- * Proves, in a real Chrome, with the lane's PROPOSED router wiring appended to the TEST build's background.js
- * (BACKGROUND_WIRING below — the exact lines handed to the coordinator) and J8's saved-answer routes mounted:
+ * Proves, in a real Chrome, on the SHIPPED router (extension/background.js, answerMemory wired at the J4 merge)
+ * and J8's saved-answer routes mounted:
  *   1. My Information: the panel is drawn WHILE the wizard waits; every field is listed (Needs you · Check · Filled);
  *      "First Name*" is Filled (exact — profile), shown without its "*"; "Ready" is not said; I submitted it is off
  *   2. Collapse → a slim bar that still says what needs you; Expand; Esc closes; Close closes
@@ -21,16 +21,9 @@
  */
 import { waitUntil, sleep, defaultSeed } from '../extensionBrowser.mjs';
 
-/** The router lines lane J4 hands to the coordinator for extension/background.js (appended to the TEST build only). */
-export const BACKGROUND_WIRING = `// ⭐ D96 §4–§5 (lane J4): the review panel's acknowledge / change / dock — extension/answerMemory.js.
-import { handlers as ANSWER_MEMORY_HANDLERS, configureAnswerMemory } from './answerMemory.js';
-configureAnswerMemory({ serverUrl: RESUME_MASTER_URL });
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  const handle = ANSWER_MEMORY_HANDLERS[msg?.type];
-  if (!handle) return false;
-  handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
-  return true;
-});`;
+// The router wiring (answerMemory's handlers) is in extension/background.js since the J4 merge, so the walk
+// runs the SHIPPED router — nothing is appended to the test build any more (appending it again declared the
+// import twice and the service worker never started).
 
 export const PAYLOAD = {
   field_map: { first_name: 'Ada', last_name: 'Example', email: 'ada@example.test' }, handler_map: {},
@@ -38,7 +31,6 @@ export const PAYLOAD = {
 };
 
 export const options = {
-  backgroundAppend: BACKGROUND_WIRING,
   api: {
     seed: defaultSeed,
     payload: PAYLOAD,
