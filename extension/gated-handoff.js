@@ -60,7 +60,7 @@ import { authedFetch } from './auth.js';
 // The tab binding: the job this tab captured or recognised, sent as a HINT the server checks (tabBinding.js).
 import { bindingForTab, boundMissMessage } from './tabBinding.js';
 // ⭐ D96 §3: where each application stands, remembered — counts and times only, never an answer (progress.js).
-import { noteFill, notePrepared, noteSubmitted } from './progress.js';
+import { noteFill, notePrepared, noteSubmitted, resumeFor } from './progress.js';
 
 /** Matches the server's token TTL. A packet outlives its grant (G0 §9), so it is cleared on purpose. */
 export const PACKET_TTL_MS = 10 * 60 * 1000;
@@ -808,6 +808,8 @@ async function applyPlan(plan, resume, opts) {
           target: target.by,
           field: fileContext(fileInput).replace(/\s+/g, ' ').trim().slice(0, 80),
           confirmedByPage,
+          // D98 §5 (J6): the résumé the on-page panel attached, attached again — the review panel says so.
+          fromPanel: resume.fromPanel === true,
         };
       } catch (e) {
         resumeResult = { attached: false, reason: `error:${e.message}` };
@@ -1522,6 +1524,23 @@ export function entryReviewItems(entries, filled = []) {
   return rows;
 }
 
+/**
+ * A PDF from draft's server, as base64 (executeScript arguments must be JSON — a Blob cannot cross) and its name: the
+ * server's Content-Disposition filename when it names one, else `fallbackName`. null on any failure. ⛔ draft's own
+ * server only (authedFetch); the ONE place the extension turns a PDF response into bytes (the fill and the résumé panel).
+ */
+export async function fetchPdf(serverUrl, path, fallbackName = 'resume.pdf') {
+  try {
+    const res = await authedFetch(serverUrl, path);
+    if (!res?.ok) return null;
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    const named = /filename="([^"]+)"/.exec(res.headers?.get?.('content-disposition') || '')?.[1] || null;
+    return { base64: btoa(bin), fileName: named && /^[A-Za-z0-9_.-]{1,120}\.pdf$/.test(named) ? named : fallbackName, bytes: bytes.length };
+  } catch { return null; /* the fill is still worth doing without it; reported by the caller */ }
+}
+
 async function fillFromPacket({ tab, origin, released, serverUrl, reused, opts = {} }) {
   let shape;
   try {
@@ -1538,22 +1557,21 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused, opts =
   // The resume travels as base64 because executeScript arguments must be JSON-serialisable — a Blob
   // cannot cross that boundary. Fetched HERE, in the extension, so the page never sees a credentialed
   // request to our server.
+  //
+  // ⭐ D98 §5 (J6): when the on-page résumé panel ATTACHED a résumé to this job, the fill attaches THAT file — the same
+  // stored PDF, by the same name — and never generates another (progress.js resume.attached → the generation's
+  // /pdf/file). Otherwise the packet's own résumé, as before.
   let resume = null;
-  if (released.resumeUrl && serverUrl) {
-    try {
-      const res = await authedFetch(serverUrl, released.resumeUrl);
-      if (res?.ok) {
-        const buf = await res.arrayBuffer();
-        let bin = '';
-        const bytes = new Uint8Array(buf);
-        for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-        resume = {
-          base64: btoa(bin),
-          filename: `resume-${released.packet?.jobId || 'application'}.pdf`,
-          mimeType: 'application/pdf',
-        };
-      }
-    } catch { /* the fill is still worth doing without it; reported below */ }
+  const panelResume = serverUrl ? await resumeFor(released.packet?.jobId).catch(() => null) : null;
+  const resumePath = panelResume?.attached ? `/api/extension/resume/${encodeURIComponent(panelResume.id)}/pdf/file` : released.resumeUrl;
+  if (resumePath && serverUrl) {
+    const packetName = `resume-${released.packet?.jobId || 'application'}.pdf`;
+    const pdf = await fetchPdf(serverUrl, resumePath, packetName);
+    if (pdf) {
+      resume = panelResume?.attached
+        ? { base64: pdf.base64, filename: pdf.fileName, mimeType: 'application/pdf', fromPanel: true }
+        : { base64: pdf.base64, filename: packetName, mimeType: 'application/pdf' };
+    }
   }
 
   // ── D55 (l): A FORM WE DO NOT RECOGNISE IS SAID, AND LEFT ALONE ────────────────────────────
@@ -2043,7 +2061,15 @@ export async function copySheetFor({ serverUrl, tab }) {
       method: 'POST', body: JSON.stringify({ url: pageUrlOf(tab), boundJobId: bound?.jobId ?? null }),
     });
     if (!res.ok) return { ok: false, rows: [], message: `Server returned ${res.status}.` };
-    return { ok: true, ...(await res.json()) };
+    const sheet = { ok: true, ...(await res.json()) };
+    // ⭐ D98 §5 (J6): the résumé the on-page panel attached is part of the payload — "Résumé — attached ✓", its file
+    // named (the server's name for it; nothing about it is stored in the browser but the generation's id).
+    const panel = await resumeFor(sheet.job?.jobId ?? bound?.jobId).catch(() => null);
+    if (panel?.attached) {
+      const view = await api(serverUrl, `/api/extension/resume/${encodeURIComponent(panel.id)}`).then(r => (r.ok ? r.json() : null)).catch(() => null);
+      if (view?.pdf?.fileName) sheet.rows = [{ label: 'Résumé — attached ✓', value: view.pdf.fileName, resume: true }, ...(sheet.rows || [])];
+    }
+    return sheet;
   } catch {
     return { ok: false, rows: [], message: 'Could not reach Draft.' };
   }

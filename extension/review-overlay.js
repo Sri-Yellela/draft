@@ -278,9 +278,11 @@ export function panelRowsForStep({ stepName = '', fields = [], plan = [], filled
       ...(shown ? {} : { noRemember: true }),
     };
     if (first.type === 'file') {
-      if (resume?.attached) Object.assign(row, { group: 'ok', value: resume.filename || 'your résumé', source: 'draft', byDraft: true });
+      // ⭐ D98 §5 (J6): the résumé generated in the on-page panel reads "Résumé — attached ✓", its file named under it.
+      if (resume?.attached && resume.fromPanel) Object.assign(row, { group: 'ok', value: 'Résumé — attached ✓', note: resume.filename || null, source: 'draft', byDraft: true });
+      else if (resume?.attached) Object.assign(row, { group: 'ok', value: resume.filename || 'your résumé', source: 'draft', byDraft: true });
       else if (hasValue) Object.assign(row, { group: 'ok', source: 'on the page', note: 'already attached on the page' });
-      else Object.assign(row, { note: NEED_WORDS.file });
+      else Object.assign(row, { note: NEED_WORDS.file, ...(/r[ée]sum[ée]|\bcv\b|curriculum vitae/i.test(question) ? { resumeOffer: true } : {}) });
     } else if (done.length && !failed.length) {
       const head = done[0];
       const item = toReviewItem({ ...head, field: label });
@@ -580,6 +582,8 @@ export function renderOverlay(model, meta) {
         acts += `<div class="rm-acts">${r.noRemember || r.neverFill ? '' : `<label class="rm-mem"><input type="checkbox" data-role="remember" ${r.rememberOff ? '' : 'checked'}> Remember for next time</label>`}${
           r.copyValue ? '<button class="rm-btn" data-role="copy">copy</button>' : ''}${r.optional ? '<button class="rm-btn" data-role="leave">leave blank</button>' : ''}</div>`;
       } else if (r.copyValue) acts += '<div class="rm-acts"><button class="rm-btn" data-role="copy">copy</button></div>';
+      // D98 (J6): the résumé upload opens the on-page résumé panel — it generates only on that panel's own button.
+      if (r.resumeOffer) acts += '<div class="rm-acts"><button class="rm-btn" data-role="resume">Make a résumé for this job</button></div>';
     } else if (r.group === 'check') {
       acts += `<div class="rm-acts">${r.canEdit === false ? '' : '<button class="rm-btn" data-role="edit">edit</button>'}<button class="rm-btn ack" data-role="ack">acknowledge</button></div>`;
     } else if (r.changed) {
@@ -757,6 +761,8 @@ export function renderOverlay(model, meta) {
 
     // Everything below writes to the page or to the server: a page script's synthetic click is never enough.
     if (!ev.isTrusted) return;
+
+    if (role === 'resume') { void send({ type: 'RESUME_PANEL_OPEN' }); return; }
 
     if (role === 'edit') {
       const ed = rowEl.querySelector('[data-role="editor"]');
