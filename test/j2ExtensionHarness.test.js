@@ -5,7 +5,7 @@
 // submitted and the password sentinel never leaves the page. Skips, with its reason, where there is no Chrome.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { findChrome, launchExtensionBrowser, OWNER_STAGE, waitUntil } from "../test-support/extensionBrowser.mjs";
+import { findChrome, launchExtensionBrowser, OWNER_STAGE, waitUntil, BUSY_MS } from "../test-support/extensionBrowser.mjs";
 
 const chrome = await findChrome();
 
@@ -23,7 +23,7 @@ test("the harness boots the real extension, drives the fixture and reads the rev
   // Prepare: fills, then the wizard waits for the candidate — the harness does not hang on it
   const prep = await h.prepare({ timeoutMs: 6000 });
   assert.equal(prep.pending, true, "the wizard is waiting for the candidate on the required fields");
-  const badge = await waitUntil(() => h.readBadge().then(b => (b?.state === "required" ? b : null)), 8000);
+  const badge = await waitUntil(() => h.readBadge().then(b => (b?.state === "required" ? b : null)), BUSY_MS);
   assert.ok(badge?.missing > 0, JSON.stringify(badge));
   assert.equal(await h.dismissBadge(), true);
   const reply = await prep.reply;
