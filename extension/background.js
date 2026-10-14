@@ -5,6 +5,8 @@ import {
 } from './gated-handoff.js';
 // D96 §3 (J1): where each application stands — local, per job, no answer values.
 import { noteCapture, noteContext, noteReviewed } from './progress.js';
+// D96 §4–§5 (J4): the review panel's acknowledge / change / dock — answers go to the user's own Saved answers.
+import { handlers as ANSWER_MEMORY_HANDLERS, configureAnswerMemory } from './answerMemory.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
 // ⭐ One job per tab across every stage of its application, and the Copy sheet as an in-page panel (owner, 10-12).
 import { bindTab, bindingForTab, clearBinding, setBindingDock, bindingLine } from './tabBinding.js';
@@ -699,5 +701,16 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (!res.ok) return { ok: false, message: body.message || 'Could not send the report.' };
     return { ok: true, sent: true, host: report.host, labelCount: report.labels.length };
   })().then(sendResponse, () => sendResponse({ ok: false, message: 'Could not send the report.' }));
+  return true;
+});
+
+// ── D96 §4–§5 (J4): the review panel's answer memory ──────────────────────────
+// Acknowledge, change and dock, from extension/answerMemory.js. Each handler resolves the job from the tab's
+// released packet or its binding, never from the message.
+configureAnswerMemory({ serverUrl: RESUME_MASTER_URL });
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  const handle = ANSWER_MEMORY_HANDLERS[msg?.type];
+  if (!handle) return false;
+  handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
   return true;
 });
