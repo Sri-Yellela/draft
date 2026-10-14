@@ -39,7 +39,7 @@ test("D38(a) · no underline and no arrow at rest — and a NON-COLOUR cue on ho
   assert.match(css, /font-style: italic; font-weight: 800;/, "the logo face");
   assert.doesNotMatch(read("client/src/components/CompanyLink.jsx"), /↗/);
   const panel = read("client/src/components/JobDetailPanel.jsx");
-  assert.match(panel, /<CompanyLink company=\{selectedJob\.company\} href=\{postingUrl \|\| null\} size="panel" onOpen=\{openedPosting\} \/>/);
+  assert.match(panel, /<CompanyLink company=\{selectedJob\.company\} href=\{postingUrl \|\| null\} jobId=\{jobId\} size="panel" onOpen=\{openedPosting\} \/>/);
   assert.doesNotMatch(panel, /\{selectedJob\.company\} ↗/, "the posting panel's name is underlined with an arrow again");
 });
 

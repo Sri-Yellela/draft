@@ -36,6 +36,7 @@ const RESPONSE_TONE_CUE = Object.freeze({ danger: "bad", warning: "warn", info: 
 import EmptyState from "../components/EmptyState.jsx";
 import { bandMarkStyle, dotCue } from "../styles/mark.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
+import { openPosting } from "../lib/openPosting.js";
 
 // ── Calendar component ────────────────────────────────────────
 //
@@ -1072,9 +1073,9 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
               canUseAPlusResume={false}
               onGenerate={() => onGenerate(job, done && g?.html !== "__exists__")}
               onExport={() => done && g?.html !== "__exists__" && onExport(job, g.html)}
-              onVisit={() => job.url && window.open(job.url, "_blank", "noreferrer")}
+              onVisit={() => job.url && void openPosting(job, { url: job.url })}
               onUnsave={() => onUnsave(job.jobId)}
-              onCardClick={() => job.url && window.open(job.url, "_blank", "noreferrer")}
+              onCardClick={() => job.url && void openPosting(job, { url: job.url })}
             />
           );
         })}

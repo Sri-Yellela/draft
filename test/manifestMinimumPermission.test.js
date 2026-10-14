@@ -119,13 +119,15 @@ test("content script matches never exceed the declared host permissions", () => 
   }
 });
 
-test("THE EXTENSION DECLARES NO CONTENT SCRIPT", () => {
-  // Not a stylistic preference — it is the property that removed six host permissions. A content
-  // script needs a host permission for every origin it runs on, so re-adding one would drag the
-  // job-board hosts back with it, and would give the extension standing access to pages the user
-  // has not invoked it on. Capture injects on demand under activeTab instead.
-  assert.ok(!manifest.content_scripts || manifest.content_scripts.length === 0,
-    "a content script is declared again — see MANIFEST_RATIONALE.md, Content scripts");
+test("THE EXTENSION DECLARES ONE CONTENT SCRIPT — D99's bridge, on draft's own origin, and never a job board", () => {
+  // Not a stylistic preference — no content script on a job board is the property that removed six host
+  // permissions. A content script needs a host permission for every origin it runs on, so one on a job board would
+  // drag those hosts back with it, and would give the extension standing access to pages the user has not invoked
+  // it on. Capture injects on demand under activeTab instead.
+  // ⭐ D99 J11 (owner, 10-14: "build the bridge"): the ONE declared script is boardBridge.js, on jobsviadraft.com —
+  // already the one host — top frame only, so the draft website can hand a board job to the extension.
+  assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"], run_at: "document_start", all_frames: false }],
+    "a content script other than the bridge is declared — see MANIFEST_RATIONALE.md, Content scripts");
 });
 
 test("the injected extractor is self-contained", () => {

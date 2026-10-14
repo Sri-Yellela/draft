@@ -25,8 +25,9 @@ page only at the moment you point it at one.
 - Does not scrape, read, or collect any profile data.
 - Does not submit an application. It fills and shows; you submit.
 - Does not sign you in or attempt a CAPTCHA, and never reads any site's password or session cookie.
-- Does not run in the background, and **declares no content script** — nothing runs on page load,
-  anywhere.
+- Does not run in the background, and **declares no content script on any job site** — nothing runs on an
+  employer's or a job board's page load. The one declared script (D99) runs on **jobsviadraft.com only**, so the
+  draft website can hand a job from your board to the extension; it reads nothing from the page.
 - Does not request access to any job site. It has no standing access to anything.
 - Contains no remotely hosted code.
 

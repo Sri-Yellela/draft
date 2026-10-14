@@ -185,6 +185,8 @@ ${backgroundAppend}
   }
   const manifest = JSON.parse(fs.readFileSync(path.join(dst, 'manifest.json'), 'utf8'));
   manifest.host_permissions = [...(manifest.host_permissions || []), `${apiOrigin}/*`, ...hosts];   // TEST BUILD ONLY
+  // D99 J11's bridge runs on draft's own origin — in the test build, the test API's (as RESUME_MASTER_URL is above)
+  for (const cs of manifest.content_scripts || []) cs.matches = cs.matches.map(m => (m === `${canonical}/*` ? `${apiOrigin}/*` : m));
   fs.writeFileSync(path.join(dst, 'manifest.json'), JSON.stringify(manifest, null, 2));
   return dst;
 }

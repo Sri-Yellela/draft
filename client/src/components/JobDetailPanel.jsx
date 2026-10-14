@@ -336,7 +336,7 @@ export default function JobDetailPanel({
               {/* ⭐ A63: APPLY IS THE COMPANY NAME — a link to the posting, opened in a new tab. */}
               {/* ⛔ D38: the card's treatment, at last — the ONE company link: the logo face, no underline,
                   no ↗, and a hit area that is the text alone (it was display:block, the whole line). */}
-              <div className="pp__co"><CompanyLink company={selectedJob.company} href={postingUrl || null} size="panel" onOpen={openedPosting} /></div>
+              <div className="pp__co"><CompanyLink company={selectedJob.company} href={postingUrl || null} jobId={jobId} size="panel" onOpen={openedPosting} /></div>
               <span className="pp__sp" />
               <AtsNumberBox score={scores.shown} tailored={scores.tailoredShown} base={scores.base}
                 open={!!selectedJobMeta?.atsOpen} onOpen={() => selectedJobMeta?.onAts?.()} />
