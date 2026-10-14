@@ -10,18 +10,20 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { findChrome } from "../test-support/extensionBrowser.mjs";
 import { runScenario } from "../test-support/walkExtension.mjs";
+import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 
 test("⛔ J13 · an extension page is known by its address — never by having no tab", () => {
   const src = read("extension/autoRead.js");
-  const def = src.slice(src.indexOf("const fromExtensionPage"), src.indexOf(";", src.indexOf("const fromExtensionPage")));
+  const start = at(src, "const fromExtensionPage");
+  const def = src.slice(start, at(src, ";", start));
   assert.ok(def.length > 0);
   assert.doesNotMatch(def, /!sender\??\.tab/, "Options opens in a tab");
   assert.match(def, /chrome\.runtime\.getURL\(''\)/);
   // ⛔ the permission request stays the switch handler's FIRST chrome call — inside the click's gesture
   const opt = read("extension/options-auto.js");
-  const body = opt.slice(opt.indexOf("export function onSwitch"), opt.indexOf("return (async"));
+  const body = opt.slice(at(opt, "export function onSwitch"), at(opt, "return (async"));
   assert.match(body, /api\.permissions\.request\(/);
   assert.doesNotMatch(body, /await/);
 });
