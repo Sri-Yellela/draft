@@ -55,7 +55,8 @@ test("(d) a required stop waits for the candidate and carries on by itself — b
 test("(d) on a wizard nothing already holding a value is overwritten; the overlay's edit still is", () => {
   assert.match(src, /\{ entries: entriesLeft, keepExisting: !!step\.wizard \}/);
   assert.match(src, /if \(keepExisting && holds\(el\)\) \{ skipped\.push\(\{ field: step\.label, reason: 'kept_existing' \}\); return; \}/);
-  assert.match(src, /func: applyPlan, args: \[\[step\], null\]/, "applyOverlayEdit passes no opts — a correction overwrites");
+  // J4 (D96 §4): the edit path carries ONLY the never-fill rule's text — still no keepExisting, so a correction overwrites.
+  assert.match(src, /func: applyPlan, args: \[steps, null, \{ neverFillSource: NEVER_FILL_RE\.source \}\]/, "applyOverlayEdit passes no keepExisting — a correction overwrites");
 });
 
 test("(d) every re-probed step is checked against the application's addresses before it is filled", () => {
