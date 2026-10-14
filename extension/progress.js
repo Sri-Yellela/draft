@@ -9,7 +9,8 @@
 //
 //   jobProgress → { v: 1, owner, records: { [jobId]: { jobKey, jobId, title, company, postingUrl, link,
 //                   captured: { at }, read: { at, stage, fieldCount }, prepared: { at, packetId },
-//                   filled: { n, of, needYou, check }, reviewed: { at }, submitted: { at }, updatedAt } } }
+//                   filled: { n, of, needYou, check }, resume: { at, id, status, attached },
+//                   reviewed: { at }, submitted: { at }, updatedAt } } }
 //
 //   · ONE record per JOB. The record is filed under the board job's id — the server's resolution of the page's
 //     canonical key (services/jobPageKey.js: workday|tenant|site|R19749, every stage, locale and ?source= stripped).
@@ -25,6 +26,11 @@
 //     panel, "I submitted it" — all in the service worker, serialised so two events never lose each other's write.
 //   · ⛔ Never sent anywhere: nothing in this file makes a request, and no request body carries a record.
 //   · No new permission.
+//   · ⭐ D98 §4 (lane J6): `resume` is the résumé the on-page panel generated for THIS job — the generation's id
+//     (erg_…, draft's server's), its last status (queued · generating · ready · refused · failed · cancelled), when it
+//     started and when you pressed Attach. No HTML, no file, no file name, no score: the panel asks the server for those
+//     each time it opens (extension/resumePanel.js). It is what lets the panel come back after a popup close, a reload
+//     or a Workday step change, and lets a later fill attach the SAME file without generating again.
 
 export const PROGRESS_KEY = 'jobProgress';
 export const PROGRESS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -36,6 +42,7 @@ const STEPS = Object.freeze({
   read: ['at', 'stage', 'fieldCount'],
   prepared: ['at', 'packetId'],
   filled: ['n', 'of', 'needYou', 'check'],
+  resume: ['at', 'id', 'status', 'attached'],
   reviewed: ['at'],
   submitted: ['at'],
 });
@@ -47,7 +54,13 @@ const webUrl = (v) => {
   try { const u = new URL(v); return /^https?:$/.test(u.protocol) ? u.href : null; } catch { return null; }
 };
 const STEP_FIELD = { at: num, n: num, of: num, needYou: num, check: num, fieldCount: num,
-  stage: (v) => str(v, 40), packetId: (v) => (v == null ? null : str(String(v), 64)) };
+  stage: (v) => str(v, 40), packetId: (v) => (v == null ? null : str(String(v), 64)),
+  // D98: the generation's id is the server's opaque erg_<hex>; its status one of six words; Attach a time.
+  id: (v) => (typeof v === 'string' && /^erg_[a-f0-9]{8,64}$/.test(v) ? v : null),
+  status: (v) => (RESUME_STATUSES.includes(v) ? v : null),
+  attached: num };
+/** The server's six (services/extensionResume.js STATUSES). */
+export const RESUME_STATUSES = Object.freeze(['queued', 'generating', 'ready', 'refused', 'failed', 'cancelled']);
 
 /** ⛔ The whitelist. Anything not named here — an answer, a field value, the page's text — is dropped. */
 export function sanitiseRecord(r) {
@@ -198,6 +211,9 @@ export function progressLine(r, now = Date.now()) {
     if (r.filled.needYou > 0) parts.push(`${r.filled.needYou} need${r.filled.needYou === 1 ? 's' : ''} you`);
     if (r.filled.check > 0) parts.push(`${r.filled.check} to check`);
   }
+  if (r.resume?.attached) parts.push('Résumé attached');
+  else if (r.resume?.status === 'ready') parts.push('Résumé ready');
+  else if (r.resume?.status === 'queued' || r.resume?.status === 'generating') parts.push('Résumé generating');
   if (r.reviewed?.at) parts.push('Reviewed');
   if (r.submitted?.at) parts.push('Submitted');
   return parts.join(' · ');
@@ -292,3 +308,24 @@ export const noteSubmitted = quiet(async (result, { jobId = null } = {}) => {
   if (!result?.ok || id == null) return null;
   return patch({ jobId: id }, { submitted: { at: Date.now() } });
 });
+
+/**
+ * ⭐ D98 §4 (J6): the on-page panel's résumé for this job — a new generation (its id and status; a NEW id clears
+ * `attached`, so a regenerated résumé is never mistaken for the attached one), a status change, or Attach pressed.
+ */
+export const noteResume = quiet(async (jobId, { id = null, status = null, attached = null, title = null, company = null } = {}) => {
+  if (jobId == null) return null;
+  const prior = (await get({ jobId }))?.resume || null;
+  const next = id && prior?.id !== id ? { at: Date.now(), id, status, attached: null } : { ...(prior || {}) };
+  if (status) next.status = status;
+  if (attached) next.attached = attached;
+  if (!next.id) return null;
+  return patch({ jobId }, { title, company, resume: next });
+});
+
+/** The panel's résumé for this job, or null. Read-only. */
+export async function resumeFor(jobId) {
+  if (jobId == null) return null;
+  const r = await get({ jobId }).catch(() => null);
+  return r?.resume?.id ? r.resume : null;
+}
