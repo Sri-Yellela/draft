@@ -244,3 +244,27 @@ test("Dockerfile installs other commonly missing Chromium dependencies", () => {
 test("Dockerfile sets PUPPETEER_EXECUTABLE_PATH matching the chromium package's install path", () => {
   assert.match(dockerfile, /PUPPETEER_EXECUTABLE_PATH=\/usr\/bin\/chromium\b/);
 });
+
+// ⛔ 43d: the --single-process crash above was REPORTED as browser_binary_not_found because the classifier
+// matched "No such file or directory" anywhere in the message — and Chromium's stderr carries the D-Bus line
+// every time. The shape below is puppeteer's (`Failed to launch the browser process: Code: null`, then stderr).
+const CRASH_155 = [
+  "Failed to launch the browser process:  Code: null",
+  "",
+  "stderr:",
+  "[0101/000000.000000:ERROR:bus.cc(407)] Failed to connect to the bus: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory",
+  "",
+  "TROUBLESHOOTING: https://pptr.dev/troubleshooting",
+].join("\n");
+
+test("⛔ a browser that started and crashed is browser_launch_failed, not browser_binary_not_found — the D-Bus line in stderr is not a missing binary", async () => {
+  const { classifyLaunchError, isLaunchCrash } = await import("../services/browserLauncher.js");
+  assert.equal(isLaunchCrash(CRASH_155), true);
+  assert.equal(classifyLaunchError(new Error(CRASH_155)), "browser_launch_failed");
+  assert.equal(classifyLaunchError(new Error(CRASH_155.replace("Code: null", "Code: 133"))), "browser_launch_failed", "an exit status is a crash too");
+  // Still told apart: a binary that is genuinely absent, and a missing shared library.
+  assert.equal(classifyLaunchError(new Error("Failed to launch the browser process:  spawn /usr/bin/chromium ENOENT")), "browser_binary_not_found");
+  assert.equal(isLaunchCrash("Failed to launch the browser process:  spawn /usr/bin/chromium ENOENT"), false);
+  assert.equal(classifyLaunchError(new Error("Failed to launch the browser process:  Code: 127\n\nstderr:\n/usr/bin/chromium: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory")),
+    "browser_runtime_missing_dependency");
+});

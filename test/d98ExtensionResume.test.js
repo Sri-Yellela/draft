@@ -331,6 +331,9 @@ test("the file name: FirstName_LastName_Company_Role.pdf — letters, digits and
 // ── ⛔ ANOTHER USER'S JOB ───────────────────────────────────────────────────────────────────────────────────────────
 test("⛔ another user's job is refused, and another user's generation is not there", async (t) => {
   const m = mount(); t.after(m.stop);
+  // D99: a posting LIVE on the board is every signed-in user's (manualHandoff.js jobOnUsersBoard) — so "another user's
+  // job" is one they captured that is no longer on the board.
+  m.db.prepare("UPDATE scraped_jobs SET is_active = 0 WHERE job_id = 'gh-other-2'").run();
   const r = await m.post("/api/extension/resume", { boundJobId: "gh-other-2", trigger: "click" });
   assert.equal(r.status, 404);
   assert.equal(r.body.code, "not_your_job");
@@ -354,7 +357,8 @@ test("⛔ starts are rate-limited per user", async (t) => {
   assert.equal(r.status, 429);
   assert.equal(r.body.code, "rate_limited");
   assert.equal(r.body.error, USER_ERRORS.rate_limited.message);
-  assert.equal((await m.start({}, { user: 2 })).status, 404, "another user has their own window (and here no such job)");
+  // D99: the job is live on the board, so it is on user 2's board too (jobOnUsersBoard) — and their window is their own
+  assert.equal((await m.start({}, { user: 2 })).status, 202, "another user has their own window");
 });
 
 // ── ⛔ NO COST, TOKEN OR MODEL TEXT ─────────────────────────────────────────────────────────────────────────────────
