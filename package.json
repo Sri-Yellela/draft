@@ -19,7 +19,9 @@
     "publish:extension": "node scripts/publishExtension.mjs",
     "verify:harness": "node scripts/verifyHarnesses.mjs",
     "//verify:harness": "REQUIRES the app already running on :3001 (node server.js). The runner starts only fakeAts and refuses to start without the app, because a run against a dead port prints nothing for hours. A green board here is NOT evidence about the model-call path — every harness that would exercise it is excluded for spending tokens.",
-    "store:screenshots": "node scripts/g3ReviewOverlay.mjs --screenshots"
+    "store:screenshots": "node scripts/g3ReviewOverlay.mjs --screenshots",
+    "walk:extension": "node test-support/walkExtension.mjs",
+    "//walk:extension": "J2: a browser pass of the REAL extension on the Workday-shaped fixture. npm run walk:extension -- <scenario> (test-support/walks/<scenario>.mjs; --list, --headful, --theme dark, --require-chrome). No Chrome -> SKIP with the reason, exit 0."
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

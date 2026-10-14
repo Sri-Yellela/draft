@@ -314,9 +314,12 @@ test("⛔ the Copy sheet panel stays through a page click and a field focus, Clo
     // the page's own work goes on: a click into a field and typing — the panel stays, the field keeps what was typed
     await page.click('input[name="firstName"]');
     await page.keyboard.type("Typed by hand");
+    // Read BEFORE Save and Continue: since J2 the step really changes (Workday re-renders the step), so My
+    // Information's input is gone afterwards — what the field held is checked while it is still on the page.
+    assert.equal(await page.$eval('input[name="firstName"]', el => el.value), "Typed by hand", "the panel never writes a field");
     await page.click("#next-step");
     assert.equal(await open(), true, `${scheme}: survives a field focus and a page click`);
-    assert.equal(await page.$eval('input[name="firstName"]', el => el.value), "Typed by hand", "the panel never writes a field");
+    assert.equal(await page.evaluate(() => window.__wd.step()), "myExperience", "the click was a real step change, the URL unchanged");
     const facts = await page.evaluate(() => {
       const root = document.getElementById("rm-copy-sheet-panel").shadowRoot;
       const p = root.querySelector(".p");
