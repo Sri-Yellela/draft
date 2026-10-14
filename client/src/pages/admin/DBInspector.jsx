@@ -5,8 +5,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { api, authHeaders, authContextQuery } from "../../lib/api.js";
 import { useTheme } from "../../styles/theme.jsx";
 import { C } from "../../styles/colorTokens.js";
+import { markStyle } from "../../styles/mark.js";
 import { atsBandFor, atsBandLabel } from "../../../../shared/atsBands.js";
 import StatCard from "../../components/StatCard.jsx";
+import IngestFunnel from "../../components/IngestFunnel.jsx";
 import { useConfirm } from "../../panels/adminKit.jsx";
 // A50 step 6: the board's bands, not the v3-era 70/50 ramp (under v4 that ramp painted almost every
 // score red). Admin still sees the number beside the band — it is a diagnostic tool.
@@ -301,6 +303,7 @@ const HEALTH_STYLE = {
 function ScrapeMonitorTab({ theme }) {
   const [health, setHealth] = useState(null);
   const [data, setData] = useState(null);
+  const [reasons, setReasons] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(null);
@@ -317,6 +320,9 @@ function ScrapeMonitorTab({ theme }) {
         api(`/api/admin/db/scrape-monitor?${params}`),
       ]);
       setHealth(h); setData(d);
+      // 10-14: the standing record of refusals by reason. Its own read with its own failure: the health
+      // view must not go blank because this breakdown could not be read.
+      api(`/api/admin/db/refusal-reasons`).then(setReasons).catch(() => setReasons({ available: false, rows: [] }));
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }, [filterSource]);
@@ -484,8 +490,9 @@ function ScrapeMonitorTab({ theme }) {
                             finds its postings unchanged writes nothing and touches them instead,
                             so the touch count belongs next to the write count, not behind it. */}
                         {s.lastRun.unchanged > 0 && <> · {fmt(s.lastRun.unchanged)} unchanged</>}
-                        {(s.lastRun.dropped + s.lastRun.ejected) > 0 &&
-                          <> · {fmt(s.lastRun.dropped + s.lastRun.ejected)} refused</>}
+                        {/* 10-14: "refused" here was dropped + ejected, two of seven gates. The funnel below
+                            has every gate; this cell says what is on the board and what was held off. */}
+                        {s.funnel && <> · {fmt(s.funnel.onBoard)} on the board · {fmt(s.funnel.heldOff)} held off</>}
                         {s.lastRun.error && <span style={{ color:C.DANGER }}> · {truncate(s.lastRun.error, 60)}</span>}
                       </span>
                     : <span style={{ color:theme.textDim, fontStyle:"italic" }}>no run recorded yet</span>}
@@ -494,6 +501,60 @@ function ScrapeMonitorTab({ theme }) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/*
+        10-14 · THE LAST RUN AS A FUNNEL, per source — every fetched posting, by the gate that stopped it or
+        the board it reached, and the remainder the crawl does not count, named. The same object the glance
+        draws (pipelineHealth()'s `funnel`, services/ingestFunnel.js).
+      */}
+      {health?.sources?.some(s => s.funnel?.fetched > 0) && (
+        <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, padding:"12px 14px", marginBottom:16 }}>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em",
+                        color:theme.textMuted, marginBottom:4 }}>Last run — where every fetched posting went</div>
+          <div style={{ fontSize:11, color:theme.textMuted, marginBottom:10 }}>
+            {health.sources.find(s => s.funnel)?.funnel.note}
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap:10 }}>
+            {health.sources.filter(s => s.funnel?.fetched > 0).map(s => (
+              <IngestFunnel key={s.name} name={s.name} funnel={s.funnel} theme={theme}/>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/*
+        10-14 · REFUSAL REASONS — rejected_jobs, distinct postings by source × reason. Every reason string is
+        drawn as written: no allow-list, so a reason added later (no_role, for the classifier's dropped
+        postings) shows the day it is first written.
+      */}
+      {reasons?.available && reasons.rows.length > 0 && (
+        <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, overflow:"hidden", marginBottom:16 }}>
+          <div style={{ padding:"8px 14px", background:theme.surfaceHigh, fontSize:10, fontWeight:700,
+                        textTransform:"uppercase", letterSpacing:"0.06em", color:theme.textMuted }}>
+            Held off the board, by reason — distinct postings (rejected_jobs)
+          </div>
+          <div style={{ padding:"6px 14px", fontSize:11, color:theme.textMuted }}>
+            A standing record, not tonight's news: a re-seen posting rewrites its row rather than adding one.
+            Not every gate writes here yet — compare with the funnel above.
+          </div>
+          {Object.entries(reasons.bySource || {}).map(([src, total]) => (
+            <div key={src} style={{ borderTop:`1px solid ${theme.border}`, padding:"8px 14px" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+                <span style={{ fontWeight:700, fontSize:12 }}>{src}</span>
+                <span style={markStyle(C.INK_FAINT)}>{fmt(total)} postings</span>
+              </div>
+              {reasons.rows.filter(r => r.source === src).map(r => (
+                <div key={r.reason} style={{ display:"grid", gridTemplateColumns:"minmax(0, 1fr) 80px 90px", gap:8,
+                                             fontSize:11, padding:"2px 0" }}>
+                  <span style={{ fontFamily:"monospace", color:theme.text, overflowWrap:"anywhere" }}>{r.reason}</span>
+                  <span style={{ textAlign:"right", fontWeight:700, color:theme.text }}>{fmt(r.postings)}</span>
+                  <span style={{ color:theme.textMuted }} title="when a crawl last wrote this reason">{ago(r.lastAt)}</span>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       )}
 

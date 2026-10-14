@@ -14,6 +14,8 @@
 // Read-only. No writes, no model calls. Every table read is tolerated separately: a database
 // missing one table reports that section as unavailable rather than failing the glance.
 
+import { RECUR_NOTE } from "./ingestFunnel.js";
+
 export const DAY = 86400;
 
 /** UTC midnight of the day containing `now` (seconds). Spend "today" is a UTC day: the server's. */
@@ -65,7 +67,13 @@ export function buildGlance(db, { health, enrichBudget = null, fullAuto = null, 
     lastRunStatus: s.lastRun?.status ?? null,
     written: s.lastRun?.written ?? null,
     unchanged: s.lastRun?.unchanged ?? null,
-    refused: s.lastRun ? Number(s.lastRun.dropped || 0) + Number(s.lastRun.ejected || 0) : null,
+    // ⛔ 10-14: `refused` was dropped + ejected — two of the run's seven gates — and the card read it
+    // beside `written` as "accepted 80 / refused 1,878" on a greenhouse run that fetched 15,998 and kept
+    // 2,408 on the board. The funnel is pipelineHealth()'s own (services/ingestFunnel.js), selected here,
+    // never recomputed: `onBoard` is the headline, `heldOff` everything refused or retired on purpose.
+    onBoard: s.funnel?.onBoard ?? null,
+    heldOff: s.funnel?.heldOff ?? null,
+    funnel: s.funnel ?? null,
     lastSuccessAt: s.lastSuccessAt ?? null,
     crawlAge: crawlAge({ lastSuccessAt: s.lastSuccessAt ?? null, health: s.health, now }),
     active: s.active ?? null,
@@ -76,6 +84,7 @@ export function buildGlance(db, { health, enrichBudget = null, fullAuto = null, 
     lastCrawlAt: sources.reduce((m, s) => (s.lastRunAt && s.lastRunAt > (m ?? 0) ? s.lastRunAt : m), null),
     sources,
     crawlAgeHours: { amber: CRAWL_AGE_AMBER_HOURS, red: CRAWL_AGE_RED_HOURS },
+    funnelNote: RECUR_NOTE,
     sourcesNeedingAttention: sources.filter(s => !benign.has(s.health)).map(s => s.name),
     alertCounts: health.alertCounts || { critical: 0, warn: 0 },
     alerts: (health.alerts || []).slice(0, 8),
