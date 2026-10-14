@@ -16,7 +16,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import puppeteer from 'puppeteer-core';
 import { resolveBrowserExecutable } from '../services/browserLauncher.js';
 import { C_LIGHT, C_DARK } from '../extension/tokens.js';
-import { renderOverlay, orderForReview } from '../extension/review-overlay.js';
+import { renderOverlay, panelRowsFromItems } from '../extension/review-overlay.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = path.resolve(ROOT, '..', 'draft-screenshots', 'd23');
@@ -106,8 +106,9 @@ async function main() {
         ${STEPS.map(s => `<p><label>${s.field}<br><input value="${s.value}" style="width:420px;padding:6px"></label></p>`).join('')}
         <button>Submit application</button></body></html>`);
       const font = fs.readFileSync(path.join(ROOT, 'extension/fonts/poppins-latin-800-italic.woff2')).toString('base64');
-      const bands = orderForReview(STEPS);
-      await page.evaluate(`window.chrome = { runtime: { sendMessage() {} } }; (${renderOverlay.toString()})(${JSON.stringify(bands)}, ${JSON.stringify({
+      // J4 (D96 §5): the panel takes rows — the legacy review items through the same rule.
+      const model = { rows: panelRowsFromItems(STEPS) };
+      await page.evaluate(`window.chrome = { runtime: { sendMessage() {} } }; (${renderOverlay.toString()})(${JSON.stringify(model)}, ${JSON.stringify({ runId: `shots-${scheme}`,
         filledCount: STEPS.length, resumeAttached: true, resolverBug: null,
         portal: { remaining: 2, host: 'apply.example.test', next: { title: 'Data Engineer' }, gateCrossing: true },
         theme: { light: C_LIGHT, dark: C_DARK, logoFont: font } })})`);

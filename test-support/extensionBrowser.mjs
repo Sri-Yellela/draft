@@ -154,7 +154,7 @@ const APP_URL_DECL = (origin) => `const RESUME_MASTER_URL = '${origin}';`;
  * the tenant(s) to host_permissions. TEST BUILD ONLY — it stands in for the user's activeTab gesture; the shipped
  * manifest is not touched. Throws if background.js stops declaring RESUME_MASTER_URL the way it does today.
  */
-export async function buildTestExtension({ apiOrigin, outDir, hosts = [`${T}/*`] }) {
+export async function buildTestExtension({ apiOrigin, outDir, hosts = [`${T}/*`], backgroundAppend = '' }) {
   const { CANONICAL_ORIGIN: canonical } = await import('../shared/brand.js');
   const src = path.join(ROOT, 'extension');
   const dst = path.join(outDir, 'extension');
@@ -169,7 +169,11 @@ export async function buildTestExtension({ apiOrigin, outDir, hosts = [`${T}/*`]
     if (!fs.existsSync(p)) continue;
     const text = fs.readFileSync(p, 'utf8');
     if (f === 'background.js' && !text.includes(APP_URL_DECL(canonical))) throw new Error(`${f} no longer declares ${APP_URL_DECL(canonical)} — the harness cannot point it at the test API`);
-    fs.writeFileSync(p, text.replace(APP_URL_DECL(canonical), APP_URL_DECL(apiOrigin)));
+    // backgroundAppend: a lane's PROPOSED router wiring, appended to the TEST build's background.js only (the shipped
+    // background.js is the coordinator's) — so a browser pass proves the exact lines the lane hands over.
+    fs.writeFileSync(p, text.replace(APP_URL_DECL(canonical), APP_URL_DECL(apiOrigin)) + (f === 'background.js' && backgroundAppend ? `
+${backgroundAppend}
+` : ''));
   }
   const manifest = JSON.parse(fs.readFileSync(path.join(dst, 'manifest.json'), 'utf8'));
   manifest.host_permissions = [...(manifest.host_permissions || []), `${apiOrigin}/*`, ...hosts];   // TEST BUILD ONLY
@@ -185,8 +189,10 @@ export async function buildTestExtension({ apiOrigin, outDir, hosts = [`${T}/*`]
  * A lane that changes the panel's markup keeps these hooks or updates READ_PANEL_SELECTORS in the same commit.
  */
 export const READ_PANEL_SELECTORS = {
-  hostId: 'rm-gate-review-overlay', title: '.rm-t', subtitle: '.rm-hd .rm-s', state: '[data-role="state"]',
-  group: '.rm-sec', groupTitle: '.rm-lbl, summary', row: '.rm-row', label: '.rm-f', value: '[data-role="value"], .rm-v', tier: '.rm-pill',
+  // J4 (D96 §5): the panel is in a shadow root; `subtitle` is its progress line ("14 of 18 filled · 2 need you · 3 to
+  // check"), a row's `band` its group (need · check · ok), `label` the page's label without the asterisk.
+  hostId: 'rm-gate-review-overlay', title: '.rm-t', subtitle: '[data-role="progress"]', state: '[data-role="state"]',
+  group: '.rm-sec', groupTitle: '.rm-lbl', row: '.rm-row', label: '[data-role="label"]', value: '[data-role="value"]', tier: '.rm-pill',
 };
 function readPanelInPage(sel) {
   const host = document.getElementById(sel.hostId);
@@ -251,7 +257,7 @@ export async function launchExtensionBrowser(opts = {}) {
     cleanups.push(() => ats.stop());
     const api = await startApi(opts.api || {});
     cleanups.push(() => api.stop());
-    const ext = await buildTestExtension({ apiOrigin: api.origin, outDir, hosts: opts.hosts || [`${T}/*`] });
+    const ext = await buildTestExtension({ apiOrigin: api.origin, outDir, hosts: opts.hosts || [`${T}/*`], backgroundAppend: opts.backgroundAppend || '' });
     const profileDir = path.join(outDir, 'profile');
     fs.rmSync(profileDir, { recursive: true, force: true });
     const { default: puppeteer } = await import('puppeteer-core');

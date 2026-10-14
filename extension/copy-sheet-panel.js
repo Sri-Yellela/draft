@@ -55,7 +55,12 @@ export function renderCopySheetPanel(sheet, theme) {
     .copied { border-color: ${c.SUCCESS}; color: ${c.SUCCESS}; }
     .note { margin: 8px 0 0; padding: 6px 8px; border-left: 3px solid ${c.WARNING}; background: ${c.WARNING_QUIET}; border-radius: 6px; font-size: 12px; }
     .mini .b { display: none; }
-    .empty { color: ${c.INK_MUTED}; padding: 8px 0; }`;
+    .empty { color: ${c.INK_MUTED}; padding: 8px 0; }
+    /* ⛔ D60: where an answer came from is a MARK — a rectangle with a 3px leading bar, never a capsule. */
+    .src { display: inline-block; margin: 2px 0; padding: 0 6px 0 5px; border-left: 3px solid ${c.BORDER_STRONG}; border-radius: 6px;
+           background: ${c.SURFACE_TINT || c.SURFACE_SOLID}; color: ${c.INK_MUTED}; font-size: 10.5px; font-weight: 700; }
+    .src.you { border-left-color: ${c.ACCENT_INK}; color: ${c.ACCENT_INK}; }
+`;
   const style = document.createElement('style');
   style.textContent = css;
 
@@ -85,6 +90,17 @@ export function renderCopySheetPanel(sheet, theme) {
   body.className = 'b';
   const list = document.createElement('ul');
   const rows = Array.isArray(sheet?.rows) ? sheet.rows : [];
+  const day = (iso) => { try { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); } catch { return ''; } };
+  const sourceWords = (row) => {
+    if (row.provenance === 'saved_answer') {
+      const when = row.acknowledgedAt ? ` · ${day(row.acknowledgedAt)}` : '';
+      return row.source === 'you_typed' ? `you typed${when}` : row.source === 'you_acknowledged' ? `you acknowledged${when}` : `saved${when}`;
+    }
+    if (row.provenance === 'work_history') return 'your work history';
+    if (row.provenance === 'education') return 'your education';
+    if (row.provenance) return 'profile';
+    return '';
+  };
   for (const row of rows) {
     const li = document.createElement('li');
     if (row.eligibility) li.className = 'elig';
@@ -92,11 +108,21 @@ export function renderCopySheetPanel(sheet, theme) {
     kv.className = 'kv';
     const k = document.createElement('span');
     k.className = 'k';
-    k.textContent = row.eligibility ? `${row.label} · you are attesting to this` : String(row.label || '');   // textContent: never parsed
+    // An eligibility answer keeps "you are attesting to this" on its label (D96 §4 safeguard 3).
+    k.textContent = row.eligibility || row.attesting ? `${row.label} · you are attesting to this` : String(row.label || '');   // textContent: never parsed
+    // ⭐ D96 §6: where the answer came from — your profile, your work history, or an answer you saved (and when you
+    // acknowledged it). A mark of its own, beside the label, so the label still reads as the question.
+    const words = sourceWords(row);
+    const mark = document.createElement('span');
+    if (words) {
+      mark.className = `src${/^you /.test(words) ? ' you' : ''}`;
+      mark.setAttribute('data-source', '');
+      mark.textContent = words;
+    }
     const v = document.createElement('span');
     v.className = 'v';
     v.textContent = String(row.value ?? '');
-    kv.append(k, v);
+    kv.append(k, ...(words ? [mark] : []), v);
     const copy = btn('Copy', `Copy ${row.label}`, '');
     copy.setAttribute('data-copy', '');
     copy.addEventListener('click', async () => {
