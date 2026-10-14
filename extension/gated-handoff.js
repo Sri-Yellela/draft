@@ -33,7 +33,7 @@ import {
 import { renderBadge, findMissingRequired, badgeDismissed } from './autofill-badge.js';
 import { C_LIGHT, C_DARK } from './tokens.js';
 // D55 (f): saved answers, worked-here and the EEO decline — placed by exact question equality only.
-import { placeStatedAnswers, normaliseQuestion, dateParts } from './savedAnswerMatch.js';
+import { placeStatedAnswers, yieldGuessesToStated, normaliseQuestion, dateParts } from './savedAnswerMatch.js';
 // ⭐ D96 §4: the saved-answer key and the never-fillable guard — a byte-identical copy of shared/answerKey.js.
 import { questionLabelKey, NEVER_FILL_RE, neverFillReasonOfField, isSignatureField, withoutNeverFill } from './answerKey.js';
 export { neverFillReasonOfField, isSignatureField, withoutNeverFill };
@@ -1625,6 +1625,8 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused, opts =
     if (step.wizard?.isReview) { wizard.stoppedAt = 'review'; break; }
     if (!isCurrent()) { wizard.stoppedAt = 'superseded'; break; }
     const matched = matchAnswersToFields(answers, step.fields);
+    // ⭐ D96 §4 (J9): a guess gives its control back when the candidate has their OWN answer to that question.
+    matched.plan = yieldGuessesToStated(matched.plan, released.packet, step.fields, questionKind);
     // D55 (f): then the packet's saved answers, worked-here answer and EEO declines, on the
     // questions the answers above did not take — by exact question equality (savedAnswerMatch.js).
     const stated = placeStatedAnswers(released.packet, step.fields, matched.plan, questionKind);
@@ -1737,6 +1739,9 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused, opts =
   }
   ACTIVE_FILL.delete(tab.id);
 
+  // ⭐ J9 (10-14): the counts the panel DREW — with what the candidate acknowledged and typed while the wizard waited
+  // carried over (review-overlay.js keeps them per run) — not the counts of the rows before they acted.
+  let drawnPanel = null;
   try {
     const [drawn] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
@@ -1755,6 +1760,8 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused, opts =
       }],
     });
     if (drawn?.result?.ok === false) throw new Error(drawn.result.error || 'not drawn');
+    const dc = drawn?.result?.counts;
+    if (dc && Number.isFinite(dc.filled) && Number.isFinite(dc.of)) drawnPanel = { ...dc, ready: drawn.result.ready === true };
   } catch (e) {
     // A form filled without an overlay is degraded, not broken — the values are in the page and the
     // candidate can still read them. Reported rather than swallowed.
@@ -1826,7 +1833,7 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused, opts =
     fieldCount: shape.fields.length,
     missingCount: missingAtEnd.length,
     // ⭐ D96 §3 / §5: the PANEL's own counts — what progress.js remembers, so the popup and the panel agree.
-    panel: { filled: panel.filled, of: panel.total, needYou: panel.need, check: panel.check, ready: panel.ready },
+    panel: drawnPanel || { filled: panel.filled, of: panel.total, needYou: panel.need, check: panel.check, ready: panel.ready },
     resume: outcome?.resume || (released.resumeUrl ? { attached: false, reason: 'fetch_failed' } : null),
     overlay: { rendered: true, rows: reviewItems.length },
     badge,

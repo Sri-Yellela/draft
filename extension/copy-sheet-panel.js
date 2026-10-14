@@ -98,6 +98,8 @@ export function renderCopySheetPanel(sheet, theme) {
     }
     if (row.provenance === 'work_history') return 'your work history';
     if (row.provenance === 'education') return 'your education';
+    // ⭐ J9 (10-14): a guess was never the profile's answer — the review panel's own word for it.
+    if (['label_fuzzy', 'default', 'sponsorship_assumed_future'].includes(row.provenance)) return 'matched loosely';
     if (row.provenance) return 'profile';
     return '';
   };

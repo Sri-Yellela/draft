@@ -297,9 +297,18 @@ export const noteFill = quiet(async (result, { jobId = null, bound = null } = {}
 });
 
 /** The review panel says everything is checked (background.js GATE_REVIEW_STATE, ready). */
+// ⭐ J9 (10-14): and on EVERY report — not only a ready one — the panel's own counts, so the popup follows what the
+// candidate did in the panel. The browser pass measured: acknowledge the one guess and type the one address, and the
+// panel said "7 of 13 filled · 6 need you · 0 to check" while the reopened popup still said "Filled 6 of 13 · 7 need
+// you · 1 to check" — the counts at the moment the panel was first drawn. Counts only (the whitelist drops anything else).
 export const noteReviewed = quiet(async (msg, { jobId = null } = {}) => {
-  if (!msg?.ready || jobId == null) return null;
-  return patch({ jobId }, { reviewed: { at: Date.now() } });
+  if (jobId == null) return null;
+  const c = msg?.counts;
+  const filled = c && Number.isFinite(c.filled) && Number.isFinite(c.of)
+    ? { n: c.filled, of: c.of, needYou: Number.isFinite(c.needYou) ? c.needYou : 0, check: Number.isFinite(c.check) ? c.check : 0 }
+    : null;
+  if (!msg?.ready && !filled) return null;
+  return patch({ jobId }, { filled, reviewed: msg?.ready ? { at: Date.now() } : null });
 });
 
 /** "I submitted it" was recorded (gated-handoff.js recordSubmitted). */
