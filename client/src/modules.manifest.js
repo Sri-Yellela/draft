@@ -48,7 +48,7 @@ export const MODULES = Object.freeze({
   theTable: { why: "The Table (the database panel)",
     members: ["panels/DatabasePanel.jsx", "components/ApplicationHistory.jsx", "components/PendingApplications.jsx"] },
   landing: { why: "the landing page", members: ["pages/LandingPage.jsx", "components/FindFitApply.jsx"] },
-  admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminAdmins.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx"] },
+  admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminAdmins.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
 });
 
 // ── SHARED: every file under components/, styles/, lib/, hooks/, contexts/, themes/, consoles/.
@@ -84,6 +84,7 @@ export const SHARED = Object.freeze({
   "components/SectionHeading.jsx":      { what: "THE section heading (A93: was inside AutoApplyPanel's file)" },
   "components/SettingsSection.jsx":     { what: "THE settings card — Account and Integrations (A93)" },
   "components/StatCard.jsx":            { what: "THE stat card — admin and the DB inspector (A93)" },
+  "components/IngestFunnel.jsx":        { what: "a source's last crawl as a funnel (10-14) — the glance's Ingestion card and the inspector's Pipeline Health", module: "admin" },
   "components/EmptyState.jsx":          { what: "THE empty state — the board and The Table (A93)" },
   "components/DomainProfileWizard.jsx": { what: "the job-profile wizard — profiles, board, profile panel" },
   "components/ProfileSelectorDropdown.jsx": { what: "the active-profile picker — top bar and board" },
