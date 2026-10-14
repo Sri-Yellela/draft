@@ -1091,6 +1091,30 @@ export async function clearBatchForTab(tabId) {
   await chrome.storage.session.remove(batchKey(tabId));
 }
 
+// ⭐ J11 · G5 fills on the ADVANCE, never on a reload. "The next application in a batch fills without another
+// keypress" means the load the candidate's own "Next application" caused — not every load of a batched tab. Before
+// this, a plain reload of the application already filled (or a same-URL re-navigation) re-ran a fill nobody asked
+// for. advanceBatch arms a one-shot mark just before it moves the tab; the next complete load on the batch's origin
+// takes it, and only that load fills. Bounded in time, so a navigation that never completed cannot leave a mark for
+// a reload much later to inherit. The target URL is recorded but NOT required to match: a portal may redirect.
+export const BATCH_ADVANCE_TTL_MS = 2 * 60 * 1000;
+
+export async function armBatchAdvance(tabId, applyUrl) {
+  const batch = await loadBatchForTab(tabId);
+  if (!batch) return false;
+  await saveBatchForTab(tabId, { ...batch, advance: { applyUrl, at: Date.now() } });   // the ONE batch:{tabId} write site
+  return true;
+}
+
+/** True once per advance: the mark is cleared as it is read, whether it was still fresh or not. */
+export async function takeBatchAdvance(tabId, now = Date.now()) {
+  const batch = await loadBatchForTab(tabId);
+  if (!batch?.advance) return false;
+  const { advance, ...rest } = batch;
+  await saveBatchForTab(tabId, rest);
+  return now - (advance.at || 0) <= BATCH_ADVANCE_TTL_MS;
+}
+
 /**
  * What else is waiting at this origin, newest first, excluding one already in hand.
  *
