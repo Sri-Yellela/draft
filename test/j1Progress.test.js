@@ -72,7 +72,8 @@ test("⛔ J1: a progress record holds NO answer value — whatever a caller hand
   }
   const r = await progress.get({ jobId: "gh-zoom-1" });
   assert.deepEqual(Object.keys(r).sort(), ["captured", "company", "filled", "jobId", "jobKey", "link", "postingUrl",
-    "prepared", "read", "reviewed", "submitted", "title", "updatedAt"].sort(), "exactly the D96 §3 shape");
+    // + "resume" by D98 §4 (lane J6): the on-page panel's generation for this job — { at, id, status, attached }, no value.
+    "prepared", "read", "resume", "reviewed", "submitted", "title", "updatedAt"].sort(), "exactly the D96 §3 shape (+ D98's résumé step)");
   assert.deepEqual(r.filled, { n: 14, of: 18, needYou: 2, check: 3 });
   assert.deepEqual(r.read, { at: 1, stage: "applyManually", fieldCount: 18 });
   delete globalThis.chrome;

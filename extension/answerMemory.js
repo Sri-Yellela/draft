@@ -100,8 +100,11 @@ export async function fillableAnswers(serverUrl, company = null) {
   return Array.isArray(body?.savedAnswers) ? body.savedAnswers : null;
 }
 
-/** The job and employer for the tab a panel message came from — its released packet first, else its binding. */
-async function tabJob(tab) {
+/**
+ * The job and employer for the tab a panel message came from — its released packet first, else its binding.
+ * Exported for the résumé panel (extension/resumePanel.js, D98): one rule for "which job is this tab on".
+ */
+export async function tabJob(tab) {
   const held = tab?.id != null ? await loadPacketForTab(tab.id).catch(() => null) : null;
   const bound = tab ? await bindingForTab(tab).catch(() => null) : null;
   return {
