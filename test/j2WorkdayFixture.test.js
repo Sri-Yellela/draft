@@ -7,6 +7,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { startFakeAts } from "../test-support/extensionBrowser.mjs";
+import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const ats = await startFakeAts();
@@ -107,7 +108,7 @@ test("⛔ D60: the fixture's own CSS has no capsule — every radius is 6px or l
 
 test("⚠ every assumed shape says so: the O73 caveat is on the block and on each assumed control", () => {
   const src = read("scripts/fakeAts.js");
-  const block = src.slice(src.indexOf("J2 · THE STAGES INSIDE"), src.indexOf("function workdayShapedClient"));
+  const block = src.slice(at(src, "J2 · THE STAGES INSIDE"), at(src, "function workdayShapedClient"));
   assert.ok((block.match(/⚠ shape assumed, re-measure on a live tenant \(O73\)/g) || []).length >= 5);
   assert.match(block, /⚠ SYNTHETIC, not a Workday shape/);
 });
