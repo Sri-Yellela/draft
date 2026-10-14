@@ -120,12 +120,18 @@ test("⛔ a capture makes the job YOURS — fill and prepare no longer say 'capt
   assert.equal(userHasJob(db, 2, "gh-zoom-1"), false);
 });
 
-test("⛔ the TAB BINDING names the job where the address cannot — honoured only for the user's own job", async (t) => {
+test("⛔ the TAB BINDING names the job where the address cannot — honoured only for a job on the user's board", async (t) => {
   const { db, post, stop } = mount(); t.after(stop);
   let m = await post("/api/apply/handoff/match", { url: NO_REQ });
   assert.equal(m.body.state, "unknown", "no key, no binding: draft truly does not know it");
+  // D99: a posting live on the board is on every user's board — the hint names it before any capture
   m = await post("/api/apply/handoff/match", { url: NO_REQ, boundJobId: "gh-zoom-1" });
-  assert.equal(m.body.state, "unknown", "a binding to a job that is not yours is ignored");
+  assert.equal(m.body.job?.jobId, "gh-zoom-1", "a live board job is on your board");
+  assert.equal(m.body.how, "binding");
+  // retired, it is on a board only through a capture
+  db.prepare("UPDATE scraped_jobs SET is_active = 0 WHERE job_id = 'gh-zoom-1'").run();
+  m = await post("/api/apply/handoff/match", { url: NO_REQ, boundJobId: "gh-zoom-1" });
+  assert.equal(m.body.state, "unknown", "a binding to a retired job that is not yours is ignored");
   captured(db, 1, "gh-zoom-1", POSTING);
   m = await post("/api/apply/handoff/match", { url: NO_REQ, boundJobId: "gh-zoom-1" });
   assert.equal(m.body.job?.jobId, "gh-zoom-1");
