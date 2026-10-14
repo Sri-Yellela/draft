@@ -398,8 +398,14 @@ let SERVER_URL = null;
 /** background.js names the server once (as configureAnswerMemory does). */
 export function configureAutoRead({ serverUrl } = {}) { SERVER_URL = serverUrl || null; }
 
-const fromExtensionPage = (sender) => !sender?.tab && typeof sender?.url === 'string'
-  && sender.url.startsWith(chrome.runtime.getURL(''));
+// ⛔ D99 J13: the sender's ADDRESS decides, not whether it has a tab. `options_page` opens Options IN A TAB, so
+// Chrome sets `sender.tab` there — the old `!sender.tab` test refused every message from it: "I agree" answered
+// "Could not record that", consent was never stored, and every switch stayed disabled ("the boxes can't be
+// ticked", owner 10-13). A content script's `sender.url` is the web page's, never this extension's own origin,
+// and the extension declares no web-accessible resources, so the origin is the whole test.
+const fromExtensionPage = (sender) => typeof sender?.url === 'string'
+  && sender.url.startsWith(chrome.runtime.getURL(''))
+  && (sender.id == null || sender.id === chrome.runtime.id);
 
 const TAB = new Map();          // tabId → { busy, pending, lastSig, lastFillSig, fillStopped, prepared: Set, preparedOk: Set }
 const seenCaptures = createSeenSet();
