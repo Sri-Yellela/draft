@@ -516,7 +516,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type === 'GATE_REVIEW_EDIT') {
     const tabId = sender.tab?.id;
     if (!tabId) { sendResponse({ ok: false, reason: 'no_tab' }); return true; }
-    applyOverlayEdit({ tabId, field: msg.field, value: msg.value })
+    // ⭐ T11: the panel sits in the form's frame, so its edit goes back to the frame it came from.
+    applyOverlayEdit({ tabId, frameId: sender.frameId ?? 0, field: msg.field, value: msg.value })
       .then(result => sendResponse({ ok: true, result }))
       .catch(e => sendResponse({ ok: false, reason: e.message }));
     return true;                                            // async response

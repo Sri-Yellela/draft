@@ -3944,6 +3944,19 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         });
       }
     }
+    // ⭐ T11: the form is in a FRAME (Stripe embeds Greenhouse's). The answers go into the frame, so the frame's own
+    // address must be this application's too — origin in the list and the same job id — not only the page around it.
+    const frameUrl = frameUrlOf(req);
+    if (frameUrl === false) return res.status(400).json({ error: "bad_frame_url", message: "The form's frame address cannot be read." });
+    if (frameUrl) {
+      const m = pageMatchesPacket({ url: frameUrl, ...addr }, familiesFor(row.user_id));
+      if (!m.ok) {
+        return res.status(409).json({
+          error: "not_this_address", reason: `frame_${m.reason}`, origins: addr.origins,
+          message: `The form on this page is not this application's — it fills on ${hostsSentence(addr.origins)}.`,
+        });
+      }
+    }
 
     if (!GATE_TOKEN_SECRET) {
       return res.status(503).json({
@@ -4244,6 +4257,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const raw = String(req.body?.url || "").slice(0, 2048);
     try { const u = new URL(raw); return /^https?:$/.test(u.protocol) ? u.href : null; } catch { return null; }
   };
+  /** ⭐ T11: the address of the FRAME the form is in, when it is not the page — null when absent, false when unreadable. */
+  function frameUrlOf(req) {
+    if (req.body?.frameUrl == null || req.body.frameUrl === "") return null;
+    try { const u = new URL(String(req.body.frameUrl).slice(0, 2048)); return /^https?:$/.test(u.protocol) ? u.href : false; } catch { return false; }
+  }
 
   function resumeStateFor(userId, jobId) {
     try {
@@ -4282,10 +4300,12 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   const hintOf = (req) => (req.body?.boundJobId != null ? String(req.body.boundJobId) : null);
 
   /** The D56 decision for one page, shared by /match, /prepare and /copy-sheet. */
-  function matchPage(userId, url, hint = null) {
+  function matchPage(userId, url, hint = null, frameUrl = null) {
     const origin = new URL(url).origin;
     const { rows } = listUnconsumedPackets(userId, { origin, limit: 100 });
-    const matching = rows.filter(r => pageMatchesPacket({ url, origins: r.origins, jobIds: r.jobIds, pageKeys: r.pageKeys }, familiesFor(userId)).ok);
+    const fills = (r, u) => pageMatchesPacket({ url: u, origins: r.origins, jobIds: r.jobIds, pageKeys: r.pageKeys }, familiesFor(userId)).ok;
+    // ⭐ T11: with the form in a frame, a packet fills here only when the page AND the frame are its addresses.
+    const matching = rows.filter(r => fills(r, url) && (!frameUrl || fills(r, frameUrl)));
     const packets = matching.map(listedPacket);
     let page = resolvePageJob(db, userId, url, familiesFor(userId));
     if (!page.job) page = boundJob(userId, hint) || page;
@@ -4325,7 +4345,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   app.post("/api/apply/handoff/match", requireAuth, (req, res) => {
     const url = pageUrlOf(req);
     if (!url) return res.status(400).json({ error: "bad_url", message: "Only http(s) pages can be filled." });
-    res.json(matchPage(req.user.id, url, hintOf(req)));
+    const frameUrl = frameUrlOf(req);
+    if (frameUrl === false) return res.status(400).json({ error: "bad_frame_url", message: "The form's frame address cannot be read." });
+    res.json(matchPage(req.user.id, url, hintOf(req), frameUrl));
   });
 
   /**

@@ -376,7 +376,29 @@ async function fillActiveTab() {
     document.getElementById('btn-prepare').style.display = 'flex';
     document.getElementById('companion').style.display = 'block';
   }
+  showFramePermission(r);
 }
+
+// ⭐ T11 · THE FORM IS IN AN ATS'S FRAME. The fill says which site ("inside a Greenhouse frame") and this button asks
+// Chrome for exactly that site's origins. ⛔ permissions.request is the FIRST call of the click handler — inside the
+// user's gesture, as Options does (options-auto.js) — and a refusal leaves everything as it was and says so.
+let framePermission = null;
+function showFramePermission(r) {
+  const btn = document.getElementById('btn-allow-frame');
+  if (r?.reason !== 'frame_needs_permission' || !r.site?.origins?.length) { btn.style.display = 'none'; framePermission = null; return; }
+  framePermission = r.site;
+  btn.textContent = `Allow draft on ${r.site.name}`;
+  btn.style.display = 'flex';
+  document.getElementById('companion').style.display = 'block';
+}
+document.getElementById('btn-allow-frame').addEventListener('click', async () => {
+  const site = framePermission;
+  if (!site) return;
+  const granted = await chrome.permissions.request({ origins: [...site.origins] }).catch(() => false);
+  if (!granted) { setStatus(`Not allowed — nothing changed. draft cannot fill a form inside ${site.name}'s frame without it.`, 6000); return; }
+  document.getElementById('btn-allow-frame').style.display = 'none';
+  await fillActiveTab();
+});
 document.getElementById('btn-fill-primary').addEventListener('click', fillActiveTab);
 document.getElementById('btn-fill').addEventListener('click', fillActiveTab);
 
@@ -390,6 +412,7 @@ document.getElementById('btn-prepare').addEventListener('click', async () => {
   btn.textContent = 'Prepare this application';
   setStatus(r?.message || (r?.ok ? 'Filled — check every answer, then submit.' : 'Could not prepare this application.'));
   if (r?.ok && r?.overlay?.rendered !== false) setTimeout(() => window.close(), 1200);
+  showFramePermission(r);
 });
 
 // ⭐ D56 · "I submitted it" — the manual route records its own submission; the server says whether it verified.
