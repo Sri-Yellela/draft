@@ -76,6 +76,11 @@ test("LIVE (2, Chrome): Workable's upload — the svg preview label and 'Choose 
   assert.equal(f.label, "Resume");
   assert.equal(f.labelSource, "labelledby");
   assert.equal(fileTypeOf(f), "resume");
+  // every <label for> is asked: an svg-only first label does not end the search
+  const p2 = await pageWith(t, `<form><label for="up2"><svg width="10" height="10"><text>SVGs not supported by this browser.</text></svg></label>
+    <label for="up2">Writing sample</label><input id="up2" type="file"></form>`);
+  const [g] = (await probe(p2)).fields;
+  assert.deepEqual([g.labelSource, g.label, fileTypeOf(g)], ["for", "Writing sample", "other"]);
 });
 
 test("LIVE (3, Chrome): a long label the page ties to its field is the label — not the placeholder, not nothing", { skip: SKIP, timeout: 60000 }, async (t) => {
