@@ -1302,7 +1302,9 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
   // A packet already released into this tab — a re-invoke after the grant lapsed, or after the portal
   // moved to another step. Reuse it rather than spending a second token.
   const cached = await loadPacketForTab(tab.id);
-  if (cached && loc.form && fillsHere(cached)) {
+  // ⛔ T11: in a frame, the client checks only ORIGINS (the job id is the server's to read), and one ATS origin serves
+  // every employer's jobs — so a released packet is reused only in the very frame it was released for.
+  if (cached && loc.form && fillsHere(cached) && (cached.frameUrl ?? null) === (inFrame?.url ?? null)) {
     return fillFromPacket({ tab, origin, frame: inFrame, released: cached, serverUrl, reused: true, opts });
   }
 
@@ -1430,7 +1432,7 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
     return { ok: false, reason: 'origin_mismatch_after_release', message: 'Origin mismatch. Nothing was filled.' };
   }
 
-  await savePacketForTab(tab.id, released);
+  await savePacketForTab(tab.id, inFrame ? { ...released, frameUrl: inFrame.url } : released);
   return fillFromPacket({ tab, origin, frame: inFrame, released, serverUrl, reused: false, opts });
 }
 

@@ -276,7 +276,8 @@ test("⛔ D56 · a packet is NEVER filled outside its origin list", async () => 
   assert.match(gh, /const fillsHere = \(p\) => packetFillsOrigin\(p, origin\) && \(!inFrame \|\| packetFillsOrigin\(p, inFrame\.origin\)\);/,
     "the page's origin AND the frame's are checked against the list");
   assert.match(gh, /if \(!fillsHere\(released\)\) \{/, "the release is checked against the list");
-  assert.match(gh, /if \(cached && loc\.form && fillsHere\(cached\)\) \{/, "the cached packet too");
+  assert.match(gh, /if \(cached && loc\.form && fillsHere\(cached\) && \(cached\.frameUrl \?\? null\) === \(inFrame\?\.url \?\? null\)\) \{/,
+    "the cached packet too — and in a frame, only the frame it was released for");
 });
 
 test("D56 · 'I submitted' on the manual route → job_applications with the TAILORED score", async () => {
