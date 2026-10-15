@@ -24,12 +24,17 @@
 import { bindTab, bindingForTab, knownJobForAddress, addressClaim, atsFactsOf } from './tabBinding.js';
 import { progress } from './progress.js';
 import { cachedIdentity } from './auth.js';
+// ⭐ T24: the intent model (pure) — the tab's path from what the extension holds locally (no read, no request: D23).
+import { decidePath, localTells } from './intentModel.js';
 
 /**
  * The tab's state, or null when draft genuinely does not know which job it is. `adopt` (default) binds a tab whose
  * address a job has been seen at. Fields: jobId, title, company, via, boundAt, captured / read / prepared (booleans
  * from the job's progress record), ats (the board's report for a board tab, else { score, band, at, state: 'ready' }),
  * logo, reportPath.
+ * ⭐ T24: `mode` ('drafted' · 'manual' · 'view' · null) and `intent` (the board's 'apply' · 'view' · null) — the intent
+ * model (intentModel.js decidePath) on the LOCAL tells only: the binding (the board's intent, the path chosen here) and the
+ * job's record (drafted here, a fill started). The press-time tells (the page, the server) are the worker's (intent.js).
  */
 export async function tabStateFor(tab, { adopt = true } = {}) {
   if (tab?.id == null) return null;
@@ -55,11 +60,13 @@ export async function tabStateFor(tab, { adopt = true } = {}) {
   // ⭐ BINDING FIRST: is THIS address one the bound job is known at (it was captured, read, filled or opened from the
   // board here, or this is a page under one)? Then a press need not identify the page again (T14's no-re-read).
   const atKnownAddress = adopted || (record?.addresses || []).some(a => addressClaim(a, tab.url) > 0);
+  const path = decidePath({ ...localTells({ binding: b, record }), asked: true });
   return {
     jobId: b.jobId, title: b.title || record?.title || null, company: b.company || record?.company || null,
     via: b.via, boundAt: b.boundAt ?? null, atKnownAddress,
     captured: !!record?.captured?.at, read: !!record?.read?.at, prepared: !!record?.prepared?.at,
     ats, logo: b.board?.logo || null, reportPath: b.board?.reportPath || null,
+    mode: path.mode, intent: path.intent,
   };
 }
 

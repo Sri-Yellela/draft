@@ -4703,4 +4703,13 @@ export const MIGRATIONS = [
         ALTER TABLE extension_resume_generations ADD COLUMN cause TEXT;
       `,
     },
+    {
+      // ⭐ T24 (field report 10-15) · the intent model's two settings and the remembered choice, with the ACCOUNT — not a
+      // new browser storage key. JSON { onDraft: "queue" | "ask", manualResume: "on_cue" | "never", remembered: null |
+      // "drafted" | "manual" } (routes/extensionDraft.js parseIntentSettings); NULL reads as the defaults.
+      id: "168_extension_intent_settings",
+      sql: `
+        ALTER TABLE users ADD COLUMN extension_intent TEXT;
+      `,
+    },
   ];

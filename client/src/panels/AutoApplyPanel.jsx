@@ -530,7 +530,7 @@ export function AutoApplyPanel() {
         <div className="dh-fold__actions">
           <button type="button" className="dh-btn" onClick={() => loadApplyRunDetail(row.runId)}>The run's log</button>
           {row.applyUrl && (
-            <a className="dh-btn" href={row.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(row, e)}>Apply yourself ↗</a>
+            <a className="dh-btn" href={row.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(row, e, { intent: "apply" })}>Apply yourself ↗</a>
           )}
         </div>
         </>

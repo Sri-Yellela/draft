@@ -53,6 +53,7 @@ import { noteFill, notePrepared, noteSubmitted, resumeFor } from './progress.js'
 import { SITES } from './autoRead.js';
 // ⭐ T18: what each field IS (city, school, LinkedIn …), what an upload is (résumé · cover letter · other).
 import { classifyFields, fileTypeOf, guessLabelOf, offerGenerateOnCue, CANONICAL_NAME_KEYS } from './fieldSemantics.js';
+import { resumeOnCueSetting } from './intentSettings.js';   // ⭐ T24: the account's on-cue setting
 import { noteFieldsRead } from './diagnostics.js';
 export { classifyFields, fileTypeOf, guessLabelOf };
 
@@ -1855,6 +1856,8 @@ async function fillFromPacket({ tab, origin, frame = null, released, serverUrl, 
   // step's rows are drawn first, and the candidate sees what needs them while draft waits. Rows of a step the wizard
   // has left are settled (settleStepRows); `panelRows` is the whole run's.
   let settledRows = [], stepRows = [];
+  // ⭐ T21: the status line carries how far the fill has got ("12 of 43"), patched in place — never a re-mount.
+  const progressSoFar = () => { const so = panelSummary([...settledRows, ...stepRows]); return { progress: { filled: so.filled, total: so.total } }; };
   const panelMeta = await panelMetaFor({ tab, released, serverUrl, runId: opts.runId });
   // ⭐ ONE fill per tab: this run supersedes any earlier one still waiting here (ACTIVE_FILL, below).
   if (!opts.runId) ACTIVE_FILL.set(tab.id, panelMeta.runId);
@@ -1919,7 +1922,7 @@ async function fillFromPacket({ tab, origin, frame = null, released, serverUrl, 
       const waited = await waitForCandidate(tab.id, origin, step.wizard.step, wizard, isCurrent);
       if (!waited.ok) { wizard.stoppedAt = waited.reason; break; }
       if (!isCurrent()) { wizard.stoppedAt = 'superseded'; break; }
-      await showBadge(tab.id, 'progress');
+      await showBadge(tab.id, 'progress', progressSoFar());
       const moved = await advanceAndWait(tab.id, step.wizard.step);
       if (moved.ok) advanced = moved;
       else if (moved.reason !== 'portal_refused') { wizard.stoppedAt = moved.reason; break; }
@@ -2175,7 +2178,9 @@ export async function resumeFilesFor(serverUrl, jobId, { setting = 'on_cue' } = 
 /** The panel meta's `files`, only when a row is an empty résumé or cover-letter upload (no request otherwise). */
 async function filesMetaFor(rows, serverUrl, released, opts = {}) {
   if (!(rows || []).some(r => r.group === 'need' && (r.fileType === 'resume' || r.fileType === 'cover_letter'))) return {};
-  return { files: await resumeFilesFor(serverUrl, released?.packet?.jobId ?? null, { setting: opts.resumeOnCue || 'on_cue' }), dragHint: 'drag it onto the upload box' };
+  // ⭐ T24: the account's "In a manual fill: offer a résumé on cue / never" (intentSettings.js), unless the fill named one
+  const setting = opts.resumeOnCue || await resumeOnCueSetting(serverUrl).catch(() => 'on_cue');
+  return { files: await resumeFilesFor(serverUrl, released?.packet?.jobId ?? null, { setting }), dragHint: 'drag it onto the upload box' };
 }
 
 /** One draw of the panel at a wizard step — on the dock, TOP frame. A failure here never stops the fill. */
