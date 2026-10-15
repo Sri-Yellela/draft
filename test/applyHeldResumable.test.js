@@ -241,7 +241,9 @@ test("TARGET MATCH IS UNCHANGED — the packet carries a home address, and origi
   // -> only then a token minted and spent. Widening WHICH packets exist must not touch it.
   // D56: "by origin" is now the packet's ORIGIN LIST (expected origin + its ATS family, from the adapter
   // table) — still checked here, before any token, and still on the release.
-  assert.match(handoff, /const forOrigin = \(list\.packets \|\| \[\]\)\.filter\(p => packetFillsOrigin\(p, origin\)\)/);
+  // ⭐ T11: one check for the page's origin AND, when the form is in a frame, the frame's.
+  assert.match(handoff, /const fillsHere = \(p\) => packetFillsOrigin\(p, origin\) && \(!inFrame \|\| packetFillsOrigin\(p, inFrame\.origin\)\);/);
+  assert.match(handoff, /const forOrigin = \(list\.packets \|\| \[\]\)\.filter\(fillsHere\)/);
   assert.match(handoff, /if \(forOrigin\.length === 0\)/);
   // Once MANY packets share one origin, choosing the newest without checking freshness would fail a
   // whole handoff on an expired packet while a usable one sat behind it.
@@ -249,8 +251,10 @@ test("TARGET MATCH IS UNCHANGED — the packet carries a home address, and origi
   assert.match(handoff, /reason: 'packet_stale'/);
   assert.match(handoff, /\(a\.postingGone \? 1 : 0\) - \(b\.postingGone \? 1 : 0\)/);
   assert.match(handoff, /if \(!shape\?\.hasForm \|\| shape\.fields\.length === 0\)/);
-  assert.match(handoff, /if \(shape\.origin !== origin\)/);
-  assert.match(handoff, /if \(!packetFillsOrigin\(released, origin\)\)/);
+  assert.match(handoff, /if \(!inFrame && shape\.origin !== origin\)/);
+  assert.match(handoff, /if \(!fillsHere\(released\)\)/);
+  // ⭐ T11: the frame's address travels with the mint, so the server refuses another job's frame before a token exists.
+  assert.match(handoff, /body: JSON\.stringify\(\{ url: tab\.url, frameUrl: inFrame\?\.url \?\? null \}\)/);
   // And the refusals happen BEFORE the mint, so a mismatch never spends a token.
   const mintAt = handoff.indexOf("/token`, {");
   assert.ok(mintAt > 0, "the mint call moved");

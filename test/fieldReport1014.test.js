@@ -110,7 +110,8 @@ test("⭐ T3 · the board job by address: its own report (the board's number), n
   const db = freshDb();
   const { calls, deps: d } = deps();
   const out = pageJobForExtension(db, 1, { url: STRIPE_PAGE, text: "" }, d);
-  assert.deepEqual({ ...out.posting }, { known: true, jobId: "greenhouse::8198280", title: "Software Engineer, Backend", company: "Stripe", how: "ats_id", onBoard: true });
+  assert.deepEqual({ ...out.posting }, { known: true, jobId: "greenhouse::8198280", title: "Software Engineer, Backend", company: "Stripe", how: "ats_id", onBoard: true, mine: false });
+  assert.equal(out.kind, "job", "BINDING FIRST: the response says what the page is");
   assert.equal(out.basis, "board");
   assert.equal(out.ats.score, 66);
   assert.deepEqual(calls.board, ["greenhouse::8198280"]);
@@ -144,7 +145,24 @@ test("⭐ T3 · a page draft does not hold is scored against ITS OWN TEXT — an
   assert.deepEqual(none.ats, { state: "no_base_resume" });
   assert.equal(none.basis, null);
   // nothing to go on
-  assert.deepEqual(pageJobForExtension(db, 1, { url: "https://newco.test/", text: "" }, d), { posting: null, ats: null, basis: null });
+  assert.deepEqual(pageJobForExtension(db, 1, { url: "https://newco.test/", text: "" }, d), { kind: "unread", posting: null, ats: null, basis: null });
+  // text was read and it is no posting — "not a job", which is not the same sentence as "could not read the page"
+  assert.equal(pageJobForExtension(db, 1, { url: "https://newco.test/", text: "Welcome to Newco. We make arms." }, d).kind, "not_a_job");
+});
+
+test("⭐ BINDING FIRST · an employer page naming no job is identified by its embedded ATS form's frame (≤ 3 frames)", () => {
+  const db = freshDb();
+  const { deps: d } = deps();
+  const frame = "https://job-boards.greenhouse.io/embed/job_app?for=stripe&token=8198280";
+  const out = pageJobForExtension(db, 1, { url: "https://careers.employer.test/apply", text: "", frameUrls: ["https://evil.test/x", frame] }, d);
+  assert.equal(out.posting?.jobId, "greenhouse::8198280");
+  assert.equal(out.posting.how, "frame");
+  assert.equal(out.kind, "job");
+  // a fourth frame is never looked at, and a non-http frame is ignored
+  const four = pageJobForExtension(db, 1, { url: "https://careers.employer.test/apply", text: "",
+    frameUrls: ["javascript:alert(1)", "https://a.test/", "https://b.test/", frame] }, d);
+  assert.equal(four.posting, null);
+  assert.equal(four.kind, "unread");
 });
 
 test("⛔ T3 · POST /api/extension/page is the extension's own credential only, rate-limited, and wired to the board's scorer", async (t) => {
@@ -173,11 +191,14 @@ test("⛔ T3 · POST /api/extension/page is the extension's own credential only,
 test("T3 · the extension asks on the press, binds what it finds, and shows the page's score with where it came from", async () => {
   const bg = read("extension/background.js");
   const ctx = bg.slice(at(bg, "async function popupContext"), at(bg, "async function previewActiveTab"));
-  assert.match(ctx, /await pageLookup\(tab, url\)/);
+  // ⭐ BINDING FIRST: the press identifies (and binds) the page before anything else — the page lookup is the identify's
+  assert.match(ctx, /const identity = url \? await identifyAndBind\(tab, \{ serverUrl: RESUME_MASTER_URL \}\)/);
+  assert.match(ctx, /const page = identity\?\.lookup/);
   assert.match(ctx, /board\.posting = \{ \.\.\.board\.posting, known: true, jobId: p\.jobId/, "a page draft names becomes the popup's posting");
   assert.match(read("extension/companion.js"), /'ATS scored from this page'/);
   const panel = read("extension/resumePanel.js");
-  assert.match(panel, /page = await lookupPage\(url\(\), \{ url: pageUrl, text \}\)/);
+  assert.match(panel, /const id = await identifyAndBind\(tab, \{ serverUrl: url\(\) \}\)/, "the panel's Read identifies and binds first too");
+  assert.match(read("extension/identify.js"), /lookup\(serverUrl, \{ url, frameUrls, text: read\.text \}\)/, "the text goes only when the address and frame named nothing");
   const { resumePanelModel } = await import("../extension/resumePanel.js");
   const m = resumePanelModel({ report: { state: "ready", score: 41, band: "moderate", matched: ["python"], missing: ["rust"], basis: "page" } });
   assert.equal(m.state, "nojob");

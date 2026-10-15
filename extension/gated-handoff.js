@@ -61,6 +61,9 @@ import { authedFetch } from './auth.js';
 import { bindingForTab, boundMissMessage } from './tabBinding.js';
 // ⭐ D96 §3: where each application stands, remembered — counts and times only, never an answer (progress.js).
 import { noteFill, notePrepared, noteSubmitted, resumeFor } from './progress.js';
+// ⭐ T11: the known ATS sites — the frame a form may be in. (autoRead.js imports this module too; SITES is read at call
+// time only, so the cycle is harmless.)
+import { SITES } from './autoRead.js';
 
 /** Matches the server's token TTL. A packet outlives its grant (G0 §9), so it is cleared on purpose. */
 export const PACKET_TTL_MS = 10 * 60 * 1000;
@@ -198,6 +201,8 @@ function probeFormShape() {
     hasForm: !!form,
     url: location.href,
     origin: location.origin,
+    // ⭐ T11: the iframes this document embeds (their src only) — so a form inside an ATS's frame is found and named.
+    frames: [...document.querySelectorAll('iframe[src]')].map(f => f.src).filter(s => /^https?:/i.test(s)).slice(0, 20),
     wizard,
     hasPassword,
     fields: controls.map((el, index) => ({
@@ -1177,6 +1182,83 @@ const api = async (serverUrl, path, init = {}) => {
   return res || new Response(null, { status: 401 });
 };
 
+// ── ⭐ T11 (field report 10-14) · THE FORM IS IN A FRAME ─────────────────────────────────────────────────────────────
+//
+// Measured in a real Chrome on the live page (scripts/t11FrameProbe.mjs, 10-14): Stripe's application page holds 2
+// controls of its own and the application — 46 controls — inside an iframe from job-boards.greenhouse.io/embed/job_app.
+// Every injection targeted the TOP frame, so the fill read Stripe's own document and said "No application form found".
+//
+// The fill now LOCATES the form: the probe runs in every frame the extension can reach (activeTab gives the top; a
+// site the user allowed in Options gives its frames), and the frame with the form is the target for every later step
+// — the fill, the re-reads, the wizard, the badge and the panel (the panel checks fields live, so it sits with them).
+// ⛔ A frame is a candidate only when its origin is the page's own or a known ATS site's (autoRead.js SITES), and its
+// address must be the packet's — origin in the list AND the same job id, checked by the server at match and mint and
+// again here after the release. An ATS frame the extension cannot reach is SAID ("Allow draft on Greenhouse"), never
+// worked around: the permission is asked for only from the user's click (popup.js), never from here.
+
+/** The injection target for a tab's form: its frame, once located — else the top frame. */
+const FORM_FRAME = new Map();   // tabId -> frameId (service-worker memory only)
+const at = (tabId) => (FORM_FRAME.get(tabId) ? { tabId, frameIds: [FORM_FRAME.get(tabId)] } : { tabId });
+
+/** The known ATS site a URL is on (autoRead.js SITES), or null. */
+export function atsSiteOf(url) {
+  let host;
+  try { const u = new URL(url); if (!/^https?:$/.test(u.protocol)) return null; host = u.hostname; } catch { return null; }
+  return SITES.find(s => s.hosts.some(re => re.test(host))) || null;
+}
+
+/**
+ * Which frame holds the application form — pure. `results` is executeScript's allFrames answer: [{ frameId, result }].
+ * A frame counts only with a form and at least one control, and only on the page's own origin or a known ATS site;
+ * the one with the most controls wins, the top frame on a tie. null when none has a form.
+ */
+export function chooseFormFrame(results = [], topOrigin = null) {
+  const ok = (results || []).filter(r => r?.result?.hasForm && (r.result.fields || []).length > 0 &&
+    (r.frameId === 0 || r.result.origin === topOrigin || atsSiteOf(r.result.url)));
+  if (!ok.length) return null;
+  ok.sort((a, b) => (b.result.fields.length - a.result.fields.length) || (a.frameId - b.frameId));
+  return { frameId: ok[0].frameId, shape: ok[0].result };
+}
+
+/**
+ * The ATS frames the TOP page embeds, from the iframes' own src — [{ site, url, origin }], at most one per site. A
+ * frame on the page's OWN site is not one (a Greenhouse-hosted form nests Greenhouse frames of its own).
+ */
+export function atsFramesOf(frameSrcs = [], topUrl = null) {
+  const own = topUrl ? atsSiteOf(topUrl)?.id : null;
+  const out = [];
+  for (const src of frameSrcs || []) {
+    const site = atsSiteOf(src);
+    if (site && site.id !== own && !out.some(f => f.site.id === site.id)) out.push({ site, url: src, origin: new URL(src).origin });
+  }
+  return out;
+}
+
+/** The sentence and the one action for a form in an ATS frame the extension may not read yet. */
+export function framePermissionResult(frame) {
+  const name = frame.site.name;
+  return {
+    ok: false, reason: 'frame_needs_permission',
+    site: { id: frame.site.id, name, origins: [...frame.site.origins] },
+    message: `This application form is inside a ${name} frame. Allow draft on ${name} to fill it.`,
+  };
+}
+
+/**
+ * Probe every reachable frame and locate the form. Read-only, isolated world.
+ * @returns {{ error?: string, top: object|null, form: { frameId, shape }|null, atsFrames: object[] }}
+ */
+async function locateForm(tab, topOrigin) {
+  let results;
+  try {
+    results = await chrome.scripting.executeScript({ target: { tabId: tab.id, allFrames: true }, func: probeFormShape });
+  } catch {
+    return { error: 'no_access', top: null, form: null, atsFrames: [] };
+  }
+  const top = (results || []).find(r => r.frameId === 0)?.result || null;
+  return { top, form: chooseFormFrame(results, topOrigin), atsFrames: atsFramesOf(top?.frames, tab.url) };
+}
+
 /**
  * Run the handoff on the active tab. Returns a result object; never throws at the caller.
  *
@@ -1209,11 +1291,21 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
     return { ok: false, reason: 'unsupported_scheme', message: 'Only http(s) pages are supported.' };
   }
 
+  // ⭐ T11: where is the form — this page, or a frame inside it? Read-only; nothing is released by looking.
+  // A probe that cannot run is reported where it always was — at the form step, after the server has said which case
+  // this page is — so "not one of its addresses" still outranks "no access".
+  const loc = await locateForm(tab, origin);
+  // The frame's address when the form is NOT in the top frame — it must be the packet's too (server and here).
+  const inFrame = loc.form && loc.form.frameId !== 0 ? { frameId: loc.form.frameId, url: loc.form.shape.url, origin: loc.form.shape.origin } : null;
+  const fillsHere = (p) => packetFillsOrigin(p, origin) && (!inFrame || packetFillsOrigin(p, inFrame.origin));
+
   // A packet already released into this tab — a re-invoke after the grant lapsed, or after the portal
   // moved to another step. Reuse it rather than spending a second token.
   const cached = await loadPacketForTab(tab.id);
-  if (cached && packetFillsOrigin(cached, origin)) {
-    return fillFromPacket({ tab, origin, released: cached, serverUrl, reused: true, opts });
+  // ⛔ T11: in a frame, the client checks only ORIGINS (the job id is the server's to read), and one ATS origin serves
+  // every employer's jobs — so a released packet is reused only in the very frame it was released for.
+  if (cached && loc.form && fillsHere(cached) && (cached.frameUrl ?? null) === (inFrame?.url ?? null)) {
+    return fillFromPacket({ tab, origin, frame: inFrame, released: cached, serverUrl, reused: true, opts });
   }
 
   let list;
@@ -1224,8 +1316,9 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
     // JOB ID (one URL parser, the server's), and says which of the three truthful cases this is.
     // ⭐ The tab binding rides along: on a stage whose address names no job (a sign-in page, a step that changed
     // without changing the URL), the server can still say which of YOUR jobs this is.
+    // ⭐ T11: and the form's frame, when it is in one — the server then names only packets that fill BOTH addresses.
     let res = await api(serverUrl, '/api/apply/handoff/match', {
-      method: 'POST', body: JSON.stringify({ url: tab.url, boundJobId: bound?.jobId ?? null }),
+      method: 'POST', body: JSON.stringify({ url: tab.url, boundJobId: bound?.jobId ?? null, frameUrl: inFrame?.url ?? null }),
     });
     if (res.status === 404) {
       // A server that predates D56: the origin-scoped list, as before. See portalQueueFor's note.
@@ -1244,16 +1337,26 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
 
   // TARGET MATCH, first half. The server nominated the addresses for each packet; this page has to be
   // one of them — checked HERE too, whatever the server said. Nothing has been fetched but counts.
-  const forOrigin = (list.packets || []).filter(p => packetFillsOrigin(p, origin));
+  const forOrigin = (list.packets || []).filter(fillsHere);
+  // ⭐ T11: a packet is ready for this page but its form is in an ATS frame draft may not read yet — say which, and
+  // offer the one permission (the popup asks for it from the click). Nothing has been released.
+  // The page's own form does not count while such a frame is unread: Stripe's page has a 2-control form of its own,
+  // and filling that would be filling the wrong form.
+  if ((!loc.form || loc.form.frameId === 0) && loc.atsFrames.length && (list.packets || []).some(p => packetFillsOrigin(p, origin))) {
+    const frame = loc.atsFrames[0];
+    const granted = await chrome.permissions.contains({ origins: [...frame.site.origins] }).catch(() => false);
+    if (!granted) return framePermissionResult(frame);
+  }
   if (forOrigin.length === 0) {
     // ⛔ D56: never "from your Draft queue" to someone on the manual route. The server says which case
     // this is; an old server says nothing, and then the honest sentence is the plain one.
     const reason = list.state && list.state !== 'ready' ? list.state : 'origin_mismatch';
     return {
       ok: false, reason,
-      // ⭐ D96 §2: on a bound tab the job is named — "capture it first" only with no binding and no match.
+      // ⭐ D96 §2: on a bound tab the job is named. ⛔ T16: no sentence sends the user back to an earlier step — the Fill
+      // press prepares by itself (tabState.js runFillChain); only what it cannot do names ONE button.
       message: boundMissMessage(bound, reason, list.message)
-        || "Nothing is prepared for this page. If draft knows this job, press \"Prepare this application\" in the draft popup; if not, capture it first.",
+        || 'Nothing is prepared for this page — draft could not tell which of your jobs it is. Capture adds it.',
       canPrepare: !!list.canPrepare, job: list.job || null, addresses: list.addresses || null,
     };
   }
@@ -1270,7 +1373,7 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
     return {
       ok: false, reason: 'packet_stale',
       // D56: an expired packet is never a dead end — "Prepare this application" makes a fresh one.
-      message: list.message || 'The answers prepared for this page have expired. Run it again in Draft to prepare fresh ones.',
+      message: list.message || 'The answers prepared for this page have expired — Fill prepares fresh ones before it fills.',
       canPrepare: !!list.canPrepare, job: list.job || null,
     };
   }
@@ -1280,23 +1383,18 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
   const chosen = fresh.sort((a, b) =>
     (a.postingGone ? 1 : 0) - (b.postingGone ? 1 : 0) || b.createdAt - a.createdAt)[0];
 
-  // TARGET MATCH, second half: a form has to be here. Read-only, isolated world.
-  let shape;
-  try {
-    const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: probeFormShape });
-    shape = r?.result;
-  } catch (e) {
-    return { ok: false, reason: 'no_access', message: 'Invoke the extension on the application tab.' };
-  }
+  // TARGET MATCH, second half: a form has to be here — on the page or in a frame of it (located above, read-only).
+  if (loc.error) return { ok: false, reason: 'no_access', message: 'Invoke the extension on the application tab.' };
+  const shape = loc.form?.shape;
   if (!shape?.hasForm || shape.fields.length === 0) {
     return {
       ok: false, reason: 'no_form',
       message: 'No application form found on this page. Nothing was released.',
     };
   }
-  // The probe reports the origin from inside the page. If it disagrees with the tab's, the tab moved
+  // The probe reports the origin from inside the page (or the frame). If it disagrees with the tab's, the tab moved
   // between the two reads and the match no longer means anything.
-  if (shape.origin !== origin) {
+  if (!inFrame && shape.origin !== origin) {
     return { ok: false, reason: 'origin_moved', message: 'The page changed. Nothing was released.' };
   }
 
@@ -1306,7 +1404,7 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
     // D56: the page's URL travels with the mint, so the server refuses — before a token exists — a
     // page that is not one of this application's addresses (origin list + job id).
     const mintRes = await api(serverUrl, `/api/apply/gate-packets/${chosen.packetId}/token`, {
-      method: 'POST', body: JSON.stringify({ url: tab.url }),
+      method: 'POST', body: JSON.stringify({ url: tab.url, frameUrl: inFrame?.url ?? null }),
     });
     if (!mintRes.ok) {
       const err = await mintRes.json().catch(() => ({}));
@@ -1330,13 +1428,13 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
   // with the page, nothing is filled even though the token has already been spent — a burnt token is
   // cheap and a misplaced home address is not.
   // ⛔ D56: against the packet's ORIGIN LIST — never wider, and never filled outside it.
-  if (!packetFillsOrigin(released, origin)) {
+  if (!fillsHere(released)) {
     await clearPacketForTab(tab.id);
     return { ok: false, reason: 'origin_mismatch_after_release', message: 'Origin mismatch. Nothing was filled.' };
   }
 
-  await savePacketForTab(tab.id, released);
-  return fillFromPacket({ tab, origin, released, serverUrl, reused: false, opts });
+  await savePacketForTab(tab.id, inFrame ? { ...released, frameUrl: inFrame.url } : released);
+  return fillFromPacket({ tab, origin, frame: inFrame, released, serverUrl, reused: false, opts });
 }
 
 /**
@@ -1346,7 +1444,7 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
 async function showBadge(tabId, state, meta = {}) {
   try {
     const [r] = await chrome.scripting.executeScript({
-      target: { tabId }, func: renderBadge,
+      target: at(tabId), func: renderBadge,
       args: [state, { ...meta, theme: { light: C_LIGHT, dark: C_DARK } }],
     });
     return r?.result || null;
@@ -1428,7 +1526,7 @@ async function waitForCandidate(tabId, origin, stepName, wizard, isCurrent = () 
     if (!isCurrent()) return { ok: false, reason: 'superseded' };
     let missing;
     try {
-      const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: findMissingRequired });
+      const [r] = await chrome.scripting.executeScript({ target: at(tabId), func: findMissingRequired });
       missing = r?.result || [];
     } catch { return { ok: false, reason: 'grant_lost' }; }
     if (!missing.length) return { ok: true, waited: recorded };
@@ -1442,7 +1540,7 @@ async function waitForCandidate(tabId, origin, stepName, wizard, isCurrent = () 
       if (b?.dismissed) return { ok: false, reason: 'dismissed' };
     }
     try {
-      const [d] = await chrome.scripting.executeScript({ target: { tabId }, func: badgeDismissed });
+      const [d] = await chrome.scripting.executeScript({ target: at(tabId), func: badgeDismissed });
       if (d?.result === true) return { ok: false, reason: 'dismissed' };
       const t = await chrome.tabs.get(tabId);
       if (!t?.url || new URL(t.url).origin !== origin) return { ok: false, reason: 'left_the_application' };
@@ -1498,7 +1596,7 @@ export function wizardMessage(filledCount, wizard) {
 async function advanceAndWait(tabId, fromStep) {
   let pressed;
   try {
-    const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: advanceWizard });
+    const [r] = await chrome.scripting.executeScript({ target: at(tabId), func: advanceWizard });
     pressed = r?.result;
   } catch { return { ok: false, reason: 'grant_lost' }; }
   if (!pressed?.ok) return { ok: false, reason: pressed?.reason || 'no_next_button', text: pressed?.text };
@@ -1507,7 +1605,7 @@ async function advanceAndWait(tabId, fromStep) {
     await sleepMs(250);
     let s;
     try {
-      const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: wizardState });
+      const [r] = await chrome.scripting.executeScript({ target: at(tabId), func: wizardState });
       s = r?.result;
     } catch { return { ok: false, reason: 'grant_lost' }; }
     if (s?.step && s.step !== fromStep) { await sleepMs(250); return { ok: true, step: s.step }; }
@@ -1565,16 +1663,18 @@ export async function fetchPdf(serverUrl, path, fallbackName = 'resume.pdf') {
   } catch { return null; /* the fill is still worth doing without it; reported by the caller */ }
 }
 
-async function fillFromPacket({ tab, origin, released, serverUrl, reused, opts = {} }) {
+async function fillFromPacket({ tab, origin, frame = null, released, serverUrl, reused, opts = {} }) {
+  // ⭐ T11: every step of this fill — probe, fill, re-read, wizard, badge, panel — goes to the form's frame.
+  if (frame?.frameId) FORM_FRAME.set(tab.id, frame.frameId); else FORM_FRAME.delete(tab.id);
   let shape;
   try {
-    const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: probeFormShape });
+    const [r] = await chrome.scripting.executeScript({ target: at(tab.id), func: probeFormShape });
     shape = r?.result;
   } catch {
     return { ok: false, reason: 'no_access', message: 'Invoke the extension on the application tab.' };
   }
   if (!shape?.hasForm) return { ok: false, reason: 'no_form', message: 'No form on this page. Nothing was released.' };
-  if (shape.origin !== origin) return { ok: false, reason: 'origin_moved', message: 'The page changed. Nothing was released.' };
+  if (shape.origin !== (frame?.origin || origin)) return { ok: false, reason: 'origin_moved', message: 'The page changed. Nothing was released.' };
 
   const answers = released.packet?.answers || [];
 
@@ -1608,13 +1708,12 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused, opts =
   if (!recognition.recognised) {
     // A panel an earlier fill drew for another step (measured on the fixture: G5's batch re-run on a reload painted
     // My Information's panel, then the step became Sign In) would describe a page that is not this one — it goes.
-    try { await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: removeReviewPanel }); } catch { /* none there */ }
+    try { await chrome.scripting.executeScript({ target: at(tab.id), func: removeReviewPanel }); } catch { /* none there */ }
     const badgeNow = await showBadge(tab.id, 'unrecognised', { note: recognition.why });
     return {
       ok: false, reason: 'form_not_recognised', reused: !!reused, packetId: released.packetId,
       filled: [], why: recognition.why, badge: badgeNow,
-      message: "This form isn't recognised — nothing was filled. Fill it yourself, or copy your answers " +
-        'from the Copy sheet in the draft popup.',
+      message: "This form isn't recognised — nothing was filled. Fill it yourself; the Copy sheet lists your answers to paste.",
     };
   }
 
@@ -1666,7 +1765,7 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused, opts =
     let r;
     try {
       const [res] = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
+        target: at(tab.id),
         world: 'MAIN',
         func: applyPlan,
         // D55 (b): the packet's repeating-section entries travel with the plan; applyPlan opens one
@@ -1715,7 +1814,7 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused, opts =
     settledRows = settleStepRows([...settledRows, ...stepRows]);
     stepRows = [];
     try {
-      const [p] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: probeFormShape });
+      const [p] = await chrome.scripting.executeScript({ target: at(tab.id), func: probeFormShape });
       step = p?.result;
     } catch {
       wizard.stoppedAt = 'grant_lost';
@@ -1768,7 +1867,7 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused, opts =
   let drawnPanel = null;
   try {
     const [drawn] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
+      target: at(tab.id),
       // ISOLATED, unlike the fill: the overlay needs chrome.runtime to send edits back, and only the
       // isolated world has it. The DOM is shared either way, so it is still a real element on the
       // real page.
@@ -1814,7 +1913,7 @@ async function fillFromPacket({ tab, origin, released, serverUrl, reused, opts =
   // answered, because Greenhouse validates only on Submit, which is never pressed for them.
   let missingAtEnd = [];
   try {
-    const [m] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: findMissingRequired });
+    const [m] = await chrome.scripting.executeScript({ target: at(tab.id), func: findMissingRequired });
     missingAtEnd = m?.result || [];
   } catch { /* the badge then says done; the overlay still lists what was filled */ }
   const badge = await showBadge(tab.id, missingAtEnd.length ? 'required' : 'done',
@@ -1904,7 +2003,7 @@ function fillOptions(opts = {}) {
 /** A re-read of the step after the fill — the probe again (labels and emptiness only). null when it cannot. */
 async function probeAgain(tabId) {
   try {
-    const [p] = await chrome.scripting.executeScript({ target: { tabId }, func: probeFormShape });
+    const [p] = await chrome.scripting.executeScript({ target: at(tabId), func: probeFormShape });
     return p?.result || null;
   } catch { return null; }
 }
@@ -1937,7 +2036,7 @@ async function panelMetaFor({ tab, released, serverUrl, runId = null }) {
 /** One draw of the panel at a wizard step. A failure here never stops the fill — the final draw reports. */
 async function drawReviewPanel(tabId, rows, meta) {
   try {
-    const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: renderOverlay, args: [{ rows }, meta] });
+    const [r] = await chrome.scripting.executeScript({ target: at(tabId), func: renderOverlay, args: [{ rows }, meta] });
     return r?.result || null;
   } catch (e) { return { ok: false, error: e.message }; }
 }
@@ -2157,11 +2256,11 @@ export function overlayEditSteps(field = {}, value = '') {
   return [asStep(loc[0], String(value))];
 }
 
-export async function applyOverlayEdit({ tabId, field, value }) {
+export async function applyOverlayEdit({ tabId, frameId = 0, field, value }) {
   const steps = overlayEditSteps(field, value);
   if (!steps.length) return { filled: [], skipped: [{ field: field?.label ?? null, reason: 'value_not_in_options' }] };
   const [r] = await chrome.scripting.executeScript({
-    target: { tabId }, world: 'MAIN', func: applyPlan, args: [steps, null, { neverFillSource: NEVER_FILL_RE.source }],
+    target: frameId ? { tabId, frameIds: [frameId] } : { tabId }, world: 'MAIN', func: applyPlan, args: [steps, null, { neverFillSource: NEVER_FILL_RE.source }],
   });
   return r?.result || null;
 }

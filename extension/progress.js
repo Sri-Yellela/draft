@@ -8,7 +8,7 @@
 // and an "In progress" list of the last five jobs brings you back to one.
 //
 //   jobProgress → { v: 1, owner, records: { [jobId]: { jobKey, jobId, title, company, postingUrl, link,
-//                   captured: { at }, read: { at, stage, fieldCount }, prepared: { at, packetId },
+//                   captured: { at }, read: { at, stage, fieldCount }, prepared: { at, packetId, expiresAt, answerCount },
 //                   filled: { n, of, needYou, check }, resume: { at, id, status, attached },
 //                   reviewed: { at }, submitted: { at }, updatedAt } } }
 //
@@ -26,11 +26,19 @@
 //     panel, "I submitted it" — all in the service worker, serialised so two events never lose each other's write.
 //   · ⛔ Never sent anywhere: nothing in this file makes a request, and no request body carries a record.
 //   · No new permission.
+//   · ⭐ T14 (field report 10-14): `addresses` — up to 8 addresses this job has been SEEN at (the page a capture, a
+//     read, a fill or the board's hand-off happened on, and the server's canonical posting), each through
+//     tabBinding.js addressOf: origin + path + identifier-looking parameters only (no tracker, no credential, no
+//     fragment). It is what lets a NEW tab on one of them bind to the job at once (tabBinding.js knownJobForAddress) —
+//     a local comparison, never sent. `ats` — the last score draft gave this job here ({ at, score, band }), so the
+//     popup's card can show it again without a read.
 //   · ⭐ D98 §4 (lane J6): `resume` is the résumé the on-page panel generated for THIS job — the generation's id
 //     (erg_…, draft's server's), its last status (queued · generating · ready · refused · failed · cancelled), when it
 //     started and when you pressed Attach. No HTML, no file, no file name, no score: the panel asks the server for those
 //     each time it opens (extension/resumePanel.js). It is what lets the panel come back after a popup close, a reload
 //     or a Workday step change, and lets a later fill attach the SAME file without generating again.
+
+import { addressOf } from './tabBinding.js';
 
 export const PROGRESS_KEY = 'jobProgress';
 export const PROGRESS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -39,8 +47,9 @@ const MAX_RECORDS = 50;
 
 const STEPS = Object.freeze({
   captured: ['at'],
+  ats: ['at', 'score', 'band'],
   read: ['at', 'stage', 'fieldCount'],
-  prepared: ['at', 'packetId'],
+  prepared: ['at', 'packetId', 'expiresAt', 'answerCount'],
   filled: ['n', 'of', 'needYou', 'check'],
   resume: ['at', 'id', 'status', 'attached'],
   reviewed: ['at'],
@@ -53,8 +62,11 @@ const webUrl = (v) => {
   if (typeof v !== 'string' || v.length > 2048) return null;
   try { const u = new URL(v); return /^https?:$/.test(u.protocol) ? u.href : null; } catch { return null; }
 };
-const STEP_FIELD = { at: num, n: num, of: num, needYou: num, check: num, fieldCount: num,
-  stage: (v) => str(v, 40), packetId: (v) => (v == null ? null : str(String(v), 64)),
+export const MAX_ADDRESSES = 8;
+/** T14: the addresses, each kept through addressOf (tabBinding.js), newest first, deduplicated, at most MAX_ADDRESSES. */
+const addressList = (v) => [...new Set((Array.isArray(v) ? v : []).map(addressOf).filter(Boolean))].slice(0, MAX_ADDRESSES);
+const STEP_FIELD = { at: num, n: num, of: num, needYou: num, check: num, fieldCount: num, expiresAt: num, answerCount: num,
+  stage: (v) => str(v, 40), band: (v) => str(v, 40), score: (v) => (Number.isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : null), packetId: (v) => (v == null ? null : str(String(v), 64)),
   // D98: the generation's id is the server's opaque erg_<hex>; its status one of six words; Attach a time.
   id: (v) => (typeof v === 'string' && /^erg_[a-f0-9]{8,64}$/.test(v) ? v : null),
   status: (v) => (RESUME_STATUSES.includes(v) ? v : null),
@@ -68,6 +80,7 @@ export function sanitiseRecord(r) {
   const out = {
     jobId: String(r.jobId).slice(0, 128), jobKey: str(r.jobKey, 200),
     title: str(r.title), company: str(r.company), postingUrl: webUrl(r.postingUrl), link: webUrl(r.link),
+    addresses: addressList(r.addresses),
     updatedAt: num(r.updatedAt) ?? Date.now(),
   };
   for (const [step, fields] of Object.entries(STEPS)) {
@@ -145,6 +158,8 @@ function patch(ref = {}, changes = {}) {
     if (ref.jobKey) next.jobKey = ref.jobKey;
     for (const [k, v] of Object.entries(changes || {})) {
       if (v == null) continue;
+      // T14: addresses ACCUMULATE — the new ones first, then the ones already known (addressList dedupes and caps)
+      if (k === 'addresses') { next.addresses = [...(Array.isArray(v) ? v : [v]), ...(prior.addresses || [])]; continue; }
       next[k] = STEPS[k] ? { ...(prior[k] || {}), ...v } : v;
     }
     next.updatedAt = Date.now();
@@ -199,13 +214,37 @@ export function whenWords(ms, now = Date.now()) {
   return d.toDateString() === t.toDateString() ? `${two(d.getHours())}:${two(d.getMinutes())}` : `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 }
 
+/** "6h ago", "12 min ago", "3 days ago". */
+export function agoWords(ms) {
+  const m = Math.max(0, Math.round((Number(ms) || 0) / 60000));
+  if (m < 60) return m <= 1 ? 'just now' : `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 48) return `${h}h ago`;
+  return `${Math.round(h / 24)} days ago`;
+}
+
+/**
+ * ⭐ T15 · ONE TRUTH FOR "PREPARED" — the SERVER packet's facts as the server last stated them (made, expires, how many
+ * fields: gated-handoff.js prepareAndFill, background.js popupContext → notePacketState), never a local count standing
+ * in for them: "Answers prepared 14:02 · 12 fields · expire 17 Oct", or "Prepared 6h ago — expired". A record from
+ * before T15 (no expiry known) says only "Answers prepared".
+ */
+export function preparedParts(p, now = Date.now()) {
+  if (!p?.at) return [];
+  if (Number.isFinite(p.expiresAt) && now >= p.expiresAt) return [`Prepared ${agoWords(now - p.at)} — expired`];
+  const parts = [Number.isFinite(p.expiresAt) ? `Answers prepared ${whenWords(p.at, now)}` : 'Answers prepared'];
+  if (Number.isFinite(p.answerCount)) parts.push(`${p.answerCount} ${p.answerCount === 1 ? 'field' : 'fields'}`);
+  if (Number.isFinite(p.expiresAt)) parts.push(`expire ${whenWords(p.expiresAt, now)}`);
+  return parts;
+}
+
 /** "Captured 10:41 · Page read 10:42 · Answers prepared · Filled 14 of 18 · 2 need you · 3 to check · Reviewed · Submitted" */
 export function progressLine(r, now = Date.now()) {
   if (!r) return '';
   const parts = [];
   if (r.captured?.at) parts.push(`Captured ${whenWords(r.captured.at, now)}`);
   if (r.read?.at) parts.push(`Page read ${whenWords(r.read.at, now)}`);
-  if (r.prepared?.at) parts.push('Answers prepared');
+  if (r.prepared?.at) parts.push(...preparedParts(r.prepared, now));
   if (r.filled && Number.isFinite(r.filled.n)) {
     parts.push(Number.isFinite(r.filled.of) && r.filled.of > 0 ? `Filled ${r.filled.n} of ${r.filled.of}` : `Filled ${r.filled.n}`);
     if (r.filled.needYou > 0) parts.push(`${r.filled.needYou} need${r.filled.needYou === 1 ? 's' : ''} you`);
@@ -227,9 +266,10 @@ export function standWords(r) {
   if (r.filled && Number.isFinite(r.filled.n)) {
     return Number.isFinite(r.filled.of) && r.filled.of > 0 ? `Filled ${r.filled.n} of ${r.filled.of}` : `Filled ${r.filled.n}`;
   }
-  if (r.prepared?.at) return 'Answers prepared';
+  if (r.prepared?.at) return Number.isFinite(r.prepared.expiresAt) && Date.now() >= r.prepared.expiresAt ? 'Prepared — expired' : 'Answers prepared';
   if (r.read?.at) return 'Page read';
   if (r.captured?.at) return 'Captured';
+  if (r.addresses?.length) return 'Opened';
   return '';
 }
 
@@ -239,16 +279,17 @@ export const jobLabel = (r) => [r?.title, r?.company].filter(Boolean).join(' at 
 const quiet = (fn) => async (...a) => { try { return await fn(...a); } catch { return null; } };
 
 /** A capture that landed (background.js captureActiveTab). `extracted` is the extractor's title and company. */
-export const noteCapture = quiet(async (result, extracted = null) => {
+export const noteCapture = quiet(async (result, extracted = null, tabUrl = null) => {
   if (!result?.success || result.jobId == null) return null;
   return patch({ jobId: result.jobId }, {
     title: extracted?.title || null, company: extracted?.company || null, link: result.link || null,
     captured: { at: Date.now() },
+    addresses: [extracted?.url, tabUrl].filter(Boolean),
   });
 });
 
 /** "Read this page" (background.js popupContext): the server's answer about the page, and the tab's binding. */
-export const noteContext = quiet(async (board, binding = null) => {
+export const noteContext = quiet(async (board, binding = null, { url = null, ats = null } = {}) => {
   const posting = board?.posting?.known ? board.posting : null;
   const jobId = posting?.jobId ?? binding?.jobId ?? null;
   if (jobId == null) return null;
@@ -262,7 +303,21 @@ export const noteContext = quiet(async (board, binding = null) => {
     // a job captured by another route (the web app, another device) shows its capture time too
     captured: !prior?.captured?.at && posting?.captured && Number.isFinite(posting.capturedAt) ? { at: posting.capturedAt } : null,
     read: { at: Date.now(), stage: board?.ats?.stage ?? null },
+    // T14: the page read here and the server's canonical posting are addresses this job is known at
+    addresses: [url, pk?.canonicalUrl].filter(Boolean),
+    ats: ats && Number.isFinite(ats.score) ? { at: Date.now(), score: ats.score, band: ats.band ?? null } : null,
   });
+});
+
+/**
+ * ⭐ T14 · an address this job was seen at — a bound tab's fill, the board's hand-off. Creates the record on a job's
+ * first event (it then reads "Opened" in the In progress list). Never throws.
+ */
+export const noteAddress = quiet(async (jobId, url, { title = null, company = null } = {}) => {
+  if (jobId == null || !addressOf(url)) return null;
+  const prior = await get({ jobId });
+  if (prior?.addresses?.[0] === addressOf(url)) return prior;   // already the newest: no write
+  return patch({ jobId }, { title, company, addresses: [url] });
 });
 
 /** "Prepare this application" built a packet (gated-handoff.js prepareAndFill). */
@@ -270,7 +325,27 @@ export const notePrepared = quiet(async (body) => {
   if (!body?.ok || body.job?.jobId == null) return null;
   return patch({ jobId: body.job.jobId }, {
     title: body.job.title || null, company: body.job.company || null,
-    prepared: { at: Date.now(), packetId: body.packetId ?? null },
+    // ⭐ T15: the server's packet — when it was made, when it goes off, how many fields (routes/apply.js /prepare)
+    prepared: { at: Number.isFinite(body.packet?.createdAt) ? body.packet.createdAt : Date.now(), packetId: body.packetId ?? null,
+                expiresAt: Number.isFinite(body.packet?.expiresAt) ? body.packet.expiresAt : null,
+                answerCount: Number.isFinite(body.packet?.answerCount) ? body.packet.answerCount : null },
+  });
+});
+
+/**
+ * ⭐ T15 · the server's list of packets for this page (POST /api/apply/handoff/match, as "Read this page" asks it): the
+ * newest one for THIS job is what the record remembers as prepared — made, expires (its own staleAfterMs), field count.
+ * No packet listed → nothing written (a packet a fill has released stops being listed; it was still prepared).
+ */
+export const notePacketState = quiet(async (jobId, packets = []) => {
+  if (jobId == null) return null;
+  const mine = (Array.isArray(packets) ? packets : []).filter(p => p && String(p.jobId) === String(jobId) && Number.isFinite(p.createdAt))
+    .sort((a, b) => b.createdAt - a.createdAt)[0];
+  if (!mine) return null;
+  return patch({ jobId }, {
+    prepared: { at: mine.createdAt, packetId: mine.packetId ?? null,
+                expiresAt: Number.isFinite(mine.staleAfterMs) ? mine.createdAt + mine.staleAfterMs : null,
+                answerCount: Number.isFinite(mine.answerCount) ? mine.answerCount : null },
   });
 });
 

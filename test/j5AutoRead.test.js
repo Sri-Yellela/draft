@@ -243,10 +243,20 @@ test("⛔ D97 · onInstalled (update) / onStartup reconcile: D64's switch migrat
   h.restore();
 });
 
-test("⛔ D97 · permissions.request lives in ONE place: Options' switch handler, as its first call — never on load or install", () => {
+test("⛔ D97 · permissions.request lives in TWO click handlers only — Options' switch, and T11's 'Allow draft on <site>' — each as its first call, never on load or install", () => {
   const files = collectRequiredFiles(manifest).filter(f => f.endsWith(".js") || f.endsWith(".html"));
-  const hits = files.filter(f => /permissions\.request\(/.test(read(`extension/${f}`)));
-  assert.deepEqual(hits, ["options-auto.js"]);
+  const hits = files.filter(f => /permissions\.request\(/.test(read(`extension/${f}`))).sort();
+  // ⭐ T11 (field report 10-14, owner): a form inside an ATS's frame → "one button, and permissions.request is called
+  // inside that click". The popup's button is the second and last place; the same rule holds for it below.
+  assert.deepEqual(hits, ["options-auto.js", "popup.js"]);
+  const pop = read("extension/popup.js");
+  assert.equal((pop.match(/permissions\.request\(/g) || []).length, 1, "one request in the popup");
+  const click = pop.slice(at(pop, "document.getElementById('btn-allow-frame').addEventListener('click', async () => {"),
+    at(pop, "document.getElementById('btn-fill-primary').addEventListener('click', fillActiveTab);"));
+  const firstChrome = click.indexOf("chrome.");
+  assert.ok(click.slice(firstChrome).startsWith("chrome.permissions.request({ origins:"), "the request is the click's first chrome call");
+  assert.ok(click.indexOf("chrome.permissions.request(") < click.indexOf("await fillActiveTab"), "before the fill");
+  assert.equal(click.indexOf("await"), click.indexOf("await chrome.permissions.request("), "nothing is awaited before it — the gesture holds");
   const opt = read("extension/options-auto.js");
   const fn = opt.slice(at(opt, "export function onSwitch(api,"), at(opt, "const hhmm ="));
   const firstCall = fn.indexOf("api.");
