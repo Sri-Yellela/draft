@@ -217,13 +217,14 @@ export function PrivacyPage() {
               from that board's own listing; we refuse any other link and save nothing.
             </LI>
             <LI>
-              If you click <Strong>ATS Score Tool</Strong> in the extension's popup, it copies the
-              visible text of the page you are on and opens your {BRAND} ATS Score page with
-              the text already filled in. That text travels in the address of the page it opens,
-              which means it may appear in our ordinary server logs. Earlier versions also added an
-              "ATS Score this job" button into job pages themselves; that button has been removed,
-              and the extension no longer changes the appearance of any page except to show you a
-              confirmation message after a capture you asked for.
+              Earlier versions had an <Strong>ATS Score Tool</Strong> button in the extension's popup that
+              copied the visible text of the page you were on into the address of your {BRAND} ATS
+              Score page, where it could appear in our ordinary server logs. That button has been
+              removed: the extension now shows {BRAND}'s own report for a job in its panel on the page,
+              and sends no page text in an address. Earlier versions also added an "ATS Score this job"
+              button into job pages themselves; that button has been removed too, and the extension no
+              longer changes the appearance of any page except to show you its own panel and a
+              confirmation message after something you asked for.
             </LI>
             <LI>
               Data extracted by the extension is sent to {CANONICAL_HOST}, our server, and
@@ -276,10 +277,10 @@ export function PrivacyPage() {
 
           <H3>What the Extension Stores in Your Browser</H3>
           <P>
-            The extension keeps nine things in your browser's own extension storage. Five are
+            The extension keeps ten things in your browser's own extension storage. Six are
             ordinary local storage and stay until you uninstall the extension or disconnect it; the
             other four are memory-backed session storage, which your browser discards when you
-            restart it. Only one of the nine — the extension's own access token, described below — is
+            restart it. Only one of the ten — the extension's own access token, described below — is
             ever sent anywhere, and it goes only to us. (Earlier versions also stored a custom
             keyboard shortcut; that setting was removed, and any value it left behind is deleted
             when you open the extension's options page. Shortcuts are now managed by Chrome itself.)
@@ -313,8 +314,8 @@ export function PrivacyPage() {
               restart your browser. The ten-minute expiry does not apply to it either.
             </LI>
             <LI>
-              <Strong>Which job a tab is on</Strong> — the job's draft id, its title and company, the
-              time it was linked, and which side of the page the Copy sheet sits on — once you capture
+              <Strong>Which job a tab is on</Strong> — the job's draft id, its title and company, and the
+              time it was linked — once you capture
               a job in that tab or draft recognises the posting there, so the later pages of the same
               application (signing in, the application's steps) are known to be that job. It holds no
               answers and nothing about you, and it is never shared between tabs. Session storage:
@@ -363,6 +364,14 @@ export function PrivacyPage() {
               answers) and field counts of application pages draft read, kept on this computer for 30
               days to show how well a page was read. Local storage; never sent anywhere. The
               ten-minute expiry does not apply to it.
+            </LI>
+            <LI>
+              <Strong>Where draft's panel sits on each site</Strong> — for each site you used the
+              extension's on-page panel on: that site's address (never a page's path), and the panel's
+              position, size, which edge it is snapped to, whether it is collapsed, which tab it shows and
+              which tabs are in their own windows — so it opens where you left it. It holds nothing of
+              the page and nothing about you. Local storage; never sent anywhere; the 50 most recent
+              sites, each kept 30 days from its last change. The ten-minute expiry does not apply to it.
             </LI>
           </UL>
 

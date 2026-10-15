@@ -61,7 +61,9 @@ function chromeStub({ attachResult = { target: true, set: true, verified: true, 
     tabs: { query: async () => [TAB], create: async (o) => { out.opened.push(o.url); return { id: 99 }; } },
     scripting: {
       executeScript: async (x) => {
-        out.injected.push({ func: x.func.name, args: x.args });
+        // ⭐ T17: a file by name — the dock (dock.js) at frame 0 before the view, the ATS component — recorded apart
+        if (!x.func) { (out.files = out.files || []).push({ files: x.files, target: x.target }); return [{ result: null }]; }
+        out.injected.push({ func: x.func.name, args: x.args, target: x.target });
         if (x.func.name === "renderResumePanel") return [{ result: { ok: true, rendered: true, state: x.args[0].state } }];
         if (x.func.name === "attachResumeFile") return [{ result: x.args[0].probe ? { target: out.attach.target, reason: out.attach.target ? null : "no_file_input" } : out.attach }];
         return [{ result: null }];
@@ -97,7 +99,7 @@ const until = async (h, id, done = (s) => !["generating"].includes(s) && s !== "
 };
 
 // ── ⛔ USER-TRIGGERED ONLY ────────────────────────────────────────────────────────────────────────────────────────
-test("⛔ J6: a résumé is generated only by the panel's own click — never from the popup, never without the click's trigger, never by opening", async (t) => {
+test("⛔ J6 → T22: a résumé is started only by ONE handler, from a page's tab with the click's trigger — never from the popup, never by opening; the Résumé tab itself starts nothing", async (t) => {
   const s = await server(t);
   const urls = recordFetch(t);
   chromeStub();
@@ -121,11 +123,15 @@ test("⛔ J6: a résumé is generated only by the panel's own click — never fr
   assert.ok(urls.length > 0);
   // ⛔ in the page: every press that reaches the server or the page is behind ev.isTrusted
   const src = read("extension/resumePanel.js");
-  const click = src.slice(at(src, "const onClick = async (ev) => {"), at(src, "const onKey = (ev) => {"));
+  // ⭐ T17: one click handler serves both of the dock's views (ATS and Résumé); the window's keys are the dock's
+  const click = src.slice(at(src, "const onClick = (r) => async (ev) => {"), at(src, "host.__draftCleanup = cleanup;"));
   const trusted = at(click, "if (!ev.isTrusted) return;");
-  for (const role of ["'download'", "'generate'", "'regenerate'", "'cancel'", "'attach'", "'edit'"]) {
+  for (const role of ["'download'", "'cancel'", "'attach'", "'edit'"]) {
     assert.ok(at(click, `role === ${role}`) > trusted, `${role} is handled before the trusted-click check`);
   }
+  // ⭐ T22 REVISED: the view starts nothing — its Generate / Regenerate are gone; the handler above is the one start,
+  // for the Draft button (T24) and the résumé row (T18) to send
+  assert.doesNotMatch(click, /role === 'generate'|role === 'regenerate'|RESUME_GENERATE/);
   // the ONE start is the RESUME_GENERATE handler — no other code in the extension POSTs it
   const starts = [...src.matchAll(/'\/api\/extension\/resume',/g)];
   assert.equal(starts.length, 1, "one place starts a generation");
@@ -152,7 +158,7 @@ test("⛔ J6: every request goes to draft's own server — never a model, never 
   assert.deepEqual(elsewhere, [], "a request left for somewhere other than draft's server");
   assert.ok(urls.some(u => u.startsWith(`${s.origin}/api/extension/resume`)));
   // statically: the module makes no request of its own — every one is authedFetch(<the router's server>, '/api/…')
-  for (const f of ["extension/resumePanel.js", "extension/popup-resume.js"]) {
+  for (const f of ["extension/resumePanel.js"]) {   // (T22: popup-resume.js is gone)
     const src = read(f).replace(/\/\/.*$/gm, "");
     assert.doesNotMatch(src, /(?<![\w.])fetch\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|importScripts/, `${f} makes a request of its own`);
     assert.doesNotMatch(src, /['"`]https?:\/\//, `${f} names an address`);
@@ -204,8 +210,11 @@ test("⛔ J6: no cost, token or model word in anything the panel shows — whate
     assert.doesNotMatch(JSON.stringify({ ...m, preview: null }), /a_plus_resume|inputTokens|costUsd|claude/i, `${m.state} carries a leaked field`);
   }
   // the allowance is shown in slot words, never money
-  assert.match(modelWords(models[1]), /Uses 1 of your 10 Draft slots today — 7 left\./);
-  assert.match(modelWords(models[1]), /Software Engineer at Zoom/, "it names the job it will use");
+  // ⭐ T22 REVISED: the "none" state is a view — it names the job and starts nothing, so it no longer quotes the slot it
+  // would use; the allowance is still said in slot words where it matters (all slots used)
+  assert.match(modelWords(models[1]), /No résumé has been made for this job yet\./);
+  assert.match(modelWords(models[1]), /Software Engineer at Zoom/, "it names the job");
+  assert.match(modelWords(models[4]), /You have used all 10 of your Draft slots for now — they come back over 24 hours\./);
   // the panel's OWN sentences (the renderer's literals) say none of it either
   const src = read("extension/resumePanel.js");
   const render = src.slice(at(src, "export function renderResumePanel(model, meta) {"), at(src, "// ── the injected attach"));
@@ -253,7 +262,7 @@ test("⛔ J6: Attach — the PDF set on the page and VERIFIED reads 'Attached: <
   assert.match(ready.model.changes, /^What we changed — /);
   assert.deepEqual(ready.model.score, { before: 62, after: 81 });
   assert.match(ready.model.guard.text, /Checked against your profile/);
-  assert.deepEqual(ready.model.actions.map(a => a.label), ["Attach", "Regenerate", "Edit in a full page"]);
+  assert.deepEqual(ready.model.actions.map(a => a.label), ["Attach", "Download PDF", "Edit in a full page"], "⭐ T22: no Regenerate — a view");
 
   // verified
   const a = await h.RESUME_ATTACH({ id: g.model.id }, fromTab);
@@ -373,7 +382,8 @@ test("⛔ J6: once attached, the résumé is part of the payload — the Copy sh
   const offer = panelRowsForStep({ stepName: "My Experience", fields: [{ index: 0, type: "file", label: "Resume/CV*", id: "ws-resume", required: true, visible: false }] });
   assert.equal(offer[0].resumeOffer, true);
   const ro = read("extension/review-overlay.js");
-  assert.match(ro, /if \(role === 'resume'\) \{ void send\(\{ type: 'RESUME_PANEL_OPEN' \}\); return; \}/);
+  // ⭐ T17 / T22: it shows the dock's Résumé tab — a view
+  assert.match(ro, /if \(role === 'resume'\) \{ void send\(\{ type: 'RESUME_PANEL_OPEN', tab: 'resume' \}\); return; \}/);
   assert.ok(at(ro, "if (role === 'resume')") > at(ro, "if (!ev.isTrusted) return;"), "the offer is a trusted click too");
 });
 
@@ -393,7 +403,7 @@ test("⛔ J6: the preview HTML is cleaned again in the extension — no script, 
   assert.doesNotMatch(m.preview.html, /tracker\.test/);
   // and in the page: an inert DOMParser document, everything that runs or loads removed, its own shadow root
   const src = read("extension/resumePanel.js");
-  const fillPreview = src.slice(at(src, "const fillPreview = (el, html) => {"), at(src, "const host = document.createElement('div');"));
+  const fillPreview = src.slice(at(src, "const fillPreview = (el, html) => {"), at(src, "// The two hosts, from the dock"));
   assert.match(fillPreview, /const r = el\.attachShadow\(\{ mode: 'open' \}\);/);
   assert.match(fillPreview, /new DOMParser\(\)\.parseFromString\(/);
   assert.match(fillPreview, /doc\.querySelectorAll\(DROP\)\.forEach\(n => n\.remove\(\)\);/);
@@ -406,7 +416,7 @@ test("⛔ J6: the preview HTML is cleaned again in the extension — no script, 
 test("⛔ J6: no new permission and no new storage key — the panel uses scripting, activeTab, storage and tabs.create only", () => {
   const manifest = JSON.parse(read("extension/manifest.json"));
   assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"], "the permission list changed");
-  for (const f of ["extension/resumePanel.js", "extension/popup-resume.js"]) {
+  for (const f of ["extension/resumePanel.js"]) {   // (T22: popup-resume.js is gone)
     const src = read(f);
     assert.doesNotMatch(src, /chrome\.(downloads|notifications|cookies|webRequest|identity|permissions|history|bookmarks|tabs\.(update|get|onUpdated))/, `${f} needs a new permission`);
     assert.doesNotMatch(src, /chrome\.storage\.(local|session|sync)\.set|localStorage|sessionStorage|indexedDB/, `${f} stores something of its own`);
@@ -437,24 +447,12 @@ test("J6: the attach picks the résumé's upload exactly as the fill does (resum
 });
 
 // ── the popup's button: D23 holds, and it only OPENS ────────────────────────────────────────────────────────────
-test("⛔ J6 (D23): the popup's Résumé button sends nothing on open, and on a press only asks the panel to OPEN — never to generate", async () => {
-  const vm = await import("node:vm");
-  const sent = [];
-  let onClick = null;
-  let closed = 0;
-  const btn = { disabled: false, addEventListener: (ev, fn) => { if (ev === "click") onClick = fn; } };
-  const status = { textContent: "" };
-  const ctx = vm.createContext({
-    document: { getElementById: (id) => (id === "btn-resume-onpage" ? btn : id === "status" ? status : null) },
-    chrome: { runtime: { sendMessage: async (m) => { sent.push(m); return { ok: true }; } } },
-    window: { close: () => { closed++; } },
-  });
-  vm.runInContext(read("extension/popup-resume.js"), ctx);
-  assert.deepEqual(sent, [], "the popup asked something on open");
-  assert.equal(typeof onClick, "function");
-  await onClick();
-  assert.deepEqual(sent.map(m => m.type), ["RESUME_PANEL_OPEN"]);
-  assert.equal(closed, 1, "the popup closes once the panel is on the page");
-  assert.match(read("extension/popup.html"), /<button class="mb" id="btn-resume-onpage"[^>]*>[\s\S]*?Résumé for this job<\/button>/);
-  assert.match(read("extension/popup.html"), /<script type="module" src="popup-resume\.js"><\/script>/);
+// ⭐ T22 REVISED (owner 10-15): the popup's stand-alone "Résumé for this job" is GONE — a résumé is started only from the
+// Draft button and the résumé row (T24 / T18). The popup reaches the Résumé VIEW through Open dock (the dock's tabs).
+test("⛔ J6 → T22: the popup has no Résumé button — it starts nothing; Open dock shows the dock, whose Résumé tab is a view", () => {
+  const html = read("extension/popup.html");
+  assert.doesNotMatch(html, /id="btn-resume-onpage"|popup-resume\.js|Résumé for this job/);
+  assert.ok(!fs.existsSync("extension/popup-resume.js"));
+  assert.doesNotMatch(read("extension/popup.js"), /RESUME_PANEL_OPEN|RESUME_GENERATE/);
+  assert.match(html, /id="btn-open-dock"/);
 });

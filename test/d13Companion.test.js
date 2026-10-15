@@ -172,17 +172,19 @@ test("⛔ D13: no new storage, no new permission — and all four actions stay v
   assert.match(bg, /if \(message\.type === 'FILL_ACTIVE_TAB'\) \{\s*handleGatedHandoff\(\)/);
 
   const html = read("extension/popup.html");
-  // D23: the heading only appears once the page has been read; the four sit under it either way.
-  const everything = html.slice(at(html, '<p class="all-head" id="all-head" style="display:none">Everything</p>'), at(html, '<p class="result-text"'));
-  for (const id of ["btn-capture-job", "btn-fill", "btn-ats", "btn-resume"]) {
-    assert.match(everything, new RegExp(`id="${id}"`), `${id} is not under Everything`);
+  // ⭐ T22 (owner 10-15): the popup is a LAUNCHER — the four tiles under "Everything" are gone. What D13 guarded (a wrong
+  // guess must never HIDE an action) now holds this way: the actions are the main action's Capture it / Fill it, the
+  // Draft button stays, and Capture and Fill are always Ctrl+Shift+K / Ctrl+Shift+Y and the right-click menu
+  // (test/t22PopupLauncher.test.js pins each one reachable).
+  for (const id of ["btn-capture-primary", "btn-fill-primary", "btn-resume", "btn-open-dock"]) {
+    assert.match(html, new RegExp(`id="${id}"`), `${id} is not in the popup`);
   }
   assert.ok(html.indexOf('src="companion.js"') < html.indexOf('src="popup.js"'), "companion.js must load first");
 
   // On a page that cannot be read, Capture is disabled — never hidden.
   const popupSrc = read("extension/popup.js");
   const unreadable = popupSrc.slice(at(popupSrc, "if (!preview?.capturable) {"), at(popupSrc, "setStatus('Open a job posting to capture it');"));
-  assert.match(unreadable, /cap\.style\.display = 'inline-flex';\s*cap\.disabled = true;/);
+  assert.match(unreadable, /showCaptureAction\(\);\s*const cap = document\.getElementById\('btn-capture-primary'\);\s*cap\.disabled = true;/);
 
   // The popup renders server text as TEXT.
   const popup = read("extension/popup.js");

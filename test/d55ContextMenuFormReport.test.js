@@ -58,10 +58,13 @@ test("⛔ D55 B: contextMenus is declared — and rationalised, reconciled, just
   assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"], run_at: "document_start", all_frames: false }]);
 });
 
-test("D55 B: two items — Save this page (pages) and Save link (http(s) links only)", () => {
+test("D55 B: Save this page (pages) and Save link (http(s) links only) — and, since T22, Fill and the ATS report", () => {
+  // ⭐ T22 (owner 10-15): the popup's fill and score tiles left; what they did stays one right-click away
   assert.deepEqual(CONTEXT_MENUS.map((m) => [m.id, m.title, [...m.contexts]]), [
     [MENU_SAVE_PAGE, "Save this page to draft", ["page"]],
     [MENU_SAVE_LINK, "Save link to draft", ["link"]],
+    ["draft-fill-page", "Fill this application with draft", ["page"]],
+    ["draft-ats-page", "Show draft's ATS report", ["page"]],
   ]);
   assert.deepEqual([...CONTEXT_MENUS[1].targetUrlPatterns], ["http://*/*", "https://*/*"]);
   assert.equal(saveableLink("javascript:alert(1)"), null);

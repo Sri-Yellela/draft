@@ -18,12 +18,17 @@ const exported = (() => {
   return s.slice("export ".length, at(s, "\n}\n") + 2);
 })();
 
-test("(g) the badge's live copy of the pre-check is byte-identical to the one the fill runs", () => {
-  const r = badge.slice(at(badge, "export function renderBadge("));
-  const inner = r.slice(at(r, "function findMissingRequired("));
-  const innerText = inner.slice(0, at(inner, "\n  }\n") + 4).trimEnd();
-  assert.ok(innerText.length > 1000);
-  assert.equal(dedent(innerText), dedent(exported));
+// ⭐ T17: the badge is the dock's status line in the TOP frame; the form may be in a child frame, so its live re-count
+// can no longer carry a copy of the pre-check and run it on its own document. ONE copy: the service worker runs the
+// exported pre-check in the FORM's frame (DOCK_MISSING_REQUIRED) and the badge asks for it.
+test("(g) ONE pre-check — the badge's live re-count asks for the one the fill runs, in the form's frame (no copy of its own)", () => {
+  const r = badge.slice(at(badge, "export function renderBadge("), at(badge, "export function goToMissingRequired("));
+  assert.doesNotMatch(r, /function findMissingRequired\(/, "a second copy of the pre-check in the badge");
+  assert.match(r, /const r = await send\(\{ type: 'DOCK_MISSING_REQUIRED' \}\);/);
+  const ff = handoff.slice(at(handoff, "DOCK_MISSING_REQUIRED: async"));
+  assert.match(ff.slice(0, 600), /target: at\(tabId\), func: findMissingRequired/, "run where the form is");
+  assert.equal((badge.match(/function findMissingRequired\(/g) || []).length, 1);
+  void dedent; void exported;
 });
 
 test("(g) required is read three ways: required, aria-required (control or radio group), an asterisked label", () => {
@@ -44,14 +49,14 @@ test("(g) empty means empty for every widget the fill drives", () => {
 test("(g) it reports LABELS only, never a value, and never our own overlay or badge", () => {
   assert.match(exported, /out\.push\(\{ label: /);
   assert.doesNotMatch(exported, /out\.push\([^)]*value/);
-  assert.match(exported, /#rm-gate-review-overlay, #rm-draft-autofill-badge/);
+  assert.match(exported, /#rm-gate-review-overlay, #rm-draft-autofill-badge, \[data-draft-dock\]/);
 });
 
 test("(g) the final badge is 'required' when anything required is empty — and live on a single page", () => {
   const fill = handoff.slice(at(handoff, "async function fillFromPacket("), at(handoff, "async function captureFormSchema("));
   assert.match(fill, /const badge = await showBadge\(tab\.id, missingAtEnd\.length \? 'required' : 'done',/);
   assert.match(fill, /\{ missing: missingAtEnd, live: !isWizard \|\| wizard\.stoppedAt === 'review' \}/);
-  assert.match(badge, /const s = now\.length \? 'required' : 'done';/, "the live badge flips both ways");
+  assert.match(badge, /const s = r\.missing\.length \? 'required' : 'done';/, "the live badge flips both ways");
 });
 
 test("(g) the probe's own required flag counts the asterisk, so schema capture records it too", () => {

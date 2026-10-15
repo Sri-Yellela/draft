@@ -53,11 +53,13 @@ test("⛔ D23: the permission set is exactly activeTab + scripting + storage, an
   }
   // The self-hosted faces reach the review overlay as BYTES (FontFace), not as a URL the page loads,
   // precisely so that no web_accessible_resources entry is needed.
-  assert.match(read("extension/gated-handoff.js"), /fetch\(chrome\.runtime\.getURL\('fonts\/poppins-latin-800-italic\.woff2'\)\)/);
+  // ⭐ T17: overlayTheme moved to dockHost.js (gated-handoff.js re-exports it) — every view on the dock is painted from it.
+  assert.match(read("extension/dockHost.js"), /fetch\(chrome\.runtime\.getURL\('fonts\/poppins-latin-800-italic\.woff2'\)\)/);
+  assert.match(read("extension/gated-handoff.js"), /import \{ overlayTheme, drawInDock, dockMeta \} from '\.\/dockHost\.js';\nexport \{ overlayTheme \};/);
   assert.match(read("extension/review-overlay.js"), /new FontFace\(LOGO_FACE, bytes\.buffer/);
 });
 
-test("⛔ D23: the storage keys are exactly the six the listing names — no more, no other kind", () => {
+test("⛔ D23: the storage keys are exactly the ones the listing names — no more, no other kind", () => {
   const files = collectRequiredFiles(manifest).filter((f) => f.endsWith(".js"));
   const code = Object.fromEntries(files.map((f) => [f, read(`extension/${f}`)]));
   const keys = [];
@@ -83,11 +85,15 @@ test("⛔ D23: the storage keys are exactly the six the listing names — no mor
   // ⇄ local:[AUTO_CAPTURE_SETTING] → local:[AUTO_READ_KEY] by D97 (owner, 10-13): D64's switch became one of four
   // per-site switches; the one key holds the switches, the consent, and the read-quality labels and counts (30 days,
   // never a value). autoCaptureEnabled is migrated once and removed, never written again — the count is unchanged.
+  // + local:[DOCK_PLACE_KEY] by T17 (owner 10-15: "pin: the rectangle is remembered per site") — where the ONE dock sits
+  // on each site (the origin → its rectangle, edge, collapsed, tab, pop-outs; nothing of the page), 50 sites, 30 days;
+  // disclosed in the privacy page's storage list, STORE_LISTING and PRIVACY_RECONCILIATION in the same change.
   assert.deepEqual(keys.sort(), [
-    "local:[AUTO_READ_KEY]",
+    "local:[AUTO_READ_KEY]", "local:[DOCK_PLACE_KEY]",
     "local:[IDENTITY_KEY]", "local:[PROGRESS_KEY]", "local:[TOKEN_KEY]", "local:lastCapture",
     "session:[batchKey(tabId)]", "session:[bindKey(tabId)]", "session:[sessionKey(tabId)]", "session:lastGatedHandoff",
   ].sort(), "the extension's storage keys changed — that is a new disclosure (D23: none allowed)");
+  assert.match(code["dockHost.js"], /export const DOCK_PLACE_KEY = 'dockPlace';/);
   assert.match(code["tabBinding.js"], /const bindKey = \(tabId\) => `\$\{BIND_PREFIX\}\$\{tabId\}`;/);
   assert.match(code["tabBinding.js"], /export const BIND_PREFIX = 'bind:';/);
   assert.match(code["progress.js"], /export const PROGRESS_KEY = 'jobProgress';/);
@@ -209,13 +215,15 @@ test("D23: neither -> recent captures, after the press; on chrome:// Capture is 
   const p = bootPopup({ preview: { capturable: false }, tabUrl: "chrome://extensions/",
     context: { packets: [], posting: null, recent: [{ jobId: "a", title: "Platform Engineer", company: "Tailspin", capturedAt: Date.now() }] } });
   await p.settle();
-  assert.equal(p.els["btn-capture-job"].disabled, true, "Capture is offered on a page that cannot be captured");
-  assert.notEqual(p.els["btn-capture-job"].style.display, "none");
+  // ⭐ T22: the capture tile is gone — on a page that cannot be read the MAIN action is offered disabled, never hidden
+  assert.equal(p.els["btn-read-page"].disabled, true, "Read is offered disabled on a page draft cannot read");
+  assert.notEqual(p.els["btn-read-page"].style.display, "none");
   for (const fn of p.els["btn-read-page"].listeners.click) fn({});
   await p.settle();
   assert.equal(p.els["recent"].style.display, "block");
   assert.equal(p.els["recent-list"].children.length, 1);
-  assert.equal(p.els["btn-capture-job"].disabled, true);
+  assert.equal(p.els["posting-actions"].style.display, "flex", "Capture it is shown…");
+  assert.equal(p.els["btn-capture-primary"].disabled, true, "…disabled, with its reason, never hidden");
 });
 
 test("D23: the server half is unchanged — D13's /api/import/context, with D4's parser, not a second one", () => {
@@ -294,7 +302,8 @@ test("⛔ D23: the mark is /draft per D19 (orange slash, ink word) and the Draft
   const draft = html.slice(draftAt, at(html, "</button>", draftAt));
   assert.match(draft, /<span class="draft-d" aria-hidden="true">\/d<\/span>/);
   assert.match(html, /class="sq sq--primary" id="btn-resume" aria-label="Open draft"/);
-  assert.match(read("extension/review-overlay.js"), /<div class="rm-mark" aria-hidden="true"><span class="rm-slash">\/<\/span>draft<\/div>/);
+  // ⭐ T17: the in-page /draft mark is the DOCK's — one window, one mark (the panel is its Fill tab)
+  assert.match(read("extension/dock.js"), /<div class="mk" aria-hidden="true"><span class="sl">\/<\/span>draft<\/div>/);
   // Both pages take the site's tokens and controls.
   for (const f of ["extension/popup.html", "extension/options.html"]) {
     const h = read(f);

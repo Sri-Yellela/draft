@@ -385,57 +385,22 @@ export function panelSummary(rows) {
 // web_accessible_resources entry and nothing for the page's CSP to refuse; without it, the fallback
 // face renders the same words.
 //
-// D96 §5: Collapse (a slim bar that still says "2 need you · 14 of 18 filled"), Close and Esc; it docks left or right
-// (remembered with the tab's binding — PANEL_DOCK), can be dragged by its header, and moves to the other side when
-// the field you are typing in is under it. Its own state — what you acknowledged, typed or changed, collapsed or not,
-// where it sits — survives the re-draw at each wizard step (a page-local object in this isolated world; nothing is
-// stored). ⛔ It never submits, and every press that writes to the server must be a TRUSTED click (ev.isTrusted).
+// ⭐ T17 · THE FILL TAB OF THE DOCK. The panel is a VIEW: extension/dock.js owns the window it sits in — drag, resize,
+// snap, collapse (the slim bar says "2 need you · 14 of 18 filled", which this view hands it), Close, Esc, where it sits
+// per site, and never covering the field being typed in. This function only draws the rows. ⛔ It runs in the TOP frame
+// only (the service worker injects it at frame 0, after dock.js); when the form is in a child frame, the fields it checks
+// live are read there by the service worker (DOCK_FIELDS_HELD → fieldsHeld below), never from here. Its own state — what
+// you acknowledged, typed or changed — survives the re-draw at each wizard step (a page-local object in this isolated
+// world; nothing is stored). ⛔ It never submits, and every press that writes to the server must be a TRUSTED click.
 export function renderOverlay(model, meta) {
   const ID = 'rm-gate-review-overlay';
-  const G = (globalThis.__draftReviewPanel = globalThis.__draftReviewPanel || { runs: {}, side: null, top: null });
+  const D = globalThis.__draftDock;
+  const dock = D?.ensure?.(meta?.dock || {}) || null;
+  if (!dock) return { ok: false, rendered: 0, error: D ? 'not_top_frame' : 'no_dock' };
+  const G = (globalThis.__draftReviewPanel = globalThis.__draftReviewPanel || { runs: {} });
   const runId = String(meta.runId || 'run');
-  const run = (G.runs[runId] = G.runs[runId] || { rows: {}, collapsed: false, closed: false, open: { need: true, check: true, ok: false } });
-  const prior = document.getElementById(ID);
-  if (prior) { try { prior.__draftCleanup?.(); } catch { /* gone */ } prior.remove(); }
+  const run = (G.runs[runId] = G.runs[runId] || { rows: {}, closed: false, drawn: false, open: { need: true, check: true, ok: false } });
   if (run.closed) return { ok: true, rendered: 0, closed: true };
-
-  // ⭐ T11 · IN A FRAME, FOLLOW WHAT IS ON SCREEN. The form can live in an ATS's iframe (Stripe embeds Greenhouse's),
-  // and such a frame is sized to the whole form — so `position:fixed` pins to the top of a 4,000px frame and scrolls
-  // away with it. Inside a frame the panel instead follows the frame's VISIBLE strip, measured by IntersectionObserver
-  // (which, even in a cross-origin frame, measures against the top-level viewport). One observer on one tall box
-  // cannot do it — scrolled through its middle, the visible share of a tall box never changes, so it never fires — so
-  // the frame is covered with 50px strips and the visible region is the span of the strips on screen.
-  // ⛔ DUPLICATED in autofill-badge.js renderBadge (each function is serialised alone); both share one watcher per frame
-  // through `globalThis.__draftFrameView`, whichever is drawn first installs it.
-  const inFrame = (() => { try { return window.top !== window; } catch { return true; } })();
-  const FV = inFrame ? (globalThis.__draftFrameView = globalThis.__draftFrameView || (() => {
-    const v = { top: 0, height: innerHeight, listeners: new Set(), seen: new Map() };
-    const box = document.createElement('div');
-    box.setAttribute('data-draft-viewport', '');
-    box.setAttribute('aria-hidden', 'true');
-    box.style.cssText = 'position:absolute;left:0;top:0;width:1px;pointer-events:none;opacity:0;z-index:-1;';
-    const io = new IntersectionObserver((entries) => {
-      for (const e of entries) v.seen.set(e.target, e.isIntersecting ? e.intersectionRect : null);
-      let top = Infinity, bottom = -Infinity;
-      for (const r of v.seen.values()) if (r && r.height > 0) { top = Math.min(top, r.top); bottom = Math.max(bottom, r.bottom); }
-      if (top === Infinity) { v.height = 0; } else { v.top = top + scrollY; v.height = bottom - top; }
-      for (const f of v.listeners) { try { f(); } catch { /* a drawn-over panel */ } }
-    }, { threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1] });
-    const lay = () => {
-      const h = Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight || 0, innerHeight);
-      const want = Math.ceil(h / 50);
-      while (box.children.length < want) {
-        const s = document.createElement('div');
-        s.style.cssText = `position:absolute;left:0;top:${box.children.length * 50}px;width:1px;height:50px;`;
-        box.append(s);
-        io.observe(s);
-      }
-    };
-    document.documentElement.appendChild(box);
-    lay();
-    try { new ResizeObserver(lay).observe(document.documentElement); } catch { /* no ResizeObserver */ }
-    return v;
-  })()) : null;
 
   const theme = meta.theme || {};
   const varsOf = (pal) => Object.entries(pal || {})
@@ -458,13 +423,11 @@ export function renderOverlay(model, meta) {
   const css = `
     #${ID} { ${varsOf(theme.light)} }
     @media (prefers-color-scheme: dark) { #${ID} { ${varsOf(theme.dark)} } }
-    #${ID} { max-height: var(--rm-max-h, calc(100vh - 32px)); display: flex; flex-direction: column; overflow: hidden;
+    #${ID} { height: 100%; display: flex; flex-direction: column; overflow: hidden;
       font: 13px/1.45 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-      color: var(--c-ink); background: var(--c-surface-menu); backdrop-filter: blur(12px);
-      border: 1px solid var(--c-glass-edge); border-radius: 10px;
-      box-shadow: var(--c-shadow-lg); text-align: left; }
+      color: var(--c-ink); background: var(--c-surface-menu); text-align: left; }
     #${ID} * { box-sizing: border-box; }
-    #${ID} .rm-hd { padding: 12px 14px 8px; border-bottom: 1px solid var(--c-border); cursor: grab; user-select: none; }
+    #${ID} .rm-hd { padding: 10px 14px 8px; border-bottom: 1px solid var(--c-border); }
     #${ID} .rm-top { display: flex; align-items: center; gap: 6px; }
     #${ID} .rm-sp { flex: 1; }
     #${ID} .rm-mark { font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 20px;
@@ -535,9 +498,6 @@ export function renderOverlay(model, meta) {
       color: var(--c-info); font-size: 11px; }
     #${ID} .rm-remind { margin: 8px 12px 0; padding: 7px 9px; border-left: 3px solid var(--c-info); border-radius: 0 6px 6px 0;
       background: var(--c-info-quiet); color: var(--c-info); font-size: 11px; }
-    #${ID}.rm-slim { flex-direction: row; align-items: center; gap: 10px; padding: 8px 12px; }
-    #${ID}.rm-slim .rm-mark { font-size: 16px; }
-    #${ID} .rm-slimtxt b { color: var(--c-warning); }
     @media (prefers-reduced-motion: reduce) { #${ID} .rm-btn { transition: none; } }
   `;
 
@@ -576,38 +536,22 @@ export function renderOverlay(model, meta) {
       line: `${filled} of ${rows.length} filled · ${need} need${need === 1 ? 's' : ''} you · ${check} to check` };
   }
 
-  const host = document.createElement('div');
-  host.id = ID;
+  // The Fill tab's host, from the dock (a fresh element; the last step's view is cleaned up and removed). The first draw
+  // of a fill opens the dock on this tab; a wizard step's re-draw leaves the dock as the person set it.
+  const first = !run.drawn;
+  run.drawn = true;
+  const host = dock.view('fill', { id: ID, label: 'draft — review before you submit', expand: first, select: first || dock.active() === 'fill',
+    onClose: () => { run.closed = true; cleanup(); } });
   host.setAttribute('data-draft-review-panel', '');
   host.dataset.run = runId;   // which fill drew it (a test reads it; the page learns nothing it could not see)
-  const side = G.side || (meta.dock === 'left' ? 'left' : 'right');
-  const place = (s, top) => {
-    if (FV) {
-      // ⭐ T11: in a frame — absolute, inside the visible strip, `G.frameOffset` below its top (dragging sets it), and
-      // no taller than the strip. A strip shorter than the panel's floor keeps the floor and stays at its top.
-      const room = Math.max(160, FV.height - 16);
-      const off = Math.min(Math.max(8, G.frameOffset ?? 16), Math.max(8, FV.height - Math.min(room, host.offsetHeight || room) - 8));
-      host.style.cssText = `position:absolute;z-index:2147483647;width:min(380px, calc(100vw - 32px));top:${Math.round(FV.top + off)}px;${s}:16px;--rm-max-h:${room}px;`;
-      host.dataset.frameFollow = '1';
-    } else {
-      host.style.cssText = `position:fixed;z-index:2147483647;width:min(380px, calc(100vw - 32px));top:${Math.max(8, top ?? 16)}px;${s}:16px;`;
-    }
-    host.dataset.side = s;
-  };
-  place(side, G.top);
-  // ⭐ T11: re-place as the parent page scrolls the frame — at most once a frame.
-  let follow = 0;
-  const onView = () => { if (follow) return; follow = requestAnimationFrame(() => { follow = 0; place(host.dataset.side || side, G.top); }); };
-  if (FV) FV.listeners.add(onView);
   const root = host.attachShadow({ mode: 'open' });
   const style = document.createElement('style');
   style.textContent = css;
   const panel = document.createElement('div');
   panel.id = ID;
-  panel.setAttribute('role', 'complementary');
+  panel.setAttribute('role', 'region');
   panel.setAttribute('aria-label', 'draft — review before you submit');
   root.append(style, panel);
-  document.documentElement.appendChild(host);
 
   const GROUPS = [['need', 'Needs you'], ['check', 'Check'], ['ok', 'Filled']];
   const multiStep = new Set(rows.map(r => r.step).filter(Boolean)).size > 1;
@@ -633,8 +577,9 @@ export function renderOverlay(model, meta) {
         acts += `<div class="rm-acts">${r.noRemember || r.neverFill ? '' : `<label class="rm-mem"><input type="checkbox" data-role="remember" ${r.rememberOff ? '' : 'checked'}> Remember for next time</label>`}${
           r.copyValue ? '<button class="rm-btn" data-role="copy">copy</button>' : ''}${r.optional ? '<button class="rm-btn" data-role="leave">leave blank</button>' : ''}</div>`;
       } else if (r.copyValue) acts += '<div class="rm-acts"><button class="rm-btn" data-role="copy">copy</button></div>';
-      // D98 (J6): the résumé upload opens the on-page résumé panel — it generates only on that panel's own button.
-      if (r.resumeOffer) acts += '<div class="rm-acts"><button class="rm-btn" data-role="resume">Make a résumé for this job</button></div>';
+      // D98 (J6) → ⭐ T22 REVISED: the résumé upload shows the dock's Résumé tab — a VIEW (state, preview, Attach); it
+      // starts nothing. ("Generate and attach" on this row is T18's — the second of the two places a résumé starts.)
+      if (r.resumeOffer) acts += '<div class="rm-acts"><button class="rm-btn" data-role="resume">See the Résumé tab</button></div>';
     } else if (r.group === 'check') {
       acts += `<div class="rm-acts">${r.canEdit === false ? '' : '<button class="rm-btn" data-role="edit">edit</button>'}<button class="rm-btn ack" data-role="ack">acknowledge</button></div>`;
     } else if (r.changed) {
@@ -657,15 +602,9 @@ export function renderOverlay(model, meta) {
 
   const draw = () => {
     const s = panelSummary(rows);
-    if (run.collapsed) {
-      panel.className = 'rm-slim';
-      panel.innerHTML = `<div class="rm-mark" aria-hidden="true"><span class="rm-slash">/</span>draft</div>
-        <span class="rm-slimtxt" data-role="slim">${s.need ? `<b>${s.need} need${s.need === 1 ? 's' : ''} you</b>` : 'nothing needs you'} · ${s.filled} of ${s.total} filled</span>
-        <span class="rm-sp"></span>
-        <button class="rm-ib" data-role="expand" aria-label="Expand the panel" title="Expand">▢</button>
-        <button class="rm-ib" data-role="close" aria-label="Close the panel" title="Close (Esc)">×</button>`;
-    } else {
-      panel.className = '';
+    // The dock's slim bar says what needs you: "2 need you · 14 of 18 filled".
+    dock.summary('fill', `${s.need ? `${s.need} need${s.need === 1 ? 's' : ''} you` : 'nothing needs you'} · ${s.filled} of ${s.total} filled`, { need: s.need });
+    {
       const groups = GROUPS.map(([g, title]) => {
         const items = rows.map((r, i) => [r, i]).filter(([r]) => r.group === g);
         if (!items.length) return '';
@@ -675,13 +614,7 @@ export function renderOverlay(model, meta) {
           <div class="rm-rows" data-role="rows"${open ? '' : ' hidden'}>${items.map(([r, i]) => rowHtml(r, i)).join('')}</div></div>`;
       }).join('');
       panel.innerHTML = `
-        <div class="rm-hd" data-role="drag">
-          <div class="rm-top">
-            <div class="rm-mark" aria-hidden="true"><span class="rm-slash">/</span>draft</div><span class="rm-sp"></span>
-            <button class="rm-ib" data-role="dock" aria-label="${host.dataset.side === 'right' ? 'Dock on the left' : 'Dock on the right'}" title="Dock">${host.dataset.side === 'right' ? '⇤' : '⇥'}</button>
-            <button class="rm-ib" data-role="collapse" aria-label="Collapse the panel" title="Collapse">–</button>
-            <button class="rm-ib" data-role="close" aria-label="Close the panel" title="Close (Esc)">×</button>
-          </div>
+        <div class="rm-hd">
           <div class="rm-t">Review before you submit</div>
           <div class="rm-prog" data-role="progress">${esc(s.line)}${meta.resumeAttached ? ' · résumé attached' : ''}
             <div class="rm-pb" aria-hidden="true"><i style="width:${s.total ? Math.round(s.filled / s.total * 100) : 0}%"></i></div></div>
@@ -739,26 +672,11 @@ export function renderOverlay(model, meta) {
   });
   const tookOnPage = (reply) => !!(reply?.ok && reply.result && (reply.result.filled || []).length && !(reply.result.skipped || []).some(x => x.reason !== 'kept_existing'));
 
-  const close = () => {
-    run.closed = true;
-    cleanup();
-    host.remove();
-  };
-
   const onClick = async (ev) => {
     const btn = ev.target.closest('button');
     if (!btn) return;
     const role = btn.dataset.role;
-    if (role === 'close') return close();
-    if (role === 'collapse') { run.collapsed = true; return redraw(); }
-    if (role === 'expand') { run.collapsed = false; return redraw(); }
     if (role === 'group') { const g = btn.dataset.g; run.open[g] = run.open[g] === false; return draw(); }
-    if (role === 'dock') {
-      const next = host.dataset.side === 'right' ? 'left' : 'right';
-      G.side = next; place(next, G.top); draw();
-      void send({ type: 'PANEL_DOCK', side: next });
-      return;
-    }
 
     // Role first, row second. The batch button lives in the FOOTER, not in a field row.
     if (role === 'next') {
@@ -813,7 +731,7 @@ export function renderOverlay(model, meta) {
     // Everything below writes to the page or to the server: a page script's synthetic click is never enough.
     if (!ev.isTrusted) return;
 
-    if (role === 'resume') { void send({ type: 'RESUME_PANEL_OPEN' }); return; }
+    if (role === 'resume') { void send({ type: 'RESUME_PANEL_OPEN', tab: 'resume' }); return; }
 
     if (role === 'edit') {
       const ed = rowEl.querySelector('[data-role="editor"]');
@@ -870,57 +788,55 @@ export function renderOverlay(model, meta) {
     }
   };
 
-  // ── Keys: Esc closes (when the focus is in the panel, or nowhere in particular — never while you are in a field
-  // of the page, where Esc belongs to the page's own dropdown).
-  const onKey = (ev) => {
-    if (ev.key !== 'Escape' || ev.isComposing) return;
-    const inPanel = ev.composedPath?.().includes(host);
-    const t = ev.target;
-    const inPageField = !inPanel && t && t !== document.body && t !== document.documentElement && t.matches?.('input, select, textarea, [role="combobox"], [contenteditable="true"], [aria-haspopup="listbox"]');
-    if (inPanel || !inPageField) close();
-  };
-
-  // ── Drag by the header; snap to the nearer side, remembered for the tab (PANEL_DOCK).
-  let drag = null;
-  const onDown = (ev) => {
-    if (ev.button !== 0 || !ev.target.closest('[data-role="drag"]') || ev.target.closest('button')) return;
-    const r = host.getBoundingClientRect();
-    drag = { dx: ev.clientX - r.left, dy: ev.clientY - r.top };
-    ev.preventDefault();
-  };
-  const onMove = (ev) => {
-    if (!drag) return;
-    host.style.left = `${Math.max(0, ev.clientX - drag.dx)}px`;
-    host.style.right = '';
-    // ⭐ T11: in a frame the host is absolute — page coordinates, not the viewport's.
-    host.style.top = `${Math.max(0, ev.clientY - drag.dy + (FV ? scrollY : 0))}px`;
-  };
-  const onUp = () => {
-    if (!drag) return;
-    drag = null;
-    const r = host.getBoundingClientRect();
-    const next = r.left + r.width / 2 < innerWidth / 2 ? 'left' : 'right';
-    G.side = next; G.top = r.top;
-    if (FV) G.frameOffset = r.top + scrollY - FV.top;   // ⭐ T11: where it sits within the visible strip
-    place(next, r.top);
-    draw();
-    void send({ type: 'PANEL_DOCK', side: next });
-  };
-
-  // ── Never over the field being filled: when a page control takes focus under the panel, the panel moves to the
-  // other side (and, on a page too narrow for that, collapses to its slim bar).
-  const overlaps = (a, b) => !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
-  const onFocus = (ev) => {
-    const t = ev.target;
-    if (!t || t === host || ev.composedPath?.().includes(host) || !t.getBoundingClientRect) return;
-    const f = t.getBoundingClientRect();
-    if (!overlaps(host.getBoundingClientRect(), f)) return;
-    const other = host.dataset.side === 'right' ? 'left' : 'right';
-    place(other, G.top);
-    if (overlaps(host.getBoundingClientRect(), f)) { run.collapsed = true; draw(); }
-  };
-
   // ── Live: a Needs-you row whose field you answer ON THE PAGE moves to Filled (emptiness only — never the value).
+  // ⭐ T17: the form may be in a child frame (Greenhouse inside stripe.com) and this view is in the top frame, so the
+  // fields are read where they are — the service worker runs fieldsHeld() in the form's frame (DOCK_FIELDS_HELD) and
+  // answers with the keys of the rows now answered. Never re-drawn under the person's hands: while they type in the
+  // panel (or a row is being saved) it waits.
+  const busy = () => !!root.activeElement || [...root.querySelectorAll('[data-role="editor"]')].some(e => !e.hidden);
+  let asking = false;
+  const watch = async () => {
+    if (busy() || asking || !host.isConnected) return;
+    const open = rows.filter(r => !r.pending && r.group === 'need' && r.step === (meta.currentStep ?? r.step) && r.locator?.length);
+    if (!open.length) return;
+    asking = true;
+    const reply = await send({ type: 'DOCK_FIELDS_HELD', rows: open.map(r => ({ key: r.key, unitKind: r.unitKind, locator: r.locator })) });
+    asking = false;
+    if (!host.isConnected || busy() || !Array.isArray(reply?.answered)) return;
+    let moved = false;
+    for (const r of open) {
+      if (r.pending || r.group !== 'need' || !reply.answered.includes(r.key)) continue;
+      run.rows[r.key] = { action: 'page', note: r.neverFill ? 'you did this on the page' : 'answered on the page' };
+      Object.assign(r, { group: 'ok', source: 'on the page', note: run.rows[r.key].note, copyValue: null, canType: false });
+      moved = true;
+    }
+    if (moved) redraw();
+  };
+  const onPageInput = (ev) => { if (!ev.composedPath?.().includes(host)) setTimeout(() => { void watch(); }, 50); };
+  const timer = setInterval(() => { void watch(); }, 1500);
+
+  function cleanup() {
+    clearInterval(timer);
+    document.removeEventListener('input', onPageInput, true);
+    document.removeEventListener('change', onPageInput, true);
+  }
+  host.__draftCleanup = cleanup;
+  root.addEventListener('click', (ev) => { void onClick(ev); });
+  document.addEventListener('input', onPageInput, true);
+  document.addEventListener('change', onPageInput, true);
+
+  const s = draw();
+  report();
+  dock.restorePops?.('fill');   // the Fill tab was in its own window when this site last showed the dock
+  return { ok: true, rendered: rows.length, ready: s.ready, counts: { filled: s.filled, of: s.total, needYou: s.need, check: s.check } };
+}
+
+/**
+ * Injected, ISOLATED world, in the FORM's frame (the service worker's DOCK_FIELDS_HELD): which of these rows' fields the
+ * page now holds an answer in. Emptiness only — never a value leaves. `rows`: [{ key, unitKind, locator: [{ id, name }] }].
+ * → the keys answered.
+ */
+export function fieldsHeld(rows) {
   const holds = (loc) => {
     const el = (loc.id && document.getElementById(loc.id)) || (loc.name && document.getElementsByName(loc.name)[0]) || null;
     if (!el) return null;
@@ -939,55 +855,21 @@ export function renderOverlay(model, meta) {
     }
     return String(el.value ?? '').trim() !== '';
   };
-  // Never re-drawn under the person's hands: while they type in the panel (or a row is being saved) it waits.
-  const busy = () => !!root.activeElement || [...root.querySelectorAll('[data-role="editor"]')].some(e => !e.hidden);
-  const watch = () => {
-    if (busy()) return;
-    let moved = false;
-    for (const r of rows) {
-      if (r.pending || r.group !== 'need' || r.step !== (meta.currentStep ?? r.step) || !r.locator?.length) continue;
-      const states = r.locator.map(holds).filter(v => v !== null);
-      const answered = r.unitKind === 'date' ? states.length && states.every(Boolean) : states.some(Boolean);
-      if (!answered) continue;
-      run.rows[r.key] = { action: 'page', note: r.neverFill ? 'you did this on the page' : 'answered on the page' };
-      Object.assign(r, { group: 'ok', source: 'on the page', note: run.rows[r.key].note, copyValue: null, canType: false });
-      moved = true;
-    }
-    if (moved) redraw();
-  };
-  const onPageInput = (ev) => { if (!ev.composedPath?.().includes(host)) setTimeout(watch, 50); };
-  const timer = setInterval(watch, 1500);
-
-  function cleanup() {
-    clearInterval(timer);
-    document.removeEventListener('keydown', onKey, true);
-    document.removeEventListener('focusin', onFocus, true);
-    document.removeEventListener('input', onPageInput, true);
-    document.removeEventListener('change', onPageInput, true);
-    removeEventListener('mousemove', onMove, true);
-    removeEventListener('mouseup', onUp, true);
-    if (FV) FV.listeners.delete(onView);   // ⭐ T11: a removed panel stops following
+  const answered = [];
+  for (const r of Array.isArray(rows) ? rows.slice(0, 400) : []) {
+    const states = (Array.isArray(r?.locator) ? r.locator : []).map(holds).filter(v => v !== null);
+    const ok = r?.unitKind === 'date' ? states.length > 0 && states.every(Boolean) : states.some(Boolean);
+    if (ok) answered.push(String(r.key));
   }
-  host.__draftCleanup = cleanup;
-  root.addEventListener('click', (ev) => { void onClick(ev); });
-  root.addEventListener('mousedown', onDown);
-  document.addEventListener('keydown', onKey, true);
-  document.addEventListener('focusin', onFocus, true);
-  document.addEventListener('input', onPageInput, true);
-  document.addEventListener('change', onPageInput, true);
-  addEventListener('mousemove', onMove, true);
-  addEventListener('mouseup', onUp, true);
-
-  const s = draw();
-  report();
-  return { ok: true, rendered: rows.length, ready: s.ready, counts: { filled: s.filled, of: s.total, needYou: s.need, check: s.check } };
+  return answered;
 }
 
-/** Injected, ISOLATED world: take the review panel off the page (a refused fill must not leave another step's panel). */
+/** Injected, ISOLATED world, TOP frame: take the review panel off the dock (a refused fill must not leave another step's panel). */
 export function removeReviewPanel() {
   const host = document.getElementById('rm-gate-review-overlay');
   if (!host) return false;
   try { host.__draftCleanup?.(); } catch { /* gone */ }
-  host.remove();
+  const dock = globalThis.__draftDock?.current?.();
+  if (dock) dock.drop('fill', host); else host.remove();
   return true;
 }

@@ -52,17 +52,25 @@ export const options = {
 };
 export const description = 'D99 J12: draft\'s own report in the on-page panel at once; no base résumé → "Add your résumé"; an unlinked tab → "Read this page now"';
 
+// ⭐ T17: ONE dock, two of its tabs drawn from one model — the Résumé tab (rm-resume-panel: the state, the job, Read this
+// page now) and the ATS tab (rm-ats-panel: draft's report). The walk reads both, as it read the one panel before.
 const HOST = 'rm-resume-panel';
-const readPanel = (h) => h.readShadow(HOST, (root, host) => ({
-  state: host.dataset.state,
-  job: root.querySelector('[data-role="job"]')?.textContent || null,
-  text: root.querySelector('.sc')?.textContent.replace(/\s+/g, ' ').trim() || '',
-  report: root.querySelector('[data-role="ats-report"]')?.dataset.state || null,
-  score: root.querySelector('[data-role="ats-score"]')?.textContent || null,
-  matched: root.querySelector('[data-role="ats-matched"]')?.textContent || null,
-  missing: root.querySelector('[data-role="ats-missing"]')?.textContent || null,
-  buttons: [...root.querySelectorAll('button')].map(b => b.textContent.trim()).filter(Boolean),
-}));
+const ATS = 'rm-ats-panel';
+const readPanel = (h) => h.page.evaluate(() => {
+  const r = document.getElementById('rm-resume-panel'); const a = document.getElementById('rm-ats-panel');
+  if (!r?.shadowRoot || !a?.shadowRoot) return null;
+  const R = r.shadowRoot, A = a.shadowRoot;
+  return {
+    state: r.dataset.state,
+    job: R.querySelector('[data-role="job"]')?.textContent || null,
+    text: R.querySelector('.sc')?.textContent.replace(/\s+/g, ' ').trim() || '',
+    report: A.querySelector('[data-role="ats-report"]')?.dataset.state || null,
+    score: A.querySelector('[data-role="ats-score"]')?.textContent || null,
+    matched: A.querySelector('[data-role="ats-matched"]')?.textContent || null,
+    missing: A.querySelector('[data-role="ats-missing"]')?.textContent || null,
+    buttons: [...R.querySelectorAll('button'), ...A.querySelectorAll('button')].map(b => b.textContent.trim()).filter(Boolean),
+  };
+});
 const lookups = (h) => h.api.requests.filter(r => r.method === 'GET' && r.path.startsWith('/api/extension/job/')).length;
 const contexts = (h) => h.api.requests.filter(r => r.method === 'POST' && r.path === '/api/import/context').length;
 
@@ -77,7 +85,7 @@ export default async function run(h, { check, section }) {
   const cap = await h.capture();
   check('captured — the tab is bound', cap?.success === true, cap?.message);
   const before = lookups(h);
-  const opened = await h.send({ type: 'RESUME_PANEL_OPEN' });
+  const opened = await h.send({ type: 'RESUME_PANEL_OPEN', tab: 'ats' });
   check('the panel opens', opened?.ok === true, JSON.stringify(opened));
   const p1 = await waitUntil(async () => { const p = await readPanel(h); return p?.report ? p : null; }, 8000);
   check('the report is in the panel with no other click', p1?.report === 'ready', JSON.stringify(p1));
@@ -116,9 +124,9 @@ export default async function run(h, { check, section }) {
   section('4 · T9 — a FULL report: the panel draws the web app\'s ATS component');
   scoreNow = FULL;
   const before4 = lookups(h);
-  await h.send({ type: 'RESUME_PANEL_OPEN' });
+  await h.send({ type: 'RESUME_PANEL_OPEN', tab: 'ats' });
   const p5 = await waitUntil(async () => {
-    const c = await h.readShadow(HOST, (root) => {
+    const c = await h.readShadow(ATS, (root) => {
       const host = root.querySelector('[data-role="ats-card"]');
       const card = host?.shadowRoot;
       if (!card?.querySelector('[data-ats-root]')) return null;

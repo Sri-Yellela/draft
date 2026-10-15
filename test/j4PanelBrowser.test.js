@@ -13,6 +13,8 @@ import { renderOverlay, panelRowsForStep } from "../extension/review-overlay.js"
 import { renderCopySheetPanel } from "../extension/copy-sheet-panel.js";
 import { C_LIGHT, C_DARK } from "../extension/tokens.js";
 import * as gh from "../extension/gated-handoff.js";
+import fs from "node:fs";
+const DOCK_JS = fs.readFileSync("extension/dock.js", "utf8");
 
 const chrome = await findChrome();
 const SKIP = chrome.skip || false;
@@ -51,6 +53,8 @@ test("⛔ J4: the panel in both themes — painted from the tokens, no capsule, 
     const page = await browser.newPage();
     await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: scheme }]);
     await page.goto(stage);
+    // ⭐ T17: the panel is the dock's Fill tab — dock.js first, as the service worker injects it (drawInDock)
+    await page.addScriptTag({ content: DOCK_JS });
     await page.evaluate(`window.chrome = { runtime: { sendMessage(m, cb) { (window.__sent = window.__sent || []).push(m); cb && cb(null); }, lastError: null } };
       (${renderOverlay.toString()})(${JSON.stringify({ rows })}, ${JSON.stringify({ runId: `r-${scheme}`, theme: { light: C_LIGHT, dark: C_DARK } })})`);
     const facts = await page.evaluate(() => {
@@ -68,19 +72,20 @@ test("⛔ J4: the panel in both themes — painted from the tokens, no capsule, 
     assert.equal(facts.state, "Not ready — 1 needs you.");
     assert.match(facts.progress, /^1 of 2 filled · 1 needs you · 0 to check/);
     assert.deepEqual(facts.labels, ["Address Line 1", "First Name"], "Needs you first; no asterisks");
-    // Collapse → the slim bar still says what needs you
-    await page.click("#rm-gate-review-overlay >>> [data-role='collapse']");
-    assert.equal(await page.evaluate(() => document.getElementById("rm-gate-review-overlay").shadowRoot.querySelector('[data-role="slim"]').textContent.trim()), "1 needs you · 1 of 2 filled");
+    // Collapse → the slim bar still says what needs you (⭐ T17: the DOCK's collapse and slim bar, the panel's words)
+    await page.click("#rm-draft-dock >>> [data-role='collapse']");
+    assert.equal(await page.evaluate(() => document.getElementById("rm-draft-dock").shadowRoot.querySelector('[data-role="slim"]').textContent.trim()), "1 needs you · 1 of 2 filled");
     // Esc in a page FIELD belongs to the page (its dropdowns) — the panel stays; Esc with the panel focused closes it
     await page.focus("#ws-city");
     await page.keyboard.press("Escape");
     assert.ok(await page.$("#rm-gate-review-overlay"), "Esc in a page field is the page's");
-    await page.focus("#rm-gate-review-overlay >>> [data-role='expand']");
+    await page.focus("#rm-draft-dock >>> [data-role='expand']");
     await page.keyboard.press("Escape");
     assert.equal(await page.$("#rm-gate-review-overlay"), null, `${scheme}: Esc closes`);
+    assert.equal(await page.$("#rm-draft-dock"), null, `${scheme}: …the dock with it`);
     // Close — on a fresh run id
     await page.evaluate(`(${renderOverlay.toString()})(${JSON.stringify({ rows })}, ${JSON.stringify({ runId: `c-${scheme}`, theme: { light: C_LIGHT, dark: C_DARK } })})`);
-    await page.click("#rm-gate-review-overlay >>> [data-role='close']");
+    await page.click("#rm-draft-dock >>> [data-role='close']");
     assert.equal(await page.$("#rm-gate-review-overlay"), null, `${scheme}: Close closes`);
     // ⛔ a page script's synthetic click is never a write: no message left the panel for it
     await page.evaluate(`(${renderOverlay.toString()})(${JSON.stringify({ rows })}, ${JSON.stringify({ runId: `s-${scheme}`, theme: { light: C_LIGHT, dark: C_DARK } })})`);
@@ -154,7 +159,9 @@ test("⛔ J4 (D96 §6): the Copy sheet says where each answer came from, and an 
     { label: "Are you legally authorized to work in the United States?", value: "Yes", eligibility: true, provenance: "saved_answer", source: "you_acknowledged", acknowledgedAt: "2026-10-11T10:00:00Z", attesting: true },
     { label: "Address Line 1", value: "1 Example Way", provenance: "saved_answer", source: "you_typed", acknowledgedAt: "2026-10-12T10:00:00Z" },
   ], unanswered: [{ label: "Phone Number" }] };
-  await page.evaluate(`(${renderCopySheetPanel.toString()})(${JSON.stringify(sheet)}, ${JSON.stringify({ light: C_LIGHT, dark: C_DARK })})`);
+  await page.addScriptTag({ content: DOCK_JS });   // ⭐ T17: the Copy sheet is the dock's tab
+  await page.evaluate(`window.chrome = { runtime: { sendMessage(m, cb) { cb && cb(null); }, lastError: null } };
+    (${renderCopySheetPanel.toString()})(${JSON.stringify(sheet)}, ${JSON.stringify({ light: C_LIGHT, dark: C_DARK })})`);
   const rows = await page.evaluate(() => [...document.getElementById("rm-copy-sheet-panel").shadowRoot.querySelectorAll("li")].map(li => ({
     k: li.querySelector(".k").textContent, src: li.querySelector("[data-source]")?.textContent || null })));
   assert.equal(rows[0].src, "profile");
