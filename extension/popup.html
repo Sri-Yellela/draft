@@ -31,6 +31,9 @@
     #btn-read-page .lbl { display: inline-flex; align-items: center; gap: 8px; }
     .read-hint { font-size: 11px; color: var(--c-ink-faint); margin: -2px 0 12px; }
 
+    /* ⭐ T9: the ATS report — the component brings its own look (its shadow root); this only spaces it. */
+    #ats-report { margin: 0 0 12px; }
+    #ats-report-actions { margin-top: 8px; }
     /* ⭐ D63: the job card (ui.css .job) — shown once the page is read. */
     #job-preview { display: none; }
     #job-preview .job-text { min-width: 0; }
@@ -151,6 +154,16 @@
     </div>
     <div class="nb none" id="preview-score" role="img" aria-label="No ATS score yet"><small>ATS</small></div>
   </div>
+  <!-- ⭐ T9 · THE WEB APP'S ATS REPORT — the one component (<draft-ats-report>, extension/atsReport.js = shared/
+       atsReportElement.js bundled), drawn from the same JSON the web app gets, after the press only. The extension adds
+       only its own buttons under it. -->
+  <div id="ats-report" style="display:none">
+    <draft-ats-report id="ats-report-card"></draft-ats-report>
+    <div class="btn-row" id="ats-report-actions">
+      <button class="btn" id="btn-ats-full" style="display:none">Full report in draft</button>
+      <button class="btn" id="btn-ats-again">Read again</button>
+    </div>
+  </div>
   <!-- ⭐ D63 · status as MARKS (D60), and the packet before you fill. -->
   <div class="facts" id="facts" hidden></div>
   <div class="pk" id="packet-summary" hidden></div>
@@ -245,6 +258,7 @@
   <p class="status" id="status"></p>
 
   <script src="config.js"></script>
+  <script src="atsReport.js"></script>
   <script src="companion.js"></script>
   <script src="popup.js"></script>
   <script type="module" src="popup-auto.js"></script>

@@ -10,6 +10,8 @@
  *   2. no base résumé: "Add your résumé in draft", no score
  *   3. an UNLINKED tab: "This tab is not linked …" is a button — a trusted "Read this page now" finds the job on draft,
  *      binds the tab, and the panel shows the job and its report; a page script's synthetic click reads nothing
+ *   4. ⭐ T9: a FULL report (the scorer's own JSON, as the live route passes it through): the panel draws the web app's
+ *      ATS component (<draft-ats-report>'s renderer, in its own shadow root) instead of the summary lines — terms as text
  * Synthetic person (Ada Example).
  */
 import fs from 'node:fs';
@@ -22,6 +24,21 @@ import { baseResumeFor } from '../../services/extensionResume.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const REPORT = { score: 72, band: 'strong', scorable: true, matched: ['distributed systems', 'go'], missing: ['kubernetes'] };
+// ⭐ T9 · section 4: the scorer's OWN report rides along (routes/extensionJob.js reportOf → `ats.report`), as the live
+// scorer sends it — and the panel then draws THE web app's component from it. A job term that is markup is in it.
+const FULL = Object.freeze({
+  ...REPORT,
+  report: {
+    source: 'local_ats_v5', score: 72, scorable: true,
+    tier1_matched: ['distributed systems', 'go'], tier1_missing: ['kubernetes', '<img src=x onerror=alert(1)>'],
+    competencies_matched: ['ownership'], competencies_missing: ['mentoring'],
+    action_verbs_matched: ['Shipped'], action_verbs_missing: ['Scaled'], action_verbs_generic: ['Managed'],
+    decline_reasons: [], hard_constraint_misses: [],
+    experience: { summary: 'Résumé experience (6 years) meets 4+ year requirement.', requiredYears: 4, candidateYears: 6, fit: true },
+    seniority_cap: { applied: false }, internal_debug: { not: 'for the card' },
+  },
+});
+let scoreNow = REPORT;
 
 export const options = {
   api: {
@@ -29,7 +46,7 @@ export const options = {
     mount: async (app, db) => {
       mountExtensionResume(app, db);
       app.use(createExtensionJobRouter({ db, requireAuth: (q, r, n) => n(), isExtension: () => true,
-        scoreFor: () => REPORT, hasBaseResume: (userId) => !!baseResumeFor(db, userId) }));
+        scoreFor: () => scoreNow, hasBaseResume: (userId) => !!baseResumeFor(db, userId) }));
     },
   },
 };
@@ -95,4 +112,40 @@ export default async function run(h, { check, section }) {
   check('a trusted click: draft found the job, and the panel names it', p4?.job === 'Software Engineer at Zoom', JSON.stringify(p4));
   check('…with its report', p4?.score === 'ATS 72 · Strong match', p4?.score);
   check('…and the tab is bound again', (await h.bindings()).length === 1, JSON.stringify(await h.bindings()));
+
+  section('4 · T9 — a FULL report: the panel draws the web app\'s ATS component');
+  scoreNow = FULL;
+  const before4 = lookups(h);
+  await h.send({ type: 'RESUME_PANEL_OPEN' });
+  const p5 = await waitUntil(async () => {
+    const c = await h.readShadow(HOST, (root) => {
+      const host = root.querySelector('[data-role="ats-card"]');
+      const card = host?.shadowRoot;
+      if (!card?.querySelector('[data-ats-root]')) return null;
+      return {
+        score: card.querySelector('[data-ats-score]')?.textContent.replace(/\s+/g, ' ').trim() || null,
+        text: card.querySelector('[data-ats-root]').textContent.replace(/\s+/g, ' '),   // the card's words, not its stylesheet
+        imgs: card.querySelectorAll('img').length,
+        style: !!card.querySelector('style[data-ats-style]'),
+        summaryLines: !!root.querySelector('[data-role="ats-score"], [data-role="ats-matched"], [data-role="ats-missing"]'),
+        buttons: [...root.querySelectorAll('button')].map(b => b.textContent.trim()).filter(Boolean),
+        width: Math.round(host.getBoundingClientRect().width),
+      };
+    });
+    return c || null;
+  }, 8000);
+  check('the panel mounts the component in its own shadow root, with its stylesheet', !!p5 && p5.style, JSON.stringify(p5));
+  check('…the scorer\'s number', /72/.test(p5?.score || ''), p5?.score);
+  check('…the matched and missing terms as the web app words them', /distributed systems/.test(p5?.text || '') && /kubernetes/.test(p5?.text || ''), p5?.text?.slice(0, 300));
+  check('…the experience line', /meets 4\+ year requirement/.test(p5?.text || ''));
+  check('⛔ the markup term prints as characters — no element made from it', p5?.imgs === 0 && /<img src=x onerror=alert\(1\)>/.test(p5?.text || ''), `${p5?.imgs}`);
+  check('⛔ a field the card does not draw stays out', !/for the card/.test(p5?.text || ''));
+  check('the summary lines give way to the component (no second report)', p5?.summaryLines === false);
+  check('…and the panel keeps its own "Full report in draft"', (p5?.buttons || []).includes('Full report in draft'), JSON.stringify(p5?.buttons));
+  check('…laid out (not a zero-width box)', (p5?.width || 0) > 200, `${p5?.width}`);
+  check('asked of draft\'s server once more', lookups(h) - before4 === 1, `${lookups(h) - before4}`);
+  const local4 = JSON.stringify(await h.storage.local()) + JSON.stringify(await h.storage.session());
+  check('nothing of the full report is stored', !/kubernetes|mentoring|onerror/.test(local4));
+  await h.screenshot(`atsOnPage-full-report-${h.theme()}`).catch(() => null);
+  scoreNow = REPORT;
 }

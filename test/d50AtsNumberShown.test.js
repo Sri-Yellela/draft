@@ -21,12 +21,14 @@ test("D50 · the board card's square and the ATS card show it — beside the not
   assert.match(bubble, /const showNumber = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/, "no score → no digit");
   assert.match(bubble, /\{showNumber \? \(<><span className="jb__ats-n">\{score\}<\/span>[\s\S]*?: <BarMark \/>\}/, "null is the bar mark, never a 0");
   assert.match(bubble, /title=\{showNumber \? `ATS match \$\{score\} · \$\{bandLabel\} — \$\{ATS_NUMBER_NOTE\}\. Open the report\.`/);
-  const card = read("client/src/components/AtsReport.jsx");
+  // T9: the ATS card is the one shared component (shared/atsReportElement.js) — the web app and the extension draw it.
+  const card = read("shared/atsReportElement.js");
   // The band, the count and the number stay together in the card's head; the note follows them.
-  const head = card.slice(at(card, '<div className="ats-sum__head">'), at(card, "data-ats-number-note"));
+  const head = card.slice(at(card, 'class: "ats-sum__head"'), at(card, '"data-ats-number-note"'));
   for (const part of ["data-ats-band", "data-ats-count", "data-ats-score"]) assert.ok(head.includes(part), `${part} left the card's head`);
-  assert.match(card, /\{ATS_NUMBER_SHOWN && !isUnknown && Number\.isFinite\(report\?\.score\) && \(\s*<div data-ats-score className="ats-sum__score" title=\{ATS_NUMBER_NOTE\}>/);
-  assert.match(card, /\{ATS_NUMBER_SHOWN && !isUnknown && Number\.isFinite\(report\?\.score\) && \(\s*<p data-ats-number-note/, "the note goes wherever the number goes");
+  assert.match(card, /const showNumber = ATS_NUMBER_SHOWN && !isUnknown && Number\.isFinite\(report\?\.score\);/);
+  assert.match(card, /showNumber && h\(doc, "div", \{ "data-ats-score": true, class: "ats-sum__score", title: ATS_NUMBER_NOTE \}/);
+  assert.match(card, /showNumber && h\(doc, "p", \{ "data-ats-number-note": true/, "the note goes wherever the number goes");
   // "Best fit" stays a word in the sort panel.
   assert.match(read("shared/filterSentence.js"), /label: "Best fit"/);
 });

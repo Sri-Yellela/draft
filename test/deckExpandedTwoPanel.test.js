@@ -73,8 +73,9 @@ test("⛔ the LEFT panel is the FULL report — the board's own ATSPanel — fed
   assert.match(panel, /<ATSPanel report=\{fromDeckReport\(r\)\} band=\{r\.scorable \? card\.band : ATS_BAND\.NOT_ENOUGH_SIGNAL\}/,
     "a declined report is 'not enough signal', never a low band");
   assert.doesNotMatch(panel, /score=/, "a number handed to the report");
-  // A52: the adapter lives with the one report implementation (components/AtsReport.jsx).
-  const reportSrc = read("client/src/components/AtsReport.jsx");
+  // A52: the adapter lives with the one report implementation — since T9 its model, shared/atsReportModel.js
+  // (components/AtsReport.jsx re-exports it to the deck).
+  const reportSrc = read("shared/atsReportModel.js");
   const adapt = reportSrc.slice(at(reportSrc, "export function fromDeckReport", 0, "adapter"), at(reportSrc, "export function fromStandaloneResult", 0, "end"));
   for (const k of ["tier1_matched", "tier1_missing", "competencies_matched", "action_verbs_matched", "action_verbs_missing",
                    "action_verbs_generic", "experience", "hard_constraint_misses", "decline_reasons"]) {

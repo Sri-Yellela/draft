@@ -90,8 +90,9 @@ test("server precomputed and generated ATS paths use local scorer instead of LLM
 
 test("AG1: the report version was bumped, so cached fragment reports are not served forever", () => {
   const server = fs.readFileSync("server.js", "utf8");
-  // A52: the report is drawn by components/AtsReport.jsx; ATSPanel only fetches and claims.
-  const panel = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
+  // A52: the report is drawn by ONE implementation — since T9 the shared component (shared/atsReportElement.js),
+  // which components/AtsReport.jsx wraps; ATSPanel only fetches and claims.
+  const panel = fs.readFileSync("shared/atsReportElement.js", "utf8");
 
   // A report is cached in four places and the read path serves it whenever `source` matches. If
   // the version had stayed local_ats_v1, every job already scored would keep showing "and
@@ -291,13 +292,17 @@ test("AG2: the ATS chips claim through the reversible route, not the one-way add
   assert.match(suggestionsLib, /body: JSON\.stringify\(\{ kind, label, claimed \}\)/);
   assert.match(panel, /await setProfileClaim\(clickableProfileId, kind, label, claimed\)/);
   // A52: ATSPanel hands its toggle to the one report implementation, which calls it per kind.
-  const report = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
+  // T9: the one component (shared/atsReportElement.js) DISPATCHES the claim (draft-ats-claim { kind, term, claimed });
+  // the web wrapper hands it to ATSPanel's toggle, per kind — the same reversible call.
+  const wrapper = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
+  const report = fs.readFileSync("shared/atsReportElement.js", "utf8") + fs.readFileSync("shared/atsReportModel.js", "utf8");
   assert.match(panel, /onToggle: toggleClaim,/);
-  assert.match(report, /claims\.onToggle\(kind, item, claimed\)/);
+  assert.match(wrapper, /latest\.current\.claims\?\.onToggle\?\.\(kind, term, claimed\)/);
+  assert.match(report, /\{ detail: \{ kind: claimKind, term: k, claimed: !claimed \}, bubbles: true, composed: true \}/);
   // D31 (the weave dropped): skills and competencies are claimed in "You could claim" — the same reversible call.
   // D32 re-pin: ONE block, each box claiming through its scorer bucket's route — skill and quality as
   // "skill", verb as "action_verb" — the same two reversible kinds.
-  assert.match(report, /\{\.\.\.claimable\(TERM_KINDS\[kind\]\.claim\)\}/);
+  assert.match(report, /const claimKind = TERM_KINDS\[kind\]\?\.claim \|\| "skill";/);
   assert.match(report, /skill: +\{ label: "skill", +claim: "skill" \}/);
   assert.match(report, /quality: \{ label: "quality", claim: "skill" \}/);
   assert.match(report, /verb: +\{ label: "verb", +claim: "action_verb" \}/);
@@ -311,8 +316,8 @@ test("AG2: the ATS chips claim through the reversible route, not the one-way add
 });
 
 test("AG2: nothing is pre-selected — only what the candidate claimed reads as claimed", () => {
-  // A52: the chips and their copy are drawn by components/AtsReport.jsx now.
-  const panel = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
+  // A52: the chips and their copy are drawn by the one implementation — since T9 shared/atsReportElement.js.
+  const panel = fs.readFileSync("shared/atsReportElement.js", "utf8");
   const suggestionsLib = fs.readFileSync("client/src/lib/profileSuggestions.js", "utf8");
   const aggregator = fs.readFileSync("services/profileSignalAggregator.js", "utf8");
 

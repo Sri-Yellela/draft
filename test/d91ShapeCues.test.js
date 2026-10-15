@@ -12,6 +12,7 @@ const { C } = await import("../client/src/styles/colorTokens.js");
 const { markStyle, bandMarkStyle, statusCue } = await import("../client/src/styles/mark.js");
 const { bandChipStyle } = await import("../client/src/styles/bandStyle.js");
 const { ATS_BAND } = await import("../shared/atsBands.js");
+const { ATS_REPORT_CSS } = await import("../shared/atsReportStyles.js");
 const read = (f) => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
 const CSS = read("client/src/styles/cues.css");
 
@@ -71,10 +72,16 @@ test("the setting reaches the page: <html data-cues=\"shape\">, from the one sto
 
 test("⛔ the hue-only places the audit found (§5) all have a cue", () => {
   for (const sel of [".dh-item[data-tone=\"danger\"]", ".dh-item[data-tone=\"warning\"]", ".dh-item[data-tone=\"info\"]",
-    ".dh-bar[data-held=\"true\"]", ".rc__cell--del", ".rc__cell--rew", ".ats-bar__seg--missing", ".ats-bar__seg--generic",
+    ".dh-bar[data-held=\"true\"]", ".rc__cell--del", ".rc__cell--rew",
     ".ah__fseg[data-seg=\"rejected\"]", "[style*=\"--dot-glyph\"]"]) {
     assert.ok(CSS.includes(sel), `no cue for ${sel}`);
   }
+  // ⭐ T9: the pair's bar is inside the ATS report's shadow root, so its cues travel with the component — keyed on the
+  // host's cues="shape", which the web wrapper sets from the same one preference.
+  for (const sel of [".ats-bar__seg--missing", ".ats-bar__seg--generic"]) {
+    assert.ok(ATS_REPORT_CSS.includes(`:host([cues="shape"]) ${sel}`), `no cue for ${sel} in the ATS report`);
+  }
+  assert.match(read("client/src/components/AtsReport.jsx"), /\.\.\.\(CUES \? \{ cues: "shape" \} : \{\}\)/);
   // Draft House's protective / blocking dots: a glyph each, not only amber against red.
   const sections = read("client/src/panels/AutoApplyPanelSections.jsx");
   assert.equal((sections.match(/dotCue\(item\.protective|dotCue\(r\.protective/g) || []).length, 2);
