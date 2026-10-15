@@ -1353,9 +1353,10 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
     const reason = list.state && list.state !== 'ready' ? list.state : 'origin_mismatch';
     return {
       ok: false, reason,
-      // ⭐ D96 §2: on a bound tab the job is named — "capture it first" only with no binding and no match.
+      // ⭐ D96 §2: on a bound tab the job is named. ⛔ T16: no sentence sends the user back to an earlier step — the Fill
+      // press prepares by itself (tabState.js runFillChain); only what it cannot do names ONE button.
       message: boundMissMessage(bound, reason, list.message)
-        || "Nothing is prepared for this page. If draft knows this job, press \"Prepare this application\" in the draft popup; if not, capture it first.",
+        || 'Nothing is prepared for this page — draft could not tell which of your jobs it is. Capture adds it.',
       canPrepare: !!list.canPrepare, job: list.job || null, addresses: list.addresses || null,
     };
   }
@@ -1372,7 +1373,7 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
     return {
       ok: false, reason: 'packet_stale',
       // D56: an expired packet is never a dead end — "Prepare this application" makes a fresh one.
-      message: list.message || 'The answers prepared for this page have expired. Run it again in Draft to prepare fresh ones.',
+      message: list.message || 'The answers prepared for this page have expired — Fill prepares fresh ones before it fills.',
       canPrepare: !!list.canPrepare, job: list.job || null,
     };
   }
@@ -1712,8 +1713,7 @@ async function fillFromPacket({ tab, origin, frame = null, released, serverUrl, 
     return {
       ok: false, reason: 'form_not_recognised', reused: !!reused, packetId: released.packetId,
       filled: [], why: recognition.why, badge: badgeNow,
-      message: "This form isn't recognised — nothing was filled. Fill it yourself, or copy your answers " +
-        'from the Copy sheet in the draft popup.',
+      message: "This form isn't recognised — nothing was filled. Fill it yourself; the Copy sheet lists your answers to paste.",
     };
   }
 
