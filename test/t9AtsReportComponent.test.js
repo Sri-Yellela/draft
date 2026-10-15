@@ -250,6 +250,33 @@ test("⛔ T9 · the popup and the on-page panel draw the component — and add o
   assert.equal(JSON.parse(read("extension/manifest.json")).content_security_policy.extension_pages, "script-src 'self'; object-src 'self'");
 });
 
+test("⛔ T9 × BINDING FIRST · the popup's card comes only from a press, and only with what the identify allowed", () => {
+  const popup = stripJs(read("extension/popup.js"));
+  const body = (src, from, to) => src.slice(src.indexOf(from), src.indexOf(to, src.indexOf(from) + from.length));
+  // Opening the popup on a bound tab (T14's TAB_STATE) is no request and no page read: the job card and its score come
+  // back from the tab's own record, the FULL card does not — it waits for Read again (D23: every read begins with a press).
+  const tabState = body(popup, "function showTabState(st)", "\nfunction ");
+  assert.doesNotMatch(tabState, /renderAtsReport|POPUP_CONTEXT|sendMessage/, "the tab's state draws the card or asks the server on open");
+  assert.match(tabState, /'Read again'/, "a bound tab's popup offers Read again — the press that brings the card");
+  // The press: the card is drawn from the context the identify-first POPUP_CONTEXT returned — and hidden when it carried
+  // no ready report (a signed-out / unreachable stop returns `report: null`).
+  const readP = body(popup, "async function readPage()", "\ndocument.getElementById('btn-read-page')");
+  assert.ok(readP.indexOf("chrome.runtime.sendMessage({ type: 'POPUP_CONTEXT' })") < readP.indexOf("renderAtsReport(context)"));
+  const render = body(popup, "function renderAtsReport(context)", "\ndocument.getElementById('btn-ats-again')");
+  assert.match(render, /if \(r\?\.state !== 'ready' \|\| !r\.report \|\| typeof card\.render !== 'function'\) \{ box\.style\.display = 'none'; return; \}/);
+  // "Full report in draft" only for the board job's report — the bound job's id, never a page-text score's.
+  assert.match(render, /r\.basis === 'board' \? \(context\.posting\?\.jobId \?\? context\.binding\?\.jobId \?\? null\) : null/);
+  // The service worker: a stop asks nothing more and sends no report; the one extra GET only when the identify's answer
+  // carried no report, for a job draft knows — and the binding is still the identify's (no rebind on the GET).
+  const bg = stripJs(read("extension/background.js"));
+  const ctx = body(bg, "async function popupContext(tab)", "\nasync function previewActiveTab");
+  const stop = body(ctx, "if (identity && IDENTITY_STOPS.includes(identity.outcome))", "\n  }");
+  assert.match(stop, /report: null/);
+  assert.ok(ctx.indexOf("IDENTITY_STOPS.includes") < ctx.indexOf("lookupBoardJob("), "the GET comes after a stop has returned");
+  assert.match(ctx, /const boardReport = !page\?\.ats && board\?\.posting\?\.known && board\.posting\.jobId\s*\?\s*await lookupBoardJob\(RESUME_MASTER_URL, board\.posting\.jobId\)/);
+  assert.doesNotMatch(ctx.slice(ctx.indexOf("const boardReport")), /via: 'recognised'/, "the board GET rebinds the tab");
+});
+
 test("⛔ T9 · the extension draws no second ATS report: no file outside the bundle prints the card's headings", () => {
   const HEADINGS = /You could claim|Already yours|Generic — not a gap|things this posting asks for/;
   for (const f of fs.readdirSync("extension").filter((f) => /\.(js|html)$/.test(f) && f !== "atsReport.js")) {
@@ -305,9 +332,48 @@ document.getElementById("card").addEventListener(ATS_CLAIM_EVENT, (e) => window.
 window.ready = true;
 </script></body></html>`;
 
-/** Draw `report` in `page`'s card with these attributes, wait for its faces, and screenshot just the card. */
+// Every face the card draws with (atsReportStyles.js: DM Sans 400/700, Poppins 800 italic, Instrument Serif 400).
+const CARD_FACES = Object.freeze(['400 16px "DM Sans"', '700 16px "DM Sans"', 'italic 800 16px "Poppins"', '400 16px "Instrument Serif"']);
+
+/** Load every face the card uses in THIS page, explicitly — `document.fonts.ready` alone can resolve before a face
+ *  nothing has asked for yet is fetched, which is how the parity check flaked once beside j9FullPass under load. */
+async function fontsLoaded(page) {
+  const missing = await page.evaluate(async (faces) => {
+    const out = [];
+    for (const f of faces) { try { const got = await document.fonts.load(f); if (!got.length) out.push(f); } catch { out.push(f); } }
+    await document.fonts.ready;
+    return out;
+  }, CARD_FACES);
+  assert.deepEqual(missing, [], `${page.url()} could not load the card's faces`);
+}
+
+/** How two screenshots differ — sizes, the number of differing pixels and their bounding box — decoded by Chrome itself
+ *  (a canvas in `page`), so a failure says WHERE, not just "different". */
+async function pictureDiff(page, a, b) {
+  return page.evaluate(async (a64, b64) => {
+    const load = (s) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = `data:image/png;base64,${s}`; });
+    const [A, B] = await Promise.all([load(a64), load(b64)]);
+    if (A.width !== B.width || A.height !== B.height) return `size ${A.width}x${A.height} vs ${B.width}x${B.height}`;
+    const px = (img) => { const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+      const x = c.getContext("2d"); x.drawImage(img, 0, 0); return x.getImageData(0, 0, img.width, img.height).data; };
+    const da = px(A), db = px(B);
+    let n = 0, x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
+    for (let i = 0; i < da.length; i += 4) {
+      if (da[i] !== db[i] || da[i + 1] !== db[i + 1] || da[i + 2] !== db[i + 2] || da[i + 3] !== db[i + 3]) {
+        n++; const p = i / 4, x = p % A.width, y = (p - x) / A.width;
+        x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+      }
+    }
+    return n ? `${n} of ${A.width * A.height} pixels differ, in ${x0},${y0} to ${x1},${y1}` : "identical once decoded";
+  }, a.toString("base64"), b.toString("base64"));
+}
+
+/** Draw `report` in `page`'s card with these attributes, wait for its faces and two frames, and screenshot just the card. */
 async function shot(page, selector, report, { theme = null, cues = false } = {}) {
-  await page.evaluate(async (sel, r, th, cu) => {
+  // FIRST to the front: a background tab is never painted — its frames never come (the wait below would hang) and its
+  // screenshot would wait for ever.
+  await page.bringToFront();
+  await page.evaluate(async (sel, r, th, cu, faces) => {
     const el = document.querySelector(sel);
     if (th) el.setAttribute("theme", th); else el.removeAttribute("theme");
     if (cu) el.setAttribute("cues", "shape"); else el.removeAttribute("cues");
@@ -318,14 +384,16 @@ async function shot(page, selector, report, { theme = null, cues = false } = {})
     el.report = r;
     el.render();
     for (const d of el.shadowRoot.querySelectorAll("details")) d.open = true;   // every section in the picture
+    for (const f of faces) { try { await document.fonts.load(f); } catch { /* fontsLoaded() asserted them */ } }
     await document.fonts.ready;
-  }, selector, report, theme, cues);
-  await page.bringToFront();   // a background tab is never painted, so its screenshot would wait for ever
+    // laid out AND painted — two frames, bounded so a frame that never comes cannot hang the run
+    await Promise.race([new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res))), new Promise((res) => setTimeout(res, 1000))]);
+  }, selector, report, theme, cues, CARD_FACES);
   return (await page.$(selector)).screenshot();
 }
 
 test("⭐ T9 · REAL CHROME: the popup and the web app draw the same pixels — four themes, cues off and on — and no request",
-  { skip: chrome.skip || false, timeout: 180000 }, async (t) => {
+  { skip: chrome.skip || false, timeout: 240000 }, async (t) => {
     let h;
     try { h = await launchExtensionBrowser({ theme: "light" }); }
     catch (e) { if (e instanceof HarnessSkip) { t.skip(e.reason); return; } throw e; }
@@ -340,16 +408,25 @@ test("⭐ T9 · REAL CHROME: the popup and the web app draw the same pixels — 
     const page = await h.browser.newPage();
     await page.goto(`${web.origin}/host.html`);
     await page.waitForFunction(() => window.ready === true);
-    await page.evaluate(() => document.fonts.ready);
+    // Each page loads every face the card uses before the first picture (the web page from its server, the popup from
+    // the extension's own files) — and the request count is taken after, so it counts only the CARD's requests.
+    await fontsLoaded(page);
+    await fontsLoaded(popup);
     const report = JSON.parse(JSON.stringify(RAW));
     const before = web.requests.length;
     const mismatched = [];
+    // ONE retry, both pictures redrawn: a frame caught mid-paint under load is not a parity failure; the same
+    // difference twice is — and is then reported with where it is.
+    const pair = async (opts) => {
+      let x = await shot(page, "#card", report, opts), y = await shot(popup, "#ats-report-card", report, opts);
+      if (!x.equals(y)) { x = await shot(page, "#card", report, opts); y = await shot(popup, "#ats-report-card", report, opts); }
+      return [x, y];
+    };
     for (const theme of THEME_LIST.map((x) => x.id)) {
       for (const cues of [false, true]) {
-        const a = await shot(page, "#card", report, { theme, cues });
-        const b = await shot(popup, "#ats-report-card", report, { theme, cues });
+        const [a, b] = await pair({ theme, cues });
         if (!a.equals(b)) {
-          mismatched.push(`${theme}${cues ? " +cues" : ""}`);
+          mismatched.push(`${theme}${cues ? " +cues" : ""}: ${await pictureDiff(page, a, b)}`);
           fs.mkdirSync(path.join(h.outDir, "t9"), { recursive: true });
           fs.writeFileSync(path.join(h.outDir, "t9", `${theme}-${cues}-web.png`), a);
           fs.writeFileSync(path.join(h.outDir, "t9", `${theme}-${cues}-popup.png`), b);
@@ -365,10 +442,10 @@ test("⭐ T9 · REAL CHROME: the popup and the web app draw the same pixels — 
     // No theme named → the OS decides: dark → Charcoal Dark, in both.
     await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }]);
     await popup.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }]);
-    const da = await shot(page, "#card", report), db = await shot(popup, "#ats-report-card", report);
+    const [da, db] = await pair({});
     const dt = await shot(page, "#card", report, { theme: "charcoal-dark" });
-    assert.ok(da.equals(db), "no theme, dark OS: the popup and the web app differ");
-    assert.ok(da.equals(dt), "no theme, dark OS: not Charcoal Dark");
+    assert.ok(da.equals(db), `no theme, dark OS: the popup and the web app differ — ${da.equals(db) ? "" : await pictureDiff(page, da, db)}`);
+    assert.ok(da.equals(dt), `no theme, dark OS: not Charcoal Dark — ${da.equals(dt) ? "" : await pictureDiff(page, da, dt)}`);
   });
 
 test("⭐ T9 · REAL CHROME: the keyboard claims a term — Tab to the box, Space presses it — and a redraw keeps focus and folds",
