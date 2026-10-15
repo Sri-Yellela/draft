@@ -23,6 +23,7 @@ import http from "node:http";
 import path from "node:path";
 import vm from "node:vm";
 import { miniDocument } from "../test-support/miniDom.mjs";
+import { at } from "../test-support/sourceAnchors.js";
 import { buildAtsReport, ATS_CLAIM_EVENT, ATS_TERM_EVENT } from "../shared/atsReportElement.js";
 import { cleanReport, fromDeckReport } from "../shared/atsReportModel.js";
 import { ATS_REPORT_CSS, atsHostCss } from "../shared/atsReportStyles.js";
@@ -252,7 +253,7 @@ test("⛔ T9 · the popup and the on-page panel draw the component — and add o
 
 test("⛔ T9 × BINDING FIRST · the popup's card comes only from a press, and only with what the identify allowed", () => {
   const popup = stripJs(read("extension/popup.js"));
-  const body = (src, from, to) => src.slice(src.indexOf(from), src.indexOf(to, src.indexOf(from) + from.length));
+  const body = (src, from, to) => src.slice(at(src, from), at(src, to, at(src, from) + from.length));
   // Opening the popup on a bound tab (T14's TAB_STATE) is no request and no page read: the job card and its score come
   // back from the tab's own record, the FULL card does not — it waits for Read again (D23: every read begins with a press).
   const tabState = body(popup, "function showTabState(st)", "\nfunction ");
@@ -274,7 +275,7 @@ test("⛔ T9 × BINDING FIRST · the popup's card comes only from a press, and o
   assert.match(stop, /report: null/);
   assert.ok(ctx.indexOf("IDENTITY_STOPS.includes") < ctx.indexOf("lookupBoardJob("), "the GET comes after a stop has returned");
   assert.match(ctx, /const boardReport = !page\?\.ats && board\?\.posting\?\.known && board\.posting\.jobId\s*\?\s*await lookupBoardJob\(RESUME_MASTER_URL, board\.posting\.jobId\)/);
-  assert.doesNotMatch(ctx.slice(ctx.indexOf("const boardReport")), /via: 'recognised'/, "the board GET rebinds the tab");
+  assert.doesNotMatch(ctx.slice(at(ctx, "const boardReport")), /via: 'recognised'/, "the board GET rebinds the tab");
 });
 
 test("⛔ T9 · the extension draws no second ATS report: no file outside the bundle prints the card's headings", () => {
