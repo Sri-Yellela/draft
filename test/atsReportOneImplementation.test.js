@@ -3,14 +3,19 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
-// ONE ATS REPORT, EVERY SURFACE (A52).
+// ONE ATS REPORT, EVERY SURFACE (A52) — AND BOTH PRODUCTS (T9).
 //
 // The StampLogo lesson: three implementations of one mark existed, the rebrand swept two, and the
 // third shipped the legacy name on every page while the guard passed green. The ATS report had the
 // same shape — the board's ATSPanel, the deck's adapter feeding it, the public /tools/ats page's own
 // band card and chip rows (already thinner: no competencies, no generic language, no matched verbs),
-// and the signup hook's band card. They are one now: client/src/components/AtsReport.jsx draws the
-// report, everything else renders it. This refuses a second one.
+// and the signup hook's band card. A52 made them one React component. T9 (owner 10-14: "the same ATS
+// panel we use on the website — same design and everything") found the fourth copy that guard could not
+// see: the extension's on-page panel drew its own (a score mark and two comma lists). Now the report is
+// ONE framework-agnostic component in shared/ — shared/atsReportElement.js (structure, copy, events) and
+// shared/atsReportModel.js (the report's shape and the two adapters) — which the web app wraps
+// (client/src/components/AtsReport.jsx, thin) and the extension bundles (extension/atsReport.js,
+// generated). This refuses a second one, in the client OR the extension.
 //
 // HOW A SECOND REPORT IS RECOGNISED, without trusting its author to name it one:
 //   1. it READS A REPORT'S SECTIONS — any of the scorer's term buckets or the deck's / public
@@ -19,11 +24,13 @@ import path from "node:path";
 //   2. it PRINTS A REPORT'S SECTION HEADINGS or the band card's "fit band" / "no judgement" caption.
 // Either one outside the module is a second report.
 
-const ROOT = "client/src";
-const THE_ONE = "client/src/components/AtsReport.jsx";
-const files = fs.readdirSync(ROOT, { recursive: true })
-  .map(String).filter(f => /\.(jsx?|tsx?)$/.test(f)).map(f => path.join(ROOT, f).replace(/\\/g, "/"));
-const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "").replace(/\/\/.*$/gm, "");
+const THE_ONE = new Set(["shared/atsReportElement.js", "shared/atsReportModel.js"]);
+const WRAPPER = "client/src/components/AtsReport.jsx";
+const BUNDLE = "extension/atsReport.js";   // THE_ONE, bundled — its staleness is t9AtsReportComponent's job
+const walk = (root, re) => fs.readdirSync(root, { recursive: true }).map(String).filter(f => re.test(f))
+  .map(f => path.join(root, f).replace(/\\/g, "/")).filter(f => !f.includes("/submission/"));
+const files = [...walk("client/src", /\.(jsx?|tsx?)$/), ...walk("extension", /\.(js|html)$/).filter(f => f !== BUNDLE)];
+const strip = (s) => s.replace(/<!--[\s\S]*?-->/g, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "").replace(/\/\/.*$/gm, "");
 
 const SECTION_FIELDS = [
   // the scorer's report (services/localAtsScorer.js)
@@ -45,7 +52,7 @@ const HEADINGS = /Skills Matched|Skills Missing|Competencies Missing|Verbs Missi
 export function secondReports(sources) {
   const out = [];
   for (const [file, src] of Object.entries(sources)) {
-    if (file === THE_ONE) continue;
+    if (THE_ONE.has(file)) continue;
     const code = strip(src);
     const m = code.match(READS_SECTION) || code.match(HEADINGS);
     if (m) out.push(`${file}: ${m[0]}`);
@@ -54,22 +61,30 @@ export function secondReports(sources) {
 }
 
 const SOURCES = Object.fromEntries(files.map(f => [f, fs.readFileSync(f, "utf8")]));
+const ONE = Object.fromEntries([...THE_ONE].map(f => [f, strip(fs.readFileSync(f, "utf8"))]));
 
-test("⛔ no file but components/AtsReport.jsx reads a report's sections or prints its headings", () => {
+test("⛔ no file but the shared component reads a report's sections or prints its headings — client or extension", () => {
+  assert.ok(files.some(f => f.startsWith("extension/")) && files.some(f => f.startsWith("client/src/")), "the scan found both products");
   assert.deepEqual(secondReports(SOURCES), [],
-    "a second ATS-report implementation — render <AtsReport> / <AtsBandCard> from components/AtsReport.jsx");
+    "a second ATS-report implementation — render <AtsReport> / <AtsBandCard> (web) or <draft-ats-report> / mountAtsReport (extension)");
 });
 
-test("exactly one file defines the report, and it exports the pieces every surface uses", () => {
-  const definers = files.filter(f => /export function AtsReport\b/.test(strip(SOURCES[f])));
-  assert.deepEqual(definers, [THE_ONE]);
-  const one = strip(SOURCES[THE_ONE]);
-  for (const name of ["AtsReport", "AtsBandCard", "reportBand", "fromDeckReport", "fromStandaloneResult"]) {
-    assert.match(one, new RegExp(`export function ${name}\\b`), name);
+test("exactly one implementation defines the report, the web wrapper only re-exports it, and the pieces are where every surface reads them", () => {
+  const all = { ...Object.fromEntries(files.map(f => [f, strip(SOURCES[f])])), ...ONE };
+  assert.deepEqual(Object.keys(all).filter(f => /export function buildAtsReport\b/.test(all[f])), ["shared/atsReportElement.js"]);
+  for (const name of ["buildAtsReport", "buildBandCard", "mountAtsReport", "defineAtsReportElement"]) {
+    assert.match(ONE["shared/atsReportElement.js"], new RegExp(`export function ${name}\\b`), name);
   }
+  for (const name of ["reportBand", "fromDeckReport", "fromStandaloneResult", "reportAsks", "cleanReport"]) {
+    assert.match(ONE["shared/atsReportModel.js"], new RegExp(`export function ${name}\\b`), name);
+  }
+  // The web wrapper defines the two React entry points every surface renders, and re-exports the adapters.
+  const w = strip(SOURCES[WRAPPER]);
+  for (const name of ["AtsReport", "AtsBandCard"]) assert.match(w, new RegExp(`export function ${name}\\b`), name);
+  assert.match(w, /export \{ reportBand, fromDeckReport, fromStandaloneResult, reportAsks, TERM_KINDS \};/);
 });
 
-test("the four surfaces — board side panel, deck panel, phone sheet, public tool — and the signup hook all render it", () => {
+test("the four surfaces — board side panel, deck panel, phone sheet, public tool — the signup hook, and the extension all render it", () => {
   const code = (f) => strip(SOURCES[`client/src/${f}`]);
   // The board's side panel and the deck (both its left panel and its sheet) render ATSPanel …
   assert.match(code("panels/AtsReportPanel.jsx"), /<ATSPanel\b/, "the board's side panel");
@@ -80,6 +95,9 @@ test("the four surfaces — board side panel, deck panel, phone sheet, public to
   assert.match(code("components/ATSPanel.jsx"), /<AtsReport report=\{activeReport\}/);
   assert.match(code("pages/tools/ATSToolPage.jsx"), /<AtsReport report=\{fromStandaloneResult\(result\)\}/, "the public tool");
   assert.match(code("components/SignupAtsHook.jsx"), /<AtsBandCard\b/, "the signup hook's band card");
+  // T9: the extension's popup (the element) and its on-page panel (the renderer, in the panel's shadow root).
+  assert.match(SOURCES["extension/popup.html"], /<draft-ats-report id="ats-report-card">/, "the popup");
+  assert.match(strip(SOURCES["extension/resumePanel.js"]), /ATS\.mountAtsReport\(/, "the on-page panel");
 });
 
 test("the guard goes red on a second report (injected)", () => {
@@ -94,6 +112,10 @@ test("the guard goes red on a second report (injected)", () => {
     '\nconst h = <summary>Already on your résumé (3)</summary>;\n').length, 1, "D31: the simple card's fold copied into a card");
   assert.equal(injected("client/src/components/SignupAtsHook.jsx",
     "\nconst y = report.decline_reasons.map(r => r);\n").length, 1, "the hook draws its own decline list");
+  // T9: the extension growing its own copy again — the old J12 lines, or a heading.
+  assert.equal(injected("extension/resumePanel.js",
+    "\nconst lines = ats.report.tier1_missing.join(', ');\n").length, 1, "the panel reads a section itself");
+  assert.equal(injected("extension/popup.js", "\nbox.textContent = 'You could claim';\n").length, 1, "the popup prints a heading");
   // A mention in a comment is not an implementation.
   assert.equal(injected("client/src/components/JobCard.jsx", "\n// see tier1_matched in AtsReport.jsx\n").length, 0);
 });

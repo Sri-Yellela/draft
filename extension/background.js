@@ -14,7 +14,7 @@ import { handlers as RESUME_PANEL_HANDLERS, configureResumePanel } from './resum
 // D99 J11: the board hands a job to the extension (boardBridge.js, the one content script, on draft's origin only).
 import { handlers as BOARD_OPEN_HANDLERS, configureBoardOpen } from './boardOpen.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
-import { lookupPage } from './boardJob.js';
+import { lookupPage, lookupBoardJob } from './boardJob.js';
 // ⭐ One job per tab across every stage of its application, and the Copy sheet as an in-page panel (owner, 10-12).
 import { bindTab, bindingForTab, clearBinding, setBindingDock, bindingLine, loadBinding, BIND_PREFIX } from './tabBinding.js';
 import { renderCopySheetPanel } from './copy-sheet-panel.js';
@@ -179,6 +179,10 @@ async function popupContext(tab) {
       board.posting = { ...board.posting, known: true, jobId: p.jobId, title: p.title, company: p.company, how: p.how, active: true, scores };
     } else if (score != null) board.posting = { ...board.posting, scores };
   }
+  // ⭐ T9: a board job whose score was already known skipped the page read above — so ask draft for that job's report
+  // (GET /api/extension/job/:id: no page text leaves the browser), for the web app's ATS report in the popup.
+  const boardReport = !page && board?.posting?.known && board.posting.jobId
+    ? await lookupBoardJob(RESUME_MASTER_URL, board.posting.jobId).catch(() => null) : null;
   // ⭐ A posting draft recognises binds the tab too; a DIFFERENT recognised posting replaces the binding.
   if (board?.posting?.known && board.posting.jobId) {
     await bindTab(tab, { jobId: board.posting.jobId, title: board.posting.title, company: board.posting.company, via: 'recognised' }).catch(() => null);
@@ -194,7 +198,8 @@ async function popupContext(tab) {
     posting: board?.posting || null,
     ats: board?.ats || null,
     // T3: draft's report for this page — `basis` "board" (the board job's) or "page" (the page's own text)
-    report: page?.ok && page.ats ? { ...page.ats, basis: page.basis } : null,
+    report: page?.ok && page.ats ? { ...page.ats, basis: page.basis }
+      : boardReport?.ok && boardReport.ats ? { ...boardReport.ats, basis: 'board' } : null,
     recent: board?.recent || [],
     packets: (queue?.packets || []).map(p => ({
       packetId: p.packetId, title: p.title, company: p.company, createdAt: p.createdAt, stale: !!p.stale,

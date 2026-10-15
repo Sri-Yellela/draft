@@ -11,7 +11,10 @@
 // board (services/manualHandoff.js jobOnUsersBoard) — never an address a page sent.
 //
 // `ats` is draft's own report on the user's base résumé (D99 J12 — the free checker is for signed-out visitors only):
-//   { state: "ready", score, band, scorable, matched, missing }   the scorer judged it (score null = not enough signal)
+//   { state: "ready", score, band, scorable, matched, missing, report }   the scorer judged it (score null = not enough
+//       signal). ⭐ T9: `report` is the scorer's OWN report — the same JSON the web app's ATS panel gets from
+//       POST /api/jobs/:id/keywords — so the extension draws the web app's one component (<draft-ats-report>) from it.
+//       Passed through, never reshaped here: there is no extension-only field.
 //   { state: "no_base_resume" }                                     → "Add your résumé in draft"
 //   { state: "unavailable" }                                         a profile or the scorer was not there — said so
 // It is the same call the approval screen and the board use (server.js scoreBaseResumeForApply), so the score the
@@ -28,6 +31,11 @@ export const LOOKUP_LIMIT = Object.freeze({ limit: 60, windowMs: 60_000 });
 
 const httpsOnly = (u) => { try { const x = new URL(String(u || "")); return x.protocol === "https:" ? x.href : null; } catch { return null; } };
 
+/** The extension's `ats`: the summary, and (T9) the scorer's own report whenever the scorer handed one over. */
+export const reportOf = (r) => (r ? { state: "ready", score: r.score ?? null, band: r.band ?? null, scorable: r.scorable !== false,
+  matched: (r.matched || []).slice(0, 40), missing: (r.missing || []).slice(0, 40),
+  ...(r.report && typeof r.report === "object" ? { report: r.report } : {}) } : { state: "unavailable" });
+
 /** The job the extension may open, and its report — or null when it is not on this user's board. */
 export function boardJobForExtension(db, userId, jobId, { scoreFor, hasBaseResume }) {
   const id = String(jobId ?? "").slice(0, 128);
@@ -39,10 +47,7 @@ export function boardJobForExtension(db, userId, jobId, { scoreFor, hasBaseResum
   let ats;
   if (!hasBaseResume(userId)) ats = { state: "no_base_resume" };
   else {
-    const r = (() => { try { return scoreFor(userId, id); } catch { return null; } })();
-    ats = r ? { state: "ready", score: r.score ?? null, band: r.band ?? null, scorable: r.scorable !== false,
-                matched: (r.matched || []).slice(0, 40), missing: (r.missing || []).slice(0, 40) }
-            : { state: "unavailable" };
+    ats = reportOf((() => { try { return scoreFor(userId, id); } catch { return null; } })());
   }
   return {
     job: { jobId: String(row.job_id), title: row.title ?? null, company: row.company ?? null, url,
@@ -55,8 +60,6 @@ export function boardJobForExtension(db, userId, jobId, { scoreFor, hasBaseResum
 /** The page text a press may send — the extractor's labelled block (extension/extractor.js), capped. */
 export const PAGE_TEXT_MAX = 60_000;
 
-const reportOf = (r) => (r ? { state: "ready", score: r.score ?? null, band: r.band ?? null, scorable: r.scorable !== false,
-  matched: (r.matched || []).slice(0, 40), missing: (r.missing || []).slice(0, 40) } : { state: "unavailable" });
 
 /**
  * ⭐ T2 + T3 (field report 10-14) · "Read this page" — WHICH JOB IS THIS, AND HOW DOES MY RÉSUMÉ SCORE FOR IT?

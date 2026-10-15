@@ -46,6 +46,32 @@ function showJobPreview(card) {
   document.getElementById('job-preview').style.display = 'grid';
 }
 
+// ⭐ T9 · THE WEB APP'S ATS REPORT — <draft-ats-report>, the one component (extension/atsReport.js is
+// shared/atsReportElement.js, bundled), handed the scorer's own JSON exactly as the web app's ATS panel gets it.
+// Read-only here (no claims: claiming is the web app's), the theme follows the OS (D23). The extension adds only its
+// own two buttons: Full report in draft (a board job) and Read again.
+function renderAtsReport(context) {
+  const box = document.getElementById('ats-report');
+  const card = document.getElementById('ats-report-card');
+  const r = context?.report;
+  if (!box || !card) return;
+  if (r?.state !== 'ready' || !r.report || typeof card.render !== 'function') { box.style.display = 'none'; return; }
+  card.report = r.report;
+  card.render();
+  const jobId = r.basis === 'board' ? (context.posting?.jobId ?? context.binding?.jobId ?? null) : null;
+  const full = document.getElementById('btn-ats-full');
+  full.style.display = jobId != null ? 'flex' : 'none';
+  full.onclick = jobId != null
+    ? () => chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app/jobs?job=${encodeURIComponent(String(jobId))}` })
+    : null;
+  box.style.display = 'block';
+}
+document.getElementById('btn-ats-again')?.addEventListener('click', () => {
+  document.getElementById('ats-report').style.display = 'none';
+  pageRead = false;
+  readPage();
+});
+
 const MARK_ICONS = { doc: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7zM14 3v4h4"/></svg>' };
 
 // ⛔ D60 · status as marks: a rectangle with a leading bar in the tone's colour, the words as text.
@@ -262,6 +288,7 @@ async function readPage() {
   // ⭐ D63: the popup LEADS with the job card, then the marks, then (on a form) the packet.
   showJobPreview(jobCard(mode, preview));
   renderFacts(factMarks(mode));
+  renderAtsReport(context);
   if (mode.mode === 'form') renderPacket(packetRows(mode.packet));
 
   if (!preview?.capturable) {

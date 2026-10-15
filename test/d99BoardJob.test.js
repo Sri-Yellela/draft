@@ -101,5 +101,6 @@ test("⛔ J12: no base résumé → no_base_resume (\"Add your résumé in draft
 test("⛔ the route is mounted with the extension's credential check and the approval screen's scorer", () => {
   const src = read("server.js");
   assert.match(src, /app\.use\(createExtensionJobRouter\(\{ db, requireAuth, isExtension: isExtensionCredential,/);
-  assert.match(src, /scoreFor: \(userId, jobId\) => scoreBaseResumeForApply\(userId, jobId\)/);
+  // T9: the same scorer, asked for its own report too (the extension draws the web app's ATS component from it).
+  assert.match(src, /scoreFor: \(userId, jobId\) => scoreBaseResumeForApply\(userId, jobId, \{ withReport: true \}\)/);
 });

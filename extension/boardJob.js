@@ -7,6 +7,10 @@
 // Used by the on-page résumé panel (J12: a signed-in user with a base résumé sees draft's report, never the free
 // checker) and by the board → extension bridge (J11, boardOpen.js: the tab it opens is the address returned here).
 import { authedFetch } from './auth.js';
+// ⭐ T9: the web app's ATS report component, bundled (scripts/buildAtsReport.mjs). Imported for its side effect — it
+// sets globalThis.__draftAtsReport — so the report the server passes through is kept to the component's OWN named
+// fields (cleanReport, the same function the component applies on the web), never copied wholesale.
+import './atsReport.js';
 
 const JOB_ID_RE = /^[\w.:|@\-]{1,128}$/;
 const httpsOnly = (u) => { try { const x = new URL(String(u || '')); return x.protocol === 'https:' ? x.href : null; } catch { return null; } };
@@ -17,9 +21,12 @@ export function atsFacts(ats) {
   if (ats.state === 'no_base_resume' || ats.state === 'unavailable') return { state: ats.state };
   if (ats.state !== 'ready') return null;
   const words = (xs) => (Array.isArray(xs) ? xs.filter(x => typeof x === 'string').map(x => x.slice(0, 60)).slice(0, 40) : []);
+  // T9: the scorer's own report — the JSON the web app's ATS panel draws — for the one component; absent from an
+  // older server, and then the panel shows the summary lines it showed before.
+  const report = ats.report ? globalThis.__draftAtsReport?.cleanReport(ats.report) ?? null : null;
   return { state: 'ready', score: Number.isFinite(ats.score) ? Math.round(ats.score) : null,
            band: typeof ats.band === 'string' ? ats.band.slice(0, 40) : null, scorable: ats.scorable !== false,
-           matched: words(ats.matched), missing: words(ats.missing) };
+           matched: words(ats.matched), missing: words(ats.missing), ...(report ? { report } : {}) };
 }
 
 const safePath = (p) => (typeof p === 'string' && p.startsWith('/') && !p.startsWith('//') ? p.slice(0, 200) : null);

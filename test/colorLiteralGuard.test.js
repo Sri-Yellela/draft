@@ -39,7 +39,10 @@ const TOKEN_FILE = "client/src/styles/colorTokens.js";
 // the REGISTRY imports — a file merely dropped into themes/ is scanned like any other.
 export const THEME_FILES = new Set([...fs.readFileSync("client/src/themes/index.js", "utf8")
   .matchAll(/^import \w+ from "\.\/([\w-]+\.js)";$/gm)].map((m) => `client/src/themes/${m[1]}`));
-const TOKEN_FILES = new Set([TOKEN_FILE, ...THEME_FILES]);
+// ⭐ T9: the ATS report component's token VALUES are GENERATED from the registry (scripts/buildAtsReport.mjs) — a copy
+// the generator writes and test/t9AtsReportComponent.test.js holds byte-equal to the theme files, not a palette.
+export const GENERATED_TOKEN_FILES = new Set(["shared/atsReportTokens.js"]);
+const TOKEN_FILES = new Set([TOKEN_FILE, ...THEME_FILES, ...GENERATED_TOKEN_FILES]);
 // Plus the two NAMED colours this client actually used as paint — quoted "white"/"black" in JS, and
 // `: white;` in CSS. They were added to the scan after the first pass MISSED them: the login button
 // and the "your next" hero tile carried color:"white" on the orange fill (3.47:1, fails AA),
@@ -217,6 +220,10 @@ test("the shell, the public pages and the shared surfaces are literal-free", () 
 // ════════════════════════════════════════════════════════════════════════════════════════════
 const EXT_ROOT = "extension";
 export const EXT_TOKEN_FILES = new Set(["extension/tokens.css", "extension/tokens.js"]);
+// ⭐ T9: extension/atsReport.js is the web app's ATS component BUNDLED from shared/ (scripts/buildAtsReport.mjs): its
+// colour values are the generated shared/atsReportTokens.js, and every other line is a shared/ module the client scan
+// above already reads. Its staleness is test/t9AtsReportComponent.test.js's job — a hand edit there fails it.
+export const EXT_BUNDLED_FROM_SHARED = new Set(["extension/atsReport.js"]);
 
 function extensionFiles(dir = EXT_ROOT) {
   const out = [];
@@ -233,7 +240,7 @@ const stripHtmlComments = (s) => s.replace(/<!--[\s\S]*?-->/g, "");
 export function extensionLiteralCounts() {
   const counts = {};
   for (const f of extensionFiles()) {
-    if (EXT_TOKEN_FILES.has(f)) continue;
+    if (EXT_TOKEN_FILES.has(f) || EXT_BUNDLED_FROM_SHARED.has(f)) continue;
     const n = (stripComments(stripHtmlComments(fs.readFileSync(f, "utf8"))).match(LITERAL) || []).length;
     if (n) counts[f] = n;
   }

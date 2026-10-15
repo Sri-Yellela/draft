@@ -28,7 +28,8 @@ const { C_LIGHT, C_DARK } = await import("../client/src/styles/colorTokens.js");
 
 const read = (f) => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
 const POSTING_CSS = read("client/src/components/PostingPanel.css");
-const ATS_CSS = read("client/src/components/AtsReport.css");
+// T9: the ATS half's stylesheet travels with the one component, inside its shadow root — the same rules, as a string.
+const { ATS_REPORT_CSS: ATS_CSS } = await import("../shared/atsReportStyles.js");
 const INDEX_CSS = read("client/src/index.css");
 
 /** Every rule in a stylesheet, as [selector, Map(prop → value)] — media blocks flattened. */
@@ -275,5 +276,5 @@ test("⛔ the kind label, at its opacity, reads at 4.5:1 on every box it sits in
     assert.ok(alphaOf(P) > 0.62 && alphaOf(P) < 1, `${theme}: PAIR_KIND_ALPHA is not a reduced opacity`);
   }
   // Generic boxes carry no kind label, so they need no alpha (pair2.html's .b.gen is the word alone).
-  assert.match(read("client/src/components/AtsReport.jsx"), /\{!generic && kindLabel\}/);
+  assert.match(read("shared/atsReportElement.js"), /!generic && kindLabel\(\)/);
 });
