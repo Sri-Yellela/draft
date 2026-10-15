@@ -63,6 +63,10 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
+### ▶ 43j — 10-15 · RESUMED (owner: "pick up the worklog in a single lane, merge lanes after each pass and push at the end"). One lane at a time: BINDING-FIRST → T9 → D97R + T12, each merged to local `main` when green; one push of both repos at the end.
+
+**⭐ OWNER DECISIONS 10-15 (43j) — the D97R / T12 questions of §3 below, answered:** **(1) YES** — add the OPTIONAL host pattern `https://*/*` for T12 *Always read here* (nothing at install; each request names one origin from a click; MANIFEST_RATIONALE's "no `<all_urls>`, ever" is reversed for the OPTIONAL list only and must say so). **(2) YES** — SmartRecruiters (`jobs.smartrecruiters.com`) joins the preset sites and the optional hosts. **(3)** frames known before the click = **local knowledge only** (TabState, the last press's frame site, URL hints such as `gh_jid=`), with a **second click after the first grant** as the fallback — no frames read on popup open (D23 holds). **(4)** the consent card lives in the **popup only** — no first-run tab. **Keys (measured 43j start, Railway):** no deployment on either service after 01:12Z — neither boot line has shown a new key yet; the end-of-session push redeploys both and the fps are read then.
+
 ### ⏸⏸ PAUSED 10-15 ~02:45Z — HANDOFF. A NEW SESSION STARTS HERE (owner: "pause … update log to current progress and notes so that I can clear context and restart session").
 
 **1 · WHAT IS WHERE (measured 10-15 ~02:40Z).**
