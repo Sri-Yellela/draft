@@ -33,8 +33,17 @@ import {
 import { C_LIGHT, C_DARK } from './tokens.js';
 // D97 (J5): automatic reading, per site, all off — the four switches, the watcher's registrations, the consent.
 import {
-  handlers as AUTO_READ_HANDLERS, configureAutoRead, reconcileAutoRead, onPermissionsRemoved, syncRegistrations, forgetTab,
+  handlers as AUTO_READ_HANDLERS, configureAutoRead, reconcileAutoRead, onPermissionsRemoved, syncRegistrations, forgetTab, noteFrameSite,
 } from './autoRead.js';
+
+// ⭐ T12 · a press found the form inside an ATS frame draft may not read yet: the settings remember WHICH site that page's
+// origin embeds (autoRead.js frameHints), so the popup's "Always read here" can ask for that frame too — local knowledge.
+async function noteActiveFrame(r) {
+  if (r?.reason !== 'frame_needs_permission' || !r.site?.id) return r;
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => []);
+  if (tab?.url) await noteFrameSite(tab.url, r.site.id);
+  return r;
+}
 
 // Keep in sync with config.js (service workers cannot share plain-script globals).
 // DEV SWITCH: comment line A, uncomment line B.
@@ -346,6 +355,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // triggers, as capture already is). Opening the popup is the gesture that grants activeTab.
   if (message.type === 'FILL_ACTIVE_TAB') {
     handleGatedHandoff()
+      .then(noteActiveFrame)
       // D36: whether the review panel opened travels with the answer, so the popup can stay open when it did not.
       .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null, overlay: r?.overlay ? { rendered: r.overlay.rendered === true } : null,
         reason: r?.reason || null, canPrepare: !!r?.canPrepare, did: Array.isArray(r?.did) ? r.did : [],
@@ -361,7 +371,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // fills it. The popup's click is the gesture that grants activeTab.
   if (message.type === 'PREPARE_ACTIVE_TAB') {
     chrome.tabs.query({ active: true, currentWindow: true })
-      .then(async ([tab]) => { const r = await prepareAndFill({ serverUrl: RESUME_MASTER_URL, tab }); await reportHandoff(tab, r); return r; })
+      .then(async ([tab]) => { const r = await prepareAndFill({ serverUrl: RESUME_MASTER_URL, tab }); await reportHandoff(tab, r); return noteActiveFrame(r); })
       .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null, reason: r?.reason || null,
         overlay: r?.overlay ? { rendered: r.overlay.rendered === true } : null,
         site: r?.reason === 'frame_needs_permission' ? r.site || null : null }))

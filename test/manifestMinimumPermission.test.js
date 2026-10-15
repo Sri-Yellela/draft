@@ -82,6 +82,18 @@ test("every justified host permission is still declared", () => {
   }
 });
 
+// ⭐ D97 REVISED + T12 (owner 10-15): the OPTIONAL list grew (SmartRecruiters, and the broad https pattern "Always read
+// here" requests one origin under). Each optional host has a row too — and the broad pattern is in that list ONLY.
+test("every optional host permission has a row in MANIFEST_RATIONALE.md — and https://*/* is optional only", () => {
+  const section = rationale.split(/^## /m).find(s => s.startsWith("Optional host permissions"));
+  assert.ok(section, 'MANIFEST_RATIONALE.md has no "## Optional host permissions" section');
+  const rows = section.split("\n").filter(l => l.startsWith("|") && !/^\|\s*-+/.test(l) && !/^\|\s*Optional host\s*\|/.test(l))
+    .map(l => l.split("|")[1].trim().replace(/^`|`$/g, ""));
+  assert.deepEqual(rows, manifest.optional_host_permissions, "the rows and the manifest's optional list, in order");
+  assert.ok(!manifest.host_permissions.some(h => h.includes("*/*") || h === "<all_urls>"), "a broad pattern in host_permissions");
+  assert.ok(!(manifest.optional_host_permissions || []).includes("<all_urls>"), "<all_urls> is in no list");
+});
+
 test("the permissions documented as deliberately NOT declared are in fact not declared", () => {
   // The rationale's value is mostly in this list. `cookies` in particular was declared by the
   // retired v0.1.0 builds and nothing ever read one.

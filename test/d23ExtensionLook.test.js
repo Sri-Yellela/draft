@@ -33,10 +33,15 @@ test("⛔ D23: the permission set is exactly activeTab + scripting + storage, an
   // exactly D64's list (never a gated portal) — since D97 derived from extension/autoRead.js's site table.
   // + Workday's two public hosts by D97, owner 10-13 (a deliberate reversal of D64's "no gated portal" line): optional,
   // asked for only when the user switches Workday on in Options, and exactly extension/autoRead.js's site table.
+  // + SmartRecruiters' public job host, and the broad OPTIONAL pattern https://*/* by D97 REVISED + T12 (owner 10-15,
+  // decisions 1 and 2): "Always read here" asks Chrome for ONE company origin from the popup's click, and Chrome can only
+  // request an origin the optional list covers. Still nothing at install: host_permissions above is unchanged, and the
+  // pattern is never itself requested (test/d97rT12AlwaysRead.test.js pins both).
   assert.deepEqual(manifest.optional_host_permissions, [
     "https://boards.greenhouse.io/*", "https://job-boards.greenhouse.io/*", "https://jobs.lever.co/*",
     "https://jobs.ashbyhq.com/*", "https://apply.workable.com/*",
     "https://*.myworkdayjobs.com/*", "https://*.myworkdaysite.com/*",
+    "https://jobs.smartrecruiters.com/*", "https://*/*",
   ]);
   // + ONE content script by D99 J11 (owner, 10-14: "build the bridge") — the bridge, on draft's own origin only, top
   // frame only. It is not a permission (jobsviadraft.com is already the one host) and is pinned exactly here.

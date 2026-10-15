@@ -42,18 +42,20 @@ const FACTS = (o = {}) => ({ origin: T, step: "My Information", isApplyFlow: tru
 
 // ── 1 · the one site table, the manifest ─────────────────────────────────────────────────────────────
 
-test("⛔ D97 · the manifest's optional hosts ARE the site table (5 + Workday's 2); permissions and host_permissions unchanged", () => {
-  assert.deepEqual(manifest.optional_host_permissions, [...OPTIONAL_ORIGINS]);
+// ⚠ D97 REVISED + T12, owner 10-15 — moved knowingly: SmartRecruiters joins the table (decision 2) and the optional list
+// ends with T12's broad https pattern (decision 1) — OPTIONAL only; permissions and host_permissions are unchanged.
+test("⛔ D97 · the manifest's optional hosts ARE the site table (5 + Workday's 2 + SmartRecruiters) then T12's pattern; permissions and host_permissions unchanged", () => {
+  assert.deepEqual(manifest.optional_host_permissions, [...OPTIONAL_ORIGINS, "https://*/*"]);
   assert.deepEqual([...OPTIONAL_ORIGINS], [
     "https://boards.greenhouse.io/*", "https://job-boards.greenhouse.io/*", "https://jobs.lever.co/*",
-    "https://jobs.ashbyhq.com/*", "https://apply.workable.com/*", ...WD,
+    "https://jobs.ashbyhq.com/*", "https://apply.workable.com/*", ...WD, "https://jobs.smartrecruiters.com/*",
   ]);
   assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"]);
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
   // the watcher is REGISTERED at run time, never declared — the one declared script is D99 J11's bridge, on draft's origin
   assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"], run_at: "document_start", all_frames: false }], "the watcher is REGISTERED at run time, never declared");
   assert.equal(manifest.optional_permissions, undefined);
-  for (const o of OPTIONAL_ORIGINS) assert.doesNotMatch(o, /linkedin|indeed|glassdoor|<all_urls>/i);
+  for (const o of manifest.optional_host_permissions) assert.doesNotMatch(o, /linkedin|indeed|glassdoor|<all_urls>/i);
   // the watcher ships in the zip (scripts/buildExtension.mjs follows the registration's `js: [...]` literal)
   assert.ok(collectRequiredFiles(manifest).includes(WATCHER_FILE));
   assert.match(read("extension/autoRead.js"), new RegExp(`js: \\['${WATCHER_FILE}'\\]`));
@@ -243,12 +245,13 @@ test("⛔ D97 · onInstalled (update) / onStartup reconcile: D64's switch migrat
   h.restore();
 });
 
-test("⛔ D97 · permissions.request lives in TWO click handlers only — Options' switch, and T11's 'Allow draft on <site>' — each as its first call, never on load or install", () => {
+test("⛔ D97 · permissions.request lives in click handlers only — Options' switch, T11's 'Allow draft on <site>', and the popup's card / Always read here / second click — each as its first call, never on load or install", () => {
   const files = collectRequiredFiles(manifest).filter(f => f.endsWith(".js") || f.endsWith(".html"));
   const hits = files.filter(f => /permissions\.request\(/.test(read(`extension/${f}`))).sort();
   // ⭐ T11 (field report 10-14, owner): a form inside an ATS's frame → "one button, and permissions.request is called
-  // inside that click". The popup's button is the second and last place; the same rule holds for it below.
-  assert.deepEqual(hits, ["options-auto.js", "popup.js"]);
+  // inside that click". ⭐ D97 REVISED + T12 (owner 10-15): popup-auto.js's three clicks — the one-time card, "Always
+  // read here" turned on, and the frame's second click — each pinned the same way in test/d97rT12AlwaysRead.test.js.
+  assert.deepEqual(hits, ["options-auto.js", "popup-auto.js", "popup.js"]);
   const pop = read("extension/popup.js");
   assert.equal((pop.match(/permissions\.request\(/g) || []).length, 1, "one request in the popup");
   const click = pop.slice(at(pop, "document.getElementById('btn-allow-frame').addEventListener('click', async () => {"),

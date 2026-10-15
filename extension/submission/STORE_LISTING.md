@@ -1,5 +1,16 @@
 # Chrome Web Store listing — draft v1.5.2
 
+> **v1.5.2, folded further (2026-10-15, D97 REVISED + T12 — still v1.5.2, NOT yet uploaded).** ⛔ **Re-paste at the next
+> upload: the optional host permissions justification, `scripting`, `storage`, the reviewer notes and the test
+> instructions.** What changed: **(1) automatic reading after ONE consent** — the popup shows a one-time card (*"draft
+> reads job and application pages for you and prepares your answers. Allow it on these sites"*) with the disclosure in
+> plain words and ONE Chrome prompt for the preset hosts; granted, Read and Prepare are on there (Capture and Fill stay
+> separate switches, off). **(2) SmartRecruiters** (`jobs.smartrecruiters.com`) joins the preset hosts. **(3) "Always
+> read here"** — a popup switch that asks Chrome, from the click, for the ONE company careers origin the user is on (and
+> the ATS frame known for it); the manifest's `optional_host_permissions` therefore ends with **`https://*/*`** — optional
+> only, never granted at install, never itself requested. Required permissions and `host_permissions` are unchanged.
+> ⛔ A broad optional host pattern may draw a closer review; the justification below says why it exists.
+
 > **v1.5.2, folded further (2026-10-14, D96–D98 — still v1.5.2 by the owner's rule, NOT yet uploaded).** ⛔ **Re-paste
 > at the next upload: the single purpose, `scripting`, `storage`, the optional host permissions, the Privacy practices
 > tab and the reviewer notes and test instructions** — each changed below. What changed: **(1) automatic reading
@@ -69,6 +80,9 @@ received. Against v1.0.0:
    Continue but **never submits**, never ticks a terms, consent, attestation or signature box, and never
    saves the form's structure for other users. A kill switch turns all of it off and gives every host
    back. Never LinkedIn, Indeed or Glassdoor.
+   ⭐ **Since 10-15:** a one-time card in the popup turns Read and Prepare on for the preset hosts (SmartRecruiters'
+   `jobs.smartrecruiters.com` among them) with ONE Chrome prompt, and **Always read here** asks for one company
+   careers origin from a click (under the optional `https://*/*`).
 7. **NEW · `contextMenus`** — right-click **Save this page to draft** and **Save link to draft**.
 8. **NEW · Report this form** — the form page's host and field labels (never values), on two clicks.
 9. **The popup** leads with the posting as a job card (logo, company, the ATS score for the user's
@@ -116,7 +130,8 @@ the application in front of the user.
 | Toolbar → **Read this page** (or R) | Reads the posting in view locally and asks our server whether it is on the user's board — the tab's address, in the request body. Shows the job card. Nothing is read before this press. |
 | Toolbar → **Capture it** / **Ctrl+Shift+K** / right-click **Save this page to draft** | **One capture implementation**: reads the job description on the page in view and sends it to the user's Draft account. Works on any job posting, including employers' own careers pages. |
 | Right-click **Save link to draft** | Sends only the link's address; our server reads the posting from the job board's own listing, or refuses the link and saves nothing. |
-| **Automatic capture** (off by default; options page) | On the five granted posting hosts only: a page that is a posting is sent to the user's account; our server keeps it only if it fits their board. A non-posting sends nothing. |
+| **Automatic capture** (off by default; options page) | Only on a granted host the user switched Capture on for (a preset job host, or a site chosen with Always read here): a page that is a posting is sent to the user's account; our server keeps it only if it fits their board. A non-posting sends nothing. |
+| **Automatic reading** (after the popup's one-time card, or Always read here) | On an allowed site: an application page's question labels and counts are read and kept on this computer (nothing sent); on a tab linked to the user's own job, the answers are prepared on our server (the page's address is sent). |
 | **Fill it** / **Ctrl+Shift+Y** on an application form | The gated handoff: fetches the answers the user already saved, checks this page is that application's, fills the form and shows a review panel. The user submits. |
 | **Prepare this application** | For a job of the user's with nothing prepared: builds the answers on demand, then the same handoff. |
 | **I submitted it** | Records the application against the page in view (its address is the evidence). |
@@ -130,8 +145,9 @@ the application in front of the user.
 
 **Any job posting the user invokes it on.** The extension holds no permission for any site in advance
 except our own backend; it reads the tab the user invoked it on. Automatic reading additionally works
-on the five public posting hosts and Workday's two public hosts — and only on those the user switches on
-and grants.
+on the preset hosts (five public posting hosts, Workday's two public hosts and SmartRecruiters') — and only
+on those the user allows — and, with **Always read here**, on a company careers site the user chose, one
+origin at a time.
 
 ---
 
@@ -198,7 +214,7 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 
 *(Code: `background.js` `reportCapture()` → `lastCapture` (local) and `reportHandoff()` →
 `lastGatedHandoff` (session); `gated-handoff.js` → `gate:{tabId}` and `batch:{tabId}` (session);
-`auth.js` → `authToken` and `authIdentity` (local); `autoRead.js` `updateSettings()` (set from the options page) → `autoRead` (local), which replaced D64's `autoCaptureEnabled` (migrated once by `migrateLegacy()`, then removed);
+`auth.js` → `authToken` and `authIdentity` (local); `autoRead.js` `updateSettings()` (set from the options page and the popup) → `autoRead` (local), which replaced D64's `autoCaptureEnabled` (migrated once by `migrateLegacy()`, then removed) — since 10-15 it also holds the one-time consent, the sites chosen with Always read here, and which job host's form a site embeds (an origin and a site name, never a path);
 `tabBinding.js` `bindTab()` / `setBindingDock()` → `bind:{tabId}` (session), removed by `clearBinding()` on tab close and "Unlink this page";
 `progress.js` `progress.patch()` / `set()` / `claim()` → `jobProgress` (local), removed by `progress.clearAll()` from `auth.js` `disconnect()` and `getIdentity()` (sign-out, another account).)*
 
@@ -208,8 +224,8 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 > NOT sent (`credentials: 'omit'` on every call but the one that obtains the token), so the extension
 > acts as the one account the user connected, not as whatever session the browser holds.
 
-**Optional host permissions** — five public job-posting hosts and Workday's two public hosts, each requested
-only when the user switches that site on for automatic reading
+**Optional host permissions** — the preset job hosts, and `https://*/*` for "Always read here"; each requested only
+from the user's click, never at install
 > `boards.greenhouse.io`, `job-boards.greenhouse.io`, `jobs.lever.co`, `jobs.ashbyhq.com`,
 > `apply.workable.com` — the public posting pages of the job boards our service reads — and
 > `*.myworkdayjobs.com` and `*.myworkdaysite.com`, where Workday serves employers' postings and
@@ -219,13 +235,26 @@ only when the user switches that site on for automatic reading
 > posting is captured to the user's own account (a page that is not a posting sends nothing), an
 > application page's structure is read locally, answers are prepared for a tab linked to the user's own
 > job, and the form is filled for the user to review and submit. ⛔ Never `<all_urls>`, never at install,
-> never LinkedIn, Indeed or Glassdoor; every other employer portal stays reachable only through
-> `activeTab`.
+> never LinkedIn, Indeed or Glassdoor.
+>
+> **The preset set, in one prompt.** The extension's popup shows a one-time card that explains, in plain words,
+> what automatic reading reads and sends; its "Allow on these sites" button requests every preset host above
+> plus `jobs.smartrecruiters.com` in ONE `chrome.permissions.request`. Granted, Read and Prepare turn on there;
+> Capture and Fill stay separate switches, off. A refusal leaves everything off.
+>
+> **`https://*/*` — "Always read here".** Employers' careers sites are on their own domains, and Chrome can only
+> request an origin the manifest lists as optional. The pattern is NEVER requested itself and grants nothing at
+> install: the popup's "Always read here" switch, shown on a page that looks like a job or an application, requests
+> ONE origin (`https://<that site>/*`) — plus the job host whose frame holds that site's application form, when
+> the extension already knows it — from the user's click, after the same disclosure. Removing the site in the
+> options page, turning its last switch off or pressing the kill switch gives it back. Never LinkedIn, Indeed or
+> Glassdoor. Every other site stays reachable only through `activeTab`.
 
 | Host | Why |
 |---|---|
 | `https://jobsviadraft.com/*` | Our own backend: capture, the auth probe, the handoff packet, the board check |
-| five posting hosts + Workday's two (optional) | Automatic reading — Read · Prepare · Capture · Fill — only for the sites and switches the user turns on |
+| five posting hosts + Workday's two + SmartRecruiters (optional) | Automatic reading — Read · Prepare · Capture · Fill — only for the sites and switches the user turns on |
+| `https://*/*` (optional) | "Always read here": ONE origin requested from the user's click; never requested itself, never at install |
 
 Full derivation, including every permission deliberately **not** requested and why, is in
 `extension/MANIFEST_RATIONALE.md`; `test/manifestMinimumPermission.test.js` fails the build if that file
@@ -248,8 +277,8 @@ These are the answers for the **Privacy practices** tab.
      third party other than that form.
 - **Website content** — **collected, in these cases:**
   1. The text of a job posting the user captures, sent to their account.
-  2. *Automatic capture, when switched on:* the address and text of a page on one of the five granted
-     posting hosts **that is a job posting** — kept only if it fits the user's board, otherwise
+  2. *Automatic capture, when switched on:* the address and text of a page on a granted host the user switched
+     Capture on for **that is a job posting** — kept only if it fits the user's board, otherwise
      discarded without being stored. Nothing is sent for any other page.
   3. The visible text of a job page when the user clicks **Score**, passed to their ATS Score page. It
      travels in the URL of the page that opens, so it can appear in ordinary server logs (stated in the
@@ -311,7 +340,7 @@ In the order the developer dashboard asks. ⛔ The owner pastes, ticks and uploa
 **Privacy practices tab**
 11. **Single purpose** — *Single purpose* above.
 12. **Permission justifications** — *Permission justifications* above: `activeTab`, `contextMenus`, `scripting`,
-    `storage`, the host permission `https://jobsviadraft.com/*`, and the five optional hosts.
+    `storage`, the host permission `https://jobsviadraft.com/*`, and the optional hosts (the presets and `https://*/*`).
 13. **Remote code** — **"No, I am not using remote code."** Justification if asked: every script is in the package;
     the manifest's CSP is `script-src 'self'; object-src 'self'`; `chrome.scripting.executeScript` runs only
     packaged functions (`func:`), never a string or a fetched file; there is no `eval` or `new Function`.
@@ -343,9 +372,10 @@ In the order the developer dashboard asks. ⛔ The owner pastes, ticks and uploa
 > extension holds no host permission at install for any employer portal; Workday's public hosts are
 > optional and granted only if the user switches Workday on for automatic reading.
 >
-> The only behaviour without a click is **automatic reading**, which is OFF until the user agrees to the
-> in-extension disclosure and switches a site on in the options page — at which point Chrome asks them
-> to grant that site's hosts. Four switches per site (Read · Prepare · Capture · Fill), each off. Capture
+> The only behaviour without a click is **automatic reading**, which is OFF until the user agrees — in the popup's
+> one-time card (one Chrome prompt for the preset job hosts) or in the options page — at which point Chrome asks
+> them to grant those hosts. **Always read here** adds one company careers site at a time, from a click (the
+> optional `https://*/*` exists only so that one origin can be requested; it is never requested itself). Four switches per site (Read · Prepare · Capture · Fill), each off. Capture
 > sends a page only when the page is a job posting; Fill may press Save and Continue but never submits;
 > a kill switch turns everything off.
 >
@@ -379,7 +409,10 @@ dashboard's **Test instructions** field with the steps below. ⛔ Never commit t
 > **Capture:** open any job posting and press Ctrl+Shift+K, or click the toolbar button → Read this
 > page → Capture it. The posting appears on the account's board.
 >
-> **Automatic reading:** in the extension's options, read the explanation and press "I agree", then switch
+> **Automatic reading:** open the toolbar popup — the card "Let draft read job pages for you" → **Allow on these
+> sites** → grant. Open an application form on job-boards.greenhouse.io: the popup now says "Reading automatically on
+> this site". On a company careers page (for example one embedding a Greenhouse form), switch on **Always read here**
+> and grant that one site. **Capture:** in the extension's options, switch
 > on Capture for Lever or Greenhouse and grant the site. Open a posting on jobs.lever.co or
 > job-boards.greenhouse.io; it is added without a click if it fits the board.
 >

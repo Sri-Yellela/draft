@@ -91,6 +91,10 @@ import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyPro
 // eight addresses of the job's pages (trackers and fragments dropped), local, 30 days, never sent — so a new tab on the
 // same job binds without a server call (extension/tabState.js, progress.js). (2) A fill on a form inside another site's
 // frame (Stripe → Greenhouse) also sends that frame's address, checked against the job before anything is filled.
+// (3) Same date, D97 REVISED + T12 (owner 10-15): automatic reading is offered by a one-time card in the popup (one
+// Chrome prompt for the preset job sites, which now include SmartRecruiters; Read and Prepare only — Capture and Fill
+// stay off), and "Always read here" adds one employer careers site at a time from a click. The settings item also keeps
+// the sites chosen that way and which job site's form a careers site embeds (an address and a site name, no path).
 const EFFECTIVE_DATE = 'October 15, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
@@ -352,8 +356,10 @@ export function PrivacyPage() {
             </LI>
             <LI>
               <Strong>Your automatic-reading settings</Strong> — which of Read, Prepare, Capture and
-              Fill you switched on for each site, when you agreed to the explanation shown before any
-              of them can be switched on, and — while Read is on — the question labels (never your
+              Fill you switched on for each site (including the sites you chose with Always read here),
+              when you agreed to the explanation shown before any of them can be switched on, which job
+              site's form a careers site you used draft on embeds (that site's address and the job
+              site's name — never a page's path), and — while Read is on — the question labels (never your
               answers) and field counts of application pages draft read, kept on this computer for 30
               days to show how well a page was read. Local storage; never sent anywhere. The
               ten-minute expiry does not apply to it.
@@ -363,12 +369,17 @@ export function PrivacyPage() {
           {/* ⭐ D64 (owner, 10-07) → D97 (owner, 10-13) — automatic reading. extension/autoRead.js, services/jobs/autoCapture.js. */}
           <H3>Reading Application Pages Automatically (optional, off by default)</H3>
           <P>
-            In the extension's settings you can let draft work on a short list of job sites without a
-            click — Greenhouse, Lever, Ashby, Workable and Workday (including Workday's shared
-            myworkdaysite.com pages). <Strong>Nothing is on until you turn it on</Strong>, site by
-            site, after the extension has shown you what each switch does and you have agreed. Turning
-            a site on asks Chrome for access to that site only; it never asks for every site, and never
-            for LinkedIn, Indeed or Glassdoor. There are four separate switches per site:
+            You can let draft work on job sites without a click. The extension's popup shows a one-time
+            card that offers it for a short list of job sites — Greenhouse, Lever, Ashby, Workable,
+            SmartRecruiters and Workday (including Workday's shared myworkdaysite.com pages) — with one
+            prompt from Chrome for that list. Agreeing turns on <Strong>Read</Strong> and{' '}
+            <Strong>Prepare</Strong> (below) on those sites; <Strong>Capture</Strong> and{' '}
+            <Strong>Fill</Strong> stay off until you turn them on in the settings. On an employer's own
+            careers site, the popup's <Strong>Always read here</Strong> switch does the same for that one
+            site: it asks Chrome for that site — and, when its application form is another job site's
+            frame, that job site — and nothing else. <Strong>Nothing is on until you agree</Strong>, after
+            the extension has shown you what it does. It never asks for every site, and never for
+            LinkedIn, Indeed or Glassdoor. In the settings there are four separate switches per site:
           </P>
           <UL>
             <LI>
