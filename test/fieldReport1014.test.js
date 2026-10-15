@@ -210,7 +210,13 @@ test("T3 · the extension asks on the press, binds what it finds, and shows the 
 // ── T6 · the cause, and the details view ────────────────────────────────────────────────────────────────────────────
 test("T6 · causeOf names the stage and the code — never a message", () => {
   const e = Object.assign(new Error("400 {\"error\":{\"message\":\"Your credit balance is too low to access the Anthropic API\"}}"), { code: "upstream_model_failure" });
-  assert.equal(causeOf(e), "tools_service:upstream_model_failure");
+  assert.equal(causeOf(e), "tools_service:model_billing_refused", "T19: the 10-14 failure, named");
+  // T19 (10-15) — the second production failure, word for word: a key not scoped to a workspace
+  const scoped = Object.assign(new Error("400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This API key is not scoped to a workspace, so this request must include the anthropic-workspace-id header with the ID of the workspace.\"}}"), { name: "ToolsServiceError", code: "upstream_model_failure" });
+  assert.equal(causeOf(scoped), "tools_service:model_key_rejected");
+  assert.equal(causeOf(Object.assign(new Error("401 authentication_error: invalid x-api-key"), { code: "upstream_model_failure" })), "tools_service:model_key_rejected");
+  assert.equal(causeOf(Object.assign(new Error("529 overloaded_error"), { code: "upstream_model_failure" })), "tools_service:upstream_model_failure", "any other upstream failure keeps the general code");
+  assert.equal(causeOf(Object.assign(new Error("not scoped to a workspace"), { code: "tools_service_unreachable" })), "tools_service:tools_service_unreachable", "only an upstream model failure is refined");
   assert.equal(causeOf(Object.assign(new Error("x"), { code: "tools_service_unreachable" })), "tools_service:tools_service_unreachable");
   assert.equal(causeOf(Object.assign(new Error("gone"), { code: "job_vanished" })), "job:job_vanished");
   assert.equal(causeOf(new TypeError("boom")), "server:typeerror");
@@ -234,9 +240,9 @@ test("⭐ T6 regression · the owner's failure: the tools service refuses the mo
   let v;
   for (let i = 0; i < 200; i++) { v = service.get(1, id).body; if (v.status === "failed") break; await new Promise(z => setTimeout(z, 5)); }
   const row = db.prepare("SELECT status, error_code, cause, refund_reason FROM extension_resume_generations WHERE id=?").get(id);
-  assert.deepEqual(row, { status: "failed", error_code: "unavailable", cause: "tools_service:upstream_model_failure", refund_reason: "server failure" });
+  assert.deepEqual(row, { status: "failed", error_code: "unavailable", cause: "tools_service:model_billing_refused", refund_reason: "server failure" });
   assert.equal(v.error.message, USER_ERRORS.unavailable.message, "the user's sentence stays the generic one");
-  assert.deepEqual(v.cause, { stage: "tools_service", code: "upstream_model_failure" }, "the code is in the view, for Show details");
+  assert.deepEqual(v.cause, { stage: "tools_service", code: "model_billing_refused" }, "the code is in the view, for Show details");
   assert.doesNotMatch(JSON.stringify(v), /credit|balance|anthropic|\$/i, "no money or provider words reach the extension");
   assert.equal(v.slot.refunded, true);
 });
