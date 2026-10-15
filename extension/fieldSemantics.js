@@ -176,7 +176,7 @@ export function guessLabelOf(f = {}) {
 }
 
 /**
- * ⭐ T24's gate for the résumé row's "Generate and attach", until T24 wires the account's setting:
+ * ⭐ T24's gate for the résumé row's "Generate and attach" — the account's setting (intentSettings.js, read by the fill):
  * "In a manual fill: offer a résumé on cue (default) / never". Never offered when a tailored résumé is already ready
  * for this job, or one is being made (join it, never start a second).
  */

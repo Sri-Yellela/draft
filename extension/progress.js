@@ -52,6 +52,7 @@ const STEPS = Object.freeze({
   prepared: ['at', 'packetId', 'expiresAt', 'answerCount'],
   filled: ['n', 'of', 'needYou', 'check'],
   resume: ['at', 'id', 'status', 'attached'],
+  drafted: ['at'],   // ⭐ T24: when the extension's Draft button drafted this job (the board's Draft — Draft House holds it)
   reviewed: ['at'],
   submitted: ['at'],
 });
@@ -405,6 +406,13 @@ export const noteResume = quiet(async (jobId, { id = null, status = null, attach
   if (attached) next.attached = attached;
   if (!next.id) return null;
   return patch({ jobId }, { title, company, resume: next });
+});
+
+/** ⭐ T24: the Draft button drafted this job (or found it already drafted) — the time only. The intent model's sequence tell. */
+export const noteDrafted = quiet(async (jobId, { title = null, company = null } = {}) => {
+  if (jobId == null) return null;
+  const prior = (await get({ jobId }))?.drafted || null;
+  return patch({ jobId }, { title, company, drafted: prior?.at ? prior : { at: Date.now() } });
 });
 
 /** The panel's résumé for this job, or null. Read-only. */
