@@ -176,7 +176,7 @@ export const keyOf = (i) => `${i.name || ''}::${i.field || ''}`;
 import { questionUnits, unitFields, unitOptions, unitWidgetKind } from './savedAnswerMatch.js';
 import { neverFillReasonOfField, questionLabelKey } from './answerKey.js';
 // ⭐ T18: what an upload is (résumé · cover letter · other) and a best-guess label for a field nothing named.
-import { fileTypeOf, guessLabelOf } from './fieldSemantics.js';
+import { fileTypeOf, fileTypesOf, guessLabelOf } from './fieldSemantics.js';
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const keyText = (s) => norm(questionLabelKey(s));
@@ -258,6 +258,8 @@ export function panelRowsForStep({ stepName = '', fields = [], plan = [], filled
   const rows = [];
   const units = questionUnits((fields || []).filter(f => f.visible !== false || f.type === 'file'));
   let unlabelled = 0;
+  const uploads = (fields || []).filter(f => f && f.type === 'file');
+  const uploadTypes = new Map(fileTypesOf(uploads).map((t, i) => [uploads[i].index, t]));
   const isFilled = (p) => filled.some(f => (f.index !== undefined ? f.index === p.index : (f.field === p.label && (f.name ?? null) === (p.name ?? null))));
   for (const u of units) {
     const fs = unitFields(u);
@@ -296,6 +298,8 @@ export function panelRowsForStep({ stepName = '', fields = [], plan = [], filled
     if (first.type === 'file') {
       // ⭐ T18: the upload's TYPE, from its label (the group's heading included) and then its attributes.
       row.fileType = fileTypeOf({ ...first, label: question || first.label });
+      // ⭐ LIVE (Ashby): an autofill drop zone beside the real résumé field is not a second résumé row (fileTypesOf).
+      if (row.fileType === 'resume' && uploadTypes.get(first.index) === 'other') row.fileType = 'other';
       // ⭐ D98 §5 (J6): the résumé generated in the on-page panel reads "Résumé — attached ✓", its file named under it.
       // ⭐ T18: the attached résumé is THIS row's only when this upload is the résumé's (or the page's only upload) — a
       // cover letter's box never reads "Résumé — attached".

@@ -155,9 +155,31 @@ function resumeInputScore(context) {
 export function fileTypeOf(f = {}) {
   if (f?.type !== 'file') return null;
   // ⛔ Not raw.near — the nearest words of an unnamed box can be a NEIGHBOUR's heading; they are for Show details only.
-  const ctx = [f.label, f.guess, f.name, f.id, f.automationId, f.raw?.aria].filter(Boolean).join(' ');
+  const ctx = uploadWordsOf(f);
   if (/cover[\s_-]*letter|letter of motivation|motivation letter|coverletter/i.test(ctx)) return 'cover_letter';
   return resumeInputScore(ctx) === 2 ? 'resume' : 'other';
+}
+const uploadWordsOf = (f = {}) => [f.label, f.guess, f.name, f.id, f.automationId, f.raw?.aria].filter(Boolean).join(' ');
+
+/** What says an upload exists to AUTOFILL the form from a résumé (the ATS parses it), not to carry the résumé itself. */
+export const AUTOFILL_UPLOAD = /auto[\s_-]?fill|\bpars(?:e|es|ed|ing)\b/i;
+
+/**
+ * ⭐ LIVE (Ashby, measured 10-15) · every upload's type, read TOGETHER (an array parallel to `files`). Ashby's form
+ * carries two résumé uploads: "Autofill from resume" (a drop zone the ATS parses to fill its own fields) and the
+ * application's real "Resume" field. Read one by one both are `resume`, and the panel drew two résumé rows. When a form
+ * has TWO OR MORE `resume` uploads and some of them — not all — say autofill / parse, those become `other`: one résumé
+ * row, the real field's. ⛔ A lone autofill upload stays `resume` — Workday's "Autofill with Resume" step has only that
+ * one, and it IS where the résumé goes. The attach itself never relied on this: it picks by resumeInputScore.
+ */
+export function fileTypesOf(files = []) {
+  const list = files || [];
+  const types = list.map(f => fileTypeOf({ ...f, type: 'file' }));
+  const resumes = types.map((t, i) => (t === 'resume' ? i : -1)).filter(i => i >= 0);
+  if (resumes.length < 2) return types;
+  const autofill = resumes.filter(i => AUTOFILL_UPLOAD.test(uploadWordsOf(list[i])));
+  if (autofill.length && autofill.length < resumes.length) for (const i of autofill) types[i] = 'other';
+  return types;
 }
 
 /**
