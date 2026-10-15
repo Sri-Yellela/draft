@@ -78,7 +78,7 @@ test("⛔ J1: a progress record holds NO answer value — whatever a caller hand
     "prepared", "read", "resume", "reviewed", "submitted", "title", "updatedAt", "addresses", "ats",
     // + "drafted" by T24 (field report 10-15): when the extension's Draft button drafted this job — { at }, a time only.
     "drafted"].sort(), "exactly the D96 §3 shape (+ D98's résumé step, + T14's addresses and ats, + T24's drafted)");
-  assert.deepEqual(r.filled, { n: 14, of: 18, needYou: 2, check: 3 });
+  assert.deepEqual(r.filled, { n: 14, of: 18, needYou: 2, check: 3, at: null });   // 43k: `at` is a time (newest counts win), never a value
   assert.deepEqual(r.read, { at: 1, stage: "applyManually", fieldCount: 18 });
   delete globalThis.chrome;
 });
