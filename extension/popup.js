@@ -183,10 +183,11 @@ async function init() {
   // the browser already handed the popup. On a page that cannot be captured at all (chrome://, the
   // PDF viewer) Capture is shown DISABLED with its reason — never hidden (D13).
   const tab = await getCurrentTab().catch(() => null);
-  // D99 J11: a tab the draft board opened says so at once — "From your board — <job> · ATS 72". The extension's
-  // own record of the tab (boardOpen.js BOARD_TAB), not a page read and not a request.
-  const fromBoard = await chrome.runtime.sendMessage({ type: 'BOARD_TAB' }).catch(() => null);
-  if (fromBoard?.board) renderBinding({ binding: fromBoard.board });
+  // ⭐ T14 (field report 10-14) · WHAT THIS TAB IS, AT ONCE. The extension's own record of the tab (tabState.js
+  // TAB_STATE) — a tab the board opened ("From your board — <job> · ATS 72", D99 J11), a tab already bound, or a NEW tab
+  // on an address this job was already seen at, which binds now. Not a page read and not a request: the job card, the
+  // bound line and the progress come back without a capture, a read or a prepare asked again.
+  const tabState = await chrome.runtime.sendMessage({ type: 'TAB_STATE' }).catch(() => null);
   const cap = document.getElementById('btn-capture-job');
   if (!isWebPage(tab)) {
     cap.disabled = true;
@@ -194,6 +195,24 @@ async function init() {
   }
   document.getElementById('btn-read-page').style.display = 'flex';
   document.getElementById('read-hint').style.display = 'block';
+  if (tabState?.state) showTabState(tabState.state);
+}
+
+// ⭐ T14 · the job this tab is on, drawn from its state: the card (with the score draft gave it), the bound line, Fill as
+// the one action (it reads and prepares itself if it must — T13), and "Read again" instead of asking for a first read.
+function showTabState(st) {
+  renderBinding({ binding: st, posting: st.captured ? { captured: true } : null });
+  const score = st.ats && (st.ats.state === undefined || st.ats.state === 'ready') && Number.isFinite(st.ats.score) ? st.ats.score : null;
+  showJobPreview({ company: st.company || '', title: st.title || '', logo: st.logo || null, score, tailored: false });
+  document.getElementById('btn-fill-primary').style.display = 'flex';
+  document.getElementById('btn-read-page').textContent = 'Read again';
+  document.getElementById('read-hint').style.display = 'none';
+  refreshProgress();
+}
+
+// popup-progress.js (a module) paints the remembered progress; it repaints when the tab's state changes here.
+function refreshProgress() {
+  try { if (typeof Event === 'function') document.dispatchEvent?.(new Event('draft:tabstate')); } catch (_) { /* paints on open anyway */ }
 }
 
 // ⭐ §8 row 15, decision D — today against YOUR CAP (the day's Draft slots), never a goal.
@@ -259,6 +278,7 @@ async function readPage() {
   const mode = companionMode({ preview, context });
   renderCompanion(mode);
   renderBinding(context);
+  refreshProgress();
   // ⭐ D63: the popup LEADS with the job card, then the marks, then (on a form) the packet.
   showJobPreview(jobCard(mode, preview));
   renderFacts(factMarks(mode));
@@ -276,7 +296,8 @@ async function readPage() {
   }
   if (preview.ok) {
     currentJobData = { title: preview.title, company: preview.company, location: preview.location };
-    setStatus('');
+    // ⭐ T13: Read also prepared — said, so the next step is plainly Fill
+    setStatus(context?.prepared ? 'Answers prepared — press Fill on the application form.' : '');
   } else if (preview.unreadable) {
     setStatus('Ready to capture');
   } else {
@@ -365,9 +386,12 @@ function renderCompanion(c) {
 // "Fill it" — the same gated handoff Ctrl+Shift+Y runs, through the service worker. The review
 // overlay it opens is where the answers are checked; you submit the form yourself.
 async function fillActiveTab() {
-  setStatus('Filling…');
+  // ⭐ T13: one press — it reads the page if this tab does not know its job, prepares if nothing is prepared, then
+  // fills, and the sentence says what it did ("Read this page and prepared your answers. …").
+  setStatus('Filling — reading and preparing first if this page needs it…');
   const r = await chrome.runtime.sendMessage({ type: 'FILL_ACTIVE_TAB' }).catch(() => null);
-  setStatus(r?.message || (r?.ok ? 'Filled — check every answer, then submit.' : 'Could not fill this page.'), 4000);
+  setStatus(r?.message || (r?.ok ? 'Filled — check every answer, then submit.' : 'Could not fill this page.'), r?.ok ? 4000 : 0);
+  refreshProgress();
   // D36: stay open when the fill worked but its review panel did not — that sentence is the only
   // place the candidate learns the answers were not laid out for checking.
   if (r?.ok && r?.overlay?.rendered !== false) setTimeout(() => window.close(), 1200);

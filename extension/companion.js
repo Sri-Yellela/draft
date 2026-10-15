@@ -126,7 +126,8 @@ function boundLine(context) {
     const score = a?.state === 'ready' && Number.isFinite(a.score) ? ` · ATS ${a.score}` : '';
     return `From your board — ${what}${score}`;
   }
-  return (b?.via === 'recognised' && !p?.captured) ? `On draft — ${what}` : `Captured ✓ — ${what}`;
+  // T14: a tab bound because its address is one this job was seen at ('known') reads as a recognised one
+  return ((b?.via === 'recognised' || b?.via === 'known') && !p?.captured) ? `On draft — ${what}` : `Captured ✓ — ${what}`;
 }
 
 /** "Captured: 2 today · 1 already on your board" — distinct jobs captured in the last 24 hours, by any route. */
