@@ -119,6 +119,22 @@ export function jobIdOf(url, families = APPLY_ORIGIN_FAMILIES) {
   return q && /^\d+$/.test(q) ? q : null;
 }
 
+/**
+ * ⭐ T11 (field report 10-14) · THE BOARD'S OWN ID NAMES THE ATS. A feed job's id is `<source>::<the ATS's id>`
+ * (services/jobs/schema.js normalizeJob) — the crawler read it from that ATS's own API. Stripe's Backend job is
+ * `greenhouse::8198280`, but every URL the board stores for it is on stripe.com, which is in no family, so its
+ * packet could never be released into the form Stripe embeds from job-boards.greenhouse.io. The id is the
+ * database's provenance, not anything a request asserts — so it adds that ATS's family (the table, as ever) and its
+ * id, which then has to match the embedded form's own ?token=. A prefix that is not a family's ATS adds nothing.
+ * @returns {{ family: object, id: string } | null}
+ */
+export function familyOfBoardJobId(jobId, families = APPLY_ORIGIN_FAMILIES) {
+  const m = /^([a-z]+)::([A-Za-z0-9-]{4,64})$/.exec(String(jobId ?? ""));
+  if (!m) return null;
+  const family = families.find(f => f.ats === m[1]);
+  return family ? { family, id: m[1] === "lever" || m[1] === "ashby" ? m[2].toLowerCase() : m[2] } : null;
+}
+
 /** The job ids a packet's job is known by, across every URL it has. */
 export function packetJobIds(urls = [], families = APPLY_ORIGIN_FAMILIES) {
   return [...new Set(urls.map(u => jobIdOf(u, families)).filter(Boolean))];

@@ -272,8 +272,11 @@ test("⛔ D56 · a packet is NEVER filled outside its origin list", async () => 
   assert.deepEqual(originsOf({ expectedOrigin: "https://a.example" }), ["https://a.example"]);
   assert.equal(packetFillsOrigin({}, "https://a.example"), false);
   const gh = read("extension/gated-handoff.js");
-  assert.match(gh, /if \(!packetFillsOrigin\(released, origin\)\) \{/, "the release is checked against the list");
-  assert.match(gh, /if \(cached && packetFillsOrigin\(cached, origin\)\) \{/, "the cached packet too");
+  // ⭐ T11: one check for both addresses — the page's origin, and the form's frame when the form is in one.
+  assert.match(gh, /const fillsHere = \(p\) => packetFillsOrigin\(p, origin\) && \(!inFrame \|\| packetFillsOrigin\(p, inFrame\.origin\)\);/,
+    "the page's origin AND the frame's are checked against the list");
+  assert.match(gh, /if \(!fillsHere\(released\)\) \{/, "the release is checked against the list");
+  assert.match(gh, /if \(cached && loc\.form && fillsHere\(cached\)\) \{/, "the cached packet too");
 });
 
 test("D56 · 'I submitted' on the manual route → job_applications with the TAILORED score", async () => {

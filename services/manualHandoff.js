@@ -15,7 +15,7 @@
 //   copySheetRows    (§8 row 17) the prepared answers as label/value rows, for the popup's Copy sheet
 //
 // Every read is guarded: a fixture without a table must lose a notice, never the handoff.
-import { APPLY_ORIGIN_FAMILIES, familyOf, jobIdOf, originOf, packetJobIds, packetOrigins, hostsSentence } from "./applyOrigins.js";
+import { APPLY_ORIGIN_FAMILIES, familyOf, familyOfBoardJobId, jobIdOf, originOf, packetJobIds, packetOrigins, hostsSentence } from "./applyOrigins.js";
 import { listHistory } from "./applicationRecords.js";
 import { companyRows, matchCompany } from "../shared/companyIdentity.js";
 import { pageKeyOf, ownJobByTitleCompany, jobIdForAtsKey } from "./jobPageKey.js";
@@ -32,9 +32,15 @@ export function packetAddressing(row, families = APPLY_ORIGIN_FAMILIES) {
   const origins = packetOrigins({ expectedOrigin: row.expected_origin, urls }, families);
   // the tenant itself: packetOrigins adds only an ATS family's origins, and Workday has no family row (D67C)
   for (const u of own) { try { const o = new URL(u).origin; if (!origins.includes(o)) origins.push(o); } catch { /* skip */ } }
+  // ⭐ T11: a feed job's own id names its ATS (greenhouse::8198280) — that family's origins and that id join, so the form
+  // an employer embeds from the ATS (Stripe → job-boards.greenhouse.io/embed/job_app?token=8198280) is this job's address.
+  const board = familyOfBoardJobId(row.job_id, families);
+  if (board) for (const o of board.family.origins) if (!origins.includes(o)) origins.push(o);
+  const jobIds = packetJobIds(urls, families);
+  if (board && !jobIds.includes(board.id)) jobIds.push(board.id);
   return {
     origins,
-    jobIds: packetJobIds(urls, families),
+    jobIds,
     pageKeys: [...new Set(urls.map(u => pageKeyOf(u)?.key).filter(Boolean))],
   };
 }
