@@ -8,8 +8,8 @@
  *   2. capture again on /apply/useMyLastApplication → the same job, "Already captured", no new prompt
  *   3. "Captured today" = 1
  *   4. the popup's context on another stage → Captured ✓ (bound, captured)
- *   5. Fill on a stage → NOT "capture it first": the job is yours, Prepare is offered
- *   6. Prepare → the packet fills the stage's form (its address joined through the user's own capture)
+ *   5. Fill on a stage → NOT "capture it first": the job is yours, so the ONE press prepares and fills (T13) — the
+ *      packet fills the stage's form (its address joined through the user's own capture)
  *   7. the step changes WITHOUT the URL changing → the Copy sheet panel opens in the page with the PREPARED answers
  *   8. the tab closes → its binding is gone
  */
@@ -46,16 +46,12 @@ export default async function run(h, { check, section }) {
   check('the posting is known and captured on this stage', ctx?.posting?.jobId === jobId && ctx?.posting?.captured === true, JSON.stringify(ctx?.posting || null).slice(0, 160));
   check('the binding comes with it', ctx?.binding?.jobId === String(jobId), JSON.stringify(ctx?.binding || null));
 
-  section('5 · Fill on a stage');
-  const fill = await h.fill();
-  check('NOT "draft doesn\'t know this job — capture it first"', !/capture it first/.test(fill?.message || ''), fill?.message);
-  check('the job is yours: Prepare is offered', fill?.canPrepare === true, JSON.stringify(fill));
-
-  section("6 · Prepare → the stage's form is filled");
-  // Since J2 the stage is the full My Information step, whose required address / phone / country fields the packet
-  // does not answer — so the extension's wizard fills what it can, then WAITS FOR THE CANDIDATE (the badge). The
-  // candidate's × ends the wait; only then does Prepare reply.
-  let prep = await h.prepare({ timeoutMs: 6000 });
+  section('5 · Fill on a stage — one press prepares and fills (T13, field report 10-14)');
+  // Since T13 the press does the whole chain: the job is yours and nothing is prepared, so Fill PREPARES and fills (it
+  // used to stop and offer Prepare). The stage is the full My Information step, whose required address / phone / country
+  // fields the packet does not answer — so the wizard fills what it can, then WAITS FOR THE CANDIDATE (the badge). The
+  // candidate's × ends the wait; only then does Fill reply.
+  let prep = await h.fill({ timeoutMs: 6000 });
   const filled = await waitUntil(() => page.evaluate(() => document.querySelector('input[name="firstName"]')?.value), BUSY_MS);
   check('the form carries the prepared answer', filled === 'Ada', String(filled));
   const prepFill = await page.evaluate(() => ({ last: document.querySelector('input[name="lastName"]')?.value, email: document.querySelector('input[name="email"]')?.value }));
@@ -66,7 +62,10 @@ export default async function run(h, { check, section }) {
     check('the candidate dismisses the badge', await h.dismissBadge());
     prep = await prep.reply;
   }
-  check('prepared and filled', prep?.ok === true, prep?.message);
+  check("NOT \"draft doesn't know this job — capture it first\"", !/capture it first/.test(prep?.message || ''), prep?.message);
+  // Step 4's "Read this page" already PREPARED (T13: Read also prepares), so this press only fills — never "press Prepare".
+  check('prepared (by the Read in step 4, or by this press) — never "press Prepare"', !/Prepare this application/.test(prep?.message || '')
+    && db.prepare('SELECT COUNT(*) FROM apply_gate_packets WHERE user_id = 1').pluck().get() > 0, JSON.stringify({ did: prep?.did, message: prep?.message }));
 
   section('7 · the step changes without the URL changing → the Copy sheet in the page');
   const urlBefore = page.url();

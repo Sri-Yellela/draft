@@ -7,6 +7,7 @@
 //
 // ⛔ D23 holds: this reads two of the extension's OWN storage areas and the tab's address the browser handed the
 // popup. It injects nothing into the page, asks the service worker nothing and the server nothing, and writes nothing.
+// (T14: popup.js asks the worker TAB_STATE — the extension's own records — and this repaints when that answers.)
 // ⛔ Every string is textContent. A link opens only an http(s) address the record holds.
 import { progress, progressLine, standWords, jobLabel } from './progress.js';
 import { bindingForTab } from './tabBinding.js';
@@ -65,4 +66,11 @@ export async function renderProgress(doc = globalThis.document, now = Date.now()
   return shown;
 }
 
-if (typeof document !== 'undefined' && document.getElementById?.('in-progress')) void renderProgress();
+// ⭐ T14: painted on open, and again when popup.js learns the tab's state (TAB_STATE may have just bound a new tab on a
+// known address) or a Read / Fill changed it — one paint at a time, so two never interleave their rows.
+let painting = Promise.resolve();
+const repaint = () => { painting = painting.then(() => renderProgress(), () => renderProgress()); return painting; };
+if (typeof document !== 'undefined' && document.getElementById?.('in-progress')) {
+  void repaint();
+  document.addEventListener?.('draft:tabstate', () => { void repaint(); });
+}
