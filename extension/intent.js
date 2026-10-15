@@ -28,7 +28,7 @@ import { bindingForTab, setTabPath } from './tabBinding.js';
 import { progress, noteDrafted, noteResume } from './progress.js';
 import { identifyAndBind } from './identify.js';
 import { formFrameOf } from './gated-handoff.js';
-import { fileTypeOf } from './fieldSemantics.js';
+import { fileTypesOf } from './fieldSemantics.js';
 import { drawInDock, dockMeta, overlayTheme } from './dockHost.js';
 import { intentSettings, saveIntentSettings, normaliseIntentSettings } from './intentSettings.js';
 import { decidePath, pathWords, localTells } from './intentModel.js';
@@ -74,7 +74,9 @@ export function probeIntentPage() {
 export function pageTellsOf(probe) {
   if (!probe || typeof probe !== 'object') return { page: { hasForm: null, signInWall: false }, field: { present: null } };
   const files = Array.isArray(probe.files) ? probe.files : [];
-  const resume = files.find(f => fileTypeOf({ type: 'file', label: f.label, name: f.name, id: f.id }) === 'resume') || null;
+  // ⭐ LIVE (Ashby): read together, so an autofill drop zone beside the real résumé field is not taken for it (fileTypesOf).
+  const types = fileTypesOf(files.map(f => ({ type: 'file', label: f.label, name: f.name, id: f.id })));
+  const resume = files.find((f, i) => types[i] === 'resume') || null;
   const hasForm = (Number(probe.controls) || 0) >= 3 || files.length > 0;
   return {
     page: { hasForm, signInWall: !!probe.signInWall },
