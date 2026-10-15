@@ -73,7 +73,9 @@ test("⛔ J1: a progress record holds NO answer value — whatever a caller hand
   const r = await progress.get({ jobId: "gh-zoom-1" });
   assert.deepEqual(Object.keys(r).sort(), ["captured", "company", "filled", "jobId", "jobKey", "link", "postingUrl",
     // + "resume" by D98 §4 (lane J6): the on-page panel's generation for this job — { at, id, status, attached }, no value.
-    "prepared", "read", "resume", "reviewed", "submitted", "title", "updatedAt"].sort(), "exactly the D96 §3 shape (+ D98's résumé step)");
+    // + "addresses" and "ats" by T14 (field report 10-14): where the job was seen (origin + path + identifier params) and
+    //   its last score — so a new tab on a known address binds at once and the card comes back without a read.
+    "prepared", "read", "resume", "reviewed", "submitted", "title", "updatedAt", "addresses", "ats"].sort(), "exactly the D96 §3 shape (+ D98's résumé step, + T14's addresses and ats)");
   assert.deepEqual(r.filled, { n: 14, of: 18, needYou: 2, check: 3 });
   assert.deepEqual(r.read, { at: 1, stage: "applyManually", fieldCount: 18 });
   delete globalThis.chrome;
@@ -387,7 +389,7 @@ test("⛔ J1: Prepare → fill → I submitted it write the job's progress — c
   delete globalThis.chrome;
 });
 
-test("⛔ J1: a fill on a BOUND tab never says 'capture it first'; with no binding and no match it still does", async (t) => {
+test("⛔ J1: a fill on a BOUND tab names the job and never says 'capture it first'; with no binding and no match it names Capture", async (t) => {
   await startAts();
   globalThis.fetch = realFetch;
   const srv = mountServer(); t.after(srv.stop);
@@ -400,18 +402,25 @@ test("⛔ J1: a fill on a BOUND tab never says 'capture it first'; with no bindi
   await clearBinding(9);
   let r = await gh.runGatedHandoff({ serverUrl: srv.base, tab });
   assert.equal(r.reason, "unknown");
-  assert.equal(r.message, "draft doesn't know this job — capture it first.", "no binding, no match: capture it first");
+  assert.equal(r.message, "draft doesn't know this job — Capture adds it.", "no binding, no match: the ONE button that adds it (T16)");
   // the tab is linked to a job (a recognised posting) the user has not captured: the job is NAMED, never "capture it first"
   await bindTab(tab, { jobId: "two::46", title: "Platform Engineer", company: "Contoso Logistics", via: "recognised" });
   r = await gh.runGatedHandoff({ serverUrl: srv.base, tab });
   assert.doesNotMatch(r.message, /capture it first/, r.message);
   assert.match(r.message, /Platform Engineer at Contoso Logistics/);
-  srv.db.prepare(`INSERT INTO scraped_jobs (job_id,title,company,url,apply_url,search_query,_hash,discovered_at)
-    VALUES ('two::46','Platform Engineer','Contoso Logistics',?,?,'t','h46',unixepoch()-86400)`).run(`${FPOST}/twoorigin/jobs/46`, `${FPOST}/twoorigin/jobs/46`);
+  // a posting draft holds but that is no longer live, and was never the user's: not on their board — named, and ONE button
+  srv.db.prepare(`INSERT INTO scraped_jobs (job_id,title,company,url,apply_url,search_query,_hash,discovered_at,is_active)
+    VALUES ('two::46','Platform Engineer','Contoso Logistics',?,?,'t','h46',unixepoch()-86400,0)`).run(`${FPOST}/twoorigin/jobs/46`, `${FPOST}/twoorigin/jobs/46`);
   r = await gh.runGatedHandoff({ serverUrl: srv.base, tab });
   assert.equal(r.reason, "not_on_board");
   assert.doesNotMatch(r.message, /capture it first/, r.message);
-  assert.match(r.message, /^Platform Engineer at Contoso Logistics isn't on your board yet/);
+  assert.match(r.message, /^Platform Engineer at Contoso Logistics isn't on your board yet — Capture adds it\.$/);
+  // ⭐ BINDING FIRST + D99: the same posting LIVE on the board, bound to this tab (identify's "a board job not yet yours")
+  // — the binding's rule applies even where the address names it: Prepare is offered, never "capture it first"
+  srv.db.prepare("UPDATE scraped_jobs SET is_active = 1 WHERE job_id = 'two::46'").run();
+  r = await gh.runGatedHandoff({ serverUrl: srv.base, tab });
+  assert.equal(r.reason, "prepare", r.message);
+  assert.equal(r.canPrepare, true);
   delete globalThis.chrome;
 });
 

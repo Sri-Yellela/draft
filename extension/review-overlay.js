@@ -399,6 +399,44 @@ export function renderOverlay(model, meta) {
   if (prior) { try { prior.__draftCleanup?.(); } catch { /* gone */ } prior.remove(); }
   if (run.closed) return { ok: true, rendered: 0, closed: true };
 
+  // ⭐ T11 · IN A FRAME, FOLLOW WHAT IS ON SCREEN. The form can live in an ATS's iframe (Stripe embeds Greenhouse's),
+  // and such a frame is sized to the whole form — so `position:fixed` pins to the top of a 4,000px frame and scrolls
+  // away with it. Inside a frame the panel instead follows the frame's VISIBLE strip, measured by IntersectionObserver
+  // (which, even in a cross-origin frame, measures against the top-level viewport). One observer on one tall box
+  // cannot do it — scrolled through its middle, the visible share of a tall box never changes, so it never fires — so
+  // the frame is covered with 50px strips and the visible region is the span of the strips on screen.
+  // ⛔ DUPLICATED in autofill-badge.js renderBadge (each function is serialised alone); both share one watcher per frame
+  // through `globalThis.__draftFrameView`, whichever is drawn first installs it.
+  const inFrame = (() => { try { return window.top !== window; } catch { return true; } })();
+  const FV = inFrame ? (globalThis.__draftFrameView = globalThis.__draftFrameView || (() => {
+    const v = { top: 0, height: innerHeight, listeners: new Set(), seen: new Map() };
+    const box = document.createElement('div');
+    box.setAttribute('data-draft-viewport', '');
+    box.setAttribute('aria-hidden', 'true');
+    box.style.cssText = 'position:absolute;left:0;top:0;width:1px;pointer-events:none;opacity:0;z-index:-1;';
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) v.seen.set(e.target, e.isIntersecting ? e.intersectionRect : null);
+      let top = Infinity, bottom = -Infinity;
+      for (const r of v.seen.values()) if (r && r.height > 0) { top = Math.min(top, r.top); bottom = Math.max(bottom, r.bottom); }
+      if (top === Infinity) { v.height = 0; } else { v.top = top + scrollY; v.height = bottom - top; }
+      for (const f of v.listeners) { try { f(); } catch { /* a drawn-over panel */ } }
+    }, { threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1] });
+    const lay = () => {
+      const h = Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight || 0, innerHeight);
+      const want = Math.ceil(h / 50);
+      while (box.children.length < want) {
+        const s = document.createElement('div');
+        s.style.cssText = `position:absolute;left:0;top:${box.children.length * 50}px;width:1px;height:50px;`;
+        box.append(s);
+        io.observe(s);
+      }
+    };
+    document.documentElement.appendChild(box);
+    lay();
+    try { new ResizeObserver(lay).observe(document.documentElement); } catch { /* no ResizeObserver */ }
+    return v;
+  })()) : null;
+
   const theme = meta.theme || {};
   const varsOf = (pal) => Object.entries(pal || {})
     .map(([k, v]) => `--c-${k.toLowerCase().replace(/_/g, '-')}: ${v};`).join(' ');
@@ -420,7 +458,7 @@ export function renderOverlay(model, meta) {
   const css = `
     #${ID} { ${varsOf(theme.light)} }
     @media (prefers-color-scheme: dark) { #${ID} { ${varsOf(theme.dark)} } }
-    #${ID} { max-height: calc(100vh - 32px); display: flex; flex-direction: column; overflow: hidden;
+    #${ID} { max-height: var(--rm-max-h, calc(100vh - 32px)); display: flex; flex-direction: column; overflow: hidden;
       font: 13px/1.45 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
       color: var(--c-ink); background: var(--c-surface-menu); backdrop-filter: blur(12px);
       border: 1px solid var(--c-glass-edge); border-radius: 10px;
@@ -544,10 +582,23 @@ export function renderOverlay(model, meta) {
   host.dataset.run = runId;   // which fill drew it (a test reads it; the page learns nothing it could not see)
   const side = G.side || (meta.dock === 'left' ? 'left' : 'right');
   const place = (s, top) => {
-    host.style.cssText = `position:fixed;z-index:2147483647;width:min(380px, calc(100vw - 32px));top:${Math.max(8, top ?? 16)}px;${s}:16px;`;
+    if (FV) {
+      // ⭐ T11: in a frame — absolute, inside the visible strip, `G.frameOffset` below its top (dragging sets it), and
+      // no taller than the strip. A strip shorter than the panel's floor keeps the floor and stays at its top.
+      const room = Math.max(160, FV.height - 16);
+      const off = Math.min(Math.max(8, G.frameOffset ?? 16), Math.max(8, FV.height - Math.min(room, host.offsetHeight || room) - 8));
+      host.style.cssText = `position:absolute;z-index:2147483647;width:min(380px, calc(100vw - 32px));top:${Math.round(FV.top + off)}px;${s}:16px;--rm-max-h:${room}px;`;
+      host.dataset.frameFollow = '1';
+    } else {
+      host.style.cssText = `position:fixed;z-index:2147483647;width:min(380px, calc(100vw - 32px));top:${Math.max(8, top ?? 16)}px;${s}:16px;`;
+    }
     host.dataset.side = s;
   };
   place(side, G.top);
+  // ⭐ T11: re-place as the parent page scrolls the frame — at most once a frame.
+  let follow = 0;
+  const onView = () => { if (follow) return; follow = requestAnimationFrame(() => { follow = 0; place(host.dataset.side || side, G.top); }); };
+  if (FV) FV.listeners.add(onView);
   const root = host.attachShadow({ mode: 'open' });
   const style = document.createElement('style');
   style.textContent = css;
@@ -841,7 +892,8 @@ export function renderOverlay(model, meta) {
     if (!drag) return;
     host.style.left = `${Math.max(0, ev.clientX - drag.dx)}px`;
     host.style.right = '';
-    host.style.top = `${Math.max(0, ev.clientY - drag.dy)}px`;
+    // ⭐ T11: in a frame the host is absolute — page coordinates, not the viewport's.
+    host.style.top = `${Math.max(0, ev.clientY - drag.dy + (FV ? scrollY : 0))}px`;
   };
   const onUp = () => {
     if (!drag) return;
@@ -849,6 +901,7 @@ export function renderOverlay(model, meta) {
     const r = host.getBoundingClientRect();
     const next = r.left + r.width / 2 < innerWidth / 2 ? 'left' : 'right';
     G.side = next; G.top = r.top;
+    if (FV) G.frameOffset = r.top + scrollY - FV.top;   // ⭐ T11: where it sits within the visible strip
     place(next, r.top);
     draw();
     void send({ type: 'PANEL_DOCK', side: next });
@@ -913,6 +966,7 @@ export function renderOverlay(model, meta) {
     document.removeEventListener('change', onPageInput, true);
     removeEventListener('mousemove', onMove, true);
     removeEventListener('mouseup', onUp, true);
+    if (FV) FV.listeners.delete(onView);   // ⭐ T11: a removed panel stops following
   }
   host.__draftCleanup = cleanup;
   root.addEventListener('click', (ev) => { void onClick(ev); });

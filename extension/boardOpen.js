@@ -17,6 +17,7 @@
 
 import { lookupBoardJob } from './boardJob.js';
 import { bindTab, bindingForTab } from './tabBinding.js';
+import { noteAddress } from './progress.js';   // T14: the address the board opened is one this job is known at
 
 let SERVER_URL = null;
 export function configureBoardOpen({ serverUrl } = {}) { SERVER_URL = serverUrl || null; }
@@ -67,6 +68,7 @@ export const handlers = Object.freeze({
       jobId: found.job.jobId, title: found.job.title, company: found.job.company, via: 'board',
       board: { logo: found.job.logo, reportPath: found.job.reportPath, ats: found.ats, at: Date.now() },
     }).catch(() => null);
+    await noteAddress(found.job.jobId, found.job.url, { title: found.job.title, company: found.job.company });
     return { ok: true };
   },
 

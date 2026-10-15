@@ -172,6 +172,49 @@ export function renderBadge(state, meta) {
     document.documentElement.appendChild(host);
   }
   clearInterval(Number(host.dataset.timer || 0));
+  // ⭐ T11 · IN A FRAME, FOLLOW WHAT IS ON SCREEN — the same watcher as review-overlay.js renderOverlay (⛔ duplicated:
+  // each function is serialised alone; both share `globalThis.__draftFrameView`, whichever is drawn first installs it).
+  // An ATS frame is sized to the whole form, so `position:fixed` would pin the badge to the top of a 4,000px frame.
+  const inFrame = (() => { try { return window.top !== window; } catch { return true; } })();
+  const FV = inFrame ? (globalThis.__draftFrameView = globalThis.__draftFrameView || (() => {
+    const v = { top: 0, height: innerHeight, listeners: new Set(), seen: new Map() };
+    const box = document.createElement('div');
+    box.setAttribute('data-draft-viewport', '');
+    box.setAttribute('aria-hidden', 'true');
+    box.style.cssText = 'position:absolute;left:0;top:0;width:1px;pointer-events:none;opacity:0;z-index:-1;';
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) v.seen.set(e.target, e.isIntersecting ? e.intersectionRect : null);
+      let top = Infinity, bottom = -Infinity;
+      for (const r of v.seen.values()) if (r && r.height > 0) { top = Math.min(top, r.top); bottom = Math.max(bottom, r.bottom); }
+      if (top === Infinity) { v.height = 0; } else { v.top = top + scrollY; v.height = bottom - top; }
+      for (const f of v.listeners) { try { f(); } catch { /* a removed badge */ } }
+    }, { threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1] });
+    const lay = () => {
+      const h = Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight || 0, innerHeight);
+      const want = Math.ceil(h / 50);
+      while (box.children.length < want) {
+        const s = document.createElement('div');
+        s.style.cssText = `position:absolute;left:0;top:${box.children.length * 50}px;width:1px;height:50px;`;
+        box.append(s);
+        io.observe(s);
+      }
+    };
+    document.documentElement.appendChild(box);
+    lay();
+    try { new ResizeObserver(lay).observe(document.documentElement); } catch { /* no ResizeObserver */ }
+    return v;
+  })()) : null;
+  const position = () => {
+    const overlayOpen = !!document.getElementById('rm-gate-review-overlay');
+    host.style.cssText = FV
+      ? `position:absolute;top:${Math.round(FV.top + 16)}px;right:${overlayOpen ? 412 : 16}px;z-index:2147483647;`
+      : `position:fixed;top:16px;right:${overlayOpen ? 412 : 16}px;z-index:2147483647;`;
+  };
+  if (FV && !host.__draftFollow) {
+    let raf = 0;
+    host.__draftFollow = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; if (host.isConnected) position(); }); };
+    FV.listeners.add(host.__draftFollow);
+  }
   const root = host.shadowRoot;
   const theme = meta?.theme || {};
   const varsOf = (pal) => Object.entries(pal || {})
@@ -180,9 +223,8 @@ export function renderBadge(state, meta) {
   const paint = (s, missing) => {
     host.dataset.state = s;
     host.dataset.missing = String(missing.length);
-    // Beside the review overlay rather than under it, when that is open.
-    const overlayOpen = !!document.getElementById('rm-gate-review-overlay');
-    host.style.cssText = `position:fixed;top:16px;right:${overlayOpen ? 412 : 16}px;z-index:2147483647;`;
+    // Beside the review overlay rather than under it, when that is open (and, in a frame, inside the visible strip).
+    position();
     const tone = { progress: 'violet', required: 'warning', done: 'success', unrecognised: 'danger', ready: 'info' }[s] || 'info';
     const label = s === 'required' && missing.length ? `${TEXT.required} (${missing.length})`
       : s === 'ready' ? String(meta?.text || TEXT.ready).slice(0, 140) : (TEXT[s] || '');

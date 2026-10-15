@@ -19,8 +19,16 @@
 //   · ⛔ Valid only on the ORIGIN it was made on: the activeTab grant persists across same-origin navigation,
 //     and so does the binding — a tab that leaves the employer's site leaves its binding behind.
 //   · ⛔ Never written to the server as such: the job id rides with the next request as a HINT the server honours
-//     only for a job that is already this user's own (routes/apply.js boundJob). Never shared across tabs.
+//     only for a job that is already this user's own (routes/apply.js boundJob). Never COPIED from another tab.
 //   · No new permission: no `tabs`, no `webNavigation` — tabs.onRemoved needs neither.
+//
+//   · ⭐ T14 (field report 10-14) · via 'known': a NEW tab whose address is one the JOB has already been seen at (its
+//     progress record's `addresses`, extension/progress.js — the posting, an application stage, the page a capture or
+//     a read or a fill happened on) binds to that job the moment the popup opens on it or Fill is pressed — no capture,
+//     no read, no prepare asked again. A local comparison of two addresses: no page read, no request (D23 holds).
+//     The comparison is generic — an address the job was seen at is the tab's address or a parent path of it — and
+//     deliberately knows no ATS (one URL parser, the server's: services/jobPageKey.js). A tab two jobs could claim
+//     binds to neither.
 
 export const BIND_PREFIX = 'bind:';
 const bindKey = (tabId) => `${BIND_PREFIX}${tabId}`;
@@ -38,19 +46,27 @@ export function originTwins(origin) {
   return pair ? [...pair] : (origin ? [origin] : []);
 }
 
+/** ⭐ T14 · the ATS facts a binding may carry for the popup's card: a score, a band word and when — nothing else. */
+export function atsFactsOf(a) {
+  if (!a || !Number.isFinite(a.score)) return null;
+  return { score: Math.round(a.score), band: typeof a.band === 'string' ? a.band.slice(0, 40) : null, at: Number.isFinite(a.at) ? a.at : Date.now() };
+}
+
 /** Bind this tab to a job. A different job replaces the old binding; the same job keeps its first time and dock. */
-export async function bindTab(tab, { jobId, title = null, company = null, via = 'capture', board = null } = {}) {
+export async function bindTab(tab, { jobId, title = null, company = null, via = 'capture', board = null, ats = null } = {}) {
   const origin = originOfUrl(tab?.url);
   if (!tab?.id || !origin || jobId == null) return null;
   const prior = await loadBinding(tab.id);
   const same = prior && String(prior.jobId) === String(jobId) && onOrigin(prior, origin);
   const boardFacts = board || (same ? prior.board : null) || null;
+  const atsFacts = atsFactsOf(ats) || (same ? prior.ats : null) || null;
   const entry = {
     origin, jobId: String(jobId), title: title || prior?.title || null, company: company || prior?.company || null,
     via: same ? prior.via : via, boundAt: same ? prior.boundAt : Date.now(), dock: prior?.dock || 'right',
     ...(prior?.panelDock ? { panelDock: prior.panelDock } : {}),
     ...((same ? prior.via : via) === 'board' ? { origins: originTwins(origin) } : {}),
     ...(boardFacts ? { board: boardFacts } : {}),
+    ...(atsFacts ? { ats: atsFacts } : {}),
   };
   await writeBinding(tab.id, entry);
   return entry;
@@ -91,20 +107,85 @@ export const bindingLabel = (b) => [b?.title, b?.company].filter(Boolean).join('
 /** "Using Software Engineer at Zoom, captured 10:42" — what the fill says when it used the binding. */
 export function bindingLine(b) {
   if (!b) return '';
-  return `Using ${bindingLabel(b)}, ${b.via === 'capture' ? 'captured' : b.via === 'board' ? 'opened from your board' : 'recognised'} ${hhmm(b.boundAt || Date.now())}`;
+  return `Using ${bindingLabel(b)}, ${b.via === 'capture' ? 'captured' : b.via === 'board' ? 'opened from your board'
+    : b.via === 'known' ? 'known from earlier' : 'recognised'} ${hhmm(b.boundAt || Date.now())}`;
+}
+
+// ── ⭐ T14 · THE ADDRESSES A JOB HAS BEEN SEEN AT — generic, no ATS knowledge ──────────────────────────────────────
+// A query parameter is kept only when it looks like an IDENTIFIER (letters, digits, - and _, at least one digit, at
+// most 64 long) and its name is not a credential's or a tracker's. So `?gh_jid=8198280` stays and `?source=linkedin`,
+// `?utm_campaign=…`, `?token=…` and `?redirect=…` go — an address kept here never carries a secret or a value the user
+// typed. The fragment always goes.
+const SECRET_PARAM = /token|secret|session|auth|code|state|sig|key|pass|redirect|return|email|user|login|nonce/i;
+const TRACKING_PARAM = /^(utm_|source$|src$|ref$|referrer$|gclid$|fbclid$|mc_|lang$|locale$|hl$)/i;
+const ID_VALUE = /^(?=.*\d)[A-Za-z0-9_-]{1,64}$/;
+const segmentsOf = (p) => p.split('/').filter(Boolean);
+
+/** "https://host/a/b?id=12" — the address as kept: origin, path without a trailing slash, identifier params only. */
+export function addressOf(url) {
+  let u;
+  try { u = new URL(url); } catch { return null; }
+  if (!/^https?:$/.test(u.protocol) || url.length > 2048) return null;
+  const keep = [...u.searchParams].filter(([k, v]) => ID_VALUE.test(v) && !SECRET_PARAM.test(k) && !TRACKING_PARAM.test(k))
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  const q = keep.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+  const path = `/${segmentsOf(u.pathname).join('/')}`;
+  return `${u.origin}${path === '/' ? '' : path}${q ? `?${q}` : ''}`;
+}
+
+/** An address names ONE posting by its path alone when a path segment carries a long number or a UUID. */
+const specificPath = (segs) => segs.some(s => /\d{4,}|[0-9a-f]{8}-[0-9a-f]{4}-/i.test(s));
+
+/**
+ * How well a SEEN address claims the tab's address: 0 = not at all; otherwise the number of path segments it shares
+ * (more = more specific). It claims it when the origin is the same, its path is the tab's path or a parent of it, and
+ * either its path alone names one posting or every identifier parameter it kept is on the tab's address too.
+ * A bare origin or a one-segment path never claims anything.
+ */
+export function addressClaim(seen, url) {
+  const a = addressOf(seen), b = addressOf(url);
+  if (!a || !b) return 0;
+  const A = new URL(a), B = new URL(b);
+  if (A.origin !== B.origin) return 0;
+  // A leading language segment (/en-US/, /de/) names the same page in another language — it is set aside on both sides.
+  const unlocale = (segs) => (segs.length > 1 && /^[a-z]{2}(?:-[A-Za-z]{2,4})?$/.test(segs[0]) ? segs.slice(1) : segs);
+  const as = unlocale(segmentsOf(A.pathname)), bs = unlocale(segmentsOf(B.pathname));
+  if (as.length > bs.length || as.some((s, i) => s !== bs[i])) return 0;
+  const params = [...A.searchParams];
+  const paramsHeld = params.length > 0 && params.every(([k, v]) => B.searchParams.getAll(k).includes(v));
+  if (!specificPath(as) && !paramsHeld) return 0;
+  if (as.length < 2 && !paramsHeld) return 0;
+  return as.length + (paramsHeld ? 1 : 0);
 }
 
 /**
- * ⭐ D96 §2 · what a fill that found nothing to fill says on a BOUND tab. "Capture it first" is said ONLY when there is
- * truly no binding and no match (owner, 10-13: it said so while the popup said the job was in the imports). On a bound
- * tab the job is named: not on your board yet → capture it to fill; not found any more → capture it again, or Unlink.
- * Any other server sentence ("Press Prepare this application", "not one of this application's addresses") stands.
+ * The ONE job whose seen addresses claim this tab's address — from the progress records (each `{ jobId, addresses }`).
+ * The most specific claim wins; two different jobs claiming it equally → null (a tab two jobs could claim binds to
+ * neither, and the user's Read decides).
+ */
+export function knownJobForAddress(records = [], url) {
+  let best = null, bestScore = 0, tie = false;
+  for (const r of records || []) {
+    const score = Math.max(0, ...(r?.addresses || []).map(s => addressClaim(s, url)));
+    if (!score) continue;
+    if (score > bestScore) { best = r; bestScore = score; tie = false; }
+    else if (score === bestScore && String(r.jobId) !== String(best?.jobId)) tie = true;
+  }
+  return tie ? null : best;
+}
+
+/**
+ * ⭐ D96 §2 · what a fill that found nothing to fill says on a BOUND tab: the job is named (owner, 10-13: it said
+ * "capture it first" while the popup said the job was in the imports).
+ * ⛔ T16 (field report 10-14): no sentence tells the user to run an earlier step. Nothing prepared is never said here —
+ * the Fill press prepares by itself (tabState.js runFillChain, T15). Where the extension truly cannot act — a job that is
+ * not the user's needs a capture, which writes to their account — the sentence names ONE button.
  */
 export function boundMissMessage(b, reason, serverMessage) {
   if (!b) return serverMessage || null;
-  if (serverMessage && !/capture it first/i.test(serverMessage)) return serverMessage;
   const job = bindingLabel(b);
-  if (reason === 'not_on_board') return `${job} isn't on your board yet — capture it to fill this page.`;
-  if (reason === 'unknown') return `This tab is linked to ${job}, but draft can't find it in your imports — capture it again, or press "Unlink this page".`;
-  return `Nothing is prepared for ${job} on this page — press "Prepare this application" in the draft popup.`;
+  if (reason === 'not_on_board') return `${job} isn't on your board yet — Capture adds it.`;
+  if (reason === 'unknown') return `This tab is linked to ${job}, but draft can't find it in your jobs any more — Capture adds it again.`;
+  if (serverMessage) return serverMessage;
+  return `Nothing is prepared for ${job} on this page yet — Fill prepares your answers before it fills.`;
 }

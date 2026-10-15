@@ -4,7 +4,10 @@ import {
   prepareAndFill, recordSubmitted, copySheetFor, pageMatchFor, packetFillsOrigin, overlayTheme, loadPacketForTab,
 } from './gated-handoff.js';
 // D96 §3 (J1): where each application stands — local, per job, no answer values.
-import { noteCapture, noteContext, noteReviewed, progress, resumeFor } from './progress.js';
+import { noteCapture, noteContext, noteReviewed, noteAddress, notePacketState, progress, resumeFor } from './progress.js';
+// ⭐ T13 + T14 (field report 10-14): the ONE accessor for what a tab is (and a known address binds a new tab at once),
+// and the one press of Fill that reads, prepares and fills.
+import { handlers as TAB_STATE_HANDLERS, tabStateFor, runFillChain, chainMessage } from './tabState.js';
 // T6: Options → "Show details" — what draft answered, per tab and per server path (memory only)
 import { notePageRead, detailsOf, readTabIds } from './diagnostics.js';
 // D96 §4–§5 (J4): the review panel's acknowledge / change / dock — answers go to the user's own Saved answers.
@@ -14,7 +17,9 @@ import { handlers as RESUME_PANEL_HANDLERS, configureResumePanel } from './resum
 // D99 J11: the board hands a job to the extension (boardBridge.js, the one content script, on draft's origin only).
 import { handlers as BOARD_OPEN_HANDLERS, configureBoardOpen } from './boardOpen.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
-import { lookupPage, lookupBoardJob } from './boardJob.js';
+import { lookupBoardJob } from './boardJob.js';
+// ⭐ BINDING FIRST (owner 10-15): every press on a page draft has not seen identifies the page and binds the tab first.
+import { identifyAndBind, identityView, STOPS as IDENTITY_STOPS } from './identify.js';
 // ⭐ One job per tab across every stage of its application, and the Copy sheet as an in-page panel (owner, 10-12).
 import { bindTab, bindingForTab, clearBinding, setBindingDock, bindingLine, loadBinding, BIND_PREFIX } from './tabBinding.js';
 import { renderCopySheetPanel } from './copy-sheet-panel.js';
@@ -120,7 +125,7 @@ async function captureActiveTab(tab) {
   if (result?.success && result.jobId) {
     await bindTab(tab, { jobId: result.jobId, title: extracted.title || null, company: extracted.company || null, via: 'capture' }).catch(() => null);
   }
-  await noteCapture(result, extracted);
+  await noteCapture(result, extracted, tab.url || null);
   await reportCapture(tab.id, result);
   return result;
 }
@@ -151,48 +156,74 @@ async function reportCapture(tabId, result) {
  *   · portalQueueFor(origin)         — the applications you DRAFTED whose form lives at this origin
  *                                     (gate-packets?origin=), with their counts — never their answers
  * Either can fail on its own; the popup then falls back to showing every action.
+ *
+ * ⭐ BINDING FIRST (owner 10-15): before either is asked, the page is IDENTIFIED and the tab BOUND (identify.js
+ * identifyAndBind — the address, the embedded ATS form's address, then the page's text through the capture's matcher).
+ * Both questions then go out WITH the binding (before this they fired in parallel, unbound, and the binding came after).
+ * A failed identify binds nothing and prepares nothing; "draft could not ask" (signed out, unreachable) asks nothing more.
  */
 async function popupContext(tab) {
   let url = '';
   let origin = '';
   try { const u = new URL(tab?.url || ''); if (/^https?:$/.test(u.protocol)) { url = u.href; origin = u.origin; } }
   catch { /* chrome://, file:// or a blank tab: no page context, recent captures only */ }
-  const [board, queue] = await Promise.all([
+  const identity = url ? await identifyAndBind(tab, { serverUrl: RESUME_MASTER_URL }).catch(() => null) : null;
+  // T2 + T3: draft's answer about this page — which job, and the ATS report (the board job's, or the page's own text's)
+  const page = identity?.lookup ? { ok: true, ...identity.lookup } : null;
+  if (identity && IDENTITY_STOPS.includes(identity.outcome)) {
+    notePageRead(tab?.id, { url, known: false, jobId: null, how: null, pageKey: null, basis: null, atsState: null });
+    return { url, origin, prepared: false, identity: identityView(identity), binding: null, posting: null, ats: null, report: null,
+             recent: [], packets: [], handoff: null, notice: null };
+  }
+  let [board, queue] = await Promise.all([
     authedFetch(RESUME_MASTER_URL, '/api/import/context', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }),
     })
       .then(r => (r && r.ok ? r.json() : null)).catch(() => null),
     // D56: which packets may fill THIS page (origin list + job id), or which case it is — and the
-    // on-demand company notice (§8 row 10). Asked only on the press, like the rest of this.
+    // on-demand company notice (§8 row 10). Asked only on the press, like the rest of this — and now with the binding.
     origin ? pageMatchFor(RESUME_MASTER_URL, tab) : Promise.resolve(null),
   ]);
-  // ⭐ T2 + T3 (field report 10-14): the address alone did not name the job (Stripe's careers page vs the board's copy
-  // of it), or named it with no score — so the page the user is looking at is read (the same extractor a capture uses,
-  // under this press's grant) and draft is asked which job its TEXT is, by the capture's own matcher, and how the base
-  // résumé scores for it. A score never waits for a capture.
-  const page = url && (!board?.posting?.known || !Number.isFinite(board.posting.scores?.shown)) ? await pageLookup(tab, url) : null;
   if (page?.ok && board?.posting) {
     const p = page.posting;
     const score = page.ats?.state === 'ready' && Number.isFinite(page.ats.score) ? page.ats.score : null;
     const scores = score != null ? { base: score, tailored: null, shown: score, tailoredShown: false } : board.posting.scores || null;
     if (p?.known && !board.posting.known) {
       board.posting = { ...board.posting, known: true, jobId: p.jobId, title: p.title, company: p.company, how: p.how, active: true, scores };
-    } else if (score != null) board.posting = { ...board.posting, scores };
+    } else if (score != null && !Number.isFinite(board.posting.scores?.shown)) board.posting = { ...board.posting, scores };
   }
-  // ⭐ T9: a board job whose score was already known skipped the page read above — so ask draft for that job's report
-  // (GET /api/extension/job/:id: no page text leaves the browser), for the web app's ATS report in the popup.
-  const boardReport = !page && board?.posting?.known && board.posting.jobId
+  // ⭐ T9: when the identify's answer carried no report (an older server, or no page answer at all), ask draft for the
+  // bound board job's report (GET /api/extension/job/:id: no page text leaves the browser), for the web app's ATS report
+  // in the popup — one extra GET, on the press only.
+  const boardReport = !page?.ats && board?.posting?.known && board.posting.jobId
     ? await lookupBoardJob(RESUME_MASTER_URL, board.posting.jobId).catch(() => null) : null;
-  // ⭐ A posting draft recognises binds the tab too; a DIFFERENT recognised posting replaces the binding.
-  if (board?.posting?.known && board.posting.jobId) {
-    await bindTab(tab, { jobId: board.posting.jobId, title: board.posting.title, company: board.posting.company, via: 'recognised' }).catch(() => null);
+  // T14: the score draft gave this job here — kept with the tab's state and the job's record, so the card comes back
+  // on the next open without a read.
+  const shownScore = Number.isFinite(board?.posting?.scores?.shown) ? board.posting.scores.shown : null;
+  const ats = shownScore != null ? { score: shownScore, band: page?.ats?.band ?? null } : null;
+  let binding = await bindingForTab(tab);
+  // The identify bound the tab; the card's score rides on that binding (the same job only — never a rebind here).
+  if (binding && ats && board?.posting?.known && String(board.posting.jobId) === String(binding.jobId)) {
+    binding = (await bindTab(tab, { jobId: binding.jobId, title: binding.title, company: binding.company, via: binding.via, ats }).catch(() => null)) || binding;
   }
-  const binding = await bindingForTab(tab);
-  await noteContext(board, binding);
+  await noteContext(board, binding, { url, ats });
+  // ⭐ T13 · "Read this page" also PREPARES — only for a page the identify bound (or a tab bound before that kept its
+  // binding): when the server says the job is the user's own with nothing prepared (or what was prepared has gone off),
+  // the packet is built — no model call, no Draft slot (routes/apply.js prepareManualPacket) — and the queue re-read,
+  // so the popup offers Fill, not Prepare. ⛔ An identify that named no job prepares nothing on an unbound tab.
+  let prepared = false;
+  if (origin && binding && queue?.canPrepare && (queue.state === 'prepare' || queue.state === 'stale')) {
+    const prep = await prepareAndFill({ serverUrl: RESUME_MASTER_URL, tab, fill: false }).catch(() => null);
+    prepared = !!prep?.prepared;
+    if (prepared) queue = await pageMatchFor(RESUME_MASTER_URL, tab).catch(() => queue);
+  }
+  // ⭐ T15 · the server's packet — made, expires, how many fields — is what the job's record remembers as "prepared".
+  if (binding) await notePacketState(binding.jobId, queue?.packets || []);
   notePageRead(tab?.id, { url, known: !!board?.posting?.known, jobId: board?.posting?.jobId ?? null, how: board?.posting?.how || null,
     pageKey: board?.pageKey?.key || null, basis: page?.basis || null, atsState: page?.ats?.state || null });
   return {
-    url, origin,
+    url, origin, prepared,
+    identity: identityView(identity),
     binding: binding ? { jobId: binding.jobId, title: binding.title, company: binding.company, via: binding.via, boundAt: binding.boundAt,
                ...(binding.via === 'board' && binding.board?.ats ? { ats: binding.board.ats } : {}) } : null,
     posting: board?.posting || null,
@@ -203,6 +234,8 @@ async function popupContext(tab) {
     recent: board?.recent || [],
     packets: (queue?.packets || []).map(p => ({
       packetId: p.packetId, title: p.title, company: p.company, createdAt: p.createdAt, stale: !!p.stale,
+      // T15: when it goes off, by the server's own rule (staleAfterMs), never a local guess
+      expiresAt: Number.isFinite(p.createdAt) && Number.isFinite(p.staleAfterMs) ? p.createdAt + p.staleAfterMs : null,
       answerCount: p.answerCount ?? 0, unresolvedCount: p.unresolvedCount ?? 0, resumeAvailable: !!p.resumeAvailable,
       gateReason: p.gateReason || null,
       // D63: the job card and the packet summary — two scores and a logo address, nothing more.
@@ -260,16 +293,6 @@ async function diagnostics() {
     tabs, workerStartedAt: WORKER_STARTED });
 }
 
-/** T2 + T3: the page's text, read by the capture's extractor under the press's grant, and draft's answer for it. */
-async function pageLookup(tab, url) {
-  let text = '';
-  try {
-    const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extractJobPayload });
-    if (r?.result?.ok) text = r.result.text || '';
-  } catch { /* no grant on this tab: the address alone is asked */ }
-  return lookupPage(RESUME_MASTER_URL, { url, text }).catch(() => null);
-}
-
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Capture, from the popup button. The hotkey reaches the same function through onCommand below;
   // neither trigger has an implementation of its own.
@@ -325,7 +348,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     handleGatedHandoff()
       // D36: whether the review panel opened travels with the answer, so the popup can stay open when it did not.
       .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null, overlay: r?.overlay ? { rendered: r.overlay.rendered === true } : null,
-        reason: r?.reason || null, canPrepare: !!r?.canPrepare }))
+        reason: r?.reason || null, canPrepare: !!r?.canPrepare, did: Array.isArray(r?.did) ? r.did : [],
+        // ⭐ BINDING FIRST: an identify that bound nothing says which outcome, and the ONE action it leaves (Capture, Sign in)
+        action: typeof r?.action === 'string' ? r.action : null, outcome: r?.identity?.outcome || null,
+        // T11: the frame's site, for the popup's one "Allow draft on <site>" button (names and origins only)
+        site: r?.reason === 'frame_needs_permission' && r.site ? { id: r.site.id, name: r.site.name, origins: r.site.origins } : null }))
       .catch(() => sendResponse({ ok: false, message: 'Could not fill this page.' }));
     return true;
   }
@@ -336,7 +363,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.tabs.query({ active: true, currentWindow: true })
       .then(async ([tab]) => { const r = await prepareAndFill({ serverUrl: RESUME_MASTER_URL, tab }); await reportHandoff(tab, r); return r; })
       .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null, reason: r?.reason || null,
-        overlay: r?.overlay ? { rendered: r.overlay.rendered === true } : null }))
+        overlay: r?.overlay ? { rendered: r.overlay.rendered === true } : null,
+        site: r?.reason === 'frame_needs_permission' ? r.site || null : null }))
       .catch(() => sendResponse({ ok: false, message: 'Could not prepare this application.' }));
     return true;
   }
@@ -362,7 +390,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return { ok: !!r?.result?.rendered, rows: r?.result?.rows ?? 0, message: sheet?.message || null };
       })
       .then(sendResponse)
-      .catch(() => sendResponse({ ok: false, message: 'Open the popup on the application page, then press Copy sheet.' }));
+      .catch(() => sendResponse({ ok: false, message: "draft can't show the Copy sheet on this page." }));
     return true;
   }
   // The panel's dock side, remembered with the tab's binding (no storage key of its own).
@@ -486,13 +514,27 @@ chrome.commands.onCommand.addListener((command) => {
 // The result is reported with chrome.action's badge rather than a notification: the extension has no
 // `notifications` permission, and adding one for a status message would be a new user-facing consent
 // prompt for something a badge already says.
+//
+// ⭐ T13 (field report 10-14) · ONE PRESS DOES THE WHOLE CHAIN. The press (this command, or the popup's Fill) is the
+// user's explicit trigger for THIS page, so it does what the page needs: binds a tab whose address the job was already
+// seen at (T14), IDENTIFIES and binds the page first when the tab does not know it here (⭐ BINDING FIRST — a failed
+// identify binds and prepares nothing), fills, and prepares-then-fills when nothing is prepared — and says what it did
+// (tabState.js runFillChain). ⛔ Only this press runs the chain: the automatic switches
+// (autoRead.js) call the handoff itself.
 async function handleGatedHandoff() {
   void sweepExpiredPackets();
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const result = await runGatedHandoff({ serverUrl: RESUME_MASTER_URL, tab });
-  // ⭐ When the tab's binding is what told draft which job this is, the fill says so.
+  const result = await runFillChain({
+    state: () => tabStateFor(tab),
+    identify: () => identifyAndBind(tab, { serverUrl: RESUME_MASTER_URL }),
+    fill: () => runGatedHandoff({ serverUrl: RESUME_MASTER_URL, tab }),
+    prepare: () => prepareAndFill({ serverUrl: RESUME_MASTER_URL, tab }),
+  });
+  // ⭐ When the tab's binding is what told draft which job this is, the fill says so — after what the press did first.
   const bound = await bindingForTab(tab).catch(() => null);
-  if (bound && result?.ok) result.message = `${bindingLine(bound)}. ${result.message || ''}`.trim();
+  if (bound && result?.ok) result.message = chainMessage(result.did, { ...result, message: `${bindingLine(bound)}. ${result.fillMessage || ''}`.trim() });
+  // T14: the page this fill ran on is an address the job is known at — a new tab on it binds at once.
+  if (bound) await noteAddress(bound.jobId, tab?.url, { title: bound.title, company: bound.company });
   await reportHandoff(tab, result);
   return result;
 }
@@ -521,7 +563,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type === 'GATE_REVIEW_EDIT') {
     const tabId = sender.tab?.id;
     if (!tabId) { sendResponse({ ok: false, reason: 'no_tab' }); return true; }
-    applyOverlayEdit({ tabId, field: msg.field, value: msg.value })
+    // ⭐ T11: the panel sits in the form's frame, so its edit goes back to the frame it came from.
+    applyOverlayEdit({ tabId, frameId: sender.frameId ?? 0, field: msg.field, value: msg.value })
       .then(result => sendResponse({ ok: true, result }))
       .catch(e => sendResponse({ ok: false, reason: e.message }));
     return true;                                            // async response
@@ -719,7 +762,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: collectFormLabels });
       collected = r?.result;
     } catch {
-      return { ok: false, message: 'Open the popup again on the form page, then report it.' };
+      return { ok: false, message: "draft can't read this form's questions — nothing was sent." };
     }
     const report = buildFormReport({ host, collected, version: chrome.runtime.getManifest?.().version });
     if (!report.labels.length) return { ok: false, message: 'No form fields were found on this page.' };
@@ -771,6 +814,14 @@ chrome.tabs.onRemoved.addListener((tabId) => { forgetTab(tabId); });
 configureResumePanel({ serverUrl: RESUME_MASTER_URL });
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const handle = RESUME_PANEL_HANDLERS[msg?.type];
+  if (!handle) return false;
+  handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
+  return true;
+});
+
+// ── ⭐ T14: TAB_STATE — the popup asks, on open, what the active tab is (tabState.js; the extension's own records) ──
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  const handle = TAB_STATE_HANDLERS[msg?.type];
   if (!handle) return false;
   handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
   return true;

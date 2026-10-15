@@ -202,7 +202,9 @@ test("D56 · message 2 — no packet, but a job you have a résumé for → Prep
     const r = await runGatedHandoff({ serverUrl: t.base, tab: onTab(`${APPLY}/twoorigin/apply/45`) });
     assert.equal(r.reason, "prepare");
     assert.equal(r.canPrepare, true);
-    assert.match(r.message, /Prepare this application/);
+    // ⛔ T16: the sentence says the Fill prepares by itself — never "press Prepare this application in the draft popup"
+    assert.match(r.message, /Fill prepares your answers before it fills/);
+    assert.doesNotMatch(r.message, /in the draft popup/);
     assert.match(r.message, /your résumé for Platform Engineer at Contoso Logistics/);
     assert.doesNotMatch(r.message, /Draft queue/, "never 'from your Draft queue' to someone on the manual route");
     assert.equal(calls.applyPlan.length, 0);
@@ -216,7 +218,7 @@ test("D56 · message 2 — no packet, but a job you have a résumé for → Prep
     const stale = await runGatedHandoff({ serverUrl: t.base, tab: { id: 8, url: `${APPLY}/twoorigin/apply/45` } });
     assert.equal(stale.reason, "packet_stale");
     assert.equal(stale.canPrepare, true);
-    assert.match(stale.message, /Prepare this application/);
+    assert.match(stale.message, /Fill prepares fresh ones/);
     const again = await prepareAndFill({ serverUrl: t.base, tab: (currentTab = { id: 8, url: `${APPLY}/twoorigin/apply/45` }) });
     assert.equal(again.ok, true, again.message);
   } finally { t.stop(); }
@@ -227,13 +229,13 @@ test("D56 · message 3 — draft doesn't know this job → capture it first", as
   try {
     const r = await runGatedHandoff({ serverUrl: t.base, tab: onTab(`${APPLY}/twoorigin/apply/46`) });
     assert.equal(r.reason, "unknown");
-    assert.equal(r.message, "draft doesn't know this job — capture it first.");
+    assert.equal(r.message, "draft doesn't know this job — Capture adds it.", "T16: ONE button, never 'capture it first'");
     assert.equal(r.canPrepare, false);
     // In the pool but not the user's: also capture first — Prepare is only for the user's own jobs.
     job(t.db, "two::46", `${POSTING}/twoorigin/jobs/46`);
     const r2 = await runGatedHandoff({ serverUrl: t.base, tab: onTab(`${APPLY}/twoorigin/apply/46`) });
     assert.equal(r2.reason, "not_on_board");
-    assert.match(r2.message, /capture it first/);
+    assert.match(r2.message, /Capture adds it/);
     assert.equal(calls.applyPlan.length, 0);
   } finally { t.stop(); }
   // Every case has its sentence, and none of them sends a manual user to the queue.
@@ -272,8 +274,12 @@ test("⛔ D56 · a packet is NEVER filled outside its origin list", async () => 
   assert.deepEqual(originsOf({ expectedOrigin: "https://a.example" }), ["https://a.example"]);
   assert.equal(packetFillsOrigin({}, "https://a.example"), false);
   const gh = read("extension/gated-handoff.js");
-  assert.match(gh, /if \(!packetFillsOrigin\(released, origin\)\) \{/, "the release is checked against the list");
-  assert.match(gh, /if \(cached && packetFillsOrigin\(cached, origin\)\) \{/, "the cached packet too");
+  // ⭐ T11: one check for both addresses — the page's origin, and the form's frame when the form is in one.
+  assert.match(gh, /const fillsHere = \(p\) => packetFillsOrigin\(p, origin\) && \(!inFrame \|\| packetFillsOrigin\(p, inFrame\.origin\)\);/,
+    "the page's origin AND the frame's are checked against the list");
+  assert.match(gh, /if \(!fillsHere\(released\)\) \{/, "the release is checked against the list");
+  assert.match(gh, /if \(cached && loc\.form && fillsHere\(cached\) && \(cached\.frameUrl \?\? null\) === \(inFrame\?\.url \?\? null\)\) \{/,
+    "the cached packet too — and in a frame, only the frame it was released for");
 });
 
 test("D56 · 'I submitted' on the manual route → job_applications with the TAILORED score", async () => {

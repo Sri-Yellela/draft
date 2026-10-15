@@ -49,27 +49,38 @@ export async function lookupBoardJob(serverUrl, jobId) {
 }
 
 /**
- * ⭐ T2 + T3 (field report 10-14) · "Read this page" — POST /api/extension/page { url, text }: which job this page is (by
- * its address, else by the capture's own matcher on the text the extractor read) and draft's ATS report — the board
- * job's, or the base résumé against THIS PAGE'S TEXT when draft does not hold it. Sent only on the press; the server
- * keeps nothing. → { ok: true, posting, ats, basis } · { ok: false, error }
+ * ⭐ T2 + T3 (field report 10-14) · "Read this page" — POST /api/extension/page { url, text, frameUrls }: which job this page
+ * is (by its address, by the address of the ATS form it embeds, else by the capture's own matcher on the text the
+ * extractor read) and draft's ATS report — the board job's, or the base résumé against THIS PAGE'S TEXT when draft does
+ * not hold it. Sent only on a press; the server keeps nothing.
+ *   ⭐ BINDING FIRST (owner 10-15): `frameUrls` — at most 3 addresses of the ATS frames the page embeds (Stripe's careers
+ *   page carries Greenhouse's form in a frame whose address names the job); `posting.mine` — the job is already the
+ *   user's own (vs a live board job not yet theirs); `kind` — "job" · "not_a_job" (text read, no posting) · "unread".
+ * → { ok: true, posting, ats, basis, kind } · { ok: false, error }
  */
-export async function lookupPage(serverUrl, { url = '', text = '' } = {}) {
+export async function lookupPage(serverUrl, { url = '', text = '', frameUrls = [] } = {}) {
   if (!serverUrl || !/^https?:\/\//i.test(String(url))) return { ok: false, error: 'bad_page' };
+  const frames = (Array.isArray(frameUrls) ? frameUrls : []).filter(f => typeof f === 'string' && /^https?:\/\//i.test(f))
+    .slice(0, 3).map(f => f.slice(0, 2048));
   let r;
   try {
     r = await authedFetch(serverUrl, '/api/extension/page', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: String(url).slice(0, 2048), text: typeof text === 'string' ? text.slice(0, 60000) : '' }) });
+      body: JSON.stringify({ url: String(url).slice(0, 2048), text: typeof text === 'string' ? text.slice(0, 60000) : '',
+        ...(frames.length ? { frameUrls: frames } : {}) }) });
   } catch { r = null; }
   if (!r) return { ok: false, error: 'signed_out' };
   let body = null;
   try { body = await r.json(); } catch { body = null; }
+  if (r.status === 401) return { ok: false, error: 'signed_out' };
   if (!r.ok) return { ok: false, error: typeof body?.error === 'string' ? body.error.slice(0, 40) : 'unavailable' };
   const p = body?.posting;
   const words = (v) => (typeof v === 'string' ? v.slice(0, 200) : null);
   const posting = !p || typeof p !== 'object' ? null
     : p.known === true && JOB_ID_RE.test(String(p.jobId ?? ''))
-      ? { known: true, jobId: String(p.jobId), title: words(p.title), company: words(p.company), how: words(p.how), onBoard: p.onBoard === true }
+      ? { known: true, jobId: String(p.jobId), title: words(p.title), company: words(p.company), how: words(p.how), onBoard: p.onBoard === true,
+          // an older server sends no `mine`: a job on the board is then treated as on the board, nothing more
+          mine: p.mine === true }
       : { known: false, title: words(p.title), company: words(p.company) };
-  return { ok: true, posting, ats: atsFacts(body?.ats), basis: body?.basis === 'board' || body?.basis === 'page' ? body.basis : null };
+  const kind = ['job', 'not_a_job', 'unread'].includes(body?.kind) ? body.kind : (posting ? 'job' : 'unread');
+  return { ok: true, posting, kind, ats: atsFacts(body?.ats), basis: body?.basis === 'board' || body?.basis === 'page' ? body.basis : null };
 }
