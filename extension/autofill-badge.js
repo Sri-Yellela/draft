@@ -141,9 +141,14 @@ export function renderBadge(state, meta) {
     .map(([k, v]) => `--c-${k.toLowerCase().replace(/_/g, '-')}: ${v};`).join(' ');
 
   const paint = (s, missing) => {
-    host.dataset.state = s;
-    host.dataset.missing = String(missing.length);
-    host.hidden = false;
+    // ⭐ T21: ONE state, patched in place — the same state painted again changes nothing (its icon's pulse never restarts).
+    if (host.dataset.state !== s) host.dataset.state = s;
+    if (host.dataset.missing !== String(missing.length)) host.dataset.missing = String(missing.length);
+    if (host.hidden) host.hidden = false;
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    // ⭐ T21: "12 of 43" — the count the fill has reached so far, in a mark of FIXED width (tabular digits).
+    const prog = s === 'progress' && Number.isFinite(meta?.progress?.filled) && meta?.progress?.total > 0
+      ? `${meta.progress.filled} of ${meta.progress.total}` : '';
     const tone = { progress: 'violet', required: 'warning', done: 'success', unrecognised: 'danger', ready: 'info' }[s] || 'info';
     const label = s === 'required' && missing.length ? `${TEXT.required} (${missing.length})`
       : s === 'ready' ? String(meta?.text || TEXT.ready).slice(0, 140) : (TEXT[s] || '');
@@ -157,7 +162,7 @@ export function renderBadge(state, meta) {
       unrecognised: '<path d="M6 6l12 12M18 6L6 18"/>',
       ready: '<path d="M7 4h7l4 4v12H7zM10 12h5M10 16h5"/>',
     }[s] || '<path d="M12 6v8M12 18h.01"/>';
-    root.innerHTML = `
+    const html = `
       <style>
         :host { ${varsOf(theme.light)} all: initial; display: block; }
         @media (prefers-color-scheme: dark) { :host { ${varsOf(theme.dark)} } }
@@ -174,6 +179,7 @@ export function renderBadge(state, meta) {
         .t { flex: 1; min-width: 0; cursor: ${s === 'required' ? 'pointer' : 'default'}; }
         .n { font-family: 'Poppins', 'DM Sans', ui-sans-serif, sans-serif; font-size: 11px; font-style: italic; font-weight: 800;
           border-radius: 6px; padding: 3px 7px; background: var(--c-${tone}-quiet); color: var(--c-${tone}); }
+        .pg { min-width: 6.5em; text-align: center; font-variant-numeric: tabular-nums; font-style: normal; }
         .x { font: inherit; font-size: 14px; border: 0; cursor: pointer; width: 26px; height: 26px; flex: none; border-radius: 8px;
           background: var(--c-surface-2); color: var(--c-ink-muted); box-shadow: var(--c-depth-rest); }
         .x:hover, .x:focus-visible { box-shadow: var(--c-depth-hover); color: var(--c-ink); }
@@ -183,17 +189,18 @@ export function renderBadge(state, meta) {
       </style>
       <div class="bar" data-s="${s}" role="status" aria-live="polite">
         <span class="st" data-role="icon" aria-hidden="true"><svg viewBox="0 0 24 24">${ICON}</svg></span>
-        <span class="t" data-role="text" tabindex="${s === 'required' ? 0 : -1}"></span>
-        ${s === 'required' && missing.length ? '<span class="n" data-role="count" aria-hidden="true"></span>' : ''}
+        <span class="t" data-role="text" tabindex="${s === 'required' ? 0 : -1}">${esc(s === 'required' && missing.length ? TEXT.required : label)}</span>
+        ${s === 'required' && missing.length ? `<span class="n" data-role="count" aria-hidden="true">${missing.length}</span>` : ''}${
+          prog ? `<span class="n pg" data-role="progress">${esc(prog)}</span>` : ''}
         <button class="x" type="button" data-role="dismiss" aria-label="${s === 'ready' ? 'Dismiss' : 'Dismiss — stop autofill on this page'}">×</button>
       </div>`;
+    const DK = globalThis.__draftDock;
+    if (typeof DK?.morph === 'function') DK.morph(root, html); else root.innerHTML = html;
     const t = root.querySelector('[data-role="text"]');
-    // The words are unchanged; on "required" the count is its own rectangular mark beside them (D63).
-    t.textContent = s === 'required' && missing.length ? TEXT.required : label;
-    const cnt = root.querySelector('[data-role="count"]');
-    if (cnt) cnt.textContent = String(missing.length);
-    t.title = s === 'required' ? missing.map(m => m.label).join('\n') : (meta?.note || '');
-    t.setAttribute('aria-label', s === 'required' ? `${label}: ${missing.map(m => m.label).join(', ')}` : label);
+    // The words are unchanged; on "required" the count is its own rectangular mark beside them (D63) — both in the markup.
+    const setAttr = (el, k, v) => { if (el.getAttribute(k) !== v) el.setAttribute(k, v); };
+    setAttr(t, 'title', s === 'required' ? missing.map(m => m.label).join('\n') : (meta?.note || ''));
+    setAttr(t, 'aria-label', s === 'required' ? `${label}: ${missing.map(m => m.label).join(', ')}` : label);
     // "Complete required fields" is one line, but it can take you there: the next empty one — in the form's own frame.
     const go = () => { void send({ type: 'DOCK_GO_MISSING' }); };
     t.onclick = s === 'required' ? go : null;

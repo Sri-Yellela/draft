@@ -424,7 +424,19 @@ async function fillActiveTab() {
   // ⭐ T13: one press — it reads the page if this tab does not know its job, prepares if nothing is prepared, then
   // fills, and the sentence says what it did ("Read this page and prepared your answers. …").
   setStatus('Filling — reading and preparing first if this page needs it…');
+  // ⭐ T21: ONE fill per press. The button holds its width and says it is busy until the fill answers — a second press
+  // while it runs would start a second fill that supersedes the first and re-draws everything on the page.
+  const btn = document.getElementById('btn-fill-primary');
+  if (btn?.getAttribute('aria-busy') === 'true') return;
+  const label = btn ? [...btn.childNodes].map(n => n.cloneNode(true)) : [];
+  if (btn) {
+    btn.style.minWidth = `${btn.offsetWidth}px`;
+    btn.setAttribute('aria-busy', 'true');
+    btn.disabled = true;
+    btn.textContent = 'Filling…';
+  }
   const r = await chrome.runtime.sendMessage({ type: 'FILL_ACTIVE_TAB' }).catch(() => null);
+  if (btn) { btn.replaceChildren(...label); btn.disabled = false; btn.removeAttribute('aria-busy'); btn.style.minWidth = ''; }
   setStatus(r?.message || (r?.ok ? 'Filled — check every answer, then submit.' : 'Could not fill this page.'), r?.ok ? 4000 : 0);
   refreshProgress();
   // D36: stay open when the fill worked but its review panel did not — that sentence is the only
