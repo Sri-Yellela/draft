@@ -100,6 +100,14 @@ export function causeOf(e) {
   const c = code(e?.code);
   if (c === "job_vanished") return "job:job_vanished";
   if (e?.name === "ToolsServiceError" || (c && /^(tools_service_|upstream_|model_|auth_unconfigured|limit_exceeded|internal_error|invalid_request)/.test(c))) {
+    // ⭐ T19 (10-15): "upstream_model_failure" covered both production failures — the account out of credit (10-14) and a
+    // key not scoped to a workspace (10-15) — and neither is fixable by a retry or by the user. The provider's message is
+    // read HERE, once, to pick a fixed code; the message itself is never stored or sent on.
+    if (c === "upstream_model_failure") {
+      const m = String(e?.message || "");
+      if (/not scoped to a workspace|anthropic-workspace-id|invalid x-api-key|authentication_error|permission_error/i.test(m)) return "tools_service:model_key_rejected";
+      if (/credit balance|billing/i.test(m)) return "tools_service:model_billing_refused";
+    }
     return `tools_service:${c || "error"}`;
   }
   return `server:${c || code(String(e?.name || "").toLowerCase()) || "error"}`;
