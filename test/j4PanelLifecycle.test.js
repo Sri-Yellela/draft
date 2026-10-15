@@ -447,7 +447,7 @@ test("⛔ J4 (measured): ONE fill per tab — a newer fill supersedes one still 
   const loop = src.slice(at(src, "async function fillFromPacket("), at(src, "async function captureFormSchema("));
   assert.match(loop, /ACTIVE_FILL\.set\(tab\.id, panelMeta\.runId\);/);
   assert.match(loop, /if \(!isCurrent\(\)\) \{ wizard\.stoppedAt = 'superseded'; break; \}\n\s+const matched/);
-  assert.match(loop, /const waited = await waitForCandidate\(tab\.id, origin, step\.wizard\.step, wizard, isCurrent\);\n\s+if \(!waited\.ok\) \{ wizard\.stoppedAt = waited\.reason; break; \}\n\s+if \(!isCurrent\(\)\) \{ wizard\.stoppedAt = 'superseded'; break; \}\n\s+await showBadge\(tab\.id, 'progress'\);\n\s+const moved = await advanceAndWait/);
+  assert.match(loop, /const waited = await waitForCandidate\(tab\.id, origin, step\.wizard\.step, wizard, isCurrent\);\n\s+if \(!waited\.ok\) \{ wizard\.stoppedAt = waited\.reason; break; \}\n\s+if \(!isCurrent\(\)\) \{ wizard\.stoppedAt = 'superseded'; break; \}\n\s+await showBadge\(tab\.id, 'progress'(?:, progressSoFar\(\))?\);\n\s+const moved = await advanceAndWait/);
   assert.ok(at(loop, "if (!isCurrent()) {\n    return { ok: false, reason: 'superseded'") < at(loop, "drawInDock(tab.id, renderOverlay,"), "a superseded run draws nothing");
   assert.match(src, /async function waitForCandidate\(tabId, origin, stepName, wizard, isCurrent = \(\) => true\) \{[\s\S]{0,200}if \(!isCurrent\(\)\) return \{ ok: false, reason: 'superseded' \};/);
 });
