@@ -39,6 +39,25 @@ export function notePageRead(tabId, { url = null, known = false, jobId = null, h
     pageKey: typeof pageKey === 'string' ? pageKey.slice(0, 160) : null, basis: codeOf(basis), atsState: codeOf(atsState), at: Date.now() });
 }
 
+// ⭐ T18 · HOW THE LAST FILL READ THE FORM'S FIELDS — where each label came from (counts), and for every field nothing
+// named, its RAW attributes (id, name, type, aria, placeholder, the nearest words, a few data-* pairs) and the best guess
+// shown for it — so the classifier improves from real pages. ⛔ Never a value: probeFormShape reports none. Memory only.
+const fieldReads = new Map();   // tabId → { at, total, bySource, unresolved: [...] }
+const short = (v, n = 80) => (typeof v === 'string' && v ? v.slice(0, n) : null);
+export function noteFieldsRead(tabId, fields = [], { guessOf = () => '' } = {}) {
+  if (tabId == null || !Array.isArray(fields)) return;
+  const bySource = {};
+  for (const f of fields) { const s = codeOf(f?.labelSource) || 'none'; bySource[s] = (bySource[s] || 0) + 1; }
+  const unresolved = fields.filter(f => f && !f.labelSource && f.type !== 'hidden').slice(0, 20).map(f => ({
+    index: Number.isInteger(f.index) ? f.index : null, guess: short(guessOf(f)) || null,
+    id: short(f.raw?.id ?? f.id), name: short(f.raw?.name ?? f.name), type: short(f.raw?.type ?? f.type, 24),
+    aria: short(f.raw?.aria), labelledby: short(f.raw?.labelledby), placeholder: short(f.raw?.placeholder), near: short(f.raw?.near),
+    data: Array.isArray(f.raw?.data) ? f.raw.data.slice(0, 4).map(d => short(d, 70)).filter(Boolean) : [],
+  }));
+  fieldReads.set(tabId, { at: Date.now(), total: fields.length, bySource, unresolved });
+}
+export function fieldsReadFor(tabId) { return fieldReads.get(tabId) || null; }
+
 export function answers() { return [...answersByPath.values()].reverse(); }
 export function pageReadFor(tabId) { return pageReads.get(tabId) || null; }
 
@@ -61,8 +80,11 @@ export function detailsOf({ version = null, hasToken = false, identity = null, t
     account: { signedIn: !!identity?.authenticated, tokenHeld: !!hasToken },
     tabs: (tabs || []).slice(0, 8).map(({ id, page = null, binding = null, progress = null, resume = null, view = null }) => {
       const r = pageReadFor(id);
+      const fr = fieldsReadFor(id);
       return {
         id, page: page || r?.page || null,
+        // ⭐ T18: how the last fill on this tab read the form's labels, and the raw attributes of any field nothing named
+        fields: fr ? { at: iso(fr.at), total: fr.total, labelSources: fr.bySource, unlabelled: fr.unresolved } : null,
         binding: binding ? { jobId: binding.jobId ?? null, via: codeOf(binding.via), boundAt: iso(binding.boundAt), origin: pageOf(binding.origin) } : null,
         lastRead: r ? { known: r.known, jobId: r.jobId, how: r.how, pageKey: r.pageKey, atsBasis: r.basis, atsState: r.atsState, at: iso(r.at) } : null,
         // the remembered progress (extension/progress.js): its job key and WHICH steps it holds — never a step's values
@@ -82,4 +104,8 @@ export function detailsOf({ version = null, hasToken = false, identity = null, t
 }
 
 /** The tabs the details cover: those read since the worker started, newest first. */
-export function readTabIds() { return [...pageReads.entries()].sort((a, b) => b[1].at - a[1].at).map(([id]) => id); }
+export function readTabIds() {
+  const at = new Map([...pageReads.entries()].map(([id, r]) => [id, r.at]));
+  for (const [id, r] of fieldReads.entries()) at.set(id, Math.max(at.get(id) || 0, r.at));   // ⭐ T18: a tab a fill read
+  return [...at.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+}

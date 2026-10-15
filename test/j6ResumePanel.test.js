@@ -136,8 +136,12 @@ test("⛔ J6 → T22: a résumé is started only by ONE handler, from a page's t
   const starts = [...src.matchAll(/'\/api\/extension\/resume',/g)];
   assert.equal(starts.length, 1, "one place starts a generation");
   assert.ok(at(src, "RESUME_GENERATE: async (msg, sender) => {") < starts[0].index);
+  // ⭐ T18: the review panel's résumé row SENDS the one start (RESUME_GENERATE with the click's trigger — t22PopupLauncher
+  // pins where); it never POSTs a generation itself. Every other file does neither.
   for (const f of fs.readdirSync("extension").filter(f => f.endsWith(".js") && f !== "resumePanel.js")) {
-    assert.doesNotMatch(read(`extension/${f}`), /RESUME_GENERATE|\/api\/extension\/resume['`]\s*,\s*\{\s*method:\s*'POST'/, `${f} starts a generation`);
+    const re = f === "review-overlay.js" ? /\/api\/extension\/resume['`]\s*,\s*\{\s*method:\s*'POST'/
+      : /RESUME_GENERATE|\/api\/extension\/resume['`]\s*,\s*\{\s*method:\s*'POST'/;
+    assert.doesNotMatch(read(`extension/${f}`), re, `${f} starts a generation`);
   }
 });
 
