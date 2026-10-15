@@ -270,12 +270,15 @@ export function copySheetRows(packet = {}) {
 /**
  * ⛔ D56 · THE THREE TRUTHFUL MESSAGES (plus the expired case) — and never "from your Draft queue" to
  * someone on the manual route. The extension shows these in the toolbar tooltip (the hotkey) and the
- * popup; the popup adds the one-click button each names.
+ * popup.
  *   not_this_address  a packet exists for this page's job, but this page is not one of its addresses
- *   prepare           no packet, but the page is a job of the user's → "Prepare this application"
- *   stale             a packet matched, and it has gone off (72h) → prepare it again, one click
- *   not_on_board      the posting is in draft's pool, not on the user's board → capture it first
- *   unknown           draft does not know this job → capture it first
+ *   prepare           no packet, but the page is a job of the user's → Fill prepares it, then fills
+ *   stale             a packet matched, and it has gone off (72h) → Fill prepares fresh ones, then fills
+ *   not_on_board      the posting is in draft's pool, not on the user's board → the Capture button adds it
+ *   unknown           draft does not know this job → the Capture button adds it
+ * ⛔ T16 (field report 10-14): no sentence tells the user to run an earlier step ("press … in the draft popup",
+ * "capture it first"). Where the extension does the step itself (Fill prepares — extension/tabState.js runFillChain),
+ * the sentence says so; where it cannot (a capture writes a job into the user's account), it names ONE button.
  */
 export function handoffMessage(state, { job = null, addresses = [], resume = "none" } = {}) {
   const what = job ? [job.title, job.company].filter(Boolean).join(" at ") || "this job" : "this job";
@@ -284,14 +287,14 @@ export function handoffMessage(state, { job = null, addresses = [], resume = "no
       return `This page isn't one of this application's addresses. It fills on ${hostsSentence(addresses) || "another address"}.`;
     case "prepare":
       return resume === "ready"
-        ? `Nothing is prepared for this page yet — draft has your résumé for ${what}. Press "Prepare this application" in the draft popup.`
-        : `Nothing is prepared for this page yet — ${what} is on your board. Press "Prepare this application" in the draft popup.`;
+        ? `Nothing is prepared for this page yet — draft has your résumé for ${what}, and Fill prepares your answers before it fills.`
+        : `Nothing is prepared for this page yet — ${what} is on your board, and Fill prepares your answers before it fills.`;
     case "stale":
-      return `The answers prepared for ${what} have expired. Press "Prepare this application" in the draft popup to prepare fresh ones.`;
+      return `The answers prepared for ${what} have expired — Fill prepares fresh ones before it fills.`;
     case "not_on_board":
-      return "This job isn't on your board yet — capture it first.";
+      return "This job isn't on your board yet — Capture adds it.";
     case "unknown":
     default:
-      return "draft doesn't know this job — capture it first.";
+      return "draft doesn't know this job — Capture adds it.";
   }
 }

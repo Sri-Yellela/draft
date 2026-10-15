@@ -17,7 +17,7 @@
 // It is the same call the approval screen and the board use (server.js scoreBaseResumeForApply), so the score the
 // page shows is the web app's.
 import express from "express";
-import { jobOnUsersBoard, resolvePageJob } from "../services/manualHandoff.js";
+import { jobOnUsersBoard, resolvePageJob, userHasJob } from "../services/manualHandoff.js";
 import { jobFromLabelledText } from "../services/jobs/importJob.js";
 import { previewIngest } from "../services/jobs/jobGateway.js";
 import { createRateLimiter } from "../services/extensionResume.js";
@@ -72,13 +72,23 @@ const reportOf = (r) => (r ? { state: "ready", score: r.score ?? null, band: r.b
  *   posting  { known: true, jobId, title, company, how, onBoard } · { known: false, title, company } · null (no text, no match)
  *   basis    "board" — the report is the board job's · "page" — it is the page's text · null — no report
  */
-export function pageJobForExtension(db, userId, { url = "", text = "" } = {}, { scoreFor, scoreText, hasBaseResume }) {
+export function pageJobForExtension(db, userId, { url = "", text = "", frameUrls = [] } = {}, { scoreFor, scoreText, hasBaseResume }) {
   const href = /^https?:\/\//i.test(String(url)) ? String(url).slice(0, 2048) : "";
   const body = typeof text === "string" ? text.slice(0, PAGE_TEXT_MAX) : "";
   let jobId = null, how = null;
   if (href) {
     const page = resolvePageJob(db, userId, href);
     if (page.job) { jobId = page.job.jobId; how = page.how || "url"; }
+  }
+  // ⭐ BINDING FIRST (owner 10-15) · T11: an employer's page that embeds the ATS's form (Stripe → Greenhouse) may name
+  // no job in its own address; the FORM's frame does (…/embed/job_app?token=8198280). The same resolution, read-only —
+  // identity only: where answers may be released is still the packet's origin list (services/applyOrigins.js).
+  for (const f of (Array.isArray(frameUrls) ? frameUrls : []).slice(0, 3)) {
+    if (jobId) break;
+    const fu = /^https?:\/\//i.test(String(f)) ? String(f).slice(0, 2048) : "";
+    if (!fu) continue;
+    const page = resolvePageJob(db, userId, fu);
+    if (page.job) { jobId = page.job.jobId; how = "frame"; }
   }
   let read = null;
   if (body.trim()) { try { read = jobFromLabelledText({ url: href || null, text: body }); } catch { read = null; } }
@@ -96,13 +106,18 @@ export function pageJobForExtension(db, userId, { url = "", text = "" } = {}, { 
     const row = db.prepare("SELECT job_id, title, company FROM scraped_jobs WHERE job_id = ?").get(jobId);
     if (row) {
       const ats = !hasBase ? { state: "no_base_resume" } : reportOf((() => { try { return scoreFor(userId, row.job_id); } catch { return null; } })());
-      return { posting: { known: true, jobId: String(row.job_id), title: row.title ?? null, company: row.company ?? null, how,
-                          onBoard: jobOnUsersBoard(db, userId, row.job_id) }, ats, basis: ats.state === "ready" ? "board" : null };
+      // ⭐ BINDING FIRST: `mine` — the job is already this user's own (saved, captured, drafted, prepared) — so the
+      // extension can say "on your board" vs "on the draft board, not yet yours" without a second question.
+      return { kind: "job", posting: { known: true, jobId: String(row.job_id), title: row.title ?? null, company: row.company ?? null, how,
+                          onBoard: jobOnUsersBoard(db, userId, row.job_id), mine: userHasJob(db, userId, row.job_id) },
+               ats, basis: ats.state === "ready" ? "board" : null };
     }
   }
-  if (!read) return { posting: null, ats: null, basis: null };
+  // `kind`: "job" — a posting the page's text describes · "not_a_job" — text was read and is no posting · "unread" —
+  // no text came (the extension could not read the page) and the address names nothing.
+  if (!read) return { kind: body.trim() ? "not_a_job" : "unread", posting: null, ats: null, basis: null };
   const ats = !hasBase ? { state: "no_base_resume" } : reportOf((() => { try { return scoreText(userId, read); } catch { return null; } })());
-  return { posting: { known: false, title: read.title ?? null, company: read.company ?? null }, ats, basis: ats.state === "ready" ? "page" : null };
+  return { kind: "job", posting: { known: false, title: read.title ?? null, company: read.company ?? null }, ats, basis: ats.state === "ready" ? "page" : null };
 }
 
 export function createExtensionJobRouter({ db, requireAuth, isExtension, scoreFor, scoreText = null, hasBaseResume, limit = LOOKUP_LIMIT, now }) {
@@ -120,7 +135,7 @@ export function createExtensionJobRouter({ db, requireAuth, isExtension, scoreFo
   router.post("/api/extension/page", requireAuth, (req, res) => {
     if (!isExtension(req)) return res.status(403).json({ error: "extension_only", message: "This is for the draft extension." });
     if (!okPage(String(req.user.id))) return res.status(429).json({ error: "rate_limited", message: "Too many requests — try again in a minute." });
-    res.json(pageJobForExtension(db, req.user.id, { url: req.body?.url, text: req.body?.text },
+    res.json(pageJobForExtension(db, req.user.id, { url: req.body?.url, text: req.body?.text, frameUrls: req.body?.frameUrls },
       { scoreFor, scoreText: scoreText || (() => null), hasBaseResume }));
   });
   return router;

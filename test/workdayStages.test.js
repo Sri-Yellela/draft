@@ -258,7 +258,9 @@ test("⛔ the binding: set by a capture, used first, valid only on its origin, c
   const bg = read("extension/background.js");
   assert.match(bg, /chrome\.tabs\.onRemoved\.addListener\(\(tabId\) => \{[\s\S]{0,160}void clearBinding\(tabId\);/, "cleared when the tab closes");
   assert.match(bg, /if \(result\?\.success && result\.jobId\) \{\s*await bindTab\(tab, \{ jobId: result\.jobId/, "set by a capture");
-  assert.match(bg, /if \(board\?\.posting\?\.known && board\.posting\.jobId\) \{\s*await bindTab\(tab,/, "set by a recognised posting");
+  // ⭐ BINDING FIRST (owner 10-15): a recognised posting binds in the ONE identify step every press runs first
+  assert.match(read("extension/identify.js"), /const binding = await bindTab\(tab, \{ jobId: out\.job\.jobId, title: out\.job\.title, company: out\.job\.company, via: 'recognised'/, "set by a recognised posting");
+  assert.match(bg, /const identity = url \? await identifyAndBind\(tab/, "…which Read runs first");
   const gh = read("extension/gated-handoff.js");
   for (const route of ["/api/apply/handoff/match", "/api/apply/prepare", "/api/apply/copy-sheet", "/api/apply/handoff/submitted"]) {
     const i = gh.indexOf(`'${route}'`);

@@ -294,6 +294,16 @@ async function readPage() {
     setStatus('Open a job posting to capture it');
     return;
   }
+  // ⭐ BINDING FIRST: the identify that ran first named no job of yours — its own sentence (and, for a posting draft does
+  // not hold, the ONE button that adds it: Capture, shown above). A bound tab keeps its binding (Workday's sign-in).
+  const id = context?.identity || null;
+  if (id && !id.bind && !context?.binding) {
+    if (preview.ok) currentJobData = { title: preview.title, company: preview.company, location: preview.location };
+    if (id.action === 'capture') showCaptureAction();
+    if (id.action === 'sign_in') document.getElementById('btn-sign-in').style.display = 'flex';
+    setStatus(id.message || '');
+    return;
+  }
   if (preview.ok) {
     currentJobData = { title: preview.title, company: preview.company, location: preview.location };
     // ⭐ T13: Read also prepared — said, so the next step is plainly Fill
@@ -400,7 +410,18 @@ async function fillActiveTab() {
     document.getElementById('btn-prepare').style.display = 'flex';
     document.getElementById('companion').style.display = 'block';
   }
+  // ⭐ BINDING FIRST: the page is a posting draft does not hold — the ONE button the sentence names is Capture, and a
+  // capture from it binds the tab and runs this same Fill again (the press the user already made).
+  if (!r?.ok && r?.action === 'capture') { showCaptureAction(); fillAfterCapture = true; }
+  if (!r?.ok && r?.action === 'sign_in') document.getElementById('btn-sign-in').style.display = 'flex';
   showFramePermission(r);
+}
+
+let fillAfterCapture = false;
+/** The one Capture button for a page identify found no job of yours on. */
+function showCaptureAction() {
+  document.getElementById('posting-actions').style.display = 'flex';
+  document.getElementById('companion').style.display = 'block';
 }
 
 // ⭐ T11 · THE FORM IS IN AN ATS'S FRAME. The fill says which site ("inside a Greenhouse frame") and this button asks
@@ -516,6 +537,8 @@ async function captureFrom(buttonId) {
     showCaptureResult(result || { success: false, message: 'Capture failed — try again' });
     if (result?.success) {
       btn.textContent = 'Captured';
+      // ⭐ BINDING FIRST: the capture bound the tab (background.js captureActiveTab) — the Fill that asked for it goes on.
+      if (fillAfterCapture) { fillAfterCapture = false; await fillActiveTab(); }
     } else {
       btn.textContent = label;
       btn.disabled = false;
@@ -575,7 +598,7 @@ async function openAtsScore() {
   if (signedIn) {
     const r = await chrome.runtime.sendMessage({ type: 'RESUME_PANEL_OPEN' }).catch(() => null);
     if (r?.ok) { window.close(); return; }
-    setStatus(r?.message || 'Open the popup on the job page, then press score.', 3000);
+    setStatus(r?.message || "draft can't show the score on this page.", 3000);
     return;
   }
   const tab = await getCurrentTab();

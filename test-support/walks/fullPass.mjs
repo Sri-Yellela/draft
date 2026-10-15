@@ -288,7 +288,9 @@ export default async function run(h, { check, observe, section }) {
   const pop = await readPopup();
   observe('the popup, reopened', pop);
   check('it opens knowing the job', pop?.job === 'Software Engineer at Zoom', pop?.job);
-  check('…and where it stands: Captured · Page read · Answers prepared · Filled N of M', /^Captured .* · Page read .* · Answers prepared · Filled \d+ of \d+/.test(pop?.line || ''), pop?.line);
+  // ⭐ T15: "prepared" is the SERVER packet — when it was made, how many fields, when it goes off
+  check('…and where it stands: Captured · Page read · Answers prepared (the packet: made · fields · expiry) · Filled N of M',
+    /^Captured .* · Page read .* · Answers prepared \d\d:\d\d · \d+ fields? · expire [^·]+ · Filled \d+ of \d+/.test(pop?.line || ''), pop?.line);
   // The record holds the LAST panel's counts (one record per job, the step in view): Application Questions, answered.
   check('…with the counts the panel showed last — "Filled 3 of 3", nothing needs you, nothing to check', /· Filled 3 of 3( ·|$)/.test(pop?.line || '') && !/need|to check/.test(pop?.line || ''), pop?.line);
   check('the In progress list shows this job, marked as the one in this tab', pop?.listShown === true && (pop?.list || []).some(i => i.job === 'Software Engineer at Zoom' && i.here && !!i.where), JSON.stringify(pop?.list));
