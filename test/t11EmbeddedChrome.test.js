@@ -51,8 +51,16 @@ async function startFixture() {
   const server = https.createServer({ key: fs.readFileSync(key), cert: fs.readFileSync(cert) }, (req, res) => {
     const host = String(req.headers.host || "").split(":")[0];
     if (req.method === "POST") { posts.push(`${host}${req.url}`); res.writeHead(200); return res.end("recorded"); }
-    if (host === CAREERS && req.url.startsWith("/jobs/search")) { res.writeHead(200, { "content-type": "text/html" }); return res.end(TOP_HTML); }
-    if (host === GH_HOST && req.url.startsWith("/embed/job_app")) { res.writeHead(200, { "content-type": "text/html" }); return res.end(FRAME_HTML); }
+    // ?tall=1: the real shape — Greenhouse sizes its iframe to the WHOLE form, so the frame is as tall as the page.
+    const tall = /[?&]tall=1/.test(req.url);
+    if (host === CAREERS && req.url.startsWith("/jobs/search")) {
+      res.writeHead(200, { "content-type": "text/html" });
+      return res.end(tall ? TOP_HTML.replace(`src="${FRAME}" width="100%" height="900"`, `src="${FRAME}&amp;tall=1" width="100%" height="4000"`) : TOP_HTML);
+    }
+    if (host === GH_HOST && req.url.startsWith("/embed/job_app")) {
+      res.writeHead(200, { "content-type": "text/html" });
+      return res.end(tall ? FRAME_HTML.replace("</form>", "</form><div style=\"height:3600px\">More questions below…</div>") : FRAME_HTML);
+    }
     res.writeHead(404); res.end("not found");
   });
   await new Promise(r => server.listen(0, "127.0.0.1", r));
@@ -103,6 +111,40 @@ test("⭐ (a) with Greenhouse allowed: the fill lands INSIDE the embedded frame 
     assert.equal(mint?.body?.frameUrl, FRAME, "the mint named the frame it would fill");
     await sleep(1500);   // the panel animates in; the screenshot is for a person to look at
     await h.screenshot("t11-embedded-filled");
+    assert.deepEqual(fx.posts, [], "draft never submits");
+  });
+
+test("⭐ (c) a frame as tall as the form (Greenhouse's real shape): the panel and the badge stay ON SCREEN as the page scrolls",
+  { skip, timeout: 180000 }, async (t) => {
+    const fx = await startFixture();
+    t.after(() => fx.stop());
+    const h = await launch(fx, { greenhouse: true });
+    t.after(() => h.close());
+    await h.open(`${POSTING}&tall=1`, { settle: 1200 });
+    const gh = (u) => u.startsWith(`https://${GH_HOST}/`);
+    await waitUntil(() => h.frame(gh), 10000);
+    const r = await h.prepare({ timeoutMs: 30000 });
+    assert.equal(r.ok, true, `${r.reason}: ${r.message}`);
+    await waitUntil(() => h.readPanelInFrame(gh), 15000);
+    // Where an element of the frame sits in the TOP-LEVEL viewport: the iframe's box plus the element's box in the frame.
+    const onScreen = async (id) => {
+      const frameBox = await h.page.evaluate(() => { const b = document.getElementById("grnhse_iframe").getBoundingClientRect(); return { top: b.top, vh: innerHeight }; });
+      const el = await h.frame(gh).evaluate((x) => { const n = document.getElementById(x); if (!n) return null; const b = n.getBoundingClientRect(); return { top: b.top, bottom: b.bottom }; }, id);
+      return el && { top: frameBox.top + el.top, bottom: frameBox.top + el.bottom, vh: frameBox.vh };
+    };
+    for (const y of [1600, 3000]) {
+      await h.page.evaluate((to) => window.scrollTo(0, to), y);
+      // the panel follows within a frame or two of the scroll; give it a moment
+      const placed = await waitUntil(async () => {
+        const p = await onScreen("rm-gate-review-overlay");
+        return p && p.top >= 0 && p.top < p.vh - 100 ? p : null;
+      }, 5000);
+      assert.ok(placed, `the panel is on screen after scrolling to ${y}: ${JSON.stringify(await onScreen("rm-gate-review-overlay"))}`);
+      const badge = await onScreen("rm-draft-autofill-badge");
+      assert.ok(badge && badge.top >= 0 && badge.bottom <= badge.vh, `the badge is on screen after scrolling to ${y}: ${JSON.stringify(badge)}`);
+    }
+    await sleep(800);
+    await h.screenshot("t11-tall-frame-scrolled");
     assert.deepEqual(fx.posts, [], "draft never submits");
   });
 
