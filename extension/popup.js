@@ -420,11 +420,29 @@ function renderCompanion(c) {
 
 // "Fill it" — the same gated handoff Ctrl+Shift+Y runs, through the service worker. The review
 // overlay it opens is where the answers are checked; you submit the form yourself.
+let filling = false;   // ⭐ T21: one fill per press — the popup's ONE fill state
 async function fillActiveTab() {
   // ⭐ T13: one press — it reads the page if this tab does not know its job, prepares if nothing is prepared, then
   // fills, and the sentence says what it did ("Read this page and prepared your answers. …").
   setStatus('Filling — reading and preparing first if this page needs it…');
-  const r = await chrome.runtime.sendMessage({ type: 'FILL_ACTIVE_TAB' }).catch(() => null);
+  // ⭐ T21: ONE fill per press. The button holds its width and says it is busy until the fill answers — a second press
+  // while it runs would start a second fill that supersedes the first and re-draws everything on the page.
+  if (filling) return;
+  filling = true;
+  const btn = document.getElementById('btn-fill-primary');
+  const label = btn?.childNodes ? [...btn.childNodes].map(n => n.cloneNode(true)) : null;
+  const busy = (on) => {
+    if (!btn) return;
+    if (btn.style) btn.style.minWidth = on && btn.offsetWidth ? `${btn.offsetWidth}px` : '';
+    btn.disabled = on;
+    if (on && typeof btn.setAttribute === 'function') btn.setAttribute('aria-busy', 'true');
+    if (!on && typeof btn.removeAttribute === 'function') btn.removeAttribute('aria-busy');
+    if (on) btn.textContent = 'Filling…';
+    else if (label && typeof btn.replaceChildren === 'function') btn.replaceChildren(...label);
+  };
+  busy(true);
+  let r;
+  try { r = await chrome.runtime.sendMessage({ type: 'FILL_ACTIVE_TAB' }).catch(() => null); } finally { filling = false; busy(false); }
   setStatus(r?.message || (r?.ok ? 'Filled — check every answer, then submit.' : 'Could not fill this page.'), r?.ok ? 4000 : 0);
   refreshProgress();
   // D36: stay open when the fill worked but its review panel did not — that sentence is the only
@@ -587,10 +605,22 @@ document.getElementById('btn-sign-in').addEventListener('click', () => {
   setTimeout(() => window.close(), 300);
 });
 
+// ⭐ T24 · THE DRAFT BUTTON DRAFTS (T22 REVISED, owner 10-15): pressed on a job's page it is the board's Draft — the job
+// goes to Draft House (semi, waiting for your review) and its résumé is queued, or the one question / the refusal is
+// said on the page's dock (intent.js). On a page that is no job it opens draft, as it always did.
 document.getElementById('btn-resume').addEventListener('click', async () => {
-  await chrome.runtime.sendMessage({ type: 'OPEN_RESUME_BUILDER' });
-  setStatus('Opening...', 800);
-  setTimeout(() => window.close(), 800);
+  const btn = document.getElementById('btn-resume');
+  btn.disabled = true;
+  const r = await chrome.runtime.sendMessage({ type: 'INTENT_DRAFT', trigger: 'click' }).catch(() => null);
+  btn.disabled = false;
+  if (!r || r.openDraft) {
+    await chrome.runtime.sendMessage({ type: 'OPEN_RESUME_BUILDER' });
+    setStatus('Opening...', 800);
+    setTimeout(() => window.close(), 800);
+    return;
+  }
+  setStatus(r.message || (r.ok ? 'Drafted.' : 'Could not draft this job.'), 6000);
+  if (r.ok && !r.asked) setTimeout(() => window.close(), 1600);
 });
 
 // D63 (5): "Sign in with LinkedIn" moved to the options page (options.js) — it is used once.

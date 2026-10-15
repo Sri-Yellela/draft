@@ -41,6 +41,7 @@ import { createResumeChangesRouter } from "./routes/resumeChanges.js";
 import { createExtensionResumeService, GenerationCancelledError, baseResumeFor as extensionBaseResumeFor } from "./services/extensionResume.js";
 import { createExtensionResumeRouter } from "./routes/extensionResume.js";
 import { createExtensionJobRouter } from "./routes/extensionJob.js";
+import { createExtensionDraftRouter } from "./routes/extensionDraft.js";
 import { purgeSolvedTickets } from "./services/tickets.js";
 import { storeGeneratedResume, refundGeneration, ResumeStoreError, STORE_FAILED_SENTENCE, listGeneratedResumes,
          deleteGeneratedResume, sweepExpiredResumes, resumeRetentionDays } from "./services/generatedResumes.js";
@@ -5134,6 +5135,15 @@ console.log(`[boot] database ready: ${DB_PATH}`);
       id: "167_extension_resume_cause",
       sql: `
         ALTER TABLE extension_resume_generations ADD COLUMN cause TEXT;
+      `,
+    },
+    {
+      // ⭐ T24 (field report 10-15) · the intent model's two settings and the remembered choice, with the ACCOUNT — not a
+      // new browser storage key. JSON { onDraft: "queue" | "ask", manualResume: "on_cue" | "never", remembered: null |
+      // "drafted" | "manual" } (routes/extensionDraft.js parseIntentSettings); NULL reads as the defaults.
+      id: "168_extension_intent_settings",
+      sql: `
+        ALTER TABLE users ADD COLUMN extension_intent TEXT;
       `,
     },
   ];
@@ -11826,6 +11836,11 @@ app.use(createExtensionJobRouter({ db, requireAuth, isExtension: isExtensionCred
   scoreFor: (userId, jobId) => scoreBaseResumeForApply(userId, jobId, { withReport: true }),
   scoreText: (userId, job) => scorePageTextForBase(userId, job),
   hasBaseResume: (userId) => !!extensionBaseResumeFor(db, userId) }));
+// ⭐ T24 · the extension's Draft button IS the board's Draft (routes/apply.js startRun via draftForExtension) and queues the
+// résumé through the same generation as above (extensionResume.start — once per job and base). The tells only the server
+// holds, and the account's two intent settings (migration 168), in routes/extensionDraft.js.
+app.use(createExtensionDraftRouter({ db, requireAuth, isExtension: isExtensionCredential,
+  draftForExtension: applyLine.draftForExtension, draftStateOf: applyLine.draftStateOf, runBar: applyLine.runBar, resume: extensionResume }));
 
 // ── Contact form (public — no auth required) ──────────────────
 app.post("/api/contact", (req, res) => {
