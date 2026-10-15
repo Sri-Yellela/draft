@@ -723,6 +723,7 @@ export function renderOverlay(model, meta) {
       acknowledged: rows.filter(r => run.rows[r.key]?.action === 'ack').map(r => r.key),
       edits: rows.filter(r => run.rows[r.key]?.action === 'edited' || run.rows[r.key]?.action === 'typed').map(r => ({ key: r.key, value: run.rows[r.key].value })),
       counts: { filled: s.filled, of: s.total, needYou: s.need, check: s.check },
+      sentAt: Date.now(),   // 43k: the record keeps the NEWEST counts — a report delayed behind a lookup never wins
     });
   };
   const redraw = () => { draw(); report(); };

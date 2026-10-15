@@ -50,7 +50,7 @@ const STEPS = Object.freeze({
   ats: ['at', 'score', 'band'],
   read: ['at', 'stage', 'fieldCount'],
   prepared: ['at', 'packetId', 'expiresAt', 'answerCount'],
-  filled: ['n', 'of', 'needYou', 'check'],
+  filled: ['n', 'of', 'needYou', 'check', 'at'],   // 43k: `at` = when these counts were made (newest wins, see patch)
   resume: ['at', 'id', 'status', 'attached'],
   drafted: ['at'],   // ⭐ T24: when the extension's Draft button drafted this job (the board's Draft — Draft House holds it)
   reviewed: ['at'],
@@ -161,6 +161,10 @@ function patch(ref = {}, changes = {}) {
       if (v == null) continue;
       // T14: addresses ACCUMULATE — the new ones first, then the ones already known (addressList dedupes and caps)
       if (k === 'addresses') { next.addresses = [...(Array.isArray(v) ? v : [v]), ...(prior.addresses || [])]; continue; }
+      // ⛔ 43k: counts OLDER than the ones held never replace them. The fill writes its result at once, but the panel's
+      // first report (its "waiting" draw, 0 of N) can reach here later, delayed behind loadPacketForTab — J9 then read
+      // "Filled 0 of 3" after a full fill. Both writers stamp `at`; an unstamped write (an old caller) still applies.
+      if (k === 'filled' && Number.isFinite(v?.at) && Number.isFinite(prior.filled?.at) && v.at < prior.filled.at) continue;
       next[k] = STEPS[k] ? { ...(prior[k] || {}), ...v } : v;
     }
     next.updatedAt = Date.now();
@@ -367,8 +371,8 @@ export const noteFill = quiet(async (result, { jobId = null, bound = null } = {}
     // ⭐ D96 §5 (J4): the review PANEL's own counts when the fill reports them — so "Filled 14 of 18 · 2 need you" in
     // the popup is the same three numbers the panel shows (filled · needs you · to check), not a second count.
     filled: result.panel && Number.isFinite(result.panel.filled)
-      ? { n: result.panel.filled, of: Number.isFinite(result.panel.of) ? result.panel.of : of, needYou: result.panel.needYou ?? 0, check: result.panel.check ?? 0 }
-      : { n: result.filled.length, of, needYou: result.missingCount ?? 0, check: result.review?.uncertainCount ?? 0 },
+      ? { n: result.panel.filled, of: Number.isFinite(result.panel.of) ? result.panel.of : of, needYou: result.panel.needYou ?? 0, check: result.panel.check ?? 0, at: Date.now() }
+      : { n: result.filled.length, of, needYou: result.missingCount ?? 0, check: result.review?.uncertainCount ?? 0, at: Date.now() },
   });
 });
 
@@ -381,7 +385,8 @@ export const noteReviewed = quiet(async (msg, { jobId = null } = {}) => {
   if (jobId == null) return null;
   const c = msg?.counts;
   const filled = c && Number.isFinite(c.filled) && Number.isFinite(c.of)
-    ? { n: c.filled, of: c.of, needYou: Number.isFinite(c.needYou) ? c.needYou : 0, check: Number.isFinite(c.check) ? c.check : 0 }
+    ? { n: c.filled, of: c.of, needYou: Number.isFinite(c.needYou) ? c.needYou : 0, check: Number.isFinite(c.check) ? c.check : 0,
+        at: Number.isFinite(msg?.sentAt) ? msg.sentAt : Date.now() }
     : null;
   if (!msg?.ready && !filled) return null;
   return patch({ jobId }, { filled, reviewed: msg?.ready ? { at: Date.now() } : null });
