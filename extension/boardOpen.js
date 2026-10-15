@@ -66,7 +66,9 @@ export const handlers = Object.freeze({
     // tab.url is not readable here (no `tabs` permission): the address is the one just opened.
     await bindTab({ id: tab.id, url: found.job.url }, {
       jobId: found.job.jobId, title: found.job.title, company: found.job.company, via: 'board',
-      board: { logo: found.job.logo, reportPath: found.job.reportPath, ats: found.ats, at: Date.now() },
+      // ⭐ T24: the board's intent rides with the binding — 'apply' or 'view' (the default: a page that named none).
+      board: { logo: found.job.logo, reportPath: found.job.reportPath, ats: found.ats, at: Date.now(),
+               intent: msg.intent === 'apply' ? 'apply' : 'view' },
     }).catch(() => null);
     await noteAddress(found.job.jobId, found.job.url, { title: found.job.title, company: found.job.company });
     return { ok: true };
