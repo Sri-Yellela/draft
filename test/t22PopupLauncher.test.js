@@ -189,11 +189,16 @@ test("⛔ T22: the dock's Résumé tab is a VIEW — no Generate, Try again or R
   const view = stripJs(src.slice(at(src, "export function renderResumePanel("), at(src, "// ── the injected attach")));
   assert.doesNotMatch(view, /RESUME_GENERATE|role === 'generate'|role === 'regenerate'/);
   assert.match(src, /RESUME_GENERATE: async \(msg, sender\) => \{/);
-  for (const f of fs.readdirSync("extension").filter(f => f.endsWith(".js") && f !== "resumePanel.js")) {
+  // ⭐ T18 wired the SECOND of the two places: the review panel's résumé row ("Generate and attach") — and nothing else
+  for (const f of fs.readdirSync("extension").filter(f => f.endsWith(".js") && f !== "resumePanel.js" && f !== "review-overlay.js")) {
     assert.doesNotMatch(stripJs(read(`extension/${f}`)), /RESUME_GENERATE/, `${f} starts a résumé`);
   }
-  // the review panel's résumé row shows the tab; it starts nothing
   const ro = read("extension/review-overlay.js");
+  const roCode = stripJs(ro);
+  assert.equal((roCode.match(/RESUME_GENERATE/g) || []).length, 1, "the row's Generate is the review panel's only start");
+  assert.ok(at(ro, "type: 'RESUME_GENERATE', trigger: 'click'") > at(ro, "if (role === 'generate') {")
+    && at(ro, "if (role === 'generate') {") > at(ro, "if (!ev.isTrusted) return;"), "…a trusted click on the row's own button");
+  // the row still shows the tab when there is nothing to choose from (or one is being made); it starts nothing
   assert.match(ro, /data-role="resume">See the Résumé tab<\/button>/);
   assert.match(ro, /if \(role === 'resume'\) \{ void send\(\{ type: 'RESUME_PANEL_OPEN', tab: 'resume' \}\); return; \}/);
   assert.doesNotMatch(ro, /Make a résumé for this job/);

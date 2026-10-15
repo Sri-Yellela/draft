@@ -54,7 +54,7 @@ import { bindingForTab, bindingLabel } from './tabBinding.js';
 import { lookupBoardJob } from './boardJob.js';
 import { identifyAndBind } from './identify.js';
 import { notePageRead } from './diagnostics.js';
-import { overlayTheme, fetchPdf } from './gated-handoff.js';
+import { overlayTheme, fetchPdf, formFrameOf } from './gated-handoff.js';
 // ⭐ T17: the ATS and Résumé views are drawn on the dock, in the TOP frame.
 import { drawInDock, dockMeta } from './dockHost.js';
 import { noteResume, resumeFor } from './progress.js';
@@ -591,7 +591,13 @@ export async function attachResumeFile(file) {
     .map(el => ({ el, score: resumeInputScore(contextOf(el)) }));
   const named = inputs.filter(i => i.score === 2);
   const neutral = inputs.filter(i => i.score === 0);
-  const pick = named[0] || (neutral.length === 1 ? neutral[0] : null);
+  // ⭐ T18: the review row names ITS upload (`file.target`: the probe's id / name, and the row's type). That upload is
+  // taken only when it is still a PDF upload on the page and — for a résumé — not a box whose words say it is something
+  // else (a cover letter's). A cover letter goes only into a box the row typed `cover_letter`.
+  const t = file?.target || null;
+  const targeted = t && (t.id || t.name) ? inputs.find(i => (t.id && i.el.id === t.id) || (!t.id && t.name && i.el.name === t.name)) : null;
+  const byTarget = targeted && (t.kind === 'cover_letter' || targeted.score >= 0) ? targeted : null;
+  const pick = byTarget || (t?.kind === 'cover_letter' ? null : named[0] || (neutral.length === 1 ? neutral[0] : null));
   const reason = pick ? null : !inputs.length ? 'no_file_input' : neutral.length > 1 ? 'ambiguous_file_inputs' : 'no_resume_input';
   const field = pick ? contextOf(pick.el).replace(/\s+/g, ' ').trim().slice(0, 80) : null;
   if (file?.probe || !pick) return { target: !!pick, set: false, verified: false, how: null, reason, field };
@@ -639,6 +645,9 @@ const json = (serverUrl, path, init) => authedFetch(serverUrl, path, init)
 const post = (serverUrl, path, body) => json(serverUrl, path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
 const ID_RE = /^erg_[a-f0-9]{8,64}$/;
 const viewPath = (id) => `/api/extension/resume/${encodeURIComponent(id)}`;
+/** ⭐ T18: the account's base résumé as a PDF (routes/extensionResume.js) — and whether there is one. */
+export const BASE_RESUME_PDF = '/api/extension/base-resume/pdf/file';
+export const BASE_RESUME_INFO = '/api/extension/base-resume';
 
 async function activeTab() {
   try { return (await chrome.tabs.query({ active: true, currentWindow: true }))[0] || null; } catch { return null; }
@@ -677,6 +686,18 @@ async function withAtsComponent(tab, model) {
     try { await chrome.scripting.executeScript({ target: { tabId: tab.id, frameIds: [0] }, files: ['atsReport.js'] }); } catch { /* the summary stands */ }
   }
   return model;
+}
+
+/** ⭐ T18: the upload a review row names — its id / name and type, nothing else of the message is trusted. */
+const targetOf = (msg) => {
+  const t = msg?.target;
+  if (!t || typeof t !== 'object') return null;
+  const s = (v) => (typeof v === 'string' && v.length <= 200 ? v : null);
+  return { id: s(t.id), name: s(t.name), kind: ['resume', 'cover_letter', 'other'].includes(t.kind) ? t.kind : 'resume' };
+};
+/** attachResumeFile, injected into the tab's FORM frame (the top frame until a fill found the form elsewhere). */
+async function injectAttach(tabId, args) {
+  return (await chrome.scripting.executeScript({ target: { tabId, frameIds: [formFrameOf(tabId)] }, func: attachResumeFile, args: [args] }))?.[0]?.result || null;
 }
 
 const meta = async () => ({ theme: await overlayTheme(), paper: { bg: C_LIGHT.SURFACE_SOLID, ink: C_LIGHT.INK },
@@ -775,7 +796,9 @@ export function handlersFor(serverUrl = null) {
       const s = await scope(msg, sender);
       if (s.error) return s.error;
       if (s.view?.status !== 'ready') return { ok: false, message: 'Only a ready résumé can be attached.', model: resumePanelModel({ job: s.job, view: s.view }) };
-      const inject = async (args) => (await chrome.scripting.executeScript({ target: { tabId: s.tab.id }, func: attachResumeFile, args: [args] }))?.[0]?.result || null;
+      // ⭐ T18: into the FORM's frame (T11 — Greenhouse's iframe on a company's page), and into the upload the review
+      // row names when it was pressed there (`msg.target`).
+      const inject = (args) => injectAttach(s.tab.id, { ...args, target: targetOf(msg) });
       let probe;
       try { probe = await inject({ probe: true }); } catch { probe = null; }
       const r = await post(url(), `${viewPath(s.rec.id)}/pdf`, probe?.target ? { attach: true } : {});
@@ -797,6 +820,32 @@ export function handlersFor(serverUrl = null) {
       const view = { ...s.view, pdf: { ...(s.view.pdf || {}), fileName: pdf.fileName, attached: true } };
       return { ok: true, attached: outcome === 'attached', how: set?.how || null,
         model: resumePanelModel({ job: s.job, view, attach: { outcome, fileName: pdf.fileName, reason: set?.reason || null, ...(outcome === 'fallback' ? { base64: pdf.base64 } : {}) } }) };
+    },
+
+    /**
+     * ⭐ T18 · "Attach my résumé" on the review row's résumé upload: the account's BASE résumé, as draft renders it
+     * (GET /api/extension/base-resume/pdf/file — no model, no Draft slot), set on THAT upload in the form's frame by the
+     * same attachResumeFile and VERIFIED; when the page does not show its name, the bytes come back for Download PDF.
+     * ⛔ The click's own message only (`trigger: 'click'`, from the page's tab). `which: 'letter'` — draft keeps no cover
+     * letter the extension can reach yet, so it is said, and nothing is attached.
+     */
+    RESUME_ATTACH_FILE: async (msg, sender) => {
+      if (msg?.trigger !== 'click') return refuse('A file is attached only from its button.');
+      const tab = tabOf(sender);
+      if (!tab) return refuse('Attach it from the review panel on the application page.');
+      if (!url()) return refuse('Not configured.');
+      if (msg.which !== 'base') return refuse('draft holds no cover letter for this job — attach one on the page.');
+      const target = targetOf(msg);
+      let probe;
+      try { probe = await injectAttach(tab.id, { probe: true, target }); } catch { probe = null; }
+      const pdf = await fetchPdf(url(), BASE_RESUME_PDF, 'Resume.pdf');
+      if (!pdf) return refuse('Your résumé could not be fetched — add one in draft, or attach it on the page yourself.');
+      if (!probe?.target) return { ok: true, attached: false, attach: { outcome: 'fallback', fileName: pdf.fileName, base64: pdf.base64, reason: probe?.reason || 'no_access' } };
+      let set;
+      try { set = await injectAttach(tab.id, { base64: pdf.base64, fileName: pdf.fileName, mimeType: 'application/pdf', target }); } catch { set = { verified: false, reason: 'not_set' }; }
+      const outcome = set?.verified ? 'attached' : 'fallback';
+      return { ok: true, attached: outcome === 'attached', how: set?.how || null,
+        attach: { outcome, fileName: pdf.fileName, reason: set?.reason || null, ...(outcome === 'fallback' ? { base64: pdf.base64 } : {}) } };
     },
 
     /** Download PDF (the fallback, or any time once ready): the stored PDF's bytes and name. */

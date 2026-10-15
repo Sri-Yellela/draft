@@ -37,6 +37,7 @@ import { jobOnUsersBoard } from "./manualHandoff.js";
 import { USER_HIDDEN_GENERATION_FIELDS } from "./costVisibility.js";
 import { sanitiseResumeHtml } from "./resumePreviewSanitiser.js";
 import { findPdf, storePdf, readPdf, linkPdfToRecord, PdfStoreError } from "./resumePdfArtifacts.js";
+import { baseResumeHtml } from "./baseResumeOnly.js";
 
 // ── ⚠ PROVISIONAL — THE OWNER DECIDES (D98 §9). The spec's recommendations, as named constants. ─────────────────
 /** ⚠ provisional, owner decides: the attached file's name — `FirstName_LastName_Company_Role.pdf`, letters/digits/_ only. */
@@ -418,7 +419,26 @@ export function createExtensionResumeService({ db, generate, preflight = () => n
     return p ? readPdf(db, userId, p.id) : null;
   }
 
-  return { start, get, cancel, pdf, pdfFile };
+  /**
+   * ⭐ T18 · "Attach my résumé" — the account's BASE résumé as a PDF, rendered by draft's own renderer (the same
+   * baseResumeHtml a base-résumé-only packet carries). ⛔ No model, no slot, nothing stored: rendered on each request.
+   * Named First_Last_Resume.pdf (pdfFileName). Absent when the account keeps no usable base résumé.
+   */
+  function baseFileName(userId) {
+    const profile = db.prepare("SELECT first_name, last_name, full_name FROM user_profile WHERE user_id = ?").get(userId) || {};
+    const [first, ...rest] = String(profile.full_name || "").trim().split(/\s+/);
+    return pdfFileName({ firstName: profile.first_name || first, lastName: profile.last_name || rest.at(-1), role: "Resume" });
+  }
+  function baseResumeInfo(userId) {
+    return baseResumeFor(db, userId) ? { exists: true, fileName: baseFileName(userId) } : { exists: false, fileName: null };
+  }
+  async function baseResumePdf(userId) {
+    const base = baseResumeFor(db, userId);
+    if (!base) return null;
+    return { fileName: baseFileName(userId), body: await renderPdf(baseResumeHtml(base.text)) };
+  }
+
+  return { start, get, cancel, pdf, pdfFile, baseResumeInfo, baseResumePdf };
 }
 
 function newId() { return `erg_${crypto.randomBytes(12).toString("hex")}`; }

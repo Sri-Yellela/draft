@@ -17,7 +17,7 @@ import {
   buildGatePacket, mintPacketToken, verifyPacketToken, hashToken, originOf,
   DEFAULT_TOKEN_TTL_MS,
   handoffKind, shouldBuildPacket, packetFreshness, PACKET_STALE_MS, HANDOFF_STATUSES,
-  buildPacketEntries, packetSavedAnswers,
+  buildPacketEntries, packetSavedAnswers, PACKET_ANSWERS_VERSION,
 } from "../services/applyGatePacket.js";
 import { buildStructuredResume } from "../services/resumeFormatter.js";
 import { payloadResumeParse } from "../services/payloadResume.js";
@@ -1119,6 +1119,13 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   // (the packet's resume_artifact_id), else the base résumé — parsed once and stored with it
   // (services/payloadResume.js, migration 138). User-claimed skills are added. With no résumé at all
   // (an answers-only packet) the profile's current role is the one work entry, as before.
+  // ⭐ T18 / T23: the BASE résumé's parse (the active profile's, else the account's — payloadResumeParse with no
+  // tailored id), whose stated facts fill what the profile left empty (applyGatePacket.js resumeAnswers). null when
+  // there is none or it read nothing.
+  function baseResumeParsed(userId) {
+    try { const p = payloadResumeParse(db, { userId, resumeId: null }); return p?.ok ? p.structured : null; } catch { return null; }
+  }
+
   function packetEntriesFor(userId, resumeId = null) {
     let profile = null, payload = null;
     try { profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || null; } catch { /* no profile table */ }
@@ -1193,6 +1200,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       packet = buildGatePacket({
         resolvedAnswers: result.answers,
         autofillPayload: withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, autofillPayload, entries)),
+        baseResume: baseResumeParsed(userId),
         applyUrl,
         jobId, runId, runJobId,
         resumeArtifactId,
@@ -1282,10 +1290,12 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const artifactId = !baseOnly && cur.current ? (cur.artifact?.id ?? null) : null;
     const resume = baseOnly ? (activeBaseResume(db, userId) ? "base" : "none")
       : artifactId != null ? "ready" : cur.artifact ? "out_of_date" : "none";
-    const existing = db.prepare(`SELECT id, created_at, resume_artifact_id FROM apply_gate_packets
+    const existing = db.prepare(`SELECT id, created_at, resume_artifact_id, answers_json FROM apply_gate_packets
       WHERE user_id=? AND job_id=? AND gate_reason=? AND consumed_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 1`)
       .get(userId, String(jobId), PREPARED_REASON);
-    if (existing && !packetFreshness(toMs(existing.created_at)).stale && (existing.resume_artifact_id ?? null) === artifactId) {
+    // ⭐ T18: a packet built with an older answer set (before the vocabulary and the base résumé's facts) is re-made.
+    const currentAnswers = (parseJson(existing?.answers_json, {})?.answersVersion ?? 1) >= PACKET_ANSWERS_VERSION;
+    if (existing && currentAnswers && !packetFreshness(toMs(existing.created_at)).stale && (existing.resume_artifact_id ?? null) === artifactId) {
       return { ok: true, packetId: existing.id, reused: true, resume };
     }
     db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(userId);
@@ -1298,6 +1308,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         applyUrl: job.apply_url || job.url, jobId: String(jobId),
         resumeArtifactId: artifactId, gateReason: PREPARED_REASON,
         entries,
+        baseResume: baseResumeParsed(userId),
       });
     } catch (e) {
       return { ok: false, error: e.reasonCode || "prepare_failed",
@@ -4429,7 +4440,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId);
       try {
         body = buildGatePacket({ autofillPayload: withSavedAnswerRecords(userId, buildAutofillPayload(profile, "APPLY", job?.company ?? null)),
-          applyUrl: url || "https://jobsviadraft.com/", jobId: job?.jobId ?? "copy-sheet", gateReason: PREPARED_REASON });
+          applyUrl: url || "https://jobsviadraft.com/", jobId: job?.jobId ?? "copy-sheet", gateReason: PREPARED_REASON, baseResume: baseResumeParsed(userId) });
       } catch (e) {
         return res.json({ source: "profile", job, rows: [], unanswered: [],
           message: "Your profile has nothing to copy yet — add your details in Settings." });
