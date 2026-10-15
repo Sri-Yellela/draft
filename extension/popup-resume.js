@@ -10,5 +10,5 @@ btn?.addEventListener('click', async () => {
   const r = await chrome.runtime.sendMessage({ type: 'RESUME_PANEL_OPEN' }).catch(() => null);
   btn.disabled = false;
   if (r?.ok) { window.close(); return; }
-  if (status) status.textContent = r?.message || 'Open the popup on the application page, then press Résumé.';
+  if (status) status.textContent = r?.message || "draft can't open the résumé panel on this page.";
 });

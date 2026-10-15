@@ -60,11 +60,12 @@ test("⛔ T13: Fill from a COLD tab reads, prepares and fills in ONE press — a
   const calls = [];
   const r = await runFillChain({
     state: async () => { calls.push("state"); return null; },                       // the tab does not know its job
-    read: async () => { calls.push("read"); return { prepared: false }; },
+    // ⭐ BINDING FIRST: the read IS the identify — it binds before anything else (extension/identify.js)
+    identify: async () => { calls.push("identify"); return { outcome: "mine", bind: true, job: { jobId: "j1" } }; },
     fill: async () => { calls.push("fill"); return { ok: false, reason: "prepare", canPrepare: true, message: "Nothing is prepared for this page yet." }; },
     prepare: async () => { calls.push("prepare"); return { ok: true, prepared: true, filled: [1, 2, 3], message: "Filled 3 field(s) across 1 step(s)." }; },
   });
-  assert.deepEqual(calls, ["state", "read", "fill", "prepare"], "read → fill → prepare-and-fill, in that order, each once");
+  assert.deepEqual(calls, ["state", "identify", "fill", "prepare"], "identify → fill → prepare-and-fill, in that order, each once");
   assert.equal(r.ok, true);
   assert.deepEqual(r.did, ["read", "prepared"]);
   assert.equal(r.message, "Read this page and prepared your answers. Filled 3 field(s) across 1 step(s).");
@@ -76,14 +77,16 @@ test("⛔ T13: \"Read this page\" leaves the answers prepared — the Fill that 
   chromeStub();
   const { runFillChain } = await fresh("tabState.js");
   const calls = [];
+  // after Read (which bound the tab, noted this address and prepared), the Fill on that page identifies nothing again
+  // and prepares nothing again — a packet already fills it
   const r = await runFillChain({
-    state: async () => null,
-    read: async () => { calls.push("read"); return { prepared: true }; },          // the read prepared (background.js popupContext)
+    state: async () => ({ jobId: "j1", atKnownAddress: true }),
+    identify: async () => { calls.push("identify"); return null; },
     fill: async () => { calls.push("fill"); return { ok: true, filled: [1], message: "Filled 1 field(s)." }; },
     prepare: async () => { calls.push("prepare"); return { ok: true }; },
   });
-  assert.deepEqual(calls, ["read", "fill"]);
-  assert.deepEqual(r.did, ["read", "prepared"]);
+  assert.deepEqual(calls, ["fill"]);
+  assert.deepEqual(r.did, []);
   // and popupContext really prepares: after the read binds the tab, a job of yours with nothing (or something stale)
   // prepared is prepared — fill:false — and the queue re-read so the popup offers Fill
   const bg = read("extension/background.js");
@@ -98,9 +101,9 @@ test("⛔ T13: a page with no application form says WHY — and where the prepar
   chromeStub();
   const { runFillChain, chainMessage } = await fresh("tabState.js");
   const r = await runFillChain({
-    state: async () => null, read: async () => ({ prepared: true }),
-    fill: async () => ({ ok: false, reason: "no_form", message: "No application form found on this page. Nothing was released." }),
-    prepare: async () => { throw new Error("must not prepare twice"); },
+    state: async () => null, identify: async () => ({ outcome: "mine", bind: true, job: { jobId: "j1" } }),
+    fill: async () => ({ ok: false, reason: "no_form", prepared: true, message: "No application form found on this page. Nothing was released." }),
+    prepare: async () => { throw new Error("must not prepare on a page with no form"); },
   });
   assert.equal(r.ok, false);
   assert.match(r.message, /No application form found on this page/);
@@ -116,16 +119,16 @@ test("⛔ T13: a bound tab is not read again; prepare runs at most once; an expi
   const { runFillChain, needsPrepare } = await fresh("tabState.js");
   const calls = [];
   const bound = await runFillChain({
-    state: async () => ({ jobId: "j1" }), read: async () => { calls.push("read"); },
+    state: async () => ({ jobId: "j1", atKnownAddress: true }), identify: async () => { calls.push("identify"); },
     fill: async () => { calls.push("fill"); return { ok: true, message: "Filled 4 field(s)." }; }, prepare: async () => calls.push("prepare"),
   });
-  assert.deepEqual(calls, ["fill"], "a tab that knows its job is never read again by the press");
+  assert.deepEqual(calls, ["fill"], "a tab that knows its job HERE is never read (identified) again by the press");
   assert.deepEqual(bound.did, []);
   assert.equal(bound.message, "Filled 4 field(s).");
   // prepare that still is not enough is reported, never looped
   let fills = 0;
   const stuck = await runFillChain({
-    state: async () => ({ jobId: "j1" }), read: async () => null,
+    state: async () => ({ jobId: "j1", atKnownAddress: true }), identify: async () => null,
     fill: async () => { fills++; return { ok: false, reason: "prepare", canPrepare: true, message: "x" }; },
     prepare: async () => ({ ok: false, reason: "not_this_address", message: "This page isn't one of this application's addresses." }),
   });
@@ -133,7 +136,7 @@ test("⛔ T13: a bound tab is not read again; prepare runs at most once; an expi
   assert.equal(stuck.message, "Prepared your answers. This page isn't one of this application's addresses.");
   // T5: an expired token between the mint and the exchange — one fresh attempt, no more
   let n = 0;
-  const retried = await runFillChain({ state: async () => ({ jobId: "j1" }), read: async () => null, prepare: async () => null,
+  const retried = await runFillChain({ state: async () => ({ jobId: "j1", atKnownAddress: true }), identify: async () => null, prepare: async () => null,
     fill: async () => (++n === 1 ? { ok: false, reason: "token_expired", message: "Handoff refused: token_expired." } : { ok: true, message: "Filled 2 field(s)." }) });
   assert.equal(n, 2);
   assert.equal(retried.ok, true);
@@ -143,11 +146,13 @@ test("⛔ T13: a bound tab is not read again; prepare runs at most once; an expi
     assert.equal(needsPrepare({ ok: false, reason }), false, reason);
   }
   assert.equal(needsPrepare({ ok: true, canPrepare: true }), false);
-  // a step that throws is a plain failure, never an unhandled rejection
-  const thrown = await runFillChain({ state: async () => { throw new Error("x"); }, read: async () => { throw new Error("y"); },
-    fill: async () => { throw new Error("z"); }, prepare: async () => null });
+  // a step that throws is a plain failure, never an unhandled rejection — and an identify that threw binds and fills nothing
+  let filledAnyway = false;
+  const thrown = await runFillChain({ state: async () => { throw new Error("x"); }, identify: async () => { throw new Error("y"); },
+    fill: async () => { filledAnyway = true; throw new Error("z"); }, prepare: async () => null });
   assert.equal(thrown.ok, false);
-  assert.match(thrown.message, /^Read this page\. Could not fill this page\.$/);
+  assert.equal(filledAnyway, false, "BINDING FIRST: nothing fills a page no identify named");
+  assert.match(thrown.message, /^draft couldn't tell which job this is — nothing was filled\.$/);
   done();
 });
 

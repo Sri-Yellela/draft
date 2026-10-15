@@ -11,15 +11,17 @@
 //   and asks the server nothing about the page") holds.
 //
 // T13 · runFillChain is what ONE press of Fill (the popup's button or Ctrl+Shift+Y) does — and only that press:
-//   read the page if this tab does not know its job · fill · and when the server says nothing is prepared (or what was
-//   prepared has gone off) prepare it and fill — then SAY what it did ("Read this page and prepared your answers. …").
+//   IDENTIFY and BIND first when this tab is not bound, or is on an address its job is not known at (⭐ BINDING FIRST,
+//   owner 10-15 — extension/identify.js) · fill · and when the server says nothing is prepared (or what was prepared has
+//   gone off) prepare it and fill — then SAY what it did ("Read this page and prepared your answers. …"). A failed
+//   identify binds nothing and prepares nothing; on a bound job the press never ends "Nothing is prepared" (T15).
 //   ⛔ Consent is unchanged: the press IS the user's explicit trigger for this one page, as it always was for the fill;
 //   no step runs without it, nothing new runs on any site the user has not switched on, and the automatic switches
 //   (autoRead.js) call the handoff directly, never this chain — they only remove clicks, never add steps.
 //
 // The orchestration is pure — every step is injected — so node tests drive it without a browser.
 
-import { bindTab, bindingForTab, knownJobForAddress, atsFactsOf } from './tabBinding.js';
+import { bindTab, bindingForTab, knownJobForAddress, addressClaim, atsFactsOf } from './tabBinding.js';
 import { progress } from './progress.js';
 import { cachedIdentity } from './auth.js';
 
@@ -32,6 +34,7 @@ import { cachedIdentity } from './auth.js';
 export async function tabStateFor(tab, { adopt = true } = {}) {
   if (tab?.id == null) return null;
   let b = await bindingForTab(tab).catch(() => null);
+  let adopted = false;
   if (!b && adopt && /^https?:/i.test(String(tab.url || ''))) {
     // The records must be THIS account's (a different account connecting clears them; this guards the moment between).
     const owner = await progress.owner().catch(() => null);
@@ -41,6 +44,7 @@ export async function tabStateFor(tab, { adopt = true } = {}) {
       if (known) {
         b = await bindTab(tab, { jobId: known.jobId, title: known.title, company: known.company, via: 'known', ats: known.ats })
           .catch(() => null);
+        adopted = !!b;
       }
     }
   }
@@ -48,9 +52,12 @@ export async function tabStateFor(tab, { adopt = true } = {}) {
   const record = await progress.get({ jobId: b.jobId }).catch(() => null);
   const facts = b.ats || atsFactsOf(record?.ats);
   const ats = b.via === 'board' && b.board?.ats ? b.board.ats : facts ? { ...facts, state: 'ready' } : null;
+  // ⭐ BINDING FIRST: is THIS address one the bound job is known at (it was captured, read, filled or opened from the
+  // board here, or this is a page under one)? Then a press need not identify the page again (T14's no-re-read).
+  const atKnownAddress = adopted || (record?.addresses || []).some(a => addressClaim(a, tab.url) > 0);
   return {
     jobId: b.jobId, title: b.title || record?.title || null, company: b.company || record?.company || null,
-    via: b.via, boundAt: b.boundAt ?? null,
+    via: b.via, boundAt: b.boundAt ?? null, atKnownAddress,
     captured: !!record?.captured?.at, read: !!record?.read?.at, prepared: !!record?.prepared?.at,
     ats, logo: b.board?.logo || null, reportPath: b.board?.reportPath || null,
   };
@@ -81,8 +88,20 @@ export function needsPrepare(r) {
   if (!r || r.ok) return false;
   return r.canPrepare === true || ['prepare', 'stale', 'packet_stale'].includes(r.reason);
 }
+/**
+ * ⭐ T15 · on a BOUND job, a fill that found no packet for this page is never the end: an older server's plain "nothing
+ * fills this origin" (`origin_mismatch`, no state) is prepared for too. Prepare then says the truth if the page is not
+ * one of the job's addresses — it never fills anywhere it may not.
+ */
+const PREPARE_WHEN_BOUND = new Set(['origin_mismatch']);
 /** A released token that expired between the mint and the exchange: one fresh attempt clears it (T5). */
 const RETRY_ONCE = new Set(['token_expired']);
+/**
+ * BINDING FIRST (a): the outcomes of an identify that name NO job — a bound tab keeps its binding through them (Workday's
+ * sign-in, a step whose page reads as no posting). A page naming ANOTHER job rebinds (identify did); "draft could not
+ * ask" (signed out, unreachable) stops the press whatever the binding.
+ */
+const KEEPS_BINDING = new Set(['not_a_job', 'unread', 'not_on_board']);
 
 /** "Read this page and prepared your answers." — what the press did before the fill's own sentence. */
 export function chainLead(did = []) {
@@ -104,28 +123,41 @@ export function chainMessage(did, r) {
 
 /**
  * ONE press of Fill. Steps (each injected, each may throw — a throw becomes a plain failure):
- *   state()   → the tab's state (tabStateFor — binds a known address), or null
- *   read()    → "Read this page" (background.js popupContext — which also prepares): { prepared?: boolean } | null
- *   fill()    → the handoff (gated-handoff.js runGatedHandoff)
- *   prepare() → Prepare and fill (gated-handoff.js prepareAndFill)
- * Returns the fill's result with `did` (['read', 'prepared'] — what ran before or around it) and its sentence led by it.
+ *   state()    → the tab's state (tabStateFor — binds a known address), or null
+ *   identify() → BINDING FIRST (identify.js identifyAndBind): which job this page is, bound BEFORE anything else —
+ *                { outcome, bind, job, message, action }
+ *   fill()     → the handoff (gated-handoff.js runGatedHandoff)
+ *   prepare()  → Prepare and fill (gated-handoff.js prepareAndFill)
+ * Order: identify (only when the tab is not bound, or its address is not one the bound job is known at) → fill →
+ * prepare-and-fill when nothing (fresh) is prepared. ⛔ A failed identify binds nothing and prepares nothing: the press
+ * ends with the outcome's own sentence and action. ⛔ T15: on a bound job the press never ends "Nothing is prepared".
+ * Returns the fill's result with `did` (['read', 'prepared'] — what ran before or around it), `identity` (when it ran)
+ * and its sentence led by what it did.
  */
-export async function runFillChain({ state, read, fill, prepare }) {
+export async function runFillChain({ state, identify, fill, prepare }) {
   const did = [];
-  const safe = async (fn, fallback) => { try { return await fn(); } catch { return fallback; } };
+  const safe = async (fn, fallback) => { try { return (await fn()) ?? fallback; } catch { return fallback; } };
   const known = await safe(state, null);
-  if (!known) {
-    const ctx = await safe(read, null);
+  let identity = null;
+  if (!(known?.jobId != null && known.atKnownAddress)) {
+    identity = await safe(identify, { outcome: 'unavailable', bind: false, job: null, action: 'retry',
+      message: "draft couldn't tell which job this is — nothing was filled." });
     did.push('read');
-    if (ctx?.prepared) did.push('prepared');
+    const namesAnother = identity.job?.jobId != null && known?.jobId != null && String(identity.job.jobId) !== String(known.jobId);
+    const keeps = known?.jobId != null && !identity.bind && KEEPS_BINDING.has(identity.outcome) && !namesAnother;
+    if (!identity.bind && !keeps) {
+      return { ok: false, reason: identity.outcome, action: identity.action || null, identity, did, filled: [],
+               fillMessage: null, message: identity.message || "draft couldn't tell which job this is — nothing was filled." };
+    }
   }
+  const bound = known?.jobId != null || !!identity?.bind;
   let r = await safe(fill, { ok: false, message: 'Could not fill this page.' });
-  if (needsPrepare(r) && !did.includes('prepared')) {
+  if ((needsPrepare(r) || (bound && r && !r.ok && PREPARE_WHEN_BOUND.has(r.reason))) && !did.includes('prepared')) {
     r = await safe(prepare, { ok: false, message: 'Could not prepare this application.' });
     did.push('prepared');
   } else if (r && !r.ok && RETRY_ONCE.has(r.reason)) {
     r = await safe(fill, r);
   }
   r = r || { ok: false, message: 'Could not fill this page.' };
-  return { ...r, did, fillMessage: r.message || null, message: chainMessage(did, r) };
+  return { ...r, did, ...(identity ? { identity } : {}), fillMessage: r.message || null, message: chainMessage(did, r) };
 }

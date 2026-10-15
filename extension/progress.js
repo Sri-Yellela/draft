@@ -8,7 +8,7 @@
 // and an "In progress" list of the last five jobs brings you back to one.
 //
 //   jobProgress → { v: 1, owner, records: { [jobId]: { jobKey, jobId, title, company, postingUrl, link,
-//                   captured: { at }, read: { at, stage, fieldCount }, prepared: { at, packetId },
+//                   captured: { at }, read: { at, stage, fieldCount }, prepared: { at, packetId, expiresAt, answerCount },
 //                   filled: { n, of, needYou, check }, resume: { at, id, status, attached },
 //                   reviewed: { at }, submitted: { at }, updatedAt } } }
 //
@@ -49,7 +49,7 @@ const STEPS = Object.freeze({
   captured: ['at'],
   ats: ['at', 'score', 'band'],
   read: ['at', 'stage', 'fieldCount'],
-  prepared: ['at', 'packetId'],
+  prepared: ['at', 'packetId', 'expiresAt', 'answerCount'],
   filled: ['n', 'of', 'needYou', 'check'],
   resume: ['at', 'id', 'status', 'attached'],
   reviewed: ['at'],
@@ -65,7 +65,7 @@ const webUrl = (v) => {
 export const MAX_ADDRESSES = 8;
 /** T14: the addresses, each kept through addressOf (tabBinding.js), newest first, deduplicated, at most MAX_ADDRESSES. */
 const addressList = (v) => [...new Set((Array.isArray(v) ? v : []).map(addressOf).filter(Boolean))].slice(0, MAX_ADDRESSES);
-const STEP_FIELD = { at: num, n: num, of: num, needYou: num, check: num, fieldCount: num,
+const STEP_FIELD = { at: num, n: num, of: num, needYou: num, check: num, fieldCount: num, expiresAt: num, answerCount: num,
   stage: (v) => str(v, 40), band: (v) => str(v, 40), score: (v) => (Number.isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : null), packetId: (v) => (v == null ? null : str(String(v), 64)),
   // D98: the generation's id is the server's opaque erg_<hex>; its status one of six words; Attach a time.
   id: (v) => (typeof v === 'string' && /^erg_[a-f0-9]{8,64}$/.test(v) ? v : null),
@@ -214,13 +214,37 @@ export function whenWords(ms, now = Date.now()) {
   return d.toDateString() === t.toDateString() ? `${two(d.getHours())}:${two(d.getMinutes())}` : `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 }
 
+/** "6h ago", "12 min ago", "3 days ago". */
+export function agoWords(ms) {
+  const m = Math.max(0, Math.round((Number(ms) || 0) / 60000));
+  if (m < 60) return m <= 1 ? 'just now' : `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 48) return `${h}h ago`;
+  return `${Math.round(h / 24)} days ago`;
+}
+
+/**
+ * ⭐ T15 · ONE TRUTH FOR "PREPARED" — the SERVER packet's facts as the server last stated them (made, expires, how many
+ * fields: gated-handoff.js prepareAndFill, background.js popupContext → notePacketState), never a local count standing
+ * in for them: "Answers prepared 14:02 · 12 fields · expire 17 Oct", or "Prepared 6h ago — expired". A record from
+ * before T15 (no expiry known) says only "Answers prepared".
+ */
+export function preparedParts(p, now = Date.now()) {
+  if (!p?.at) return [];
+  if (Number.isFinite(p.expiresAt) && now >= p.expiresAt) return [`Prepared ${agoWords(now - p.at)} — expired`];
+  const parts = [Number.isFinite(p.expiresAt) ? `Answers prepared ${whenWords(p.at, now)}` : 'Answers prepared'];
+  if (Number.isFinite(p.answerCount)) parts.push(`${p.answerCount} ${p.answerCount === 1 ? 'field' : 'fields'}`);
+  if (Number.isFinite(p.expiresAt)) parts.push(`expire ${whenWords(p.expiresAt, now)}`);
+  return parts;
+}
+
 /** "Captured 10:41 · Page read 10:42 · Answers prepared · Filled 14 of 18 · 2 need you · 3 to check · Reviewed · Submitted" */
 export function progressLine(r, now = Date.now()) {
   if (!r) return '';
   const parts = [];
   if (r.captured?.at) parts.push(`Captured ${whenWords(r.captured.at, now)}`);
   if (r.read?.at) parts.push(`Page read ${whenWords(r.read.at, now)}`);
-  if (r.prepared?.at) parts.push('Answers prepared');
+  if (r.prepared?.at) parts.push(...preparedParts(r.prepared, now));
   if (r.filled && Number.isFinite(r.filled.n)) {
     parts.push(Number.isFinite(r.filled.of) && r.filled.of > 0 ? `Filled ${r.filled.n} of ${r.filled.of}` : `Filled ${r.filled.n}`);
     if (r.filled.needYou > 0) parts.push(`${r.filled.needYou} need${r.filled.needYou === 1 ? 's' : ''} you`);
@@ -242,7 +266,7 @@ export function standWords(r) {
   if (r.filled && Number.isFinite(r.filled.n)) {
     return Number.isFinite(r.filled.of) && r.filled.of > 0 ? `Filled ${r.filled.n} of ${r.filled.of}` : `Filled ${r.filled.n}`;
   }
-  if (r.prepared?.at) return 'Answers prepared';
+  if (r.prepared?.at) return Number.isFinite(r.prepared.expiresAt) && Date.now() >= r.prepared.expiresAt ? 'Prepared — expired' : 'Answers prepared';
   if (r.read?.at) return 'Page read';
   if (r.captured?.at) return 'Captured';
   if (r.addresses?.length) return 'Opened';
@@ -301,7 +325,27 @@ export const notePrepared = quiet(async (body) => {
   if (!body?.ok || body.job?.jobId == null) return null;
   return patch({ jobId: body.job.jobId }, {
     title: body.job.title || null, company: body.job.company || null,
-    prepared: { at: Date.now(), packetId: body.packetId ?? null },
+    // ⭐ T15: the server's packet — when it was made, when it goes off, how many fields (routes/apply.js /prepare)
+    prepared: { at: Number.isFinite(body.packet?.createdAt) ? body.packet.createdAt : Date.now(), packetId: body.packetId ?? null,
+                expiresAt: Number.isFinite(body.packet?.expiresAt) ? body.packet.expiresAt : null,
+                answerCount: Number.isFinite(body.packet?.answerCount) ? body.packet.answerCount : null },
+  });
+});
+
+/**
+ * ⭐ T15 · the server's list of packets for this page (POST /api/apply/handoff/match, as "Read this page" asks it): the
+ * newest one for THIS job is what the record remembers as prepared — made, expires (its own staleAfterMs), field count.
+ * No packet listed → nothing written (a packet a fill has released stops being listed; it was still prepared).
+ */
+export const notePacketState = quiet(async (jobId, packets = []) => {
+  if (jobId == null) return null;
+  const mine = (Array.isArray(packets) ? packets : []).filter(p => p && String(p.jobId) === String(jobId) && Number.isFinite(p.createdAt))
+    .sort((a, b) => b.createdAt - a.createdAt)[0];
+  if (!mine) return null;
+  return patch({ jobId }, {
+    prepared: { at: mine.createdAt, packetId: mine.packetId ?? null,
+                expiresAt: Number.isFinite(mine.staleAfterMs) ? mine.createdAt + mine.staleAfterMs : null,
+                answerCount: Number.isFinite(mine.answerCount) ? mine.answerCount : null },
   });
 });
 
