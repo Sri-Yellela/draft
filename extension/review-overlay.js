@@ -65,7 +65,7 @@ export const TIER_LABEL = {
  * of the truth. The first version did precisely that, and the trap form's "Current Company" sat in
  * the collapsed section with nothing to acknowledge.
  */
-export const MATCH_CONFIDENCE = { exact: 1.0, label_exact: 1.0, saved_answer: 1.0, work_history: 1.0, eeo_decline: 1.0, semantic: 1.0, label: 0.5 };
+export const MATCH_CONFIDENCE = { exact: 1.0, label_exact: 1.0, saved_answer: 1.0, work_history: 1.0, eeo_decline: 1.0, semantic: 1.0, label: 0.5, near_question: 0.5 };
 
 /**
  * ⭐ D96 §4 / §5: how a control was matched that is NOT a guess about the field — a structural id ('exact'), the
@@ -188,6 +188,8 @@ export const shownLabel = (s) => String(s ?? '').replace(/\s+/g, ' ').replace(/\
 export function sourceOf(step = {}) {
   const p = step.provenance;
   if (p === 'saved_answer') {
+    // ⭐ T25: an answer borrowed from a similar question is not the same as one saved for THIS question.
+    if (step.matchedBy === 'near_question') return 'similar question';
     const s = step.saved?.source;
     return s === 'you_typed' ? 'you typed' : s === 'you_acknowledged' ? 'you acknowledged' : 'saved';
   }
@@ -198,6 +200,9 @@ export function sourceOf(step = {}) {
   if (p === 'resume' || step.source === 'resume') return 'your résumé';
   return 'profile';
 }
+
+/** ⭐ T25: the Check row of an answer reused from a similar question — followed by that question, quoted. */
+export const NEAR_NOTE = 'Reused your answer to a similar question:';
 
 /** Why a field is the candidate's — one plain sentence per reason the fill or the matcher gives. */
 export const NEED_WORDS = Object.freeze({
@@ -310,6 +315,12 @@ export function panelRowsForStep({ stepName = '', fields = [], plan = [], filled
         acknowledgedAt: head.saved?.acknowledgedAt || null, attesting: !!(head.saved?.attesting || row.eligibility),
         savedId: head.saved?.id ?? null, remembered: head.provenance === 'saved_answer',
         ...(placedOptions ? { options: placedOptions } : {}),
+      });
+      // ⭐ T25: a near match is Check (matchedBy 'near_question' is not exact), and the row names the question the answer
+      // was saved for. Nothing about THIS question was acknowledged or remembered yet — acknowledging it remembers it.
+      if (head.matchedBy === 'near_question' && head.saved?.near) Object.assign(row, {
+        near: head.saved.near, note: `${NEAR_NOTE} “${shownLabel(head.saved.near.question)}”`,
+        acknowledgedAt: null, remembered: false, savedId: null, attesting: false,
       });
     } else if (failed.length) {
       const why = skip?.reason?.startsWith('error') ? 'error' : skip?.reason;
