@@ -68,7 +68,8 @@ test("⛔ J12 · the panel's read and report handlers: a trusted click from the 
   assert.match(readH, /if \(msg\?\.trigger !== 'click'\) return refuse/);
   assert.match(readH, /const tab = tabOf\(sender\);\s*if \(!tab\) return refuse/);
   // the click handler sits below the isTrusted gate
-  const click = src.slice(at(src, "const onClick = async (ev) =>"), at(src, "const onKey = (ev) =>"));
+  // ⭐ T17: one click handler for both of the dock's views (ATS and Résumé); Esc and the window are the dock's
+  const click = src.slice(at(src, "const onClick = (r) => async (ev) =>"), at(src, "host.__draftCleanup = cleanup;"));
   assert.ok(at(click, "if (!ev.isTrusted) return;") < at(click, "role === 'read'"));
 });
 

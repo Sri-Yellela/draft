@@ -29,7 +29,8 @@ test("(c) one line in a shadow root, painted only with the site's tokens", () =>
   assert.match(badge, /host\.attachShadow\(\{ mode: 'open' \}\)/);
   assert.match(badge, /--c-\$\{k\.toLowerCase\(\)\.replace\(\/_\/g, '-'\)\}/);
   assert.doesNotMatch(badge, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(/i, "no colour literal — the tokens are the only palette");
-  assert.match(handoff, /args: \[state, \{ \.\.\.meta, theme: \{ light: C_LIGHT, dark: C_DARK \} \}\]/);
+  // ⭐ T17: the palettes are the account's (overlayTheme — all four themes), and the badge is drawn on the dock
+  assert.match(handoff, /const theme = await overlayTheme\(\);\n\s+return \(await drawInDock\(tabId, renderBadge, \[state, \{ \.\.\.meta, theme, dock: await dockMeta\(tabId\) \}\]\)\) \|\| null;/);
 });
 
 test("(c) the × dismisses and leaves the stop signal; it never touches the form", () => {
@@ -39,9 +40,13 @@ test("(c) the × dismisses and leaves the stop signal; it never touches the form
     "the badge reads the form; it never writes to it");
 });
 
-test("(c) the review overlay stays — the badge is painted after it, beside it", () => {
+test("(c) the review overlay stays — the badge is painted after it, as the DOCK's status line (T17), never over it", () => {
   const fill = handoff.slice(anchor(handoff, "async function fillFromPacket("), anchor(handoff, "async function captureFormSchema("));
-  assert.ok(anchor(fill, "func: renderOverlay,") < fill.lastIndexOf("showBadge(tab.id,"),
+  assert.ok(anchor(fill, "drawInDock(tab.id, renderOverlay,") < fill.lastIndexOf("showBadge(tab.id,"),
     "the final badge must come after the overlay");
-  assert.match(badge, /right:\$\{overlayOpen \? 412 : 16\}px/);
+  // ⭐ T17: it no longer floats beside the panel (`right: overlayOpen ? 412 : 16`) — it is the dock's ONE status line,
+  // under its header and in its slim bar; a dock not on the page yet opens collapsed for it
+  assert.match(badge, /host = dock\.status\(\{ id: ID \}\);/);
+  assert.match(badge, /dock\.statusText\(label\);/);
+  assert.doesNotMatch(badge, /overlayOpen|position:fixed|position:absolute/);
 });

@@ -1,5 +1,13 @@
 # Chrome Web Store listing — draft v1.5.2
 
+> **v1.5.2, folded further (2026-10-15, T17 — still v1.5.2, NOT yet uploaded).** ⛔ **Re-paste at the next upload: the
+> `storage` justification (now TEN values) and the reviewer notes.** What changed: everything the extension shows on a
+> page — the review panel, the ATS report, the résumé, the Copy sheet and the one-line status — now sits in ONE panel
+> (the dock) in the page's TOP frame only, never inside an embedded form's iframe; it can be dragged, resized, snapped
+> to an edge, collapsed, and any of its four tabs opened in its own floating window. Where it sits is remembered per
+> site (`dockPlace`, local storage: the site's origin and the panel's position and size — nothing of the page). The
+> panels are drawn in the account's theme (all four). No permission changed.
+
 > **v1.5.2, folded further (2026-10-15, D97 REVISED + T12 — still v1.5.2, NOT yet uploaded).** ⛔ **Re-paste at the next
 > upload: the optional host permissions justification, `scripting`, `storage`, the reviewer notes and the test
 > instructions.** What changed: **(1) automatic reading after ONE consent** — the popup shows a one-time card (*"draft
@@ -189,7 +197,7 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 `applyPlan()`, `applyOverlayEdit()`; `review-overlay.js` `renderOverlay()`; `autofill-badge.js`.)*
 
 **`storage`**
-> Nine values. Eight never leave the browser; the ninth is the extension's own access token, which is
+> Ten values. Nine never leave the browser; the tenth is the extension's own access token, which is
 > sent to our backend and to nowhere else. In `chrome.storage.local`: the result of the user's most
 > recent capture, so the popup can show the outcome of a capture made with the keyboard while the popup
 > was closed; the username of the account the extension is connected to, so the popup can name it; that
@@ -201,22 +209,25 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 > submits with the extension, its draft id, title, company and posting address, when each step happened,
 > how many fields were filled or still need the user, and the id and status of a résumé generated for it —
 > no answers and no résumé content, kept 30 days from its last change, deleted on disconnect, sign-out or
-> another account connecting.
+> another account connecting; and where the extension's on-page panel sits on each site the user used it on —
+> the site's origin (never a path) and the panel's position, size, snapped edge, collapsed state, tab and which
+> tabs are in their own windows — nothing of the page, the 50 most recent sites, each kept 30 days.
 > In `chrome.storage.session` (memory-backed,
 > discarded on browser restart): the prepared answers for an application in progress, with a 10-minute
 > expiry and cleared when the tab closes; the result of the most recent form fill, so the popup can
 > report a fill started with the keyboard; when several applications are queued for one employer
 > site, that site's origin and how many remain, so a batch can resume in the same tab — no answers and
-> nothing about the user in that one; and which job a tab is on (the job's draft id, title and company,
-> when it was linked, and the Copy sheet's dock side) once the user captures a job there or draft recognises
+> nothing about the user in that one; and which job a tab is on (the job's draft id, title and company, and
+> when it was linked) once the user captures a job there or draft recognises
 > the posting, so the later pages of that application are known to be the same job — no answers, never
 > shared between tabs, deleted when the tab closes, shows a different job, or the user unlinks it.
 
 *(Code: `background.js` `reportCapture()` → `lastCapture` (local) and `reportHandoff()` →
 `lastGatedHandoff` (session); `gated-handoff.js` → `gate:{tabId}` and `batch:{tabId}` (session);
 `auth.js` → `authToken` and `authIdentity` (local); `autoRead.js` `updateSettings()` (set from the options page and the popup) → `autoRead` (local), which replaced D64's `autoCaptureEnabled` (migrated once by `migrateLegacy()`, then removed) — since 10-15 it also holds the one-time consent, the sites chosen with Always read here, and which job host's form a site embeds (an origin and a site name, never a path);
-`tabBinding.js` `bindTab()` / `setBindingDock()` → `bind:{tabId}` (session), removed by `clearBinding()` on tab close and "Unlink this page";
-`progress.js` `progress.patch()` / `set()` / `claim()` → `jobProgress` (local), removed by `progress.clearAll()` from `auth.js` `disconnect()` and `getIdentity()` (sign-out, another account).)*
+`tabBinding.js` `bindTab()` → `bind:{tabId}` (session), removed by `clearBinding()` on tab close and "Unlink this page";
+`progress.js` `progress.patch()` / `set()` / `claim()` → `jobProgress` (local), removed by `progress.clearAll()` from `auth.js` `disconnect()` and `getIdentity()` (sign-out, another account);
+⭐ T17: `dockHost.js` `saveDockPlace()` (its one write, `writeDockPlaces()`, from the dock's `DOCK_PLACE` message — a page's top frame only) → `dockPlace` (local), the 50 most recent sites, 30 days.)*
 
 **Host permission** — one, our own backend
 > `https://jobsviadraft.com/*` is our own server. The extension calls it with an access token of its

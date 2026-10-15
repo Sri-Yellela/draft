@@ -5,7 +5,7 @@
 // captured a job — or draft recognised the posting in it — the tab REMEMBERS that job, and fill, prepare, the
 // Copy sheet and "I submitted it" use it first.
 //
-//   bind:{tabId} → { origin, jobId, title, company, via: 'capture' | 'recognised' | 'board', boundAt, dock,
+//   bind:{tabId} → { origin, jobId, title, company, via: 'capture' | 'recognised' | 'board', boundAt,
 //                    origins?, board? }
 //
 //   · ⭐ D99 J11 · via 'board': the draft board handed the job over and the extension opened the tab itself
@@ -52,7 +52,7 @@ export function atsFactsOf(a) {
   return { score: Math.round(a.score), band: typeof a.band === 'string' ? a.band.slice(0, 40) : null, at: Number.isFinite(a.at) ? a.at : Date.now() };
 }
 
-/** Bind this tab to a job. A different job replaces the old binding; the same job keeps its first time and dock. */
+/** Bind this tab to a job. A different job replaces the old binding; the same job keeps its first time. */
 export async function bindTab(tab, { jobId, title = null, company = null, via = 'capture', board = null, ats = null } = {}) {
   const origin = originOfUrl(tab?.url);
   if (!tab?.id || !origin || jobId == null) return null;
@@ -62,8 +62,7 @@ export async function bindTab(tab, { jobId, title = null, company = null, via = 
   const atsFacts = atsFactsOf(ats) || (same ? prior.ats : null) || null;
   const entry = {
     origin, jobId: String(jobId), title: title || prior?.title || null, company: company || prior?.company || null,
-    via: same ? prior.via : via, boundAt: same ? prior.boundAt : Date.now(), dock: prior?.dock || 'right',
-    ...(prior?.panelDock ? { panelDock: prior.panelDock } : {}),
+    via: same ? prior.via : via, boundAt: same ? prior.boundAt : Date.now(),
     ...((same ? prior.via : via) === 'board' ? { origins: originTwins(origin) } : {}),
     ...(boardFacts ? { board: boardFacts } : {}),
     ...(atsFacts ? { ats: atsFacts } : {}),
@@ -91,15 +90,8 @@ export async function clearBinding(tabId) {
   try { await chrome.storage.session.remove(bindKey(tabId)); } catch { /* storage gone */ }
 }
 
-/**
- * A panel's dock side, remembered with the tab's binding (no key of its own): `dock` is the Copy sheet's,
- * `panelDock` the review panel's (D96 §5, lane J4) — two fields, so the two panels can sit on different sides.
- */
-export async function setBindingDock(tabId, dock, which = 'dock') {
-  const b = await loadBinding(tabId);
-  if (!b || !['left', 'right'].includes(dock) || !['dock', 'panelDock'].includes(which)) return;
-  await writeBinding(tabId, { ...b, [which]: dock });
-}
+// ⭐ T17: where the panels sit is no longer the tab's — the ONE dock (dock.js) remembers its rectangle per SITE
+// (dockHost.js, `dockPlace`). The binding's old `dock` / `panelDock` sides are gone with the two panels' own placement.
 
 const hhmm = (ms) => { const d = new Date(ms); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 export const bindingLabel = (b) => [b?.title, b?.company].filter(Boolean).join(' at ') || 'this job';

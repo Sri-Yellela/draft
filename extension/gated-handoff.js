@@ -29,33 +29,20 @@
 
 import {
   orderForReview, readinessOf, renderOverlay, panelRowsForStep, panelRowsFromItems, settleStepRows, panelSummary, removeReviewPanel,
+  fieldsHeld,
 } from './review-overlay.js';
-import { renderBadge, findMissingRequired, badgeDismissed } from './autofill-badge.js';
-import { C_LIGHT, C_DARK } from './tokens.js';
+import { renderBadge, findMissingRequired, badgeDismissed, goToMissingRequired } from './autofill-badge.js';
 // D55 (f): saved answers, worked-here and the EEO decline — placed by exact question equality only.
 import { placeStatedAnswers, yieldGuessesToStated, normaliseQuestion, dateParts } from './savedAnswerMatch.js';
 // ⭐ D96 §4: the saved-answer key and the never-fillable guard — a byte-identical copy of shared/answerKey.js.
 import { questionLabelKey, NEVER_FILL_RE, neverFillReasonOfField, isSignatureField, withoutNeverFill } from './answerKey.js';
 export { neverFillReasonOfField, isSignatureField, withoutNeverFill };
 
-// D23 — what the review overlay is painted with: the site's tokens (extension/tokens.js, generated
-// from client/src/styles/colorTokens.js) and the logo face's bytes, read from the extension's own
-// package (fonts/, the same file tokens.css declares). renderOverlay is serialised into the page and
-// closes over nothing, so all of it travels as an argument. The font is a courtesy: if it cannot be
-// read the overlay renders the same words in the fallback face.
-export async function overlayTheme() {
-  let logoFont = null;
-  try {
-    const res = await fetch(chrome.runtime.getURL('fonts/poppins-latin-800-italic.woff2'));
-    if (res.ok) {
-      const bytes = new Uint8Array(await res.arrayBuffer());
-      let bin = '';
-      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-      logoFont = btoa(bin);
-    }
-  } catch { /* fallback face */ }
-  return { light: C_LIGHT, dark: C_DARK, logoFont };
-}
+// D23 — what the review overlay is painted with: the site's tokens and the logo face's bytes (overlayTheme, now in
+// dockHost.js and re-exported here). ⭐ T17: every view is drawn on the DOCK, in the TOP frame — drawInDock injects
+// dock.js and then the view, both at frame 0; dockMeta is where the dock sat on this site and the account's look.
+import { overlayTheme, drawInDock, dockMeta } from './dockHost.js';
+export { overlayTheme };
 import { authedFetch } from './auth.js';
 // The tab binding: the job this tab captured or recognised, sent as a HINT the server checks (tabBinding.js).
 import { bindingForTab, boundMissMessage } from './tabBinding.js';
@@ -1438,16 +1425,14 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
 }
 
 /**
- * D55 (c) — paint the one-line badge (extension/autofill-badge.js). A courtesy: a page that refuses
- * the injection still gets its fill and its overlay, so a failure here is reported, never raised.
+ * D55 (c) — paint the one-line badge (extension/autofill-badge.js) — ⭐ T17: the DOCK's status line, in the TOP frame,
+ * whichever frame the form is in. A courtesy: a page that refuses the injection still gets its fill and its overlay,
+ * so a failure here is reported, never raised.
  */
 async function showBadge(tabId, state, meta = {}) {
   try {
-    const [r] = await chrome.scripting.executeScript({
-      target: at(tabId), func: renderBadge,
-      args: [state, { ...meta, theme: { light: C_LIGHT, dark: C_DARK } }],
-    });
-    return r?.result || null;
+    const theme = await overlayTheme();
+    return (await drawInDock(tabId, renderBadge, [state, { ...meta, theme, dock: await dockMeta(tabId) }])) || null;
   } catch (e) {
     return { rendered: false, error: e.message };
   }
@@ -1540,7 +1525,8 @@ async function waitForCandidate(tabId, origin, stepName, wizard, isCurrent = () 
       if (b?.dismissed) return { ok: false, reason: 'dismissed' };
     }
     try {
-      const [d] = await chrome.scripting.executeScript({ target: at(tabId), func: badgeDismissed });
+      // ⭐ T17: the badge is the dock's status line — in the TOP frame, whichever frame the form is in
+      const [d] = await chrome.scripting.executeScript({ target: { tabId, frameIds: [0] }, func: badgeDismissed });
       if (d?.result === true) return { ok: false, reason: 'dismissed' };
       const t = await chrome.tabs.get(tabId);
       if (!t?.url || new URL(t.url).origin !== origin) return { ok: false, reason: 'left_the_application' };
@@ -1708,7 +1694,7 @@ async function fillFromPacket({ tab, origin, frame = null, released, serverUrl, 
   if (!recognition.recognised) {
     // A panel an earlier fill drew for another step (measured on the fixture: G5's batch re-run on a reload painted
     // My Information's panel, then the step became Sign In) would describe a page that is not this one — it goes.
-    try { await chrome.scripting.executeScript({ target: at(tab.id), func: removeReviewPanel }); } catch { /* none there */ }
+    try { await chrome.scripting.executeScript({ target: { tabId: tab.id, frameIds: [0] }, func: removeReviewPanel }); } catch { /* none there */ }
     const badgeNow = await showBadge(tab.id, 'unrecognised', { note: recognition.why });
     return {
       ok: false, reason: 'form_not_recognised', reused: !!reused, packetId: released.packetId,
@@ -1866,13 +1852,9 @@ async function fillFromPacket({ tab, origin, frame = null, released, serverUrl, 
   // carried over (review-overlay.js keeps them per run) — not the counts of the rows before they acted.
   let drawnPanel = null;
   try {
-    const [drawn] = await chrome.scripting.executeScript({
-      target: at(tab.id),
-      // ISOLATED, unlike the fill: the overlay needs chrome.runtime to send edits back, and only the
-      // isolated world has it. The DOM is shared either way, so it is still a real element on the
-      // real page.
-      func: renderOverlay,
-      args: [{ rows: panelRows }, {
+    // ISOLATED, unlike the fill: the overlay needs chrome.runtime to send edits back, and only the isolated world has
+    // it. ⭐ T17: on the DOCK, in the TOP frame — never in the form's own frame, where it was cut off by the frame's edge.
+    const drawnResult = await drawInDock(tab.id, renderOverlay, [{ rows: panelRows }, {
         ...panelMeta,
         currentStep: wizard.stoppedAt === 'review' ? null : (step?.wizard?.step || ''),
         filledCount: panel.filled,
@@ -1880,8 +1862,8 @@ async function fillFromPacket({ tab, origin, frame = null, released, serverUrl, 
         resolverBug: readiness.resolverBug,
         portal: portalForOverlay,
         theme: await overlayTheme(),
-      }],
-    });
+      }]);
+    const drawn = { result: drawnResult };
     if (drawn?.result?.ok === false) throw new Error(drawn.result.error || 'not drawn');
     const dc = drawn?.result?.counts;
     if (dc && Number.isFinite(dc.filled) && Number.isFinite(dc.of)) drawnPanel = { ...dc, ready: drawn.result.ready === true };
@@ -2021,25 +2003,63 @@ export function withHoldsFrom(before = [], after = null) {
   });
 }
 
-/** What every draw of the panel shares: one run id, the remembered dock side, the review reminder. */
+/** What every draw of the panel shares: one run id, the dock's meta (where it sat on this site, the look), the reminder. */
 async function panelMetaFor({ tab, released, serverUrl, runId = null }) {
-  const bound = await bindingForTab(tab).catch(() => null);
   const review = await reviewReminderFor(serverUrl);
   return {
     runId: runId || `${released?.packetId ?? 'p'}-${Date.now()}`,
-    dock: bound?.panelDock === 'left' ? 'left' : 'right',
+    dock: await dockMeta(tab),
     review,
     theme: await overlayTheme(),
   };
 }
 
-/** One draw of the panel at a wizard step. A failure here never stops the fill — the final draw reports. */
+/** One draw of the panel at a wizard step — on the dock, TOP frame. A failure here never stops the fill. */
 async function drawReviewPanel(tabId, rows, meta) {
   try {
-    const [r] = await chrome.scripting.executeScript({ target: at(tabId), func: renderOverlay, args: [{ rows }, meta] });
-    return r?.result || null;
+    return (await drawInDock(tabId, renderOverlay, [{ rows }, meta])) || null;
   } catch (e) { return { ok: false, error: e.message }; }
 }
+
+// ── ⭐ T17 · the dock asks about the FORM, wherever it is ───────────────────────────────────────────────────────────
+// The dock and its views are in the TOP frame; the form may be in a child frame (Greenhouse's iframe on stripe.com). What
+// the views need to know about the form's fields is read IN the form's frame, here, by tabId + frameId (T11's design) —
+// emptiness and labels only, never a value.
+
+/** The frame a tab's form was found in (0 — the top — until a fill located it elsewhere). */
+export function formFrameOf(tabId) { return FORM_FRAME.get(tabId) || 0; }
+
+/** The dock's three questions about the form — each from the dock's own page (a web page's tab, its TOP frame). */
+export const formFrameHandlers = {
+  /** The Fill tab's live check: which Needs-you rows the page now holds an answer in (review-overlay.js fieldsHeld). */
+  DOCK_FIELDS_HELD: async (msg, sender) => {
+    const tabId = sender?.tab?.id;
+    if (tabId == null || sender.frameId !== 0 || !Array.isArray(msg?.rows)) return { ok: false };
+    try {
+      const [r] = await chrome.scripting.executeScript({ target: at(tabId), func: fieldsHeld, args: [msg.rows.slice(0, 400)] });
+      return { ok: true, answered: Array.isArray(r?.result) ? r.result : [] };
+    } catch { return { ok: false }; }
+  },
+  /** The status line's live re-count of the empty required fields (labels only). */
+  DOCK_MISSING_REQUIRED: async (_msg, sender) => {
+    const tabId = sender?.tab?.id;
+    if (tabId == null || sender.frameId !== 0) return { ok: false };
+    try {
+      const [r] = await chrome.scripting.executeScript({ target: at(tabId), func: findMissingRequired });
+      return { ok: true, missing: Array.isArray(r?.result) ? r.result : [] };
+    } catch { return { ok: false }; }
+  },
+  /** "Complete required fields" → the next empty one, scrolled into view in the form's own frame. */
+  DOCK_GO_MISSING: async (_msg, sender) => {
+    const tabId = sender?.tab?.id;
+    if (tabId == null || sender.frameId !== 0) return { ok: false };
+    try {
+      const [m] = await chrome.scripting.executeScript({ target: at(tabId), func: findMissingRequired });
+      const [g] = await chrome.scripting.executeScript({ target: at(tabId), func: goToMissingRequired, args: [m?.result || []] });
+      return { ok: g?.result === true };
+    } catch { return { ok: false }; }
+  },
+};
 
 /**
  * ⭐ D96 §4 safeguard 4 · the quiet 90-day reminder for eligibility and disclosure answers (J8: GET

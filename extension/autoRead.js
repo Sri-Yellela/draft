@@ -42,7 +42,7 @@ import { bindTab, bindingForTab } from './tabBinding.js';
 import { extractJobPayload } from './extractor.js';
 import { collectFormLabels } from './formReport.js';
 import { renderBadge } from './autofill-badge.js';
-import { C_LIGHT, C_DARK } from './tokens.js';
+import { drawInDock, dockMeta, overlayTheme } from './dockHost.js';
 import { authedFetch } from './auth.js';
 import { noteCapture } from './progress.js';
 
@@ -699,9 +699,12 @@ async function fillShortcut() {
   } catch { return null; }
 }
 
+// ⭐ T17: the read's line is the DOCK's status line — drawn in the tab's TOP frame, even when the pass read an ATS frame
+// inside it (the dock never mounts in a child frame). A dock not yet on the page opens collapsed: a slim bar.
 async function showReadBadge(target, text) {
   if (!text) return null;
-  try { return await inject(target, renderBadge, ['ready', { text, theme: { light: C_LIGHT, dark: C_DARK } }]); }
+  const tabId = typeof target === 'object' ? target.tabId : target;
+  try { return await drawInDock(tabId, renderBadge, ['ready', { text, theme: await overlayTheme(), dock: await dockMeta(tabId) }]); }
   catch { return null; }
 }
 

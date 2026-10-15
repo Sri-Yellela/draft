@@ -316,7 +316,10 @@ test("⛔ the Copy sheet panel stays through a page click and a field focus, Clo
     const page = await browser.newPage();
     await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: scheme }]);
     await page.goto(stage);
-    await page.evaluate(`(${renderCopySheetPanel.toString()})(${JSON.stringify(sheet)}, ${JSON.stringify({ light: C_LIGHT, dark: C_DARK })})`);
+    // ⭐ T17: the Copy sheet is the dock's tab — dock.js first, as the service worker's drawInDock injects it
+    await page.evaluate(fs.readFileSync("extension/dock.js", "utf8"));
+    await page.evaluate(`window.chrome = { runtime: { lastError: null, sendMessage(m, cb) { cb && cb(null); } } };
+      (${renderCopySheetPanel.toString()})(${JSON.stringify(sheet)}, ${JSON.stringify({ light: C_LIGHT, dark: C_DARK })})`);
     const open = () => page.evaluate(() => !!document.getElementById("rm-copy-sheet-panel"));
     assert.equal(await open(), true, `${scheme}: drawn`);
     // the page's own work goes on: a click into a field and typing — the panel stays, the field keeps what was typed
@@ -328,6 +331,9 @@ test("⛔ the Copy sheet panel stays through a page click and a field focus, Clo
     await page.click("#next-step");
     assert.equal(await open(), true, `${scheme}: survives a field focus and a page click`);
     assert.equal(await page.evaluate(() => window.__wd.step()), "myExperience", "the click was a real step change, the URL unchanged");
+    // ⭐ T17: on this narrow page the dock steps out of the way of the field being typed in — to the slim bar when no
+    // side is clear of it. The person opens it again; the sheet is as it was.
+    await page.evaluate(() => { if (document.getElementById("rm-draft-dock").dataset.collapsed === "true") document.getElementById("rm-draft-dock").shadowRoot.querySelector('[data-role="expand"]').click(); });
     const facts = await page.evaluate(() => {
       const root = document.getElementById("rm-copy-sheet-panel").shadowRoot;
       const p = root.querySelector(".p");
@@ -348,17 +354,25 @@ test("⛔ the Copy sheet panel stays through a page click and a field focus, Clo
     await new Promise(r => setTimeout(r, 150));
     const label = await page.evaluate(() => document.getElementById("rm-copy-sheet-panel").shadowRoot.querySelectorAll("[data-copy]")[1].textContent);
     assert.match(label, /^(Copied|Select and copy)$/);
-    // Minimise hides the body; dock moves it
-    await page.evaluate(() => { const r = document.getElementById("rm-copy-sheet-panel").shadowRoot; r.querySelector('[aria-label="Minimise"]').click(); });
-    assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("rm-copy-sheet-panel").shadowRoot.querySelector(".b")).display), "none");
-    await page.evaluate(() => document.getElementById("rm-copy-sheet-panel").shadowRoot.querySelector('[aria-label="Dock on the left"]').click());
-    assert.equal(await page.evaluate(() => document.getElementById("rm-copy-sheet-panel").style.left), "16px");
+    // ⭐ T17: Collapse (the old Minimise) and the side are the DOCK's — one window for every view
+    const dock = (sel) => page.evaluate((s) => document.getElementById("rm-draft-dock").shadowRoot.querySelector(s).click(), sel);
+    await dock('[data-role="collapse"]');
+    assert.equal(await page.evaluate(() => document.getElementById("rm-draft-dock").dataset.collapsed), "true");
+    assert.equal(await page.evaluate(() => document.getElementById("rm-copy-sheet-panel").getBoundingClientRect().height), 0, "collapsed: the sheet is out of the way");
+    await dock('[data-role="expand"]');
+    // the side button sends it to the OTHER side (it may already have stepped left, out of the field's way)
+    const sideBefore = await page.evaluate(() => document.getElementById("rm-draft-dock").dataset.side);
+    await dock('[data-role="dock"]');
+    const sideAfter = await page.evaluate(() => document.getElementById("rm-draft-dock").dataset.side);
+    assert.equal(sideAfter, sideBefore === "left" ? "right" : "left");
+    const r = await page.evaluate(() => { const b = document.getElementById("rm-draft-dock").getBoundingClientRect(); return { l: b.left, r: innerWidth - b.right }; });
+    assert.equal(sideAfter === "left" ? r.l : Math.round(r.r) <= 8 + 16, sideAfter === "left" ? 8 : true, `snapped to the ${sideAfter} edge: ${JSON.stringify(r)}`);
     // Esc closes it
     await page.keyboard.press("Escape");
     assert.equal(await open(), false, `${scheme}: Esc closes`);
     // and the Close button does
     await page.evaluate(`(${renderCopySheetPanel.toString()})(${JSON.stringify(sheet)}, ${JSON.stringify({ light: C_LIGHT, dark: C_DARK })})`);
-    await page.evaluate(() => document.getElementById("rm-copy-sheet-panel").shadowRoot.querySelector('[aria-label="Close the Copy sheet"]').click());
+    await dock('[aria-label="Close the panel"]');
     assert.equal(await open(), false, `${scheme}: Close closes`);
     await page.close();
   }

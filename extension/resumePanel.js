@@ -53,6 +53,8 @@ import { lookupBoardJob } from './boardJob.js';
 import { identifyAndBind } from './identify.js';
 import { notePageRead } from './diagnostics.js';
 import { overlayTheme, fetchPdf } from './gated-handoff.js';
+// ⭐ T17: the ATS and Résumé views are drawn on the dock, in the TOP frame.
+import { drawInDock, dockMeta } from './dockHost.js';
 import { noteResume, resumeFor } from './progress.js';
 import { C_LIGHT } from './tokens.js';
 
@@ -271,17 +273,26 @@ export function modelWords(m) {
     m.report?.head, m.report?.line, m.report?.note, m.report?.action?.label].filter(Boolean).join('\n');
 }
 
-// ── the injected panel ─────────────────────────────────────────────────────────────────────────────────────────
-// Runs in the page's ISOLATED world (it needs chrome.runtime to talk back). executeScript serialises it, so it closes
-// over NOTHING: the model and the palettes arrive as arguments (extension/tokens.js — never a colour literal). Its own
-// shadow root keeps the page's CSS out and its own in; the form probe never sees it (it is not in <body>).
+// ── the injected views: the dock's ATS tab and Résumé tab ────────────────────────────────────────────────────────
+// Runs in the page's ISOLATED world, TOP frame (it needs chrome.runtime to talk back). executeScript serialises it, so it
+// closes over NOTHING: the model and the palettes arrive as arguments (extension/tokens.js — never a colour literal).
+// ⭐ T17: TWO views of the dock (extension/dock.js) drawn from ONE model — the ATS tab (draft's report for the tab's job:
+// T9's shared component when the scorer's report came with it) and the Résumé tab (the generation's state, its
+// preview, Attach). The window they sit in — drag, resize, snap, collapse, Close, Esc, where it sits on this site — is
+// the dock's, once; nothing here moves anything. Each view has its own shadow root: the page's CSS is kept out and its
+// own in; the form probe never sees them (the dock is not in <body>). `meta.tab` says which tab to show ('ats' or
+// 'resume', default 'resume').
 // ⛔ D60: rectangles — controls radius 8 on 28+, marks radius 6 with a 3px leading bar, the bar square-ended (radius 1).
 export function renderResumePanel(model, meta) {
   const ID = 'rm-resume-panel';
-  const G = (globalThis.__draftResumePanel = globalThis.__draftResumePanel || { side: null, collapsed: false, top: null });
-  const prior = document.getElementById(ID);
-  if (prior) { try { prior.__draftCleanup?.(); } catch { /* gone */ } prior.remove(); }
-  if (!model) return { ok: true, rendered: false, closed: true };
+  const ATS_ID = 'rm-ats-panel';
+  const D = globalThis.__draftDock;
+  const dock = D?.ensure?.(meta?.dock || {}) || null;
+  if (!dock) return { ok: false, rendered: false, error: D ? 'not_top_frame' : 'no_dock' };
+  if (!model) {
+    for (const [tab, id] of [['resume', ID], ['ats', ATS_ID]]) { const el = document.getElementById(id); if (el) dock.drop(tab, el); }
+    return { ok: true, rendered: false, closed: true };
+  }
 
   const theme = meta?.theme || {};
   const varsOf = (pal) => Object.entries(pal || {}).map(([k, v]) => `--c-${k.toLowerCase().replace(/_/g, '-')}: ${v};`).join(' ');
@@ -299,29 +310,20 @@ export function renderResumePanel(model, meta) {
   const logo = `'${LOGO_FACE}', 'Poppins', ui-sans-serif, system-ui, sans-serif`;
   const paper = meta?.paper || {};
   const css = `
-    :host { all: initial; }
+    :host { all: initial; display: block; height: 100%; }
     .rp { ${varsOf(theme.light)} --c-paper: ${paper.bg || 'Canvas'}; --c-paper-ink: ${paper.ink || 'CanvasText'}; }
     @media (prefers-color-scheme: dark) { .rp { ${varsOf(theme.dark)} } }
-    .rp { box-sizing: border-box; max-height: calc(100vh - 32px); display: flex; flex-direction: column; overflow: hidden;
+    .rp { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; overflow: hidden;
       font: 13px/1.45 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--c-ink);
-      background: var(--c-surface-menu); backdrop-filter: blur(12px); border: 1px solid var(--c-glass-edge); border-radius: 10px;
-      box-shadow: var(--c-shadow-lg); text-align: left; }
+      background: var(--c-surface-menu); text-align: left; }
     .rp * { box-sizing: border-box; }
-    .hd { padding: 12px 14px 8px; border-bottom: 1px solid var(--c-border); cursor: grab; user-select: none; }
-    .top { display: flex; align-items: center; gap: 6px; }
-    .sp { flex: 1; }
-    .mk { font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 20px; letter-spacing: -.02em; line-height: 1;
-      color: var(--c-logo-word); forced-color-adjust: none; }
-    .mk .sl { color: var(--c-logo-slash); }
-    .t { font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 15px; letter-spacing: -.01em; margin-top: 8px; overflow-wrap: anywhere; }
+    .hd { padding: 10px 14px 8px; border-bottom: 1px solid var(--c-border); }
+    .t { font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 15px; letter-spacing: -.01em; overflow-wrap: anywhere; }
     .s { font-size: 11.5px; color: var(--c-ink-muted); margin-top: 2px; }
-    .ib { width: 26px; height: 26px; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-surface-solid);
-      color: var(--c-ink-muted); font: 800 13px/1 ui-sans-serif, system-ui, sans-serif; cursor: pointer; padding: 0; }
-    .ib:hover, .ib:focus-visible { color: var(--c-ink); }
-    .ib:focus-visible, .btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-    .sc { overflow: auto; padding: 10px 14px; flex: 1; min-height: 0; display: grid; gap: 8px; }
+    .btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+    .sc { overflow: auto; padding: 10px 14px; flex: 1; min-height: 0; display: grid; gap: 8px; align-content: start; }
     .ln { margin: 0; font-size: 12.5px; }
-    .rpt { display: grid; gap: 6px; padding-bottom: 8px; border-bottom: 1px solid var(--c-border); }
+    .rpt { display: grid; gap: 6px; }
     .ln.warn { color: var(--c-warning); font-weight: 700; }
     .ln.ok { color: var(--c-success); font-weight: 700; }
     .prog { font-size: 11.5px; color: var(--c-ink-muted); }
@@ -351,8 +353,6 @@ export function renderResumePanel(model, meta) {
     .say { font-size: 11.5px; color: var(--c-ink-muted); min-height: 0; }
     .say.warn { color: var(--c-warning); }
     .note { font-size: 11px; color: var(--c-ink-faint); }
-    .rp.slim { flex-direction: row; align-items: center; gap: 10px; padding: 8px 12px; }
-    .rp.slim .mk { font-size: 16px; }
     @media (prefers-reduced-motion: reduce) { .btn { transition: none; } .pb i { animation: none; left: 0; width: 100%; } }
   `;
 
@@ -387,45 +387,72 @@ export function renderResumePanel(model, meta) {
     r.append(st, page);
   };
 
-  const host = document.createElement('div');
-  host.id = ID;
+  // The two hosts, from the dock — fresh elements; the last draw's views are cleaned up and removed.
+  const want = meta?.tab === 'ats' ? 'ats' : 'resume';
+  let pollTimer = null;
+  let tick = null;
+  function cleanup() { clearTimeout(pollTimer); clearInterval(tick); }
+  const atsHost = dock.view('ats', { id: ATS_ID, label: 'draft — ATS report for this job', expand: want === 'ats', select: want === 'ats', onClose: cleanup });
+  atsHost.setAttribute('data-draft-ats-panel', '');
+  const host = dock.view('resume', { id: ID, label: 'draft — résumé for this job', expand: want === 'resume', select: want === 'resume', onClose: cleanup });
   host.setAttribute('data-draft-resume-panel', '');
-  const reviewOnRight = document.getElementById('rm-gate-review-overlay')?.dataset?.side !== 'left' && !!document.getElementById('rm-gate-review-overlay');
-  const side = G.side || meta?.dock || (reviewOnRight ? 'left' : 'right');
-  const place = (s, top) => {
-    host.style.cssText = `position:fixed;z-index:2147483646;width:min(380px, calc(100vw - 32px));top:${Math.max(8, top ?? 16)}px;${s}:16px;`;
-    host.dataset.side = s;
+  const mount = (h, label) => {
+    const r = h.attachShadow({ mode: 'open' });
+    const style = document.createElement('style');
+    style.textContent = css;
+    const p = document.createElement('div');
+    p.className = 'rp';
+    p.setAttribute('role', 'region');
+    p.setAttribute('aria-label', label);
+    r.append(style, p);
+    return { root: r, panel: p };
   };
-  place(side, G.top);
-  const root = host.attachShadow({ mode: 'open' });
-  const style = document.createElement('style');
-  style.textContent = css;
-  const panel = document.createElement('div');
-  panel.className = 'rp';
-  panel.setAttribute('role', 'complementary');
-  panel.setAttribute('aria-label', 'draft — résumé for this job');
-  root.append(style, panel);
-  document.documentElement.appendChild(host);
+  const { root, panel } = mount(host, 'draft — résumé for this job');
+  const { root: atsRoot, panel: atsPanel } = mount(atsHost, 'draft — ATS report for this job');
 
   let m = model;
   let confirmRegenerate = false;
-  let pollTimer = null;
-  let tick = null;
   const elapsed = (from) => { const s = Math.max(0, Math.round((Date.now() - from) / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 
+  // ── the ATS tab: draft's report for this tab's job ──
+  const drawAts = () => {
+    atsHost.dataset.state = m.report?.state || (m.state === 'nojob' ? 'nojob' : 'none');
+    dock.summary('ats', m.report?.head || 'ATS');   // what the slim bar says while this tab is shown
+    // ⭐ T9: the shared ATS component (extension/atsReport.js, injected before this function by RESUME_PANEL_OPEN). A
+    // content script's isolated world has no custom-element registry, so the view calls its renderer directly —
+    // the same code, the same stylesheet, in a shadow root of its own inside this one.
+    const ATS = globalThis.__draftAtsReport;
+    const card = !!(m.report?.report && typeof ATS?.mountAtsReport === 'function');
+    const nojob = !m.report && m.state === 'nojob';
+    atsPanel.innerHTML = `
+      <div class="hd">
+        <div class="t" data-role="title">ATS for this job</div>
+        ${m.job ? `<div class="s" data-role="job">${esc(m.job)}</div>` : ''}
+      </div>
+      <div class="sc">
+        ${m.report ? `<div class="rpt" data-role="ats-report" data-state="${esc(m.report.state)}">${
+          // ⭐ T9: THE web app's ATS report — the shared component, mounted below into its own shadow root — when the
+          // scorer's report came with the answer and the component was injected; else the summary lines, as before.
+          card ? '<div data-role="ats-card"></div>' : `${
+          m.report.head ? `<div class="marks"><span class="mark ${esc(m.report.tone || '')}" data-role="ats-score">${esc(m.report.head)}</span></div>` : ''}${
+          m.report.matched?.length ? `<p class="ln" data-role="ats-matched"><b>Matched:</b> ${esc(m.report.matched.join(', '))}</p>` : ''}${
+          m.report.missing?.length ? `<p class="ln" data-role="ats-missing"><b>Missing:</b> ${esc(m.report.missing.join(', '))}</p>` : ''}`}${
+          m.report.note ? `<p class="note">${esc(m.report.note)}</p>` : ''}${
+          m.report.line ? `<p class="ln">${esc(m.report.line)}</p>` : ''}${
+          m.report.action ? `<div class="acts"><button class="btn" data-role="${esc(m.report.action.role)}">${esc(m.report.action.label)}</button></div>` : ''}
+        </div>` : nojob ? (m.lines || []).map(l => `<p class="ln ${esc(l.tone)}">${esc(l.text)}</p>`).join('')
+          + '<div class="acts"><button class="btn primary" data-role="read">Read this page now</button></div>'
+          : '<p class="ln" data-role="ats-none">No ATS report for this job yet.</p>'}
+        <div class="say" data-role="say" aria-live="polite"></div>
+      </div>`;
+    if (card) { const cardHost = atsRoot.querySelector('[data-role="ats-card"]'); try { ATS.mountAtsReport(cardHost, m.report.report, {}); } catch { cardHost?.remove(); } }
+  };
+
+  // ── the Résumé tab: the generation's state, a preview, Attach ──
   const draw = () => {
     host.dataset.state = m.state;
     host.dataset.id = m.id || '';
-    if (G.collapsed) {
-      panel.className = 'rp slim';
-      panel.innerHTML = `<div class="mk" aria-hidden="true"><span class="sl">/</span>draft</div>
-        <span data-role="slim">Résumé · ${esc(m.state === 'generating' ? 'generating…' : m.state === 'attached' ? 'attached' : m.state === 'ready' ? 'ready' : m.title)}</span>
-        <span class="sp"></span>
-        <button class="ib" data-role="expand" aria-label="Expand the résumé panel" title="Expand">▢</button>
-        <button class="ib" data-role="close" aria-label="Close the résumé panel" title="Close (Esc)">×</button>`;
-      return;
-    }
-    panel.className = 'rp';
+    dock.summary('resume', `Résumé · ${m.state === 'generating' ? 'generating…' : m.state === 'attached' ? 'attached' : m.state === 'ready' ? 'ready' : m.title}`);
     const lines = (m.lines || []).map(l => `<p class="ln ${esc(l.tone)}">${esc(l.text)}</p>`).join('');
     const prog = m.progress ? `<div class="prog" data-role="progress"><span>${esc(m.progress.label)}</span> · <span data-role="elapsed">${elapsed(m.progress.startedAt)}</span>
       <div class="pb" aria-hidden="true"><i></i></div></div>` : '';
@@ -440,34 +467,12 @@ export function renderResumePanel(model, meta) {
       return `<button class="btn${a.primary || confirm ? ' primary' : ''}" data-role="${esc(a.role)}">${esc(confirm ? 'Regenerate — use a slot' : a.label)}</button>`;
     }).join('');
     const showsEdit = (m.actions || []).some(a => a.role === 'edit');
-    // ⭐ T9: the shared ATS component (extension/atsReport.js, injected before this function by RESUME_PANEL_OPEN). A
-    // content script's isolated world has no custom-element registry, so the panel calls its renderer directly —
-    // the same code, the same stylesheet, in a shadow root of its own inside this one.
-    const ATS = globalThis.__draftAtsReport;
-    const card = !!(m.report?.report && typeof ATS?.mountAtsReport === 'function');
     panel.innerHTML = `
-      <div class="hd" data-role="drag">
-        <div class="top">
-          <div class="mk" aria-hidden="true"><span class="sl">/</span>draft</div><span class="sp"></span>
-          <button class="ib" data-role="dock" aria-label="${host.dataset.side === 'right' ? 'Dock on the left' : 'Dock on the right'}" title="Dock">${host.dataset.side === 'right' ? '⇤' : '⇥'}</button>
-          <button class="ib" data-role="collapse" aria-label="Collapse the résumé panel" title="Collapse">–</button>
-          <button class="ib" data-role="close" aria-label="Close the résumé panel" title="Close (Esc)">×</button>
-        </div>
+      <div class="hd">
         <div class="t" data-role="title">${esc(m.title)}</div>
         ${m.job ? `<div class="s" data-role="job">${esc(m.job)}</div>` : ''}
       </div>
       <div class="sc">
-        ${m.report ? `<div class="rpt" data-role="ats-report" data-state="${esc(m.report.state)}">${
-          // ⭐ T9: THE web app's ATS report — the shared component, mounted below into its own shadow root — when the
-          // scorer's report came with the answer and the component was injected; else the summary lines, as before.
-          card ? '<div data-role="ats-card"></div>' : `${
-          m.report.head ? `<div class="marks"><span class="mark ${esc(m.report.tone || '')}" data-role="ats-score">${esc(m.report.head)}</span></div>` : ''}${
-          m.report.matched?.length ? `<p class="ln" data-role="ats-matched"><b>Matched:</b> ${esc(m.report.matched.join(', '))}</p>` : ''}${
-          m.report.missing?.length ? `<p class="ln" data-role="ats-missing"><b>Missing:</b> ${esc(m.report.missing.join(', '))}</p>` : ''}`}${
-          m.report.note ? `<p class="note">${esc(m.report.note)}</p>` : ''}${
-          m.report.line ? `<p class="ln">${esc(m.report.line)}</p>` : ''}${
-          m.report.action ? `<div class="acts"><button class="btn" data-role="${esc(m.report.action.role)}">${esc(m.report.action.label)}</button></div>` : ''}
-        </div>` : ''}
         ${lines}${prog}
         ${marks.length ? `<div class="marks">${marks.join('')}</div>` : ''}
         ${m.changes ? `<p class="ln" data-role="changes">${esc(m.changes)}</p>` : ''}
@@ -482,11 +487,11 @@ export function renderResumePanel(model, meta) {
         ${showsEdit ? `<div class="note" data-role="edit-note">${esc(meta?.editNote || '')}</div>` : ''}
         <div class="say" data-role="say" aria-live="polite"></div>
       </div>`;
-    if (card) { const host = root.querySelector('[data-role="ats-card"]'); try { ATS.mountAtsReport(host, m.report.report, {}); } catch { host?.remove(); } }
     if (m.preview?.html) { const pv = root.querySelector('[data-role="preview"]'); try { fillPreview(pv, m.preview.html); } catch { pv.textContent = 'The preview could not be shown.'; } }
+    drawAts();
   };
 
-  const say = (text, warn = false) => { const el = root.querySelector('[data-role="say"]'); if (el) { el.className = `say${warn ? ' warn' : ''}`; el.textContent = text; } };
+  const sayIn = (r, text, warn = false) => { const el = r.querySelector('[data-role="say"]'); if (el) { el.className = `say${warn ? ' warn' : ''}`; el.textContent = text; } };
   const schedule = () => {
     clearTimeout(pollTimer); clearInterval(tick);
     if (m.progress) tick = setInterval(() => { const e = root.querySelector('[data-role="elapsed"]'); if (e) e.textContent = elapsed(m.progress.startedAt); }, 1000);
@@ -495,28 +500,27 @@ export function renderResumePanel(model, meta) {
       if (!host.isConnected) return;
       const reply = await send({ type: 'RESUME_STATUS', id: m.id });
       if (!host.isConnected) return;
-      if (reply?.model) { m = reply.model; draw(); }
+      if (reply?.model) { m = { ...reply.model, report: reply.model.report ?? m.report }; draw(); }
       schedule();
     }, meta?.pollMs || 2000);
   };
-  const take = (reply, fallback) => {
+  const take = (r, reply, fallback) => {
     confirmRegenerate = false;
     // the report is asked for when the panel opens; a later model (a status, a cancel) keeps it
     if (reply?.model) m = { ...reply.model, report: reply.model.report ?? (reply.model.state === 'nojob' ? null : m.report) };
     draw(); schedule();
-    if (!reply?.ok) say(reply?.message || fallback, true);
+    if (!reply?.ok) sayIn(r, reply?.message || fallback, true);
   };
 
-  const close = () => { cleanup(); host.remove(); };
-  const download = async () => {
+  const download = async (r) => {
     const name = m.fileName || 'resume.pdf';
     let copied = false;
     try { await navigator.clipboard.writeText(name); copied = true; } catch { /* said below */ }
     let b64 = m.download?.base64 || null;
     if (!b64) {
-      const r = await send({ type: 'RESUME_DOWNLOAD', id: m.id });
-      b64 = r?.base64 || null;
-      if (!b64) { say(r?.message || 'The PDF could not be downloaded right now — try again.', true); return; }
+      const got = await send({ type: 'RESUME_DOWNLOAD', id: m.id });
+      b64 = got?.base64 || null;
+      if (!b64) { sayIn(r, got?.message || 'The PDF could not be downloaded right now — try again.', true); return; }
     }
     const bin = atob(b64);
     const bytes = new Uint8Array(bin.length);
@@ -524,74 +528,46 @@ export function renderResumePanel(model, meta) {
     const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
     const a = document.createElement('a');
     a.href = url; a.download = name; a.style.display = 'none';
-    root.append(a); a.click(); a.remove();
+    r.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 30000);
     host.dataset.downloaded = name;
-    say(`Downloaded ${name}${copied ? ' — its name is copied' : ''}. Now ${meta?.dragHint || 'drag it onto the upload box'}.`);
+    sayIn(r, `Downloaded ${name}${copied ? ' — its name is copied' : ''}. Now ${meta?.dragHint || 'drag it onto the upload box'}.`);
   };
 
-  const onClick = async (ev) => {
+  const onClick = (r) => async (ev) => {
     const btn = ev.target.closest('button');
     if (!btn) return;
     const role = btn.dataset.role;
-    if (role === 'close') return close();
-    if (role === 'collapse') { G.collapsed = true; return draw(); }
-    if (role === 'expand') { G.collapsed = false; return draw(); }
-    if (role === 'dock') { const next = host.dataset.side === 'right' ? 'left' : 'right'; G.side = next; place(next, G.top); return draw(); }
-    // ⛔ Everything below reaches draft's server or the page: a page script's synthetic click is never enough.
+    // ⛔ Everything here reaches draft's server or the page: a page script's synthetic click is never enough.
     if (!ev.isTrusted) return;
-    if (role === 'download') return download();
+    if (role === 'download') return download(r);
     btn.disabled = true;
-    if (role === 'generate') { say('Asking draft…'); return take(await send({ type: 'RESUME_GENERATE', trigger: 'click', regenerate: false }), 'Could not reach draft — try again.'); }
+    const say = (t, w) => sayIn(r, t, w);
+    if (role === 'generate') { say('Asking draft…'); return take(r, await send({ type: 'RESUME_GENERATE', trigger: 'click', regenerate: false }), 'Could not reach draft — try again.'); }
     if (role === 'regenerate') {
       if (!confirmRegenerate) { confirmRegenerate = true; draw(); return; }
       say('Asking draft…');
-      return take(await send({ type: 'RESUME_GENERATE', trigger: 'click', regenerate: true, id: m.id }), 'Could not reach draft — try again.');
+      return take(r, await send({ type: 'RESUME_GENERATE', trigger: 'click', regenerate: true, id: m.id }), 'Could not reach draft — try again.');
     }
-    if (role === 'cancel') { say('Cancelling…'); return take(await send({ type: 'RESUME_CANCEL', id: m.id }), 'Could not cancel — try again.'); }
-    if (role === 'attach') { say('Attaching…'); return take(await send({ type: 'RESUME_ATTACH', id: m.id }), 'Could not attach — try Download PDF.'); }
-    if (role === 'edit') { const r = await send({ type: 'RESUME_OPEN_EDITOR', id: m.id }); btn.disabled = false; if (!r?.ok) say(r?.message || 'Could not open draft.', true); else say('Opened in a new tab.'); }
-    if (role === 'read') { say('Reading this page…'); return take(await send({ type: 'RESUME_READ_PAGE', trigger: 'click' }), 'Could not reach draft — try again.'); }
+    if (role === 'cancel') { say('Cancelling…'); return take(r, await send({ type: 'RESUME_CANCEL', id: m.id }), 'Could not cancel — try again.'); }
+    if (role === 'attach') { say('Attaching…'); return take(r, await send({ type: 'RESUME_ATTACH', id: m.id }), 'Could not attach — try Download PDF.'); }
+    if (role === 'edit') { const got = await send({ type: 'RESUME_OPEN_EDITOR', id: m.id }); btn.disabled = false; if (!got?.ok) say(got?.message || 'Could not open draft.', true); else say('Opened in a new tab.'); }
+    if (role === 'read') { say('Reading this page…'); return take(r, await send({ type: 'RESUME_READ_PAGE', trigger: 'click' }), 'Could not reach draft — try again.'); }
     if (role === 'report' || role === 'add-resume') {
-      const r = await send({ type: 'RESUME_OPEN_REPORT', to: role === 'report' ? 'report' : 'resume' }); btn.disabled = false;
-      if (!r?.ok) say(r?.message || 'Could not open draft.', true); else say('Opened in a new tab.');
+      const got = await send({ type: 'RESUME_OPEN_REPORT', to: role === 'report' ? 'report' : 'resume' }); btn.disabled = false;
+      if (!got?.ok) say(got?.message || 'Could not open draft.', true); else say('Opened in a new tab.');
     }
   };
 
-  const onKey = (ev) => {
-    if (ev.key !== 'Escape' || ev.isComposing) return;
-    if (ev.composedPath?.().includes(host)) close();
-  };
-  let drag = null;
-  const onDown = (ev) => {
-    if (ev.button !== 0 || !ev.target.closest('[data-role="drag"]') || ev.target.closest('button')) return;
-    const r = host.getBoundingClientRect();
-    drag = { dx: ev.clientX - r.left, dy: ev.clientY - r.top };
-    ev.preventDefault();
-  };
-  const onMove = (ev) => { if (!drag) return; host.style.left = `${Math.max(0, ev.clientX - drag.dx)}px`; host.style.right = ''; host.style.top = `${Math.max(0, ev.clientY - drag.dy)}px`; };
-  const onUp = () => {
-    if (!drag) return;
-    drag = null;
-    const r = host.getBoundingClientRect();
-    const next = r.left + r.width / 2 < innerWidth / 2 ? 'left' : 'right';
-    G.side = next; G.top = r.top; place(next, r.top); draw();
-  };
-  function cleanup() {
-    clearTimeout(pollTimer); clearInterval(tick);
-    document.removeEventListener('keydown', onKey, true);
-    removeEventListener('mousemove', onMove, true);
-    removeEventListener('mouseup', onUp, true);
-  }
   host.__draftCleanup = cleanup;
-  root.addEventListener('click', (ev) => { void onClick(ev); });
-  root.addEventListener('mousedown', onDown);
-  document.addEventListener('keydown', onKey, true);
-  addEventListener('mousemove', onMove, true);
-  addEventListener('mouseup', onUp, true);
+  atsHost.__draftCleanup = () => {};
+  root.addEventListener('click', (ev) => { void onClick(root)(ev); });
+  atsRoot.addEventListener('click', (ev) => { void onClick(atsRoot)(ev); });
   draw();
   schedule();
-  return { ok: true, rendered: true, state: m.state };
+  dock.restorePops?.('resume');
+  dock.restorePops?.('ats');
+  return { ok: true, rendered: true, state: m.state, tab: want };
 }
 
 // ── the injected attach ────────────────────────────────────────────────────────────────────────────────────────
@@ -712,7 +688,7 @@ async function currentView(serverUrl, job) {
  */
 async function withAtsComponent(tab, model) {
   if (model?.report?.report && tab?.id != null) {
-    try { await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['atsReport.js'] }); } catch { /* the summary stands */ }
+    try { await chrome.scripting.executeScript({ target: { tabId: tab.id, frameIds: [0] }, files: ['atsReport.js'] }); } catch { /* the summary stands */ }
   }
   return model;
 }
@@ -748,7 +724,8 @@ export function handlersFor(serverUrl = null) {
 
   return {
     /** Open (or refresh) the panel — from the popup's "Résumé" button (the active tab) or the review panel's offer. */
-    RESUME_PANEL_OPEN: async (_msg, sender) => {
+    // ⭐ T17: the dock's ATS and Résumé tabs (`msg.tab`: 'ats' | 'resume' — which one to show), drawn in the TOP frame.
+    RESUME_PANEL_OPEN: async (msg, sender) => {
       if (!url()) return refuse('Not configured.');
       const tab = tabOf(sender) || await activeTab();
       if (!tab?.id) return refuse('Open the application page first.');
@@ -758,8 +735,8 @@ export function handlersFor(serverUrl = null) {
       const model = resumePanelModel({ job, view, allowance, error, report: await reportFor(job) });
       await withAtsComponent(tab, model);
       try {
-        const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: renderResumePanel, args: [model, await meta()] });
-        return { ok: !!r?.result?.rendered, state: model.state };
+        const r = await drawInDock(tab.id, renderResumePanel, [model, { ...(await meta()), dock: await dockMeta(tab), tab: msg?.tab === 'ats' ? 'ats' : 'resume' }]);
+        return { ok: !!r?.rendered, state: model.state };
       } catch (e) {
         // No grant for this tab (the popup was not opened on it), or a page that takes no script (chrome://, a PDF).
         return refuse("draft can't draw the résumé panel on this page.", { reason: String(e?.message || e).slice(0, 160) });

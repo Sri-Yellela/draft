@@ -392,23 +392,22 @@ test("⛔ J4 (D96 §3/§5): the progress record takes the PANEL's counts — the
   assert.match(src, /panel: \{ filled: panel\.filled, of: panel\.total, needYou: panel\.need, check: panel\.check, ready: panel\.ready \},/);
 });
 
-test("⛔ J4: the review panel's dock side is remembered with the tab's binding — its own field, kept across a re-bind", async () => {
+// ⭐ T17 (owner 10-15): the panel's side was the TAB's (the binding's `panelDock`, the Copy sheet's `dock`). It is now
+// the ONE dock's, remembered per SITE (dockHost.js `dockPlace`) — the binding keeps no side, and a re-bind changes none.
+test("⛔ J4 → T17: where the review panel sits is the DOCK's, remembered per site — the binding keeps no side of its own", async () => {
   const stores = chromeStub();
   const tb = await import("../extension/tabBinding.js");
   const tab = { id: 12, url: "https://zoom.wd5.myworkdayjobs.com/x" };
   await tb.bindTab(tab, { jobId: "j" });
-  await tb.setBindingDock(12, "left", "panelDock");
-  let b = await tb.loadBinding(12);
-  assert.equal(b.panelDock, "left");
-  assert.equal(b.dock, "right", "the Copy sheet's side is its own");
-  await tb.bindTab(tab, { jobId: "j" });
-  assert.equal((await tb.loadBinding(12)).panelDock, "left", "kept across a re-bind");
-  await tb.setBindingDock(12, "up", "panelDock");
-  await tb.setBindingDock(12, "left", "secret");
-  b = await tb.loadBinding(12);
-  assert.equal(b.panelDock, "left");
-  assert.equal(b.secret, undefined);
-  assert.equal([...stores.session.keys()].length, 1, "no key of its own");
+  const b = await tb.loadBinding(12);
+  assert.equal(b.dock, undefined, "no Copy-sheet side on the binding");
+  assert.equal(b.panelDock, undefined, "no review-panel side on the binding");
+  assert.equal(tb.setBindingDock, undefined, "the per-tab dock side is gone with the panels' own placement");
+  assert.equal([...stores.session.keys()].length, 1);
+  // the dock remembers it per site — the review panel's own Dock button became the dock's
+  const host = read("extension/dockHost.js");
+  assert.match(host, /DOCK_PLACE: async \(msg, sender\) => \{/);
+  assert.doesNotMatch(read("extension/review-overlay.js"), /PANEL_DOCK/, "the panel sends no side of its own");
 });
 
 test("⛔ J4: no new storage key, no new permission — and the router wiring handed over is the one the browser pass ran", async () => {
@@ -425,7 +424,7 @@ test("⛔ J4: no new storage key, no new permission — and the router wiring ha
   assert.match(router, /const handle = ANSWER_MEMORY_HANDLERS\[msg\?\.type\];/);
   assert.doesNotMatch(read("test-support/walks/panelLifecycle.mjs"), /backgroundAppend/, "the walk must not append a second copy of the wiring");
   const mem = await import("../extension/answerMemory.js");
-  assert.deepEqual(Object.keys(mem.handlers).sort(), ["ANSWER_ACKNOWLEDGE", "ANSWER_CHANGE", "PANEL_DOCK"]);
+  assert.deepEqual(Object.keys(mem.handlers).sort(), ["ANSWER_ACKNOWLEDGE", "ANSWER_CHANGE"], "T17: PANEL_DOCK went with the panel's own placement");
 });
 
 test("⛔ J4 (J2 measured): the wizard presses only a VISIBLE, enabled Continue — never on a page with a password box", () => {
@@ -443,7 +442,7 @@ test("⛔ J4 (measured): ONE fill per tab — a newer fill supersedes one still 
   assert.match(loop, /ACTIVE_FILL\.set\(tab\.id, panelMeta\.runId\);/);
   assert.match(loop, /if \(!isCurrent\(\)\) \{ wizard\.stoppedAt = 'superseded'; break; \}\n\s+const matched/);
   assert.match(loop, /const waited = await waitForCandidate\(tab\.id, origin, step\.wizard\.step, wizard, isCurrent\);\n\s+if \(!waited\.ok\) \{ wizard\.stoppedAt = waited\.reason; break; \}\n\s+if \(!isCurrent\(\)\) \{ wizard\.stoppedAt = 'superseded'; break; \}\n\s+await showBadge\(tab\.id, 'progress'\);\n\s+const moved = await advanceAndWait/);
-  assert.ok(at(loop, "if (!isCurrent()) {\n    return { ok: false, reason: 'superseded'") < at(loop, "func: renderOverlay,"), "a superseded run draws nothing");
+  assert.ok(at(loop, "if (!isCurrent()) {\n    return { ok: false, reason: 'superseded'") < at(loop, "drawInDock(tab.id, renderOverlay,"), "a superseded run draws nothing");
   assert.match(src, /async function waitForCandidate\(tabId, origin, stepName, wizard, isCurrent = \(\) => true\) \{[\s\S]{0,200}if \(!isCurrent\(\)\) return \{ ok: false, reason: 'superseded' \};/);
 });
 
