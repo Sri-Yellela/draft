@@ -577,8 +577,9 @@ export function renderOverlay(model, meta) {
         acts += `<div class="rm-acts">${r.noRemember || r.neverFill ? '' : `<label class="rm-mem"><input type="checkbox" data-role="remember" ${r.rememberOff ? '' : 'checked'}> Remember for next time</label>`}${
           r.copyValue ? '<button class="rm-btn" data-role="copy">copy</button>' : ''}${r.optional ? '<button class="rm-btn" data-role="leave">leave blank</button>' : ''}</div>`;
       } else if (r.copyValue) acts += '<div class="rm-acts"><button class="rm-btn" data-role="copy">copy</button></div>';
-      // D98 (J6): the résumé upload opens the on-page résumé panel — it generates only on that panel's own button.
-      if (r.resumeOffer) acts += '<div class="rm-acts"><button class="rm-btn" data-role="resume">Make a résumé for this job</button></div>';
+      // D98 (J6) → ⭐ T22 REVISED: the résumé upload shows the dock's Résumé tab — a VIEW (state, preview, Attach); it
+      // starts nothing. ("Generate and attach" on this row is T18's — the second of the two places a résumé starts.)
+      if (r.resumeOffer) acts += '<div class="rm-acts"><button class="rm-btn" data-role="resume">See the Résumé tab</button></div>';
     } else if (r.group === 'check') {
       acts += `<div class="rm-acts">${r.canEdit === false ? '' : '<button class="rm-btn" data-role="edit">edit</button>'}<button class="rm-btn ack" data-role="ack">acknowledge</button></div>`;
     } else if (r.changed) {
@@ -730,7 +731,7 @@ export function renderOverlay(model, meta) {
     // Everything below writes to the page or to the server: a page script's synthetic click is never enough.
     if (!ev.isTrusted) return;
 
-    if (role === 'resume') { void send({ type: 'RESUME_PANEL_OPEN' }); return; }
+    if (role === 'resume') { void send({ type: 'RESUME_PANEL_OPEN', tab: 'resume' }); return; }
 
     if (role === 'edit') {
       const ed = rowEl.querySelector('[data-role="editor"]');

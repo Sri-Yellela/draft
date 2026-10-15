@@ -75,7 +75,7 @@ test("⛔ J6: the panel in both themes — the site's tokens, no capsule, the pr
     page.on("request", (r) => { if (/tracker\.invalid/.test(r.url())) { external.push(r.url()); r.abort(); } else r.continue(); });
     await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: scheme }]);
     await page.goto(stage);
-    await page.evaluate(stubRuntime({ RESUME_GENERATE: { ok: true, model: null } }));
+    await page.evaluate(stubRuntime({ RESUME_ATTACH: { ok: true, model: null } }));
     await draw(page, readyModel());
     await new Promise(r => setTimeout(r, 500));
     const facts = await inPanel(page, (root) => {
@@ -102,7 +102,7 @@ test("⛔ J6: the panel in both themes — the site's tokens, no capsule, the pr
     assert.equal(facts.score, "ATS 62 → 81");
     assert.equal(facts.changes, "What we changed — 9 rewritten · 2 added · +16 job terms");
     assert.match(facts.guard, /Checked against your profile/);
-    assert.deepEqual(facts.actions, ["Attach", "Regenerate", "Edit in a full page"]);
+    assert.deepEqual(facts.actions, ["Attach", "Download PDF", "Edit in a full page"], "⭐ T22: a view — no Regenerate");
     // ⛔ the preview: its own shadow root, inside the panel's — the page's light DOM never holds it
     assert.equal(facts.previewShadow, true, "the preview is not in a shadow root of its own");
     assert.equal(facts.inLightDom, false);
@@ -115,17 +115,15 @@ test("⛔ J6: the panel in both themes — the site's tokens, no capsule, the pr
     assert.deepEqual(external, [], "the preview loaded something from outside");
     // ⛔ a page script's synthetic click is never a press: nothing is sent
     await inPanel(page, (root) => root.querySelector('[data-role="attach"]').click());
-    await inPanel(page, (root) => root.querySelector('[data-role="regenerate"]').click());
+    await inPanel(page, (root) => root.querySelector('[data-role="edit"]').click());
     await new Promise(r => setTimeout(r, 150));
     assert.deepEqual(await page.evaluate(() => (window.__sent || []).map(m => m.type)), [], "an untrusted click reached the service worker");
-    // a TRUSTED Regenerate first WARNS (another slot), and only the second press asks
-    await page.click("#rm-resume-panel >>> [data-role='regenerate']");
-    const warn = await inPanel(page, (root) => root.querySelector('[data-role="regenerate-warning"]')?.textContent || null);
-    assert.match(warn || "", /^Generating again uses another of your Draft slots\. 9 left\. Press Regenerate again to go ahead\.$/);
-    assert.deepEqual(await page.evaluate(() => (window.__sent || []).map(m => m.type)), [], "Regenerate asked before warning");
-    await page.click("#rm-resume-panel >>> [data-role='regenerate']");
+    // ⭐ T22 REVISED: nothing on the tab starts a résumé — no Generate / Regenerate control at all
+    assert.equal(await inPanel(page, (root) => root.querySelectorAll('[data-role="generate"], [data-role="regenerate"]').length), 0);
+    // a TRUSTED Attach is the person's own press, and asks the service worker to attach — never to generate
+    await page.click("#rm-resume-panel >>> [data-role='attach']");
     await waitUntil(() => page.evaluate(() => (window.__sent || []).length > 0), BUSY_MS);
-    assert.deepEqual(await page.evaluate(() => window.__sent.map(m => [m.type, m.trigger, m.regenerate])), [["RESUME_GENERATE", "click", true]]);
+    assert.deepEqual(await page.evaluate(() => window.__sent.map(m => m.type)), ["RESUME_ATTACH"]);
     await new Promise(r => setTimeout(r, 150));   // the reply re-draws the panel
     // Collapse keeps a slim bar; Esc inside closes; Close closes — ⭐ T17: the DOCK's controls, the view's words
     await page.click("#rm-draft-dock >>> [data-role='collapse']");

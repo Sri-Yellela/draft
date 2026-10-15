@@ -236,7 +236,8 @@ test("⛔ T9 · the popup and the on-page panel draw the component — and add o
   assert.ok(html.indexOf('<script src="atsReport.js"></script>') < html.indexOf('<script src="popup.js"></script>'), "the bundle loads before popup.js");
   assert.match(html, /<draft-ats-report id="ats-report-card"><\/draft-ats-report>/);
   assert.match(html, /<button class="btn" id="btn-ats-full" style="display:none">Full report in draft<\/button>/);
-  assert.match(html, /<button class="btn" id="btn-ats-again">Read again<\/button>/);
+  // ⭐ T22: no second "Read again" under the card — the main action's Read again (btn-read-page) is that press
+  assert.doesNotMatch(html, /id="btn-ats-again"/);
   const popup = read("extension/popup.js");
   assert.match(popup, /card\.report = r\.report;/, "the popup hands the component the scorer's JSON as it is");
   assert.doesNotMatch(stripJs(popup), /tier1_|competencies_|action_verbs_/, "the popup reads a report's sections itself");
@@ -264,7 +265,8 @@ test("⛔ T9 × BINDING FIRST · the popup's card comes only from a press, and o
   // no ready report (a signed-out / unreachable stop returns `report: null`).
   const readP = body(popup, "async function readPage()", "\ndocument.getElementById('btn-read-page')");
   assert.ok(readP.indexOf("chrome.runtime.sendMessage({ type: 'POPUP_CONTEXT' })") < readP.indexOf("renderAtsReport(context)"));
-  const render = body(popup, "function renderAtsReport(context)", "\ndocument.getElementById('btn-ats-again')");
+  // ⭐ T22: the report's own "Read again" left (the main action's Read again is the same press)
+  const render = body(popup, "function renderAtsReport(context)", "\nconst MARK_ICONS");
   assert.match(render, /if \(r\?\.state !== 'ready' \|\| !r\.report \|\| typeof card\.render !== 'function'\) \{ box\.style\.display = 'none'; return; \}/);
   // "Full report in draft" only for the board job's report — the bound job's id, never a page-text score's.
   assert.match(render, /r\.basis === 'board' \? \(context\.posting\?\.jobId \?\? context\.binding\?\.jobId \?\? null\) : null/);

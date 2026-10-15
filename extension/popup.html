@@ -60,7 +60,8 @@
     #recent li .co { color: var(--c-ink); font-size: 13px; }
     .all-head { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
       color: var(--c-ink-faint); margin: 0 0 8px; }
-    .squares { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    /* ⭐ T22: the launcher row — the Draft button (/d) beside Open dock */
+    #launch { align-items: center; }
     .links { display: flex; justify-content: flex-start; gap: 8px; flex-wrap: wrap; }
 
     /* §8 row 15, decision D — THE TODAY RING: today against YOUR CAP, never a goal. */
@@ -134,8 +135,8 @@
   <button class="btn btn-primary" id="btn-sign-in" style="display:none">Sign in to Draft</button>
 
   <!-- D23, THE MANUAL CONTEXT TRIGGER (owner, 10-04). Context detection is never automatic on popup
-       open: until this is pressed, the popup shows the four actions below and nothing else, reads
-       nothing from the page and asks the server nothing about it. -->
+       open: until this is pressed, the popup reads nothing from the page and asks the server nothing
+       about it. -->
   <button class="btn" id="btn-read-page" style="display:none" aria-keyshortcuts="R"
           aria-describedby="read-hint">
     <span class="lbl">
@@ -198,18 +199,18 @@
        only its own buttons under it. -->
   <div id="ats-report" style="display:none">
     <draft-ats-report id="ats-report-card"></draft-ats-report>
+    <!-- ⭐ T22: "Read again" left this row — it was the same press as the main action's Read again above. -->
     <div class="btn-row" id="ats-report-actions">
       <button class="btn" id="btn-ats-full" style="display:none">Full report in draft</button>
-      <button class="btn" id="btn-ats-again">Read again</button>
     </div>
   </div>
   <!-- ⭐ D63 · status as MARKS (D60), and the packet before you fill. -->
   <div class="facts" id="facts" hidden></div>
   <div class="pk" id="packet-summary" hidden></div>
 
-  <!-- D13, THE COMPANION. companion.js decides which of the four actions this page calls for — after
-       the press above, never before. The four stay below ("Everything"): a wrong guess must never
-       hide an action. -->
+  <!-- D13, THE COMPANION. companion.js decides which action this page calls for — after the press above,
+       never before. ⭐ T22: a wrong guess still hides nothing — Capture and Fill are always one shortcut
+       (Ctrl+Shift+K, Ctrl+Shift+Y) or one right-click away, and the dock's Fill tab offers Fill this page. -->
   <div id="companion">
     <!-- ⭐ The tab binding (owner 10-12): the job this tab is on, whatever stage of its application it shows. -->
     <div id="bound" style="display:none">
@@ -219,18 +220,18 @@
     <p class="ctx-line" id="ctx-line"></p>
     <p class="questions" id="ctx-questions" style="display:none"></p>
     <p id="ctx-notice" style="display:none"></p>
+    <!-- ⭐ T22: ONE main action. Fill it reads and prepares first when the page needs it (T13), so the old separate
+         "Prepare this application" was the same press and is gone. -->
     <button class="btn btn-primary" id="btn-fill-primary" style="display:none">Fill it <kbd>⌃⇧Y</kbd></button>
-    <!-- D56: no packet, but a job of yours — one click prepares it and fills. -->
-    <button class="btn btn-primary" id="btn-prepare" style="display:none">Prepare this application</button>
     <!-- ⭐ T11: the form is inside an ATS's frame (Stripe → Greenhouse) — one click asks Chrome for that site, then fills. -->
     <button class="btn btn-primary" id="btn-allow-frame" style="display:none">Allow draft on this site</button>
     <!-- D56: the manual route records its own submission — this page is the evidence. -->
     <button class="btn" id="btn-submitted" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> I submitted it</button>
     <p id="submitted-msg" style="display:none"></p>
     <div class="btn-row" id="posting-actions" style="display:none">
-      <!-- ⭐ D63 (7): Capture and Score side by side, the shortcut on the primary. -->
+      <!-- ⭐ T22: Capture it is the ONE action on a page that is not a job of yours; the score is the job card's number,
+           and the full report is the dock's ATS tab (Open dock). -->
       <button class="btn btn-primary" id="btn-capture-primary">Capture it <kbd>⌃⇧K</kbd></button>
-      <button class="btn" id="btn-score-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 19v-5M12 19V7M18 19v-9"/></svg> Score</button>
     </div>
   </div>
   <div id="copy-sheet">
@@ -247,34 +248,21 @@
     <ul id="auto-today-list"></ul>
   </details>
 
-  <hr class="divider" id="all-divider" style="display:none">
-  <p class="all-head" id="all-head" style="display:none">Everything</p>
-  <div class="squares">
-    <button class="sq" id="btn-capture-job" aria-label="Capture job" title="Capture job (Ctrl+Shift+K)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h10a1 1 0 0 1 1 1V21l-6-4-6 4V4.5a1 1 0 0 1 1-1z"/></svg>
-      <span class="sq-cap" aria-hidden="true">capture</span>
-    </button>
-    <button class="sq" id="btn-fill" aria-label="Fill application" title="Fill application (Ctrl+Shift+Y)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h9l5 5v11H5z"/><path d="M14 4v5h5M8.5 13h7M8.5 16.5h4.5"/></svg>
-      <span class="sq-cap" aria-hidden="true">fill</span>
-    </button>
-    <button class="sq" id="btn-ats" aria-label="ATS Score Tool" title="ATS Score Tool">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 19v-5M12 19V7M18 19v-9"/></svg>
-      <span class="sq-cap" aria-hidden="true">score</span>
-    </button>
-    <!-- The Draft action carries the mark, /d on the orange, as on the job cards (D1). -->
+  <!-- ⭐ T22 (owner 10-15, REVISED) · THE POPUP IS A LAUNCHER. The capture, fill and score tiles are gone — Capture it and
+       Fill it are the main action above, Ctrl+Shift+K and Ctrl+Shift+Y, and the right-click menu; the score is the job
+       card's number and the dock's ATS tab. The stand-alone résumé button is gone: the dock's Résumé tab is a view, not a place
+       to start one. Kept: the Draft button (/d, the mark on the orange, as on the job cards — D1) and Open dock, which
+       opens the in-page dock (it can be moved, resized and kept open, which a toolbar popup cannot) and closes this. -->
+  <div class="mini" id="launch">
     <button class="sq sq--primary" id="btn-resume" aria-label="Open draft" title="Open draft">
       <span class="draft-d" aria-hidden="true">/d</span>
     </button>
+    <button class="mb" id="btn-open-dock" title="draft's panel on this page — Fill, ATS, Résumé and Copy sheet; move it, resize it, keep it open">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M14 4.5v15M16.5 8.5h2M16.5 11.5h2"/></svg> Open dock</button>
   </div>
-  <!-- ⭐ D98 (J6): opens the Résumé panel ON THE PAGE for this tab's job — its own row, so the labels below keep one
-       line. It generates nothing: the panel's own Generate button does. -->
-  <div class="mini">
-    <button class="mb" id="btn-resume-onpage" title="A résumé made for this job, on the page — generated only when you press Generate there">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 15.5h7M9 19h4"/></svg> Résumé for this job</button>
-  </div>
-  <!-- ⭐ D63 (5): the text links go. Copy sheet and Report form are depth boxes under Everything, with More
-       (the options page, where Sign in with LinkedIn and Keyboard shortcuts now live — they are used once). -->
+  <!-- ⭐ D63 (5): the text links go. Copy sheet and Report form are depth boxes, with More (the options page, where
+       Sign in with LinkedIn and Keyboard shortcuts now live — they are used once). ⭐ T17: Copy sheet opens the dock on
+       its Copy sheet tab. -->
   <div class="mini">
     <button class="mb" id="btn-copy-sheet" title="Your prepared answers, to copy by hand on a portal draft cannot fill">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg> Copy sheet</button>
@@ -302,6 +290,5 @@
   <script src="popup.js"></script>
   <script type="module" src="popup-auto.js"></script>
   <script type="module" src="popup-progress.js"></script>
-  <script type="module" src="popup-resume.js"></script>
 </body>
 </html>

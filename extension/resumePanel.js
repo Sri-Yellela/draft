@@ -14,11 +14,13 @@
 //   through auth.js authedFetch (the extension's own token) — POST /api/extension/resume and its status / cancel / pdf
 //   routes (routes/extensionResume.js). The server runs the web app's own generation: a Draft slot, the claim guard,
 //   the ATS scorer, a normal tailored résumé linked to the job. test/j6ResumePanel.test.js greps every network target.
-// ⛔ USER-TRIGGERED ONLY. A generation starts from ONE place: the panel's own Generate / Regenerate button, a TRUSTED
-//   click (ev.isTrusted — a page script's synthetic click is refused, as J4's review panel refuses one), sent as
-//   RESUME_GENERATE from the page's tab with `trigger: "click"`. The popup's "Résumé" button and the review panel's
-//   "Make a résumé for this job" only OPEN the panel; RESUME_GENERATE from anywhere but a tab is refused. Nothing runs on
-//   a timer, a page load, a step change or a fill. The popup's D23 rule holds: opening it reads nothing from the page.
+// ⛔ USER-TRIGGERED ONLY. A generation starts from ONE handler, RESUME_GENERATE — sent from the page's tab with
+//   `trigger: "click"`; from anywhere but a web page's tab it is refused. ⭐ T22 REVISED (owner 10-15): the Résumé tab of
+//   the dock is a VIEW (state, preview, Attach) and no longer starts one — its Generate / Try again / Regenerate are gone,
+//   and so are the popup's "Résumé for this job" and every other trigger. The two places a résumé is started from are
+//   the Draft button (T24) and the résumé field's row in a manual fill (T18's "Generate and attach") — both the user's
+//   own press, both still to be wired; until then nothing in the extension sends RESUME_GENERATE. Nothing runs on a
+//   timer, a page load, a step change or a fill. The popup's D23 rule holds: opening it reads nothing from the page.
 // ⛔ NO MONEY, TOKENS, OR MODEL NAMES. The user sees the allowance ("uses 1 of your 10 Draft slots today") and nothing
 //   else; the server already strips cost fields (services/extensionResume.js userSafe), and the model built here takes
 //   only named fields from the server's answer, never echoes one wholesale.
@@ -64,8 +66,6 @@ export function configureResumePanel({ serverUrl } = {}) { SERVER_URL = serverUr
 
 /** The panel's poll while a generation runs (the server's own estimate is 10–20 s). */
 export const POLL_MS = 2000;
-/** What the panel says before Regenerate spends another slot (the server's REGENERATE_WARNING, in the slot's words). */
-export const REGENERATE_WORDS = 'Generating again uses another of your Draft slots.';
 /** ⚠ True at this lane's merge (D98 P3 not built — docs/D98_P0_REPORT.md §5): the web editor's save re-runs neither. */
 export const EDIT_NOT_RECHECKED = 'Opens this job in draft in a new tab. Edits made there are not re-checked by the claim guard or re-scored yet.';
 export const DRAG_HINT = 'drag it onto the upload box';
@@ -117,13 +117,13 @@ const plain = (v, max = 300) => String(v ?? '').replace(/\s+/g, ' ').trim().slic
 export const COST_WORDS = /\$\s?\d|\b(usd|cents?|tokens?|claude[\w-]*|gpt-?\d[\w.-]*|sonnet|opus|haiku|anthropic|openai|gemini|llm|credit balance|api key|billing|pric(e|ing))\b/i;
 const UNAVAILABLE = 'Résumé generation is unavailable right now.';
 const safe = (v, fallback = null, max = 400) => { const t = plain(v, max); return !t || COST_WORDS.test(t) ? fallback : t; };
+// ⭐ T22 REVISED (owner 10-15): the Résumé tab is a VIEW — its state, a preview, Attach — and no longer a place to START a
+// résumé. Generate, Try again and Regenerate are gone from it; a résumé is started from exactly two places, the Draft
+// button and the résumé field's own row in a manual fill (T24 / T18 — RESUME_GENERATE below is the one start they use).
 const ACTION = {
-  generate: { role: 'generate', label: 'Generate a résumé for this job', primary: true },
-  retry: { role: 'generate', label: 'Try again', primary: true },
   cancel: { role: 'cancel', label: 'Cancel' },
   attach: { role: 'attach', label: 'Attach', primary: true },
   attachAgain: { role: 'attach', label: 'Attach again' },
-  regenerate: { role: 'regenerate', label: 'Regenerate' },
   edit: { role: 'edit', label: 'Edit in a full page' },
   download: { role: 'download', label: 'Download PDF' },
   downloadPrimary: { role: 'download', label: 'Download PDF', primary: true },
@@ -193,14 +193,12 @@ function modelCore({ job = null, view = null, allowance = null, error = null, at
   if (error && !view) {
     line(safe(error.error, UNAVAILABLE), 'warn');
     if (error.code === 'slots_exhausted') line(slotWords(a));
-    const canRetry = !['no_base_resume', 'upgrade_required', 'not_your_job', 'no_job', 'slots_exhausted', 'plan_limit', 'extension_only'].includes(error.code);
-    return { ...base, state: 'error', actions: canRetry ? [ACTION.retry] : [] };
+    return { ...base, state: 'error', actions: [] };
   }
   const status = view?.status || null;
   if (!status) {
-    line(`Made for ${jobWords(j)}, from your résumé in draft, checked against your profile and scored for this job.`);
-    line(slotWords(a));
-    return { ...base, state: 'none', title: 'Generate a résumé for this job', actions: a && a.remaining <= 0 ? [] : [ACTION.generate] };
+    line('No résumé has been made for this job yet.');
+    return { ...base, state: 'none', title: 'Résumé for this job', actions: [] };
   }
   if (status === 'queued' || status === 'generating') {
     line(`Generating your résumé for ${jobWords(j)} — usually 10–20 seconds.`);
@@ -214,17 +212,17 @@ function modelCore({ job = null, view = null, allowance = null, error = null, at
     line('draft withheld this résumé: it claimed something your profile does not support.', 'warn');
     line('Nothing was attached.');
     if (refunded) line('Your Draft slot was given back.');
-    return { ...base, state: 'refused', title: 'Withheld by the claim guard', reasons, actions: [ACTION.retry] };
+    return { ...base, state: 'refused', title: 'Withheld by the claim guard', reasons, actions: [] };
   }
   if (status === 'failed') {
     line(safe(view.error?.message, UNAVAILABLE), 'warn');
     line(refunded ? 'Nothing was attached, and your Draft slot was given back.' : 'Nothing was attached.');
-    return { ...base, state: 'failed', title: 'It did not finish', actions: [ACTION.retry] };
+    return { ...base, state: 'failed', title: 'It did not finish', actions: [] };
   }
   if (status === 'cancelled') {
     line('Cancelled — nothing was attached.');
     line(refunded ? 'Your Draft slot was given back.' : 'The work had already started, so the slot was used.');
-    return { ...base, state: 'cancelled', title: 'Cancelled', actions: [ACTION.retry] };
+    return { ...base, state: 'cancelled', title: 'Cancelled', actions: [] };
   }
   // ready
   const ready = {
@@ -247,7 +245,7 @@ function modelCore({ job = null, view = null, allowance = null, error = null, at
       lines: [...more, attach ? { text: 'The page shows the file in its upload box.', tone: 'ok' }
         : { text: 'You chose this file for this application. If the upload box does not show it, press Attach again or Download PDF.', tone: '' },
         { text: 'A later fill on this application attaches this same file — nothing is generated again.', tone: '' }],
-      actions: [ACTION.attachAgain, ACTION.download, ACTION.regenerate, ACTION.edit] };
+      actions: [ACTION.attachAgain, ACTION.download, ACTION.edit] };
   }
   if (outcome === 'fallback' || outcome === 'noinput') {
     const why = outcome === 'noinput'
@@ -261,7 +259,7 @@ function modelCore({ job = null, view = null, allowance = null, error = null, at
   }
   return { ...ready, state: 'ready', title: 'Your résumé is ready',
     lines: [...more, { text: 'Read it, then Attach puts it in this application’s upload box.', tone: '' }],
-    actions: [ACTION.attach, ACTION.regenerate, ACTION.edit] };
+    actions: [ACTION.attach, ACTION.download, ACTION.edit] };
 }
 
 /** Every word a model shows the user — its title, lines, reasons, findings, buttons and marks (not the résumé itself). */
@@ -411,7 +409,6 @@ export function renderResumePanel(model, meta) {
   const { root: atsRoot, panel: atsPanel } = mount(atsHost, 'draft — ATS report for this job');
 
   let m = model;
-  let confirmRegenerate = false;
   const elapsed = (from) => { const s = Math.max(0, Math.round((Date.now() - from) / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 
   // ── the ATS tab: draft's report for this tab's job ──
@@ -462,10 +459,7 @@ export function renderResumePanel(model, meta) {
     if (m.state === 'refused') marks.push('<span class="mark no">withheld — nothing attached</span>');
     const reasons = m.reasons?.length ? `<ul class="list" data-role="reasons">${m.reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : '';
     const findings = m.findings?.length ? `<div class="note">Worth a look:</div><ul class="list" data-role="findings">${m.findings.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : '';
-    const actions = (m.actions || []).map(a => {
-      const confirm = a.role === 'regenerate' && confirmRegenerate;
-      return `<button class="btn${a.primary || confirm ? ' primary' : ''}" data-role="${esc(a.role)}">${esc(confirm ? 'Regenerate — use a slot' : a.label)}</button>`;
-    }).join('');
+    const actions = (m.actions || []).map(a => `<button class="btn${a.primary ? ' primary' : ''}" data-role="${esc(a.role)}">${esc(a.label)}</button>`).join('');
     const showsEdit = (m.actions || []).some(a => a.role === 'edit');
     panel.innerHTML = `
       <div class="hd">
@@ -481,8 +475,6 @@ export function renderResumePanel(model, meta) {
         ${m.preview ? '<div class="pvw" data-role="preview-wrap"><div class="pv" data-role="preview"></div></div>' : ''}
       </div>
       <div class="ft">
-        ${confirmRegenerate ? `<p class="ln warn" data-role="regenerate-warning">${esc(meta?.regenerateWords || 'Generating again uses another of your Draft slots.')}${
-          m.allowance && Number.isFinite(m.allowance.remaining) ? ` ${esc(m.allowance.remaining)} left.` : ''} Press Regenerate again to go ahead.</p>` : ''}
         <div class="acts">${actions}</div>
         ${showsEdit ? `<div class="note" data-role="edit-note">${esc(meta?.editNote || '')}</div>` : ''}
         <div class="say" data-role="say" aria-live="polite"></div>
@@ -505,7 +497,6 @@ export function renderResumePanel(model, meta) {
     }, meta?.pollMs || 2000);
   };
   const take = (r, reply, fallback) => {
-    confirmRegenerate = false;
     // the report is asked for when the panel opens; a later model (a status, a cancel) keeps it
     if (reply?.model) m = { ...reply.model, report: reply.model.report ?? (reply.model.state === 'nojob' ? null : m.report) };
     draw(); schedule();
@@ -543,12 +534,7 @@ export function renderResumePanel(model, meta) {
     if (role === 'download') return download(r);
     btn.disabled = true;
     const say = (t, w) => sayIn(r, t, w);
-    if (role === 'generate') { say('Asking draft…'); return take(r, await send({ type: 'RESUME_GENERATE', trigger: 'click', regenerate: false }), 'Could not reach draft — try again.'); }
-    if (role === 'regenerate') {
-      if (!confirmRegenerate) { confirmRegenerate = true; draw(); return; }
-      say('Asking draft…');
-      return take(r, await send({ type: 'RESUME_GENERATE', trigger: 'click', regenerate: true, id: m.id }), 'Could not reach draft — try again.');
-    }
+    // ⭐ T22 REVISED: no Generate / Regenerate here — this tab is a view; nothing in it starts a résumé.
     if (role === 'cancel') { say('Cancelling…'); return take(r, await send({ type: 'RESUME_CANCEL', id: m.id }), 'Could not cancel — try again.'); }
     if (role === 'attach') { say('Attaching…'); return take(r, await send({ type: 'RESUME_ATTACH', id: m.id }), 'Could not attach — try Download PDF.'); }
     if (role === 'edit') { const got = await send({ type: 'RESUME_OPEN_EDITOR', id: m.id }); btn.disabled = false; if (!got?.ok) say(got?.message || 'Could not open draft.', true); else say('Opened in a new tab.'); }
@@ -694,7 +680,7 @@ async function withAtsComponent(tab, model) {
 }
 
 const meta = async () => ({ theme: await overlayTheme(), paper: { bg: C_LIGHT.SURFACE_SOLID, ink: C_LIGHT.INK },
-  pollMs: POLL_MS, regenerateWords: REGENERATE_WORDS, editNote: EDIT_NOT_RECHECKED, dragHint: DRAG_HINT });
+  pollMs: POLL_MS, editNote: EDIT_NOT_RECHECKED, dragHint: DRAG_HINT });
 
 /** The router's handlers. `serverUrl` defaults to the one configureResumePanel set. */
 export function handlersFor(serverUrl = null) {
@@ -723,7 +709,8 @@ export function handlersFor(serverUrl = null) {
   }
 
   return {
-    /** Open (or refresh) the panel — from the popup's "Résumé" button (the active tab) or the review panel's offer. */
+    /** Open (or refresh) the ATS and Résumé tabs — from Open dock / the context menu (the active tab), the dock's own tab
+     *  press, or the review row's "See the Résumé tab". Starts nothing. */
     // ⭐ T17: the dock's ATS and Résumé tabs (`msg.tab`: 'ats' | 'resume' — which one to show), drawn in the TOP frame.
     RESUME_PANEL_OPEN: async (msg, sender) => {
       if (!url()) return refuse('Not configured.');
@@ -743,7 +730,10 @@ export function handlersFor(serverUrl = null) {
       }
     },
 
-    /** ⛔ The ONE start: the panel's own Generate / Regenerate — a trusted click, from the page's tab, never the popup. */
+    /**
+     * ⛔ The ONE start — a click from the page's tab, never the popup. ⭐ T22 REVISED: no control sends it yet; T24 (the
+     * Draft button) and T18 (the résumé row's "Generate and attach") are the two that will.
+     */
     RESUME_GENERATE: async (msg, sender) => {
       if (msg?.trigger !== 'click') return refuse('A résumé is generated only from its button.');
       const tab = tabOf(sender);

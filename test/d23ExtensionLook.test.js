@@ -215,13 +215,15 @@ test("D23: neither -> recent captures, after the press; on chrome:// Capture is 
   const p = bootPopup({ preview: { capturable: false }, tabUrl: "chrome://extensions/",
     context: { packets: [], posting: null, recent: [{ jobId: "a", title: "Platform Engineer", company: "Tailspin", capturedAt: Date.now() }] } });
   await p.settle();
-  assert.equal(p.els["btn-capture-job"].disabled, true, "Capture is offered on a page that cannot be captured");
-  assert.notEqual(p.els["btn-capture-job"].style.display, "none");
+  // ⭐ T22: the capture tile is gone — on a page that cannot be read the MAIN action is offered disabled, never hidden
+  assert.equal(p.els["btn-read-page"].disabled, true, "Read is offered disabled on a page draft cannot read");
+  assert.notEqual(p.els["btn-read-page"].style.display, "none");
   for (const fn of p.els["btn-read-page"].listeners.click) fn({});
   await p.settle();
   assert.equal(p.els["recent"].style.display, "block");
   assert.equal(p.els["recent-list"].children.length, 1);
-  assert.equal(p.els["btn-capture-job"].disabled, true);
+  assert.equal(p.els["posting-actions"].style.display, "flex", "Capture it is shown…");
+  assert.equal(p.els["btn-capture-primary"].disabled, true, "…disabled, with its reason, never hidden");
 });
 
 test("D23: the server half is unchanged — D13's /api/import/context, with D4's parser, not a second one", () => {
