@@ -2,7 +2,10 @@ import {
   runGatedHandoff, clearPacketForTab, sweepExpiredPackets, applyOverlayEdit,
   loadBatchForTab, clearBatchForTab, portalQueueFor, armBatchAdvance, takeBatchAdvance,
   prepareAndFill, recordSubmitted, copySheetFor, pageMatchFor, packetFillsOrigin, overlayTheme, loadPacketForTab,
+  formFrameOf, formFrameHandlers as FORM_FRAME_HANDLERS,
 } from './gated-handoff.js';
+// ⭐ T17: the ONE floating dock (dock.js) — drawn in the TOP frame only; where it sits, remembered per site; the look.
+import { handlers as DOCK_HANDLERS, configureDock, drawInDock, dockMeta, openDockInPage, forgetAppearance } from './dockHost.js';
 // D96 §3 (J1): where each application stands — local, per job, no answer values.
 import { noteCapture, noteContext, noteReviewed, noteAddress, notePacketState, progress, resumeFor } from './progress.js';
 // ⭐ T13 + T14 (field report 10-14): the ONE accessor for what a tab is (and a known address binds a new tab at once),
@@ -21,7 +24,7 @@ import { lookupBoardJob } from './boardJob.js';
 // ⭐ BINDING FIRST (owner 10-15): every press on a page draft has not seen identifies the page and binds the tab first.
 import { identifyAndBind, identityView, STOPS as IDENTITY_STOPS } from './identify.js';
 // ⭐ One job per tab across every stage of its application, and the Copy sheet as an in-page panel (owner, 10-12).
-import { bindTab, bindingForTab, clearBinding, setBindingDock, bindingLine, loadBinding, BIND_PREFIX } from './tabBinding.js';
+import { bindTab, bindingForTab, clearBinding, bindingLine, loadBinding, BIND_PREFIX } from './tabBinding.js';
 import { renderCopySheetPanel } from './copy-sheet-panel.js';
 import { authedFetch, getIdentity, cachedIdentity, disconnect } from './auth.js';
 import { captureResultFrom } from './captureResult.js';
@@ -256,6 +259,41 @@ async function popupContext(tab) {
   };
 }
 
+// ── ⭐ T17 · THE DOCK ────────────────────────────────────────────────────────────────────────────────────────────────
+/** The Copy sheet tab of the dock, for this tab's job (its prepared answers) or the profile. */
+async function copySheetPanel(tab) {
+  const sheet = await copySheetFor({ serverUrl: RESUME_MASTER_URL, tab });
+  const r = await drawInDock(tab.id, renderCopySheetPanel, [sheet, await overlayTheme(), await dockMeta(tab)]);
+  return { ok: !!r?.rendered, rows: r?.rows ?? 0, message: sheet?.message || null };
+}
+
+/** A tab of the dock that has no view yet: ATS and Résumé from draft's server, the Copy sheet likewise. Fill is drawn by
+ *  a fill only — the dock's Fill tab says how to start one. */
+async function drawDockTab(tab, which) {
+  if (which === 'ats' || which === 'resume') return RESUME_PANEL_HANDLERS.RESUME_PANEL_OPEN({ tab: which }, { tab });
+  if (which === 'copy') return copySheetPanel(tab);
+  return { ok: true };
+}
+
+/** Open the dock on a tab (drawing it if it is not there), on `which` tab — or the one it was on, or ATS when empty. */
+async function openDock(tab, which = null) {
+  const cant = { ok: false, message: "draft can't open its panel on this page." };
+  if (!tab?.id || !/^https?:/.test(String(tab.url || ''))) return cant;
+  const want = ['fill', 'ats', 'resume', 'copy'].includes(which) ? which : null;
+  let r;
+  try { r = await drawInDock(tab.id, openDockInPage, [await dockMeta(tab), want]); } catch { return cant; }
+  if (!r?.ok) return cant;
+  const has = Array.isArray(r.has) ? r.has : [];
+  const target = want || (has.includes(r.active) ? r.active : has.includes('fill') ? 'fill' : 'ats');
+  if (!has.includes(target)) {
+    const drawn = await drawDockTab(tab, target).catch(() => null);
+    if (target !== 'fill' && !drawn?.ok) return { ok: true, tab: target, message: drawn?.message || null };
+  } else if (!want) {
+    try { await drawInDock(tab.id, openDockInPage, [await dockMeta(tab), target]); } catch { /* it is open */ }
+  }
+  return { ok: true, tab: target };
+}
+
 /** What the popup shows once you press "Read this page" (D23). Same extractor, no network, no writes. */
 async function previewActiveTab(tab) {
   const capturable = !!tab?.id && (!tab.url || /^https?:$/.test(new URL(tab.url).protocol));
@@ -388,25 +426,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  // ⭐ The Copy sheet as a PANEL IN THE PAGE (owner 10-12: the popup closed on every paste, and had no close). The
-  // popup's press is the gesture that grants activeTab; the panel is drawn under it and the popup closes itself.
+  // ⭐ The Copy sheet as a PANEL IN THE PAGE (owner 10-12: the popup closed on every paste, and had no close) — ⭐ T17:
+  // the dock's Copy sheet tab. The popup's press is the gesture that grants activeTab; the tab is drawn under it and the
+  // popup closes itself.
   if (message.type === 'COPY_SHEET_PANEL') {
     chrome.tabs.query({ active: true, currentWindow: true })
-      .then(async ([tab]) => {
-        const sheet = await copySheetFor({ serverUrl: RESUME_MASTER_URL, tab });
-        const bound = await bindingForTab(tab);
-        const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: renderCopySheetPanel,
-          args: [{ ...sheet, dock: bound?.dock || 'right' }, await overlayTheme()] });
-        return { ok: !!r?.result?.rendered, rows: r?.result?.rows ?? 0, message: sheet?.message || null };
-      })
+      .then(([tab]) => copySheetPanel(tab))
       .then(sendResponse)
       .catch(() => sendResponse({ ok: false, message: "draft can't show the Copy sheet on this page." }));
     return true;
   }
-  // The panel's dock side, remembered with the tab's binding (no storage key of its own).
-  if (message.type === 'COPY_SHEET_DOCK' && sender?.tab?.id) {
-    void setBindingDock(sender.tab.id, message.side);
-    sendResponse({ ok: true });
+  // ⭐ T17 · "Open dock" — the popup is a launcher: it opens the dock on the page and closes itself (a toolbar popup can
+  // neither be resized nor stay open). `message.tab` names the tab to show; a tab with no view yet is drawn — a view
+  // from draft's server, never a read of the page.
+  if (message.type === 'DOCK_OPEN') {
+    chrome.tabs.query({ active: true, currentWindow: true })
+      .then(([tab]) => openDock(tab, message.tab))
+      .then(sendResponse)
+      .catch(() => sendResponse({ ok: false, message: "draft can't open its panel on this page." }));
+    return true;
+  }
+  // ⭐ T17 · the dock's empty Fill tab: "Fill this page" — the SAME chain the popup's Fill it and Ctrl+Shift+Y run, for
+  // the tab the dock is on. ⛔ Only the person's own click in the page's TOP frame (the dock never exists elsewhere).
+  if (message.type === 'DOCK_FILL') {
+    if (message.trigger !== 'click' || sender?.frameId !== 0 || !sender?.tab?.id) { sendResponse({ ok: false }); return true; }
+    handleGatedHandoff(sender.tab)
+      .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null }))
+      .catch(() => sendResponse({ ok: false, message: 'Could not fill this page.' }));
+    return true;
+  }
+  // ⭐ T17 · the dock's own tab press, on a tab with no view yet (the dock's page, its TOP frame, a trusted click).
+  if (message.type === 'DOCK_TAB') {
+    if (message.trigger !== 'click' || sender?.frameId !== 0 || !sender?.tab?.id) { sendResponse({ ok: false }); return true; }
+    drawDockTab(sender.tab, message.tab)
+      .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null }))
+      .catch(() => sendResponse({ ok: false, message: 'draft could not show this here.' }));
     return true;
   }
   // "Unlink this page" — forget which job this tab is on.
@@ -465,6 +519,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Ending the extension's own credential, deliberately. Revokes server-side, then clears locally.
   if (message.type === 'DISCONNECT') {
+    forgetAppearance();
     disconnect(RESUME_MASTER_URL)
       .then(() => sendResponse({ ok: true }))
       .catch(() => sendResponse({ ok: false }));
@@ -531,9 +586,10 @@ chrome.commands.onCommand.addListener((command) => {
 // identify binds and prepares nothing), fills, and prepares-then-fills when nothing is prepared — and says what it did
 // (tabState.js runFillChain). ⛔ Only this press runs the chain: the automatic switches
 // (autoRead.js) call the handoff itself.
-async function handleGatedHandoff() {
+async function handleGatedHandoff(onTab = null) {
   void sweepExpiredPackets();
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  // ⭐ T17: the dock's own "Fill this page" names its tab (the page it is on); every other press is the active tab's.
+  const [tab] = onTab ? [onTab] : await chrome.tabs.query({ active: true, currentWindow: true });
   const result = await runFillChain({
     state: () => tabStateFor(tab),
     identify: () => identifyAndBind(tab, { serverUrl: RESUME_MASTER_URL }),
@@ -573,8 +629,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type === 'GATE_REVIEW_EDIT') {
     const tabId = sender.tab?.id;
     if (!tabId) { sendResponse({ ok: false, reason: 'no_tab' }); return true; }
-    // ⭐ T11: the panel sits in the form's frame, so its edit goes back to the frame it came from.
-    applyOverlayEdit({ tabId, frameId: sender.frameId ?? 0, field: msg.field, value: msg.value })
+    // ⭐ T17: the panel is on the dock, in the TOP frame; its edit goes to the frame the FORM is in (T11's tabId + frameId).
+    applyOverlayEdit({ tabId, frameId: formFrameOf(tabId), field: msg.field, value: msg.value })
       .then(result => sendResponse({ ok: true, result }))
       .catch(e => sendResponse({ ok: false, reason: e.message }));
     return true;                                            // async response
@@ -843,6 +899,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 configureBoardOpen({ serverUrl: RESUME_MASTER_URL });
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const handle = BOARD_OPEN_HANDLERS[msg?.type];
+  if (!handle) return false;
+  handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
+  return true;
+});
+
+// ── ⭐ T17: the dock ──────────────────────────────────────────────────────────────────────────────────────────────────
+// dockHost.js: DOCK_PLACE — where the dock sits, remembered per site (only from a page's TOP frame). gated-handoff.js:
+// what the dock's views ask about the FORM — read in the frame the form is in, by tabId + frameId (T11).
+configureDock({ serverUrl: RESUME_MASTER_URL });
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  const handle = DOCK_HANDLERS[msg?.type] || FORM_FRAME_HANDLERS[msg?.type];
   if (!handle) return false;
   handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
   return true;

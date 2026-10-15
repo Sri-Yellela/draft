@@ -61,7 +61,9 @@ function chromeStub({ attachResult = { target: true, set: true, verified: true, 
     tabs: { query: async () => [TAB], create: async (o) => { out.opened.push(o.url); return { id: 99 }; } },
     scripting: {
       executeScript: async (x) => {
-        out.injected.push({ func: x.func.name, args: x.args });
+        // ⭐ T17: a file by name — the dock (dock.js) at frame 0 before the view, the ATS component — recorded apart
+        if (!x.func) { (out.files = out.files || []).push({ files: x.files, target: x.target }); return [{ result: null }]; }
+        out.injected.push({ func: x.func.name, args: x.args, target: x.target });
         if (x.func.name === "renderResumePanel") return [{ result: { ok: true, rendered: true, state: x.args[0].state } }];
         if (x.func.name === "attachResumeFile") return [{ result: x.args[0].probe ? { target: out.attach.target, reason: out.attach.target ? null : "no_file_input" } : out.attach }];
         return [{ result: null }];
@@ -121,7 +123,8 @@ test("⛔ J6: a résumé is generated only by the panel's own click — never fr
   assert.ok(urls.length > 0);
   // ⛔ in the page: every press that reaches the server or the page is behind ev.isTrusted
   const src = read("extension/resumePanel.js");
-  const click = src.slice(at(src, "const onClick = async (ev) => {"), at(src, "const onKey = (ev) => {"));
+  // ⭐ T17: one click handler serves both of the dock's views (ATS and Résumé); the window's keys are the dock's
+  const click = src.slice(at(src, "const onClick = (r) => async (ev) => {"), at(src, "host.__draftCleanup = cleanup;"));
   const trusted = at(click, "if (!ev.isTrusted) return;");
   for (const role of ["'download'", "'generate'", "'regenerate'", "'cancel'", "'attach'", "'edit'"]) {
     assert.ok(at(click, `role === ${role}`) > trusted, `${role} is handled before the trusted-click check`);
@@ -393,7 +396,7 @@ test("⛔ J6: the preview HTML is cleaned again in the extension — no script, 
   assert.doesNotMatch(m.preview.html, /tracker\.test/);
   // and in the page: an inert DOMParser document, everything that runs or loads removed, its own shadow root
   const src = read("extension/resumePanel.js");
-  const fillPreview = src.slice(at(src, "const fillPreview = (el, html) => {"), at(src, "const host = document.createElement('div');"));
+  const fillPreview = src.slice(at(src, "const fillPreview = (el, html) => {"), at(src, "// The two hosts, from the dock"));
   assert.match(fillPreview, /const r = el\.attachShadow\(\{ mode: 'open' \}\);/);
   assert.match(fillPreview, /new DOMParser\(\)\.parseFromString\(/);
   assert.match(fillPreview, /doc\.querySelectorAll\(DROP\)\.forEach\(n => n\.remove\(\)\);/);

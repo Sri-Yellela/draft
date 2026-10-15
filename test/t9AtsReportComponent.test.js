@@ -242,7 +242,8 @@ test("⛔ T9 · the popup and the on-page panel draw the component — and add o
   assert.doesNotMatch(stripJs(popup), /tier1_|competencies_|action_verbs_/, "the popup reads a report's sections itself");
   const panel = read("extension/resumePanel.js");
   assert.match(panel, /files: \['atsReport\.js'\]/, "the panel injects the extension's own file — no remote code");
-  assert.match(panel, /ATS\.mountAtsReport\(host, m\.report\.report, \{\}\)/);
+  // ⭐ T17: drawn in the dock's ATS tab (its own view, rm-ats-panel)
+  assert.match(panel, /ATS\.mountAtsReport\(cardHost, m\.report\.report, \{\}\)/);
   assert.doesNotMatch(stripJs(panel), /tier1_|competencies_|action_verbs_/);
   // The service worker keeps the report to the component's own named fields.
   assert.match(read("extension/boardJob.js"), /globalThis\.__draftAtsReport\?\.cleanReport\(ats\.report\)/);

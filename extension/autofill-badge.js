@@ -25,7 +25,10 @@
  * The × dismisses the badge and STOPS the wizard advance (it leaves data-dismissed on the host, which
  * the advance loop reads). It never touches the form.
  *
- * Both functions below are serialised into the page by executeScript and close over nothing.
+ * ⭐ T17: the badge is the DOCK's status line (extension/dock.js), in the TOP frame — never inside a child frame. The
+ * required-field pre-check runs in the FORM's frame and reaches it through the service worker.
+ *
+ * Every function below is serialised into the page by executeScript and closes over nothing.
  */
 
 export const BADGE_ID = 'rm-draft-autofill-badge';
@@ -44,11 +47,11 @@ export const BADGE_TEXT = Object.freeze({
 // ── Injected: the required-field pre-check (g). ISOLATED world, read-only. ─────────────────────
 // Reports LABELS of empty required controls — never a value. `emptyness` is read, not content.
 //
-// ⛔ renderBadge carries a BYTE-IDENTICAL copy (modulo indentation) for its live re-count, because a
-// serialised function can import nothing. test/d55Autofill.test.js asserts the two match.
+// ⭐ T17: ONE copy. It runs in the FORM's frame — injected by the fill, and by the service worker each time the dock's
+// status line re-counts (DOCK_MISSING_REQUIRED). renderBadge, in the top frame, holds no copy of it any more.
 export function findMissingRequired() {
   const root = document.querySelector('[data-automation-id="applyFlowPage"]') || document.querySelector('form') || document.body;
-  const ours = (el) => !!el.closest('#rm-gate-review-overlay, #rm-draft-autofill-badge');
+  const ours = (el) => !!el.closest('#rm-gate-review-overlay, #rm-draft-autofill-badge, [data-draft-dock]');
   const textOf = (el) => String(el?.textContent || '').replace(/\s+/g, ' ').trim();
   const idsText = (ids) => String(ids || '').split(/\s+/).filter(Boolean).map(id => textOf(document.getElementById(id))).join(' ');
   const labelEl = (el) => (el.id && document.querySelector(`label[for="${CSS.escape(el.id)}"]`)) || el.closest('label')
@@ -94,13 +97,18 @@ export function findMissingRequired() {
   return out;
 }
 
-// ── Injected: the badge. ISOLATED world (it never needs the page's JS). ─────────────────────────
+// ── Injected: the badge — THE DOCK'S STATUS LINE. ISOLATED world, TOP frame (it never needs the page's JS). ──────────
+// ⭐ T17: the badge is no longer a box of its own floating over the form (in a child frame it was cut off by the frame's
+// edge). It is the dock's ONE status line (extension/dock.js, slot "status"): under the dock's header, and the words of
+// the slim bar when the dock is collapsed. A dock that does not exist yet is opened COLLAPSED for it — a slim bar, as
+// small as the badge was. The required-field count is read where the form is: the service worker runs
+// findMissingRequired in the form's frame (DOCK_MISSING_REQUIRED) — this function never reads the page's fields.
 /**
- * @param {'progress'|'required'|'done'|'unrecognised'} state
- * @param {object} meta  { theme: { light, dark }, missing: [{label}], live: boolean, note?: string }
- *   live — single-page forms: the badge re-counts on the page's own input/change events and flips
- *   itself from "Complete required fields" to "Filled — review and submit" when the candidate has
- *   answered. On a wizard the advance loop drives it instead.
+ * @param {'progress'|'required'|'done'|'unrecognised'|'ready'} state
+ * @param {object} meta  { theme: { light, dark }, dock, missing: [{label}], live: boolean, note?: string, text?: string }
+ *   live — single-page forms: the line re-counts (the service worker reads the form again every 1.5 s, and at once on the
+ *   top page's own input/change) and flips itself from "Complete required fields" to "Filled — review and submit" when
+ *   the candidate has answered. On a wizard the advance loop drives it instead.
  */
 export function renderBadge(state, meta) {
   const ID = 'rm-draft-autofill-badge';
@@ -111,110 +119,22 @@ export function renderBadge(state, meta) {
     unrecognised: "This form isn't recognised — nothing was filled",
     ready: 'Read by draft',
   };
-
-  // ⛔ BYTE-IDENTICAL (modulo indentation) TO THE EXPORTED findMissingRequired — see its note.
-  function findMissingRequired() {
-    const root = document.querySelector('[data-automation-id="applyFlowPage"]') || document.querySelector('form') || document.body;
-    const ours = (el) => !!el.closest('#rm-gate-review-overlay, #rm-draft-autofill-badge');
-    const textOf = (el) => String(el?.textContent || '').replace(/\s+/g, ' ').trim();
-    const idsText = (ids) => String(ids || '').split(/\s+/).filter(Boolean).map(id => textOf(document.getElementById(id))).join(' ');
-    const labelEl = (el) => (el.id && document.querySelector(`label[for="${CSS.escape(el.id)}"]`)) || el.closest('label')
-      || (el.getAttribute('aria-labelledby') && document.getElementById(el.getAttribute('aria-labelledby').split(/\s+/)[0]))
-      || el.closest('[role="radiogroup"], fieldset')?.querySelector('legend')
-      || el.closest('[role="group"]')?.querySelector('[id]');
-    const starred = (l) => !!l && (!!l.querySelector?.('abbr[title="required" i], .required, [data-required="true"]') || /\*\s*$/.test(textOf(l)));
-    const group = (el) => el.closest('[role="radiogroup"], fieldset');
-    const isRequired = (el) => el.required === true || el.getAttribute('aria-required') === 'true'
-      || group(el)?.getAttribute('aria-required') === 'true' || starred(labelEl(el));
-    const box = (el) => el.closest('[data-automation-id^="formField"], [role="group"], fieldset') || el.parentElement;
-    const isEmpty = (el) => {
-      const type = String(el.type || '').toLowerCase();
-      if (type === 'radio') return !root.querySelector(`input[type="radio"][name="${CSS.escape(el.name)}"]:checked`);
-      if (type === 'checkbox') return !el.checked;
-      if (type === 'file') return !(el.files && el.files.length) && !box(el)?.querySelector('[data-automation-id="file-upload-successful"]');
-      if (el.tagName === 'INPUT' && (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list')) {
-        return !box(el)?.querySelector('[data-automation-id="selectedItem"], [role="listitem"]') && !String(el.value || '').trim();
-      }
-      if (el.tagName !== 'INPUT' && el.tagName !== 'SELECT' && el.tagName !== 'TEXTAREA' &&
-          (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-haspopup') === 'listbox')) {
-        const t = textOf(el);
-        return !t || /^(select|choose|please|--)/i.test(t);
-      }
-      if (el.isContentEditable) return !textOf(el);
-      return !String(el.value ?? '').trim();
-    };
-    const seen = new Set();
-    const out = [];
-    for (const el of root.querySelectorAll('input, select, textarea, [role="combobox"], button[aria-haspopup="listbox"], [contenteditable="true"]')) {
-      const type = String(el.type || '').toLowerCase();
-      if (ours(el) || ['hidden', 'submit', 'image', 'reset'].includes(type)) continue;
-      if (el.tagName === 'BUTTON' && el.getAttribute('aria-haspopup') !== 'listbox') continue;
-      if (el.disabled || el.closest('[hidden], [aria-hidden="true"]')) continue;
-      if (!isRequired(el) || !isEmpty(el)) continue;
-      const key = type === 'radio' ? `radio:${el.name}` : el;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      const raw = type === 'radio' ? textOf(group(el)?.querySelector('legend')) || idsText(group(el)?.getAttribute('aria-labelledby'))
-        : textOf(labelEl(el)) || el.getAttribute('aria-label') || el.getAttribute('placeholder') || '';
-      out.push({ label: raw.replace(/\*\s*$/, '').trim().slice(0, 160) || '(unlabelled field)' });
-    }
-    return out;
-  }
+  const D = globalThis.__draftDock;
+  if (!D?.ensure) return { rendered: false, error: 'no_dock' };
+  const fresh = !D.current?.();
+  const dock = D.ensure(fresh ? { ...(meta?.dock || {}), place: { ...(meta?.dock?.place || {}), collapsed: true } } : (meta?.dock || {}));
+  if (!dock) return { rendered: false, error: 'not_top_frame' };
+  const send = (msg) => new Promise((resolve) => {
+    try { chrome.runtime.sendMessage(msg, (reply) => { void chrome.runtime.lastError; resolve(reply ?? null); }); } catch { resolve(null); }
+  });
 
   let host = document.getElementById(ID);
   if (host?.dataset.dismissed === '1') return { rendered: false, dismissed: true };
   // D97: the read's line never paints over a fill's own state (progress · required · done · unrecognised).
   if (state === 'ready' && host?.dataset.state && host.dataset.state !== 'ready' && host.shadowRoot?.innerHTML) return { rendered: false, busy: true };
-  if (!host) {
-    host = document.createElement('div');
-    host.id = ID;
-    host.attachShadow({ mode: 'open' });
-    document.documentElement.appendChild(host);
-  }
+  host = dock.status({ id: ID });
+  if (!host.shadowRoot) host.attachShadow({ mode: 'open' });
   clearInterval(Number(host.dataset.timer || 0));
-  // ⭐ T11 · IN A FRAME, FOLLOW WHAT IS ON SCREEN — the same watcher as review-overlay.js renderOverlay (⛔ duplicated:
-  // each function is serialised alone; both share `globalThis.__draftFrameView`, whichever is drawn first installs it).
-  // An ATS frame is sized to the whole form, so `position:fixed` would pin the badge to the top of a 4,000px frame.
-  const inFrame = (() => { try { return window.top !== window; } catch { return true; } })();
-  const FV = inFrame ? (globalThis.__draftFrameView = globalThis.__draftFrameView || (() => {
-    const v = { top: 0, height: innerHeight, listeners: new Set(), seen: new Map() };
-    const box = document.createElement('div');
-    box.setAttribute('data-draft-viewport', '');
-    box.setAttribute('aria-hidden', 'true');
-    box.style.cssText = 'position:absolute;left:0;top:0;width:1px;pointer-events:none;opacity:0;z-index:-1;';
-    const io = new IntersectionObserver((entries) => {
-      for (const e of entries) v.seen.set(e.target, e.isIntersecting ? e.intersectionRect : null);
-      let top = Infinity, bottom = -Infinity;
-      for (const r of v.seen.values()) if (r && r.height > 0) { top = Math.min(top, r.top); bottom = Math.max(bottom, r.bottom); }
-      if (top === Infinity) { v.height = 0; } else { v.top = top + scrollY; v.height = bottom - top; }
-      for (const f of v.listeners) { try { f(); } catch { /* a removed badge */ } }
-    }, { threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1] });
-    const lay = () => {
-      const h = Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight || 0, innerHeight);
-      const want = Math.ceil(h / 50);
-      while (box.children.length < want) {
-        const s = document.createElement('div');
-        s.style.cssText = `position:absolute;left:0;top:${box.children.length * 50}px;width:1px;height:50px;`;
-        box.append(s);
-        io.observe(s);
-      }
-    };
-    document.documentElement.appendChild(box);
-    lay();
-    try { new ResizeObserver(lay).observe(document.documentElement); } catch { /* no ResizeObserver */ }
-    return v;
-  })()) : null;
-  const position = () => {
-    const overlayOpen = !!document.getElementById('rm-gate-review-overlay');
-    host.style.cssText = FV
-      ? `position:absolute;top:${Math.round(FV.top + 16)}px;right:${overlayOpen ? 412 : 16}px;z-index:2147483647;`
-      : `position:fixed;top:16px;right:${overlayOpen ? 412 : 16}px;z-index:2147483647;`;
-  };
-  if (FV && !host.__draftFollow) {
-    let raf = 0;
-    host.__draftFollow = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; if (host.isConnected) position(); }); };
-    FV.listeners.add(host.__draftFollow);
-  }
   const root = host.shadowRoot;
   const theme = meta?.theme || {};
   const varsOf = (pal) => Object.entries(pal || {})
@@ -223,11 +143,12 @@ export function renderBadge(state, meta) {
   const paint = (s, missing) => {
     host.dataset.state = s;
     host.dataset.missing = String(missing.length);
-    // Beside the review overlay rather than under it, when that is open (and, in a frame, inside the visible strip).
-    position();
+    host.hidden = false;
     const tone = { progress: 'violet', required: 'warning', done: 'success', unrecognised: 'danger', ready: 'info' }[s] || 'info';
     const label = s === 'required' && missing.length ? `${TEXT.required} (${missing.length})`
       : s === 'ready' ? String(meta?.text || TEXT.ready).slice(0, 140) : (TEXT[s] || '');
+    // the dock's slim bar says it too, when no fill has drawn its counts yet
+    dock.statusText(label);
     // ⭐ D63 (1): the state reads by colour AND by icon, so it never depends on colour alone.
     const ICON = {
       progress: '<path d="M6 12h.01M12 12h.01M18 12h.01"/>',
@@ -238,23 +159,22 @@ export function renderBadge(state, meta) {
     }[s] || '<path d="M12 6v8M12 18h.01"/>';
     root.innerHTML = `
       <style>
-        :host { ${varsOf(theme.light)} all: initial; }
+        :host { ${varsOf(theme.light)} all: initial; display: block; }
         @media (prefers-color-scheme: dark) { :host { ${varsOf(theme.dark)} } }
+        :host([hidden]) { display: none; }
         /* ⛔ D60 / D63 (1): a DEPTH BOX, never a capsule — extension-latest.html's .barb. */
-        .bar { display: flex; align-items: center; gap: 10px; max-width: 380px; padding: 8px;
+        .bar { display: flex; align-items: center; gap: 10px; padding: 6px 8px;
           border-radius: 12px; border: 1px solid var(--c-glass-edge); border-left: 4px solid var(--c-${tone});
-          box-shadow: var(--c-shadow-md), var(--c-depth-rest);
-          font: 600 13px/1.3 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+          box-shadow: var(--c-depth-rest);
+          font: 600 12.5px/1.3 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
           background: var(--c-surface-solid); color: var(--c-ink); }
-        .st { width: 30px; height: 30px; flex: none; border-radius: 8px; display: grid; place-items: center;
+        .st { width: 26px; height: 26px; flex: none; border-radius: 8px; display: grid; place-items: center;
           background: var(--c-${tone}-quiet); color: var(--c-${tone}); }
-        .st svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-        .mark { font-family: 'Poppins', 'DM Sans', ui-sans-serif, sans-serif; font-size: 12px; font-style: italic; font-weight: 800; color: var(--c-logo-word); }
-        .mark b { color: var(--c-logo-slash); font-weight: 800; }
+        .st svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
         .t { flex: 1; min-width: 0; cursor: ${s === 'required' ? 'pointer' : 'default'}; }
         .n { font-family: 'Poppins', 'DM Sans', ui-sans-serif, sans-serif; font-size: 11px; font-style: italic; font-weight: 800;
           border-radius: 6px; padding: 3px 7px; background: var(--c-${tone}-quiet); color: var(--c-${tone}); }
-        .x { font: inherit; font-size: 14px; border: 0; cursor: pointer; width: 28px; height: 28px; flex: none; border-radius: 8px;
+        .x { font: inherit; font-size: 14px; border: 0; cursor: pointer; width: 26px; height: 26px; flex: none; border-radius: 8px;
           background: var(--c-surface-2); color: var(--c-ink-muted); box-shadow: var(--c-depth-rest); }
         .x:hover, .x:focus-visible { box-shadow: var(--c-depth-hover); color: var(--c-ink); }
         .x:focus-visible, .t:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
@@ -263,7 +183,6 @@ export function renderBadge(state, meta) {
       </style>
       <div class="bar" data-s="${s}" role="status" aria-live="polite">
         <span class="st" data-role="icon" aria-hidden="true"><svg viewBox="0 0 24 24">${ICON}</svg></span>
-        <span class="mark" aria-hidden="true"><b>/</b>draft</span>
         <span class="t" data-role="text" tabindex="${s === 'required' ? 0 : -1}"></span>
         ${s === 'required' && missing.length ? '<span class="n" data-role="count" aria-hidden="true"></span>' : ''}
         <button class="x" type="button" data-role="dismiss" aria-label="${s === 'ready' ? 'Dismiss' : 'Dismiss — stop autofill on this page'}">×</button>
@@ -275,45 +194,56 @@ export function renderBadge(state, meta) {
     if (cnt) cnt.textContent = String(missing.length);
     t.title = s === 'required' ? missing.map(m => m.label).join('\n') : (meta?.note || '');
     t.setAttribute('aria-label', s === 'required' ? `${label}: ${missing.map(m => m.label).join(', ')}` : label);
-    // "Complete required fields" is one line, but it can take you there: the next empty one.
-    const go = () => {
-      const want = findMissingRequired()[0];
-      if (!want) return;
-      const lab = [...document.querySelectorAll('label, legend, [id]')].find(l => String(l.textContent || '').replace(/\s+/g, ' ').trim().replace(/\*\s*$/, '').trim() === want.label);
-      (lab || document.body).scrollIntoView({ block: 'center', behavior: 'smooth' });
-    };
+    // "Complete required fields" is one line, but it can take you there: the next empty one — in the form's own frame.
+    const go = () => { void send({ type: 'DOCK_GO_MISSING' }); };
     t.onclick = s === 'required' ? go : null;
     t.onkeydown = s === 'required' ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } } : null;
     root.querySelector('[data-role="dismiss"]').onclick = () => {
+      dock.statusText('');
       // D97: the read's line is only information — closing it leaves no stop signal, so a later fill still runs.
-      if (s === 'ready') { root.innerHTML = ''; return; }
+      if (s === 'ready') { root.innerHTML = ''; host.hidden = true; return; }
       host.dataset.dismissed = '1';
       clearInterval(Number(host.dataset.timer || 0));
       root.innerHTML = '';
+      host.hidden = true;
     };
   };
 
-  const missing = state === 'required' ? (meta?.missing || findMissingRequired()) : [];
+  const missing = state === 'required' ? (Array.isArray(meta?.missing) ? meta.missing : []) : [];
   paint(state, missing);
 
-  // Live on a single page: flip itself once the candidate has answered every required field — and
-  // back, if they clear one. Polled as well as event-driven: custom widgets often fire neither.
+  // Live on a single page: flip itself once the candidate has answered every required field — and back, if they clear
+  // one. Asked of the form's frame through the service worker; polled, because custom widgets often fire no event.
   if (meta?.live && (state === 'required' || state === 'done')) {
-    const recount = () => {
-      if (host.dataset.dismissed === '1') return;
-      const now = findMissingRequired();
-      const s = now.length ? 'required' : 'done';
-      if (s !== host.dataset.state || String(now.length) !== host.dataset.missing) paint(s, now);
+    let asking = false;
+    const recount = async () => {
+      if (host.dataset.dismissed === '1' || asking || !host.isConnected) return;
+      asking = true;
+      const r = await send({ type: 'DOCK_MISSING_REQUIRED' });
+      asking = false;
+      if (!Array.isArray(r?.missing) || host.dataset.dismissed === '1' || !host.isConnected) return;
+      const s = r.missing.length ? 'required' : 'done';
+      if (s !== host.dataset.state || String(r.missing.length) !== host.dataset.missing) paint(s, r.missing);
     };
-    const timer = setInterval(recount, 1500);
+    const timer = setInterval(() => { void recount(); }, 1500);
     host.dataset.timer = String(timer);
     if (!host.dataset.listening) {
       host.dataset.listening = '1';
-      document.addEventListener('change', () => setTimeout(recount, 50), true);
-      document.addEventListener('input', () => setTimeout(recount, 50), true);
+      document.addEventListener('change', () => setTimeout(() => { void recount(); }, 50), true);
+      document.addEventListener('input', () => setTimeout(() => { void recount(); }, 50), true);
     }
   }
+  host.__draftCleanup = () => clearInterval(Number(host.dataset.timer || 0));
   return { rendered: true, state: host.dataset.state, missing: Number(host.dataset.missing || 0) };
+}
+
+/** Injected, ISOLATED world, in the FORM's frame (DOCK_GO_MISSING): scroll the next empty required field into view. */
+export function goToMissingRequired(missing) {
+  const want = (Array.isArray(missing) ? missing : [])[0];
+  if (!want) return false;
+  const lab = [...document.querySelectorAll('label, legend, [id]')].find(l => String(l.textContent || '').replace(/\s+/g, ' ').trim().replace(/\*\s*$/, '').trim() === want.label);
+  (lab || document.body).scrollIntoView({ block: 'center', behavior: 'smooth' });
+  return !!lab;
 }
 
 /** Read whether the candidate dismissed the badge — the advance loop's stop signal. ISOLATED world. */

@@ -106,6 +106,18 @@ export async function renderExtensionTokens() {
     fontFace("Instrument Serif", "normal", 400, "fonts/instrument-serif-latin-400-normal.woff2", LATIN);
 
   const obj = (pal) => "Object.freeze({\n" + names.map((n) => `  ${n}: ${JSON.stringify(pal[n])},`).join("\n") + "\n})";
+  // ⭐ T17: the dock (extension/dock.js) and every view on it are drawn in ALL FOUR of the registry's themes — the
+  // account's appearance (GET /api/settings/appearance) picks the pair, gated-handoff.js overlayTheme() resolves it. The
+  // two Paper / Charcoal palettes ARE C_LIGHT / C_DARK (colorTokens.js re-exports them), so only the Contrast pair is new.
+  const { THEME_LIST } = await import(pathToFileURL(path.join(ROOT, "client/src/themes/index.js")).href);
+  const byId = Object.fromEntries(THEME_LIST.map((t) => [t.id, t]));
+  for (const t of THEME_LIST) {
+    const lacking = names.filter((n) => !(n in t.tokens));
+    if (lacking.length) throw new Error(`themes/${t.id}.js lacks ${lacking.join(", ")}`);
+  }
+  const constOf = { "paper-light": "C_LIGHT", "charcoal-dark": "C_DARK", "contrast-light": "C_CONTRAST_LIGHT", "contrast-dark": "C_CONTRAST_DARK" };
+  const unknown = THEME_LIST.map((t) => t.id).filter((id) => !constOf[id]);
+  if (unknown.length) throw new Error(`a theme the extension does not carry yet: ${unknown.join(", ")} — add it to constOf`);
   const js =
     `/* ${HEADER} */\n\n` +
     `// For what cannot link tokens.css: code injected into a page by executeScript (the review overlay,\n` +
@@ -113,6 +125,13 @@ export async function renderExtensionTokens() {
     `// toolbar badge from them.\n` +
     `export const C_LIGHT = ${obj(C_LIGHT)};\n\n` +
     `export const C_DARK = ${obj(C_DARK)};\n\n` +
+    `// ⭐ T17: the registry's Contrast pair (client/src/themes/contrast-*.js), for the dock and its views.\n` +
+    `export const C_CONTRAST_LIGHT = ${obj(byId["contrast-light"].tokens)};\n\n` +
+    `export const C_CONTRAST_DARK = ${obj(byId["contrast-dark"].tokens)};\n\n` +
+    `/** Every theme of the registry, by id: its scheme and its palette. */\n` +
+    `export const EXT_THEMES = Object.freeze({\n` +
+    THEME_LIST.map((t) => `  ${JSON.stringify(t.id)}: Object.freeze({ scheme: ${JSON.stringify(t.scheme)}, tokens: ${constOf[t.id]} }),`).join("\n") +
+    `\n});\n\n` +
     `export const cssVarName = (name) => \`--c-\${name.toLowerCase().replace(/_/g, "-")}\`;\n`;
   return { "tokens.css": css, "tokens.js": js };
 }

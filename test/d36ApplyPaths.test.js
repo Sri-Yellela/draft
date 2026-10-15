@@ -513,7 +513,7 @@ test("D36·6 · the gated fill renders the review overlay after it fills, and on
   const src = read("extension/gated-handoff.js");
   const fill = src.slice(anchor(src, "async function fillFromPacket("), anchor(src, "async function captureFormSchema("));
   const applied = anchor(fill, "func: applyPlan,");
-  const overlay = anchor(fill, "func: renderOverlay,");
+  const overlay = anchor(fill, "drawInDock(tab.id, renderOverlay,");   // ⭐ T17: drawn on the dock, top frame
   assert.ok(overlay > applied, "the overlay is drawn over the filled form");
   assert.match(fill, /overlay: \{ rendered: true, rows: reviewItems\.length \}/);
   // The failure path says something different from success, and tells the candidate what to do.

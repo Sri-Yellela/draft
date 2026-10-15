@@ -22,13 +22,13 @@
 //   asked for it to be remembered — the panel's acknowledge, or its "Remember for next time" tick.
 //
 // Message handlers for the router (background.js — the coordinator wires them):
-//   export const handlers = { ANSWER_ACKNOWLEDGE, ANSWER_CHANGE, PANEL_DOCK } — each async (msg, sender) => reply.
+//   export const handlers = { ANSWER_ACKNOWLEDGE, ANSWER_CHANGE } — each async (msg, sender) => reply.
 // The server URL is the router's (background.js RESUME_MASTER_URL); configureAnswerMemory({ serverUrl }) sets it once.
 
 import { authedFetch } from './auth.js';
 import { neverFillableReason, widgetKindOf } from './answerKey.js';
 import { loadPacketForTab, patchPacketSavedAnswers } from './gated-handoff.js';
-import { bindingForTab, setBindingDock } from './tabBinding.js';
+import { bindingForTab } from './tabBinding.js';
 
 const MAX_QUESTION = 500;
 const MAX_ANSWER = 2000;
@@ -142,12 +142,8 @@ export function handlersFor(serverUrl = null) {
       if (r.ok) r.refreshed = await refreshTab(url(), sender.tab, job.company);
       return r;
     },
-    /** The review panel's dock side, remembered with the tab's binding (tabBinding.js — no key of its own). */
-    PANEL_DOCK: async (msg, sender) => {
-      if (!sender?.tab?.id) return { ok: false };
-      await setBindingDock(sender.tab.id, msg?.side, 'panelDock');
-      return { ok: true };
-    },
+    // ⭐ T17: PANEL_DOCK is gone — the review panel is the dock's Fill tab, and the dock remembers where it sits per site
+    // (dockHost.js DOCK_PLACE).
   };
 }
 

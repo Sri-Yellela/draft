@@ -150,7 +150,7 @@ export default async function run(h, { check, observe, section }) {
   check('the server keeps the PDF as this application\'s', CTL.pdfs().length === 1 && CTL.pdfs()[0].attached_at != null);
 
   section('6 · the Copy sheet and the NEXT fill reuse the same file');
-  await click(h, '[data-role="close"]');
+  await h.page.click('#rm-draft-dock >>> [data-role="close"]');   // ⭐ T17: Close is the dock's
   const sheet = await h.openCopySheet();
   const cs = await h.waitForCopySheet();
   const csRow = (cs?.rows || []).find(r => /^Résumé — attached ✓/.test(r.label || ''));

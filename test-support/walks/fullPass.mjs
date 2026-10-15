@@ -322,7 +322,7 @@ export default async function run(h, { check, observe, section }) {
   check(`Attach → "Attached: ${FILE}"`, attached?.state === 'attached' && attached?.title === `Attached: ${FILE}`, JSON.stringify(attached));
   const status = await page.$eval('#ws-resume-status', el => el.textContent).catch(() => '');
   check('…and the fixture\'s upload shows the name', new RegExp(`${FILE.replace(/\./g, '\\.')} · Successfully Uploaded!`).test(status), status);
-  await page.click('#rm-resume-panel >>> [data-role="close"]');
+  await page.click('#rm-draft-dock >>> [data-role="close"]');   // ⭐ T17: Close is the dock's
 
   section('8 · the Copy sheet, in the page');
   const sheetAck = await h.openCopySheet();

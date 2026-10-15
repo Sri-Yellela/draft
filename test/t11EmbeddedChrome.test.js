@@ -5,7 +5,9 @@
 // origins are https, so the fixture must be too): a throwaway self-signed certificate is made with openssl in a temp
 // directory and Chrome is told to accept it and to resolve both hosts to this machine. Two cases:
 //   (a) the test build carries the Greenhouse host permission → the fill lands INSIDE the frame, the review panel draws
-//       there, nothing is submitted, the employer's own newsletter box is untouched;
+//       on the DOCK in the TOP frame (⭐ T17 — never inside the form's frame), nothing is submitted, the employer's own
+//       newsletter box is untouched; (c) the dock stays on screen however the page scrolls; (d) dragged across the
+//       form's frame it keeps following the pointer, and it is remembered for the careers SITE;
 //   (b) it does not → "Allow draft on Greenhouse", nothing filled and NOTHING RELEASED (no mint, no exchange).
 // Skips, with its reason, where there is no Chrome or no openssl. Synthetic people only.
 import test from "node:test";
@@ -88,7 +90,10 @@ async function launch(fx, { greenhouse }) {
 const frameValues = (h) => h.frame(u => u.startsWith(`https://${GH_HOST}/`))?.evaluate(() =>
   Object.fromEntries([...document.querySelectorAll("#application_form input")].map(i => [i.id, i.value])));
 
-test("⭐ (a) with Greenhouse allowed: the fill lands INSIDE the embedded frame and the panel draws there; nothing submitted",
+/** ⭐ T17: is anything of draft's drawn in a frame? (a child frame holds only the extractor and the filler) */
+const drawnIn = (f) => f.evaluate(() => [...document.querySelectorAll("[data-draft-dock], [data-draft-view], #rm-gate-review-overlay, #rm-draft-autofill-badge, [data-draft-viewport]")].map(e => e.id || e.tagName));
+
+test("⭐ (a) with Greenhouse allowed: the fill lands INSIDE the embedded frame; the panel is the DOCK in the TOP frame (T17), never in the form's frame; nothing submitted",
   { skip, timeout: 180000 }, async (t) => {
     const fx = await startFixture();
     t.after(() => fx.stop());
@@ -103,18 +108,27 @@ test("⭐ (a) with Greenhouse allowed: the fill lands INSIDE the embedded frame 
     assert.deepEqual(v, { first_name: "Ada", last_name: "Example", email: "ada@example.test", phone: "555-0100" });
     const news = await h.page.evaluate(() => document.getElementById("news").value);
     assert.equal(news, "", "the employer's own newsletter box is not the application");
-    const panel = await waitUntil(() => h.readPanelInFrame(u => u.startsWith(`https://${GH_HOST}/`)), 15000);
-    assert.ok(panel, "the review panel is drawn in the form's frame");
+    // ⛔ T17 (owner 10-15 (a)): the panel was baked into the form's iframe — cut off by its edge, or covering the form.
+    const panel = await waitUntil(() => h.readPanel(), 15000);
+    assert.ok(panel, "the review panel is drawn in the TOP frame");
     assert.ok(panel.rows.some(x => /^First Name/.test(x.label) && x.value === "Ada"), JSON.stringify(panel.rows));
-    assert.equal(await h.readPanel(), null, "and not over the employer's page");
+    const top = await h.page.evaluate(() => ({ dock: document.getElementById("rm-draft-dock")?.getAttribute("data-draft-dock"),
+      parent: document.getElementById("rm-gate-review-overlay")?.parentElement?.id, badge: document.getElementById("rm-draft-autofill-badge")?.slot }));
+    assert.deepEqual(top, { dock: "dock", parent: "rm-draft-dock", badge: "status" }, "the panel is the dock's Fill tab, the badge its status line");
+    const gh = h.frame(u => u.startsWith(`https://${GH_HOST}/`));
+    assert.deepEqual(await drawnIn(gh), [], "⛔ nothing of draft's is drawn inside the form's frame");
+    assert.equal(await h.readPanelInFrame(u => u.startsWith(`https://${GH_HOST}/`)), null);
+    // the live check reads the FORM's frame through the service worker: a field answered there moves its row
+    const phoneBefore = panel.rows.find(x => /^Phone/.test(x.label));
+    assert.ok(phoneBefore, "Phone is listed");
     const mint = h.api.requests.find(q => /\/gate-packets\/\d+\/token$/.test(q.path));
     assert.equal(mint?.body?.frameUrl, FRAME, "the mint named the frame it would fill");
-    await sleep(1500);   // the panel animates in; the screenshot is for a person to look at
-    await h.screenshot("t11-embedded-filled");
+    await sleep(1500);   // the dock animates in; the screenshot is for a person to look at
+    await h.screenshot("t17-embedded-filled-dock-top-frame");
     assert.deepEqual(fx.posts, [], "draft never submits");
   });
 
-test("⭐ (c) a frame as tall as the form (Greenhouse's real shape): the panel and the badge stay ON SCREEN as the page scrolls",
+test("⭐ (c) a frame as tall as the form (Greenhouse's real shape): the dock — in the TOP frame — stays ON SCREEN as the page scrolls, never past the viewport",
   { skip, timeout: 180000 }, async (t) => {
     const fx = await startFixture();
     t.after(() => fx.stop());
@@ -125,27 +139,59 @@ test("⭐ (c) a frame as tall as the form (Greenhouse's real shape): the panel a
     await waitUntil(() => h.frame(gh), 10000);
     const r = await h.prepare({ timeoutMs: 30000 });
     assert.equal(r.ok, true, `${r.reason}: ${r.message}`);
-    await waitUntil(() => h.readPanelInFrame(gh), 15000);
-    // Where an element of the frame sits in the TOP-LEVEL viewport: the iframe's box plus the element's box in the frame.
-    const onScreen = async (id) => {
-      const frameBox = await h.page.evaluate(() => { const b = document.getElementById("grnhse_iframe").getBoundingClientRect(); return { top: b.top, vh: innerHeight }; });
-      const el = await h.frame(gh).evaluate((x) => { const n = document.getElementById(x); if (!n) return null; const b = n.getBoundingClientRect(); return { top: b.top, bottom: b.bottom }; }, id);
-      return el && { top: frameBox.top + el.top, bottom: frameBox.top + el.bottom, vh: frameBox.vh };
-    };
-    for (const y of [1600, 3000]) {
+    await waitUntil(() => h.readPanel(), 15000);
+    const onScreen = (id) => h.page.evaluate((x) => { const b = document.getElementById(x)?.getBoundingClientRect(); return b && { top: b.top, bottom: b.bottom, left: b.left, right: b.right, vh: innerHeight, vw: document.documentElement.clientWidth }; }, id);
+    for (const y of [0, 1600, 3000]) {
       await h.page.evaluate((to) => window.scrollTo(0, to), y);
-      // the panel follows within a frame or two of the scroll; give it a moment
-      const placed = await waitUntil(async () => {
-        const p = await onScreen("rm-gate-review-overlay");
-        return p && p.top >= 0 && p.top < p.vh - 100 ? p : null;
-      }, 5000);
-      assert.ok(placed, `the panel is on screen after scrolling to ${y}: ${JSON.stringify(await onScreen("rm-gate-review-overlay"))}`);
+      await sleep(100);
+      const d = await onScreen("rm-draft-dock");
+      assert.ok(d && d.top >= 0 && d.bottom <= d.vh && d.left >= 0 && d.right <= d.vw, `the dock is on screen, whole, after scrolling to ${y}: ${JSON.stringify(d)}`);
       const badge = await onScreen("rm-draft-autofill-badge");
-      assert.ok(badge && badge.top >= 0 && badge.bottom <= badge.vh, `the badge is on screen after scrolling to ${y}: ${JSON.stringify(badge)}`);
+      assert.ok(badge && badge.top >= 0 && badge.bottom <= badge.vh, `the status line is on screen after scrolling to ${y}: ${JSON.stringify(badge)}`);
     }
+    assert.deepEqual(await drawnIn(h.frame(gh)), [], "⛔ nothing of draft's is drawn inside the tall frame");
     await sleep(800);
-    await h.screenshot("t11-tall-frame-scrolled");
+    await h.screenshot("t17-tall-frame-scrolled");
     assert.deepEqual(fx.posts, [], "draft never submits");
+  });
+
+test("⭐ T17 (d): the dock dragged ACROSS the embedded form's frame keeps moving, and its rectangle is remembered for the SITE (the careers origin) — a reload opens it there",
+  { skip, timeout: 180000 }, async (t) => {
+    const fx = await startFixture();
+    t.after(() => fx.stop());
+    const h = await launch(fx, { greenhouse: true });
+    t.after(() => h.close());
+    await h.open(POSTING, { settle: 1200 });
+    await waitUntil(() => h.frame(u => u.startsWith(`https://${GH_HOST}/`)), 10000);
+    const r = await h.prepare({ timeoutMs: 30000 });
+    assert.equal(r.ok, true, `${r.reason}: ${r.message}`);
+    await waitUntil(() => h.readPanel(), 15000);
+    const rect = () => h.page.evaluate(() => { const b = document.getElementById("rm-draft-dock").getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height) }; });
+    const before = await rect();
+    const hd = await (await h.page.evaluateHandle(() => document.getElementById("rm-draft-dock").shadowRoot.querySelector(".hd .mk"))).asElement().boundingBox();
+    // over the iframe (it starts under the page's heading, at the left) and beyond
+    await h.page.mouse.move(hd.x + 5, hd.y + 5);
+    await h.page.mouse.down();
+    await h.page.mouse.move(300, 300, { steps: 12 });
+    await h.page.mouse.move(200, 150, { steps: 6 });   // (a spot where the 680 px dock still fits below — no clamp)
+    await h.page.mouse.up();
+    const after = await rect();
+    assert.ok(Math.abs(after.x - (before.x + (200 - hd.x - 5))) <= 2 && Math.abs(after.y - (before.y + (150 - hd.y - 5))) <= 2,
+      `the drag crossed the form's frame and followed the pointer to the end: ${JSON.stringify({ before, after })}`);
+    const site = `https://${CAREERS}`;
+    const saved = await waitUntil(async () => (await h.storage.local())?.dockPlace?.[site], 10000);
+    assert.ok(saved, "remembered for the careers site");
+    assert.deepEqual([saved.rect.x, saved.rect.y], [after.x, after.y]);
+    assert.equal((await h.storage.local())?.dockPlace?.[`https://${GH_HOST}`], undefined, "never for the frame's site — the dock is the top page's");
+    // a reload: the panel is opened again (the popup's Open dock) — exactly there
+    await h.reload({ settle: 1200 });
+    const opened = await h.send({ type: "DOCK_OPEN", tab: "fill" });
+    assert.equal(opened?.ok, true, JSON.stringify(opened));
+    const again = await waitUntil(async () => (await h.page.$("#rm-draft-dock")) && rect(), 10000);
+    assert.deepEqual([again.x, again.y, again.w], [after.x, after.y, after.w], "the same rectangle, on the same site");
+    assert.match(await h.page.evaluate(() => document.getElementById("rm-draft-dock").shadowRoot.querySelector('[data-role="empty"]')?.textContent || ""),
+      /Nothing has been filled on this page yet/, "a fresh page's Fill tab says so — and offers Fill this page");
+    assert.deepEqual(fx.posts, []);
   });
 
 test("⭐ (b) without Greenhouse: 'Allow draft on Greenhouse' — nothing filled, nothing released",

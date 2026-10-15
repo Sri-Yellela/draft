@@ -7,6 +7,7 @@
 // into a cover letter's box. Skips, with its reason, where there is no Chrome.
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { spawn } from "node:child_process";
 import { findChrome, freePort, waitUntil, BUSY_MS } from "../test-support/extensionBrowser.mjs";
 import { runScenario } from "../test-support/walkExtension.mjs";
@@ -60,7 +61,9 @@ const stubRuntime = (replies = {}) => `window.chrome = { runtime: { lastError: n
   const r = (${JSON.stringify(replies)})[m.type] ?? null;
   setTimeout(() => cb && cb(r), 10);
 } } };`;
-const draw = (page, model, meta = META) => page.evaluate(`(${renderResumePanel.toString()})(${JSON.stringify(model)}, ${JSON.stringify(meta)})`);
+// ⭐ T17: the résumé is a VIEW of the dock — dock.js first (idempotent), as the service worker's drawInDock does
+const DOCK_JS = fs.readFileSync("extension/dock.js", "utf8");
+const draw = async (page, model, meta = META) => { await page.evaluate(DOCK_JS); return page.evaluate(`(${renderResumePanel.toString()})(${JSON.stringify(model)}, ${JSON.stringify(meta)})`); };
 const inPanel = (page, fn) => page.evaluate(`(() => { const root = document.getElementById('rm-resume-panel').shadowRoot; return (${fn.toString()})(root); })()`);
 
 test("⛔ J6: the panel in both themes — the site's tokens, no capsule, the preview isolated in its own shadow root and inert, a synthetic click sends nothing", { skip: SKIP, timeout: 120000 }, async (t) => {
@@ -124,15 +127,15 @@ test("⛔ J6: the panel in both themes — the site's tokens, no capsule, the pr
     await waitUntil(() => page.evaluate(() => (window.__sent || []).length > 0), BUSY_MS);
     assert.deepEqual(await page.evaluate(() => window.__sent.map(m => [m.type, m.trigger, m.regenerate])), [["RESUME_GENERATE", "click", true]]);
     await new Promise(r => setTimeout(r, 150));   // the reply re-draws the panel
-    // Collapse keeps a slim bar; Esc inside closes; Close closes
-    await page.click("#rm-resume-panel >>> [data-role='collapse']");
-    assert.match(await inPanel(page, (root) => root.querySelector('[data-role="slim"]').textContent), /^Résumé · /);
-    await page.focus("#rm-resume-panel >>> [data-role='expand']");
+    // Collapse keeps a slim bar; Esc inside closes; Close closes — ⭐ T17: the DOCK's controls, the view's words
+    await page.click("#rm-draft-dock >>> [data-role='collapse']");
+    assert.match(await page.evaluate(() => document.getElementById("rm-draft-dock").shadowRoot.querySelector('[data-role="slim"]').textContent), /^Résumé · /);
+    await page.focus("#rm-draft-dock >>> [data-role='expand']");
     await page.keyboard.press("Escape");
     assert.equal(await page.$("#rm-resume-panel"), null, `${scheme}: Esc closes`);
-    await page.evaluate(() => { globalThis.__draftResumePanel.collapsed = false; });
     await draw(page, readyModel());
-    await page.click("#rm-resume-panel >>> [data-role='close']");
+    await page.click("#rm-draft-dock >>> [data-role='expand']").catch(() => null);   // the dock remembers it was collapsed
+    await page.click("#rm-draft-dock >>> [data-role='close']");
     assert.equal(await page.$("#rm-resume-panel"), null, `${scheme}: Close closes`);
     await page.close();
   }
