@@ -201,6 +201,10 @@
     .btn { font: inherit; font-size: 11.5px; font-weight: 700; padding: 6px 12px; min-height: 30px; border-radius: 8px; border: 0;
       background: var(--c-surface-solid); color: var(--c-ink); box-shadow: var(--c-depth-rest); cursor: pointer; }
     .btn:hover { box-shadow: var(--c-depth-hover); }
+    /* ⭐ T21: the Fill button keeps ONE width through "Fill this page" → "Filling…" → "Filling… 12 of 43" — nothing
+       beside it moves while a fill runs; the count's digits are all one width. */
+    .btn[data-role="fill"] { min-width: 15.5em; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .btn[data-role="fill"][aria-busy="true"] { cursor: progress; }
     .slim { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; height: 100%; cursor: grab; user-select: none; touch-action: none; }
     .slimtxt { flex: 1; min-width: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .slimtxt b { color: var(--c-warning); }
@@ -241,6 +245,39 @@
     resume: 'The résumé made for this job shows here — its state, a preview, and Attach.',
     copy: 'Your answers to copy by hand show here.',
   };
+
+  /** ⭐ T21 · the Fill button's words, from the frame's ONE fill state: idle · filling · filling with a count. */
+  const fillWords = (f) => !f.filling ? 'Fill this page'
+    : Number.isFinite(f.fillCount?.filled) && f.fillCount?.total > 0 ? `Filling… ${f.fillCount.filled} of ${f.fillCount.total}` : 'Filling…';
+
+  // ── ⭐ T21 · NO FLICKER: draw by PATCHING what is there─────────────────────────────────────────────────────────────
+  // Measured (owner report (e), 10-15; test-support/walks/fillFlicker.mjs): one fill pressed from the dock threw the
+  // whole frame away and re-made it 4 times, re-made its Fill button 4 times, and re-mounted the Fill view (a new panel,
+  // its scroll at the top) once per step. Every view now draws its markup as before and hands it to morph(), which
+  // brings the live nodes to it: an unchanged node is left alone, a changed attribute or text is set, and only a node
+  // of another kind is replaced. A form control that differs in any way is replaced whole (its live value is not
+  // an attribute). One function, used by the dock and by the views drawn inside it (__draftDock.morph).
+  function morphNode(from, to) {
+    if (from.nodeType !== to.nodeType || from.nodeName !== to.nodeName) { from.replaceWith(to); return; }
+    if (from.nodeType !== 1) { if (from.nodeValue !== to.nodeValue) from.nodeValue = to.nodeValue; return; }
+    if (from.isEqualNode(to)) return;
+    if (/^(?:INPUT|SELECT|TEXTAREA|OPTION)$/.test(from.nodeName)) { from.replaceWith(to); return; }
+    for (const a of [...from.attributes]) if (!to.hasAttribute(a.name)) from.removeAttribute(a.name);
+    for (const a of [...to.attributes]) if (from.getAttribute(a.name) !== a.value) from.setAttribute(a.name, a.value);
+    morphChildren(from, to);
+  }
+  function morphChildren(from, to) {
+    const fc = [...from.childNodes], tc = [...to.childNodes];
+    for (let i = 0; i < tc.length; i++) { if (i < fc.length) morphNode(fc[i], tc[i]); else from.appendChild(tc[i]); }
+    for (let i = tc.length; i < fc.length; i++) fc[i].remove();
+  }
+  /** Bring `el`'s children to `html` in place. → el */
+  function morph(el, html) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    morphChildren(el, tpl.content);
+    return el;
+  }
 
   // ── ONE frame: the dock, or a tab popped out of it ───────────────────────────────────────────────────────────────
   // z-order: the frame last pressed is on top of draft's others — all of them above the page.
@@ -308,13 +345,13 @@
         // what needs you first (the Fill tab's counts), else what the shown tab says, else the status line
         const need = f.summary.fill?.need;
         const words = f.summary.fill?.text || f.summary[f.kind === 'pop' ? tab : f.active]?.text || f.statusText || (f.kind === 'pop' ? title : 'draft');
-        fr.innerHTML = `<div class="slim" data-role="drag">
+        morph(fr, `<div class="slim" data-role="drag">
             <div class="mk" aria-hidden="true"><span class="sl">/</span>draft</div>
             <span class="slimtxt" data-role="slim">${need ? `<b>${esc(words)}</b>` : esc(words)}</span>
             ${moveBtn}
             <button class="ib" data-role="expand" aria-label="Expand the panel" title="Expand">▢</button>
             <button class="ib" data-role="close" aria-label="${kind === 'dock' ? 'Close the panel' : 'Back into the dock'}" title="${kind === 'dock' ? 'Close (Esc)' : 'Back into the dock'}">×</button>
-          </div>`;
+          </div>`);
         return;
       }
       const tabs = kind === 'dock' ? `<div class="tabs" role="tablist" aria-label="draft">${TABS.map(t => `
@@ -326,11 +363,13 @@
               <button class="btn" data-role="dock-back" data-tab="${t.id}">Bring it back into the dock</button></div>` : ''}
             <slot name="view-${t.id}"><div class="empty" data-role="empty">${esc(EMPTY[t.id])}${f.loading === t.id ? ' Loading…' : ''}${
               f.loadError?.[t.id] ? `<span data-role="load-error">${esc(f.loadError[t.id])}</span>` : ''}${
-              t.id === 'fill' ? `<button class="btn" data-role="fill" title="Ctrl+Shift+Y">${f.filling ? 'Filling…' : 'Fill this page'}</button>${
+              t.id === 'fill' ? `<button class="btn" data-role="fill" title="Ctrl+Shift+Y"${f.filling ? ' aria-busy="true" aria-disabled="true" data-busy="true"' : ''}>${esc(fillWords(f))}</button>${
                 f.fillSaid ? `<span data-role="fill-said">${esc(f.fillSaid)}</span>` : ''}` : ''}</div></slot>
           </div>`).join('')
         : `<div class="pane" data-tab="${tab}"><slot name="view-${tab}"><div class="empty">${esc(EMPTY[tab] || '')}</div></slot></div>`;
-      fr.innerHTML = `
+      // The status line's "has" mark is part of the markup (a patch would otherwise take it off); slotchange keeps it.
+      const hasStatus = !!host.querySelector(':scope > [slot="status"]');
+      morph(fr, `
         <div class="hd" data-role="drag">
           <div class="mk" aria-hidden="true"><span class="sl">/</span>draft</div>
           ${kind === 'pop' ? `<span class="ttl" data-role="title">${esc(title)}</span>` : '<span class="sr">draft</span>'}
@@ -342,15 +381,16 @@
           <button class="ib" data-role="collapse" aria-label="Collapse the panel" title="Collapse">–</button>
           <button class="ib" data-role="close" aria-label="${kind === 'dock' ? 'Close the panel' : 'Back into the dock'}" title="${kind === 'dock' ? 'Close (Esc)' : 'Back into the dock'}">×</button>
         </div>
-        ${kind === 'dock' ? '<div class="st" data-role="status"><slot name="status"></slot></div>' : ''}
+        ${kind === 'dock' ? `<div class="st${hasStatus ? ' has' : ''}" data-role="status"><slot name="status"></slot></div>` : ''}
         ${tabs}
         <div class="body">${panes}</div>
         ${handles}
-        <button class="grip" data-role="resize" aria-label="Resize the panel — arrow keys change its width and height" title="Resize (arrow keys)">◢</button>`;
+        <button class="grip" data-role="resize" aria-label="Resize the panel — arrow keys change its width and height" title="Resize (arrow keys)">◢</button>`);
       const st = root.querySelector('[data-role="status"]');
-      if (st) {
+      if (st && !st.__draftMarked) {
+        st.__draftMarked = true;
         const slot = st.querySelector('slot');
-        const mark = () => st.classList.toggle('has', slot.assignedElements().length > 0);
+        const mark = () => { const has = slot.assignedElements().length > 0; if (st.classList.contains('has') !== has) st.classList.toggle('has', has); };
         slot.addEventListener('slotchange', mark);
         mark();
       }
@@ -567,10 +607,10 @@
     frame.popped = new Set();
     frame.onPop = () => popOut(frame.active);
     frame.onFill = async () => {
-      frame.filling = true; frame.fillSaid = '';
+      frame.filling = true; frame.fillSaid = ''; frame.fillCount = null;
       frame.draw();
       const r = await send({ type: 'DOCK_FILL', trigger: 'click' });
-      frame.filling = false;
+      frame.filling = false; frame.fillCount = null;
       // a fill that drew its panel replaced this empty state; one that did not says why, here
       frame.fillSaid = r?.ok ? '' : (r?.message || 'draft could not fill this page.');
       if (frame.host.isConnected) frame.draw();
@@ -614,7 +654,7 @@
       retheme(m) {
         // a later draw with another resolved theme (the account's appearance changed) repaints the frame's tokens
         if (m?.theme) {
-          for (const f of [frame, ...pops.values()]) { const s = f.root.querySelector('style'); if (s) s.textContent = FRAME_CSS(m.theme, LOGO); }
+          for (const f of [frame, ...pops.values()]) { const s = f.root.querySelector('style'); const css = FRAME_CSS(m.theme, LOGO); if (s && s.textContent !== css) s.textContent = css; }
           loadLogo(m.theme);
         }
         if (m && 'cues' in m) for (const f of [frame, ...pops.values()]) { if (m.cues) f.host.setAttribute('data-cues', 'shape'); else f.host.removeAttribute('data-cues'); }
@@ -623,9 +663,19 @@
        * The host element for a tab's view — a fresh one (the tab's previous view is cleaned up and removed). The caller
        * attaches its own shadow root and draws inside it. `expand`: open the dock if collapsed; `select`: show this tab.
        */
-      view(tab, { id, label = null, select: sel = true, expand = false, onClose = null } = {}) {
+      view(tab, { id, label = null, select: sel = true, expand = false, onClose = null, reuse = null } = {}) {
         if (!TAB_IDS.includes(tab)) throw new Error(`unknown dock tab ${tab}`);
         const prior = views.get(tab);
+        // ⭐ T21: the SAME view drawn again (a wizard step's re-draw of one fill: `reuse` names the run) keeps its element —
+        // its shadow root, its scroll and its focus — and the dock is drawn only if this changes what it shows.
+        if (reuse != null && prior?.el.isConnected && prior.el.dataset.reuse === String(reuse)) {
+          if (onClose) prior.onClose = onClose;
+          const was = { active: frame.active, collapsed: !!frame.place.collapsed };
+          if (expand && frame.place.collapsed) frame.place = { ...frame.place, collapsed: false };
+          if (sel) frame.active = tab;
+          if (was.active !== frame.active || was.collapsed !== !!frame.place.collapsed) frame.draw();
+          return prior.el;
+        }
         if (prior) { try { prior.el.__draftCleanup?.(); } catch { /* gone */ } prior.el.remove(); }
         const old = id ? document.getElementById(id) : null;
         if (old && old !== frame.host) { try { old.__draftCleanup?.(); } catch { /* gone */ } old.remove(); }
@@ -634,6 +684,7 @@
         el.slot = `view-${tab}`;
         el.setAttribute('data-draft-view', tab);
         if (label) el.setAttribute('aria-label', label);
+        if (reuse != null) el.dataset.reuse = String(reuse);
         (pops.get(tab)?.host || frame.host).appendChild(el);
         views.set(tab, { el, onClose });
         if (frame.loadError) frame.loadError[tab] = null;
@@ -663,13 +714,21 @@
         return status;
       },
       /** What the slim bar says: the Fill view's "2 need you · 14 of 18 filled" first, else the status line. */
-      summary(tab, text, { need = 0 } = {}) {
+      summary(tab, text, { need = 0, filled = null, total = null } = {}) {
+        const was = frame.summary[tab];
         frame.summary[tab] = text ? { text: String(text), need } : null;
-        if (frame.place.collapsed) frame.draw();
+        // ⭐ T21: while a fill runs, its count is the Fill button's ("Filling… 12 of 43") — one state, patched in place.
+        if (tab === 'fill' && frame.filling && Number.isFinite(filled) && Number.isFinite(total)) frame.fillCount = { filled, total };
+        if (frame.place.collapsed ? was?.text !== frame.summary[tab]?.text || was?.need !== frame.summary[tab]?.need : tab === 'fill' && frame.filling) frame.draw();
         const p = pops.get(tab);
         if (p) { p.summary[tab] = frame.summary[tab]; if (p.place.collapsed) p.draw(); }
       },
-      statusText(text) { frame.statusText = String(text || ''); if (frame.place.collapsed) frame.draw(); },
+      statusText(text) {
+        const next = String(text || '');
+        if (next === frame.statusText) return;                     // ⭐ T21: the same words draw nothing
+        frame.statusText = next;
+        if (frame.place.collapsed) frame.draw();
+      },
       select: (tab) => select(tab, { load: false }),
       active: () => frame.active,
       collapse() { frame.place = { ...frame.place, collapsed: true }; frame.draw(); save(); },
@@ -692,6 +751,8 @@
     limitsFor, clampRect, defaultRect, layoutRect, moveRect, resizeRect, edgeAtPointer, cleanPlace,
     // the page
     isTop, ensure,
+    // ⭐ T21: the one in-place patch every view draws with
+    morph,
     current: () => (DOCK && DOCK.frame.host.isConnected ? DOCK : null),
   });
 })();
