@@ -310,6 +310,8 @@ async function previewActiveTab(tab) {
 }
 
 const WORKER_STARTED = Date.now();
+/** tabId → the last GATE_REVIEW_STATE write in flight; the next one waits for it (see GATE_REVIEW_STATE). */
+const reviewWrites = new Map();
 
 /**
  * ⭐ T6 · Options → "Show details": every tab draft knows about (bound, or read since the worker started) with its binding,
@@ -651,7 +653,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // of what a human saw before it went out, because the submission happens in a browser we never
     // observe. Best-effort — a failure here must never block the candidate from submitting.
     void recordGateReview(sender.tab?.id, msg);
-    void loadPacketForTab(sender.tab?.id).then(h => noteReviewed(msg, { jobId: h?.packet?.jobId ?? null })).catch(() => {});
+    // ⛔ 43k: IN ARRIVAL ORDER, per tab. Each report waits on loadPacketForTab before it patches the progress record, and
+    // that wait varies (the first is a fetch, the rest hit the cache) — so the panel's FIRST report (its "waiting" draw:
+    // 0 filled · 3 need you) could land after the last ("3 of 3") and the popup said "Filled 0 of 3" after the person
+    // had filled everything (J9, under load). Chained, the last report is always the one that stays.
+    const tabKey = sender.tab?.id ?? 'none';
+    const prior = reviewWrites.get(tabKey) || Promise.resolve();
+    const next = prior.then(() => loadPacketForTab(sender.tab?.id)).then(h => noteReviewed(msg, { jobId: h?.packet?.jobId ?? null })).catch(() => {});
+    reviewWrites.set(tabKey, next);
+    void next.finally(() => { if (reviewWrites.get(tabKey) === next) reviewWrites.delete(tabKey); });
     sendResponse({ ok: true });
     return true;
   }
