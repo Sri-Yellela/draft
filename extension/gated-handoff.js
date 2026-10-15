@@ -1802,6 +1802,8 @@ async function fillFromPacket({ tab, origin, frame = null, released, serverUrl, 
   // step's rows are drawn first, and the candidate sees what needs them while draft waits. Rows of a step the wizard
   // has left are settled (settleStepRows); `panelRows` is the whole run's.
   let settledRows = [], stepRows = [];
+  // ⭐ T21: the status line carries how far the fill has got ("12 of 43"), patched in place — never a re-mount.
+  const progressSoFar = () => { const so = panelSummary([...settledRows, ...stepRows]); return { progress: { filled: so.filled, total: so.total } }; };
   const panelMeta = await panelMetaFor({ tab, released, serverUrl, runId: opts.runId });
   // ⭐ ONE fill per tab: this run supersedes any earlier one still waiting here (ACTIVE_FILL, below).
   if (!opts.runId) ACTIVE_FILL.set(tab.id, panelMeta.runId);
@@ -1866,7 +1868,7 @@ async function fillFromPacket({ tab, origin, frame = null, released, serverUrl, 
       const waited = await waitForCandidate(tab.id, origin, step.wizard.step, wizard, isCurrent);
       if (!waited.ok) { wizard.stoppedAt = waited.reason; break; }
       if (!isCurrent()) { wizard.stoppedAt = 'superseded'; break; }
-      await showBadge(tab.id, 'progress');
+      await showBadge(tab.id, 'progress', progressSoFar());
       const moved = await advanceAndWait(tab.id, step.wizard.step);
       if (moved.ok) advanced = moved;
       else if (moved.reason !== 'portal_refused') { wizard.stoppedAt = moved.reason; break; }

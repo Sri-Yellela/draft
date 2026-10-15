@@ -1,4 +1,4 @@
-import { answerKeyOf, optionsKey, questionLabelKey, widgetKindOf } from './answerKey.js';
+import { answerKeyOf, optionsKey, questionLabelKey, widgetKindOf, neverFillableReason } from './answerKey.js';
 
 // ── D55 (f), the extension's half: saved answers, "have you worked here?" and the EEO decline ─────
 //
@@ -241,6 +241,121 @@ export function savedAnswerFits(s, uk) {
   return uk.optionsKnown ? optionsKey(s.options) === uk.optionsKey : true;
 }
 
+// ── ⭐ T25 (owner 10-15) · A NEAR MATCH: the same question in other words ────────────────────────────────────────
+//
+// "How did you hear about this job?" reuses the answer saved for "How did you hear about us?". Deterministic and
+// explainable — no model: both questions become a SET of content words (normaliseQuestion, then a few curated phrase
+// equivalences, then stop words and the words that only name the employer — us / this job / the role / the company —
+// set aside), and the two sets must be nearly the same: Jaccard ≥ NEAR_THRESHOLD, the SAME question word (how / why /
+// what …), the same negation and the same numbers. "Why do you want to work here?" ({why, want, work}) and "Why are
+// you leaving your job?" ({why, leaving}) share one word in four — not the same question.
+//
+// ⛔ NEVER ACROSS QUESTION KINDS (D96 §7): a question questionKind reads as eligibility / work authorisation /
+// sponsorship, EEO / demographic, consent / attestation, an opt-in, or screening (salary, years of experience,
+// relocation, clearance …) — on EITHER side — still matches ONLY exactly; so does anything the never-fill guard,
+// the EEO classes, the opt-in rule or the worked-here reading recognises, and any saved answer marked eligibility /
+// opt-in / attesting. A near match fills a picker only with one of the field's OWN options (valueStep, exact), and it
+// lands as Check — the row names the original question — never silently Filled. An exact saved answer and every
+// earlier tier (the packet's answers, T18's semantic reading) win: a near match only reaches a question nothing else
+// took, and it never takes a control back from a guess (yieldGuessesToStated is exact-only).
+
+export const NEAR_THRESHOLD = 0.75;
+
+const NEAR_STOP_WORDS = new Set(('a an the of to for in on at by with from about into and or but your you yours yourself i me my ' +
+  'we our ours is are was were be been being am do does did done have has had having will would could should can may might ' +
+  'shall must please kindly briefly tell share let know this that these those it its there as if so any some such ' +
+  'currently ever one what which').split(' '));
+// Words that only name the employer or the opening — "about us" and "about this job" ask the same thing.
+const NEAR_REFERENTS = new Set(('us company companies organization organisation organizations organisations job jobs role roles ' +
+  'position positions opportunity opportunities opening openings posting postings vacancy vacancies here team employer firm ' +
+  'business {company}').split(' '));
+// "What is your GitHub URL?" IS "GitHub URL" — what / which only turn a label into a question (stop words above); these do not.
+const NEAR_QUESTION_WORDS = new Set(['how', 'why', 'when', 'where', 'who', 'whom', 'whose']);
+const NEAR_NEGATIONS = new Set(['not', 'no', 'never', 'none', 'nor', 'without', 'neither']);
+// Curated equivalences, applied to the normalised text before it is split into words.
+const NEAR_PHRASES = [
+  [/\b(?:how|where)\s+did\s+you\s+(?:first\s+)?(?:hear|heard|learn(?:ed|t)?|find\s+out|found\s+out|discover(?:ed)?|come\s+across)\b/g, 'how did you hear'],
+  [/\b(?:find|found|learn(?:ed|t)?|discover(?:ed)?)\s+(?:out\s+)?(?:about|of)\b/g, 'hear about'],
+  [/\bheard\b/g, 'hear'],
+];
+// ⛔ Salary and its relatives — a number about money is never borrowed from another wording.
+const NEAR_MONEY_RE = /\b(?:salary|salaries|compensation|pay|paid|wage|wages|rate|ctc|remuneration|bonus|equity|stipend|earnings?|income|\$|usd|eur|gbp)\b/i;
+// ⛔ Eligibility words beyond questionKind's own list ("legally", "green card", "require sponsorship").
+const NEAR_ELIGIBILITY_RE = /\b(?:authori[sz]\w*|eligib\w*|sponsor\w*|visa|citizen\w*|green\s+card|right\s+to\s+work|legal(?:ly)?|immigration|work\s+permit|i-?9|e-?verify|clearance)\b/i;
+
+/** The content words of a question, as a sorted array — what a near match compares. `company`: this employer's name. */
+export function nearQuestionTokens(text, company = '') {
+  let t = normaliseQuestion(text).replace(/n't\b/g, ' not').replace(/['"]/g, '');
+  for (const [re, to] of NEAR_PHRASES) t = t.replace(re, to);
+  const companyWords = new Set(companyNameVariants(company).flatMap(v => normaliseQuestion(v).split(/[^a-z0-9{}]+/)).filter(Boolean));
+  const out = new Set();
+  for (let w of t.split(/[^a-z0-9{}$]+/)) {
+    if (!w || NEAR_STOP_WORDS.has(w) || NEAR_REFERENTS.has(w) || companyWords.has(w)) continue;
+    if (w.length > 3 && /s$/.test(w) && !/(?:ss|us|is)$/.test(w)) w = w.slice(0, -1);   // plural → singular, nothing more
+    out.add(w);
+  }
+  return [...out].sort();
+}
+
+/**
+ * How near two questions are: { score, near, why }. `near` only when the content-word sets are at least
+ * NEAR_THRESHOLD alike AND ask with the same question word, the same negation and the same numbers.
+ */
+export function nearQuestionScore(a, b, company = '') {
+  const A = nearQuestionTokens(a, company), B = nearQuestionTokens(b, company);
+  if (!A.length || !B.length) return { score: 0, near: false, why: 'no_words' };
+  const only = (xs, set) => xs.filter(x => set.has(x)).join(' ');
+  const nums = (xs) => xs.filter(x => /\d/.test(x)).join(' ');
+  if (only(A, NEAR_QUESTION_WORDS) !== only(B, NEAR_QUESTION_WORDS)) return { score: 0, near: false, why: 'question_word' };
+  if (only(A, NEAR_NEGATIONS) !== only(B, NEAR_NEGATIONS)) return { score: 0, near: false, why: 'negation' };
+  if (nums(A) !== nums(B)) return { score: 0, near: false, why: 'number' };
+  const setB = new Set(B);
+  const shared = A.filter(x => setB.has(x)).length;
+  const score = shared / new Set([...A, ...B]).size;
+  return { score, near: score >= NEAR_THRESHOLD, why: score >= NEAR_THRESHOLD ? 'near' : 'too_different' };
+}
+
+/** Why a question may only ever be matched EXACTLY — a kind, a guard's name — or null when a near match may reach it. */
+export function nearMatchBarred(question, kindOf = () => 'other', options = null) {
+  const kind = kindOf(question);
+  if (['eligibility', 'eeo', 'consent', 'opt_in', 'screening'].includes(kind)) return kind;
+  if (NEAR_ELIGIBILITY_RE.test(String(question ?? ''))) return 'eligibility';
+  if (NEAR_MONEY_RE.test(String(question ?? ''))) return 'salary';
+  if (eeoClassOf(question) || (Array.isArray(options) && eeoClassOfOptions(options.map(String)))) return 'eeo';
+  if (isOptInQuestion(question)) return 'opt_in';
+  if (parseWorkedHereQuestion(question)) return 'worked_here';
+  if (neverFillableReason(question, options)) return 'consent';
+  return null;
+}
+
+// Widget kinds a near match may cross: a text answer may go in a picker (as one of its own options) and back; a date,
+// a single checkbox or a checkbox group only to its own kind.
+const NEAR_KIND_FAMILY = { text: 'choice', select: 'choice', radio: 'choice', checkbox: 'checkbox', date: 'date' };
+
+/**
+ * The saved answer a unit may borrow from a question worded differently, or null. Both questions must be near-matchable
+ * (nearMatchBarred), the widget kinds compatible, and the best score must be held by ONE answer — two different saved
+ * answers equally near is ambiguous, and nothing is used.
+ */
+export function nearSavedAnswer(saved = [], unit, uk, { kindOf = () => 'other', company = '' } = {}) {
+  if (!uk || nearMatchBarred(unit.question, kindOf, unitOptions(unit))) return null;
+  const family = NEAR_KIND_FAMILY[uk.widgetKind];
+  let best = [], bestScore = 0;
+  for (const s of saved || []) {
+    if (!s || s.eligibility || s.optIn || s.attesting || String(s.answer ?? '').trim() === '') continue;
+    if (nearMatchBarred(s.question, kindOf, s.options)) continue;
+    const sk = s.widgetKind && s.widgetKind !== 'any' ? widgetKindOf(s.widgetKind) : null;
+    if (sk && NEAR_KIND_FAMILY[sk] !== family) continue;
+    const { score, near } = nearQuestionScore(s.question, unit.question, company);
+    if (!near) continue;
+    if (score > bestScore) { best = [s]; bestScore = score; } else if (score === bestScore) best.push(s);
+  }
+  if (!best.length) return null;
+  const answers = new Set(best.map(s => normaliseQuestion(s.answer)));
+  if (answers.size > 1) return null;                    // ambiguous: two different answers, equally near
+  return { answer: best.sort(newestFirst)[0], score: bestScore };
+}
+
 /** Conflicts (safeguard 6): the newest acknowledged answer for a question wins. */
 const newestFirst = (a, b) => String(b.acknowledgedAt || '').localeCompare(String(a.acknowledgedAt || ''));
 
@@ -255,6 +370,8 @@ const stepFor = (f, value, extra) => ({
   ...(extra.saved ? { saved: extra.saved } : {}),
   ...(extra.expectOptions ? { expectOptions: extra.expectOptions } : {}),
   ...(extra.unit ? { unit: extra.unit } : {}),
+  // ⭐ T25: a near match says so — matched by a similar question, not the same one (the panel's Check band).
+  ...(extra.matchedBy ? { matchedBy: extra.matchedBy } : {}),
 });
 
 // ⭐ D96 §7 · A DATE, typed in the page's own format. `parts` are the page's inputs (month / day / year), each read off
@@ -383,7 +500,8 @@ export function yieldGuessesToStated(plan = [], packet, fields, kindOf = () => '
   const guesses = (plan || []).filter(isGuess);
   if (!guesses.length) return plan;
   const firm = plan.filter(p => !isGuess(p));
-  const claimed = new Set(placeStatedAnswers(packet, fields, firm, kindOf).plan.map(p => p.index));
+  // ⭐ T25: only the SAME question takes a control back — a near match never displaces anything.
+  const claimed = new Set(placeStatedAnswers(packet, fields, firm, kindOf).plan.filter(p => p.matchedBy !== 'near_question').map(p => p.index));
   return plan.filter(p => !isGuess(p) || !claimed.has(p.index));
 }
 
@@ -419,6 +537,19 @@ export function placeStatedAnswers(packet, fields, plan = [], kindOf = () => 'ot
       if (step) out.push(...(Array.isArray(step) ? step : [step]));
       else notes.push({ field: question, reason: 'saved_answer_not_an_option', kind });
       continue;
+    }
+
+    // 1b · ⭐ T25: the candidate's saved answer to a SIMILAR question (nearSavedAnswer — never across question kinds).
+    // Always exact on a picker (one of this field's own options, or nothing); it lands as Check, naming the original.
+    // An answer that fits no option here is simply not used — no note: the question is the candidate's, as before.
+    const near = nearSavedAnswer(saved, unit, uk, { kindOf, company: worked?.company || packet?.company || '' });
+    if (near) {
+      const s = near.answer;
+      const savedFrom = { source: s.source || 'legacy', acknowledgedAt: s.acknowledgedAt || null, id: s.id ?? null, attesting: false,
+        questionKey: uk.questionKey, near: { question: String(s.question ?? ''), score: Math.round(near.score * 100) / 100 } };
+      const step = valueStep(unit, s.answer, { exact: true, optIn: false, eligibility: false, provenance: 'saved_answer',
+        matchedBy: 'near_question', saved: savedFrom });
+      if (step) { out.push(...(Array.isArray(step) ? step : [step])); continue; }
     }
 
     // 2 · "have you worked here before?", from the stated work history.
