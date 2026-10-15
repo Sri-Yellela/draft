@@ -10,8 +10,15 @@ rows"** (added after the 43k merges: T17 dock, T18 + T23, T20). Each row's wordi
 row is added to the WORKLOG first, then here, with the same number. `test/t10ScenarioRows.test.js` fails if a number
 1–42 is missing from this table or appears twice.
 
-**Measured** 2026-10-15 on local `main` `7e9c0c1` (43k: binding-first, T9, D97R + T12, T17 dock, T22 launcher,
-T18 + T23, T20 merged). Every test named below was run at that commit (see *Test runs* at the end).
+**Measured** 2026-10-15 on local `main` `9f3864c` (43k: binding-first, T9, D97R + T12, T17 dock, T22 launcher,
+T18 + T23, T20; then T25 + T21, T24 (migration 168) and the live-markup lane — `test/liveFormMarkup.test.js`,
+`docs/LIVE_FORM_MEASUREMENT.md`, the Greenhouse fixture rewritten to measured markup). First mapped on `7e9c0c1`,
+re-checked after that merge. See *Test runs* at the end.
+
+**Live forms.** `docs/LIVE_FORM_MEASUREMENT.md` ran the extension's own probe and classifier, read-only, on six live
+forms (Stripe's embedded Greenhouse, two Greenhouse boards, Lever, Ashby, Workable): structure only, nothing typed or
+attached. `test/liveFormMarkup.test.js` reproduces those structures in miniature with synthetic words. **That is reading,
+not filling: no automated test fills, attaches to or walks a LIVE form** — that stays the owner's walk.
 
 ## How to read the status
 
@@ -37,13 +44,13 @@ passes on production with the real Stripe job and the Zoom Workday flow.*
 
 | # | Scenario (WORKLOG wording) | Test(s) — file › test | Real Chrome? | Status | Owner's production walk |
 |---|---|---|---|---|---|
-| 1 | opened from the board by the bridge | `d99Bridge` › "⛔ J11 walk: a trusted click opens the SERVER's address bound 'via board'; no click, nothing; not on the board → the page's link — in a real Chrome" (`walks/boardBridge.mjs` §1–4); `d99Bridge` › "⛔ OPEN_JOB: opens the SERVER's address for a job on the user's board, binds the tab 'board', with the report", "⛔ openPosting: with the extension it hands over a JOB ID only…" | yes (+ stubs) | **COVERED** | not yet |
+| 1 | opened from the board by the bridge | `d99Bridge` › "⛔ J11 walk: a trusted click opens the SERVER's address bound 'via board'; no click, nothing; not on the board → the page's link — in a real Chrome" (`walks/boardBridge.mjs` §1–4); `d99Bridge` › "⛔ OPEN_JOB: opens the SERVER's address for a job on the user's board, binds the tab 'board', with the report", "⛔ openPosting: with the extension it hands over a JOB ID only…"; `t24IntentModel` › "T24 · the board's apply vs view intent is carried by the bridge…", "T24 · through the bridge the board's intent sets the tab's TabState…" | yes (+ stubs) | **COVERED** | not yet |
 | 2 | a board job's URL pasted into a new tab | `t13t14FillChain` › "⛔ T13 + T14 in a REAL Chrome — … the apply URL in a NEW tab: the real popup shows the job…" (`walks/fillChain.mjs` §4–5); `bindingFirst` › "⭐ BINDING FIRST in a REAL Chrome — the matrix…" §1 (on your board, cold tab); `t13t14FillChain` › "⛔ T14: a NEW tab on a known address binds at once — no read, no request…" | yes | **COVERED** | not yet |
-| 3 | a company site embedding Greenhouse (**Stripe**) | `t11EmbeddedChrome` › "⭐ (a) with Greenhouse allowed: the fill lands INSIDE the embedded frame…", "⭐ (c) a frame as tall as the form…", "⭐ (b) without Greenhouse: 'Allow draft on Greenhouse'…"; `d97rT12Chrome` › "⭐ the one-time card → ONE grant → … 'Always read here' on the careers origin reads its Greenhouse frame"; `t20AutoReadChrome` › "⭐ (b) 'Always read here' on a company's careers page reads its EMBEDDED Greenhouse frame at once"; `fieldReport1014` › "⭐ T2 · a capture of the Stripe page LINKS to the board job — no second row", "⭐ BINDING FIRST · an employer page naming no job is identified by its embedded ATS form's frame (≤ 3 frames)"; `t11EmbeddedForm` (12 unit tests) | yes — a two-origin fixture (the fake ATS on two ports, one embedding the other) | **COVERED** (fixture) — the live Stripe page is not in any automated test (T11's P0 measured it once, read-only) | not yet |
+| 3 | a company site embedding Greenhouse (**Stripe**) | `t11EmbeddedChrome` › "⭐ (a) with Greenhouse allowed: the fill lands INSIDE the embedded frame…", "⭐ (c) a frame as tall as the form…", "⭐ (b) without Greenhouse: 'Allow draft on Greenhouse'…"; `d97rT12Chrome` › "⭐ the one-time card → ONE grant → … 'Always read here' on the careers origin reads its Greenhouse frame"; `t20AutoReadChrome` › "⭐ (b) 'Always read here' on a company's careers page reads its EMBEDDED Greenhouse frame at once"; `fieldReport1014` › "⭐ T2 · a capture of the Stripe page LINKS to the board job — no second row", "⭐ BINDING FIRST · an employer page naming no job is identified by its embedded ATS form's frame (≤ 3 frames)"; `t11EmbeddedForm` (12 unit tests) | yes — a two-origin fixture (the fake ATS on two ports, one embedding the other) | **COVERED** (fixture) — the live Stripe page was READ by the extension's probe, read-only (`docs/LIVE_FORM_MEASUREMENT.md` form 1: 29 fields in the `job-boards.greenhouse.io/embed/job_app` frame, 0 Unlabelled, 1 résumé row); no test fills it | not yet |
 | 4 | **Workday** posting and every apply stage | `j9FullPass` › "⛔ J9 full pass (light/dark): capture → bound → read → fill → panel → … résumé → attach…" (`walks/fullPass.mjs` §1–9, every step to Sign In); `workdayStages` › "⛔ the owner's exact URL resolves to the same key as the plain posting URL — and every stage does" + 12 more; `j4PanelBrowser` (5 walks); `j2WorkdayFixture` (12 fixture tests); `j2ExtensionHarness` › "the harness boots the real extension, drives the fixture…" | yes | **COVERED** (fixture) — the Workday replica's shapes are partly ASSUMED (O73 caveat, asserted by `j2WorkdayFixture` › "⚠ every assumed shape says so") | not yet |
-| 5 | **Lever** | `j9FullPass` walk §10 "the plain fake-ATS form — the non-Workday control" fills `scripts/fakeAts.js /lever` (a "Lever-flavoured" localhost form); `fieldReport1014` › "T2 · atsJobKeyOf names the board's id for every family…", "⭐ T2 · the popup's lookup (resolvePageJob) finds the board job…" (Lever apply page); `t11EmbeddedForm` › "atsSiteOf…", "familyOfBoardJobId…" | partly — a Lever-*flavoured* form on localhost, not Lever's markup on `jobs.lever.co` | **PARTIAL** — key and lookup unit-tested; no walk on Lever's real form shape | not yet |
-| 6 | **Ashby** | `fieldReport1014` › "T2 · atsJobKeyOf…" (incl. `?ashby_jid=` embedded); `ashbySpaFixture` (11 tests of the `/ashby-spa` fixture itself — the live Ashby form's measured shape) | no | **PARTIAL** — key only; the `/ashby` and `/ashby-spa` fixtures exist but **no extension walk fills them** | not yet |
-| 7 | **Workable** | `fieldReport1014` › "T2 · atsJobKeyOf…" (both Workable URL shapes); `j5AutoRead` › "⛔ D97 · the manifest's optional hosts ARE the site table…" | no | **PARTIAL** — key and site table only; no Workable form fixture | not yet |
+| 5 | **Lever** | `j9FullPass` walk §10 "the plain fake-ATS form — the non-Workday control" fills `scripts/fakeAts.js /lever` (a "Lever-flavoured" localhost form); `fieldReport1014` › "T2 · atsJobKeyOf names the board's id for every family…", "⭐ T2 · the popup's lookup (resolvePageJob) finds the board job…" (Lever apply page); `t11EmbeddedForm` › "atsSiteOf…", "familyOfBoardJobId…"; `liveFormMarkup` › "LIVE (4, Chrome): Lever's wrapping label — the question before the field, not its status text; a wrapped select's options never" | partly — a Lever-*flavoured* form on localhost, and Lever's measured wrapping label reproduced in Chrome | **PARTIAL** — key, lookup and the label reading of Lever's real structure (measured live, read-only: 59 fields, 0 Unlabelled); no fill walk on Lever's form shape | not yet |
+| 6 | **Ashby** | `fieldReport1014` › "T2 · atsJobKeyOf…" (incl. `?ashby_jid=` embedded); `ashbySpaFixture` (11 tests of the `/ashby-spa` fixture itself — the live Ashby form's measured shape); `liveFormMarkup` › "LIVE (5, Chrome): Ashby's autofill drop zone is labelled by its own words — and the panel draws ONE résumé row, the real field's", "LIVE (3, Chrome): a long label the page ties to its field is the label…" | reading only | **PARTIAL** — key, and the label / résumé-row reading of Ashby's real structure (measured live, read-only: 17 fields, 0 Unlabelled in the panel); the `/ashby` and `/ashby-spa` fixtures exist but **no extension walk fills them** | not yet |
+| 7 | **Workable** | `fieldReport1014` › "T2 · atsJobKeyOf…" (both Workable URL shapes); `j5AutoRead` › "⛔ D97 · the manifest's optional hosts ARE the site table…"; `liveFormMarkup` › "LIVE (1, Chrome): Workable's real radios are aria-hidden with tabindex -1 behind role=radio — they stay fields", "LIVE (2, Chrome): Workable's upload — the svg preview label and 'Choose file' are not its label; 'Resume' is, and it is the résumé" | reading only | **PARTIAL** — key, site table and the reading of Workable's real structure (measured live, read-only: 21 fields, 0 Unlabelled, the upload typed `resume`); no Workable form fixture, no fill walk | not yet |
 | 8 | **SmartRecruiters** | `fieldReport1014` › "T2 · atsJobKeyOf…", "⭐ T2 · the popup's lookup…" (SmartRecruiters URL); `d97rT12Chrome` (the consent card lists SmartRecruiters, its host granted); `j5AutoRead` › manifest optional hosts | consent card only | **PARTIAL** — key, lookup and the consent card; no SmartRecruiters form fixture | not yet |
 | 9 | a job NOT on the board (a capture; an irrelevant posting discarded) | `bindingFirst` › REAL Chrome matrix §7 "NOT ON THE BOARD — nothing bound, nothing prepared; ONE button (Capture), which binds, and Fill fills"; `j9FullPass` walk §1 capture; `j5AutoRead` › "⛔ D97 · a DISCARDED automatic capture changes no table's row count — the whole database, before and after"; `d64AutoCaptureServer` | capture: yes · discard: no | **PARTIAL** — the irrelevant-posting discard is a server test only; no walk shows the user what a discarded capture looks like | not yet |
 | 10 | a page that is not a job | `bindingFirst` › REAL Chrome matrix §8 "NOT A JOB — … nothing bound, nothing prepared"; `bindingFirst` › "⛔ identifyAndBind: a failed identify binds NOTHING…"; `d64AutoCaptureExtension` › "⛔ D64 · a page that is NOT a posting sends NOTHING"; `t13t14FillChain` walk §6 "a page with no application form says why" | yes | **COVERED** | not yet |
@@ -61,7 +68,7 @@ passes on production with the real Stripe job and the Zoom Workday flow.*
 | 17 | the extension disabled (the website falls back to the plain link) | `d99Bridge` › "⛔ openPosting: no extension → the page opens its own link, exactly as before", "⛔ openPosting: the extension says no … → the page opens its own link", "⛔ openPosting: a reply with the wrong nonce…"; J11 walk §4 (not on the board → the page's link, with the extension present) | no (stubbed `window`) | **PARTIAL** — no walk loads the board with the extension disabled or removed | not yet |
 | 18 | no base résumé | `d99AtsOnPage` › "⛔ J12 walk (light/dark): the report at once, "Add your résumé", "Read this page now" — in a real Chrome"; `d99BoardJob` › "⛔ J12: no base résumé → no_base_resume…"; `d99AtsOnPage` › "J12 · no base résumé → "Add your résumé in draft" and no score…" | yes (the ATS face) | **PARTIAL** — the ATS report is covered; Prepare / Fill / *Generate* with no base résumé on file have no test | not yet |
 | 19 | a résumé but no job profile | `d64AutoCaptureServer` (an automatic capture answers `no_active_profile`) | no | **PARTIAL** — the auto-capture's reason only; what the popup, dock, Prepare and the ATS say for an account with no job profile is untested | not yet |
-| 20 | Draft slots exhausted | `j6ResumePanel` › "⛔ J6: no cost, token or model word in anything the panel shows…" (the `slots_exhausted` model says "You have used all of your drafts…"); `a63BoardToolsPending` (the board's `draft_slots_exhausted`) | no | **PARTIAL** — the panel's sentence from a stubbed answer; no test drives the extension's generate route to exhaustion. (T24's "*0 of 10* is said BEFORE queuing" is not built yet.) | not yet |
+| 20 | Draft slots exhausted | `j6ResumePanel` › "⛔ J6: no cost, token or model word in anything the panel shows…" (the `slots_exhausted` model says "You have used all of your drafts…"); `a63BoardToolsPending` (the board's `draft_slots_exhausted`); `t24IntentModel` › "⭐ T24 · server: 0 of 10 slots is said BEFORE queuing — nothing is written", "T24 · 0 of 10 slots: said on the dock, and nothing is sent", "T24 · 0 of 10 slots is said BEFORE queuing; 1 left for a Draft + résumé offers the Draft alone" | no (the T24 walk runs with slots to spare) | **PARTIAL** — the server refuses before queuing and the dock says so (server + stubbed dock); no real-Chrome walk reaches 0 of 10 | not yet |
 | 21 | the plan's limit | — (`services/extensionResume.js` has `plan_limit` and `upgrade_required`; no test reaches either) | — | **NOT COVERED** | not yet |
 | 22 | the server unreachable | `bindingFirst` › REAL Chrome matrix §9 "UNREACHABLE and SIGNED OUT…"; `j1Progress` › "⛔ J1: … an unreachable server does NOT [clear progress]"; `bindingFirst` › "⛔ identifyAndBind: a failed identify binds NOTHING…" | yes | **COVERED** | not yet |
 
@@ -78,7 +85,7 @@ passes on production with the real Stripe job and the Zoom Workday flow.*
 
 | # | Scenario (WORKLOG wording) | Test(s) — file › test | Real Chrome? | Status | Owner's production walk |
 |---|---|---|---|---|---|
-| 27 | remembered answers reused; a changed answer re-asked; **terms / consent / attestation / signature boxes never ticked** | `j4PanelBrowser` › "⛔ J4 walk (light/dark): every field listed, Ready means ready, one tick remembers (eligibility too), a change is not stored, consent / signature / password untouched…", "⛔ J4 (D96 §4 safeguard 2 / §7): a Workday dropdown whose choices changed … is ASKED"; `j9FullPass` walk §9 "a NEW fill reuses what was remembered"; `d96AnswerLifecycle` (12 tests); `j4PanelLifecycle` › "⛔ J4 (D96 §4 safeguard 1): a terms / consent / attestation / signature control is NEVER given a value"; `d55AutofillRules` | yes | **COVERED** | not yet |
+| 27 | remembered answers reused; a changed answer re-asked; **terms / consent / attestation / signature boxes never ticked** | `j4PanelBrowser` › "⛔ J4 walk (light/dark): every field listed, Ready means ready, one tick remembers (eligibility too), a change is not stored, consent / signature / password untouched…", "⛔ J4 (D96 §4 safeguard 2 / §7): a Workday dropdown whose choices changed … is ASKED"; `j9FullPass` walk §9 "a NEW fill reuses what was remembered"; `d96AnswerLifecycle` (12 tests); `t25NearMatchSavedAnswers` (6 tests: a near-worded question reuses a saved answer under Check, never for eligibility / EEO / consent / salary); `j4PanelLifecycle` › "⛔ J4 (D96 §4 safeguard 1): a terms / consent / attestation / signature control is NEVER given a value"; `d55AutofillRules` | yes | **COVERED** | not yet |
 | 28 | auto-read per site, on and off; a permission refused | `d97rT12Chrome` (one consent → a preset host read; *Always read here*); `t20AutoReadChrome` › "⭐ (a) consent reads the tabs ALREADY OPEN … · the kill switch stops it", "⛔ (c) the REAL request with no grant (Chrome's prompt, never answered): … NOTHING is turned on or read"; `j5AutoRead` (24 tests: default off, on/off per site, kill switch); `d97rT12AlwaysRead` › "⛔ a refusal of the card's prompt leaves EVERYTHING off…", "⭐ T12 · the switch asks Chrome INSIDE the click … a refusal leaves it off", "⭐ T12 · revoking removes the registration…"; `t20AutoReadOpenTabs` › "⛔ T20 · a grant with NO click behind it, … or a refused one turns NOTHING on" | yes, grant stood in | **PARTIAL** — a *pressed* Deny exists only in `scripts/t20RealPromptWalk.mjs deny` (manual, headed, Windows). D97R's refusal, second click and Options → Remove are stub-tested only | not yet |
 
 ### Everywhere
@@ -96,7 +103,7 @@ passes on production with the real Stripe job and the Zoom Workday flow.*
 | 32 | the same, permission refused | `t11EmbeddedChrome` › "⭐ (b) without Greenhouse: 'Allow draft on Greenhouse' — nothing filled, nothing released"; `t11EmbeddedForm` › "⭐ an unreadable Greenhouse frame → 'Allow draft on Greenhouse', and the page's own small form is NOT filled"; `d97rT12AlwaysRead` › "⭐ T12 · the switch asks Chrome INSIDE the click … a refusal leaves it off" | yes (no grant) | **PARTIAL** — "no grant" is walked; a *pressed* Deny on the frame prompt is not | not yet |
 | 33 | a form in **shadow DOM** | — (the extension's field reader and filler do not walk into shadow roots; `shadowRoot` appears only in draft's own UI files) | — | **NOT COVERED** | not yet |
 | 34 | a form that **renders late** | `j5AutoRead` › "⛔ D97 · the watcher: ten mutation bursts in one second make exactly ONE read…", "⛔ D97 · the watcher's pass is one at a time per tab — a step change during a pass runs ONE more pass after it"; `d55WorkdayReplica` › "dropdown listboxes and typeahead results arrive LATE, in a portal…" (walked by `j9FullPass` / `j4PanelBrowser`); `formReadiness` (the SERVER-side apply automation's readiness wait, against `/spa`) | partly | **PARTIAL** — late dropdowns are walked; a whole form that hydrates after the press (the `/spa` / `/ashby-spa` fixtures) is not walked with the extension | not yet |
-| 35 | Lever's, Ashby's and Workable's embedded forms | `t11EmbeddedForm` › "atsFramesOf: one per site, the page's own site excluded…" (a Lever frame recognised), "routes: /handoff/match with frameUrl…" (a Lever frame outside the origin list refused); `fieldReport1014` › "T2 · atsJobKeyOf …" (`?ashby_jid=` embedded) | no | **PARTIAL** — frame and key recognition only; only the embedded **Greenhouse** form is walked | not yet |
+| 35 | Lever's, Ashby's and Workable's embedded forms | `t11EmbeddedForm` › "atsFramesOf: one per site, the page's own site excluded…" (a Lever frame recognised), "routes: /handoff/match with frameUrl…" (a Lever frame outside the origin list refused); `fieldReport1014` › "T2 · atsJobKeyOf …" (`?ashby_jid=` embedded); `liveFormMarkup` (Lever / Ashby / Workable structures, top frame) | no | **PARTIAL** — frame and key recognition, and the forms' own structures read in their TOP frame; only the embedded **Greenhouse** form is walked, and no live Lever / Ashby / Workable form embedded on a company site was measured | not yet |
 | 36 | a new tab for the same job — no re-capture, no re-read | `t13t14FillChain` › "⛔ T13 + T14 in a REAL Chrome — … the apply URL in a NEW tab…" (`walks/fillChain.mjs` §4–5; the file's header names rows (36) and (37)); `t13t14FillChain` › "⛔ T14: a NEW tab on a known address binds at once — no read, no request…", "⛔ T14: the popup draws the tab's state on open…" | yes | **COVERED** | not yet |
 | 37 | *Fill* from a cold tab with every auto switch off | `t13t14FillChain` › REAL Chrome §2 "Fill from a cold tab, every auto switch off: read, prepare and fill in ONE press"; `t13t14FillChain` › "⛔ T13: Fill from a COLD tab reads, prepares and fills in ONE press…"; `bindingFirst` › REAL Chrome matrix §1 | yes | **COVERED** | not yet |
 
@@ -104,11 +111,22 @@ passes on production with the real Stripe job and the Zoom Workday flow.*
 
 | # | Scenario (WORKLOG wording) | Test(s) — file › test | Real Chrome? | Status | Owner's production walk |
 |---|---|---|---|---|---|
-| 38 | a standard Greenhouse form classified with no "Unlabelled" | `t18GreenhouseChrome` › "⭐ T18 (Chrome): the standard Greenhouse form is read with every field named — no 'Unlabelled', no 'Attach'", "⭐ T23 (Chrome): ≥ 80 % of the standard fields filled with NO typing…"; `t18FieldSemantics` › "⭐ T18: the standard Greenhouse form has NO 'Unlabelled' row…" | yes | **COVERED** (fixture) — `test-support/greenhouseStandard.mjs` is transcribed Greenhouse markup, not measured on the live page | not yet |
-| 39 | résumé field detected; tailored, base and skip all work; a custom drop zone falls back | `t18GreenhouseChrome` › "⭐ T18 walk (real extension): Attach my résumé lands on the drop zone and the page shows its name; Generate and attach starts one; Skip keeps a required upload…" (`walks/resumeField.mjs`), "T18 (Chrome): a file input beneath a heading is typed `resume`…", "⛔ T18 (Chrome): the résumé row — a page script's click sends nothing…", "⭐ T18 (Chrome): Attach puts the PDF … a drop zone that shows nothing is not verified"; `t18FieldSemantics` › "⛔ T18: a file is never attached without the user's click…" | yes | **PARTIAL** — base, skip, *Generate and attach* (starts) and the fallback are walked; **Attach tailored end to end** (generate → ready → attach the tailored PDF on the same row) is not | not yet |
+| 38 | a standard Greenhouse form classified with no "Unlabelled" | `t18GreenhouseChrome` › "⭐ T18 (Chrome): the standard Greenhouse form is read with every field named — no 'Unlabelled', no 'Attach'", "⭐ T23 (Chrome): ≥ 80 % of the standard fields filled with NO typing…"; `t18FieldSemantics` › "⭐ T18: the standard Greenhouse form has NO 'Unlabelled' row…"; `liveFormMarkup` › "LIVE (1, Chrome): a required picker's hidden backing input is not a field — in the probe AND in applyPlan…" | yes | **COVERED** (fixture) — the fixture (`scripts/fakeAtsGreenhouseStandard.js`, driven by `test-support/greenhouseStandard.mjs`) now copies the MEASURED Greenhouse markup (react-select pickers and their backing inputs, the upload's nesting); live Stripe / Discord / Figma read 0 Unlabelled. Still transcribed: Discipline, start / end month and year, picker options | not yet |
+| 39 | résumé field detected; tailored, base and skip all work; a custom drop zone falls back | `t18GreenhouseChrome` › "⭐ T18 walk (real extension): Attach my résumé lands on the drop zone and the page shows its name; Generate and attach starts one; Skip keeps a required upload…" (`walks/resumeField.mjs`), "T18 (Chrome): a file input beneath a heading is typed `resume`…", "⛔ T18 (Chrome): the résumé row — a page script's click sends nothing…", "⭐ T18 (Chrome): Attach puts the PDF … a drop zone that shows nothing is not verified"; `t18FieldSemantics` › "⛔ T18: a file is never attached without the user's click…"; `liveFormMarkup` › "LIVE (5, Chrome): … the panel draws ONE résumé row…"; `t24IntentModel` › "T24 · a résumé already known is attached, one in flight is JOINED — never a second", "T24 · Fill with no Draft is the manual path and never generates…" | yes | **PARTIAL** — base, skip, *Generate and attach* (starts), one résumé row on Ashby's two uploads and the fallback are tested; **Attach tailored end to end** (generate → ready → attach the tailored PDF on the same row) is not, and no file was ever attached to a live form | not yet |
 | 40 | **the dock never mounts in a child frame** and never extends past the viewport | `t17DockChrome` › "⛔ T17: the dock mounts in the TOP frame and NEVER inside a child frame (a cross-origin iframe, as Greenhouse's on stripe.com)", "⛔ T17: at four viewport sizes the dock never extends past the viewport…"; `t11EmbeddedChrome` › (a), (c); `t17Dock` › "⛔ T17: dock.js refuses a child frame…", "⛔ T17: at FOUR viewport sizes…", "⛔ T17: the service worker draws the dock and EVERY view at frame 0 only…" | yes | **COVERED** | not yet |
 | 41 | the dock's rectangle is remembered per site | `t17DockChrome` › "⛔ T17: drag by the header, resize from an edge and a corner, snap…, collapse — each is sent to be remembered, and a new page restores it"; `t11EmbeddedChrome` › "⭐ T17 (d): the dock dragged ACROSS the embedded form's frame keeps moving, and its rectangle is remembered for the SITE…"; `t17Dock` › "⛔ T17: the rectangle is remembered PER SITE…", "⛔ T17: only a web page's TOP frame may write the place…"; `j4PanelLifecycle` › "⛔ J4 → T17: where the review panel sits is the DOCK's…" | yes | **COVERED** | not yet |
 | 42 | auto-read after consent reads the open tab at once | `t20AutoReadChrome` › "⭐ (a) consent reads the tabs ALREADY OPEN with no press · a new tab reads on load · a single-page step change reads ONCE · the kill switch stops it", "⭐ (b) 'Always read here' … reads its EMBEDDED Greenhouse frame at once — no reload"; `t20AutoReadOpenTabs` (9 tests, incl. "⭐ T20 · THE POPUP CLOSED AT THE PROMPT: the pending click + Chrome's grant (onAdded) finish the consent in the worker, and the open tab is read") | yes, grant stood in | **COVERED** — the real-prompt path (popup closes at the prompt) is unit-tested and was walked headed by `scripts/t20RealPromptWalk.mjs`, outside `npm test` | not yet |
+
+### Behaviour added since the numbered rows (T21, T24, T25)
+
+These are not T10 rows — the WORKLOG has not numbered them — but they change what the owner's walk must check. They
+are listed so the walk covers them; the guard counts only rows 1–42.
+
+| Item | What | Test(s) | Real Chrome? | State |
+|---|---|---|---|---|
+| T24 | the intent model: Draft before any fill → ONE drafted application + ONE résumé; a fill is the manual path and never generates; conflicting tells ask ONCE and *Remember* keeps the answer with the account; full auto refused; the board's apply / view intent through the bridge | `t24IntentModel` (30 tests; migration 168) incl. "⭐ T24 walk: the dock asks once and remembers with the account; ONE application and ONE résumé; a second Draft queues nothing; the switch — in a real Chrome" (`walks/intentPath.mjs`) | yes | automated; owner's walk not yet |
+| T25 | near-match saved answers ("…about this job?" reuses "…about us?"), shown under Check, never across eligibility / EEO / consent / salary | `t25NearMatchSavedAnswers` (6 tests) | no (unit) | unit only; owner's walk not yet |
+| T21 | no flicker: the dock, the Fill view and the status line are patched in place; the Fill button keeps its width | `t21NoFlicker` › "⛔ T21 in a REAL Chrome — through a fill … ≤ 1 frame repaint…" (`walks/fillFlicker.mjs`) + 2 source tests | yes | automated; owner's walk not yet |
 
 ## Counts
 
@@ -139,7 +157,8 @@ below passes. The order follows a real application, so earlier steps set up late
    letter *cover letter*; Location (City) and School are filled from the profile / base résumé. On the résumé row:
    **Attach my résumé** (the page shows the file name), then **Generate and attach** → wait for ready → **Attach
    tailored** (the tailored PDF replaces it, the page shows its name) — *Attach tailored end to end has never run*.
-   Confirm no terms / consent / attestation / signature box was ticked.
+   Confirm no terms / consent / attestation / signature box was ticked, and that the Fill button does not flicker
+   while it runs (T21).
 4. **The same row refused** (row 32). On a fresh profile, open the Stripe page and press **Deny** on the Greenhouse
    prompt: "Allow draft on Greenhouse" stays, nothing is filled.
 5. **The dock** (rows 40, 41, 29, 30). Drag, resize, snap and collapse it on stripe.com; reload — the rectangle comes
@@ -148,14 +167,17 @@ below passes. The order follows a real application, so earlier steps set up late
 6. **Zoom on Workday, every stage** (rows 4, 27, 34). Apply URL → My Information → My Experience (résumé on the drop
    zone; the drop-zone fallback if the page shows no name — row 26) → Application Questions → Voluntary Disclosures →
    Self Identify → Review. Late-opening dropdowns fill; Submit is never pressed by draft. Re-run a second Workday
-   application: remembered answers are reused; change one and it is asked again.
+   application: remembered answers are reused; change one and it is asked again; a question worded slightly
+   differently ("How did you hear about this job?") offers the saved answer under Check, never as Filled (T25).
 7. **Tabs** (rows 2, 12, 13, 36, 37, 14, 11). Paste a board job's URL into a new tab and press *Fill* with every auto
    switch off (one press: read, prepare, fill). Open the same job in a second tab — no re-capture, no re-read; fill
    both. Open two different jobs in two tabs and fill both — each keeps its own job. Quit Chrome, restore the tabs:
    each is still bound. Open a posting whose link redirects to another site and see what the popup says.
 8. **The other ATS families on live postings** (rows 5, 6, 7, 8, 35). One real application page each on **Lever,
    Ashby, Workable and SmartRecruiters** (identify → bind → prepare → fill, stop before submit), and one company site
-   embedding a Lever / Ashby / Workable form. Ashby's form hydrates late (row 34) — Fill must wait for it.
+   embedding a Lever / Ashby / Workable form. Ashby's form hydrates late (row 34) — Fill must wait for it, and its
+   autofill drop zone must NOT become a second résumé row. These forms have only been READ by the probe — never
+   filled or attached to.
 9. **Off the board** (rows 9, 10). A real posting not on the board → *Capture* binds it and Fill fills; an irrelevant
    posting is discarded with a sentence; a page that is not a job binds nothing.
 10. **Account states** (rows 15, 16, 18, 19, 22). Signed out; revoke the extension's token from the website and press
@@ -167,23 +189,37 @@ below passes. The order follows a real application, so earlier steps set up late
     résumés — currently unset in production, so this needs the owner's setup); a tools-service failure is shown by its
     cause in Options → Show details and the slot comes back; a claim-guard refusal shows its reasons and attaches
     nothing.
-12. **Extension disabled** (row 17). Disable the extension at `chrome://extensions` and click a posting on the board —
+12. **Draft vs Fill — the intent model** (T24; rows 1, 20). From the board's *Draft*: one drafted application and one
+    résumé, and a second Draft queues nothing. On a cold application form, *Open dock* asks once (*Draft this job…, or
+    just fill this form yourself?*) and *Remember* holds on the next job. Filling by hand never generates until the
+    résumé row's press. With 0 of 10 slots the dock says so before anything is queued.
+13. **Extension disabled** (row 17). Disable the extension at `chrome://extensions` and click a posting on the board —
     the website opens its own link.
-13. **Shadow DOM** (row 33). There is no known shadow-DOM application form in draft's fixtures and the extension does
+14. **Shadow DOM** (row 33). There is no known shadow-DOM application form in draft's fixtures and the extension does
     not read into shadow roots — if the owner meets one, record the site; this row stays open until it is built and
     tested.
 
-## Test runs (2026-10-15, local `main` `7e9c0c1`, this worktree)
+## Test runs (2026-10-15, this worktree)
 
 Every file cited above was run with `node --import ./test-support/isolateTrackingSink.mjs --test test/<file>`.
 
+On `7e9c0c1`, before the merge:
 - **Run 1 — 26 files together, default concurrency (many Chromes at once): 323 tests, 317 pass, 6 fail.** The 6 were
   real-Chrome walks under load (`bindingFirst` matrix, `d99AtsOnPage` J12 dark, `j9FullPass` light, `t9` pixel parity,
-  `workdayStages` Copy sheet, a `page.goto` timeout) and `d99Bridge` › "openPosting: with the extension…" (a 7.9 s
-  wait that fell back to the link). Load, not rot: all re-run green below except T9's pixel test.
-- **Run 2 — 22 files, `--test-concurrency=1` (every real-Chrome walk, the reds of run 1, the guard): 211 tests,
-  210 pass, 1 fail.** The 1: `t9AtsReportComponent` › "⭐ T9 · REAL CHROME: the popup and the web app draw the same
-  pixels…" — *"host.html could not load the card's faces"* (DM Sans, Poppins, Instrument Serif). ⚠ Likely this
-  worktree's setup (no `client/node_modules`, so the fonts the host page loads are absent), not the extension; to be
-  re-run in a tree with client dependencies installed before it is called a failure.
-- The guard `test/t10ScenarioRows.test.js` (3 tests) passes.
+  `workdayStages` Copy sheet) and `d99Bridge` › "openPosting: with the extension…" (a 7.9 s wait that fell back to the
+  link). Load, not rot: every one passed in run 2.
+- **Run 2 — 22 files, `--test-concurrency=1` (every real-Chrome walk cited, the reds of run 1, the guard): 211 tests,
+  210 pass, 1 fail** — `t9AtsReportComponent`'s pixel test, *"host.html could not load the card's faces"*, because this
+  worktree had no `client/node_modules`.
+
+On `9f3864c` merged (after T25 + T21, T24 and the live-markup lane):
+- **The guard and every cited non-browser file — 26 files: 328 tests, 328 pass, 0 fail.** (`t10ScenarioRows`,
+  `d97rT12AlwaysRead`, `d98ExtensionResume`, `d99BoardJob`, `d96AnswerLifecycle`, `fieldReport1014`, `j1Progress`,
+  `j2WorkdayFixture`, `j4PanelLifecycle`, `j5AutoRead`, `j6ResumePanel`, `t11EmbeddedForm`, `t17Dock`,
+  `t18FieldSemantics`, `t20AutoReadOpenTabs`, `t22PopupLauncher`, `d64AutoCaptureExtension`, `d64AutoCaptureServer`,
+  `d55AutofillRules`, `d55AutofillResume`, `ashbySpaFixture`, `d55WorkdayReplica`, `formReadiness`, `resumeClaimGuard`,
+  `a63BoardToolsPending`, `t25NearMatchSavedAnswers`.)
+- **`t9AtsReportComponent` alone, with `client/` dependencies installed (`npm ci`): 16 tests, 16 pass, 0 fail** —
+  the run-2 red was this worktree's setup, not the extension.
+- Not re-run after the merge here: the real-Chrome walks and the newly merged files that carry one (`t24IntentModel`,
+  `t21NoFlicker`, `liveFormMarkup`) — the coordinator's full run measures them.
