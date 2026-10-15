@@ -80,13 +80,28 @@ export async function localFacts(api) {
 }
 
 // ── the three clicks — each asks Chrome FIRST ───────────────────────────────────────────────────────────────────────
+/**
+ * ⭐ T20 · said to the service worker in the SAME synchronous turn as the request, right after it: what this click asked
+ * Chrome for. MEASURED (headed Chrome, Chrome's real prompt): the popup closes the moment the prompt opens, so the code
+ * after `await asked` never runs when the user actually answers — the worker finishes the consent from Chrome's grant
+ * instead (autoRead.js onPermissionsAdded). Not awaited: nothing may stand between the click and the request, and the
+ * popup may be gone before an answer comes.
+ */
+function pending(api, msg) {
+  try { const p = api.runtime.sendMessage({ type: 'AUTO_READ_PENDING', ...msg }); if (p && typeof p.catch === 'function') p.catch(() => {}); }
+  catch { /* the worker is restarting — the popup's own message still finishes a grant it lives to see */ }
+}
+/** A refusal the popup lived to see drops the pending click at once (otherwise it expires). */
+const unpend = (api) => Promise.resolve(api.runtime.sendMessage({ type: 'AUTO_READ_PENDING_CLEAR' })).catch(() => null);
+
 /** The card's "Allow on these sites": ONE prompt for every preset origin, then the consent. A refusal writes nothing. */
 export function onConsent(api) {
   const asked = api.permissions.request({ origins: [...OPTIONAL_ORIGINS] });
+  pending(api, { kind: 'all' });
   return (async () => {
     let granted = false;
     try { granted = await asked; } catch { granted = false; }
-    if (!granted) return { ok: false, error: 'not_granted', message: CARD.refused };
+    if (!granted) { await unpend(api); return { ok: false, error: 'not_granted', message: CARD.refused }; }
     const r = (await api.runtime.sendMessage({ type: 'AUTO_READ_CONSENT_ALL', agree: true })) || { ok: false };
     return r.ok ? { ...r, message: CARD.done } : { ...r, message: CARD.refused };
   })();
@@ -95,6 +110,7 @@ export function onConsent(api) {
 /** "Always read here" changed. ON asks Chrome for this origin (and the ATS frame known for it) first; OFF gives it back. */
 export function onAlwaysHere(api, here, checked) {
   const asked = checked && here ? api.permissions.request({ origins: [...here.origins] }) : null;
+  if (asked) pending(api, { kind: 'site', origin: here.origin, frames: here.frames.map(f => f.id) });
   return (async () => {
     if (!here) return { ok: false, error: 'bad_site' };
     if (!checked) {
@@ -103,7 +119,7 @@ export function onAlwaysHere(api, here, checked) {
     }
     let granted = false;
     try { granted = await asked; } catch { granted = false; }
-    if (!granted) return { ok: false, error: 'not_granted', message: ALWAYS.refused(here.host) };
+    if (!granted) { await unpend(api); return { ok: false, error: 'not_granted', message: ALWAYS.refused(here.host) }; }
     const r = (await api.runtime.sendMessage({ type: 'AUTO_READ_ALLOW_SITE', origin: here.origin, frames: here.frames.map(f => f.id) })) || { ok: false };
     return { ...r, message: r.ok ? ALWAYS.on(here.host) : ALWAYS.refused(here.host) };
   })();
@@ -112,11 +128,12 @@ export function onAlwaysHere(api, here, checked) {
 /** The SECOND click: the ATS frame site of a site already allowed (owner 10-15, decision 3). */
 export function onAllowFrame(api, ask) {
   const asked = ask ? api.permissions.request({ origins: [...ask.origins] }) : null;
+  if (asked) pending(api, { kind: 'frame', origin: ask.origin, site: ask.site });
   return (async () => {
     if (!ask) return { ok: false, error: 'bad_site' };
     let granted = false;
     try { granted = await asked; } catch { granted = false; }
-    if (!granted) return { ok: false, error: 'not_granted', message: `Chrome did not allow ${ask.name}, so nothing changed.` };
+    if (!granted) { await unpend(api); return { ok: false, error: 'not_granted', message: `Chrome did not allow ${ask.name}, so nothing changed.` }; }
     const r = (await api.runtime.sendMessage({ type: 'AUTO_READ_ALLOW_FRAME', origin: ask.origin, site: ask.site })) || { ok: false };
     return { ...r, message: r.ok ? `draft reads ${ask.name}'s form on this site now.` : 'That could not be changed.' };
   })();

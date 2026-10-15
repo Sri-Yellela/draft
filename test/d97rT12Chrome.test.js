@@ -99,7 +99,9 @@ test("⭐ the one-time card → ONE grant → a preset host is read automaticall
     for (const id of ["workday", "greenhouse", "lever", "ashby", "workable", "smartrecruiters"]) {
       assert.deepEqual(agreed.sites[id], { read: true, prepare: true, capture: false, fill: false }, id);
     }
-    const regs = (await registered(h)).map(r => r.id).sort();
+    // the registration follows the consent's write (the same handler, one step later) — waited for, not raced (T20:
+    // the full suite under load read the registrations in between)
+    const regs = (await waitUntil(async () => { const r = (await registered(h)).map(x => x.id); return r.includes("draft-auto-read-greenhouse") ? r : null; }, 15000)) || [];
     assert.ok(regs.includes("draft-auto-read-greenhouse"), JSON.stringify(regs));
     await popup.close().catch(() => {});
 
@@ -121,7 +123,7 @@ test("⭐ the one-time card → ONE grant → a preset host is read automaticall
     assert.ok(custom, "the careers origin is allowed");
     assert.deepEqual([custom.read, custom.prepare, custom.capture, custom.fill], [true, true, false, false]);
     assert.deepEqual(custom.frames, ["greenhouse"]);
-    const reg = (await registered(h)).find(r => r.id === `draft-auto-read-c-${CAREERS}`);
+    const reg = await waitUntil(async () => (await registered(h)).find(r => r.id === `draft-auto-read-c-${CAREERS}`) || null, 15000);
     assert.ok(reg, "registered for the careers origin");
     assert.equal(reg.allFrames, true);
     assert.ok(reg.matches.includes(`https://${CAREERS}/*`) && reg.matches.includes(`https://${GH_HOST}/*`), JSON.stringify(reg.matches));
