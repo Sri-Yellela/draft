@@ -77,18 +77,30 @@ export default async function run(h, { check, section }) {
   await sleep(7500);
   check('no tab opened', (await tabUrls(h)).length === tabs0, JSON.stringify(await tabUrls(h)));
   check('…and draft\'s server was not asked', lookups(h) === look0);
-  check('…the page was told why', (await h.page.evaluate(() => window.__results)).at(-1)?.error === 'no_click');
+  const told = await waitUntil(async () => {
+    const rs = await h.page.evaluate(() => window.__results);
+    return rs.length ? rs : null;
+  }, 8000);
+  check('…the page was told why', told?.at(-1)?.error === 'no_click', JSON.stringify(told));
 
   section('3 · a trusted click — the extension opens the server\'s address, bound to the job');
   const before = lookups(h);
+  const replies0 = (await h.page.evaluate(() => window.__results)).length;
   await h.page.bringToFront();
   await h.page.click('#posting');
   const opened = await waitUntil(async () => ((await tabUrls(h)).includes(SERVER_URL) ? true : null), 8000);
   check('a new tab at THE SERVER\'S address', opened === true, JSON.stringify(await tabUrls(h)));
   check('…and never the link the page carried', !(await tabUrls(h)).includes(PAGE_LINK));
   check('asked of draft\'s server once', lookups(h) - before === 1, `${lookups(h) - before}`);
-  const results = await h.page.evaluate(() => window.__results);
-  check('the page was told it was handed over', results.at(-1)?.ok === true, JSON.stringify(results));
+  // The tab opens before the worker's answer travels back to the page (sendMessage's callback, then postMessage) — under
+  // the full suite's load that hop lagged the tab and this read saw only section 2's no_click. Wait for the click's OWN
+  // reply, as the tab is waited for above, rather than reading whatever happens to be last.
+  const replied = await waitUntil(async () => {
+    const rs = await h.page.evaluate(() => window.__results);
+    return rs.length > replies0 ? rs : null;
+  }, 8000);
+  const results = replied || await h.page.evaluate(() => window.__results);
+  check('the page was told it was handed over', results.length > replies0 && results.at(-1)?.ok === true, JSON.stringify(results));
   const binds = await h.bindings();
   const b = binds.map(([, v]) => v).find(v => v.jobId === 'wd-bridge-1');
   check('the new tab is bound to the job, via board', b?.via === 'board', JSON.stringify(binds));
@@ -101,10 +113,15 @@ export default async function run(h, { check, section }) {
   await sleep(5500);   // past the last click's activation
   await h.page.evaluate(() => window.__setJob('wd-not-mine'));
   const tabs1 = (await tabUrls(h)).length;
+  const replies1 = (await h.page.evaluate(() => window.__results)).length;
   await h.page.click('#posting');
   const fell = await waitUntil(async () => ((await tabUrls(h)).length > tabs1 ? true : null), 8000);
   check('a tab opened — the page\'s own fallback', fell === true, JSON.stringify(await tabUrls(h)));
-  check('…the extension refused it (not on the board)', (await h.page.evaluate(() => window.__results)).at(-1)?.error === 'not_on_board',
+  const refused = await waitUntil(async () => {
+    const rs = await h.page.evaluate(() => window.__results);
+    return rs.length > replies1 ? rs : null;
+  }, 8000);
+  check('…the extension refused it (not on the board)', refused?.at(-1)?.error === 'not_on_board',
     JSON.stringify(await h.page.evaluate(() => window.__results)));
   const unbound = (await h.bindings()).map(([, v]) => v).filter(v => v.jobId === 'wd-not-mine');
   check('…and nothing was bound to it', unbound.length === 0);
