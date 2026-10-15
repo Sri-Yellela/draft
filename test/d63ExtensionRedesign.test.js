@@ -109,7 +109,8 @@ test("⭐ D63 (1) · the in-page badge is a depth box, and each of the four stat
   assert.match(src, /\.bar \{[^}]*border-radius: 12px;[^}]*border-left: 4px solid var\(--c-\$\{tone\}\);/);
   for (const s of ["progress", "required", "done", "unrecognised"]) assert.match(src, new RegExp(`\\b${s}: '<path d=`), `${s} has no icon`);
   assert.match(src, /<span class="st" data-role="icon" aria-hidden="true"><svg viewBox="0 0 24 24">\$\{ICON\}<\/svg><\/span>/);
-  assert.match(src, /<span class="n" data-role="count" aria-hidden="true"><\/span>/, "the count is a rectangular mark");
+  // ⭐ T21: the count is written in the markup (the bar is patched in place), so the mark may hold it.
+  assert.match(src, /<span class="n" data-role="count" aria-hidden="true">(?:\$\{missing\.length\})?<\/span>/, "the count is a rectangular mark");
   assert.match(src, /\.n \{[^}]*border-radius: 6px;/);
   assert.match(src, /\.x \{[^}]*border-radius: 8px;/, "× is a square");
   // The four sentences are unchanged.

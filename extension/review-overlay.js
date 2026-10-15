@@ -65,7 +65,7 @@ export const TIER_LABEL = {
  * of the truth. The first version did precisely that, and the trap form's "Current Company" sat in
  * the collapsed section with nothing to acknowledge.
  */
-export const MATCH_CONFIDENCE = { exact: 1.0, label_exact: 1.0, saved_answer: 1.0, work_history: 1.0, eeo_decline: 1.0, semantic: 1.0, label: 0.5 };
+export const MATCH_CONFIDENCE = { exact: 1.0, label_exact: 1.0, saved_answer: 1.0, work_history: 1.0, eeo_decline: 1.0, semantic: 1.0, label: 0.5, near_question: 0.5 };
 
 /**
  * ⭐ D96 §4 / §5: how a control was matched that is NOT a guess about the field — a structural id ('exact'), the
@@ -176,7 +176,7 @@ export const keyOf = (i) => `${i.name || ''}::${i.field || ''}`;
 import { questionUnits, unitFields, unitOptions, unitWidgetKind } from './savedAnswerMatch.js';
 import { neverFillReasonOfField, questionLabelKey } from './answerKey.js';
 // ⭐ T18: what an upload is (résumé · cover letter · other) and a best-guess label for a field nothing named.
-import { fileTypeOf, guessLabelOf } from './fieldSemantics.js';
+import { fileTypeOf, fileTypesOf, guessLabelOf } from './fieldSemantics.js';
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const keyText = (s) => norm(questionLabelKey(s));
@@ -188,6 +188,8 @@ export const shownLabel = (s) => String(s ?? '').replace(/\s+/g, ' ').replace(/\
 export function sourceOf(step = {}) {
   const p = step.provenance;
   if (p === 'saved_answer') {
+    // ⭐ T25: an answer borrowed from a similar question is not the same as one saved for THIS question.
+    if (step.matchedBy === 'near_question') return 'similar question';
     const s = step.saved?.source;
     return s === 'you_typed' ? 'you typed' : s === 'you_acknowledged' ? 'you acknowledged' : 'saved';
   }
@@ -198,6 +200,9 @@ export function sourceOf(step = {}) {
   if (p === 'resume' || step.source === 'resume') return 'your résumé';
   return 'profile';
 }
+
+/** ⭐ T25: the Check row of an answer reused from a similar question — followed by that question, quoted. */
+export const NEAR_NOTE = 'Reused your answer to a similar question:';
 
 /** Why a field is the candidate's — one plain sentence per reason the fill or the matcher gives. */
 export const NEED_WORDS = Object.freeze({
@@ -253,6 +258,8 @@ export function panelRowsForStep({ stepName = '', fields = [], plan = [], filled
   const rows = [];
   const units = questionUnits((fields || []).filter(f => f.visible !== false || f.type === 'file'));
   let unlabelled = 0;
+  const uploads = (fields || []).filter(f => f && f.type === 'file');
+  const uploadTypes = new Map(fileTypesOf(uploads).map((t, i) => [uploads[i].index, t]));
   const isFilled = (p) => filled.some(f => (f.index !== undefined ? f.index === p.index : (f.field === p.label && (f.name ?? null) === (p.name ?? null))));
   for (const u of units) {
     const fs = unitFields(u);
@@ -291,6 +298,8 @@ export function panelRowsForStep({ stepName = '', fields = [], plan = [], filled
     if (first.type === 'file') {
       // ⭐ T18: the upload's TYPE, from its label (the group's heading included) and then its attributes.
       row.fileType = fileTypeOf({ ...first, label: question || first.label });
+      // ⭐ LIVE (Ashby): an autofill drop zone beside the real résumé field is not a second résumé row (fileTypesOf).
+      if (row.fileType === 'resume' && uploadTypes.get(first.index) === 'other') row.fileType = 'other';
       // ⭐ D98 §5 (J6): the résumé generated in the on-page panel reads "Résumé — attached ✓", its file named under it.
       // ⭐ T18: the attached résumé is THIS row's only when this upload is the résumé's (or the page's only upload) — a
       // cover letter's box never reads "Résumé — attached".
@@ -310,6 +319,12 @@ export function panelRowsForStep({ stepName = '', fields = [], plan = [], filled
         acknowledgedAt: head.saved?.acknowledgedAt || null, attesting: !!(head.saved?.attesting || row.eligibility),
         savedId: head.saved?.id ?? null, remembered: head.provenance === 'saved_answer',
         ...(placedOptions ? { options: placedOptions } : {}),
+      });
+      // ⭐ T25: a near match is Check (matchedBy 'near_question' is not exact), and the row names the question the answer
+      // was saved for. Nothing about THIS question was acknowledged or remembered yet — acknowledging it remembers it.
+      if (head.matchedBy === 'near_question' && head.saved?.near) Object.assign(row, {
+        near: head.saved.near, note: `${NEAR_NOTE} “${shownLabel(head.saved.near.question)}”`,
+        acknowledgedAt: null, remembered: false, savedId: null, attesting: false,
       });
     } else if (failed.length) {
       const why = skip?.reason?.startsWith('error') ? 'error' : skip?.reason;
@@ -424,7 +439,10 @@ export function renderOverlay(model, meta) {
   const varsOf = (pal) => Object.entries(pal || {})
     .map(([k, v]) => `--c-${k.toLowerCase().replace(/_/g, '-')}: ${v};`).join(' ');
   const LOGO_FACE = 'rm-draft-logo';
-  if (theme.logoFont && typeof FontFace === 'function') {
+  // ⭐ T21: the face is added ONCE per page (dock.js keeps the same flag) — a second copy of a loaded face re-lays out
+  // every word set in it.
+  if (theme.logoFont && typeof FontFace === 'function' && !globalThis.__draftDockLogo) {
+    globalThis.__draftDockLogo = true;
     try {
       const bin = atob(theme.logoFont);
       const bytes = new Uint8Array(bin.length);
@@ -558,18 +576,29 @@ export function renderOverlay(model, meta) {
   // of a fill opens the dock on this tab; a wizard step's re-draw leaves the dock as the person set it.
   const first = !run.drawn;
   run.drawn = true;
+  // ⭐ T21: a later draw of the SAME fill (each wizard step, then the end) keeps this element, its shadow root and its
+  // panel (`reuse: runId`) — the rows are patched in place (__draftDock.morph), never re-mounted: the scroll stays
+  // where the person left it, and nothing is thrown away and re-made in front of them.
   const host = dock.view('fill', { id: ID, label: 'draft — review before you submit', expand: first, select: first || dock.active() === 'fill',
-    onClose: () => { run.closed = true; cleanup(); } });
-  host.setAttribute('data-draft-review-panel', '');
-  host.dataset.run = runId;   // which fill drew it (a test reads it; the page learns nothing it could not see)
-  const root = host.attachShadow({ mode: 'open' });
-  const style = document.createElement('style');
-  style.textContent = css;
-  const panel = document.createElement('div');
-  panel.id = ID;
-  panel.setAttribute('role', 'region');
-  panel.setAttribute('aria-label', 'draft — review before you submit');
-  root.append(style, panel);
+    reuse: runId, onClose: () => { run.closed = true; cleanup(); } });
+  const reused = !!host.shadowRoot;
+  if (reused) {
+    try { host.__draftCleanup?.(); } catch { /* the last draw's listeners */ }
+    if (host.__draftClick) host.shadowRoot.removeEventListener('click', host.__draftClick);
+  }
+  if (!host.hasAttribute('data-draft-review-panel')) host.setAttribute('data-draft-review-panel', '');
+  if (host.dataset.run !== runId) host.dataset.run = runId;   // which fill drew it (a test reads it; the page learns nothing it could not see)
+  const root = host.shadowRoot || host.attachShadow({ mode: 'open' });
+  const style = root.querySelector('style') || document.createElement('style');
+  if (style.textContent !== css) style.textContent = css;
+  let panel = root.getElementById?.(ID) || null;
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = ID;
+    panel.setAttribute('role', 'region');
+    panel.setAttribute('aria-label', 'draft — review before you submit');
+    root.append(style, panel);
+  }
 
   const GROUPS = [['need', 'Needs you'], ['check', 'Check'], ['ok', 'Filled']];
   const multiStep = new Set(rows.map(r => r.step).filter(Boolean)).size > 1;
@@ -635,7 +664,7 @@ export function renderOverlay(model, meta) {
   const draw = () => {
     const s = panelSummary(rows);
     // The dock's slim bar says what needs you: "2 need you · 14 of 18 filled".
-    dock.summary('fill', `${s.need ? `${s.need} need${s.need === 1 ? 's' : ''} you` : 'nothing needs you'} · ${s.filled} of ${s.total} filled`, { need: s.need });
+    dock.summary('fill', `${s.need ? `${s.need} need${s.need === 1 ? 's' : ''} you` : 'nothing needs you'} · ${s.filled} of ${s.total} filled`, { need: s.need, filled: s.filled, total: s.total });
     {
       const groups = GROUPS.map(([g, title]) => {
         const items = rows.map((r, i) => [r, i]).filter(([r]) => r.group === g);
@@ -645,7 +674,7 @@ export function renderOverlay(model, meta) {
           <button class="rm-lbl" data-role="group" data-g="${g}" aria-expanded="${open}">${open ? '▾' : '▸'} ${title} <span class="rm-n">${items.length}</span></button>
           <div class="rm-rows" data-role="rows"${open ? '' : ' hidden'}>${items.map(([r, i]) => rowHtml(r, i)).join('')}</div></div>`;
       }).join('');
-      panel.innerHTML = `
+      const html = `
         <div class="rm-hd">
           <div class="rm-t">Review before you submit</div>
           <div class="rm-prog" data-role="progress">${esc(s.line)}${meta.resumeAttached ? ' · résumé attached' : ''}
@@ -676,10 +705,13 @@ export function renderOverlay(model, meta) {
               <button class="rm-btn primary" data-role="next">Submit this one first, then go to the next</button>
             </div>` : ''}
         </div>`;
+      // ⭐ T21: patched in place — an unchanged row is not touched, a changed one only where it changed.
+      if (typeof D.morph === 'function') D.morph(panel, html); else panel.innerHTML = html;
     }
-    host.dataset.ready = String(s.ready);
-    host.dataset.need = String(s.need);
-    host.dataset.filled = String(s.filled);
+    const mark = (k, v) => { if (host.dataset[k] !== v) host.dataset[k] = v; };
+    mark('ready', String(s.ready));
+    mark('need', String(s.need));
+    mark('filled', String(s.filled));
     return s;
   };
 
@@ -912,7 +944,8 @@ export function renderOverlay(model, meta) {
     document.removeEventListener('change', onPageInput, true);
   }
   host.__draftCleanup = cleanup;
-  root.addEventListener('click', (ev) => { void onClick(ev); });
+  host.__draftClick = (ev) => { void onClick(ev); };      // ⭐ T21: one listener — the next draw of this view takes it off
+  root.addEventListener('click', host.__draftClick);
   document.addEventListener('input', onPageInput, true);
   document.addEventListener('change', onPageInput, true);
 

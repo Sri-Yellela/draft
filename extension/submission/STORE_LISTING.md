@@ -211,7 +211,7 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 > their website session, deleted the moment they disconnect the extension; the automatic-reading settings
 > (which of Read, Prepare, Capture and Fill the user switched on for each site, when they agreed to the
 > disclosure, and — while Read is on — the question labels, never answers, and field counts of pages read,
-> 30 days); and where each application stands — for each job the user captures, reads, prepares, fills or
+> 30 days); and where each application stands — for each job the user captures, reads, prepares, drafts, fills or
 > submits with the extension, its draft id, title, company and posting address, when each step happened,
 > how many fields were filled or still need the user, and the id and status of a résumé generated for it —
 > no answers and no résumé content, kept 30 days from its last change, deleted on disconnect, sign-out or
@@ -224,7 +224,8 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 > report a fill started with the keyboard; when several applications are queued for one employer
 > site, that site's origin and how many remain, so a batch can resume in the same tab — no answers and
 > nothing about the user in that one; and which job a tab is on (the job's draft id, title and company, and
-> when it was linked) once the user captures a job there or draft recognises
+> when it was linked; for a tab the user's draft board opened, whether it was opened to apply or to view; and,
+> once the user chooses, whether they are drafting that job or filling it in themselves) once the user captures a job there or draft recognises
 > the posting, so the later pages of that application are known to be the same job — no answers, never
 > shared between tabs, deleted when the tab closes, shows a different job, or the user unlinks it.
 
