@@ -19,6 +19,8 @@ import { handlers as ANSWER_MEMORY_HANDLERS, configureAnswerMemory } from './ans
 import { handlers as RESUME_PANEL_HANDLERS, configureResumePanel } from './resumePanel.js';
 // D99 J11: the board hands a job to the extension (boardBridge.js, the one content script, on draft's origin only).
 import { handlers as BOARD_OPEN_HANDLERS, configureBoardOpen } from './boardOpen.js';
+// ⭐ T24: the intent model — the Draft button drafts (the board's Draft) and queues the résumé; the dock says the path.
+import { handlers as INTENT_HANDLERS, configureIntent, showPath } from './intent.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
 import { lookupBoardJob } from './boardJob.js';
 // ⭐ BINDING FIRST (owner 10-15): every press on a page draft has not seen identifies the page and binds the tab first.
@@ -291,6 +293,8 @@ async function openDock(tab, which = null) {
   } else if (!want) {
     try { await drawInDock(tab.id, openDockInPage, [await dockMeta(tab), target]); } catch { /* it is open */ }
   }
+  // ⭐ T24: the dock the user's press opened says the path on this tab — or asks the one question, once. Nothing is queued.
+  void showPath(tab).catch(() => null);
   return { ok: true, tab: target };
 }
 
@@ -595,6 +599,9 @@ async function handleGatedHandoff(onTab = null) {
   // T14: the page this fill ran on is an address the job is known at — a new tab on it binds at once.
   if (bound) await noteAddress(bound.jobId, tab?.url, { title: bound.title, company: bound.company });
   await reportHandoff(tab, result);
+  // ⭐ T24: a fill press is the manual path's control (or fills a drafted application) — the dock's line says which.
+  // ⛔ It never drafts and never generates: the line is redrawn with the tells already held, nothing is queued.
+  if (bound) void showPath(tab, { control: 'fill' }).catch(() => null);
   return result;
 }
 
@@ -907,6 +914,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 configureBoardOpen({ serverUrl: RESUME_MASTER_URL });
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const handle = BOARD_OPEN_HANDLERS[msg?.type];
+  if (!handle) return false;
+  handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
+  return true;
+});
+
+// ── ⭐ T24: the intent model (intent.js) ── INTENT_DRAFT only from the popup (its Draft button's click), INTENT_CHOOSE only
+// from the dock's own trusted click in a page's TOP frame, INTENT_SETTINGS only from the extension's own pages.
+configureIntent({ serverUrl: RESUME_MASTER_URL });
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  const handle = INTENT_HANDLERS[msg?.type];
   if (!handle) return false;
   handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
   return true;

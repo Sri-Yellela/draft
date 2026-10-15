@@ -10,7 +10,8 @@
 // ⛔ What this script does, and all it does:
 //   · marks the page as having the extension (`data-draft-extension` on <html>, a per-load nonce) so the board knows
 //     to hand over rather than open the link itself;
-//   · forwards a JOB ID — nothing else is read from the message or the page, and nothing is sent to any server here.
+//   · forwards a JOB ID (and, ⭐ T24, the board's intent: the word 'apply' or 'view', when the page named one) — nothing
+//     else is read from the message or the page, and nothing is sent to any server here.
 // ⛔ Accepted only when: the message comes from this window (not a frame, not another window), from draft's own origin,
 //    carries this load's nonce and a well-formed job id, and the page is handling a real click (user activation).
 //    The worker re-checks the sender and the rate, and the SERVER decides whether the job is on the user's board and
@@ -32,9 +33,12 @@
     if (d.nonce !== nonce) return;                                         // not this load's page: say nothing
     if (typeof d.jobId !== 'string' || !JOB_ID_RE.test(d.jobId)) { reply(nonce, { ok: false, error: 'bad_job' }); return; }
     if (navigator.userActivation && !navigator.userActivation.isActive) { reply(nonce, { ok: false, error: 'no_click' }); return; }
+    // ⭐ T24: the board's INTENT — 'apply' (its Draft / Apply) or 'view' (Open posting) — one of two words, forwarded only
+    // when the page named one; anything else is dropped (the worker reads its absence as 'view').
+    const intent = d.intent === 'apply' || d.intent === 'view' ? d.intent : null;
     let answered = false;
     try {
-      chrome.runtime.sendMessage({ type: 'OPEN_JOB', jobId: d.jobId, via: 'board' }, (r) => {
+      chrome.runtime.sendMessage({ type: 'OPEN_JOB', jobId: d.jobId, via: 'board', ...(intent ? { intent } : {}) }, (r) => {
         answered = true;
         void chrome.runtime.lastError;                                      // the worker was gone: the page opens its own link
         reply(nonce, r && r.ok ? { ok: true } : { ok: false, error: (r && typeof r.error === 'string' ? r.error : 'unavailable').slice(0, 40) });

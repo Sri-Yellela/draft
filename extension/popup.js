@@ -587,10 +587,22 @@ document.getElementById('btn-sign-in').addEventListener('click', () => {
   setTimeout(() => window.close(), 300);
 });
 
+// ⭐ T24 · THE DRAFT BUTTON DRAFTS (T22 REVISED, owner 10-15): pressed on a job's page it is the board's Draft — the job
+// goes to Draft House (semi, waiting for your review) and its résumé is queued, or the one question / the refusal is
+// said on the page's dock (intent.js). On a page that is no job it opens draft, as it always did.
 document.getElementById('btn-resume').addEventListener('click', async () => {
-  await chrome.runtime.sendMessage({ type: 'OPEN_RESUME_BUILDER' });
-  setStatus('Opening...', 800);
-  setTimeout(() => window.close(), 800);
+  const btn = document.getElementById('btn-resume');
+  btn.disabled = true;
+  const r = await chrome.runtime.sendMessage({ type: 'INTENT_DRAFT', trigger: 'click' }).catch(() => null);
+  btn.disabled = false;
+  if (!r || r.openDraft) {
+    await chrome.runtime.sendMessage({ type: 'OPEN_RESUME_BUILDER' });
+    setStatus('Opening...', 800);
+    setTimeout(() => window.close(), 800);
+    return;
+  }
+  setStatus(r.message || (r.ok ? 'Drafted.' : 'Could not draft this job.'), 6000);
+  if (r.ok && !r.asked) setTimeout(() => window.close(), 1600);
 });
 
 // D63 (5): "Sign in with LinkedIn" moved to the options page (options.js) — it is used once.
