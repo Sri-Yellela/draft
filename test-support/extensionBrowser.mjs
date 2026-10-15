@@ -273,7 +273,12 @@ export async function launchExtensionBrowser(opts = {}) {
     const { default: puppeteer } = await import('puppeteer-core');
     const browser = await puppeteer.launch({
       executablePath: chrome.path, headless: opts.headless !== false, pipe: true, enableExtensions: true, userDataDir: profileDir,
-      args: ['--no-first-run', '--no-default-browser-check', `--host-resolver-rules=MAP ${TENANT} 127.0.0.1:${ats.port}`],
+      // T11: `resolverRules` add hosts (["MAP careers.acme.test 127.0.0.1:443"]); `chromeArgs` add flags; `insecureCerts`
+      // accepts a lane's throwaway self-signed certificate (an HTTPS fixture — the ATS families' origins are https).
+      acceptInsecureCerts: !!opts.insecureCerts,
+      args: ['--no-first-run', '--no-default-browser-check',
+        `--host-resolver-rules=${[`MAP ${TENANT} 127.0.0.1:${ats.port}`, ...(opts.resolverRules || [])].join(', ')}`,
+        ...(opts.insecureCerts ? ['--ignore-certificate-errors'] : []), ...(opts.chromeArgs || [])],
       defaultViewport: opts.viewport || { width: 1280, height: 900 },
     });
     // A browser that will not close in 5 s is killed: a hung close must never hold a lane's command open.
@@ -373,6 +378,12 @@ export async function launchExtensionBrowser(opts = {}) {
       theme: () => theme,
       // ── readers ──
       readPanel: (selectors = {}) => page.evaluate(readPanelInPage, { ...READ_PANEL_SELECTORS, ...selectors }),
+      /** T11: the review panel inside a FRAME (an embedded ATS form) — `match(url)` picks the frame. null when absent. */
+      readPanelInFrame: async (match, selectors = {}) => {
+        const f = page.frames().find(fr => match(fr.url()));
+        return f ? f.evaluate(readPanelInPage, { ...READ_PANEL_SELECTORS, ...selectors }) : null;
+      },
+      frame: (match) => page.frames().find(fr => match(fr.url())) || null,
       waitForPanel: (ms = BUSY_MS) => waitUntil(() => h.readPanel(), ms),
       readCopySheet: () => page.evaluate(readCopySheetInPage),
       waitForCopySheet: (ms = BUSY_MS) => waitUntil(() => h.readCopySheet(), ms),

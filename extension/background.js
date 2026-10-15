@@ -320,7 +320,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     handleGatedHandoff()
       // D36: whether the review panel opened travels with the answer, so the popup can stay open when it did not.
       .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null, overlay: r?.overlay ? { rendered: r.overlay.rendered === true } : null,
-        reason: r?.reason || null, canPrepare: !!r?.canPrepare }))
+        reason: r?.reason || null, canPrepare: !!r?.canPrepare,
+        // ⭐ T11: which ATS site's frame holds the form (name and origins only) — the popup's "Allow draft on …" asks for it.
+        site: r?.reason === 'frame_needs_permission' ? r.site || null : null }))
       .catch(() => sendResponse({ ok: false, message: 'Could not fill this page.' }));
     return true;
   }
@@ -331,7 +333,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.tabs.query({ active: true, currentWindow: true })
       .then(async ([tab]) => { const r = await prepareAndFill({ serverUrl: RESUME_MASTER_URL, tab }); await reportHandoff(tab, r); return r; })
       .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null, reason: r?.reason || null,
-        overlay: r?.overlay ? { rendered: r.overlay.rendered === true } : null }))
+        overlay: r?.overlay ? { rendered: r.overlay.rendered === true } : null,
+        site: r?.reason === 'frame_needs_permission' ? r.site || null : null }))
       .catch(() => sendResponse({ ok: false, message: 'Could not prepare this application.' }));
     return true;
   }
