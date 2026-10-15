@@ -47,6 +47,9 @@ test("⛔ T18: the vocabulary never names an attestation, an EEO question, a con
     "Are you willing to relocate to this city?", "Desired salary", "Receive text messages about this job"]) {
     assert.equal(semanticKeyOf({ type: "text", label }, kind), null, label);
   }
+  // defence in depth: whatever the words, a label the caller's questionKind reads as an attestation gets no key
+  assert.equal(semanticKeyOf({ type: "text", label: "Country" }, { kindOf: () => "eligibility" }), null);
+  assert.equal(semanticKeyOf({ type: "text", label: "Country" }, { kindOf: () => "other" }), "country");
   // anchored, not keywords: a city of birth is not the city; a referrer's name is not the candidate's
   assert.equal(semanticKeyOf({ type: "text", label: "City of birth" }, kind), null);
   assert.equal(semanticKeyOf({ type: "text", label: "Name of Referrer" }, kind), null);
