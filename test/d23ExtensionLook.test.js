@@ -148,11 +148,15 @@ test("⛔ D23: opening the popup reads NOTHING — no preview, no context call, 
   // ACCOUNT's captures (GET /api/import/today), no tab and no URL in the message.
   // D99 J11 (10-14): BOARD_TAB — "From your board" on a tab the board opened — is asked on open on the same terms: no tab
   // and no URL in the message, and the worker answers it from the extension's OWN binding record (no request, no injection).
-  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING", "CAPTURED_TODAY", "BOARD_TAB"], `the popup asked for ${p.sent.join(", ")} on open`);
-  assert.deepEqual(Object.keys(p.messages.find(m => m.type === "BOARD_TAB")), ["type"], "BOARD_TAB's message carries something about the page");
-  const boardSrc = read("extension/boardOpen.js"), bt = at(boardSrc, "BOARD_TAB: async");
-  const boardTab = boardSrc.slice(bt, at(boardSrc, "\n  },", bt));
-  assert.doesNotMatch(boardTab, /fetch|authedFetch|lookupBoardJob|executeScript/, "BOARD_TAB reads the page or asks the server");
+  // ⭐ T14 (field report 10-14): BOARD_TAB became TAB_STATE — the same answer for a board tab, and for ANY bound tab, and
+  // a new tab on an address the job was already seen at binds now. Still the extension's own records: tabStateFor reads
+  // the binding and the progress record, nothing else — no request, no injection, no lookup.
+  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING", "CAPTURED_TODAY", "TAB_STATE"], `the popup asked for ${p.sent.join(", ")} on open`);
+  assert.deepEqual(Object.keys(p.messages.find(m => m.type === "TAB_STATE")), ["type"], "TAB_STATE's message carries something about the page");
+  const stateSrc = read("extension/tabState.js");
+  const accessor = stateSrc.slice(at(stateSrc, "export async function tabStateFor"), at(stateSrc, "// ── T13 · the chain"));
+  assert.doesNotMatch(accessor, /fetch|authedFetch|lookupBoardJob|lookupPage|executeScript|sendMessage/, "TAB_STATE reads the page or asks the server");
+  assert.doesNotMatch(read("extension/tabBinding.js"), /\bfetch\(|authedFetch|executeScript/, "the address comparison reads the page or asks the server");
   assert.deepEqual(Object.keys(p.messages.find(m => m.type === "TODAY_RING")), ["type"], "the ring's message carries something about the page");
   assert.deepEqual(Object.keys(p.messages.find(m => m.type === "CAPTURED_TODAY")), ["type"], "the count's message carries something about the page");
   assert.equal(p.injected.length, 0, "the popup injected into the page on open");
@@ -189,7 +193,7 @@ test("D23: the keystroke is the same press (R, no modifier); a modified R is not
   const key = (o) => { for (const fn of p.docListeners.keydown) fn({ preventDefault() {}, ...o }); };
   key({ key: "r", ctrlKey: true });
   await p.settle();
-  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING", "CAPTURED_TODAY", "BOARD_TAB"], "Ctrl+R read the page");
+  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING", "CAPTURED_TODAY", "TAB_STATE"], "Ctrl+R read the page");
   key({ key: "r" });
   await p.settle();
   assert.equal(p.els["btn-fill-primary"].style.display, "flex", "a form you drafted -> Fill it");

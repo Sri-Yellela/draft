@@ -4,7 +4,10 @@ import {
   prepareAndFill, recordSubmitted, copySheetFor, pageMatchFor, packetFillsOrigin, overlayTheme, loadPacketForTab,
 } from './gated-handoff.js';
 // D96 §3 (J1): where each application stands — local, per job, no answer values.
-import { noteCapture, noteContext, noteReviewed, progress, resumeFor } from './progress.js';
+import { noteCapture, noteContext, noteReviewed, noteAddress, progress, resumeFor } from './progress.js';
+// ⭐ T13 + T14 (field report 10-14): the ONE accessor for what a tab is (and a known address binds a new tab at once),
+// and the one press of Fill that reads, prepares and fills.
+import { handlers as TAB_STATE_HANDLERS, tabStateFor, runFillChain, chainMessage } from './tabState.js';
 // T6: Options → "Show details" — what draft answered, per tab and per server path (memory only)
 import { notePageRead, detailsOf, readTabIds } from './diagnostics.js';
 // D96 §4–§5 (J4): the review panel's acknowledge / change / dock — answers go to the user's own Saved answers.
@@ -120,7 +123,7 @@ async function captureActiveTab(tab) {
   if (result?.success && result.jobId) {
     await bindTab(tab, { jobId: result.jobId, title: extracted.title || null, company: extracted.company || null, via: 'capture' }).catch(() => null);
   }
-  await noteCapture(result, extracted);
+  await noteCapture(result, extracted, tab.url || null);
   await reportCapture(tab.id, result);
   return result;
 }
@@ -157,7 +160,7 @@ async function popupContext(tab) {
   let origin = '';
   try { const u = new URL(tab?.url || ''); if (/^https?:$/.test(u.protocol)) { url = u.href; origin = u.origin; } }
   catch { /* chrome://, file:// or a blank tab: no page context, recent captures only */ }
-  const [board, queue] = await Promise.all([
+  let [board, queue] = await Promise.all([
     authedFetch(RESUME_MASTER_URL, '/api/import/context', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }),
     })
@@ -179,16 +182,31 @@ async function popupContext(tab) {
       board.posting = { ...board.posting, known: true, jobId: p.jobId, title: p.title, company: p.company, how: p.how, active: true, scores };
     } else if (score != null) board.posting = { ...board.posting, scores };
   }
+  // T14: the score draft gave this job here — kept with the tab's state and the job's record, so the card comes back
+  // on the next open without a read.
+  const shownScore = Number.isFinite(board?.posting?.scores?.shown) ? board.posting.scores.shown : null;
+  const ats = shownScore != null ? { score: shownScore, band: page?.ats?.band ?? null } : null;
   // ⭐ A posting draft recognises binds the tab too; a DIFFERENT recognised posting replaces the binding.
   if (board?.posting?.known && board.posting.jobId) {
-    await bindTab(tab, { jobId: board.posting.jobId, title: board.posting.title, company: board.posting.company, via: 'recognised' }).catch(() => null);
+    await bindTab(tab, { jobId: board.posting.jobId, title: board.posting.title, company: board.posting.company, via: 'recognised', ats }).catch(() => null);
   }
   const binding = await bindingForTab(tab);
-  await noteContext(board, binding);
+  await noteContext(board, binding, { url, ats });
+  // ⭐ T13 · "Read this page" also PREPARES. The match above was asked before this read bound the tab; asked again
+  // now with the binding when it said nothing fills here, and when the server says the job is the user's own with
+  // nothing prepared (or what was prepared has gone off), the packet is built — no model call, no Draft slot
+  // (routes/apply.js prepareManualPacket) — and the queue re-read, so the popup offers Fill, not Prepare.
+  let prepared = false;
+  if (origin && binding && (!queue || queue.state !== 'ready')) queue = await pageMatchFor(RESUME_MASTER_URL, tab).catch(() => queue);
+  if (origin && queue?.canPrepare && (queue.state === 'prepare' || queue.state === 'stale')) {
+    const prep = await prepareAndFill({ serverUrl: RESUME_MASTER_URL, tab, fill: false }).catch(() => null);
+    prepared = !!prep?.prepared;
+    if (prepared) queue = await pageMatchFor(RESUME_MASTER_URL, tab).catch(() => queue);
+  }
   notePageRead(tab?.id, { url, known: !!board?.posting?.known, jobId: board?.posting?.jobId ?? null, how: board?.posting?.how || null,
     pageKey: board?.pageKey?.key || null, basis: page?.basis || null, atsState: page?.ats?.state || null });
   return {
-    url, origin,
+    url, origin, prepared,
     binding: binding ? { jobId: binding.jobId, title: binding.title, company: binding.company, via: binding.via, boundAt: binding.boundAt,
                ...(binding.via === 'board' && binding.board?.ats ? { ats: binding.board.ats } : {}) } : null,
     posting: board?.posting || null,
@@ -320,9 +338,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     handleGatedHandoff()
       // D36: whether the review panel opened travels with the answer, so the popup can stay open when it did not.
       .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null, overlay: r?.overlay ? { rendered: r.overlay.rendered === true } : null,
-        reason: r?.reason || null, canPrepare: !!r?.canPrepare,
-        // ⭐ T11: which ATS site's frame holds the form (name and origins only) — the popup's "Allow draft on …" asks for it.
-        site: r?.reason === 'frame_needs_permission' ? r.site || null : null }))
+        reason: r?.reason || null, canPrepare: !!r?.canPrepare, did: Array.isArray(r?.did) ? r.did : [],
+        // T11: the frame's site, for the popup's one "Allow draft on <site>" button (names and origins only)
+        site: r?.reason === 'frame_needs_permission' && r.site ? { id: r.site.id, name: r.site.name, origins: r.site.origins } : null }))
       .catch(() => sendResponse({ ok: false, message: 'Could not fill this page.' }));
     return true;
   }
@@ -484,13 +502,26 @@ chrome.commands.onCommand.addListener((command) => {
 // The result is reported with chrome.action's badge rather than a notification: the extension has no
 // `notifications` permission, and adding one for a status message would be a new user-facing consent
 // prompt for something a badge already says.
+//
+// ⭐ T13 (field report 10-14) · ONE PRESS DOES THE WHOLE CHAIN. The press (this command, or the popup's Fill) is the
+// user's explicit trigger for THIS page, so it does what the page needs: binds a tab whose address the job was already
+// seen at (T14), reads the page when the tab does not know its job, fills, and prepares-then-fills when nothing is
+// prepared — and says what it did (tabState.js runFillChain). ⛔ Only this press runs the chain: the automatic switches
+// (autoRead.js) call the handoff itself.
 async function handleGatedHandoff() {
   void sweepExpiredPackets();
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const result = await runGatedHandoff({ serverUrl: RESUME_MASTER_URL, tab });
-  // ⭐ When the tab's binding is what told draft which job this is, the fill says so.
+  const result = await runFillChain({
+    state: () => tabStateFor(tab),
+    read: () => popupContext(tab),
+    fill: () => runGatedHandoff({ serverUrl: RESUME_MASTER_URL, tab }),
+    prepare: () => prepareAndFill({ serverUrl: RESUME_MASTER_URL, tab }),
+  });
+  // ⭐ When the tab's binding is what told draft which job this is, the fill says so — after what the press did first.
   const bound = await bindingForTab(tab).catch(() => null);
-  if (bound && result?.ok) result.message = `${bindingLine(bound)}. ${result.message || ''}`.trim();
+  if (bound && result?.ok) result.message = chainMessage(result.did, { ...result, message: `${bindingLine(bound)}. ${result.fillMessage || ''}`.trim() });
+  // T14: the page this fill ran on is an address the job is known at — a new tab on it binds at once.
+  if (bound) await noteAddress(bound.jobId, tab?.url, { title: bound.title, company: bound.company });
   await reportHandoff(tab, result);
   return result;
 }
@@ -770,6 +801,14 @@ chrome.tabs.onRemoved.addListener((tabId) => { forgetTab(tabId); });
 configureResumePanel({ serverUrl: RESUME_MASTER_URL });
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const handle = RESUME_PANEL_HANDLERS[msg?.type];
+  if (!handle) return false;
+  handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
+  return true;
+});
+
+// ── ⭐ T14: TAB_STATE — the popup asks, on open, what the active tab is (tabState.js; the extension's own records) ──
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  const handle = TAB_STATE_HANDLERS[msg?.type];
   if (!handle) return false;
   handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
   return true;
