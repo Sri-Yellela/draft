@@ -25,7 +25,9 @@
     "https://jobs.ashbyhq.com/*",
     "https://apply.workable.com/*",
     "https://*.myworkdayjobs.com/*",
-    "https://*.myworkdaysite.com/*"
+    "https://*.myworkdaysite.com/*",
+    "https://jobs.smartrecruiters.com/*",
+    "https://*/*"
   ],
   "background": {
     "service_worker": "background.js",

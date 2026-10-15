@@ -8,7 +8,9 @@
 //   · Every switch, the consent, "Forget what was read" and the kill switch are WRITTEN by the service worker
 //     (autoRead.js handlers, by message): one write site, serialised, so a switch turned off cannot be lost to a read
 //     being logged at the same moment. Turning a site's last switch off gives Chrome's access back there.
-import { SITES, DISPLAY_ORDER, BEHAVIOURS, DISCLOSURE, siteById, consentCovers, readQuality } from './autoRead.js';
+//   · ⭐ T12: the sites the user chose with the popup's "Always read here" are listed below the preset table, with the
+//     same four switches and Remove (gives Chrome's access back and unregisters the watcher).
+import { SITES, DISPLAY_ORDER, BEHAVIOURS, DISCLOSURE, siteById, consentCovers, readQuality, originPattern } from './autoRead.js';
 
 export const COLUMN = Object.freeze({ read: 'Read', prepare: 'Prepare', capture: 'Capture', fill: 'Fill' });
 
@@ -16,17 +18,19 @@ export const COLUMN = Object.freeze({ read: 'Read', prepare: 'Prepare', capture:
  * One switch changed. ⛔ The permission request is made SYNCHRONOUSLY, as this function's first chrome call, so it
  * stays inside the click's user gesture. Returns the service worker's answer.
  */
-export function onSwitch(api, { siteId, behaviour, checked }) {
-  const site = siteById(siteId);
-  const asked = checked && site ? api.permissions.request({ origins: [...site.origins] }) : null;
+export function onSwitch(api, { siteId = null, origin = null, behaviour, checked }) {
+  const site = origin ? null : siteById(siteId);
+  const origins = origin ? [originPattern(origin)] : site ? [...site.origins] : null;
+  const asked = checked && origins ? api.permissions.request({ origins }) : null;
   return (async () => {
-    if (!site || !BEHAVIOURS.includes(behaviour)) return { ok: false, error: 'bad_switch' };
+    if (!origins || !BEHAVIOURS.includes(behaviour)) return { ok: false, error: 'bad_switch' };
     if (checked) {
       let granted = false;
       try { granted = await asked; } catch { granted = false; }
       if (!granted) return { ok: false, error: 'not_granted' };
     }
-    return (await api.runtime.sendMessage({ type: 'AUTO_READ_SET', site: siteId, behaviour, on: !!checked })) || { ok: false };
+    const target = origin ? { origin } : { site: siteId };
+    return (await api.runtime.sendMessage({ type: 'AUTO_READ_SET', ...target, behaviour, on: !!checked })) || { ok: false };
   })();
 }
 
@@ -114,11 +118,82 @@ export function mount(doc, api) {
     await refresh();
   });
 
+  // ⭐ T12 · the custom sites — redrawn from the state on every render (the list changes from the popup).
+  const customBody = $('auto-custom-body');
+  const removes = new Map();
+  function renderCustom(s) {
+    for (const k of [...boxes.keys()]) if (k.startsWith('https://')) boxes.delete(k);
+    removes.clear();
+    if (!customBody) return;
+    customBody.textContent = '';
+    const origins = Object.keys(s?.custom || {});
+    const empty = $('auto-custom-empty');
+    if (empty) empty.hidden = origins.length > 0;
+    const table = $('auto-custom');
+    if (table) table.hidden = !origins.length;
+    for (const origin of origins) {
+      const host = origin.replace('https://', '');
+      const e = s.custom[origin];
+      const tr = doc.createElement('tr');
+      const th = doc.createElement('th');
+      th.setAttribute('scope', 'row');
+      const name = doc.createElement('span');
+      name.className = 'site-name';
+      name.textContent = host;
+      const sub = doc.createElement('span');
+      sub.className = 'auto-hosts';
+      sub.textContent = e.frames.length ? `with ${e.frames.map(id => siteById(id)?.name).filter(Boolean).join(' · ')}'s form` : '';
+      const last = (s.reads || []).find(r => r.host === host);
+      const q = doc.createElement('span');
+      q.className = 'auto-hosts';
+      q.textContent = last ? `Last read ${hhmm(last.at)}: ${readQuality(last).line}` : '';
+      th.append(name, sub, q);
+      tr.append(th);
+      for (const b of BEHAVIOURS) {
+        const td = doc.createElement('td');
+        const box = doc.createElement('input');
+        box.type = 'checkbox';
+        box.checked = !!e[b] && !!state?.customGranted?.[origin];
+        box.setAttribute('aria-label', `${COLUMN[b]} automatically on ${host}`);
+        box.addEventListener('change', () => {
+          say.textContent = '';
+          // ⛔ onSwitch asks Chrome FIRST (turning on) — the same rule as the preset sites.
+          onSwitch(api, { origin, behaviour: b, checked: box.checked }).then((r) => {
+            if (!r?.ok) say.textContent = r?.error === 'not_granted' ? `Chrome did not grant access to ${host}, so it stays off.` : 'That switch could not be changed.';
+            else say.textContent = box.checked ? `${COLUMN[b]} is on for ${host}.` : `${COLUMN[b]} is off for ${host}.`;
+            return refresh();
+          });
+        });
+        boxes.set(`${origin}:${b}`, box);
+        td.append(box);
+        tr.append(td);
+      }
+      const td = doc.createElement('td');
+      const rm = doc.createElement('button');
+      rm.type = 'button';
+      rm.className = 'link';
+      rm.textContent = 'Remove';
+      rm.setAttribute('aria-label', `Remove ${host}`);
+      rm.addEventListener('click', async () => {
+        const r = await api.runtime.sendMessage({ type: 'AUTO_READ_REMOVE_SITE', origin });
+        say.textContent = r?.ok ? `${host} is removed, and draft gave back its access there.` : `Could not remove ${host}.`;
+        await refresh();
+      });
+      removes.set(origin, rm);
+      td.append(rm);
+      tr.append(td);
+      customBody.append(tr);
+    }
+  }
+
   function render() {
     const s = state?.settings;
-    const full = s?.consent?.scope === 'all';
+    // ⭐ D97 REVISED: the popup's one-time card is the same agreement as "I agree" here.
+    const full = s?.consent?.scope === 'all' || !!s?.consent2;
     agree.hidden = full;
-    $('auto-agreed').textContent = full ? `You agreed on ${hhmm(s.consent.at)}.` : '';
+    const at = s?.consent2?.at ?? s?.consent?.at;
+    $('auto-agreed').textContent = full ? `You agreed on ${hhmm(at)}.` : '';
+    renderCustom(s);
     for (const site of SITES) {
       for (const b of BEHAVIOURS) {
         const box = boxes.get(`${site.id}:${b}`);
@@ -145,7 +220,7 @@ export function mount(doc, api) {
     return state;
   }
   const ready = refresh().catch(() => null);
-  return { boxes, agree, ready, refresh };
+  return { boxes, removes, agree, ready, refresh };
 }
 
 if (typeof document !== 'undefined' && typeof chrome !== 'undefined') mount(document, chrome);
