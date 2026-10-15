@@ -11007,7 +11007,10 @@ function byomDeps() {
 // little signal to judge. That is returned as null and banded as "not enough signal", never
 // coerced to 0 — collapsing them would render the most honest answer the engine gives as the
 // worst grade it has.
-function scoreBaseResumeForApply(userId, jobId) {
+// ⭐ T9: `withReport` adds the scorer's OWN report — the JSON the web app's ATS panel draws — for the extension's
+// routes (routes/extensionJob.js), which hand it to the one ATS component. The apply worker never asks for it: its
+// copy is stored (apply_run_jobs.base_ats_json) and stays the small summary.
+function scoreBaseResumeForApply(userId, jobId, { withReport = false } = {}) {
   try {
     const job = db.prepare("SELECT * FROM scraped_jobs WHERE job_id=?").get(String(jobId));
     if (!job) return null;
@@ -11026,6 +11029,7 @@ function scoreBaseResumeForApply(userId, jobId) {
       matched: report.tier1_matched || [],
       missing: report.tier1_missing || [],
       resumeDepth: report.resume_depth || null,
+      ...(withReport ? { report } : {}),
     };
   } catch (e) {
     // A missing free score must not take down the run that was going to show it. The approval
@@ -11049,8 +11053,9 @@ function scorePageTextForBase(userId, job) {
     const basis = atsBasisForProfile(userId, activeProfile);
     if (!basis) return null;
     const report = scoreJobForBasis(job, basis.runtimeBasis);
+    // T9: the scorer's own report travels too — the extension draws the web app's ATS component from it.
     return { score: report.score, band: atsBandFor(report), scorable: report.scorable,
-             matched: report.tier1_matched || [], missing: report.tier1_missing || [] };
+             matched: report.tier1_matched || [], missing: report.tier1_missing || [], report };
   } catch (e) {
     console.warn(`[scorePageTextForBase] ${e.message}`);
     return null;
@@ -11818,7 +11823,7 @@ app.use(createExtensionResumeRouter({ service: extensionResume, requireAuth, isE
 // ⭐ D99 J11 · the board hands a job to the extension: the canonical address, the card and draft's own ATS report
 // (routes/extensionJob.js). The same score as the approval screen — scoreBaseResumeForApply.
 app.use(createExtensionJobRouter({ db, requireAuth, isExtension: isExtensionCredential,
-  scoreFor: (userId, jobId) => scoreBaseResumeForApply(userId, jobId),
+  scoreFor: (userId, jobId) => scoreBaseResumeForApply(userId, jobId, { withReport: true }),
   scoreText: (userId, job) => scorePageTextForBase(userId, job),
   hasBaseResume: (userId) => !!extensionBaseResumeFor(db, userId) }));
 

@@ -51,6 +51,9 @@ export const COPIED_ASSETS = {
   "fonts/dm-sans-latin-400-normal.woff2":     path.join(FONTSOURCE, "dm-sans/files/dm-sans-latin-400-normal.woff2"),
   "fonts/dm-sans-latin-500-normal.woff2":     path.join(FONTSOURCE, "dm-sans/files/dm-sans-latin-500-normal.woff2"),
   "fonts/dm-sans-latin-700-normal.woff2":     path.join(FONTSOURCE, "dm-sans/files/dm-sans-latin-700-normal.woff2"),
+  // ⭐ T9: the ATS report's score is set in the display serif (--font-display), as on the site.
+  "fonts/instrument-serif-latin-400-normal.woff2":     path.join(FONTSOURCE, "instrument-serif/files/instrument-serif-latin-400-normal.woff2"),
+  "fonts/instrument-serif-latin-ext-400-normal.woff2": path.join(FONTSOURCE, "instrument-serif/files/instrument-serif-latin-ext-400-normal.woff2"),
 };
 
 // The unicode ranges are @fontsource's own (poppins/800-italic.css, dm-sans/400.css), so the browser
@@ -97,7 +100,10 @@ export async function renderExtensionTokens() {
     fontFace("Poppins", "italic", 800, "fonts/poppins-latin-800-italic.woff2", LATIN) +
     fontFace("DM Sans", "normal", 400, "fonts/dm-sans-latin-400-normal.woff2", LATIN) +
     fontFace("DM Sans", "normal", 500, "fonts/dm-sans-latin-500-normal.woff2", LATIN) +
-    fontFace("DM Sans", "normal", 700, "fonts/dm-sans-latin-700-normal.woff2", LATIN);
+    fontFace("DM Sans", "normal", 700, "fonts/dm-sans-latin-700-normal.woff2", LATIN) +
+    // ⭐ T9: the display serif — the ATS report's number (shared/atsReportStyles.js .ats-sum__score).
+    fontFace("Instrument Serif", "normal", 400, "fonts/instrument-serif-latin-ext-400-normal.woff2", LATIN_EXT) +
+    fontFace("Instrument Serif", "normal", 400, "fonts/instrument-serif-latin-400-normal.woff2", LATIN);
 
   const obj = (pal) => "Object.freeze({\n" + names.map((n) => `  ${n}: ${JSON.stringify(pal[n])},`).join("\n") + "\n})";
   const js =
@@ -125,6 +131,10 @@ export async function staleExtensionTokens() {
     if (!fs.existsSync(src)) throw new Error(`source asset missing: ${path.relative(ROOT, src)} — run npm ci in client/`);
     if (!fs.existsSync(file) || !fs.readFileSync(file).equals(fs.readFileSync(src))) stale.push(rel);
   }
+  // ⭐ T9: the ATS report the popup and the on-page panel draw is the web app's component, bundled
+  // (scripts/buildAtsReport.mjs) — a package built from a stale bundle would ship last week's report.
+  const { staleAtsReport } = await import("./buildAtsReport.mjs");
+  for (const rel of await staleAtsReport()) stale.push(rel.replace(/^extension\//, ""));
   return stale;
 }
 

@@ -56,8 +56,7 @@ export const MODULES = Object.freeze({
 export const SHARED = Object.freeze({
   // ── the ATS ──
   "components/ATSPanel.jsx":            { what: "the ATS report LOADER (fetch, cache, claims) — the deck and the ATS panel mount it" },
-  "components/AtsReport.jsx":           { what: "THE ATS report — the one implementation every surface draws (A52)" },
-  "components/AtsReport.css":           { what: "its look", owner: "components/AtsReport.jsx" },
+  "components/AtsReport.jsx":           { what: "THE ATS report in the web app — a thin React wrapper of the ONE component, shared/atsReportElement.js (A52 → T9; see CROSS_PRODUCT)" },
   "components/AtsNumberBox.jsx":        { what: "THE ATS number box (D50) — posting header, ATS panel, résumé rows (A93)" },
   "components/AtsNumberBox.css":        { what: "its look", owner: "components/AtsNumberBox.jsx" },
   // ── companies and jobs ──
@@ -192,7 +191,8 @@ export const SHARED = Object.freeze({
   "styles/cues.css":                    { what: "THE shape cues + system preferences (D91) — global, loaded by main.jsx", owner: "main.jsx" },
   "styles/colorTokens.js":              { what: "THE colour tokens" },
   "styles/glass.js":                    { what: "THE glass surface" },
-  "styles/inkPair.css":                 { what: "the D32 ink pair surface", owner: "components/AtsReport.jsx", alsoBy: ["components/PostingPanel.jsx"] },
+  // T9: the ATS half of the pair draws its surface inside its own shadow root (shared/atsReportStyles.js), so the posting owns this one.
+  "styles/inkPair.css":                 { what: "the D32 ink pair surface — the posting's half", owner: "components/PostingPanel.jsx" },
   "styles/mark.js":                     { what: "THE mark (D60)" },
   "styles/paper.js":                    { what: "the paper grain" },
   "styles/theme.jsx":                   { what: "THE theme provider" },
@@ -213,6 +213,19 @@ export const COMPOSITIONS = Object.freeze([
   { from: "consoles/PlanConsoles.jsx", to: "panels/JobsPanel.jsx", why: "each plan console renders the board" },
   { from: "panels/JobsPanel.jsx", to: "panels/SandboxPanel.jsx", why: "the board's panel dock mounts the PDF panel beside the posting" },
   { from: "panels/JobsPanel.jsx", to: "panels/AtsReportPanel.jsx", why: "the board's panel dock mounts the ATS card beside the posting" },
+]);
+
+// ── CROSS_PRODUCT: ONE component, outside client/src, drawn by the web app AND the extension (T9, owner 10-14: "the
+//    same ATS panel we use on the website — same design and everything"). Not a mirror — the SAME code: the web app
+//    imports the module through its wrapper; the extension loads the generated bundle (scripts/buildAtsReport.mjs),
+//    because it cannot reach ../shared and runs no remote code. The guard checks every path, that the wrapper imports
+//    the module, that each extension consumer loads the bundle, and that the bundle is current.
+export const CROSS_PRODUCT = Object.freeze([
+  { module: "shared/atsReportElement.js", what: "<draft-ats-report> — THE ATS report (structure, copy, events, the renderer)",
+    parts: ["shared/atsReportModel.js", "shared/atsReportStyles.js", "shared/atsReportTokens.js"],
+    web: "components/AtsReport.jsx", bundle: "extension/atsReport.js",
+    extension: ["extension/popup.html", "extension/popup.js", "extension/resumePanel.js", "extension/boardJob.js"],
+    why: "the extension's popup and on-page panel draw the web app's ATS report from the same JSON (T9)" },
 ]);
 
 // ── MIRRORS: a client module the EXTENSION re-draws in its own CSS (it cannot import client code). The guard

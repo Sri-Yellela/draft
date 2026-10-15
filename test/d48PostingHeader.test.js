@@ -53,7 +53,8 @@ test("D48 · the ATS box: the number in the display face and PP_ATS_NUMBER; no s
 });
 
 test("D48 · owner: \"the ATS number switches colour\" — the ATS card's number is the kicker ink (--atx), not the accent", () => {
-  const css = read("client/src/components/AtsReport.css");
+  // T9: the ATS card's stylesheet travels with the one component (shared/atsReportStyles.js).
+  const css = read("shared/atsReportStyles.js");
   const rule = css.slice(at(css, ".ats-sum__score {"), at(css, ".ats-sum__score small {"));
   assert.match(rule, /color: var\(--c-pair-kicker\);/);
   assert.doesNotMatch(rule, /--c-pair-accent/);

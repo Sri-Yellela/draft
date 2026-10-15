@@ -149,6 +149,9 @@ export function reportModel(ats) {
   return { state: 'ready', head: Number.isFinite(ats.score) ? `ATS ${Math.round(ats.score)} · ${band[0]}` : `ATS · ${band[0]}`, tone: band[1],
     note: fromPage ? 'Your base résumé, scored against this page.' : 'Your base résumé, scored for this job.',
     matched: list(ats.matched), missing: list(ats.missing),
+    // ⭐ T9: the scorer's own report (boardJob.js atsFacts, already kept to the component's named fields). When it is
+    // here the panel draws THE web app's ATS report from it (the shared component), not the two lines above.
+    report: ats.report && typeof ats.report === 'object' ? ats.report : null,
     action: fromPage ? null : { role: 'report', label: 'Full report in draft' } };
 }
 
@@ -437,6 +440,11 @@ export function renderResumePanel(model, meta) {
       return `<button class="btn${a.primary || confirm ? ' primary' : ''}" data-role="${esc(a.role)}">${esc(confirm ? 'Regenerate — use a slot' : a.label)}</button>`;
     }).join('');
     const showsEdit = (m.actions || []).some(a => a.role === 'edit');
+    // ⭐ T9: the shared ATS component (extension/atsReport.js, injected before this function by RESUME_PANEL_OPEN). A
+    // content script's isolated world has no custom-element registry, so the panel calls its renderer directly —
+    // the same code, the same stylesheet, in a shadow root of its own inside this one.
+    const ATS = globalThis.__draftAtsReport;
+    const card = !!(m.report?.report && typeof ATS?.mountAtsReport === 'function');
     panel.innerHTML = `
       <div class="hd" data-role="drag">
         <div class="top">
@@ -450,11 +458,14 @@ export function renderResumePanel(model, meta) {
       </div>
       <div class="sc">
         ${m.report ? `<div class="rpt" data-role="ats-report" data-state="${esc(m.report.state)}">${
+          // ⭐ T9: THE web app's ATS report — the shared component, mounted below into its own shadow root — when the
+          // scorer's report came with the answer and the component was injected; else the summary lines, as before.
+          card ? '<div data-role="ats-card"></div>' : `${
           m.report.head ? `<div class="marks"><span class="mark ${esc(m.report.tone || '')}" data-role="ats-score">${esc(m.report.head)}</span></div>` : ''}${
+          m.report.matched?.length ? `<p class="ln" data-role="ats-matched"><b>Matched:</b> ${esc(m.report.matched.join(', '))}</p>` : ''}${
+          m.report.missing?.length ? `<p class="ln" data-role="ats-missing"><b>Missing:</b> ${esc(m.report.missing.join(', '))}</p>` : ''}`}${
           m.report.note ? `<p class="note">${esc(m.report.note)}</p>` : ''}${
           m.report.line ? `<p class="ln">${esc(m.report.line)}</p>` : ''}${
-          m.report.matched?.length ? `<p class="ln" data-role="ats-matched"><b>Matched:</b> ${esc(m.report.matched.join(', '))}</p>` : ''}${
-          m.report.missing?.length ? `<p class="ln" data-role="ats-missing"><b>Missing:</b> ${esc(m.report.missing.join(', '))}</p>` : ''}${
           m.report.action ? `<div class="acts"><button class="btn" data-role="${esc(m.report.action.role)}">${esc(m.report.action.label)}</button></div>` : ''}
         </div>` : ''}
         ${lines}${prog}
@@ -471,6 +482,7 @@ export function renderResumePanel(model, meta) {
         ${showsEdit ? `<div class="note" data-role="edit-note">${esc(meta?.editNote || '')}</div>` : ''}
         <div class="say" data-role="say" aria-live="polite"></div>
       </div>`;
+    if (card) { const host = root.querySelector('[data-role="ats-card"]'); try { ATS.mountAtsReport(host, m.report.report, {}); } catch { host?.remove(); } }
     if (m.preview?.html) { const pv = root.querySelector('[data-role="preview"]'); try { fillPreview(pv, m.preview.html); } catch { pv.textContent = 'The preview could not be shown.'; } }
   };
 
@@ -693,6 +705,18 @@ async function currentView(serverUrl, job) {
   return { rec, view: null, error: r.status === 404 ? null : r.body };
 }
 
+/**
+ * ⭐ T9 · the web app's ATS component (extension/atsReport.js — shared/atsReportElement.js, bundled) goes into the
+ * page's isolated world before a model that carries a report is drawn. A file of the extension's own (no remote code),
+ * injected only when there is a report to draw; if it cannot be, the panel shows the summary lines, as before.
+ */
+async function withAtsComponent(tab, model) {
+  if (model?.report?.report && tab?.id != null) {
+    try { await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['atsReport.js'] }); } catch { /* the summary stands */ }
+  }
+  return model;
+}
+
 const meta = async () => ({ theme: await overlayTheme(), paper: { bg: C_LIGHT.SURFACE_SOLID, ink: C_LIGHT.INK },
   pollMs: POLL_MS, regenerateWords: REGENERATE_WORDS, editNote: EDIT_NOT_RECHECKED, dragHint: DRAG_HINT });
 
@@ -732,6 +756,7 @@ export function handlersFor(serverUrl = null) {
       const { view, error } = job ? await currentView(url(), job) : { view: null };
       const allowance = job && !view ? await allowanceNow(url()) : null;
       const model = resumePanelModel({ job, view, allowance, error, report: await reportFor(job) });
+      await withAtsComponent(tab, model);
       try {
         const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: renderResumePanel, args: [model, await meta()] });
         return { ok: !!r?.result?.rendered, state: model.state };
@@ -838,11 +863,11 @@ export function handlersFor(serverUrl = null) {
         pageKey: null, basis: page?.basis || null, atsState: page?.ats?.state || null });
       if (!job) {
         const report = page?.basis === 'page' && page.ats ? { ...page.ats, basis: 'page' } : null;
-        return { ok: false, message: id?.message || "draft couldn't tell which job this is.", model: resumePanelModel({ report }) };
+        return { ok: false, message: id?.message || "draft couldn't tell which job this is.", model: await withAtsComponent(tab, resumePanelModel({ report })) };
       }
       const { view, error } = await currentView(url(), job);
       const allowance = !view ? await allowanceNow(url()) : null;
-      return { ok: true, model: resumePanelModel({ job, view, allowance, error, report: await reportFor(job) }) };
+      return { ok: true, model: await withAtsComponent(tab, resumePanelModel({ job, view, allowance, error, report: await reportFor(job) })) };
     },
 
     /** The report's "Full report in draft" (the job in the web app) or "Add your résumé in draft" (job profiles). */

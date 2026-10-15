@@ -2,8 +2,9 @@
 //
 // The pair is two halves on ONE surface: the posting (components/PostingPanel.jsx — a masthead from
 // columns and D29's tags, then the employer's own description, formatted plainly) and the score
-// (components/AtsReport.jsx — band · "you cover 9 of 12" · a three-segment bar · ONE "You could claim"
-// block of depth boxes with a `kind` label · Experience as its own row · then the folds).
+// (since T9 the one shared component, shared/atsReportElement.js, which the web app wraps in
+// components/AtsReport.jsx and the extension bundles — band · "you cover 9 of 12" · a three-segment bar ·
+// ONE "You could claim" block of depth boxes with a `kind` label · Experience as its own row · then the folds).
 //
 // ⛔ Zero model calls (D17). ⛔ The product's only dark surface, as a RULE — one token set, one place
 // that decides it, and the guard below. ⛔ Every D31/D2 constraint survives; D31's test file
@@ -18,13 +19,21 @@ import { yearsAsked, experienceState, kickerFor, deckStrip, WORD_NUMBERS, NOT_ST
 import { formatPosting, blockWords, markTerm } from "../shared/postingFormat.js";
 import { mapJobRow } from "../services/jobs/mapJobRow.js";
 import { deckReport } from "../services/dailyDraft.js";
+import { miniDocument } from "../test-support/miniDom.mjs";
+import { buildAtsReport } from "../shared/atsReportElement.js";
+import { cleanReport } from "../shared/atsReportModel.js";
+import { ATS_REPORT_CSS } from "../shared/atsReportStyles.js";
 
 const { C_LIGHT, C_DARK, CONTRAST_PAIRS } = await import("../client/src/styles/colorTokens.js");
 
 const read = (f) => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, " ").replace(/^\s*\/\/.*$/gm, " ");
-const JSX = read("client/src/components/AtsReport.jsx");
-const CSS = read("client/src/components/AtsReport.css");
+// T9: the score half is the one shared component — its structure (atsReportElement.js), its model and its
+// stylesheet (atsReportStyles.js, the old AtsReport.css rule for rule, inside the component's shadow root).
+const JSX = read("shared/atsReportElement.js");
+const MODEL = read("shared/atsReportModel.js");
+const CSS = ATS_REPORT_CSS;
+const WRAPPER = read("client/src/components/AtsReport.jsx");
 const POSTING = read("client/src/components/PostingPanel.jsx");
 const POSTING_CSS = read("client/src/components/PostingPanel.css");
 const PAIR_CSS = read("client/src/styles/inkPair.css");
@@ -32,11 +41,17 @@ const LINK = read("client/src/lib/pairLink.js");
 const DECK = read("client/src/panels/DeckView.jsx");
 const code = strip(JSX);
 const css = strip(CSS);
-const card = JSX.slice(at(JSX, "export function AtsBandCard(", 0, "band card"), at(JSX, "const EXPERIENCE_MARK", 0, "end"));
-const body = JSX.slice(at(JSX, "export function AtsReport(", 0, "report"), at(JSX, "function TermBox(", 0, "end"));
-const box = JSX.slice(at(JSX, "function TermBox(", 0, "box"), at(JSX, "function ListSection(", 0, "end"));
-const askBar = JSX.slice(at(JSX, "function AskBar(", 0, "bar"), at(JSX, "export function AtsBandCard(", 0, "end"));
-const asks = JSX.slice(at(JSX, "export function reportAsks(", 0, "asks"), at(JSX, "function AskBar(", 0, "end"));
+const card = JSX.slice(at(JSX, "export function buildBandCard(", 0, "band card"), at(JSX, "function experienceRow(", 0, "end"));
+const body = JSX.slice(at(JSX, "export function buildAtsReport(", 0, "report"), at(JSX, "// ── mounting", 0, "end"));
+const box = JSX.slice(at(JSX, "function termBox(", 0, "box"), at(JSX, "function listSection(", 0, "end"));
+const askBar = JSX.slice(at(JSX, "function askBar(", 0, "bar"), at(JSX, "export function buildBandCard(", 0, "end"));
+const asks = MODEL.slice(at(MODEL, "export function reportAsks(", 0, "asks"), at(MODEL, "export function evidencedKeys(", 0, "end"));
+// A SYNTHETIC report with every section, drawn by the real renderer — the structure is read off what it builds.
+const FULL = cleanReport({ source: "local_ats_v5", score: 52, tier1_matched: ["Go"], tier1_missing: ["Kafka"],
+  competencies_matched: ["ownership"], competencies_missing: ["mentoring"], action_verbs_matched: ["Shipped"],
+  action_verbs_missing: ["Scaled"], action_verbs_generic: ["Managed"],
+  experience: { summary: "Meets 4+ years.", requiredYears: 4, candidateYears: 6, fit: true } });
+const DRAWN = buildAtsReport(miniDocument(), FULL, { claims: { pending: [] } }).outerHTML;
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 // RE-PINNED FROM D31 (atsSimpleCardD31.test.js, retired) — every constraint survives
@@ -52,7 +67,7 @@ test("⛔ the weave is gone: no threads, no columns, no replay store, no on-scre
 
 test("⭐ nothing ANIMATES and nothing needs a width — so both halves render the same on every surface", () => {
   // D32 lets a claim box lift on hover (translateY, D1) — instantly. No transition, no loop, no timer.
-  for (const [name, src] of [["AtsReport.jsx", code], ["AtsReport.css", css], ["PostingPanel.jsx", strip(POSTING)],
+  for (const [name, src] of [["atsReportElement.js", code], ["atsReportStyles.js", css], ["PostingPanel.jsx", strip(POSTING)],
                              ["PostingPanel.css", strip(POSTING_CSS)], ["inkPair.css", strip(PAIR_CSS)], ["pairLink.js", strip(LINK)]]) {
     for (const motion of [/transition/i, /@keyframes/, /animation/i, /requestAnimationFrame/, /setInterval/, /setTimeout/]) {
       assert.doesNotMatch(src, motion, `motion in ${name}: ${motion}`);
@@ -68,29 +83,34 @@ test("⭐ nothing ANIMATES and nothing needs a width — so both halves render t
     .filter(f => /\.(jsx?|tsx?)$/.test(f))
     .filter(f => new RegExp(`import\\s+["'][^"']*${sheet.replace(".", "\\.")}["']`).test(fs.readFileSync(`client/src/${f}`, "utf8")))
     .map(f => f.replace(/\\/g, "/")).sort();
-  assert.deepEqual(users("AtsReport.css"), ["components/AtsReport.jsx"]);
+  // T9: the score half's stylesheet is inside its component (a shadow root takes no document stylesheet), so the
+  // client keeps only the posting's: its own sheet, and the pair's surface.
+  assert.ok(!fs.existsSync("client/src/components/AtsReport.css"), "the score half's stylesheet is back in the client");
   assert.deepEqual(users("PostingPanel.css"), ["components/PostingPanel.jsx"]);
-  assert.deepEqual(users("inkPair.css"), ["components/AtsReport.jsx", "components/PostingPanel.jsx"]);
+  assert.deepEqual(users("inkPair.css"), ["components/PostingPanel.jsx"]);
 });
 
 test("⭐ the header is band · \"you cover 9 of the 12\" · score · ONE three-segment bar — band-first, the number gated on A76", () => {
   // A86 re-pin: pair2.html's .shd — the band heading and the count on the left, the number on the
   // right (so it follows the count in the source), then the bar flush across the card.
-  const band = card.indexOf("data-ats-band ");
-  const count = card.indexOf("data-ats-count");
-  const score = card.indexOf("data-ats-score");
-  const bar = card.indexOf("<AskBar ");
+  const band = card.indexOf('"data-ats-band": true');
+  const count = card.indexOf('"data-ats-count"');
+  const score = card.indexOf('"data-ats-score"');
+  const bar = card.indexOf("askBar(doc, ");
   assert.ok(band > 0 && count > band && score > count && bar > score, "the header's order is band, count, score, bar");
-  assert.match(card, /You cover \{matched\} of the \{total\} things this posting asks for\./);
-  assert.equal((card.match(/<AskBar /g) || []).length, 1, "ONE bar");
+  assert.match(card, /`You cover \$\{matched\} of the \$\{total\} things this posting asks for\.`/);
+  assert.equal((card.match(/askBar\(doc, /g) || []).length, 1, "ONE bar");
+  // … and in what it draws.
+  const order = ["data-ats-band ", "data-ats-count", "data-ats-score", "data-ats-bar"].map((k) => DRAWN.indexOf(k));
+  assert.ok(order.every((i, n) => i > 0 && (n === 0 || i > order[n - 1])), `the drawn header's order: ${order}`);
   // D32: THREE segments — matched · missing · generic, in that order.
   const segs = askBar.match(/ats-bar__seg--(\w+)/g) || [];
   assert.deepEqual(segs, ["ats-bar__seg--matched", "ats-bar__seg--missing", "ats-bar__seg--generic"]);
   // ⭐ D50 (owner, 10-07): the number is ON — by the owner's decision, not validation — and provisional:
   // still gated on a score (no score → no digit), with the "still being tuned" note beside it.
-  assert.match(card, /\{ATS_NUMBER_SHOWN && !isUnknown && Number\.isFinite\(report\?\.score\) && \(/);
+  assert.match(card, /const showNumber = ATS_NUMBER_SHOWN && !isUnknown && Number\.isFinite\(report\?\.score\);/);
   assert.match(read("shared/atsBands.js"), /export const ATS_NUMBER_SHOWN = true;/, "D50 turned the number on");
-  assert.match(card, /<p data-ats-number-note className="ats-sum__note">\{ATS_NUMBER_NOTE\}/);
+  assert.match(card, /showNumber && h\(doc, "p", \{ "data-ats-number-note": true, class: "ats-sum__note" \},\s*`\$\{ATS_NUMBER_NOTE\}/);
   // The number is the largest element when it is shown — in SERIF, in the kicker ink (D48: the --atx the owner chose).
   assert.match(css, /\.ats-sum__score \{[^}]*font-family: var\(--font-display\);[^}]*font-size: 46px;[^}]*color: var\(--c-pair-kicker\);/);
   // ⛔ Generic language is drawn but NOT counted: "9 of 12" is matched over matched + missing only.
@@ -102,33 +122,35 @@ test("⭐ the header is band · \"you cover 9 of the 12\" · score · ONE three-
 
 test("⭐ \"You could claim\" is the ONLY open section; \"Already yours\" and generic fold away", () => {
   const visible = strip(body);
-  assert.equal((visible.match(/<section\b/g) || []).length, 1, "one open section");
-  // A86: each section is headed by the sketch's .gh — its label, then a monospace count.
-  assert.match(visible, /<section data-ats-could-claim className="ats-sec">\s*<div className="ats-gh"><span className="ats-gh__label">You could claim<\/span><span className="ats-gh__ct">\{couldClaim\.length\}<\/span>/);
-  assert.match(visible, /<details data-ats-on-resume className="ats-fold ats-sec">\s*<summary className="ats-gh"><span className="ats-gh__label">Already yours/);
-  assert.match(visible, /<details data-ats-generic className="ats-fold ats-sec">\s*<summary className="ats-gh"><span className="ats-gh__label">Generic — not a gap/);
-  for (const d of visible.match(/<details\b[^>]*>/g) || []) assert.doesNotMatch(d, /\bopen\b/, `a fold opens by default: ${d}`);
+  assert.equal((visible.match(/h\(doc, "section"/g) || []).length, 1, "one open section");
+  // A86: each section is headed by the sketch's .gh — its label, then a monospace count. Read off the drawn card.
+  assert.match(DRAWN, /<section data-ats-could-claim class="ats-sec"><div class="ats-gh"><span class="ats-gh__label">You could claim<\/span><span class="ats-gh__ct">3<\/span>/);
+  assert.match(DRAWN, /<details data-ats-on-resume data-fold="on-resume" class="ats-fold ats-sec"><summary class="ats-gh"><span class="ats-gh__label">Already yours/);
+  assert.match(DRAWN, /<details data-ats-generic data-fold="generic" class="ats-fold ats-sec"><summary class="ats-gh"><span class="ats-gh__label">Generic — not a gap/);
+  for (const d of DRAWN.match(/<details\b[^>]*>/g) || []) assert.doesNotMatch(d, /\bopen\b/, `a fold opens by default: ${d}`);
   // ⛔ ONE block: no per-kind sections beside it (the old Skills / Verbs / Competencies Missing).
-  assert.doesNotMatch(visible, /Skills Missing|Verbs Missing|Competencies Missing|title="[^"]*(Matched|Missing)"/);
-  assert.equal((visible.match(/data-ats-could-claim/g) || []).length, 1);
+  assert.doesNotMatch(visible, /Skills Missing|Verbs Missing|Competencies Missing|title: "[^"]*(Matched|Missing)"/);
+  assert.equal((DRAWN.match(/data-ats-could-claim/g) || []).length, 1);
+  assert.equal((DRAWN.match(/<section data-ats-could-claim/g) || []).length, 1);
 });
 
 test("⛔ the claim copy appears ONCE, beneath the claim boxes, where the action is", () => {
   assert.equal((JSX.match(/Claiming a term says it is true of you/g) || []).length, 1);
-  const section = body.slice(at(body, "<section data-ats-could-claim"), at(body, "</section>"));
-  assert.ok(section.indexOf("Claiming a term says it is true of you") > section.indexOf("<TermBox"),
+  const section = DRAWN.slice(at(DRAWN, "<section data-ats-could-claim"), at(DRAWN, "</section>"));
+  assert.ok(section.indexOf("Claiming a term says it is true of you") > section.lastIndexOf("ats-box--claim"),
     "the claim copy must sit beneath the boxes, inside the one open section");
   assert.match(section, /Nothing is ever pre-selected\./);
 });
 
 test("⛔ nothing is pre-selected; claim boxes have the + affordance and D1's depth, re-derived per theme", () => {
   // A box reads as claimed only from what the candidate did: a lock, a claim, or a click in flight.
-  assert.match(box, /const claimed = locked \|\| claimedKeys\.has\(itemKey\) \|\| \(pendingItems \|\| new Set\(\)\)\.has\(`\$\{claimKind\}:\$\{k\}`\);/);
+  assert.match(box, /const claimed = locked \|\| claimedKeys\.has\(itemKey\) \|\| \(claims \? claims\.pending\.has\(`\$\{claimKind\}:\$\{k\}`\) : false\);/);
+  assert.doesNotMatch(DRAWN, /aria-pressed="true"/, "a box drew as claimed with nothing claimed");
   assert.doesNotMatch(code, /defaultChecked|useState\(true\)/);
   // A86: the + is the sketch's FILLED square (.p) — + to claim, ✓ once claimed; aria-pressed says which.
-  assert.match(box, /<span className="ats-box__plus" aria-hidden="true">\{claimed \? "✓" : "\+"\}<\/span>/);
-  assert.match(box, /className="ats-box ats-box--claim"/);
-  assert.match(box, /aria-pressed=\{claimed\}/);
+  assert.match(box, /h\(doc, "span", \{ class: "ats-box__plus", "aria-hidden": "true" \}, claimed \? "✓" : "\+"\)/);
+  assert.match(box, /class: "ats-box ats-box--claim"/);
+  assert.match(box, /"aria-pressed": claimed \? "true" : "false"/);
   assert.match(css, /\.ats-box__plus \{[^}]*width: 17px; height: 17px; border-radius: 5px;[^}]*background: var\(--c-pair-missing\); color: var\(--c-pair-surface\);/);
   assert.match(css, /\.ats-box:focus-visible \{ outline: 2px solid var\(--c-pair-kicker\);/, "a box lost its focus ring");
   // D32: RECTANGULAR — radius 9 — lift at rest, translateY(-2px) + lift2 on hover, settle on press.
@@ -145,19 +167,19 @@ test("⛔ nothing is pre-selected; claim boxes have the + affordance and D1's de
 test("⛔ \"not enough signal\" is visibly NOT a short Weak bar: dashed, hue-less, and no number", () => {
   assert.match(css, /\.ats-bar\[data-unknown="true"\] \{ border: 1\.5px dashed var\(--c-band-unknown-edge\); \}/);
   assert.match(css, /\.ats-bar\[data-unknown="true"\] \.ats-bar__seg \{ background: transparent; \}/, "a declined bar keeps a hue");
-  assert.match(askBar, /data-unknown=\{unknown \? "true" : "false"\}/);
+  assert.match(askBar, /"data-unknown": unknown \? "true" : "false"/);
   // A86: the band is the sketch's heading (.bd), not a chip — so "not enough signal" keeps its own
   // treatment on the heading itself: a DASHED, hue-less outline in the band-unknown tokens, and
   // "no judgement" beside it. Strong / Moderate / Weak carry no outline at all.
-  assert.match(card, /<div data-ats-band className="ats-sum__band" data-unknown=\{isUnknown \? "true" : "false"\}>\{meta\.label\}<\/div>/);
-  assert.match(card, /\{isUnknown && <span className="ats-sum__cap">no judgement<\/span>\}/);
+  assert.match(card, /h\(doc, "div", \{ "data-ats-band": true, class: "ats-sum__band", "data-unknown": isUnknown \? "true" : "false" \}, meta\.label\)/);
+  assert.match(card, /isUnknown && h\(doc, "span", \{ class: "ats-sum__cap" \}, "no judgement"\)/);
   assert.match(css, /\.ats-sum__band\[data-unknown="true"\] \{[^}]*border: 1\.5px dashed var\(--c-band-unknown-edge\); color: var\(--c-band-unknown\);/);
   assert.doesNotMatch(css.slice(at(css, ".ats-sum__band {"), at(css, ".ats-sum__band[data-unknown")), /border|dashed/,
     "a graded band drew an outline — it would read like the declined one");
 });
 
 test("tokens only: the pair's stylesheets hold no colour or shadow literal, and read only colour/depth/font tokens", () => {
-  for (const [name, src] of [["AtsReport.css", css], ["PostingPanel.css", strip(POSTING_CSS)], ["inkPair.css", strip(PAIR_CSS)]]) {
+  for (const [name, src] of [["atsReportStyles.js ATS_REPORT_CSS", css], ["PostingPanel.css", strip(POSTING_CSS)], ["inkPair.css", strip(PAIR_CSS)]]) {
     assert.doesNotMatch(src, /#[0-9a-fA-F]{3,8}\b/, `${name}: a hex literal`);
     assert.doesNotMatch(src, /\brgba?\(|\bhsla?\(/, `${name}: an rgb/hsl literal`);
     for (const v of src.match(/var\(--[a-z0-9-]+\)/g) || []) {
@@ -177,11 +199,12 @@ test("⛔ the `kind` label is the SCORER'S BUCKET, carried — skill · verb · 
   assert.match(asks, /\.\.\.\(report\?\.competencies_missing \|\| \[\]\)\.map\(term => \(\{ term, kind: "quality" \}\)\)/);
   assert.match(asks, /\.\.\.\(report\?\.competencies_matched \|\| \[\]\)\.map\(term => \(\{ term, kind: "quality" \}\)\)/);
   // Every box prints it.
-  assert.match(box, /const kindLabel = <span className="ats-box__kind">\{TERM_KINDS\[kind\]\?\.label \|\| kind\}<\/span>;/);
+  assert.match(box, /const kindLabel = \(\) => h\(doc, "span", \{ class: "ats-box__kind" \}, TERM_KINDS\[kind\]\?\.label \|\| kind\);/);
   // The claim box and every read-only box carry the kind — except generic language (A86: the sketch's
   // grey boxes are the word alone, and generic is never claimable, so its bucket says nothing).
-  assert.match(box, /<span className="ats-box__term">\{k\}<\/span>\{kindLabel\}/, "the claim box carries the kind");
-  assert.match(box, /<span className="ats-box__term">\{claimed \? `✓ \$\{k\}` : k\}<\/span>\{!generic && kindLabel\}/, "a read-only box carries the kind");
+  assert.match(box, /h\(doc, "span", \{ class: "ats-box__term" \}, k\), kindLabel\(\)\);/, "the claim box carries the kind");
+  assert.match(box, /h\(doc, "span", \{ class: "ats-box__term" \}, claimed \? `✓ \$\{k\}` : k\), !generic && kindLabel\(\)\);/, "a read-only box carries the kind");
+  assert.match(DRAWN, /<span class="ats-box__term">mentoring<\/span><span class="ats-box__kind">quality<\/span>/, "drawn: the kind travels with the term");
   // The frozen deck report and the public route both keep the buckets apart, so the kind survives there too.
   const r = deckReport({ tier1_missing: ["Kafka"], competencies_missing: ["ownership"], action_verbs_missing: ["Scaled"] });
   assert.deepEqual([r.skillsMissing, r.competenciesMissing, r.verbsMissing], [["Kafka"], ["ownership"], ["Scaled"]]);
@@ -189,11 +212,10 @@ test("⛔ the `kind` label is the SCORER'S BUCKET, carried — skill · verb · 
 });
 
 test("⭐ Experience gets its OWN ROW — pass/fail, between the claim block and the folds", () => {
-  const visible = strip(body);
-  const claim = visible.indexOf("<section data-ats-could-claim");
-  const exp = visible.indexOf("<ExperienceRow ");
-  const yours = visible.indexOf("<details data-ats-on-resume");
-  const generic = visible.indexOf("<details data-ats-generic");
+  const claim = DRAWN.indexOf("<section data-ats-could-claim");
+  const exp = DRAWN.indexOf("data-ats-experience");
+  const yours = DRAWN.indexOf("<details data-ats-on-resume");
+  const generic = DRAWN.indexOf("<details data-ats-generic");
   assert.ok(claim > 0 && exp > claim && yours > exp && generic > yours, "claim · experience · already yours · generic");
   // Four states, from the scorer's numbers — never from its prose — and a legacy card is no mark at all.
   assert.equal(experienceState({ requiredYears: 5, candidateYears: 6, fit: true }), "met");
@@ -302,9 +324,11 @@ test("⛔ D17: zero model calls — the masthead is columns, tags and a regex; t
 // ⛔ THE PRODUCT'S ONLY DARK SURFACE — a RULE: one token set, one place that decides, this guard
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
+// T9: the score half wears and reads the pair inside its own shadow root (shared/atsReportElement.js and
+// atsReportStyles.js, outside client/src — pinned below); in the client only the posting's half remains.
 const PAIR_FILES = { surface: "client/src/styles/inkPair.css",
-  consumers: ["client/src/styles/inkPair.css", "client/src/components/AtsReport.css", "client/src/components/PostingPanel.css"],
-  wearers: ["client/src/components/AtsReport.jsx", "client/src/components/PostingPanel.jsx"] };
+  consumers: ["client/src/styles/inkPair.css", "client/src/components/PostingPanel.css"],
+  wearers: ["client/src/components/PostingPanel.jsx"] };
 // D91 (10-11): the one place that decides moved to the theme registry (docs/THEME_MODULE.md §5 — "index.js is
 // the ONLY place a theme is chosen"). The palettes are DATA, one file per theme, re-exported by colorTokens.js
 // under their old names: those files DEFINE tokens, the pair's included, and decide nothing.
@@ -349,10 +373,16 @@ test("⛔ THE ONLY DARK SURFACE IS A RULE: no file but the pair wears it, and no
     "the registry scan found the theme files");
   assert.match(PAIR_CSS, /\.ink-pair \{\s*background: var\(--c-pair-surface\);\s*color: var\(--c-pair-ink\);/);
   // Both halves wear it — the report's card, its band card (the signup hook draws that alone), the posting.
-  assert.match(JSX, /<div data-ats-report className="ats-card ink-pair">/);
-  assert.match(JSX, /<div data-ats-band-card className="ats-sum ink-pair"/);
+  assert.match(JSX, /h\(doc, "div", \{ "data-ats-report": true, class: "ats-card ink-pair" \}/);
+  assert.match(JSX, /h\(doc, "div", \{ "data-ats-band-card": true, class: "ats-sum ink-pair"/);
+  // T9: inside the shadow root the surface is declared by the component — the SAME three lines as inkPair.css.
+  const decl = (src) => /\.ink-pair \{([^}]*)\}/.exec(src.replace(/\/\*[\s\S]*?\*\//g, " "))[1].replace(/\s+/g, " ").trim();
+  assert.equal(decl(ATS_REPORT_CSS), decl(PAIR_CSS), "the score half's surface drifted from the posting's");
+  // … and the web wrapper decides no surface: it passes the registry's live theme, nothing else.
+  assert.match(WRAPPER, /theme: ACTIVE_THEME\.id/);
   assert.match(POSTING, /<article className="posting ink-pair" data-posting-panel>/);
-  // The extension draws no pair, so its generated tokens carry none of the pair's.
+  // The extension's own generated tokens carry none of the pair's: since T9 it draws the score half only through
+  // the shared component, whose shadow root carries its own values (shared/atsReportTokens.js) — never a page sheet.
   for (const f of ["extension/tokens.css", "extension/tokens.js"]) assert.doesNotMatch(read(f), /PAIR_|--c-pair-/, `${f} carries the pair`);
   // (D35 added the Full House header's FH_* to the same exclusion — the extension draws no board header.)
   assert.match(read("scripts/buildExtensionTokens.mjs"), /const names = Object\.keys\(C_LIGHT\)\.filter\(\(n\) => !n\.startsWith\("PAIR_"\)(?: && !n\.startsWith\("FH_"\))?(?: && !n\.startsWith\("PP_"\)| && \(!n\.startsWith\("PP_"\) \|\| n === "PP_ATS_NUMBER"\))?(?: && !n\.startsWith\("DOC_"\))?\);/);
@@ -409,8 +439,11 @@ test("⭐ the score column is STICKY beside the posting; on a phone it COLLAPSES
 
 test("⭐ the hover link: a box lights its term in the posting — ONLY on request (hover/focus), never standing", () => {
   // Inside a pair only; outside one the boxes do nothing extra.
-  assert.match(box, /const linkProps = link\s*\? \{ onMouseEnter: \(\) => link\.light\(k\), onMouseLeave: \(\) => link\.light\(null\),\s*onFocus: \(\) => link\.light\(k\), onBlur: \(\) => link\.light\(null\)/);
-  assert.match(box, /tabIndex=\{link \? 0 : undefined\}/, "a read-only box is reachable by keyboard only inside a pair");
+  assert.match(box, /const linkProps = linkable\s*\? \{ onmouseenter: term\(k\), onmouseleave: term\(null\), onfocus: term\(k\), onblur: term\(null\)/);
+  assert.match(box, /tabindex: linkable \? "0" : null/, "a read-only box is reachable by keyboard only inside a pair");
+  // T9: the component asks for the link only when the wrapper is inside a pair, and the wrapper lights the term.
+  assert.match(WRAPPER, /el\.linkable = !!link;/);
+  assert.match(WRAPPER, /latest\.current\.link\?\.light\(e\.detail\?\.term \|\| null\)/);
   assert.match(LINK, /const \[lit, setLit\] = useState\(null\);/, "nothing is lit until asked");
   assert.match(DECK, /<PairLinkProvider>\s*<MotionConfig reducedMotion="user">/);
   // One term at a time, whole words, case-insensitive; no term → the text untouched.

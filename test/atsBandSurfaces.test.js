@@ -215,13 +215,14 @@ test("a thin resume is called out as its own state, not delivered as an all-Weak
 });
 
 test("the ATS panel renders the band for a DECLINED report, and the depth warning above it", () => {
-  // A52: the report is drawn by components/AtsReport.jsx now (ATSPanel only fetches and claims).
-  const panel = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
+  // A52: the report is drawn by ONE implementation — since T9 the shared component (shared/atsReportElement.js),
+  // which the web app's components/AtsReport.jsx wraps (ATSPanel only fetches and claims).
+  const panel = fs.readFileSync("shared/atsReportElement.js", "utf8");
   // The card used to be gated on `score != null`, so a declined report displayed nothing at all.
   // It is rendered unconditionally now — no gate in front of the band card.
-  assert.match(panel, /\{\/\* Band card\. Renders for EVERY report, including a declined one\. \*\/\}\s*<AtsBandCard /);
+  assert.match(panel, /\/\/ Band card\. Renders for EVERY report, including a declined one\.\s*buildBandCard\(doc, report, /);
   assert.match(panel, /decline_reasons/);
-  assert.match(panel, /\{depth && \(/);
+  assert.match(panel, /depth && h\(doc, "div", \{ class: "ats-note ats-sec" \}/);
   assert.match(panel, /seniority_cap/);
   // And the donut is gone — it was the most precise-looking thing on the screen.
   // (The donut was a <circle> ring. D31's bar is two plain segments — a count, not a gauge.)
