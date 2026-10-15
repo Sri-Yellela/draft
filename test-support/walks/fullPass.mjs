@@ -305,14 +305,17 @@ export default async function run(h, { check, observe, section }) {
   const pop2 = await readPopup();
   check('…and the popup still says where it stands', pop2?.line === pop?.line, `${pop2?.line} vs ${pop?.line}`);
 
-  section('7 · generate a résumé (the panel\'s own click) → attach');
-  const opened = await h.send({ type: 'RESUME_PANEL_OPEN' });
-  check('the résumé panel opens on the page — not generated', opened?.ok === true && opened.state === 'none', JSON.stringify(opened));
+  section('7 · a résumé started from the page\'s tab (T24 / T18\'s press) → the dock\'s Résumé tab → attach');
+  const opened = await h.send({ type: 'RESUME_PANEL_OPEN', tab: 'resume' });
+  check('the Résumé tab opens on the page — not made yet', opened?.ok === true && opened.state === 'none', JSON.stringify(opened));
   await waitUntil(() => h.readShadow('rm-resume-panel', (root, host) => host.dataset.state === 'none'), BUSY_MS);
   check('opening it started nothing', CTL.generations().length === 0);
-  await page.click('#rm-resume-panel >>> [data-role="generate"]');
+  check('⛔ T22: the tab offers no Generate', !(await h.readShadow('rm-resume-panel', (root) => !!root.querySelector('[data-role="generate"]'))));
+  const started = await h.pageSend({ type: 'RESUME_GENERATE', trigger: 'click' });
+  check('the one start answers', started?.ok === true, JSON.stringify(started)?.slice(0, 160));
+  await h.send({ type: 'RESUME_PANEL_OPEN', tab: 'resume' });
   const ready = await waitUntil(() => h.readShadow('rm-resume-panel', (root, host) => (host.dataset.state === 'ready' ? true : null)), BUSY_MS);
-  check('one trusted click → Ready (one generation, one slot)', ready === true && CTL.generations().length === 1 && CTL.slots() === 1, `${CTL.generations().length} / ${CTL.slots()}`);
+  check('one press → Ready (one generation, one slot)', ready === true && CTL.generations().length === 1 && CTL.slots() === 1, `${CTL.generations().length} / ${CTL.slots()}`);
   const rp = norm(await page.evaluate(bgOf, 'rm-resume-panel', '.rp'));
   check(`the résumé panel paints from the ${theme} tokens (SURFACE_MENU)`, rp === norm(C.SURFACE_MENU), `${rp} vs ${C.SURFACE_MENU}`);
   await sweepCapsules();

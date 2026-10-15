@@ -29,7 +29,7 @@ import { renderCopySheetPanel } from './copy-sheet-panel.js';
 import { authedFetch, getIdentity, cachedIdentity, disconnect } from './auth.js';
 import { captureResultFrom } from './captureResult.js';
 import {
-  CONTEXT_MENUS, MENU_SAVE_PAGE, MENU_SAVE_LINK, saveableLink, reportHostOf, buildFormReport, collectFormLabels,
+  CONTEXT_MENUS, MENU_SAVE_PAGE, MENU_SAVE_LINK, MENU_FILL_PAGE, MENU_ATS_PAGE, saveableLink, reportHostOf, buildFormReport, collectFormLabels,
 } from './formReport.js';
 // D23: the site's colour tokens, generated from client/src/styles/colorTokens.js — the toolbar badge
 // and the capture toast take their colours from here, never from a literal.
@@ -526,20 +526,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  // ⛔ THESE TWO PATHS WERE NEVER ROUTES. `/ats-score` and `/resume` both fell through to the
-  // client's catch-all, which redirects an authenticated ADMIN to /admin — the whole "the resume
-  // builder opened an admin session" report (docs/EXTENSION_DIAGNOSIS.md §4). The real pages are
-  // /tools/ats and /tools/generate.
-  //
-  // The server-side aliases added alongside this keep the OLD paths working for every copy of
-  // v1.0.0 already installed, because this file only reaches users after a Web Store update. Both
-  // halves are deliberate: the alias fixes today, this fixes the next build.
-  if (message.type === 'OPEN_ATS_SCORE') {
-    const encoded = encodeURIComponent((message.jobText || '').slice(0, 5000));
-    chrome.tabs.create({ url: `${RESUME_MASTER_URL}/tools/ats?jd=${encoded}` });
-    sendResponse({ success: true });
-    return true;
-  }
+  // ⛔ THIS PATH WAS NEVER A ROUTE. `/resume` fell through to the client's catch-all, which redirects an authenticated
+  // ADMIN to /admin — the whole "the resume builder opened an admin session" report (docs/EXTENSION_DIAGNOSIS.md §4).
+  // The real page is /tools/generate (a server-side alias keeps the old path working for v1.0.0 installs).
+  // ⭐ T22: OPEN_ATS_SCORE (the popup's Score tile → /tools/ats with the page's text in the URL) is gone with the tile:
+  // draft's report for this tab's job is the dock's ATS tab (Open dock, or right-click "Show draft's ATS report").
 
   if (message.type === 'OPEN_LINKEDIN_IMPORT') {
     chrome.tabs.create({ url: `${RESUME_MASTER_URL}/auth/linkedin` });
@@ -787,7 +778,12 @@ chrome.runtime.onInstalled?.addListener(() => {
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   // "Save this page" IS the capture — the same captureActiveTab() the button and Ctrl+Shift+K run.
   if (info.menuItemId === MENU_SAVE_PAGE) { void captureActiveTab(tab); return; }
-  if (info.menuItemId === MENU_SAVE_LINK) void saveLinkToDraft(info.linkUrl, tab);
+  if (info.menuItemId === MENU_SAVE_LINK) { void saveLinkToDraft(info.linkUrl, tab); return; }
+  // ⭐ T22: the popup's fill and score tiles are gone; what they did stays one right-click away. "Fill this application"
+  // IS the fill — the same chain the popup's Fill it and Ctrl+Shift+Y run, on the tab the menu was opened on. "Show
+  // draft's ATS report" opens the dock on its ATS tab (a view from draft's server; nothing of the page is read for it).
+  if (info.menuItemId === MENU_FILL_PAGE) { void handleGatedHandoff(tab); return; }
+  if (info.menuItemId === MENU_ATS_PAGE) void openDock(tab, 'ats');
 });
 
 /** "Save link to draft": the link's address only — no page is opened or read. The server decides. */

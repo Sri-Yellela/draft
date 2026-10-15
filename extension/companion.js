@@ -5,11 +5,12 @@
 // calls for and says why:
 //
 //   an application form you drafted  -> Fill it   "You drafted this 2 days ago · résumé ready · 14 fields prepared"
-//   a job posting                    -> Capture it + Score it, and whether it is on your board yet
+//   a job posting                    -> Capture it, and whether it is on your board yet
 //   neither                          -> your recent captures
 //
-// ⚠ Context detection can be wrong, and a wrong primary action is worse than a menu — so popup.html
-// keeps all four actions visible underneath, whatever this decides.
+// ⚠ Context detection can be wrong, and a wrong primary action is worse than a menu. ⭐ T22 (owner 10-15): the popup is
+// a launcher now — its capture / fill / score tiles are gone — so what a wrong guess hides stays one step away: Capture
+// and Fill are Ctrl+Shift+K and Ctrl+Shift+Y and the right-click menu, and the score is the dock's ATS tab.
 //
 // Pure functions, no chrome.* and no DOM, loaded as a classic script before popup.js (and run in a
 // plain VM by test/d13Companion.test.js). Nothing here stores anything.

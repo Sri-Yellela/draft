@@ -217,13 +217,14 @@ export function PrivacyPage() {
               from that board's own listing; we refuse any other link and save nothing.
             </LI>
             <LI>
-              If you click <Strong>ATS Score Tool</Strong> in the extension's popup, it copies the
-              visible text of the page you are on and opens your {BRAND} ATS Score page with
-              the text already filled in. That text travels in the address of the page it opens,
-              which means it may appear in our ordinary server logs. Earlier versions also added an
-              "ATS Score this job" button into job pages themselves; that button has been removed,
-              and the extension no longer changes the appearance of any page except to show you a
-              confirmation message after a capture you asked for.
+              Earlier versions had an <Strong>ATS Score Tool</Strong> button in the extension's popup that
+              copied the visible text of the page you were on into the address of your {BRAND} ATS
+              Score page, where it could appear in our ordinary server logs. That button has been
+              removed: the extension now shows {BRAND}'s own report for a job in its panel on the page,
+              and sends no page text in an address. Earlier versions also added an "ATS Score this job"
+              button into job pages themselves; that button has been removed too, and the extension no
+              longer changes the appearance of any page except to show you its own panel and a
+              confirmation message after something you asked for.
             </LI>
             <LI>
               Data extracted by the extension is sent to {CANONICAL_HOST}, our server, and

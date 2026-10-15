@@ -53,13 +53,17 @@ test("⛔ D99 · an unlinked tab's panel says 'Read this page now' and offers it
   assert.doesNotMatch(m.lines[0].text, /in the draft popup/, "not sent somewhere else");
 });
 
-test("⛔ J12 · the popup's score button: signed in → the on-page panel; the free checker only when signed out", () => {
+// ⭐ T22 (owner 10-15): the popup's score tile is gone. J12's rule — a signed-in user sees draft's OWN report, never the
+// free checker — now holds with no branch at all: the report is the dock's ATS tab (Open dock, or right-click "Show
+// draft's ATS report"), and the free checker's page-text-in-a-URL path (OPEN_ATS_SCORE) is gone from the extension.
+test("⛔ J12 → T22 · draft's own report is the dock's ATS tab — the popup has no score button and the free checker path is gone", () => {
   const src = read("extension/popup.js");
-  const fn = src.slice(at(src, "async function openAtsScore()"), at(src, "// ─── More → the options page"));
-  const panel = at(fn, "type: 'RESUME_PANEL_OPEN'"), checker = at(fn, "type: 'OPEN_ATS_SCORE'");
-  assert.ok(at(fn, "if (signedIn) {") < panel && panel < checker, "the signed-in branch comes first and returns");
-  assert.match(fn.slice(at(fn, "if (signedIn) {"), checker), /return;\s*\}/);
-  assert.match(src, /signedIn = !!identity\?\.authenticated;/);
+  assert.doesNotMatch(src, /openAtsScore|OPEN_ATS_SCORE|btn-ats'|btn-score-primary/);
+  assert.match(src, /chrome\.runtime\.sendMessage\(\{ type: 'DOCK_OPEN' \}\)/);
+  const bg = read("extension/background.js");
+  assert.doesNotMatch(bg, /message\.type === 'OPEN_ATS_SCORE'/);
+  assert.match(bg, /if \(which === 'ats' \|\| which === 'resume'\) return RESUME_PANEL_HANDLERS\.RESUME_PANEL_OPEN\(\{ tab: which \}, \{ tab \}\);/);
+  assert.match(bg, /MENU_ATS_PAGE\) void openDock\(tab, 'ats'\);/);
 });
 
 test("⛔ J12 · the panel's read and report handlers: a trusted click from the page's tab only", () => {
