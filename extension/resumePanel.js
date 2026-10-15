@@ -578,7 +578,10 @@ export async function attachResumeFile(file) {
     const acc = String(el.getAttribute('accept') || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
     return !acc.length || acc.some(a => a === '.pdf' || a === 'application/pdf' || a === '*/*' || a === 'application/*');
   };
-  const wrapOf = (el) => el.closest('[data-automation-id^="formField"], [data-automation-id="file-upload-drop-zone"], .field, .application-question, fieldset') || el.parentElement;
+  // ⭐ LIVE (Greenhouse, measured 10-15): the input sits FIVE boxes below its upload group (div › .secondary-button ›
+  // .button-container › .file-upload__wrapper › .file-upload[role=group]) — four steps up from its parent never reached
+  // the group, where the page writes the chosen file's name. The upload's own group is the wrap.
+  const wrapOf = (el) => el.closest('[data-automation-id^="formField"], [data-automation-id="file-upload-drop-zone"], .field, .application-question, fieldset, .file-upload, [role="group"]') || el.parentElement;
   const contextOf = (el) => {
     const own = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`)?.textContent : '';
     const labelled = (el.closest('[aria-labelledby]')?.getAttribute('aria-labelledby') || '').split(/\s+/).map(id => document.getElementById(id)?.textContent || '').join(' ');

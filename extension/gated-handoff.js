@@ -110,50 +110,101 @@ function probeFormShape() {
   )].filter(
     el => (el.getAttribute('aria-haspopup') === 'listbox' ||
       !['hidden', 'submit', 'button', 'image', 'reset', 'password'].includes((el.type || '').toLowerCase())) &&
-      !/^cc-|one-time-code|-password$/i.test(el.getAttribute('autocomplete') || '')
+      !/^cc-|one-time-code|-password$/i.test(el.getAttribute('autocomplete') || '') &&
+      !(el.tagName === 'INPUT' && !['radio', 'checkbox', 'file'].includes((el.type || '').toLowerCase()) &&
+        el.getAttribute('aria-hidden') === 'true' && el.getAttribute('tabindex') === '-1')
   );
+  // ⭐ LIVE MARKUP (measured 10-15, docs/LIVE_FORM_MEASUREMENT.md): the last clause drops a picker's BACKING input — the
+  // value-holder a widget keeps beside the box the candidate uses: react-select's `<input required tabindex="-1"
+  // aria-hidden="true">` after every required Greenhouse picker (the live Stripe form read 45 fields, 14 of them these
+  // twins, each a second "School*" / "Degree*" row), Workable's `name=CA_…` beside its combobox. Never operable, never
+  // a question of its own. A radio, checkbox or file input stays whatever it is marked: Workable's real radios are
+  // aria-hidden + tabindex -1 behind their role=radio wrappers, and Lever's résumé input is tabindex -1.
 
   // ⭐ T18 · LABEL RESOLUTION, IN ORDER (owner, field report 4): label[for] · aria-labelledby · aria-label · a wrapping
   // label · the nearest heading or text in the field's own group (Greenhouse's "Resume/CV *" above its "Attach" button)
-  // · the fieldset's legend · the placeholder. A button word ("Attach", "Upload", "Choose file") is not a label — it is
-  // skipped and the next source asked. Nothing found → '' here, and the panel shows a best guess from the attributes
-  // (fieldSemantics.js guessLabelOf), with the raw attributes in Options → Show details. Labels only — never a value.
+  // · the fieldset's legend · the placeholder · (an upload only) the words just after it in its own drop zone. A button
+  // word ("Attach", "Upload", "Choose file") is not a label — it is skipped and the next source asked. Nothing found →
+  // '' here, and the panel shows a best guess from the attributes (fieldSemantics.js guessLabelOf), with the raw
+  // attributes in Options → Show details. Labels only — never a value.
+  // ⭐ LIVE MARKUP (measured 10-15, docs/LIVE_FORM_MEASUREMENT.md):
+  //   · a label's words are read WITHOUT its <svg> (Workable's upload preview label reads "SVGs not supported by this
+  //     browser." — its fallback text was the résumé's label), scripts, and the controls inside it (a wrapped <select>'s
+  //     options, an answer box: never a value);
+  //   · EVERY label[for] is asked, not only the first (Workable: the svg preview label, then "Choose file");
+  //   · an aria-labelledby list keeps its pieces that are words, not button words ("Resume" + "Choose file" → "Resume");
+  //   · a label the page TIES to the field (for / labelledby / aria-label) is not refused for length — Ashby's and
+  //     Workable's long custom questions fell to their placeholder "Type here..." or to nothing; the 300-character
+  //     limit stays on the INFERRED sources (a wrapping label, a group's text), where length means a whole section;
+  //   · a wrapping label that holds the question AND the field (Lever: "Current location ✱" then the input and its
+  //     "No location found…" text) gives the label-ish words BEFORE the field.
   const GENERIC_LABEL = /^(attach|attach file|upload|upload file|browse|choose( a)? files?|select( a)? files?|add( a)? files?|drop files? here|or drag and drop( here)?|drag and drop|enter manually|paste|dropbox|google drive|remove|clear|select one|select|choose)$/i;
   const flat = (s) => String(s || '').replace(/\s+/g, ' ').trim();
-  const usable = (s) => { const t = flat(s); return t && t.length <= 300 && !GENERIC_LABEL.test(t.replace(/[*:\s]+$/, '').trim()) ? t : ''; };
-  const textOfIdList = (ids) => flat(String(ids || '').split(/\s+/).filter(Boolean)
-    .map(id => document.getElementById(id)?.textContent || '').join(' '));
+  const generic = (t) => GENERIC_LABEL.test(t.replace(/[*:\s]+$/, '').trim());
+  const usable = (s) => { const t = flat(s); return t && t.length <= 300 && !generic(t) ? t : ''; };
+  const tied = (s) => { const t = flat(s); return t && !generic(t) ? t : ''; };
+  const NOT_WORDS = 'svg, script, style, noscript, input, select, textarea, option, [contenteditable=""], [contenteditable="true"]';
+  const textOf = (node) => {
+    if (!node) return '';
+    if (!node.querySelector || !node.querySelector(NOT_WORDS)) return flat(node.textContent);
+    const copy = node.cloneNode(true);
+    copy.querySelectorAll(NOT_WORDS).forEach(n => n.remove());
+    return flat(copy.textContent);
+  };
+  const textOfIdList = (ids) => String(ids || '').split(/\s+/).filter(Boolean)
+    .map(id => textOf(document.getElementById(id))).filter(t => t && !generic(t)).join(' ');
   const CONTROL_SEL = 'input:not([type="hidden"]), select, textarea, [role="combobox"], button[aria-haspopup="listbox"]';
   const TEXTISH = 'label, legend, h1, h2, h3, h4, h5, h6, [role="heading"], [class*="label"], [class*="Label"], [id$="-label"], [id$="_label"]';
+  const precedes = (t, el) => !t.contains(el) && !t.querySelector(CONTROL_SEL) && (t.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING);
   const groupTextOf = (el) => {
     let n = el.parentElement;
     for (let up = 0; n && up < 6 && n !== form && n !== document.body; n = n.parentElement, up++) {
       if (n.querySelectorAll(CONTROL_SEL).length > 3) break;              // a section, not this field's group
       const own = usable(textOfIdList(n.getAttribute('aria-labelledby'))) || usable(n.getAttribute('aria-label'));
       if (own) return own;
-      const before = [...n.querySelectorAll(TEXTISH)].filter(t => !t.contains(el) && !t.querySelector(CONTROL_SEL) &&
-        (t.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING));
-      for (let i = before.length - 1; i >= 0; i--) { const t = usable(before[i].textContent); if (t) return t; }
+      const before = [...n.querySelectorAll(TEXTISH)].filter(t => precedes(t, el));
+      for (let i = before.length - 1; i >= 0; i--) { const t = usable(textOf(before[i])); if (t) return t; }
+    }
+    return '';
+  };
+  // ⭐ LIVE (Ashby, 10-15): a drop zone whose only words come AFTER its file input ("Autofill from resume" — the input
+  // first, its heading below). Asked last, for an upload only, and only inside a box that holds no other field.
+  const dropZoneTextOf = (el) => {
+    if ((el.type || '').toLowerCase() !== 'file') return '';
+    let n = el.parentElement;
+    for (let up = 0; n && up < 3 && n !== form && n !== document.body; n = n.parentElement, up++) {
+      if (n.querySelectorAll(CONTROL_SEL).length > 1) break;
+      const after = [...n.querySelectorAll(TEXTISH)].find(t => !t.contains(el) && !t.querySelector(CONTROL_SEL) &&
+        (el.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING) && usable(textOf(t)));
+      if (after) return usable(textOf(after));
     }
     return '';
   };
   const labelSourceOf = (el) => {
     if (el.id) {
-      const l = usable(document.querySelector(`label[for="${CSS.escape(el.id)}"]`)?.textContent);
-      if (l) return ['for', l];
+      for (const lab of document.querySelectorAll(`label[for="${CSS.escape(el.id)}"]`)) {
+        const l = tied(textOf(lab));
+        if (l) return ['for', l];
+      }
     }
-    const lb = usable(textOfIdList(el.getAttribute('aria-labelledby')));
+    const lb = tied(textOfIdList(el.getAttribute('aria-labelledby')));
     if (lb) return ['labelledby', lb];
-    const al = usable(el.getAttribute('aria-label'));
+    const al = tied(el.getAttribute('aria-label'));
     if (al) return ['aria', al];
-    const wrap = usable(el.closest('label')?.textContent);
-    if (wrap) return ['wrap', wrap];
+    const wl = el.closest('label');
+    if (wl) {
+      const lead = [...wl.querySelectorAll(TEXTISH)].find(t => precedes(t, el) && usable(textOf(t)));
+      const wrap = (lead && usable(textOf(lead))) || usable(textOf(wl));
+      if (wrap) return ['wrap', wrap];
+    }
     const g = groupTextOf(el);
     if (g) return ['group', g];
-    const lg = usable(el.closest('fieldset')?.querySelector('legend')?.textContent);
+    const lg = usable(textOf(el.closest('fieldset')?.querySelector('legend')));
     if (lg) return ['legend', lg];
     const ph = usable(el.getAttribute('placeholder'));
     if (ph) return ['placeholder', ph];
+    const dz = dropZoneTextOf(el);
+    if (dz) return ['group', dz];
     return [null, ''];
   };
   const labelFor = (el) => labelSourceOf(el)[1];
@@ -311,7 +362,9 @@ async function applyPlan(plan, resume, opts) {
   )].filter(
     el => (el.getAttribute('aria-haspopup') === 'listbox' ||
       !['hidden', 'submit', 'button', 'image', 'reset', 'password'].includes((el.type || '').toLowerCase())) &&
-      !/^cc-|one-time-code|-password$/i.test(el.getAttribute('autocomplete') || '')
+      !/^cc-|one-time-code|-password$/i.test(el.getAttribute('autocomplete') || '') &&
+      !(el.tagName === 'INPUT' && !['radio', 'checkbox', 'file'].includes((el.type || '').toLowerCase()) &&
+        el.getAttribute('aria-hidden') === 'true' && el.getAttribute('tabindex') === '-1')
   );
 
   const isEditable = (el) => el.isContentEditable === true;
@@ -1522,7 +1575,8 @@ export function questionKind(label) {
   const t = String(label || '').toLowerCase();
   if (/authori[sz]ed to work|eligib\w* to work|right to work|work permit|sponsor|visa|immigration|i-9|citizen/.test(t)) return 'eligibility';
   if (/marketing|newsletter|text messages|sms|whatsapp|promotional|opt[ -]?in|receive (?:\w+ ){0,3}(?:communications|updates|messages|emails|alerts)|talent (?:community|network)|job alerts/.test(t)) return 'opt_in';
-  if (/\bgender\b|\bsex\b|ethnic|\brace\b|racial|hispanic|latino|veteran|disabilit|self[- ]?identif|pronoun|sexual orientation/.test(t)) return 'eeo';
+  // ⭐ LIVE (Discord, 10-15): "I consider myself a member of the LGBTQ+ community" read as 'other' — now EEO.
+  if (/\bgender\b|\bsex\b|ethnic|\brace\b|racial|hispanic|latino|veteran|disabilit|self[- ]?identif|pronoun|sexual orientation|lgbt|transgender/.test(t)) return 'eeo';
   if (/terms and conditions|privacy (?:policy|notice)|i (?:have read|consent|agree|acknowledge|certify)|attest/.test(t)) return 'consent';
   if (/\d+\s*\+?\s*years|years of (?:\w+ ){0,3}experience|do you have (?:\w+ ){0,4}(?:experience|degree|certification|license)|are you (?:able|willing) to|willing to relocate|relocat|on-?site|in[- ]office|travel|security clearance|\bclearance\b|salary|compensation|notice period|previously (?:worked|been employed)|non-?compete|criminal|background check|drug (?:test|screen)/.test(t)) return 'screening';
   return 'other';
