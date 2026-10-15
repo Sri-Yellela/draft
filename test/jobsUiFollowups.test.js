@@ -26,8 +26,9 @@ test("profile suggestion additions use shared normalized helpers on both server 
 // is how the candidate takes the claim back.
 test("ATS missing chips stay visible, turn green when claimed, and react to profile suggestion updates", () => {
   const atsPanel = fs.readFileSync("client/src/components/ATSPanel.jsx", "utf8");
-  // A52: the chips are drawn by components/AtsReport.jsx; ATSPanel keeps the claim state and events.
-  const chips = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
+  // A52: the chips are drawn by the one report implementation — since T9 the shared component
+  // (shared/atsReportElement.js); ATSPanel keeps the claim state and events.
+  const chips = fs.readFileSync("shared/atsReportElement.js", "utf8");
 
   assert.match(atsPanel, /PROFILE_SUGGESTIONS_UPDATED_EVENT/);
   assert.match(atsPanel, /buildProfileClaimLookup/);
@@ -39,14 +40,15 @@ test("ATS missing chips stay visible, turn green when claimed, and react to prof
   // D31: the claim chip's resting colours are tokens on the chip itself (the + chip); the switch is the same.
   // D32 re-pin: the chip is a depth BOX on the ink pair, and its colours moved into AtsReport.css as the
   // pair's tokens — the switch is now aria-pressed (which IS the claimed state), and it still turns green.
-  const css = fs.readFileSync("client/src/components/AtsReport.css", "utf8");
-  assert.match(chips, /aria-pressed=\{claimed\}/);
+  // T9: the stylesheet travels with the component (shared/atsReportStyles.js), rule for rule.
+  const css = fs.readFileSync("shared/atsReportStyles.js", "utf8");
+  assert.match(chips, /"aria-pressed": claimed \? "true" : "false"/);
   // A86 re-pin (pair2.html's .b.cl / .b.cl.on): an unclaimed box is the claim red on the raised surface
   // (no longer dashed); claimed, it is the green, its square too.
   assert.match(css, /\.ats-box--claim\[aria-pressed="true"\] \{ background: var\(--c-pair-met-quiet\);[^}]*color: var\(--c-pair-matched\);/);
   assert.match(css, /\.ats-box--claim\[aria-pressed="true"\] \.ats-box__plus \{ background: var\(--c-pair-matched\); \}/);
   assert.match(css, /\.ats-box\[data-tone="claim"\] \{ border-color: var\(--c-pair-missing-edge\); color: var\(--c-pair-missing\); \}/, "an unclaimed box is the claim red");
-  assert.match(chips, /data-tone="claim" data-claim-chip=\{claimKind\}/);
+  assert.match(chips, /"data-tone": "claim",\s*"data-claim-chip": claimKind/);
   assert.match(chips, /claimed \? `✓ \$\{k\}` : k/);
   assert.doesNotMatch(chips, /pointerEvents:\s*claimed/,
     "a claimed chip must stay clickable — that click is how the claim is withdrawn");

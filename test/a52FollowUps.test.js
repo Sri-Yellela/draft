@@ -16,13 +16,14 @@ test("enrichment finishing schedules a rescore: the hook fires after a pass that
 });
 
 test("the experience summary renders once: the verdict is skipped when it is only the experience summary again", () => {
-  const src = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
+  // T9: the report is the one shared component now (shared/atsReportElement.js); the same two guards, re-pinned there.
+  const src = fs.readFileSync("shared/atsReportElement.js", "utf8");
   // D32 re-pin: Experience moved to its OWN row (always printed when there is a summary), so the guard
   // against printing it twice moved to the other side — the "More" fold's verdict line drops out when
   // it would only repeat that summary (the A52 "renders twice" defect, same condition, other end).
   assert.match(src, /const verdict = report\.verdict && report\.verdict !== report\.experience\?\.summary \? report\.verdict : null;/);
-  assert.match(src, /\{report\.experience\?\.summary && <ExperienceRow experience=\{report\.experience\} \/>\}/);
-  assert.equal((src.match(/<ExperienceRow /g) || []).length, 1, "the experience row is printed once");
+  assert.match(src, /report\.experience\?\.summary && experienceRow\(doc, report\.experience\),/);
+  assert.equal((src.match(/experienceRow\(doc, report/g) || []).length, 1, "the experience row is printed once");
 });
 
 test("/tools/ats: the result clears the fixed ScrollDock and is brought into view", () => {

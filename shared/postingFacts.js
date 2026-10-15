@@ -17,6 +17,7 @@
  */
 import { JOB_FUNCTIONS } from "./jobTagVocabulary.js";
 import { EXPERIENCE_LEVELS, WORK_MODELS } from "./jobFilterOptions.js";
+import { EXPERIENCE_STATES, experienceState } from "./atsReportModel.js";
 
 // ── Years of experience ─────────────────────────────────────────────────────────────────────────
 //
@@ -66,23 +67,10 @@ export function yearsAsked(description) {
 
 // ── The experience requirement as the SCORER judged it (pass/fail) ──────────────────────────────
 //
-// The scorer's report carries { requiredYears, candidateYears, fit }. ⚠ `fit` is TRUE when the posting
-// asks for no years at all — so `fit` alone cannot say "met". Four states, never inferred from prose:
-//   met      it asks, and the résumé/profile meets it
-//   short    it asks, and the résumé/profile has fewer
-//   unknown  it asks, and there is nothing to compare against
-//   none     it asks for no years
-export const EXPERIENCE_STATES = Object.freeze(["met", "short", "unknown", "none"]);
-// A report that carries neither (a deck card frozen before D32) is null — the row prints the scorer's
-// sentence with no mark rather than guess one.
-export function experienceState(exp) {
-  if (!exp || typeof exp !== "object") return null;
-  if (EXPERIENCE_STATES.includes(exp.state)) return exp.state;
-  if (!("requiredYears" in exp)) return exp.fit === false ? "short" : null;
-  if (!Number.isFinite(exp.requiredYears)) return "none";
-  if (!Number.isFinite(exp.candidateYears)) return "unknown";
-  return exp.candidateYears >= exp.requiredYears ? "met" : "short";
-}
+// The four states (met · short · unknown · none) and experienceState() live in shared/atsReportModel.js since T9:
+// the ATS report component draws the Experience row from them, and the extension bundles that file without this
+// one's vocabulary imports. Re-exported here, so every existing caller reads the same function.
+export { EXPERIENCE_STATES, experienceState };
 
 // ── The kicker: D29's tags ──────────────────────────────────────────────────────────────────────
 const labelOf = (vocab, v) => vocab.options.find(o => o.value === v)?.label || null;

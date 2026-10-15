@@ -41,13 +41,9 @@ html[data-cues="shape"] [style*="--band-fill"] {
   background-color: var(--band-bg) !important; background-image: var(--band-fill) !important; border-style: var(--band-edge) !important;
 }
 
-/* the pair's three-segment bar (AtsReport.css): yours solid · missing hatched · generic dotted */
-html[data-cues="shape"] .ats-bar__seg--missing {
-  background-image: repeating-linear-gradient(135deg, transparent 0 2px, var(--c-canvas) 2px 3.5px);
-}
-html[data-cues="shape"] .ats-bar__seg--generic {
-  background-image: radial-gradient(var(--c-canvas) 0.8px, transparent 1px); background-size: 4px 4px;
-}
+/* the pair's three-segment bar: yours solid · missing hatched · generic dotted — ⭐ T9: it lives in the ATS report's
+   shadow root now (shared/atsReportStyles.js, :host([cues="shape"])), which a document rule cannot reach; the web
+   wrapper (components/AtsReport.jsx) hands the setting to the component as cues="shape". */
 
 /* The Table's funnel (ApplicationHistory.css): rejected is hatched by its stroke pattern */
 html[data-cues="shape"] .ah__fseg[data-seg="rejected"] { stroke: var(--c-surface-solid); stroke-width: 1.5; stroke-dasharray: 2 2; }

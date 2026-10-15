@@ -217,21 +217,23 @@ test("the report version was bumped, or every cached report keeps the old catego
 // ── 5. the panel shows what the scorer computed ──────────────────────────────────────────────
 
 test("the panel renders both new buckets, and AG2's copy is untouched", () => {
-  // A52: the report is drawn by components/AtsReport.jsx (ATSPanel only fetches and claims).
-  const panel = fs.readFileSync("client/src/components/AtsReport.jsx", "utf8");
+  // A52: the report is drawn by ONE implementation (ATSPanel only fetches and claims) — since T9 the shared
+  // component (shared/atsReportElement.js) and its model (shared/atsReportModel.js), which the web app wraps.
+  const panel = fs.readFileSync("shared/atsReportElement.js", "utf8") + fs.readFileSync("shared/atsReportModel.js", "utf8");
   // D31: both buckets are counted — on the résumé, or in "You could claim".
   assert.match(panel, /\.\.\.\(report\?\.competencies_matched \|\| \[\]\)/);
   assert.match(panel, /\.\.\.\(report\?\.competencies_missing \|\| \[\]\)/);
   assert.match(panel, /report\.action_verbs_generic\?\.length > 0/);
   // Generic language is NOT claimable — a chip that offers to add "Manage" to your profile is the
-  // same false gap in a different control. (The whole fold, up to its closing tag.)
-  const genericBlock = panel.slice(at(panel, "<details data-ats-generic"), at(panel, "</details>", at(panel, "<details data-ats-generic")));
-  // D32: the pills became depth boxes (TermBox); a generic box is read-only and says it is generic.
-  assert.match(genericBlock, /generic\.map\(\(\{ term, kind \}\) => <TermBox key=\{`g:\$\{term\}`\} term=\{term\} kind=\{kind\} generic \/>\)/);
-  assert.doesNotMatch(genericBlock, /onToggleClaim|claimable\(/);
+  // same false gap in a different control. (The whole fold, up to the next one.)
+  const genericBlock = panel.slice(at(panel, '"data-ats-generic": true'), at(panel, '"data-ats-more": true'));
+  // D32: the pills became depth boxes; a generic box is read-only (no claim state) and says it is generic.
+  assert.match(genericBlock, /generic\.map\(t => box\(t, \{ generic: true \}\)\)/);
+  assert.doesNotMatch(genericBlock, /claims:|onclick/);
   // Competencies matched must count as evidenced, or a term shown as matched above renders as
-  // unevidenced below.
-  assert.match(panel, /\.\.\.\(report\.competencies_matched \|\| \[\]\)/);
+  // unevidenced below (shared/atsReportModel.js evidencedKeys).
+  const evidenced = panel.slice(at(panel, "export function evidencedKeys("), at(panel, "export const EXPERIENCE_STATES"));
+  assert.match(evidenced, /\.\.\.\(report\?\.competencies_matched \|\| \[\]\)/);
   // ⛔ CC4 CHANGED ONE OF THESE SENTENCES, BECAUSE IT STOPPED BEING TRUE. This list used to
   // include "It does not change this score". A claim now counts toward the score and toward where
   // the job ranks, so that sentence had to go — copy promising one thing while the code does
