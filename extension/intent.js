@@ -231,8 +231,10 @@ export async function choose(tab, { choice, resume = null, remember = false } = 
   const d = decidePath({ ...tells, control: 'choose_manual' });
   const words = pathWords(d);
   const kept = tells.server?.drafted ? `${words.line} Your Draft stays in Draft House — remove it there if you won't use it.` : words.line;
-  await deps.draw(tab, { ...words, line: kept }).catch(() => null);
-  return { ok: true, message: kept, decision: d, words };
+  // the SAME words the worker draws go back to the click's own callback, which redraws with them
+  const said = { ...words, line: kept };
+  await deps.draw(tab, said).catch(() => null);
+  return { ok: true, message: kept, decision: d, words: said };
 }
 
 // ── the dock's path line ─────────────────────────────────────────────────────────────────────────────────────────
