@@ -42,8 +42,9 @@ test("⛔ T21: ONE fill state — the Fill button holds its width and says how f
   assert.match(st, /if \(next === frame\.statusText\) return;/);
   const popup = read("extension/popup.js");
   const fill = popup.slice(at(popup, "async function fillActiveTab() {"), at(popup, "let fillAfterCapture = false;"));
-  assert.match(fill, /getAttribute\('aria-busy'\) === 'true'\) return;/, "a second press while it runs starts nothing");
-  assert.match(fill, /btn\.style\.minWidth = `\$\{btn\.offsetWidth\}px`/, "the popup's button holds its width");
+  assert.match(fill, /if \(filling\) return;\n\s+filling = true;/, "a second press while it runs starts nothing");
+  assert.match(fill, /finally \{ filling = false; busy\(false\); \}/, "…and the button comes back whatever the fill answered");
+  assert.match(fill, /btn\.style\.minWidth = on && btn\.offsetWidth \? `\$\{btn\.offsetWidth\}px`/, "the popup's button holds its width");
 });
 
 const chromeBin = await findChrome();
