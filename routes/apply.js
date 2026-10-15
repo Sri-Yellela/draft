@@ -4298,6 +4298,16 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
              mine: true, how: "binding" };
   }
   const hintOf = (req) => (req.body?.boundJobId != null ? String(req.body.boundJobId) : null);
+  /**
+   * ⭐ BINDING FIRST (owner 10-15) · the page's address named a live board job that is not yet the user's own, and the
+   * extension's identify step bound the tab to THAT job: the binding's rule (boundJob above, D99) applies to it as it
+   * would on a stage whose address names nothing — so Prepare works for it. Only for the very job the address names;
+   * a hint naming another job changes nothing here.
+   */
+  function withBoundBoardJob(userId, page, hint) {
+    if (!page?.job || page.mine || hint == null || String(hint) !== String(page.job.jobId)) return page;
+    return boundJob(userId, hint) ? { ...page, mine: true } : page;
+  }
 
   /** The D56 decision for one page, shared by /match, /prepare and /copy-sheet. */
   function matchPage(userId, url, hint = null, frameUrl = null) {
@@ -4307,7 +4317,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // ⭐ T11: with the form in a frame, a packet fills here only when the page AND the frame are its addresses.
     const matching = rows.filter(r => fills(r, url) && (!frameUrl || fills(r, frameUrl)));
     const packets = matching.map(listedPacket);
-    let page = resolvePageJob(db, userId, url, familiesFor(userId));
+    let page = withBoundBoardJob(userId, resolvePageJob(db, userId, url, familiesFor(userId)), hint);
     if (!page.job) page = boundJob(userId, hint) || page;
     // ⭐ D63: the popup leads with the job card — the logo and D58's score pair ride with the job.
     const job = page.job ? { jobId: page.job.jobId, title: page.job.title, company: page.job.company, ...jobCardFacts(userId, page.job.jobId) } : null;
@@ -4359,7 +4369,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   app.post("/api/apply/prepare", requireAuth, (req, res) => {
     const url = pageUrlOf(req);
     if (!url) return res.status(400).json({ error: "bad_url", message: "Only http(s) pages can be filled." });
-    let page = resolvePageJob(db, req.user.id, url, familiesFor(req.user.id));
+    let page = withBoundBoardJob(req.user.id, resolvePageJob(db, req.user.id, url, familiesFor(req.user.id)), hintOf(req));
     if (!page.job) page = boundJob(req.user.id, hintOf(req)) || page;
     if (!page.job || !page.mine) {
       const state = page.job ? "not_on_board" : "unknown";
@@ -4370,8 +4380,13 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const row = db.prepare("SELECT * FROM apply_gate_packets WHERE id=? AND user_id=?").get(out.packetId, req.user.id);
     const addr = addressingFor(row);
     const fillsHere = pageMatchesPacket({ url, ...addr }, familiesFor(req.user.id)).ok;
+    // ⭐ T15 · ONE TRUTH FOR "PREPARED": the packet's own facts — when it was made, when it goes off, how many fields —
+    // so the extension's "Prepared 14:02 · 12 fields" is the server's packet, never a local count standing in for it.
+    const createdAt = toMs(row?.created_at);
+    const packetFacts = { createdAt, staleAfterMs: PACKET_STALE_MS, expiresAt: Number.isFinite(createdAt) ? createdAt + PACKET_STALE_MS : null,
+      answerCount: (() => { const b = parseJson(row?.answers_json, {}); return Array.isArray(b.answers) ? b.answers.length : 0; })() };
     res.json({
-      ok: true, packetId: out.packetId, reused: out.reused, resume: out.resume, origins: addr.origins, fillsHere,
+      ok: true, packetId: out.packetId, reused: out.reused, resume: out.resume, origins: addr.origins, fillsHere, packet: packetFacts,
       job: { jobId: page.job.jobId, title: page.job.title, company: page.job.company },
       message: fillsHere
         ? (out.resume === "ready" ? "Prepared — your answers and your résumé for this job." : "Prepared — your answers. No current résumé for this job, so attach one yourself.")
