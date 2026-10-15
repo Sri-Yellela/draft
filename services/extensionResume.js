@@ -438,7 +438,28 @@ export function createExtensionResumeService({ db, generate, preflight = () => n
     return { fileName: baseFileName(userId), body: await renderPdf(baseResumeHtml(base.text)) };
   }
 
-  return { start, get, cancel, pdf, pdfFile, baseResumeInfo, baseResumePdf };
+  /**
+   * ⭐ T24 · the intent model's tell (6): what draft already knows about this job's résumé for the CURRENT base, without
+   * starting anything or spending anything. → { state: 'ready' | 'in_flight' | 'made' | 'none' | 'no_base', id }
+   *   ready      a generation for (job, base) is ready — attach it, never regenerate
+   *   in_flight  one is queued or generating — join it, never start a second
+   *   made       the web app (or an earlier run) already made a version from this base — start() reuses it, no slot
+   *   none       nothing yet — a start spends one Draft slot
+   */
+  function peek(userId, jobId) {
+    const id = jobId == null ? "" : String(jobId).slice(0, 128);
+    const base = baseResumeFor(db, userId);
+    if (!base) return { state: "no_base", id: null };
+    let live = null;
+    try {
+      live = db.prepare(`SELECT id, status FROM extension_resume_generations WHERE user_id = ? AND job_id = ? AND base_hash = ?
+        AND superseded_at IS NULL AND status IN ('queued','generating','ready') ORDER BY created_at DESC LIMIT 1`).get(userId, id, base.hash) || null;
+    } catch { live = null; }
+    if (live) return { state: live.status === "ready" ? "ready" : "in_flight", id: live.id };
+    return existingVersionFromBase(userId, id, base.hash) ? { state: "made", id: null } : { state: "none", id: null };
+  }
+
+  return { start, get, cancel, pdf, pdfFile, baseResumeInfo, baseResumePdf, peek };
 }
 
 function newId() { return `erg_${crypto.randomBytes(12).toString("hex")}`; }

@@ -315,7 +315,8 @@ export function PrivacyPage() {
             </LI>
             <LI>
               <Strong>Which job a tab is on</Strong> — the job's draft id, its title and company, and the
-              time it was linked — once you capture
+              time it was linked; for a tab opened from your board, whether it was opened to apply or to
+              view; and, once you choose, whether you are drafting that job or filling it in yourself — once you capture
               a job in that tab or draft recognises the posting there, so the later pages of the same
               application (signing in, the application's steps) are known to be that job. It holds no
               answers and nothing about you, and it is never shared between tabs. Session storage:
@@ -342,7 +343,7 @@ export function PrivacyPage() {
             </LI>
             <LI>
               <Strong>Where each application stands</Strong> — for each job you capture, read, prepare,
-              fill or submit with the extension: the job's draft id, its title and company, the address
+              draft, fill or submit with the extension: the job's draft id, its title and company, the address
               of its posting, up to eight addresses of that job's pages you used the extension on (with
               tracking parameters and anything after "#" removed — so a new tab on the same job picks up
               where you left off without asking us), when each of those steps happened, and how many

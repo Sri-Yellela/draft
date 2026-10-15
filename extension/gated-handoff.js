@@ -53,6 +53,7 @@ import { noteFill, notePrepared, noteSubmitted, resumeFor } from './progress.js'
 import { SITES } from './autoRead.js';
 // ⭐ T18: what each field IS (city, school, LinkedIn …), what an upload is (résumé · cover letter · other).
 import { classifyFields, fileTypeOf, guessLabelOf, offerGenerateOnCue, CANONICAL_NAME_KEYS } from './fieldSemantics.js';
+import { resumeOnCueSetting } from './intentSettings.js';   // ⭐ T24: the account's on-cue setting
 import { noteFieldsRead } from './diagnostics.js';
 export { classifyFields, fileTypeOf, guessLabelOf };
 
@@ -2121,7 +2122,9 @@ export async function resumeFilesFor(serverUrl, jobId, { setting = 'on_cue' } = 
 /** The panel meta's `files`, only when a row is an empty résumé or cover-letter upload (no request otherwise). */
 async function filesMetaFor(rows, serverUrl, released, opts = {}) {
   if (!(rows || []).some(r => r.group === 'need' && (r.fileType === 'resume' || r.fileType === 'cover_letter'))) return {};
-  return { files: await resumeFilesFor(serverUrl, released?.packet?.jobId ?? null, { setting: opts.resumeOnCue || 'on_cue' }), dragHint: 'drag it onto the upload box' };
+  // ⭐ T24: the account's "In a manual fill: offer a résumé on cue / never" (intentSettings.js), unless the fill named one
+  const setting = opts.resumeOnCue || await resumeOnCueSetting(serverUrl).catch(() => 'on_cue');
+  return { files: await resumeFilesFor(serverUrl, released?.packet?.jobId ?? null, { setting }), dragHint: 'drag it onto the upload box' };
 }
 
 /** One draw of the panel at a wizard step — on the dock, TOP frame. A failure here never stops the fill. */

@@ -33,7 +33,7 @@ test("⛔ T22: the popup keeps the account line, the job card with its ATS, ONE 
     ['id="btn-resume"', "the Draft button (/d)"], ['id="btn-open-dock"', "Open dock"], ['id="btn-copy-sheet"', "Copy sheet"],
     ['id="btn-report-form"', "Report form"], ['id="btn-settings"', "More"], ['id="btn-unbind"', "Unlink this page"],
   ]) assert.ok(htmlCode.includes(sel), `the popup lost ${what}`);
-  assert.match(htmlCode, /<button class="sq sq--primary" id="btn-resume" aria-label="Open draft" title="Open draft">\s*<span class="draft-d" aria-hidden="true">\/d<\/span>/,
+  assert.match(htmlCode, /<button class="sq sq--primary" id="btn-resume" aria-label="Draft this job" title="Draft this job — the board's Draft, with its résumé queued">\s*<span class="draft-d" aria-hidden="true">\/d<\/span>/,
     "the Draft button keeps the mark on the orange (D1)");
 });
 
@@ -104,7 +104,8 @@ test("⛔ T22: NO TWO CONTROLS DO THE SAME THING — each of the popup's buttons
   assert.equal(signature["btn-fill-primary"], "message:FILL_ACTIVE_TAB");
   assert.equal(signature["btn-capture-primary"], "message:CAPTURE_ACTIVE_TAB");
   assert.equal(signature["btn-read-page"], "message:PREVIEW_ACTIVE_TAB → message:POPUP_CONTEXT");
-  assert.equal(signature["btn-resume"], "message:OPEN_RESUME_BUILDER");
+  // ⭐ T24: the Draft button drafts (INTENT_DRAFT); on a page with no job it opens draft, as it did before
+  assert.equal(signature["btn-resume"], "message:INTENT_DRAFT → message:OPEN_RESUME_BUILDER");
   assert.equal(signature["btn-open-dock"], "message:DOCK_OPEN");
   assert.equal(signature["btn-copy-sheet"], "message:COPY_SHEET_PANEL");
   assert.equal(signature["btn-settings"], "options");
