@@ -7,6 +7,8 @@
 //   POST /api/extension/resume/:id/cancel       queued → cancelled (slot back) · generating → cancelled
 //   POST /api/extension/resume/:id/pdf          { attach? } → the stored PDF's name and where to fetch it
 //   GET  /api/extension/resume/:id/pdf/file     the PDF bytes (application/pdf)
+//   GET  /api/extension/base-resume             ⭐ T18: { exists, fileName } — does the account keep a base résumé
+//   GET  /api/extension/base-resume/pdf/file    ⭐ T18: the base résumé as a PDF ("Attach my résumé") — no model, no slot
 //
 // ⛔ Refused for anything but the extension's credential (an auth_contexts row with the extension's user agent): a
 // browser tab, its cookie, or a script with a tab's token gets 403 — the web app has its own Generate.
@@ -48,6 +50,22 @@ export function createExtensionResumeRouter({ service, requireAuth, isExtension,
 
   router.get("/api/extension/resume/:id/pdf/file", ...guard, limited(readOk), (req, res) => {
     const file = service.pdfFile(req.user.id, req.params.id);
+    if (!file) return send(res, userError("not_found"));
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${file.fileName}"`);
+    res.setHeader("Cache-Control", "private, no-store");
+    res.end(file.body);
+  });
+
+  // ⭐ T18 · the review row's "Attach my résumé". Reads only; the extension's credential only, like every route here.
+  router.get("/api/extension/base-resume", ...guard, limited(readOk), (req, res) => {
+    if (typeof service.baseResumeInfo !== "function") return send(res, userError("not_found"));
+    res.json(service.baseResumeInfo(req.user.id));
+  });
+  router.get("/api/extension/base-resume/pdf/file", ...guard, limited(readOk), async (req, res) => {
+    let file = null;
+    try { file = typeof service.baseResumePdf === "function" ? await service.baseResumePdf(req.user.id) : null; }
+    catch { return send(res, userError("pdf_unavailable")); }
     if (!file) return send(res, userError("not_found"));
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${file.fileName}"`);

@@ -66,6 +66,16 @@ export const CANONICAL_GATE_FIELDS = Object.freeze([
   { field_id: "g_website",       name: "website",        label: "Website",           type: "url",   handler_type: "website",         is_required: false },
   { field_id: "g_current_co",    name: "current_company",label: "Current company",   type: "text",  handler_type: "current-company", is_required: false },
   { field_id: "g_current_title", name: "current_title",  label: "Current title",     type: "text",  handler_type: "current-title",   is_required: false },
+  // ⭐ T18 / T23 (owner 10-15: "12 fields prepared" against a 43-field Greenhouse form). The rest of what a standard
+  // form asks that the PROFILE states — each handler type is one PROFILE_KEY_TO_HANDLER already produces. The extension
+  // places them by the field vocabulary (extension/fieldSemantics.js: "Location (City)" is `city`, "School" is `school`).
+  { field_id: "g_location",      name: "location",       label: "Location",          type: "text",  handler_type: "location",        is_required: false },
+  { field_id: "g_github",        name: "github",         label: "GitHub",            type: "url",   handler_type: "github",          is_required: false },
+  { field_id: "g_portfolio",     name: "portfolio",      label: "Portfolio",         type: "url",   handler_type: "portfolio",       is_required: false },
+  { field_id: "g_school",        name: "school",         label: "School",            type: "text",  handler_type: "school",          is_required: false },
+  { field_id: "g_degree",        name: "degree",         label: "Degree",            type: "text",  handler_type: "degree",          is_required: false },
+  { field_id: "g_discipline",    name: "discipline",     label: "Discipline",        type: "text",  handler_type: "field-of-study",  is_required: false },
+  { field_id: "g_grad_year",     name: "graduation_year",label: "Graduation year",   type: "text",  handler_type: "grad-year",       is_required: false },
   // Eligibility. Attestations to an employer, which is why G3 pins them to the top of the review
   // overlay regardless of confidence — see §6. The labels are the real question wording rather than
   // a short name, because buildAnswers' eligibility guards read the LABEL to decide the question's
@@ -152,6 +162,7 @@ export function buildGatePacket({
   resumeArtifactId = null,
   gateReason = "login_required",
   entries = null,                 // D55 (b): buildPacketEntries(); absent on an older caller
+  baseResume = null,              // ⭐ T18: buildStructuredResume() of the BASE résumé — its facts fill what the profile left empty
 } = {}) {
   const expectedOrigin = originOf(applyUrl);
   if (!expectedOrigin) {
@@ -173,9 +184,16 @@ export function buildGatePacket({
     : real;
 
   const required = new Map(CANONICAL_GATE_FIELDS.map(f => [f.name, f.is_required]));
+  // ⭐ T18: a canonical answer keeps its question's handler type — the key the extension's field vocabulary meets it by
+  // (buildAnswers returns the value, not the question it answered).
+  const canonicalKey = new Map(CANONICAL_GATE_FIELDS.map(f => [f.name, f.handler_type]));
   const packetAnswers = answers
     .filter(a => a && !a.skipped && a.value !== null && a.value !== undefined && a.value !== "")
-    .map(a => toPacketAnswer({ ...a, is_required: a.required ?? a.is_required ?? required.get(a.name) ?? false }));
+    .map(a => toPacketAnswer({ ...a, is_required: a.required ?? a.is_required ?? required.get(a.name) ?? false,
+      handler_type: a.handler_type ?? (usedCanonical ? canonicalKey.get(a.name) : null) ?? null }));
+  // ⭐ T18 / T23: what the PARSED BASE RÉSUMÉ states (school, degree, discipline, dates, current employer and title, the
+  // links in its header) for every key the profile left empty, and the phone's country code. Profile first, always.
+  packetAnswers.push(...resumeAnswers(baseResume, packetAnswers), ...derivedAnswers(autofillPayload, packetAnswers));
 
   // ── NEVER MINT A PACKET WITH NOTHING TO FILL (AE2 requirement 3) ────────────────────────────
   // A packet IS the "Open & fill" promise: the panel offers that route for a row that has one, and
@@ -195,8 +213,9 @@ export function buildGatePacket({
   // What we could NOT answer. Surfacing it here is what lets the queue say "this one will ask you
   // two questions" before the human opens the portal (the same idea as G4 requirement 4).
   const answeredNames = new Set(packetAnswers.map(a => a.name));
+  const answeredKeys = new Set(packetAnswers.map(a => a.handler_type).filter(Boolean));
   const unresolved = CANONICAL_GATE_FIELDS
-    .filter(f => !answeredNames.has(f.name))
+    .filter(f => !answeredNames.has(f.name) && !answeredKeys.has(f.handler_type))
     .map(f => ({
       field: f.label, name: f.name, type: f.type,
       is_required: f.is_required,
@@ -206,6 +225,9 @@ export function buildGatePacket({
 
   return {
     version: 1,
+    // ⭐ T18: which answer set this packet was built with — a prepared packet from before the vocabulary and the
+    // résumé's facts is not reused (routes/apply.js prepareManualPacket), so "12 fields prepared" does not linger.
+    answersVersion: PACKET_ANSWERS_VERSION,
     jobId: String(jobId),
     runId, runJobId,
     gateReason,
@@ -398,6 +420,153 @@ export function buildPacketEntries({ profile = null, structuredResume = null, pa
     parse: payload.ok ? { ok: true } : { ok: false, message: PARSE_FAILED_MESSAGE },
   };
 }
+
+// ── ⭐ T18 / T23 · ANSWER SOURCES BEYOND THE PROFILE: the parsed base résumé, and what the profile implies ──────────
+//
+// A standard Greenhouse form asks for the school, the degree, the discipline and the dates, the current employer and
+// title, LinkedIn, GitHub and a website. The profile often holds none of that while the base résumé holds all of it.
+// resumeFacts() reads it OFF THE PARSE (buildStructuredResume — the renderer's own reading of the résumé): STATED,
+// NEVER INVENTED — a value the parse does not show is absent, and the field stays the candidate's.
+//   school / degree / field-of-study / grad-year / grad-month / start-year / start-month   the EDUCATION section's first entry
+//   current-company / current-title   the EXPERIENCE section's first entry, ONLY when its dates say it is current
+//   linkedin / github / website       the URLs in the header's contact line
+// Each becomes a packet answer with provenance field_map_exact (a fact the candidate wrote, read by a fixed rule — the
+// same tier the work history uses) and `source: "resume"`, so the panel says "your résumé". ⛔ Nothing here is an
+// attestation: no eligibility, EEO or screening answer comes from a résumé.
+
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const DATE_RUN = /\b(?:(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+)?(?:19|20)\d{2}\b(?:\s*(?:–|—|-|to)\s*(?:(?:(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+)?(?:19|20)\d{2}|present|current|now))?|\b(?:expected|anticipated)\b/gi;
+const INSTITUTION = /universit|college|institute|school|academy|polytechnic|conservatory|\bmit\b/i;
+/** The degree's LEVEL in the words ATS pickers use ("B.S." → "Bachelor's Degree") — the choice a picker is matched by. */
+export function degreeLevelOf(text) {
+  const t = String(text || "").toLowerCase().replace(/\./g, "");
+  if (/\b(mba|master of business administration)\b/.test(t)) return "Master of Business Administration (M.B.A.)";
+  if (/\b(phd|doctor of philosophy|doctorate)\b/.test(t)) return "Doctor of Philosophy (Ph.D.)";
+  if (/\b(jd|juris doctor)\b/.test(t)) return "Juris Doctor (J.D.)";
+  if (/\b(md|doctor of medicine)\b/.test(t)) return "Doctor of Medicine (M.D.)";
+  if (/\b(ms|msc|ma|meng|mfa|mph|mtech|master|masters)\b/.test(t)) return "Master's Degree";
+  if (/\b(bs|bsc|ba|be|beng|bfa|btech|bachelor|bachelors|ab|sb)\b/.test(t)) return "Bachelor's Degree";
+  if (/\b(as|aa|aas|associate|associates)\b/.test(t)) return "Associate's Degree";
+  if (/\bhigh school|ged\b/.test(t)) return "High School";
+  return null;
+}
+const DEGREE_WORDS = Object.freeze({ bs: "Bachelor of Science", bsc: "Bachelor of Science", sb: "Bachelor of Science", ba: "Bachelor of Arts",
+  ab: "Bachelor of Arts", beng: "Bachelor of Engineering", be: "Bachelor of Engineering", btech: "Bachelor of Technology",
+  bfa: "Bachelor of Fine Arts", ms: "Master of Science", msc: "Master of Science", ma: "Master of Arts", meng: "Master of Engineering",
+  mtech: "Master of Technology", mfa: "Master of Fine Arts", mph: "Master of Public Health", mba: "Master of Business Administration",
+  phd: "Doctor of Philosophy", as: "Associate of Science", aa: "Associate of Arts" });
+
+/** "B.S. in Computer Science" → { degree: "Bachelor of Science", field: "Computer Science" }. */
+export function splitDegree(line) {
+  const s = clean(String(line || "").replace(DATE_RUN, " ").replace(/\s*[|,;·•]\s*$/, "").replace(/\s{2,}/g, " "));
+  if (!s) return { degree: null, field: null };
+  let m = /^(.+?)\s*(?:,|\bin\b|\s[–—-]\s|:)\s*(.+)$/i.exec(s);
+  if (m && !degreeLevelOf(m[1])) m = null;
+  let degree = m ? clean(m[1]) : s, field = m ? clean(m[2]) : null;
+  if (!m) {
+    // "MS Computer Science": an abbreviation, then the field.
+    const a = /^([A-Za-z]{1,2}\.?[A-Za-z]{1,3}\.?)\s+(.{3,})$/.exec(s);
+    if (a && DEGREE_WORDS[a[1].toLowerCase().replace(/\./g, "")]) { degree = a[1]; field = clean(a[2]); }
+  }
+  const abbr = DEGREE_WORDS[degree.toLowerCase().replace(/[.\s]/g, "")];
+  return { degree: abbr || degree, field: field ? field.replace(/\s*[|,;].*$/, "").trim() || null : null };
+}
+
+const urlsOf = (text) => String(text || "").split(/[|•·,;\s]+/).map(clean)
+  .filter(t => /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/\S*)?$/i.test(t) && !/@/.test(t));
+
+/** The facts a résumé states, by vocabulary key. `structured`: buildStructuredResume(). Absent keys are not stated. */
+export function resumeFacts(structured) {
+  const out = {};
+  if (!structured || typeof structured !== "object") return out;
+  for (const u of urlsOf(structured.header?.contact)) {
+    const url = asUrl(u);
+    if (/linkedin\.com\//i.test(url)) out.linkedin ??= url;
+    else if (/github\.com\//i.test(url)) out.github ??= url;
+    else out.website ??= url;
+  }
+  const section = (title) => (structured.sections || []).find(s => s?.type === "entries" && s.title === title);
+  const edu = section("EDUCATION")?.entries?.[0];
+  if (edu) {
+    const a = clean(edu.company), b = clean(edu.role);
+    const [school, degreeLine] = INSTITUTION.test(a) || !INSTITUTION.test(b) ? [a, b] : [b, a];
+    if (school) out.school = school.replace(DATE_RUN, " ").replace(/\s{2,}/g, " ").trim();
+    const { degree, field } = splitDegree(degreeLine);
+    if (degree && degreeLevelOf(degree)) { out.degree = degree; out.degreeLevel = degreeLevelOf(degree); }
+    if (field) out["field-of-study"] = field;
+    const dated = [edu.date, edu.role, edu.meta, edu.company].map(clean).join(" ");
+    const runs = [...dated.matchAll(/((?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+)?((?:19|20)\d{2})/gi)];
+    if (runs.length) {
+      const last = parseMonthYear(runs[runs.length - 1][0]);
+      if (last) { out["grad-year"] = String(last.year); if (last.month) out["grad-month"] = MONTH_NAMES[last.month - 1]; }
+      if (runs.length > 1) {
+        const first = parseMonthYear(runs[0][0]);
+        if (first) { out["start-year"] = String(first.year); if (first.month) out["start-month"] = MONTH_NAMES[first.month - 1]; }
+      }
+    }
+  }
+  const job = section("EXPERIENCE")?.entries?.[0];
+  if (job) {
+    const dated = [job.date, job.role, job.meta].map(clean).join(" ");
+    if (/\b(present|current|now)\b/i.test(dated)) {
+      if (clean(job.company)) out["current-company"] = clean(job.company);
+      const title = clean(String(job.role || "").replace(DATE_RUN, " ").replace(/\s{2,}/g, " "));
+      if (title) out["current-title"] = title;
+    }
+  }
+  return out;
+}
+
+const RESUME_KEYS = Object.freeze([
+  // [vocabulary key, packet name, label]
+  ["school", "school", "School"], ["degree", "degree", "Degree"], ["field-of-study", "discipline", "Discipline"],
+  ["grad-year", "graduation_year", "Graduation year"], ["grad-month", "graduation_month", "Graduation month"],
+  ["start-year", "education_start_year", "Education start year"], ["start-month", "education_start_month", "Education start month"],
+  ["current-company", "current_company", "Current company"], ["current-title", "current_title", "Current title"],
+  ["linkedin", "linkedin", "LinkedIn Profile"], ["github", "github", "GitHub"], ["website", "website", "Website"],
+]);
+
+/** The résumé's facts as packet answers, for every key no answer already holds (the profile wins). */
+export function resumeAnswers(structured, have = []) {
+  const facts = resumeFacts(structured);
+  const held = new Set((have || []).map(a => a?.handler_type).filter(Boolean));
+  const names = new Set((have || []).map(a => a?.name).filter(Boolean));
+  const out = [];
+  for (const [key, name, label] of RESUME_KEYS) {
+    const value = facts[key];
+    if (!value || held.has(key) || names.has(name)) continue;
+    out.push({
+      ...toPacketAnswer({ label, name, field_id: `r_${name}`, type: "text", value, provenance: "field_map_exact",
+        matched_on: `resume:${key}`, handler_type: key, is_required: false }),
+      source: "resume",
+      // a picker is matched by the degree's LEVEL ("Bachelor's Degree"); a text box gets the degree as written
+      ...(key === "degree" && facts.degreeLevel ? { choice: facts.degreeLevel } : {}),
+    });
+  }
+  return out;
+}
+
+const DIAL = Object.freeze({ "united states": ["+1", "United States"], usa: ["+1", "United States"], us: ["+1", "United States"],
+  "united states of america": ["+1", "United States"], canada: ["+1", "Canada"], "united kingdom": ["+44", "United Kingdom"],
+  uk: ["+44", "United Kingdom"], india: ["+91", "India"], germany: ["+49", "Germany"], france: ["+33", "France"],
+  australia: ["+61", "Australia"], ireland: ["+353", "Ireland"], netherlands: ["+31", "Netherlands"], singapore: ["+65", "Singapore"] });
+
+/** What the profile implies but no handler states: the phone's country code, from the profile's country. */
+export function derivedAnswers(autofillPayload = {}, have = []) {
+  const held = new Set((have || []).map(a => a?.handler_type).filter(Boolean));
+  const country = clean(autofillPayload?.handler_map?.country || autofillPayload?.field_map?.country).toLowerCase();
+  const phone = clean(autofillPayload?.handler_map?.phone || autofillPayload?.phone);
+  const dial = DIAL[country];
+  if (!dial || !phone || held.has("phone-country")) return [];
+  return [{
+    ...toPacketAnswer({ label: "Phone country code", name: "phone_country_code", field_id: "d_phone_country", type: "text", value: dial[0],
+      provenance: "field_map_exact", matched_on: "profile:country", handler_type: "phone-country", is_required: false }),
+    choice: `${dial[1]} ${dial[0]}`,
+  }];
+}
+
+/** ⭐ T18: the answer set's version — 2 = the fuller canonical set + the base résumé's facts + the phone's country code. */
+export const PACKET_ANSWERS_VERSION = 2;
 
 /** True when an entries object has anything in it. */
 export function hasEntries(entries) {

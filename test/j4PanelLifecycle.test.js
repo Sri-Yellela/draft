@@ -65,8 +65,14 @@ test("⛔ J4 (D96 §4/§5 symptom 4): 'First Name*' and 'First Name *' match 'Fi
     assert.notEqual(item.tierLabel, "guessed field");
   }
   // A loose match — the control's NAME resembling the answer's — is still a guess, and says so.
-  const loose = gh.matchAnswersToFields([{ name: "first_name", field: "Given", value: "Ada", provenance: "field_map_exact" }],
+  // (⭐ T18: a label in the field vocabulary — "Forename" IS the first name — is matched 'semantic', which is exact; the
+  // loose case is a label the vocabulary does not read.)
+  const semantic = gh.matchAnswersToFields([{ name: "first_name", field: "Given", value: "Ada", provenance: "field_map_exact" }],
     [f({ name: "first-name", label: "Forename" })]).plan[0];
+  assert.equal(semantic.matchedBy, "semantic");
+  assert.equal(ov.toReviewItem({ ...semantic, field: semantic.label }).isGuess, false);
+  const loose = gh.matchAnswersToFields([{ name: "first_name", field: "Given", value: "Ada", provenance: "field_map_exact" }],
+    [f({ name: "first-name", label: "Prénom" })]).plan[0];
   assert.equal(loose.matchedBy, "label");
   assert.equal(ov.toReviewItem({ ...loose, field: loose.label }).tierLabel, "guessed field");
   // ⛔ eligibility is still exact-or-not-at-all: an equal LABEL does not place it.

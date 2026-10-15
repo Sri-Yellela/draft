@@ -51,6 +51,10 @@ import { noteFill, notePrepared, noteSubmitted, resumeFor } from './progress.js'
 // ⭐ T11: the known ATS sites — the frame a form may be in. (autoRead.js imports this module too; SITES is read at call
 // time only, so the cycle is harmless.)
 import { SITES } from './autoRead.js';
+// ⭐ T18: what each field IS (city, school, LinkedIn …), what an upload is (résumé · cover letter · other).
+import { classifyFields, fileTypeOf, guessLabelOf, offerGenerateOnCue, CANONICAL_NAME_KEYS } from './fieldSemantics.js';
+import { noteFieldsRead } from './diagnostics.js';
+export { classifyFields, fileTypeOf, guessLabelOf };
 
 /** Matches the server's token TTL. A packet outlives its grant (G0 §9), so it is cleared on purpose. */
 export const PACKET_TTL_MS = 10 * 60 * 1000;
@@ -109,14 +113,59 @@ function probeFormShape() {
       !/^cc-|one-time-code|-password$/i.test(el.getAttribute('autocomplete') || '')
   );
 
-  const labelFor = (el) => {
-    if (el.id) {
-      const l = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
-      if (l) return (l.textContent || '').trim();
+  // ⭐ T18 · LABEL RESOLUTION, IN ORDER (owner, field report 4): label[for] · aria-labelledby · aria-label · a wrapping
+  // label · the nearest heading or text in the field's own group (Greenhouse's "Resume/CV *" above its "Attach" button)
+  // · the fieldset's legend · the placeholder. A button word ("Attach", "Upload", "Choose file") is not a label — it is
+  // skipped and the next source asked. Nothing found → '' here, and the panel shows a best guess from the attributes
+  // (fieldSemantics.js guessLabelOf), with the raw attributes in Options → Show details. Labels only — never a value.
+  const GENERIC_LABEL = /^(attach|attach file|upload|upload file|browse|choose( a)? files?|select( a)? files?|add( a)? files?|drop files? here|or drag and drop( here)?|drag and drop|enter manually|paste|dropbox|google drive|remove|clear|select one|select|choose)$/i;
+  const flat = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+  const usable = (s) => { const t = flat(s); return t && t.length <= 300 && !GENERIC_LABEL.test(t.replace(/[*:\s]+$/, '').trim()) ? t : ''; };
+  const textOfIdList = (ids) => flat(String(ids || '').split(/\s+/).filter(Boolean)
+    .map(id => document.getElementById(id)?.textContent || '').join(' '));
+  const CONTROL_SEL = 'input:not([type="hidden"]), select, textarea, [role="combobox"], button[aria-haspopup="listbox"]';
+  const TEXTISH = 'label, legend, h1, h2, h3, h4, h5, h6, [role="heading"], [class*="label"], [class*="Label"], [id$="-label"], [id$="_label"]';
+  const groupTextOf = (el) => {
+    let n = el.parentElement;
+    for (let up = 0; n && up < 6 && n !== form && n !== document.body; n = n.parentElement, up++) {
+      if (n.querySelectorAll(CONTROL_SEL).length > 3) break;              // a section, not this field's group
+      const own = usable(textOfIdList(n.getAttribute('aria-labelledby'))) || usable(n.getAttribute('aria-label'));
+      if (own) return own;
+      const before = [...n.querySelectorAll(TEXTISH)].filter(t => !t.contains(el) && !t.querySelector(CONTROL_SEL) &&
+        (t.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING));
+      for (let i = before.length - 1; i >= 0; i--) { const t = usable(before[i].textContent); if (t) return t; }
     }
-    const closest = el.closest('label');
-    if (closest) return (closest.textContent || '').trim();
-    return (el.getAttribute('aria-label') || el.getAttribute('placeholder') || '').trim();
+    return '';
+  };
+  const labelSourceOf = (el) => {
+    if (el.id) {
+      const l = usable(document.querySelector(`label[for="${CSS.escape(el.id)}"]`)?.textContent);
+      if (l) return ['for', l];
+    }
+    const lb = usable(textOfIdList(el.getAttribute('aria-labelledby')));
+    if (lb) return ['labelledby', lb];
+    const al = usable(el.getAttribute('aria-label'));
+    if (al) return ['aria', al];
+    const wrap = usable(el.closest('label')?.textContent);
+    if (wrap) return ['wrap', wrap];
+    const g = groupTextOf(el);
+    if (g) return ['group', g];
+    const lg = usable(el.closest('fieldset')?.querySelector('legend')?.textContent);
+    if (lg) return ['legend', lg];
+    const ph = usable(el.getAttribute('placeholder'));
+    if (ph) return ['placeholder', ph];
+    return [null, ''];
+  };
+  const labelFor = (el) => labelSourceOf(el)[1];
+  // The raw attributes of a field nothing named — for T6's developer view, so the classifier improves from real pages.
+  // ⛔ Attributes and the nearest words only; never a value.
+  const rawOf = (el) => {
+    let near = '';
+    for (let n = el.parentElement, up = 0; n && up < 3 && !near; n = n.parentElement, up++) near = flat(n.textContent).slice(0, 80);
+    return { id: el.id || null, name: el.name || null, type: (el.type || el.tagName).toLowerCase(),
+      aria: flat(el.getAttribute('aria-label')).slice(0, 80) || null, labelledby: flat(el.getAttribute('aria-labelledby')).slice(0, 80) || null,
+      placeholder: flat(el.getAttribute('placeholder')).slice(0, 80) || null, near: near || null,
+      data: [...el.attributes].filter(a => /^data-/.test(a.name) && a.value.length <= 60).slice(0, 4).map(a => `${a.name}=${a.value}`) };
   };
 
   // D55 (d): is this a step of a WIZARD? Only when the page says so — a progress bar, or Workday's
@@ -198,6 +247,11 @@ function probeFormShape() {
       id: el.id || null,
       type: (el.type || el.tagName).toLowerCase(),
       label: labelFor(el).slice(0, 200),
+      // ⭐ T18: where the label came from (null → nothing named it), the autocomplete token, and — only for a field
+      // nothing named — its raw attributes (rawOf; T6's Show details reads them).
+      labelSource: labelSourceOf(el)[0],
+      autocomplete: el.getAttribute('autocomplete') || null,
+      ...(labelSourceOf(el)[0] ? {} : { raw: rawOf(el) }),
       // D55 (g): an asterisked label is "required" too — on many forms it is the only signal.
       required: el.required === true || el.getAttribute('aria-required') === 'true' ||
         /\*\s*$/.test(labelFor(el)) ||
@@ -947,6 +1001,20 @@ export function matchAnswersToFields(answers, fields) {
     return loose ? { field: loose, how: 'label' } : null;
   };
 
+  // ⭐ T18 · THE VOCABULARY: a field the page classifies as "city", "school", "LinkedIn" … (fieldSemantics.js) takes the
+  // packet answer of the same key (`handler_type`). A deterministic rule on the page's own words, not a resemblance —
+  // so it is 'semantic', counted as exact. ⛔ Never an eligibility answer (none has a vocabulary key, and they are
+  // refused here before this is asked); `choiceOnly` keys go only on a control with choices.
+  const keys = classifyFields(fields, { kindOf: questionKind });
+  const keyOfIndex = new Map(fields.map((f, i) => [f.index, keys[i]]));
+  const isChoice = (f) => !!(f.options?.length || f.widget);
+  const bySemantic = (a) => {
+    const want = String(a.handler_type || (Object.hasOwn(CANONICAL_NAME_KEYS, String(a.name)) ? CANONICAL_NAME_KEYS[a.name] : '') || '');
+    if (!want) return null;
+    return fields.find(f => !taken.has(f.index) && keyOfIndex.get(f.index) === want
+      && (want !== 'phone-country' || isChoice(f))) || null;
+  };
+
   for (const a of answers) {
     if (a.value === null || a.value === undefined || a.value === '') continue;
     if (Array.isArray(a.value) && a.value.length === 0) continue;   // D55: an empty chip set says nothing
@@ -954,6 +1022,8 @@ export function matchAnswersToFields(answers, fields) {
     let field = byExact(a);
     let how = field ? 'exact' : null;
 
+    if (!field && !a.eligibility) { const hit = byLabel(a); if (hit?.how === 'label_exact') { field = hit.field; how = hit.how; } }
+    if (!field && !a.eligibility) { const hit = bySemantic(a); if (hit) { field = hit; how = 'semantic'; } }
     if (!field && !a.eligibility) { const hit = byLabel(a); field = hit?.field || null; how = hit?.how || null; }
     if (!field && a.eligibility) {
       unmatched.push({
@@ -993,11 +1063,14 @@ export function matchAnswersToFields(answers, fields) {
     plan.push({
       index: field.index, name: field.name, id: field.id,
       label: field.label || a.field,
-      value: a.value,
+      // ⭐ T18: a choice control takes the answer's choice wording where it has one (the phone's country: "United
+      // States", not "+1"); a text box takes the value.
+      value: a.choice && isChoice(field) ? a.choice : a.value,
       provenance: a.provenance,
       confidence: a.confidence,
       eligibility: !!a.eligibility,
       matchedBy: how,
+      ...(a.source ? { source: a.source } : {}),
     });
   }
   return { plan, unmatched };
@@ -1661,6 +1734,8 @@ async function fillFromPacket({ tab, origin, frame = null, released, serverUrl, 
   }
   if (!shape?.hasForm) return { ok: false, reason: 'no_form', message: 'No form on this page. Nothing was released.' };
   if (shape.origin !== (frame?.origin || origin)) return { ok: false, reason: 'origin_moved', message: 'The page changed. Nothing was released.' };
+  // ⭐ T18: Options → Show details — where each label came from, and the raw attributes of any field nothing named.
+  noteFieldsRead(tab.id, shape.fields, { guessOf: guessLabelOf });
 
   const answers = released.packet?.answers || [];
 
@@ -1781,7 +1856,7 @@ async function fillFromPacket({ tab, origin, frame = null, released, serverUrl, 
     if (!step.wizard) break;
     wizard.steps.push({ step: step.wizard.step, filled: (r.filled || []).length });
     if (isCurrent()) await drawReviewPanel(tab.id, [...settledRows, ...stepRows], { ...panelMeta, currentStep: stepName, waiting: true,
-      resumeAttached: outcome.resume?.attached === true });
+      resumeAttached: outcome.resume?.attached === true, ...(await filesMetaFor(stepRows, serverUrl, released, opts)) });
 
     // Stop and wait — then advance. Up to three attempts per step: a portal that writes its own
     // "is required" error on Save and Continue sends the loop back to waiting.
@@ -1862,6 +1937,7 @@ async function fillFromPacket({ tab, origin, frame = null, released, serverUrl, 
         resolverBug: readiness.resolverBug,
         portal: portalForOverlay,
         theme: await overlayTheme(),
+        ...(await filesMetaFor(panelRows, serverUrl, released, opts)),
       }]);
     const drawn = { result: drawnResult };
     if (drawn?.result?.ok === false) throw new Error(drawn.result.error || 'not drawn');
@@ -2012,6 +2088,40 @@ async function panelMetaFor({ tab, released, serverUrl, runId = null }) {
     review,
     theme: await overlayTheme(),
   };
+}
+
+/**
+ * ⭐ T18 · what the review row's résumé upload can offer — asked only when the rows HOLD an empty résumé upload: the
+ * TAILORED résumé (D98's generation for this job, when draft's server says it is ready now), the BASE résumé (does the
+ * account keep one), and whether "Generate and attach" is offered (T24's gate: fieldSemantics.js offerGenerateOnCue —
+ * the account's "offer a résumé on cue" setting, `opts.resumeOnCue`, default on; never while one is ready or being
+ * made). Ids and yes / no only — never a file, a value or a name. `letter`: draft keeps no cover letter the extension
+ * can reach yet.
+ */
+export async function resumeFilesFor(serverUrl, jobId, { setting = 'on_cue' } = {}) {
+  const out = { tailored: null, base: false, generate: false, inFlight: false, letter: false };
+  if (!serverUrl) return out;
+  const rec = jobId != null ? await resumeFor(jobId).catch(() => null) : null;
+  if (rec?.id) {
+    try {
+      const r = await authedFetch(serverUrl, `/api/extension/resume/${encodeURIComponent(rec.id)}`);
+      const b = r?.ok ? await r.json() : null;
+      if (b?.id === rec.id && b.status === 'ready') out.tailored = { id: rec.id };
+      else if (b?.id === rec.id && ['queued', 'generating'].includes(b.status)) out.inFlight = true;
+    } catch { /* no tailored choice is offered */ }
+  }
+  try {
+    const r = await authedFetch(serverUrl, '/api/extension/base-resume');
+    out.base = r?.ok ? (await r.json())?.exists === true : false;
+  } catch { out.base = false; }
+  out.generate = jobId != null && offerGenerateOnCue({ setting, tailoredReady: !!out.tailored, inFlight: out.inFlight });
+  return out;
+}
+
+/** The panel meta's `files`, only when a row is an empty résumé or cover-letter upload (no request otherwise). */
+async function filesMetaFor(rows, serverUrl, released, opts = {}) {
+  if (!(rows || []).some(r => r.group === 'need' && (r.fileType === 'resume' || r.fileType === 'cover_letter'))) return {};
+  return { files: await resumeFilesFor(serverUrl, released?.packet?.jobId ?? null, { setting: opts.resumeOnCue || 'on_cue' }), dragHint: 'drag it onto the upload box' };
 }
 
 /** One draw of the panel at a wizard step — on the dock, TOP frame. A failure here never stops the fill. */

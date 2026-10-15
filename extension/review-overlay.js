@@ -65,7 +65,7 @@ export const TIER_LABEL = {
  * of the truth. The first version did precisely that, and the trap form's "Current Company" sat in
  * the collapsed section with nothing to acknowledge.
  */
-export const MATCH_CONFIDENCE = { exact: 1.0, label_exact: 1.0, saved_answer: 1.0, work_history: 1.0, eeo_decline: 1.0, label: 0.5 };
+export const MATCH_CONFIDENCE = { exact: 1.0, label_exact: 1.0, saved_answer: 1.0, work_history: 1.0, eeo_decline: 1.0, semantic: 1.0, label: 0.5 };
 
 /**
  * ⭐ D96 §4 / §5: how a control was matched that is NOT a guess about the field — a structural id ('exact'), the
@@ -73,7 +73,9 @@ export const MATCH_CONFIDENCE = { exact: 1.0, label_exact: 1.0, saved_answer: 1.
  * "First Name"), or the candidate's own saved answer / work history / EEO decline placed by exact question equality.
  * Only 'label' — the control's NAME resembling the answer's — is still "matched loosely".
  */
-export const EXACT_MATCHES = new Set(['exact', 'label_exact', 'saved_answer', 'work_history', 'eeo_decline']);
+// ⭐ T18: 'semantic' — the page's own words read by the field vocabulary (fieldSemantics.js: "Location (City)" IS the
+// city), an anchored rule and never an attestation — is exact too.
+export const EXACT_MATCHES = new Set(['exact', 'label_exact', 'saved_answer', 'work_history', 'eeo_decline', 'semantic']);
 
 /**
  * Normalise one filled field into what the overlay renders. The single place the two kinds of
@@ -173,6 +175,8 @@ export const keyOf = (i) => `${i.name || ''}::${i.field || ''}`;
 
 import { questionUnits, unitFields, unitOptions, unitWidgetKind } from './savedAnswerMatch.js';
 import { neverFillReasonOfField, questionLabelKey } from './answerKey.js';
+// ⭐ T18: what an upload is (résumé · cover letter · other) and a best-guess label for a field nothing named.
+import { fileTypeOf, guessLabelOf } from './fieldSemantics.js';
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const keyText = (s) => norm(questionLabelKey(s));
@@ -191,7 +195,7 @@ export function sourceOf(step = {}) {
   if (p === 'work_history') return 'your work history';
   if (p === 'eeo_decline') return 'your choice';
   if (GUESS_PROVENANCE.has(p) || step.matchedBy === 'label') return 'matched loosely';
-  if (p === 'resume') return 'your résumé';
+  if (p === 'resume' || step.source === 'resume') return 'your résumé';
   return 'profile';
 }
 
@@ -215,6 +219,10 @@ export const NEED_WORDS = Object.freeze({
   required: 'Nothing in your profile for this yet.',
   optional: 'Optional — type it, or leave it.',
   file: 'Attach it on the page.',
+  // ⭐ T18: the résumé and cover-letter uploads, by name.
+  resume_file: 'Your résumé goes here — choose which one.',
+  cover_letter_file: 'A cover letter — draft holds none for this job; attach one on the page, or skip it.',
+  unlabelled: "The page gives this field no label — draft's best guess. Options → Show details lists what the page says about it.",
 });
 
 const valueOfUnit = (u, fields, done, filled) => {
@@ -255,7 +263,10 @@ export function panelRowsForStep({ stepName = '', fields = [], plan = [], filled
     const idx = fs.map(f => f.index);
     const question = u.question || first.label || '';
     const shown = shownLabel(question);
-    const label = shown || `Unlabelled field ${++unlabelled}`;
+    // ⭐ T18: "Unlabelled field N" is the LAST resort — a best guess from the attributes comes first (never remembered:
+    // a guessed label is not the page's own question).
+    const guess = shown ? '' : guessLabelOf(first);
+    const label = shown || guess || `Unlabelled field ${++unlabelled}`;
     const steps = plan.filter(p => idx.includes(p.index));
     const done = steps.filter(isFilled);
     const failed = steps.filter(p => !isFilled(p));
@@ -275,14 +286,21 @@ export function panelRowsForStep({ stepName = '', fields = [], plan = [], filled
       group: 'need', value: '', copyValue: null, source: null, note: null, canType: !never && first.type !== 'file',
       byDraft: false, neverFill: never, acknowledgedAt: null, attesting: false, savedId: null,
       // A question with no words of its own cannot be keyed — it is typed for this page only, never remembered.
-      ...(shown ? {} : { noRemember: true }),
+      ...(shown ? {} : { noRemember: true, ...(guess ? { bestGuess: true } : { unlabelled: true }) }),
     };
     if (first.type === 'file') {
+      // ⭐ T18: the upload's TYPE, from its label (the group's heading included) and then its attributes.
+      row.fileType = fileTypeOf({ ...first, label: question || first.label });
       // ⭐ D98 §5 (J6): the résumé generated in the on-page panel reads "Résumé — attached ✓", its file named under it.
-      if (resume?.attached && resume.fromPanel) Object.assign(row, { group: 'ok', value: 'Résumé — attached ✓', note: resume.filename || null, source: 'draft', byDraft: true });
-      else if (resume?.attached) Object.assign(row, { group: 'ok', value: resume.filename || 'your résumé', source: 'draft', byDraft: true });
+      // ⭐ T18: the attached résumé is THIS row's only when this upload is the résumé's (or the page's only upload) — a
+      // cover letter's box never reads "Résumé — attached".
+      const resumeBox = row.fileType === 'resume' || (row.fileType === 'other' && fields.filter(f => f.type === 'file').length === 1);
+      if (resumeBox && resume?.attached && resume.fromPanel) Object.assign(row, { group: 'ok', value: 'Résumé — attached ✓', note: resume.filename || null, source: 'draft', byDraft: true });
+      else if (resumeBox && resume?.attached) Object.assign(row, { group: 'ok', value: resume.filename || 'your résumé', source: 'draft', byDraft: true });
       else if (hasValue) Object.assign(row, { group: 'ok', source: 'on the page', note: 'already attached on the page' });
-      else Object.assign(row, { note: NEED_WORDS.file, ...(/r[ée]sum[ée]|\bcv\b|curriculum vitae/i.test(question) ? { resumeOffer: true } : {}) });
+      else Object.assign(row, {
+        note: row.fileType === 'resume' ? NEED_WORDS.resume_file : row.fileType === 'cover_letter' ? NEED_WORDS.cover_letter_file : NEED_WORDS.file,
+        ...(row.fileType === 'resume' ? { resumeOffer: true } : {}) });
     } else if (done.length && !failed.length) {
       const head = done[0];
       const item = toReviewItem({ ...head, field: label });
@@ -579,7 +597,21 @@ export function renderOverlay(model, meta) {
       } else if (r.copyValue) acts += '<div class="rm-acts"><button class="rm-btn" data-role="copy">copy</button></div>';
       // D98 (J6) → ⭐ T22 REVISED: the résumé upload shows the dock's Résumé tab — a VIEW (state, preview, Attach); it
       // starts nothing. ("Generate and attach" on this row is T18's — the second of the two places a résumé starts.)
-      if (r.resumeOffer) acts += '<div class="rm-acts"><button class="rm-btn" data-role="resume">See the Résumé tab</button></div>';
+      // ⭐ T18 · THE RÉSUMÉ IN THE PAYLOAD: on an upload typed `resume`, the choices — Attach tailored (D98's PDF, when
+      // one is ready) · Attach my résumé (the base résumé the account keeps) · Generate and attach (the second of the two
+      // places a résumé starts — T24 decides when it is offered: meta.files.generate) · Skip. ⛔ Each is the user's own
+      // (trusted) press; nothing is attached by drawing this row. A cover letter's upload: Attach when draft holds one,
+      // else Skip. `meta.files` absent (an older caller) → the Résumé tab, as before.
+      const files = meta.files || null;
+      if (files && r.fileType === 'resume') {
+        acts += `<div class="rm-acts" data-role="file-choices">${
+          files.tailored ? '<button class="rm-btn primary" data-role="attach" data-which="tailored">Attach tailored</button>' : ''}${
+          files.base ? `<button class="rm-btn${files.tailored ? '' : ' primary'}" data-role="attach" data-which="base">Attach my résumé</button>` : ''}${
+          files.generate ? '<button class="rm-btn" data-role="generate">Generate and attach</button>' : ''}<button class="rm-btn" data-role="skip">Skip</button></div>`;
+      } else if (files && r.fileType === 'cover_letter') {
+        acts += `<div class="rm-acts" data-role="file-choices">${files.letter ? '<button class="rm-btn primary" data-role="attach" data-which="letter">Attach cover letter</button>' : ''}<button class="rm-btn" data-role="skip">Skip</button></div>`;
+      }
+      if (r.resumeOffer && (!files || files.inFlight)) acts += '<div class="rm-acts"><button class="rm-btn" data-role="resume">See the Résumé tab</button></div>';
     } else if (r.group === 'check') {
       acts += `<div class="rm-acts">${r.canEdit === false ? '' : '<button class="rm-btn" data-role="edit">edit</button>'}<button class="rm-btn ack" data-role="ack">acknowledge</button></div>`;
     } else if (r.changed) {
@@ -726,12 +758,71 @@ export function renderOverlay(model, meta) {
       try { await navigator.clipboard.writeText(String(v)); btn.textContent = 'copied'; } catch { btn.textContent = 'select it and copy'; }
       return;
     }
+    // ⭐ T18: Skip on an upload — nothing is attached; the row is yours, left as the page has it.
+    // A REQUIRED upload stays under Needs you — skipping it here does not make the form complete.
+    if (role === 'skip') {
+      if (r.required) { say('Skipped — this upload is required; attach a file on the page before you submit.', true); rowEl.querySelector('[data-role="file-choices"]')?.remove(); return; }
+      run.rows[r.key] = { action: 'page', note: 'skipped — nothing attached' };
+      Object.assign(r, { group: 'ok', source: 'on the page', note: 'skipped — nothing attached', canType: false, copyValue: null });
+      return redraw();
+    }
     if (role === 'leave') { run.rows[r.key] = { action: 'left' }; Object.assign(r, { group: 'ok', source: 'left blank by you', note: null, copyValue: null }); return redraw(); }
 
     // Everything below writes to the page or to the server: a page script's synthetic click is never enough.
     if (!ev.isTrusted) return;
 
     if (role === 'resume') { void send({ type: 'RESUME_PANEL_OPEN', tab: 'resume' }); return; }
+
+    // ⭐ T18 · the résumé row. Attach: the service worker sets the file on THIS upload (its locator) in the form's frame
+    // with D98's one attach (resumePanel.js attachResumeFile) and checks the page shows the file's name; when it does
+    // not (a custom drop zone), Download PDF + the name copied. Generate: RESUME_GENERATE with the click — the Résumé
+    // tab shows it, and Attach there (or here, once ready) is one more press.
+    if (role === 'attach') {
+      const which = btn.dataset.which;
+      const files = meta.files || {};
+      btn.disabled = true;
+      say(which === 'base' ? 'Attaching your résumé…' : which === 'letter' ? 'Attaching your cover letter…' : 'Attaching the tailored résumé…');
+      const target = r.locator?.[0] ? { id: r.locator[0].id, name: r.locator[0].name, kind: r.fileType } : { kind: r.fileType };
+      const reply = which === 'tailored'
+        ? await send({ type: 'RESUME_ATTACH', id: files.tailored?.id, target })
+        : await send({ type: 'RESUME_ATTACH_FILE', which, target, trigger: 'click' });
+      btn.disabled = false;
+      const a = reply?.model?.attach || reply?.attach || null;
+      if (a?.outcome === 'attached') {
+        run.rows[r.key] = { action: 'page', note: `${a.fileName} — the page shows it` };
+        Object.assign(r, { group: 'ok', source: 'you attached', value: a.fileName, note: 'the page shows it', canType: false });
+        return redraw();
+      }
+      if (a?.base64 && a.fileName) {
+        try { await navigator.clipboard.writeText(a.fileName); } catch { /* the name is shown below */ }
+        say(`The page did not show the file. Download it and ${meta.dragHint || 'drag it onto the upload box'} — its name, ${a.fileName}, is copied.`, true);
+        const dl = document.createElement('button');
+        dl.className = 'rm-btn primary'; dl.dataset.role = 'download-file'; dl.textContent = 'Download PDF';
+        dl.addEventListener('click', (e) => {
+          if (!e.isTrusted) return;
+          const bin = atob(a.base64);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+          const link = document.createElement('a');
+          link.href = url; link.download = a.fileName; link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 30000);
+        });
+        rowEl.querySelector('[data-role="file-choices"]')?.append(dl);
+        return;
+      }
+      say(reply?.message || 'Could not attach — attach it on the page yourself.', true);
+      return;
+    }
+    if (role === 'generate') {
+      btn.disabled = true;
+      say('Starting your résumé for this job…');
+      const reply = await send({ type: 'RESUME_GENERATE', trigger: 'click' });
+      if (!reply?.ok) { btn.disabled = false; say(reply?.message || 'Résumé generation is unavailable right now.', true); return; }
+      say('Generating — the Résumé tab shows its progress; attach it there when it is ready.');
+      void send({ type: 'RESUME_PANEL_OPEN', tab: 'resume' });
+      return;
+    }
 
     if (role === 'edit') {
       const ed = rowEl.querySelector('[data-role="editor"]');
