@@ -47,7 +47,8 @@ access **revoked**, which is the removal case. Findings: `docs/GATED_HANDOFF_ARC
   v0.1.0 builds declared this; they are deleted.)
 - `notifications` — the handoff reports through `chrome.action`'s badge instead, so no additional
   user-facing consent prompt is requested for a status message.
-- `<all_urls>` — never. See host permissions.
+- `<all_urls>` — never, in any list. ⭐ Since T12 (owner, 10-15) the OPTIONAL list ends with `https://*/*` — never
+  `host_permissions`, never granted at install, never itself requested; see *Optional host permissions* below.
 - **any job board or employer origin** — no longer needed at all, and that is the point. See host
   permissions.
 
@@ -92,14 +93,25 @@ it would convert a per-invocation grant into standing access to every tenant the
 10-13) offers Workday as an **optional** host instead — standing access only after the user's own click
 in Options, given back when they switch it off; `host_permissions` is unchanged.
 
-## Optional host permissions (D64, 10-07; D97, 10-13)
+## Optional host permissions (D64, 10-07; D97, 10-13; D97 REVISED + T12, 10-15)
 
-**None is granted at install, and none is granted unless the user switches a site on** in Settings →
-*Read application pages automatically* — after reading the in-extension disclosure and pressing *I agree*.
-Each site's switch calls `chrome.permissions.request` for **that site's** hosts, as the first call of the
-click handler (`options-auto.js` `onSwitch`), and Chrome shows its own prompt naming them; turning the
-site's last switch off — or *Turn off everything* — calls `chrome.permissions.remove`. Until then the
-paragraph above is still true word for word: no standing access to any site.
+**Nothing is granted at install, and nothing is granted except from the user's own click.** Three clicks can
+ask, each calling `chrome.permissions.request` as the FIRST call of its handler, inside the gesture, and Chrome
+shows its own prompt naming the hosts:
+
+1. ⭐ **The popup's one-time card** (D97 REVISED, owner 10-14: *"read has got to be automatic, we will seek
+   permissions"*) — *"draft reads job and application pages for you and prepares your answers. Allow it on these
+   sites"*, the disclosure in plain words, and **ONE prompt for every preset host below** (`popup-auto.js`
+   `onConsent`). Granted → Read and Prepare are on for those sites; Capture and Fill stay their own switches, off.
+   A refusal writes nothing. The card lives in the popup only — there is no first-run tab (owner 10-15).
+2. **A switch in Settings** → *Read application pages automatically*, per site (`options-auto.js` `onSwitch`),
+   after the disclosure and *I agree* — as since D97.
+3. ⭐ **"Always read here" in the popup** (T12) — for ONE company careers origin the user is on (`stripe.com`…),
+   plus the ATS site whose frame holds its form when that is known locally (`popup-auto.js` `onAlwaysHere`; a
+   second click, `onAllowFrame`, asks for the frame's site when it was not known before the first).
+
+Turning a site's last switch off, *Remove* in Settings, or *Turn off everything* calls `chrome.permissions.remove`.
+Until the user clicks, the paragraph above is still true word for word: no standing access to any site.
 
 The owner decided (10-07) that capture should happen when a posting is opened, with no click — which
 `activeTab` cannot do, because it is granted only by an invocation. D97 (10-13) extended that to four
@@ -109,12 +121,25 @@ per-site switches, all off by default: **Read** (the form's labels and counts, k
 
 ⭐ **D97 REVERSES D64's "no gated portal" line for Workday only (owner, 10-13):** `*.myworkdayjobs.com`
 and `*.myworkdaysite.com` are offered, because Workday changes steps without changing the address and a
-watcher has to be in the page to notice. They stay out of `host_permissions`. Amazon, SmartRecruiters,
-iCIMS, Taleo and Meta are not offered. ⛔ **LinkedIn, Indeed and Glassdoor are never offered** — not in
-the list, excluded from every registered content script (`excludeMatches`), and refused in code.
+watcher has to be in the page to notice. They stay out of `host_permissions`. ⭐ **SmartRecruiters' public job
+host `jobs.smartrecruiters.com` is offered since 10-15** (owner, decision 2 — it reverses this paragraph's old
+"not offered" for SmartRecruiters). Amazon, iCIMS, Taleo and Meta are not offered as presets. ⛔ **LinkedIn,
+Indeed and Glassdoor are never offered** — not in the list, excluded from every registered content script
+(`excludeMatches`), refused by "Always read here" (`customOriginFor`), and refused in code (`autoStep`).
 
-The list is ONE table, `extension/autoRead.js` `SITES`; the manifest's `optional_host_permissions` is
-pinned to it by `test/j5AutoRead.test.js`.
+⭐ **`https://*/*` — the OPTIONAL list only (T12, owner 10-15, decision 1).** D64 and D97 said "no `<all_urls>`,
+ever". **That rule is reversed for the OPTIONAL list only, and for this reason:** employers' careers sites live
+on arbitrary domains (`stripe.com`, `airbnb.com`, …), often embedding an ATS's form in a frame, and Chrome can
+only `permissions.request` an origin the manifest lists as optional — so without a broad optional pattern there
+is no way to offer "Always read here" on a company's own site at all. What did NOT change: **nothing is granted
+at install** (`host_permissions` is still exactly draft's own server, and Chrome shows no install warning for an
+optional host); **the pattern itself is never requested** — every request names one origin (`https://<host>/*`),
+the one the user is on, from their click, plus the ATS frame site known for it; it is given back on Remove, when
+its last switch is turned off, or by *Turn off everything*. It is still never in `host_permissions`, and
+`<all_urls>` is still in no list. Pinned by `test/d97rT12AlwaysRead.test.js`.
+
+The preset list is ONE table, `extension/autoRead.js` `SITES`; the manifest's `optional_host_permissions` is that
+table then `https://*/*` (`MANIFEST_OPTIONAL_HOSTS`), pinned by `test/j5AutoRead.test.js`.
 
 | Optional host | Required by | What breaks without it |
 |---|---|---|
@@ -125,6 +150,8 @@ pinned to it by `test/j5AutoRead.test.js`.
 | `https://apply.workable.com/*` | the same — Workable | The automatic switches do nothing on Workable. |
 | `https://*.myworkdayjobs.com/*` | the same — Workday's tenants (D97) | The automatic switches do nothing on Workday; Ctrl+Shift+Y and the popup still work through `activeTab`. |
 | `https://*.myworkdaysite.com/*` | the same — Workday's second public host (D97) | The same, on that host. |
+| `https://jobs.smartrecruiters.com/*` | the same — SmartRecruiters' public job host (owner 10-15) | The automatic switches do nothing on SmartRecruiters; manual capture and fill are unchanged. |
+| `https://*/*` | ⭐ T12 — `popup-auto.js` `onAlwaysHere` asks for ONE origin under it (`https://<host>/*`) from the click; `autoRead.js` `desiredRegistrations()` registers the watcher there (and in the allowed ATS frame, all frames) and `scopeFor()` / `autoStep()` decide every pass. Never requested itself; never granted at install | "Always read here" cannot exist: Chrome refuses to request an origin the optional list does not cover, so a company's own careers site could never be read automatically. Everything else is unchanged. |
 
 What is read and sent, and when:
 - **Read** sends nothing. The labels (never a value — a label's text is read from a clone with every
@@ -159,6 +186,10 @@ never anywhere else, never on LinkedIn, Indeed or Glassdoor (`excludeMatches`). 
 no request: it tells the service worker "the step changed" (debounced — ten rapid changes are one message),
 and the service worker re-checks the switch and the permission on every message. Registrations are
 reconciled on install, update, startup and every permission change; turning a site off unregisters it.
+⭐ T12: a site the user chose with "Always read here" gets one registration for its own origin plus the ATS
+frame site allowed there, with `allFrames` (the form is often that ATS's embedded frame); a message from a
+sub-frame is accepted only from a known ATS site's frame, and only while the page that embeds it is a custom
+site listing that ATS — anything else is ignored.
 
 This is the change that removed the six job-board host permissions, and it is worth stating as a
 privacy property rather than a refactor: there is no longer any page the extension runs on

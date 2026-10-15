@@ -38,11 +38,12 @@ export function installAutoReadChrome({ granted = [], page = {}, tab = null, res
       onAdded: ev(), onRemoved: ev(),
     },
     scripting: {
-      async executeScript({ func, args = [] }) {
+      async executeScript({ target = null, func, args = [] }) {
         h.injected.push(func.name);
-        h.injectedArgs.push({ name: func.name, args });
+        h.injectedArgs.push({ name: func.name, args, target });
         const p = h.page[func.name];
-        const result = typeof p === 'function' ? await p(args) : (p === undefined ? null : structuredClone(p));
+        // T12: a page function may answer per target (a frame pass names frameIds)
+        const result = typeof p === 'function' ? await p(args, target) : (p === undefined ? null : structuredClone(p));
         return [{ result }];
       },
       async getRegisteredContentScripts() { return [...h.registered.values()].map(r => structuredClone(r)); },
@@ -67,7 +68,7 @@ export function installAutoReadChrome({ granted = [], page = {}, tab = null, res
 /** Settings as the service worker would have written them: consent given, the named switches on. */
 export function settingsWith(on = {}, { consent = 'all', kill = false } = {}) {
   const sites = {};
-  for (const id of ['greenhouse', 'lever', 'ashby', 'workable', 'workday']) {
+  for (const id of ['greenhouse', 'lever', 'ashby', 'workable', 'workday', 'smartrecruiters']) {
     sites[id] = { read: false, prepare: false, capture: false, fill: false, ...(on[id] || {}) };
   }
   return { v: 1, consent: consent ? { at: Date.now(), scope: consent } : null, kill, sites, reads: [] };

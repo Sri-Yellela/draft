@@ -16,7 +16,7 @@ import fs from "node:fs";
 // D97 (coordinator, J5 merge): extension/autoCapture.js — D64's names kept as a shim over autoRead.js — is deleted;
 // nothing shipped imported it once background.js's D64 block gave way to autoRead.js (A93: nothing dead).
 import {
-  AUTO_READ_KEY, LEGACY_CAPTURE_KEY, OPTIONAL_ORIGINS, runAutoPass, siteFor, hasPostingUrlShape, pageHasJobPosting,
+  AUTO_READ_KEY, LEGACY_CAPTURE_KEY, OPTIONAL_ORIGINS, MANIFEST_OPTIONAL_HOSTS, ANY_SITE_PATTERN, runAutoPass, siteFor, hasPostingUrlShape, pageHasJobPosting,
 } from "../extension/autoRead.js";
 const AUTO_CAPTURE_ORIGINS = OPTIONAL_ORIGINS;
 import { installAutoReadChrome, settingsWith } from "../test-support/autoReadChrome.mjs";
@@ -115,16 +115,22 @@ test("⛔ D64 · capture never fills, prepares or submits — capture on alone r
   h.restore();
 });
 
+// ⚠ D97 REVISED + T12, owner 10-15 — CHANGED KNOWINGLY, not rot: SmartRecruiters joins the preset table (decision 2), and
+// the manifest's optional list ends with the broad https pattern so "Always read here" can ask for ONE company origin
+// from the popup's click (decision 1). The preset table is still the only list the consent asks for; the pattern is
+// never itself requested (test/d97rT12AlwaysRead.test.js).
 test("⛔ D64 → D97 · the permission request names ONLY the table's origins — optional, never LinkedIn / Indeed / Glassdoor", () => {
-  assert.deepEqual(manifest.optional_host_permissions, [...AUTO_CAPTURE_ORIGINS], "the manifest and the code are one list");
+  assert.deepEqual(manifest.optional_host_permissions, [...MANIFEST_OPTIONAL_HOSTS], "the manifest and the code are one list");
+  assert.deepEqual([...MANIFEST_OPTIONAL_HOSTS], [...AUTO_CAPTURE_ORIGINS, ANY_SITE_PATTERN], "the presets, then T12's pattern — last");
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"], "nothing new at install time");
   for (const o of AUTO_CAPTURE_ORIGINS) {
-    // D97, owner 10-13: Workday's two public hosts are the ONLY wildcard, one level under the vendor's own domain.
+    // D97, owner 10-13: Workday's two public hosts are the ONLY preset wildcard, one level under the vendor's own domain.
     assert.match(o, /^https:\/\/(?:[a-z0-9.-]+|\*\.myworkday(?:jobs|site)\.com)\/\*$/, `${o}: one host (or Workday's tenant wildcard), https only`);
-    assert.doesNotMatch(o, /<all_urls>|amazon|smartrecruiters|icims|taleo|metacareers|linkedin|indeed|glassdoor/i, o);
+    assert.doesNotMatch(o, /<all_urls>|amazon|icims|taleo|metacareers|linkedin|indeed|glassdoor/i, o);
   }
   const opt = read("extension/options-auto.js");
-  assert.match(opt, /api\.permissions\.request\(\{ origins: \[\.\.\.site\.origins\] \}\)/, "asked for at the user's click, by the site's list");
+  assert.match(opt, /const origins = origin \? \[originPattern\(origin\)\] : site \? \[\.\.\.site\.origins\] : null;\n\s+const asked = checked && origins \? api\.permissions\.request\(\{ origins \}\) : null;/,
+    "asked for at the user's click, by the site's list (or the one custom origin)");
   assert.match(read("extension/autoRead.js"), /chrome\.permissions\.remove\(\{ origins: \[\.\.\.site\.origins\] \}\)/, "and given back when switched off");
   assert.doesNotMatch(read("extension/options.html"), /type="checkbox"[^>]*\bchecked\b/, "off by default");
 });
@@ -156,7 +162,7 @@ test("D64 · the in-page posting check is self-contained and reads only JSON-LD"
 test("D64 · Captured today is asked for only when the user opens it — nothing on popup open (D23)", () => {
   const pop = read("extension/popup-auto.js");
   assert.match(pop, /box\.addEventListener\('toggle', \(\) => \{ if \(box\.open\) void load\(\); \}\);/);
-  const beforeToggle = pop.slice(at(pop, "chrome.storage.local.get(AUTO_READ_KEY)"));
+  const beforeToggle = pop.slice(at(pop, "api.storage.local.get(AUTO_READ_KEY)"));
   assert.doesNotMatch(beforeToggle.split("box.addEventListener('toggle'")[0], /AUTO_CAPTURES/, "no server call before the user opens it");
   assert.match(read("extension/popup.html"), /<details id="auto-today" hidden>/);
 });
