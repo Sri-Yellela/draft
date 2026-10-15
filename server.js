@@ -5465,6 +5465,13 @@ if (!ANTHROPIC_KEY) {
   console.error("[startup] WARNING: ANTHROPIC_KEY is not set — the model calls draft still makes itself (cover letters, domain-chip suggestions) will fail. Résumé generation does not use it: it runs in the tools service (A88).");
 }
 const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
+// A97 (10-14): which key pays. ANTHROPIC_KEY_LABEL is the key's NAME in the Console ("draft-prod",
+// "local-dev"); the fp is 8 hex of the key's sha256 — the tools service logs the same pair, so two
+// processes sharing one key (the T4 follow-up found draft, the tools service and the local .env did)
+// show the same fp. Neither is secret; no part of the key is printed.
+if (ANTHROPIC_KEY) {
+  console.log(`[boot] model key: label=${process.env.ANTHROPIC_KEY_LABEL || "(unlabelled)"} fp=${crypto.createHash("sha256").update(ANTHROPIC_KEY).digest("hex").slice(0, 8)}`);
+}
 // RESUME_MASTER_URL + RESUME_MASTER_TOKEN. Unset is a supported state: every route that needs the
 // service answers 503 with retryable:false and says which setting is missing (see the client).
 const toolsService = createToolsServiceClient();
