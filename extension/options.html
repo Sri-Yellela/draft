@@ -112,6 +112,25 @@
     <p class="status" id="auto-status" role="status"></p>
   </section>
 
+  <!-- ⭐ T24 · the intent model's two settings — kept with your ACCOUNT on draft's server (no browser storage). -->
+  <section id="intent" aria-labelledby="intent-h">
+    <h1 class="logo-face" id="intent-h">Draft and your résumé</h1>
+    <p class="hint">Kept with your draft account, so every browser you use the extension in follows them.</p>
+    <fieldset class="intent-set">
+      <legend>When I press Draft</legend>
+      <label class="check"><input type="radio" name="intent-on-draft" value="queue"> Queue the résumé automatically</label>
+      <label class="check"><input type="radio" name="intent-on-draft" value="ask"> Ask me</label>
+    </fieldset>
+    <fieldset class="intent-set">
+      <legend>In a manual fill</legend>
+      <label class="check"><input type="radio" name="intent-manual" value="on_cue"> Offer a résumé on cue, at the résumé field</label>
+      <label class="check"><input type="radio" name="intent-manual" value="never"> Never</label>
+    </fieldset>
+    <p class="hint" id="intent-remembered" hidden></p>
+    <div class="btn-row"><button class="btn" id="intent-forget" type="button" hidden>Forget my remembered choice</button></div>
+    <p class="status" id="intent-status" role="status"></p>
+  </section>
+
   <!-- T6 (field report 10-14): why something failed, without a guess. Off unless ticked; nothing about it is remembered. -->
   <section id="details" aria-labelledby="details-h">
     <h1 class="logo-face" id="details-h">Details for troubleshooting</h1>
@@ -143,5 +162,6 @@
   <script src="options.js"></script>
   <script type="module" src="options-auto.js"></script>
   <script type="module" src="options-details.js"></script>
+  <script type="module" src="options-intent.js"></script>
 </body>
 </html>

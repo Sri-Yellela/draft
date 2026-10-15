@@ -301,7 +301,7 @@ test("⛔ D23: the mark is /draft per D19 (orange slash, ink word) and the Draft
   const draftAt = at(html, 'id="btn-resume"');
   const draft = html.slice(draftAt, at(html, "</button>", draftAt));
   assert.match(draft, /<span class="draft-d" aria-hidden="true">\/d<\/span>/);
-  assert.match(html, /class="sq sq--primary" id="btn-resume" aria-label="Open draft"/);
+  assert.match(html, /class="sq sq--primary" id="btn-resume" aria-label="Draft this job"/);   // ⭐ T24: the button drafts
   // ⭐ T17: the in-page /draft mark is the DOCK's — one window, one mark (the panel is its Fill tab)
   assert.match(read("extension/dock.js"), /<div class="mk" aria-hidden="true"><span class="sl">\/<\/span>draft<\/div>/);
   // Both pages take the site's tokens and controls.

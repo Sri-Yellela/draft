@@ -2204,6 +2204,20 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
 
   // ── Queue endpoints ──────────────────────────────────────────────────────────
 
+  // A53's duplicate rule, ONE copy: a job is already drafted while a run-job for it is submitted, running or queued,
+  // or (for a Draft — the second parameter 1) parked awaiting approval. startRun filters by it; ⭐ T24's extension
+  // Draft asks it first (draftStateOf), so the extension says "already drafted" before it spends anything.
+  const DRAFT_DUPLICATE_WHERE = `user_id=? AND (status IN ('submitted', 'running', 'queued')
+                           OR (? = 1 AND status = 'held_review' AND reason_code = 'awaiting_approval'))`;
+
+  /** ⭐ T24 · the job's Draft House state for this user: { drafted, status, runId, runJobId } — drafted by A53's rule. */
+  function draftStateOf(userId, jobId) {
+    const row = db.prepare(`SELECT id, run_id, status FROM apply_run_jobs WHERE ${DRAFT_DUPLICATE_WHERE} AND job_id = ?
+      ORDER BY id DESC LIMIT 1`).get(userId, 1, String(jobId));
+    return row ? { drafted: true, status: row.status, runId: row.run_id, runJobId: row.id }
+      : { drafted: false, status: null, runId: null, runJobId: null };
+  }
+
   /**
    * Create and dispatch a run. Extracted so the validation-correction retry goes through EXACTLY
    * the same admission control as a fresh run: the kill switch, concurrency limit, prerequisite
@@ -2330,9 +2344,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // one opened another preview run. The approve path is exempt: it releases exactly that parked
     // row (approvalMode 'approved'), and the answers-retry path supersedes its held rows first.
     const duplicates = db.prepare(`
-      SELECT job_id FROM apply_run_jobs
-      WHERE user_id=? AND (status IN ('submitted', 'running', 'queued')
-                           OR (? = 1 AND status = 'held_review' AND reason_code = 'awaiting_approval'))
+      SELECT job_id FROM apply_run_jobs WHERE ${DRAFT_DUPLICATE_WHERE}
     `).pluck().all(userId, resolvedApproval === "approved" ? 0 : 1);
     const duplicateSet = new Set(duplicates);
 
@@ -2562,7 +2574,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // caller cannot drift into sending approvalMode:'auto'. Any value is refused, not only 'auto'.
       // A53 (owner, 10-02): the board's Draft is the deck's Draft — same call, same rule. A Draft
       // from either decision surface is one click, so neither may ask for no review.
-      if ((surface === "deck" || surface === "board") && approvalMode != null)
+      // ⭐ T24: the extension's Draft button is the same Draft (routes/extensionDraft.js calls draftForExtension below,
+      // which never passes one); a caller naming the surface here is refused the same way.
+      if ((surface === "deck" || surface === "board" || surface === "extension") && approvalMode != null)
         return out.status(400).json({ error: "approval_mode_forbidden_for_surface",
           message: `A draft from the ${surface} always waits for your review. Remove approvalMode.` });
       if (!Array.isArray(jobIds) || jobIds.length === 0)
@@ -5104,5 +5118,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   // A59: boot-time hooks, called by server.js — not here, so a test mounting these routes on its own
   // fixture neither recovers its seeded rows nor starts a timer unless it asks to.
   // resumeForApply: the D66-wrapped generator, exposed so a test can prove base-only never calls the model.
-  return { recoverInterruptedRuns, startLineTicker, dispatchAllLines, prepareManualPacket, resumeForApply: generateResumeForApply };
+  // ⭐ T24: the extension's Draft button is the board's Draft — THIS startRun, mode "auto", ⛔ never an approvalMode (so
+  // it previews and waits for review exactly as the deck's and the board's do; full auto stays locked above). Its
+  // run bar (the account's mode, the hold) and the job's Draft House state are read through the same functions.
+  const draftForExtension = (user, jobId) =>
+    startRun(user.id, normalisePlanTier(user?.planTier), [String(jobId)], { mode: "auto" });
+  return { recoverInterruptedRuns, startLineTicker, dispatchAllLines, prepareManualPacket, resumeForApply: generateResumeForApply,
+           draftForExtension, draftStateOf, runBar };
 }

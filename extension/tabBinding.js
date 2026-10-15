@@ -66,7 +66,24 @@ export async function bindTab(tab, { jobId, title = null, company = null, via = 
     ...((same ? prior.via : via) === 'board' ? { origins: originTwins(origin) } : {}),
     ...(boardFacts ? { board: boardFacts } : {}),
     ...(atsFacts ? { ats: atsFacts } : {}),
+    // ⭐ T24: the path the user CHOSE on this tab (Draft it · fill it myself) stays with the same job, and goes with it
+    ...(same && TAB_PATHS.includes(prior.path) ? { path: prior.path } : {}),
   };
+  await writeBinding(tab.id, entry);
+  return entry;
+}
+
+// ⭐ T24 · THE INTENT MODEL — the path the user chose on this tab, by their own press (the dock's switch or its one
+// question): 'drafted' · 'manual'. A word, nothing of the page; kept in the binding (the same key, the one write site),
+// so it is gone when the tab closes, shows another job, or is unlinked. ⛔ Never inferred: only a press writes it.
+export const TAB_PATHS = Object.freeze(['drafted', 'manual']);
+/** The board's intent when it opened the tab: 'apply' (its Draft / Apply) or 'view' (Open posting). */
+export const BOARD_INTENTS = Object.freeze(['apply', 'view']);
+export async function setTabPath(tab, path) {
+  if (!TAB_PATHS.includes(path)) return null;
+  const b = await bindingForTab(tab);
+  if (!b) return null;
+  const entry = { ...b, path };
   await writeBinding(tab.id, entry);
   return entry;
 }
