@@ -20,7 +20,7 @@ import { collectRequiredFiles } from "../scripts/buildExtension.mjs";
 import {
   SITES, OPTIONAL_ORIGINS, MANIFEST_OPTIONAL_HOSTS, ANY_SITE_PATTERN, BEHAVIOURS, AUTO_READ_KEY, PAGE_MESSAGE, CARD, ALWAYS,
   defaultSettings, normaliseSettings, autoStep, scopeFor, popupAutoView, customOriginFor, looksLikeJobPage, knownFrameSites,
-  desiredRegistrations, syncRegistrations, runAutoPass, handlers, onPermissionsRemoved, siteFor, hasPostingUrlShape, autoLine,
+  desiredRegistrations, syncRegistrations, runAutoPass, handlers, onPermissionsRemoved, siteFor, hasPostingUrlShape, autoLine, pendingClick,
 } from "../extension/autoRead.js";
 import { installAutoReadChrome, settingsWith } from "../test-support/autoReadChrome.mjs";
 import { at } from "../test-support/sourceAnchors.js";
@@ -170,7 +170,10 @@ test("⭐ ONE consent turns on the preset set with ONE prompt — the request is
   assert.deepEqual(p.calls[0], ["request", [...OPTIONAL_ORIGINS]], "asked inside the gesture, before anything else");
   await flush();
   assert.equal(p.calls.filter(c => c[0] === "request").length, 1, "ONE prompt for the whole set");
-  assert.deepEqual(p.calls[1], ["message", "AUTO_READ_CONSENT_ALL"]);
+  // ⭐ T20: then — in the same turn, after the request — the click is said to the worker (the popup closes when Chrome's
+  // prompt opens, measured), and the popup's own consent message follows when it lives to see the grant
+  assert.deepEqual(p.calls[1], ["message", "AUTO_READ_PENDING"]);
+  assert.deepEqual(p.calls[2], ["message", "AUTO_READ_CONSENT_ALL"]);
   const s = normaliseSettings(h.stores.local.get(AUTO_READ_KEY));
   assert.ok(s.consent2?.at, "the consent is recorded");
   for (const site of SITES) {
@@ -180,6 +183,9 @@ test("⭐ ONE consent turns on the preset set with ONE prompt — the request is
   assert.equal(p.el("auto-card-status").textContent, CARD.done);
   assert.equal(p.el("auto-card").hidden, true, "the card goes once agreed");
   assert.match(p.el("read-hint").textContent, /^Reading automatically on this site$/, "the popup says it reads here now");
+  // ⭐ T20: the tab already open on a site just allowed is given the watcher at once — no reload, no press
+  assert.deepEqual(h.injectedArgs.filter(x => x.name === "file:autoReadWatcher.js").map(x => x.target), [{ tabId: h.tab.id, allFrames: false }]);
+  assert.equal(pendingClick(), null, "the pending click is finished");
   h.restore();
 });
 
@@ -189,7 +195,11 @@ test("⛔ a refusal of the card's prompt leaves EVERYTHING off and says so — n
   const p = await bootPopup(h, { grant: false });
   p.el("auto-allow").fire("click");
   await flush();
-  assert.deepEqual(p.calls, [["request", [...OPTIONAL_ORIGINS]]], "no message after a refusal");
+  // T20: the click was said to the worker (it cannot know yet that Chrome will refuse), and dropped on the refusal —
+  // nothing that turns anything on is sent
+  assert.deepEqual(p.calls, [["request", [...OPTIONAL_ORIGINS]], ["message", "AUTO_READ_PENDING"], ["message", "AUTO_READ_PENDING_CLEAR"]], "no consent after a refusal");
+  assert.equal(pendingClick(), null, "the refused click is dropped");
+  assert.ok(!h.injected.includes("file:autoReadWatcher.js"), "nothing injected");
   assert.equal(h.stores.local.get(AUTO_READ_KEY), undefined, "nothing written");
   assert.equal(h.registered.size, 0);
   assert.equal(p.el("auto-card-status").textContent, CARD.refused);
@@ -259,7 +269,8 @@ test("⭐ T12 · the switch asks Chrome INSIDE the click, for this origin + its 
   p.el("auto-here-box").fire("change");
   assert.deepEqual(p.calls[0], ["request", [ACME_PATTERN, ...GH]], "the request is the click's first call");
   await flush();
-  assert.deepEqual(p.calls.map(c => c[0]), ["request"], "refused → nothing sent");
+  assert.deepEqual(p.calls.map(c => c.join(" ")), [`request ${ACME_PATTERN},${GH.join(",")}`, "message AUTO_READ_PENDING", "message AUTO_READ_PENDING_CLEAR"], "refused → no consent sent");
+  assert.ok(!h.injected.includes("file:autoReadWatcher.js"), "nothing injected");
   assert.equal(h.stores.local.get(AUTO_READ_KEY), undefined, "nothing written");
   assert.equal(h.registered.size, 0);
   assert.equal(p.el("auto-here-status").textContent, ALWAYS.refused("careers.acme.test"));
@@ -277,7 +288,9 @@ test("⭐ T12 · granted → Read + Prepare on for THIS origin (Capture, Fill of
   p.el("auto-here-box").checked = true;
   p.el("auto-here-box").fire("change");
   await flush();
-  assert.deepEqual(p.calls.map(c => c.join(" ")), [`request ${ACME_PATTERN},${GH.join(",")}`, "message AUTO_READ_ALLOW_SITE"]);
+  assert.deepEqual(p.calls.map(c => c.join(" ")), [`request ${ACME_PATTERN},${GH.join(",")}`, "message AUTO_READ_PENDING", "message AUTO_READ_ALLOW_SITE"]);
+  // ⭐ T20: the careers tab already open is given the watcher in EVERY frame (its form is the Greenhouse frame)
+  assert.deepEqual(h.injectedArgs.filter(x => x.name === "file:autoReadWatcher.js").map(x => x.target), [{ tabId: h.tab.id, allFrames: true }]);
   const s = normaliseSettings(h.stores.local.get(AUTO_READ_KEY));
   assert.deepEqual(s.custom[ACME], { read: true, prepare: true, capture: false, fill: false, frames: ["greenhouse"], at: s.custom[ACME].at });
   assert.equal(s.consent2, null, "T12 does not turn on the preset set");
@@ -334,7 +347,8 @@ test("⭐ T12 · a frame NOT known before the click: the first grant covers the 
   p.el("auto-frame").fire("click");
   assert.deepEqual(p.calls[0], ["request", GH], "the second click's first call");
   await flush();
-  assert.deepEqual(p.calls[1], ["message", "AUTO_READ_ALLOW_FRAME"]);
+  assert.deepEqual(p.calls[1], ["message", "AUTO_READ_PENDING"]);
+  assert.deepEqual(p.calls[2], ["message", "AUTO_READ_ALLOW_FRAME"]);
   assert.deepEqual(normaliseSettings(h.stores.local.get(AUTO_READ_KEY)).custom[ACME].frames, ["greenhouse"]);
   assert.deepEqual(h.registered.get("draft-auto-read-c-careers.acme.test").matches, [`${ACME}/*`, ...GH], "the registration now covers the frame");
   assert.equal(p.el("auto-frame").hidden, true);
