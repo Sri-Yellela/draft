@@ -87,7 +87,11 @@ import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyPro
 // PDF linked to the job and the application. (3) D97's automatic reading (extension/autoRead.js): four per-site
 // switches, all off, Workday's two public hosts added to the optional list; the extension-storage item for D64's
 // switch is now the automatic-reading settings (labels and counts while Read is on, 30 days, never sent).
-const EFFECTIVE_DATE = 'October 14, 2026';
+// October 15, 2026 (owner, 10-15 — yes to T14's decision 2; T11): (1) "Where each application stands" also keeps up to
+// eight addresses of the job's pages (trackers and fragments dropped), local, 30 days, never sent — so a new tab on the
+// same job binds without a server call (extension/tabState.js, progress.js). (2) A fill on a form inside another site's
+// frame (Stripe → Greenhouse) also sends that frame's address, checked against the job before anything is filled.
+const EFFECTIVE_DATE = 'October 15, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 export function PrivacyPage() {
@@ -194,8 +198,12 @@ export function PrivacyPage() {
               alone does not identify the job, the same press also sends the posting's text it read
               (the title, company and description a capture would send), so draft can tell which job on
               your board it is and score your résumé against it; that text is used for the answer and
-              not kept, and no job is saved unless you capture it. It cannot see the
-              address of any other tab, and it does not record where you go.
+              not kept, and no job is saved unless you capture it. When the application form on that
+              page sits inside another site's frame (an employer's page showing Greenhouse's form, say),
+              filling it also sends that frame's address, so draft can check the form belongs to the
+              same job before anything is filled. It cannot see the address of any other tab, and it
+              does not record where you go — only the addresses of job pages you used it on, kept in
+              your browser as described below.
             </LI>
             {/* D55 decision B — background.js saveLinkToDraft(), routes/importJob.js POST /link. */}
             <LI>
@@ -330,8 +338,10 @@ export function PrivacyPage() {
             <LI>
               <Strong>Where each application stands</Strong> — for each job you capture, read, prepare,
               fill or submit with the extension: the job's draft id, its title and company, the address
-              of its posting, when each of those steps happened, and how many fields were filled and how
-              many still need you — so the popup can show where you left off. It holds no answers — never
+              of its posting, up to eight addresses of that job's pages you used the extension on (with
+              tracking parameters and anything after "#" removed — so a new tab on the same job picks up
+              where you left off without asking us), when each of those steps happened, and how many
+              fields were filled and how many still need you — so the popup can show where you left off. It holds no answers — never
               what you typed, chose or filled — and nothing else of the page. It is never sent anywhere.
               Local storage: each job is kept 30 days from its last change, and all of it is deleted when
               you disconnect the extension, when you sign out, or when a different account is connected.
