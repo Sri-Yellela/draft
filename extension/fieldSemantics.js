@@ -29,6 +29,10 @@ export const normText = (s) => String(s ?? '').toLowerCase()
  * The vocabulary. `label` is tested against the WHOLE normalised label; `attr` against each normalised attribute token
  * (a name's last bracket segment, an id, a data-automation-id — with Greenhouse's "--0" entry suffix removed);
  * `auto` lists the HTML autocomplete tokens that name the key. `choiceOnly`: placed only on a control with choices.
+ * ⭐ LIVE (measured 10-15, docs/LIVE_FORM_MEASUREMENT.md) — wordings read on public forms and added, each anchored:
+ * "Other Website" (Figma), "Who is your current or previous employer?" / "What is your current or previous job title?"
+ * and "If located in the US, in what city and state do you reside?" (Stripe), "Please tell us how you heard about this
+ * opportunity." (Lever).
  */
 export const FIELD_VOCABULARY = Object.freeze([
   { key: 'first-name', label: /^(legal )?first( name)?$|^given name$|^forename$|^first name legal$/, attr: /^(first ?name|fname|given ?name|firstname)$/, auto: ['given-name'] },
@@ -43,18 +47,18 @@ export const FIELD_VOCABULARY = Object.freeze([
   { key: 'state', label: /^(state|province|state province|province state|state region|region)( of residence)?$/, attr: /^(state|province|region)$/, auto: ['address-level1'] },
   { key: 'zip', label: /^(zip|postal|zip postal|postal zip)( code)?$|^postcode$/, attr: /^(zip|zip ?code|postal ?code|postcode)$/, auto: ['postal-code'] },
   { key: 'country', label: /^country( of residence| region)?$/, attr: /^(country|country ?region)$/, auto: ['country', 'country-name'] },
-  { key: 'location', label: /^(current )?location$|^where are you (currently )?(located|based)$|^city (and|) ?state$|^current (city|location) and state$|^location city state$/, attr: /^(location|current ?location)$/, auto: [] },
+  { key: 'location', label: /^(current )?location$|^where are you (currently )?(located|based)$|^city (and|) ?state$|^current (city|location) and state$|^location city state$|^(if (you are )?(located|based) in the (us|united states) )?(in )?what city and state do you (currently )?(reside|live)( in)?$/, attr: /^(location|current ?location)$/, auto: [] },
   { key: 'linkedin', label: /^(your )?linked ?in( profile)?( url| link| profile url| profile link)?$/, attr: /^linked ?in( ?url| ?profile)?$/, auto: [] },
   { key: 'github', label: /^(your )?git ?hub( profile)?( url| link| profile url)?$/, attr: /^git ?hub( ?url| ?profile)?$/, auto: [] },
-  { key: 'website', label: /^(your |personal )?(website|web site|homepage|personal site|blog)( url| link)?$/, attr: /^(website|web ?site|website ?url|homepage)$/, auto: ['url'] },
+  { key: 'website', label: /^(your |personal |other )?(website|web site|homepage|personal site|blog)( url| link)?$/, attr: /^(website|web ?site|website ?url|homepage)$/, auto: ['url'] },
   { key: 'portfolio', label: /^(your )?portfolio( url| link| website)?$/, attr: /^portfolio( ?url)?$/, auto: [] },
-  { key: 'current-company', label: /^(current|most recent|present)( company| employer)( name)?$|^current company name$/, attr: /^current ?(company|employer)$/, auto: ['organization'] },
-  { key: 'current-title', label: /^(current|most recent|present)( job)? (title|position|role)$/, attr: /^current ?(job ?)?title$/, auto: ['organization-title'] },
+  { key: 'current-company', label: /^(current|most recent|present)( company| employer)( name)?$|^current company name$|^(who is |what is )?your (current|most recent) or (previous|most recent|last) (company|employer)$/, attr: /^current ?(company|employer)$/, auto: ['organization'] },
+  { key: 'current-title', label: /^(current|most recent|present)( job)? (title|position|role)$|^(what is )?your (current|most recent) or (previous|most recent|last)( job)? (title|position|role)$/, attr: /^current ?(job ?)?title$/, auto: ['organization-title'] },
   { key: 'school', label: /^(school|university|college|institution|school name|name of school|school or university|university name|college university|educational institution)$/, attr: /^(school|university|college|school ?name)$/, auto: [] },
   { key: 'degree', label: /^(degree|degree type|type of degree|highest degree( earned| obtained)?|degree level|education level|level of education|highest level of education( completed)?)$/, attr: /^(degree|degree ?type)$/, auto: [] },
   { key: 'field-of-study', label: /^(discipline|major|field of study|area of study|study field|concentration|major field of study)$/, attr: /^(discipline|major|field ?of ?study)$/, auto: [] },
   { key: 'grad-year', label: /^(graduation year|year of graduation|grad year|expected graduation year|graduation date year)$/, attr: /^(grad(uation)? ?year)$/, auto: [] },
-  { key: 'how-heard', label: /^how did you (hear|learn|find out) about (us|this (job|role|position|opportunity)|the (job|role|position|opportunity)|[a-z0-9 ]{1,40})$|^how did you find (us|this (job|role|position))$|^(referral )?source$|^where did you (hear|learn) about (us|this (job|role|position))$/, attr: /^(source|how ?did ?you ?hear|referral ?source)$/, auto: [] },
+  { key: 'how-heard', label: /^how did you (hear|learn|find out) about (us|this (job|role|position|opportunity)|the (job|role|position|opportunity)|[a-z0-9 ]{1,40})$|^how did you find (us|this (job|role|position))$|^(referral )?source$|^where did you (hear|learn) about (us|this (job|role|position))$|^(please )?tell us how you (heard|learned|found out) about (us|this (job|role|position|opportunity)|the (job|role|position|opportunity))$/, attr: /^(source|how ?did ?you ?hear|referral ?source)$/, auto: [] },
   { key: 'preferred-name', label: /^preferred( first)? name$|^nickname$/, attr: /^preferred ?(first ?)?name$/, auto: ['nickname'] },
 ]);
 
