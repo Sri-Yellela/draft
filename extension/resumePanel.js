@@ -48,9 +48,9 @@
 
 import { authedFetch } from './auth.js';
 import { tabJob } from './answerMemory.js';
-import { bindTab, bindingForTab, bindingLabel } from './tabBinding.js';
-import { lookupBoardJob, lookupPage } from './boardJob.js';
-import { extractJobPayload } from './extractor.js';
+import { bindingForTab, bindingLabel } from './tabBinding.js';
+import { lookupBoardJob } from './boardJob.js';
+import { identifyAndBind } from './identify.js';
 import { notePageRead } from './diagnostics.js';
 import { overlayTheme, fetchPdf } from './gated-handoff.js';
 import { noteResume, resumeFor } from './progress.js';
@@ -182,7 +182,7 @@ function modelCore({ job = null, view = null, allowance = null, error = null, at
 
   if (!j?.jobId) {
     return { ...base, state: 'nojob', title: 'Résumé for this job', job: null,
-      lines: [{ text: 'This tab is not linked to a job yet. Read this page now and draft finds the job on your board — or capture it.', tone: 'warn' }],
+      lines: [{ text: 'This tab is not linked to a job yet — Read this page now finds it on your board.', tone: 'warn' }],
       actions: [ACTION.readPage] };
   }
   if (error && !view) {
@@ -737,7 +737,7 @@ export function handlersFor(serverUrl = null) {
         return { ok: !!r?.result?.rendered, state: model.state };
       } catch (e) {
         // No grant for this tab (the popup was not opened on it), or a page that takes no script (chrome://, a PDF).
-        return refuse('Open the draft popup on the application page, then press Résumé.', { reason: String(e?.message || e).slice(0, 160) });
+        return refuse("draft can't draw the résumé panel on this page.", { reason: String(e?.message || e).slice(0, 160) });
       }
     },
 
@@ -820,9 +820,10 @@ export function handlersFor(serverUrl = null) {
     },
 
     /**
-     * ⭐ D99 · "Read this page now" — the unlinked panel's button (a trusted click on the page). The same read as the
-     * popup's "Read this page": the page's ADDRESS to draft (POST /api/import/context), and a posting draft knows binds
-     * the tab ('recognised'). Then the panel is drawn again for the job it found.
+     * ⭐ D99 · "Read this page now" — the unlinked panel's button (a trusted click on the page). ⭐ BINDING FIRST (owner
+     * 10-15): the same IDENTIFY → BIND every press runs (identify.js identifyAndBind — the address, the embedded ATS form's
+     * address, then the page's text through the capture's matcher), and only then is the panel drawn for the job it
+     * found. A page that names no job of yours binds nothing and says which case it is, in that outcome's own sentence.
      */
     RESUME_READ_PAGE: async (msg, sender) => {
       if (msg?.trigger !== 'click') return refuse('The page is read only from its button.');
@@ -830,30 +831,14 @@ export function handlersFor(serverUrl = null) {
       if (!tab) return refuse('Read the page from the panel on it.');
       if (!url()) return refuse('Not configured.');
       const pageUrl = String(tab.url || '').slice(0, 2048);
-      const r = await post(url(), '/api/import/context', { url: pageUrl });
-      const p = r.ok ? r.body?.posting : null;
-      if (p?.known && p.jobId) await bindTab(tab, { jobId: p.jobId, title: p.title, company: p.company, via: 'recognised' }).catch(() => null);
-      let job = await jobOfTab(tab);
-      // ⭐ T2 + T3: the address did not name it — read the page (the capture's extractor, under this click's grant) and ask
-      // which job its text is, by the capture's own matcher; a page draft does not hold is still scored, from its text.
-      let page = null;
+      const id = await identifyAndBind(tab, { serverUrl: url() }).catch(() => null);
+      const page = id?.lookup || null;
+      const job = await jobOfTab(tab);
+      notePageRead(tab.id, { url: pageUrl, known: !!job, jobId: job?.jobId ?? null, how: page?.posting?.how || null,
+        pageKey: null, basis: page?.basis || null, atsState: page?.ats?.state || null });
       if (!job) {
-        let text = '';
-        try { const [x] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extractJobPayload }); if (x?.result?.ok) text = x.result.text || ''; }
-        catch { /* the address alone */ }
-        page = await lookupPage(url(), { url: pageUrl, text }).catch(() => null);
-        const q = page?.ok ? page.posting : null;
-        if (q?.known && q.jobId) {
-          await bindTab(tab, { jobId: q.jobId, title: q.title, company: q.company, via: 'recognised' }).catch(() => null);
-          job = await jobOfTab(tab);
-        }
-      }
-      notePageRead(tab.id, { url: pageUrl, known: !!job, jobId: job?.jobId ?? null, how: page?.posting?.how || p?.how || null,
-        pageKey: r.body?.pageKey?.key || null, basis: page?.basis || null, atsState: page?.ats?.state || null });
-      if (!job) {
-        const report = page?.ok && page.basis === 'page' && page.ats ? { ...page.ats, basis: 'page' } : null;
-        return { ok: false, message: r.ok ? 'draft does not know this page yet — capture the job from the popup.' : 'Could not reach draft — try again.',
-          model: resumePanelModel({ report }) };
+        const report = page?.basis === 'page' && page.ats ? { ...page.ats, basis: 'page' } : null;
+        return { ok: false, message: id?.message || "draft couldn't tell which job this is.", model: resumePanelModel({ report }) };
       }
       const { view, error } = await currentView(url(), job);
       const allowance = !view ? await allowanceNow(url()) : null;

@@ -122,8 +122,9 @@ export function defaultSeed(db) {
  * Every request is LOGGED (method, path, body) so a run can prove what the extension did — and did not — send.
  */
 export async function startApi({ seed = defaultSeed, payload = DEFAULT_PAYLOAD, mount = null } = {}) {
-  const [{ default: express }, { default: Database }, { default: applyRoutes }, { createImportJobRouter }, { MIGRATIONS }] = await Promise.all([
+  const [{ default: express }, { default: Database }, { default: applyRoutes }, { createImportJobRouter }, { MIGRATIONS }, { createExtensionJobRouter }] = await Promise.all([
     import('express'), import('better-sqlite3'), import('../routes/apply.js'), import('../routes/importJob.js'), import('../scripts/migrations.js'),
+    import('../routes/extensionJob.js'),
   ]);
   const db = new Database(':memory:');
   for (const m of MIGRATIONS) db.exec(m.sql);
@@ -148,6 +149,13 @@ export async function startApi({ seed = defaultSeed, payload = DEFAULT_PAYLOAD, 
   app.get('/api/auth/extension-token', (_req, res) => res.json({ token: 'walk-harness-token' }));
   app.get('/api/draft/slots', (_req, res) => res.json({ limit: 10, used: 0, remaining: 10, windowHours: 24 }));
   if (mount) await mount(app, db);
+  // ⭐ BINDING FIRST (owner 10-15): every press identifies the page first (POST /api/extension/page) — the REAL route,
+  // mounted AFTER a lane's own `mount` so a walk that mounts it with its own scorer (atsOnPage, boardBridge) wins.
+  // Only that one path: GET /api/extension/job/:id stays a lane's to mount (the résumé panel's report reads it).
+  // No base résumé here: the identify's report is "no_base_resume", never a made-up score.
+  const identifyRoute = createExtensionJobRouter({ db, requireAuth: (q, r, n) => n(), isExtension: () => true,
+    scoreFor: () => null, scoreText: () => null, hasBaseResume: () => false });
+  app.use((req, res, next) => (req.method === 'POST' && req.path === '/api/extension/page' ? identifyRoute(req, res, next) : next()));
   applyRoutes(app, db, (q, r, n) => n(), () => payload, async () => ({ error: 'not_needed' }), async () => Buffer.from('%PDF-1.4'), async () => ({}), () => null, {});
   app.use('/api/import', createImportJobRouter(db));
   const server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
