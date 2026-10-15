@@ -34,6 +34,9 @@
 // (chrome.scripting.registerContentScripts, persisted across sessions) — a debounced watcher that reads no value and
 // sends only "the step changed" with a signature. The service worker (handlers.AUTO_READ_PAGE) re-checks the switch
 // and the permission on EVERY message, holds a per-tab lock, and runs the reads below with executeScript.
+// ⭐ T20: a registration covers pages loaded AFTER it, so every consent also injects the same watcher into the tabs
+// ALREADY OPEN on that site (openTabsAfterConsent); and because the popup closes when Chrome's prompt opens, the
+// popup's click is recorded first (AUTO_READ_PENDING) and the worker finishes it on permissions.onAdded.
 //
 // This file has no top-level `chrome` use, so node tests import it directly. The injected functions are
 // self-contained (executeScript serialises them alone).
@@ -374,7 +377,8 @@ export const DISCLOSURE = Object.freeze({
   title: 'Before you switch anything on',
   intro: 'Everything here is off until you turn it on, one site at a time. Turning a site on asks Chrome for access to ' +
     'that site; turning it off — or pressing "Turn off everything" — gives the access back.',
-  read: 'Read automatically — on the sites you choose, when an application page opens or changes step, draft reads the ' +
+  read: 'Read automatically — on the sites you choose, when an application page opens or changes step (and, the moment ' +
+    'you switch a site on, its pages you already have open), draft reads the ' +
     "form's question labels and counts how many it recognises. It never reads what you have typed or chosen, and never " +
     'a password or payment field. Nothing is sent anywhere: the labels and counts stay on this computer for 30 days, ' +
     'so draft can tell you how well it read the page.',
@@ -627,13 +631,25 @@ export async function desiredRegistrations(settings) {
 
 const sameRegistration = (a, b) => JSON.stringify([a.matches, a.excludeMatches, !!a.allFrames]) === JSON.stringify([b.matches, b.excludeMatches, !!b.allFrames]);
 
+// ⭐ T20: one sync at a time. permissions.onAdded fires at the moment of the grant, while the consent's own handler is
+// syncing too — two interleaved syncs could each register the same id (Chrome throws on a duplicate) or one could drop
+// what the other just added from a stale read of the settings.
+let syncChain = Promise.resolve();
+
 /**
  * Make Chrome's registered watchers match the settings and the grants. Called on install / update / startup, on
  * permissions added or removed, and after every switch change. ⚠ Unregistering does not remove a watcher already
  * injected in an open tab — which is why AUTO_READ_PAGE re-checks the switch and the permission on every message.
  * A registration whose matches changed (a custom site gained its frame site) is replaced.
+ * ⚠ A registration applies to pages loaded AFTER it (T20) — openTabsAfterConsent covers the tabs already open.
  */
-export async function syncRegistrations(settings = null) {
+export function syncRegistrations(settings = null) {
+  const run = syncChain.then(() => syncNow(settings));
+  syncChain = run.catch(() => null);
+  return run;
+}
+async function syncNow(settings) {
+  // a sync queued behind another reads the settings fresh unless it was handed the ones it must apply
   const s = settings || await loadSettings();
   const want = await desiredRegistrations(s);
   let have = [];
@@ -645,6 +661,122 @@ export async function syncRegistrations(settings = null) {
   if (drop.length) { try { await chrome.scripting.unregisterContentScripts({ ids: drop }); } catch { /* already gone */ } }
   if (add.length) { try { await chrome.scripting.registerContentScripts(add); } catch { /* reported by the next sync */ } }
   return { registered: want.map(w => w.id), added: add.map(a => a.id), removed: drop.filter(id => !wantById.has(id)) };
+}
+
+// ── ⭐ T20 · THE TABS ALREADY OPEN WHEN CONSENT SUCCEEDS ─────────────────────────────────────────────────────────────
+// Owner 10-15 (FIELD REPORT UPDATE 4, T20): "after the auto-read permission is granted, the page STILL needs a manual
+// Read". A registered content script runs on pages loaded AFTER it is registered — the tab the user was looking at when
+// they agreed was never given the watcher. So the moment a consent succeeds (the popup's card, "Always read here", its
+// second click, an Options switch turned on) the watcher is injected into every ALREADY-OPEN tab that registration
+// covers; its first look sends "this step" at once, so the current page is read with no press.
+// ⛔ Only tabs of a site that is on AND granted — the same rule as the registration (scopeFor + siteActive /
+//   customActive + Chrome's grant); never LinkedIn / Indeed / Glassdoor (scopeFor refuses them). ⛔ Only from a consent
+//   handler — never on popup open (D23), never on install or startup. Nothing is read here: the watcher only says "the
+//   step is X", and the service worker's pass decides, re-checking everything, as for a page that loaded.
+// ⛔ The `tabs` permission is not needed and not asked for: a tab's address is visible to the extension exactly where it
+//   holds that site's host permission — which is where the watcher may go.
+export async function openTabsAfterConsent(settings = null) {
+  const s = settings || await loadSettings();
+  if (!s || s.kill) return { injected: [] };
+  let tabs = [];
+  try { tabs = await chrome.tabs.query({}); } catch { tabs = []; }
+  const injected = [];
+  for (const tab of tabs || []) {
+    if (!tab || tab.id == null || typeof tab.url !== 'string') continue;
+    const sc = scopeFor(s, tab.url);
+    if (sc.skip) continue;
+    const active = sc.kind === 'site' ? siteActive(s, sc.site) : customActive(s, sc.origin);
+    if (!active || !(await hasOrigins(sc.origins))) continue;
+    try {
+      // the same file and frames as the registration: a preset site's top frame; a custom site's every frame (its form
+      // is often an ATS frame — a frame of a site not allowed THERE is refused by onPageMessage / scopeFor)
+      await chrome.scripting.executeScript({ target: { tabId: tab.id, allFrames: sc.kind === 'custom' }, files: ['autoReadWatcher.js'] });
+      injected.push(tab.id);
+    } catch { /* a tab that cannot be scripted (still loading a chrome:// page, discarded): its next load is registered */ }
+  }
+  return { injected };
+}
+
+/** After every consent that turned something on: the registrations for future pages, then the pages already open. */
+async function afterConsent(settings) {
+  const reg = await syncRegistrations(settings);
+  const open = await openTabsAfterConsent(settings).catch(() => ({ injected: [] }));
+  return { ...reg, injected: open.injected };
+}
+
+// ── ⭐ T20 · THE CONSENT CLICK THAT OUTLIVES THE POPUP ─────────────────────────────────────────────────────────────
+// MEASURED 10-15 in a headed Chrome with Chrome's REAL prompt (answered through Windows UI Automation): the moment
+// chrome.permissions.request shows its prompt, the POPUP CLOSES — before the user answers. Chrome then grants every
+// origin, but the popup's code after `await request(...)` never runs: no consent was recorded, nothing was registered,
+// nothing read — not the open tab, not even after a reload. So the popup now tells the service worker, in the same
+// synchronous turn as the request (after it — the request stays the click's first call), WHAT the click asked for; the
+// worker finishes the consent itself when Chrome's grant arrives (permissions.onAdded). The popup's own message still
+// finishes it when the popup survives (no prompt: the access was already granted). Either way, once.
+// ⛔ It is the user's click that is recorded — never inferred: a grant with no click behind it (chrome://extensions)
+//   finds no pending click and turns nothing on; a pending click expires after PENDING_MS; a refusal adds no permission,
+//   so onAdded never fires and nothing is written to the settings.
+// ⛔ NO NEW STORAGE KEY (D23: the stored keys are the listing's disclosure): the click is held in the service worker's
+//   MEMORY only. Chrome stops an idle worker after ~30 s, and a user may take longer to answer the prompt, so while a
+//   click is pending — at most PENDING_MS — the worker keeps itself awake with a cheap extension call every 20 s, and
+//   stops the moment the click is finished, dropped or expired. A worker stopped anyway (an update) loses the click:
+//   the popup then shows the card again, and the next click finds the access already granted — no prompt, the popup
+//   lives, and its own message finishes it.
+export const PENDING_MS = 2 * 60 * 1000;
+export const PENDING_KINDS = Object.freeze(['all', 'site', 'frame']);
+const KEEP_AWAKE_MS = 20 * 1000;
+let PENDING = null;
+let awake = null;
+
+/** What a pending click covers — computed HERE from the click's kind, never taken from the message's own list. */
+function pendingFor(msg) {
+  if (msg?.kind === 'all') return { kind: 'all', origins: [...OPTIONAL_ORIGINS] };
+  if (msg?.kind === 'site' && validCustom(msg.origin)) {
+    const frames = [...new Set((Array.isArray(msg.frames) ? msg.frames : []).filter(id => siteById(id)))];
+    return { kind: 'site', origin: msg.origin, frames, origins: [originPattern(msg.origin), ...frames.flatMap(id => siteById(id).origins)] };
+  }
+  if (msg?.kind === 'frame' && validCustom(msg.origin) && siteById(msg.site)) {
+    return { kind: 'frame', origin: msg.origin, site: msg.site, origins: [...siteById(msg.site).origins] };
+  }
+  return null;
+}
+function loadPending(now = Date.now()) {
+  const p = PENDING;
+  if (p && now - p.at >= 0 && now - p.at < PENDING_MS) return p;
+  clearPending();
+  return null;
+}
+function setPending(p, now = Date.now()) {
+  PENDING = { ...p, at: now };
+  if (awake == null) {
+    awake = setInterval(() => {
+      if (!loadPending()) return;
+      try { const r = chrome.runtime.getPlatformInfo?.(); if (r && typeof r.catch === 'function') r.catch(() => {}); } catch { /* gone */ }
+    }, KEEP_AWAKE_MS);
+    awake?.unref?.();   // (node tests: never hold the process open)
+  }
+}
+function clearPending() {
+  PENDING = null;
+  if (awake != null) { clearInterval(awake); awake = null; }
+}
+/** The click waiting for Chrome's answer, if any — its kind and origins (for Options' state and the tests). */
+export function pendingClick() { const p = loadPending(); return p ? structuredClone(p) : null; }
+
+/**
+ * permissions.onAdded: a pending consent click whose origins Chrome now grants is finished here — the same code the
+ * popup's message runs — and then the registrations follow the grants.
+ */
+export async function onPermissionsAdded(_added) {
+  const p = loadPending();
+  let done = null;
+  if (p && await hasOrigins(p.origins)) {
+    clearPending();
+    done = p.kind === 'all' ? await consentAll()
+      : p.kind === 'site' ? await allowSite(p.origin, p.frames)
+        : await allowFrame(p.origin, p.site);
+  }
+  const reg = await syncRegistrations();
+  return { pending: p ? p.kind : null, done, registered: reg.registered };
 }
 
 /** Chrome took a site's access away (chrome://extensions, or Options): its switches follow, so the two never disagree. */
@@ -858,7 +990,7 @@ async function stateForOptions() {
   for (const s of SITES) granted[s.id] = await hasGrant(s);
   const customGranted = {};
   for (const o of Object.keys(settings.custom)) customGranted[o] = await hasOrigins([originPattern(o)]);
-  return { ok: true, settings, granted, customGranted };
+  return { ok: true, settings, granted, customGranted, pending: loadPending()?.kind || null };
 }
 
 /** The origins a custom site holds that nothing else still needs — given back when the site goes. */
@@ -869,6 +1001,56 @@ function releasable(settingsAfter, origin, frames) {
 }
 
 const validCustom = (origin) => typeof origin === 'string' && customOriginFor(`${origin}/`) === origin;
+
+// ── the three consents — called by the popup's message, or (T20) by permissions.onAdded for a pending click ──────────
+/** D97 REVISED · the one-time card: Read + Prepare on each preset site Chrome granted. Nothing granted → nothing written. */
+async function consentAll() {
+  const granted = [];
+  for (const s of SITES) if (await hasGrant(s)) granted.push(s.id);
+  if (!granted.length) return { ok: false, error: 'not_granted' };
+  const settings = await updateSettings((cur) => {
+    cur.consent2 = { at: Date.now() };
+    cur.kill = false;
+    cur.later = null;
+    for (const id of granted) { cur.sites[id].read = true; cur.sites[id].prepare = true; }
+    return cur;
+  });
+  const after = await afterConsent(settings);
+  return { ok: true, settings, sites: granted, registered: after.registered, injected: after.injected };
+}
+/** T12 · "Always read here": this origin (and its granted ATS frame sites), Read + Prepare. */
+async function allowSite(origin, frameIds) {
+  if (!validCustom(origin)) return { ok: false, error: 'bad_site' };
+  if (!(await hasOrigins([originPattern(origin)]))) return { ok: false, error: 'not_granted' };
+  const frames = [];
+  for (const id of Array.isArray(frameIds) ? frameIds : []) { const f = siteById(id); if (f && !frames.includes(id) && await hasGrant(f)) frames.push(id); }
+  const cur0 = await loadSettings();
+  if (!cur0.custom[origin] && Object.keys(cur0.custom).length >= CUSTOM_LIMIT) return { ok: false, error: 'too_many_sites' };
+  const settings = await updateSettings((cur) => {
+    const e = cur.custom[origin] || { ...offSite(), frames: [], at: Date.now() };
+    e.read = true; e.prepare = true;
+    e.frames = [...new Set([...e.frames, ...frames])];
+    cur.custom[origin] = e;
+    cur.kill = false;
+    return cur;
+  });
+  const after = await afterConsent(settings);
+  return { ok: true, settings, registered: after.registered, injected: after.injected };
+}
+/** T12 · the SECOND click: the ATS frame site of an allowed custom site. */
+async function allowFrame(origin, siteId) {
+  const site = siteById(siteId);
+  if (!validCustom(origin) || !site) return { ok: false, error: 'bad_site' };
+  if (!(await loadSettings()).custom[origin]) return { ok: false, error: 'no_consent' };
+  if (!(await hasGrant(site))) return { ok: false, error: 'not_granted' };
+  const settings = await updateSettings((cur) => {
+    const e = cur.custom[origin];
+    if (e && !e.frames.includes(site.id)) e.frames.push(site.id);
+    return cur;
+  });
+  const after = await afterConsent(settings);
+  return { ok: true, settings, registered: after.registered, injected: after.injected };
+}
 
 export const handlers = Object.freeze({
   /** The watcher: "this tab's step changed". From a content script in a top frame, or an ATS site's frame (T12). */
@@ -889,18 +1071,26 @@ export const handlers = Object.freeze({
    */
   AUTO_READ_CONSENT_ALL: async (msg, sender) => {
     if (!fromExtensionPage(sender) || msg?.agree !== true) return { ok: false, error: 'not_allowed' };
-    const granted = [];
-    for (const s of SITES) if (await hasGrant(s)) granted.push(s.id);
-    if (!granted.length) return { ok: false, error: 'not_granted' };
-    const settings = await updateSettings((cur) => {
-      cur.consent2 = { at: Date.now() };
-      cur.kill = false;
-      cur.later = null;
-      for (const id of granted) { cur.sites[id].read = true; cur.sites[id].prepare = true; }
-      return cur;
-    });
-    const reg = await syncRegistrations(settings);
-    return { ok: true, settings, sites: granted, registered: reg.registered };
+    clearPending();
+    return consentAll();
+  },
+  /**
+   * ⭐ T20 · the popup's click, said BEFORE Chrome answers (the popup closes when Chrome's prompt opens — measured). What
+   * it covers is computed here from `kind`; it turns nothing on by itself — only Chrome's grant of exactly those
+   * origins, within PENDING_MS, finishes it (onPermissionsAdded).
+   */
+  AUTO_READ_PENDING: async (msg, sender) => {
+    if (!fromExtensionPage(sender)) return { ok: false, error: 'not_allowed' };
+    const p = pendingFor(msg);
+    if (!p) return { ok: false, error: 'bad_site' };
+    setPending(p);
+    return { ok: true, kind: p.kind };
+  },
+  /** ⭐ T20 · a refusal the popup lived to see: the pending click is dropped at once. */
+  AUTO_READ_PENDING_CLEAR: async (_msg, sender) => {
+    if (!fromExtensionPage(sender)) return { ok: false, error: 'not_allowed' };
+    clearPending();
+    return { ok: true };
   },
   /** The card's "Not now" — it comes back after LATER_MS. Changes no switch. */
   AUTO_READ_LATER: async (_msg, sender) => {
@@ -915,38 +1105,15 @@ export const handlers = Object.freeze({
    */
   AUTO_READ_ALLOW_SITE: async (msg, sender) => {
     if (!fromExtensionPage(sender)) return { ok: false, error: 'not_allowed' };
-    const origin = msg?.origin;
-    if (!validCustom(origin)) return { ok: false, error: 'bad_site' };
-    if (!(await hasOrigins([originPattern(origin)]))) return { ok: false, error: 'not_granted' };
-    const frames = [];
-    for (const id of Array.isArray(msg.frames) ? msg.frames : []) { const f = siteById(id); if (f && !frames.includes(id) && await hasGrant(f)) frames.push(id); }
-    const cur0 = await loadSettings();
-    if (!cur0.custom[origin] && Object.keys(cur0.custom).length >= CUSTOM_LIMIT) return { ok: false, error: 'too_many_sites' };
-    const settings = await updateSettings((cur) => {
-      const e = cur.custom[origin] || { ...offSite(), frames: [], at: Date.now() };
-      e.read = true; e.prepare = true;
-      e.frames = [...new Set([...e.frames, ...frames])];
-      cur.custom[origin] = e;
-      cur.kill = false;
-      return cur;
-    });
-    const reg = await syncRegistrations(settings);
-    return { ok: true, settings, registered: reg.registered };
+    if (validCustom(msg?.origin) && await hasOrigins([originPattern(msg.origin)])) clearPending();
+    return allowSite(msg?.origin, msg?.frames);
   },
   /** ⭐ T12 · the SECOND click: the ATS frame site of an allowed custom site, granted from that click. */
   AUTO_READ_ALLOW_FRAME: async (msg, sender) => {
     if (!fromExtensionPage(sender)) return { ok: false, error: 'not_allowed' };
-    const site = siteById(msg?.site);
-    if (!validCustom(msg?.origin) || !site) return { ok: false, error: 'bad_site' };
-    if (!(await loadSettings()).custom[msg.origin]) return { ok: false, error: 'no_consent' };
-    if (!(await hasGrant(site))) return { ok: false, error: 'not_granted' };
-    const settings = await updateSettings((cur) => {
-      const e = cur.custom[msg.origin];
-      if (e && !e.frames.includes(site.id)) e.frames.push(site.id);
-      return cur;
-    });
-    const reg = await syncRegistrations(settings);
-    return { ok: true, settings, registered: reg.registered };
+    const r = await allowFrame(msg?.origin, msg?.site);
+    if (r.ok) clearPending();
+    return r;
   },
   /** ⭐ T12 · Remove a custom site: its switches gone, its access given back, its watcher unregistered. */
   AUTO_READ_REMOVE_SITE: async (msg, sender) => {
@@ -984,6 +1151,7 @@ export const handlers = Object.freeze({
         return cur;
       });
       if (!settings.custom[origin]) await giveBack(releasable(settings, origin, frames));
+      if (on && settings.custom[origin]) { const after = await afterConsent(settings); return { ok: true, settings, registered: after.registered, injected: after.injected }; }
       const reg = await syncRegistrations(settings);
       return { ok: true, settings, registered: reg.registered };
     }
@@ -1004,6 +1172,8 @@ export const handlers = Object.freeze({
     if (!on && !BEHAVIOURS.some(b => settings.sites[site.id][b]) && !siteNeeded(settings, site.id)) {
       try { await chrome.permissions.remove({ origins: [...site.origins] }); } catch { /* already gone */ }
     }
+    // ⭐ T20: Options → a site switched ON reads that site's tabs already open, as the popup's consent does.
+    if (on) { const after = await afterConsent(settings); return { ok: true, settings, registered: after.registered, injected: after.injected }; }
     const reg = await syncRegistrations(settings);
     return { ok: true, settings, registered: reg.registered };
   },
@@ -1011,6 +1181,7 @@ export const handlers = Object.freeze({
   AUTO_READ_KILL: async (_msg, sender) => {
     if (!fromExtensionPage(sender)) return { ok: false, error: 'not_allowed' };
     const customs = Object.keys((await loadSettings()).custom);
+    clearPending();   // T20: a consent click still waiting for Chrome's answer finishes nothing after this
     const settings = await updateSettings((cur) => { for (const s of SITES) cur.sites[s.id] = offSite(); cur.custom = {}; cur.frameHints = {}; cur.kill = true; return cur; });
     try { await chrome.permissions.remove({ origins: [...OPTIONAL_ORIGINS, ...customs.map(originPattern)] }); } catch { /* already gone */ }
     const reg = await syncRegistrations(settings);

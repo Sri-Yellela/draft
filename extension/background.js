@@ -36,7 +36,7 @@ import {
 import { C_LIGHT, C_DARK } from './tokens.js';
 // D97 (J5): automatic reading, per site, all off — the four switches, the watcher's registrations, the consent.
 import {
-  handlers as AUTO_READ_HANDLERS, configureAutoRead, reconcileAutoRead, onPermissionsRemoved, syncRegistrations, forgetTab, noteFrameSite,
+  handlers as AUTO_READ_HANDLERS, configureAutoRead, reconcileAutoRead, onPermissionsRemoved, onPermissionsAdded, forgetTab, noteFrameSite,
 } from './autoRead.js';
 
 // ⭐ T12 · a press found the form inside an ATS frame draft may not read yet: the settings remember WHICH site that page's
@@ -874,7 +874,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 chrome.runtime.onInstalled?.addListener(() => { void reconcileAutoRead(); });   // every reason, update included
 chrome.runtime.onStartup?.addListener(() => { void reconcileAutoRead(); });
-chrome.permissions?.onAdded?.addListener(() => { void syncRegistrations(); });
+// ⭐ T20: a grant finishes the consent click that asked for it (the popup closes when Chrome's prompt opens), then
+// the registrations follow the grants and the tabs already open are read.
+chrome.permissions?.onAdded?.addListener((added) => { void onPermissionsAdded(added); });
 chrome.permissions?.onRemoved?.addListener((removed) => { void onPermissionsRemoved(removed); });
 chrome.tabs.onRemoved.addListener((tabId) => { forgetTab(tabId); });
 
