@@ -82,6 +82,8 @@ export const fresh = async (h) => { await h.page.goto('about:blank'); return h.o
 
 /** A shadow-piercing click (a TRUSTED click, as the person's own). */
 export const clickIn = (h, sel) => h.page.click(`#rm-gate-review-overlay >>> ${sel}`);
+/** ⭐ T17: the window's own controls — collapse, expand, snap, close — are the DOCK's (extension/dock.js), not the panel's. */
+export const clickDock = (h, sel) => h.page.click(`#rm-draft-dock >>> ${sel}`);
 
 export default async function run(h, { check, observe, section }) {
   const { page, db } = h;
@@ -105,12 +107,17 @@ export default async function run(h, { check, observe, section }) {
   const submittedOff = await h.readShadow('rm-gate-review-overlay', (root) => root.querySelector('[data-role="submitted"]').disabled);
   check('"I submitted it" is disabled until Ready', submittedOff === true);
 
-  section('2 · Collapse · Expand · Esc · Close');
-  await clickIn(h, '[data-role="collapse"]');
-  const slim = await h.readShadow('rm-gate-review-overlay', (root) => root.querySelector('[data-role="slim"]')?.textContent || null);
+  section('2 · Collapse · Expand · Esc · Close — the DOCK (T17), with the panel as its Fill tab, in the top frame');
+  check('the panel is the dock\'s Fill tab', await page.evaluate(() => {
+    const v = document.getElementById('rm-gate-review-overlay');
+    return v?.parentElement?.id === 'rm-draft-dock' && v.slot === 'view-fill';
+  }));
+  await clickDock(h, '[data-role="collapse"]');
+  const slim = await h.readShadow('rm-draft-dock', (root) => root.querySelector('[data-role="slim"]')?.textContent || null);
   check('Collapse → a slim bar that still says what needs you', /need/.test(slim || '') && /of \d+ filled/.test(slim || ''), slim);
-  await clickIn(h, '[data-role="expand"]');
-  check('Expand → the panel again', !!(await h.readShadow('rm-gate-review-overlay', (root) => root.querySelector('.rm-t'))));
+  await clickDock(h, '[data-role="expand"]');
+  check('Expand → the panel again', await page.evaluate(() => document.getElementById('rm-draft-dock')?.dataset.collapsed === 'false'
+    && !!document.getElementById('rm-gate-review-overlay')?.getBoundingClientRect().height));
 
   section('3 · type a Needs-you answer, Remember for next time');
   await page.type('#rm-gate-review-overlay >>> .rm-row[data-group="need"] [aria-label="Address Line 1"]', '1 Example Way');
@@ -224,19 +231,24 @@ export default async function run(h, { check, observe, section }) {
   await page.click('#ws-firstName');
   check('it survives a field focus and a page click', !!(await h.readCopySheet()));
 
-  section('10 · dock · drag · never over the field being filled · Esc · Close');
+  section('10 · the dock (T17): snap · remembered per site · drag · never over the field being filled · Esc · Close');
   await fresh(h);
   const last = await prepareAndRead(h, { dismiss: false });
   check('the panel is up', !!last.panel);
-  const side = () => page.evaluate(() => document.getElementById('rm-gate-review-overlay')?.dataset.side || null);
-  check('it docks right by default', (await side()) === 'right');
-  await clickIn(h, '[data-role="dock"]');
-  check('Dock moves it to the left…', (await side()) === 'left');
-  const dockSaved = await waitUntil(async () => (await h.bindings()).map(([, b]) => b.panelDock).find(Boolean), BUSY_MS);
-  check('…and the tab REMEMBERS the side (the binding, no key of its own)', dockSaved === 'left', String(dockSaved));
-  // Drag it by its header over the City field, then click into City: the panel moves off the field.
+  const side = () => page.evaluate(() => document.getElementById('rm-draft-dock')?.dataset.side || null);
+  check('the dock opens at the right by default', (await side()) === 'right');
+  await clickDock(h, '[data-role="dock"]');
+  check('Snap moves it to the left…', (await side()) === 'left');
+  const site = new URL(page.url()).origin;
+  const dockSaved = await waitUntil(async () => (await h.storage.local())?.dockPlace?.[site]?.edge, BUSY_MS);
+  check('…and the SITE remembers it (dockPlace — per site, no longer the tab\'s binding)', dockSaved === 'left', String(dockSaved));
+  check('the binding keeps no side', (await h.bindings()).every(([, b]) => b.panelDock === undefined && b.dock === undefined));
+  // Drag it by its header over the City field, then click into City: the dock moves off the field.
   const rectOf = (sel) => page.$eval(sel, el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
-  const head = await page.evaluateHandle(() => document.getElementById('rm-gate-review-overlay').shadowRoot.querySelector('.rm-t'));
+  // City on screen first (the fixture's City sits below the fold): a pointer let go AT the screen's edge would SNAP the
+  // dock to that edge — the drag is meant to land it over the field, mid-screen.
+  await page.evaluate(() => document.getElementById('ws-city').scrollIntoView({ block: 'center' }));
+  const head = await page.evaluateHandle(() => document.getElementById('rm-draft-dock').shadowRoot.querySelector('.hd .mk'));
   const hr = await head.asElement().boundingBox();
   const city = await rectOf('#ws-city');
   await page.mouse.move(hr.x + 5, hr.y + 5);
@@ -244,29 +256,31 @@ export default async function run(h, { check, observe, section }) {
   await page.mouse.move(city.x + 10, city.y - 10, { steps: 6 });
   await page.mouse.up();
   const overlap = async () => page.evaluate(() => {
-    const a = document.getElementById('rm-gate-review-overlay').getBoundingClientRect();
+    const a = document.getElementById('rm-draft-dock').getBoundingClientRect();
     const b = document.activeElement.getBoundingClientRect();
     return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
   });
   const overCity = await page.evaluate(() => {
-    const a = document.getElementById('rm-gate-review-overlay').getBoundingClientRect();
+    const a = document.getElementById('rm-draft-dock').getBoundingClientRect();
     const b = document.getElementById('ws-city').getBoundingClientRect();
     return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
   });
-  check('dragged by its header, the panel sits over the City field', overCity === true);
-  await page.evaluate(() => document.getElementById('ws-city').focus({ preventScroll: true }));   // no scroll: the field stays under the panel
+  check('dragged by its header, the dock sits over the City field', overCity === true,
+    JSON.stringify({ hr, city, dock: await rectOf('#rm-draft-dock'), vh: await page.evaluate(() => innerHeight) }));
+  await page.evaluate(() => document.getElementById('ws-city').focus({ preventScroll: true }));   // no scroll: the field stays under the dock
   await sleep(150);
-  check('the panel never covers the field being filled', (await page.evaluate(() => document.activeElement?.id)) === 'ws-city' && !(await overlap()));
-  // Esc with the panel focused closes it; the wizard is NOT stopped by it (only the badge's × does that).
-  await page.focus('#rm-gate-review-overlay >>> [data-role="close"]');   // in the full panel and the slim bar alike
+  check('the dock never covers the field being filled', (await page.evaluate(() => document.activeElement?.id)) === 'ws-city' && !(await overlap()));
+  // Esc with the dock focused closes it; the wizard is NOT stopped by it (only the status line's × does that).
+  await page.focus('#rm-draft-dock >>> [data-role="close"]');   // in the full dock and the slim bar alike
   await page.keyboard.press('Escape');
-  check('Esc closes the panel', !(await page.$('#rm-gate-review-overlay')));
+  check('Esc closes the panel', !(await page.$('#rm-gate-review-overlay')) && !(await page.$('#rm-draft-dock')));
   await h.dismissBadge();
   await Promise.race([last.reply, sleep(BUSY_MS)]);
   await fresh(h);
   const again = await prepareAndRead(h);
   check('a new fill draws it again', !!again.panel);
-  await clickIn(h, '[data-role="close"]');
+  check('…where this site last had it (not snapped: the drag took it off the edge)', await page.evaluate(() => document.getElementById('rm-draft-dock')?.dataset.edge === ''));
+  await clickDock(h, '[data-role="close"]');
   check('Close closes it', !(await page.$('#rm-gate-review-overlay')));
 
   section('nothing was submitted');

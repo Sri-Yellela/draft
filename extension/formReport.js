@@ -7,13 +7,18 @@
 // import it directly.
 
 // ── Decision B · the menu ───────────────────────────────────────────────────────────────────
-// Two items, created once by chrome.runtime.onInstalled. A context-menu click is a user gesture,
+// Four items (two since D55, two more since T22), created once by chrome.runtime.onInstalled. A context-menu click is a user gesture,
 // and Chrome grants activeTab for the tab it was made on — so "Save this page" is the SAME capture
 // the toolbar button and Ctrl+Shift+K run (captureActiveTab), not a fourth implementation.
 // "Save link" reads no page at all: it sends the link's address, and the server refetches the
 // posting from the ATS's own listing, or refuses (routes/importJob.js POST /link).
 export const MENU_SAVE_PAGE = 'draft-save-page';
 export const MENU_SAVE_LINK = 'draft-save-link';
+// ⭐ T22 (owner 10-15): the popup became a launcher — its fill and score tiles are gone — and "every removed action stays
+// reachable by its shortcut and the context menu". Capture already was ("Save this page"); these are fill and the score.
+// A click is a user gesture that grants activeTab, as for "Save this page".
+export const MENU_FILL_PAGE = 'draft-fill-page';
+export const MENU_ATS_PAGE = 'draft-ats-page';
 export const CONTEXT_MENUS = Object.freeze([
   Object.freeze({ id: MENU_SAVE_PAGE, title: 'Save this page to draft', contexts: Object.freeze(['page']) }),
   Object.freeze({
@@ -21,6 +26,8 @@ export const CONTEXT_MENUS = Object.freeze([
     // Only web links are offered at all; which of them draft can refetch is the SERVER's call.
     targetUrlPatterns: Object.freeze(['http://*/*', 'https://*/*']),
   }),
+  Object.freeze({ id: MENU_FILL_PAGE, title: 'Fill this application with draft', contexts: Object.freeze(['page']) }),
+  Object.freeze({ id: MENU_ATS_PAGE, title: "Show draft's ATS report", contexts: Object.freeze(['page']) }),
 ]);
 
 /** The link a "Save link" click may send: an http(s) URL, or null. Nothing else leaves. */

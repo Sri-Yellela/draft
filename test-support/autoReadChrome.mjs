@@ -38,7 +38,9 @@ export function installAutoReadChrome({ granted = [], page = {}, tab = null, res
       onAdded: ev(), onRemoved: ev(),
     },
     scripting: {
-      async executeScript({ target = null, func, args = [] }) {
+      async executeScript({ target = null, func, args = [], files = null }) {
+        // ⭐ T17: a file injected by name — the dock (dock.js, frame 0) before every view drawn on it
+        if (!func && Array.isArray(files)) { for (const f of files) { h.injected.push(`file:${f}`); h.injectedArgs.push({ name: `file:${f}`, args: [], target }); } return [{ result: null }]; }
         h.injected.push(func.name);
         h.injectedArgs.push({ name: func.name, args, target });
         const p = h.page[func.name];
@@ -56,6 +58,9 @@ export function installAutoReadChrome({ granted = [], page = {}, tab = null, res
     contextMenus: { create() {}, removeAll(cb) { cb?.(); }, onClicked: ev() },
   };
   globalThis.fetch = async (url, init = {}) => {
+    // A read of the extension's OWN package (chrome-extension:// — the logo face the views are painted with) leaves
+    // nothing on the network; it is kept apart (h.local) so h.net stays "what was sent".
+    if (String(url).startsWith('chrome-extension://')) { (h.local = h.local || []).push(String(url)); return new Response(new Uint8Array(0), { status: 200 }); }
     h.net.push({ url: String(url), method: init.method || 'GET', body: init.body ?? null });
     if (passthrough) return realFetch(url, init);
     const r = await h.respond(String(url), init);

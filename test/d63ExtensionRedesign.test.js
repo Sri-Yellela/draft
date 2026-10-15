@@ -125,10 +125,12 @@ test("⭐ D63 (5) · no underlined text link in the popup; LinkedIn and shortcut
   assert.match(html, /<button class="mb" id="btn-copy-sheet"[\s\S]*<button class="mb" id="btn-report-form"[\s\S]*<button class="mb" id="btn-settings"[^>]*>[\s\S]*More<\/button>/);
   assert.match(read("extension/options.html"), /<button class="btn" id="btn-linkedin">Sign in with LinkedIn<\/button>/);
   assert.match(read("extension/options.js"), /getElementById\('btn-linkedin'\)\?\.addEventListener\('click', \(\) => \{\s*chrome\.runtime\.sendMessage\(\{ type: 'OPEN_LINKEDIN_IMPORT' \}\)/);
-  // (7) Capture and Score as one row, the shortcut on the primary.
-  assert.match(html, /<div class="btn-row" id="posting-actions"[\s\S]*Capture it <kbd>⌃⇧K<\/kbd>[\s\S]*id="btn-score-primary"/);
-  // ⚠ The four actions stay (D13: a wrong guess must never hide one).
-  for (const id of ["btn-capture-job", "btn-fill", "btn-ats", "btn-resume"]) assert.match(html, new RegExp(`id="${id}"`));
+  // (7) Capture with the shortcut on the primary. ⭐ T22: Score left the row (the score is the job card's number and the
+  // dock's ATS tab), and the four tiles left the popup — Capture and Fill stay one shortcut or one right-click away
+  // (test/t22PopupLauncher.test.js); the Draft button stays.
+  assert.match(html, /<div class="btn-row" id="posting-actions"[\s\S]*Capture it <kbd>⌃⇧K<\/kbd>/);
+  assert.doesNotMatch(html, /id="btn-score-primary"/);
+  for (const id of ["btn-capture-primary", "btn-fill-primary", "btn-resume", "btn-open-dock"]) assert.match(html, new RegExp(`id="${id}"`));
 });
 
 test("⭐ D63 (2) · server: the read-page answer carries the score pair, the logo and résumé-ready — for YOUR active profile", async () => {

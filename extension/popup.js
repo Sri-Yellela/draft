@@ -66,11 +66,7 @@ function renderAtsReport(context) {
     : null;
   box.style.display = 'block';
 }
-document.getElementById('btn-ats-again')?.addEventListener('click', () => {
-  document.getElementById('ats-report').style.display = 'none';
-  pageRead = false;
-  readPage();
-});
+// ⭐ T22: the report's own "Read again" is gone — the main action's Read again (btn-read-page) is the same press.
 
 const MARK_ICONS = { doc: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7zM14 3v4h4"/></svg>' };
 
@@ -181,11 +177,9 @@ function renderIdentity(identity) {
   if (btn) btn.style.display = 'inline';
 }
 
-let signedIn = false;   // D99 J12: the ATS button sends a signed-in user to draft's own report, never the free checker
 async function init() {
   const identity = await probeAuth();
   renderIdentity(identity);
-  signedIn = !!identity?.authenticated;
 
   if (!identity?.authenticated) {
     document.getElementById('btn-sign-in').style.display = 'flex';
@@ -200,9 +194,9 @@ async function init() {
   await showLastCapture();
 
   // ⛔ D23, THE MANUAL CONTEXT TRIGGER (owner, 10-04). Opening the popup reads NOTHING from the page
-  // and asks the server NOTHING about it. Until "Read this page" is pressed, the popup shows the four
-  // actions — capture, fill, score, open draft — unchanged. A wrong primary action is worse than a
-  // menu, and this removes that failure rather than tuning a confidence threshold; it also keeps the
+  // and asks the server NOTHING about it. Until "Read this page" is pressed, the popup shows the launcher —
+  // Read this page, the Draft button, Open dock, Copy sheet, Report form, More (⭐ T22). A wrong primary action is
+  // worse than a menu, and this removes that failure rather than tuning a confidence threshold; it also keeps the
   // product's defining property exact: every read of every page begins with a click or a keystroke.
   //
   // The one thing decided on open is local and is not a page read: the tab's address scheme, which
@@ -214,10 +208,12 @@ async function init() {
   // on an address this job was already seen at, which binds now. Not a page read and not a request: the job card, the
   // bound line and the progress come back without a capture, a read or a prepare asked again.
   const tabState = await chrome.runtime.sendMessage({ type: 'TAB_STATE' }).catch(() => null);
-  const cap = document.getElementById('btn-capture-job');
+  // ⭐ T22: the capture tile is gone; on a page draft cannot read (chrome://, a PDF) the main action is shown DISABLED
+  // with its reason — never hidden (D13).
   if (!isWebPage(tab)) {
-    cap.disabled = true;
-    cap.title = 'This page cannot be captured';
+    const read = document.getElementById('btn-read-page');
+    read.disabled = true;
+    read.title = 'draft cannot read this page';
   }
   document.getElementById('btn-read-page').style.display = 'flex';
   document.getElementById('read-hint').style.display = 'block';
@@ -299,8 +295,6 @@ async function readPage() {
   ]);
   trigger.style.display = 'none';
   document.getElementById('read-hint').style.display = 'none';
-  document.getElementById('all-divider').style.display = 'block';
-  document.getElementById('all-head').style.display = 'block';
   const mode = companionMode({ preview, context });
   renderCompanion(mode);
   renderBinding(context);
@@ -312,10 +306,10 @@ async function readPage() {
   if (mode.mode === 'form') renderPacket(packetRows(mode.packet));
 
   if (!preview?.capturable) {
-    // D13: all four actions stay VISIBLE — on a page that cannot be read (chrome://, a PDF viewer)
-    // Capture is shown disabled, with the reason, rather than vanishing.
-    const cap = document.getElementById('btn-capture-job');
-    cap.style.display = 'inline-flex';
+    // D13: on a page that cannot be read (chrome://, a PDF viewer) Capture is shown disabled, with the reason, rather
+    // than vanishing (⭐ T22: the main action's Capture it — the tile is gone).
+    showCaptureAction();
+    const cap = document.getElementById('btn-capture-primary');
     cap.disabled = true;
     cap.title = 'This page cannot be captured';
     setStatus('Open a job posting to capture it');
@@ -336,8 +330,11 @@ async function readPage() {
     // ⭐ T13: Read also prepared — said, so the next step is plainly Fill
     setStatus(context?.prepared ? 'Answers prepared — press Fill on the application form.' : '');
   } else if (preview.unreadable) {
+    if (mode.mode !== 'form') showCaptureAction();
     setStatus('Ready to capture');
   } else {
+    // ⭐ T22: the ONE action this sentence names — the capture tile it used to point at is gone
+    if (mode.mode !== 'form') showCaptureAction();
     setStatus('No job detected here — capture anyway to try');
   }
 }
@@ -353,8 +350,8 @@ document.addEventListener('keydown', (ev) => {
 
 
 // ── D13: THE COMPANION ─────────────────────────────────────────────────────────────────────────
-// Shows the one or two actions this page calls for, and why. Everything else stays under
-// "Everything" — the decision only adds a shortcut, it never removes a button.
+// Shows the ONE action this page calls for, and why. ⭐ T22: the tiles that stood under it are gone; what a wrong guess
+// would hide is a shortcut or a right-click away (Ctrl+Shift+K capture, Ctrl+Shift+Y fill).
 function renderCompanion(c) {
   const box = document.getElementById('companion');
   const line = document.getElementById('ctx-line');
@@ -376,10 +373,11 @@ function renderCompanion(c) {
     box.style.display = 'block';
     return;
   }
-  // ⛔ D56: a job of yours with nothing prepared for it — one click prepares it and fills.
+  // ⛔ D56: a job of yours with nothing prepared for it — one click prepares it and fills. ⭐ T22: that click is Fill it
+  // (T13: Fill prepares first when nothing is prepared) — the separate "Prepare this application" was the same press.
   if (c.mode === 'prepare') {
     line.textContent = prepareLine(c.handoff);
-    document.getElementById('btn-prepare').style.display = 'flex';
+    document.getElementById('btn-fill-primary').style.display = 'flex';
     document.getElementById('btn-submitted').style.display = 'flex';
     box.style.display = 'block';
     return;
@@ -432,9 +430,9 @@ async function fillActiveTab() {
   // D36: stay open when the fill worked but its review panel did not — that sentence is the only
   // place the candidate learns the answers were not laid out for checking.
   if (r?.ok && r?.overlay?.rendered !== false) setTimeout(() => window.close(), 1200);
-  // D56: nothing prepared, but a job of yours — the button the message names is right here.
+  // D56 → ⭐ T22: nothing prepared, but a job of yours — Fill it is that button (it prepares first), so it stays.
   if (!r?.ok && r?.canPrepare) {
-    document.getElementById('btn-prepare').style.display = 'flex';
+    document.getElementById('btn-fill-primary').style.display = 'flex';
     document.getElementById('companion').style.display = 'block';
   }
   // ⭐ BINDING FIRST: the page is a posting draft does not hold — the ONE button the sentence names is Capture, and a
@@ -471,21 +469,9 @@ document.getElementById('btn-allow-frame').addEventListener('click', async () =>
   document.getElementById('btn-allow-frame').style.display = 'none';
   await fillActiveTab();
 });
+// ⭐ T22: ONE fill control. The fill tile and "Prepare this application" were the same press (T13's chain prepares when
+// nothing is prepared); Ctrl+Shift+Y and the right-click menu's "Fill this application" reach the same chain.
 document.getElementById('btn-fill-primary').addEventListener('click', fillActiveTab);
-document.getElementById('btn-fill').addEventListener('click', fillActiveTab);
-
-// ⭐ D56 · "Prepare this application" — one click: the packet is built on demand and filled.
-document.getElementById('btn-prepare').addEventListener('click', async () => {
-  const btn = document.getElementById('btn-prepare');
-  btn.disabled = true;
-  btn.textContent = 'Preparing…';
-  const r = await chrome.runtime.sendMessage({ type: 'PREPARE_ACTIVE_TAB' }).catch(() => null);
-  btn.disabled = false;
-  btn.textContent = 'Prepare this application';
-  setStatus(r?.message || (r?.ok ? 'Filled — check every answer, then submit.' : 'Could not prepare this application.'));
-  if (r?.ok && r?.overlay?.rendered !== false) setTimeout(() => window.close(), 1200);
-  showFramePermission(r);
-});
 
 // ⭐ D56 · "I submitted it" — the manual route records its own submission; the server says whether it verified.
 document.getElementById('btn-submitted').addEventListener('click', async () => {
@@ -539,14 +525,12 @@ document.getElementById('btn-copy-sheet').addEventListener('click', async () => 
   box.style.display = 'block';
 });
 
-// The companion's Capture it / Score it are the same handlers as the buttons under "Everything".
-document.getElementById('btn-capture-primary').addEventListener('click', () => captureFrom('btn-capture-primary'));
-document.getElementById('btn-score-primary').addEventListener('click', () => openAtsScore());
-
 // The SAME capture the hotkey runs — same message, same implementation, same destination, same
 // wording. Previously this button called a second implementation that wrote to a different table
 // with a different dedup identity, so "Save Job" and Ctrl+Shift+K were two features wearing one name.
-document.getElementById('btn-capture-job').addEventListener('click', () => captureFrom('btn-capture-job'));
+// ⭐ T22: Capture it is the ONE capture control in the popup (the capture tile is gone; Ctrl+Shift+K and the right-click
+// menu's "Save this page to draft" run the same captureActiveTab).
+document.getElementById('btn-capture-primary').addEventListener('click', () => captureFrom('btn-capture-primary'));
 
 async function captureFrom(buttonId) {
   const btn = document.getElementById(buttonId);
@@ -611,38 +595,19 @@ document.getElementById('btn-resume').addEventListener('click', async () => {
 
 // D63 (5): "Sign in with LinkedIn" moved to the options page (options.js) — it is used once.
 
-// Collecting the page text was gated on the same hardcoded six-hostname list the capture button
-// used, so the ATS tool refused to read a Greenhouse posting on a company's own careers domain and
-// opened an empty scorer instead. The gate was never what made the read legal — the activeTab grant
-// from opening this popup is — so it is gone. On a page with nothing to read the extraction simply
-// comes back empty and the scorer opens blank, which is the old else-branch behaviour anyway.
-document.getElementById('btn-ats').addEventListener('click', () => openAtsScore());
-
-async function openAtsScore() {
-  // ⛔ D99 J12: signed in → the on-page panel, which shows draft's own report for this tab's job (score, band, matched and
-  // missing terms) — or "Add your résumé in draft", or "Read this page now" when the tab is not linked to a job yet.
-  // The free checker below is for signed-out visitors only. Nothing of the page is read for this.
-  if (signedIn) {
-    const r = await chrome.runtime.sendMessage({ type: 'RESUME_PANEL_OPEN' }).catch(() => null);
-    if (r?.ok) { window.close(); return; }
-    setStatus(r?.message || "draft can't show the score on this page.", 3000);
-    return;
-  }
-  const tab = await getCurrentTab();
-  let jobText = '';
-  if (tab?.id) {
-    try {
-      const [{ result }] = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () => document.body?.innerText?.slice(0, 6000) || '',
-      });
-      jobText = result || '';
-    } catch (_err) { /* no grant, or a page that cannot be injected: open the scorer empty */ }
-  }
-  await chrome.runtime.sendMessage({ type: 'OPEN_ATS_SCORE', jobText });
-  setStatus('Sending to ATS Score...', 1000);
-  setTimeout(() => window.close(), 900);
-}
+// ⭐ T22 · OPEN DOCK — the popup is a LAUNCHER (owner 10-15): a toolbar popup can be neither resized nor kept open when
+// the page takes focus, so this opens draft's dock ON THE PAGE (extension/dock.js — Fill · ATS · Résumé · Copy sheet,
+// moved, resized and kept where you leave it) and closes. The score tile is gone with it: draft's report for this tab's
+// job is the dock's ATS tab (D99 J12 — a signed-in user is never sent to the free checker). Nothing of the page is read
+// to open it.
+document.getElementById('btn-open-dock').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-open-dock');
+  btn.disabled = true;
+  const r = await chrome.runtime.sendMessage({ type: 'DOCK_OPEN' }).catch(() => null);
+  btn.disabled = false;
+  if (r?.ok) { window.close(); return; }
+  setStatus(r?.message || "draft can't open its panel on this page.", 4000);
+});
 
 // ─── More → the options page ───────────────────────────────────────────────
 // D63 (5): Keyboard shortcuts and Sign in with LinkedIn live there now; More is the one way in. The

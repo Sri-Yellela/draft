@@ -303,6 +303,28 @@ export async function launchExtensionBrowser(opts = {}) {
       browser, extensionId, page, control, api, ats, db: api.db, outDir,
       // ── messages and storage (through an extension page, as the popup would) ──
       send: (msg) => control.evaluate((m) => chrome.runtime.sendMessage(m), msg),
+      /**
+       * ⭐ T17 / T22 · a message FROM THE PAGE'S TAB — sent in the extension's own isolated world in the page's TOP frame,
+       * exactly as a control on the dock sends it (the sender is the tab, frame 0). It exists for the presses that have no
+       * control yet: a résumé is started only by the Draft button (T24) and the résumé row's "Generate and attach" (T18),
+       * neither built at T22 — so the walks start one the way those controls will. The extension's world must already be
+       * in the page (anything drawn on the dock puts it there).
+       */
+      async pageSend(msg) {
+        const cdp = await page.createCDPSession();
+        try {
+          const contexts = [];
+          cdp.on('Runtime.executionContextCreated', (e) => contexts.push(e.context));
+          await cdp.send('Runtime.enable');
+          const top = (await cdp.send('Page.getFrameTree')).frameTree.frame.id;
+          const ctx = contexts.filter(c => c.auxData?.frameId === top && !c.auxData?.isDefault && String(c.origin || '').includes(extensionId)).at(-1);
+          if (!ctx) throw new Error('pageSend: the extension has no world in this page yet — draw something on the dock first');
+          const r = await cdp.send('Runtime.evaluate', { contextId: ctx.id, awaitPromise: true, returnByValue: true,
+            expression: `chrome.runtime.sendMessage(${JSON.stringify(msg)})` });
+          if (r.exceptionDetails) throw new Error(`pageSend: ${r.exceptionDetails.exception?.description || r.exceptionDetails.text}`);
+          return r.result?.value ?? null;
+        } finally { await cdp.detach().catch(() => {}); }
+      },
       storage: {
         local: () => control.evaluate(() => chrome.storage.local.get(null)),
         session: () => control.evaluate(() => chrome.storage.session.get(null)),

@@ -193,11 +193,11 @@ test("THE POLICY'S COUNT OF STORED ITEMS MATCHES THE NUMBER OF KEYS THE CODE WRI
     .filter(f => f.endsWith(".js") && fs.existsSync(`extension/${f}`))
     .map(f => fs.readFileSync(`extension/${f}`, "utf8"));
   const writes = sources.join("\n").match(/chrome\.storage\.(?:local|session)\.set\(/g) || [];
-  assert.equal(writes.length, 9,
-    `the extension writes ${writes.length} storage keys; the policy enumerates nine. Update ` +
+  assert.equal(writes.length, 10,
+    `the extension writes ${writes.length} storage keys; the policy enumerates ten (T17 added dockPlace). Update ` +
     `"What the Extension Stores in Your Browser", PRIVACY_RECONCILIATION.md's storage row and ` +
     `STORE_LISTING.md's storage justification together — the dashboard field is pasted from the last one`);
-  assert.match(policyText, /keeps nine things/,
+  assert.match(policyText, /keeps ten things/,
     "the policy must state the same count the code writes");
 
   // Each of the six, named in prose a user can match to what they would see.
@@ -213,6 +213,7 @@ test("THE POLICY'S COUNT OF STORED ITEMS MATCHES THE NUMBER OF KEYS THE CODE WRI
     ["autoRead", /automatic-reading settings/i],   // D64 → D97
     ["bind:{tabId}",     /Which job a tab is on/i],   // v1.5.2 — the tab binding
     ["jobProgress",      /Where each application stands/i],   // D96 §3 — the remembered progress
+    ["dockPlace",        /Where draft's panel sits on each site/i],   // T17 — the dock's rectangle, per site
   ]) {
     assert.match(policyText, re, `the policy does not describe the ${key} key`);
   }
@@ -236,7 +237,7 @@ test("THE POLICY'S COUNT OF STORED ITEMS MATCHES THE NUMBER OF KEYS THE CODE WRI
     "the policy must say which keys the ten-minute expiry does NOT cover");
 
   // The dashboard field is pasted from STORE_LISTING.md, so it drifts silently unless pinned here.
-  assert.match(listing, /Nine values/,
+  assert.match(listing, /Ten values/,
     "STORE_LISTING.md's storage justification still describes a different number of values than " +
     "the policy — the owner would paste a contradiction into the Privacy practices tab");
 });

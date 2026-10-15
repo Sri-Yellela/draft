@@ -1,5 +1,17 @@
 # Chrome Web Store listing — draft v1.5.2
 
+> **v1.5.2, folded further (2026-10-15, T17 — still v1.5.2, NOT yet uploaded).** ⛔ **Re-paste at the next upload: the
+> `storage` justification (now TEN values) and the reviewer notes.** What changed: everything the extension shows on a
+> page — the review panel, the ATS report, the résumé, the Copy sheet and the one-line status — now sits in ONE panel
+> (the dock) in the page's TOP frame only, never inside an embedded form's iframe; it can be dragged, resized, snapped
+> to an edge, collapsed, and any of its four tabs opened in its own floating window. Where it sits is remembered per
+> site (`dockPlace`, local storage: the site's origin and the panel's position and size — nothing of the page). The
+> panels are drawn in the account's theme (all four). No permission changed. **T22 (same day): the popup is a launcher** —
+> its capture, fill and score tiles and its stand-alone résumé button are gone (Capture it / Fill it stay as the one main
+> action; the Draft button stays; **Open dock** added); the right-click menu gains **Fill this application with draft**
+> and **Show draft's ATS report** (re-paste the `contextMenus` justification); the Score tile's page-text-in-a-URL path
+> to the ATS Score page is gone (Website content item 3, and the privacy policy says so).
+
 > **v1.5.2, folded further (2026-10-15, D97 REVISED + T12 — still v1.5.2, NOT yet uploaded).** ⛔ **Re-paste at the next
 > upload: the optional host permissions justification, `scripting`, `storage`, the reviewer notes and the test
 > instructions.** What changed: **(1) automatic reading after ONE consent** — the popup shows a one-time card (*"draft
@@ -132,13 +144,12 @@ the application in front of the user.
 | Right-click **Save link to draft** | Sends only the link's address; our server reads the posting from the job board's own listing, or refuses the link and saves nothing. |
 | **Automatic capture** (off by default; options page) | Only on a granted host the user switched Capture on for (a preset job host, or a site chosen with Always read here): a page that is a posting is sent to the user's account; our server keeps it only if it fits their board. A non-posting sends nothing. |
 | **Automatic reading** (after the popup's one-time card, or Always read here) | On an allowed site: an application page's question labels and counts are read and kept on this computer (nothing sent); on a tab linked to the user's own job, the answers are prepared on our server (the page's address is sent). |
-| **Fill it** / **Ctrl+Shift+Y** on an application form | The gated handoff: fetches the answers the user already saved, checks this page is that application's, fills the form and shows a review panel. The user submits. |
-| **Prepare this application** | For a job of the user's with nothing prepared: builds the answers on demand, then the same handoff. |
+| **Fill it** / **Ctrl+Shift+Y** / right-click **Fill this application with draft** / the panel's **Fill this page** on an application form | The gated handoff: fetches the answers the user already saved (building them on demand for a job of the user's with nothing prepared), checks this page is that application's, fills the form and shows a review panel. The user submits. |
 | **I submitted it** | Records the application against the page in view (its address is the evidence). |
-| **Copy sheet** | Lists the user's own prepared answers in the popup, each with a copy button. Writes nothing into the page. |
+| **Open dock** / right-click **Show draft's ATS report** | Opens the extension's panel on the page (Fill · ATS · Résumé · Copy sheet), in the page's top frame — movable, resizable, kept open. Reads nothing of the page to open it. |
+| **Copy sheet** | Lists the user's own prepared answers in the panel on the page, each with a copy button. Writes nothing into the page's fields. |
 | **Report form** → **Send report** | Shows first, then sends: the form page's host and its field labels — never values. |
-| **Score** | Collects the visible text of the page in view and opens the user's ATS Score page with it prefilled. |
-| **Open draft** · More → **Sign in with LinkedIn** | Opens a Draft page in a new tab. Reads nothing. |
+| **Open draft** (the /d button) · More → **Sign in with LinkedIn** | Opens a Draft page in a new tab. Reads nothing. |
 | More → options page | Keyboard shortcuts (both commands, as bound), Sign in with LinkedIn, the automatic-capture switch. |
 
 ### Which sites it works on
@@ -165,13 +176,16 @@ messages, each calling `chrome.tabs.query({active: true, currentWindow: true})` 
 handler; `captureActiveTab()`, `previewActiveTab()` and `handleGatedHandoff()` are reached only from there.)*
 
 **`contextMenus`**
-> Adds two items to the right-click menu. **Save this page to draft** runs the same capture as the
+> Adds four items to the right-click menu. **Fill this application with draft** runs the same fill as the toolbar's
+> **Fill it** and Ctrl+Shift+Y, on the page the user right-clicked; **Show draft's ATS report** opens the extension's
+> panel on that page at its ATS tab (draft's report for the job, from our backend — it reads nothing of the page).
+> **Save this page to draft** runs the same capture as the
 > toolbar button, on the page the user right-clicked. **Save link to draft** sends only the address of
 > the link the user right-clicked to our backend, which reads that posting from the job board's own
 > listing — or refuses the link and saves nothing if it is not a posting on a board we read directly.
-> Neither item reads anything until the user picks it, and the permission grants no access to any page.
+> No item reads anything until the user picks it, and the permission grants no access to any page.
 
-*(Code: `background.js` `chrome.contextMenus.onClicked` → `captureActiveTab()` / `saveLinkToDraft()`;
+*(Code: `background.js` `chrome.contextMenus.onClicked` → `captureActiveTab()` / `saveLinkToDraft()` / `handleGatedHandoff()` / `openDock()`;
 the items are `formReport.js` `CONTEXT_MENUS`.)*
 
 **`scripting`**
@@ -189,7 +203,7 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 `applyPlan()`, `applyOverlayEdit()`; `review-overlay.js` `renderOverlay()`; `autofill-badge.js`.)*
 
 **`storage`**
-> Nine values. Eight never leave the browser; the ninth is the extension's own access token, which is
+> Ten values. Nine never leave the browser; the tenth is the extension's own access token, which is
 > sent to our backend and to nowhere else. In `chrome.storage.local`: the result of the user's most
 > recent capture, so the popup can show the outcome of a capture made with the keyboard while the popup
 > was closed; the username of the account the extension is connected to, so the popup can name it; that
@@ -201,22 +215,25 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 > submits with the extension, its draft id, title, company and posting address, when each step happened,
 > how many fields were filled or still need the user, and the id and status of a résumé generated for it —
 > no answers and no résumé content, kept 30 days from its last change, deleted on disconnect, sign-out or
-> another account connecting.
+> another account connecting; and where the extension's on-page panel sits on each site the user used it on —
+> the site's origin (never a path) and the panel's position, size, snapped edge, collapsed state, tab and which
+> tabs are in their own windows — nothing of the page, the 50 most recent sites, each kept 30 days.
 > In `chrome.storage.session` (memory-backed,
 > discarded on browser restart): the prepared answers for an application in progress, with a 10-minute
 > expiry and cleared when the tab closes; the result of the most recent form fill, so the popup can
 > report a fill started with the keyboard; when several applications are queued for one employer
 > site, that site's origin and how many remain, so a batch can resume in the same tab — no answers and
-> nothing about the user in that one; and which job a tab is on (the job's draft id, title and company,
-> when it was linked, and the Copy sheet's dock side) once the user captures a job there or draft recognises
+> nothing about the user in that one; and which job a tab is on (the job's draft id, title and company, and
+> when it was linked) once the user captures a job there or draft recognises
 > the posting, so the later pages of that application are known to be the same job — no answers, never
 > shared between tabs, deleted when the tab closes, shows a different job, or the user unlinks it.
 
 *(Code: `background.js` `reportCapture()` → `lastCapture` (local) and `reportHandoff()` →
 `lastGatedHandoff` (session); `gated-handoff.js` → `gate:{tabId}` and `batch:{tabId}` (session);
 `auth.js` → `authToken` and `authIdentity` (local); `autoRead.js` `updateSettings()` (set from the options page and the popup) → `autoRead` (local), which replaced D64's `autoCaptureEnabled` (migrated once by `migrateLegacy()`, then removed) — since 10-15 it also holds the one-time consent, the sites chosen with Always read here, and which job host's form a site embeds (an origin and a site name, never a path);
-`tabBinding.js` `bindTab()` / `setBindingDock()` → `bind:{tabId}` (session), removed by `clearBinding()` on tab close and "Unlink this page";
-`progress.js` `progress.patch()` / `set()` / `claim()` → `jobProgress` (local), removed by `progress.clearAll()` from `auth.js` `disconnect()` and `getIdentity()` (sign-out, another account).)*
+`tabBinding.js` `bindTab()` → `bind:{tabId}` (session), removed by `clearBinding()` on tab close and "Unlink this page";
+`progress.js` `progress.patch()` / `set()` / `claim()` → `jobProgress` (local), removed by `progress.clearAll()` from `auth.js` `disconnect()` and `getIdentity()` (sign-out, another account);
+⭐ T17: `dockHost.js` `saveDockPlace()` (its one write, `writeDockPlaces()`, from the dock's `DOCK_PLACE` message — a page's top frame only) → `dockPlace` (local), the 50 most recent sites, 30 days.)*
 
 **Host permission** — one, our own backend
 > `https://jobsviadraft.com/*` is our own server. The extension calls it with an access token of its
@@ -280,9 +297,9 @@ These are the answers for the **Privacy practices** tab.
   2. *Automatic capture, when switched on:* the address and text of a page on a granted host the user switched
      Capture on for **that is a job posting** — kept only if it fits the user's board, otherwise
      discarded without being stored. Nothing is sent for any other page.
-  3. The visible text of a job page when the user clicks **Score**, passed to their ATS Score page. It
-     travels in the URL of the page that opens, so it can appear in ordinary server logs (stated in the
-     privacy policy).
+  3. *(Removed with T22, 10-15: the popup's Score tile, which passed a job page's visible text to the ATS Score
+     page in that page's URL, is gone — draft's own report for the job is shown in the extension's on-page panel.
+     The privacy policy says so.)*
   4. The tab's address when the user presses **Read this page**, and the application page's full
      address on a fill, Prepare, the Copy sheet and **I submitted it** — used to match the page to the
      application; kept only on **I submitted it**, as evidence on the application record.
