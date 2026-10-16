@@ -130,11 +130,11 @@ test("⛔ J9 #3: the panel's recount after an acknowledgement reaches the progre
   chromeStub();
   const { noteFill, noteReviewed, progress } = await import(`../extension/progress.js?j9=${++instance}`);
   await noteFill({ ok: true, filled: [{}, {}, {}, {}, {}, {}], fieldCount: 14, panel: { filled: 6, of: 13, needYou: 7, check: 1 } }, { jobId: "wd-1" });
-  assert.deepEqual((await progress.get({ jobId: "wd-1" })).filled, { n: 6, of: 13, needYou: 7, check: 1 });
+  assert.deepEqual((({ at, ...c }) => (assert.equal(typeof at, "number", "43k: counts carry when they were made"), c))((await progress.get({ jobId: "wd-1" })).filled), { n: 6, of: 13, needYou: 7, check: 1 });
   // the candidate acknowledges the guess and types the address: the panel reports (GATE_REVIEW_STATE), not ready
   await noteReviewed({ ready: false, counts: { filled: 7, of: 13, needYou: 6, check: 0 }, edits: [{ key: "k", value: "1 Example Way" }] }, { jobId: "wd-1" });
   const r = await progress.get({ jobId: "wd-1" });
-  assert.deepEqual(r.filled, { n: 7, of: 13, needYou: 6, check: 0 });
+  assert.deepEqual((({ at, ...c }) => (assert.equal(typeof at, "number", "43k: counts carry when they were made"), c))(r.filled), { n: 7, of: 13, needYou: 6, check: 0 });
   assert.equal(r.reviewed, null, "not ready → not Reviewed");
   assert.ok(!JSON.stringify(r).includes("1 Example Way"), "counts only — never the typed value");
   // ready still marks Reviewed, as before

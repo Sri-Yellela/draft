@@ -393,7 +393,7 @@ test("⛔ J4 (D96 §3/§5): the progress record takes the PANEL's counts — the
   await noteFill({ ok: true, filled: [{}, {}], fieldCount: 20, missingCount: 9, review: { uncertainCount: 9 },
     panel: { filled: 14, of: 18, needYou: 2, check: 3 } }, { jobId: "j-p" });
   const r = await progress.get({ jobId: "j-p" });
-  assert.deepEqual(r.filled, { n: 14, of: 18, needYou: 2, check: 3 });
+  assert.deepEqual((({ at, ...c }) => (assert.equal(typeof at, "number", "43k: counts carry when they were made"), c))(r.filled), { n: 14, of: 18, needYou: 2, check: 3 });
   const src = read("extension/gated-handoff.js");
   assert.match(src, /panel: \{ filled: panel\.filled, of: panel\.total, needYou: panel\.need, check: panel\.check, ready: panel\.ready \},/);
 });
