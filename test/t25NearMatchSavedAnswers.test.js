@@ -77,6 +77,17 @@ test("⛔ T25 (D96 §7): an eligibility, EEO, consent, opt-in or salary question
   assert.notEqual(exact[0].matchedBy, "near_question");
 });
 
+test("⭐ T25 (owner 10-16): a SCREENING question near-matches — the person already chose to remember it; salary and clearance still never do", () => {
+  idx = 0;
+  const { plan } = place([saved("Would you be willing to relocate?", "Yes")], [f({ type: "text", label: "Are you willing to relocate?" })]);
+  assert.equal(plan.length, 1, "relocation reuses the near-worded answer");
+  assert.equal(plan[0].matchedBy, "near_question", "â¦as a near match (Check), never silently Filled");
+  assert.equal(sam.nearMatchBarred("Are you willing to relocate?", gh.questionKind), null);
+  for (const q of ["What are your salary expectations?", "Do you hold an active security clearance?"]) {
+    assert.ok(sam.nearMatchBarred(q, gh.questionKind), `still barred: ${q}`);
+  }
+});
+
 test("⛔ T25: on a picker the answer must be one of the field's OWN options, or it is not used", () => {
   idx = 0;
   const select = (options) => f({ type: "select-one", label: "How did you hear about this job?", options: options.map(t => ({ text: t, value: t.toLowerCase() })) });

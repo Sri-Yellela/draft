@@ -318,7 +318,10 @@ export function nearQuestionScore(a, b, company = '') {
 /** Why a question may only ever be matched EXACTLY — a kind, a guard's name — or null when a near match may reach it. */
 export function nearMatchBarred(question, kindOf = () => 'other', options = null) {
   const kind = kindOf(question);
-  if (['eligibility', 'eeo', 'consent', 'opt_in', 'screening'].includes(kind)) return kind;
+  // ⭐ Owner 10-16: NOT 'screening' (relocation, years of experience, travel) — the person already chooses what is
+  // remembered, so a near-worded screening question may reuse it (as Check). Salary stays barred (NEAR_MONEY_RE), and a
+  // security clearance with eligibility (NEAR_ELIGIBILITY_RE).
+  if (['eligibility', 'eeo', 'consent', 'opt_in'].includes(kind)) return kind;
   if (NEAR_ELIGIBILITY_RE.test(String(question ?? ''))) return 'eligibility';
   if (NEAR_MONEY_RE.test(String(question ?? ''))) return 'salary';
   if (eeoClassOf(question) || (Array.isArray(options) && eeoClassOfOptions(options.map(String)))) return 'eeo';
