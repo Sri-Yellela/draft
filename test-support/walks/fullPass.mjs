@@ -233,7 +233,7 @@ export default async function run(h, { check, observe, section }) {
   const recFill = await waitUntil(async () => { const r = await progressRecord(); return JSON.stringify(r?.filled) === WANT_FILL ? r : null; }, BUSY_MS) || await progressRecord();
   observe('the progress record after the My Information fill', recFill);
   check('the progress record holds the counts — prepared, filled N of 13', !!recFill?.prepared?.at && recFill?.filled?.of === 13, JSON.stringify(recFill?.filled || null));
-  check('…and they are the panel\'s AFTER the acknowledgement and the typed answer: 7 of 13 · 6 need you · 0 to check', JSON.stringify(recFill?.filled) === JSON.stringify({ check: 0, n: 7, needYou: 6, of: 13 }), JSON.stringify(recFill?.filled));
+  check('…and they are the panel\'s AFTER the acknowledgement and the typed answer: 7 of 13 · 6 need you · 0 to check', JSON.stringify({ ...recFill?.filled, at: undefined }) === JSON.stringify({ check: 0, n: 7, needYou: 6, of: 13 }) && Number.isFinite(recFill?.filled?.at), JSON.stringify(recFill?.filled));
 
   section('4b · Application Questions — the eligibility answers, typed once and remembered');
   await fresh(h); await h.goStep('applicationQuestions');
@@ -405,6 +405,6 @@ export default async function run(h, { check, observe, section }) {
   observe('chrome.storage.session gate:{tabId} packets (the declared prepared answers) — lifetime ms', gates);
   check('…and that packet keeps its ten-minute expiry', gates.every(ms => ms === 10 * 60 * 1000), JSON.stringify(gates));
   const rec = await progressRecord();
-  check('the progress record holds counts and times only', !!rec && Object.keys(rec.filled || {}).sort().join() === 'check,n,needYou,of', JSON.stringify(rec));
+  check('the progress record holds counts and times only', !!rec && Object.keys(rec.filled || {}).sort().join() === 'at,check,n,needYou,of', JSON.stringify(rec));
   check('no capsule shape in any panel (D60)', capsules.length === 0, [...new Set(capsules)].slice(0, 6).join(' | '));
 }
