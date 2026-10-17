@@ -349,6 +349,26 @@ export async function launchExtensionBrowser(opts = {}) {
         const r = await Promise.race([reply, sleep(timeoutMs).then(() => late)]);
         return r === late ? { pending: true, reply } : r;
       },
+      /**
+       * ⭐ (open item 2, walks under load) Send an action and wait for what it DID — its own reply, or the wizard's own
+       * signal that it is waiting for the candidate (the status line in state "required") — whichever comes first,
+       * bounded by BUSY_MS. action()'s `timeoutMs` decided "is it waiting?" by a fixed time, which under a full run's load
+       * is also what a slow fill looks like: t11 (a) read "a single-page form does not wait" as failed when its fill took
+       * > 30 s, and a walk that then waited for a "required" that never came spent a minute per press. Resolves to
+       *   { answered: true, reply }                       the action answered by itself
+       *   { answered: false, waitingForYou: true, reply }  the status line asked the candidate first (reply: the promise)
+       *   { answered: false, waitingForYou: false, reply } neither within the bound (reply: the promise)
+       * `on` reads the status line on another tab (a walk that opens one per section).
+       */
+      async untilAnswerOrWaiting(msg, { on = page, ms = BUSY_MS } = {}) {
+        const reply = h.send(msg);
+        let answered = null;
+        reply.then((v) => { answered = { v }; }, (e) => { answered = { v: { ok: false, reason: 'send_failed', message: String(e) } }; });
+        const badgeState = () => on.evaluate(() => document.getElementById('rm-draft-autofill-badge')?.dataset.state || null).catch(() => null);
+        const seen = await waitUntil(async () => (answered ? 'answered' : (await badgeState()) === 'required' ? 'required' : null), ms);
+        if (answered) return { answered: true, waitingForYou: false, reply: answered.v };
+        return { answered: false, waitingForYou: seen === 'required', reply };
+      },
       /** The on-page autofill badge (extension/autofill-badge.js, shadow DOM): { state, missing, text, dismissed } or null. */
       readBadge: () => page.evaluate(() => {
         const host = document.getElementById('rm-draft-autofill-badge');

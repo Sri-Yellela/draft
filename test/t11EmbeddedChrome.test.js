@@ -17,7 +17,7 @@ import os from "node:os";
 import path from "node:path";
 import https from "node:https";
 import { execFileSync } from "node:child_process";
-import { findChrome, launchExtensionBrowser, defaultSeed, waitUntil, sleep } from "../test-support/extensionBrowser.mjs";
+import { findChrome, launchExtensionBrowser, defaultSeed, waitUntil, sleep, BUSY_MS } from "../test-support/extensionBrowser.mjs";
 
 const chrome = await findChrome();
 const opensslSkip = (() => { try { execFileSync("openssl", ["version"], { stdio: "ignore" }); return false; } catch { return "no openssl to make the fixture's test certificate"; } })();
@@ -90,6 +90,31 @@ async function launch(fx, { greenhouse }) {
 const frameValues = (h) => h.frame(u => u.startsWith(`https://${GH_HOST}/`))?.evaluate(() =>
   Object.fromEntries([...document.querySelectorAll("#application_form input")].map(i => [i.id, i.value])));
 
+/**
+ * ⭐ (open item 2) The embedded form is READY — its document parsed, its fields there — not merely "a frame at that address
+ * exists". puppeteer lists a frame the moment its navigation starts; a Prepare pressed then (under load the frame's
+ * document took seconds) read a frame with no form yet. Bounded by BUSY_MS; asserted, so a frame that never came says so.
+ */
+async function formFrameReady(h) {
+  const ready = await waitUntil(async () => {
+    const f = h.frame(u => u.startsWith(`https://${GH_HOST}/`));
+    return f ? f.evaluate(() => document.readyState !== "loading" && document.querySelectorAll("#application_form input").length >= 4).catch(() => false) : false;
+  }, BUSY_MS);
+  assert.ok(ready, `the embedded Greenhouse form loaded in its frame (${BUSY_MS} ms)`);
+}
+/**
+ * ⭐ (open item 2) Prepare, and wait for what IT did: its own reply, or the wizard's own "waiting for you" (the status line
+ * in state "required") — h.untilAnswerOrWaiting. The old check gave the reply 30 s and called anything later "the form
+ * waits", which under a full run's load is also what a slow fill looks like ("a single-page form does not wait" failed
+ * with the fill merely slow).
+ */
+async function prepare(h) {
+  const r = await h.untilAnswerOrWaiting({ type: "PREPARE_ACTIVE_TAB" });
+  assert.equal(r.waitingForYou, false, "a single-page form does not wait for the candidate");
+  assert.equal(r.answered, true, `the Prepare answered (${BUSY_MS} ms)`);
+  return r.reply;
+}
+
 /** ⭐ T17: is anything of draft's drawn in a frame? (a child frame holds only the extractor and the filler) */
 const drawnIn = (f) => f.evaluate(() => [...document.querySelectorAll("[data-draft-dock], [data-draft-view], #rm-gate-review-overlay, #rm-draft-autofill-badge, [data-draft-viewport]")].map(e => e.id || e.tagName));
 
@@ -100,16 +125,15 @@ test("⭐ (a) with Greenhouse allowed: the fill lands INSIDE the embedded frame;
     const h = await launch(fx, { greenhouse: true });
     t.after(() => h.close());
     await h.open(POSTING, { settle: 1200 });
-    await waitUntil(() => h.frame(u => u.startsWith(`https://${GH_HOST}/`)), 10000);
-    const r = await h.prepare({ timeoutMs: 30000 });
-    assert.equal(r.pending, undefined, "a single-page form does not wait");
+    await formFrameReady(h);
+    const r = await prepare(h);
     assert.equal(r.ok, true, `${r.reason}: ${r.message}`);
     const v = await frameValues(h);
     assert.deepEqual(v, { first_name: "Ada", last_name: "Example", email: "ada@example.test", phone: "555-0100" });
     const news = await h.page.evaluate(() => document.getElementById("news").value);
     assert.equal(news, "", "the employer's own newsletter box is not the application");
     // ⛔ T17 (owner 10-15 (a)): the panel was baked into the form's iframe — cut off by its edge, or covering the form.
-    const panel = await waitUntil(() => h.readPanel(), 15000);
+    const panel = await h.waitForPanel();
     assert.ok(panel, "the review panel is drawn in the TOP frame");
     assert.ok(panel.rows.some(x => /^First Name/.test(x.label) && x.value === "Ada"), JSON.stringify(panel.rows));
     const top = await h.page.evaluate(() => ({ dock: document.getElementById("rm-draft-dock")?.getAttribute("data-draft-dock"),
@@ -136,10 +160,10 @@ test("⭐ (c) a frame as tall as the form (Greenhouse's real shape): the dock �
     t.after(() => h.close());
     await h.open(`${POSTING}&tall=1`, { settle: 1200 });
     const gh = (u) => u.startsWith(`https://${GH_HOST}/`);
-    await waitUntil(() => h.frame(gh), 10000);
-    const r = await h.prepare({ timeoutMs: 30000 });
+    await formFrameReady(h);
+    const r = await prepare(h);
     assert.equal(r.ok, true, `${r.reason}: ${r.message}`);
-    await waitUntil(() => h.readPanel(), 15000);
+    assert.ok(await h.waitForPanel(), "the review panel is drawn in the TOP frame");
     const onScreen = (id) => h.page.evaluate((x) => { const b = document.getElementById(x)?.getBoundingClientRect(); return b && { top: b.top, bottom: b.bottom, left: b.left, right: b.right, vh: innerHeight, vw: document.documentElement.clientWidth }; }, id);
     for (const y of [0, 1600, 3000]) {
       await h.page.evaluate((to) => window.scrollTo(0, to), y);
@@ -162,10 +186,10 @@ test("⭐ T17 (d): the dock dragged ACROSS the embedded form's frame keeps movin
     const h = await launch(fx, { greenhouse: true });
     t.after(() => h.close());
     await h.open(POSTING, { settle: 1200 });
-    await waitUntil(() => h.frame(u => u.startsWith(`https://${GH_HOST}/`)), 10000);
-    const r = await h.prepare({ timeoutMs: 30000 });
+    await formFrameReady(h);
+    const r = await prepare(h);
     assert.equal(r.ok, true, `${r.reason}: ${r.message}`);
-    await waitUntil(() => h.readPanel(), 15000);
+    assert.ok(await h.waitForPanel(), "the review panel is drawn in the TOP frame");
     const rect = () => h.page.evaluate(() => { const b = document.getElementById("rm-draft-dock").getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height) }; });
     const before = await rect();
     const hd = await (await h.page.evaluateHandle(() => document.getElementById("rm-draft-dock").shadowRoot.querySelector(".hd .mk"))).asElement().boundingBox();
@@ -179,7 +203,7 @@ test("⭐ T17 (d): the dock dragged ACROSS the embedded form's frame keeps movin
     assert.ok(Math.abs(after.x - (before.x + (200 - hd.x - 5))) <= 2 && Math.abs(after.y - (before.y + (150 - hd.y - 5))) <= 2,
       `the drag crossed the form's frame and followed the pointer to the end: ${JSON.stringify({ before, after })}`);
     const site = `https://${CAREERS}`;
-    const saved = await waitUntil(async () => (await h.storage.local())?.dockPlace?.[site], 10000);
+    const saved = await waitUntil(async () => (await h.storage.local())?.dockPlace?.[site], BUSY_MS);   // saved 200 ms after the drag, by message
     assert.ok(saved, "remembered for the careers site");
     assert.deepEqual([saved.rect.x, saved.rect.y], [after.x, after.y]);
     assert.equal((await h.storage.local())?.dockPlace?.[`https://${GH_HOST}`], undefined, "never for the frame's site — the dock is the top page's");
@@ -187,7 +211,7 @@ test("⭐ T17 (d): the dock dragged ACROSS the embedded form's frame keeps movin
     await h.reload({ settle: 1200 });
     const opened = await h.send({ type: "DOCK_OPEN", tab: "fill" });
     assert.equal(opened?.ok, true, JSON.stringify(opened));
-    const again = await waitUntil(async () => (await h.page.$("#rm-draft-dock")) && rect(), 10000);
+    const again = await waitUntil(async () => (await h.page.$("#rm-draft-dock")) && rect(), BUSY_MS);
     assert.deepEqual([again.x, again.y, again.w], [after.x, after.y, after.w], "the same rectangle, on the same site");
     assert.match(await h.page.evaluate(() => document.getElementById("rm-draft-dock").shadowRoot.querySelector('[data-role="empty"]')?.textContent || ""),
       /Nothing has been filled on this page yet/, "a fresh page's Fill tab says so — and offers Fill this page");
@@ -201,7 +225,8 @@ test("⭐ (b) without Greenhouse: 'Allow draft on Greenhouse' — nothing filled
     const h = await launch(fx, { greenhouse: false });
     t.after(() => h.close());
     await h.open(POSTING, { settle: 1200 });
-    const r = await h.prepare({ timeoutMs: 30000 });
+    await formFrameReady(h);   // the frame is there to be refused — a Prepare before it loaded saw no frame at all
+    const r = await prepare(h);
     assert.equal(r.ok, false);
     assert.equal(r.reason, "frame_needs_permission", r.message);
     assert.equal(r.message, "This application form is inside a Greenhouse frame. Allow draft on Greenhouse to fill it.");

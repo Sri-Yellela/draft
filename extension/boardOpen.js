@@ -23,6 +23,20 @@ let SERVER_URL = null;
 export function configureBoardOpen({ serverUrl } = {}) { SERVER_URL = serverUrl || null; }
 
 export const OPEN_LIMIT = Object.freeze({ limit: 10, windowMs: 60_000 });
+
+/**
+ * ⭐ (open item 2) THE ONE TAB. The page waits a bounded time for this answer (openPosting.js HANDOFF_TIMEOUT_MS, 4 s —
+ * inside Chrome's ~5 s click activation, so its own fallback open is not blocked) and then opens its OWN link. A worker
+ * that opened the tab after that — a slow lookup, a cold worker, a busy machine — gave the user TWO tabs: the page's
+ * and this one (measured in the J11 walk under load, 10-16: the popup's BOARD_TAB then named the wrong tab). So the
+ * tab is opened only within this budget of the click (`msg.at`, stamped by boardBridge.js on this machine's clock);
+ * past it the answer is `too_slow` and the page opens its own link — one tab either way. The budget leaves the page's
+ * wait 1 s for the open, the binding and the answer's way back. (A machine so busy that a message takes seconds to
+ * cross — measured: every core saturated, 5 s from the click to the lookup — cannot hand over inside Chrome's click
+ * activation at all; there the page's own link is the right outcome, and the one tab.)
+ */
+export const OPEN_BUDGET_MS = 3000;
+const startedAt = (msg, now) => (Number.isFinite(msg?.at) && msg.at <= now ? msg.at : now);
 let hits = [];
 function allowed(now = Date.now()) {
   hits = hits.filter(t => now - t < OPEN_LIMIT.windowMs);
@@ -51,12 +65,14 @@ export function fromDraftPage(sender, serverUrl = SERVER_URL) {
 export const handlers = Object.freeze({
   /** From boardBridge.js: open this board job in a new tab and bind it. */
   OPEN_JOB: async (msg, sender) => {
+    const t0 = startedAt(msg, Date.now());
     if (!SERVER_URL || !fromDraftPage(sender)) return { ok: false, error: 'not_allowed' };
     if (msg?.via !== 'board') return { ok: false, error: 'not_allowed' };
     if (!allowed()) return { ok: false, error: 'rate_limited' };
     const found = await lookupBoardJob(SERVER_URL, msg.jobId);
     if (!found.ok) return { ok: false, error: found.error };
     if (!found.job.url) return { ok: false, error: 'no_address' };   // draft holds no https address: the page opens its own
+    if (Date.now() - t0 > OPEN_BUDGET_MS) return { ok: false, error: 'too_slow' };   // the page is opening its own link
     let tab;
     try {
       tab = await chrome.tabs.create({ url: found.job.url, active: true, openerTabId: sender.tab.id,

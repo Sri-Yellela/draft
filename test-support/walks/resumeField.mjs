@@ -15,7 +15,7 @@
  *   4. Skip on the REQUIRED upload keeps it under Needs you, saying so
  * Synthetic person (Ada Example) throughout.
  */
-import { waitUntil, sleep, defaultSeed, BUSY_MS } from '../extensionBrowser.mjs';
+import { waitUntil, defaultSeed, BUSY_MS } from '../extensionBrowser.mjs';
 import { mountExtensionResume, seedBaseResume } from '../extensionResumeStub.mjs';
 import { prepareAndRead, fresh } from './panelLifecycle.mjs';
 
@@ -79,8 +79,13 @@ export default async function run(h, { check, observe, section }) {
   const started = await waitUntil(() => (CTL.generations().length ? CTL.generations() : null), BUSY_MS, 150);
   check('ONE generation started', started?.length === 1, JSON.stringify(started));
   check('…by the click\'s own request', h.api.requests.filter(q => q.method === 'POST' && q.path === '/api/extension/resume').length === 1);
-  const tab = await waitUntil(() => h.readShadow('rm-resume-panel', (root, host) => host.dataset.state || null), BUSY_MS, 150);
-  check('…and the dock\'s Résumé tab shows it', ['queued', 'generating', 'ready'].includes(tab), tab);
+  // ⭐ (open item 2) the Résumé tab showing THIS generation (the panel writes its id on the host) — not the first state any
+  // Résumé tab happens to have: the server records the start before the worker has noted it and opened the tab
+  const want = started?.[0]?.id || null;
+  const shownGen = await waitUntil(() => h.readShadow('rm-resume-panel', (root, host) => (host.dataset.id ? { id: host.dataset.id, state: host.dataset.state } : null))
+    .then(s => (s && s.id === want ? s : null)), BUSY_MS, 150);
+  const tab = shownGen?.state || await h.readShadow('rm-resume-panel', (root, host) => `${host.dataset.state} (${host.dataset.id || 'no id'})`).catch(() => null);
+  check('…and the dock\'s Résumé tab shows it', !!shownGen && ['queued', 'generating', 'ready'].includes(shownGen.state), `${tab} — want ${want}`);
 
   section('4 · Skip on the REQUIRED upload keeps it under Needs you');
   await h.page.click('#rm-draft-dock >>> [data-role="close"]').catch(() => {});
@@ -89,8 +94,8 @@ export default async function run(h, { check, observe, section }) {
   await prepareAndRead(h);
   const r4 = await waitUntil(() => resumeRow(h), BUSY_MS, 150);
   await h.page.click(`#${OVERLAY} >>> .rm-row[data-idx="${r4?.idx}"] [data-role="skip"]`);
-  await sleep(300);
-  const r5 = await resumeRow(h);
+  // the Skip's own effect (its line on the row), not 300 ms
+  const r5 = await waitUntil(async () => { const r = await resumeRow(h); return /Skipped/.test(r?.note || '') ? r : null; }, BUSY_MS, 150) || await resumeRow(h);
   check('still Needs you, saying the upload is required', r5?.group === 'need' && /this upload is required; attach a file on the page/.test(r5?.note || ''), JSON.stringify(r5));
   check('…and nothing was attached', (await files(h)) === 0);
   check('the fixture recorded no submission (draft never submits)', (await h.submissions()).length === 0);
