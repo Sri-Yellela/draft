@@ -23,7 +23,7 @@
  *
  * `h` is test-support/extensionBrowser.mjs's harness:
  *   h.openStage(stage, { step })  h.open(url)  h.goStep(id)  h.step()  h.steps()  h.next()  h.reload()  h.pageValues()
- *   h.capture()  h.fill()  h.prepare()  h.popupContext()  h.capturedToday()  h.openCopySheet()  h.send(msg)
+ *   h.capture()  h.fill()  h.prepare()  h.untilAnswerOrWaiting(msg)  h.popupContext()  h.capturedToday()  h.openCopySheet()  h.send(msg)
  *   h.readPanel()  h.waitForPanel()  h.readCopySheet()  h.waitForCopySheet()  h.readShadow(hostId, fn)
  *   h.storage.local()  h.storage.session()  h.storage.set(area, items)  h.storage.clear(area)  h.bindings()
  *   h.setTheme('light'|'dark')  h.theme()  h.guarded()  h.leaked(needle?)  h.submissions()  h.submitPressed()
