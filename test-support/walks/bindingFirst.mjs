@@ -19,7 +19,7 @@
  *   9. UNREACHABLE and SIGNED OUT — nothing bound, nothing prepared, each with its own sentence
  * ⛔ T16: no sentence in any of these tells the user to run an earlier step.
  */
-import { OWNER_STAGE, POSTING, T, waitUntil, sleep, BUSY_MS } from '../extensionBrowser.mjs';
+import { OWNER_STAGE, POSTING, T, sleep, BUSY_MS } from '../extensionBrowser.mjs';
 
 export const description = 'BINDING FIRST + T15 + T16: identify and bind before anything; each outcome its own sentence; a bound job never ends "Nothing is prepared"';
 
@@ -46,21 +46,23 @@ export default async function run(h, { check, observe, section }) {
   const forget = async () => { await h.storage.set('local', { jobProgress: null }); await h.storage.clear('session'); };
   const firstName = (p) => p.evaluate(() => document.querySelector('input[name="firstName"]')?.value || '');
   let front = h.page;
-  const readBadge = () => front.evaluate(() => {
-    const host = document.getElementById('rm-draft-autofill-badge');
-    return host ? { state: host.dataset.state || null } : null;
-  }).catch(() => null);
   const dismissBadge = () => front.evaluate(() => {
     const b = document.getElementById('rm-draft-autofill-badge')?.shadowRoot?.querySelector('[data-role="dismiss"]');
     if (b) b.click();
     return !!b;
   }).catch(() => false);
-  /** A fill on a Workday-shaped step waits for the candidate on the required fields it cannot answer: × ends it. */
-  const settle = async (reply) => {
-    if (!reply?.pending) return reply;
-    const badge = await waitUntil(() => readBadge().then(b => (b?.state === 'required' ? b : null)), BUSY_MS);
-    if (badge) await dismissBadge();
-    return reply.reply;
+  /**
+   * One Fill press, to ITS end. A fill on a Workday-shaped step waits for the candidate on the required fields it cannot
+   * answer — the status line says "required" — and the × ends it. ⭐ (open item 2) Waited for by its own signals (the
+   * reply, or "required" on the tab in front: h.untilAnswerOrWaiting), not by "no reply in 8 s, so it must be waiting":
+   * under load a press that was merely slow (a refusal, a not-a-job) was then held for a "required" that never came,
+   * a minute per press, and a slow fill's own reply raced the badge.
+   */
+  const fillPress = async () => {
+    const r = await h.untilAnswerOrWaiting({ type: 'FILL_ACTIVE_TAB' }, { on: front });
+    if (r.answered) return r.reply;
+    if (r.waitingForYou) await dismissBadge();
+    return Promise.race([r.reply, sleep(BUSY_MS).then(() => ({ ok: null, message: `the Fill never answered (${r.waitingForYou ? 'after the ×' : 'no reply and no "required"'})` }))]);
   };
   const newTab = async (url) => {
     const p = await browser.newPage();
@@ -94,7 +96,7 @@ export default async function run(h, { check, observe, section }) {
   section('1 · ON YOUR BOARD — Fill on a cold tab: identify and bind BEFORE any prepare or mint, then prepare and fill');
   const tab1 = await newTab(OWNER_STAGE);
   let mark = h.api.requests.length;
-  const one = await settle(await h.fill({ timeoutMs: 8000 }));
+  const one = await fillPress();
   check('the form carries the prepared answers', (await firstName(tab1)) === 'Ada', await firstName(tab1));
   const p1 = pathsSince(mark);
   const iId = firstIndex(p1, IDENTIFY), iPrep = firstIndex(p1, PREPARE), iMint = firstIndex(p1, MINT), iApply = firstIndex(p1, APPLY);
@@ -110,7 +112,7 @@ export default async function run(h, { check, observe, section }) {
   await tab1.goto(`${T}/`, { waitUntil: 'domcontentloaded' });
   await tab1.bringToFront(); await sleep(250);
   mark = h.api.requests.length;
-  const two = await settle(await h.fill({ timeoutMs: 8000 }));
+  const two = await fillPress();
   const p2 = pathsSince(mark);
   check('the press identified the page (an address the job was never seen at)', firstIndex(p2, IDENTIFY) >= 0, JSON.stringify(p2));
   const b2 = await tabBinding(tab1);
@@ -123,7 +125,7 @@ export default async function run(h, { check, observe, section }) {
   const before3 = packets().length;
   const tab3 = await newTab(OWNER_STAGE);   // a new tab: T14 binds it on its known address; no packet cached in it
   mark = h.api.requests.length;
-  const three = await settle(await h.fill({ timeoutMs: 8000 }));
+  const three = await fillPress();
   check('filled', (await firstName(tab3)) === 'Ada', await firstName(tab3));
   check('…the press prepared afresh', (three?.did || []).includes('prepared') && packets().length > before3, JSON.stringify({ did: three?.did, n: packets().length }));
   check('…without identifying again (the address is one the job is known at)', firstIndex(pathsSince(mark), IDENTIFY) < 0, JSON.stringify(pathsSince(mark)));
@@ -132,7 +134,7 @@ export default async function run(h, { check, observe, section }) {
   section('4 · T15 — no packet at all on a bound job: the same one press');
   db.prepare('DELETE FROM apply_gate_packets WHERE user_id = 1').run();
   const tab4 = await newTab(OWNER_STAGE);
-  const four = await settle(await h.fill({ timeoutMs: 8000 }));
+  const four = await fillPress();
   check('filled', (await firstName(tab4)) === 'Ada', await firstName(tab4));
   check('…prepared in the same press', (four?.did || []).includes('prepared') && packets().length === 1, JSON.stringify({ did: four?.did, n: packets().length }));
   check('…and never said "Nothing is prepared"', !NOTHING_PREPARED.test(four?.message || ''), four?.message);
@@ -162,7 +164,7 @@ export default async function run(h, { check, observe, section }) {
   await forget();
   const tab6 = await newTab(OWNER_STAGE);
   mark = h.api.requests.length;
-  const six = await settle(await h.fill({ timeoutMs: 8000 }));
+  const six = await fillPress();
   const p6 = pathsSince(mark);
   const b6 = await tabBinding(tab6);
   check('identified as the board job and bound to it', b6?.jobId === 'wd-zoom-board', JSON.stringify(b6));
@@ -176,7 +178,7 @@ export default async function run(h, { check, observe, section }) {
   await forget();
   const tab7 = await newTab(OWNER_STAGE);
   mark = h.api.requests.length;
-  const seven = await settle(await h.fill({ timeoutMs: 8000 }));
+  const seven = await fillPress();
   const p7 = pathsSince(mark);
   check('not filled', seven?.ok === false && (await firstName(tab7)) === '', JSON.stringify({ ok: seven?.ok, v: await firstName(tab7) }));
   check('the outcome is "not on the board" and its ONE action is Capture', seven?.outcome === 'not_on_board' && seven?.action === 'capture', JSON.stringify({ outcome: seven?.outcome, action: seven?.action }));
@@ -185,7 +187,7 @@ export default async function run(h, { check, observe, section }) {
   check('nothing prepared and nothing asked of /api/apply', firstIndex(p7, APPLY) < 0 && packets().length === 0, JSON.stringify(p7));
   const cap7 = await h.capture();
   check('Capture adds it and binds the tab', cap7?.success === true && (await tabBinding(tab7))?.via === 'capture', JSON.stringify({ cap: cap7?.message, b: await tabBinding(tab7) }));
-  const seven2 = await settle(await h.fill({ timeoutMs: 8000 }));
+  const seven2 = await fillPress();
   check('…and the same Fill then fills', (await firstName(tab7)) === 'Ada', `${await firstName(tab7)} · ${seven2?.message}`);
 
   section('8 · NOT A JOB — a page of the same site that is no posting: nothing bound, nothing prepared');
@@ -193,7 +195,7 @@ export default async function run(h, { check, observe, section }) {
   db.prepare('DELETE FROM apply_gate_packets WHERE user_id = 1').run();
   await newTab(`${T}/robots.txt`);
   mark = h.api.requests.length;
-  const eight = await settle(await h.fill({ timeoutMs: 8000 }));
+  const eight = await fillPress();
   check('not filled; outcome "not a job"', eight?.ok === false && eight?.outcome === 'not_a_job', JSON.stringify({ ok: eight?.ok, outcome: eight?.outcome, message: eight?.message }));
   check('nothing bound, nothing asked of /api/apply', (await h.bindings()).length === 0 && firstIndex(pathsSince(mark), APPLY) < 0, JSON.stringify(pathsSince(mark)));
 
@@ -203,7 +205,7 @@ export default async function run(h, { check, observe, section }) {
     FAIL.mode = mode;
     await newTab(OWNER_STAGE);
     mark = h.api.requests.length;
-    const r = await settle(await h.fill({ timeoutMs: 8000 }));
+    const r = await fillPress();
     const want = mode === 'down' ? 'unavailable' : 'signed_out';
     check(`${mode}: outcome ${want}`, r?.ok === false && r?.outcome === want, JSON.stringify({ outcome: r?.outcome, message: r?.message }));
     check(`${mode}: nothing bound, nothing asked of /api/apply`, (await h.bindings()).length === 0 && firstIndex(pathsSince(mark), APPLY) < 0, JSON.stringify(pathsSince(mark)));
