@@ -179,6 +179,7 @@ export function mountAuto(doc, api, facts, { gather = () => localFacts(api) } = 
     const v = popupAutoView(ui.facts);
     ui.view = v;
     card.hidden = !v.card;
+    if (v.card) say($('auto-card-asking'), v.alreadyGranted ? CARD.askingGranted : CARD.asking);
     // "Reading automatically on this site · last read 15:51" — instead of "Nothing on this page is read until you press it."
     if (v.line) say($('read-hint'), v.line);
     here.hidden = !v.here;
