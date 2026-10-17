@@ -415,6 +415,7 @@ export const CARD = Object.freeze({
   allow: 'Allow on these sites',
   later: 'Not now',
   asking: 'Chrome will ask you once, for these sites only.',
+  askingGranted: 'Chrome already allows these sites — one press turns reading on. Nothing is read until you press it.',
   refused: 'Chrome did not allow it, so nothing is on. Nothing on any page is read until you press it.',
   done: 'Done — draft reads job pages on these sites for you. Capture and Fill stay off; Settings has them.',
 });
@@ -456,6 +457,10 @@ export function popupAutoView({ settings, url, granted = {}, jobId = null, bound
   const g = { here: !!granted.here, sites: granted.sites || {} };
   const view = { card: false, line: null, here: null, frameAsk: null, disclose: false };
   view.card = (!s.consent2 || s.kill) && !(Number.isFinite(s.later) && now - s.later < LATER_MS);
+  // ⭐ 43k open item 8 (T20's edge): Chrome already holds every preset site but no consent was recorded — a click whose
+  // answer arrived while the worker restarted (an extension update), or a grant from chrome://extensions with no click.
+  // Consent is still never inferred; the card only SAYS that one press finishes it, with no prompt.
+  view.alreadyGranted = view.card && SITES.every(site => g.sites[site.id] === true);
   const u = parse(url);
   if (!u) return view;
   const host = u.hostname.toLowerCase();
