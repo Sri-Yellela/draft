@@ -10,7 +10,7 @@
 //   (5) the row: Attach my résumé · Generate and attach · Skip — a page script's click sends nothing; the user's sends
 //       RESUME_ATTACH_FILE for THAT upload; an attached reply moves the row to Filled; a fallback offers Download PDF
 // Synthetic person (Avery Testcase). Skips, with its reason, where there is no Chrome.
-import test from "node:test";
+import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { findChrome } from "../test-support/extensionBrowser.mjs";
@@ -29,11 +29,20 @@ const chrome = await findChrome();
 const SKIP = chrome.skip || false;
 const PDF = Buffer.from("%PDF-1.4\n% synthetic test file — Avery Testcase\n%%EOF\n").toString("base64");
 
+// ⭐ (open item 2) ONE Chrome for the file's page tests, a fresh PAGE per use. Each call used to launch its own browser —
+// the Attach test launched three in a row — and under a full run's load the launches alone outlasted the test's 60 s
+// (t18 "Attach" red in full and parallel runs, green alone). Closed before the real-extension walk launches its own.
+let shared = null;
+async function closeShared() { const b = shared; shared = null; if (b) await (await b).close().catch(() => {}); }
+after(closeShared);
 async function browserPage(t, html) {
-  const puppeteer = (await import("puppeteer-core")).default;
-  const browser = await puppeteer.launch({ executablePath: chrome.path, headless: true, pipe: true, args: ["--no-first-run"] });
-  t.after(() => browser.close());
+  if (!shared) {
+    const puppeteer = (await import("puppeteer-core")).default;
+    shared = puppeteer.launch({ executablePath: chrome.path, headless: true, pipe: true, args: ["--no-first-run"] });
+  }
+  const browser = await shared;
   const page = await browser.newPage();
+  t.after(() => page.close().catch(() => {}));
   if (html) await page.setContent(html);
   return { browser, page };
 }
@@ -119,6 +128,20 @@ test("⭐ T18 (Chrome): Attach puts the PDF in the row's own upload and the page
   assert.equal(n.reason, "not_shown");
 });
 
+test("⭐ (open item 2) Attach on a BUSY page: the page draws the name while the check's own wait overruns its 2.5 s — it is looked at once more, and verified", { skip: SKIP, timeout: 60000 }, async (t) => {
+  // The page writes the file's name 50 ms after `change` — and, as a busy page does, holds its thread for 3 s first, so
+  // the check's 100 ms wait comes back past its 2.5 s deadline. Before the fix the loop stopped on the clock without
+  // looking again: "not_shown", and the panel fell back to Download PDF for a file the page was showing.
+  const { page } = await browserPage(t, `<form><div class="file-upload" role="group"><h3>Resume/CV</h3>
+    <input type="file" id="resume" accept=".pdf" style="display:none"><p data-filename-of="resume"></p></div></form>
+    <script>document.getElementById("resume").addEventListener("change", (e) => {
+      setTimeout(() => { document.querySelector('[data-filename-of="resume"]').textContent = e.target.files[0].name; }, 50);
+      setTimeout(() => { const until = Date.now() + 3000; while (Date.now() < until) { /* busy */ } }, 0);
+    });</script>`);
+  const r = await page.evaluate(`(${attachResumeFile.toString()})(${JSON.stringify({ base64: PDF, fileName: "Avery_Testcase_Resume.pdf", target: { id: "resume", kind: "resume" } })})`);
+  assert.deepEqual({ verified: r.verified, how: r.how, reason: r.reason }, { verified: true, how: "page", reason: null });
+});
+
 test("T18 (Chrome): a file input beneath a heading is typed `resume` — the heading is its label", { skip: SKIP, timeout: 60000 }, async (t) => {
   const { page } = await browserPage(t, `<form>
     <div class="row"><label for="fn">First name</label><input id="fn"></div>
@@ -186,6 +209,7 @@ test("⛔ T18 (Chrome): the résumé row — a page script's click sends nothing
 import { runScenario } from "../test-support/walkExtension.mjs";
 test("⭐ T18 walk (real extension): Attach my résumé lands on the drop zone and the page shows its name; Generate and attach starts one; Skip keeps a required upload", { skip: SKIP, timeout: 600000 }, async () => {
   const lines = [];
+  await closeShared();
   const r = await runScenario("resumeField", { log: (l) => lines.push(l) });
   if (r.skipped) return;
   assert.equal(r.failures, 0, lines.filter(l => /^FAIL/.test(l)).join("\n") || lines.slice(-20).join("\n"));
