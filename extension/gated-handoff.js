@@ -1577,7 +1577,8 @@ export function questionKind(label) {
   if (/authori[sz]ed to work|eligib\w* to work|right to work|work permit|sponsor|visa|immigration|i-9|citizen/.test(t)) return 'eligibility';
   if (/marketing|newsletter|text messages|sms|whatsapp|promotional|opt[ -]?in|receive (?:\w+ ){0,3}(?:communications|updates|messages|emails|alerts)|talent (?:community|network)|job alerts/.test(t)) return 'opt_in';
   // ⭐ LIVE (Discord, 10-15): "I consider myself a member of the LGBTQ+ community" read as 'other' — now EEO.
-  if (/\bgender\b|\bsex\b|ethnic|\brace\b|racial|hispanic|latino|veteran|disabilit|self[- ]?identif|pronoun|sexual orientation|lgbt|transgender/.test(t)) return 'eeo';
+  // ⭐ LIVE (Lever, 10-15): "pronoun" as a WORD — "How do you pronounce your name?" (Name Pronunciation) read as EEO.
+  if (/\bgender\b|\bsex\b|ethnic|\brace\b|racial|hispanic|latino|veteran|disabilit|self[- ]?identif|\bpronouns?\b|sexual orientation|lgbt|transgender/.test(t)) return 'eeo';
   if (/terms and conditions|privacy (?:policy|notice)|i (?:have read|consent|agree|acknowledge|certify)|attest/.test(t)) return 'consent';
   if (/\d+\s*\+?\s*years|years of (?:\w+ ){0,3}experience|do you have (?:\w+ ){0,4}(?:experience|degree|certification|license)|are you (?:able|willing) to|willing to relocate|relocat|on-?site|in[- ]office|travel|security clearance|\bclearance\b|salary|compensation|notice period|previously (?:worked|been employed)|non-?compete|criminal|background check|drug (?:test|screen)/.test(t)) return 'screening';
   return 'other';
