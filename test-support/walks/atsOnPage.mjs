@@ -17,7 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { waitUntil, sleep, defaultSeed } from '../extensionBrowser.mjs';
+import { waitUntil, sleep, defaultSeed, BUSY_MS } from '../extensionBrowser.mjs';
 import { mountExtensionResume, seedBaseResume } from '../extensionResumeStub.mjs';
 import { createExtensionJobRouter } from '../../routes/extensionJob.js';
 import { baseResumeFor } from '../../services/extensionResume.js';
@@ -73,6 +73,8 @@ const readPanel = (h) => h.page.evaluate(() => {
 });
 const lookups = (h) => h.api.requests.filter(r => r.method === 'GET' && r.path.startsWith('/api/extension/job/')).length;
 const contexts = (h) => h.api.requests.filter(r => r.method === 'POST' && r.path === '/api/import/context').length;
+// BINDING FIRST: every read of the page starts with ONE identify (identify.js identifyAndBind)
+const identifies = (h) => h.api.requests.filter(r => r.method === 'POST' && r.path === '/api/extension/page').length;
 
 export default async function run(h, { check, section }) {
   if (!/from '\.\/resumePanel\.js'/.test(fs.readFileSync(path.join(ROOT, 'extension', 'background.js'), 'utf8'))) {
@@ -87,7 +89,7 @@ export default async function run(h, { check, section }) {
   const before = lookups(h);
   const opened = await h.send({ type: 'RESUME_PANEL_OPEN', tab: 'ats' });
   check('the panel opens', opened?.ok === true, JSON.stringify(opened));
-  const p1 = await waitUntil(async () => { const p = await readPanel(h); return p?.report ? p : null; }, 8000);
+  const p1 = await waitUntil(async () => { const p = await readPanel(h); return p?.report ? p : null; }, BUSY_MS);
   check('the report is in the panel with no other click', p1?.report === 'ready', JSON.stringify(p1));
   check('…the score and the web app\'s band words', p1?.score === 'ATS 72 · Strong match', p1?.score);
   check('…the matched terms', /Matched: distributed systems, go/.test(p1?.matched || ''), p1?.matched);
@@ -100,26 +102,31 @@ export default async function run(h, { check, section }) {
   section('2 · no base résumé');
   h.db.prepare('DELETE FROM profile_base_resumes').run();
   await h.send({ type: 'RESUME_PANEL_OPEN' });
-  const p2 = await waitUntil(async () => { const p = await readPanel(h); return p?.report === 'no_base_resume' ? p : null; }, 8000);
+  const p2 = await waitUntil(async () => { const p = await readPanel(h); return p?.report === 'no_base_resume' ? p : null; }, BUSY_MS);
   check('"Add your résumé in draft" — and no score', !!p2 && !p2.score && (p2.buttons || []).includes('Add your résumé in draft'), JSON.stringify(p2));
   seedBaseResume(h.db);
 
   section('3 · an unlinked tab — "Read this page now"');
   await h.send({ type: 'UNBIND_TAB' });
   await h.send({ type: 'RESUME_PANEL_OPEN' });
-  const p3 = await waitUntil(async () => { const p = await readPanel(h); return p?.state === 'nojob' ? p : null; }, 8000);
+  const p3 = await waitUntil(async () => { const p = await readPanel(h); return p?.state === 'nojob' ? p : null; }, BUSY_MS);
   check('not linked: the message names the button', /Read this page now/.test(p3?.text || ''), p3?.text);
   check('…and the button is there', (p3?.buttons || []).includes('Read this page now'), JSON.stringify(p3?.buttons));
   check('…with no report and no free checker', !p3?.report && !(p3?.buttons || []).some(b => /checker|upload/i.test(b)));
-  const ctx0 = contexts(h);
+  const ctx0 = contexts(h), id0 = identifies(h);
   await h.page.evaluate(() => document.getElementById('rm-resume-panel').shadowRoot.querySelector('[data-role="read"]').click());
-  await sleep(500);
-  check('⛔ a page script\'s synthetic click reads nothing', contexts(h) === ctx0);
+  await sleep(500);   // expects NOTHING — and the ONE-identify count below would show a read that came late
+  check('⛔ a page script\'s synthetic click reads nothing', contexts(h) === ctx0 && identifies(h) === id0);
   await h.page.click(`#${HOST} >>> [data-role="read"]`);
-  const p4 = await waitUntil(async () => { const p = await readPanel(h); return p?.state !== 'nojob' && p?.report ? p : null; }, 8000);
-  check('a trusted click: draft found the job, and the panel names it', p4?.job === 'Software Engineer at Zoom', JSON.stringify(p4));
+  // ⭐ (open item 2) the read's own steps, each waited for in turn — identify → bind (the worker), then the panel drawn
+  // from the click's reply (the page) — so a slow machine fails on the step that did not come, never on an 8 s guess.
+  // Under load the panel was drawn later than 8 s after the click, the binding already in place.
+  const bound = await waitUntil(async () => ((await h.bindings()).length === 1 ? true : null), BUSY_MS);
+  check('a trusted click identified the page and bound the tab again', bound === true, JSON.stringify(await h.bindings()));
+  const p4 = await waitUntil(async () => { const p = await readPanel(h); return p?.state !== 'nojob' && p?.report ? p : null; }, BUSY_MS);
+  check('…draft found the job, and the panel names it', p4?.job === 'Software Engineer at Zoom', JSON.stringify(p4 || await readPanel(h)));
   check('…with its report', p4?.score === 'ATS 72 · Strong match', p4?.score);
-  check('…and the tab is bound again', (await h.bindings()).length === 1, JSON.stringify(await h.bindings()));
+  check('⛔ only the trusted click read the page — ONE identify', identifies(h) - id0 === 1, `${identifies(h) - id0} identify request(s)`);
 
   section('4 · T9 — a FULL report: the panel draws the web app\'s ATS component');
   scoreNow = FULL;
@@ -141,7 +148,7 @@ export default async function run(h, { check, section }) {
       };
     });
     return c || null;
-  }, 8000);
+  }, BUSY_MS);
   check('the panel mounts the component in its own shadow root, with its stylesheet', !!p5 && p5.style, JSON.stringify(p5));
   check('…the scorer\'s number', /72/.test(p5?.score || ''), p5?.score);
   check('…the matched and missing terms as the web app words them', /distributed systems/.test(p5?.text || '') && /kubernetes/.test(p5?.text || ''), p5?.text?.slice(0, 300));
