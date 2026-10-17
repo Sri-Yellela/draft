@@ -632,9 +632,13 @@ export async function attachResumeFile(file) {
   };
   const t0 = Date.now();
   let how = null;
-  while (Date.now() - t0 < 2500) {
+  // ⭐ (open item 2) Look AFTER the last wait, not only before it: the loop used to stop on the clock without looking again,
+  // so on a busy machine — one 100 ms sleep returning seconds late, while the page drew the name — an attach the page
+  // showed was called "not shown" and the panel fell back to Download PDF. Now the deadline is checked only after a look.
+  for (;;) {
     if (shownByPage()) { how = 'page'; break; }
     if (isSet() && nativeVisible()) { how = 'native'; break; }
+    if (Date.now() - t0 >= 2500) break;
     await sleep(100);
   }
   const set = isSet() || how === 'page';
