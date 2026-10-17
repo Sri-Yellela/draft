@@ -818,15 +818,20 @@ export function handlersFor(serverUrl = null) {
       if (!pdf) return { ok: false, message: 'The PDF could not be fetched right now.', model: resumePanelModel({ job: s.job, view: s.view }) };
       if (!probe?.target) {
         // No upload box on this step (or the page could not be reached): nothing is set — said, with the file to download.
-        return { ok: true, model: resumePanelModel({ job: s.job, view: s.view, attach: { outcome: probe ? 'noinput' : 'fallback', fileName: pdf.fileName, base64: pdf.base64, reason: probe?.reason || 'no_access' } }) };
+        const attach = { outcome: probe ? 'noinput' : 'fallback', fileName: pdf.fileName, base64: pdf.base64, reason: probe?.reason || 'no_access' };
+        return { ok: true, attached: false, attach, model: resumePanelModel({ job: s.job, view: s.view, attach }) };
       }
       let set;
       try { set = await inject({ base64: pdf.base64, fileName: pdf.fileName, mimeType: 'application/pdf' }); } catch { set = { verified: false, reason: 'not_set' }; }
       await noteResume(s.job.jobId, { attached: Date.now() });
       const outcome = set?.verified ? 'attached' : 'fallback';
       const view = { ...s.view, pdf: { ...(s.view.pdf || {}), fileName: pdf.fileName, attached: true } };
-      return { ok: true, attached: outcome === 'attached', how: set?.how || null,
-        model: resumePanelModel({ job: s.job, view, attach: { outcome, fileName: pdf.fileName, reason: set?.reason || null, ...(outcome === 'fallback' ? { base64: pdf.base64 } : {}) } }) };
+      // ⭐ `attach` beside the model, as RESUME_ATTACH_FILE answers: the review row's résumé upload reads the outcome from
+      // it (the model is the Résumé tab's — its state, not an attach). Without it a tailored attach that LANDED was
+      // called "Could not attach" on the row (open item 5, measured in a real Chrome).
+      const attach = { outcome, fileName: pdf.fileName, reason: set?.reason || null, ...(outcome === 'fallback' ? { base64: pdf.base64 } : {}) };
+      return { ok: true, attached: outcome === 'attached', how: set?.how || null, attach,
+        model: resumePanelModel({ job: s.job, view, attach }) };
     },
 
     /**

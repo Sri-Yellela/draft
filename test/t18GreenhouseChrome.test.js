@@ -207,7 +207,7 @@ test("⛔ T18 (Chrome): the résumé row — a page script's click sends nothing
 
 // ── the REAL extension: the résumé row on Workday's drop zone (test-support/walks/resumeField.mjs) ─────────────────
 import { runScenario } from "../test-support/walkExtension.mjs";
-test("⭐ T18 walk (real extension): Attach my résumé lands on the drop zone and the page shows its name; Generate and attach starts one; Skip keeps a required upload", { skip: SKIP, timeout: 600000 }, async () => {
+test("⭐ T18 walk (real extension): Attach my résumé lands on the drop zone and the page shows its name; Generate and attach starts one; Skip keeps a required upload; Attach tailored — that generation, once ready — lands and the page shows its name", { skip: SKIP, timeout: 600000 }, async () => {
   const lines = [];
   await closeShared();
   const r = await runScenario("resumeField", { log: (l) => lines.push(l) });
