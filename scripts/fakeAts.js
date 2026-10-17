@@ -65,6 +65,7 @@ import http from 'node:http';
 import { parse as parseQuery } from 'node:querystring';
 // ⭐ T18 / T23: a standard Greenhouse application (job-boards.greenhouse.io's shape) — GET /greenhouse-standard[?nameless=1]
 import { greenhouseStandardForm } from './fakeAtsGreenhouseStandard.js';
+import { leverLiveForm, workableLiveForm } from './fakeAtsLiveShapes.js';   // T10 rows 5 and 7: the MEASURED structures
 
 const PORT = Number(process.env.PORT || 4599);
 
@@ -1636,6 +1637,8 @@ const server = http.createServer(async (req, res) => {
     if (path === '/greenhouse') return send(200, greenhouseStep1());
     if (path === '/greenhouse-standard') return send(200, greenhouseStandardForm({ nameless: url.searchParams.get('nameless') === '1' }));
     if (path === '/lever')      return send(200, leverForm());
+    if (path === '/lever-live')    return send(200, leverLiveForm());
+    if (path === '/workable-live') return send(200, workableLiveForm());
     if (path === '/ashby')      return send(200, ashbyForm());
     // The measured replica of the live posting. See ashbySpaForm for what each param reaches.
     if (path === '/ashby-spa') {

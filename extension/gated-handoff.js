@@ -306,7 +306,7 @@ function probeFormShape() {
       ...(labelSourceOf(el)[0] ? {} : { raw: rawOf(el) }),
       // D55 (g): an asterisked label is "required" too — on many forms it is the only signal.
       required: el.required === true || el.getAttribute('aria-required') === 'true' ||
-        /\*\s*$/.test(labelFor(el)) ||
+        /[*✱]\s*$/.test(labelFor(el)) ||   // Lever marks a required question ✱
         // D96 §5: a radio / checkbox GROUP says it is required on the group itself (Workday: the fieldset).
         (['radio', 'checkbox'].includes((el.type || '').toLowerCase()) &&
           el.closest('fieldset, [role="radiogroup"], [role="group"]')?.getAttribute('aria-required') === 'true') ||
@@ -1373,6 +1373,23 @@ async function locateForm(tab, topOrigin) {
   return { top, form: chooseFormFrame(results, topOrigin), atsFrames: atsFramesOf(top?.frames, tab.url) };
 }
 
+/** How long a press waits for a script-rendered form to appear (T10 row 34), and how often it looks. */
+export const LATE_FORM_WAIT_MS = 6000;
+const LATE_FORM_POLL_MS = 400;
+/** True once a form with fields is on the page or in a frame of it; false after LATE_FORM_WAIT_MS, or when a newer fill
+ *  on this tab took over (ACTIVE_FILL). The same read-only probe as locateForm. */
+async function formAppears(tab, topOrigin, runId = null) {
+  const until = Date.now() + LATE_FORM_WAIT_MS;
+  while (Date.now() < until) {
+    await sleepMs(LATE_FORM_POLL_MS);
+    if (runId && ACTIVE_FILL.get(tab.id) !== runId) return false;
+    const loc = await locateForm(tab, topOrigin);
+    if (loc.error) return false;
+    if (loc.form?.shape?.hasForm && loc.form.shape.fields.length > 0) return true;
+  }
+  return false;
+}
+
 /**
  * Run the handoff on the active tab. Returns a result object; never throws at the caller.
  *
@@ -1501,6 +1518,14 @@ async function handoffOnce({ serverUrl, tab, opts = {} }) {
   if (loc.error) return { ok: false, reason: 'no_access', message: 'Invoke the extension on the application tab.' };
   const shape = loc.form?.shape;
   if (!shape?.hasForm || shape.fields.length === 0) {
+    // ⭐ T10 row 34 · A FORM THAT RENDERS LATE. A packet fills THIS page, so an application is expected here — but a
+    // script-rendered form (Ashby's; an ATS frame still loading) may not be on the page yet when Fill is pressed. Wait
+    // for it, bounded, then run the whole handoff once more so every check above (the frame, its origin, the packet)
+    // sees the real form. Measured before this: Fill at "Loading application form…" said "No application form found"
+    // in 159 ms and never filled (walks/atsFamilies.mjs §4). Read-only while waiting; nothing is released.
+    if (!opts.lateFormWaited && await formAppears(tab, origin, opts.runId)) {
+      return handoffOnce({ serverUrl, tab, opts: { ...opts, lateFormWaited: true } });
+    }
     return {
       ok: false, reason: 'no_form',
       message: 'No application form found on this page. Nothing was released.',
