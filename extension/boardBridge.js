@@ -38,7 +38,10 @@
     const intent = d.intent === 'apply' || d.intent === 'view' ? d.intent : null;
     let answered = false;
     try {
-      chrome.runtime.sendMessage({ type: 'OPEN_JOB', jobId: d.jobId, via: 'board', ...(intent ? { intent } : {}) }, (r) => {
+      // ⭐ (open item 2) `at`: when the click was handed over, on this machine's clock — the worker opens the tab only
+      // while the page is still waiting for its answer (boardOpen.js OPEN_BUDGET_MS), never after the page has opened
+      // its own link. Not from the page: this script's own clock.
+      chrome.runtime.sendMessage({ type: 'OPEN_JOB', jobId: d.jobId, via: 'board', ...(intent ? { intent } : {}), at: Date.now() }, (r) => {
         answered = true;
         void chrome.runtime.lastError;                                      // the worker was gone: the page opens its own link
         reply(nonce, r && r.ok ? { ok: true } : { ok: false, error: (r && typeof r.error === 'string' ? r.error : 'unavailable').slice(0, 40) });

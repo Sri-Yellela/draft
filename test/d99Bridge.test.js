@@ -136,8 +136,11 @@ const OPEN = (o = {}) => ({ source: "draft-board", type: "OPEN_JOB", jobId: "gh-
 test("⛔ boardBridge: marks the page, and forwards a job id — only a well-formed one, from this window, this origin, this nonce, during a click", () => {
   const b = runBridge();
   assert.equal(b.dataset.draftExtension, "nonce-xyz", "the page can tell the extension is here");
-  b.deliver(OPEN());
-  assert.equal(JSON.stringify(b.toWorker), JSON.stringify([{ type: "OPEN_JOB", jobId: "gh-1", via: "board" }]), "a job id and nothing else reaches the worker");
+  const t0 = Date.now();
+  b.deliver(OPEN({ at: 1, url: "https://evil.example/phish" }));
+  const { at, ...fromPage } = b.toWorker[0] || {};
+  assert.equal(JSON.stringify([fromPage]), JSON.stringify([{ type: "OPEN_JOB", jobId: "gh-1", via: "board" }]), "a job id and nothing else reaches the worker");
+  assert.ok(Number.isFinite(at) && at >= t0 && at <= Date.now(), `…stamped with the bridge's OWN clock when the click was handed over, never the page's (${at})`);
   assert.equal(JSON.stringify(b.toPage.at(-1)), JSON.stringify({ data: { source: "draft-extension", type: "OPEN_JOB_RESULT", nonce: "nonce-xyz", ok: true }, targetOrigin: DRAFT }));
 
   const refused = [
@@ -246,6 +249,30 @@ test("⛔ OPEN_JOB: a forged / other user's id opens nothing; only draft's top f
   for (let i = 0; i < OPEN_LIMIT.limit; i++) assert.equal((await handlers.OPEN_JOB({ jobId: "gh-1", via: "board" }, SENDER)).ok, true);
   assert.deepEqual(await handlers.OPEN_JOB({ jobId: "gh-1", via: "board" }, SENDER), { ok: false, error: "rate_limited" });
 });
+
+test("⛔ ONE TAB (open item 2): past its budget from the click the worker opens nothing and says too_slow — the page, still waiting, opens its own link", async (t) => {
+  const s = workerStub({ jobs: { "gh-1": JOB } });
+  t.after(() => { delete globalThis.chrome; globalThis.fetch = REAL_FETCH; });
+  const { handlers, configureBoardOpen, resetBoardOpenLimit, OPEN_BUDGET_MS } = await import("../extension/boardOpen.js");
+  configureBoardOpen({ serverUrl: DRAFT }); resetBoardOpenLimit();
+  // a click handed over long ago (a cold worker, a busy machine): the page has given up waiting — nothing is opened
+  assert.deepEqual(await handlers.OPEN_JOB({ jobId: "gh-1", via: "board", at: Date.now() - OPEN_BUDGET_MS - 50 }, SENDER), { ok: false, error: "too_slow" });
+  // a lookup that outlasts the budget: the same
+  const fast = globalThis.fetch;
+  globalThis.fetch = async (u) => { await new Promise(r => setTimeout(r, OPEN_BUDGET_MS - 300)); return fast(u); };
+  assert.deepEqual(await handlers.OPEN_JOB({ jobId: "gh-1", via: "board", at: Date.now() - 400 }, SENDER), { ok: false, error: "too_slow" });
+  assert.equal(s.created.length, 0, "no tab — the page's own link is the one tab");
+  assert.deepEqual(await bindingsOf(s), [], "and nothing bound");
+  // within the budget it opens, as before; an `at` from the future is read as now
+  globalThis.fetch = fast;
+  assert.deepEqual(await handlers.OPEN_JOB({ jobId: "gh-1", via: "board", at: Date.now() }, SENDER), { ok: true });
+  assert.deepEqual(await handlers.OPEN_JOB({ jobId: "gh-1", via: "board", at: Date.now() + 60_000 }, SENDER), { ok: true });
+  assert.equal(s.created.length, 2);
+  // the page waits LONGER than the budget (so the worker's answer decides), and less than Chrome's ~5 s click activation
+  const page = Number(/const HANDOFF_TIMEOUT_MS = (\d+);/.exec(read("client/src/lib/openPosting.js"))?.[1]);
+  assert.ok(page >= OPEN_BUDGET_MS + 1000 && page <= 4500, `the page waits ${page} ms; the worker's budget is ${OPEN_BUDGET_MS} ms`);
+});
+const bindingsOf = async (s) => [...s.session.keys()].filter(k => k.startsWith("bind:"));
 
 test("⛔ the worker routes the bridge, and the popup says 'From your board' with the score", () => {
   const bg = read("extension/background.js");

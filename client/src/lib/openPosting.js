@@ -16,7 +16,11 @@
 //   postingClick(job, event)            — an <a href>'s onClick: a plain left click hands over (preventDefault);
 //                                         a modified click (new tab, new window) is left to the browser
 
-const HANDOFF_TIMEOUT_MS = 2500;   // under Chrome's ~5 s user-activation window, so the fallback open is not blocked
+// Under Chrome's ~5 s user-activation window, so the fallback open is not blocked — and LONGER than the extension's own
+// budget for opening the tab (extension/boardOpen.js OPEN_BUDGET_MS, 3 s from the click): the extension answers
+// "opened" or "too slow" before this runs out, so the page and the extension never both open a tab. (It was 2.5 s, the
+// same as nothing: a lookup that took longer opened the extension's tab AND the page's — the J11 walk under load.)
+const HANDOFF_TIMEOUT_MS = 4000;
 
 export const postingUrlOf = (job) => job?.applyUrl || job?.url || null;
 const jobIdOf = (job) => {
