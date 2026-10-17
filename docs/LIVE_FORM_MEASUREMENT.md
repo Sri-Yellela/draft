@@ -89,8 +89,7 @@ which rendered on some loads and not on others. The panel does not list it.
 - **Wording now keyed:** "Please tell us how you heard about this opportunity." → how-heard.
 - **Not keyed, still:** "Which university are you currently attending or did you last attend? …" (a long, conditional
   question). The language checkbox group is 33 boxes, one question.
-- **False EEO reading, left in place.** "Name Pronunciation" reads as EEO: `pronoun` matches "pronounce". That errs
-  toward caution and was left alone.
+- **False EEO reading — fixed after the lane (43k, open item 6).** "Name Pronunciation" read as EEO because `pronoun` matched the letters in "pronounce"; `questionKind` now matches `\bpronouns?\b` as a word (`test/eeoPronounWord.test.js`).
 
 ### Ashby (5)
 
