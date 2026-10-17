@@ -1,4 +1,4 @@
-// T10 rows 5, 6, 7 and 34 (open item 4) · Lever, Workable and Ashby forms as MEASURED, filled by the real extension in one
+// T10 rows 5, 6, 7, 12, 13 and 34 (open item 4) · Lever, Workable and Ashby forms as MEASURED, filled by the real extension in one
 // press; a form that renders after the press. The walk: test-support/walks/atsFamilies.mjs; the fixtures:
 // scripts/fakeAtsLiveShapes.js (/lever-live, /workable-live) and scripts/fakeAts.js /ashby-spa (the replica of a live
 // Ashby posting). What the walk found and what was fixed:
@@ -53,7 +53,7 @@ test("the fixtures are the measured structures — Lever's wrapping labels and r
   for (const html of [lv, wk]) assert.doesNotMatch(html, /border-radius:\s*(999|50%)/, "D60");
 });
 
-test("⭐ T10 rows 5–7 + 34 walk (real extension): Lever, Workable and Ashby forms as measured are filled in ONE press — every field named, one résumé row, EEO and screening left alone; a form that renders after the press is filled too", { skip: SKIP, timeout: 600000 }, async () => {
+test("⭐ T10 rows 5–7 + 34 walk (real extension): Lever, Workable and Ashby forms as measured are filled in ONE press — every field named, one résumé row, EEO and screening left alone; a form that renders after the press is filled too; two tabs keep their own jobs, the same job fills in both (rows 12, 13)", { skip: SKIP, timeout: 600000 }, async () => {
   const lines = [];
   const r = await runScenario("atsFamilies", { log: (l) => lines.push(l) });
   if (r.skipped) return;

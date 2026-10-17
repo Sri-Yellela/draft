@@ -60,5 +60,6 @@ test("(g) the final badge is 'required' when anything required is empty — and 
 });
 
 test("(g) the probe's own required flag counts the asterisk, so schema capture records it too", () => {
-  assert.match(handoff, /\/\\\*\\s\*\$\/\.test\(labelFor\(el\)\) \|\|/);
+  // 10-17: Lever's ✱ counts as the asterisk does (test/t10AtsFamiliesChrome.test.js)
+  assert.match(handoff, /\/\[\*✱\]\\s\*\$\/\.test\(labelFor\(el\)\) \|\|/);
 });

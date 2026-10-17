@@ -1,5 +1,5 @@
 /**
- * T10 rows 5, 6, 7 and 34 (open item 4) · THE OTHER ATS FAMILIES, FILLED — the real extension on each family's MEASURED
+ * T10 rows 5, 6, 7, 12, 13 and 34 (open item 4) · THE OTHER ATS FAMILIES, FILLED — the real extension on each family's MEASURED
  * structure, in a real Chrome.
  * ======================================================================================================================
  *   npm run walk:extension -- atsFamilies [--theme dark]
@@ -12,13 +12,16 @@
  *                 GUIDs, the autofill drop zone, the EEOC radios)
  *   4. a form that RENDERS LATE (row 34) — /ashby-spa?delay=2500 (its default hydration): Fill pressed while the page says
  *                 "Loading application form…"
+ *   5. two tabs, two jobs (row 12) · 6. the same job in two tabs (row 13)
  * Each: ONE press of Fill (the chain: identify → bind → prepare → fill) on a job on Ada's board, then the review panel.
  * Asserted: the identity fields hold the profile's values; every field the panel lists has a name (no "Unlabelled"); ONE
  * résumé row; the résumé upload, every EEO question and every eligibility / screening question are left for the person;
  * nothing submitted. Synthetic person (Ada Example) only.
  */
 import { defaultSeed, freePort, waitUntil, sleep, BUSY_MS } from '../extensionBrowser.mjs';
-import { prepareAndRead } from './panelLifecycle.mjs';
+// ⛔ the user's Fill press (FILL_ACTIVE_TAB → tabState.js runFillChain: identify → bind → prepare → fill), not the older
+// PREPARE_ACTIVE_TAB, which prepares and fills without identifying or binding the tab
+const pressFill = (h) => Promise.race([h.send({ type: 'FILL_ACTIVE_TAB' }), sleep(BUSY_MS).then(() => ({ timeout: true }))]).then(reply => ({ reply }));
 
 const ATS_PORT = await freePort();
 const A = `http://localhost:${ATS_PORT}`;
@@ -60,8 +63,8 @@ async function fillAndRead(h, url, { observe, wait = null } = {}) {
   await h.page.goto('about:blank');
   await h.open(url);
   if (wait) await wait();
-  const r = await prepareAndRead(h, { dismiss: false });
-  const panel = await waitUntil(() => h.readPanel().then(p => (p && rowsOf(p).length ? p : null)), BUSY_MS, 200) || r.panel;
+  const r = await pressFill(h);
+  const panel = await waitUntil(() => h.readPanel().then(p => (p && rowsOf(p).length ? p : null)), BUSY_MS, 200);
   observe('reply', r.reply?.message || r.reply);
   observe('panel', { subtitle: panel?.subtitle, rows: rowsOf(panel).map(x => `${x.band}:${x.label}=${x.value ?? ''}`) });
   return { reply: r.reply, panel };
@@ -121,11 +124,56 @@ export default async function run(h, { check, observe, section }) {
   observe('when Fill is pressed', loading);
   check('the form is not there yet when Fill is pressed', /Loading application form/.test(loading || ''), loading);
   const t0 = Date.now();
-  const late = await prepareAndRead(h, { dismiss: false });
+  const late = await pressFill(h);
   observe('reply', { message: late.reply?.message || late.reply, after_ms: Date.now() - t0 });
   const filledLate = await waitUntil(async () => ((await val(h, '#f_email')) === 'ada@example.test' ? true : null), 8000, 200);
   observe('the late form after the press', { legal: await val(h, '#f_legal'), email: await val(h, '#f_email') });
   check('ONE press fills the form that rendered after it — the identity block holds the profile\'s values', !!filledLate && await val(h, '#f_legal') === 'Ada Example');
+
+  // ── rows 12 and 13: tabs ────────────────────────────────────────────────────────────────────────────────────────
+  const bindingOf = async (p) => {
+    const id = await h.control.evaluate((u) => chrome.tabs.query({}).then(ts => ts.find(t => t.url === u)?.id ?? null), p.url());
+    const all = Object.fromEntries(await h.bindings());
+    return id == null ? null : (all[`bind:${id}`] || null);
+  };
+  const fillIn = async (p) => {
+    await p.bringToFront();
+    await waitUntil(() => h.control.evaluate(() => chrome.tabs.query({ active: true, currentWindow: true }).then(([t]) => t?.url || null))
+      .then(u => (u === p.url() ? u : null)), BUSY_MS, 100);
+    return Promise.race([h.send({ type: 'FILL_ACTIVE_TAB' }), sleep(BUSY_MS).then(() => ({ timeout: true }))]);
+  };
+  const fresh = async (p, u) => { await p.goto('about:blank'); await p.goto(u); await p.waitForSelector('form'); };
+
+  section('5 · two tabs, two jobs (row 12) — each tab keeps its own job and its own form');
+  await fresh(page, PAGES.lever);
+  const tab2 = await h.browser.newPage();
+  await fresh(tab2, PAGES.workable);
+  const f1 = await fillIn(page);
+  const f2 = await fillIn(tab2);
+  observe('replies', { lever: f1?.message, workable: f2?.message });
+  check('the Lever tab is filled with the profile', await page.$eval('input[name="email"]', el => el.value) === 'ada@example.test');
+  check('the Workable tab is filled with the profile', await tab2.$eval('#email', el => el.value) === 'ada@example.test');
+  const b1 = await bindingOf(page), b2 = await bindingOf(tab2);
+  observe('bindings', { lever: b1?.jobId, workable: b2?.jobId });
+  check('each tab is bound to ITS job', b1?.jobId === 'fam-lever' && b2?.jobId === 'fam-workable', JSON.stringify([b1?.jobId, b2?.jobId]));
+  check('…and each tab carries its own review panel', await page.$('#rm-gate-review-overlay') !== null && await tab2.$('#rm-gate-review-overlay') !== null);
+  await page.bringToFront();
+  const again = await fillIn(page);
+  check('Fill again in the first tab still fills the Lever form — not the other tab\'s job', /Filled/.test(again?.message || '') && (await bindingOf(page))?.jobId === 'fam-lever', again?.message);
+
+  section('6 · the same job in two tabs (row 13) — both fill, one progress record');
+  await fresh(tab2, PAGES.lever);
+  await fresh(page, PAGES.lever);
+  const s1 = await fillIn(page);
+  const s2 = await fillIn(tab2);
+  observe('replies', { first: s1?.message, second: s2?.message });
+  check('both tabs are filled', await page.$eval('input[name="email"]', el => el.value) === 'ada@example.test' && await tab2.$eval('input[name="email"]', el => el.value) === 'ada@example.test');
+  check('both tabs are bound to the same job', (await bindingOf(page))?.jobId === 'fam-lever' && (await bindingOf(tab2))?.jobId === 'fam-lever');
+  const prog = (await h.storage.local()).jobProgress || {};
+  const recs = Object.values(prog.records || {}).filter(r => r?.jobId === 'fam-lever');
+  observe('progress records', Object.keys(prog.records || {}));
+  check('ONE progress record for the job, holding the fill', recs.length === 1 && recs[0].filled?.n > 0, JSON.stringify(recs.map(r => r.filled)));
+  await tab2.close();
 
   section('throughout');
   const subs = await fetch(`${A}/_submissions`).then(r => r.json()).catch(() => ({ count: -1 }));
