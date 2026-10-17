@@ -34,12 +34,17 @@ export default async function run(h, { check, observe, section }) {
     if (b) b.click();
     return !!b;
   });
-  /** A fill on a Workday-shaped step waits for the candidate on the required fields it cannot answer: × ends it. */
-  const settle = async (reply) => {
-    if (!reply?.pending) return reply;
-    const badge = await waitUntil(() => readBadge().then(b => (b?.state === 'required' ? b : null)), BUSY_MS);
-    if (badge) await dismissBadge();
-    return reply.reply;
+  /**
+   * One Fill press, to ITS end. A fill on a Workday-shaped step waits for the candidate on the required fields it cannot
+   * answer — the status line says "required" — and the × ends it. ⭐ (open item 2) Waited for by its own signals (the
+   * reply, or "required" on the tab in front: h.untilAnswerOrWaiting), not by "no reply in 8 s, so it must be waiting" —
+   * under load a press that was merely slow was held a minute for a "required" that never came (as in bindingFirst).
+   */
+  const fillPress = async () => {
+    const r = await h.untilAnswerOrWaiting({ type: 'FILL_ACTIVE_TAB' }, { on: front });
+    if (r.answered) return r.reply;
+    if (r.waitingForYou) await dismissBadge();
+    return Promise.race([r.reply, sleep(BUSY_MS).then(() => ({ ok: null, message: `the Fill never answered (${r.waitingForYou ? 'after the ×' : 'no reply and no "required"'})` }))]);
   };
   const newTab = async (url) => {
     const p = await browser.newPage();
@@ -64,7 +69,7 @@ export default async function run(h, { check, observe, section }) {
   const tabA = await newTab(OWNER_STAGE);
   check('the tab is cold — not bound', (await h.bindings()).length === 0);
   const before = db.prepare('SELECT COUNT(*) FROM apply_gate_packets WHERE user_id = 1').pluck().get();
-  const one = await settle(await h.fill({ timeoutMs: 8000 }));
+  const one = await fillPress();
   check('the form carries the prepared answers', (await firstName(tabA)) === 'Ada', await firstName(tabA));
   check('ONE press read the page and prepared the answers', JSON.stringify(one?.did) === JSON.stringify(['read', 'prepared']), JSON.stringify(one?.did));
   check('…and says so', /^Read this page and prepared your answers\./.test(one?.message || ''), one?.message);
@@ -91,7 +96,7 @@ export default async function run(h, { check, observe, section }) {
   const tabsBefore = (await h.bindings()).length;
   const mark = h.api.requests.length;
   const opened = await control.evaluate(() => chrome.action.openPopup().then(() => 'ok', e => `ERR ${e.message}`));
-  const popupT = opened === 'ok' ? await browser.waitForTarget(t => t.url().endsWith('/popup.html'), { timeout: 8000 }).catch(() => null) : null;
+  const popupT = opened === 'ok' ? await browser.waitForTarget(t => t.url().endsWith('/popup.html'), { timeout: BUSY_MS }).catch(() => null) : null;
   check('the real popup opened on the new tab', !!popupT, opened);
   if (!popupT) return;
   const popup = await popupT.asPage();
@@ -117,9 +122,17 @@ export default async function run(h, { check, observe, section }) {
   await popup.evaluate(() => document.getElementById('btn-fill-primary').click());
   const filled = await waitUntil(() => firstName(tabC).then(v => v === 'Ada'), BUSY_MS);
   check('the new tab\'s form is filled', !!filled, await firstName(tabC));
-  const badge = await waitUntil(() => readBadge().then(b => (b?.state === 'required' ? b : null)), 15000);
-  if (badge) await dismissBadge();
-  const status = await waitUntil(() => popup.evaluate(() => document.getElementById('status')?.textContent || '').then(s => (/Filling/.test(s) || !s ? null : s)).catch(() => 'closed'), BUSY_MS);
+  // ⭐ (open item 2) the press's end, by its own signals: the wizard asking the candidate ("required" — × it), or the popup's
+  // status leaving "Filling…" — whichever comes first. It gave "required" 15 s and then waited a minute on a popup that
+  // was still filling (the wizard waits for the candidate up to 9 minutes) when the badge came later than that.
+  const popupStatus = () => popup.evaluate(() => document.getElementById('status')?.textContent || '').catch(() => 'closed');
+  const ended = await waitUntil(async () => {
+    if ((await readBadge().catch(() => null))?.state === 'required') return 'required';
+    const s = await popupStatus();
+    return /Filling/.test(s) || !s ? null : 'answered';
+  }, BUSY_MS);
+  if (ended === 'required') await dismissBadge();
+  const status = await waitUntil(() => popupStatus().then(s => (/Filling/.test(s) || !s ? null : s)), BUSY_MS);
   observe('the popup said', status);
   const reads = h.api.requests.slice(mark2).map(r => r.path).filter(p => p === '/api/import/context' || p === '/api/extension/page');
   check('the page was NOT read again', reads.length === 0, JSON.stringify(reads));
@@ -128,7 +141,7 @@ export default async function run(h, { check, observe, section }) {
 
   section('6 · T13 — a page with no application form says why');
   await newTab(POSTING);
-  const none = await settle(await h.fill({ timeoutMs: 8000 }));
+  const none = await fillPress();
   check('not filled', none?.ok === false, JSON.stringify(none));
   check('…and the sentence says why', /No application form/.test(none?.message || ''), none?.message);
 }

@@ -367,8 +367,9 @@ export default async function run(h, { check, observe, section }) {
   await prepareAndRead(h);
   await guardedOk('Self Identify (with answers remembered)');
   await fresh(h); await h.goStep('signIn');
-  await h.prepare({ timeoutMs: 8000 });
-  await sleep(300);
+  // (open item 2) the sign-in Prepare's OWN reply first (it refuses at once, never waits) — 8 s and 300 ms read the
+  // page before a slow refusal had decided anything, so "untouched" passed blind under load
+  await h.prepare({ timeoutMs: BUSY_MS });
   check('sign-in: the sign-in email is untouched and the password never left the page', await page.$eval('#ws-signIn-email', el => el.value) === '' && (await h.leaked()).leaked === false);
 
   section('10 · the plain fake-ATS form — the non-Workday control');
