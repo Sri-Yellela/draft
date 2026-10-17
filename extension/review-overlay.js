@@ -816,9 +816,15 @@ export function renderOverlay(model, meta) {
       btn.disabled = true;
       say(which === 'base' ? 'Attaching your résumé…' : which === 'letter' ? 'Attaching your cover letter…' : 'Attaching the tailored résumé…');
       const target = r.locator?.[0] ? { id: r.locator[0].id, name: r.locator[0].name, kind: r.fileType } : { kind: r.fileType };
-      const reply = which === 'tailored'
-        ? await send({ type: 'RESUME_ATTACH', id: files.tailored?.id, target })
-        : await send({ type: 'RESUME_ATTACH_FILE', which, target, trigger: 'click' });
+      // ⛔ the row is ours while the attach runs: the live watcher below sees the upload filled BEFORE the reply (the
+      // tailored PDF is made and fetched first) and would call it "answered on the page" — open item 5, measured
+      r.pending = true;
+      let reply;
+      try {
+        reply = which === 'tailored'
+          ? await send({ type: 'RESUME_ATTACH', id: files.tailored?.id, target })
+          : await send({ type: 'RESUME_ATTACH_FILE', which, target, trigger: 'click' });
+      } finally { r.pending = false; }
       btn.disabled = false;
       const a = reply?.model?.attach || reply?.attach || null;
       if (a?.outcome === 'attached') {

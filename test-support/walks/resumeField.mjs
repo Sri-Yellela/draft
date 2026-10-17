@@ -98,6 +98,31 @@ export default async function run(h, { check, observe, section }) {
   const r5 = await waitUntil(async () => { const r = await resumeRow(h); return /Skipped/.test(r?.note || '') ? r : null; }, BUSY_MS, 150) || await resumeRow(h);
   check('still Needs you, saying the upload is required', r5?.group === 'need' && /this upload is required; attach a file on the page/.test(r5?.note || ''), JSON.stringify(r5));
   check('…and nothing was attached', (await files(h)) === 0);
+  section('5 · Attach tailored — the generation from 3, once ready, attached on the row and verified (open item 5)');
+  await h.page.click('#rm-draft-dock >>> [data-role="close"]').catch(() => {});
+  const ready = await waitUntil(() => { const g = CTL.generations(); return g.length === 1 && g[0].status === 'ready' ? g[0] : null; }, BUSY_MS, 150);
+  check('the ONE generation from 3 is ready', !!ready && ready.id === want, JSON.stringify(CTL.generations()));
+  const rendersBefore = CTL.rendered.length;
+  await fresh(h);
+  await h.goStep('myExperience');
+  await prepareAndRead(h);
+  const r6 = await waitUntil(async () => { const r = await resumeRow(h); return r?.choices?.includes('Attach tailored') ? r : null; }, BUSY_MS, 150) || await resumeRow(h);
+  check('the row now offers Attach tailored first — and no second Generate', r6?.choices.join(' · ') === 'Attach tailored · Attach my résumé · Skip', r6?.choices.join(' · '));
+  await h.page.click(`#${OVERLAY} >>> .rm-row[data-idx="${r6?.idx}"] [data-role="attach"][data-which="tailored"]`);
+  const shownT = await waitUntil(async () => { const s = await status(h); return /Successfully Uploaded/.test(s) ? s : null; }, BUSY_MS, 150);
+  observe('the drop zone', shownT);
+  const pdfs = CTL.pdfs();
+  const tailoredName = pdfs[0]?.file_name || '';
+  check('ONE PDF made from the generation, named for the person and the job', pdfs.length === 1 && /^Ada_Example_.+\.pdf$/.test(tailoredName) && tailoredName !== 'Ada_Example_Resume.pdf', JSON.stringify(pdfs));
+  check('the page shows the TAILORED file\'s name', !!shownT && shownT.startsWith(`${tailoredName} · Successfully Uploaded!`), shownT);
+  check('…the server recorded it as attached', pdfs[0]?.attached_at != null);
+  check('…printed from the SANITISED generated HTML (the script never reaches the renderer)', CTL.rendered.length === rendersBefore + 1 && /payments ledger/.test(CTL.rendered.at(-1)) && !/__ranFromResume|<script/i.test(CTL.rendered.at(-1)));
+  check('…through the generation\'s own PDF route', h.api.requests.some(q => q.method === 'POST' && q.path === `/api/extension/resume/${want}/pdf`));
+  // ⛔ the row's own answer, not the live watcher's "answered on the page": RESUME_ATTACH's reply names the outcome
+  const r7 = await waitUntil(async () => { const r = await resumeRow(h); return r?.group === 'ok' && r.value ? r : null; }, BUSY_MS, 150) || await resumeRow(h);
+  check('the row moves to Filled with the tailored file\'s name — "the page shows it"', r7?.value === tailoredName && /the page shows it/.test(r7?.note || ''), JSON.stringify(r7));
+  check('…and still ONE generation, ONE slot — attaching spends nothing', CTL.generations().length === 1 && CTL.slots() === 1, `${CTL.generations().length} generations, ${CTL.slots()} slots`);
+
   check('the fixture recorded no submission (draft never submits)', (await h.submissions()).length === 0);
   await h.screenshot(`t18-resume-field-${h.theme()}`);
 }
