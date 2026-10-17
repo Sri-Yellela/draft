@@ -2172,7 +2172,8 @@ export async function resumeFilesFor(serverUrl, jobId, { setting = 'on_cue' } = 
     const r = await authedFetch(serverUrl, '/api/extension/base-resume');
     out.base = r?.ok ? (await r.json())?.exists === true : false;
   } catch { out.base = false; }
-  out.generate = jobId != null && offerGenerateOnCue({ setting, tailoredReady: !!out.tailored, inFlight: out.inFlight });
+  // ⛔ a generation is made FROM the base résumé: with none, "Generate and attach" could only be refused (T10 row 18)
+  out.generate = jobId != null && out.base && offerGenerateOnCue({ setting, tailoredReady: !!out.tailored, inFlight: out.inFlight });
   return out;
 }
 
