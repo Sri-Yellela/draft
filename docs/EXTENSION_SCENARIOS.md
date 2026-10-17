@@ -69,7 +69,7 @@ passes on production with the real Stripe job and the Zoom Workday flow.*
 | 18 | no base résumé | `d99AtsOnPage` › "⛔ J12 walk (light/dark): the report at once, "Add your résumé", "Read this page now" — in a real Chrome"; `d99BoardJob` › "⛔ J12: no base résumé → no_base_resume…"; `d99AtsOnPage` › "J12 · no base résumé → "Add your résumé in draft" and no score…" | yes (the ATS face) | **PARTIAL** — the ATS report is covered; Prepare / Fill / *Generate* with no base résumé on file have no test | not yet |
 | 19 | a résumé but no job profile | `d64AutoCaptureServer` (an automatic capture answers `no_active_profile`) | no | **PARTIAL** — the auto-capture's reason only; what the popup, dock, Prepare and the ATS say for an account with no job profile is untested | not yet |
 | 20 | Draft slots exhausted | `j6ResumePanel` › "⛔ J6: no cost, token or model word in anything the panel shows…" (the `slots_exhausted` model says "You have used all of your drafts…"); `a63BoardToolsPending` (the board's `draft_slots_exhausted`); `t24IntentModel` › "⭐ T24 · server: 0 of 10 slots is said BEFORE queuing — nothing is written", "T24 · 0 of 10 slots: said on the dock, and nothing is sent", "T24 · 0 of 10 slots is said BEFORE queuing; 1 left for a Draft + résumé offers the Draft alone" | no (the T24 walk runs with slots to spare) | **PARTIAL** — the server refuses before queuing and the dock says so (server + stubbed dock); no real-Chrome walk reaches 0 of 10 | not yet |
-| 21 | the plan's limit | — (`services/extensionResume.js` has `plan_limit` and `upgrade_required`; no test reaches either) | — | **NOT COVERED** | not yet |
+| 21 | the plan's limit | `test/t10PlanLimit.test.js` — `plan_limit` (429) and `upgrade_required` (403) each refused before anything is spent (no slot, no generation row, no model call), the allowance beside it; the résumé view shows each refusal's own sentence; server.js's preflight pinned (43k) | stubs (the service with a stubbed preflight; the view model) | **PARTIAL** — no real-Chrome walk reaches it, and production has `RM_LIMITS_PER_DAY` unset | not yet |
 | 22 | the server unreachable | `bindingFirst` › REAL Chrome matrix §9 "UNREACHABLE and SIGNED OUT…"; `j1Progress` › "⛔ J1: … an unreachable server does NOT [clear progress]"; `bindingFirst` › "⛔ identifyAndBind: a failed identify binds NOTHING…" | yes | **COVERED** | not yet |
 
 ### Generation
@@ -133,8 +133,8 @@ are listed so the walk covers them; the guard counts only rows 1–42.
 | Status | Rows | Count |
 |---|---|---|
 | COVERED | 1, 2, 3, 4, 10, 15, 22, 24, 25, 26, 27, 36, 37, 38, 40, 41, 42 | **17** |
-| PARTIAL | 5, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 20, 23, 28, 29, 30, 31, 32, 34, 35, 39 | **23** |
-| NOT COVERED | 21, 33 | **2** |
+| PARTIAL | 5, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 23, 28, 29, 30, 31, 32, 34, 35, 39 | **24** |
+| NOT COVERED | 33 | **1** |
 
 **COVERED here means automated, not done.** Every COVERED row runs against a fixture and synthetic data; rows 24–26 run
 against a stubbed tools service. None of the 42 has had the owner's production walk.
