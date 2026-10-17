@@ -181,8 +181,8 @@ import { fileTypeOf, fileTypesOf, guessLabelOf } from './fieldSemantics.js';
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const keyText = (s) => norm(questionLabelKey(s));
 
-/** The page's words without the required asterisk — "First Name*" is shown as "First Name". */
-export const shownLabel = (s) => String(s ?? '').replace(/\s+/g, ' ').replace(/\s*\*+\s*$/, '').replace(/^\s*\*+\s*/, '').trim();
+/** The page's words without the required mark — "First Name*" is shown as "First Name", Lever's "Full name ✱" as "Full name". */
+export const shownLabel = (s) => String(s ?? '').replace(/\s+/g, ' ').replace(/\s*[*✱]+\s*$/, '').replace(/^\s*[*✱]+\s*/, '').trim();
 
 /** Where a filled value came from, in the panel's words (D96 §5: profile · saved · you typed · matched loosely). */
 export function sourceOf(step = {}) {
@@ -280,7 +280,7 @@ export function panelRowsForStep({ stepName = '', fields = [], plan = [], filled
     const skip = failed.length ? (skipped.find(s => s.field === failed[0].label && (s.name ?? null) === (failed[0].name ?? null))
       || skipped.find(s => s.field === failed[0].label)) : null;
     // Required by the control, its group, or the asterisk on the question itself (a date's "Date*").
-    const required = fs.some(f => f.required) || /\*\s*$/.test(String(question));
+    const required = fs.some(f => f.required) || /[*✱]\s*$/.test(String(question));
     const hasValue = u.kind === 'date' ? fs.every(f => f.hasValue) : fs.some(f => f.hasValue);
     const kind = kindOf(question);
     const choices = unitOptions(u);
