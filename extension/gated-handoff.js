@@ -336,7 +336,7 @@ function probeFormShape() {
       // D55 (d): Workday names its controls by data-automation-id, not name/id — the matcher reads
       // that convention structurally (WORKDAY_FIELD_IDS), as it unwraps Greenhouse's namespacing.
       automationId: el.getAttribute('data-automation-id') || null,
-      widget: el.tagName === 'INPUT' && (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list')
+      widget: el.tagName === 'INPUT' && !el.readOnly && (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list')
         ? 'typeahead'
         : (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-haspopup') === 'listbox') && el.tagName !== 'SELECT'
           ? 'dropdown' : null,
@@ -371,7 +371,9 @@ async function applyPlan(plan, resume, opts) {
   const isEditable = (el) => el.isContentEditable === true;
   // D55 (a): a TYPEAHEAD is an <input> announcing a popup list — its options do not exist until a
   // query has been typed. Checked BEFORE isCombo, which it would otherwise match.
-  const isTypeahead = (el) => el.tagName === 'INPUT' &&
+  // A READ-ONLY combobox input is a dropdown dressed as a text box (nothing can be typed into it): it is opened and
+  // picked from as a combo, never typed into.
+  const isTypeahead = (el) => el.tagName === 'INPUT' && !el.readOnly &&
     (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list');
   const isCombo    = (el) => (el.getAttribute?.('role') === 'combobox' || el.getAttribute?.('aria-haspopup') === 'listbox') &&
     !('options' in el);
@@ -520,7 +522,7 @@ async function applyPlan(plan, resume, opts) {
         nativeSetter(el, q);
         await sleep(200);
         const options = (await waitFor(() => readyOptions(el), 4000)) || [];
-        const idx = closestOption(want, options.map(o => o.textContent || ''));
+        const idx = closestOption(placeWords(want), options.map(o => placeWords(o.textContent || '')));
         if (idx >= 0) {
           got = String(options[idx].textContent || '').trim();
           options[idx].click();
@@ -538,6 +540,118 @@ async function applyPlan(plan, resume, opts) {
     const box = el.closest('[data-automation-id^="formField"], [role="group"], fieldset')
       || el.parentElement?.parentElement || el.parentElement;
     return String(box?.textContent || '').replace(String(el.value || ''), '').toLowerCase();
+  };
+
+  // ── A PICKER WITHOUT ITS ARIA (owner, 10-19) ───────────────────────────────────────────────────────────────────
+  // Lever's "Current location", Ashby's, a Google Places box: a plain <input> that announces nothing, whose value only
+  // COUNTS once one of its suggestions is picked (Lever keeps the pick in a hidden `selectedLocation`). Typed and left,
+  // "Boston" sits in the box while the form holds nothing — the candidate then retypes it and picks "Boston" again.
+  // So: such a box is typed, its own suggestions are WAITED for, and the closest one is pressed like a typeahead's.
+  // Suggestions that come with nothing close → the box is CLEARED and the row says "pick it yourself"; a half-typed
+  // picker is worse than an empty one, because it looks answered. A box that shows no list at all is a plain box after
+  // all, and keeps the typed value.
+  //
+  // "Boston, MA" and "Boston, Massachusetts, United States" are the same place: a state's or the country's short form
+  // after a comma is read as its full name, on both sides, before the closest option is chosen.
+  const US_STATES = { AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado',
+    CT: 'Connecticut', DE: 'Delaware', DC: 'District of Columbia', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho',
+    IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland',
+    MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska',
+    NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina',
+    ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island',
+    SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia',
+    WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming', US: 'United States', USA: 'United States' };
+  const placeWords = (s) => String(s ?? '').replace(/,\s*([A-Z]{2,3})(?=\s*(?:,|$|\d))/g,
+    (m, ab) => (US_STATES[ab] ? `, ${US_STATES[ab]}` : m));
+  const visible = (n) => !!(n && (n.offsetWidth || n.offsetHeight || n.getClientRects().length)) &&
+    getComputedStyle(n).visibility !== 'hidden';
+  // The field's own box: the nearest wrapper that holds this one text box and nothing else to type into.
+  const fieldBox = (el) => {
+    let box = el.parentElement;
+    for (let up = 0; box && up < 4 && box !== document.body; up++) {
+      const p = box.parentElement;
+      if (!p || p === document.body || p.querySelectorAll('input:not([type="hidden"]), select, textarea').length > 1) break;
+      box = p;
+    }
+    return box || el.parentElement;
+  };
+  const SHELL_RE = /dropdown|autocomplete|auto-complete|typeahead|suggest|combobox|listbox|results|pac-|places|geo/i;
+  const shellOf = (el) => [...(fieldBox(el)?.querySelectorAll('*') || [])]
+    .some(n => n !== el && SHELL_RE.test(`${typeof n.className === 'string' ? n.className : ''} ${n.id || ''}`));
+  // Is this plain box worth waiting on? 'aria' — it says it opens a popup; 'shell' — a dropdown / results shell sits in
+  // its box; 'maybe' — only a place-like name, given a short wait. Only an 'aria' box that never shows a list is
+  // cleared; the other two keep their text when no list shows (a wrapper's class name is not proof of a picker).
+  const pickerHint = (el, label) => {
+    if (el.tagName !== 'INPUT' || !['text', 'search', ''].includes((el.type || '').toLowerCase()) || el.list) return null;
+    const hp = el.getAttribute('aria-haspopup');
+    if ((hp && hp !== 'false') || el.hasAttribute('aria-expanded') || el.hasAttribute('aria-controls') ||
+        el.hasAttribute('aria-owns')) return 'aria';
+    if (shellOf(el) || SHELL_RE.test(`${el.className || ''} ${el.id || ''} ${el.name || ''}`)) return 'shell';
+    return /\b(location|city|town|address|where .*(live|reside|based)|reside|based in)\b/i.test(
+      `${label || ''} ${el.name || ''} ${el.id || ''} ${el.getAttribute('placeholder') || ''}`) ? 'maybe' : null;
+  };
+  const NOT_AN_OPTION = /^(no\b.*\b(found|results?|match(es)?)|nothing found|searching|loading|type to search|start typing|locate me)/i;
+  const noResultsShown = (el) => [...(fieldBox(el)?.querySelectorAll('*') || [])]
+    .some(n => n.children.length === 0 && visible(n) && /^no\b.*\b(found|results?|match(es)?)/i.test(String(n.textContent || '').trim()));
+  // What the box is suggesting right now: its own popup's options (by id), a list rendered in its box, a page-level
+  // Places container. Leaves only — a row that holds other rows is not one choice.
+  const suggestionsOf = (el) => {
+    const id = el.getAttribute('aria-controls') || el.getAttribute('aria-owns');
+    const own = id && document.getElementById(id);
+    const box = fieldBox(el);
+    const found = new Set([
+      ...(own ? own.querySelectorAll('[role="option"], li') : []),
+      ...(box ? box.querySelectorAll('[role="option"], li, [class*="option" i], [class*="suggest" i] > *, [class*="results" i] > *, [class*="dropdown" i] > *, [class*="item" i]') : []),
+      ...document.querySelectorAll('.pac-container .pac-item'),
+    ]);
+    const list = [...found].filter(n => n !== el && !n.contains(el) && visible(n) && !n.querySelector('input, select, textarea') &&
+      (() => { const t = String(n.textContent || '').replace(/\s+/g, ' ').trim(); return t && t.length <= 200 && !NOT_AN_OPTION.test(t); })());
+    return list.filter(n => !list.some(o => o !== n && n.contains(o)));
+  };
+  // A suggestion is pressed the whole way — many pick on mousedown (and close), others on click.
+  const press = (o) => {
+    const fire = (type) => o.dispatchEvent(new ((/^pointer/.test(type) && typeof PointerEvent === 'function') ? PointerEvent : MouseEvent)(
+      type, { bubbles: true, cancelable: true, view: window }));
+    fire('pointerdown'); fire('mousedown');
+    if (!o.isConnected) return;
+    fire('pointerup'); fire('mouseup'); o.click();
+  };
+  const setSuggest = async (el, want, hint) => {
+    const words = String(want).split(/[\s,/]+/).filter(t => t.length > 1);
+    const queries = [...new Set([String(want).trim(), String(want).split(',')[0].trim(),
+      [...words].sort((a, b) => b.length - a.length)[0]].filter(q => q && q.length > 1))];
+    let sawList = false, sawNone = false;
+    const noneBefore = noResultsShown(el);   // a "No results" line that is always on screen says nothing
+    for (const q of queries) {
+      const before = new Set(suggestionsOf(el));
+      el.focus?.();
+      nativeSetter(el, q);
+      el.dispatchEvent(new KeyboardEvent('keydown', { key: q.slice(-1), bubbles: true }));
+      el.dispatchEvent(new KeyboardEvent('keyup',   { key: q.slice(-1), bubbles: true }));
+      const options = await waitFor(() => {
+        const now = suggestionsOf(el).filter(o => !before.has(o));
+        return now.length ? now : null;
+      }, hint === 'maybe' ? 1200 : 3000) || [];
+      if (options.length) sawList = true;
+      const none = !noneBefore && noResultsShown(el);
+      if (none) sawNone = true;
+      const idx = options.length ? closestOption(placeWords(want), options.map(o => placeWords(o.textContent || ''))) : -1;
+      if (idx >= 0) {
+        const got = String(options[idx].textContent || '').replace(/\s+/g, ' ').trim();
+        press(options[idx]);
+        await sleep(120);
+        return { got };
+      }
+      if (!options.length && !none && hint !== 'aria') break;   // no list at all: a plain box
+    }
+    if (sawList || sawNone || hint === 'aria') { nativeSetter(el, ''); dismiss(el); return { needsPick: true }; }
+    nativeSetter(el, String(want));
+    return { plain: true };
+  };
+  const loose = (a, b) => {
+    const n = (s) => placeWords(s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const x = n(a), y = n(b);
+    return !!x && !!y && (x.includes(y) || y.includes(x) || x.split(' ')[0] === y.split(' ')[0]);
   };
 
   const filled = [], skipped = [], pending = [];
@@ -648,6 +762,18 @@ async function applyPlan(plan, resume, opts) {
         el.dispatchEvent(new Event('input',  { bubbles: true }));
         el.dispatchEvent(new Event('change', { bubbles: true }));
         pending.push({ step, el, kind: 'editable', want: String(step.value) });
+      } else if (el.tagName === 'INPUT' && el.readOnly) {
+        // A read-only box takes no typing: it is a dropdown or a date picker with no ARIA to drive. Typing a value in
+        // through the setter would show text the widget never chose.
+        skipped.push({ field: step.label, name: step.name, reason: 'needs_selection', wanted: String(step.value ?? '').slice(0, 80) });
+        return;
+      } else if (pickerHint(el, step.label)) {
+        const r = await setSuggest(el, String(step.value), pickerHint(el, step.label));
+        if (r.needsPick) {
+          skipped.push({ field: step.label, name: step.name, reason: 'needs_selection', wanted: String(step.value ?? '').slice(0, 80) });
+          return;
+        }
+        pending.push(r.got ? { step, el, kind: 'suggest', want: r.got } : { step, el, kind: 'value', want: String(step.value) });
       } else {
         nativeSetter(el, String(step.value));
         pending.push({ step, el, kind: 'value', want: String(step.value) });
@@ -816,6 +942,13 @@ async function applyPlan(plan, resume, opts) {
                                       // Every pick must be visible as a chip or a selected label.
                                       ok = want.every(w => shown.includes(String(w).toLowerCase()));
                                       got = want.join(', '); }
+      else if (kind === 'suggest')  { got = String(el.value || '').trim();
+                                      // The box shows the pick in its own format ("Boston, MA, USA"), or holds
+                                      // it beside itself (Lever's hidden selectedLocation) and shows a label.
+                                      const kept = [...(fieldBox(el)?.querySelectorAll('input[type="hidden"]') || [])]
+                                        .some(h => String(h.value || '').trim());
+                                      ok = loose(got, want) || (kept && !!got);
+                                      if (ok) got = want; }
       else                          { got = el.value; ok = same(got, want); }
     } catch (e) {
       skipped.push({ field: step.label, reason: `verify_failed:${e.message}` });
@@ -825,7 +958,7 @@ async function applyPlan(plan, resume, opts) {
       // `placed` is the ATS's own wording when a picker chose it ("Computer and Information
       // Sciences" for "Computer Science") — what the employer will read, so what the review shows.
       filled.push({ field: step.label, name: step.name, provenance: step.provenance, verified: true,
-                    ...(kind === 'combo' || kind === 'typeahead' ? { placed: got } : {}),
+                    ...(kind === 'combo' || kind === 'typeahead' || kind === 'suggest' ? { placed: got } : {}),
                     ...(step.entry ? { entry: step.entry } : {}),
                     ...(step.index !== undefined ? { index: step.index } : {}),
                     ...(Array.isArray(shownOptions) && shownOptions.length ? { options: shownOptions } : {}) });
