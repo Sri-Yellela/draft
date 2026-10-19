@@ -209,6 +209,7 @@ export const NEED_WORDS = Object.freeze({
   reverted_after_set: 'The page did not keep it — copy it in.',
   value_not_in_options: "None of the page's choices is this — pick it yourself.",
   no_close_option: "None of the page's choices is close — pick it yourself.",
+  needs_selection: "This box only takes a pick from its own list — type it and choose the match.",
   field_moved: 'The page changed before draft could fill it — copy it in.',
   options_changed: 'The choices changed since you answered — answer it again.',
   decline_option_absent: "This form has no 'prefer not to say' choice — answer it yourself.",

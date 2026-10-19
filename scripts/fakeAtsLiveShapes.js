@@ -78,7 +78,39 @@ export function leverLiveForm() {
   <li class="application-question"><label><div class="application-label">Veteran status</div><div class="application-field"><select name="eeo[veteran]"><option value="">Select…</option><option>I am a veteran</option><option>I am not a veteran</option><option>Decline to self-identify</option></select></div></label></li>
 </ul>
 <button type="submit" class="postings-btn template-btn-submit">Submit application</button>
-</form>`);
+</form>
+<style>.dropdown-container{display:none}.dropdown-container.open{display:block}.dropdown-no-results{display:none}
+.dropdown-container.none .dropdown-no-results{display:block}.dropdown-location{padding:4px 6px;cursor:pointer}</style>
+<script>
+// ⚠ TRANSCRIBED, NOT SEEN LIVE (no list was opened on 10-15): Lever's location box BEHAVES as a picker — typing shows
+// suggestions, and only a PICKED one counts (it lands in the hidden selectedLocation); typing again un-picks it. The
+// suggestion wording here is synthetic.
+(function () {
+  var PLACES = ['Springfield, IL, United States', 'Springfield, MA, United States', 'Springfield, MO, United States',
+    'Boston, MA, United States', 'Austin, TX, United States'];
+  var input = document.getElementById('location-input'), hidden = document.querySelector('input[name="selectedLocation"]');
+  var box = input.parentNode.querySelector('.dropdown-container'), results = box.querySelector('.dropdown-results');
+  input.addEventListener('input', function () {
+    hidden.value = '';
+    var q = input.value.trim().toLowerCase();
+    results.innerHTML = '';
+    if (!q) { box.className = 'dropdown-container'; return; }
+    setTimeout(function () {                                   // the lookup answers a beat later, as a server would
+      var hits = PLACES.filter(function (p) { return p.toLowerCase().indexOf(q) === 0; });
+      results.innerHTML = '';
+      hits.forEach(function (p) {
+        var d = document.createElement('div'); d.className = 'dropdown-location'; d.textContent = p;
+        d.addEventListener('mousedown', function (e) {
+          e.preventDefault();
+          input.value = p; hidden.value = JSON.stringify({ name: p }); box.className = 'dropdown-container';
+        });
+        results.appendChild(d);
+      });
+      box.className = 'dropdown-container open' + (hits.length ? '' : ' none');
+    }, 150);
+  });
+})();
+</script>`);
 }
 
 // ── Workable ────────────────────────────────────────────────────────────────────────────────────────────────────────

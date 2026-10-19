@@ -163,9 +163,10 @@ test("⛔ T17: ONE module — every view asks dock.js for its host; NONE carries
     if (tab === "status") assert.match(body, /dock\.status\(\{ id: ID \}\)/);
     else assert.match(body, new RegExp(`dock\\.view\\('${tab}'`), `${file} does not draw the ${tab} tab on the dock`);
   }
-  // and nowhere else in the extension: dock.js is the only file with a pointer drag
+  // and nowhere else in the extension: dock.js is the only file with a pointer drag. A drag LISTENS for the pointer;
+  // the fill DISPATCHES a press onto a page's own suggestion (gated-handoff.js press), which drags nothing.
   for (const f of fs.readdirSync("extension").filter(f => f.endsWith(".js") && f !== "dock.js" && f !== "atsReport.js")) {
-    assert.doesNotMatch(stripJs(read(`extension/${f}`)), /\b(mouse|pointer)(down|move)\b|setPointerCapture/, `extension/${f} drags something — the dock is the one module that may`);
+    assert.doesNotMatch(stripJs(read(`extension/${f}`)), /addEventListener\(\s*['"`](mouse|pointer)(down|move)\b|\bon(mouse|pointer)(down|move)\b|setPointerCapture/, `extension/${f} drags something — the dock is the one module that may`);
   }
   // the dock itself has every piece the owner listed
   for (const [re, what] of [[/pointerdown/, "drag"], [/data-handle="\$\{hd\}"/, "resize from edges and corners"], [/edgeAtPointer/, "snap"],

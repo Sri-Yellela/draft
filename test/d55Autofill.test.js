@@ -93,7 +93,7 @@ test("(a) a multi-select is one chip per value, each read back on the page", () 
   const plan = src.slice(body("applyPlan"), at(src, "// ── Matching"));
   assert.match(plan, /Array\.isArray\(step\.value\) \? step\.value : \[step\.value\]/);
   assert.match(plan, /ok = want\.every\(w => shown\.includes\(String\(w\)\.toLowerCase\(\)\)\);/);
-  assert.match(plan, /\.\.\.\(kind === 'combo' \|\| kind === 'typeahead' \? \{ placed: got \} : \{\}\)/,
+  assert.match(plan, /\.\.\.\(kind === 'combo' \|\| kind === 'typeahead' \|\| kind === 'suggest' \? \{ placed: got \} : \{\}\)/,
     "what the employer will read is the ATS's wording — the review must show that, not the profile's");
 });
 

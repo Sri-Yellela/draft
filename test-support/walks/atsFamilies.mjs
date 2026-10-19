@@ -89,6 +89,9 @@ export default async function run(h, { check, observe, section }) {
   check('Lever: Email ← the profile', await val(h, 'input[name="email"]') === 'ada@example.test');
   check('Lever: Phone ← the profile', await val(h, 'input[name="phone"]') === '5550100');
   check('Lever: Current location ← the profile — the dropdown\'s status text no longer hides the question', /Springfield/.test(await val(h, '#location-input') || ''), await val(h, '#location-input'));
+  // A picker's typed text is not an answer: the suggestion must be PICKED (Lever keeps it in selectedLocation), and
+  // "Springfield, IL" must pick Illinois's, not the first Springfield.
+  check('Lever: Current location is PICKED from its suggestions, not just typed', /Springfield, IL/.test(await val(h, 'input[name="selectedLocation"]') || ''), await val(h, 'input[name="selectedLocation"]'));
   check('Lever: LinkedIn URL ← the profile', await val(h, 'input[name="urls[LinkedIn]"]') === PAYLOAD.field_map.linkedin, await val(h, 'input[name="urls[LinkedIn]"]'));
   check('Lever: GitHub URL ← the profile', await val(h, 'input[name="urls[GitHub]"]') === PAYLOAD.field_map.github, await val(h, 'input[name="urls[GitHub]"]'));
   common(check, lv.panel, { family: 'Lever', resumeLabel: 'Resume/CV' });
