@@ -450,7 +450,10 @@ function valueStep(unit, answer, { exact, optIn, ...extra }) {
     return o ? stepFor(f, o.value, extra) : null;
   }
   if (isCombo(f)) return stepFor(f, String(answer), { ...extra, exactOption: !!exact });
-  if (isTypeahead(f)) return exact ? null : stepFor(f, String(answer), extra);
+  // ⭐ 10-21: a typeahead takes a sensitive / near answer EXACTLY too (applyPlan's setTypeahead 'exact': only an option
+  // whose text IS the answer, else nothing) — Greenhouse's Yes / No and EEO questions are react-select typeaheads, and
+  // refusing them left every one of those dropdowns empty even with the answer saved.
+  if (isTypeahead(f)) return stepFor(f, String(answer), exact ? { ...extra, exactOption: true } : extra);
   if (optIn) return null;                       // an opt-in is a choice, not a text box
   return stepFor(f, String(answer), extra);
 }
@@ -467,8 +470,8 @@ function declineStep(unit, extra) {
     const v = pickDeclineOption(f.options.map(o => ({ label: o.text, value: o.value })));
     return v === null ? null : stepFor(f, v, extra);
   }
-  if (isCombo(f)) return stepFor(f, EEO_DECLINE, { ...extra, declineOption: true });
-  if (f.type === 'checkbox' || f.type === 'radio' || isTypeahead(f)) return null;
+  if (isCombo(f) || isTypeahead(f)) return stepFor(f, EEO_DECLINE, { ...extra, declineOption: true });
+  if (f.type === 'checkbox' || f.type === 'radio') return null;
   return stepFor(f, EEO_DECLINE, extra);         // a free-text EEO box receives the candidate's words
 }
 

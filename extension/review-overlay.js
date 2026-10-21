@@ -926,8 +926,40 @@ export function renderOverlay(model, meta) {
   // panel (or a row is being saved) it waits.
   const busy = () => !!root.activeElement || [...root.querySelectorAll('[data-role="editor"]')].some(e => !e.hidden);
   let asking = false;
+  // ⭐ OWNER 10-21 ("when I type into the fields they have to be recorded for next time"): an answer given ON THE PAGE
+  // is remembered as one typed in the panel is (you_typed). A row answered there is read (fieldValuesHeld, in the form's
+  // frame) until the person has LEFT the field and the value has held for two reads — never a half-typed "B" — and a
+  // later change on the page is remembered again. Never read: a row that may not be remembered (unlabelled, consent /
+  // attestation, an upload, a lone checkbox) or whose "Remember for next time" box was unticked.
+  const mayRemember = (r) => !r.noRemember && !r.neverFill && !r.fileType && r.unitKind !== 'checkbox' &&
+    root.querySelector(`.rm-row[data-idx="${rows.indexOf(r)}"] [data-role="remember"]`)?.checked !== false;
+  const remembering = new Map();   // row key → { last, saved }
+  const record = async () => {
+    const live = rows.filter(r => remembering.has(r.key) && r.step === (meta.currentStep ?? r.step) && r.locator?.length);
+    if (!live.length) return;
+    const reply = await send({ type: 'DOCK_FIELD_VALUES', rows: live.map(r => ({ key: r.key, unitKind: r.unitKind, locator: r.locator })) });
+    if (!host.isConnected || !Array.isArray(reply?.values)) return;
+    let changed = false;
+    for (const { key, value, focused } of reply.values) {
+      const st = remembering.get(key), r = rows.find(x => x.key === key);
+      if (!st || !r) continue;
+      const steady = !focused && st.last === value;
+      st.last = value;
+      if (!steady || st.saved === value) continue;
+      st.saved = value;
+      const ack = await send({ type: 'ANSWER_ACKNOWLEDGE', ...keyFields(r, value), source: 'you_typed' });
+      const note = ack?.ok ? '✓ remembered for next time' : ack?.error === 'never_remembered' ? 'answered on the page — draft does not remember this kind of answer'
+        : 'answered on the page — could not remember it';
+      if (ack?.error === 'never_remembered') remembering.delete(key);
+      run.rows[r.key] = { action: 'page', value, remembered: !!ack?.ok, note };
+      Object.assign(r, { value, source: 'you typed', remembered: !!ack?.ok, note: ack?.ok ? null : note });
+      changed = true;
+    }
+    if (changed && !busy()) redraw();
+  };
   const watch = async () => {
     if (busy() || asking || !host.isConnected) return;
+    if (remembering.size) { asking = true; try { await record(); } finally { asking = false; } }
     const open = rows.filter(r => !r.pending && r.group === 'need' && r.step === (meta.currentStep ?? r.step) && r.locator?.length);
     if (!open.length) return;
     asking = true;
@@ -937,6 +969,7 @@ export function renderOverlay(model, meta) {
     let moved = false;
     for (const r of open) {
       if (r.pending || r.group !== 'need' || !reply.answered.includes(r.key)) continue;
+      if (mayRemember(r)) remembering.set(r.key, { last: null, saved: null });
       run.rows[r.key] = { action: 'page', note: r.neverFill ? 'you did this on the page' : 'answered on the page' };
       Object.assign(r, { group: 'ok', source: 'on the page', note: run.rows[r.key].note, copyValue: null, canType: false });
       moved = true;
@@ -969,6 +1002,15 @@ export function renderOverlay(model, meta) {
  * → the keys answered.
  */
 export function fieldsHeld(rows) {
+  // ⭐ 10-21: start noting which fields the PERSON touches (trusted events only — a page script's are not), so
+  // fieldValuesHeld remembers only answers they gave. Installed here, on the panel's first live check, before they type.
+  // ⛔ BYTE-IDENTICAL to fieldValuesHeld's (each is serialised alone). The isolated world's own global: the page never sees it.
+  if (!globalThis.__draftTouched) {
+    const seen = globalThis.__draftTouched = [];
+    for (const type of ['input', 'change', 'keyup', 'mouseup', 'pointerup', 'touchend']) {
+      document.addEventListener(type, (e) => { if (e.isTrusted && e.target?.nodeType === 1) { seen.push(e.target); if (seen.length > 300) seen.shift(); } }, true);
+    }
+  }
   const holds = (loc) => {
     const el = (loc.id && document.getElementById(loc.id)) || (loc.name && document.getElementsByName(loc.name)[0]) || null;
     if (!el) return null;
@@ -983,7 +1025,11 @@ export function fieldsHeld(rows) {
     }
     if (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list') {
       const box = el.closest('[data-automation-id^="formField"], [role="group"], fieldset') || el.parentElement;
-      return !!box?.querySelector('[data-automation-id="selectedItem"], [role="listitem"], li');
+      // ⭐ LIVE (Greenhouse, 10-21): react-select shows its pick as a single-value label (or multi-value chips) in the
+      // control, not a list item — a picker answered on the page stayed under Needs you.
+      const ctl = el.closest('[class*="control"]') || el.parentElement?.parentElement;
+      return !!box?.querySelector('[data-automation-id="selectedItem"], [role="listitem"], li') ||
+        !!String(ctl?.querySelector('[class*="single-value"], [class*="singleValue"], [class*="multi-value"], [class*="multiValue"]')?.textContent || '').trim();
     }
     return String(el.value ?? '').trim() !== '';
   };
@@ -994,6 +1040,67 @@ export function fieldsHeld(rows) {
     if (ok) answered.push(String(r.key));
   }
   return answered;
+}
+
+/**
+ * ⭐ OWNER 10-21 ("when I type into the fields they have to be recorded for next time"): Injected, ISOLATED world, in the
+ * FORM's frame — WHAT the page holds for these rows, so an answer given on the page itself is remembered as one typed in
+ * the panel would be. Asked ONLY for rows the panel may remember (never a consent / attestation / secret / unlabelled /
+ * upload row — the panel filters, and the server refuses consent and secrets again). `rows`: [{ key, unitKind, locator:
+ * [{ id, name, choice, part }] }] → [{ key, value, focused }] for the rows that hold something; `focused` — the person is
+ * still in that field, so the value may be half-typed.
+ */
+export function fieldValuesHeld(rows) {
+  // ⛔ BYTE-IDENTICAL to fieldsHeld's.
+  if (!globalThis.__draftTouched) {
+    const seen = globalThis.__draftTouched = [];
+    for (const type of ['input', 'change', 'keyup', 'mouseup', 'pointerup', 'touchend']) {
+      document.addEventListener(type, (e) => { if (e.isTrusted && e.target?.nodeType === 1) { seen.push(e.target); if (seen.length > 300) seen.shift(); } }, true);
+    }
+  }
+  // ⛔ Only a field the PERSON touched — typed in, picked from, clicked — is read: a value a page script planted is
+  // not their answer, and must never become one draft remembers.
+  const fieldOf = (el) => el.closest('[data-automation-id^="formField"], .select, .field, .application-question, fieldset, [role="group"], li') || el.parentElement;
+  const touched = (el) => { const box = fieldOf(el); return globalThis.__draftTouched.some(t => t === el || !!box?.contains(t)); };
+  const elOf = (loc) => (loc.id && document.getElementById(loc.id)) || (loc.name && document.getElementsByName(loc.name)[0]) || null;
+  const flat = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
+  const valueOf = (el) => {
+    if (el.tagName === 'SELECT') return flat([...el.selectedOptions].filter(o => o.value !== '').map(o => o.text).join(', '));
+    if (el.tagName === 'INPUT' && (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list')) {
+      const ctl = el.closest('[class*="control"]') || el.parentElement?.parentElement;
+      const shown = [...(ctl?.querySelectorAll('[class*="single-value"], [class*="singleValue"], [class*="multi-value__label"], [class*="multiValue"] > :first-child') || [])]
+        .map(n => flat(n.textContent)).filter(Boolean);
+      if (shown.length) return shown.join(', ');
+      const box = el.closest('[data-automation-id^="formField"], [role="group"], fieldset') || el.parentElement;
+      const chips = [...(box?.querySelectorAll('[data-automation-id="selectedItem"]') || [])].map(n => flat(n.textContent)).filter(Boolean);
+      return chips.length ? chips.join(', ') : flat(el.value);
+    }
+    if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') {
+      const tx = flat(el.textContent);
+      return tx && !/^(select|choose|please|--)/i.test(tx) ? tx : '';
+    }
+    return flat(el.value);
+  };
+  const out = [];
+  for (const r of Array.isArray(rows) ? rows.slice(0, 400) : []) {
+    const locs = (Array.isArray(r?.locator) ? r.locator : []).map(l => ({ l, el: elOf(l) })).filter(x => x.el);
+    if (!locs.length || !locs.some(({ el }) => touched(el))) continue;
+    const focused = locs.some(({ el }) => el === document.activeElement || el.contains?.(document.activeElement));
+    let value = '';
+    if (r.unitKind === 'radio' || r.unitKind === 'checkbox-group') {
+      value = locs.filter(({ el }) => el.checked).map(({ l, el }) => flat(l.choice || l.label || el.value)).join(', ');
+    } else if (r.unitKind === 'date') {
+      const part = (p) => flat(locs.find(x => x.l.part === p)?.el.value);
+      value = part('month') && part('year') ? `${part('month')}/${part('day') || '01'}/${part('year')}` : '';
+    } else {
+      const { el } = locs[0];
+      const t = String(el.type || '').toLowerCase();
+      if (t === 'file' || t === 'checkbox' || t === 'radio' || t === 'password') continue;
+      value = valueOf(el);
+    }
+    if (value) out.push({ key: String(r.key), value: value.slice(0, 2000), focused });
+  }
+  return out;
 }
 
 /** Injected, ISOLATED world, TOP frame: take the review panel off the dock (a refused fill must not leave another step's panel). */
