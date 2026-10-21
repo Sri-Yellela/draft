@@ -435,7 +435,18 @@ async function applyPlan(plan, resume, opts) {
     const id = el.getAttribute('aria-controls') || el.getAttribute('aria-owns');
     return (id && document.getElementById(id))
       || el.parentElement?.querySelector('[role="listbox"]')
-      || document.querySelector('[role="listbox"]');
+      // ⭐ LIVE (Greenhouse, 10-21): only a listbox on SCREEN. The first listbox in the document was the phone field's
+      // hidden intl-tel-input country list, so a picker whose own list had not opened read another widget's options.
+      || [...document.querySelectorAll('[role="listbox"]')].find(l => l.offsetWidth || l.offsetHeight || l.getClientRects().length);
+  };
+  // ⭐ LIVE (Greenhouse, 10-21): a value set through the setter is not "typing" to every picker. Greenhouse's
+  // react-select keeps its OWN open state and opens it in an onKeyUp handler (`code !== "Enter"` → open) — no key
+  // event, no list, and every picker on the form came back "no close option". So the last character's key is sent
+  // too, down and up, with its `code`. Never Enter (see setTypeahead).
+  const keyOf = (ch) => (/^[a-z]$/i.test(ch) ? `Key${ch.toUpperCase()}` : /^\d$/.test(ch) ? `Digit${ch}` : ch === ' ' ? 'Space' : '');
+  const typeKeys = (el, q) => {
+    const key = String(q).slice(-1) || 'a';
+    for (const type of ['keydown', 'keyup']) el.dispatchEvent(new KeyboardEvent(type, { key, code: keyOf(key), bubbles: true, cancelable: true }));
   };
   const readyOptions = (el) => {
     const list = listFor(el);
@@ -520,6 +531,7 @@ async function applyPlan(plan, resume, opts) {
       for (const q of queries) {
         el.focus?.();
         nativeSetter(el, q);
+        typeKeys(el, q);
         await sleep(200);
         const options = (await waitFor(() => readyOptions(el), 4000)) || [];
         const idx = closestOption(placeWords(want), options.map(o => placeWords(o.textContent || '')));
@@ -626,8 +638,7 @@ async function applyPlan(plan, resume, opts) {
       const before = new Set(suggestionsOf(el));
       el.focus?.();
       nativeSetter(el, q);
-      el.dispatchEvent(new KeyboardEvent('keydown', { key: q.slice(-1), bubbles: true }));
-      el.dispatchEvent(new KeyboardEvent('keyup',   { key: q.slice(-1), bubbles: true }));
+      typeKeys(el, q);
       const options = await waitFor(() => {
         const now = suggestionsOf(el).filter(o => !before.has(o));
         return now.length ? now : null;
@@ -941,6 +952,14 @@ async function applyPlan(plan, resume, opts) {
       else if (kind === 'typeahead') { const shown = shownNear(el);
                                       // Every pick must be visible as a chip or a selected label.
                                       ok = want.every(w => shown.includes(String(w).toLowerCase()));
+                                      // ⭐ LIVE (Greenhouse's phone Country, 10-21): a single pick may be SHOWN
+                                      // shortened — "United States +1" displays as "+1". Its single-value label,
+                                      // when it is part of the pick, is the pick.
+                                      if (!ok && want.length === 1) {
+                                        const sv = String((el.closest('[class*="control"]') || el.parentElement?.parentElement)
+                                          ?.querySelector('[class*="single-value"], [class*="singleValue"]')?.textContent || '').trim().toLowerCase();
+                                        ok = !!sv && String(want[0]).toLowerCase().includes(sv);
+                                      }
                                       got = want.join(', '); }
       else if (kind === 'suggest')  { got = String(el.value || '').trim();
                                       // The box shows the pick in its own format ("Boston, MA, USA"), or holds

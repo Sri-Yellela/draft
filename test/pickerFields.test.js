@@ -131,3 +131,46 @@ test("PICKER (5, Chrome): an ARIA typeahead — 'Boston, MA' picks Massachusetts
   assert.equal(await page.$eval(".chosen", el => el.textContent), "Boston, Massachusetts, United States");
   assert.deepEqual(r.filled.map(f => f.placed), ["Boston, Massachusetts, United States"]);
 });
+
+// ⭐ LIVE (Greenhouse, stripe.com's embedded form, 10-21): react-select's open state is the PAGE's, opened only in an
+// onKeyUp handler (`code !== "Enter"` → open). A value set through the setter opened nothing, so every picker read "no
+// close option"; and with no list of its own open, the fill read the FIRST listbox in the document — the phone field's
+// hidden country list. Both reproduced here; the phone Country shows a pick shortened ("+1").
+test("PICKER (6, Chrome): a picker that opens only on KEY-UP is typed with keys; another widget's hidden listbox is never read; a shortened single value counts", { skip: SKIP, timeout: 60000 }, async (t) => {
+  const page = await pageWith(t, `<ul role="listbox" id="iti-0__country-listbox" style="display:none"><li role="option">United States</li><li role="option">Boston</li></ul>
+  <form>
+   ${["loc", "cc"].map(id => `<div class="select"><label id="${id}-label" for="${id}">${id === "loc" ? "Location (City)" : "Country"}</label>
+    <div class="select__control"><div class="select__value-container"><div class="select__single-value"></div>
+    <div class="select__input-container"><input class="select__input" id="${id}" type="text" role="combobox" aria-autocomplete="list" aria-haspopup="true" aria-expanded="false" aria-labelledby="${id}-label" value=""></div></div></div>
+    <div class="select__menu-host"></div></div>`).join("")}
+  </form><script>
+  var DATA = { loc: ['Boston, England, United Kingdom', 'Boston, Massachusetts, United States', 'East Boston, Massachusetts, United States'],
+               cc: ['Canada +1', 'United States +1'] };
+  Object.keys(DATA).forEach(function (id) {
+    var el = document.getElementById(id), host = el.closest('.select').querySelector('.select__menu-host');
+    var single = el.closest('.select__control').querySelector('.select__single-value');
+    var open = false;
+    function draw() {
+      host.innerHTML = '';
+      if (!open) { el.setAttribute('aria-expanded', 'false'); el.removeAttribute('aria-controls'); return; }
+      var q = el.value.trim().toLowerCase();
+      var lb = document.createElement('div'); lb.setAttribute('role', 'listbox'); lb.id = 'react-select-' + id + '-listbox';
+      DATA[id].filter(function (p) { return p.toLowerCase().indexOf(q) >= 0; }).forEach(function (p) {
+        var o = document.createElement('div'); o.setAttribute('role', 'option'); o.textContent = p;
+        o.addEventListener('click', function () { single.textContent = id === 'cc' ? p.split(' ').pop() : p; el.value = ''; open = false; draw(); });
+        lb.appendChild(o);
+      });
+      host.appendChild(lb); el.setAttribute('aria-expanded', 'true'); el.setAttribute('aria-controls', lb.id);
+    }
+    el.addEventListener('input', draw);                                   // the text changes; the list stays shut
+    el.addEventListener('keyup', function (e) { if (e.code === 'Escape' || e.code === 'Tab') open = false; else if (e.code !== 'Enter') open = true; draw(); });
+  });
+  </script>`);
+  const r = await fill(page, [
+    { index: 0, name: null, id: "loc", label: "Location (City)", value: "Boston, MA" },
+    { index: 1, name: null, id: "cc", label: "Country", value: "United States +1" },
+  ]);
+  assert.deepEqual(r.filled.map(f => f.placed), ["Boston, Massachusetts, United States", "United States +1"], JSON.stringify(r.skipped));
+  assert.equal(await page.$eval("#cc", el => el.closest(".select__control").querySelector(".select__single-value").textContent), "+1");
+  assert.equal(r.skipped.length, 0);
+});
