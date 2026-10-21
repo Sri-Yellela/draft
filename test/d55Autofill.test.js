@@ -76,7 +76,7 @@ test("(a) the probe and applyPlan still enumerate the SAME controls, dropdown bu
 
 test("(a) a typeahead is typed and WAITED for; a dropdown waits for its late listbox", () => {
   const plan = src.slice(body("applyPlan"), at(src, "// ── Matching"));
-  assert.match(plan, /const setTypeahead = async \(el, wants\) =>/);
+  assert.match(plan, /const setTypeahead = async \(el, wants, mode = null\) =>/);
   assert.match(plan, /await waitFor\(\(\) => readyOptions\(el\), 4000\)/);
   // D55 (f) added a third argument, the pick mode ('exact' | 'decline' | null) — the wait is unchanged.
   assert.match(plan, /const setCombobox = async \(el, want, mode = null\) =>/);

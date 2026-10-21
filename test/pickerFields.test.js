@@ -174,3 +174,72 @@ test("PICKER (6, Chrome): a picker that opens only on KEY-UP is typed with keys;
   assert.equal(await page.$eval("#cc", el => el.closest(".select__control").querySelector(".select__single-value").textContent), "+1");
   assert.equal(r.skipped.length, 0);
 });
+
+// ⭐ OWNER 10-21: "filled boston, england, uk for location" — a saved "Boston" took the SHORTEST option holding it. A
+// list a picker draws after typing is ranked by the page; among the options that hold the whole want, its first wins.
+test("PICKER (7, Chrome): 'Boston' picks the page's FIRST Boston (Massachusetts), not the shortest (England); an exact option still wins", { skip: SKIP, timeout: 60000 }, async (t) => {
+  const page = await pageWith(t, `<form><div class="field"><label for="ta">Location (City)</label>
+    <input id="ta" type="text" role="combobox" aria-autocomplete="list" aria-controls="ta-list" value="">
+    <div role="listbox" id="ta-list"></div><div class="chosen"></div></div>
+    <div class="field"><label for="tb">Degree</label>
+    <input id="tb" type="text" role="combobox" aria-autocomplete="list" aria-controls="tb-list" value="">
+    <div role="listbox" id="tb-list"></div><div class="chosen"></div></div></form>
+  <script>
+    [['ta', ['Boston, Massachusetts, United States', 'Boston District, England, United Kingdom', 'Boston, England, United Kingdom']],
+     ['tb', ["Master of Business Administration (M.B.A.)", "Master's Degree"]]].forEach(function (d) {
+      var el = document.getElementById(d[0]), list = document.getElementById(d[0] + '-list'), chosen = el.parentNode.querySelector('.chosen');
+      el.addEventListener('input', function () {
+        var q = el.value.trim().toLowerCase(); list.innerHTML = '';
+        d[1].filter(function (p) { return q && p.toLowerCase().indexOf(q) >= 0; }).forEach(function (p) {
+          var o = document.createElement('div'); o.setAttribute('role', 'option'); o.textContent = p;
+          o.addEventListener('click', function () { chosen.textContent = p; el.value = ''; list.innerHTML = ''; });
+          list.appendChild(o);
+        });
+      });
+    });
+  </script>`);
+  const r = await fill(page, [
+    { index: 0, name: null, id: "ta", label: "Location (City)", value: "Boston" },
+    { index: 1, name: null, id: "tb", label: "Degree", value: "Master's Degree" },
+  ]);
+  assert.deepEqual(r.filled.map(f => f.placed), ["Boston, Massachusetts, United States", "Master's Degree"], JSON.stringify(r.skipped));
+});
+
+// ⭐ 10-21: Greenhouse's Yes / No and EEO questions are typeaheads, and a saved eligibility / EEO answer was never placed
+// on one. A typeahead now takes it EXACTLY: the list is opened without a query and only an option that IS the answer is
+// picked ('exact'), or only the form's own decline option ('decline'); nothing close is ever taken.
+test("PICKER (8, Chrome): a typeahead's 'exact' and 'decline' modes — the option that IS the answer, the form's own decline, never a near one", { skip: SKIP, timeout: 60000 }, async (t) => {
+  const picker = (id, label, opts) => `<div class="select"><label id="${id}-label" for="${id}">${label}</label>
+    <div class="select__control"><div class="select__value-container"><div class="select__single-value"></div>
+    <div class="select__input-container"><input class="select__input" id="${id}" type="text" role="combobox" aria-autocomplete="list" aria-labelledby="${id}-label" value="" data-opts='${JSON.stringify(opts).replace(/'/g, "&#39;")}'></div></div></div>
+    <div class="host"></div></div>`;
+  const page = await pageWith(t, `<form>
+    ${picker("q1", "Are you authorized to work in the US?", ["Yes", "No"])}
+    ${picker("q2", "Do you require sponsorship?", ["Yes, I will require sponsorship", "No, I won't"])}
+    ${picker("q3", "Gender", ["Male", "Female", "I don't wish to answer"])}
+  </form><script>
+  [].forEach.call(document.querySelectorAll('.select__input'), function (el) {
+    var opts = JSON.parse(el.dataset.opts), host = el.closest('.select').querySelector('.host'), single = el.closest('.select').querySelector('.select__single-value'), open = false;
+    function draw() {
+      host.innerHTML = ''; if (!open) { el.removeAttribute('aria-controls'); return; }
+      var q = el.value.trim().toLowerCase(), lb = document.createElement('div'); lb.setAttribute('role', 'listbox'); lb.id = el.id + '-lb';
+      opts.filter(function (p) { return p.toLowerCase().indexOf(q) >= 0; }).forEach(function (p) {
+        var o = document.createElement('div'); o.setAttribute('role', 'option'); o.textContent = p;
+        o.addEventListener('click', function () { single.textContent = p; el.value = ''; open = false; draw(); }); lb.appendChild(o); });
+      host.appendChild(lb); el.setAttribute('aria-controls', lb.id);
+    }
+    el.addEventListener('input', draw);
+    el.addEventListener('keyup', function (e) { if (e.code === 'Escape' || e.code === 'Tab') open = false; else if (e.code !== 'Enter') open = true; draw(); });
+  });
+  </script>`);
+  const r = await fill(page, [
+    { index: 0, name: null, id: "q1", label: "Are you authorized to work in the US?", value: "Yes", exactOption: true },
+    { index: 1, name: null, id: "q2", label: "Do you require sponsorship?", value: "No", exactOption: true },
+    { index: 2, name: null, id: "q3", label: "Gender", value: "Decline to self-identify", declineOption: true },
+  ]);
+  const shown = (id) => page.$eval(`#${id}`, el => el.closest(".select").querySelector(".select__single-value").textContent);
+  assert.equal(await shown("q1"), "Yes");
+  assert.equal(await shown("q2"), "", "'No' is not \"No, I won't\" — refused, not approximated");
+  assert.equal(await shown("q3"), "I don't wish to answer", "the form's own decline, however it is worded");
+  assert.deepEqual(r.skipped.map(s => [s.field, s.reason]), [["Do you require sponsorship?", "value_not_in_options"]]);
+});

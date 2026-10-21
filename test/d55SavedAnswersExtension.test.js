@@ -76,8 +76,11 @@ test("⛔ (f)1 eligibility / EEO / opt-in: the answer must BE one of the options
   assert.equal(r.notes[0].reason, "saved_answer_not_an_option");
   const ok = place({ savedAnswers: saved }, [select("Are you legally authorized to work in the United States?", ["Yes", "No"])]);
   assert.equal(ok.plan[0].value, "v0");
-  // A typeahead can only be closest-picked, so a sensitive answer is never placed on one.
-  assert.equal(place({ savedAnswers: saved }, [f({ type: "text", widget: "typeahead", label: saved[0].question })]).plan.length, 0);
+  // ⭐ 10-21: a typeahead (Greenhouse's Yes / No pickers) takes a sensitive answer too — but told to pick the EXACT
+  // option or nothing (applyPlan's setTypeahead 'exact'), never the closest.
+  const ta = place({ savedAnswers: saved }, [f({ type: "text", widget: "typeahead", label: saved[0].question })]).plan;
+  assert.equal(ta.length, 1);
+  assert.equal(ta[0].exactOption, true);
 });
 
 test("⛔ (f)1 an opt-in only ever gets the candidate's own No", () => {

@@ -102,9 +102,10 @@ test("⛔ T25: on a picker the answer must be one of the field's OWN options, or
   idx = 0;
   const combo = place([saved("How did you hear about us?", "LinkedIn")], [f({ type: "button", widget: "dropdown", label: "How did you hear about this job?" })]).plan;
   assert.equal(combo[0].exactOption, true);
-  // a typeahead cannot promise an exact option — not used
+  // ⭐ 10-21: a typeahead is told the same — the EXACT option or nothing (applyPlan's setTypeahead 'exact')
   idx = 0;
-  assert.equal(place([saved("How did you hear about us?", "LinkedIn")], [f({ type: "text", widget: "typeahead", label: "How did you hear about this job?" })]).plan.length, 0);
+  const ta = place([saved("How did you hear about us?", "LinkedIn")], [f({ type: "text", widget: "typeahead", label: "How did you hear about this job?" })]).plan;
+  assert.equal(ta[0].exactOption, true);
 });
 
 test("⛔ T25: an earlier tier wins — the exact saved answer, and a control the plan already took (T18's semantic reading)", () => {

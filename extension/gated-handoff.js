@@ -29,7 +29,7 @@
 
 import {
   orderForReview, readinessOf, renderOverlay, panelRowsForStep, panelRowsFromItems, settleStepRows, panelSummary, removeReviewPanel,
-  fieldsHeld,
+  fieldsHeld, fieldValuesHeld,
 } from './review-overlay.js';
 import { renderBadge, findMissingRequired, badgeDismissed, goToMissingRequired } from './autofill-badge.js';
 // D55 (f): saved answers, worked-here and the EEO decline — placed by exact question equality only.
@@ -521,9 +521,28 @@ async function applyPlan(plan, resume, opts) {
   // One want per chip for a multi-select (Skills): each is typed, confirmed and read back on its own.
   // Synthetic Enter is deliberately NOT sent — an untrusted key event submits nothing, but a page's
   // own keydown handler could, and the search runs on input anyway.
-  const setTypeahead = async (el, wants) => {
+  // ⭐ 10-21: `mode` as setCombobox's — 'exact' (a sensitive or near saved answer: only an option whose text IS the
+  // answer) or 'decline' (an EEO decline: only the form's own decline option). Such a list is first OPENED without a
+  // query (ArrowDown — a static Yes / No or EEO list shows every option), and only if that shows nothing is the want
+  // typed — and still taken only exactly.
+  const setTypeahead = async (el, wants, mode = null) => {
     const picked = [], missed = [];
+    const byMode = (texts, want) => mode === 'decline' ? texts.findIndex(t => DECLINE_OPTION_RE.test(t))
+      : texts.findIndex(t => same(t.replace(/[‘’ʼ]/g, "'"), String(want).replace(/[‘’ʼ]/g, "'")));
     for (const want of wants) {
+      if (mode) {
+        el.focus?.();
+        for (const type of ['keydown', 'keyup']) el.dispatchEvent(new KeyboardEvent(type, { key: 'ArrowDown', code: 'ArrowDown', bubbles: true, cancelable: true }));
+        const all = (await waitFor(() => readyOptions(el), 1500)) || [];
+        const i = byMode(all.map(o => String(o.textContent || '').trim()), want);
+        if (i >= 0) {
+          picked.push({ want: String(want), got: String(all[i].textContent || '').trim() });
+          all[i].click();
+          await sleep(80);
+          continue;
+        }
+        if (mode === 'decline') { missed.push(String(want)); dismiss(el); continue; }
+      }
       const words = String(want).split(/[\s,/]+/).filter(t => t.length > 1);
       const queries = [...new Set([String(want).trim(),
         [...words].sort((a, b) => b.length - a.length)[0], words[0]].filter(q => q && q.length > 1))];
@@ -534,7 +553,7 @@ async function applyPlan(plan, resume, opts) {
         typeKeys(el, q);
         await sleep(200);
         const options = (await waitFor(() => readyOptions(el), 4000)) || [];
-        const idx = closestOption(placeWords(want), options.map(o => placeWords(o.textContent || '')));
+        const idx = mode ? byMode(options.map(o => String(o.textContent || '').trim()), want) : pickIndex(want, options.map(o => o.textContent || ''));
         if (idx >= 0) {
           got = String(options[idx].textContent || '').trim();
           options[idx].click();
@@ -646,7 +665,7 @@ async function applyPlan(plan, resume, opts) {
       if (options.length) sawList = true;
       const none = !noneBefore && noResultsShown(el);
       if (none) sawNone = true;
-      const idx = options.length ? closestOption(placeWords(want), options.map(o => placeWords(o.textContent || ''))) : -1;
+      const idx = options.length ? pickIndex(want, options.map(o => o.textContent || '')) : -1;
       if (idx >= 0) {
         const got = String(options[idx].textContent || '').replace(/\s+/g, ' ').trim();
         press(options[idx]);
@@ -658,6 +677,20 @@ async function applyPlan(plan, resume, opts) {
     if (sawList || sawNone || hint === 'aria') { nativeSetter(el, ''); dismiss(el); return { needsPick: true }; }
     nativeSetter(el, String(want));
     return { plain: true };
+  };
+  // Which suggestion to pick. A list a picker draws after typing is RANKED by the page — Greenhouse's places search
+  // puts "Boston, Massachusetts, United States" first for "Boston" and "Boston, England, United Kingdom" after it. So:
+  // the option that IS the want; else, among the options holding the whole want, the PAGE's first (closestOption's
+  // shortest-first picked England's); else the closest (closestOption).
+  const pickIndex = (want, texts) => {
+    const n = (s) => placeWords(s).toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9+#]+/g, ' ').trim();
+    const w = n(want);
+    if (!w) return -1;
+    const exact = texts.findIndex(t => n(t) === w);
+    if (exact >= 0) return exact;
+    const holds = texts.findIndex(t => (' ' + n(t) + ' ').includes(' ' + w + ' '));
+    if (holds >= 0) return holds;
+    return closestOption(placeWords(want), texts.map(placeWords));
   };
   const loose = (a, b) => {
     const n = (s) => placeWords(s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -752,8 +785,9 @@ async function applyPlan(plan, resume, opts) {
         // An array is a multi-select (one chip per value); a string is one pick.
         const wants = (Array.isArray(step.value) ? step.value : [step.value])
           .map(v => String(v ?? '').trim()).filter(Boolean);
-        const { picked, missed } = await setTypeahead(el, wants);
-        for (const m of missed) skipped.push({ field: step.label, reason: 'no_close_option', wanted: m.slice(0, 80) });
+        const { picked, missed } = await setTypeahead(el, wants, step.declineOption ? 'decline' : step.exactOption ? 'exact' : null);
+        for (const m of missed) skipped.push({ field: step.label, name: step.name,
+          reason: step.declineOption ? 'decline_option_absent' : step.exactOption ? 'value_not_in_options' : 'no_close_option', wanted: m.slice(0, 80) });
         if (!picked.length) return;
         pending.push({ step, el, kind: 'typeahead', want: picked.map(p => p.got) });
       } else if (isCombo(el)) {
@@ -2386,6 +2420,16 @@ export const formFrameHandlers = {
     try {
       const [r] = await chrome.scripting.executeScript({ target: at(tabId), func: fieldsHeld, args: [msg.rows.slice(0, 400)] });
       return { ok: true, answered: Array.isArray(r?.result) ? r.result : [] };
+    } catch { return { ok: false }; }
+  },
+  /** ⭐ OWNER 10-21: what the page holds for rows answered ON THE PAGE, so they are remembered (review-overlay.js
+   *  fieldValuesHeld). The panel asks only for rows it may remember. */
+  DOCK_FIELD_VALUES: async (msg, sender) => {
+    const tabId = sender?.tab?.id;
+    if (tabId == null || sender.frameId !== 0 || !Array.isArray(msg?.rows)) return { ok: false };
+    try {
+      const [r] = await chrome.scripting.executeScript({ target: at(tabId), func: fieldValuesHeld, args: [msg.rows.slice(0, 400)] });
+      return { ok: true, values: Array.isArray(r?.result) ? r.result : [] };
     } catch { return { ok: false }; }
   },
   /** The status line's live re-count of the empty required fields (labels only). */
