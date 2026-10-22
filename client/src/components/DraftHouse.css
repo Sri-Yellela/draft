@@ -73,11 +73,13 @@
 /* THE RAIL — D1's motion: zero width until hover / focus-within. */
 .dh-rail {
   flex-shrink: 0; display: flex; gap: 8px;
-  max-width: 0; opacity: 0; overflow: hidden; padding: 6px 2px 8px; margin-block: -6px -8px;
-  transition: max-width .42s cubic-bezier(.3,.8,.25,1), opacity .42s cubic-bezier(.3,.8,.25,1);
+  max-width: 0; opacity: 0;
+  /* ⛔ T25 — clip-path, never overflow: an overflow clip cut the squares' shadows into a box (JobBubble.css). */
+  clip-path: inset(-10px -20px -28px -20px); visibility: hidden;
+  transition: max-width .42s cubic-bezier(.3,.8,.25,1), opacity .42s cubic-bezier(.3,.8,.25,1), visibility 0s linear .42s;
 }
-.dh-item:hover .dh-rail, .dh-item:focus-within .dh-rail { max-width: 196px; opacity: 1; }
-@media (hover: none) { .dh-rail { max-width: 196px; opacity: 1; } }
+.dh-item:hover .dh-rail, .dh-item:focus-within .dh-rail { max-width: 196px; opacity: 1; visibility: visible; transition-delay: 0s; }
+@media (hover: none) { .dh-rail { max-width: 196px; opacity: 1; visibility: visible; } }
 
 .dh-sq {
   width: 52px; height: 52px; flex-shrink: 0; border-radius: 13px; border: 0;
@@ -115,7 +117,7 @@
   .dh-stop { flex-basis: 100%; }
   .dh-item__head { flex-wrap: wrap; }
   .dh-item__main { flex-basis: 100%; }
-  .dh-rail { max-width: none; opacity: 1; margin-left: auto; }
+  .dh-rail { max-width: none; opacity: 1; margin-left: auto; visibility: visible; }
 }
 @media (prefers-reduced-motion: reduce) {
   .dh-rail, .dh-sq, .dh-btn, .dh-item, .dh-stop__btn, .dh-mode__seg { transition: none; }

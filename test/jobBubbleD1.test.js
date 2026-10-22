@@ -55,9 +55,10 @@ test("⛔ NO BAND AND NO NUMBER on the card body; the ATS button carries the num
 test("the rail: three 52px squares, zero width until hover / focus-within, one motion; always shown on touch", () => {
   assert.match(css, /\.jb__sq \{\n  width: 52px; height: 52px;/);
   assert.match(css, /max-width: 0; opacity: 0; margin-left: 0;/);
-  assert.match(css, /\.jb:hover \.jb__rail, \.jb:focus-within \.jb__rail \{ max-width: 196px; opacity: 1; margin-left: 4px; \}/);
+  // T25: visibility rides the reveal, so the collapsed squares are out of the pointer's and the keyboard's reach.
+  assert.match(css, /\.jb:hover \.jb__rail, \.jb:focus-within \.jb__rail \{ max-width: 196px; opacity: 1; margin-left: 4px; visibility: visible; transition-delay: 0s; \}/);
   assert.match(css, /transition: max-width \.42s cubic-bezier\(\.3,\.8,\.25,1\)/);
-  assert.match(css, /@media \(hover: none\) \{\n  \.jb__rail \{ max-width: 196px; opacity: 1; margin-left: 4px; \}/);
+  assert.match(css, /@media \(hover: none\) \{\n  \.jb__rail \{ max-width: 196px; opacity: 1; margin-left: 4px; visibility: visible; \}/);
   // ⛔ GENERATE and APPLY are off the card.
   const rail = jsx.slice(at(jsx, '<div className="jb__rail">', 0, "rail"), at(jsx, "{companyView &&", 0, "end"));
   assert.equal((rail.match(/<button /g) || []).length, 3);
