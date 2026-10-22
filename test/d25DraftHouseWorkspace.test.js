@@ -169,8 +169,9 @@ test("D1's hover rail and depth on every Stopped item and control", () => {
   assert.match(item, /aria-expanded=\{open\}/);
   // The rail is zero-width until hover OR keyboard focus, and always shown where nothing hovers.
   assert.match(css, /\.dh-rail \{[\s\S]*?max-width: 0; opacity: 0;/);
-  assert.match(css, /\.dh-item:hover \.dh-rail, \.dh-item:focus-within \.dh-rail \{ max-width: 196px; opacity: 1; \}/);
-  assert.match(css, /@media \(hover: none\) \{ \.dh-rail \{ max-width: 196px; opacity: 1; \} \}/);
+  // T25: visibility rides the reveal (the rail clips with clip-path, not overflow — t25CardRailSeam).
+  assert.match(css, /\.dh-item:hover \.dh-rail, \.dh-item:focus-within \.dh-rail \{ max-width: 196px; opacity: 1; visibility: visible; transition-delay: 0s; \}/);
+  assert.match(css, /@media \(hover: none\) \{ \.dh-rail \{ max-width: 196px; opacity: 1; visibility: visible; \} \}/);
   // Depth tokens at rest, on hover and on press — tokens only, no colour literal (colorLiteralGuard).
   for (const t of ["--c-depth-rest", "--c-depth-hover", "--c-depth-press", "--c-depth-accent"]) {
     assert.ok(css.includes(`var(${t})`), `${t} is not used`);

@@ -60,16 +60,19 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
 .jb__rail {
   flex-shrink: 0;
   display: flex; gap: 8px;
-  max-width: 0; opacity: 0; margin-left: 0; overflow: hidden;
-  transition: max-width .42s cubic-bezier(.3,.8,.25,1), opacity .42s cubic-bezier(.3,.8,.25,1), margin-left .42s cubic-bezier(.3,.8,.25,1);
-  /* the squares' shadows need room inside the clip */
-  padding: 6px 2px 8px; margin-block: -6px -8px;
+  max-width: 0; opacity: 0; margin-left: 0; visibility: hidden;
+  /* ⛔ T25 (owner, 10-19: "a choppy box holding all three") — the reveal needs a clip, but OVERFLOW clipped the
+     squares' shadows at the rail's box (2px of room at the sides, 8px below; the hover shadow reaches 24px down),
+     and the cut edges drew a rectangle around the three. clip-path clips the reveal and leaves every shadow and
+     the focus ring room (D92 rule 2). Collapsed, visibility keeps the hidden squares out of reach of the pointer. */
+  clip-path: inset(-10px -20px -28px -20px);
+  transition: max-width .42s cubic-bezier(.3,.8,.25,1), opacity .42s cubic-bezier(.3,.8,.25,1), margin-left .42s cubic-bezier(.3,.8,.25,1), visibility 0s linear .42s;
 }
-.jb:hover .jb__rail, .jb:focus-within .jb__rail { max-width: 196px; opacity: 1; margin-left: 4px; }
+.jb:hover .jb__rail, .jb:focus-within .jb__rail { max-width: 196px; opacity: 1; margin-left: 4px; visibility: visible; transition-delay: 0s; }
 
 /* ⚠ TOUCH HAS NO HOVER — decided: the rail is always shown where the primary pointer cannot hover. */
 @media (hover: none) {
-  .jb__rail { max-width: 196px; opacity: 1; margin-left: 4px; }
+  .jb__rail { max-width: 196px; opacity: 1; margin-left: 4px; visibility: visible; }
   .jb:hover, .jb:focus-within { flex-grow: 1; }
 }
 /* A PHONE: one card per row, and the rail on its own line under the text — beside it, the always-shown
@@ -78,7 +81,7 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
   .jb-rows { padding: 0 16px 8px; gap: 14px; }
   .jb { flex-wrap: wrap; row-gap: 12px; padding: 14px 16px; }
   .jb__text { flex-basis: calc(100% - 66px); }
-  .jb__rail { max-width: none; opacity: 1; margin-left: auto; }
+  .jb__rail { max-width: none; opacity: 1; margin-left: auto; visibility: visible; }
 }
 @media (prefers-reduced-motion: reduce) {
   .jb, .jb__rail, .jb__sq { transition: none; }
