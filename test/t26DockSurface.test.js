@@ -188,3 +188,15 @@ test("T26 ⑥ the Copy sheet — labels and values on screen; the title, the job
   assert.match(cs, /const copy = btn\('copy', `Copy \$\{row\.label\}`\);/, "Copy is an icon named for its row");
   assert.match(cs, /note\.innerHTML = `\$\{I\('need', 14\)\}<span aria-hidden="true">\$\{n\}<\/span><span class="sr"><\/span>`;/);
 });
+
+test("T26 ⑦ the Résumé and ATS tabs — the state is a shape, the score and the time are numbers, the actions are icons; every line a hidden word; no surface, no rule, no tinted guard", () => {
+  const rp = read("extension/resumePanel.js");
+  const view = rp.slice(at(rp, "export function renderResumePanel("), at(rp, "// ── the injected attach"));
+  assert.match(view, /background: transparent; text-align: left; \}/);
+  assert.doesNotMatch(view, /border-bottom: 1px solid|border-top: 1px solid|--c-success-quiet/, "a rule or a tinted box");
+  assert.match(view, /<div class="t sr" data-role="title">\$\{esc\(m\.title\)\}<\/div>/);
+  assert.match(view, /const lines = \(m\.lines \|\| \[\]\)\.map\(l => `<p class="ln sr /);
+  assert.match(view, /const actions = \(m\.actions \|\| \[\]\)\.map\(ibtn\)\.join\(''\);/);
+  for (const a of ["cancel", "attach", "attachAgain", "edit", "download", "downloadPrimary", "readPage"])
+    assert.match(rp, new RegExp(`\n  ${a}: \{ role: '[a-z]+', label: '[^']+',( primary: true,)? icon: '[a-zA-Z]+' \},`), `${a} has no icon`);
+});

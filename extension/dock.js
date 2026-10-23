@@ -81,6 +81,8 @@
     wait: 'M9 5.5v13M15 5.5v13',
     info: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 11v5.5M12 7.6v.4',
     open: 'M7 17L17 7M9 7h8v8',
+    download: 'M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14',
+    read: 'M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12zM12 9.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6z',
   });
   /** One icon's markup — decorative; the control that holds it carries the words (aria-label + title). */
   const icon = (name, size = 16) => (ICONS[name]

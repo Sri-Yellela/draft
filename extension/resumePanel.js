@@ -120,15 +120,16 @@ const safe = (v, fallback = null, max = 400) => { const t = plain(v, max); retur
 // ⭐ T22 REVISED (owner 10-15): the Résumé tab is a VIEW — its state, a preview, Attach — and no longer a place to START a
 // résumé. Generate, Try again and Regenerate are gone from it; a résumé is started from exactly two places, the Draft
 // button and the résumé field's own row in a manual fill (T24 / T18 — RESUME_GENERATE below is the one start they use).
+// ⭐ T26: each action is an ICON in the dock (extension/dock.js ICONS); its label is the button's name and tooltip.
 const ACTION = {
-  cancel: { role: 'cancel', label: 'Cancel' },
-  attach: { role: 'attach', label: 'Attach', primary: true },
-  attachAgain: { role: 'attach', label: 'Attach again' },
-  edit: { role: 'edit', label: 'Edit in a full page' },
-  download: { role: 'download', label: 'Download PDF' },
-  downloadPrimary: { role: 'download', label: 'Download PDF', primary: true },
+  cancel: { role: 'cancel', label: 'Cancel', icon: 'close' },
+  attach: { role: 'attach', label: 'Attach', primary: true, icon: 'attach' },
+  attachAgain: { role: 'attach', label: 'Attach again', icon: 'attach' },
+  edit: { role: 'edit', label: 'Edit in a full page', icon: 'edit' },
+  download: { role: 'download', label: 'Download PDF', icon: 'download' },
+  downloadPrimary: { role: 'download', label: 'Download PDF', primary: true, icon: 'download' },
   // D99: an unlinked tab's message is a button, not an instruction to go somewhere else
-  readPage: { role: 'read', label: 'Read this page now', primary: true },
+  readPage: { role: 'read', label: 'Read this page now', primary: true, icon: 'read' },
 };
 
 // ⭐ D99 J12 · ATS ON THE PAGE — draft's own report on the user's base résumé, for the tab's job, shown at once. A
@@ -307,26 +308,33 @@ export function renderResumePanel(model, meta) {
   }
   const logo = `'${LOGO_FACE}', 'Poppins', ui-sans-serif, system-ui, sans-serif`;
   const paper = meta?.paper || {};
+  // ⭐ T26 (owner, 10-19): the résumé itself (the preview) and the numbers are what is on screen — the state, its lines,
+  // the guard, the changes, the reasons are a screen reader's words (.sr) and the state mark's tooltip; the actions are
+  // icons. ONE surface (the dock's frame — the view paints none), ONE accent, no rule, no tinted box.
   const css = `
     :host { all: initial; display: block; height: 100%; }
     .rp { ${varsOf(theme.light)} --c-paper: ${paper.bg || 'Canvas'}; --c-paper-ink: ${paper.ink || 'CanvasText'}; }
     @media (prefers-color-scheme: dark) { .rp { ${varsOf(theme.dark)} } }
     .rp { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; overflow: hidden;
       font: 13px/1.45 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--c-ink);
-      background: var(--c-surface-menu); text-align: left; }
+      background: transparent; text-align: left; }
     .rp * { box-sizing: border-box; }
-    .hd { padding: 10px 14px 8px; border-bottom: 1px solid var(--c-border); }
-    .t { font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 15px; letter-spacing: -.01em; overflow-wrap: anywhere; }
-    .s { font-size: 11.5px; color: var(--c-ink-muted); margin-top: 2px; }
+    .sr { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important;
+      border: 0 !important; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .ic { display: block; flex: none; }
+    .hd { display: flex; align-items: center; gap: 12px; padding: 10px 14px 4px; font-size: 12px; font-weight: 800;
+      font-variant-numeric: tabular-nums; color: var(--c-ink-muted); }
+    .st { display: inline-grid; place-items: center; color: var(--c-ink-faint); }
+    .st[data-tone="ok"] { color: var(--c-success); } .st[data-tone="warn"] { color: var(--c-warning); }
+    .num { display: inline-flex; align-items: center; gap: 4px; }
+    .t { font-family: ${logo}; font-style: italic; font-weight: 800; }
     .btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-    .sc { overflow: auto; padding: 10px 14px; flex: 1; min-height: 0; display: grid; gap: 8px; align-content: start; }
+    .sc { overflow: auto; padding: 8px 14px; flex: 1; min-height: 0; display: grid; gap: 8px; align-content: start; }
     .ln { margin: 0; font-size: 12.5px; }
     .rpt { display: grid; gap: 6px; }
-    .ln.warn { color: var(--c-warning); font-weight: 700; }
-    .ln.ok { color: var(--c-success); font-weight: 700; }
-    .prog { font-size: 11.5px; color: var(--c-ink-muted); }
-    .pb { height: 6px; border-radius: 1px; background: var(--c-border); margin-top: 6px; overflow: hidden; position: relative; }
-    .pb i { position: absolute; top: 0; bottom: 0; width: 34%; background: var(--c-success); animation: rm-slide 1.4s ease-in-out infinite; }
+    .prog { display: inline-flex; align-items: center; gap: 8px; flex: 1; }
+    .pb { flex: 1; min-width: 40px; height: 4px; border-radius: 1px; background: var(--c-surface-solid); overflow: hidden; position: relative; }
+    .pb i { position: absolute; top: 0; bottom: 0; width: 34%; background: var(--c-accent); animation: rm-slide 1.4s ease-in-out infinite; }
     @keyframes rm-slide { from { left: -34%; } to { left: 100%; } }
     /* ⛔ D60 / D63: a status is a MARK — a rectangle with a 3px leading bar, never a capsule. */
     .marks { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -334,25 +342,33 @@ export function renderResumePanel(model, meta) {
       line-height: 1.2; padding: 4px 8px 4px 7px; border-radius: 6px; color: var(--mk); border-left: 3px solid var(--mk);
       background: color-mix(in srgb, var(--mk) 12%, transparent); }
     .mark.ok { --mk: var(--c-success); } .mark.warn { --mk: var(--c-warning); } .mark.no { --mk: var(--c-danger); } .mark.info { --mk: var(--c-info); }
-    .guard { font-size: 12px; padding: 7px 9px; border-left: 3px solid var(--c-success); border-radius: 0 6px 6px 0; background: var(--c-success-quiet); color: var(--c-success); }
     .list { margin: 0; padding: 0 0 0 16px; font-size: 12px; }
     .list li { margin: 0 0 3px; }
-    .pvw { height: 260px; overflow: auto; border: 1px solid var(--c-border-strong); border-radius: 6px; background: var(--c-paper); }
+    .pvw { flex: 1; min-height: 200px; overflow: auto; border-radius: 6px; background: var(--c-paper); box-shadow: var(--c-depth-rest); }
     .pv { display: block; width: 816px; zoom: .42; background: var(--c-paper); color: var(--c-paper-ink); }
-    .ft { padding: 10px 14px; background: var(--c-surface-modal); border-top: 1px solid var(--c-border); display: grid; gap: 6px; }
+    .ft { padding: 8px 14px 12px; display: flex; align-items: center; gap: 8px; }
     .acts { display: flex; gap: 6px; flex-wrap: wrap; }
-    .btn { font: inherit; font-size: 11.5px; font-weight: 700; padding: 6px 12px; min-height: 30px; border-radius: 8px; border: 0;
+    /* ⛔ D60: a 30px icon control at radius 8. */
+    .btn { width: 30px; height: 30px; padding: 0; display: inline-grid; place-items: center; flex: none; font: inherit; border-radius: 8px; border: 0;
       background: var(--c-surface-solid); color: var(--c-ink); box-shadow: var(--c-depth-rest); cursor: pointer;
       transition: box-shadow .2s ease, transform .2s ease; }
     .btn:hover:not(:disabled), .btn:focus-visible { box-shadow: var(--c-depth-hover); transform: translateY(-2px); }
     .btn:active:not(:disabled) { transform: translateY(0); box-shadow: var(--c-depth-press); }
-    .btn:disabled { cursor: default; opacity: .55; box-shadow: none; }
+    .btn:disabled { cursor: default; opacity: .45; box-shadow: none; }
     .btn.primary { background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent); }
-    .say { font-size: 11.5px; color: var(--c-ink-muted); min-height: 0; }
+    .say { display: inline-grid; place-items: center; color: var(--c-ink-muted); }
     .say.warn { color: var(--c-warning); }
-    .note { font-size: 11px; color: var(--c-ink-faint); }
+    .say:empty { display: none; }
+    .empty { display: grid; justify-items: center; padding: 24px 0; color: var(--c-ink-faint); }
     @media (prefers-reduced-motion: reduce) { .btn { transition: none; } .pb i { animation: none; left: 0; width: 100%; } }
   `;
+  const I = (name, size) => (typeof D.icon === 'function' ? D.icon(name, size) : '');
+  const sr = (text, attrs = '') => `<span class="sr"${attrs}>${esc(text)}</span>`;
+  /** An icon control: its label is its name and its tooltip. */
+  const ibtn = (a) => `<button class="btn${a.primary ? ' primary' : ''}" data-role="${esc(a.role)}" aria-label="${esc(a.label)}" title="${esc(a.label)}">${I(a.icon || 'open')}</button>`;
+  // the state as a shape: ready / attached ✓ · needs you ! · generating (pauses) · cancelled ∅ · nothing yet (the tab's icon)
+  const STATE_ICON = { ready: ['check', 'ok'], attached: ['check', 'ok'], generating: ['wait', ''], none: ['resume', ''], cancelled: ['blank', ''],
+    nojob: ['need', 'warn'], error: ['need', 'warn'], refused: ['need', 'warn'], failed: ['need', 'warn'], fallback: ['need', 'warn'] };
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const send = (msg) => new Promise((resolve) => {
@@ -412,6 +428,7 @@ export function renderResumePanel(model, meta) {
   const elapsed = (from) => { const s = Math.max(0, Math.round((Date.now() - from) / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 
   // ── the ATS tab: draft's report for this tab's job ──
+  const ACTIONS_READ = { role: 'read', label: 'Read this page now', primary: true, icon: 'read' };
   const drawAts = () => {
     atsHost.dataset.state = m.report?.state || (m.state === 'nojob' ? 'nojob' : 'none');
     dock.summary('ats', m.report?.head || 'ATS');   // what the slim bar says while this tab is shown
@@ -421,10 +438,11 @@ export function renderResumePanel(model, meta) {
     const ATS = globalThis.__draftAtsReport;
     const card = !!(m.report?.report && typeof ATS?.mountAtsReport === 'function');
     const nojob = !m.report && m.state === 'nojob';
+    // ⭐ T26: the title and the job are hidden words; the report (T9's shared component, or its summary marks) is the view
     atsPanel.innerHTML = `
       <div class="hd">
-        <div class="t" data-role="title">ATS for this job</div>
-        ${m.job ? `<div class="s" data-role="job">${esc(m.job)}</div>` : ''}
+        <div class="t sr" data-role="title">ATS for this job</div>
+        ${m.job ? `<div class="s sr" data-role="job">${esc(m.job)}</div>` : ''}
       </div>
       <div class="sc">
         ${m.report ? `<div class="rpt" data-role="ats-report" data-state="${esc(m.report.state)}">${
@@ -434,12 +452,12 @@ export function renderResumePanel(model, meta) {
           m.report.head ? `<div class="marks"><span class="mark ${esc(m.report.tone || '')}" data-role="ats-score">${esc(m.report.head)}</span></div>` : ''}${
           m.report.matched?.length ? `<p class="ln" data-role="ats-matched"><b>Matched:</b> ${esc(m.report.matched.join(', '))}</p>` : ''}${
           m.report.missing?.length ? `<p class="ln" data-role="ats-missing"><b>Missing:</b> ${esc(m.report.missing.join(', '))}</p>` : ''}`}${
-          m.report.note ? `<p class="note">${esc(m.report.note)}</p>` : ''}${
-          m.report.line ? `<p class="ln">${esc(m.report.line)}</p>` : ''}${
-          m.report.action ? `<div class="acts"><button class="btn" data-role="${esc(m.report.action.role)}">${esc(m.report.action.label)}</button></div>` : ''}
-        </div>` : nojob ? (m.lines || []).map(l => `<p class="ln ${esc(l.tone)}">${esc(l.text)}</p>`).join('')
-          + '<div class="acts"><button class="btn primary" data-role="read">Read this page now</button></div>'
-          : '<p class="ln" data-role="ats-none">No ATS report for this job yet.</p>'}
+          m.report.note ? `<p class="note sr">${esc(m.report.note)}</p>` : ''}${
+          m.report.line ? `<p class="ln sr">${esc(m.report.line)}</p>` : ''}${
+          m.report.action ? `<div class="acts">${ibtn({ role: m.report.action.role, label: m.report.action.label, icon: 'open' })}</div>` : ''}
+        </div>` : nojob ? `<div class="empty" title="${esc((m.lines || []).map(l => l.text).join(' '))}">${I('need', 28)}${(m.lines || []).map(l => `<p class="ln sr ${esc(l.tone)}">${esc(l.text)}</p>`).join('')}`
+          + `<div class="acts">${ibtn(ACTIONS_READ)}</div></div>`
+          : `<div class="empty" title="No ATS report for this job yet.">${I('ats', 28)}<p class="ln sr" data-role="ats-none">No ATS report for this job yet.</p></div>`}
         <div class="say" data-role="say" aria-live="polite"></div>
       </div>`;
     if (card) { const cardHost = atsRoot.querySelector('[data-role="ats-card"]'); try { ATS.mountAtsReport(cardHost, m.report.report, {}); } catch { cardHost?.remove(); } }
@@ -450,40 +468,49 @@ export function renderResumePanel(model, meta) {
     host.dataset.state = m.state;
     host.dataset.id = m.id || '';
     dock.summary('resume', `Résumé · ${m.state === 'generating' ? 'generating…' : m.state === 'attached' ? 'attached' : m.state === 'ready' ? 'ready' : m.title}`);
-    const lines = (m.lines || []).map(l => `<p class="ln ${esc(l.tone)}">${esc(l.text)}</p>`).join('');
-    const prog = m.progress ? `<div class="prog" data-role="progress"><span>${esc(m.progress.label)}</span> · <span data-role="elapsed">${elapsed(m.progress.startedAt)}</span>
+    // ⭐ T26: every line is a hidden word and the state mark's tooltip; on screen: the state's shape, the score and the
+    // elapsed time as numbers, the preview, the actions as icons.
+    const lines = (m.lines || []).map(l => `<p class="ln sr ${esc(l.tone)}">${esc(l.text)}</p>`).join('');
+    const [stIcon, stTone] = STATE_ICON[m.state] || ['resume', ''];
+    const tip = [m.title, m.job, ...(m.lines || []).map(l => l.text), m.guard?.text, m.changes].filter(Boolean).join(' · ');
+    const prog = m.progress ? `<div class="prog" data-role="progress"><span class="sr">${esc(m.progress.label)}</span><span data-role="elapsed">${elapsed(m.progress.startedAt)}</span>
       <div class="pb" aria-hidden="true"><i></i></div></div>` : '';
     const marks = [];
-    if (m.score) marks.push(`<span class="mark info" data-role="score">ATS ${esc(m.score.before ?? '–')} → ${esc(m.score.after ?? '–')}</span>`);
-    if (m.state === 'attached') marks.push('<span class="mark ok" data-role="attached-mark">attached ✓</span>');
-    if (m.state === 'refused') marks.push('<span class="mark no">withheld — nothing attached</span>');
-    const reasons = m.reasons?.length ? `<ul class="list" data-role="reasons">${m.reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : '';
-    const findings = m.findings?.length ? `<div class="note">Worth a look:</div><ul class="list" data-role="findings">${m.findings.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : '';
-    const actions = (m.actions || []).map(a => `<button class="btn${a.primary ? ' primary' : ''}" data-role="${esc(a.role)}">${esc(a.label)}</button>`).join('');
+    if (m.score) marks.push(`<span class="sr" data-role="score">ATS ${esc(m.score.before ?? '–')} → ${esc(m.score.after ?? '–')}</span><span class="num" aria-hidden="true" title="ATS ${esc(m.score.before ?? '–')} → ${esc(m.score.after ?? '–')}">${I('ats', 14)}${esc(m.score.before ?? '–')}→${esc(m.score.after ?? '–')}</span>`);
+    if (m.state === 'attached') marks.push('<span class="sr" data-role="attached-mark">attached ✓</span>');
+    if (m.state === 'refused') marks.push('<span class="sr">withheld — nothing attached</span>');
+    const reasons = m.reasons?.length ? `<ul class="list sr" data-role="reasons">${m.reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : '';
+    const findings = m.findings?.length ? `<div class="sr">Worth a look:</div><ul class="list sr" data-role="findings">${m.findings.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : '';
+    const actions = (m.actions || []).map(ibtn).join('');
     const showsEdit = (m.actions || []).some(a => a.role === 'edit');
+    const tipAll = [tip, ...(m.reasons || []), ...(m.findings || [])].filter(Boolean).join(' · ');
     panel.innerHTML = `
       <div class="hd">
-        <div class="t" data-role="title">${esc(m.title)}</div>
-        ${m.job ? `<div class="s" data-role="job">${esc(m.job)}</div>` : ''}
+        <span class="st" data-role="state-mark"${stTone ? ` data-tone="${stTone}"` : ''} title="${esc(tipAll)}" aria-hidden="true">${I(stIcon, 18)}</span>
+        <div class="t sr" data-role="title">${esc(m.title)}</div>
+        ${m.job ? `<div class="s sr" data-role="job">${esc(m.job)}</div>` : ''}
+        ${marks.join('')}${prog}
       </div>
       <div class="sc">
-        ${lines}${prog}
-        ${marks.length ? `<div class="marks">${marks.join('')}</div>` : ''}
-        ${m.changes ? `<p class="ln" data-role="changes">${esc(m.changes)}</p>` : ''}
-        ${m.guard ? `<div class="guard" data-role="guard">${esc(m.guard.text)}</div>` : ''}
+        ${lines}
+        ${m.changes ? `<p class="ln sr" data-role="changes">${esc(m.changes)}</p>` : ''}
+        ${m.guard ? `<div class="guard sr" data-role="guard">${esc(m.guard.text)}</div>` : ''}
         ${findings}${reasons}
-        ${m.preview ? '<div class="pvw" data-role="preview-wrap"><div class="pv" data-role="preview"></div></div>' : ''}
+        ${m.preview ? '<div class="pvw" data-role="preview-wrap"><div class="pv" data-role="preview"></div></div>'
+          : `<div class="empty" aria-hidden="true">${I(stIcon === 'check' ? 'resume' : stIcon, 28)}</div>`}
       </div>
       <div class="ft">
         <div class="acts">${actions}</div>
-        ${showsEdit ? `<div class="note" data-role="edit-note">${esc(meta?.editNote || '')}</div>` : ''}
+        ${showsEdit ? `<div class="note sr" data-role="edit-note">${esc(meta?.editNote || '')}</div>` : ''}
         <div class="say" data-role="say" aria-live="polite"></div>
       </div>`;
     if (m.preview?.html) { const pv = root.querySelector('[data-role="preview"]'); try { fillPreview(pv, m.preview.html); } catch { pv.textContent = 'The preview could not be shown.'; } }
     drawAts();
   };
 
-  const sayIn = (r, text, warn = false) => { const el = r.querySelector('[data-role="say"]'); if (el) { el.className = `say${warn ? ' warn' : ''}`; el.textContent = text; } };
+  // ⭐ T26: what a press says is an icon — its words its tooltip and, for a screen reader, its text (T27: the popups)
+  const sayIn = (r, text, warn = false) => { const el = r.querySelector('[data-role="say"]'); if (el) { el.className = `say${warn ? ' warn' : ''}`; el.title = text;
+    el.innerHTML = `${I(warn ? 'need' : 'info')}<span class="sr"></span>`; el.lastChild.textContent = text; } };
   const schedule = () => {
     clearTimeout(pollTimer); clearInterval(tick);
     if (m.progress) tick = setInterval(() => { const e = root.querySelector('[data-role="elapsed"]'); if (e) e.textContent = elapsed(m.progress.startedAt); }, 1000);

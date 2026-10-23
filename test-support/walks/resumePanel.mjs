@@ -68,7 +68,8 @@ const readPanel = (h) => h.readShadow(HOST, (root, host) => ({
   title: root.querySelector('[data-role="title"]')?.textContent || null,
   job: root.querySelector('[data-role="job"]')?.textContent || null,
   text: root.querySelector('.sc')?.textContent.replace(/\s+/g, ' ').trim() || '',
-  actions: [...root.querySelectorAll('.acts button')].map(b => b.textContent),
+  // ⭐ T26: the actions are icons — read by their names
+  actions: [...root.querySelectorAll('.acts button')].map(b => b.getAttribute('aria-label') || b.textContent),
   score: root.querySelector('[data-role="score"]')?.textContent || null,
   changes: root.querySelector('[data-role="changes"]')?.textContent || null,
   guard: root.querySelector('[data-role="guard"]')?.textContent || null,
@@ -76,7 +77,9 @@ const readPanel = (h) => h.readShadow(HOST, (root, host) => ({
   previewShadow: !!root.querySelector('[data-role="preview"]')?.shadowRoot,
   previewText: root.querySelector('[data-role="preview"]')?.shadowRoot?.querySelector('[data-role="page"]')?.textContent.replace(/\s+/g, ' ').trim() || '',
   previewTags: [...(root.querySelector('[data-role="preview"]')?.shadowRoot?.querySelectorAll('*') || [])].map(e => e.tagName.toLowerCase()),
-  bg: getComputedStyle(root.querySelector('.rp')).backgroundColor,
+  // ⭐ T26: the dock's frame is the ONE surface (the view paints none of its own)
+  bg: getComputedStyle(document.getElementById('rm-draft-dock').shadowRoot.querySelector('.fr')).backgroundColor,
+  own: getComputedStyle(root.querySelector('.rp')).backgroundColor,
 }));
 const waitState = (h, want, ms = BUSY_MS) => waitUntil(async () => { const p = await readPanel(h); return p && want.includes(p.state) ? p : null; }, ms, 150);
 const starts = (h) => h.api.requests.filter(r => r.method === 'POST' && r.path === '/api/extension/resume').length;

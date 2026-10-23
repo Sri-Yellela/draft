@@ -68,7 +68,7 @@ const readPanel = (h) => h.page.evaluate(() => {
     score: A.querySelector('[data-role="ats-score"]')?.textContent || null,
     matched: A.querySelector('[data-role="ats-matched"]')?.textContent || null,
     missing: A.querySelector('[data-role="ats-missing"]')?.textContent || null,
-    buttons: [...R.querySelectorAll('button'), ...A.querySelectorAll('button')].map(b => b.textContent.trim()).filter(Boolean),
+    buttons: [...R.querySelectorAll('button'), ...A.querySelectorAll('button')].map(b => (b.getAttribute('aria-label') || b.textContent).trim()).filter(Boolean),
   };
 });
 const lookups = (h) => h.api.requests.filter(r => r.method === 'GET' && r.path.startsWith('/api/extension/job/')).length;
@@ -143,7 +143,7 @@ export default async function run(h, { check, section }) {
         imgs: card.querySelectorAll('img').length,
         style: !!card.querySelector('style[data-ats-style]'),
         summaryLines: !!root.querySelector('[data-role="ats-score"], [data-role="ats-matched"], [data-role="ats-missing"]'),
-        buttons: [...root.querySelectorAll('button')].map(b => b.textContent.trim()).filter(Boolean),
+        buttons: [...root.querySelectorAll('button')].map(b => (b.getAttribute('aria-label') || b.textContent).trim()).filter(Boolean),
         width: Math.round(host.getBoundingClientRect().width),
       };
     });

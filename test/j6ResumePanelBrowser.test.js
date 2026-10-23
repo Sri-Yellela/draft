@@ -54,7 +54,8 @@ const readyModel = () => {
   m.preview = { html: HOSTILE };
   return m;
 };
-const META = { theme: { light: C_LIGHT, dark: C_DARK }, paper: { bg: C_LIGHT.SURFACE_SOLID, ink: C_LIGHT.INK }, pollMs: 200,
+// ⭐ T26: the dock's frame is the surface the view sits on — it is handed the palette, as dockHost.js dockMeta does
+const META = { theme: { light: C_LIGHT, dark: C_DARK }, dock: { theme: { light: C_LIGHT, dark: C_DARK } }, paper: { bg: C_LIGHT.SURFACE_SOLID, ink: C_LIGHT.INK }, pollMs: 200,
   regenerateWords: "Generating again uses another of your Draft slots.", editNote: "Opens this job in draft in a new tab.", dragHint: "drag it onto the upload box" };
 const stubRuntime = (replies = {}) => `window.chrome = { runtime: { lastError: null, sendMessage(m, cb) {
   (window.__sent = window.__sent || []).push(m);
@@ -82,10 +83,11 @@ test("⛔ J6: the panel in both themes — the site's tokens, no capsule, the pr
       const p = root.querySelector(".rp");
       const pv = root.querySelector('[data-role="preview"]');
       const radii = [...root.querySelectorAll("button, .mark, .guard, .pvw, .pb")].map(el => parseFloat(getComputedStyle(el).borderTopRightRadius) || 0);
-      return { bg: getComputedStyle(p).backgroundColor, maxRadius: Math.max(...radii), title: root.querySelector('[data-role="title"]').textContent,
+      // ⭐ T26: the dock's frame is the ONE surface; the view paints none of its own
+      return { bg: getComputedStyle(document.getElementById("rm-draft-dock").shadowRoot.querySelector(".fr")).backgroundColor, own: getComputedStyle(p).backgroundColor, maxRadius: Math.max(...radii), title: root.querySelector('[data-role="title"]').textContent,
         job: root.querySelector('[data-role="job"]').textContent, score: root.querySelector('[data-role="score"]').textContent,
         changes: root.querySelector('[data-role="changes"]').textContent, guard: root.querySelector('[data-role="guard"]').textContent,
-        actions: [...root.querySelectorAll(".acts button")].map(b => b.textContent),
+        actions: [...root.querySelectorAll(".acts button")].map(b => b.getAttribute("aria-label") || b.textContent),
         previewShadow: !!pv.shadowRoot, previewText: pv.shadowRoot?.textContent || "",
         previewTags: pv.shadowRoot ? [...pv.shadowRoot.querySelectorAll("*")].map(e => e.tagName.toLowerCase()) : [],
         previewHandlers: pv.shadowRoot ? [...pv.shadowRoot.querySelectorAll("*")].flatMap(e => [...e.attributes].map(a => a.name)).filter(n => /^on|src|href/.test(n)) : [],
@@ -153,7 +155,7 @@ test("⛔ J6: Generating — persistent progress that polls, survives a Workday 
   } } };`);
   await draw(page, generating);
   const g = await inPanel(page, (root) => ({ title: root.querySelector('[data-role="title"]').textContent, progress: !!root.querySelector('[data-role="progress"]'),
-    actions: [...root.querySelectorAll(".acts button")].map(b => b.textContent), text: root.querySelector(".sc").textContent }));
+    actions: [...root.querySelectorAll(".acts button")].map(b => b.getAttribute("aria-label") || b.textContent), text: root.querySelector(".sc").textContent }));
   assert.equal(g.title, "Generating…");
   assert.equal(g.progress, true);
   assert.deepEqual(g.actions, ["Cancel"]);
@@ -197,7 +199,7 @@ test("⛔ J6: Attach — a plain input is set and verified, Workday's drop zone 
   const fallback = resumePanelModel({ job: JOB, view: { id: ID, status: "ready", job: JOB }, attach: { outcome: "fallback", fileName: file.fileName, reason: c.reason, base64: file.base64 } });
   await page.evaluate(stubRuntime());
   await draw(page, fallback);
-  const said = await inPanel(page, (root) => ({ text: root.querySelector(".sc").textContent, first: root.querySelector(".acts button").textContent }));
+  const said = await inPanel(page, (root) => ({ text: root.querySelector(".sc").textContent, first: root.querySelector(".acts button").getAttribute("aria-label") }));
   assert.match(said.text, /draft could not put the file in this page's upload box — the page did not show its name\./);
   assert.match(said.text, /Download PDF — its name is copied for you — then drag it onto the upload box\./);
   assert.equal(said.first, "Download PDF");
