@@ -36,7 +36,8 @@ test("⛔ T21: the dock frame, the Fill view and the status line are PATCHED, ne
 
 test("⛔ T21: ONE fill state — the Fill button holds its width and says how far it got; a same-words status draws nothing", () => {
   const dock = read("extension/dock.js");
-  assert.match(dock, /\.btn\[data-role="fill"\] \{ min-width: [\d.]+em;[^}]*tabular-nums/, "a fixed width, tabular digits");
+  // ⭐ T26: the button is the brand's square — a fixed size, not a width in words
+  assert.match(dock, /\.btn\[data-role="fill"\] \{ width: 64px; height: 52px;[^}]*tabular-nums/, "a fixed size, tabular digits");
   assert.match(dock, /`Filling… \$\{f\.fillCount\.filled\} of \$\{f\.fillCount\.total\}`/);
   const st = dock.slice(at(dock, "statusText(text) {"), at(dock, "select: (tab) => select(tab, { load: false }),"));
   assert.match(st, /if \(next === frame\.statusText\) return;/);

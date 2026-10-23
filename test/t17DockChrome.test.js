@@ -257,7 +257,8 @@ test("⛔ T17: a tab pops out into its own window — the same frame (drag, resi
   await page.click("#rm-draft-dock >>> [data-role='pop']");
   const popped = await page.evaluate(() => ({ pop: !!document.getElementById("rm-draft-pop-copy"), parent: document.getElementById("v-copy").parentElement.id,
     handles: document.getElementById("rm-draft-pop-copy").shadowRoot.querySelectorAll(".rz").length,
-    note: document.getElementById("rm-draft-dock").shadowRoot.querySelector('[data-role="popped"]')?.textContent.trim() }));
+    // ⭐ T26: the note is an icon; its words are its accessible name
+    note: document.getElementById("rm-draft-dock").shadowRoot.querySelector('[data-role="popped"]')?.getAttribute("aria-label") }));
   assert.equal(popped.pop, true);
   assert.equal(popped.parent, "rm-draft-pop-copy", "the view moved into the pop-out window");
   assert.equal(popped.handles, 8, "the pop-out is the same frame: eight resize handles");
@@ -280,6 +281,7 @@ test("⛔ T17: a tab with no view is drawn on the user's own press only — a pa
   await page.click("#rm-draft-dock >>> [data-role='tab'][data-tab='resume']");
   await page.waitForFunction(() => window.__sent.some(m => m.type === "DOCK_TAB"));
   assert.deepEqual(await page.evaluate(() => window.__sent.filter(m => m.type === "DOCK_TAB")), [{ type: "DOCK_TAB", tab: "resume", trigger: "click" }]);
-  assert.match(await page.evaluate(() => document.getElementById("rm-draft-dock").shadowRoot.querySelector('[data-role="load-error"]')?.textContent || ""), /no server here/,
-    "a tab that could not be drawn says why");
+  // ⭐ T26: a "!" mark whose tooltip and accessible name say why
+  assert.match(await page.evaluate(() => { const e = document.getElementById("rm-draft-dock").shadowRoot.querySelector('[data-role="load-error"]'); return `${e?.title || ""} | ${e?.getAttribute("aria-label") || ""}`; }),
+    /no server here \| .*no server here/, "a tab that could not be drawn says why"); 
 });

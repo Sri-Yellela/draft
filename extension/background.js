@@ -346,6 +346,9 @@ async function diagnostics() {
     tabs, workerStartedAt: WORKER_STARTED });
 }
 
+/** ⭐ T26 / T29 · the settings page's sections a dock control may open it at (options.html's own ids). */
+const SETTINGS_SECTIONS = Object.freeze(['permissions', 'auto-read', 'intent', 'answers', 'details', 'shortcuts']);
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Capture, from the popup button. The hotkey reaches the same function through onCommand below;
   // neither trigger has an implementation of its own.
@@ -467,6 +470,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     drawDockTab(sender.tab, message.tab)
       .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null }))
       .catch(() => sendResponse({ ok: false, message: 'draft could not show this here.' }));
+    return true;
+  }
+  // ⭐ T26 / T29 · the dock's gear (and, later, a popup's Settings link): the extension's settings page, at one section.
+  // ⛔ The person's own click, from a page's TOP frame — where the dock is; `section` is one of the page's own anchors or
+  // nothing (it is never a URL).
+  if (message.type === 'OPEN_SETTINGS') {
+    if (message.trigger !== 'click' || sender?.frameId !== 0 || !sender?.tab?.id) { sendResponse({ ok: false }); return true; }
+    const section = SETTINGS_SECTIONS.includes(message.section) ? `#${message.section}` : '';
+    chrome.tabs.create({ url: chrome.runtime.getURL(`options.html${section}`) })
+      .then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
     return true;
   }
   // "Unlink this page" — forget which job this tab is on.
