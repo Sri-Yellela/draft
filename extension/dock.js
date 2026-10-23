@@ -36,10 +36,10 @@
   if (globalThis.__draftDock?.version === VERSION) return;
 
   const TABS = Object.freeze([
-    Object.freeze({ id: 'fill', label: 'Fill' }),
-    Object.freeze({ id: 'ats', label: 'ATS' }),
-    Object.freeze({ id: 'resume', label: 'Résumé' }),
-    Object.freeze({ id: 'copy', label: 'Copy sheet' }),
+    Object.freeze({ id: 'fill', label: 'Fill', icon: 'fill' }),
+    Object.freeze({ id: 'ats', label: 'ATS', icon: 'ats' }),
+    Object.freeze({ id: 'resume', label: 'Résumé', icon: 'resume' }),
+    Object.freeze({ id: 'copy', label: 'Copy sheet', icon: 'copy' }),
   ]);
   const TAB_IDS = TABS.map(t => t.id);
   const EDGES = Object.freeze(['left', 'right', 'top', 'bottom']);
@@ -47,6 +47,45 @@
   const LIMITS = Object.freeze({ minW: 300, minH: 220, maxW: 760, margin: 8, slimH: 44, slimMaxW: 460, step: 16, bigStep: 64, edgeBand: 6 });
   const DOCK_ID = 'rm-draft-dock';
   const POP_PREFIX = 'rm-draft-pop-';
+
+  // ── ⭐ T26 (owner, 10-19) · ICONS, NOT WORDS — the ONE icon set the dock and every view inside it draw with ─────────
+  // "As minimal as possible, only the necessary stuff, in minimal ICONS, not text." Every icon is a stroke in
+  // currentColor (so it takes the theme and the one accent), drawn on a 24-unit grid, hidden from assistive tech — the
+  // control that carries it has the words, as its aria-label AND its tooltip (title). A status is a SHAPE (✓ ! ↺), so
+  // it reads in every theme with or without colour (D91).
+  const ICONS = Object.freeze({
+    move: 'M12 3v18M3 12h18M12 3 9.5 5.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5',
+    dockLeft: 'M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 4v16',
+    dockRight: 'M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM15 4v16',
+    pop: 'M14 4h6v6M20 4l-8 8M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4',
+    dockBack: 'M4 20l7-7M4 14v6h6M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4',
+    minimise: 'M6 12h12',
+    expand: 'M6 5h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z',
+    settings: 'M12 9.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6zM12 3v2.6M12 18.4V21M5.6 5.6l1.9 1.9M16.5 16.5l1.9 1.9M3 12h2.6M18.4 12H21M5.6 18.4l1.9-1.9M16.5 7.5l1.9-1.9',
+    close: 'M6.5 6.5l11 11M17.5 6.5l-11 11',
+    resize: 'M20 13l-7 7M20 7L7 20',
+    fill: 'M4 6h9M4 11h6M4 16h4M13.5 19l.8-3.3 6-6a1.5 1.5 0 0 0-2.1-2.1l-6 6-.8 3.3z',
+    ats: 'M5 20v-7M12 20V5M19 20v-4',
+    resume: 'M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM14 3v5h5M9.5 13h6M9.5 17h6',
+    copy: 'M10 9h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zM5 15H4.5a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5V5',
+    check: 'M5 12.5l4.5 4.5L19 7',
+    need: 'M12 5v9M12 18.6v.4',
+    recheck: 'M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4.5v3.7h3.7',
+    skip: 'M4 12h12M12 7l5 5-5 5M20 6v12',
+    pin: 'M9 4h6M10 4v6l-3 4h10l-3-4V4M12 14v6',
+    edit: 'M4 20l1.2-4.8L15.8 4.6a2 2 0 0 1 2.8 2.8L8 18z',
+    attach: 'M19.5 11.5l-7.8 7.8a4.6 4.6 0 0 1-6.5-6.5l7.8-7.8a3.1 3.1 0 0 1 4.4 4.4l-7.8 7.8a1.5 1.5 0 0 1-2.2-2.2l7.1-7.1',
+    generate: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 16v4M16.5 18h4',
+    submitted: 'M20.5 3.5L10 14M20.5 3.5L14 20.5l-4-6.5-6.5-4z',
+    blank: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM6 18L18 6',
+    wait: 'M9 5.5v13M15 5.5v13',
+    info: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 11v5.5M12 7.6v.4',
+    open: 'M7 17L17 7M9 7h8v8',
+  });
+  /** One icon's markup — decorative; the control that holds it carries the words (aria-label + title). */
+  const icon = (name, size = 16) => (ICONS[name]
+    ? `<svg class="ic" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[name]}"/></svg>`
+    : '');
 
   // ── the geometry — PURE (no DOM): what every placement goes through ───────────────────────────────────────────────
   const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), Math.max(lo, hi));
@@ -167,7 +206,9 @@
       font: 13px/1.45 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--c-ink); text-align: left;
       background: var(--c-surface-menu); backdrop-filter: blur(12px); border: 1px solid var(--c-glass-edge); border-radius: 10px;
       box-shadow: var(--c-shadow-lg); }
-    .hd { display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 12px; border-bottom: 1px solid var(--c-border);
+    /* ⭐ T26 · LINE BUDGET: the header's rule is the dock's ONE divider — the tabs, the panes and the views below it are
+       separated by spacing, never by another border. */
+    .hd { display: flex; align-items: center; gap: 2px; padding: 8px 6px 8px 12px; border-bottom: 1px solid var(--c-border);
       cursor: grab; user-select: none; touch-action: none; flex: none; }
     .hd.dragging { cursor: grabbing; }
     .mk { font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 18px; letter-spacing: -.02em; line-height: 1;
@@ -175,19 +216,23 @@
     .mk .sl { color: var(--c-logo-slash); }
     .ttl { font-size: 12px; font-weight: 700; color: var(--c-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .sp { flex: 1; min-width: 4px; }
-    /* ⛔ D60: rectangles — a 26px control at radius 8; the tab is a box with a 3px bar, never a capsule. */
-    .ib { width: 26px; height: 26px; flex: none; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-surface-solid);
-      color: var(--c-ink-muted); font: 800 13px/1 ui-sans-serif, system-ui, sans-serif; cursor: pointer; padding: 0; }
-    .ib:hover, .ib:focus-visible { color: var(--c-ink); }
+    /* ⛔ D60: rectangles — a 28px control at radius 8; the tab is a box with a 3px bar, never a capsule.
+       ⭐ T26: a header control is a GHOST icon — no border and no fill until the pointer or the keyboard is on it. */
+    .ib { width: 28px; height: 28px; flex: none; border-radius: 8px; border: 0; background: transparent;
+      color: var(--c-ink-muted); cursor: pointer; padding: 0; display: inline-grid; place-items: center; }
+    .ib:hover, .ib:focus-visible { color: var(--c-ink); background: var(--c-surface-solid); }
+    .ic { display: block; flex: none; }
     .ib[data-role="move"] { cursor: move; }
     .ib:focus-visible, .tab:focus-visible, .btn:focus-visible, .grip:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
     .st { flex: none; padding: 6px 8px 0; }
     .st:not(.has) { display: none; }
-    .tabs { display: flex; gap: 2px; padding: 6px 8px 0; border-bottom: 1px solid var(--c-border); flex: none; overflow-x: auto; }
-    .tab { font: inherit; font-size: 12px; font-weight: 700; padding: 6px 10px; border: 0; border-bottom: 3px solid transparent;
-      border-radius: 6px 6px 0 0; background: transparent; color: var(--c-ink-muted); cursor: pointer; white-space: nowrap; }
+    /* ⭐ T26: the four tabs are ICONS (the name is the tooltip and the accessible name); the shown one carries the ONE
+       accent as a 3px bar. No rule under the row. */
+    .tabs { display: flex; gap: 4px; padding: 6px 8px 2px; flex: none; overflow-x: auto; }
+    .tab { padding: 5px 9px 4px; border: 0; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; background: transparent;
+      color: var(--c-ink-muted); cursor: pointer; display: inline-flex; align-items: center; }
     .tab:hover { color: var(--c-ink); }
-    .tab[aria-selected="true"] { color: var(--c-ink); background: var(--c-surface-solid); border-bottom-color: var(--c-accent); }
+    .tab[aria-selected="true"] { color: var(--c-ink); border-bottom-color: var(--c-accent); }
     /* D91 shape cues: the selected tab also says so by a shape, never by colour alone */
     :host([data-cues="shape"]) .tab[aria-selected="true"] { text-decoration: underline; text-underline-offset: 3px; }
     :host([data-cues="shape"]) .tab[aria-selected="true"]::before { content: "▸ "; }
@@ -195,16 +240,23 @@
     .pane { position: absolute; inset: 0; overflow: auto; }
     .pane[hidden] { display: none; }
     ::slotted([slot^="view-"]) { display: block; height: 100%; }
-    .empty { padding: 16px; color: var(--c-ink-muted); font-size: 12.5px; display: grid; gap: 10px; justify-items: start; }
-    .popped { padding: 16px; color: var(--c-ink-muted); font-size: 12.5px; display: grid; gap: 10px; justify-items: start; }
+    /* ⭐ T26 · TEXT BUDGET: an empty tab is its icon, faint, and nothing else — the words are its accessible name. */
+    .empty, .popped { padding: 28px 16px; color: var(--c-ink-faint); display: grid; gap: 14px; justify-items: center; }
+    .mark-need { color: var(--c-warning); }
     .pane.is-popped slot { display: none; }
     .btn { font: inherit; font-size: 11.5px; font-weight: 700; padding: 6px 12px; min-height: 30px; border-radius: 8px; border: 0;
       background: var(--c-surface-solid); color: var(--c-ink); box-shadow: var(--c-depth-rest); cursor: pointer; }
     .btn:hover { box-shadow: var(--c-depth-hover); }
-    /* ⭐ T21: the Fill button keeps ONE width through "Fill this page" → "Filling…" → "Filling… 12 of 43" — nothing
-       beside it moves while a fill runs; the count's digits are all one width. */
-    .btn[data-role="fill"] { min-width: 15.5em; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    /* ⭐ T21: the Fill button keeps ONE size through idle → filling → "12/43" — nothing beside it moves while a fill runs;
+       the count's digits are all one width. ⭐ T26: it is the brand's square — the icon on the one accent. */
+    .btn[data-role="fill"] { width: 64px; height: 52px; padding: 0; display: inline-grid; place-items: center; border-radius: 10px;
+      background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent);
+      font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 12px; }
+    .btn[data-role="fill"]:hover { box-shadow: var(--c-depth-accent); }
     .btn[data-role="fill"][aria-busy="true"] { cursor: progress; }
+    @media (prefers-reduced-motion: no-preference) { .btn[data-role="fill"][aria-busy="true"] .ic { animation: rm-pulse 1.1s ease-in-out infinite; } }
+    @keyframes rm-pulse { 50% { opacity: .45; } }
+    .btn.ibtn { width: 34px; height: 34px; padding: 0; display: inline-grid; place-items: center; }
     .slim { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; height: 100%; cursor: grab; user-select: none; touch-action: none; }
     .slimtxt { flex: 1; min-width: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .slimtxt b { color: var(--c-warning); }
@@ -249,6 +301,13 @@
   /** ⭐ T21 · the Fill button's words, from the frame's ONE fill state: idle · filling · filling with a count. */
   const fillWords = (f) => !f.filling ? 'Fill this page'
     : Number.isFinite(f.fillCount?.filled) && f.fillCount?.total > 0 ? `Filling… ${f.fillCount.filled} of ${f.fillCount.total}` : 'Filling…';
+  /**
+   * ⭐ T26 · what the Fill button SHOWS: its icon — the SAME icon while a fill runs (it pulses; nothing in the button is
+   * re-made, T21's budget) — or, once the run reports a count, the count as numbers ("12/43"). Never a sentence: the
+   * words are its aria-label (fillWords), and the tooltip.
+   */
+  const fillFace = (f) => (f.filling && Number.isFinite(f.fillCount?.filled) && f.fillCount?.total > 0
+    ? `${f.fillCount.filled}/${f.fillCount.total}` : icon('fill', 22));
 
   // ── ⭐ T21 · NO FLICKER: draw by PATCHING what is there─────────────────────────────────────────────────────────────
   // Measured (owner report (e), 10-15; test-support/walks/fillFlicker.mjs): one fill pressed from the dock threw the
@@ -327,9 +386,12 @@
 
     const handles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map(hd => `<div class="rz" data-handle="${hd}" aria-hidden="true"></div>`).join('');
     const sideBtn = () => (host.dataset.side === 'right'
-      ? '<button class="ib" data-role="dock" aria-label="Snap to the left" title="Snap to the left">⇤</button>'
-      : '<button class="ib" data-role="dock" aria-label="Snap to the right" title="Snap to the right">⇥</button>');
-    const moveBtn = '<button class="ib" data-role="move" aria-label="Move the panel — arrow keys move it, Ctrl+arrow snaps it to that edge" title="Move (arrow keys · Ctrl+arrow snaps)">✥</button>';
+      ? `<button class="ib" data-role="dock" aria-label="Snap to the left" title="Snap to the left">${icon('dockLeft')}</button>`
+      : `<button class="ib" data-role="dock" aria-label="Snap to the right" title="Snap to the right">${icon('dockRight')}</button>`);
+    const moveBtn = `<button class="ib" data-role="move" aria-label="Move the panel — arrow keys move it, Ctrl+arrow snaps it to that edge" title="Move (arrow keys · Ctrl+arrow snaps)">${icon('move')}</button>`;
+    // ⭐ T26 / T29: every setting lives on the extension's settings page; the gear opens it (the service worker opens the
+    // tab — a page cannot). It is the dock's, not a pop-out's.
+    const gearBtn = `<button class="ib" data-role="settings" aria-label="draft settings" title="Settings">${icon('settings')}</button>`;
 
     f.draw = () => {
       apply();
@@ -349,22 +411,23 @@
             <div class="mk" aria-hidden="true"><span class="sl">/</span>draft</div>
             <span class="slimtxt" data-role="slim">${need ? `<b>${esc(words)}</b>` : esc(words)}</span>
             ${moveBtn}
-            <button class="ib" data-role="expand" aria-label="Expand the panel" title="Expand">▢</button>
-            <button class="ib" data-role="close" aria-label="${kind === 'dock' ? 'Close the panel' : 'Back into the dock'}" title="${kind === 'dock' ? 'Close (Esc)' : 'Back into the dock'}">×</button>
+            <button class="ib" data-role="expand" aria-label="Expand the panel" title="Expand">${icon('expand')}</button>
+            <button class="ib" data-role="close" aria-label="${kind === 'dock' ? 'Close the panel' : 'Back into the dock'}" title="${kind === 'dock' ? 'Close (Esc)' : 'Back into the dock'}">${icon('close')}</button>
           </div>`);
         return;
       }
       const tabs = kind === 'dock' ? `<div class="tabs" role="tablist" aria-label="draft">${TABS.map(t => `
           <button class="tab" role="tab" id="${id}-tab-${t.id}" data-role="tab" data-tab="${t.id}" aria-controls="${id}-pane-${t.id}"
-            aria-selected="${t.id === f.active}" tabindex="${t.id === f.active ? 0 : -1}">${esc(t.label)}</button>`).join('')}</div>` : '';
+            aria-selected="${t.id === f.active}" tabindex="${t.id === f.active ? 0 : -1}" aria-label="${esc(t.label)}" title="${esc(t.label)}">${icon(t.icon, 18)}</button>`).join('')}</div>` : '';
       const panes = kind === 'dock' ? TABS.map(t => `
           <div class="pane${f.popped?.has(t.id) ? ' is-popped' : ''}" role="tabpanel" id="${id}-pane-${t.id}" data-tab="${t.id}" aria-labelledby="${id}-tab-${t.id}"${t.id === f.active ? '' : ' hidden'}>
-            ${f.popped?.has(t.id) ? `<div class="popped" data-role="popped">${esc(t.label)} is open in its own window.
-              <button class="btn" data-role="dock-back" data-tab="${t.id}">Bring it back into the dock</button></div>` : ''}
-            <slot name="view-${t.id}"><div class="empty" data-role="empty">${esc(EMPTY[t.id])}${f.loading === t.id ? ' Loading…' : ''}${
-              f.loadError?.[t.id] ? `<span data-role="load-error">${esc(f.loadError[t.id])}</span>` : ''}${
-              t.id === 'fill' ? `<button class="btn" data-role="fill" title="Ctrl+Shift+Y"${f.filling ? ' aria-busy="true" aria-disabled="true" data-busy="true"' : ''}>${esc(fillWords(f))}</button>${
-                f.fillSaid ? `<span data-role="fill-said">${esc(f.fillSaid)}</span>` : ''}` : ''}</div></slot>
+            ${f.popped?.has(t.id) ? `<div class="popped" data-role="popped" role="note" aria-label="${esc(t.label)} is open in its own window">${icon('pop', 28)}
+              <button class="btn ibtn" data-role="dock-back" data-tab="${t.id}" aria-label="Bring ${esc(t.label)} back into the dock" title="Bring it back into the dock">${icon('dockBack')}</button></div>` : ''}
+            <slot name="view-${t.id}"><div class="empty" data-role="empty" role="note" aria-label="${esc(EMPTY[t.id])}${f.loading === t.id ? ' Loading…' : ''}"${f.loading === t.id ? ' aria-busy="true"' : ''}>${
+              t.id === 'fill' ? '' : icon(t.icon, 28)}${
+              f.loadError?.[t.id] ? `<span class="mark-need" data-role="load-error" role="img" aria-label="${esc(f.loadError[t.id])}" title="${esc(f.loadError[t.id])}">${icon('need')}</span>` : ''}${
+              t.id === 'fill' ? `<button class="btn" data-role="fill" aria-label="${esc(fillWords(f))}" title="Fill this page (Ctrl+Shift+Y)"${f.filling ? ' aria-busy="true" aria-disabled="true" data-busy="true"' : ''}>${fillFace(f)}</button>${
+                f.fillSaid ? `<span class="mark-need" data-role="fill-said" role="img" aria-label="${esc(f.fillSaid)}" title="${esc(f.fillSaid)}">${icon('need')}</span>` : ''}` : ''}</div></slot>
           </div>`).join('')
         : `<div class="pane" data-tab="${tab}"><slot name="view-${tab}"><div class="empty">${esc(EMPTY[tab] || '')}</div></slot></div>`;
       // The status line's "has" mark is part of the markup (a patch would otherwise take it off); slotchange keeps it.
@@ -376,16 +439,17 @@
           <span class="sp"></span>
           ${moveBtn}
           ${sideBtn()}
-          ${kind === 'dock' ? '<button class="ib" data-role="pop" aria-label="Open this tab in its own window" title="Open this tab in its own window">⧉</button>'
-            : '<button class="ib" data-role="dock-back" aria-label="Back into the dock" title="Back into the dock">⇲</button>'}
-          <button class="ib" data-role="collapse" aria-label="Collapse the panel" title="Collapse">–</button>
-          <button class="ib" data-role="close" aria-label="${kind === 'dock' ? 'Close the panel' : 'Back into the dock'}" title="${kind === 'dock' ? 'Close (Esc)' : 'Back into the dock'}">×</button>
+          ${kind === 'dock' ? `<button class="ib" data-role="pop" aria-label="Open this tab in its own window" title="Open this tab in its own window">${icon('pop')}</button>`
+            : `<button class="ib" data-role="dock-back" aria-label="Back into the dock" title="Back into the dock">${icon('dockBack')}</button>`}
+          <button class="ib" data-role="collapse" aria-label="Collapse the panel" title="Collapse">${icon('minimise')}</button>
+          ${kind === 'dock' ? gearBtn : ''}
+          <button class="ib" data-role="close" aria-label="${kind === 'dock' ? 'Close the panel' : 'Back into the dock'}" title="${kind === 'dock' ? 'Close (Esc)' : 'Back into the dock'}">${icon('close')}</button>
         </div>
         ${kind === 'dock' ? `<div class="st${hasStatus ? ' has' : ''}" data-role="status"><slot name="status"></slot></div>` : ''}
         ${tabs}
         <div class="body">${panes}</div>
         ${handles}
-        <button class="grip" data-role="resize" aria-label="Resize the panel — arrow keys change its width and height" title="Resize (arrow keys)">◢</button>`);
+        <button class="grip" data-role="resize" aria-label="Resize the panel — arrow keys change its width and height" title="Resize (arrow keys)">${icon('resize', 12)}</button>`);
       const st = root.querySelector('[data-role="status"]');
       if (st && !st.__draftMarked) {
         st.__draftMarked = true;
@@ -491,6 +555,8 @@
       }
       if (role === 'tab') { onSelect?.(btn.dataset.tab, { trusted: ev.isTrusted }); return; }
       if (role === 'pop') { f.onPop?.(); return; }
+      // ⛔ the person's own click only — a page script's click opens nothing
+      if (role === 'settings') { if (ev.isTrusted) void send({ type: 'OPEN_SETTINGS', trigger: 'click' }); return; }
       if (role === 'dock-back') { if (kind === 'dock') f.onDockBackTab?.(btn.dataset.tab); else onDockBack?.(); return; }
       if (role === 'load') onLoad?.(btn.dataset.tab, ev.isTrusted);
       // The empty Fill tab's one action: the SAME press as the popup's Fill it and Ctrl+Shift+Y (it reads, prepares and
@@ -753,6 +819,8 @@
     isTop, ensure,
     // ⭐ T21: the one in-place patch every view draws with
     morph,
+    // ⭐ T26: the one icon set every view draws with
+    ICONS, icon,
     current: () => (DOCK && DOCK.frame.host.isConnected ? DOCK : null),
   });
 })();

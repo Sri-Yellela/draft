@@ -26,7 +26,10 @@ export const description = 'T21: count the dock frame repaints, Fill view mounts
 // the slim bar opening into the full dock (a different shape — what the person is meant to see). The button's own
 // mutations are its three changes of state (idle → "Filling…" → "Filling… 3 of 13" → idle: its words and its
 // aria-busy / aria-disabled / data-busy) — 9 measured, on ONE node.
-export const budget = { frameRepaints: 1, fillViewMounts: 1, statusRepaints: 1, fillButtonNodes: 1, buttonMutations: 10, panelMutations: 40 };
+// ⭐ T26 (10-22): the button shows an ICON, and its words moved into its aria-label — the label is written where the text
+// was (idle → "Filling…" → idle), and the icon is NOT swapped while it runs (it pulses in CSS). 11 measured, still ONE
+// node and no child re-made; the bound is 12 for those two label writes, not for any re-mount.
+export const budget = { frameRepaints: 1, fillViewMounts: 1, statusRepaints: 1, fillButtonNodes: 1, buttonMutations: 12, panelMutations: 40 };
 
 /** Installed in the page's MAIN world. Reads only draft's own (open) shadow roots; changes nothing. */
 function installRecorder() {
