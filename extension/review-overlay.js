@@ -455,88 +455,97 @@ export function renderOverlay(model, meta) {
   }
   const logo = `'${LOGO_FACE}', 'Poppins', ui-sans-serif, system-ui, sans-serif`;
 
-  // ⛔ D60: rectangles. Controls radius 8 on 28 (the near-capsule guard's 30%); marks radius 6 with a 3px leading bar;
-  // the progress bar is square-ended (radius 1 on 6). Only perfect circles may be round — there are none here.
+  // ⛔ D60: rectangles. Controls radius 8 on 30 (the near-capsule guard's 30%); marks radius 6 with a 3px leading bar;
+  // the progress bar is square-ended (radius 1). Only perfect circles may be round — there are none here.
+  // ⭐ T26 (owner, 10-19: "too much text, too many lines, too many colours"): ONE neutral surface, ONE accent (the brand
+  // orange: the primary press, the progress), at most one small status mark per row (✓ ! ↺ — a shape AND a colour).
+  // No tinted banners, no row borders, no rules: groups and rows are separated by SPACING. Every word that is not a
+  // field's label or value is a tooltip, and is still there for a screen reader as a visually hidden .sr span — the
+  // panel's text, read whole, says what it always said.
   const css = `
     #${ID} { ${varsOf(theme.light)} }
     @media (prefers-color-scheme: dark) { #${ID} { ${varsOf(theme.dark)} } }
     #${ID} { height: 100%; display: flex; flex-direction: column; overflow: hidden;
       font: 13px/1.45 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-      color: var(--c-ink); background: var(--c-surface-menu); text-align: left; }
+      color: var(--c-ink); background: transparent; text-align: left; }
+    /* ⭐ T26: the view paints NO surface of its own — the dock's frame is the one surface (D92 rule 1); a second, opaque
+       one under the tabs read as a step. */
     #${ID} * { box-sizing: border-box; }
-    #${ID} .rm-hd { padding: 10px 14px 8px; border-bottom: 1px solid var(--c-border); }
-    #${ID} .rm-top { display: flex; align-items: center; gap: 6px; }
-    #${ID} .rm-sp { flex: 1; }
-    #${ID} .rm-mark { font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 20px;
-      letter-spacing: -.02em; line-height: 1; color: var(--c-logo-word); forced-color-adjust: none; }
-    #${ID} .rm-mark .rm-slash { color: var(--c-logo-slash); }
-    #${ID} .rm-t { font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 15px;
-      letter-spacing: -.01em; margin-top: 8px; }
-    #${ID} .rm-s { font-size: 11px; color: var(--c-ink-muted); margin-top: 2px; }
-    #${ID} .rm-prog { margin-top: 6px; font-size: 11.5px; color: var(--c-ink-muted); }
-    #${ID} .rm-pb { height: 6px; border-radius: 1px; background: var(--c-border); margin-top: 6px; overflow: hidden; }
-    #${ID} .rm-pb i { display: block; height: 100%; background: var(--c-success); }
-    #${ID} .rm-ib { width: 26px; height: 26px; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-surface-solid);
-      color: var(--c-ink-muted); font: 800 13px/1 ui-sans-serif, system-ui, sans-serif; cursor: pointer; padding: 0; }
-    #${ID} .rm-ib:hover, #${ID} .rm-ib:focus-visible { color: var(--c-ink); }
-    #${ID} .rm-ib:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-    #${ID} .rm-sc { overflow: auto; padding: 0 6px 6px; flex: 1; min-height: 0; }
-    #${ID} .rm-sec { padding: 0; }
-    #${ID} .rm-lbl { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%;
-      padding: 8px; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
-      color: var(--c-ink-faint); border-top: 1px solid var(--c-border); }
+    #${ID} [hidden] { display: none !important; }
+    /* !important: a hidden word keeps no box of its own — the chip's padding and bar must not draw it (D60's walk measures boxes) */
+    #${ID} .sr { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important;
+      border: 0 !important; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    #${ID} .ic { display: block; flex: none; }
+    #${ID} .rm-hd { display: flex; align-items: center; gap: 12px; padding: 10px 14px 4px; }
+    #${ID} .rm-cnt { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--c-ink-muted); }
+    #${ID} .rm-c { display: inline-flex; align-items: center; gap: 3px; }
+    #${ID} .rm-c[data-tone="need"] { color: var(--c-warning); }
+    #${ID} .rm-c[data-tone="ok"] { color: var(--c-success); }
+    #${ID} .rm-pb { flex: 1; min-width: 40px; height: 4px; border-radius: 1px; background: var(--c-surface-solid); overflow: hidden; }
+    #${ID} .rm-pb i { display: block; height: 100%; background: var(--c-accent); }
+    #${ID} .rm-flag { display: inline-grid; place-items: center; color: var(--c-ink-muted); }
+    #${ID} .rm-flag[data-tone="need"] { color: var(--c-warning); }
+    #${ID} .rm-sc { overflow: auto; padding: 0 8px 8px; flex: 1; min-height: 0; }
+    #${ID} .rm-sec { margin-top: 10px; }
+    #${ID} .rm-lbl { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px;
+      font-size: 11px; font-weight: 800; color: var(--c-ink-faint); font-variant-numeric: tabular-nums; border-radius: 6px; }
+    #${ID} .rm-lbl:hover { color: var(--c-ink-muted); }
     #${ID} .rm-lbl:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: -2px; }
-    #${ID} .rm-n { font-size: 11px; color: var(--c-ink); background: var(--c-border); border-radius: 5px; padding: 1px 7px; letter-spacing: 0; }
-    #${ID} .rm-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; margin: 0 4px 4px;
-      border-left: 3px solid var(--c-border-strong); border-radius: 0 8px 8px 0; background: var(--c-surface-solid); }
-    #${ID} .rm-row[data-group="need"] { border-left-color: var(--c-danger); }
-    #${ID} .rm-row[data-group="check"] { border-left-color: var(--c-warning); }
-    #${ID} .rm-row[data-group="ok"] { border-left-color: var(--c-success); }
+    #${ID} .rm-tw { font-size: 9px; width: 9px; }
+    #${ID} .rm-row { display: flex; align-items: flex-start; gap: 10px; padding: 7px 6px; }
+    #${ID} .rm-st { flex: none; width: 18px; height: 18px; display: grid; place-items: center; margin-top: 1px; color: var(--c-ink-faint); }
+    #${ID} .rm-row[data-group="need"] .rm-st { color: var(--c-warning); }
+    #${ID} .rm-row[data-group="check"] .rm-st { color: var(--c-ink-muted); }
+    #${ID} .rm-row[data-group="ok"] .rm-st { color: var(--c-success); }
     #${ID} .rm-bar { display: none; border-radius: 2px; }
     #${ID} .rm-main { flex: 1; min-width: 0; }
     #${ID} .rm-f { font-size: 11px; color: var(--c-ink-muted); }
     #${ID} .rm-v { font-size: 12.5px; font-weight: 700; word-break: break-word; }
-    #${ID} .rm-note { font-size: 11px; color: var(--c-ink-muted); margin-top: 3px; }
-    #${ID} .rm-note.warn { color: var(--c-warning); }
     #${ID} .rm-acts { display: flex; gap: 6px; margin-top: 6px; align-items: center; flex-wrap: wrap; }
-    /* ⛔ D60 / D63: a provenance chip is a MARK — a rectangle with a 3px leading bar, never a capsule. */
+    /* ⛔ D60 / D63: a provenance chip is a MARK — a rectangle with a 3px leading bar, never a capsule. ⭐ T26: it is drawn
+       for a screen reader only (.sr); the row's status mark carries the same words as its tooltip. */
     #${ID} .rm-pill { --mk: var(--c-ink-faint); font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 10.5px;
       line-height: 1; padding: 3px 7px 3px 6px; border-radius: 6px; white-space: nowrap; color: var(--mk);
       border-left: 3px solid var(--mk); background: color-mix(in srgb, var(--mk) 12%, transparent); margin-left: 6px; }
     #${ID} .rm-pill.ok { --mk: var(--c-success); }
-    #${ID} .rm-pill.guess { --mk: var(--c-warning); }
-    #${ID} .rm-pill.elig { --mk: var(--c-info); }
-    #${ID} .rm-pill.you { --mk: var(--c-accent-ink); }
-    #${ID} .rm-pill.need { --mk: var(--c-danger); }
-    /* ⛔ D60: a 28px control at radius 11 read as a capsule (39%); 8 is the client's compact depth box (9 on 30). */
-    #${ID} .rm-btn { font: inherit; font-size: 11px; font-weight: 700; padding: 5px 11px; min-height: 28px;
+    /* ⛔ D60: a 30px icon control at radius 8 (27%). */
+    #${ID} .rm-btn { width: 30px; height: 30px; padding: 0; display: inline-grid; place-items: center; flex: none;
       border-radius: 8px; border: 0; background: var(--c-surface-solid); color: var(--c-ink);
       box-shadow: var(--c-depth-rest); cursor: pointer; transition: box-shadow .2s ease, transform .2s ease; }
     #${ID} .rm-btn:hover:not(:disabled), #${ID} .rm-btn:focus-visible { box-shadow: var(--c-depth-hover); transform: translateY(-2px); }
     #${ID} .rm-btn:active:not(:disabled) { transform: translateY(0); box-shadow: var(--c-depth-press); }
     #${ID} .rm-btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-    #${ID} .rm-btn:disabled { cursor: default; opacity: .55; box-shadow: none; }
-    #${ID} .rm-btn.ack { background: var(--c-warning-quiet); color: var(--c-warning); }
-    #${ID} .rm-btn.done { background: var(--c-success-quiet); color: var(--c-success); box-shadow: none; }
+    #${ID} .rm-btn:disabled { cursor: default; opacity: .45; box-shadow: none; }
+    #${ID} .rm-btn.done { color: var(--c-success); box-shadow: none; }
     #${ID} .rm-btn.primary { background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent); }
     #${ID} .rm-btn.primary:hover:not(:disabled), #${ID} .rm-btn.primary:focus-visible { box-shadow: var(--c-depth-accent); }
-    #${ID} .rm-edit { flex: 1; min-width: 110px; font: inherit; font-size: 12px; padding: 5px 8px;
+    #${ID} .rm-edit { flex: 1; min-width: 110px; height: 30px; font: inherit; font-size: 12px; padding: 4px 8px;
       color: var(--c-ink); background: var(--c-surface-input); border: 1px solid var(--c-border-control); border-radius: 6px; }
+    #${ID} .rm-edit[multiple] { height: auto; }
     #${ID} .rm-edit:focus { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
-    #${ID} .rm-mem { display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--c-ink-muted); }
-    #${ID} .rm-mem input { accent-color: var(--c-accent); margin: 0; }
-    #${ID} .rm-ft { padding: 10px 14px; background: var(--c-surface-modal); border-top: 1px solid var(--c-border); }
-    #${ID} .rm-state { font-size: 11.5px; font-weight: 700; }
+    /* Remember for next time: a PIN toggle — the checkbox is still the control (focusable, its own name), drawn as the pin. */
+    #${ID} .rm-mem { position: relative; width: 30px; height: 30px; display: inline-grid; place-items: center; border-radius: 8px;
+      color: var(--c-ink-faint); cursor: pointer; }
+    #${ID} .rm-mem input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+    #${ID} .rm-mem:has(input:checked) { color: var(--c-accent-ink); }
+    #${ID} .rm-mem:focus-within { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+    #${ID} .rm-say { display: inline-grid; place-items: center; vertical-align: -3px; margin-left: 6px; color: var(--c-ink-muted); }
+    #${ID} .rm-say.warn { color: var(--c-warning); }
+    #${ID} .rm-ft { display: flex; align-items: center; gap: 10px; padding: 8px 14px 12px; }
+    #${ID} .rm-sp { flex: 1; }
+    #${ID} .rm-state { display: inline-grid; place-items: center; }
     #${ID} .rm-state.ready { color: var(--c-success); }
     #${ID} .rm-state.block { color: var(--c-warning); }
-    #${ID} .rm-bug { margin: 8px 12px; padding: 9px 11px; border-radius: 8px; background: var(--c-danger-quiet);
-      color: var(--c-danger); font-size: 11px; }
-    #${ID} .rm-next { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: var(--c-info-quiet);
-      color: var(--c-info); font-size: 11px; }
-    #${ID} .rm-remind { margin: 8px 12px 0; padding: 7px 9px; border-left: 3px solid var(--c-info); border-radius: 0 6px 6px 0;
-      background: var(--c-info-quiet); color: var(--c-info); font-size: 11px; }
+    #${ID} .rm-n { font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--c-ink-muted); }
     @media (prefers-reduced-motion: reduce) { #${ID} .rm-btn { transition: none; } }
   `;
+  // ⭐ T26 · the dock's ONE icon set (extension/dock.js), and the one shape of an icon control: an icon, its words as the
+  // aria-label AND the tooltip. `cls`: ' primary' for the row's one accent press.
+  const I = (name, size) => (typeof D.icon === 'function' ? D.icon(name, size) : '');
+  const ib = (role, ic, label, { cls = '', title = label, attrs = '' } = {}) =>
+    `<button class="rm-btn${cls}" data-role="${role}" aria-label="${esc(label)}" title="${esc(title)}"${attrs}>${I(ic)}</button>`;
+  /** Words for a screen reader alone: in the panel's text, never on screen. */
+  const sr = (text, attrs = '') => `<span class="sr"${attrs}>${esc(text)}</span>`;
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -607,24 +616,30 @@ export function renderOverlay(model, meta) {
     : /^you /.test(r.source || '') ? 'you' : r.group === 'ok' ? 'ok' : 'guess';
   const day = (iso) => { try { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); } catch { return ''; } };
 
+  const STATUS_ICON = { need: 'need', check: 'recheck', ok: 'check' };
   const rowHtml = (r, i) => {
+    // ⭐ T26: a row's notes are WORDS — in the row's text for a screen reader (.sr), and the status mark's tooltip
     const notes = [];
-    if (r.note) notes.push(`<div class="rm-note${r.group === 'need' ? ' warn' : ''}">${esc(r.note)}</div>`);
-    if (r.group !== 'need' && r.acknowledgedAt && !r.changed) notes.push(`<div class="rm-note">you acknowledged this on ${esc(day(r.acknowledgedAt))}</div>`);
-    if (r.attesting && r.group !== 'need') notes.push('<div class="rm-note">you are attesting to this</div>');
-    if (r.changed) notes.push('<div class="rm-note warn" data-role="changed">You changed this — acknowledge to remember it.</div>');
-    if (r.remembered && !r.changed && !r.acknowledgedAt) notes.push('<div class="rm-note" data-role="remembered">✓ remembered for next time</div>');
+    if (r.note) notes.push([r.note, '']);
+    if (r.group !== 'need' && r.acknowledgedAt && !r.changed) notes.push([`you acknowledged this on ${day(r.acknowledgedAt)}`, '']);
+    if (r.attesting && r.group !== 'need') notes.push(['you are attesting to this', '']);
+    if (r.changed) notes.push(['You changed this — acknowledge to remember it.', ' data-role="changed"']);
+    if (r.remembered && !r.changed && !r.acknowledgedAt) notes.push(['✓ remembered for next time', ' data-role="remembered"']);
+    const groupTitle = (GROUPS.find(([g]) => g === r.group) || [])[1] || '';
+    const tip = [groupTitle, r.source, r.eligibility ? 'eligibility' : '', ...notes.map(([n]) => n)].filter(Boolean).join(' · ');
     const input = (val) => r.choices && r.choices.length
       ? `<select class="rm-edit" data-role="input" aria-label="${esc(r.label)}"${r.unitKind === "checkbox-group" ? " multiple" : ""}>${r.unitKind === 'checkbox-group' ? '' : '<option value="">Choose…</option>'}${
           r.choices.map(c => `<option${String(c) === String(val) ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>`
-      : `<input class="rm-edit" data-role="input" aria-label="${esc(r.label)}" value="${esc(val ?? '')}" placeholder="${r.unitKind === 'date' ? 'MM/DD/YYYY' : 'type it here'}">`;
+      : `<input class="rm-edit" data-role="input" aria-label="${esc(r.label)}" value="${esc(val ?? '')}"${r.unitKind === 'date' ? ' placeholder="MM/DD/YYYY"' : ''}>`;
+    const remember = r.noRemember || r.neverFill ? ''
+      : `<label class="rm-mem" title="Remember for next time"><input type="checkbox" data-role="remember" aria-label="Remember for next time" ${r.rememberOff ? '' : 'checked'}>${I('pin')}</label>`;
     let acts = '';
     if (r.group === 'need') {
       if (r.canType) {
-        acts += `<div class="rm-acts">${input(r.copyValue ?? '')}<button class="rm-btn primary" data-role="use">use it</button></div>`;
-        acts += `<div class="rm-acts">${r.noRemember || r.neverFill ? '' : `<label class="rm-mem"><input type="checkbox" data-role="remember" ${r.rememberOff ? '' : 'checked'}> Remember for next time</label>`}${
-          r.copyValue ? '<button class="rm-btn" data-role="copy">copy</button>' : ''}${r.optional ? '<button class="rm-btn" data-role="leave">leave blank</button>' : ''}</div>`;
-      } else if (r.copyValue) acts += '<div class="rm-acts"><button class="rm-btn" data-role="copy">copy</button></div>';
+        // one line: the field, Remember (the pin), Use it — then Copy / Leave blank when there are any
+        acts += `<div class="rm-acts">${input(r.copyValue ?? '')}${remember}${ib('use', 'check', 'Use it', { cls: ' primary', title: 'Use it — put it in the page' })}</div>`;
+        if (r.copyValue || r.optional) acts += `<div class="rm-acts">${r.copyValue ? ib('copy', 'copy', 'Copy') : ''}${r.optional ? ib('leave', 'blank', 'Leave blank') : ''}</div>`;
+      } else if (r.copyValue) acts += `<div class="rm-acts">${ib('copy', 'copy', 'Copy')}</div>`;
       // D98 (J6) → ⭐ T22 REVISED: the résumé upload shows the dock's Résumé tab — a VIEW (state, preview, Attach); it
       // starts nothing. ("Generate and attach" on this row is T18's — the second of the two places a résumé starts.)
       // ⭐ T18 · THE RÉSUMÉ IN THE PAYLOAD: on an upload typed `resume`, the choices — Attach tailored (D98's PDF, when
@@ -635,29 +650,29 @@ export function renderOverlay(model, meta) {
       const files = meta.files || null;
       if (files && r.fileType === 'resume') {
         acts += `<div class="rm-acts" data-role="file-choices">${
-          files.tailored ? '<button class="rm-btn primary" data-role="attach" data-which="tailored">Attach tailored</button>' : ''}${
-          files.base ? `<button class="rm-btn${files.tailored ? '' : ' primary'}" data-role="attach" data-which="base">Attach my résumé</button>` : ''}${
-          files.generate ? '<button class="rm-btn" data-role="generate">Generate and attach</button>' : ''}<button class="rm-btn" data-role="skip">Skip</button></div>`;
+          files.tailored ? ib('attach', 'attach', 'Attach tailored', { cls: ' primary', attrs: ' data-which="tailored"' }) : ''}${
+          files.base ? ib('attach', 'resume', 'Attach my résumé', { cls: files.tailored ? '' : ' primary', attrs: ' data-which="base"' }) : ''}${
+          files.generate ? ib('generate', 'generate', 'Generate and attach') : ''}${ib('skip', 'skip', 'Skip')}</div>`;
       } else if (files && r.fileType === 'cover_letter') {
-        acts += `<div class="rm-acts" data-role="file-choices">${files.letter ? '<button class="rm-btn primary" data-role="attach" data-which="letter">Attach cover letter</button>' : ''}<button class="rm-btn" data-role="skip">Skip</button></div>`;
+        acts += `<div class="rm-acts" data-role="file-choices">${files.letter ? ib('attach', 'attach', 'Attach cover letter', { cls: ' primary', attrs: ' data-which="letter"' }) : ''}${ib('skip', 'skip', 'Skip')}</div>`;
       }
-      if (r.resumeOffer && (!files || files.inFlight)) acts += '<div class="rm-acts"><button class="rm-btn" data-role="resume">See the Résumé tab</button></div>';
+      if (r.resumeOffer && (!files || files.inFlight)) acts += `<div class="rm-acts">${ib('resume', 'resume', 'See the Résumé tab')}</div>`;
     } else if (r.group === 'check') {
-      acts += `<div class="rm-acts">${r.canEdit === false ? '' : '<button class="rm-btn" data-role="edit">edit</button>'}<button class="rm-btn ack" data-role="ack">acknowledge</button></div>`;
+      acts += `<div class="rm-acts">${r.canEdit === false ? '' : ib('edit', 'edit', 'Edit')}${ib('ack', 'check', 'Acknowledge', { title: 'Acknowledge — it is right' })}</div>`;
     } else if (r.changed) {
-      acts += '<div class="rm-acts"><button class="rm-btn" data-role="edit">edit</button><button class="rm-btn ack" data-role="ack">acknowledge</button></div>';
+      acts += `<div class="rm-acts">${ib('edit', 'edit', 'Edit')}${ib('ack', 'check', 'Acknowledge', { title: 'Acknowledge — remember the change' })}</div>`;
     } else if (r.byDraft && !r.settled && r.unitKind !== 'item' && r.source !== 'draft') {
-      acts += '<div class="rm-acts"><button class="rm-btn" data-role="edit">edit</button></div>';
+      acts += `<div class="rm-acts">${ib('edit', 'edit', 'Edit')}</div>`;
     }
-    const editor = `<div class="rm-acts" data-role="editor" hidden>${input(r.value)}<button class="rm-btn primary" data-role="save">save</button></div>`;
+    const editor = `<div class="rm-acts" data-role="editor" hidden>${input(r.value)}${ib('save', 'check', 'Save', { cls: ' primary' })}</div>`;
     return `
       <div class="rm-row" data-group="${r.group}" data-band="${r.group}" data-idx="${i}">
-        <div class="rm-bar"></div>
+        <span class="rm-st" data-role="status" title="${esc(tip)}" aria-hidden="true">${I(STATUS_ICON[r.group] || 'check')}</span>
         <div class="rm-main">
-          <div class="rm-f"><span class="rm-fl" data-role="label">${esc(r.label)}</span>${multiStep && r.step ? `<span class="rm-step"> · ${esc(r.step)}</span>` : ''}${r.source ? `<span class="rm-pill ${markOf(r)}">${esc(r.source)}</span>` : ''}${
-            r.eligibility ? '<span class="rm-pill elig">eligibility</span>' : ''}</div>
+          <div class="rm-f"><span class="rm-fl" data-role="label">${esc(r.label)}</span>${multiStep && r.step ? `<span class="rm-step"> · ${esc(r.step)}</span>` : ''}${r.source ? `<span class="rm-pill sr ${markOf(r)}">${esc(r.source)}</span>` : ''}${
+            r.eligibility ? '<span class="rm-pill sr elig">eligibility</span>' : ''}</div>
           ${r.value ? `<div class="rm-v" data-role="value">${esc(r.value)}</div>` : r.copyValue ? `<div class="rm-v" data-role="value">${esc(r.copyValue)}</div>` : ''}
-          ${notes.join('')}${acts}${r.group !== 'need' ? editor : ''}
+          ${notes.map(([n, a]) => `<span class="rm-note sr"${a}>${esc(n)}</span>`).join('')}${acts}${r.group !== 'need' ? editor : ''}
         </div>
       </div>`;
   };
@@ -671,40 +686,44 @@ export function renderOverlay(model, meta) {
         const items = rows.map((r, i) => [r, i]).filter(([r]) => r.group === g);
         if (!items.length) return '';
         const open = run.open[g] !== false;
+        // ⭐ T26: a group's heading is its status shape and its count — "Needs you" is its tooltip and its words for a
+        // screen reader (▾ / ▸ is the open / closed shape)
         return `<div class="rm-sec" data-group="${g}">
-          <button class="rm-lbl" data-role="group" data-g="${g}" aria-expanded="${open}">${open ? '▾' : '▸'} ${title} <span class="rm-n">${items.length}</span></button>
+          <button class="rm-lbl" data-role="group" data-g="${g}" aria-expanded="${open}" title="${title}"><span class="rm-tw" aria-hidden="true">${open ? '▾' : '▸'}</span>${
+            sr(title)}${I(STATUS_ICON[g], 14)}<span class="rm-n">${items.length}</span></button>
           <div class="rm-rows" data-role="rows"${open ? '' : ' hidden'}>${items.map(([r, i]) => rowHtml(r, i)).join('')}</div></div>`;
       }).join('');
+      const line = `${s.line}${meta.resumeAttached ? ' · résumé attached' : ''}`;
+      // ⭐ T26 · the header: three counts as shapes and numbers (filled ✓ · needs you ! · to check ↺), the progress in the
+      // one accent, and a FLAG (an icon whose words are its tooltip) for each thing that used to be a sentence or a
+      // tinted banner — the wizard waiting, the review reminder, the resolver bug. (T27 moves these into popups.)
+      const flag = (role, ic, text, tone = '') => `<span class="rm-flag" data-role="${role}"${tone ? ` data-tone="${tone}"` : ''} title="${esc(text)}">${I(ic)}${sr(text)}</span>`;
       const html = `
         <div class="rm-hd">
-          <div class="rm-t">Review before you submit</div>
-          <div class="rm-prog" data-role="progress">${esc(s.line)}${meta.resumeAttached ? ' · résumé attached' : ''}
-            <div class="rm-pb" aria-hidden="true"><i style="width:${s.total ? Math.round(s.filled / s.total * 100) : 0}%"></i></div></div>
-          <div class="rm-s">Draft never submits for you.${meta.waiting ? ' draft is waiting for you on this step.' : ''}</div>
+          <span class="rm-t sr">Review before you submit</span>
+          <div class="rm-cnt" data-role="progress" title="${esc(line)}">${sr(line)}<div class="rm-pb" aria-hidden="true"><i style="width:${s.total ? Math.round(s.filled / s.total * 100) : 0}%"></i></div>
+            <span class="rm-c" data-tone="ok" aria-hidden="true">${I('check', 14)}${s.filled}</span><span class="rm-c" data-tone="need" aria-hidden="true">${I('need', 14)}${s.need}</span><span class="rm-c" aria-hidden="true">${I('recheck', 14)}${s.check}</span></div>
+          ${meta.waiting ? flag('waiting', 'wait', 'draft is waiting for you on this step.') : ''}
+          ${meta.review?.showInPanel ? flag('review', 'info', meta.review.text || 'Time to review your eligibility and disclosure answers — in draft Settings → Saved answers.') : ''}
+          ${meta.resolverBug ? flag('resolver-bug', 'need', `Resolver bug. An eligibility answer was matched by a guess: ${meta.resolverBug.map(b => b.field).join(', ')}. This should be unreachable — do not rubber-stamp it. Answer it yourself.`, 'need') : ''}
+          <span class="sr">Draft never submits for you.</span>
         </div>
-        ${meta.review?.showInPanel ? `<div class="rm-remind" data-role="review">${esc(meta.review.text || 'Time to review your eligibility and disclosure answers — in draft Settings → Saved answers.')}</div>` : ''}
-        ${meta.resolverBug ? `<div class="rm-bug"><b>Resolver bug.</b> An eligibility answer was matched by a
-          guess: ${esc(meta.resolverBug.map(b => b.field).join(', '))}. This should be unreachable — do not
-          rubber-stamp it. Answer it yourself.</div>` : ''}
         <div class="rm-sc">${groups}</div>
         <div class="rm-ft">
-          <div class="rm-state ${s.ready ? 'ready' : 'block'}" data-role="state">${esc(s.state)}</div>
-          <div class="rm-s" style="margin-top:6px">Submit the form yourself when you are happy with it.</div>
+          <span class="rm-state ${s.ready ? 'ready' : 'block'}" data-role="state" title="${esc(s.state)} Submit the form yourself when you are happy with it.">${sr(s.state)}${I(s.ready ? 'check' : 'need', 18)}</span>
+          <span class="rm-sp"></span>
+          ${meta.portal && meta.portal.remaining > 0 ? (() => {
+            // The sign-in reassurance belongs to a GATE crossing, where crossing once really did release the batch. Held
+            // reviews also queue up per origin, and telling the candidate a sign-in cleared them would be a claim about
+            // work nobody did.
+            const words = `${meta.portal.remaining} more ready at ${meta.portal.host}${meta.portal.gateCrossing ? ' — you are already signed in.' : ', prepared and waiting.'}${
+              meta.portal.next ? ` Next: ${meta.portal.next.title || meta.portal.next.company || 'application'}.` : ''}`;
+            return `<span class="rm-n" data-role="portal" title="${esc(words)}">${sr(words)}<span aria-hidden="true">+${meta.portal.remaining}</span></span>${
+              ib('next', 'open', 'Submit this one first, then go to the next')}`;
+          })() : ''}
           <!-- D56: once YOU have submitted, one click records it — from this page, which is the evidence. -->
-          <button class="rm-btn" data-role="submitted" style="margin-top:8px" ${s.ready ? '' : 'disabled aria-disabled="true"'}>I submitted it</button>
-          <div class="rm-s" data-role="submitted-msg"></div>
-          ${meta.portal && meta.portal.remaining > 0 ? `
-            <div class="rm-next">
-              <div><b>${meta.portal.remaining}</b> more ready at ${esc(meta.portal.host)}${
-                // The sign-in reassurance belongs to a GATE crossing, where crossing once really did
-                // release the batch. Held reviews also queue up per origin, and telling the candidate a
-                // sign-in cleared them would be a claim about work nobody did.
-                meta.portal.gateCrossing ? ' — you are already signed in.' : ', prepared and waiting.'
-              }</div>
-              ${meta.portal.next ? `<div class="rm-s" style="margin-top:2px">Next:
-                ${esc(meta.portal.next.title || meta.portal.next.company || 'application')}</div>` : ''}
-              <button class="rm-btn primary" data-role="next">Submit this one first, then go to the next</button>
-            </div>` : ''}
+          ${ib('submitted', 'submitted', 'I submitted it', { title: 'I submitted it — draft never submits for you', attrs: s.ready ? '' : ' disabled aria-disabled="true"' })}
+          <span class="sr" data-role="submitted-msg" role="status"></span>
         </div>`;
       // ⭐ T21: patched in place — an unchanged row is not touched, a changed one only where it changed.
       if (typeof D.morph === 'function') D.morph(panel, html); else panel.innerHTML = html;
@@ -745,15 +764,17 @@ export function renderOverlay(model, meta) {
     if (role === 'group') { const g = btn.dataset.g; run.open[g] = run.open[g] === false; return draw(); }
 
     // Role first, row second. The batch button lives in the FOOTER, not in a field row.
+    // ⭐ T26: a press's progress and outcome are the control's NAME (aria-label + tooltip) — the icon stays.
+    const name = (b, words) => { b.setAttribute('aria-label', words); b.title = words; };
     if (role === 'next') {
       btn.disabled = true;
-      btn.textContent = 'opening the next one…';
+      name(btn, 'opening the next one…');
       // The reply is read, not discarded. A batch that cannot advance used to leave this button
       // sitting on "opening…" forever, which is indistinguishable from slow.
       const reply = await send({ type: 'GATE_BATCH_NEXT' });
       if (!reply?.ok) {
         btn.disabled = false;
-        btn.textContent = 'Could not open the next one — try again';
+        name(btn, 'Could not open the next one — try again');
         btn.dataset.error = reply?.reason || 'no_reply';
       }
       return;
@@ -764,11 +785,12 @@ export function renderOverlay(model, meta) {
       if (!panelSummary(rows).ready) return;
       const msg = root.querySelector('[data-role="submitted-msg"]');
       btn.disabled = true;
-      btn.textContent = 'recording…';
+      name(btn, 'recording…');
       const reply = await send({ type: 'GATE_SUBMITTED' });
       const ok = !!reply?.ok;
-      btn.textContent = ok ? 'recorded' : 'I submitted it';
+      name(btn, ok ? 'recorded' : 'I submitted it');
       btn.className = ok ? 'rm-btn done' : 'rm-btn';
+      if (ok) btn.innerHTML = I('check');
       btn.disabled = ok;
       if (msg) msg.textContent = reply?.message || (ok ? '' : 'Could not record it — try again.');
       return;
@@ -780,16 +802,19 @@ export function renderOverlay(model, meta) {
     if (!r) return;
     const input = () => rowEl.querySelector('[data-role="input"]');
     const valueOf = (el) => (el ? (el.tagName === 'SELECT' && el.multiple ? [...el.selectedOptions].map(o => o.value).join(', ') : el.value) : '').trim();
+    // ⭐ T26: what a press has to say is an icon on the row — its words are its tooltip and, for a screen reader, its text
+    // (a polite live region). (T27 turns these into the dock's popups.)
     const say = (text, warn = false) => {
       let n = rowEl.querySelector('[data-role="say"]');
-      if (!n) { n = document.createElement('div'); n.dataset.role = 'say'; rowEl.querySelector('.rm-main').append(n); }
-      n.className = `rm-note${warn ? ' warn' : ''}`;
-      n.textContent = text;
+      if (!n) { n = document.createElement('span'); n.dataset.role = 'say'; n.setAttribute('role', 'status'); (rowEl.querySelector('.rm-f') || rowEl.querySelector('.rm-main'))?.append(n); }
+      n.className = `rm-say${warn ? ' warn' : ''}`;
+      n.title = text;
+      n.innerHTML = `${I(warn ? 'need' : 'info')}${sr(text)}`;
     };
 
     if (role === 'copy') {
       const v = r.copyValue ?? r.value ?? '';
-      try { await navigator.clipboard.writeText(String(v)); btn.textContent = 'copied'; } catch { btn.textContent = 'select it and copy'; }
+      try { await navigator.clipboard.writeText(String(v)); name(btn, 'copied'); btn.innerHTML = I('check'); } catch { name(btn, 'select it and copy'); }
       return;
     }
     // ⭐ T18: Skip on an upload — nothing is attached; the row is yours, left as the page has it.
@@ -837,7 +862,7 @@ export function renderOverlay(model, meta) {
         try { await navigator.clipboard.writeText(a.fileName); } catch { /* the name is shown below */ }
         say(`The page did not show the file. Download it and ${meta.dragHint || 'drag it onto the upload box'} — its name, ${a.fileName}, is copied.`, true);
         const dl = document.createElement('button');
-        dl.className = 'rm-btn primary'; dl.dataset.role = 'download-file'; dl.textContent = 'Download PDF';
+        dl.className = 'rm-btn primary'; dl.dataset.role = 'download-file'; name(dl, 'Download PDF'); dl.innerHTML = I('open');
         dl.addEventListener('click', (e) => {
           if (!e.isTrusted) return;
           const bin = atob(a.base64);
@@ -884,7 +909,7 @@ export function renderOverlay(model, meta) {
       if (!tookOnPage(reply)) {
         Object.assign(r, { group: r.group === 'need' ? 'need' : r.group, copyValue: value });
         say("The page did not take it — copy it in yourself.", true);
-        if (role === 'use') { const c = rowEl.querySelector('[data-role="copy"]'); if (!c) { const b = document.createElement('button'); b.className = 'rm-btn'; b.dataset.role = 'copy'; b.textContent = 'copy'; btn.after(b); } }
+        if (role === 'use') { const c = rowEl.querySelector('[data-role="copy"]'); if (!c) { const b = document.createElement('button'); b.className = 'rm-btn'; b.dataset.role = 'copy'; name(b, 'Copy'); b.innerHTML = I('copy'); btn.after(b); } }
         return;
       }
       if (role === 'use') {

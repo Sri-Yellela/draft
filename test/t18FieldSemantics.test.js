@@ -248,10 +248,11 @@ test("⛔ T18: a file is never attached without the user's click — the row's A
   const ro = read("extension/review-overlay.js");
   const view = ro.slice(at(ro, "export function renderOverlay("), at(ro, "export function removeReviewPanel"));
   // the row's choices
-  assert.match(view, /data-role="attach" data-which="tailored">Attach tailored</);
-  assert.match(view, /data-role="attach" data-which="base">Attach my résumé</);
-  assert.match(view, /data-role="generate">Generate and attach</);
-  assert.match(view, /data-role="skip">Skip</);
+  // the row's choices (⭐ T26: an icon control — its words are its aria-label and tooltip)
+  assert.match(view, /ib\('attach', 'attach', 'Attach tailored', \{ cls: ' primary', attrs: ' data-which="tailored"' \}\)/);
+  assert.match(view, /ib\('attach', 'resume', 'Attach my résumé', \{ cls: files\.tailored \? '' : ' primary', attrs: ' data-which="base"' \}\)/);
+  assert.match(view, /ib\('generate', 'generate', 'Generate and attach'\)/);
+  assert.match(view, /ib\('skip', 'skip', 'Skip'\)/);
   // every send of an attach or a generation is after the isTrusted gate, in its role's handler
   const trusted = at(view, "if (!ev.isTrusted) return;");
   for (const needle of ["type: 'RESUME_ATTACH'", "type: 'RESUME_ATTACH_FILE'", "type: 'RESUME_GENERATE', trigger: 'click'"]) {
