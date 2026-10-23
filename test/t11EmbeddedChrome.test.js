@@ -213,8 +213,10 @@ test("⭐ T17 (d): the dock dragged ACROSS the embedded form's frame keeps movin
     assert.equal(opened?.ok, true, JSON.stringify(opened));
     const again = await waitUntil(async () => (await h.page.$("#rm-draft-dock")) && rect(), BUSY_MS);
     assert.deepEqual([again.x, again.y, again.w], [after.x, after.y, after.w], "the same rectangle, on the same site");
-    assert.match(await h.page.evaluate(() => document.getElementById("rm-draft-dock").shadowRoot.querySelector('[data-role="empty"]')?.textContent || ""),
-      /Nothing has been filled on this page yet/, "a fresh page's Fill tab says so — and offers Fill this page");
+    // ⭐ T26: the empty Fill tab's words are its accessible name; the one control on it is Fill this page
+    assert.match(await h.page.evaluate(() => { const e = document.getElementById("rm-draft-dock").shadowRoot.querySelector('[data-role="empty"]');
+      return `${e?.getAttribute("aria-label") || ""} | ${e?.querySelector('[data-role="fill"]')?.getAttribute("aria-label") || ""}`; }),
+      /Nothing has been filled on this page yet.* \| Fill this page/, "a fresh page's Fill tab says so — and offers Fill this page");
     assert.deepEqual(fx.posts, []);
   });
 

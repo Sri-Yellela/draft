@@ -31,34 +31,41 @@ export function renderCopySheetPanel(sheet, theme, dockMeta) {
   host.setAttribute('data-draft-copy-sheet', '');
   const root = host.attachShadow({ mode: 'open' });
 
+  // ⭐ T26 (owner, 10-19): labels and values on screen, nothing else — the title, the job, where an answer came from and
+  // the unanswered note are a screen reader's words (.sr) and tooltips; Copy is an icon. No rule under the header or
+  // between rows (spacing separates them), no tinted note, and no surface of its own: the dock's frame is the surface.
   const css = `
     :host { all: initial; display: block; height: 100%; }
     .p { box-sizing: border-box; font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: ${c.INK};
-         background: ${c.SURFACE_SOLID}; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
-    .h { display: flex; align-items: center; gap: 6px; padding: 9px 10px 8px 12px; border-bottom: 1px solid ${c.BORDER}; }
+         background: transparent; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+    .sr { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important;
+          border: 0 !important; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .ic { display: block; flex: none; }
+    .h { display: flex; align-items: center; gap: 8px; padding: 10px 12px 2px; color: ${c.INK_MUTED}; font-size: 12px; font-weight: 800;
+         font-variant-numeric: tabular-nums; }
+    .h:empty { display: none; }
     .t { flex: 1; min-width: 0; }
-    .t b { display: block; font-size: 13px; }
-    .t small { display: block; color: ${c.INK_MUTED}; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    button { font: inherit; color: ${c.INK}; background: ${c.SURFACE_TINT || c.SURFACE_SOLID}; border: 1px solid ${c.BORDER_CONTROL};
-             border-radius: 6px; padding: 3px 8px; cursor: pointer; }
-    button:hover { background: ${c.HOVER}; }
+    /* ⛔ D60: a 30px icon control at radius 8. */
+    button { width: 30px; height: 30px; padding: 0; display: inline-grid; place-items: center; flex: none; font: inherit; color: ${c.INK};
+             background: ${c.SURFACE_SOLID}; border: 0; border-radius: 8px; cursor: pointer; box-shadow: ${c.DEPTH_REST || 'none'}; }
+    button:hover { box-shadow: ${c.DEPTH_HOVER || 'none'}; }
     button:focus-visible { outline: 2px solid ${c.ACCENT_INK}; outline-offset: 2px; }
-    .b { overflow: auto; padding: 6px 10px 10px; flex: 1; min-height: 0; }
-    ul { list-style: none; margin: 0; padding: 0; }
-    li { display: flex; gap: 8px; align-items: flex-start; padding: 7px 0; border-bottom: 1px solid ${c.BORDER}; }
-    li:last-child { border-bottom: 0; }
+    .b { overflow: auto; padding: 6px 12px 12px; flex: 1; min-height: 0; }
+    ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+    li { display: flex; gap: 10px; align-items: center; padding: 6px 0; }
     .kv { flex: 1; min-width: 0; }
     .k { display: block; color: ${c.INK_MUTED}; font-size: 11.5px; }
-    .v { display: block; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .v { display: block; overflow-wrap: anywhere; white-space: pre-wrap; font-weight: 700; }
     li.elig .k { color: ${c.WARNING}; }
-    .copied { border-color: ${c.SUCCESS}; color: ${c.SUCCESS}; }
-    .note { margin: 8px 0 0; padding: 6px 8px; border-left: 3px solid ${c.WARNING}; background: ${c.WARNING_QUIET}; border-radius: 6px; font-size: 12px; }
-    .empty { color: ${c.INK_MUTED}; padding: 8px 0; }
-    /* ⛔ D60: where an answer came from is a MARK — a rectangle with a 3px leading bar, never a capsule. */
+    .copied { color: ${c.SUCCESS}; }
+    .note { display: inline-flex; align-items: center; gap: 3px; color: ${c.WARNING}; }
+    .empty { display: grid; justify-items: center; padding: 24px 0; color: ${c.INK_FAINT}; }
+    /* ⛔ D60: where an answer came from is a MARK — a rectangle with a 3px leading bar, never a capsule (read aloud only). */
     .src { display: inline-block; margin: 2px 0; padding: 0 6px 0 5px; border-left: 3px solid ${c.BORDER_STRONG}; border-radius: 6px;
            background: ${c.SURFACE_TINT || c.SURFACE_SOLID}; color: ${c.INK_MUTED}; font-size: 10.5px; font-weight: 700; }
     .src.you { border-left-color: ${c.ACCENT_INK}; color: ${c.ACCENT_INK}; }
 `;
+  const I = (name, size) => (typeof D.icon === 'function' ? D.icon(name, size) : '');
   const style = document.createElement('style');
   style.textContent = css;
 
@@ -70,7 +77,7 @@ export function renderCopySheetPanel(sheet, theme, dockMeta) {
   const head = document.createElement('div');
   head.className = 'h';
   const title = document.createElement('div');
-  title.className = 't';
+  title.className = 't sr';
   const tb = document.createElement('b');
   tb.textContent = 'Copy sheet';
   const ts = document.createElement('small');
@@ -78,7 +85,8 @@ export function renderCopySheetPanel(sheet, theme, dockMeta) {
   const src = sheet?.source === 'packet' ? 'prepared answers' : 'your profile';
   ts.textContent = job ? `${job} · ${src}` : `From ${src}`;
   title.append(tb, ts);
-  const btn = (label, aria, cls = '') => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.textContent = label; b.setAttribute('aria-label', aria); b.title = aria; return b; };
+  // ⭐ T26: an icon control — its words are its aria-label and tooltip
+  const btn = (ic, aria, cls = '') => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.innerHTML = I(ic); b.setAttribute('aria-label', aria); b.title = aria; return b; };
   head.append(title);
 
   const body = document.createElement('div');
@@ -106,13 +114,15 @@ export function renderCopySheetPanel(sheet, theme, dockMeta) {
     const k = document.createElement('span');
     k.className = 'k';
     // An eligibility answer keeps "you are attesting to this" on its label (D96 §4 safeguard 3).
-    k.textContent = row.eligibility || row.attesting ? `${row.label} · you are attesting to this` : String(row.label || '');   // textContent: never parsed
+    k.textContent = String(row.label || '');   // textContent: never parsed
+    if (row.eligibility || row.attesting) { const a = document.createElement('span'); a.className = 'sr'; a.textContent = ' · you are attesting to this'; k.append(a); }
     // ⭐ D96 §6: where the answer came from — your profile, your work history, or an answer you saved (and when you
     // acknowledged it). A mark of its own, beside the label, so the label still reads as the question.
     const words = sourceWords(row);
     const mark = document.createElement('span');
     if (words) {
-      mark.className = `src${/^you /.test(words) ? ' you' : ''}`;
+      mark.className = `src sr${/^you /.test(words) ? ' you' : ''}`;
+      li.title = words;
       mark.setAttribute('data-source', '');
       mark.textContent = words;
     }
@@ -120,18 +130,19 @@ export function renderCopySheetPanel(sheet, theme, dockMeta) {
     v.className = 'v';
     v.textContent = String(row.value ?? '');
     kv.append(k, ...(words ? [mark] : []), v);
-    const copy = btn('Copy', `Copy ${row.label}`);
+    const copy = btn('copy', `Copy ${row.label}`);
     copy.setAttribute('data-copy', '');
     copy.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(String(row.value ?? '')); copy.textContent = 'Copied'; copy.classList.add('copied'); }
+      const say = (words, ic) => { copy.setAttribute('aria-label', words); copy.title = words; copy.innerHTML = I(ic); };
+      try { await navigator.clipboard.writeText(String(row.value ?? '')); say('Copied', 'check'); copy.classList.add('copied'); }
       catch {
         // No clipboard here: select the value so Ctrl+C copies it.
         const r = document.createRange(); r.selectNodeContents(v);
         const sel = root.getSelection ? root.getSelection() : window.getSelection();
         try { sel.removeAllRanges(); sel.addRange(r); } catch { /* nothing more to do */ }
-        copy.textContent = 'Select and copy';
+        say('Select and copy', 'copy');
       }
-      setTimeout(() => { copy.textContent = 'Copy'; copy.classList.remove('copied'); }, 1600);
+      setTimeout(() => { say(`Copy ${row.label}`, 'copy'); copy.classList.remove('copied'); }, 1600);
     });
     li.append(kv, copy);
     list.append(li);
@@ -140,16 +151,23 @@ export function renderCopySheetPanel(sheet, theme, dockMeta) {
   if (!rows.length) {
     const e = document.createElement('p');
     e.className = 'empty';
-    e.textContent = sheet?.message || 'Nothing to copy yet — add your details in draft Settings.';
+    const words = sheet?.message || 'Nothing to copy yet — add your details in draft Settings.';
+    e.title = words;
+    e.innerHTML = `${I('copy', 28)}<span class="sr"></span>`;
+    e.lastChild.textContent = words;
     body.append(e);
   }
   const n = Array.isArray(sheet?.unanswered) ? sheet.unanswered.length : 0;
   if (n) {
-    const note = document.createElement('p');
+    // ⭐ T26: the unanswered count is a "!" and a number, in the header — the sentence is its tooltip and hidden words
+    const note = document.createElement('span');
     note.className = 'note';
     note.setAttribute('data-unanswered', String(n));
-    note.textContent = `${n} question${n === 1 ? '' : 's'} not answered by draft — answer ${n === 1 ? 'it' : 'them'} yourself on the form.`;
-    body.append(note);
+    const words = `${n} question${n === 1 ? '' : 's'} not answered by draft — answer ${n === 1 ? 'it' : 'them'} yourself on the form.`;
+    note.title = words;
+    note.innerHTML = `${I('need', 14)}<span aria-hidden="true">${n}</span><span class="sr"></span>`;
+    note.lastChild.textContent = words;
+    head.append(note);
   }
   panel.append(head, body);
   root.append(style, panel);

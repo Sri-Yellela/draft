@@ -339,7 +339,9 @@ test("⛔ the Copy sheet panel stays through a page click and a field focus, Clo
       const p = root.querySelector(".p");
       const radii = [...root.querySelectorAll("button, .p, .note")].map(el => parseFloat(getComputedStyle(el).borderTopLeftRadius));
       return { rows: root.querySelectorAll("li").length, attest: root.querySelector("li.elig .k").textContent, sub: root.querySelector(".t small").textContent,
-        unanswered: root.querySelector("[data-unanswered]")?.dataset.unanswered, bg: getComputedStyle(p).backgroundColor, maxRadius: Math.max(...radii) };
+        // ⭐ T26: the sheet paints no surface of its own (the dock's frame is the one); its controls are painted from the tokens
+        unanswered: root.querySelector("[data-unanswered]")?.dataset.unanswered, own: getComputedStyle(p).backgroundColor,
+        bg: getComputedStyle(root.querySelector("[data-copy]")).backgroundColor, maxRadius: Math.max(...radii) };
     });
     assert.equal(facts.rows, 3);
     assert.match(facts.attest, /you are attesting to this/);
@@ -349,10 +351,12 @@ test("⛔ the Copy sheet panel stays through a page click and a field focus, Clo
     const want = scheme === "dark" ? C_DARK.SURFACE_SOLID : C_LIGHT.SURFACE_SOLID;
     const hex = (rgb) => "#" + rgb.match(/\d+/g).slice(0, 3).map(n => Number(n).toString(16).padStart(2, "0")).join("").toUpperCase();
     assert.equal(hex(facts.bg), want.toUpperCase(), `${scheme}: painted from the ${scheme} tokens`);
+    assert.equal(facts.own, "rgba(0, 0, 0, 0)", `${scheme}: no surface of its own`);
     // Copy says so (or, with no clipboard in headless, selects the value)
     await page.evaluate(() => document.getElementById("rm-copy-sheet-panel").shadowRoot.querySelectorAll("[data-copy]")[1].click());
     await new Promise(r => setTimeout(r, 150));
-    const label = await page.evaluate(() => document.getElementById("rm-copy-sheet-panel").shadowRoot.querySelectorAll("[data-copy]")[1].textContent);
+    // ⭐ T26: Copy is an icon — what it says is its name
+    const label = await page.evaluate(() => document.getElementById("rm-copy-sheet-panel").shadowRoot.querySelectorAll("[data-copy]")[1].getAttribute("aria-label"));
     assert.match(label, /^(Copied|Select and copy)$/);
     // ⭐ T17: Collapse (the old Minimise) and the side are the DOCK's — one window for every view
     const dock = (sel) => page.evaluate((s) => document.getElementById("rm-draft-dock").shadowRoot.querySelector(s).click(), sel);

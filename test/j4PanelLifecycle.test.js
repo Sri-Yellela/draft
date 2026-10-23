@@ -113,7 +113,8 @@ test("⛔ J4: the panel's serialised summary is byte-identical to the tested exp
   const innerText = inner.slice(0, at(inner, "\n  }\n") + 4).trimEnd();
   assert.ok(innerText.length > 400);
   assert.equal(dedent(innerText), dedent(exportedText), "the copy the page runs drifted from the one these tests run");
-  assert.match(render, /data-role="submitted" style="margin-top:8px" \$\{s\.ready \? '' : 'disabled aria-disabled="true"'\}/);
+  // ⭐ T26: an icon control — its words are its aria-label and tooltip; it is disabled until Ready
+  assert.match(render, /ib\('submitted', 'submitted', 'I submitted it', \{ title: 'I submitted it — draft never submits for you', attrs: s\.ready \? '' : ' disabled aria-disabled="true"' \}\)/);
   assert.match(render, /if \(role === 'submitted'\) \{\n\s+if \(!panelSummary\(rows\)\.ready\) return;/);
 });
 

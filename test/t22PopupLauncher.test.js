@@ -200,7 +200,8 @@ test("⛔ T22: the dock's Résumé tab is a VIEW — no Generate, Try again or R
   assert.ok(at(ro, "type: 'RESUME_GENERATE', trigger: 'click'") > at(ro, "if (role === 'generate') {")
     && at(ro, "if (role === 'generate') {") > at(ro, "if (!ev.isTrusted) return;"), "…a trusted click on the row's own button");
   // the row still shows the tab when there is nothing to choose from (or one is being made); it starts nothing
-  assert.match(ro, /data-role="resume">See the Résumé tab<\/button>/);
+  // ⭐ T26: an icon control — its words are its aria-label and tooltip
+  assert.match(ro, /ib\('resume', 'resume', 'See the Résumé tab'\)/);
   assert.match(ro, /if \(role === 'resume'\) \{ void send\(\{ type: 'RESUME_PANEL_OPEN', tab: 'resume' \}\); return; \}/);
   assert.doesNotMatch(ro, /Make a résumé for this job/);
 });

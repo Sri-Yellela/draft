@@ -38,8 +38,9 @@ test("the harness boots the real extension, drives the fixture and reads the rev
   assert.ok(panel.state, "the state line is read");
   assert.doesNotMatch(panel.text, /#rm-gate-review-overlay|\{/, "the panel's text excludes its stylesheet");
 
-  // both themes: the panel's computed surface changes with prefers-color-scheme
-  const bg = () => h.page.evaluate(() => getComputedStyle(document.getElementById("rm-gate-review-overlay").shadowRoot.getElementById("rm-gate-review-overlay")).backgroundColor);
+  // both themes: the panel's computed surface changes with prefers-color-scheme — ⭐ T26: the DOCK's frame is the one
+  // surface the panel sits on (the view paints none of its own)
+  const bg = () => h.page.evaluate(() => getComputedStyle(document.getElementById("rm-draft-dock").shadowRoot.querySelector(".fr")).backgroundColor);
   const light = await bg();
   assert.equal(await h.setTheme("dark"), "dark");
   const dark = await bg();

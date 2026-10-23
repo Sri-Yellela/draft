@@ -204,8 +204,11 @@ export default async function run(h, { check, observe, section }) {
   const pc = row(panel, 'Postal Code');
   check('the guess is under Check: Postal Code, matched loosely', pc?.band === 'check' && /matched loosely/.test(pc?.tier || '') && pc?.value === '01101', JSON.stringify(pc));
   check('Address Line 1 needs you', row(panel, 'Address Line 1')?.band === 'need');
-  const rv = norm(await page.evaluate(bgOf, 'rm-gate-review-overlay', '#rm-gate-review-overlay'));
-  check(`the review panel paints from the ${theme} tokens (SURFACE_MENU)`, rv === norm(C.SURFACE_MENU), `${rv} vs ${C.SURFACE_MENU}`);
+  // ⭐ T26: the dock's frame is the ONE surface — the review panel paints none of its own
+  const rv = norm(await page.evaluate(bgOf, 'rm-draft-dock', '.fr'));
+  check(`the review panel sits on the dock's ${theme} surface (SURFACE_MENU)`, rv === norm(C.SURFACE_MENU), `${rv} vs ${C.SURFACE_MENU}`);
+  const rvOwn = norm(await page.evaluate(bgOf, 'rm-gate-review-overlay', '#rm-gate-review-overlay'));
+  check('…and paints no surface of its own', rvOwn === norm('rgba(0, 0, 0, 0)'), rvOwn);
   await sweepCapsules();
 
   section('4 · acknowledge the guess; type a needed answer with Remember');
@@ -340,8 +343,9 @@ export default async function run(h, { check, observe, section }) {
   check('"Résumé — attached ✓" with the file', sRow(/^Résumé — attached ✓/)?.value === FILE, JSON.stringify(sRow(/^Résumé/)));
   const authRow = sRow(/^Are you legally authorized/);
   check('the eligibility answer says "you are attesting to this"', authRow?.value === 'Yes' && /you are attesting to this/.test(authRow?.label || ''), JSON.stringify(authRow));
+  // ⭐ T26: the Copy sheet sits on the dock's surface too, and paints none of its own
   const cs = norm(await page.evaluate(bgOf, 'rm-copy-sheet-panel', '.p'));
-  check(`the Copy sheet paints from the ${theme} tokens (SURFACE_SOLID)`, cs === norm(C.SURFACE_SOLID), `${cs} vs ${C.SURFACE_SOLID}`);
+  check('the Copy sheet paints no surface of its own — the dock’s frame is the one', cs === norm('rgba(0, 0, 0, 0)'), cs);
   await sweepCapsules();
   await page.click('[data-automation-id="pageHeader"]').catch(() => {});
   check('it stays open through a page click', !!(await h.readCopySheet()));

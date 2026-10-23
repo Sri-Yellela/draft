@@ -303,7 +303,8 @@ test("D56 · 'I submitted' on the manual route → job_applications with the TAI
   const panel = read("client/src/components/JobDetailPanel.jsx");
   assert.match(panel, /\{hasArtifact && job\?\.jobId && <ManualSubmitted jobId=\{job\.jobId\} \/>\}/);
   assert.match(panel, /api\(`\/api\/applications\/pending\/\$\{encodeURIComponent\(jobId\)\}\/record`/);
-  assert.match(read("extension/review-overlay.js"), /data-role="submitted"/);
+  // ⭐ T26: an icon control — its words are its aria-label and tooltip
+  assert.match(read("extension/review-overlay.js"), /ib\('submitted', 'submitted', 'I submitted it'/);
   assert.match(read("extension/popup.html"), /id="btn-submitted"/);
   assert.match(read("extension/background.js"), /msg\?\.type === 'GATE_SUBMITTED'/);
 });

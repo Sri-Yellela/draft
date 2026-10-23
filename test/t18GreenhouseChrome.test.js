@@ -168,9 +168,10 @@ test("⛔ T18 (Chrome): the résumé row — a page script's click sends nothing
     (${renderOverlay.toString()})(${JSON.stringify({ rows })}, ${JSON.stringify({ runId: `t18-${Math.random()}`, theme: { light: C_LIGHT, dark: C_DARK }, files })})`);
   const ROW = (label) => `#rm-gate-review-overlay >>> .rm-row[data-idx="${rows.findIndex(r => r.label === label)}"]`;
   await draw({ ok: true, attached: true, attach: { outcome: "attached", fileName: "Avery_Testcase_Resume.pdf" } }, { tailored: null, base: true, generate: true, inFlight: false, letter: false });
-  const buttons = await page.$$eval(`${ROW("Resume/CV")} [data-role="file-choices"] button`, bs => bs.map(b => b.textContent));
+  // ⭐ T26: the choices are icons — read by their names
+  const buttons = await page.$$eval(`${ROW("Resume/CV")} [data-role="file-choices"] button`, bs => bs.map(b => b.getAttribute("aria-label")));
   assert.deepEqual(buttons, ["Attach my résumé", "Generate and attach", "Skip"], "no tailored résumé yet → no Attach tailored");
-  const letter = await page.$$eval(`${ROW("Cover Letter")} [data-role="file-choices"] button`, bs => bs.map(b => b.textContent));
+  const letter = await page.$$eval(`${ROW("Cover Letter")} [data-role="file-choices"] button`, bs => bs.map(b => b.getAttribute("aria-label")));
   assert.deepEqual(letter, ["Skip"], "draft holds no cover letter — only Skip");
   // drawing sent nothing; a page script's click sends nothing
   await page.evaluate((i) => document.getElementById("rm-gate-review-overlay").shadowRoot.querySelector(`.rm-row[data-idx="${i}"] [data-role="attach"]`).click(),
@@ -188,7 +189,7 @@ test("⛔ T18 (Chrome): the résumé row — a page script's click sends nothing
   // the fallback: the page did not show it → Download PDF, the name said (and copied)
   await draw({ ok: true, attached: false, attach: { outcome: "fallback", fileName: "Avery_Testcase_Resume.pdf", base64: PDF, reason: "not_shown" } },
     { tailored: { id: "erg_00000000aaaaaaaa" }, base: true, generate: false, inFlight: false, letter: false });
-  const again = await page.$$eval(`${ROW("Resume/CV")} [data-role="file-choices"] button`, bs => bs.map(b => b.textContent));
+  const again = await page.$$eval(`${ROW("Resume/CV")} [data-role="file-choices"] button`, bs => bs.map(b => b.getAttribute("aria-label")));
   assert.deepEqual(again, ["Attach tailored", "Attach my résumé", "Skip"], "a ready tailored résumé leads; Generate is not offered beside it (T24)");
   await page.click(`${ROW("Resume/CV")} [data-role="attach"][data-which="base"]`);
   await page.waitForFunction(() => !!document.getElementById("rm-gate-review-overlay").shadowRoot.querySelector('[data-role="download-file"]'));

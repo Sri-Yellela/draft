@@ -35,8 +35,9 @@ const resumeRow = (h) => h.readShadow(OVERLAY, (root) => {
   const r = rows.find(x => x.querySelector('[data-role="label"]')?.textContent === 'Resume/CV');
   if (!r) return null;
   return { idx: r.dataset.idx, group: r.dataset.group, value: r.querySelector('[data-role="value"]')?.textContent || null,
-    note: [...r.querySelectorAll('.rm-note')].map(n => n.textContent).join(' | '),
-    choices: [...r.querySelectorAll('[data-role="file-choices"] button')].map(b => b.textContent) };
+    // ⭐ T26: a press's words are the row's [data-role="say"]; the choices are icons, read by their names
+    note: [...r.querySelectorAll('.rm-note, [data-role="say"]')].map(n => n.textContent).join(' | '),
+    choices: [...r.querySelectorAll('[data-role="file-choices"] button')].map(b => b.getAttribute('aria-label')) };
 });
 const status = (h) => h.page.$eval('#ws-resume-status', el => el.textContent).catch(() => '');
 const files = (h) => h.page.evaluate(() => document.getElementById('ws-resume')?.files?.length ?? -1);
