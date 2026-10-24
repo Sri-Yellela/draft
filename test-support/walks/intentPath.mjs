@@ -46,7 +46,9 @@ const pathLine = (h) => h.readShadow(HOST, (root) => {
   const box = root.querySelector('[data-intent-tone]');
   if (!box) return null;
   return { tone: box.dataset.intentTone, line: root.querySelector('[data-role="intent-line"]')?.textContent || '',
-    buttons: [...root.querySelectorAll('button')].map(b => b.textContent), remember: !!root.querySelector('[data-role="remember"]') };
+    // ⭐ T27: the line is the dock's popup; its two answers are short words — read by their NAMES (the popup's own
+    // Settings and Close controls are not answers)
+    buttons: [...root.querySelectorAll('button[data-choice]')].map(b => b.getAttribute('aria-label')), remember: !!root.querySelector('[data-role="remember"]') };
 });
 /** A TRUSTED click on a control inside the path line's shadow root (puppeteer moves the mouse and presses). */
 async function press(h, selector) {

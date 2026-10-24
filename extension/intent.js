@@ -239,79 +239,43 @@ export async function choose(tab, { choice, resume = null, remember = false } = 
   return { ok: true, message: kept, decision: d, words: said };
 }
 
-// ── the dock's path line ─────────────────────────────────────────────────────────────────────────────────────────
+// ── the dock's path line — ⭐ T27: a POPUP ─────────────────────────────────────────────────────────────────────
 /**
- * Injected, TOP frame: the path line in the dock's status slot (its own element beside the fill's status line — the dock
- * is dock.js's; this only adds a slotted element), and the words in the collapsed bar. Buttons answer with a TRUSTED
- * click only. Closes over nothing: the model, the palettes and the dock's meta come as arguments.
+ * Injected, TOP frame: the path line as the dock's popup (extension/popup-layer.js) — the ask-once question ("Draft this
+ * job and queue its résumé, or just fill this form yourself?") stays until it is answered; the path the tab is on
+ * ("Filling by hand — a résumé on cue", with its switch) is said and dismisses itself. Nothing of it sits in the dock's
+ * body any more. Its buttons answer with a TRUSTED click only. Closes over nothing: the model, the palettes and the
+ * dock's meta come as arguments. The popup keeps the hooks the walks read: #draft-intent-path, data-intent-tone,
+ * data-role="intent-line", data-choice, data-role="remember".
  */
 export function renderIntentPath(model, theme, dockArgs) {
   const api = globalThis.__draftDock;
   const dock = api?.current?.() || api?.ensure?.(dockArgs || {});
-  if (!dock || !model) return { rendered: false };
+  const pop = globalThis.__draftPopups;
+  if (!dock || !model || !pop?.show) return { rendered: false };
   const ID = 'draft-intent-path';
-  let el = document.getElementById(ID);
-  if (!el || el.parentNode !== dock.host) {
-    el?.remove();
-    el = document.createElement('div');
-    el.id = ID;
-    el.slot = 'status';
-    el.setAttribute('data-draft-intent', '');
-    dock.host.appendChild(el);
-    el.attachShadow({ mode: 'open' });
-  }
-  const root = el.shadowRoot;
-  const vars = (t) => (t ? `--ink:${t.INK};--muted:${t.INK_MUTED};--line:${t.BORDER_CONTROL};--surface:${t.SURFACE_SOLID};--accent:${t.ACCENT};--on-accent:${t.ON_ACCENT}` : '');
+  document.getElementById(ID)?.parentNode === dock.host && document.getElementById(ID).remove();   // the old status-slot line
+  // the two answers, as SHORT words (their whole words are the name and the tooltip)
+  const WORD = { drafted: 'Draft', manual: 'Myself' };
   const draw = (m) => {
-    root.innerHTML = '';
-    const style = document.createElement('style');
-    style.textContent = `:host{display:block;${vars(theme?.light)}}
-      @media (prefers-color-scheme: dark){:host{${vars(theme?.dark)}}}
-      .p{margin:6px 10px;padding:6px 10px;border-left:3px solid var(--accent);border-radius:6px;background:var(--surface);color:var(--ink);font-size:12px;line-height:1.4}
-      .l{margin:0 0 6px}
-      .r{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-      button{font:inherit;font-weight:600;padding:5px 10px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
-      button.pr{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
-      label{display:flex;gap:4px;align-items:center;color:var(--muted)}`;
-    const box = document.createElement('div');
-    box.className = 'p';
-    box.setAttribute('role', m.tone === 'ask' ? 'group' : 'status');
-    box.setAttribute('data-intent-tone', m.tone || 'path');
-    const line = document.createElement('p');
-    line.className = 'l';
-    line.setAttribute('data-role', 'intent-line');
-    line.textContent = m.line || '';
-    box.append(line);
-    const row = document.createElement('div');
-    row.className = 'r';
-    let remember = null;
-    for (const b of (m.buttons || [])) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = b.label;
-      btn.setAttribute('data-choice', b.choice);
-      if (b.resume) btn.setAttribute('data-resume', b.resume);
-      if (b.primary) btn.className = 'pr';
-      btn.addEventListener('click', (ev) => {
-        if (!ev.isTrusted) return;                                    // ⛔ the user's own click, never a script's
-        for (const x of row.querySelectorAll('button')) x.disabled = true;
-        chrome.runtime.sendMessage({ type: 'INTENT_CHOOSE', trigger: 'click', choice: b.choice, resume: b.resume || null,
-          remember: !!remember?.checked }, (r) => { void chrome.runtime.lastError; if (r?.words) draw(r.words); else for (const x of row.querySelectorAll('button')) x.disabled = false; });
-      });
-      row.append(btn);
-    }
-    if (m.remember) {
-      const lab = document.createElement('label');
-      remember = document.createElement('input');
-      remember.type = 'checkbox';
-      remember.setAttribute('data-role', 'remember');
-      lab.append(remember, document.createTextNode('Remember my choice'));
-      row.append(lab);
-    }
-    if (row.childNodes.length) box.append(row);
-    root.append(style, box);
+    const question = m.tone === 'ask' || m.tone === 'refuse';
+    const buttons = (m.buttons || []).slice(0, 2);
+    void pop.show({
+      id: ID, kind: question ? 'question' : 'toast', ms: question ? 0 : 8000, text: m.line || '', textRole: 'intent-line',
+      icon: question ? 'info' : 'fill', theme, data: { intentTone: m.tone || 'path' },
+      toggle: m.remember ? { role: 'remember', label: 'Remember my choice', icon: 'pin' } : null,
+      actions: buttons.map((b, i) => ({ id: `c${i}`, label: b.label, word: WORD[b.choice] || b.label, primary: !!b.primary,
+        attrs: { 'data-choice': b.choice, ...(b.resume ? { 'data-resume': b.resume } : {}) } })),
+      onAction: (answer) => {
+        if (!answer.trusted) return 'ignore';                         // ⛔ the user's own click, never a script's
+        const b = buttons[Number(answer.action.slice(1))];
+        chrome.runtime.sendMessage({ type: 'INTENT_CHOOSE', trigger: 'click', choice: b.choice, resume: b.resume || null, remember: answer.toggle },
+          (r) => { void chrome.runtime.lastError; draw(r?.words || m); });
+        return 'keep';
+      },
+    });
     try { dock.statusText(m.line || ''); } catch { /* an older dock */ }
-    if (m.tone === 'ask' || m.tone === 'refuse') { try { dock.expand(); } catch { /* collapsed stays */ } }
+    if (question) { try { dock.expand(); } catch { /* collapsed stays */ } }
   };
   draw(model);
   return { rendered: true };

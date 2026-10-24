@@ -319,8 +319,9 @@ export default async function run(h, { check, observe, section }) {
   await h.send({ type: 'RESUME_PANEL_OPEN', tab: 'resume' });
   const ready = await waitUntil(() => h.readShadow('rm-resume-panel', (root, host) => (host.dataset.state === 'ready' ? true : null)), BUSY_MS);
   check('one press → Ready (one generation, one slot)', ready === true && CTL.generations().length === 1 && CTL.slots() === 1, `${CTL.generations().length} / ${CTL.slots()}`);
+  // ⭐ T26: the résumé panel sits on the dock's surface, and paints none of its own
   const rp = norm(await page.evaluate(bgOf, 'rm-resume-panel', '.rp'));
-  check(`the résumé panel paints from the ${theme} tokens (SURFACE_MENU)`, rp === norm(C.SURFACE_MENU), `${rp} vs ${C.SURFACE_MENU}`);
+  check('the résumé panel paints no surface of its own (the dock’s frame is the one)', rp === norm('rgba(0, 0, 0, 0)'), rp);
   await sweepCapsules();
   await h.goStep('myExperience');
   await page.click('#rm-resume-panel >>> [data-role="attach"]');
