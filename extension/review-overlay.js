@@ -783,6 +783,14 @@ export function renderOverlay(model, meta) {
     // D56: "I submitted it" — recorded by the service worker against this page; disabled until Ready (D96 §5).
     if (role === 'submitted') {
       if (!panelSummary(rows).ready) return;
+      // ⭐ T27 · a CONFIRMATION: "I submitted it" is asked once more, as the dock's question — and recorded only on the
+      // person's own Yes (a page script's click on this button, or on Yes, records nothing).
+      const POP = globalThis.__draftPopups;
+      const answer = POP?.show ? await POP.show({ id: 'rm-draft-submitted', kind: 'question', icon: 'submitted', theme,
+        text: 'Did you submit this application yourself?',
+        actions: [{ id: 'yes', label: 'Yes — record it', icon: 'check', primary: true }, { id: 'no', label: 'Not yet', icon: 'close' }] })
+        : { action: 'yes', trusted: ev.isTrusted };
+      if (answer.action !== 'yes' || !answer.trusted) return;
       const msg = root.querySelector('[data-role="submitted-msg"]');
       btn.disabled = true;
       name(btn, 'recording…');
@@ -810,6 +818,8 @@ export function renderOverlay(model, meta) {
       n.className = `rm-say${warn ? ' warn' : ''}`;
       n.title = text;
       n.innerHTML = `${I(warn ? 'need' : 'info')}${sr(text)}`;
+      // ⭐ T27: and SAID once, as the dock's popup — the row keeps the mark (its words the tooltip) after it has gone
+      void globalThis.__draftPopups?.show?.({ id: 'rm-draft-fill-said', kind: 'toast', text, icon: warn ? 'need' : 'info', tone: warn ? 'need' : '', theme });
     };
 
     if (role === 'copy') {

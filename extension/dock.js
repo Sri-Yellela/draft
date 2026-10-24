@@ -623,7 +623,11 @@
       frame.draw();
       const r = await send({ type: 'DOCK_TAB', tab, trigger: 'click' });
       frame.loading = null;
-      if (!r?.ok && !views.has(tab)) frame.loadError = { ...(frame.loadError || {}), [tab]: r?.message || 'draft could not show this here.' };
+      if (!r?.ok && !views.has(tab)) {
+        frame.loadError = { ...(frame.loadError || {}), [tab]: r?.message || 'draft could not show this here.' };
+        // ⭐ T27: an error is SAID as the dock's popup; the tab keeps a "!" whose tooltip says it again
+        void globalThis.__draftPopups?.show?.({ id: 'rm-draft-dock-said', kind: 'toast', text: frame.loadError[tab], icon: 'need', tone: 'need', theme: meta.theme });
+      }
       if (frame.host.isConnected) frame.draw();
     };
 
@@ -681,6 +685,7 @@
       frame.filling = false; frame.fillCount = null;
       // a fill that drew its panel replaced this empty state; one that did not says why, here
       frame.fillSaid = r?.ok ? '' : (r?.message || 'draft could not fill this page.');
+      if (frame.fillSaid) void globalThis.__draftPopups?.show?.({ id: 'rm-draft-dock-said', kind: 'toast', text: frame.fillSaid, icon: 'need', tone: 'need', theme: meta.theme });
       if (frame.host.isConnected) frame.draw();
     };
     frame.onDockBackTab = (t) => dockBack(t);

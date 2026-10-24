@@ -359,7 +359,8 @@ test("⛔ T24 · the worker's messages: Draft from the popup only, the answer fr
   assert.deepEqual(await handlers.INTENT_CHOOSE({ type: "INTENT_CHOOSE", choice: "drafted", trigger: "click" }, { ...page, frameId: 3 }), { ok: false, error: "not_allowed" }, "a child frame");
   assert.deepEqual(await handlers.INTENT_SETTINGS({ type: "INTENT_SETTINGS" }, page), { ok: false, error: "not_allowed" });
   // the dock's buttons answer only a TRUSTED click
-  assert.match(read("extension/intent.js"), /if \(!ev\.isTrusted\) return;/);
+  // ⭐ T27: the line is the dock's popup — its press reaches the answer with isTrusted, and a script's click is ignored
+  assert.match(read("extension/intent.js"), /if \(!answer\.trusted\) return 'ignore';/);
 });
 
 test("⛔ T24 · the popup's Draft button sends INTENT_DRAFT, the fill's résumé row reads the account's setting", () => {

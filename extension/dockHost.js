@@ -147,8 +147,9 @@ export async function dockMeta(tabOrId) {
 // ── drawing ──────────────────────────────────────────────────────────────────────────────────────────────────────
 /** The dock's module into the tab's TOP frame (a no-op when it is already there). ⛔ frame 0 only. */
 export async function ensureDockIn(tabId) {
-  // the literal file name (not DOCK_FILE) is what scripts/buildExtension.mjs follows into the package
-  await chrome.scripting.executeScript({ target: { tabId, frameIds: [0] }, files: ['dock.js'] });
+  // the literal file names (not DOCK_FILE) are what scripts/buildExtension.mjs follows into the package. ⭐ T27: the
+  // popup layer comes with the dock, in order — every view and every message speaks through it.
+  await chrome.scripting.executeScript({ target: { tabId, frameIds: [0] }, files: ['dock.js', 'popup-layer.js'] });
 }
 /**
  * Draw a view on the dock: dock.js, then `func(...args)`, both in the tab's TOP frame. Returns executeScript's first

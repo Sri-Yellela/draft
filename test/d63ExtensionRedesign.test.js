@@ -106,12 +106,15 @@ test("⭐ D63 (6) · the ring says what it counts — 'your cap'; it stays a cir
 test("⭐ D63 (1) · the in-page badge is a depth box, and each of the four states carries an ICON as well as a colour", () => {
   const src = read("extension/autofill-badge.js");
   assert.doesNotMatch(src, /border-radius:\s*(999|9999|50%)/, "no capsule (D60)");
-  assert.match(src, /\.bar \{[^}]*border-radius: 12px;[^}]*border-left: 4px solid var\(--c-\$\{tone\}\);/);
+  // ⭐ T26 (owner, 10-19: "too many colours… choppy"): the line is no longer a tinted, bordered box — it sits on the dock's
+  // one surface; its state's colour is the icon's alone (still an icon AND a colour)
+  assert.match(src, /\.bar \{[^}]*background: transparent; \}/);
+  assert.doesNotMatch(src.slice(at(src, ".bar {"), at(src, ".st {")), /border/);
+  assert.match(src, /\.st \{[^}]*color: var\(--c-\$\{tone\}\); \}/);
   for (const s of ["progress", "required", "done", "unrecognised"]) assert.match(src, new RegExp(`\\b${s}: '<path d=`), `${s} has no icon`);
   assert.match(src, /<span class="st" data-role="icon" aria-hidden="true"><svg viewBox="0 0 24 24">\$\{ICON\}<\/svg><\/span>/);
   // ⭐ T21: the count is written in the markup (the bar is patched in place), so the mark may hold it.
   assert.match(src, /<span class="n" data-role="count" aria-hidden="true">(?:\$\{missing\.length\})?<\/span>/, "the count is a rectangular mark");
-  assert.match(src, /\.n \{[^}]*border-radius: 6px;/);
   assert.match(src, /\.x \{[^}]*border-radius: 8px;/, "× is a square");
   // The four sentences are unchanged.
   for (const t of ["Autofill in progress", "Complete required fields", "Filled — review and submit", "isn't recognised — nothing was filled"]) assert.ok(src.includes(t), t);
