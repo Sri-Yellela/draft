@@ -94,12 +94,17 @@
   </section>
 
   <hr class="divider">
-  <!-- ⭐ D63 (5): moved here from the popup's link row — it is used once. -->
-  <h1 class="logo-face">LinkedIn</h1>
-  <p class="note">Sign in to LinkedIn in a new tab, so a LinkedIn posting can be captured.</p>
-  <div class="btn-row">
-    <button class="btn" id="btn-linkedin">Sign in with LinkedIn</button>
-  </div>
+  <!-- ⭐ T31 (owner 10-25): who the extension acts as — the toolbar popup's identity line, Sign in and Disconnect — lives
+       here now; D63 (5)'s LinkedIn sign-in joins it. -->
+  <section id="account" aria-labelledby="account-h">
+    <h1 class="logo-face" id="account-h" tabindex="-1">Account</h1>
+    <p class="subtitle" id="account-who" role="status">Checking who draft is signed in as…</p>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-sign-in" type="button" hidden>Sign in to draft</button>
+      <button class="btn" id="btn-disconnect" type="button" hidden>Disconnect</button>
+      <button class="btn" id="btn-linkedin" type="button">Sign in with LinkedIn</button>
+    </div>
+  </section>
 
   <hr class="divider">
   <!-- ⭐ D97 · read, prepare, capture, fill — automatically, per site, ALL OFF until switched on here (options-auto.js).

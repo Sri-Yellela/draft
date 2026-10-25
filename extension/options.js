@@ -106,6 +106,38 @@ function landOnSection() {
 addEventListener('hashchange', landOnSection);
 landOnSection();
 
+// ⭐ T31 · Settings → Account: WHO THE EXTENSION IS ACTING AS — named, so it is checkable rather than merely true (an
+// admin sees that their extension is deliberately NOT one). Sign in opens draft's sign-in; Disconnect ends the
+// extension's own credential (revoked on the server, cleared here), so the next press takes whoever is signed in THEN.
+async function showAccount(fresh = false) {
+  const who = document.getElementById('account-who');
+  if (!who) return;
+  const id = await chrome.runtime.sendMessage({ type: 'GET_IDENTITY', fresh }).catch(() => null);
+  const signedIn = !!id?.authenticated;
+  who.textContent = '';
+  if (signedIn) {
+    who.append('Signed in as ');
+    const name = document.createElement('strong');
+    name.textContent = id.username || 'your account';             // textContent: a username is never parsed
+    who.append(name, id.accountIsAdmin ? ' · not acting as admin' : '');
+  } else who.textContent = 'Not signed in.';
+  document.getElementById('btn-sign-in').hidden = signedIn;
+  document.getElementById('btn-disconnect').hidden = !signedIn;
+}
+document.getElementById('btn-sign-in')?.addEventListener('click', () => {
+  chrome.tabs.create({ url: `${RESUME_MASTER_URL}/login` }).catch(() => {});
+});
+document.getElementById('btn-disconnect')?.addEventListener('click', async () => {
+  const btn = document.getElementById('btn-disconnect');
+  btn.disabled = true;
+  await chrome.runtime.sendMessage({ type: 'DISCONNECT' }).catch(() => {});
+  btn.disabled = false;
+  await showAccount(true);
+});
+void showAccount(true);
+// back from signing in on draft's tab: who it is may have changed
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void showAccount(true); });
+
 // ⭐ D63 (5): Sign in with LinkedIn, moved here from the popup — the same message the popup sent.
 document.getElementById('btn-linkedin')?.addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'OPEN_LINKEDIN_IMPORT' }).catch(() => {});

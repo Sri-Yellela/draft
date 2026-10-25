@@ -22,7 +22,7 @@ const WD = ["https://*.myworkdayjobs.com/*", "https://*.myworkdaysite.com/*"];
 test("T29 ① every section a dock control may open is on the page, by the id the service worker allows, with a heading that takes the focus", () => {
   const allowed = BG.slice(at(BG, "const SETTINGS_SECTIONS = Object.freeze(["), at(BG, "]);", at(BG, "const SETTINGS_SECTIONS")))
     .match(/'([a-z-]+)'/g).map(s => s.slice(1, -1));
-  assert.deepEqual(allowed, ["permissions", "auto-read", "intent", "answers", "details", "shortcuts"]);
+  assert.deepEqual(allowed, ["permissions", "account", "auto-read", "intent", "answers", "details", "shortcuts"]);
   for (const id of allowed) {
     assert.match(HTML, new RegExp(`<section id="${id}" aria-labelledby="${id}-h">`), `no #${id} section`);
     assert.match(HTML, new RegExp(`<h1 class="logo-face" id="${id}-h" tabindex="-1">`), `#${id}'s heading cannot take the focus`);
@@ -142,4 +142,16 @@ test("T29 ⑤ audit 10-25 — a revoke the worker refuses says so; a revoke clea
   await handlers.AUTO_READ_REVOKE({ site: "workday" }, OPTIONS_PAGE);
   assert.equal((await handlers.AUTO_READ_STATE({}, OPTIONS_PAGE)).pending, null, "a waiting consent cannot switch the revoked site back on");
   h.restore();
+});
+
+test("T29 ⑥ (T31) Settings → Account — who the extension acts as, named as text; Sign in and Disconnect; the LinkedIn sign-in", () => {
+  const js = read("extension/options.js");
+  const acct = js.slice(at(js, "async function showAccount(fresh = false) {"), at(js, "document.getElementById('btn-sign-in')"));
+  assert.match(acct, /chrome\.runtime\.sendMessage\(\{ type: 'GET_IDENTITY', fresh \}\)/);
+  assert.match(acct, /name\.textContent = id\.username \|\| 'your account';/, "a username is never parsed");
+  assert.match(acct, /id\.accountIsAdmin \? ' · not acting as admin' : ''/, "an admin sees the extension is deliberately not one");
+  assert.doesNotMatch(acct, /innerHTML/);
+  assert.match(js, /getElementById\('btn-disconnect'\)\?\.addEventListener\('click', async \(\) => \{[\s\S]*?type: 'DISCONNECT'/);
+  assert.match(js, /getElementById\('btn-sign-in'\)\?\.addEventListener\('click', \(\) => \{\n  chrome\.tabs\.create\(\{ url: `\$\{RESUME_MASTER_URL\}\/login` \}\)/);
+  assert.match(HTML, /<section id="account" aria-labelledby="account-h">[\s\S]*id="btn-sign-in"[\s\S]*id="btn-disconnect"[\s\S]*id="btn-linkedin"[\s\S]*<\/section>/);
 });
