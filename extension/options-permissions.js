@@ -65,13 +65,13 @@ export function mount(doc, api) {
       row(site.name, !!state.granted?.[id], (box) => {
         if (box.checked) {
           const asked = onAllow(api, id);                              // ⛔ first: inside the gesture
-          void asked.then((r) => { done(r.ok ? `draft is allowed on ${site.name}.` : `Chrome did not allow ${site.name}.`); return refresh(); });
+          void asked.then((r) => { done(r.ok ? `draft is allowed on ${site.name}.` : `Chrome did not allow ${site.name}.`); return refresh(); }).catch(() => null);
           return;
         }
-        void api.runtime.sendMessage({ type: 'AUTO_READ_REVOKE', site: id }).then((r) => {
-          done(r?.kept ? `${site.name} stays allowed — a site you chose reads its form.` : `draft is no longer allowed on ${site.name}.`);
+        void Promise.resolve(api.runtime.sendMessage({ type: 'AUTO_READ_REVOKE', site: id })).catch(() => null).then((r) => {
+          done(!r?.ok ? `Could not turn ${site.name} off — try again.` : r.kept ? `${site.name} stays allowed — a site you chose reads its form.` : `draft is no longer allowed on ${site.name}.`);
           return refresh();
-        });
+        }).catch(() => null);
       }, { id });
     }
     const chosen = Object.keys(state.settings?.custom || {});
@@ -82,7 +82,8 @@ export function mount(doc, api) {
           void Promise.resolve(asked).catch(() => false).then(() => refresh());
           return;
         }
-        void api.runtime.sendMessage({ type: 'AUTO_READ_REMOVE_SITE', origin }).then(() => refresh());
+        void Promise.resolve(api.runtime.sendMessage({ type: 'AUTO_READ_REMOVE_SITE', origin })).catch(() => null)
+          .then((r) => { if (!r?.ok) done(`Could not remove ${origin.replace(/^https:\/\//, '')} — try again.`); return refresh(); }).catch(() => null);
       }, { note: 'Always read here' });
     }
     const chosenPatterns = new Set(chosen.map(originPattern));
@@ -96,7 +97,7 @@ export function mount(doc, api) {
   }
 
   // Chrome's own word on a grant or a removal — from this page, the popup, or the worker — redraws both sections
-  const both = () => { void refresh(); void autoSection.current?.refresh?.(); };
+  const both = () => { void refresh().catch(() => null); void Promise.resolve(autoSection.current?.refresh?.()).catch(() => null); };
   try { api.permissions.onAdded?.addListener(both); api.permissions.onRemoved?.addListener(both); } catch { /* an older Chrome */ }
   const ready = refresh().catch(() => null);
   return { refresh, ready };

@@ -104,7 +104,9 @@ export function dockPlaceRecord(place, now = Date.now()) {
     tab: DOCK_TABS.includes(place?.tab) ? place.tab : 'fill', pops,
     popped: (Array.isArray(place?.popped) ? place.popped : []).filter(t => DOCK_TABS.includes(t)).slice(0, DOCK_TABS.length),
     // ⭐ T28: where the launcher (the dock, collapsed) sits on this site — two numbers, kept only when both are finite
-    ...(Number.isFinite(place?.launch?.x) && Number.isFinite(place?.launch?.y) ? { launch: { x: Math.round(place.launch.x), y: Math.round(place.launch.y) } } : {}),
+    // (and the edge it sits on with how far along it, so another window size puts it back on THAT edge)
+    ...(Number.isFinite(place?.launch?.x) && Number.isFinite(place?.launch?.y) ? { launch: { x: Math.round(place.launch.x), y: Math.round(place.launch.y),
+      ...(EDGES.includes(place.launch.edge) && Number.isFinite(place.launch.f) ? { edge: place.launch.edge, f: Math.min(Math.max(place.launch.f, 0), 1) } : {}) } } : {}),
     at: now,
   };
 }

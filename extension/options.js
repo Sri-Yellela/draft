@@ -96,7 +96,8 @@ document.getElementById('btn-answers')?.addEventListener('click', () => {
 // ⭐ T29: a deep link — options.html#permissions from the dock's gear or a popup's Settings — lands on that section:
 // it is scrolled to and its heading takes the focus (and :target marks it).
 function landOnSection() {
-  const id = decodeURIComponent(location.hash.slice(1));
+  let id = '';
+  try { id = decodeURIComponent(location.hash.slice(1)); } catch { return; }   // "#%" — a broken link lands nowhere, and stops nothing
   const section = id ? document.getElementById(id) : null;
   if (!section || section.tagName !== 'SECTION') return;
   section.scrollIntoView({ block: 'start' });

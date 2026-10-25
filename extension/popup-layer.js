@@ -40,13 +40,19 @@
     :host { all: initial; ${varsOf(theme?.light)} }
     @media (prefers-color-scheme: dark) { :host { ${varsOf(theme?.dark)} } }
     * { box-sizing: border-box; }
-    .pp { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border-radius: 10px;
+    /* a question: its words across the popup's width (two lines at most), its answers on the row under them; a toast with
+       nothing to answer: one row — the icon, the words, the close */
+    .pp { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 8px; padding: 8px 8px 8px 12px; border-radius: 10px;
       font: 600 12.5px/1.35 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--c-ink);
       background: var(--c-surface-menu); border: 1px solid var(--c-glass-edge); box-shadow: var(--c-shadow-lg); backdrop-filter: blur(12px); }
     .ic { display: block; flex: none; }
     .lead { display: inline-grid; place-items: center; flex: none; color: var(--c-ink-muted); }
     .lead[data-tone="ok"] { color: var(--c-success); } .lead[data-tone="need"] { color: var(--c-warning); }
-    .tx { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tx { grid-column: 2; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .ctl { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+    .pp.one { grid-template-columns: auto 1fr auto; }
+    .pp.one .tx { -webkit-line-clamp: 1; }
+    .pp.one .ctl { grid-column: 3; grid-row: 1; }
     button, .tg { width: 30px; height: 30px; flex: none; padding: 0; display: inline-grid; place-items: center; border: 0; border-radius: 8px;
       background: var(--c-surface-solid); color: var(--c-ink); box-shadow: var(--c-depth-rest); cursor: pointer; font: inherit; font-weight: 800; }
     button.word { width: auto; padding: 0 10px; }
@@ -106,12 +112,12 @@
     };
     const toggle = s.toggle ? `<label class="tg" title="${esc(s.toggle.label)}"><input type="checkbox" data-role="${esc(s.toggle.role || 'toggle')}" aria-label="${esc(s.toggle.label)}"${s.toggle.checked ? ' checked' : ''}>${icon(s.toggle.icon || 'pin')}</label>` : '';
     root.innerHTML = `<style>${CSS(s.theme)}</style>
-      <div class="pp" role="${question ? 'alertdialog' : 'status'}" aria-live="${question ? 'assertive' : 'polite'}" aria-describedby="t"${data}>
+      <div class="pp${(s.actions || []).length || s.toggle || s.settings ? '' : ' one'}" role="${question ? 'alertdialog' : 'status'}" aria-live="${question ? 'assertive' : 'polite'}" aria-describedby="t"${data}>
         ${s.icon ? `<span class="lead" aria-hidden="true"${s.tone ? ` data-tone="${esc(s.tone)}"` : ''}>${icon(s.icon, 18)}</span>` : ''}
         <span class="tx" id="t" data-role="${esc(s.textRole || 'popup-text')}" title="${esc(s.text)}">${esc(s.text)}</span>
-        ${toggle}${(s.actions || []).slice(0, 2).map(btn).join('')}
+        <div class="ctl">${toggle}${(s.actions || []).slice(0, 2).map(btn).join('')}
         ${s.settings ? `<button type="button" class="ghost" data-role="popup-settings" aria-label="Open draft settings" title="Settings">${icon('settings')}</button>` : ''}
-        <button type="button" class="ghost" data-role="popup-close" aria-label="Close" title="Close (Esc)">${icon('close', 14)}</button>
+        <button type="button" class="ghost" data-role="popup-close" aria-label="Close" title="Close (Esc)">${icon('close', 14)}</button></div>
       </div>`;
     place(host);
     document.documentElement.appendChild(host);
@@ -152,18 +158,25 @@
     if (p.done) return;
     p.done = true;
     clearTimeout(p.timer);
+    // the focus goes back only if it is still the popup's (or nowhere) — never pulled out of a field the person moved to
+    const a = deepActive();
+    const held = !!(p.host && (p.host.shadowRoot?.activeElement || a === p.host)) || !a || a === document.body;
     p.host?.remove();
     if (current === p) current = null;
     try { p.spec.onClose?.(answer); } catch { /* the caller's own */ }
     p.resolve(answer);
-    if (p.returnTo?.isConnected) { try { p.returnTo.focus({ preventScroll: true }); } catch { /* gone */ } }
+    if (held && p.spec.kind === 'question' && p.returnTo?.isConnected) { try { p.returnTo.focus({ preventScroll: true }); } catch { /* gone */ } }
     pump();
   }
 
   function pump() {
-    if (current || !queue.length) return;
-    current = queue.shift();
-    draw(current);
+    while (!current && queue.length) {
+      const next = queue.shift();
+      // ⭐ audit 10-25: news that waited longer than it would have been shown is stale — it is dropped, not played late
+      if (next.spec.kind !== 'question' && Date.now() - next.queuedAt > (next.spec.ms || TOAST_MS)) { next.resolve({ action: 'expired', trusted: false }); continue; }
+      current = next;
+      draw(current);
+    }
   }
 
   /**
@@ -176,15 +189,27 @@
   function show(spec) {
     if (!isTop() || !spec?.text) return Promise.resolve({ action: 'none', trusted: false });
     return new Promise((resolve) => {
-      const p = { spec: { kind: 'toast', ...spec }, resolve };
+      const p = { spec: { kind: 'toast', ...spec }, resolve, queuedAt: Date.now() };
       if (spec.id) {
         // the same popup again: replace the one waiting, or redraw the one on screen in its place
         const i = queue.findIndex(q => q.spec.id === spec.id);
         if (i >= 0) { queue[i].resolve({ action: 'replaced', trusted: false }); queue[i] = p; return; }
         if (current?.spec.id === spec.id) {
-          const was = current; was.done = true; clearTimeout(was.timer); was.host?.remove(); was.resolve({ action: 'replaced', trusted: false });
-          current = p; draw(p); if (was.returnTo && !p.returnTo) p.returnTo = was.returnTo; return;
+          // the same popup again, in its place: a question keeps where the focus came from (taken BEFORE the redraw — the old
+          // host is gone by then); a toast takes no focus and gives none back
+          const was = current, ret = was.returnTo || null;
+          was.done = true; clearTimeout(was.timer); was.host?.remove(); was.resolve({ action: 'replaced', trusted: false });
+          current = p; draw(p); if (p.spec.kind === 'question') p.returnTo = ret || p.returnTo; return;
         }
+      }
+      // ⭐ audit 10-25: a NEW question is not kept waiting behind an unanswered one ("I submitted it?" behind the intent
+      // question would never appear) — the newer one is what the person just asked for; the older is closed, "superseded"
+      if (p.spec.kind === 'question' && current?.spec.kind === 'question') {
+        const was = current, ret = was.returnTo || null;
+        queue.unshift(p);                                             // first in line — the close below draws it
+        finish(was, { action: 'superseded', trusted: false });
+        if (current === p && ret) p.returnTo = ret;
+        return;
       }
       queue.push(p);
       pump();
