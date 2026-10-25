@@ -127,7 +127,8 @@ test("⭐ D63 (5) · no underlined text link in the popup; LinkedIn and shortcut
   assert.doesNotMatch(html, /<a\s/, "a web link in the popup");
   assert.doesNotMatch(html, /id="btn-linkedin"|Keyboard shortcuts/);
   assert.match(html, /<button class="mb" id="btn-copy-sheet"[\s\S]*<button class="mb" id="btn-report-form"[\s\S]*<button class="mb" id="btn-settings"[^>]*>[\s\S]*More<\/button>/);
-  assert.match(read("extension/options.html"), /<button class="btn" id="btn-linkedin">Sign in with LinkedIn<\/button>/);
+  // ⭐ T31: in Settings → Account
+  assert.match(read("extension/options.html"), /<section id="account"[\s\S]*<button class="btn" id="btn-linkedin" type="button">Sign in with LinkedIn<\/button>/);
   assert.match(read("extension/options.js"), /getElementById\('btn-linkedin'\)\?\.addEventListener\('click', \(\) => \{\s*chrome\.runtime\.sendMessage\(\{ type: 'OPEN_LINKEDIN_IMPORT' \}\)/);
   // (7) Capture with the shortcut on the primary. ⭐ T22: Score left the row (the score is the job card's number and the
   // dock's ATS tab), and the four tiles left the popup — Capture and Fill stay one shortcut or one right-click away

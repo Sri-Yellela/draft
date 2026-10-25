@@ -348,7 +348,7 @@ async function diagnostics() {
 }
 
 /** ⭐ T26 / T29 · the settings page's sections a dock control may open it at (options.html's own ids). */
-const SETTINGS_SECTIONS = Object.freeze(['permissions', 'auto-read', 'intent', 'answers', 'details', 'shortcuts']);
+const SETTINGS_SECTIONS = Object.freeze(['permissions', 'account', 'auto-read', 'intent', 'answers', 'details', 'shortcuts']);
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Capture, from the popup button. The hotkey reaches the same function through onCommand below;
