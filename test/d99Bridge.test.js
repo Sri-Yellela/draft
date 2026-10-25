@@ -274,16 +274,10 @@ test("⛔ ONE TAB (open item 2): past its budget from the click the worker opens
 });
 const bindingsOf = async (s) => [...s.session.keys()].filter(k => k.startsWith("bind:"));
 
-test("⛔ the worker routes the bridge, and the popup says 'From your board' with the score", () => {
+test("⛔ the worker routes the bridge (⭐ T31: the retired popup's 'From your board — … · ATS 72' went with it; the score is the dock's ATS tab's)", () => {
   const bg = read("extension/background.js");
   assert.match(bg, /import \{ handlers as BOARD_OPEN_HANDLERS, configureBoardOpen \} from '\.\/boardOpen\.js';/);
   assert.match(bg, /configureBoardOpen\(\{ serverUrl: RESUME_MASTER_URL \}\);\s*chrome\.runtime\.onMessage\.addListener\(\(msg, sender, sendResponse\) => \{\s*const handle = BOARD_OPEN_HANDLERS\[msg\?\.type\];/);
-  const ctx = {};
-  vm.runInNewContext(`${read("extension/companion.js")}\nthis.boundLine = boundLine;`, ctx);
-  assert.equal(ctx.boundLine({ binding: { via: "board", title: "Data Engineer", company: "Synthco", ats: { state: "ready", score: 72 } } }),
-    "From your board — Data Engineer at Synthco · ATS 72");
-  assert.equal(ctx.boundLine({ binding: { via: "board", title: "Data Engineer", company: "Synthco", ats: { state: "no_base_resume" } } }),
-    "From your board — Data Engineer at Synthco");
 });
 
 // ── every board surface opens a posting through the helper ─────────────────────────────────────────────────────────

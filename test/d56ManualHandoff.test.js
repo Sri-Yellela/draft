@@ -298,14 +298,13 @@ test("D56 · 'I submitted' on the manual route → job_applications with the TAI
     assert.equal(again.state, "verified");
     assert.equal(t.db.prepare("SELECT COUNT(*) FROM job_applications").pluck().get(), 1);
   } finally { t.stop(); }
-  // The posting panel carries it (through A63's record route — evidence still decides), and so do the
-  // overlay and the popup.
+  // The posting panel carries it (through A63's record route — evidence still decides), and so does the
+  // overlay (⭐ T31: the retired popup's "I submitted it" went with it — the Fill view's is the extension's one).
   const panel = read("client/src/components/JobDetailPanel.jsx");
   assert.match(panel, /\{hasArtifact && job\?\.jobId && <ManualSubmitted jobId=\{job\.jobId\} \/>\}/);
   assert.match(panel, /api\(`\/api\/applications\/pending\/\$\{encodeURIComponent\(jobId\)\}\/record`/);
   // ⭐ T26: an icon control — its words are its aria-label and tooltip
   assert.match(read("extension/review-overlay.js"), /ib\('submitted', 'submitted', 'I submitted it'/);
-  assert.match(read("extension/popup.html"), /id="btn-submitted"/);
   assert.match(read("extension/background.js"), /msg\?\.type === 'GATE_SUBMITTED'/);
 });
 
@@ -343,25 +342,21 @@ test("§8 row 17 · the Copy sheet: the prepared answers, eligibility first, not
     assert.ok(r.rows.some(x => x.name === "email" && x.value === "ada@example.test"));
     assert.equal(t.db.prepare("SELECT COUNT(*) FROM apply_gate_packets").pluck().get(), 0, "the sheet stores nothing and spends no token");
   } finally { t.stop(); }
-  const popup = read("extension/popup.js");
-  assert.match(popup, /navigator\.clipboard\.writeText\(row\.value\)/);
-  assert.match(popup, /v\.textContent = row\.value;/, "values are text, never parsed into the popup");
+  // ⭐ T31: the Copy sheet is the dock's tab (the popup's own list went with it) — values are text, copied on a click
+  const panel = read("extension/copy-sheet-panel.js");
+  assert.match(panel, /navigator\.clipboard\.writeText\(String\(row\.value \?\? ''\)\)/);
+  assert.match(panel, /v\.textContent = String\(row\.value \?\? ''\);/, "values are text, never parsed into the page");
   // contextMenus is D55 decision B (10-07); what this pins is that the Copy sheet added no clipboard permission.
   assert.deepEqual(JSON.parse(read("extension/manifest.json")).permissions, ["activeTab", "contextMenus", "scripting", "storage"], "no clipboard permission");
 });
 
-test("§8 row 15 / decision D · the today ring is your CAP — never a goal", () => {
-  const src = read("extension/companion.js");
-  const ringState = new Function(`${src}; return ringState;`)();
-  const r = ringState({ limit: 10, used: 3, remaining: 7 });
-  assert.equal(r.short, "3/10");
-  assert.equal(r.percent, 30);
-  assert.equal(r.full, false);
-  assert.match(r.label, /3 of your 10 drafts used in the last 24 hours/);
-  assert.equal(ringState({ limit: 10, used: 10 }).full, true);
-  assert.equal(ringState(null), null);
-  const popup = read("extension/popup.html") + read("extension/popup.js") + src;
-  assert.doesNotMatch(popup.replace(/never a goal/gi, ""), /\bgoal\b/i, "the ring must not be framed as a goal");
-  assert.doesNotMatch(r.label, /goal|target|keep going/i);
-  assert.match(read("extension/background.js"), /authedFetch\(RESUME_MASTER_URL, '\/api\/draft\/slots'\)/, "the cap is the day's Draft slots");
+test("§8 row 15 / decision D → T31 · the extension frames nothing as a goal — and the popup's today ring went with the popup", () => {
+  // ⭐ T31 (owner 10-25: "everything else moved away, or into the background"): the ring is gone — the day's cap is
+  // draft's to say when a Draft would pass it (the server's own refusal); no extension surface counts toward anything
+  assert.ok(!fs.existsSync("extension/companion.js") && !fs.existsSync("extension/popup.html"));
+  assert.doesNotMatch(read("extension/background.js"), /message\.type === 'TODAY_RING'/, "the ring's message went with it");
+  for (const f of fs.readdirSync("extension").filter(f => f.endsWith(".js") || f.endsWith(".html"))) {
+    const code = read(`extension/${f}`).replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:"'`\\])\/\/[^\n]*/g, "$1").replace(/never a goal/gi, "");
+    assert.doesNotMatch(code, /\bgoal\b|keep going/i, `${f} frames something as a goal`);
+  }
 });

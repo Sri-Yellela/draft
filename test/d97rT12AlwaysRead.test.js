@@ -11,7 +11,8 @@
 // asked inside the click, a refusal leaves it off, revoking removes the registration, Options lists the same sites ·
 // LinkedIn / Indeed / Glassdoor never · the kill switch · the manifest: https://*/* only in the OPTIONAL list.
 //
-// The REAL autoRead.js handlers, the REAL popup-auto.js and options-auto.js against a stub DOM and a fake `chrome`
+// The REAL autoRead.js handlers, the REAL options-auto.js and options-permissions.js (⭐ T31: the retired popup's card and
+// "Always read here" are Settings' now) against a stub DOM and a fake `chrome`
 // (test-support/autoReadChrome.mjs). Synthetic people and companies only.
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -19,7 +20,7 @@ import fs from "node:fs";
 import { collectRequiredFiles } from "../scripts/buildExtension.mjs";
 import {
   SITES, OPTIONAL_ORIGINS, MANIFEST_OPTIONAL_HOSTS, ANY_SITE_PATTERN, BEHAVIOURS, AUTO_READ_KEY, PAGE_MESSAGE, CARD, ALWAYS,
-  defaultSettings, normaliseSettings, autoStep, scopeFor, popupAutoView, customOriginFor, looksLikeJobPage, knownFrameSites,
+  defaultSettings, normaliseSettings, autoStep, scopeFor, popupAutoView, customOriginFor, looksLikeJobPage, knownFrameSites, siteById,
   desiredRegistrations, syncRegistrations, runAutoPass, handlers, onPermissionsRemoved, siteFor, hasPostingUrlShape, autoLine, pendingClick,
 } from "../extension/autoRead.js";
 import { installAutoReadChrome, settingsWith } from "../test-support/autoReadChrome.mjs";
@@ -27,7 +28,7 @@ import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const manifest = JSON.parse(read("extension/manifest.json"));
-const EXT = { id: "test", url: "chrome-extension://test/popup.html" };          // the popup, an extension page
+const EXT = { id: "test", url: "chrome-extension://test/options.html" };        // Settings, an extension page
 const ACME = "https://careers.acme.test";
 const ACME_APPLY = `${ACME}/jobs/search?gh_jid=8198280`;
 const ACME_PATTERN = `${ACME}/*`;
@@ -46,7 +47,7 @@ const wire = (h) => { chrome.runtime.sendMessage = async (m) => { const fn = han
 function fakeDoc(ids) {
   const byId = new Map();
   const make = (tag, id = null) => ({
-    tagName: tag.toUpperCase(), id, children: [], listeners: {}, attrs: {}, textContent: "", className: "", hidden: false,
+    tagName: tag.toUpperCase(), id, children: [], listeners: {}, attrs: {}, dataset: {}, textContent: "", className: "", hidden: false,
     disabled: false, checked: false, type: "",
     append(...xs) { this.children.push(...xs); },
     setAttribute(k, v) { this.attrs[k] = String(v); },
@@ -56,13 +57,15 @@ function fakeDoc(ids) {
   for (const id of ids) byId.set(id, make("div", id));
   return { getElementById: (id) => byId.get(id) || null, createElement: (t) => make(t), byId };
 }
-const POPUP_IDS = ["auto-card", "auto-card-title", "auto-card-lead", "auto-card-sites", "auto-card-points", "auto-card-asking",
-  "auto-allow", "auto-later", "auto-card-status", "auto-here", "auto-here-box", "auto-here-label", "auto-here-hint",
-  "auto-here-first", "auto-here-status", "auto-frame", "auto-frame-why", "read-hint"];
 const flush = async () => { for (let i = 0; i < 6; i++) await new Promise(r => setTimeout(r, 0)); };
 
-/** A fake chrome API for the popup's module: records every call in order, the request first. */
-function popupApi(h, { grant = true } = {}) {
+/**
+ * A fake chrome API for the settings page's clicks: records every call in order, the request first. ⭐ T31 (owner
+ * 10-25): the toolbar popup is retired — its one-time card (one prompt for every preset site) and its "Always read here"
+ * are Settings' (options-auto.js onConsentAll / onAlwaysHere); the dock's press OFFERS them (toolbarPress.js relayFor,
+ * test/t31ToolbarPress.test.js) and Settings asks Chrome. The same handlers answer.
+ */
+function settingsApi(h, { grant = true } = {}) {
   const calls = [];
   const api = {
     permissions: {
@@ -75,15 +78,12 @@ function popupApi(h, { grant = true } = {}) {
   };
   return { api, calls };
 }
-async function bootPopup(h, opts) {
-  const { mountAuto, localFacts } = await import("../extension/popup-auto.js");
-  const { api, calls } = popupApi(h, opts);
-  const doc = fakeDoc(POPUP_IDS);
-  doc.byId.get("read-hint").textContent = "Nothing on this page is read until you press it.";
-  const facts = await localFacts(api);
-  const ui = mountAuto(doc, api, facts);
-  return { ui, doc, api, calls, el: (id) => doc.byId.get(id) };
-}
+/** What the dock's offer carries to Settings for this tab: the tab's origin and the frames draft knows it embeds. */
+const hereFor = async (url, { jobId = null, noted = null } = {}) => {
+  const { hereFromSearch } = await import("../extension/options-auto.js");
+  const frames = knownFrameSites({ url, jobId, noted });
+  return hereFromSearch(`?${new URLSearchParams({ here: customOriginFor(url), ...(frames.length ? { frames: frames.join(",") } : {}) })}`);
+};
 
 // ── 1 · the manifest ────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -158,31 +158,27 @@ test("⛔ an existing install (v1, agreed in Options) keeps its switches and STI
 test("⭐ ONE consent turns on the preset set with ONE prompt — the request is the click's first call; Capture and Fill stay off", async () => {
   const h = wire(installAutoReadChrome({ granted: [] }));
   h.tab = tabOf(WD_APPLY);
-  const p = await bootPopup(h);
-  assert.equal(p.el("auto-card").hidden, false, "the card is shown");
-  assert.deepEqual(p.calls, [], "opening the popup asks Chrome for nothing and sends nothing");
-  // the card names every preset site and says what it does, in the code's words
-  assert.deepEqual(p.el("auto-card-sites").children.map(c => c.textContent), ["Workday", "Greenhouse", "Lever", "Ashby", "Workable", "SmartRecruiters"]);
-  assert.deepEqual(p.el("auto-card-points").children.map(c => c.textContent), [...CARD.points]);
-  assert.match(CARD.points.join(" "), /never what you type, and never a password or payment field/);
-  assert.match(CARD.points.join(" "), /Never on LinkedIn, Indeed or Glassdoor/);
-  p.el("auto-allow").fire("click");
-  assert.deepEqual(p.calls[0], ["request", [...OPTIONAL_ORIGINS]], "asked inside the gesture, before anything else");
+  // ⭐ T31: the press offers it on a preset site before any consent; Settings' "Allow on these sites" is the click
+  assert.equal(popupAutoView({ settings: defaultSettings(), url: WD_APPLY }).card, true, "offered before any consent");
+  const { onConsentAll } = await import("../extension/options-auto.js");
+  const { api, calls } = settingsApi(h);
+  const r = onConsentAll(api);
+  assert.deepEqual(calls[0], ["request", [...OPTIONAL_ORIGINS]], "asked inside the gesture, before anything else");
+  const done = await r;
   await flush();
-  assert.equal(p.calls.filter(c => c[0] === "request").length, 1, "ONE prompt for the whole set");
-  // ⭐ T20: then — in the same turn, after the request — the click is said to the worker (the popup closes when Chrome's
-  // prompt opens, measured), and the popup's own consent message follows when it lives to see the grant
-  assert.deepEqual(p.calls[1], ["message", "AUTO_READ_PENDING"]);
-  assert.deepEqual(p.calls[2], ["message", "AUTO_READ_CONSENT_ALL"]);
+  assert.equal(calls.filter(c => c[0] === "request").length, 1, "ONE prompt for the whole set");
+  // ⭐ T20: then — in the same turn, after the request — the click is said to the worker (Chrome's answer can outlive the
+  // handler), and the page's own consent message follows when it lives to see the grant
+  assert.deepEqual(calls[1], ["message", "AUTO_READ_PENDING"]);
+  assert.deepEqual(calls[2], ["message", "AUTO_READ_CONSENT_ALL"]);
   const s = normaliseSettings(h.stores.local.get(AUTO_READ_KEY));
   assert.ok(s.consent2?.at, "the consent is recorded");
   for (const site of SITES) {
     assert.deepEqual(s.sites[site.id], { read: true, prepare: true, capture: false, fill: false }, site.id);
   }
   assert.deepEqual([...h.registered.keys()].sort(), SITES.map(x => `draft-auto-read-${x.id}`).sort(), "every preset site's watcher");
-  assert.equal(p.el("auto-card-status").textContent, CARD.done);
-  assert.equal(p.el("auto-card").hidden, true, "the card goes once agreed");
-  assert.match(p.el("read-hint").textContent, /^Reading automatically on this site$/, "the popup says it reads here now");
+  assert.equal(done.message, CARD.done);
+  assert.equal(popupAutoView({ settings: s, url: WD_APPLY }).card, false, "never offered again once agreed");
   // ⭐ T20: the tab already open on a site just allowed is given the watcher at once — no reload, no press
   assert.deepEqual(h.injectedArgs.filter(x => x.name === "file:autoReadWatcher.js").map(x => x.target), [{ tabId: h.tab.id, allFrames: false }]);
   assert.equal(pendingClick(), null, "the pending click is finished");
@@ -192,17 +188,18 @@ test("⭐ ONE consent turns on the preset set with ONE prompt — the request is
 test("⛔ a refusal of the card's prompt leaves EVERYTHING off and says so — nothing is written", async () => {
   const h = wire(installAutoReadChrome({ granted: [] }));
   h.tab = tabOf(WD_APPLY);
-  const p = await bootPopup(h, { grant: false });
-  p.el("auto-allow").fire("click");
+  const { onConsentAll } = await import("../extension/options-auto.js");
+  const { api, calls } = settingsApi(h, { grant: false });
+  const r = await onConsentAll(api);
   await flush();
   // T20: the click was said to the worker (it cannot know yet that Chrome will refuse), and dropped on the refusal —
   // nothing that turns anything on is sent
-  assert.deepEqual(p.calls, [["request", [...OPTIONAL_ORIGINS]], ["message", "AUTO_READ_PENDING"], ["message", "AUTO_READ_PENDING_CLEAR"]], "no consent after a refusal");
+  assert.deepEqual(calls, [["request", [...OPTIONAL_ORIGINS]], ["message", "AUTO_READ_PENDING"], ["message", "AUTO_READ_PENDING_CLEAR"]], "no consent after a refusal");
   assert.equal(pendingClick(), null, "the refused click is dropped");
   assert.ok(!h.injected.includes("file:autoReadWatcher.js"), "nothing injected");
   assert.equal(h.stores.local.get(AUTO_READ_KEY), undefined, "nothing written");
   assert.equal(h.registered.size, 0);
-  assert.equal(p.el("auto-card-status").textContent, CARD.refused);
+  assert.equal(r.message, CARD.refused);
   assert.match(CARD.refused, /nothing is on/);
   // and the handler itself refuses without Chrome's grant, and from anything but an extension page
   assert.equal((await handlers.AUTO_READ_CONSENT_ALL({ agree: true }, EXT)).error, "not_granted");
@@ -213,14 +210,11 @@ test("⛔ a refusal of the card's prompt leaves EVERYTHING off and says so — n
   h.restore();
 });
 
-test("D97 REVISED · 'Not now' hides the card for two weeks and changes no switch", async () => {
+test("D97 REVISED · 'Not now' hides the offer for two weeks and changes no switch", async () => {
   const h = wire(installAutoReadChrome({ granted: [] }));
-  h.tab = tabOf(WD_APPLY);
-  const p = await bootPopup(h);
-  p.el("auto-later").fire("click");
-  await flush();
-  assert.equal(p.el("auto-card").hidden, true);
-  assert.ok(!p.calls.some(c => c[0] === "request"));
+  // ⭐ T31: the dock's offer's Later (DOCK_ACT auto-later) is the worker's AUTO_READ_LATER, as the popup card's was
+  assert.match(read("extension/background.js"), /'auto-later': async \(\) => \{\n\s+await AUTO_READ_HANDLERS\.AUTO_READ_LATER\(/);
+  assert.equal((await handlers.AUTO_READ_LATER({}, EXT)).ok, true);
   const s = normaliseSettings(h.stores.local.get(AUTO_READ_KEY));
   assert.ok(Number.isFinite(s.later));
   assert.equal(s.consent2, null);
@@ -260,21 +254,21 @@ test("⭐ T12 · a company domain that looks like a job page is offered 'Always 
 test("⭐ T12 · the switch asks Chrome INSIDE the click, for this origin + its known frame; a refusal leaves it off", async () => {
   const h = wire(installAutoReadChrome({ granted: [] }));
   h.tab = tabOf(ACME_APPLY);
-  const p = await bootPopup(h, { grant: false });
-  assert.equal(p.el("auto-here").hidden, false, "offered at once");
-  assert.equal(p.el("auto-here-label").textContent, ALWAYS.label);
-  assert.equal(p.el("auto-here-first").hidden, false, "the D97 disclosure on first use");
-  assert.match(p.el("auto-here-hint").textContent, /careers\.acme\.test and Greenhouse — this site only/);
-  p.el("auto-here-box").checked = true;
-  p.el("auto-here-box").fire("change");
-  assert.deepEqual(p.calls[0], ["request", [ACME_PATTERN, ...GH]], "the request is the click's first call");
+  // offered at once on this page (⭐ T31: by the dock's press — relayFor; the words are Settings')
+  assert.equal(popupAutoView({ settings: defaultSettings(), url: ACME_APPLY }).here?.origin, ACME);
+  const here = await hereFor(ACME_APPLY);
+  assert.match(ALWAYS.hint(here.host, here.frames.map(id => siteById(id).name)), /careers\.acme\.test and Greenhouse — this site only/);
+  const { onAlwaysHere } = await import("../extension/options-auto.js");
+  const { api, calls } = settingsApi(h, { grant: false });
+  const r = onAlwaysHere(api, here);
+  assert.deepEqual(calls[0], ["request", [ACME_PATTERN, ...GH]], "the request is the click's first call");
+  const done = await r;
   await flush();
-  assert.deepEqual(p.calls.map(c => c.join(" ")), [`request ${ACME_PATTERN},${GH.join(",")}`, "message AUTO_READ_PENDING", "message AUTO_READ_PENDING_CLEAR"], "refused → no consent sent");
+  assert.deepEqual(calls.map(c => c.join(" ")), [`request ${ACME_PATTERN},${GH.join(",")}`, "message AUTO_READ_PENDING", "message AUTO_READ_PENDING_CLEAR"], "refused → no consent sent");
   assert.ok(!h.injected.includes("file:autoReadWatcher.js"), "nothing injected");
   assert.equal(h.stores.local.get(AUTO_READ_KEY), undefined, "nothing written");
   assert.equal(h.registered.size, 0);
-  assert.equal(p.el("auto-here-status").textContent, ALWAYS.refused("careers.acme.test"));
-  assert.equal(p.el("auto-here-box").checked, false, "drawn off again");
+  assert.equal(done.message, ALWAYS.refused("careers.acme.test"));
   h.restore();
 });
 
@@ -284,11 +278,11 @@ test("⭐ T12 · granted → Read + Prepare on for THIS origin (Capture, Fill of
     collectFormLabels: { labels: ["First Name *", "Last Name *", "Email *", "Phone"], fieldCount: 4 },
   } }));
   h.tab = tabOf(ACME_APPLY);
-  const p = await bootPopup(h);
-  p.el("auto-here-box").checked = true;
-  p.el("auto-here-box").fire("change");
+  const { onAlwaysHere } = await import("../extension/options-auto.js");
+  const { api, calls } = settingsApi(h);
+  await onAlwaysHere(api, await hereFor(ACME_APPLY));
   await flush();
-  assert.deepEqual(p.calls.map(c => c.join(" ")), [`request ${ACME_PATTERN},${GH.join(",")}`, "message AUTO_READ_PENDING", "message AUTO_READ_ALLOW_SITE"]);
+  assert.deepEqual(calls.map(c => c.join(" ")), [`request ${ACME_PATTERN},${GH.join(",")}`, "message AUTO_READ_PENDING", "message AUTO_READ_ALLOW_SITE"]);
   // ⭐ T20: the careers tab already open is given the watcher in EVERY frame (its form is the Greenhouse frame)
   assert.deepEqual(h.injectedArgs.filter(x => x.name === "file:autoReadWatcher.js").map(x => x.target), [{ tabId: h.tab.id, allFrames: true }]);
   const s = normaliseSettings(h.stores.local.get(AUTO_READ_KEY));
@@ -301,8 +295,7 @@ test("⭐ T12 · granted → Read + Prepare on for THIS origin (Capture, Fill of
   assert.deepEqual(reg.excludeMatches, ["https://*.linkedin.com/*", "https://*.indeed.com/*", "https://*.glassdoor.com/*"]);
   assert.deepEqual(reg.js, ["autoReadWatcher.js"]);
   assert.equal(h.registered.size, 1, "nothing else is registered");
-  assert.equal(p.el("auto-here-box").checked, true);
-  assert.equal(p.el("read-hint").textContent, "Reading automatically on this site", "instead of 'Nothing on this page is read until you press it.'");
+  assert.equal(popupAutoView({ settings: s, url: ACME_APPLY, granted: { here: true, sites: {} } }).here?.on, true, "chosen: the press offers it no more");
   // autoStep accepts the custom origin; the top pass leaves the form to the frame's own pass
   const tab = h.tab;
   const top = await runAutoPass(tab, { serverUrl: SERVER, signature: "top" });
@@ -331,31 +324,33 @@ test("⭐ T12 · a frame NOT known before the click: the first grant covers the 
     pageFacts: () => FACTS(ACME, { frames: [GH_FRAME] }), collectFormLabels: { labels: ["Email me new jobs"], fieldCount: 1 },
   } }));
   h.tab = tabOf(URL0);
-  let p = await bootPopup(h);
-  p.el("auto-here-box").checked = true;
-  p.el("auto-here-box").fire("change");
+  const { onAlwaysHere } = await import("../extension/options-auto.js");
+  let p = settingsApi(h);
+  await onAlwaysHere(p.api, await hereFor(URL0));
   await flush();
   assert.deepEqual(p.calls[0], ["request", [`${ACME}/*`]], "only the page — nothing was known about its frame");
   // the automatic pass on the page finds the Greenhouse frame it may not read yet, and remembers which site (local)
   await runAutoPass(h.tab, { serverUrl: SERVER, signature: "1" });
   const s = normaliseSettings(h.stores.local.get(AUTO_READ_KEY));
   assert.equal(s.frameHints[ACME], "greenhouse");
-  // the popup now offers the second click
-  p = await bootPopup(h);
-  assert.equal(p.el("auto-frame").hidden, false);
-  assert.equal(p.el("auto-frame").textContent, ALWAYS.frameAsk("Greenhouse"));
-  p.el("auto-frame").fire("click");
+  // the press now offers the second click (⭐ T31: relayFor's frameAsk); Settings asks for the frame alone
+  const v = popupAutoView({ settings: s, url: URL0, granted: { here: true, sites: {} } });
+  assert.deepEqual([v.frameAsk?.site, v.frameAsk?.name], ["greenhouse", "Greenhouse"]);
+  const ask = await hereFor(URL0, { noted: s.frameHints[ACME] });
+  const here = { ...ask, existing: true, frames: ["greenhouse"], origins: [...GH] };
+  p = settingsApi(h);
+  const done = await onAlwaysHere(p.api, here);
   assert.deepEqual(p.calls[0], ["request", GH], "the second click's first call");
   await flush();
   assert.deepEqual(p.calls[1], ["message", "AUTO_READ_PENDING"]);
-  assert.deepEqual(p.calls[2], ["message", "AUTO_READ_ALLOW_FRAME"]);
+  assert.deepEqual(p.calls[2], ["message", "AUTO_READ_ALLOW_FRAME"], "a site already chosen only gains its frame — its own switches stay as they are");
+  assert.equal(done.message, "draft reads Greenhouse's form on careers.acme.test now.");
   assert.deepEqual(normaliseSettings(h.stores.local.get(AUTO_READ_KEY)).custom[ACME].frames, ["greenhouse"]);
   assert.deepEqual(h.registered.get("draft-auto-read-c-careers.acme.test").matches, [`${ACME}/*`, ...GH], "the registration now covers the frame");
-  assert.equal(p.el("auto-frame").hidden, true);
   h.restore();
 });
 
-test("⭐ T12 · revoking removes the registration — at chrome://extensions, from the popup's switch, and by Remove in Options (which lists the same sites)", async () => {
+test("⭐ T12 · revoking removes the registration — at chrome://extensions, from Settings → Permissions' switch, and by Remove in Options (which lists the same sites)", async () => {
   const h = wire(installAutoReadChrome({ granted: [ACME_PATTERN, ...GH] }));
   const allow = () => handlers.AUTO_READ_ALLOW_SITE({ origin: ACME, frames: ["greenhouse"] }, EXT);
   assert.equal((await allow()).ok, true);
@@ -365,19 +360,30 @@ test("⭐ T12 · revoking removes the registration — at chrome://extensions, f
   await onPermissionsRemoved({ origins: [ACME_PATTERN] });
   assert.deepEqual(normaliseSettings(h.stores.local.get(AUTO_READ_KEY)).custom, {});
   assert.equal(h.registered.size, 0);
-  // (2) the popup's switch turned off → the access is given back, the frame site too (nothing else needs it)
+  // (2) its switch turned off (⭐ T31: Settings → Permissions' row for a chosen site — the popup's switch is retired) →
+  // the access is given back, the frame site too (nothing else needs it); turning off never asks Chrome
   h.granted.add(ACME_PATTERN);
   await allow();
-  h.tab = tabOf(ACME_APPLY);
-  let p = await bootPopup(h);
-  assert.equal(p.el("auto-here-box").checked, true);
-  p.el("auto-here-box").checked = false;
-  p.el("auto-here-box").fire("change");
+  const requested = [];
+  const { mount: mountPermissions } = await import("../extension/options-permissions.js");
+  const pdoc = fakeDoc(["perm-rows", "perm-status"]);
+  pdoc.byId.get("perm-rows").textContent = "";
+  const papi = {
+    runtime: { getManifest: () => ({ host_permissions: ["https://jobsviadraft.com/*"] }), sendMessage: async (m) => { const fn = handlers[m?.type]; return fn ? fn(m, EXT) : null; } },
+    permissions: { request: (o) => { requested.push(o.origins); return Promise.resolve(true); }, remove: async () => true, getAll: async () => ({ origins: [...h.granted] }),
+      onAdded: { addListener() {} }, onRemoved: { addListener() {} } },
+  };
+  await mountPermissions(pdoc, papi).ready;
+  const permRows = pdoc.byId.get("perm-rows").children;
+  const chosen = permRows.find(r => r.children[0].children[1].textContent === "careers.acme.test");
+  assert.ok(chosen, "Settings → Permissions lists the chosen site");
+  const sw = chosen.children[0].children[0];
+  assert.equal(sw.checked, true);
+  sw.checked = false; sw.fire("change");
   await flush();
-  assert.ok(!p.calls.some(c => c[0] === "request"), "turning off never asks Chrome");
+  assert.deepEqual(requested, [], "turning off never asks Chrome");
   assert.deepEqual(h.removed.slice(-3), [ACME_PATTERN, ...GH]);
   assert.equal(h.registered.size, 0);
-  assert.equal(p.el("auto-here-status").textContent, ALWAYS.off("careers.acme.test"));
   // (3) Options lists the same site, with the same four switches and Remove
   h.granted.add(ACME_PATTERN); GH.forEach(o => h.granted.add(o));
   await allow();
@@ -471,29 +477,23 @@ test("⛔ T12 · a custom site's sign-in page reads nothing; Capture and Fill st
   h.restore();
 });
 
-test("⛔ the popup's three requests are each the FIRST call of their click handler — nothing awaited before them — and nothing asks on open", () => {
-  const src = read("extension/popup-auto.js");
-  for (const [start, end] of [["export function onConsent(api) {", "export function onAlwaysHere("],
-                              ["export function onAlwaysHere(api, here, checked) {", "export function onAllowFrame("],
-                              ["export function onAllowFrame(api, ask) {", "// ── drawing"]]) {
+test("⛔ Settings' requests are each the FIRST call of their click handler — nothing awaited before them — and nothing asks on open (⭐ T31: the popup's three moved here)", () => {
+  const src = read("extension/options-auto.js");
+  for (const [start, end] of [["export function onConsentAll(api) {", "export function onAlwaysHere("],
+                              ["export function onAlwaysHere(api, here) {", "/** The site a deep link asks about"],
+                              ["export function onSwitch(api, {", "const hhmm ="]]) {
     const fn = src.slice(at(src, start), at(src, end));
     const first = fn.indexOf("api.");
-    assert.ok(fn.slice(first).startsWith("api.permissions.request({"), `${start}: the request is the first chrome call`);
-    assert.ok(fn.indexOf("api.permissions.request(") < fn.indexOf("await"), `${start}: before any await`);
+    assert.equal(fn.slice(first, first + 25), "api.permissions.request({", `${start} — the request is its first chrome call`);
+    assert.ok(fn.indexOf("api.permissions.request(") < fn.indexOf("await"), `${start} — before any await`);
   }
-  assert.equal((src.match(/permissions\.request\(/g) || []).length, 3, "three clicks, three requests");
-  // the handlers that call them are click / change listeners, with nothing before the call
-  const draw = src.slice(at(src, "export function mountAuto("), at(src, "if (typeof document !== 'undefined'"));
-  assert.match(draw, /allow\.addEventListener\('click', \(\) => \{\n\s+\/\/ ⛔ onConsent asks Chrome FIRST[^\n]*\n\s+onConsent\(api\)/);
-  assert.match(draw, /box\.addEventListener\('change', \(\) => \{\n\s+const v = ui\.view;\n\s+\/\/ ⛔ onAlwaysHere asks Chrome FIRST[^\n]*\n\s+onAlwaysHere\(api,/);
-  assert.match(draw, /frameBtn\.addEventListener\('click', \(\) => \{\n\s+const v = ui\.view;\n\s+onAllowFrame\(api,/);
-  // ⛔ D23: the local facts read storage, the tab's address and Chrome's grants — no page, no server
-  const facts = src.slice(at(src, "export async function localFacts(api) {"), at(src, "// ── the three clicks"));
-  assert.doesNotMatch(facts, /executeScript|sendMessage|fetch\(|permissions\.request/);
-  // ⛔ decision 4: no first-run tab — nothing opens a tab or asks on install
-  const bg = read("extension/background.js");
-  const installs = bg.split("onInstalled").slice(1).map(x => x.slice(0, 300)).join("\n");
-  assert.doesNotMatch(installs, /tabs\.create|openOptionsPage|permissions\.request/);
+  // the page asks only from a click: "Allow on these sites" and the "Always read <site>" switch's change
+  const draw = src.slice(at(src, "export function mount("), at(src, "/** ⭐ T29: the section as mounted"));
+  assert.match(draw, /all\.addEventListener\('click', \(\) => \{\n\s+const asked = onConsentAll\(api\);/);
+  assert.match(draw, /box\.addEventListener\('change', \(\) => \{\n\s+if \(!box\.checked\) return;\n\s+const asked = onAlwaysHere\(api, here\);/);
+  assert.equal((draw.match(/permissions\.request\(/g) || []).length, 0, "mount itself asks nothing");
+  // the offer's site comes from the TAB (background.js DOCK_ACT always-here), validated on the page (hereFromSearch)
+  assert.match(read("extension/background.js"), /'always-here': async \(tab\) => \{\n\s+const origin = customOriginFor\(tab\?\.url\);/);
 });
 
 test("D97 REVISED · the copy is the code's truth — the card and the switch say Capture and Fill stay off, and the privacy page names the new sites", () => {

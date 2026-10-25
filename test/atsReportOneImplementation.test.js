@@ -95,8 +95,8 @@ test("the four surfaces — board side panel, deck panel, phone sheet, public to
   assert.match(code("components/ATSPanel.jsx"), /<AtsReport report=\{activeReport\}/);
   assert.match(code("pages/tools/ATSToolPage.jsx"), /<AtsReport report=\{fromStandaloneResult\(result\)\}/, "the public tool");
   assert.match(code("components/SignupAtsHook.jsx"), /<AtsBandCard\b/, "the signup hook's band card");
-  // T9: the extension's popup (the element) and its on-page panel (the renderer, in the panel's shadow root).
-  assert.match(SOURCES["extension/popup.html"], /<draft-ats-report id="ats-report-card">/, "the popup");
+  // T9: the extension's on-page panel (the renderer, in the panel's shadow root) — ⭐ T31: the popup's element went with
+  // the retired toolbar popup; the dock's ATS tab is the extension's one place for the report
   assert.match(strip(SOURCES["extension/resumePanel.js"]), /ATS\.mountAtsReport\(/, "the on-page panel");
 });
 

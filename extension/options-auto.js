@@ -10,7 +10,24 @@
 //     being logged at the same moment. Turning a site's last switch off gives Chrome's access back there.
 //   · ⭐ T12: the sites the user chose with the popup's "Always read here" are listed below the preset table, with the
 //     same four switches and Remove (gives Chrome's access back and unregisters the watcher).
-import { SITES, DISPLAY_ORDER, BEHAVIOURS, DISCLOSURE, ALWAYS, siteById, consentCovers, readQuality, originPattern, customOriginFor } from './autoRead.js';
+import { SITES, DISPLAY_ORDER, BEHAVIOURS, DISCLOSURE, ALWAYS, CARD, OPTIONAL_ORIGINS, siteById, consentCovers, readQuality, originPattern, customOriginFor } from './autoRead.js';
+
+/**
+ * ⭐ T31 · the toolbar popup's one-time card, moved here: ONE Chrome prompt for every preset site, then Read + Prepare on
+ * those Chrome granted (AUTO_READ_CONSENT_ALL). ⛔ The request is the handler's FIRST call, synchronous, in the click;
+ * the pending note goes to the worker in the same turn (Chrome's answer can outlive the handler).
+ */
+export function onConsentAll(api) {
+  const asked = api.permissions.request({ origins: [...OPTIONAL_ORIGINS] });
+  try { const p = api.runtime.sendMessage({ type: 'AUTO_READ_PENDING', kind: 'all' }); if (p && typeof p.catch === 'function') p.catch(() => {}); } catch { /* the worker finishes a grant it sees */ }
+  return (async () => {
+    let granted = false;
+    try { granted = await asked; } catch { granted = false; }
+    if (!granted) { await Promise.resolve(api.runtime.sendMessage({ type: 'AUTO_READ_PENDING_CLEAR' })).catch(() => null); return { ok: false, message: CARD.refused }; }
+    const r = (await api.runtime.sendMessage({ type: 'AUTO_READ_CONSENT_ALL', agree: true })) || { ok: false };
+    return r.ok ? { ...r, message: CARD.done } : { ...r, message: CARD.refused };
+  })();
+}
 
 /**
  * ⭐ T31 (owner 10-25) · "Always read here", moved from the toolbar popup: the dock's offer opens this page with
@@ -21,7 +38,9 @@ import { SITES, DISPLAY_ORDER, BEHAVIOURS, DISCLOSURE, ALWAYS, siteById, consent
  */
 export function onAlwaysHere(api, here) {
   const asked = here ? api.permissions.request({ origins: [...here.origins] }) : null;
-  if (asked) { try { const p = api.runtime.sendMessage({ type: 'AUTO_READ_PENDING', kind: 'site', origin: here.origin, frames: here.frames });
+  // a site already chosen only gains its form's frame (the popup's old "second click") — its own switches stay as they are
+  const note = here?.existing ? { kind: 'frame', origin: here.origin, site: here.frames[0] } : { kind: 'site', origin: here?.origin, frames: here?.frames };
+  if (asked) { try { const p = api.runtime.sendMessage({ type: 'AUTO_READ_PENDING', ...note });
     if (p && typeof p.catch === 'function') p.catch(() => {}); } catch { /* the worker finishes a grant it sees */ } }
   return (async () => {
     if (!here) return { ok: false, error: 'bad_site' };
@@ -30,6 +49,12 @@ export function onAlwaysHere(api, here) {
     if (!granted) {
       await Promise.resolve(api.runtime.sendMessage({ type: 'AUTO_READ_PENDING_CLEAR' })).catch(() => null);
       return { ok: false, error: 'not_granted', message: ALWAYS.refused(here.host) };
+    }
+    if (here.existing) {
+      let r = { ok: true };
+      for (const site of here.frames) r = (await api.runtime.sendMessage({ type: 'AUTO_READ_ALLOW_FRAME', origin: here.origin, site })) || { ok: false };
+      const names = here.frames.map(id => siteById(id).name).join(' and ');
+      return { ...r, message: r.ok ? `draft reads ${names}'s form on ${here.host} now.` : 'That could not be changed.' };
     }
     const r = (await api.runtime.sendMessage({ type: 'AUTO_READ_ALLOW_SITE', origin: here.origin, frames: here.frames })) || { ok: false };
     return { ...r, message: r.ok ? ALWAYS.on(here.host) : ALWAYS.refused(here.host) };
@@ -140,6 +165,15 @@ export function mount(doc, api) {
     say.textContent = r?.ok ? 'Thank you. Choose the sites below — each asks Chrome for its own access.' : 'Could not record that.';
     await refresh();
   });
+  // ⭐ T31: every preset site in ONE prompt — the card's press, now here (shown until every one is granted)
+  const all = $('auto-allow-all');
+  if (all) {
+    all.textContent = CARD.allow;
+    all.addEventListener('click', () => {
+      const asked = onConsentAll(api);                                  // ⛔ first: inside the gesture
+      void asked.then((r) => { say.textContent = r.message || ''; return refresh(); }).catch(() => null);
+    });
+  }
   $('auto-kill').addEventListener('click', async () => {
     const r = await api.runtime.sendMessage({ type: 'AUTO_READ_KILL' });
     say.textContent = r?.ok ? 'Everything is off, and draft has given back its access to every site.' : 'Could not turn everything off.';
@@ -226,6 +260,7 @@ export function mount(doc, api) {
     agree.hidden = full;
     const at = s?.consent2?.at ?? s?.consent?.at;
     $('auto-agreed').textContent = full ? `You agreed on ${hhmm(at)}.` : '';
+    if ($('auto-allow-all')) $('auto-allow-all').hidden = SITES.every(site => !!state?.granted?.[site.id]);
     renderCustom(s);
     for (const site of SITES) {
       for (const b of BEHAVIOURS) {
@@ -252,21 +287,28 @@ export function mount(doc, api) {
     render();
     return state;
   }
-  // ⭐ T31: the site the dock's offer named — one switch, above the table, until it is chosen
-  const here = hereFromSearch(doc.defaultView?.location?.search ?? globalThis.location?.search ?? '');
+  // ⭐ T31: the site the dock's offer named — one switch, above the table, until it is chosen (or, for a site already
+  // chosen, until the frame its form sits in is allowed too)
+  const ask = hereFromSearch(doc.defaultView?.location?.search ?? globalThis.location?.search ?? '');
   const hereRow = $('auto-here-row');
-  if (here && hereRow) {
+  const ready = refresh().catch(() => null).then((st) => {
+    if (!ask || !hereRow) return st;
+    const entry = st?.settings?.custom?.[ask.origin] || null;
+    const frames = entry ? ask.frames.filter(id => !entry.frames.includes(id)) : ask.frames;
+    if (entry && !frames.length) return st;                               // nothing left to ask for
+    const here = entry ? { ...ask, existing: true, frames, origins: frames.flatMap(id => siteById(id).origins) } : ask;
     const box = $('auto-here-box');
-    $('auto-here-label').textContent = `Always read ${here.host}`;
-    $('auto-here-hint').textContent = ALWAYS.hint(here.host, here.frames.map(id => siteById(id).name));
+    const names = here.frames.map(id => siteById(id).name);
+    $('auto-here-label').textContent = entry ? `Also read ${names.join(' and ')}'s form on ${here.host}` : `Always read ${here.host}`;
+    $('auto-here-hint').textContent = entry ? `Chrome will ask for ${names.join(' and ')} — for this site's form only.` : ALWAYS.hint(here.host, names);
     hereRow.hidden = false;
     box.addEventListener('change', () => {
       if (!box.checked) return;
       const asked = onAlwaysHere(api, here);                                // ⛔ first: inside the gesture
       void asked.then((r) => { say.textContent = r.message || ''; if (r.ok) hereRow.hidden = true; else box.checked = false; return refresh(); }).catch(() => null);
     });
-  }
-  const ready = refresh().catch(() => null);
+    return st;
+  });
   return { boxes, removes, agree, ready, refresh };
 }
 

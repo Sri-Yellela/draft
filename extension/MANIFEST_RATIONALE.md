@@ -32,10 +32,10 @@ access **revoked**, which is the removal case. Findings: `docs/GATED_HANDOFF_ARC
 
 | Permission | Required by | What breaks without it |
 |---|---|---|
-| `activeTab` | `background.js:112` (hotkey capture), `background.js:130` (gated handoff), `popup.js:9` (`getCurrentTab`); also the right-click **Save this page to draft** (a context-menu click grants it too) and the popup's **Report this form** (D55) | The gated handoff cannot reach the portal at all — there is deliberately no host permission for any portal origin, so this grant, taken per tab at the moment the user invokes the extension, is the only access that exists. Injection fails with "Cannot access contents of the page". |
+| `activeTab` | `background.js:112` (hotkey capture), `background.js:130` (gated handoff), the **toolbar press** (⭐ T31, 10-25: `background.js` `chrome.action.onClicked` → `toolbarPress.js` — the toolbar popup is retired, and the press grants it as opening the popup did); also the right-click **Save this page to draft** (a context-menu click grants it too) and the dock's **Report this form** (D55) | The gated handoff cannot reach the portal at all — there is deliberately no host permission for any portal origin, so this grant, taken per tab at the moment the user invokes the extension, is the only access that exists. Injection fails with "Cannot access contents of the page". |
 | `contextMenus` | `background.js` `chrome.contextMenus.create` (in `onInstalled`, the four items in `formReport.js` `CONTEXT_MENUS`) and `chrome.contextMenus.onClicked` → `captureActiveTab()` / `saveLinkToDraft()` (D55 decision B, 10-07) / `handleGatedHandoff()` / `openDock()` (⭐ T22, 10-15: the popup's fill and score tiles left, and what they did stays one right-click away) | `chrome.contextMenus` is undefined: the right-click items **Save this page to draft**, **Save link to draft**, **Fill this application with draft** and **Show draft's ATS report** do not exist. Nothing else changes — the toolbar button and `Ctrl+Shift+K` capture as before. It adds no access: *Save this page* runs the same capture under the `activeTab` grant the click itself creates, and *Save link* reads no page at all — it sends the link's address to our server, which refetches the posting from the ATS's own listing or refuses the link. Chrome shows no install-time warning for it. |
-| `scripting` | `gated-handoff.js:398,452,486,521,656` (probe, fill, overlay, edits), `popup.js` ATS button | `chrome.scripting` is undefined. The gated handoff cannot read a form, fill one, or render the review overlay; the ATS-score button cannot collect the page text. |
-| `storage` | `background.js` `reportCapture()` (`storage.local` last capture), `background.js:147,190` + `gated-handoff.js:259-308` (`storage.session` packets and batch state) | `chrome.storage` is undefined. The popup cannot show the result of a hotkey capture it was not open for, and the handoff cannot hold a packet across an MV3 service-worker teardown. (`storage.sync` is no longer used: the custom-shortcut recorder it backed was retired with the content script, and rebinding is now Chrome's own.) |
+| `scripting` | `gated-handoff.js:398,452,486,521,656` (probe, fill, overlay, edits), `dockHost.js` (the dock and its popups, top frame only), `toolbarPress.js` (the press's toggle) | `chrome.scripting` is undefined. The gated handoff cannot read a form, fill one, or render the review overlay; the dock cannot be drawn. |
+| `storage` | `background.js` `reportCapture()` (`storage.local` last capture), `background.js:147,190` + `gated-handoff.js:259-308` (`storage.session` packets and batch state) | `chrome.storage` is undefined. The dock cannot remember where it sat on a site, and the handoff cannot hold a packet across an MV3 service-worker teardown. (`storage.sync` is no longer used: the custom-shortcut recorder it backed was retired with the content script, and rebinding is now Chrome's own.) |
 
 **Not declared, deliberately:**
 
@@ -95,20 +95,22 @@ in Options, given back when they switch it off; `host_permissions` is unchanged.
 
 ## Optional host permissions (D64, 10-07; D97, 10-13; D97 REVISED + T12, 10-15)
 
-**Nothing is granted at install, and nothing is granted except from the user's own click.** Three clicks can
+**Nothing is granted at install, and nothing is granted except from the user's own click.** These clicks can — all
+on the extension's own Settings page (Settings → Permissions' switch too, `options-permissions.js` `onAllow`) —
 ask, each calling `chrome.permissions.request` as the FIRST call of its handler, inside the gesture, and Chrome
 shows its own prompt naming the hosts:
 
-1. ⭐ **The popup's one-time card** (D97 REVISED, owner 10-14: *"read has got to be automatic, we will seek
-   permissions"*) — *"draft reads job and application pages for you and prepares your answers. Allow it on these
-   sites"*, the disclosure in plain words, and **ONE prompt for every preset host below** (`popup-auto.js`
-   `onConsent`). Granted → Read and Prepare are on for those sites; Capture and Fill stay their own switches, off.
-   A refusal writes nothing. The card lives in the popup only — there is no first-run tab (owner 10-15).
+1. ⭐ **Settings → "Allow on these sites"** (D97 REVISED, owner 10-14: *"read has got to be automatic, we will seek
+   permissions"*; ⭐ T31, 10-25: moved from the retired toolbar popup's one-time card) — under the disclosure in plain
+   words, **ONE prompt for every preset host below** (`options-auto.js` `onConsentAll`). Granted → Read and Prepare
+   are on for those sites; Capture and Fill stay their own switches, off. A refusal writes nothing. The dock offers it
+   only on a preset site, before any consent — and opens Settings to press it (a web page cannot ask Chrome).
 2. **A switch in Settings** → *Read application pages automatically*, per site (`options-auto.js` `onSwitch`),
    after the disclosure and *I agree* — as since D97.
-3. ⭐ **"Always read here" in the popup** (T12) — for ONE company careers origin the user is on (`stripe.com`…),
-   plus the ATS site whose frame holds its form when that is known locally (`popup-auto.js` `onAlwaysHere`; a
-   second click, `onAllowFrame`, asks for the frame's site when it was not known before the first).
+3. ⭐ **"Always read <site>" in Settings** (T12; ⭐ T31: moved from the retired toolbar popup) — for ONE company careers
+   origin, the one the dock offered it on (the tab's own origin, carried to `options.html?here=…`), plus the ATS
+   site whose frame holds its form when that is known locally (`options-auto.js` `onAlwaysHere`); a frame found
+   later is allowed from Settings → Permissions.
 
 Turning a site's last switch off, *Remove* in Settings, or *Turn off everything* calls `chrome.permissions.remove`.
 Until the user clicks, the paragraph above is still true word for word: no standing access to any site.

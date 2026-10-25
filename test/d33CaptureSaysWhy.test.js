@@ -179,15 +179,14 @@ test("extension: ⛔ a 2xx that does not say where the job went is NOT a capture
   assert.equal(off.link, null);
 });
 
-test("extension: the background and popup word nothing themselves", () => {
+test("extension: the background and the page word nothing themselves", () => {
   const bg = read("extension/background.js");
-  const popup = read("extension/popup.js");
   assert.match(bg, /return captureResultFrom\(res\.status, json, RESUME_MASTER_URL\);/);
   assert.doesNotMatch(bg, /`Captured: \$\{label\}`|Already on your board: /, "the old self-worded success is back");
-  assert.doesNotMatch(popup, /'✓ Captured: '/, "the popup prefixed every success with '✓ Captured:'");
-  assert.match(popup, /el\.textContent = result\.message \|\| '';/);
-  assert.match(popup, /result\.onBoard \? 'success' : 'warn'/, "saved-but-not-on-the-board must not be shown green");
-  assert.match(read("extension/popup.html"), /id="capture-open"/);
+  // ⭐ T31: the retired popup showed the server's sentence; the page's capture toast shows it now, and the dock's Capture
+  // adds no words of its own
+  assert.match(bg, /func: showCaptureToast, args: \[result\.message, !!result\.success, toastTheme\(\)\]/);
+  assert.match(bg, /capture: async \(tab\) => \{ const r = await captureActiveTab\(tab\); return \{ ok: !!r\?\.success, say: null \}; \}/);
 });
 
 test("extension: a remote JSON-LD posting sends 'Remote (United States)', which the gate admits", async () => {

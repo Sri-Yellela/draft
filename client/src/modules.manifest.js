@@ -224,8 +224,9 @@ export const CROSS_PRODUCT = Object.freeze([
   { module: "shared/atsReportElement.js", what: "<draft-ats-report> — THE ATS report (structure, copy, events, the renderer)",
     parts: ["shared/atsReportModel.js", "shared/atsReportStyles.js", "shared/atsReportTokens.js"],
     web: "components/AtsReport.jsx", bundle: "extension/atsReport.js",
-    extension: ["extension/popup.html", "extension/popup.js", "extension/resumePanel.js", "extension/boardJob.js"],
-    why: "the extension's popup and on-page panel draw the web app's ATS report from the same JSON (T9)" },
+    // ⭐ T31 (10-25): the toolbar popup is retired — the dock's ATS tab is the extension's one place for the report
+    extension: ["extension/resumePanel.js", "extension/boardJob.js"],
+    why: "the extension's on-page panel (the dock's ATS tab) draws the web app's ATS report from the same JSON (T9)" },
 ]);
 
 // ── MIRRORS: a client module the EXTENSION re-draws in its own CSS (it cannot import client code). The guard

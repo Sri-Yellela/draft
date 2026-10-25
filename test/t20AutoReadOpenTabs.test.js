@@ -190,21 +190,22 @@ test("⛔ T20 · the pending click: only from the extension's own pages; its ori
   h.restore();
 });
 
-test("⛔ T20 · D23 + the gesture: the popup says the click AFTER the request, in the same turn (nothing awaited before either); background.js finishes it on onAdded; injection only from consent", () => {
-  const pop = read("extension/popup-auto.js");
-  for (const [start, end, kind] of [
-    ["export function onConsent(api) {", "/** \"Always read here\" changed.", "'all'"],
-    ["export function onAlwaysHere(api, here, checked) {", "/** The SECOND click:", "'site'"],
-    ["export function onAllowFrame(api, ask) {", "// ── drawing", "'frame'"],
+test("⛔ T20 · D23 + the gesture: Settings says the click AFTER the request, in the same turn (nothing awaited before either); background.js finishes it on onAdded; injection only from consent", () => {
+  // ⭐ T31: the retired popup's three clicks are Settings' (options-auto.js) — the one-time card's one prompt, and
+  // "Always read here" (with the frame-only second click folded into it for a site already chosen)
+  const pop = read("extension/options-auto.js");
+  for (const [start, end] of [
+    ["export function onConsentAll(api) {", "export function onAlwaysHere("],
+    ["export function onAlwaysHere(api, here) {", "/** The site a deep link asks about"],
   ]) {
     const fn = pop.slice(at(pop, start), at(pop, end));
     const req = fn.indexOf("api.permissions.request(");
-    const pend = fn.indexOf(`pending(api, { kind: ${kind}`);
-    assert.ok(req > 0 && pend > req, `${kind}: the request first, then the pending click`);
-    assert.ok(fn.indexOf("await") > pend, `${kind}: nothing awaited before the request or the pending click`);
-    assert.ok(fn.indexOf("return (async") > pend, `${kind}: said synchronously, before the async part`);
+    const pend = fn.indexOf("type: 'AUTO_READ_PENDING'");
+    assert.ok(req > 0 && pend > req, `${start}: the request first, then the pending click`);
+    assert.ok(fn.indexOf("await") > pend, `${start}: nothing awaited before the request or the pending click`);
+    assert.ok(fn.indexOf("return (async") > pend, `${start}: said synchronously, before the async part`);
   }
-  // opening the popup injects nothing: the module never names scripting, and only the worker's consents inject
+  // the page injects nothing: the module never names scripting, and only the worker's consents inject
   assert.doesNotMatch(pop, /scripting\./);
   const ar = read("extension/autoRead.js");
   const callers = [...ar.matchAll(/await afterConsent\(/g)].length;

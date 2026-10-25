@@ -253,7 +253,9 @@ test("⛔ D97 · permissions.request lives in click handlers only — Options' s
   // read here" turned on, and the frame's second click — each pinned the same way in test/d97rT12AlwaysRead.test.js.
   // ⭐ T29 (owner 10-23: a permission is requested on the settings page): Settings → Permissions — each switch's request is
   // its first chrome call, pinned below
-  assert.deepEqual(hits, ["options-auto.js", "options-permissions.js", "popup-auto.js", "popup.js"]);
+  // ⭐ T31 (owner 10-25): the toolbar popup is retired — its three clicks and T11's "Allow draft on <site>" are Settings'
+  // now: the request happens ONLY on the extension's own settings page (a web page cannot)
+  assert.deepEqual(hits, ["options-auto.js", "options-permissions.js"]);
   const perm = read("extension/options-permissions.js");
   const allow = perm.slice(at(perm, "export function onAllow(api, siteId) {"), at(perm, "/** Draw the section"));
   assert.equal(allow.slice(allow.indexOf("api."), allow.indexOf("api.") + 25), "api.permissions.request({", "onAllow's first chrome call is the request");
@@ -265,21 +267,19 @@ test("⛔ D97 · permissions.request lives in click handlers only — Options' s
   }
   assert.equal((perm.match(/permissions\.request\(/g) || []).length, 2, "two requests: a preset site's switch (onAllow) and a chosen site's");
   assert.doesNotMatch(perm.slice(at(perm, "async function refresh() {"), at(perm, "for (const id of DISPLAY_ORDER)")), /permissions\.request/, "never on load");
-  const pop = read("extension/popup.js");
-  assert.equal((pop.match(/permissions\.request\(/g) || []).length, 1, "one request in the popup");
-  const click = pop.slice(at(pop, "document.getElementById('btn-allow-frame').addEventListener('click', async () => {"),
-    at(pop, "document.getElementById('btn-fill-primary').addEventListener('click', fillActiveTab);"));
-  const firstChrome = click.indexOf("chrome.");
-  assert.ok(click.slice(firstChrome).startsWith("chrome.permissions.request({ origins:"), "the request is the click's first chrome call");
-  assert.ok(click.indexOf("chrome.permissions.request(") < click.indexOf("await fillActiveTab"), "before the fill");
-  assert.equal(click.indexOf("await"), click.indexOf("await chrome.permissions.request("), "nothing is awaited before it — the gesture holds");
+  // T11's "Allow draft on <site>": the fill's popup on the page opens Settings → Permissions (DOCK_ACT allow-site), whose
+  // switch asks Chrome (onAllow, pinned above) — the page itself asks nothing
+  assert.match(read("extension/background.js"), /'allow-site': async \(\) => \{ await chrome\.tabs\.create\(\{ url: chrome\.runtime\.getURL\('options\.html#permissions'\) \}\);/);
   const opt = read("extension/options-auto.js");
   const fn = opt.slice(at(opt, "export function onSwitch(api,"), at(opt, "const hhmm ="));
   const firstCall = fn.indexOf("api.");
   assert.equal(fn.slice(firstCall, firstCall + 25), "api.permissions.request({", "the request is the handler's first chrome call");
   assert.ok(fn.indexOf("api.permissions.request(") < fn.indexOf("await"), "before any await");
   // ⭐ T31: "Always read here" moved here from the popup — its request is ITS handler's first call too
-  assert.equal((opt.match(/permissions\.request\(/g) || []).length, 2);
+  // ⭐ T31: and the one-time card's one prompt (onConsentAll) — three requests, each its handler's first call
+  assert.equal((opt.match(/permissions\.request\(/g) || []).length, 3);
+  const all = opt.slice(at(opt, "export function onConsentAll(api) {"), at(opt, "export function onAlwaysHere("));
+  assert.equal(all.slice(all.indexOf("api."), all.indexOf("api.") + 25), "api.permissions.request({", "onConsentAll's first chrome call is the request");
   const here = opt.slice(at(opt, "export function onAlwaysHere(api, here) {"), at(opt, "/** The site a deep link asks about"));
   assert.equal(here.slice(here.indexOf("api."), here.indexOf("api.") + 25), "api.permissions.request({", "onAlwaysHere's first chrome call is the request");
   assert.ok(here.indexOf("api.permissions.request(") < here.indexOf("await"), "before any await");

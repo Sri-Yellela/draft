@@ -40,7 +40,7 @@ import { C_LIGHT, C_DARK } from './tokens.js';
 // D97 (J5): automatic reading, per site, all off — the four switches, the watcher's registrations, the consent.
 import {
   handlers as AUTO_READ_HANDLERS, configureAutoRead, reconcileAutoRead, onPermissionsRemoved, onPermissionsAdded, forgetTab, noteFrameSite,
-  AUTO_READ_KEY, normaliseSettings, SITES as AUTO_SITES, customOriginFor, originPattern, popupAutoView, siteFor as autoSiteFor,
+  AUTO_READ_KEY, normaliseSettings, SITES as AUTO_SITES, customOriginFor, originPattern, popupAutoView, siteFor as autoSiteFor, takeAutoCapture,
 } from './autoRead.js';
 
 // ⭐ T12 · a press found the form inside an ATS frame draft may not read yet: the settings remember WHICH site that page's
@@ -161,8 +161,8 @@ async function reportCapture(tabId, result) {
       target: { tabId }, func: showCaptureToast, args: [result.message, !!result.success, toastTheme()],
     });
   } catch (_) { /* the toast is a courtesy; never let it change the outcome */ }
-  // Recorded so the popup can show the outcome of a hotkey capture it was not open for.
-  chrome.storage.local.set({ lastCapture: { ...result, at: Date.now() } }).catch(() => {});
+  // ⭐ T31 (10-25): the last capture is no longer stored — the toolbar popup that showed it is gone, and its result is said
+  // on the page as it happens (the capture toast). Nothing kept that nothing reads.
 }
 
 /**
@@ -361,17 +361,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;                                            // async response
   }
 
-  // D64 · the popup's "Captured today", and its undo — asked when the popup opens its list.
-  if (message.type === 'AUTO_CAPTURES') {
-    authedFetch(RESUME_MASTER_URL, '/api/import/auto')
-      .then(r => (r ? r.json() : null)).then(sendResponse).catch(() => sendResponse(null));
-    return true;
-  }
-  if (message.type === 'AUTO_CAPTURE_UNDO' && message.jobId) {
-    authedFetch(RESUME_MASTER_URL, `/api/import/auto/${encodeURIComponent(message.jobId)}/undo`, { method: 'POST' })
-      .then(r => (r ? r.json() : null)).then(sendResponse).catch(() => sendResponse(null));
-    return true;
-  }
+  // (D64's "Captured today" list and its undo were the retired popup's — ⭐ T31: an automatic capture's Undo is said on
+  // its own page, when it happens: autoRead.js autoCapture → DOCK_ACT undo-capture)
 
   // T6 — only the extension's own Options page may ask (a web page's message never reaches this listener anyway)
   if (message.type === 'DIAGNOSTICS') {
@@ -498,25 +489,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  // ⭐ §8 row 17 · the Copy sheet — the prepared answers, for the popup to list. Nothing enters the page.
-  if (message.type === 'COPY_SHEET') {
-    chrome.tabs.query({ active: true, currentWindow: true })
-      .then(([tab]) => copySheetFor({ serverUrl: RESUME_MASTER_URL, tab }))
-      .then(sendResponse)
-      .catch(() => sendResponse({ ok: false, rows: [] }));
-    return true;
-  }
-
-  // ⭐ §8 row 15, decision D · THE TODAY RING — today's Drafts and new résumés against the user's CAP
-  // (the day's Draft slots, services/draftSlots.js), never a goal. It asks about the ACCOUNT, not the
-  // page: no tab, no URL, nothing read — so it is allowed on popup open (D23's rule is about the page).
-  if (message.type === 'TODAY_RING') {
-    authedFetch(RESUME_MASTER_URL, '/api/draft/slots')
-      .then(r => (r && r.ok ? r.json() : null))
-      .then(s => sendResponse(s ? { limit: s.limit, used: s.used, remaining: s.remaining, windowHours: s.windowHours ?? 24 } : null))
-      .catch(() => sendResponse(null));
-    return true;
-  }
+  // (⭐ T31: the retired popup's own Copy sheet list — COPY_SHEET — and its today ring — TODAY_RING — went with it: the
+  // Copy sheet is the dock's tab, COPY_SHEET_PANEL; the day's cap is said by draft when a Draft would pass it)
 
   // The popup's auth probe, moved here for the same CORS reason: from the popup this request
   // carries chrome-extension://, which corsOrigin refuses in production.
@@ -840,7 +814,7 @@ async function saveLinkToDraft(linkUrl, tab) {
       result = { success: false, outcome: null, onBoard: false, message: 'Could not reach draft', link: null, jobId: null };
     }
   }
-  // The same toast and the same lastCapture record a capture leaves — no new storage key.
+  // The same toast a capture leaves — no storage key.
   if (tab?.id) await reportCapture(tab.id, result);
   return result;
 }
@@ -908,7 +882,7 @@ async function autoFactsFor(tab) {
   const here = origin ? await has([originPattern(origin)]) : false;
   const binding = await bindingForTab(tab).catch(() => null);
   const view = popupAutoView({ settings: normaliseSettings(raw), url: tab?.url || null, granted: { here, sites }, jobId: binding?.jobId ?? null, bound: !!binding });
-  return { card: !!view.card, cardSite: autoSiteFor(tab?.url)?.name || null, here: view.here || null };
+  return { card: !!view.card, cardSite: autoSiteFor(tab?.url)?.name || null, here: view.here || null, frameAsk: view.frameAsk || null };
 }
 
 // THE LISTENER FIRING IS THE PERMISSION: a toolbar press is a user gesture, and it grants activeTab for the tab — the
@@ -924,6 +898,17 @@ const DOCK_ACTS = Object.freeze({
   capture: async (tab) => { const r = await captureActiveTab(tab); return { ok: !!r?.success, say: null }; },   // the capture says its own outcome on the page
   draft: async (tab) => { const r = await runDraft(tab, { control: 'draft' }); return { ok: !!r?.ok, say: r?.asked ? null : r?.message || null }; },
   fill: async (tab) => { const r = await handleGatedHandoff(tab); return { ok: !!r?.ok, say: r?.ok ? null : r?.message || 'Could not fill this page.' }; },
+  unbind: async (tab) => { await clearBinding(tab.id); return { ok: true, say: null }; },
+  // ⭐ T31 · Undo an AUTOMATIC capture — only the job draft itself just added on THIS tab (never one the message names)
+  'undo-capture': async (tab) => {
+    const jobId = takeAutoCapture(tab.id);
+    if (jobId == null) return { ok: false, say: 'Nothing to undo here.' };
+    const r = await authedFetch(RESUME_MASTER_URL, `/api/import/auto/${encodeURIComponent(jobId)}/undo`, { method: 'POST' }).catch(() => null);
+    const body = r ? await r.json().catch(() => ({})) : null;
+    if (!body?.success) return { ok: false, say: 'Could not undo that — remove it from your board in draft.' };
+    await clearBinding(tab.id);
+    return { ok: true, say: 'Taken off your board.' };
+  },
   'sign-in': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/login` }); return { ok: true, say: null }; },
   // owner 10-23: a permission is requested on the settings page — Allow opens it at Permissions, where one click asks Chrome
   'allow-site': async () => { await chrome.tabs.create({ url: chrome.runtime.getURL('options.html#permissions') }); return { ok: true, say: null }; },
@@ -932,7 +917,8 @@ const DOCK_ACTS = Object.freeze({
   'always-here': async (tab) => {
     const origin = customOriginFor(tab?.url);
     if (!origin) return { ok: false, say: 'draft cannot read this site automatically.' };
-    const frames = ((await autoFactsFor(tab).catch(() => null))?.here?.frames || []).map(f => f.id);
+    const facts = await autoFactsFor(tab).catch(() => null);
+    const frames = [...new Set([...(facts?.here?.frames || []).map(f => f.id), ...(facts?.frameAsk?.site ? [facts.frameAsk.site] : [])])];
     const q = new URLSearchParams({ here: origin, ...(frames.length ? { frames: frames.join(',') } : {}) });
     await chrome.tabs.create({ url: chrome.runtime.getURL(`options.html?${q}#auto-read`) });
     return { ok: true, say: null };

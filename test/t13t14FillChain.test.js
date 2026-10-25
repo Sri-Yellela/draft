@@ -251,38 +251,9 @@ test("⛔ T14: a NEW tab on a known address binds at once — no read, no reques
   done();
 });
 
-test("⛔ T14: the popup draws the tab's state on open — the card, the bound line, Fill — and reads nothing from the page", () => {
-  const els = {};
-  const sent = [];
-  const el = (id) => (els[id] ||= { id, style: {}, textContent: "", className: "", hidden: false, disabled: false, title: "", dataset: {}, children: [],
-    listeners: {}, addEventListener(t, f) { (this.listeners[t] ||= []).push(f); }, append(...x) { this.children.push(...x); }, setAttribute() {},
-    set innerHTML(v) { this.children = []; }, get innerHTML() { return ""; } });
-  const events = [];
-  const document = { getElementById: el, createElement: (t) => el(`<${t}>${Math.random()}`), addEventListener() {}, dispatchEvent: (e) => events.push(e.type) };
-  const state = { jobId: "wd-zoom-1", title: "Software Engineer", company: "Zoom", via: "known", captured: false, read: true, prepared: true,
-    ats: { score: 72, band: "strong", state: "ready" }, logo: null };
-  const answers = { PROBE_AUTH: { authenticated: true, username: "ada" }, TAB_STATE: { ok: true, state } };
-  const chrome = {
-    runtime: { sendMessage: async (m) => { sent.push(m.type); return answers[m.type] ?? null; }, openOptionsPage() {} },
-    tabs: { query: async () => [{ id: 42, url: APPLY }], create() {} },
-    storage: { local: { get: async () => ({}) } },
-    scripting: { executeScript: async () => { throw new Error("the popup read the page on open"); } },
-  };
-  const sandbox = { document, chrome, window: { close() {} }, setTimeout, clearTimeout, console, URL, Promise, Date, Event: class { constructor(t) { this.type = t; } } };
-  vm.createContext(sandbox);
-  for (const f of ["extension/config.js", "extension/companion.js", "extension/popup.js"]) vm.runInContext(read(f), sandbox);
-  return new Promise((r) => setTimeout(r, 30)).then(() => {
-    assert.deepEqual(sent, ["PROBE_AUTH", "TODAY_RING", "CAPTURED_TODAY", "TAB_STATE"], "no POPUP_CONTEXT, no PREVIEW_ACTIVE_TAB on open");
-    assert.equal(els["bound"].style.display, "block");
-    assert.equal(els["bound-line"].textContent, "On draft — Software Engineer at Zoom");
-    assert.equal(els["preview-title"].textContent, "Software Engineer");
-    assert.equal(els["job-preview"].style.display, "grid");
-    assert.equal(els["btn-fill-primary"].style.display, "flex", "Fill is the action — it reads and prepares itself if it must");
-    assert.equal(els["btn-read-page"].textContent, "Read again", "never asks for a FIRST read of a tab it knows");
-    assert.ok(events.includes("draft:tabstate"), "the progress block repaints for the newly bound tab");
-  });
-});
-
+// ⭐ T31 (owner 10-25): the toolbar popup is retired — "the popup draws the tab's state on open" went with it; the tab's
+// state itself (TAB_STATE: the job, read, prepared — no page read, nothing sent) is checked on the REAL extension by the
+// fillChain walk below, section 4.
 test("⛔ T14: the progress record keeps addresses through the whitelist — capped, deduplicated, accumulated", async () => {
   const { stores } = chromeStub();
   const { progress, noteAddress, noteCapture, MAX_ADDRESSES, PROGRESS_KEY } = await import("../extension/progress.js");
@@ -302,7 +273,7 @@ test("⛔ T14: the progress record keeps addresses through the whitelist — cap
 
 // ── the real Chrome: rows (36) and (37) ─────────────────────────────────────────────────────────────────────────────
 const chromeBin = await findChrome();
-test("⛔ T13 + T14 in a REAL Chrome — Fill from a cold tab (every auto switch off) reads, prepares and fills; Read prepares; the apply URL in a NEW tab: the real popup shows the job and its progress and its Fill works with no prior press; no form says why",
+test("⛔ T13 + T14 in a REAL Chrome — Fill from a cold tab (every auto switch off) reads, prepares and fills; Read prepares; the apply URL in a NEW tab: the tab's state names the job and its progress and its Fill works with no prior press; no form says why",
   { skip: chromeBin.skip || false, timeout: 400000 }, async () => {
     const lines = [];
     const r = await runScenario("fillChain", { log: (l) => lines.push(l) });

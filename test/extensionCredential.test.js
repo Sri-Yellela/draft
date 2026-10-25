@@ -142,19 +142,19 @@ test("the extension sends its own token and NEVER the ambient cookie", () => {
   // Exactly ONE credentialed call exists in the whole extension: the bootstrap that trades a
   // session for a token. Counted in CODE, ignoring the prose that explains it.
   const codeOf = (p) => read(p).split("\n").filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l)).join("\n");
-  const includes = ["extension/auth.js", "extension/background.js", "extension/gated-handoff.js",
-                    "extension/popup.js", "extension/options.js"]
+  // (⭐ T31: popup.js went with the retired popup; every file the extension ships is counted instead of a list)
+  const includes = fs.readdirSync("extension").filter(f => f.endsWith(".js")).map(f => `extension/${f}`)
     .flatMap(f => (codeOf(f).match(/credentials: *'include'/g) || []).map(() => f));
   assert.deepEqual(includes, ["extension/auth.js"],
     `only the token bootstrap may send the cookie; found in: ${includes.join(", ") || "nowhere"}`);
 });
 
-test("the popup names the identity the extension is acting as", () => {
-  const html = read("extension/popup.html");
-  const js = read("extension/popup.js");
-  assert.match(html, /id="identity-who"/, "there must be somewhere to render it");
+test("Settings names the identity the extension is acting as (⭐ T31: the retired popup's account line moved there)", () => {
+  const html = read("extension/options.html");
+  const js = read("extension/options.js");
+  assert.match(html, /id="account-who"/, "there must be somewhere to render it");
   assert.match(js, /Signed in as/, "and it must actually say so");
   // Rendered as text, never parsed: a username is user-controlled input.
-  assert.match(js, /name\.textContent = identity\.username/);
-  assert.doesNotMatch(js, /innerHTML\s*=\s*[`'"].*\$\{/, "no interpolated innerHTML in the popup");
+  assert.match(js, /name\.textContent = id\.username/);
+  assert.doesNotMatch(js, /innerHTML\s*=\s*[`'"].*\$\{/, "no interpolated innerHTML on the settings page");
 });

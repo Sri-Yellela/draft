@@ -1,5 +1,24 @@
 # Chrome Web Store listing — draft v1.5.2
 
+> **The toolbar popup is retired (2026-10-25, T31, owner decision — NOT yet uploaded).** ⛔ **Re-paste at the next
+> upload: `activeTab`, `storage` (now NINE values — it said Ten values before T31), the optional host permissions,
+> the single purpose's last paragraph, the Privacy practices tab's Website content item 4, the reviewer notes and the
+> test instructions.** **No permission was added or removed.** What changed: the extension has no toolbar popup any
+> more (`manifest.json` declares no `default_popup`). **Pressing the toolbar icon** (or a shortcut the user binds to
+> it) toggles draft's on-page panel (the dock): on a page that is not a web page it opens the draft board; if the dock
+> is open it closes it to its launcher and reads nothing; otherwise it opens the dock and — signed in only — **that
+> one press reads the page** (the tab's address goes to our server, as the separate "Read this page" press used to
+> send it), then shows only what the page needs as small in-page prompts: sign in; "Add this job to draft?"
+> [Capture] [Draft]; "Answers prepared" [Fill]; the company notice; and the automatic-reading offers. **Where each
+> popup control went:** Capture, Draft and Fill → those prompts; Unlink this page → an icon in the dock's ATS tab; the
+> Copy sheet, ATS report and résumé → the dock's tabs (they already lived there); Report this form → offered by the
+> dock when a fill meets a form draft does not recognise (still two clicks, host and labels only); the account (who
+> is signed in, Sign in, Disconnect, LinkedIn), each site's permission switch, the one-prompt consent for every preset
+> site and **Always read here** → the extension's **settings page**, where every `chrome.permissions.request` now
+> happens (a web page cannot request a permission); the dock's gear opens it. **Storage: nine keys** — the
+> most-recent-capture key is no longer written (a capture's outcome is the toast on the page). The privacy policy says
+> the same, effective October 25, 2026. **Reviewers: press the toolbar icon** on a job posting or an application page.
+
 > **v1.5.2, folded further (2026-10-15, T17 — still v1.5.2, NOT yet uploaded).** ⛔ **Re-paste at the next upload: the
 > `storage` justification (now TEN values) and the reviewer notes.** What changed: everything the extension shows on a
 > page — the review panel, the ATS report, the résumé, the Copy sheet and the one-line status — now sits in ONE panel
@@ -73,7 +92,7 @@ received. Against v1.0.0:
    redirected — a credentialed `fetch` does not follow redirects, so a 301 would break v1.0.0 silently.
 3. **The privacy policy URL moved with it**, and the policy is live on the new origin.
 4. **The extension holds an access token of its own** (`auth.js`) instead of borrowing the browser's
-   session — one of the eight stored values, and the only one transmitted (to our backend only).
+   session — one of the nine stored values, and the only one transmitted (to our backend only).
 5. **No job-board content script and no job-board host permission at install.** v1.0.0 declared six job boards
    and ran a content script on them; that is gone. **One small script runs on jobsviadraft.com only (D99), so the
    draft website can hand a job from your board to the extension** — it reads nothing from the page. Every read starts at a click or a keystroke —
@@ -92,14 +111,17 @@ received. Against v1.0.0:
    Continue but **never submits**, never ticks a terms, consent, attestation or signature box, and never
    saves the form's structure for other users. A kill switch turns all of it off and gives every host
    back. Never LinkedIn, Indeed or Glassdoor.
-   ⭐ **Since 10-15:** a one-time card in the popup turns Read and Prepare on for the preset hosts (SmartRecruiters'
+   ⭐ **Since 10-15:** a one-time consent turns Read and Prepare on for the preset hosts (SmartRecruiters'
    `jobs.smartrecruiters.com` among them) with ONE Chrome prompt, and **Always read here** asks for one company
-   careers origin from a click (under the optional `https://*/*`).
+   careers origin from a click (under the optional `https://*/*`). ⭐ **Since 10-25 (T31)** both live on the
+   settings page (*Read application pages automatically*); the dock's prompt on a page only offers them and opens
+   that page.
 7. **NEW · `contextMenus`** — right-click **Save this page to draft** and **Save link to draft**.
 8. **NEW · Report this form** — the form page's host and field labels (never values), on two clicks.
-9. **The popup** leads with the posting as a job card (logo, company, the ATS score for the user's
-   résumé), shows what a fill will use before it runs, and offers **Prepare this application** and
-   **I submitted it** on a form; the **Copy sheet** lists the user's own prepared answers to copy by hand.
+9. **No toolbar popup (T31, 10-25).** The toolbar icon opens draft's panel on the page (the dock — Fill · ATS ·
+   Résumé · Copy sheet) and, signed in, reads the page in that same press, then asks only what the page needs
+   (Capture or Draft a posting, Fill prepared answers); the **Copy sheet** lists the user's own prepared answers to
+   copy by hand. The account, permissions and automatic reading are on the extension's settings page.
 10. **The capture result** says what happened — added, already on the board, or held off it and why.
 
 ⛔ A rename, a host-permission change and a new optional host permission is the shape that triggers an
@@ -121,10 +143,10 @@ job, and the user applies to it. Automatic reading is the same capture, preparat
 click, on the sites the user has switched on and granted, and capture only for pages that are postings.
 Nothing is ever submitted by the extension.
 
-The popup's other controls (Score, Open draft, Copy sheet, Report form, More → the options page with
-keyboard shortcuts, Sign in with LinkedIn and the automatic-capture switch) are not separate features:
-they open a page of the user's own Draft account or the extension's own options page, or they serve
-the application in front of the user.
+The extension's other controls (the dock's ATS, Résumé and Copy sheet tabs, Report this form, the dock's gear →
+the settings page with the account, Sign in with LinkedIn, per-site permissions and automatic reading) are not
+separate features: they open a page of the user's own Draft account or the extension's own settings page, or they
+serve the application in front of the user.
 
 ---
 
@@ -139,18 +161,18 @@ the application in front of the user.
 
 | Trigger | What happens |
 |---|---|
-| Toolbar → **Read this page** (or R) | Reads the posting in view locally and asks our server whether it is on the user's board — the tab's address, in the request body. Shows the job card. Nothing is read before this press. |
-| Toolbar → **Capture it** / **Ctrl+Shift+K** / right-click **Save this page to draft** | **One capture implementation**: reads the job description on the page in view and sends it to the user's Draft account. Works on any job posting, including employers' own careers pages. |
+| **Press the toolbar icon** (or a shortcut the user binds to it) | On a page that is not a web page, opens the draft board. If draft's panel is open on the page, closes it to its launcher — nothing is read. Otherwise opens the panel (the dock) and, signed in only, reads the page in that same press: asks our server whether it is on the user's board — the tab's address, in the request body — and shows only what the page needs as small prompts in the panel (sign in; *Add this job to draft?* Capture / Draft; *Answers prepared* Fill; the company notice; the automatic-reading offers). Nothing is read or sent before the press. |
+| The panel's **Capture** / **Ctrl+Shift+K** / right-click **Save this page to draft** | **One capture implementation**: reads the job description on the page in view and sends it to the user's Draft account. Works on any job posting, including employers' own careers pages. |
 | Right-click **Save link to draft** | Sends only the link's address; our server reads the posting from the job board's own listing, or refuses the link and saves nothing. |
-| **Automatic capture** (off by default; options page) | Only on a granted host the user switched Capture on for (a preset job host, or a site chosen with Always read here): a page that is a posting is sent to the user's account; our server keeps it only if it fits their board. A non-posting sends nothing. |
-| **Automatic reading** (after the popup's one-time card, or Always read here) | On an allowed site: an application page's question labels and counts are read and kept on this computer (nothing sent); on a tab linked to the user's own job, the answers are prepared on our server (the page's address is sent). |
-| **Fill it** / **Ctrl+Shift+Y** / right-click **Fill this application with draft** / the panel's **Fill this page** on an application form | The gated handoff: fetches the answers the user already saved (building them on demand for a job of the user's with nothing prepared), checks this page is that application's, fills the form and shows a review panel. The user submits. |
+| **Automatic capture** (off by default; settings page) | Only on a granted host the user switched Capture on for (a preset job host, or a site chosen with Always read here): a page that is a posting is sent to the user's account; our server keeps it only if it fits their board. A non-posting sends nothing. |
+| **Automatic reading** (after the one-time consent on the settings page, or Always read here there) | On an allowed site: an application page's question labels and counts are read and kept on this computer (nothing sent); on a tab linked to the user's own job, the answers are prepared on our server (the page's address is sent). |
+| The panel's **Fill** / **Ctrl+Shift+Y** / right-click **Fill this application with draft** / the panel's **Fill this page** on an application form | The gated handoff: fetches the answers the user already saved (building them on demand for a job of the user's with nothing prepared), checks this page is that application's, fills the form and shows a review panel. The user submits. |
 | **I submitted it** | Records the application against the page in view (its address is the evidence). |
-| **Open dock** / right-click **Show draft's ATS report** | Opens the extension's panel on the page (Fill · ATS · Résumé · Copy sheet), in the page's top frame — movable, resizable, kept open. Reads nothing of the page to open it. |
-| **Copy sheet** | Lists the user's own prepared answers in the panel on the page, each with a copy button. Writes nothing into the page's fields. |
-| **Report form** → **Send report** | Shows first, then sends: the form page's host and its field labels — never values. |
-| **Open draft** (the /d button) · More → **Sign in with LinkedIn** | Opens a Draft page in a new tab. Reads nothing. |
-| More → options page | Keyboard shortcuts (both commands, as bound), Sign in with LinkedIn, the automatic-capture switch. |
+| Right-click **Show draft's ATS report** | Opens the extension's panel on the page (Fill · ATS · Résumé · Copy sheet), in the page's top frame — movable, resizable, kept open — at its ATS tab. Reads nothing of the page to open it. |
+| **Copy sheet** (the panel's tab) | Lists the user's own prepared answers in the panel on the page, each with a copy button. Writes nothing into the page's fields. |
+| **Report this form** → **Send the report** (offered by the panel when a fill meets a form draft does not recognise) | Shows first, then sends: the form page's host and its field labels — never values. |
+| **Unlink this page** (an icon in the panel's ATS tab) | Forgets which job this tab is on. Sends nothing. |
+| The panel's gear → **settings page** | The account (who is signed in, Sign in, Disconnect, Sign in with LinkedIn), keyboard shortcuts (both commands, as bound), one permission switch per site, and automatic reading (the one-prompt consent, Always read here, the per-site switches). Every Chrome permission prompt is asked from here. |
 
 ### Which sites it works on
 
@@ -165,22 +187,24 @@ origin at a time.
 ## Permission justifications
 
 **`activeTab`**
-> Granted only when the user explicitly invokes the extension — clicking the toolbar button, a
-> right-click menu item, or pressing one of the two keyboard shortcuts. It is used to read the job
+> Granted only when the user explicitly invokes the extension — pressing the toolbar icon, a
+> right-click menu item, or one of the keyboard shortcuts. It is used to read the job
 > posting on the page the user is viewing and to fill the application form on a page they have opened
 > and signed in to themselves. The extension holds no install-time permission for any job site or
 > employer portal, so it reaches such a page only through that per-tab, per-invocation grant.
 
-*(Code: `background.js` `chrome.commands.onCommand`, `chrome.contextMenus.onClicked` and the popup's
-messages, each calling `chrome.tabs.query({active: true, currentWindow: true})` inside a user-gesture
-handler; `captureActiveTab()`, `previewActiveTab()` and `handleGatedHandoff()` are reached only from there.)*
+*(Code: `background.js` `chrome.action.onClicked` → `pressToolbar()` → `toolbarPress.js` `toolbarPress()` (the press's
+own tab; the page is read through `popupContext()` only when signed in), `chrome.commands.onCommand` and
+`chrome.contextMenus.onClicked`, each inside a user-gesture handler; the panel's buttons reach the service worker as
+`DOCK_ACT` — a trusted click from the page's top frame, acting on that tab only. `captureActiveTab()`,
+`previewActiveTab()` and `handleGatedHandoff()` are reached only from there.)*
 
 **`contextMenus`**
-> Adds four items to the right-click menu. **Fill this application with draft** runs the same fill as the toolbar's
-> **Fill it** and Ctrl+Shift+Y, on the page the user right-clicked; **Show draft's ATS report** opens the extension's
+> Adds four items to the right-click menu. **Fill this application with draft** runs the same fill as the panel's
+> **Fill** and Ctrl+Shift+Y, on the page the user right-clicked; **Show draft's ATS report** opens the extension's
 > panel on that page at its ATS tab (draft's report for the job, from our backend — it reads nothing of the page).
 > **Save this page to draft** runs the same capture as the
-> toolbar button, on the page the user right-clicked. **Save link to draft** sends only the address of
+> panel's Capture and Ctrl+Shift+K, on the page the user right-clicked. **Save link to draft** sends only the address of
 > the link the user right-clicked to our backend, which reads that posting from the job board's own
 > listing — or refuses the link and saves nothing if it is not a posting on a board we read directly.
 > No item reads anything until the user picks it, and the permission grants no access to any page.
@@ -189,8 +213,9 @@ handler; `captureActiveTab()`, `previewActiveTab()` and `handleGatedHandoff()` a
 the items are `formReport.js` `CONTEXT_MENUS`.)*
 
 **`scripting`**
-> Injects a one-off script into a tab to (a) read the job posting the user is capturing, (b) collect
-> the visible text when the user asks for an ATS score, (c) fill the application form and render the
+> Injects a one-off script into a tab to (a) read the job posting the user is capturing, (b) on a toolbar
+> press, open or close the extension's panel in the page's top frame and draw its prompts there, and read a
+> form's field labels (never values) when the user reports that form, (c) fill the application form and render the
 > review panel on a handoff, and (d) when automatic reading is on for a site, register a small watcher
 > script on that site only (`chrome.scripting.registerContentScripts`) that notices a new application
 > step and reads no values, check a page there for JobPosting structured data, and run the switched-on
@@ -198,15 +223,16 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 > switched on and granted, and unregistered when they switch it off.
 
 *(Code: `background.js` `captureActiveTab()` / `reportCapture()` injecting `extractor.js`
-`extractJobPayload()` and `showCaptureToast()`; the automatic path, `autoReadWatcher.js` (the watcher) →
+`extractJobPayload()` and `showCaptureToast()`; ⭐ T31 `background.js` `pressToolbar()` (the dock's state and
+collapse, frame 0 only) and `toolbarPress.js` `renderRelay()` drawn by `dockHost.js` `drawInDock()`; `reportForm()`
+injecting `formReport.js` `collectFormLabels()`; the automatic path, `autoReadWatcher.js` (the watcher) →
 `autoRead.js` `syncRegistrations()` / `runAutoPass()` / `autoStep()` / `pageHasJobPosting()`; `gated-handoff.js` `probeFormShape()`,
 `applyPlan()`, `applyOverlayEdit()`; `review-overlay.js` `renderOverlay()`; `autofill-badge.js`.)*
 
 **`storage`**
-> Ten values. Nine never leave the browser; the tenth is the extension's own access token, which is
-> sent to our backend and to nowhere else. In `chrome.storage.local`: the result of the user's most
-> recent capture, so the popup can show the outcome of a capture made with the keyboard while the popup
-> was closed; the username of the account the extension is connected to, so the popup can name it; that
+> Nine values. Eight never leave the browser; the ninth is the extension's own access token, which is
+> sent to our backend and to nowhere else. In `chrome.storage.local`: the username of the account the
+> extension is connected to, so the settings page can name it; that
 > access token, which is how the extension identifies itself to us — not the user's password and not
 > their website session, deleted the moment they disconnect the extension; the automatic-reading settings
 > (which of Read, Prepare, Capture and Fill the user switched on for each site, when they agreed to the
@@ -220,7 +246,7 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 > tabs are in their own windows — nothing of the page, the 50 most recent sites, each kept 30 days.
 > In `chrome.storage.session` (memory-backed,
 > discarded on browser restart): the prepared answers for an application in progress, with a 10-minute
-> expiry and cleared when the tab closes; the result of the most recent form fill, so the popup can
+> expiry and cleared when the tab closes; the result of the most recent form fill, so the extension can
 > report a fill started with the keyboard; when several applications are queued for one employer
 > site, that site's origin and how many remain, so a batch can resume in the same tab — no answers and
 > nothing about the user in that one; and which job a tab is on (the job's draft id, title and company, and
@@ -229,9 +255,9 @@ the items are `formReport.js` `CONTEXT_MENUS`.)*
 > the posting, so the later pages of that application are known to be the same job — no answers, never
 > shared between tabs, deleted when the tab closes, shows a different job, or the user unlinks it.
 
-*(Code: `background.js` `reportCapture()` → `lastCapture` (local) and `reportHandoff()` →
-`lastGatedHandoff` (session); `gated-handoff.js` → `gate:{tabId}` and `batch:{tabId}` (session);
-`auth.js` → `authToken` and `authIdentity` (local); `autoRead.js` `updateSettings()` (set from the options page and the popup) → `autoRead` (local), which replaced D64's `autoCaptureEnabled` (migrated once by `migrateLegacy()`, then removed) — since 10-15 it also holds the one-time consent, the sites chosen with Always read here, and which job host's form a site embeds (an origin and a site name, never a path);
+*(Code: `background.js` `reportHandoff()` → `lastGatedHandoff` (session) — ⭐ T31: `reportCapture()` now only shows
+the toast on the page and writes no key; `gated-handoff.js` → `gate:{tabId}` and `batch:{tabId}` (session);
+`auth.js` → `authToken` and `authIdentity` (local); `autoRead.js` `updateSettings()` (set from the settings page and, for "Later" on the dock's one-time offer, the service worker) → `autoRead` (local), which replaced D64's `autoCaptureEnabled` (migrated once by `migrateLegacy()`, then removed) — since 10-15 it also holds the one-time consent, the sites chosen with Always read here, and which job host's form a site embeds (an origin and a site name, never a path);
 `tabBinding.js` `bindTab()` → `bind:{tabId}` (session), removed by `clearBinding()` on tab close and "Unlink this page";
 `progress.js` `progress.patch()` / `set()` / `claim()` → `jobProgress` (local), removed by `progress.clearAll()` from `auth.js` `disconnect()` and `getIdentity()` (sign-out, another account);
 ⭐ T17: `dockHost.js` `saveDockPlace()` (its one write, `writeDockPlaces()`, from the dock's `DOCK_PLACE` message — a page's top frame only) → `dockPlace` (local), the 50 most recent sites, 30 days.)*
@@ -255,14 +281,18 @@ from the user's click, never at install
 > job, and the form is filled for the user to review and submit. ⛔ Never `<all_urls>`, never at install,
 > never LinkedIn, Indeed or Glassdoor.
 >
-> **The preset set, in one prompt.** The extension's popup shows a one-time card that explains, in plain words,
-> what automatic reading reads and sends; its "Allow on these sites" button requests every preset host above
+> **The preset set, in one prompt.** The extension's settings page (*Read application pages automatically*) shows a
+> one-time card that explains, in plain words, what automatic reading reads and sends; its "Allow on these sites"
+> button requests every preset host above
 > plus `jobs.smartrecruiters.com` in ONE `chrome.permissions.request`. Granted, Read and Prepare turn on there;
-> Capture and Fill stay separate switches, off. A refusal leaves everything off.
+> Capture and Fill stay separate switches, off. A refusal leaves everything off. (On a page, draft's panel may
+> offer this; its button only opens the settings page — a web page cannot request a permission, so every
+> `chrome.permissions.request` is made on the settings page, inside the user's click.)
 >
 > **`https://*/*` — "Always read here".** Employers' careers sites are on their own domains, and Chrome can only
 > request an origin the manifest lists as optional. The pattern is NEVER requested itself and grants nothing at
-> install: the popup's "Always read here" switch, shown on a page that looks like a job or an application, requests
+> install: on a page that looks like a job or an application, draft's panel offers "Always read here", which opens
+> the settings page for that tab's site; the "Always read here" switch there requests
 > ONE origin (`https://<that site>/*`) — plus the job host whose frame holds that site's application form, when
 > the extension already knows it — from the user's click, after the same disclosure. Removing the site in the
 > options page, turning its last switch off or pressing the kill switch gives it back. Never LinkedIn, Indeed or
@@ -301,11 +331,11 @@ These are the answers for the **Privacy practices** tab.
   3. *(Removed with T22, 10-15: the popup's Score tile, which passed a job page's visible text to the ATS Score
      page in that page's URL, is gone — draft's own report for the job is shown in the extension's on-page panel.
      The privacy policy says so.)*
-  4. The tab's address when the user presses **Read this page**, and the application page's full
+  4. The tab's address when the user presses the toolbar icon on that page (signed in), and the application page's full
      address on a fill, Prepare, the Copy sheet and **I submitted it** — used to match the page to the
      application; kept only on **I submitted it**, as evidence on the application record.
   5. The address of a link the user saves with **Save link to draft** — the link only.
-  6. On **Report form** → **Send report**: the form page's host name (never its path or query) and its
+  6. On **Report this form** → **Send the report**: the form page's host name (never its path or query) and its
      field labels — never values. Linked to the user's account, deleted after 30 days.
   7. *Optional and off by default:* the **structure** of an application form (labels, types, required
      flags, option lists — never values), to recognise the same form for other users. A per-account
@@ -349,7 +379,8 @@ In the order the developer dashboard asks. ⛔ The owner pastes, ticks and uploa
 5. **Store icon** — 128×128: `extension/icons/icon128.png` (uploaded separately from the zip; the package does not carry the listing icon).
 6. **Screenshots** — 1280×800 PNG: `docs/store-screenshots/1-review-overlay.png`, `2-popup.png`, `3-options.png`.
    ✅ **Regenerated 2026-10-09** (`npm run store:screenshots`, ALL PASS, the synthetic Ada Lovelace fixture) — they show
-   the D63 popup, overlay and options page.
+   the D63 popup, overlay and options page. ⛔ **T31 (10-25): `2-popup.png` shows the retired toolbar popup** —
+   replace it with the dock and its prompts before upload (the screenshot script is outside this file).
 7. **Small promo tile** — 440×280: **none in the repository.** ⚠ Check whether the dashboard requires it.
 8. **Marquee promo tile** — 1400×560, optional: none.
 9. **Official URL / homepage** — `https://jobsviadraft.com`.
@@ -390,9 +421,13 @@ In the order the developer dashboard asks. ⛔ The owner pastes, ticks and uploa
 > extension holds no host permission at install for any employer portal; Workday's public hosts are
 > optional and granted only if the user switches Workday on for automatic reading.
 >
-> The only behaviour without a click is **automatic reading**, which is OFF until the user agrees — in the popup's
-> one-time card (one Chrome prompt for the preset job hosts) or in the options page — at which point Chrome asks
-> them to grant those hosts. **Always read here** adds one company careers site at a time, from a click (the
+> There is no toolbar popup: pressing the toolbar icon opens draft's panel on the page and, signed in, reads that
+> page in the same press (its address goes to our server); pressing it again closes the panel and reads nothing.
+>
+> The only behaviour without a click is **automatic reading**, which is OFF until the user agrees — on the settings
+> page, in its one-time card (one Chrome prompt for the preset job hosts) or a site's own switch — at which point
+> Chrome asks them to grant those hosts. Every permission prompt is asked from the settings page.
+> **Always read here** adds one company careers site at a time, from a click there (the
 > optional `https://*/*` exists only so that one origin can be requested; it is never requested itself). Four switches per site (Read · Prepare · Capture · Fill), each off. Capture
 > sends a page only when the page is a job posting; Fill may press Save and Continue but never submits;
 > a kill switch turns everything off.
@@ -424,18 +459,24 @@ dashboard's **Test instructions** field with the steps below. ⛔ Never commit t
 
 > Sign in at https://jobsviadraft.com with the account above. Then:
 >
-> **Capture:** open any job posting and press Ctrl+Shift+K, or click the toolbar button → Read this
-> page → Capture it. The posting appears on the account's board.
+> **The toolbar icon:** there is no popup. Press the toolbar icon on a Greenhouse application page: draft's panel
+> (the dock) opens on the page and that one press reads it; the panel shows only what the page needs — for a
+> posting, "Add this job to draft?" with Capture and Draft; with answers prepared, Fill. Press the icon again and
+> the panel closes to its launcher. The panel's gear opens Settings (account, permissions, automatic reading).
 >
-> **Automatic reading:** open the toolbar popup — the card "Let draft read job pages for you" → **Allow on these
-> sites** → grant. Open an application form on job-boards.greenhouse.io: the popup now says "Reading automatically on
-> this site". On a company careers page (for example one embedding a Greenhouse form), switch on **Always read here**
-> and grant that one site. **Capture:** in the extension's options, switch
-> on Capture for Lever or Greenhouse and grant the site. Open a posting on jobs.lever.co or
-> job-boards.greenhouse.io; it is added without a click if it fits the board.
+> **Capture:** open any job posting and press Ctrl+Shift+K, or press the toolbar icon → **Capture**. The posting
+> appears on the account's board.
 >
-> **Résumé on the page:** on an application form linked to a job (Fill or Prepare it first), open the
-> popup → "Résumé for this job" → Generate. Preview it, then Attach.
+> **Automatic reading:** open Settings (the panel's gear, or the extension's options) → **Read application pages
+> automatically** → **Allow on these sites** → grant; Read and Prepare are now on for Greenhouse there. Open an
+> application form on job-boards.greenhouse.io: it is read without a press. On a company careers page (for example
+> one embedding a Greenhouse form), press the toolbar icon: the panel offers to read that site automatically —
+> **Set up** opens Settings for that site, where **Always read here** asks Chrome for that one site. **Capture:** in Settings, switch on Capture for Lever or Greenhouse and grant
+> the site. Open a posting on jobs.lever.co or job-boards.greenhouse.io; it is added without a click if it fits the
+> board.
+>
+> **Résumé on the page:** on an application form linked to a job (Fill or Prepare it first), press the toolbar
+> icon → the panel's **Résumé** tab → Generate. Preview it, then Attach.
 >
 > **Fill:** from the board, Draft a job and start the application. Sign in to the employer's site if
 > it asks, then press Ctrl+Shift+Y on the form. The answers appear with a review panel. **The extension
@@ -456,5 +497,6 @@ dashboard's **Test instructions** field with the steps below. ⛔ Never commit t
 - [ ] Paste: single purpose · every permission justification (`activeTab`, `contextMenus`, `scripting`,
       `storage`, the host permission, **the optional host permissions**) · the Privacy practices tab ·
       the four certifications, **including Limited Use**
-- [ ] Regenerate the store screenshots (`npm run store:screenshots`) — the popup, badge and overlay changed (D63)
+- [ ] Regenerate the store screenshots (`npm run store:screenshots`) — the popup, badge and overlay changed (D63);
+      ⛔ T31 (10-25): the toolbar popup is retired, so `2-popup.png` must become the dock
 - [ ] Upload `resume-master-extension-v1.5.0.zip` — the dashboard's version must be higher than any in review

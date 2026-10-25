@@ -56,11 +56,15 @@ test("⛔ D99 · an unlinked tab's panel says 'Read this page now' and offers it
 // ⭐ T22 (owner 10-15): the popup's score tile is gone. J12's rule — a signed-in user sees draft's OWN report, never the
 // free checker — now holds with no branch at all: the report is the dock's ATS tab (Open dock, or right-click "Show
 // draft's ATS report"), and the free checker's page-text-in-a-URL path (OPEN_ATS_SCORE) is gone from the extension.
-test("⛔ J12 → T22 · draft's own report is the dock's ATS tab — the popup has no score button and the free checker path is gone", () => {
-  const src = read("extension/popup.js");
-  assert.doesNotMatch(src, /openAtsScore|OPEN_ATS_SCORE|btn-ats'|btn-score-primary/);
-  assert.match(src, /chrome\.runtime\.sendMessage\(\{ type: 'DOCK_OPEN' \}\)/);
+test("⛔ J12 → T22 → T31 · draft's own report is the dock's ATS tab — no score button anywhere, and the free checker path is gone", () => {
+  // ⭐ T31: the toolbar popup (and its Open dock) is retired — the toolbar press opens the dock; no extension file wires
+  // a score button or the free checker's page-text path
+  for (const f of fs.readdirSync("extension").filter(f => f.endsWith(".js") || f.endsWith(".html"))) {
+    const code = read(`extension/${f}`).replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:"'`\\])\/\/[^\n]*/g, "$1").replace(/<!--[\s\S]*?-->/g, " ");
+    assert.doesNotMatch(code, /openAtsScore|OPEN_ATS_SCORE|btn-score-primary/, `${f} wires a score button`);
+  }
   const bg = read("extension/background.js");
+  assert.match(bg, /openDock: \(\) => openDock\(tab\),/, "the toolbar press opens the dock");
   assert.doesNotMatch(bg, /message\.type === 'OPEN_ATS_SCORE'/);
   assert.match(bg, /if \(which === 'ats' \|\| which === 'resume'\) return RESUME_PANEL_HANDLERS\.RESUME_PANEL_OPEN\(\{ tab: which \}, \{ tab \}\);/);
   assert.match(bg, /MENU_ATS_PAGE\) void openDock\(tab, 'ats'\);/);

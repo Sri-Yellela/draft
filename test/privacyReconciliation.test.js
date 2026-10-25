@@ -130,7 +130,8 @@ test("THE POLICY DOES NOT CLAIM A CAPABILITY THAT WAS REMOVED", () => {
 test("the policy discloses the ATS Score Tool's page-text transmission", () => {
   // popup.js collects the page's visible text and background.js puts it in a URL. It is the second
   // path by which page content leaves the browser, and it was undisclosed.
-  const popup = fs.readFileSync("extension/popup.js", "utf8");
+  // (⭐ T31: popup.js itself is gone, with the popup)
+  const popup = fs.existsSync("extension/popup.js") ? fs.readFileSync("extension/popup.js", "utf8") : "";
   const background = fs.readFileSync("extension/background.js", "utf8");
   const collects = /innerText/.test(popup) && /OPEN_ATS_SCORE/.test(background);
   if (!collects) return; // the feature is gone; nothing to disclose
@@ -193,16 +194,17 @@ test("THE POLICY'S COUNT OF STORED ITEMS MATCHES THE NUMBER OF KEYS THE CODE WRI
     .filter(f => f.endsWith(".js") && fs.existsSync(`extension/${f}`))
     .map(f => fs.readFileSync(`extension/${f}`, "utf8"));
   const writes = sources.join("\n").match(/chrome\.storage\.(?:local|session)\.set\(/g) || [];
-  assert.equal(writes.length, 10,
-    `the extension writes ${writes.length} storage keys; the policy enumerates ten (T17 added dockPlace). Update ` +
+  assert.equal(writes.length, 9,
+    `the extension writes ${writes.length} storage keys; the policy enumerates nine (T17 added dockPlace; T31 took lastCapture away). Update ` +
     `"What the Extension Stores in Your Browser", PRIVACY_RECONCILIATION.md's storage row and ` +
     `STORE_LISTING.md's storage justification together — the dashboard field is pasted from the last one`);
-  assert.match(policyText, /keeps ten things/,
+  assert.match(policyText, /keeps nine things/,
     "the policy must state the same count the code writes");
 
   // Each of the six, named in prose a user can match to what they would see.
+  // ⭐ T31 (10-25): `lastCapture` is gone — the retired popup was its only reader — so the policy no longer names it
+  assert.doesNotMatch(policyText, /result of your most recent capture/i, "the policy still names a key the extension no longer writes");
   for (const [key, re] of [
-    ["lastCapture",      /result of your most recent capture/i],
     ["gate:{tabId}",     /prepared answers for an application in progress/i],
     ["lastGatedHandoff", /result of your most recent form fill/i],
     ["batch:{tabId}",    /part-way through applying/i],
@@ -237,7 +239,8 @@ test("THE POLICY'S COUNT OF STORED ITEMS MATCHES THE NUMBER OF KEYS THE CODE WRI
     "the policy must say which keys the ten-minute expiry does NOT cover");
 
   // The dashboard field is pasted from STORE_LISTING.md, so it drifts silently unless pinned here.
-  assert.match(listing, /Ten values/,
+  // ⭐ T31: nine — and the old count is no longer stated as current
+  assert.match(listing, /Nine values/,
     "STORE_LISTING.md's storage justification still describes a different number of values than " +
     "the policy — the owner would paste a contradiction into the Privacy practices tab");
 });

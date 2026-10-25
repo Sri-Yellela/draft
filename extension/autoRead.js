@@ -46,6 +46,7 @@ import { extractJobPayload } from './extractor.js';
 import { collectFormLabels } from './formReport.js';
 import { renderBadge } from './autofill-badge.js';
 import { drawInDock, dockMeta, overlayTheme } from './dockHost.js';
+import { renderRelay } from './toolbarPress.js';
 import { authedFetch } from './auth.js';
 import { noteCapture } from './progress.js';
 
@@ -845,6 +846,14 @@ async function showReadBadge(target, text) {
   catch { return null; }
 }
 
+/**
+ * ⭐ T31 (owner 10-25: "relayed when it is needed") · the job an automatic capture just added on a tab — what its page's
+ * "Added to your board automatically" offers to Undo (background.js DOCK_ACT undo-capture takes it, once). The retired
+ * popup's "Captured today" list is gone; the Undo is said where and when it is needed, on the page that was captured.
+ */
+const AUTO_CAPTURED = new Map();   // tabId → jobId
+export function takeAutoCapture(tabId) { const id = AUTO_CAPTURED.get(tabId) ?? null; AUTO_CAPTURED.delete(tabId); return id; }
+
 /** The automatic capture of a posting — D64's path, now the only one. Returns what happened, for the tests and the log. */
 async function autoCapture(tab, serverUrl) {
   const url = tab.url;
@@ -863,6 +872,13 @@ async function autoCapture(tab, serverUrl) {
   if (res.ok && !json.discarded && jobId != null) {
     await bindTab(tab, { jobId, title: extracted.title || null, company: extracted.company || null, via: 'capture' }).catch(() => null);
     await noteCapture({ success: true, jobId, link: null }, extracted);
+    if (!json.already) {
+      AUTO_CAPTURED.set(tab.id, jobId);
+      const job = [extracted.title, extracted.company].filter(Boolean).join(' at ');
+      void overlayTheme().then(theme => drawInDock(tab.id, renderRelay, [[{ id: 'draft-relay', kind: 'toast', icon: 'check', tone: 'ok', ms: 8000,
+        text: `Added to your board automatically${job ? ` — ${job}` : ''}.`, actions: [{ id: 'undo-capture', label: 'Undo — take it off your board', word: 'Undo' }] }], theme]))
+        .catch(() => null);
+    }
   }
   return { sent: true, status: res.status, discarded: !!json.discarded, already: !!json.already, jobId };
 }
