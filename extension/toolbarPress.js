@@ -23,7 +23,7 @@
 // browser work handed in as `deps` so it is tested without a browser.
 
 /** What the press says about this page — the popups, in order (one is shown at a time). */
-export function relayFor({ identity = null, ctx = null } = {}) {
+export function relayFor({ identity = null, ctx = null, auto = null } = {}) {
   if (!identity?.authenticated) {
     return [{ id: 'draft-relay', kind: 'question', icon: 'info', text: 'Sign in to draft to use it here.',
       actions: [{ id: 'sign-in', label: 'Sign in to draft', word: 'Sign in', primary: true }] }];
@@ -48,6 +48,14 @@ export function relayFor({ identity = null, ctx = null } = {}) {
       actions: [{ id: 'fill', label: 'Fill this page', icon: 'fill', primary: true }] });
   }
   if (ctx.notice) out.push({ id: 'draft-notice', kind: 'toast', icon: 'info', text: String(ctx.notice), ms: 6000 });
+  // automatic reading — offered only where it would work, and only until it is set up (or put off)
+  if (auto?.here && !auto.here.on && auto.here.host) {
+    out.push({ id: 'draft-auto', kind: 'toast', icon: 'read', ms: 8000, text: `Read ${auto.here.host}'s application pages for you automatically?`,
+      actions: [{ id: 'always-here', label: `Set up reading ${auto.here.host} automatically — opens Settings`, word: 'Set up' }] });
+  } else if (auto?.card && auto.cardSite) {
+    out.push({ id: 'draft-auto', kind: 'toast', icon: 'read', ms: 8000, text: `draft can read ${auto.cardSite} application pages for you automatically.`,
+      actions: [{ id: 'auto-setup', label: 'Set up automatic reading — opens Settings', word: 'Set up' }, { id: 'auto-later', label: 'Not now', word: 'Later' }] });
+  }
   return out;
 }
 
@@ -120,7 +128,8 @@ export async function toolbarPress(tab, deps) {
   if (!opened?.ok) { await deps.openBoard(); return { ok: true, did: 'board', said: 0 }; }
   const identity = await deps.identity().catch(() => ({ authenticated: false }));
   const ctx = identity?.authenticated ? await deps.context(tab).catch(() => null) : null;
-  const specs = relayFor({ identity, ctx });
+  const auto = identity?.authenticated && deps.auto ? await deps.auto(tab).catch(() => null) : null;
+  const specs = relayFor({ identity, ctx, auto });
   if (specs.length) await deps.relay(tab, specs).catch(() => null);
   return { ok: true, did: 'opened', said: specs.length };
 }

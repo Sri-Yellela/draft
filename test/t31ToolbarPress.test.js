@@ -107,3 +107,24 @@ test("T31 · the toolbar press on the REAL extension — asked about a posting d
   if (r.skipped) return;
   assert.equal(r.failures, 0, lines.filter(l => l.startsWith("FAIL") || l.startsWith("OBSERVED")).join("\n"));
 });
+
+test("T31 ⑥ automatic reading is OFFERED by the press only where it would work — a site you might choose, or the one-time setup on a preset site — and set up in Settings", async () => {
+  const signed = { authenticated: true };
+  assert.deepEqual(texts(relayFor({ identity: signed, ctx: {}, auto: { here: { host: "careers.acme.test", on: false } } })),
+    ["toast: Read careers.acme.test's application pages for you automatically? [always-here]"]);
+  assert.deepEqual(relayFor({ identity: signed, ctx: {}, auto: { here: { host: "careers.acme.test", on: true } } }), [], "already chosen: nothing");
+  assert.deepEqual(texts(relayFor({ identity: signed, ctx: {}, auto: { card: true, cardSite: "Greenhouse" } })),
+    ["toast: draft can read Greenhouse application pages for you automatically. [auto-setup, auto-later]"]);
+  assert.deepEqual(relayFor({ identity: signed, ctx: {}, auto: { card: true, cardSite: null } }), [], "the setup is offered on a preset site only — not on every page");
+  // the worker: the site is the TAB's origin, never a message's; Settings opens at #auto-read with it
+  const acts = BG.slice(at(BG, "'always-here': async (tab) => {"), at(BG, "'auto-setup': async"));
+  assert.match(acts, /const origin = customOriginFor\(tab\?\.url\);/);
+  assert.match(acts, /chrome\.runtime\.getURL\(`options\.html\?\$\{q\}#auto-read`\)/);
+  // Settings: the deep link is validated; the switch asks Chrome first
+  const { hereFromSearch } = await import("../extension/options-auto.js");
+  assert.deepEqual(hereFromSearch("?here=https%3A%2F%2Fcareers.acme.test&frames=greenhouse,nope"),
+    { origin: "https://careers.acme.test", host: "careers.acme.test", frames: ["greenhouse"],
+      origins: ["https://careers.acme.test/*", "https://boards.greenhouse.io/*", "https://job-boards.greenhouse.io/*"] });
+  for (const bad of ["?here=https%3A%2F%2Fwww.linkedin.com", "?here=https%3A%2F%2Fboards.greenhouse.io", "?here=javascript%3Aalert(1)", "?here=http%3A%2F%2Facme.test", ""])
+    assert.equal(hereFromSearch(bad), null, `accepted: ${bad}`);
+});
