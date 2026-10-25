@@ -271,7 +271,8 @@ export default async function run(h, { check, observe, section }) {
   await sleep(150);
   check('the dock never covers the field being filled', (await page.evaluate(() => document.activeElement?.id)) === 'ws-city' && !(await overlap()));
   // Esc with the dock focused closes it; the wizard is NOT stopped by it (only the status line's × does that).
-  await page.focus('#rm-draft-dock >>> [data-role="close"]');   // in the full dock and the slim bar alike
+  // in the full dock (its Close) and collapsed alike (⭐ T28: the launcher — the square has no Close of its own)
+  await page.evaluate(() => { const r = document.getElementById('rm-draft-dock').shadowRoot; (r.querySelector('[data-role="close"]') || r.querySelector('[data-role="expand"]')).focus(); });
   await page.keyboard.press('Escape');
   check('Esc closes the panel', !(await page.$('#rm-gate-review-overlay')) && !(await page.$('#rm-draft-dock')));
   await h.dismissBadge();

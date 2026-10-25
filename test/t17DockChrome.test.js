@@ -159,17 +159,18 @@ test("⛔ T17: drag by the header, resize from an edge and a corner, snap at the
   assert.ok(r5.x <= 8.5 && r5.y <= 8.5 && r5.h >= r5.vh - 17, `snapped left — a full-height column: ${JSON.stringify(r5)}`);
   p = (await places(page)).at(-1);
   assert.equal(p.edge, "left");
-  // collapse: the slim bar, remembered
+  // collapse: ⭐ T28 — the launcher (the /d square), on the dock's side, remembered
   await page.click("#rm-draft-dock >>> [data-role='collapse']");
   await settle(page);
-  assert.ok((await rect(page)).h <= 44.5, "collapsed to the slim bar");
+  const sq = await rect(page);
+  assert.ok(sq.w <= 52.5 && sq.h <= 52.5 && sq.x <= 8.5, `collapsed to the launcher, on the left: ${JSON.stringify(sq)}`);
   p = (await places(page)).at(-1);
   assert.equal(p.collapsed, true);
   // a new page on the same site, handed what was sent, opens exactly there
   const page2 = await openPage(browser, url);
   await page2.evaluate((m) => globalThis.__draftDock.ensure(m), meta(undefined, p));
   const back = await rect(page2);
-  assert.ok(back.x <= 8.5 && back.h <= 44.5, `restored: snapped left and collapsed: ${JSON.stringify(back)}`);
+  assert.ok(back.x <= 8.5 && back.h <= 52.5, `restored: snapped left and collapsed: ${JSON.stringify(back)}`);
   await page2.click("#rm-draft-dock >>> [data-role='expand']");
   const open = await rect(page2);
   assert.ok(Math.abs(open.w - r4.w) <= 2 && open.h >= open.vh - 17, `expanded: the remembered width, the full-height column: ${JSON.stringify({ open, r4 })}`);
