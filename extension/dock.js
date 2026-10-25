@@ -44,7 +44,7 @@
   const TAB_IDS = TABS.map(t => t.id);
   const EDGES = Object.freeze(['left', 'right', 'top', 'bottom']);
   /** The frame's bounds: never smaller than MIN (unless the viewport is), never wider than MAX_W, never past the viewport. */
-  const LIMITS = Object.freeze({ minW: 300, minH: 220, maxW: 760, margin: 8, slimH: 44, slimMaxW: 460, step: 16, bigStep: 64, edgeBand: 6 });
+  const LIMITS = Object.freeze({ minW: 300, minH: 220, maxW: 760, margin: 8, slimH: 44, slimMaxW: 460, step: 16, bigStep: 64, edgeBand: 6, launch: 52 });
   const DOCK_ID = 'rm-draft-dock';
   const POP_PREFIX = 'rm-draft-pop-';
 
@@ -146,6 +146,28 @@
     return r;
   }
 
+  // ── ⭐ T28 (owner, 10-19) · THE LAUNCHER — "the floating panel that opens and closes should be a SQUARE BOX WITH THE
+  // DRAFT LOGO and that's it — just like the /d button on the job posting; click it to open and close." The dock,
+  // collapsed, is that square: it sits ON a screen edge (the nearest one to where it was let go), drags along it, and is
+  // remembered per site apart from the open dock's rectangle (`place.launch`). A pop-out window still collapses to its
+  // slim bar (layoutRect, below).
+  /** The launcher's square: where it was put (`place.launch`); else on the open dock's side, level with its top. */
+  function launchRect(place, vp) {
+    const s = Math.min(LIMITS.launch, Math.max(0, Math.min(vp.w, vp.h) - 2 * LIMITS.margin));
+    const p = place?.launch, r = place?.rect;
+    const left = place?.edge === 'left' || (place?.edge !== 'right' && r && r.x + r.w / 2 < vp.w / 2);
+    return snapLaunch({ x: Number.isFinite(p?.x) ? p.x : left ? LIMITS.margin : vp.w - LIMITS.margin - s,
+      y: Number.isFinite(p?.y) ? p.y : Number.isFinite(r?.y) ? r.y : Math.round(vp.h / 2 - s / 2), w: s, h: s }, vp);
+  }
+  /** On screen, then onto the NEAREST edge. → { x, y, w, h, edge } */
+  function snapLaunch(r, vp) {
+    const m = LIMITS.margin, s = r.w;
+    const x = clamp(r.x, m, vp.w - m - s), y = clamp(r.y, m, vp.h - m - s);
+    const d = { left: x - m, right: vp.w - m - s - x, top: y - m, bottom: vp.h - m - s - y };
+    const edge = Object.keys(d).reduce((a, b) => (d[b] < d[a] ? b : a));
+    return { x: Math.round(edge === 'left' ? m : edge === 'right' ? vp.w - m - s : x), y: Math.round(edge === 'top' ? m : edge === 'bottom' ? vp.h - m - s : y), w: s, h: s, edge };
+  }
+
   /** Move by (dx, dy): the dock leaves any edge it was snapped to and stays on screen. */
   function moveRect(r, dx, dy, vp) { return clampRect({ ...r, x: r.x + dx, y: r.y + dy }, vp); }
 
@@ -180,8 +202,9 @@
     const rect = (r) => (r && ['x', 'y', 'w', 'h'].every(k => Number.isFinite(r[k])) ? { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.w), h: Math.round(r.h) } : null);
     const pops = {};
     for (const t of TAB_IDS) { const r = rect(p?.pops?.[t]); if (r) pops[t] = r; }
+    const launch = Number.isFinite(p?.launch?.x) && Number.isFinite(p?.launch?.y) ? { x: Math.round(p.launch.x), y: Math.round(p.launch.y) } : null;
     return { rect: rect(p?.rect), edge: EDGES.includes(p?.edge) ? p.edge : null, collapsed: p?.collapsed === true,
-      tab: TAB_IDS.includes(p?.tab) ? p.tab : 'fill', pops };
+      tab: TAB_IDS.includes(p?.tab) ? p.tab : 'fill', pops, ...(launch ? { launch } : {}) };
   }
 
   const overlaps = (a, b) => !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
@@ -273,6 +296,15 @@
     .grip { position: absolute; right: 2px; bottom: 2px; z-index: 3; width: 16px; height: 16px; padding: 0; border: 0; border-radius: 4px;
       background: transparent; color: var(--c-ink-faint); cursor: nwse-resize; font: 700 11px/1 ui-sans-serif, system-ui, sans-serif; }
     :host([data-collapsed="true"]) .rz, :host([data-collapsed="true"]) .grip { display: none; }
+    /* ⭐ T28 · the launcher: the board's /d square — the orange, its depth, the mark; a dot when something needs you
+       (a perfect circle — D60 keeps those round). No frame around it. */
+    :host([data-draft-dock="dock"][data-collapsed="true"]) .fr { background: transparent; border: 0; box-shadow: none; backdrop-filter: none; overflow: visible; }
+    .launch { position: relative; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 13px; display: grid; place-items: center;
+      background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent); cursor: pointer; touch-action: none; user-select: none; }
+    .launch .mk, .launch .mk .sl { color: var(--c-on-accent); font-size: 19px; }
+    .launch:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 3px; }
+    .launch.dragging { cursor: grabbing; }
+    .dot { position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--c-on-accent); box-shadow: 0 0 0 2px var(--c-accent); }
     .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .shield { position: fixed; inset: 0; z-index: 5; background: transparent; touch-action: none; }
     @media (prefers-reduced-motion: no-preference) { :host([data-settle]) { transition: left .16s ease, top .16s ease, width .16s ease, height .16s ease; } }
@@ -345,7 +377,7 @@
   const FRAMES = new Set();
   function raise(f) { for (const o of FRAMES) o.host.style.zIndex = String(o === f ? 2147483646 : 2147483645); }
 
-  function makeFrame({ id, kind, tab = null, title, theme, cues, rect, edge = null, collapsed = false, onChange, onClose, onDockBack, onSelect, onLoad }) {
+  function makeFrame({ id, kind, tab = null, title, theme, cues, rect, edge = null, collapsed = false, launch = null, onChange, onClose, onDockBack, onSelect, onLoad }) {
     const host = document.createElement('div');
     host.id = id;
     host.setAttribute('data-draft-dock', kind);
@@ -358,11 +390,17 @@
     fr.setAttribute('role', kind === 'dock' ? 'complementary' : 'dialog');
     fr.setAttribute('aria-label', kind === 'dock' ? 'draft' : `draft — ${title}`);
     root.append(style, fr);
-    const f = { id, kind, tab, host, root, fr, place: { rect, edge, collapsed }, active: 'fill', summary: {}, statusText: '' };
+    const f = { id, kind, tab, host, root, fr, place: { rect, edge, collapsed, launch }, active: 'fill', summary: {}, statusText: '' };
+    // ⭐ T28: the dock collapsed is the launcher (a pop-out collapsed is its slim bar); while it is dragged it goes where
+    // the pointer takes it, and onto an edge when it is let go
+    const launcherNow = () => kind === 'dock' && !!f.place.collapsed;
+    const freeLaunch = () => { const v = vp(), m = LIMITS.margin, s = LIMITS.launch;
+      return { x: Math.round(clamp(f.place.launch.x, m, v.w - m - s)), y: Math.round(clamp(f.place.launch.y, m, v.h - m - s)), w: s, h: s }; };
+    const rectOf = () => (launcherNow() ? (f.launchFree && f.place.launch ? freeLaunch() : launchRect(f.place, vp())) : layoutRect(f.place, vp()));
 
     const vp = () => viewport();
     const apply = (settle = false) => {
-      const r = layoutRect(f.place, vp());
+      const r = rectOf();
       if (settle) host.setAttribute('data-settle', ''); else host.removeAttribute('data-settle');
       host.style.position = 'fixed';
       host.style.left = `${r.x}px`;
@@ -379,7 +417,7 @@
       return r;
     };
     f.apply = apply;
-    f.rectNow = () => layoutRect(f.place, vp());
+    f.rectNow = () => rectOf();
     /** Move the frame by (dx, dy) from where it is drawn: off any edge, its own free size kept. */
     const shiftTo = (from, dx, dy, free) => {
       const r = { x: from.x + dx, y: from.y + dy, w: free.w, h: free.h };
@@ -409,6 +447,14 @@
         // what needs you first (the Fill tab's counts), else what the shown tab says, else the status line
         const need = f.summary.fill?.need;
         const words = f.summary.fill?.text || f.summary[f.kind === 'pop' ? tab : f.active]?.text || f.statusText || (f.kind === 'pop' ? title : 'draft');
+        if (kind === 'dock') {
+          // ⭐ T28 · the square and nothing else: its words are its name and tooltip (and, hidden, the slim bar's words)
+          const name = `Open draft${words && words !== 'draft' ? ` — ${words}` : ''}`;
+          morph(fr, `<button class="launch" data-role="expand" aria-expanded="false" aria-label="${esc(name)}" title="${esc(name)}">
+              <span class="mk" aria-hidden="true"><span class="sl">/</span>d</span>${need ? '<span class="dot" data-role="need-dot" aria-hidden="true"></span>' : ''}
+              <span class="sr" data-role="slim">${esc(words)}</span></button>`);
+          return;
+        }
         morph(fr, `<div class="slim" data-role="drag">
             <div class="mk" aria-hidden="true"><span class="sl">/</span>draft</div>
             <span class="slimtxt" data-role="slim">${need ? `<b>${esc(words)}</b>` : esc(words)}</span>
@@ -467,6 +513,14 @@
     const onDown = (ev) => {
       raise(f);
       if (ev.button !== 0) return;
+      if (launcherNow() && ev.target.closest?.('.launch')) {
+        // the square holds the pointer from the press on: a drag that leaves its 52px still moves it (and, never having
+        // moved, the press stays a click)
+        const sq = ev.target.closest('.launch');
+        try { sq.setPointerCapture?.(ev.pointerId); } catch { /* the page keeps the pointer */ }
+        op = { kind: 'launch', x0: ev.clientX, y0: ev.clientY, start: f.rectNow(), moved: false, sq };
+        return;
+      }
       const handle = ev.target.closest?.('.rz')?.dataset.handle || null;
       const onHead = !!ev.target.closest?.('[data-role="drag"]') && !ev.target.closest('button, a, input, select, textarea');
       if (!handle && !onHead) return;
@@ -488,6 +542,14 @@
       if (!op) return;
       const dx = ev.clientX - op.x0, dy = ev.clientY - op.y0;
       if (!op.moved && Math.abs(dx) + Math.abs(dy) < 3) return;
+      if (op.kind === 'launch') {
+        op.moved = true;
+        op.sq?.classList.add('dragging');
+        f.launchFree = true;
+        f.place = { ...f.place, launch: { x: op.start.x + dx, y: op.start.y + dy } };
+        apply();
+        return;
+      }
       op.moved = true;
       root.querySelector('.hd, .slim')?.classList.add('dragging');
       f.place = op.kind === 'move'
@@ -503,6 +565,18 @@
       was.shield?.remove();
       root.querySelector('.hd, .slim')?.classList.remove('dragging');
       if (!was.moved) return;
+      if (was.kind === 'launch') {
+        // let go: onto the nearest edge, remembered; the click that follows a drag opens nothing
+        was.sq?.classList.remove('dragging');
+        f.launchFree = false;
+        const r = launchRect(f.place, vp());
+        f.place = { ...f.place, launch: { x: r.x, y: r.y } };
+        f.suppressClick = true;
+        setTimeout(() => { f.suppressClick = false; }, 0);
+        f.draw();
+        onChange?.();
+        return;
+      }
       // the pointer let go AT the screen's edge: the frame snaps to it
       if (was.kind === 'move') { const edge = edgeAtPointer(ev.clientX, ev.clientY, vp()); if (edge) f.place = { ...f.place, edge }; }
       f.draw();
@@ -515,6 +589,15 @@
       const arrows = { ArrowLeft: [-1, 0, 'left'], ArrowRight: [1, 0, 'right'], ArrowUp: [0, -1, 'top'], ArrowDown: [0, 1, 'bottom'] };
       const a = arrows[ev.key];
       if (!a) return;
+      if (role === 'expand' && launcherNow()) {
+        ev.preventDefault();
+        const d = ev.shiftKey ? LIMITS.bigStep : LIMITS.step;
+        const r = f.rectNow();
+        f.place = { ...f.place, launch: { x: r.x + a[0] * d, y: r.y + a[1] * d } };
+        f.draw(); onChange?.();
+        root.querySelector('[data-role="expand"]')?.focus();
+        return;
+      }
       if (role === 'move') {
         ev.preventDefault();
         if (ev.ctrlKey || ev.metaKey) f.place = { ...f.place, edge: a[2] };
@@ -548,6 +631,7 @@
       const btn = ev.target.closest?.('button');
       if (!btn) return;
       const role = btn.dataset.role;
+      if (role === 'expand' && f.suppressClick) { f.suppressClick = false; return; }   // ⭐ T28: that was a drag
       if (role === 'close') { if (kind === 'dock') onClose?.(); else onDockBack?.(); return; }
       if (role === 'collapse') { f.place = { ...f.place, collapsed: true }; f.draw(); onChange?.(); return; }
       if (role === 'expand') { f.place = { ...f.place, collapsed: false }; f.draw(); onChange?.(); return; }
@@ -595,7 +679,8 @@
     let saveTimer = 0;
 
     const placeNow = () => ({
-      rect: frame.place.rect || frame.rectNow(), edge: frame.place.edge || null, collapsed: !!frame.place.collapsed, tab: frame.active,
+      rect: frame.place.rect || (frame.place.collapsed ? null : frame.rectNow()) || defaultRect(viewport()), edge: frame.place.edge || null, collapsed: !!frame.place.collapsed, tab: frame.active,
+      ...(frame.place.launch ? { launch: frame.place.launch } : {}),
       pops: Object.fromEntries([...pops.entries()].map(([t, p]) => [t, p.place.rect || p.rectNow()])),
       popped: [...pops.keys()],
     });
@@ -673,7 +758,7 @@
     };
 
     const frame = makeFrame({ id: DOCK_ID, kind: 'dock', title: 'draft', theme: meta.theme, cues: meta.cues,
-      rect: saved.rect ? clampRect(saved.rect, vp0) : defaultRect(vp0), edge: saved.edge, collapsed: saved.collapsed,
+      rect: saved.rect ? clampRect(saved.rect, vp0) : defaultRect(vp0), edge: saved.edge, collapsed: saved.collapsed, launch: saved.launch || null,
       onChange: save, onClose: closeAll, onSelect: (t, o) => select(t, o), onLoad: (t, trusted) => { if (trusted) loadTab(t); } });
     frame.active = saved.tab;
     frame.popped = new Set();
@@ -711,6 +796,14 @@
       if (t.tagName === 'IFRAME' || t.tagName === 'FRAME') return;
       const fb = t.getBoundingClientRect();
       if (!overlaps(frame.host.getBoundingClientRect(), fb)) return;
+      if (frame.place.collapsed) {
+        // ⭐ T28: the launcher steps across to the other side of the screen (a step aside is not the person's choice:
+        // not remembered)
+        const vp = viewport(), r = frame.rectNow();
+        frame.place = { ...frame.place, launch: { x: vp.w - r.x - r.w, y: r.y } };
+        frame.draw();
+        return;
+      }
       frame.place = { ...frame.place, edge: frame.host.dataset.side === 'right' ? 'left' : 'right' };
       frame.draw();
       if (overlaps(frame.host.getBoundingClientRect(), fb)) { frame.place = { ...frame.place, collapsed: true }; frame.draw(); }
@@ -821,7 +914,7 @@
   globalThis.__draftDock = Object.freeze({
     version: VERSION, TABS, TAB_IDS, EDGES, LIMITS, DOCK_ID, POP_PREFIX,
     // the geometry (pure — test/t17Dock.test.js)
-    limitsFor, clampRect, defaultRect, layoutRect, moveRect, resizeRect, edgeAtPointer, cleanPlace,
+    limitsFor, clampRect, defaultRect, layoutRect, moveRect, resizeRect, edgeAtPointer, cleanPlace, launchRect, snapLaunch,
     // the page
     isTop, ensure,
     // ⭐ T21: the one in-place patch every view draws with

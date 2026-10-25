@@ -259,8 +259,13 @@ test("T17: the frame paints only with tokens — var(--c-*), no colour literal; 
   assert.doesNotMatch(css.replace(/\$\{[^}]*\}/g, ""), /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i, "a colour literal in the dock's CSS");
   assert.match(css, /:host\(\[data-cues="shape"\]\) \.tab\[aria-selected="true"\]::before \{ content: "▸ "; \}/);
   assert.match(css, /@media \(prefers-reduced-motion: no-preference\) \{ :host\(\[data-settle\]\) \{ transition/);
-  // ⛔ D60: no capsule — every radius in the frame is a rectangle's
-  for (const m of css.matchAll(/border-radius:\s*([^;]+);/g)) assert.doesNotMatch(m[1], /999|50%|9999/, `a capsule: ${m[0]}`);
+  // ⛔ D60: no capsule — every radius in the frame is a rectangle's, but a PERFECT CIRCLE (⭐ T28: the launcher's dot —
+  // width and height equal in its own rule) stays round
+  for (const m of css.matchAll(/[^{}]*\{[^}]*border-radius:\s*([^;]+);[^}]*\}/g)) {
+    const w = m[0].match(/\bwidth: (\d+)px/)?.[1], h = m[0].match(/\bheight: (\d+)px/)?.[1];
+    if (/50%/.test(m[1]) && w && w === h) continue;
+    assert.doesNotMatch(m[1], /999|50%|9999/, `a capsule: ${m[0].trim().slice(0, 120)}`);
+  }
 });
 
 // ── 6 · no new permission; it ships ───────────────────────────────────────────────────────────────────────────────

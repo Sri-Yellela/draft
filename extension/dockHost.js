@@ -103,6 +103,8 @@ export function dockPlaceRecord(place, now = Date.now()) {
     rect: rectOf(place?.rect), edge: EDGES.includes(place?.edge) ? place.edge : null, collapsed: place?.collapsed === true,
     tab: DOCK_TABS.includes(place?.tab) ? place.tab : 'fill', pops,
     popped: (Array.isArray(place?.popped) ? place.popped : []).filter(t => DOCK_TABS.includes(t)).slice(0, DOCK_TABS.length),
+    // ⭐ T28: where the launcher (the dock, collapsed) sits on this site — two numbers, kept only when both are finite
+    ...(Number.isFinite(place?.launch?.x) && Number.isFinite(place?.launch?.y) ? { launch: { x: Math.round(place.launch.x), y: Math.round(place.launch.y) } } : {}),
     at: now,
   };
 }
