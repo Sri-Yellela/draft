@@ -61,12 +61,15 @@ async function startFixture() {
   return { port: server.address().port, posts, stop: () => { server.close(); fs.rmSync(dir, { recursive: true, force: true }); } };
 }
 
-/** Open the REAL popup on the active tab; returns its page, or null with the reason. */
-async function openPopup(h) {
-  const opened = await h.control.evaluate(() => chrome.action.openPopup().then(() => "ok", e => `ERR ${e.message}`));
-  if (opened !== "ok") return { popup: null, why: opened };
-  const t = await h.browser.waitForTarget(x => x.url().endsWith("/popup.html"), { timeout: 8000 }).catch(() => null);
-  return { popup: t ? await t.asPage() : null, why: t ? null : "no popup target" };
+/**
+ * ⭐ T31 (owner 10-25): the toolbar popup is retired — the one-time card's press and "Always read here" are the SETTINGS
+ * page's (the dock's offer opens it: options.html#auto-read, ?here=<origin>&frames=… for a careers site). Opened here the
+ * same way, in a tab of its own; the clicks are real (trusted input), on the real page.
+ */
+async function openSettings(h, query = "") {
+  const page = await h.browser.newPage();
+  await page.goto(`chrome-extension://${h.extensionId}/options.html${query}#auto-read`, { waitUntil: "load" });
+  return page;
 }
 const settings = async (h) => (await h.storage.local()).autoRead || {};
 const registered = (h) => h.control.evaluate(() => chrome.scripting.getRegisteredContentScripts());
@@ -87,13 +90,12 @@ test("⭐ the one-time card → ONE grant → a preset host is read automaticall
     assert.equal((await registered(h)).length, 0, "nothing registered before consent");
     assert.deepEqual((await settings(h)).reads || [], [], "nothing read before consent");
 
-    // 2 · the card, in the real popup, and the click
-    let { popup, why } = await openPopup(h);
-    assert.ok(popup, `the real popup opened: ${why}`);
-    await popup.waitForSelector("#auto-card:not([hidden])", { timeout: 10000 });
-    assert.match(await popup.$eval("#auto-card", el => el.textContent), /Allow it on these sites[\s\S]*SmartRecruiters/);
-    await popup.screenshot({ path: path.join(h.outDir, "d97r-popup-card.png") }).catch(() => {});
-    await popup.click("#auto-allow");
+    // 2 · the card's press — ⭐ T31: Settings' "Allow on these sites" (the retired popup's card), a real click
+    let page = await openSettings(h);
+    await page.waitForSelector("#auto-allow-all:not([hidden])", { timeout: 10000 });
+    assert.match(await page.$eval("#auto-sites-body", el => el.textContent), /SmartRecruiters/);
+    await page.screenshot({ path: path.join(h.outDir, "d97r-settings-allow.png") }).catch(() => {});
+    await page.click("#auto-allow-all");
     const agreed = await waitUntil(async () => ((await settings(h)).consent2?.at ? await settings(h) : null), 15000);
     assert.ok(agreed, "the consent is recorded");
     for (const id of ["workday", "greenhouse", "lever", "ashby", "workable", "smartrecruiters"]) {
@@ -103,7 +105,7 @@ test("⭐ the one-time card → ONE grant → a preset host is read automaticall
     // the full suite under load read the registrations in between)
     const regs = (await waitUntil(async () => { const r = (await registered(h)).map(x => x.id); return r.includes("draft-auto-read-greenhouse") ? r : null; }, 15000)) || [];
     assert.ok(regs.includes("draft-auto-read-greenhouse"), JSON.stringify(regs));
-    await popup.close().catch(() => {});
+    await page.close().catch(() => {});
 
     // 3 · the preset host, read with no click
     await h.open(GH_APPLY, { settle: 300 });
@@ -114,11 +116,11 @@ test("⭐ the one-time card → ONE grant → a preset host is read automaticall
 
     // 4 · "Always read here" on the employer's origin — offered at once, with Greenhouse named (gh_jid=, no frame read)
     await h.open(CAREERS_APPLY, { settle: 1200 });
-    ({ popup, why } = await openPopup(h));
-    assert.ok(popup, `the real popup opened on the careers page: ${why}`);
-    await popup.waitForSelector("#auto-here:not([hidden])", { timeout: 10000 });
-    assert.match(await popup.$eval("#auto-here-hint", el => el.textContent), /careers\.acme\.test and Greenhouse/);
-    await popup.click("#auto-here-box");
+    // ⭐ T31: the dock's offer opens Settings for THIS origin, with the frame its address names (gh_jid=, no frame read)
+    page = await openSettings(h, `?here=${encodeURIComponent(`https://${CAREERS}`)}&frames=greenhouse`);
+    await page.waitForSelector("#auto-here-row:not([hidden])", { timeout: 10000 });
+    assert.match(await page.$eval("#auto-here-hint", el => el.textContent), /careers\.acme\.test and Greenhouse/);
+    await page.click("#auto-here-box");
     const custom = await waitUntil(async () => (await settings(h)).custom?.[`https://${CAREERS}`] || null, 15000);
     assert.ok(custom, "the careers origin is allowed");
     assert.deepEqual([custom.read, custom.prepare, custom.capture, custom.fill], [true, true, false, false]);
@@ -127,7 +129,7 @@ test("⭐ the one-time card → ONE grant → a preset host is read automaticall
     assert.ok(reg, "registered for the careers origin");
     assert.equal(reg.allFrames, true);
     assert.ok(reg.matches.includes(`https://${CAREERS}/*`) && reg.matches.includes(`https://${GH_HOST}/*`), JSON.stringify(reg.matches));
-    await popup.close().catch(() => {});
+    await page.close().catch(() => {});
 
     // 5 · the careers page, reloaded: its Greenhouse frame is read — the form's four questions, not the newsletter box
     await h.reload({ settle: 300 });
@@ -136,13 +138,8 @@ test("⭐ the one-time card → ONE grant → a preset host is read automaticall
     assert.ok(acmeRead.total >= 4 && acmeRead.labels.some(l => /First Name/.test(l)), JSON.stringify(acmeRead));
     assert.ok(!acmeRead.labels.some(l => /new jobs/i.test(l)), "the employer's own newsletter box is not the application");
 
-    // 6 · the popup says so, instead of "Nothing on this page is read until you press it"
-    ({ popup, why } = await openPopup(h));
-    assert.ok(popup, why);
-    const line = await waitUntil(() => popup.$eval("#read-hint", el => (/Reading automatically/.test(el.textContent) ? el.textContent : null)), 10000);
-    assert.match(line || "", /^Reading automatically on this site · last read \d\d:\d\d$/);
-    await sleep(300);
-    await popup.screenshot({ path: path.join(h.outDir, "d97r-popup-reading.png") }).catch(() => {});
-    await popup.close().catch(() => {});
+    // 6 · the page says so (⭐ T31: the read's own news, on the page — the retired popup said it in its hint line)
+    const said = await waitUntil(async () => { const b = await h.readBadge(); return b?.state === 'ready' && /Read|reading/i.test(b.text || '') ? b : null; }, 15000);
+    assert.ok(said, "the read is said on the page");
     assert.deepEqual(fx.posts, [], "draft never submits");
   });

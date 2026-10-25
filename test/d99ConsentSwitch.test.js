@@ -23,7 +23,8 @@ test("⛔ J13 · an extension page is known by its address — never by having n
   assert.match(def, /chrome\.runtime\.getURL\(''\)/);
   // ⛔ the permission request stays the switch handler's FIRST chrome call — inside the click's gesture
   const opt = read("extension/options-auto.js");
-  const body = opt.slice(at(opt, "export function onSwitch"), at(opt, "return (async"));
+  // (⭐ T31: onConsentAll and onAlwaysHere sit above it now — the handler's OWN "return (async")
+  const body = opt.slice(at(opt, "export function onSwitch"), at(opt, "return (async", at(opt, "export function onSwitch")));
   assert.match(body, /api\.permissions\.request\(/);
   assert.doesNotMatch(body, /await/);
 });
