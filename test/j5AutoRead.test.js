@@ -278,7 +278,11 @@ test("⛔ D97 · permissions.request lives in click handlers only — Options' s
   const firstCall = fn.indexOf("api.");
   assert.equal(fn.slice(firstCall, firstCall + 25), "api.permissions.request({", "the request is the handler's first chrome call");
   assert.ok(fn.indexOf("api.permissions.request(") < fn.indexOf("await"), "before any await");
-  assert.equal((opt.match(/permissions\.request\(/g) || []).length, 1);
+  // ⭐ T31: "Always read here" moved here from the popup — its request is ITS handler's first call too
+  assert.equal((opt.match(/permissions\.request\(/g) || []).length, 2);
+  const here = opt.slice(at(opt, "export function onAlwaysHere(api, here) {"), at(opt, "/** The site a deep link asks about"));
+  assert.equal(here.slice(here.indexOf("api."), here.indexOf("api.") + 25), "api.permissions.request({", "onAlwaysHere's first chrome call is the request");
+  assert.ok(here.indexOf("api.permissions.request(") < here.indexOf("await"), "before any await");
 });
 
 // ── 4 · the Options page, with a stub DOM ────────────────────────────────────────────────────────────

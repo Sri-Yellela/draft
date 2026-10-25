@@ -10,7 +10,40 @@
 //     being logged at the same moment. Turning a site's last switch off gives Chrome's access back there.
 //   · ⭐ T12: the sites the user chose with the popup's "Always read here" are listed below the preset table, with the
 //     same four switches and Remove (gives Chrome's access back and unregisters the watcher).
-import { SITES, DISPLAY_ORDER, BEHAVIOURS, DISCLOSURE, siteById, consentCovers, readQuality, originPattern } from './autoRead.js';
+import { SITES, DISPLAY_ORDER, BEHAVIOURS, DISCLOSURE, ALWAYS, siteById, consentCovers, readQuality, originPattern, customOriginFor } from './autoRead.js';
+
+/**
+ * ⭐ T31 (owner 10-25) · "Always read here", moved from the toolbar popup: the dock's offer opens this page with
+ * ?here=<origin>&frames=<ids> (background.js DOCK_ACT always-here — the TAB's origin). The one switch asks Chrome for
+ * that origin and the ATS frames it embeds — ⛔ the FIRST call of its handler, synchronously, inside the click — says
+ * so to the worker in the same turn (AUTO_READ_PENDING: Chrome's answer can outlive this page's handler), then turns
+ * Read + Prepare on there (AUTO_READ_ALLOW_SITE). → the request's answer, then the worker's.
+ */
+export function onAlwaysHere(api, here) {
+  const asked = here ? api.permissions.request({ origins: [...here.origins] }) : null;
+  if (asked) { try { const p = api.runtime.sendMessage({ type: 'AUTO_READ_PENDING', kind: 'site', origin: here.origin, frames: here.frames });
+    if (p && typeof p.catch === 'function') p.catch(() => {}); } catch { /* the worker finishes a grant it sees */ } }
+  return (async () => {
+    if (!here) return { ok: false, error: 'bad_site' };
+    let granted = false;
+    try { granted = await asked; } catch { granted = false; }
+    if (!granted) {
+      await Promise.resolve(api.runtime.sendMessage({ type: 'AUTO_READ_PENDING_CLEAR' })).catch(() => null);
+      return { ok: false, error: 'not_granted', message: ALWAYS.refused(here.host) };
+    }
+    const r = (await api.runtime.sendMessage({ type: 'AUTO_READ_ALLOW_SITE', origin: here.origin, frames: here.frames })) || { ok: false };
+    return { ...r, message: r.ok ? ALWAYS.on(here.host) : ALWAYS.refused(here.host) };
+  })();
+}
+/** The site a deep link asks about — validated: a custom origin draft may read (never a preset site, LinkedIn, …). */
+export function hereFromSearch(search) {
+  let q;
+  try { q = new URLSearchParams(search || ''); } catch { return null; }
+  const origin = q.get('here');
+  if (!origin || customOriginFor(`${origin}/`) !== origin) return null;
+  const frames = (q.get('frames') || '').split(',').filter(id => siteById(id)).slice(0, SITES.length);
+  return { origin, host: new URL(origin).hostname, frames, origins: [originPattern(origin), ...frames.flatMap(id => siteById(id).origins)] };
+}
 
 export const COLUMN = Object.freeze({ read: 'Read', prepare: 'Prepare', capture: 'Capture', fill: 'Fill' });
 
@@ -218,6 +251,20 @@ export function mount(doc, api) {
     state = (await api.runtime.sendMessage({ type: 'AUTO_READ_STATE' })) || null;
     render();
     return state;
+  }
+  // ⭐ T31: the site the dock's offer named — one switch, above the table, until it is chosen
+  const here = hereFromSearch(doc.defaultView?.location?.search ?? globalThis.location?.search ?? '');
+  const hereRow = $('auto-here-row');
+  if (here && hereRow) {
+    const box = $('auto-here-box');
+    $('auto-here-label').textContent = `Always read ${here.host}`;
+    $('auto-here-hint').textContent = ALWAYS.hint(here.host, here.frames.map(id => siteById(id).name));
+    hereRow.hidden = false;
+    box.addEventListener('change', () => {
+      if (!box.checked) return;
+      const asked = onAlwaysHere(api, here);                                // ⛔ first: inside the gesture
+      void asked.then((r) => { say.textContent = r.message || ''; if (r.ok) hereRow.hidden = true; else box.checked = false; return refresh(); }).catch(() => null);
+    });
   }
   const ready = refresh().catch(() => null);
   return { boxes, removes, agree, ready, refresh };

@@ -40,6 +40,7 @@ import { C_LIGHT, C_DARK } from './tokens.js';
 // D97 (J5): automatic reading, per site, all off — the four switches, the watcher's registrations, the consent.
 import {
   handlers as AUTO_READ_HANDLERS, configureAutoRead, reconcileAutoRead, onPermissionsRemoved, onPermissionsAdded, forgetTab, noteFrameSite,
+  AUTO_READ_KEY, normaliseSettings, SITES as AUTO_SITES, customOriginFor, originPattern, popupAutoView, siteFor as autoSiteFor,
 } from './autoRead.js';
 
 // ⭐ T12 · a press found the form inside an ATS frame draft may not read yet: the settings remember WHICH site that page's
@@ -889,10 +890,27 @@ function pressToolbar(tab) {
     openDock: () => openDock(tab),
     identity: () => getIdentity(RESUME_MASTER_URL),
     context: () => popupContext(tab),
+    auto: () => autoFactsFor(tab),
     relay: async (_t, specs) => drawInDock(tab.id, renderRelay, [specs, await overlayTheme()]),
     openBoard: () => chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app` }),
   });
 }
+/**
+ * ⭐ T31 · what automatic reading could offer on this tab — the toolbar popup's local facts, gathered here now (the
+ * settings, the tab's binding, Chrome's grants: nothing read from the page) and decided by autoRead.js popupAutoView.
+ */
+async function autoFactsFor(tab) {
+  const raw = (await chrome.storage.local.get(AUTO_READ_KEY).catch(() => ({})))?.[AUTO_READ_KEY];
+  const has = (origins) => chrome.permissions.contains({ origins }).catch(() => false);
+  const sites = {};
+  for (const s of AUTO_SITES) sites[s.id] = await has([...s.origins]);
+  const origin = customOriginFor(tab?.url);
+  const here = origin ? await has([originPattern(origin)]) : false;
+  const binding = await bindingForTab(tab).catch(() => null);
+  const view = popupAutoView({ settings: normaliseSettings(raw), url: tab?.url || null, granted: { here, sites }, jobId: binding?.jobId ?? null, bound: !!binding });
+  return { card: !!view.card, cardSite: autoSiteFor(tab?.url)?.name || null, here: view.here || null };
+}
+
 // THE LISTENER FIRING IS THE PERMISSION: a toolbar press is a user gesture, and it grants activeTab for the tab — the
 // same grant the toolbar popup's open used to give. (It fires only while the manifest declares no default_popup.)
 chrome.action.onClicked.addListener((tab) => { void pressToolbar(tab).catch(() => null); });
@@ -909,6 +927,22 @@ const DOCK_ACTS = Object.freeze({
   'sign-in': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/login` }); return { ok: true, say: null }; },
   // owner 10-23: a permission is requested on the settings page — Allow opens it at Permissions, where one click asks Chrome
   'allow-site': async () => { await chrome.tabs.create({ url: chrome.runtime.getURL('options.html#permissions') }); return { ok: true, say: null }; },
+  // ⭐ T31 · "Always read here" moved to Settings: the site is the TAB'S origin (never a message's), its frames the ones
+  // draft knows it embeds; the switch there asks Chrome inside its own click
+  'always-here': async (tab) => {
+    const origin = customOriginFor(tab?.url);
+    if (!origin) return { ok: false, say: 'draft cannot read this site automatically.' };
+    const frames = ((await autoFactsFor(tab).catch(() => null))?.here?.frames || []).map(f => f.id);
+    const q = new URLSearchParams({ here: origin, ...(frames.length ? { frames: frames.join(',') } : {}) });
+    await chrome.tabs.create({ url: chrome.runtime.getURL(`options.html?${q}#auto-read`) });
+    return { ok: true, say: null };
+  },
+  'auto-setup': async () => { await chrome.tabs.create({ url: chrome.runtime.getURL('options.html#auto-read') }); return { ok: true, say: null }; },
+  // "Later" on the one-time offer: the worker's own write, as the popup card's Later was (an extension page's sender)
+  'auto-later': async () => {
+    await AUTO_READ_HANDLERS.AUTO_READ_LATER({}, { id: chrome.runtime.id, url: chrome.runtime.getURL('options.html') });
+    return { ok: true, say: null };
+  },
   report: async (tab) => {
     const r = await reportForm(tab, 'preview');
     if (!r?.ok) return { ok: false, say: r?.message || 'Could not read this form.' };
