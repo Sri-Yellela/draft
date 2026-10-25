@@ -56,6 +56,7 @@ globalThis.chrome = {
   commands: { getAll: async () => [], onCommand: ev() },
   action: {
     async setBadgeText({ text }) { h.badges.push(text); }, async setBadgeBackgroundColor() {}, async setTitle() {},
+    onClicked: { addListener() {} },   // ⭐ T31: the toolbar press (background.js pressToolbar)
   },
   contextMenus: { create() {}, removeAll(cb) { cb?.(); }, onClicked: ev() },
 };

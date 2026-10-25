@@ -260,7 +260,9 @@ export function mount(doc, api) {
     agree.hidden = full;
     const at = s?.consent2?.at ?? s?.consent?.at;
     $('auto-agreed').textContent = full ? `You agreed on ${hhmm(at)}.` : '';
-    if ($('auto-allow-all')) $('auto-allow-all').hidden = SITES.every(site => !!state?.granted?.[site.id]);
+    // shown until the consent is given — as the popup's card was (a grant from chrome://extensions is not a consent: the
+    // press records it, with no prompt when Chrome already holds every site)
+    if ($('auto-allow-all')) $('auto-allow-all').hidden = !!state?.settings?.consent2?.at && !state?.settings?.kill;
     renderCustom(s);
     for (const site of SITES) {
       for (const b of BEHAVIOURS) {

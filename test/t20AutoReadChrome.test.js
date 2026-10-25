@@ -96,11 +96,15 @@ async function startFixture() {
 }
 const rules = (fx) => [CAREERS, GH_HOST, WD_HOST].map(h => `MAP ${h} 127.0.0.1:${fx.port}`);
 
-async function openPopup(h) {
-  const opened = await h.control.evaluate(() => chrome.action.openPopup().then(() => "ok", e => `ERR ${e.message}`));
-  if (opened !== "ok") return { popup: null, why: opened };
-  const t = await h.browser.waitForTarget(x => x.url().endsWith("/popup.html"), { timeout: 8000 }).catch(() => null);
-  return { popup: t ? await t.asPage() : null, why: t ? null : "no popup target", target: t };
+/**
+ * ⭐ T31 (owner 10-25): the toolbar popup is retired — the one-time card's press and "Always read here" are the SETTINGS
+ * page's (the dock's offer opens it: options.html#auto-read, ?here=<origin>&frames=… for a careers site). Opened here the
+ * same way, in a tab of its own; the clicks are real (trusted input), on the real page.
+ */
+async function openSettings(h, query = "") {
+  const page = await h.browser.newPage();
+  await page.goto(`chrome-extension://${h.extensionId}/options.html${query}#auto-read`, { waitUntil: "load" });
+  return page;
 }
 const settings = async (h) => (await h.storage.local()).autoRead || {};
 const registered = (h) => h.control.evaluate(() => chrome.scripting.getRegisteredContentScripts());
@@ -122,13 +126,12 @@ test("⭐ (a) consent reads the tabs ALREADY OPEN with no press · a new tab rea
     assert.deepEqual((await settings(h)).reads || [], [], "nothing read before consent");
     assert.equal((await registered(h)).length, 0, "nothing registered before consent");
 
-    // 2 · the card's click, in the real popup
-    const { popup, why } = await openPopup(h);
-    assert.ok(popup, `the real popup opened: ${why}`);
-    await popup.waitForSelector("#auto-card:not([hidden])", { timeout: 10000 });
-    await popup.click("#auto-allow");
+    // 2 · the card's press — ⭐ T31: Settings' "Allow on these sites" (the retired popup's card), a real click
+    const page = await openSettings(h);
+    await page.waitForSelector("#auto-allow-all:not([hidden])", { timeout: 10000 });
+    await page.click("#auto-allow-all");
     assert.ok(await waitUntil(async () => (await settings(h)).consent2?.at, 15000), "the consent is recorded");
-    await popup.close().catch(() => {});
+    await page.close().catch(() => {});
 
     // 3 · ⭐ THE DEFECT: the open tabs are read with NO reload and NO press
     const gh = await waitUntil(async () => (await readsOf(h, GH_HOST))[0] || null, BUSY_MS);
@@ -186,14 +189,14 @@ test("⭐ (b) 'Always read here' on a company's careers page reads its EMBEDDED 
     await waitUntil(() => h.frame(u => u.startsWith(`https://${GH_HOST}/`)), 10000);
     assert.deepEqual((await settings(h)).reads || [], [], "nothing read before the click");
 
-    const { popup, why } = await openPopup(h);
-    assert.ok(popup, `the real popup opened: ${why}`);
-    await popup.waitForSelector("#auto-here:not([hidden])", { timeout: 10000 });
-    await popup.click("#auto-here-box");
+    // ⭐ T31: the dock's offer opens Settings for THIS origin with the frame draft knows it embeds; the switch is the click
+    const page = await openSettings(h, `?here=${encodeURIComponent(`https://${CAREERS}`)}&frames=greenhouse`);
+    await page.waitForSelector("#auto-here-row:not([hidden])", { timeout: 10000 });
+    await page.click("#auto-here-box");
     const custom = await waitUntil(async () => (await settings(h)).custom?.[`https://${CAREERS}`] || null, 15000);
     assert.ok(custom, "the careers origin is allowed");
     assert.deepEqual(custom.frames, ["greenhouse"]);
-    await popup.close().catch(() => {});
+    await page.close().catch(() => {});
 
     const read = await waitUntil(async () => (await readsOf(h, CAREERS))[0] || null, BUSY_MS);
     assert.ok(read, "the careers page open at the click was read — in its Greenhouse frame, with no reload");
@@ -205,23 +208,20 @@ test("⭐ (b) 'Always read here' on a company's careers page reads its EMBEDDED 
     assert.deepEqual(fx.posts, [], "draft never submits");
   });
 
-test("⛔ (c) the REAL request with no grant (Chrome's prompt, never answered): the popup closes, the click is recorded, NOTHING is turned on or read",
+test("⛔ (c) the REAL request with no grant (Chrome's prompt, never answered): the click is recorded, NOTHING is turned on or read",
   { skip, timeout: 180000 }, async (t) => {
     const fx = await startFixture();
     t.after(() => fx.stop());
     const h = await launchExtensionBrowser({ insecureCerts: true, resolverRules: rules(fx), hosts: [] });
     t.after(() => h.close());
     await h.open(GH_APPLY, { settle: 1500 });
-    const { popup, why, target } = await openPopup(h);
-    assert.ok(popup, `the real popup opened: ${why}`);
-    await popup.waitForSelector("#auto-card:not([hidden])", { timeout: 10000 });
-    let closed = false;
-    h.browser.on("targetdestroyed", (x) => { if (x === target) closed = true; });
-    await popup.click("#auto-allow");
-    // MEASURED: the popup closes as Chrome's prompt opens — the reason the worker, not the popup, must finish a grant
-    assert.ok(await waitUntil(() => closed, 10000), "the popup closed at the prompt");
+    // ⭐ T31: the press is Settings' now (the retired popup closed as Chrome's prompt opened — a tab does not, but the
+    // worker still holds the click: Chrome's answer can come after the page's handler, and only the grant finishes it)
+    const page = await openSettings(h);
+    await page.waitForSelector("#auto-allow-all:not([hidden])", { timeout: 10000 });
+    await page.click("#auto-allow-all");
     const pending = await waitUntil(async () => (await h.send({ type: "AUTO_READ_STATE" }))?.pending || null, 10000);
-    assert.equal(pending, "all", "the click reached the worker before the popup died");
+    assert.equal(pending, "all", "the click reached the worker before Chrome answered");
     assert.equal((await h.storage.session()).autoReadPending, undefined, "held in the worker's memory - no new storage key (D23)");
     await sleep(QUIET_MS);
     const granted = await h.control.evaluate(() => chrome.permissions.getAll());

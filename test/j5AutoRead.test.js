@@ -258,7 +258,8 @@ test("⛔ D97 · permissions.request lives in click handlers only — Options' s
   assert.deepEqual(hits, ["options-auto.js", "options-permissions.js"]);
   const perm = read("extension/options-permissions.js");
   const allow = perm.slice(at(perm, "export function onAllow(api, siteId) {"), at(perm, "/** Draw the section"));
-  assert.equal(allow.slice(allow.indexOf("api."), allow.indexOf("api.") + 25), "api.permissions.request({", "onAllow's first chrome call is the request");
+  const firstOf = (src) => { const i = at(src, "api."); return src.slice(i, i + 25); };
+  assert.equal(firstOf(allow), "api.permissions.request({", "onAllow's first chrome call is the request");
   assert.ok(allow.indexOf("api.permissions.request(") < allow.indexOf("await"), "before any await");
   for (const [open, first] of [["if (box.checked) {\n          const asked = onAllow(api, id);", "onAllow(api, id)"],
     ["if (box.checked) {\n          const asked = api.permissions.request({ origins: [originPattern(origin)] });", "api.permissions.request("]]) {
@@ -279,9 +280,9 @@ test("⛔ D97 · permissions.request lives in click handlers only — Options' s
   // ⭐ T31: and the one-time card's one prompt (onConsentAll) — three requests, each its handler's first call
   assert.equal((opt.match(/permissions\.request\(/g) || []).length, 3);
   const all = opt.slice(at(opt, "export function onConsentAll(api) {"), at(opt, "export function onAlwaysHere("));
-  assert.equal(all.slice(all.indexOf("api."), all.indexOf("api.") + 25), "api.permissions.request({", "onConsentAll's first chrome call is the request");
+  assert.equal(firstOf(all), "api.permissions.request({", "onConsentAll's first chrome call is the request");
   const here = opt.slice(at(opt, "export function onAlwaysHere(api, here) {"), at(opt, "/** The site a deep link asks about"));
-  assert.equal(here.slice(here.indexOf("api."), here.indexOf("api.") + 25), "api.permissions.request({", "onAlwaysHere's first chrome call is the request");
+  assert.equal(firstOf(here), "api.permissions.request({", "onAlwaysHere's first chrome call is the request");
   assert.ok(here.indexOf("api.permissions.request(") < here.indexOf("await"), "before any await");
 });
 

@@ -10,7 +10,7 @@
  *       you", Ready only when it is, no asterisk on a label
  *    4. acknowledge the guess (Postal Code, matched loosely) and type a needed answer with Remember (Address Line 1);
  *       answer the eligibility questions the same way
- *    5. reopen the popup → it remembers: the progress line and the In progress list
+ *    5. it remembers (⭐ T31: the retired popup showed it) — the tab's state and the job's progress record
  *    6. reload the page → the progress and the binding survive
  *    7. generate a résumé (the panel's own click) → attach (the name shows on the fixture's drop zone)
  *    8. the Copy sheet, in the page: the acknowledged and typed answers with their sources, "Résumé — attached ✓",
@@ -260,43 +260,27 @@ export default async function run(h, { check, observe, section }) {
   await h.dismissBadge();
   await Promise.race([aq.reply, sleep(BUSY_MS)]);
 
-  section('5 · reopen the popup — it remembers');
-  const readPopup = async () => {
-    // The popup names the job of the window's ACTIVE tab, read once when it loads. Under a loaded suite the harness's
-    // own control tab could still be the active one, and the popup then honestly shows no job — so the fixture is
-    // brought to the front and Chrome is asked until it agrees, before the popup opens.
+  section('5 · it remembers — the tab\'s state and where the application stands (⭐ T31: the retired popup showed them)');
+  const readState = async () => {
     await page.bringToFront();
     await waitUntil(() => h.control.evaluate(async (u) => {
       const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
       return !!t && t.url.split('#')[0] === u;
     }, page.url().split('#')[0]), BUSY_MS);
-    const before = new Set(browser.targets());
-    await h.control.evaluate(() => chrome.tabs.create({ url: chrome.runtime.getURL('popup.html'), active: false }));
-    const t = await browser.waitForTarget((x) => !before.has(x) && x.url().endsWith('/popup.html'), { timeout: BUSY_MS });
-    const pp = await t.page();
-    const got = await waitUntil(() => pp.evaluate(() => {
-      const box = document.getElementById('progress');
-      if (!box || box.hidden) return null;
-      // renderProgress paints the job line, THEN awaits the list — under a loaded suite the read could land between
-      // the two (43e: "In progress … — []"). This pass always has one job in progress, so wait for the list as well.
-      if (document.getElementById('in-progress').hidden) return null;
-      return { job: document.getElementById('progress-job').textContent, line: document.getElementById('progress-line').textContent,
-        list: [...document.querySelectorAll('#in-progress-list li')].map(li => ({ job: li.querySelector('.ip-job')?.textContent, where: li.querySelector('.ip-where')?.textContent, here: li.className === 'here' })),
-        listShown: !document.getElementById('in-progress').hidden };
-    }), BUSY_MS);
-    await pp.close();
-    await page.bringToFront();
-    return got;
+    const st = await waitUntil(async () => { const r = await h.send({ type: 'TAB_STATE' }).catch(() => null); return r?.state?.jobId ? r.state : null; }, BUSY_MS);
+    const rec = await progressRecord();
+    return { job: st ? [st.title, st.company].filter(Boolean).join(' at ') : null, read: !!st?.read, prepared: !!st?.prepared,
+      captured: !!rec?.captured?.at, readAt: !!rec?.read?.at, preparedAt: !!rec?.prepared?.at, packet: rec?.prepared || null, filled: rec?.filled || null };
   };
-  const pop = await readPopup();
-  observe('the popup, reopened', pop);
-  check('it opens knowing the job', pop?.job === 'Software Engineer at Zoom', pop?.job);
+  const pop = await readState();
+  observe('the tab\'s state, and its record', pop);
+  check('it knows the job', pop?.job === 'Software Engineer at Zoom', pop?.job);
   // ⭐ T15: "prepared" is the SERVER packet — when it was made, how many fields, when it goes off
-  check('…and where it stands: Captured · Page read · Answers prepared (the packet: made · fields · expiry) · Filled N of M',
-    /^Captured .* · Page read .* · Answers prepared \d\d:\d\d · \d+ fields? · expire [^·]+ · Filled \d+ of \d+/.test(pop?.line || ''), pop?.line);
+  check('…and where it stands: captured · page read · answers prepared (the packet: made · fields · expiry) · filled',
+    pop?.captured && pop.readAt && pop.preparedAt && Number.isFinite(pop.packet?.answerCount) && !!pop.packet?.expiresAt && !!pop.filled, JSON.stringify(pop));
   // The record holds the LAST panel's counts (one record per job, the step in view): Application Questions, answered.
-  check('…with the counts the panel showed last — "Filled 3 of 3", nothing needs you, nothing to check', /· Filled 3 of 3( ·|$)/.test(pop?.line || '') && !/need|to check/.test(pop?.line || ''), pop?.line);
-  check('the In progress list shows this job, marked as the one in this tab', pop?.listShown === true && (pop?.list || []).some(i => i.job === 'Software Engineer at Zoom' && i.here && !!i.where), JSON.stringify(pop?.list));
+  check('…with the counts the panel showed last — 3 of 3 filled, nothing needs you, nothing to check',
+    pop?.filled?.n === 3 && pop.filled.of === 3 && !pop.filled.needYou && !pop.filled.check, JSON.stringify(pop?.filled));
 
   section('6 · reload the page — progress and binding survive');
   const recBefore = await progressRecord();
@@ -305,8 +289,8 @@ export default async function run(h, { check, observe, section }) {
   check('the binding survives the reload — the same job', bindsAfter.length === 1 && bindsAfter[0][1].jobId === String(jobId), JSON.stringify(bindsAfter.map(b => b[1])));
   const recAfter = await progressRecord();
   check('the progress record survives the reload, unchanged', JSON.stringify(recAfter?.filled) === JSON.stringify(recBefore?.filled) && recAfter?.captured?.at === recBefore?.captured?.at && !!recAfter?.prepared?.at, JSON.stringify(recAfter?.filled));
-  const pop2 = await readPopup();
-  check('…and the popup still says where it stands', pop2?.line === pop?.line, `${pop2?.line} vs ${pop?.line}`);
+  const pop2 = await readState();
+  check('…and the tab still knows where it stands', JSON.stringify(pop2) === JSON.stringify(pop), `${JSON.stringify(pop2)} vs ${JSON.stringify(pop)}`);
 
   section('7 · a résumé started from the page\'s tab (T24 / T18\'s press) → the dock\'s Résumé tab → attach');
   const opened = await h.send({ type: 'RESUME_PANEL_OPEN', tab: 'resume' });
