@@ -138,7 +138,7 @@ test("T27 · audit 10-25 in a REAL Chrome — a focused popup never moves the do
   assert.ok(await page.evaluate(() => !!document.getElementById("intent")?.shadowRoot?.activeElement), "the question has the focus");
   assert.deepEqual(await dockAt(), before, "the dock stepped aside from its own popup");
   // ② a NEW question is not kept behind the unanswered one; news that waited too long is dropped
-  await page.evaluate(() => { globalThis.__draftPopups.show({ id: "news", kind: "toast", text: "Filled — review and submit", ms: 200, theme: window.__th }).then(a => { window.__r.news = a.action; }); });
+  await page.evaluate(() => { globalThis.__draftPopups.show({ id: "news", kind: "toast", text: "Filled — review and submit", ms: 200, staleMs: 300, theme: window.__th }).then(a => { window.__r.news = a.action; }); });
   await new Promise(r => setTimeout(r, 400));
   await page.evaluate(() => { globalThis.__draftPopups.show({ id: "submitted", kind: "question", text: "Did you submit this application yourself?", theme: window.__th,
     actions: [{ id: "yes", label: "Yes", icon: "check" }] }).then(a => { window.__r.submitted = a.action; }); });

@@ -788,7 +788,9 @@
       frame.filling = false; frame.fillCount = null;
       // a fill that drew its panel replaced this empty state; one that did not says why, here
       frame.fillSaid = r?.ok ? '' : (r?.message || 'draft could not fill this page.');
-      if (frame.fillSaid) void globalThis.__draftPopups?.show?.({ id: 'rm-draft-dock-said', kind: 'toast', text: frame.fillSaid, icon: 'need', tone: 'need', theme: meta.theme });
+      // (a frame to allow, a form not recognised: the fill's own popup says it — background.js fillRelay)
+      const relayed = ['frame_needs_permission', 'form_not_recognised'].includes(r?.reason);
+      if (frame.fillSaid && !relayed) void globalThis.__draftPopups?.show?.({ id: 'rm-draft-dock-said', kind: 'toast', text: frame.fillSaid, icon: 'need', tone: 'need', theme: meta.theme });
       if (frame.host.isConnected) frame.draw();
     };
     frame.onDockBackTab = (t) => dockBack(t);
