@@ -95,7 +95,14 @@ import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyPro
 // Chrome prompt for the preset job sites, which now include SmartRecruiters; Read and Prepare only — Capture and Fill
 // stay off), and "Always read here" adds one employer careers site at a time from a click. The settings item also keeps
 // the sites chosen that way and which job site's form a careers site embeds (an address and a site name, no path).
-const EFFECTIVE_DATE = 'October 15, 2026';
+// October 25, 2026 (owner, 10-25 — T31: the toolbar popup is retired; "one press reads"): (1) the tab's address is sent
+// when the TOOLBAR BUTTON (or its shortcut) is pressed on a page — before, the popup opened reading nothing and a
+// second press, "Read this page", sent it. The same one address, the same answer, still only on a press, still not
+// kept — but one click sooner: a MATERIAL change, so the advance-notice commitment below applies (an owner action
+// before the extension ships it). (2) The last capture's result is no longer stored (nothing reads it any more).
+// (3) The popup's places — the account and Disconnect, automatic reading's one-time offer, "Always read here", the Copy
+// sheet, Report this form — are named where they are now: the settings page and draft's panel on the page.
+const EFFECTIVE_DATE = 'October 25, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 export function PrivacyPage() {
@@ -194,11 +201,12 @@ export function PrivacyPage() {
             </LI>
             <LI>
               It reads the <Strong>address (URL) of the tab you invoke it on</Strong>, to
-              recognise whether that page is a supported job posting. When you press{" "}
-              <Strong>Read this page</Strong> in the extension's popup (opening the popup alone reads
-              nothing), it also sends that one address to {CANONICAL_HOST}, to show you whether the job
+              recognise whether that page is a supported job posting. When you press the extension's{" "}
+              <Strong>toolbar button</Strong> (or its keyboard shortcut) on a page, it opens draft's
+              panel there and also sends that one address to {CANONICAL_HOST}, to show you whether the job
               is already on your board and whether an application you drafted is waiting on that
-              site; the answer is shown in the popup and not kept by the extension. When that address
+              site; nothing is read or sent before you press it, and the answer is shown on that page
+              and not kept by the extension. When that address
               alone does not identify the job, the same press also sends the posting's text it read
               (the title, company and description a capture would send), so draft can tell which job on
               your board it is and score your résumé against it; that text is used for the answer and
@@ -277,21 +285,15 @@ export function PrivacyPage() {
 
           <H3>What the Extension Stores in Your Browser</H3>
           <P>
-            The extension keeps ten things in your browser's own extension storage. Six are
+            The extension keeps nine things in your browser's own extension storage. Five are
             ordinary local storage and stay until you uninstall the extension or disconnect it; the
             other four are memory-backed session storage, which your browser discards when you
-            restart it. Only one of the ten — the extension's own access token, described below — is
+            restart it. Only one of the nine — the extension's own access token, described below — is
             ever sent anywhere, and it goes only to us. (Earlier versions also stored a custom
             keyboard shortcut; that setting was removed, and any value it left behind is deleted
             when you open the extension's options page. Shortcuts are now managed by Chrome itself.)
           </P>
           <UL>
-            <LI>
-              <Strong>The result of your most recent capture</Strong> — the job title and whether
-              it succeeded — so the popup can show you the outcome of a capture you made with the
-              keyboard while the popup was closed. Local storage: overwritten by the next capture,
-              and kept until you uninstall the extension.
-            </LI>
             <LI>
               <Strong>The prepared answers for an application in progress</Strong>, during a form
               fill only. Session storage: expiring after ten minutes, deleted when that tab closes,
@@ -299,8 +301,8 @@ export function PrivacyPage() {
             </LI>
             <LI>
               <Strong>The result of your most recent form fill</Strong> — whether it succeeded, the
-              message you were shown, and which tab it happened in — so the popup can report the
-              outcome of a fill you started with the keyboard. Session storage: overwritten by the
+              message you were shown, and which tab it happened in — so the outcome of a fill you
+              started with the keyboard is on record for the rest of the session. Session storage: overwritten by the
               next fill and gone when you restart your browser. The ten-minute expiry above does
               not apply to it.
             </LI>
@@ -326,7 +328,7 @@ export function PrivacyPage() {
             </LI>
             <LI>
               <Strong>The account the extension is connected to</Strong> — your username, so the
-              popup can tell you whose account a capture would go to before you make one. Local
+              extension's settings page can tell you whose account a capture would go to before you make one. Local
               storage: refreshed when the extension checks in with us, and deleted the moment you
               disconnect it. The ten-minute expiry does not apply to it.
             </LI>
@@ -337,7 +339,7 @@ export function PrivacyPage() {
               not your password and it is not your website session — the extension obtains a token
               of its own the first time you connect it, precisely so that it acts only as the
               account you connected and never as whatever else you happen to be signed in to in the
-              same browser. You can end it at any time from the extension's popup, or from your
+              same browser. You can end it at any time from the extension's settings page (Account → Disconnect), or from your
               account, and the extension then holds nothing. Local storage; the ten-minute expiry
               does not apply to it.
             </LI>
@@ -347,13 +349,13 @@ export function PrivacyPage() {
               of its posting, up to eight addresses of that job's pages you used the extension on (with
               tracking parameters and anything after "#" removed — so a new tab on the same job picks up
               where you left off without asking us), when each of those steps happened, and how many
-              fields were filled and how many still need you — so the popup can show where you left off. It holds no answers — never
+              fields were filled and how many still need you — so draft's panel on the page can show where you left off. It holds no answers — never
               what you typed, chose or filled — and nothing else of the page. It is never sent anywhere.
               Local storage: each job is kept 30 days from its last change, and all of it is deleted when
               you disconnect the extension, when you sign out, or when a different account is connected.
               The ten-minute expiry does not apply to it. If you generate a résumé on the page, the
               same record also remembers that résumé's ID, its status and when you attached it — no
-              résumé text, file or file name — so the panel comes back after you close the popup or
+              résumé text, file or file name — so the panel comes back after you close it or
               reload, and a later fill attaches the same file.
             </LI>
             <LI>
@@ -379,13 +381,13 @@ export function PrivacyPage() {
           {/* ⭐ D64 (owner, 10-07) → D97 (owner, 10-13) — automatic reading. extension/autoRead.js, services/jobs/autoCapture.js. */}
           <H3>Reading Application Pages Automatically (optional, off by default)</H3>
           <P>
-            You can let draft work on job sites without a click. The extension's popup shows a one-time
-            card that offers it for a short list of job sites — Greenhouse, Lever, Ashby, Workable,
+            You can let draft work on job sites without a click. The extension's settings page offers
+            it — and draft's panel points you there when you are on one of those sites — for a short list of job sites — Greenhouse, Lever, Ashby, Workable,
             SmartRecruiters and Workday (including Workday's shared myworkdaysite.com pages) — with one
             prompt from Chrome for that list. Agreeing turns on <Strong>Read</Strong> and{' '}
             <Strong>Prepare</Strong> (below) on those sites; <Strong>Capture</Strong> and{' '}
             <Strong>Fill</Strong> stay off until you turn them on in the settings. On an employer's own
-            careers site, the popup's <Strong>Always read here</Strong> switch does the same for that one
+            careers site, the settings page's <Strong>Always read</Strong> switch for that site (draft's panel offers it there) does the same for that one
             site: it asks Chrome for that site — and, when its application form is another job site's
             frame, that job site — and nothing else. <Strong>Nothing is on until you agree</Strong>, after
             the extension has shown you what it does. It never asks for every site, and never for
@@ -479,11 +481,11 @@ export function PrivacyPage() {
               filled. Once three different people have shown the same pair, it is used for everyone;
               the shared record holds only the two site names and a count, never who showed it.
             </LI>
-            {/* D68 (owner, 10-07): the Copy sheet, checked — popup.js renders it with textContent; nothing is injected. */}
+            {/* D68 (owner, 10-07): the Copy sheet, checked — copy-sheet-panel.js renders it with textContent; nothing is injected. */}
             <LI>
               The <Strong>Copy sheet</Strong> shows your own prepared answers — including any
-              work-authorisation or voluntary self-identification answers you saved — in the
-              extension's popup, to you, while you are signed in. Showing it fills nothing on the
+              work-authorisation or voluntary self-identification answers you saved — in draft's
+              panel on the page, to you, while you are signed in. Showing it fills nothing on the
               page, stores nothing in your browser and sends your answers nowhere else. Pressing
               <Strong> copy</Strong> puts that one answer on your clipboard; we do not record what
               you copied — only that the sheet was opened and how many answers it held.
@@ -513,8 +515,8 @@ export function PrivacyPage() {
           {/* D55 decision E — the one disclosure line. services/formReports.js, migration 136_form_reports. */}
           <H3>Reporting a Form That Isn't Recognised</H3>
           <P>
-            If you press <Strong>Report this form</Strong> in the extension's popup and then{" "}
-            <Strong>Send report</Strong>, we receive that site's host name (for example
+            If you press <Strong>Report</Strong> on a form draft did not recognise, in draft's panel on
+            the page, and then <Strong>Send</Strong>, we receive that site's host name (for example
             jobs.example.com — never the rest of the page address) and the form's field labels,
             never your answers; the report is linked to your account and deleted after 30 days.
           </P>

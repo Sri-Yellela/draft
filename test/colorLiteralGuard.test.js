@@ -249,7 +249,8 @@ export function extensionLiteralCounts() {
 
 test("⛔ D23: the extension scan works — it sees the generated token files and every surface", () => {
   const files = extensionFiles();
-  for (const f of ["extension/popup.html", "extension/options.html", "extension/review-overlay.js",
+  // (⭐ T31: popup.html went with the retired toolbar popup; the dock's popups are popup-layer.js)
+  for (const f of ["extension/options.html", "extension/popup-layer.js", "extension/review-overlay.js",
                    "extension/extractor.js", "extension/background.js", "extension/ui.css"]) {
     assert.ok(files.includes(f), `the extension walk missed ${f}`);
   }

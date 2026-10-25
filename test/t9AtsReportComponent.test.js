@@ -231,16 +231,7 @@ test("⛔ T9 · the web wrapper is THIN — it reads no section, prints no copy,
   assert.ok(!fs.existsSync("client/src/components/AtsReport.css"), "the old stylesheet is back beside the component");
 });
 
-test("⛔ T9 · the popup and the on-page panel draw the component — and add only their own buttons", () => {
-  const html = read("extension/popup.html");
-  assert.ok(html.indexOf('<script src="atsReport.js"></script>') < html.indexOf('<script src="popup.js"></script>'), "the bundle loads before popup.js");
-  assert.match(html, /<draft-ats-report id="ats-report-card"><\/draft-ats-report>/);
-  assert.match(html, /<button class="btn" id="btn-ats-full" style="display:none">Full report in draft<\/button>/);
-  // ⭐ T22: no second "Read again" under the card — the main action's Read again (btn-read-page) is that press
-  assert.doesNotMatch(html, /id="btn-ats-again"/);
-  const popup = read("extension/popup.js");
-  assert.match(popup, /card\.report = r\.report;/, "the popup hands the component the scorer's JSON as it is");
-  assert.doesNotMatch(stripJs(popup), /tier1_|competencies_|action_verbs_/, "the popup reads a report's sections itself");
+test("⛔ T9 · the on-page panel draws the component — and adds only its own buttons (⭐ T31: the retired popup's card went with it)", () => {
   const panel = read("extension/resumePanel.js");
   assert.match(panel, /files: \['atsReport\.js'\]/, "the panel injects the extension's own file — no remote code");
   // ⭐ T17: drawn in the dock's ATS tab (its own view, rm-ats-panel)
@@ -253,23 +244,11 @@ test("⛔ T9 · the popup and the on-page panel draw the component — and add o
   assert.equal(JSON.parse(read("extension/manifest.json")).content_security_policy.extension_pages, "script-src 'self'; object-src 'self'");
 });
 
-test("⛔ T9 × BINDING FIRST · the popup's card comes only from a press, and only with what the identify allowed", () => {
-  const popup = stripJs(read("extension/popup.js"));
+test("⛔ T9 × BINDING FIRST · the card comes only from a press, and only with what the identify allowed (⭐ T31: the toolbar press)", () => {
   const body = (src, from, to) => src.slice(at(src, from), at(src, to, at(src, from) + from.length));
-  // Opening the popup on a bound tab (T14's TAB_STATE) is no request and no page read: the job card and its score come
-  // back from the tab's own record, the FULL card does not — it waits for Read again (D23: every read begins with a press).
-  const tabState = body(popup, "function showTabState(st)", "\nfunction ");
-  assert.doesNotMatch(tabState, /renderAtsReport|POPUP_CONTEXT|sendMessage/, "the tab's state draws the card or asks the server on open");
-  assert.match(tabState, /'Read again'/, "a bound tab's popup offers Read again — the press that brings the card");
-  // The press: the card is drawn from the context the identify-first POPUP_CONTEXT returned — and hidden when it carried
-  // no ready report (a signed-out / unreachable stop returns `report: null`).
-  const readP = body(popup, "async function readPage()", "\ndocument.getElementById('btn-read-page')");
-  assert.ok(readP.indexOf("chrome.runtime.sendMessage({ type: 'POPUP_CONTEXT' })") < readP.indexOf("renderAtsReport(context)"));
-  // ⭐ T22: the report's own "Read again" left (the main action's Read again is the same press)
-  const render = body(popup, "function renderAtsReport(context)", "\nconst MARK_ICONS");
-  assert.match(render, /if \(r\?\.state !== 'ready' \|\| !r\.report \|\| typeof card\.render !== 'function'\) \{ box\.style\.display = 'none'; return; \}/);
-  // "Full report in draft" only for the board job's report — the bound job's id, never a page-text score's.
-  assert.match(render, /r\.basis === 'board' \? \(context\.posting\?\.jobId \?\? context\.binding\?\.jobId \?\? null\) : null/);
+  // ⭐ T31: the press reads only when pressed and signed in (toolbarPress.js); the card is the dock's ATS tab, drawn
+  // from the panel's own report (the retired popup's card and its Read again went with the popup)
+  assert.match(read("extension/toolbarPress.js"), /const ctx = identity\?\.authenticated \? await deps\.context\(tab\)/);
   // The service worker: a stop asks nothing more and sends no report; the one extra GET only when the identify's answer
   // carried no report, for a job draft knows — and the binding is still the identify's (no rebind on the GET).
   const bg = stripJs(read("extension/background.js"));
@@ -396,18 +375,22 @@ async function shot(page, selector, report, { theme = null, cues = false } = {})
   return (await page.$(selector)).screenshot();
 }
 
-test("⭐ T9 · REAL CHROME: the popup and the web app draw the same pixels — four themes, cues off and on — and no request",
+test("⭐ T9 · REAL CHROME: the extension's bundle and the web app draw the same pixels — four themes, cues off and on — and no request",
   { skip: chrome.skip || false, timeout: 240000 }, async (t) => {
     let h;
     try { h = await launchExtensionBrowser({ theme: "light" }); }
     catch (e) { if (e instanceof HarnessSkip) { t.skip(e.reason); return; } throw e; }
     const web = await staticServer();
     t.after(async () => { await h.close(); await web.stop(); });
-    // The extension's REAL popup page: its tokens.css, ui.css, its CSP, and the bundle loaded by <script src>.
+    // ⭐ T31: the toolbar popup is retired — the extension's bundle is measured on an extension page it ships: the settings
+    // page (its tokens.css, ui.css and CSP), with the bundle loaded by <script src>, as the popup loaded it.
     const popup = await h.browser.newPage();
-    await popup.goto(`chrome-extension://${h.extensionId}/popup.html`);
-    await popup.evaluate(() => { document.body.style.width = "340px"; document.getElementById("ats-report").style.display = "block"; });
-    assert.equal(await popup.evaluate(() => typeof customElements.get("draft-ats-report")), "function", "the popup did not define the element");
+    await popup.goto(`chrome-extension://${h.extensionId}/options.html`);
+    await popup.evaluate(() => new Promise((ok, no) => {
+      const s = document.createElement("script"); s.src = "atsReport.js"; s.onload = ok; s.onerror = () => no(new Error("atsReport.js did not load")); document.head.append(s);
+    }));
+    await popup.evaluate(() => { document.body.style.width = "340px"; const el = document.createElement("draft-ats-report"); el.id = "ats-report-card"; document.body.append(el); });
+    assert.equal(await popup.evaluate(() => typeof customElements.get("draft-ats-report")), "function", "the extension's bundle did not define the element");
     // The web app's host page.
     const page = await h.browser.newPage();
     await page.goto(`${web.origin}/host.html`);

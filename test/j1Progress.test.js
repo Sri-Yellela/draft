@@ -242,52 +242,10 @@ function fakeDoc() {
   return { els, getElementById: (id) => (els[id] ||= el(id)), createElement: (t) => el(`<${t}>`) };
 }
 
-test("⛔ J1 · D23: the popup opens KNOWING the job and where it stands — no page read, no message, no server call", async () => {
-  const { stores, out } = chromeStub({ tabUrl: `${T}/Zoom/login` });
-  const seen = fetchStub([]);
-  const { progress } = await import("../extension/progress.js");
-  const { bindTab } = await import("../extension/tabBinding.js");
-  await progress.clearAll();
-  stores.local.set("authIdentity", { authenticated: true, username: "ada" });
-  await bindTab({ id: 7, url: OWNER_URL }, { jobId: "gh-zoom-1", title: "Software Engineer", company: "Zoom", via: "capture" });
-  const t = (h, m) => new Date(2026, 9, 13, h, m).getTime();
-  await progress.patch({ jobId: "gh-zoom-1" }, { title: "Software Engineer", company: "Zoom", postingUrl: POSTING,
-    captured: { at: t(10, 41) }, read: { at: t(10, 42) }, prepared: { at: t(10, 43) }, filled: { n: 14, of: 18, needYou: 2, check: 0 } });
-  await new Promise(r => setTimeout(r, 2));
-  await progress.patch({ jobId: "lever-1" }, { title: "Data Engineer", company: "Fabrikam", link: "https://jobsviadraft.com/jobs/lever-1", captured: { at: t(9, 0) } });
-  out.messages.length = 0; out.injected.length = 0;
+// ⭐ T31 (owner 10-25): the toolbar popup is retired — "the popup opens KNOWING the job" (popup-progress.js renderProgress)
+// went with it. Where an application stands is still remembered (progress.js, above) and read by the dock and the tab's
+// state (TAB_STATE — the fillChain walk, section 4); it is never sent anywhere.
 
-  const { renderProgress } = await fresh("popup-progress.js");
-  const doc = fakeDoc();
-  const shown = await renderProgress(doc, t(12, 0));
-  assert.deepEqual(out.messages, [], "the popup asked the service worker something on open");
-  assert.deepEqual(out.injected, [], "the popup read the page on open");
-  assert.deepEqual(seen, [], "the popup asked the server something on open");
-  assert.equal(shown.current, "gh-zoom-1", "a later stage of the same origin is the bound job");
-  assert.equal(doc.els["progress-job"].textContent, "Software Engineer at Zoom");
-  assert.equal(doc.els["progress-line"].textContent, "Captured 10:41 · Page read 10:42 · Answers prepared · Filled 14 of 18 · 2 need you");
-  assert.equal(doc.els.progress.hidden, false);
-  assert.deepEqual(shown.list, ["lever-1", "gh-zoom-1"], "the In progress list, newest change first");
-  assert.equal(doc.els["in-progress"].hidden, false);
-  // an entry opens its posting (or the job on draft) — never anything else
-  const rows = doc.els["in-progress-list"].children;
-  const zoomRow = rows.find(li => li.children[0].textContent === "Software Engineer at Zoom");
-  zoomRow.children[2].listeners.click[0]();
-  assert.deepEqual(out.opened, [POSTING]);
-  // signed out → nothing is shown
-  stores.local.delete("authIdentity");
-  const doc2 = fakeDoc();
-  assert.deepEqual(await renderProgress(doc2, t(12, 0)), { current: null, list: [] });
-  globalThis.fetch = realFetch; delete globalThis.chrome;
-  // the popup loads it, and has the two blocks, in the site's tokens (both themes) — no capsule
-  const html = read("extension/popup.html");
-  assert.match(html, /<script type="module" src="popup-progress\.js"><\/script>/);
-  assert.match(html, /id="progress" class="pk" hidden/);
-  assert.match(html, /id="in-progress" hidden/);
-  const block = html.slice(at(html, "/* ⭐ D96 §3 · progress */"), at(html, "/* ⭐ D96 §3 end */"));
-  assert.ok(block.length > 40, "the progress styles are marked");
-  assert.doesNotMatch(block, /#[0-9a-f]{3,8}\b|rgba?\(|999px|50%/i, "a colour literal or a capsule in the progress styles");
-});
 
 // ── the writes, where the events happen — the REAL handoff against the REAL routes ──────────────────
 const freePort = () => new Promise((resolve) => { const s = net.createServer().listen(0, () => { const { port } = s.address(); s.close(() => resolve(port)); }); });
@@ -434,7 +392,7 @@ test("⛔ J1: the binding is set, used, cleared as spec'd — and only its job i
   assert.doesNotMatch(tb, /chrome\.storage\.local|fetch\(|authedFetch/, "the binding is never persisted or sent");
   assert.match(bg, /if \(message\.type === 'UNBIND_TAB'\) \{[\s\S]{0,200}clearBinding\(tab\?\.id\)/, "Unlink this page clears it");
   // every request body that mentions the binding carries its job id, and nothing else of it
-  for (const src of [gh, bg, read("extension/progress.js"), read("extension/popup-progress.js")]) {
+  for (const src of [gh, bg, read("extension/progress.js")]) {
     for (const m of src.matchAll(/JSON\.stringify\(\{([^}]*)\}\)/g)) {
       const body = m[1];
       // the one allowed mention is the hint itself; anything else of the binding in a body is the binding being sent
@@ -444,7 +402,7 @@ test("⛔ J1: the binding is set, used, cleared as spec'd — and only its job i
     }
   }
   // ⛔ progress never leaves the browser: nothing in either progress module can make a request
-  for (const f of ["extension/progress.js", "extension/popup-progress.js"]) {
+  for (const f of ["extension/progress.js"]) {
     assert.doesNotMatch(read(f), /\bfetch\(|authedFetch|XMLHttpRequest|sendBeacon|WebSocket/, `${f} can send something`);
   }
   // the wiring this lane owns

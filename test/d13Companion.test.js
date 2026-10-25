@@ -1,14 +1,11 @@
 // D13 (10-03, owner chose C, "the companion"): the extension does the same four things — capture,
-// fill, score, open draft — and the popup PICKS the one this page calls for:
-//   a form you drafted -> Fill it ("You drafted this 2 days ago · résumé ready · 14 fields prepared")
-//   a job posting      -> Capture it + Score it, and whether it is on your board yet
-//   neither            -> your recent captures
-// ⛔ No new storage, no new permission, no new disclosure beyond the one sentence the policy now
-// carries (the popup sends the tab's address for the board check). ⚠ All four actions stay visible.
+// fill, score, open draft — and picks the one this page calls for. ⭐ T31 (owner 10-25): the toolbar popup that picked
+// it is retired; the PICK is the toolbar press's (extension/toolbarPress.js relayFor — test/t31ToolbarPress.test.js),
+// and companion.js went with the popup. What stays pinned here is the server half — POST /api/import/context, which
+// the press asks — and D13's guarantees: no new storage, no new permission, the address sent on the press only.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import vm from "node:vm";
 import express from "express";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
@@ -16,55 +13,6 @@ import { createImportJobRouter } from "../routes/importJob.js";
 import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
-
-// companion.js is a classic script (popup.html loads it before popup.js) — run it as one.
-const sandbox = {};
-vm.runInNewContext(read("extension/companion.js"), sandbox);
-const { companionMode, draftedLine, postingLine, questionsLine } = sandbox;
-
-const DAY = 86400000;
-const now = Date.UTC(2026, 9, 3, 12);
-const packet = (o = {}) => ({ packetId: 1, createdAt: now - 2 * DAY, stale: false, answerCount: 14,
-  unresolvedCount: 0, resumeAvailable: true, ...o });
-
-test("D13: a form you drafted wins — Fill it, with the owner's sentence", () => {
-  const c = companionMode({ preview: { capturable: true, ok: true }, context: { packets: [packet()] } });
-  assert.equal(c.mode, "form");
-  assert.deepEqual([...c.primary], ["fill"]);
-  assert.equal(draftedLine(c.packet, now), "You drafted this 2 days ago · résumé ready · 14 fields prepared");
-  assert.equal(draftedLine(packet({ answerCount: 1, resumeAvailable: false, createdAt: now - DAY }), now),
-    "You drafted this yesterday · no résumé attached · 1 field prepared");
-  // A stale packet cannot be released (the server refuses), so it must not make this a form.
-  assert.notEqual(companionMode({ preview: null, context: { packets: [packet({ stale: true })] } }).mode, "form");
-  // Newest of several.
-  const two = companionMode({ context: { packets: [packet({ packetId: 1, createdAt: now - 3 * DAY }), packet({ packetId: 2, createdAt: now - DAY })] } });
-  assert.equal(two.packet.packetId, 2);
-  assert.equal(two.others, 1);
-});
-
-test("D13: unanswered questions surface on the form, and say the answer is reused", () => {
-  assert.equal(questionsLine(packet()), "");
-  assert.equal(questionsLine(packet({ unresolvedCount: 2 })), "2 questions need your answer — answer once and draft reuses it.");
-  assert.equal(questionsLine(packet({ unresolvedCount: 1 })), "1 question needs your answer — answer once and draft reuses it.");
-});
-
-test("D13: a posting -> Capture it + Score it, and whether it is on your board", () => {
-  const c = companionMode({ preview: { capturable: true, ok: true }, context: { packets: [], posting: { known: false, saved: false } } });
-  assert.equal(c.mode, "posting");
-  assert.deepEqual([...c.primary], ["capture", "score"]);
-  assert.equal(postingLine({ known: false, saved: false }), "Not on your board yet");
-  assert.equal(postingLine({ known: true, saved: false }), "On draft, not saved by you yet");
-  assert.equal(postingLine({ known: true, saved: true }), "Saved on your board");
-  assert.equal(postingLine(null), "", "a failed board check says nothing rather than guessing");
-});
-
-test("D13: neither -> recent captures (at most five); an unreadable page is not a posting", () => {
-  const recent = Array.from({ length: 7 }, (_, i) => ({ jobId: `j${i}`, title: `T${i}` }));
-  const c = companionMode({ preview: { capturable: true, ok: false }, context: { packets: [], recent } });
-  assert.equal(c.mode, "neither");
-  assert.equal(c.recent.length, 5);
-  assert.equal(companionMode({ preview: null, context: null }).mode, "neither", "both lookups failing is not a crash");
-});
 
 // ── The server half: POST /api/import/context ─────────────────────────────────────────────────
 function freshDb() {
@@ -149,7 +97,7 @@ test("D13: /api/import/context — recent captures are YOURS, newest first, one 
 });
 
 // ── The extension half ─────────────────────────────────────────────────────────────────────────
-test("⛔ D13: no new storage, no new permission — and all four actions stay visible", () => {
+test("⛔ D13: no new storage, no new permission — the context is asked on the press only and stored nowhere", () => {
   const manifest = JSON.parse(read("extension/manifest.json"));
   // D55 decision B (10-07) added contextMenus — the owner's decision, rationalised in
   // MANIFEST_RATIONALE.md and reconciled in PRIVACY_RECONCILIATION.md. D13 itself still adds none.
@@ -159,42 +107,24 @@ test("⛔ D13: no new storage, no new permission — and all four actions stay v
   assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"], run_at: "document_start", all_frames: false }], "a content script other than D99's bridge appeared");
 
   const bg = read("extension/background.js");
-  const ctx = bg.slice(at(bg, "async function popupContext"), at(bg, "async function previewActiveTab"));
+  const ctx = bg.slice(at(bg, "async function popupContext"), at(bg, "// ── ⭐ T17 · THE DOCK"));
   assert.doesNotMatch(ctx, /chrome\.storage/, "the companion stores its context");
   assert.match(ctx, /authedFetch\(RESUME_MASTER_URL, '\/api\/import\/context', \{\s*method: 'POST'/);
-  // D56: the drafted-application half is now the page MATCH (origin list + job id, server-side) —
-  // still asked only on the press, still stored nowhere.
+  // D56: the drafted-application half is the page MATCH (origin list + job id, server-side) — asked only on the press.
   assert.match(ctx, /pageMatchFor\(RESUME_MASTER_URL, tab\)/);
-  for (const f of ["extension/companion.js", "extension/popup.js"]) {
-    assert.doesNotMatch(read(f), /chrome\.storage\.(local|session)\.set/, `${f} writes storage`);
-  }
-  // Fill from the popup is the SAME handoff the shortcut runs.
+  // ⭐ T31: the press is what asks — the toolbar's onClicked, signed in only (toolbarPress.js)
+  assert.match(bg, /context: \(\) => popupContext\(tab\),/);
+  assert.match(read("extension/toolbarPress.js"), /const ctx = identity\?\.authenticated \? await deps\.context\(tab\)\.catch\(\(\) => null\) : null;/);
+  // Fill is the SAME handoff the shortcut runs.
   assert.match(bg, /if \(message\.type === 'FILL_ACTIVE_TAB'\) \{\s*handleGatedHandoff\(\)/);
-
-  const html = read("extension/popup.html");
-  // ⭐ T22 (owner 10-15): the popup is a LAUNCHER — the four tiles under "Everything" are gone. What D13 guarded (a wrong
-  // guess must never HIDE an action) now holds this way: the actions are the main action's Capture it / Fill it, the
-  // Draft button stays, and Capture and Fill are always Ctrl+Shift+K / Ctrl+Shift+Y and the right-click menu
-  // (test/t22PopupLauncher.test.js pins each one reachable).
-  for (const id of ["btn-capture-primary", "btn-fill-primary", "btn-resume", "btn-open-dock"]) {
-    assert.match(html, new RegExp(`id="${id}"`), `${id} is not in the popup`);
-  }
-  assert.ok(html.indexOf('src="companion.js"') < html.indexOf('src="popup.js"'), "companion.js must load first");
-
-  // On a page that cannot be read, Capture is disabled — never hidden.
-  const popupSrc = read("extension/popup.js");
-  const unreadable = popupSrc.slice(at(popupSrc, "if (!preview?.capturable) {"), at(popupSrc, "setStatus('Open a job posting to capture it');"));
-  assert.match(unreadable, /showCaptureAction\(\);\s*const cap = document\.getElementById\('btn-capture-primary'\);\s*cap\.disabled = true;/);
-
-  // The popup renders server text as TEXT.
-  const popup = read("extension/popup.js");
-  const render = popup.slice(at(popup, "function renderCompanion"), at(popup, "async function fillActiveTab"));
-  assert.doesNotMatch(render, /innerHTML/);
+  // the press's words are drawn by the popup layer as TEXT (no innerHTML in what the press shows)
+  const tp = read("extension/toolbarPress.js");
+  assert.doesNotMatch(tp.slice(at(tp, "export function renderRelay(specs, theme) {"), at(tp, "/** Injected, TOP frame: is draft's dock")), /innerHTML/);
 });
 
-test("D13 (narrowed by D23): the privacy policy says the popup sends the tab's address — on the press", () => {
-  // D23 moved the board check from popup OPEN to the "Read this page" press; the sentence narrowed
-  // with it rather than growing a new disclosure.
+test("D13 → T31: the privacy policy says the toolbar press sends the tab's address — on the press, and nothing before it", () => {
+  // D23 moved the board check from popup OPEN to the "Read this page" press; ⭐ T31 (owner 10-25, "one press reads")
+  // makes the toolbar press that press — the sentence moved with it rather than growing a new disclosure.
   assert.match(read("client/src/pages/marketing/PrivacyPage.jsx"),
-    /When you press\{" "\}\s*<Strong>Read this page<\/Strong> in the extension's popup \(opening the popup alone reads\s+nothing\), it also sends that one address to \{CANONICAL_HOST\}/);
+    /When you press the extension's\{" "\}\s*<Strong>toolbar button<\/Strong> \(or its keyboard shortcut\) on a page, it opens draft's\s+panel there and also sends that one address to \{CANONICAL_HOST\}[\s\S]{0,260}nothing is read or sent before you press it/);
 });

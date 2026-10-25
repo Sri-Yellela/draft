@@ -32,76 +32,11 @@ function fakeEl(id) {
 }
 const textOf = (el) => (typeof el === "string" ? el : [el.textContent || "", ...(el.children || []).map(textOf)].join(""));
 
-function bootPopup({ preview, context, slots = null }) {
-  const els = {};
-  const document = {
-    getElementById: (id) => (els[id] ||= fakeEl(id)),
-    createElement: (t) => fakeEl(`<${t}>`),
-    addEventListener() {},
-  };
-  const answers = { PROBE_AUTH: { authenticated: true, username: "ada" }, PREVIEW_ACTIVE_TAB: preview, POPUP_CONTEXT: context, TODAY_RING: slots };
-  const chrome = {
-    runtime: { sendMessage: async (m) => answers[m.type] ?? null, openOptionsPage() {} },
-    tabs: { query: async () => [{ id: 7, url: "https://jobs.example.test/role/1" }], create() {} },
-    storage: { local: { get: async () => ({}) } },
-    scripting: { executeScript: async () => [{ result: "" }] },
-  };
-  const sandbox = { document, chrome, window: { close() {} }, setTimeout, clearTimeout, console, URL, Promise, Date, Number, String, Math };
-  vm.createContext(sandbox);
-  for (const f of ["config.js", "companion.js", "popup.js"]) vm.runInContext(read(`extension/${f}`), sandbox);
-  const settle = () => new Promise((r) => setTimeout(r, 25));
-  const press = async () => { for (const fn of els["btn-read-page"].listeners.click) fn({}); await settle(); };
-  return { els, settle, press };
-}
-
-const POSTING = { capturable: true, ok: true, title: "Data Engineer", company: "Fabrikam", location: "Boston, MA" };
-
-test("⭐ D63 (2) · the popup leads with the job card — the company, the D50 number box, a first-party logo or the letter", async () => {
-  const p = bootPopup({ preview: POSTING, context: { packets: [], recent: [],
-    posting: { known: true, saved: false, resumeReady: true, logo: "https://icons.duckduckgo.com/ip3/fabrikam.com.ico",
-               scores: { base: 73, tailored: null, shown: 73, tailoredShown: false } } } });
-  await p.settle(); await p.press();
-  assert.equal(p.els["job-preview"].style.display, "grid");
-  assert.equal(p.els["preview-company"].textContent, "Fabrikam");
-  assert.equal(p.els["preview-title"].textContent, "Data Engineer · Boston, MA");
-  assert.equal(p.els["preview-score"].className, "nb");
-  assert.equal(textOf(p.els["preview-score"]), "73ATS", "the serif number and its ATS caption");
-  // ⛔ A third-party logo address is NOT loaded from the extension — the letter tile is drawn instead.
-  assert.equal(p.els["preview-tile"].textContent, "F");
-  assert.equal(p.els["preview-tile"].children.length, 0, "no <img> to a third-party host");
-  // No score → the dashed box, no digits.
-  const q = bootPopup({ preview: POSTING, context: { packets: [], recent: [], posting: { known: false, saved: false, scores: null } } });
-  await q.settle(); await q.press();
-  assert.equal(q.els["preview-score"].className, "nb none");
-  assert.equal(textOf(q.els["preview-score"]), "ATS");
-  // A first-party stored logo IS drawn.
-  const r = bootPopup({ preview: POSTING, context: { packets: [], recent: [], posting: { known: true, logo: "/api/company-logo/abc", scores: null } } });
-  await r.settle(); await r.press();
-  assert.match(r.els["preview-tile"].children[0]?.src || "", /^https?:\/\/[^/]+\/api\/company-logo\/abc$/);
-});
-
-test("⭐ D63 (3)(4) · on a form with a packet: marks, and the packet summary shows the TAILORED score before Fill it", async () => {
-  const p = bootPopup({ preview: null, context: { recent: [], packets: [{ packetId: 3, createdAt: Date.now() - 2 * 86400000,
-    stale: false, answerCount: 14, unresolvedCount: 2, resumeAvailable: true, company: "Duolingo", title: "Software Engineer II",
-    scores: { base: 62, tailored: 81, shown: 81, tailoredShown: true, lower: false } }] } });
-  await p.settle(); await p.press();
-  const rows = p.els["packet-summary"].children.map(textOf);
-  assert.deepEqual(rows, ["Résumétailored · 62 → 81", "Fields prepared14", "Will stop and ask2"]);
-  assert.equal(p.els["packet-summary"].hidden, false);
-  assert.equal(p.els["btn-fill-primary"].style.display, "flex");
-  const marks = p.els["facts"].children;
-  assert.deepEqual(marks.map(m => m.className), ["mkr ok", "mkr dim"]);
-  assert.deepEqual(marks.map(textOf), ["Résumé ready", "Drafted 2d ago"]);
-  assert.equal(textOf(p.els["preview-score"]), "81tailored", "the number is the résumé that would be sent");
-  assert.match(read("extension/popup.html"), /id="btn-fill-primary"[^>]*>Fill it <kbd>⌃⇧Y<\/kbd>/);
-});
-
-test("⭐ D63 (6) · the ring says what it counts — 'your cap'; it stays a circle", async () => {
-  const p = bootPopup({ preview: POSTING, context: null, slots: { used: 3, limit: 10 } });
-  await p.settle();
-  assert.equal(p.els["today-text"].textContent, "3 of 10 · your cap");
-  assert.match(read("extension/popup.html"), /<circle class="ring-track"/);
-});
+// ⭐ T31 (owner 10-25: "as much info moved away from the current panels as possible; info relayed when it is needed"):
+// the toolbar popup is retired, and D63 (2)(3)(4)(6) with it — the job card leading the popup, the marks and the packet
+// summary before Fill it, the today ring. The score is the dock's ATS tab's; what a fill will do is said by the fill;
+// nothing counts toward anything (test/d56ManualHandoff.test.js). The server half of (2) — the read-page answer's score
+// pair and logo — stays pinned below.
 
 test("⭐ D63 (1) · the in-page badge is a depth box, and each of the four states carries an ICON as well as a colour", () => {
   const src = read("extension/autofill-badge.js");
@@ -120,22 +55,19 @@ test("⭐ D63 (1) · the in-page badge is a depth box, and each of the four stat
   for (const t of ["Autofill in progress", "Complete required fields", "Filled — review and submit", "isn't recognised — nothing was filled"]) assert.ok(src.includes(t), t);
 });
 
-test("⭐ D63 (5) · no underlined text link in the popup; LinkedIn and shortcuts live on the options page", () => {
-  const html = code(read("extension/popup.html"));
+test("⭐ D63 (5) · no underlined text link on the extension's pages; LinkedIn and shortcuts live on the options page (⭐ T31: the only page now)", () => {
+  const html = code(read("extension/options.html"));
   const css = code(read("extension/ui.css"));
   assert.doesNotMatch(html + css, /text-decoration:\s*underline/, "an underlined link");
-  assert.doesNotMatch(html, /<a\s/, "a web link in the popup");
-  assert.doesNotMatch(html, /id="btn-linkedin"|Keyboard shortcuts/);
-  assert.match(html, /<button class="mb" id="btn-copy-sheet"[\s\S]*<button class="mb" id="btn-report-form"[\s\S]*<button class="mb" id="btn-settings"[^>]*>[\s\S]*More<\/button>/);
+  assert.doesNotMatch(html, /<a\s/, "a web link on the settings page");
   // ⭐ T31: in Settings → Account
   assert.match(read("extension/options.html"), /<section id="account"[\s\S]*<button class="btn" id="btn-linkedin" type="button">Sign in with LinkedIn<\/button>/);
   assert.match(read("extension/options.js"), /getElementById\('btn-linkedin'\)\?\.addEventListener\('click', \(\) => \{\s*chrome\.runtime\.sendMessage\(\{ type: 'OPEN_LINKEDIN_IMPORT' \}\)/);
-  // (7) Capture with the shortcut on the primary. ⭐ T22: Score left the row (the score is the job card's number and the
-  // dock's ATS tab), and the four tiles left the popup — Capture and Fill stay one shortcut or one right-click away
-  // (test/t22PopupLauncher.test.js); the Draft button stays.
-  assert.match(html, /<div class="btn-row" id="posting-actions"[\s\S]*Capture it <kbd>⌃⇧K<\/kbd>/);
-  assert.doesNotMatch(html, /id="btn-score-primary"/);
-  for (const id of ["btn-capture-primary", "btn-fill-primary", "btn-resume", "btn-open-dock"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /<section id="shortcuts"[\s\S]*Keyboard shortcuts/);
+  // (7) Capture and Fill stay one shortcut, one right-click — and the toolbar press — away (test/t22PopupLauncher.test.js)
+  const manifest = JSON.parse(read("extension/manifest.json"));
+  assert.equal(manifest.commands["capture-job"].suggested_key.default, "Ctrl+Shift+K");
+  assert.equal(manifest.commands["fill-gated-application"].suggested_key.default, "Ctrl+Shift+Y");
 });
 
 test("⭐ D63 (2) · server: the read-page answer carries the score pair, the logo and résumé-ready — for YOUR active profile", async () => {

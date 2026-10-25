@@ -8,9 +8,9 @@
  *   1. setup: the job is on Ada's board (captured once); the browser then FORGETS everything (no binding, no progress)
  *   2. T13 · Fill from a COLD tab with every auto switch off → it reads, prepares and fills in ONE press, and says so
  *   3. T13 · "Read this page" on a cold tab → the answers are PREPARED (a packet on the server, "Answers prepared" kept)
- *   4. T14 · the application URL opened in a NEW tab → the REAL popup (chrome.action.openPopup) shows the same job, its
+ *   4. T14 · the application URL opened in a NEW tab → the tab's state (⭐ T31: the retired popup showed it) names the same job, its
  *      card and its progress at once — no capture, no read, no prepare asked; nothing about the page is sent on open
- *   5. T14 · …and the popup's own Fill button fills that tab with no prior press, without reading the page again
+ *   5. T14 · …and the dock's own Fill button fills that tab with no prior press, without reading the page again
  *   6. T13 · a page with no application form (the posting) → the press says why
  */
 import { OWNER_STAGE, OTHER_STAGE, POSTING, waitUntil, sleep, BUSY_MS } from '../extensionBrowser.mjs';
@@ -91,53 +91,37 @@ export default async function run(h, { check, observe, section }) {
   const recB = (await h.storage.local()).jobProgress?.records?.[jobId];
   check('"Answers prepared" is remembered', !!recB?.prepared?.at, JSON.stringify(recB?.prepared || null));
 
-  section('4 · T14 — the application URL in a NEW tab: the real popup knows the job at once');
+  section('4 · T14 — the application URL in a NEW tab: draft knows the job at once (⭐ T31: the toolbar popup is retired — what it showed is the tab\'s state)');
   const tabC = await newTab(OWNER_STAGE);
   const tabsBefore = (await h.bindings()).length;
   const mark = h.api.requests.length;
-  const opened = await control.evaluate(() => chrome.action.openPopup().then(() => 'ok', e => `ERR ${e.message}`));
-  const popupT = opened === 'ok' ? await browser.waitForTarget(t => t.url().endsWith('/popup.html'), { timeout: BUSY_MS }).catch(() => null) : null;
-  check('the real popup opened on the new tab', !!popupT, opened);
-  if (!popupT) return;
-  const popup = await popupT.asPage();
-  const view = await waitUntil(() => popup.evaluate(() => {
-    const t = (id) => document.getElementById(id);
-    if (t('progress')?.hidden !== false) return null;
-    return { bound: t('bound').style.display, boundLine: t('bound-line').textContent, title: t('preview-title').textContent,
-      card: t('job-preview').style.display, progress: t('progress-line').textContent, fill: t('btn-fill-primary').style.display,
-      read: t('btn-read-page').textContent.trim() };
-  }), BUSY_MS);
-  check('the bound line names the job', view?.bound === 'block' && /Software Engineer at Zoom/.test(view?.boundLine || ''), JSON.stringify(view));
-  check('the job card is drawn', view?.card === 'grid' && view?.title === 'Software Engineer', JSON.stringify(view));
-  check('its progress came back — no capture, no read, no prepare asked', /Page read/.test(view?.progress || '') && /Answers prepared/.test(view?.progress || ''), view?.progress);
-  check('Fill is the one action; Read is offered only again', view?.fill === 'flex' && view?.read === 'Read again', JSON.stringify(view));
+  const st = await waitUntil(async () => { const r = await h.send({ type: 'TAB_STATE' }).catch(() => null); return r?.state?.jobId ? r.state : null; }, BUSY_MS);
+  check('the tab knows the job', st?.jobId === jobId && st?.title === 'Software Engineer' && st?.company === 'Zoom', JSON.stringify(st));
+  check('its progress came back — no capture, no read, no prepare asked', st?.read === true && st?.prepared === true, JSON.stringify(st));
   const binds = await h.bindings();
   check('the new tab is bound ("known from earlier")', binds.length > tabsBefore && binds.some(([, v]) => v.jobId === jobId && v.via === 'known'),
     JSON.stringify(binds.map(([, v]) => v.via)));
   const sentOnOpen = h.api.requests.slice(mark).map(r => r.path).filter(p => PAGE_PATHS.includes(p));
-  check('nothing about the page was sent on open (D23)', sentOnOpen.length === 0, JSON.stringify(sentOnOpen));
+  check('nothing about the page was sent (D23)', sentOnOpen.length === 0, JSON.stringify(sentOnOpen));
 
-  section('5 · T14 — the popup\'s Fill fills the new tab with no prior press, without reading it again');
+  section('5 · T14 — the dock\'s Fill fills the new tab with no prior press, without reading it again');
   const mark2 = h.api.requests.length;
-  await popup.evaluate(() => document.getElementById('btn-fill-primary').click());
+  const docked = await h.send({ type: 'DOCK_OPEN', tab: 'fill' }).catch(() => null);
+  check('the dock opened on the new tab', docked?.ok === true, JSON.stringify(docked));
+  await waitUntil(() => tabC.evaluate(() => !!document.getElementById('rm-draft-dock')?.shadowRoot?.querySelector('[data-role="fill"]')), BUSY_MS);
+  await tabC.click('#rm-draft-dock >>> [data-role="fill"]');
   const filled = await waitUntil(() => firstName(tabC).then(v => v === 'Ada'), BUSY_MS);
   check('the new tab\'s form is filled', !!filled, await firstName(tabC));
-  // ⭐ (open item 2) the press's end, by its own signals: the wizard asking the candidate ("required" — × it), or the popup's
-  // status leaving "Filling…" — whichever comes first. It gave "required" 15 s and then waited a minute on a popup that
-  // was still filling (the wizard waits for the candidate up to 9 minutes) when the badge came later than that.
-  const popupStatus = () => popup.evaluate(() => document.getElementById('status')?.textContent || '').catch(() => 'closed');
+  // the press's end, by its own signals: the wizard asking the candidate ("required" — × it), or the dock's Fill no longer busy
   const ended = await waitUntil(async () => {
     if ((await readBadge().catch(() => null))?.state === 'required') return 'required';
-    const s = await popupStatus();
-    return /Filling/.test(s) || !s ? null : 'answered';
+    const busy = await tabC.evaluate(() => document.getElementById('rm-draft-dock')?.shadowRoot?.querySelector('[data-role="fill"]')?.dataset.busy === 'true').catch(() => false);
+    return busy ? null : 'answered';
   }, BUSY_MS);
   if (ended === 'required') await dismissBadge();
-  const status = await waitUntil(() => popupStatus().then(s => (/Filling/.test(s) || !s ? null : s)), BUSY_MS);
-  observe('the popup said', status);
   const reads = h.api.requests.slice(mark2).map(r => r.path).filter(p => p === '/api/import/context' || p === '/api/extension/page');
   check('the page was NOT read again', reads.length === 0, JSON.stringify(reads));
   check('…and not prepared again (a packet already filled it)', !h.api.requests.slice(mark2).some(r => r.path === '/api/apply/prepare'));
-  await popup.close().catch(() => {});
 
   section('6 · T13 — a page with no application form says why');
   await newTab(POSTING);

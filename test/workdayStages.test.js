@@ -279,18 +279,15 @@ test("⛔ no new permission — no tabs, no webNavigation; the manifest's list i
   assert.ok(!m.permissions.includes("tabs") && !m.permissions.includes("webNavigation"));
 });
 
-test("⛔ the popup says Captured ✓, counts distinct captures, and opens the Copy sheet in the page", () => {
-  const src = read("extension/companion.js");
-  const fn = new Function(`${src}; return { boundLine, capturedTodayLine, postingLine };`)();
-  assert.equal(fn.boundLine({ binding: { title: "Software Engineer", company: "Zoom", via: "capture" } }), "Captured ✓ — Software Engineer at Zoom");
-  assert.equal(fn.boundLine({ posting: { captured: true, title: "Software Engineer", company: "Zoom" } }), "Captured ✓ — Software Engineer at Zoom");
-  assert.equal(fn.boundLine({}), "");
-  assert.equal(fn.capturedTodayLine({ today: 1, alreadyOnBoard: 1 }), "Captured: 1 today · 1 already on your board");
-  assert.equal(fn.postingLine({ captured: true, known: true }), "Captured ✓");
-  const popup = read("extension/popup.js");
-  assert.match(popup, /type: 'COPY_SHEET_PANEL'[\s\S]{0,80}if \(panel\?\.ok\) \{ window\.close\(\); return; \}/, "the popup closes once the panel is up");
-  assert.match(popup, /if \(c\.posting\?\.captured\) document\.getElementById\('btn-capture-primary'\)\.textContent = 'Captured ✓';/);
-  assert.match(read("extension/popup.html"), /id="btn-unbind">Unlink this page</);
+test("⛔ a capture says so on its page, the Copy sheet opens in the page, and Unlink is the ATS tab's (⭐ T31: the retired popup's lines)", () => {
+  // the popup's "Captured ✓ — <job>" and its counts went with it; the capture's own toast says the server's words, on the
+  // page, as it happens — and the press says a job already yours through the intent line (test/t31ToolbarPress.test.js)
+  const bg = read("extension/background.js");
+  assert.match(bg, /func: showCaptureToast, args: \[result\.message, !!result\.success, toastTheme\(\)\]/);
+  // the Copy sheet is the dock's tab, drawn in the page
+  assert.match(bg, /async function copySheetPanel\(tab\) \{[\s\S]{0,200}drawInDock\(tab\.id, renderCopySheetPanel,/);
+  assert.match(read("extension/resumePanel.js"), /ibtn\(\{ role: 'unbind', label: `Unlink this page from \$\{m\.job\}`, icon: 'unlink' \}\)/);
+  assert.match(bg, /unbind: async \(tab\) => \{ await clearBinding\(tab\.id\);/);
 });
 
 // ── the Copy sheet panel in a REAL Chrome, on the Workday-shaped fixture ─────────────────────────────

@@ -258,8 +258,10 @@ test("⭐ popupContext is identify-first: identify → (stop on 'could not ask')
   const hg = bg.slice(at(bg, "async function handleGatedHandoff"), at(bg, "async function reportHandoff"));
   assert.match(hg, /identify: \(\) => identifyAndBind\(tab, \{ serverUrl: RESUME_MASTER_URL \}\)/);
   assert.doesNotMatch(hg, /read: \(\) => popupContext/);
-  // ⛔ consent unchanged: the popup's open never identifies (D23) — the autoRead switches never call the chain either
-  assert.doesNotMatch(read("extension/popup.js").slice(0, read("extension/popup.js").indexOf("async function readPage")), /POPUP_CONTEXT/);
+  // ⛔ consent unchanged: nothing identifies before the person's press (D23 → ⭐ T31: the toolbar press, signed in only —
+  // toolbarPress.js; the popup's open is gone) — and the autoRead switches never call the chain either
+  assert.match(read("extension/toolbarPress.js"), /const ctx = identity\?\.authenticated \? await deps\.context\(tab\)\.catch\(\(\) => null\) : null;/);
+  assert.match(bg, /chrome\.action\.onClicked\.addListener\(\(tab\) => \{ void pressToolbar\(tab\)/, "the press is the only trigger of the press's read");
   assert.doesNotMatch(read("extension/autoRead.js"), /identifyAndBind|runFillChain/);
 });
 

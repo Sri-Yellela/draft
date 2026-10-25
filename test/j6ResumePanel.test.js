@@ -453,10 +453,11 @@ test("J6: the attach picks the résumé's upload exactly as the fill does (resum
 // ── the popup's button: D23 holds, and it only OPENS ────────────────────────────────────────────────────────────
 // ⭐ T22 REVISED (owner 10-15): the popup's stand-alone "Résumé for this job" is GONE — a résumé is started only from the
 // Draft button and the résumé row (T24 / T18). The popup reaches the Résumé VIEW through Open dock (the dock's tabs).
-test("⛔ J6 → T22: the popup has no Résumé button — it starts nothing; Open dock shows the dock, whose Résumé tab is a view", () => {
-  const html = read("extension/popup.html");
-  assert.doesNotMatch(html, /id="btn-resume-onpage"|popup-resume\.js|Résumé for this job/);
-  assert.ok(!fs.existsSync("extension/popup-resume.js"));
-  assert.doesNotMatch(read("extension/popup.js"), /RESUME_PANEL_OPEN|RESUME_GENERATE/);
-  assert.match(html, /id="btn-open-dock"/);
+test("⛔ J6 → T22 → T31: no Résumé button outside the dock — the toolbar press opens the dock, whose Résumé tab is a view", () => {
+  // ⭐ T31: the retired popup (and its Open dock) is gone; the press and Settings start no résumé
+  for (const f of ["popup.html", "popup.js", "popup-resume.js"]) assert.ok(!fs.existsSync(`extension/${f}`), `extension/${f} is back`);
+  for (const f of ["extension/toolbarPress.js", "extension/options.js", "extension/options-auto.js", "extension/options-permissions.js"]) {
+    assert.doesNotMatch(read(f), /RESUME_PANEL_OPEN|RESUME_GENERATE/, `${f} starts a résumé`);
+  }
+  assert.match(read("extension/background.js"), /openDock: \(\) => openDock\(tab\),/);
 });

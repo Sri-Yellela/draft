@@ -363,13 +363,12 @@ test("⛔ T24 · the worker's messages: Draft from the popup only, the answer fr
   assert.match(read("extension/intent.js"), /if \(!answer\.trusted\) return 'ignore';/);
 });
 
-test("⛔ T24 · the popup's Draft button sends INTENT_DRAFT, the fill's résumé row reads the account's setting", () => {
-  const popup = read("extension/popup.js");
-  assert.match(popup, /sendMessage\(\{ type: 'INTENT_DRAFT', trigger: 'click' \}\)/);
+test("⛔ T24 · Draft drafts — the toolbar press's Draft (⭐ T31: the retired popup's button) runs the same runDraft; the fill's résumé row reads the account's setting", () => {
+  assert.match(read("extension/background.js"), /draft: async \(tab\) => \{ const r = await runDraft\(tab, \{ control: 'draft' \}\);/);
   const gh = read("extension/gated-handoff.js");
   assert.match(gh, /const setting = opts\.resumeOnCue \|\| await resumeOnCueSetting\(serverUrl\)/);
   // ⛔ the extension never asks for no review
-  for (const f of ["extension/intent.js", "extension/intentModel.js", "extension/popup.js"]) assert.doesNotMatch(read(f).replace(/^\s*\/\/.*$/gm, ""), /approvalMode/);
+  for (const f of ["extension/intent.js", "extension/intentModel.js", "extension/toolbarPress.js"]) assert.doesNotMatch(read(f).replace(/^\s*\/\/.*$/gm, ""), /approvalMode/);
 });
 
 // ── the server: the board's Draft, one implementation ─────────────────────────────────────────────────────────────

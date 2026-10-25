@@ -90,7 +90,9 @@ test("⛔ D23: the storage keys are exactly the ones the listing names — no mo
   // disclosed in the privacy page's storage list, STORE_LISTING and PRIVACY_RECONCILIATION in the same change.
   assert.deepEqual(keys.sort(), [
     "local:[AUTO_READ_KEY]", "local:[DOCK_PLACE_KEY]",
-    "local:[IDENTITY_KEY]", "local:[PROGRESS_KEY]", "local:[TOKEN_KEY]", "local:lastCapture",
+    // ⭐ T31 (10-25): `lastCapture` is gone — the popup that showed it is retired, and nothing else read it (one key
+    // FEWER: the privacy page's storage list lost its item in the same change)
+    "local:[IDENTITY_KEY]", "local:[PROGRESS_KEY]", "local:[TOKEN_KEY]",
     "session:[batchKey(tabId)]", "session:[bindKey(tabId)]", "session:[sessionKey(tabId)]", "session:lastGatedHandoff",
   ].sort(), "the extension's storage keys changed — that is a new disclosure (D23: none allowed)");
   assert.match(code["dockHost.js"], /export const DOCK_PLACE_KEY = 'dockPlace';/);
@@ -106,130 +108,16 @@ test("⛔ D23: the storage keys are exactly the ones the listing names — no mo
   assert.match(gh, /batchKey = \(tabId\) => `batch:\$\{tabId\}`/);
 });
 
-// ── 1. The manual trigger, exercised: the REAL popup.js against a stub DOM and chrome.* ────────────
-
-function fakeEl(id) {
-  const el = {
-    id, style: {}, textContent: "", className: "", disabled: false, title: "", hidden: false,
-    dataset: {}, children: [], listeners: {},
-    addEventListener(t, fn) { (this.listeners[t] ||= []).push(fn); },
-    append(...xs) { this.children.push(...xs); },
-    set innerHTML(v) { this.children = []; this._html = v; }, get innerHTML() { return this._html || ""; },
-  };
-  return el;
-}
-
-function bootPopup({ preview, context, tabUrl = "https://jobs.example.test/role/1" }) {
-  const els = {};
-  const sent = [];
-  const messages = [];
-  const injected = [];
-  const docListeners = {};
-  const document = {
-    getElementById: (id) => (els[id] ||= fakeEl(id)),
-    createElement: (t) => fakeEl(`<${t}>`),
-    addEventListener: (t, fn) => (docListeners[t] ||= []).push(fn),
-  };
-  const answers = { PROBE_AUTH: { authenticated: true, username: "ada" }, PREVIEW_ACTIVE_TAB: preview, POPUP_CONTEXT: context };
-  const chrome = {
-    runtime: { sendMessage: async (m) => { sent.push(m.type); messages.push(m); return answers[m.type] ?? null; }, openOptionsPage() {} },
-    tabs: { query: async () => [{ id: 7, url: tabUrl }], create() {} },
-    storage: { local: { get: async () => ({}) } },
-    scripting: { executeScript: async (x) => { injected.push(x); return [{ result: "" }]; } },
-  };
-  const sandbox = { document, chrome, window: { close() {} }, setTimeout, clearTimeout, console, URL, Promise, Date };
-  vm.createContext(sandbox);
-  vm.runInContext(read("extension/config.js"), sandbox);
-  vm.runInContext(read("extension/companion.js"), sandbox);
-  vm.runInContext(read("extension/popup.js"), sandbox);
-  const settle = () => new Promise((r) => setTimeout(r, 20));
-  return { els, sent, messages, injected, docListeners, settle };
-}
-
-const POSTING = { capturable: true, ok: true, title: "Data Engineer", company: "Fabrikam", location: "Boston, MA" };
-const POSTING_CTX = { packets: [], posting: { known: false, saved: false }, recent: [] };
-
-test("⛔ D23: opening the popup reads NOTHING — no preview, no context call, no injection", async () => {
-  const p = bootPopup({ preview: POSTING, context: POSTING_CTX });
-  await p.settle();
-  // §8 row 15 / decision D (owner, 10-07): the TODAY RING is asked for on open — it is the ACCOUNT's
-  // quota (the day's Draft slots), not the page: the message carries no tab and no URL (checked below),
-  // and background.js answers it from /api/draft/slots alone. Nothing about the page is read on open.
-  // v1.5.2 (owner, 10-12): "Captured: N today · M already on your board" is asked for on open on the same terms — the
-  // ACCOUNT's captures (GET /api/import/today), no tab and no URL in the message.
-  // D99 J11 (10-14): BOARD_TAB — "From your board" on a tab the board opened — is asked on open on the same terms: no tab
-  // and no URL in the message, and the worker answers it from the extension's OWN binding record (no request, no injection).
-  // ⭐ T14 (field report 10-14): BOARD_TAB became TAB_STATE — the same answer for a board tab, and for ANY bound tab, and
-  // a new tab on an address the job was already seen at binds now. Still the extension's own records: tabStateFor reads
-  // the binding and the progress record, nothing else — no request, no injection, no lookup.
-  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING", "CAPTURED_TODAY", "TAB_STATE"], `the popup asked for ${p.sent.join(", ")} on open`);
-  assert.deepEqual(Object.keys(p.messages.find(m => m.type === "TAB_STATE")), ["type"], "TAB_STATE's message carries something about the page");
-  const stateSrc = read("extension/tabState.js");
-  const accessor = stateSrc.slice(at(stateSrc, "export async function tabStateFor"), at(stateSrc, "// ── T13 · the chain"));
-  assert.doesNotMatch(accessor, /fetch|authedFetch|lookupBoardJob|lookupPage|executeScript|sendMessage/, "TAB_STATE reads the page or asks the server");
-  assert.doesNotMatch(read("extension/tabBinding.js"), /\bfetch\(|authedFetch|executeScript/, "the address comparison reads the page or asks the server");
-  assert.deepEqual(Object.keys(p.messages.find(m => m.type === "TODAY_RING")), ["type"], "the ring's message carries something about the page");
-  assert.deepEqual(Object.keys(p.messages.find(m => m.type === "CAPTURED_TODAY")), ["type"], "the count's message carries something about the page");
-  assert.equal(p.injected.length, 0, "the popup injected into the page on open");
-  // The four actions are there, unchanged and enabled; the companion is not.
-  for (const id of ["btn-capture-job", "btn-fill", "btn-ats", "btn-resume"]) {
-    assert.notEqual(p.els[id]?.style.display, "none", `${id} is hidden before the press`);
-    assert.equal(p.els[id]?.disabled ?? false, false, `${id} is disabled on a web page before the press`);
-  }
-  assert.equal(p.els["btn-read-page"].style.display, "flex", "the trigger is not offered");
-  assert.notEqual(p.els["companion"]?.style.display, "block");
-  assert.notEqual(p.els["posting-actions"]?.style.display, "flex");
-});
-
-test("D23: the press reads the page once — a posting -> Capture it + Score it + 'Not on your board yet'", async () => {
-  const p = bootPopup({ preview: POSTING, context: POSTING_CTX });
-  await p.settle();
-  for (const fn of p.els["btn-read-page"].listeners.click) fn({});
-  await p.settle();
-  assert.deepEqual(p.sent.slice(4).sort(), ["POPUP_CONTEXT", "PREVIEW_ACTIVE_TAB"]);
-  assert.equal(p.els["posting-actions"].style.display, "flex");
-  assert.equal(p.els["ctx-line"].textContent, "Not on your board yet");
-  assert.equal(p.els["preview-company"].textContent, "Fabrikam");
-  assert.equal(p.els["btn-read-page"].style.display, "none");
-  // A second press (or a held key) does not read again.
-  for (const fn of p.els["btn-read-page"].listeners.click) fn({});
-  await p.settle();
-  assert.equal(p.sent.length, 6, "the page was read twice");
-});
-
-test("D23: the keystroke is the same press (R, no modifier); a modified R is not", async () => {
-  const p = bootPopup({ preview: null, context: { packets: [{ packetId: 3, createdAt: Date.now() - 2 * 86400000,
-    stale: false, answerCount: 14, unresolvedCount: 0, resumeAvailable: true }], recent: [] } });
-  await p.settle();
-  const key = (o) => { for (const fn of p.docListeners.keydown) fn({ preventDefault() {}, ...o }); };
-  key({ key: "r", ctrlKey: true });
-  await p.settle();
-  assert.deepEqual(p.sent, ["PROBE_AUTH", "TODAY_RING", "CAPTURED_TODAY", "TAB_STATE"], "Ctrl+R read the page");
-  key({ key: "r" });
-  await p.settle();
-  assert.equal(p.els["btn-fill-primary"].style.display, "flex", "a form you drafted -> Fill it");
-  assert.equal(p.els["ctx-line"].textContent, "You drafted this 2 days ago · résumé ready · 14 fields prepared");
-});
-
-test("D23: neither -> recent captures, after the press; on chrome:// Capture is disabled, never hidden", async () => {
-  const p = bootPopup({ preview: { capturable: false }, tabUrl: "chrome://extensions/",
-    context: { packets: [], posting: null, recent: [{ jobId: "a", title: "Platform Engineer", company: "Tailspin", capturedAt: Date.now() }] } });
-  await p.settle();
-  // ⭐ T22: the capture tile is gone — on a page that cannot be read the MAIN action is offered disabled, never hidden
-  assert.equal(p.els["btn-read-page"].disabled, true, "Read is offered disabled on a page draft cannot read");
-  assert.notEqual(p.els["btn-read-page"].style.display, "none");
-  for (const fn of p.els["btn-read-page"].listeners.click) fn({});
-  await p.settle();
-  assert.equal(p.els["recent"].style.display, "block");
-  assert.equal(p.els["recent-list"].children.length, 1);
-  assert.equal(p.els["posting-actions"].style.display, "flex", "Capture it is shown…");
-  assert.equal(p.els["btn-capture-primary"].disabled, true, "…disabled, with its reason, never hidden");
-});
+// ── 1. The manual trigger ─────────────────────────────────────────────────────────────────────────────
+// ⭐ T31 (owner 10-25, "one press reads"): the toolbar popup is retired. D23's rule — every read of a page begins with
+// the person's click or keystroke — is now the TOOLBAR PRESS's: it reads only when pressed and only when signed in, and
+// opening nothing reads anything (test/t31ToolbarPress.test.js ③; the popup's own Read-this-page / R-key / recent-list
+// walks went with it).
 
 test("D23: the server half is unchanged — D13's /api/import/context, with D4's parser, not a second one", () => {
   const route = read("routes/importJob.js");
   assert.match(route, /detectKnownAtsMatch/);
-  for (const f of ["extension/popup.js", "extension/companion.js", "extension/background.js"]) {
+  for (const f of ["extension/toolbarPress.js", "extension/background.js"]) {
     assert.doesNotMatch(read(f), /greenhouse\.io|lever\.co|ashbyhq\.com|myworkdayjobs/i,
       `${f} parses ATS URLs itself — the server's detectKnownAtsMatch is the one parser`);
   }
@@ -252,7 +140,7 @@ test("⛔ D23: the extension's tokens, faces and mark are GENERATED from the sit
 });
 
 test("⛔ D23: no font or style request leaves the extension", () => {
-  for (const f of ["extension/popup.html", "extension/options.html", "extension/ui.css", "extension/tokens.css",
+  for (const f of ["extension/options.html", "extension/ui.css", "extension/tokens.css",
                    "extension/review-overlay.js", "extension/extractor.js"]) {
     assert.doesNotMatch(read(f), /fonts\.googleapis|fonts\.gstatic|@import\s+url\(\s*['"]?https?:/i, `${f} asks a third party for a font`);
   }
@@ -291,21 +179,21 @@ test("⛔ D23: D1's depth on every control, square geometry 11–13, reduced mot
 });
 
 test("⛔ D23: the mark is /draft per D19 (orange slash, ink word) and the Draft action carries /d", () => {
-  const html = read("extension/popup.html");
+  // ⭐ T31: the toolbar popup is retired — the /draft mark of an extension page is the settings page's
+  const html = read("extension/options.html");
   assert.match(html, /<span class="mark" role="img" aria-label="draft"><span class="mark-slash"><\/span><span class="mark-word"><\/span><\/span>/);
   const ui = read("extension/ui.css");
   assert.match(ui, /\.mark \.mark-slash \{ background: var\(--c-logo-slash\);[^}]*url\(brand\/wordmark-slash\.png\)/);
   assert.match(ui, /\.mark \.mark-word  \{ background: var\(--c-logo-word\);[^}]*url\(brand\/wordmark-letters\.png\)/);
   assert.equal(C_LIGHT.LOGO_WORD, C_LIGHT.INK, "D19: in light mode the word is ink");
   assert.equal(C_LIGHT.LOGO_SLASH, C_LIGHT.ACCENT, "D19: the slash is the orange");
-  const draftAt = at(html, 'id="btn-resume"');
-  const draft = html.slice(draftAt, at(html, "</button>", draftAt));
-  assert.match(draft, /<span class="draft-d" aria-hidden="true">\/d<\/span>/);
-  assert.match(html, /class="sq sq--primary" id="btn-resume" aria-label="Draft this job"/);   // ⭐ T24: the button drafts
+  // ⭐ T28 / T31: the /d is the LAUNCHER's — the dock, closed, is the /d square (the popup's Draft button went with it;
+  // drafting is the press's "Add this job to draft?" → Draft, and the intent line's)
+  assert.match(read("extension/dock.js"), /<button class="launch" data-role="expand"[\s\S]{0,260}<span class="mk" aria-hidden="true"><span class="sl">\/<\/span>d<\/span>/);
   // ⭐ T17: the in-page /draft mark is the DOCK's — one window, one mark (the panel is its Fill tab)
   assert.match(read("extension/dock.js"), /<div class="mk" aria-hidden="true"><span class="sl">\/<\/span>draft<\/div>/);
   // Both pages take the site's tokens and controls.
-  for (const f of ["extension/popup.html", "extension/options.html"]) {
+  for (const f of ["extension/options.html"]) {
     const h = read(f);
     assert.ok(h.indexOf('href="tokens.css"') > -1 && h.indexOf('href="tokens.css"') < h.indexOf('href="ui.css"'), `${f} does not load tokens.css before ui.css`);
   }

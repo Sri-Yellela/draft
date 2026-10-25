@@ -159,10 +159,16 @@ test("D64 · the in-page posting check is self-contained and reads only JSON-LD"
   assert.equal(run([JSON.stringify({ "@type": "Organization" }), "not json"]), false);
 });
 
-test("D64 · Captured today is asked for only when the user opens it — nothing on popup open (D23)", () => {
-  const pop = read("extension/popup-auto.js");
-  assert.match(pop, /box\.addEventListener\('toggle', \(\) => \{ if \(box\.open\) void load\(\); \}\);/);
-  const beforeToggle = pop.slice(at(pop, "api.storage.local.get(AUTO_READ_KEY)"));
-  assert.doesNotMatch(beforeToggle.split("box.addEventListener('toggle'")[0], /AUTO_CAPTURES/, "no server call before the user opens it");
-  assert.match(read("extension/popup.html"), /<details id="auto-today" hidden>/);
+test("D64 → T31 · an automatic capture says so on its own page, once, with Undo — the Undo takes only the job draft just added there", () => {
+  // ⭐ T31 (owner 10-25: "relayed when it is needed"): the retired popup's "Captured today" list is gone; the news and its
+  // Undo are said where and when they are needed — on the page that was captured
+  const ar = read("extension/autoRead.js");
+  const cap = ar.slice(at(ar, "async function autoCapture(tab, serverUrl) {"), at(ar, "export async function runAutoPass("));
+  assert.match(cap, /if \(!json\.already\) \{\n\s+AUTO_CAPTURED\.set\(tab\.id, jobId\);/, "only a NEW capture is said (and offered to Undo)");
+  assert.match(cap, /text: `Added to your board automatically\$\{job \? ` — \$\{job\}` : ''\}\.`, actions: \[\{ id: 'undo-capture'/);
+  const bg = read("extension/background.js");
+  const undo = bg.slice(at(bg, "'undo-capture': async (tab) => {"), at(bg, "'sign-in': async"));
+  assert.match(undo, /const jobId = takeAutoCapture\(tab\.id\);/, "the job is the one draft added on THIS tab — never a message's");
+  assert.match(undo, /\/api\/import\/auto\/\$\{encodeURIComponent\(jobId\)\}\/undo`, \{ method: 'POST' \}/);
+  assert.doesNotMatch(bg, /message\.type === 'AUTO_CAPTURES'|message\.type === 'AUTO_CAPTURE_UNDO'/, "the popup's list messages went with the popup");
 });

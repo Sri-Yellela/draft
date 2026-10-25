@@ -20,7 +20,10 @@ import fs from "fs";
 
 const serverSrc = fs.readFileSync("server.js", "utf8");
 const extractorSrc = fs.readFileSync("extension/extractor.js", "utf8");
-const popupSrc = fs.readFileSync("extension/popup.js", "utf8");
+// ⭐ T31 (owner 10-25): the toolbar popup is retired — what it did is the extension's own pages (Settings) and the dock's
+// code on the page (its popups ask the service worker, DOCK_ACT). Those are what must never grow a capture or a fetch.
+const pageSrc = ["extension/options.js", "extension/options-auto.js", "extension/options-permissions.js", "extension/toolbarPress.js",
+  "extension/dock.js", "extension/popup-layer.js"].map(f => fs.readFileSync(f, "utf8")).join("\n");
 const bgSrc = fs.readFileSync("extension/background.js", "utf8");
 const authSrc = fs.readFileSync("extension/auth.js", "utf8");
 
@@ -78,17 +81,18 @@ test("THE EXTENSION HAS EXACTLY ONE CAPTURE IMPLEMENTATION", () => {
   // and neither carries a copy of it.
   assert.equal((bgSrc.match(/async function captureActiveTab/g) || []).length, 1,
     "exactly one capture function, in the service worker");
-  assert.doesNotMatch(popupSrc, /function saveJob|api\/extension\/save-job/,
-    "the popup must not grow a capture of its own again");
+  assert.doesNotMatch(pageSrc, /function saveJob|api\/extension\/save-job/,
+    "the extension's pages and the dock must not grow a capture of their own again");
   assert.doesNotMatch(extractorSrc, /api\/extension\/save-job|fetch\(/,
     "the injected extractor extracts and returns; it never talks to the network");
 });
 
 test("both triggers reach the same function", () => {
-  assert.doesNotMatch(popupSrc, /SAVE_JOB|CAPTURE_AND_IMPORT/,
+  assert.doesNotMatch(pageSrc, /SAVE_JOB|CAPTURE_AND_IMPORT/,
     "retired message names are gone rather than aliased — zero users means no compatibility is owed");
-  assert.match(popupSrc, /type: 'CAPTURE_ACTIVE_TAB'/,
-    "the popup button routes to the service worker's capture");
+  // ⭐ T31: the dock's "Add this job to draft?" → Capture routes to the service worker's capture (DOCK_ACT capture)
+  assert.match(bgSrc, /capture: async \(tab\) => \{ const r = await captureActiveTab\(tab\);/,
+    "the dock's Capture routes to the service worker's capture");
   assert.match(bgSrc, /command !== 'capture-job'\) return/);
   assert.match(bgSrc, /captureActiveTab\(tab\)/,
     "the hotkey command calls the same function the popup's message does");
@@ -110,8 +114,9 @@ test("the outcome is worded in ONE place, so the triggers cannot disagree", () =
   // If the popup and the toast phrased results separately, users would still perceive two features.
   assert.match(bgSrc, /async function importCapturedJob/,
     "the request and its message live in the service worker");
-  assert.match(popupSrc, /result\?\.message/,
-    "the popup displays the message it was given rather than composing its own");
+  // ⭐ T31: the dock's Capture says nothing of its own — the capture's toast below is what says the outcome
+  assert.match(bgSrc, /capture: async \(tab\) => \{ const r = await captureActiveTab\(tab\); return \{ ok: !!r\?\.success, say: null \}; \}/,
+    "the dock does not word a capture's outcome itself");
   // D23 added a third argument, the colour tokens (a serialised function closes over nothing).
   assert.match(bgSrc, /func: showCaptureToast, args: \[result\.message, !!result\.success, toastTheme\(\)\]/,
     "the toast is injected with the same message, from the same place");
@@ -144,10 +149,11 @@ test("THE CAPTURE REQUEST IS MADE FROM THE SERVICE WORKER, NOT THE CONTENT SCRIP
   assert.match(authSrc, /'X-RM-Auth-Context'/);
 });
 
-test("the popup's auth probe goes through the service worker for the same reason", () => {
-  assert.doesNotMatch(popupSrc, /fetch\(/,
-    "a popup fetch carries chrome-extension://, which corsOrigin refuses in production");
-  assert.match(popupSrc, /type: 'PROBE_AUTH'/);
+test("the extension's pages ask who they are through the service worker for the same reason", () => {
+  assert.doesNotMatch(pageSrc, /fetch\(/,
+    "an extension page's fetch carries chrome-extension://, which corsOrigin refuses in production");
+  // ⭐ T31: Settings → Account names the identity (the popup's account line went there)
+  assert.match(pageSrc, /type: 'GET_IDENTITY'/);
   // The probe now resolves through auth.js's getIdentity, still inside the service worker, so the
   // popup learns WHO it is acting as rather than merely whether someone is.
   assert.match(bgSrc, /getIdentity\(RESUME_MASTER_URL\)/);

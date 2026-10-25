@@ -458,6 +458,7 @@ export function renderResumePanel(model, meta) {
         </div>` : nojob ? `<div class="empty" title="${esc((m.lines || []).map(l => l.text).join(' '))}">${I('need', 28)}${(m.lines || []).map(l => `<p class="ln sr ${esc(l.tone)}">${esc(l.text)}</p>`).join('')}`
           + `<div class="acts">${ibtn(ACTIONS_READ)}</div></div>`
           : `<div class="empty" title="No ATS report for this job yet.">${I('ats', 28)}<p class="ln sr" data-role="ats-none">No ATS report for this job yet.</p></div>`}
+        ${m.job ? `<div class="acts">${ibtn({ role: 'unbind', label: `Unlink this page from ${m.job}`, icon: 'unlink' })}</div>` : ''}
         <div class="say" data-role="say" aria-live="polite"></div>
       </div>`;
     if (card) { const cardHost = atsRoot.querySelector('[data-role="ats-card"]'); try { ATS.mountAtsReport(cardHost, m.report.report, {}); } catch { cardHost?.remove(); } }
@@ -566,6 +567,14 @@ export function renderResumePanel(model, meta) {
     if (role === 'attach') { say('Attaching…'); return take(r, await send({ type: 'RESUME_ATTACH', id: m.id }), 'Could not attach — try Download PDF.'); }
     if (role === 'edit') { const got = await send({ type: 'RESUME_OPEN_EDITOR', id: m.id }); btn.disabled = false; if (!got?.ok) say(got?.message || 'Could not open draft.', true); else say('Opened in a new tab.'); }
     if (role === 'read') { say('Reading this page…'); return take(r, await send({ type: 'RESUME_READ_PAGE', trigger: 'click' }), 'Could not reach draft — try again.'); }
+    // ⭐ T31: "Unlink this page" — off the retired toolbar popup, here where the tab's job is named: forget which job this
+    // tab is on (DOCK_ACT unbind — this tab, the person's own click)
+    if (role === 'unbind') {
+      const got = await send({ type: 'DOCK_ACT', act: 'unbind', trigger: 'click' });
+      btn.disabled = false;
+      say(got?.ok ? 'Unlinked — this page is not tied to a job any more.' : 'Could not unlink this page.', !got?.ok);
+      return;
+    }
     if (role === 'report' || role === 'add-resume') {
       const got = await send({ type: 'RESUME_OPEN_REPORT', to: role === 'report' ? 'report' : 'resume' }); btn.disabled = false;
       if (!got?.ok) say(got?.message || 'Could not open draft.', true); else say('Opened in a new tab.');

@@ -54,8 +54,9 @@ test("⛔ D68 · the policy names the Copy sheet and carries the Web Store Limit
   assert.match(policy, /Copy sheet shows your own prepared answers — including any work-authorisation or voluntary self-identification answers you saved/);
   assert.match(policy, /we do not record what you copied/);
   assert.match(policy, /adheres to the Chrome Web Store User Data Policy, including the Limited Use requirements/);
-  const popup = fs.readFileSync("extension/popup.js", "utf8");
-  assert.equal([...popup.matchAll(/navigator\.clipboard\.writeText/g)].length, 1, "one clipboard write");
-  assert.match(popup, /copy\.addEventListener\('click', async \(\) => \{\s*try \{ await navigator\.clipboard\.writeText\(row\.value\)/, "and only on a click");
+  // ⭐ T31: the Copy sheet is the dock's tab (the popup's own list went with the popup) — one clipboard write, on a click
+  const sheet = fs.readFileSync("extension/copy-sheet-panel.js", "utf8");
+  assert.equal([...sheet.matchAll(/navigator\.clipboard\.writeText/g)].length, 1, "one clipboard write");
+  assert.match(sheet, /copy\.addEventListener\('click', async \(\) => \{[\s\S]{0,200}try \{ await navigator\.clipboard\.writeText\(String\(row\.value \?\? ''\)\)/, "and only on a click");
   assert.match(fs.readFileSync("extension/submission/PRIVACY_RECONCILIATION.md", "utf8"), /## ⭐ D68 · THE COPY SHEET, CHECKED/);
 });

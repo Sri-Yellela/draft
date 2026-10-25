@@ -49,9 +49,13 @@ export function relayFor({ identity = null, ctx = null, auto = null } = {}) {
   }
   if (ctx.notice) out.push({ id: 'draft-notice', kind: 'toast', icon: 'info', text: String(ctx.notice), ms: 6000 });
   // automatic reading — offered only where it would work, and only until it is set up (or put off)
-  if (auto?.here && !auto.here.on && auto.here.host) {
+  if (auto?.here && !auto.here.on && auto.here.host && !auto.frameAsk) {
     out.push({ id: 'draft-auto', kind: 'toast', icon: 'read', ms: 8000, text: `Read ${auto.here.host}'s application pages for you automatically?`,
       actions: [{ id: 'always-here', label: `Set up reading ${auto.here.host} automatically — opens Settings`, word: 'Set up' }] });
+  } else if (auto?.frameAsk?.name && auto.here?.host) {
+    // a site already chosen whose form turned out to sit in another site's frame (the popup's old "second click")
+    out.push({ id: 'draft-auto', kind: 'toast', icon: 'read', ms: 8000, text: `Read ${auto.frameAsk.name}'s form on ${auto.here.host} too?`,
+      actions: [{ id: 'always-here', label: `Set up reading ${auto.frameAsk.name}'s form here — opens Settings`, word: 'Set up' }] });
   } else if (auto?.card && auto.cardSite) {
     out.push({ id: 'draft-auto', kind: 'toast', icon: 'read', ms: 8000, text: `draft can read ${auto.cardSite} application pages for you automatically.`,
       actions: [{ id: 'auto-setup', label: 'Set up automatic reading — opens Settings', word: 'Set up' }, { id: 'auto-later', label: 'Not now', word: 'Later' }] });
@@ -68,6 +72,12 @@ export function fillRelay(result) {
   if (result?.reason === 'frame_needs_permission' && result.site?.name) {
     return [{ id: 'draft-relay', kind: 'question', icon: 'need', tone: 'need', text: result.message || `Allow draft on ${result.site.name} to fill this form.`,
       actions: [{ id: 'allow-site', label: `Allow draft on ${result.site.name} — opens Settings`, word: 'Allow', primary: true }] }];
+  }
+  // D36·6: a fill that worked but whose review panel did not open — the one place the person learns the answers were not
+  // laid out for checking (the retired popup stayed open for it); said on the page, and it stays until it is read
+  if (result?.ok && result.overlay && result.overlay.rendered === false) {
+    return [{ id: 'draft-relay', kind: 'question', icon: 'need', tone: 'need', text: result.message || 'Filled — but the review panel could not open. Check every answer on the page yourself.',
+      actions: [] }];
   }
   if (result?.reason === 'form_not_recognised') {
     return [{ id: 'rm-draft-status-toast', kind: 'toast', icon: 'need', tone: 'need', ms: 8000,

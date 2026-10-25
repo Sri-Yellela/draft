@@ -195,7 +195,8 @@ test("T3 · the extension asks on the press, binds what it finds, and shows the 
   assert.match(ctx, /const identity = url \? await identifyAndBind\(tab, \{ serverUrl: RESUME_MASTER_URL \}\)/);
   assert.match(ctx, /const page = identity\?\.lookup/);
   assert.match(ctx, /board\.posting = \{ \.\.\.board\.posting, known: true, jobId: p\.jobId/, "a page draft names becomes the popup's posting");
-  assert.match(read("extension/companion.js"), /'ATS scored from this page'/);
+  // where the score came from — ⭐ T31: the retired popup's mark went with it; the dock's ATS tab says it
+  assert.match(read("extension/resumePanel.js"), /note: fromPage \? 'Your base résumé, scored against this page\.' : 'Your base résumé, scored for this job\.'/);
   const panel = read("extension/resumePanel.js");
   assert.match(panel, /const id = await identifyAndBind\(tab, \{ serverUrl: url\(\) \}\)/, "the panel's Read identifies and binds first too");
   assert.match(read("extension/identify.js"), /lookup\(serverUrl, \{ url, frameUrls, text: read\.text \}\)/, "the text goes only when the address and frame named nothing");

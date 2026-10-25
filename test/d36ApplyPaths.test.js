@@ -497,7 +497,8 @@ test("D36·5 · the decision surfaces can only Draft, and only the approval butt
 });
 
 test("D36·5 · the extension never submits a form: no submit(), no requestSubmit(), no submit click", () => {
-  for (const f of ["extension/gated-handoff.js", "extension/review-overlay.js", "extension/background.js", "extension/popup.js", "extension/companion.js"]) {
+  // (⭐ T31: every file the extension ships, not a list — the popup's two went with it)
+  for (const f of fs.readdirSync("extension").filter(f => f.endsWith(".js")).map(f => `extension/${f}`)) {
     const src = read(f).replace(/^\s*(\/\/|\*).*$/gm, "");   // prose about submitting is allowed
     assert.doesNotMatch(src, /\.requestSubmit\s*\(|\.submit\s*\(\s*\)|\[type=["']?submit["']?\][^;\n]*\.click\(/, f);
   }
@@ -523,11 +524,15 @@ test("D36·6 · the gated fill renders the review overlay after it fills, and on
   assert.doesNotMatch(failed, /message: `Filled \$\{outcome\?\.filled\?\.length \|\| 0\} field\(s\)\. Review and submit yourself\.`/);
 });
 
-test("D36·6 · the popup stays open when the overlay did not render", () => {
-  const bg = read("extension/background.js");
-  const popup = read("extension/popup.js");
-  assert.match(bg, /overlay: r\?\.overlay \? \{ rendered: r\.overlay\.rendered === true \} : null/);
-  assert.match(popup, /if \(r\?\.ok && r\?\.overlay\?\.rendered !== false\) setTimeout\(\(\) => window\.close\(\), 1200\);/);
+test("D36·6 · when the overlay did not render, the page says so — and it stays until it is read (⭐ T31: the retired popup stayed open for it)", async () => {
+  const { fillRelay } = await import("../extension/toolbarPress.js");
+  const said = fillRelay({ ok: true, overlay: { rendered: false }, message: "Filled 5 field(s), but the review panel could not open. Check every answer on the page yourself." });
+  assert.equal(said.length, 1);
+  assert.equal(said[0].kind, "question", "a question stays until it is closed — a toast could go unread");
+  assert.match(said[0].text, /the review panel could not open/);
+  assert.deepEqual(fillRelay({ ok: true, overlay: { rendered: true } }), [], "a fill whose panel opened says nothing more");
+  // every fill path relays it: reportHandoff → fillRelay → the dock's popups
+  assert.match(read("extension/background.js"), /async function reportHandoff\(tab, result\) \{[\s\S]{0,300}const relay = fillRelay\(result\);/);
 });
 
 // ── PATH 3 · a released gate packet puts the job in Pending, so the submission can be recorded ────

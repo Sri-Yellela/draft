@@ -254,14 +254,17 @@ test("⛔ D55 E: a report is stored against its reporter, rate-limited, purged a
   assert.equal(db.prepare("SELECT COUNT(*) n FROM form_reports").get().n, 0);
 });
 
-test("⛔ D55 E: the popup shows what would be sent BEFORE it sends — two clicks", () => {
-  const popup = read("extension/popup.js");
-  assert.match(popup, /type: 'REPORT_FORM', phase: 'preview'/);
-  assert.match(popup, /type: 'REPORT_FORM', phase: 'send'/);
-  assert.match(popup, /never your answers/);
-  assert.match(read("extension/popup.html"), /id="btn-report-form"[\s\S]*id="btn-report-send"/);
-  const h = bg.slice(at(bg, "if (msg?.type !== 'REPORT_FORM') return false;"));
-  assert.ok(h.indexOf("msg.phase !== 'send'") < h.indexOf("'/api/form-reports'"), "the preview must return before any post");
+test("⛔ D55 E: what would be sent is shown BEFORE it is sent — two clicks (⭐ T31: on the page, when a form is not recognised)", () => {
+  // the retired popup's Report form → the fill's popup on a form draft did not recognise (toolbarPress.js fillRelay):
+  // Report → the question naming the host and the label count, "Never your answers" → Send
+  const tp = read("extension/toolbarPress.js");
+  assert.match(tp, /if \(result\?\.reason === 'form_not_recognised'\) \{[\s\S]{0,400}actions: \[\{ id: 'report', label: 'Report this form to draft', word: 'Report' \}\]/);
+  const acts = bg.slice(at(bg, "const DOCK_ACTS = Object.freeze({"), at(bg, "if (msg?.type !== 'DOCK_ACT') return false;"));
+  assert.match(acts, /report: async \(tab\) => \{\n\s+const r = await reportForm\(tab, 'preview'\);/);
+  assert.match(acts, /Never your answers\./);
+  assert.match(acts, /'report-send': async \(tab\) => \{\n\s+const r = await reportForm\(tab, 'send'\);/);
+  const h = bg.slice(at(bg, "async function reportForm(tab, phase) {"));
+  assert.ok(h.indexOf("phase !== 'send'") < h.indexOf("'/api/form-reports'"), "the preview must return before any post");
 });
 
 test("D55 E: the privacy page carries the disclosure; the reconciliation carries the row", () => {
