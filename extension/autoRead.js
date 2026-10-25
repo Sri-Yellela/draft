@@ -1182,6 +1182,25 @@ export const handlers = Object.freeze({
     const reg = await syncRegistrations(settings);
     return { ok: true, settings, registered: reg.registered };
   },
+  /**
+   * ⭐ T29 · Settings → Permissions: give ONE preset site's access back — its four switches off, the frames it was found
+   * in forgotten, its watcher gone, Chrome's grant removed (kept only while a custom site still reads that site's form
+   * in a frame — `kept`, and the page says so). ⛔ An extension page only.
+   */
+  AUTO_READ_REVOKE: async (msg, sender) => {
+    if (!fromExtensionPage(sender)) return { ok: false, error: 'not_allowed' };
+    const site = siteById(msg?.site);
+    if (!site) return { ok: false, error: 'bad_site' };
+    const settings = await updateSettings((cur) => {
+      cur.sites[site.id] = offSite();
+      for (const [origin, id] of Object.entries(cur.frameHints || {})) if (id === site.id) delete cur.frameHints[origin];
+      return cur;
+    });
+    const kept = siteNeeded(settings, site.id);
+    if (!kept) await giveBack(site.origins);
+    const reg = await syncRegistrations(settings);
+    return { ok: true, settings, kept, registered: reg.registered };
+  },
   /** ⛔ THE KILL SWITCH — every behaviour off, every custom site removed, every site's access given back, every watcher unregistered. */
   AUTO_READ_KILL: async (_msg, sender) => {
     if (!fromExtensionPage(sender)) return { ok: false, error: 'not_allowed' };
