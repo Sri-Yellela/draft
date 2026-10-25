@@ -30,6 +30,8 @@ test("T29 ① every section a dock control may open is on the page, by the id th
   const js = read("extension/options.js");
   assert.match(js, /addEventListener\('hashchange', landOnSection\);\nlandOnSection\(\);/, "a deep link lands on load and on a later hash");
   assert.match(js, /section\.querySelector\('h1'\)\?\.focus\(\{ preventScroll: true \}\);/);
+  // ⭐ audit 10-25: "#%" cannot stop the page's script
+  assert.match(js, /try \{ id = decodeURIComponent\(location\.hash\.slice\(1\)\); \} catch \{ return; \}/);
   assert.match(js, /chrome\.tabs\.create\(\{ url: `\$\{RESUME_MASTER_URL\}\/app\/saved-answers` \}\)/, "Saved answers opens the web app's list");
   assert.match(HTML, /<script src="config\.js"><\/script>\n  <script src="options\.js"><\/script>\n  <script type="module" src="options-permissions\.js"><\/script>/);
 });
@@ -116,5 +118,28 @@ test("T29 ④ AUTO_READ_REVOKE — a site given back: its four switches off, its
   assert.deepEqual(r.settings.frameHints, {}, "the frame it was found in is forgotten");
   assert.deepEqual(h.removed, WD, "Chrome's access given back");
   assert.equal(h.registered.size, 0, "its watcher is gone");
+  h.restore();
+});
+
+test("T29 ⑤ audit 10-25 — a revoke the worker refuses says so; a revoke clears a consent still waiting on Chrome for that site", async () => {
+  const { mount } = await import("../extension/options-permissions.js");
+  const api = {
+    runtime: { getManifest: () => ({ host_permissions: [] }),
+      sendMessage: async (m) => (m.type === "AUTO_READ_STATE" ? { ok: true, granted: { workday: true }, customGranted: {}, settings: { custom: {} } } : { ok: false, error: "not_allowed" }) },
+    permissions: { request: () => Promise.resolve(true), remove: async () => true, getAll: async () => ({ origins: [] }), onAdded: { addListener() {} }, onRemoved: { addListener() {} } },
+  };
+  const doc = fakeDoc();
+  await mount(doc, api).ready;
+  const wd = boxesOf(doc.byId.get("perm-rows"))[0];
+  wd.checked = false; wd.fire("change");
+  await new Promise(r => setTimeout(r, 10));
+  assert.equal(doc.byId.get("perm-status").textContent, "Could not turn Workday off — try again.");
+  // the worker: a pending consent covering the site is cleared by its revoke
+  const h = installAutoReadChrome({ granted: WD });
+  h.stores.local.set(AUTO_READ_KEY, { ...settingsWith({}), custom: {}, frameHints: {} });
+  assert.equal((await handlers.AUTO_READ_PENDING({ kind: "all" }, OPTIONS_PAGE)).ok, true);
+  assert.equal((await handlers.AUTO_READ_STATE({}, OPTIONS_PAGE)).pending, "all");
+  await handlers.AUTO_READ_REVOKE({ site: "workday" }, OPTIONS_PAGE);
+  assert.equal((await handlers.AUTO_READ_STATE({}, OPTIONS_PAGE)).pending, null, "a waiting consent cannot switch the revoked site back on");
   h.restore();
 });

@@ -35,6 +35,15 @@ test("T28 ① the launcher's square sits ON the nearest edge; with no spot of it
   assert.deepEqual(dockPlaceRecord({ launch: { x: 8.4, y: 500.6 } }, 1).launch, { x: 8, y: 501 });
   assert.equal("launch" in dockPlaceRecord({ launch: { x: "8", y: 1 } }, 1), false);
   assert.deepEqual(plain(D.cleanPlace({ launch: { x: 3, y: 4 } })).launch, { x: 3, y: 4 });
+  // ⭐ audit 10-25: the spot names its EDGE and how far along it — another window size puts it back on THAT edge
+  const spot = plain(D.launchSpot(D.snapLaunch({ x: 1220, y: 424, w: 52, h: 52 }, vp), vp));
+  assert.deepEqual([spot.edge, spot.x, spot.y], ["right", 1220, 424]);
+  const wide = { w: 1920, h: 1080 };
+  const there = plain(D.launchRect({ launch: spot }, wide));
+  assert.deepEqual([there.edge, there.x], ["right", 1860], "still on the right edge in a 1920px window — not mid-screen on the top");
+  assert.ok(Math.abs(there.y - Math.round(8 + spot.f * (1080 - 16 - 52))) <= 1, "the same way along it");
+  assert.deepEqual(dockPlaceRecord({ launch: spot }, 1).launch, { x: 1220, y: 424, edge: "right", f: spot.f });
+  assert.deepEqual(plain(D.cleanPlace({ launch: { x: 1, y: 2, edge: "nope", f: 9 } })).launch, { x: 1, y: 2 }, "an edge it cannot name is dropped");
 });
 
 const chrome = await findChrome();

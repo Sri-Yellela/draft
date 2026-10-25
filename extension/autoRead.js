@@ -1191,6 +1191,9 @@ export const handlers = Object.freeze({
     if (!fromExtensionPage(sender)) return { ok: false, error: 'not_allowed' };
     const site = siteById(msg?.site);
     if (!site) return { ok: false, error: 'bad_site' };
+    // a consent click still waiting for Chrome's answer that covers this site finishes nothing after this (as the kill switch)
+    const pending = loadPending();
+    if (pending?.origins?.some(o => site.origins.includes(o))) clearPending();
     const settings = await updateSettings((cur) => {
       cur.sites[site.id] = offSite();
       for (const [origin, id] of Object.entries(cur.frameHints || {})) if (id === site.id) delete cur.frameHints[origin];

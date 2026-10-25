@@ -115,3 +115,43 @@ test("T27 · the popup layer in a REAL Chrome — one at a time, a toast goes by
   await page.click("#p2 >>> [data-role='popup-settings']");
   assert.deepEqual(await page.evaluate(() => window.__sent.filter(m => m.type === "OPEN_SETTINGS")), [{ type: "OPEN_SETTINGS", trigger: "click", section: "permissions" }]);
 });
+
+test("T27 · audit 10-25 in a REAL Chrome — a focused popup never moves the dock; a new question supersedes an unanswered one; stale news is dropped; a toast that replaced a question never pulls the focus back", { skip: SKIP, timeout: 90000 }, async (t) => {
+  const server = http.createServer((_q, res) => { res.writeHead(200, { "content-type": "text/html" }); res.end("<!doctype html><title>Acme</title><body><input id=a><input id=b>"); });
+  await new Promise(r => server.listen(0, "127.0.0.1", r));
+  t.after(() => server.close());
+  const puppeteer = (await import("puppeteer-core")).default;
+  const browser = await puppeteer.launch({ executablePath: chrome.path, headless: true, pipe: true, args: ["--no-first-run"] });
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1280, height: 900 });
+  await page.goto(`http://127.0.0.1:${server.address().port}/`, { waitUntil: "load" });
+  await page.evaluate(STUB);
+  await page.addScriptTag({ content: DOCK });
+  await page.addScriptTag({ content: LAYER });
+  await page.evaluate((th) => { window.__th = th; globalThis.__draftDock.ensure({ theme: th }); }, { light: C_LIGHT, dark: C_DARK });
+  const dockAt = () => page.evaluate(() => { const r = document.getElementById("rm-draft-dock").getBoundingClientRect(); return [r.left, r.top, r.width]; });
+  const before = await dockAt();
+  // ① a question over the dock's foot takes the focus — the dock stays where it is
+  await page.evaluate(() => { window.__r = {}; globalThis.__draftPopups.show({ id: "intent", kind: "question", text: "Draft this job?", theme: window.__th,
+    actions: [{ id: "d", label: "Draft", word: "Draft" }] }).then(a => { window.__r.intent = a.action; }); });
+  assert.ok(await page.evaluate(() => !!document.getElementById("intent")?.shadowRoot?.activeElement), "the question has the focus");
+  assert.deepEqual(await dockAt(), before, "the dock stepped aside from its own popup");
+  // ② a NEW question is not kept behind the unanswered one; news that waited too long is dropped
+  await page.evaluate(() => { globalThis.__draftPopups.show({ id: "news", kind: "toast", text: "Filled — review and submit", ms: 200, theme: window.__th }).then(a => { window.__r.news = a.action; }); });
+  await new Promise(r => setTimeout(r, 400));
+  await page.evaluate(() => { globalThis.__draftPopups.show({ id: "submitted", kind: "question", text: "Did you submit this application yourself?", theme: window.__th,
+    actions: [{ id: "yes", label: "Yes", icon: "check" }] }).then(a => { window.__r.submitted = a.action; }); });
+  assert.equal(await page.evaluate(() => window.__r.intent), "superseded", "the older question is closed");
+  assert.deepEqual((await page.evaluate(() => globalThis.__draftPopups.current()))?.id, "submitted", "the new question is on screen at once");
+  await page.click("#submitted >>> [data-action='yes']");
+  await new Promise(r => setTimeout(r, 50));
+  assert.equal(await page.evaluate(() => window.__r.news), "expired", "stale news is dropped, not played late");
+  // ③ a toast that replaces a question never takes the focus back when it times out
+  await page.focus("#a");
+  await page.evaluate(() => { globalThis.__draftPopups.show({ id: "intent", kind: "question", text: "Draft this job?", theme: window.__th, actions: [{ id: "d", label: "Draft", word: "Draft" }] }); });
+  await page.evaluate(() => { globalThis.__draftPopups.show({ id: "intent", kind: "toast", text: "Drafted — its résumé is queued.", ms: 300, theme: window.__th }); });
+  await page.focus("#b");
+  await new Promise(r => setTimeout(r, 600));
+  assert.equal(await page.evaluate(() => document.activeElement?.id), "b", "the focus was pulled out of the field the person moved to");
+});

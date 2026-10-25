@@ -151,10 +151,20 @@
   // collapsed, is that square: it sits ON a screen edge (the nearest one to where it was let go), drags along it, and is
   // remembered per site apart from the open dock's rectangle (`place.launch`). A pop-out window still collapses to its
   // slim bar (layoutRect, below).
-  /** The launcher's square: where it was put (`place.launch`); else on the open dock's side, level with its top. */
+  /**
+   * The launcher's square: where it was put (`place.launch`); else on the open dock's side, level with its top. A spot
+   * that names its EDGE and how far along it (`f`, 0–1) is re-anchored to that edge in any window — a spot saved as
+   * x / y alone (audit 10-25: the right edge of a 1280px window was mid-screen on the TOP edge of a 1920px one) is the
+   * fallback.
+   */
   function launchRect(place, vp) {
     const s = Math.min(LIMITS.launch, Math.max(0, Math.min(vp.w, vp.h) - 2 * LIMITS.margin));
-    const p = place?.launch, r = place?.rect;
+    const p = place?.launch, r = place?.rect, m = LIMITS.margin;
+    if (EDGES.includes(p?.edge) && Number.isFinite(p?.f)) {
+      const f = clamp(p.f, 0, 1), side = p.edge === 'left' || p.edge === 'right';
+      const along = Math.round(m + f * Math.max(0, (side ? vp.h : vp.w) - 2 * m - s));
+      return { x: p.edge === 'left' ? m : p.edge === 'right' ? vp.w - m - s : along, y: p.edge === 'top' ? m : p.edge === 'bottom' ? vp.h - m - s : along, w: s, h: s, edge: p.edge };
+    }
     const left = place?.edge === 'left' || (place?.edge !== 'right' && r && r.x + r.w / 2 < vp.w / 2);
     return snapLaunch({ x: Number.isFinite(p?.x) ? p.x : left ? LIMITS.margin : vp.w - LIMITS.margin - s,
       y: Number.isFinite(p?.y) ? p.y : Number.isFinite(r?.y) ? r.y : Math.round(vp.h / 2 - s / 2), w: s, h: s }, vp);
@@ -166,6 +176,13 @@
     const d = { left: x - m, right: vp.w - m - s - x, top: y - m, bottom: vp.h - m - s - y };
     const edge = Object.keys(d).reduce((a, b) => (d[b] < d[a] ? b : a));
     return { x: Math.round(edge === 'left' ? m : edge === 'right' ? vp.w - m - s : x), y: Math.round(edge === 'top' ? m : edge === 'bottom' ? vp.h - m - s : y), w: s, h: s, edge };
+  }
+
+  /** A launcher spot to remember: its edge and how far along it, with x / y for an older reader. */
+  function launchSpot(r, vp) {
+    const m = LIMITS.margin, side = r.edge === 'left' || r.edge === 'right';
+    const span = Math.max(1, (side ? vp.h : vp.w) - 2 * m - r.w);
+    return { x: r.x, y: r.y, edge: r.edge, f: Math.round(clamp(((side ? r.y : r.x) - m) / span, 0, 1) * 1000) / 1000 };
   }
 
   /** Move by (dx, dy): the dock leaves any edge it was snapped to and stays on screen. */
@@ -202,7 +219,8 @@
     const rect = (r) => (r && ['x', 'y', 'w', 'h'].every(k => Number.isFinite(r[k])) ? { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.w), h: Math.round(r.h) } : null);
     const pops = {};
     for (const t of TAB_IDS) { const r = rect(p?.pops?.[t]); if (r) pops[t] = r; }
-    const launch = Number.isFinite(p?.launch?.x) && Number.isFinite(p?.launch?.y) ? { x: Math.round(p.launch.x), y: Math.round(p.launch.y) } : null;
+    const launch = Number.isFinite(p?.launch?.x) && Number.isFinite(p?.launch?.y) ? { x: Math.round(p.launch.x), y: Math.round(p.launch.y),
+      ...(EDGES.includes(p.launch.edge) && Number.isFinite(p.launch.f) ? { edge: p.launch.edge, f: Math.min(Math.max(p.launch.f, 0), 1) } : {}) } : null;
     return { rect: rect(p?.rect), edge: EDGES.includes(p?.edge) ? p.edge : null, collapsed: p?.collapsed === true,
       tab: TAB_IDS.includes(p?.tab) ? p.tab : 'fill', pops, ...(launch ? { launch } : {}) };
   }
@@ -569,8 +587,8 @@
         // let go: onto the nearest edge, remembered; the click that follows a drag opens nothing
         was.sq?.classList.remove('dragging');
         f.launchFree = false;
-        const r = launchRect(f.place, vp());
-        f.place = { ...f.place, launch: { x: r.x, y: r.y } };
+        const r = snapLaunch({ ...f.place.launch, w: LIMITS.launch, h: LIMITS.launch }, vp());
+        f.place = { ...f.place, launch: launchSpot(r, vp()) };
         f.suppressClick = true;
         setTimeout(() => { f.suppressClick = false; }, 0);
         f.draw();
@@ -593,7 +611,7 @@
         ev.preventDefault();
         const d = ev.shiftKey ? LIMITS.bigStep : LIMITS.step;
         const r = f.rectNow();
-        f.place = { ...f.place, launch: { x: r.x + a[0] * d, y: r.y + a[1] * d } };
+        f.place = { ...f.place, launch: launchSpot(snapLaunch({ x: r.x + a[0] * d, y: r.y + a[1] * d, w: r.w, h: r.h }, vp()), vp()) };
         f.draw(); onChange?.();
         root.querySelector('[data-role="expand"]')?.focus();
         return;
@@ -792,7 +810,8 @@
     // other side — and, where that side covers it too, collapses it. (A field inside a child frame is that frame's own.)
     function onFocus(ev) {
       const t = ev.target;
-      if (!t || ev.composedPath?.().some(n => n?.dataset?.draftDock || n?.getAttribute?.('data-draft-dock')) || !t.getBoundingClientRect) return;
+      // draft's own — the dock, or its popup (a question takes the focus over the dock's foot: audit 10-25) — never moves it
+      if (!t || ev.composedPath?.().some(n => n?.dataset?.draftDock || n?.dataset?.draftPopup || n?.getAttribute?.('data-draft-dock') || n?.getAttribute?.('data-draft-popup')) || !t.getBoundingClientRect) return;
       if (t.tagName === 'IFRAME' || t.tagName === 'FRAME') return;
       const fb = t.getBoundingClientRect();
       if (!overlaps(frame.host.getBoundingClientRect(), fb)) return;
@@ -800,7 +819,7 @@
         // ⭐ T28: the launcher steps across to the other side of the screen (a step aside is not the person's choice:
         // not remembered)
         const vp = viewport(), r = frame.rectNow();
-        frame.place = { ...frame.place, launch: { x: vp.w - r.x - r.w, y: r.y } };
+        frame.place = { ...frame.place, launch: launchSpot(snapLaunch({ x: vp.w - r.x - r.w, y: r.y, w: r.w, h: r.h }, vp), vp) };
         frame.draw();
         return;
       }
@@ -914,7 +933,7 @@
   globalThis.__draftDock = Object.freeze({
     version: VERSION, TABS, TAB_IDS, EDGES, LIMITS, DOCK_ID, POP_PREFIX,
     // the geometry (pure — test/t17Dock.test.js)
-    limitsFor, clampRect, defaultRect, layoutRect, moveRect, resizeRect, edgeAtPointer, cleanPlace, launchRect, snapLaunch,
+    limitsFor, clampRect, defaultRect, layoutRect, moveRect, resizeRect, edgeAtPointer, cleanPlace, launchRect, snapLaunch, launchSpot,
     // the page
     isTop, ensure,
     // ⭐ T21: the one in-place patch every view draws with
