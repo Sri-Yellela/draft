@@ -251,7 +251,20 @@ test("⛔ D97 · permissions.request lives in click handlers only — Options' s
   // ⭐ T11 (field report 10-14, owner): a form inside an ATS's frame → "one button, and permissions.request is called
   // inside that click". ⭐ D97 REVISED + T12 (owner 10-15): popup-auto.js's three clicks — the one-time card, "Always
   // read here" turned on, and the frame's second click — each pinned the same way in test/d97rT12AlwaysRead.test.js.
-  assert.deepEqual(hits, ["options-auto.js", "popup-auto.js", "popup.js"]);
+  // ⭐ T29 (owner 10-23: a permission is requested on the settings page): Settings → Permissions — each switch's request is
+  // its first chrome call, pinned below
+  assert.deepEqual(hits, ["options-auto.js", "options-permissions.js", "popup-auto.js", "popup.js"]);
+  const perm = read("extension/options-permissions.js");
+  const allow = perm.slice(at(perm, "export function onAllow(api, siteId) {"), at(perm, "/** Draw the section"));
+  assert.equal(allow.slice(allow.indexOf("api."), allow.indexOf("api.") + 25), "api.permissions.request({", "onAllow's first chrome call is the request");
+  assert.ok(allow.indexOf("api.permissions.request(") < allow.indexOf("await"), "before any await");
+  for (const [open, first] of [["if (box.checked) {\n          const asked = onAllow(api, id);", "onAllow(api, id)"],
+    ["if (box.checked) {\n          const asked = api.permissions.request({ origins: [originPattern(origin)] });", "api.permissions.request("]]) {
+    const i = at(perm, open);
+    assert.ok(perm.indexOf(first, i) - i < open.length, `a switch's first call is ${first}`);
+  }
+  assert.equal((perm.match(/permissions\.request\(/g) || []).length, 2, "two requests: a preset site's switch (onAllow) and a chosen site's");
+  assert.doesNotMatch(perm.slice(at(perm, "async function refresh() {"), at(perm, "for (const id of DISPLAY_ORDER)")), /permissions\.request/, "never on load");
   const pop = read("extension/popup.js");
   assert.equal((pop.match(/permissions\.request\(/g) || []).length, 1, "one request in the popup");
   const click = pop.slice(at(pop, "document.getElementById('btn-allow-frame').addEventListener('click', async () => {"),

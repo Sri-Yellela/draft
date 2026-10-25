@@ -88,6 +88,23 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') void loadShortcuts();
 });
 
+// ⭐ T29: Settings → Saved answers — the web app's list (config.js's address: one place for the server).
+document.getElementById('btn-answers')?.addEventListener('click', () => {
+  chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app/saved-answers` }).catch(() => {});
+});
+
+// ⭐ T29: a deep link — options.html#permissions from the dock's gear or a popup's Settings — lands on that section:
+// it is scrolled to and its heading takes the focus (and :target marks it).
+function landOnSection() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  const section = id ? document.getElementById(id) : null;
+  if (!section || section.tagName !== 'SECTION') return;
+  section.scrollIntoView({ block: 'start' });
+  section.querySelector('h1')?.focus({ preventScroll: true });
+}
+addEventListener('hashchange', landOnSection);
+landOnSection();
+
 // ⭐ D63 (5): Sign in with LinkedIn, moved here from the popup — the same message the popup sent.
 document.getElementById('btn-linkedin')?.addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'OPEN_LINKEDIN_IMPORT' }).catch(() => {});

@@ -223,4 +223,6 @@ export function mount(doc, api) {
   return { boxes, removes, agree, ready, refresh };
 }
 
-if (typeof document !== 'undefined' && typeof chrome !== 'undefined') mount(document, chrome);
+/** ⭐ T29: the section as mounted on this page — Settings → Permissions redraws it when Chrome grants or removes a site. */
+export const autoSection = { current: null };
+if (typeof document !== 'undefined' && typeof chrome !== 'undefined') autoSection.current = mount(document, chrome);

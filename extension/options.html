@@ -49,17 +49,32 @@
     .details { font: 11px/1.45 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-word; max-height: 320px;
       overflow: auto; padding: 10px; margin-top: 10px; border: 1px solid var(--c-border); border-radius: 6px;
       background: var(--c-surface-2); color: var(--c-ink); }
+    /* ⭐ T29 · Settings → Permissions: one row per site, ONE switch (a real checkbox, labelled). */
+    .perm-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 6px 0; }
+    .switch { display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 700; margin: 0; cursor: pointer; }
+    .switch input { width: 16px; height: 16px; accent-color: var(--c-accent); }
+    .perm-row .hint { margin: 0; min-height: 0; }
+    /* ⭐ T29 · a deep link (options.html#permissions — the dock's gear, a popup's Settings) lands on its section */
+    section:target > h1 { outline: 2px solid var(--c-accent-ink); outline-offset: 4px; border-radius: 4px; }
+    section > h1:focus { outline: none; }
+    section:target > h1:focus-visible { outline: 2px solid var(--c-accent-ink); }
   </style>
 </head>
 <body>
   <span class="mark" role="img" aria-label="draft"><span class="mark-slash"></span><span class="mark-word"></span></span>
-  <h1 class="logo-face">Keyboard shortcuts</h1>
-  <p class="subtitle">
-    Two shortcuts, one for each half of the job. Press the first on a job posting to capture it
-    into your job pool. Press the second on an application form you have already signed in to
-    reach, and the answers you prepared in Draft are filled in for you to review.
-    Draft never submits an application &mdash; you do.
-  </p>
+  <!-- ⭐ T29 (owner, 10-19): the ONE home for every setting — plain headings, one switch per setting, a one-line
+       description under each. The dock's gear and every popup's Settings link open a section by its id. -->
+  <section id="permissions" aria-labelledby="permissions-h">
+    <h1 class="logo-face" id="permissions-h" tabindex="-1">Permissions</h1>
+    <p class="subtitle">Where draft may read and fill. Chrome asks once, when you switch a site on.</p>
+    <div id="perm-rows"></div>
+    <p class="status" id="perm-status" role="status"></p>
+  </section>
+
+  <hr class="divider">
+  <section id="shortcuts" aria-labelledby="shortcuts-h">
+  <h1 class="logo-face" id="shortcuts-h" tabindex="-1">Keyboard shortcuts</h1>
+  <p class="subtitle">Capture a posting, or fill a form you have reached. draft never submits &mdash; you do.</p>
 
   <!-- Filled by options.js from the commands the manifest actually declares, so this list cannot
        fall behind the manifest the way a hand-written one did. -->
@@ -69,6 +84,14 @@
     <button class="btn btn-primary" id="btn-change">Change shortcuts&hellip;</button>
   </div>
   <p class="status" id="status"></p>
+  </section>
+
+  <hr class="divider">
+  <section id="answers" aria-labelledby="answers-h">
+    <h1 class="logo-face" id="answers-h" tabindex="-1">Saved answers</h1>
+    <p class="subtitle">The answers draft remembers for you &mdash; review, change or forget them in draft.</p>
+    <div class="btn-row"><button class="btn" id="btn-answers" type="button">Open saved answers</button></div>
+  </section>
 
   <hr class="divider">
   <!-- ⭐ D63 (5): moved here from the popup's link row — it is used once. -->
@@ -82,7 +105,7 @@
   <!-- ⭐ D97 · read, prepare, capture, fill — automatically, per site, ALL OFF until switched on here (options-auto.js).
        D64's automatic-capture switch is the Capture column. Nothing can be switched on before "I agree". -->
   <section id="auto-read" aria-labelledby="auto-read-h">
-    <h1 class="logo-face" id="auto-read-h">Read application pages automatically</h1>
+    <h1 class="logo-face" id="auto-read-h" tabindex="-1">Read application pages automatically</h1>
     <div class="disclosure" id="auto-disclosure">
       <h2 class="disclosure-title" id="auto-disclosure-title"></h2>
       <div id="auto-disclosure-list"></div>
@@ -114,7 +137,7 @@
 
   <!-- ⭐ T24 · the intent model's two settings — kept with your ACCOUNT on draft's server (no browser storage). -->
   <section id="intent" aria-labelledby="intent-h">
-    <h1 class="logo-face" id="intent-h">Draft and your résumé</h1>
+    <h1 class="logo-face" id="intent-h" tabindex="-1">Draft and your résumé</h1>
     <p class="hint">Kept with your draft account, so every browser you use the extension in follows them.</p>
     <fieldset class="intent-set">
       <legend>When I press Draft</legend>
@@ -133,7 +156,7 @@
 
   <!-- T6 (field report 10-14): why something failed, without a guess. Off unless ticked; nothing about it is remembered. -->
   <section id="details" aria-labelledby="details-h">
-    <h1 class="logo-face" id="details-h">Details for troubleshooting</h1>
+    <h1 class="logo-face" id="details-h" tabindex="-1">Details for troubleshooting</h1>
     <p class="hint">What draft answered for each job tab and each request &mdash; status codes and draft&rsquo;s own codes only.
       Never your token, your answers, a page&rsquo;s text or your résumé. Nothing leaves your browser unless you copy it.</p>
     <label class="check"><input type="checkbox" id="details-show"> Show details</label>
@@ -148,18 +171,12 @@
   </section>
 
   <hr class="divider">
-  <p class="note">
-    Shortcuts are set in Chrome's own shortcuts page, which is the only thing that can actually
-    rebind one &mdash; an extension cannot reassign its own keys. This page used to record a
-    custom combination itself, but that only worked while one of six job sites had focus, because
-    it was implemented by a script running on those pages. Neither shortcut works that way now:
-    each runs on whatever page you invoke it on, so the keys are Chrome's to own and they work
-    everywhere. If one reads &ldquo;Not set&rdquo; above, Chrome declined the default &mdash;
-    usually because another installed extension already claimed that combination &mdash; and
-    assigning any free key there fixes it.
-  </p>
+  <!-- Shortcuts are set on Chrome's own shortcuts page, the only thing that can rebind one; "Not set" means Chrome
+       declined the default (usually another extension owns the key) — options.js says so on that row. -->
 
+  <script src="config.js"></script>
   <script src="options.js"></script>
+  <script type="module" src="options-permissions.js"></script>
   <script type="module" src="options-auto.js"></script>
   <script type="module" src="options-details.js"></script>
   <script type="module" src="options-intent.js"></script>
