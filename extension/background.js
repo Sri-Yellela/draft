@@ -20,7 +20,8 @@ import { handlers as RESUME_PANEL_HANDLERS, configureResumePanel } from './resum
 // D99 J11: the board hands a job to the extension (boardBridge.js, the one content script, on draft's origin only).
 import { handlers as BOARD_OPEN_HANDLERS, configureBoardOpen } from './boardOpen.js';
 // ⭐ T24: the intent model — the Draft button drafts (the board's Draft) and queues the résumé; the dock says the path.
-import { handlers as INTENT_HANDLERS, configureIntent, showPath } from './intent.js';
+import { handlers as INTENT_HANDLERS, configureIntent, showPath, runDraft } from './intent.js';
+import { toolbarPress, renderRelay, fillRelay, dockStateInPage, collapseDockInPage } from './toolbarPress.js';
 import { extractJobPayload, showCaptureToast } from './extractor.js';
 import { lookupBoardJob } from './boardJob.js';
 // ⭐ BINDING FIRST (owner 10-15): every press on a page draft has not seen identifies the page and binds the tab first.
@@ -460,7 +461,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'DOCK_FILL') {
     if (message.trigger !== 'click' || sender?.frameId !== 0 || !sender?.tab?.id) { sendResponse({ ok: false }); return true; }
     handleGatedHandoff(sender.tab)
-      .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null }))
+      // ⭐ T31: the reason travels — a reason the fill's own popup says (fillRelay) is not said twice by the dock
+      .then(r => sendResponse({ ok: !!r?.ok, message: r?.message || null, reason: r?.reason || null }))
       .catch(() => sendResponse({ ok: false, message: 'Could not fill this page.' }));
     return true;
   }
@@ -619,6 +621,9 @@ async function handleGatedHandoff(onTab = null) {
 }
 
 async function reportHandoff(tab, result) {
+  // ⭐ T31: what this fill needs said that only a popup can carry (a frame to allow; a form to report) — on the page
+  const relay = fillRelay(result);
+  if (relay.length && tab?.id) void overlayTheme().then(theme => drawInDock(tab.id, renderRelay, [relay, theme])).catch(() => null);
   const badge = result.ok ? { text: String(result.filled?.length ?? 0), color: C_LIGHT.SUCCESS }
                           : { text: '!', color: C_LIGHT.DANGER };
   try {
@@ -845,8 +850,13 @@ async function saveLinkToDraft(linkUrl, tab) {
 // can widen what is sent — buildFormReport() emits only host, labels, fieldCount and the version.
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type !== 'REPORT_FORM') return false;
-  (async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => reportForm(tab, msg.phase))
+    .then(sendResponse, () => sendResponse({ ok: false, message: 'Could not send the report.' }));
+  return true;
+});
+/** ⭐ T31: the report's two steps on a tab — `preview` (what WOULD be sent) and `send` — for any press that asks. */
+async function reportForm(tab, phase) {
+  {
     const host = reportHostOf(tab?.url);
     if (!tab?.id || !host) return { ok: false, message: 'Open the application form you want to report.' };
     let collected;
@@ -858,7 +868,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     }
     const report = buildFormReport({ host, collected, version: chrome.runtime.getManifest?.().version });
     if (!report.labels.length) return { ok: false, message: 'No form fields were found on this page.' };
-    if (msg.phase !== 'send') return { ok: true, preview: true, host: report.host, labelCount: report.labels.length };
+    if (phase !== 'send') return { ok: true, preview: true, host: report.host, labelCount: report.labels.length };
     const res = await authedFetch(RESUME_MASTER_URL, '/api/form-reports', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(report),
     }).catch(() => null);
@@ -866,7 +876,63 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     const body = await res.json().catch(() => ({}));
     if (!res.ok) return { ok: false, message: body.message || 'Could not send the report.' };
     return { ok: true, sent: true, host: report.host, labelCount: report.labels.length };
-  })().then(sendResponse, () => sendResponse({ ok: false, message: 'Could not send the report.' }));
+  }
+}
+
+// ── ⭐ T31 (owner, 10-25) · THE TOOLBAR ICON — the dock's toggle, and what this page needs said (extension/toolbarPress.js)
+/** The press on a tab: the browser work toolbarPress needs, handed in. */
+function pressToolbar(tab) {
+  const inTop = (func, args = []) => chrome.scripting.executeScript({ target: { tabId: tab.id, frameIds: [0] }, func, args }).then(([r]) => r?.result ?? null);
+  return toolbarPress(tab, {
+    state: () => inTop(dockStateInPage),
+    collapse: () => inTop(collapseDockInPage),
+    openDock: () => openDock(tab),
+    identity: () => getIdentity(RESUME_MASTER_URL),
+    context: () => popupContext(tab),
+    relay: async (_t, specs) => drawInDock(tab.id, renderRelay, [specs, await overlayTheme()]),
+    openBoard: () => chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app` }),
+  });
+}
+// THE LISTENER FIRING IS THE PERMISSION: a toolbar press is a user gesture, and it grants activeTab for the tab — the
+// same grant the toolbar popup's open used to give. (It fires only while the manifest declares no default_popup.)
+chrome.action.onClicked.addListener((tab) => { void pressToolbar(tab).catch(() => null); });
+
+/**
+ * ⭐ T31 · DOCK_ACT — a button on one of the dock's popups (toolbarPress.js renderRelay). ⛔ The person's own click, in a
+ * web page's TOP frame (where the dock is) — and the press acts on THAT tab, never on whichever tab is active.
+ * → { ok, say } (a sentence for a toast) or { ok, next } (the next question).
+ */
+const DOCK_ACTS = Object.freeze({
+  capture: async (tab) => { const r = await captureActiveTab(tab); return { ok: !!r?.success, say: null }; },   // the capture says its own outcome on the page
+  draft: async (tab) => { const r = await runDraft(tab, { control: 'draft' }); return { ok: !!r?.ok, say: r?.asked ? null : r?.message || null }; },
+  fill: async (tab) => { const r = await handleGatedHandoff(tab); return { ok: !!r?.ok, say: r?.ok ? null : r?.message || 'Could not fill this page.' }; },
+  'sign-in': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/login` }); return { ok: true, say: null }; },
+  // owner 10-23: a permission is requested on the settings page — Allow opens it at Permissions, where one click asks Chrome
+  'allow-site': async () => { await chrome.tabs.create({ url: chrome.runtime.getURL('options.html#permissions') }); return { ok: true, say: null }; },
+  report: async (tab) => {
+    const r = await reportForm(tab, 'preview');
+    if (!r?.ok) return { ok: false, say: r?.message || 'Could not read this form.' };
+    return { ok: true, next: { id: 'draft-relay', kind: 'question', icon: 'info',
+      text: `Send draft ${r.host}'s name and this form's ${r.labelCount} question label(s)? Never your answers.`,
+      actions: [{ id: 'report-send', label: 'Send the report', word: 'Send', primary: true }] } };
+  },
+  'report-send': async (tab) => {
+    const r = await reportForm(tab, 'send');
+    return { ok: !!r?.ok, say: r?.ok ? `Reported — thank you. draft will look at ${r.host}'s form.` : r?.message || 'Could not send the report.' };
+  },
+});
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.type !== 'DOCK_ACT') return false;
+  const act = DOCK_ACTS[msg.act];
+  if (!act || msg.trigger !== 'click' || sender?.frameId !== 0 || !sender?.tab?.id) { sendResponse({ ok: false }); return true; }
+  act(sender.tab).then(r => sendResponse(r || { ok: false }), () => sendResponse({ ok: false, say: 'Something went wrong — try again.' }));
+  return true;
+});
+// The walks press the toolbar the only way a test can: by message, ⛔ from the extension's own pages only.
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.type !== 'TOOLBAR_PRESS') return false;
+  if (sender?.id !== chrome.runtime.id || !String(sender?.url || '').startsWith(chrome.runtime.getURL(''))) { sendResponse({ ok: false }); return true; }
+  chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => pressToolbar(tab)).then(sendResponse, () => sendResponse({ ok: false }));
   return true;
 });
 

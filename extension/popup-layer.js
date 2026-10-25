@@ -26,6 +26,8 @@
   if (globalThis.__draftPopups?.version === VERSION) return;
 
   const TOAST_MS = 3500;
+  /** News that has waited this long behind another popup is stale: dropped, never played late. */
+  const STALE_MS = 15000;
   const isTop = () => { try { return window.top === window; } catch { return false; } };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const varsOf = (pal) => Object.entries(pal || {}).map(([k, v]) => `--c-${k.toLowerCase().replace(/_/g, '-')}: ${v};`).join(' ');
@@ -173,7 +175,7 @@
     while (!current && queue.length) {
       const next = queue.shift();
       // ⭐ audit 10-25: news that waited longer than it would have been shown is stale — it is dropped, not played late
-      if (next.spec.kind !== 'question' && Date.now() - next.queuedAt > (next.spec.ms || TOAST_MS)) { next.resolve({ action: 'expired', trusted: false }); continue; }
+      if (next.spec.kind !== 'question' && Date.now() - next.queuedAt > Math.max(next.spec.ms || TOAST_MS, next.spec.staleMs ?? STALE_MS)) { next.resolve({ action: 'expired', trusted: false }); continue; }
       current = next;
       draw(current);
     }
