@@ -367,9 +367,10 @@ In the order the developer dashboard asks. ⛔ The owner pastes, ticks and uploa
 ⚠ = the dashboard's exact wording or requirement was not verifiable from this repository.
 
 **Package**
-1. **Upload** `extension/submission/resume-master-extension-v1.5.0.zip` — 193,616 bytes, SHA-256
-   `0e7c6c4efa8eedc3967c17bd7ed3d3ff93efcfefff32bbf79b7f3011faad5bd2` (built 2026-10-08 19:33, byte-identical
-   to `extension/` per `test/extensionSubmission.test.js`). The version must be higher than anything in review.
+1. **Upload** `extension/submission/resume-master-extension-v1.5.2.zip` — 443,430 bytes, SHA-256
+   `d4a50579482a42d89747d53d34da95a537a0f7bbadab35e2d96e902c1bc2eb08` (built 2026-10-25 15:16 with T31, byte-identical
+   to `extension/` per `test/extensionSubmission.test.js`, measured 10-25). ⛔ Not the v1.5.0 zip this line named
+   until 10-25 — that is the pre-T31 build. The version must be higher than anything in review.
 
 **Store listing tab**
 2. **Description** — the summary is *Description* above (it is the manifest's). The detailed description is
@@ -377,10 +378,11 @@ In the order the developer dashboard asks. ⛔ The owner pastes, ticks and uploa
 3. **Category** — ⏸ the owner picks. Suggested: *Productivity → Workflow & Planning* (⚠ the list's current names).
 4. **Language** — English.
 5. **Store icon** — 128×128: `extension/icons/icon128.png` (uploaded separately from the zip; the package does not carry the listing icon).
-6. **Screenshots** — 1280×800 PNG: `docs/store-screenshots/1-review-overlay.png`, `2-popup.png`, `3-options.png`.
-   ✅ **Regenerated 2026-10-09** (`npm run store:screenshots`, ALL PASS, the synthetic Ada Lovelace fixture) — they show
-   the D63 popup, overlay and options page. ⛔ **T31 (10-25): `2-popup.png` shows the retired toolbar popup** —
-   replace it with the dock and its prompts before upload (the screenshot script is outside this file).
+6. **Screenshots** — 1280×800 PNG: `docs/store-screenshots/1-review-overlay.png`, `2-dock.png`, `3-options.png`.
+   ✅ **Regenerated 2026-10-25 for T31** (`npm run store:screenshots`, ALL PASS, the synthetic Ada Lovelace fixture) —
+   the review in the dock's Fill view over the gated form; **`2-dock.png` replaces `2-popup.png`**: the dock the
+   toolbar press opens on a posting, asking "Add this job to draft?" [Capture] [Draft]; and the settings page. ⛔ In
+   the dashboard, **delete the old popup screenshot** and upload all three.
 7. **Small promo tile** — 440×280: **none in the repository.** ⚠ Check whether the dashboard requires it.
 8. **Marquee promo tile** — 1400×560, optional: none.
 9. **Official URL / homepage** — `https://jobsviadraft.com`.
@@ -497,6 +499,6 @@ dashboard's **Test instructions** field with the steps below. ⛔ Never commit t
 - [ ] Paste: single purpose · every permission justification (`activeTab`, `contextMenus`, `scripting`,
       `storage`, the host permission, **the optional host permissions**) · the Privacy practices tab ·
       the four certifications, **including Limited Use**
-- [ ] Regenerate the store screenshots (`npm run store:screenshots`) — the popup, badge and overlay changed (D63);
-      ⛔ T31 (10-25): the toolbar popup is retired, so `2-popup.png` must become the dock
-- [ ] Upload `resume-master-extension-v1.5.0.zip` — the dashboard's version must be higher than any in review
+- [x] Regenerate the store screenshots (`npm run store:screenshots`) — ✅ 10-25 (T31): `2-popup.png` became
+      `2-dock.png`, the dock and its question; replace the popup image in the dashboard
+- [ ] Upload `resume-master-extension-v1.5.2.zip` — the dashboard's version must be higher than any in review
