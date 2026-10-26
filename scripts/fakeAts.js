@@ -539,6 +539,49 @@ function ashbySpaForm({ delayMs, answerable = false, autofillTrap = false, deadS
   </script>`);
 }
 
+// T31 · the store screenshot's POSTING — a job description page, not an application form. The
+// toolbar press asks "Add this job to draft?" only on a page the capture's own matcher reads as a
+// posting (routes/extensionJob.js), and /ashby-spa is an application form with no description:
+// the press there rightly asks nothing. A SYNTHETIC employer only (the screenshot harness refuses a
+// real one), published the way most boards publish one — a JSON-LD JobPosting — so the extractor
+// names the company the way it does on a live board, not from the fixture's host.
+function postingPage() {
+  const ld = {
+    '@context': 'https://schema.org', '@type': 'JobPosting',
+    title: 'Senior Backend Engineer',
+    hiringOrganization: { '@type': 'Organization', name: 'Northwind Systems' },
+    jobLocationType: 'TELECOMMUTE', applicantLocationRequirements: { '@type': 'Country', name: 'United States' },
+    employmentType: 'FULL_TIME', datePosted: '2026-10-20',
+    // the full description, as boards publish it — the extractor files a page as a posting only when
+    // it carries one (extractor.js: a title alone is not a job)
+    description: '<p>Northwind Systems moves freight for ten thousand small businesses. You will build and run the ' +
+      'services behind our logistics platform: the APIs our customers integrate with, the pipelines that price a ' +
+      'shipment, and the tooling the rest of engineering depends on.</p><ul><li>5+ years building production backend ' +
+      'systems.</li><li>Relational databases, queues and cloud infrastructure.</li></ul>',
+  };
+  return page('Senior Backend Engineer — Northwind Systems', `
+  <script type="application/ld+json">${JSON.stringify(ld)}</script>
+  <h1>Senior Backend Engineer</h1>
+  <p style="font-size:13px;color:#666">Northwind Systems &middot; Remote &mdash; United States &middot; Full-time</p>
+  <h2>About the role</h2>
+  <p>Northwind Systems moves freight for ten thousand small businesses. You will build and run the
+  services behind our logistics platform: the APIs our customers integrate with, the pipelines that
+  price a shipment, and the tooling the rest of engineering depends on.</p>
+  <h2>What you will do</h2>
+  <ul>
+    <li>Design, build and operate backend services in a modern, typed language.</li>
+    <li>Own a service end to end — its data model, its on-call and its roadmap.</li>
+    <li>Work with product and design on the features customers ask for most.</li>
+  </ul>
+  <h2>What we look for</h2>
+  <ul>
+    <li>5+ years building production backend systems.</li>
+    <li>Experience with relational databases, queues and cloud infrastructure.</li>
+    <li>Clear writing, and care for the people who use what you build.</li>
+  </ul>
+  <p><a href="/ashby-spa?delay=0&amp;presentation=1">Apply for this job</a></p>`);
+}
+
 // The confirmation the submit navigates to. Separate page, real navigation — so `url_changed` and
 // the confirmation text are both genuinely earned rather than asserted by the fixture.
 function ashbySpaThanks() {
@@ -1654,6 +1697,7 @@ const server = http.createServer(async (req, res) => {
       }));
     }
     if (path === '/ashby-spa/thanks') return send(200, ashbySpaThanks());
+    if (path === '/posting')          return send(200, postingPage());
     if (path === '/spa') {
       // ?delay=<ms> overrides the hydration delay; ?delay=0 renders synchronously.
       // ?variant=2 serves a CHANGED form, for the schema-reconciliation case.

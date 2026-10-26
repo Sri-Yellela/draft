@@ -15,7 +15,7 @@ import {
 import { at } from "../test-support/sourceAnchors.js";
 
 const SHOT_DIR = "docs/store-screenshots";
-const SHOTS = ["1-review-overlay", "2-popup", "3-options"];
+const SHOTS = ["1-review-overlay", "2-dock", "3-options"];
 
 // ── The PNG encoder ─────────────────────────────────────────────────────────────────────────────
 
@@ -127,7 +127,7 @@ test("?presentation=1 removes the trap CAPTIONS and keeps the traps THEMSELVES",
   assert.match(ats, /gatedForm\(\{ presentation: url\.searchParams\.get\('presentation'\) === '1' \}\)/);
 });
 
-test("the posting behind the popup drops the harness caption AND the real employer's brand", () => {
+test("the posting behind the dock drops the harness caption AND the real employer's brand", () => {
   const ats = fs.readFileSync("scripts/fakeAts.js", "utf8");
   const form = ats.slice(at(ats, "function ashbySpaForm("), at(ats, "function ashbySpaThanks("));
   assert.match(form, /presentation \? 'Senior Backend Engineer — Northwind Systems'/);
@@ -157,16 +157,17 @@ test("nothing is written until the image has been proved 1280x800, 24-bit and al
   assert.doesNotMatch(write, /check\(/, "a wrong-sized image must kill the run, not be tallied");
 });
 
-test("both capture paths go through the same gate", () => {
-  // The composited popup shot is built differently and must not be written differently.
+test("every capture goes through the same gate", () => {
+  // T31: the composited popup shot is retired; the dock is captured on the page, by shoot().
   assert.equal((harness.match(/fs\.writeFileSync\(file, png\)/g) || []).length, 1,
     "one write path only — a second is how one of the three ends up unvalidated");
-  assert.match(harness, /writeShot\('2-popup',/);
+  assert.match(harness, /shoot\(posting, '2-dock',/);
+  assert.doesNotMatch(harness, /popup\.html/, "the toolbar popup is retired (T31) — there is none to photograph");
 });
 
 test("the run is clean-slate, so a stale file cannot stand in for one that failed", () => {
   assert.match(harness, /fs\.rmSync\(SHOT_DIR, \{ recursive: true, force: true \}\)/);
-  assert.match(harness, /onDisk\.join\(','\) === '1-review-overlay\.png,2-popup\.png,3-options\.png'/);
+  assert.match(harness, /onDisk\.join\(','\) === '1-review-overlay\.png,2-dock\.png,3-options\.png'/);
 });
 
 test("captures are checked against the developer's REAL profile values", () => {

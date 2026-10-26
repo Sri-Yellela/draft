@@ -264,16 +264,18 @@ test("no harness declares a column the migration it applies will ADD", () => {
 });
 
 test("the collision detector sees a real collision", () => {
-  // Same reasoning as the positive control below: a guard that cannot fail is not a guard. g3 really
-  // does apply 080, so re-adding the column to a copy of its schema must be reported.
-  const g3 = fs.readFileSync("scripts/g3ReviewOverlay.mjs", "utf8");
-  const added = migrationAddedColumns(g3, "apply_run_jobs");
+  // Same reasoning as the positive control below: a guard that cannot fail is not a guard. g4 really
+  // does apply 080, so re-adding the column to a copy of its schema must be reported. (g3 was the
+  // sample until 10-25, when it moved to the full schema — scripts/migrations.js, as the walks do —
+  // after its hand-rolled one had fallen behind the routes.)
+  const g4 = fs.readFileSync("scripts/g4SchemaCapture.mjs", "utf8");
+  const added = migrationAddedColumns(g4, "apply_run_jobs");
   assert.ok(added.has("gate_review_json"),
-    "g3 must still be applying the migration that adds gate_review_json");
+    "g4 must still be applying the migration that adds gate_review_json");
   // Injected into the apply_run_jobs statement ITSELF, not the whole file — `scraped_jobs` also has
   // an `ats_score INTEGER` column and appears first, so a file-wide replace lands in the wrong table
   // and the synthetic break silently does nothing.
-  const stmt = createStatement(g3, "apply_run_jobs");
+  const stmt = createStatement(g4, "apply_run_jobs");
   const reBroken = stmt.replace(/\bats_score INTEGER,/, "ats_score INTEGER, gate_review_json TEXT,");
   assert.notEqual(reBroken, stmt, "the injection point must exist");
   const declared = declaredColumns(reBroken);

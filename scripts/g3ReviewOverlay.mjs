@@ -43,9 +43,10 @@ import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 import { resolveBrowserExecutable } from '../services/browserLauncher.js';
 import applyRoutes from '../routes/apply.js';
+import { createExtensionJobRouter } from '../routes/extensionJob.js';
 import { MIGRATIONS } from './migrations.js';
 import { buildGatePacket } from '../services/applyGatePacket.js';
-import { toStorePng, readPngHeader, decodeToRgb, encodeRgbPng, compositeRgb } from '../services/pngTruecolor.js';
+import { toStorePng, readPngHeader } from '../services/pngTruecolor.js';
 import { CANONICAL_ORIGIN } from '../shared/brand.js';
 
 // extension/ is frozen for P4 (Web Store review), so its URL constant still names the LEGACY
@@ -143,9 +144,9 @@ async function shoot(page, name, note) {
 }
 
 /**
- * Validate an already-captured PNG buffer and write it. Split out of shoot() so the composited
- * popup shot goes through the SAME gate — a second write path is how one of the three ends up
- * unchecked.
+ * Validate an already-captured PNG buffer and write it. Split out of shoot() so any shot captured
+ * another way goes through the SAME gate — a second write path is how one of the three ends up
+ * unchecked. (Since T31 all three come through shoot(); the composited popup shot is retired.)
  */
 function writeShot(name, note, buffer) {
   const file = path.join(SHOT_DIR, `${name}.png`);
@@ -199,54 +200,23 @@ const check = (label, cond, extra = '') => {
 };
 
 function startApi() {
+  // The FULL schema (scripts/migrations.js), as the walks build it (test-support/extensionBrowser.mjs).
+  // ⛔ It was a hand-built partial schema until 10-25, and it rotted silently: the routes moved on
+  // (scraped_jobs.duplicate_of, the binding-first page lookup) and the harness stopped reaching the
+  // overlay at all. The full schema cannot fall behind the routes it serves.
   const db = new Database(':memory:');
+  for (const m of MIGRATIONS) db.exec(m.sql);
   db.exec(`
-    CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, plan_tier TEXT DEFAULT 'PRO');
-    CREATE TABLE user_profile (user_id INTEGER PRIMARY KEY, first_name TEXT, last_name TEXT,
-      full_name TEXT, email TEXT, phone TEXT, custom_answers TEXT NOT NULL DEFAULT '{}');
-    CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, title TEXT, company TEXT, url TEXT,
-      apply_url TEXT, source TEXT, location TEXT);
-    CREATE TABLE resumes (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, job_id TEXT,
-      apply_mode TEXT, ats_score INTEGER, html TEXT, updated_at INTEGER);
-    CREATE TABLE apply_runs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, mode TEXT,
-      approval_mode TEXT, tool_type TEXT, status TEXT, total_jobs INTEGER, held_count INTEGER DEFAULT 0,
-      submitted_count INTEGER DEFAULT 0, failed_count INTEGER DEFAULT 0,
-      created_at INTEGER DEFAULT (unixepoch()), started_at INTEGER, finished_at INTEGER, line_position INTEGER);
-    CREATE TABLE apply_run_jobs (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, user_id INTEGER,
-      approved_at INTEGER, approved_from_run_job_id INTEGER, job_id TEXT, status TEXT,
-      reason_code TEXT, reason_detail TEXT, started_at INTEGER, finished_at INTEGER,
-      created_at INTEGER DEFAULT (unixepoch()), answers_json TEXT, resume_artifact_id INTEGER,
-      resume_ats_score INTEGER, screenshot_path TEXT, submit_verified INTEGER, submit_evidence TEXT,
-    posting_title TEXT, posting_company TEXT, posting_url TEXT, posting_location TEXT,
-      base_ats_score INTEGER, base_ats_json TEXT,
-      open_questions_json TEXT,
-    -- gate_review_json is deliberately NOT declared here: migration 080_apply_gate_review, applied
-    -- a few lines below, ALTERs it in. Declaring it too makes that ALTER a duplicate-column error
-    -- and the harness dies before its first assertion.
-    ats_score INTEGER, attempt_count INTEGER NOT NULL DEFAULT 0, fields_discovered INTEGER, corrections_json TEXT, blanks_json TEXT, hidden_at INTEGER,
-    locked_at INTEGER, resume_file TEXT, resume_id INTEGER, UNIQUE(run_id, job_id));
-    CREATE TABLE apply_job_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, run_job_id INTEGER,
-      user_id INTEGER, job_id TEXT, level TEXT DEFAULT 'info', event TEXT, message TEXT,
-      details_json TEXT, created_at INTEGER DEFAULT (unixepoch()));
-    CREATE TABLE apply_idempotency (user_id INTEGER NOT NULL, idem_key TEXT NOT NULL, endpoint TEXT NOT NULL,
-      status_code INTEGER NOT NULL DEFAULT 200, response_json TEXT NOT NULL,
-      created_at INTEGER NOT NULL DEFAULT (unixepoch()), PRIMARY KEY (user_id, idem_key));
-    CREATE TABLE job_applications (user_id INTEGER, job_id TEXT, company TEXT, role TEXT, job_url TEXT,
-      source TEXT, location TEXT, apply_mode TEXT, resume_file TEXT, applied_at INTEGER, notes TEXT,
-      auto_status TEXT, UNIQUE(user_id, job_id));
-    CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER DEFAULT (unixepoch()));
-    INSERT INTO users (id, username) VALUES (1, 'ada');
-    INSERT INTO scraped_jobs (job_id, title, company, url, apply_url, source)
-      VALUES ('g3job', 'Senior Engineer', 'GatedCo', '${PORTAL}/gated', '${PORTAL}/gated', 'ashby');
-    INSERT INTO resumes (user_id, job_id, apply_mode, ats_score, html, updated_at)
-      VALUES (1, 'g3job', 'TAILORED', 80, '<html><body>resume</body></html>', unixepoch());
+    INSERT INTO users (id, username, password_hash, plan_tier) VALUES (1, 'ada', 'x', 'PRO');
+    INSERT INTO user_profile (user_id) VALUES (1);
+    INSERT INTO scraped_jobs (job_id, title, company, url, apply_url, source, search_query, _hash, discovered_at)
+      VALUES ('g3job', 'Senior Engineer', 'GatedCo', '${PORTAL}/gated', '${PORTAL}/gated/form', 'ashby', 't', 'g3', unixepoch());
+    INSERT INTO resumes (user_id, job_id, company, role, apply_mode, ats_score, html, updated_at)
+      VALUES (1, 'g3job', 'GatedCo', 'Senior Engineer', 'TAILORED', 80, '<html><body>resume</body></html>', unixepoch());
     INSERT INTO apply_runs (id, user_id, mode, status, total_jobs) VALUES (1, 1, 'auto', 'completed', 1);
     INSERT INTO apply_run_jobs (id, run_id, user_id, job_id, status, reason_code, resume_artifact_id)
       VALUES (1, 1, 1, 'g3job', 'held_gate', 'login_required', 1);
   `);
-  for (const id of ['079_apply_gate_packets', '080_apply_gate_review']) {
-    db.exec(MIGRATIONS.find(m => m.id === id).sql);
-  }
 
   const app = express();
   app.use(express.json());
@@ -284,6 +254,13 @@ function startApi() {
   // ran, and a stub server that answers 404 is indistinguishable to the extension from a user who
   // has not signed in.
   app.get('/api/auth/extension-token', (_req, res) => res.json({ token: 'g3-harness-token' }));
+  // ⭐ BINDING FIRST (10-15): every press identifies the page before anything is filled
+  // (extension/identify.js → POST /api/extension/page); without an answer the handoff stops at
+  // "draft couldn't be reached". The REAL route, mounted as the walks mount it: the gated form
+  // resolves to g3job on the board, and the store shot's /posting to one draft does not hold.
+  const identifyRoute = createExtensionJobRouter({ db, requireAuth: (q, r, n) => n(), isExtension: () => true,
+    scoreFor: () => null, scoreText: () => null, hasBaseResume: () => false });
+  app.use((req, res, next) => (req.method === 'POST' && req.path === '/api/extension/page' ? identifyRoute(req, res, next) : next()));
   applyRoutes(app, db, (q, r, n) => n(), () => ({ field_map: {}, handler_map: {}, custom_answers: {} }),
     async () => ({ error: 'not_needed' }), async () => fs.readFileSync(RESUME_PDF), async () => ({}));
   return new Promise(resolve => {
@@ -506,63 +483,80 @@ async function main() {
     }
 
     // ── 1. order ───────────────────────────────────────────────────────────
+    // ⭐ Since T21–T26 the review is the dock's Fill view: the panel lives in a shadow root (the
+    // dock's), grouped Needs you · Check · Filled, and an eligibility answer draft could only GUESS is
+    // never placed — it goes under Needs you. The harness reached into the old in-page overlay until
+    // 10-25 and had been failing at this step since the dock replaced it.
     console.log('\n── order is the feature ──');
-    const sections = await page.evaluate(() => {
-      const root = document.getElementById('rm-gate-review-overlay');
-      if (!root) return null;
-      return [...root.querySelectorAll('.rm-sec')].map(sec => ({
-        title: sec.querySelector('.rm-lbl')?.textContent?.trim()
-            || sec.querySelector('summary')?.textContent?.trim().replace(/\s+/g, ' ') || '(disclosure)',
-        fields: [...sec.querySelectorAll('.rm-row .rm-f')].map(f => f.textContent.trim()),
-      }));
+    const panel = () => page.evaluateHandle(() => {
+      const find = (root) => {
+        for (const el of root.querySelectorAll('*')) {
+          if (el.id === 'rm-gate-review-overlay' && el.querySelector('.rm-hd')) return el;
+          if (el.shadowRoot) { const f = find(el.shadowRoot); if (f) return f; }
+        }
+        return null;
+      };
+      return find(document);
     });
-    check('the overlay is on the page', !!sections, sections ? `${sections.length} sections` : 'absent');
+    const inPanel = async (fn, arg) => (await panel()).evaluate(fn, arg);
+    // A TRUSTED click (CDP input), as the person's own — the panel ignores a page script's click.
+    const press = async (selector) => {
+      const h = await (await panel()).evaluateHandle((p, s) => p?.querySelector(s) || null, selector);
+      const el = h.asElement();
+      if (!el) return false;
+      await el.click();
+      await sleep(400);
+      return true;
+    };
+    const sections = await inPanel(p => p ? [...p.querySelectorAll('.rm-sec')].map(sec => ({
+      group: sec.dataset.group,
+      open: sec.querySelector('[data-role="group"]')?.getAttribute('aria-expanded') === 'true',
+      fields: [...sec.querySelectorAll('.rm-row [data-role="label"]')].map(f => f.textContent.trim()),
+    })) : null);
+    check('the review is on the page (the dock\'s Fill view)', !!sections, sections ? `${sections.length} groups` : 'absent');
     console.log(JSON.stringify(sections, null, 1));
+    check('NEEDS YOU IS THE FIRST GROUP, above everything else', sections?.[0]?.group === 'need',
+      sections?.map(s => s.group).join(' / '));
+    check('the inverted eligibility question is under Needs you — draft does not guess it',
+      (sections?.[0]?.fields || []).some(f => /authorized to work without sponsorship/i.test(f)),
+      sections?.[0]?.fields.join(' | '));
+    check('the certain fields are collapsed behind their group',
+      sections?.some(s => s.group === 'ok' && s.open === false && s.fields.length >= 1),
+      sections?.map(s => `${s.group}:${s.open ? 'open' : 'closed'}`).join(' / '));
 
-    const firstSection = sections?.[0];
-    check('ELIGIBILITY IS THE FIRST SECTION, above everything else',
-      /eligibility/i.test(firstSection?.title || ''), firstSection?.title);
-    check('both eligibility answers are in it', (firstSection?.fields.length || 0) === 2,
-      firstSection?.fields.join(' | '));
-    check('the low-confidence band comes next',
-      /worth checking/i.test(sections?.[1]?.title || ''), sections?.[1]?.title);
-    check('the certain fields are collapsed behind a disclosure',
-      sections?.some(s => /resolved exactly/i.test(s.title)),
-      sections?.map(s => s.title).join(' / '));
-
-    // ── 2 & 3. a guess blocks ready until acknowledged ─────────────────────
+    // ── 2 & 3. a question that needs you blocks ready until you answer it ──
     console.log('\n── readiness ──');
-    const stateOf = () => page.evaluate(() =>
-      document.querySelector('#rm-gate-review-overlay [data-role="state"]')?.textContent?.trim());
+    const stateOf = () => inPanel(p => p?.querySelector('[data-role="state"]')?.textContent?.trim() || null);
     const before = await stateOf();
-    check('a guess blocks "ready"', /not ready/i.test(before || ''), before);
-    check('the blocking count is reported', /\d+\s+guess/i.test(before || ''), before);
-
-    const ackCount = await page.evaluate(() =>
-      document.querySelectorAll('#rm-gate-review-overlay [data-role="ack"]').length);
-    check('every guess has its own acknowledge control', ackCount >= 1, `${ackCount} acknowledge buttons`);
-
-    // Acknowledge them one at a time — approving in bulk is exactly what the overlay replaces.
-    for (let i = 0; i < ackCount; i++) {
-      await page.evaluate(() => {
-        const b = document.querySelector('#rm-gate-review-overlay [data-role="ack"]:not([disabled])');
-        b?.click();
-      });
-      await sleep(250);
+    check('a question that needs you blocks "ready"', /not ready/i.test(before || ''), before);
+    check('the blocking count is reported', /\d+\s+needs?\s+you/i.test(before || ''), before);
+    const needControls = await inPanel(p => p ? [...p.querySelectorAll('.rm-row[data-group="need"]')]
+      .map(r => [...r.querySelectorAll('button[data-role]')].map(b => b.dataset.role)) : []);
+    check('every row that needs you has its own controls', needControls.length >= 1 && needControls.every(c => c.length >= 1),
+      JSON.stringify(needControls));
+    // One row at a time, by the person — approving in bulk is exactly what the review replaces. The
+    // trap is optional, so the person leaves it blank (and the checkbox stays untouched — 5. below).
+    for (let i = 0; i < needControls.length; i++) {
+      if (!(await press('.rm-row[data-group="need"] [data-role="leave"]'))) break;
     }
     const after = await stateOf();
-    check('acknowledging every guess makes it ready', /^ready/i.test(after || ''), after);
+    check('answering every question that needs you makes it ready', /^ready/i.test(after || ''), after);
 
     // ── 4. an edit reaches the real input ──────────────────────────────────
     console.log('\n── editing ──');
-    await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('#rm-gate-review-overlay .rm-row')];
-      const row = rows.find(r => /first name/i.test(r.querySelector('.rm-f')?.textContent || ''));
-      row.querySelector('[data-role="edit"]').click();
-      const input = row.querySelector('[data-role="input"]');
-      input.value = 'Augusta';
-      row.querySelector('[data-role="edit"]').click();
+    await press('[data-role="group"][data-g="ok"][aria-expanded="false"]');
+    const firstNameRow = await inPanel(p => {
+      const rows = p ? [...p.querySelectorAll('.rm-row')] : [];
+      return rows.find(r => /^first name/i.test(r.querySelector('[data-role="label"]')?.textContent || ''))?.dataset.idx ?? null;
     });
+    const rowSel = `.rm-row[data-idx="${firstNameRow}"]`;
+    await press(`${rowSel} [data-role="edit"]`);
+    {
+      const h = await (await panel()).evaluateHandle((p, s) => p?.querySelector(s) || null, `${rowSel} [data-role="editor"] [data-role="input"]`);
+      const el = h.asElement();
+      if (el) { await el.click({ clickCount: 3 }); await el.type('Augusta'); }
+    }
+    await press(`${rowSel} [data-role="save"]`);
     await sleep(1200);
     const edited = await page.evaluate(() => {
       const el = document.querySelector('[name="first_name"]');
@@ -597,7 +591,7 @@ async function main() {
     const review = row?.gate_review_json ? JSON.parse(row.gate_review_json) : null;
     check('the candidate\'s review is recorded against the application', !!review,
       review ? `ready=${review.ready} ack=${review.acknowledgedCount} edited=${review.editedCount}` : 'absent');
-    check('it records what was acknowledged', (review?.acknowledgedCount || 0) >= 1);
+    check('it records that the review reached ready', review?.ready === true);
     check('it records that a field was corrected', (review?.editedCount || 0) >= 1);
     check('it does NOT store the corrected VALUE, only that it changed',
       !JSON.stringify(review || {}).includes('Augusta'),
@@ -608,90 +602,51 @@ async function main() {
     // assertion has already run against this same extension build.
     if (SHOTS) {
       console.log('\n── store listing screenshots ──');
-      // The popup, ON a real posting. /ashby-spa is the measured shape of a live Ashby posting, so
-      // the tab behind the popup is a genuine application page rather than a mock-up. The popup is
-      // rendered from the extension's own popup.html by the extension itself.
-      const posting = await browser.newPage();
-      await posting.goto(`${POSTING_ORIGIN}/ashby-spa?delay=0&presentation=1`, { waitUntil: 'domcontentloaded' });
-      await sleep(800);
-
-      // ORDER MATTERS. popup.js asks the service worker for the ACTIVE TAB and only offers to
-      // capture when that tab holds a posting. So the popup tab is created blank, the POSTING is
-      // brought to the front, and only then is popup.html navigated to — so its init() sees the
-      // posting, exactly as the real popup does when opened from the toolbar over a job page.
-      // Screenshotting it while it is backgrounded is the price of that, and is what makes the
-      // image show the capture surface rather than "Open a job posting to capture it".
-      const popup = await browser.newPage();
-      await popup.emulateMediaFeatures(LIGHT);
-      await posting.bringToFront();
-      await sleep(300);
-      await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-      await sleep(1200);
-      // D23: the popup reads nothing until "Read this page" is pressed. The listing shows the
-      // companion, so the press happens here — while the POSTING is still the active tab, which is
-      // what the press reads.
-      await popup.evaluate(() => document.getElementById('btn-read-page')?.click());
-      await sleep(1500);
-
-      // ── The popup OVER the posting ──────────────────────────────────────────
+      // The dock, ON a posting. /posting is a job description page (a synthetic employer, published
+      // as a JSON-LD JobPosting, as most boards publish one) — the press asks about a page the
+      // capture's matcher reads as a posting, and /ashby-spa, an application form with no
+      // description, is rightly asked nothing (fakeAts.js postingPage).
       //
-      // Chrome cannot capture a toolbar popup together with the page beneath it — the popup is a
-      // separate top-level surface, and a page capture does not contain it. Photographing the
-      // popup alone produced a 244px panel on a 1280x800 field of white, which shows the popup and
-      // not what using it looks like. So the two REAL captures are placed in the relationship the
-      // user sees: the posting as served, and the popup as the extension rendered it having
-      // genuinely resolved that posting as the active tab. Neither half is mocked or redrawn.
-      // MEASURED AT A SMALL VIEWPORT, then applied. Measuring scrollWidth while the tab is still
-      // 1280 wide reports 1280 — the body stretches to the viewport — and the popup ends up
-      // photographed at Chrome's 800px clamp, four times its real width, covering the posting it
-      // is supposed to be sitting over. popup.html declares `width: 260px`, so the intrinsic size
-      // is only visible once the viewport is smaller than the content it should shrink to.
-      await popup.bringToFront();
-      await popup.setViewport({ width: 420, height: 720, deviceScaleFactor: 1 });
-      await sleep(300);
-      const popupBox = await popup.evaluate(() => {
-        const r = document.body.getBoundingClientRect();
-        const cs = getComputedStyle(document.body);
-        return {
-          w: Math.ceil(r.width + parseFloat(cs.marginLeft) + parseFloat(cs.marginRight)),
-          h: Math.ceil(r.height + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom)),
-        };
-      });
-      // Chrome clamps a toolbar popup to 800x600; the real one is nowhere near either bound.
-      const pw = Math.min(Math.max(popupBox.w, 240), 800);
-      const ph = Math.min(Math.max(popupBox.h, 160), 600);
-      // Chrome does not composite a backgrounded tab, so a resize-then-capture on one hangs in
-      // Page.captureScreenshot until the protocol times out — which is why the popup was brought
-      // to the front above, only to be photographed. init() had already run and resolved the
-      // posting; foregrounding does not re-run it, and the assertion below re-reads the popup after
-      // the move so a state that DID change would fail rather than be photographed.
-      await popup.setViewport({ width: pw, height: ph, deviceScaleFactor: 1 });
-      await sleep(500);
-
-      const popupText = await popup.evaluate(() => document.body?.innerText || '');
-      for (const v of REAL_VALUES) {
-        if (popupText.includes(v)) throw new Error(`2-popup: REAL personal data in the popup — ${JSON.stringify(v)}`);
-      }
-      // The popup only offers to capture when the service worker reports a posting in the active
-      // tab. If it is showing anything else, the image would claim a state the run did not reach.
-      if (!/Capture it/i.test(popupText)) {
-        throw new Error(`2-popup: the popup is not in its capture state — it reads ${JSON.stringify(popupText.slice(0, 120))}`);
-      }
-
-      const popupShot = decodeToRgb(Buffer.from(await popup.screenshot({ clip: { x: 0, y: 0, width: pw, height: ph } })));
-      await posting.bringToFront();
+      // T31 (10-25): the toolbar popup is retired — the toolbar icon toggles the dock on the page,
+      // and the press asks "Add this job to draft?" on a posting draft does not hold. So the shot is
+      // ONE real capture of the page, the dock and its question drawn by the extension itself;
+      // nothing is composited. The press is sent as TOOLBAR_PRESS from the extension's own page —
+      // the worker runs the same pressToolbar() the toolbar's onClicked does (walks/toolbarPress).
+      const posting = await browser.newPage();
+      await posting.emulateMediaFeatures(LIGHT);
       await posting.setViewport({ ...SHOT_SIZE, deviceScaleFactor: 1 });
-      await sleep(400);
-      const postingText = await posting.evaluate(() => document.body?.innerText || '');
-      for (const re of FORBIDDEN_IN_SHOTS) {
-        if (re.test(postingText)) throw new Error(`2-popup: a trap caption is visible on the posting — ${re}`);
+      await posting.goto(`${POSTING_ORIGIN}/posting`, { waitUntil: 'domcontentloaded' });
+      await sleep(800);
+      await posting.bringToFront();
+      await sleep(300);
+      const press = await control.evaluate((m) => chrome.runtime.sendMessage(m), { type: 'TOOLBAR_PRESS' });
+      if (press?.did !== 'opened') throw new Error(`2-dock: the toolbar press did not open the dock — ${JSON.stringify(press)}`);
+      const shadowText = (id) => posting.evaluate((id) => {
+        const host = document.getElementById(id);
+        return host ? (host.shadowRoot || host).textContent || '' : null;
+      }, id);
+      let asked = null;
+      for (let i = 0; i < 40 && !asked; i++) {
+        await sleep(250);
+        const t = await shadowText('draft-relay');
+        if (t && /Add this job to draft\?/.test(t)) asked = t;
       }
-      const base = decodeToRgb(Buffer.from(await posting.screenshot({ clip: { x: 0, y: 0, ...SHOT_SIZE } })));
-
-      // Top right, below where the toolbar would be — where Chrome actually anchors it.
-      const merged = compositeRgb(base, popupShot, SHOT_SIZE.width - pw - 28, 16);
-      writeShot('2-popup', 'the popup as the extension rendered it, over the posting it resolved',
-        encodeRgbPng(merged));
+      // The press only asks on a posting it resolved and draft does not hold. Anything else would be
+      // a picture of a state the run did not reach.
+      if (!asked) {
+        const onPage = await posting.evaluate(() => [...document.querySelectorAll('[id^="draft"],[id^="rm-"]')]
+          .map(e => `${e.id}: ${((e.shadowRoot || e).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120)}`));
+        throw new Error(`2-dock: the press did not ask "Add this job to draft?" — the press answered ${JSON.stringify(press)}; on the page: ${JSON.stringify(onPage)}`);
+      }
+      const dockText = await shadowText('rm-draft-dock');
+      if (dockText == null) throw new Error('2-dock: the dock is not on the page');
+      // shoot() reads body.innerText, which does not reach into a shadow root — so the dock's and
+      // the question's own text are checked here.
+      for (const v of REAL_VALUES) {
+        if (`${dockText}\n${asked}`.includes(v)) throw new Error(`2-dock: REAL personal data in the dock — ${JSON.stringify(v)}`);
+      }
+      await sleep(600);
+      await shoot(posting, '2-dock', 'the dock the toolbar press opened, asking about the posting it resolved');
 
       // BOTH shortcuts, with real keys in them (AI2 shot 3). options.js builds these rows from
       // chrome.commands.getAll(), and a command Chrome declined to bind renders as "Not set" —
@@ -720,7 +675,7 @@ async function main() {
       check('all three store screenshots were produced', shotCount === 3, `${shotCount} of 3`);
       const onDisk = fs.readdirSync(SHOT_DIR).filter(f => f.endsWith('.png')).sort();
       check('the directory holds exactly the three, and nothing stale',
-        onDisk.length === 3 && onDisk.join(',') === '1-review-overlay.png,2-popup.png,3-options.png',
+        onDisk.length === 3 && onDisk.join(',') === '1-review-overlay.png,2-dock.png,3-options.png',
         onDisk.join(', '));
       console.log('');
       for (const s of shotReport) {
