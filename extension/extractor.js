@@ -115,9 +115,15 @@ export function extractJobPayload() {
 
   function extractJobText() {
     const posting = extractJsonLdJobPosting();
-    if (posting?.description) return stripHtml(posting.description).slice(0, 12000);
+    const ld = posting?.description ? stripHtml(posting.description).slice(0, 12000) : '';
+    // ⭐ T31 (10-19 report): a JobPosting whose description is an SEO stub — Railway's careers pages publish
+    // "Apply for <role> at Railway. Remote (anywhere), full-time." — used to END the read here, and the `ok` gate
+    // below (> 120) then called a real posting "not a job". The stub wins only when it would pass that gate itself;
+    // otherwise the page's own text is read, and the longer of the two is the description.
+    if (ld.length > 120) return ld;
     const key = Object.keys(EXTRACTORS).find(k => window.location.hostname.includes(k));
-    return key ? EXTRACTORS[key]() : genericDescription();
+    const fromPage = (key ? EXTRACTORS[key]() : genericDescription()) || '';
+    return fromPage.length > ld.length ? fromPage : ld;
   }
 
   function extractSalary() {
