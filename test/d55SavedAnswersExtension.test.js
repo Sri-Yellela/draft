@@ -182,5 +182,6 @@ test("(f) wiring: every wizard step runs the placer; the page honours exact and 
   assert.match(gh, /setCombobox\(el, step\.value, step\.declineOption \? 'decline' : step\.exactOption \? 'exact' : null\)/);
   assert.match(gh, /mode === 'exact' \? texts\.findIndex\(t => same\(t, want\)\)/);
   // The probe reads a radio's group question.
-  assert.match(gh, /group: el\.type === 'radio' \?/);
+  // A99 (10-30): a native radio's or an ARIA role=radio's.
+  assert.match(gh, /group: \(ariaKind\(el\) \|\| el\.type\) === 'radio' \?/);
 });

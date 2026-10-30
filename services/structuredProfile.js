@@ -15,7 +15,7 @@
 //   4. Saves are checked by the claim guard's date rules: dates in order, no end date in the future.
 import { payloadResumeParse, parseBasis } from "./payloadResume.js";
 import { buildPacketEntries, parseDateRange } from "./applyGatePacket.js";
-import { companyKey, logoPath } from "./jobs/companyLogoStore.js";
+import { companyKey, logoPath, RETRY_NONE_DAYS } from "./jobs/companyLogoStore.js";
 
 // ── Application defaults: the groups, the keys, what each accepts ─────────────────────────────
 const YES_NO = ["yes", "no"];
@@ -200,6 +200,24 @@ function readSections(db, userId) {
     skills: db.prepare(`SELECT id, name, category, source FROM profile_skills WHERE user_id = ? ORDER BY position, id`).all(userId),
     links: db.prepare(`SELECT id, kind, url FROM profile_links WHERE user_id = ? ORDER BY position, id`).all(userId),
   };
+}
+
+/**
+ * D101 P1 · logos for the experience section. The store holds logos for companies that were ON THE BOARD; a past
+ * employer from the résumé usually is not, so it would only ever show its initial. These are the profile's companies
+ * with no logo yet (never looked up, or looked up and not found more than RETRY_NONE_DAYS ago) — the route looks them
+ * up in the background with the same first-party store (services/jobs/companyLogoStore.js), never blocking the read.
+ */
+export function profileLogosToResolve(db, userId, nowSec = Math.floor(Date.now() / 1000), limit = 10) {
+  const out = [];
+  for (const company of db.prepare(`SELECT DISTINCT company FROM profile_experience WHERE user_id = ?`).pluck().all(userId)) {
+    const key = companyKey(company);
+    if (!key) continue;
+    const row = db.prepare(`SELECT status, checked_at FROM company_logos WHERE company_key = ?`).get(key);
+    if (!row || (row.status !== "ok" && nowSec - (row.checked_at || 0) > RETRY_NONE_DAYS * 86400)) out.push(company);
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 /** The ten sections the header counts ("7 of 10 sections"), each done or not. */

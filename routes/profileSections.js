@@ -6,13 +6,21 @@
 // POST /api/profile/sections/use-resume      "Your résumé says X — use it?" — one press
 // PUT  /api/profile/defaults/:key            { value } — set one Application default; { value: null } clears it
 // services/structuredProfile.js holds the rules; these routes only expose them.
-import { readProfile, saveSection, useResumeSuggestion, setDefault, readDefaults } from "../services/structuredProfile.js";
+import { readProfile, saveSection, useResumeSuggestion, setDefault, readDefaults, profileLogosToResolve } from "../services/structuredProfile.js";
+import { resolveCaptureLogo } from "../services/jobs/companyLogoStore.js";
 
-export default function profileSectionRoutes(app, db, requireAuth) {
+/** @param opts.resolveLogo(db, { company }) — the logo lookup (injectable for tests); never awaited by a read. */
+export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo = resolveCaptureLogo } = {}) {
   const fail = (res, e) => res.status(e.status || 500).json({ error: e.code || "error", message: e.message });
+  // D101 P1: the experience section's logos — looked up in the background; the next read shows them.
+  const lookUpLogos = (userId) => {
+    for (const company of profileLogosToResolve(db, userId)) {
+      Promise.resolve().then(() => resolveLogo(db, { company })).catch(() => {});
+    }
+  };
 
   app.get("/api/profile/sections", requireAuth, (req, res) => {
-    try { res.json(readProfile(db, req.user.id)); } catch (e) { fail(res, e); }
+    try { res.json(readProfile(db, req.user.id)); lookUpLogos(req.user.id); } catch (e) { fail(res, e); }
   });
   app.post("/api/profile/sections/use-resume", requireAuth, (req, res) => {
     if (!useResumeSuggestion(db, req.user.id)) return res.status(409).json({ error: "nothing_to_use", message: "Your base résumé could not be read." });
