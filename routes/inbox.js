@@ -82,7 +82,9 @@ export default function inboxRoutes(app, db, requireAuth) {
   app.get("/api/inbox", requireAuth, (req, res) => {
     const category = req.query.category ? String(req.query.category) : null;
     if (category && !CATEGORIES.includes(category)) return res.status(400).json({ error: "bad_category" });
-    res.json({ categories: CATEGORIES, messages: listMessages(db, req.user.id, { category, applicationId: req.query.applicationId || null }) });
+    // `intake`: whether mail can arrive at all — the inbound hook needs RESEND_INBOUND_SECRET (D103's DNS + Resend
+    // steps, the owner's). The Table offers the forwarding address only when it can.
+    res.json({ intake: !!process.env.RESEND_INBOUND_SECRET, categories: CATEGORIES, messages: listMessages(db, req.user.id, { category, applicationId: req.query.applicationId || null }) });
   });
   app.post("/api/inbox/:id/category", requireAuth, (req, res) => {
     try { const r = refile(db, req.user.id, req.params.id, String(req.body?.category || "")); return r ? res.json(r) : res.status(404).json({ error: "not_found" }); }
