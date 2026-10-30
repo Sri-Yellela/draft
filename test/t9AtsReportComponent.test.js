@@ -235,7 +235,8 @@ test("⛔ T9 · the on-page panel draws the component — and adds only its own 
   const panel = read("extension/resumePanel.js");
   assert.match(panel, /files: \['atsReport\.js'\]/, "the panel injects the extension's own file — no remote code");
   // ⭐ T17: drawn in the dock's ATS tab (its own view, rm-ats-panel)
-  assert.match(panel, /ATS\.mountAtsReport\(cardHost, m\.report\.report, \{\}\)/);
+  // ⭐ D105 P5: with the report's Atlas links when the worker resolved any (atlasForReport) — the component draws them.
+  assert.match(panel, /ATS\.mountAtsReport\(cardHost, m\.report\.report, m\.report\.atlas \? \{ atlas: m\.report\.atlas \} : \{\}\)/);
   assert.doesNotMatch(stripJs(panel), /tier1_|competencies_|action_verbs_/);
   // The service worker keeps the report to the component's own named fields.
   assert.match(read("extension/boardJob.js"), /globalThis\.__draftAtsReport\?\.cleanReport\(ats\.report\)/);

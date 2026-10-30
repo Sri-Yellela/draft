@@ -103,6 +103,14 @@ export const ATS_REPORT_CSS = `
 }
 .ats-sec__sub { font-size: 11.5px; color: var(--c-pair-ink-faint); margin: -6px 0 12px; line-height: 1.5; }
 .ats-boxes { display: flex; flex-wrap: wrap; gap: 8px; }
+/* ⭐ D105 P5: a box and its Atlas link, kept together on one line. The link is a quiet word, not a second box. */
+.ats-boxwrap { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; }
+.ats-atlas {
+  font-family: var(--font-body); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--c-pair-kicker); text-decoration: underline; text-underline-offset: 2px; white-space: nowrap;
+}
+.ats-atlas:hover { color: var(--c-pair-ink); }
+.ats-atlas:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; border-radius: 3px; }
 /* A fold's summary IS its .gh; a caret says it opens. */
 .ats-fold > summary { cursor: pointer; list-style: none; }
 .ats-fold > summary::-webkit-details-marker { display: none; }

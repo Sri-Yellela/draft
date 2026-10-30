@@ -15,8 +15,11 @@
 //   · turns the element's events back into the callers' callbacks: `draft-ats-claim` → claims.onToggle(kind, term,
 //     claimed) (AG2's reversible call, made by ATSPanel), and `draft-ats-term` → D32's hover link (lib/pairLink.js).
 // Fetching, caching and claiming stay with the caller, as before (A52).
-import { createElement, useEffect, useLayoutEffect, useRef } from "react";
-import { reportBand, fromDeckReport, fromStandaloneResult, reportAsks, TERM_KINDS } from "../../../shared/atsReportModel.js";
+//   · ⭐ D105 P5: resolves the report's terms to their PUBLISHED Atlas pages (lib/atlasLinks.js, cached per page) and
+//     hands the element `atlas` { base: "/atlas/", slugs } — a term with no published page draws no link.
+import { createElement, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useAtlasSlugs } from "../lib/atlasLinks.js";
+import { reportBand, fromDeckReport, fromStandaloneResult, reportAsks, atlasTerms, TERM_KINDS } from "../../../shared/atsReportModel.js";
 import { defineAtsReportElement, ATS_REPORT_TAG, ATS_CLAIM_EVENT, ATS_TERM_EVENT } from "../../../shared/atsReportElement.js";
 import { ACTIVE_THEME, CUES } from "../themes/index.js";
 import { usePairLink } from "../lib/pairLink.js";
@@ -34,6 +37,12 @@ function AtsReportHost({ report, band = null, mode = "full", compact = false, cl
   // The latest callbacks, read at event time — so a re-render never re-binds listeners or redraws the card.
   const latest = useRef({ claims, link });
   latest.current = { claims, link };
+  // The skill / quality terms the full report draws as boxes (generic language never links).
+  const terms = useMemo(() => {
+    if (mode !== "full" || !report) return [];
+    try { return atlasTerms(report); } catch { return []; }
+  }, [report, mode]);
+  const slugs = useAtlasSlugs(terms);
 
   useIsoLayoutEffect(() => {
     const el = ref.current;
@@ -44,6 +53,7 @@ function AtsReportHost({ report, band = null, mode = "full", compact = false, cl
     el.claims = claims?.onToggle ? { pending: claims.pending, claimedLookup: claims.claimedLookup,
       lockedSkills: claims.lockedSkills, lockedVerbs: claims.lockedVerbs } : null;
     el.linkable = !!link;
+    el.atlas = Object.keys(slugs).length ? { base: "/atlas/", slugs } : null;
     el.render?.();   // draw now, so the first paint already holds the card (the element also batches on its own)
   });
 
