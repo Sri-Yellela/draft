@@ -182,3 +182,22 @@ test("D103 P5 · the worker's code door: only for the run it holds, only for an 
     assert.equal((await fetch(`${base}/api/worker/code/${remoteId}`, { headers: { ...h, "x-worker-id": "other" } })).status, 404, "another worker");
   } finally { server.close(); }
 });
+
+test("D103 P1 · deletion: one message or all, only the user's own; the retention sweep runs only with a period", async () => {
+  const { deleteMessages, sweepInbox } = await import("../services/inbox.js");
+  const { db } = freshDb();
+  const { address } = addressFor(db, 1);
+  const nowSec = Math.floor(Date.now() / 1000);
+  ingestMessage(db, { providerId: "d1", to: [address], from: "a@b.example", subject: "Hello", text: "x", receivedAt: nowSec - 400 * 86400 });
+  ingestMessage(db, { providerId: "d2", to: [address], from: "a@b.example", subject: "Hello", text: "y" });
+  const [old, fresh] = db.prepare("SELECT id FROM inbox_messages ORDER BY received_at").pluck().all();
+  assert.equal(deleteMessages(db, 2, fresh), 0, "another user's message is not theirs to delete");
+  assert.equal(sweepInbox(db, undefined), 0, "no period set → nothing swept");
+  assert.equal(sweepInbox(db, "0"), 0, "zero is no period");
+  assert.equal(sweepInbox(db, "abc"), 0, "nonsense is no period");
+  assert.equal(sweepInbox(db, "365"), 1, "the env variable's string form is the period");
+  assert.deepEqual(db.prepare("SELECT id FROM inbox_messages").pluck().all(), [fresh]);
+  assert.ok(old);
+  assert.equal(deleteMessages(db, 1, null), 1);
+  assert.equal(db.prepare("SELECT COUNT(*) FROM inbox_messages").pluck().get(), 0);
+});

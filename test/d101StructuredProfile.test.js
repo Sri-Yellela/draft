@@ -213,3 +213,19 @@ test("D101 · d101UnsetDefaultIsNotAnAnswer (fill side) — the payload's 0 defa
   // no user (a fixture) or a database before 173: the payload is untouched
   assert.equal(withApplicationDefaults(db, null, legacy), legacy);
 });
+
+test("D101 · d101AnswerSavedBack (through D96's acknowledgement): an unambiguous question's answer lands in Application defaults — never over the user's own", async () => {
+  const { acknowledgeAnswer } = await import("../services/answerLifecycle.js");
+  const { defaultKeyForQuestion } = await import("../services/structuredProfile.js");
+  assert.deepEqual(defaultKeyForQuestion("Are you legally authorized to work in the United States?", "Yes"), { key: "authorised_to_work", value: "yes" });
+  assert.equal(defaultKeyForQuestion("Will you now or in the future require visa sponsorship?", "No"), null, "two tenses in one answer: not mapped");
+  assert.deepEqual(defaultKeyForQuestion("Do you currently require sponsorship?", "No"), { key: "sponsorship_now", value: "no" });
+  assert.equal(defaultKeyForQuestion("Are you a US citizen?", "No"), null);
+  const db = freshDb();
+  acknowledgeAnswer(db, 1, { question: "Are you willing to relocate?", answer: "Yes", widgetKind: "select", options: ["Yes", "No"], source: "you_typed" });
+  assert.equal(readDefaults(db, 1).flatMap(g => g.items).find(i => i.key === "relocate").value, "yes");
+  assert.equal(readDefaults(db, 1).flatMap(g => g.items).find(i => i.key === "relocate").source, "needs_you");
+  setDefault(db, 1, "relocate", "no");
+  acknowledgeAnswer(db, 1, { question: "Are you willing to relocate?", answer: "Yes", widgetKind: "select", options: ["Yes", "No"], source: "you_typed" });
+  assert.equal(defaultFor(db, 1, "relocate"), "no", "the user's own Application default is never overwritten from a form");
+});

@@ -29,6 +29,7 @@
 // attestations, signatures — and password, payment and national-id fields (shared/answerKey.js).
 // Nothing here calls a model (D17). Every query is scoped to the caller's own user id.
 
+import { defaultKeyForQuestion, saveBackFromNeedsYou } from "./structuredProfile.js";
 import { eligibilityClassOf } from "./applyAutomation.js";
 import { readAnswerStore, expandCompany, companyKey, isTemplate } from "./customAnswers.js";
 import { isOptInQuestion, SAVED_ANSWER_LIMITS } from "../shared/savedAnswers.js";
@@ -137,6 +138,13 @@ export function acknowledgeAnswer(db, userId, { question, answer, widgetKind, op
         .run(userId, k.questionKey, k.widgetKind, k.optionsKey, q, a, source, categoryOf(q), now, now, now, now, jobId == null ? null : String(jobId));
     }
     if ((before != null && before !== a) || pendingChange) history(db, userId, k, q, "acknowledged", before, a, jobId, now);
+    // ⭐ D101 P2: an answer to one of Application defaults' own questions is saved back there too, so the fill reads it
+    // next time (services/structuredProfile.js — only unambiguous questions; never over an answer the user SET).
+    try {
+      const hit = defaultKeyForQuestion(q, a);
+      const set = hit?.value && db.prepare("SELECT source FROM application_defaults WHERE user_id = ? AND key = ?").get(userId, hit.key);
+      if (hit?.value && (!set || set.source !== "user")) saveBackFromNeedsYou(db, userId, hit.key, hit.value);
+    } catch { /* a database before migration 173 */ }
     // A label-only entry with a DIFFERENT value is the old answer: it stops being used (newest wins).
     const stale = legacy.filter(m => m.a !== a);
     if (stale.length) writeLegacy(db, userId, removeLegacy(store, stale));

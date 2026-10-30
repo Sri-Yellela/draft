@@ -137,7 +137,7 @@ export async function runAutoTick(db, { nowSec = Math.floor(Date.now() / 1000), 
     const ctx = userContext(db, u.id, nowSec, settings);
     if (ctx.remaining <= 0) { out.push({ userId: u.id, skipped: "daily_cap", used: ctx.used }); continue; }
     let candidates;
-    try { candidates = await fetchBoard(u.id, settings.filters); }
+    try { candidates = await fetchBoard(u.id, settings.filters, settings); }
     catch (e) { out.push({ userId: u.id, skipped: "board_failed", error: e.message }); continue; }
     // "Each run takes jobs posted since the last" — a job with a known posting time older than the last run is skipped.
     const fresh = u.auto_last_run_at == null ? candidates

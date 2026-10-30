@@ -237,3 +237,21 @@ export function gmailFilterXml(address) {
 </feed>
 `;
 }
+
+// ── D103 P1 · deletion and retention ─────────────────────────────────────────────────────────
+
+/** Delete one message (an id) or every message (null) of this user's. Returns how many. */
+export function deleteMessages(db, userId, messageId = null) {
+  if (messageId == null) return db.prepare(`DELETE FROM inbox_messages WHERE user_id = ?`).run(userId).changes;
+  return db.prepare(`DELETE FROM inbox_messages WHERE id = ? AND user_id = ?`).run(Number(messageId), userId).changes;
+}
+
+/**
+ * The retention sweep: messages older than `days` are deleted. ⚠ The PERIOD is the owner's (docs/privacy/
+ * PENDING_D100_D103.md §3) — `INBOX_RETENTION_DAYS`; unset or not a positive number = no sweep, and the policy promises none.
+ */
+export function sweepInbox(db, days, nowSec = now()) {
+  const d = Number(days);
+  if (!Number.isInteger(d) || d <= 0) return 0;
+  return db.prepare(`DELETE FROM inbox_messages WHERE received_at < ?`).run(nowSec - d * 86400).changes;
+}

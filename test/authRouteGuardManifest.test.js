@@ -369,6 +369,8 @@ const AUTHENTICATED = new Set([
   "POST /api/inbox/:id/category",
   "POST /api/inbox/:id/attach",
   "PUT /api/inbox/code-optins/:portal",
+  "DELETE /api/inbox/:id",
+  "DELETE /api/inbox",
   "GET /api/apply/review",
   "GET /api/apply/run-jobs/:runJobId/review",
   // AH5: the fill log — what this run put in the form and what it did not. On demand, so it is

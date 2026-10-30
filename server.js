@@ -27,6 +27,7 @@ import applyRoutes, { capturedAtsAtApply } from "./routes/apply.js";
 import applicationRecordRoutes from "./routes/applicationRecords.js";
 import pipelineRoutes from "./routes/pipeline.js";
 import inboxRoutes, { createInboundHookRouter } from "./routes/inbox.js";
+import { sweepInbox } from "./services/inbox.js";
 import profileSectionRoutes from "./routes/profileSections.js";
 import { withApplicationDefaults } from "./services/structuredProfile.js";
 import { userEligibilityInputs, hasEligibilityInputs, eligibilityForRow } from "./services/jobEligibility.js";
@@ -8984,7 +8985,11 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
     const ps       = Math.min(50, Math.max(1, parseInt(req.query.page_size || pageSize, 10) || 10));
 
     // Phase 6: board is profile-scoped via job_role_map join — profile required
-    const sessionActiveProfile = getOrRepairActiveProfile(req.user.id);
+    // D102 P4: FULL AUTO's scheduler may name WHICH of the user's own job profiles its run reads (Auto settings' profileId);
+    // anything else — or a profile that is not theirs — is the active one, as before.
+    const namedProfile = Number.isInteger(req.boardProfileId)
+      ? db.prepare("SELECT * FROM domain_profiles WHERE id = ? AND user_id = ?").get(req.boardProfileId, req.user.id) : null;
+    const sessionActiveProfile = namedProfile || getOrRepairActiveProfile(req.user.id);
     if (!sessionActiveProfile) {
       return boardReply(200, {
         success:           true,
@@ -12063,10 +12068,11 @@ applyLine.startLineTicker();
 // ⭐ D100 P7 / D102 P4 · FULL AUTO's scheduler (services/autoScheduler.js): every 5 minutes, each FULL AUTO user whose run
 // time has come gets ONE run of jobs from THEIR board — boardPageResponse, the board's own query, with the filters saved in
 // Auto settings — after their drafted jobs, the per-company rules and the daily cap. startAutoRun is startRun: the same
-// admission as every Draft. ⚠ Auto settings' profileId is not applied yet — the board reads the active profile.
+// admission as every Draft.
 const AUTO_TICK_MS = 5 * 60 * 1000;
-const autoFetchBoard = async (userId, filters) => {
-  const { status, body } = await boardPageResponse({ query: { pageSize: "50", ...filters }, user: { id: userId } });
+const autoFetchBoard = async (userId, filters, settings = {}) => {
+  const { status, body } = await boardPageResponse({ query: { pageSize: "50", ...filters }, user: { id: userId },
+    boardProfileId: Number.isInteger(settings.profileId) ? settings.profileId : undefined });
   if (status !== 200) throw new Error(body?.error || `board ${status}`);
   return (body.jobs || []).map(j => {
     const t = j.postedAt ? Date.parse(j.postedAt) : NaN;
@@ -12085,6 +12091,10 @@ applicationRecordRoutes(app, db, requireAuth, { capturedAtsAtApply });
 pipelineRoutes(app, db, requireAuth);
 // D103: the inbox — the forwarding address, the messages, re-filing, the worker's code opt-ins (services/inbox.js).
 inboxRoutes(app, db, requireAuth);
+// D103 P1: the inbox's retention sweep, daily — ONLY when the owner has set INBOX_RETENTION_DAYS (docs/privacy/
+// PENDING_D100_D103.md §3); unset, nothing is swept and the policy promises no period.
+setInterval(() => { try { const n = sweepInbox(db, process.env.INBOX_RETENTION_DAYS); if (n) console.log(`[inbox] retention swept ${n}`); } catch (e) { console.error(`[inbox] sweep: ${e.message}`); } },
+  24 * 3600 * 1000).unref();
 // D101: the profile in sections and Application defaults (services/structuredProfile.js).
 profileSectionRoutes(app, db, requireAuth);
 // D100 P2: the user's portals (sealed sessions, ciphertext only) and approving a remote Ready-to-approve run.
