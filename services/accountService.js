@@ -190,7 +190,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   "simple_apply_profiles", "profile_simple_apply_profiles", "dock_preferences", "daily_drafts", "user_integrations",
   "form_reports", "apply_origin_sightings", "saved_answers", "answer_history",
   // D112: the Gmail connection — the address, when, how many read; its sealed token is a secret column and never exported.
-  "gmail_connections"];
+  "gmail_connections",
+  // D109 (184): the Profile's projects, the evidence links the person supplied, and their proof page setting.
+  "profile_projects", "profile_evidence", "proof_pages"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -280,6 +282,9 @@ export const MERGE_PLAN = Object.freeze({
   // D112 (181): a merged person is one person — their Gmail connection keeps reading, for INTO; INTO's own connection
   // wins on a clash (one row per user), and FROM's then goes with FROM.
   gmail_connections: "keepInto",
+  // D109 (184): projects and evidence are a person's LISTS, like D101's — FROM's fill an empty INTO, never interleaved;
+  // the proof page is one row per user — INTO's wins on a clash, and FROM's (with its address) fills an INTO that has none.
+  profile_projects: "ifIntoEmpty", profile_evidence: "ifIntoEmpty", proof_pages: "keepInto",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

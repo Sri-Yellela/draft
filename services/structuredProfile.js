@@ -18,6 +18,8 @@ import { buildPacketEntries, parseDateRange } from "./applyGatePacket.js";
 import { companyKey, logoPath, RETRY_NONE_DAYS } from "./jobs/companyLogoStore.js";
 import { readAutoSettings } from "../shared/autoSettings.js";
 import { degreeKey } from "../shared/eligibility.js";
+import { evidenceMap, evidenceKey, rekeyEvidence } from "./proofLinks.js";
+import { markBacking } from "./resumeClaimGuard.js";
 
 // ── Application defaults: the groups, the keys, what each accepts ─────────────────────────────
 const YES_NO = ["yes", "no"];
@@ -191,16 +193,26 @@ function readSections(db, userId) {
     // No logo → null, and the client draws a SQUARE initial tile (D60: no pills, no capsule circles).
     return ok ? logoPath(key) : null;
   };
+  // D109 P1 / P2: each bullet's and project's evidence, and the claim guard's backed / unbacked mark on each bullet.
+  const ev = evidenceMap(db, userId);
+  const linksOf = (target, text) => ev.get(`${target}:${evidenceKey(text)}`) || [];
+  let projects = [];
+  try {
+    projects = db.prepare(`SELECT id, name, description, source FROM profile_projects WHERE user_id = ? ORDER BY position, id`).all(userId)
+      .map(r => { const evidence = linksOf("project", r.name); return { ...r, evidence, backed: evidence.length > 0 }; });
+  } catch { projects = []; }
   return {
     summary: sec?.summary ?? null,
     importedBasis: sec?.imported_basis ?? null,
     experience: db.prepare(`SELECT * FROM profile_experience WHERE user_id = ? ORDER BY position, id`).all(userId).map(r => ({
       id: r.id, company: r.company, title: r.title, location: r.location, start: r.start_ym, end: r.end_ym, current: !!r.is_current,
-      bullets: JSON.parse(r.bullets_json || "[]"), logo: logoOf(r.company), initial: r.company.trim().charAt(0).toUpperCase(), source: r.source })),
+      bullets: JSON.parse(r.bullets_json || "[]"), logo: logoOf(r.company), initial: r.company.trim().charAt(0).toUpperCase(), source: r.source }))
+      .map(x => ({ ...x, evidence: x.bullets.map(b => linksOf("bullet", b)), marks: markBacking(x.bullets, b => linksOf("bullet", b).length) })),
     education: db.prepare(`SELECT * FROM profile_education WHERE user_id = ? ORDER BY position, id`).all(userId).map(r => ({
       id: r.id, school: r.school, degree: r.degree, field: r.field, start: r.start_ym, end: r.end_ym, source: r.source })),
     skills: db.prepare(`SELECT id, name, category, source FROM profile_skills WHERE user_id = ? ORDER BY position, id`).all(userId),
     links: db.prepare(`SELECT id, kind, url FROM profile_links WHERE user_id = ? ORDER BY position, id`).all(userId),
+    projects,
   };
 }
 
@@ -389,7 +401,12 @@ export function saveSection(db, userId, section, body, nowSec = Math.floor(Date.
       checkDates(it, `Experience ${i + 1}`, nowSec);
       return it;
     });
+    // D109: the bullets before and after, flattened in order — an edited bullet keeps its evidence, a removed one loses it.
+    const slots = (company, bullets) => bullets.map((text, j) => ({ slot: `${String(company || "").trim().toLowerCase()}#${j}`, text }));
+    const before = db.prepare(`SELECT company, bullets_json FROM profile_experience WHERE user_id = ? ORDER BY position, id`).all(userId)
+      .flatMap(r => { let b = []; try { b = JSON.parse(r.bullets_json || "[]"); } catch { b = []; } return slots(r.company, b); });
     db.transaction(() => {
+      rekeyEvidence(db, userId, "bullet", before, items.flatMap(x => slots(x.company, x.bullets)));
       db.prepare(`DELETE FROM profile_experience WHERE user_id = ?`).run(userId);
       items.forEach((x, i) => db.prepare(`INSERT INTO profile_experience (user_id, company, title, location, start_ym, end_ym, is_current, bullets_json, position, source)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'user')`).run(userId, x.company, x.title, x.location, x.start, x.end, x.current ? 1 : 0, JSON.stringify(x.bullets), i));
@@ -427,6 +444,25 @@ export function saveSection(db, userId, section, body, nowSec = Math.floor(Date.
     db.transaction(() => {
       db.prepare(`DELETE FROM profile_links WHERE user_id = ?`).run(userId);
       items.forEach((x, i) => db.prepare(`INSERT INTO profile_links (user_id, kind, url, position) VALUES (?, ?, ?, ?)`).run(userId, x.kind, x.url, i));
+    })();
+    return;
+  }
+  if (section === "projects") {
+    // D109 P1: a project is a name and a short description; its evidence is linked separately (PUT /api/profile/evidence).
+    const items = list(body?.items).map((x, i) => {
+      const it = { name: str(x?.name, 120), description: str(x?.description, 1000) };
+      if (!it.name) throw fail(`Project ${i + 1}: the name is required.`);
+      return it;
+    });
+    const keys = items.map(x => evidenceKey(x.name));
+    if (new Set(keys).size !== keys.length) throw fail("Two projects have the same name — each needs its own.");
+    const before = db.prepare(`SELECT name FROM profile_projects WHERE user_id = ? ORDER BY position, id`).pluck().all(userId)
+      .map((text, i) => ({ slot: String(i), text }));
+    db.transaction(() => {
+      rekeyEvidence(db, userId, "project", before, items.map((x, i) => ({ slot: String(i), text: x.name })));
+      db.prepare(`DELETE FROM profile_projects WHERE user_id = ?`).run(userId);
+      items.forEach((x, i) => db.prepare(`INSERT INTO profile_projects (user_id, name, description, position, source) VALUES (?, ?, ?, ?, 'user')`)
+        .run(userId, x.name, x.description, i));
     })();
     return;
   }

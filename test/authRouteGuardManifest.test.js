@@ -366,6 +366,11 @@ const AUTHENTICATED = new Set([
   "PUT /api/profile/defaults/:key",
   // D112 d2: the Education section's Change override for the degree the forms are given.
   "PUT /api/profile/education-override",
+  // D109: evidence links on a bullet or project, and the proof page's own setting. (The public page itself is
+  // GET /p/:handle — not under /api; it shows only what the user turned on, and nothing private.)
+  "PUT /api/profile/evidence",
+  "GET /api/profile/proof-page",
+  "PUT /api/profile/proof-page",
   // D103: the inbox — the user's forwarding address, its filter file, the messages, re-filing, attaching, code opt-ins.
   // (The hook itself, POST /api/hooks/inbound, is a mounted router, Svix-signed — like /api/hooks/resend.)
   "GET /api/inbox/address",

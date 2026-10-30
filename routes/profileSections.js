@@ -5,11 +5,16 @@
 // PUT  /api/profile/sections/:section        summary · experience · education · skills · links — one drawer's Save
 // POST /api/profile/sections/use-resume      "Your résumé says X — use it?" — one press
 // PUT  /api/profile/defaults/:key            { value } — set one Application default; { value: null } clears it
+// PUT  /api/profile/evidence               D109 P1 · { target: 'bullet'|'project', claim, items: [{ kind, label, url }] } —
+//                                             one claim's evidence links (https only); [] removes them
+// GET  /api/profile/proof-page             D109 P3 · { enabled, handle } — the public page is OFF until turned on
+// PUT  /api/profile/proof-page             D109 P3 · { enabled, handle }
 // PUT  /api/profile/education-override       D112 d2 · { degree, field, school, year } — the Change override for a form
 //                                             that needs something else; all empty clears it (the section speaks again)
 // services/structuredProfile.js holds the rules; these routes only expose them.
 import { readProfile, saveSection, useResumeSuggestion, setDefault, readDefaults, profileLogosToResolve, setEducationOverride } from "../services/structuredProfile.js";
 import { resolveCaptureLogo } from "../services/jobs/companyLogoStore.js";
+import { setEvidence, readProofPage, setProofPage } from "../services/proofLinks.js";
 
 /** @param opts.resolveLogo(db, { company }) — the logo lookup (injectable for tests); never awaited by a read. */
 export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo = resolveCaptureLogo } = {}) {
@@ -31,6 +36,16 @@ export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo
   app.put("/api/profile/sections/:section", requireAuth, (req, res) => {
     try { saveSection(db, req.user.id, req.params.section, req.body || {}); res.json(readProfile(db, req.user.id)); }
     catch (e) { fail(res, e); }
+  });
+  app.put("/api/profile/evidence", requireAuth, (req, res) => {
+    try { setEvidence(db, req.user.id, req.body || {}); res.json(readProfile(db, req.user.id)); }
+    catch (e) { fail(res, e); }
+  });
+  app.get("/api/profile/proof-page", requireAuth, (req, res) => {
+    try { res.json(readProofPage(db, req.user.id)); } catch (e) { fail(res, e); }
+  });
+  app.put("/api/profile/proof-page", requireAuth, (req, res) => {
+    try { res.json(setProofPage(db, req.user.id, req.body || {})); } catch (e) { fail(res, e); }
   });
   app.put("/api/profile/education-override", requireAuth, (req, res) => {
     try { setEducationOverride(db, req.user.id, req.body || {}); res.json(readProfile(db, req.user.id)); }
