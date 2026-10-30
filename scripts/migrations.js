@@ -4722,4 +4722,14 @@ export const MIGRATIONS = [
         ALTER TABLE apply_run_jobs ADD COLUMN submitted_by TEXT;
       `,
     },
+    {
+      // ⭐ D102 P4 / D100 P7: Auto settings — the user's FULL AUTO standing instruction (shared/autoSettings.js: daily cap,
+      // run times + time zone, per-company limit, pause after an interview / offer, the board filters, the job profile) as
+      // JSON, NULL = the defaults; and when the scheduler last ran for the user (services/autoScheduler.js).
+      id: "170_auto_settings",
+      sql: `
+        ALTER TABLE users ADD COLUMN auto_settings TEXT;
+        ALTER TABLE users ADD COLUMN auto_last_run_at INTEGER;
+      `,
+    },
   ];
