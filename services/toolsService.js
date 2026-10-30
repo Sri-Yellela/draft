@@ -157,7 +157,9 @@ export const USER_GENERATION_MESSAGES = Object.freeze({
 /** A failure that means the model account needs FUNDING or a key — the admin's problem, never the user's. */
 export function isFundingFailure(e) {
   const text = `${e?.message ?? ""} ${e?.cause?.message ?? ""}`;
-  return /credit balance|billing|insufficient[_ ]quota|payment required|invalid[_ ]api[_ ]key|authentication[_ ]error/i.test(text);
+  // T19 (10-15): a key not scoped to a workspace is refused with permission / workspace words, not billing ones — that
+  // outage never raised the banner. Same words as extensionResume.js causeOf's model_key_rejected.
+  return /credit balance|billing|insufficient[_ ]quota|payment required|invalid[_ ]api[_ ]key|authentication[_ ]error|not scoped to a workspace|anthropic-workspace-id|invalid x-api-key|permission[_ ]error/i.test(text);
 }
 
 /**

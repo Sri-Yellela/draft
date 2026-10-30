@@ -92,6 +92,7 @@ import { generationCostSummary } from "./services/generationCost.js";
 import { drainInto as drainTrackingFailureSink } from "./services/trackingFailureSink.js";
 import { MODEL_SONNET, MODEL_HAIKU } from "./shared/anthropicModels.js";
 import { assertPinnedModelsLive } from "./services/modelCatalogue.js";
+import { workspaceHeaders, checkModelKey, keyCheckLine, KEY_CHECK_EVERY_MS } from "./services/modelKeyCheck.js";
 import { classifyGenerationError } from "./shared/failureAttribution.js";
 import { checkLimit } from "./services/limitEnforcer.js";
 import { DATA_CLASS } from "./services/modelCall.js";
@@ -5474,13 +5475,15 @@ function runCacheCleanup() {
 if (!ANTHROPIC_KEY) {
   console.error("[startup] WARNING: ANTHROPIC_KEY is not set — the model calls draft still makes itself (cover letters, domain-chip suggestions) will fail. Résumé generation does not use it: it runs in the tools service (A88).");
 }
-const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
+// ⭐ T19 hardening: ANTHROPIC_WORKSPACE_ID, when set, puts the `anthropic-workspace-id` header on every request
+// (services/modelKeyCheck.js) — a key that is not workspace-scoped is refused without it (10-15).
+const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY, defaultHeaders: workspaceHeaders(process.env) });
 // A97 (10-14): which key pays. ANTHROPIC_KEY_LABEL is the key's NAME in the Console ("draft-prod",
 // "local-dev"); the fp is 8 hex of the key's sha256 — the tools service logs the same pair, so two
 // processes sharing one key (the T4 follow-up found draft, the tools service and the local .env did)
 // show the same fp. Neither is secret; no part of the key is printed.
 if (ANTHROPIC_KEY) {
-  console.log(`[boot] model key: label=${process.env.ANTHROPIC_KEY_LABEL || "(unlabelled)"} fp=${crypto.createHash("sha256").update(ANTHROPIC_KEY).digest("hex").slice(0, 8)}`);
+  console.log(`[boot] model key: label=${process.env.ANTHROPIC_KEY_LABEL || "(unlabelled)"} fp=${crypto.createHash("sha256").update(ANTHROPIC_KEY).digest("hex").slice(0, 8)} workspace-header=${workspaceHeaders(process.env)["anthropic-workspace-id"] ? "on" : "off"}`);
 }
 // RESUME_MASTER_URL + RESUME_MASTER_TOKEN. Unset is a supported state: every route that needs the
 // service answers 503 with retryable:false and says which setting is missing (see the client).
@@ -11180,6 +11183,26 @@ function generateResumeForApply(userId, jobId, toolType) {
     .finally(() => pendingGenerationPromises.delete(key));
   pendingGenerationPromises.set(key, p);
   return p;
+}
+
+// ⭐ T19 hardening (G1, 10-30): IS THE KEY ACCEPTED — the cheapest authenticated call at boot and once a day
+// (services/modelKeyCheck.js). FAILED raises the same admin banner a funding failure does (where: "model_key_check");
+// the next OK clears only a banner this check raised. UNREACHABLE is the network's, not the key's: logged, no banner.
+// (Here, not beside fundingAlert(): A88's guard keeps the word `anthropic` out of coreGenerateResume's region.)
+async function runModelKeyCheck() {
+  if (!ANTHROPIC_KEY) return null;
+  const r = await checkModelKey(anthropic).catch((e) => ({ state: "unreachable", reason: String(e?.message || e).slice(0, 200) }));
+  (r.state === "failed" ? console.error : console.log)(`[boot] ${keyCheckLine(r)}`);
+  try {
+    if (r.state === "failed") {
+      setSetting(db, FUNDING_ALERT_KEY, JSON.stringify({ at: Math.floor(Date.now() / 1000), where: "model_key_check", code: "model_key_rejected", message: r.reason }));
+    } else if (r.state === "ok" && fundingAlert()?.where === "model_key_check") clearFundingAlert();
+  } catch { /* the banner is best effort; the log line above stands */ }
+  return r;
+}
+if (process.env.NODE_ENV !== "test") {
+  void runModelKeyCheck();
+  setInterval(() => { void runModelKeyCheck(); }, KEY_CHECK_EVERY_MS).unref();
 }
 
 // ── generateCoverLetterForApply ───────────────────────────────────────────────
