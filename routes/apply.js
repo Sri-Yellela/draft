@@ -1258,7 +1258,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         if (rj?.status === "held_gate") {
           const approvalMode = rj.approval_mode || "auto";
           const approvedValues = approvalMode === "approved"
-            ? Object.fromEntries(packet.answers.filter(a => a.label != null).map(a => [String(a.label), a.value == null ? null : String(a.value)]))
+            ? Object.fromEntries(packet.answers.filter(a => (a.field_id ?? a.name ?? a.label) != null)
+                .map(a => [String(a.field_id ?? a.name ?? a.label), a.value == null ? null : String(a.value)]))
             : null;
           const remoteId = enqueueRemoteRun(db, { userId, runJobId, packetId, applyUrl: packet.applyUrl, approvalMode, approvedValues });
           if (remoteId) logEvent(runId, runJobId, userId, jobId, "remote_run_queued",
@@ -5170,10 +5171,22 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     startRun(user.id, normalisePlanTier(user?.planTier), [String(jobId)], { mode: "auto" });
   // D100 P7: the FULL AUTO scheduler's way in (services/autoScheduler.js) — the same admission as every Draft;
   // startRun refuses approvalMode 'auto' unless the user's mode is FULL AUTO, and processRunJob checks again.
+  // D100 P2: the apply worker's inputs — it has no database, so draft hands it the SAME payload a local run fills from
+  // (buildAutofillPayload + the carried work history + the saved-answer records), and the résumé the run attaches.
+  const workerPayload = ({ userId, jobId, resumeArtifactId = null }) => {
+    const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || {};
+    const company = db.prepare("SELECT company FROM scraped_jobs WHERE job_id=?").pluck().get(String(jobId)) ?? null;
+    const entries = packetEntriesFor(userId, resumeArtifactId);
+    return withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, buildAutofillPayload(profile, "APPLY", company), entries));
+  };
+  const workerResumePdf = async ({ userId, resumeArtifactId }) => {
+    const artifact = db.prepare("SELECT html FROM resumes WHERE id=? AND user_id=?").get(resumeArtifactId, userId);
+    return artifact?.html ? htmlToPdf(artifact.html) : null;
+  };
   const startAutoRun = (userId, jobIds) => {
     const planTier = db.prepare("SELECT plan_tier FROM users WHERE id = ?").get(userId)?.plan_tier;
     return startRun(userId, normalisePlanTier(planTier), jobIds.map(String), { mode: "auto", approvalMode: "auto" });
   };
   return { recoverInterruptedRuns, startLineTicker, dispatchAllLines, prepareManualPacket, resumeForApply: generateResumeForApply,
-           draftForExtension, draftStateOf, runBar, startAutoRun };
+           draftForExtension, draftStateOf, runBar, startAutoRun, workerPayload, workerResumePdf };
 }

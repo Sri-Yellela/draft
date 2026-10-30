@@ -4,6 +4,7 @@
 //   GET  /api/worker/lease    Bearer APPLY_WORKER_TOKEN → 200 { run } · 204 nothing · 423 the kill switch
 //   POST /api/worker/report   HMAC-signed (crawler/lib/signature.js, the same scheme) → { ok, state }
 //   POST /api/worker/release  HMAC-signed { remoteId } — a worker shutting down gives its lease back
+//   GET  /api/worker/resume/:remoteId  Bearer → the résumé PDF for a run THIS worker holds the lease on
 // No APPLY_WORKER_TOKEN on the server = every worker door answers 503: the feature is off, not open.
 //
 // User (requireAuth):
@@ -41,7 +42,12 @@ export function workerClient({ env = process.env, fetchImpl = fetch } = {}) {
   };
 }
 
-export function createApplyWorkerRouter(db, { env = process.env, hooks = {} } = {}) {
+/**
+ * @param deps.payloadFor(run)  → the profile payload a local run fills from (routes/apply.js workerPayload) — the
+ *                               worker has no database, so the lease carries it; the SAME payload, one fill engine.
+ * @param deps.resumePdf(run)   → Buffer | null, the résumé the run attaches (routes/apply.js workerResumePdf).
+ */
+export function createApplyWorkerRouter(db, { env = process.env, hooks = {}, payloadFor = null, resumePdf = null } = {}) {
   const router = Router();
   const signedBody = (req, res) => {
     if (!token(env)) { res.status(503).json({ error: "apply_worker_not_configured" }); return null; }
@@ -52,13 +58,29 @@ export function createApplyWorkerRouter(db, { env = process.env, hooks = {} } = 
   };
   const workerId = (req) => String(req.headers["x-worker-id"] || "worker").slice(0, 64);
 
-  router.get("/lease", (req, res) => {
-    if (!token(env)) return res.status(503).json({ error: "apply_worker_not_configured" });
-    if (!bearerMatches(req.headers.authorization, token(env))) return res.status(401).json({ error: "unauthorized" });
+  const bearer = (req, res) => {
+    if (!token(env)) { res.status(503).json({ error: "apply_worker_not_configured" }); return false; }
+    if (!bearerMatches(req.headers.authorization, token(env))) { res.status(401).json({ error: "unauthorized" }); return false; }
+    return true;
+  };
+  router.get("/lease", async (req, res) => {
+    if (!bearer(req, res)) return;
     const r = leaseRemoteRun(db, { workerId: workerId(req), env });
     if (r.paused) return res.status(423).json({ paused: true });
     if (!r.run) return res.status(204).end();
-    res.json({ run: r.run });
+    let autofillData = null;
+    try { autofillData = payloadFor ? await payloadFor(r.run) : null; } catch { autofillData = null; }
+    res.json({ run: { ...r.run, autofillData } });
+  });
+  router.get("/resume/:remoteId", async (req, res) => {
+    if (!bearer(req, res)) return;
+    const run = db.prepare(`SELECT ar.id, ar.user_id, ar.worker_id, ar.state, p.resume_artifact_id FROM apply_remote_runs ar
+      LEFT JOIN apply_gate_packets p ON p.id = ar.packet_id WHERE ar.id = ?`).get(Number(req.params.remoteId));
+    if (!run || run.state !== "leased" || run.worker_id !== workerId(req)) return res.status(404).json({ error: "not_leased_by_you" });
+    const pdf = resumePdf && run.resume_artifact_id != null
+      ? await resumePdf({ userId: run.user_id, resumeArtifactId: run.resume_artifact_id }).catch(() => null) : null;
+    if (!pdf) return res.status(204).end();
+    res.type("application/pdf").send(pdf);
   });
   router.post("/report", express.text({ type: "application/json", limit: "512kb" }), (req, res) => {
     const report = signedBody(req, res);
