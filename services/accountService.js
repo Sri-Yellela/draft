@@ -196,7 +196,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   // D112 item 8 (183): the notification switches, and which browsers get pushes (their endpoint and keys scrubbed above).
   "notification_prefs", "push_subscriptions",
   // D109 (184): the Profile's projects, the evidence links the person supplied, and their proof page setting.
-  "profile_projects", "profile_evidence", "proof_pages"];
+  "profile_projects", "profile_evidence", "proof_pages",
+  // D110 (186): interview mode — the dates the user typed, their story bank, their debriefs and their own question bank.
+  "interview_prep", "interview_stories", "interview_debriefs", "interview_questions"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -291,6 +293,9 @@ export const MERGE_PLAN = Object.freeze({
   // D109 (184): projects and evidence are a person's LISTS, like D101's — FROM's fill an empty INTO, never interleaved;
   // the proof page is one row per user — INTO's wins on a clash, and FROM's (with its address) fills an INTO that has none.
   profile_projects: "ifIntoEmpty", profile_evidence: "ifIntoEmpty", proof_pages: "keepInto",
+  // D110 (186): a merged person keeps their stories, debriefs and question bank; INTO's typed date for an application wins,
+  // and a story seeded from the same bullet in both accounts is kept once (INTO's).
+  interview_prep: "keepInto", interview_stories: "keepInto", interview_debriefs: "move", interview_questions: "move",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

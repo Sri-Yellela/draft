@@ -71,6 +71,18 @@ export function addAlias(db, nodeId, alias, reviewedBy = "owner") {
   return row?.status === "confirmed" && row?.relation === "alias";
 }
 
+/**
+ * A person's terms: their profile's skills (D101 profile_skills) and each one's confirmed aliases. Read by the Atlas's
+ * `you` (routes/atlas.js) and by D110's interview prep (services/interviewPrep.js) — one reader, never stored.
+ */
+export function profileTerms(db, userId) {
+  let names = [];
+  try { names = db.prepare(`SELECT name FROM profile_skills WHERE user_id = ?`).pluck().all(userId); } catch { names = []; }
+  const terms = new Set();
+  for (const n of names) { const t = termOf(n); if (t) { terms.add(t); for (const a of aliasesOf(db, t)) terms.add(a); } }
+  return terms;
+}
+
 const visible = (published) => (published ? "AND n.status = 'published'" : "");
 
 /**
