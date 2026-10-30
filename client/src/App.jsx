@@ -19,6 +19,7 @@ import { AppScrollProvider } from "./contexts/AppScrollContext.jsx";
 import { JobBoardProvider, useJobBoard } from "./contexts/JobBoardContext.jsx";
 import { AutoApplyProvider, useAutoApply } from "./contexts/AutoApplyContext.jsx";
 import { AutoApplyPanel }        from "./panels/AutoApplyPanel.jsx";
+import { JobWorkspacePanel }     from "./panels/JobWorkspacePanel.jsx";
 import { DraftMark }             from "./components/DraftMark.jsx";
 import { ExtensionFirstRunPrompt } from "./components/ExtensionPrompt.jsx";
 import { ProfilePanel }          from "./panels/ProfilePanel.jsx";
@@ -338,7 +339,10 @@ function AppDashboard({ authUser, setAuthUser }) {
   const consolePath = `/app/${CONSOLE_ROUTE}`;
   const routeKey = location.pathname.replace(/^\/app\/?/, "") || "";
   // /app lands on TODAY (UI step 3d): the daily deck. The board keeps /app/jobs as "All jobs".
-  const activeTab = routeKey === CONSOLE_ROUTE || LEGACY_CONSOLE_ROUTES.has(routeKey)
+  // D102 P5 · /app/job/:applicationId — one application's page (JobWorkspacePanel), opened from Draft House and The Table.
+  const jobRoute = /^job\/(\d+)$/.exec(routeKey);
+  const activeTab = jobRoute ? "job"
+    : routeKey === CONSOLE_ROUTE || LEGACY_CONSOLE_ROUTES.has(routeKey)
     ? "console" : routeKey === "" ? "today" : routeKey;
   // D10 (10-03): the card-game family — DAILY DECK, FULL HOUSE, DRAFT, THE TABLE. Display strings
   // only: the ids and the /app/<id> routes are internal and stay (docs/BRAND.md). TopBar sets a two-word
@@ -456,7 +460,7 @@ function AppDashboard({ authUser, setAuthUser }) {
     // "Auto Apply" to appTabs was not enough for either of them: the tab rendered and did nothing
     // because handlePanelChange had never heard of it, and typing /app/auto-apply bounced straight
     // back to the board because THIS guard had not either. Two lists, both silent when wrong.
-    if (routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS.has(routeKey)) {
+    if (!jobRoute && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS.has(routeKey)) {
       navigate(consolePath, { replace:true });
     }
   }, [routeKey, consolePath, navigate, NAVIGABLE_TABS]);
@@ -592,6 +596,7 @@ function AppDashboard({ authUser, setAuthUser }) {
             )}
             {activeTab === "today"        && <DeckView canUseAPlusResume={canUseAPlusResumeHere}/>}
             {activeTab === "auto-apply"   && <AutoApplyPanel/>}
+            {activeTab === "job" && jobRoute && <JobWorkspacePanel applicationId={jobRoute[1]}/>}
             {activeTab === "database"     && <DatabasePanel user={authUser}/>}
             {activeTab === "integrations" && <IntegrationsPanel/>}
             {activeTab === "account"      && <AccountPanel onSignedOut={() => { setAuthContext(""); setAuthUser(null); }}/>}
