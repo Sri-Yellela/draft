@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import express from "express";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
@@ -228,4 +229,21 @@ test("D101 · d101AnswerSavedBack (through D96's acknowledgement): an unambiguou
   setDefault(db, 1, "relocate", "no");
   acknowledgeAnswer(db, 1, { question: "Are you willing to relocate?", answer: "Yes", widgetKind: "select", options: ["Yes", "No"], source: "you_typed" });
   assert.equal(defaultFor(db, 1, "relocate"), "no", "the user's own Application default is never overwritten from a form");
+});
+
+// UI slice 3 (A105 finding 1): the Profile page reads and writes the sections and Application defaults — before it,
+// nothing in the client called these routes, so a default could only be set by answering in Needs you.
+test("D101 UI · Profile shows the sections and Application defaults, and each change reaches the server", () => {
+  const ui = fs.readFileSync("client/src/components/ProfileSections.jsx", "utf8");
+  assert.match(ui, /api\("\/api\/profile\/sections"\)/);
+  assert.match(ui, /api\(`\/api\/profile\/sections\/\$\{section\}`, \{ method: "PUT"/);
+  assert.match(ui, /api\(`\/api\/profile\/defaults\/\$\{key\}`, \{ method: "PUT", body: JSON\.stringify\(\{ value \}\) \}\)/);
+  assert.match(ui, /api\("\/api\/profile\/sections\/use-resume", \{ method: "POST" \}\)/, "a newer résumé is OFFERED, applied on the press");
+  // Experience: the logo, or a square initial tile (D60).
+  assert.match(ui, /function LogoTile\(\{ logo, initial, theme \}\)/);
+  assert.match(ui, /borderRadius: 6/);
+  // The old selects that wrote ignored columns are gone from Profile.
+  const panel = fs.readFileSync("client/src/panels/ProfilePanel.jsx", "utf8");
+  assert.doesNotMatch(panel, /set\("work_auth"|set\("sponsorship_need"|set\("has_clearance"|set\("gender"/);
+  assert.match(panel, /set\("visa_type"/, "visa type is not a default and stays");
 });
