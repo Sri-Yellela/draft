@@ -153,3 +153,25 @@ test("display name, export without secrets, and the picture is judged by its byt
   assert.equal(code(() => sniffImage(Buffer.from("<svg onload=alert(1)>"))), "bad_type");
   assert.equal(code(() => sniffImage(Buffer.alloc(3 * 1024 * 1024, 0xff))), "too_large");
 });
+
+// 43q (10-30): migrations 171–174 added 13 user tables without a merge plan, so every merge refused (500
+// merge_plan_incomplete). Each now has one; a person's LISTS never interleave, and credentials never move.
+test("merge: a profile list fills an empty INTO and never interleaves; portal credentials go; inbox mail moves", () => {
+  const db = freshDb();
+  twoAccounts(db);
+  const exp = (u, c) => db.prepare("INSERT INTO profile_experience (user_id, company, position, source) VALUES (?,?,0,'resume')").run(u, c);
+  exp(10, "Northwind"); exp(10, "Contoso");                 // FROM (10) has a list, INTO (3) has none → it moves
+  db.prepare("INSERT INTO profile_skills (user_id, name, position, source) VALUES (3, 'Go', 0, 'user'), (10, 'Rust', 0, 'resume')").run();
+  db.prepare("INSERT INTO application_defaults (user_id, key, value, source) VALUES (3, 'relocate', 'no', 'user'), (10, 'relocate', 'yes', 'user'), (10, 'start_date', '2026-12-01', 'user')").run();
+  db.prepare("INSERT INTO portal_accounts (user_id, portal_family, origin_host, consent_at) VALUES (10, 'amazon', 'amazon.jobs', unixepoch())").run();
+  db.prepare("INSERT INTO inbox_addresses (user_id, token) VALUES (10, 'dmergetest01')").run();
+  db.prepare("INSERT INTO inbox_messages (user_id, address_id, from_addr, subject, received_at, category, body_text) VALUES (10, 1, 'a@b.example', 'Hi', unixepoch(), 'other', 'x')").run();
+  mergeAccounts(db, 3, 10);
+  const q = (sql, ...a) => db.prepare(sql).pluck().all(...a);
+  assert.deepEqual(q("SELECT company FROM profile_experience WHERE user_id = 3 ORDER BY id"), ["Northwind", "Contoso"]);
+  assert.deepEqual(q("SELECT name FROM profile_skills WHERE user_id = 3"), ["Go"], "INTO had a list — FROM's is not interleaved");
+  assert.deepEqual(q("SELECT key || '=' || value FROM application_defaults WHERE user_id = 3 ORDER BY key"), ["relocate=no", "start_date=2026-12-01"]);
+  assert.equal(q("SELECT COUNT(*) FROM portal_accounts").pop(), 0, "a credential never moves to another account");
+  assert.deepEqual(q("SELECT user_id FROM inbox_addresses WHERE token = 'dmergetest01'"), [3], "the forwarding address keeps working, for INTO");
+  assert.equal(q("SELECT COUNT(*) FROM inbox_messages WHERE user_id = 3").pop(), 1);
+});
