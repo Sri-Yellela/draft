@@ -83,3 +83,11 @@ test("A105 (9) · the sandbox saves itself after an edit, guards a closing tab, 
   assert.match(sb, /t\.nodeValue = t\.nodeValue\.split\(from\)\.join\(to\)/, "the fix replaces the text on the page");
   assert.match(sb, /applyFinding\(f\) \? "accepted" : "not found in the résumé"/, "an Accept that changed nothing says so");
 });
+
+// A105 finding 5 — Profile's one Save was below Job profiles and Résumé & Signals, far from what was edited.
+test("A105 (5) · Profile's Save follows the page and says when something is unsaved", () => {
+  const p = fs.readFileSync("client/src/panels/ProfilePanel.jsx", "utf8");
+  assert.match(p, /data-profile-savebar="" style=\{\{[^}]*position:"sticky", bottom:0/);
+  assert.match(p, /const set = \(k, v\) => \{ setUnsaved\(true\);/);
+  assert.match(p, /setForm\(cleaned\);\r?\n\s+setUnsaved\(false\);/);
+});

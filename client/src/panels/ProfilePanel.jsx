@@ -545,7 +545,10 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
     return () => window.removeEventListener(PROFILE_SUGGESTIONS_UPDATED_EVENT, handleSuggestionsUpdated);
   }, [activeProfileId, loadProfileAssets, loadProfiles]);
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  // A105 finding 5: the one Save sat below every other section; it now follows the page (sticky) and says when
+  // something is unsaved.
+  const [unsaved, setUnsaved] = useState(false);
+  const set = (k, v) => { setUnsaved(true); setForm(f => ({ ...f, [k]: v })); };
 
   const blurPhone     = () => set("phone",         normalisePhone(form.phone));
   const blurLinkedin  = () => set("linkedin_url",  normaliseUrl(form.linkedin_url));
@@ -581,6 +584,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
     try {
       await api("/api/profile", { method:"POST", body:JSON.stringify(cleaned) });
       setForm(cleaned);
+      setUnsaved(false);
       setStatus("✓ Saved");
       setTimeout(() => setStatus(""), 3000);
     } catch { setStatus("✗ Save failed"); }
@@ -1516,8 +1520,10 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
           </PSec>
         )}
 
-        <div style={{ display:"flex", justifyContent:"flex-end", alignItems:"center",
-                      gap:14, marginTop:8 }}>
+        <div data-profile-savebar="" style={{ display:"flex", justifyContent:"flex-end", alignItems:"center",
+                      gap:14, marginTop:8, position:"sticky", bottom:0, zIndex:1, padding:"10px 0",
+                      background:theme.bg }}>
+          {unsaved && !status && <span style={{ fontSize:12, color:theme.textMuted }}>Unsaved changes</span>}
           {status && (
             <span style={{ fontSize:12,
               color:status.startsWith("✓") ? theme.success : theme.danger }}>
