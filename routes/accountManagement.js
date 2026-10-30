@@ -24,6 +24,9 @@ export function createAccountManagementRouter({
   hashPassword, verifyPassword, emailConfigured, sendVerificationCodeEmail, codePepper,
   revokeBrowserAuthContexts, clearSessionCookie, findLoginUser,
   authContextAuthAt = () => null, stampAuthContextAuthAt = () => {},
+  // D112: work that must reach a third party before the rows go (the Gmail grant is revoked at Google). Best effort —
+  // a failure there never blocks the person deleting their account.
+  beforeDelete = async () => {},
 }) {
   const router = Router();
   const avatarDir = path.join(dataDir, "avatars");
@@ -255,6 +258,7 @@ export function createAccountManagementRouter({
       throw new AccountError(400, "confirm_required", `Type your username (${me?.username}) to confirm.`);
     }
     const currentSid = req.sessionID;
+    try { await beforeDelete(req.user.id); } catch (e) { console.warn(`[account] before-delete: ${e.message}`); }
     const { files, sids } = deleteAccount(db, req.user.id);
     removeFiles(files);
     await destroySessions(sids.filter(s => s !== currentSid));
