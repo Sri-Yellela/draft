@@ -45,7 +45,7 @@ import { bindTab, bindingForTab } from './tabBinding.js';
 import { extractJobPayload } from './extractor.js';
 import { collectFormLabels } from './formReport.js';
 import { renderBadge } from './autofill-badge.js';
-import { drawInDock, dockMeta, overlayTheme } from './dockHost.js';
+import { drawInDock, dockMeta, overlayTheme, launcherInPage } from './dockHost.js';
 import { renderRelay } from './toolbarPress.js';
 import { authedFetch } from './auth.js';
 import { noteCapture } from './progress.js';
@@ -100,6 +100,23 @@ export const NEVER_MATCHES = Object.freeze([
   'https://*.linkedin.com/*', 'https://*.indeed.com/*', 'https://*.glassdoor.com/*',
 ]);
 
+// ── ⭐⭐ D112 item 4 (T35 = A, owner 10-30: "we will go for global read … no clicks needed") · GLOBAL READ ───────────
+// The extension asks ONCE (D112 b2: the small window, globalRead.js) for the optional https://*/* pattern, whole — the
+// one place it is ever requested. Granted and agreed (`settings.global`), the local detector (jobSignals.js +
+// globalReadDetector.js) is registered for every https page; on a page it finds to be a job page the step watcher
+// starts and every pass below runs with GLOBAL_SWITCHES (merged with a site's own switches): Read + Prepare as on a
+// preset site, and Capture — a POSTING (JSON-LD or a posting's URL shape) goes to /api/import/auto, where an
+// irrelevant one is discarded and stored nowhere. Fill stays its own switch.
+// ⛔ Unchanged and pinned (test/d112GlobalRead.test.js): a page that is not a posting sends nothing; LinkedIn / Indeed /
+//   Glassdoor are never read (NEVER_HOSTS / NEVER_MATCHES, the same list); nothing is captured into a shared board.
+export const GLOBAL_ORIGINS = Object.freeze([ANY_SITE_PATTERN]);
+export const GLOBAL_SWITCHES = Object.freeze({ read: true, prepare: true, capture: true, fill: false });
+/** draft's own site is never read for jobs — excluded from the global registration. */
+export const OWN_MATCHES = Object.freeze(['https://jobsviadraft.com/*', 'https://*.jobsviadraft.com/*']);
+/** The detector's two files, in order: the signals, then the script that checks them. */
+export const DETECTOR_FILES = Object.freeze(['jobSignals.js', 'globalReadDetector.js']);
+export const GLOBAL_ASK_ANSWERS = Object.freeze(['allow', 'later', 'refused']);
+
 // ⚠ PROVISIONAL — the owner decides (D97, not decided 10-13): a read is "good" when at least this share of the
 // form's fields had a readable label; otherwise "partial read — check these".
 export const GOOD_READ_RATIO = 0.8;
@@ -111,6 +128,7 @@ export const READ_LABEL_LIMIT = 80;
 export const WATCHER_FILE = 'autoReadWatcher.js';
 export const WATCHER_ID_PREFIX = 'draft-auto-read-';
 export const PAGE_MESSAGE = 'AUTO_READ_PAGE';
+export const GLOBAL_REGISTRATION_ID = `${WATCHER_ID_PREFIX}global`;
 
 // ── THE STORED SETTINGS — one key, one write site ─────────────────────────────────────────────────────
 //   autoRead → { v: 2, consent: { at, scope: 'all' | 'd64-capture' } | null, kill: boolean,
@@ -139,7 +157,7 @@ export const LATER_MS = 14 * 24 * 60 * 60 * 1000;
 
 /** The defaults: no consent, no site on, nothing read. */
 export function defaultSettings() {
-  return { v: 2, consent: null, consent2: null, later: null, kill: false,
+  return { v: 2, consent: null, consent2: null, later: null, kill: false, global: null, globalAsk: null,
     sites: Object.fromEntries(SITES.map(s => [s.id, offSite()])), custom: {}, frameHints: {}, reads: [] };
 }
 const offSite = () => Object.fromEntries(BEHAVIOURS.map(b => [b, false]));
@@ -154,6 +172,11 @@ export function normaliseSettings(raw, now = Date.now()) {
   if (raw.consent2 && Number.isFinite(raw.consent2.at)) out.consent2 = { at: raw.consent2.at };
   if (Number.isFinite(raw.later)) out.later = raw.later;
   out.kill = bool(raw.kill);
+  // ⭐ D112: global read — agreed (its date only), and the one ask's answer (so it is asked once)
+  if (raw.global && Number.isFinite(raw.global.at)) out.global = { at: raw.global.at };
+  if (raw.globalAsk && Number.isFinite(raw.globalAsk.at) && GLOBAL_ASK_ANSWERS.includes(raw.globalAsk.answer)) {
+    out.globalAsk = { at: raw.globalAsk.at, answer: raw.globalAsk.answer };
+  }
   for (const s of SITES) {
     const r = raw.sites?.[s.id] || {};
     out.sites[s.id] = Object.fromEntries(BEHAVIOURS.map(b => [b, bool(r[b])]));
@@ -171,7 +194,7 @@ export function normaliseSettings(raw, now = Date.now()) {
     .filter(([o, id]) => customOriginFor(`${o}/`) === o && siteById(id));
   out.frameHints = Object.fromEntries(hints.slice(-CUSTOM_LIMIT));
   out.reads = (Array.isArray(raw.reads) ? raw.reads : [])
-    .filter(r => r && (siteById(r.site) || r.site === 'custom') && Number.isFinite(r.at) && now - r.at < READ_RETENTION_MS)
+    .filter(r => r && (siteById(r.site) || r.site === 'custom' || r.site === 'global') && Number.isFinite(r.at) && now - r.at < READ_RETENTION_MS)
     .map(r => ({
       site: r.site, host: str(r.host, 120), step: str(r.step, 80), at: r.at, total: num(r.total), recognised: num(r.recognised),
       labels: (Array.isArray(r.labels) ? r.labels : []).filter(l => typeof l === 'string').map(l => str(l, 120)).filter(Boolean).slice(0, READ_LABEL_LIMIT),
@@ -197,6 +220,12 @@ export function siteActive(settings, siteId) {
   const s = settings.sites?.[siteId];
   return !!s && BEHAVIOURS.some(b => s[b] && consentCovers(settings, siteId, b));
 }
+
+/** ⭐ D112: global read agreed and not stopped by the kill switch (Chrome's grant is checked where it is used). */
+export function globalActive(settings) { return !!settings && !settings.kill && !!settings.global; }
+/** ⭐ D112: the ONE ask is due — never answered, and global read not on. (Asked once: any answer ends it.) */
+export function globalAskDue(settings) { return !!settings && !settings.global && !settings.globalAsk; }
+const mergeSwitches = (own) => Object.fromEntries(BEHAVIOURS.map(b => [b, !!GLOBAL_SWITCHES[b] || own?.[b] === true]));
 
 /** ⭐ T12: a custom site with any switch on. Its entry exists only because the user pressed "Always read here". */
 export function customActive(settings, origin) {
@@ -346,12 +375,23 @@ export function scopeFor(settings, url, frameUrl = null) {
     if (!f) return { skip: 'not_https' };
     if (NEVER_HOSTS.test(f.hostname)) return { skip: 'never_host' };
     const fsite = siteFor(frameUrl);
+    // ⭐ D112: global read covers an ATS frame on any page (one grant covers both)
+    if (globalActive(settings) && fsite && !OWN_HOSTS.test(u.hostname)) {
+      return { kind: 'frame', site: 'global', origin: u.origin, frameSite: fsite.id, global: true,
+        sw: mergeSwitches(settings.custom?.[u.origin]), pageUrl: frameUrl, origins: [...GLOBAL_ORIGINS] };
+    }
     const entry = settings?.custom?.[u.origin];
     if (!fsite || !entry || !entry.frames.includes(fsite.id)) return { skip: 'frame_not_allowed' };
     return { kind: 'frame', site: 'custom', origin: u.origin, frameSite: fsite.id, sw: entry, pageUrl: frameUrl,
       origins: [originPattern(u.origin), ...fsite.origins] };
   }
   const site = siteFor(url);
+  // ⭐ D112: global read — every https page that is not draft's own (and never LinkedIn / Indeed / Glassdoor, above);
+  // the site's own switches (a Fill turned on for Workday) still count
+  if (globalActive(settings) && !OWN_HOSTS.test(u.hostname)) {
+    return { kind: 'global', site: site ? site.id : 'global', origin: u.origin, global: true,
+      sw: mergeSwitches(site ? settings.sites?.[site.id] : settings.custom?.[u.origin]), pageUrl: url, origins: [...GLOBAL_ORIGINS] };
+  }
   if (site) return { kind: 'site', site: site.id, sw: settings?.sites?.[site.id] || {}, pageUrl: url, origins: [...site.origins] };
   const entry = settings?.custom?.[u.origin];
   if (entry && customOriginFor(url)) return { kind: 'custom', site: 'custom', origin: u.origin, sw: entry, pageUrl: url, origins: [originPattern(u.origin)] };
@@ -455,8 +495,16 @@ const hhmm = (ms) => { const d = new Date(ms); return `${String(d.getHours()).pa
  */
 export function popupAutoView({ settings, url, granted = {}, jobId = null, bound = false, now = Date.now() } = {}) {
   const s = settings || defaultSettings();
-  const g = { here: !!granted.here, sites: granted.sites || {} };
-  const view = { card: false, line: null, here: null, frameAsk: null, disclose: false };
+  const g = { here: !!granted.here, sites: granted.sites || {}, global: !!granted.global };
+  const view = { card: false, line: null, here: null, frameAsk: null, disclose: false, globalAsk: false, global: false };
+  // ⭐ D112: global read on and granted → nothing else to set up, anywhere; not on and never asked → the ONE ask
+  if (globalActive(s) && g.global) {
+    view.global = true;
+    const gu = parse(url);
+    if (gu && !NEVER_HOSTS.test(gu.hostname) && (s.reads || []).some(r => r.host === gu.hostname.toLowerCase())) view.line = autoLine(s, gu.hostname.toLowerCase());
+    return view;
+  }
+  view.globalAsk = globalAskDue(s) && !s.kill;
   view.card = (!s.consent2 || s.kill) && !(Number.isFinite(s.later) && now - s.later < LATER_MS);
   // ⭐ 43k open item 8 (T20's edge): Chrome already holds every preset site but no consent was recorded — a click whose
   // answer arrived while the worker restarted (an extension update), or a grant from chrome://extensions with no click.
@@ -525,6 +573,15 @@ export function pageHasJobPosting() {
     try { if (isPosting(JSON.parse(s.textContent || 'null'))) return true; } catch { /* not JSON */ }
   }
   return false;
+}
+
+/**
+ * ⭐ D112 · INJECTED (after jobSignals.js, the same frame): the local detector's answer for this page. Reads what
+ * jobSignals.js reads (never a value); sends nothing. `top`: false in a sub-frame.
+ */
+export function jobSignalsInPage(top) {
+  const f = globalThis.__draftJobSignals;
+  return typeof f === 'function' ? f(document, location, top !== false) : { job: false, why: null };
 }
 
 /** One attempt per URL per service-worker life — the server brakes per day; this saves the round trip. */
@@ -610,6 +667,16 @@ export const customRegistrationId = (origin) => `${WATCHER_ID_PREFIX}c-${new URL
 /** The registrations that should exist: one per active, granted site — preset, and (T12) custom. */
 export async function desiredRegistrations(settings) {
   const out = [];
+  // ⭐ D112: global read — ONE registration, the local detector, on every https page but the never-hosts and draft's
+  // own; it replaces the per-site watchers (the detector starts the watcher on a job page, preset sites included)
+  if (globalActive(settings) && await hasOrigins(GLOBAL_ORIGINS)) {
+    out.push({
+      id: GLOBAL_REGISTRATION_ID, matches: [...GLOBAL_ORIGINS], excludeMatches: [...NEVER_MATCHES, ...OWN_MATCHES],
+      // literals, so scripts/buildExtension.mjs bundles both files
+      js: ['jobSignals.js', 'globalReadDetector.js'], runAt: 'document_idle', allFrames: true, persistAcrossSessions: true,
+    });
+    return out;
+  }
   for (const s of SITES) {
     if (!siteActive(settings, s.id)) continue;
     if (!(await hasGrant(s))) continue;
@@ -691,6 +758,16 @@ export async function openTabsAfterConsent(settings = null) {
     if (!tab || tab.id == null || typeof tab.url !== 'string') continue;
     const sc = scopeFor(s, tab.url);
     if (sc.skip) continue;
+    // ⭐ D112: global read — the DETECTOR goes into every open https tab (every frame); it decides locally, and on a page
+    // that is not a job page it does nothing at all
+    if (sc.global) {
+      if (!(await hasOrigins(GLOBAL_ORIGINS))) continue;
+      try {
+        await chrome.scripting.executeScript({ target: { tabId: tab.id, allFrames: true }, files: ['jobSignals.js', 'globalReadDetector.js'] });
+        injected.push(tab.id);
+      } catch { /* not scriptable now: its next load is registered */ }
+      continue;
+    }
     const active = sc.kind === 'site' ? siteActive(s, sc.site) : customActive(s, sc.origin);
     if (!active || !(await hasOrigins(sc.origins))) continue;
     try {
@@ -728,7 +805,7 @@ async function afterConsent(settings) {
 //   the popup then shows the card again, and the next click finds the access already granted — no prompt, the popup
 //   lives, and its own message finishes it.
 export const PENDING_MS = 2 * 60 * 1000;
-export const PENDING_KINDS = Object.freeze(['all', 'site', 'frame']);
+export const PENDING_KINDS = Object.freeze(['all', 'site', 'frame', 'global']);
 const KEEP_AWAKE_MS = 20 * 1000;
 let PENDING = null;
 let awake = null;
@@ -736,6 +813,7 @@ let awake = null;
 /** What a pending click covers — computed HERE from the click's kind, never taken from the message's own list. */
 function pendingFor(msg) {
   if (msg?.kind === 'all') return { kind: 'all', origins: [...OPTIONAL_ORIGINS] };
+  if (msg?.kind === 'global') return { kind: 'global', origins: [...GLOBAL_ORIGINS] };   // ⭐ D112
   if (msg?.kind === 'site' && validCustom(msg.origin)) {
     const frames = [...new Set((Array.isArray(msg.frames) ? msg.frames : []).filter(id => siteById(id)))];
     return { kind: 'site', origin: msg.origin, frames, origins: [originPattern(msg.origin), ...frames.flatMap(id => siteById(id).origins)] };
@@ -778,6 +856,7 @@ export async function onPermissionsAdded(_added) {
   if (p && await hasOrigins(p.origins)) {
     clearPending();
     done = p.kind === 'all' ? await consentAll()
+      : p.kind === 'global' ? await consentGlobal()
       : p.kind === 'site' ? await allowSite(p.origin, p.frames)
         : await allowFrame(p.origin, p.site);
   }
@@ -791,6 +870,8 @@ export async function onPermissionsRemoved(removed) {
   const hit = SITES.filter(s => s.origins.some(o => gone.has(o)));
   const custom = (cur) => Object.keys(cur.custom).filter(o => gone.has(originPattern(o)));
   await updateSettings((cur) => {
+    // ⭐ D112: the broad pattern taken away (Settings, chrome://extensions) → global read is off; the answer stays (asked once)
+    if (GLOBAL_ORIGINS.some(o => gone.has(o))) cur.global = null;
     for (const s of hit) cur.sites[s.id] = offSite();
     for (const o of custom(cur)) delete cur.custom[o];
     // a frame site taken away leaves the custom sites that embedded it with their own page only
@@ -869,18 +950,20 @@ async function autoCapture(tab, serverUrl) {
   if (!res) return { sent: false, reason: 'not_signed_in' };
   const json = await res.json().catch(() => ({}));
   const jobId = json?.job?.id ?? json?.jobId ?? null;
+  let toast = false;
   if (res.ok && !json.discarded && jobId != null) {
     await bindTab(tab, { jobId, title: extracted.title || null, company: extracted.company || null, via: 'capture' }).catch(() => null);
     await noteCapture({ success: true, jobId, link: null }, extracted);
     if (!json.already) {
       AUTO_CAPTURED.set(tab.id, jobId);
+      toast = true;
       const job = [extracted.title, extracted.company].filter(Boolean).join(' at ');
       void overlayTheme().then(theme => drawInDock(tab.id, renderRelay, [[{ id: 'draft-relay', kind: 'toast', icon: 'check', tone: 'ok', ms: 8000,
         text: `Added to your board automatically${job ? ` — ${job}` : ''}.`, actions: [{ id: 'undo-capture', label: 'Undo — take it off your board', word: 'Undo' }] }], theme]))
         .catch(() => null);
     }
   }
-  return { sent: true, status: res.status, discarded: !!json.discarded, already: !!json.already, jobId };
+  return { sent: true, status: res.status, discarded: !!json.discarded, already: !!json.already, jobId, toast };
 }
 
 /**
@@ -899,6 +982,16 @@ export async function runAutoPass(tab, { signature = null, serverUrl = SERVER_UR
   const st = tabState(tab.id);
   const target = inFrame ? { tabId: tab.id, frameIds: [frameId] } : { tabId: tab.id };
   const pageUrl = inFrame ? frameUrl : tab.url;
+  // ⭐ D112: under global read, the page must STILL look like a job page (the local detector, re-run here — an SPA may
+  // have moved on). ⛔ Not one: nothing more is read, written or sent.
+  if (sc.global) {
+    let signals = null;
+    try {
+      await chrome.scripting.executeScript({ target, files: ['jobSignals.js'] });
+      signals = await inject(target, jobSignalsInPage, [!inFrame]);
+    } catch { return { skipped: 'no_access', done: [] }; }
+    if (!signals?.job) return { skipped: 'not_a_job_page', done: [] };
+  }
   let facts;
   try { facts = await inject(target, pageFacts); } catch { return { skipped: 'no_access', done: [] }; }
   if (!facts) return { skipped: 'no_access', done: [] };
@@ -906,7 +999,10 @@ export async function runAutoPass(tab, { signature = null, serverUrl = SERVER_UR
   // ⭐ T12: a custom site's page that embeds an ATS frame. Allowed there and granted → the frame's own pass reads,
   // prepares and fills the form (this one only captures). Not allowed yet → noted, so the popup can offer the second click.
   let formInFrame = false;
-  if (sc.kind === 'custom') {
+  if (sc.kind === 'global') {
+    // ⭐ D112: the one grant covers every ATS frame — the frame's own pass (its detector) reads it
+    formInFrame = atsFramesOf(facts.frames || [], tab.url).length > 0;
+  } else if (sc.kind === 'custom') {
     const entry = settings.custom[sc.origin];
     for (const f of atsFramesOf(facts.frames || [], tab.url)) {
       if (entry.frames.includes(f.site.id) && await hasGrant(f.site)) formInFrame = true;
@@ -940,6 +1036,10 @@ export async function runAutoPass(tab, { signature = null, serverUrl = SERVER_UR
   if (plan.actions.includes('capture') && serverUrl) {
     out.capture = await autoCapture(tab, serverUrl).catch(() => ({ sent: false, reason: 'error' }));
     done.push('capture');
+    // ⭐ D112: "the dock appears on a posting by itself" — the launcher, when the capture's own toast did not draw it
+    if (sc.global && !out.capture?.toast) {
+      try { out.launcher = await drawInDock(tab.id, launcherInPage, [await dockMeta(tab.id)]); } catch { out.launcher = null; }
+    }
   }
   let quality = null;
   if (plan.actions.includes('read')) {
@@ -1011,7 +1111,7 @@ async function stateForOptions() {
   for (const s of SITES) granted[s.id] = await hasGrant(s);
   const customGranted = {};
   for (const o of Object.keys(settings.custom)) customGranted[o] = await hasOrigins([originPattern(o)]);
-  return { ok: true, settings, granted, customGranted, pending: loadPending()?.kind || null };
+  return { ok: true, settings, granted, customGranted, globalGranted: await hasOrigins(GLOBAL_ORIGINS), pending: loadPending()?.kind || null };
 }
 
 /** The origins a custom site holds that nothing else still needs — given back when the site goes. */
@@ -1039,6 +1139,51 @@ async function consentAll() {
   const after = await afterConsent(settings);
   return { ok: true, settings, sites: granted, registered: after.registered, injected: after.injected };
 }
+/**
+ * ⭐ D112 · global read agreed: Chrome granted the broad pattern (from the ask window's Allow, or Settings' switch) → recorded,
+ * the detector registered, and the tabs already open given it (the posting the user was on gets its dock). Nothing
+ * granted → nothing written.
+ */
+export async function consentGlobal() {
+  if (!(await hasOrigins(GLOBAL_ORIGINS))) return { ok: false, error: 'not_granted' };
+  const settings = await updateSettings((cur) => {
+    cur.global = cur.global || { at: Date.now() };
+    cur.globalAsk = { at: Date.now(), answer: 'allow' };
+    cur.kill = false;
+    cur.later = null;
+    return cur;
+  });
+  const after = await afterConsent(settings);
+  return { ok: true, settings, registered: after.registered, injected: after.injected };
+}
+/** ⭐ D112 · the one ask's answer, recorded so it is asked ONCE ('later' · 'refused'; 'allow' is consentGlobal's). */
+export async function recordGlobalAsk(answer) {
+  if (!GLOBAL_ASK_ANSWERS.includes(answer)) return { ok: false, error: 'bad_answer' };
+  const settings = await updateSettings((cur) => { cur.globalAsk = { at: Date.now(), answer }; return cur; });
+  return { ok: true, settings };
+}
+/**
+ * ⭐ D112 · the detector found a job page: start the step watcher in THAT frame — after re-checking, here, that global
+ * read is on, Chrome grants it, and the page is not a never-host or draft's own (scopeFor). A sub-frame counts only on
+ * a known ATS site (the form of a careers page).
+ */
+async function onDetected(sender) {
+  const tab = sender?.tab;
+  if (!tab?.id) return { ok: false, ignored: 'no_tab' };
+  const frameId = sender.frameId || 0;
+  const frameUrl = frameId ? (typeof sender.url === 'string' ? sender.url : null) : null;
+  if (frameId && (!frameUrl || !siteFor(frameUrl))) return { ok: false, ignored: 'not_an_ats_frame' };
+  const settings = await loadSettings();
+  if (!globalActive(settings)) return { ok: false, ignored: 'global_off' };
+  const sc = scopeFor(settings, tab.url, frameUrl);
+  if (sc.skip || !sc.global) return { ok: false, ignored: sc.skip || 'not_global' };
+  if (!(await hasOrigins(GLOBAL_ORIGINS))) return { ok: false, ignored: 'not_granted' };
+  try {
+    await chrome.scripting.executeScript({ target: { tabId: tab.id, frameIds: [frameId] }, files: ['autoReadWatcher.js'] });
+  } catch { return { ok: false, ignored: 'no_access' }; }
+  return { ok: true, watching: true };
+}
+
 /** T12 · "Always read here": this origin (and its granted ATS frame sites), Read + Prepare. */
 async function allowSite(origin, frameIds) {
   if (!validCustom(origin)) return { ok: false, error: 'bad_site' };
@@ -1076,6 +1221,25 @@ async function allowFrame(origin, siteId) {
 export const handlers = Object.freeze({
   /** The watcher: "this tab's step changed". From a content script in a top frame, or an ATS site's frame (T12). */
   [PAGE_MESSAGE]: (msg, sender) => onPageMessage(msg, sender),
+  /** ⭐ D112: the detector (globalReadDetector.js) — "this is a job page". From a content script only. */
+  AUTO_READ_DETECTED: (_msg, sender) => (fromExtensionPage(sender) ? Promise.resolve({ ok: false, error: 'not_allowed' }) : onDetected(sender)),
+  /**
+   * ⭐ D112 · Settings → Permissions' "Job postings on any site" switch, ON: the page asked Chrome for the broad pattern as the
+   * click's first call; this records the agreement when Chrome granted it.
+   */
+  AUTO_READ_GLOBAL: async (_msg, sender) => {
+    if (!fromExtensionPage(sender)) return { ok: false, error: 'not_allowed' };
+    clearPending();
+    return consentGlobal();
+  },
+  /** ⭐ D112 · the same switch OFF: global read off, the broad access given back, the detector unregistered. */
+  AUTO_READ_GLOBAL_OFF: async (_msg, sender) => {
+    if (!fromExtensionPage(sender)) return { ok: false, error: 'not_allowed' };
+    const settings = await updateSettings((cur) => { cur.global = null; return cur; });
+    await giveBack(GLOBAL_ORIGINS);
+    const reg = await syncRegistrations(settings);
+    return { ok: true, settings, registered: reg.registered };
+  },
 
   // ⛔ Everything below changes or reads the switches — accepted ONLY from the extension's own pages (the popup,
   // Options), never from a content script or a page.
@@ -1225,8 +1389,9 @@ export const handlers = Object.freeze({
     if (!fromExtensionPage(sender)) return { ok: false, error: 'not_allowed' };
     const customs = Object.keys((await loadSettings()).custom);
     clearPending();   // T20: a consent click still waiting for Chrome's answer finishes nothing after this
-    const settings = await updateSettings((cur) => { for (const s of SITES) cur.sites[s.id] = offSite(); cur.custom = {}; cur.frameHints = {}; cur.kill = true; return cur; });
+    const settings = await updateSettings((cur) => { for (const s of SITES) cur.sites[s.id] = offSite(); cur.custom = {}; cur.frameHints = {}; cur.global = null; cur.kill = true; return cur; });
     try { await chrome.permissions.remove({ origins: [...OPTIONAL_ORIGINS, ...customs.map(originPattern)] }); } catch { /* already gone */ }
+    await giveBack(GLOBAL_ORIGINS);   // ⭐ D112: the broad grant too
     const reg = await syncRegistrations(settings);
     return { ok: true, settings, registered: reg.registered };
   },
