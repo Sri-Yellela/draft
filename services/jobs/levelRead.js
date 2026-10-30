@@ -14,7 +14,9 @@ const basisOf = (r) => crypto.createHash("sha1")
   .update(JSON.stringify([LEVEL_READER_VERSION, r.title, r.text_length ?? 0])).digest("hex").slice(0, 16);
 
 /** @returns {{ scanned: number, read: number }} */
-export function readStaleLevels(db, { limit = 5000 } = {}) {
+export function readStaleLevels(db, { limit = 1000 } = {}) {
+  // 1,000 a pass (every 10 minutes): ~5 ms a posting, so a first pass over a large board fills over a few passes
+  // instead of holding the event loop for half a minute.
   const rows = db.prepare(`SELECT job_id, title, level_read_basis, LENGTH(COALESCE(description_text, description)) AS text_length
     FROM scraped_jobs WHERE is_active = 1 OR level_read_basis IS NULL`).all();
   const text = db.prepare(`SELECT COALESCE(description_text, description) FROM scraped_jobs WHERE job_id = ?`).pluck();

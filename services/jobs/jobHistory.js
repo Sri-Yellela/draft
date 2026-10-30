@@ -16,7 +16,6 @@
 //   · READ by `livenessFor` (one posting) / `livenessForRows` (a board page): plain facts and one sentence — never a
 //     score, never a block. D107 P3 (`isStale`) is the only consumer that acts, and only for FULL AUTO / Approve all.
 
-import crypto from "node:crypto";
 import { companyNameKey } from "../../shared/companyIdentity.js";
 
 const DAY = 86400;
@@ -43,6 +42,13 @@ export function locationKey(location) {
   return String(location ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
 }
 
+/** 32-bit FNV-1a — one cheap, stable hash per shingle (md5 per shingle made the first pass take seconds). */
+function fnv1a(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return h >>> 0;
+}
+
 /** A 32-value minhash over the description's word 3-shingles, as a compact string; null when there is no text. */
 export function descSignature(text) {
   const words = String(text ?? "").slice(0, SIG_TEXT_CHARS).toLowerCase().replace(/<[^>]+>/g, " ")
@@ -50,11 +56,13 @@ export function descSignature(text) {
   if (words.length < 8) return null;
   const mins = new Array(SIG_HASHES).fill(0xffffffff);
   for (let i = 0; i + 2 < words.length; i++) {
-    const h = crypto.createHash("md5").update(`${words[i]} ${words[i + 1]} ${words[i + 2]}`).digest();
+    const h = fnv1a(`${words[i]} ${words[i + 1]} ${words[i + 2]}`);
     for (let k = 0; k < SIG_HASHES; k++) {
-      // 32 hash functions from one digest: rotate and mix with the index (a cheap, stable family).
-      const v = (h.readUInt32LE((k % 4) * 4) ^ Math.imul(k + 1, 0x9e3779b1)) >>> 0;
-      const m = Math.imul(v ^ (v >>> 15), 0x85ebca6b) >>> 0;
+      // 32 hash functions from one: mix with the index (murmur3's finaliser — a stable family).
+      let m = (h ^ Math.imul(k + 1, 0x9e3779b1)) >>> 0;
+      m = Math.imul(m ^ (m >>> 16), 0x85ebca6b) >>> 0;
+      m = Math.imul(m ^ (m >>> 13), 0xc2b2ae35) >>> 0;
+      m = (m ^ (m >>> 16)) >>> 0;
       if (m < mins[k]) mins[k] = m;
     }
   }
