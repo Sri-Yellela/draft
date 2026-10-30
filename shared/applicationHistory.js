@@ -130,6 +130,8 @@ function statusOf(row, { now }) {
   const sent = row.applicationId != null;
   if (!sent) {
     if (row.recordState === "withdrawn") return { status: "closed", label: "Did not apply", ask: false };
+    // D112 c2: moved after 14 quiet days — closed like a withdrawal, but labelled as draft's inference.
+    if (row.recordState === "not_applied") return { status: "closed", label: "Not applied · moved after 14 days", ask: false };
     if (row.recordState === "recorded")  return { status: "in_play", label: "Recorded — not verified yet", ask: false };
     // D51: a Draft is in play from the click — it waits in Draft House until you approve or stop it.
     if (row.origin === "drafted")        return { status: "in_play", label: "Drafted — in Draft House", ask: false };

@@ -63,7 +63,7 @@ function publicRow({ rec, rj, ja, posting, status, closedByCandidate }) {
  * opened, origin 'manual') is not a pipeline row: it has never been Drafted.
  */
 export function listPipeline(db, userId, surface) {
-  const recs = db.prepare(`SELECT * FROM application_records WHERE user_id = ? AND state != 'withdrawn' ORDER BY updated_at DESC, id DESC`)
+  const recs = db.prepare(`SELECT * FROM application_records WHERE user_id = ? AND state NOT IN ('withdrawn', 'not_applied') ORDER BY updated_at DESC, id DESC`)
     .all(userId);
   const rows = [];
   for (const rec of recs) {
