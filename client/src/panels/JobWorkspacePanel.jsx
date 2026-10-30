@@ -22,7 +22,7 @@ const STATUS_COLOUR = { needs_you: C.WARNING, ready_to_approve: C.INFO, submitte
   offer: C.SUCCESS, rejected: C.DANGER, failed: C.DANGER };
 const when = (sec) => (sec ? new Date(sec * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "");
 
-export function JobWorkspacePanel({ applicationId }) {
+export function JobWorkspacePanel({ applicationId = null, jobId = null }) {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { decidePending, pendingBusy = false, pendingMsg = "", artifactUrl } = useAutoApply() || {};
@@ -32,10 +32,12 @@ export function JobWorkspacePanel({ applicationId }) {
 
   const load = async () => {
     setErr("");
-    try { setD(await api(`/api/pipeline/job/${encodeURIComponent(applicationId)}`)); }
+    // Draft House knows the job, The Table the record — both reach the same detail (GET /api/pipeline/job-for/:jobId).
+    const path = jobId != null ? `/api/pipeline/job-for/${encodeURIComponent(jobId)}` : `/api/pipeline/job/${encodeURIComponent(applicationId)}`;
+    try { setD(await api(path)); }
     catch (e) { setErr(e.status === 404 ? "This application is not yours, or it no longer exists." : (e.message || "Could not load it.")); }
   };
-  useEffect(() => { setD(null); setTab("checklist"); load(); }, [applicationId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setD(null); setTab("checklist"); load(); }, [applicationId, jobId]); // eslint-disable-line react-hooks/exhaustive-deps
   // Land on what needs the user: an application stopped for answers opens on its Form.
   useEffect(() => { if (d?.status === "needs_you" || d?.form?.approvable) setTab("form"); }, [d?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 

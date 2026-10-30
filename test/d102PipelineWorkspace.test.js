@@ -230,3 +230,19 @@ test("D102 P4 · Auto settings' job profile is the one the run reads — and onl
   const sched = fs.readFileSync("services/autoScheduler.js", "utf8");
   assert.match(sched, /fetchBoard\(u\.id, settings\.filters, settings\)/);
 });
+
+// D102 P5 · Draft House knows the JOB id; the same detail is found by it — the caller's own record only.
+test("D102 · GET /api/pipeline/job-for/:jobId opens the same detail as the record id; another user's job is 404", async () => {
+  const db = freshDb();
+  const id = draft(db, { jobId: "gh::by-job", status: "held_review", reason: "incomplete_form" });
+  draft(db, { userId: 2, jobId: "gh::theirs" });
+  const t = mount(db);
+  try {
+    const byJob = await t.call("GET", `/api/pipeline/job-for/${encodeURIComponent("gh::by-job")}`);
+    const byRec = await t.call("GET", `/api/pipeline/job/${id}`);
+    assert.equal(byJob.status, 200);
+    assert.deepEqual(byJob.body, byRec.body);
+    assert.equal((await t.call("GET", `/api/pipeline/job-for/${encodeURIComponent("gh::theirs")}`)).status, 404);
+    assert.equal((await t.call("GET", "/api/pipeline/job-for/nope")).status, 404);
+  } finally { t.stop(); }
+});

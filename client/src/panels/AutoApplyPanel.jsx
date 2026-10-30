@@ -695,6 +695,14 @@ export function AutoApplyPanel() {
                   selectable={selecting && idsOf(item).length > 0} selected={selected.has(item.key)}
                   onSelect={() => toggleSelected(item)}>
                   {extra}
+                  {/* D102 P5: the application's own page — checklist, résumé, every value, the posting, its emails. */}
+                  {item.jobId && (
+                    <p style={{ margin: "8px 0 0" }}>
+                      <a href={`/app/job/for/${encodeURIComponent(item.jobId)}`} data-open-job-page=""
+                        onClick={(e) => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); navigate(`/app/job/for/${encodeURIComponent(item.jobId)}`); } }}
+                        style={{ fontSize: 12, fontWeight: 700, color: C.ACCENT_INK }}>Open this application →</a>
+                    </p>
+                  )}
                 </StoppedItem>
               );
             })}

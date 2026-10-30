@@ -27,6 +27,15 @@ export default function pipelineRoutes(app, db, requireAuth) {
     res.json(detail);
   });
 
+  // D102 P5 · the same detail, found by the JOB — Draft House's stopped items come from runs and know the job id, not
+  // the application record's. One record per user and job (application_records), so the lookup is exact.
+  app.get("/api/pipeline/job-for/:jobId", requireAuth, (req, res) => {
+    const rec = db.prepare("SELECT id FROM application_records WHERE user_id = ? AND job_id = ?").get(req.user.id, String(req.params.jobId));
+    const detail = rec ? jobDetail(db, req.user.id, rec.id) : null;
+    if (!detail) return res.status(404).json({ error: "not_found" });
+    res.json(detail);
+  });
+
   const settingsOf = (userId) => readAutoSettings(db.prepare("SELECT auto_settings FROM users WHERE id = ?").get(userId)?.auto_settings);
 
   app.get("/api/apply/auto-settings", requireAuth, (req, res) => {
