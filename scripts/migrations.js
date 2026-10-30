@@ -5035,4 +5035,22 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D108 P2 (owner 10-30) · "WHAT CHANGED" — a short dated list of rule changes that affect students and workers.
+      // Each line is a fact with an OFFICIAL source link (services/kb/sponsorshipFacts.js addWhatChanged refuses any
+      // other); no advice, no opinion. Removed lines are kept, marked, for the record.
+      id: "178_what_changed",
+      sql: `
+        CREATE TABLE IF NOT EXISTS what_changed (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          happened_on TEXT NOT NULL,
+          text        TEXT NOT NULL,
+          source_url  TEXT NOT NULL,
+          source_name TEXT NOT NULL,
+          added_by    TEXT NOT NULL,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          removed_at  INTEGER
+        );
+      `,
+    },
   ];
