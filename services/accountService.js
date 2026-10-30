@@ -188,7 +188,9 @@ const SECRET_COLUMNS = new Set(["password_hash", "apify_token", "secret_enc", "i
 const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes", "base_resume", "resumes", "resume_versions",
   "job_applications", "user_jobs", "imported_jobs", "user_job_searches", "apply_runs", "apply_run_jobs", "notifications",
   "simple_apply_profiles", "profile_simple_apply_profiles", "dock_preferences", "daily_drafts", "user_integrations",
-  "form_reports", "apply_origin_sightings", "saved_answers", "answer_history"];
+  "form_reports", "apply_origin_sightings", "saved_answers", "answer_history",
+  // D112: the Gmail connection — the address, when, how many read; its sealed token is a secret column and never exported.
+  "gmail_connections"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -275,6 +277,9 @@ export const MERGE_PLAN = Object.freeze({
   // D103 (174): the person's forwarding address keeps working (its mail now files under INTO), their mail and the
   // code-read log move; INTO's per-portal code consent wins on a clash.
   inbox_addresses: "move", inbox_messages: "move", inbox_code_uses: "move", inbox_code_optins: "keepInto",
+  // D112 (181): a merged person is one person — their Gmail connection keeps reading, for INTO; INTO's own connection
+  // wins on a clash (one row per user), and FROM's then goes with FROM.
+  gmail_connections: "keepInto",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

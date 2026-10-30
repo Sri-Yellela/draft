@@ -146,7 +146,7 @@ export const SHARED = Object.freeze({
   "components/RefineJobProfile.jsx":   { what: "'Refine your job profile' — a profile made from a résumé opens the same wizard, everything filled (D112 e2); profiles and the profile panel" },
   "components/StartFromResume.jsx":    { what: "the first screen of a new account — one résumé upload sets up the first job profile (A104); the board and the deck" },
   "components/ProfileSections.jsx":    { what: "Profile in sections + Application defaults — what the fill reads for eligibility and self-ID (D101)" },
-  "components/ApplicationInbox.jsx":    { what: "The Table's Inbox — forwarded replies from job sites, filed by rule (D103)", module: "theTable" },
+  "components/ApplicationInbox.jsx":    { what: "The Table's Inbox — replies from job sites, forwarded or read through a Gmail connection, filed by rule (D103, D112)", module: "theTable" },
   "components/ApplicationHistory.css":  { what: "its look", owner: "components/ApplicationHistory.jsx" },
   "components/PendingApplications.jsx": { what: "The Table's pending list", module: "theTable" },
   "components/FindFitApply.jsx":        { what: "the landing page's find → fit → apply", module: "landing" },
