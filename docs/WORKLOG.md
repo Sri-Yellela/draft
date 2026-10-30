@@ -57,7 +57,13 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 ## NOW
 
-### ▶ 43q (10-30, evening) — the agent's queue: the UI step (slices 1 + 3, Portals), then **A104 → A106 → A105's fixes** (the owner's "time is the product" request, below)
+### ⏹ 43q (10-30, ~12:45) — THE AGENT'S QUEUE IS EMPTY; what is left is the owner's
+
+**Done and pushed today (all on `origin/main`, production measured at `853aacb` 16:12Z — later commits are client / test / docs plus the merge fix `96d2893`):** the UI step to the approved sketch — run bar SEMI / FULL AUTO + Auto settings (save-on-change, any run time) + Portals; Profile sections + Application defaults; the board's Not-eligible mark; The Table's Inbox; one application's page `/app/job/:id` with list-and-detail in Draft House and The Table · **A104** (the résumé starts the profile) · **A105** findings 1–9, 11 (keys), 12 · **A106** (Word-like sandbox tools) · fixes: `DELETE /api/inbox/:id`, **account merge** (13 tables unplanned since `a20d1f7`) · the full suite **4781 / 4781 / 0**.
+
+**Open for the owner to decide (the agent will not guess):** board **multi-select** (`Draft selected` would pass D54's per-company notice; overlaps FULL AUTO) · the extension's **permission trip** (A105 (10): a self-closing popup window instead of the Settings tab) · Opening a posting **makes a Pending row** (O45c) — expire it after N days? · Profile's old **Education** block (the forms' highest degree, read by eligibility) beside the sections' schools — merge, and which is the source? · the wizard as **"Refine"** on a résumé-made profile (Job profiles → Edit works today).
+
+~~▶ 43q (10-30, evening) — the agent's queue …~~  the UI step (slices 1 + 3, Portals), then **A104 → A106 → A105's fixes** (the owner's "time is the product" request, below)
 
 ~~⏹ 43q STOPPED 10-30 ~05:05 — what is left is the owner's, or waits for the sketch.~~ The sketch was approved and everything through `08ebc26` is **pushed** (`git merge-base --is-ancestor` → origin/main, 10-30); production measured at `a20d1f7` (CURRENT STATE). **Agent next:** UI slice 1 (list-detail + `/app/job/:id`), slice 3 (Profile sections + Application defaults), Portals in the run bar; then **A104** (the résumé starts the profile), **A106** (the sandbox's editing tools), **A105** (the click sweep's fixes). **Owner's**, in the order it unblocks work:
 1. **Owner — the Amazon test (D100 P5)**, local, no push: the steps are under Lane B in the ORDER block. Expect stops (terms box, emailed code). ⚠ If Amazon's sign-up always stops at its terms box, creating accounts there needs the owner to reverse D100's "never ticked" for that box — a decision, not a bug.
