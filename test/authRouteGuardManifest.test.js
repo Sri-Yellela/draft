@@ -383,6 +383,20 @@ const AUTHENTICATED = new Set([
   "PUT /api/inbox/code-optins/:portal",
   "DELETE /api/inbox/:id",
   "DELETE /api/inbox",
+  // D110: interview mode — the Prep tab, the user's date, the connector's data pack (the caller's own application only),
+  // the story bank, debriefs and the user's OWN question bank.
+  "GET /api/interview/prep/:applicationId",
+  "PUT /api/interview/prep/:applicationId/date",
+  "GET /api/interview/prep/:applicationId/connector-data",
+  "GET /api/interview/stories",
+  "POST /api/interview/stories",
+  "POST /api/interview/stories/from-profile",
+  "PUT /api/interview/stories/:id",
+  "DELETE /api/interview/stories/:id",
+  "GET /api/interview/debriefs",
+  "POST /api/interview/debriefs",
+  "DELETE /api/interview/debriefs/:id",
+  "GET /api/interview/questions",
   "GET /api/apply/review",
   "GET /api/apply/run-jobs/:runJobId/review",
   // AH5: the fill log — what this run put in the form and what it did not. On demand, so it is
@@ -490,6 +504,7 @@ function collect() {
     ...directRoutes(fs.readFileSync("routes/applyWorker.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/profileSections.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/inbox.js", "utf8")),
+    ...directRoutes(fs.readFileSync("routes/interview.js", "utf8")),
     // account.js is mounted with app.use(createAccountRouter({...})) at the ROOT, so its routes
     // already carry their full /api path and their own per-route guard.
     ...routerRoutes(fs.readFileSync("routes/account.js", "utf8"), ""),

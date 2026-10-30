@@ -24,6 +24,7 @@ import crypto from "node:crypto";
 import { BRIEF_TTL_SECONDS, BRIEF_DETAIL, MAX_ATTEMPTS, baseHash, buildBrief, applyPatch, termGuard, immutablesChanged, renderPatched } from "./resumePatch.js";
 import { dailyCap, usedToday } from "./policy.js";
 import { untrustedText, SUMMARY_CHARS, DESCRIPTION_CHARS } from "./untrusted.js";
+import { connectorPack } from "../interviewPrep.js";
 
 const now = () => Math.floor(Date.now() / 1000);
 const READ = "resume:read", WRITE = "resume:write";
@@ -117,6 +118,22 @@ export const TOOL_DEFS = Object.freeze([
   },
 ]);
 
+// ⛔ D110 P4 · THE MOCK-INTERVIEW DATA TOOL — BUILT, NOT IN THE CATALOGUE. It is deliberately OUTSIDE TOOL_DEFS: adding a
+// tool changes the catalogue the directory reviews (docs/CLAUDE_CONNECTOR_COMPLIANCE.md Appendix A; PLUGIN_LAUNCH D6 — which
+// tools ship is the owner's), so it is served only when deps.interviewTool is true (server.js: BYOM_INTERVIEW_TOOL=1).
+// It returns DATA only — the posting, the profile, the gap list, the rounds, the user's own stories and past questions;
+// the interviewer's instructions are the static Skill's (docs/plugin-skills/mock-interview/SKILL.md, §2F). No contact
+// details and no Application defaults (DR-14). Read-only: nothing is written, no model is called (D17).
+export const INTERVIEW_TOOL_DEF = Object.freeze({
+  name: "draft_get_interview_prep",
+  title: "Get interview practice data for a job",
+  description: "Returns the data for interview practice on one job the candidate applied to: the job's basics and a short posting summary, the candidate's experience and skills, each of the posting's skills marked have, partial or missing, the interview rounds and assessment platform read from the posting and the employer's replies, the date when one is known, the candidate's own STAR stories and the questions the candidate recorded after earlier rounds. Contains no contact details and no work-authorisation answers. Nothing is saved.",
+  inputSchema: { type: "object", additionalProperties: false, required: ["job_id"], properties: { job_id: jobIdParam } },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  scope: READ,
+  justification: "Reads the user's own application, profile, story bank and debrief notes so their own model can run a practice interview. Structured fields only; posting and user text are capped and neutralised; nothing is written.",
+});
+
 /** The names the audit wrote before the v1 catalogue (10-09), for reading old activity rows. */
 export const LEGACY_TOOL_NAMES = Object.freeze({
   get_generation_brief: "draft_get_resume_brief", submit_resume: "draft_submit_resume_patch",
@@ -184,6 +201,7 @@ export function createByomTools(deps) {
     if (used >= cap) throw new ToolRefusal("daily_cap", `Daily limit reached: ${used} of ${cap} résumés written this way today. It resets at 00:00 UTC.`);
   }
   const mapJob = (row) => (deps.mapJob ? deps.mapJob(row) : row);
+  const interviewTool = deps.interviewTool === true;
 
   const handlers = {
     async draft_search_jobs({ userId }, args = {}) {
@@ -351,5 +369,13 @@ export function createByomTools(deps) {
   /** The job a call is about, for the activity list: named directly, or inside a brief token. */
   const jobIdOf = (args = {}) => args.job_id != null ? String(args.job_id) : (readBrief(secret, args.brief_id)?.j ?? null);
 
-  return { handlers, defs: TOOL_DEFS, jobIdOf };
+  // D110 P4: served only behind the flag (INTERVIEW_TOOL_DEF above) — off, the tool is neither listed nor callable.
+  if (interviewTool) {
+    handlers.draft_get_interview_prep = ({ userId }, { job_id } = {}) => {
+      const pack = connectorPack(db, userId, job_id);
+      if (!pack) throw new ToolRefusal("unknown_application", "The candidate has no application for that job id in draft (draft_list_my_drafts lists drafted jobs).");
+      return pack;
+    };
+  }
+  return { handlers, defs: interviewTool ? [...TOOL_DEFS, INTERVIEW_TOOL_DEF] : TOOL_DEFS, jobIdOf };
 }

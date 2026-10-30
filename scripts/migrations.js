@@ -5203,4 +5203,60 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_profile_evidence_user ON profile_evidence(user_id, target, target_key);
       `,
     },
+    {
+      // ⭐ D110 (owner 10-30) · INTERVIEW MODE — prep that starts when the interview email arrives (services/interviewPrep.js).
+      // interview_prep: ONLY the date the user typed for an application (an emailed date is read by rule at read time, never
+      // stored as theirs). interview_stories: the STAR story bank, per user, reused across interviews; `seed_key` remembers a
+      // bullet already seeded from profile_experience so a second press adds only what is new. interview_debriefs and
+      // interview_questions: after each round, what was asked and how it went — the user's OWN question bank, never shared
+      // across users. All cascade with the user; a debrief outlives a deleted application (SET NULL) so the bank stays whole.
+      id: "186_interview_mode",
+      sql: `
+        CREATE TABLE IF NOT EXISTS interview_prep (
+          user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          application_id INTEGER NOT NULL REFERENCES application_records(id) ON DELETE CASCADE,
+          date_ymd       TEXT,
+          time_hm        TEXT,
+          updated_at     INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, application_id)
+        );
+        CREATE TABLE IF NOT EXISTS interview_stories (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          title       TEXT    NOT NULL,
+          situation   TEXT    NOT NULL DEFAULT '',
+          task        TEXT    NOT NULL DEFAULT '',
+          action      TEXT    NOT NULL DEFAULT '',
+          result      TEXT    NOT NULL DEFAULT '',
+          themes_json TEXT    NOT NULL DEFAULT '[]',
+          source      TEXT    NOT NULL DEFAULT 'user',
+          seed_key    TEXT,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at  INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_interview_stories_seed ON interview_stories(user_id, seed_key);
+        CREATE TABLE IF NOT EXISTS interview_debriefs (
+          id             INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          application_id INTEGER REFERENCES application_records(id) ON DELETE SET NULL,
+          round          TEXT    NOT NULL,
+          held_on        TEXT,
+          went           TEXT,
+          notes          TEXT    NOT NULL DEFAULT '',
+          created_at     INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_interview_debriefs_user ON interview_debriefs(user_id, application_id);
+        CREATE TABLE IF NOT EXISTS interview_questions (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          debrief_id INTEGER NOT NULL REFERENCES interview_debriefs(id) ON DELETE CASCADE,
+          round      TEXT    NOT NULL,
+          question   TEXT    NOT NULL,
+          went       TEXT,
+          notes      TEXT    NOT NULL DEFAULT '',
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_interview_questions_user ON interview_questions(user_id, round);
+      `,
+    },
   ];
