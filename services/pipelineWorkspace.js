@@ -13,6 +13,7 @@
 // and the status is shared/applicationStatus.js's ladder, the one module both surfaces read.
 import { ladderStatus, surfaceOf, tabCounts, LADDER_LABELS } from "../shared/applicationStatus.js";
 import { sourceOf, ANSWER_SOURCES } from "../shared/answerSource.js";
+import { listMessages } from "./inbox.js";
 
 const parse = (s, fallback) => { if (s == null) return fallback; try { return JSON.parse(s); } catch { return fallback; } };
 
@@ -75,7 +76,7 @@ export function listPipeline(db, userId, surface) {
 }
 
 /** The checklist's steps in order, each `done` | `current` | `waiting` | `skipped`. */
-function checklist({ rec, rj, posting, status }) {
+function checklist({ rec, rj, posting, status }, confirmed = false) {
   const answers = parse(rj?.answers_json, []);
   const filled = Array.isArray(answers) ? answers.filter(a => a && a.value != null && !a.skipped).length : 0;
   const total = Number.isFinite(rj?.fields_discovered) ? rj.fields_discovered : (Array.isArray(answers) ? answers.length : 0);
@@ -91,8 +92,8 @@ function checklist({ rec, rj, posting, status }) {
       fields: Array.isArray(open) ? open.map(q => q?.question ?? q?.label ?? String(q)).slice(0, 50) : [] },
     { step: "approved", label: "Approved", state: state(!!rj?.approved_at || rj?.submitted_by === "auto" || sent, status === "ready_to_approve") },
     { step: "submitted", label: "Submitted", state: state(sent, false), by: rj?.submitted_by ?? null },
-    // D103 fills this from the inbox; until then it waits.
-    { step: "confirmation_email", label: "Confirmation email received", state: "waiting" },
+    // D103: done when the inbox matched the employer's confirmation (category Applied) to this application.
+    { step: "confirmation_email", label: "Confirmation email received", state: confirmed ? "done" : sent ? "current" : "waiting" },
   ];
 }
 
@@ -102,10 +103,13 @@ export function jobDetail(db, userId, applicationId) {
   if (!rec) return null;
   const r = rowFor(db, rec);
   const answers = parse(r.rj?.answers_json, []);
+  // D103: this application's mail (a database before migration 174 has none).
+  let emails = [];
+  try { emails = listMessages(db, userId, { applicationId: rec.id }); } catch { emails = []; }
   return {
     ...publicRow(r),
     runJobId: r.rj?.id ?? null,
-    checklist: checklist(r),
+    checklist: checklist(r, emails.some(m => m.category === "applied")),
     resume: {
       artifactId: r.rj?.resume_artifact_id ?? null,
       atsScore: r.rj?.resume_ats_score ?? null,
@@ -127,6 +131,6 @@ export function jobDetail(db, userId, applicationId) {
       location: r.rj?.posting_location || r.ja?.location || r.posting?.location || null,
       description: r.posting?.description ?? null,
     },
-    emails: [],
+    emails,
   };
 }

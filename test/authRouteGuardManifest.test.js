@@ -360,6 +360,15 @@ const AUTHENTICATED = new Set([
   "POST /api/profile/sections/use-resume",
   "PUT /api/profile/sections/:section",
   "PUT /api/profile/defaults/:key",
+  // D103: the inbox — the user's forwarding address, its filter file, the messages, re-filing, attaching, code opt-ins.
+  // (The hook itself, POST /api/hooks/inbound, is a mounted router, Svix-signed — like /api/hooks/resend.)
+  "GET /api/inbox/address",
+  "POST /api/inbox/address/revoke",
+  "GET /api/inbox/gmail-filter.xml",
+  "GET /api/inbox",
+  "POST /api/inbox/:id/category",
+  "POST /api/inbox/:id/attach",
+  "PUT /api/inbox/code-optins/:portal",
   "GET /api/apply/review",
   "GET /api/apply/run-jobs/:runJobId/review",
   // AH5: the fill log — what this run put in the form and what it did not. On demand, so it is
@@ -466,6 +475,7 @@ function collect() {
     ...directRoutes(fs.readFileSync("routes/pipeline.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/applyWorker.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/profileSections.js", "utf8")),
+    ...directRoutes(fs.readFileSync("routes/inbox.js", "utf8")),
     // account.js is mounted with app.use(createAccountRouter({...})) at the ROOT, so its routes
     // already carry their full /api path and their own per-route guard.
     ...routerRoutes(fs.readFileSync("routes/account.js", "utf8"), ""),
