@@ -295,19 +295,23 @@ for (const [name, keys] of Object.entries(SORT_KEYS)) assertTotalOrder(keys, nam
 // and the curated order (rank keys, fit, then newest, company A–Z, job_id) is what a request with NO
 // `sort` gets: the daily deck's, and any client asking for "the board as curated for me".
 const CURATED_TAIL = Object.freeze([...NEWEST, ...COMPANY_AZ, BY_ID]);
-function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null, established = [] } = {}) {
+// ⭐ D112 item 6 · `ineligible`: services/jobEligibility.js ineligibleOrderKey — 1 when the posting's STORED
+// requirements contradict an answer the user SET. It leads EVERY key, a search tier included: an ineligible
+// posting goes to the end of the board, not of its page. null (nothing set) adds no key, so the order is unchanged.
+function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null, established = [], ineligible = null } = {}) {
+  const lead = ineligible?.sql ? [KEY(ineligible.sql, "ASC", ineligible.params || [])] : [];
   const sortIsDefault = !SORT_KEYS[sort];
   const chosen = sortIsDefault ? CURATED_TAIL : SORT_KEYS[sort];
   const known = (established || []).map(k => KEY(k.sql, "ASC", k.params || []));
   if (search?.sql) {
     const tier = KEY(search.sql, "ASC", search.params || []);
-    return assertTotalOrder([tier, ...known, ...(sortIsDefault ? FIT_KEYS : []), ...chosen], sort || "dateDesc");
+    return assertTotalOrder([...lead, tier, ...known, ...(sortIsDefault ? FIT_KEYS : []), ...chosen], sort || "dateDesc");
   }
   const prefix = sortIsDefault
     ? rankKeys.map(k => KEY(`(${k.sql})`, "ASC", k.params || []))
     : [];
   const fitKeys = sortIsDefault && fit ? FIT_KEYS : [];
-  return assertTotalOrder([...known, ...prefix, ...fitKeys, ...chosen], sort || "dateDesc");
+  return assertTotalOrder([...lead, ...known, ...prefix, ...fitKeys, ...chosen], sort || "dateDesc");
 }
 
 /**

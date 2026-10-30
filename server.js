@@ -30,7 +30,7 @@ import inboxRoutes, { createInboundHookRouter } from "./routes/inbox.js";
 import { sweepInbox } from "./services/inbox.js";
 import profileSectionRoutes from "./routes/profileSections.js";
 import { withApplicationDefaults } from "./services/structuredProfile.js";
-import { userEligibilityInputs, hasEligibilityInputs, eligibilityForRow } from "./services/jobEligibility.js";
+import { userEligibilityInputs, hasEligibilityInputs, eligibilityForRow, ineligibleOrderKey } from "./services/jobEligibility.js";
 import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
 import { runAutoTick } from "./services/autoScheduler.js";
@@ -9486,8 +9486,13 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // tab (a record of what the user chose, ordered as they chose it) and under ?curate=off,
       // which is the user saying "don't sort for me" — fit is sorting for them, so it obeys that.
       const fitRequested = !savedTab && req.query.curate !== 'off';
+      // ⭐ D112 item 6 · the user's eligibility answers, read ONCE: the order's lead key (a posting whose STORED
+      // requirements contradict an answer they SET goes to the end of the BOARD) and the per-row mark below.
+      // Nothing set → ineligibleOrderKey is null → no key; the order, the cursor and the count are as before.
+      const boardEligInputs = (() => { try { return userEligibilityInputs(db, req.user.id); } catch { return { defaults: {}, degrees: [] }; } })();
       const orderKeys = buildOrderKeys(sort, richFilters.rank.keys,
-        { fit: fitRequested, search: boardSearch, established: richFilters.established.keys });
+        { fit: fitRequested, search: boardSearch, established: richFilters.established.keys,
+          ineligible: ineligibleOrderKey(boardEligInputs.defaults) });
       const fitApplied = ordersByFit(orderKeys);
       // The fit keys sort on scores a precompute pass can rewrite while this user pages, so the
       // cursor is signed with an EPOCH that moves whenever their scores do: the newest report row
@@ -9803,9 +9808,11 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       }
       // ⭐ D104 P1 · the board MARKS a posting whose stated requirements contradict what THIS user set ("U.S. citizens only",
       // "no visa sponsorship") and DEMOTES it within the page — never hides it: the user can still open it and apply by
-      // hand. Computed only when the user has set something a requirement could contradict. ⚠ Within the page: the
-      // query's order across pages is unchanged (a cross-page demotion needs the requirement in the ORDER BY — open).
-      const eligInputs = (() => { try { return userEligibilityInputs(db, req.user.id); } catch { return { defaults: {}, degrees: [] }; } })();
+      // hand. Computed only when the user has set something a requirement could contradict.
+      // ⭐ D112 item 6 · ACROSS pages now for citizenship and clearance: the ORDER BY's lead key (ineligibleOrderKey,
+      // above) reads the stored req_* columns, so those rows are already last on the board. ⚠ Sponsorship and degree
+      // are not stored columns — for them (and a row whose stored reading is stale) this within-page move remains.
+      const eligInputs = boardEligInputs;
       const ineligible = new Map();
       if (hasEligibilityInputs(eligInputs)) {
         for (const j of rows) { const e = eligibilityForRow(j, eligInputs); if (e.status === "ineligible") ineligible.set(j.job_id, e.reasons); }

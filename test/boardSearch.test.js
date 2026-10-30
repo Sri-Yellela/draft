@@ -75,7 +75,7 @@ test("⛔ the substring filter is GONE from the board", () => {
   const src = fs.readFileSync("server.js", "utf8");
   assert.doesNotMatch(src, /sj\.title LIKE \? OR sj\.company LIKE \? OR sj\.description LIKE \?/);
   assert.match(src, /const keyFilter = boardSearch \? `AND \$\{boardSearch\.sql\} IS NOT NULL` : '';/);
-  assert.match(src, /buildOrderKeys\(sort, richFilters\.rank\.keys,\s*\{ fit: fitRequested, search: boardSearch, established: richFilters\.established\.keys \}\)/);
+  assert.match(src, /buildOrderKeys\(sort, richFilters\.rank\.keys,\s*\{ fit: fitRequested, search: boardSearch, established: richFilters\.established\.keys,\s*ineligible: ineligibleOrderKey\(boardEligInputs\.defaults\) \}\)/);
   assert.match(src, /registerBoardSearch\(db\);/);
   // A search is the user asking: the profile's role scope (a default) does not hide what they typed.
   // D30: so does an explicitly chosen job function (the sentence's domain).
