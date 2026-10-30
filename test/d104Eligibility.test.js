@@ -143,3 +143,22 @@ test("D104 · d104SelfRatingNeedsYou — a self-rating with no saved answer is l
   assert.equal(q1?.value, "Expert");
   assert.equal(sourceOf(q1.provenance), "saved_answer");
 });
+
+test("D104 · d104BoardMarksIneligible — a row is marked for THIS user, demoted within its page, never hidden; nothing is computed with no answers set", async () => {
+  const { hasEligibilityInputs, eligibilityForRow } = await import("../services/jobEligibility.js");
+  const inputs = { defaults: { citizenship: "India", sponsorship_now: "yes" }, degrees: [] };
+  assert.equal(hasEligibilityInputs({ defaults: {}, degrees: [] }), false, "no answers set → the board is untouched");
+  assert.equal(hasEligibilityInputs(inputs), true);
+  assert.deepEqual(eligibilityForRow({ description: CITIZEN_ONLY }, inputs).reasons, ["U.S. citizens only", "no visa sponsorship"]);
+  assert.equal(eligibilityForRow({ description: "Build things with us." }, inputs).status, "eligible");
+  assert.equal(eligibilityForRow({ description: null }, inputs).status, "eligible");
+  const src = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
+  const at = src.indexOf("const ineligible = new Map();");
+  assert.ok(at > 0, "the board computes it");
+  const block = src.slice(at, at + 2500);
+  assert.match(block, /if \(hasEligibilityInputs\(eligInputs\)\)/);
+  assert.match(block, /const pageRows = ineligible\.size \? \[\.\.\.rows\.filter\(j => !ineligible\.has\(j\.job_id\)\), \.\.\.rows\.filter\(j => ineligible\.has\(j\.job_id\)\)\] : rows;/);
+  assert.match(block, /jobs:\s+pageRows\.map\(/);
+  assert.match(block, /eligibility: \{ status: "ineligible", reasons: ineligible\.get\(j\.job_id\) \}/);
+  assert.doesNotMatch(block.slice(0, block.indexOf("const responseBody")), /rows\s*=\s*rows\.filter|rows\.splice/, "the page's rows (and so its cursor) are not changed");
+});
