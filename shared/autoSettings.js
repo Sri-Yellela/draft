@@ -19,6 +19,9 @@ export const AUTO_DEFAULTS = Object.freeze({
   pauseCompanyAfterReply: true,
   filters: {},
   profileId: null,
+  // ⭐ 10-30 (owner): "let the users decide" — tick a portal's terms / privacy / consent box for me. OFF by default; off,
+  // such a box stops the application at Needs you (SEMI's own click). Never a signature, an attestation or an opt-in.
+  agreeToTerms: false,
 });
 export const CAP_MIN = 1;
 export const CAP_MAX = 150;
@@ -80,6 +83,10 @@ export function normaliseAutoSettings(input = {}) {
       if (s) out[k] = s;
     }
     v.filters = out;
+  }
+  if ("agreeToTerms" in input) {
+    if (typeof input.agreeToTerms !== "boolean") return fail("bad_agree_to_terms", "Agreeing to terms for you is on or off.");
+    v.agreeToTerms = input.agreeToTerms;
   }
   if ("profileId" in input) {
     if (!(input.profileId === null || Number.isInteger(input.profileId))) return fail("bad_profile", "The job profile is an id, or none for the active one.");

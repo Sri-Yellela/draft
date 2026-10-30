@@ -124,7 +124,7 @@ export async function enterCode(page, getCode) {
  * Create the account. `who` = { email, firstName, lastName }. Returns { ok: true } (signed in) or { ok: false, reason }.
  * ⛔ A required consent box stops it — never ticked. A human check or an emailed code stops it — never answered.
  */
-export async function signUp(page, startUrl, who, password) {
+export async function signUp(page, startUrl, who, password, { tickConsent = false } = {}) {
   await page.goto(startUrl, { waitUntil: "domcontentloaded" });
   let c = classify(await page.evaluate(readForm));
   if (c.kind !== "signup") { await follow(page, /create (an )?account|sign ?up|register|new user/); c = classify(await page.evaluate(readForm)); }
@@ -133,7 +133,12 @@ export async function signUp(page, startUrl, who, password) {
   if (c.kind === "email_only") { await fill(page, c.email, who.email); await submit(page); c = classify(await page.evaluate(readForm)); }
   if (c.kind === "human_check" || c.kind === "email_verification") return stop(c.kind);
   if (c.kind !== "signup" && c.kind !== "password_only") return stop("signup_failed");
-  if (c.consent?.some(f => f.required && !f.checked)) return stop("consent_required");
+  // ⭐ 10-30 (owner): a required terms / privacy box is ticked ONLY when the user chose it (Auto settings agreeToTerms →
+  // the lease's rules.tickConsent) — never a signature or an attestation of truth. Off: the run stops, Needs you.
+  const mustTick = (c.consent || []).filter(f => f.required && !f.checked);
+  if (mustTick.length && !tickConsent) return stop("consent_required");
+  if (mustTick.some(f => /signature|e-?sign|certif|attest|declare|true and (?:correct|complete)/i.test(`${f.label} ${f.name}`))) return stop("consent_required");
+  for (const f of mustTick) await page.click(`[data-aw="${f.aw}"]`);
   const form = await page.evaluate(readForm);
   const n = nameFields(form);
   if (n.first) await fill(page, n.first, who.firstName || "");
@@ -184,7 +189,7 @@ export async function sessionFromAccount(lease, { keys, openPage, postAccount, g
     let creds;
     if (acct.create) {
       const password = generatePassword();
-      let r = await signUp(page, start, who, password);
+      let r = await signUp(page, start, who, password, { tickConsent: lease.rules?.tickConsent === true });
       if (!r.ok && r.reason === "email_verification" && getCode) r = await enterCode(page, getCode);
       if (!r.ok) { await postAccount({ remoteId: lease.id, accountId: acct.id, outcome: "stopped", reason: r.reason }); return { stopped: r.reason }; }
       const minted = keys.mint(acct.portalFamily);

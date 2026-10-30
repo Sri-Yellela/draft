@@ -9,7 +9,7 @@
 // ⛔ There is NO `model` source (D17: only résumé generation calls a model). A value the fill engine GUESSED
 // (label_fuzzy, default — services/applyAutomation.js PROVENANCE) has NO source: the engine already holds it below
 // AUTO_SUBMIT_MIN_CONFIDENCE, so it reaches Needs you instead of the employer.
-export const ANSWER_SOURCES = Object.freeze(["profile", "saved_answer", "posting", "user_now"]);
+export const ANSWER_SOURCES = Object.freeze(["profile", "saved_answer", "posting", "user_now", "user_setting"]);
 
 const OF_PROVENANCE = Object.freeze({
   handler_exact: "profile",
@@ -18,6 +18,8 @@ const OF_PROVENANCE = Object.freeze({
   sponsorship_derived: "profile",
   custom_answer: "saved_answer",
   user_now: "user_now",
+  // 10-30: a terms / privacy box the user's own Auto settings (agreeToTerms) let draft tick
+  user_consent_setting: "user_setting",
   posting: "posting",
 });
 

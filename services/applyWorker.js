@@ -20,6 +20,10 @@ export const LEASE_SECONDS = 15 * 60;
 export const MAX_ATTEMPTS = 3;
 export const REMOTE_STATES = Object.freeze(["queued", "leased", "ready_to_approve", "submitted", "stopped", "failed", "cancelled"]);
 export const PRODUCT_RULES = Object.freeze({ tickConsent: false, answerHumanCheck: false, guessEligibility: false });
+function userAgreesToTerms(db, userId) {
+  try { return JSON.parse(db.prepare(`SELECT auto_settings FROM users WHERE id = ?`).pluck().get(userId) || "{}").agreeToTerms === true; }
+  catch { return false; }
+}
 /** The worker's stop reasons → the run-job's hold reason (a T32-style code the panel already reads, or a new one). */
 export const STOP_REASONS = Object.freeze({
   signed_out: "session_signed_out",
@@ -235,7 +239,8 @@ export function leaseRemoteRun(db, { workerId = "worker", env = process.env, now
       // D100 (a): sign in with the account draft made — or, when it is still `requested`, create it first (ciphertext null).
       account: !sessionLive ? { id: account.id, portalFamily: account.portal_family, originHost: account.origin_host,
                  keyId: account.key_id, ciphertext: account.ciphertext, create: account.status !== "created" } : null,
-      rules: PRODUCT_RULES,
+      // ⭐ 10-30: the user's own choice decides the terms box (Auto settings agreeToTerms); a human check never.
+      rules: { ...PRODUCT_RULES, tickConsent: userAgreesToTerms(db, row.user_id) },
     } };
   }
   return killed && rows.length ? { paused: true } : {};

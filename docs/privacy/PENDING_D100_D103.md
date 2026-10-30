@@ -30,8 +30,13 @@ Nothing here is legal advice; it is a description of what the code does, for cou
 > draft's servers never see it. The account is yours: you can sign in to it with the portal's own "forgot password".
 > Removing it in draft destroys our copy of the key; the account at the portal stays yours.
 >
-> **What the apply service will not do:** it never ticks a terms, consent or privacy box for you, never answers a
-> CAPTCHA or other human check, and never guesses an eligibility answer (work authorisation, sponsorship, citizenship,
+> **Agreeing to a portal's terms for you.** Only if you switch it on in Auto settings, draft ticks a portal's terms of
+> service, privacy policy or data-processing consent box when an application or a sign-up requires it — never a
+> signature, a statement that your answers are true, or a box that signs you up for marketing. Off (the default), the
+> application waits for you to tick it yourself.
+>
+> **What the apply service will not do:** it never answers a CAPTCHA or other human check, and never guesses an
+> eligibility answer (work authorisation, sponsorship, citizenship,
 > clearance, criminal history) — those stop the application and wait for you. It never stores a screenshot of a page
 > you are signed in to; it keeps the list of fields and the values it filled.
 
@@ -96,6 +101,8 @@ cookies)* — collected, encrypted in transit, not shared except with the user's
   apply service opens it, while it applies for you. Your password is never stored."
 - **Create an account for me:** "draft will create a {portal} account with your email and a password only its apply
   service can read. You can always take it over with {portal}'s 'forgot password'."
+- **Agree to terms for me:** "draft will tick a portal's terms, privacy or data-processing box for you when an
+  application needs it. Never a signature or a statement that your answers are true. Off, those wait for you."
 - **Read verification codes:** "draft's apply service may read a code {portal} emails you, within 10 minutes, to
   finish an application. Each read is logged."
 - **Inbox:** "Forward replies from job sites to this address. Employers keep writing to your own email; draft never

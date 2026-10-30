@@ -33,6 +33,7 @@ export const CONFIDENCE_BY_PROVENANCE = {
   // disclosing reading — which is a judgement, so it sits below LOW_CONFIDENCE deliberately.
   sponsorship_derived:        1.0,
   sponsorship_assumed_future: 0.75,
+  user_consent_setting:       1.0,   // 10-30: a terms box the user's own Auto settings let draft tick
 };
 
 /** Below this an answer may not be auto-submitted; here, it is what "uncertain" means. */
@@ -53,6 +54,7 @@ export const TIER_LABEL = {
   default:         'guess',
   sponsorship_derived:        'derived',
   sponsorship_assumed_future: 'assumed',
+  user_consent_setting:       'your setting',
 };
 
 /**

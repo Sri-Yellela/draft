@@ -124,6 +124,9 @@ test("D100 (a) · in a real Chrome: sign up, sign in; a terms box, a CAPTCHA and
     assert.deepEqual(await signUp(await browser.newPage(), portal.base + "/signup?tos=1", { ...who, email: "eli@example.test" }, pw),
       { ok: false, reason: "consent_required" });
     assert.equal(portal.users.has("eli@example.test"), false, "nothing was submitted");
+    // ⭐ 10-30 (owner): with the user's own Auto settings agreeToTerms (the lease's rules.tickConsent), the box is ticked
+    assert.deepEqual(await signUp(await browser.newPage(), portal.base + "/signup?tos=1", { ...who, email: "eli@example.test" }, pw, { tickConsent: true }), { ok: true });
+    assert.equal(portal.users.has("eli@example.test"), true, "the account was created with the terms box ticked");
     assert.deepEqual(await signIn(await browser.newPage(), portal.base + "/captcha", { email: who.email, password: pw }),
       { ok: false, reason: "human_check" });
     assert.deepEqual(await signIn(await browser.newPage(), portal.base + "/verify", { email: who.email, password: pw }),
