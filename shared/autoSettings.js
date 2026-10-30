@@ -11,6 +11,8 @@
 //   pauseCompanyAfterReply   default ON — a company with an interview / offer in 60 days is skipped
 //   filters                  the board's own query parameters ("Start from my board filters")
 //   profileId                which job profile runs (null = the active one)
+//   staleReposts             D107 P3: skip a posting reposted this many times (null = off), default 3
+//   staleOpenDays            D107 P3: skip a posting open longer than this many days (null = off), default 90
 export const AUTO_DEFAULTS = Object.freeze({
   dailyCap: 10,
   runTimes: ["09:00"],
@@ -22,6 +24,9 @@ export const AUTO_DEFAULTS = Object.freeze({
   // ⭐ 10-30 (owner): "let the users decide" — tick a portal's terms / privacy / consent box for me. OFF by default; off,
   // such a box stops the application at Needs you (SEMI's own click). Never a signature, an attestation or an opt-in.
   agreeToTerms: false,
+  // ⭐ D107 P3: FULL AUTO and Approve all leave out a posting that looks like it is never filled — shown, never hidden.
+  staleReposts: 3,
+  staleOpenDays: 90,
 });
 export const CAP_MIN = 1;
 export const CAP_MAX = 150;
@@ -87,6 +92,18 @@ export function normaliseAutoSettings(input = {}) {
   if ("agreeToTerms" in input) {
     if (typeof input.agreeToTerms !== "boolean") return fail("bad_agree_to_terms", "Agreeing to terms for you is on or off.");
     v.agreeToTerms = input.agreeToTerms;
+  }
+  if ("staleReposts" in input) {
+    const n = input.staleReposts;
+    if (!(n === null || (Number.isInteger(n) && n >= 1 && n <= 20)))
+      return fail("bad_stale_reposts", "Skip reposted postings: off, or 1 to 20 reposts.");
+    v.staleReposts = n;
+  }
+  if ("staleOpenDays" in input) {
+    const n = input.staleOpenDays;
+    if (!(n === null || (Number.isInteger(n) && n >= 14 && n <= 365)))
+      return fail("bad_stale_open_days", "Skip long-open postings: off, or 14 to 365 days.");
+    v.staleOpenDays = n;
   }
   if ("profileId" in input) {
     if (!(input.profileId === null || Number.isInteger(input.profileId))) return fail("bad_profile", "The job profile is an id, or none for the active one.");

@@ -4931,4 +4931,26 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D107 (owner 10-30) · IS THIS POSTING ALIVE. One row per posting id that OUTLIVES its scraped_jobs row (the
+      // cleanup deletes expired rows; dedup folds others), so a repost can be recognised after the posting it replaced
+      // is gone: same company + title key + location, a near-same description (desc_sig, a minhash), first seen after
+      // the earlier one. Written by services/jobs/jobHistory.js recordJobHistory — a rollup, never inside the crawl's
+      // upsert. first_seen only moves earlier; closed_at clears when a closed posting is seen active again.
+      id: "175_job_history",
+      sql: `
+        CREATE TABLE IF NOT EXISTS job_history (
+          job_id      TEXT PRIMARY KEY,
+          company_key TEXT NOT NULL,
+          title_key   TEXT NOT NULL,
+          loc_key     TEXT NOT NULL DEFAULT '',
+          desc_sig    TEXT,
+          posted_at   INTEGER,
+          first_seen  INTEGER NOT NULL,
+          last_seen   INTEGER NOT NULL,
+          closed_at   INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_job_history_group ON job_history(company_key, title_key, first_seen);
+      `,
+    },
   ];

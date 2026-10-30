@@ -15,6 +15,7 @@ import { companyNameKey } from "../shared/companyIdentity.js";
 import { userHeld } from "./applyUserHold.js";
 import { fullAutoDisabled } from "./appSettings.js";
 import { eligibilityForJob, userEligibilityInputs } from "./jobEligibility.js";
+import { livenessFor, isStale } from "./jobs/jobHistory.js";
 
 const DAY = 86400;
 const MAX_JOBS_PER_RUN = 25; // POST /api/apply/runs' own limit
@@ -59,7 +60,7 @@ export function startedToday(createdAts, nowSec, timeZone) {
  * @param ctx { remaining, drafted:Set<jobId>, companyCounts:Map<key,n>, pausedCompanies:Set<key>, settings }
  * @returns { take: jobId[], skipped: [{ jobId, reason }] }
  */
-export function pickJobs(candidates, { remaining, drafted, companyCounts, pausedCompanies, settings, isIneligible = null }) {
+export function pickJobs(candidates, { remaining, drafted, companyCounts, pausedCompanies, settings, isIneligible = null, isStalePosting = null }) {
   const take = [];
   const skipped = [];
   const counts = new Map(companyCounts);
@@ -68,6 +69,8 @@ export function pickJobs(candidates, { remaining, drafted, companyCounts, paused
     if (drafted.has(String(c.jobId))) { skipped.push({ jobId: c.jobId, reason: "already_drafted" }); continue; }
     // ⛔ D104 P1: a posting whose stated requirements contradict what the user SET is never queued by FULL AUTO.
     if (isIneligible?.(c.jobId)) { skipped.push({ jobId: c.jobId, reason: "ineligible" }); continue; }
+    // ⛔ D107 P3: nor one past the user's staleness thresholds (reposted ≥ N, open > N days) — still on the board.
+    if (isStalePosting?.(c.jobId)) { skipped.push({ jobId: c.jobId, reason: "stale" }); continue; }
     const key = companyNameKey(c.company || "");
     if (key && settings.pauseCompanyAfterReply && pausedCompanies.has(key)) { skipped.push({ jobId: c.jobId, reason: "company_paused" }); continue; }
     if (key && settings.perCompanyLimit30d != null && (counts.get(key) || 0) >= settings.perCompanyLimit30d) {
@@ -115,7 +118,8 @@ export function userContext(db, userId, nowSec, settings) {
   const used = startedToday(autoStartsSince(db, userId, nowSec - 2 * DAY), nowSec, settings.timeZone);
   const inputs = userEligibilityInputs(db, userId);
   const isIneligible = (jobId) => eligibilityForJob(db, userId, jobId, inputs).status === "ineligible";
-  return { drafted, companyCounts, pausedCompanies, used, remaining: Math.max(0, settings.dailyCap - used), isIneligible };
+  const isStalePosting = (jobId) => isStale(livenessFor(db, jobId, { now: nowSec }), settings);
+  return { drafted, companyCounts, pausedCompanies, used, remaining: Math.max(0, settings.dailyCap - used), isIneligible, isStalePosting };
 }
 
 /**

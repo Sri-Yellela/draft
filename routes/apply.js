@@ -53,6 +53,9 @@ import { recordSubmission } from "../services/applicationRecords.js";
 import { enqueueRemoteRun } from "../services/applyWorker.js";
 // D104 P1: Approve all leaves out a posting the candidate's own defaults rule out.
 import { eligibilityForJob, userEligibilityInputs } from "../services/jobEligibility.js";
+// D107 P3: Approve all also leaves out a posting past the user's staleness thresholds (Auto settings).
+import { livenessFor, isStale } from "../services/jobs/jobHistory.js";
+import { readAutoSettings } from "../shared/autoSettings.js";
 
 // Live read through the one shared parser, exactly as server.js does — same flag, same function,
 // so this route and the gates over there cannot disagree. ⛔ See shared/monetisation.js: ON is a
@@ -4786,9 +4789,22 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           .map(r => ({ runJobId: r.id, jobId: String(r.job_id), reasons: verdict.get(r.id).reasons }));
         rows = rows.filter(r => verdict.get(r.id).status !== "ineligible");
       }
+      // ⛔ D107 P3: the same for a posting that looks never-filled (reposted ≥ N, open > N days — the user's Auto settings).
+      let skippedStale = [];
+      if (rows.length > 1) {
+        let settings;
+        try { settings = readAutoSettings(db.prepare("SELECT auto_settings FROM users WHERE id = ?").pluck().get(req.user.id)); }
+        catch { settings = readAutoSettings(null); }
+        const live = new Map(rows.map(r => [r.id, livenessFor(db, r.job_id)]));
+        skippedStale = rows.filter(r => isStale(live.get(r.id), settings))
+          .map(r => ({ runJobId: r.id, jobId: String(r.job_id), reason: live.get(r.id).label }));
+        rows = rows.filter(r => !isStale(live.get(r.id), settings));
+      }
       if (rows.length === 0) {
-        if (skippedIneligible.length) return out.status(409).json({ error: "all_ineligible", skippedIneligible,
-          message: "Every one of these postings states a requirement your Application defaults rule out. Approve one by itself to send it anyway." });
+        if (skippedIneligible.length || skippedStale.length) return out.status(409).json({ error: skippedStale.length && !skippedIneligible.length ? "all_stale" : "all_ineligible", skippedIneligible, skippedStale,
+          message: skippedStale.length && !skippedIneligible.length
+            ? "Every one of these postings looks like it is never filled (reposted, or open a long time). Approve one by itself to send it anyway."
+            : "Every one of these postings states a requirement your Application defaults rule out. Approve one by itself to send it anyway." });
         return out.status(409).json({
           error: "no_approvable_jobs",
           message: requested
@@ -4829,6 +4845,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         approved: rows.map(r => r.id),
         skipped: Math.max(0, requested - rows.length),
         skippedIneligible,
+        skippedStale,
         run: started.body,
       });
     }));

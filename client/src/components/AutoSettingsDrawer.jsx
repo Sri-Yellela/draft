@@ -142,6 +142,35 @@ export default function AutoSettingsDrawer({ open, onClose }) {
               <span className="dh-set__hint">For 60 days, read from your inbox.</span>
             </div>
 
+            {/* ⭐ D107 P3 · postings that look never-filled — skipped by FULL AUTO and Approve all, still on the board. */}
+            <div className="dh-set" data-stale-settings="">
+              <label className="dh-sw">
+                <input type="checkbox" role="switch" checked={s.staleReposts != null} aria-checked={s.staleReposts != null}
+                  onChange={() => set({ staleReposts: s.staleReposts == null ? 3 : null })} />
+                <span className="dh-set__lab">Skip postings reposted again and again</span>
+              </label>
+              {s.staleReposts != null ? (
+                <label className="dh-set__hint">Reposted{" "}
+                  <input type="number" min={1} max={20} value={s.staleReposts} aria-label="Reposts before a posting is skipped"
+                    onChange={(e) => set({ staleReposts: Math.max(1, Math.min(20, Number(e.target.value) || 1)) })} />
+                  {" "}times or more.</label>
+              ) : <span className="dh-set__hint">Off — reposted postings are sent like any other.</span>}
+            </div>
+
+            <div className="dh-set">
+              <label className="dh-sw">
+                <input type="checkbox" role="switch" checked={s.staleOpenDays != null} aria-checked={s.staleOpenDays != null}
+                  onChange={() => set({ staleOpenDays: s.staleOpenDays == null ? 90 : null })} />
+                <span className="dh-set__lab">Skip postings open a long time</span>
+              </label>
+              {s.staleOpenDays != null ? (
+                <label className="dh-set__hint">Open more than{" "}
+                  <input type="number" min={14} max={365} value={s.staleOpenDays} aria-label="Days open before a posting is skipped"
+                    onChange={(e) => set({ staleOpenDays: Math.max(14, Math.min(365, Number(e.target.value) || 14)) })} />
+                  {" "}days. They stay on your board; you can still send one yourself.</label>
+              ) : <span className="dh-set__hint">Off — a posting's age does not matter.</span>}
+            </div>
+
             <div className="dh-set">
               <label htmlFor="dh-prof">Job profile</label>
               <select id="dh-prof" value={s.profileId ?? ""} onChange={(e) => set({ profileId: e.target.value === "" ? null : Number(e.target.value) })}>
@@ -163,7 +192,7 @@ export default function AutoSettingsDrawer({ open, onClose }) {
 
             <div className="dh-set">
               <span className="dh-set__lab">Never sent automatically</span>
-              <span className="dh-set__hint">Postings your Application defaults rule out, a human check (a CAPTCHA), an eligibility
+              <span className="dh-set__hint">Postings your Application defaults rule out, postings past the two limits above, a human check (a CAPTCHA), an eligibility
                 question you have not answered{s.agreeToTerms ? "" : ", a terms box"} — each waits in Needs you.</span>
             </div>
             {msg && <p className="dh-drawer__msg" role="alert">{msg}</p>}

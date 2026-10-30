@@ -83,6 +83,8 @@ import { formReportHandler, purgeExpiredFormReports } from "./services/formRepor
 import { createCompanyKbRouter } from "./routes/companyKb.js";
 import { runOrgLayerRollup } from "./services/kb/orgLayer.js";
 import { runHiringSignalsRollup } from "./services/jobs/hiringSignals.js";
+// ⭐ D107: every posting's first seen / last seen / closed, kept after its board row goes; reposts read from it.
+import { recordJobHistory, livenessForRows } from "./services/jobs/jobHistory.js";
 // trackScrape dropped from this import in cleanup 5.8 — it was imported here and never called.
 // Every model call goes through callModel, which records usage on one path — see
 // services/modelCall.js. trackApiCall is no longer imported here: server.js called it
@@ -5375,6 +5377,28 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⭐ D107 (owner 10-30) · IS THIS POSTING ALIVE. One row per posting id that OUTLIVES its scraped_jobs row (the
+      // cleanup deletes expired rows; dedup folds others), so a repost can be recognised after the posting it replaced
+      // is gone: same company + title key + location, a near-same description (desc_sig, a minhash), first seen after
+      // the earlier one. Written by services/jobs/jobHistory.js recordJobHistory — a rollup, never inside the crawl's
+      // upsert. first_seen only moves earlier; closed_at clears when a closed posting is seen active again.
+      id: "175_job_history",
+      sql: `
+        CREATE TABLE IF NOT EXISTS job_history (
+          job_id      TEXT PRIMARY KEY,
+          company_key TEXT NOT NULL,
+          title_key   TEXT NOT NULL,
+          loc_key     TEXT NOT NULL DEFAULT '',
+          desc_sig    TEXT,
+          posted_at   INTEGER,
+          first_seen  INTEGER NOT NULL,
+          last_seen   INTEGER NOT NULL,
+          closed_at   INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_job_history_group ON job_history(company_key, title_key, first_seen);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -5848,6 +5872,9 @@ const upload = multer({
 // and also scheduled daily.
 function runExpiredJobsCleanup() {
   const cutoff = Math.floor(Date.now()/1000) - 7*24*60*60;
+  // ⭐ D107: the history is written BEFORE anything is deleted — a deleted posting is the one a later repost points back to.
+  try { const h = recordJobHistory(db); console.log(`[job-history] cleanup: ${h.seen} seen, ${h.closed} closed`); }
+  catch (e) { console.warn("[job-history] cleanup:", e.message); }
 
   // STARRED ROWS ARE RETIRED, NEVER REMOVED.
   //
@@ -6054,6 +6081,13 @@ cron.schedule("0 4 * * *", async () => {
     runHiringSignalsRollup(db);
   } catch(e) {
     console.error('[Cron] Hiring signals rollup error:', e.message);
+  }
+  // ⭐ D107: after the crawl, so today's sightings and closings are in the history.
+  try {
+    const h = recordJobHistory(db);
+    console.log(`[Cron] job history: ${h.seen} seen, ${h.closed} closed`);
+  } catch(e) {
+    console.error('[Cron] Job history rollup error:', e.message);
   }
 }, { timezone: 'America/New_York' });
 console.log('[Cron] Daily ATS cache refresh scheduled: 04:00 ET');
@@ -9646,6 +9680,8 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
         for (const j of rows) { const e = eligibilityForRow(j, eligInputs); if (e.status === "ineligible") ineligible.set(j.job_id, e.reasons); }
       }
       const pageRows = ineligible.size ? [...rows.filter(j => !ineligible.has(j.job_id)), ...rows.filter(j => ineligible.has(j.job_id))] : rows;
+      // ⭐ D107 P2 · is this posting alive — "Reposted 4 times since June" · "Open 94 days" · "New — first seen yesterday".
+      const liveness = (() => { try { return livenessForRows(db, pageRows); } catch { return new Map(); } })();
       const responseBody = {
         success:    true,
         // ⛔ A52 · A STORED SCORE IS SHOWN ONLY WHILE IT IS STILL ABOUT THIS POSTING AND THIS BASIS.
@@ -9656,6 +9692,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
         jobs:       pageRows.map(j => ({ ...mapJobRow({ ...j, matchScore: presentedScore(j, { basisHash: boardBasisHash }) }),
                                      scrapedAt: j.scraped_at,
                                      ...(ineligible.has(j.job_id) ? { eligibility: { status: "ineligible", reasons: ineligible.get(j.job_id) } } : {}),
+                                     ...(liveness.has(String(j.job_id)) ? { liveness: liveness.get(String(j.job_id)) } : {}),
                                      // D40 · the + view's one extra line: "captured <date> · from <host>".
                                      ...(importedTab ? { captured: captureMeta(capturedBy.get(j.job_id)) } : {}),
                                      ...(pendingTab && resumeBy.has(j.job_id) ? (({ job_id, ...r }) => r)(resumeBy.get(j.job_id)) : {}) })),
