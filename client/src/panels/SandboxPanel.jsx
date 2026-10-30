@@ -17,6 +17,7 @@ import { useState, useEffect, useRef } from "react";
 import { useTheme } from "../styles/theme.jsx";
 import PanelShell from "../components/PanelShell.jsx";
 import { C } from "../styles/colorTokens.js";
+import DocToolbar from "../components/DocToolbar.jsx";
 
 const RESUME_PAGE_WIDTH  = 794;  // A4 at 96dpi
 const RESUME_PAGE_HEIGHT = 1123; // A4 at 96dpi
@@ -87,6 +88,8 @@ export default function SandboxPanel({
   const innerRef     = useRef(null);  // scale host — transform applied directly to DOM
   const scaleRef     = useRef(1);     // current scale value — never stored in state
   const frameCleanupRef = useRef([]);
+  // A106: the page that holds the selection — the toolbar's selection commands act there.
+  const activeFrameRef = useRef(0);
   const currentHtmlRef = useRef(activeEntry?.html || "");
   const syncingFramesRef = useRef(false);
 
@@ -137,6 +140,20 @@ export default function SandboxPanel({
     if (containerRef.current) ro.observe(containerRef.current);
     return () => ro.disconnect();
   }, [activeEntry?.html]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A106: the toolbar's view of the pages. A document command applies to every page; the sandbox's own input path
+  // (handleInput: dirty, currentHtmlRef, the other pages' sync) records the result.
+  const toolbarDoc = () => (frameRefs.current[activeFrameRef.current] || frameRefs.current[0])?.contentDocument || null;
+  const toolbarDocs = () => frameRefs.current.map(f => f?.contentDocument).filter(d => d?.body);
+  const toolbarChanged = (doc) => { try { doc?.dispatchEvent(new Event("input")); } catch { /* the page is gone */ } };
+
+  // A105 finding 9: unsaved edits are not lost to a closed tab — the browser asks first.
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const warn = (e) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   const getCurrentHtml = () => {
     const primaryFrame = frameRefs.current[0];
@@ -225,6 +242,9 @@ export default function SandboxPanel({
     };
 
     doc.addEventListener("input", handleInput);
+    const markActive = () => { activeFrameRef.current = pageIndex; };
+    doc.addEventListener("selectionchange", markActive);
+    doc.addEventListener("focusin", markActive);
     syncPageCount();
 
     let resizeObserver = null;
@@ -236,6 +256,8 @@ export default function SandboxPanel({
 
     frameCleanupRef.current[pageIndex] = () => {
       doc.removeEventListener("input", handleInput);
+      doc.removeEventListener("selectionchange", markActive);
+      doc.removeEventListener("focusin", markActive);
       resizeObserver?.disconnect();
       frameCleanupRef.current[pageIndex] = null;
     };
@@ -471,7 +493,7 @@ export default function SandboxPanel({
                 <div style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 12px",
                               background:"var(--color-primary-muted)", color:"var(--color-primary-text)",
                               fontSize:10, fontWeight:700, flexShrink:0 }}>
-                  <span>Reading view reflows to the panel width — page breaks are not shown.</span>
+                  <span>Reading view reflows to the panel width — page breaks are not shown. Switch to Page view to edit and format.</span>
                   <button onClick={() => setViewMode("page")}
                     style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer",
                              color:"inherit", fontSize:10, fontWeight:800, textDecoration:"underline" }}>
@@ -513,6 +535,10 @@ export default function SandboxPanel({
                 boxSizing: "border-box",
               }}
             >
+              {/* A106: Word-like tools, above the pages and sticky while they scroll. */}
+              <div style={{ position: "sticky", top: 0, zIndex: 1, marginBottom: 6 }}>
+                <DocToolbar getDoc={toolbarDoc} getAllDocs={toolbarDocs} onChanged={toolbarChanged} />
+              </div>
               {/* Scale host — natural A4 dimensions; transform mutated directly via innerRef */}
               <div
                 ref={innerRef}
