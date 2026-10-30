@@ -55,3 +55,11 @@ test("A105 (2) · Pending has a search, a tick per pending row, 'I did not apply
   assert.match(ui, /window\.confirm\(/, "a bulk clear says what it does first");
   assert.match(db, /api\("\/api\/applications\/pending\/withdraw", \{ method: "POST", body: JSON\.stringify\(\{ jobIds \}\) \}\)/);
 });
+
+// A105 finding 6 — Approve all was Review all → scroll → Approve all → Yes, inside a modal.
+test("A105 (6) · Approve all sits in Draft House's Stopped header: two presses, the same server call", () => {
+  const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
+  assert.match(panel, /\{applyPending\.length > 1 && \(confirmSendAll \? \(/, "only when there are two or more");
+  assert.match(panel, /onClick=\{\(\) => decidePending\(applyPending\.map\(p => p\.runJobId\), true\)\.finally\(\(\) => setConfirmSendAll\(false\)\)\}/);
+  assert.match(panel, /Send all \{applyPending\.length\} to their employers\?/, "the second press says what it does");
+});

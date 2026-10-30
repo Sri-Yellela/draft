@@ -146,6 +146,9 @@ export function AutoApplyPanel() {
   const [search, setSearch] = useState("");
   // D102 P4: the Auto settings drawer, opened from the run bar; focus returns to the button that opened it.
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // A105 finding 6: Approve all in the column's header — two deliberate presses (it sends several real applications),
+  // not three behind a modal. The server still leaves ineligible ones in Ready to approve (skippedIneligible).
+  const [confirmSendAll, setConfirmSendAll] = useState(false);
   const settingsOpener = useRef(null);
   const fullAuto = runBar?.mode?.current === "auto";
   const listedItems = filterItems(stoppedItems, search);
@@ -613,6 +616,26 @@ export function AutoApplyPanel() {
                 Review all {needsYouCount} →
               </button>
             )}
+            {applyPending.length > 1 && (confirmSendAll ? (
+              <span data-send-all-confirm="" style={{ display: "inline-flex", gap: 6, alignItems: "center", textTransform: "none", letterSpacing: 0 }}>
+                <span style={{ fontSize: 11, color: C.DANGER, fontWeight: 700 }}>Send all {applyPending.length} to their employers?</span>
+                <button onClick={() => decidePending(applyPending.map(p => p.runJobId), true).finally(() => setConfirmSendAll(false))}
+                  disabled={pendingBusy}
+                  style={{ border: "none", borderRadius: 6, padding: "3px 9px", background: C.DANGER, color: C.SURFACE_SOLID,
+                           fontWeight: 800, fontSize: 10.5, cursor: pendingBusy ? "wait" : "pointer" }}>Yes, send all</button>
+                <button onClick={() => setConfirmSendAll(false)} disabled={pendingBusy}
+                  style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "3px 9px", background: "transparent",
+                           color: theme.textMuted, fontWeight: 700, fontSize: 10.5, cursor: "pointer" }}>Cancel</button>
+              </span>
+            ) : (
+              <button onClick={() => setConfirmSendAll(true)} disabled={pendingBusy} data-send-all=""
+                title="Approve and send every application that is ready — you confirm once more first."
+                style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "3px 9px",
+                         background: "transparent", color: theme.text, fontWeight: 700,
+                         fontSize: 10.5, cursor: "pointer", letterSpacing: 0, textTransform: "none" }}>
+                Approve all {applyPending.length}
+              </button>
+            ))}
           </div>
           {stoppedCount === 0 && (
             <div style={{ fontSize: 12.5, color: theme.textMuted }}>Nothing is stopped — nothing needs you.</div>
