@@ -184,7 +184,9 @@ test("D103 P5 · the worker's code door: only for the run it holds, only for an 
   } finally { server.close(); }
 });
 
-test("D103 P1 · deletion: one message or all, only the user's own; the retention sweep runs only with a period", async () => {
+// ⭐ D112 item 3 (owner 10-30) CHANGED THIS ON PURPOSE: unset used to mean "no sweep"; it now means the policy's 180
+// days. "0" keeps the explicit no-sweep meaning; nonsense falls back to 180 (toward the promise, not away from it).
+test("D103 P1 · deletion: one message or all, only the user's own; the retention sweep defaults to 180 days", async () => {
   const { deleteMessages, sweepInbox } = await import("../services/inbox.js");
   const { db } = freshDb();
   const { address } = addressFor(db, 1);
@@ -193,14 +195,35 @@ test("D103 P1 · deletion: one message or all, only the user's own; the retentio
   ingestMessage(db, { providerId: "d2", to: [address], from: "a@b.example", subject: "Hello", text: "y" });
   const [old, fresh] = db.prepare("SELECT id FROM inbox_messages ORDER BY received_at").pluck().all();
   assert.equal(deleteMessages(db, 2, fresh), 0, "another user's message is not theirs to delete");
-  assert.equal(sweepInbox(db, undefined), 0, "no period set → nothing swept");
-  assert.equal(sweepInbox(db, "0"), 0, "zero is no period");
-  assert.equal(sweepInbox(db, "abc"), 0, "nonsense is no period");
-  assert.equal(sweepInbox(db, "365"), 1, "the env variable's string form is the period");
+  assert.equal(sweepInbox(db, "0"), 0, "an explicit 0 is the documented no-sweep");
+  assert.equal(sweepInbox(db, "500"), 0, "an override longer than the message's age keeps it");
+  assert.equal(sweepInbox(db, undefined), 1, "unset → the policy's 180 days, and a 400-day-old message goes");
   assert.deepEqual(db.prepare("SELECT id FROM inbox_messages").pluck().all(), [fresh]);
   assert.ok(old);
   assert.equal(deleteMessages(db, 1, null), 1);
   assert.equal(db.prepare("SELECT COUNT(*) FROM inbox_messages").pluck().get(), 0);
+});
+
+test("⭐ D112 · the 180-day sweep: a 181-day-old message is removed, a 179-day-old one kept; server.js runs it unset, at boot and daily", async () => {
+  const { sweepInbox, inboxRetentionDays, INBOX_RETENTION_DEFAULT_DAYS } = await import("../services/inbox.js");
+  assert.equal(INBOX_RETENTION_DEFAULT_DAYS, 180);
+  assert.equal(inboxRetentionDays(undefined), 180);
+  assert.equal(inboxRetentionDays(""), 180);
+  assert.equal(inboxRetentionDays("90"), 90, "the env can still override");
+  assert.equal(inboxRetentionDays("0"), null, "0 = the explicit no-sweep");
+  for (const bad of ["-5", "1.5", "abc"]) assert.equal(inboxRetentionDays(bad), 180, `${bad} fails toward the promise`);
+  const { db } = freshDb();
+  const { address } = addressFor(db, 1);
+  const nowSec = Math.floor(Date.now() / 1000);
+  ingestMessage(db, { providerId: "s181", to: [address], from: "a@b.example", subject: "Old", text: "x", receivedAt: nowSec - 181 * 86400 });
+  ingestMessage(db, { providerId: "s179", to: [address], from: "a@b.example", subject: "Recent", text: "y", receivedAt: nowSec - 179 * 86400 });
+  assert.equal(sweepInbox(db, undefined, nowSec), 1, "only the 181-day-old message goes");
+  assert.deepEqual(db.prepare("SELECT subject FROM inbox_messages").pluck().all(), ["Recent"]);
+  // the wiring: no "only when set" guard, a boot run and a daily run of the same sweep
+  const server = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
+  const s = server.slice(at(server, "const sweepInboxNow = () =>", 0, "server.js"));
+  assert.match(s, /^const sweepInboxNow = \(\) => \{ try \{ const n = sweepInbox\(db, process\.env\.INBOX_RETENTION_DAYS\);/);
+  assert.match(s, /setTimeout\(sweepInboxNow, 60 \* 1000\)\.unref\(\);\nsetInterval\(sweepInboxNow, 24 \* 3600 \* 1000\)\.unref\(\);/);
 });
 
 // The route's id check read /^d+$/ (its backslash lost when written), so every real DELETE /api/inbox/:id was a 400.

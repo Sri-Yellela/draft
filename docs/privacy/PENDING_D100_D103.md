@@ -1,5 +1,14 @@
 # Privacy — what D100 and D103 add, ready for the owner (not live)
 
+> ✅ **APPLIED 2026-10-30 (D112 item 3) — effective October 31, 2026, the push day.** The owner's answers: no notice
+> period (no registered users yet); the effective date is the push that applies it; **inbox mail kept 6 months = 180
+> days** (`services/inbox.js` `INBOX_RETENTION_DEFAULT_DAYS`, swept at boot and daily whether or not
+> `INBOX_RETENTION_DAYS` is set). Added beyond this draft: *Connecting Gmail* (D112 item 2, with Google's Limited Use
+> affirmation) and *Reading Job Postings on Any Site* (D112 item 4, T35 = A). The live text is
+> `client/src/pages/marketing/PrivacyPage.jsx`; the rows are in `extension/submission/PRIVACY_RECONCILIATION.md`
+> § D112; `test/d112PrivacyText.test.js` pins them. This file is kept as the draft's record — the ⚠ lines below about
+> the retention period and the notice decision are superseded.
+
 **Status:** drafted 2026-10-30 (WORKLOG 43q) from the code as built, **not applied to the live policy**
 (`client/src/pages/marketing/PrivacyPage.jsx`, effective October 25, 2026). D100 and D103 both say these disclosures
 **ship in the same push** as the features. Every item below is a **MATERIAL** change — draft starts keeping new kinds of
