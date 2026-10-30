@@ -130,6 +130,30 @@ export const WIKI_LICENCE = Object.freeze({
   url: "https://creativecommons.org/licenses/by-sa/4.0/",
 });
 
+/**
+ * ⭐ D105 P5 · LINKS IN — the PUBLISHED node each term lands on, by its term or a confirmed alias (skill_synonyms, the
+ * one thesaurus). A term with no published node is simply ABSENT from the answer, so a caller never draws a link to a
+ * draft or to nothing (d105ResolveOnlyPublished). Keys are the caller's own strings, as sent.
+ * @returns {Record<string, string>} term → slug
+ */
+export const RESOLVE_MAX_TERMS = 200;
+export function resolveTerms(db, terms) {
+  const out = {};
+  const byTerm = db.prepare(`SELECT slug FROM atlas_nodes WHERE term = ? AND status = 'published' LIMIT 1`).pluck();
+  const seen = new Set();
+  for (const raw of (Array.isArray(terms) ? terms : []).slice(0, RESOLVE_MAX_TERMS)) {
+    const key = String(raw ?? "").trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    const t = termOf(key);
+    if (!t) continue;
+    let slug = byTerm.get(t);
+    if (!slug) for (const a of aliasesOf(db, t)) { slug = byTerm.get(a); if (slug) break; }
+    if (slug) out[key] = slug;
+  }
+  return out;
+}
+
 /** The curator publishes (or unpublishes) a node. */
 export function setStatus(db, slug, status, by = "owner") {
   if (!["draft", "published"].includes(status)) throw new Error("atlas: status is draft or published");
