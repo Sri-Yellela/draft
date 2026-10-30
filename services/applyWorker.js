@@ -15,6 +15,7 @@
 // never ticked, a human check is never answered, an eligibility answer is never guessed (→ Needs you).
 import { fullAutoDisabled } from "./appSettings.js";
 import { userHeld } from "./applyUserHold.js";
+import { notifyEvent } from "./notify.js";
 
 export const LEASE_SECONDS = 15 * 60;
 export const MAX_ATTEMPTS = 3;
@@ -305,6 +306,8 @@ export function acceptReport(db, report, { workerId = "worker", hooks = {} } = {
     db.prepare(`UPDATE apply_run_jobs SET answers_json = ? WHERE id = ?`)
       .run(JSON.stringify((fields || []).map(f => ({ name: f.label, value: f.value, provenance: f.source }))), row.run_job_id);
     setRunJob("held_review", "awaiting_approval");
+    // D100 P4 / D112 item 8: "A job is ready for your approval" — never a company or a value.
+    void notifyEvent(row.user_id, "needs_you", { ready: true });
     return { ok: true, state: "ready_to_approve" };
   }
   if (report.outcome === "submitted") {
@@ -317,6 +320,7 @@ export function acceptReport(db, report, { workerId = "worker", hooks = {} } = {
       if (differs) {
         finishRemote(db, row, "stopped", "submit_check_failed");
         setRunJob("held_review", "submit_check_failed", `value_mismatch:${differs[0].slice(0, 80)}`);
+        void notifyEvent(row.user_id, "needs_you", {});
         return { ok: true, state: "stopped", warning: "reported values differ from the approved ones" };
       }
     }
@@ -329,6 +333,7 @@ export function acceptReport(db, report, { workerId = "worker", hooks = {} } = {
         report.evidence?.confirmation ? String(report.evidence.confirmation).slice(0, 200) : null, row.run_job_id);
     db.prepare(`UPDATE portal_session_uses SET outcome = 'submitted' WHERE apply_run_job_id = ? AND outcome IS NULL`).run(row.run_job_id);
     try { hooks.onSubmitted?.({ userId: row.user_id, jobId: row.job_id, runJobId: row.run_job_id, submittedBy }); } catch {}
+    void notifyEvent(row.user_id, "apply_complete", {});
     return { ok: true, state: "submitted" };
   }
   if (report.outcome === "stopped") {
@@ -336,6 +341,7 @@ export function acceptReport(db, report, { workerId = "worker", hooks = {} } = {
     if (fields) db.prepare(`UPDATE apply_remote_runs SET field_list_json = ? WHERE id = ?`).run(JSON.stringify(fields), row.id);
     finishRemote(db, row, "stopped", reason);
     setRunJob(reason === "session_signed_out" ? "held_gate" : "held_review", reason);
+    void notifyEvent(row.user_id, "needs_you", {});
     return { ok: true, state: "stopped" };
   }
   if (report.outcome === "error") {
