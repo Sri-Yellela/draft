@@ -5220,6 +5220,32 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_apply_remote_runs_state ON apply_remote_runs(state, lease_until);
       `,
     },
+    {
+      // ⭐ D100 (a), owner 10-30: "yes we are creating portal accounts". `portal_accounts` — an account the apply worker
+      // creates FOR the user on a portal (Amazon first), with the user's OWN email (no alias) and a password the WORKER
+      // generates. The credential is sealed to a key the worker minted for that account; draft stores ciphertext only and
+      // never sees the password. Consent is per portal. `apply_remote_runs.account_id` — a run that signs in (or signs up)
+      // with that account instead of an uploaded session.
+      id: "172_portal_accounts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS portal_accounts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          portal_family TEXT NOT NULL,
+          origin_host TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'requested',
+          key_id TEXT,
+          ciphertext TEXT,
+          consent_at INTEGER NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          last_stop TEXT,
+          removed_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_portal_accounts_user ON portal_accounts(user_id, removed_at);
+        ALTER TABLE apply_remote_runs ADD COLUMN account_id INTEGER;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");

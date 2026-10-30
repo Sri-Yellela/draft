@@ -28,6 +28,10 @@ export const STOP_REASONS = Object.freeze({
   eligibility_unanswered: "needs_you_eligibility",
   value_mismatch: "submit_check_failed",
   portal_changed: "portal_changed",
+  // D100 (a): an account draft creates — the portal's own checks stop it, never answered by draft.
+  email_verification: "account_email_verification",
+  signup_failed: "account_signup_failed",
+  signin_failed: "account_signin_failed",
 });
 
 const FAMILY = /^[a-z0-9][a-z0-9_-]{1,39}$/;
@@ -90,6 +94,76 @@ export function sessionForHost(db, userId, host, nowSec = now()) {
     .find(s => h === s.origin_host || h.endsWith(`.${s.origin_host}`)) || null;
 }
 
+// ── portal accounts (D100 (a), owner 10-30) ──────────────────────────────────────────────────
+//
+// draft creates an account FOR the user on a portal that wants one. The email is the user's own (no alias, D100);
+// the WORKER generates the password and seals { email, password } to a key it minted for this account, so draft
+// stores ciphertext and never sees the password. The user can always take the account over with the portal's own
+// "forgot password" — it is their email.
+
+/** The user's consent for one portal: draft may create (and then use) an account there. Idempotent per portal. */
+export function requestAccount(db, userId, { portalFamily, originHost, consent }) {
+  const fail = (code, message) => Object.assign(new Error(message), { status: 400, code });
+  if (consent !== true) throw fail("consent_required", "Consent is recorded per portal before an account is made.");
+  if (!FAMILY.test(String(portalFamily || ""))) throw fail("bad_portal", "A portal family is a short lowercase name.");
+  const host = String(originHost || "").toLowerCase();
+  if (!HOST.test(host)) throw fail("bad_origin", "The portal's host name is required.");
+  const live = db.prepare(`SELECT id FROM portal_accounts WHERE user_id = ? AND portal_family = ? AND removed_at IS NULL`).get(userId, portalFamily);
+  if (live) return { id: live.id, existing: true };
+  const id = db.prepare(`INSERT INTO portal_accounts (user_id, portal_family, origin_host, consent_at) VALUES (?, ?, ?, unixepoch())`)
+    .run(userId, portalFamily, host).lastInsertRowid;
+  return { id: Number(id), existing: false };
+}
+
+export function accountForHost(db, userId, host) {
+  const h = String(host || "").toLowerCase();
+  if (!h) return null;
+  return db.prepare(`SELECT * FROM portal_accounts WHERE user_id = ? AND removed_at IS NULL AND status != 'failed' ORDER BY id DESC`).all(userId)
+    .find(a => h === a.origin_host || h.endsWith(`.${a.origin_host}`)) || null;
+}
+
+/** The user's accounts — status only; never the ciphertext. */
+export function listAccounts(db, userId) {
+  return db.prepare(`SELECT id, portal_family, origin_host, status, created_at, updated_at, last_stop, removed_at
+    FROM portal_accounts WHERE user_id = ? ORDER BY id DESC`).all(userId).map(a => ({
+    id: a.id, portalFamily: a.portal_family, originHost: a.origin_host, requestedAt: a.created_at,
+    status: a.removed_at ? "removed" : a.status, lastStop: a.last_stop,
+  }));
+}
+
+/** Remove: draft stops using it; the worker destroys its key. The account at the portal stays the user's. */
+export function removeAccount(db, userId, accountId) {
+  const a = db.prepare(`SELECT id, key_id FROM portal_accounts WHERE id = ? AND user_id = ? AND removed_at IS NULL`).get(Number(accountId), userId);
+  if (!a) return null;
+  db.prepare(`UPDATE portal_accounts SET removed_at = unixepoch(), ciphertext = NULL, updated_at = unixepoch() WHERE id = ?`).run(a.id);
+  db.prepare(`UPDATE apply_remote_runs SET state = 'cancelled', outcome = 'account_removed', updated_at = unixepoch()
+    WHERE account_id = ? AND state IN ('queued', 'leased')`).run(a.id);
+  return { id: a.id, keyId: a.key_id };
+}
+
+/**
+ * The worker's account report, before its run report: { remoteId, accountId, outcome: 'created', keyId, ciphertext }
+ * or { remoteId, accountId, outcome: 'stopped', reason }. Only for a run this worker holds, on that run's account.
+ */
+export function acceptAccount(db, report, { workerId = "worker" } = {}) {
+  const run = db.prepare(`SELECT * FROM apply_remote_runs WHERE id = ?`).get(Number(report?.remoteId));
+  if (!run || run.state !== "leased" || run.worker_id !== String(workerId)) return { ok: false, error: "not_leased_by_you" };
+  if (Number(report.accountId) !== run.account_id) return { ok: false, error: "wrong_account" };
+  if (report.outcome === "created") {
+    if (!/^[A-Za-z0-9_-]{8,128}$/.test(String(report.keyId || "")) || typeof report.ciphertext !== "string" || !/^v1\./.test(report.ciphertext))
+      return { ok: false, error: "bad_credential" };
+    db.prepare(`UPDATE portal_accounts SET status = 'created', key_id = ?, ciphertext = ?, last_stop = NULL, updated_at = unixepoch()
+      WHERE id = ? AND removed_at IS NULL`).run(report.keyId, report.ciphertext, run.account_id);
+    return { ok: true, status: "created" };
+  }
+  if (report.outcome === "stopped") {
+    db.prepare(`UPDATE portal_accounts SET last_stop = ?, updated_at = unixepoch() WHERE id = ?`)
+      .run(String(report.reason || "stopped").slice(0, 60), run.account_id);
+    return { ok: true, status: "stopped" };
+  }
+  return { ok: false, error: "bad_outcome" };
+}
+
 // ── the queue ────────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -97,12 +171,15 @@ export function sessionForHost(db, userId, host, nowSec = now()) {
  * @returns the remote run id, or null when there is no live session for the page (the gated handoff stands).
  */
 export function enqueueRemoteRun(db, { userId, runJobId, packetId, applyUrl, approvalMode, approvedValues = null }) {
-  const session = sessionForHost(db, userId, hostOf(applyUrl));
-  if (!session) return null;
+  const host = hostOf(applyUrl);
+  // An uploaded session first; otherwise an account draft created (or may create) for the user on that portal.
+  const session = sessionForHost(db, userId, host);
+  const account = session ? null : accountForHost(db, userId, host);
+  if (!session && !account) return null;
   const mode = approvalMode === "approved" || approvalMode === "auto" ? "submit" : "fill";
-  db.prepare(`INSERT INTO apply_remote_runs (user_id, run_job_id, packet_id, session_id, mode, approved_values_json)
-    VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(run_job_id) DO NOTHING`)
-    .run(userId, runJobId, packetId ?? null, session.id, mode, approvedValues ? JSON.stringify(approvedValues) : null);
+  db.prepare(`INSERT INTO apply_remote_runs (user_id, run_job_id, packet_id, session_id, account_id, mode, approved_values_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(run_job_id) DO NOTHING`)
+    .run(userId, runJobId, packetId ?? null, session?.id ?? null, account?.id ?? null, mode, approvedValues ? JSON.stringify(approvedValues) : null);
   return db.prepare(`SELECT id FROM apply_remote_runs WHERE run_job_id = ?`).pluck().get(runJobId);
 }
 
@@ -130,8 +207,11 @@ export function leaseRemoteRun(db, { workerId = "worker", env = process.env, now
     }
     if (row.attempts >= MAX_ATTEMPTS) { finishRemote(db, row, "failed", "attempts_exhausted"); continue; }
     const session = row.session_id ? db.prepare(`SELECT * FROM portal_sessions WHERE id = ?`).get(row.session_id) : null;
-    if (!session || session.revoked_at || (session.expires_at && session.expires_at <= nowSec)) {
-      finishRemote(db, row, "stopped", "session_signed_out"); continue;
+    const account = row.account_id ? db.prepare(`SELECT * FROM portal_accounts WHERE id = ?`).get(row.account_id) : null;
+    const sessionLive = session && !session.revoked_at && !(session.expires_at && session.expires_at <= nowSec);
+    const accountLive = account && !account.removed_at && account.status !== "failed";
+    if (!sessionLive && !accountLive) {
+      finishRemote(db, row, "stopped", account ? "account_unavailable" : "session_signed_out"); continue;
     }
     const packet = row.packet_id ? db.prepare(`SELECT apply_url, expected_origin, answers_json, resume_artifact_id FROM apply_gate_packets WHERE id = ?`).get(row.packet_id) : null;
     if (!packet) { finishRemote(db, row, "failed", "packet_missing"); continue; }
@@ -139,8 +219,10 @@ export function leaseRemoteRun(db, { workerId = "worker", env = process.env, now
       updated_at = unixepoch() WHERE id = ? AND (state = 'queued' OR (state = 'leased' AND lease_until < ?))`)
       .run(String(workerId).slice(0, 64), nowSec + LEASE_SECONDS, row.id, nowSec);
     if (!took.changes) continue;
-    db.prepare(`INSERT INTO portal_session_uses (session_id, apply_run_job_id) VALUES (?, ?)`).run(session.id, row.run_job_id);
-    db.prepare(`UPDATE portal_sessions SET last_used_at = unixepoch() WHERE id = ?`).run(session.id);
+    if (sessionLive) {
+      db.prepare(`INSERT INTO portal_session_uses (session_id, apply_run_job_id) VALUES (?, ?)`).run(session.id, row.run_job_id);
+      db.prepare(`UPDATE portal_sessions SET last_used_at = unixepoch() WHERE id = ?`).run(session.id);
+    }
     return { run: {
       // userId is bound into the session's sealing (associated data user · portal · version, D79 §2.3).
       id: row.id, runJobId: row.run_job_id, userId: row.user_id, jobId: db.prepare(`SELECT job_id FROM apply_run_jobs WHERE id = ?`).pluck().get(row.run_job_id),
@@ -148,8 +230,11 @@ export function leaseRemoteRun(db, { workerId = "worker", env = process.env, now
       applyUrl: packet.apply_url, expectedOrigin: packet.expected_origin,
       packet: JSON.parse(packet.answers_json), resumeArtifactId: packet.resume_artifact_id,
       approvedValues: row.approved_values_json ? JSON.parse(row.approved_values_json) : null,
-      session: { id: session.id, keyId: session.key_id, portalFamily: session.portal_family, originHost: session.origin_host,
-                 ciphertext: session.ciphertext },
+      session: sessionLive ? { id: session.id, keyId: session.key_id, portalFamily: session.portal_family, originHost: session.origin_host,
+                 ciphertext: session.ciphertext } : null,
+      // D100 (a): sign in with the account draft made — or, when it is still `requested`, create it first (ciphertext null).
+      account: !sessionLive ? { id: account.id, portalFamily: account.portal_family, originHost: account.origin_host,
+                 keyId: account.key_id, ciphertext: account.ciphertext, create: account.status !== "created" } : null,
       rules: PRODUCT_RULES,
     } };
   }

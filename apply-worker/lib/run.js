@@ -9,6 +9,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { aadFor } from "./keys.js";
+import { sessionFromAccount } from "./accounts.js";
 
 // The engine's provenance (applyAutomation CONFIDENCE_BY_PROVENANCE) → D104 P2's source. A guess (label_fuzzy,
 // default) has NO source — D104 makes it Needs you; it is reported null here, never dressed as the profile's.
@@ -56,19 +57,33 @@ export function reportFor(lease, result) {
 }
 
 /**
- * Run one lease. deps: { autoApply, keys, fetchResume(remoteId) → Buffer|null }
- * The session is unsealed into memory and handed to the engine as an object; the résumé (not secret to the
- * portal) is the one temp file, removed in `finally`.
+ * Run one lease. deps: { autoApply, keys, fetchResume(remoteId) → Buffer|null,
+ *   openPage() → { page, close } and postAccount(report) — D100 (a), for a lease that carries an account }
+ * The session is unsealed (or signed in to) into memory and handed to the engine as an object; the résumé (not
+ * secret to the portal) is the one temp file, removed in `finally`.
  */
-export async function runLease(lease, { autoApply, keys, fetchResume }) {
+export async function runLease(lease, { autoApply, keys, fetchResume, openPage = null, postAccount = null }) {
   let storageState;
-  try {
-    const json = keys.unseal({ keyId: lease.session.keyId, sealed: lease.session.ciphertext,
-      aad: aadFor({ userId: lease.userId, portalFamily: lease.session.portalFamily }) });
-    storageState = JSON.parse(json);
-  } catch (e) {
-    // A destroyed key (revoked) or a session sealed for someone else: the user signs in again.
-    return { remoteId: lease.id, outcome: "stopped", reason: "signed_out", error: e.code || "unseal_failed" };
+  if (lease.session) {
+    try {
+      const json = keys.unseal({ keyId: lease.session.keyId, sealed: lease.session.ciphertext,
+        aad: aadFor({ userId: lease.userId, portalFamily: lease.session.portalFamily }) });
+      storageState = JSON.parse(json);
+    } catch (e) {
+      // A destroyed key (revoked) or a session sealed for someone else: the user signs in again.
+      return { remoteId: lease.id, outcome: "stopped", reason: "signed_out", error: e.code || "unseal_failed" };
+    }
+  } else if (lease.account && openPage && postAccount) {
+    // D100 (a): an account draft made (or makes now) for the user — signed in here, the cookies kept in memory.
+    try {
+      const r = await sessionFromAccount(lease, { keys, openPage, postAccount });
+      if (r.stopped) return { remoteId: lease.id, outcome: "stopped", reason: r.stopped };
+      storageState = r.storageState;
+    } catch (e) {
+      return { remoteId: lease.id, outcome: "error", error: String(e?.message || e).slice(0, 200) };
+    }
+  } else {
+    return { remoteId: lease.id, outcome: "stopped", reason: "signed_out" };
   }
   let resumePath = null;
   try {
