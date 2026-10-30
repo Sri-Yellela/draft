@@ -10,6 +10,8 @@ import JobCard      from "../components/JobCard.jsx";
 import PendingApplications from "../components/PendingApplications.jsx";
 import ApplicationHistory from "../components/ApplicationHistory.jsx";
 import ApplicationInbox from "../components/ApplicationInbox.jsx";
+import { JobWorkspacePanel } from "./JobWorkspacePanel.jsx";
+import { useViewport } from "../hooks/useViewport.js";
 import { DockPortal } from "../components/DockPortal.jsx";
 import { Z } from "../styles/zLayers.js";
 // AC4: the calendar this panel established, extracted so the Auto Apply panel's dated run history
@@ -313,6 +315,10 @@ export function DatabasePanel({ user }) {
   const [pendingBusy,  setPendingBusy]  = useState(null);
   const [pendingMsgs,  setPendingMsgs]  = useState({});
   const [pendingFocus, setPendingFocus] = useState(null); // A105 finding 3: the job History sent here
+  // D102 P5 · list and detail: on a wide screen an opened application shows beside History (by its record id).
+  const { w: viewportWidth } = useViewport();
+  const sideDetail = viewportWidth >= 1280;
+  const [sideRecord, setSideRecord] = useState(null);
 
   const inputRef = useRef();
   const calRef   = useRef();
@@ -703,8 +709,21 @@ export function DatabasePanel({ user }) {
 
       {/* ── History (D15) — The Table's own view. ⛔ No summary strip: its chips carry the counts. ── */}
       {activeSheet === "history" && (
-        <ApplicationHistory onOpenPending={(jobId) => { setPendingFocus(jobId || null); setActiveSheet("pending"); }}
-          onOpenDraftHouse={() => navigate("/app/auto-apply")}/>
+        <div data-table-split="" style={{ flex: 1, minHeight: 0, display: "grid", gap: 16,
+          gridTemplateColumns: sideRecord && sideDetail ? "minmax(0, 1fr) minmax(0, 1.2fr)" : "minmax(0, 1fr)" }}>
+          <ApplicationHistory onOpenPending={(jobId) => { setPendingFocus(jobId || null); setActiveSheet("pending"); }}
+            onOpenDraftHouse={() => navigate("/app/auto-apply")}
+            onOpenApplication={sideDetail ? setSideRecord : null}/>
+          {sideRecord && sideDetail && (
+            <aside data-table-detail="" aria-label="This application" style={{ minWidth: 0, overflowY: "auto", padding: "8px 16px 16px 0" }}>
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginBottom: 8 }}>
+                <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => navigate(`/app/job/${sideRecord}`)}>Full page</button>
+                <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setSideRecord(null)} aria-label="Close">✕ Close</button>
+              </div>
+              <JobWorkspacePanel applicationId={sideRecord} embedded />
+            </aside>
+          )}
+        </div>
       )}
 
       {/* ── Table (applications / resumes) ── */}
