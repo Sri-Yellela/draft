@@ -142,7 +142,9 @@ export function leaseRemoteRun(db, { workerId = "worker", env = process.env, now
     db.prepare(`INSERT INTO portal_session_uses (session_id, apply_run_job_id) VALUES (?, ?)`).run(session.id, row.run_job_id);
     db.prepare(`UPDATE portal_sessions SET last_used_at = unixepoch() WHERE id = ?`).run(session.id);
     return { run: {
-      id: row.id, runJobId: row.run_job_id, mode: row.mode, leaseUntil: nowSec + LEASE_SECONDS,
+      // userId is bound into the session's sealing (associated data user · portal · version, D79 §2.3).
+      id: row.id, runJobId: row.run_job_id, userId: row.user_id, jobId: db.prepare(`SELECT job_id FROM apply_run_jobs WHERE id = ?`).pluck().get(row.run_job_id),
+      mode: row.mode, leaseUntil: nowSec + LEASE_SECONDS,
       applyUrl: packet.apply_url, expectedOrigin: packet.expected_origin,
       packet: JSON.parse(packet.answers_json), resumeArtifactId: packet.resume_artifact_id,
       approvedValues: row.approved_values_json ? JSON.parse(row.approved_values_json) : null,
@@ -181,7 +183,10 @@ export function acceptReport(db, report, { workerId = "worker", hooks = {} } = {
     WHERE ar.id = ?`).get(Number(report?.remoteId));
   if (!row) return { ok: false, error: "unknown_run" };
   if (row.state !== "leased" || row.worker_id !== String(workerId)) return { ok: false, error: "not_leased_by_you" };
+  // `key` is the fill engine's own field identity (field_id ?? name ?? label — applyAutomation answerKey): approval and
+  // the drift check match on it, so two fields with the same visible label cannot stand in for each other.
   const fields = Array.isArray(report.fields) ? report.fields.slice(0, 500).map(f => ({
+    key: String(f?.key ?? f?.label ?? "").slice(0, 300),
     label: String(f?.label ?? "").slice(0, 300), value: f?.value == null ? null : String(f.value).slice(0, 2000),
     source: ["profile", "saved_answer", "posting", "user_now"].includes(f?.source) ? f.source : null,
   })) : null;
@@ -202,7 +207,7 @@ export function acceptReport(db, report, { workerId = "worker", hooks = {} } = {
     // An approved run must have sent exactly the approved values (D79 §4 step 5) — the worker verified; draft checks too.
     if (row.approved_values_json && fields) {
       const want = JSON.parse(row.approved_values_json);
-      const got = Object.fromEntries(fields.map(f => [f.label, f.value]));
+      const got = Object.fromEntries(fields.map(f => [f.key, f.value]));
       const differs = Object.entries(want).find(([k, v]) => got[k] !== v);
       if (differs) {
         finishRemote(db, row, "stopped", "submit_check_failed");
@@ -246,7 +251,7 @@ export function acceptReport(db, report, { workerId = "worker", hooks = {} } = {
 export function approveRemoteRun(db, userId, runJobId) {
   const row = db.prepare(`SELECT * FROM apply_remote_runs WHERE run_job_id = ? AND user_id = ? AND state = 'ready_to_approve'`).get(Number(runJobId), userId);
   if (!row) return null;
-  const values = Object.fromEntries(JSON.parse(row.field_list_json || "[]").map(f => [f.label, f.value]));
+  const values = Object.fromEntries(JSON.parse(row.field_list_json || "[]").map(f => [f.key ?? f.label, f.value]));
   db.prepare(`UPDATE apply_remote_runs SET mode = 'submit', state = 'queued', approved_values_json = ?, attempts = 0,
     updated_at = unixepoch() WHERE id = ?`).run(JSON.stringify(values), row.id);
   db.prepare(`UPDATE apply_run_jobs SET status = 'queued', reason_code = NULL, approved_at = unixepoch() WHERE id = ?`).run(row.run_job_id);

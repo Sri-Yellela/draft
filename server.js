@@ -7496,7 +7496,11 @@ app.use("/api/crawler", createCrawlerWorkerRouter(db));
 // way every pipeline submit is (A63: pending → verified → submitted; job_applications with the score at apply).
 app.use("/api/worker", createApplyWorkerRouter(db, { hooks: {
   onSubmitted: ({ userId, jobId, runJobId }) => recordSubmissionFromPipeline(db, { userId, jobId, runJobId, capturedAtsAtApply }),
-} }));
+},
+  // Called at request time, after applyLine (below) exists: the same payload and résumé a local run uses.
+  payloadFor: (run) => applyLine.workerPayload({ userId: run.userId, jobId: run.jobId, resumeArtifactId: run.resumeArtifactId }),
+  resumePdf: (x) => applyLine.workerResumePdf(x),
+}));
 // ⛔ D76: Railway's webhook — public, header-authenticated, its own 16 KB cap, read-only (deploy_events).
 app.use("/api/hooks", createRailwayHookRouter(db));
 // ⭐ D73 §B: Resend's webhook (Svix-signed over the RAW body) — before the JSON parser, like Railway's.

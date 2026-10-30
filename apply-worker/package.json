@@ -1,0 +1,18 @@
+{
+  "name": "draft-apply-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "D100 P2: leases one remote application from draft, fills it with draft's own engine on the user's sealed portal session, reports the field list. No database access.",
+  "main": "worker.js",
+  "scripts": {
+    "start": "node apply-worker/worker.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@sparticuz/chromium": "^143.0.4",
+    "puppeteer-core": "^24.40.0"
+  }
+}

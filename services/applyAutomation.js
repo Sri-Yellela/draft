@@ -2627,6 +2627,9 @@ async function clickNext(page) {
 }
 
 async function takeScreenshot(page, jobId) {
+  // ⛔ D79 §2 / D100: the apply worker runs on a SIGNED-IN portal session, and a screenshot of a signed-in page is
+  // never stored or shown. Its environment sets this; draft's own runs are unchanged.
+  if (process.env.APPLY_NO_SCREENSHOTS === "1") return { path: null, base64: null };
   const filename = `apply_${String(jobId).replace(/[^a-z0-9_]/gi,"_")}_${Date.now()}.png`;
   const filepath = path.join(SCREENSHOT_DIR, filename);
   try {
@@ -2671,6 +2674,9 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
     derivedLabelMaps         = null,
     jobId             = `tmp_${Date.now()}`,
     storageStatePath  = null,
+    // ⭐ D100 P2: the same state as an OBJECT, for the apply worker — a session it decrypted in memory is never
+    // written to a file. Takes precedence over storageStatePath.
+    storageState      = null,
     // Step-scoped approval hook. Receives each step's resolved answer set BEFORE anything is typed
     // and returns { approved?, rejected?, escalate?, reason? }. This is the seam a confirmation UI
     // or a hosted provider plugs into; defaultAnswerPolicy is the built-in behaviour.
@@ -2721,8 +2727,12 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
     console.log("[autoApply] browser launched");
 
     page = await browser.newPage();
+    // D100 P2: a session held in memory (the apply worker) — cookies only, never written anywhere.
+    if (storageState && Array.isArray(storageState.cookies) && storageState.cookies.length > 0) {
+      await page.setCookie(...storageState.cookies);
+    }
     // Restore cookies from session state file if provided
-    if (storageStatePath && fs.existsSync(storageStatePath)) {
+    else if (storageStatePath && fs.existsSync(storageStatePath)) {
       try {
         const state = JSON.parse(fs.readFileSync(storageStatePath, "utf8"));
         if (Array.isArray(state.cookies) && state.cookies.length > 0) {
