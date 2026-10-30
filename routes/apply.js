@@ -5149,6 +5149,12 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   // run bar (the account's mode, the hold) and the job's Draft House state are read through the same functions.
   const draftForExtension = (user, jobId) =>
     startRun(user.id, normalisePlanTier(user?.planTier), [String(jobId)], { mode: "auto" });
+  // D100 P7: the FULL AUTO scheduler's way in (services/autoScheduler.js) — the same admission as every Draft;
+  // startRun refuses approvalMode 'auto' unless the user's mode is FULL AUTO, and processRunJob checks again.
+  const startAutoRun = (userId, jobIds) => {
+    const planTier = db.prepare("SELECT plan_tier FROM users WHERE id = ?").get(userId)?.plan_tier;
+    return startRun(userId, normalisePlanTier(planTier), jobIds.map(String), { mode: "auto", approvalMode: "auto" });
+  };
   return { recoverInterruptedRuns, startLineTicker, dispatchAllLines, prepareManualPacket, resumeForApply: generateResumeForApply,
-           draftForExtension, draftStateOf, runBar };
+           draftForExtension, draftStateOf, runBar, startAutoRun };
 }

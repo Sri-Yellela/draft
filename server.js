@@ -25,6 +25,8 @@ import { createBackup, listBackups, restoreBackup } from "./scripts/backup.js";
 import { applyPendingMigrations } from "./scripts/applyMigrations.js";
 import applyRoutes, { capturedAtsAtApply } from "./routes/apply.js";
 import applicationRecordRoutes from "./routes/applicationRecords.js";
+import pipelineRoutes from "./routes/pipeline.js";
+import { runAutoTick } from "./services/autoScheduler.js";
 import generatedResumeRoutes from "./routes/generatedResumes.js";
 import applicationArtifactRoutes from "./routes/applicationArtifacts.js";
 import { draftSlots, slotsExhausted, recordGenerationSlot } from "./services/draftSlots.js";
@@ -5155,6 +5157,16 @@ console.log(`[boot] database ready: ${DB_PATH}`);
       sql: `
         ALTER TABLE users ADD COLUMN send_mode TEXT;
         ALTER TABLE apply_run_jobs ADD COLUMN submitted_by TEXT;
+      `,
+    },
+    {
+      // ⭐ D102 P4 / D100 P7: Auto settings — the user's FULL AUTO standing instruction (shared/autoSettings.js: daily cap,
+      // run times + time zone, per-company limit, pause after an interview / offer, the board filters, the job profile) as
+      // JSON, NULL = the defaults; and when the scheduler last ran for the user (services/autoScheduler.js).
+      id: "170_auto_settings",
+      sql: `
+        ALTER TABLE users ADD COLUMN auto_settings TEXT;
+        ALTER TABLE users ADD COLUMN auto_last_run_at INTEGER;
       `,
     },
   ];
@@ -11816,8 +11828,29 @@ const applyLine = applyRoutes(app, db, requireAuth, buildAutofillPayload, genera
 // lost dispatch).
 applyLine.recoverInterruptedRuns();
 applyLine.startLineTicker();
+// ⭐ D100 P7 / D102 P4 · FULL AUTO's scheduler (services/autoScheduler.js): every 5 minutes, each FULL AUTO user whose run
+// time has come gets ONE run of jobs from THEIR board — boardPageResponse, the board's own query, with the filters saved in
+// Auto settings — after their drafted jobs, the per-company rules and the daily cap. startAutoRun is startRun: the same
+// admission as every Draft. ⚠ Auto settings' profileId is not applied yet — the board reads the active profile.
+const AUTO_TICK_MS = 5 * 60 * 1000;
+const autoFetchBoard = async (userId, filters) => {
+  const { status, body } = await boardPageResponse({ query: { pageSize: "50", ...filters }, user: { id: userId } });
+  if (status !== 200) throw new Error(body?.error || `board ${status}`);
+  return (body.jobs || []).map(j => {
+    const t = j.postedAt ? Date.parse(j.postedAt) : NaN;
+    return { jobId: j.id, company: j.company, postedAt: Number.isFinite(t) ? Math.floor(t / 1000) : null };
+  });
+};
+setInterval(async () => {
+  try {
+    const ran = await runAutoTick(db, { fetchBoard: autoFetchBoard, startAutoRun: applyLine.startAutoRun });
+    for (const r of ran) if (r.started || r.error || r.skipped === "board_failed") console.log(`[auto] ${JSON.stringify(r)}`);
+  } catch (e) { console.error(`[auto] tick failed: ${e.message}`); }
+}, AUTO_TICK_MS).unref();
 // A63: the Pending table (pending -> verified -> submitted) and the day's Draft slots.
 applicationRecordRoutes(app, db, requireAuth, { capturedAtsAtApply });
+// D102: the pipeline workspace — one row per job, one detail panel (services/pipelineWorkspace.js).
+pipelineRoutes(app, db, requireAuth);
 // D16: the résumé an application sent, expanded from its compressed copy (HTML; the browser prints it).
 applicationArtifactRoutes(app, db, requireAuth);
 

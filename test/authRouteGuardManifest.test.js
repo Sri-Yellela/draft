@@ -340,6 +340,11 @@ const AUTHENTICATED = new Set([
   "POST /api/apply/hold",
   // D100: the run bar's SEMI / FULL AUTO switch — the user's own mode.
   "POST /api/apply/mode",
+  // D102: the pipeline workspace's rows and one job's detail; P4 the FULL AUTO standing instruction.
+  "GET /api/pipeline",
+  "GET /api/pipeline/job/:applicationId",
+  "GET /api/apply/auto-settings",
+  "PUT /api/apply/auto-settings",
   "GET /api/apply/review",
   "GET /api/apply/run-jobs/:runJobId/review",
   // AH5: the fill log — what this run put in the form and what it did not. On demand, so it is
@@ -443,6 +448,7 @@ function collect() {
     ...directRoutes(SERVER),
     ...directRoutes(fs.readFileSync("routes/apply.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/applicationRecords.js", "utf8")),
+    ...directRoutes(fs.readFileSync("routes/pipeline.js", "utf8")),
     // account.js is mounted with app.use(createAccountRouter({...})) at the ROOT, so its routes
     // already carry their full /api path and their own per-route guard.
     ...routerRoutes(fs.readFileSync("routes/account.js", "utf8"), ""),
