@@ -193,6 +193,21 @@ function NewPill() {
   );
 }
 
+// ── D104 · "Not eligible" — the posting states a requirement that contradicts what THIS user set ──
+// The server decides (GET /api/jobs `eligibility`, only when the user set an answer a requirement could
+// contradict) and moves the card to the end of its page; the card says so, with the reasons. Never hidden,
+// never a guess: absent `eligibility` renders nothing, and "unknown" is never sent as a mark.
+function EligibilityMark({ eligibility }) {
+  if (eligibility?.status !== "ineligible") return null;
+  const reasons = Array.isArray(eligibility.reasons) ? eligibility.reasons.filter(Boolean) : [];
+  return (
+    <span data-eligibility="ineligible" style={markStyle(C.DANGER)}
+          title={reasons.length ? `The posting says: ${reasons.join(" · ")}. From your Application defaults.` : "From your Application defaults."}>
+      Not eligible{reasons.length ? ` · ${reasons[0]}` : ""}
+    </span>
+  );
+}
+
 // ── Closed pill — a saved job whose listing has expired ──────────
 // Only ever rendered on the Saved tab, because that is the only board that returns is_active = 0
 // rows. runExpiredJobsCleanup used to hard-DELETE an expired starred job seven days on, taking the
@@ -635,6 +650,7 @@ export default function JobCard({
                   the closed state is the one that changes what they can do about it. */}
               {job.isActive !== false && isNewJob(job.discoveredAt) && <NewPill/>}
               <VisaBadge isH1bSponsor={job.isH1bSponsor} requiresWorkAuth={job.requiresWorkAuth}/>
+              <EligibilityMark eligibility={job.eligibility}/>
               {/* THE BOARD AND THE PIPELINE STOP BEING SEPARATE WORLDS. A card gave no hint that
                   you had already applied to it, that it was queued, or that it was stuck waiting on
                   you — so the only way to know was to open the other tab and read a list of runs.
