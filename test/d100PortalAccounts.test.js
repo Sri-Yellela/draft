@@ -56,7 +56,7 @@ test("D100 (a) · draft's side: consent first, one account per portal, never the
 
 // ── a real Chrome on a local fixture portal ──────────────────────────────────────────────────
 
-function fixturePortal() {
+function fixturePortal({ requireCode = false } = {}) {
   const users = new Map();
   const app = express();
   app.use(express.urlencoded({ extended: false }));
@@ -72,7 +72,8 @@ function fixturePortal() {
     <button type="submit">Create account</button></form>`)));
   app.post("/signup", (q, r) => {
     if (!q.body.email || q.body.p1 !== q.body.p2) return r.redirect("/signup");
-    users.set(q.body.email, { password: q.body.p1, first: q.body.first });
+    users.set(q.body.email, { password: q.body.p1, first: q.body.first, verified: !requireCode });
+    if (requireCode) return r.redirect("/verify-code");
     r.setHeader("set-cookie", `sid=${crypto.randomBytes(8).toString("hex")}; Path=/; HttpOnly`);
     r.redirect("/home");
   });
@@ -85,6 +86,14 @@ function fixturePortal() {
     r.redirect("/home");
   });
   app.get("/home", (_q, r) => r.send(page(`<h1>Welcome</h1>`)));
+  app.get("/verify-code", (_q, r) => r.send(page(`<form method="post" action="/verify-code"><label for="c">Enter the verification code we emailed you</label>
+    <input id="c" name="code" autocomplete="one-time-code"><button type="submit">Verify</button></form>`)));
+  app.post("/verify-code", (q, r) => {
+    if (q.body.code !== "551203") return r.redirect("/verify-code");
+    for (const u of users.values()) u.verified = true;
+    r.setHeader("set-cookie", "sid=verified-ok; Path=/; HttpOnly");
+    r.redirect("/home");
+  });
   app.get("/captcha", (_q, r) => r.send(page(`<form><input type="email" name="email"><div class="g-recaptcha" data-sitekey="x"></div></form>`)));
   app.get("/verify", (_q, r) => r.send(page(`<form><label for="c">Enter the verification code we emailed you</label><input id="c" name="code"></form>`)));
   const server = app.listen(0);
@@ -185,4 +194,20 @@ test("D100 (a) · end to end: the worker CREATES the account (draft stores ciphe
     assert.equal(db.prepare("SELECT ciphertext FROM portal_accounts").pluck().get(), null);
     assert.throws(() => keys.unseal({ keyId: acct.key_id, sealed: acct.ciphertext, aad: aadFor({ userId: 1, portalFamily: "fixtureportal" }) }), /destroyed/);
   } finally { await browser.close(); server.close(); portal.stop(); }
+});
+
+test("D103 P5 · in a real Chrome: an emailed sign-up code is typed ONLY for a portal the user opted in — from their draft inbox", { skip }, async () => {
+  const { enterCode } = await import("../apply-worker/lib/accounts.js");
+  const portal = fixturePortal({ requireCode: true });
+  const browser = await launchBrowser({ headless: "new", mode: "auto" });
+  const who = { email: "dana@example.test", firstName: "Dana", lastName: "Example" };
+  try {
+    const page = await browser.newPage();
+    const r = await signUp(page, portal.base + "/", who, generatePassword());
+    assert.deepEqual(r, { ok: false, reason: "email_verification" }, "the portal asks for the code it emailed");
+    assert.deepEqual(await enterCode(page, async () => null), { ok: false, reason: "email_verification" }, "not opted in: the stop stands");
+    assert.deepEqual(await enterCode(page, async () => "551203"), { ok: true });
+    assert.equal([...portal.users.values()][0].verified, true);
+    assert.ok((await page.cookies()).some(c => c.value === "verified-ok"));
+  } finally { await browser.close(); portal.stop(); }
 });

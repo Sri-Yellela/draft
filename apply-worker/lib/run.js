@@ -58,7 +58,7 @@ export function reportFor(lease, result) {
  * The session is unsealed (or signed in to) into memory and handed to the engine as an object; the résumé (not
  * secret to the portal) is the one temp file, removed in `finally`.
  */
-export async function runLease(lease, { autoApply, keys, fetchResume, openPage = null, postAccount = null }) {
+export async function runLease(lease, { autoApply, keys, fetchResume, openPage = null, postAccount = null, getCode = null }) {
   let storageState;
   if (lease.session) {
     try {
@@ -72,7 +72,7 @@ export async function runLease(lease, { autoApply, keys, fetchResume, openPage =
   } else if (lease.account && openPage && postAccount) {
     // D100 (a): an account draft made (or makes now) for the user — signed in here, the cookies kept in memory.
     try {
-      const r = await sessionFromAccount(lease, { keys, openPage, postAccount });
+      const r = await sessionFromAccount(lease, { keys, openPage, postAccount, getCode: getCode ? () => getCode(lease.id) : null });
       if (r.stopped) return { remoteId: lease.id, outcome: "stopped", reason: r.stopped };
       storageState = r.storageState;
     } catch (e) {

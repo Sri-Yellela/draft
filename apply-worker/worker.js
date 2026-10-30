@@ -19,7 +19,8 @@ import { createKeyStore } from "./lib/keys.js";
 import { runLease } from "./lib/run.js";
 import { sign, bearerMatches } from "../crawler/lib/signature.js";
 
-export function createWorker({ base, token, keys, autoApply, openPage = null, fetchImpl = fetch, workerId = "worker", log = console.log }) {
+export function createWorker({ base, token, keys, autoApply, openPage = null, fetchImpl = fetch, workerId = "worker", log = console.log,
+                               codeWaitMs = 10 * 60 * 1000, codePollMs = 10_000 }) {
   const headers = { authorization: `Bearer ${token}`, "x-worker-id": workerId };
   const post = async (p, obj) => {
     const body = JSON.stringify(obj);
@@ -29,6 +30,19 @@ export function createWorker({ base, token, keys, autoApply, openPage = null, fe
   const fetchResume = async (remoteId) => {
     const r = await fetchImpl(`${base}/api/worker/resume/${remoteId}`, { headers });
     return r.status === 200 ? Buffer.from(await r.arrayBuffer()) : null;
+  };
+  // D103 P5: wait for a code the portal emailed — draft answers only for a portal the user opted in (403 otherwise).
+  const getCode = async (remoteId) => {
+    const since = Math.floor(Date.now() / 1000) - 30;
+    const until = Date.now() + codeWaitMs;
+    for (;;) {
+      const r = await fetchImpl(`${base}/api/worker/code/${remoteId}?since=${since}`, { headers });
+      if (r.status === 403 || r.status === 404) return null;
+      const code = r.status === 200 ? (await r.json()).code : null;
+      if (code) return code;
+      if (Date.now() >= until) return null;
+      await new Promise(res => setTimeout(res, codePollMs));
+    }
   };
   return {
     /** One lease → one run → one report. Returns what happened, for the loop's log and the tests. */
@@ -40,7 +54,7 @@ export function createWorker({ base, token, keys, autoApply, openPage = null, fe
       const { run } = await r.json();
       // D100 (a): the account the worker created is reported (sealed) before the run's own report.
       const postAccount = (a) => post("/api/worker/account", a);
-      const report = await runLease(run, { autoApply, keys, fetchResume, openPage, postAccount });
+      const report = await runLease(run, { autoApply, keys, fetchResume, openPage, postAccount, getCode });
       const answer = await post("/api/worker/report", report);
       log(`[apply-worker] run ${run.id} → ${report.outcome}${report.reason ? ` (${report.reason})` : ""} → ${answer.body?.state ?? answer.status}`);
       return { run: run.id, report, answer };

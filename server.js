@@ -26,6 +26,7 @@ import { applyPendingMigrations } from "./scripts/applyMigrations.js";
 import applyRoutes, { capturedAtsAtApply } from "./routes/apply.js";
 import applicationRecordRoutes from "./routes/applicationRecords.js";
 import pipelineRoutes from "./routes/pipeline.js";
+import inboxRoutes, { createInboundHookRouter } from "./routes/inbox.js";
 import profileSectionRoutes from "./routes/profileSections.js";
 import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
@@ -5313,6 +5314,64 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_profile_skills_user ON profile_skills(user_id, position);
       `,
     },
+    {
+      // ⭐ D103 (owner 10-30) · THE INBOX — a FORWARDED COPY of the replies to the user's applications, never mailbox
+      // access. Each user gets a private address `<token>@in.jobsviadraft.com` (a subdomain: its MX never touches the
+      // root's), revocable at once. Messages are stored as capped TEXT (HTML stripped, attachments never stored), sorted
+      // by rule (D17 — no model), matched to an application where they can be. A user's re-filing is counted per rule
+      // (the input to improving them). `inbox_code_optins` / `inbox_code_uses` are D103 P5: the apply worker may read a
+      // verification code for a portal ONLY where the user opted in for that portal, each read logged.
+      id: "174_inbox",
+      sql: `
+        CREATE TABLE IF NOT EXISTS inbox_addresses (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token TEXT NOT NULL UNIQUE,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          revoked_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS inbox_messages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          address_id INTEGER,
+          provider_id TEXT,
+          from_addr TEXT,
+          from_domain TEXT,
+          subject TEXT,
+          body_text TEXT,
+          received_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          category TEXT NOT NULL,
+          category_source TEXT NOT NULL DEFAULT 'rule',
+          rule TEXT,
+          code TEXT,
+          application_id INTEGER,
+          UNIQUE(user_id, provider_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_inbox_messages_user ON inbox_messages(user_id, received_at);
+        CREATE TABLE IF NOT EXISTS inbox_corrections (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          message_id INTEGER NOT NULL,
+          rule TEXT,
+          from_category TEXT,
+          to_category TEXT,
+          at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS inbox_code_optins (
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          portal_family TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, portal_family)
+        );
+        CREATE TABLE IF NOT EXISTS inbox_code_uses (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          message_id INTEGER NOT NULL,
+          portal_family TEXT NOT NULL,
+          remote_run_id INTEGER,
+          at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7596,6 +7655,8 @@ app.use("/api/worker", createApplyWorkerRouter(db, { hooks: {
 }));
 // ⛔ D76: Railway's webhook — public, header-authenticated, its own 16 KB cap, read-only (deploy_events).
 app.use("/api/hooks", createRailwayHookRouter(db));
+// ⭐ D103: the inbox's inbound mail (Resend inbound, Svix-signed over the RAW body) — before the JSON parser.
+app.use(createInboundHookRouter(db));
 // ⭐ D73 §B: Resend's webhook (Svix-signed over the RAW body) — before the JSON parser, like Railway's.
 const emailRouters = createEmailRouters({ db, requireAuth, requireAdmin });
 app.use(emailRouters.hooksRouter);
@@ -12004,6 +12065,8 @@ setInterval(async () => {
 applicationRecordRoutes(app, db, requireAuth, { capturedAtsAtApply });
 // D102: the pipeline workspace — one row per job, one detail panel (services/pipelineWorkspace.js).
 pipelineRoutes(app, db, requireAuth);
+// D103: the inbox — the forwarding address, the messages, re-filing, the worker's code opt-ins (services/inbox.js).
+inboxRoutes(app, db, requireAuth);
 // D101: the profile in sections and Application defaults (services/structuredProfile.js).
 profileSectionRoutes(app, db, requireAuth);
 // D100 P2: the user's portals (sealed sessions, ciphertext only) and approving a remote Ready-to-approve run.

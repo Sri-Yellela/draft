@@ -58,7 +58,7 @@ export function classify(form) {
   const consent = form.inputs.filter(f => f.type === "checkbox" && has(f, CONSENT));
   const code = form.inputs.find(f => f.type !== "password" && f.type !== "email" && has(f, CODE));
   if (form.captcha || /\b(captcha|i'?m not a robot|type the (word|characters))\b/i.test(form.text)) return { kind: "human_check" };
-  if (code) return { kind: "email_verification" };
+  if (code) return { kind: "email_verification", codeField: code };
   if (pw.length >= 2 && email) return { kind: "signup", email, password: pw[0], confirm: pw[1], consent };
   if (pw.length === 1 && email) return { kind: "signin", email, password: pw[0] };
   if (pw.length === 1) return { kind: "password_only", password: pw[0] };
@@ -102,6 +102,23 @@ async function follow(page, re) {
 }
 
 const stop = (reason) => ({ ok: false, reason });
+
+/**
+ * ⭐ D103 P5: a code the portal emailed, typed in — ONLY when `getCode` gives one (the user opted in for this portal and
+ * the code arrived in their draft inbox within 10 minutes; services/inbox.js codeForWorker). No code → the stop stands.
+ */
+export async function enterCode(page, getCode) {
+  const c = classify(await page.evaluate(readForm));
+  if (c.kind !== "email_verification") return { ok: true };
+  const code = getCode ? await getCode() : null;
+  if (!code) return stop("email_verification");
+  await fill(page, c.codeField, code);
+  await submit(page);
+  const after = classify(await page.evaluate(readForm));
+  if (after.kind === "human_check") return stop("human_check");
+  if (after.kind === "email_verification") return stop("email_verification");
+  return { ok: true };
+}
 
 /**
  * Create the account. `who` = { email, firstName, lastName }. Returns { ok: true } (signed in) or { ok: false, reason }.
@@ -154,7 +171,7 @@ export async function signIn(page, startUrl, creds) {
  * The lease's account → a signed-in session (cookies, in memory), creating the account first when asked.
  * deps: { keys, openPage() → { page, close }, postAccount(report) }. Returns { storageState } or { stopped: reason }.
  */
-export async function sessionFromAccount(lease, { keys, openPage, postAccount }) {
+export async function sessionFromAccount(lease, { keys, openPage, postAccount, getCode = null }) {
   const acct = lease.account;
   const adapter = ADAPTERS[acct.portalFamily];
   // Where to start: the adapter's entry point, else the origin the job's own form lives on (the gate packet's).
@@ -167,7 +184,8 @@ export async function sessionFromAccount(lease, { keys, openPage, postAccount })
     let creds;
     if (acct.create) {
       const password = generatePassword();
-      const r = await signUp(page, start, who, password);
+      let r = await signUp(page, start, who, password);
+      if (!r.ok && r.reason === "email_verification" && getCode) r = await enterCode(page, getCode);
       if (!r.ok) { await postAccount({ remoteId: lease.id, accountId: acct.id, outcome: "stopped", reason: r.reason }); return { stopped: r.reason }; }
       const minted = keys.mint(acct.portalFamily);
       const ciphertext = seal({ publicKey: minted.publicKey, keyId: minted.keyId, plaintext: JSON.stringify({ email: who.email, password }), aad });
@@ -177,7 +195,8 @@ export async function sessionFromAccount(lease, { keys, openPage, postAccount })
     } else {
       try { creds = JSON.parse(keys.unseal({ keyId: acct.keyId, sealed: acct.ciphertext, aad })); }
       catch { return { stopped: "signin_failed" }; }
-      const r = await signIn(page, start, creds);
+      let r = await signIn(page, start, creds);
+      if (!r.ok && r.reason === "email_verification" && getCode) r = await enterCode(page, getCode);
       if (!r.ok) return { stopped: r.reason };
     }
     creds = null;

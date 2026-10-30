@@ -24,6 +24,7 @@ import {
   leaseRemoteRun, acceptReport, releaseRemoteRun, storeSession, listPortals, revokeSession, approveRemoteRun,
   requestAccount, listAccounts, removeAccount, acceptAccount,
 } from "../services/applyWorker.js";
+import { codeForWorker } from "../services/inbox.js";
 
 const token = (env) => env.APPLY_WORKER_TOKEN || "";
 
@@ -91,6 +92,20 @@ export function createApplyWorkerRouter(db, { env = process.env, hooks = {}, pay
     if (!report) return;
     const out = acceptReport(db, report, { workerId: workerId(req), hooks });
     res.status(out.ok ? 200 : 409).json(out);
+  });
+  // ⭐ D103 P5: a verification code the portal sent for the run this worker holds — only where the user opted in for that
+  // portal, only a code received since `since` and within 10 minutes, every read logged (services/inbox.js codeForWorker).
+  router.get("/code/:remoteId", (req, res) => {
+    if (!bearer(req, res)) return;
+    const run = db.prepare(`SELECT ar.id, ar.user_id, ar.worker_id, ar.state, COALESCE(ps.portal_family, pa.portal_family) AS family,
+        COALESCE(ps.origin_host, pa.origin_host) AS host
+      FROM apply_remote_runs ar LEFT JOIN portal_sessions ps ON ps.id = ar.session_id LEFT JOIN portal_accounts pa ON pa.id = ar.account_id
+      WHERE ar.id = ?`).get(Number(req.params.remoteId));
+    if (!run || run.state !== "leased" || run.worker_id !== workerId(req) || !run.family) return res.status(404).json({ error: "not_leased_by_you" });
+    const since = Number(req.query.since) || Math.floor(Date.now() / 1000) - 600;
+    const r = codeForWorker(db, { userId: run.user_id, portalFamily: run.family, originHost: run.host, sinceSec: since, remoteRunId: run.id });
+    if (r.refused) return res.status(403).json({ error: r.refused });
+    res.json({ code: r.code });
   });
   router.post("/account", express.text({ type: "application/json", limit: "64kb" }), (req, res) => {
     const body = signedBody(req, res);
