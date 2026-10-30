@@ -20,7 +20,7 @@ import { autoToggle, capUsage, STOP_DOES, STOP_DOES_NOT, HELD_LINE } from "../li
 //         bar SAYS what it does and does not do, in text — not in a tooltip a phone cannot show.
 // ============================================================
 
-export default function DraftRunBar({ runBar, onStop, onMode, onOpenSettings, busy = false, message = "" }) {
+export default function DraftRunBar({ runBar, onStop, onMode, onOpenSettings, onOpenPortals, busy = false, message = "" }) {
   const mode = autoToggle(runBar);
   const current = runBar?.mode?.current === "auto" && mode.selectable ? "auto" : "semi";
   const held = !!runBar?.hold?.held;
@@ -47,6 +47,10 @@ export default function DraftRunBar({ runBar, onStop, onMode, onOpenSettings, bu
         </div>
         <button type="button" className="dh-btn dh-bar__settings" data-auto-settings-open=""
           onClick={(e) => onOpenSettings?.(e.currentTarget)}>⚙ Auto settings</button>
+        {onOpenPortals && (
+          <button type="button" className="dh-btn dh-bar__settings" data-portals-open=""
+            onClick={(e) => onOpenPortals(e.currentTarget)}>Portals</button>
+        )}
         {!mode.selectable && (
           <p className="dh-mode__why" id="dh-auto-why" data-auto-locked-reason="">{mode.reason}</p>
         )}
