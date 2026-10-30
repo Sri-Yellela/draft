@@ -201,3 +201,24 @@ test("D103 P1 · deletion: one message or all, only the user's own; the retentio
   assert.equal(deleteMessages(db, 1, null), 1);
   assert.equal(db.prepare("SELECT COUNT(*) FROM inbox_messages").pluck().get(), 0);
 });
+
+// The route's id check read /^d+$/ (its backslash lost when written), so every real DELETE /api/inbox/:id was a 400.
+test("D103 P1 · DELETE /api/inbox/:id deletes the user's own message by its numeric id", async () => {
+  const { db } = freshDb();
+  const { address } = addressFor(db, 1);
+  ingestMessage(db, { providerId: "r1", to: [address], from: "a@b.example", subject: "Hello", text: "x" });
+  const id = db.prepare("SELECT id FROM inbox_messages").pluck().get();
+  const app = express();
+  app.use(express.json());
+  app.use((req, _r, n) => { req.user = { id: 1 }; n(); });
+  inboxRoutes(app, db, (_q, _r, n) => n());
+  const server = app.listen(0);
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.equal((await fetch(`${base}/api/inbox/abc`, { method: "DELETE" })).status, 400);
+    const r = await fetch(`${base}/api/inbox/${id}`, { method: "DELETE" });
+    assert.equal(r.status, 200);
+    assert.deepEqual(await r.json(), { deleted: 1 });
+    assert.equal((await fetch(`${base}/api/inbox/${id}`, { method: "DELETE" })).status, 404);
+  } finally { server.close(); }
+});
