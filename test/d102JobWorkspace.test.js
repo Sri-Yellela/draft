@@ -12,7 +12,8 @@ const history = fs.readFileSync("client/src/components/ApplicationHistory.jsx", 
 test("D102 P5 · /app/job/:id is a route of its own — not bounced to the board by the tab guard", () => {
   assert.ok(app.includes(String.raw`const jobRoute = /^job\/(\d+)$/.exec(routeKey) || /^job\/for\/(.+)$/.exec(routeKey);`),
     "the page is reached by the record id (The Table) or the job id (Draft House)");
-  assert.match(app, /if \(!jobRoute && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS\.has\(routeKey\)\)/);
+  // D105 P4 (changed on purpose): /app/atlas/<slug> passes the guard too.
+  assert.match(app, /if \(!jobRoute && !atlasRoute && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS\.has\(routeKey\)\)/);
   assert.match(app, /\{activeTab === "job" && jobRoute && <JobWorkspacePanel \{\.\.\.\(jobByJobId \? \{ jobId: decodeURIComponent\(jobRoute\[1\]\) \} : \{ applicationId: jobRoute\[1\] \}\)\}\/>\}/);
 });
 
