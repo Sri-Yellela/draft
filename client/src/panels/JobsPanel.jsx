@@ -1235,6 +1235,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
 
   // Job data
   const [jobs,        setJobs]        = useState([]);
+  const decideJobRef = useRef(null);
   const [totalJobs,   setTotalJobs]   = useState(0);
   const [totalPages,  setTotalPages]  = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -2150,6 +2151,13 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (!selectedJob) return;
     const handler = (e) => {
       if (e.key === "Escape") { clearDeepLink(); setSelectedJob(null); return; }
+      // A105 finding 11: the open posting's three decisions from the keyboard — S save, D draft, P pass (the deck's
+      // letters). Never while typing, never with a modifier; Draft only DRAFTS (D36·5: nothing here sends).
+      const typing = e.target?.closest?.("input, textarea, select, [contenteditable=''], [contenteditable='true']");
+      if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const decision = { s: DECISIONS.SAVED, d: DECISIONS.DRAFTED, p: DECISIONS.PASSED }[e.key.toLowerCase()];
+        if (decision) { e.preventDefault(); decideJobRef.current?.(selectedJob, decision); return; }
+      }
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedJob(prev => {
@@ -3334,6 +3342,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setSelectedJob(prev => (prev && prev.jobId === jobId ? { ...prev, ...flags } : prev));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // A105 finding 11: the keyboard handler (set up above, by the open posting) reaches the CURRENT decideJob.
+  decideJobRef.current = (...args) => decideJob(...args);
   const decideJob = useCallback(async (job, decision, { companyOk = false } = {}) => {
     const jobId = job?.jobId || job?.id;
     if (!jobId) return;

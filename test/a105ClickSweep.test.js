@@ -91,3 +91,13 @@ test("A105 (5) · Profile's Save follows the page and says when something is uns
   assert.match(p, /const set = \(k, v\) => \{ setUnsaved\(true\);/);
   assert.match(p, /setForm\(cleaned\);\r?\n\s+setUnsaved\(false\);/);
 });
+
+// A105 finding 11 — triaging the board was hover-and-press per job; the open posting now takes the deck's letters.
+test("A105 (11) · the board's open posting: S save, D draft, P pass — never while typing, never with a modifier", () => {
+  const p = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
+  assert.match(p, /\{ s: DECISIONS\.SAVED, d: DECISIONS\.DRAFTED, p: DECISIONS\.PASSED \}\[e\.key\.toLowerCase\(\)\]/);
+  assert.match(p, /closest\?\.\("input, textarea, select, \[contenteditable=''\], \[contenteditable='true'\]"\)/);
+  assert.match(p, /!e\.ctrlKey && !e\.metaKey && !e\.altKey/);
+  assert.match(p, /decideJobRef\.current = \(\.\.\.args\) => decideJob\(\.\.\.args\);/, "the handler reaches the current decideJob, not a stale one");
+  assert.doesNotMatch(p.slice(p.indexOf("const decision = { s:"), p.indexOf("const decision = { s:") + 300), /approve|decidePending/i);
+});
