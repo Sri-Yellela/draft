@@ -194,7 +194,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   // D112: the Gmail connection — the address, when, how many read; its sealed token is a secret column and never exported.
   "gmail_connections",
   // D112 item 8 (183): the notification switches, and which browsers get pushes (their endpoint and keys scrubbed above).
-  "notification_prefs", "push_subscriptions"];
+  "notification_prefs", "push_subscriptions",
+  // D110 (186): interview mode — the dates the user typed, their story bank, their debriefs and their own question bank.
+  "interview_prep", "interview_stories", "interview_debriefs", "interview_questions"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -286,6 +288,9 @@ export const MERGE_PLAN = Object.freeze({
   gmail_connections: "keepInto",
   // D112 item 8 (183): the merged person's browsers keep getting pushes, now for INTO; INTO's own switch for an event wins.
   push_subscriptions: "move", notification_prefs: "keepInto",
+  // D110 (186): a merged person keeps their stories, debriefs and question bank; INTO's typed date for an application wins,
+  // and a story seeded from the same bullet in both accounts is kept once (INTO's).
+  interview_prep: "keepInto", interview_stories: "keepInto", interview_debriefs: "move", interview_questions: "move",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

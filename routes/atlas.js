@@ -10,17 +10,12 @@
 // ⛔ `you` is computed only for a signed-in reader and only from THEIR profile's skills (D101 profile_skills) — never
 // stored, never shown to anyone else (d105YouOnlyWhenSignedIn).
 import { Router } from "express";
-import { searchNodes, readNode, setStatus, addAlias, aliasesOf, termOf } from "../services/atlas/atlasStore.js";
+import { searchNodes, readNode, setStatus, addAlias, profileTerms } from "../services/atlas/atlasStore.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
 
-/** A signed-in reader's terms: their profile's skills and each one's confirmed aliases. */
-function userTerms(db, userId) {
-  let names = [];
-  try { names = db.prepare(`SELECT name FROM profile_skills WHERE user_id = ?`).pluck().all(userId); } catch { names = []; }
-  const terms = new Set();
-  for (const n of names) { const t = termOf(n); if (t) { terms.add(t); for (const a of aliasesOf(db, t)) terms.add(a); } }
-  return terms;
-}
+// A signed-in reader's terms — ONE implementation (services/atlas/atlasStore.js profileTerms), also read by D110's
+// interview prep (services/interviewPrep.js skillGaps).
+const userTerms = profileTerms;
 
 /** have / missing against a role page's `requires` edges. */
 export function youAgainst(db, userId, node) {

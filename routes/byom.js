@@ -59,6 +59,8 @@ const LEADS = {
     `In draft: ${out?.link ?? ""}${out?.warning ? ` ⚠ ${out.warning}` : ""} ${out?.notice ?? ""}`.trim(),
   draft_list_my_resumes: () => "The candidate's saved résumés.",
   draft_list_my_drafts: () => "The candidate's drafted jobs.",
+  // D110 P4 (behind BYOM_INTERVIEW_TOOL): what the data is, never what to do with it.
+  draft_get_interview_prep: (out) => `Interview practice data for ${[out?.job?.title, out?.job?.company].filter(Boolean).join(" · ") || "the job"}.`,
 };
 const SUBMIT = "draft_submit_resume_patch";
 /** An audit row's tool under its current name — rows written before the v1 catalogue carry the old ones. */
