@@ -12263,10 +12263,12 @@ applicationRecordRoutes(app, db, requireAuth, { capturedAtsAtApply });
 pipelineRoutes(app, db, requireAuth);
 // D103: the inbox — the forwarding address, the messages, re-filing, the worker's code opt-ins (services/inbox.js).
 inboxRoutes(app, db, requireAuth);
-// D103 P1: the inbox's retention sweep, daily — ONLY when the owner has set INBOX_RETENTION_DAYS (docs/privacy/
-// PENDING_D100_D103.md §3); unset, nothing is swept and the policy promises no period.
-setInterval(() => { try { const n = sweepInbox(db, process.env.INBOX_RETENTION_DAYS); if (n) console.log(`[inbox] retention swept ${n}`); } catch (e) { console.error(`[inbox] sweep: ${e.message}`); } },
-  24 * 3600 * 1000).unref();
+// D103 P1 → ⭐ D112 item 3: the inbox's retention sweep — 180 days unless INBOX_RETENTION_DAYS overrides it ("0" = no
+// sweep; services/inbox.js inboxRetentionDays). The privacy policy promises 6 months. Once a minute after boot (a deploy
+// restarts the process more often than daily, so a daily-only timer could never fire), then daily.
+const sweepInboxNow = () => { try { const n = sweepInbox(db, process.env.INBOX_RETENTION_DAYS); if (n) console.log(`[inbox] retention swept ${n}`); } catch (e) { console.error(`[inbox] sweep: ${e.message}`); } };
+setTimeout(sweepInboxNow, 60 * 1000).unref();
+setInterval(sweepInboxNow, 24 * 3600 * 1000).unref();
 // D101: the profile in sections and Application defaults (services/structuredProfile.js).
 profileSectionRoutes(app, db, requireAuth);
 // D100 P2: the user's portals (sealed sessions, ciphertext only) and approving a remote Ready-to-approve run.

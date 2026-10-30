@@ -247,11 +247,32 @@ export function deleteMessages(db, userId, messageId = null) {
 }
 
 /**
- * The retention sweep: messages older than `days` are deleted. ⚠ The PERIOD is the owner's (docs/privacy/
- * PENDING_D100_D103.md §3) — `INBOX_RETENTION_DAYS`; unset or not a positive number = no sweep, and the policy promises none.
+ * ⭐ D112 item 3 (owner 10-30: "we can delete the inbox mail in 6 months"): the privacy policy promises 180 days, so
+ * 180 is the DEFAULT — the sweep no longer waits for the env variable to be set.
+ */
+export const INBOX_RETENTION_DEFAULT_DAYS = 180;
+
+/**
+ * The period the sweep uses, from `INBOX_RETENTION_DAYS` (a string, as the env carries it):
+ *   unset / empty            → 180 (the policy's period)
+ *   a positive whole number  → that many days (an override; ⚠ the policy says 6 months — move the text with it)
+ *   "0"                      → null: the EXPLICIT "no sweep" the code has always documented (a dev box, a test)
+ *   anything else (negative, fractional, "abc") → 180 — a typo fails toward the promise, never toward keeping mail forever
+ */
+export function inboxRetentionDays(raw) {
+  if (raw == null || String(raw).trim() === "") return INBOX_RETENTION_DEFAULT_DAYS;
+  const s = String(raw).trim();
+  if (s === "0") return null;
+  const d = Number(s);
+  return Number.isInteger(d) && d > 0 ? d : INBOX_RETENTION_DEFAULT_DAYS;
+}
+
+/**
+ * The retention sweep: messages received more than the period ago are deleted. `days` is the raw env value
+ * (resolved by inboxRetentionDays — unset = 180, "0" = no sweep). Run at boot and daily from server.js.
  */
 export function sweepInbox(db, days, nowSec = now()) {
-  const d = Number(days);
-  if (!Number.isInteger(d) || d <= 0) return 0;
+  const d = inboxRetentionDays(days);
+  if (d == null) return 0;
   return db.prepare(`DELETE FROM inbox_messages WHERE received_at < ?`).run(nowSec - d * 86400).changes;
 }
