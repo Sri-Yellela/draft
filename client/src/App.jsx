@@ -62,6 +62,8 @@ import { FAQPage }         from "./pages/marketing/FAQPage.jsx";
 import { PrivacyPage }     from "./pages/marketing/PrivacyPage.jsx";
 import { TermsPage }       from "./pages/marketing/TermsPage.jsx";
 import { ConnectorDocsPage } from "./pages/marketing/ConnectorDocsPage.jsx";
+// ⭐ D105 P4: the Atlas — public at /atlas, and inside the app at /app/atlas under the top bar's Atlas tab.
+import AtlasPage       from "./pages/atlas/AtlasPage.jsx";
 import { Toaster }         from "./components/ui/toaster.jsx";
 import { oauthNext }       from "./lib/oauthNext.js";
 
@@ -342,7 +344,9 @@ function AppDashboard({ authUser, setAuthUser }) {
   // D102 P5 · /app/job/:applicationId — one application's page (JobWorkspacePanel), opened from Draft House and The Table.
   const jobRoute = /^job\/(\d+)$/.exec(routeKey) || /^job\/for\/(.+)$/.exec(routeKey);
   const jobByJobId = !!jobRoute && routeKey.startsWith("job/for/");
-  const activeTab = jobRoute ? "job"
+  // ⭐ D105 P4 · /app/atlas and /app/atlas/:slug — the Atlas inside the app (the public mount is /atlas).
+  const atlasRoute = /^atlas(?:\/[^/]+)?$/.test(routeKey);
+  const activeTab = jobRoute ? "job" : atlasRoute ? "atlas"
     : routeKey === CONSOLE_ROUTE || LEGACY_CONSOLE_ROUTES.has(routeKey)
     ? "console" : routeKey === "" ? "today" : routeKey;
   // D10 (10-03): the card-game family — DAILY DECK, FULL HOUSE, DRAFT, THE TABLE. Display strings
@@ -363,6 +367,9 @@ function AppDashboard({ authUser, setAuthUser }) {
     // menu ("Manage Job Profiles", and the profile switcher's add / manage), Profile's "Open Job
     // Profiles", and the Daily Deck's set-up state ("Add your résumé →").
     { id: "database",     label: "The Table" },
+    // ⭐ D105 P4: D102's navigation gains one place — the Atlas, a dictionary of roles, skills, tools and stacks.
+    // One word, so TabLabel sets it on one line. /app/atlas renders the same page the public /atlas does.
+    { id: "atlas",        label: "Atlas" },
     // D5: no "Recruiter" tab. FE-6 built the surface, but there is no recruiter role, signup or
     // front door, so a candidate-side tab advertised a product that does not exist. The panel and
     // its route stay (ROUTE_ONLY_TABS below) for the two in-app deep links and R2–R6.
@@ -461,10 +468,10 @@ function AppDashboard({ authUser, setAuthUser }) {
     // "Auto Apply" to appTabs was not enough for either of them: the tab rendered and did nothing
     // because handlePanelChange had never heard of it, and typing /app/auto-apply bounced straight
     // back to the board because THIS guard had not either. Two lists, both silent when wrong.
-    if (!jobRoute && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS.has(routeKey)) {
+    if (!jobRoute && !atlasRoute && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS.has(routeKey)) {
       navigate(consolePath, { replace:true });
     }
-  }, [routeKey, consolePath, navigate, NAVIGABLE_TABS]);
+  }, [routeKey, consolePath, navigate, NAVIGABLE_TABS, atlasRoute]);
 
   useEffect(() => {
     const handleVisibility = async () => {
@@ -607,6 +614,7 @@ function AppDashboard({ authUser, setAuthUser }) {
             {activeTab === "saved-answers" && <SavedAnswersPanel/>}
             {activeTab === "customise"    && <CustomisePanel/>}
             {activeTab === "recruiter"    && <RecruiterPanel/>}
+            {activeTab === "atlas"        && <AtlasPage base="/app/atlas"/>}
           </main>
 
           {/* JobDetailPanel moved into JobsPanel, which is where the PDF and ATS panels live and
@@ -635,6 +643,12 @@ function AppDashboard({ authUser, setAuthUser }) {
     </AutoApplyProvider>
     </JobBoardProvider>
   );
+}
+
+/** D105 P4: a signed-in person opening a public /atlas link lands on the same page inside the app. */
+function AtlasInApp() {
+  const { pathname, search } = useLocation();
+  return <Navigate to={`/app${pathname}${search}`} replace/>;
 }
 
 /**
@@ -771,6 +785,13 @@ function AppRouter() {
         <Route path="/privacy"      element={<PrivacyPage/>}/>
         <Route path="/terms"        element={<TermsPage/>}/>
         <Route path="/docs/claude"  element={<ConnectorDocsPage/>}/>
+        {/* ⭐ D105 P4 · THE ATLAS — PUBLIC, no sign-in (d105PublicNoAuth): anyone, and search engines, read published
+            pages. A signed-in person is taken to the same page inside the app (/app/atlas…), under the top bar. */}
+        <Route path="/atlas/*" element={
+          authStatus === "authenticated" && authUser && !authUser.isAdmin
+            ? <AtlasInApp/>
+            : <AtlasPage base="/atlas" publicChrome/>
+        }/>
 
         {/* New public pages with NavBar */}
         <Route path="/products" element={<>{navBar}<ProductsPage/></>}/>

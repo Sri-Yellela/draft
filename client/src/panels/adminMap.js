@@ -26,6 +26,7 @@ export const ADMIN_GROUPS = Object.freeze([
     ["jobdata", "Job data in and out"], // #8 — the one place for postings in and out
     ["scoring", "Board-fit scoring"],   // #7
     ["database", "Database"],           // #20–#26 — the inspector's own page
+    ["atlas", "Atlas"],                 // D105 P4 — the Atlas's drafts, published here so the public pages exist
   ] },
   { id: "system", label: "System", question: "Is it set up right?", sections: [
     ["switches", "Feature switches"],   // #6 + D86's plugin
