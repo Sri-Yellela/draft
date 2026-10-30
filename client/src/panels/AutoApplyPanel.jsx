@@ -25,6 +25,7 @@ import WaitingLine from "../components/WaitingLine.jsx";
 import DraftRunBar from "../components/DraftRunBar.jsx";
 import AutoSettingsDrawer from "../components/AutoSettingsDrawer.jsx";
 import PortalsDrawer from "../components/PortalsDrawer.jsx";
+import { JobWorkspacePanel } from "./JobWorkspacePanel.jsx";
 import StoppedItem from "../components/StoppedItem.jsx";
 import { buildStoppedItems, splitAnswers, filterItems, SEARCH_FROM, packetLife } from "../lib/draftHouseExceptions.js";
 import { useViewport } from "../hooks/useViewport.js";
@@ -153,6 +154,8 @@ export function AutoApplyPanel() {
   const settingsOpener = useRef(null);
   // D100: the Portals drawer — sessions and accounts draft applies with (sketch: the run bar's Portals).
   const [portalsOpen, setPortalsOpen] = useState(false);
+  // D102 P5: the application open beside the list (wide screens), by job id.
+  const [sideJob, setSideJob] = useState(null);
   const fullAuto = runBar?.mode?.current === "auto";
   const listedItems = filterItems(stoppedItems, search);
   const [openKey, setOpenKey] = useState(null);
@@ -197,6 +200,7 @@ export function AutoApplyPanel() {
 
   // D14: Stopped and Queued sit side by side from ~1080px; below that they stack, Stopped first.
   const splitSideBySide = viewportWidth >= 1080;
+  const sideDetail = viewportWidth >= 1280;
   const queuedCount = (applyLine.waiting || []).length + applyInFlight.length;
 
   const needsYouCount =
@@ -604,7 +608,8 @@ export function AutoApplyPanel() {
       {!nothingYet && (
       <div data-draft-split="" style={{
         display: "grid", gap: 20, alignItems: "start",
-        gridTemplateColumns: splitSideBySide ? "minmax(0, 3fr) minmax(0, 1fr)" : "minmax(0, 1fr)",
+        gridTemplateColumns: sideJob && sideDetail ? "minmax(0, 1fr) minmax(0, 1.3fr)"
+          : splitSideBySide ? "minmax(0, 3fr) minmax(0, 1fr)" : "minmax(0, 1fr)",
       }}>
         <section data-draft-stopped="" aria-label="Stopped"
                  style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -704,7 +709,7 @@ export function AutoApplyPanel() {
                   {item.jobId && (
                     <p style={{ margin: "8px 0 0" }}>
                       <a href={`/app/job/for/${encodeURIComponent(item.jobId)}`} data-open-job-page=""
-                        onClick={(e) => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); navigate(`/app/job/for/${encodeURIComponent(item.jobId)}`); } }}
+                        onClick={(e) => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); if (sideDetail) setSideJob(item.jobId); else navigate(`/app/job/for/${encodeURIComponent(item.jobId)}`); } }}
                         style={{ fontSize: 12, fontWeight: 700, color: C.ACCENT_INK }}>Open this application →</a>
                     </p>
                   )}
@@ -737,6 +742,18 @@ export function AutoApplyPanel() {
             </div>
           )}
         </section>
+        {/* D102 P5 · LIST AND DETAIL on a wide screen: an opened application takes the right column (Queued returns on
+            Close); narrower, "Open this application" goes to its own page. */}
+        {sideJob && sideDetail ? (
+          <aside data-draft-detail="" aria-label="This application"
+                 style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: 8 }}>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => navigate(`/app/job/for/${encodeURIComponent(sideJob)}`)}>Full page</button>
+              <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setSideJob(null)} aria-label="Close">✕ Close</button>
+            </div>
+            <JobWorkspacePanel jobId={sideJob} embedded />
+          </aside>
+        ) : (
         <aside data-draft-queued="" aria-label="Queued"
                style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={COLUMN_LABEL(theme)}>Queued{queuedCount > 0 ? ` · ${queuedCount}` : ""}</div>
@@ -803,6 +820,7 @@ export function AutoApplyPanel() {
             </details>
           )}
         </aside>
+        )}
       </div>
       )}
 
