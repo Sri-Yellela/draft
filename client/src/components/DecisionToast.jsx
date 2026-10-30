@@ -23,7 +23,7 @@ const kbd = { fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 5
  * @param onUndo  reverses it (lib/jobDecisions.js undoDecision)
  * @param undoKey the key bound to Undo on this surface, shown beside the label (the deck binds U)
  */
-export default function DecisionToast({ toast, onUndo, undoKey = null, bottom = 96 }) {
+export default function DecisionToast({ toast, onUndo, undoKey = null, bottom = 96, onConfirmNotice = null }) {
   return (
     <AnimatePresence>
       {toast && (
@@ -36,6 +36,17 @@ export default function DecisionToast({ toast, onUndo, undoKey = null, bottom = 
           {/* ⛔ D51: a REFUSED decision said "Drafted Northwind — it waits for your review · Undo" — the
               board set `error` and this rendered the success sentence over it. A refusal says why, and
               offers no Undo: nothing was done. */}
+          {/* A105 finding 12 / D54: a second role at one company — said here, decided here, never a modal. */}
+          {toast.notice && (
+            <>
+              <span data-company-notice-toast="">{toast.notice.replace(/\s*Draft this one too\?$/, "")}</span>
+              {onConfirmNotice && (
+                <button type="button" onClick={() => onConfirmNotice(toast)} style={{ background: "transparent", border: "none",
+                  color: C.ACCENT_INK, fontWeight: 800, cursor: "pointer" }}>Draft anyway</button>
+              )}
+            </>
+          )}
+          {!toast.notice && <>
           {toast.error ? (
             <span data-decision-refused=""><strong>Not {DECISION_VERB[toast.decision]?.toLowerCase()}</strong>
               {toast.company ? ` ${toast.company}` : ""} — {toast.error}</span>
@@ -48,6 +59,7 @@ export default function DecisionToast({ toast, onUndo, undoKey = null, bottom = 
               </button>
             </>
           )}
+          </>}
         </motion.div>
       )}
     </AnimatePresence>
