@@ -68,11 +68,40 @@ export function identityOutcome(lookup) {
     return { outcome: 'not_on_board', bind: false, job, action: 'capture',
              message: `${p.title || p.company ? labelOf(job) : 'This job'} isn't on draft yet — Capture adds it to your jobs.` };
   }
+  // ⭐ T32: the page could not be read at all — no grant on this site (executeScript refused). Not "not a job": said as
+  // what it is, with the one thing that fixes it.
+  if (lookup.kind === 'no_access') {
+    return { outcome: 'no_access', bind: false, job: null, action: 'allow',
+             message: "draft isn't allowed to read this site yet — nothing was read." };
+  }
   if (lookup.kind === 'not_a_job') {
     return { outcome: 'not_a_job', bind: false, job: null, action: null,
              message: "This page doesn't look like a job posting or an application — nothing was filled." };
   }
   return { outcome: 'unread', bind: false, job: null, action: null, message: "draft couldn't read this page — nothing was filled." };
+}
+
+/**
+ * ⭐ T32 · A READ THAT DID NOT FIND YOUR JOB IS A POPUP WITH ITS REASON — never a silent "!" (T26 removed the words from
+ * the dock; it must never remove the reason). ONE line (the outcome's sentence and its code), at most two buttons —
+ * the one thing that fixes it, and Details (Settings → Developer details, T6). Pure: the service worker builds it and the
+ * panel shows it (popup-layer.js). null for an outcome that bound a job — nothing failed.
+ *   no_access     Allow on this site · Details        not_on_board  Capture · Draft (the toolbar press's own question)
+ *   signed_out    Sign in                             not_a_job / unread / unavailable / script_error  Retry · Details
+ */
+export const READ_FAILURE_CODES = Object.freeze(['no_access', 'not_a_job', 'unread', 'unavailable', 'signed_out', 'script_error', 'not_on_board']);
+export function readFailurePopup(id) {
+  if (!id || id.bind) return null;
+  const code = READ_FAILURE_CODES.includes(id.outcome) ? id.outcome : 'script_error';
+  const text = `${id.message || "draft couldn't read this page."} (${code})`;
+  const details = { id: 'details', label: 'Details — open Settings at Developer details', icon: 'info' };
+  const base = { id: 'rm-draft-read', kind: 'question', icon: 'need', tone: 'need', text, data: { code } };
+  if (code === 'no_access') return { ...base, actions: [{ id: 'allow-site', label: 'Allow on this site — opens Settings', word: 'Allow', primary: true }, details] };
+  if (code === 'signed_out') return { ...base, icon: 'info', tone: '', actions: [{ id: 'sign-in', label: 'Sign in to draft', word: 'Sign in', primary: true }] };
+  if (code === 'not_on_board') return { ...base, icon: 'info', tone: '', text: `${id.message} (${code})`,
+    actions: [{ id: 'capture', label: 'Capture it — add it to your board', word: 'Capture', primary: true },
+      { id: 'draft', label: 'Draft it — add it and queue its résumé', word: 'Draft' }] };
+  return { ...base, actions: [{ id: 'retry', label: 'Read this page again', icon: 'read', primary: true }, details] };
 }
 
 /** What a caller may pass on (to the popup): the outcome, its sentence and its action — no page text, no address. */
@@ -125,6 +154,8 @@ export async function identifyAndBind(tab, { serverUrl, lookup = lookupPage, fra
     if (read.text) answer = await lookup(serverUrl, { url, frameUrls, text: read.text }).catch(() => answer);
     // read, and the extractor found no posting on it: "not a job" — known here, so nothing more is sent
     else if (read.ran && !answer.posting) answer = { ...answer, kind: 'not_a_job' };
+    // ⭐ T32: the page could not be read (no grant here) — its own code, never folded into "unread"
+    else if (!read.ran && !answer.posting) answer = { ...answer, kind: 'no_access' };
   }
   const out = identityOutcome(answer);
   if (!out.bind) return { ...out, binding: null, lookup: answer?.ok ? answer : null };

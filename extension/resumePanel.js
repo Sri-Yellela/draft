@@ -52,7 +52,7 @@ import { authedFetch } from './auth.js';
 import { tabJob } from './answerMemory.js';
 import { bindingForTab, bindingLabel } from './tabBinding.js';
 import { lookupBoardJob } from './boardJob.js';
-import { identifyAndBind } from './identify.js';
+import { identifyAndBind, readFailurePopup } from './identify.js';
 import { notePageRead } from './diagnostics.js';
 import { overlayTheme, fetchPdf, formFrameOf } from './gated-handoff.js';
 // ⭐ T17: the ATS and Résumé views are drawn on the dock, in the TOP frame.
@@ -455,7 +455,7 @@ export function renderResumePanel(model, meta) {
           m.report.note ? `<p class="note sr">${esc(m.report.note)}</p>` : ''}${
           m.report.line ? `<p class="ln sr">${esc(m.report.line)}</p>` : ''}${
           m.report.action ? `<div class="acts">${ibtn({ role: m.report.action.role, label: m.report.action.label, icon: 'open' })}</div>` : ''}
-        </div>` : nojob ? `<div class="empty" title="${esc((m.lines || []).map(l => l.text).join(' '))}">${I('need', 28)}${(m.lines || []).map(l => `<p class="ln sr ${esc(l.tone)}">${esc(l.text)}</p>`).join('')}`
+        </div>` : nojob ? `<div class="empty" title="${esc((m.lines || []).map(l => l.text).join(' ') || 'Read this page')}">${I('read', 28)}${(m.lines || []).map(l => `<p class="ln sr ${esc(l.tone)}">${esc(l.text)}</p>`).join('')}`
           + `<div class="acts">${ibtn(ACTIONS_READ)}</div></div>`
           : `<div class="empty" title="No ATS report for this job yet.">${I('ats', 28)}<p class="ln sr" data-role="ats-none">No ATS report for this job yet.</p></div>`}
         ${m.job ? `<div class="acts">${ibtn({ role: 'unbind', label: `Unlink this page from ${m.job}`, icon: 'unlink' })}</div>` : ''}
@@ -524,6 +524,20 @@ export function renderResumePanel(model, meta) {
       schedule();
     }, meta?.pollMs || 2000);
   };
+  // ⭐ T32: a read that did not find the job raises ITS popup (the reason, its code, the one fix) — never the panel's "!".
+  // The popup's buttons act inside the person's own click: Allow / Capture / Draft / Sign in through DOCK_ACT, Details
+  // through OPEN_SETTINGS, Retry reads again.
+  const readPage = async (r) => {
+    const reply = await send({ type: 'RESUME_READ_PAGE', trigger: 'click' });
+    if (reply?.ok || !reply?.popup || !globalThis.__draftPopups?.show) return take(r, reply, 'Could not reach draft — try again.');
+    if (reply.model) { m = { ...reply.model, report: reply.model.report ?? (reply.model.state === 'nojob' ? null : m.report) }; }
+    draw(); schedule();
+    const answer = await globalThis.__draftPopups.show({ ...reply.popup, theme: meta?.theme });
+    if (!answer?.trusted) return;
+    if (answer.action === 'retry') return readPage(r);
+    if (answer.action === 'details') { void send({ type: 'OPEN_SETTINGS', trigger: 'click', section: 'details' }); return; }
+    if (['allow-site', 'capture', 'draft', 'sign-in'].includes(answer.action)) void send({ type: 'DOCK_ACT', act: answer.action, trigger: 'click' });
+  };
   const take = (r, reply, fallback) => {
     // the report is asked for when the panel opens; a later model (a status, a cancel) keeps it
     if (reply?.model) m = { ...reply.model, report: reply.model.report ?? (reply.model.state === 'nojob' ? null : m.report) };
@@ -566,7 +580,7 @@ export function renderResumePanel(model, meta) {
     if (role === 'cancel') { say('Cancelling…'); return take(r, await send({ type: 'RESUME_CANCEL', id: m.id }), 'Could not cancel — try again.'); }
     if (role === 'attach') { say('Attaching…'); return take(r, await send({ type: 'RESUME_ATTACH', id: m.id }), 'Could not attach — try Download PDF.'); }
     if (role === 'edit') { const got = await send({ type: 'RESUME_OPEN_EDITOR', id: m.id }); btn.disabled = false; if (!got?.ok) say(got?.message || 'Could not open draft.', true); else say('Opened in a new tab.'); }
-    if (role === 'read') { say('Reading this page…'); return take(r, await send({ type: 'RESUME_READ_PAGE', trigger: 'click' }), 'Could not reach draft — try again.'); }
+    if (role === 'read') { say('Reading this page…'); return readPage(r); }
     // ⭐ T31: "Unlink this page" — off the retired toolbar popup, here where the tab's job is named: forget which job this
     // tab is on (DOCK_ACT unbind — this tab, the person's own click)
     if (role === 'unbind') {
@@ -920,14 +934,17 @@ export function handlersFor(serverUrl = null) {
       if (!tab) return refuse('Read the page from the panel on it.');
       if (!url()) return refuse('Not configured.');
       const pageUrl = String(tab.url || '').slice(0, 2048);
-      const id = await identifyAndBind(tab, { serverUrl: url() }).catch(() => null);
+      // ⭐ T32: a read that throws is a script error with its own code — never the generic "couldn't tell"
+      const id = await identifyAndBind(tab, { serverUrl: url() })
+        .catch(() => ({ outcome: 'script_error', bind: false, job: null, action: 'retry', message: 'Something went wrong reading this page — nothing was read.', lookup: null }));
       const page = id?.lookup || null;
       const job = await jobOfTab(tab);
       notePageRead(tab.id, { url: pageUrl, known: !!job, jobId: job?.jobId ?? null, how: page?.posting?.how || null,
         pageKey: null, basis: page?.basis || null, atsState: page?.ats?.state || null });
       if (!job) {
         const report = page?.basis === 'page' && page.ats ? { ...page.ats, basis: 'page' } : null;
-        return { ok: false, message: id?.message || "draft couldn't tell which job this is.", model: await withAtsComponent(tab, resumePanelModel({ report })) };
+        return { ok: false, code: id?.outcome || 'script_error', message: id?.message || "draft couldn't tell which job this is.",
+                 popup: readFailurePopup(id), model: await withAtsComponent(tab, resumePanelModel({ report })) };
       }
       const { view, error } = await currentView(url(), job);
       const allowance = !view ? await allowanceNow(url()) : null;

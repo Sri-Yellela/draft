@@ -106,12 +106,14 @@ test("⭐ identifyAndBind: the address names the job → ONE question (no page t
   done();
 });
 
-test("⛔ identifyAndBind: a failed identify binds NOTHING and writes nothing — signed out, unreachable, not a job, unread, not on the board", async () => {
+test("⛔ identifyAndBind: a failed identify binds NOTHING and writes nothing — signed out, unreachable, not a job, no access, not on the board", async () => {
   const answers = {
     signed_out: { ok: false, error: "signed_out" },
     unavailable: { ok: false, error: "unavailable" },
     not_a_job: { ok: true, posting: null, kind: "unread" },          // the page was read (ran) and held no posting
-    unread: { ok: true, posting: null, kind: "unread" },
+    // ⭐ T32 (10-30): a page that could not be read at all (no grant — the text step did not run) is `no_access`, its own
+    // code with its own fix (Allow), no longer folded into "unread" (43o: "T32 must give that its own code").
+    no_access: { ok: true, posting: null, kind: "unread" },
     not_on_board: { ok: true, posting: { known: false, title: "Robotics Engineer", company: "Newco" }, kind: "job" },
   };
   for (const [outcome, answer] of Object.entries(answers)) {
