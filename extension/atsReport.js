@@ -484,6 +484,16 @@ function reportAsks(report) {
   return { onResume, couldClaim, generic, matched: onResume.length, missing, total: onResume.length + missing };
 }
 
+/**
+ * ⭐ D105 P5: the terms an Atlas page may exist for — the skills and qualities the report draws as boxes, once each.
+ * Verbs ("design", "lead") and generic language are not Atlas pages. The web wrapper and the extension's worker both
+ * ask the server's resolve with exactly these, so the two products link the same boxes.
+ */
+function atlasTerms(report) {
+  const { onResume, couldClaim } = reportAsks(report);
+  return [...new Set([...couldClaim, ...onResume].filter(t => t.kind !== "verb" && typeof t.term === "string" && t.term.trim()).map(t => t.term.trim()))];
+}
+
 /** Provenance: what the résumé already evidences — the scorer decided this; nothing is re-derived. */
 function evidencedKeys(report) {
   return new Set([
@@ -560,7 +570,7 @@ function cleanReport(report) {
   out.improvements = words(report.improvements, SENTENCE_MAX);
   return out;
 }
-return { reportBand, fromDeckReport, fromStandaloneResult, TERM_KINDS, reportAsks, evidencedKeys, EXPERIENCE_STATES, experienceState, EXPERIENCE_MARK, REPORT_LISTS, cleanReport };
+return { reportBand, fromDeckReport, fromStandaloneResult, TERM_KINDS, reportAsks, atlasTerms, evidencedKeys, EXPERIENCE_STATES, experienceState, EXPERIENCE_MARK, REPORT_LISTS, cleanReport };
 })();
 
 // ── shared/atsReportStyles.js ──────────────────────────────────────────────────────────────────────────────────
@@ -670,6 +680,14 @@ const ATS_REPORT_CSS = `
 }
 .ats-sec__sub { font-size: 11.5px; color: var(--c-pair-ink-faint); margin: -6px 0 12px; line-height: 1.5; }
 .ats-boxes { display: flex; flex-wrap: wrap; gap: 8px; }
+/* ⭐ D105 P5: a box and its Atlas link, kept together on one line. The link is a quiet word, not a second box. */
+.ats-boxwrap { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; }
+.ats-atlas {
+  font-family: var(--font-body); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--c-pair-kicker); text-decoration: underline; text-underline-offset: 2px; white-space: nowrap;
+}
+.ats-atlas:hover { color: var(--c-pair-ink); }
+.ats-atlas:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; border-radius: 3px; }
 /* A fold's summary IS its .gh; a caret says it opens. */
 .ats-fold > summary { cursor: pointer; list-style: none; }
 .ats-fold > summary::-webkit-details-marker { display: none; }
@@ -799,6 +817,11 @@ __m["atsReportElement.js"] = (() => {
 // it (the extension, the public tool) every box is read-only and the claim copy is not shown. NOTHING IS PRE-SELECTED.
 // ⛔ D32's hover link: with `linkable`, pointing at (or focusing) a box dispatches `draft-ats-term` { term } and
 // { term: null } on leaving — on request only, never standing.
+// ⭐ D105 P5 · LINKS IN: with `atlas` = { base, slugs: { term: slug } }, a term that has a PUBLISHED Atlas page gets a
+// small "Atlas" link beside its box (a sibling — a claim box is a button, and a link never goes inside a button). The
+// host resolves the slugs (GET /api/atlas/resolve); a term absent from `slugs` draws no link, so there is never a
+// dead one. `base` is "/atlas/" in the web app and the server's https origin + "/atlas/" in the extension; anything
+// else falls back to "/atlas/". Verbs and generic language never link.
 //
 // The structure, the classes and the copy are A52 / D31 / D32 / A86 / D50's, unchanged — see the history of
 // client/src/components/AtsReport.jsx for the reasoning behind each; the comments below keep the load-bearing ones.
@@ -958,6 +981,23 @@ function termBox(doc, host, { term: k, kind, generic = false, claims = null, evi
     h(doc, "span", { class: "ats-box__term" }, k), kindLabel());
 }
 
+/** The Atlas link's base: a same-origin path or an https origin's /atlas/ — never javascript:, never http. */
+function atlasBase(base) {
+  const b = String(base ?? "");
+  if (b.startsWith("/") && !b.startsWith("//") && !b.includes("\\")) return b.endsWith("/") ? b : `${b}/`;
+  try { const u = new URL(b); if (u.protocol === "https:") return u.href.endsWith("/") ? u.href : `${u.href}/`; } catch { /* fall through */ }
+  return "/atlas/";
+}
+
+/** A box, and — when its term has a published Atlas page — the small link beside it, held together. */
+function withAtlas(doc, el, term, atlas) {
+  const slug = atlas?.slugs && typeof atlas.slugs[term] === "string" ? atlas.slugs[term] : null;
+  if (!slug) return el;
+  return h(doc, "span", { class: "ats-boxwrap" }, el,
+    h(doc, "a", { class: "ats-atlas", href: `${atlasBase(atlas.base)}${encodeURIComponent(slug)}`, target: "_blank",
+      rel: "noopener noreferrer", title: `About ${term} in the Atlas`, "aria-label": `About ${term} in the Atlas`, "data-atlas-link": slug }, "Atlas"));
+}
+
 function listSection(doc, title, items) {
   return h(doc, "div", null,
     h(doc, "div", { class: "ats-sec__label" }, title),
@@ -970,9 +1010,10 @@ function listSection(doc, title, items) {
  *
  * @param doc     the document to build in
  * @param report  the scorer's report shape (cleanReport'd by the caller; see fromDeckReport / fromStandaloneResult)
- * @param opts    { band, mode: "full"|"band", compact, claims, linkable, host } — `host` receives the events
+ * @param opts    { band, mode: "full"|"band", compact, claims, linkable, atlas, host } — `host` receives the events;
+ *                `atlas` { base, slugs } links a term to its published Atlas page (D105 P5)
  */
-function buildAtsReport(doc, report, { band: knownBand = null, mode = "full", compact = false, claims = null, linkable = false, host = null } = {}) {
+function buildAtsReport(doc, report, { band: knownBand = null, mode = "full", compact = false, claims = null, linkable = false, atlas = null, host = null } = {}) {
   if (!report) return null;
   if (mode === "band") return buildBandCard(doc, report, { band: knownBand, compact });
   const state = claimState(claims);
@@ -991,7 +1032,11 @@ function buildAtsReport(doc, report, { band: knownBand = null, mode = "full", co
   const more = verdict || (!isLocalReport && (report.strengths?.length || report.improvements?.length));
   const hasBody = !!(depth || couldClaim.length || report.experience?.summary || onResume.length
     || report.action_verbs_generic?.length || more);
-  const box = (t, extra = {}) => termBox(doc, host, { ...t, evidenced, linkable, ...extra });
+  const box = (t, extra = {}) => {
+    const el = termBox(doc, host, { ...t, evidenced, linkable, ...extra });
+    // Skills and qualities link; a verb ("design", "lead") and generic language are not Atlas pages.
+    return extra.generic || t.kind === "verb" ? el : withAtlas(doc, el, t.term, atlas);
+  };
 
   // A BAND, NOT THE NUMBER (G5): the best fit the profile can reach.
   const best = report.best_possible_score != null ? h(doc, "div", { class: "ats-note", "data-best": pct === report.best_possible_score ? "reached" : "short" },
@@ -1059,7 +1104,8 @@ function mountAtsReport(host, report, opts = {}) {
   let style = root.querySelector?.("style[data-ats-style]") || null;
   if (!style) { style = doc.createElement("style"); style.setAttribute("data-ats-style", ""); style.textContent = ATS_REPORT_SHADOW_CSS; root.append(style); }
   const clean = cleanReport(report);
-  const sig = JSON.stringify([clean, opts.band ?? null, opts.mode || "full", !!opts.compact, !!opts.linkable, setsOut(opts.claims)]);
+  const sig = JSON.stringify([clean, opts.band ?? null, opts.mode || "full", !!opts.compact, !!opts.linkable, setsOut(opts.claims),
+    opts.atlas ? [atlasBase(opts.atlas.base), opts.atlas.slugs || {}] : null]);
   if (root[SIG] === sig) return root;
   root[SIG] = sig;
   const prior = root.querySelector?.("[data-ats-root]") || null;
@@ -1079,7 +1125,7 @@ function mountAtsReport(host, report, opts = {}) {
 
 /**
  * `<draft-ats-report>` — the element. Properties: `report` (the scorer's JSON), `band`, `claims` (see claimState),
- * `linkable`. Attributes: `mode` ("full" | "band"), `compact`, `theme` (a registry id; none follows the OS),
+ * `linkable`, `atlas` ({ base, slugs } — D105 P5). Attributes: `mode` ("full" | "band"), `compact`, `theme` (a registry id; none follows the OS),
  * `cues` ("shape"). Defined only where a registry exists; returns the class (or null).
  */
 function defineAtsReportElement(registry = typeof customElements !== "undefined" ? customElements : null) {
@@ -1088,7 +1134,7 @@ function defineAtsReportElement(registry = typeof customElements !== "undefined"
   if (existing) return existing;
   class DraftAtsReport extends HTMLElement {
     static get observedAttributes() { return ["mode", "compact"]; }
-    constructor() { super(); this._report = null; this._band = null; this._claims = null; this._linkable = false; this._queued = false; }
+    constructor() { super(); this._report = null; this._band = null; this._claims = null; this._linkable = false; this._atlas = null; this._queued = false; }
     set report(v) { this._report = v ?? null; this._schedule(); }
     get report() { return this._report; }
     set band(v) { this._band = v ?? null; this._schedule(); }
@@ -1097,6 +1143,8 @@ function defineAtsReportElement(registry = typeof customElements !== "undefined"
     get claims() { return this._claims; }
     set linkable(v) { this._linkable = !!v; this._schedule(); }
     get linkable() { return this._linkable; }
+    set atlas(v) { this._atlas = v ?? null; this._schedule(); }
+    get atlas() { return this._atlas; }
     connectedCallback() { this.render(); }
     attributeChangedCallback() { this._schedule(); }
     _schedule() {
@@ -1107,13 +1155,13 @@ function defineAtsReportElement(registry = typeof customElements !== "undefined"
     /** Draw now (the microtask batch calls this; a host that needs the tree at once may too). */
     render() {
       return mountAtsReport(this, this._report, { band: this._band, mode: this.getAttribute("mode") || "full",
-        compact: this.hasAttribute("compact"), claims: this._claims, linkable: this._linkable });
+        compact: this.hasAttribute("compact"), claims: this._claims, linkable: this._linkable, atlas: this._atlas });
     }
   }
   registry.define(ATS_REPORT_TAG, DraftAtsReport);
   return DraftAtsReport;
 }
-return { ATS_REPORT_TAG, ATS_CLAIM_EVENT, ATS_TERM_EVENT, buildBandCard, buildAtsReport, mountAtsReport, defineAtsReportElement };
+return { ATS_REPORT_TAG, ATS_CLAIM_EVENT, ATS_TERM_EVENT, buildBandCard, atlasBase, buildAtsReport, mountAtsReport, defineAtsReportElement };
 })();
 
 const api = Object.freeze({ ...__m["atsReportModel.js"], ...__m["atsReportElement.js"] });

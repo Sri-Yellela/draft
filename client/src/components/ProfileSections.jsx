@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
+import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
 import { EEO_DECLINE } from "../../../shared/savedAnswers.js";
 
 const NOT_SET = "Not set — I'll answer on each form";
@@ -193,6 +194,8 @@ export default function ProfileSections({ theme }) {
   const [msg, setMsg] = useState("");
   const [busyKey, setBusyKey] = useState(null);
   const [summary, setSummary] = useState(null);
+  // ⭐ D105 P5: a skill with a PUBLISHED Atlas page links to it (resolved in one request, cached for the page).
+  const atlasSlugs = useAtlasSlugs((p?.sections?.skills || []).map(x => x?.name));
 
   const load = useCallback(async () => {
     try { setP(await api("/api/profile/sections")); } catch (e) { setMsg(e.message || "Could not load your profile."); }
@@ -285,7 +288,10 @@ export default function ProfileSections({ theme }) {
         <ListEditor theme={theme} items={s.skills} addLabel="+ Add a skill" blank={{ name: "", category: "" }}
           fields={[{ k: "name", label: "Skill" }, { k: "category", label: "Group (optional)" }]}
           onSave={(items) => saveSection("skills", { items })}
-          render={(x) => <span style={{ ...markStyle(C.INK_MUTED) }}>{x.name}</span>} />
+          render={(x) => <span style={{ ...markStyle(C.INK_MUTED) }}>{atlasSlugs[String(x.name ?? "").trim()]
+            ? <a href={atlasHref(atlasSlugs[String(x.name ?? "").trim()])} target="_blank" rel="noopener noreferrer" data-atlas-link=""
+                title={`About ${x.name} in the Atlas`} style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 2 }}>{x.name}</a>
+            : x.name}</span>} />
       </Box>
 
       <Box title="Links" theme={theme}>

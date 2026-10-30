@@ -174,6 +174,7 @@ export const SHARED = Object.freeze({
   // ── lib ──
   "lib/accountAvatar.js":               { what: "the account avatar" },
   "lib/api.js":                         { what: "THE API client" },
+  "lib/atlasLinks.js":                  { what: "D105 P5 · a skill tag's link to its PUBLISHED Atlas page — resolved in bulk, cached per page" },
   "lib/applyObstacles.js":              { what: "the apply line's vocabulary" },
   "lib/applyTools.js":                  { what: "the apply-run request constants" },
   "lib/oauthNext.js":                  { what: "the one return path after sign-in to a host's consent screen (D86)" },
