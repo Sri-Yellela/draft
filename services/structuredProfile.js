@@ -17,6 +17,7 @@ import { payloadResumeParse, parseBasis } from "./payloadResume.js";
 import { buildPacketEntries, parseDateRange } from "./applyGatePacket.js";
 import { companyKey, logoPath, RETRY_NONE_DAYS } from "./jobs/companyLogoStore.js";
 import { readAutoSettings } from "../shared/autoSettings.js";
+import { degreeKey } from "../shared/eligibility.js";
 
 // ── Application defaults: the groups, the keys, what each accepts ─────────────────────────────
 const YES_NO = ["yes", "no"];
@@ -221,6 +222,94 @@ export function profileLogosToResolve(db, userId, nowSec = Math.floor(Date.now()
   return out;
 }
 
+// ── D112 d2 (owner 10-30 night) · THE EDUCATION SECTION IS THE SOURCE OF THE DEGREE ────────────────
+//
+// Highest degree, field, school and year are DERIVED from the section's entries — the highest level wins (a PhD over a
+// master's over a bachelor's over an associate's over high school; a tie goes to the later end date). The one per-profile
+// exception is the Change override (user_profile.education_override, JSON), for a form that needs something else: each
+// field it sets wins over the derived one. The forms (withEducation, below) and eligibility (services/jobEligibility.js)
+// read ONLY this — the old Education block's columns (highest_degree / field_of_study / university / graduation_year)
+// were moved into the section by migration 179 and are never read as an answer again.
+const DEGREE_RANK = { phd: 5, masters: 4, bachelors: 3 };
+export function degreeRank(text) {
+  const k = degreeKey(text);
+  if (k) return DEGREE_RANK[k];
+  const t = String(text || "");
+  if (/\b(associate|a\.?a\.?s?|a\.?s\.?)\b/i.test(t)) return 2;
+  if (/\b(high school|secondary|ged|diploma)\b/i.test(t)) return 1;
+  return t.trim() ? 0.5 : 0;
+}
+
+function readOverride(raw) {
+  try {
+    const o = typeof raw === "string" ? JSON.parse(raw) : null;
+    if (!o || typeof o !== "object") return null;
+    const out = {};
+    for (const k of ["degree", "field", "school"]) if (o[k] != null && String(o[k]).trim()) out[k] = String(o[k]).trim();
+    if (o.year != null && /^(19|20|21)\d{2}$/.test(String(o.year))) out.year = String(o.year);
+    return Object.keys(out).length ? out : null;
+  } catch { return null; }
+}
+
+/**
+ * The degree the forms and eligibility read: { degree, field, school, year, source: 'override'|'section'|null,
+ * derived, override, available }. `available` is false on a database without the section (before 173) — the callers
+ * then leave what they had unchanged rather than blanking it.
+ */
+export function educationOf(db, userId) {
+  let rows;
+  try { rows = db.prepare(`SELECT id, school, degree, field, end_ym FROM profile_education WHERE user_id = ? ORDER BY position, id`).all(userId); }
+  catch { return { degree: null, field: null, school: null, year: null, source: null, derived: null, override: null, available: false }; }
+  let best = null, bestRank = -1;
+  for (const r of rows) {
+    const k = degreeRank(r.degree);
+    if (k > bestRank || (k === bestRank && String(r.end_ym || "") > String(best.end_ym || ""))) { best = r; bestRank = k; }
+  }
+  const derived = best ? { degree: best.degree || null, field: best.field || null, school: best.school || null,
+    year: best.end_ym ? String(best.end_ym).slice(0, 4) : null, entryId: best.id } : null;
+  let override = null;
+  try { override = readOverride(db.prepare(`SELECT education_override FROM user_profile WHERE user_id = ?`).pluck().get(userId)); } catch { override = null; }
+  const pick = (k) => override?.[k] ?? derived?.[k] ?? null;
+  return { degree: pick("degree"), field: pick("field"), school: pick("school"), year: pick("year"),
+    source: override ? "override" : derived ? "section" : null, derived, override, available: true };
+}
+
+/** The Change override: { degree, field, school, year } — empty (or null) clears it, and the section speaks again. */
+export function setEducationOverride(db, userId, body) {
+  const fail = (m) => Object.assign(new Error(m), { status: 400, code: "bad_override" });
+  const o = {};
+  for (const k of ["degree", "field", "school"]) {
+    const v = str(body?.[k], 160);
+    if (v) o[k] = v;
+  }
+  const y = str(body?.year, 4);
+  if (y) { if (!/^(19|20|21)\d{2}$/.test(y)) throw fail("The year is written YYYY."); o.year = y; }
+  db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(userId);
+  db.prepare(`UPDATE user_profile SET education_override = ? WHERE user_id = ?`).run(Object.keys(o).length ? JSON.stringify(o) : null, userId);
+  return Object.keys(o).length ? o : null;
+}
+
+/** The section's entries in the packet's shape (applyGatePacket.js buildPacketEntries). null before 173. */
+export function educationEntries(db, userId) {
+  let rows;
+  try { rows = db.prepare(`SELECT school, degree, field, start_ym, end_ym FROM profile_education WHERE user_id = ? ORDER BY position, id`).all(userId); }
+  catch { return null; }
+  const my = (v) => (v && /^\d{4}-\d{2}$/.test(v) ? { month: Number(v.slice(5, 7)), year: Number(v.slice(0, 4)) } : null);
+  return rows.map(r => ({ school: r.school || null, degree: r.degree || null, field: r.field || null, gpa: null,
+    from: my(r.start_ym), to: my(r.end_ym), source: "profile" }));
+}
+
+/** The autofill payload's degree fields — ONLY the derived value or the override (blank when neither). */
+export function withEducation(db, userId, payload) {
+  if (!payload || userId == null) return payload;
+  const e = educationOf(db, userId);
+  if (!e.available) return payload;
+  const fm = { ...(payload.field_map || {}) }, hm = { ...(payload.handler_map || {}) };
+  fm.highest_degree = e.degree || ""; fm.field_of_study = e.field || ""; fm.university = e.school || ""; fm.graduation_year = e.year || "";
+  hm.degree = e.degree || ""; hm["field-of-study"] = e.field || ""; hm.school = e.school || ""; hm["grad-year"] = e.year || "";
+  return { ...payload, field_map: fm, handler_map: hm };
+}
+
 /** The ten sections the header counts ("7 of 10 sections"), each done or not. */
 function completeness(db, userId, s, defaults) {
   const contact = db.prepare(`SELECT email, phone, COALESCE(full_name, first_name) AS name FROM user_profile WHERE user_id = ?`).get(userId) || {};
@@ -257,7 +346,9 @@ export function readProfile(db, userId) {
     }
   }
   const defaults = readDefaults(db, userId);
-  return { sections: s, defaults, completeness: completeness(db, userId, s, defaults), suggestion };
+  const e = educationOf(db, userId);
+  return { sections: s, defaults, completeness: completeness(db, userId, s, defaults), suggestion,
+    education: { degree: e.degree, field: e.field, school: e.school, year: e.year, source: e.source, derived: e.derived, override: e.override } };
 }
 
 /** "Your résumé says X — use it?" — one press replaces the sections with the new parse. */
@@ -354,6 +445,8 @@ const CLEARANCE_WORDS = { confidential: "Confidential", secret: "Secret", top_se
 
 export function withApplicationDefaults(db, userId, payload) {
   if (!payload || userId == null) return payload;
+  // D112 d2: the degree fields are the Education section's derived value (or the Change override), never the old block.
+  payload = withEducation(db, userId, payload);
   let d;
   try {
     importStatedDefaults(db, userId);

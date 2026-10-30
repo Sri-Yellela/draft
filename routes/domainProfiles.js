@@ -95,6 +95,8 @@ function parseProfileRow(row) {
     selected_verbs: JSON.parse(row.selected_verbs || "[]"),
     selected_tools: JSON.parse(row.selected_tools || "[]"),
     tracked_search: row.tracked_search_json ? JSON.parse(row.tracked_search_json) : null,
+    // D112 e2: made from a résumé and not yet refined → the "Refine your job profile" prompt shows.
+    needs_refine: row.made_from_resume === 1 && !row.refined_at,
   };
 }
 
@@ -274,7 +276,9 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
     }
-    if (!Object.keys(updates).length) return res.status(400).json({ error: "No fields to update" });
+    // D112 e2: the wizard's "Refine your job profile" save says so — the prompt is gone once it has been opened and saved.
+    const refined = req.body.refined === true;
+    if (!Object.keys(updates).length && !refined) return res.status(400).json({ error: "No fields to update" });
 
     // AI1. The column is NOT NULL, and the client sends a boolean — coerced here so a stray
     // string, null or number cannot reach the INSERT. Anything that is not an affirmative is OFF,
@@ -297,7 +301,10 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
       if (updates[arrKey] !== undefined) updates[arrKey] = JSON.stringify(cleanStringArray(updates[arrKey]));
     }
 
-    const set  = Object.keys(updates).map(k => `${k}=?`).join(",");
+    const cols = Object.keys(updates).map(k => `${k}=?`);
+    if (refined && "made_from_resume" in profile) cols.push("refined_at=unixepoch()");
+    if (!cols.length) return res.json(parseProfileRow(profile));
+    const set  = cols.join(",");
     const vals = Object.values(updates);
     db.prepare(`UPDATE domain_profiles SET ${set}, updated_at=unixepoch() WHERE id=? AND user_id=?`)
       .run(...vals, req.params.id, req.user.id);

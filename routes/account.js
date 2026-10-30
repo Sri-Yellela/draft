@@ -367,7 +367,7 @@ export function createAccountRouter({
     // silently wipe answers the candidate spent a run capturing. Absence therefore preserves; only
     // an explicitly supplied object replaces.
     const existing = db.prepare(
-      "SELECT custom_answers, custom_answer_overrides FROM user_profile WHERE user_id=?"
+      "SELECT custom_answers, custom_answer_overrides, highest_degree, field_of_study, university, graduation_year FROM user_profile WHERE user_id=?"
     ).get(req.user.id) || {};
     const prior = readAnswerStore(existing);
     const isMap = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -403,8 +403,12 @@ export function createAccountRouter({
       f.website_url || null, f.portfolio_url || null,
       f.desired_salary ? Number(f.desired_salary) : null, f.salary_currency || null,
       f.available_start_date || null, f.willing_to_relocate ? 1 : 0,
-      f.highest_degree || null, f.field_of_study || null, f.university || null,
-      f.graduation_year ? Number(f.graduation_year) : null,
+      // D112 d2: the Profile no longer posts the old Education block (the Education SECTION is the source, migration 179).
+      // Absent keeps what is stored — A33's résumé prefill still stages these columns for the section's first fill.
+      "highest_degree" in f ? (f.highest_degree || null) : (existing.highest_degree ?? null),
+      "field_of_study" in f ? (f.field_of_study || null) : (existing.field_of_study ?? null),
+      "university" in f ? (f.university || null) : (existing.university ?? null),
+      "graduation_year" in f ? (f.graduation_year ? Number(f.graduation_year) : null) : (existing.graduation_year ?? null),
       f.current_job_title || null, f.current_company || null,
       f.years_of_experience ? Number(f.years_of_experience) : null,
       JSON.stringify(nextStore.answers), JSON.stringify(nextStore.overrides),
