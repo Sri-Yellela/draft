@@ -7,15 +7,16 @@ import { postingRequirements } from "../shared/postingRequirements.js";
 import { normalizePosting } from "../shared/postingNormalize.js";
 import { eligibilityOf } from "../shared/eligibility.js";
 import { BASIS_FN } from "./jobs/descriptionText.js";
+import { educationOf } from "./structuredProfile.js";
 
 export function userEligibilityInputs(db, userId) {
   let defaults = {};
   try { defaults = Object.fromEntries(db.prepare(`SELECT key, value FROM application_defaults WHERE user_id = ?`).all(userId).map(r => [r.key, r.value])); }
   catch { defaults = {}; }
-  const degrees = [];
-  try { degrees.push(...db.prepare(`SELECT degree FROM profile_education WHERE user_id = ?`).pluck().all(userId)); } catch { /* before 173 */ }
-  try { const p = db.prepare(`SELECT highest_degree FROM user_profile WHERE user_id = ?`).pluck().get(userId); if (p) degrees.push(p); } catch {}
-  return { defaults, degrees: degrees.filter(Boolean) };
+  // D112 d2: ONE degree — the Education section's highest (or the Profile's Change override). The old block's
+  // user_profile.highest_degree is not read (migration 179 moved it into the section).
+  const degree = educationOf(db, userId).degree;
+  return { defaults, degrees: degree ? [degree] : [] };
 }
 
 /** @returns { status, reasons, missing, requirements } — `eligible` with no requirements when the posting is gone. */

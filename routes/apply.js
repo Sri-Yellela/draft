@@ -56,6 +56,7 @@ import { eligibilityForJob, userEligibilityInputs } from "../services/jobEligibi
 // D107 P3: Approve all also leaves out a posting past the user's staleness thresholds (Auto settings).
 import { livenessFor, isStale } from "../services/jobs/jobHistory.js";
 import { readAutoSettings } from "../shared/autoSettings.js";
+import { educationEntries } from "../services/structuredProfile.js";
 
 // Live read through the one shared parser, exactly as server.js does — same flag, same function,
 // so this route and the gates over there cannot disagree. ⛔ See shared/monetisation.js: ON is a
@@ -1137,7 +1138,12 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     let profile = null, payload = null;
     try { profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || null; } catch { /* no profile table */ }
     try { payload = payloadResumeParse(db, { userId, resumeId }); } catch { payload = null; }
-    try { return buildPacketEntries({ profile, payload }); } catch { return null; }
+    let entries;
+    try { entries = buildPacketEntries({ profile, payload }); } catch { return null; }
+    // D112 d2: the Education entries are the Profile's Education SECTION, not the old one-degree block (null before 173).
+    const edu = educationEntries(db, userId);
+    if (entries && edu) entries.education = edu;
+    return entries;
   }
 
   // ⭐ D65 residual · "HAVE YOU WORKED HERE BEFORE?" READS THE RÉSUMÉ THE PACKET CARRIES. The autofill

@@ -15,13 +15,18 @@ const US_PERSON = /\b(permanent resident|green card|lawful permanent|refugee|asy
 const LEVEL = { none: 0, confidential: 1, public_trust: 1, secret: 2, top_secret: 3, ts_sci: 4 };
 const DEGREE = { bachelors: 1, masters: 2, phd: 3 };
 
+/** One free-text degree → "phd" | "masters" | "bachelors" | null. D112 d2: the Profile's derived degree ranks with it. */
+export function degreeKey(d) {
+  const t = String(d || "");
+  return /\b(ph\.?\s?d|doctor)/i.test(t) ? "phd" : /\b(master|m\.?s\.?c?|mba|m\.?eng|m\.?a\.?)\b/i.test(t) ? "masters"
+    : /\b(bachelor|b\.?s\.?c?|b\.?a\.?|b\.?eng|b\.?tech)\b/i.test(t) ? "bachelors" : null;
+}
+
 /** The highest degree a list of free-text degrees states, or null. */
 export function highestDegree(degrees = []) {
   let best = null;
   for (const d of degrees) {
-    const t = String(d || "");
-    const k = /\b(ph\.?\s?d|doctor)/i.test(t) ? "phd" : /\b(master|m\.?s\.?c?|mba|m\.?eng|m\.?a\.?)\b/i.test(t) ? "masters"
-      : /\b(bachelor|b\.?s\.?c?|b\.?a\.?|b\.?eng|b\.?tech)\b/i.test(t) ? "bachelors" : null;
+    const k = degreeKey(d);
     if (k && (!best || DEGREE[k] > DEGREE[best])) best = k;
   }
   return best;

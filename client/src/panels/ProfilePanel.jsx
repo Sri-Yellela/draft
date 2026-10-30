@@ -10,6 +10,7 @@ import {
 } from "../lib/profileSuggestions.js";
 import { prefillFromResumeText, prefillDiff } from "../../../shared/resumePrefill.js";
 import ProfileSections from "../components/ProfileSections.jsx";
+import RefineJobProfile from "../components/RefineJobProfile.jsx";
 
 // D55 (f) / D101: the EEO answers ("Not set" vs "Choose not to disclose") live in Application defaults —
 // components/ProfileSections.jsx.
@@ -18,9 +19,10 @@ import ProfileSections from "../components/ProfileSections.jsx";
 // answers are attestations and are never proposed (shared/resumePrefill.js NEVER_PREFILL).
 const PREFILL_LABELS = {
   full_name: "Full name", email: "Email", phone: "Phone", linkedin_url: "LinkedIn", github_url: "GitHub",
-  website_url: "Website", city: "City", state: "State", highest_degree: "Highest degree",
-  field_of_study: "Field of study", university: "University", graduation_year: "Graduation year",
+  website_url: "Website", city: "City", state: "State",
 };
+// D112 d2: education is the Education SECTION's (its own "Your résumé says X — use it?"), not this review's.
+const EDUCATION_PREFILL = new Set(["highest_degree", "field_of_study", "university", "graduation_year"]);
 
 // ── Field normalisers ─────────────────────────────────────────
 function normalisePhone(raw) {
@@ -358,7 +360,6 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
     website_url:"", portfolio_url:"",
     desired_salary:"", salary_currency:"USD",
     available_start_date:"", willing_to_relocate:false,
-    highest_degree:"", field_of_study:"", university:"", graduation_year:"",
     current_job_title:"", current_company:"", years_of_experience:"",
     custom_answers:{},
     // {companyKey: {question: answer}} — a per-company answer to a `{company}`-templated question.
@@ -822,7 +823,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
               {!prefillRows ? (
                 <button type="button" className="rm-btn rm-btn-secondary rm-btn-sm"
                   onClick={() => {
-                    const rows = prefillDiff(prefillFromResumeText(resumeDraft), form);
+                    const rows = prefillDiff(prefillFromResumeText(resumeDraft), form).filter(r => !EDUCATION_PREFILL.has(r.field));
                     setPrefillRows(rows);
                     setPrefillPicked(Object.fromEntries(rows.map(r => [r.field, !String(r.current || "").trim()])));
                   }}>
@@ -1014,36 +1015,8 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
           </label>
         </PSec>
 
-        {/* ── Education ── */}
-        <PSec title="Education" theme={theme}>
-          <PRow label="Highest Degree" theme={theme}>
-            <select style={selStyle} value={form.highest_degree || ""}
-              onChange={e => set("highest_degree", e.target.value)}>
-              <option value="">Select…</option>
-              <option>High School</option>
-              <option>{"Associate's"}</option>
-              <option>{"Bachelor's"}</option>
-              <option>{"Master's"}</option>
-              <option>PhD/Doctorate</option>
-              <option>Other</option>
-            </select>
-          </PRow>
-          <PRow label="Field of Study" theme={theme}>
-            <input className="rm-input" value={form.field_of_study || ""}
-              onChange={e => set("field_of_study", e.target.value)}
-              placeholder="Computer Science"/>
-          </PRow>
-          <PRow label="University / College" theme={theme}>
-            <input className="rm-input" value={form.university || ""}
-              onChange={e => set("university", e.target.value)}
-              placeholder="State University"/>
-          </PRow>
-          <PRow label="Graduation Year" theme={theme}>
-            <input className="rm-input" type="number" min="1950" max="2099" value={form.graduation_year || ""}
-              onChange={e => set("graduation_year", e.target.value)}
-              placeholder="2022"/>
-          </PRow>
-        </PSec>
+        {/* D112 d2: the old Education block is gone — the Education SECTION (ProfileSections, above) is the source of
+            the degree, with its own Change override. Migration 179 moved the block's values into it. */}
 
         {/* ── Custom Answers ── */}
         <PSec title="Custom Answers" theme={theme}>
@@ -1133,6 +1106,8 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
 
         {/* ── Job Profiles ── */}
         <PSec title="Job Profiles" theme={theme}>
+          {/* D112 e2: a profile made from a résumé — the same wizard, everything filled. */}
+          <RefineJobProfile profiles={profiles} activeId={activeProfileId} onRefined={() => loadProfiles()} />
           <div style={{ fontSize:12, color:theme.textMuted, lineHeight:1.5, marginBottom:14 }}>
             Job profile creation, editing, switching, and deletion now live in the dedicated Job Profiles section.
             Profile-specific resume and signal editing remains below for the active profile.

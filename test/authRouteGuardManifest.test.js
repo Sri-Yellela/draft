@@ -364,6 +364,8 @@ const AUTHENTICATED = new Set([
   "POST /api/profile/sections/use-resume",
   "PUT /api/profile/sections/:section",
   "PUT /api/profile/defaults/:key",
+  // D112 d2: the Education section's Change override for the degree the forms are given.
+  "PUT /api/profile/education-override",
   // D103: the inbox — the user's forwarding address, its filter file, the messages, re-filing, attaching, code opt-ins.
   // (The hook itself, POST /api/hooks/inbound, is a mounted router, Svix-signed — like /api/hooks/resend.)
   "GET /api/inbox/address",

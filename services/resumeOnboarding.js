@@ -122,6 +122,10 @@ export function startFromResume(db, userId, { content, name }, deps) {
       .run(userId, inferred.profileName, inferred.roleFamily, inferred.domain, inferred.seniority,
         JSON.stringify(inferred.titles), JSON.stringify(inferred.keywords), JSON.stringify(inferred.verbs), JSON.stringify(inferred.tools));
     db.prepare("UPDATE users SET domain_profile_complete = 1 WHERE id = ?").run(userId);
+    // D112 e2: made from a résumé — the profile shows "Refine your job profile" until the wizard is saved for it (179).
+    if (db.prepare("PRAGMA table_info(domain_profiles)").all().some(c => c.name === "made_from_resume")) {
+      db.prepare("UPDATE domain_profiles SET made_from_resume = 1 WHERE id = ?").run(r.lastInsertRowid);
+    }
     return Number(r.lastInsertRowid);
   })();
   deps.saveBaseResume(id, text, name || "resume.txt");
