@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<!-- D102 P5 · the pipeline workspace sketch (43q, 10-30). Published for the owner as an Artifact; this copy is the
+     repository's. Open it in a browser. Synthetic employers and answers throughout. -->
+<title>Pipeline Workspace</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif&display=swap">
+<style>
+/* D102 P5 · the pipeline workspace sketch. Layout: a top bar of five places; under it ONE list-detail
+   workspace (rows ≈ 38 % · the job's panel), Draft House before submit, The Table after. Tokens are
+   draft's own four themes (client/src/themes); shapes follow D60 — rectangles, marks, depth boxes, no pills. */
+:root {
+  --canvas: #F3ECE0; --surface: #FBF7F0; --surface-2: #FFFBF5; --menu: rgba(255,251,245,.97);
+  --ink: #1E1915; --ink-muted: #4A423B; --ink-faint: #62574D;
+  --border: #DDD2C3; --border-strong: #C7B9A7; --hover: rgba(30,25,21,.05); --scrim: rgba(30,25,21,.28);
+  --accent: #FD4600; --accent-hover: #FF6424; --on-accent: #1E1915; --accent-ink: #A33200; --accent-quiet: #EBD5C6;
+  --success: #1A6B33; --success-q: #D5E8D8; --warning: #855000; --warning-q: #F2E2C4;
+  --danger: #B3261E; --danger-q: #F5D9D3; --info: #1E5E94; --info-q: #D7E4F0;
+  --shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 1px 2px rgba(60,40,20,.10), 0 4px 14px rgba(60,40,20,.08);
+  --depth: 0 1px 0 rgba(255,255,255,.75) inset, 0 -1px 0 rgba(60,40,20,.10) inset, 0 1px 2px rgba(60,40,20,.14);
+  --f-brand: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "DM Sans", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --f-display: "Instrument Serif", Georgia, serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --canvas: #1C1815; --surface: #26201C; --surface-2: #2C2520; --menu: rgba(34,29,25,.97);
+  --ink: #F2EADF; --ink-muted: #CFC2B3; --ink-faint: #ADA090; --border: #3B332C; --border-strong: #53483F;
+  --hover: rgba(255,240,225,.07); --scrim: rgba(0,0,0,.55);
+  --accent-ink: #FF7D4A; --accent-quiet: #3D2519;
+  --success: #5FCB8C; --success-q: #163120; --warning: #E6AA4E; --warning-q: #35280F;
+  --danger: #F27F72; --danger-q: #3B1C18; --info: #7BB4EA; --info-q: #15263A;
+  --shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 2px 10px rgba(0,0,0,.45);
+  --depth: 0 1px 0 rgba(255,255,255,.07) inset, 0 -1px 0 rgba(0,0,0,.4) inset, 0 1px 3px rgba(0,0,0,.5);
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --canvas: #1C1815; --surface: #26201C; --surface-2: #2C2520; --menu: rgba(34,29,25,.97);
+  --ink: #F2EADF; --ink-muted: #CFC2B3; --ink-faint: #ADA090; --border: #3B332C; --border-strong: #53483F;
+  --hover: rgba(255,240,225,.07); --scrim: rgba(0,0,0,.55);
+  --accent-ink: #FF7D4A; --accent-quiet: #3D2519;
+  --success: #5FCB8C; --success-q: #163120; --warning: #E6AA4E; --warning-q: #35280F;
+  --danger: #F27F72; --danger-q: #3B1C18; --info: #7BB4EA; --info-q: #15263A;
+  --shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 2px 10px rgba(0,0,0,.45);
+  --depth: 0 1px 0 rgba(255,255,255,.07) inset, 0 -1px 0 rgba(0,0,0,.4) inset, 0 1px 3px rgba(0,0,0,.5);
+  color-scheme: dark; }
+/* The sketch's own theme picker: draft's four themes, set on the workspace only. */
+.app[data-skin="paper"] { --canvas: #F3ECE0; --surface: #FBF7F0; --surface-2: #FFFBF5; --menu: rgba(255,251,245,.97);
+  --ink: #1E1915; --ink-muted: #4A423B; --ink-faint: #62574D; --border: #DDD2C3; --border-strong: #C7B9A7;
+  --hover: rgba(30,25,21,.05); --scrim: rgba(30,25,21,.28); --on-accent: #1E1915; --accent-ink: #A33200; --accent-quiet: #EBD5C6;
+  --success: #1A6B33; --success-q: #D5E8D8; --warning: #855000; --warning-q: #F2E2C4; --danger: #B3261E; --danger-q: #F5D9D3;
+  --info: #1E5E94; --info-q: #D7E4F0; color-scheme: light;
+  --shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 1px 2px rgba(60,40,20,.10), 0 4px 14px rgba(60,40,20,.08);
+  --depth: 0 1px 0 rgba(255,255,255,.75) inset, 0 -1px 0 rgba(60,40,20,.10) inset, 0 1px 2px rgba(60,40,20,.14); }
+.app[data-skin="charcoal"] { --canvas: #1C1815; --surface: #26201C; --surface-2: #2C2520; --menu: rgba(34,29,25,.97);
+  --ink: #F2EADF; --ink-muted: #CFC2B3; --ink-faint: #ADA090; --border: #3B332C; --border-strong: #53483F;
+  --hover: rgba(255,240,225,.07); --scrim: rgba(0,0,0,.55); --on-accent: #1E1915; --accent-ink: #FF7D4A; --accent-quiet: #3D2519;
+  --success: #5FCB8C; --success-q: #163120; --warning: #E6AA4E; --warning-q: #35280F; --danger: #F27F72; --danger-q: #3B1C18;
+  --info: #7BB4EA; --info-q: #15263A; color-scheme: dark;
+  --shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 2px 10px rgba(0,0,0,.45);
+  --depth: 0 1px 0 rgba(255,255,255,.07) inset, 0 -1px 0 rgba(0,0,0,.4) inset, 0 1px 3px rgba(0,0,0,.5); }
+.app[data-skin="contrast-light"] { --canvas: #FFFFFF; --surface: #FFFFFF; --surface-2: #FFFFFF; --menu: rgba(255,255,255,.98);
+  --ink: #000000; --ink-muted: #1A1A1A; --ink-faint: #404040; --border: #8C8C8C; --border-strong: #404040;
+  --hover: rgba(0,0,0,.07); --scrim: rgba(0,0,0,.6); --on-accent: #000000; --accent-ink: #8A2A00; --accent-quiet: #FFE3D5;
+  --success: #005A26; --success-q: #E6F4EC; --warning: #6B4500; --warning-q: #FBF0D9; --danger: #9E0B0B; --danger-q: #FDEEEE;
+  --info: #0B4F8A; --info-q: #E4EEF9; color-scheme: light;
+  --shadow: 0 0 0 1px #000 inset; --depth: 0 0 0 1px #000 inset, 0 2px 0 #000; }
+.app[data-skin="contrast-dark"] { --canvas: #000000; --surface: #121212; --surface-2: #121212; --menu: rgba(12,12,12,.98);
+  --ink: #FFFFFF; --ink-muted: #E6E6E6; --ink-faint: #BDBDBD; --border: #737373; --border-strong: #BDBDBD;
+  --hover: rgba(255,255,255,.12); --scrim: rgba(0,0,0,.78); --on-accent: #000000; --accent-ink: #FF9466; --accent-quiet: #3A1A0C;
+  --success: #46D683; --success-q: #0C2A1A; --warning: #FFC044; --warning-q: #2C2208; --danger: #FF8C8C; --danger-q: #301010;
+  --info: #6DB8FF; --info-q: #0E2236; color-scheme: dark;
+  --shadow: 0 0 0 1px #fff inset; --depth: 0 0 0 1px #fff inset, 0 2px 0 #fff; }
+
+* { box-sizing: border-box; }
+html, body { background: var(--canvas); }
+body { color: var(--ink); font: 400 14px/1.45 var(--f-body); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ── the sketch's own controls (not product UI) ── */
+.rig { padding-block: 14px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; border-bottom: 1px dashed var(--border-strong);
+  background: var(--canvas); }
+.rig h1 { margin: 0; font: 400 22px/1 var(--f-display); letter-spacing: .01em; }
+.rig .note { color: var(--ink-faint); font-size: 12px; flex-basis: 100%; max-width: 72ch; }
+.rig fieldset { border: 0; margin: 0; padding: 0; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.rig legend { float: left; margin-right: 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+.seg { display: inline-flex; gap: 4px; }
+
+/* ── controls: depth boxes (D60) ── */
+.btn { height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: var(--surface); color: var(--ink);
+  box-shadow: var(--depth); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; white-space: nowrap; }
+.btn:hover { background: var(--surface-2); }
+.btn[aria-pressed="true"] { background: var(--accent-quiet); color: var(--accent-ink); }
+.btn.primary { background: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { background: var(--accent-hover); }
+.btn.ghost { background: transparent; box-shadow: none; }
+.btn.ghost:hover { background: var(--hover); }
+.btn.icon { width: 32px; padding: 0; justify-content: center; }
+.btn.stop { color: var(--danger); }
+
+/* ── marks: a rectangle, radius 6, a 3px leading bar (styles/mark.js) ── */
+.mark { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px 0 6px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--tone-q, var(--hover)); color: var(--tone, var(--ink-muted));
+  box-shadow: inset 3px 0 0 var(--tone, var(--border-strong)); }
+.mark.count { min-width: 22px; justify-content: center; padding: 0 6px; box-shadow: none; font-variant-numeric: tabular-nums; }
+.t-need { --tone: var(--warning); --tone-q: var(--warning-q); }
+.t-ok { --tone: var(--success); --tone-q: var(--success-q); }
+.t-bad { --tone: var(--danger); --tone-q: var(--danger-q); }
+.t-info { --tone: var(--info); --tone-q: var(--info-q); }
+.t-accent { --tone: var(--accent-ink); --tone-q: var(--accent-quiet); }
+.t-mute { --tone: var(--ink-faint); --tone-q: var(--hover); }
+
+/* ── the app ── */
+.app { background: var(--canvas); color: var(--ink); min-height: 70vh; }
+.topbar { display: flex; align-items: center; gap: 4px 18px; flex-wrap: wrap; padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--border); background: var(--surface-2); }
+.logo { font: 700 22px/1 var(--f-brand); letter-spacing: .01em; display: inline-flex; gap: 1px; }
+.logo b { color: var(--accent); font-weight: 700; }
+.nav { display: flex; gap: 2px; flex-wrap: wrap; flex: 1; }
+.nav a { padding: 7px 10px; border-radius: 8px; color: var(--ink-muted); text-decoration: none; font-weight: 600; font-size: 13px; }
+.nav a[aria-current="page"] { color: var(--ink); background: var(--hover); box-shadow: inset 0 -2px 0 var(--accent); }
+.nav a:hover { background: var(--hover); }
+.nav .spacer { flex: 1; }
+
+.runbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--border); }
+.mode { display: inline-flex; border-radius: 8px; box-shadow: var(--depth); overflow: hidden; }
+.mode button { border: 0; height: 32px; padding: 0 12px; background: var(--surface); cursor: pointer; font-weight: 700; font-size: 12px; letter-spacing: .06em; }
+.mode button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.caps { display: flex; gap: 14px; flex-wrap: wrap; }
+.cap { display: grid; gap: 3px; min-width: 104px; }
+.cap span { font-size: 11px; color: var(--ink-faint); letter-spacing: .04em; text-transform: uppercase; }
+.cap strong { font-variant-numeric: tabular-nums; font-size: 13px; }
+.meter { height: 4px; border-radius: 1px; background: var(--border); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--accent); }
+.runbar .grow { flex: 1; }
+
+.tabs { display: flex; gap: 2px; flex-wrap: wrap; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--border); align-items: center; }
+.tab { border: 0; background: transparent; padding: 7px 10px; border-radius: 8px; cursor: pointer; display: inline-flex; gap: 6px;
+  align-items: center; font-weight: 600; font-size: 13px; color: var(--ink-muted); }
+.tab:hover { background: var(--hover); }
+.tab[aria-selected="true"] { color: var(--ink); background: var(--surface); box-shadow: var(--depth); }
+.tab.zero { opacity: .55; }
+.tabs .grow { flex: 1; }
+
+.work { display: grid; grid-template-columns: minmax(0, 38%) minmax(0, 1fr); min-height: 520px; }
+.list { border-right: 1px solid var(--border); overflow: auto; }
+.row { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 4px 12px; padding: 12px 16px; border-bottom: 1px solid var(--border);
+  cursor: pointer; background: transparent; border-left: 3px solid transparent; width: 100%; text-align: left; border-top: 0; border-right: 0; }
+.row:hover { background: var(--hover); }
+.row[aria-selected="true"] { background: var(--surface); border-left-color: var(--accent); }
+.tile { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; font: 700 16px/1 var(--f-brand);
+  color: var(--ink); background: var(--tile, var(--accent-quiet)); grid-row: span 2; box-shadow: inset 0 0 0 1px var(--border); }
+.row .co { font-weight: 700; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .ti { color: var(--ink-muted); font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .when { color: var(--ink-faint); font-size: 12px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.row .meta { grid-column: 2 / -1; display: flex; gap: 6px; flex-wrap: wrap; }
+.empty { padding: 40px 16px; color: var(--ink-faint); text-align: center; }
+
+.panel { min-width: 0; display: flex; flex-direction: column; }
+.ph { padding: 16px 20px 12px; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 4px 14px; align-items: center; border-bottom: 1px solid var(--border); }
+.ph .tile { width: 48px; height: 48px; font-size: 22px; }
+.ph h2 { margin: 0; font: 400 26px/1.1 var(--f-display); text-wrap: balance; }
+.ph .sub { color: var(--ink-muted); font-size: 13px; }
+.ph .acts { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.back { display: none; }
+.ptabs { display: flex; gap: 2px; padding: 8px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.pbody { padding: 18px 20px 28px; overflow: auto; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.steps li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px dashed var(--border); }
+.dot { width: 14px; height: 14px; border-radius: 50%; margin-top: 3px; border: 2px solid var(--border-strong); }
+.dot.done { background: var(--success); border-color: var(--success); }
+.dot.current { background: var(--accent); border-color: var(--accent); }
+.steps .lbl { font-weight: 600; }
+.steps .why { color: var(--ink-faint); font-size: 12px; }
+.fields { display: grid; gap: 0; }
+.fg { margin: 14px 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+.f { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.f .q { color: var(--ink-muted); font-size: 13px; }
+.f .v { font-weight: 600; font-size: 13px; min-width: 0; overflow-wrap: anywhere; }
+.f input { width: 100%; height: 32px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--canvas); padding: 0 8px; }
+.src { font-size: 11px; color: var(--ink-faint); }
+.doc { background: var(--surface); box-shadow: var(--shadow); border-radius: 10px; padding: 18px 20px; max-width: 62ch; }
+.doc h3 { margin: 0 0 2px; font: 700 18px/1.2 var(--f-brand); letter-spacing: .02em; text-transform: uppercase; }
+.doc p, .doc li { font-size: 13px; color: var(--ink-muted); }
+.doc ins { background: var(--success-q); color: var(--success); text-decoration: none; padding: 0 2px; border-radius: 3px; }
+.mail { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; padding: 12px 0; border-bottom: 1px solid var(--border); align-items: center; }
+.mail .s { font-weight: 600; font-size: 13px; min-width: 0; }
+.mail .p { grid-column: 2 / -1; color: var(--ink-faint); font-size: 12px; min-width: 0; }
+.mail .code { font-family: ui-monospace, Consolas, monospace; font-weight: 700; letter-spacing: .12em; }
+.callout { padding: 10px 12px; border-radius: 8px; background: var(--warning-q); color: var(--warning); font-size: 13px; box-shadow: inset 3px 0 0 var(--warning); margin-bottom: 14px; }
+
+/* ── the Auto settings drawer ── */
+.scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 20; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(410px, 100%); background: var(--menu); z-index: 21;
+  box-shadow: -12px 0 32px rgba(0,0,0,.18); display: flex; flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.dh { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.dh h2 { margin: 0; font: 400 24px/1 var(--f-display); flex: 1; }
+.db { padding: 6px 18px 24px; overflow: auto; display: grid; gap: 4px; }
+.set { display: grid; gap: 6px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.set label, .set .lab { font-weight: 600; font-size: 13px; }
+.set .hint { color: var(--ink-faint); font-size: 12px; }
+.set input[type="range"] { width: 100%; accent-color: var(--accent); }
+.set select { height: 34px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--canvas); padding: 0 8px; }
+.times { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.time { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 4px 0 10px; border-radius: 6px; background: var(--surface); box-shadow: var(--depth); font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px; }
+.time button { border: 0; background: transparent; cursor: pointer; width: 22px; height: 22px; border-radius: 4px; color: var(--ink-faint); }
+.sw { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* D60: a switch is a depth box with a square knob — never a capsule */
+.toggle { width: 44px; height: 26px; border-radius: 6px; border: 0; background: var(--border-strong); position: relative; cursor: pointer; flex: none; box-shadow: var(--depth); }
+.toggle::after { content: ""; position: absolute; top: 4px; left: 4px; width: 18px; height: 18px; border-radius: 4px; background: var(--surface); transition: left .15s; }
+.toggle[aria-checked="true"] { background: var(--accent); }
+.toggle[aria-checked="true"]::after { left: 22px; }
+.df { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ── narrow: the list and the panel are two screens (below 1080 px) ── */
+.app[data-width="narrow"] { max-width: 420px; margin: 18px auto; border: 1px solid var(--border-strong); border-radius: 18px; overflow: hidden; }
+.app[data-width="narrow"] .work { grid-template-columns: minmax(0, 1fr); }
+.app[data-width="narrow"] .list { border-right: 0; }
+.app[data-width="narrow"][data-screen="list"] .panel { display: none; }
+.app[data-width="narrow"][data-screen="panel"] .list { display: none; }
+.app[data-width="narrow"] .back { display: inline-flex; }
+.app[data-width="narrow"] .caps { display: none; }
+.app[data-width="narrow"] .ph { grid-template-columns: 40px minmax(0, 1fr); }
+.app[data-width="narrow"] .ph .tile { width: 40px; height: 40px; }
+.app[data-width="narrow"] .f { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+@media (max-width: 760px) {
+  .work { grid-template-columns: minmax(0, 1fr); }
+  .list { border-right: 0; max-height: 380px; }
+  .caps { display: none; }
+  .f { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+
+<header class="rig" aria-label="Sketch controls">
+  <h1>Pipeline workspace</h1>
+  <fieldset><legend>Theme</legend><div class="seg" id="rig-theme">
+    <button class="btn" data-skin="auto" aria-pressed="true">Follow system</button>
+    <button class="btn" data-skin="paper" aria-pressed="false">Paper Light</button>
+    <button class="btn" data-skin="charcoal" aria-pressed="false">Charcoal Dark</button>
+    <button class="btn" data-skin="contrast-light" aria-pressed="false">Contrast Light</button>
+    <button class="btn" data-skin="contrast-dark" aria-pressed="false">Contrast Dark</button></div></fieldset>
+  <fieldset><legend>Width</legend><div class="seg" id="rig-width">
+    <button class="btn" data-width="wide" aria-pressed="true">Wide</button>
+    <button class="btn" data-width="narrow" aria-pressed="false">Phone</button></div></fieldset>
+  <p class="note">D102 P5 · a sketch for the owner, not the product. Every row, company and answer is an example. Click a row, the tabs, SEMI / FULL AUTO, Auto settings; switch to The Table for the sent side and the inbox.</p>
+</header>
+
+<div class="app" id="app" data-skin="auto" data-width="wide" data-screen="list">
+  <nav class="topbar" aria-label="Main">
+    <span class="logo" aria-label="draft"><b>/</b>draft</span>
+    <div class="nav" id="nav">
+      <a href="#" data-place="board">Board</a>
+      <a href="#" data-place="house" aria-current="page">Draft House</a>
+      <a href="#" data-place="table">The Table</a>
+      <a href="#" data-place="profile">Profile</a>
+      <span class="spacer"></span>
+      <a href="#" data-place="settings">Settings</a>
+    </div>
+  </nav>
+  <div id="bar"></div>
+  <div class="tabs" role="tablist" id="tabs" aria-label="Status"></div>
+  <div class="work">
+    <div class="list" id="list" role="listbox" aria-label="Applications"></div>
+    <section class="panel" id="panel" aria-live="polite"></section>
+  </div>
+</div>
+
+<div id="drawer-root"></div>
+
+<script>
+(() => {
+  // ── example data — synthetic employers and answers ─────────────────────────────────────────────
+  const JOBS = [
+    { id: 1, co: "Northwind", title: "Backend Engineer", st: "needs_you", ago: "11 min ago", tile: "#F2D3C2",
+      need: ["Are you willing to work on-site 3 days a week?", "Desired salary"], filled: 21, total: 24 },
+    { id: 2, co: "Fabrikam", title: "Platform Engineer, Data", st: "needs_you", ago: "34 min ago", tile: "#D8E4D3", gate: "human_check",
+      need: ["A human check on the portal (type the characters)"], filled: 18, total: 18 },
+    { id: 3, co: "Adatum", title: "Software Engineer II", st: "needs_you", ago: "1 h ago", tile: "#D7E0EE", consent: true,
+      need: ["I agree to the candidate privacy notice"], filled: 30, total: 31 },
+    { id: 4, co: "Contoso", title: "Data Engineer", st: "ready_to_approve", ago: "2 h ago", tile: "#EDE1C6", filled: 26, total: 26 },
+    { id: 5, co: "Litware", title: "Site Reliability Engineer", st: "ready_to_approve", ago: "3 h ago", tile: "#E5D4E8", filled: 19, total: 19,
+      inel: "U.S. citizens only" },
+    { id: 6, co: "Tailspin", title: "Full-Stack Engineer", st: "in_flight", ago: "now", tile: "#D3E6E6", filled: 7, total: 22 },
+    { id: 7, co: "Wingtip", title: "Machine Learning Engineer", st: "queued", ago: "queued 09:00", tile: "#E9DCCF" },
+    { id: 8, co: "Proseware", title: "Backend Engineer, Payments", st: "queued", ago: "queued 09:00", tile: "#D9DDE8" },
+    { id: 9, co: "Lucerne", title: "Software Engineer, Infra", st: "failed", ago: "yesterday", tile: "#F0D6D6", why: "The portal changed its form mid-run" },
+    { id: 10, co: "Northwind", title: "Senior Backend Engineer", st: "submitted", ago: "2 days ago", tile: "#F2D3C2", by: "user", mail: "applied" },
+    { id: 11, co: "Contoso", title: "Analytics Engineer", st: "interview", ago: "4 days ago", tile: "#EDE1C6", by: "auto", mail: "interview" },
+    { id: 12, co: "Adatum", title: "Developer Productivity", st: "assessment", ago: "5 days ago", tile: "#D7E0EE", by: "user", mail: "assessment" },
+    { id: 13, co: "Fabrikam", title: "Data Platform Engineer", st: "offer", ago: "1 week ago", tile: "#D8E4D3", by: "user", mail: "offer" },
+    { id: 14, co: "Tailspin", title: "Backend Engineer", st: "rejected", ago: "2 weeks ago", tile: "#D3E6E6", by: "auto", mail: "rejection" },
+  ];
+  const LABEL = { needs_you: "Needs you", ready_to_approve: "Ready to approve", in_flight: "In flight", queued: "Queued", failed: "Failed",
+    skipped: "Skipped", submitted: "Submitted", interview: "Interview", assessment: "Assessment", offer: "Offer", rejected: "Rejected", all: "All" };
+  const TONE = { needs_you: "t-need", ready_to_approve: "t-accent", in_flight: "t-info", queued: "t-mute", failed: "t-bad", skipped: "t-mute",
+    submitted: "t-mute", interview: "t-info", assessment: "t-info", offer: "t-ok", rejected: "t-bad" };
+  const MAIL = { applied: ["Applied", "t-mute"], interview: ["Interview", "t-info"], assessment: ["Assessment", "t-info"], offer: ["Offer", "t-ok"],
+    rejection: ["Rejection", "t-bad"], verification: ["Verification", "t-need"], recruiter: ["Recruiter", "t-mute"], reminder: ["Reminder", "t-mute"] };
+  const HOUSE_TABS = ["needs_you", "ready_to_approve", "in_flight", "queued", "failed", "skipped"];
+  const TABLE_TABS = ["all", "submitted", "interview", "assessment", "offer", "rejected"];
+  const PRE = new Set(HOUSE_TABS);
+
+  const S = { place: "house", tab: "needs_you", sel: 1, ptab: "checklist", mode: "semi", drawer: false, view: "apps",
+    cap: 10, times: ["09:00", "17:30"], perCo: false, perCoN: 2, pause: true, held: false };
+  const $ = (s) => document.querySelector(s);
+  const app = $("#app");
+  const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const mark = (t, tone) => `<span class="mark ${tone}">${esc(t)}</span>`;
+  const rows = () => JOBS.filter(j => S.place === "house" ? PRE.has(j.st) : !PRE.has(j.st));
+  const inTab = (j) => S.tab === "all" ? true : j.st === S.tab;
+
+  function bar() {
+    if (S.place === "table") {
+      $("#bar").innerHTML = `<div class="runbar"><div class="seg" role="tablist" aria-label="The Table">
+        <button class="btn" role="tab" aria-pressed="${S.view === "apps"}" data-view="apps">Applications</button>
+        <button class="btn" role="tab" aria-pressed="${S.view === "inbox"}" data-view="inbox">Inbox ${'<span class="mark count t-accent">3</span>'}</button></div>
+        <span class="grow"></span><span class="src">Forwarding address: <b>dk4r9t2m@in.jobsviadraft.com</b></span></div>`;
+      return;
+    }
+    const cap = (l, u, n) => `<div class="cap"><span>${l}</span><strong>${u} / ${n}</strong><div class="meter"><i style="width:${Math.round(100 * u / n)}%"></i></div></div>`;
+    $("#bar").innerHTML = `<div class="runbar">
+      <div class="mode" role="group" aria-label="Mode">
+        <button data-mode="semi" aria-pressed="${S.mode === "semi"}" title="draft fills each application and waits for you to approve its answers">SEMI</button>
+        <button data-mode="auto" aria-pressed="${S.mode === "auto"}" title="draft sends what matches your Auto settings, without asking each time">FULL AUTO</button></div>
+      <div class="caps">${cap("Previews today", 4, 40)}${cap("Approvals", 2, 30)}${cap(S.mode === "auto" ? `Sent · cap ${S.cap}` : "Submitted", S.mode === "auto" ? 3 : 1, S.mode === "auto" ? S.cap : 25)}</div>
+      <span class="grow"></span>
+      <button class="btn" id="portals" title="Portals you are signed in to"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M14.5 9.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0zM13 13l8 8M17 17l2-2M19 19l2-2"/></svg> Portals <span class="mark t-need">1 ending</span></button>
+      <button class="btn" id="auto-open">Auto settings</button>
+      <button class="btn stop" id="hold" aria-pressed="${S.held}">${S.held ? "▶ Resume" : "⏸ Stop everything"}</button></div>`;
+  }
+
+  function tabs() {
+    const list = S.place === "house" ? HOUSE_TABS : TABLE_TABS;
+    const all = rows();
+    const n = (t) => t === "all" ? all.length : all.filter(j => j.st === t).length;
+    if (S.place === "table" && S.view === "inbox") {
+      const cats = ["All", "Interview", "Assessment", "Offer", "Rejection", "Verification", "Applied", "Other"];
+      $("#tabs").innerHTML = cats.map((c, i) => `<button class="tab" role="tab" aria-selected="${i === 0}">${c}</button>`).join("");
+      return;
+    }
+    const readyN = n("ready_to_approve");
+    $("#tabs").innerHTML = list.map(t => `<button class="tab${n(t) ? "" : " zero"}" role="tab" aria-selected="${S.tab === t}" data-tab="${t}">${LABEL[t]}
+      <span class="mark count ${S.tab === t ? "t-accent" : "t-mute"}">${n(t)}</span></button>`).join("")
+      + `<span class="grow"></span>` + (S.place === "house" && S.tab === "ready_to_approve" && readyN
+        ? `<button class="btn primary" id="approve-all" title="The approved values are sent exactly; a posting you are ruled out of is left here">Approve all ${readyN}</button>` : "");
+  }
+
+  function list() {
+    if (S.place === "table" && S.view === "inbox") {
+      const mails = [
+        ["interview", "Contoso Talent", "Interview for Analytics Engineer", "Contoso", "Thu"],
+        ["verification", "account.amazon.jobs", "Your verification code: 551203", null, "Thu"],
+        ["assessment", "HackerRank", "Adatum invited you to a coding assessment", "Adatum", "Wed"],
+        ["offer", "Fabrikam People", "Your offer from Fabrikam", "Fabrikam", "Mon"],
+        ["rejection", "Tailspin via Greenhouse", "Your application to Tailspin", "Tailspin", "Oct 18"],
+        ["applied", "send.applicantemails.com", "Thank you for applying to Northwind", "Northwind", "Oct 28"],
+      ];
+      $("#list").innerHTML = mails.map(([c, from, subj, app, when], i) => `<div class="row" role="option" tabindex="0" aria-selected="${i === 0}">
+        <span class="tile" style="--tile:var(--surface)" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" d="M3 6h18v12H3zM3 7l9 6 9-6"/></svg></span><span class="co">${esc(from)}</span><span class="when">${when}</span>
+        <span class="ti">${esc(subj)}</span><span class="meta">${mark(MAIL[c][0], MAIL[c][1])}${app ? mark(app, "t-mute") : '<button class="btn ghost" style="height:22px">Attach to an application</button>'}</span></div>`).join("");
+      return;
+    }
+    const shown = rows().filter(inTab);
+    if (!shown.length) { $("#list").innerHTML = `<div class="empty">Nothing here. ${S.tab === "skipped" ? "A job you skip or remove waits here for 7 days." : ""}</div>`; return; }
+    if (!shown.some(j => j.id === S.sel)) S.sel = shown[0].id;
+    $("#list").innerHTML = shown.map(j => `<button class="row" role="option" aria-selected="${j.id === S.sel}" data-id="${j.id}">
+      <span class="tile" style="--tile:${j.tile}" aria-hidden="true">${j.co[0]}</span>
+      <span class="co">${esc(j.co)}</span><span class="when">${esc(j.ago)}</span>
+      <span class="ti">${esc(j.title)}</span>
+      <span class="meta">${mark(LABEL[j.st], TONE[j.st])}${j.inel ? mark(j.inel, "t-bad") : ""}${j.mail ? mark("Email · " + MAIL[j.mail][0], MAIL[j.mail][1]) : ""}${j.by === "auto" ? mark("sent by FULL AUTO", "t-mute") : ""}</span></button>`).join("");
+  }
+
+  function checklist(j) {
+    const sent = !PRE.has(j.st);
+    const st = (done, cur) => done ? "done" : cur ? "current" : "";
+    const steps = [
+      ["Posting read", "Title, company and the posting's stated requirements", st(true)],
+      ["Résumé tailored", "Scored 84 against this posting (base 71)", st(j.st !== "queued" && j.st !== "in_flight", j.st === "in_flight")],
+      [`Form filled${j.total ? ` (${j.filled} of ${j.total})` : ""}`, "Every field read back after the page settled", st(sent || j.st === "ready_to_approve" || (j.st === "needs_you" && j.filled === j.total), j.st === "in_flight")],
+      ["Needs you", j.need ? j.need.join(" · ") : "Nothing left for you", j.st === "needs_you" ? "current" : st(true)],
+      ["Approved", j.by === "auto" ? "Sent under your FULL AUTO settings" : "You approve the exact values that will be sent", st(sent, j.st === "ready_to_approve")],
+      ["Submitted", sent ? (j.by === "auto" ? "By FULL AUTO" : "By you") : "", st(sent)],
+      ["Confirmation email received", j.mail ? "Matched in your inbox" : "Waiting for the employer's email", st(!!j.mail, sent && !j.mail)],
+    ];
+    return `<ol class="steps">${steps.map(([l, w, s]) => `<li><span class="dot ${s}" aria-hidden="true"></span>
+      <span><span class="lbl">${l}</span><br><span class="why">${esc(w)}</span></span>${s === "current" ? mark("now", "t-accent") : s === "done" ? '<span class="sr">done</span>' : ""}</li>`).join("")}</ol>`;
+  }
+
+  function form(j) {
+    const groups = [
+      ["Contact", [["First name", "Dana", "profile"], ["Last name", "Example", "profile"], ["Email", "dana@example.test", "profile"], ["Phone", "(555) 010-4477", "profile"]]],
+      ["Eligibility", [["Are you legally authorized to work in the U.S.?", "Yes", "Application defaults"], ["Will you now or in the future require sponsorship?", "No", "Application defaults"]]],
+      ["Questions", [["Years of experience with Python", "5", "saved answer"], ["How did you hear about us?", "Company website", "saved answer"]]],
+    ];
+    let needs = "";
+    if (j.st === "needs_you") {
+      needs = `<div class="fg">Needs you · ${j.need.length}</div>` + j.need.map(q =>
+        `<div class="f"><span class="q">${esc(q)}</span>${j.gate === "human_check"
+          ? '<span class="v">Open the portal to answer it — draft never answers a human check</span><button class="btn">Open the portal</button>'
+          : j.consent ? '<span class="v">A box only you may tick — draft never agrees for you</span><button class="btn">Open the form</button>'
+          : `<input aria-label="${esc(q)}" placeholder="Your answer"><button class="btn">Save · remember</button>`}</div>`).join("");
+    }
+    const body = groups.map(([g, fs]) => `<div class="fg">${g}</div>` + fs.map(([q, v, s]) =>
+      `<div class="f"><span class="q">${esc(q)}</span><span class="v" title="From your ${s}">${esc(v)}</span><span class="src">${s}</span></div>`).join("")).join("");
+    const approve = j.st === "ready_to_approve"
+      ? `<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">${j.inel ? `<div class="callout" style="flex-basis:100%">This posting says <b>${esc(j.inel)}</b>, and your Application defaults say otherwise. Approve all leaves it here; approving it alone sends it.</div>` : ""}
+        <button class="btn primary">Approve these values</button><button class="btn">Skip</button></div>` : "";
+    return `<div class="fields">${needs}${body}</div>${approve}`;
+  }
+
+  function resume() {
+    return `<div class="doc"><h3>Dana Example</h3><p>Boston, MA · dana@example.test</p>
+      <p><b>Northwind</b> — Software Engineer · Jan 2022 – Present</p>
+      <ul><li>Built a queue that <ins>moved 2M events a day to the data platform</ins></li><li>Cut p95 latency 30% <ins>by batching writes</ins></li></ul>
+      <p style="color:var(--ink-faint)">What we changed: 3 bullets reworded · no skill, title, employer or date added (checked).</p></div>
+      <div style="display:flex;gap:8px;margin-top:12px"><button class="btn">Download PDF</button><button class="btn ghost">See what we changed</button></div>`;
+  }
+
+  function job(j) {
+    return `<div class="doc"><h3>${esc(j.title)}</h3><p>${esc(j.co)} · Boston, MA · Hybrid · $160k–$190k</p>
+      ${j.inel ? `<p>${mark(j.inel, "t-bad")} ${mark("No visa sponsorship", "t-bad")} <span class="src">— the posting's own words</span></p>` : ""}
+      <p>You will build the services that move our data from the edge to the warehouse, own their reliability, and mentor two engineers.</p>
+      <p><b>Requirements:</b> 4+ years with Python and SQL; distributed systems.</p></div>`;
+  }
+
+  function emails(j) {
+    if (!j.mail) return `<div class="empty">No email for this application yet. The confirmation lands here when it arrives at your forwarding address.</div>`;
+    const [c, tone] = MAIL[j.mail];
+    return `<div class="mail">${mark(c, tone)}<span class="s">${esc(j.co)} · ${c === "Applied" ? "Thank you for applying" : c}</span><span class="src">${esc(j.ago)}</span>
+      <span class="p">Hi Dana — ${c === "Interview" ? "we'd like to schedule some time for an interview next week." : c === "Offer" ? "we are pleased to extend an offer of employment." : c === "Rejection" ? "unfortunately we have decided to move forward with other candidates." : c === "Assessment" ? "please complete the online assessment within 7 days." : "we have received your application."}</span></div>
+      <p class="src" style="margin-top:10px">Sorted by a rule, not by AI. Wrong? <button class="btn ghost" style="height:24px">Re-file</button></p>`;
+  }
+
+  function panel() {
+    const P = $("#panel");
+    if (S.place === "table" && S.view === "inbox") {
+      P.innerHTML = `<div class="ph"><span class="tile" style="--tile:var(--surface)" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" d="M3 6h18v12H3zM3 7l9 6 9-6"/></svg></span><div><h2>Interview for Analytics Engineer</h2>
+        <div class="sub">Contoso Talent · Thursday · matched to <b>Contoso — Analytics Engineer</b></div></div>
+        <div class="acts"><button class="btn back" data-back>← Inbox</button>${mark("Interview", "t-info")}<button class="btn">Open the application</button><button class="btn ghost">Re-file</button></div></div>
+        <div class="pbody"><p>Hi Dana,</p><p>Thanks for applying to Contoso. We'd like to schedule a 45-minute interview with the analytics team next week. Please pick a time that works for you.</p>
+        <p class="src">Text only — attachments are never stored. This message moved the application to <b>Interview</b> on The Table.</p></div>`;
+      return;
+    }
+    const j = JOBS.find(x => x.id === S.sel && rows().includes(x));
+    if (!j) { P.innerHTML = `<div class="empty">Choose a row to see its checklist, résumé and form.</div>`; return; }
+    const PT = [["checklist", "Checklist"], ["resume", "Résumé"], ["form", "Form"], ["job", "Job"], ["emails", "Emails"]];
+    const acts = j.st === "ready_to_approve" ? '<button class="btn primary">Approve these values</button>'
+      : j.st === "needs_you" ? `<button class="btn primary">Answer ${j.need.length}</button>`
+      : j.st === "failed" ? '<button class="btn primary">Try again</button>' : '<button class="btn">Open the posting</button>';
+    P.innerHTML = `<div class="ph"><span class="tile" style="--tile:${j.tile}" aria-hidden="true">${j.co[0]}</span>
+      <div><h2>${esc(j.title)}</h2><div class="sub">${esc(j.co)} · ${esc(j.ago)} · <span class="src">/app/job/${1000 + j.id}</span></div></div>
+      <div class="acts"><button class="btn back" data-back>← ${S.place === "house" ? "Draft House" : "The Table"}</button>${mark(LABEL[j.st], TONE[j.st])}${j.why ? `<span class="src">${esc(j.why)}</span>` : ""}<span style="flex:1"></span>${acts}</div></div>
+      <div class="ptabs" role="tablist">${PT.map(([k, l]) => `<button class="tab" role="tab" aria-selected="${S.ptab === k}" data-ptab="${k}">${l}${k === "emails" && j.mail ? ' <span class="mark count t-accent">1</span>' : ""}</button>`).join("")}</div>
+      <div class="pbody">${S.ptab === "checklist" ? checklist(j) : S.ptab === "form" ? form(j) : S.ptab === "resume" ? resume() : S.ptab === "job" ? job(j) : emails(j)}</div>`;
+  }
+
+  function drawer() {
+    const root = $("#drawer-root");
+    if (!S.drawer) { root.innerHTML = ""; return; }
+    root.innerHTML = `<div class="scrim" data-close></div><aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="dt" data-skin-mirror>
+      <div class="dh"><h2 id="dt">Auto settings</h2><button class="btn icon ghost" data-close aria-label="Close">✕</button></div>
+      <div class="db">
+        <div class="set"><button class="btn" style="justify-self:start">Start from my board filters</button>
+          <span class="hint">Backend · Boston or Remote · posted in the last week · Mid, Senior</span></div>
+        <div class="set"><label for="cap">Daily cap · <b id="capv">${S.cap}</b> applications</label>
+          <input id="cap" type="range" min="1" max="150" value="${S.cap}"><span class="hint">The ${S.cap + 1}th waits for tomorrow, in your time zone.</span></div>
+        <div class="set"><span class="lab">Run times · America/New_York</span><div class="times">${S.times.map((t, i) => `<span class="time">${t}<button aria-label="Remove ${t}" data-rm="${i}">✕</button></span>`).join("")}
+          ${S.times.length < 4 ? '<button class="btn" id="addtime">+ Add a time</button>' : '<span class="hint">Up to 4 a day</span>'}</div>
+          <span class="hint">Each run takes the jobs posted since the last.</span></div>
+        <div class="set"><div class="sw"><span class="lab">Limit applications per company</span><button class="toggle" role="switch" aria-checked="${S.perCo}" id="perco" aria-label="Limit per company"></button></div>
+          <span class="hint">${S.perCo ? `At most ${S.perCoN} to one company in 30 days.` : "Off — no per-company limit."}</span></div>
+        <div class="set"><div class="sw"><span class="lab">Pause a company after an interview or offer</span><button class="toggle" role="switch" aria-checked="${S.pause}" id="pause" aria-label="Pause after interview"></button></div>
+          <span class="hint">For 60 days, read from your inbox.</span></div>
+        <div class="set"><label for="prof">Job profile</label><select id="prof"><option>Backend Engineer (active)</option><option>Data Engineer</option></select></div>
+        <div class="set"><span class="lab">Never sent automatically</span><span class="hint">Postings your Application defaults rule out (U.S. citizens only, no sponsorship), a terms box, a human check, an eligibility question you have not answered — each waits in Needs you.</span></div>
+      </div>
+      <div class="df"><button class="btn ghost" data-close>Cancel</button><button class="btn primary" data-close>Save</button></div></aside>`;
+    root.querySelector(".drawer").dataset.skin = app.dataset.skin;
+    if (app.dataset.skin !== "auto") root.querySelector(".drawer").classList.add("app"), root.querySelector(".drawer").style.minHeight = "0";
+    root.querySelector("[data-close].btn")?.focus();
+  }
+
+  function render() {
+    document.querySelectorAll("#nav a").forEach(a => { if (a.dataset.place === S.place) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+    bar(); tabs(); list(); panel(); drawer();
+  }
+
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("button, a"); if (!t) return;
+    if (t.matches("#nav a")) { e.preventDefault(); const p = t.dataset.place; if (p === "house" || p === "table") { S.place = p; S.tab = p === "house" ? "needs_you" : "all"; S.view = "apps"; S.ptab = "checklist"; app.dataset.screen = "list"; render(); } return; }
+    if (t.dataset.skin && t.closest("#rig-theme")) { app.dataset.skin = t.dataset.skin; document.querySelectorAll("#rig-theme .btn").forEach(b => b.setAttribute("aria-pressed", b === t)); drawer(); return; }
+    if (t.dataset.width) { app.dataset.width = t.dataset.width; document.querySelectorAll("#rig-width .btn").forEach(b => b.setAttribute("aria-pressed", b === t)); app.dataset.screen = "list"; return; }
+    if (t.dataset.mode) { S.mode = t.dataset.mode; bar(); return; }
+    if (t.dataset.view) { S.view = t.dataset.view; app.dataset.screen = "list"; render(); return; }
+    if (t.dataset.tab) { S.tab = t.dataset.tab; render(); return; }
+    if (t.dataset.ptab) { S.ptab = t.dataset.ptab; panel(); return; }
+    if (t.dataset.id) { S.sel = Number(t.dataset.id); list(); panel(); app.dataset.screen = "panel"; return; }
+    if (t.hasAttribute("data-back")) { app.dataset.screen = "list"; return; }
+    if (t.id === "auto-open") { S.drawer = true; drawer(); return; }
+    if (t.hasAttribute("data-close")) { S.drawer = false; drawer(); $("#auto-open")?.focus(); return; }
+    if (t.id === "hold") { S.held = !S.held; bar(); return; }
+    if (t.id === "perco") { S.perCo = !S.perCo; drawer(); return; }
+    if (t.id === "pause") { S.pause = !S.pause; drawer(); return; }
+    if (t.dataset.rm) { S.times.splice(Number(t.dataset.rm), 1); if (!S.times.length) S.times.push("09:00"); drawer(); return; }
+    if (t.id === "addtime") { S.times.push(["12:00", "20:00", "07:00"].find(x => !S.times.includes(x))); drawer(); return; }
+  });
+  document.addEventListener("input", (e) => { if (e.target.id === "cap") { S.cap = Number(e.target.value); $("#capv").textContent = S.cap; e.target.nextElementSibling.textContent = `The ${S.cap + 1}th waits for tomorrow, in your time zone.`; } });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.drawer) { S.drawer = false; drawer(); } });
+  render();
+})();
+</script>
+
+</body>
+</html>
