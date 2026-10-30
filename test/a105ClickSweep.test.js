@@ -63,3 +63,12 @@ test("A105 (6) · Approve all sits in Draft House's Stopped header: two presses,
   assert.match(panel, /onClick=\{\(\) => decidePending\(applyPending\.map\(p => p\.runJobId\), true\)\.finally\(\(\) => setConfirmSendAll\(false\)\)\}/);
   assert.match(panel, /Send all \{applyPending\.length\} to their employers\?/, "the second press says what it does");
 });
+
+// A105 finding 7 — replies were recorded one row at a time, and the nudge walked the oldest only.
+test("A105 (7) · History marks every unanswered application 'Still nothing' in one press, through the per-row route", () => {
+  const h = fs.readFileSync("client/src/components/ApplicationHistory.jsx", "utf8");
+  assert.match(h, /const unanswered = rows\.filter\(r => r\.status === "sent" && r\.ask\);/);
+  assert.match(h, /outcome: RESPONSE_OUTCOME\.NO_RESPONSE, source: "manual"/);
+  assert.match(h, /Mark all \$\{unanswered\.length\} as still nothing/);
+  assert.match(h, /window\.confirm\(`Mark \$\{unanswered\.length\} applications/);
+});
