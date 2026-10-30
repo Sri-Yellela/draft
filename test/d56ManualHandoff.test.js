@@ -301,7 +301,8 @@ test("D56 · 'I submitted' on the manual route → job_applications with the TAI
   // The posting panel carries it (through A63's record route — evidence still decides), and so does the
   // overlay (⭐ T31: the retired popup's "I submitted it" went with it — the Fill view's is the extension's one).
   const panel = read("client/src/components/JobDetailPanel.jsx");
-  assert.match(panel, /\{hasArtifact && job\?\.jobId && <ManualSubmitted jobId=\{job\.jobId\} \/>\}/);
+  // A105 finding 3 (10-30) on purpose: on every posting, not only after a résumé was generated.
+  assert.match(panel, /\{job\?\.jobId && <ManualSubmitted jobId=\{job\.jobId\} \/>\}/);
   assert.match(panel, /api\(`\/api\/applications\/pending\/\$\{encodeURIComponent\(jobId\)\}\/record`/);
   // ⭐ T26: an icon control — its words are its aria-label and tooltip
   assert.match(read("extension/review-overlay.js"), /ib\('submitted', 'submitted', 'I submitted it'/);
