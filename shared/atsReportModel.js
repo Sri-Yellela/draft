@@ -89,6 +89,16 @@ export function reportAsks(report) {
   return { onResume, couldClaim, generic, matched: onResume.length, missing, total: onResume.length + missing };
 }
 
+/**
+ * ⭐ D105 P5: the terms an Atlas page may exist for — the skills and qualities the report draws as boxes, once each.
+ * Verbs ("design", "lead") and generic language are not Atlas pages. The web wrapper and the extension's worker both
+ * ask the server's resolve with exactly these, so the two products link the same boxes.
+ */
+export function atlasTerms(report) {
+  const { onResume, couldClaim } = reportAsks(report);
+  return [...new Set([...couldClaim, ...onResume].filter(t => t.kind !== "verb" && typeof t.term === "string" && t.term.trim()).map(t => t.term.trim()))];
+}
+
 /** Provenance: what the résumé already evidences — the scorer decided this; nothing is re-derived. */
 export function evidencedKeys(report) {
   return new Set([

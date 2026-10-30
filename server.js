@@ -91,6 +91,9 @@ import { recordJobHistory, livenessForRows } from "./services/jobs/jobHistory.js
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { seedAtlasFromRegistry } from "./services/atlas/atlasSeed.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
+import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
+import { checkAtlasLinks } from "./services/atlas/atlasLinkCheck.js";
+import { refreshWikiSummaries } from "./services/atlas/atlasWiki.js";
 // ⭐ D108: a company's sponsorship fact (the existing LCA match, with its source and date) and the dated "What changed".
 import { sponsorshipFactsForRows } from "./services/kb/sponsorshipFacts.js";
 import { createWhatChangedRouter, createWhatChangedAdminRouter } from "./routes/whatChanged.js";
@@ -6309,6 +6312,20 @@ cron.schedule("0 4 * * *", async () => {
 }, { timezone: 'America/New_York' });
 console.log('[Cron] Daily ATS cache refresh scheduled: 04:00 ET');
 
+// ⭐ D105 P6 · the Atlas's dead-link checker (two consecutive failures → dead, hidden from the page) and the weekly
+// Wikipedia summaries (published nodes with a curator-set wiki_title only). Polite: one request at a time, a pause,
+// a User-Agent naming draft, a per-run cap. The curator's buttons in Admin → Data → Atlas run the same code now.
+cron.schedule('30 5 * * *', async () => {
+  try {
+    const r = await checkAtlasLinks(db);
+    if (!r.busy) console.log(`[Cron] atlas links: ${r.checked} checked, ${r.ok} ok, ${r.failing} failing, ${r.dead} dead (${r.newlyDead.length} new)`);
+  } catch (e) { console.error('[Cron] Atlas link check error:', e.message); }
+  try {
+    const w = await refreshWikiSummaries(db);
+    if (w.due) console.log(`[Cron] atlas wikipedia: ${w.fetched} of ${w.due} refreshed${w.stoppedAt429 ? ' (stopped at 429)' : ''}`);
+  } catch (e) { console.error('[Cron] Atlas Wikipedia refresh error:', e.message); }
+}, { timezone: 'America/New_York' });
+
 cron.schedule("0 2 * * *", () => {
   try { createBackup("auto-daily"); }
   catch(e) { console.error("[backup-cron]", e.message); }
@@ -8015,12 +8032,15 @@ app.get("/sitemap.xml", (req, res) => {
     { path: "/pricing", changefreq: "monthly", priority: "0.6" },
     { path: "/about", changefreq: "monthly", priority: "0.5" },
     { path: "/contact", changefreq: "monthly", priority: "0.5" },
+    // ⭐ D105: /atlas and every PUBLISHED Atlas page — never a draft (d105SitemapPublishedOnly).
+    ...atlasSitemapRoutes(db),
   ];
   const body = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${routes.map(route => `  <url>
     <loc>${xmlEscape(`${base}${route.path === "/" ? "" : route.path}`)}</loc>
-    <changefreq>${route.changefreq}</changefreq>
+${route.lastmod ? `    <lastmod>${xmlEscape(route.lastmod)}</lastmod>
+` : ""}    <changefreq>${route.changefreq}</changefreq>
     <priority>${route.priority}</priority>
   </url>`).join("\n")}
 </urlset>`;

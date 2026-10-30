@@ -155,6 +155,8 @@ export function reportModel(ats) {
     // ⭐ T9: the scorer's own report (boardJob.js atsFacts, already kept to the component's named fields). When it is
     // here the panel draws THE web app's ATS report from it (the shared component), not the two lines above.
     report: ats.report && typeof ats.report === 'object' ? ats.report : null,
+    // ⭐ D105 P5: the report's terms that have a PUBLISHED Atlas page ({ base, slugs } — atlasForReport), or null.
+    atlas: ats.atlas && typeof ats.atlas === 'object' && ats.atlas.slugs ? { base: String(ats.atlas.base || ''), slugs: ats.atlas.slugs } : null,
     action: fromPage ? null : { role: 'report', label: 'Full report in draft' } };
 }
 
@@ -461,7 +463,7 @@ export function renderResumePanel(model, meta) {
         ${m.job ? `<div class="acts">${ibtn({ role: 'unbind', label: `Unlink this page from ${m.job}`, icon: 'unlink' })}</div>` : ''}
         <div class="say" data-role="say" aria-live="polite"></div>
       </div>`;
-    if (card) { const cardHost = atsRoot.querySelector('[data-role="ats-card"]'); try { ATS.mountAtsReport(cardHost, m.report.report, {}); } catch { cardHost?.remove(); } }
+    if (card) { const cardHost = atsRoot.querySelector('[data-role="ats-card"]'); try { ATS.mountAtsReport(cardHost, m.report.report, m.report.atlas ? { atlas: m.report.atlas } : {}); } catch { cardHost?.remove(); } }
   };
 
   // ── the Résumé tab: the generation's state, a preview, Attach ──
@@ -696,6 +698,33 @@ export async function attachResumeFile(file) {
 }
 
 // ── the service worker's side ──────────────────────────────────────────────────────────────────────────────────
+// ⭐ D105 P5 · LINKS IN: which of the report's skill / quality terms have a PUBLISHED Atlas page — asked of draft's
+// public GET /api/atlas/resolve (no credentials: it is public, and nothing of the user's goes with it), cached in the
+// worker for its life (a term is asked once). A term absent from the answer, or any failure, draws no link — never a
+// dead one. Verbs are not Atlas pages and are not asked.
+const ATLAS_SLUGS = new Map();   // term → slug | null
+const ATLAS_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export async function atlasForReport(serverUrl, report, { fetchImpl = globalThis.fetch } = {}) {
+  if (!serverUrl || !report || typeof report !== 'object') return null;
+  // The shared model's own list (the bundle boardJob.js imports) — the same boxes the web app links.
+  const terms = (globalThis.__draftAtsReport?.atlasTerms?.(report) || []).slice(0, 100);
+  const ask = terms.filter(t => !ATLAS_SLUGS.has(t));
+  if (ask.length) {
+    try {
+      const res = await fetchImpl(`${serverUrl}/api/atlas/resolve?terms=${encodeURIComponent(ask.join(','))}`, { credentials: 'omit' });
+      if (res?.ok) {
+        const got = (await res.json().catch(() => ({})))?.slugs || {};
+        for (const t of ask) ATLAS_SLUGS.set(t, typeof got[t] === 'string' && ATLAS_SLUG_RE.test(got[t]) && got[t].length <= 80 ? got[t] : null);
+      }
+    } catch { /* no answer → no links */ }
+  }
+  const slugs = {};
+  for (const t of terms) { const s = ATLAS_SLUGS.get(t); if (s) slugs[t] = s; }
+  return Object.keys(slugs).length ? { base: `${serverUrl}/atlas/`, slugs } : null;
+}
+/** Test seam: forget the worker's Atlas answers. */
+export function _resetAtlasSlugs() { ATLAS_SLUGS.clear(); }
+
 const json = (serverUrl, path, init) => authedFetch(serverUrl, path, init)
   .then(async (res) => (res ? { ok: res.ok, status: res.status, body: await res.json().catch(() => ({})) } : { ok: false, status: 401, body: { error: 'Sign in to draft first.', code: 'not_signed_in' } }))
   .catch(() => ({ ok: false, status: 0, body: { error: 'Could not reach draft.', code: 'unreachable' } }));
@@ -771,7 +800,9 @@ export function handlersFor(serverUrl = null) {
   const reportFor = async (job) => {
     if (!job?.jobId || !url()) return null;
     const found = await lookupBoardJob(url(), job.jobId).catch(() => null);
-    return found?.ok ? found.ats : null;
+    if (!found?.ok || !found.ats) return null;
+    const atlas = found.ats.report ? await atlasForReport(url(), found.ats.report).catch(() => null) : null;
+    return atlas ? { ...found.ats, atlas } : found.ats;
   };
 
   /** The tab's job and the generation the message names — which must be the tab's own job's current one. */

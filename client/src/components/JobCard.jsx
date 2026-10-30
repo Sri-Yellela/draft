@@ -19,6 +19,7 @@ import { C } from "../styles/colorTokens.js";
 import { glass } from "../styles/glass.js";
 import { api } from "../lib/api.js";
 import { openPosting } from "../lib/openPosting.js";
+import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
 
 // AH2: a job's title is a LINK to that job's own address.
 //
@@ -263,17 +264,25 @@ function ClosedPill() {
 }
 
 // ── Skill chips (FE-1) — expanded/detail surfaces only ───────────
+// ⭐ D105 P5: a chip whose skill has a PUBLISHED Atlas page links to it — resolved in one request per card, cached for
+// the page; no published page, no link (never a dead one).
 function SkillChips({ skills, max = 5 }) {
-  if (!skills?.length) return null;
+  const shown = (skills || []).slice(0, max);
+  const slugs = useAtlasSlugs(shown);
+  if (!shown.length) return null;
   return (
     <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
-      {skills.slice(0, max).map((s, i) => (
-        <span key={i} style={{ fontSize:10, color:"var(--color-text-muted)",
-                                background:"var(--color-surface-offset)", padding:"2px 7px",
-                                borderRadius:4, border:"1px solid var(--border-glass)" }}>
-          {s}
-        </span>
-      ))}
+      {shown.map((s, i) => {
+        const slug = slugs[String(s ?? "").trim()];
+        const chip = { fontSize:10, color:"var(--color-text-muted)",
+                       background:"var(--color-surface-offset)", padding:"2px 7px",
+                       borderRadius:4, border:"1px solid var(--border-glass)" };
+        return slug
+          ? <a key={i} href={atlasHref(slug)} target="_blank" rel="noopener noreferrer" data-atlas-link=""
+               title={`About ${s} in the Atlas`} onClick={e => e.stopPropagation()}
+               style={{ ...chip, textDecoration:"underline", textUnderlineOffset:2 }}>{s}</a>
+          : <span key={i} style={chip}>{s}</span>;
+      })}
     </div>
   );
 }
