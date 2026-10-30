@@ -89,6 +89,9 @@ import { recordJobHistory, livenessForRows } from "./services/jobs/jobHistory.js
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { seedAtlasFromRegistry } from "./services/atlas/atlasSeed.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
+// ⭐ D108: a company's sponsorship fact (the existing LCA match, with its source and date) and the dated "What changed".
+import { sponsorshipFactsForRows } from "./services/kb/sponsorshipFacts.js";
+import { createWhatChangedRouter, createWhatChangedAdminRouter } from "./routes/whatChanged.js";
 // trackScrape dropped from this import in cleanup 5.8 — it was imported here and never called.
 // Every model call goes through callModel, which records usage on one path — see
 // services/modelCall.js. trackApiCall is no longer imported here: server.js called it
@@ -5487,6 +5490,24 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⭐ D108 P2 (owner 10-30) · "WHAT CHANGED" — a short dated list of rule changes that affect students and workers.
+      // Each line is a fact with an OFFICIAL source link (services/kb/sponsorshipFacts.js addWhatChanged refuses any
+      // other); no advice, no opinion. Removed lines are kept, marked, for the record.
+      id: "178_what_changed",
+      sql: `
+        CREATE TABLE IF NOT EXISTS what_changed (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          happened_on TEXT NOT NULL,
+          text        TEXT NOT NULL,
+          source_url  TEXT NOT NULL,
+          source_name TEXT NOT NULL,
+          added_by    TEXT NOT NULL,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          removed_at  INTEGER
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -8901,6 +8922,9 @@ app.use("/api/admin/job-tags", requireAdmin, createJobTagsRouter(db, requireAdmi
 // ⭐ D105 · the Atlas: pages are PUBLIC (published nodes only, no sign-in); the curator's list and publish are admin.
 app.use("/api/atlas", createAtlasRouter(db));
 app.use("/api/admin/atlas", requireAdmin, createAtlasAdminRouter(db));
+// ⭐ D108 P2 · "What changed": facts with official source links only; public to read, the curator's to write.
+app.use("/api/what-changed", createWhatChangedRouter(db));
+app.use("/api/admin/what-changed", requireAdmin, createWhatChangedAdminRouter(db));
 // Seeded at boot (idempotent: a second run adds nothing, and never touches a curator's node) — every node a DRAFT.
 try { const s = seedAtlasFromRegistry(db); if (s.nodes || s.edges) console.log(`[atlas] seeded ${s.nodes} draft node(s), ${s.edges} edge(s)`); }
 catch (e) { console.warn("[atlas] seed:", e.message); }
@@ -9789,6 +9813,8 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       const pageRows = ineligible.size ? [...rows.filter(j => !ineligible.has(j.job_id)), ...rows.filter(j => ineligible.has(j.job_id))] : rows;
       // ⭐ D107 P2 · is this posting alive — "Reposted 4 times since June" · "Open 94 days" · "New — first seen yesterday".
       const liveness = (() => { try { return livenessForRows(db, pageRows); } catch { return new Map(); } })();
+      // ⭐ D108 P1 · "Filed 290 certified LCAs in FY2025" — the company's public filings, with the source and its date.
+      const sponsorship = (() => { try { return sponsorshipFactsForRows(db, pageRows); } catch { return new Map(); } })();
       const responseBody = {
         success:    true,
         // ⛔ A52 · A STORED SCORE IS SHOWN ONLY WHILE IT IS STILL ABOUT THIS POSTING AND THIS BASIS.
@@ -9801,6 +9827,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
                                      ...(ineligible.has(j.job_id) ? { eligibility: { status: "ineligible", reasons: ineligible.get(j.job_id) } } : {}),
                                      ...(liveness.has(String(j.job_id)) ? { liveness: liveness.get(String(j.job_id)) } : {}),
                                      ...(levelOfRow(j) ? { levelRead: levelOfRow(j) } : {}),
+                                     ...(sponsorship.get(j.company) ? { sponsorshipFact: sponsorship.get(j.company) } : {}),
                                      // D40 · the + view's one extra line: "captured <date> · from <host>".
                                      ...(importedTab ? { captured: captureMeta(capturedBy.get(j.job_id)) } : {}),
                                      ...(pendingTab && resumeBy.has(j.job_id) ? (({ job_id, ...r }) => r)(resumeBy.get(j.job_id)) : {}) })),
