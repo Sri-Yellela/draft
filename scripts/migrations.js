@@ -4732,4 +4732,53 @@ export const MIGRATIONS = [
         ALTER TABLE users ADD COLUMN auto_last_run_at INTEGER;
       `,
     },
+    {
+      // ⭐ D100 P2 / D79 · THE APPLY WORKER'S DATA (docs/APPLY_WORKER.md §3). draft stores CIPHERTEXT it cannot read: a
+      // portal session sealed in the user's app to a per-session key the worker minted (key_id); revoke = the worker
+      // destroys that key, so every copy — here and in backups — becomes unreadable. `portal_session_uses` is the use log
+      // the user sees. `apply_remote_runs` is the worker's queue: one row per run-job sent to the worker, leased over the
+      // signed API (routes/applyWorker.js), with the field list it filled (labels + values, never pixels).
+      id: "171_apply_worker",
+      sql: `
+        CREATE TABLE IF NOT EXISTS portal_sessions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          portal_family TEXT NOT NULL,
+          origin_host TEXT NOT NULL,
+          key_id TEXT NOT NULL,
+          ciphertext TEXT NOT NULL,
+          consent_at INTEGER NOT NULL,
+          expires_at INTEGER,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          last_used_at INTEGER,
+          revoked_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_portal_sessions_user ON portal_sessions(user_id, revoked_at);
+        CREATE TABLE IF NOT EXISTS portal_session_uses (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id INTEGER NOT NULL REFERENCES portal_sessions(id) ON DELETE CASCADE,
+          apply_run_job_id INTEGER,
+          started_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          outcome TEXT
+        );
+        CREATE TABLE IF NOT EXISTS apply_remote_runs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          run_job_id INTEGER NOT NULL UNIQUE,
+          packet_id INTEGER,
+          session_id INTEGER REFERENCES portal_sessions(id) ON DELETE SET NULL,
+          mode TEXT NOT NULL,
+          state TEXT NOT NULL DEFAULT 'queued',
+          worker_id TEXT,
+          lease_until INTEGER,
+          attempts INTEGER NOT NULL DEFAULT 0,
+          field_list_json TEXT,
+          approved_values_json TEXT,
+          outcome TEXT,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_apply_remote_runs_state ON apply_remote_runs(state, lease_until);
+      `,
+    },
   ];
