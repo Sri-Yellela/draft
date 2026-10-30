@@ -93,7 +93,7 @@ test("⛔ manifest: https://*/* ONLY in optional_host_permissions — nothing ne
   assert.equal(manifest.optional_host_permissions.filter(o => o === ANY_SITE_PATTERN).length, 1);
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"], "nothing at install");
   assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"]);
-  assert.equal(manifest.optional_permissions, undefined);
+  assert.deepEqual(manifest.optional_permissions, ["cookies"], "⭐⭐ D112 item 7: the one optional API permission");
   for (const k of ["host_permissions", "permissions"]) {
     assert.ok(!(manifest[k] || []).some(x => /\*:\/\/\*|https?:\/\/\*\/|<all_urls>/.test(x)), `${k} holds a broad pattern`);
   }

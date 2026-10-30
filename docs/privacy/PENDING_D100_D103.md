@@ -96,6 +96,7 @@ Nothing in the **extension** changes with D100 / D103 as built: the desktop "Let
 (D100 P3, which needs the optional `cookies` permission) is **not built**, so the manifest, the store listing and the
 dashboard's Privacy practices are unchanged. When P3 desktop is built, it adds a row: `cookies` (optional, requested at
 that press) · the sealed upload (`/api/portals/upload`) · this policy's *Applying for You*.
+⭐ **Superseded 2026-10-30 (D112 item 7): P3 desktop is BUILT (extension v1.6.0, not released) — its text is §7 below.**
 
 ## 5 · Play Store data-safety form (Android)
 
@@ -116,3 +117,57 @@ cookies)* — collected, encrypted in transit, not shared except with the user's
   finish an application. Each read is logged."
 - **Inbox:** "Forward replies from job sites to this address. Employers keep writing to your own email; draft never
   connects to your mailbox."
+
+---
+
+## 7 · D112 item 7 — the extension's "Let draft apply here while you're away" (BUILT in v1.6.0, NOT released)
+
+⛔ **Apply ONLY in the push that uploads the extension version carrying it, on the owner's word** (D112 item 7: "built
+now, released when the owner says"). Until then the live policy and the store listing stay true as they are: the zip
+is built, but the feature is inert (`extension/applyAway.js` `PINNED_WORKER_IDENTITY` is empty until the owner pins the
+deployed apply worker's identity, and nothing is offered while it is empty). This is a **material** change to the
+extension's data handling.
+
+**What the code does** (`extension/applyAway.js`, `apply-away.html` / `apply-away.js`; pinned by
+`test/d112ApplyAway.test.js`): on a page of a portal draft can connect (today **amazon.jobs** only — `www.amazon.jobs`,
+`amazon.jobs`, `account.amazon.jobs`) where the page shows the user is signed in, the dock offers *"Let draft apply here
+while you're away?"*. The press opens a small window with the reasons; its **Allow and connect** asks Chrome for the
+optional `cookies` permission and those three hosts. Granted, the extension asks draft for a key the apply worker minted,
+**checks the key's signature against the worker identity built into the extension**, reads **only that portal's cookies**,
+**seals them on the computer** to that key and uploads the sealed copy. draft's servers store it and cannot open it; the
+apply worker opens it only while applying for the user. **Disconnect** deletes it there and the worker destroys the key,
+so every stored copy becomes unreadable; the `cookies` permission is given back. No cookie is written or removed; no
+other site's cookie is read; the portal password is never read.
+
+**Policy — replace the extension bullet** *"It does not read, store, or transmit your session cookies, login credentials,
+or any authentication token belonging to any other site…"* **with:**
+> It does **not** read, store, or transmit your session cookies, login credentials, or any authentication token
+> belonging to any other site — **with one exception you choose:** on a portal draft can apply on for you (today
+> amazon.jobs), *Let draft apply here while you're away* reads that portal's sign-in cookies once, after you allow it
+> (Chrome asks you for that site only), seals them on your computer so that only our separate apply service can open
+> them, and sends only the sealed copy. Our own servers cannot read it. Disconnect at any time, in the extension or in
+> Draft House → Portals: the key is destroyed and the stored copy can never be opened again. Your password is never
+> read. The one credential it otherwise holds is its own — the access token described above.
+
+**Policy — *Applying for You* → *Signed-in portal sessions*:** after *"Your app seals the portal's session (its
+cookies)"* add *"— on Android, in the app; on a computer, in draft's browser extension —"*.
+
+**`extension/submission/PRIVACY_RECONCILIATION.md` row:** `cookies` (optional permission, requested only in the
+*apply here while you're away* window's Allow press, for one portal's hosts) · reads that portal's cookies once, sealed
+in the extension to the apply worker's verified key · `/api/portals/upload` (ciphertext only) · Disconnect →
+`DELETE /api/portals/:id`, the key destroyed · the policy's extension bullet (above) and *Applying for You*.
+
+**Store listing / dashboard (the owner pastes at that upload):**
+1. **Permission justifications — add `cookies` (optional):** *"Requested only when the user presses 'Let draft apply
+   here while you're away' on a job portal draft supports (today amazon.jobs), with that portal's hosts only. The
+   extension reads that portal's sign-in cookies once, seals them on the device to a key held only by our separate
+   apply service (verified against a key built into the extension), and uploads the sealed copy so the service can
+   apply for the user when they are away. Our servers cannot read it. Never another site's cookies; no cookie is written
+   or removed; removed again on Disconnect."*
+2. **Optional host permissions:** the three amazon.jobs hosts are requested under the existing optional `https://*/*`
+   for this press — say so in the `https://*/*` justification.
+3. **Privacy practices → Authentication information:** changes from *not collected* to **collected** — *"the sign-in
+   cookies of one job portal the user chooses to connect, sealed on the device; our servers cannot read them; deleted
+   on Disconnect."* (Remove *"It holds no `cookies` permission."*)
+4. **Reviewer notes:** how to see it (a signed-in amazon.jobs page → the toolbar press → the line → the window), and
+   that a reviewer without a deployed worker sees nothing (the line is offered only when draft's apply worker runs).
