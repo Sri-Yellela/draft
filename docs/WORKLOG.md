@@ -40,6 +40,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 
 | | |
 |---|---|
+| Local `main` (43q, measured `git log origin/main..main`) | ⭐ **21 commits ahead of `origin/main`, NOT pushed** — `b4cc84d` … `80309e2`: T31 (10-19 report), G1, D100 (FULL AUTO as a mode, the apply worker + its service, portal sessions and accounts), D101 (profile + Application defaults, the fill reading only them), D102 (the ladder, the detail route, Auto settings + the scheduler), D103 (the inbox), D104 (eligibility, the board mark, answer sources), A99–A101 (autofill completeness, profile logos, the 33 walks green), T32, T34, G3 / G5 / G7 / G8, the privacy draft. Migrations **169–174** are in source only. **The owner's "push" only — and not during the test run (10-30).** |
 | Production (draft) | ⭐ **10-30 (43p), measured: `b314e24` LIVE** (`/api/version`: commit `b314e24`, started 2026-10-26 03:53:15Z, contract 2.5.0, `latestApplied: 168_extension_intent_settings`) = `origin/main`. **Local `main` = origin + `b4cc84d` (T31 (10-19 report), the stub JSON-LD fix) + `2122afb` and 43p's docs — NOT pushed** (the owner's "push"). Older production history: `docs/WORKLOG_ARCHIVE_2026-08-to-10-13.md` |
 | ⚠ ATS weights (production) | **10-30, measured (`/api/version` `atsWeights`): state `fresh`, but 27.1 days old** (refresh at 14, REFUSED at 45 → **about 2026-11-17**). **The last refresh was refused by its own guard:** the rebuild would replace 1,666 term rows with 436 (26.2% kept, floor 50%) — the board's corpus is too thin to derive from. `consecutiveFailures: 0`. ⛔ Nothing is changed here; A-row below (43p) |
 | Production (tools service) | ⭐ **10-30 (43p), measured: `d4d61aa` LIVE** (`resumemaster.one/v1/version`; scorer `@draft/ats-scorer@1.2.0`, `llmFormat: false`) = its `origin/main` = local `main` (A97, contract 1.6.0) |
@@ -55,6 +56,19 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 ---
 
 ## NOW
+
+### ⏹ 43q STOPPED 10-30 ~05:05 — WHAT IS LEFT IS THE OWNER'S, OR WAITS FOR THE SKETCH
+
+**Every item the agent can do without the owner is built (local, 21 commits, not pushed).** What is left, in the order it unblocks work:
+1. **Owner — the Amazon test (D100 P5)**, local, no push: the steps are under Lane B in the ORDER block. Expect stops (terms box, emailed code). ⚠ If Amazon's sign-up always stops at its terms box, creating accounts there needs the owner to reverse D100's "never ticked" for that box — a decision, not a bug.
+2. **Owner — the privacy text** (`docs/privacy/PENDING_D100_D103.md`): the effective date, whether users are notified first, and the inbox's retention period (`INBOX_RETENTION_DAYS`). Then the agent applies it in the same push.
+3. **Owner — D103's steps:** Resend Receiving on `in.jobsviadraft.com` (the MX on the subdomain only), the `email.received` webhook, `RESEND_INBOUND_SECRET`.
+4. **Owner — the apply worker's Railway project** (its own project, a volume at `/data`, `APPLY_WORKER_TOKEN` shared with draft, `APPLY_WORKER_MASTER_KEY`, `APPLY_WORKER_DRAFT_URL`; draft gets `APPLY_WORKER_TOKEN` + `APPLY_WORKER_URL`). Build from the repo root with `RAILWAY_DOCKERFILE_PATH=apply-worker/Dockerfile`.
+5. **Chat assistant — `docs/sketches/pipeline-workspace.html` (D102 P5)** — absent; the UI step (D101 P3 / P4, D102 P1 / P2, D103 P4, the board's eligibility mark, Auto settings' drawer) is built to it.
+6. **Owner decisions still open:** T35 (A / B / C) · **A102** (below) · cross-page demotion of ineligible postings (needs the requirement in the board's ORDER BY) · D100 P3 (Android in-app connect; the extension's "apply here while away" needs `cookies` + a listing change) · D100 P4's push provider.
+7. **The full `npm test`** has not been run since 43n (8 GB; the owner's Chrome open). Every suite the 43q changes touch was run, and all 33 real-Chrome walk files are green.
+
+**A102 (agent, 43q) · D101 P5 conflicts with D86's compliance rules — NOT built.** D101 P5 asks the connector to give the user's own model a read of Application defaults. But D86 DR-14 ("no tool concludes anything about the user's eligibility") and the published Skill's rule 8 ("never state or imply the user's visa, citizenship or work-authorisation eligibility") were written so the connector never carries eligibility answers — and Application defaults are exactly work authorisation, sponsorship, citizenship, clearance and voluntary self-ID. Building it changes the catalogue under directory review (Appendix A) and the privacy text. **The owner chooses:** (a) skip it; (b) only the non-sensitive keys (relocate, start date, in person); (c) all of it, with DR-14, the Skill and Appendix A rewritten together.
 
 ### ▶▶▶▶▶▶▶ OWNER REQUEST 10-30 (later) — THE EXTENSION AND THE AUTOFILL, CHECKED END TO END. Tasks A99–A101 (agent, 43q).
 
