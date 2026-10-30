@@ -276,12 +276,13 @@ test("POST /api/profile in account.js saves custom_answers and desired_salary", 
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 16. ProfilePanel.jsx has custom_answers, desired_salary, highest_degree fields
+// 16. ProfilePanel.jsx has custom_answers, desired_salary fields — and, since D112 d2, NO old Education block
 // ─────────────────────────────────────────────────────────────────────────────
-test("ProfilePanel.jsx has custom_answers, desired_salary, highest_degree fields", () => {
+test("ProfilePanel.jsx has custom_answers, desired_salary fields; the degree is the Education SECTION's (D112 d2)", () => {
   assert.match(profilePanelSrc, /custom_answers/);
   assert.match(profilePanelSrc, /desired_salary/);
-  assert.match(profilePanelSrc, /highest_degree/);
+  // Changed on purpose (D112 d2): the old block's highest_degree select is gone; ProfileSections derives the degree.
+  assert.doesNotMatch(profilePanelSrc, /set\("highest_degree"/);
   assert.match(profilePanelSrc, /website_url/);
   assert.match(profilePanelSrc, /willing_to_relocate/);
   assert.match(profilePanelSrc, /Application Extras/);

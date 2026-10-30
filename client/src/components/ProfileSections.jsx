@@ -134,6 +134,60 @@ function DefaultRow({ item, onSet, theme, busy }) {
   );
 }
 
+/**
+ * D112 d2 · the degree the forms answer with: DERIVED from the entries below (the highest level wins), with a
+ * Change override for a form that needs something else (PUT /api/profile/education-override). "Use the section"
+ * clears it. Eligibility (D104) reads the same value.
+ */
+function HighestDegree({ education, onSaved, theme }) {
+  const [draft, setDraft] = useState(null);
+  const [err, setErr] = useState("");
+  const e = education || {};
+  const muted = { fontSize: 12, color: theme.textMuted };
+  const input = { height: 34, padding: "0 10px", borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.surface,
+    color: theme.text, fontSize: 13, boxSizing: "border-box", width: "100%" };
+  const send = async (body) => {
+    setErr("");
+    try { onSaved(await api("/api/profile/education-override", { method: "PUT", body: JSON.stringify(body) })); setDraft(null); }
+    catch (x) { setErr(x.message || "Not saved."); }
+  };
+  const line = [e.degree, e.field].filter(Boolean).join(", ") || null;
+  return (
+    <div data-highest-degree={e.source || "none"} style={{ marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${theme.border}` }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: theme.textMuted, marginBottom: 4 }}>Highest degree — what forms are given</div>
+      {!draft ? (
+        <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, color: theme.text, fontWeight: 700 }}>
+            {line || <span style={muted}>None yet — add a school below.</span>}
+          </span>
+          {(e.school || e.year) && <span style={muted}>{[e.school, e.year].filter(Boolean).join(" · ")}</span>}
+          <span style={muted}>{e.source === "override" ? "· changed for forms" : e.source === "section" ? "· from your highest entry" : ""}</span>
+          <div style={{ flex: 1 }} />
+          <button className="rm-btn rm-btn-ghost rm-btn-sm"
+            onClick={() => setDraft({ degree: e.degree || "", field: e.field || "", school: e.school || "", year: e.year || "" })}>Change</button>
+          {e.source === "override" && <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => send({})}>Use the section</button>}
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
+          {[["degree", "Degree"], ["field", "Field"], ["school", "School"], ["year", "Year (YYYY)"]].map(([k, label]) => (
+            <label key={k} style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: theme.textMuted }}>
+              {label}
+              <input style={input} value={draft[k]} onChange={x => setDraft(d => ({ ...d, [k]: x.target.value }))} />
+            </label>
+          ))}
+          <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setDraft(null)}>Cancel</button>
+            <button className="rm-btn rm-btn-primary rm-btn-sm" onClick={() => send(Object.fromEntries(Object.entries(draft)
+              // Only what DIFFERS from the section is an override — the rest keeps following the entries.
+              .filter(([k, v]) => String(v || "").trim() !== String(e.derived?.[k] || ""))))}>Save</button>
+          </div>
+        </div>
+      )}
+      {err && <span role="alert" style={{ fontSize: 12, color: C.DANGER }}>{err}</span>}
+    </div>
+  );
+}
+
 export default function ProfileSections({ theme }) {
   const [p, setP] = useState(null);
   const [msg, setMsg] = useState("");
@@ -213,6 +267,7 @@ export default function ProfileSections({ theme }) {
       </Box>
 
       <Box title="Education" theme={theme}>
+        <HighestDegree theme={theme} education={p.education} onSaved={setP} />
         <ListEditor theme={theme} items={s.education} addLabel="+ Add a school"
           blank={{ school: "", degree: "", field: "", start: "", end: "" }}
           fields={[{ k: "school", label: "School" }, { k: "degree", label: "Degree" }, { k: "field", label: "Field" },

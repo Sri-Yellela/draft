@@ -5,6 +5,7 @@ import { parseResumeFile } from "../lib/parseResumeFile.js";
 import { useTheme } from "../styles/theme.jsx";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import DomainProfileWizard from "../components/DomainProfileWizard.jsx";
+import RefineJobProfile from "../components/RefineJobProfile.jsx";
 // AC3: the card idiom below was lifted OUT of this panel into a shared primitive, and this panel
 // renders it. Extraction, not duplication — see the note at the top of TileCard.jsx.
 import { TileGrid, TileCard, TilePill } from "../components/ui/TileCard.jsx";
@@ -195,6 +196,9 @@ export function JobProfilesPanel() {
             panel renders it (AC3 requirement 1: reuse the primitive, do not clone it into a second
             implementation). The markup was lifted out and parameterised, not rebuilt — every value
             is the one that was here, so these cards are unchanged. */}
+        {/* D112 e2: a profile made from a résumé shows "Refine your job profile" until the wizard is saved for it. */}
+        <RefineJobProfile profiles={profiles} activeId={profiles.find(p => p.is_active)?.id ?? null} onRefined={() => loadProfiles()} />
+
         <TileGrid min={260} gap={14}>
           {profiles.map(profile => {
             const active = !!profile.is_active;
