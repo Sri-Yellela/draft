@@ -1,0 +1,324 @@
+// ── D101 · THE PROFILE IN SECTIONS, AND APPLICATION DEFAULTS (owner 10-30) ────────────────────
+//
+// One PERSON profile — summary, experience, education, skills, links, Application defaults — shared by all of the
+// user's job profiles (each keeps its targeting and its base résumé DOCUMENT).
+//
+// ⛔ THE RULES THIS FILE HOLDS:
+//   1. Editing the profile NEVER rewrites the uploaded base résumé (d101EditNeverRewritesBaseFile) — the profile is
+//      the structured source; the document stays the document. Nothing here writes profile_base_resumes / base_resume.
+//   2. Filled from D65's parse (services/payloadResume.js → services/applyGatePacket.js buildPacketEntries, the same
+//      reading the packets use) on FIRST open; after a NEW base upload the difference is OFFERED ("Your résumé says X —
+//      use it?"), never applied silently. `profile_sections.imported_basis` is the parse it was filled from.
+//   3. Application defaults hold ONLY what the user SET: an absent row is "not set" — never a default pretending to be
+//      an answer (d101UnsetDefaultIsNotAnAnswer; D72 found every user reading requires_sponsorship = 0). An answer given
+//      in Needs you is saved back here (d101AnswerSavedBack, D96's lifecycle).
+//   4. Saves are checked by the claim guard's date rules: dates in order, no end date in the future.
+import { payloadResumeParse, parseBasis } from "./payloadResume.js";
+import { buildPacketEntries, parseDateRange } from "./applyGatePacket.js";
+import { companyKey, logoPath } from "./jobs/companyLogoStore.js";
+
+// ── Application defaults: the groups, the keys, what each accepts ─────────────────────────────
+const YES_NO = ["yes", "no"];
+export const DEFAULT_GROUPS = Object.freeze([
+  { group: "work_authorisation", label: "Work authorisation", keys: [
+    { key: "authorised_to_work", label: "Authorised to work in the US", values: YES_NO },
+    { key: "sponsorship_now", label: "Needs sponsorship now", values: YES_NO },
+    { key: "sponsorship_later", label: "Will need sponsorship later", values: YES_NO },
+    { key: "citizenship", label: "Citizenship", text: true },
+    { key: "clearance", label: "Security clearance", values: ["none", "confidential", "secret", "top_secret", "ts_sci", "can_obtain"] },
+  ] },
+  { group: "work_preferences", label: "Work preferences", keys: [
+    { key: "in_person", label: "Can work in person", values: ["yes", "no", "hybrid_only"] },
+    { key: "relocate", label: "Willing to relocate", values: YES_NO },
+    { key: "start_date", label: "Earliest start date", text: true },
+    { key: "transport", label: "Reliable transport", values: YES_NO },
+  ] },
+  { group: "background", label: "Background", keys: [
+    { key: "government_ties", label: "Government employment or ties", values: YES_NO },
+    { key: "criminal_history", label: "Criminal history disclosure", text: true },
+  ] },
+  { group: "eeo", label: "Voluntary self-ID", keys: [
+    { key: "gender", label: "Gender", text: true },
+    { key: "ethnicity", label: "Race / ethnicity", text: true },
+    { key: "veteran", label: "Veteran status", text: true },
+    { key: "disability", label: "Disability status", text: true },
+  ] },
+]);
+const KEY_DEF = new Map(DEFAULT_GROUPS.flatMap(g => g.keys.map(k => [k.key, { ...k, group: g.group }])));
+export const DEFAULT_SOURCES = Object.freeze(["user", "needs_you", "imported"]);
+
+/** Validate one default. Returns the stored value or throws a 400. */
+export function checkDefault(key, value) {
+  const def = KEY_DEF.get(key);
+  const fail = (m) => Object.assign(new Error(m), { status: 400, code: "bad_default" });
+  if (!def) throw fail(`No application default called ${String(key).slice(0, 40)}.`);
+  const v = String(value ?? "").trim();
+  if (!v) throw fail(`${def.label}: clear it to leave it not set, rather than saving an empty answer.`);
+  if (def.values && !def.values.includes(v)) throw fail(`${def.label} is one of: ${def.values.join(", ")}.`);
+  if (v.length > 200) throw fail(`${def.label} is too long.`);
+  return v;
+}
+
+/** Every key, grouped, each `set` or `not set` — an absent row is never shown as an answer. */
+export function readDefaults(db, userId) {
+  const rows = new Map(db.prepare(`SELECT key, value, source, set_at FROM application_defaults WHERE user_id = ?`).all(userId).map(r => [r.key, r]));
+  return DEFAULT_GROUPS.map(g => ({
+    group: g.group, label: g.label,
+    items: g.keys.map(k => {
+      const r = rows.get(k.key);
+      return { key: k.key, label: k.label, ...(k.values ? { values: k.values } : { text: true }),
+        set: !!r, value: r ? r.value : null, source: r?.source ?? null, setAt: r?.set_at ?? null };
+    }),
+  }));
+}
+
+/** The value the FILL may use for a key — null when not set (→ Needs you). */
+export function defaultFor(db, userId, key) {
+  return db.prepare(`SELECT value FROM application_defaults WHERE user_id = ? AND key = ?`).pluck().get(userId, key) ?? null;
+}
+
+/** Set or clear (value null) one default. `source` says where it came from. */
+export function setDefault(db, userId, key, value, source = "user") {
+  if (!DEFAULT_SOURCES.includes(source)) throw Object.assign(new Error("bad source"), { status: 400, code: "bad_source" });
+  if (value === null) {
+    if (!KEY_DEF.has(key)) throw Object.assign(new Error(`No application default called ${key}.`), { status: 400, code: "bad_default" });
+    db.prepare(`DELETE FROM application_defaults WHERE user_id = ? AND key = ?`).run(userId, key);
+    return null;
+  }
+  const v = checkDefault(key, value);
+  db.prepare(`INSERT INTO application_defaults (user_id, key, value, source, set_at) VALUES (?, ?, ?, ?, unixepoch())
+    ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, source = excluded.source, set_at = excluded.set_at`)
+    .run(userId, key, v, source);
+  return v;
+}
+
+/**
+ * D96 → D101 P2 · an answer the user gave in Needs you is SAVED BACK here, so the next form does not ask again.
+ * Only for a key the block has; anything else stays a saved answer (services/answerLifecycle.js).
+ */
+export function saveBackFromNeedsYou(db, userId, key, value) {
+  if (!KEY_DEF.has(key)) return false;
+  try { setDefault(db, userId, key, value, "needs_you"); return true; } catch { return false; }
+}
+
+// ── the sections ──────────────────────────────────────────────────────────────────────────────
+
+const ym = (d) => (d?.year ? `${d.year}-${String(d.month || 1).padStart(2, "0")}` : null);
+const YM = /^(19|20)\d{2}-(0[1-9]|1[0-2])$/;
+
+/** "Northwind — Software Engineer" with no separate title → company + title. The parse joins them on some résumés. */
+export function splitCompanyTitle(company, title) {
+  const c = String(company || "").trim();
+  const t = String(title || "").trim();
+  const looksLikeDate = /\b(19|20)\d{2}\b|present/i.test(t);
+  const m = /^(.+?)\s+[—–|]\s+(.+)$/.exec(c) || /^(.+?)\s+-\s+(.+)$/.exec(c);
+  if (m && (!t || looksLikeDate)) return { company: m[1].trim(), title: m[2].trim(), dateInTitle: looksLikeDate ? t : null };
+  return { company: c, title: t || null, dateInTitle: null };
+}
+
+/** The profile as the résumé's parse reads it (nothing written). Null when there is no base résumé to read. */
+export function profileFromResume(db, userId) {
+  const payload = payloadResumeParse(db, { userId, resumeId: null });
+  if (!payload?.source) return null;
+  const profile = db.prepare(`SELECT * FROM user_profile WHERE user_id = ?`).get(userId) || {};
+  const e = buildPacketEntries({ profile, payload });
+  const summary = (payload.structured?.sections || []).find(s => s?.type === "summary")?.text?.trim() || null;
+  const experience = (e.work || []).map(w => {
+    const s = splitCompanyTitle(w.company, w.title);
+    // The parse sometimes puts "Jan 2022 – Present | Boston, MA" where the title goes — its dates and place are read here.
+    const r = !w.from && s.dateInTitle ? parseDateRange(s.dateInTitle.split("|")[0]) : null;
+    const place = s.dateInTitle && s.dateInTitle.includes("|") ? s.dateInTitle.split("|").slice(1).join("|").trim() : null;
+    const from = r ? r.from : w.from, to = r ? r.to : w.to, current = r ? r.current : !!w.current;
+    return { company: s.company, title: s.title, location: w.location || place || null,
+      start: ym(from), end: current ? null : ym(to), current,
+      bullets: String(w.description || "").split("\n").map(b => b.replace(/^•\s*/, "").trim()).filter(Boolean) };
+  }).filter(x => x.company);
+  return {
+    basis: payload.ok ? payloadBasis(db, userId) : null,
+    ok: payload.ok,
+    summary,
+    experience,
+    education: (e.education || []).map(d => ({ school: d.school, degree: d.degree, field: d.field, start: ym(d.from), end: ym(d.to) })).filter(d => d.school),
+    skills: (e.skills || []).map(n => ({ name: n, category: null })),
+    links: (e.websites || []).map(w => ({ kind: w.kind, url: w.url })),
+  };
+}
+function payloadBasis(db, userId) {
+  const row = db.prepare(`SELECT pbr.content FROM profile_base_resumes pbr JOIN domain_profiles dp ON dp.id = pbr.profile_id
+    WHERE pbr.user_id = ? AND dp.is_active = 1 AND TRIM(COALESCE(pbr.content, '')) != '' LIMIT 1`).get(userId)
+    || db.prepare(`SELECT content FROM base_resume WHERE user_id = ?`).get(userId);
+  return row ? parseBasis(row.content) : null;
+}
+
+function writeSections(db, userId, p, source) {
+  db.transaction(() => {
+    db.prepare(`INSERT INTO profile_sections (user_id, summary, imported_basis, updated_at) VALUES (?, ?, ?, unixepoch())
+      ON CONFLICT(user_id) DO UPDATE SET summary = excluded.summary, imported_basis = excluded.imported_basis, updated_at = unixepoch()`)
+      .run(userId, p.summary, p.basis);
+    for (const t of ["profile_experience", "profile_education", "profile_skills", "profile_links"]) db.prepare(`DELETE FROM ${t} WHERE user_id = ?`).run(userId);
+    p.experience.forEach((x, i) => db.prepare(`INSERT INTO profile_experience (user_id, company, title, location, start_ym, end_ym, is_current, bullets_json, position, source)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(userId, x.company, x.title, x.location, x.start, x.end, x.current ? 1 : 0, JSON.stringify(x.bullets || []), i, source));
+    p.education.forEach((x, i) => db.prepare(`INSERT INTO profile_education (user_id, school, degree, field, start_ym, end_ym, position, source)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(userId, x.school, x.degree, x.field, x.start, x.end, i, source));
+    p.skills.forEach((x, i) => db.prepare(`INSERT INTO profile_skills (user_id, name, category, position, source) VALUES (?, ?, ?, ?, ?)`)
+      .run(userId, x.name, x.category, i, source));
+    p.links.forEach((x, i) => db.prepare(`INSERT INTO profile_links (user_id, kind, url, position) VALUES (?, ?, ?, ?)`).run(userId, x.kind, x.url, i));
+  })();
+}
+
+/** Import the defaults the profile already states EXPLICITLY (text the user typed) — never a 0/1 column's default. */
+function importStatedDefaults(db, userId) {
+  const p = db.prepare(`SELECT * FROM user_profile WHERE user_id = ?`).get(userId);
+  if (!p) return;
+  const has = (k) => db.prepare(`SELECT 1 FROM application_defaults WHERE user_id = ? AND key = ?`).get(userId, k);
+  const put = (k, v) => { if (v != null && String(v).trim() && !has(k)) { try { setDefault(db, userId, k, String(v).trim(), "imported"); } catch {} } };
+  for (const [k, col] of [["gender", "gender"], ["ethnicity", "ethnicity"], ["veteran", "veteran_status"], ["disability", "disability_status"],
+    ["start_date", "available_start_date"]]) put(k, p[col]);
+  // sponsorship_need (migration 086) is the explicit answer; requires_sponsorship is a 0 default and is NOT read.
+  const need = String(p.sponsorship_need || "").toLowerCase();
+  if (need === "none" || need === "no") { put("sponsorship_now", "no"); put("sponsorship_later", "no"); }
+  if (need === "now" || need === "yes") put("sponsorship_now", "yes");
+  if (need === "future" || need === "later") { put("sponsorship_now", "no"); put("sponsorship_later", "yes"); }
+}
+
+function readSections(db, userId) {
+  const sec = db.prepare(`SELECT summary, imported_basis FROM profile_sections WHERE user_id = ?`).get(userId);
+  const logoOf = (company) => {
+    const key = companyKey(company);
+    const ok = key && db.prepare(`SELECT 1 FROM company_logos WHERE company_key = ? AND status = 'ok' AND bytes IS NOT NULL`).get(key);
+    // No logo → null, and the client draws a SQUARE initial tile (D60: no pills, no capsule circles).
+    return ok ? logoPath(key) : null;
+  };
+  return {
+    summary: sec?.summary ?? null,
+    importedBasis: sec?.imported_basis ?? null,
+    experience: db.prepare(`SELECT * FROM profile_experience WHERE user_id = ? ORDER BY position, id`).all(userId).map(r => ({
+      id: r.id, company: r.company, title: r.title, location: r.location, start: r.start_ym, end: r.end_ym, current: !!r.is_current,
+      bullets: JSON.parse(r.bullets_json || "[]"), logo: logoOf(r.company), initial: r.company.trim().charAt(0).toUpperCase(), source: r.source })),
+    education: db.prepare(`SELECT * FROM profile_education WHERE user_id = ? ORDER BY position, id`).all(userId).map(r => ({
+      id: r.id, school: r.school, degree: r.degree, field: r.field, start: r.start_ym, end: r.end_ym, source: r.source })),
+    skills: db.prepare(`SELECT id, name, category, source FROM profile_skills WHERE user_id = ? ORDER BY position, id`).all(userId),
+    links: db.prepare(`SELECT id, kind, url FROM profile_links WHERE user_id = ? ORDER BY position, id`).all(userId),
+  };
+}
+
+/** The ten sections the header counts ("7 of 10 sections"), each done or not. */
+function completeness(db, userId, s, defaults) {
+  const contact = db.prepare(`SELECT email, phone, COALESCE(full_name, first_name) AS name FROM user_profile WHERE user_id = ?`).get(userId) || {};
+  const groupDone = (g) => defaults.find(x => x.group === g)?.items.some(i => i.set) || false;
+  const done = {
+    contact: !!(contact.email && contact.name), summary: !!s.summary, experience: s.experience.length > 0,
+    education: s.education.length > 0, skills: s.skills.length > 0, links: s.links.length > 0,
+    work_authorisation: groupDone("work_authorisation"), work_preferences: groupDone("work_preferences"),
+    background: groupDone("background"), eeo: groupDone("eeo"),
+  };
+  return { done: Object.values(done).filter(Boolean).length, of: 10, sections: done };
+}
+
+/**
+ * The profile page's read. On FIRST open (nothing stored yet) it is filled from the résumé's parse (rule 2). After a
+ * new base upload, `suggestion` carries the parse to OFFER — the stored sections are not changed.
+ */
+export function readProfile(db, userId) {
+  let s = readSections(db, userId);
+  const firstOpen = !db.prepare(`SELECT 1 FROM profile_sections WHERE user_id = ?`).get(userId);
+  let suggestion = null;
+  if (firstOpen) {
+    const parsed = profileFromResume(db, userId);
+    if (parsed?.ok) writeSections(db, userId, parsed, "resume");
+    else db.prepare(`INSERT OR IGNORE INTO profile_sections (user_id) VALUES (?)`).run(userId);
+    importStatedDefaults(db, userId);
+    s = readSections(db, userId);
+  } else {
+    const basis = payloadBasis(db, userId);
+    if (basis && basis !== s.importedBasis) {
+      const parsed = profileFromResume(db, userId);
+      if (parsed?.ok) suggestion = { basis, summary: parsed.summary, experience: parsed.experience, education: parsed.education,
+        skills: parsed.skills, links: parsed.links };
+    }
+  }
+  const defaults = readDefaults(db, userId);
+  return { sections: s, defaults, completeness: completeness(db, userId, s, defaults), suggestion };
+}
+
+/** "Your résumé says X — use it?" — one press replaces the sections with the new parse. */
+export function useResumeSuggestion(db, userId) {
+  const parsed = profileFromResume(db, userId);
+  if (!parsed?.ok) return false;
+  writeSections(db, userId, parsed, "resume");
+  return true;
+}
+
+// ── saving a section (the drawer's Save) ───────────────────────────────────────────────────────
+
+function nowYm(nowSec) { const d = new Date(nowSec * 1000); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`; }
+function checkDates(x, label, nowSec) {
+  const fail = (m) => Object.assign(new Error(m), { status: 400, code: "bad_dates" });
+  for (const k of ["start", "end"]) if (x[k] != null && !YM.test(String(x[k]))) throw fail(`${label}: dates are written YYYY-MM.`);
+  if (x.start && x.end && x.end < x.start) throw fail(`${label}: the end is before the start.`);
+  if (x.end && x.end > nowYm(nowSec)) throw fail(`${label}: an end date cannot be in the future — mark it current instead.`);
+  if (x.start && x.start > nowYm(nowSec)) throw fail(`${label}: the start date is in the future.`);
+}
+const str = (v, n = 300) => (v == null || String(v).trim() === "" ? null : String(v).trim().slice(0, n));
+
+/** Replace one section with what the drawer sent. Validated whole; nothing half-stored. */
+export function saveSection(db, userId, section, body, nowSec = Math.floor(Date.now() / 1000)) {
+  const fail = (m) => Object.assign(new Error(m), { status: 400, code: "bad_section" });
+  const list = (v) => { if (!Array.isArray(v) || v.length > 60) throw fail("A section is a list of up to 60 items."); return v; };
+  db.prepare(`INSERT OR IGNORE INTO profile_sections (user_id) VALUES (?)`).run(userId);
+  if (section === "summary") {
+    const t = str(body?.summary, 3000);
+    db.prepare(`UPDATE profile_sections SET summary = ?, updated_at = unixepoch() WHERE user_id = ?`).run(t, userId);
+    return;
+  }
+  if (section === "experience") {
+    const items = list(body?.items).map((x, i) => {
+      const it = { company: str(x?.company), title: str(x?.title), location: str(x?.location), start: str(x?.start, 7), end: x?.current ? null : str(x?.end, 7),
+        current: !!x?.current, bullets: (Array.isArray(x?.bullets) ? x.bullets : []).map(b => str(b, 600)).filter(Boolean).slice(0, 20) };
+      if (!it.company) throw fail(`Experience ${i + 1}: the company is required.`);
+      checkDates(it, `Experience ${i + 1}`, nowSec);
+      return it;
+    });
+    db.transaction(() => {
+      db.prepare(`DELETE FROM profile_experience WHERE user_id = ?`).run(userId);
+      items.forEach((x, i) => db.prepare(`INSERT INTO profile_experience (user_id, company, title, location, start_ym, end_ym, is_current, bullets_json, position, source)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'user')`).run(userId, x.company, x.title, x.location, x.start, x.end, x.current ? 1 : 0, JSON.stringify(x.bullets), i));
+    })();
+    return;
+  }
+  if (section === "education") {
+    const items = list(body?.items).map((x, i) => {
+      const it = { school: str(x?.school), degree: str(x?.degree), field: str(x?.field), start: str(x?.start, 7), end: str(x?.end, 7) };
+      if (!it.school) throw fail(`Education ${i + 1}: the school is required.`);
+      checkDates(it, `Education ${i + 1}`, nowSec);
+      return it;
+    });
+    db.transaction(() => {
+      db.prepare(`DELETE FROM profile_education WHERE user_id = ?`).run(userId);
+      items.forEach((x, i) => db.prepare(`INSERT INTO profile_education (user_id, school, degree, field, start_ym, end_ym, position, source) VALUES (?, ?, ?, ?, ?, ?, ?, 'user')`)
+        .run(userId, x.school, x.degree, x.field, x.start, x.end, i));
+    })();
+    return;
+  }
+  if (section === "skills") {
+    const items = list(body?.items).map(x => ({ name: str(typeof x === "string" ? x : x?.name, 60), category: str(x?.category, 60) })).filter(x => x.name);
+    db.transaction(() => {
+      db.prepare(`DELETE FROM profile_skills WHERE user_id = ?`).run(userId);
+      items.forEach((x, i) => db.prepare(`INSERT INTO profile_skills (user_id, name, category, position, source) VALUES (?, ?, ?, ?, 'user')`).run(userId, x.name, x.category, i));
+    })();
+    return;
+  }
+  if (section === "links") {
+    const items = list(body?.items).map((x, i) => {
+      const url = str(x?.url, 500);
+      if (!url || !/^https?:\/\/[^\s]+$/i.test(url)) throw fail(`Link ${i + 1}: a full https:// address.`);
+      return { kind: str(x?.kind, 30) || "website", url };
+    });
+    db.transaction(() => {
+      db.prepare(`DELETE FROM profile_links WHERE user_id = ?`).run(userId);
+      items.forEach((x, i) => db.prepare(`INSERT INTO profile_links (user_id, kind, url, position) VALUES (?, ?, ?, ?)`).run(userId, x.kind, x.url, i));
+    })();
+    return;
+  }
+  throw fail(`No section called ${String(section).slice(0, 30)}.`);
+}

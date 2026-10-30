@@ -355,6 +355,11 @@ const AUTHENTICATED = new Set([
   // D100 (a): consent for draft to create a portal account for the user; removing it.
   "POST /api/portals/accounts",
   "DELETE /api/portals/accounts/:id",
+  // D101: the profile in sections and Application defaults.
+  "GET /api/profile/sections",
+  "POST /api/profile/sections/use-resume",
+  "PUT /api/profile/sections/:section",
+  "PUT /api/profile/defaults/:key",
   "GET /api/apply/review",
   "GET /api/apply/run-jobs/:runJobId/review",
   // AH5: the fill log — what this run put in the form and what it did not. On demand, so it is
@@ -460,6 +465,7 @@ function collect() {
     ...directRoutes(fs.readFileSync("routes/applicationRecords.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/pipeline.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/applyWorker.js", "utf8")),
+    ...directRoutes(fs.readFileSync("routes/profileSections.js", "utf8")),
     // account.js is mounted with app.use(createAccountRouter({...})) at the ROOT, so its routes
     // already carry their full /api path and their own per-route guard.
     ...routerRoutes(fs.readFileSync("routes/account.js", "utf8"), ""),
