@@ -51,6 +51,8 @@ import { packetAddressing, resolvePageJob, pageNotice, copySheetRows, handoffMes
 import { recordSubmission } from "../services/applicationRecords.js";
 // D100 P2: a gated run-job with a connected portal session goes to the apply worker (services/applyWorker.js).
 import { enqueueRemoteRun } from "../services/applyWorker.js";
+// D104 P1: Approve all leaves out a posting the candidate's own defaults rule out.
+import { eligibilityForJob, userEligibilityInputs } from "../services/jobEligibility.js";
 
 // Live read through the one shared parser, exactly as server.js does — same flag, same function,
 // so this route and the gates over there cannot disagree. ⛔ See shared/monetisation.js: ON is a
@@ -4772,9 +4774,21 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    */
   app.post("/api/apply/approve", requireAuth, (req, res) =>
     withIdempotency("/api/apply/approve", req, res, (out) => {
-      const rows = pendingRows(req.user.id, req.body?.runJobIds);
+      let rows = pendingRows(req.user.id, req.body?.runJobIds);
       const requested = Array.isArray(req.body?.runJobIds) ? req.body.runJobIds.length : 0;
+      // ⛔ D104 P1: Approve ALL (more than one) never sends a posting whose stated requirements contradict what the
+      // user set — those stay in Ready to approve, named. Approving ONE is the user's own explicit choice.
+      let skippedIneligible = [];
+      if (rows.length > 1) {
+        const inputs = userEligibilityInputs(db, req.user.id);
+        const verdict = new Map(rows.map(r => [r.id, eligibilityForJob(db, req.user.id, r.job_id, inputs)]));
+        skippedIneligible = rows.filter(r => verdict.get(r.id).status === "ineligible")
+          .map(r => ({ runJobId: r.id, jobId: String(r.job_id), reasons: verdict.get(r.id).reasons }));
+        rows = rows.filter(r => verdict.get(r.id).status !== "ineligible");
+      }
       if (rows.length === 0) {
+        if (skippedIneligible.length) return out.status(409).json({ error: "all_ineligible", skippedIneligible,
+          message: "Every one of these postings states a requirement your Application defaults rule out. Approve one by itself to send it anyway." });
         return out.status(409).json({
           error: "no_approvable_jobs",
           message: requested
@@ -4814,6 +4828,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         ok: true,
         approved: rows.map(r => r.id),
         skipped: Math.max(0, requested - rows.length),
+        skippedIneligible,
         run: started.body,
       });
     }));

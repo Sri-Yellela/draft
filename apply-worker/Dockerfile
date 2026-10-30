@@ -9,7 +9,7 @@ COPY apply-worker/package.json ./package.json
 RUN npm install --omit=dev --no-audit --no-fund
 # The fill engine and its import closure, at the same paths as in the repository.
 COPY services/applyAutomation.js services/browserLauncher.js services/platformDetector.js ./services/
-COPY shared/failureAttribution.js shared/savedAnswers.js shared/companyIdentity.js ./shared/
+COPY shared/failureAttribution.js shared/savedAnswers.js shared/companyIdentity.js shared/answerSource.js ./shared/
 COPY crawler/lib/signature.js ./crawler/lib/signature.js
 COPY apply-worker/ ./apply-worker/
 # Non-root: a browser that holds a signed-in session never runs as root.

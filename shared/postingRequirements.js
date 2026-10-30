@@ -190,7 +190,41 @@ export function postingRequirements({ text = "", fields = {} } = {}) {
     typeValue: fields.clearanceType || null, statusValue: fields.clearanceStatus || null,
     atStartValue: fields.clearanceAtStart || null, text,
   });
-  return { citizenship, clearance: clearance.level, clearanceStatus: clearance.status, polygraph: clearance.polygraph };
+  return { citizenship, clearance: clearance.level, clearanceStatus: clearance.status, polygraph: clearance.polygraph,
+    sponsorship: classifySponsorship(text), degree: classifyDegree(text) };
+}
+
+// ── ⭐ D104 P1 (owner 10-30) · NO SPONSORSHIP, AND A REQUIRED DEGREE ─────────────────────────────
+// The 10-30 evidence: a posting whose first line reads "MUST BE A US CITIZEN. NO H1B or Green card holders" was
+// submitted for a non-citizen by another product. Two more stated constraints are read here — the same rules as
+// above: the posting's own words, a requirement word, never boilerplate. They are derived from the text when needed
+// (not stored columns), so they never go stale against a description that changed.
+const SPONSOR_WORDS = /\bsponsor(?:ship|s|ing)?\b|\bH-?1B\b|\bvisa\b|\bwork (?:permit|authori[sz]ation)\b|\bOPT\b|\bCPT\b/i;
+const NO_SPONSOR = /\b(?:no|not|unable to|cannot|can't|will not|won't|does not|do not|without)\b[^.]{0,60}\b(?:sponsor|H-?1B|visa)|\bsponsorship (?:is )?(?:not|un)available\b|\b(?:no|not)\b[^.]{0,30}\b(?:H-?1B|green card) holders\b|\bmust be (?:legally )?authori[sz]ed to work[^.]{0,80}without (?:the need for |requiring )?(?:visa )?sponsorship/i;
+/** "no_sponsorship" when the posting says it will not sponsor; "none_stated" otherwise. */
+export function classifySponsorship(...texts) {
+  for (const t of texts) for (const s of sentences(t)) {
+    if (SPONSOR_WORDS.test(s) && !BOILERPLATE.test(s) && NO_SPONSOR.test(s)) return "no_sponsorship";
+  }
+  return "none_stated";
+}
+
+const DEGREE_LEVEL = [["phd", /\b(?:Ph\.?\s?D|doctorate|doctoral)\b/i], ["masters", /\b(?:master'?s?|M\.?S\.?|M\.?Sc|MBA|M\.?Eng)\b/i],
+  ["bachelors", /\b(?:bachelor'?s?|B\.?S\.?|B\.?A\.?|B\.?Sc|B\.?Eng|undergraduate degree)\b/i]];
+const DEGREE_REQUIRED = /\b(?:required|requires|require|must (?:have|hold|possess)|minimum)\b/i;
+const DEGREE_SOFT = /\b(?:preferred|nice to have|a plus|bonus|or equivalent|equivalent (?:practical )?experience|or related experience)\b/i;
+/** The LOWEST degree a posting REQUIRES ("PhD or Master's required" → masters); null when none is required. */
+export function classifyDegree(...texts) {
+  let need = null;
+  const rank = { bachelors: 1, masters: 2, phd: 3 };
+  for (const t of texts) for (const s of sentences(t)) {
+    if (!DEGREE_REQUIRED.test(s) || DEGREE_SOFT.test(s)) continue;
+    const named = DEGREE_LEVEL.filter(([, re]) => re.test(s)).map(([k]) => k);
+    if (!named.length) continue;
+    const lowest = named.sort((a, b) => rank[a] - rank[b])[0];
+    if (!need || rank[lowest] > rank[need]) need = lowest;
+  }
+  return need;
 }
 
 /** Does this posting state a citizenship or clearance requirement at all? (the filter's question) */
@@ -222,6 +256,9 @@ export function requirementPills(req) {
   if (req.clearanceStatus && STATUS_WORDS[req.clearanceStatus] && req.clearance && req.clearance !== "none") {
     pills.push({ key: "status", label: STATUS_WORDS[req.clearanceStatus], title: "When the clearance must be held." });
   }
+  // D104 P1
+  if (req.sponsorship === "no_sponsorship") pills.push({ key: "sponsorship", label: "No visa sponsorship", title: "The posting says it will not sponsor a visa." });
+  if (req.degree) pills.push({ key: "degree", label: { bachelors: "Bachelor's required", masters: "Master's or higher required", phd: "PhD required" }[req.degree], title: "The lowest degree the posting requires." });
   return pills;
 }
 

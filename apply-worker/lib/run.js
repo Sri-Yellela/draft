@@ -10,13 +10,8 @@ import os from "node:os";
 import path from "node:path";
 import { aadFor } from "./keys.js";
 import { sessionFromAccount } from "./accounts.js";
+import { sourceOf } from "../../shared/answerSource.js";
 
-// The engine's provenance (applyAutomation CONFIDENCE_BY_PROVENANCE) → D104 P2's source. A guess (label_fuzzy,
-// default) has NO source — D104 makes it Needs you; it is reported null here, never dressed as the profile's.
-const SOURCE_OF = Object.freeze({
-  handler_exact: "profile", field_map_exact: "profile", label_exact: "profile", sponsorship_derived: "profile",
-  custom_answer: "saved_answer",
-});
 
 /** The engine's answers → the report's field list: labels and values, never pixels. */
 export function fieldList(answers = []) {
@@ -24,7 +19,8 @@ export function fieldList(answers = []) {
     key: String(a.field_id ?? a.name ?? a.label ?? ""),
     label: String(a.label ?? a.name ?? a.field_id ?? ""),
     value: String(a.value),
-    source: SOURCE_OF[a.provenance] ?? null,
+    // D104 P2: shared/answerSource.js — a guess has no source and is never dressed as the profile's.
+    source: sourceOf(a.provenance),
   }));
 }
 
