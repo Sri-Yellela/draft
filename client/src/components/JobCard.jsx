@@ -12,6 +12,7 @@ import { jobDetailHref } from "../lib/jobUrl.js";
 import CompanyLogo from "./CompanyLogo.jsx";
 import CompanyLink from "./CompanyLink.jsx";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
+import { applyLine } from "../../../shared/postingLevel.js";
 import { salaryLabel } from "../../../shared/postingFacts.js";
 import { markStyle, bandMarkStyle } from "../styles/mark.js";
 import { C } from "../styles/colorTokens.js";
@@ -218,6 +219,21 @@ function LivenessMark({ liveness }) {
       {liveness.label}
     </span>
   );
+}
+
+// ── D106 · the level the posting ASKS for, when it is two steps from its title ("Titled Junior · asks for 3+ years…") ──
+function LevelMark({ levelRead }) {
+  const d = levelRead?.disagreement;
+  if (d?.direction !== "asks_more") return null;
+  return <span data-level-read={levelRead.read} style={markStyle(C.WARNING)} title="Read from the posting's own words.">{d.text.replace(/\.$/, "")}</span>;
+}
+
+// ── D106 P2 · ONE LINE: should I apply — the match, eligibility, liveness and level in one sentence. Information only:
+// it may say skip, it never blocks, and the ATS number beside it is the same number (shared/postingLevel.js applyLine).
+function ApplyLineNote({ job, score }) {
+  const line = applyLine({ score, eligibility: job?.eligibility, liveness: job?.liveness, level: job?.levelRead });
+  if (!line) return null;
+  return <p data-apply-line={line.verdict} style={{ margin:"4px 0 0", fontSize:11, color:"var(--color-text-muted)" }}>{line.text}</p>;
 }
 
 // ── Closed pill — a saved job whose listing has expired ──────────
@@ -664,6 +680,7 @@ export default function JobCard({
               <VisaBadge isH1bSponsor={job.isH1bSponsor} requiresWorkAuth={job.requiresWorkAuth}/>
               <EligibilityMark eligibility={job.eligibility}/>
               <LivenessMark liveness={job.liveness}/>
+              <LevelMark levelRead={job.levelRead}/>
               {/* THE BOARD AND THE PIPELINE STOP BEING SEPARATE WORLDS. A card gave no hint that
                   you had already applied to it, that it was queued, or that it was stuck waiting on
                   you — so the only way to know was to open the other tab and read a list of runs.
@@ -702,6 +719,7 @@ export default function JobCard({
                 </span>
               )}
             </div>
+            {!isLoggedOut && <ApplyLineNote job={job} score={g?.atsScore ?? job?.baseAtsScore ?? null}/>}
           </div>
 
           {/* Right side */}
