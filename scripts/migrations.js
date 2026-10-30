@@ -5125,4 +5125,14 @@ export const MIGRATIONS = [
         ALTER TABLE inbox_messages ADD COLUMN source TEXT NOT NULL DEFAULT 'forward';
       `,
     },
+    {
+      // ⭐ 43s (owner, the Amazon run: "try to log into it, try resetting the password"). A portal account request may say
+      // what to do when the user's email ALREADY has an account there: reset_existing = 1 lets the worker use the portal's
+      // own Forgot password to set a new generated password (sealed like a created one; the emailed code comes only through
+      // the user's code opt-in). 0 (the default): the run stops, account_exists — draft never guesses or holds a password.
+      id: "182_portal_reset_existing",
+      sql: `
+        ALTER TABLE portal_accounts ADD COLUMN reset_existing INTEGER NOT NULL DEFAULT 0;
+      `,
+    },
   ];

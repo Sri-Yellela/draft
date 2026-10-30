@@ -36,6 +36,13 @@ export const STOP_REASONS = Object.freeze({
   email_verification: "account_email_verification",
   signup_failed: "account_signup_failed",
   signin_failed: "account_signin_failed",
+  // 43s (the Amazon run): the portal refused the automated browser (403) · the email already has an account and the user
+  // did not choose a reset · the reset could not be completed · the profile carries no email to make an account with.
+  portal_blocked: "portal_blocked",
+  account_exists: "account_exists",
+  reset_not_found: "account_reset_failed",
+  reset_failed: "account_reset_failed",
+  no_profile_email: "account_no_email",
 });
 
 const FAMILY = /^[a-z0-9][a-z0-9_-]{1,39}$/;
@@ -106,16 +113,23 @@ export function sessionForHost(db, userId, host, nowSec = now()) {
 // "forgot password" — it is their email.
 
 /** The user's consent for one portal: draft may create (and then use) an account there. Idempotent per portal. */
-export function requestAccount(db, userId, { portalFamily, originHost, consent }) {
+export function requestAccount(db, userId, { portalFamily, originHost, consent, resetExisting = false }) {
   const fail = (code, message) => Object.assign(new Error(message), { status: 400, code });
   if (consent !== true) throw fail("consent_required", "Consent is recorded per portal before an account is made.");
   if (!FAMILY.test(String(portalFamily || ""))) throw fail("bad_portal", "A portal family is a short lowercase name.");
   const host = String(originHost || "").toLowerCase();
   if (!HOST.test(host)) throw fail("bad_origin", "The portal's host name is required.");
-  const live = db.prepare(`SELECT id FROM portal_accounts WHERE user_id = ? AND portal_family = ? AND removed_at IS NULL`).get(userId, portalFamily);
-  if (live) return { id: live.id, existing: true };
-  const id = db.prepare(`INSERT INTO portal_accounts (user_id, portal_family, origin_host, consent_at) VALUES (?, ?, ?, unixepoch())`)
-    .run(userId, portalFamily, host).lastInsertRowid;
+  // ⭐ 43s: when the email already has an account there, reset its password with the portal's own Forgot password
+  // (the user's explicit choice, said with the request). Re-requesting can change it; a failed account is retried.
+  const reset = resetExisting === true ? 1 : 0;
+  const live = db.prepare(`SELECT id, status FROM portal_accounts WHERE user_id = ? AND portal_family = ? AND removed_at IS NULL`).get(userId, portalFamily);
+  if (live) {
+    db.prepare(`UPDATE portal_accounts SET reset_existing = ?, consent_at = unixepoch(), updated_at = unixepoch(),
+      status = CASE WHEN status = 'created' THEN status ELSE 'requested' END WHERE id = ?`).run(reset, live.id);
+    return { id: live.id, existing: true };
+  }
+  const id = db.prepare(`INSERT INTO portal_accounts (user_id, portal_family, origin_host, consent_at, reset_existing) VALUES (?, ?, ?, unixepoch(), ?)`)
+    .run(userId, portalFamily, host, reset).lastInsertRowid;
   return { id: Number(id), existing: false };
 }
 
@@ -238,7 +252,8 @@ export function leaseRemoteRun(db, { workerId = "worker", env = process.env, now
                  ciphertext: session.ciphertext } : null,
       // D100 (a): sign in with the account draft made — or, when it is still `requested`, create it first (ciphertext null).
       account: !sessionLive ? { id: account.id, portalFamily: account.portal_family, originHost: account.origin_host,
-                 keyId: account.key_id, ciphertext: account.ciphertext, create: account.status !== "created" } : null,
+                 keyId: account.key_id, ciphertext: account.ciphertext, create: account.status !== "created",
+                 resetExisting: account.reset_existing === 1 } : null,
       // ⭐ 10-30: the user's own choice decides the terms box (Auto settings agreeToTerms); a human check never.
       rules: { ...PRODUCT_RULES, tickConsent: userAgreesToTerms(db, row.user_id) },
     } };

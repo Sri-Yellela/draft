@@ -50,7 +50,7 @@ import { evidenceUrlOf } from "../services/evidenceUrl.js";
 import { packetAddressing, resolvePageJob, pageNotice, copySheetRows, handoffMessage, ownPageUrls, jobOnUsersBoard } from "../services/manualHandoff.js";
 import { recordSubmission } from "../services/applicationRecords.js";
 // D100 P2: a gated run-job with a connected portal session goes to the apply worker (services/applyWorker.js).
-import { enqueueRemoteRun } from "../services/applyWorker.js";
+import { enqueueRemoteRun, sessionForHost, accountForHost } from "../services/applyWorker.js";
 // D104 P1: Approve all leaves out a posting the candidate's own defaults rule out.
 import { eligibilityForJob, userEligibilityInputs } from "../services/jobEligibility.js";
 // D107 P3: Approve all also leaves out a posting past the user's staleness thresholds (Auto settings).
@@ -1557,6 +1557,21 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       const V1_AUTO_PROVIDERS = new Set(["greenhouse", "lever", "ashby"]);
       if (mode === "auto") {
         const detectedProvider = detectPlatformFromUrl(jobUrl);
+        // ⭐ D100 P5 (43s, found by the Amazon test): a portal outside v1's scope that the user CONNECTED (a sealed session)
+        // or asked draft to make an account on is the apply worker's — not a review hold. This hold used to run BEFORE any
+        // page was opened, so the sign-in wall that hands a run to the worker was never reached and the worker could never
+        // be used on Amazon. It is a gate (held_gate · login_required): the packet is made and the remote run queued exactly
+        // as at a sign-in wall; SEMI fills and stops at review, FULL AUTO's rules are the worker's lease checks.
+        const portalHost = hostOf(jobUrl);
+        if (!V1_AUTO_PROVIDERS.has(detectedProvider) && portalHost
+            && (sessionForHost(db, userId, portalHost) || accountForHost(db, userId, portalHost))) {
+          logEvent(runId, runJobId, userId, jobId, "portal_worker",
+            `Provider '${detectedProvider || "unknown"}' — your ${portalHost} portal is connected; the apply worker takes it`);
+          setJobStatus("held_gate", "login_required", "Your connected portal will be used — the apply worker fills this application");
+          db.prepare(`UPDATE apply_runs SET held_count=held_count+1 WHERE id=?`).run(runId);
+          parkEarlyHandoff("login_required");
+          return;
+        }
         if (!V1_AUTO_PROVIDERS.has(detectedProvider)) {
           logEvent(runId, runJobId, userId, jobId, "provider_review_only",
             `Provider '${detectedProvider || "unknown"}' not in v1 auto-apply scope; routing to review`);
