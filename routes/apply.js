@@ -49,6 +49,8 @@ import { learnedFamilies, recordSighting } from "../services/learnedOrigins.js";
 import { evidenceUrlOf } from "../services/evidenceUrl.js";
 import { packetAddressing, resolvePageJob, pageNotice, copySheetRows, handoffMessage, ownPageUrls, jobOnUsersBoard } from "../services/manualHandoff.js";
 import { recordSubmission } from "../services/applicationRecords.js";
+// D100 P2: a gated run-job with a connected portal session goes to the apply worker (services/applyWorker.js).
+import { enqueueRemoteRun } from "../services/applyWorker.js";
 
 // Live read through the one shared parser, exactly as server.js does — same flag, same function,
 // so this route and the gates over there cannot disagree. ⛔ See shared/monetisation.js: ON is a
@@ -1248,6 +1250,23 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           provenanceMix:   packet.answers.reduce((m, a) => { m[a.provenance ?? "none"] = (m[a.provenance ?? "none"] || 0) + 1; return m; }, {}),
           resumeArtifactId,
         });
+      // ⭐ D100 P2: a SIGN-IN WALL on a portal the user connected (a sealed session, D79) is not handed back to them —
+      // the apply worker leases it, loads the session and fills with this same packet. An approved run carries the
+      // values the user approved (the worker verifies each before it submits); SEMI fills and stops at review.
+      try {
+        const rj = db.prepare("SELECT rj.status, r.approval_mode FROM apply_run_jobs rj LEFT JOIN apply_runs r ON r.id = rj.run_id WHERE rj.id = ?").get(runJobId);
+        if (rj?.status === "held_gate") {
+          const approvalMode = rj.approval_mode || "auto";
+          const approvedValues = approvalMode === "approved"
+            ? Object.fromEntries(packet.answers.filter(a => a.label != null).map(a => [String(a.label), a.value == null ? null : String(a.value)]))
+            : null;
+          const remoteId = enqueueRemoteRun(db, { userId, runJobId, packetId, applyUrl: packet.applyUrl, approvalMode, approvedValues });
+          if (remoteId) logEvent(runId, runJobId, userId, jobId, "remote_run_queued",
+            "Your connected portal session will be used: the apply worker fills this application", { remoteId });
+        }
+      } catch (e) {
+        console.warn(`[applyRoutes] remote run job=${jobId}: ${e.message}`);
+      }
       // O80c: a packet without a résumé gets one, in the background (attachPacketResume).
       if (resumeArtifactId == null) {
         attachPacketResume({ packetId, runId, runJobId, userId, jobId, toolType })
@@ -5109,7 +5128,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   });
 
   /**
-   * RETIRED — the server does not keep your portal sessions, deliberately.
+   * WAS RETIRED (until D100, 10-30 — below) — the server did not keep portal sessions, deliberately. Kept as the
+   * history of WHY the reversal had to change the design, not just the status code:
    *
    * WHAT THESE WERE. In the server-side-Playwright era (ebeb9ae) POST /save wrote a Playwright
    * `storageState` — the cookies and localStorage of the candidate's LOGGED-IN session on an
@@ -5132,14 +5152,13 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * /api/scrape and extension save-job precedent — a caller that still exists learns what happened
    * and what to do instead, rather than getting a 404 it reads as a bug.
    */
-  const SESSION_RETIRED = {
-    error: "gone",
-    message: "Portal sessions are no longer stored on the server. A portal that wants you signed " +
-      "in is handed to your own browser: sign in once there and every application queued behind " +
-      "that portal continues.",
-  };
-  app.post("/api/apply/session/save", requireAuth, (_req, res) => res.status(410).json(SESSION_RETIRED));
-  app.get("/api/apply/session/:domain", requireAuth, (_req, res) => res.status(410).json(SESSION_RETIRED));
+  //
+  // ⭐ D100 (owner 10-30) REVERSES the 410 — a RECORDED DELIBERATE REVERSAL (CORRECTIONS_REGISTER.md). What changed in
+  // the design: the password never passes through draft, and draft CANNOT read a session — it is sealed in the user's
+  // app to a per-session key the apply worker minted, and stored here as ciphertext (routes/applyWorker.js). These two
+  // old paths now point at the new doors (308 keeps the method and the body) instead of answering "gone".
+  app.post("/api/apply/session/save", requireAuth, (_req, res) => res.redirect(308, "/api/portals/upload"));
+  app.get("/api/apply/session/:domain", requireAuth, (_req, res) => res.redirect(308, "/api/portals"));
 
   // A59: boot-time hooks, called by server.js — not here, so a test mounting these routes on its own
   // fixture neither recovers its seeded rows nor starts a timer unless it asks to.

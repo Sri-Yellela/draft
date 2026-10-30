@@ -345,6 +345,13 @@ const AUTHENTICATED = new Set([
   "GET /api/pipeline/job/:applicationId",
   "GET /api/apply/auto-settings",
   "PUT /api/apply/auto-settings",
+  // D100 P2: the user's portals — sealed sessions (ciphertext only), connect, remove, and approving a remote run.
+  // (The worker's own doors, /api/worker/*, are a token-gated Router like /api/crawler — not user routes.)
+  "GET /api/portals",
+  "POST /api/portals/connect/start",
+  "POST /api/portals/upload",
+  "DELETE /api/portals/:id",
+  "POST /api/portals/approve/:runJobId",
   "GET /api/apply/review",
   "GET /api/apply/run-jobs/:runJobId/review",
   // AH5: the fill log — what this run put in the form and what it did not. On demand, so it is
@@ -449,6 +456,7 @@ function collect() {
     ...directRoutes(fs.readFileSync("routes/apply.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/applicationRecords.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/pipeline.js", "utf8")),
+    ...directRoutes(fs.readFileSync("routes/applyWorker.js", "utf8")),
     // account.js is mounted with app.use(createAccountRouter({...})) at the ROOT, so its routes
     // already carry their full /api path and their own per-route guard.
     ...routerRoutes(fs.readFileSync("routes/account.js", "utf8"), ""),
