@@ -11,6 +11,7 @@ import crypto from "node:crypto";
 import { postingPlainText } from "../shared/postingNormalize.js";
 import { RESPONSE_OUTCOME, STAGE_RANK } from "../shared/applicationResponse.js";
 import { companyNameKey } from "../shared/companyIdentity.js";
+import { notifyEvent } from "./notify.js";
 
 export const INBOX_DOMAIN = "in.jobsviadraft.com";
 export const BODY_CAP = 20_000;
@@ -169,6 +170,9 @@ export function ingestForUser(db, { userId, addressId = null, source = "forward"
       category === "verification" ? codeOf({ subject, body }) : null, applicationId, source === "gmail" ? "gmail" : "forward");
   if (!ins.changes) return { stored: false, reason: "duplicate" };
   const advanced = applicationId ? advanceOutcome(db, userId, applicationId, category, at) : false;
+  // ⭐ D112 item 8: an Interview / Offer that moved the row is the person's to hear about — in-app, and push / email by their
+  // choice (services/notify.js; a no-op until server.js configures it). The text names the category, never the company.
+  if (advanced) void notifyEvent(userId, "inbox_reply", { category });
   return { stored: true, id: Number(ins.lastInsertRowid), category, applicationId, advanced };
 }
 

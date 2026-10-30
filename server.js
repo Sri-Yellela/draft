@@ -36,6 +36,8 @@ import { userEligibilityInputs, hasEligibilityInputs, eligibilityForRow, ineligi
 import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
 import { runAutoTick } from "./services/autoScheduler.js";
+import { configureNotify, runDailySummaries } from "./services/notify.js";
+import notifyRoutes from "./routes/notify.js";
 import generatedResumeRoutes from "./routes/generatedResumes.js";
 import applicationArtifactRoutes from "./routes/applicationArtifacts.js";
 import { draftSlots, slotsExhausted, recordGenerationSlot } from "./services/draftSlots.js";
@@ -5592,6 +5594,36 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE portal_accounts ADD COLUMN reset_existing INTEGER NOT NULL DEFAULT 0;
       `,
     },
+    {
+      // ⭐ D112 item 8 (owner 10-30: "Web Push (VAPID, no vendor) + email through Resend now; FCM with Android"). Each event
+      // stays ONE row in `notifications` (019); these two tables decide its copies. push_subscriptions: one row per browser
+      // endpoint (the browser's own push service — services/webPush.js PUSH_HOSTS only), its RFC 8291 keys; a 404 / 410 from the
+      // push service deletes the row. notification_prefs: the person's per-event switches (services/notify.js NOTIFY_EVENTS);
+      // no row = the event's default. Both cascade with the user; the export drops endpoint and keys (secret columns).
+      id: "183_web_push",
+      sql: `
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+          id              INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          endpoint        TEXT    NOT NULL UNIQUE,
+          key_p256dh      TEXT    NOT NULL,
+          key_auth        TEXT    NOT NULL,
+          user_agent      TEXT,
+          failures        INTEGER NOT NULL DEFAULT 0,
+          last_success_at INTEGER,
+          created_at      INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
+        CREATE TABLE IF NOT EXISTS notification_prefs (
+          user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          event      TEXT    NOT NULL,
+          push       INTEGER NOT NULL DEFAULT 0,
+          email      INTEGER NOT NULL DEFAULT 0,
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, event)
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7897,6 +7929,8 @@ function emitToUser(userId, event) {
     catch(e) { clients.delete(res); }
   });
 }
+// ⭐ D112 item 8: the notification dispatcher, configured before any run can finish (routes/notify.js is mounted below).
+configureNotify({ db, emitToUser, appUrl: APP_BASE_ORIGIN || "" });
 // trust proxy: required for Railway/Render — without this, secure: true cookies
 // fail behind their HTTPS reverse proxy and all sessions silently break.
 app.set("trust proxy", 1);
@@ -12361,6 +12395,9 @@ setInterval(async () => {
   try {
     const ran = await runAutoTick(db, { fetchBoard: autoFetchBoard, startAutoRun: applyLine.startAutoRun });
     for (const r of ran) if (r.started || r.error || r.skipped === "board_failed") console.log(`[auto] ${JSON.stringify(r)}`);
+    // ⭐ D112 item 8: FULL AUTO's daily summary — once a local day, from 8 pm, only when the day had something in it.
+    const told = await runDailySummaries(db);
+    if (told.length) console.log(`[notify] daily summaries: ${told.length}`);
   } catch (e) { console.error(`[auto] tick failed: ${e.message}`); }
 }, AUTO_TICK_MS).unref();
 // A63: the Pending table (pending -> verified -> submitted) and the day's Draft slots.
@@ -12369,6 +12406,10 @@ applicationRecordRoutes(app, db, requireAuth, { capturedAtsAtApply });
 pipelineRoutes(app, db, requireAuth);
 // D103: the inbox — the forwarding address, the messages, re-filing, the worker's code opt-ins (services/inbox.js).
 inboxRoutes(app, db, requireAuth);
+// ⭐ D112 item 8 · notifications: every event stays a `notifications` row (the bell, the SSE badge); by the person's own
+// per-event switches it is also a Web Push (VAPID + RFC 8291 on node:crypto, no vendor — offered only when VAPID_PUBLIC_KEY,
+// VAPID_PRIVATE_KEY and VAPID_SUBJECT are set) and an email through the Resend sender. services/notify.js, routes/notify.js.
+notifyRoutes(app, db, requireAuth);
 // ⭐ D112 item 2: the Gmail connection beside the forwarding (services/gmail.js) — gmail.readonly, the ATS senders and the
 // user's applications' companies only, each message through the inbox's one path. Offered only when the owner has set
 // GOOGLE_GMAIL_CLIENT_ID / GOOGLE_GMAIL_CLIENT_SECRET; polled every 15 minutes for connected users.

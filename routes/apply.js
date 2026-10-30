@@ -51,6 +51,7 @@ import { packetAddressing, resolvePageJob, pageNotice, copySheetRows, handoffMes
 import { recordSubmission } from "../services/applicationRecords.js";
 // D100 P2: a gated run-job with a connected portal session goes to the apply worker (services/applyWorker.js).
 import { enqueueRemoteRun, sessionForHost, accountForHost } from "../services/applyWorker.js";
+import { notifyRunJobOutcome } from "../services/notify.js";
 // D104 P1: Approve all leaves out a posting the candidate's own defaults rule out.
 import { eligibilityForJob, userEligibilityInputs } from "../services/jobEligibility.js";
 // D107 P3: Approve all also leaves out a posting past the user's staleness thresholds (Auto settings).
@@ -2211,6 +2212,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         if (userHeld(db, run.user_id)) { heldMidRun = true; break; }
         activeWorkers++;
         const p = processRunJob(job, run)
+          // ⭐ D112 item 8: the job's outcome, told to the person — Needs you / Ready to approve, or sent (services/notify.js;
+          // a job the apply worker took over is told by the worker's report instead).
+          .then(() => { notifyRunJobOutcome(db, job.id); })
           .catch(e => console.error(`[applyRoutes] uncaught job error job=${job.job_id}: ${e.message}`))
           .finally(() => { activeWorkers--; });
         runningJobs.push(p);
