@@ -103,7 +103,7 @@ const settle = (ms = 150) => new Promise(r => setTimeout(r, ms));
 const runStatus = (db, id) => db.prepare("SELECT status FROM apply_runs WHERE id=?").pluck().get(id);
 const jobStatuses = (db, id) => db.prepare("SELECT status FROM apply_run_jobs WHERE run_id=? ORDER BY id").pluck().all(id);
 
-test("GET /api/apply/run-bar: SEMI, AUTO locked with the reason, three caps with usage, no hold", async () => {
+test("GET /api/apply/run-bar: SEMI by default, AUTO open (D100), three caps with usage, no hold", async () => {
   const { db, baseUrl, restore } = setup();
   try {
     // One submitted today, so 'used' is a measured number and not a default.
@@ -111,9 +111,10 @@ test("GET /api/apply/run-bar: SEMI, AUTO locked with the reason, three caps with
     db.prepare("INSERT INTO apply_run_jobs (run_id, user_id, job_id, status, finished_at) VALUES (?, 1, 'sent1', 'submitted', unixepoch())").run(r.lastInsertRowid);
     const bar = await (await call(baseUrl, "GET", "/api/apply/run-bar")).json();
     assert.equal(bar.mode.current, "semi");
-    assert.equal(bar.mode.auto.locked, true, "AUTO is locked by the server");
-    assert.equal(bar.mode.auto.reason, "never_run_unattended");
-    assert.equal(bar.mode.auto.message, "Auto has never run unattended against a real employer.");
+    // D100: no proof lock — AUTO is the user's to choose unless the operator's kill switch is on.
+    assert.equal(bar.mode.auto.locked, false, "AUTO is not locked by the server");
+    assert.equal(bar.mode.auto.reason, null);
+    assert.equal(bar.mode.auto.message, null);
     assert.equal(typeof bar.mode.auto.killSwitch, "boolean");
     assert.deepEqual(bar.caps.map(c => c.id), ["queue", "approval", "submission"], "the pipeline's own order");
     const by = Object.fromEntries(bar.caps.map(c => [c.id, c]));
@@ -127,13 +128,15 @@ test("GET /api/apply/run-bar: SEMI, AUTO locked with the reason, three caps with
   } finally { restore(); }
 });
 
-test("AUTO stays locked even with the kill switch off — proof is not the same as permission", async () => {
+// D100 (owner 10-30) reversed this test's rule on purpose: it pinned "proof is not the same as permission"
+// (FULL_AUTO_PROVEN). With the constant removed, the kill switch is the one lock — off means AUTO can be chosen.
+test("D100 · with the kill switch off, AUTO can be chosen — the kill switch is the one lock left", async () => {
   const { db, baseUrl, restore } = setup({ env: { APPLY_FULL_AUTO_DISABLED: "0" } });
   try {
     db.prepare("INSERT INTO app_settings (key, value) VALUES ('apply_full_auto_disabled', '0')").run();
     const bar = await (await call(baseUrl, "GET", "/api/apply/run-bar")).json();
     assert.equal(bar.mode.auto.killSwitch, false);
-    assert.equal(bar.mode.auto.locked, true);
+    assert.equal(bar.mode.auto.locked, false);
   } finally { restore(); }
 });
 

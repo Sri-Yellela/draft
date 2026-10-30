@@ -5,7 +5,7 @@
 // Order, top wins: GLOBAL → OVERRIDE → PLAN → SYSTEM; an integer is then clamped to its CEILING.
 //
 // ⛔ P1 changes NO default and adds no table: the layers read exactly what the old code read —
-//   global   app_settings (byom_enabled, byom_daily_cap), the full-auto kill switch, FULL_AUTO_PROVEN (ctx)
+//   global   app_settings (byom_enabled, byom_daily_cap), the full-auto kill switch (FULL_AUTO_PROVEN removed, D100)
 //   override user_limits.daily_resumes / monthly_resumes (Admin → Users → Limits), users.aplus_resume
 //   plan     users.plan_tier, only while monetisation is on (requireToolEntitlement's rule)
 //   system   shared/entitlements.js (the env variables the old code read, with the same fallbacks)
@@ -24,8 +24,8 @@ const GLOBAL = {
     const n = Number(getSetting(db, "byom_daily_cap"));
     return Number.isInteger(n) && n > 0 && n <= 1000 ? { value: n, detail: "the operator's daily cap (Admin → System → Plugin)" } : undefined;
   },
+  // D100 (owner 10-30): FULL_AUTO_PROVEN is removed; the kill switch is the one global lock left (a control).
   auto_apply_mode: (db, ctx, env) => {
-    if (!ctx.fullAutoProven) return { value: "locked", detail: "Auto has never run unattended against a real employer (FULL_AUTO_PROVEN)" };
     if (fullAutoDisabled(db, env)) return { value: "locked", detail: "the operator's kill switch" };
     return undefined;
   },
@@ -58,7 +58,7 @@ export function liveOverride(db, userId, featureKey) {
 }
 
 /**
- * @param ctx { planTier?, monetisation?, fullAutoProven? } — planTier is read from users when absent;
+ * @param ctx { planTier?, monetisation? } — planTier is read from users when absent;
  *   monetisation from the env (MONETISATION_ENABLED) when absent.
  * @returns {{ value, source: "global"|"override"|"plan"|"system", detail: string|null, ceiling?: number }}
  */

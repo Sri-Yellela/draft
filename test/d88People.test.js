@@ -52,7 +52,7 @@ test("D88 · ⛔ a per-user override cannot unlock full auto or pass a ceiling �
   assert.throws(() => checkOverrideValue("nope", 1), /no feature called nope/);
   // even a row written behind the service's back cannot reach full auto: the resolver never reads an override for a hard feature
   db.prepare("INSERT INTO user_entitlement_overrides (user_id, feature_key, value_json, reason) VALUES (2, 'auto_apply_mode', '\"unlocked\"', 'x')").run();
-  assert.equal(resolveEntitlement(db, 2, "auto_apply_mode", { ctx: { fullAutoProven: false } }).value, "locked");
+  assert.equal(resolveEntitlement(db, 2, "auto_apply_mode", { env: { APPLY_FULL_AUTO_DISABLED: "1" } }).value, "locked");
   db.prepare("INSERT INTO user_entitlement_overrides (user_id, feature_key, value_json, reason) VALUES (3, 'draft_slots', '500', 'x')").run();
   assert.equal(resolveEntitlement(db, 3, "draft_slots").value, 100, "a row past the ceiling is clamped by the resolver");
 });
@@ -163,6 +163,7 @@ test("D88 P5 · Settings shows the user's own allowance — an override as their
   const all = JSON.stringify(s);
   assert.doesNotMatch(all, /a_plus_default|swap|override|support ticket|testing the swap|cost|usd|\$|¢|source|detail/i);
   assert.ok(!SELF_FEATURES.includes("a_plus_default"));
-  assert.equal(s.features.find(f => f.key === "auto_apply_mode").value, "not available yet");
+  // D100 (owner 10-30): automatic sending is available unless the operator's kill switch is on.
+  assert.equal(s.features.find(f => f.key === "auto_apply_mode").value, "available");
   assert.match(SERVER, /app\.get\("\/api\/account\/allowance", requireAuth, \(req, res\) => \{\n  try \{ res\.json\(selfAllowance\(db, req\.user\.id\)\); \}/);
 });

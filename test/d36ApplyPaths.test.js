@@ -107,30 +107,33 @@ const waitFor = async (fn, ms = 5000) => {
 };
 const statusOf = (db, id) => db.prepare("SELECT status FROM apply_run_jobs WHERE id=?").pluck().get(id);
 
-// ── 7 · FULL AUTO RUNS ATTENDED ONLY ──────────────────────────────────────────────────────────────
-// Found 10-05: FULL_AUTO_PROVEN = false shaped only the run bar. POST /api/apply/runs with
-// approvalMode:'auto' (and /api/apply/answers, "answer-and-send in one step") still started a run that
-// SUBMITTED to the employer unattended — test/applyApprovalFlow.test.js even pinned that it did.
+// ── 7 · SENDING WITHOUT REVIEW IS THE USER'S MODE (D36 → D100) ───────────────────────────────────
+// Found 10-05: a lock that shaped only the run bar. POST /api/apply/runs with approvalMode:'auto' (and
+// /api/apply/answers, "answer-and-send in one step") still started a run that SUBMITTED to the employer
+// unattended. D36 enforced the lock at admission and at processing. ⭐ D100 (owner 10-30) removed the
+// server-wide lock (FULL_AUTO_PROVEN) — a recorded deliberate reversal — and made FULL AUTO the user's mode
+// (users.send_mode, default SEMI). The ENFORCEMENT points stay: a user in SEMI cannot be sent for by any caller.
 
-test("D36·7 · the lock is a literal at module scope that nothing can reassign or read from config", () => {
+test("D100·7 · the server-wide constant is gone; admission, processing and the bar read the user's mode", () => {
   const src = read("routes/apply.js");
-  assert.match(src, /\nconst FULL_AUTO_PROVEN = false;\n/, "a module-scope literal false");
-  assert.equal((src.match(/FULL_AUTO_PROVEN\s*=(?!=)/g) || []).length, 1, "declared once, never reassigned");
-  const decl = anchor(src, "const FULL_AUTO_PROVEN");
-  assert.doesNotMatch(src.slice(decl, decl + 60), /process\.env|app_settings|getSetting|envInt/);
-  // Read by the bar, by admission and by processing — not by the bar alone.
-  assert.ok((src.match(/!FULL_AUTO_PROVEN/g) || []).length >= 3, "autoModeState, startRun and processRunJob all read it");
-  assert.match(src, /resolvedMode === "auto" && resolvedApproval === "auto" && !FULL_AUTO_PROVEN/);
-  assert.match(src, /mode === "auto" && approvalMode === "auto" && !FULL_AUTO_PROVEN/);
+  assert.doesNotMatch(src, /const FULL_AUTO_PROVEN/, "D100: the lock is removed, not left false");
+  assert.match(src, /function userApplyMode\(userId\)/);
+  assert.match(src, /resolvedMode === "auto" && resolvedApproval === "auto" && userApplyMode\(userId\) !== "auto"/);
+  assert.match(src, /mode === "auto" && approvalMode === "auto" && userApplyMode\(userId\) !== "auto"/);
+  assert.match(src, /mode: \{ current: userApplyMode\(userId\), auto: autoModeState\(\) \}/);
+  // The mode is read from the user's row — not from an env var or app_settings.
+  const at = anchor(src, "function userApplyMode");
+  assert.doesNotMatch(src.slice(at, at + 300), /process\.env|app_settings|getSetting|envInt/);
 });
 
-test("D36·7 · POST /api/apply/runs refuses approvalMode:'auto' — 403 full_auto_locked, nothing queued", async () => {
+test("D100·7 · a SEMI user (the default): approvalMode:'auto' is refused — 403 full_auto_not_chosen, nothing queued", async () => {
   const t = mount();
   try {
+    assert.equal((await t.get("/api/apply/run-bar")).mode.current, "semi", "NULL apply_mode reads as SEMI");
     const r = await t.post("/api/apply/runs", { jobIds: ["gh::1"], mode: "auto", approvalMode: "auto" });
     assert.equal(r.status, 403);
     const body = await r.json();
-    assert.equal(body.error, "full_auto_locked");
+    assert.equal(body.error, "full_auto_not_chosen");
     assert.match(body.message, /wait for your approval/);
     assert.equal(t.db.prepare("SELECT COUNT(*) FROM apply_runs").pluck().get(), 0);
     // The ordinary Draft is untouched: it previews and waits. (A job with no posting row, so the run
@@ -138,11 +141,39 @@ test("D36·7 · POST /api/apply/runs refuses approvalMode:'auto' — 403 full_au
     const ok = await t.post("/api/apply/runs", { jobIds: ["no-posting::1"], mode: "auto", surface: "board" });
     assert.equal(ok.status, 202);
     assert.equal(t.db.prepare("SELECT approval_mode FROM apply_runs").pluck().get(), "required");
-    assert.equal((await t.get("/api/apply/run-bar")).mode.auto.locked, true);
+    assert.equal((await t.get("/api/apply/run-bar")).mode.auto.locked, false, "D100: AUTO is selectable — no lock");
   } finally { t.stop(); }
 });
 
-test("D36·7 · the answers retry cannot 'answer-and-send in one step' either", async () => {
+test("D100·7 · FULL AUTO is chosen by the user, and then approvalMode:'auto' is admitted", async () => {
+  const t = mount();
+  try {
+    const set = await t.post("/api/apply/mode", { mode: "auto" });
+    assert.equal(set.status, 200);
+    assert.equal((await set.json()).mode.current, "auto");
+    assert.equal(t.db.prepare("SELECT send_mode FROM users WHERE id=1").pluck().get(), "auto");
+    const r = await t.post("/api/apply/runs", { jobIds: ["no-posting::1"], mode: "auto", approvalMode: "auto" });
+    assert.equal(r.status, 202, "the user's FULL AUTO is their submit (D36 amended)");
+    assert.equal(t.db.prepare("SELECT approval_mode FROM apply_runs").pluck().get(), "auto");
+    // A bad value is refused, not coerced; SEMI can always be chosen back.
+    assert.equal((await t.post("/api/apply/mode", { mode: "full" })).status, 400);
+    assert.equal((await (await t.post("/api/apply/mode", { mode: "semi" })).json()).mode.current, "semi");
+  } finally { t.stop(); }
+});
+
+test("D100·7 · the operator's kill switch still refuses FULL AUTO (a control, not a gate)", async () => {
+  const t = mount({ env: { APPLY_FULL_AUTO_DISABLED: "1" } });
+  try {
+    const bar = await t.get("/api/apply/run-bar");
+    assert.equal(bar.mode.auto.locked, true);
+    assert.equal(bar.mode.auto.reason, "kill_switch");
+    assert.equal((await t.post("/api/apply/mode", { mode: "auto" })).status, 409);
+    assert.equal(t.db.prepare("SELECT send_mode FROM users WHERE id=1").pluck().get(), null);
+    assert.equal((await t.post("/api/apply/mode", { mode: "semi" })).status, 200, "SEMI can always be chosen");
+  } finally { t.stop(); }
+});
+
+test("D100·7 · the answers retry cannot 'answer-and-send in one step' for a SEMI user either", async () => {
   const t = mount();
   try {
     const run = t.db.prepare("INSERT INTO apply_runs (user_id,mode,status,total_jobs,approval_mode) VALUES (1,'auto','completed',1,'required')").run().lastInsertRowid;
@@ -150,12 +181,12 @@ test("D36·7 · the answers retry cannot 'answer-and-send in one step' either", 
                   VALUES (?,1,'gh::1','held_review','incomplete_form',?)`).run(run, JSON.stringify([{ question: "Start date", reason: "unanswered" }]));
     const r = await t.post("/api/apply/answers", { answers: { "Start date": "11/02/2026" }, retryJobIds: ["gh::1"], approvalMode: "auto" });
     assert.equal(r.status, 403);
-    assert.equal((await r.json()).error, "full_auto_locked");
+    assert.equal((await r.json()).error, "full_auto_not_chosen");
     assert.equal(t.db.prepare("SELECT COUNT(*) FROM apply_runs WHERE approval_mode='auto'").pluck().get(), 0);
   } finally { t.stop(); }
 });
 
-test("D36·7 · a run row that would send unattended is HELD before anything opens", async () => {
+test("D100·7 · a run row that would send unattended for a SEMI user is HELD before anything opens", async () => {
   const t = mount();
   try {
     // However it got there — a legacy NULL approval_mode reads as 'auto' — boot recovery starts it.
@@ -165,20 +196,23 @@ test("D36·7 · a run row that would send unattended is HELD before anything ope
       t.hooks.recoverInterruptedRuns();
       assert.ok(await waitFor(() => statusOf(t.db, rj) !== "queued" && statusOf(t.db, rj) !== "running"));
       const row = t.db.prepare("SELECT status, reason_code FROM apply_run_jobs WHERE id=?").get(rj);
-      assert.deepEqual([row.status, row.reason_code], ["held_review", "full_auto_locked"], `approval_mode ${approval}`);
+      assert.deepEqual([row.status, row.reason_code], ["held_review", "full_auto_not_chosen"], `approval_mode ${approval}`);
       const events = t.db.prepare("SELECT event FROM apply_job_logs WHERE run_job_id=?").pluck().all(rj);
-      assert.ok(events.includes("full_auto_locked"));
+      assert.ok(events.includes("full_auto_not_chosen"));
       assert.ok(!events.includes("site_visit_started"), "no browser was opened");
       await waitFor(() => t.db.prepare("SELECT COUNT(*) FROM apply_runs WHERE status IN ('queued','running')").pluck().get() === 0);
     }
   } finally { t.stop(); }
 });
 
-test("D36·7 · the user is told nothing was sent, and how to send it reviewed", () => {
-  const o = describeApplication({ status: "held_review", reasonCode: "full_auto_locked" });
-  assert.match(o.obstacle, /nothing was opened or sent/);
-  assert.match(o.action, /wait for your approval/);
-  assert.equal(o.protective, true);
+test("D100·7 · the user is told nothing was sent, and how to send it reviewed (the old rows read too)", () => {
+  for (const reasonCode of ["full_auto_not_chosen", "full_auto_locked"]) {
+    const o = describeApplication({ status: "held_review", reasonCode });
+    assert.match(o.obstacle, /nothing was opened or sent/);
+    assert.match(o.action, /wait for your approval/);
+    assert.equal(o.protective, true);
+  }
+  assert.match(describeApplication({ status: "held_review", reasonCode: "full_auto_not_chosen" }).obstacle, /SEMI/);
 });
 
 // ── 2 · THE KILL SWITCH STOPS A RUN ALREADY IN FLIGHT ─────────────────────────────────────────────

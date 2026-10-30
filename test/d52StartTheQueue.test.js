@@ -59,6 +59,7 @@ test("D52 · a Draft starts at once or waits in line — it is never parked as '
   const start = src.slice(at(src, "  function startRun("), at(src, '  app.post("/api/apply/runs"'));
   // Not waiting → processed now; waiting → the line starts it when the slot frees (dispatchLine).
   assert.match(start, /if \(mustWait\) \{[\s\S]{0,300}dispatchLine\(userId\);[\s\S]{0,200}\} else \{\n\s+setImmediate\(\(\) => processRun\(run\)/);
-  // ⛔ Unattended stays locked: the only start a Draft makes is a preview that waits for approval.
-  assert.match(src, /\nconst FULL_AUTO_PROVEN = false;\n/);
+  // ⛔ A Draft never sends unattended: it is a preview that waits for approval. D100: sending without review is the
+  // user's FULL AUTO mode, checked at admission (test/d36ApplyPaths.test.js §7), not a constant.
+  assert.match(src, /resolvedMode === "auto" && resolvedApproval === "auto" && userApplyMode\(userId\) !== "auto"/);
 });

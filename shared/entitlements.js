@@ -3,7 +3,7 @@
 // Owner, 10-09 (D88): "Plans and feature defaults live in code — versioned, tested, one source." Before this
 // file the caps were decided in six places that never met: the plan gate (requireToolEntitlement), the
 // admin's silent A+ swap (users.aplus_resume), user_limits rows read by limitEnforcer, the draft-slot window
-// (DAILY_DRAFT_SLOTS), the apply caps (APPLY_DAILY_*), the full-auto lock (FULL_AUTO_PROVEN + the kill
+// (DAILY_DRAFT_SLOTS), the apply caps (APPLY_DAILY_*), the full-auto lock (the kill
 // switch) and the plugin's two settings (byom_enabled, byom_daily_cap). Each now has a row here and is read
 // through services/entitlementResolver.js `resolveEntitlement()`.
 //
@@ -73,8 +73,8 @@ export const FEATURES = Object.freeze({
     kind: "integer", label: "Submissions in 24 hours", system: (env) => envInt(env, "APPLY_DAILY_CAP", 25), ceiling: null,
   },
   auto_apply_mode: {
-    // ⛔ D36: full auto stays LOCKED whatever a row says. "unlocked" only when the code says full auto has
-    // been proven AND the operator's kill switch is off — both GLOBAL; no override can reach it.
+    // D100: "unlocked" unless the operator's kill switch is on (GLOBAL; no override can reach it). Whether a user
+    // SENDS unattended is their own mode, users.apply_mode — not an entitlement.
     kind: "mode", label: "Automatic sending", system: () => "unlocked", hard: true,
   },
 });

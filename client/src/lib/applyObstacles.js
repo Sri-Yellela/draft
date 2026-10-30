@@ -53,10 +53,16 @@ const BY_REASON = {
     action: "Read the score, then approve it anyway or improve the resume",
     protective: true, retryable: false,
   },
-  // D36: a run that would have SENT without the user's review. Locked server-side until Auto has
-  // been proven attended (FULL_AUTO_PROVEN); nothing was opened. Re-drafting makes it a reviewed one.
+  // D36: a run that would have SENT without the user's review, held while the server-wide lock stood
+  // (FULL_AUTO_PROVEN, removed by D100). Kept so the rows it wrote before 10-30 still read correctly.
   full_auto_locked: {
     obstacle: "This would have been sent without your review, which is switched off — nothing was opened or sent",
+    action: "Draft it again — it will wait for your approval",
+    protective: true, retryable: true,
+  },
+  // D100: the same hold now — a run that would have sent without review, for a user whose mode is SEMI.
+  full_auto_not_chosen: {
+    obstacle: "This would have been sent without your review, and your mode is SEMI — nothing was opened or sent",
     action: "Draft it again — it will wait for your approval",
     protective: true, retryable: true,
   },

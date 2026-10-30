@@ -338,6 +338,8 @@ const AUTHENTICATED = new Set([
   // D25: the run bar and the user's Stop everything.
   "GET /api/apply/run-bar",
   "POST /api/apply/hold",
+  // D100: the run bar's SEMI / FULL AUTO switch — the user's own mode.
+  "POST /api/apply/mode",
   "GET /api/apply/review",
   "GET /api/apply/run-jobs/:runJobId/review",
   // AH5: the fill log — what this run put in the form and what it did not. On demand, so it is
