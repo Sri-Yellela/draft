@@ -62,6 +62,22 @@ export function jobForResumeMaster(job = {}) {
 export const RESUME_MASTER_ACCEPTS_CACHE_OPTION = true;
 
 /**
+ * ⭐ D109 P2 · TAILORING PREFERS BACKED BULLETS — the marks go on the wire once the tools service declares them.
+ *
+ * Which bullets a tailored résumé keeps is chosen in the tools service (Resume Master), from baseResumeText. draft
+ * computes, per Profile bullet, whether the candidate linked evidence (services/proofLinks.js evidenceForRequest:
+ * { roles: [{ company, bullets: [{ text, backed }] }] }) and sends it as `evidence` — but, exactly as `options.cache`
+ * was (above), ONLY once the vendored contract declares `GenerateRequest.evidence`: an undeclared key would be ignored
+ * there and fail draft's own strict contract check (test/toolsService.test.js). test/d109Proof.test.js holds this
+ * constant equal to the vendored contract, so re-vendoring a contract that declares it turns that test red until this
+ * is flipped. WHAT THE TOOLS SERVICE MUST DO: declare `evidence` (nullable) on GenerateRequest; when it trims a role's
+ * bullets, keep backed ones first and unbacked after, each in the candidate's order, and print the kept ones in their
+ * original order — the rule in services/proofLinks.js chooseBullets; never add, merge or reword a bullet because it is
+ * backed, and never print the mark on the résumé.
+ */
+export const RESUME_MASTER_ACCEPTS_EVIDENCE = false;
+
+/**
  * The generate request coreGenerateResume sends. With an active job profile the caller supplies the
  * role family and domain, and Resume Master resolves the domain module exactly as draft's
  * qualificationResolver did for that path; without one, Resume Master classifies.
@@ -70,8 +86,8 @@ export const RESUME_MASTER_ACCEPTS_CACHE_OPTION = true;
  * byte-for-byte what it was, so a batch caller is unchanged.
  */
 export function generateRequest({ profile, job, baseResumeText, mode, employers = [], domainProfile = null,
-                                  claims = null, includeSummary = false, cache = undefined },
-                                { cacheOptionAccepted = RESUME_MASTER_ACCEPTS_CACHE_OPTION } = {}) {
+                                  claims = null, includeSummary = false, cache = undefined, evidence = null },
+                                { cacheOptionAccepted = RESUME_MASTER_ACCEPTS_CACHE_OPTION, evidenceAccepted = RESUME_MASTER_ACCEPTS_EVIDENCE } = {}) {
   return {
     mode,
     // With a profile, draft NEVER classified: a missing role_family resolved straight to "general".
@@ -85,5 +101,7 @@ export function generateRequest({ profile, job, baseResumeText, mode, employers 
     job: jobForResumeMaster(job),
     baseResumeText,
     options: { includeSummary: includeSummary === true, ...(cache === false && cacheOptionAccepted === true ? { cache: false } : {}) },
+    // D109 P2: withheld until the contract declares it (RESUME_MASTER_ACCEPTS_EVIDENCE, above).
+    ...(evidenceAccepted === true && evidence?.roles?.length ? { evidence } : {}),
   };
 }

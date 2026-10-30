@@ -5165,4 +5165,42 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D109 (owner 10-30) · PROOF — every claim on the résumé can carry its evidence. `profile_projects` is the Profile's
+      // projects section (D101's shape). `profile_evidence` links a repository / live demo / paper / write-up (https only,
+      // a kind, a short label) to an experience BULLET or a PROJECT, keyed by the bullet's normalised text or the project's
+      // normalised name (services/proofLinks.js evidenceKey) so a reorder or a re-import keeps it. `proof_pages` is the
+      // optional public page /p/<handle> — OFF by default (no row, or enabled = 0, is off); it lists projects and their links
+      // and nothing private. ⛔ draft certifies nothing: the page says the links are supplied by the candidate.
+      id: "184_proof_links",
+      sql: `
+        CREATE TABLE IF NOT EXISTS profile_projects (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          name        TEXT NOT NULL,
+          description TEXT,
+          position    INTEGER NOT NULL DEFAULT 0,
+          source      TEXT NOT NULL DEFAULT 'user'
+        );
+        CREATE TABLE IF NOT EXISTS profile_evidence (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          target     TEXT NOT NULL CHECK (target IN ('bullet', 'project')),
+          target_key TEXT NOT NULL,
+          kind       TEXT NOT NULL,
+          label      TEXT NOT NULL,
+          url        TEXT NOT NULL,
+          position   INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS proof_pages (
+          user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          handle     TEXT NOT NULL UNIQUE COLLATE NOCASE,
+          enabled    INTEGER NOT NULL DEFAULT 0,
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_profile_projects_user ON profile_projects(user_id, position);
+        CREATE INDEX IF NOT EXISTS idx_profile_evidence_user ON profile_evidence(user_id, target, target_key);
+      `,
+    },
   ];

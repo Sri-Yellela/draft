@@ -414,6 +414,31 @@ export function checkResumeClaims({ html, profile, baseResumeText = "", domainPr
   };
 }
 
+// ── D109 P2 · BACKED OR UNBACKED — the guard marks each bullet by whether the candidate linked evidence ──────────
+//
+// A mark, not a refusal: an unbacked bullet is an ordinary bullet the candidate has not linked anything to yet. The
+// mark is what tailoring reads when it chooses (services/proofLinks.js chooseBullets). ⛔ The words say only whether a
+// link was SUPPLIED — draft never opens, checks or vouches for a link, so no mark may claim it did (d109NoCertifyWording).
+export const BACKING_MARKS = Object.freeze({
+  backed: { mark: "backed", words: "Evidence linked" },
+  unbacked: { mark: "unbacked", words: "No evidence linked" },
+});
+
+/**
+ * Mark bullets backed / unbacked.
+ * @param {Array<string|{text:string}>} bullets
+ * @param {(text:string) => number} linksFor  how many evidence links the candidate supplied for that bullet's text
+ * @returns {Array<{text:string, backed:boolean, mark:"backed"|"unbacked", words:string, links:number}>}
+ */
+export function markBacking(bullets, linksFor = () => 0) {
+  return (bullets || []).map(b => {
+    const text = typeof b === "string" ? b : String(b?.text ?? "");
+    const links = Math.max(0, Number(linksFor(text)) || 0);
+    const m = links > 0 ? BACKING_MARKS.backed : BACKING_MARKS.unbacked;
+    return { text, backed: links > 0, mark: m.mark, words: m.words, links };
+  });
+}
+
 /** Thrown when a generated resume contradicts the candidate's own facts. */
 export class ResumeClaimError extends Error {
   constructor(result) {
