@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 import express from "express";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
@@ -154,20 +155,19 @@ test("D104 · d104BoardMarksIneligible — a row is marked for THIS user, demote
   assert.equal(eligibilityForRow({ description: "Build things with us." }, inputs).status, "eligible");
   assert.equal(eligibilityForRow({ description: null }, inputs).status, "eligible");
   const src = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
-  const at = src.indexOf("const ineligible = new Map();");
-  assert.ok(at > 0, "the board computes it");
-  const block = src.slice(at, at + 2500);
+  const begin = at(src, "const ineligible = new Map();", 0, "server.js — the board computes it");
+  const block = src.slice(begin, begin + 2500);
   assert.match(block, /if \(hasEligibilityInputs\(eligInputs\)\)/);
   assert.match(block, /const pageRows = ineligible\.size \? \[\.\.\.rows\.filter\(j => !ineligible\.has\(j\.job_id\)\), \.\.\.rows\.filter\(j => ineligible\.has\(j\.job_id\)\)\] : rows;/);
   assert.match(block, /jobs:\s+pageRows\.map\(/);
   assert.match(block, /eligibility: \{ status: "ineligible", reasons: ineligible\.get\(j\.job_id\) \}/);
-  assert.doesNotMatch(block.slice(0, block.indexOf("const responseBody")), /rows\s*=\s*rows\.filter|rows\.splice/, "the page's rows (and so its cursor) are not changed");
+  assert.doesNotMatch(block.slice(0, at(block, "const responseBody")), /rows\s*=\s*rows\.filter|rows\.splice/, "the page's rows (and so its cursor) are not changed");
 });
 
 // D104 · the board card draws the server's verdict — a mark (D60), only for "ineligible", with the reasons.
 test("the board card marks an ineligible posting with its reasons, and nothing else", () => {
   const card = fs.readFileSync(new URL("../client/src/components/JobCard.jsx", import.meta.url), "utf8");
-  const fn = card.slice(card.indexOf("function EligibilityMark"), card.indexOf("// ── Closed pill"));
+  const fn = card.slice(at(card, "function EligibilityMark"), at(card, "// ── Closed pill"));
   assert.match(fn, /if \(eligibility\?\.status !== "ineligible"\) return null;/, "unknown or absent must render nothing");
   assert.match(fn, /style=\{markStyle\(C\.DANGER\)\}/);
   assert.match(fn, /Not eligible/);

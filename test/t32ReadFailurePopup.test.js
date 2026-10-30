@@ -3,6 +3,7 @@
 // read that does not find the job now raises ONE popup — the outcome's sentence and its code, the one fix, and Details
 // (Settings → Developer details). Each failure class, driven through identifyAndBind's own steps (no browser).
 import test from "node:test";
+import { at } from "../test-support/sourceAnchors.js";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { identifyAndBind, readFailurePopup, READ_FAILURE_CODES } from "../extension/identify.js";
@@ -51,7 +52,7 @@ test("T32 · the working outcomes say their own next step; a bound job raises no
 test("T32 · the panel raises the popup (never the '!'), acts inside the click, and the idle state is ONE eye", () => {
   const src = fs.readFileSync("extension/resumePanel.js", "utf8").replace(/\r\n/g, "\n");
   assert.match(src, /if \(role === 'read'\) \{ say\('Reading this page…'\); return readPage\(r\); \}/);
-  const rp = src.slice(src.indexOf("const readPage = async (r) => {"), src.indexOf("const take = (r, reply, fallback) => {"));
+  const rp = src.slice(at(src, "const readPage = async (r) => {"), at(src, "const take = (r, reply, fallback) => {"));
   assert.match(rp, /globalThis\.__draftPopups\.show\(\{ \.\.\.reply\.popup/);
   assert.match(rp, /if \(!answer\?\.trusted\) return;/);
   assert.match(rp, /section: 'details'/);

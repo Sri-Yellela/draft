@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 import express from "express";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
@@ -99,5 +100,5 @@ test("A105 (11) · the board's open posting: S save, D draft, P pass — never w
   assert.match(p, /closest\?\.\("input, textarea, select, \[contenteditable=''\], \[contenteditable='true'\]"\)/);
   assert.match(p, /!e\.ctrlKey && !e\.metaKey && !e\.altKey/);
   assert.match(p, /decideJobRef\.current = \(\.\.\.args\) => decideJob\(\.\.\.args\);/, "the handler reaches the current decideJob, not a stale one");
-  assert.doesNotMatch(p.slice(p.indexOf("const decision = { s:"), p.indexOf("const decision = { s:") + 300), /approve|decidePending/i);
+  assert.doesNotMatch(p.slice(at(p, "const decision = { s:"), at(p, "const decision = { s:") + 300), /approve|decidePending/i);
 });
