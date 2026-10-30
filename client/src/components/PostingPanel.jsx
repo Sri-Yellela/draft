@@ -55,6 +55,7 @@ export function PostingMasthead({ job, experience = null, showTitle = true, vtTi
       </dl>
       <PostingRequirements requirements={job.requirements} />
       <PostingDetails fields={job.postingFields} />
+      <PostingLiveness liveness={job.liveness} />
     </header>
   );
 }
@@ -72,6 +73,19 @@ export function PostingRequirements({ requirements }) {
       <span className="posting__req-k">Requirements</span>
       {pills.map(p => <span key={p.key} className="posting__pill" data-req={p.key} title={p.title}>{p.label}</span>)}
     </div>
+  );
+}
+
+/**
+ * ⭐ D107 P2 · IS THIS POSTING ALIVE — what the crawl saw: "Reposted 4 times since June" · "Open 94 days" · "New — first
+ * seen yesterday". A fact about the posting's history (services/jobs/jobHistory.js), never a score and never a block.
+ */
+export function PostingLiveness({ liveness }) {
+  if (!liveness?.label) return null;
+  return (
+    <p className="posting__details" data-posting-liveness={liveness.kind}>
+      <span className="posting__details-k">History</span> {liveness.label}
+    </p>
   );
 }
 

@@ -208,6 +208,18 @@ function EligibilityMark({ eligibility }) {
   );
 }
 
+// ── D107 · a posting that looks never-filled — reposted, or open a long time ──
+// The server reads it from the crawl's history (GET /api/jobs `liveness`); the card marks only the two kinds worth a
+// second look. "New" already has its own mark; a short "Open 9 days" is said in the posting panel, not here.
+function LivenessMark({ liveness }) {
+  if (liveness?.kind !== "reposted" && liveness?.kind !== "open_long") return null;
+  return (
+    <span data-liveness={liveness.kind} style={markStyle(C.WARNING)} title="From what draft's crawl has seen of this posting.">
+      {liveness.label}
+    </span>
+  );
+}
+
 // ── Closed pill — a saved job whose listing has expired ──────────
 // Only ever rendered on the Saved tab, because that is the only board that returns is_active = 0
 // rows. runExpiredJobsCleanup used to hard-DELETE an expired starred job seven days on, taking the
@@ -651,6 +663,7 @@ export default function JobCard({
               {job.isActive !== false && isNewJob(job.discoveredAt) && <NewPill/>}
               <VisaBadge isH1bSponsor={job.isH1bSponsor} requiresWorkAuth={job.requiresWorkAuth}/>
               <EligibilityMark eligibility={job.eligibility}/>
+              <LivenessMark liveness={job.liveness}/>
               {/* THE BOARD AND THE PIPELINE STOP BEING SEPARATE WORLDS. A card gave no hint that
                   you had already applied to it, that it was queued, or that it was stuck waiting on
                   you — so the only way to know was to open the other tab and read a list of runs.
