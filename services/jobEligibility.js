@@ -8,6 +8,7 @@ import { normalizePosting } from "../shared/postingNormalize.js";
 import { eligibilityOf } from "../shared/eligibility.js";
 import { BASIS_FN } from "./jobs/descriptionText.js";
 import { educationOf } from "./structuredProfile.js";
+import { sponsorshipFactFor } from "./kb/sponsorshipFacts.js";
 
 export function userEligibilityInputs(db, userId) {
   let defaults = {};
@@ -27,7 +28,24 @@ export function eligibilityForJob(db, userId, jobId, inputs = null) {
   const n = normalizePosting(row.description_full ?? row.description);
   const req = postingRequirements(n);
   const { defaults, degrees } = inputs || userEligibilityInputs(db, userId);
-  return { ...eligibilityOf(req, defaults, degrees), requirements: req };
+  const verdict = eligibilityOf(req, defaults, degrees);
+  const context = eligibilityContext(db, row.company, { defaults });
+  return { ...verdict, requirements: req, ...(context ? { context } : {}) };
+}
+
+/**
+ * ⭐ D108 P3 · the employer's public sponsorship facts BESIDE the verdict, for a user who said they need sponsorship —
+ * INFORMATION ONLY. ⛔ It never enters eligibilityOf and never changes `status`, `reasons` or `missing`: a posting that
+ * says "no sponsorship" stays ineligible for that user even when the employer filed 290 LCAs (the posting's own words
+ * win), and a filing record never makes a posting ineligible. Null when the user did not say they need sponsorship, or
+ * the company has no safely-matched fact.
+ * @returns {{ sponsorship: ReturnType<typeof sponsorshipFactFor> } | null}
+ */
+export function eligibilityContext(db, company, { defaults = {} } = {}) {
+  if (!company || !(defaults.sponsorship_now === "yes" || defaults.sponsorship_later === "yes")) return null;
+  let fact = null;
+  try { fact = sponsorshipFactFor(db, company); } catch { fact = null; }
+  return fact ? { sponsorship: fact } : null;
 }
 
 /** True when the user has set anything a posting's requirement could contradict — otherwise nothing is computed. */

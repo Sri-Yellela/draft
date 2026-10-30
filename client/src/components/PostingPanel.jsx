@@ -117,17 +117,30 @@ export function PostingApplyLine({ job }) {
 }
 
 /**
- * ⭐ D108 P1 · the company's public filings — "Filed 290 certified LCAs in FY2025" — with the source and how recent the
- * data is. A fact about the EMPLOYER, never about the reader's eligibility; absent when the match is not safe.
+ * ⭐ D108 P1 · the company's public filings — "Filed 290 certified LCAs in FY2025 · median $162k" — then the USCIS hub's
+ * "1,204 H-1B approvals FY2022 (USCIS)" when present; each run of facts is followed by ITS source and date. A fact about
+ * the EMPLOYER, never about the reader's eligibility; absent when the match is not safe.
  */
 export function PostingSponsorship({ fact }) {
   if (!fact?.text) return null;
-  const src = fact.source || {};
+  const parts = Array.isArray(fact.parts) && fact.parts.length ? fact.parts : [{ kind: "lca", text: fact.text, source: fact.source }];
+  // Consecutive parts that share a source are said together, then the source once.
+  const groups = [];
+  for (const part of parts) {
+    const last = groups[groups.length - 1];
+    if (last && last.source?.name === part.source?.name) last.texts.push(part.text);
+    else groups.push({ source: part.source || {}, texts: [part.text] });
+  }
   return (
     <p className="posting__details" data-posting-sponsorship="">
-      <span className="posting__details-k">Visa filings</span> {fact.text} ·{" "}
-      {src.url ? <a href={src.url} target="_blank" rel="noopener noreferrer">{src.name}</a> : src.name}
-      {src.through ? `, through ${src.through}` : ""}
+      <span className="posting__details-k">Visa filings</span>{" "}
+      {groups.map((g, i) => (
+        <span key={i} data-sponsorship-source={g.source.name || ""}>
+          {i ? " · " : ""}{g.texts.join(" · ")} ·{" "}
+          {g.source.url ? <a href={g.source.url} target="_blank" rel="noopener noreferrer">{g.source.name}</a> : g.source.name}
+          {g.source.through ? `, through ${g.source.through}` : g.source.asOf ? `, file dated ${g.source.asOf}` : ""}
+        </span>
+      ))}
     </p>
   );
 }
