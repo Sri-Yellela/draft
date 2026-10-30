@@ -279,6 +279,26 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
     } finally { setBusy(null); }
   }
 
+  // A105 finding 7: every application past the MATURITY_DAYS mark with no reply recorded, answered at once —
+  // "Still nothing" (no response), each through the same route as its own button; any one can be changed afterwards.
+  const unanswered = rows.filter(r => r.status === "sent" && r.ask);
+  async function markAllNoReply() {
+    if (!unanswered.length) return;
+    if (!window.confirm(`Mark ${unanswered.length} applications as "Still nothing"? You can change any of them later.`)) return;
+    setBusy("__all"); setError("");
+    let failed = 0;
+    for (const row of unanswered) {
+      try {
+        await api(`/api/apply/applications/${encodeURIComponent(row.jobId)}/response`, {
+          method: "PATCH", body: JSON.stringify({ outcome: RESPONSE_OUTCOME.NO_RESPONSE, source: "manual" }),
+        });
+      } catch { failed++; }
+    }
+    if (failed) setError(`${failed} of ${unanswered.length} were not saved — try again.`);
+    setBusy(null);
+    await load(q.trim());
+  }
+
   async function downloadResume(row) {
     note(row.jobId, "");
     try {
@@ -365,6 +385,11 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
           <button type="button" className="ah__link" onClick={answerOldest}>
             {nudge.ask ? "Did they reply?" : "Record a reply"}
           </button>
+          {unanswered.length > 1 && (
+            <>{" "}<button type="button" className="ah__link" data-mark-all-no-reply="" disabled={busy === "__all"} onClick={markAllNoReply}>
+              {busy === "__all" ? "Saving…" : `Mark all ${unanswered.length} as still nothing`}
+            </button></>
+          )}
         </p>
       )}
 
