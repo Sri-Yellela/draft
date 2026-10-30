@@ -20,6 +20,47 @@ const ORIGIN = {
   draft: "Sent by Draft",
 };
 
+/** D112 c2 · "Moves in n days" — the server counts the days (services/applicationRecords.js PENDING_MOVE_DAYS). */
+export function movesLabel(n) {
+  if (n <= 0) return "Moves today";
+  return `Moves in ${n} day${n === 1 ? "" : "s"}`;
+}
+
+/**
+ * ⭐ D112 c2 · THE NOT APPLIED LIST — a pending row moved after 14 quiet days, and one you said you did not
+ * apply to. Nothing here was deleted: each row keeps its record and snapshot, and Restore puts it back in
+ * Pending with its 14 days restarting.
+ */
+export function NotAppliedList({ rows = [], theme, onRestore, busyId, moveDays = 14 }) {
+  return (
+    <div data-not-applied-list="" style={{ flex: 1, overflowY: "auto", padding: "10px 16px 16px", display: "flex",
+                                           flexDirection: "column", gap: 8 }}>
+      <div style={{ fontSize: 12, color: theme.textMuted, lineHeight: 1.6 }}>
+        A Pending job with nothing recorded for {moveDays} days moves here, and so does one you said you did not
+        apply to. Nothing is deleted — Restore puts it back in Pending for another {moveDays} days.
+      </div>
+      {!rows.length && (
+        <div style={{ textAlign: "center", padding: 32, color: theme.textMuted, fontSize: 13 }}>Nothing in Not applied.</div>
+      )}
+      {rows.map(row => (
+        <div key={row.jobId} data-not-applied-row={row.jobId}
+          style={{ border: `1px solid ${theme.border}`, borderRadius: 10, padding: "10px 12px",
+                   display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <CompanyLink company={row.company || row.jobId} href={row.applyUrl || null} jobId={row.jobId} onOpen={NO_TAG} size="row" />
+            <span style={{ fontSize: 12, color: theme.textMuted }}> · {row.title || "Untitled role"}</span>
+          </div>
+          <span style={markStyle(C.INK_FAINT)}>
+            {row.state === "not_applied" ? `Moved after ${moveDays} days` : "You said you did not apply"}
+          </span>
+          <button type="button" className="rm-btn rm-btn-secondary rm-btn-sm" data-restore="" disabled={busyId === row.jobId}
+            onClick={() => onRestore(row.jobId)}>{busyId === row.jobId ? "Restoring…" : "Restore"}</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** "YYYY-MM-DDTHH:MM" in local time, for a datetime-local input. */
 function localNow() {
   const d = new Date();
@@ -127,7 +168,8 @@ export default function PendingApplications({ data, theme, onRecord, onWithdraw,
       {!all.length && (
         <div style={{ textAlign: "center", padding: 32, color: theme.textMuted, fontSize: 13 }}>
           Nothing pending. A job lands here when you generate a résumé for it, open its posting from the board,
-          or export a résumé — and leaves when you record a verified submission or say you did not apply.
+          or export a résumé — and leaves when you record a verified submission, say you did not apply, or 14 days
+          pass with nothing recorded (it moves to Not applied, never deleted).
         </div>
       )}
       {rows.map(row => {
@@ -149,6 +191,13 @@ export default function PendingApplications({ data, theme, onRecord, onWithdraw,
                 <span style={{ fontSize: 12, color: theme.textMuted }}> · {row.title || "Untitled role"}</span>
               </div>
               <span style={{ fontSize: 11, color: theme.textMuted }}>{ORIGIN[row.origin] || row.origin}</span>
+              {/* D112 c2: a pending row nobody acts on moves to Not applied — say when, never delete it. */}
+              {row.movesInDays != null && (
+                <span data-moves-in="" style={{ fontSize: 11, color: theme.textMuted }}
+                  title="After 14 days with nothing recorded it moves to Not applied in The Table — kept, and you can Restore it.">
+                  {movesLabel(row.movesInDays)}
+                </span>
+              )}
               <span style={markStyle(C.WARNING)}>
                 {row.state === "recorded" ? "Recorded · not verified" : "Pending"}
               </span>

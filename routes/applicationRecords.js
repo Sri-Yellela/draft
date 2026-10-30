@@ -3,8 +3,8 @@
 // services/applicationRecords.js holds the rule (pending -> recorded -> verified, and what
 // "verified" means); services/draftSlots.js holds the allowance. These routes only expose them.
 import {
-  markPending, recordSubmission, withdraw, withdrawMany, WITHDRAW_MANY_MAX, listRecords, listHistory, readRecord, publicRecord,
-  CLIENT_ORIGINS, USER_METHODS, SUBMIT_METHODS, VERIFY_RULE,
+  markPending, recordSubmission, withdraw, withdrawMany, restoreNotApplied, WITHDRAW_MANY_MAX, listRecords, listHistory, readRecord, publicRecord,
+  CLIENT_ORIGINS, USER_METHODS, SUBMIT_METHODS, VERIFY_RULE, PENDING_MOVE_DAYS,
 } from "../services/applicationRecords.js";
 import { draftSlots } from "../services/draftSlots.js";
 import { importApplications } from "../services/applicationImport.js";
@@ -91,6 +91,21 @@ export default function applicationRecordRoutes(app, db, requireAuth, { captured
     }
     const n = withdrawMany(db, req.user.id, ids);
     res.json({ ok: true, withdrawn: n, message: `${n} taken out of Pending. Opening a posting again puts it back.` });
+  });
+
+  /**
+   * D112 c2 · Restore — a Not applied row (moved after 14 days, or one you withdrew) goes back to Pending,
+   * its 14 days restarting. 404 when there is no record; 409 when it is not in the Not applied list.
+   */
+  app.post("/api/applications/not-applied/:jobId/restore", requireAuth, (req, res) => {
+    const changed = restoreNotApplied(db, req.user.id, req.params.jobId);
+    if (!changed) {
+      const r = readRecord(db, req.user.id, req.params.jobId);
+      if (!r) return res.status(404).json({ error: "not_found" });
+      return res.status(409).json({ error: "not_not_applied", state: r.state, message: `It is ${r.state}, not in Not applied.` });
+    }
+    res.json({ ok: true, record: publicRecord(readRecord(db, req.user.id, req.params.jobId)),
+      message: `Back in Pending — it moves again in ${PENDING_MOVE_DAYS} days if nothing happens.` });
   });
 
   /** "I did not apply." */
