@@ -340,3 +340,59 @@ export function saveSection(db, userId, section, body, nowSec = Math.floor(Date.
   }
   throw fail(`No section called ${String(section).slice(0, 30)}.`);
 }
+
+// ── D101 P2 / D104 · THE FILL READS ONLY APPLICATION DEFAULTS FOR THESE QUESTIONS ─────────────────
+//
+// server.js buildAutofillPayload reads user_profile, whose eligibility columns default to 0 — `requires_sponsorship`
+// filled "No", `willing_to_relocate` "No", for users who never answered (D72). This overlay REPLACES every eligibility,
+// preference and self-ID value in the payload with what the user SET in Application defaults, and an empty value where
+// they did not — so the question goes to Needs you, and the answer given there is saved back (D96 / saveBackFromNeedsYou).
+// Explicit text the profile already states is imported first (importStatedDefaults: EEO text, start date, the
+// sponsorship tri-state) — never a 0/1 column's default. A database before migration 173 gets the payload unchanged.
+const CLEARANCE_WORDS = { confidential: "Confidential", secret: "Secret", top_secret: "Top Secret", ts_sci: "TS/SCI" };
+
+export function withApplicationDefaults(db, userId, payload) {
+  if (!payload || userId == null) return payload;
+  let d;
+  try {
+    importStatedDefaults(db, userId);
+    d = Object.fromEntries(db.prepare(`SELECT key, value FROM application_defaults WHERE user_id = ?`).all(userId).map(r => [r.key, r.value]));
+  } catch { return payload; }
+  const yn = (v) => (v === "yes" ? "Yes" : v === "no" ? "No" : "");
+  const fm = { ...(payload.field_map || {}) }, hm = { ...(payload.handler_map || {}) }, dm = { ...(payload.dropdown_map || {}) };
+  // Work authorisation
+  const auth = yn(d.authorised_to_work);
+  fm.work_authorization = auth; fm.workAuthorization = auth; hm["work-auth"] = auth; dm.work_auth = auth ? [auth] : [];
+  // Sponsorship — the tri-state the resolver answers from; unknown is null (it refuses and asks).
+  const need = d.sponsorship_now === "yes" ? "now"
+    : d.sponsorship_now === "no" && d.sponsorship_later === "yes" ? "future"
+    : d.sponsorship_now === "no" && d.sponsorship_later === "no" ? "none" : null;
+  const sp = need === "none" ? "No" : need ? "Yes" : "";
+  fm.requires_sponsorship = sp; fm.sponsorship = sp; hm.sponsorship = sp;
+  // Clearance — "can obtain" is not "holds one", and "none" is an answer only because the user SET it.
+  const c = d.clearance ?? null;
+  const has = c == null || c === "can_obtain" ? "" : c === "none" ? "No" : "Yes";
+  const level = CLEARANCE_WORDS[c] || "";
+  fm.has_clearance = has; fm.clearance_level = level; fm.clearanceLevel = level; dm.clearance = level ? [level] : [];
+  // Preferences
+  const relocate = yn(d.relocate);
+  fm.willing_to_relocate = relocate; hm.relocate = relocate;
+  fm.available_start_date = d.start_date || ""; hm["start-date"] = d.start_date || "";
+  // Voluntary self-ID — stated or blank (D55 §7.5)
+  for (const [key, fields, handler] of [["gender", ["gender"], "gender"], ["ethnicity", ["ethnicity", "race"], "ethnicity"],
+    ["veteran", ["veteran_status", "veteranStatus"], "veteran"], ["disability", ["disability_status", "disabilityStatus"], "disability"]]) {
+    const v = d[key] || "";
+    for (const f of fields) fm[f] = v;
+    hm[handler] = v;
+  }
+  dm.gender = d.gender ? [d.gender] : [];
+  return {
+    ...payload,
+    sponsorship_need: need,
+    requires_sponsorship: need === "now" || need === "future",
+    has_clearance: has === "Yes",
+    clearance_level: level,
+    work_auth: auth,
+    field_map: fm, handler_map: hm, dropdown_map: dm,
+  };
+}

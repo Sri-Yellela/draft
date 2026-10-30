@@ -190,3 +190,26 @@ test("D101 · experience logos: a past employer not on the board is looked up in
     assert.equal(looked.length, 2, "a company with a logo is not looked up again");
   } finally { server.close(); }
 });
+
+test("D101 · d101UnsetDefaultIsNotAnAnswer (fill side) — the payload's 0 defaults become blanks; what the user SET is filled", async () => {
+  const { withApplicationDefaults } = await import("../services/structuredProfile.js");
+  const { buildAnswers } = await import("../services/applyAutomation.js");
+  const db = freshDb();
+  // What server.js buildAutofillPayloadFromProfile makes of a profile with requires_sponsorship = 0, willing_to_relocate = 0:
+  const legacy = { sponsorship_need: null, requires_sponsorship: false, field_map: { willing_to_relocate: "No", requires_sponsorship: "No", sponsorship: "No",
+    gender: "" }, handler_map: { relocate: "No", sponsorship: "No", "work-auth": "" }, custom_answers: {}, dropdown_map: {} };
+  const p = withApplicationDefaults(db, 1, legacy);
+  assert.deepEqual([p.field_map.willing_to_relocate, p.handler_map.relocate, p.field_map.sponsorship, p.sponsorship_need], ["", "", "", null]);
+  const fields = [{ field_id: "rel", name: "relocate", label: "Are you willing to relocate?", type: "select", is_required: true,
+    options: ["Yes", "No"].map(v => ({ label: v, value: v })) }];
+  const none = buildAnswers(fields, p);
+  assert.ok(!none.some(a => a.value != null && !a.skipped), "nothing filled from a default — Needs you");
+  // the user answers once (Application defaults, or Needs you saved back)
+  const { setDefault } = await import("../services/structuredProfile.js");
+  setDefault(db, 1, "relocate", "yes");
+  setDefault(db, 1, "sponsorship_now", "no"); setDefault(db, 1, "sponsorship_later", "yes");
+  const set = withApplicationDefaults(db, 1, legacy);
+  assert.deepEqual([set.field_map.willing_to_relocate, set.sponsorship_need, set.field_map.sponsorship], ["Yes", "future", "Yes"]);
+  // no user (a fixture) or a database before 173: the payload is untouched
+  assert.equal(withApplicationDefaults(db, null, legacy), legacy);
+});
