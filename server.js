@@ -28,6 +28,7 @@ import applicationRecordRoutes from "./routes/applicationRecords.js";
 import pipelineRoutes from "./routes/pipeline.js";
 import inboxRoutes, { createInboundHookRouter } from "./routes/inbox.js";
 import profileSectionRoutes from "./routes/profileSections.js";
+import { withApplicationDefaults } from "./services/structuredProfile.js";
 import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
 import { runAutoTick } from "./services/autoScheduler.js";
@@ -6180,7 +6181,12 @@ function normaliseUrl(raw) {
  *   employer is unknown (the gate packet's profile-only case), because expanding a template
  *   against nothing would misstate the question that was asked. See services/customAnswers.js.
  */
+// ⭐ D101 P2 / D104: every caller gets the payload with its eligibility, preference and self-ID values taken ONLY from the
+// user's Application defaults (services/structuredProfile.js withApplicationDefaults) — a 0 column default is never an answer.
 function buildAutofillPayload(profile, mode, company = null) {
+  return withApplicationDefaults(db, profile?.user_id ?? null, buildAutofillPayloadFromProfile(profile, mode, company));
+}
+function buildAutofillPayloadFromProfile(profile, mode, company = null) {
   const loc   = mode==="CUSTOM_SAMPLER" ? "" : (profile?.location||"");
   const city  = mode==="CUSTOM_SAMPLER" ? "" : (profile?.city||loc.split(",")[0]?.trim()||"");
   const state = mode==="CUSTOM_SAMPLER" ? "" : (profile?.state||loc.split(",")[1]?.trim()||"");
