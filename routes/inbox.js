@@ -93,7 +93,7 @@ export default function inboxRoutes(app, db, requireAuth) {
     return r ? res.json(r) : res.status(404).json({ error: "not_found" });
   });
   app.delete("/api/inbox/:id", requireAuth, (req, res) => {
-    if (!/^d+$/.test(String(req.params.id))) return res.status(400).json({ error: "bad_id" });
+    if (!/^\d+$/.test(String(req.params.id))) return res.status(400).json({ error: "bad_id" });
     const n = deleteMessages(db, req.user.id, req.params.id);
     return n ? res.json({ deleted: n }) : res.status(404).json({ error: "not_found" });
   });
