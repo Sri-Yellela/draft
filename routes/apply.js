@@ -4795,7 +4795,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         let settings;
         try { settings = readAutoSettings(db.prepare("SELECT auto_settings FROM users WHERE id = ?").pluck().get(req.user.id)); }
         catch { settings = readAutoSettings(null); }
-        const live = new Map(rows.map(r => [r.id, livenessFor(db, r.job_id)]));
+        const live = new Map(rows.map(r => { try { return [r.id, livenessFor(db, r.job_id)]; } catch { return [r.id, null]; } }));
         skippedStale = rows.filter(r => isStale(live.get(r.id), settings))
           .map(r => ({ runJobId: r.id, jobId: String(r.job_id), reason: live.get(r.id).label }));
         rows = rows.filter(r => !isStale(live.get(r.id), settings));
