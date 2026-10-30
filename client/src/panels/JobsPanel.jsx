@@ -11,6 +11,7 @@ import { GENERATE_TOOL, A_PLUS_TOOL, TOOL_LABELS, normalizeTool } from "../lib/a
 import { planPageFetch, recordPageCursor } from "../lib/boardPaging.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { DECISIONS, DECISION_SURFACES, DECISION_TOAST_MS, commitDecision, undoDecision, undoFlagsFor, flagsFor, isDrafted, draftBlock } from "../lib/jobDecisions.js";
+import { runDraftSelected, draftSelectedSummary } from "../lib/draftSelected.js";
 import { PREREQUISITE_LABELS } from "../lib/applyObstacles.js";
 import { companyRows, companyNotice, matchCompany } from "../../../shared/companyIdentity.js";
 import { eligibilityNotice, statedEligibility } from "../../../shared/postingRequirements.js";
@@ -3455,6 +3456,97 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     return () => clearTimeout(id);
   }, [decisionToast]);
 
+  // ⭐ D112 a1 (owner 10-30) · BOARD MULTI-SELECT — "Draft selected". Shift-click a card, or press its tick, to
+  // pick it; "Draft selected (N)" drafts the picks one at a time, in the order picked, through the SAME call as a
+  // single Draft (commitDecision → POST /api/apply/runs), so every server refusal (409 setup / paused, 429 out of
+  // drafts) is said in the server's own sentence. ⛔ A NOTICE FOR EACH DUPLICATE: every pick at a company where
+  // the user already has an application shows D54's notice on the toast, one after another, each with
+  // Draft it / Skip — the others draft without a stop. The sequence is lib/draftSelected.js (pure, tested).
+  const [picked, setPicked] = useState([]);
+  const [batchNotice, setBatchNotice] = useState(null);
+  const [batchRunning, setBatchRunning] = useState(false);
+  const batchNoticeRef = useRef(null);
+  const pickedIds = useMemo(() => new Set(picked.map(j => String(j.jobId || j.id))), [picked]);
+  const togglePick = useCallback((job) => {
+    const id = String(job?.jobId || job?.id || "");
+    if (!id) return;
+    setPicked(prev => prev.some(j => String(j.jobId || j.id) === id)
+      ? prev.filter(j => String(j.jobId || j.id) !== id) : [...prev, job]);
+  }, []);
+  const clearPicked = useCallback(() => setPicked([]), []);
+  // Esc clears the selection — never while typing, never while a notice waits for its answer, and not while a
+  // posting is open (Esc closes the posting first; the next Esc clears the picks).
+  useEffect(() => {
+    if (!picked.length) return;
+    const handler = (e) => {
+      if (e.key !== "Escape" || batchRunning || selectedJob) return;
+      if (e.target?.closest?.("input, textarea, select, [contenteditable=''], [contenteditable='true']")) return;
+      setPicked([]);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [picked.length, batchRunning, selectedJob]);
+  // The notice's answer: Draft it or Skip. The batch waits on it — the notice never times out.
+  const answerBatchNotice = useCallback((answer) => {
+    const n = batchNoticeRef.current;
+    batchNoticeRef.current = null;
+    setBatchNotice(null);
+    n?.resolve(answer);
+  }, []);
+  const draftSelected = useCallback(async () => {
+    if (batchRunning || !picked.length) return;
+    // D51: a Draft that cannot start says why before the click — the same sentence as the card's button.
+    if (draftBlocked) {
+      setDecisionToast({ company: `${picked.length} selected`, decision: DECISIONS.DRAFTED, error: draftBlocked.reason, at: Date.now() });
+      return;
+    }
+    setBatchRunning(true);
+    setDecisionToast(null);
+    try {
+      const result = await runDraftSelected({
+        jobs: picked,
+        noticeFor: companyNoticeFor,
+        alreadyDrafted: (job) => isJobDrafted(job.jobId || job.id) || draftingIds.has(job.jobId || job.id),
+        ask: (step) => new Promise(resolve => {
+          const n = { ...step, jobId: step.job.jobId || step.job.id, company: step.job.company, decision: DECISIONS.DRAFTED,
+                      batch: true, at: Date.now(), resolve };
+          batchNoticeRef.current = n;
+          setBatchNotice(n);
+        }),
+        draft: async (job) => {
+          const jobId = job.jobId || job.id;
+          setDraftingIds(prev => new Set(prev).add(jobId));
+          try {
+            const r = await commitDecision({ jobId, decision: DECISIONS.DRAFTED, tool: draftTool, surface: DECISION_SURFACES.BOARD });
+            setDraftedIds(prev => new Set(prev).add(jobId));
+            if (r.slots) setDraftSlots(r.slots);
+            return r;
+          } catch (e) {
+            if (e.payload?.code === "already_drafted") setDraftedIds(prev => new Set(prev).add(jobId));
+            if (e.payload?.slots) setDraftSlots(e.payload.slots);
+            throw e;
+          } finally {
+            setDraftingIds(prev => { const n = new Set(prev); n.delete(jobId); return n; });
+          }
+        },
+      });
+      // Drafted and skipped leave the selection; a refused or untried pick stays picked, to try again.
+      const done = new Set([...result.drafted, ...result.skipped].map(j => String(j.jobId || j.id)));
+      setPicked(prev => prev.filter(j => !done.has(String(j.jobId || j.id))));
+      setDecisionToast({ decision: DECISIONS.DRAFTED, summary: draftSelectedSummary(result), at: Date.now() });
+      if (result.drafted.length) {
+        setFacetsNonce(n => n + 1);
+        loadApplyRuns?.();
+        loadCompanyIndex();
+        if (boardTab === "pending") fetchJobs(currentPage);
+      }
+    } finally {
+      batchNoticeRef.current = null;
+      setBatchNotice(null);
+      setBatchRunning(false);
+    }
+  }, [batchRunning, picked, draftBlocked, companyNoticeFor, draftingIds, draftedIds, applyStateByJobId, draftTool, loadApplyRuns, boardTab, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // -- Mark visited in local state ---------------------------
   const markVisited = useCallback((job) => {
     setJobs(prev => prev.map(j => j.jobId === job.jobId ? {...j, visited:true} : j));
@@ -3582,8 +3674,10 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   return (
     <div style={{ flex:1, minHeight:0, minWidth:0, display:"flex", flexDirection:"column", overflow:"hidden", background:"transparent" }}>
       {/* A53: the deck's toast and its Undo — one component, both surfaces. */}
-      <DecisionToast toast={decisionToast} onUndo={undoLastDecision} bottom={24}
-        onConfirmNotice={(t) => decideJob(t.job, t.decision, { companyOk: true })} />
+      {/* D112 a1: while "Draft selected" waits on a duplicate's notice, the toast is that notice (Draft it / Skip). */}
+      <DecisionToast toast={batchNotice || decisionToast} onUndo={undoLastDecision} bottom={24}
+        onConfirmNotice={(t) => decideJob(t.job, t.decision, { companyOk: true })}
+        onAnswerNotice={answerBatchNotice} />
       {/* TRANSPARENT, not theme.bg (09-30). theme.bg is --bg-page, which is mapped to SURFACE — the
           GLASS — so the whole board sat under a 58% cream sheet, the cards were glass on glass, and
           the leather never reached them. The page is the substrate; only the cards are glass. */}
@@ -3907,7 +4001,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               theme={theme}
               totalPages={totalPages} currentPage={currentPage} isLastPage={isLastPage}
               generate={generate} openSandbox={openSandbox} exportAndTrack={exportAndTrack}
-              visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds} draftControls={draftControls} openAtsPanel={openAtsPanel}
+              visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds} draftControls={draftControls}
+              pickedIds={pickedIds} pickedCount={picked.length} onPick={togglePick} onDraftSelected={draftSelected} onClearPicked={clearPicked} batchRunning={batchRunning} openAtsPanel={openAtsPanel}
               goPage={goPage} onPullRefresh={handlePullRefresh}
               isMobile={isMobile}
               onJobSelect={handleJobSelect} selectedJobId={selectedJob?.jobId}
@@ -3992,6 +4087,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               totalPages={totalPages} currentPage={currentPage} isLastPage={isLastPage}
               generate={generate} openSandbox={openSandbox} exportAndTrack={exportAndTrack}
               visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds} draftControls={draftControls}
+              pickedIds={pickedIds} pickedCount={picked.length} onPick={togglePick} onDraftSelected={draftSelected} onClearPicked={clearPicked} batchRunning={batchRunning}
               openAtsPanel={openAtsPanel}
               goPage={goPage} onPullRefresh={handlePullRefresh}
               isMobile={isMobile}
@@ -4161,6 +4257,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       theme, totalPages, currentPage, isLastPage,
                       generate, openSandbox, exportAndTrack,
                       visitUrl, decideJob, isJobDrafted = () => false, draftingIds = new Set(), draftControls = null, openAtsPanel,
+                      pickedIds = null, pickedCount = 0, onPick = null, onDraftSelected = null, onClearPicked = null, batchRunning = false,
                       goPage, onPullRefresh,
                       isMobile,
                       compact, selectedJobId, onJobSelect,
@@ -4274,6 +4371,20 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
               hover / focus-within, and is always shown on touch. components/JobBubble.jsx carries the spec.
               Generate and the posting link are off the card (D1): Apply is the company name (A63), and
               generating lives on the job's detail panel. */}
+          {/* ⭐ D112 a1: the selection's bar — "Draft selected (N)". Shift-click or a card's tick adds to it; Esc clears.
+              D60: a depth box per action and a .mark-count for the number — never a pill. */}
+          {pickedCount > 0 && (
+            <div data-draft-selected-bar="" role="toolbar" aria-label="Selected jobs"
+              style={{ display:"flex", alignItems:"center", gap:12, flexWrap:"wrap", margin:"0 28px 14px", padding:"10px 14px",
+                       borderRadius:6, borderLeft:`3px solid ${C.ACCENT}`, background:theme.surface, fontSize:13, color:theme.text }}>
+              <span><span className="mark-count">{pickedCount}</span> selected</span>
+              <button type="button" className="dbx-depth" data-draft-selected="" onClick={onDraftSelected} disabled={batchRunning}>
+                {batchRunning ? "Drafting selected…" : `Draft selected (${pickedCount})`}
+              </button>
+              <button type="button" className="dbx-depth" onClick={onClearPicked} disabled={batchRunning}>Clear</button>
+              <span style={{ fontSize:12, color:theme.textDim }}>Shift-click or tick a card to add it · Esc clears</span>
+            </div>
+          )}
           <JobBubbleRows jobs={jobs}>
           {(job) => {
             const key = job.jobId, g = generated[key];
@@ -4303,6 +4414,9 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                 onDraft={() => decideJob?.(job, DECISIONS.DRAFTED)}
                 onViewDraft={draftControls?.onView} draftBlocked={draftControls?.block} draftSlots={draftControls?.slots}
                 onExplainDraft={(reason) => draftControls?.onExplain(job, reason)}
+                // D112 a1: shift-click or the tick picks the card for "Draft selected".
+                picked={!!pickedIds?.has(String(key))} picking={pickedCount > 0}
+                onPick={onPick ? () => onPick(job) : null}
               />
             );
           }}
