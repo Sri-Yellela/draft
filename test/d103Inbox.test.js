@@ -222,3 +222,19 @@ test("D103 P1 · DELETE /api/inbox/:id deletes the user's own message by its num
     assert.equal((await fetch(`${base}/api/inbox/${id}`, { method: "DELETE" })).status, 404);
   } finally { server.close(); }
 });
+
+// D103 UI · The Table's Inbox tab: the address is offered only when intake is on, and only on the user's press.
+test("D103 UI · The Table's Inbox — gated on intake, asks before making an address, re-file and delete reach the server", () => {
+  const ui = fs.readFileSync("client/src/components/ApplicationInbox.jsx", "utf8");
+  const panel = fs.readFileSync("client/src/panels/DatabasePanel.jsx", "utf8");
+  const route = fs.readFileSync("routes/inbox.js", "utf8");
+  assert.match(route, /intake: !!process\.env\.RESEND_INBOUND_SECRET/);
+  assert.match(panel, /\["inbox","Inbox"\]/);
+  assert.match(panel, /activeSheet === "inbox" && <ApplicationInbox theme=\{theme\}\/>/);
+  assert.match(ui, /!data\.intake \?/, "no address is offered while mail cannot arrive");
+  const load = ui.slice(ui.indexOf("const load = useCallback"), ui.indexOf("useEffect(() => { load(); }"));
+  assert.doesNotMatch(load, /\/api\/inbox\/address/, "loading the tab must not make an address");
+  assert.match(ui, /api\(`\/api\/inbox\/\$\{m\.id\}\/category`, \{ method: "POST"/);
+  assert.match(ui, /api\(`\/api\/inbox\/\$\{m\.id\}`, \{ method: "DELETE" \}\)/);
+  assert.match(ui, /draft never connects to your mailbox/);
+});

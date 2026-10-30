@@ -90,8 +90,8 @@ test("AD1: the Database panel's own behaviour is unchanged by the extraction", (
   // Its four sheets, their counts, the rule that changing sheet clears the search and the date
   // filter, and the two toolbar buttons that ride along on the tab row. The behaviour is the
   // panel's; only the markup moved.
-  // D15 put The Table's history first and renamed the editable sheet "Spreadsheet" (ids unchanged).
-  assert.match(dbPanel, /const SHEETS = \[\["history","History"\],\["applications","Spreadsheet"\],\["resumes","Resumes"\],\["saved","Saved Jobs"\],\["pending","Pending Apply"\]\]/);
+  // D15 put The Table's history first and renamed the editable sheet "Spreadsheet" (ids unchanged); D103 added Inbox last.
+  assert.match(dbPanel, /const SHEETS = \[\["history","History"\],\["applications","Spreadsheet"\],\["resumes","Resumes"\],\["saved","Saved Jobs"\],\["pending","Pending Apply"\],\["inbox","Inbox"\]\]/);
   assert.match(dbPanel, /onSelect=\{\(id\) => \{ setActiveSheet\(id\); setSearch\(""\); setFilterDate\(""\); \}\}/);
   assert.match(dbPanel, /count: id === "applications" \? apps\.length/);
   assert.match(dbPanel, /Export Excel/);

@@ -9,6 +9,7 @@ import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import JobCard      from "../components/JobCard.jsx";
 import PendingApplications from "../components/PendingApplications.jsx";
 import ApplicationHistory from "../components/ApplicationHistory.jsx";
+import ApplicationInbox from "../components/ApplicationInbox.jsx";
 import { DockPortal } from "../components/DockPortal.jsx";
 import { Z } from "../styles/zLayers.js";
 // AC4: the calendar this panel established, extracted so the Auto Apply panel's dated run history
@@ -601,7 +602,7 @@ export function DatabasePanel({ user }) {
 
   // D15: "History" is The Table's own view — every application, pending and sent, with its timeline
   // and the "Did they reply?" capture. The spreadsheet stays as the editable sheet behind it.
-  const SHEETS = [["history","History"],["applications","Spreadsheet"],["resumes","Resumes"],["saved","Saved Jobs"],["pending","Pending Apply"]];
+  const SHEETS = [["history","History"],["applications","Spreadsheet"],["resumes","Resumes"],["saved","Saved Jobs"],["pending","Pending Apply"],["inbox","Inbox"]];
   const isTableSheet = activeSheet === "applications" || activeSheet === "resumes";
 
   return (
@@ -687,6 +688,9 @@ export function DatabasePanel({ user }) {
         <PendingApplications data={pendingData} theme={theme} busyId={pendingBusy} messages={pendingMsgs}
           onRecord={recordPending} onWithdraw={withdrawPending} />
       )}
+
+      {/* ── Inbox (D103) — replies from job sites, forwarded by the user, filed by rule. ── */}
+      {activeSheet === "inbox" && <ApplicationInbox theme={theme}/>}
 
       {/* ── History (D15) — The Table's own view. ⛔ No summary strip: its chips carry the counts. ── */}
       {activeSheet === "history" && (

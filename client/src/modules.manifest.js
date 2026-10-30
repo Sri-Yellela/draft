@@ -46,7 +46,7 @@ export const MODULES = Object.freeze({
   draftHouse: { why: "Draft House (the panel behind the Draft tab)", css: ["components/DraftHouse.css"],
     members: ["panels/AutoApplyPanel.jsx", "panels/AutoApplyPanelSections.jsx", "components/DraftRunBar.jsx", "components/StoppedItem.jsx", "components/WaitingLine.jsx", "components/AutoSettingsDrawer.jsx"] },
   theTable: { why: "The Table (the database panel)",
-    members: ["panels/DatabasePanel.jsx", "components/ApplicationHistory.jsx", "components/PendingApplications.jsx"] },
+    members: ["panels/DatabasePanel.jsx", "components/ApplicationHistory.jsx", "components/PendingApplications.jsx", "components/ApplicationInbox.jsx"] },
   landing: { why: "the landing page", members: ["pages/LandingPage.jsx", "components/FindFitApply.jsx"] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminAdmins.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
 });
@@ -141,6 +141,7 @@ export const SHARED = Object.freeze({
   "components/AutoSettingsDrawer.jsx":  { what: "Draft House's Auto settings drawer — FULL AUTO's filters, cap, times, terms (D102 P4)", module: "draftHouse" },
   "components/DraftHouse.css":          { what: "Draft House's look", owner: "panels/AutoApplyPanel.jsx" },
   "components/ApplicationHistory.jsx":  { what: "The Table's history view (D15)", module: "theTable" },
+  "components/ApplicationInbox.jsx":    { what: "The Table's Inbox — forwarded replies from job sites, filed by rule (D103)", module: "theTable" },
   "components/ApplicationHistory.css":  { what: "its look", owner: "components/ApplicationHistory.jsx" },
   "components/PendingApplications.jsx": { what: "The Table's pending list", module: "theTable" },
   "components/FindFitApply.jsx":        { what: "the landing page's find → fit → apply", module: "landing" },
