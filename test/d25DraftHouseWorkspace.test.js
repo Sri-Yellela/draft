@@ -71,7 +71,15 @@ test("⚙ Auto settings: the drawer reads and writes the server's settings, term
   assert.match(panel, /<AutoSettingsDrawer open=\{settingsOpen\}/);
   assert.match(bar, /data-auto-settings-open=""/);
   assert.match(drawer, /api\("\/api\/apply\/auto-settings"\)/);
-  assert.match(drawer, /api\("\/api\/apply\/auto-settings", \{ method: "PUT", body: JSON\.stringify\(\{ settings: s \}\) \}\)/);
+  // A105 finding 8: every change saves (debounced) — no Save / Cancel; a refused value puts the last saved back.
+  assert.match(drawer, /api\("\/api\/apply\/auto-settings", \{ method: "PUT", body: JSON\.stringify\(\{ settings: next \}\) \}\)/);
+  assert.match(drawer, /timer\.current = setTimeout\(flush, SAVE_AFTER_MS\);/);
+  assert.match(drawer, /if \(lastSaved\.current\) setS\(lastSaved\.current\);/);
+  assert.match(drawer, /const close = async \(\) => \{ await flush\(\); onClose\?\.\(\); \};/, "closing never drops the last change");
+  assert.doesNotMatch(drawer, />Cancel</);
+  // Any run time, not a fixed list.
+  assert.match(drawer, /<input type="time" aria-label="A run time to add"/);
+  assert.doesNotMatch(drawer, /SPARE_TIMES/);
   assert.match(drawer, /checked=\{!!s\.agreeToTerms\}[^>]*data-agree-to-terms=""/);
   assert.match(drawer, /a human check \(a CAPTCHA\)/, "the drawer says a human check is never sent automatically");
 });

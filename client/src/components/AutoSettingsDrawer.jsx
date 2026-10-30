@@ -11,53 +11,77 @@ import { Z } from "../styles/zLayers.js";
 import { lastBoardFilters, filterLine } from "../lib/boardFilterMemory.js";
 import "./DraftHouse.css";
 
-const CAP_MIN = 1, CAP_MAX = 150, MAX_TIMES = 4;
-const SPARE_TIMES = ["09:00", "12:00", "17:30", "20:00", "07:00"];
+const CAP_MAX = 150, MAX_TIMES = 4, CAP_MIN = 1;
+const SAVE_AFTER_MS = 500;
 
+// A105 finding 8 (10-30): every change SAVES — no Save / Cancel (it was ⚙ → change → Save). Changes are sent whole
+// after a short pause (a dragged slider is one save, not forty); a value the server refuses puts the last saved
+// settings back and says why. Done / × / Esc / the scrim close only after the last change is saved.
 export default function AutoSettingsDrawer({ open, onClose }) {
   const [s, setS] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [saved, setSaved] = useState("");
+  const [newTime, setNewTime] = useState("");
   const panel = useRef(null);
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
+  const timer = useRef(null);
+  const pending = useRef(null);
+  const lastSaved = useRef(null);
+  const closeRef = useRef(null);
+
+  const flush = async () => {
+    clearTimeout(timer.current);
+    const next = pending.current;
+    if (!next) return;
+    pending.current = null;
+    setBusy(true);
+    try {
+      const r = await api("/api/apply/auto-settings", { method: "PUT", body: JSON.stringify({ settings: next }) });
+      lastSaved.current = r.settings;
+      setMsg(""); setSaved("Saved");
+    } catch (e) {
+      if (lastSaved.current) setS(lastSaved.current);
+      setSaved("");
+      setMsg(`${e.message || "That value was refused"} — your last saved settings are kept.`);
+    } finally { setBusy(false); }
+  };
+  const close = async () => { await flush(); onClose?.(); };
+  closeRef.current = close;
 
   useEffect(() => {
     if (!open) return undefined;
     let live = true;
-    setMsg("");
-    api("/api/apply/auto-settings").then(r => { if (live) setS(r.settings); }).catch(e => live && setMsg(e.message || "Could not load your settings."));
+    setMsg(""); setSaved("");
+    api("/api/apply/auto-settings").then(r => { if (live) { lastSaved.current = r.settings; setS(r.settings); } })
+      .catch(e => live && setMsg(e.message || "Could not load your settings."));
     api("/api/domain-profiles").then(r => { if (live) setProfiles(Array.isArray(r) ? r : (r?.profiles || [])); }).catch(() => {});
     const onKey = (e) => { if (e.key === "Escape") closeRef.current?.(); };
     window.addEventListener("keydown", onKey);
     return () => { live = false; window.removeEventListener("keydown", onKey); };
   }, [open]);
   useEffect(() => { if (open && s) panel.current?.querySelector("[data-first]")?.focus(); }, [open, s]);
+  useEffect(() => () => clearTimeout(timer.current), []);
 
   if (!open) return null;
-  const set = (patch) => setS(prev => ({ ...prev, ...patch }));
+  const set = (patch) => {
+    const next = { ...s, ...patch };
+    setS(next);
+    pending.current = next;
+    setSaved("Saving…");
+    clearTimeout(timer.current);
+    timer.current = setTimeout(flush, SAVE_AFTER_MS);
+  };
   const board = lastBoardFilters();
   const boardLine = filterLine(board);
 
-  const save = async () => {
-    setBusy(true); setMsg("");
-    try {
-      const r = await api("/api/apply/auto-settings", { method: "PUT", body: JSON.stringify({ settings: s }) });
-      setS(r.settings);
-      onClose?.();
-    } catch (e) {
-      setMsg(e.message || "Could not save — nothing changed.");
-    } finally { setBusy(false); }
-  };
-
   return (
     <>
-      <div className="dh-scrim" style={{ zIndex: Z.MODAL_SCRIM }} onClick={onClose} aria-hidden="true" />
+      <div className="dh-scrim" style={{ zIndex: Z.MODAL_SCRIM }} onClick={close} aria-hidden="true" />
       <aside className="dh-drawer" style={{ zIndex: Z.MODAL }} role="dialog" aria-modal="true" aria-labelledby="dh-auto-title" ref={panel} data-auto-settings="">
         <header className="dh-drawer__head">
           <h2 id="dh-auto-title">Auto settings</h2>
-          <button type="button" className="dh-btn" onClick={onClose} aria-label="Close">✕</button>
+          <button type="button" className="dh-btn" onClick={close} aria-label="Close">✕</button>
         </header>
         {!s ? <p className="dh-drawer__msg" role="status">{msg || "Loading…"}</p> : (
           <div className="dh-drawer__body">
@@ -85,10 +109,11 @@ export default function AutoSettingsDrawer({ open, onClose }) {
                   </span>
                 ))}
                 {s.runTimes.length < MAX_TIMES && (
-                  <button type="button" className="dh-btn" onClick={() => {
-                    const next = SPARE_TIMES.find(x => !s.runTimes.includes(x));
-                    if (next) set({ runTimes: [...s.runTimes, next].sort() });
-                  }}>+ Add a time</button>
+                  <span className="dh-time" data-add-time="">
+                    <input type="time" aria-label="A run time to add" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
+                    <button type="button" aria-label="Add this time" disabled={!newTime || s.runTimes.includes(newTime)}
+                      onClick={() => { set({ runTimes: [...s.runTimes, newTime].sort() }); setNewTime(""); }}>+ Add</button>
+                  </span>
                 )}
               </div>
               <span className="dh-set__hint">Each run takes the jobs posted since the last.</span>
@@ -145,8 +170,8 @@ export default function AutoSettingsDrawer({ open, onClose }) {
           </div>
         )}
         <footer className="dh-drawer__foot">
-          <button type="button" className="dh-btn" onClick={onClose}>Cancel</button>
-          <button type="button" className="dh-btn" data-kind="primary" onClick={save} disabled={!s || busy}>{busy ? "Saving…" : "Save"}</button>
+          <span className="dh-set__hint" role="status" data-save-state="">{busy ? "Saving…" : saved}</span>
+          <button type="button" className="dh-btn" data-kind="primary" onClick={close}>Done</button>
         </footer>
       </aside>
     </>
