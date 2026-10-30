@@ -58,7 +58,7 @@ function StarMark({ filled }) {
 
 export default function JobBubble({ job, score = null, selected = false, saved = false, drafted = false, drafting = false, resumeReady = false,
                                     onOpen, onAts, onSave, onDraft, onViewDraft = null, draftBlocked = null,
-                                    onExplainDraft = null, draftSlots = null }) {
+                                    onExplainDraft = null, draftSlots = null, picked = false, picking = false, onPick = null }) {
   const [companyView, setCompanyView] = useState(false);
   const draft = draftButtonState({ drafted, drafting, block: draftBlocked, canView: !!onViewDraft, slots: draftSlots });
   const id = job.jobId || job.id;
@@ -71,13 +71,24 @@ export default function JobBubble({ job, score = null, selected = false, saved =
 
   const open = (e) => {
     if (e.target.closest("a, button")) return;
+    // ⭐ D112 a1: shift-click picks the card for "Draft selected" instead of opening it.
+    if (e.shiftKey && onPick) { e.preventDefault(); onPick(); return; }
     onOpen?.();
   };
   const stop = (fn) => (e) => { e.stopPropagation(); fn?.(); };
 
   return (
     <div className="jb" data-job-bubble={id} data-selected={selected ? "true" : undefined}
+      data-picked={picked ? "true" : undefined} data-picking={picking ? "true" : undefined}
       data-dim={job.disliked ? "passed" : job.visited ? "visited" : undefined} onClick={open}>
+      {/* ⭐ D112 a1: the tick — a small depth box (D60: radius 6, never round), shown on hover / focus and
+          whenever anything is picked. It sits off the rail: the rail stays the three squares. */}
+      {onPick && (
+        <button type="button" className="jb__tick" data-pick-tick="" aria-pressed={picked}
+          aria-label={picked ? `Selected — ${job.company}, ${job.title}. Press to unselect` : `Select ${job.company}, ${job.title} for Draft selected`}
+          title={picked ? "Selected for Draft selected — press to unselect" : "Select for Draft selected (or shift-click the card)"}
+          onClick={stop(onPick)}>{picked ? "✓" : ""}</button>
+      )}
       <button type="button" className="jb__logo" onClick={stop(() => setCompanyView(true))}
         aria-label={`${job.company} — company profile`}>
         <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={52} radius={13} />
@@ -87,7 +98,8 @@ export default function JobBubble({ job, score = null, selected = false, saved =
         {/* ⭐ A63: APPLY IS THE COMPANY NAME — D38: the ONE company link, sized to its text. */}
         <CompanyLink company={job.company} href={applyHref || null} jobId={id} size="card" className="jb__company" />
         <a className="jb__title" href={jobDetailHref(id)} style={{ color: "inherit", textDecoration: "none" }}
-          onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) { e.stopPropagation(); return; } e.preventDefault(); e.stopPropagation(); onOpen?.(); }}>
+          onClick={(e) => { if (e.shiftKey && onPick && e.button === 0) { e.preventDefault(); e.stopPropagation(); onPick(); return; }
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) { e.stopPropagation(); return; } e.preventDefault(); e.stopPropagation(); onOpen?.(); }}>
           {job.title}
         </a>
         {meta.length > 0 && <div className="jb__meta">{meta.join("  ·  ")}</div>}
