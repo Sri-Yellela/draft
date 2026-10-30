@@ -171,5 +171,6 @@ test("the board card marks an ineligible posting with its reasons, and nothing e
   assert.match(fn, /if \(eligibility\?\.status !== "ineligible"\) return null;/, "unknown or absent must render nothing");
   assert.match(fn, /style=\{markStyle\(C\.DANGER\)\}/);
   assert.match(fn, /Not eligible/);
-  assert.match(card, /<EligibilityMark eligibility=\{job\.eligibility\}\/>/);
+  // D108 P3 added the employer's filings to the title as information (changed on purpose; the verdict is unchanged).
+  assert.match(card, /<EligibilityMark eligibility=\{job\.eligibility\} sponsorship=\{job\.sponsorshipFact\}\/>/);
 });

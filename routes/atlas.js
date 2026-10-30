@@ -32,6 +32,7 @@ import { createNode, updateNode, readNodeForEditor, mergeNodes, addTypedEdge, re
 import { checkAtlasLinks } from "../services/atlas/atlasLinkCheck.js";
 import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
+import { sponsorsForRole } from "../services/atlas/atlasSponsors.js";
 
 // A signed-in reader's terms — ONE implementation (services/atlas/atlasStore.js profileTerms), also read by D110's
 // interview prep (services/interviewPrep.js skillGaps).
@@ -68,7 +69,9 @@ export function createAtlasRouter(db) {
     const node = readNode(db, req.params.slug, { publishedOnly: true });
     if (!node) return res.status(404).json({ error: "not_found", message: "No published Atlas page by that name." });
     const userId = req.user?.id ?? null;
-    res.json({ ...node, ...(userId ? { you: youAgainst(db, userId, node) } : {}) });
+    // ⭐ D108 P3 · "Sponsors who hire this role" — computed from active postings + the companies' public LCA facts.
+    const sponsors = node.kind === "role" ? (() => { try { return sponsorsForRole(db, node.slug); } catch { return []; } })() : null;
+    res.json({ ...node, ...(sponsors?.length ? { sponsors } : {}), ...(userId ? { you: youAgainst(db, userId, node) } : {}) });
   });
   return router;
 }
