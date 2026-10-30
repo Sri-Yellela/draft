@@ -19,6 +19,7 @@ import { deckStrip, kickerFor, NOT_STATED, COULD_NOT_READ } from "../../../share
 import { formatPosting, markTerm } from "../../../shared/postingFormat.js";
 import { textForRender } from "../../../shared/postingNormalize.js";
 import { requirementPills } from "../../../shared/postingRequirements.js";
+import { applyLine } from "../../../shared/postingLevel.js";
 import { usePairLink } from "../lib/pairLink.js";
 import "../styles/inkPair.css";
 import "./PostingPanel.css";
@@ -56,6 +57,8 @@ export function PostingMasthead({ job, experience = null, showTitle = true, vtTi
       <PostingRequirements requirements={job.requirements} />
       <PostingDetails fields={job.postingFields} />
       <PostingLiveness liveness={job.liveness} />
+      <PostingLevel levelRead={job.levelRead} />
+      <PostingApplyLine job={job} />
     </header>
   );
 }
@@ -85,6 +88,29 @@ export function PostingLiveness({ liveness }) {
   return (
     <p className="posting__details" data-posting-liveness={liveness.kind}>
       <span className="posting__details-k">History</span> {liveness.label}
+    </p>
+  );
+}
+
+/** ⭐ D106 P1 · the level the posting's text asks for, said when it is two steps from its title. */
+export function PostingLevel({ levelRead }) {
+  const d = levelRead?.disagreement;
+  if (!d) return null;
+  return (
+    <p className="posting__details" data-posting-level={d.direction}>
+      <span className="posting__details-k">Level</span> {d.text}
+    </p>
+  );
+}
+
+/** ⭐ D106 P2 · the one "should I apply" sentence — information, never a block; the ATS number is unchanged. */
+export function PostingApplyLine({ job }) {
+  const score = Number.isFinite(job?.matchScore) ? job.matchScore : Number.isFinite(job?.baseAtsScore) ? job.baseAtsScore : null;
+  const line = applyLine({ score, eligibility: job?.eligibility, liveness: job?.liveness, level: job?.levelRead });
+  if (!line) return null;
+  return (
+    <p className="posting__details" data-apply-line={line.verdict}>
+      <span className="posting__details-k">In short</span> {line.text}
     </p>
   );
 }

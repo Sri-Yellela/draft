@@ -203,6 +203,8 @@ import { backfillAutomationTier } from "./services/jobs/backfillAutomationTier.j
 import { backfillRoleMap } from "./services/jobs/backfillRoleMap.js";
 import { remapGeneralRows, REMAP_MATCHED_BY } from "./services/jobs/remapGeneralRoles.js";
 import { tagStaleJobs } from "./services/jobs/jobTags.js";
+// ⭐ D106: the level a posting's text ASKS for, beside its title's ("Titled Junior · asks for 3+ years and system design").
+import { readStaleLevels, levelOfRow } from "./services/jobs/levelRead.js";
 import { backfillDescriptionText, withPostingText, refreshDescriptionText, postingText, registerDescriptionBasis } from "./services/jobs/descriptionText.js";
 import { backfillProvenance } from "./services/jobs/enrichmentProvenance.js";
 import { listPairs as listLearnedPairs, setPairRevoked, setPairPromoted, PROMOTE_AT_USERS } from "./services/learnedOrigins.js";
@@ -5399,6 +5401,18 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_job_history_group ON job_history(company_key, title_key, first_seen);
       `,
     },
+    {
+      // ⭐ D106 P1 (owner 10-30) · THE REAL LEVEL. What the posting's text ASKS for (years, system design, leading
+      // others, a prior internship, an advanced degree) → entry | early | mid | senior, beside the title's own level.
+      // Written by services/jobs/levelRead.js with the tag pass; level_read_basis makes it idempotent. The board's
+      // "Truly entry level" filter reads it (services/jobs/jobQuery.js truly_entry).
+      id: "176_level_read",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN level_read TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN level_reasons TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN level_read_basis TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -5580,6 +5594,12 @@ function runJobTagPass(trigger) {
     if (r.tagged > 0) console.log(`[tags] (${trigger}) tagged ${r.tagged} of ${r.scanned} posting(s)`);
   } catch (e) {
     console.error(`[tags] (${trigger}) tagging failed (untagged rows read as unknown and stay visible):`, e.message);
+  }
+  try {
+    const l = readStaleLevels(db);
+    if (l.read > 0) console.log(`[level] (${trigger}) read the asked level of ${l.read} of ${l.scanned} posting(s)`);
+  } catch (e) {
+    console.error(`[level] (${trigger}) reading levels failed (an unread posting has no level line):`, e.message);
   }
 }
 runJobTagPass("boot");
@@ -9693,6 +9713,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
                                      scrapedAt: j.scraped_at,
                                      ...(ineligible.has(j.job_id) ? { eligibility: { status: "ineligible", reasons: ineligible.get(j.job_id) } } : {}),
                                      ...(liveness.has(String(j.job_id)) ? { liveness: liveness.get(String(j.job_id)) } : {}),
+                                     ...(levelOfRow(j) ? { levelRead: levelOfRow(j) } : {}),
                                      // D40 · the + view's one extra line: "captured <date> · from <host>".
                                      ...(importedTab ? { captured: captureMeta(capturedBy.get(j.job_id)) } : {}),
                                      ...(pendingTab && resumeBy.has(j.job_id) ? (({ job_id, ...r }) => r)(resumeBy.get(j.job_id)) : {}) })),

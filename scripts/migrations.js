@@ -4953,4 +4953,16 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_job_history_group ON job_history(company_key, title_key, first_seen);
       `,
     },
+    {
+      // ⭐ D106 P1 (owner 10-30) · THE REAL LEVEL. What the posting's text ASKS for (years, system design, leading
+      // others, a prior internship, an advanced degree) → entry | early | mid | senior, beside the title's own level.
+      // Written by services/jobs/levelRead.js with the tag pass; level_read_basis makes it idempotent. The board's
+      // "Truly entry level" filter reads it (services/jobs/jobQuery.js truly_entry).
+      id: "176_level_read",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN level_read TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN level_reasons TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN level_read_basis TEXT;
+      `,
+    },
   ];

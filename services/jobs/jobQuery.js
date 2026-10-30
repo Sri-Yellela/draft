@@ -388,6 +388,10 @@ const ELIGIBILITY_FREE_SQL = `NOT (sj.description_basis IS NOT NULL AND sj.descr
     COALESCE(sj.req_citizenship, '') IN ('citizen_only', 'us_person')
     OR COALESCE(sj.req_clearance, 'none') != 'none' OR COALESCE(sj.req_polygraph, 0) = 1))`;
 
+/** D106 P1 · "Truly entry level": the text asks entry / early, or it asks nothing that says a level and the title / tag says entry. */
+export const TRULY_ENTRY_SQL = `(sj.level_read IN ('entry', 'early')
+    OR (sj.level_read IS NULL AND ${LEVEL_SQL} IN ('entry', 'intern')))`;
+
 function buildJobFilters(params = {}, opts = {}) {
   const clauses = [];
   const args = [];
@@ -556,6 +560,14 @@ function buildJobFilters(params = {}, opts = {}) {
   // reads the posting; it never reads or decides the candidate's eligibility (D36).
   if (isTruthyParam(params.hide_eligibility_required)) {
     clauses.push(ELIGIBILITY_FREE_SQL);
+  }
+
+  // ⭐ D106 P1 · "Truly entry level" — the posting's text ASKS for entry or early level (services/jobs/levelRead.js),
+  // or, where the text asks nothing that says a level, its title or tag says entry / intern. A junior title over a
+  // 3+ years / system-design ask is left out: that is the "seniorised" posting this filter exists for. An explicit
+  // narrowing the user chose — a posting with no level anywhere is not kept.
+  if (isTruthyParam(params.truly_entry)) {
+    clauses.push(TRULY_ENTRY_SQL);
   }
 
   const sources = toArray(params.sources);
