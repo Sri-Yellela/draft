@@ -387,6 +387,14 @@ export function DatabasePanel({ user }) {
     } finally { setPendingBusy(null); }
   }, [loadPending]);
 
+  // A105 finding 2: "I did not apply" for many at once (only PENDING rows; recorded ones keep their evidence).
+  const withdrawManyPending = useCallback(async (jobIds) => {
+    try {
+      await api("/api/applications/pending/withdraw", { method: "POST", body: JSON.stringify({ jobIds }) });
+    } catch (e) { alert(e.message || "Could not change them."); }
+    await loadPending();
+  }, [loadPending]);
+
   const generateForSaved = useCallback(async (job, force = false, tool = "generate") => {
     const planTier = String(user?.planTier || "BASIC").toUpperCase();
     // OFF MEANS ABSENT: with the lever off there is no refusal and no upsell — the tool just runs.
@@ -687,7 +695,7 @@ export function DatabasePanel({ user }) {
       {/* ── Pending pane (A63) ── */}
       {activeSheet === "pending" && (
         <PendingApplications data={pendingData} theme={theme} busyId={pendingBusy} messages={pendingMsgs}
-          onRecord={recordPending} onWithdraw={withdrawPending} focusJobId={pendingFocus} />
+          onRecord={recordPending} onWithdraw={withdrawPending} onWithdrawMany={withdrawManyPending} focusJobId={pendingFocus} />
       )}
 
       {/* ── Inbox (D103) — replies from job sites, forwarded by the user, filed by rule. ── */}

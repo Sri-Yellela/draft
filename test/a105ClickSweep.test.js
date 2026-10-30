@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import express from "express";
+import Database from "better-sqlite3";
+import { MIGRATIONS } from "../scripts/migrations.js";
+import applicationRecordRoutes from "../routes/applicationRecords.js";
+import { markPending, recordSubmission } from "../services/applicationRecords.js";
 
 // ⭐ A105 (owner 10-30: "our product is time") — the click sweep's fixes, one test per finding.
 
@@ -12,4 +17,41 @@ test("A105 (3) · History's 'Record the submission' opens that job's form in Pen
   assert.match(db, /focusJobId=\{pendingFocus\}/);
   assert.match(pending, /const \[open, setOpen\] = useState\(focusJobId\);/);
   assert.match(pending, /scrollIntoView/);
+});
+
+// A105 finding 2 — every opened posting is Pending (O45c), so clearing is one press, not one per row.
+test("A105 (2) · POST /api/applications/pending/withdraw clears many PENDING rows; a recorded one keeps its evidence", async () => {
+  const db = new Database(":memory:");
+  for (const m of MIGRATIONS) db.exec(m.sql);
+  db.prepare("INSERT INTO users (id,username,password_hash) VALUES (1,'ada','x'), (2,'eli','x')").run();
+  for (const j of ["j1", "j2", "j3"]) markPending(db, 1, j, "opened_posting");
+  markPending(db, 2, "j1", "opened_posting");
+  recordSubmission(db, { userId: 1, jobId: "j3", input: { submittedAt: Date.now(), method: "company_site", evidenceText: "Thanks for applying" }, capturedAtsAtApply: () => null });
+  const app = express();
+  app.use(express.json());
+  app.use((req, _r, n) => { req.user = { id: 1 }; n(); });
+  applicationRecordRoutes(app, db, (_q, _r, n) => n(), { capturedAtsAtApply: () => null });
+  const server = app.listen(0);
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const post = (body) => fetch(`${base}/api/applications/pending/withdraw`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  try {
+    assert.equal((await post({})).status, 400);
+    const r = await (await post({ jobIds: ["j1", "j2", "j3", "nope"] })).json();
+    assert.equal(r.withdrawn, 2, "j3 is recorded — not cleared in bulk");
+    const st = (u, j) => db.prepare("SELECT state FROM application_records WHERE user_id=? AND job_id=?").pluck().get(u, j);
+    assert.equal(st(1, "j1"), "withdrawn");
+    assert.notEqual(st(1, "j3"), "withdrawn");
+    assert.equal(st(2, "j1"), "pending", "another user's row is untouched");
+  } finally { server.close(); }
+});
+
+test("A105 (2) · Pending has a search, a tick per pending row, 'I did not apply (N)' and 'Dismiss N opened, not applied'", () => {
+  const ui = fs.readFileSync("client/src/components/PendingApplications.jsx", "utf8");
+  const db = fs.readFileSync("client/src/panels/DatabasePanel.jsx", "utf8");
+  assert.match(ui, /placeholder="Search pending…"/);
+  assert.match(ui, /r\.origin === "opened_posting" && r\.state === "pending"/);
+  assert.match(ui, /Dismiss \{openedOnly\.length\} opened, not applied/);
+  assert.match(ui, /I did not apply \(\{pickedIds\.length\}\)/);
+  assert.match(ui, /window\.confirm\(/, "a bulk clear says what it does first");
+  assert.match(db, /api\("\/api\/applications\/pending\/withdraw", \{ method: "POST", body: JSON\.stringify\(\{ jobIds \}\) \}\)/);
 });

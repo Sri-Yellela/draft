@@ -67,9 +67,24 @@ function RecordForm({ row, methods, theme, onRecord, busy }) {
   );
 }
 
-export default function PendingApplications({ data, theme, onRecord, onWithdraw, busyId, messages = {}, focusJobId = null }) {
+export default function PendingApplications({ data, theme, onRecord, onWithdraw, onWithdrawMany, busyId, messages = {}, focusJobId = null }) {
   const [open, setOpen] = useState(focusJobId);
-  const rows = data?.pending || [];
+  const all = data?.pending || [];
+  // A105 finding 2: every posting opened lands here (O45c), so clearing has to be cheap — a search, a tick per row,
+  // and one press for "opened, never applied". Only PENDING rows clear in bulk; a recorded one keeps its evidence.
+  const [q, setQ] = useState("");
+  const [picked, setPicked] = useState(() => new Set());
+  const needle = q.trim().toLowerCase();
+  const rows = needle ? all.filter(r => `${r.company || ""} ${r.title || ""}`.toLowerCase().includes(needle)) : all;
+  const openedOnly = all.filter(r => r.origin === "opened_posting" && r.state === "pending").map(r => r.jobId);
+  const pickedIds = [...picked].filter(id => all.some(r => r.jobId === id && r.state === "pending"));
+  const toggle = (id) => setPicked(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const clearMany = async (ids, what) => {
+    if (!ids.length || !onWithdrawMany) return;
+    if (!window.confirm(`Take ${ids.length} ${what} out of Pending? Opening a posting again puts it back.`)) return;
+    await onWithdrawMany(ids);
+    setPicked(new Set());
+  };
   // A105 finding 3: History's "Record the submission" arrives WITH its job — that row's form is open and in view, so
   // the user does not hunt for it in the list.
   useEffect(() => {
@@ -90,7 +105,26 @@ export default function PendingApplications({ data, theme, onRecord, onWithdraw,
           <span>Verified means: {rule.proves} {rule.doesNotProve}</span>
         </div>
       )}
-      {!rows.length && (
+      {all.length > 0 && (
+        <div data-pending-bulk="" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search pending…" aria-label="Search pending"
+            style={{ height: 30, padding: "0 10px", borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.surface,
+                     color: theme.text, fontSize: 12, minWidth: 180 }} />
+          {openedOnly.length > 0 && (
+            <button type="button" className="rm-btn rm-btn-ghost rm-btn-sm" data-dismiss-opened=""
+              onClick={() => clearMany(openedOnly, openedOnly.length === 1 ? "posting you only opened" : "postings you only opened")}>
+              Dismiss {openedOnly.length} opened, not applied</button>
+          )}
+          {pickedIds.length > 0 && (
+            <button type="button" className="rm-btn rm-btn-secondary rm-btn-sm" data-withdraw-picked=""
+              onClick={() => clearMany(pickedIds, pickedIds.length === 1 ? "job" : "jobs")}>I did not apply ({pickedIds.length})</button>
+          )}
+        </div>
+      )}
+      {!rows.length && needle && all.length > 0 && (
+        <div style={{ textAlign: "center", padding: 16, color: theme.textMuted, fontSize: 13 }}>Nothing pending matches “{q}”.</div>
+      )}
+      {!all.length && (
         <div style={{ textAlign: "center", padding: 32, color: theme.textMuted, fontSize: 13 }}>
           Nothing pending. A job lands here when you generate a résumé for it, open its posting from the board,
           or export a résumé — and leaves when you record a verified submission or say you did not apply.
@@ -104,6 +138,10 @@ export default function PendingApplications({ data, theme, onRecord, onWithdraw,
           <div key={row.jobId} data-pending-row={row.jobId}
             style={{ border: `1px solid ${theme.border}`, borderRadius: 10, padding: "10px 12px" }}>
             <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
+              {row.state === "pending" && (
+                <input type="checkbox" aria-label={`Select ${row.company || row.jobId}`} checked={picked.has(row.jobId)}
+                  onChange={() => toggle(row.jobId)} style={{ alignSelf: "center" }} />
+              )}
               <div style={{ flex: 1, minWidth: 200 }}>
                 {/* D38: the ONE company link. No Pending tag here — this row IS the Pending list (onOpen does nothing);
                     the job id is for D99 J11 — the extension opens the posting bound to it. */}

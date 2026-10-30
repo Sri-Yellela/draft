@@ -315,6 +315,20 @@ export function withdraw(db, userId, jobId) {
   `).run(userId, String(jobId)).changes;
 }
 
+/**
+ * A105 finding 2 · "I did not apply" for many at once. Only PENDING rows — a RECORDED one carries the user's own
+ * evidence of a submission and is never cleared in bulk. Returns how many left Pending.
+ */
+export const WITHDRAW_MANY_MAX = 500;
+export function withdrawMany(db, userId, jobIds) {
+  const ids = [...new Set((Array.isArray(jobIds) ? jobIds : []).map(String).filter(Boolean))].slice(0, WITHDRAW_MANY_MAX);
+  const stmt = db.prepare(`
+    UPDATE application_records SET state = 'withdrawn', withdrawn_at = unixepoch(), updated_at = unixepoch()
+    WHERE user_id = ? AND job_id = ? AND state = 'pending'
+  `);
+  return db.transaction(() => ids.reduce((n, id) => n + stmt.run(userId, id).changes, 0))();
+}
+
 export function publicRecord(r) {
   if (!r) return null;
   let verification = null;
