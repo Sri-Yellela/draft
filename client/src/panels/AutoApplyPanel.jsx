@@ -24,6 +24,7 @@ import { TYPE } from "../styles/type.js";
 import WaitingLine from "../components/WaitingLine.jsx";
 import DraftRunBar from "../components/DraftRunBar.jsx";
 import AutoSettingsDrawer from "../components/AutoSettingsDrawer.jsx";
+import PortalsDrawer from "../components/PortalsDrawer.jsx";
 import StoppedItem from "../components/StoppedItem.jsx";
 import { buildStoppedItems, splitAnswers, filterItems, SEARCH_FROM, packetLife } from "../lib/draftHouseExceptions.js";
 import { useViewport } from "../hooks/useViewport.js";
@@ -150,6 +151,8 @@ export function AutoApplyPanel() {
   // not three behind a modal. The server still leaves ineligible ones in Ready to approve (skippedIneligible).
   const [confirmSendAll, setConfirmSendAll] = useState(false);
   const settingsOpener = useRef(null);
+  // D100: the Portals drawer — sessions and accounts draft applies with (sketch: the run bar's Portals).
+  const [portalsOpen, setPortalsOpen] = useState(false);
   const fullAuto = runBar?.mode?.current === "auto";
   const listedItems = filterItems(stoppedItems, search);
   const [openKey, setOpenKey] = useState(null);
@@ -565,7 +568,9 @@ export function AutoApplyPanel() {
 
       {/* ── D25: THE RUN BAR — mode, the three caps, ⏸ Stop everything. ── */}
       <DraftRunBar runBar={runBar} onStop={setStopEverything} busy={holdBusy} message={holdMsg}
-        onMode={setApplyMode} onOpenSettings={(el) => { settingsOpener.current = el; setSettingsOpen(true); }} />
+        onMode={setApplyMode} onOpenSettings={(el) => { settingsOpener.current = el; setSettingsOpen(true); }}
+        onOpenPortals={(el) => { settingsOpener.current = el; setPortalsOpen(true); }} />
+      <PortalsDrawer open={portalsOpen} onClose={() => { setPortalsOpen(false); settingsOpener.current?.focus?.(); }} />
       <AutoSettingsDrawer open={settingsOpen}
         onClose={() => { setSettingsOpen(false); settingsOpener.current?.focus?.(); }} />
 

@@ -124,7 +124,10 @@ export function createApplyWorkerRouter(db, { env = process.env, hooks = {}, pay
 export default function portalRoutes(app, db, requireAuth, { client = null } = {}) {
   const fail = (res, e) => res.status(e.status || 500).json({ error: e.code || "error", message: e.message });
 
-  app.get("/api/portals", requireAuth, (req, res) => res.json({ portals: listPortals(db, req.user.id), accounts: listAccounts(db, req.user.id) }));
+  // `worker`: whether the apply worker is configured here (APPLY_WORKER_URL + its token) — the client offers to create
+  // an account or connect a portal only when something can act on it.
+  app.get("/api/portals", requireAuth, (req, res) => res.json({ worker: !!(client ?? workerClient()),
+    portals: listPortals(db, req.user.id), accounts: listAccounts(db, req.user.id) }));
 
   // D100 (a), owner 10-30: draft creates portal accounts for the user. Consent per portal, said in full here and in the
   // client: your own email, a password draft's apply worker generates and keeps sealed (draft cannot read it), and the
