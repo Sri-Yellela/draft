@@ -8,6 +8,12 @@
 //   · These ARE what the fill reads for work authorisation, sponsorship, clearance, preferences and self-ID — the
 //     overlay in services/structuredProfile.js (withApplicationDefaults). Nothing else on the page sets them.
 //   · Experience shows the company's logo, or a SQUARE initial tile (D60: no capsule, no circle on a non-avatar).
+//   · ⭐ D109 · PROOF: each experience bullet and each project can link evidence — a repository, a live demo, a paper,
+//     a write-up (https only, a kind, a short label; PUT /api/profile/evidence). Each bullet wears the claim guard's
+//     mark, "Evidence linked" / "No evidence linked" (services/resumeClaimGuard.js markBacking) — tailoring keeps the
+//     backed ones first when it must choose. The optional public proof page (/p/<handle>) lists the projects and their
+//     links; OFF until the user turns it on, nothing private on it. ⛔ draft certifies nothing: the links are the
+//     candidate's own, and no word here or on the page claims draft checked them.
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
@@ -46,6 +52,109 @@ function LogoTile({ logo, initial, theme }) {
     ? <img src={logo} alt="" style={{ ...box, objectFit: "contain", background: C.SURFACE_SOLID }} />
     : <span aria-hidden="true" style={{ ...box, display: "inline-flex", alignItems: "center", justifyContent: "center",
         fontWeight: 800, fontSize: 14, color: theme.textMuted, background: theme.surfaceHigh }}>{initial || "?"}</span>;
+}
+
+// ── D109 · evidence on a claim ────────────────────────────────────────────────────────────────────
+const EVIDENCE_KINDS = [["repository", "Repository"], ["demo", "Live demo"], ["paper", "Paper"], ["writeup", "Write-up"]];
+const KIND_WORD = Object.fromEntries(EVIDENCE_KINDS);
+const BACKED_WORDS = { backed: "Evidence linked", unbacked: "No evidence linked" };
+
+function BackingMark({ backed }) {
+  return <span data-backing={backed ? "backed" : "unbacked"} style={markStyle(backed ? C.SUCCESS : C.INK_MUTED)}>
+    {backed ? BACKED_WORDS.backed : BACKED_WORDS.unbacked}</span>;
+}
+
+/** One claim's links, and the inline form that replaces them (PUT /api/profile/evidence; [] removes them). */
+function EvidenceLinks({ target, claim, links, onSaved, theme }) {
+  const [draft, setDraft] = useState(null);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const input = { height: 30, padding: "0 8px", borderRadius: 6, border: `1px solid ${theme.border}`, background: theme.surface,
+    color: theme.text, fontSize: 12, boxSizing: "border-box", width: "100%" };
+  const save = async () => {
+    setBusy(true); setErr("");
+    try {
+      const items = draft.filter(x => String(x.url || "").trim()).map(x => ({ kind: x.kind, label: x.label, url: x.url.trim() }));
+      onSaved(await api("/api/profile/evidence", { method: "PUT", body: JSON.stringify({ target, claim, items }) }));
+      setDraft(null);
+    } catch (e) { setErr(e.message || "Not saved."); } finally { setBusy(false); }
+  };
+  if (!draft) {
+    return (
+      <span data-evidence={target} style={{ display: "inline-flex", gap: 8, flexWrap: "wrap", alignItems: "baseline", fontSize: 12 }}>
+        {links.map(l => (
+          <a key={l.id ?? l.url} href={l.url} target="_blank" rel="noopener noreferrer" style={{ color: theme.text }}>
+            <span style={{ color: theme.textMuted }}>{KIND_WORD[l.kind] || l.kind}:</span> {l.label}</a>
+        ))}
+        <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setDraft(links.length ? links.map(l => ({ ...l })) : [{ kind: "repository", label: "", url: "" }])}>
+          {links.length ? "Edit evidence" : "+ Link evidence"}</button>
+      </span>
+    );
+  }
+  const setAt = (i, k, v) => setDraft(d => d.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  return (
+    <div data-evidence-editor={target} style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4, padding: 8,
+      border: `1px solid ${theme.border}`, borderRadius: 8 }}>
+      {draft.map((x, i) => (
+        <div key={i} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 6, alignItems: "end" }}>
+          <select style={input} value={x.kind} onChange={e => setAt(i, "kind", e.target.value)} aria-label="Kind">
+            {EVIDENCE_KINDS.map(([k, w]) => <option key={k} value={k}>{w}</option>)}
+          </select>
+          <input style={input} value={x.label || ""} maxLength={60} placeholder="Short label" aria-label="Label"
+            onChange={e => setAt(i, "label", e.target.value)} />
+          <input style={input} type="url" value={x.url || ""} placeholder="https://…" aria-label="Address"
+            onChange={e => setAt(i, "url", e.target.value)} />
+          <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setDraft(d => d.filter((_, j) => j !== i))}>Remove</button>
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {draft.length < 5 && <button className="rm-btn rm-btn-ghost rm-btn-sm"
+          onClick={() => setDraft(d => [...d, { kind: "repository", label: "", url: "" }])}>+ Another link</button>}
+        <div style={{ flex: 1 }} />
+        <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setDraft(null)} disabled={busy}>Cancel</button>
+        <button className="rm-btn rm-btn-primary rm-btn-sm" onClick={save} disabled={busy}>{busy ? "Saving…" : "Save"}</button>
+      </div>
+      {err && <span role="alert" style={{ fontSize: 12, color: C.DANGER }}>{err}</span>}
+    </div>
+  );
+}
+
+/** D109 P3 · the public proof page: OFF by default; an address; what it shows. */
+function ProofPageSetting({ theme }) {
+  const [s, setS] = useState(null);
+  const [handle, setHandle] = useState("");
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    api("/api/profile/proof-page").then(r => { setS(r); setHandle(r.handle || ""); }).catch(e => setErr(e.message || "Could not load."));
+  }, []);
+  const send = async (enabled) => {
+    setErr("");
+    try { const r = await api("/api/profile/proof-page", { method: "PUT", body: JSON.stringify({ enabled, handle: handle.trim() || null }) }); setS(r); setHandle(r.handle || ""); }
+    catch (e) { setErr(e.message || "Not saved."); }
+  };
+  const muted = { fontSize: 12, color: theme.textMuted };
+  if (!s) return <span style={muted}>{err || "Loading…"}</span>;
+  const url = s.handle ? `${window.location.origin}/p/${s.handle}` : null;
+  return (
+    <div data-proof-page={s.enabled ? "on" : "off"} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <p style={{ ...muted, margin: 0, lineHeight: 1.6 }}>
+        A public page listing your projects and the links you added to them — for an application's website field. It shows
+        your name and your projects only: no email, phone or address. It says the links are supplied by you; draft does not
+        open, check or vouch for them. <b>Off</b> until you turn it on.
+      </p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <span style={muted}>{window.location.host}/p/</span>
+        <input value={handle} onChange={e => setHandle(e.target.value.toLowerCase())} placeholder="your-name" aria-label="Page address"
+          style={{ height: 32, padding: "0 8px", borderRadius: 6, border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text, fontSize: 13 }} />
+        <span style={markStyle(s.enabled ? C.SUCCESS : C.INK_MUTED)}>{s.enabled ? "On" : "Off"}</span>
+        {s.enabled
+          ? <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => send(false)}>Turn off</button>
+          : <button className="rm-btn rm-btn-primary rm-btn-sm" onClick={() => send(true)} disabled={!handle.trim()}>Turn on</button>}
+      </div>
+      {s.enabled && url && <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13 }}>{url}</a>}
+      {err && <span role="alert" style={{ fontSize: 12, color: C.DANGER }}>{err}</span>}
+    </div>
+  );
 }
 
 const ymLabel = (v) => (v ? new Date(`${v}-01T00:00:00`).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : "");
@@ -261,9 +370,40 @@ export default function ProfileSections({ theme }) {
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.title || "—"} · {x.company}</div>
                 <div style={muted}>{[ymLabel(x.start), x.current ? "Present" : ymLabel(x.end)].filter(Boolean).join(" – ")}{x.location ? ` · ${x.location}` : ""}</div>
+                {x.bullets.length > 0 && (
+                  <ul style={{ margin: "6px 0 0", paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
+                    {x.bullets.map((b, bi) => (
+                      <li key={bi} data-bullet="" style={{ fontSize: 13, color: theme.text }}>
+                        <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+                          <span>{b}</span><BackingMark backed={!!x.marks?.[bi]?.backed} />
+                        </div>
+                        <EvidenceLinks theme={theme} target="bullet" claim={b} links={x.evidence?.[bi] || []} onSaved={setP} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           )} />
+      </Box>
+
+      <Box title="Projects" theme={theme}>
+        <ListEditor theme={theme} items={s.projects || []} addLabel="+ Add a project" blank={{ name: "", description: "" }}
+          fields={[{ k: "name", label: "Project" }, { k: "description", label: "What it is (optional)", wide: true }]}
+          onSave={(items) => saveSection("projects", { items: items.map(x => ({ name: x.name, description: x.description })) })}
+          render={(x) => (
+            <div data-project="">
+              <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.name}</span><BackingMark backed={!!x.backed} />
+              </div>
+              {x.description && <div style={muted}>{x.description}</div>}
+              <EvidenceLinks theme={theme} target="project" claim={x.name} links={x.evidence || []} onSaved={setP} />
+            </div>
+          )} />
+      </Box>
+
+      <Box title="Proof page" theme={theme}>
+        <ProofPageSetting theme={theme} />
       </Box>
 
       <Box title="Education" theme={theme}>
