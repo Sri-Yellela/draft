@@ -54,7 +54,7 @@ test("⛔ D97 · the manifest's optional hosts ARE the site table (5 + Workday's
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
   // the watcher is REGISTERED at run time, never declared — the one declared script is D99 J11's bridge, on draft's origin
   assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"], run_at: "document_start", all_frames: false }], "the watcher is REGISTERED at run time, never declared");
-  assert.equal(manifest.optional_permissions, undefined);
+  assert.deepEqual(manifest.optional_permissions, ["cookies"], "⭐⭐ D112 item 7 — apply here while you're away; nothing for reading");
   for (const o of manifest.optional_host_permissions) assert.doesNotMatch(o, /linkedin|indeed|glassdoor|<all_urls>/i);
   // the watcher ships in the zip (scripts/buildExtension.mjs follows the registration's `js: [...]` literal)
   assert.ok(collectRequiredFiles(manifest).includes(WATCHER_FILE));
@@ -257,7 +257,9 @@ test("⛔ D97 · permissions.request lives in click handlers only — Options' s
   // now: the request happens ONLY on the extension's own settings page (a web page cannot)
   // ⭐⭐ D112 b2 (owner 10-30): + the ONE global-read ask's window (global-ask.js) — its Allow's first call, pinned in
   // test/d112GlobalRead.test.js — and Settings → Permissions' "Job postings on any site" switch (onAllowGlobal)
-  assert.deepEqual(hits, ["global-ask.js", "options-auto.js", "options-permissions.js"]);
+  // ⭐⭐ D112 item 7 (owner 10-30): + the "apply here while you're away" window (apply-away.js) — `cookies` and one portal
+  // family's hosts, its Allow's first call, pinned in test/d112ApplyAway.test.js
+  assert.deepEqual(hits, ["apply-away.js", "global-ask.js", "options-auto.js", "options-permissions.js"]);
   const perm = read("extension/options-permissions.js");
   const allow = perm.slice(at(perm, "export function onAllow(api, siteId) {"), at(perm, "/** Draw the section"));
   const firstOf = (src) => { const i = at(src, "api."); return src.slice(i, i + 25); };

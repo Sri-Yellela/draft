@@ -42,15 +42,42 @@ access **revoked**, which is the removal case. Findings: `docs/GATED_HANDOFF_ARC
 - `tabs` — `activeTab` already gives the extension the only tab URL it needs: the one the user just
   invoked it on. A blanket `tabs` grant would expose the URL and title of *every* open tab, which is
   the opposite of what this design is for.
-- `cookies` — the extension never reads a cookie. Credentialed requests carry the user's session
-  because `credentials: 'include'` lets the browser attach it; nothing reads its value. (The retired
-  v0.1.0 builds declared this; they are deleted.)
+- `cookies` — **not in `permissions`** (never granted at install). ⭐⭐ Since D112 item 7 (v1.6.0, owner 10-30) it is
+  declared as an **optional** permission only — see *Optional permissions* below: read once, for one portal's own
+  hosts, from the user's press, and sealed before it leaves the browser. Credentialed requests to draft's own server
+  still carry nothing of ours (the extension's token, `credentials: 'omit'`). (The retired v0.1.0 builds declared it
+  at install and never read one; they are deleted.)
 - `notifications` — the handoff reports through `chrome.action`'s badge instead, so no additional
   user-facing consent prompt is requested for a status message.
 - `<all_urls>` — never, in any list. ⭐ Since T12 (owner, 10-15) the OPTIONAL list ends with `https://*/*` — never
   `host_permissions`, never granted at install, never itself requested; see *Optional host permissions* below.
 - **any job board or employer origin** — no longer needed at all, and that is the point. See host
   permissions.
+
+## Optional permissions
+
+⭐⭐ **D112 item 7 (owner 10-30: *"build both android thing and apply here when im away … we can release it when we are
+ready"*; v1.6.0) — "Let draft apply here while you're away".** The attended Amazon run (D100 P5) showed Amazon's sign-in
+refuses the apply worker's automated browser, so the worker can apply there only with the user's own sign-in. On a
+connectable portal's page where the user is signed in (`applyAway.js` `APPLY_AWAY_FAMILIES` — today Amazon only:
+`www.amazon.jobs`, `amazon.jobs`, `account.amazon.jobs`, the same family as `services/applyOrigins.js`), the dock offers
+the line; pressed, a small extension window (b2's shape, `apply-away.html`) gives the reason, and its **Allow and
+connect** calls `chrome.permissions.request({ permissions: ['cookies'], origins: <that family's three origins> })` as the
+click's first call. Not now asks Chrome nothing. Nothing is requested at install, on load, or from any other click.
+
+Granted, the service worker: asks draft for a per-session key the apply worker mints → **verifies its Ed25519 signature
+against the worker identity pinned in `applyAway.js`** (never the identity draft's reply names; a bad signature stops
+everything before a cookie is read) → reads `chrome.cookies.getAll` for **that family's origins only**, keeping only
+cookies of those hosts or their parent domain → **seals them in the extension** (X25519 + HKDF-SHA256 + AES-256-GCM, bound
+to user · portal · version — the scheme `apply-worker/lib/keys.js` opens) → uploads the ciphertext only
+(`/api/portals/upload`). draft's server stores it and cannot open it. **Disconnect** deletes the session (the worker
+destroys the key, so every stored copy becomes unreadable) and gives `cookies` back (`chrome.permissions.remove`). No
+cookie is ever written or removed, and nothing is read on any other site. ⚠ Inert until the owner pins the deployed
+worker's identity (`PINNED_WORKER_IDENTITY` is empty: the line is never offered). Pinned by `test/d112ApplyAway.test.js`.
+
+| Optional permission | Required by | What breaks without it |
+|---|---|---|
+| `cookies` | `applyAway.js` `readFamilyCookies()` — called only by `connectAway()`, after the minted key verified, for the TAB's portal family; requested only by `apply-away.js` `onAllow` (with that family's origins) | "Let draft apply here while you're away" cannot exist on desktop: the worker cannot apply on a portal (Amazon) that refuses its own sign-in. Everything else is unchanged — the extension still fills that portal itself while the user is there. |
 
 ## Host permissions
 

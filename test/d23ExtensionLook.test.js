@@ -47,8 +47,10 @@ test("⛔ D23: the permission set is exactly activeTab + scripting + storage, an
   // frame only. It is not a permission (jobsviadraft.com is already the one host) and is pinned exactly here.
   assert.deepEqual(manifest.content_scripts, [{ matches: ["https://jobsviadraft.com/*"], js: ["boardBridge.js"],
     run_at: "document_start", all_frames: false }], "the content scripts are exactly D99's bridge");
-  for (const k of ["optional_permissions",
-                   "web_accessible_resources", "externally_connectable", "declarative_net_request"]) {
+  // ⭐⭐ D112 item 7 (owner 10-30): ONE optional permission, `cookies` — "apply here while you're away", asked in that
+  // press only, for one portal family's hosts (test/d112ApplyAway.test.js)
+  assert.deepEqual(manifest.optional_permissions, ["cookies"]);
+  for (const k of ["web_accessible_resources", "externally_connectable", "declarative_net_request"]) {
     assert.equal(manifest[k], undefined, `manifest.${k} appeared — that is a new permission or exposure`);
   }
   // The self-hosted faces reach the review overlay as BYTES (FontFace), not as a URL the page loads,
@@ -72,8 +74,11 @@ test("⛔ D23: the storage keys are exactly the ones the listing names — no mo
       assert.ok(!/,\s*(\[[^\]]+\]|[A-Za-z_$][\w$]*)\s*:/.test(m[1].replace(/\{[^}]*\}/g, "")) || /\.\.\./.test(m[1]),
         `${f} writes more than one key in one call: ${m[0].slice(0, 80)}`);
     }
-    assert.doesNotMatch(src, /\b(localStorage|sessionStorage|indexedDB)\b|chrome\.cookies|chrome\.storage\.sync\.set/,
-      `${f} stores something outside chrome.storage.local/session`);
+    // ⭐⭐ D112 item 7: applyAway.js READS one portal family's cookies (the optional `cookies` permission) to seal them —
+    // it stores none; test/d112ApplyAway.test.js pins that no file sets or removes a cookie and that it is the only reader
+    const stores = f === "applyAway.js" ? /\b(localStorage|sessionStorage|indexedDB)\b|chrome\.storage\.sync\.set/
+      : /\b(localStorage|sessionStorage|indexedDB)\b|chrome\.cookies|chrome\.storage\.sync\.set/;
+    assert.doesNotMatch(src, stores, `${f} stores something outside chrome.storage.local/session`);
   }
   // + local:[AUTO_CAPTURE_SETTING] by D64 (owner, 10-07) — the automatic-capture switch, a decided and
   // disclosed addition (the privacy page's storage list, STORE_LISTING, PRIVACY_RECONCILIATION).

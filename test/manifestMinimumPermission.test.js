@@ -100,9 +100,22 @@ test("the permissions documented as deliberately NOT declared are in fact not de
   for (const perm of ["cookies", "tabs", "notifications", "<all_urls>", "webNavigation", "history"]) {
     assert.ok(!manifest.permissions.includes(perm),
       `"${perm}" is documented as deliberately not declared, but the manifest declares it`);
+  }
+  // ⭐⭐ D112 item 7 (owner 10-30, v1.6.0): `cookies` is OPTIONAL — "Let draft apply here while you're away", asked only
+  // in that press, for one portal family's hosts (test/d112ApplyAway.test.js). Nothing else is optional.
+  for (const perm of ["tabs", "notifications", "<all_urls>", "webNavigation", "history"]) {
     assert.ok(!(manifest.optional_permissions || []).includes(perm),
       `"${perm}" is declared as an optional permission, which the rationale does not cover`);
   }
+  assert.deepEqual(manifest.optional_permissions, ["cookies"]);
+});
+
+test("⭐⭐ D112 item 7: every optional permission has a row in MANIFEST_RATIONALE.md, and every row is declared", () => {
+  const section = rationale.split(/^## /m).find(s => s.startsWith("Optional permissions\n"));
+  assert.ok(section, 'MANIFEST_RATIONALE.md has no "## Optional permissions" section');
+  const rows = section.split("\n").filter(l => l.startsWith("|") && !/^\|\s*-+/.test(l) && !/^\|\s*Optional permission\s*\|/.test(l))
+    .map(l => l.split("|")[1].trim().replace(/^`|`$/g, ""));
+  assert.deepEqual(rows, manifest.optional_permissions || [], "the rows and the manifest's optional permissions, in order");
 });
 
 test("no host permission is a bare-domain wildcard, and none is a gated portal", () => {
