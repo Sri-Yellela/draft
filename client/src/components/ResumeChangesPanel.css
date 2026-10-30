@@ -1,4 +1,4 @@
-/* ⭐ D90 P2 · "What we changed" — the side-by-side panel the owner approved (docs/what-we-changed.html, 10-10).
+/* ⭐ D90 P2 · "What we changed" — the side-by-side panel the owner approved (docs/sketches/what-we-changed.html, 10-10).
    Two panels, the left résumé and the right, every section, role and bullet on one row. Tokens only (no literals);
    marks are .mark (D60, never a capsule); on a narrow screen the two panels become a left / right switch. */
 /* A full-screen takeover: the 9000 series (styles/zLayers.js — like CoverLetterModal), above the posting panel it opens from. */

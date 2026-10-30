@@ -8,7 +8,7 @@ row needs an expected result, an automated test (a fixture, in a real Chrome) **
 (31)–(37) are **"T10 additions — scenario rows (the upload gate)"**; (38)–(42) are **"T10 additions — more scenario
 rows"** (added after the 43k merges: T17 dock, T18 + T23, T20). Each row's wording below is the WORKLOG's own. A new
 row is added to the WORKLOG first, then here, with the same number. `test/t10ScenarioRows.test.js` fails if a number
-1–42 is missing from this table or appears twice.
+1–46 is missing from this table or appears twice. (43)–(46) are the 10-19 field report's rows (T31–T34), added 10-30.
 
 **Measured** 2026-10-15 on local `main` `9f3864c` (43k: binding-first, T9, D97R + T12, T17 dock, T22 launcher,
 T18 + T23, T20; then T25 + T21, T24 (migration 168) and the live-markup lane — `test/liveFormMarkup.test.js`,
@@ -118,10 +118,21 @@ passes on production with the real Stripe job and the Zoom Workday flow.*
 | 41 | the dock's rectangle is remembered per site | `t17DockChrome` › "⛔ T17: drag by the header, resize from an edge and a corner, snap…, collapse — each is sent to be remembered, and a new page restores it"; `t11EmbeddedChrome` › "⭐ T17 (d): the dock dragged ACROSS the embedded form's frame keeps moving, and its rectangle is remembered for the SITE…"; `t17Dock` › "⛔ T17: the rectangle is remembered PER SITE…", "⛔ T17: only a web page's TOP frame may write the place…"; `j4PanelLifecycle` › "⛔ J4 → T17: where the review panel sits is the DOCK's…" | yes | **COVERED** | not yet |
 | 42 | auto-read after consent reads the open tab at once | `t20AutoReadChrome` › "⭐ (a) consent reads the tabs ALREADY OPEN with no press · a new tab reads on load · a single-page step change reads ONCE · the kill switch stops it", "⭐ (b) 'Always read here' … reads its EMBEDDED Greenhouse frame at once — no reload"; `t20AutoReadOpenTabs` (9 tests, incl. "⭐ T20 · THE POPUP CLOSED AT THE PROMPT: the pending click + Chrome's grant (onAdded) finish the consent in the worker, and the open tab is read") | yes, grant stood in | **COVERED** — the real-prompt path (popup closes at the prompt) is unit-tested and was walked headed by `scripts/t20RealPromptWalk.mjs`, outside `npm test` | not yet |
 
+### The 10-19 field report (T31–T34) — rows 43–46, added 10-30 (43q, G3)
+
+The WORKLOG's **"T10 additions — scenario rows"** under the 10-19 field report, quoted. Each is tested — two of them in a real Chrome page, by the extractor the dock's Read runs — but **no walk presses the dock's Read on such a page with the extension loaded**, so each is PARTIAL until one does.
+
+| # | Scenario (WORKLOG wording) | Test(s) — file › test | Real Chrome? | Status | Owner's production walk |
+|---|---|---|---|---|---|
+| 43 | a careers site on no list — read from the dock | `t34GenericExtractor` › "(1) a JSON-LD JobPosting …", "(2) no structured data: Open Graph …"; `t31StubJsonLd` (the Railway shape: a stub JSON-LD description, then the page's own text) | the extractor, in a real Chrome page — not the dock's press | **PARTIAL** — the extractor is the dock's Read's; the press through the loaded extension is not walked | not yet |
+| 44 | the same, access refused | `t32ReadFailurePopup` › "T32 · no access (the page could not be read): its own code, and Allow — never 'not a job'" | no (identifyAndBind's own steps, the grant's refusal stood in) | **PARTIAL** — Chrome's real refusal is not walked (headless cannot answer the prompt) | not yet |
+| 45 | a page with no structured job data | `t34GenericExtractor` › "(2) … Open Graph …", "(3) the words inside a web component's shadow root …", "(5) Capture selection …" | the extractor, in a real Chrome page | **PARTIAL** — as row 43 | not yet |
+| 46 | a read that fails shows a popup with its reason code, never a bare mark | `t32ReadFailurePopup` › every failure class → one popup, its code, ≤ 2 buttons; "the panel raises the popup (never the '!') …" | no (the popup's spec and the panel's wiring; the popup layer itself is walked in `t27Popups`) | **PARTIAL** — the failure popup on a live read is not walked | not yet |
+
 ### Behaviour added since the numbered rows (T21, T24, T25)
 
 These are not T10 rows — the WORKLOG has not numbered them — but they change what the owner's walk must check. They
-are listed so the walk covers them; the guard counts only rows 1–42.
+are listed so the walk covers them; the guard counts only rows 1–46.
 
 | Item | What | Test(s) | Real Chrome? | State |
 |---|---|---|---|---|
@@ -134,7 +145,7 @@ are listed so the walk covers them; the guard counts only rows 1–42.
 | Status | Rows | Count |
 |---|---|---|
 | COVERED | 1, 2, 3, 4, 5, 6, 7, 10, 12, 13, 15, 17, 22, 24, 25, 26, 27, 34, 36, 37, 38, 39, 40, 41, 42 | **25** |
-| PARTIAL | 8, 9, 11, 14, 16, 18, 19, 20, 21, 23, 28, 29, 30, 31, 32, 35 | **16** |
+| PARTIAL | 8, 9, 11, 14, 16, 18, 19, 20, 21, 23, 28, 29, 30, 31, 32, 35, 43, 44, 45, 46 | **20** |
 | NOT COVERED | 33 | **1** |
 
 **COVERED here means automated, not done.** Every COVERED row runs against a fixture and synthetic data; rows 24–26 run

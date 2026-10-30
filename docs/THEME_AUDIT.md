@@ -1,6 +1,6 @@
 # D91 P0 — THEME AUDIT (read-only)
 
-**Measured 2026-10-11 on local `main` `f04c927`** (one commit ahead of `origin/main`, docs only). Spec: `docs/THEME_MODULE.md`. Sketch: `docs/themes-contrast.html`. ⚠ The spec and the WORKLOG give the sketch's path as `docs/sketches/themes-contrast.html`. That folder does not exist; this project keeps its sketches in `docs/` (for example `docs/what-we-changed.html`, D90's). The file is the same.
+**Measured 2026-10-11 on local `main` `f04c927`** (one commit ahead of `origin/main`, docs only). Spec: `docs/THEME_MODULE.md`. Sketch: `docs/sketches/themes-contrast.html`. ⚠ The spec and the WORKLOG give the sketch's path as `docs/sketches/themes-contrast.html`. That folder does not exist; this project keeps its sketches in `docs/` (for example `docs/sketches/what-we-changed.html`, D90's). The file is the same.
 
 Nothing in the product was changed to write this. The scanners are the guard's own regex and comment-stripping (`test/colorLiteralGuard.test.js`), run over more roots than the guard covers.
 
