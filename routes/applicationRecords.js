@@ -3,7 +3,7 @@
 // services/applicationRecords.js holds the rule (pending -> recorded -> verified, and what
 // "verified" means); services/draftSlots.js holds the allowance. These routes only expose them.
 import {
-  markPending, recordSubmission, withdraw, listRecords, listHistory, readRecord, publicRecord,
+  markPending, recordSubmission, withdraw, withdrawMany, WITHDRAW_MANY_MAX, listRecords, listHistory, readRecord, publicRecord,
   CLIENT_ORIGINS, USER_METHODS, SUBMIT_METHODS, VERIFY_RULE,
 } from "../services/applicationRecords.js";
 import { draftSlots } from "../services/draftSlots.js";
@@ -81,6 +81,16 @@ export default function applicationRecordRoutes(app, db, requireAuth, { captured
           : "Recorded, not verified yet — see what is missing below. It stays in Pending until it verifies.",
       });
     } catch (e) { fail(res, e); }
+  });
+
+  /** A105 finding 2 · "I did not apply" for many — { jobIds: [...] }; only PENDING rows leave (a recorded one keeps its evidence). */
+  app.post("/api/applications/pending/withdraw", requireAuth, (req, res) => {
+    const ids = req.body?.jobIds;
+    if (!Array.isArray(ids) || !ids.length || ids.length > WITHDRAW_MANY_MAX) {
+      return res.status(400).json({ error: "job_ids_required", message: `Send { jobIds: [...] } — 1 to ${WITHDRAW_MANY_MAX}.` });
+    }
+    const n = withdrawMany(db, req.user.id, ids);
+    res.json({ ok: true, withdrawn: n, message: `${n} taken out of Pending. Opening a posting again puts it back.` });
   });
 
   /** "I did not apply." */

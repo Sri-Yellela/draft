@@ -316,6 +316,7 @@ const AUTHENTICATED = new Set([
   "POST /api/applications/pending",
   "POST /api/applications/pending/:jobId/record",
   "POST /api/applications/pending/:jobId/withdraw",
+  "POST /api/applications/pending/withdraw",   // A105 finding 2: many at once, the caller's own pending rows only
   // routes/apply.js — every one of these is mounted with requireAuth
   "POST /api/apply",
   "GET /api/apply/status/:jobId",
