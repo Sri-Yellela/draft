@@ -41,7 +41,10 @@ import { C_LIGHT, C_DARK } from './tokens.js';
 import {
   handlers as AUTO_READ_HANDLERS, configureAutoRead, reconcileAutoRead, onPermissionsRemoved, onPermissionsAdded, forgetTab, noteFrameSite,
   AUTO_READ_KEY, normaliseSettings, SITES as AUTO_SITES, customOriginFor, originPattern, popupAutoView, siteFor as autoSiteFor, takeAutoCapture,
+  GLOBAL_ORIGINS,
 } from './autoRead.js';
+// ⭐ D112 b2: the ONE global-read ask — a small window over the posting that closes itself on either answer.
+import { openGlobalAsk, handlers as GLOBAL_ASK_HANDLERS, onWindowRemoved as onAskWindowRemoved } from './globalRead.js';
 
 // ⭐ T12 · a press found the form inside an ATS frame draft may not read yet: the settings remember WHICH site that page's
 // origin embeds (autoRead.js frameHints), so the popup's "Always read here" can ask for that frame too — local knowledge.
@@ -867,6 +870,8 @@ function pressToolbar(tab) {
     auto: () => autoFactsFor(tab),
     relay: async (_t, specs) => drawInDock(tab.id, renderRelay, [specs, await overlayTheme()]),
     openBoard: () => chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app` }),
+    // ⭐ D112 b2: the press is the ONE ask's moment while it is due (never answered) — the window over the posting
+    ask: (t) => openGlobalAsk(t),
   });
 }
 /**
@@ -881,8 +886,10 @@ async function autoFactsFor(tab) {
   const origin = customOriginFor(tab?.url);
   const here = origin ? await has([originPattern(origin)]) : false;
   const binding = await bindingForTab(tab).catch(() => null);
-  const view = popupAutoView({ settings: normaliseSettings(raw), url: tab?.url || null, granted: { here, sites }, jobId: binding?.jobId ?? null, bound: !!binding });
-  return { card: !!view.card, cardSite: autoSiteFor(tab?.url)?.name || null, here: view.here || null, frameAsk: view.frameAsk || null };
+  const global = await has([...GLOBAL_ORIGINS]);   // ⭐ D112
+  const view = popupAutoView({ settings: normaliseSettings(raw), url: tab?.url || null, granted: { here, sites, global }, jobId: binding?.jobId ?? null, bound: !!binding });
+  return { card: !!view.card, cardSite: autoSiteFor(tab?.url)?.name || null, here: view.here || null, frameAsk: view.frameAsk || null,
+    globalAsk: !!view.globalAsk, global: !!view.global };
 }
 
 // THE LISTENER FIRING IS THE PERMISSION: a toolbar press is a user gesture, and it grants activeTab for the tab — the
@@ -910,8 +917,12 @@ const DOCK_ACTS = Object.freeze({
     return { ok: true, say: 'Taken off your board.' };
   },
   'sign-in': async () => { await chrome.tabs.create({ url: `${RESUME_MASTER_URL}/login` }); return { ok: true, say: null }; },
-  // owner 10-23: a permission is requested on the settings page — Allow opens it at Permissions, where one click asks Chrome
-  'allow-site': async () => { await chrome.tabs.create({ url: chrome.runtime.getURL('options.html#permissions') }); return { ok: true, say: null }; },
+  // ⭐ D112 b2 (replaces the owner's 10-23 Settings-tab trip, A105 (10)): Allow opens the ONE global-read ask — a small
+  // window over this tab whose own Allow asks Chrome; on either answer it closes and this tab has the focus again
+  'allow-site': async (tab) => {
+    const r = await openGlobalAsk(tab, { force: true });
+    return { ok: !!r?.ok, say: r?.already ? 'draft can already read this site — press the toolbar icon to read it now.' : null };
+  },
   // ⭐ T31 · "Always read here" moved to Settings: the site is the TAB'S origin (never a message's), its frames the ones
   // draft knows it embeds; the switch there asks Chrome inside its own click
   'always-here': async (tab) => {
@@ -985,6 +996,14 @@ chrome.runtime.onStartup?.addListener(() => { void reconcileAutoRead(); });
 chrome.permissions?.onAdded?.addListener((added) => { void onPermissionsAdded(added); });
 chrome.permissions?.onRemoved?.addListener((removed) => { void onPermissionsRemoved(removed); });
 chrome.tabs.onRemoved.addListener((tabId) => { forgetTab(tabId); });
+// ⭐ D112 b2: the ask window's answer (it closes the window and focuses the posting tab), and its own ✕ (focus returns)
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  const handle = GLOBAL_ASK_HANDLERS[msg?.type];
+  if (!handle) return false;
+  handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
+  return true;
+});
+chrome.windows?.onRemoved?.addListener((windowId) => { void onAskWindowRemoved(windowId).catch(() => null); });
 
 // ── D98 §4–§5 (J6): the résumé on the page ─────────────────────────────────────────────────────────
 // The handlers are resumePanel.js's: the popup and the review panel may only OPEN the panel; a generation starts

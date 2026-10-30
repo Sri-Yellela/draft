@@ -255,7 +255,9 @@ test("⛔ D97 · permissions.request lives in click handlers only — Options' s
   // its first chrome call, pinned below
   // ⭐ T31 (owner 10-25): the toolbar popup is retired — its three clicks and T11's "Allow draft on <site>" are Settings'
   // now: the request happens ONLY on the extension's own settings page (a web page cannot)
-  assert.deepEqual(hits, ["options-auto.js", "options-permissions.js"]);
+  // ⭐⭐ D112 b2 (owner 10-30): + the ONE global-read ask's window (global-ask.js) — its Allow's first call, pinned in
+  // test/d112GlobalRead.test.js — and Settings → Permissions' "Job postings on any site" switch (onAllowGlobal)
+  assert.deepEqual(hits, ["global-ask.js", "options-auto.js", "options-permissions.js"]);
   const perm = read("extension/options-permissions.js");
   const allow = perm.slice(at(perm, "export function onAllow(api, siteId) {"), at(perm, "/** Draw the section"));
   const firstOf = (src) => { const i = at(src, "api."); return src.slice(i, i + 25); };
@@ -266,11 +268,11 @@ test("⛔ D97 · permissions.request lives in click handlers only — Options' s
     const i = at(perm, open);
     assert.ok(perm.indexOf(first, i) - i < open.length, `a switch's first call is ${first}`);
   }
-  assert.equal((perm.match(/permissions\.request\(/g) || []).length, 2, "two requests: a preset site's switch (onAllow) and a chosen site's");
+  assert.equal((perm.match(/permissions\.request\(/g) || []).length, 3, "three requests: a preset site's switch (onAllow), a chosen site's, and D112's global switch (onAllowGlobal)");
   assert.doesNotMatch(perm.slice(at(perm, "async function refresh() {"), at(perm, "for (const id of DISPLAY_ORDER)")), /permissions\.request/, "never on load");
-  // T11's "Allow draft on <site>": the fill's popup on the page opens Settings → Permissions (DOCK_ACT allow-site), whose
-  // switch asks Chrome (onAllow, pinned above) — the page itself asks nothing
-  assert.match(read("extension/background.js"), /'allow-site': async \(\) => \{ await chrome\.tabs\.create\(\{ url: chrome\.runtime\.getURL\('options\.html#permissions'\) \}\);/);
+  // T11's "Allow draft on <site>": ⭐ D112 b2 — the fill's popup on the page opens the ONE global-read ask's window
+  // (DOCK_ACT allow-site → openGlobalAsk), whose Allow asks Chrome — the page itself asks nothing
+  assert.match(read("extension/background.js"), /'allow-site': async \(tab\) => \{\s+const r = await openGlobalAsk\(tab, \{ force: true \}\);/);
   const opt = read("extension/options-auto.js");
   const fn = opt.slice(at(opt, "export function onSwitch(api,"), at(opt, "const hhmm ="));
   const firstCall = fn.indexOf("api.");

@@ -164,6 +164,21 @@ export function collectRequiredFiles(manifest) {
         if (!need.has(resolved)) { need.add(resolved); queue.push(resolved); }
       }
     }
+    // ⭐ D112 b2: an extension PAGE opened by name (chrome.windows.create({ url: chrome.runtime.getURL('global-ask.html…') }))
+    // is named only by that literal — the page, then its own scripts and stylesheets (as the entry pages above).
+    for (const m of text.matchAll(/getURL\(\s*[`'"]([\w./-]+\.html)/g)) {
+      const page = path.posix.normalize(m[1].replace(/^\.?\//, ''));
+      if (need.has(page)) continue;
+      need.add(page);
+      const pageFile = path.join(SRC_DIR, page);
+      if (!fs.existsSync(pageFile)) continue;
+      for (const r of readTextNoBom(pageFile).text.matchAll(/(?:src|href)\s*=\s*["']([^"']+)["']/g)) {
+        const ref = r[1];
+        if (/^(https?:)?\/\//i.test(ref) || ref.startsWith('data:') || ref.startsWith('#')) continue;
+        const res = ref.replace(/^\.\//, '');
+        if (!need.has(res)) { need.add(res); if (res.endsWith('.js')) queue.push(res); }
+      }
+    }
   }
   return [...need].sort();
 }

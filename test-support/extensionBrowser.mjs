@@ -294,6 +294,15 @@ export async function launchExtensionBrowser(opts = {}) {
     const extensionId = await browser.installExtension(ext);
     const control = await browser.newPage();
     await control.goto(`chrome-extension://${extensionId}/options.html`);
+    // ⭐ D112 b2: the first toolbar press opens the ONE global-read ask (a focused popup window) while it is due. The walks
+    // written before it press the toolbar as a person who has already answered it (Not now) — so the window never steals
+    // their tab's focus; `globalAsk: 'due'` leaves it unanswered (test/d112GlobalReadChrome.test.js answers it).
+    if (opts.globalAsk !== 'due') {
+      await control.evaluate(async () => {
+        const cur = (await chrome.storage.local.get('autoRead'))?.autoRead || {};
+        await chrome.storage.local.set({ autoRead: { ...cur, globalAsk: { at: Date.now(), answer: 'later' } } });
+      });
+    }
     const page = (await browser.pages())[0];
     let theme = opts.theme || 'light';
     const applyTheme = async (p) => p.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
