@@ -209,7 +209,7 @@ test("⛔ T20 · D23 + the gesture: Settings says the click AFTER the request, i
   assert.doesNotMatch(pop, /scripting\./);
   const ar = read("extension/autoRead.js");
   const callers = [...ar.matchAll(/await afterConsent\(/g)].length;
-  assert.equal(callers, 5, "consentAll · allowSite · allowFrame · an Options switch ON (preset · custom)");
+  assert.equal(callers, 6, "consentAll · allowSite · allowFrame · an Options switch ON (preset · custom) · ⭐ D112 consentGlobal");
   const bg = read("extension/background.js");
   assert.match(bg, /chrome\.permissions\?\.onAdded\?\.addListener\(\(added\) => \{ void onPermissionsAdded\(added\); \}\);/);
   assert.doesNotMatch(bg, /openTabsAfterConsent/, "background.js never injects on its own — not on install, startup or popup open");

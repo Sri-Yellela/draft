@@ -1,4 +1,4 @@
-# draft — Chrome Extension v1.5.2
+# draft — Chrome Extension v1.6.0
 
 Companion extension for Draft. It asks for permission to no job site at all, and reads a
 page only at the moment you point it at one.

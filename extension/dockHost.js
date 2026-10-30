@@ -174,6 +174,18 @@ export function openDockInPage(dockArgs, tab) {
   return { ok: true, active: dock.active(), has: ['fill', 'ats', 'resume', 'copy'].filter(t => dock.has(t)) };
 }
 
+/**
+ * ⭐ D112 · Injected, TOP frame: the dock on a posting "by itself" — drawn COLLAPSED (the launcher) when it is not on the
+ * page yet; a dock already there is left exactly as the person left it. → { ok, drawn }.
+ */
+export function launcherInPage(dockArgs) {
+  const D = globalThis.__draftDock;
+  if (!D?.ensure) return { ok: false, drawn: false };
+  const fresh = !D.current?.();
+  const dock = D.ensure(fresh ? { ...(dockArgs || {}), place: { ...(dockArgs?.place || {}), collapsed: true } } : (dockArgs || {}));
+  return { ok: !!dock, drawn: !!dock && fresh };
+}
+
 // ── the dock's messages ─────────────────────────────────────────────────────────────────────────────────────────
 /**
  * DOCK_PLACE — the dock moved, was resized, snapped, collapsed or changed tab: remember it for the page's site.
