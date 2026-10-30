@@ -242,7 +242,9 @@ export function createByomTools(deps) {
       const expiresAt = now() + BRIEF_TTL_SECONDS;
       const id = signBrief(secret, { userId, jobId: job.job_id, hash: baseHash(base.text), expiresAt, nonce: crypto.randomBytes(12).toString("hex") });
       notify(userId, job.job_id, "waiting");
-      return buildBrief({ briefId: id, expiresAt, job, structured: base.structured, claims: base.claims, baseReport, allowSummary: base.allowSummary, detail: detail || "full" });
+      // D109 P2: base.backedFor (when the host supplies it) marks each bullet backed / unbacked by the candidate's evidence.
+      return buildBrief({ briefId: id, expiresAt, job, structured: base.structured, claims: base.claims, baseReport, allowSummary: base.allowSummary, detail: detail || "full",
+        backedFor: typeof base.backedFor === "function" ? base.backedFor : null });
     },
 
     draft_submit_resume_patch({ userId, connectionId }, { brief_id, patch } = {}) {

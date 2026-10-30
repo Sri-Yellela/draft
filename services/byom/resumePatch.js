@@ -47,7 +47,7 @@ const valuesOf = (row) => String(row?.values || "").split(/\s*(?:,|;|\||•|·)\
  * ids are positional (s<section>.e<entry>.b<bullet>, s<section>.r<row>, s<section>.summary) and are only
  * meaningful against the base the brief was built from, which the brief stores.
  */
-export function idsFor(structured) {
+export function idsFor(structured, backedFor = null) {
   const sections = (structured?.sections || []).map((s, si) => {
     if (s.type === "summary") return { id: `s${si}.summary`, type: "summary", title: s.title, text: s.text || "" };
     if (s.type === "skills") {
@@ -58,7 +58,9 @@ export function idsFor(structured) {
       entries: (s.entries || []).map((e, ei) => ({
         id: `s${si}.e${ei}`, company: e.company || "", role: e.role || "", date: e.date || "", meta: e.meta || "",
         tech: e.tech || "", text: e.text || "",
-        bullets: (e.bullets || []).map((b, bi) => ({ id: `s${si}.e${ei}.b${bi}`, text: b })),
+        // D109 P2: with the candidate's evidence known, each bullet carries `backed` — DATA (did they link evidence to
+        // it), which the user's model reads when it chooses what to keep; the static Skill says how to use it (§2F).
+        bullets: (e.bullets || []).map((b, bi) => ({ id: `s${si}.e${ei}.b${bi}`, text: b, ...(backedFor ? { backed: !!backedFor(b) } : {}) })),
       })) };
   });
   return { sections };
@@ -99,11 +101,11 @@ export const OUTPUT_SCHEMA = Object.freeze({
  */
 export const BRIEF_DETAIL = Object.freeze(["full", "short"]);
 
-export function buildBrief({ briefId, expiresAt, job = {}, structured, claims = {}, baseReport = null, allowSummary = false, detail = "full" }) {
+export function buildBrief({ briefId, expiresAt, job = {}, structured, claims = {}, baseReport = null, allowSummary = false, detail = "full", backedFor = null }) {
   const claimedSkills = [...new Set((claims?.skills || []).map(String))];
   const claimedVerbs = [...new Set((claims?.actionVerbs || []).map(String))];
   const short = detail === "short";
-  const resume = idsFor(structured);
+  const resume = idsFor(structured, typeof backedFor === "function" ? backedFor : null);
   // DR-6 · `short` is the frugal form: each entry keeps its ids, employer, title, date and bullets, and
   // drops its location line, technology line and free text; the action verbs are left out.
   if (short) for (const s of resume.sections) for (const e of s.entries || []) { delete e.meta; delete e.tech; delete e.text; }
