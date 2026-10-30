@@ -28,6 +28,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, u
 import { AnimatePresence, MotionConfig, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";
+import StartFromResume from "../components/StartFromResume.jsx";
 import { C } from "../styles/colorTokens.js";
 import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
@@ -860,9 +861,10 @@ export default function DeckView({ canUseAPlusResume = true }) {
           // Three different empties, each with its own way forward (§3.6). A brand-new account — a
           // first Google sign-in creates one — has no profile and no résumé: that is set-up, not an error.
           const copy = {
-            no_profile: ["Let's set up your first job profile.",
-              "Today's draft is dealt from jobs ranked against a profile — the roles you want and the résumé you'd send. Set one up and your first draft is dealt straight away.",
-              [["/app/job-profiles", "Set up a job profile →"]]],
+            // A104: the résumé sets the first profile up — one upload, and the deck is dealt.
+            no_profile: ["Start with your résumé.",
+              "Today's draft is dealt from jobs ranked against your résumé. Upload it and draft reads the roles you want and the skills you have, sets up your first job profile, and deals your first draft straight away.",
+              []],
             no_resume: ["Add your résumé to get today's draft.",
               "Fit is judged against your résumé, so there is nothing to rank until it's there. It takes a minute, and nothing is sent anywhere.",
               [["/app/job-profiles", "Add your résumé →"], ["/app/jobs", "Full House"]]],
@@ -878,6 +880,9 @@ export default function DeckView({ canUseAPlusResume = true }) {
               <div style={{ display: "flex", gap: 18, fontWeight: 800, fontSize: 14.5, flexWrap: "wrap" }}>
                 {links.map(([to, label]) => <Link key={to} to={to} style={{ color: C.ACCENT_INK }}>{label}</Link>)}
               </div>
+              {s.reason === "no_profile" && (
+                <StartFromResume onDone={() => fetchDeck()} onManual={() => navigate("/app/job-profiles")} />
+              )}
             </div>
           );
         })()}

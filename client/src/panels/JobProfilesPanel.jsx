@@ -1,6 +1,7 @@
 // SCRAPING — SCHEDULED FOR REMOVAL AFTER MIGRATION
 import { useCallback, useEffect, useState } from "react";
-import { api, authHeaders } from "../lib/api.js";
+import { api } from "../lib/api.js";
+import { parseResumeFile } from "../lib/parseResumeFile.js";
 import { useTheme } from "../styles/theme.jsx";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import DomainProfileWizard from "../components/DomainProfileWizard.jsx";
@@ -20,28 +21,6 @@ export function JobProfilesPanel() {
   const [editingProfile, setEditingProfile] = useState(null);
   const [uploadingProfileId, setUploadingProfileId] = useState(null);
   const [carried, setCarried] = useState(() => carriedResume());
-
-  const parseResumeFile = async (file) => {
-    const ext = file.name.split(".").pop().toLowerCase();
-    if (ext === "pdf") {
-      const fd = new FormData();
-      fd.append("file", file);
-      const response = await fetch("/api/parse-pdf", {
-        method: "POST",
-        credentials: "include",
-        headers: authHeaders(),
-        body: fd,
-      });
-      const data = await response.json();
-      if (!response.ok || data.error) throw new Error(data.error || "PDF parse failed");
-      return data.text || "";
-    }
-    if (ext === "docx") {
-      const mammoth = (await import("mammoth")).default;
-      return (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value;
-    }
-    return file.text();
-  };
 
   const formatTimestamp = (value) => {
     if (!value) return "";
