@@ -352,6 +352,9 @@ const AUTHENTICATED = new Set([
   "POST /api/portals/upload",
   "DELETE /api/portals/:id",
   "POST /api/portals/approve/:runJobId",
+  // D100 (a): consent for draft to create a portal account for the user; removing it.
+  "POST /api/portals/accounts",
+  "DELETE /api/portals/accounts/:id",
   "GET /api/apply/review",
   "GET /api/apply/run-jobs/:runJobId/review",
   // AH5: the fill log — what this run put in the form and what it did not. On demand, so it is

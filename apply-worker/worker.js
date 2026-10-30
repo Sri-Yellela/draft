@@ -19,7 +19,7 @@ import { createKeyStore } from "./lib/keys.js";
 import { runLease } from "./lib/run.js";
 import { sign, bearerMatches } from "../crawler/lib/signature.js";
 
-export function createWorker({ base, token, keys, autoApply, fetchImpl = fetch, workerId = "worker", log = console.log }) {
+export function createWorker({ base, token, keys, autoApply, openPage = null, fetchImpl = fetch, workerId = "worker", log = console.log }) {
   const headers = { authorization: `Bearer ${token}`, "x-worker-id": workerId };
   const post = async (p, obj) => {
     const body = JSON.stringify(obj);
@@ -38,7 +38,9 @@ export function createWorker({ base, token, keys, autoApply, fetchImpl = fetch, 
       if (r.status === 423) return { paused: true };
       if (r.status !== 200) return { error: `lease ${r.status}` };
       const { run } = await r.json();
-      const report = await runLease(run, { autoApply, keys, fetchResume });
+      // D100 (a): the account the worker created is reported (sealed) before the run's own report.
+      const postAccount = (a) => post("/api/worker/account", a);
+      const report = await runLease(run, { autoApply, keys, fetchResume, openPage, postAccount });
       const answer = await post("/api/worker/report", report);
       log(`[apply-worker] run ${run.id} → ${report.outcome}${report.reason ? ` (${report.reason})` : ""} → ${answer.body?.state ?? answer.status}`);
       return { run: run.id, report, answer };
@@ -83,7 +85,14 @@ async function main() {
   if (token.length < 32) { console.error("[apply-worker] APPLY_WORKER_TOKEN missing or shorter than 32 characters"); process.exit(2); }
   const keys = createKeyStore({ dir: process.env.APPLY_WORKER_KEY_DIR || "/data/keys", master: process.env.APPLY_WORKER_MASTER_KEY });
   const { autoApply } = await import("../services/applyAutomation.js");
-  const worker = createWorker({ base, token, keys, autoApply, workerId: process.env.APPLY_WORKER_ID || "apply-worker-1" });
+  const { launchBrowser } = await import("../services/browserLauncher.js");
+  // A fresh browser for a sign-in / sign-up (D100 (a)), closed after; the fill opens its own, as draft's runs do.
+  const openPage = async () => {
+    const browser = await launchBrowser({ headless: "new", mode: "auto" });
+    const page = await browser.newPage();
+    return { page, close: () => browser.close() };
+  };
+  const worker = createWorker({ base, token, keys, autoApply, openPage, workerId: process.env.APPLY_WORKER_ID || "apply-worker-1" });
   const port = Number(process.env.PORT || 8080);
   createKeyServer({ keys, token }).listen(port, () => console.log(`[apply-worker] up — identity ${keys.identity().slice(0, 16)}… port ${port}`));
   const poll = Math.max(10, Number(process.env.APPLY_WORKER_POLL_SECONDS || 30)) * 1000;

@@ -5,6 +5,7 @@
 //   POST /api/worker/report   HMAC-signed (crawler/lib/signature.js, the same scheme) → { ok, state }
 //   POST /api/worker/release  HMAC-signed { remoteId } — a worker shutting down gives its lease back
 //   GET  /api/worker/resume/:remoteId  Bearer → the résumé PDF for a run THIS worker holds the lease on
+//   POST /api/worker/account  HMAC-signed — D100 (a): the account the worker created (its sealed credential) or why not
 // No APPLY_WORKER_TOKEN on the server = every worker door answers 503: the feature is off, not open.
 //
 // User (requireAuth):
@@ -13,12 +14,15 @@
 //   POST   /api/portals/upload           { portalFamily, originHost, keyId, ciphertext, consent: true, expiresAt? }
 //   DELETE /api/portals/:id              revoke: the worker destroys the key; the ciphertext is unreadable from then on
 //   POST   /api/portals/approve/:runJobId  Ready to approve → the worker refills, verifies, submits (D100 P4)
+//   POST   /api/portals/accounts     { portalFamily, originHost, consent: true } — D100 (a): draft may make an account there
+//   DELETE /api/portals/accounts/:id draft stops using it and the worker destroys its key (the account stays the user's)
 // ⛔ D100 reverses the 410 on /api/apply/session/* (routes/apply.js) to point here — the password never passes
 // through draft, and draft cannot read the session.
 import express, { Router } from "express";
 import { verify, bearerMatches } from "../crawler/lib/signature.js";
 import {
   leaseRemoteRun, acceptReport, releaseRemoteRun, storeSession, listPortals, revokeSession, approveRemoteRun,
+  requestAccount, listAccounts, removeAccount, acceptAccount,
 } from "../services/applyWorker.js";
 
 const token = (env) => env.APPLY_WORKER_TOKEN || "";
@@ -88,6 +92,12 @@ export function createApplyWorkerRouter(db, { env = process.env, hooks = {}, pay
     const out = acceptReport(db, report, { workerId: workerId(req), hooks });
     res.status(out.ok ? 200 : 409).json(out);
   });
+  router.post("/account", express.text({ type: "application/json", limit: "64kb" }), (req, res) => {
+    const body = signedBody(req, res);
+    if (!body) return;
+    const out = acceptAccount(db, body, { workerId: workerId(req) });
+    res.status(out.ok ? 200 : 409).json(out);
+  });
   router.post("/release", express.text({ type: "application/json", limit: "4kb" }), (req, res) => {
     const body = signedBody(req, res);
     if (!body) return;
@@ -99,7 +109,23 @@ export function createApplyWorkerRouter(db, { env = process.env, hooks = {}, pay
 export default function portalRoutes(app, db, requireAuth, { client = null } = {}) {
   const fail = (res, e) => res.status(e.status || 500).json({ error: e.code || "error", message: e.message });
 
-  app.get("/api/portals", requireAuth, (req, res) => res.json({ portals: listPortals(db, req.user.id) }));
+  app.get("/api/portals", requireAuth, (req, res) => res.json({ portals: listPortals(db, req.user.id), accounts: listAccounts(db, req.user.id) }));
+
+  // D100 (a), owner 10-30: draft creates portal accounts for the user. Consent per portal, said in full here and in the
+  // client: your own email, a password draft's apply worker generates and keeps sealed (draft cannot read it), and the
+  // portal's own "forgot password" always gives you the account.
+  app.post("/api/portals/accounts", requireAuth, (req, res) => {
+    try { const r = requestAccount(db, req.user.id, req.body || {}); res.status(r.existing ? 200 : 201).json({ ...r, accounts: listAccounts(db, req.user.id) }); }
+    catch (e) { fail(res, e); }
+  });
+  app.delete("/api/portals/accounts/:id", requireAuth, async (req, res) => {
+    const r = removeAccount(db, req.user.id, req.params.id);
+    if (!r) return res.status(404).json({ error: "not_found" });
+    const c = client ?? workerClient();
+    let keyDestroyed = r.keyId == null;
+    try { if (c && r.keyId) { await c.destroyKey(r.keyId); keyDestroyed = true; } } catch { keyDestroyed = false; }
+    res.json({ removed: true, keyDestroyed, accounts: listAccounts(db, req.user.id) });
+  });
 
   app.post("/api/portals/connect/start", requireAuth, async (req, res) => {
     const c = client ?? workerClient();
