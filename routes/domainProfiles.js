@@ -24,6 +24,8 @@ import {
   syncSelectedSkillSuggestions,
 } from "../services/profileSignalAggregator.js";
 import { mergeUniqueSignalLabels } from "../shared/profileSignals.js";
+import { startFromResume } from "../services/resumeOnboarding.js";
+import { readProfile } from "../services/structuredProfile.js";
 import { MODEL_HAIKU } from "../shared/anthropicModels.js";
 import { callModel, DATA_CLASS } from "../services/modelCall.js";
 
@@ -196,6 +198,31 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
 
     const row = db.prepare("SELECT * FROM domain_profiles WHERE id=?").get(result.lastInsertRowid);
     res.json(parseProfileRow(row));
+  });
+
+  // ── POST /api/domain-profiles/from-resume ─────────────────── A104 (owner 10-30)
+  // The résumé starts the profile: { content, name } → the first job profile (domain, level, titles, keywords read
+  // from the résumé — services/resumeOnboarding.js), its base résumé and signals, the person profile's sections and
+  // stated defaults, and empty contact fields. 409 when a job profile exists (a second one is the wizard's).
+  router.post("/from-resume", (req, res) => {
+    const { content, name } = req.body || {};
+    try {
+      const out = startFromResume(db, req.user.id, { content, name }, {
+        registry: getRegistry(),
+        saveBaseResume: (profileId, text, fileName) => {
+          saveBaseResumeRecord(db, { userId: req.user.id, profileId }, text, fileName);
+          const p = db.prepare("SELECT target_titles FROM domain_profiles WHERE id=?").get(profileId);
+          upsertSimpleApplyProfile(db, { userId: req.user.id, profileId }, text, JSON.parse(p?.target_titles || "[]"));
+        },
+        readProfile,
+        onProfileWrite: (profileId) => onProfileWrite?.(req.user.id, profileId, "POST /from-resume"),
+      });
+      const row = db.prepare("SELECT * FROM domain_profiles WHERE id=?").get(out.profileId);
+      emitToUser(req.user.id, { type: "profile_switched", profileId: out.profileId });
+      res.json({ ...out, profile: parseProfileRow(row) });
+    } catch (e) {
+      res.status(e.status || 500).json({ error: e.code || "error", message: e.message });
+    }
   });
 
   // Store unsupported-role requests for product/admin review. The user may

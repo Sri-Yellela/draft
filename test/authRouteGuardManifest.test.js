@@ -264,6 +264,7 @@ const AUTHENTICATED = new Set([
   "GET /api/company-kb/:company/hiring-signals",
   "GET /api/domain-profiles/",
   "POST /api/domain-profiles/",
+  "POST /api/domain-profiles/from-resume",   // A104: the résumé starts the first job profile
   "POST /api/domain-profiles/requests",
   "PUT /api/domain-profiles/:id",
   "DELETE /api/domain-profiles/:id",
