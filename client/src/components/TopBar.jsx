@@ -119,6 +119,8 @@ function useNotifications() {
 const NOTIF_TYPE_ICONS = {
   scrape_complete: "🔍", resume_generated: "✦", ats_scored: "🎯",
   enhance_ready: "✨", best_match: "⚡", apply_complete: "✅",
+  // D112 item 8 (services/notify.js): the person's pipeline events.
+  needs_you: "!", inbox_reply: "✉", auto_daily_summary: "☰",
 };
 
 function notifTimeAgo(ts) {

@@ -5135,4 +5135,34 @@ export const MIGRATIONS = [
         ALTER TABLE portal_accounts ADD COLUMN reset_existing INTEGER NOT NULL DEFAULT 0;
       `,
     },
+    {
+      // ⭐ D112 item 8 (owner 10-30: "Web Push (VAPID, no vendor) + email through Resend now; FCM with Android"). Each event
+      // stays ONE row in `notifications` (019); these two tables decide its copies. push_subscriptions: one row per browser
+      // endpoint (the browser's own push service — services/webPush.js PUSH_HOSTS only), its RFC 8291 keys; a 404 / 410 from the
+      // push service deletes the row. notification_prefs: the person's per-event switches (services/notify.js NOTIFY_EVENTS);
+      // no row = the event's default. Both cascade with the user; the export drops endpoint and keys (secret columns).
+      id: "183_web_push",
+      sql: `
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+          id              INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          endpoint        TEXT    NOT NULL UNIQUE,
+          key_p256dh      TEXT    NOT NULL,
+          key_auth        TEXT    NOT NULL,
+          user_agent      TEXT,
+          failures        INTEGER NOT NULL DEFAULT 0,
+          last_success_at INTEGER,
+          created_at      INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
+        CREATE TABLE IF NOT EXISTS notification_prefs (
+          user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          event      TEXT    NOT NULL,
+          push       INTEGER NOT NULL DEFAULT 0,
+          email      INTEGER NOT NULL DEFAULT 0,
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, event)
+        );
+      `,
+    },
   ];
