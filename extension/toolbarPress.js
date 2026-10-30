@@ -23,12 +23,12 @@
 // browser work handed in as `deps` so it is tested without a browser.
 
 /** What the press says about this page — the popups, in order (one is shown at a time). */
-export function relayFor({ identity = null, ctx = null, auto = null } = {}) {
+export function relayFor({ identity = null, ctx = null, auto = null, away = null } = {}) {
   if (!identity?.authenticated) {
     return [{ id: 'draft-relay', kind: 'question', icon: 'info', text: 'Sign in to draft to use it here.',
       actions: [{ id: 'sign-in', label: 'Sign in to draft', word: 'Sign in', primary: true }] }];
   }
-  if (!ctx) return [];
+  if (!ctx) return Array.isArray(away) ? [...away] : [];   // ⭐⭐ D112 item 7: the portal line needs no page context
   const out = [];
   const id = ctx.identity || null;
   const job = (p) => [p?.title, p?.company].filter(Boolean).join(' at ');
@@ -63,6 +63,9 @@ export function relayFor({ identity = null, ctx = null, auto = null } = {}) {
     out.push({ id: 'draft-auto', kind: 'toast', icon: 'read', ms: 8000, text: `draft can read ${auto.cardSite} application pages for you automatically.`,
       actions: [{ id: 'auto-setup', label: 'Set up automatic reading — opens Settings', word: 'Set up' }, { id: 'auto-later', label: 'Not now', word: 'Later' }] });
   }
+  // ⭐⭐ D112 item 7: on a connectable portal's page — "Let draft apply here while you're away?" (signed in there, not yet
+  // connected) or the connected line with Disconnect. The specs are applyAway.js awayRelay's (deps.away gathers the facts).
+  if (Array.isArray(away)) out.push(...away);
   return out;
 }
 
@@ -142,7 +145,8 @@ export async function toolbarPress(tab, deps) {
   const identity = await deps.identity().catch(() => ({ authenticated: false }));
   const ctx = identity?.authenticated ? await deps.context(tab).catch(() => null) : null;
   const auto = identity?.authenticated && deps.auto ? await deps.auto(tab).catch(() => null) : null;
-  const specs = relayFor({ identity, ctx, auto });
+  const away = identity?.authenticated && deps.away ? await deps.away(tab).catch(() => null) : null;
+  const specs = relayFor({ identity, ctx, auto, away });
   if (specs.length) await deps.relay(tab, specs).catch(() => null);
   // ⭐ D112 b2: the ONE ask — a small window over this posting, opened by this press while it is due (never answered)
   const asked = auto?.globalAsk && deps.ask ? await deps.ask(tab).catch(() => null) : null;

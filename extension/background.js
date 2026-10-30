@@ -45,6 +45,11 @@ import {
 } from './autoRead.js';
 // ⭐ D112 b2: the ONE global-read ask — a small window over the posting that closes itself on either answer.
 import { openGlobalAsk, handlers as GLOBAL_ASK_HANDLERS, onWindowRemoved as onAskWindowRemoved } from './globalRead.js';
+// ⭐⭐ D112 item 7: "Let draft apply here while you're away" — a portal's sign-in sealed to the apply worker's key.
+import {
+  configureApplyAway, awayFactsFor, awayRelay, startAway, disconnectAway, portalSignedInInPage,
+  handlers as APPLY_AWAY_HANDLERS, onAwayWindowRemoved,
+} from './applyAway.js';
 
 // ⭐ T12 · a press found the form inside an ATS frame draft may not read yet: the settings remember WHICH site that page's
 // origin embeds (autoRead.js frameHints), so the popup's "Always read here" can ask for that frame too — local knowledge.
@@ -872,6 +877,8 @@ function pressToolbar(tab) {
     openBoard: () => chrome.tabs.create({ url: `${RESUME_MASTER_URL}/app` }),
     // ⭐ D112 b2: the press is the ONE ask's moment while it is due (never answered) — the window over the posting
     ask: (t) => openGlobalAsk(t),
+    // ⭐⭐ D112 item 7: the "apply here while you're away" line — on a connectable portal's page only
+    away: async () => awayRelay(await awayFactsFor(tab)),
   });
 }
 /**
@@ -934,6 +941,10 @@ const DOCK_ACTS = Object.freeze({
     await chrome.tabs.create({ url: chrome.runtime.getURL(`options.html?${q}#auto-read`) });
     return { ok: true, say: null };
   },
+  // ⭐⭐ D112 item 7: the family is the TAB's address's (applyAway.js), never the message's. Granted already → it connects
+  // now; otherwise the small window whose Allow asks Chrome for `cookies` + that portal's hosts, inside its own click.
+  'apply-away': async (tab) => startAway(tab),
+  'apply-away-disconnect': async (tab) => disconnectAway(tab),
   'auto-setup': async () => { await chrome.tabs.create({ url: chrome.runtime.getURL('options.html#auto-read') }); return { ok: true, say: null }; },
   // "Later" on the one-time offer: the worker's own write, as the popup card's Later was (an extension page's sender)
   'auto-later': async () => {
@@ -1004,6 +1015,25 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return true;
 });
 chrome.windows?.onRemoved?.addListener((windowId) => { void onAskWindowRemoved(windowId).catch(() => null); });
+
+// ── ⭐⭐ D112 item 7: "Let draft apply here while you're away" (applyAway.js) ─────────────────────────────────────────
+// APPLY_AWAY_ANSWER only from the ask window (apply-away.html); the connect reads only the tab's portal family's cookies,
+// after the minted key's signature checked out against the PINNED worker identity, and uploads ciphertext only.
+configureApplyAway({
+  api: chrome,
+  subtle: crypto.subtle,
+  fetcher: (path, init) => authedFetch(RESUME_MASTER_URL, path, init),
+  show: async (tabId, specs) => drawInDock(tabId, renderRelay, [specs, await overlayTheme()]),
+  signedIn: (tab) => chrome.scripting.executeScript({ target: { tabId: tab.id, frameIds: [0] }, func: portalSignedInInPage })
+    .then(([r]) => r?.result === true),
+});
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  const handle = APPLY_AWAY_HANDLERS[msg?.type];
+  if (!handle) return false;
+  handle(msg, sender).then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
+  return true;
+});
+chrome.windows?.onRemoved?.addListener((windowId) => { onAwayWindowRemoved(windowId); });
 
 // ── D98 §4–§5 (J6): the résumé on the page ─────────────────────────────────────────────────────────
 // The handlers are resumePanel.js's: the popup and the review panel may only OPEN the panel; a generation starts
