@@ -5,7 +5,7 @@
 // it VERIFIES does it move to Submitted (the Applications sheet). Nothing becomes "submitted" on a
 // click alone. The rule, and what it does and does not prove, comes from the server
 // (services/applicationRecords.js VERIFY_RULE) and is shown above the table, not paraphrased here.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
 import CompanyLink from "./CompanyLink.jsx";
@@ -67,9 +67,16 @@ function RecordForm({ row, methods, theme, onRecord, busy }) {
   );
 }
 
-export default function PendingApplications({ data, theme, onRecord, onWithdraw, busyId, messages = {} }) {
-  const [open, setOpen] = useState(null);
+export default function PendingApplications({ data, theme, onRecord, onWithdraw, busyId, messages = {}, focusJobId = null }) {
+  const [open, setOpen] = useState(focusJobId);
   const rows = data?.pending || [];
+  // A105 finding 3: History's "Record the submission" arrives WITH its job — that row's form is open and in view, so
+  // the user does not hunt for it in the list.
+  useEffect(() => {
+    if (!focusJobId || !rows.some(r => r.jobId === focusJobId)) return;
+    setOpen(focusJobId);
+    document.querySelector(`[data-pending-row="${CSS.escape(String(focusJobId))}"]`)?.scrollIntoView?.({ block: "center" });
+  }, [focusJobId, rows.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const methods = data?.methods || [];
   const rule = data?.verifyRule;
   return (

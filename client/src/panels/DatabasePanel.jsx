@@ -312,6 +312,7 @@ export function DatabasePanel({ user }) {
   const [pendingData,  setPendingData]  = useState({ pending: [], verified: [], methods: [], verifyRule: null });
   const [pendingBusy,  setPendingBusy]  = useState(null);
   const [pendingMsgs,  setPendingMsgs]  = useState({});
+  const [pendingFocus, setPendingFocus] = useState(null); // A105 finding 3: the job History sent here
 
   const inputRef = useRef();
   const calRef   = useRef();
@@ -686,7 +687,7 @@ export function DatabasePanel({ user }) {
       {/* ── Pending pane (A63) ── */}
       {activeSheet === "pending" && (
         <PendingApplications data={pendingData} theme={theme} busyId={pendingBusy} messages={pendingMsgs}
-          onRecord={recordPending} onWithdraw={withdrawPending} />
+          onRecord={recordPending} onWithdraw={withdrawPending} focusJobId={pendingFocus} />
       )}
 
       {/* ── Inbox (D103) — replies from job sites, forwarded by the user, filed by rule. ── */}
@@ -694,7 +695,7 @@ export function DatabasePanel({ user }) {
 
       {/* ── History (D15) — The Table's own view. ⛔ No summary strip: its chips carry the counts. ── */}
       {activeSheet === "history" && (
-        <ApplicationHistory onOpenPending={() => setActiveSheet("pending")}
+        <ApplicationHistory onOpenPending={(jobId) => { setPendingFocus(jobId || null); setActiveSheet("pending"); }}
           onOpenDraftHouse={() => navigate("/app/auto-apply")}/>
       )}
 

@@ -181,8 +181,9 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
       {hasArtifact && <p className="pp__ready" data-resume-ready="">{ago ? `Résumé ready · ${ago}` : "Résumé ready"} · <WhatWeChangedLink jobId={job?.jobId} jobLabel={[job?.title, job?.company].filter(Boolean).join(" · ")} /></p>}
       {/* ⭐ D86: Open → Waiting for your résumé… → Checks → Done, updating itself while the user is in the chat. */}
       <ByomStatus byom={byom} onView={() => onViewSandbox?.()} onDownload={() => onExport?.()} />
-      {/* ⭐ D56: the manual route records its own submission, here too — not only the extension. */}
-      {hasArtifact && job?.jobId && <ManualSubmitted jobId={job.jobId} />}
+      {/* ⭐ D56: the manual route records its own submission, here too — not only the extension. A105 finding 3: on every
+          posting, not only once a résumé was generated — applying with the base résumé is applying too. */}
+      {job?.jobId && <ManualSubmitted jobId={job.jobId} />}
       {/* A63: the shared allowance, said before anything is pressed — a muted line in A, the badge in B. */}
       {quota && <p className="pp__quota" data-draft-slots data-empty={noSlots ? "true" : "false"}>{quota}</p>}
       {/* ⭐ D70 Phase 3: the cost, in words, before Generate / Regenerate is pressed — a line, never a capsule (D60). */}
