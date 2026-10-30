@@ -46,3 +46,12 @@ test("D102 P5 · list and detail: on a wide screen Draft House opens an applicat
   assert.match(panel, /<JobWorkspacePanel jobId=\{sideJob\} embedded \/>/);
   assert.match(manifest, /from: "panels\/AutoApplyPanel\.jsx", to: "panels\/JobWorkspacePanel\.jsx"/, "a declared composition (A93)");
 });
+
+test("D102 P5 · list and detail in The Table too: History's open application shows beside it on a wide screen", () => {
+  const db = fs.readFileSync("client/src/panels/DatabasePanel.jsx", "utf8");
+  const manifest = fs.readFileSync("client/src/modules.manifest.js", "utf8");
+  assert.match(db, /onOpenApplication=\{sideDetail \? setSideRecord : null\}/);
+  assert.match(db, /<JobWorkspacePanel applicationId=\{sideRecord\} embedded \/>/);
+  assert.match(history, /if \(onOpenApplication\) onOpenApplication\(row\.recordId\); else navigate\(/);
+  assert.match(manifest, /from: "panels\/DatabasePanel\.jsx", to: "panels\/JobWorkspacePanel\.jsx"/);
+});

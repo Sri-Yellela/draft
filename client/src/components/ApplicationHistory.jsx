@@ -225,7 +225,7 @@ function Funnel({ rows }) {
   );
 }
 
-export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) {
+export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse, onOpenApplication = null }) {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -538,7 +538,7 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
                     {/* D102 P5 · the application's own page — checklist, résumé, every value sent, the posting, its emails. */}
                     {row.recordId != null && (
                       <p className="ah__ask"><a className="ah__btn" href={`/app/job/${row.recordId}`} data-open-job-page=""
-                        onClick={(e) => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); navigate(`/app/job/${row.recordId}`); } }}>Open this application</a></p>
+                        onClick={(e) => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); if (onOpenApplication) onOpenApplication(row.recordId); else navigate(`/app/job/${row.recordId}`); } }}>Open this application</a></p>
                     )}
 
                     {/* D51: a Draft waits in Draft House — that is where it is acted on, not recorded here. */}
