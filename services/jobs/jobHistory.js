@@ -191,7 +191,9 @@ export function livenessFor(db, jobId, { now = Math.floor(Date.now() / 1000) } =
   let row = null;
   try { row = db.prepare(`SELECT * FROM job_history WHERE job_id = ?`).get(String(jobId)); } catch { row = null; }
   if (!row) {
-    const b = db.prepare(`SELECT job_id, company, title, location, posted_at, discovered_at, scraped_at, updated_at FROM scraped_jobs WHERE job_id = ?`).get(String(jobId));
+    let b = null;
+    try { b = db.prepare(`SELECT job_id, company, title, location, posted_at, discovered_at, scraped_at, updated_at FROM scraped_jobs WHERE job_id = ?`).get(String(jobId)); }
+    catch { b = null; }   // a database without those columns knows nothing of the posting's history
     if (!b) return null;
     row = historyFromBoardRow(b, now);
   }
